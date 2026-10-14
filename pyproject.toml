@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "machincast"
+version = "0.1.0"
+description = "Système automatisé de diffusion sonore pour radio, sous Linux"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "GPL-3.0-or-later"
+authors = [{ name = "Xavier Mouton-Dubosc" }]
+dependencies = [
+	"PySide6>=6.10,<6.11",  # Qt 6.10, version de Kubuntu 26.04 LTS
+	"PyGObject>=3.48",
+	"psycopg>=3.1",
+	"yoyo-migrations>=9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+	"pytest>=8",
+	"pytest-bdd>=8",
+	"pytest-qt>=4.4",
+	"ruff>=0.6",
+	"mypy>=1.11",
+]
+
+[project.urls]
+Source = "https://github.com/dascritch/machincast"
+Tickets = "https://github.com/dascritch/machincast/issues"
+
+[project.scripts]
+Machin_lecture = "machincast.lecture.__main__:main"
+Machin_indexation = "machincast.indexation.__main__:main"
+Machin_interface = "machincast.interface.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+machincast = ["py.typed"]
+
+# ─── Qualité ───────────────────────────────────────────────
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.format]
+# Indentation par tabulations, pour des raisons d'accessibilité (doc/regles/developpement.md).
+indent-style = "tab"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+# W191 signale les tabulations : désactivée, puisque les tabulations sont la règle du projet.
+ignore = ["W191"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+files = ["src"]
+
+# ─── Tests ─────────────────────────────────────────────────
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+bdd_features_base_dir = "tests/features"
+addopts = "--strict-markers"
