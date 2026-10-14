@@ -19,5 +19,5 @@
 
 - Cible : Ubuntu 26.04 LTS, uniquement des LTS.
 - Releases `.tar.gz` sur le dépôt git, avec un `install.sh` qui installe dépendances apt, venv, bases et rôles, unité systemd, règle polkit, wrapper et autocomplétion.
-- Environnement virtuel isolé : jamais `--system-site-packages`. Toute dépendance Python est déclarée dans `pyproject.toml` et installée par pip ; apt ne fournit que les bibliothèques système (#51).
+- Environnement virtuel isolé : jamais `--system-site-packages`. Toute dépendance Python est déclarée dans `pyproject.toml` et installée par pip ; apt ne fournit que les bibliothèques système ([#51](https://github.com/dascritch/machincast/issues/51)).
 - La règle polkit n'autorise que le démarrage, l'arrêt et le redémarrage du service de lecture.
