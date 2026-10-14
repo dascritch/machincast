@@ -1,0 +1,1 @@
+"""Binaire Machin_interface."""

@@ -11,23 +11,25 @@ Python · PySide6 (Qt 6.10) · PostgreSQL via socket Unix (psycopg 3, auth peer)
 ## Commandes
 
 ```bash
+# Prérequis système (compilation de PyGObject, GStreamer) — voir #51
+sudo apt install libgirepository-2.0-dev libcairo2-dev gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good
+
 # Installation de dev
 python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
-
-# Schéma de la base de test
-yoyo apply --database <url de la base de test> migrations/
 
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/
 
 # Tests
 pytest
-bats tests/wrapper
 
-# Lancement local
-Machin lecture --config <fichier>
-Machin_interface
+# Aide des exécutables
+Machin_lecture --help
+Machin_indexation --help
+Machin_interface --help
 ```
+
+Commandes à venir : schéma de la base de test (`yoyo apply --database <url> migrations/`, #3), tests du wrapper (`bats tests/wrapper`, #6), lancement local (`Machin lecture --config <fichier>`, #2 et #6).
 
 ## Règles selon le contexte
 
