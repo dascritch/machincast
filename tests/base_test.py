@@ -11,6 +11,8 @@ from pathlib import Path
 import psycopg
 import pytest
 
+from machincast.base import appliquer_migrations, url_yoyo
+
 SOCKET = os.environ.get("MACHINCAST_SOCKET", "/var/run/postgresql")
 BASE = os.environ.get("MACHINCAST_BASE_TEST", "machincast_test")
 
@@ -25,3 +27,12 @@ def connexion_test() -> psycopg.Connection[tuple[object, ...]]:
 		return psycopg.connect(host=SOCKET, dbname=BASE, autocommit=True)
 	except psycopg.OperationalError as erreur:
 		pytest.skip(f"base de test {BASE} injoignable par {SOCKET} : {erreur}")
+
+
+def reinitialiser_base(connexion: psycopg.Connection[tuple[object, ...]]) -> None:
+	"""Vide la base de test puis y applique toutes les migrations."""
+	connexion.execute("DROP SCHEMA public CASCADE")
+	# Recrée le schéma public comme dans une base neuve (PostgreSQL ≥ 15) : propriétaire de la base, lisible par tous.
+	connexion.execute("CREATE SCHEMA public AUTHORIZATION pg_database_owner")
+	connexion.execute("GRANT USAGE ON SCHEMA public TO PUBLIC")
+	appliquer_migrations(url_yoyo(*parametres_base_test()))

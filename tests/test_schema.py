@@ -10,8 +10,8 @@ import pytest
 from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast.base import TABLES, TYPES, annuler_migrations, appliquer_migrations, url_yoyo
-from tests.base_test import connexion_test, parametres_base_test
+from machincast.base import TABLES, TYPES, annuler_migrations, url_yoyo
+from tests.base_test import connexion_test, parametres_base_test, reinitialiser_base
 
 scenarios("schema.feature")
 
@@ -66,9 +66,7 @@ def analyser(contexte: Contexte, valeurs: str) -> dict[str, str]:
 
 @given("une base de test vide où les migrations sont appliquées")
 def base_migree(contexte: Contexte) -> None:
-	contexte.connexion.execute("DROP SCHEMA public CASCADE")
-	contexte.connexion.execute("CREATE SCHEMA public")
-	appliquer_migrations(url_yoyo(*parametres_base_test()))
+	reinitialiser_base(contexte.connexion)
 
 
 @given("les éléments de référence en base")

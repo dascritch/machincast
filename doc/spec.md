@@ -190,20 +190,27 @@ Le schéma est créé par la migration `src/machincast/migrations/0001.schema-in
 
 ### 3.2 Rôles et droits
 
-Authentification **peer** (mode par défaut de PostgreSQL) par la socket Unix : chaque rôle correspond à un utilisateur système. Le respect des droits est en plus vérifié dans le code source.
+Un rôle PostgreSQL par binaire : `machincast_lecture`, `machincast_indexation`, `machincast_interface`. Ils sont créés par la migration `0002.droits` ([#4](https://github.com/dascritch/machincast/issues/4)) et partagés par la base de production et la base de test.
+
+- Ce sont des **rôles de groupe**, sans connexion. Un utilisateur système se connecte avec son propre rôle, par authentification **peer** sur la socket Unix.
+- L'utilisateur est membre des rôles qu'il peut endosser, **sans en hériter les droits** : connecté, il n'a accès à rien. Chaque binaire endosse son rôle par `SET ROLE` dès la connexion (`machincast.base.connecter`). L'indexation lancée depuis l'interface, sous l'utilisateur de bureau, agit donc avec les seuls droits de l'indexation.
+- Un administrateur autorise un utilisateur avec `python -m machincast.droits --base <base> autoriser <utilisateur> <rôle>…` ; `install.sh` l'utilise ([#40](https://github.com/dascritch/machincast/issues/40)).
+- Le respect des droits est en plus vérifié dans le code source.
+- PostgreSQL 16 ou plus récent est requis (options `INHERIT` et `SET` des appartenances).
 
 | Table | Lecture (`Machin_lecture`) | Indexation (`Machin_indexation`) | Interface (`Machin_interface`) |
 | --- | --- | --- | --- |
-| `sonores` | lecture + écriture du seul champ `actif` | lecture + écriture | lecture + écriture |
-| `marques_pages_streams` | lecture | — | lecture + écriture |
-| `banques` | lecture | lecture | lecture + écriture |
-| `banques_sonores` | lecture | lecture + écriture | lecture + écriture |
-| `evenements` | lecture | — | lecture + écriture |
-| `evenements_elements` | lecture | — | lecture + écriture |
-| `airplay` | lecture + insertion seule | — | lecture |
-| `log` | insertion seule | — | lecture |
+| `sonores` | lire ; modifier la seule colonne `actif` | lire, insérer, modifier | lire, insérer, modifier, supprimer |
+| `marques_pages_streams` | lire | — | lire, insérer, modifier, supprimer |
+| `banques` | lire | lire | lire, insérer, modifier, supprimer |
+| `banques_repertoires` | — | lire | lire, insérer, modifier, supprimer |
+| `banques_sonores` | lire | lire, insérer | lire, insérer, modifier, supprimer |
+| `evenements` | lire | — | lire, insérer, modifier, supprimer |
+| `evenements_elements` | lire | — | lire, insérer, modifier, supprimer |
+| `airplay` | lire, insérer | — | lire |
+| `log` | insérer (sans `RETURNING`) | — | lire |
 
-L'indexation lancée depuis l'interface tourne sous l'utilisateur de bureau, donc avec le rôle de l'interface. Ses restrictions reposent alors sur le code. C'est accepté.
+L'indexation ne supprime rien : un fichier disparu rend son sonore inactif. Quand l'interface supprime un élément, les références dans `airplay` et `log` passent à vide avec les droits du propriétaire des tables ; l'interface n'a pas besoin de droit d'écriture sur ces deux tables.
 
 ## 4. Règles d'ordonnancement
 

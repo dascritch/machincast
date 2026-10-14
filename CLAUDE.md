@@ -20,8 +20,12 @@ sudo apt install python3-venv python3-dev build-essential pkg-config libgireposi
 python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
 cp machincast.exemple.toml machincast.toml   # puis l'adapter ; jamais versionné
 
-# Base de test locale (PostgreSQL, authentification peer)
+# Base de test locale (PostgreSQL ≥ 16, authentification peer)
 createdb machincast_test
+
+# Autoriser un utilisateur système à endosser des rôles
+# (par un rôle PostgreSQL qui a CREATEROLE et qui a créé les rôles, par exemple celui qui applique les migrations)
+python -m machincast.droits --base machincast_test autoriser "$(id -un)" lecture indexation interface
 
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/
