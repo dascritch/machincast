@@ -2,18 +2,19 @@
 
 from collections.abc import Sequence
 
-from machincast.cli import creer_analyseur, non_implemente
+from machincast.cli import lancer, non_implemente
+from machincast.configuration import Configuration
 
 EXECUTABLE = "Machin_indexation"
+DESCRIPTION = "Vérifie les sonores et indexe les répertoires des banques."
+
+
+def executer(configuration: Configuration) -> int:
+	return non_implemente(EXECUTABLE, 7)
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
-	analyseur = creer_analyseur(
-		EXECUTABLE,
-		"Vérifie les sonores et indexe les répertoires des banques.",
-	)
-	analyseur.parse_args(arguments)
-	return non_implemente(EXECUTABLE, 7)
+	return lancer(EXECUTABLE, DESCRIPTION, arguments, executer)
 
 
 if __name__ == "__main__":

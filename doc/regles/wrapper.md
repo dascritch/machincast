@@ -12,7 +12,8 @@
 ## Configuration
 
 - `machincast.toml` (TOML) dans le répertoire du projet, **ignoré par git**.
-- Le modèle versionné porte un autre nom. Toute nouvelle clé y est ajoutée et documentée.
+- Le modèle versionné est `machincast.exemple.toml`. Toute nouvelle clé y est ajoutée et commentée, dans `src/machincast/configuration.py` (clés connues et validation) et dans le tableau de [spec.md § 9](../spec.md#9-configuration).
+- Les clés inconnues sont refusées : ne jamais assouplir cette règle.
 
 ## Déploiement
 

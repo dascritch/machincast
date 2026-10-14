@@ -1,0 +1,38 @@
+# Modèle de configuration de MachinCast.
+#
+# Copier ce fichier en machincast.toml dans le répertoire du projet, puis l'adapter.
+# machincast.toml est ignoré par git : il ne doit jamais être versionné.
+# Un autre fichier peut être utilisé avec l'option --config, par exemple pour les tests.
+#
+# Toute clé inconnue est refusée au chargement, pour détecter les fautes de frappe.
+# Les chemins relatifs sont résolus depuis le répertoire de ce fichier.
+
+[base]
+# Répertoire de la socket Unix de PostgreSQL (authentification peer).
+socket = "/var/run/postgresql"
+# Base de production, utilisée par la diffusion.
+production = "machincast"
+# Base de test, utilisée par les tests automatisés. Ne doit jamais être la base de production.
+test = "machincast_test"
+
+[audio]
+# Sortie audio de l'antenne : "alsa", "pulseaudio" ou "pipewire".
+# Avec "alsa", le VU-mètre de l'interface n'est pas disponible.
+sortie = "pipewire"
+# Périphérique de l'antenne. Facultatif : sans cette clé, le périphérique par défaut de la sortie est utilisé.
+# peripherique = "alsa_output.pci-0000_00_1f.3.analog-stereo"
+# Périphérique de pré-écoute de l'interface. Obligatoire, et différent du périphérique de l'antenne.
+preecoute = "alsa_output.usb-casque.analog-stereo"
+
+[sorties]
+# Airplay au format CSV (sortie privée : tous les sonores).
+csv = "sorties/airplay.csv"
+# Playlist de fichiers au format .pls (sortie privée).
+pls = "sorties/playlist.pls"
+# Airplay au format HTML (sortie publique : le masquage des métadonnées s'applique).
+html = "sorties/airplay.html"
+
+[metadonnees]
+# Masquage par défaut de l'artiste et du titre sur les sorties publiques.
+# Priorité : événement > banque > sonore > cette valeur.
+masquer = false

@@ -16,6 +16,7 @@ sudo apt install libgirepository-2.0-dev libcairo2-dev gir1.2-gstreamer-1.0 gstr
 
 # Installation de dev
 python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
+cp machincast.exemple.toml machincast.toml   # puis l'adapter ; jamais versionné
 
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/
@@ -27,9 +28,12 @@ pytest
 Machin_lecture --help
 Machin_indexation --help
 Machin_interface --help
+
+# Lancement avec une configuration précise
+Machin_lecture --config <fichier>
 ```
 
-Commandes à venir : schéma de la base de test (`yoyo apply --database <url> migrations/`, #3), tests du wrapper (`bats tests/wrapper`, #6), lancement local (`Machin lecture --config <fichier>`, #2 et #6).
+Commandes à venir : schéma de la base de test (`yoyo apply --database <url> migrations/`, #3), tests du wrapper (`bats tests/wrapper`, #6), lancement par le wrapper (`Machin lecture --config <fichier>`, #6).
 
 ## Règles selon le contexte
 
