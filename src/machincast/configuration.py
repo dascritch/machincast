@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, cast
 
+from machincast.base import LONGUEUR_TEXTE_COURT
+
 FICHIER_PAR_DEFAUT = Path("machincast.toml")
 """Cherché dans le répertoire courant quand aucun fichier n'est passé avec --config."""
 
@@ -46,6 +48,8 @@ class Sorties:
 class Metadonnees:
 	masquer: bool
 	"""Masquage par défaut de l'artiste et du titre sur les sorties publiques."""
+	texte_public: str
+	"""Texte public affiché à la place de l'artiste et du titre masqués, quand l'événement n'a pas de nom public."""
 
 
 @dataclass(frozen=True)
@@ -62,7 +66,7 @@ CLES: dict[str, frozenset[str]] = {
 	"base": frozenset({"socket", "production", "test"}),
 	"audio": frozenset({"sortie", "peripherique", "preecoute"}),
 	"sorties": frozenset({"csv", "pls", "html"}),
-	"metadonnees": frozenset({"masquer"}),
+	"metadonnees": frozenset({"masquer", "texte_public"}),
 }
 
 
@@ -100,6 +104,15 @@ class _Lecteur:
 			raise self.erreur(f"clé {section}.{cle} : texte attendu, {_decrire(valeur)} trouvé")
 		if not valeur.strip():
 			raise self.erreur(f"clé {section}.{cle} : la valeur ne peut pas être vide")
+		return valeur
+
+	def texte_court(self, section: str, cle: str) -> str:
+		"""Texte affiché au public : limité à LONGUEUR_TEXTE_COURT caractères, comme les textes en base."""
+		valeur = self.texte(section, cle)
+		if len(valeur) > LONGUEUR_TEXTE_COURT:
+			raise self.erreur(
+				f"clé {section}.{cle} : {LONGUEUR_TEXTE_COURT} caractères au maximum, {len(valeur)} trouvés"
+			)
 		return valeur
 
 	def texte_facultatif(self, section: str, cle: str) -> str | None:
@@ -179,5 +192,8 @@ def charger(chemin: Path | None = None) -> Configuration:
 			pls=lecteur.chemin_fichier("sorties", "pls"),
 			html=lecteur.chemin_fichier("sorties", "html"),
 		),
-		metadonnees=Metadonnees(masquer=lecteur.booleen("metadonnees", "masquer")),
+		metadonnees=Metadonnees(
+			masquer=lecteur.booleen("metadonnees", "masquer"),
+			texte_public=lecteur.texte_court("metadonnees", "texte_public"),
+		),
 	)

@@ -20,7 +20,7 @@ VALIDE: dict[str, dict[str, str]] = {
 	"base": {"socket": '"/var/run/postgresql"', "production": '"machincast"', "test": '"machincast_test"'},
 	"audio": {"sortie": '"pipewire"', "peripherique": '"antenne"', "preecoute": '"casque"'},
 	"sorties": {"csv": '"airplay.csv"', "pls": '"playlist.pls"', "html": '"airplay.html"'},
-	"metadonnees": {"masquer": "false"},
+	"metadonnees": {"masquer": "false", "texte_public": '"Radio FMR"'},
 }
 
 
@@ -83,6 +83,7 @@ def cle_absente(contexte: Contexte, cle: str) -> None:
 @given(parsers.parse('une configuration valide où la clé "{cle}" vaut {valeur}'))
 def cle_vaut(contexte: Contexte, cle: str, valeur: str) -> None:
 	section, nom = cle.split(".")
+	valeur = valeur.replace("<256 caractères>", "é" * 256)
 	contexte.cles[section][nom] = valeur
 	ecrire(contexte)
 
@@ -172,6 +173,11 @@ def sortie_csv(contexte: Contexte, relatif: str) -> None:
 @then(parsers.parse('la sortie HTML est "{absolu}"'))
 def sortie_html(contexte: Contexte, absolu: str) -> None:
 	assert configuration(contexte).sorties.html == Path(absolu)
+
+
+@then(parsers.parse('le texte public par défaut est "{texte}"'))
+def texte_public(contexte: Contexte, texte: str) -> None:
+	assert configuration(contexte).metadonnees.texte_public == texte
 
 
 @then("les métadonnées sont masquées par défaut")
