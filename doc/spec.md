@@ -400,7 +400,7 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 ## 10. Installation et déploiement
 
 - Cible : Ubuntu 26.04 LTS, et uniquement des versions LTS.
-- Livraison : archives `.tar.gz` publiées en releases sur le dépôt git (probablement GitHub).
+- Livraison : archives `.tar.gz` publiées en releases sur le dépôt git (sur le repository <https://github.com/dascritch/machincast>).
 - Chaque archive contient un `install.sh` qui :
 	- installe les dépendances apt et le venv Python ;
 	- crée les bases de production et de test, et leurs rôles ;

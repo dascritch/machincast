@@ -24,7 +24,7 @@ Format Conventional Commits. Sous la première ligne, après une ligne vide : l'
 ```
 feat(lecture): bascule immédiate sur un événement prioritaire
 
-https://github.com/<organisation>/machincast/issues/123
+https://github.com/dascritch/machincast/issues/123
 Bascule sur un événement de priorité supérieure
 ```
 
