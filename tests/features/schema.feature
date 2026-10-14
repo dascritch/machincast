@@ -13,6 +13,7 @@ Fonctionnalité: Schéma initial de la base de données
 			| sonores               |
 			| marques_pages_streams |
 			| banques               |
+			| banques_repertoires   |
 			| banques_sonores       |
 			| evenements            |
 			| evenements_elements   |
@@ -21,7 +22,7 @@ Fonctionnalité: Schéma initial de la base de données
 
 	Scénario: Les migrations s'annulent proprement
 		Quand j'annule toutes les migrations
-		Alors la base ne contient plus aucune table de MachinCast
+		Alors la base ne contient plus aucune table ni aucun type de MachinCast
 
 	# ─── Sonores ───────────────────────────────────────────
 
@@ -37,6 +38,7 @@ Fonctionnalité: Schéma initial de la base de données
 			| type = 'stream', url_stream = 'https://flux.exemple/direct?SESSIONID=42'  |
 			| type = 'stream', marque_page_id = {marque_page}                           |
 			| type = 'fichier', emplacement = '/c.mp3', debut_diffusion = '2026-11-01', fin_diffusion = '2026-11-30' |
+			| type = 'fichier', emplacement = '/d.ogg', metadonnees_musicales = '{"annee": 1987, "label": "Disques Exemple"}' |
 
 	Plan du scénario: Un sonore incohérent est refusé
 		Étant donné les éléments de référence en base
@@ -55,6 +57,8 @@ Fonctionnalité: Schéma initial de la base de données
 			| type = 'fichier', emplacement = '/a.flac', crossfade_debut = '-2 s'             |
 			| type = 'fichier', emplacement = '/a.flac', max_lectures = 0                     |
 			| type = 'fichier', emplacement = '/a.flac', debut_diffusion = '2026-11-30', fin_diffusion = '2026-11-01' |
+			| type = 'fichier', emplacement = '/a.flac', metadonnees_musicales = '[1987]'                     |
+			| type = 'fichier', emplacement = '/a.flac', metadonnees_musicales = 'null'                       |
 
 	Scénario: Deux sonores ne peuvent pas avoir le même emplacement
 		Étant donné les éléments de référence en base
@@ -78,6 +82,26 @@ Fonctionnalité: Schéma initial de la base de données
 			| nom_interne = 'Jingles', mode = 'melange'      |
 			| mode = 'aleatoire'                             |
 
+	Scénario: Une banque peut avoir plusieurs répertoires
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "banques_repertoires" : banque_id = {banque}, repertoire = '/habillages/hors-saison'
+		Et j'enregistre dans "banques_repertoires" : banque_id = {banque}, repertoire = '/habillages/hiver'
+		Et j'enregistre dans "banques_repertoires" : banque_id = {banque}, repertoire = '/habillages/noel'
+		Alors la base accepte l'enregistrement
+
+	Scénario: Un même répertoire peut servir à plusieurs banques
+		Étant donné les éléments de référence en base
+		Et une deuxième banque en base
+		Quand j'enregistre dans "banques_repertoires" : banque_id = {banque}, repertoire = '/habillages/hors-saison'
+		Et j'enregistre dans "banques_repertoires" : banque_id = {banque2}, repertoire = '/habillages/hors-saison'
+		Alors la base accepte l'enregistrement
+
+	Scénario: Un répertoire ne figure qu'une fois dans une banque
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "banques_repertoires" : banque_id = {banque}, repertoire = '/habillages/noel'
+		Et j'enregistre dans "banques_repertoires" : banque_id = {banque}, repertoire = '/habillages/noel'
+		Alors la base refuse l'enregistrement
+
 	Scénario: Un sonore ne figure qu'une fois dans une banque
 		Étant donné les éléments de référence en base
 		Quand j'enregistre dans "banques_sonores" : banque_id = {banque}, sonore_id = {sonore}, position = 1
@@ -100,8 +124,8 @@ Fonctionnalité: Schéma initial de la base de données
 		Exemples:
 			| valeurs                                                                                                        |
 			| nom_interne = 'Fil permanent', priorite = 'fil_musical'                                                        |
-			| nom_interne = 'Nuit', priorite = 'fil_musical', debut = '2026-10-14 22:00', fin = '2026-10-15 06:00', jours_recurrence = '{1,2,3,4,5,6,7}' |
-			| nom_interne = 'Magazine', priorite = 'emission', debut = '2026-10-19 18:00', fin = '2026-10-19 19:00', jours_recurrence = '{1,2,3,4,5}' |
+			| nom_interne = 'Nuit', priorite = 'fil_musical', debut = '2026-10-14 22:00', fin = '2026-10-15 06:00', jours_recurrence = '{lundi,mardi,mercredi,jeudi,vendredi,samedi,dimanche}' |
+			| nom_interne = 'Magazine', priorite = 'emission', debut = '2026-10-19 18:00', fin = '2026-10-19 19:00', jours_recurrence = '{lundi,mardi,mercredi,jeudi,vendredi}' |
 			| nom_interne = 'Rediffusion', priorite = 'special', debut = '2026-10-20 14:00'                                   |
 
 	Plan du scénario: Un événement incohérent est refusé
@@ -115,8 +139,15 @@ Fonctionnalité: Schéma initial de la base de données
 			| nom_interne = 'X', priorite = 'special', fin = '2026-10-19 19:00'                                |
 			| nom_interne = 'X', priorite = 'fil_musical', fin = '2026-10-19 19:00'                            |
 			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 19:00', fin = '2026-10-19 18:00'   |
-			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 18:00', jours_recurrence = '{0}'   |
-			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 18:00', jours_recurrence = '{8}'   |
+			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 18:00', jours_recurrence = '{lundy}' |
+			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 18:00', jours_recurrence = '{1}'    |
+
+	Scénario: Les priorités sont ordonnées
+		Alors la priorité "fil_musical" est inférieure à "emission"
+		Et la priorité "emission" est inférieure à "special"
+
+	Scénario: Les jours de la semaine sont ordonnés du lundi au dimanche
+		Alors le jour "lundi" vient avant "dimanche"
 
 	Plan du scénario: Un élément de liste de lecture est une banque ou un sonore
 		Étant donné les éléments de référence en base

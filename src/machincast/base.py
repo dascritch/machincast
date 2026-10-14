@@ -12,6 +12,7 @@ TABLES: tuple[str, ...] = (
 	"sonores",
 	"marques_pages_streams",
 	"banques",
+	"banques_repertoires",
 	"banques_sonores",
 	"evenements",
 	"evenements_elements",
@@ -19,6 +20,16 @@ TABLES: tuple[str, ...] = (
 	"log",
 )
 """Tables créées par les migrations, dans l'ordre de doc/spec.md § 3.1."""
+
+TYPES: tuple[str, ...] = (
+	"type_sonore",
+	"mode_banque",
+	"priorite_evenement",
+	"jour_semaine",
+	"type_ligne_airplay",
+	"niveau_log",
+)
+"""Types énumérés créés par les migrations."""
 
 
 def url_yoyo(socket: Path, base: str) -> str:

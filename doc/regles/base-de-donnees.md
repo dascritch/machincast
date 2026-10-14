@@ -11,7 +11,8 @@
 ## Migrations
 
 - Tout changement de schéma passe par une migration **yoyo-migrations** versionnée dans `src/machincast/migrations/` (`NNNN.nom.sql` et son annulation `NNNN.nom.rollback.sql`). Jamais de modification manuelle, jamais de modification d'une migration déjà fusionnée : on en ajoute une nouvelle.
-- Les valeurs énumérées sont des textes contraints par `CHECK`, pas des types `ENUM`.
+- Les valeurs énumérées sont des types `ENUM` PostgreSQL. Ajouter une valeur se fait par `ALTER TYPE … ADD VALUE` dans une nouvelle migration ; une valeur ne peut pas être retirée sans recréer le type.
+- Les métadonnées non critiques d'un sonore vont dans l'objet JSON `metadonnees_musicales`, sans migration ; seules les données utilisées par la diffusion ou les filtres deviennent des colonnes.
 - Toute nouvelle contrainte s'accompagne d'un scénario qui vérifie qu'elle refuse ce qu'elle doit refuser.
 - Une migration doit pouvoir s'appliquer aux deux bases sans modification.
 

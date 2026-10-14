@@ -10,7 +10,7 @@ import pytest
 from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast.base import TABLES, annuler_migrations, appliquer_migrations, url_yoyo
+from machincast.base import TABLES, TYPES, annuler_migrations, appliquer_migrations, url_yoyo
 from tests.base_test import connexion_test, parametres_base_test
 
 scenarios("schema.feature")
@@ -56,7 +56,7 @@ def inserer(contexte: Contexte, table: str, valeurs: dict[str, str]) -> int:
 
 def analyser(contexte: Contexte, valeurs: str) -> dict[str, str]:
 	# Remplace {banque}, {sonore}… par les identifiants de référence, sans toucher aux tableaux '{1,2,3}'.
-	valeurs = REFERENCE.sub(lambda m: str(contexte.references[m.group(1)]), valeurs)
+	valeurs = REFERENCE.sub(lambda m: str(contexte.references.get(m.group(1), m.group(0))), valeurs)
 	paires = [p.split("=", 1) for p in SEPARATEUR.split(valeurs.strip().strip(",")) if p.strip()]
 	return {cle.strip(): valeur.strip() for cle, valeur in paires}
 
@@ -90,6 +90,13 @@ def references(contexte: Contexte) -> None:
 def deuxieme_sonore(contexte: Contexte) -> None:
 	contexte.references["sonore2"] = inserer(
 		contexte, "sonores", {"type": "'fichier'", "emplacement": "'/jingles/deuxieme.flac'"}
+	)
+
+
+@given("une deuxième banque en base")
+def deuxieme_banque(contexte: Contexte) -> None:
+	contexte.references["banque2"] = inserer(
+		contexte, "banques", {"nom_interne": "'Habillages hors saison'", "mode": "'sequentiel'"}
 	)
 
 
@@ -160,9 +167,11 @@ def contient_tables(contexte: Contexte, datatable: list[list[str]]) -> None:
 	assert attendues <= tables_presentes(contexte)
 
 
-@then("la base ne contient plus aucune table de MachinCast")
+@then("la base ne contient plus aucune table ni aucun type de MachinCast")
 def plus_de_tables(contexte: Contexte) -> None:
 	assert not set(TABLES) & tables_presentes(contexte)
+	types = contexte.connexion.execute("SELECT typname FROM pg_type WHERE typname = ANY(%s)", (list(TYPES),)).fetchall()
+	assert types == []
 
 
 @then("la base accepte l'enregistrement")
@@ -173,8 +182,27 @@ def accepte(contexte: Contexte) -> None:
 @then("la base refuse l'enregistrement")
 def refuse(contexte: Contexte) -> None:
 	assert contexte.erreur is not None, "la base aurait dû refuser l'enregistrement"
-	# Une erreur d'intégrité, et non une faute de syntaxe dans le scénario.
-	assert isinstance(contexte.erreur, psycopg.errors.IntegrityError), repr(contexte.erreur)
+	# Une contrainte violée ou une valeur hors d'un type ENUM, et non une faute de syntaxe dans le scénario.
+	assert isinstance(contexte.erreur, psycopg.errors.IntegrityError | psycopg.errors.InvalidTextRepresentation), repr(
+		contexte.erreur
+	)
+
+
+def comparer(contexte: Contexte, type_enum: str, premier: str, second: str) -> bool:
+	requete = sql.SQL("SELECT %s::{type} < %s::{type}").format(type=sql.Identifier(type_enum))
+	ligne = contexte.connexion.execute(requete, (premier, second)).fetchone()
+	assert ligne is not None
+	return ligne[0] is True
+
+
+@then(parsers.parse('la priorité "{premiere}" est inférieure à "{seconde}"'))
+def priorite_inferieure(contexte: Contexte, premiere: str, seconde: str) -> None:
+	assert comparer(contexte, "priorite_evenement", premiere, seconde)
+
+
+@then(parsers.parse('le jour "{premier}" vient avant "{second}"'))
+def jour_avant(contexte: Contexte, premier: str, second: str) -> None:
+	assert comparer(contexte, "jour_semaine", premier, second)
 
 
 @then("sa date de modification a avancé")

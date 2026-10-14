@@ -1,5 +1,15 @@
 -- Schéma initial de MachinCast (ticket #3). Référence : doc/spec.md § 3.1.
--- Les valeurs énumérées sont des textes contraints par CHECK, plus simples à faire évoluer que des types ENUM.
+
+-- ─── Types énumérés ────────────────────────────────────────
+-- L'ordre de déclaration compte : il permet de comparer et de trier les valeurs.
+
+CREATE TYPE type_sonore AS ENUM ('fichier', 'stream');
+CREATE TYPE mode_banque AS ENUM ('sequentiel', 'aleatoire');
+-- Ordre croissant de priorité : fil_musical < emission < special.
+CREATE TYPE priorite_evenement AS ENUM ('fil_musical', 'emission', 'special');
+CREATE TYPE jour_semaine AS ENUM ('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche');
+CREATE TYPE type_ligne_airplay AS ENUM ('debut', 'fin');
+CREATE TYPE niveau_log AS ENUM ('info', 'alerte', 'incident');
 
 -- Mise à jour automatique de la colonne modifie_le.
 CREATE FUNCTION machincast_maj_modifie_le() RETURNS trigger
@@ -22,13 +32,16 @@ CREATE TABLE marques_pages_streams (
 
 CREATE TABLE sonores (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-	type text NOT NULL CHECK (type IN ('fichier', 'stream')),
+	type type_sonore NOT NULL,
 	emplacement text UNIQUE,
 	url_stream text,
 	marque_page_id bigint REFERENCES marques_pages_streams (id) ON DELETE RESTRICT,
+	-- Artiste et titre servent au masquage, à la recherche et à l'airplay : ce sont des colonnes.
 	artiste text,
 	titre text,
-	annee smallint CHECK (annee BETWEEN 1000 AND 9999),
+	-- Métadonnées non critiques (année, label, genre…), libres et extensibles sans migration.
+	metadonnees_musicales jsonb NOT NULL DEFAULT '{}'
+		CHECK (jsonb_typeof(metadonnees_musicales) = 'object'),
 	crossfade_debut interval NOT NULL DEFAULT '0 s' CHECK (crossfade_debut >= '0 s'),
 	crossfade_fin interval NOT NULL DEFAULT '0 s' CHECK (crossfade_fin >= '0 s'),
 	max_lectures integer CHECK (max_lectures > 0),
@@ -58,14 +71,23 @@ CREATE TRIGGER sonores_modifie_le BEFORE UPDATE ON sonores
 CREATE TABLE banques (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	nom_interne text NOT NULL UNIQUE,
-	repertoire text,
-	mode text NOT NULL CHECK (mode IN ('sequentiel', 'aleatoire')),
+	mode mode_banque NOT NULL,
 	masquer_metadonnees boolean,
 	modifie_le timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 
 CREATE TRIGGER banques_modifie_le BEFORE UPDATE ON banques
 	FOR EACH ROW EXECUTE FUNCTION machincast_maj_modifie_le();
+
+-- Répertoires indexés d'une banque : une banque peut en avoir plusieurs,
+-- et un même répertoire peut alimenter plusieurs banques.
+CREATE TABLE banques_repertoires (
+	banque_id bigint NOT NULL REFERENCES banques (id) ON DELETE CASCADE,
+	repertoire text NOT NULL,
+	PRIMARY KEY (banque_id, repertoire)
+);
+
+CREATE INDEX banques_repertoires_repertoire ON banques_repertoires (repertoire);
 
 -- Un sonore figure au plus une fois dans une banque ; il peut appartenir à plusieurs banques.
 -- L'unicité des positions est différée à la fin de la transaction, pour permettre de réordonner.
@@ -85,12 +107,11 @@ CREATE TABLE evenements (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	nom_interne text NOT NULL,
 	nom_public text,
-	priorite text NOT NULL CHECK (priorite IN ('fil_musical', 'emission', 'special')),
+	priorite priorite_evenement NOT NULL,
 	debut timestamptz,
 	fin timestamptz,
-	-- Jours ISO de la semaine : 1 = lundi … 7 = dimanche. Vide = pas de récurrence.
-	jours_recurrence smallint[] NOT NULL DEFAULT '{}'
-		CHECK (jours_recurrence <@ ARRAY[1, 2, 3, 4, 5, 6, 7]::smallint[]),
+	-- Jours de la semaine où l'événement se répète. Vide = pas de récurrence.
+	jours_recurrence jour_semaine[] NOT NULL DEFAULT '{}',
 	masquer_metadonnees boolean,
 	modifie_le timestamptz NOT NULL DEFAULT clock_timestamp(),
 	-- Seul un fil musical peut n'avoir aucune date de début (fil permanent).
@@ -126,7 +147,7 @@ CREATE INDEX evenements_elements_sonore ON evenements_elements (sonore_id);
 CREATE TABLE airplay (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	passage_id uuid NOT NULL,
-	type_ligne text NOT NULL CHECK (type_ligne IN ('debut', 'fin')),
+	type_ligne type_ligne_airplay NOT NULL,
 	horodatage timestamptz NOT NULL DEFAULT clock_timestamp(),
 	sonore_id bigint REFERENCES sonores (id) ON DELETE SET NULL,
 	banque_id bigint REFERENCES banques (id) ON DELETE SET NULL,
@@ -153,7 +174,7 @@ CREATE INDEX airplay_evenement ON airplay (evenement_id, horodatage);
 CREATE TABLE log (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	horodatage timestamptz NOT NULL DEFAULT clock_timestamp(),
-	niveau text NOT NULL CHECK (niveau IN ('info', 'alerte', 'incident')),
+	niveau niveau_log NOT NULL,
 	nature text NOT NULL,
 	message text NOT NULL DEFAULT '',
 	sonore_id bigint REFERENCES sonores (id) ON DELETE SET NULL,
