@@ -459,8 +459,10 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 
 Ces points découlent des décisions prises mais n'ont pas été tranchés explicitement :
 
-1. **Durée diffusée et insertions seules** : la durée effectivement diffusée doit figurer dans `airplay`, et le binaire n'a que le droit d'insertion. Cette spécification retient donc deux lignes par passage (début et fin, reliées par `passage_id`), la ligne de fin portant la durée diffusée. À valider.
-2. **Affichage public quand l'artiste et le titre sont masqués** : n'affiche-t-on rien, le nom public de l'événement, ou un texte par défaut de la configuration ?
-3. **Droits sur les marques-pages** : cette spécification les rend éditables par l'interface seule. À valider.
+1. **Affichage public quand l'artiste et le titre sont masqués** : n'affiche-t-on rien, le nom public de l'événement, ou un texte par défaut de la configuration ?
+2. **Droits sur les marques-pages** : cette spécification les rend éditables par l'interface seule. À valider.
 
-Point tranché : le venv est isolé des paquets système, toutes les dépendances Python passent par pip ([#51](https://github.com/dascritch/machincast/issues/51), voir [§ 10](#10-installation-et-déploiement)).
+### Points tranchés
+
+- **Durée diffusée** : deux lignes d'airplay par passage, une au début et une à la fin, reliées par `passage_id` ; la ligne de fin porte la durée effectivement diffusée ([#48](https://github.com/dascritch/machincast/issues/48), voir [§ 3.1](#airplay)).
+- **Environnement virtuel** : isolé des paquets système, toutes les dépendances Python passent par pip ([#51](https://github.com/dascritch/machincast/issues/51), voir [§ 10](#10-installation-et-déploiement)).
