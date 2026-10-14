@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+# Machin : commande unique d'accès aux binaires de MachinCast (https://github.com/dascritch/machincast/issues/6).
+#
+#   Machin [--config FICHIER] BINAIRE [OPTIONS…]   appelle Machin_BINAIRE en lui transmettant les options
+#   Machin logs [OPTIONS DE journalctl…]           suit en direct le journal du service de lecture
+#
+# Règles : doc/regles/wrapper.md. Tests : bats tests/wrapper.
+
+set -euo pipefail
+
+# Binaires connus, dans l'ordre de l'aide. Un test vérifie qu'ils correspondent à [project.scripts] de pyproject.toml.
+BINAIRES=(lecture indexation interface)
+UNITE_LECTURE="machincast.service"
+
+CODE_USAGE=2
+CODE_INTROUVABLE=127
+
+aide_minimale() {
+	local liste
+	liste="$(printf '%s, ' "${BINAIRES[@]}")"
+	cat <<-FIN
+		Usage : Machin [--config FICHIER] BINAIRE [OPTIONS…]  ou  Machin logs [OPTIONS…]
+		Binaires : ${liste%, }. Aide complète : Machin --help
+	FIN
+}
+
+aide_complete() {
+	cat <<-FIN
+		Machin — commande unique d'accès aux binaires de MachinCast.
+
+		Usage :
+		  Machin [--config FICHIER] BINAIRE [OPTIONS…]
+		  Machin logs [OPTIONS DE journalctl…]
+		  Machin -h | --help | --binaires
+
+		Binaires (Machin BINAIRE appelle Machin_BINAIRE avec les options qui suivent,
+		pris dans le venv .venv du projet, sans qu'il soit activé, ou à défaut dans le PATH) :
+		  lecture      diffusion de l'antenne, normalement lancée comme service systemd
+		  indexation   vérification des fichiers sonores et mise à jour de la base
+		  interface    interface graphique de programmation
+
+		  Aide d'un binaire : Machin BINAIRE --help
+
+		Suivi des logs :
+		  logs         suit en direct le journal du service ${UNITE_LECTURE} (journalctl --follow).
+		               Les options qui suivent sont transmises à journalctl, par exemple :
+		               Machin logs --since "1 hour ago" --priority=warning
+		               Lire ce journal demande d'appartenir au groupe adm ou systemd-journal :
+		               install.sh ajoute les comptes de la radio au groupe systemd-journal.
+
+		Options du wrapper :
+		  --config FICHIER, --config=FICHIER
+		               fichier de configuration TOML transmis au binaire
+		               (par défaut, le binaire lit machincast.toml dans le répertoire courant)
+		  -h           aide minimale
+		  --help       cette aide complète
+		  --binaires   liste des binaires, un par ligne (utilisée par l'autocomplétion)
+
+		Exemples :
+		  Machin lecture --config tests/configuration-test.toml
+		  Machin indexation --help
+		  Machin logs
+
+		Codes de sortie :
+		  celui du binaire appelé, ou de journalctl pour logs ;
+		  ${CODE_USAGE}            appel incorrect du wrapper (binaire ou option inconnus) ;
+		  ${CODE_INTROUVABLE}          binaire ou journalctl introuvable.
+
+		Documentation : https://github.com/dascritch/machincast/blob/main/doc/spec.md#7-wrapper-machin
+	FIN
+}
+
+erreur_usage() {
+	printf 'Machin : %s\n' "$1" >&2
+	aide_minimale >&2
+	exit "$CODE_USAGE"
+}
+
+# Venv du projet : .venv à la racine du projet, le répertoire parent de bin/ où se trouve le wrapper.
+# Le lien symbolique éventuel (par exemple /usr/local/bin/Machin) est résolu pour trouver le vrai projet.
+venv_du_projet() {
+	local wrapper
+	wrapper="$(readlink -f "${BASH_SOURCE[0]}")"
+	printf '%s/.venv\n' "$(dirname "$(dirname "$wrapper")")"
+}
+
+# Chemin de Machin_$1 : d'abord dans le venv du projet, sans qu'il soit activé, sinon dans le PATH.
+trouver_binaire() {
+	local nom="Machin_$1" venv
+	venv="$(venv_du_projet)"
+	if [[ -x "$venv/bin/$nom" ]]; then
+		printf '%s\n' "$venv/bin/$nom"
+	else
+		command -v "$nom"
+	fi
+}
+
+est_binaire() {
+	local binaire
+	for binaire in "${BINAIRES[@]}"; do
+		[[ "$binaire" == "$1" ]] && return 0
+	done
+	return 1
+}
+
+suivre_logs() {
+	if ! command -v journalctl >/dev/null; then
+		printf 'Machin : journalctl introuvable : les logs du service sont lus dans le journal de systemd\n' >&2
+		exit "$CODE_INTROUVABLE"
+	fi
+	exec journalctl --unit="$UNITE_LECTURE" --follow "$@"
+}
+
+principal() {
+	local configuration=() binaire chemin
+
+	while (($# > 0)); do
+		case "$1" in
+			-h)
+				aide_minimale
+				exit 0
+				;;
+			--help)
+				aide_complete
+				exit 0
+				;;
+			--binaires)
+				printf '%s\n' "${BINAIRES[@]}"
+				exit 0
+				;;
+			--config)
+				if (($# < 2)) || [[ -z "$2" ]]; then
+					erreur_usage "--config demande un fichier"
+				fi
+				configuration=(--config "$2")
+				shift 2
+				;;
+			--config=*)
+				[[ -n "${1#--config=}" ]] || erreur_usage "--config demande un fichier"
+				configuration=(--config "${1#--config=}")
+				shift
+				;;
+			-*)
+				erreur_usage "option inconnue : $1"
+				;;
+			*)
+				break
+				;;
+		esac
+	done
+
+	(($# > 0)) || erreur_usage "binaire manquant"
+	binaire="$1"
+	shift
+
+	if [[ "$binaire" == logs ]]; then
+		((${#configuration[@]} == 0)) || erreur_usage "--config ne s'applique pas à logs"
+		suivre_logs "$@"
+	fi
+
+	est_binaire "$binaire" || erreur_usage "binaire inconnu : $binaire"
+
+	if ! chemin="$(trouver_binaire "$binaire")"; then
+		printf 'Machin : Machin_%s introuvable dans %s ni dans le PATH.\n' "$binaire" "$(venv_du_projet)" >&2
+		printf '         Créer le venv depuis la racine du projet : python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"\n' >&2
+		exit "$CODE_INTROUVABLE"
+	fi
+
+	exec "$chemin" "${configuration[@]}" "$@"
+}
+
+principal "$@"

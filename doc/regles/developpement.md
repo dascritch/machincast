@@ -43,6 +43,7 @@ Portées usuelles : `lecture`, `indexation`, `interface`, `wrapper`, `db`, `inst
 
 - Python pour tout le projet, typé strictement : `mypy --strict` doit passer.
 - Linter et formateur : ruff.
+- Scripts bash (wrapper, autocomplétion, tests bats) : `set -euo pipefail` pour un exécutable, et shellcheck doit passer.
 - **Indentation par tabulations**, pour des raisons d'accessibilité. Ne jamais convertir en espaces. Dans la configuration ruff : `indent-style = "tab"` pour le formateur, règle `W191` désactivée.
 - Vocabulaire : « sonore », « banque », « événement ». « Playlist » désigne uniquement la liste exportée en .pls, .csv ou .html, jamais un objet en base ou à l'écran.
 - Le nom du projet s'écrit toujours « MachinCast ».

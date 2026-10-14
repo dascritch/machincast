@@ -16,6 +16,8 @@ Python · PySide6 (Qt 6.10) · PostgreSQL via socket Unix (psycopg 3, auth peer)
 sudo apt install python3-venv python3-dev build-essential pkg-config libgirepository-2.0-dev libcairo2-dev \
 	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
 	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire postgresql
+# Outils de développement du wrapper bash
+sudo apt install bats shellcheck
 
 # Installation de dev : venv isolé, jamais --system-site-packages (https://github.com/dascritch/machincast/issues/51)
 python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
@@ -30,24 +32,27 @@ python -m machincast.droits --base machincast_test autoriser "$(id -un)" lecture
 
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/
+shellcheck -x bin/Machin bash-completion/Machin tests/wrapper/*.bash tests/wrapper/*.bats
 
 # Tests : configuration tests/configuration-test.toml, ou celle désignée par MACHINCAST_CONFIG_TEST
 # (les scénarios de base de données sont ignorés si PostgreSQL est injoignable)
 pytest
+bats tests/wrapper
 
 # Schéma de la base de test, à la main
 yoyo apply --batch --database "postgresql+psycopg:///machincast_test?host=/var/run/postgresql" src/machincast/migrations/
 
-# Aide des exécutables
-Machin_lecture --help
-Machin_indexation --help
-Machin_interface --help
+# Wrapper : prend les binaires dans .venv, sans qu'il soit activé
+bin/Machin --help
+bin/Machin lecture --help
 
-# Lancement avec une configuration précise
-Machin_lecture --config <fichier>
+# Lancement avec une configuration précise, suivi des logs du service
+bin/Machin lecture --config <fichier>
+bin/Machin logs
+
+# Autocomplétion dans le shell courant
+source bash-completion/Machin
 ```
-
-Commandes à venir : tests du wrapper (`bats tests/wrapper`, [#6](https://github.com/dascritch/machincast/issues/6)), lancement par le wrapper (`Machin lecture --config <fichier>`, [#6](https://github.com/dascritch/machincast/issues/6)).
 
 ## Règles selon le contexte
 
