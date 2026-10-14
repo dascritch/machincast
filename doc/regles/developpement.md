@@ -40,5 +40,6 @@ Portées usuelles : `lecture`, `indexation`, `interface`, `wrapper`, `db`, `inst
 
 ## Exécutables
 
+- Une nouvelle dépendance Python se déclare dans `pyproject.toml`, jamais en paquet apt `python3-*` : le venv n'utilise pas les paquets Python du système (#51).
 - Tout exécutable s'appelle `Machin_<nom>` et est déclaré dans `pyproject.toml` (aucune compilation).
 - Les binaires sans interface se lancent par convention via le wrapper `Machin` (voir [wrapper.md](wrapper.md)).
