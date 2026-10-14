@@ -17,8 +17,10 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 
 ## Écritures autorisées
 
+Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures sont garanties par les droits PostgreSQL ([spec.md § 3.2](../spec.md#32-rôles-et-droits)) :
+
 - `airplay` : une ligne de début et une ligne de fin par passage.
-- `log` : toutes les opérations, normales et incidents.
+- `log` : toutes les opérations, normales et incidents. Le rôle ne peut pas lire cette table : pas de `RETURNING` sur une insertion dans `log`.
 - `sonores.actif` : désactivation au maximum de lectures ou à la fin de la période de diffusion, toujours consignée dans le log.
 
 ## Mode simulation

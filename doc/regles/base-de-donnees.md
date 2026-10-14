@@ -21,8 +21,14 @@
 
 Le tableau des droits par binaire est dans [spec.md § 3.2](../spec.md#32-rôles-et-droits). Il est appliqué deux fois :
 
-1. en base, par les `GRANT` des rôles ;
+1. en base, par les `GRANT` de la migration `0002.droits` aux rôles `machincast_lecture`, `machincast_indexation` et `machincast_interface` ;
 2. dans le code : chaque binaire n'exécute que les requêtes autorisées à son rôle.
+
+Règles :
+
+- Un binaire ouvre toujours sa connexion avec `machincast.base.connecter(socket, base, Role.…)`, jamais avec `psycopg.connect` directement : sans `SET ROLE`, l'utilisateur n'a aucun droit.
+- Tout changement de droits passe par une nouvelle migration et par la matrice de [`tests/features/roles.feature`](../../tests/features/roles.feature), qui vérifie chaque opération de chaque rôle sur chaque table.
+- Une nouvelle table n'est accessible à aucun rôle tant qu'une migration ne lui accorde pas de droits.
 
 Points sensibles :
 
