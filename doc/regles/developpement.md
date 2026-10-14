@@ -17,6 +17,15 @@
 4. Une fonctionnalité = un test associé + un commit lié au ticket.
 5. Mettre à jour la documentation Markdown dans `/doc` dans le même commit.
 
+## Références aux tickets et aux PR
+
+Toute référence à un ticket ou à une PR est un lien, jamais un numéro nu :
+
+- en Markdown : `[#51](https://github.com/dascritch/machincast/issues/51)` ou `[PR #56](https://github.com/dascritch/machincast/pull/56)` ;
+- dans un commentaire de code, une docstring ou un message : l'URL complète, par exemple `https://github.com/dascritch/machincast/issues/51`.
+
+Un scénario ([`tests/features/references.feature`](../../tests/features/references.feature)) refuse les références nues. Seules les migrations déjà fusionnées y échappent : on ne les modifie jamais, même leurs commentaires.
+
 ## Messages de commit
 
 Format Conventional Commits. Sous la première ligne, après une ligne vide : l'URL du ticket, puis à la ligne suivante le titre du ticket.
@@ -40,6 +49,6 @@ Portées usuelles : `lecture`, `indexation`, `interface`, `wrapper`, `db`, `inst
 
 ## Exécutables
 
-- Une nouvelle dépendance Python se déclare dans `pyproject.toml`, jamais en paquet apt `python3-*` : le venv n'utilise pas les paquets Python du système (#51).
+- Une nouvelle dépendance Python se déclare dans `pyproject.toml`, jamais en paquet apt `python3-*` : le venv n'utilise pas les paquets Python du système ([#51](https://github.com/dascritch/machincast/issues/51)).
 - Tout exécutable s'appelle `Machin_<nom>` et est déclaré dans `pyproject.toml` (aucune compilation).
 - Les binaires sans interface se lancent par convention via le wrapper `Machin` (voir [wrapper.md](wrapper.md)).

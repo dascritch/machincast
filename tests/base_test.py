@@ -1,7 +1,8 @@
 """Accès à la base de test pour les scénarios.
 
-Provisoire : le ticket #5 remplacera ces réglages par la configuration de test,
+Provisoire : ces réglages seront remplacés par la configuration de test,
 avec le refus de toute connexion à la base de production.
+Voir https://github.com/dascritch/machincast/issues/5
 """
 
 import os

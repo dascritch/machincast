@@ -1,4 +1,4 @@
-"""Étapes des scénarios de l'environnement virtuel (ticket #51)."""
+"""Étapes des scénarios de l'environnement virtuel (https://github.com/dascritch/machincast/issues/51)."""
 
 import importlib.util
 import sys
@@ -23,7 +23,7 @@ def isole() -> None:
 		(cle.strip(), valeur.strip()) for cle, _, valeur in (ligne.partition("=") for ligne in reglages.splitlines())
 	)
 	assert options.get("include-system-site-packages") == "false", (
-		"recréer le venv sans --system-site-packages (décision du ticket #51)"
+		"recréer le venv sans --system-site-packages (décision : https://github.com/dascritch/machincast/issues/51)"
 	)
 
 
