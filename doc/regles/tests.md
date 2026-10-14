@@ -26,6 +26,12 @@ Les scénarios Gherkin sont écrits en français (`# language: fr`).
 - L'heure courante passe par une `machincast.horloge.Horloge` reçue en paramètre : `HorlogeSysteme` en production, `HorlogeFixe` dans les tests, que le test fait avancer avec `avancer()`. Les heures ont toujours un fuseau.
 - Un scénario de [`tests/features/socle.feature`](../../tests/features/socle.feature) refuse, dans `src/`, tout appel direct à `datetime.now()`, `time.time()` ou au module `random` en dehors de ces deux modules.
 
+## Wrapper
+
+- Les tests bats sont dans `tests/wrapper` et se lancent par `bats tests/wrapper` (bats ≥ 1.5).
+- Ils copient le wrapper dans un projet factice dont le venv ne contient que des bouchons des binaires, et placent un bouchon de `journalctl` en tête du `PATH` (`tests/wrapper/aide_test.bash`) : ils ne lancent jamais la diffusion ni ne lisent le journal système.
+- Les tests qui demandent les vrais binaires sont ignorés si le venv du dépôt (`.venv`) n'existe pas.
+
 ## Configuration
 
 Les tests utilisent leur propre fichier de configuration, passé par le paramètre de configuration du wrapper ou du binaire, jamais `machincast.toml`.

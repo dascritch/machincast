@@ -10,7 +10,9 @@ from pytest_bdd import given, parsers, scenarios, then
 scenarios("references.feature")
 
 RACINE = Path(__file__).resolve().parents[1]
-EXTENSIONS = (".md", ".py", ".toml", ".sql", ".sh", ".feature")
+EXTENSIONS = (".md", ".py", ".toml", ".sql", ".sh", ".bash", ".bats", ".feature")
+# Scripts bash sans extension : wrapper et autocomplétion (https://github.com/dascritch/machincast/issues/6).
+REPERTOIRES_SCRIPTS = ("bin/", "bash-completion/")
 
 # Migrations déjà fusionnées : jamais modifiées, même leurs commentaires.
 EXCLUSIONS = (
@@ -56,7 +58,9 @@ def fichiers(contexte: dict[str, object]) -> None:
 		check=True,
 	).stdout.splitlines()
 	contexte["fichiers"] = [
-		chemin for chemin in suivis if chemin.endswith(EXTENSIONS) and not chemin.startswith(EXCLUSIONS)
+		chemin
+		for chemin in suivis
+		if (chemin.endswith(EXTENSIONS) or chemin.startswith(REPERTOIRES_SCRIPTS)) and not chemin.startswith(EXCLUSIONS)
 	]
 
 

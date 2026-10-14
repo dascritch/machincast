@@ -4,10 +4,15 @@
 
 ## Wrapper `Machin`
 
-- Script bash : `Machin <binaire> [options]` appelle `Machin_<binaire>`.
-- Options génériques : aide minimale, aide complète, choix du fichier de configuration, suivi en direct des logs du binaire lecture.
-- Autocomplétion bash fournie et installée.
-- Testé avec bats.
+- Script bash [`bin/Machin`](../../bin/Machin) : `Machin <binaire> [options]` appelle `Machin_<binaire>` par `exec`, options et code de sortie transmis intacts.
+- Options génériques : aide minimale (`-h`), aide complète (`--help`), choix du fichier de configuration (`--config`), suivi en direct des logs du binaire lecture (`Machin logs`), liste des binaires (`--binaires`).
+- Un nouveau binaire `Machin_<nom>` s'ajoute aussi au tableau `BINAIRES` du wrapper et à son aide complète : un test bats vérifie que `BINAIRES` correspond à `[project.scripts]` de `pyproject.toml`.
+- Le binaire est cherché d'abord dans le venv du projet (`<projet>/.venv/bin`, le projet étant le parent du `bin/` du wrapper, liens symboliques résolus), puis dans le `PATH`. Le venv n'a pas besoin d'être activé.
+- Le wrapper n'est pas installé dans le venv : en développement, `bin/Machin` ; en production, `install.sh` le rend accessible à tout le système.
+- Codes de sortie propres au wrapper : 2 pour un appel incorrect, 127 pour un binaire ou `journalctl` introuvable.
+- Le nom de l'unité systemd, `machincast.service`, est fixé dans le wrapper : le changer demande de changer aussi l'unité installée.
+- Autocomplétion bash [`bash-completion/Machin`](../../bash-completion/Machin) : les binaires viennent de `Machin --binaires` et leurs options de leur aide, sans liste à recopier.
+- Testé avec bats ([`tests/wrapper`](../../tests/wrapper)), vérifié par shellcheck. Messages et aide en français.
 
 ## Configuration
 
@@ -21,3 +26,4 @@
 - Releases `.tar.gz` sur le dépôt git, avec un `install.sh` qui installe dépendances apt, venv, bases et rôles, unité systemd, règle polkit, wrapper et autocomplétion.
 - Environnement virtuel isolé : jamais `--system-site-packages`. Toute dépendance Python est déclarée dans `pyproject.toml` et installée par pip ; apt ne fournit que les bibliothèques système ([#51](https://github.com/dascritch/machincast/issues/51)).
 - La règle polkit n'autorise que le démarrage, l'arrêt et le redémarrage du service de lecture.
+- Tous les comptes de la radio lisent le journal du service : `install.sh` les ajoute au groupe `systemd-journal`, jamais à `adm`, qui donne d'autres droits d'administration.

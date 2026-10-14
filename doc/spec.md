@@ -37,7 +37,7 @@ MachinCast est un système automatisé de diffusion sonore pour radio. Il fourni
 
 | Composant | Exécutable | Rôle |
 | --- | --- | --- |
-| Wrapper | `Machin` | Point d'entrée unique en ligne de commande pour les binaires sans interface. |
+| Wrapper | `Machin` | Point d'entrée unique en ligne de commande pour tous les binaires, et suivi des logs du service. |
 | Binaire lecture | `Machin_lecture` | Joue les événements, écrit l'airplay et le log. Tourne comme service systemd. |
 | Binaire indexation | `Machin_indexation` | Vérifie les sonores et indexe les répertoires des banques. |
 | Interface graphique | `Machin_interface` | Supervision, édition, simulation, pilotage du service. |
@@ -339,15 +339,24 @@ STDOUT et STDERR uniquement, plus une sortie texte au format CSV et HTML. L'inde
 
 ## 7. Wrapper Machin
 
-`Machin <binaire> [options]` appelle `Machin_<binaire>` en lui transmettant les options.
+Script bash `Machin` ([#6](https://github.com/dascritch/machincast/issues/6)) :
 
-Options génériques :
+```
+Machin [--config FICHIER] BINAIRE [OPTIONS…]
+Machin logs [OPTIONS DE journalctl…]
+Machin -h | --help | --binaires
+```
 
-- autocomplétion bash ;
-- aide minimale en ligne ;
-- aide complète en ligne ;
-- paramètre pour utiliser un autre fichier de configuration, notamment pour les tests ;
-- suivi en direct des logs du binaire lecture.
+- `Machin BINAIRE` appelle `Machin_BINAIRE` (`lecture`, `indexation` ou `interface`) en lui transmettant toutes les options qui suivent, intactes, et se termine avec son code de sortie. Le binaire est cherché d'abord dans le venv du projet (`.venv`, à côté du répertoire `bin/` du wrapper, même appelé par un lien symbolique), puis dans le `PATH` : le wrapper prépare ainsi l'environnement, sans qu'il soit besoin d'activer le venv.
+- `--config FICHIER` (ou `--config=FICHIER`), placé avant le binaire, lui est transmis, notamment pour les tests. Placé après le binaire, il est transmis tel quel.
+- `-h` affiche une aide minimale de deux lignes, `--help` l'aide complète. L'aide d'un binaire s'obtient par `Machin BINAIRE --help`.
+- `Machin logs` suit en direct le journal du service de lecture, `machincast.service` (`journalctl --unit=machincast.service --follow`). Les options qui suivent sont transmises à `journalctl`, par exemple `--since "1 hour ago"`. Le journal d'un service système n'est lisible que par les groupes `adm` (dont fait partie le premier compte créé à l'installation d'Ubuntu) et `systemd-journal` : tous les comptes de la radio doivent pouvoir le lire, `install.sh` les ajoute donc au groupe `systemd-journal`, qui donne la lecture du journal sans les droits d'administration de `adm` (voir [§ 10](#10-installation-et-déploiement)).
+- `--binaires` liste les binaires, un par ligne ; l'autocomplétion s'en sert.
+- Codes de sortie : celui du binaire ou de `journalctl` ; 2 pour un appel incorrect du wrapper (binaire ou option inconnus, `--config` sans fichier) ; 127 si le binaire ou `journalctl` est introuvable.
+
+Autocomplétion bash (`bash-completion/Machin`) : binaires et `logs`, options du wrapper, fichiers après `--config`, options d'un binaire lues dans son aide, options courantes de `journalctl` après `logs`.
+
+Le wrapper n'est pas copié dans le venv : en développement, il s'appelle par `bin/Machin`. `install.sh` installe le wrapper et l'autocomplétion pour tout le système (voir [§ 10](#10-installation-et-déploiement)).
 
 ## 8. Interface graphique
 
@@ -456,8 +465,9 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 	- installe par apt les seules dépendances système (bibliothèques de compilation de PyGObject, GStreamer et ses plugins, PostgreSQL) ;
 	- crée un environnement virtuel Python isolé, **sans** `--system-site-packages`, et y installe toutes les dépendances Python par pip (PySide6, PyGObject, psycopg, yoyo-migrations). Le projet suit ainsi l'évolution des paquets sans dépendre des versions de la distribution hôte ;
 	- crée les bases de production et de test, et leurs rôles ;
-	- installe l'unité systemd de `Machin_lecture` et la règle polkit limitée au démarrage, à l'arrêt et au redémarrage de ce service ;
-	- installe le wrapper `Machin` et son autocomplétion bash.
+	- installe l'unité systemd de `Machin_lecture`, `machincast.service`, et la règle polkit limitée au démarrage, à l'arrêt et au redémarrage de ce service ;
+	- installe le wrapper `Machin` et son autocomplétion bash ;
+	- ajoute les comptes de la radio au groupe `systemd-journal`, pour que tous puissent suivre les logs du service avec `Machin logs`.
 
 ## 11. Développements ultérieurs
 
