@@ -26,7 +26,7 @@ MachinCast est un système automatisé de diffusion sonore pour radio. Il fourni
 | Terme | Sens |
 | --- | --- |
 | **Sonore** | Un fichier audio ou un stream. Unité de base de la diffusion. |
-| **Banque** | Un ensemble ordonné de sonores, alimenté par un répertoire indexé et/ou à la main. Quand une banque est jouée, un seul de ses sonores est tiré. |
+| **Banque** | Un ensemble ordonné de sonores, alimenté par un ou plusieurs répertoires indexés et/ou à la main. Quand une banque est jouée, un seul de ses sonores est tiré. |
 | **Événement** | Une plage horaire, éventuellement récurrente, avec une priorité et une liste de lecture de banques et/ou de sonores. |
 | **Fil musical** | Priorité la plus basse. Le fil musical tourne quand aucun événement de priorité supérieure n'est actif. |
 | **Airplay** | L'historique de ce qui a effectivement été diffusé. |
@@ -66,7 +66,8 @@ Deux bases à la structure strictement identique : la base de production et la b
 | `emplacement` | Chemin du fichier. Clé unique pour les fichiers. Vide pour un stream. |
 | `url_stream` | URL directe d'un stream à usage unique (par exemple avec un SESSIONID dans l'URL). |
 | `marque_page_id` | Référence à un marque-page de stream. |
-| `artiste`, `titre`, `annee` | Métadonnées, pré-remplies depuis les tags à l'indexation. |
+| `artiste`, `titre` | Métadonnées publiques, pré-remplies depuis les tags à l'indexation. Ce sont des colonnes, car elles servent au masquage, à la recherche et à l'airplay. |
+| `metadonnees_musicales` | Objet JSON des métadonnées non critiques (année, label, genre…), pré-remplies depuis les tags. Extensible sans migration. |
 | `crossfade_debut`, `crossfade_fin` | Temps de crossfade en début et en fin de sonore. |
 | `max_lectures` | Nombre maximum de lectures sur la totalité de l'historique. Vide = illimité. |
 | `actif` | Un sonore inactif n'est jamais joué. |
@@ -96,10 +97,15 @@ Pas de champ format ni fréquence d'échantillonnage : l'échantillonnage peut v
 | Champ | Description |
 | --- | --- |
 | `id`, `nom_interne` | Identification. |
-| `repertoire` | Répertoire indexé (facultatif). |
 | `mode` | `sequentiel` ou `aleatoire`. |
 | `masquer_metadonnees` | Masquage au niveau de la banque. Vide = hérite. |
 | `modifie_le` | Horodatage de la dernière modification. |
+
+#### `banques_repertoires`
+
+| Champ | Description |
+| --- | --- |
+| `banque_id`, `repertoire` | Répertoires indexés d'une banque. Une banque peut en avoir plusieurs (par exemple « Habillages Noël » = répertoires hors saison, hiver et Noël), et un même répertoire peut alimenter plusieurs banques. |
 
 #### `banques_sonores` (many-to-many)
 
@@ -119,7 +125,7 @@ Un sonore situé hors des répertoires d'une banque peut y être ajouté à la m
 | `id`, `nom_interne`, `nom_public` | Identification. |
 | `priorite` | `fil_musical` < `emission` < `special`. |
 | `debut`, `fin` | Date et heure de début et de fin de la première occurrence. Voir les règles ci-dessous. |
-| `jours_recurrence` | Jours de la semaine où l'événement se répète (plusieurs jours possibles). Vide = pas de récurrence. Tous les jours cochés = quotidien. |
+| `jours_recurrence` | Jours de la semaine où l'événement se répète, nommés de `lundi` à `dimanche` (plusieurs jours possibles). Vide = pas de récurrence. Tous les jours cochés = quotidien. |
 | `masquer_metadonnees` | Masquage au niveau de l'événement. Vide = hérite. |
 | `modifie_le` | Horodatage de la dernière modification, utilisé pour départager deux événements en conflit. |
 
@@ -166,6 +172,21 @@ Journal de toutes les opérations du binaire lecture, normales comme incidents.
 | `sonore_id`, `banque_id`, `evenement_id` | Références facultatives, renseignées quand elles sont disponibles. |
 
 L'indexeur n'écrit pas dans le log : ses incidents ne figurent donc pas dans l'écran des incidents.
+
+#### Choix de modélisation
+
+Le schéma est créé par la migration `src/machincast/migrations/0001.schema-initial.sql`.
+
+- Durées (`duree`, crossfades, `duree_diffusee`) : type `interval`. Dates : `timestamptz`.
+- Textes saisis à la main (noms internes et publics, artiste, titre, nature d'une entrée du log) : `varchar(255)`, la même limite que l'interface. Chemins, URL et messages détaillés : `text`, sans limite fixée à l'avance.
+- Valeurs énumérées : types `ENUM` PostgreSQL (`type_sonore`, `mode_banque`, `priorite_evenement`, `jour_semaine`, `type_ligne_airplay`, `niveau_log`). Leur ordre de déclaration permet les comparaisons : `fil_musical < emission < special`, `lundi < … < dimanche`.
+- `jours_recurrence` : tableau de `jour_semaine`. La récurrence est calculée en heure locale par le binaire lecture.
+- `metadonnees_musicales` : objet JSON (`jsonb`), jamais un tableau ni une valeur nulle.
+- Un événement ne peut pas avoir de fin sans début.
+- Positions dans `banques_sonores` et `evenements_elements` : uniques par banque ou par événement, vérifiées en fin de transaction pour permettre de réordonner.
+- Suppressions : un lien de banque ou un élément d'événement disparaît avec la banque, le sonore ou l'événement qu'il référence ; `airplay` et `log` gardent leurs lignes, avec la référence passée à vide. Un marque-page utilisé par un sonore ne peut pas être supprimé. La validation préalable des suppressions est faite par l'interface ([§ 8.9](#89-suppression)).
+- Pour un stream, la colonne `emplacement` de `airplay` recopie l'URL diffusée.
+- `modifie_le` est mis à jour par un déclencheur à chaque modification de `sonores`, `banques` et `evenements`.
 
 ### 3.2 Rôles et droits
 
@@ -295,9 +316,9 @@ Sur option de lancement, le binaire simule la diffusion entre deux dates et heur
 
 ### 6.2 Indexation des répertoires de banques
 
-- Parcours récursif du répertoire de chaque banque.
+- Parcours récursif de chacun des répertoires de chaque banque.
 - Formats : mp3, m4a/AAC (« mp4 »), ogg, flac, wav, aiff.
-- Chaque fichier non encore indexé est vérifié, ajouté à `sonores` avec sa durée et ses tags (ID3, Vorbis comments) pour artiste, titre et année, puis rattaché à la banque en fin de liste.
+- Chaque fichier non encore indexé est vérifié, ajouté à `sonores` avec sa durée et ses tags (ID3, Vorbis comments) pour l'artiste, le titre et les métadonnées musicales (année, etc.), puis rattaché à la banque en fin de liste.
 
 ### 6.3 Sorties
 
@@ -337,7 +358,7 @@ Python, PySide6 (Qt 6.10, version de Kubuntu 26.04 LTS).
 
 ### 8.3 Écran de détails d'un sonore
 
-- Édition de tous les champs : artiste, titre, année, crossfades, maximum de lectures, actif, masquage, période de diffusion. Tout champ saisi ici est marqué comme édité à la main et n'est plus modifié par l'indexeur.
+- Édition de tous les champs : artiste, titre, métadonnées musicales (année, etc.), crossfades, maximum de lectures, actif, masquage, période de diffusion. Tout champ saisi ici est marqué comme édité à la main et n'est plus modifié par l'indexeur.
 - Pré-écoute avec un programme de lecture externe, sur un périphérique de sortie obligatoirement différent de celui du binaire lecture.
 - Pour un stream : choix entre URL directe et marque-page, test du stream à la demande.
 - Table des derniers passages, avec indication des incidents.
@@ -347,8 +368,9 @@ Python, PySide6 (Qt 6.10, version de Kubuntu 26.04 LTS).
 - Édition du nom interne.
 - Masquage de l'artiste et du titre.
 - Mode séquentiel ou aléatoire.
-- Liste des sonores liés, réordonnable par glisser-déposer en mode séquentiel. Ajout de sonores, y compris hors du répertoire de la banque.
-- Retrait d'un sonore issu du répertoire : l'interface prévient qu'il sera réintégré à la prochaine indexation, et propose un lien ouvrant le navigateur de fichiers dans ce répertoire. La suppression du fichier se fait hors de l'outil, parfois depuis un autre poste quand l'utilisateur n'a pas le droit d'écriture sur l'emplacement.
+- Liste des répertoires indexés : ajout et retrait.
+- Liste des sonores liés, réordonnable par glisser-déposer en mode séquentiel. Ajout de sonores, y compris hors des répertoires de la banque.
+- Retrait d'un sonore issu d'un répertoire de la banque : l'interface prévient qu'il sera réintégré à la prochaine indexation, et propose un lien ouvrant le navigateur de fichiers dans son répertoire. La suppression du fichier se fait hors de l'outil, parfois depuis un autre poste quand l'utilisateur n'a pas le droit d'écriture sur l'emplacement.
 
 ### 8.5 Écran de détails d'un événement
 

@@ -4,6 +4,7 @@
 
 - PySide6, version alignée sur Qt 6.10 (Kubuntu 26.04 LTS).
 - Vocabulaire à l'écran : « banque », jamais « playlist ».
+- Les champs de texte courts (noms, artiste, titre) sont limités à `LONGUEUR_TEXTE_COURT` (255 caractères), comme en base.
 - L'état du binaire lecture se lit par sa socket Unix, jamais en interrogeant `airplay` en boucle.
 - Le service se pilote via systemd et polkit, jamais par sudo.
 - La pré-écoute utilise obligatoirement un autre périphérique de sortie que le binaire lecture.
