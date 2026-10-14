@@ -463,12 +463,11 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 
 ## 12. Points à confirmer
 
-Ces points découlent des décisions prises mais n'ont pas été tranchés explicitement :
-
-1. **Droits sur les marques-pages** : cette spécification les rend éditables par l'interface seule. À valider.
+Aucun point en attente.
 
 ### Points tranchés
 
 - **Durée diffusée** : deux lignes d'airplay par passage, une au début et une à la fin, reliées par `passage_id` ; la ligne de fin porte la durée effectivement diffusée ([#48](https://github.com/dascritch/machincast/issues/48), voir [§ 3.1](#airplay)).
 - **Affichage public masqué** : nom public de l'événement, sinon texte public par défaut de la configuration ([#49](https://github.com/dascritch/machincast/issues/49), voir [§ 4.8](#48-métadonnées-publiques-et-masquage)).
+- **Droits sur les marques-pages** : modifiables par l'interface seule ; le binaire lecture les lit, l'indexeur n'y accède pas ([#50](https://github.com/dascritch/machincast/issues/50), voir [§ 3.2](#32-rôles-et-droits)).
 - **Environnement virtuel** : isolé des paquets système, toutes les dépendances Python passent par pip ([#51](https://github.com/dascritch/machincast/issues/51), voir [§ 10](#10-installation-et-déploiement)).
