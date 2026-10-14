@@ -11,10 +11,12 @@ Python · PySide6 (Qt 6.10) · PostgreSQL via socket Unix (psycopg 3, auth peer)
 ## Commandes
 
 ```bash
-# Prérequis système (compilation de PyGObject, GStreamer) — voir #51
-sudo apt install libgirepository-2.0-dev libcairo2-dev gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good
+# Prérequis système : uniquement ce que pip ne peut pas fournir (#51)
+# — compilation de PyGObject, GStreamer et ses plugins, PostgreSQL
+sudo apt install python3-venv python3-dev build-essential pkg-config libgirepository-2.0-dev libcairo2-dev \
+	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good postgresql
 
-# Installation de dev
+# Installation de dev : venv isolé, jamais --system-site-packages (#51)
 python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
 cp machincast.exemple.toml machincast.toml   # puis l'adapter ; jamais versionné
 

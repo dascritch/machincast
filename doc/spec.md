@@ -439,7 +439,8 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 - Cible : Ubuntu 26.04 LTS, et uniquement des versions LTS.
 - Livraison : archives `.tar.gz` publiées en releases sur le dépôt git (sur le repository <https://github.com/dascritch/machincast>).
 - Chaque archive contient un `install.sh` qui :
-	- installe les dépendances apt et le venv Python ;
+	- installe par apt les seules dépendances système (bibliothèques de compilation de PyGObject, GStreamer et ses plugins, PostgreSQL) ;
+	- crée un environnement virtuel Python isolé, **sans** `--system-site-packages`, et y installe toutes les dépendances Python par pip (PySide6, PyGObject, psycopg, yoyo-migrations). Le projet suit ainsi l'évolution des paquets sans dépendre des versions de la distribution hôte ;
 	- crée les bases de production et de test, et leurs rôles ;
 	- installe l'unité systemd de `Machin_lecture` et la règle polkit limitée au démarrage, à l'arrêt et au redémarrage de ce service ;
 	- installe le wrapper `Machin` et son autocomplétion bash.
@@ -461,4 +462,5 @@ Ces points découlent des décisions prises mais n'ont pas été tranchés expli
 1. **Durée diffusée et insertions seules** : la durée effectivement diffusée doit figurer dans `airplay`, et le binaire n'a que le droit d'insertion. Cette spécification retient donc deux lignes par passage (début et fin, reliées par `passage_id`), la ligne de fin portant la durée diffusée. À valider.
 2. **Affichage public quand l'artiste et le titre sont masqués** : n'affiche-t-on rien, le nom public de l'événement, ou un texte par défaut de la configuration ?
 3. **Droits sur les marques-pages** : cette spécification les rend éditables par l'interface seule. À valider.
-4. **Dépendances système dans le venv** : PySide6 et PyGObject s'installent plus simplement via apt. Le venv serait alors créé avec `--system-site-packages`. À valider.
+
+Point tranché : le venv est isolé des paquets système, toutes les dépendances Python passent par pip ([#51](https://github.com/dascritch/machincast/issues/51), voir [§ 10](#10-installation-et-déploiement)).
