@@ -29,6 +29,7 @@ Fonctionnalité: Fichier de configuration
 
 			[metadonnees]
 			masquer = true
+			texte_public = "Vous écoutez Radio FMR"
 			"""
 		Quand je charge la configuration
 		Alors la base de production est "machincast"
@@ -38,6 +39,7 @@ Fonctionnalité: Fichier de configuration
 		Et la sortie CSV est "sorties/airplay.csv" à côté du fichier de configuration
 		Et la sortie HTML est "/srv/web/airplay.html"
 		Et les métadonnées sont masquées par défaut
+		Et le texte public par défaut est "Vous écoutez Radio FMR"
 
 	Scénario: Le périphérique d'antenne est facultatif
 		Étant donné une configuration valide où la clé "audio.peripherique" est absente
@@ -60,6 +62,7 @@ Fonctionnalité: Fichier de configuration
 			| sorties.pls         |
 			| sorties.html        |
 			| metadonnees.masquer |
+			| metadonnees.texte_public |
 
 	Plan du scénario: Une valeur a un type invalide
 		Étant donné une configuration valide où la clé "<cle>" vaut <valeur>
@@ -72,6 +75,12 @@ Fonctionnalité: Fichier de configuration
 			| metadonnees.masquer | "oui"  | booléen        |
 			| base.production     | 12     | texte          |
 			| sorties.html        | false  | texte          |
+
+	Scénario: Le texte public par défaut est limité à 255 caractères
+		Étant donné une configuration valide où la clé "metadonnees.texte_public" vaut "<256 caractères>"
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "metadonnees.texte_public"
+		Et le message mentionne "255 caractères"
 
 	Scénario: La sortie audio doit être connue
 		Étant donné une configuration valide où la clé "audio.sortie" vaut "jack"

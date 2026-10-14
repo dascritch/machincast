@@ -36,3 +36,6 @@ html = "sorties/airplay.html"
 # Masquage par défaut de l'artiste et du titre sur les sorties publiques.
 # Priorité : événement > banque > sonore > cette valeur.
 masquer = false
+# Texte affiché sur les sorties publiques à la place de l'artiste et du titre masqués,
+# quand l'événement en cours n'a pas de nom public. 255 caractères au maximum.
+texte_public = "Radio FMR"

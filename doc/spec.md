@@ -260,6 +260,11 @@ Artiste et titre sont **masqués**, jamais remplacés. Chaque niveau porte son i
 
 Les sorties privées affichent toujours tout. Les sorties publiques respectent le masquage.
 
+Quand l'artiste et le titre sont masqués, la sortie publique affiche à leur place :
+
+1. le nom public de l'événement en cours, s'il est renseigné ;
+2. sinon, le texte public par défaut de la configuration (`metadonnees.texte_public`).
+
 ## 5. Binaire lecture
 
 `Machin_lecture` ne fait que lire les événements et les jouer. Il lit le fichier de configuration à son lancement et tourne comme service systemd.
@@ -433,6 +438,7 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 | `sorties.pls` | chemin | oui | Playlist .pls (privé). |
 | `sorties.html` | chemin | oui | Airplay HTML (public). |
 | `metadonnees.masquer` | booléen | oui | Masquage par défaut de l'artiste et du titre. |
+| `metadonnees.texte_public` | texte, 255 caractères au plus | oui | Texte public affiché à la place de l'artiste et du titre masqués, quand l'événement n'a pas de nom public. |
 
 ## 10. Installation et déploiement
 
@@ -457,10 +463,11 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 
 ## 12. Points à confirmer
 
-Ces points découlent des décisions prises mais n'ont pas été tranchés explicitement :
+Aucun point en attente.
 
-1. **Durée diffusée et insertions seules** : la durée effectivement diffusée doit figurer dans `airplay`, et le binaire n'a que le droit d'insertion. Cette spécification retient donc deux lignes par passage (début et fin, reliées par `passage_id`), la ligne de fin portant la durée diffusée. À valider.
-2. **Affichage public quand l'artiste et le titre sont masqués** : n'affiche-t-on rien, le nom public de l'événement, ou un texte par défaut de la configuration ?
-3. **Droits sur les marques-pages** : cette spécification les rend éditables par l'interface seule. À valider.
+### Points tranchés
 
-Point tranché : le venv est isolé des paquets système, toutes les dépendances Python passent par pip ([#51](https://github.com/dascritch/machincast/issues/51), voir [§ 10](#10-installation-et-déploiement)).
+- **Durée diffusée** : deux lignes d'airplay par passage, une au début et une à la fin, reliées par `passage_id` ; la ligne de fin porte la durée effectivement diffusée ([#48](https://github.com/dascritch/machincast/issues/48), voir [§ 3.1](#airplay)).
+- **Affichage public masqué** : nom public de l'événement, sinon texte public par défaut de la configuration ([#49](https://github.com/dascritch/machincast/issues/49), voir [§ 4.8](#48-métadonnées-publiques-et-masquage)).
+- **Droits sur les marques-pages** : modifiables par l'interface seule ; le binaire lecture les lit, l'indexeur n'y accède pas ([#50](https://github.com/dascritch/machincast/issues/50), voir [§ 3.2](#32-rôles-et-droits)).
+- **Environnement virtuel** : isolé des paquets système, toutes les dépendances Python passent par pip ([#51](https://github.com/dascritch/machincast/issues/51), voir [§ 10](#10-installation-et-déploiement)).
