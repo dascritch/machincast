@@ -39,7 +39,7 @@ Machin_interface = "machincast.interface.__main__:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-machincast = ["py.typed"]
+machincast = ["py.typed", "migrations/*.sql"]
 
 # ─── Qualité ───────────────────────────────────────────────
 
@@ -61,6 +61,11 @@ ignore = ["W191"]
 strict = true
 python_version = "3.12"
 files = ["src"]
+
+[[tool.mypy.overrides]]
+# yoyo-migrations ne publie pas d'annotations de type.
+module = ["yoyo", "yoyo.*"]
+ignore_missing_imports = true
 
 # ─── Tests ─────────────────────────────────────────────────
 

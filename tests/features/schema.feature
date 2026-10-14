@@ -1,0 +1,176 @@
+# language: fr
+Fonctionnalité: Schéma initial de la base de données
+	En tant que développeur de MachinCast,
+	je veux qu'une première migration yoyo crée toutes les tables de la spécification,
+	afin que la base de production et la base de test aient un schéma strictement identique.
+
+	Contexte:
+		Étant donné une base de test vide où les migrations sont appliquées
+
+	Scénario: Les migrations créent toutes les tables
+		Alors la base contient les tables :
+			| table                 |
+			| sonores               |
+			| marques_pages_streams |
+			| banques               |
+			| banques_sonores       |
+			| evenements            |
+			| evenements_elements   |
+			| airplay               |
+			| log                   |
+
+	Scénario: Les migrations s'annulent proprement
+		Quand j'annule toutes les migrations
+		Alors la base ne contient plus aucune table de MachinCast
+
+	# ─── Sonores ───────────────────────────────────────────
+
+	Plan du scénario: Un sonore cohérent est accepté
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "sonores" : <valeurs>
+		Alors la base accepte l'enregistrement
+
+		Exemples:
+			| valeurs                                                                   |
+			| type = 'fichier', emplacement = '/musique/a.flac'                         |
+			| type = 'fichier', emplacement = '/musique/b.flac', duree = '3 min 12 s'   |
+			| type = 'stream', url_stream = 'https://flux.exemple/direct?SESSIONID=42'  |
+			| type = 'stream', marque_page_id = {marque_page}                           |
+			| type = 'fichier', emplacement = '/c.mp3', debut_diffusion = '2026-11-01', fin_diffusion = '2026-11-30' |
+
+	Plan du scénario: Un sonore incohérent est refusé
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "sonores" : <valeurs>
+		Alors la base refuse l'enregistrement
+
+		Exemples:
+			| valeurs                                                                         |
+			| type = 'disque', emplacement = '/musique/a.flac'                                |
+			| type = 'fichier'                                                                |
+			| type = 'fichier', emplacement = '/a.flac', url_stream = 'https://flux.exemple'  |
+			| type = 'stream'                                                                 |
+			| type = 'stream', url_stream = 'https://flux.exemple', marque_page_id = {marque_page} |
+			| type = 'stream', url_stream = 'https://flux.exemple', emplacement = '/a.flac'   |
+			| type = 'stream', url_stream = 'https://flux.exemple', duree = '1 min'           |
+			| type = 'fichier', emplacement = '/a.flac', crossfade_debut = '-2 s'             |
+			| type = 'fichier', emplacement = '/a.flac', max_lectures = 0                     |
+			| type = 'fichier', emplacement = '/a.flac', debut_diffusion = '2026-11-30', fin_diffusion = '2026-11-01' |
+
+	Scénario: Deux sonores ne peuvent pas avoir le même emplacement
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "sonores" : type = 'fichier', emplacement = '/musique/a.flac'
+		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/musique/a.flac'
+		Alors la base refuse l'enregistrement
+
+	Scénario: La date de modification est tenue à jour
+		Étant donné les éléments de référence en base
+		Quand je modifie le titre du sonore de référence
+		Alors sa date de modification a avancé
+
+	# ─── Banques ───────────────────────────────────────────
+
+	Plan du scénario: Une banque incohérente est refusée
+		Quand j'enregistre dans "banques" : <valeurs>
+		Alors la base refuse l'enregistrement
+
+		Exemples:
+			| valeurs                                        |
+			| nom_interne = 'Jingles', mode = 'melange'      |
+			| mode = 'aleatoire'                             |
+
+	Scénario: Un sonore ne figure qu'une fois dans une banque
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "banques_sonores" : banque_id = {banque}, sonore_id = {sonore}, position = 1
+		Et j'enregistre dans "banques_sonores" : banque_id = {banque}, sonore_id = {sonore}, position = 2
+		Alors la base refuse l'enregistrement
+
+	Scénario: Deux sonores ne partagent pas la même position dans une banque
+		Étant donné les éléments de référence en base
+		Et un deuxième sonore en base
+		Quand j'enregistre dans "banques_sonores" : banque_id = {banque}, sonore_id = {sonore}, position = 1
+		Et j'enregistre dans "banques_sonores" : banque_id = {banque}, sonore_id = {sonore2}, position = 1
+		Alors la base refuse l'enregistrement
+
+	# ─── Événements ────────────────────────────────────────
+
+	Plan du scénario: Un événement cohérent est accepté
+		Quand j'enregistre dans "evenements" : <valeurs>
+		Alors la base accepte l'enregistrement
+
+		Exemples:
+			| valeurs                                                                                                        |
+			| nom_interne = 'Fil permanent', priorite = 'fil_musical'                                                        |
+			| nom_interne = 'Nuit', priorite = 'fil_musical', debut = '2026-10-14 22:00', fin = '2026-10-15 06:00', jours_recurrence = '{1,2,3,4,5,6,7}' |
+			| nom_interne = 'Magazine', priorite = 'emission', debut = '2026-10-19 18:00', fin = '2026-10-19 19:00', jours_recurrence = '{1,2,3,4,5}' |
+			| nom_interne = 'Rediffusion', priorite = 'special', debut = '2026-10-20 14:00'                                   |
+
+	Plan du scénario: Un événement incohérent est refusé
+		Quand j'enregistre dans "evenements" : <valeurs>
+		Alors la base refuse l'enregistrement
+
+		Exemples:
+			| valeurs                                                                                          |
+			| nom_interne = 'X', priorite = 'urgence', debut = '2026-10-19 18:00'                              |
+			| nom_interne = 'X', priorite = 'emission'                                                         |
+			| nom_interne = 'X', priorite = 'special', fin = '2026-10-19 19:00'                                |
+			| nom_interne = 'X', priorite = 'fil_musical', fin = '2026-10-19 19:00'                            |
+			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 19:00', fin = '2026-10-19 18:00'   |
+			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 18:00', jours_recurrence = '{0}'   |
+			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 18:00', jours_recurrence = '{8}'   |
+
+	Plan du scénario: Un élément de liste de lecture est une banque ou un sonore
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "evenements_elements" : evenement_id = {evenement}, position = 1<complement>
+		Alors la base <verdict> l'enregistrement
+
+		Exemples:
+			| complement                                  | verdict |
+			| , banque_id = {banque}                      | accepte |
+			| , sonore_id = {sonore}                      | accepte |
+			|                                             | refuse  |
+			| , banque_id = {banque}, sonore_id = {sonore} | refuse  |
+
+	Scénario: Un même jingle peut revenir plusieurs fois dans une liste
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "evenements_elements" : evenement_id = {evenement}, position = 1, sonore_id = {sonore}
+		Et j'enregistre dans "evenements_elements" : evenement_id = {evenement}, position = 2, banque_id = {banque}
+		Et j'enregistre dans "evenements_elements" : evenement_id = {evenement}, position = 3, sonore_id = {sonore}
+		Alors la base accepte l'enregistrement
+
+	# ─── Airplay et log ────────────────────────────────────
+
+	Plan du scénario: Les lignes d'airplay respectent leur type
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "airplay" : passage_id = '7f0c1c2e-5d39-4a87-9a52-0c3c8c1f9a01', <valeurs>
+		Alors la base <verdict> l'enregistrement
+
+		Exemples:
+			| valeurs                                                                      | verdict |
+			| type_ligne = 'debut', sonore_id = {sonore}, banque_id = {banque}             | accepte |
+			| type_ligne = 'fin', duree_diffusee = '3 min', sans_incident = true           | accepte |
+			| type_ligne = 'debut', duree_diffusee = '3 min'                               | refuse  |
+			| type_ligne = 'fin', sans_incident = true                                     | refuse  |
+			| type_ligne = 'milieu'                                                        | refuse  |
+
+	Scénario: Un passage n'a qu'une ligne de début
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "airplay" : passage_id = '7f0c1c2e-5d39-4a87-9a52-0c3c8c1f9a01', type_ligne = 'debut'
+		Et j'enregistre dans "airplay" : passage_id = '7f0c1c2e-5d39-4a87-9a52-0c3c8c1f9a01', type_ligne = 'debut'
+		Alors la base refuse l'enregistrement
+
+	Scénario: L'airplay survit à la suppression du sonore
+		Étant donné les éléments de référence en base
+		Et un passage du sonore de référence dans l'airplay
+		Quand je supprime le sonore de référence
+		Alors la ligne d'airplay existe toujours, avec son titre recopié et sans référence au sonore
+
+	Plan du scénario: Le log n'accepte que les niveaux connus
+		Quand j'enregistre dans "log" : niveau = '<niveau>', nature = 'demarrage'
+		Alors la base <verdict> l'enregistrement
+
+		Exemples:
+			| niveau   | verdict |
+			| info     | accepte |
+			| alerte   | accepte |
+			| incident | accepte |
+			| debug    | refuse  |

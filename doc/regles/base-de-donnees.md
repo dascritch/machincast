@@ -10,7 +10,9 @@
 
 ## Migrations
 
-- Tout changement de schéma passe par une migration **yoyo-migrations** versionnée dans `migrations/`. Jamais de modification manuelle.
+- Tout changement de schéma passe par une migration **yoyo-migrations** versionnée dans `src/machincast/migrations/` (`NNNN.nom.sql` et son annulation `NNNN.nom.rollback.sql`). Jamais de modification manuelle, jamais de modification d'une migration déjà fusionnée : on en ajoute une nouvelle.
+- Les valeurs énumérées sont des textes contraints par `CHECK`, pas des types `ENUM`.
+- Toute nouvelle contrainte s'accompagne d'un scénario qui vérifie qu'elle refuse ce qu'elle doit refuser.
 - Une migration doit pouvoir s'appliquer aux deux bases sans modification.
 
 ## Droits

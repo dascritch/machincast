@@ -18,11 +18,17 @@ sudo apt install libgirepository-2.0-dev libcairo2-dev gir1.2-gstreamer-1.0 gstr
 python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
 cp machincast.exemple.toml machincast.toml   # puis l'adapter ; jamais versionné
 
+# Base de test locale (PostgreSQL, authentification peer)
+createdb machincast_test
+
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/
 
-# Tests
+# Tests (les scénarios de base de données sont ignorés si PostgreSQL est injoignable)
 pytest
+
+# Schéma de la base de test, à la main
+yoyo apply --batch --database "postgresql+psycopg:///machincast_test?host=/var/run/postgresql" src/machincast/migrations/
 
 # Aide des exécutables
 Machin_lecture --help
@@ -33,7 +39,7 @@ Machin_interface --help
 Machin_lecture --config <fichier>
 ```
 
-Commandes à venir : schéma de la base de test (`yoyo apply --database <url> migrations/`, #3), tests du wrapper (`bats tests/wrapper`, #6), lancement par le wrapper (`Machin lecture --config <fichier>`, #6).
+Commandes à venir : tests du wrapper (`bats tests/wrapper`, #6), lancement par le wrapper (`Machin lecture --config <fichier>`, #6).
 
 ## Règles selon le contexte
 

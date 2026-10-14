@@ -167,6 +167,19 @@ Journal de toutes les opérations du binaire lecture, normales comme incidents.
 
 L'indexeur n'écrit pas dans le log : ses incidents ne figurent donc pas dans l'écran des incidents.
 
+#### Choix de modélisation
+
+Le schéma est créé par la migration `src/machincast/migrations/0001.schema-initial.sql`.
+
+- Durées (`duree`, crossfades, `duree_diffusee`) : type `interval`. Dates : `timestamptz`.
+- Valeurs énumérées (`type`, `mode`, `priorite`, `type_ligne`, `niveau`) : textes contraints par `CHECK`.
+- `jours_recurrence` : tableau de jours ISO, 1 = lundi … 7 = dimanche. La récurrence est calculée en heure locale par le binaire lecture.
+- Un événement ne peut pas avoir de fin sans début.
+- Positions dans `banques_sonores` et `evenements_elements` : uniques par banque ou par événement, vérifiées en fin de transaction pour permettre de réordonner.
+- Suppressions : un lien de banque ou un élément d'événement disparaît avec la banque, le sonore ou l'événement qu'il référence ; `airplay` et `log` gardent leurs lignes, avec la référence passée à vide. Un marque-page utilisé par un sonore ne peut pas être supprimé. La validation préalable des suppressions est faite par l'interface ([§ 8.9](#89-suppression)).
+- Pour un stream, la colonne `emplacement` de `airplay` recopie l'URL diffusée.
+- `modifie_le` est mis à jour par un déclencheur à chaque modification de `sonores`, `banques` et `evenements`.
+
 ### 3.2 Rôles et droits
 
 Authentification **peer** (mode par défaut de PostgreSQL) par la socket Unix : chaque rôle correspond à un utilisateur système. Le respect des droits est en plus vérifié dans le code source.
