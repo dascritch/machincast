@@ -393,9 +393,24 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 ## 9. Configuration
 
 - Format TOML, lu par `tomllib`.
-- Le fichier `machincast.toml` se trouve dans le répertoire du projet et est ignoré par `.gitignore`. Un modèle versionné l'accompagne sous un autre nom.
-- Un paramètre du wrapper permet d'utiliser une autre configuration, notamment pour les tests.
-- Les clés seront définies au fil du projet. Contenu attendu au minimum : socket et noms des bases, type et périphérique de sortie audio, périphérique de pré-écoute, chemins des sorties CSV, .pls et HTML, masquage par défaut.
+- Le fichier `machincast.toml` se trouve dans le répertoire du projet et est ignoré par `.gitignore`. Le modèle versionné, documenté clé par clé, est `machincast.exemple.toml`.
+- Sans option, chaque binaire lit `machincast.toml` dans le répertoire courant. L'option `--config <fichier>`, commune à tous les binaires et transmise par le wrapper, permet d'utiliser une autre configuration, notamment pour les tests.
+- Les chemins relatifs sont résolus depuis le répertoire du fichier de configuration.
+- Toute clé ou section inconnue est refusée. Une clé obligatoire manquante, un type invalide ou une valeur hors des choix possibles arrête le binaire avec le code 2 et un message qui nomme le fichier et la clé.
+- De nouvelles clés s'ajouteront au fil du projet ; chacune est documentée dans le modèle.
+
+| Clé | Type | Obligatoire | Rôle |
+| --- | --- | --- | --- |
+| `base.socket` | texte | oui | Répertoire de la socket Unix de PostgreSQL. |
+| `base.production` | texte | oui | Nom de la base de production. |
+| `base.test` | texte | oui | Nom de la base de test. |
+| `audio.sortie` | `alsa`, `pulseaudio` ou `pipewire` | oui | Sortie audio de l'antenne. |
+| `audio.peripherique` | texte | non | Périphérique de l'antenne ; absent = périphérique par défaut. |
+| `audio.preecoute` | texte | oui | Périphérique de pré-écoute, différent de celui de l'antenne. |
+| `sorties.csv` | chemin | oui | Airplay CSV (privé). |
+| `sorties.pls` | chemin | oui | Playlist .pls (privé). |
+| `sorties.html` | chemin | oui | Airplay HTML (public). |
+| `metadonnees.masquer` | booléen | oui | Masquage par défaut de l'artiste et du titre. |
 
 ## 10. Installation et déploiement
 

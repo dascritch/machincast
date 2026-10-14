@@ -2,18 +2,19 @@
 
 from collections.abc import Sequence
 
-from machincast.cli import creer_analyseur, non_implemente
+from machincast.cli import lancer, non_implemente
+from machincast.configuration import Configuration
 
 EXECUTABLE = "Machin_lecture"
+DESCRIPTION = "Lit les événements programmés et les diffuse sur la sortie audio configurée."
+
+
+def executer(configuration: Configuration) -> int:
+	return non_implemente(EXECUTABLE, 12)
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
-	analyseur = creer_analyseur(
-		EXECUTABLE,
-		"Lit les événements programmés et les diffuse sur la sortie audio configurée.",
-	)
-	analyseur.parse_args(arguments)
-	return non_implemente(EXECUTABLE, 12)
+	return lancer(EXECUTABLE, DESCRIPTION, arguments, executer)
 
 
 if __name__ == "__main__":
