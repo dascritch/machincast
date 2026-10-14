@@ -13,7 +13,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from yoyo import get_backend, read_migrations
 
 from machincast.base import REPERTOIRE_MIGRATIONS, Role, autoriser_utilisateur, connecter, url_yoyo
-from tests.base_test import connexion_test, parametres_base_test, reinitialiser_base
+from tests.base_test import parametres_base_test
 
 scenarios("roles.feature")
 
@@ -54,9 +54,8 @@ class Contexte:
 
 
 @pytest.fixture
-def contexte() -> Iterator[Contexte]:
-	with connexion_test() as connexion:
-		yield Contexte(connexion=connexion)
+def contexte(base_vide: psycopg.Connection[tuple[object, ...]]) -> Contexte:
+	return Contexte(connexion=base_vide)
 
 
 @contextmanager
@@ -88,7 +87,7 @@ def inserer(contexte: Contexte, requete: str) -> int:
 
 @given("une base de test migrée avec les éléments de référence")
 def base(contexte: Contexte) -> None:
-	reinitialiser_base(contexte.connexion)
+	"""La fixture base_vide fournit déjà une base migrée et purgée."""
 	r = contexte.references
 	r["banque"] = inserer(contexte, "INSERT INTO banques (nom_interne, mode) VALUES ('Jingles', 'aleatoire')")
 	r["sonore"] = inserer(

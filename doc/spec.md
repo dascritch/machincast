@@ -279,7 +279,8 @@ Quand l'artiste et le titre sont masqués, la sortie publique affiche à leur pl
 ### 5.1 Lecture audio
 
 - Bibliothèque : GStreamer via PyGObject (lecture, crossfade, streams).
-- Sortie au choix dans la configuration : ALSA, PulseAudio ou PipeWire.
+- Sortie au choix dans la configuration : ALSA, PulseAudio ou PipeWire, chacune fournie par son greffon GStreamer (`gstreamer1.0-alsa`, `gstreamer1.0-pulseaudio`, `gstreamer1.0-pipewire`). La sortie `factice` ne joue aucun son, pour les tests et les essais (`machincast.audio`).
+- L'heure courante est lue par une horloge injectable (`machincast.horloge`) et les tirages aléatoires par un générateur à graine (`machincast.hasard`).
 - Crossfade selon `crossfade_debut` et `crossfade_fin` de chaque sonore.
 - Avant de jouer un fichier, le binaire compare sa date de modification et sa taille avec la base. En cas d'écart, il le consigne dans le log ; c'est l'indexeur qui mettra la base à jour.
 - S'il n'a aucun élément à lire dans le fil musical, il émet un silence et lève une alerte dans le log.
@@ -437,8 +438,8 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 | --- | --- | --- | --- |
 | `base.socket` | texte | oui | Répertoire de la socket Unix de PostgreSQL. |
 | `base.production` | texte | oui | Nom de la base de production. |
-| `base.test` | texte | oui | Nom de la base de test. |
-| `audio.sortie` | `alsa`, `pulseaudio` ou `pipewire` | oui | Sortie audio de l'antenne. |
+| `base.test` | texte | oui | Nom de la base de test. Doit différer de `base.production`. |
+| `audio.sortie` | `alsa`, `pulseaudio`, `pipewire` ou `factice` | oui | Sortie audio de l'antenne. `factice` ne joue aucun son (tests, essais). |
 | `audio.peripherique` | texte | non | Périphérique de l'antenne ; absent = périphérique par défaut. |
 | `audio.preecoute` | texte | oui | Périphérique de pré-écoute, différent de celui de l'antenne. |
 | `sorties.csv` | chemin | oui | Airplay CSV (privé). |

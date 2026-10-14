@@ -24,6 +24,7 @@ dev = [
 	"pytest-qt>=4.4",
 	"ruff>=0.6",
 	"mypy>=1.11",
+	"pygobject-stubs>=2.11",
 ]
 
 [project.urls]

@@ -13,8 +13,9 @@ from machincast.base import LONGUEUR_TEXTE_COURT
 FICHIER_PAR_DEFAUT = Path("machincast.toml")
 """Cherché dans le répertoire courant quand aucun fichier n'est passé avec --config."""
 
-SortieAudio = Literal["alsa", "pulseaudio", "pipewire"]
-SORTIES_AUDIO: tuple[SortieAudio, ...] = ("alsa", "pulseaudio", "pipewire")
+SortieAudio = Literal["alsa", "pulseaudio", "pipewire", "factice"]
+SORTIES_AUDIO: tuple[SortieAudio, ...] = ("alsa", "pulseaudio", "pipewire", "factice")
+"""« factice » ne joue aucun son : pour les tests et les essais."""
 
 
 class ConfigurationInvalide(Exception):
@@ -169,6 +170,14 @@ def charger(chemin: Path | None = None) -> Configuration:
 	lecteur = _Lecteur(chemin, document)
 	lecteur.verifier_cles()
 
+	base = Base(
+		socket=Path(lecteur.texte("base", "socket")),
+		production=lecteur.texte("base", "production"),
+		test=lecteur.texte("base", "test"),
+	)
+	if base.test == base.production:
+		raise lecteur.erreur("clé base.test : la base de test ne peut pas être la base de production")
+
 	sortie = lecteur.texte("audio", "sortie")
 	if sortie not in SORTIES_AUDIO:
 		raise lecteur.erreur(
@@ -181,11 +190,7 @@ def charger(chemin: Path | None = None) -> Configuration:
 
 	return Configuration(
 		chemin=chemin,
-		base=Base(
-			socket=Path(lecteur.texte("base", "socket")),
-			production=lecteur.texte("base", "production"),
-			test=lecteur.texte("base", "test"),
-		),
+		base=base,
 		audio=Audio(sortie=sortie, peripherique=peripherique, preecoute=preecoute),
 		sorties=Sorties(
 			csv=lecteur.chemin_fichier("sorties", "csv"),
