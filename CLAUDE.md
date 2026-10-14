@@ -14,7 +14,8 @@ Python · PySide6 (Qt 6.10) · PostgreSQL via socket Unix (psycopg 3, auth peer)
 # Prérequis système : uniquement ce que pip ne peut pas fournir (https://github.com/dascritch/machincast/issues/51)
 # — compilation de PyGObject, GStreamer et ses plugins, PostgreSQL
 sudo apt install python3-venv python3-dev build-essential pkg-config libgirepository-2.0-dev libcairo2-dev \
-	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good postgresql
+	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire postgresql
 
 # Installation de dev : venv isolé, jamais --system-site-packages (https://github.com/dascritch/machincast/issues/51)
 python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
@@ -30,7 +31,8 @@ python -m machincast.droits --base machincast_test autoriser "$(id -un)" lecture
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/
 
-# Tests (les scénarios de base de données sont ignorés si PostgreSQL est injoignable)
+# Tests : configuration tests/configuration-test.toml, ou celle désignée par MACHINCAST_CONFIG_TEST
+# (les scénarios de base de données sont ignorés si PostgreSQL est injoignable)
 pytest
 
 # Schéma de la base de test, à la main

@@ -12,11 +12,12 @@
 socket = "/var/run/postgresql"
 # Base de production, utilisée par la diffusion.
 production = "machincast"
-# Base de test, utilisée par les tests automatisés. Ne doit jamais être la base de production.
+# Base de test, utilisée par les tests automatisés. Doit différer de la base de production : le chargement refuse sinon.
 test = "machincast_test"
 
 [audio]
-# Sortie audio de l'antenne : "alsa", "pulseaudio" ou "pipewire".
+# Sortie audio de l'antenne : "alsa", "pulseaudio", "pipewire", ou "factice" pour ne jouer aucun son (essais).
+# Chacune demande son greffon GStreamer : gstreamer1.0-alsa, gstreamer1.0-pulseaudio ou gstreamer1.0-pipewire.
 # Avec "alsa", le VU-mètre de l'interface n'est pas disponible.
 sortie = "pipewire"
 # Périphérique de l'antenne. Facultatif : sans cette clé, le périphérique par défaut de la sortie est utilisé.

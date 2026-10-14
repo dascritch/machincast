@@ -86,7 +86,18 @@ Fonctionnalité: Fichier de configuration
 		Étant donné une configuration valide où la clé "audio.sortie" vaut "jack"
 		Quand je charge la configuration
 		Alors le chargement échoue avec un message qui mentionne "audio.sortie"
-		Et le message mentionne "alsa, pulseaudio, pipewire"
+		Et le message mentionne "alsa, pulseaudio, pipewire, factice"
+
+	Scénario: La sortie audio factice est acceptée
+		Étant donné une configuration valide où la clé "audio.sortie" vaut "factice"
+		Quand je charge la configuration
+		Alors la configuration est chargée sans erreur
+
+	Scénario: La base de test ne peut pas être la base de production
+		Étant donné une configuration valide où la clé "base.test" vaut "machincast"
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "base.test"
+		Et le message mentionne "base de production"
 
 	Scénario: La pré-écoute ne peut pas utiliser le périphérique d'antenne
 		Étant donné une configuration valide où la clé "audio.preecoute" vaut "antenne"

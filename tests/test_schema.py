@@ -1,7 +1,6 @@
 """Étapes des scénarios du schéma initial de la base de données."""
 
 import re
-from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -11,7 +10,7 @@ from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.base import TABLES, TYPES, annuler_migrations, url_yoyo
-from tests.base_test import connexion_test, parametres_base_test, reinitialiser_base
+from tests.base_test import parametres_base_test
 
 scenarios("schema.feature")
 
@@ -30,9 +29,8 @@ class Contexte:
 
 
 @pytest.fixture
-def contexte() -> Iterator[Contexte]:
-	with connexion_test() as connexion:
-		yield Contexte(connexion=connexion)
+def contexte(base_vide: psycopg.Connection[tuple[object, ...]]) -> Contexte:
+	return Contexte(connexion=base_vide)
 
 
 def executer_insertion(
@@ -66,7 +64,7 @@ def analyser(contexte: Contexte, valeurs: str) -> dict[str, str]:
 
 @given("une base de test vide où les migrations sont appliquées")
 def base_migree(contexte: Contexte) -> None:
-	reinitialiser_base(contexte.connexion)
+	"""La fixture base_vide fournit déjà une base migrée et purgée."""
 
 
 @given("les éléments de référence en base")
