@@ -205,3 +205,40 @@ Fonctionnalité: Schéma initial de la base de données
 			| alerte   | accepte |
 			| incident | accepte |
 			| debug    | refuse  |
+
+	# ─── Longueur des textes courts ────────────────────────
+
+	Plan du scénario: Les textes saisis à la main sont limités à 255 caractères
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "<table>" : <autres>, <colonne> = repeat('é', <longueur>)
+		Alors la base <verdict> l'enregistrement
+
+		Exemples:
+			| table                 | autres                                                  | colonne     | longueur | verdict |
+			| marques_pages_streams | url = 'https://flux.exemple'                            | nom         | 255      | accepte |
+			| marques_pages_streams | url = 'https://flux.exemple'                            | nom         | 256      | refuse  |
+			| sonores               | type = 'fichier', emplacement = '/long/artiste.flac'    | artiste     | 255      | accepte |
+			| sonores               | type = 'fichier', emplacement = '/long/artiste.flac'    | artiste     | 256      | refuse  |
+			| sonores               | type = 'fichier', emplacement = '/long/titre.flac'      | titre       | 256      | refuse  |
+			| banques               | mode = 'aleatoire'                                      | nom_interne | 255      | accepte |
+			| banques               | mode = 'aleatoire'                                      | nom_interne | 256      | refuse  |
+			| evenements            | priorite = 'fil_musical'                                | nom_interne | 255      | accepte |
+			| evenements            | priorite = 'fil_musical'                                | nom_interne | 256      | refuse  |
+			| evenements            | priorite = 'fil_musical', nom_interne = 'X'             | nom_public  | 256      | refuse  |
+			| airplay               | passage_id = gen_random_uuid(), type_ligne = 'debut'    | artiste     | 256      | refuse  |
+			| airplay               | passage_id = gen_random_uuid(), type_ligne = 'debut'    | titre       | 256      | refuse  |
+			| log                   | niveau = 'info'                                         | nature      | 255      | accepte |
+			| log                   | niveau = 'info'                                         | nature      | 256      | refuse  |
+
+	Plan du scénario: Les chemins, URL et messages ne sont pas limités à 255 caractères
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "<table>" : <autres>, <colonne> = '<prefixe>' || repeat('x', 1000)
+		Alors la base accepte l'enregistrement
+
+		Exemples:
+			| table                 | autres                                       | colonne     | prefixe                     |
+			| sonores               | type = 'fichier'                             | emplacement | /musique/                   |
+			| sonores               | type = 'stream'                              | url_stream  | https://flux.exemple/?SESSIONID= |
+			| marques_pages_streams | nom = 'Long'                                 | url         | https://flux.exemple/       |
+			| banques_repertoires   | banque_id = {banque}                         | repertoire  | /habillages/                |
+			| log                   | niveau = 'incident', nature = 'flux'         | message     | Détail :                    |

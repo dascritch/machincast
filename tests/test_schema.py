@@ -182,10 +182,14 @@ def accepte(contexte: Contexte) -> None:
 @then("la base refuse l'enregistrement")
 def refuse(contexte: Contexte) -> None:
 	assert contexte.erreur is not None, "la base aurait dû refuser l'enregistrement"
-	# Une contrainte violée ou une valeur hors d'un type ENUM, et non une faute de syntaxe dans le scénario.
-	assert isinstance(contexte.erreur, psycopg.errors.IntegrityError | psycopg.errors.InvalidTextRepresentation), repr(
-		contexte.erreur
-	)
+	# Une contrainte violée, une valeur hors d'un type ENUM ou un texte trop long,
+	# et non une faute de syntaxe dans le scénario.
+	assert isinstance(
+		contexte.erreur,
+		psycopg.errors.IntegrityError
+		| psycopg.errors.InvalidTextRepresentation
+		| psycopg.errors.StringDataRightTruncation,
+	), repr(contexte.erreur)
 
 
 def comparer(contexte: Contexte, type_enum: str, premier: str, second: str) -> bool:

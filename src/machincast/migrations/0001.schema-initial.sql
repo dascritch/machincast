@@ -1,4 +1,7 @@
 -- Schéma initial de MachinCast (ticket #3). Référence : doc/spec.md § 3.1.
+--
+-- Textes saisis à la main (noms, artiste, titre, nature) : varchar(255), même limite que l'interface.
+-- Chemins, URL et messages détaillés : text, leur longueur n'est pas bornée à l'avance.
 
 -- ─── Types énumérés ────────────────────────────────────────
 -- L'ordre de déclaration compte : il permet de comparer et de trier les valeurs.
@@ -24,7 +27,7 @@ $$;
 
 CREATE TABLE marques_pages_streams (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-	nom text NOT NULL UNIQUE,
+	nom varchar(255) NOT NULL UNIQUE,
 	url text NOT NULL
 );
 
@@ -37,8 +40,8 @@ CREATE TABLE sonores (
 	url_stream text,
 	marque_page_id bigint REFERENCES marques_pages_streams (id) ON DELETE RESTRICT,
 	-- Artiste et titre servent au masquage, à la recherche et à l'airplay : ce sont des colonnes.
-	artiste text,
-	titre text,
+	artiste varchar(255),
+	titre varchar(255),
 	-- Métadonnées non critiques (année, label, genre…), libres et extensibles sans migration.
 	metadonnees_musicales jsonb NOT NULL DEFAULT '{}'
 		CHECK (jsonb_typeof(metadonnees_musicales) = 'object'),
@@ -70,7 +73,7 @@ CREATE TRIGGER sonores_modifie_le BEFORE UPDATE ON sonores
 
 CREATE TABLE banques (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-	nom_interne text NOT NULL UNIQUE,
+	nom_interne varchar(255) NOT NULL UNIQUE,
 	mode mode_banque NOT NULL,
 	masquer_metadonnees boolean,
 	modifie_le timestamptz NOT NULL DEFAULT clock_timestamp()
@@ -105,8 +108,8 @@ CREATE INDEX banques_sonores_sonore ON banques_sonores (sonore_id);
 
 CREATE TABLE evenements (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-	nom_interne text NOT NULL,
-	nom_public text,
+	nom_interne varchar(255) NOT NULL,
+	nom_public varchar(255),
 	priorite priorite_evenement NOT NULL,
 	debut timestamptz,
 	fin timestamptz,
@@ -153,8 +156,8 @@ CREATE TABLE airplay (
 	banque_id bigint REFERENCES banques (id) ON DELETE SET NULL,
 	evenement_id bigint REFERENCES evenements (id) ON DELETE SET NULL,
 	emplacement text,
-	artiste text,
-	titre text,
+	artiste varchar(255),
+	titre varchar(255),
 	duree_diffusee interval CHECK (duree_diffusee >= '0 s'),
 	sans_incident boolean,
 	CONSTRAINT airplay_un_debut_une_fin UNIQUE (passage_id, type_ligne),
@@ -175,7 +178,7 @@ CREATE TABLE log (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	horodatage timestamptz NOT NULL DEFAULT clock_timestamp(),
 	niveau niveau_log NOT NULL,
-	nature text NOT NULL,
+	nature varchar(255) NOT NULL,
 	message text NOT NULL DEFAULT '',
 	sonore_id bigint REFERENCES sonores (id) ON DELETE SET NULL,
 	banque_id bigint REFERENCES banques (id) ON DELETE SET NULL,

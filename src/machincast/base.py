@@ -5,6 +5,9 @@ from urllib.parse import quote
 
 from yoyo import get_backend, read_migrations
 
+LONGUEUR_TEXTE_COURT = 255
+"""Longueur maximale des textes saisis à la main (noms, artiste, titre), en base comme dans l'interface."""
+
 REPERTOIRE_MIGRATIONS = Path(__file__).parent / "migrations"
 """Migrations SQL livrées avec le paquet : 0001.nom.sql et son annulation 0001.nom.rollback.sql."""
 
