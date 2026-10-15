@@ -66,6 +66,7 @@ Deux bases à la structure strictement identique : la base de production et la b
 | `emplacement` | Chemin du fichier. Clé unique pour les fichiers. Vide pour un stream. |
 | `url_stream` | URL directe d'un stream à usage unique (par exemple avec un SESSIONID dans l'URL). |
 | `marque_page_id` | Référence à un marque-page de stream. |
+| `secours_evenement_id` | Stream seulement : événement de priorité `secours` qui joue à la place du stream quand son flux tombe. Vide = l'événement de priorité inférieure (fil musical). Voir [§ 4.7](#47-streams). |
 | `artiste`, `titre` | Métadonnées publiques, pré-remplies depuis les tags à l'indexation. Ce sont des colonnes, car elles servent au masquage, à la recherche et à l'airplay. |
 | `metadonnees_musicales` | Objet JSON des métadonnées non critiques, pré-remplies depuis les tags ([#8](https://github.com/dascritch/machincast/issues/8)) : `annee`, `album`, `artiste_album`, `genre`, `compositeur`, `label`, `piste`. Extensible sans migration : les autres clés ne sont jamais touchées par l'indexeur. |
 | `crossfade_debut`, `crossfade_fin` | Temps de crossfade en début et en fin de sonore. |
@@ -96,6 +97,7 @@ Contraintes :
 
 - `type = fichier` ⇒ `emplacement` renseigné, `url_stream` et `marque_page_id` vides.
 - `type = stream` ⇒ exactement un de `url_stream` ou `marque_page_id` renseigné.
+- `secours_evenement_id` ⇒ `type = stream`, et l'événement désigné est de priorité `secours` (déclencheur en base, qui empêche aussi de changer la priorité d'un événement de secours désigné). Supprimer l'événement vide le champ.
 
 Pas de champ format ni fréquence d'échantillonnage : l'échantillonnage peut varier dans un fichier lossy et n'a pas d'utilité en lossless.
 
@@ -137,7 +139,7 @@ Un sonore situé hors des répertoires d'une banque peut y être ajouté à la m
 | Champ | Description |
 | --- | --- |
 | `id`, `nom_interne`, `nom_public` | Identification. |
-| `priorite` | `fil_musical` < `emission` < `special`. |
+| `priorite` | `fil_musical` < `emission` < `special`, plus `secours`, hors grille ([#16](https://github.com/dascritch/machincast/issues/16)) : un événement de secours ne passe jamais à l'antenne par la grille, seulement à la place d'un stream tombé ([§ 4.7](#47-streams)). |
 | `debut`, `fin` | Date et heure de début et de fin de la première occurrence. Voir les règles ci-dessous. |
 | `jours_recurrence` | Jours de la semaine où l'événement se répète, nommés de `lundi` à `dimanche` (plusieurs jours possibles). Vide = pas de récurrence. Tous les jours cochés = quotidien. |
 | `masquer_metadonnees` | Masquage au niveau de l'événement. Vide = hérite. |
@@ -146,6 +148,7 @@ Un sonore situé hors des répertoires d'une banque peut y être ajouté à la m
 Règles sur les dates :
 
 - Seuls les événements de priorité `fil_musical` peuvent avoir un `debut` vide. Un fil musical sans `debut` ni `fin` est permanent.
+- Un événement de priorité `secours` n'a ni `debut`, ni `fin`, ni `jours_recurrence`. Sa liste boucle, comme celle d'un fil musical.
 - Les priorités `emission` et `special` peuvent avoir une `fin` vide. Leur liste de lecture ne boucle alors pas : l'événement se termine quand sa liste est épuisée.
 - Un événement peut passer minuit.
 - Pas de date de fin de récurrence, pas d'exceptions (jours fériés).
@@ -169,7 +172,7 @@ L'historique de diffusion. Les lignes ne sont **jamais supprimées**, même quan
 | `type_ligne` | `debut` ou `fin`. |
 | `horodatage` | Heure de début ou de fin. |
 | `sonore_id`, `banque_id`, `evenement_id` | Références facultatives. `banque_id` est indispensable au cycle aléatoire propre à chaque banque. |
-| `element_id` | Élément de la liste de l'événement qui a fait jouer le passage (migration `0002.airplay-element`, [#14](https://github.com/dascritch/machincast/issues/14)) : un même élément peut figurer plusieurs fois dans une liste, seul lui dit où la reprendre. Vide si l'élément est supprimé. |
+| `element_id` | Élément de la liste de l'événement qui a fait jouer le passage ([#14](https://github.com/dascritch/machincast/issues/14)) : un même élément peut figurer plusieurs fois dans une liste, seul lui dit où la reprendre. Vide si l'élément est supprimé. |
 | `emplacement`, `artiste`, `titre` | Recopiés au moment du passage, pour garder l'historique après suppression. |
 | `duree_diffusee` | Sur la ligne de fin : durée effectivement diffusée. |
 | `sans_incident` | Sur la ligne de fin : la lecture s'est-elle déroulée sans incident. |
@@ -190,7 +193,7 @@ L'indexeur n'écrit pas dans le log : ses incidents ne figurent donc pas dans l'
 
 #### Choix de modélisation
 
-Le schéma, les rôles et les droits sont créés par la migration `src/machincast/migrations/0001.schema-initial.sql`, fusion des quatre premières migrations avant toute mise en production ([PR #70](https://github.com/dascritch/machincast/pull/70)).
+Le schéma, les rôles et les droits sont créés par la migration `src/machincast/migrations/0001.schema-initial.sql`, fusion des migrations écrites avant toute mise en production ([PR #70](https://github.com/dascritch/machincast/pull/70), [PR #90](https://github.com/dascritch/machincast/pull/90)).
 
 - Durées (`duree`, crossfades, `duree_diffusee`) : type `interval`. Dates : `timestamptz`.
 - Textes saisis à la main (noms internes et publics, artiste, titre, nature d'une entrée du log) : `varchar(255)`, la même limite que l'interface. Chemins, URL et messages détaillés : `text`, sans limite fixée à l'avance.
@@ -279,9 +282,16 @@ Indicateur affiché pour le prochain sonore : fichier présent, actif, lisible, 
 
 ### 4.7 Streams
 
-- Un stream s'arrête au premier déclencheur, par ordre de priorité : début d'un événement de priorité égale ou supérieure, puis fin de l'événement en cours, puis fin de diffusion du stream.
-- Si le flux tombe : passage à l'élément suivant, avec des tentatives de reconnexion en tâche de fond.
-- Les métadonnées ICY du flux ne sont pas relayées.
+Décidé avec le ticket [#16](https://github.com/dascritch/machincast/issues/16) (`machincast.lecture.diffusion`, `machincast.lecture.deroule`) :
+
+- Adresse : `url_stream`, ou l'`url` du marque-page. L'airplay recopie cette adresse dans `emplacement`.
+- Début d'un événement de priorité égale ou supérieure : coupure nette, comme pour un fichier.
+- Fin de l'événement du stream : le stream s'éteint pendant son `crossfade_fin`, et s'arrête à la fin du fondu (aussitôt si `crossfade_fin` vaut 0). Le sonore suivant démarre en même temps s'il a un `crossfade_debut` (superposition, [§ 5.1](#51-lecture-audio)), sinon à la fin du fondu.
+- Flux tombé : toute interruption avant la fin de son événement, erreur réseau, réponse en erreur, ou fin propre du flux. Le passage se termine en incident, et le log note l'incident `flux tombé`, avec l'adresse et l'erreur. L'occurrence du stream est suspendue : tant qu'elle reste active, la liste de l'événement de secours du stream la remplace, en boucle, reprise à l'élément qui suit le dernier joué ; sans événement de secours, ou sans rien de jouable dans sa liste, l'événement de priorité inférieure.
+- Reconnexion en tâche de fond : une voie muette retente la connexion toutes les 5 secondes. Dès que le son arrive, crossfade immédiat : le stream monte pendant son `crossfade_debut`, et les sonores de remplacement s'éteignent pendant ce même temps (coupure nette à 0). Nouveau passage dans l'airplay, et l'incident `reprise du flux` dans le log, avec l'adresse et la durée de la panne : chaque panne a ses deux lignes d'incident, début et fin.
+- L'occurrence du stream n'est plus active (fin de l'événement, ou un autre commence) : la reconnexion est abandonnée, `reconnexion abandonnée` (info) dans le log.
+- Les métadonnées ICY du flux ne sont pas relayées : l'artiste et le titre viennent de la base.
+- Prolonger un stream dont le direct déborde : [#47](https://github.com/dascritch/machincast/issues/47).
 
 ### 4.8 Métadonnées publiques et masquage
 
@@ -314,7 +324,7 @@ Boucle de diffusion ([#88](https://github.com/dascritch/machincast/issues/88), `
 ### 5.2 Écritures
 
 - `airplay` : une ligne au début et une ligne à la fin de chaque passage (insertions seules), par `machincast.lecture.enregistrement` ([#17](https://github.com/dascritch/machincast/issues/17)). La ligne de fin recopie la ligne de début : l'artiste et le titre restent ceux du moment du passage, même modifiés entre-temps. Une coupure nette n'est pas un incident (`sans_incident` vrai) ; une lecture interrompue par une erreur, si.
-- `log` : toutes les opérations, normales comme incidents, avec l'heure de l'horloge du binaire. Natures déjà consignées : `démarrage` (info), `arrêt` (info), `coupure nette` (info), `silence` (alerte), `fichier modifié` (alerte), `fichier introuvable` (incident), `lecture interrompue` (incident).
+- `log` : toutes les opérations, normales comme incidents, avec l'heure de l'horloge du binaire. Natures déjà consignées : `démarrage` (info), `arrêt` (info), `coupure nette` (info), `reconnexion abandonnée` (info), `silence` (alerte), `fichier modifié` (alerte), `fichier introuvable` (incident), `lecture interrompue` (incident), `flux tombé` (incident), `reprise du flux` (incident).
 - `sonores.etat` : passage à `expire` ([§ 4.5](#45-sonore-jouable)).
 
 ### 5.3 Modules de sortie
@@ -440,7 +450,7 @@ Python, PySide6 (Qt 6.10, version de Kubuntu 26.04 LTS).
 
 - Édition de tous les champs : artiste, titre, métadonnées musicales (année, etc.), crossfades, maximum de lectures, état (actif ou désactivé ; expiré, erroné et supprimé sont affichés, et l'interface peut les ramener à actif), masquage, période de diffusion. Tout champ saisi ici est marqué comme édité à la main et n'est plus modifié par l'indexeur.
 - Pré-écoute avec un programme de lecture externe, sur un périphérique de sortie obligatoirement différent de celui du binaire lecture.
-- Pour un stream : choix entre URL directe et marque-page, test du stream à la demande.
+- Pour un stream : choix entre URL directe et marque-page, choix de l'événement de secours ([§ 4.7](#47-streams)), test du stream à la demande.
 - Table des derniers passages, avec indication des incidents.
 
 ### 8.4 Écran de détails d'une banque
@@ -475,7 +485,7 @@ L'utilisateur saisit une date et heure de début et de fin. L'interface lance le
 ### 8.8 Ajout d'un sonore
 
 - Fichier : par sélecteur de fichiers ou glisser-déposer. Le fichier est référencé là où il se trouve, sans copie. Il peut être synchronisé depuis un autre ordinateur et changer de contenu sous le même nom (émission pré-enregistrée, rediffusion d'un direct). Il passe immédiatement par la vérification de l'indexeur.
-- Stream : URL directe ou marque-page.
+- Stream : URL directe ou marque-page, et l'événement de secours.
 
 ### 8.9 Suppression
 

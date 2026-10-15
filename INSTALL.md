@@ -4,7 +4,7 @@ Ce document décrit l'installation de MachinCast sur un poste de diffusion, sa v
 
 Le script `install.sh` fait tout le travail. La section [Installer à la main](#installer-à-la-main) détaille chacune de ses étapes, pour qui veut les faire soi-même ou comprendre ce qu'il fait.
 
-> **État du projet** : MachinCast est en cours de développement. L'indexation vérifie les sonores, et `Machin lecture` diffuse la grille depuis un terminal ; le service de diffusion, les streams et l'interface graphique (`Machin interface`) ne sont pas encore écrits. La section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
+> **État du projet** : MachinCast est en cours de développement. L'indexation vérifie les sonores, et `Machin lecture` diffuse la grille depuis un terminal ; le service de diffusion et l'interface graphique (`Machin interface`) ne sont pas encore écrits. La section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
 
 ## Sommaire
 
@@ -52,7 +52,7 @@ Paquets installés par apt : uniquement ce que pip ne peut pas fournir. Toutes l
 | `libcairo2-dev` | Cairo, dépendance de compilation de PyGObject. |
 | `gir1.2-gstreamer-1.0` | Description de GStreamer pour PyGObject. |
 | `gstreamer1.0-plugins-base` | Décodage Ogg Vorbis, conversion et rééchantillonnage audio. |
-| `gstreamer1.0-plugins-good` | Décodage MP3, FLAC et WAV ; découpage des fichiers AAC bruts (`.aac`). |
+| `gstreamer1.0-plugins-good` | Décodage MP3, FLAC et WAV ; découpage des fichiers AAC bruts (`.aac`) ; lecture des streams HTTP et HTTPS. |
 | `gstreamer1.0-plugins-bad` | Décodage AIFF et AAC (fichiers `.m4a` et `.aac`). |
 | `gstreamer1.0-alsa` | Sortie audio `alsa`. |
 | `gstreamer1.0-pulseaudio` | Sortie audio `pulseaudio`. |
@@ -99,7 +99,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 | Rôles | En tant qu'utilisateur `postgres` : autorise le compte à endosser les trois rôles de MachinCast, sans en hériter les droits. | Serveur PostgreSQL. |
 | Journal système | Ajoute le compte au groupe `systemd-journal`, pour lire le journal du service. Effectif après le redémarrage du poste. | Groupes du compte. |
 | Liens | `/opt/machincast` vers le répertoire de MachinCast ; `/usr/local/bin/Machin` vers le wrapper ; l'autocomplétion bash dans `/usr/share/bash-completion/completions/Machin`. | Trois liens symboliques. |
-| Greffons GStreamer et sortie audio | Vérifie que GStreamer sait décoder MP3, M4A, AAC, Ogg, FLAC, WAV et AIFF, et créer la sortie audio de `machincast.toml`, sans jouer aucun son. | Rien. |
+| Greffons GStreamer et sortie audio | Vérifie que GStreamer sait décoder MP3, M4A, AAC, Ogg, FLAC, WAV et AIFF, lire les streams HTTP et HTTPS, et créer la sortie audio de `machincast.toml`, sans jouer aucun son. | Rien. |
 
 À la fin, il affiche `Installation terminée`. Le service de diffusion n'est pas installé : il le sera par une étape facultative, pour pouvoir essayer MachinCast avant de l'installer définitivement ([#22](https://github.com/dascritch/machincast/issues/22)).
 
@@ -201,13 +201,14 @@ git pull
 .venv/bin/yoyo apply --batch --database "postgresql+psycopg:///machincast?host=/var/run/postgresql" src/machincast/migrations/
 ```
 
-**Base créée avant la fusion des migrations.** Avant toute mise en production, les premières migrations ont été fusionnées en une seule ([PR #70](https://github.com/dascritch/machincast/pull/70)). Une base créée avant cette fusion ne peut pas être mise à jour. Pour la reconnaître, lister les migrations qu'elle a reçues :
+**Base créée avant une fusion des migrations.** Avant toute mise en production, les migrations ont été fusionnées en une seule, deux fois ([PR #70](https://github.com/dascritch/machincast/pull/70), puis [PR #90](https://github.com/dascritch/machincast/pull/90), qui ajoute la priorité `secours` des événements). Une base créée avant une fusion ne peut pas être mise à jour. Pour la reconnaître, lister les migrations qu'elle a reçues, et vérifier qu'elle connaît la priorité `secours` :
 
 ```bash
 psql --dbname=machincast -c "SELECT migration_id FROM _yoyo_migration"
+psql --dbname=machincast -c "SELECT enum_range(NULL::priorite_evenement)"
 ```
 
-Si la liste contient autre chose que `0001.schema-initial`, recréer la base. **Cela efface son contenu** : ce n'est possible que tant que MachinCast n'est pas en production. Les commandes de ce document utilisent le nom de base du modèle, `machincast` : le remplacer par celui de `base.production` (ou `base.test`) dans `machincast.toml`.
+Si la première liste contient autre chose que `0001.schema-initial`, ou si la seconde ne commence pas par `secours`, recréer la base. **Cela efface son contenu** : ce n'est possible que tant que MachinCast n'est pas en production. Les commandes de ce document utilisent le nom de base du modèle, `machincast` : le remplacer par celui de `base.production` (ou `base.test`) dans `machincast.toml`.
 
 ```bash
 sudo -u postgres dropdb machincast
@@ -350,7 +351,6 @@ Les messages d'information s'affichent sur la sortie standard ; les anomalies et
 | Manque | Ticket |
 | --- | --- |
 | Archives `.tar.gz` publiées en releases | [#41](https://github.com/dascritch/machincast/issues/41) |
-| Diffusion des streams par `Machin lecture` | [#16](https://github.com/dascritch/machincast/issues/16) |
 | Service systemd de diffusion et règle polkit, installation facultative | [#22](https://github.com/dascritch/machincast/issues/22) |
 | Interface graphique `Machin interface` | [#23](https://github.com/dascritch/machincast/issues/23) |
 | Message de l'interface tant que le service n'est pas installé | [#25](https://github.com/dascritch/machincast/issues/25) |

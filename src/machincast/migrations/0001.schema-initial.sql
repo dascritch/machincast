@@ -4,6 +4,9 @@
 -- (https://github.com/dascritch/machincast/pull/70) : schéma (https://github.com/dascritch/machincast/issues/3),
 -- rôles et droits (https://github.com/dascritch/machincast/issues/4), état d'un sonore
 -- (https://github.com/dascritch/machincast/issues/66) et état aperçu (https://github.com/dascritch/machincast/issues/69).
+-- Puis, toujours avant la mise en production, des trois suivantes (https://github.com/dascritch/machincast/pull/90) :
+-- élément d'événement des passages (https://github.com/dascritch/machincast/issues/14), priorité « secours » et
+-- événement de secours d'un stream (https://github.com/dascritch/machincast/issues/16).
 --
 -- Textes saisis à la main (noms, artiste, titre, nature) : varchar(255), même limite que l'interface.
 -- Chemins, URL et messages détaillés : text, leur longueur n'est pas bornée à l'avance.
@@ -13,8 +16,9 @@
 
 CREATE TYPE type_sonore AS ENUM ('fichier', 'stream');
 CREATE TYPE mode_banque AS ENUM ('sequentiel', 'aleatoire');
--- Ordre croissant de priorité : fil_musical < emission < special.
-CREATE TYPE priorite_evenement AS ENUM ('fil_musical', 'emission', 'special');
+-- Ordre croissant de priorité : fil_musical < emission < special. La priorité secours, rangée en dessous, est hors
+-- grille : un événement de secours ne joue qu'à la place d'un stream tombé (doc/spec.md § 4.7).
+CREATE TYPE priorite_evenement AS ENUM ('secours', 'fil_musical', 'emission', 'special');
 CREATE TYPE jour_semaine AS ENUM ('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche');
 CREATE TYPE type_ligne_airplay AS ENUM ('debut', 'fin');
 CREATE TYPE niveau_log AS ENUM ('info', 'alerte', 'incident');
@@ -53,6 +57,9 @@ CREATE TABLE sonores (
 	emplacement text UNIQUE,
 	url_stream text,
 	marque_page_id bigint REFERENCES marques_pages_streams (id) ON DELETE RESTRICT,
+	-- Stream seulement : événement de secours joué quand le flux tombe ; vide, l'événement de priorité inférieure.
+	-- Sa clé étrangère est posée après la table evenements.
+	secours_evenement_id bigint,
 	-- Artiste et titre servent au masquage, à la recherche et à l'airplay : ce sont des colonnes.
 	artiste varchar(255),
 	titre varchar(255),
@@ -131,8 +138,11 @@ CREATE TABLE evenements (
 	jours_recurrence jour_semaine[] NOT NULL DEFAULT '{}',
 	masquer_metadonnees boolean,
 	modifie_le timestamptz NOT NULL DEFAULT clock_timestamp(),
-	-- Seul un fil musical peut n'avoir aucune date de début (fil permanent).
-	CONSTRAINT evenements_debut CHECK (debut IS NOT NULL OR priorite = 'fil_musical'),
+	-- Seuls un fil musical (fil permanent) et un événement de secours peuvent n'avoir aucune date de début.
+	CONSTRAINT evenements_debut CHECK (debut IS NOT NULL OR priorite IN ('fil_musical', 'secours')),
+	-- Un événement de secours est hors grille : ni début, ni fin, ni jours de récurrence.
+	CONSTRAINT evenements_secours_hors_grille
+		CHECK (priorite <> 'secours' OR (debut IS NULL AND fin IS NULL AND jours_recurrence = '{}')),
 	-- Pas de fin sans début.
 	CONSTRAINT evenements_fin_sans_debut CHECK (fin IS NULL OR debut IS NOT NULL),
 	CONSTRAINT evenements_ordre CHECK (fin > debut)
@@ -140,6 +150,50 @@ CREATE TABLE evenements (
 
 CREATE TRIGGER evenements_modifie_le BEFORE UPDATE ON evenements
 	FOR EACH ROW EXECUTE FUNCTION machincast_maj_modifie_le();
+
+-- Événement de secours d'un stream. Un événement supprimé laisse le stream sans secours.
+ALTER TABLE sonores
+	ADD CONSTRAINT sonores_secours_evenement
+		FOREIGN KEY (secours_evenement_id) REFERENCES evenements (id) ON DELETE SET NULL,
+	ADD CONSTRAINT sonores_secours_stream CHECK (type = 'stream' OR secours_evenement_id IS NULL);
+
+CREATE INDEX sonores_secours_evenement ON sonores (secours_evenement_id);
+
+-- Le secours d'un stream est toujours un événement de priorité secours : vérifié à l'enregistrement du sonore,
+-- et quand la priorité d'un événement désigné change. Conditions imbriquées : la requête sur l'autre table n'est
+-- préparée que lorsqu'elle est nécessaire ; l'indexeur, qui enregistre des fichiers sans droit de lire les
+-- événements, ne la déclenche jamais.
+CREATE FUNCTION machincast_verifier_secours_sonore() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+	IF NEW.secours_evenement_id IS NOT NULL THEN
+		IF NOT EXISTS (SELECT 1 FROM evenements WHERE id = NEW.secours_evenement_id AND priorite = 'secours') THEN
+			RAISE EXCEPTION 'l''événement % n''est pas un événement de secours', NEW.secours_evenement_id
+				USING ERRCODE = 'check_violation';
+		END IF;
+	END IF;
+	RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER sonores_secours BEFORE INSERT OR UPDATE OF secours_evenement_id ON sonores
+	FOR EACH ROW EXECUTE FUNCTION machincast_verifier_secours_sonore();
+
+CREATE FUNCTION machincast_verifier_secours_evenement() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+	IF OLD.priorite = 'secours' AND NEW.priorite <> 'secours' THEN
+		IF EXISTS (SELECT 1 FROM sonores WHERE secours_evenement_id = NEW.id) THEN
+			RAISE EXCEPTION 'l''événement % sert de secours à un stream : il reste de priorité secours', NEW.id
+				USING ERRCODE = 'check_violation';
+		END IF;
+	END IF;
+	RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER evenements_secours BEFORE UPDATE OF priorite ON evenements
+	FOR EACH ROW EXECUTE FUNCTION machincast_verifier_secours_evenement();
 
 -- Liste de lecture ordonnée d'un événement : chaque élément est une banque ou un sonore.
 -- Un même élément peut revenir plusieurs fois.
@@ -169,6 +223,9 @@ CREATE TABLE airplay (
 	sonore_id bigint REFERENCES sonores (id) ON DELETE SET NULL,
 	banque_id bigint REFERENCES banques (id) ON DELETE SET NULL,
 	evenement_id bigint REFERENCES evenements (id) ON DELETE SET NULL,
+	-- Élément de la liste qui a fait jouer le passage : un même élément peut figurer plusieurs fois dans une liste,
+	-- seul lui dit où la reprendre, à l'élément qui suit le dernier joué.
+	element_id bigint REFERENCES evenements_elements (id) ON DELETE SET NULL,
 	emplacement text,
 	artiste varchar(255),
 	titre varchar(255),

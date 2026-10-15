@@ -24,6 +24,14 @@ Transitions (§ 4.2) :
   actif (le fil musical) reprend ;
 - rien à diffuser : silence, et une alerte dans le log, une seule fois par silence.
 
+Streams (§ 4.7, https://github.com/dascritch/machincast/issues/16) :
+
+- un stream s'arrête au début d'un événement de priorité égale ou supérieure (coupure nette, comme un fichier), ou à
+  la fin de son événement : il s'éteint alors pendant son crossfade de fin (eteindre) ;
+- un flux tombé suspend son occurrence (suspendre) : tant qu'elle reste active, la liste de l'événement de secours
+  du stream la remplace, ou, sans secours, l'événement de priorité inférieure ; la diffusion retente la connexion
+  et reprend le stream dès qu'il revient (reprendre). Une autre occurrence active met fin à la suspension.
+
 Un sonore dont le fichier est introuvable au moment de le jouer est écarté (exclure) pendant
 REESSAI_FICHIER_INTROUVABLE : il est traité comme non jouable, pour ne pas le réessayer à chaque tour de liste
 (https://github.com/dascritch/machincast/issues/88).
@@ -38,7 +46,15 @@ from psycopg.rows import TupleRow
 from machincast.hasard import Hasard
 from machincast.lecture.banques import choisir_sonore, sonore_jouable
 from machincast.lecture.enregistrement import consigner
-from machincast.lecture.grille import Occurrence, Priorite, evenement_actif, heure_murale, lire_grille
+from machincast.lecture.grille import (
+	Evenement,
+	Occurrence,
+	Priorite,
+	evenement_actif,
+	heure_murale,
+	lire_evenement,
+	lire_grille,
+)
 
 REESSAI_FICHIER_INTROUVABLE = timedelta(hours=1)
 """Durée pendant laquelle un sonore au fichier introuvable n'est plus proposé."""
@@ -72,12 +88,25 @@ class EnCours:
 	occurrence: Occurrence
 	debut: datetime
 	fin_prevue: datetime
+	stream: bool = False
+	"""Un stream n'a pas de fin connue : il s'éteint à la fin de son événement."""
+
+
+@dataclass(frozen=True)
+class Suspension:
+	"""Occurrence d'un stream tombé, remplacée le temps de le reconnecter."""
+
+	occurrence: Occurrence
+	secours: Evenement | None
+	"""Événement de secours du stream ; None : l'événement de priorité inférieure."""
 
 
 @dataclass(frozen=True)
 class Decision:
 	couper: bool = False
 	"""Couper net le sonore en cours."""
+	eteindre: bool = False
+	"""Éteindre le stream en cours pendant son crossfade de fin : son événement est fini."""
 	jouer: Choix | None = None
 	silence: bool = False
 	"""Rien à diffuser : se taire."""
@@ -86,7 +115,7 @@ class Decision:
 
 	@property
 	def continuer(self) -> bool:
-		return not (self.couper or self.jouer or self.silence)
+		return not (self.couper or self.eteindre or self.jouer or self.silence)
 
 
 def elements_a_essayer(elements: list[Element], dernier: int | None, boucle: bool) -> list[Element]:
@@ -122,7 +151,7 @@ def dernier_element(connexion: psycopg.Connection[TupleRow], occurrence: Occurre
 	"""Dernier élément joué de l'événement : dans l'occurrence en cours, ou depuis toujours pour un fil musical."""
 	evenement = occurrence.evenement
 	depuis = None
-	if evenement.priorite is not Priorite.FIL_MUSICAL and occurrence.debut is not None:
+	if evenement.priorite not in (Priorite.FIL_MUSICAL, Priorite.SECOURS) and occurrence.debut is not None:
 		depuis = occurrence.debut.astimezone()
 	ligne = connexion.execute(
 		"SELECT element_id FROM airplay WHERE evenement_id = %s AND type_ligne = 'debut'"
@@ -134,8 +163,10 @@ def dernier_element(connexion: psycopg.Connection[TupleRow], occurrence: Occurre
 
 
 def boucle(occurrence: Occurrence) -> bool:
-	"""Une émission ou un spécial sans fin ne boucle pas : il se termine à la fin de sa liste."""
-	return occurrence.evenement.priorite is Priorite.FIL_MUSICAL or occurrence.fin is not None
+	"""Une émission ou un spécial sans fin ne boucle pas : il se termine à la fin de sa liste. Un fil musical et un
+	événement de secours bouclent toujours."""
+	permanents = (Priorite.FIL_MUSICAL, Priorite.SECOURS)
+	return occurrence.evenement.priorite in permanents or occurrence.fin is not None
 
 
 def prochain(
@@ -176,6 +207,26 @@ class Ordonnanceur:
 		self.en_silence = False
 		self.exclus: dict[int, datetime] = {}
 		"""Sonores écartés, avec l'instant où ils l'ont été."""
+		self.suspension: Suspension | None = None
+		"""Stream tombé en attente de reconnexion."""
+
+	def suspendre(self, occurrence: Occurrence, secours: int | None) -> None:
+		"""Le stream de l'occurrence est tombé : la remplacer, tant qu'elle reste active, par l'événement de secours,
+		ou sans secours par l'événement de priorité inférieure."""
+		evenement = None
+		if secours is not None:
+			with self.connexion.transaction():
+				evenement = lire_evenement(self.connexion, secours)
+		self.suspension = Suspension(occurrence, evenement)
+
+	def reprendre(self) -> None:
+		"""Le stream est revenu : son occurrence reprend l'antenne."""
+		self._lever_suspension()
+
+	def _lever_suspension(self) -> None:
+		if self.suspension is not None and self.suspension.secours is not None:
+			self.terminees.discard(_occurrence_de_secours(self.suspension.secours).cle)
+		self.suspension = None
 
 	def exclure(self, sonore: int, instant: datetime) -> None:
 		"""Écarte un sonore pendant REESSAI_FICHIER_INTROUVABLE, par exemple quand son fichier est introuvable."""
@@ -192,34 +243,63 @@ class Ordonnanceur:
 
 	def _decider(self, instant: datetime, en_cours: EnCours | None) -> Decision:
 		evenements = lire_grille(self.connexion)
-		couper = False
+		couper = eteindre = False
 		while True:
-			actif = evenement_actif(evenements, instant, frozenset(self.terminees))
-			if en_cours is not None and not couper:
-				if actif is None or actif.cle == en_cours.occurrence.cle or not self._commence_apres(actif, en_cours):
-					# Même événement, ou fin d'événement sans successeur : le sonore va jusqu'au bout.
+			actif = self._remplacer(
+				evenements, instant, evenement_actif(evenements, instant, frozenset(self.terminees))
+			)
+			if en_cours is not None and not (couper or eteindre):
+				if actif is not None and actif.cle == en_cours.occurrence.cle:
 					return Decision()
-				# Un événement a commencé pendant le sonore en cours : il le coupe net.
-				couper = True
+				if actif is not None and self._commence_apres(actif, en_cours):
+					# Un événement a commencé pendant le sonore en cours : il le coupe net.
+					couper = True
+				elif en_cours.stream:
+					# Fin de l'événement du stream : il s'éteint, l'événement actif reprend.
+					eteindre = True
+				else:
+					# Fin d'événement sans successeur : le sonore va jusqu'au bout.
+					return Decision()
 			if actif is None:
-				return self._silence(couper, None, "aucun événement actif")
+				return self._silence(couper, eteindre, None, "aucun événement actif")
 			choix = prochain(self.connexion, actif, instant, self.hasard, self._exclus(instant))
 			if choix is not None:
 				self.en_silence = False
-				return Decision(couper=couper, jouer=choix)
+				return Decision(couper=couper, eteindre=eteindre, jouer=choix)
 			if actif.evenement.priorite is Priorite.FIL_MUSICAL:
-				return self._silence(couper, actif, "rien à diffuser dans le fil musical")
+				return self._silence(couper, eteindre, actif, "rien à diffuser dans le fil musical")
 			# Liste épuisée, ou plus rien de jouable : l'occurrence se termine, l'événement inférieur reprend.
 			self.terminees.add(actif.cle)
+
+	def _remplacer(self, evenements: list[Evenement], instant: datetime, actif: Occurrence | None) -> Occurrence | None:
+		"""Pendant la suspension d'un stream, son occurrence cède la place à son secours ; ailleurs, la suspension
+		prend fin."""
+		suspension = self.suspension
+		if suspension is None:
+			return actif
+		if actif is None or actif.cle != suspension.occurrence.cle:
+			self._lever_suspension()
+			return actif
+		if suspension.secours is not None:
+			secours = _occurrence_de_secours(suspension.secours)
+			if secours.cle not in self.terminees:
+				return secours
+		# Sans secours, ou secours sans rien de jouable : l'événement de priorité inférieure.
+		return evenement_actif(evenements, instant, frozenset(self.terminees | {suspension.occurrence.cle}))
 
 	@staticmethod
 	def _commence_apres(actif: Occurrence, en_cours: EnCours) -> bool:
 		return actif.debut is not None and actif.debut > heure_murale(en_cours.debut)
 
-	def _silence(self, couper: bool, actif: Occurrence | None, message: str) -> Decision:
+	def _silence(self, couper: bool, eteindre: bool, actif: Occurrence | None, message: str) -> Decision:
 		if not self.en_silence:
 			self.en_silence = True
 			consigner(
 				self.connexion, "alerte", "silence", message, evenement=None if actif is None else actif.evenement.id
 			)
-		return Decision(couper=couper, silence=True, occurrence=actif)
+		return Decision(couper=couper, eteindre=eteindre, silence=True, occurrence=actif)
+
+
+def _occurrence_de_secours(evenement: Evenement) -> Occurrence:
+	"""Un événement de secours n'a pas de dates : une seule occurrence, sans début ni fin."""
+	return Occurrence(evenement, None, None)

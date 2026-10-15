@@ -15,3 +15,4 @@
 - Les listes d'une banque séquentielle et d'un événement se réordonnent par glisser-déposer.
 - Si aucun fil musical n'existe, en recréer un.
 - Prévoir l'absence de VU-mètre (sortie ALSA) et l'absence de durée (streams).
+- Un stream propose son événement de secours parmi les seuls événements de priorité `secours`, ou aucun (le fil musical) ; un événement de secours ne se saisit ni avec des dates, ni avec des jours, et n'apparaît pas dans la vue calendrier ([#16](https://github.com/dascritch/machincast/issues/16)).

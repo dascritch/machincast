@@ -31,6 +31,8 @@ class Contexte:
 	sonore: int | None = None
 	fichier: Path | None = None
 	resultat: Path | None = None
+	demarrages: dict[str, float] = field(default_factory=dict)
+	fin_d_attente: float | None = None
 
 
 @pytest.fixture
@@ -69,6 +71,41 @@ def voie_preparee(contexte: Contexte, duree: str, debut: str, fin: str) -> None:
 	)
 
 
+@given("une voie muette, pour un stream")
+def voie_muette(contexte: Contexte) -> None:
+	contexte.voie = Voie("http://127.0.0.1:9/aucun-flux", configuration_test().audio, None, muette=True)
+
+
+@when(parsers.parse("elle monte à plein volume en {duree} secondes"))
+def monter(contexte: Contexte, duree: str) -> None:
+	assert contexte.voie is not None
+	contexte.voie.fondu(1.0, secondes(duree))
+
+
+@when(parsers.parse("elle s'éteint en {duree} secondes"))
+def eteindre(contexte: Contexte, duree: str) -> None:
+	assert contexte.voie is not None
+	contexte.voie.eteindre(secondes(duree))
+
+
+@then(parsers.parse("elle s'arrêtera d'elle-même à {instant} secondes"))
+def arret_prevu(contexte: Contexte, instant: str) -> None:
+	assert contexte.voie is not None
+	assert contexte.voie.arret_prevu == secondes(instant)
+
+
+@when(parsers.parse("la voie de « {nom} » s'éteint en {millisecondes:d} millisecondes"))
+def eteindre_voie(contexte: Contexte, nom: str, millisecondes: int) -> None:
+	contexte.voies[nom].eteindre(timedelta(milliseconds=millisecondes))
+
+
+@then(parsers.parse("elle a fini moins de {millisecondes:d} millisecondes après son démarrage"))
+def fini_tot(contexte: Contexte, millisecondes: int) -> None:
+	assert contexte.fin_d_attente is not None
+	(nom, debut), *_ = contexte.demarrages.items()
+	assert (contexte.fin_d_attente - debut) * 1000 < millisecondes, nom
+
+
 @then(parsers.parse("à {instant} secondes, son volume est de {volume}"))
 def volume(contexte: Contexte, instant: str, volume: str) -> None:
 	assert contexte.voie is not None
@@ -104,6 +141,7 @@ def moteur_de_test(contexte: Contexte, rythme: str) -> None:
 @when(parsers.parse("il joue le fichier de test « {nom} »"))
 def jouer(contexte: Contexte, nom: str) -> None:
 	contexte.voies[nom] = moteur(contexte).jouer(FICHIERS_SONORES / nom, timedelta(seconds=1))
+	contexte.demarrages[nom] = time.monotonic()
 
 
 @when("il joue un fichier qui contient du texte")
@@ -120,6 +158,7 @@ def attendre(contexte: Contexte) -> None:
 		moteur(contexte).traiter_messages()
 		time.sleep(0.01)
 	assert not moteur(contexte).voies_en_cours(), "voies toujours en cours"
+	contexte.fin_d_attente = time.monotonic()
 
 
 @when(parsers.parse("{millisecondes:d} millisecondes passent"))
