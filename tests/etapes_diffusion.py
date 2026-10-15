@@ -21,6 +21,7 @@ from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe
 from machincast.lecture.diffusion import Diffusion
 from machincast.lecture.moteur import MoteurAudio
+from machincast.lecture.sorties import Sorties
 from tests.base_test import configuration_test, parametres_base_test
 from tests.sons import copie_de_test
 
@@ -36,6 +37,8 @@ class Banc:
 	diffusion: Diffusion | None = None
 	moteur: MoteurAudio | None = None
 	connexion: Connexion | None = None
+	sorties: Sorties | None = None
+	"""Modules de sortie de la diffusion ; aucun par défaut."""
 	fichiers: dict[str, Path] = field(default_factory=dict)
 
 
@@ -192,7 +195,12 @@ def demarrer(banc: Banc, base_vide: Connexion, rythme: str) -> None:
 	banc.connexion = connecter(*parametres_base_test(), Role.LECTURE)
 	banc.moteur = MoteurAudio(configuration_test().audio, temps_reel=rythme == "en temps réel")
 	banc.diffusion = Diffusion(
-		banc.connexion, banc.moteur, horloge(banc), creer_hasard(0), delai_reconnexion=DELAI_RECONNEXION_TEST
+		banc.connexion,
+		banc.moteur,
+		horloge(banc),
+		creer_hasard(0),
+		delai_reconnexion=DELAI_RECONNEXION_TEST,
+		sorties=banc.sorties,
 	)
 	banc.diffusion.demarrer()
 
@@ -323,6 +331,11 @@ def crossfade_du_sonore(base_vide: Connexion, nom: str, duree: str, cote: str) -
 @given(parsers.re(r"l'événement de secours « (?P<nom>[^»]+) », avec les sonores (?P<liste>.+)"))
 def evenement_de_secours(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str) -> None:
 	evenement(banc, base_vide, tmp_path, nom, "secours", None, None, [n.strip(" «»") for n in liste.split(",")])
+
+
+@given(parsers.parse("le fichier du sonore « {nom} » a été supprimé"))
+def fichier_supprime(banc: Banc, nom: str) -> None:
+	banc.fichiers[nom].unlink()
 
 
 @given(parsers.parse("le fil musical « {nom} » est supprimé"))

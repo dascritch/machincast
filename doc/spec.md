@@ -308,6 +308,8 @@ Quand l'artiste et le titre sont masqués, la sortie publique affiche à leur pl
 1. le nom public de l'événement en cours, s'il est renseigné ;
 2. sinon, le texte public par défaut de la configuration (`metadonnees.texte_public`).
 
+Mise en œuvre ([#19](https://github.com/dascritch/machincast/issues/19), `machincast.lecture.sorties`) : chaque indicateur `masquer_metadonnees` vide hérite du niveau suivant. Les indicateurs sont lus en base quand la page publique est écrite, à chaque passage. Un passage sans artiste ni titre affiche aussi le nom public de l'événement, ou le texte public.
+
 ## 5. Binaire lecture
 
 `Machin_lecture` ne fait que lire les événements et les jouer. Il lit le fichier de configuration à son lancement et tourne comme service systemd.
@@ -326,18 +328,20 @@ Boucle de diffusion ([#88](https://github.com/dascritch/machincast/issues/88), `
 ### 5.2 Écritures
 
 - `airplay` : une ligne au début et une ligne à la fin de chaque passage (insertions seules), par `machincast.lecture.enregistrement` ([#17](https://github.com/dascritch/machincast/issues/17)). La ligne de fin recopie la ligne de début : l'artiste et le titre restent ceux du moment du passage, même modifiés entre-temps. Une coupure nette n'est pas un incident (`sans_incident` vrai) ; une lecture interrompue par une erreur, si.
-- `log` : toutes les opérations, normales comme incidents, avec l'heure de l'horloge du binaire. Natures déjà consignées : `démarrage` (info), `arrêt` (info), `coupure nette` (info), `sonore expiré` (info), `reconnexion abandonnée` (info), `silence` (alerte), `fichier modifié` (alerte), `fichier introuvable` (incident), `lecture interrompue` (incident), `flux tombé` (incident), `reprise du flux` (incident).
+- `log` : toutes les opérations, normales comme incidents, avec l'heure de l'horloge du binaire. Natures déjà consignées : `démarrage` (info), `arrêt` (info), `coupure nette` (info), `sonore expiré` (info), `reconnexion abandonnée` (info), `silence` (alerte), `sortie inaccessible` (alerte), `fichier modifié` (alerte), `fichier introuvable` (incident), `lecture interrompue` (incident), `flux tombé` (incident), `reprise du flux` (incident).
 - `sonores.etat` : passage à `expire` ([§ 4.5](#45-sonore-jouable)).
 
 ### 5.3 Modules de sortie
 
 | Module | Visibilité | Contenu |
 | --- | --- | --- |
-| stdout | privé | Sonores lancés (airplay). |
-| stderr | privé | Incidents et crashes. |
-| CSV | privé | Airplay. |
-| .pls | privé | Playlist de fichiers. |
-| HTML | public | Airplay, avec masquage appliqué. |
+| stdout | privé | Sonores lancés : une ligne d'information `à l'antenne : artiste – titre (événement)` par passage qui commence. |
+| stderr | privé | Alertes et incidents du log (`alerte : nature : message`), erreurs du binaire. |
+| CSV | privé | Airplay, un fichier par jour, nommé avec la date du jour au format ISO 8601. Une ligne par passage terminé : `debut;fin;duree;artiste;titre;emplacement;evenement;banque;sans_incident`, heures `AAAA-MM-JJ HH:MM:SS`, durée `HH:MM:SS`, `oui` ou `non`. Séparateur `;`, UTF-8 avec BOM, en-tête à la création ; jamais réécrit. |
+| .pls | privé | Les 100 derniers fichiers joués, streams compris par leur adresse, du plus ancien au plus récent, avec artiste et titre ; réécrit à chaque passage. |
+| HTML | public | Le sonore à l'antenne et les 20 précédents, du plus récent au plus ancien, avec masquage appliqué et sans emplacement de fichier ; page statique sans JavaScript, rafraîchie toutes les 30 s, réécrite à chaque passage. |
+
+Les fichiers .pls et HTML sont remplacés d'un coup : un lecteur ne voit jamais une page à moitié écrite. Une sortie qui ne peut pas être écrite est consignée une fois dans le log (`sortie inaccessible`, alerte) et n'arrête pas la diffusion ; elle l'est de nouveau si elle redevient inaccessible après une écriture réussie. Choix décidés avec le ticket ([commentaire](https://github.com/dascritch/machincast/issues/19#issuecomment-6198038989)).
 
 Un module privé indique tous les sonores. Un module public applique le masquage ([§ 4.8](#48-métadonnées-publiques-et-masquage)).
 
@@ -525,9 +529,9 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 | `audio.sortie` | `alsa`, `pulseaudio`, `pipewire` ou `factice` | oui | Sortie audio de l'antenne. `factice` ne joue aucun son (tests, essais). |
 | `audio.peripherique` | texte | non | Périphérique de l'antenne ; absent = périphérique par défaut. |
 | `audio.preecoute` | texte | oui | Périphérique de pré-écoute, différent de celui de l'antenne. |
-| `sorties.csv` | chemin | oui | Airplay CSV (privé). |
-| `sorties.pls` | chemin | oui | Playlist .pls (privé). |
-| `sorties.html` | chemin | oui | Airplay HTML (public). |
+| `sorties.csv` | chemin | oui | Airplay CSV (privé), un fichier par jour : la date du jour au format ISO 8601 s'ajoute au nom (`airplay.csv` donne `airplay-2026-10-15.csv`). |
+| `sorties.pls` | chemin | oui | Playlist .pls (privé) des 100 derniers fichiers joués. |
+| `sorties.html` | chemin | oui | Page HTML (public) du sonore à l'antenne et des 20 précédents. |
 | `metadonnees.masquer` | booléen | oui | Masquage par défaut de l'artiste et du titre. |
 | `metadonnees.texte_public` | texte, 255 caractères au plus | oui | Texte public affiché à la place de l'artiste et du titre masqués, quand l'événement n'a pas de nom public. |
 

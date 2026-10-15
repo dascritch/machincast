@@ -17,7 +17,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.lecture.diffusion import installer_arret
 from tests.base_test import CONFIGURATION_TEST
-from tests.etapes_diffusion import Banc, Connexion, sonore
+from tests.etapes_diffusion import Connexion, sonore
 
 scenarios("diffusion.feature")
 
@@ -31,11 +31,6 @@ class Processus:
 @pytest.fixture
 def processus() -> Processus:
 	return Processus()
-
-
-@given(parsers.parse("le fichier du sonore « {nom} » a été supprimé"))
-def fichier_supprime(banc: Banc, nom: str) -> None:
-	banc.fichiers[nom].unlink()
 
 
 @given(parsers.parse("le sonore « {nom} » est à l'état « {etat} »"))

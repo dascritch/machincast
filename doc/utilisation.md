@@ -266,6 +266,22 @@ Un sonore de type stream relaie un flux audio HTTP ou HTTPS, un direct extérieu
 
 Un **événement de secours** est un événement de priorité `secours` : il n'a ni début, ni fin, ni jours de récurrence, et ne passe jamais à l'antenne par la grille, seulement à la place d'un stream tombé. Chaque stream désigne le sien, ou aucun (`secours_evenement_id` du sonore). Tant que l'interface ne permet pas de les saisir ([#30](https://github.com/dascritch/machincast/issues/30), [#32](https://github.com/dascritch/machincast/issues/32)), ils s'enregistrent directement en base.
 
+### Sorties de la diffusion
+
+`Machin lecture` publie ce qu'il diffuse sur plusieurs sorties ([#19](https://github.com/dascritch/machincast/issues/19)), aux chemins de la section `[sorties]` de la configuration, compris depuis le répertoire du fichier de configuration (par défaut, le dossier `sorties` du répertoire de MachinCast, créé au besoin) :
+
+| Sortie | Pour qui | Contenu |
+| --- | --- | --- |
+| Sortie standard | équipe | Une ligne `à l'antenne : artiste – titre (événement)` à chaque passage. |
+| Sortie d'erreur | équipe | Les alertes et incidents du log, et les erreurs du programme. |
+| CSV (`sorties.csv`) | équipe | Un fichier par jour, nommé avec sa date : `airplay.csv` donne `airplay-2026-10-15.csv`. Une ligne par passage terminé : début, fin, durée, artiste, titre, emplacement, événement, banque, sans incident (`oui` ou `non`). Séparateur `;`, s'ouvre directement dans LibreOffice ou Excel. Jamais réécrit. |
+| Playlist `.pls` (`sorties.pls`) | équipe | Les 100 derniers fichiers joués, streams compris, du plus ancien au plus récent : pour réécouter ce qui est passé. |
+| Page HTML (`sorties.html`) | public | Le sonore à l'antenne et les 20 précédents, avec l'heure. Page statique, à publier sur le site de la radio ; elle se recharge toute seule toutes les 30 secondes et ne montre jamais l'emplacement d'un fichier. |
+
+**Masquage de l'artiste et du titre.** Sur la page publique seulement, l'artiste et le titre d'un passage peuvent être masqués. Le choix se fait à quatre niveaux : l'événement, puis la banque qui a fourni le sonore, puis le sonore, puis `metadonnees.masquer` dans la configuration. C'est le premier niveau renseigné qui décide : un événement qui dit « afficher » l'emporte sur un sonore qui dit « masquer ». Masqués, l'artiste et le titre laissent la place au nom public de l'événement, ou, s'il n'en a pas, à `metadonnees.texte_public`. Les autres sorties disent toujours tout.
+
+Une sortie impossible à écrire (dossier sans droit d'écriture, disque plein) est signalée une fois dans le log par l'alerte `sortie inaccessible`, avec le chemin et l'erreur. La diffusion continue.
+
 ### Historique de diffusion et log
 
 Chaque passage à l'antenne est noté dans l'historique de diffusion, l'**airplay** ([#17](https://github.com/dascritch/machincast/issues/17)) :
@@ -289,6 +305,7 @@ Le **log** note les opérations du binaire lecture, avec leur heure, leur niveau
 | `flux tombé` | incident | Le flux d'un stream ne répond pas, ou s'est arrêté avant la fin de son événement ; le message donne l'adresse et l'erreur. |
 | `reprise du flux` | incident | Le flux d'un stream tombé est revenu, et le stream reprend l'antenne ; le message donne l'adresse et la durée de la panne. |
 | `sonore expiré` | info | Un sonore a atteint son maximum de lectures ou la fin de sa période de diffusion ; le message donne la cause. |
+| `sortie inaccessible` | alerte | Une sortie (CSV, .pls ou page HTML) ne peut pas être écrite ; le message donne le chemin et l'erreur. |
 | `reconnexion abandonnée` | info | L'événement d'un stream tombé n'est plus à l'antenne : plus de tentative de reconnexion. |
 
 L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture : il ne peut qu'y ajouter des lignes.
@@ -338,7 +355,6 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | --- | --- |
 | Document d'audit des anomalies de l'indexation, en CSV et HTML | [#11](https://github.com/dascritch/machincast/issues/11) |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
-| Masquage des métadonnées et sorties de l'airplay (CSV, .pls, HTML) | [#19](https://github.com/dascritch/machincast/issues/19) |
 | État de la diffusion pour l'interface | [#20](https://github.com/dascritch/machincast/issues/20) |
 | Mode simulation de la diffusion | [#21](https://github.com/dascritch/machincast/issues/21) |
 | Service systemd de diffusion | [#22](https://github.com/dascritch/machincast/issues/22) |

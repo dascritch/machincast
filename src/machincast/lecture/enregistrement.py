@@ -11,10 +11,14 @@ permettent ni de modifier ni de supprimer une ligne d'airplay ou de log, ni de l
   Une coupure nette est une opération normale ; une lecture interrompue par une erreur est un incident, que
   l'appelant peut nommer plus précisément (flux tombé d'un stream).
 
+Les alertes et incidents du log sont aussi écrits dans le journal du binaire, sur sa sortie d'erreur
+(https://github.com/dascritch/machincast/issues/19).
+
 Les heures viennent de l'horloge du binaire (machincast.horloge), pour que la simulation et les tests soient
 reproductibles.
 """
 
+import logging
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -24,6 +28,8 @@ import psycopg
 from psycopg.rows import TupleRow
 
 Niveau = Literal["info", "alerte", "incident"]
+
+journal = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -48,6 +54,9 @@ def consigner(
 ) -> None:
 	"""Ajoute une ligne au log ; sans instant, l'heure du serveur PostgreSQL. Jamais de RETURNING : la lecture
 	n'a pas le droit de lire le log."""
+	if niveau != "info":
+		# Sortie privée stderr (https://github.com/dascritch/machincast/issues/19) : alertes et incidents.
+		journal.warning(f"{niveau} : {nature} : {message}")
 	with connexion.transaction():
 		connexion.execute(
 			"INSERT INTO log (horodatage, niveau, nature, message, sonore_id, banque_id, evenement_id)"

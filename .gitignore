@@ -223,3 +223,4 @@ __marimo__/
 # project specific
 machincast.toml
 /configuration-test-*.toml
+/sorties/

@@ -27,11 +27,12 @@ sortie = "pipewire"
 preecoute = "alsa_output.usb-casque.analog-stereo"
 
 [sorties]
-# Airplay au format CSV (sortie privée : tous les sonores).
+# Airplay au format CSV (sortie privée : tous les sonores), un fichier par jour : la date du jour au format
+# ISO 8601 s'ajoute au nom, « sorties/airplay-2026-10-15.csv ». Séparateur « ; », UTF-8 avec BOM.
 csv = "sorties/airplay.csv"
-# Playlist de fichiers au format .pls (sortie privée).
+# Playlist des 100 derniers fichiers joués, au format .pls (sortie privée).
 pls = "sorties/playlist.pls"
-# Airplay au format HTML (sortie publique : le masquage des métadonnées s'applique).
+# Page HTML du sonore à l'antenne et des 20 précédents (sortie publique : le masquage des métadonnées s'applique).
 html = "sorties/airplay.html"
 
 [metadonnees]
