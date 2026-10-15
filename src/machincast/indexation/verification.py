@@ -182,5 +182,5 @@ def verifier_sonores(
 			elif apres is EtatSonore.ACTIF and avant is EtatSonore.ERRONE:
 				bilan.retablis += 1
 		if resultat.etat is not EtatFichier.SAIN:
-			journal.warning("%s : %s ; %s", emplacement, resultat.probleme, _consequence(avant, apres))
+			journal.warning(f"{emplacement} : {resultat.probleme} ; {_consequence(avant, apres)}")
 	return bilan

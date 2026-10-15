@@ -73,7 +73,7 @@ aide_complete() {
 erreur_usage() {
 	printf 'Machin : %s\n' "$1" >&2
 	aide_minimale >&2
-	exit "$CODE_USAGE"
+	exit "${CODE_USAGE}"
 }
 
 # Venv du projet : .venv à la racine du projet, le répertoire parent de bin/ où se trouve le wrapper.
@@ -81,24 +81,24 @@ erreur_usage() {
 venv_du_projet() {
 	local wrapper
 	wrapper="$(readlink -f "${BASH_SOURCE[0]}")"
-	printf '%s/.venv\n' "$(dirname "$(dirname "$wrapper")")"
+	printf '%s/.venv\n' "$(dirname "$(dirname "${wrapper}")")"
 }
 
 # Chemin de Machin_$1 : d'abord dans le venv du projet, sans qu'il soit activé, sinon dans le PATH.
 trouver_binaire() {
 	local nom="Machin_$1" venv
 	venv="$(venv_du_projet)"
-	if [[ -x "$venv/bin/$nom" ]]; then
-		printf '%s\n' "$venv/bin/$nom"
+	if [[ -x "${venv}/bin/${nom}" ]]; then
+		printf '%s\n' "${venv}/bin/${nom}"
 	else
-		command -v "$nom"
+		command -v "${nom}"
 	fi
 }
 
 est_binaire() {
 	local binaire
 	for binaire in "${BINAIRES[@]}"; do
-		[[ "$binaire" == "$1" ]] && return 0
+		[[ "${binaire}" == "$1" ]] && return 0
 	done
 	return 1
 }
@@ -106,9 +106,9 @@ est_binaire() {
 suivre_logs() {
 	if ! command -v journalctl >/dev/null; then
 		printf 'Machin : journalctl introuvable : les logs du service sont lus dans le journal de systemd\n' >&2
-		exit "$CODE_INTROUVABLE"
+		exit "${CODE_INTROUVABLE}"
 	fi
-	exec journalctl --unit="$UNITE_LECTURE" --follow "$@"
+	exec journalctl --unit="${UNITE_LECTURE}" --follow "$@"
 }
 
 principal() {
@@ -153,20 +153,20 @@ principal() {
 	binaire="$1"
 	shift
 
-	if [[ "$binaire" == logs ]]; then
+	if [[ "${binaire}" == logs ]]; then
 		((${#configuration[@]} == 0)) || erreur_usage "--config ne s'applique pas à logs"
 		suivre_logs "$@"
 	fi
 
-	est_binaire "$binaire" || erreur_usage "binaire inconnu : $binaire"
+	est_binaire "${binaire}" || erreur_usage "binaire inconnu : ${binaire}"
 
-	if ! chemin="$(trouver_binaire "$binaire")"; then
-		printf 'Machin : Machin_%s introuvable dans %s ni dans le PATH.\n' "$binaire" "$(venv_du_projet)" >&2
+	if ! chemin="$(trouver_binaire "${binaire}")"; then
+		printf 'Machin : Machin_%s introuvable dans %s ni dans le PATH.\n' "${binaire}" "$(venv_du_projet)" >&2
 		printf '         Créer le venv depuis la racine du projet : python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"\n' >&2
-		exit "$CODE_INTROUVABLE"
+		exit "${CODE_INTROUVABLE}"
 	fi
 
-	exec "$chemin" "${configuration[@]}" "$@"
+	exec "${chemin}" "${configuration[@]}" "$@"
 }
 
 principal "$@"

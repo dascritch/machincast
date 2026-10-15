@@ -118,24 +118,22 @@ def _migrer(configuration: Configuration) -> int:
 		try:
 			appliquer_migrations(url_yoyo(base.socket, nom))
 		except psycopg.OperationalError as erreur:
-			journal.error("base de données injoignable (%s par %s) : %s", nom, base.socket, erreur)
+			journal.error(f"base de données injoignable ({nom} par {base.socket}) : {erreur}")
 			return CODE_ECHEC
 		except psycopg.errors.InsufficientPrivilege as erreur:
 			journal.error(
-				"droits insuffisants pour appliquer le schéma dans la base %s, qui appartient sans doute à un autre"
-				" rôle PostgreSQL : %s",
-				nom,
-				erreur,
+				f"droits insuffisants pour appliquer le schéma dans la base {nom}, qui appartient sans doute à un autre"
+				f" rôle PostgreSQL : {erreur}"
 			)
 			return CODE_ECHEC
-		journal.info("schéma à jour dans la base %s", nom)
+		journal.info(f"schéma à jour dans la base {nom}")
 	return 0
 
 
 def _verifier(configuration: Configuration) -> int:
 	manques = verifier_decodeurs() + verifier_sortie(configuration)
 	for manque in manques:
-		journal.error("%s : greffon GStreamer absent, installer %s", manque.element, manque.paquet)
+		journal.error(f"{manque.element} : greffon GStreamer absent, installer {manque.paquet}")
 	if manques:
 		return CODE_ECHEC
 	journal.info("décodeurs et sortie audio disponibles")

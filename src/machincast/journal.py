@@ -32,7 +32,7 @@ def configurer(executable: str) -> logging.Logger:
 	for ancien in [gestionnaire for gestionnaire in journal.handlers if isinstance(gestionnaire, _Sorties)]:
 		journal.removeHandler(ancien)
 	gestionnaire = _Sorties()
-	gestionnaire.setFormatter(logging.Formatter(f"{executable} : %(message)s"))
+	gestionnaire.setFormatter(logging.Formatter(f"{executable} : {{message}}", style="{"))
 	journal.addHandler(gestionnaire)
 	journal.setLevel(logging.INFO)
 	return journal

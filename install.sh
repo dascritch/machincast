@@ -18,8 +18,8 @@ RACINE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 LIEN_INSTALLATION="/opt/machincast"
 LIEN_WRAPPER="/usr/local/bin/Machin"
 LIEN_COMPLETION="/usr/share/bash-completion/completions/Machin"
-CONFIGURATION="$RACINE/machincast.toml"
-VENV="$RACINE/.venv"
+CONFIGURATION="${RACINE}/machincast.toml"
+VENV="${RACINE}/.venv"
 ROLES=(lecture indexation interface)
 
 # Prérequis système : ce que pip ne peut pas fournir (https://github.com/dascritch/machincast/issues/51).
@@ -37,14 +37,14 @@ aide() {
 	cat <<-FIN
 		Usage : ./install.sh [--simulation]
 
-		Installe MachinCast en place, depuis ce répertoire ($RACINE) :
+		Installe MachinCast en place, depuis ce répertoire (${RACINE}) :
 		  1. paquets système (apt) ;
 		  2. environnement virtuel Python isolé et dépendances (pip) ;
 		  3. machincast.toml, copié du modèle s'il n'existe pas ;
-		  4. rôle PostgreSQL du compte $UTILISATEUR (sans droit particulier), bases de production et de test
+		  4. rôle PostgreSQL du compte ${UTILISATEUR} (sans droit particulier), bases de production et de test
 		     dont il est propriétaire, rôles de MachinCast, schéma ;
-		  5. autorisation de $UTILISATEUR aux rôles ${ROLES[*]}, groupe systemd-journal ;
-		  6. liens $LIEN_INSTALLATION, $LIEN_WRAPPER et l'autocomplétion bash ;
+		  5. autorisation de ${UTILISATEUR} aux rôles ${ROLES[*]}, groupe systemd-journal ;
+		  6. liens ${LIEN_INSTALLATION}, ${LIEN_WRAPPER} et l'autocomplétion bash ;
 		  7. vérification des greffons GStreamer et de la sortie audio.
 
 		Relançable : chaque étape déjà faite est laissée telle quelle.
@@ -71,7 +71,7 @@ echec() {
 
 # Exécute une commande, ou l'affiche seulement en simulation.
 executer() {
-	if "$SIMULATION"; then
+	if "${SIMULATION}"; then
 		printf '    [simulation] %s\n' "$*"
 	else
 		"$@"
@@ -86,13 +86,13 @@ verifier_systeme() {
 	id="$(. /etc/os-release && printf '%s' "${ID:-}")"
 	version="$(. /etc/os-release && printf '%s' "${VERSION_ID:-}")"
 	# Les LTS d'Ubuntu sortent en avril des années paires : 24.04, 26.04…
-	if [[ "$id" != ubuntu ]] || ! [[ "$version" =~ ^[0-9]*[02468]\.04$ ]]; then
-		"$SIMULATION" || echec "Ubuntu LTS requis (cible : 26.04 LTS), trouvé : $id $version"
-		info "système non pris en charge ($id $version), ignoré en simulation"
-	elif [[ "$version" != 26.04 ]]; then
-		info "Ubuntu $version LTS : la cible est 26.04 LTS, poursuite de l'installation"
+	if [[ "${id}" != ubuntu ]] || ! [[ "${version}" =~ ^[0-9]*[02468]\.04$ ]]; then
+		"${SIMULATION}" || echec "Ubuntu LTS requis (cible : 26.04 LTS), trouvé : ${id} ${version}"
+		info "système non pris en charge (${id} ${version}), ignoré en simulation"
+	elif [[ "${version}" != 26.04 ]]; then
+		info "Ubuntu ${version} LTS : la cible est 26.04 LTS, poursuite de l'installation"
 	else
-		info "Ubuntu $version LTS"
+		info "Ubuntu ${version} LTS"
 	fi
 }
 
@@ -105,21 +105,21 @@ installer_paquets() {
 installer_venv() {
 	etape "Environnement virtuel Python"
 	# Jamais --system-site-packages : toutes les dépendances Python viennent de pip.
-	if [[ -x "$VENV/bin/python" ]]; then
-		info "$VENV existe déjà"
+	if [[ -x "${VENV}/bin/python" ]]; then
+		info "${VENV} existe déjà"
 	else
-		executer python3 -m venv "$VENV"
+		executer python3 -m venv "${VENV}"
 	fi
-	executer "$VENV/bin/pip" install --upgrade pip
-	executer "$VENV/bin/pip" install --editable "$RACINE"
+	executer "${VENV}/bin/pip" install --upgrade pip
+	executer "${VENV}/bin/pip" install --editable "${RACINE}"
 }
 
 preparer_configuration() {
 	etape "Configuration"
-	if [[ -e "$CONFIGURATION" ]]; then
-		info "$CONFIGURATION existe déjà : conservé"
+	if [[ -e "${CONFIGURATION}" ]]; then
+		info "${CONFIGURATION} existe déjà : conservé"
 	else
-		executer cp "$RACINE/machincast.exemple.toml" "$CONFIGURATION"
+		executer cp "${RACINE}/machincast.exemple.toml" "${CONFIGURATION}"
 		info "à adapter : sortie audio, périphériques, sorties (voir doc/spec.md § 9)"
 	fi
 }
@@ -127,55 +127,55 @@ preparer_configuration() {
 # Appelle machincast.installation, qui lit la configuration et applique le schéma. En simulation, tant que
 # machincast.toml n'a pas été copié, le modèle tient lieu de configuration.
 installation() {
-	local configuration="$CONFIGURATION"
-	if "$SIMULATION" && [[ ! -e "$configuration" ]]; then
-		configuration="$RACINE/machincast.exemple.toml"
+	local configuration="${CONFIGURATION}"
+	if "${SIMULATION}" && [[ ! -e "${configuration}" ]]; then
+		configuration="${RACINE}/machincast.exemple.toml"
 	fi
-	"$VENV/bin/python" -m machincast.installation "$1" --config "$configuration"
+	"${VENV}/bin/python" -m machincast.installation "$1" --config "${configuration}"
 }
 
 # Vrai si la requête, qui reçoit le nom en variable psql :'nom', renvoie 1. En simulation, rien n'est demandé
 # à PostgreSQL : l'objet est supposé absent, pour afficher toutes les commandes.
 existe_en_base() {
 	local requete="$1" nom="$2"
-	"$SIMULATION" && return 1
-	[[ "$(sudo -u postgres psql --no-psqlrc --tuples-only --no-align --variable=nom="$nom" <<<"$requete")" == 1 ]]
+	"${SIMULATION}" && return 1
+	[[ "$(sudo -u postgres psql --no-psqlrc --tuples-only --no-align --variable=nom="${nom}" <<<"${requete}")" == 1 ]]
 }
 
 preparer_postgresql() {
 	etape "PostgreSQL"
-	[[ "$UTILISATEUR" =~ ^[a-z_][a-z0-9_-]*$ ]] || echec "nom de compte inattendu pour PostgreSQL : $UTILISATEUR"
-	if "$SIMULATION" && [[ ! -x "$VENV/bin/python" ]]; then
-		info "[simulation] bases lues dans $CONFIGURATION une fois l'environnement virtuel créé"
+	[[ "${UTILISATEUR}" =~ ^[a-z_][a-z0-9_-]*$ ]] || echec "nom de compte inattendu pour PostgreSQL : ${UTILISATEUR}"
+	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
+		info "[simulation] bases lues dans ${CONFIGURATION} une fois l'environnement virtuel créé"
 		return
 	fi
 	local lus socket production test
-	lus="$(installation bases)" || echec "configuration $CONFIGURATION à corriger, puis relancer install.sh"
+	lus="$(installation bases)" || echec "configuration ${CONFIGURATION} à corriger, puis relancer install.sh"
 	{
 		read -r socket
 		read -r production
 		read -r test
-	} <<<"$lus"
+	} <<<"${lus}"
 
 	# Le compte courant n'a aucun droit particulier sur le serveur (ni CREATEDB ni CREATEROLE) : tout ce qui en
 	# demande est fait par l'utilisateur postgres. Le compte reçoit seulement la propriété des deux bases, qui lui
 	# permet d'y appliquer le schéma (doc/spec.md § 3.2).
-	if existe_en_base "SELECT 1 FROM pg_roles WHERE rolname = :'nom'" "$UTILISATEUR"; then
-		info "rôle PostgreSQL $UTILISATEUR existant"
+	if existe_en_base "SELECT 1 FROM pg_roles WHERE rolname = :'nom'" "${UTILISATEUR}"; then
+		info "rôle PostgreSQL ${UTILISATEUR} existant"
 	else
-		executer sudo -u postgres createuser "$UTILISATEUR"
+		executer sudo -u postgres createuser "${UTILISATEUR}"
 	fi
 	local base
-	for base in "$production" "$test"; do
-		if existe_en_base "SELECT 1 FROM pg_database WHERE datname = :'nom'" "$base"; then
-			info "base $base existante"
+	for base in "${production}" "${test}"; do
+		if existe_en_base "SELECT 1 FROM pg_database WHERE datname = :'nom'" "${base}"; then
+			info "base ${base} existante"
 		else
-			executer sudo -u postgres createdb --host="$socket" --owner="$UTILISATEUR" "$base"
+			executer sudo -u postgres createdb --host="${socket}" --owner="${UTILISATEUR}" "${base}"
 		fi
 	done
 	# Les rôles de groupe appartiennent au serveur. La migration ne les crée que s'ils manquent, ce qui demanderait
 	# CREATEROLE : postgres les crée donc d'abord.
-	if "$SIMULATION"; then
+	if "${SIMULATION}"; then
 		info "[simulation] sudo -u postgres psql : CREATE ROLE ${ROLES[*]/#/machincast_} NOLOGIN, s'ils n'existent pas"
 	else
 		sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 <<-'SQL'
@@ -193,54 +193,54 @@ preparer_postgresql() {
 		SQL
 		info "rôles machincast_lecture, machincast_indexation et machincast_interface présents"
 	fi
-	executer "$VENV/bin/python" -m machincast.installation migrer --config "$CONFIGURATION"
+	executer "${VENV}/bin/python" -m machincast.installation migrer --config "${CONFIGURATION}"
 	etape "Rôles"
 	# Les rôles appartiennent au serveur : une seule autorisation vaut pour les deux bases. Elle est donnée par
 	# l'utilisateur postgres, qui peut attribuer les rôles quel que soit le compte qui les a créés. Sans héritage
 	# des droits : chaque binaire endosse son rôle par SET ROLE (doc/spec.md § 3.2).
-	if "$SIMULATION"; then
-		info "[simulation] sudo -u postgres psql : GRANT machincast_lecture, machincast_indexation, machincast_interface TO $UTILISATEUR WITH INHERIT FALSE, SET TRUE"
+	if "${SIMULATION}"; then
+		info "[simulation] sudo -u postgres psql : GRANT machincast_lecture, machincast_indexation, machincast_interface TO ${UTILISATEUR} WITH INHERIT FALSE, SET TRUE"
 	else
-		sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 --variable=nom="$UTILISATEUR" <<-'SQL'
+		sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 --variable=nom="${UTILISATEUR}" <<-'SQL'
 			GRANT machincast_lecture, machincast_indexation, machincast_interface TO :"nom" WITH INHERIT FALSE, SET TRUE;
 		SQL
-		info "$UTILISATEUR peut endosser les rôles ${ROLES[*]}"
+		info "${UTILISATEUR} peut endosser les rôles ${ROLES[*]}"
 	fi
 }
 
 autoriser_journal() {
 	etape "Journal système"
-	if id -nG "$UTILISATEUR" | tr ' ' '\n' | grep -qx systemd-journal; then
-		info "$UTILISATEUR appartient déjà au groupe systemd-journal"
+	if id -nG "${UTILISATEUR}" | tr ' ' '\n' | grep -qx systemd-journal; then
+		info "${UTILISATEUR} appartient déjà au groupe systemd-journal"
 	else
 		# systemd-journal, jamais adm : la lecture du journal sans droits d'administration.
-		executer sudo usermod --append --groups systemd-journal "$UTILISATEUR"
-		info "effectif à la prochaine connexion de $UTILISATEUR"
+		executer sudo usermod --append --groups systemd-journal "${UTILISATEUR}"
+		info "effectif à la prochaine connexion de ${UTILISATEUR}"
 	fi
 }
 
 relier() {
 	local cible="$1" lien="$2"
-	if [[ -e "$lien" && ! -L "$lien" ]]; then
-		echec "$lien existe et n'est pas un lien symbolique : le déplacer avant de relancer install.sh"
+	if [[ -e "${lien}" && ! -L "${lien}" ]]; then
+		echec "${lien} existe et n'est pas un lien symbolique : le déplacer avant de relancer install.sh"
 	fi
-	if [[ -L "$lien" && "$(readlink "$lien")" == "$cible" ]]; then
-		info "$lien → $cible"
+	if [[ -L "${lien}" && "$(readlink "${lien}")" == "${cible}" ]]; then
+		info "${lien} → ${cible}"
 	else
-		executer sudo ln --symbolic --force --no-dereference "$cible" "$lien"
+		executer sudo ln --symbolic --force --no-dereference "${cible}" "${lien}"
 	fi
 }
 
 installer_liens() {
 	etape "Liens"
-	relier "$RACINE" "$LIEN_INSTALLATION"
-	relier "$LIEN_INSTALLATION/bin/Machin" "$LIEN_WRAPPER"
-	relier "$LIEN_INSTALLATION/bash-completion/Machin" "$LIEN_COMPLETION"
+	relier "${RACINE}" "${LIEN_INSTALLATION}"
+	relier "${LIEN_INSTALLATION}/bin/Machin" "${LIEN_WRAPPER}"
+	relier "${LIEN_INSTALLATION}/bash-completion/Machin" "${LIEN_COMPLETION}"
 }
 
 verifier_greffons() {
 	etape "Greffons GStreamer et sortie audio"
-	if "$SIMULATION" && [[ ! -x "$VENV/bin/python" ]]; then
+	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
 		info "[simulation] vérification faite une fois l'environnement virtuel créé"
 		return
 	fi
@@ -269,7 +269,7 @@ principal() {
 		esac
 		shift
 	done
-	cd "$RACINE"
+	cd "${RACINE}"
 	verifier_systeme
 	installer_paquets
 	installer_venv

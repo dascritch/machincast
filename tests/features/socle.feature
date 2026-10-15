@@ -86,3 +86,9 @@ Fonctionnalité: Socle de test
 		Quand le code émet une information « 3 sonores vérifiés » et une anomalie « fichier endommagé »
 		Alors la sortie standard contient seulement « Machin_essai : 3 sonores vérifiés »
 		Et la sortie d'erreur contient seulement « Machin_essai : fichier endommagé »
+
+	Scénario: Les chaînes Python ne sont jamais composées avec la notation %
+		Alors aucun fichier Python du dépôt ne compose une chaîne ou un message de journal avec la notation %
+
+	Scénario: Les variables des scripts bash s'écrivent avec accolades
+		Alors aucun script bash du dépôt n'écrit une variable sans accolades

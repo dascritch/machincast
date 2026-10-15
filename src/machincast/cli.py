@@ -52,12 +52,12 @@ def lancer(
 	try:
 		configuration = charger(options.config)
 	except ConfigurationInvalide as erreur:
-		journal.error("configuration invalide : %s", erreur)
+		journal.error(f"configuration invalide : {erreur}")
 		return CODE_CONFIGURATION_INVALIDE
 	return action(configuration, options)
 
 
 def non_implemente(executable: str, ticket: int) -> int:
 	"""Signale une fonctionnalité pas encore développée et renvoie un code d'erreur."""
-	journal.error("pas encore implémenté, voir https://github.com/dascritch/machincast/issues/%d", ticket)
+	journal.error(f"pas encore implémenté, voir https://github.com/dascritch/machincast/issues/{ticket}")
 	return 1
