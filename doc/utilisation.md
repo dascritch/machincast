@@ -228,6 +228,27 @@ La sortie audio de l'antenne se règle dans la configuration (`audio.sortie` : `
 - **Avant de jouer un fichier**, sa date de modification et sa taille sont comparées à celles de l'indexation. Un écart est noté dans le log en alerte `fichier modifié`, et le fichier est quand même joué ; la prochaine indexation mettra la base à jour. Un fichier disparu n'est pas joué, et l'incident `fichier introuvable` est noté dans le log.
 - **Superposition** : pendant un crossfade, deux sonores jouent en même temps. PipeWire et PulseAudio les mélangent toujours. En `alsa`, il faut un périphérique qui mélange, comme `default` ; un périphérique matériel direct (`hw:…`) ne joue qu'un son à la fois.
 
+### Historique de diffusion et log
+
+Chaque passage à l'antenne est noté dans l'historique de diffusion, l'**airplay** ([#17](https://github.com/dascritch/machincast/issues/17)) :
+
+- deux lignes par passage, une au début et une à la fin, reliées entre elles ;
+- l'emplacement, l'artiste et le titre du sonore, **tels qu'ils étaient au moment du passage**, même s'ils sont modifiés ensuite ou si le sonore est supprimé ;
+- la banque qui a fourni le sonore, l'événement et l'élément de sa liste ;
+- sur la ligne de fin, la durée effectivement diffusée, et si la lecture s'est déroulée sans incident. Un sonore coupé net par le début d'un événement n'est pas un incident.
+
+Le **log** note les opérations du binaire lecture, avec leur heure, leur niveau et ce qu'elles concernent (sonore, banque, événement) :
+
+| Nature | Niveau | Quand |
+| --- | --- | --- |
+| `coupure nette` | info | Un événement commence et coupe le sonore en cours. |
+| `silence` | alerte | Rien à diffuser. |
+| `fichier modifié` | alerte | Le fichier a changé depuis l'indexation ; il est quand même joué. |
+| `fichier introuvable` | incident | Le fichier a disparu ; il n'est pas joué. |
+| `lecture interrompue` | incident | La lecture s'est arrêtée sur une erreur, dont le message est noté. |
+
+L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture : il ne peut qu'y ajouter des lignes.
+
 ## Interface graphique : Machin interface
 
 `Machin interface` lit sa configuration, puis s'arrête avec le code 1 et le message `pas encore implémenté`, avec le lien du ticket de l'écran par défaut ([#23](https://github.com/dascritch/machincast/issues/23)).

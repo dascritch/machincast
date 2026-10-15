@@ -43,7 +43,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 
 ## Écritures autorisées
 
-Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures sont garanties par les droits PostgreSQL ([spec.md § 3.2](../spec.md#32-rôles-et-droits)) :
+Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures sont garanties par les droits PostgreSQL ([spec.md § 3.2](../spec.md#32-rôles-et-droits)). L'airplay et le log ne s'écrivent que par `machincast.lecture.enregistrement` (`commencer_passage`, `terminer_passage`, `consigner`) : un scénario d'`enregistrement.feature` refuse tout autre `INSERT INTO log` dans le binaire lecture ([#17](https://github.com/dascritch/machincast/issues/17)).
 
 - `airplay` : une ligne de début et une ligne de fin par passage.
 - `log` : toutes les opérations, normales et incidents. Le rôle ne peut pas lire cette table : pas de `RETURNING` sur une insertion dans `log`.
