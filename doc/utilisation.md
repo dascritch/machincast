@@ -191,6 +191,18 @@ Si GStreamer n'a pas de décodeur pour un format, la vérification s'arrête et 
 
 Toutes les heures de la grille sont en heure de Paris, l'heure locale du poste.
 
+### Quel sonore une banque fournit
+
+Un élément « banque » d'un événement fait jouer **un seul** sonore de cette banque, choisi selon son mode ([#13](https://github.com/dascritch/machincast/issues/13)) :
+
+- **Séquentiel** : le sonore qui suit, dans l'ordre de la banque, le dernier joué par elle ; après le dernier, la banque reprend au début.
+- **Aléatoire contrôlé** : un sonore tiré au hasard parmi ceux que la banque n'a pas encore joués dans son cycle. Tant que tous ses sonores ne sont pas passés, aucun ne revient ; le cycle suivant ne commence jamais par le dernier joué. Un sonore ajouté à la banque entre dans le cycle en cours.
+- **Banque par banque** : seuls comptent les passages fournis par la banque elle-même. Un sonore présent dans deux banques suit le cycle de chacune séparément, et un sonore joué directement dans un événement ne compte pour aucune banque.
+- **Sonores jouables** : seul un sonore à l'état `actif` est choisi, dans sa période de diffusion quand elle est renseignée, et tant qu'il n'a pas atteint son maximum de lectures, compté sur toute la diffusion. Un sonore `aperçu`, `désactivé`, `expiré`, `erroné` ou `supprimé` est sauté.
+- **Rien de jouable** : la banque ne fournit rien, et la diffusion passe à l'élément suivant de l'événement, comme pour une banque vide.
+
+Le choix se déduit de l'historique de diffusion : il reprend là où il en était après un redémarrage.
+
 ### Sortie audio
 
 La sortie audio de l'antenne est déjà réglée dans la configuration (`audio.sortie` : `pipewire`, `pulseaudio`, `alsa`, ou `factice` pour un essai sans son), et `install.sh` vérifie qu'elle peut être créée.

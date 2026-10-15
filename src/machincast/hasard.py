@@ -6,6 +6,9 @@ graine, les tirages sont reproductibles (tests, simulation) ; sans graine, ils s
 
 import random
 
+Hasard = random.Random
+"""Type d'un générateur de hasard, pour les annotations des modules qui en reçoivent un."""
 
-def creer_hasard(graine: int | None = None) -> random.Random:
+
+def creer_hasard(graine: int | None = None) -> Hasard:
 	return random.Random(graine)

@@ -22,6 +22,12 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 - Le poste travaille en heure locale, celle de Paris (revue de [PR #82](https://github.com/dascritch/machincast/pull/82)) : pas de fuseau à manier. La grille convertit chaque heure en heure murale du poste (`heure_murale`) et calcule la récurrence sur ces heures murales. Les tests règlent le processus sur l'heure de Paris (`TZ`), quel que soit le poste qui les lance.
 - Une occurrence terminée plus tôt (liste épuisée d'un événement sans fin) est repérée par sa clé `Occurrence.cle`, l'identifiant de l'événement et le début de l'occurrence.
 
+## Choix d'un sonore dans une banque
+
+- `machincast.lecture.banques.choisir_sonore(connexion, banque, instant, hasard)` ([#13](https://github.com/dascritch/machincast/issues/13)) : aucun état en mémoire, tout se déduit de l'airplay. Chaque passage doit donc noter dans `airplay.banque_id` la banque qui l'a fourni, et rien d'autre : un sonore placé directement dans un événement n'a pas de banque.
+- Le tirage passe par le `Hasard` reçu, créé par `machincast.hasard.creer_hasard` : jamais d'`import random` hors de `machincast.hasard`.
+- Les règles de jouabilité (§ 4.5) sont dans `banques.jouable` ; le maximum de lectures se compte sur tout l'airplay.
+
 ## Écritures autorisées
 
 Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures sont garanties par les droits PostgreSQL ([spec.md § 3.2](../spec.md#32-rôles-et-droits)) :
