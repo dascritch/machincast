@@ -13,6 +13,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from machincast.base import LONGUEUR_TEXTE_COURT
 from machincast.indexation.decodage import Verification
 from machincast.indexation.tags import Tags, extraire
+from tests.etapes_indexation import lire_tags_en_base as lire
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
@@ -116,19 +117,6 @@ def sonore_avec_titre(base_vide: Connexion, fichier: Path, titre: str, objet: st
 @given(parsers.parse("les champs « {premier} » et « {second} » de ce sonore édités à la main"))
 def champs_edites(base_vide: Connexion, sonore: int, premier: str, second: str) -> None:
 	base_vide.execute("UPDATE sonores SET champs_edites = %s WHERE id = %s", ([premier, second], sonore))
-
-
-def lire(base: Connexion, sonore: int) -> tuple[object, object, object]:
-	ligne = base.execute(
-		"SELECT artiste, titre, metadonnees_musicales FROM sonores WHERE id = %s", (sonore,)
-	).fetchone()
-	assert ligne is not None
-	return ligne[0], ligne[1], ligne[2]
-
-
-@then(parsers.parse("en base, l'artiste est « {artiste} » et le titre « {titre} »"))
-def artiste_et_titre_en_base(base_vide: Connexion, sonore: int, artiste: str, titre: str) -> None:
-	assert lire(base_vide, sonore)[:2] == (artiste, titre)
 
 
 @then(parsers.re(rf"en base, les métadonnées musicales sont {JSON}"))

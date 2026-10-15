@@ -115,17 +115,26 @@ def stream(base_vide: Connexion) -> tuple[int, object]:
 	return int(str(ligne[0])), ligne[1]
 
 
-@when("l'indexeur vérifie les sonores", target_fixture="execution")
-def indexeur_verifie(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> Execution:
+def indexer(base_vide: Connexion, caplog: pytest.LogCaptureFixture, audit_complet: bool) -> Execution:
 	utilisateur = base_vide.execute("SELECT current_user").fetchone()
 	assert utilisateur is not None
 	autoriser_utilisateur(base_vide, str(utilisateur[0]), [Role.INDEXATION])
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:
-		bilan = verifier_sonores(c)
+		bilan = verifier_sonores(c, audit_complet=audit_complet)
 	# Les anomalies et les erreurs vont sur la sortie d'erreur : niveau WARNING et au-delà.
 	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
 	return Execution(bilan, "\n".join(anomalies))
+
+
+@when("l'indexeur fait un audit complet", target_fixture="execution")
+def audit_complet(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> Execution:
+	return indexer(base_vide, caplog, audit_complet=True)
+
+
+@when("l'indexeur fait une indexation rapide", target_fixture="execution")
+def indexation_rapide(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> Execution:
+	return indexer(base_vide, caplog, audit_complet=False)
 
 
 def lire_sonore(base: Connexion, sonore: int) -> tuple[object, ...]:
@@ -179,3 +188,16 @@ def stream_intact(base_vide: Connexion, stream: tuple[int, object]) -> None:
 	etat, duree, modifie_le_fichier, taille, modifie_le = lire_sonore(base_vide, stream[0])
 	assert (etat, duree, modifie_le_fichier, taille) == ("actif", None, None, None)
 	assert modifie_le == stream[1]
+
+
+def lire_tags_en_base(base: Connexion, sonore: int) -> tuple[object, object, object]:
+	ligne = base.execute(
+		"SELECT artiste, titre, metadonnees_musicales FROM sonores WHERE id = %s", (sonore,)
+	).fetchone()
+	assert ligne is not None
+	return ligne[0], ligne[1], ligne[2]
+
+
+@then(parsers.parse("en base, l'artiste est « {artiste} » et le titre « {titre} »"))
+def artiste_et_titre_en_base(base_vide: Connexion, sonore: int, artiste: str, titre: str) -> None:
+	assert lire_tags_en_base(base_vide, sonore)[:2] == (artiste, titre)

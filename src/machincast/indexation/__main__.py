@@ -1,9 +1,11 @@
 """Point d'entrée de Machin_indexation.
 
-Vérification des sonores existants (https://github.com/dascritch/machincast/issues/7). L'indexation des
+Vérification des sonores existants (https://github.com/dascritch/machincast/issues/7), en indexation rapide
+par défaut ou en audit complet (https://github.com/dascritch/machincast/issues/69). L'indexation des
 répertoires de banques suivra (https://github.com/dascritch/machincast/issues/9).
 """
 
+import argparse
 import logging
 from collections.abc import Sequence
 
@@ -23,11 +25,19 @@ CODE_ECHEC = 1
 journal = logging.getLogger(__name__)
 
 
-def executer(configuration: Configuration) -> int:
+def options_propres(analyseur: argparse.ArgumentParser) -> None:
+	analyseur.add_argument(
+		"--audit-complet",
+		action="store_true",
+		help="décode tous les sonores ; par défaut, l'indexation rapide ne décode que les sonores en aperçu",
+	)
+
+
+def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 	base = configuration.base
 	try:
 		with connecter(base.socket, base.production, Role.INDEXATION) as connexion:
-			bilan = verifier_sonores(connexion)
+			bilan = verifier_sonores(connexion, audit_complet=options.audit_complet)
 	except psycopg.OperationalError as erreur:
 		journal.error("base de données injoignable (%s par %s) : %s", base.production, base.socket, erreur)
 		return CODE_ECHEC
@@ -42,7 +52,7 @@ def executer(configuration: Configuration) -> int:
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
-	return lancer(EXECUTABLE, DESCRIPTION, arguments, executer)
+	return lancer(EXECUTABLE, DESCRIPTION, arguments, executer, options_propres)
 
 
 if __name__ == "__main__":

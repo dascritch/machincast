@@ -1,5 +1,6 @@
 """Point d'entrée de Machin_interface."""
 
+import argparse
 from collections.abc import Sequence
 
 from machincast.cli import lancer, non_implemente
@@ -9,7 +10,7 @@ EXECUTABLE = "Machin_interface"
 DESCRIPTION = "Interface graphique de supervision et de programmation de MachinCast."
 
 
-def executer(configuration: Configuration) -> int:
+def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 	# PySide6 sera importé ici, après l'analyse des arguments : l'aide reste disponible sans affichage graphique.
 	return non_implemente(EXECUTABLE, 23)
 

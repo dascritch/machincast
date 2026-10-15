@@ -42,7 +42,7 @@ TYPES: tuple[str, ...] = (
 
 
 class Role(StrEnum):
-	"""Rôles de groupe PostgreSQL, un par binaire. Droits : doc/spec.md § 3.2 et migration 0002.droits."""
+	"""Rôles de groupe PostgreSQL, un par binaire. Droits : doc/spec.md § 3.2 et migration 0001.schema-initial."""
 
 	LECTURE = "machincast_lecture"
 	INDEXATION = "machincast_indexation"

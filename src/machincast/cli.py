@@ -36,20 +36,25 @@ def lancer(
 	executable: str,
 	description: str,
 	arguments: Sequence[str] | None,
-	action: Callable[[Configuration], int],
+	action: Callable[[Configuration, argparse.Namespace], int],
+	options_propres: Callable[[argparse.ArgumentParser], None] | None = None,
 ) -> int:
 	"""Analyse les arguments, charge la configuration, puis exécute l'action du binaire.
 
-	Renvoie le code de sortie : celui de l'action, ou CODE_CONFIGURATION_INVALIDE.
+	options_propres ajoute à l'analyseur commun les options propres au binaire ; l'action reçoit la configuration
+	et toutes les options. Renvoie le code de sortie : celui de l'action, ou CODE_CONFIGURATION_INVALIDE.
 	"""
 	configurer_journal(executable)
-	options = creer_analyseur(executable, description).parse_args(arguments)
+	analyseur = creer_analyseur(executable, description)
+	if options_propres is not None:
+		options_propres(analyseur)
+	options = analyseur.parse_args(arguments)
 	try:
 		configuration = charger(options.config)
 	except ConfigurationInvalide as erreur:
 		journal.error("configuration invalide : %s", erreur)
 		return CODE_CONFIGURATION_INVALIDE
-	return action(configuration)
+	return action(configuration, options)
 
 
 def non_implemente(executable: str, ticket: int) -> int:

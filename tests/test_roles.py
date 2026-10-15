@@ -10,9 +10,8 @@ import psycopg
 import pytest
 from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
-from yoyo import get_backend, read_migrations
 
-from machincast.base import REPERTOIRE_MIGRATIONS, Role, autoriser_utilisateur, connecter, url_yoyo
+from machincast.base import Role, annuler_migrations, autoriser_utilisateur, connecter, url_yoyo
 from tests.base_test import parametres_base_test
 
 scenarios("roles.feature")
@@ -152,13 +151,10 @@ def se_connecter(role: str) -> str:
 		return str(ligne[0])
 
 
-@when("j'annule la migration des droits")
-def annuler_droits() -> None:
-	# Annuler une migration annule aussi les suivantes, qui peuvent en dépendre ; base_vide les réapplique ensuite.
-	backend = get_backend(url_yoyo(*parametres_base_test()))
-	migrations = read_migrations(str(REPERTOIRE_MIGRATIONS))
-	with backend.lock():
-		backend.rollback_migrations(backend.to_rollback(migrations.filter(lambda m: m.id >= "0002.droits")))
+@when("j'annule toutes les migrations")
+def annuler_migrations_droits() -> None:
+	# Les rôles appartiennent au serveur : l'annulation retire les droits, pas les rôles. base_vide réapplique ensuite.
+	annuler_migrations(url_yoyo(*parametres_base_test()))
 
 
 # ─── Alors ─────────────────────────────────────────────────
@@ -228,11 +224,6 @@ def roles_existent(contexte: Contexte) -> None:
 		"SELECT rolname FROM pg_roles WHERE rolname = ANY(%s)", ([str(r) for r in Role],)
 	).fetchall()
 	assert len(lignes) == 3
-
-
-@then(parsers.parse('le rôle "{role}" ne peut plus lire les sonores'))
-def ne_lit_plus(contexte: Contexte, role: str) -> None:
-	assert not autorise(contexte, role, "SELECT * FROM sonores LIMIT 1")
 
 
 @when(

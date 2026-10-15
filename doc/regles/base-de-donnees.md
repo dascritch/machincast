@@ -11,6 +11,7 @@
 ## Migrations
 
 - Tout changement de schéma passe par une migration **yoyo-migrations** versionnée dans `src/machincast/migrations/` (`NNNN.nom.sql` et son annulation `NNNN.nom.rollback.sql`). Jamais de modification manuelle, jamais de modification d'une migration déjà fusionnée : on en ajoute une nouvelle.
+- Seule exception, avant toute mise en production : les quatre premières migrations ont été fusionnées en `0001.schema-initial` ([PR #70](https://github.com/dascritch/machincast/pull/70)). Une base de développement ou de test créée avant cette fusion se recrée (`dropdb`, `createdb`, puis `yoyo apply`). Après la première mise en production, plus aucune fusion.
 - Les valeurs énumérées sont des types `ENUM` PostgreSQL. Ajouter une valeur se fait par `ALTER TYPE … ADD VALUE` dans une nouvelle migration ; une valeur ne peut pas être retirée sans recréer le type.
 - Les métadonnées non critiques d'un sonore vont dans l'objet JSON `metadonnees_musicales`, sans migration ; seules les données utilisées par la diffusion ou les filtres deviennent des colonnes.
 - Texte saisi à la main : `varchar(255)` (constante `LONGUEUR_TEXTE_COURT` de `machincast.base`). Chemin, URL ou message libre : `text`.
@@ -23,7 +24,7 @@
 
 Le tableau des droits par binaire est dans [spec.md § 3.2](../spec.md#32-rôles-et-droits). Il est appliqué deux fois :
 
-1. en base, par les `GRANT` de la migration `0002.droits` aux rôles `machincast_lecture`, `machincast_indexation` et `machincast_interface` ;
+1. en base, par les `GRANT` de la migration `0001.schema-initial` aux rôles `machincast_lecture`, `machincast_indexation` et `machincast_interface` ;
 2. dans le code : chaque binaire n'exécute que les requêtes autorisées à son rôle.
 
 Règles :

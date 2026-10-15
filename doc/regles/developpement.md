@@ -24,7 +24,7 @@ Toute référence à un ticket ou à une PR est un lien, jamais un numéro nu :
 - en Markdown : `[#51](https://github.com/dascritch/machincast/issues/51)` ou `[PR #56](https://github.com/dascritch/machincast/pull/56)` ;
 - dans un commentaire de code, une docstring ou un message : l'URL complète, par exemple `https://github.com/dascritch/machincast/issues/51`.
 
-Un scénario ([`tests/features/references.feature`](../../tests/features/references.feature)) refuse les références nues. Seules les migrations déjà fusionnées y échappent : on ne les modifie jamais, même leurs commentaires.
+Un scénario ([`tests/features/references.feature`](../../tests/features/references.feature)) refuse les références nues, partout, migrations comprises.
 
 ## Messages de commit
 
