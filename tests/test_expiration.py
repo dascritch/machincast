@@ -7,10 +7,10 @@ import uuid
 from dataclasses import dataclass, field
 
 import pytest
-from machincast.lecture.expiration import expirer
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.base import Role, connecter
+from machincast.lecture.expiration import expirer
 from tests.base_test import parametres_base_test
 from tests.etapes_diffusion import Connexion, heure, sonore
 

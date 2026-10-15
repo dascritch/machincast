@@ -3,6 +3,8 @@
 #
 #   Machin [--config FICHIER] BINAIRE [OPTIONS…]   appelle Machin_BINAIRE en lui transmettant les options
 #   Machin logs [OPTIONS DE journalctl…]           suit en direct le journal du service de lecture
+#   Machin dev                                      sous-shell de développement, venv activé
+#   Machin dev-test                                 lance tous les outils de vérification, avec un bilan
 #
 # Règles : doc/regles/wrapper.md. Tests : bats tests/wrapper.
 
@@ -19,7 +21,7 @@ aide_minimale() {
 	local liste
 	liste="$(printf '%s, ' "${BINAIRES[@]}")"
 	cat <<-FIN
-		Usage : Machin [--config FICHIER] BINAIRE [OPTIONS…]  ou  Machin logs [OPTIONS…]
+		Usage : Machin [--config FICHIER] BINAIRE [OPTIONS…]  ou  Machin logs|dev|dev-test
 		Binaires : ${liste%, }. Aide complète : Machin --help
 	FIN
 }
@@ -31,6 +33,7 @@ aide_complete() {
 		Usage :
 		  Machin [--config FICHIER] BINAIRE [OPTIONS…]
 		  Machin logs [OPTIONS DE journalctl…]
+		  Machin dev | dev-test
 		  Machin -h | --help | --binaires
 
 		Binaires (Machin BINAIRE appelle Machin_BINAIRE avec les options qui suivent,
@@ -48,6 +51,14 @@ aide_complete() {
 		               Lire ce journal demande d'appartenir au groupe adm ou systemd-journal :
 		               install.sh y ajoute le compte qui l'installe.
 
+		Développement (poste installé par ./install.sh --dev) :
+		  dev          ouvre un sous-shell dans le répertoire de MachinCast, venv activé, avec
+		               l'invite « (MachinCast dev) » ; exit en sort
+		  dev-test     lance ruff check, ruff format --check, mypy --strict, shellcheck, pytest
+		               puis bats, tous même après un échec, avec les outils du venv sans qu'il
+		               soit activé ; affiche un bilan par outil et se termine en échec si l'un
+		               d'eux échoue. Un outil absent se signale : ./install.sh --dev l'installe.
+
 		Options du wrapper :
 		  --config FICHIER, --config=FICHIER
 		               fichier de configuration TOML transmis au binaire
@@ -61,11 +72,13 @@ aide_complete() {
 		  Machin lecture --config essai.toml
 		  Machin indexation --help
 		  Machin logs
+		  Machin dev-test
 
 		Codes de sortie :
-		  celui du binaire appelé, ou de journalctl pour logs ;
+		  celui du binaire appelé, de journalctl pour logs, ou du sous-shell pour dev ;
+		  1            dev-test : au moins un outil en échec ou absent ;
 		  ${CODE_USAGE}            appel incorrect du wrapper (binaire ou option inconnus) ;
-		  ${CODE_INTROUVABLE}          binaire ou journalctl introuvable.
+		  ${CODE_INTROUVABLE}          binaire, journalctl ou venv introuvable.
 
 		Documentation : https://github.com/dascritch/machincast/blob/main/doc/spec.md#7-wrapper-machin
 	FIN
@@ -118,6 +131,103 @@ suivre_logs() {
 	exec journalctl --unit="${UNITE_LECTURE}" --follow "$@"
 }
 
+# Venv du projet, ou arrêt avec le code 127 et la façon de l'installer.
+exiger_venv() {
+	local venv
+	venv="$(venv_du_projet)"
+	if [[ ! -r "${venv}/bin/activate" ]]; then
+		printf 'Machin : venv introuvable : %s\n' "${venv}" >&2
+		printf '         Installer le poste de développement : ./install.sh --dev\n' >&2
+		exit "${CODE_INTROUVABLE}"
+	fi
+	printf '%s\n' "${venv}"
+}
+
+# Sous-shell de développement (https://github.com/dascritch/machincast/issues/77). Un programme ne peut pas activer
+# le venv du shell qui l'a lancé : d'où un nouveau shell interactif, qui lit le .bashrc du compte, puis active le
+# venv et signale son invite. Son fichier de démarrage s'efface dès qu'il est lu.
+ouvrir_dev() {
+	local venv demarrage
+	venv="$(exiger_venv)"
+	demarrage="$(mktemp "${TMPDIR:-/tmp}/machincast-dev.XXXXXX")"
+	{
+		printf 'rm -f -- %q\n' "${demarrage}"
+		# shellcheck disable=SC2016
+		printf '%s\n' '[[ -r ~/.bashrc ]] && . ~/.bashrc'
+		printf '. %q\n' "${venv}/bin/activate"
+		printf 'export MACHINCAST_DEV=1\n'
+		# shellcheck disable=SC2016
+		printf '%s\n' 'PS1="(MachinCast dev) ${PS1-\$ }"'
+	} >"${demarrage}"
+	cd "$(projet)"
+	exec bash --rcfile "${demarrage}" -i
+}
+
+# Lance un outil de vérification et note son résultat dans BILAN et ECHOUES. $1 : libellé ; $2 : venv ou PATH,
+# où chercher l'outil ; $3 : outil ; la suite : ses arguments.
+verifier_avec() {
+	local libelle="$1" ou="$2" outil="$3" chemin="" code
+	shift 3
+	printf '\n==> %s\n' "${libelle}"
+	if [[ "${ou}" == venv ]]; then
+		[[ -x "${VIRTUAL_ENV}/bin/${outil}" ]] && chemin="${VIRTUAL_ENV}/bin/${outil}"
+	else
+		chemin="$(command -v "${outil}" || true)"
+	fi
+	if [[ -z "${chemin}" ]]; then
+		printf 'Machin : %s introuvable : installer les outils de développement avec ./install.sh --dev\n' "${outil}" >&2
+		BILAN+=("$(printf '%-22s absent' "${libelle}")")
+		ECHOUES+=("${libelle}")
+		return
+	fi
+	if "${chemin}" "$@"; then
+		BILAN+=("$(printf '%-22s réussi' "${libelle}")")
+	else
+		code=$?
+		BILAN+=("$(printf '%-22s échec (code %s)' "${libelle}" "${code}")")
+		ECHOUES+=("${libelle}")
+	fi
+}
+
+# Vérifications du poste de développement (https://github.com/dascritch/machincast/issues/77) : les commandes de la
+# section « Qualité » et « Tests » de CLAUDE.md, toutes lancées même après un échec.
+lancer_dev_test() {
+	local venv scripts ligne liste
+	venv="$(exiger_venv)"
+	cd "$(projet)"
+	export VIRTUAL_ENV="${venv}"
+	PATH="${venv}/bin:${PATH}"
+	export PATH
+	shopt -s nullglob
+	scripts=(install.sh bin/Machin bash-completion/Machin tests/wrapper/*.bash tests/wrapper/*.bats)
+	shopt -u nullglob
+	BILAN=()
+	ECHOUES=()
+	# Sans cache : ruff garderait le verdict d'un fichier inchangé, même quand un autre fichier change l'ordre de ses
+	# imports (un module créé après coup passe de tiers à interne).
+	verifier_avec "ruff check" venv ruff check --no-cache .
+	verifier_avec "ruff format --check" venv ruff format --no-cache --check .
+	verifier_avec "mypy --strict" venv mypy --strict src/
+	verifier_avec "shellcheck" PATH shellcheck -x "${scripts[@]}"
+	verifier_avec "pytest" venv pytest
+	verifier_avec "bats" PATH bats tests/wrapper
+	printf '\n==> Bilan\n'
+	for ligne in "${BILAN[@]}"; do
+		printf '    %s\n' "${ligne}"
+	done
+	if ((${#ECHOUES[@]} == 0)); then
+		printf '    tous les outils ont réussi\n'
+		exit 0
+	fi
+	liste="$(printf '%s, ' "${ECHOUES[@]}")"
+	if ((${#ECHOUES[@]} == 1)); then
+		printf '    1 outil en échec : %s\n' "${liste%, }"
+	else
+		printf '    %s outils en échec : %s\n' "${#ECHOUES[@]}" "${liste%, }"
+	fi
+	exit 1
+}
+
 principal() {
 	local configuration=() binaire chemin
 
@@ -163,6 +273,12 @@ principal() {
 	if [[ "${binaire}" == logs ]]; then
 		((${#configuration[@]} == 0)) || erreur_usage "--config ne s'applique pas à logs"
 		suivre_logs "$@"
+	fi
+	if [[ "${binaire}" == dev || "${binaire}" == dev-test ]]; then
+		((${#configuration[@]} == 0)) || erreur_usage "--config ne s'applique pas à ${binaire}"
+		(($# == 0)) || erreur_usage "${binaire} ne prend pas d'argument"
+		[[ "${binaire}" == dev ]] && ouvrir_dev
+		lancer_dev_test
 	fi
 
 	est_binaire "${binaire}" || erreur_usage "binaire inconnu : ${binaire}"

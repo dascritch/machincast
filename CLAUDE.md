@@ -20,7 +20,8 @@ sudo apt install python3-venv python3-dev build-essential pkg-config libgireposi
 # Outils de développement du wrapper bash
 sudo apt install bats shellcheck
 
-# Installation d'un poste, relançable : ./install.sh (--simulation pour voir les commandes sans les exécuter)
+# Installation d'un poste, relançable : ./install.sh (--simulation pour voir les commandes sans les exécuter,
+# --dev pour ajouter bats, shellcheck et les dépendances de test)
 # Installation de dev : venv isolé, jamais --system-site-packages (https://github.com/dascritch/machincast/issues/51)
 python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"   # procédure complète : INSTALL.md
 cp machincast.exemple.toml machincast.toml   # puis l'adapter ; jamais versionné
@@ -33,6 +34,9 @@ sudo -u postgres createdb --owner="$(id -un)" machincast_test
 sudo -u postgres psql -c "CREATE ROLE machincast_lecture NOLOGIN" -c "CREATE ROLE machincast_indexation NOLOGIN" \
 	-c "CREATE ROLE machincast_interface NOLOGIN"
 sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machincast_interface TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
+
+# Toutes les vérifications ci-dessous d'un coup, avec un bilan par outil (venv non activé) : bin/Machin dev-test
+# Sous-shell dans le dépôt, venv activé : bin/Machin dev
 
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/
