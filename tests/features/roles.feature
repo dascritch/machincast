@@ -80,15 +80,3 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 	Scénario: L'annulation des migrations ne supprime pas les rôles
 		Quand j'annule toutes les migrations
 		Alors les trois rôles existent toujours
-
-	Scénario: Autoriser un utilisateur en ligne de commande signale une base injoignable
-		Quand je lance « python -m machincast.droits » pour autoriser "machincast_essai_cli" aux rôles "lecture" et "interface", sur une socket qui n'existe pas
-		Alors la commande échoue en mentionnant "base de données injoignable"
-
-	Scénario: Un rôle inconnu est refusé en ligne de commande
-		Quand je lance « python -m machincast.droits » pour autoriser "machincast_essai_cli" aux rôles "lecture" et "administration"
-		Alors la commande échoue en mentionnant "administration"
-
-	Scénario: Un nom d'utilisateur vide est refusé en ligne de commande
-		Quand je lance « python -m machincast.droits » pour autoriser "" aux rôles "lecture" et "interface"
-		Alors la commande échoue en mentionnant "utilisateur"

@@ -208,7 +208,7 @@ Un rôle PostgreSQL par binaire : `machincast_lecture`, `machincast_indexation`,
 
 - Ce sont des **rôles de groupe**, sans connexion. Un utilisateur système se connecte avec son propre rôle, par authentification **peer** sur la socket Unix.
 - L'utilisateur est membre des rôles qu'il peut endosser, **sans en hériter les droits** : connecté, il n'a accès à rien. Chaque binaire endosse son rôle par `SET ROLE` dès la connexion (`machincast.base.connecter`). L'indexation lancée depuis l'interface, sous l'utilisateur de bureau, agit donc avec les seuls droits de l'indexation.
-- Un administrateur autorise un compte en tant qu'utilisateur `postgres` : `GRANT machincast_lecture, machincast_indexation, machincast_interface TO <compte> WITH INHERIT FALSE, SET TRUE` ; `install.sh` le fait pour le compte qui installe ([#40](https://github.com/dascritch/machincast/issues/40)). `python -m machincast.droits --base <base> autoriser <compte> <rôle>…` fait de même, lancé par un rôle qui a `CREATEROLE` et le droit d'attribuer ces rôles.
+- Un administrateur autorise un compte en tant qu'utilisateur `postgres` : `GRANT machincast_lecture, machincast_indexation, machincast_interface TO <compte> WITH INHERIT FALSE, SET TRUE` ; `install.sh` le fait pour le compte qui installe ([#40](https://github.com/dascritch/machincast/issues/40)).
 - Le respect des droits est en plus vérifié dans le code source.
 - PostgreSQL 16 ou plus récent est requis (options `INHERIT` et `SET` des appartenances).
 

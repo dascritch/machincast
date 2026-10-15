@@ -1,11 +1,8 @@
 """Étapes des scénarios des rôles PostgreSQL (https://github.com/dascritch/machincast/issues/4)."""
 
-import subprocess
-import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from pathlib import Path
 
 import psycopg
 import pytest
@@ -198,35 +195,6 @@ def roles_existent(contexte: Contexte) -> None:
 		"SELECT rolname FROM pg_roles WHERE rolname = ANY(%s)", ([str(r) for r in Role],)
 	).fetchall()
 	assert len(lignes) == 3
-
-
-@when(
-	parsers.re(
-		r'je lance « python -m machincast\.droits » pour autoriser "(?P<utilisateur>[^"]*)" '
-		r'aux rôles "(?P<premier>[^"]+)" et "(?P<second>[^"]+)"(?P<sans_socket>, sur une socket qui n\'existe pas)?'
-	),
-	target_fixture="resultat",
-)
-def lancer_droits(
-	tmp_path: Path, utilisateur: str, premier: str, second: str, sans_socket: str | None
-) -> subprocess.CompletedProcess[str]:
-	# Jamais de compte créé : soit les arguments sont refusés avant toute connexion, soit la socket n'existe pas.
-	socket, base_test = parametres_base_test()
-	if sans_socket:
-		socket = tmp_path / "aucune-socket"
-	return subprocess.run(
-		[sys.executable, "-m", "machincast.droits", "--socket", str(socket), "--base", base_test]
-		+ ["autoriser", utilisateur, premier, second],
-		capture_output=True,
-		text=True,
-		timeout=30,
-	)
-
-
-@then(parsers.parse('la commande échoue en mentionnant "{texte}"'))
-def echec(resultat: subprocess.CompletedProcess[str], texte: str) -> None:
-	assert resultat.returncode != 0
-	assert texte in resultat.stderr
 
 
 @then("le compte courant peut endosser chacun des trois rôles, sans en hériter les droits")
