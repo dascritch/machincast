@@ -57,7 +57,7 @@ aide_complete() {
 		  --binaires   liste des binaires, un par ligne (utilisée par l'autocomplétion)
 
 		Exemples :
-		  Machin lecture --config tests/configuration-test.toml
+		  Machin lecture --config essai.toml
 		  Machin indexation --help
 		  Machin logs
 

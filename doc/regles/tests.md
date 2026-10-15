@@ -20,6 +20,12 @@ Les scénarios Gherkin sont écrits en français (`# language: fr`).
 - Le schéma de la base de test est appliqué par les mêmes migrations yoyo que la production (voir [base-de-donnees.md](base-de-donnees.md)).
 - Entre deux tests, les tables sont **purgées** (`TRUNCATE … RESTART IDENTITY`). Chaque test recrée les entrées dont il a besoin, dans la fonction ou dans la classe de test. Aucun test ne dépend des données d'un autre.
 
+## Fichiers sonores
+
+- Les fichiers sonores de test sont versionnés dans `tests/fichiers-sonores/` : une seconde de sinusoïde en mono, la plus petite taille utile (5 secondes au plus), un fichier sain par format de la spec (revue de [PR #65](https://github.com/dascritch/machincast/pull/65)).
+- Un scénario en copie un dans son répertoire temporaire (`tests.sons.copie_de_test`), puis peut le tronquer ou le corrompre de façon déterministe ; le dépôt n'est jamais modifié.
+- Pour les régénérer, avec les encodeurs GStreamer : `python -m tests.sons`.
+
 ## Hasard et temps
 
 - Tout tirage aléatoire passe par un `random.Random` reçu en paramètre, créé par `machincast.hasard.creer_hasard(graine)` : même graine, mêmes tirages.
@@ -35,6 +41,8 @@ Les scénarios Gherkin sont écrits en français (`# language: fr`).
 ## Configuration
 
 Les tests utilisent leur propre fichier de configuration, passé par le paramètre de configuration du wrapper ou du binaire, jamais `machincast.toml`.
+
+`tests/configuration-test.toml` nomme comme base de production une base qui n'existe pas, différente de celle du modèle `machincast.exemple.toml` : un scénario de `socle.feature` le vérifie. Un scénario qui lance un binaire avec une configuration valide lui donne une socket PostgreSQL qui n'existe pas : le binaire ne peut joindre aucune base, et surtout pas la base de production que nomme cette configuration. Les scénarios qui ont besoin de la base appellent les fonctions Python avec une connexion à la base de test.
 
 ## Audio
 

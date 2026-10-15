@@ -326,8 +326,15 @@ Sur option de lancement, le binaire simule la diffusion entre deux dates et heur
 
 ### 6.1 Vérification des sonores existants (hors streams)
 
-- Décodage complet du fichier (GStreamer), pour s'assurer qu'il n'est pas endommagé.
-- Fichier illisible ou endommagé : signalé sur STDERR, sonore passé inactif.
+- Décodage complet du fichier (GStreamer), pour s'assurer qu'il n'est pas endommagé ([#7](https://github.com/dascritch/machincast/issues/7)). Le fichier est décodé sans être joué, bien plus vite que le temps réel (une dizaine de minutes de son en moins d'une seconde).
+- GStreamer est tolérant : la plupart des fichiers tronqués ou corrompus se décodent sans erreur, en un son plus court ou parasité. Le verdict repose donc sur trois signes :
+	- **illisible** : erreur de GStreamer (fichier qui n'est pas du son, vide, conteneur cassé), aucun son décodé, fichier introuvable, ou décodage qui ne progresse plus pendant 30 secondes (disque ou partage réseau bloqué). Un décodage qui ne produit aucun son en 5 secondes est repris depuis le début, jusqu'à trois tentatives : GStreamer se bloque parfois au démarrage d'un pipeline (environ un décodage sur cent, fichiers sains compris), et un disque réseau en veille a ainsi le temps de répondre ;
+	- **endommagé** : rupture de continuité dans le son décodé, signe que le décodeur a sauté des données (constaté en MP3, Ogg et M4A) ;
+	- **endommagé** : durée décodée plus courte que la durée annoncée par l'en-tête, au-delà de 75 ms ou de 0,1 % (fichier tronqué ou trames perdues, constaté en FLAC, AIFF et M4A).
+- Limites propres aux formats : des octets altérés dans un WAV ou un AIFF passent inaperçus (ni somme de contrôle ni trames) ; un WAV, un Ogg ou un MP3 sans en-tête de durée tronqué se décode comme un fichier plus court et sain.
+- Fichier sain : la durée décodée, la date de modification et la taille du fichier sont enregistrées. Un sonore inactif n'est pas réactivé.
+- Fichier illisible ou endommagé : signalé sur STDERR, sonore passé inactif, **même si `actif` a été édité à la main** : c'est la seule exception à la règle des champs édités, pour qu'un fichier endommagé ne passe jamais à l'antenne.
+- Décodeur GStreamer absent pour un format : la vérification s'arrête et indique les paquets à installer, sans désactiver le sonore, car le fichier n'y est pour rien.
 - Fichier supprimé ou déplacé : sonore passé inactif. Un fichier déplacé sera réindexé comme nouveau sonore.
 - Date de modification ou taille changée : nouvelle vérification complète, mise à jour de la durée et des tags, **sans toucher aux champs édités à la main**.
 
@@ -340,6 +347,11 @@ Sur option de lancement, le binaire simule la diffusion entre deux dates et heur
 ### 6.3 Sorties
 
 STDOUT et STDERR uniquement, plus une sortie texte au format CSV et HTML. L'indexeur n'écrit pas dans le log.
+
+- STDERR : une ligne par fichier défectueux, désigné par son chemin, avec le problème et la conséquence (« sonore désactivé »). Les messages passent par `logging` : anomalies (`warning`) et erreurs (`error`) sur STDERR, informations sur STDOUT.
+- Les anomalies relevées seront regroupées dans un document d'audit, en CSV et en HTML ([#11](https://github.com/dascritch/machincast/issues/11)).
+- STDOUT : le bilan, par exemple « 12 sonores vérifiés, 1 désactivé ».
+- Code de sortie : 0 quand la vérification est allée au bout, même si des sonores ont été désactivés : ce sont des anomalies non bloquantes ; 1 si la base est injoignable ou si un décodeur manque ; 2 pour une configuration invalide.
 
 ## 7. Wrapper Machin
 

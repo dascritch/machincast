@@ -10,6 +10,9 @@ Fonctionnalité: Socle de test
 		Alors la configuration de test désigne la base "machincast_test"
 		Et la sortie audio des tests est "factice"
 
+	Scénario: La configuration de test ne nomme pas la base de production du modèle
+		Alors la base de production de la configuration de test n'est pas celle du modèle de configuration
+
 	Scénario: La connexion de test refuse la base de production
 		Étant donné une configuration de test dont la base de test porte le nom de la base de production
 		Quand je charge cette configuration
@@ -74,3 +77,12 @@ Fonctionnalité: Socle de test
 
 	Scénario: Le code source ne lit l'heure et le hasard qu'à travers les modules dédiés
 		Alors aucun fichier de src/ ne lit l'heure ni le hasard en dehors de machincast.horloge et machincast.hasard
+
+	Scénario: Le code source n'affiche rien par print : les messages passent par logging
+		Alors aucun fichier de src/ n'appelle print
+
+	Scénario: Les messages d'un exécutable vont sur la sortie qui convient, préfixés de son nom
+		Étant donné les messages configurés pour l'exécutable "Machin_essai"
+		Quand le code émet une information « 3 sonores vérifiés » et une anomalie « fichier endommagé »
+		Alors la sortie standard contient seulement « Machin_essai : 3 sonores vérifiés »
+		Et la sortie d'erreur contient seulement « Machin_essai : fichier endommagé »

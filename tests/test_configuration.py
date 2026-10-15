@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from machincast.cli import CODE_CONFIGURATION_INVALIDE
 from machincast.configuration import Configuration, ConfigurationInvalide, charger
 
 scenarios("configuration.feature")
@@ -95,6 +96,9 @@ def chemin_absent(contexte: Contexte) -> None:
 
 @given(parsers.parse('une configuration valide enregistrée dans "{nom}"'))
 def valide_enregistree(contexte: Contexte, nom: str) -> None:
+	"""Configuration passée à un binaire : sa socket PostgreSQL n'existe pas, pour qu'il ne puisse joindre aucune
+	base, et surtout pas la base de production qu'elle désigne (https://github.com/dascritch/machincast/issues/7)."""
+	contexte.cles["base"]["socket"] = f'"{contexte.repertoire / "aucune-socket"}"'
 	ecrire(contexte, nom)
 
 
@@ -204,9 +208,10 @@ def echec_chemin(contexte: Contexte) -> None:
 
 @then("la configuration est acceptée par le binaire")
 def acceptee(contexte: Contexte) -> None:
-	# Les binaires ne font encore rien d'autre : après une configuration valide, ils signalent le ticket à venir.
+	# Après une configuration acceptée, le binaire va plus loin : il signale un ticket à venir, ou ne joint pas la base.
 	assert contexte.resultat is not None
-	assert "pas encore implémenté" in contexte.resultat.stderr, contexte.resultat.stderr
+	assert contexte.resultat.returncode != CODE_CONFIGURATION_INVALIDE, contexte.resultat.stderr
+	assert "configuration invalide" not in contexte.resultat.stderr, contexte.resultat.stderr
 
 
 @then(parsers.parse("le binaire s'arrête avec le code {code:d}"))

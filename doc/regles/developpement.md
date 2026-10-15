@@ -43,6 +43,7 @@ Portées usuelles : `lecture`, `indexation`, `interface`, `wrapper`, `db`, `inst
 
 - Python pour tout le projet, typé strictement : `mypy --strict` doit passer.
 - Linter et formateur : ruff.
+- Jamais de `print` : les messages passent par `logging`, avec un journal par module (`logging.getLogger(__name__)`). `machincast.journal.configurer` envoie les informations sur la sortie standard, les anomalies (`warning`) et les erreurs (`error`) sur la sortie d'erreur, préfixées du nom de l'exécutable. Un scénario de [`socle.feature`](../../tests/features/socle.feature) refuse tout `print` dans `src/` (revue de [PR #65](https://github.com/dascritch/machincast/pull/65)).
 - Scripts bash (wrapper, autocomplétion, tests bats) : `set -euo pipefail` pour un exécutable, et shellcheck doit passer.
 - **Indentation par tabulations**, pour des raisons d'accessibilité. Ne jamais convertir en espaces. Dans la configuration ruff : `indent-style = "tab"` pour le formateur, règle `W191` désactivée.
 - Vocabulaire : « sonore », « banque », « événement ». « Playlist » désigne uniquement la liste exportée en .pls, .csv ou .html, jamais un objet en base ou à l'écran.

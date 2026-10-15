@@ -4,7 +4,9 @@
 
 [base]
 socket = "/var/run/postgresql"
-production = "machincast"
+# Base de production volontairement inexistante : un binaire lancé avec cette configuration ne peut pas
+# atteindre la vraie base de production (https://github.com/dascritch/machincast/issues/7).
+production = "machincast_aucune_production"
 test = "machincast_test"
 
 [audio]

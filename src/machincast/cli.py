@@ -1,12 +1,15 @@
 """Éléments communs aux exécutables en ligne de commande."""
 
 import argparse
-import sys
+import logging
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from machincast import __version__
 from machincast.configuration import FICHIER_PAR_DEFAUT, Configuration, ConfigurationInvalide, charger
+from machincast.journal import configurer as configurer_journal
+
+journal = logging.getLogger(__name__)
 
 CODE_CONFIGURATION_INVALIDE = 2
 
@@ -39,19 +42,17 @@ def lancer(
 
 	Renvoie le code de sortie : celui de l'action, ou CODE_CONFIGURATION_INVALIDE.
 	"""
+	configurer_journal(executable)
 	options = creer_analyseur(executable, description).parse_args(arguments)
 	try:
 		configuration = charger(options.config)
 	except ConfigurationInvalide as erreur:
-		print(f"{executable} : configuration invalide : {erreur}", file=sys.stderr)
+		journal.error("configuration invalide : %s", erreur)
 		return CODE_CONFIGURATION_INVALIDE
 	return action(configuration)
 
 
 def non_implemente(executable: str, ticket: int) -> int:
 	"""Signale une fonctionnalité pas encore développée et renvoie un code d'erreur."""
-	print(
-		f"{executable} : pas encore implémenté, voir https://github.com/dascritch/machincast/issues/{ticket}",
-		file=sys.stderr,
-	)
+	journal.error("pas encore implémenté, voir https://github.com/dascritch/machincast/issues/%d", ticket)
 	return 1
