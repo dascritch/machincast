@@ -16,7 +16,7 @@
 
 ## Configuration
 
-- `machincast.toml` (TOML) dans le répertoire du projet, **ignoré par git**.
+- `machincast.toml` (TOML) dans le répertoire du projet, **ignoré par git**. Sans `--config`, les binaires le lisent là, quel que soit le répertoire courant : `machincast.configuration.fichier_par_defaut()`, déduit de l'emplacement du paquet, installé en mode éditable. Le wrapper n'ajoute pas de `--config` : il appelle les binaires du `.venv` de ce même répertoire, et son aide affiche ce chemin ([#76](https://github.com/dascritch/machincast/issues/76)).
 - Un fichier de configuration se trouve toujours dans le répertoire du dépôt : la documentation, l'aide et les exemples n'en désignent jamais un ailleurs (revue de [PR #65](https://github.com/dascritch/machincast/pull/65)).
 - Le modèle versionné est `machincast.exemple.toml`. Toute nouvelle clé y est ajoutée et commentée, dans `src/machincast/configuration.py` (clés connues et validation) et dans le tableau de [spec.md § 9](../spec.md#9-configuration).
 - Les clés inconnues sont refusées : ne jamais assouplir cette règle.

@@ -6,7 +6,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from machincast import __version__
-from machincast.configuration import FICHIER_PAR_DEFAUT, Configuration, ConfigurationInvalide, charger
+from machincast.configuration import Configuration, ConfigurationInvalide, charger, fichier_par_defaut
 from machincast.journal import configurer as configurer_journal
 
 journal = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def creer_analyseur(executable: str, description: str) -> argparse.ArgumentParse
 		type=Path,
 		default=None,
 		metavar="FICHIER",
-		help=f"fichier de configuration TOML (par défaut : {FICHIER_PAR_DEFAUT} dans le répertoire courant)",
+		help=f"fichier de configuration TOML (par défaut : {fichier_par_defaut()})",
 	)
 	return analyseur
 

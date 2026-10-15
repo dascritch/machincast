@@ -486,7 +486,7 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 
 - Format TOML, lu par `tomllib`.
 - Le fichier `machincast.toml` se trouve dans le répertoire du projet et est ignoré par `.gitignore`. Le modèle versionné, documenté clé par clé, est `machincast.exemple.toml`.
-- Sans option, chaque binaire lit `machincast.toml` dans le répertoire courant. L'option `--config <fichier>`, commune à tous les binaires et transmise par le wrapper, permet d'utiliser une autre configuration, notamment pour les tests.
+- Sans option, chaque binaire lit le `machincast.toml` du répertoire de MachinCast (dépôt local ou release décompressée), quel que soit le répertoire courant, qu'il soit appelé directement ou par le wrapper. Ce répertoire se déduit de l'emplacement du paquet Python, installé en mode éditable ; c'est aussi celui du wrapper, qui appelle les binaires de son `.venv` ([#76](https://github.com/dascritch/machincast/issues/76)). L'option `--config <fichier>`, commune à tous les binaires et transmise par le wrapper, permet d'utiliser une autre configuration, notamment pour les tests.
 - Les chemins relatifs sont résolus depuis le répertoire du fichier de configuration.
 - Toute clé ou section inconnue est refusée. Une clé obligatoire manquante, un type invalide ou une valeur hors des choix possibles arrête le binaire avec le code 2 et un message qui nomme le fichier et la clé.
 - De nouvelles clés s'ajouteront au fil du projet ; chacune est documentée dans le modèle.

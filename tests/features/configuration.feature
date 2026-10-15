@@ -134,10 +134,35 @@ Fonctionnalité: Fichier de configuration
 			| Machin_indexation |
 			| Machin_interface  |
 
-	Scénario: Un binaire lit machincast.toml par défaut
+	# ─── Fichier par défaut (https://github.com/dascritch/machincast/issues/76) ───
+	# Les tests ne lisent jamais le machincast.toml du dépôt : un répertoire temporaire en tient lieu.
+
+	Scénario: Le fichier par défaut est le machincast.toml du répertoire de MachinCast
+		Alors le fichier de configuration par défaut est "machincast.toml" à la racine du dépôt
+
+	Scénario: Sans --config, un binaire lit le machincast.toml du répertoire de MachinCast, quel que soit le répertoire courant
 		Étant donné une configuration valide enregistrée dans "machincast.toml"
-		Quand je lance "Machin_lecture" sans option depuis ce répertoire
-		Alors la configuration est acceptée par le binaire
+		Et ce répertoire tient lieu de répertoire de MachinCast
+		Et le répertoire courant est un autre répertoire
+		Quand un binaire démarre sans option
+		Alors il reçoit la configuration de ce répertoire
+
+	Scénario: Sans --config, un machincast.toml absent est signalé avec son chemin complet
+		Étant donné un répertoire de MachinCast sans machincast.toml
+		Et le répertoire courant est un autre répertoire
+		Quand un binaire démarre sans option
+		Alors il s'arrête avec le code 2
+		Et son erreur mentionne le chemin complet du machincast.toml de ce répertoire
+
+	Plan du scénario: L'aide d'un binaire indique le fichier par défaut
+		Quand je lance "<executable>" avec l'option "--help"
+		Alors la sortie mentionne le machincast.toml à la racine du dépôt
+
+		Exemples:
+			| executable        |
+			| Machin_lecture    |
+			| Machin_indexation |
+			| Machin_interface  |
 
 	Scénario: Un binaire refuse une configuration invalide
 		Étant donné un chemin de configuration qui n'existe pas

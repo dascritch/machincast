@@ -120,10 +120,11 @@ Les noms des bases (`base.production` et `base.test`) se choisissent **avant** d
 
 Toute clé inconnue est refusée, pour détecter les fautes de frappe. Après une modification, relancer `./install.sh` vérifie la configuration et la sortie audio.
 
-Sans l'option `--config`, les programmes lisent `machincast.toml` **dans le répertoire courant**. Ils se lancent donc depuis le répertoire de MachinCast :
+Sans l'option `--config`, les programmes lisent toujours le `machincast.toml` du répertoire de MachinCast, quel que soit le répertoire d'où ils sont lancés ([#76](https://github.com/dascritch/machincast/issues/76)). `Machin --help` indique son chemin complet. Une autre configuration, placée elle aussi dans le répertoire de MachinCast, se désigne par `--config` :
 
 ```bash
-cd /opt/machincast && Machin indexation
+Machin indexation                                         # lit ~/machincast/machincast.toml
+Machin indexation --config ~/machincast/essai.toml        # lit essai.toml
 ```
 
 ## Vérifier l'installation
@@ -133,7 +134,7 @@ Après s'être déconnecté puis reconnecté (pour le groupe `systemd-journal`) 
 ```bash
 Machin --help                              # aide du wrapper, liste des programmes
 Machin indexation --help                   # aide de l'indexation
-cd /opt/machincast && Machin indexation    # indexation rapide
+Machin indexation                          # indexation rapide
 ```
 
 `Machin indexation` affiche un bilan, par exemple `Machin_indexation : indexation rapide : 0 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu`, et se termine avec le code 0. Sur un poste neuf, la base ne contient encore aucun sonore : l'indexation des répertoires de banques est à venir ([#9](https://github.com/dascritch/machincast/issues/9)).
@@ -141,8 +142,8 @@ cd /opt/machincast && Machin indexation    # indexation rapide
 **Première indexation.** L'indexation rapide, par défaut, ne décode que les sonores nouvellement découverts (état « aperçu ») et vérifie seulement la présence des autres fichiers. L'audit complet décode tous les sonores, ce qui peut être long sur une grande discothèque :
 
 ```bash
-cd /opt/machincast && Machin indexation                   # rapide
-cd /opt/machincast && Machin indexation --audit-complet   # complet, à lancer une fois après la première indexation
+Machin indexation                   # rapide
+Machin indexation --audit-complet   # complet, à lancer une fois après la première indexation
 ```
 
 Les anomalies (fichier endommagé, illisible ou introuvable) s'affichent sur la sortie d'erreur avec le chemin du fichier ; elles ne bloquent pas l'indexation.
@@ -336,7 +337,7 @@ Les noms de bases sont ceux du modèle : reprendre ceux de `base.production` et 
 | `machincast.installation : droits insuffisants pour appliquer le schéma dans la base …` | La base existait déjà et appartient à un autre compte, ou ses tables ont été créées par un autre compte. Tant qu'elle ne contient rien d'utile, la supprimer (`sudo -u postgres dropdb …`) puis relancer `install.sh`, qui la recrée. |
 | `… : greffon GStreamer absent, installer …` | Un format sonore ou la sortie audio configurée ne peut pas fonctionner. Installer le paquet nommé, puis relancer `install.sh`. |
 | `install.sh : … existe et n'est pas un lien symbolique` | Un fichier ou un répertoire occupe déjà la place d'un lien, par exemple une ancienne installation dans `/opt/machincast`. Le déplacer, puis relancer `install.sh`. |
-| `Machin_indexation : configuration invalide : …` (code 2) | Le programme ne trouve pas `machincast.toml` dans le répertoire courant, ou une clé est invalide. Le lancer depuis `/opt/machincast`. |
+| `Machin_indexation : configuration invalide : …` (code 2) | Le message nomme le fichier et la clé en cause. `fichier de configuration introuvable` : le `machincast.toml` du répertoire de MachinCast n'existe pas ; le copier depuis `machincast.exemple.toml`, ou relancer `install.sh`. |
 | `Machin_indexation : erreur de base de données : … permission denied to set role …` | Le compte n'est pas autorisé à endosser le rôle : voir [Ajouter un autre compte](#ajouter-un-autre-compte). |
 | `Machin logs` n'affiche que des messages de son propre compte | Le compte n'appartient pas encore au groupe `systemd-journal` : se déconnecter, puis se reconnecter. |
 
