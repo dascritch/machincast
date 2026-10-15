@@ -22,7 +22,8 @@ DESCRIPTION = "Vérifie les sonores et indexe les répertoires des banques."
 
 CODE_ECHEC = 1
 
-journal = logging.getLogger(__name__)
+# Nom explicite : lancé par python -m, ce module s'appelle __main__, hors du journal « machincast ».
+journal = logging.getLogger("machincast.indexation")
 
 
 def options_propres(analyseur: argparse.ArgumentParser) -> None:

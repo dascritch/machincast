@@ -19,6 +19,7 @@ sudo apt install python3-venv python3-dev build-essential pkg-config libgireposi
 # Outils de développement du wrapper bash
 sudo apt install bats shellcheck
 
+# Installation d'un poste, relançable : ./install.sh (--simulation pour voir les commandes sans les exécuter)
 # Installation de dev : venv isolé, jamais --system-site-packages (https://github.com/dascritch/machincast/issues/51)
 python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
 cp machincast.exemple.toml machincast.toml   # puis l'adapter ; jamais versionné
@@ -28,11 +29,15 @@ createdb machincast_test
 
 # Autoriser un utilisateur système à endosser des rôles
 # (par un rôle PostgreSQL qui a CREATEROLE et qui a créé les rôles, par exemple celui qui applique les migrations)
+# Après ./install.sh, les rôles appartiennent à postgres : les tests, qui créent des comptes et attribuent ces rôles,
+# demandent au développeur CREATEROLE et le droit de les attribuer :
+#   sudo -u postgres psql -c "ALTER ROLE $(id -un) CREATEROLE"
+#   sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machincast_interface TO $(id -un) WITH ADMIN TRUE, INHERIT FALSE, SET FALSE"
 python -m machincast.droits --base machincast_test autoriser "$(id -un)" lecture indexation interface
 
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/
-shellcheck -x bin/Machin bash-completion/Machin tests/wrapper/*.bash tests/wrapper/*.bats
+shellcheck -x install.sh bin/Machin bash-completion/Machin tests/wrapper/*.bash tests/wrapper/*.bats
 
 # Tests : configuration tests/configuration-test.toml, ou celle désignée par MACHINCAST_CONFIG_TEST
 # (les scénarios de base de données sont ignorés si PostgreSQL est injoignable)
