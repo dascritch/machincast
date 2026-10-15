@@ -11,7 +11,9 @@ setup() {
 	source "${COMPLETION}"
 }
 
-# Simule une ligne de commande en cours de saisie : chaque argument est un mot, le dernier est complété.
+# Simule une ligne de commande en cours de saisie : chaque argument est un mot, le dernier est complété. Les
+# propositions sont triées en locale C, quelle que soit celle du terminal : en français ou en anglais, « -h » se
+# rangerait sinon parmi les options longues (https://github.com/dascritch/machincast/issues/79).
 completer() {
 	COMP_WORDS=("$@")
 	COMP_CWORD=$((${#COMP_WORDS[@]} - 1))
@@ -19,7 +21,7 @@ completer() {
 	COMP_POINT=${#COMP_LINE}
 	COMPREPLY=()
 	_Machin Machin "${COMP_WORDS[COMP_CWORD]}" "${COMP_WORDS[COMP_CWORD - 1]}"
-	printf '%s\n' "${COMPREPLY[@]}" | sort
+	printf '%s\n' "${COMPREPLY[@]}" | LC_ALL=C sort
 }
 
 @test "la complétion est enregistrée pour la commande Machin" {
