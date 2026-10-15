@@ -171,9 +171,9 @@ Si GStreamer n'a pas de décodeur pour un format, la vérification s'arrête et 
 - **Fils musicaux selon l'heure** : plusieurs fils musicaux peuvent se relayer, par exemple un fil de nuit de 00:00 à 06:00 et un fil de jour de 06:00 à 00:00, tous les jours.
 - **Émission ou spécial sans fin** : il reste à l'antenne jusqu'à la fin de sa liste de lecture, qui ne boucle pas ; l'événement en dessous reprend alors. S'il est récurrent, il revient à sa prochaine date.
 - **Chevauchement** : deux événements de même priorité ne devraient pas se chevaucher, et l'interface l'empêchera. Si c'est le cas quand même, c'est le dernier modifié qui passe.
-- **Changement d'heure** : les heures sont celles du poste, en heure locale. Une émission quotidienne de 21:00 reste à 21:00 après le passage à l'heure d'été ou d'hiver. La nuit du changement d'heure, l'heure sautée ou répétée tombe dans le fil musical de nuit.
+- **Changement d'heure** : un événement garde son heure. Une émission quotidienne de 21:00 reste à 21:00 après le passage à l'heure d'été ou d'hiver. La nuit du changement d'heure, l'heure sautée ou répétée tombe dans le fil musical de nuit.
 
-Le fuseau horaire est celui du système : la variable `TZ` quand elle est définie, sinon le réglage du poste (`/etc/localtime`, réglé par `timedatectl set-timezone Europe/Paris`).
+Toutes les heures de la grille sont en heure de Paris, l'heure locale du poste.
 
 ### Sortie audio
 

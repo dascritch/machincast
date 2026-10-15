@@ -1,16 +1,18 @@
 """Étapes de la détermination de l'événement actif (https://github.com/dascritch/machincast/issues/12)."""
 
+import os
+import time
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from datetime import datetime, tzinfo
-from zoneinfo import ZoneInfo
+from datetime import datetime
 
 import psycopg
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.base import Role, connecter
-from machincast.horloge import HorlogeFixe, fuseau_local
-from machincast.lecture.grille import Evenement, Priorite, evenement_actif, lire_grille, occurrence
+from machincast.horloge import HorlogeFixe
+from machincast.lecture.grille import Evenement, Priorite, evenement_actif, heure_murale, lire_grille, occurrence
 from tests.base_test import parametres_base_test
 
 scenarios("evenement_actif.feature")
@@ -21,7 +23,6 @@ JOURS = ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"
 
 @dataclass
 class Contexte:
-	fuseau: tzinfo = ZoneInfo("Europe/Paris")
 	evenements: list[Evenement] = field(default_factory=list)
 	terminees: set[tuple[int, datetime | None]] = field(default_factory=set)
 	horloge: HorlogeFixe | None = None
@@ -33,9 +34,8 @@ def contexte() -> Contexte:
 
 
 def heure(contexte: Contexte, texte: str) -> datetime:
-	"""« 2026-10-14 21:30 » en heure du fuseau du scénario, ou « 2026-10-25 02:30+01:00 » avec son décalage."""
-	instant = datetime.fromisoformat(texte.strip())
-	return instant if instant.tzinfo is not None else instant.replace(tzinfo=contexte.fuseau)
+	"""« 2026-10-14 21:30 » en heure du poste, ou « 2026-10-25 02:30+01:00 » avec son décalage ; avec fuseau."""
+	return datetime.fromisoformat(texte.strip()).astimezone()
 
 
 def tableau(datatable: list[list[str]]) -> list[dict[str, str]]:
@@ -48,13 +48,27 @@ def nomme(contexte: Contexte, nom: str) -> Evenement:
 
 
 def actif(contexte: Contexte, instant: datetime) -> str | None:
-	resultat = evenement_actif(contexte.evenements, instant, contexte.fuseau, frozenset(contexte.terminees))
+	resultat = evenement_actif(contexte.evenements, instant, frozenset(contexte.terminees))
 	return None if resultat is None else resultat.evenement.nom
 
 
-@given(parsers.parse("le fuseau horaire « {nom} »"))
-def fuseau(contexte: Contexte, nom: str) -> None:
-	contexte.fuseau = ZoneInfo(nom)
+@pytest.fixture
+def heure_de_paris() -> Iterator[None]:
+	"""Règle le processus sur l'heure de Paris, celle du poste, puis rétablit le réglage d'origine."""
+	avant = os.environ.get("TZ")
+	os.environ["TZ"] = "Europe/Paris"
+	time.tzset()
+	yield
+	if avant is None:
+		del os.environ["TZ"]
+	else:
+		os.environ["TZ"] = avant
+	time.tzset()
+
+
+@given("le poste à l'heure de Paris")
+def poste_a_paris(heure_de_paris: None) -> None:
+	"""Le poste de diffusion travaille en heure locale, celle de Paris."""
 
 
 @given("aucun événement")
@@ -102,8 +116,8 @@ def lire(contexte: Contexte, base_vide: Connexion) -> None:
 @when(parsers.parse("l'occurrence de « {nom} » commencée le « {debut} » se termine, sa liste épuisée"))
 def terminer(contexte: Contexte, nom: str, debut: str) -> None:
 	instant = heure(contexte, debut)
-	en_cours = occurrence(nomme(contexte, nom), instant, contexte.fuseau)
-	assert en_cours is not None and en_cours.debut == instant, en_cours
+	en_cours = occurrence(nomme(contexte, nom), instant)
+	assert en_cours is not None and en_cours.debut == heure_murale(instant), en_cours
 	contexte.terminees.add(en_cours.cle)
 
 
@@ -128,9 +142,3 @@ def actif_selon_heure(contexte: Contexte, datatable: list[list[str]]) -> None:
 		if obtenu != ligne["actif"]:
 			ecarts.append(f"{ligne['heure']} : {obtenu} au lieu de {ligne['actif']}")
 	assert not ecarts, "\n".join(ecarts)
-
-
-@then("le fuseau local donne le même décalage horaire que l'heure du système")
-def fuseau_systeme() -> None:
-	maintenant = datetime.now().astimezone()
-	assert fuseau_local().utcoffset(maintenant.replace(tzinfo=None)) == maintenant.utcoffset()

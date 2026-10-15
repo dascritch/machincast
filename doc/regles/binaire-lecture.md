@@ -18,9 +18,8 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 
 ## Grille et événement actif
 
-- `machincast.lecture.grille.evenement_actif(evenements, instant, fuseau, terminees)` donne l'occurrence active ; c'est une fonction pure, testée avec une `HorlogeFixe` ([#12](https://github.com/dascritch/machincast/issues/12)). La grille se lit en base par `lire_grille`, avec le rôle de la lecture.
-- La récurrence se calcule dans un fuseau à changements d'heure (`machincast.horloge.fuseau_local()`), jamais avec le décalage fixe de `datetime.now().astimezone()`.
-- Les heures se comparent en UTC : deux `datetime` du même `ZoneInfo` se comparent sinon sur leur heure murale, et l'heure répétée d'automne serait mal classée.
+- `machincast.lecture.grille.evenement_actif(evenements, instant, terminees)` donne l'occurrence active ; c'est une fonction pure, testée avec une `HorlogeFixe` ([#12](https://github.com/dascritch/machincast/issues/12)). La grille se lit en base par `lire_grille`, avec le rôle de la lecture.
+- Le poste travaille en heure locale, celle de Paris (revue de [PR #82](https://github.com/dascritch/machincast/pull/82)) : pas de fuseau à manier. La grille convertit chaque heure en heure murale du poste (`heure_murale`) et calcule la récurrence sur ces heures murales. Les tests règlent le processus sur l'heure de Paris (`TZ`), quel que soit le poste qui les lance.
 - Une occurrence terminée plus tôt (liste épuisée d'un événement sans fin) est repérée par sa clé `Occurrence.cle`, l'identifiant de l'événement et le début de l'occurrence.
 
 ## Écritures autorisées

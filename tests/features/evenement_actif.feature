@@ -4,12 +4,12 @@ Fonctionnalité: Détermination de l'événement actif
 	je veux que le binaire sache à tout instant quel événement doit être diffusé,
 	afin que la grille programmée soit respectée.
 
-	https://github.com/dascritch/machincast/issues/12 — spec § 4.1. Les dates des événements sont en heure de
-	Paris ; la récurrence se calcule en heure locale, l'heure murale d'un événement est donc gardée d'un jour
-	à l'autre, même au changement d'heure. Le 12 octobre 2026 est un lundi.
+	https://github.com/dascritch/machincast/issues/12 — spec § 4.1. Le poste travaille en heure locale, celle de
+	Paris : un événement garde son heure d'un jour à l'autre, même au changement d'heure. Les heures sans décalage
+	sont en heure de Paris. Le 12 octobre 2026 est un lundi.
 
 	Contexte:
-		Étant donné le fuseau horaire « Europe/Paris »
+		Étant donné le poste à l'heure de Paris
 
 	# ─── Bases ─────────────────────────────────────────────────
 
@@ -183,6 +183,3 @@ Fonctionnalité: Détermination de l'événement actif
 			| heure            | actif    |
 			| 2026-10-14 21:30 | Magazine |
 			| 2026-10-15 21:30 | Continue |
-
-	Scénario: Le fuseau horaire local est celui du système
-		Alors le fuseau local donne le même décalage horaire que l'heure du système

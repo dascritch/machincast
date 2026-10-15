@@ -10,19 +10,18 @@ Dates d'un événement (spec § 3.1) : debut et fin sont ceux de sa première oc
 - Un fil musical sans debut ni fin est permanent.
 - Sans jours de récurrence, l'événement a une seule occurrence, [debut, fin[, ou [debut, ∞[ sans fin.
 - Avec des jours de récurrence, il revient chacun de ces jours à partir de sa première occurrence, à la même
-  heure murale que debut, et dure jusqu'à l'heure murale de fin, autant de jours plus tard que la première
-  occurrence : un événement peut passer minuit. Ce calcul se fait dans le fuseau local, si bien qu'au changement
-  d'heure un événement garde son heure murale (spec § 4.1 : aucune règle particulière).
+  heure que debut, et dure jusqu'à l'heure de fin, autant de jours plus tard que la première occurrence : un
+  événement peut passer minuit, et c'est le jour de son début qui compte.
 - Sans fin, une occurrence couvre l'instant à partir de son début, jusqu'à ce que sa liste soit épuisée : le
   binaire la déclare alors terminée (Occurrence.cle).
 
-Les comparaisons se font en UTC : deux heures du même fuseau se comparent sinon sur leur heure murale, sans
-tenir compte de l'heure répétée au changement d'heure d'automne.
+Le poste travaille en heure locale, celle de Paris : la grille calcule en heure murale, sans fuseau à manier.
+Au changement d'heure, un événement garde donc son heure (spec § 4.1 : aucune règle particulière).
 """
 
 from collections.abc import Iterable, Set
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta, tzinfo
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
 import psycopg
@@ -60,51 +59,49 @@ class Evenement:
 class Occurrence:
 	evenement: Evenement
 	debut: datetime | None
+	"""Début de l'occurrence, en heure murale du poste ; None pour un fil musical permanent."""
 	fin: datetime | None
 	"""None pour une occurrence sans fin, qui dure jusqu'à l'épuisement de sa liste."""
 
 	@property
 	def cle(self) -> tuple[int, datetime | None]:
 		"""Identifie l'occurrence, pour la déclarer terminée plus tôt."""
-		return self.evenement.id, None if self.debut is None else self.debut.astimezone(UTC)
+		return self.evenement.id, self.debut
 
 
-def _couvre(debut: datetime, fin: datetime | None, instant: datetime) -> bool:
-	return debut.astimezone(UTC) <= instant.astimezone(UTC) and (
-		fin is None or instant.astimezone(UTC) < fin.astimezone(UTC)
-	)
+def heure_murale(moment: datetime) -> datetime:
+	"""Heure du poste, sans fuseau : la machine travaille en heure locale, celle de Paris."""
+	return moment.astimezone().replace(tzinfo=None) if moment.tzinfo is not None else moment
 
 
-def _a_heure(jour: date, modele: datetime, fuseau: tzinfo) -> datetime:
-	"""Le jour donné, à l'heure murale de modele dans le fuseau."""
-	return datetime.combine(jour, modele.astimezone(fuseau).time(), tzinfo=fuseau)
+def _couvre(debut: datetime, fin: datetime | None, moment: datetime) -> bool:
+	return debut <= moment and (fin is None or moment < fin)
 
 
-def occurrence(evenement: Evenement, instant: datetime, fuseau: tzinfo) -> Occurrence | None:
-	"""Occurrence de l'événement qui couvre l'instant, ou None."""
-	debut, fin = evenement.debut, evenement.fin
-	if debut is None:
+def occurrence(evenement: Evenement, instant: datetime) -> Occurrence | None:
+	"""Occurrence de l'événement qui couvre l'instant, ou None. Ses dates sont en heure murale du poste."""
+	if evenement.debut is None:
 		return Occurrence(evenement, None, None)
+	debut = heure_murale(evenement.debut)
+	fin = None if evenement.fin is None else heure_murale(evenement.fin)
+	moment = heure_murale(instant)
 	if not evenement.jours:
-		return Occurrence(evenement, debut, fin) if _couvre(debut, fin, instant) else None
+		return Occurrence(evenement, debut, fin) if _couvre(debut, fin, moment) else None
 
-	premier_jour = debut.astimezone(fuseau).date()
-	duree_en_jours = None if fin is None else (fin.astimezone(fuseau).date() - premier_jour).days
-	aujourd_hui = instant.astimezone(fuseau).date()
-	# Une occurrence avec fin a commencé au plus tard ce jour-là, la veille près, pour un éventuel changement
-	# d'heure ; une occurrence sans fin a commencé dans la semaine qui précède.
-	recul = 7 if duree_en_jours is None else duree_en_jours + 1
+	premier_jour = debut.date()
+	duree_en_jours = None if fin is None else (fin.date() - premier_jour).days
+	# Une occurrence avec fin a commencé au plus tôt autant de jours avant que dure la première ; une occurrence
+	# sans fin, dans la semaine qui précède.
+	recul = 7 if duree_en_jours is None else duree_en_jours
 	for ecart in range(recul + 1):
-		jour = aujourd_hui - timedelta(days=ecart)
+		jour = moment.date() - timedelta(days=ecart)
 		if jour < premier_jour or (jour != premier_jour and jour.weekday() not in evenement.jours):
 			continue
-		depart = _a_heure(jour, debut, fuseau)
-		arrivee = (
-			None
-			if fin is None or duree_en_jours is None
-			else _a_heure(jour + timedelta(days=duree_en_jours), fin, fuseau)
-		)
-		if _couvre(depart, arrivee, instant):
+		depart = datetime.combine(jour, debut.time())
+		arrivee = None
+		if fin is not None and duree_en_jours is not None:
+			arrivee = datetime.combine(jour + timedelta(days=duree_en_jours), fin.time())
+		if _couvre(depart, arrivee, moment):
 			return Occurrence(evenement, depart, arrivee)
 	return None
 
@@ -112,14 +109,13 @@ def occurrence(evenement: Evenement, instant: datetime, fuseau: tzinfo) -> Occur
 def evenement_actif(
 	evenements: Iterable[Evenement],
 	instant: datetime,
-	fuseau: tzinfo,
 	terminees: Set[tuple[int, datetime | None]] = frozenset(),
 ) -> Occurrence | None:
 	"""Occurrence de l'événement actif à l'instant, ou None si aucun ne le couvre.
 
 	terminees contient les clés (Occurrence.cle) des occurrences terminées plus tôt, liste épuisée.
 	"""
-	candidates = [o for e in evenements if (o := occurrence(e, instant, fuseau)) is not None and o.cle not in terminees]
+	candidates = [o for e in evenements if (o := occurrence(e, instant)) is not None and o.cle not in terminees]
 	if not candidates:
 		return None
 	return max(candidates, key=lambda o: (RANGS[o.evenement.priorite], o.evenement.modifie_le, o.evenement.id))
