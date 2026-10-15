@@ -36,7 +36,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 
 ## Moteur audio
 
-- `machincast.lecture.moteur.MoteurAudio` ([#15](https://github.com/dascritch/machincast/issues/15)) : une voie (pipeline `playbin`) par sonore, sur l'élément de la sortie configurée (`machincast.audio.creer_sortie`). Le volume suit une enveloppe posée d'avance (GstController) d'après la durée en base ; le sonore suivant démarre à `enchainement(duree, crossfade_fin)`.
+- `machincast.lecture.moteur.MoteurAudio` ([#15](https://github.com/dascritch/machincast/issues/15)) : une voie (pipeline `playbin`) par sonore, sur l'élément de la sortie configurée (`machincast.audio.creer_sortie`). Le volume suit une enveloppe posée d'avance (GstController) d'après la durée en base. Le sonore suivant démarre à `enchainement(duree, crossfade_fin, crossfade_debut_suivant)`, avec la montée `fondu_d_entree(…)` ; sans superposition (l'un des deux crossfades à 0), la voie sortante perd son fondu (`supprimer_fondu_de_sortie`) et joue jusqu'au bout.
 - Le moteur ne décide de rien : l'ordonnanceur lui dit quoi jouer et quand couper.
 - `machincast.lecture.fichiers.verifier_avant_lecture` avant chaque fichier : écart consigné, fichier introuvable non joué.
 - Les tests utilisent la sortie factice : en temps réel (`sync`) quand le temps compte, au plus vite sinon.

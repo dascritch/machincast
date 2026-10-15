@@ -9,6 +9,8 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 	factice, qui ne joue aucun son : en temps réel quand le temps compte, le plus vite possible sinon.
 	Crossfade de fin : le sonore suivant démarre autant avant la fin, et celui-ci s'éteint pendant ce temps.
 	Crossfade de début : le sonore monte progressivement pendant ce temps.
+	Les deux sonores ne se superposent que si le sortant a un crossfade de fin et l'entrant un crossfade de début :
+	sinon le sortant joue jusqu'au bout à plein volume, et l'entrant démarre ensuite à plein volume.
 
 	# ─── Enveloppe et enchaînement ─────────────────────────────
 
@@ -29,14 +31,22 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 			| 0     | 4   | 60      | 0      |
 			| 2     | 4   | 30      | 1      |
 
-	Plan du scénario: Le sonore suivant démarre au point d'enchaînement
-		Alors un sonore de <duree> secondes, avec <fin> secondes de crossfade de fin, laisse démarrer le suivant après <enchainement> secondes
+	Plan du scénario: Deux sonores ne se superposent que si le sortant a un crossfade de fin et l'entrant un crossfade de début
+		Alors après un sonore de <duree> secondes avec <fin> secondes de crossfade de fin, un sonore avec <debut> secondes de crossfade de début démarre après <enchainement> secondes, <fondu>
 
 		Exemples:
-			| duree | fin | enchainement |
-			| 60    | 0   | 60           |
-			| 60    | 4   | 56           |
-			| 3     | 5   | 0            |
+			| duree | fin | debut | enchainement | fondu                  |
+			| 60    | 4   | 2     | 56           | avec fondu d'entrée    |
+			| 60    | 4   | 0     | 60           | sans fondu d'entrée    |
+			| 60    | 0   | 2     | 60           | sans fondu d'entrée    |
+			| 60    | 0   | 0     | 60           | sans fondu d'entrée    |
+			| 3     | 5   | 2     | 0            | avec fondu d'entrée    |
+
+	Scénario: Sans superposition, le sonore sortant joue jusqu'au bout à plein volume
+		Étant donné une voie pour un sonore de 60 secondes, avec 0 secondes de crossfade de début et 4 de fin
+		Quand le sonore suivant n'a pas de crossfade de début
+		Alors à 58 secondes, son volume est de 1
+		Et à 60 secondes, son volume est de 1
 
 	# ─── Lecture ───────────────────────────────────────────────
 

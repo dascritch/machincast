@@ -8,6 +8,9 @@ comme « default » avec dmix).
 - Crossfade de début : le sonore monte de 0 à plein volume pendant crossfade_debut.
 - Crossfade de fin : le sonore s'éteint pendant ses crossfade_fin dernières secondes, et le sonore suivant démarre
   à ce moment-là (enchainement).
+- Les deux sonores ne se superposent que si le sortant a un crossfade de fin et l'entrant un crossfade de début.
+  Sinon, le sortant joue jusqu'au bout à plein volume (supprimer_fondu_de_sortie), et l'entrant démarre ensuite,
+  à plein volume (fondu_d_entree).
 - Coupure nette : toutes les voies s'arrêtent aussitôt (début d'un événement, spec § 4.2).
 
 Le volume suit une enveloppe posée à l'avance sur l'élément volume (GstController), d'après la durée connue du
@@ -34,9 +37,21 @@ EtatVoie = Literal["prête", "en cours", "finie", "coupée", "en erreur"]
 LECTURE_AUDIO_SEULE = 0x00000002
 
 
-def enchainement(duree: timedelta, crossfade_fin: timedelta) -> timedelta:
-	"""Après combien de temps le sonore suivant démarre : la durée, moins le crossfade de fin."""
-	return max(timedelta(0), duree - crossfade_fin)
+def superposition(crossfade_fin_sortant: timedelta, crossfade_debut_entrant: timedelta) -> bool:
+	"""Deux sonores ne se superposent que si chacun a son crossfade, de fin pour l'un, de début pour l'autre."""
+	return crossfade_fin_sortant > timedelta(0) and crossfade_debut_entrant > timedelta(0)
+
+
+def enchainement(duree: timedelta, crossfade_fin: timedelta, crossfade_debut_suivant: timedelta) -> timedelta:
+	"""Après combien de temps le sonore suivant démarre : avant la fin du crossfade s'ils se superposent."""
+	if superposition(crossfade_fin, crossfade_debut_suivant):
+		return max(timedelta(0), duree - crossfade_fin)
+	return duree
+
+
+def fondu_d_entree(crossfade_fin_precedent: timedelta, crossfade_debut: timedelta) -> timedelta:
+	"""Durée de la montée du sonore entrant : son crossfade de début s'il se superpose au précédent, sinon rien."""
+	return crossfade_debut if superposition(crossfade_fin_precedent, crossfade_debut) else timedelta(0)
 
 
 def enveloppe(
@@ -107,6 +122,14 @@ class Voie:
 		self._lecteur = lecteur
 		self._volume = volume
 		self._source = source
+		self._duree = duree
+		self._crossfade_debut = crossfade_debut
+
+	def supprimer_fondu_de_sortie(self) -> None:
+		"""Le sonore suivant ne se superpose pas : celui-ci joue jusqu'au bout, à plein volume."""
+		self._source.unset_all()
+		for instant, valeur in enveloppe(self._duree, self._crossfade_debut, timedelta(0)):
+			self._source.set(_nanosecondes(instant), valeur)
 
 	def volume_a(self, instant: timedelta) -> float:
 		"""Volume prévu à cet instant du sonore, entre 0 et 1."""

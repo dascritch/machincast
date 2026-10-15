@@ -13,7 +13,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.base import Role, connecter
 from machincast.lecture.fichiers import verifier_avant_lecture
-from machincast.lecture.moteur import MoteurAudio, Voie, enchainement
+from machincast.lecture.moteur import MoteurAudio, Voie, enchainement, fondu_d_entree
 from tests.base_test import configuration_test, parametres_base_test
 from tests.sons import FICHIERS_SONORES, copie_de_test
 
@@ -77,12 +77,20 @@ def volume(contexte: Contexte, instant: str, volume: str) -> None:
 
 @then(
 	parsers.parse(
-		"un sonore de {duree} secondes, avec {fin} secondes de crossfade de fin,"
-		" laisse démarrer le suivant après {apres} secondes"
+		"après un sonore de {duree} secondes avec {fin} secondes de crossfade de fin, un sonore avec {debut} secondes"
+		" de crossfade de début démarre après {apres} secondes, {fondu}"
 	)
 )
-def point_d_enchainement(duree: str, fin: str, apres: str) -> None:
-	assert enchainement(secondes(duree), secondes(fin)) == secondes(apres)
+def point_d_enchainement(duree: str, fin: str, debut: str, apres: str, fondu: str) -> None:
+	assert enchainement(secondes(duree), secondes(fin), secondes(debut)) == secondes(apres)
+	attendu = secondes(debut) if fondu == "avec fondu d'entrée" else timedelta(0)
+	assert fondu_d_entree(secondes(fin), secondes(debut)) == attendu
+
+
+@when("le sonore suivant n'a pas de crossfade de début")
+def sans_fondu_suivant(contexte: Contexte) -> None:
+	assert contexte.voie is not None
+	contexte.voie.supprimer_fondu_de_sortie()
 
 
 # ─── Lecture ───────────────────────────────────────────────

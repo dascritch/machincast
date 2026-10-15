@@ -223,6 +223,7 @@ La sortie audio de l'antenne se règle dans la configuration (`audio.sortie` : `
 
 - **Crossfade de début** d'un sonore : il monte progressivement, de silencieux à plein volume, pendant ce temps.
 - **Crossfade de fin** d'un sonore : le sonore suivant démarre autant avant la fin, et celui-ci s'éteint progressivement pendant ce temps. Les deux se superposent.
+- **Les deux crossfades sont nécessaires** : deux sonores ne se superposent que si le premier a un crossfade de fin **et** le second un crossfade de début. Si l'un des deux est à 0, le premier joue jusqu'au bout à plein volume, puis le second démarre aussitôt à plein volume, sans fondu.
 - **Coupure nette** : au début d'un événement, le sonore en cours s'arrête aussitôt, sans fondu.
 - **Avant de jouer un fichier**, sa date de modification et sa taille sont comparées à celles de l'indexation. Un écart est noté dans le log en alerte `fichier modifié`, et le fichier est quand même joué ; la prochaine indexation mettra la base à jour. Un fichier disparu n'est pas joué, et l'incident `fichier introuvable` est noté dans le log.
 - **Superposition** : pendant un crossfade, deux sonores jouent en même temps. PipeWire et PulseAudio les mélangent toujours. En `alsa`, il faut un périphérique qui mélange, comme `default` ; un périphérique matériel direct (`hw:…`) ne joue qu'un son à la fois.
