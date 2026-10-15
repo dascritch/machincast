@@ -215,7 +215,7 @@ autoriser_journal() {
 	else
 		# systemd-journal, jamais adm : la lecture du journal sans droits d'administration.
 		executer sudo usermod --append --groups systemd-journal "${UTILISATEUR}"
-		info "effectif à la prochaine connexion de ${UTILISATEUR}"
+		info "effectif après le redémarrage du poste"
 	fi
 }
 

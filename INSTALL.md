@@ -31,7 +31,7 @@ cd ~/machincast
 ./install.sh
 ```
 
-Ensuite : adapter `machincast.toml` ([voir plus bas](#adapter-la-configuration)), puis se déconnecter et se reconnecter pour lire le journal du service.
+Ensuite : adapter `machincast.toml` ([voir plus bas](#adapter-la-configuration)), puis redémarrer le poste pour lire le journal du service.
 
 ## Prérequis
 
@@ -97,7 +97,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 | Configuration | Copie `machincast.exemple.toml` en `machincast.toml` s'il n'existe pas. Un `machincast.toml` existant n'est jamais modifié. | `machincast.toml`. |
 | PostgreSQL | En tant qu'utilisateur `postgres` : crée le rôle PostgreSQL du compte, **sans aucun droit particulier** sur le serveur ; crée les bases de production et de test nommées dans `machincast.toml`, dont le compte devient propriétaire ; crée les trois rôles de groupe de MachinCast. Puis, avec le compte : applique le schéma aux deux bases. | Serveur PostgreSQL. |
 | Rôles | En tant qu'utilisateur `postgres` : autorise le compte à endosser les trois rôles de MachinCast, sans en hériter les droits. | Serveur PostgreSQL. |
-| Journal système | Ajoute le compte au groupe `systemd-journal`, pour lire le journal du service. Effectif à la prochaine connexion. | Groupes du compte. |
+| Journal système | Ajoute le compte au groupe `systemd-journal`, pour lire le journal du service. Effectif après le redémarrage du poste. | Groupes du compte. |
 | Liens | `/opt/machincast` vers le répertoire de MachinCast ; `/usr/local/bin/Machin` vers le wrapper ; l'autocomplétion bash dans `/usr/share/bash-completion/completions/Machin`. | Trois liens symboliques. |
 | Greffons GStreamer et sortie audio | Vérifie que GStreamer sait décoder MP3, M4A, Ogg, FLAC, WAV et AIFF, et créer la sortie audio de `machincast.toml`, sans jouer aucun son. | Rien. |
 
@@ -129,9 +129,10 @@ Machin indexation --config ~/machincast/essai.toml        # lit essai.toml
 
 ## Vérifier l'installation
 
-Après s'être déconnecté puis reconnecté (pour le groupe `systemd-journal`) :
+Redémarrer d'abord le poste, pour que le groupe `systemd-journal` soit pris en compte. Sous Ubuntu Desktop, se déconnecter puis se reconnecter ne suffit pas toujours : les nouveaux terminaux peuvent garder les anciens groupes de la session. Puis :
 
 ```bash
+id -nG                                     # doit citer systemd-journal
 Machin --help                              # aide du wrapper, liste des programmes
 Machin indexation --help                   # aide de l'indexation
 Machin indexation                          # indexation rapide
@@ -160,7 +161,7 @@ COMPTE=programmation
 sudo -u postgres createuser "${COMPTE}"
 # Autorisation à endosser les trois rôles de MachinCast, sans en hériter les droits
 sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machincast_interface TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
-# Lecture du journal du service, effective à sa prochaine connexion
+# Lecture du journal du service, effective après le redémarrage du poste
 sudo usermod --append --groups systemd-journal "${COMPTE}"
 ```
 
@@ -339,7 +340,7 @@ Les noms de bases sont ceux du modèle : reprendre ceux de `base.production` et 
 | `install.sh : … existe et n'est pas un lien symbolique` | Un fichier ou un répertoire occupe déjà la place d'un lien, par exemple une ancienne installation dans `/opt/machincast`. Le déplacer, puis relancer `install.sh`. |
 | `Machin_indexation : configuration invalide : …` (code 2) | Le message nomme le fichier et la clé en cause. `fichier de configuration introuvable` : le `machincast.toml` du répertoire de MachinCast n'existe pas ; le copier depuis `machincast.exemple.toml`, ou relancer `install.sh`. |
 | `Machin_indexation : erreur de base de données : … permission denied to set role …` | Le compte n'est pas autorisé à endosser le rôle : voir [Ajouter un autre compte](#ajouter-un-autre-compte). |
-| `Machin logs` n'affiche que des messages de son propre compte | Le compte n'appartient pas encore au groupe `systemd-journal` : se déconnecter, puis se reconnecter. |
+| `Machin logs` réclame le groupe `adm` ou `systemd-journal`, ou n'affiche que des messages de son propre compte | Le groupe n'est pas encore pris en compte par la session. Si `id -nG "$(id -un)"` cite `systemd-journal` mais pas `id -nG`, l'ajout est fait : redémarrer le poste. Sinon, relancer `install.sh`. |
 
 Les messages d'information s'affichent sur la sortie standard ; les anomalies et les erreurs sur la sortie d'erreur, préfixées du nom du programme.
 
