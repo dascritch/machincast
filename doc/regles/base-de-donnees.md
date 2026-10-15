@@ -11,7 +11,7 @@
 ## Migrations
 
 - Tout changement de schéma passe par une migration **yoyo-migrations** versionnée dans `src/machincast/migrations/` (`NNNN.nom.sql` et son annulation `NNNN.nom.rollback.sql`). Jamais de modification manuelle, jamais de modification d'une migration déjà fusionnée : on en ajoute une nouvelle.
-- Seule exception, avant toute mise en production : les quatre premières migrations ont été fusionnées en `0001.schema-initial` ([PR #70](https://github.com/dascritch/machincast/pull/70)). Une base de développement ou de test créée avant cette fusion se recrée (`dropdb`, `createdb`, puis `yoyo apply`). Après la première mise en production, plus aucune fusion.
+- Seule exception, avant toute mise en production : les migrations ont été fusionnées en `0001.schema-initial`, les quatre premières ([PR #70](https://github.com/dascritch/machincast/pull/70)), puis les trois suivantes, dont la priorité `secours` ([PR #90](https://github.com/dascritch/machincast/pull/90)). Une base de développement ou de test créée avant une fusion se recrée (`dropdb`, `createdb`, puis `yoyo apply`) : yoyo reconnaît une migration à son nom, et ne réapplique pas une `0001.schema-initial` qui a changé. Après la première mise en production, plus aucune fusion.
 - Les valeurs énumérées sont des types `ENUM` PostgreSQL. Ajouter une valeur se fait par `ALTER TYPE … ADD VALUE` dans une nouvelle migration ; une valeur ne peut pas être retirée sans recréer le type.
 - Les métadonnées non critiques d'un sonore vont dans l'objet JSON `metadonnees_musicales`, sans migration ; seules les données utilisées par la diffusion ou les filtres deviennent des colonnes.
 - Texte saisi à la main : `varchar(255)` (constante `LONGUEUR_TEXTE_COURT` de `machincast.base`). Chemin, URL ou message libre : `text`.
@@ -44,4 +44,6 @@ Points sensibles :
 
 - Les lignes `airplay` ne sont jamais supprimées. Elles recopient emplacement, artiste et titre au moment du passage.
 - Les contraintes « exactement un des deux » (stream : URL ou marque-page ; élément d'événement : banque ou sonore) sont posées en base par des `CHECK`.
+- Une contrainte qui porte sur une autre table passe par un déclencheur qui lève une `check_violation`, comme le secours d'un stream, toujours un événement de priorité `secours` ([#16](https://github.com/dascritch/machincast/issues/16)). La requête du déclencheur est imbriquée sous la condition qui la rend nécessaire, pour qu'un rôle qui n'a pas le droit de lire l'autre table puisse continuer à écrire.
+- Une valeur ajoutée par `ALTER TYPE … ADD VALUE` ne peut pas servir dans la transaction qui l'ajoute, donc pas dans la même migration yoyo : les contraintes qui l'utilisent vont dans la migration suivante.
 - Les champs listés dans `sonores.champs_edites` ne sont jamais modifiés par l'indexeur.

@@ -26,6 +26,17 @@ Fonctionnalité: Vérifications de l'installation
 			| audio/mpeg, mpegversion=(int)4             | m4a    | gstreamer1.0-plugins-bad  |
 			| audio/mpeg, mpegversion=(int)4, stream-format=(string)adts | aac | gstreamer1.0-plugins-good |
 
+	# ─── Source des streams (https://github.com/dascritch/machincast/issues/16) ───
+
+	Scénario: Avec les paquets installés, les streams HTTP et HTTPS ont leur source
+		Quand je vérifie la source des streams
+		Alors aucun protocole de stream ne manque de source
+
+	Scénario: Un protocole de stream sans source est signalé avec le paquet à installer
+		Étant donné les sources GStreamer du protocole « http » désactivées
+		Quand je vérifie la source des streams
+		Alors le format stream http manque, avec le paquet « gstreamer1.0-plugins-good »
+
 	# ─── Sortie audio ──────────────────────────────────────────
 
 	Scénario: La sortie audio configurée est créée, sans jouer de son
@@ -46,7 +57,7 @@ Fonctionnalité: Vérifications de l'installation
 	Scénario: La vérification en ligne de commande réussit quand rien ne manque
 		Quand je lance « python -m machincast.installation verifier » avec la configuration de test
 		Alors la commande se termine sans erreur
-		Et sa sortie annonce « décodeurs et sortie audio disponibles »
+		Et sa sortie annonce « décodeurs, source des streams et sortie audio disponibles »
 
 	Scénario: L'application du schéma signale une base injoignable
 		Quand je lance « python -m machincast.installation migrer » avec une configuration dont la socket n'existe pas

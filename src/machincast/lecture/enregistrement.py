@@ -3,12 +3,13 @@
 Le binaire lecture n'écrit que par ce module, et seulement des insertions : ses droits PostgreSQL ne lui
 permettent ni de modifier ni de supprimer une ligne d'airplay ou de log, ni de lire le log (pas de RETURNING).
 
-- Airplay : deux lignes par passage, reliées par passage_id. Chacune recopie l'emplacement, l'artiste et le titre
-  du sonore au moment du passage, et référence le sonore, la banque qui l'a fourni (aucune pour un sonore placé
-  directement dans l'événement), l'événement et l'élément de sa liste. La ligne de fin donne la durée
-  effectivement diffusée et l'indicateur sans_incident.
+- Airplay : deux lignes par passage, reliées par passage_id. Chacune recopie l'emplacement (pour un stream, son
+  adresse directe ou celle de son marque-page), l'artiste et le titre du sonore au moment du passage, et référence
+  le sonore, la banque qui l'a fourni (aucune pour un sonore placé directement dans l'événement), l'événement et
+  l'élément de sa liste. La ligne de fin donne la durée effectivement diffusée et l'indicateur sans_incident.
 - Log : chaque opération, normale (info) ou non (alerte, incident), avec sa nature, un message et ses références.
-  Une coupure nette est une opération normale ; une lecture interrompue par une erreur est un incident.
+  Une coupure nette est une opération normale ; une lecture interrompue par une erreur est un incident, que
+  l'appelant peut nommer plus précisément (flux tombé d'un stream).
 
 Les heures viennent de l'horloge du binaire (machincast.horloge), pour que la simulation et les tests soient
 reproductibles.
@@ -59,7 +60,8 @@ def _debut(connexion: psycopg.Connection[TupleRow], passage: Passage) -> None:
 	connexion.execute(
 		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, banque_id, evenement_id, element_id,"
 		" emplacement, artiste, titre)"
-		" SELECT %s, 'debut', %s, s.id, %s, %s, %s, s.emplacement, s.artiste, s.titre FROM sonores s WHERE s.id = %s",
+		" SELECT %s, 'debut', %s, s.id, %s, %s, %s, COALESCE(s.emplacement, s.url_stream, m.url), s.artiste, s.titre"
+		" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
 		(passage.id, passage.debut, passage.banque, passage.evenement, passage.element, passage.sonore),
 	)
 
@@ -96,12 +98,14 @@ def terminer_passage(
 	instant: datetime,
 	coupe: bool = False,
 	erreur: str | None = None,
+	nature: str = "lecture interrompue",
 ) -> None:
-	"""Ligne de fin d'un passage, avec la durée diffusée ; une coupure ou une erreur est aussi consignée au log."""
+	"""Ligne de fin d'un passage, avec la durée diffusée ; une coupure ou une erreur est aussi consignée au log,
+	l'erreur en incident de la nature donnée."""
 	with connexion.transaction():
 		_fin(connexion, passage, instant, erreur is None)
 		references = {"sonore": passage.sonore, "banque": passage.banque, "evenement": passage.evenement}
 		if erreur is not None:
-			consigner(connexion, "incident", "lecture interrompue", erreur, instant, **references)
+			consigner(connexion, "incident", nature, erreur, instant, **references)
 		elif coupe:
 			consigner(connexion, "info", "coupure nette", "début d'un événement", instant, **references)

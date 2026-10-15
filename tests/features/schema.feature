@@ -140,6 +140,7 @@ Fonctionnalité: Schéma initial de la base de données
 			| nom_interne = 'Nuit', priorite = 'fil_musical', debut = '2026-10-14 22:00', fin = '2026-10-15 06:00', jours_recurrence = '{lundi,mardi,mercredi,jeudi,vendredi,samedi,dimanche}' |
 			| nom_interne = 'Magazine', priorite = 'emission', debut = '2026-10-19 18:00', fin = '2026-10-19 19:00', jours_recurrence = '{lundi,mardi,mercredi,jeudi,vendredi}' |
 			| nom_interne = 'Rediffusion', priorite = 'special', debut = '2026-10-20 14:00'                                   |
+			| nom_interne = 'Secours direct', priorite = 'secours'                                                            |
 
 	Plan du scénario: Un événement incohérent est refusé
 		Quand j'enregistre dans "evenements" : <valeurs>
@@ -154,10 +155,43 @@ Fonctionnalité: Schéma initial de la base de données
 			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 19:00', fin = '2026-10-19 18:00'   |
 			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 18:00', jours_recurrence = '{lundy}' |
 			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 18:00', jours_recurrence = '{1}'    |
+			| nom_interne = 'X', priorite = 'secours', debut = '2026-10-19 18:00'                              |
+			| nom_interne = 'X', priorite = 'secours', debut = '2026-10-19 18:00', fin = '2026-10-19 19:00'    |
+			| nom_interne = 'X', priorite = 'secours', jours_recurrence = '{lundi}'                            |
 
 	Scénario: Les priorités sont ordonnées
-		Alors la priorité "fil_musical" est inférieure à "emission"
+		Alors la priorité "secours" est inférieure à "fil_musical"
+		Et la priorité "fil_musical" est inférieure à "emission"
 		Et la priorité "emission" est inférieure à "special"
+
+	# ─── Secours d'un stream (https://github.com/dascritch/machincast/issues/16) ───
+
+	Plan du scénario: Seul un stream désigne un événement de secours, et seulement de priorité secours
+		Étant donné les éléments de référence en base
+		Et un événement de secours en base
+		Quand j'enregistre dans "sonores" : <valeurs>
+		Alors la base <verdict> l'enregistrement
+
+		Exemples:
+			| valeurs                                                                               | verdict |
+			| type = 'stream', url_stream = 'https://flux.exemple/a', secours_evenement_id = {secours}   | accepte |
+			| type = 'stream', url_stream = 'https://flux.exemple/b'                                     | accepte |
+			| type = 'fichier', emplacement = '/a.flac', secours_evenement_id = {secours}                | refuse  |
+			| type = 'stream', url_stream = 'https://flux.exemple/c', secours_evenement_id = {evenement} | refuse  |
+
+	Scénario: Un événement de secours désigné par un stream garde sa priorité
+		Étant donné les éléments de référence en base
+		Et un événement de secours en base
+		Et un stream secouru par cet événement
+		Quand je passe l'événement de secours en émission
+		Alors la base refuse l'enregistrement
+
+	Scénario: Supprimer l'événement de secours laisse le stream sans secours
+		Étant donné les éléments de référence en base
+		Et un événement de secours en base
+		Et un stream secouru par cet événement
+		Quand je supprime l'événement de secours
+		Alors le stream n'a plus d'événement de secours
 
 	Scénario: Les jours de la semaine sont ordonnés du lundi au dimanche
 		Alors le jour "lundi" vient avant "dimanche"

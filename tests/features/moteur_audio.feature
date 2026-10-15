@@ -48,6 +48,24 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Alors à 58 secondes, son volume est de 1
 		Et à 60 secondes, son volume est de 1
 
+	# ─── Fondus d'un stream (https://github.com/dascritch/machincast/issues/16) ───
+
+	Scénario: Une voie muette reste silencieuse, puis monte en fondu
+		Étant donné une voie muette, pour un stream
+		Alors à 30 secondes, son volume est de 0
+		Quand elle monte à plein volume en 2 secondes
+		Alors à 0 secondes, son volume est de 0
+		Et à 1 secondes, son volume est de 0,5
+		Et à 2 secondes, son volume est de 1
+		Et à 30 secondes, son volume est de 1
+
+	Scénario: Une voie s'éteint en fondu à partir de maintenant
+		Étant donné une voie pour un sonore de 60 secondes, avec 0 secondes de crossfade de début et 0 de fin
+		Quand elle s'éteint en 4 secondes
+		Alors à 2 secondes, son volume est de 0,5
+		Et à 4 secondes, son volume est de 0
+		Et elle s'arrêtera d'elle-même à 4 secondes
+
 	# ─── Lecture ───────────────────────────────────────────────
 
 	Scénario: Un sonore joue sur la sortie de la configuration jusqu'au bout
@@ -80,6 +98,15 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Quand j'attends la fin de ses voies
 		Alors la voie de « sain.flac » est finie
 		Et la voie de « sain.ogg » est finie
+
+	Scénario: Une voie éteinte en fondu s'arrête d'elle-même à la fin du fondu
+		Étant donné un moteur audio sur la sortie de la configuration de test, en temps réel
+		Quand il joue le fichier de test « sain.flac »
+		Et 200 millisecondes passent
+		Et la voie de « sain.flac » s'éteint en 300 millisecondes
+		Et j'attends la fin de ses voies
+		Alors la voie de « sain.flac » est finie
+		Et elle a fini moins de 800 millisecondes après son démarrage
 
 	Scénario: La coupure nette arrête aussitôt tous les sonores en cours
 		Étant donné un moteur audio sur la sortie de la configuration de test, en temps réel

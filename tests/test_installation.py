@@ -11,7 +11,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.audio import Greffon
 from machincast.configuration import SortieAudio
-from machincast.installation import Manque, verifier_decodeurs, verifier_sortie
+from machincast.installation import Manque, verifier_decodeurs, verifier_sortie, verifier_streams
 from tests.base_test import chemin_configuration_test, configuration_test
 
 gi.require_version("Gst", "1.0")
@@ -38,6 +38,33 @@ def elements_desactives(caps: str) -> Iterator[None]:
 	yield
 	for fabrique, rang in rangs:
 		fabrique.set_rank(rang)
+
+
+@given(parsers.parse("les sources GStreamer du protocole « {protocole} » désactivées"))
+def sources_desactivees(protocole: str) -> Iterator[None]:
+	Gst.init(None)
+	fabriques = [
+		f
+		for f in Gst.ElementFactory.list_get_elements(Gst.ELEMENT_FACTORY_TYPE_SRC, Gst.Rank.MARGINAL)
+		if f.get_uri_type() == Gst.URIType.SRC and protocole in (f.get_uri_protocols() or [])
+	]
+	assert fabriques, f"aucune source pour {protocole}"
+	rangs = [(fabrique, fabrique.get_rank()) for fabrique in fabriques]
+	for fabrique in fabriques:
+		fabrique.set_rank(Gst.Rank.NONE)
+	yield
+	for fabrique, rang in rangs:
+		fabrique.set_rank(rang)
+
+
+@when("je vérifie la source des streams", target_fixture="manques")
+def streams() -> list[Manque]:
+	return verifier_streams()
+
+
+@then("aucun protocole de stream ne manque de source")
+def aucune_source_manquante(manques: list[Manque]) -> None:
+	assert manques == [], manques
 
 
 @when("je vérifie les décodeurs GStreamer", target_fixture="manques")

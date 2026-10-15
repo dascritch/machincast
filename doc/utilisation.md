@@ -173,7 +173,7 @@ Si GStreamer n'a pas de décodeur pour un format, la vérification s'arrête et 
 
 ## Diffusion : Machin lecture
 
-`Machin lecture` diffuse la grille sur la sortie audio de la configuration, en continu, jusqu'à ce qu'on l'arrête ([#88](https://github.com/dascritch/machincast/issues/88)). Les streams, le service systemd et le mode simulation sont à venir (voir [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore)).
+`Machin lecture` diffuse la grille sur la sortie audio de la configuration, en continu, jusqu'à ce qu'on l'arrête ([#88](https://github.com/dascritch/machincast/issues/88)), fichiers et streams. Le service systemd et le mode simulation sont à venir (voir [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore)).
 
 ### Lancer et arrêter la diffusion
 
@@ -244,6 +244,19 @@ La sortie audio de l'antenne se règle dans la configuration (`audio.sortie` : `
 - **Avant de jouer un fichier**, sa date de modification et sa taille sont comparées à celles de l'indexation. Un écart est noté dans le log en alerte `fichier modifié`, et le fichier est quand même joué ; la prochaine indexation mettra la base à jour. Un fichier disparu n'est pas joué : l'incident `fichier introuvable` est noté dans le log, et la diffusion passe aussitôt au sonore suivant. Le sonore n'est plus proposé pendant une heure, pour ne pas noter le même incident à chaque tour de liste ; la prochaine indexation le passera à l'état `supprimé`.
 - **Superposition** : pendant un crossfade, deux sonores jouent en même temps. PipeWire et PulseAudio les mélangent toujours. En `alsa`, il faut un périphérique qui mélange, comme `default` ; un périphérique matériel direct (`hw:…`) ne joue qu'un son à la fois.
 
+### Streams
+
+Un sonore de type stream relaie un flux audio HTTP ou HTTPS, un direct extérieur par exemple, à son adresse directe ou à celle d'un marque-page ([#16](https://github.com/dascritch/machincast/issues/16)) :
+
+- **Métadonnées** : l'airplay note l'artiste et le titre du sonore en base, jamais ceux que le flux annonce (tags ICY). L'emplacement noté est l'adresse du flux.
+- **Début d'un événement** de priorité égale ou supérieure : il coupe net le stream, comme un fichier.
+- **Fin de son événement** : le stream s'éteint pendant son crossfade de fin. Le sonore suivant démarre en même temps s'il a un crossfade de début, sinon à la fin du fondu ; sans crossfade de fin, le stream s'arrête net.
+- **Flux tombé** : un flux qui ne répond pas, ou qui s'arrête avant la fin de son événement, même proprement, est tombé. Son passage se termine en incident, et le log note l'incident `flux tombé`, avec l'adresse du flux et l'erreur. L'**événement de secours** du stream joue sa liste en boucle à sa place. Un stream sans événement de secours laisse jouer l'événement en dessous, le plus souvent le fil musical.
+- **Reconnexion** : tant que son événement est à l'antenne, `Machin lecture` retente la connexion toutes les 5 secondes, sans rien faire entendre. Dès que le flux revient, le stream reprend l'antenne : il monte pendant son crossfade de début, et le sonore de remplacement s'éteint pendant ce temps ; sans crossfade de début, le remplacement s'arrête net. La reprise est notée dans le log par l'incident `reprise du flux`, avec l'adresse du flux et la durée de la panne : l'écran des incidents montrera ainsi chaque panne et sa fin.
+- **Fin de l'événement pendant la panne** : la reconnexion est abandonnée (`reconnexion abandonnée` dans le log), et la diffusion continue normalement.
+
+Un **événement de secours** est un événement de priorité `secours` : il n'a ni début, ni fin, ni jours de récurrence, et ne passe jamais à l'antenne par la grille, seulement à la place d'un stream tombé. Chaque stream désigne le sien, ou aucun (`secours_evenement_id` du sonore). Tant que l'interface ne permet pas de les saisir ([#30](https://github.com/dascritch/machincast/issues/30), [#32](https://github.com/dascritch/machincast/issues/32)), ils s'enregistrent directement en base.
+
 ### Historique de diffusion et log
 
 Chaque passage à l'antenne est noté dans l'historique de diffusion, l'**airplay** ([#17](https://github.com/dascritch/machincast/issues/17)) :
@@ -263,7 +276,10 @@ Le **log** note les opérations du binaire lecture, avec leur heure, leur niveau
 | `silence` | alerte | Rien à diffuser. |
 | `fichier modifié` | alerte | Le fichier a changé depuis l'indexation ; il est quand même joué. |
 | `fichier introuvable` | incident | Le fichier a disparu ; il n'est pas joué. |
-| `lecture interrompue` | incident | La lecture s'est arrêtée sur une erreur, dont le message est noté. |
+| `lecture interrompue` | incident | La lecture d'un fichier s'est arrêtée sur une erreur, dont le message est noté. |
+| `flux tombé` | incident | Le flux d'un stream ne répond pas, ou s'est arrêté avant la fin de son événement ; le message donne l'adresse et l'erreur. |
+| `reprise du flux` | incident | Le flux d'un stream tombé est revenu, et le stream reprend l'antenne ; le message donne l'adresse et la durée de la panne. |
+| `reconnexion abandonnée` | info | L'événement d'un stream tombé n'est plus à l'antenne : plus de tentative de reconnexion. |
 
 L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture : il ne peut qu'y ajouter des lignes.
 
@@ -311,7 +327,7 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | Manque | Ticket |
 | --- | --- |
 | Document d'audit des anomalies de l'indexation, en CSV et HTML | [#11](https://github.com/dascritch/machincast/issues/11) |
-| Diffusion des streams | [#16](https://github.com/dascritch/machincast/issues/16) |
+| Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
 | Désactivations automatiques des sonores (maximum de lectures, fin de période) | [#18](https://github.com/dascritch/machincast/issues/18) |
 | Masquage des métadonnées et sorties de l'airplay (CSV, .pls, HTML) | [#19](https://github.com/dascritch/machincast/issues/19) |
 | État de la diffusion pour l'interface | [#20](https://github.com/dascritch/machincast/issues/20) |

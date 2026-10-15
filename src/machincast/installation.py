@@ -86,7 +86,7 @@ FORMATS: dict[str, FormatSonore] = {
 @dataclass(frozen=True)
 class Manque:
 	element: str
-	"""Format sonore ou sortie audio qui ne peut pas fonctionner."""
+	"""Format sonore, protocole de stream ou sortie audio qui ne peut pas fonctionner."""
 	paquet: str
 
 
@@ -110,6 +110,23 @@ def verifier_decodeurs() -> list[Manque]:
 		if absente is not None:
 			manques.append(Manque(nom, absente.paquet or format_sonore.paquet))
 	return manques
+
+
+PROTOCOLES_STREAMS = {"http": "gstreamer1.0-plugins-good", "https": "gstreamer1.0-plugins-good"}
+"""Protocoles des streams (https://github.com/dascritch/machincast/issues/16), et le paquet de leur source
+(souphttpsrc)."""
+
+
+def verifier_streams() -> list[Manque]:
+	"""Protocoles de stream qu'aucune source GStreamer installée ne sait lire, avec le paquet à installer."""
+	Gst.init(None)
+	sources = [
+		f
+		for f in Gst.ElementFactory.list_get_elements(Gst.ELEMENT_FACTORY_TYPE_SRC, Gst.Rank.MARGINAL)
+		if f.get_uri_type() == Gst.URIType.SRC
+	]
+	lus = {protocole for f in sources for protocole in (f.get_uri_protocols() or [])}
+	return [Manque(f"stream {p}", paquet) for p, paquet in PROTOCOLES_STREAMS.items() if p not in lus]
 
 
 def verifier_sortie(configuration: Configuration, greffons: dict[SortieAudio, Greffon] = GREFFONS) -> list[Manque]:
@@ -148,12 +165,12 @@ def _migrer(configuration: Configuration) -> int:
 
 
 def _verifier(configuration: Configuration) -> int:
-	manques = verifier_decodeurs() + verifier_sortie(configuration)
+	manques = verifier_decodeurs() + verifier_streams() + verifier_sortie(configuration)
 	for manque in manques:
 		journal.error(f"{manque.element} : greffon GStreamer absent, installer {manque.paquet}")
 	if manques:
 		return CODE_ECHEC
-	journal.info("décodeurs et sortie audio disponibles")
+	journal.info("décodeurs, source des streams et sortie audio disponibles")
 	return 0
 
 

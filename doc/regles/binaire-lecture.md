@@ -48,6 +48,14 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 - Un fichier introuvable est écarté par `Ordonnanceur.exclure` pendant `REESSAI_FICHIER_INTROUVABLE` ; `prochain` et `choisir_sonore` reçoivent ces sonores écartés et les traitent comme non jouables.
 - Les signaux ne font que lever un `threading.Event` (`installer_arret`) : l'arrêt se fait entre deux pas, jamais au milieu d'une écriture.
 
+## Streams
+
+- Spec [§ 4.7](../spec.md#47-streams), [#16](https://github.com/dascritch/machincast/issues/16). Un stream n'a pas de fin : une voie de stream finie ou en erreur avant son extinction (`Lecture.eteinte`) est un flux tombé, jamais une fin normale.
+- `Ordonnanceur.suspendre` remplace l'occurrence du stream tombé par son événement de secours, ou par l'événement inférieur ; toute autre occurrence active lève la suspension. `Decision.eteindre` demande d'éteindre un stream à la fin de son événement.
+- La reconnexion passe par une voie muette (`MoteurAudio.jouer(..., muette=True)`), retentée tous les `Diffusion.delai_reconnexion` ; la source HTTP ne retente rien d'elle-même (`retries` à 0). Le flux est revenu dès que la position de la voie avance.
+- Les événements de secours ne sont jamais dans la grille : `lire_grille` les écarte, `lire_evenement` les lit.
+- Les scénarios des streams utilisent un serveur HTTP local ([`tests/flux.py`](../../tests/flux.py)), qui envoie le flux au rythme du temps réel ; aucun accès au réseau.
+
 ## Écritures autorisées
 
 Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures sont garanties par les droits PostgreSQL ([spec.md § 3.2](../spec.md#32-rôles-et-droits)). L'airplay et le log ne s'écrivent que par `machincast.lecture.enregistrement` (`commencer_passage`, `terminer_passage`, `consigner`) : un scénario d'`enregistrement.feature` refuse tout autre `INSERT INTO log` dans le binaire lecture ([#17](https://github.com/dascritch/machincast/issues/17)).

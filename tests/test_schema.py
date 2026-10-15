@@ -94,6 +94,50 @@ def deuxieme_sonore(contexte: Contexte) -> None:
 	)
 
 
+@given("un événement de secours en base")
+def evenement_de_secours(contexte: Contexte) -> None:
+	contexte.references["secours"] = inserer(
+		contexte, "evenements", {"nom_interne": "'Secours du direct'", "priorite": "'secours'"}
+	)
+
+
+@given("un stream secouru par cet événement")
+def stream_secouru(contexte: Contexte) -> None:
+	contexte.references["stream"] = inserer(
+		contexte,
+		"sonores",
+		{
+			"type": "'stream'",
+			"url_stream": "'https://flux.exemple/direct'",
+			"secours_evenement_id": str(contexte.references["secours"]),
+		},
+	)
+
+
+@when("je passe l'événement de secours en émission")
+def secours_en_emission(contexte: Contexte) -> None:
+	try:
+		contexte.connexion.execute(
+			"UPDATE evenements SET priorite = 'emission', debut = '2026-10-19 18:00' WHERE id = %s",
+			(contexte.references["secours"],),
+		)
+	except psycopg.Error as erreur:
+		contexte.erreur = erreur
+
+
+@when("je supprime l'événement de secours")
+def supprimer_secours(contexte: Contexte) -> None:
+	contexte.connexion.execute("DELETE FROM evenements WHERE id = %s", (contexte.references["secours"],))
+
+
+@then("le stream n'a plus d'événement de secours")
+def stream_sans_secours(contexte: Contexte) -> None:
+	ligne = contexte.connexion.execute(
+		"SELECT secours_evenement_id FROM sonores WHERE id = %s", (contexte.references["stream"],)
+	).fetchone()
+	assert ligne == (None,)
+
+
 @given("une deuxième banque en base")
 def deuxieme_banque(contexte: Contexte) -> None:
 	contexte.references["banque2"] = inserer(

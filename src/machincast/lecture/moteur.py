@@ -12,6 +12,10 @@ comme « default » avec dmix).
   Sinon, le sortant joue jusqu'au bout à plein volume (supprimer_fondu_de_sortie), et l'entrant démarre ensuite,
   à plein volume (fondu_d_entree).
 - Coupure nette : toutes les voies s'arrêtent aussitôt (début d'un événement, spec § 4.2).
+- Stream (https://github.com/dascritch/machincast/issues/16) : la voie lit une adresse HTTP, sans durée connue.
+  Elle peut démarrer muette, le temps de vérifier que le flux arrive, puis monter (fondu) ; elle s'éteint en fondu
+  et s'arrête d'elle-même à la fin du fondu (eteindre). La source ne retente pas seule une connexion perdue : la
+  diffusion s'en charge.
 
 Le volume suit une enveloppe posée à l'avance sur l'élément volume (GstController), d'après la durée connue du
 sonore. Le moteur ne lit l'heure que par la position des voies : il ne décide de rien, l'ordonnanceur
@@ -35,6 +39,9 @@ EtatVoie = Literal["prête", "en cours", "finie", "coupée", "en erreur"]
 
 # GstPlayFlags : audio seulement, sans vidéo ni sous-titres.
 LECTURE_AUDIO_SEULE = 0x00000002
+
+DELAI_CONNEXION_SECONDES = 10
+"""Délai de connexion et de réponse d'un flux HTTP, au-delà duquel la voie passe en erreur."""
 
 
 def superposition(crossfade_fin_sortant: timedelta, crossfade_debut_entrant: timedelta) -> bool:
@@ -77,19 +84,23 @@ class Voie:
 
 	def __init__(
 		self,
-		chemin: Path,
+		chemin: Path | str,
 		audio: Audio,
 		duree: timedelta | None,
 		crossfade_debut: timedelta = timedelta(0),
 		crossfade_fin: timedelta = timedelta(0),
 		temps_reel: bool = True,
+		muette: bool = False,
 	) -> None:
+		"""chemin : un fichier, ou l'adresse d'un stream. Muette, la voie joue à volume nul jusqu'à un fondu."""
 		Gst.init(None)
 		self.chemin = chemin
 		self.etat: EtatVoie = "prête"
 		self.erreur: str | None = None
 		self.position_finale: timedelta | None = None
 		"""Position atteinte quand la voie a été coupée."""
+		self.arret_prevu: timedelta | None = None
+		"""Position où la voie s'arrête d'elle-même, à la fin d'un fondu de sortie (eteindre)."""
 
 		lecteur = Gst.ElementFactory.make("playbin", None)
 		volume = Gst.ElementFactory.make("volume", None)
@@ -111,11 +122,14 @@ class Voie:
 
 		lecteur.set_property("flags", LECTURE_AUDIO_SEULE)
 		lecteur.set_property("audio-sink", branche)
-		lecteur.set_property("uri", Gst.filename_to_uri(str(chemin.absolute())))
+		adresse = chemin if isinstance(chemin, str) else Gst.filename_to_uri(str(chemin.absolute()))
+		lecteur.set_property("uri", adresse)
+		lecteur.connect("source-setup", _regler_source)
 
 		source = GstController.InterpolationControlSource()
 		source.set_property("mode", GstController.InterpolationMode.LINEAR)
-		for instant, valeur in enveloppe(duree, crossfade_debut, crossfade_fin):
+		points = [(timedelta(0), 0.0)] if muette else enveloppe(duree, crossfade_debut, crossfade_fin)
+		for instant, valeur in points:
 			source.set(_nanosecondes(instant), valeur)
 		volume.add_control_binding(GstController.DirectControlBinding.new_absolute(volume, "volume", source))
 
@@ -130,6 +144,24 @@ class Voie:
 		self._source.unset_all()
 		for instant, valeur in enveloppe(self._duree, self._crossfade_debut, timedelta(0)):
 			self._source.set(_nanosecondes(instant), valeur)
+
+	def fondu(self, cible: float, duree: timedelta) -> None:
+		"""Le volume va de sa valeur actuelle à la cible pendant la durée, à partir de la position actuelle."""
+		position = self.position()
+		actuel = self.volume_a(position)
+		self._source.unset_all()
+		if duree > timedelta(0):
+			self._source.set(_nanosecondes(position), actuel)
+		self._source.set(_nanosecondes(position + duree), cible)
+
+	def eteindre(self, duree: timedelta) -> None:
+		"""Fondu de sortie à partir de maintenant ; la voie s'arrête à la fin du fondu, aussitôt sans durée."""
+		if duree <= timedelta(0):
+			self.arret_prevu = self.position()
+			self.traiter()
+			return
+		self.fondu(0.0, duree)
+		self.arret_prevu = self.position() + duree
 
 	def volume_a(self, instant: timedelta) -> float:
 		"""Volume prévu à cet instant du sonore, entre 0 et 1."""
@@ -153,7 +185,12 @@ class Voie:
 		self._lecteur.set_state(Gst.State.NULL)
 
 	def traiter(self) -> None:
-		"""Lit les messages du pipeline : fin du sonore, ou erreur de lecture."""
+		"""Lit les messages du pipeline : fin du sonore, ou erreur de lecture ; arrête la voie à la fin d'un fondu
+		de sortie."""
+		if self.etat == "en cours" and self.arret_prevu is not None and self.position() >= self.arret_prevu:
+			self.etat = "finie"
+			self._lecteur.set_state(Gst.State.NULL)
+			return
 		bus = self._lecteur.get_bus()
 		while self.etat == "en cours" and bus is not None:
 			message = bus.pop_filtered(Gst.MessageType.EOS | Gst.MessageType.ERROR)
@@ -170,6 +207,14 @@ class Voie:
 		self._lecteur.set_state(Gst.State.NULL)
 
 
+def _regler_source(lecteur: Gst.Element, source: Gst.Element) -> None:
+	"""Source HTTP d'un stream : pas de nouvelle tentative de la source elle-même, et un délai de réponse borné."""
+	if hasattr(source.props, "retries"):
+		source.set_property("retries", 0)
+	if hasattr(source.props, "timeout"):
+		source.set_property("timeout", DELAI_CONNEXION_SECONDES)
+
+
 class MoteurAudio:
 	"""Joue les sonores sur la sortie de la configuration, une voie par sonore."""
 
@@ -180,13 +225,14 @@ class MoteurAudio:
 
 	def jouer(
 		self,
-		chemin: Path,
+		chemin: Path | str,
 		duree: timedelta | None,
 		crossfade_debut: timedelta = timedelta(0),
 		crossfade_fin: timedelta = timedelta(0),
+		muette: bool = False,
 	) -> Voie:
 		"""Démarre le sonore dans une nouvelle voie, en plus de celles en cours (crossfade)."""
-		voie = Voie(chemin, self.audio, duree, crossfade_debut, crossfade_fin, self.temps_reel)
+		voie = Voie(chemin, self.audio, duree, crossfade_debut, crossfade_fin, self.temps_reel, muette)
 		voie.demarrer()
 		self._voies.append(voie)
 		return voie

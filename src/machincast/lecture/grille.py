@@ -15,6 +15,9 @@ Dates d'un événement (spec § 3.1) : debut et fin sont ceux de sa première oc
 - Sans fin, une occurrence couvre l'instant à partir de son début, jusqu'à ce que sa liste soit épuisée : le
   binaire la déclare alors terminée (Occurrence.cle).
 
+Un événement de secours (https://github.com/dascritch/machincast/issues/16) n'est jamais actif par la grille :
+sans date ni jour, sa liste ne joue qu'à la place d'un stream tombé (machincast.lecture.deroule).
+
 Le poste travaille en heure locale, celle de Paris : la grille calcule en heure murale, sans fuseau à manier.
 Au changement d'heure, un événement garde donc son heure (spec § 4.1 : aucune règle particulière).
 """
@@ -31,6 +34,8 @@ from psycopg.rows import TupleRow
 class Priorite(StrEnum):
 	"""Valeurs du type priorite_evenement, de la plus basse à la plus haute."""
 
+	SECOURS = "secours"
+	"""Hors grille : remplace un stream tombé, jamais actif à une heure donnée."""
 	FIL_MUSICAL = "fil_musical"
 	EMISSION = "emission"
 	SPECIAL = "special"
@@ -115,18 +120,36 @@ def evenement_actif(
 
 	terminees contient les clés (Occurrence.cle) des occurrences terminées plus tôt, liste épuisée.
 	"""
-	candidates = [o for e in evenements if (o := occurrence(e, instant)) is not None and o.cle not in terminees]
+	candidates = [
+		o
+		for e in evenements
+		if e.priorite is not Priorite.SECOURS and (o := occurrence(e, instant)) is not None and o.cle not in terminees
+	]
 	if not candidates:
 		return None
 	return max(candidates, key=lambda o: (RANGS[o.evenement.priorite], o.evenement.modifie_le, o.evenement.id))
 
 
+COLONNES = "id, nom_interne, priorite::text, debut, fin, jours_recurrence::text[], modifie_le"
+
+
 def lire_grille(connexion: psycopg.Connection[TupleRow]) -> list[Evenement]:
-	"""Événements enregistrés en base ; la connexion a endossé le rôle de la lecture (machincast.base.connecter)."""
+	"""Événements de la grille, sans les événements de secours ; la connexion a endossé le rôle de la lecture
+	(machincast.base.connecter)."""
+	lignes = connexion.execute(f"SELECT {COLONNES} FROM evenements WHERE priorite <> 'secours' ORDER BY id").fetchall()
+	return _evenements(lignes)
+
+
+def lire_evenement(connexion: psycopg.Connection[TupleRow], identifiant: int) -> Evenement | None:
+	"""Un événement, quelle que soit sa priorité : par exemple l'événement de secours d'un stream."""
 	lignes = connexion.execute(
-		"SELECT id, nom_interne, priorite::text, debut, fin, jours_recurrence::text[], modifie_le"
-		" FROM evenements ORDER BY id"
+		f"SELECT {COLONNES} FROM evenements WHERE id = %s",
+		(identifiant,),
 	).fetchall()
+	return next(iter(_evenements(lignes)), None)
+
+
+def _evenements(lignes: list[TupleRow]) -> list[Evenement]:
 	return [
 		Evenement(
 			id=int(str(identifiant)),
