@@ -7,6 +7,9 @@ import pytest
 
 from tests.base_test import connexion_test, purger_base, reinitialiser_base
 
+# Étapes partagées par plusieurs fonctionnalités : pytest-bdd les trouve comme celles de conftest.py.
+pytest_plugins = ["tests.etapes_indexation"]
+
 _schema_recree = False
 
 
