@@ -99,6 +99,7 @@ Pas de champ format ni fréquence d'échantillonnage : l'échantillonnage peut v
 | `id`, `nom_interne` | Identification. |
 | `mode` | `sequentiel` ou `aleatoire`. |
 | `masquer_metadonnees` | Masquage au niveau de la banque. Vide = hérite. |
+| `ne_pas_repeter` | La banque ne peut pas passer deux fois de suite, même d'un événement à l'autre (voir [§ 4.4](#44-choix-dun-sonore-dans-une-banque), [#63](https://github.com/dascritch/machincast/issues/63)). Faux par défaut. |
 | `modifie_le` | Horodatage de la dernière modification. |
 
 #### `banques_repertoires`
@@ -216,7 +217,7 @@ L'indexation ne supprime rien : un fichier disparu rend son sonore inactif. Quan
 
 ### 4.1 Choix de l'événement actif
 
-1. À tout instant, l'événement actif est celui de plus haute priorité dont la plage couvre l'instant.
+1. À tout instant, l'événement actif est celui de plus haute priorité dont la plage couvre l'instant, sauf s'il s'est terminé plus tôt pour cette occurrence (liste épuisée d'un événement sans fin, ou banque « ne pas répéter » sans autre élément jouable, voir [§ 4.4](#44-choix-dun-sonore-dans-une-banque)).
 2. Deux événements de même priorité ne doivent pas se chevaucher : l'interface l'interdit à la saisie. Si le cas se présente quand même, le binaire joue le **dernier modifié en base**.
 3. Plusieurs fils musicaux peuvent coexister selon l'heure (nuit, jour), régis par leur récurrence.
 4. Le changement d'heure ne fait l'objet d'aucune règle particulière : la diffusion est toujours en fil musical à cette heure de la nuit.
@@ -239,6 +240,9 @@ L'indexation ne supprime rien : un fichier disparu rend son sonore inactif. Quan
 - **Séquentiel** : le sonore qui suit, dans l'ordre de `position`, le dernier joué via cette banque.
 - **Aléatoire contrôlé** : un sonore joué via cette banque n'est plus rejouable tant que tous les autres sonores de la banque n'ont pas été joués. Chaque banque a son propre cycle.
 - Seuls les sonores **jouables** sont candidats (voir ci-dessous). Si aucun ne l'est, on passe à l'élément suivant de l'événement, comme si la banque était vide.
+- **Ne pas répéter** ([#63](https://github.com/dascritch/machincast/issues/63)) : si le dernier passage de l'`airplay` a été joué via une banque marquée `ne_pas_repeter`, l'élément qui rappelle cette banque est sauté, et on passe à l'élément suivant, comme si la banque était vide. Un événement à l'autre, la règle s'applique de la même façon : la banque en fin d'un événement puis au début du suivant ne passe pas deux fois. Seuls comptent les passages joués via la banque, comme pour le cycle aléatoire : un sonore de la banque placé directement comme élément d'un événement ne compte pas.
+	- Si, une fois la banque sautée, plus rien n'est jouable dans la liste de l'événement, cet événement se termine pour cette occurrence : l'événement de priorité inférieure dont la plage couvre l'instant prend le relais. Pour un fil musical, silence et alerte, comme quand rien n'est jouable.
+	- Log : `info` pour chaque élément sauté, `alerte` pour un événement terminé plus tôt.
 
 ### 4.5 Sonore jouable
 
@@ -390,6 +394,7 @@ Python, PySide6 (Qt 6.10, version de Kubuntu 26.04 LTS).
 - Édition du nom interne.
 - Masquage de l'artiste et du titre.
 - Mode séquentiel ou aléatoire.
+- Case « ne pas répéter » : la banque ne passe jamais deux fois de suite ([#63](https://github.com/dascritch/machincast/issues/63)).
 - Liste des répertoires indexés : ajout et retrait.
 - Liste des sonores liés, réordonnable par glisser-déposer en mode séquentiel. Ajout de sonores, y compris hors des répertoires de la banque.
 - Retrait d'un sonore issu d'un répertoire de la banque : l'interface prévient qu'il sera réintégré à la prochaine indexation, et propose un lien ouvrant le navigateur de fichiers dans son répertoire. La suppression du fichier se fait hors de l'outil, parfois depuis un autre poste quand l'utilisateur n'a pas le droit d'écriture sur l'emplacement.
@@ -402,6 +407,7 @@ Python, PySide6 (Qt 6.10, version de Kubuntu 26.04 LTS).
 - Dates et heures de début et de fin, avec les règles du [§ 3.1](#evenements).
 - Récurrence : jours de la semaine à cocher.
 - Liste de lecture de banques et/ou de sonores, réordonnable par glisser-déposer, doublons autorisés.
+- Avertissement quand une banque « ne pas répéter » occupe deux lignes contiguës, y compris la dernière et la première d'un événement qui boucle : le deuxième appel sera ignoré à la diffusion ([§ 4.4](#44-choix-dun-sonore-dans-une-banque), [#63](https://github.com/dascritch/machincast/issues/63)). L'avertissement n'empêche pas d'enregistrer.
 - Refus d'un chevauchement avec un événement de même priorité.
 
 ### 8.6 Écran des incidents
@@ -488,4 +494,5 @@ Aucun point en attente.
 - **Durée diffusée** : deux lignes d'airplay par passage, une au début et une à la fin, reliées par `passage_id` ; la ligne de fin porte la durée effectivement diffusée ([#48](https://github.com/dascritch/machincast/issues/48), voir [§ 3.1](#airplay)).
 - **Affichage public masqué** : nom public de l'événement, sinon texte public par défaut de la configuration ([#49](https://github.com/dascritch/machincast/issues/49), voir [§ 4.8](#48-métadonnées-publiques-et-masquage)).
 - **Droits sur les marques-pages** : modifiables par l'interface seule ; le binaire lecture les lit, l'indexeur n'y accède pas ([#50](https://github.com/dascritch/machincast/issues/50), voir [§ 3.2](#32-rôles-et-droits)).
+- **Banque « ne pas répéter »** : un élément qui rappellerait une banque marquée « ne pas répéter » juste après elle est sauté, même d'un événement à l'autre ; s'il ne reste rien d'autre de jouable, l'événement se termine et l'événement inférieur prend le relais ([#63](https://github.com/dascritch/machincast/issues/63), voir [§ 4.4](#44-choix-dun-sonore-dans-une-banque)).
 - **Environnement virtuel** : isolé des paquets système, toutes les dépendances Python passent par pip ([#51](https://github.com/dascritch/machincast/issues/51), voir [§ 10](#10-installation-et-déploiement)).
