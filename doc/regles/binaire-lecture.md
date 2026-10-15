@@ -34,6 +34,13 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 - Chaque passage doit donc noter dans l'airplay son événement (`evenement_id`) et son élément (`element_id`), en plus de sa banque.
 - Une seule alerte `silence` par silence, pas une par seconde.
 
+## Moteur audio
+
+- `machincast.lecture.moteur.MoteurAudio` ([#15](https://github.com/dascritch/machincast/issues/15)) : une voie (pipeline `playbin`) par sonore, sur l'élément de la sortie configurée (`machincast.audio.creer_sortie`). Le volume suit une enveloppe posée d'avance (GstController) d'après la durée en base ; le sonore suivant démarre à `enchainement(duree, crossfade_fin)`.
+- Le moteur ne décide de rien : l'ordonnanceur lui dit quoi jouer et quand couper.
+- `machincast.lecture.fichiers.verifier_avant_lecture` avant chaque fichier : écart consigné, fichier introuvable non joué.
+- Les tests utilisent la sortie factice : en temps réel (`sync`) quand le temps compte, au plus vite sinon.
+
 ## Écritures autorisées
 
 Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures sont garanties par les droits PostgreSQL ([spec.md § 3.2](../spec.md#32-rôles-et-droits)) :

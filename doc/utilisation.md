@@ -219,7 +219,13 @@ La liste d'un événement se joue ainsi ([#14](https://github.com/dascritch/mach
 
 ### Sortie audio
 
-La sortie audio de l'antenne est déjà réglée dans la configuration (`audio.sortie` : `pipewire`, `pulseaudio`, `alsa`, ou `factice` pour un essai sans son), et `install.sh` vérifie qu'elle peut être créée.
+La sortie audio de l'antenne se règle dans la configuration (`audio.sortie` : `pipewire`, `pulseaudio`, `alsa`, ou `factice` pour un essai sans son), et `install.sh` vérifie qu'elle peut être créée. Le moteur audio qui jouera les sonores est prêt ([#15](https://github.com/dascritch/machincast/issues/15)) :
+
+- **Crossfade de début** d'un sonore : il monte progressivement, de silencieux à plein volume, pendant ce temps.
+- **Crossfade de fin** d'un sonore : le sonore suivant démarre autant avant la fin, et celui-ci s'éteint progressivement pendant ce temps. Les deux se superposent.
+- **Coupure nette** : au début d'un événement, le sonore en cours s'arrête aussitôt, sans fondu.
+- **Avant de jouer un fichier**, sa date de modification et sa taille sont comparées à celles de l'indexation. Un écart est noté dans le log en alerte `fichier modifié`, et le fichier est quand même joué ; la prochaine indexation mettra la base à jour. Un fichier disparu n'est pas joué, et l'incident `fichier introuvable` est noté dans le log.
+- **Superposition** : pendant un crossfade, deux sonores jouent en même temps. PipeWire et PulseAudio les mélangent toujours. En `alsa`, il faut un périphérique qui mélange, comme `default` ; un périphérique matériel direct (`hw:…`) ne joue qu'un son à la fois.
 
 ## Interface graphique : Machin interface
 

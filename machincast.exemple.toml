@@ -18,7 +18,8 @@ test = "machincast_test"
 [audio]
 # Sortie audio de l'antenne : "alsa", "pulseaudio", "pipewire", ou "factice" pour ne jouer aucun son (essais).
 # Chacune demande son greffon GStreamer : gstreamer1.0-alsa, gstreamer1.0-pulseaudio ou gstreamer1.0-pipewire.
-# Avec "alsa", le VU-mètre de l'interface n'est pas disponible.
+# Avec "alsa", le VU-mètre de l'interface n'est pas disponible, et le périphérique doit mélanger deux sons
+# (crossfade) : "default" convient, un périphérique matériel direct ("hw:…") non.
 sortie = "pipewire"
 # Périphérique de l'antenne. Facultatif : sans cette clé, le périphérique par défaut de la sortie est utilisé.
 # peripherique = "alsa_output.pci-0000_00_1f.3.analog-stereo"
