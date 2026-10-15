@@ -16,6 +16,20 @@
 3. Écrire d'abord le scénario BDD (voir [tests.md](tests.md)), le voir échouer, puis implémenter (TDD).
 4. Une fonctionnalité = un test associé + un commit lié au ticket.
 5. Mettre à jour la documentation Markdown dans `/doc` dans le même commit.
+6. Vérifier la [definition of done](#definition-of-done) avant de demander la relecture.
+
+## Definition of done
+
+Un ticket n'est terminé que si :
+
+- ses scénarios BDD ont été écrits d'abord, vus en échec, puis réussis ;
+- `ruff`, `mypy --strict`, `shellcheck`, `pytest` et `bats` passent ;
+- ses fonctions et ses actions externes sont documentées pour les humains ([#71](https://github.com/dascritch/machincast/issues/71)) : tout ce qu'un utilisateur ou un administrateur voit ou déclenche, c'est-à-dire les commandes, options et codes de retour, les clés de configuration, les fichiers produits, les messages affichés et les effets sur le système (base, journal, sortie audio, fichiers sonores) ;
+- la spécification et les règles de développement sont à jour.
+
+La documentation pour les humains s'adresse aux utilisateurs et aux administrateurs, pas aux développeurs. Elle va dans `README.md`, [`INSTALL.md`](../../INSTALL.md) ou un guide sous `doc/`, distinct de la spécification et de ces règles, et elle est mise à jour dans le commit du ticket. Les fonctions livrées avant cette règle sont documentées par [#74](https://github.com/dascritch/machincast/issues/74).
+
+Le modèle de description de PR ([`.github/pull_request_template.md`](../../.github/pull_request_template.md)) reprend ces points en cases à cocher, dont « documentation humaine à jour », cochées avant la demande de relecture. Un scénario de [`documentation.feature`](../../tests/features/documentation.feature) vérifie que cette section, le renvoi de `CLAUDE.md` et la case du modèle de PR existent.
 
 ## Références aux tickets et aux PR
 

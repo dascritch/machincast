@@ -30,6 +30,7 @@ Le tableau des droits par binaire est dans [spec.md § 3.2](../spec.md#32-rôles
 Règles :
 
 - Un binaire ouvre toujours sa connexion avec `machincast.base.connecter(socket, base, Role.…)`, jamais avec `psycopg.connect` directement : sans `SET ROLE`, l'utilisateur n'a aucun droit.
+- Toute connexion se ferme explicitement, par un `with`, y compris celle d'un backend yoyo : laissée au ramasse-miettes, elle peut épuiser les connexions du serveur ([#78](https://github.com/dascritch/machincast/issues/78)). Deux scénarios de `schema.feature` le vérifient pour les migrations, ramasse-miettes suspendu.
 - Tout changement de droits passe par une nouvelle migration et par la matrice de [`tests/features/roles.feature`](../../tests/features/roles.feature), qui vérifie chaque opération de chaque rôle sur chaque table.
 - Une nouvelle table n'est accessible à aucun rôle tant qu'une migration ne lui accorde pas de droits.
 

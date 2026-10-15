@@ -12,7 +12,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from machincast.audio import Greffon
 from machincast.configuration import SortieAudio
 from machincast.installation import Manque, verifier_decodeurs, verifier_sortie
-from tests.base_test import CONFIGURATION_TEST, configuration_test
+from tests.base_test import chemin_configuration_test, configuration_test
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
@@ -92,7 +92,7 @@ def lancer(action: str, configuration: Path) -> subprocess.CompletedProcess[str]
 	target_fixture="commande",
 )
 def lancer_avec_configuration_de_test(action: str) -> subprocess.CompletedProcess[str]:
-	return lancer(action, CONFIGURATION_TEST)
+	return lancer(action, chemin_configuration_test())
 
 
 @when(
@@ -104,7 +104,7 @@ def lancer_avec_configuration_de_test(action: str) -> subprocess.CompletedProces
 def lancer_sans_base(tmp_path: Path, action: str) -> subprocess.CompletedProcess[str]:
 	# Une configuration jetable, dans le répertoire temporaire du scénario, qui ne peut joindre aucune base.
 	configuration = tmp_path / "sans-base.toml"
-	texte = CONFIGURATION_TEST.read_text(encoding="utf-8")
+	texte = chemin_configuration_test().read_text(encoding="utf-8")
 	configuration.write_text(
 		texte.replace('socket = "/var/run/postgresql"', f'socket = "{tmp_path / "aucune-socket"}"'), encoding="utf-8"
 	)

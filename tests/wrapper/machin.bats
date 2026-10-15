@@ -142,6 +142,17 @@ setup() {
 	done
 }
 
+@test "Machin --help indique le machincast.toml du projet, lu par défaut, même appelé par un lien" {
+	# https://github.com/dascritch/machincast/issues/76
+	local reel lien
+	reel="$(readlink -f "${PROJET}")"
+	lien="${BATS_TEST_TMPDIR}/lien-Machin"
+	ln -s "${MACHIN}" "${lien}"
+	run "${lien}" --help
+	[ "${status}" -eq 0 ]
+	[[ "${output}" == *"${reel}/machincast.toml"* ]]
+}
+
 @test "Machin sans argument affiche l'aide minimale sur la sortie d'erreur avec le code 2" {
 	run --separate-stderr "${MACHIN}"
 	[ "${status}" -eq 2 ]

@@ -396,7 +396,7 @@ Machin -h | --help | --binaires
 - `Machin BINAIRE` appelle `Machin_BINAIRE` (`lecture`, `indexation` ou `interface`) en lui transmettant toutes les options qui suivent, intactes, et se termine avec son code de sortie. Le binaire est cherché d'abord dans le venv du projet (`.venv`, à côté du répertoire `bin/` du wrapper, même appelé par un lien symbolique), puis dans le `PATH` : le wrapper prépare ainsi l'environnement, sans qu'il soit besoin d'activer le venv.
 - `--config FICHIER` (ou `--config=FICHIER`), placé avant le binaire, lui est transmis, notamment pour les tests. Placé après le binaire, il est transmis tel quel.
 - `-h` affiche une aide minimale de deux lignes, `--help` l'aide complète. L'aide d'un binaire s'obtient par `Machin BINAIRE --help`.
-- `Machin logs` suit en direct le journal du service de lecture, `machincast.service` (`journalctl --unit=machincast.service --follow`). Les options qui suivent sont transmises à `journalctl`, par exemple `--since "1 hour ago"`. Le journal d'un service système n'est lisible que par les groupes `adm` (dont fait partie le premier compte créé à l'installation d'Ubuntu) et `systemd-journal` : tous les comptes de la radio doivent pouvoir le lire, `install.sh` les ajoute donc au groupe `systemd-journal`, qui donne la lecture du journal sans les droits d'administration de `adm` (voir [§ 10](#10-installation-et-déploiement)).
+- `Machin logs` suit en direct le journal du service de lecture, `machincast.service` (`journalctl --unit=machincast.service --follow`). Les options qui suivent sont transmises à `journalctl`, par exemple `--since "1 hour ago"`. Le journal d'un service système n'est lisible que par les groupes `adm` (dont fait partie le premier compte créé à l'installation d'Ubuntu) et `systemd-journal` : le compte qui utilise MachinCast doit pouvoir le lire, `install.sh` l'ajoute donc au groupe `systemd-journal`, qui donne la lecture du journal sans les droits d'administration de `adm` (voir [§ 10](#10-installation-et-déploiement)).
 - `--binaires` liste les binaires, un par ligne ; l'autocomplétion s'en sert.
 - Codes de sortie : celui du binaire ou de `journalctl` ; 2 pour un appel incorrect du wrapper (binaire ou option inconnus, `--config` sans fichier) ; 127 si le binaire ou `journalctl` est introuvable.
 
@@ -486,7 +486,7 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 
 - Format TOML, lu par `tomllib`.
 - Le fichier `machincast.toml` se trouve dans le répertoire du projet et est ignoré par `.gitignore`. Le modèle versionné, documenté clé par clé, est `machincast.exemple.toml`.
-- Sans option, chaque binaire lit `machincast.toml` dans le répertoire courant. L'option `--config <fichier>`, commune à tous les binaires et transmise par le wrapper, permet d'utiliser une autre configuration, notamment pour les tests.
+- Sans option, chaque binaire lit le `machincast.toml` du répertoire de MachinCast (dépôt local ou release décompressée), quel que soit le répertoire courant, qu'il soit appelé directement ou par le wrapper. Ce répertoire se déduit de l'emplacement du paquet Python, installé en mode éditable ; c'est aussi celui du wrapper, qui appelle les binaires de son `.venv` ([#76](https://github.com/dascritch/machincast/issues/76)). L'option `--config <fichier>`, commune à tous les binaires et transmise par le wrapper, permet d'utiliser une autre configuration, notamment pour les tests.
 - Les chemins relatifs sont résolus depuis le répertoire du fichier de configuration.
 - Toute clé ou section inconnue est refusée. Une clé obligatoire manquante, un type invalide ou une valeur hors des choix possibles arrête le binaire avec le code 2 et un message qui nomme le fichier et la clé.
 - De nouvelles clés s'ajouteront au fil du projet ; chacune est documentée dans le modèle.
@@ -508,10 +508,11 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 ## 10. Installation et déploiement
 
 - Cible : Ubuntu 26.04 LTS, et uniquement des versions LTS.
+- Installation mono-utilisateur : un seul compte Unix utilise MachinCast, celui qui l'installe, et MachinCast se place dans son répertoire personnel.
 - Livraison : archives `.tar.gz` publiées en releases sur le dépôt git (sur le repository <https://github.com/dascritch/machincast>).
 - Chaque archive contient un `install.sh` ([#40](https://github.com/dascritch/machincast/issues/40)), à lancer depuis le répertoire de MachinCast (release décompressée ou dépôt git) avec son propre compte, jamais avec sudo : il demande sudo pour les seules étapes qui l'exigent. Relançable, il laisse en place chaque étape déjà faite. `./install.sh --simulation` affiche les commandes sans rien exécuter. Il :
 	- vérifie le système : Ubuntu LTS, la cible étant 26.04 ;
-	- installe par apt les seules dépendances système (bibliothèques de compilation de PyGObject, GStreamer et ses plugins, PostgreSQL) ;
+	- installe par apt les seules dépendances système (bibliothèques de compilation de PyGObject, GStreamer et ses plugins, PostgreSQL, autocomplétion bash) ;
 	- crée un environnement virtuel Python isolé, **sans** `--system-site-packages`, et y installe toutes les dépendances Python par pip (PySide6, PyGObject, psycopg, yoyo-migrations). Le projet suit ainsi l'évolution des paquets sans dépendre des versions de la distribution hôte ;
 	- copie `machincast.exemple.toml` en `machincast.toml` s'il n'existe pas ;
 	- crée, en tant qu'utilisateur `postgres`, le rôle PostgreSQL du compte courant, **sans aucun droit particulier** (ni `CREATEDB`, ni `CREATEROLE`), les bases de production et de test dont ce compte devient propriétaire, et les trois rôles de groupe ; le compte applique ensuite le schéma, ce que la propriété des bases lui permet ;

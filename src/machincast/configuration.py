@@ -10,8 +10,21 @@ from typing import Any, Literal, cast
 
 from machincast.base import LONGUEUR_TEXTE_COURT
 
-FICHIER_PAR_DEFAUT = Path("machincast.toml")
-"""Cherché dans le répertoire courant quand aucun fichier n'est passé avec --config."""
+NOM_FICHIER = "machincast.toml"
+
+REPERTOIRE_PROJET = Path(__file__).resolve().parents[2]
+"""Répertoire de MachinCast : dépôt local ou release décompressée, où se trouve machincast.toml.
+
+Déduit de l'emplacement de ce module (src/machincast/), installé en mode éditable par install.sh : le même
+répertoire que celui du wrapper Machin, qui appelle les binaires de son .venv
+(https://github.com/dascritch/machincast/issues/76).
+"""
+
+
+def fichier_par_defaut() -> Path:
+	"""Fichier lu quand aucun n'est passé avec --config, quel que soit le répertoire courant."""
+	return REPERTOIRE_PROJET / NOM_FICHIER
+
 
 SortieAudio = Literal["alsa", "pulseaudio", "pipewire", "factice"]
 SORTIES_AUDIO: tuple[SortieAudio, ...] = ("alsa", "pulseaudio", "pipewire", "factice")
@@ -155,10 +168,10 @@ def _decrire(valeur: object) -> str:
 def charger(chemin: Path | None = None) -> Configuration:
 	"""Charge et valide la configuration.
 
-	Sans chemin, lit `machincast.toml` dans le répertoire courant.
+	Sans chemin, lit `machincast.toml` dans le répertoire de MachinCast (fichier_par_defaut).
 	Lève ConfigurationInvalide avec un message qui nomme le fichier et la clé en cause.
 	"""
-	chemin = (chemin or FICHIER_PAR_DEFAUT).expanduser().absolute()
+	chemin = (chemin or fichier_par_defaut()).expanduser().absolute()
 	try:
 		with chemin.open("rb") as fichier:
 			document = tomllib.load(fichier)

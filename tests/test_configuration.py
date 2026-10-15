@@ -9,8 +9,10 @@ from pathlib import Path
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from machincast import configuration as module_configuration
 from machincast.cli import CODE_CONFIGURATION_INVALIDE
-from machincast.configuration import Configuration, ConfigurationInvalide, charger
+from machincast.cli import lancer as lancer_binaire
+from machincast.configuration import Configuration, ConfigurationInvalide, charger, fichier_par_defaut
 
 scenarios("configuration.feature")
 
@@ -32,6 +34,9 @@ class Contexte:
 	configuration: Configuration | None = None
 	erreur: ConfigurationInvalide | None = None
 	resultat: subprocess.CompletedProcess[str] | None = None
+	code: int | None = None
+	recue: Configuration | None = None
+	erreurs: str = ""
 	cles: dict[str, dict[str, str]] = field(default_factory=lambda: {s: dict(c) for s, c in VALIDE.items()})
 
 
@@ -118,9 +123,36 @@ def lancer_avec_configuration(contexte: Contexte, executable: str, nom: str) -> 
 	contexte.resultat = lancer(executable, ["--config", nom], contexte.repertoire)
 
 
-@when(parsers.parse('je lance "{executable}" sans option depuis ce répertoire'))
-def lancer_sans_option(contexte: Contexte, executable: str) -> None:
-	contexte.resultat = lancer(executable, [], contexte.repertoire)
+@given("ce répertoire tient lieu de répertoire de MachinCast")
+def repertoire_machincast(contexte: Contexte, monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.setattr(module_configuration, "REPERTOIRE_PROJET", contexte.repertoire)
+
+
+@given("un répertoire de MachinCast sans machincast.toml")
+def repertoire_sans_fichier(contexte: Contexte, monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.setattr(module_configuration, "REPERTOIRE_PROJET", contexte.repertoire)
+
+
+@given("le répertoire courant est un autre répertoire")
+def autre_repertoire(contexte: Contexte, monkeypatch: pytest.MonkeyPatch) -> None:
+	ailleurs = contexte.repertoire / "ailleurs"
+	ailleurs.mkdir()
+	monkeypatch.chdir(ailleurs)
+
+
+@when("un binaire démarre sans option")
+def demarrer_sans_option(contexte: Contexte, capsys: pytest.CaptureFixture[str]) -> None:
+	def action(configuration: Configuration, _options: object) -> int:
+		contexte.recue = configuration
+		return 0
+
+	contexte.code = lancer_binaire("Machin_essai", "Binaire d'essai.", [], action)
+	contexte.erreurs = capsys.readouterr().err
+
+
+@when(parsers.parse('je lance "{executable}" avec l\'option "{option}"'))
+def lancer_option(contexte: Contexte, executable: str, option: str) -> None:
+	contexte.resultat = lancer(executable, [option], contexte.repertoire)
 
 
 @when(parsers.parse('je lance "{executable}" avec ce chemin de configuration'))
@@ -136,6 +168,35 @@ def configuration(contexte: Contexte) -> Configuration:
 	assert contexte.erreur is None, str(contexte.erreur)
 	assert contexte.configuration is not None
 	return contexte.configuration
+
+
+@then(parsers.parse('le fichier de configuration par défaut est "{nom}" à la racine du dépôt'))
+def defaut_dans_le_depot(nom: str) -> None:
+	assert fichier_par_defaut() == RACINE / nom
+
+
+@then("il reçoit la configuration de ce répertoire")
+def recoit_configuration(contexte: Contexte) -> None:
+	assert contexte.code == 0, contexte.erreurs
+	assert contexte.recue is not None
+	# Les chemins relatifs sont résolus depuis le fichier lu : c'est bien celui de ce répertoire.
+	assert contexte.recue.sorties.csv == contexte.repertoire / "airplay.csv"
+
+
+@then(parsers.parse("il s'arrête avec le code {code:d}"))
+def arret_code(contexte: Contexte, code: int) -> None:
+	assert contexte.code == code
+
+
+@then("son erreur mentionne le chemin complet du machincast.toml de ce répertoire")
+def erreur_chemin_complet(contexte: Contexte) -> None:
+	assert str(contexte.repertoire / "machincast.toml") in contexte.erreurs, contexte.erreurs
+
+
+@then("la sortie mentionne le machincast.toml à la racine du dépôt")
+def aide_defaut(contexte: Contexte) -> None:
+	assert contexte.resultat is not None
+	assert str(RACINE / "machincast.toml") in contexte.resultat.stdout, contexte.resultat.stdout
 
 
 @then("la configuration est chargée sans erreur")

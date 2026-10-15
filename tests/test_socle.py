@@ -17,7 +17,7 @@ from machincast.configuration import ConfigurationInvalide, SortieAudio, charger
 from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe, HorlogeSysteme
 from machincast.journal import configurer as configurer_journal
-from tests.base_test import CONFIGURATION_TEST, configuration_test, purger_base
+from tests.base_test import CONFIGURATION_TEST, chemin_configuration_test, configuration_test, purger_base
 
 RACINE = Path(__file__).resolve().parents[1]
 
@@ -45,12 +45,13 @@ def contexte() -> Contexte:
 
 @then(parsers.parse('la configuration de test désigne la base "{nom}"'))
 def base_designee(nom: str) -> None:
-	assert configuration_test().base.test == nom
+	# La configuration du dépôt, même quand MACHINCAST_CONFIG_TEST en désigne une autre.
+	assert charger(CONFIGURATION_TEST).base.test == nom
 
 
 @then(parsers.parse('la sortie audio des tests est "{sortie}"'))
 def sortie_des_tests(sortie: str) -> None:
-	assert configuration_test().audio.sortie == sortie
+	assert charger(CONFIGURATION_TEST).audio.sortie == sortie
 
 
 @then("la base de production de la configuration de test n'est pas celle du modèle de configuration")
@@ -64,8 +65,10 @@ def production_hors_tests() -> None:
 @given("une configuration de test dont la base de test porte le nom de la base de production")
 def configuration_dangereuse(contexte: Contexte, tmp_path: Path) -> None:
 	base = configuration_test().base
-	texte = CONFIGURATION_TEST.read_text(encoding="utf-8").replace(
-		f'test = "{base.test}"', f'test = "{base.production}"'
+	texte = (
+		chemin_configuration_test()
+		.read_text(encoding="utf-8")
+		.replace(f'test = "{base.test}"', f'test = "{base.production}"')
 	)
 	contexte.chemin = tmp_path / "configuration-dangereuse.toml"
 	contexte.chemin.write_text(texte, encoding="utf-8")

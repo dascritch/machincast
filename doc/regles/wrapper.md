@@ -16,7 +16,7 @@
 
 ## Configuration
 
-- `machincast.toml` (TOML) dans le répertoire du projet, **ignoré par git**.
+- `machincast.toml` (TOML) dans le répertoire du projet, **ignoré par git**. Sans `--config`, les binaires le lisent là, quel que soit le répertoire courant : `machincast.configuration.fichier_par_defaut()`, déduit de l'emplacement du paquet, installé en mode éditable. Le wrapper n'ajoute pas de `--config` : il appelle les binaires du `.venv` de ce même répertoire, et son aide affiche ce chemin ([#76](https://github.com/dascritch/machincast/issues/76)).
 - Un fichier de configuration se trouve toujours dans le répertoire du dépôt : la documentation, l'aide et les exemples n'en désignent jamais un ailleurs (revue de [PR #65](https://github.com/dascritch/machincast/pull/65)).
 - Le modèle versionné est `machincast.exemple.toml`. Toute nouvelle clé y est ajoutée et commentée, dans `src/machincast/configuration.py` (clés connues et validation) et dans le tableau de [spec.md § 9](../spec.md#9-configuration).
 - Les clés inconnues sont refusées : ne jamais assouplir cette règle.
@@ -28,7 +28,8 @@
 - `install.sh` se lance avec son propre compte, jamais avec sudo, et doit rester relançable : chaque étape vérifie d'abord si elle est déjà faite. Toute commande qui modifie le système passe par `executer`, pour que `--simulation` l'affiche sans l'exécuter.
 - `install.sh` n'appelle que des commandes système et n'a pas de tests automatisés : shellcheck seulement. Ce qui se teste passe par `machincast.installation` (lecture de la configuration, schéma, greffons GStreamer).
 - La liste des paquets apt d'`install.sh` est celle des prérequis de `CLAUDE.md`, sans les outils de développement.
+- [`INSTALL.md`](../../INSTALL.md) documente `install.sh` pour l'administrateur, étape par étape, avec les commandes équivalentes à la main ([#71](https://github.com/dascritch/machincast/issues/71)). Toute modification d'`install.sh`, du wrapper ou de `machincast.installation` le met à jour dans le même commit. [`documentation.feature`](../../tests/features/documentation.feature) vérifie que ses paquets apt, son `GRANT`, les options, binaires et étapes qu'il cite et ses liens restent cohérents avec `install.sh`, `CLAUDE.md` et le code.
 - Le compte qui installe ne reçoit aucun droit particulier sur le serveur PostgreSQL (ni `CREATEDB`, ni `CREATEROLE`) : tout ce qui en demande passe par `sudo -u postgres` (revue de [PR #72](https://github.com/dascritch/machincast/pull/72)).
 - Environnement virtuel isolé : jamais `--system-site-packages`. Toute dépendance Python est déclarée dans `pyproject.toml` et installée par pip ; apt ne fournit que les bibliothèques système ([#51](https://github.com/dascritch/machincast/issues/51)).
 - La règle polkit n'autorise que le démarrage, l'arrêt et le redémarrage du service de lecture.
-- Tous les comptes de la radio lisent le journal du service : `install.sh` les ajoute au groupe `systemd-journal`, jamais à `adm`, qui donne d'autres droits d'administration.
+- L'installation est mono-utilisateur : un seul compte Unix utilise MachinCast, celui qui l'installe, dans son répertoire personnel. Ce compte lit le journal du service : `install.sh` l'ajoute au groupe `systemd-journal`, jamais à `adm`, qui donne d'autres droits d'administration.

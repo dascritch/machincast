@@ -12,16 +12,17 @@ Python · PySide6 (Qt 6.10) · PostgreSQL via socket Unix (psycopg 3, auth peer)
 
 ```bash
 # Prérequis système : uniquement ce que pip ne peut pas fournir (https://github.com/dascritch/machincast/issues/51)
-# — compilation de PyGObject, GStreamer et ses plugins (plugins-bad : AIFF, AAC et encodeurs des tests), PostgreSQL
+# — compilation de PyGObject, GStreamer et ses plugins (plugins-bad : AIFF, AAC et encodeurs des tests), PostgreSQL,
+# autocomplétion bash
 sudo apt install python3-venv python3-dev build-essential pkg-config libgirepository-2.0-dev libcairo2-dev \
 	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
-	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire postgresql
+	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire postgresql bash-completion
 # Outils de développement du wrapper bash
 sudo apt install bats shellcheck
 
 # Installation d'un poste, relançable : ./install.sh (--simulation pour voir les commandes sans les exécuter)
 # Installation de dev : venv isolé, jamais --system-site-packages (https://github.com/dascritch/machincast/issues/51)
-python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
+python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"   # procédure complète : INSTALL.md
 cp machincast.exemple.toml machincast.toml   # puis l'adapter ; jamais versionné
 
 # Base de test locale (PostgreSQL ≥ 16, authentification peer) : ./install.sh la prépare. Le compte n'a besoin
@@ -78,3 +79,4 @@ Lire le bloc correspondant **avant** de modifier le code concerné :
 - Un commit par fonctionnalité, lié à un ticket GitHub Issues. Sans ticket, proposer une user story et attendre.
 - Indentation par **tabulations**.
 - Ne jamais toucher à la base de production pendant les tests.
+- Un ticket n'est terminé que si ses fonctions et actions externes sont documentées pour les humains : voir la [definition of done](doc/regles/developpement.md#definition-of-done).

@@ -1,6 +1,9 @@
 """Étapes des scénarios du schéma initial de la base de données."""
 
+import gc
 import re
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -9,7 +12,7 @@ import pytest
 from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast.base import TABLES, TYPES, annuler_migrations, url_yoyo
+from machincast.base import TABLES, TYPES, annuler_migrations, appliquer_migrations, url_yoyo
 from tests.base_test import parametres_base_test
 
 scenarios("schema.feature")
@@ -26,6 +29,8 @@ class Contexte:
 	references: dict[str, int] = field(default_factory=dict)
 	erreur: psycopg.Error | None = None
 	modifie_le: datetime | None = None
+	connexions_avant: int = 0
+	connexions_apres: int = 0
 
 
 @pytest.fixture
@@ -130,6 +135,48 @@ def enregistrer_vide(contexte: Contexte, table: str) -> None:
 @when("j'annule toutes les migrations")
 def annuler(contexte: Contexte) -> None:
 	annuler_migrations(url_yoyo(*parametres_base_test()))
+
+
+def connexions_ouvertes(contexte: Contexte) -> int:
+	"""Connexions du compte courant à la base de test, celle du scénario comprise."""
+	ligne = contexte.connexion.execute(
+		"SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND usename = current_user"
+	).fetchone()
+	assert ligne is not None and isinstance(ligne[0], int)
+	return ligne[0]
+
+
+def sans_ramasse_miettes(contexte: Contexte, migration: Callable[[str], None]) -> None:
+	"""Lance la migration ramasse-miettes suspendu, et note les connexions ouvertes avant et après."""
+	contexte.connexions_avant = connexions_ouvertes(contexte)
+	gc.disable()
+	try:
+		migration(url_yoyo(*parametres_base_test()))
+		# Une connexion fermée quitte pg_stat_activity peu après : quelques instants pour s'en assurer.
+		limite = time.monotonic() + 2
+		while (apres := connexions_ouvertes(contexte)) > contexte.connexions_avant and time.monotonic() < limite:
+			time.sleep(0.05)
+		contexte.connexions_apres = apres
+	finally:
+		gc.enable()
+
+
+@when("j'applique les migrations, ramasse-miettes suspendu")
+def appliquer_sans_ramasse_miettes(contexte: Contexte) -> None:
+	sans_ramasse_miettes(contexte, appliquer_migrations)
+
+
+@when("j'annule toutes les migrations, ramasse-miettes suspendu")
+def annuler_sans_ramasse_miettes(contexte: Contexte) -> None:
+	sans_ramasse_miettes(contexte, annuler_migrations)
+
+
+@then("aucune connexion supplémentaire à la base de test ne reste ouverte")
+def aucune_connexion_restante(contexte: Contexte) -> None:
+	assert contexte.connexions_apres == contexte.connexions_avant, (
+		contexte.connexions_avant,
+		contexte.connexions_apres,
+	)
 
 
 @when("je modifie le titre du sonore de référence")

@@ -42,7 +42,7 @@ Les scénarios Gherkin sont écrits en français (`# language: fr`).
 
 ## Configuration
 
-Les tests utilisent leur propre fichier de configuration, passé par le paramètre de configuration du wrapper ou du binaire, jamais `machincast.toml`.
+Les tests utilisent leur propre fichier de configuration, passé par le paramètre de configuration du wrapper ou du binaire, jamais `machincast.toml`. Un binaire lancé sans `--config` lirait le `machincast.toml` du dépôt, donc la base de production : aucun test ne lance un binaire sans `--config`. Les scénarios du fichier par défaut appellent `machincast.cli.lancer` en remplaçant `machincast.configuration.REPERTOIRE_PROJET` par un répertoire temporaire ([#76](https://github.com/dascritch/machincast/issues/76)).
 
 `tests/configuration-test.toml` nomme comme base de production une base qui n'existe pas, différente de celle du modèle `machincast.exemple.toml` : un scénario de `socle.feature` le vérifie. Un scénario qui lance un binaire avec une configuration valide lui donne une socket PostgreSQL qui n'existe pas : le binaire ne peut joindre aucune base, et surtout pas la base de production que nomme cette configuration. Les scénarios qui ont besoin de la base appellent les fonctions Python avec une connexion à la base de test.
 

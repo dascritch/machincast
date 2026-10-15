@@ -46,12 +46,13 @@ aide_complete() {
 		               Les options qui suivent sont transmises à journalctl, par exemple :
 		               Machin logs --since "1 hour ago" --priority=warning
 		               Lire ce journal demande d'appartenir au groupe adm ou systemd-journal :
-		               install.sh ajoute les comptes de la radio au groupe systemd-journal.
+		               install.sh y ajoute le compte qui l'installe.
 
 		Options du wrapper :
 		  --config FICHIER, --config=FICHIER
 		               fichier de configuration TOML transmis au binaire
-		               (par défaut, le binaire lit machincast.toml dans le répertoire courant)
+		               (par défaut, le binaire lit machincast.toml dans le répertoire de MachinCast :
+		               $(projet)/machincast.toml)
 		  -h           aide minimale
 		  --help       cette aide complète
 		  --binaires   liste des binaires, un par ligne (utilisée par l'autocomplétion)
@@ -76,12 +77,18 @@ erreur_usage() {
 	exit "${CODE_USAGE}"
 }
 
-# Venv du projet : .venv à la racine du projet, le répertoire parent de bin/ où se trouve le wrapper.
-# Le lien symbolique éventuel (par exemple /usr/local/bin/Machin) est résolu pour trouver le vrai projet.
-venv_du_projet() {
+# Répertoire de MachinCast : le parent du répertoire bin/ où se trouve le wrapper. Le lien symbolique éventuel
+# (par exemple /usr/local/bin/Machin) est résolu pour trouver le vrai projet. Les binaires y lisent machincast.toml
+# par défaut (https://github.com/dascritch/machincast/issues/76).
+projet() {
 	local wrapper
 	wrapper="$(readlink -f "${BASH_SOURCE[0]}")"
-	printf '%s/.venv\n' "$(dirname "$(dirname "${wrapper}")")"
+	dirname "$(dirname "${wrapper}")"
+}
+
+# Venv du projet : .venv à la racine du projet.
+venv_du_projet() {
+	printf '%s/.venv\n' "$(projet)"
 }
 
 # Chemin de Machin_$1 : d'abord dans le venv du projet, sans qu'il soit activé, sinon dans le PATH.
