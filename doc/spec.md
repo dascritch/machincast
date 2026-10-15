@@ -400,6 +400,15 @@ Sur option de lancement, le binaire simule la diffusion entre deux dates et heur
 - une graine (seed) rend le hasard reproductible, notamment pour les tests ;
 - seules des sorties .csv, .pls et .html sont produites, nommées par défaut avec un préfixe `simulation` suivi des dates de début et de fin, nommage modifiable par paramètre.
 
+Mise en œuvre ([#21](https://github.com/dascritch/machincast/issues/21), `machincast.lecture.simulation`, choix notés sur le [ticket](https://github.com/dascritch/machincast/issues/21#issuecomment-6199262518)) :
+
+- **Commande** : `Machin_lecture --simulation DEBUT FIN [--graine N] [--nom NOM]`. Les dates sont en ISO 8601, en heure du poste, et la fin suit le début. Code de sortie 2 sinon, et pour `--graine` ou `--nom` sans `--simulation`.
+- **Aucune écriture en base**, au sens du cahier des charges (« pas une seule entrée ») : la simulation ouvre une seule transaction `REPEATABLE READ, READ ONLY` (`lecture_seule`), annulée à la fin. PostgreSQL y refuse toute écriture, et l'état de départ est celui de son ouverture.
+- **État en mémoire** : la logique de lecture lit et écrit l'historique par un `Historique` (`machincast.lecture.historique`), la base en diffusion (`EN_BASE`) ou la mémoire en simulation (`HistoriqueSimule`). En mémoire, les passages, le log et les expirations simulés s'ajoutent à ce que la base contient : compteurs de lectures, cycles des banques, dernier élément de chaque événement.
+- **Aucune sortie sonore** : `MoteurSimule` ne crée aucun pipeline GStreamer. La diffusion (`Diffusion`, la même qu'à l'antenne) avance d'échéance en échéance : fin prévue d'une voie, début du crossfade de fin du sonore en cours, prochain début ou fin d'une occurrence (`grille.prochain_changement`), fin de la période ; en silence, toutes les minutes.
+- **Durées** : celles de la base. Un stream n'est pas contacté et tient jusqu'à la fin de son événement ou jusqu'à une coupure.
+- **Sorties** : `<nom>.csv`, `<nom>.pls` et `<nom>.html` dans le répertoire de `sorties.csv`. Le nom par défaut est `simulation-AAAA-MM-JJTHHMM-AAAA-MM-JJTHHMM`. Ce sont trois fichiers pour toute la période. L'artiste et le titre y sont masqués comme sur la page publique ([§ 4.8](#48-métadonnées-publiques-et-masquage)), et l'emplacement de chaque fichier, donné dans les trois, permet de vérifier ce qui est joué (décidé en relecture de [PR #95](https://github.com/dascritch/machincast/pull/95)). La page HTML liste les alertes et incidents simulés, puis les passages, avec leur emplacement. Les alertes et incidents vont aussi sur la sortie d'erreur, préfixés de `simulation :`.
+
 ## 6. Binaire indexation
 
 `Machin_indexation` est déclenché depuis l'interface. Un cron ou un timer systemd pourra être ajouté plus tard selon les retours du terrain.

@@ -130,6 +130,35 @@ def evenement_actif(
 	return max(candidates, key=lambda o: (RANGS[o.evenement.priorite], o.evenement.modifie_le, o.evenement.id))
 
 
+def prochain_changement(evenements: Iterable[Evenement], instant: datetime) -> datetime | None:
+	"""Prochain début ou fin d'une occurrence après l'instant, ou None : la grille ne change plus.
+
+	Sert à la simulation (https://github.com/dascritch/machincast/issues/21), qui avance d'échéance en échéance.
+	"""
+	moment = heure_murale(instant)
+	candidats: list[datetime] = []
+	for evenement in evenements:
+		if evenement.priorite is Priorite.SECOURS or evenement.debut is None:
+			continue
+		debut = heure_murale(evenement.debut)
+		fin = None if evenement.fin is None else heure_murale(evenement.fin)
+		if not evenement.jours:
+			candidats += [c for c in (debut, fin) if c is not None]
+			continue
+		duree_en_jours = None if fin is None else (fin.date() - debut.date()).days
+		# Les occurrences commencées dans la semaine passée peuvent encore finir ; celles de la semaine à venir,
+		# commencer.
+		for ecart in range(-8 - (duree_en_jours or 0), 8):
+			jour = moment.date() + timedelta(days=ecart)
+			if jour < debut.date() or (jour != debut.date() and jour.weekday() not in evenement.jours):
+				continue
+			candidats.append(datetime.combine(jour, debut.time()))
+			if fin is not None and duree_en_jours is not None:
+				candidats.append(datetime.combine(jour + timedelta(days=duree_en_jours), fin.time()))
+	apres = [candidat for candidat in candidats if candidat > moment]
+	return min(apres).astimezone() if apres else None
+
+
 COLONNES = "id, nom_interne, priorite::text, debut, fin, jours_recurrence::text[], modifie_le"
 
 

@@ -79,7 +79,11 @@ Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures son
 
 ## Mode simulation
 
-Aucune écriture en base, aucune sortie sonore, état tenu en mémoire, graine reproductible, sorties .csv, .pls et .html nommées à part.
+Aucune écriture en base, aucune sortie sonore, état tenu en mémoire, graine reproductible, sorties .csv, .pls et .html nommées à part ([#21](https://github.com/dascritch/machincast/issues/21), [spec.md § 5.5](../spec.md#55-mode-simulation)).
+
+- La simulation rejoue la vraie `Diffusion` : toute règle de lecture vaut donc pour les deux. Un nouvel accès à l'airplay ou au log passe par l'`Historique` (`machincast.lecture.historique`), jamais par une requête directe dans un autre module : sinon la simulation ne verrait pas ses propres passages.
+- Toute la simulation tient dans `lecture_seule` : une transaction `READ ONLY` que PostgreSQL protège lui-même. Un scénario vérifie qu'une écriture y est refusée.
+- `Diffusion` attend un `Moteur` et des `VoieLecture` (`machincast.lecture.moteur`) : `MoteurAudio` à l'antenne, `MoteurSimule` en simulation.
 
 ## Interfaces exposées
 
