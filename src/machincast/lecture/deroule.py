@@ -45,7 +45,6 @@ from psycopg.rows import TupleRow
 
 from machincast.hasard import Hasard
 from machincast.lecture.banques import choisir_sonore, sonore_jouable
-from machincast.lecture.enregistrement import consigner
 from machincast.lecture.grille import (
 	Evenement,
 	Occurrence,
@@ -55,6 +54,7 @@ from machincast.lecture.grille import (
 	lire_evenement,
 	lire_grille,
 )
+from machincast.lecture.historique import EN_BASE, Historique
 
 REESSAI_FICHIER_INTROUVABLE = timedelta(hours=1)
 """Durée pendant laquelle un sonore au fichier introuvable n'est plus proposé."""
@@ -147,19 +147,15 @@ def lire_elements(connexion: psycopg.Connection[TupleRow], evenement: int) -> li
 	]
 
 
-def dernier_element(connexion: psycopg.Connection[TupleRow], occurrence: Occurrence) -> int | None:
+def dernier_element(
+	connexion: psycopg.Connection[TupleRow], occurrence: Occurrence, historique: Historique = EN_BASE
+) -> int | None:
 	"""Dernier élément joué de l'événement : dans l'occurrence en cours, ou depuis toujours pour un fil musical."""
 	evenement = occurrence.evenement
 	depuis = None
 	if evenement.priorite not in (Priorite.FIL_MUSICAL, Priorite.SECOURS) and occurrence.debut is not None:
 		depuis = occurrence.debut.astimezone()
-	ligne = connexion.execute(
-		"SELECT element_id FROM airplay WHERE evenement_id = %s AND type_ligne = 'debut'"
-		" AND (%s::timestamptz IS NULL OR horodatage >= %s::timestamptz)"
-		" ORDER BY horodatage DESC, id DESC LIMIT 1",
-		(evenement.id, depuis, depuis),
-	).fetchone()
-	return None if ligne is None or ligne[0] is None else int(str(ligne[0]))
+	return historique.dernier_element(connexion, evenement.id, depuis)
 
 
 def boucle(occurrence: Occurrence) -> bool:
@@ -175,18 +171,20 @@ def prochain(
 	instant: datetime,
 	hasard: Hasard,
 	exclus: frozenset[int] = frozenset(),
+	historique: Historique = EN_BASE,
 ) -> Choix | None:
 	"""Prochain sonore de la liste de l'occurrence ; None si rien n'est jouable jusqu'à la fin de la liste.
 
 	exclus : sonores écartés, traités comme non jouables.
 	"""
 	elements = lire_elements(connexion, occurrence.evenement.id)
-	for element in elements_a_essayer(elements, dernier_element(connexion, occurrence), boucle(occurrence)):
+	dernier = dernier_element(connexion, occurrence, historique)
+	for element in elements_a_essayer(elements, dernier, boucle(occurrence)):
 		if element.sonore is not None:
-			if element.sonore not in exclus and sonore_jouable(connexion, element.sonore, instant):
+			if element.sonore not in exclus and sonore_jouable(connexion, element.sonore, instant, historique):
 				return Choix(element.sonore, element, None, occurrence)
 		elif element.banque is not None:
-			sonore = choisir_sonore(connexion, element.banque, instant, hasard, exclus)
+			sonore = choisir_sonore(connexion, element.banque, instant, hasard, exclus, historique)
 			if sonore is not None:
 				return Choix(sonore, element, element.banque, occurrence)
 	return None
@@ -199,9 +197,12 @@ class Ordonnanceur:
 	sont lus ; seule une alerte de silence est écrite, dans le log.
 	"""
 
-	def __init__(self, connexion: psycopg.Connection[TupleRow], hasard: Hasard) -> None:
+	def __init__(
+		self, connexion: psycopg.Connection[TupleRow], hasard: Hasard, historique: Historique = EN_BASE
+	) -> None:
 		self.connexion = connexion
 		self.hasard = hasard
+		self.historique = historique
 		self.terminees: set[tuple[int, datetime | None]] = set()
 		"""Occurrences terminées plus tôt : liste épuisée, ou plus rien de jouable."""
 		self.en_silence = False
@@ -232,7 +233,7 @@ class Ordonnanceur:
 			actif = self._remplacer(evenements, instant, actif)
 			if actif is None or actif.cle != choix.occurrence.cle or choix.sonore in self._exclus(instant):
 				return False
-			return sonore_jouable(self.connexion, choix.sonore, instant)
+			return sonore_jouable(self.connexion, choix.sonore, instant, self.historique)
 
 	def suspendre(self, occurrence: Occurrence, secours: int | None) -> None:
 		"""Le stream de l'occurrence est tombé : la remplacer, tant qu'elle reste active, par l'événement de secours,
@@ -285,13 +286,13 @@ class Ordonnanceur:
 					# Fin d'événement sans successeur : le sonore va jusqu'au bout.
 					return Decision()
 			if actif is None:
-				return self._silence(couper, eteindre, None, "aucun événement actif")
-			choix = prochain(self.connexion, actif, instant, self.hasard, self._exclus(instant))
+				return self._silence(instant, couper, eteindre, None, "aucun événement actif")
+			choix = prochain(self.connexion, actif, instant, self.hasard, self._exclus(instant), self.historique)
 			if choix is not None:
 				self.en_silence = False
 				return Decision(couper=couper, eteindre=eteindre, jouer=choix)
 			if actif.evenement.priorite is Priorite.FIL_MUSICAL:
-				return self._silence(couper, eteindre, actif, "rien à diffuser dans le fil musical")
+				return self._silence(instant, couper, eteindre, actif, "rien à diffuser dans le fil musical")
 			# Liste épuisée, ou plus rien de jouable : l'occurrence se termine, l'événement inférieur reprend.
 			self.terminees.add(actif.cle)
 
@@ -315,14 +316,15 @@ class Ordonnanceur:
 	def _commence_apres(actif: Occurrence, en_cours: EnCours) -> bool:
 		return actif.debut is not None and actif.debut > heure_murale(en_cours.debut)
 
-	def _silence(self, couper: bool, eteindre: bool, actif: Occurrence | None, message: str) -> Decision:
+	def _silence(
+		self, instant: datetime, couper: bool, eteindre: bool, actif: Occurrence | None, message: str
+	) -> Decision:
 		if self._reservation:
 			return Decision(couper=couper, eteindre=eteindre, silence=True, occurrence=actif)
 		if not self.en_silence:
 			self.en_silence = True
-			consigner(
-				self.connexion, "alerte", "silence", message, evenement=None if actif is None else actif.evenement.id
-			)
+			evenement = None if actif is None else actif.evenement.id
+			self.historique.consigner(self.connexion, "alerte", "silence", message, instant, evenement=evenement)
 		return Decision(couper=couper, eteindre=eteindre, silence=True, occurrence=actif)
 
 

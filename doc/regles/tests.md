@@ -51,4 +51,4 @@ Les tests utilisent leur propre fichier de configuration, passé par le paramèt
 
 ## Audio
 
-Les tests du binaire lecture n'utilisent pas de sortie sonore réelle : la configuration de test choisit la sortie `factice` (élément GStreamer `fakesink`), ou le mode simulation. `machincast.audio.jouer_son_de_test` vérifie qu'un son traverse une sortie jusqu'au bout.
+Les tests du binaire lecture n'utilisent pas de sortie sonore réelle : la configuration de test choisit la sortie `factice` (élément GStreamer `fakesink`), ou le mode simulation, qui n'ouvre aucune sortie ([#21](https://github.com/dascritch/machincast/issues/21)). `machincast.audio.jouer_son_de_test` vérifie qu'un son traverse une sortie jusqu'au bout.

@@ -173,7 +173,7 @@ Si GStreamer n'a pas de décodeur pour un format, la vérification s'arrête et 
 
 ## Diffusion : Machin lecture
 
-`Machin lecture` diffuse la grille sur la sortie audio de la configuration, en continu, jusqu'à ce qu'on l'arrête ([#88](https://github.com/dascritch/machincast/issues/88)), fichiers et streams. Le service systemd et le mode simulation sont à venir (voir [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore)).
+`Machin lecture` diffuse la grille sur la sortie audio de la configuration, en continu, jusqu'à ce qu'on l'arrête ([#88](https://github.com/dascritch/machincast/issues/88)), fichiers et streams. Il sait aussi simuler une période à l'avance, sans son ni écriture en base (voir [Simuler la diffusion](#simuler-la-diffusion)). Le service systemd est à venir (voir [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore)).
 
 ### Lancer et arrêter la diffusion
 
@@ -188,6 +188,34 @@ Machin lecture --config <fichier>
 - **Arrêt** : `Ctrl-C` dans le terminal, ou le signal `SIGTERM` (arrêt d'un service). Le sonore en cours s'arrête, son passage est terminé dans l'airplay, sans incident, `arrêt` est noté dans le log, et le programme s'arrête avec le code 0.
 - **Perte de la base en cours de diffusion** : la sortie se coupe, et le programme s'arrête avec le code 1 et le message `erreur de base de données`.
 - **Un seul `Machin lecture` à la fois** : deux diffusions en même temps joueraient chacune leurs sonores et écriraient chacune leur airplay. Un second `Machin lecture` lancé sur la même socket d'état est refusé : il s'arrête avec le code 1 et le message `diffusion refusée : … un autre Machin lecture diffuse déjà`.
+
+### Simuler la diffusion
+
+Pour vérifier une grille avant sa mise à l'antenne, `Machin lecture` simule ce qu'il diffuserait entre deux dates et heures ([#21](https://github.com/dascritch/machincast/issues/21)) :
+
+```bash
+Machin lecture --simulation "2026-10-20 06:00" "2026-10-20 22:00"
+Machin lecture --simulation "2026-10-20 06:00" "2026-10-21 06:00" --graine 42 --nom essai-mardi
+```
+
+| Option | Rôle |
+| --- | --- |
+| `--simulation DEBUT FIN` | Période simulée, en heure du poste : `2026-10-20 20:00`, ou `2026-10-20T20:00:00`. La fin doit suivre le début. |
+| `--graine N` | Graine du hasard : la même graine donne la même simulation, tirages aléatoires compris. Sans graine, chaque simulation tire autrement. |
+| `--nom NOM` | Nom des fichiers produits, sans extension ni `/`. Par défaut, `simulation-` suivi des dates de début et de fin, par exemple `simulation-2026-10-20T0600-2026-10-20T2200`. |
+
+- **Rien n'est écrit en base**, au sens strict : la simulation lit la base de production dans une transaction en lecture seule, où PostgreSQL refuse toute écriture. Elle part de l'état réel, c'est-à-dire la position dans chaque liste, le cycle de chaque banque aléatoire et le nombre de lectures de chaque sonore, puis tient ses propres passages en mémoire. Un sonore qui atteindrait son maximum de lectures pendant la simulation est noté expiré dans la simulation seulement.
+- **Aucun son n'est joué**, et la sortie audio n'est pas ouverte : une simulation peut tourner pendant la diffusion, sur le même poste. Elle ne dure que quelques secondes pour une journée.
+- **Durées** : ce sont celles de la base, mesurées par l'indexation. Un stream n'est pas contacté : la simulation suppose qu'il tient jusqu'à la fin de son événement.
+- **Mêmes règles que la diffusion** : priorités, coupures nettes, crossfades, fichiers disparus (incident `fichier introuvable`), silences (alerte `silence`).
+- **Résultat** : trois fichiers dans le dossier des sorties (celui de `sorties.csv`), pour toute la période :
+  - un CSV, avec les mêmes colonnes que l'airplay CSV ;
+  - une playlist `.pls` ;
+  - une page HTML, avec la liste des alertes et incidents simulés puis le tableau des passages.
+
+  L'artiste et le titre y sont masqués comme sur la page publique (voir [Sorties de la diffusion](#sorties-de-la-diffusion)), et l'emplacement de chaque fichier, donné partout, permet de vérifier ce qui sera joué. Un fichier du même nom est remplacé.
+- **Messages** : les alertes et incidents simulés s'affichent aussi au fil de l'eau sur la sortie d'erreur, datés et préfixés de `simulation :`. Le bilan, avec le nombre de passages, d'alertes et d'incidents et les chemins des fichiers, s'affiche à la fin.
+- **Codes de sortie** : 0 une fois la simulation finie, même avec des alertes ; 1 si la base est injoignable ou si les fichiers ne peuvent pas être écrits ; 2 pour une période ou un nom invalides, ou pour `--graine` ou `--nom` sans `--simulation`.
 
 ### État de la diffusion pour l'interface
 
@@ -368,6 +396,5 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | --- | --- |
 | Document d'audit des anomalies de l'indexation, en CSV et HTML | [#11](https://github.com/dascritch/machincast/issues/11) |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
-| Mode simulation de la diffusion | [#21](https://github.com/dascritch/machincast/issues/21) |
 | Service systemd de diffusion | [#22](https://github.com/dascritch/machincast/issues/22) |
 | Interface graphique | [#23](https://github.com/dascritch/machincast/issues/23) et suivants |

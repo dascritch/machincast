@@ -24,7 +24,7 @@ sonore. Le moteur ne lit l'heure que par la position des voies : il ne décide d
 
 from datetime import timedelta
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Protocol
 
 import gi
 
@@ -213,6 +213,48 @@ def _regler_source(lecteur: Gst.Element, source: Gst.Element) -> None:
 		source.set_property("retries", 0)
 	if hasattr(source.props, "timeout"):
 		source.set_property("timeout", DELAI_CONNEXION_SECONDES)
+
+
+class VoieLecture(Protocol):
+	"""Ce que la diffusion attend d'une voie : la voie GStreamer (Voie), ou la voie simulée de la simulation."""
+
+	etat: EtatVoie
+	erreur: str | None
+
+	def position(self) -> timedelta: ...
+
+	def traiter(self) -> None: ...
+
+	def couper(self) -> None: ...
+
+	def fermer(self) -> None: ...
+
+	def fondu(self, cible: float, duree: timedelta) -> None: ...
+
+	def eteindre(self, duree: timedelta) -> None: ...
+
+	def supprimer_fondu_de_sortie(self) -> None: ...
+
+	def volume_a(self, instant: timedelta) -> float: ...
+
+
+class Moteur(Protocol):
+	"""Ce que la diffusion attend du moteur : MoteurAudio, ou le moteur simulé de la simulation."""
+
+	def jouer(
+		self,
+		chemin: Path | str,
+		duree: timedelta | None,
+		crossfade_debut: timedelta = ...,
+		crossfade_fin: timedelta = ...,
+		muette: bool = ...,
+	) -> VoieLecture: ...
+
+	def traiter_messages(self) -> None: ...
+
+	def couper(self) -> None: ...
+
+	def fermer(self) -> None: ...
 
 
 class MoteurAudio:

@@ -11,10 +11,12 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 
-from machincast.lecture.enregistrement import consigner
+from machincast.lecture.historique import EN_BASE, Historique
 
 
-def verifier_avant_lecture(connexion: psycopg.Connection[TupleRow], sonore: int) -> Path | None:
+def verifier_avant_lecture(
+	connexion: psycopg.Connection[TupleRow], sonore: int, historique: Historique = EN_BASE
+) -> Path | None:
 	"""Chemin du fichier à jouer, ou None s'il est introuvable ; consigne tout écart dans le log.
 
 	La connexion a endossé le rôle de la lecture (machincast.base.connecter).
@@ -31,7 +33,7 @@ def verifier_avant_lecture(connexion: psycopg.Connection[TupleRow], sonore: int)
 		try:
 			etat = chemin.stat()
 		except OSError:
-			consigner(
+			historique.consigner(
 				connexion,
 				"incident",
 				"fichier introuvable",
@@ -49,7 +51,7 @@ def verifier_avant_lecture(connexion: psycopg.Connection[TupleRow], sonore: int)
 		if taille is not None and etat.st_size != taille:
 			ecarts.append(f"taille {taille} octets en base, {etat.st_size} sur le disque")
 		if ecarts:
-			consigner(
+			historique.consigner(
 				connexion,
 				"alerte",
 				"fichier modifié",

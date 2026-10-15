@@ -47,12 +47,12 @@ from machincast import __version__
 from machincast.hasard import Hasard
 from machincast.horloge import Horloge
 from machincast.lecture.deroule import Choix, Decision, EnCours, Ordonnanceur
-from machincast.lecture.enregistrement import Passage, commencer_passage, consigner, terminer_passage
+from machincast.lecture.enregistrement import Passage
 from machincast.lecture.etat import PUBLICATION_MINIMALE, SocketEtat, SocketEtatOccupee, est_sain
 from machincast.lecture.etat import instant as iso
-from machincast.lecture.expiration import expirer
 from machincast.lecture.fichiers import verifier_avant_lecture
-from machincast.lecture.moteur import MoteurAudio, Voie, enchainement, fondu_d_entree, superposition
+from machincast.lecture.historique import EN_BASE, Historique
+from machincast.lecture.moteur import Moteur, VoieLecture, enchainement, fondu_d_entree, superposition
 from machincast.lecture.sorties import Sorties
 
 PAUSE = 0.05
@@ -91,7 +91,7 @@ class Lecture:
 
 	choix: Choix
 	parametres: Parametres
-	voie: Voie
+	voie: VoieLecture
 	passage: Passage
 	suivant_demande: bool = False
 	"""L'ordonnanceur a déjà donné le sonore suivant, au début du crossfade de fin."""
@@ -124,7 +124,7 @@ class Sonde:
 	prochaine_tentative: datetime
 	depuis: datetime
 	"""Heure de la panne."""
-	voie: Voie | None = None
+	voie: VoieLecture | None = None
 
 
 def lire_parametres(connexion: psycopg.Connection[TupleRow], sonore: int) -> Parametres:
@@ -160,7 +160,7 @@ class Diffusion:
 	"""
 
 	connexion: psycopg.Connection[TupleRow]
-	moteur: MoteurAudio
+	moteur: Moteur
 	horloge: Horloge
 	hasard: Hasard
 	delai_reconnexion: timedelta = DELAI_RECONNEXION
@@ -168,6 +168,8 @@ class Diffusion:
 	"""Modules de sortie : journal, CSV, .pls et HTML (https://github.com/dascritch/machincast/issues/19)."""
 	etat: SocketEtat | None = None
 	"""Socket d'état pour l'interface (https://github.com/dascritch/machincast/issues/20)."""
+	historique: Historique = EN_BASE
+	"""Où se lisent et s'écrivent passages et log : la base, ou la mémoire en simulation."""
 	publication_minimale: float = PUBLICATION_MINIMALE
 	"""Intervalle maximal entre deux publications de l'état, en secondes, pour suivre la progression."""
 	ordonnanceur: Ordonnanceur = field(init=False)
@@ -186,7 +188,7 @@ class Diffusion:
 	"""Dernier état publié sur la socket, sans ce qui change à chaque pas, et heure de sa publication."""
 
 	def __post_init__(self) -> None:
-		self.ordonnanceur = Ordonnanceur(self.connexion, self.hasard)
+		self.ordonnanceur = Ordonnanceur(self.connexion, self.hasard, self.historique)
 
 	def demarrer(self) -> None:
 		"""Ouvre la socket d'état, puis consigne le démarrage ; lève SocketEtatOccupee si un autre Machin lecture
@@ -198,11 +200,11 @@ class Diffusion:
 			except SocketEtatOccupee:
 				raise
 			except OSError as erreur:
-				consigner(
+				self.historique.consigner(
 					self.connexion, "alerte", "socket d'état indisponible", f"{self.etat.chemin} : {erreur}", instant
 				)
 				self.etat = None
-		consigner(self.connexion, "info", "démarrage", f"Machin_lecture {__version__}", instant)
+		self.historique.consigner(self.connexion, "info", "démarrage", f"Machin_lecture {__version__}", instant)
 		self._verifier_les_expirations(instant)
 		self._publier(instant)
 
@@ -242,7 +244,7 @@ class Diffusion:
 		for lecture in self._lectures():
 			self._terminer(lecture.passage, instant)
 		self.courant, self.sortants, self.en_attente, self.sonde, self.reserve = None, [], None, None, None
-		consigner(self.connexion, "info", "arrêt", "arrêt demandé", instant)
+		self.historique.consigner(self.connexion, "info", "arrêt", "arrêt demandé", instant)
 		self._publier(instant, arret=True)
 		if self.etat is not None:
 			self.etat.fermer()
@@ -331,7 +333,7 @@ class Diffusion:
 			if sonde.voie is not None:
 				sonde.voie.fermer()
 			self.sonde = None
-			consigner(
+			self.historique.consigner(
 				self.connexion,
 				"info",
 				"reconnexion abandonnée",
@@ -353,7 +355,7 @@ class Diffusion:
 		elif sonde.voie.position() > timedelta(0):
 			self._reprendre(sonde, sonde.voie, instant)
 
-	def _reprendre(self, sonde: Sonde, voie: Voie, instant: datetime) -> None:
+	def _reprendre(self, sonde: Sonde, voie: VoieLecture, instant: datetime) -> None:
 		"""Le flux est revenu : crossfade immédiat vers le stream, pendant son crossfade de début."""
 		fondu = sonde.parametres.crossfade_debut
 		voie.fondu(1.0, fondu)
@@ -370,10 +372,10 @@ class Diffusion:
 		choix = sonde.choix
 		passage = self._commencer(choix.sonore, choix.banque, choix.occurrence.evenement.id, choix.element.id, instant)
 		self.courant = Lecture(choix, sonde.parametres, voie, passage)
-		expirer(self.connexion, instant, choix.sonore)
+		self.historique.expirer(self.connexion, instant, choix.sonore)
 		self._reserver(instant)
 		panne = round((instant - sonde.depuis).total_seconds())
-		consigner(
+		self.historique.consigner(
 			self.connexion,
 			"incident",
 			REPRISE_DU_FLUX,
@@ -401,7 +403,11 @@ class Diffusion:
 		# Chaque sonore n'est essayé qu'une fois : la boucle s'arrête même si l'ordonnanceur le redonne.
 		while suivant is not None and suivant.sonore not in essayes:
 			parametres = lire_parametres(self.connexion, suivant.sonore)
-			chemin = parametres.adresse if parametres.stream else verifier_avant_lecture(self.connexion, suivant.sonore)
+			chemin = (
+				parametres.adresse
+				if parametres.stream
+				else verifier_avant_lecture(self.connexion, suivant.sonore, self.historique)
+			)
 			if chemin is not None:
 				break
 			essayes.add(suivant.sonore)
@@ -425,13 +431,13 @@ class Diffusion:
 		if self.courant is not None:
 			self.sortants.append(self.courant)
 		self.courant = Lecture(suivant, parametres, voie, passage)
-		expirer(self.connexion, instant, suivant.sonore)
+		self.historique.expirer(self.connexion, instant, suivant.sonore)
 		self._reserver(instant)
 
 	def _commencer(
 		self, sonore: int, banque: int | None, evenement: int | None, element: int | None, instant: datetime
 	) -> Passage:
-		passage = commencer_passage(self.connexion, sonore, banque, evenement, element, instant)
+		passage = self.historique.commencer_passage(self.connexion, sonore, banque, evenement, element, instant)
 		if self.sorties is not None:
 			self.sorties.passage_commence(self.connexion, passage)
 		return passage
@@ -444,7 +450,7 @@ class Diffusion:
 		erreur: str | None = None,
 		nature: str = "lecture interrompue",
 	) -> None:
-		terminer_passage(self.connexion, passage, instant, coupe=coupe, erreur=erreur, nature=nature)
+		self.historique.terminer_passage(self.connexion, passage, instant, coupe=coupe, erreur=erreur, nature=nature)
 		if self.sorties is not None:
 			self.sorties.passage_termine(self.connexion, passage, instant)
 
@@ -501,7 +507,7 @@ class Diffusion:
 		derniere = self.expirations_verifiees
 		if derniere is None or instant - derniere >= VERIFICATION_DES_EXPIRATIONS:
 			self.expirations_verifiees = instant
-			expirer(self.connexion, instant)
+			self.historique.expirer(self.connexion, instant)
 
 
 def _affichage(choix: Choix, parametres: Parametres) -> dict[str, Any]:

@@ -15,7 +15,8 @@ fourni. Un redémarrage du binaire, ou un sonore ajouté à une banque, ne pertu
   sous son maximum de lectures, compté sur tout l'airplay, quelle que soit la banque.
 - Aucun sonore jouable : la banque ne fournit rien ; l'élément de l'événement est traité comme une banque vide.
 
-Le tirage passe par un Hasard reçu en paramètre (machincast.hasard) : reproductible avec une graine.
+Le tirage passe par un Hasard reçu en paramètre (machincast.hasard) : reproductible avec une graine. Les passages et
+les états se lisent par un Historique (machincast.lecture.historique) : la base, ou la mémoire en simulation.
 """
 
 from dataclasses import dataclass
@@ -25,6 +26,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.hasard import Hasard
+from machincast.lecture.historique import EN_BASE, Historique
 
 ETAT_JOUABLE = "actif"
 
@@ -83,14 +85,11 @@ def reste_du_cycle(jouables: set[int], historique: list[int]) -> set[int]:
 	return reste
 
 
-def _candidats(connexion: psycopg.Connection[TupleRow], banque: int) -> list[Candidat]:
-	lignes = connexion.execute(
-		"SELECT s.id, s.etat::text, s.debut_diffusion, s.fin_diffusion, s.max_lectures,"
-		" (SELECT count(*) FROM airplay a WHERE a.sonore_id = s.id AND a.type_ligne = 'debut')"
-		" FROM banques_sonores bs JOIN sonores s ON s.id = bs.sonore_id"
-		" WHERE bs.banque_id = %s ORDER BY bs.position",
-		(banque,),
-	).fetchall()
+def _lire_candidats(
+	connexion: psycopg.Connection[TupleRow], requete: str, valeur: int, historique: Historique
+) -> list[Candidat]:
+	lignes = connexion.execute(requete, (valeur,)).fetchall()
+	lectures = historique.lectures(connexion, [int(str(ligne[0])) for ligne in lignes])
 	return [
 		Candidat(
 			sonore=int(str(sonore)),
@@ -98,53 +97,49 @@ def _candidats(connexion: psycopg.Connection[TupleRow], banque: int) -> list[Can
 			debut_diffusion=debut if isinstance(debut, datetime) else None,
 			fin_diffusion=fin if isinstance(fin, datetime) else None,
 			max_lectures=None if maximum is None else int(str(maximum)),
-			lectures=int(str(lectures)),
+			lectures=lectures[int(str(sonore))],
 		)
-		for sonore, etat, debut, fin, maximum, lectures in lignes
+		for sonore, etat, debut, fin, maximum in lignes
 	]
 
 
-def sonore_jouable(connexion: psycopg.Connection[TupleRow], sonore: int, instant: datetime) -> bool:
-	"""Le sonore est-il jouable à l'instant (§ 4.5) : pour un sonore placé directement dans un événement."""
-	ligne = connexion.execute(
-		"SELECT s.etat::text, s.debut_diffusion, s.fin_diffusion, s.max_lectures,"
-		" (SELECT count(*) FROM airplay a WHERE a.sonore_id = s.id AND a.type_ligne = 'debut')"
-		" FROM sonores s WHERE s.id = %s",
-		(sonore,),
-	).fetchone()
-	if ligne is None:
-		return False
-	etat, debut, fin, maximum, lectures = ligne
-	candidat = Candidat(
-		sonore=sonore,
-		etat=str(etat),
-		debut_diffusion=debut if isinstance(debut, datetime) else None,
-		fin_diffusion=fin if isinstance(fin, datetime) else None,
-		max_lectures=None if maximum is None else int(str(maximum)),
-		lectures=int(str(lectures)),
+def _candidats(connexion: psycopg.Connection[TupleRow], banque: int, historique: Historique) -> list[Candidat]:
+	return _lire_candidats(
+		connexion,
+		"SELECT s.id, s.etat::text, s.debut_diffusion, s.fin_diffusion, s.max_lectures"
+		" FROM banques_sonores bs JOIN sonores s ON s.id = bs.sonore_id"
+		" WHERE bs.banque_id = %s ORDER BY bs.position",
+		banque,
+		historique,
 	)
-	return jouable(candidat, instant)
 
 
-def _historique(connexion: psycopg.Connection[TupleRow], banque: int) -> list[int]:
-	"""Sonores joués via la banque, du passage le plus récent au plus ancien."""
-	lignes = connexion.execute(
-		"SELECT sonore_id FROM airplay WHERE banque_id = %s AND type_ligne = 'debut' AND sonore_id IS NOT NULL"
-		" ORDER BY horodatage DESC, id DESC",
-		(banque,),
-	).fetchall()
-	return [int(str(ligne[0])) for ligne in lignes]
+def sonore_jouable(
+	connexion: psycopg.Connection[TupleRow], sonore: int, instant: datetime, historique: Historique = EN_BASE
+) -> bool:
+	"""Le sonore est-il jouable à l'instant (§ 4.5) : pour un sonore placé directement dans un événement."""
+	candidats = _lire_candidats(
+		connexion,
+		"SELECT s.id, s.etat::text, s.debut_diffusion, s.fin_diffusion, s.max_lectures FROM sonores s WHERE s.id = %s",
+		sonore,
+		historique,
+	)
+	return bool(candidats) and jouable(candidats[0], instant)
 
 
-def _jouables(connexion: psycopg.Connection[TupleRow], banque: int, instant: datetime) -> tuple[list[int], set[int]]:
-	candidats = _candidats(connexion, banque)
+def _jouables(
+	connexion: psycopg.Connection[TupleRow], banque: int, instant: datetime, historique: Historique
+) -> tuple[list[int], set[int]]:
+	candidats = _candidats(connexion, banque, historique)
 	return [c.sonore for c in candidats], {c.sonore for c in candidats if jouable(c, instant)}
 
 
-def restants(connexion: psycopg.Connection[TupleRow], banque: int, instant: datetime) -> set[int]:
+def restants(
+	connexion: psycopg.Connection[TupleRow], banque: int, instant: datetime, historique: Historique = EN_BASE
+) -> set[int]:
 	"""Sonores jouables d'une banque aléatoire pas encore joués dans son cycle en cours."""
-	_, jouables = _jouables(connexion, banque, instant)
-	return reste_du_cycle(jouables, _historique(connexion, banque))
+	_, jouables = _jouables(connexion, banque, instant, historique)
+	return reste_du_cycle(jouables, historique.joues_via_banque(connexion, banque))
 
 
 def choisir_sonore(
@@ -153,6 +148,7 @@ def choisir_sonore(
 	instant: datetime,
 	hasard: Hasard,
 	exclus: frozenset[int] = frozenset(),
+	historique: Historique = EN_BASE,
 ) -> int | None:
 	"""Sonore que la banque fournit à l'instant, selon son mode ; None si aucun n'est jouable (banque vide).
 
@@ -162,10 +158,10 @@ def choisir_sonore(
 	ligne = connexion.execute("SELECT mode::text FROM banques WHERE id = %s", (banque,)).fetchone()
 	if ligne is None:
 		return None
-	ordre, jouables = _jouables(connexion, banque, instant)
+	ordre, jouables = _jouables(connexion, banque, instant, historique)
 	jouables -= exclus
-	historique = _historique(connexion, banque)
+	joues = historique.joues_via_banque(connexion, banque)
 	if ligne[0] == "sequentiel":
-		return suivant_sequentiel(ordre, jouables, historique[0] if historique else None)
-	reste = reste_du_cycle(jouables, historique)
+		return suivant_sequentiel(ordre, jouables, joues[0] if joues else None)
+	reste = reste_du_cycle(jouables, joues)
 	return hasard.choice(sorted(reste)) if reste else None
