@@ -15,7 +15,8 @@ from pytest_bdd import given, parsers, then, when
 
 from machincast.base import Role, connecter
 from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
-from machincast.indexation.verification import Bilan, texte_bilan, verifier_sonores
+from machincast.indexation.indexeur import indexer as indexer_complet
+from machincast.indexation.verification import Bilan, texte_bilan
 from tests.base_test import parametres_base_test
 from tests.sons import copie_de_test, corrompre
 
@@ -119,7 +120,7 @@ def indexer(base_vide: Connexion, caplog: pytest.LogCaptureFixture, audit_comple
 	# Le compte qui lance les tests endosse déjà le rôle de l'indexation (vérifié par base_vide).
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:
-		bilan = verifier_sonores(c, audit_complet=audit_complet)
+		bilan = indexer_complet(c, audit_complet=audit_complet)
 	# Les anomalies et les erreurs vont sur la sortie d'erreur : niveau WARNING et au-delà.
 	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
 	return Execution(bilan, "\n".join(anomalies))

@@ -362,9 +362,12 @@ Deux modes ([#69](https://github.com/dascritch/machincast/issues/69)).
 
 ### 6.2 Indexation des répertoires de banques
 
-- Parcours récursif de chacun des répertoires de chaque banque.
-- Formats : mp3, m4a/AAC (« mp4 »), ogg, flac, wav, aiff.
-- Chaque fichier non encore indexé est vérifié, ajouté à `sonores` avec sa durée et ses tags pour l'artiste, le titre et les métadonnées musicales, puis rattaché à la banque en fin de liste.
+- Parcours récursif de chacun des répertoires de chaque banque ([#9](https://github.com/dascritch/machincast/issues/9)), avant la vérification des sonores, dans le même passage : un nouveau fichier, enregistré à l'état `apercu`, est décodé aussitôt après, en indexation rapide comme en audit complet.
+- Formats : mp3, m4a/AAC (« mp4 »), ogg, flac, wav, aiff, reconnus à l'extension `.mp3`, `.m4a`, `.ogg`, `.flac`, `.wav`, `.aiff` ou `.aif`, quelle que soit sa casse. Les autres fichiers sont ignorés, ainsi que les fichiers et répertoires cachés (nom commençant par un point, comme les `._*` de macOS).
+- Sous-répertoires parcourus dans l'ordre de leur nom ; les liens symboliques vers des répertoires ne sont pas suivis (boucles), sauf le répertoire de la banque lui-même. Un répertoire relatif, introuvable ou illisible est signalé sur STDERR avec le nom de la banque ; les autres sont indexés.
+- Chaque fichier non encore indexé est ajouté à `sonores` (`apercu`, `indexe_le` renseigné), puis rattaché à la banque en fin de liste ; les fichiers d'un même passage dans l'ordre de leur chemin. Sa durée et ses tags sont enregistrés par la vérification qui suit.
+- L'emplacement est unique : un fichier trouvé par plusieurs banques donne un seul sonore, rattaché à chacune. Un sonore trouvé dans le répertoire d'une banque dont il n'est pas membre, par exemple retiré à la main, y est rattaché en fin de liste ; l'interface l'annonce au moment du retrait.
+- Une transaction par fichier : une interruption garde le travail fait.
 
 #### Tags ([#8](https://github.com/dascritch/machincast/issues/8))
 
@@ -380,7 +383,7 @@ STDOUT et STDERR uniquement, plus une sortie texte au format CSV et HTML. L'inde
 
 - STDERR : une ligne par fichier défectueux, désigné par son chemin, avec le problème et la conséquence (« sonore passé erroné », « état désactivé conservé »). Les messages passent par `logging` : anomalies (`warning`) et erreurs (`error`) sur STDERR, informations sur STDOUT.
 - Les anomalies relevées seront regroupées dans un document d'audit, en CSV et en HTML ([#11](https://github.com/dascritch/machincast/issues/11)).
-- STDOUT : le mode et le bilan, par exemple « indexation rapide : 3 sonores vérifiés ; 1 erroné, 1 supprimé, 0 rétabli, 3 sortis d'aperçu ». Les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état.
+- STDOUT : le mode et le bilan, par exemple « indexation rapide : 3 nouveaux sonores, 1 rattachement ; 3 sonores vérifiés ; 1 erroné, 1 supprimé, 0 rétabli, 3 sortis d'aperçu ». Les nouveaux sonores et les rattachements (sonore déjà connu ajouté à une banque) viennent du parcours des répertoires ; les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état.
 - Code de sortie : 0 quand la vérification est allée au bout, même si des sonores ont changé d'état : ce sont des anomalies non bloquantes ; 1 si la base est injoignable ou si un décodeur manque ; 2 pour une configuration invalide.
 
 ## 7. Wrapper Machin

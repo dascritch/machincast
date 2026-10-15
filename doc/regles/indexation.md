@@ -14,7 +14,8 @@
 - L'année ne vient jamais d'un horodatage avec heure : c'est une date de création, pas de sortie.
 - L'indexeur ne rétablit que les sonores qu'il a lui-même déclarés `errone`.
 - Connexion par `machincast.base.connecter(…, Role.INDEXATION)` ; une transaction par sonore, pour qu'une interruption garde le travail fait.
-- Parcours récursif de tous les répertoires de chaque banque (table `banques_repertoires`). Formats : mp3, m4a, ogg, flac, wav, aiff.
-- Un nouveau sonore est rattaché à sa banque en fin de liste.
+- Parcours récursif de tous les répertoires de chaque banque (table `banques_repertoires`), dans `machincast.indexation.repertoires`, avant la vérification : `machincast.indexation.indexeur.indexer` enchaîne les deux. Formats : `repertoires.EXTENSIONS`, casse ignorée ; fichiers et répertoires cachés ignorés ; liens vers des sous-répertoires non suivis ([#9](https://github.com/dascritch/machincast/issues/9)).
+- Un nouveau sonore est enregistré à l'état `apercu`, puis rattaché à sa banque en fin de liste. Un emplacement n'est jamais enregistré deux fois ; un sonore connu trouvé dans le répertoire d'une banque y est rattaché s'il n'y est pas.
+- Un parcours ordonné (tri des noms) : positions et bilan sont reproductibles.
 - Les streams ne sont jamais vérifiés par l'indexeur.
 - Sorties : STDOUT, STDERR, CSV, HTML. **Jamais d'écriture dans `log`.**

@@ -138,7 +138,7 @@ Machin indexation --help                   # aide de l'indexation
 Machin indexation                          # indexation rapide
 ```
 
-`Machin indexation` affiche un bilan, par exemple `Machin_indexation : indexation rapide : 0 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu`, et se termine avec le code 0. Sur un poste neuf, la base ne contient encore aucun sonore : l'indexation des répertoires de banques est à venir ([#9](https://github.com/dascritch/machincast/issues/9)).
+`Machin indexation` affiche un bilan, par exemple `Machin_indexation : indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu`, et se termine avec le code 0. Sur un poste neuf, aucune banque n'existe encore, donc aucun répertoire à parcourir : les banques se créent dans l'interface, à venir ([#31](https://github.com/dascritch/machincast/issues/31)).
 
 **Première indexation.** L'indexation rapide, par défaut, ne décode que les sonores nouvellement découverts (état « aperçu ») et vérifie seulement la présence des autres fichiers. L'audit complet décode tous les sonores, ce qui peut être long sur une grande discothèque :
 
@@ -349,7 +349,6 @@ Les messages d'information s'affichent sur la sortie standard ; les anomalies et
 | Manque | Ticket |
 | --- | --- |
 | Archives `.tar.gz` publiées en releases | [#41](https://github.com/dascritch/machincast/issues/41) |
-| Indexation des répertoires de banques : pour l'instant, l'indexation vérifie les sonores déjà en base | [#9](https://github.com/dascritch/machincast/issues/9) |
 | Diffusion par `Machin lecture` | [#12](https://github.com/dascritch/machincast/issues/12) et suivants |
 | Service systemd de diffusion et règle polkit, installation facultative | [#22](https://github.com/dascritch/machincast/issues/22) |
 | Interface graphique `Machin interface` | [#23](https://github.com/dascritch/machincast/issues/23) |

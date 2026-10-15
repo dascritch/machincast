@@ -96,7 +96,7 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 		Et sa durée en base est de 1 seconde à 0,05 seconde près
 		Et la date de modification et la taille du fichier sont enregistrées
 		Et rien n'est signalé sur la sortie d'erreur
-		Et le bilan indique « audit complet : 1 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Et le bilan indique « audit complet : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Plan du scénario: L'indexeur ne change l'état que des sonores en aperçu, actifs ou erronés
 		Étant donné un fichier <fichier>
@@ -141,7 +141,7 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 		Et un sonore à l'état « actif » pour ce fichier
 		Et un deuxième fichier wav sain, dont le sonore est à l'état « errone »
 		Quand l'indexeur fait un audit complet
-		Alors le bilan indique « audit complet : 2 sonores vérifiés ; 1 erroné, 0 supprimé, 1 rétabli, 0 sorti d'aperçu »
+		Alors le bilan indique « audit complet : 0 nouveau sonore, 0 rattachement ; 2 sonores vérifiés ; 1 erroné, 0 supprimé, 1 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Une durée saisie à la main n'est pas remplacée
 		Étant donné un fichier wav sain
@@ -154,7 +154,7 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 		Étant donné un stream enregistré
 		Quand l'indexeur fait un audit complet
 		Alors le stream n'a pas été modifié
-		Et le bilan indique « audit complet : 0 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Et le bilan indique « audit complet : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	# ─── Exécutable ────────────────────────────────────────────
 
