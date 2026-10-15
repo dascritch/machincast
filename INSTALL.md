@@ -4,7 +4,7 @@ Ce document décrit l'installation de MachinCast sur un poste de diffusion, sa v
 
 Le script `install.sh` fait tout le travail. La section [Installer à la main](#installer-à-la-main) détaille chacune de ses étapes, pour qui veut les faire soi-même ou comprendre ce qu'il fait.
 
-> **État du projet** : MachinCast est en cours de développement. L'indexation vérifie déjà les sonores, mais la diffusion (`Machin lecture`) et l'interface graphique (`Machin interface`) ne sont pas encore écrites. La section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
+> **État du projet** : MachinCast est en cours de développement. L'indexation vérifie les sonores, et `Machin lecture` diffuse la grille depuis un terminal ; le service de diffusion, les streams et l'interface graphique (`Machin interface`) ne sont pas encore écrits. La section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
 
 ## Sommaire
 
@@ -334,6 +334,7 @@ Les noms de bases sont ceux du modèle : reprendre ceux de `base.production` et 
 | `install.sh : lancer install.sh avec son propre compte, sans sudo` | Le script a été lancé avec `sudo` ou en `root`. Le relancer avec son compte. |
 | `install.sh : Ubuntu LTS requis (cible : 26.04 LTS)` | Le système n'est pas une Ubuntu LTS. `./install.sh --simulation` montre tout de même les commandes. |
 | `install.sh : configuration … à corriger, puis relancer install.sh` | `machincast.toml` est invalide : le message précédent nomme la clé en cause. |
+| `Machin_lecture : sortie audio indisponible : …` | La sortie de `audio.sortie` ne peut pas être créée : installer le greffon nommé, ou vérifier `audio.peripherique`. Relancer `install.sh` vérifie la sortie. |
 | `machincast.installation : base de données injoignable` | PostgreSQL n'est pas démarré (`sudo systemctl start postgresql`), ou `base.socket` ne désigne pas sa socket. |
 | `machincast.installation : droits insuffisants pour appliquer le schéma dans la base …` | La base existait déjà et appartient à un autre compte, ou ses tables ont été créées par un autre compte. Tant qu'elle ne contient rien d'utile, la supprimer (`sudo -u postgres dropdb …`) puis relancer `install.sh`, qui la recrée. |
 | `… : greffon GStreamer absent, installer …` | Un format sonore ou la sortie audio configurée ne peut pas fonctionner. Installer le paquet nommé, puis relancer `install.sh`. |
@@ -349,7 +350,7 @@ Les messages d'information s'affichent sur la sortie standard ; les anomalies et
 | Manque | Ticket |
 | --- | --- |
 | Archives `.tar.gz` publiées en releases | [#41](https://github.com/dascritch/machincast/issues/41) |
-| Diffusion par `Machin lecture` | [#12](https://github.com/dascritch/machincast/issues/12) et suivants |
+| Diffusion des streams par `Machin lecture` | [#16](https://github.com/dascritch/machincast/issues/16) |
 | Service systemd de diffusion et règle polkit, installation facultative | [#22](https://github.com/dascritch/machincast/issues/22) |
 | Interface graphique `Machin interface` | [#23](https://github.com/dascritch/machincast/issues/23) |
 | Message de l'interface tant que le service n'est pas installé | [#25](https://github.com/dascritch/machincast/issues/25) |
