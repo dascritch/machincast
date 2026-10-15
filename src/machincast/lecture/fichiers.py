@@ -11,13 +11,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 
-
-def _consigner(connexion: psycopg.Connection[TupleRow], niveau: str, nature: str, message: str, sonore: int) -> None:
-	# Le rôle de la lecture ne lit pas le log : jamais de RETURNING ici.
-	connexion.execute(
-		"INSERT INTO log (niveau, nature, message, sonore_id) VALUES (%s, %s, %s, %s)",
-		(niveau, nature, message, sonore),
-	)
+from machincast.lecture.enregistrement import consigner
 
 
 def verifier_avant_lecture(connexion: psycopg.Connection[TupleRow], sonore: int) -> Path | None:
@@ -37,8 +31,12 @@ def verifier_avant_lecture(connexion: psycopg.Connection[TupleRow], sonore: int)
 		try:
 			etat = chemin.stat()
 		except OSError:
-			_consigner(
-				connexion, "incident", "fichier introuvable", f"{chemin} : aucun fichier à cet emplacement", sonore
+			consigner(
+				connexion,
+				"incident",
+				"fichier introuvable",
+				f"{chemin} : aucun fichier à cet emplacement",
+				sonore=sonore,
 			)
 			return None
 		ecarts = []
@@ -51,11 +49,11 @@ def verifier_avant_lecture(connexion: psycopg.Connection[TupleRow], sonore: int)
 		if taille is not None and etat.st_size != taille:
 			ecarts.append(f"taille {taille} octets en base, {etat.st_size} sur le disque")
 		if ecarts:
-			_consigner(
+			consigner(
 				connexion,
 				"alerte",
 				"fichier modifié",
 				f"{chemin} : {' ; '.join(ecarts)} ; l'indexeur mettra la base à jour",
-				sonore,
+				sonore=sonore,
 			)
 		return chemin

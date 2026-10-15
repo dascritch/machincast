@@ -311,8 +311,8 @@ Quand l'artiste et le titre sont masqués, la sortie publique affiche à leur pl
 
 ### 5.2 Écritures
 
-- `airplay` : une ligne au début et une ligne à la fin de chaque passage (insertions seules).
-- `log` : toutes les opérations, normales comme incidents.
+- `airplay` : une ligne au début et une ligne à la fin de chaque passage (insertions seules), par `machincast.lecture.enregistrement` ([#17](https://github.com/dascritch/machincast/issues/17)). La ligne de fin recopie la ligne de début : l'artiste et le titre restent ceux du moment du passage, même modifiés entre-temps. Une coupure nette n'est pas un incident (`sans_incident` vrai) ; une lecture interrompue par une erreur, si.
+- `log` : toutes les opérations, normales comme incidents, avec l'heure de l'horloge du binaire. Natures déjà consignées : `coupure nette` (info), `silence` (alerte), `fichier modifié` (alerte), `fichier introuvable` (incident), `lecture interrompue` (incident).
 - `sonores.etat` : passage à `expire` ([§ 4.5](#45-sonore-jouable)).
 
 ### 5.3 Modules de sortie

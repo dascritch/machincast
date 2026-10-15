@@ -33,6 +33,7 @@ from psycopg.rows import TupleRow
 
 from machincast.hasard import Hasard
 from machincast.lecture.banques import choisir_sonore, sonore_jouable
+from machincast.lecture.enregistrement import consigner
 from machincast.lecture.grille import Occurrence, Priorite, evenement_actif, heure_murale, lire_grille
 
 
@@ -194,8 +195,7 @@ class Ordonnanceur:
 	def _silence(self, couper: bool, actif: Occurrence | None, message: str) -> Decision:
 		if not self.en_silence:
 			self.en_silence = True
-			self.connexion.execute(
-				"INSERT INTO log (niveau, nature, message, evenement_id) VALUES ('alerte', 'silence', %s, %s)",
-				(message, None if actif is None else actif.evenement.id),
+			consigner(
+				self.connexion, "alerte", "silence", message, evenement=None if actif is None else actif.evenement.id
 			)
 		return Decision(couper=couper, silence=True, occurrence=actif)
