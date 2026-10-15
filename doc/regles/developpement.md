@@ -44,7 +44,9 @@ Portées usuelles : `lecture`, `indexation`, `interface`, `wrapper`, `db`, `inst
 - Python pour tout le projet, typé strictement : `mypy --strict` doit passer.
 - Linter et formateur : ruff.
 - Jamais de `print` : les messages passent par `logging`, avec un journal par module (`logging.getLogger(__name__)`). `machincast.journal.configurer` envoie les informations sur la sortie standard, les anomalies (`warning`) et les erreurs (`error`) sur la sortie d'erreur, préfixées du nom de l'exécutable. Un scénario de [`socle.feature`](../../tests/features/socle.feature) refuse tout `print` dans `src/` (revue de [PR #65](https://github.com/dascritch/machincast/pull/65)).
-- Scripts bash (wrapper, autocomplétion, tests bats) : `set -euo pipefail` pour un exécutable, et shellcheck doit passer.
+- Chaînes Python : f-strings (ou t-strings), jamais la notation `str % valeur`, même indirectement : un message de journal est une f-string (`journal.error(f"base {nom} injoignable : {erreur}")`), un format de `logging` s'écrit avec `style="{"` ([#73](https://github.com/dascritch/machincast/issues/73)). Seule exception : les `%s` des requêtes SQL, qui sont des valeurs liées par psycopg et non du formatage de chaîne.
+- Scripts bash (wrapper, autocomplétion, `install.sh`, tests bats) : `set -euo pipefail` pour un exécutable, et shellcheck doit passer. Une variable s'écrit toujours avec accolades, `"${RACINE}"` et jamais `"$RACINE"` ([#73](https://github.com/dascritch/machincast/issues/73)).
+- Deux scénarios de [`socle.feature`](../../tests/features/socle.feature) refusent la notation `%` dans le Python du dépôt et les variables bash sans accolades.
 - **Indentation par tabulations**, pour des raisons d'accessibilité. Ne jamais convertir en espaces. Dans la configuration ruff : `indent-style = "tab"` pour le formateur, règle `W191` désactivée.
 - Vocabulaire : « sonore », « banque », « événement ». « Playlist » désigne uniquement la liste exportée en .pls, .csv ou .html, jamais un objet en base ou à l'écran.
 - Le nom du projet s'écrit toujours « MachinCast ».

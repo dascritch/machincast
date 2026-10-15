@@ -18,6 +18,7 @@ Les scénarios Gherkin sont écrits en français (`# language: fr`).
 - Les tests n'utilisent **jamais** la base de production, uniquement la base de test. Une configuration dont `base.test` vaut `base.production` est refusée au chargement, et `tests/base_test.py` arrête la session s'il rencontre ce cas.
 - Un scénario qui a besoin de la base demande la fixture `base_vide` (`tests/conftest.py`) : base migrée, tables vides, identifiants remis à 1. Le schéma est recréé une fois par session, puis seulement purgé.
 - Le schéma de la base de test est appliqué par les mêmes migrations yoyo que la production (voir [base-de-donnees.md](base-de-donnees.md)).
+- Les tests ne créent jamais de compte PostgreSQL et n'attribuent jamais de rôle ([PR #72](https://github.com/dascritch/machincast/pull/72)). Le compte qui les lance doit déjà endosser les trois rôles de MachinCast (`WITH INHERIT FALSE, SET TRUE`), comme après `install.sh`, sans aucun droit particulier sur le serveur. Sinon, `base_vide` ignore les scénarios de base en indiquant la commande `postgres` à lancer (`CLAUDE.md`).
 - Entre deux tests, les tables sont **purgées** (`TRUNCATE … RESTART IDENTITY`). Chaque test recrée les entrées dont il a besoin, dans la fonction ou dans la classe de test. Aucun test ne dépend des données d'un autre.
 
 ## Fichiers sonores

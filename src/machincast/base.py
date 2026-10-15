@@ -1,6 +1,5 @@
 """Accès à la base PostgreSQL et application des migrations yoyo."""
 
-from collections.abc import Iterable
 from enum import StrEnum
 from pathlib import Path
 from urllib.parse import quote
@@ -73,8 +72,8 @@ def annuler_migrations(url: str) -> None:
 def connecter(socket: Path, base: str, role: Role) -> psycopg.Connection[TupleRow]:
 	"""Ouvre une connexion par socket Unix (authentification peer) et endosse le rôle du binaire.
 
-	L'utilisateur système doit avoir été autorisé par autoriser_utilisateur : il n'hérite pas des droits
-	de ses rôles, il doit les endosser. Chaque binaire n'agit ainsi qu'avec ses propres droits.
+	L'utilisateur système doit avoir été autorisé par l'utilisateur postgres (doc/spec.md § 3.2) : il n'hérite pas
+	des droits de ses rôles, il doit les endosser. Chaque binaire n'agit ainsi qu'avec ses propres droits.
 	"""
 	connexion = psycopg.connect(host=str(socket), dbname=base)
 	try:
@@ -84,25 +83,3 @@ def connecter(socket: Path, base: str, role: Role) -> psycopg.Connection[TupleRo
 		connexion.close()
 		raise
 	return connexion
-
-
-def autoriser_utilisateur(
-	connexion_admin: psycopg.Connection[TupleRow], utilisateur: str, roles: Iterable[Role]
-) -> None:
-	"""Crée si besoin le rôle de connexion d'un utilisateur système et l'autorise à endosser des rôles.
-
-	L'autorisation est donnée sans héritage (INHERIT FALSE) : l'utilisateur n'a aucun droit tant qu'il
-	n'a pas endossé un rôle par SET ROLE. Idempotent ; à exécuter par un administrateur PostgreSQL,
-	par exemple depuis install.sh.
-	"""
-	if not utilisateur.strip():
-		raise ValueError("le nom d'utilisateur ne peut pas être vide")
-	identifiant = sql.Identifier(utilisateur)
-	with connexion_admin.transaction():
-		existe = connexion_admin.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", (utilisateur,)).fetchone()
-		if existe is None:
-			connexion_admin.execute(sql.SQL("CREATE ROLE {} LOGIN").format(identifiant))
-		for role in roles:
-			connexion_admin.execute(
-				sql.SQL("GRANT {} TO {} WITH INHERIT FALSE, SET TRUE").format(sql.Identifier(role), identifiant)
-			)

@@ -16,13 +16,13 @@ _Machin() {
 	COMPREPLY=()
 
 	# Valeur de --config, sous la forme « --config FICHIER » ou « --config=FICHIER » (que bash coupe autour du « = »).
-	if [[ "$precedent" == --config ]] \
-		|| { [[ "$precedent" == = ]] && ((COMP_CWORD >= 2)) && [[ "${COMP_WORDS[COMP_CWORD - 2]}" == --config ]]; }; then
+	if [[ "${precedent}" == --config ]] \
+		|| { [[ "${precedent}" == = ]] && ((COMP_CWORD >= 2)) && [[ "${COMP_WORDS[COMP_CWORD - 2]}" == --config ]]; }; then
 		compopt -o filenames 2>/dev/null
-		mapfile -t COMPREPLY < <(compgen -f -- "$courant")
+		mapfile -t COMPREPLY < <(compgen -f -- "${courant}")
 		return 0
 	fi
-	if [[ "$courant" == = ]] && [[ "$precedent" == --config ]]; then
+	if [[ "${courant}" == = ]] && [[ "${precedent}" == --config ]]; then
 		return 0
 	fi
 
@@ -41,26 +41,26 @@ _Machin() {
 		esac
 	done
 
-	if [[ -z "$binaire" ]]; then
-		if [[ "$courant" == -* ]]; then
-			mapfile -t COMPREPLY < <(compgen -W "-h --help --config --binaires" -- "$courant")
+	if [[ -z "${binaire}" ]]; then
+		if [[ "${courant}" == -* ]]; then
+			mapfile -t COMPREPLY < <(compgen -W "-h --help --config --binaires" -- "${courant}")
 		else
-			mapfile -t COMPREPLY < <(compgen -W "$("$commande" --binaires 2>/dev/null) logs" -- "$courant")
+			mapfile -t COMPREPLY < <(compgen -W "$("${commande}" --binaires 2>/dev/null) logs" -- "${courant}")
 		fi
 		return 0
 	fi
 
-	if [[ "$binaire" == logs ]]; then
-		mapfile -t COMPREPLY < <(compgen -W "$_MACHIN_OPTIONS_LOGS" -- "$courant")
+	if [[ "${binaire}" == logs ]]; then
+		mapfile -t COMPREPLY < <(compgen -W "${_MACHIN_OPTIONS_LOGS}" -- "${courant}")
 		return 0
 	fi
 
-	if [[ "$courant" == -* ]]; then
+	if [[ "${courant}" == -* ]]; then
 		# Options affichées par l'aide argparse du binaire : « -h, --help », « --config FICHIER »…
 		local options
-		options="$("$commande" "$binaire" --help 2>/dev/null \
+		options="$("${commande}" "${binaire}" --help 2>/dev/null \
 			| grep -oE '(^|[[:space:],])--?[[:alnum:]][-[:alnum:]]*' | tr -d ' ,' | sort -u)"
-		mapfile -t COMPREPLY < <(compgen -W "$options" -- "$courant")
+		mapfile -t COMPREPLY < <(compgen -W "${options}" -- "${courant}")
 	fi
 	return 0
 }

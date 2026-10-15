@@ -1,7 +1,5 @@
 """Étapes des scénarios des rôles PostgreSQL (https://github.com/dascritch/machincast/issues/4)."""
 
-import subprocess
-import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -11,7 +9,7 @@ import pytest
 from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast.base import Role, annuler_migrations, autoriser_utilisateur, connecter, url_yoyo
+from machincast.base import Role, annuler_migrations, connecter, url_yoyo
 from tests.base_test import parametres_base_test
 
 scenarios("roles.feature")
@@ -93,18 +91,6 @@ def base(contexte: Contexte) -> None:
 		contexte, "INSERT INTO sonores (type, emplacement, titre) VALUES ('fichier', '/reference.flac', 'Référence')"
 	)
 	r["evenement"] = inserer(contexte, "INSERT INTO evenements (nom_interne, priorite) VALUES ('Fil', 'fil_musical')")
-
-
-@given(parsers.parse('l\'utilisateur "{utilisateur}" autorisé à endosser les trois rôles de MachinCast'))
-def utilisateur_autorise(contexte: Contexte, utilisateur: str) -> None:
-	autoriser_utilisateur(contexte.connexion, utilisateur, tuple(Role))
-	# L'utilisateur qui lance les tests doit aussi pouvoir endosser ces rôles, et cet utilisateur d'essai.
-	courant = contexte.connexion.execute("SELECT current_user").fetchone()
-	assert courant is not None
-	autoriser_utilisateur(contexte.connexion, str(courant[0]), tuple(Role))
-	contexte.connexion.execute(
-		sql.SQL("GRANT {} TO CURRENT_USER WITH INHERIT FALSE, SET TRUE").format(sql.Identifier(utilisateur))
-	)
 
 
 @given("un passage du sonore de référence dans l'airplay")
@@ -198,21 +184,6 @@ def airplay_conserve(contexte: Contexte) -> None:
 	assert lignes == [(None, "Référence")]
 
 
-@then(parsers.parse('l\'utilisateur "{utilisateur}" ne peut pas lire les sonores sans endosser un rôle'))
-def sans_heritage(contexte: Contexte, utilisateur: str) -> None:
-	assert not autorise(contexte, utilisateur, "SELECT * FROM sonores LIMIT 1")
-
-
-@then(parsers.parse('l\'utilisateur "{utilisateur}" peut endosser chacun des trois rôles'))
-def peut_endosser(contexte: Contexte, utilisateur: str) -> None:
-	lignes = contexte.connexion.execute(
-		"SELECT r.rolname, m.inherit_option, m.set_option FROM pg_auth_members m "
-		"JOIN pg_roles r ON r.oid = m.roleid JOIN pg_roles u ON u.oid = m.member WHERE u.rolname = %s",
-		(utilisateur,),
-	).fetchall()
-	assert sorted(lignes) == sorted((str(role), False, True) for role in Role)
-
-
 @then(parsers.parse('la connexion agit en tant que "{role}"'))
 def agit_en_tant_que(role_courant: str, role: str) -> None:
 	assert role_courant == role
@@ -226,40 +197,14 @@ def roles_existent(contexte: Contexte) -> None:
 	assert len(lignes) == 3
 
 
-@when(
-	parsers.re(
-		r'je lance « python -m machincast\.droits » pour autoriser "(?P<utilisateur>[^"]*)" '
-		r'aux rôles "(?P<premier>[^"]+)" et "(?P<second>[^"]+)"'
-	),
-	target_fixture="resultat",
-)
-def lancer_droits(utilisateur: str, premier: str, second: str) -> subprocess.CompletedProcess[str]:
-	socket, base_test = parametres_base_test()
-	return subprocess.run(
-		[sys.executable, "-m", "machincast.droits", "--socket", str(socket), "--base", base_test]
-		+ ["autoriser", utilisateur, premier, second],
-		capture_output=True,
-		text=True,
-		timeout=30,
-	)
-
-
-@then("la commande se termine sans erreur")
-def sans_erreur(resultat: subprocess.CompletedProcess[str]) -> None:
-	assert resultat.returncode == 0, resultat.stderr
-
-
-@then(parsers.parse('la commande échoue en mentionnant "{texte}"'))
-def echec(resultat: subprocess.CompletedProcess[str], texte: str) -> None:
-	assert resultat.returncode != 0
-	assert texte in resultat.stderr
-
-
-@then(parsers.parse('l\'utilisateur "{utilisateur}" peut endosser les rôles "{premier}" et "{second}"'))
-def peut_endosser_deux(contexte: Contexte, utilisateur: str, premier: str, second: str) -> None:
+@then("le compte courant peut endosser chacun des trois rôles, sans en hériter les droits")
+def compte_courant(contexte: Contexte) -> None:
 	lignes = contexte.connexion.execute(
-		"SELECT r.rolname, m.inherit_option, m.set_option FROM pg_auth_members m "
-		"JOIN pg_roles r ON r.oid = m.roleid JOIN pg_roles u ON u.oid = m.member WHERE u.rolname = %s",
-		(utilisateur,),
+		"SELECT r.rolname, m.inherit_option, m.set_option FROM pg_auth_members m"
+		" JOIN pg_roles r ON r.oid = m.roleid WHERE m.member = (SELECT oid FROM pg_roles WHERE rolname = current_user)"
+		" AND r.rolname = ANY(%s)",
+		([str(role) for role in Role],),
 	).fetchall()
-	assert sorted(lignes) == sorted([(premier, False, True), (second, False, True)])
+	# Aucune autorisation n'hérite des droits, et chaque rôle peut être endossé par au moins l'une d'elles.
+	assert lignes and not any(heritage for _, heritage, _ in lignes), lignes
+	assert {str(nom) for nom, _, endossable in lignes if endossable} == {str(role) for role in Role}, lignes

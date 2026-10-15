@@ -19,20 +19,23 @@ sudo apt install python3-venv python3-dev build-essential pkg-config libgireposi
 # Outils de développement du wrapper bash
 sudo apt install bats shellcheck
 
+# Installation d'un poste, relançable : ./install.sh (--simulation pour voir les commandes sans les exécuter)
 # Installation de dev : venv isolé, jamais --system-site-packages (https://github.com/dascritch/machincast/issues/51)
 python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
 cp machincast.exemple.toml machincast.toml   # puis l'adapter ; jamais versionné
 
-# Base de test locale (PostgreSQL ≥ 16, authentification peer)
-createdb machincast_test
-
-# Autoriser un utilisateur système à endosser des rôles
-# (par un rôle PostgreSQL qui a CREATEROLE et qui a créé les rôles, par exemple celui qui applique les migrations)
-python -m machincast.droits --base machincast_test autoriser "$(id -un)" lecture indexation interface
+# Base de test locale (PostgreSQL ≥ 16, authentification peer) : ./install.sh la prépare. Le compte n'a besoin
+# d'aucun droit particulier (ni CREATEDB, ni CREATEROLE) : propriétaire de la base, il endosse les trois rôles
+# sans en hériter les droits. Les tests ne créent jamais de compte et n'attribuent jamais de rôle. À la main :
+sudo -u postgres createuser "$(id -un)"
+sudo -u postgres createdb --owner="$(id -un)" machincast_test
+sudo -u postgres psql -c "CREATE ROLE machincast_lecture NOLOGIN" -c "CREATE ROLE machincast_indexation NOLOGIN" \
+	-c "CREATE ROLE machincast_interface NOLOGIN"
+sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machincast_interface TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
 
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/
-shellcheck -x bin/Machin bash-completion/Machin tests/wrapper/*.bash tests/wrapper/*.bats
+shellcheck -x install.sh bin/Machin bash-completion/Machin tests/wrapper/*.bash tests/wrapper/*.bats
 
 # Tests : configuration tests/configuration-test.toml, ou celle désignée par MACHINCAST_CONFIG_TEST
 # (les scénarios de base de données sont ignorés si PostgreSQL est injoignable)

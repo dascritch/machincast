@@ -22,7 +22,8 @@ DESCRIPTION = "Vérifie les sonores et indexe les répertoires des banques."
 
 CODE_ECHEC = 1
 
-journal = logging.getLogger(__name__)
+# Nom explicite : lancé par python -m, ce module s'appelle __main__, hors du journal « machincast ».
+journal = logging.getLogger("machincast.indexation")
 
 
 def options_propres(analyseur: argparse.ArgumentParser) -> None:
@@ -39,15 +40,15 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 		with connecter(base.socket, base.production, Role.INDEXATION) as connexion:
 			bilan = verifier_sonores(connexion, audit_complet=options.audit_complet)
 	except psycopg.OperationalError as erreur:
-		journal.error("base de données injoignable (%s par %s) : %s", base.production, base.socket, erreur)
+		journal.error(f"base de données injoignable ({base.production} par {base.socket}) : {erreur}")
 		return CODE_ECHEC
 	except psycopg.Error as erreur:
-		journal.error("erreur de base de données : %s", erreur)
+		journal.error(f"erreur de base de données : {erreur}")
 		return CODE_ECHEC
 	except DecodeurIndisponible as erreur:
-		journal.error("vérification interrompue : %s", erreur)
+		journal.error(f"vérification interrompue : {erreur}")
 		return CODE_ECHEC
-	journal.info("%s", texte_bilan(bilan))
+	journal.info(texte_bilan(bilan))
 	return 0
 
 

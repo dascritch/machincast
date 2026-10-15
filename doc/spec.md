@@ -208,7 +208,7 @@ Un rôle PostgreSQL par binaire : `machincast_lecture`, `machincast_indexation`,
 
 - Ce sont des **rôles de groupe**, sans connexion. Un utilisateur système se connecte avec son propre rôle, par authentification **peer** sur la socket Unix.
 - L'utilisateur est membre des rôles qu'il peut endosser, **sans en hériter les droits** : connecté, il n'a accès à rien. Chaque binaire endosse son rôle par `SET ROLE` dès la connexion (`machincast.base.connecter`). L'indexation lancée depuis l'interface, sous l'utilisateur de bureau, agit donc avec les seuls droits de l'indexation.
-- Un administrateur autorise un utilisateur avec `python -m machincast.droits --base <base> autoriser <utilisateur> <rôle>…` ; `install.sh` l'utilise ([#40](https://github.com/dascritch/machincast/issues/40)).
+- Un administrateur autorise un compte en tant qu'utilisateur `postgres` : `GRANT machincast_lecture, machincast_indexation, machincast_interface TO <compte> WITH INHERIT FALSE, SET TRUE` ; `install.sh` le fait pour le compte qui installe ([#40](https://github.com/dascritch/machincast/issues/40)).
 - Le respect des droits est en plus vérifié dans le code source.
 - PostgreSQL 16 ou plus récent est requis (options `INHERIT` et `SET` des appartenances).
 
@@ -509,13 +509,17 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 
 - Cible : Ubuntu 26.04 LTS, et uniquement des versions LTS.
 - Livraison : archives `.tar.gz` publiées en releases sur le dépôt git (sur le repository <https://github.com/dascritch/machincast>).
-- Chaque archive contient un `install.sh` qui :
+- Chaque archive contient un `install.sh` ([#40](https://github.com/dascritch/machincast/issues/40)), à lancer depuis le répertoire de MachinCast (release décompressée ou dépôt git) avec son propre compte, jamais avec sudo : il demande sudo pour les seules étapes qui l'exigent. Relançable, il laisse en place chaque étape déjà faite. `./install.sh --simulation` affiche les commandes sans rien exécuter. Il :
+	- vérifie le système : Ubuntu LTS, la cible étant 26.04 ;
 	- installe par apt les seules dépendances système (bibliothèques de compilation de PyGObject, GStreamer et ses plugins, PostgreSQL) ;
 	- crée un environnement virtuel Python isolé, **sans** `--system-site-packages`, et y installe toutes les dépendances Python par pip (PySide6, PyGObject, psycopg, yoyo-migrations). Le projet suit ainsi l'évolution des paquets sans dépendre des versions de la distribution hôte ;
-	- crée les bases de production et de test, et leurs rôles ;
-	- installe l'unité systemd de `Machin_lecture`, `machincast.service`, et la règle polkit limitée au démarrage, à l'arrêt et au redémarrage de ce service ;
-	- installe le wrapper `Machin` et son autocomplétion bash ;
-	- ajoute les comptes de la radio au groupe `systemd-journal`, pour que tous puissent suivre les logs du service avec `Machin logs`.
+	- copie `machincast.exemple.toml` en `machincast.toml` s'il n'existe pas ;
+	- crée, en tant qu'utilisateur `postgres`, le rôle PostgreSQL du compte courant, **sans aucun droit particulier** (ni `CREATEDB`, ni `CREATEROLE`), les bases de production et de test dont ce compte devient propriétaire, et les trois rôles de groupe ; le compte applique ensuite le schéma, ce que la propriété des bases lui permet ;
+	- autorise le compte courant à endosser les trois rôles de MachinCast, en tant qu'utilisateur `postgres` ; un autre compte s'ajoute plus tard de la même façon (voir `INSTALL.md`, [#71](https://github.com/dascritch/machincast/issues/71)) ;
+	- ajoute le compte courant au groupe `systemd-journal`, pour suivre les logs du service avec `Machin logs` ;
+	- installe en place : `/opt/machincast` est un lien vers le répertoire de MachinCast, `Machin` est relié depuis `/usr/local/bin`, l'autocomplétion depuis `/usr/share/bash-completion/completions` ;
+	- vérifie que GStreamer sait décoder chacun des formats de la spec et créer la sortie audio configurée, sans jouer de son, et nomme sinon le paquet manquant (`python -m machincast.installation verifier`).
+- L'unité systemd `machincast.service` et la règle polkit ne sont pas installées par défaut : leur installation sera facultative, pour essayer l'outil avant de l'installer définitivement ([#22](https://github.com/dascritch/machincast/issues/22)). Tant que le service n'est pas installé, l'interface d'administration le signale ([#25](https://github.com/dascritch/machincast/issues/25)).
 
 ## 11. Développements ultérieurs
 

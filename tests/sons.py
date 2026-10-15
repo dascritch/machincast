@@ -112,11 +112,11 @@ def generer_son(format_sonore: str, chemin: Path, secondes: float = DUREE_SECOND
 
 
 if __name__ == "__main__":
-	logging.basicConfig(level=logging.INFO, format="%(message)s")
+	logging.basicConfig(level=logging.INFO, format="{message}", style="{")
 	FICHIERS_SONORES.mkdir(exist_ok=True)
 	for format_sonore in ENCODEURS:
 		chemin = generer_son(format_sonore, FICHIERS_SONORES / f"sain.{format_sonore}")
-		logging.info("%s : %d octets", chemin.name, chemin.stat().st_size)
+		logging.info(f"{chemin.name} : {chemin.stat().st_size} octets")
 	for format_sonore in ENCODEURS_TAGUES:
 		chemin = generer_son(format_sonore, FICHIERS_SONORES / f"tags.{format_sonore}", tags=TAGS_DE_TEST)
-		logging.info("%s : %d octets", chemin.name, chemin.stat().st_size)
+		logging.info(f"{chemin.name} : {chemin.stat().st_size} octets")

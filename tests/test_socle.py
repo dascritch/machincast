@@ -300,3 +300,48 @@ def sortie_standard(capsys: pytest.CaptureFixture[str], contexte: Contexte, text
 def sortie_erreur(contexte: Contexte, texte: str) -> None:
 	assert contexte.capture is not None
 	assert contexte.capture.err == texte + "\n"
+
+
+# Notation des chaînes (https://github.com/dascritch/machincast/issues/73). Les %s des requêtes SQL sont des
+# valeurs liées par psycopg, pas du formatage de chaîne : ils ne sont pas visés.
+FORMATAGE_POURCENT = re.compile(
+	# Message de journal composé par logging à partir d'arguments : journal.info("… %s", valeur).
+	r"""\b(?:journal|logging|logger)\.(?:debug|info|warning|error|critical|exception)\(\s*f?["'][^"']*%[-\d.]*[sdrif(]"""
+	# Format %(message)s de logging.Formatter ou de logging.basicConfig.
+	r"|%\(\w+\)[sd]"
+	# Opérateur % appliqué à une chaîne : "…" % valeur.
+	r"""|["']\s*%\s*[\w(]"""
+)
+SCRIPTS_BASH = [
+	RACINE / "install.sh",
+	RACINE / "bin" / "Machin",
+	RACINE / "bash-completion" / "Machin",
+	*sorted((RACINE / "tests" / "wrapper").glob("*.bash")),
+	*sorted((RACINE / "tests" / "wrapper").glob("*.bats")),
+]
+# $NOM sans accolades ; $1, $@, $#, $? et les substitutions $( … ) ne sont pas des noms de variables.
+VARIABLE_SANS_ACCOLADES = re.compile(r"(?<!\\)\$[A-Za-z_]")
+
+
+@then("aucun fichier Python du dépôt ne compose une chaîne ou un message de journal avec la notation %")
+def sans_pourcent() -> None:
+	fichiers = sorted(SOURCES.rglob("*.py")) + sorted((RACINE / "tests").glob("*.py"))
+	fautes = [
+		f"{chemin.relative_to(RACINE)}:{numero}"
+		for chemin in fichiers
+		if chemin.name != "test_socle.py"
+		for numero, ligne in enumerate(chemin.read_text(encoding="utf-8").splitlines(), start=1)
+		if FORMATAGE_POURCENT.search(ligne)
+	]
+	assert not fautes, "utiliser une f-string, jamais la notation % :\n" + "\n".join(fautes)
+
+
+@then("aucun script bash du dépôt n'écrit une variable sans accolades")
+def accolades() -> None:
+	fautes = [
+		f"{chemin.relative_to(RACINE)}:{numero} : {ligne.strip()}"
+		for chemin in SCRIPTS_BASH
+		for numero, ligne in enumerate(chemin.read_text(encoding="utf-8").splitlines(), start=1)
+		if VARIABLE_SANS_ACCOLADES.search(ligne)
+	]
+	assert not fautes, "écrire ${VARIABLE}, jamais $VARIABLE :\n" + "\n".join(fautes[:20])
