@@ -10,13 +10,13 @@ Les rôles eux-mêmes sont créés par la migration 0002.droits.
 """
 
 import argparse
-import sys
 from collections.abc import Sequence
 from pathlib import Path
 
 import psycopg
 
 from machincast.base import Role, autoriser_utilisateur
+from machincast.journal import configurer as configurer_journal
 
 ROLES = {role.name.lower(): role for role in Role}
 """Noms courts acceptés en ligne de commande : lecture, indexation, interface."""
@@ -43,13 +43,14 @@ def main(arguments: Sequence[str] | None = None) -> int:
 	autoriser.add_argument("roles", nargs="+", choices=sorted(ROLES), metavar="ROLE", help=", ".join(sorted(ROLES)))
 	options = analyseur.parse_args(arguments)
 
+	journal = configurer_journal("machincast.droits")
 	try:
 		with psycopg.connect(host=str(options.socket), dbname=options.base, autocommit=True) as connexion:
 			autoriser_utilisateur(connexion, options.utilisateur, [ROLES[nom] for nom in options.roles])
 	except psycopg.Error as erreur:
-		print(f"machincast.droits : {erreur}", file=sys.stderr)
+		journal.error("%s", erreur)
 		return 1
-	print(f"{options.utilisateur} peut endosser : {', '.join(str(ROLES[nom]) for nom in options.roles)}")
+	journal.info("%s peut endosser : %s", options.utilisateur, ", ".join(str(ROLES[nom]) for nom in options.roles))
 	return 0
 
 

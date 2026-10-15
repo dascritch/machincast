@@ -1,5 +1,6 @@
 """Étapes des scénarios du socle de test (https://github.com/dascritch/machincast/issues/5)."""
 
+import logging
 import random
 import re
 from dataclasses import dataclass, field
@@ -8,13 +9,17 @@ from pathlib import Path
 
 import psycopg
 import pytest
+from _pytest.capture import CaptureResult
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.audio import Greffon, SortieAudioIndisponible, creer_sortie, jouer_son_de_test
 from machincast.configuration import ConfigurationInvalide, SortieAudio, charger
 from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe, HorlogeSysteme
+from machincast.journal import configurer as configurer_journal
 from tests.base_test import CONFIGURATION_TEST, configuration_test, purger_base
+
+RACINE = Path(__file__).resolve().parents[1]
 
 scenarios("socle.feature")
 
@@ -27,6 +32,7 @@ class Contexte:
 	horloge: HorlogeFixe | None = None
 	hasards: list[random.Random] = field(default_factory=list)
 	element: object = None
+	capture: "CaptureResult[str] | None" = None
 
 
 @pytest.fixture
@@ -47,9 +53,20 @@ def sortie_des_tests(sortie: str) -> None:
 	assert configuration_test().audio.sortie == sortie
 
 
+@then("la base de production de la configuration de test n'est pas celle du modèle de configuration")
+def production_hors_tests() -> None:
+	# Un binaire lancé avec la configuration de test ne doit pas pouvoir atteindre la vraie base de production
+	# (https://github.com/dascritch/machincast/issues/7).
+	modele = charger(RACINE / "machincast.exemple.toml")
+	assert configuration_test().base.production != modele.base.production
+
+
 @given("une configuration de test dont la base de test porte le nom de la base de production")
 def configuration_dangereuse(contexte: Contexte, tmp_path: Path) -> None:
-	texte = CONFIGURATION_TEST.read_text(encoding="utf-8").replace('test = "machincast_test"', 'test = "machincast"')
+	base = configuration_test().base
+	texte = CONFIGURATION_TEST.read_text(encoding="utf-8").replace(
+		f'test = "{base.test}"', f'test = "{base.production}"'
+	)
 	contexte.chemin = tmp_path / "configuration-dangereuse.toml"
 	contexte.chemin.write_text(texte, encoding="utf-8")
 
@@ -221,7 +238,7 @@ def paquet_nomme(contexte: Contexte) -> None:
 
 # ─── Garde-fous ────────────────────────────────────────────
 
-SOURCES = Path(__file__).resolve().parents[1] / "src" / "machincast"
+SOURCES = RACINE / "src" / "machincast"
 MODULES_DEDIES = {"horloge.py", "hasard.py"}
 # Appels qui lisent l'heure réelle ou un hasard non injecté.
 INTERDITS = re.compile(
@@ -240,3 +257,46 @@ def garde_fou() -> None:
 		for m in INTERDITS.finditer(chemin.read_text(encoding="utf-8"))
 	]
 	assert not fautes, "utiliser machincast.horloge ou machincast.hasard :\n" + "\n".join(fautes)
+
+
+# Les messages des exécutables passent par logging et machincast.journal, jamais par print
+# (revue de https://github.com/dascritch/machincast/pull/65).
+PRINT = re.compile(r"(?<![\w.])print\s*\(")
+
+
+@then("aucun fichier de src/ n'appelle print")
+def sans_print() -> None:
+	fautes = [
+		f"{chemin.relative_to(SOURCES)}:{numero}"
+		for chemin in sorted(SOURCES.rglob("*.py"))
+		for numero, ligne in enumerate(chemin.read_text(encoding="utf-8").splitlines(), start=1)
+		if PRINT.search(ligne.split("#", 1)[0])
+	]
+	assert not fautes, "utiliser logging (machincast.journal) au lieu de print :\n" + "\n".join(fautes)
+
+
+@given(parsers.parse('les messages configurés pour l\'exécutable "{executable}"'))
+def messages_configures(executable: str, capsys: pytest.CaptureFixture[str]) -> None:
+	# capsys est demandé dès ici : sa capture doit commencer avant l'émission des messages.
+	capsys.readouterr()
+	configurer_journal(executable)
+
+
+@when(parsers.parse("le code émet une information « {information} » et une anomalie « {anomalie} »"))
+def emettre(information: str, anomalie: str) -> None:
+	journal = logging.getLogger("machincast.essai")
+	journal.info(information)
+	journal.warning(anomalie)
+
+
+@then(parsers.parse("la sortie standard contient seulement « {texte} »"))
+def sortie_standard(capsys: pytest.CaptureFixture[str], contexte: Contexte, texte: str) -> None:
+	capture = capsys.readouterr()
+	contexte.capture = capture
+	assert capture.out == texte + "\n"
+
+
+@then(parsers.parse("la sortie d'erreur contient seulement « {texte} »"))
+def sortie_erreur(contexte: Contexte, texte: str) -> None:
+	assert contexte.capture is not None
+	assert contexte.capture.err == texte + "\n"
