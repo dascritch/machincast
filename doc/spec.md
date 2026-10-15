@@ -169,6 +169,7 @@ L'historique de diffusion. Les lignes ne sont **jamais supprimées**, même quan
 | `type_ligne` | `debut` ou `fin`. |
 | `horodatage` | Heure de début ou de fin. |
 | `sonore_id`, `banque_id`, `evenement_id` | Références facultatives. `banque_id` est indispensable au cycle aléatoire propre à chaque banque. |
+| `element_id` | Élément de la liste de l'événement qui a fait jouer le passage (migration `0002.airplay-element`, [#14](https://github.com/dascritch/machincast/issues/14)) : un même élément peut figurer plusieurs fois dans une liste, seul lui dit où la reprendre. Vide si l'élément est supprimé. |
 | `emplacement`, `artiste`, `titre` | Recopiés au moment du passage, pour garder l'historique après suppression. |
 | `duree_diffusee` | Sur la ligne de fin : durée effectivement diffusée. |
 | `sans_incident` | Sur la ligne de fin : la lecture s'est-elle déroulée sans incident. |
@@ -240,7 +241,9 @@ L'indexation ne supprime rien : un fichier disparu fait passer son sonore à l'�
 
 - **Début d'un événement** : il coupe **net** le sonore en cours, quel que soit le sonore.
 - **Fin d'un événement** : si aucun autre événement ne suit, le dernier sonore est joué jusqu'au bout, puis le suivant est choisi selon les règles du fil musical actif. Si un autre événement suit immédiatement, son début coupe net le dernier sonore.
-- **Retour au fil musical** : il reprend à l'élément qui suit le dernier joué, d'après la table `airplay`.
+- **Retour au fil musical** : il reprend à l'élément qui suit le dernier joué, d'après la table `airplay` (`element_id`), d'une occurrence à l'autre.
+- **Rien à diffuser** : silence, et une alerte `silence` dans le log, une seule fois par silence. Le silence cesse dès qu'un sonore redevient jouable ou qu'un autre événement commence.
+- L'ordonnanceur (`machincast.lecture.deroule`, [#14](https://github.com/dascritch/machincast/issues/14)) décide à chaque instant : continuer, couper net, jouer un sonore ou se taire. Un événement coupe le sonore en cours s'il a commencé après le début de ce sonore ; sinon le sonore va jusqu'au bout.
 
 ### 4.3 Liste de lecture d'un événement
 
@@ -248,6 +251,8 @@ L'indexation ne supprime rien : un fichier disparu fait passer son sonore à l'�
 - Un élément banque fait jouer **un seul** sonore de cette banque.
 - Si la liste est terminée avant la fin de l'événement, elle reprend au début (boucle).
 - Un événement `emission` ou `special` sans date de fin ne boucle pas : il se termine à la fin de sa liste.
+- Un élément qui ne donne rien (banque sans sonore jouable, sonore non jouable) est sauté. Une émission ou un spécial dont plus rien n'est jouable se termine pour cette occurrence ; pour un fil musical, silence et alerte.
+- Une émission ou un spécial reprend sa liste au début à chaque occurrence : seuls comptent les passages de l'occurrence en cours.
 
 ### 4.4 Choix d'un sonore dans une banque
 

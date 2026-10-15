@@ -208,6 +208,12 @@ Fonctionnalité: Schéma initial de la base de données
 		Quand je supprime le sonore de référence
 		Alors la ligne d'airplay existe toujours, avec son titre recopié et sans référence au sonore
 
+	Scénario: L'airplay note l'élément d'événement joué, et le garde vide quand l'élément est supprimé
+		Étant donné les éléments de référence en base
+		Et un élément de l'événement de référence, joué dans l'airplay
+		Quand je supprime cet élément de l'événement
+		Alors la ligne d'airplay existe toujours, sans référence à l'élément
+
 	Plan du scénario: Le log n'accepte que les niveaux connus
 		Quand j'enregistre dans "log" : niveau = '<niveau>', nature = 'demarrage'
 		Alors la base <verdict> l'enregistrement

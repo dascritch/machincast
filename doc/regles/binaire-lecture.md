@@ -28,6 +28,12 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 - Le tirage passe par le `Hasard` reçu, créé par `machincast.hasard.creer_hasard` : jamais d'`import random` hors de `machincast.hasard`.
 - Les règles de jouabilité (§ 4.5) sont dans `banques.jouable` ; le maximum de lectures se compte sur tout l'airplay.
 
+## Déroulé et transitions
+
+- `machincast.lecture.deroule.Ordonnanceur.decider(instant, en_cours)` ([#14](https://github.com/dascritch/machincast/issues/14)) dit à la sortie audio de continuer, couper net, jouer un sonore ou se taire. Il ne garde en mémoire que les occurrences terminées plus tôt et l'état de silence : la position dans chaque liste se lit dans l'airplay.
+- Chaque passage doit donc noter dans l'airplay son événement (`evenement_id`) et son élément (`element_id`), en plus de sa banque.
+- Une seule alerte `silence` par silence, pas une par seconde.
+
 ## Écritures autorisées
 
 Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures sont garanties par les droits PostgreSQL ([spec.md § 3.2](../spec.md#32-rôles-et-droits)) :

@@ -188,6 +188,32 @@ def modifier_titre(contexte: Contexte) -> None:
 	contexte.connexion.execute("UPDATE sonores SET titre = 'Nouveau titre' WHERE id = %s", (identifiant,))
 
 
+@given("un élément de l'événement de référence, joué dans l'airplay")
+def element_joue(contexte: Contexte) -> None:
+	r = contexte.references
+	r["element"] = inserer(
+		contexte,
+		"evenements_elements",
+		{"evenement_id": str(r["evenement"]), "position": "1", "sonore_id": str(r["sonore"])},
+	)
+	inserer(
+		contexte,
+		"airplay",
+		{
+			"passage_id": "gen_random_uuid()",
+			"type_ligne": "'debut'",
+			"sonore_id": str(r["sonore"]),
+			"evenement_id": str(r["evenement"]),
+			"element_id": str(r["element"]),
+		},
+	)
+
+
+@when("je supprime cet élément de l'événement")
+def supprimer_element(contexte: Contexte) -> None:
+	contexte.connexion.execute("DELETE FROM evenements_elements WHERE id = %s", (contexte.references["element"],))
+
+
 @when("je supprime le sonore de référence")
 def supprimer_sonore(contexte: Contexte) -> None:
 	contexte.connexion.execute("DELETE FROM sonores WHERE id = %s", (contexte.references["sonore"],))
@@ -259,6 +285,12 @@ def date_avancee(contexte: Contexte) -> None:
 	).fetchone()
 	assert ligne is not None and isinstance(ligne[0], datetime)
 	assert contexte.modifie_le is not None and ligne[0] > contexte.modifie_le
+
+
+@then("la ligne d'airplay existe toujours, sans référence à l'élément")
+def airplay_sans_element(contexte: Contexte) -> None:
+	lignes = contexte.connexion.execute("SELECT element_id, evenement_id FROM airplay").fetchall()
+	assert lignes == [(None, contexte.references["evenement"])]
 
 
 @then("la ligne d'airplay existe toujours, avec son titre recopié et sans référence au sonore")
