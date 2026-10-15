@@ -49,6 +49,7 @@ from machincast.lecture.enregistrement import Passage, commencer_passage, consig
 from machincast.lecture.expiration import expirer
 from machincast.lecture.fichiers import verifier_avant_lecture
 from machincast.lecture.moteur import MoteurAudio, Voie, fondu_d_entree, superposition
+from machincast.lecture.sorties import Sorties
 
 PAUSE = 0.05
 """Pause entre deux pas de la boucle, en secondes : la précision de l'enchaînement et de la coupure."""
@@ -144,6 +145,8 @@ class Diffusion:
 	horloge: Horloge
 	hasard: Hasard
 	delai_reconnexion: timedelta = DELAI_RECONNEXION
+	sorties: Sorties | None = None
+	"""Modules de sortie : journal, CSV, .pls et HTML (https://github.com/dascritch/machincast/issues/19)."""
 	ordonnanceur: Ordonnanceur = field(init=False)
 	courant: Lecture | None = field(default=None, init=False)
 	sortants: list[Lecture] = field(default_factory=list, init=False)
@@ -195,7 +198,7 @@ class Diffusion:
 		self._terminer_les_voies_arretees(instant)
 		self.moteur.couper()
 		for lecture in self._lectures():
-			terminer_passage(self.connexion, lecture.passage, instant)
+			self._terminer(lecture.passage, instant)
 		self.courant, self.sortants, self.en_attente, self.sonde = None, [], None, None
 		consigner(self.connexion, "info", "arrêt", "arrêt demandé", instant)
 
@@ -211,10 +214,10 @@ class Diffusion:
 			if lecture.parametres.stream and not lecture.eteinte:
 				# Un stream n'a pas de fin : arrêté avant son extinction, il est tombé.
 				erreur = f"{lecture.parametres.adresse} : {lecture.voie.erreur or FLUX_ARRETE}"
-				terminer_passage(self.connexion, lecture.passage, instant, erreur=erreur, nature=FLUX_TOMBE)
+				self._terminer(lecture.passage, instant, erreur=erreur, nature=FLUX_TOMBE)
 				self._suspendre(lecture, instant)
 			else:
-				terminer_passage(self.connexion, lecture.passage, instant, erreur=lecture.voie.erreur)
+				self._terminer(lecture.passage, instant, erreur=lecture.voie.erreur)
 		self.sortants = [s for s in self.sortants if s.voie.etat == "en cours"]
 		if self.courant is not None and self.courant.voie.etat != "en cours":
 			self.courant = None
@@ -298,14 +301,12 @@ class Diffusion:
 				lecture.voie.eteindre(fondu)
 			else:
 				lecture.voie.couper()
-				terminer_passage(self.connexion, lecture.passage, instant)
+				self._terminer(lecture.passage, instant)
 		self.sortants = [lecture for lecture in self._lectures() if lecture.voie.etat == "en cours"]
 		self.en_attente, self.sonde = None, None
 		self.ordonnanceur.reprendre()
 		choix = sonde.choix
-		passage = commencer_passage(
-			self.connexion, choix.sonore, choix.banque, choix.occurrence.evenement.id, choix.element.id, instant
-		)
+		passage = self._commencer(choix.sonore, choix.banque, choix.occurrence.evenement.id, choix.element.id, instant)
 		self.courant = Lecture(choix, sonde.parametres, voie, passage)
 		expirer(self.connexion, instant, choix.sonore)
 		panne = round((instant - sonde.depuis).total_seconds())
@@ -322,7 +323,7 @@ class Diffusion:
 	def _couper(self, instant: datetime) -> None:
 		self.moteur.couper()
 		for lecture in self._lectures():
-			terminer_passage(self.connexion, lecture.passage, instant, coupe=True)
+			self._terminer(lecture.passage, instant, coupe=True)
 		self.courant, self.sortants, self.en_attente = None, [], None
 
 	def _appliquer(self, decision: Decision, instant: datetime) -> None:
@@ -351,8 +352,7 @@ class Diffusion:
 			fondu_d_entree(crossfade_fin_precedent, parametres.crossfade_debut),
 			parametres.crossfade_fin,
 		)
-		passage = commencer_passage(
-			self.connexion,
+		passage = self._commencer(
 			suivant.sonore,
 			suivant.banque,
 			suivant.occurrence.evenement.id,
@@ -363,6 +363,26 @@ class Diffusion:
 			self.sortants.append(self.courant)
 		self.courant = Lecture(suivant, parametres, voie, passage)
 		expirer(self.connexion, instant, suivant.sonore)
+
+	def _commencer(
+		self, sonore: int, banque: int | None, evenement: int | None, element: int | None, instant: datetime
+	) -> Passage:
+		passage = commencer_passage(self.connexion, sonore, banque, evenement, element, instant)
+		if self.sorties is not None:
+			self.sorties.passage_commence(self.connexion, passage)
+		return passage
+
+	def _terminer(
+		self,
+		passage: Passage,
+		instant: datetime,
+		coupe: bool = False,
+		erreur: str | None = None,
+		nature: str = "lecture interrompue",
+	) -> None:
+		terminer_passage(self.connexion, passage, instant, coupe=coupe, erreur=erreur, nature=nature)
+		if self.sorties is not None:
+			self.sorties.passage_termine(self.connexion, passage, instant)
 
 	def _verifier_les_expirations(self, instant: datetime) -> None:
 		derniere = self.expirations_verifiees

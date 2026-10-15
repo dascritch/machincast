@@ -17,6 +17,7 @@ from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeSysteme
 from machincast.lecture.diffusion import Diffusion, diffuser, installer_arret
 from machincast.lecture.moteur import MoteurAudio
+from machincast.lecture.sorties import Sorties
 
 EXECUTABLE = "Machin_lecture"
 DESCRIPTION = "Lit les événements programmés et les diffuse sur la sortie audio configurée."
@@ -35,7 +36,9 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 			moteur = MoteurAudio(configuration.audio)
 			try:
 				journal.info(f"diffusion sur la sortie {configuration.audio.sortie}, arrêt par Ctrl-C ou SIGTERM")
-				diffuser(Diffusion(connexion, moteur, HorlogeSysteme(), creer_hasard(None)), arret)
+				sorties = Sorties.depuis(configuration)
+				diffusion = Diffusion(connexion, moteur, HorlogeSysteme(), creer_hasard(None), sorties=sorties)
+				diffuser(diffusion, arret)
 			finally:
 				moteur.fermer()
 	except psycopg.OperationalError as erreur:

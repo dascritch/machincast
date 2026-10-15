@@ -61,6 +61,14 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 - `machincast.lecture.expiration.expirer(connexion, instant, sonore=None)` ([#18](https://github.com/dascritch/machincast/issues/18)) : une seule requête `UPDATE … RETURNING` passe à `expire` les sonores `actif` arrivés au bout, puis consigne chacun. Le `RETURNING` est permis sur `sonores`, que la lecture peut lire, jamais sur `log`.
 - La diffusion vérifie le sonore de chaque passage qui commence, et tous les sonores au démarrage puis toutes les `VERIFICATION_DES_EXPIRATIONS`.
 
+## Sorties
+
+- `machincast.lecture.sorties.Sorties` ([#19](https://github.com/dascritch/machincast/issues/19)) : la diffusion l'appelle à chaque passage qui commence (`passage_commence`) et qui finit (`passage_termine`). La page HTML et la playlist se recalculent depuis l'airplay, et survivent donc à un redémarrage ; le CSV du jour reçoit une ligne par passage terminé.
+- Le masquage ne s'applique qu'à la sortie publique : `masque(masquages, defaut)` prend le premier niveau renseigné, événement, banque, sonore, sinon la configuration.
+- Une sortie ne doit jamais arrêter la diffusion : toute `OSError` à l'écriture devient une alerte `sortie inaccessible`, une fois par chemin.
+- Les tests écrivent leurs sorties dans leur répertoire temporaire, jamais aux chemins de la configuration de test.
+- `consigner` recopie les alertes et incidents dans le journal du binaire (sortie d'erreur).
+
 ## Écritures autorisées
 
 Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures sont garanties par les droits PostgreSQL ([spec.md § 3.2](../spec.md#32-rôles-et-droits)). L'airplay et le log ne s'écrivent que par `machincast.lecture.enregistrement` (`commencer_passage`, `terminer_passage`, `consigner`) : un scénario d'`enregistrement.feature` refuse tout autre `INSERT INTO log` dans le binaire lecture ([#17](https://github.com/dascritch/machincast/issues/17)).
