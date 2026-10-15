@@ -32,4 +32,4 @@
 - Le compte qui installe ne reçoit aucun droit particulier sur le serveur PostgreSQL (ni `CREATEDB`, ni `CREATEROLE`) : tout ce qui en demande passe par `sudo -u postgres` (revue de [PR #72](https://github.com/dascritch/machincast/pull/72)).
 - Environnement virtuel isolé : jamais `--system-site-packages`. Toute dépendance Python est déclarée dans `pyproject.toml` et installée par pip ; apt ne fournit que les bibliothèques système ([#51](https://github.com/dascritch/machincast/issues/51)).
 - La règle polkit n'autorise que le démarrage, l'arrêt et le redémarrage du service de lecture.
-- Tous les comptes de la radio lisent le journal du service : `install.sh` les ajoute au groupe `systemd-journal`, jamais à `adm`, qui donne d'autres droits d'administration.
+- L'installation est mono-utilisateur : un seul compte Unix utilise MachinCast, celui qui l'installe, dans son répertoire personnel. Ce compte lit le journal du service : `install.sh` l'ajoute au groupe `systemd-journal`, jamais à `adm`, qui donne d'autres droits d'administration.

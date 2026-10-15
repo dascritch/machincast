@@ -46,7 +46,7 @@ aide_complete() {
 		               Les options qui suivent sont transmises à journalctl, par exemple :
 		               Machin logs --since "1 hour ago" --priority=warning
 		               Lire ce journal demande d'appartenir au groupe adm ou systemd-journal :
-		               install.sh ajoute les comptes de la radio au groupe systemd-journal.
+		               install.sh y ajoute le compte qui l'installe.
 
 		Options du wrapper :
 		  --config FICHIER, --config=FICHIER

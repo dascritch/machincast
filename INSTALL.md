@@ -25,9 +25,8 @@ Le script `install.sh` fait tout le travail. La section [Installer à la main](#
 ## En bref
 
 ```bash
-sudo mkdir /srv/machincast && sudo chown "$(id -un):" /srv/machincast
-git clone https://github.com/dascritch/machincast.git /srv/machincast
-cd /srv/machincast
+git clone https://github.com/dascritch/machincast.git ~/machincast
+cd ~/machincast
 ./install.sh --simulation   # affiche ce qui sera fait, sans rien changer
 ./install.sh
 ```
@@ -37,7 +36,7 @@ Ensuite : adapter `machincast.toml` ([voir plus bas](#adapter-la-configuration))
 ## Prérequis
 
 - **Ubuntu 26.04 LTS**. Les autres versions LTS (24.04…) sont acceptées, avec un avertissement ; les versions qui ne sont pas LTS sont refusées.
-- **Un compte avec le droit `sudo`**. Le script se lance avec ce compte, jamais avec `sudo` : il demande le mot de passe pour les seules étapes qui l'exigent.
+- **Le compte qui utilisera MachinCast, avec le droit `sudo`**. L'installation est mono-utilisateur : un seul compte Unix utilise MachinCast, celui qui l'installe. Le script se lance avec ce compte, jamais avec `sudo` : il demande le mot de passe pour les seules étapes qui l'exigent.
 - **Un accès à Internet**, pour apt et pip.
 - **PostgreSQL 16 ou plus récent**, installé par le script s'il manque. Ubuntu 26.04 fournit une version qui convient.
 
@@ -65,15 +64,12 @@ Paquets installés par apt : uniquement ce que pip ne peut pas fournir. Toutes l
 
 MachinCast s'installe **en place** : le répertoire où il se trouve devient le répertoire d'installation, et `/opt/machincast` pointe vers lui. Il ne faut donc plus le déplacer après l'installation.
 
-**Choisir un répertoire lisible par tous les comptes de la radio.** Sous Ubuntu, les répertoires personnels ne sont lisibles que par leur propriétaire : une installation dans `~/machincast` ne servirait qu'à un seul compte. Pour un poste partagé, `/srv/machincast` convient :
+L'installation est mono-utilisateur : MachinCast se place dans le répertoire personnel du compte qui l'utilise, par exemple `~/machincast`.
 
 ```bash
-sudo mkdir /srv/machincast && sudo chown "$(id -un):" /srv/machincast
-git clone https://github.com/dascritch/machincast.git /srv/machincast
-cd /srv/machincast
+git clone https://github.com/dascritch/machincast.git ~/machincast
+cd ~/machincast
 ```
-
-Pour un simple essai sur son propre compte, un clone dans son répertoire personnel suffit.
 
 Les archives `.tar.gz` publiées en releases sur GitHub ne sont pas encore disponibles ([#41](https://github.com/dascritch/machincast/issues/41)). Une fois publiées, elles s'utiliseront de la même façon : décompresser l'archive dans le répertoire choisi, puis lancer `./install.sh` depuis ce répertoire.
 
@@ -155,7 +151,7 @@ Les anomalies (fichier endommagé, illisible ou introuvable) s'affichent sur la 
 
 ## Ajouter un autre compte
 
-`install.sh` autorise seulement le compte qui l'a lancé. Pour qu'un autre compte Unix de la radio puisse utiliser MachinCast, un administrateur (un compte avec `sudo`) lance, en remplaçant `programmation` par le nom du compte :
+MachinCast est prévu pour un seul compte Unix, celui qui l'installe, et `install.sh` n'autorise que lui. Si un autre compte doit exceptionnellement y accéder, un administrateur (un compte avec `sudo`) lance, en remplaçant `programmation` par le nom du compte :
 
 ```bash
 COMPTE=programmation
@@ -169,7 +165,7 @@ sudo usermod --append --groups systemd-journal "${COMPTE}"
 
 Pour ne lui donner qu'une partie des droits, ne nommer que les rôles voulus dans le `GRANT` : par exemple `machincast_indexation` seul pour un compte qui ne fait qu'indexer.
 
-Le compte doit aussi pouvoir lire le répertoire de MachinCast (voir [Récupérer MachinCast](#récupérer-machincast)).
+Le compte doit aussi pouvoir lire le répertoire de MachinCast. Sous Ubuntu, un répertoire personnel n'est lisible que par son propriétaire : une installation dans `~/machincast` reste donc inaccessible aux autres comptes tant que ces droits ne sont pas changés.
 
 Pour retirer l'accès d'un compte :
 
