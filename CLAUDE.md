@@ -83,4 +83,5 @@ Lire le bloc correspondant **avant** de modifier le code concerné :
 - Un commit par fonctionnalité, lié à un ticket GitHub Issues. Sans ticket, proposer une user story et attendre.
 - Indentation par **tabulations**.
 - Ne jamais toucher à la base de production pendant les tests.
+- **Un fichier sonore n'est jamais supprimé, renommé, déplacé, remplacé ni écrit par MachinCast**, quels que soient les changements de son entrée dans `sonores` ([#96](https://github.com/dascritch/machincast/issues/96)) : voir [doc/regles/developpement.md](doc/regles/developpement.md#fichiers-sonores).
 - Un ticket n'est terminé que si ses fonctions et actions externes sont documentées pour les humains : voir la [definition of done](doc/regles/developpement.md#definition-of-done).

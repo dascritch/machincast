@@ -151,6 +151,7 @@ ouvrir_dev() {
 	venv="$(exiger_venv)"
 	demarrage="$(mktemp "${TMPDIR:-/tmp}/machincast-dev.XXXXXX")"
 	{
+		# fichier de MachinCast : le fichier de démarrage du sous-shell, effacé dès qu'il est lu
 		printf 'rm -f -- %q\n' "${demarrage}"
 		# shellcheck disable=SC2016
 		printf '%s\n' '[[ -r ~/.bashrc ]] && . ~/.bashrc'

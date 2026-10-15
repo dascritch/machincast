@@ -8,6 +8,7 @@ Ce guide décrit ce que MachinCast sait déjà faire, pour l'utilisateur et l'ad
 
 - [Lancer les programmes : Machin](#lancer-les-programmes--machin)
 - [Configuration](#configuration)
+- [Les fichiers sonores ne sont jamais modifiés](#les-fichiers-sonores-ne-sont-jamais-modifiés)
 - [Vérifier les sonores : Machin indexation](#vérifier-les-sonores--machin-indexation)
 - [Diffusion : Machin lecture](#diffusion--machin-lecture)
 - [Interface graphique : Machin interface](#interface-graphique--machin-interface)
@@ -63,6 +64,24 @@ Machin_indexation : configuration invalide : /home/xavier/machincast/machincast.
 ```
 
 Les chemins relatifs du fichier (sorties CSV, HTML et .pls) se comprennent depuis le répertoire du fichier de configuration.
+
+## Les fichiers sonores ne sont jamais modifiés
+
+MachinCast ne fait que **lire** les fichiers sonores ([#96](https://github.com/dascritch/machincast/issues/96)). Aucun de ses programmes ne les supprime, ne les renomme, ne les déplace, ne les remplace ni n'y écrit, quoi qu'il arrive à leur entrée dans la base :
+
+- un sonore passé à l'état `supprimé`, `désactivé`, `expiré` ou `erroné` garde son fichier tel quel ;
+- un sonore dont l'emplacement, l'artiste ou le titre change garde son fichier tel quel ;
+- un sonore supprimé de la base garde son fichier : s'il est encore dans le répertoire d'une banque, la prochaine indexation l'enregistre de nouveau, comme un nouveau sonore à l'état `aperçu`, puis `actif` une fois vérifié.
+
+Supprimer un fichier sonore du disque reste une décision humaine, prise hors de MachinCast.
+
+Pour la même raison, une sortie ne peut pas être placée sur un fichier sonore. La configuration refuse un chemin de `sorties.csv`, `sorties.pls`, `sorties.html` ou `lecture.socket_etat` qui se termine par l'extension d'un fichier sonore (`.mp3`, `.m4a`, `.aac`, `.ogg`, `.flac`, `.wav`, `.aiff`, `.aif`, en majuscules comme en minuscules), avec le code de sortie 2 :
+
+```text
+Machin_lecture : configuration invalide : /home/xavier/machincast/machincast.toml : clé sorties.csv : « musique/airplay.mp3 » porte l'extension d'un fichier sonore, et MachinCast n'écrit jamais dans un fichier sonore
+```
+
+Si une sortie devait malgré tout tomber sur un tel chemin, elle n'est pas écrite : elle est signalée dans le log par l'alerte `sortie inaccessible`, qui mentionne `fichier sonore protégé`, et la diffusion continue. De même, la socket d'état n'est alors pas ouverte : l'alerte `socket d'état indisponible` est notée, et la diffusion continue sans elle. Les fichiers d'une simulation finissent toujours par `.csv`, `.pls` ou `.html` : quel que soit leur nom, ils ne remplacent jamais un fichier sonore.
 
 ## Vérifier les sonores : Machin indexation
 

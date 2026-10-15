@@ -65,6 +65,15 @@ Portées usuelles : `lecture`, `indexation`, `interface`, `wrapper`, `db`, `inst
 - Vocabulaire : « sonore », « banque », « événement ». « Playlist » désigne uniquement la liste exportée en .pls, .csv ou .html, jamais un objet en base ou à l'écran.
 - Le nom du projet s'écrit toujours « MachinCast ».
 
+## Fichiers sonores
+
+**Règle absolue** ([#96](https://github.com/dascritch/machincast/issues/96)) : MachinCast ne supprime jamais un fichier sonore, quels que soient les changements de son entrée dans la table `sonores` (état `supprime`, `desactive`, `expire` ou `errone`, emplacement ou tags modifiés, ligne effacée). Il ne le renomme, ne le déplace, ne le remplace et n'y écrit jamais non plus : les fichiers sonores ne sont que lus. Supprimer un sonore, c'est supprimer sa ligne en base, jamais son fichier.
+
+- Aucun programme ne supprime, ne renomme ni ne remplace de fichier, sauf les fichiers que MachinCast crée lui-même (socket d'état, fichiers temporaires des sorties, fichier de démarrage de `Machin dev`). Chacune de ces lignes porte, sur la ligne ou celle du dessus, le commentaire `fichier de MachinCast :` suivi du fichier concerné.
+- Un scénario de [`protection.feature`](../../tests/features/protection.feature) refuse, dans `src/`, `bin/Machin` et `install.sh`, toute suppression, tout renommage ou tout remplacement sans cette justification (`machincast.protection.injustifiees`) : en Python, `.unlink(`, `.rmdir(`, `.rename(`, `os.remove`, `os.unlink`, `os.rmdir`, `os.removedirs`, `os.rename`, `os.renames`, `os.replace`, `shutil.rmtree` et `shutil.move` ; en bash, `rm`, `rmdir`, `mv`, `unlink` et `shred`. `Path.replace` ne se distingue pas de `str.replace` : il est interdit, on écrit `os.replace` avec la justification.
+- Tout fichier écrit par MachinCast passe d'abord par `machincast.protection.verifier_ecriture`, qui lève `FichierSonoreProtege` pour un chemin à l'extension d'un fichier sonore (`EXTENSIONS_SONORES`, celles que l'indexeur enregistre). La configuration refuse aussi ces chemins pour `sorties.*` et `lecture.socket_etat`.
+- Les scénarios de protection vérifient, octet par octet, taille et date de modification comprises, que les fichiers d'une banque restent intacts après chaque changement de leur entrée, l'indexation rapide, l'audit complet, la diffusion et la simulation.
+
 ## Exécutables
 
 - Une nouvelle dépendance Python se déclare dans `pyproject.toml`, jamais en paquet apt `python3-*` : le venv n'utilise pas les paquets Python du système ([#51](https://github.com/dascritch/machincast/issues/51)).

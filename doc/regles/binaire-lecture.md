@@ -8,6 +8,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 
 ## Règles à ne jamais enfreindre
 
+- Le binaire lecture ne fait que lire les fichiers sonores ([#96](https://github.com/dascritch/machincast/issues/96)) : ses sorties et sa socket d'état passent par `verifier_ecriture`, les fichiers de la simulation ont toujours l'extension `.csv`, `.pls` ou `.html`, et un sonore expiré ou introuvable ne change que la base. Voir [developpement.md](developpement.md#fichiers-sonores).
 - Le début d'un événement coupe **net** le sonore en cours.
 - Une banque jouée fait jouer **un seul** sonore.
 - Le mode aléatoire est contrôlé : pas de répétition dans une banque avant d'avoir joué tous ses sonores. Le cycle est propre à chaque banque.

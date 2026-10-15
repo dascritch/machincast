@@ -41,6 +41,7 @@ from psycopg.rows import TupleRow
 from machincast.configuration import Configuration, Metadonnees
 from machincast.configuration import Sorties as Chemins
 from machincast.lecture.enregistrement import Passage, consigner
+from machincast.protection import verifier_ecriture
 
 journal = logging.getLogger(__name__)
 
@@ -242,15 +243,16 @@ def ligne_csv(ligne: Ligne) -> str:
 
 def _ecrire(chemin: Path, contenu: str) -> None:
 	"""Remplace le fichier d'un coup : un lecteur ne voit jamais de page à moitié écrite."""
+	verifier_ecriture(chemin)
 	chemin.parent.mkdir(parents=True, exist_ok=True)
 	descripteur, temporaire = tempfile.mkstemp(dir=chemin.parent, prefix=f".{chemin.name}.")
 	try:
 		with os.fdopen(descripteur, "w", encoding="utf-8") as fichier:
 			fichier.write(contenu)
 		os.chmod(temporaire, 0o644)
-		os.replace(temporaire, chemin)
+		os.replace(temporaire, chemin)  # fichier de MachinCast : sortie, jamais un fichier sonore (verifier_ecriture)
 	except BaseException:
-		Path(temporaire).unlink(missing_ok=True)
+		Path(temporaire).unlink(missing_ok=True)  # fichier de MachinCast : fichier temporaire de la sortie
 		raise
 
 
@@ -290,6 +292,7 @@ class Sorties:
 
 	@staticmethod
 	def _ajouter(chemin: Path, ligne: Ligne) -> None:
+		verifier_ecriture(chemin)
 		chemin.parent.mkdir(parents=True, exist_ok=True)
 		nouveau = not chemin.exists()
 		with chemin.open("a", encoding="utf-8-sig" if nouveau else "utf-8", newline="") as fichier:
