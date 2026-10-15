@@ -41,6 +41,13 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 - `machincast.lecture.fichiers.verifier_avant_lecture` avant chaque fichier : écart consigné, fichier introuvable non joué.
 - Les tests utilisent la sortie factice : en temps réel (`sync`) quand le temps compte, au plus vite sinon.
 
+## Boucle de diffusion
+
+- `machincast.lecture.diffusion.Diffusion` ([#88](https://github.com/dascritch/machincast/issues/88)) assemble l'ordonnanceur, le moteur, la vérification des fichiers et l'enregistrement. Elle avance par `pas()`, à l'heure de l'`Horloge` reçue : les tests la font tourner pas à pas avec une `HorlogeFixe`, sur la sortie factice, au plus vite ou en temps réel.
+- Le moment d'enchaîner vient de la position de la voie (`duree - crossfade_fin`) ; les heures de l'airplay et du log viennent de l'horloge.
+- Un fichier introuvable est écarté par `Ordonnanceur.exclure` pendant `REESSAI_FICHIER_INTROUVABLE` ; `prochain` et `choisir_sonore` reçoivent ces sonores écartés et les traitent comme non jouables.
+- Les signaux ne font que lever un `threading.Event` (`installer_arret`) : l'arrêt se fait entre deux pas, jamais au milieu d'une écriture.
+
 ## Écritures autorisées
 
 Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures sont garanties par les droits PostgreSQL ([spec.md § 3.2](../spec.md#32-rôles-et-droits)). L'airplay et le log ne s'écrivent que par `machincast.lecture.enregistrement` (`commencer_passage`, `terminer_passage`, `consigner`) : un scénario d'`enregistrement.feature` refuse tout autre `INSERT INTO log` dans le binaire lecture ([#17](https://github.com/dascritch/machincast/issues/17)).

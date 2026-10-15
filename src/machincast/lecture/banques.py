@@ -148,16 +148,22 @@ def restants(connexion: psycopg.Connection[TupleRow], banque: int, instant: date
 
 
 def choisir_sonore(
-	connexion: psycopg.Connection[TupleRow], banque: int, instant: datetime, hasard: Hasard
+	connexion: psycopg.Connection[TupleRow],
+	banque: int,
+	instant: datetime,
+	hasard: Hasard,
+	exclus: frozenset[int] = frozenset(),
 ) -> int | None:
 	"""Sonore que la banque fournit à l'instant, selon son mode ; None si aucun n'est jouable (banque vide).
 
+	exclus : sonores écartés par le binaire lecture, comme un fichier introuvable, traités comme non jouables.
 	La connexion a endossé le rôle de la lecture (machincast.base.connecter) : tout est lu, rien n'est écrit.
 	"""
 	ligne = connexion.execute("SELECT mode::text FROM banques WHERE id = %s", (banque,)).fetchone()
 	if ligne is None:
 		return None
 	ordre, jouables = _jouables(connexion, banque, instant)
+	jouables -= exclus
 	historique = _historique(connexion, banque)
 	if ligne[0] == "sequentiel":
 		return suivant_sequentiel(ordre, jouables, historique[0] if historique else None)

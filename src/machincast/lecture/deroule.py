@@ -23,10 +23,14 @@ Transitions (§ 4.2) :
 - à la fin d'un événement, si aucun autre ne commence, le dernier sonore est joué jusqu'au bout, puis l'événement
   actif (le fil musical) reprend ;
 - rien à diffuser : silence, et une alerte dans le log, une seule fois par silence.
+
+Un sonore dont le fichier est introuvable au moment de le jouer est écarté (exclure) pendant
+REESSAI_FICHIER_INTROUVABLE : il est traité comme non jouable, pour ne pas le réessayer à chaque tour de liste
+(https://github.com/dascritch/machincast/issues/88).
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import psycopg
 from psycopg.rows import TupleRow
@@ -35,6 +39,9 @@ from machincast.hasard import Hasard
 from machincast.lecture.banques import choisir_sonore, sonore_jouable
 from machincast.lecture.enregistrement import consigner
 from machincast.lecture.grille import Occurrence, Priorite, evenement_actif, heure_murale, lire_grille
+
+REESSAI_FICHIER_INTROUVABLE = timedelta(hours=1)
+"""Durée pendant laquelle un sonore au fichier introuvable n'est plus proposé."""
 
 
 @dataclass(frozen=True)
@@ -132,16 +139,23 @@ def boucle(occurrence: Occurrence) -> bool:
 
 
 def prochain(
-	connexion: psycopg.Connection[TupleRow], occurrence: Occurrence, instant: datetime, hasard: Hasard
+	connexion: psycopg.Connection[TupleRow],
+	occurrence: Occurrence,
+	instant: datetime,
+	hasard: Hasard,
+	exclus: frozenset[int] = frozenset(),
 ) -> Choix | None:
-	"""Prochain sonore de la liste de l'occurrence ; None si rien n'est jouable jusqu'à la fin de la liste."""
+	"""Prochain sonore de la liste de l'occurrence ; None si rien n'est jouable jusqu'à la fin de la liste.
+
+	exclus : sonores écartés, traités comme non jouables.
+	"""
 	elements = lire_elements(connexion, occurrence.evenement.id)
 	for element in elements_a_essayer(elements, dernier_element(connexion, occurrence), boucle(occurrence)):
 		if element.sonore is not None:
-			if sonore_jouable(connexion, element.sonore, instant):
+			if element.sonore not in exclus and sonore_jouable(connexion, element.sonore, instant):
 				return Choix(element.sonore, element, None, occurrence)
 		elif element.banque is not None:
-			sonore = choisir_sonore(connexion, element.banque, instant, hasard)
+			sonore = choisir_sonore(connexion, element.banque, instant, hasard, exclus)
 			if sonore is not None:
 				return Choix(sonore, element, element.banque, occurrence)
 	return None
@@ -160,6 +174,16 @@ class Ordonnanceur:
 		self.terminees: set[tuple[int, datetime | None]] = set()
 		"""Occurrences terminées plus tôt : liste épuisée, ou plus rien de jouable."""
 		self.en_silence = False
+		self.exclus: dict[int, datetime] = {}
+		"""Sonores écartés, avec l'instant où ils l'ont été."""
+
+	def exclure(self, sonore: int, instant: datetime) -> None:
+		"""Écarte un sonore pendant REESSAI_FICHIER_INTROUVABLE, par exemple quand son fichier est introuvable."""
+		self.exclus[sonore] = instant
+
+	def _exclus(self, instant: datetime) -> frozenset[int]:
+		self.exclus = {s: depuis for s, depuis in self.exclus.items() if instant < depuis + REESSAI_FICHIER_INTROUVABLE}
+		return frozenset(self.exclus)
 
 	def decider(self, instant: datetime, en_cours: EnCours | None) -> Decision:
 		"""Ce que la sortie audio doit faire à l'instant ; en_cours est le passage qu'elle diffuse, s'il y en a un."""
@@ -179,7 +203,7 @@ class Ordonnanceur:
 				couper = True
 			if actif is None:
 				return self._silence(couper, None, "aucun événement actif")
-			choix = prochain(self.connexion, actif, instant, self.hasard)
+			choix = prochain(self.connexion, actif, instant, self.hasard, self._exclus(instant))
 			if choix is not None:
 				self.en_silence = False
 				return Decision(couper=couper, jouer=choix)

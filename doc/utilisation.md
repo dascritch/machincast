@@ -173,7 +173,23 @@ Si GStreamer n'a pas de décodeur pour un format, la vérification s'arrête et 
 
 ## Diffusion : Machin lecture
 
-`Machin lecture` lit sa configuration, puis s'arrête avec le code 1 et le message `pas encore implémenté`, avec le lien du ticket de la diffusion. Le choix des sonores, la lecture audio et le mode simulation sont à venir (voir [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore)). Le choix de l'événement à diffuser est déjà écrit, et suit les règles ci-dessous.
+`Machin lecture` diffuse la grille sur la sortie audio de la configuration, en continu, jusqu'à ce qu'on l'arrête ([#88](https://github.com/dascritch/machincast/issues/88)). Les streams, le service systemd et le mode simulation sont à venir (voir [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore)).
+
+### Lancer et arrêter la diffusion
+
+```bash
+Machin lecture                   # avec le machincast.toml du répertoire de MachinCast
+Machin lecture --config <fichier>
+```
+
+- **Base** : `Machin lecture` diffuse la grille de la base de production (`base.production`), avec le rôle `machincast_lecture`. Si la base est injoignable, il s'arrête aussitôt avec le code 1 et le message `base de données injoignable`.
+- **Sortie** : il joue sur la sortie de `audio.sortie`. Si elle ne peut pas être créée, il s'arrête avec le code 1 et le message `sortie audio indisponible`.
+- **En marche** : il affiche la sortie utilisée, note `démarrage` dans le log, puis enchaîne les sonores sans intervention. Chaque passage est écrit dans l'airplay au moment où il commence et où il finit.
+- **Arrêt** : `Ctrl-C` dans le terminal, ou le signal `SIGTERM` (arrêt d'un service). Le sonore en cours s'arrête, son passage est terminé dans l'airplay, sans incident, `arrêt` est noté dans le log, et le programme s'arrête avec le code 0.
+- **Perte de la base en cours de diffusion** : la sortie se coupe, et le programme s'arrête avec le code 1 et le message `erreur de base de données`.
+- **Un seul `Machin lecture` à la fois** : deux diffusions en même temps joueraient chacune leurs sonores et écriraient chacune leur airplay.
+
+La diffusion suit les règles ci-dessous.
 
 ### Quel événement est à l'antenne
 
@@ -219,13 +235,13 @@ La liste d'un événement se joue ainsi ([#14](https://github.com/dascritch/mach
 
 ### Sortie audio
 
-La sortie audio de l'antenne se règle dans la configuration (`audio.sortie` : `pipewire`, `pulseaudio`, `alsa`, ou `factice` pour un essai sans son), et `install.sh` vérifie qu'elle peut être créée. Le moteur audio qui jouera les sonores est prêt ([#15](https://github.com/dascritch/machincast/issues/15)) :
+La sortie audio de l'antenne se règle dans la configuration (`audio.sortie` : `pipewire`, `pulseaudio`, `alsa`, ou `factice` pour un essai sans son), et `install.sh` vérifie qu'elle peut être créée. Les sonores s'y enchaînent ainsi ([#15](https://github.com/dascritch/machincast/issues/15)) :
 
 - **Crossfade de début** d'un sonore : il monte progressivement, de silencieux à plein volume, pendant ce temps.
 - **Crossfade de fin** d'un sonore : le sonore suivant démarre autant avant la fin, et celui-ci s'éteint progressivement pendant ce temps. Les deux se superposent.
 - **Les deux crossfades sont nécessaires** : deux sonores ne se superposent que si le premier a un crossfade de fin **et** le second un crossfade de début. Si l'un des deux est à 0, le premier joue jusqu'au bout à plein volume, puis le second démarre aussitôt à plein volume, sans fondu.
 - **Coupure nette** : au début d'un événement, le sonore en cours s'arrête aussitôt, sans fondu.
-- **Avant de jouer un fichier**, sa date de modification et sa taille sont comparées à celles de l'indexation. Un écart est noté dans le log en alerte `fichier modifié`, et le fichier est quand même joué ; la prochaine indexation mettra la base à jour. Un fichier disparu n'est pas joué, et l'incident `fichier introuvable` est noté dans le log.
+- **Avant de jouer un fichier**, sa date de modification et sa taille sont comparées à celles de l'indexation. Un écart est noté dans le log en alerte `fichier modifié`, et le fichier est quand même joué ; la prochaine indexation mettra la base à jour. Un fichier disparu n'est pas joué : l'incident `fichier introuvable` est noté dans le log, et la diffusion passe aussitôt au sonore suivant. Le sonore n'est plus proposé pendant une heure, pour ne pas noter le même incident à chaque tour de liste ; la prochaine indexation le passera à l'état `supprimé`.
 - **Superposition** : pendant un crossfade, deux sonores jouent en même temps. PipeWire et PulseAudio les mélangent toujours. En `alsa`, il faut un périphérique qui mélange, comme `default` ; un périphérique matériel direct (`hw:…`) ne joue qu'un son à la fois.
 
 ### Historique de diffusion et log
@@ -241,6 +257,8 @@ Le **log** note les opérations du binaire lecture, avec leur heure, leur niveau
 
 | Nature | Niveau | Quand |
 | --- | --- | --- |
+| `démarrage` | info | `Machin lecture` démarre la diffusion ; le message donne sa version. |
+| `arrêt` | info | `Machin lecture` arrête la diffusion, sur `Ctrl-C` ou `SIGTERM`. |
 | `coupure nette` | info | Un événement commence et coupe le sonore en cours. |
 | `silence` | alerte | Rien à diffuser. |
 | `fichier modifié` | alerte | Le fichier a changé depuis l'indexation ; il est quand même joué. |
@@ -270,7 +288,7 @@ Chaque message commence par le nom du programme, par exemple `Machin_indexation 
 | Code | Signification |
 | --- | --- |
 | 0 | Le programme est allé au bout. Pour l'indexation, même si des sonores ont changé d'état : ce sont des anomalies, pas des erreurs. |
-| 1 | Base de données injoignable, décodeur GStreamer manquant, ou fonction pas encore écrite. |
+| 1 | Base de données injoignable ou perdue, décodeur GStreamer manquant, sortie audio indisponible, ou fonction pas encore écrite. |
 | 2 | Configuration invalide, ou appel incorrect (option inconnue, `--config` sans fichier). |
 | 127 | Programme ou `journalctl` introuvable, signalé par `Machin`. |
 
@@ -293,8 +311,10 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | Manque | Ticket |
 | --- | --- |
 | Document d'audit des anomalies de l'indexation, en CSV et HTML | [#11](https://github.com/dascritch/machincast/issues/11) |
-| Diffusion : choix de l'événement actif et des sonores, lecture audio, streams | [#12](https://github.com/dascritch/machincast/issues/12) à [#16](https://github.com/dascritch/machincast/issues/16) |
-| Airplay, log et désactivations automatiques | [#17](https://github.com/dascritch/machincast/issues/17), [#18](https://github.com/dascritch/machincast/issues/18) |
+| Diffusion des streams | [#16](https://github.com/dascritch/machincast/issues/16) |
+| Désactivations automatiques des sonores (maximum de lectures, fin de période) | [#18](https://github.com/dascritch/machincast/issues/18) |
+| Masquage des métadonnées et sorties de l'airplay (CSV, .pls, HTML) | [#19](https://github.com/dascritch/machincast/issues/19) |
+| État de la diffusion pour l'interface | [#20](https://github.com/dascritch/machincast/issues/20) |
 | Mode simulation de la diffusion | [#21](https://github.com/dascritch/machincast/issues/21) |
 | Service systemd de diffusion | [#22](https://github.com/dascritch/machincast/issues/22) |
 | Interface graphique | [#23](https://github.com/dascritch/machincast/issues/23) et suivants |

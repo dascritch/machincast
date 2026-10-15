@@ -300,19 +300,21 @@ Quand l'artiste et le titre sont masqués, la sortie publique affiche à leur pl
 
 `Machin_lecture` ne fait que lire les événements et les jouer. Il lit le fichier de configuration à son lancement et tourne comme service systemd.
 
+Boucle de diffusion ([#88](https://github.com/dascritch/machincast/issues/88), `machincast.lecture.diffusion`) : connecté à la base de production avec le rôle `machincast_lecture`, le binaire consigne son démarrage, puis avance par pas d'environ 50 ms, à l'heure de son horloge. À chaque pas : les voies finies terminent leur passage dans l'airplay ; pendant un sonore, l'ordonnanceur dit s'il faut couper net ; au début du crossfade de fin du sonore en cours, il donne le suivant, lancé aussitôt s'ils se superposent, sinon à la fin du sonore en cours ; sans rien sur la sortie, le suivant démarre, ou c'est le silence. SIGTERM et SIGINT demandent l'arrêt, pris en compte à la fin du pas : les passages en cours se terminent sans incident, et l'arrêt est consigné. Base injoignable, perdue, ou sortie audio impossible à créer : code de sortie 1.
+
 ### 5.1 Lecture audio
 
 - Bibliothèque : GStreamer via PyGObject (lecture, crossfade, streams).
 - Sortie au choix dans la configuration : ALSA, PulseAudio ou PipeWire, chacune fournie par son greffon GStreamer (`gstreamer1.0-alsa`, `gstreamer1.0-pulseaudio`, `gstreamer1.0-pipewire`). La sortie `factice` ne joue aucun son, pour les tests et les essais (`machincast.audio`).
 - L'heure courante est lue par une horloge injectable (`machincast.horloge`) et les tirages aléatoires par un générateur à graine (`machincast.hasard`).
 - Crossfade selon `crossfade_debut` et `crossfade_fin` de chaque sonore ([#15](https://github.com/dascritch/machincast/issues/15), `machincast.lecture.moteur`) : le sonore monte de 0 à plein volume pendant `crossfade_debut` ; il s'éteint pendant ses `crossfade_fin` dernières secondes, et le sonore suivant démarre à ce moment-là. Deux sonores ne se superposent que si le sortant a un `crossfade_fin` et l'entrant un `crossfade_debut` : si l'un des deux vaut 0, le sortant joue jusqu'au bout à plein volume, puis l'entrant démarre à plein volume (décidé en relecture de [PR #86](https://github.com/dascritch/machincast/pull/86)). Chaque sonore joue dans sa propre voie (pipeline GStreamer) : deux voies se superposent pendant un crossfade, et la sortie les mélange (en ALSA, un périphérique qui mélange, comme `default`). La coupure nette arrête toutes les voies aussitôt.
-- Avant de jouer un fichier, le binaire compare sa date de modification et sa taille avec la base. En cas d'écart, il le consigne dans le log (`alerte`, `fichier modifié`) et joue le fichier ; c'est l'indexeur qui mettra la base à jour. Un fichier introuvable n'est pas joué (`incident`, `fichier introuvable`) : l'ordonnanceur passe au suivant.
+- Avant de jouer un fichier, le binaire compare sa date de modification et sa taille avec la base. En cas d'écart, il le consigne dans le log (`alerte`, `fichier modifié`) et joue le fichier ; c'est l'indexeur qui mettra la base à jour. Un fichier introuvable n'est pas joué (`incident`, `fichier introuvable`) : l'ordonnanceur l'écarte pendant une heure, comme un sonore non jouable, et passe au suivant.
 - S'il n'a aucun élément à lire dans le fil musical, il émet un silence et lève une alerte dans le log.
 
 ### 5.2 Écritures
 
 - `airplay` : une ligne au début et une ligne à la fin de chaque passage (insertions seules), par `machincast.lecture.enregistrement` ([#17](https://github.com/dascritch/machincast/issues/17)). La ligne de fin recopie la ligne de début : l'artiste et le titre restent ceux du moment du passage, même modifiés entre-temps. Une coupure nette n'est pas un incident (`sans_incident` vrai) ; une lecture interrompue par une erreur, si.
-- `log` : toutes les opérations, normales comme incidents, avec l'heure de l'horloge du binaire. Natures déjà consignées : `coupure nette` (info), `silence` (alerte), `fichier modifié` (alerte), `fichier introuvable` (incident), `lecture interrompue` (incident).
+- `log` : toutes les opérations, normales comme incidents, avec l'heure de l'horloge du binaire. Natures déjà consignées : `démarrage` (info), `arrêt` (info), `coupure nette` (info), `silence` (alerte), `fichier modifié` (alerte), `fichier introuvable` (incident), `lecture interrompue` (incident).
 - `sonores.etat` : passage à `expire` ([§ 4.5](#45-sonore-jouable)).
 
 ### 5.3 Modules de sortie
