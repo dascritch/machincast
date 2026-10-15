@@ -57,6 +57,18 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors la socket d'état est "run/lecture.sock" à côté du fichier de configuration
 
+	Plan du scénario: Un chemin de sortie ne peut pas désigner un fichier sonore
+		Étant donné une configuration valide où la clé "<cle>" vaut "<chemin>"
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "extension d'un fichier sonore"
+
+		Exemples:
+			| cle                 | chemin               |
+			| sorties.csv         | musique/airplay.mp3  |
+			| sorties.pls         | musique/liste.flac   |
+			| sorties.html        | /srv/web/page.WAV    |
+			| lecture.socket_etat | run/lecture.ogg      |
+
 	Plan du scénario: Une clé obligatoire manque
 		Étant donné une configuration valide où la clé "<cle>" est absente
 		Quand je charge la configuration

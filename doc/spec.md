@@ -91,6 +91,8 @@ Deux bases à la structure strictement identique : la base de production et la b
 | `errone` | erroné | indexeur | fichier illisible ou endommagé | automatique, par l'indexeur, quand le fichier redevient sain |
 | `supprime` | supprimé | indexeur | fichier introuvable (supprimé ou déplacé) | par l'interface seulement ; un fichier déplacé est réindexé comme nouveau sonore |
 
+**Le fichier d'un sonore n'est jamais supprimé, renommé, déplacé, remplacé ni écrit par MachinCast** ([#96](https://github.com/dascritch/machincast/issues/96)), quels que soient les changements de son entrée : état, emplacement, tags, ou suppression de la ligne. L'état `supprime` constate qu'un fichier a disparu, il ne le fait pas disparaître. Aucune sortie (CSV, .pls, HTML, socket d'état, fichiers de simulation) ne peut être placée sur un chemin à l'extension d'un fichier sonore.
+
 L'indexeur ne change l'état que d'un sonore `apercu`, `actif` ou `errone`. Un fichier ajouté à la main depuis l'interface commence aussi à l'état `apercu` ; un stream, jamais vérifié, commence à l'état `actif`. Un sonore `desactive`, `expire` ou `supprime` garde son état, même si son fichier est défectueux ; l'anomalie est quand même signalée.
 
 Contraintes :
@@ -549,6 +551,7 @@ L'utilisateur saisit une date et heure de début et de fin. L'interface lance le
 ### 8.9 Suppression
 
 - Un sonore présent dans un événement ou une banque n'est supprimé qu'après validation, en rappelant les événements et banques où il figure.
+- Supprimer un sonore supprime son entrée en base, **jamais son fichier**, qui reste à sa place ([#96](https://github.com/dascritch/machincast/issues/96)). Si le fichier est toujours dans le répertoire d'une banque, la prochaine indexation l'enregistre de nouveau comme un nouveau sonore.
 - Même règle pour la suppression d'une banque ou d'un événement.
 - Les lignes `airplay` sont toujours conservées.
 

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 from machincast.base import LONGUEUR_TEXTE_COURT
+from machincast.protection import est_fichier_sonore
 
 NOM_FICHIER = "machincast.toml"
 
@@ -223,18 +224,33 @@ def charger(chemin: Path | None = None) -> Configuration:
 	if preecoute == peripherique:
 		raise lecteur.erreur("clé audio.preecoute : la pré-écoute doit utiliser un autre périphérique que l'antenne")
 
+	sorties = Sorties(
+		csv=lecteur.chemin_fichier("sorties", "csv"),
+		pls=lecteur.chemin_fichier("sorties", "pls"),
+		html=lecteur.chemin_fichier("sorties", "html"),
+	)
+	lecture = Lecture(socket_etat=lecteur.chemin_facultatif("lecture", "socket_etat") or socket_etat_par_defaut())
+	# Un fichier sonore n'est jamais écrit ni remplacé (https://github.com/dascritch/machincast/issues/96).
+	for cle, valeur in (
+		("sorties.csv", sorties.csv),
+		("sorties.pls", sorties.pls),
+		("sorties.html", sorties.html),
+		("lecture.socket_etat", lecture.socket_etat),
+	):
+		if est_fichier_sonore(valeur):
+			raise lecteur.erreur(
+				f"clé {cle} : « {valeur} » porte l'extension d'un fichier sonore, et MachinCast n'écrit jamais dans un"
+				" fichier sonore"
+			)
+
 	return Configuration(
 		chemin=chemin,
 		base=base,
 		audio=Audio(sortie=sortie, peripherique=peripherique, preecoute=preecoute),
-		sorties=Sorties(
-			csv=lecteur.chemin_fichier("sorties", "csv"),
-			pls=lecteur.chemin_fichier("sorties", "pls"),
-			html=lecteur.chemin_fichier("sorties", "html"),
-		),
+		sorties=sorties,
 		metadonnees=Metadonnees(
 			masquer=lecteur.booleen("metadonnees", "masquer"),
 			texte_public=lecteur.texte_court("metadonnees", "texte_public"),
 		),
-		lecture=Lecture(socket_etat=lecteur.chemin_facultatif("lecture", "socket_etat") or socket_etat_par_defaut()),
+		lecture=lecture,
 	)

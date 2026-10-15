@@ -344,7 +344,7 @@ sudo -u postgres dropdb machincast_test
 
 Les noms de bases sont ceux du modèle : reprendre ceux de `base.production` et `base.test` dans `machincast.toml`. Sur un poste de développement, la base de test peut servir à d'autres copies de MachinCast : ne la supprimer que si elle n'est plus utilisée.
 
-**Les deux commandes `dropdb` effacent la programmation et l'historique de diffusion.** Les fichiers sonores, eux, ne sont jamais modifiés par MachinCast. Le répertoire de MachinCast peut ensuite être supprimé. Les rôles PostgreSQL et les paquets apt restent en place : ils peuvent servir à d'autres logiciels.
+**Les deux commandes `dropdb` effacent la programmation et l'historique de diffusion.** Les fichiers sonores, eux, ne sont jamais modifiés ni supprimés par MachinCast ([#96](https://github.com/dascritch/machincast/issues/96)) : ils restent en place, ni la désinstallation ni la suppression des bases n'y touchent. Le répertoire de MachinCast peut ensuite être supprimé. Les rôles PostgreSQL et les paquets apt restent en place : ils peuvent servir à d'autres logiciels.
 
 ## En cas de problème
 

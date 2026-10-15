@@ -7,6 +7,7 @@
 - Un décodeur GStreamer absent n'est jamais la faute du fichier : lever `DecodeurIndisponible` et arrêter, sans changer l'état d'aucun sonore.
 - Un décodage bloqué avant le moindre son est repris (jusqu'à trois tentatives) : GStreamer se bloque parfois au démarrage d'un pipeline, et un fichier sain ne doit jamais être déclaré erroné pour cette raison.
 - Un fichier défectueux est signalé par son chemin, jamais par l'identifiant du sonore, en anomalie (`logging`, niveau `warning`).
+- L'indexeur ne fait que lire les fichiers sonores ([#96](https://github.com/dascritch/machincast/issues/96)) : un fichier introuvable, endommagé ou déplacé change l'état de son sonore, jamais le fichier. Voir [developpement.md](developpement.md#fichiers-sonores).
 - États ([#66](https://github.com/dascritch/machincast/issues/66)) : fichier illisible ou endommagé → `errone` ; fichier introuvable → `supprime` ; fichier sain d'un sonore `apercu` ou `errone` → `actif`. Seul un sonore `apercu`, `actif` ou `errone` change d'état : `desactive`, `expire` et `supprime` sont conservés, le fichier défectueux est quand même signalé sur STDERR.
 - Fichier dont la date de modification ou la taille a changé : revérifier, mettre à jour durée et tags.
 - **Ne jamais modifier un champ listé dans `sonores.champs_edites`** : l'édition manuelle prime. Une clé des métadonnées musicales y figure sous la forme `metadonnees_musicales.<clé>`.

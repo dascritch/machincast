@@ -26,6 +26,8 @@ from typing import Any
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.protection import verifier_ecriture
+
 journal = logging.getLogger(__name__)
 
 VERSION = 1
@@ -84,6 +86,7 @@ class SocketEtat:
 
 	def ouvrir(self) -> None:
 		"""Crée la socket ; lève SocketEtatOccupee si un autre Machin lecture l'a déjà ouverte."""
+		verifier_ecriture(self.chemin)
 		repertoire = self.chemin.parent
 		repertoire.mkdir(mode=0o700, parents=True, exist_ok=True)
 		os.chmod(repertoire, 0o700)
@@ -92,7 +95,7 @@ class SocketEtat:
 				raise SocketEtatOccupee(f"{self.chemin} : un autre Machin lecture diffuse déjà")
 			if not stat.S_ISSOCK(self.chemin.lstat().st_mode):
 				raise OSError(f"{self.chemin} existe et n'est pas une socket")
-			self.chemin.unlink()
+			self.chemin.unlink()  # fichier de MachinCast : socket d'état laissée par un arrêt brutal
 		serveur = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 		ancien = os.umask(0o177)
 		try:
@@ -136,7 +139,7 @@ class SocketEtat:
 			self._fil.join(ATTENTE_DES_CLIENTS)
 		self._serveur.close()
 		self._serveur = None
-		self.chemin.unlink(missing_ok=True)
+		self.chemin.unlink(missing_ok=True)  # fichier de MachinCast : socket d'état
 
 	def _accepter(self) -> None:
 		serveur = self._serveur

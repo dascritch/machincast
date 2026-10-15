@@ -26,11 +26,12 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.indexation.verification import Bilan, EtatSonore
+from machincast.protection import EXTENSIONS_SONORES
 
 journal = logging.getLogger(__name__)
 
-EXTENSIONS = frozenset({".mp3", ".m4a", ".aac", ".ogg", ".flac", ".wav", ".aiff", ".aif"})
-"""Extensions des formats de la spec § 6.2, en minuscules."""
+EXTENSIONS = EXTENSIONS_SONORES
+"""Extensions des formats de la spec § 6.2, en minuscules (machincast.protection)."""
 
 
 def _cache(nom: str) -> bool:
