@@ -203,6 +203,20 @@ Un élément « banque » d'un événement fait jouer **un seul** sonore de cett
 
 Le choix se déduit de l'historique de diffusion : il reprend là où il en était après un redémarrage.
 
+### Comment une liste de lecture se déroule
+
+La liste d'un événement se joue ainsi ([#14](https://github.com/dascritch/machincast/issues/14)) :
+
+- **Ordre** : les éléments passent dans l'ordre de la liste. Un même élément peut y figurer plusieurs fois, par exemple un jingle entre chaque titre. Un élément banque fait jouer un seul sonore de la banque.
+- **Éléments sautés** : une banque dont aucun sonore n'est jouable, ou un sonore qui ne l'est pas, est sauté ; la liste passe à l'élément suivant.
+- **Boucle** : arrivée au bout avant la fin de l'événement, la liste reprend au début.
+- **Émission ou spécial sans fin** : la liste ne boucle pas. Une fois jouée, l'événement en dessous reprend, en général le fil musical. De même pour une émission dont plus rien n'est jouable.
+- **Début d'un événement** : il coupe net le sonore en cours, quel qu'il soit. Une émission qui commence à 20:00 démarre à 20:00 pile.
+- **Fin d'un événement** : si aucun autre ne commence, le dernier sonore est joué jusqu'au bout, puis le fil musical reprend. Si un autre événement commence juste après, il coupe ce dernier sonore.
+- **Retour au fil musical** : le fil reprend à l'élément qui suit le dernier qu'il a joué, pas au début de sa liste.
+- **Chaque occurrence** d'une émission récurrente reprend sa liste au début.
+- **Rien à diffuser** : silence à l'antenne, et une alerte `silence` dans le log. Le silence cesse dès qu'un sonore redevient jouable ou qu'une émission commence.
+
 ### Sortie audio
 
 La sortie audio de l'antenne est déjà réglée dans la configuration (`audio.sortie` : `pipewire`, `pulseaudio`, `alsa`, ou `factice` pour un essai sans son), et `install.sh` vérifie qu'elle peut être créée.

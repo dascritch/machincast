@@ -104,6 +104,28 @@ def _candidats(connexion: psycopg.Connection[TupleRow], banque: int) -> list[Can
 	]
 
 
+def sonore_jouable(connexion: psycopg.Connection[TupleRow], sonore: int, instant: datetime) -> bool:
+	"""Le sonore est-il jouable à l'instant (§ 4.5) : pour un sonore placé directement dans un événement."""
+	ligne = connexion.execute(
+		"SELECT s.etat::text, s.debut_diffusion, s.fin_diffusion, s.max_lectures,"
+		" (SELECT count(*) FROM airplay a WHERE a.sonore_id = s.id AND a.type_ligne = 'debut')"
+		" FROM sonores s WHERE s.id = %s",
+		(sonore,),
+	).fetchone()
+	if ligne is None:
+		return False
+	etat, debut, fin, maximum, lectures = ligne
+	candidat = Candidat(
+		sonore=sonore,
+		etat=str(etat),
+		debut_diffusion=debut if isinstance(debut, datetime) else None,
+		fin_diffusion=fin if isinstance(fin, datetime) else None,
+		max_lectures=None if maximum is None else int(str(maximum)),
+		lectures=int(str(lectures)),
+	)
+	return jouable(candidat, instant)
+
+
 def _historique(connexion: psycopg.Connection[TupleRow], banque: int) -> list[int]:
 	"""Sonores joués via la banque, du passage le plus récent au plus ancien."""
 	lignes = connexion.execute(
