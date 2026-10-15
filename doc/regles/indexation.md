@@ -8,7 +8,9 @@
 - Un fichier défectueux est signalé par son chemin, jamais par l'identifiant du sonore, en anomalie (`logging`, niveau `warning`).
 - États ([#66](https://github.com/dascritch/machincast/issues/66)) : fichier illisible ou endommagé → `errone` ; fichier introuvable → `supprime` ; fichier sain d'un sonore `errone` → `actif`. Seul un sonore `actif` ou `errone` change d'état : `desactive`, `expire` et `supprime` sont conservés, le fichier défectueux est quand même signalé sur STDERR.
 - Fichier dont la date de modification ou la taille a changé : revérifier, mettre à jour durée et tags.
-- **Ne jamais modifier un champ listé dans `sonores.champs_edites`** : l'édition manuelle prime.
+- **Ne jamais modifier un champ listé dans `sonores.champs_edites`** : l'édition manuelle prime. Une clé des métadonnées musicales y figure sous la forme `metadonnees_musicales.<clé>`.
+- Tags ([#8](https://github.com/dascritch/machincast/issues/8)) : lus pendant le décodage de la vérification (`machincast.indexation.tags`), jamais par une seconde lecture du fichier. L'indexeur ne tient que les clés `machincast.indexation.tags.CLES` de `metadonnees_musicales` ; les autres clés ne sont jamais touchées.
+- L'année ne vient jamais d'un horodatage avec heure : c'est une date de création, pas de sortie.
 - L'indexeur ne rétablit que les sonores qu'il a lui-même déclarés `errone`.
 - Connexion par `machincast.base.connecter(…, Role.INDEXATION)` ; une transaction par sonore, pour qu'une interruption garde le travail fait.
 - Parcours récursif de tous les répertoires de chaque banque (table `banques_repertoires`). Formats : mp3, m4a, ogg, flac, wav, aiff.

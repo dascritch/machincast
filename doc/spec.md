@@ -67,7 +67,7 @@ Deux bases à la structure strictement identique : la base de production et la b
 | `url_stream` | URL directe d'un stream à usage unique (par exemple avec un SESSIONID dans l'URL). |
 | `marque_page_id` | Référence à un marque-page de stream. |
 | `artiste`, `titre` | Métadonnées publiques, pré-remplies depuis les tags à l'indexation. Ce sont des colonnes, car elles servent au masquage, à la recherche et à l'airplay. |
-| `metadonnees_musicales` | Objet JSON des métadonnées non critiques (année, label, genre…), pré-remplies depuis les tags. Extensible sans migration. |
+| `metadonnees_musicales` | Objet JSON des métadonnées non critiques, pré-remplies depuis les tags ([#8](https://github.com/dascritch/machincast/issues/8)) : `annee`, `album`, `artiste_album`, `genre`, `compositeur`, `label`, `piste`. Extensible sans migration : les autres clés ne sont jamais touchées par l'indexeur. |
 | `crossfade_debut`, `crossfade_fin` | Temps de crossfade en début et en fin de sonore. |
 | `max_lectures` | Nombre maximum de lectures sur la totalité de l'historique. Vide = illimité. |
 | `etat` | État du sonore ([#66](https://github.com/dascritch/machincast/issues/66)) : `actif`, `desactive`, `expire`, `errone` ou `supprime` (voir ci-dessous). Seul un sonore `actif` peut être joué. |
@@ -75,7 +75,7 @@ Deux bases à la structure strictement identique : la base de production et la b
 | `duree` | Calculée par l'indexeur. Vide pour un stream. |
 | `debut_diffusion`, `fin_diffusion` | Période de diffusion facultative (annonces limitées dans le temps). |
 | `fichier_modifie_le`, `fichier_taille` | Date de modification et taille du fichier au dernier passage de l'indexeur, pour détecter un changement de contenu. |
-| `champs_edites` | Liste des champs saisis à la main dans l'interface. L'indexeur ne les modifie plus jamais. |
+| `champs_edites` | Liste des champs saisis à la main dans l'interface : nom de colonne (`artiste`, `titre`, `duree`…), ou `metadonnees_musicales.<clé>` pour une clé des métadonnées musicales (`metadonnees_musicales.annee`). L'indexeur ne les modifie plus jamais. |
 | `indexe_le` | Date de la première indexation. |
 | `modifie_le` | Horodatage de la dernière modification en base. |
 
@@ -356,7 +356,15 @@ Sur option de lancement, le binaire simule la diffusion entre deux dates et heur
 
 - Parcours récursif de chacun des répertoires de chaque banque.
 - Formats : mp3, m4a/AAC (« mp4 »), ogg, flac, wav, aiff.
-- Chaque fichier non encore indexé est vérifié, ajouté à `sonores` avec sa durée et ses tags (ID3, Vorbis comments) pour l'artiste, le titre et les métadonnées musicales (année, etc.), puis rattaché à la banque en fin de liste.
+- Chaque fichier non encore indexé est vérifié, ajouté à `sonores` avec sa durée et ses tags pour l'artiste, le titre et les métadonnées musicales, puis rattaché à la banque en fin de liste.
+
+#### Tags ([#8](https://github.com/dascritch/machincast/issues/8))
+
+- Les tags sont lus par GStreamer pendant le décodage complet de la vérification, sans autre lecture du fichier : ID3 (MP3, et AIFF quand le fichier en porte), Vorbis comments (Ogg, FLAC), atomes MP4 (M4A), chunk INFO (WAV : artiste, titre, album, genre, année seulement).
+- Correspondance : artiste ← artiste ; titre ← titre ; `annee` ← date de sortie ; `album`, `artiste_album`, `genre`, `compositeur` ← tags du même nom ; `label` ← organisation (Vorbis `ORGANIZATION`) ou éditeur (ID3 `TPUB`) ; `piste` ← numéro de piste.
+- L'année vient d'une date, ou d'un horodatage **sans heure** : un horodatage avec heure est une date de création, comme celle qu'un M4A sans date de sortie annonce pour son conteneur, et ne devient jamais l'année du morceau.
+- Textes vides ou faits d'espaces ignorés ; artiste et titre tronqués à 255 caractères, la limite des colonnes.
+- Pour un fichier sain, l'indexeur tient l'artiste, le titre et les clés ci-dessus à l'image des tags : un tag absent vide le champ, sauf s'il a été édité à la main. Les tags d'un fichier défectueux ne sont pas lus : les valeurs en base restent telles quelles.
 
 ### 6.3 Sorties
 

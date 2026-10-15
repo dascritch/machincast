@@ -8,7 +8,7 @@
 - L'état du binaire lecture se lit par sa socket Unix, jamais en interrogeant `airplay` en boucle.
 - Le service se pilote via systemd et polkit, jamais par sudo.
 - La pré-écoute utilise obligatoirement un autre périphérique de sortie que le binaire lecture.
-- Tout champ d'un sonore saisi à la main est ajouté à `sonores.champs_edites`.
+- Tout champ d'un sonore saisi à la main est ajouté à `sonores.champs_edites` : son nom de colonne, ou `metadonnees_musicales.<clé>` pour une clé des métadonnées musicales.
 - Refuser à la saisie le chevauchement de deux événements de même priorité.
 - Toute suppression d'un élément référencé ailleurs passe par une validation qui liste les références.
 - Les listes d'une banque séquentielle et d'un événement se réordonnent par glisser-déposer.

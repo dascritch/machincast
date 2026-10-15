@@ -9,8 +9,12 @@ enregistre sa durée, la date de modification et la taille du fichier. L'état d
 	errone    + introuvable  →  supprime
 	desactive, expire, supprime : jamais modifiés par l'indexeur, qui signale quand même le fichier défectueux
 
+Un fichier sain met aussi à jour l'artiste, le titre et les clés de metadonnees_musicales tenues par l'indexeur,
+depuis ses tags (https://github.com/dascritch/machincast/issues/8) ; un tag absent vide le champ correspondant.
+
 Chaque fichier défectueux est signalé par son chemin, en anomalie (logging, niveau WARNING, sur la sortie
-d'erreur). L'indexeur n'écrit jamais dans le log, et ne remplace pas une durée saisie à la main.
+d'erreur). L'indexeur n'écrit jamais dans le log, et ne modifie jamais un champ listé dans champs_edites
+(« metadonnees_musicales.<clé> » pour une clé des métadonnées musicales).
 """
 
 import logging
@@ -22,8 +26,10 @@ from pathlib import Path
 
 import psycopg
 from psycopg.rows import TupleRow
+from psycopg.types.json import Jsonb
 
 from machincast.indexation.decodage import EtatFichier, Verification, verifier_fichier
+from machincast.indexation.tags import fusionner
 
 journal = logging.getLogger(__name__)
 
@@ -110,11 +116,12 @@ def verifier_sonores(
 	"""
 	with connexion.transaction():
 		sonores = connexion.execute(
-			"SELECT id, emplacement, etat::text, champs_edites FROM sonores WHERE type = 'fichier' ORDER BY id"
+			"SELECT id, emplacement, etat::text, champs_edites, artiste, titre, metadonnees_musicales"
+			" FROM sonores WHERE type = 'fichier' ORDER BY id"
 		).fetchall()
 
 	bilan = Bilan()
-	for identifiant, emplacement, etat_texte, champs_edites in sonores:
+	for identifiant, emplacement, etat_texte, champs_edites, artiste, titre, metadonnees in sonores:
 		chemin = Path(str(emplacement))
 		resultat = verifier(chemin)
 		avant = EtatSonore(str(etat_texte))
@@ -122,14 +129,21 @@ def verifier_sonores(
 		fichier = _etat_du_fichier(chemin)
 		modifie_le, taille = fichier if fichier is not None else (None, None)
 		# La durée n'est enregistrée que pour un fichier sain, et jamais à la place d'une durée saisie à la main.
-		duree = resultat.duree if resultat.etat is EtatFichier.SAIN and "duree" not in champs_edites else None
+		sain = resultat.etat is EtatFichier.SAIN
+		duree = resultat.duree if sain and "duree" not in champs_edites else None
+		# Les tags d'un fichier défectueux ne sont pas lus : artiste, titre et métadonnées restent tels quels.
+		if sain:
+			artiste = artiste if "artiste" in champs_edites else resultat.tags.artiste
+			titre = titre if "titre" in champs_edites else resultat.tags.titre
+			metadonnees = fusionner(dict(metadonnees), resultat.tags.metadonnees, list(champs_edites))
 		with connexion.transaction():
 			# Un fichier introuvable garde la date et la taille de son dernier passage.
 			connexion.execute(
 				"UPDATE sonores SET etat = %s, duree = COALESCE(%s, duree),"
-				" fichier_modifie_le = COALESCE(%s, fichier_modifie_le), fichier_taille = COALESCE(%s, fichier_taille)"
+				" fichier_modifie_le = COALESCE(%s, fichier_modifie_le), fichier_taille = COALESCE(%s, fichier_taille),"
+				" artiste = %s, titre = %s, metadonnees_musicales = %s"
 				" WHERE id = %s",
-				(apres.value, duree, modifie_le, taille, identifiant),
+				(apres.value, duree, modifie_le, taille, artiste, titre, Jsonb(metadonnees), identifiant),
 			)
 		bilan.verifies += 1
 		if apres != avant:

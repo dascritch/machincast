@@ -16,7 +16,7 @@ décode comme un fichier plus court, sans rien qui le distingue d'un fichier sai
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import StrEnum
 from pathlib import Path
@@ -25,6 +25,8 @@ import gi
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
+
+from machincast.indexation.tags import Tags, extraire  # noqa: E402
 
 DELAI_SANS_PROGRESSION = timedelta(seconds=30)
 """Un décodage qui ne produit plus aucun son pendant ce délai est abandonné (disque bloqué, fichier sur un
@@ -66,10 +68,12 @@ class Verification:
 	"""Durée effectivement décodée ; None si rien n'a pu être décodé."""
 	probleme: str | None = None
 	"""Description du problème, commençant par l'état (« endommagé : … ») ; None pour un fichier sain."""
+	tags: Tags = field(default_factory=lambda: Tags(None, None, {}))
+	"""Tags lus pendant le décodage (https://github.com/dascritch/machincast/issues/8)."""
 
 	@classmethod
-	def sain(cls, duree: timedelta) -> "Verification":
-		return cls(EtatFichier.SAIN, duree)
+	def sain(cls, duree: timedelta, tags: Tags | None = None) -> "Verification":
+		return cls(EtatFichier.SAIN, duree, tags=tags or Tags(None, None, {}))
 
 	@classmethod
 	def defectueux(cls, etat: EtatFichier, detail: str, duree: timedelta | None = None) -> "Verification":
@@ -144,6 +148,7 @@ class _Decodage:
 		assert bus is not None
 		self.bus = bus
 		self.decodeur_absent: str | None = None
+		self.tags = Gst.TagList.new_empty()
 
 	def _relier(self, decodeur: Gst.Element, sortie: Gst.Pad) -> None:
 		"""Relie la première sortie audio de decodebin ; les autres flux (pochette, vidéo) sont ignorés."""
@@ -164,7 +169,7 @@ class _Decodage:
 		Tant qu'aucun son n'est décodé, le délai est celui du démarrage ; ensuite, celui de la progression.
 		"""
 		pas = round(PAS_D_ATTENTE.total_seconds() * Gst.SECOND)
-		types = attendus | Gst.MessageType.ERROR | Gst.MessageType.ELEMENT
+		types = attendus | Gst.MessageType.ERROR | Gst.MessageType.ELEMENT | Gst.MessageType.TAG
 		immobile = timedelta()
 		dernier = self.suivi.tampons
 		while True:
@@ -176,6 +181,12 @@ class _Decodage:
 						return None
 				else:
 					dernier, immobile = self.suivi.tampons, timedelta()
+				continue
+			if message.type == Gst.MessageType.TAG:
+				# Tags du conteneur et de chaque flux : la première valeur trouvée est gardée.
+				fusion = self.tags.merge(message.parse_tag(), Gst.TagMergeMode.KEEP)
+				if fusion is not None:
+					self.tags = fusion
 				continue
 			if message.type == Gst.MessageType.ELEMENT:
 				structure = message.get_structure()
@@ -265,4 +276,4 @@ def _tentative(chemin: Path, delai_demarrage: timedelta, delai_sans_progression:
 				" fichier tronqué ou trames perdues",
 				duree,
 			)
-	return Verification.sain(duree)
+	return Verification.sain(duree, extraire(decodage.tags))
