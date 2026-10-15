@@ -53,19 +53,21 @@ def url_yoyo(socket: Path, base: str) -> str:
 	return f"postgresql+psycopg:///{quote(base)}?host={quote(str(socket))}"
 
 
+# Le backend yoyo garde sa connexion ouverte jusqu'au ramasse-miettes : le « with » la ferme, même en cas
+# d'erreur, pour ne pas épuiser les connexions du serveur (https://github.com/dascritch/machincast/issues/78).
+
+
 def appliquer_migrations(url: str) -> None:
-	"""Applique toutes les migrations pas encore appliquées."""
-	backend = get_backend(url)
+	"""Applique toutes les migrations pas encore appliquées, puis ferme la connexion."""
 	migrations = read_migrations(str(REPERTOIRE_MIGRATIONS))
-	with backend.lock():
+	with get_backend(url) as backend, backend.lock():
 		backend.apply_migrations(backend.to_apply(migrations))
 
 
 def annuler_migrations(url: str) -> None:
-	"""Annule toutes les migrations appliquées, dans l'ordre inverse."""
-	backend = get_backend(url)
+	"""Annule toutes les migrations appliquées, dans l'ordre inverse, puis ferme la connexion."""
 	migrations = read_migrations(str(REPERTOIRE_MIGRATIONS))
-	with backend.lock():
+	with get_backend(url) as backend, backend.lock():
 		backend.rollback_migrations(backend.to_rollback(migrations))
 
 

@@ -24,6 +24,17 @@ Fonctionnalité: Schéma initial de la base de données
 		Quand j'annule toutes les migrations
 		Alors la base ne contient plus aucune table ni aucun type de MachinCast
 
+	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
+	# Le ramasse-miettes est suspendu : une connexion qui n'est pas fermée explicitement reste ouverte.
+
+	Scénario: Appliquer les migrations ne laisse aucune connexion ouverte
+		Quand j'applique les migrations, ramasse-miettes suspendu
+		Alors aucune connexion supplémentaire à la base de test ne reste ouverte
+
+	Scénario: Annuler les migrations ne laisse aucune connexion ouverte
+		Quand j'annule toutes les migrations, ramasse-miettes suspendu
+		Alors aucune connexion supplémentaire à la base de test ne reste ouverte
+
 	# ─── Sonores ───────────────────────────────────────────
 
 	Plan du scénario: Un sonore cohérent est accepté
