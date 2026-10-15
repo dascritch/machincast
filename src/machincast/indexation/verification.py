@@ -65,6 +65,10 @@ LIBELLES = {
 @dataclass
 class Bilan:
 	audit_complet: bool = False
+	nouveaux: int = 0
+	"""Fichiers trouvés dans les répertoires des banques et enregistrés comme nouveaux sonores."""
+	rattaches: int = 0
+	"""Sonores déjà connus, ajoutés à une banque dont ils n'étaient pas membres."""
 	verifies: int = 0
 	"""Sonores décodés."""
 	errones: int = 0
@@ -80,13 +84,16 @@ def _accorder(nombre: int, singulier: str, pluriel: str) -> str:
 
 
 def texte_bilan(bilan: Bilan) -> str:
-	"""« indexation rapide : 2 sonores vérifiés ; 1 erroné, 0 supprimé, 0 rétabli, 2 sortis d'aperçu ».
+	"""« indexation rapide : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 1 erroné, 0 supprimé, … ».
 
-	Le nombre de sonores vérifiés est celui des sonores décodés ; les autres nombres comptent les changements d'état.
+	Les nouveaux sonores et les rattachements viennent du parcours des répertoires des banques ; le nombre de
+	sonores vérifiés est celui des sonores décodés ; les autres nombres comptent les changements d'état.
 	"""
 	mode = "audit complet" if bilan.audit_complet else "indexation rapide"
 	return (
-		f"{mode} : {_accorder(bilan.verifies, 'sonore vérifié', 'sonores vérifiés')} ; "
+		f"{mode} : {_accorder(bilan.nouveaux, 'nouveau sonore', 'nouveaux sonores')}, "
+		f"{_accorder(bilan.rattaches, 'rattachement', 'rattachements')} ; "
+		f"{_accorder(bilan.verifies, 'sonore vérifié', 'sonores vérifiés')} ; "
 		f"{_accorder(bilan.errones, 'erroné', 'erronés')}, "
 		f"{_accorder(bilan.supprimes, 'supprimé', 'supprimés')}, "
 		f"{_accorder(bilan.retablis, 'rétabli', 'rétablis')}, "
@@ -126,8 +133,12 @@ def verifier_sonores(
 	connexion: psycopg.Connection[TupleRow],
 	verifier: Callable[[Path], Verification] = verifier_fichier,
 	audit_complet: bool = False,
+	bilan: Bilan | None = None,
 ) -> Bilan:
 	"""Vérifie les sonores de type fichier ; chaque sonore est enregistré dans sa propre transaction.
+
+	Le bilan reçu, celui du parcours des répertoires (machincast.indexation.indexeur), est complété ; sans bilan,
+	un nouveau est créé.
 
 	En indexation rapide, seuls les sonores en aperçu sont décodés ; pour les autres, un fichier disparu est
 	quand même repéré. En audit complet, tous sont décodés.
@@ -141,7 +152,8 @@ def verifier_sonores(
 			" FROM sonores WHERE type = 'fichier' ORDER BY id"
 		).fetchall()
 
-	bilan = Bilan(audit_complet=audit_complet)
+	if bilan is None:
+		bilan = Bilan(audit_complet=audit_complet)
 	for identifiant, emplacement, etat_texte, champs_edites, artiste, titre, metadonnees in sonores:
 		chemin = Path(str(emplacement))
 		avant = EtatSonore(str(etat_texte))

@@ -33,6 +33,8 @@ ENCODEURS: dict[str, tuple[str, str]] = {
 	"ogg": ("vorbisenc ! oggmux", "gstreamer1.0-plugins-base"),
 	"mp3": ("lamemp3enc", "gstreamer1.0-plugins-good"),
 	"m4a": ("voaacenc ! mp4mux", "gstreamer1.0-plugins-bad"),
+	# AAC brut, en trames ADTS, sans conteneur MP4.
+	"aac": ("voaacenc ! aacparse ! audio/mpeg,mpegversion=4,stream-format=adts", "gstreamer1.0-plugins-bad"),
 	"aiff": ("aiffmux", "gstreamer1.0-plugins-bad"),
 }
 

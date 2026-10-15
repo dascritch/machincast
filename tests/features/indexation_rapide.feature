@@ -61,7 +61,7 @@ Fonctionnalité: Indexation rapide
 		Et un sonore à l'état « apercu » pour ce fichier
 		Quand l'indexeur fait un audit complet
 		Alors le sonore est à l'état « actif »
-		Et le bilan indique « audit complet : 1 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Et le bilan indique « audit complet : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
 
 	Scénario: Le bilan de l'indexation rapide compte les sonores sortis de l'aperçu et les fichiers disparus
 		Étant donné un fichier mp3 sain
@@ -69,7 +69,7 @@ Fonctionnalité: Indexation rapide
 		Et un deuxième fichier wav sain, dont le sonore est à l'état « actif »
 		Et un troisième sonore, actif, dont le fichier a disparu
 		Quand l'indexeur fait une indexation rapide
-		Alors le bilan indique « indexation rapide : 1 sonore vérifié ; 0 erroné, 1 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Alors le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 1 supprimé, 0 rétabli, 1 sorti d'aperçu »
 
 	Scénario: Machin_indexation propose l'audit complet en option
 		Quand je lance "Machin_indexation" avec l'option "--help"

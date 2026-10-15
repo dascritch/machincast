@@ -1,8 +1,8 @@
 """Point d'entrée de Machin_indexation.
 
-Vérification des sonores existants (https://github.com/dascritch/machincast/issues/7), en indexation rapide
-par défaut ou en audit complet (https://github.com/dascritch/machincast/issues/69). L'indexation des
-répertoires de banques suivra (https://github.com/dascritch/machincast/issues/9).
+Parcours des répertoires des banques (https://github.com/dascritch/machincast/issues/9), puis vérification
+des sonores (https://github.com/dascritch/machincast/issues/7), en indexation rapide par défaut ou en audit
+complet (https://github.com/dascritch/machincast/issues/69).
 """
 
 import argparse
@@ -15,7 +15,8 @@ from machincast.base import Role, connecter
 from machincast.cli import lancer
 from machincast.configuration import Configuration
 from machincast.indexation.decodage import DecodeurIndisponible
-from machincast.indexation.verification import texte_bilan, verifier_sonores
+from machincast.indexation.indexeur import indexer
+from machincast.indexation.verification import texte_bilan
 
 EXECUTABLE = "Machin_indexation"
 DESCRIPTION = "Vérifie les sonores et indexe les répertoires des banques."
@@ -38,7 +39,7 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 	base = configuration.base
 	try:
 		with connecter(base.socket, base.production, Role.INDEXATION) as connexion:
-			bilan = verifier_sonores(connexion, audit_complet=options.audit_complet)
+			bilan = indexer(connexion, audit_complet=options.audit_complet)
 	except psycopg.OperationalError as erreur:
 		journal.error(f"base de données injoignable ({base.production} par {base.socket}) : {erreur}")
 		return CODE_ECHEC

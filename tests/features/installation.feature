@@ -24,6 +24,7 @@ Fonctionnalité: Vérifications de l'installation
 			| audio/mpeg, mpegversion=(int)1, layer=(int)3 | mp3    | gstreamer1.0-plugins-good |
 			| audio/x-vorbis                             | ogg    | gstreamer1.0-plugins-base |
 			| audio/mpeg, mpegversion=(int)4             | m4a    | gstreamer1.0-plugins-bad  |
+			| audio/mpeg, mpegversion=(int)4, stream-format=(string)adts | aac | gstreamer1.0-plugins-good |
 
 	# ─── Sortie audio ──────────────────────────────────────────
 

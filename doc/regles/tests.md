@@ -23,7 +23,7 @@ Les scénarios Gherkin sont écrits en français (`# language: fr`).
 
 ## Fichiers sonores
 
-- Les fichiers sonores de test sont versionnés dans `tests/fichiers-sonores/` : une seconde de sinusoïde en mono, la plus petite taille utile (5 secondes au plus), un fichier sain par format de la spec (revue de [PR #65](https://github.com/dascritch/machincast/pull/65)). Les fichiers `sain.*` n'ont aucun tag ; les fichiers `tags.*` portent `tests.sons.TAGS_DE_TEST`, sauf en AIFF où GStreamer ne sait pas écrire de tags ([#8](https://github.com/dascritch/machincast/issues/8)).
+- Les fichiers sonores de test sont versionnés dans `tests/fichiers-sonores/` : une seconde de sinusoïde en mono, la plus petite taille utile (5 secondes au plus), un fichier sain par format de la spec, AAC brut (`sain.aac`) compris (revue de [PR #65](https://github.com/dascritch/machincast/pull/65)). Les fichiers `sain.*` n'ont aucun tag ; les fichiers `tags.*` portent `tests.sons.TAGS_DE_TEST`, sauf en AIFF où GStreamer ne sait pas écrire de tags ([#8](https://github.com/dascritch/machincast/issues/8)).
 - Les étapes partagées par plusieurs fonctionnalités (fichiers, sonores en base, passage de l'indexeur) sont dans `tests/etapes_indexation.py`, chargé comme greffon par `tests/conftest.py`.
 - Un scénario en copie un dans son répertoire temporaire (`tests.sons.copie_de_test`), puis peut le tronquer ou le corrompre de façon déterministe ; le dépôt n'est jamais modifié.
 - Pour les régénérer, avec les encodeurs GStreamer : `python -m tests.sons`.

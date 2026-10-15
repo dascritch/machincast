@@ -2,7 +2,7 @@
 
 Ce guide décrit ce que MachinCast sait déjà faire, pour l'utilisateur et l'administrateur du poste de diffusion. Il ne demande pas de connaître le code. L'installation est décrite dans [INSTALL.md](../INSTALL.md) ; le fonctionnement complet visé, dans la [spécification](spec.md).
 
-> **État du projet** : MachinCast est en cours de développement. Aujourd'hui, `Machin indexation` vérifie les sonores enregistrés en base. La diffusion (`Machin lecture`), l'interface graphique (`Machin interface`) et l'indexation des répertoires de banques sont à venir : la section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
+> **État du projet** : MachinCast est en cours de développement. Aujourd'hui, `Machin indexation` enregistre les fichiers déposés dans les répertoires des banques et vérifie les sonores. La diffusion (`Machin lecture`) et l'interface graphique (`Machin interface`) sont à venir : la section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
 
 ## Sommaire
 
@@ -29,7 +29,7 @@ Machin --help                         # aide complète
 | Commande | Rôle |
 | --- | --- |
 | `Machin lecture` | Diffusion de l'antenne, normalement lancée comme service. [Pas encore écrite](#diffusion--machin-lecture). |
-| `Machin indexation` | Vérification des fichiers sonores et mise à jour de la base. |
+| `Machin indexation` | Enregistrement des fichiers déposés dans les répertoires des banques, vérification des fichiers sonores et mise à jour de la base. |
 | `Machin interface` | Interface graphique de programmation. [Pas encore écrite](#interface-graphique--machin-interface). |
 | `Machin logs` | Suivi en direct du journal du service de diffusion. |
 
@@ -66,9 +66,25 @@ Les chemins relatifs du fichier (sorties CSV, HTML et .pls) se comprennent depui
 
 ## Vérifier les sonores : Machin indexation
 
-`Machin indexation` vérifie que les fichiers des sonores enregistrés en base sont présents et sains, met à jour leur durée et leurs tags, et change leur état si besoin. Il ne modifie jamais les fichiers sonores eux-mêmes.
+`Machin indexation` fait deux choses, dans cet ordre :
 
-L'enregistrement des nouveaux fichiers trouvés dans les répertoires des banques est à venir ([#9](https://github.com/dascritch/machincast/issues/9)). D'ici là, sur un poste neuf, la base ne contient aucun sonore et l'indexation n'a rien à vérifier.
+1. il enregistre les fichiers déposés dans les répertoires des banques, et les range dans leur banque ;
+2. il vérifie que les fichiers des sonores sont présents et sains, met à jour leur durée et leurs tags, et change leur état si besoin.
+
+Il ne modifie jamais les fichiers sonores eux-mêmes, et ne supprime jamais un sonore de la base.
+
+### Alimenter une banque
+
+Alimenter une banque se limite à déposer des fichiers dans l'un de ses répertoires, puis à lancer `Machin indexation` ([#9](https://github.com/dascritch/machincast/issues/9)). Les répertoires d'une banque se choisissent dans l'interface ([#31](https://github.com/dascritch/machincast/issues/31)) ; une banque peut en avoir plusieurs, et un même répertoire peut alimenter plusieurs banques.
+
+- **Sous-répertoires** : ils sont tous parcourus, dans l'ordre de leur nom. Un lien symbolique vers un autre répertoire n'est pas suivi, pour éviter les boucles ; le répertoire d'une banque peut, lui, être un lien.
+- **Formats** : `.mp3`, `.m4a`, `.aac`, `.ogg`, `.flac`, `.wav`, `.aiff` et `.aif`, que l'extension soit écrite en minuscules ou en majuscules. Les autres fichiers (pochettes, textes, vidéos `.mp4`…) sont ignorés.
+- **Fichiers cachés** : un fichier ou un répertoire dont le nom commence par un point est ignoré, comme les fichiers `._*.mp3` qu'écrit macOS sur un disque partagé.
+- **Nouveau fichier** : il devient un sonore à l'état `aperçu`, ajouté **en fin de liste** de la banque, puis décodé dans la même indexation. Les fichiers d'un même passage sont ajoutés dans l'ordre de leur chemin.
+- **Fichier déjà connu** : il n'est jamais enregistré deux fois, même trouvé par plusieurs banques. Il est ajouté en fin de liste de chaque banque dont il n'est pas encore membre.
+- **Sonore retiré à la main d'une banque** : tant que son fichier reste dans l'un des répertoires de la banque, l'indexation suivante l'y **réintègre**, en fin de liste. Pour l'en retirer durablement, il faut déplacer le fichier hors de ses répertoires.
+- **Répertoire introuvable** : il est signalé sur la sortie d'erreur, avec le nom de la banque, et les autres banques sont indexées normalement. Un sous-répertoire illisible est signalé de la même façon.
+- **Fichier déplacé** : à son nouvel emplacement, c'est un nouveau sonore ; l'ancien passe à l'état `supprimé`.
 
 ### Indexation rapide et audit complet
 
@@ -94,7 +110,7 @@ Chaque fichier décodé reçoit l'un de ces verdicts :
 
 Un décodage qui ne produit aucun son en 5 secondes est repris depuis le début, jusqu'à trois fois : un disque réseau en veille a ainsi le temps de répondre.
 
-Quelques défauts échappent à la vérification : des octets altérés dans un WAV ou un AIFF, qui n'ont ni somme de contrôle ni trames ; un WAV, un Ogg ou un MP3 sans durée dans son en-tête, tronqué, qui se décode comme un fichier plus court mais sain.
+Quelques défauts échappent à la vérification : des octets altérés dans un WAV ou un AIFF, qui n'ont ni somme de contrôle ni trames ; un WAV, un Ogg, un MP3 sans durée dans son en-tête ou un AAC brut (`.aac`), tronqué, qui se décode comme un fichier plus court mais sain.
 
 ### États d'un sonore
 
@@ -148,10 +164,10 @@ Machin_indexation : /musique/fond/nappe.flac : introuvable : aucun fichier à ce
 Puis le bilan, sur la sortie standard :
 
 ```text
-Machin_indexation : indexation rapide : 3 sonores vérifiés ; 1 erroné, 1 supprimé, 0 rétabli, 3 sortis d'aperçu
+Machin_indexation : indexation rapide : 3 nouveaux sonores, 1 rattachement ; 3 sonores vérifiés ; 1 erroné, 1 supprimé, 0 rétabli, 3 sortis d'aperçu
 ```
 
-Les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état. Un regroupement de ces anomalies dans un document d'audit, en CSV et en HTML, est à venir ([#11](https://github.com/dascritch/machincast/issues/11)).
+Les nouveaux sonores sont les fichiers enregistrés pour la première fois ; les rattachements, les sonores déjà connus ajoutés à une banque dont ils n'étaient pas membres. Les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état. Un regroupement de ces anomalies dans un document d'audit, en CSV et en HTML, est à venir ([#11](https://github.com/dascritch/machincast/issues/11)).
 
 Si GStreamer n'a pas de décodeur pour un format, la vérification s'arrête et nomme les paquets à installer, sans changer l'état des sonores : le fichier n'y est pour rien.
 
@@ -204,7 +220,6 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 
 | Manque | Ticket |
 | --- | --- |
-| Indexation des répertoires de banques | [#9](https://github.com/dascritch/machincast/issues/9) |
 | Document d'audit des anomalies de l'indexation, en CSV et HTML | [#11](https://github.com/dascritch/machincast/issues/11) |
 | Diffusion : choix de l'événement actif et des sonores, lecture audio, streams | [#12](https://github.com/dascritch/machincast/issues/12) à [#16](https://github.com/dascritch/machincast/issues/16) |
 | Airplay, log et désactivations automatiques | [#17](https://github.com/dascritch/machincast/issues/17), [#18](https://github.com/dascritch/machincast/issues/18) |
