@@ -31,12 +31,14 @@ commence vérifie si son sonore a atteint son maximum de lectures ; tous les son
 toutes les VERIFICATION_DES_EXPIRATIONS, pour les périodes de diffusion terminées.
 """
 
+import json
 import signal
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from types import FrameType
+from typing import Any
 
 import psycopg
 from psycopg.rows import TupleRow
@@ -46,9 +48,11 @@ from machincast.hasard import Hasard
 from machincast.horloge import Horloge
 from machincast.lecture.deroule import Choix, Decision, EnCours, Ordonnanceur
 from machincast.lecture.enregistrement import Passage, commencer_passage, consigner, terminer_passage
+from machincast.lecture.etat import PUBLICATION_MINIMALE, SocketEtat, SocketEtatOccupee, est_sain
+from machincast.lecture.etat import instant as iso
 from machincast.lecture.expiration import expirer
 from machincast.lecture.fichiers import verifier_avant_lecture
-from machincast.lecture.moteur import MoteurAudio, Voie, fondu_d_entree, superposition
+from machincast.lecture.moteur import MoteurAudio, Voie, enchainement, fondu_d_entree, superposition
 from machincast.lecture.sorties import Sorties
 
 PAUSE = 0.05
@@ -77,6 +81,8 @@ class Parametres:
 	"""Adresse d'un stream : directe, ou celle de son marque-page."""
 	secours: int | None = None
 	"""Événement de secours d'un stream."""
+	artiste: str | None = None
+	titre: str | None = None
 
 
 @dataclass
@@ -99,6 +105,16 @@ class Lecture:
 		return EnCours(self.choix.occurrence, debut, fin_prevue, self.parametres.stream)
 
 
+@dataclass(frozen=True)
+class Reserve:
+	"""Prochain sonore, réservé au début du sonore en cours (https://github.com/dascritch/machincast/issues/20)."""
+
+	choix: Choix
+	parametres: Parametres
+	sain: bool | None
+	"""Indicateur « sain » (spec § 4.6) ; None pour un stream."""
+
+
 @dataclass
 class Sonde:
 	"""Reconnexion d'un stream tombé : une voie muette, retentée tous les delai_reconnexion."""
@@ -115,13 +131,14 @@ def lire_parametres(connexion: psycopg.Connection[TupleRow], sonore: int) -> Par
 	with connexion.transaction():
 		ligne = connexion.execute(
 			"SELECT s.duree, s.crossfade_debut, s.crossfade_fin, s.type::text, COALESCE(s.url_stream, m.url),"
-			" s.secours_evenement_id FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
+			" s.secours_evenement_id, s.artiste, s.titre"
+			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
 			" WHERE s.id = %s",
 			(sonore,),
 		).fetchone()
 	if ligne is None:
 		return Parametres(None, timedelta(0), timedelta(0))
-	duree, debut, fin, type_sonore, adresse, secours = ligne
+	duree, debut, fin, type_sonore, adresse, secours, artiste, titre = ligne
 	return Parametres(
 		duree if isinstance(duree, timedelta) else None,
 		debut if isinstance(debut, timedelta) else timedelta(0),
@@ -129,6 +146,8 @@ def lire_parametres(connexion: psycopg.Connection[TupleRow], sonore: int) -> Par
 		stream=type_sonore == "stream",
 		adresse=None if adresse is None else str(adresse),
 		secours=None if secours is None else int(str(secours)),
+		artiste=None if artiste is None else str(artiste),
+		titre=None if titre is None else str(titre),
 	)
 
 
@@ -147,6 +166,10 @@ class Diffusion:
 	delai_reconnexion: timedelta = DELAI_RECONNEXION
 	sorties: Sorties | None = None
 	"""Modules de sortie : journal, CSV, .pls et HTML (https://github.com/dascritch/machincast/issues/19)."""
+	etat: SocketEtat | None = None
+	"""Socket d'état pour l'interface (https://github.com/dascritch/machincast/issues/20)."""
+	publication_minimale: float = PUBLICATION_MINIMALE
+	"""Intervalle maximal entre deux publications de l'état, en secondes, pour suivre la progression."""
 	ordonnanceur: Ordonnanceur = field(init=False)
 	courant: Lecture | None = field(default=None, init=False)
 	sortants: list[Lecture] = field(default_factory=list, init=False)
@@ -157,14 +180,31 @@ class Diffusion:
 	"""Reconnexion du stream tombé, s'il y en a un."""
 	expirations_verifiees: datetime | None = field(default=None, init=False)
 	"""Heure de la dernière vérification de tous les sonores."""
+	reserve: Reserve | None = field(default=None, init=False)
+	"""Prochain sonore, réservé au début du sonore en cours : il sera joué s'il est encore valable."""
+	_publication: tuple[str, datetime | None] = field(default=("", None), init=False)
+	"""Dernier état publié sur la socket, sans ce qui change à chaque pas, et heure de sa publication."""
 
 	def __post_init__(self) -> None:
 		self.ordonnanceur = Ordonnanceur(self.connexion, self.hasard)
 
 	def demarrer(self) -> None:
+		"""Ouvre la socket d'état, puis consigne le démarrage ; lève SocketEtatOccupee si un autre Machin lecture
+		diffuse déjà."""
 		instant = self.horloge.maintenant()
+		if self.etat is not None:
+			try:
+				self.etat.ouvrir()
+			except SocketEtatOccupee:
+				raise
+			except OSError as erreur:
+				consigner(
+					self.connexion, "alerte", "socket d'état indisponible", f"{self.etat.chemin} : {erreur}", instant
+				)
+				self.etat = None
 		consigner(self.connexion, "info", "démarrage", f"Machin_lecture {__version__}", instant)
 		self._verifier_les_expirations(instant)
+		self._publier(instant)
 
 	def pas(self) -> None:
 		instant = self.horloge.maintenant()
@@ -185,11 +225,13 @@ class Diffusion:
 		elif not self.sortants:
 			# Rien sur la sortie ; tant qu'un stream s'éteint sans superposition, le suivant attend.
 			choix, self.en_attente = self.en_attente, None
+			choix = choix or self._prendre_la_reserve(instant)
 			if choix is not None:
 				self._jouer(choix, instant)
 			else:
 				self._appliquer(self.ordonnanceur.decider(instant, None), instant)
 		self._suivre_la_sonde(instant)
+		self._publier(instant)
 
 	def arreter(self) -> None:
 		"""Arrête la sortie : les passages en cours se terminent sans incident, puis l'arrêt est consigné."""
@@ -199,8 +241,11 @@ class Diffusion:
 		self.moteur.couper()
 		for lecture in self._lectures():
 			self._terminer(lecture.passage, instant)
-		self.courant, self.sortants, self.en_attente, self.sonde = None, [], None, None
+		self.courant, self.sortants, self.en_attente, self.sonde, self.reserve = None, [], None, None, None
 		consigner(self.connexion, "info", "arrêt", "arrêt demandé", instant)
+		self._publier(instant, arret=True)
+		if self.etat is not None:
+			self.etat.fermer()
 
 	# ─── Étapes ────────────────────────────────────────────
 
@@ -227,8 +272,24 @@ class Diffusion:
 		duree = lecture.parametres.duree
 		return duree is not None and lecture.voie.position() >= duree - lecture.parametres.crossfade_fin
 
+	def _prendre_la_reserve(self, instant: datetime) -> Choix | None:
+		"""Le sonore réservé, s'il est encore valable ; la réserve est vidée dans tous les cas."""
+		reserve, self.reserve = self.reserve, None
+		if reserve is not None and self.ordonnanceur.valider(reserve.choix, instant):
+			return reserve.choix
+		return None
+
+	def _reserver(self, instant: datetime) -> None:
+		choix = self.ordonnanceur.reserver(instant)
+		if choix is None:
+			self.reserve = None
+			return
+		self.reserve = Reserve(
+			choix, lire_parametres(self.connexion, choix.sonore), est_sain(self.connexion, choix.sonore)
+		)
+
 	def _preparer_le_suivant(self, courant: Lecture, instant: datetime) -> None:
-		choix = self.ordonnanceur.decider(instant, None).jouer
+		choix = self._prendre_la_reserve(instant) or self.ordonnanceur.decider(instant, None).jouer
 		if choix is None:
 			# Rien ensuite : le sonore finit avec son fondu, et le prochain pas sans voie redemande.
 			return
@@ -243,6 +304,7 @@ class Diffusion:
 		"""Fin de l'événement d'un stream : il s'éteint pendant son crossfade de fin."""
 		fondu = courant.parametres.crossfade_fin
 		courant.eteinte = True
+		self.reserve = None
 		courant.voie.eteindre(fondu)
 		self.courant = None
 		self.sortants.append(courant)
@@ -309,6 +371,7 @@ class Diffusion:
 		passage = self._commencer(choix.sonore, choix.banque, choix.occurrence.evenement.id, choix.element.id, instant)
 		self.courant = Lecture(choix, sonde.parametres, voie, passage)
 		expirer(self.connexion, instant, choix.sonore)
+		self._reserver(instant)
 		panne = round((instant - sonde.depuis).total_seconds())
 		consigner(
 			self.connexion,
@@ -324,7 +387,7 @@ class Diffusion:
 		self.moteur.couper()
 		for lecture in self._lectures():
 			self._terminer(lecture.passage, instant, coupe=True)
-		self.courant, self.sortants, self.en_attente = None, [], None
+		self.courant, self.sortants, self.en_attente, self.reserve = None, [], None, None
 
 	def _appliquer(self, decision: Decision, instant: datetime) -> None:
 		if decision.jouer is not None:
@@ -363,6 +426,7 @@ class Diffusion:
 			self.sortants.append(self.courant)
 		self.courant = Lecture(suivant, parametres, voie, passage)
 		expirer(self.connexion, instant, suivant.sonore)
+		self._reserver(instant)
 
 	def _commencer(
 		self, sonore: int, banque: int | None, evenement: int | None, element: int | None, instant: datetime
@@ -384,11 +448,80 @@ class Diffusion:
 		if self.sorties is not None:
 			self.sorties.passage_termine(self.connexion, passage, instant)
 
+	# ─── Socket d'état (https://github.com/dascritch/machincast/issues/20) ───
+
+	def _publier(self, instant: datetime, arret: bool = False) -> None:
+		"""Publie l'état s'il a changé, ou si le dernier date de publication_minimale, pour la progression."""
+		if self.etat is None:
+			return
+		message = self._etat(instant, arret)
+		stable = json.dumps({**message, "en_cours": _sans_progression(message["en_cours"])}, default=str)
+		precedent, publie_a = self._publication
+		ancien = publie_a is None or instant - publie_a >= timedelta(seconds=self.publication_minimale)
+		if arret or stable != precedent or ancien:
+			self.etat.publier({"horodatage": iso(instant), **message})
+			self._publication = (stable, instant)
+
+	def _etat(self, instant: datetime, arret: bool) -> dict[str, Any]:
+		courant = self.courant
+		en_cours = None
+		if courant is not None:
+			parametres = courant.parametres
+			position = courant.voie.position()
+			duree = parametres.duree
+			en_cours = {
+				**_affichage(courant.choix, parametres),
+				"debut": iso(courant.passage.debut),
+				"duree": _secondes(duree),
+				"fin_estimee": iso(None if duree is None else courant.passage.debut + duree),
+				"position": round(position.total_seconds(), 3),
+				"progression": None if not duree else round(min(1.0, position / duree), 3),
+			}
+		prochain = None
+		reserve = self.reserve
+		if reserve is not None:
+			debut = None
+			if courant is not None and courant.parametres.duree is not None:
+				ecart = enchainement(
+					courant.parametres.duree, courant.parametres.crossfade_fin, reserve.parametres.crossfade_debut
+				)
+				debut = courant.passage.debut + ecart
+			duree = reserve.parametres.duree
+			prochain = {
+				**_affichage(reserve.choix, reserve.parametres),
+				"debut_estime": iso(debut),
+				"duree": _secondes(duree),
+				"fin_estimee": iso(None if debut is None or duree is None else debut + duree),
+				"sain": reserve.sain,
+			}
+		marche = "arret" if arret else ("diffusion" if courant is not None or self.sortants else "silence")
+		return {"etat": marche, "en_cours": en_cours, "prochain": prochain}
+
 	def _verifier_les_expirations(self, instant: datetime) -> None:
 		derniere = self.expirations_verifiees
 		if derniere is None or instant - derniere >= VERIFICATION_DES_EXPIRATIONS:
 			self.expirations_verifiees = instant
 			expirer(self.connexion, instant)
+
+
+def _affichage(choix: Choix, parametres: Parametres) -> dict[str, Any]:
+	return {
+		"sonore": choix.sonore,
+		"type": "stream" if parametres.stream else "fichier",
+		"artiste": parametres.artiste,
+		"titre": parametres.titre,
+		"evenement": choix.occurrence.evenement.nom,
+	}
+
+
+def _secondes(duree: timedelta | None) -> float | None:
+	return None if duree is None else round(duree.total_seconds(), 3)
+
+
+def _sans_progression(en_cours: object) -> object:
+	if not isinstance(en_cours, dict):
+		return en_cours
+	return {cle: valeur for cle, valeur in en_cours.items() if cle not in ("position", "progression")}
 
 
 def installer_arret() -> threading.Event:

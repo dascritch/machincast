@@ -187,7 +187,19 @@ Machin lecture --config <fichier>
 - **En marche** : il affiche la sortie utilisée, note `démarrage` dans le log, puis enchaîne les sonores sans intervention. Chaque passage est écrit dans l'airplay au moment où il commence et où il finit.
 - **Arrêt** : `Ctrl-C` dans le terminal, ou le signal `SIGTERM` (arrêt d'un service). Le sonore en cours s'arrête, son passage est terminé dans l'airplay, sans incident, `arrêt` est noté dans le log, et le programme s'arrête avec le code 0.
 - **Perte de la base en cours de diffusion** : la sortie se coupe, et le programme s'arrête avec le code 1 et le message `erreur de base de données`.
-- **Un seul `Machin lecture` à la fois** : deux diffusions en même temps joueraient chacune leurs sonores et écriraient chacune leur airplay.
+- **Un seul `Machin lecture` à la fois** : deux diffusions en même temps joueraient chacune leurs sonores et écriraient chacune leur airplay. Un second `Machin lecture` lancé sur la même socket d'état est refusé : il s'arrête avec le code 1 et le message `diffusion refusée : … un autre Machin lecture diffuse déjà`.
+
+### État de la diffusion pour l'interface
+
+`Machin lecture` publie son état sur une socket Unix, que l'interface lit pour afficher ce qui passe à l'antenne ([#20](https://github.com/dascritch/machincast/issues/20)) :
+
+- **Emplacement** : `lecture.socket_etat` dans la configuration, ou par défaut `lecture.sock` dans le dossier `machincast` du répertoire d'exécution du compte (`$XDG_RUNTIME_DIR`, en général `/run/user/1000`). Seul le compte qui diffuse peut la lire. Elle disparaît à l'arrêt de la diffusion et au redémarrage du poste.
+- **Contenu** : l'état de marche (diffusion, silence ou arrêt), le sonore en cours (début, durée, fin prévue, progression), et le prochain sonore (début et fin prévus, durée, s'il est sain). Pour un stream, la durée et la fin sont inconnues. Le format est décrit champ par champ dans la [spécification, § 5.4](spec.md#54-socket-détat).
+- **Le prochain sonore annoncé est celui qui passera** : il est choisi dès le début du sonore en cours, même tiré au hasard dans une banque. Il ne change que si un événement coupe la diffusion, si son événement est fini, ou s'il est désactivé ou expiré entre-temps.
+- **Sain** : un fichier présent, lisible, à l'état `actif`, dont la dernière lecture s'est terminée sans incident. Un stream n'est pas testé : son état sain est inconnu.
+- Pour voir l'état à la main : `socat - UNIX-CONNECT:"${XDG_RUNTIME_DIR}/machincast/lecture.sock"` (paquet `socat`), une ligne JSON par changement ; `Ctrl-C` pour quitter.
+
+Une socket impossible à créer (dossier sans droit d'écriture, par exemple) est signalée dans le log par l'alerte `socket d'état indisponible` : la diffusion continue sans elle.
 
 La diffusion suit les règles ci-dessous.
 
@@ -305,6 +317,7 @@ Le **log** note les opérations du binaire lecture, avec leur heure, leur niveau
 | `flux tombé` | incident | Le flux d'un stream ne répond pas, ou s'est arrêté avant la fin de son événement ; le message donne l'adresse et l'erreur. |
 | `reprise du flux` | incident | Le flux d'un stream tombé est revenu, et le stream reprend l'antenne ; le message donne l'adresse et la durée de la panne. |
 | `sonore expiré` | info | Un sonore a atteint son maximum de lectures ou la fin de sa période de diffusion ; le message donne la cause. |
+| `socket d'état indisponible` | alerte | La socket d'état ne peut pas être créée ; la diffusion continue sans elle. |
 | `sortie inaccessible` | alerte | Une sortie (CSV, .pls ou page HTML) ne peut pas être écrite ; le message donne le chemin et l'erreur. |
 | `reconnexion abandonnée` | info | L'événement d'un stream tombé n'est plus à l'antenne : plus de tentative de reconnexion. |
 
@@ -331,7 +344,7 @@ Chaque message commence par le nom du programme, par exemple `Machin_indexation 
 | Code | Signification |
 | --- | --- |
 | 0 | Le programme est allé au bout. Pour l'indexation, même si des sonores ont changé d'état : ce sont des anomalies, pas des erreurs. |
-| 1 | Base de données injoignable ou perdue, décodeur GStreamer manquant, sortie audio indisponible, ou fonction pas encore écrite. |
+| 1 | Base de données injoignable ou perdue, décodeur GStreamer manquant, sortie audio indisponible, autre `Machin lecture` déjà en diffusion, ou fonction pas encore écrite. |
 | 2 | Configuration invalide, ou appel incorrect (option inconnue, `--config` sans fichier). |
 | 127 | Programme ou `journalctl` introuvable, signalé par `Machin`. |
 
@@ -355,7 +368,6 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | --- | --- |
 | Document d'audit des anomalies de l'indexation, en CSV et HTML | [#11](https://github.com/dascritch/machincast/issues/11) |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
-| État de la diffusion pour l'interface | [#20](https://github.com/dascritch/machincast/issues/20) |
 | Mode simulation de la diffusion | [#21](https://github.com/dascritch/machincast/issues/21) |
 | Service systemd de diffusion | [#22](https://github.com/dascritch/machincast/issues/22) |
 | Interface graphique | [#23](https://github.com/dascritch/machincast/issues/23) et suivants |

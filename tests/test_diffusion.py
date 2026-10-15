@@ -13,11 +13,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from pytest_bdd import given, parsers, scenarios, then, when
+from pytest_bdd import given, scenarios, then, when
 
 from machincast.lecture.diffusion import installer_arret
 from tests.base_test import CONFIGURATION_TEST
-from tests.etapes_diffusion import Connexion, sonore
 
 scenarios("diffusion.feature")
 
@@ -31,11 +30,6 @@ class Processus:
 @pytest.fixture
 def processus() -> Processus:
 	return Processus()
-
-
-@given(parsers.parse("le sonore « {nom} » est à l'état « {etat} »"))
-def etat(base_vide: Connexion, nom: str, etat: str) -> None:
-	base_vide.execute("UPDATE sonores SET etat = %s WHERE id = %s", (etat, sonore(base_vide, nom)))
 
 
 @given("l'arrêt de la diffusion branché sur les signaux")

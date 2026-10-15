@@ -16,6 +16,7 @@ from machincast.configuration import Configuration
 from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeSysteme
 from machincast.lecture.diffusion import Diffusion, diffuser, installer_arret
+from machincast.lecture.etat import SocketEtat, SocketEtatOccupee
 from machincast.lecture.moteur import MoteurAudio
 from machincast.lecture.sorties import Sorties
 
@@ -36,8 +37,14 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 			moteur = MoteurAudio(configuration.audio)
 			try:
 				journal.info(f"diffusion sur la sortie {configuration.audio.sortie}, arrêt par Ctrl-C ou SIGTERM")
-				sorties = Sorties.depuis(configuration)
-				diffusion = Diffusion(connexion, moteur, HorlogeSysteme(), creer_hasard(None), sorties=sorties)
+				diffusion = Diffusion(
+					connexion,
+					moteur,
+					HorlogeSysteme(),
+					creer_hasard(None),
+					sorties=Sorties.depuis(configuration),
+					etat=SocketEtat(configuration.lecture.socket_etat),
+				)
 				diffuser(diffusion, arret)
 			finally:
 				moteur.fermer()
@@ -46,6 +53,9 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 		return CODE_ECHEC
 	except psycopg.Error as erreur:
 		journal.error(f"erreur de base de données : {erreur}")
+		return CODE_ECHEC
+	except SocketEtatOccupee as erreur:
+		journal.error(f"diffusion refusée : {erreur}")
 		return CODE_ECHEC
 	except SortieAudioIndisponible as erreur:
 		journal.error(f"sortie audio indisponible : {erreur}")

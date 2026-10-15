@@ -209,6 +209,30 @@ class Ordonnanceur:
 		"""Sonores écartés, avec l'instant où ils l'ont été."""
 		self.suspension: Suspension | None = None
 		"""Stream tombé en attente de reconnexion."""
+		self._reservation = False
+		"""Décision prise pour réserver le prochain sonore : un silence n'y est pas encore signalé."""
+
+	def reserver(self, instant: datetime) -> Choix | None:
+		"""Prochain sonore, choisi dès le début du sonore en cours (https://github.com/dascritch/machincast/issues/20).
+
+		Comme une décision sans sonore en cours, mais sans alerte de silence : le silence ne viendra qu'à la fin du
+		sonore en cours, et sera signalé alors.
+		"""
+		self._reservation = True
+		try:
+			return self.decider(instant, None).jouer
+		finally:
+			self._reservation = False
+
+	def valider(self, choix: Choix, instant: datetime) -> bool:
+		"""Le sonore réservé peut-il encore être joué : son occurrence est toujours active et il est jouable."""
+		with self.connexion.transaction():
+			evenements = lire_grille(self.connexion)
+			actif = evenement_actif(evenements, instant, frozenset(self.terminees))
+			actif = self._remplacer(evenements, instant, actif)
+			if actif is None or actif.cle != choix.occurrence.cle or choix.sonore in self._exclus(instant):
+				return False
+			return sonore_jouable(self.connexion, choix.sonore, instant)
 
 	def suspendre(self, occurrence: Occurrence, secours: int | None) -> None:
 		"""Le stream de l'occurrence est tombé : la remplacer, tant qu'elle reste active, par l'événement de secours,
@@ -292,6 +316,8 @@ class Ordonnanceur:
 		return actif.debut is not None and actif.debut > heure_murale(en_cours.debut)
 
 	def _silence(self, couper: bool, eteindre: bool, actif: Occurrence | None, message: str) -> Decision:
+		if self._reservation:
+			return Decision(couper=couper, eteindre=eteindre, silence=True, occurrence=actif)
 		if not self.en_silence:
 			self.en_silence = True
 			consigner(

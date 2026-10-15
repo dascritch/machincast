@@ -1,10 +1,8 @@
 """Étapes de la diffusion des streams (https://github.com/dascritch/machincast/issues/16).
 
-Les étapes communes aux scénarios de la diffusion sont dans tests/etapes_diffusion.py ; le serveur de flux local,
-dans tests/flux.py.
+Les étapes communes aux scénarios de la diffusion, dont le serveur de flux local (tests/flux.py), sont dans
+tests/etapes_diffusion.py.
 """
-
-from collections.abc import Iterator
 
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
@@ -16,31 +14,12 @@ from tests.sons import TAGS_DE_TEST
 scenarios("streams.feature")
 
 
-@pytest.fixture
-def serveur() -> Iterator[ServeurDeFlux]:
-	serveur = ServeurDeFlux()
-	yield serveur
-	serveur.fermer()
-
-
 # ─── Étant donné ───────────────────────────────────────────
-
-
-@given(parsers.parse("un serveur de flux local, avec le flux « {flux} » en ligne"))
-def flux_en_ligne(serveur: ServeurDeFlux, flux: str) -> None:
-	serveur.en_ligne[flux] = True
 
 
 @given(parsers.parse("le flux « {flux} » est hors ligne"))
 def flux_hors_ligne(serveur: ServeurDeFlux, flux: str) -> None:
 	serveur.en_ligne[flux] = False
-
-
-@given(parsers.parse("le stream « {nom} » à l'adresse du flux « {flux} »"))
-def stream_direct(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, flux: str) -> None:
-	base_vide.execute(
-		"INSERT INTO sonores (type, url_stream, titre) VALUES ('stream', %s, %s)", (serveur.adresse(flux), nom)
-	)
 
 
 @given(parsers.parse("le stream « {nom} » sur le marque-page « {marque_page} » du flux « {flux} »"))

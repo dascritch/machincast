@@ -328,7 +328,7 @@ Boucle de diffusion ([#88](https://github.com/dascritch/machincast/issues/88), `
 ### 5.2 Écritures
 
 - `airplay` : une ligne au début et une ligne à la fin de chaque passage (insertions seules), par `machincast.lecture.enregistrement` ([#17](https://github.com/dascritch/machincast/issues/17)). La ligne de fin recopie la ligne de début : l'artiste et le titre restent ceux du moment du passage, même modifiés entre-temps. Une coupure nette n'est pas un incident (`sans_incident` vrai) ; une lecture interrompue par une erreur, si.
-- `log` : toutes les opérations, normales comme incidents, avec l'heure de l'horloge du binaire. Natures déjà consignées : `démarrage` (info), `arrêt` (info), `coupure nette` (info), `sonore expiré` (info), `reconnexion abandonnée` (info), `silence` (alerte), `sortie inaccessible` (alerte), `fichier modifié` (alerte), `fichier introuvable` (incident), `lecture interrompue` (incident), `flux tombé` (incident), `reprise du flux` (incident).
+- `log` : toutes les opérations, normales comme incidents, avec l'heure de l'horloge du binaire. Natures déjà consignées : `démarrage` (info), `arrêt` (info), `coupure nette` (info), `sonore expiré` (info), `reconnexion abandonnée` (info), `silence` (alerte), `sortie inaccessible` (alerte), `socket d'état indisponible` (alerte), `fichier modifié` (alerte), `fichier introuvable` (incident), `lecture interrompue` (incident), `flux tombé` (incident), `reprise du flux` (incident).
 - `sonores.etat` : passage à `expire` ([§ 4.5](#45-sonore-jouable)).
 
 ### 5.3 Modules de sortie
@@ -348,6 +348,48 @@ Un module privé indique tous les sonores. Un module public applique le masquage
 ### 5.4 Socket d'état
 
 Le binaire expose une socket Unix donnant à l'interface : état de marche, sonore en cours (début, durée, fin estimée, progression), prochain sonore (début et fin estimés, durée, indicateur « sain »).
+
+Mise en œuvre ([#20](https://github.com/dascritch/machincast/issues/20), `machincast.lecture.etat`) :
+
+- **Chemin** : `lecture.socket_etat` dans la configuration ; par défaut `$XDG_RUNTIME_DIR/machincast/lecture.sock`, ou `/run/user/<uid>/machincast/lecture.sock` sans cette variable. Le répertoire est en `0700` et la socket en `0600` : seul le compte qui diffuse les lit. Une socket déjà ouverte par un autre `Machin lecture` refuse la seconde diffusion (code de sortie 1, « un autre Machin lecture diffuse déjà ») ; une socket laissée par un binaire arrêté brutalement est remplacée. Une socket impossible à créer pour une autre raison est consignée (`socket d'état indisponible`, alerte), et la diffusion continue sans elle.
+- **Protocole** : à la connexion, le binaire envoie le dernier état, puis chaque nouvel état, une ligne JSON en UTF-8 par état. Il publie à chaque changement, et au moins chaque seconde pendant un sonore pour la progression. Le client n'envoie rien. Un client lent ou qui se déconnecte ne gêne jamais la diffusion. À l'arrêt, un dernier message `"etat": "arret"` part, puis la socket est fermée et effacée.
+- **Version** : le champ `version` vaut 1. Il change quand un champ change de sens ou disparaît ; l'ajout d'un champ ne le change pas.
+- **Prochain sonore** : il est réservé dès le début du sonore en cours (décidé en relecture de [#20](https://github.com/dascritch/machincast/issues/20)) : c'est lui qui est joué ensuite, tiré au hasard compris. La réservation tombe si un événement coupe la diffusion, si son événement n'est plus actif, ou s'il n'est plus jouable (désactivé, expiré) : le suivant est alors choisi à ce moment-là. Une réservation sans rien de jouable ne déclenche pas l'alerte de silence, qui vient à la fin du sonore en cours.
+
+Champs d'un message :
+
+| Champ | Type | Sens |
+| --- | --- | --- |
+| `version` | entier | Version du format : 1. |
+| `horodatage` | date ISO 8601 | Heure de l'état, à l'horloge du binaire. |
+| `etat` | texte | `diffusion` (un sonore est sur la sortie), `silence` (rien à diffuser) ou `arret` (dernier message, la diffusion s'arrête). |
+| `en_cours` | objet ou `null` | Sonore à l'antenne ; `null` en silence et à l'arrêt. |
+| `prochain` | objet ou `null` | Sonore réservé pour la suite ; `null` s'il n'y en a pas. |
+
+Champs communs à `en_cours` et `prochain` :
+
+| Champ | Type | Sens |
+| --- | --- | --- |
+| `sonore` | entier | Identifiant du sonore. |
+| `type` | texte | `fichier` ou `stream`. |
+| `artiste`, `titre` | texte ou `null` | Métadonnées de la base, jamais masquées : l'interface est privée. |
+| `evenement` | texte | Nom interne de l'événement qui le joue (ou de l'événement de secours). |
+| `duree` | nombre ou `null` | Durée en secondes ; `null` pour un stream, dont la durée est inconnue. |
+| `fin_estimee` | date ISO 8601 ou `null` | Fin prévue, `null` quand la durée ou le début sont inconnus. |
+
+Champs propres à `en_cours` : `debut` (date ISO 8601 du début du passage), `position` (secondes jouées) et `progression` (de 0 à 1, `null` pour un stream).
+
+Champs propres à `prochain` : `debut_estime` (date ISO 8601, `null` après un stream : au début du crossfade de fin du sonore en cours s'ils se superposent, à sa fin sinon) et `sain` (indicateur du [§ 4.6](#46-sonore-sain) : `true` ou `false`, `null` pour un stream, qui n'est pas testé automatiquement).
+
+Exemple, présenté ici sur plusieurs lignes ; le binaire envoie chaque message sur une seule :
+
+```json
+{"version": 1, "horodatage": "2026-10-14T20:00:30+02:00", "etat": "diffusion",
+ "en_cours": {"sonore": 12, "type": "fichier", "artiste": "Les Gaufres", "titre": "Café à minuit", "evenement": "Fil de jour",
+  "debut": "2026-10-14T20:00:00+02:00", "duree": 214.5, "fin_estimee": "2026-10-14T20:03:34.500000+02:00", "position": 30.0, "progression": 0.14},
+ "prochain": {"sonore": 31, "type": "fichier", "artiste": null, "titre": "Jingle", "evenement": "Fil de jour",
+  "debut_estime": "2026-10-14T20:03:30.500000+02:00", "duree": 8.0, "fin_estimee": "2026-10-14T20:03:38.500000+02:00", "sain": true}}
+```
 
 ### 5.5 Mode simulation
 
@@ -534,6 +576,7 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 | `sorties.html` | chemin | oui | Page HTML (public) du sonore à l'antenne et des 20 précédents. |
 | `metadonnees.masquer` | booléen | oui | Masquage par défaut de l'artiste et du titre. |
 | `metadonnees.texte_public` | texte, 255 caractères au plus | oui | Texte public affiché à la place de l'artiste et du titre masqués, quand l'événement n'a pas de nom public. |
+| `lecture.socket_etat` | chemin | non | Socket d'état du binaire lecture, lue par l'interface ([§ 5.4](#54-socket-détat)). Par défaut `$XDG_RUNTIME_DIR/machincast/lecture.sock`. |
 
 ## 10. Installation et déploiement
 

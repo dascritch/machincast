@@ -82,7 +82,7 @@ def fichier_contenant(contexte: Contexte, docstring: str) -> None:
 @given(parsers.parse('une configuration valide où la clé "{cle}" est absente'))
 def cle_absente(contexte: Contexte, cle: str) -> None:
 	section, nom = cle.split(".")
-	del contexte.cles[section][nom]
+	contexte.cles.setdefault(section, {}).pop(nom, None)
 	ecrire(contexte)
 
 
@@ -90,8 +90,13 @@ def cle_absente(contexte: Contexte, cle: str) -> None:
 def cle_vaut(contexte: Contexte, cle: str, valeur: str) -> None:
 	section, nom = cle.split(".")
 	valeur = valeur.replace("<256 caractères>", "é" * 256)
-	contexte.cles[section][nom] = valeur
+	contexte.cles.setdefault(section, {})[nom] = valeur
 	ecrire(contexte)
+
+
+@given(parsers.parse("le répertoire d'exécution du compte « {repertoire} »"))
+def repertoire_d_execution(monkeypatch: pytest.MonkeyPatch, repertoire: str) -> None:
+	monkeypatch.setenv("XDG_RUNTIME_DIR", repertoire)
 
 
 @given("un chemin de configuration qui n'existe pas")
@@ -233,6 +238,13 @@ def preecoute(contexte: Contexte, peripherique: str) -> None:
 @then(parsers.parse('la sortie CSV est "{relatif}" à côté du fichier de configuration'))
 def sortie_csv(contexte: Contexte, relatif: str) -> None:
 	assert configuration(contexte).sorties.csv == contexte.repertoire / relatif
+
+
+@then(parsers.re(r'la socket d\'état est "(?P<chemin>[^"]+)"(?P<relatif> à côté du fichier de configuration)?$'))
+def socket_etat(contexte: Contexte, chemin: str, relatif: str | None) -> None:
+	assert contexte.configuration is not None
+	attendu = contexte.repertoire / chemin if relatif else Path(chemin)
+	assert contexte.configuration.lecture.socket_etat == attendu
 
 
 @then(parsers.parse('la sortie HTML est "{absolu}"'))
