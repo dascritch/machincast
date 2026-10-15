@@ -47,6 +47,9 @@ def main(arguments: Sequence[str] | None = None) -> int:
 	try:
 		with psycopg.connect(host=str(options.socket), dbname=options.base, autocommit=True) as connexion:
 			autoriser_utilisateur(connexion, options.utilisateur, [ROLES[nom] for nom in options.roles])
+	except psycopg.OperationalError as erreur:
+		journal.error("base de données injoignable (%s par %s) : %s", options.base, options.socket, erreur)
+		return 1
 	except psycopg.Error as erreur:
 		journal.error("%s", erreur)
 		return 1

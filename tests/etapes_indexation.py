@@ -13,7 +13,7 @@ import psycopg
 import pytest
 from pytest_bdd import given, parsers, then, when
 
-from machincast.base import Role, autoriser_utilisateur, connecter
+from machincast.base import Role, connecter
 from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
 from machincast.indexation.verification import Bilan, texte_bilan, verifier_sonores
 from tests.base_test import parametres_base_test
@@ -116,9 +116,7 @@ def stream(base_vide: Connexion) -> tuple[int, object]:
 
 
 def indexer(base_vide: Connexion, caplog: pytest.LogCaptureFixture, audit_complet: bool) -> Execution:
-	utilisateur = base_vide.execute("SELECT current_user").fetchone()
-	assert utilisateur is not None
-	autoriser_utilisateur(base_vide, str(utilisateur[0]), [Role.INDEXATION])
+	# Le compte qui lance les tests endosse déjà le rôle de l'indexation (vérifié par base_vide).
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:
 		bilan = verifier_sonores(c, audit_complet=audit_complet)

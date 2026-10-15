@@ -24,16 +24,14 @@ sudo apt install bats shellcheck
 python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
 cp machincast.exemple.toml machincast.toml   # puis l'adapter ; jamais versionné
 
-# Base de test locale (PostgreSQL ≥ 16, authentification peer)
-createdb machincast_test
-
-# Autoriser un utilisateur système à endosser des rôles
-# (par un rôle PostgreSQL qui a CREATEROLE et qui a créé les rôles, par exemple celui qui applique les migrations)
-# Après ./install.sh, les rôles appartiennent à postgres : les tests, qui créent des comptes et attribuent ces rôles,
-# demandent au développeur CREATEROLE et le droit de les attribuer :
-#   sudo -u postgres psql -c "ALTER ROLE $(id -un) CREATEROLE"
-#   sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machincast_interface TO $(id -un) WITH ADMIN TRUE, INHERIT FALSE, SET FALSE"
-python -m machincast.droits --base machincast_test autoriser "$(id -un)" lecture indexation interface
+# Base de test locale (PostgreSQL ≥ 16, authentification peer) : ./install.sh la prépare. Le compte n'a besoin
+# d'aucun droit particulier (ni CREATEDB, ni CREATEROLE) : propriétaire de la base, il endosse les trois rôles
+# sans en hériter les droits. Les tests ne créent jamais de compte et n'attribuent jamais de rôle. À la main :
+sudo -u postgres createuser "$(id -un)"
+sudo -u postgres createdb --owner="$(id -un)" machincast_test
+sudo -u postgres psql -c "CREATE ROLE machincast_lecture NOLOGIN" -c "CREATE ROLE machincast_indexation NOLOGIN" \
+	-c "CREATE ROLE machincast_interface NOLOGIN"
+sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machincast_interface TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
 
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/

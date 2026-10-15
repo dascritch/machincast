@@ -6,7 +6,6 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 
 	Contexte:
 		Étant donné une base de test migrée avec les éléments de référence
-		Et l'utilisateur "machincast_essai" autorisé à endosser les trois rôles de MachinCast
 
 	Scénario: Droits du binaire lecture
 		Alors le rôle "machincast_lecture" a exactement ces droits :
@@ -65,9 +64,8 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 		Quand le rôle "machincast_interface" supprime le sonore de référence
 		Alors la ligne d'airplay existe toujours, sans référence au sonore
 
-	Scénario: Un utilisateur n'hérite pas des droits de ses rôles sans les endosser
-		Alors l'utilisateur "machincast_essai" ne peut pas lire les sonores sans endosser un rôle
-		Et l'utilisateur "machincast_essai" peut endosser chacun des trois rôles
+	Scénario: Le compte qui lance les tests endosse les trois rôles, sans en hériter les droits
+		Alors le compte courant peut endosser chacun des trois rôles, sans en hériter les droits
 
 	Plan du scénario: Chaque binaire se connecte avec son propre rôle
 		Quand je me connecte à la base de test avec le rôle "<role>"
@@ -83,10 +81,9 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 		Quand j'annule toutes les migrations
 		Alors les trois rôles existent toujours
 
-	Scénario: Autoriser un utilisateur système en ligne de commande
-		Quand je lance « python -m machincast.droits » pour autoriser "machincast_essai_cli" aux rôles "lecture" et "interface"
-		Alors la commande se termine sans erreur
-		Et l'utilisateur "machincast_essai_cli" peut endosser les rôles "machincast_lecture" et "machincast_interface"
+	Scénario: Autoriser un utilisateur en ligne de commande signale une base injoignable
+		Quand je lance « python -m machincast.droits » pour autoriser "machincast_essai_cli" aux rôles "lecture" et "interface", sur une socket qui n'existe pas
+		Alors la commande échoue en mentionnant "base de données injoignable"
 
 	Scénario: Un rôle inconnu est refusé en ligne de commande
 		Quand je lance « python -m machincast.droits » pour autoriser "machincast_essai_cli" aux rôles "lecture" et "administration"

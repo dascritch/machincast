@@ -12,7 +12,7 @@ import psycopg
 import pytest
 from psycopg import sql
 
-from machincast.base import TABLES, appliquer_migrations, url_yoyo
+from machincast.base import TABLES, Role, appliquer_migrations, url_yoyo
 from machincast.configuration import Configuration, charger
 
 CONFIGURATION_TEST = Path(__file__).parent / "configuration-test.toml"
@@ -56,3 +56,23 @@ def purger_base(connexion: psycopg.Connection[tuple[object, ...]]) -> None:
 	connexion.execute(
 		sql.SQL("TRUNCATE {} RESTART IDENTITY CASCADE").format(sql.SQL(", ").join(sql.Identifier(t) for t in TABLES))
 	)
+
+
+def verifier_autorisations(connexion: psycopg.Connection[tuple[object, ...]]) -> None:
+	"""Ignore le scénario si le compte qui lance les tests ne peut pas endosser les trois rôles de MachinCast.
+
+	Les tests ne créent jamais de compte PostgreSQL et n'attribuent jamais de rôle : le compte doit déjà y être
+	autorisé, par install.sh ou par l'utilisateur postgres (https://github.com/dascritch/machincast/pull/72).
+	"""
+	roles = [str(role) for role in Role]
+	lignes = connexion.execute(
+		"SELECT rolname FROM pg_roles WHERE rolname = ANY(%s) AND pg_has_role(current_user, oid, 'SET')", (roles,)
+	).fetchall()
+	manquants = sorted(set(roles) - {str(ligne[0]) for ligne in lignes})
+	if manquants:
+		compte = connexion.execute("SELECT current_user").fetchone()
+		nom = compte[0] if compte is not None else "?"
+		pytest.skip(
+			f"le compte {nom} ne peut pas endosser {', '.join(manquants)} : lancer ./install.sh, ou en tant que"
+			f' postgres : GRANT {", ".join(roles)} TO "{nom}" WITH INHERIT FALSE, SET TRUE'
+		)
