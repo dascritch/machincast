@@ -511,7 +511,7 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 - Livraison : archives `.tar.gz` publiées en releases sur le dépôt git (sur le repository <https://github.com/dascritch/machincast>).
 - Chaque archive contient un `install.sh` ([#40](https://github.com/dascritch/machincast/issues/40)), à lancer depuis le répertoire de MachinCast (release décompressée ou dépôt git) avec son propre compte, jamais avec sudo : il demande sudo pour les seules étapes qui l'exigent. Relançable, il laisse en place chaque étape déjà faite. `./install.sh --simulation` affiche les commandes sans rien exécuter. Il :
 	- vérifie le système : Ubuntu LTS, la cible étant 26.04 ;
-	- installe par apt les seules dépendances système (bibliothèques de compilation de PyGObject, GStreamer et ses plugins, PostgreSQL) ;
+	- installe par apt les seules dépendances système (bibliothèques de compilation de PyGObject, GStreamer et ses plugins, PostgreSQL, autocomplétion bash) ;
 	- crée un environnement virtuel Python isolé, **sans** `--system-site-packages`, et y installe toutes les dépendances Python par pip (PySide6, PyGObject, psycopg, yoyo-migrations). Le projet suit ainsi l'évolution des paquets sans dépendre des versions de la distribution hôte ;
 	- copie `machincast.exemple.toml` en `machincast.toml` s'il n'existe pas ;
 	- crée, en tant qu'utilisateur `postgres`, le rôle PostgreSQL du compte courant, **sans aucun droit particulier** (ni `CREATEDB`, ni `CREATEROLE`), les bases de production et de test dont ce compte devient propriétaire, et les trois rôles de groupe ; le compte applique ensuite le schéma, ce que la propriété des bases lui permet ;
