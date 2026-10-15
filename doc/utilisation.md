@@ -119,7 +119,7 @@ Quelques défauts échappent à la vérification : des octets altérés dans un 
 | `aperçu` | Fichier nouvellement trouvé, pas encore décodé. | non | Par l'indexeur, au premier décodage sain : il devient `actif`. |
 | `actif` | Sonore en service. | oui, dans sa période de diffusion et sous son maximum de lectures | — |
 | `désactivé` | Retiré de l'antenne par un choix humain, dans l'interface. | non | Par l'interface seulement. |
-| `expiré` | Maximum de lectures atteint, ou période de diffusion terminée. | non | Par l'interface seulement. |
+| `expiré` | Maximum de lectures atteint, ou période de diffusion terminée : posé par `Machin lecture` ([#18](https://github.com/dascritch/machincast/issues/18)). | non | Par l'interface seulement. |
 | `erroné` | Fichier `endommagé` ou `illisible`. | non | Automatiquement, quand l'indexeur trouve le fichier redevenu sain : il redevient `actif`. |
 | `supprimé` | Fichier `introuvable`. | non | Par l'interface seulement. Un fichier déplacé est réindexé comme un nouveau sonore. |
 
@@ -219,6 +219,15 @@ Un élément « banque » d'un événement fait jouer **un seul** sonore de cett
 
 Le choix se déduit de l'historique de diffusion : il reprend là où il en était après un redémarrage.
 
+### Expiration des sonores
+
+`Machin lecture` passe un sonore `actif` à l'état `expiré` ([#18](https://github.com/dascritch/machincast/issues/18)) :
+
+- **Maximum de lectures** : dès le passage qui l'atteint, compté sur toute la diffusion, quels que soient l'événement et la banque. Le sonore finit de jouer ce passage.
+- **Période de diffusion** : dès que sa date de fin est atteinte. `Machin lecture` vérifie tous les sonores à son démarrage, puis chaque minute.
+- **Dans le log** : une ligne `sonore expiré` par sonore, avec sa cause, par exemple « maximum de 2 lectures atteint » ou « période de diffusion terminée le 2026-10-14 20:00:00 ».
+- **Rien d'autre ne change** : seul l'état du sonore est modifié, et seulement depuis `actif`. Un sonore `aperçu`, `désactivé`, `erroné` ou `supprimé` garde son état. Pour le remettre à l'antenne, l'interface le repasse à `actif`, après avoir relevé son maximum ou repoussé sa période ; sinon, il expire de nouveau.
+
 ### Comment une liste de lecture se déroule
 
 La liste d'un événement se joue ainsi ([#14](https://github.com/dascritch/machincast/issues/14)) :
@@ -279,6 +288,7 @@ Le **log** note les opérations du binaire lecture, avec leur heure, leur niveau
 | `lecture interrompue` | incident | La lecture d'un fichier s'est arrêtée sur une erreur, dont le message est noté. |
 | `flux tombé` | incident | Le flux d'un stream ne répond pas, ou s'est arrêté avant la fin de son événement ; le message donne l'adresse et l'erreur. |
 | `reprise du flux` | incident | Le flux d'un stream tombé est revenu, et le stream reprend l'antenne ; le message donne l'adresse et la durée de la panne. |
+| `sonore expiré` | info | Un sonore a atteint son maximum de lectures ou la fin de sa période de diffusion ; le message donne la cause. |
 | `reconnexion abandonnée` | info | L'événement d'un stream tombé n'est plus à l'antenne : plus de tentative de reconnexion. |
 
 L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture : il ne peut qu'y ajouter des lignes.
@@ -328,7 +338,6 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | --- | --- |
 | Document d'audit des anomalies de l'indexation, en CSV et HTML | [#11](https://github.com/dascritch/machincast/issues/11) |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
-| Désactivations automatiques des sonores (maximum de lectures, fin de période) | [#18](https://github.com/dascritch/machincast/issues/18) |
 | Masquage des métadonnées et sorties de l'airplay (CSV, .pls, HTML) | [#19](https://github.com/dascritch/machincast/issues/19) |
 | État de la diffusion pour l'interface | [#20](https://github.com/dascritch/machincast/issues/20) |
 | Mode simulation de la diffusion | [#21](https://github.com/dascritch/machincast/issues/21) |

@@ -25,6 +25,10 @@ Streams (https://github.com/dascritch/machincast/issues/16, spec § 4.7) :
   crossfade de début et les sonores de remplacement s'éteignent pendant ce temps (coupure nette sans crossfade de
   début), et l'incident « reprise du flux » donne la durée de la panne ;
 - si l'événement du stream n'est plus actif, la reconnexion est abandonnée.
+
+Expiration (https://github.com/dascritch/machincast/issues/18, machincast.lecture.expiration) : chaque passage qui
+commence vérifie si son sonore a atteint son maximum de lectures ; tous les sonores sont vérifiés au démarrage, puis
+toutes les VERIFICATION_DES_EXPIRATIONS, pour les périodes de diffusion terminées.
 """
 
 import signal
@@ -42,6 +46,7 @@ from machincast.hasard import Hasard
 from machincast.horloge import Horloge
 from machincast.lecture.deroule import Choix, Decision, EnCours, Ordonnanceur
 from machincast.lecture.enregistrement import Passage, commencer_passage, consigner, terminer_passage
+from machincast.lecture.expiration import expirer
 from machincast.lecture.fichiers import verifier_avant_lecture
 from machincast.lecture.moteur import MoteurAudio, Voie, fondu_d_entree, superposition
 
@@ -50,6 +55,9 @@ PAUSE = 0.05
 
 DELAI_RECONNEXION = timedelta(seconds=5)
 """Délai entre deux tentatives de reconnexion d'un stream tombé."""
+
+VERIFICATION_DES_EXPIRATIONS = timedelta(minutes=1)
+"""Intervalle entre deux vérifications de tous les sonores (fin de période de diffusion)."""
 
 FLUX_ARRETE = "le flux s'est arrêté avant la fin de son événement"
 FLUX_TOMBE = "flux tombé"
@@ -144,15 +152,20 @@ class Diffusion:
 	"""Sonore suivant, qui attend la fin du sonore courant faute de superposition."""
 	sonde: Sonde | None = field(default=None, init=False)
 	"""Reconnexion du stream tombé, s'il y en a un."""
+	expirations_verifiees: datetime | None = field(default=None, init=False)
+	"""Heure de la dernière vérification de tous les sonores."""
 
 	def __post_init__(self) -> None:
 		self.ordonnanceur = Ordonnanceur(self.connexion, self.hasard)
 
 	def demarrer(self) -> None:
-		consigner(self.connexion, "info", "démarrage", f"Machin_lecture {__version__}", self.horloge.maintenant())
+		instant = self.horloge.maintenant()
+		consigner(self.connexion, "info", "démarrage", f"Machin_lecture {__version__}", instant)
+		self._verifier_les_expirations(instant)
 
 	def pas(self) -> None:
 		instant = self.horloge.maintenant()
+		self._verifier_les_expirations(instant)
 		self.moteur.traiter_messages()
 		self._terminer_les_voies_arretees(instant)
 		courant = self.courant
@@ -294,6 +307,7 @@ class Diffusion:
 			self.connexion, choix.sonore, choix.banque, choix.occurrence.evenement.id, choix.element.id, instant
 		)
 		self.courant = Lecture(choix, sonde.parametres, voie, passage)
+		expirer(self.connexion, instant, choix.sonore)
 		panne = round((instant - sonde.depuis).total_seconds())
 		consigner(
 			self.connexion,
@@ -348,6 +362,13 @@ class Diffusion:
 		if self.courant is not None:
 			self.sortants.append(self.courant)
 		self.courant = Lecture(suivant, parametres, voie, passage)
+		expirer(self.connexion, instant, suivant.sonore)
+
+	def _verifier_les_expirations(self, instant: datetime) -> None:
+		derniere = self.expirations_verifiees
+		if derniere is None or instant - derniere >= VERIFICATION_DES_EXPIRATIONS:
+			self.expirations_verifiees = instant
+			expirer(self.connexion, instant)
 
 
 def installer_arret() -> threading.Event:
