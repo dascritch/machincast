@@ -47,6 +47,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 			| extension |
 			| mp3       |
 			| m4a       |
+			| aac       |
 			| ogg       |
 			| flac      |
 			| wav       |

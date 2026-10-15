@@ -16,7 +16,16 @@ scenarios("repertoires.feature")
 Connexion = psycopg.Connection[tuple[object, ...]]
 ELEMENT = re.compile(r"« ([^»]+) »")
 # Extension du fichier demandé → fichier de test à copier (tests/fichiers-sonores).
-FORMATS = {"mp3": "mp3", "m4a": "m4a", "ogg": "ogg", "flac": "flac", "wav": "wav", "aiff": "aiff", "aif": "aiff"}
+FORMATS = {
+	"mp3": "mp3",
+	"m4a": "m4a",
+	"aac": "aac",
+	"ogg": "ogg",
+	"flac": "flac",
+	"wav": "wav",
+	"aiff": "aiff",
+	"aif": "aiff",
+}
 
 
 @pytest.fixture

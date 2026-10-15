@@ -39,6 +39,8 @@ class Exigence:
 
 	type_element: int
 	capacites: str
+	paquet: str | None = None
+	"""Paquet qui fournit l'élément, quand ce n'est pas celui du format."""
 
 
 @dataclass(frozen=True)
@@ -50,6 +52,7 @@ class FormatSonore:
 
 _DECODEUR = Gst.ELEMENT_FACTORY_TYPE_DECODER
 _DEMULTIPLEXEUR = Gst.ELEMENT_FACTORY_TYPE_DEMUXER
+_ANALYSEUR = Gst.ELEMENT_FACTORY_TYPE_PARSER
 
 FORMATS: dict[str, FormatSonore] = {
 	"mp3": FormatSonore(
@@ -57,6 +60,16 @@ FORMATS: dict[str, FormatSonore] = {
 	),
 	"m4a": FormatSonore(
 		(Exigence(_DEMULTIPLEXEUR, "audio/x-m4a"), Exigence(_DECODEUR, "audio/mpeg, mpegversion=(int)4")),
+		"gstreamer1.0-plugins-bad",
+	),
+	# AAC brut en trames ADTS (.aac) : aacparse (plugins-good) découpe les trames, le décodeur est celui du M4A.
+	"aac": FormatSonore(
+		(
+			Exigence(
+				_ANALYSEUR, "audio/mpeg, mpegversion=(int)4, stream-format=(string)adts", "gstreamer1.0-plugins-good"
+			),
+			Exigence(_DECODEUR, "audio/mpeg, mpegversion=(int)4"),
+		),
 		"gstreamer1.0-plugins-bad",
 	),
 	"ogg": FormatSonore(
@@ -86,13 +99,17 @@ def _satisfaite(exigence: Exigence) -> bool:
 
 
 def verifier_decodeurs() -> list[Manque]:
-	"""Formats de la spec qu'aucun décodeur GStreamer installé ne sait lire, avec le paquet à installer."""
+	"""Formats de la spec qu'aucun décodeur GStreamer installé ne sait lire, avec le paquet à installer.
+
+	Le paquet nommé est celui du premier élément manquant.
+	"""
 	Gst.init(None)
-	return [
-		Manque(nom, format_sonore.paquet)
-		for nom, format_sonore in FORMATS.items()
-		if not all(_satisfaite(exigence) for exigence in format_sonore.exigences)
-	]
+	manques = []
+	for nom, format_sonore in FORMATS.items():
+		absente = next((e for e in format_sonore.exigences if not _satisfaite(e)), None)
+		if absente is not None:
+			manques.append(Manque(nom, absente.paquet or format_sonore.paquet))
+	return manques
 
 
 def verifier_sortie(configuration: Configuration, greffons: dict[SortieAudio, Greffon] = GREFFONS) -> list[Manque]:

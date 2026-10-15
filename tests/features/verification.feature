@@ -21,6 +21,7 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 			| ogg    |
 			| mp3    |
 			| m4a    |
+			| aac    |
 			| aiff   |
 
 	Scénario: Un fichier qui n'est pas du son est illisible
@@ -58,6 +59,7 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 			| ogg    | illisible |
 			| mp3    | endommagé |
 			| m4a    | endommagé |
+			| aac    | endommagé |
 
 	Scénario: Un décodage qui n'avance plus est abandonné
 		Étant donné un fichier WAV dont la lecture se bloque après son début

@@ -52,8 +52,8 @@ Paquets installés par apt : uniquement ce que pip ne peut pas fournir. Toutes l
 | `libcairo2-dev` | Cairo, dépendance de compilation de PyGObject. |
 | `gir1.2-gstreamer-1.0` | Description de GStreamer pour PyGObject. |
 | `gstreamer1.0-plugins-base` | Décodage Ogg Vorbis, conversion et rééchantillonnage audio. |
-| `gstreamer1.0-plugins-good` | Décodage MP3, FLAC et WAV. |
-| `gstreamer1.0-plugins-bad` | Décodage AIFF et AAC (fichiers `.m4a`). |
+| `gstreamer1.0-plugins-good` | Décodage MP3, FLAC et WAV ; découpage des fichiers AAC bruts (`.aac`). |
+| `gstreamer1.0-plugins-bad` | Décodage AIFF et AAC (fichiers `.m4a` et `.aac`). |
 | `gstreamer1.0-alsa` | Sortie audio `alsa`. |
 | `gstreamer1.0-pulseaudio` | Sortie audio `pulseaudio`. |
 | `gstreamer1.0-pipewire` | Sortie audio `pipewire`. |
@@ -99,7 +99,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 | Rôles | En tant qu'utilisateur `postgres` : autorise le compte à endosser les trois rôles de MachinCast, sans en hériter les droits. | Serveur PostgreSQL. |
 | Journal système | Ajoute le compte au groupe `systemd-journal`, pour lire le journal du service. Effectif après le redémarrage du poste. | Groupes du compte. |
 | Liens | `/opt/machincast` vers le répertoire de MachinCast ; `/usr/local/bin/Machin` vers le wrapper ; l'autocomplétion bash dans `/usr/share/bash-completion/completions/Machin`. | Trois liens symboliques. |
-| Greffons GStreamer et sortie audio | Vérifie que GStreamer sait décoder MP3, M4A, Ogg, FLAC, WAV et AIFF, et créer la sortie audio de `machincast.toml`, sans jouer aucun son. | Rien. |
+| Greffons GStreamer et sortie audio | Vérifie que GStreamer sait décoder MP3, M4A, AAC, Ogg, FLAC, WAV et AIFF, et créer la sortie audio de `machincast.toml`, sans jouer aucun son. | Rien. |
 
 À la fin, il affiche `Installation terminée`. Le service de diffusion n'est pas installé : il le sera par une étape facultative, pour pouvoir essayer MachinCast avant de l'installer définitivement ([#22](https://github.com/dascritch/machincast/issues/22)).
 
