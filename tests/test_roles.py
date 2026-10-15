@@ -154,10 +154,11 @@ def se_connecter(role: str) -> str:
 
 @when("j'annule la migration des droits")
 def annuler_droits() -> None:
+	# Annuler une migration annule aussi les suivantes, qui peuvent en dépendre ; base_vide les réapplique ensuite.
 	backend = get_backend(url_yoyo(*parametres_base_test()))
 	migrations = read_migrations(str(REPERTOIRE_MIGRATIONS))
 	with backend.lock():
-		backend.rollback_migrations(backend.to_rollback(migrations.filter(lambda m: m.id == "0002.droits")))
+		backend.rollback_migrations(backend.to_rollback(migrations.filter(lambda m: m.id >= "0002.droits")))
 
 
 # ─── Alors ─────────────────────────────────────────────────

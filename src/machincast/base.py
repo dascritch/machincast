@@ -36,6 +36,7 @@ TYPES: tuple[str, ...] = (
 	"jour_semaine",
 	"type_ligne_airplay",
 	"niveau_log",
+	"etat_sonore",
 )
 """Types énumérés créés par les migrations."""
 

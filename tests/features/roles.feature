@@ -47,12 +47,12 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| airplay               | oui  | non     | non      | non       |
 			| log                   | oui  | non     | non      | non       |
 
-	Plan du scénario: Le binaire lecture ne modifie que le champ « actif » des sonores
+	Plan du scénario: Le binaire lecture ne modifie que le champ « etat » des sonores
 		Alors le rôle "machincast_lecture" <verdict> modifier la colonne "<colonne>" des sonores
 
 		Exemples:
 			| colonne | verdict  |
-			| actif   | peut     |
+			| etat    | peut     |
 			| titre   | ne peut pas |
 			| duree   | ne peut pas |
 

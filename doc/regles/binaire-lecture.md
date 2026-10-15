@@ -12,7 +12,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 - Une banque jouée fait jouer **un seul** sonore.
 - Le mode aléatoire est contrôlé : pas de répétition dans une banque avant d'avoir joué tous ses sonores. Le cycle est propre à chaque banque.
 - Une banque marquée « ne pas répéter » ne passe jamais deux fois de suite, même d'un événement à l'autre : l'élément est sauté, et l'événement se termine s'il ne reste rien d'autre de jouable ([#63](https://github.com/dascritch/machincast/issues/63)).
-- Seuls les sonores jouables sont candidats : actifs, dans leur période de diffusion, sous leur maximum de lectures.
+- Seuls les sonores jouables sont candidats : à l'état `actif`, dans leur période de diffusion, sous leur maximum de lectures.
 - Artiste et titre sont masqués selon la priorité Événement > Banque > Sonore > configuration. Les sorties privées affichent tout, les sorties publiques appliquent le masquage.
 - Jamais de silence non signalé : si rien n'est jouable, émettre un silence et lever une alerte dans le log.
 
@@ -22,7 +22,7 @@ Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures son
 
 - `airplay` : une ligne de début et une ligne de fin par passage.
 - `log` : toutes les opérations, normales et incidents. Le rôle ne peut pas lire cette table : pas de `RETURNING` sur une insertion dans `log`.
-- `sonores.actif` : désactivation au maximum de lectures ou à la fin de la période de diffusion, toujours consignée dans le log.
+- `sonores.etat` : passage à `expire` au maximum de lectures ou à la fin de la période de diffusion, toujours consigné dans le log ; jamais un autre état ([#66](https://github.com/dascritch/machincast/issues/66)).
 
 ## Mode simulation
 

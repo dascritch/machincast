@@ -197,44 +197,45 @@ def decodeur_absent(resultat: Verification | DecodeurIndisponible) -> None:
 
 
 def inserer_sonore(
-	base: Connexion, emplacement: str, actif: bool, champs_edites: list[str], duree: float | None
+	base: Connexion, emplacement: str, etat: str, champs_edites: list[str] | None = None, duree: float | None = None
 ) -> int:
 	ligne = base.execute(
-		"INSERT INTO sonores (type, emplacement, actif, champs_edites, duree)"
+		"INSERT INTO sonores (type, emplacement, etat, champs_edites, duree)"
 		" VALUES ('fichier', %s, %s, %s, %s) RETURNING id",
-		(emplacement, actif, champs_edites, None if duree is None else timedelta(seconds=duree)),
+		(emplacement, etat, champs_edites or [], None if duree is None else timedelta(seconds=duree)),
 	).fetchone()
 	assert ligne is not None
 	return int(str(ligne[0]))
 
 
-@given("un sonore actif pour ce fichier", target_fixture="sonore")
-def sonore_actif(base_vide: Connexion, fichier: Path) -> int:
-	return inserer_sonore(base_vide, str(fichier), True, [], None)
+@given("un fichier mp3 endommagé", target_fixture="fichier")
+def fichier_endommage(tmp_path: Path) -> Path:
+	fichier = copie_de_test("mp3", tmp_path)
+	corrompre(fichier, 1000, 1 / 3)
+	return fichier
 
 
-@given("un sonore inactif pour ce fichier", target_fixture="sonore")
-def sonore_inactif(base_vide: Connexion, fichier: Path) -> int:
-	return inserer_sonore(base_vide, str(fichier), False, [], None)
-
-
-@given(
-	parsers.re(r"un sonore actif pour ce fichier, dont le champ « (?P<champ>\w+) » a été édité à la main"),
-	target_fixture="sonore",
-)
-def sonore_edite(base_vide: Connexion, fichier: Path, champ: str) -> int:
-	return inserer_sonore(base_vide, str(fichier), True, [champ], None)
+@given(parsers.parse("un sonore à l'état « {etat} » pour ce fichier"), target_fixture="sonore")
+def sonore_dans_etat(base_vide: Connexion, fichier: Path, etat: str) -> int:
+	return inserer_sonore(base_vide, str(fichier), etat)
 
 
 @given(
 	parsers.re(
-		r"un sonore actif pour ce fichier, dont le champ « duree » a été édité à la main"
+		r"un sonore à l'état « actif » pour ce fichier, dont la durée a été saisie à la main"
 		rf" à (?P<secondes>{DECIMAL}) secondes"
 	),
 	target_fixture="sonore",
 )
 def sonore_duree_editee(base_vide: Connexion, fichier: Path, secondes: str) -> int:
-	return inserer_sonore(base_vide, str(fichier), True, ["duree"], nombre(secondes))
+	return inserer_sonore(base_vide, str(fichier), "actif", ["duree"], nombre(secondes))
+
+
+@given(parsers.parse("un deuxième fichier {format_sonore} sain, dont le sonore est à l'état « {etat} »"))
+def deuxieme_sonore(base_vide: Connexion, tmp_path: Path, format_sonore: str, etat: str) -> None:
+	repertoire = tmp_path / "deuxieme"
+	repertoire.mkdir()
+	inserer_sonore(base_vide, str(copie_de_test(format_sonore, repertoire)), etat)
 
 
 @given("un fichier introuvable", target_fixture="fichier")
@@ -267,15 +268,16 @@ def indexeur_verifie(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> 
 
 def lire_sonore(base: Connexion, sonore: int) -> tuple[object, ...]:
 	ligne = base.execute(
-		"SELECT actif, duree, fichier_modifie_le, fichier_taille, modifie_le FROM sonores WHERE id = %s", (sonore,)
+		"SELECT etat::text, duree, fichier_modifie_le, fichier_taille, modifie_le FROM sonores WHERE id = %s",
+		(sonore,),
 	).fetchone()
 	assert ligne is not None
 	return ligne
 
 
-@then(parsers.re(r"le sonore est (?P<etat>actif|inactif)"))
+@then(parsers.parse("le sonore est à l'état « {etat} »"))
 def sonore_etat(base_vide: Connexion, sonore: int, etat: str) -> None:
-	assert lire_sonore(base_vide, sonore)[0] is (etat == "actif")
+	assert lire_sonore(base_vide, sonore)[0] == etat
 
 
 @then(parsers.re(rf"sa durée en base est de (?P<attendue>{DECIMAL}) secondes? à (?P<marge>{DECIMAL}) seconde près"))
@@ -298,10 +300,11 @@ def rien_signale(execution: Execution) -> None:
 	assert execution.erreurs == ""
 
 
-@then(parsers.parse("la sortie d'erreur signale ce fichier comme « {mot} »"))
-def erreur_signalee(execution: Execution, fichier: Path, mot: str) -> None:
-	lignes = [ligne for ligne in execution.erreurs.splitlines() if str(fichier) in ligne]
-	assert lignes and mot in lignes[0], execution.erreurs
+@then(parsers.parse("la sortie d'erreur signale ce fichier comme « {verdict} », avec « {consequence} »"))
+def erreur_signalee(execution: Execution, fichier: Path, verdict: str, consequence: str) -> None:
+	lignes = [ligne for ligne in execution.erreurs.splitlines() if ligne.startswith(f"{fichier} : ")]
+	assert len(lignes) == 1, execution.erreurs
+	assert f" : {verdict} : " in lignes[0] and lignes[0].endswith(f" ; {consequence}"), lignes[0]
 
 
 @then(parsers.parse("le bilan indique « {texte} »"))
@@ -311,8 +314,8 @@ def bilan_indique(execution: Execution, texte: str) -> None:
 
 @then("le stream n'a pas été modifié")
 def stream_intact(base_vide: Connexion, stream: tuple[int, object]) -> None:
-	actif, duree, modifie_le_fichier, taille, modifie_le = lire_sonore(base_vide, stream[0])
-	assert (actif, duree, modifie_le_fichier, taille) == (True, None, None, None)
+	etat, duree, modifie_le_fichier, taille, modifie_le = lire_sonore(base_vide, stream[0])
+	assert (etat, duree, modifie_le_fichier, taille) == ("actif", None, None, None)
 	assert modifie_le == stream[1]
 
 

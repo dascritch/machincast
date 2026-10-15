@@ -34,6 +34,7 @@ Fonctionnalité: Schéma initial de la base de données
 		Exemples:
 			| valeurs                                                                   |
 			| type = 'fichier', emplacement = '/musique/a.flac'                         |
+			| type = 'fichier', emplacement = '/musique/e.flac', etat = 'expire'        |
 			| type = 'fichier', emplacement = '/musique/b.flac', duree = '3 min 12 s'   |
 			| type = 'stream', url_stream = 'https://flux.exemple/direct?SESSIONID=42'  |
 			| type = 'stream', marque_page_id = {marque_page}                           |
@@ -48,6 +49,7 @@ Fonctionnalité: Schéma initial de la base de données
 		Exemples:
 			| valeurs                                                                         |
 			| type = 'disque', emplacement = '/musique/a.flac'                                |
+			| type = 'fichier', emplacement = '/musique/a.flac', etat = 'inactif'             |
 			| type = 'fichier'                                                                |
 			| type = 'fichier', emplacement = '/a.flac', url_stream = 'https://flux.exemple'  |
 			| type = 'stream'                                                                 |
