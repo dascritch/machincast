@@ -1,6 +1,6 @@
 # Installer MachinCast
 
-Ce document décrit l'installation de MachinCast sur un poste de diffusion, sa vérification, sa mise à jour et l'ajout d'autres comptes. Il s'adresse à l'administrateur du poste : il ne demande pas de connaître le code.
+Ce document décrit l'installation de MachinCast sur un poste de diffusion, sa vérification, sa mise à jour et l'ajout d'autres comptes. Il s'adresse à l'administrateur du poste : il ne demande pas de connaître le code. L'usage des programmes une fois installés est décrit dans le [guide d'utilisation](doc/utilisation.md).
 
 Le script `install.sh` fait tout le travail. La section [Installer à la main](#installer-à-la-main) détaille chacune de ses étapes, pour qui veut les faire soi-même ou comprendre ce qu'il fait.
 
@@ -355,4 +355,3 @@ Les messages d'information s'affichent sur la sortie standard ; les anomalies et
 | Interface graphique `Machin interface` | [#23](https://github.com/dascritch/machincast/issues/23) |
 | Message de l'interface tant que le service n'est pas installé | [#25](https://github.com/dascritch/machincast/issues/25) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |
-| Documentation d'utilisation des fonctions déjà livrées | [#74](https://github.com/dascritch/machincast/issues/74) |

@@ -10,6 +10,7 @@ from pathlib import Path
 from pytest_bdd import scenarios, then
 
 from machincast.installation import ACTIONS
+from tests.markdown import ancres_cassees, liens_casses
 
 scenarios("documentation.feature")
 
@@ -23,9 +24,6 @@ GRANT = re.compile(
 )
 # Options de createuser qui donneraient au compte des droits sur le serveur.
 DROITS_PARTICULIERS = {"-d", "--createdb", "-r", "--createrole", "-s", "--superuser"}
-LIEN_RELATIF = re.compile(r"\]\((?!https?://|mailto:|#)([^)#\s]+)(?:#[^)]*)?\)")
-# Lien vers une ancre, dans INSTALL.md (fichier vide) ou dans un fichier Markdown du dépôt.
-LIEN_ANCRE = re.compile(r"\]\((?!https?://)([^)#\s]*)#([^)\s]+)\)")
 WRAPPERS = {"Machin", "bin/Machin", "/usr/local/bin/Machin", "/opt/machincast/bin/Machin"}
 
 
@@ -145,23 +143,13 @@ def etapes_installation() -> None:
 
 @then("chaque lien relatif d'INSTALL.md mène à un fichier du dépôt")
 def liens_relatifs() -> None:
-	casses = [lien for lien in LIEN_RELATIF.findall(texte(INSTALL)) if not (RACINE / lien).exists()]
+	casses = liens_casses(INSTALL)
 	assert not casses, casses
-
-
-def ancres(chemin: Path) -> set[str]:
-	"""Ancres des titres d'un fichier Markdown, calculées comme GitHub : minuscules, ponctuation retirée."""
-	titres = re.findall(r"^#{1,6} (.+)$", texte(chemin), flags=re.MULTILINE)
-	return {re.sub(r"[^\w\- ]", "", titre.strip().lower()).replace(" ", "-") for titre in titres}
 
 
 @then("chaque ancre citée par INSTALL.md mène à un titre du fichier visé")
 def ancres_valides() -> None:
-	cassees = [
-		f"{fichier}#{ancre}"
-		for fichier, ancre in LIEN_ANCRE.findall(texte(INSTALL))
-		if ancre not in ancres(RACINE / fichier if fichier else INSTALL)
-	]
+	cassees = ancres_cassees(INSTALL)
 	assert not cassees, cassees
 
 
