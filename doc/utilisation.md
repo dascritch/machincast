@@ -278,6 +278,21 @@ Un élément « banque » d'un événement fait jouer **un seul** sonore de cett
 
 Le choix se déduit de l'historique de diffusion : il reprend là où il en était après un redémarrage.
 
+**Banque « ne pas répéter »** ([#63](https://github.com/dascritch/machincast/issues/63)). Une banque marquée « ne pas répéter », par exemple une banque de jingles, ne passe jamais deux fois de suite :
+
+- **Pas deux fois de suite** : si le dernier sonore diffusé a été fourni par cette banque, l'élément suivant qui la rappelle est sauté, et la diffusion passe à l'élément d'après, comme pour une banque vide. Une liste « jingle, jingle, titre » donne donc un jingle puis le titre.
+- **D'un événement à l'autre** : la règle tient même quand la banque finit un événement et commence le suivant, quand le sonore précédent a été coupé net par le début d'un événement, et après un redémarrage, puisqu'elle se lit dans l'historique de diffusion.
+- **Seuls comptent les passages fournis par la banque** : un sonore de la banque placé directement dans un événement ne compte pas.
+- **Plus rien de jouable** : si, la banque sautée, il ne reste rien de jouable dans la liste d'une émission ou d'un spécial, l'événement se termine pour cette occurrence, avec l'alerte `événement terminé plus tôt` dans le log ; l'événement en dessous reprend. Un fil musical, lui, se tait, avec l'alerte `silence`, jusqu'à ce qu'un autre événement commence.
+- **Dans le log** : chaque élément sauté est noté une fois, en info `élément sauté`, avec la banque et l'événement. La décision se prend dès le début du sonore précédent, quand la diffusion réserve le suivant : c'est l'heure notée dans le log.
+- **Simulation** : la simulation applique la même règle, à partir de l'historique réel puis des passages simulés.
+
+La case « ne pas répéter » d'une banque se coche dans l'interface ([#31](https://github.com/dascritch/machincast/issues/31)), qui préviendra aussi, à l'édition d'un événement, quand une banque marquée occupe deux lignes qui se suivent, y compris la dernière et la première d'une liste qui boucle : le deuxième appel sera toujours sauté ([#32](https://github.com/dascritch/machincast/issues/32)). En attendant, la marque se pose en base, par exemple avec `psql` sous le compte propriétaire de la base :
+
+```bash
+psql --dbname=machincast -c "UPDATE banques SET ne_pas_repeter = true WHERE nom_interne = 'Jingles'"
+```
+
 ### Expiration des sonores
 
 `Machin lecture` passe un sonore `actif` à l'état `expiré` ([#18](https://github.com/dascritch/machincast/issues/18)) :
@@ -366,6 +381,8 @@ Le **log** note les opérations du binaire lecture, avec leur heure, leur niveau
 | `sonore expiré` | info | Un sonore a atteint son maximum de lectures ou la fin de sa période de diffusion ; le message donne la cause. |
 | `socket d'état indisponible` | alerte | La socket d'état ne peut pas être créée ; la diffusion continue sans elle. |
 | `sortie inaccessible` | alerte | Une sortie (CSV, .pls ou page HTML) ne peut pas être écrite ; le message donne le chemin et l'erreur. |
+| `élément sauté` | info | Un élément rappelle la banque « ne pas répéter » qui vient de passer : il est sauté. Le message donne la banque et la position de l'élément. |
+| `événement terminé plus tôt` | alerte | Une émission ou un spécial n'a plus rien de jouable une fois la banque « ne pas répéter » sautée : il se termine, et l'événement en dessous reprend. |
 | `reconnexion abandonnée` | info | L'événement d'un stream tombé n'est plus à l'antenne : plus de tentative de reconnexion. |
 
 L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture : il ne peut qu'y ajouter des lignes.

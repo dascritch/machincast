@@ -16,7 +16,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.base import Role, connecter
 from machincast.hasard import creer_hasard
-from machincast.lecture.deroule import EnCours, Ordonnanceur
+from machincast.lecture.deroule import EnCours, Ordonnanceur, appels_ignores
 from tests.base_test import parametres_base_test
 
 scenarios("deroule.feature")
@@ -42,6 +42,7 @@ class Contexte:
 	durees: dict[str, timedelta] = field(default_factory=dict)
 	journal: list[Ligne] = field(default_factory=list)
 	ordonnanceur: Ordonnanceur | None = None
+	signalees: list[int] = field(default_factory=list)
 
 
 @pytest.fixture
@@ -105,6 +106,11 @@ def banque_contenant(base_vide: Connexion, mode: str, nom: str, liste: str) -> N
 			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
 			(banque(base_vide, nom), sonore(base_vide, nom_sonore), position),
 		)
+
+
+@given(parsers.parse("la banque « {nom} » est marquée « ne pas répéter »"))
+def ne_pas_repeter(base_vide: Connexion, nom: str) -> None:
+	base_vide.execute("UPDATE banques SET ne_pas_repeter = true WHERE id = %s", (banque(base_vide, nom),))
 
 
 @given(parsers.parse("le sonore « {nom} » est à l'état « {etat} »"))
@@ -184,6 +190,20 @@ def lendemain(contexte: Contexte, base_vide: Connexion, lecture: Connexion, debu
 	derouler(contexte, base_vide, lecture, a(debut, jour), a(fin, jour))
 
 
+@when("le binaire redémarre")
+def redemarrage(contexte: Contexte) -> None:
+	"""Un nouvel ordonnanceur, sans rien en mémoire : tout se relit dans l'airplay."""
+	contexte.ordonnanceur = None
+
+
+@when(parsers.re(r"la liste « (?P<liste>[^»]+) » est vérifiée pour un événement qui (?P<boucle>boucle|ne boucle pas)"))
+def verifier_la_liste(contexte: Contexte, base_vide: Connexion, liste: str, boucle: str) -> None:
+	noms = [nom.strip() for nom in liste.split(",")]
+	banques = [None if nom == "sonore" else banque(base_vide, nom) for nom in noms]
+	marquees = {int(str(ligne[0])) for ligne in base_vide.execute("SELECT id FROM banques WHERE ne_pas_repeter")}
+	contexte.signalees = appels_ignores(banques, marquees, boucle == "boucle")
+
+
 # ─── Alors ─────────────────────────────────────────────────
 
 
@@ -194,11 +214,32 @@ def diffusion(contexte: Contexte, datatable: list[list[str]]) -> None:
 	assert contexte.journal == attendu, "\n".join(str(ligne) for ligne in contexte.journal)
 
 
-@then(parsers.parse("le log contient {nombre:d} alerte « {nature} » pour l'événement « {evenement} »"))
-def alertes(base_vide: Connexion, nombre: int, nature: str, evenement: str) -> None:
+@then(
+	parsers.re(
+		r"le log contient (?P<nombre>\d+) (?P<niveau>alerte|info) « (?P<nature>[^»]+) » pour l'événement"
+		r" « (?P<evenement>[^»]+) »(?: et la banque « (?P<nom_banque>[^»]+) »)?$"
+	)
+)
+def alertes(
+	base_vide: Connexion, nombre: str, niveau: str, nature: str, evenement: str, nom_banque: str | None
+) -> None:
 	lignes = base_vide.execute(
-		"SELECT l.niveau::text, e.nom_interne FROM log l LEFT JOIN evenements e ON e.id = l.evenement_id"
+		"SELECT l.niveau::text, e.nom_interne, b.nom_interne FROM log l"
+		" LEFT JOIN evenements e ON e.id = l.evenement_id LEFT JOIN banques b ON b.id = l.banque_id"
 		" WHERE l.nature = %s",
 		(nature,),
 	).fetchall()
-	assert lignes == [("alerte", evenement)] * nombre, lignes
+	obtenues = [(n, e) + ((b,) if nom_banque else ()) for n, e, b in lignes]
+	attendue = (niveau, evenement) + ((nom_banque,) if nom_banque else ())
+	assert obtenues == [attendue] * int(nombre), lignes
+
+
+@then(parsers.re(r"le log ne contient aucune (?P<niveau>alerte|info) « (?P<nature>[^»]+) »"))
+def aucune_ligne(base_vide: Connexion, niveau: str, nature: str) -> None:
+	lignes = base_vide.execute("SELECT message FROM log WHERE niveau = %s AND nature = %s", (niveau, nature)).fetchall()
+	assert lignes == [], lignes
+
+
+@then(parsers.re(r"les lignes signalées sont « (?P<lignes>[^»]*) »"))
+def lignes_signalees(contexte: Contexte, lignes: str) -> None:
+	assert contexte.signalees == [int(n) for n in lignes.split(",") if n.strip()]

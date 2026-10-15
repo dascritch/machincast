@@ -14,6 +14,8 @@ fourni. Un redémarrage du binaire, ou un sonore ajouté à une banque, ne pertu
 - Sonore jouable (§ 4.5) : à l'état actif, dans sa période de diffusion quand elle est renseignée (fin exclue),
   sous son maximum de lectures, compté sur tout l'airplay, quelle que soit la banque.
 - Aucun sonore jouable : la banque ne fournit rien ; l'élément de l'événement est traité comme une banque vide.
+- Ne pas répéter (https://github.com/dascritch/machincast/issues/63) : une banque marquée ne passe jamais deux fois
+  de suite ; le déroulé (machincast.lecture.deroule) saute l'élément qui la rappellerait (a_ne_pas_repeter).
 
 Le tirage passe par un Hasard reçu en paramètre (machincast.hasard) : reproductible avec une graine. Les passages et
 les états se lisent par un Historique (machincast.lecture.historique) : la base, ou la mémoire en simulation.
@@ -140,6 +142,12 @@ def restants(
 	"""Sonores jouables d'une banque aléatoire pas encore joués dans son cycle en cours."""
 	_, jouables = _jouables(connexion, banque, instant, historique)
 	return reste_du_cycle(jouables, historique.joues_via_banque(connexion, banque))
+
+
+def a_ne_pas_repeter(connexion: psycopg.Connection[TupleRow], banque: int) -> str | None:
+	"""Nom de la banque si elle est marquée « ne pas répéter », sinon None."""
+	ligne = connexion.execute("SELECT nom_interne FROM banques WHERE id = %s AND ne_pas_repeter", (banque,)).fetchone()
+	return None if ligne is None else str(ligne[0])
 
 
 def choisir_sonore(

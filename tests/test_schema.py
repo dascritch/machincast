@@ -11,8 +11,16 @@ import psycopg
 import pytest
 from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
+from yoyo import get_backend, read_migrations
 
-from machincast.base import TABLES, TYPES, annuler_migrations, appliquer_migrations, url_yoyo
+from machincast.base import (
+	REPERTOIRE_MIGRATIONS,
+	TABLES,
+	TYPES,
+	annuler_migrations,
+	appliquer_migrations,
+	url_yoyo,
+)
 from tests.base_test import parametres_base_test
 
 scenarios("schema.feature")
@@ -85,6 +93,41 @@ def references(contexte: Contexte) -> None:
 		{"type": "'fichier'", "emplacement": "'/jingles/reference.flac'", "titre": "'Titre de référence'"},
 	)
 	r["evenement"] = inserer(contexte, "evenements", {"nom_interne": "'Fil'", "priorite": "'fil_musical'"})
+
+
+@given(parsers.parse("la base sans la migration « {migration} »"))
+def sans_la_migration(contexte: Contexte, migration: str) -> None:
+	"""Annule cette migration et celles qui la suivent ; la prochaine purge de la base les réapplique."""
+	migrations = read_migrations(str(REPERTOIRE_MIGRATIONS))
+	with get_backend(url_yoyo(*parametres_base_test())) as backend, backend.lock():
+		a_annuler = backend.to_rollback(migrations)
+		ids = [m.id for m in a_annuler]
+		assert migration in ids, ids
+		backend.rollback_migrations(a_annuler[: ids.index(migration) + 1])
+
+
+@given(parsers.parse("une banque « {nom} » enregistrée avant cette migration"))
+def banque_avant_migration(contexte: Contexte, nom: str) -> None:
+	inserer(contexte, "banques", {"nom_interne": f"'{nom}'", "mode": "'sequentiel'"})
+
+
+@when("j'applique les migrations")
+def appliquer(contexte: Contexte) -> None:
+	appliquer_migrations(url_yoyo(*parametres_base_test()))
+
+
+@then("la banque de référence n'est pas marquée « ne pas répéter »")
+def reference_sans_marque(contexte: Contexte) -> None:
+	ligne = contexte.connexion.execute(
+		"SELECT ne_pas_repeter FROM banques WHERE id = %s", (contexte.references["banque"],)
+	).fetchone()
+	assert ligne == (False,)
+
+
+@then(parsers.parse("la banque « {nom} » n'est pas marquée « ne pas répéter »"))
+def banque_sans_marque(contexte: Contexte, nom: str) -> None:
+	ligne = contexte.connexion.execute("SELECT ne_pas_repeter FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
+	assert ligne == (False,)
 
 
 @given("un deuxième sonore en base")

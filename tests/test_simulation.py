@@ -6,6 +6,7 @@ répertoire temporaire du scénario.
 
 import csv
 import logging
+import re
 import shlex
 import shutil
 import subprocess
@@ -27,7 +28,7 @@ from machincast.base import Role, connecter
 from machincast.configuration import Metadonnees
 from machincast.lecture.simulation import Resultat, lecture_seule, simuler
 from tests.base_test import CONFIGURATION_TEST, parametres_base_test
-from tests.etapes_diffusion import Banc, Connexion, evenement, heure, sonore
+from tests.etapes_diffusion import Banc, Connexion, creer_sonore, evenement, heure, sonore
 
 scenarios("simulation.feature")
 
@@ -116,6 +117,49 @@ def joue_dans_le_fil(base_vide: Connexion, nom: str, fil: str, instant: str) -> 
 		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, evenement_id, element_id, titre)"
 		" VALUES (%s, 'debut', %s, %s, %s, %s, %s)",
 		(uuid.uuid4(), heure(instant), sonore(base_vide, nom), ligne[0], ligne[1], nom),
+	)
+
+
+@given(parsers.re(r"la banque séquentielle « (?P<nom>[^»]+) » des sonores (?P<liste>.+), marquée « ne pas répéter »"))
+def banque_a_ne_pas_repeter(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str) -> None:
+	creee = base_vide.execute(
+		"INSERT INTO banques (nom_interne, mode, ne_pas_repeter) VALUES (%s, 'sequentiel', true) RETURNING id", (nom,)
+	).fetchone()
+	assert creee is not None
+	for position, nom_sonore in enumerate(re.findall(r"« ([^»]+) »", liste), start=1):
+		base_vide.execute(
+			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+			(creee[0], creer_sonore(banc, base_vide, tmp_path, nom_sonore), position),
+		)
+
+
+@given(parsers.re(r"le fil musical permanent « (?P<nom>[^»]+) », avec (?P<liste>(?:la banque|le sonore) « .+)"))
+def fil_avec_elements(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str) -> None:
+	cree = base_vide.execute(
+		"INSERT INTO evenements (nom_interne, priorite) VALUES (%s, 'fil_musical') RETURNING id", (nom,)
+	).fetchone()
+	assert cree is not None
+	for position, (genre, nom_element) in enumerate(re.findall(r"(banque|sonore) « ([^»]+) »", liste), start=1):
+		if genre == "banque":
+			ligne = base_vide.execute("SELECT id FROM banques WHERE nom_interne = %s", (nom_element,)).fetchone()
+			assert ligne is not None
+			reference = int(str(ligne[0]))
+		else:
+			reference = creer_sonore(banc, base_vide, tmp_path, nom_element)
+		base_vide.execute(
+			f"INSERT INTO evenements_elements (evenement_id, position, {genre}_id) VALUES (%s, %s, %s)",  # noqa: S608
+			(cree[0], position, reference),
+		)
+
+
+@given(parsers.parse("« {nom} » a été joué via la banque « {banque} » le « {instant} »"))
+def joue_via_la_banque(base_vide: Connexion, nom: str, banque: str, instant: str) -> None:
+	ligne = base_vide.execute("SELECT id FROM banques WHERE nom_interne = %s", (banque,)).fetchone()
+	assert ligne is not None
+	base_vide.execute(
+		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, banque_id, titre)"
+		" VALUES (%s, 'debut', %s, %s, %s, %s)",
+		(uuid.uuid4(), heure(instant), sonore(base_vide, nom), ligne[0], nom),
 	)
 
 
