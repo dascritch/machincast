@@ -15,6 +15,8 @@
 - Les métadonnées non critiques d'un sonore vont dans l'objet JSON `metadonnees_musicales`, sans migration ; seules les données utilisées par la diffusion ou les filtres deviennent des colonnes.
 - Texte saisi à la main : `varchar(255)` (constante `LONGUEUR_TEXTE_COURT` de `machincast.base`). Chemin, URL ou message libre : `text`.
 - Toute nouvelle contrainte s'accompagne d'un scénario qui vérifie qu'elle refuse ce qu'elle doit refuser.
+- Une migration qui transforme des données existantes s'accompagne d'un scénario qui applique les migrations antérieures, insère des données, applique la migration et vérifie la conversion.
+- Annuler une migration annule aussi toutes celles qui la suivent, qui peuvent en dépendre.
 - Une migration doit pouvoir s'appliquer aux deux bases sans modification.
 
 ## Droits
@@ -32,7 +34,7 @@ Règles :
 
 Points sensibles :
 
-- `Machin_lecture` n'écrit dans `sonores` que le champ `actif`. Dans `airplay` et `log`, il ne fait que des insertions.
+- `Machin_lecture` n'écrit dans `sonores` que le champ `etat`, pour le passer à `expire`. Dans `airplay` et `log`, il ne fait que des insertions.
 - `Machin_indexation` n'écrit que dans `sonores` et `banques_sonores`, et jamais dans `log`.
 - En mode simulation, `Machin_lecture` n'écrit **rien** en base.
 

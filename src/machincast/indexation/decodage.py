@@ -51,11 +51,12 @@ PAQUETS_DECODEURS = "gstreamer1.0-plugins-base, gstreamer1.0-plugins-good et gst
 
 
 class EtatFichier(StrEnum):
-	"""Verdict de la vérification ; un fichier endommagé ou illisible rend son sonore inactif."""
+	"""Verdict de la vérification d'un fichier."""
 
 	SAIN = "sain"
 	ENDOMMAGE = "endommagé"
 	ILLISIBLE = "illisible"
+	INTROUVABLE = "introuvable"
 
 
 @dataclass(frozen=True)
@@ -208,7 +209,7 @@ def verifier_fichier(
 	n'a pas de décodeur pour ce format.
 	"""
 	if not chemin.exists():
-		return Verification.defectueux(EtatFichier.ILLISIBLE, "fichier introuvable")
+		return Verification.defectueux(EtatFichier.INTROUVABLE, "aucun fichier à cet emplacement")
 	Gst.init(None)
 	for _ in range(TENTATIVES):
 		resultat = _tentative(chemin, delai_demarrage, delai_sans_progression)
