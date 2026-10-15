@@ -1,10 +1,16 @@
 """Vérification des sonores existants (https://github.com/dascritch/machincast/issues/7, spec § 6.1).
 
-Chaque sonore de type fichier est décodé en entier ; les streams ne sont jamais vérifiés. Un fichier sain
-enregistre sa durée, la date de modification et la taille du fichier. L'état du sonore suit le verdict
-(https://github.com/dascritch/machincast/issues/66) :
+Deux modes (https://github.com/dascritch/machincast/issues/69) :
 
-	actif     + défectueux   →  errone, ou supprime si le fichier est introuvable
+- indexation rapide, par défaut : seuls les sonores en aperçu (fichiers nouveaux, jamais vérifiés) sont décodés ;
+  pour les autres, seule la présence du fichier est contrôlée, sans décodage ;
+- audit complet : chaque sonore de type fichier est décodé en entier.
+
+Les streams ne sont jamais vérifiés. Un fichier sain enregistre sa durée, la date de modification et la taille
+du fichier. L'état du sonore suit le verdict (https://github.com/dascritch/machincast/issues/66) :
+
+	apercu    + sain         →  actif
+	apercu, actif + défectueux  →  errone, ou supprime si le fichier est introuvable
 	errone    + sain         →  actif : l'indexeur rétablit ce qu'il a lui-même posé
 	errone    + introuvable  →  supprime
 	desactive, expire, supprime : jamais modifiés par l'indexeur, qui signale quand même le fichier défectueux
@@ -35,8 +41,9 @@ journal = logging.getLogger(__name__)
 
 
 class EtatSonore(StrEnum):
-	"""Valeurs du type etat_sonore (migration 0003.etat-sonores)."""
+	"""Valeurs du type etat_sonore (migrations 0003.etat-sonores et 0004.apercu)."""
 
+	APERCU = "apercu"
 	ACTIF = "actif"
 	DESACTIVE = "desactive"
 	EXPIRE = "expire"
@@ -45,6 +52,7 @@ class EtatSonore(StrEnum):
 
 
 LIBELLES = {
+	EtatSonore.APERCU: "aperçu",
 	EtatSonore.ACTIF: "actif",
 	EtatSonore.DESACTIVE: "désactivé",
 	EtatSonore.EXPIRE: "expiré",
@@ -56,10 +64,14 @@ LIBELLES = {
 
 @dataclass
 class Bilan:
+	audit_complet: bool = False
 	verifies: int = 0
+	"""Sonores décodés."""
 	errones: int = 0
 	supprimes: int = 0
 	retablis: int = 0
+	"""Sonores erronés redevenus actifs."""
+	sortis_apercu: int = 0
 
 
 def _accorder(nombre: int, singulier: str, pluriel: str) -> str:
@@ -68,18 +80,23 @@ def _accorder(nombre: int, singulier: str, pluriel: str) -> str:
 
 
 def texte_bilan(bilan: Bilan) -> str:
-	"""« 2 sonores vérifiés : 1 erroné, 0 supprimé, 1 rétabli » ; compte les changements d'état du passage."""
+	"""« indexation rapide : 2 sonores vérifiés ; 1 erroné, 0 supprimé, 0 rétabli, 2 sortis d'aperçu ».
+
+	Le nombre de sonores vérifiés est celui des sonores décodés ; les autres nombres comptent les changements d'état.
+	"""
+	mode = "audit complet" if bilan.audit_complet else "indexation rapide"
 	return (
-		f"{_accorder(bilan.verifies, 'sonore vérifié', 'sonores vérifiés')} : "
+		f"{mode} : {_accorder(bilan.verifies, 'sonore vérifié', 'sonores vérifiés')} ; "
 		f"{_accorder(bilan.errones, 'erroné', 'erronés')}, "
 		f"{_accorder(bilan.supprimes, 'supprimé', 'supprimés')}, "
-		f"{_accorder(bilan.retablis, 'rétabli', 'rétablis')}"
+		f"{_accorder(bilan.retablis, 'rétabli', 'rétablis')}, "
+		f"{_accorder(bilan.sortis_apercu, 'sorti', 'sortis')} d'aperçu"
 	)
 
 
 def nouvel_etat(etat: EtatSonore, verdict: EtatFichier) -> EtatSonore:
 	"""État du sonore après la vérification de son fichier."""
-	if etat not in (EtatSonore.ACTIF, EtatSonore.ERRONE):
+	if etat not in (EtatSonore.APERCU, EtatSonore.ACTIF, EtatSonore.ERRONE):
 		return etat
 	if verdict is EtatFichier.SAIN:
 		return EtatSonore.ACTIF
@@ -108,8 +125,12 @@ def _etat_du_fichier(chemin: Path) -> tuple[datetime, int] | None:
 def verifier_sonores(
 	connexion: psycopg.Connection[TupleRow],
 	verifier: Callable[[Path], Verification] = verifier_fichier,
+	audit_complet: bool = False,
 ) -> Bilan:
-	"""Vérifie tous les sonores de type fichier ; chaque sonore est enregistré dans sa propre transaction.
+	"""Vérifie les sonores de type fichier ; chaque sonore est enregistré dans sa propre transaction.
+
+	En indexation rapide, seuls les sonores en aperçu sont décodés ; pour les autres, un fichier disparu est
+	quand même repéré. En audit complet, tous sont décodés.
 
 	La connexion doit avoir endossé le rôle de l'indexation (machincast.base.connecter). Lève
 	DecodeurIndisponible si GStreamer ne sait pas décoder un format : les sonores déjà vérifiés le restent.
@@ -120,11 +141,15 @@ def verifier_sonores(
 			" FROM sonores WHERE type = 'fichier' ORDER BY id"
 		).fetchall()
 
-	bilan = Bilan()
+	bilan = Bilan(audit_complet=audit_complet)
 	for identifiant, emplacement, etat_texte, champs_edites, artiste, titre, metadonnees in sonores:
 		chemin = Path(str(emplacement))
-		resultat = verifier(chemin)
 		avant = EtatSonore(str(etat_texte))
+		decoder = audit_complet or avant is EtatSonore.APERCU
+		if not decoder and chemin.exists():
+			continue
+		# Un fichier introuvable est déclaré tel sans décodage : l'indexation rapide repère donc les disparus.
+		resultat = verifier(chemin)
 		apres = nouvel_etat(avant, resultat.etat)
 		fichier = _etat_du_fichier(chemin)
 		modifie_le, taille = fichier if fichier is not None else (None, None)
@@ -145,13 +170,16 @@ def verifier_sonores(
 				" WHERE id = %s",
 				(apres.value, duree, modifie_le, taille, artiste, titre, Jsonb(metadonnees), identifiant),
 			)
-		bilan.verifies += 1
+		if decoder:
+			bilan.verifies += 1
+		if avant is EtatSonore.APERCU and apres is not EtatSonore.APERCU:
+			bilan.sortis_apercu += 1
 		if apres != avant:
 			if apres is EtatSonore.ERRONE:
 				bilan.errones += 1
 			elif apres is EtatSonore.SUPPRIME:
 				bilan.supprimes += 1
-			elif apres is EtatSonore.ACTIF:
+			elif apres is EtatSonore.ACTIF and avant is EtatSonore.ERRONE:
 				bilan.retablis += 1
 		if resultat.etat is not EtatFichier.SAIN:
 			journal.warning("%s : %s ; %s", emplacement, resultat.probleme, _consequence(avant, apres))

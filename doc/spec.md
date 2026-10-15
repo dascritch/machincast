@@ -70,7 +70,7 @@ Deux bases à la structure strictement identique : la base de production et la b
 | `metadonnees_musicales` | Objet JSON des métadonnées non critiques, pré-remplies depuis les tags ([#8](https://github.com/dascritch/machincast/issues/8)) : `annee`, `album`, `artiste_album`, `genre`, `compositeur`, `label`, `piste`. Extensible sans migration : les autres clés ne sont jamais touchées par l'indexeur. |
 | `crossfade_debut`, `crossfade_fin` | Temps de crossfade en début et en fin de sonore. |
 | `max_lectures` | Nombre maximum de lectures sur la totalité de l'historique. Vide = illimité. |
-| `etat` | État du sonore ([#66](https://github.com/dascritch/machincast/issues/66)) : `actif`, `desactive`, `expire`, `errone` ou `supprime` (voir ci-dessous). Seul un sonore `actif` peut être joué. |
+| `etat` | État du sonore ([#66](https://github.com/dascritch/machincast/issues/66), [#69](https://github.com/dascritch/machincast/issues/69)) : `apercu`, `actif`, `desactive`, `expire`, `errone` ou `supprime` (voir ci-dessous). Seul un sonore `actif` peut être joué. |
 | `masquer_metadonnees` | Masquage de l'artiste et du titre au niveau du sonore. Vide = hérite du niveau inférieur. |
 | `duree` | Calculée par l'indexeur. Vide pour un stream. |
 | `debut_diffusion`, `fin_diffusion` | Période de diffusion facultative (annonces limitées dans le temps). |
@@ -83,13 +83,14 @@ Deux bases à la structure strictement identique : la base de production et la b
 
 | État | Affiché | Posé par | Sens | Retour à `actif` |
 | --- | --- | --- | --- | --- |
+| `apercu` | aperçu | indexeur, interface | nouveau fichier, enregistré sans être décodé ([#69](https://github.com/dascritch/machincast/issues/69)) ; pas jouable | par l'indexeur, au premier décodage d'un fichier sain |
 | `actif` | actif | interface, indexeur | jouable, sous réserve de sa période de diffusion et de son maximum de lectures | — |
 | `desactive` | désactivé | interface | choix humain | par l'interface seulement |
 | `expire` | expiré | binaire lecture | maximum de lectures atteint ou fin de la période de diffusion ([§ 4.5](#45-sonore-jouable)) | par l'interface seulement |
 | `errone` | erroné | indexeur | fichier illisible ou endommagé | automatique, par l'indexeur, quand le fichier redevient sain |
 | `supprime` | supprimé | indexeur | fichier introuvable (supprimé ou déplacé) | par l'interface seulement ; un fichier déplacé est réindexé comme nouveau sonore |
 
-L'indexeur ne change l'état que d'un sonore `actif` ou `errone`. Un sonore `desactive`, `expire` ou `supprime` garde son état, même si son fichier est défectueux ; l'anomalie est quand même signalée.
+L'indexeur ne change l'état que d'un sonore `apercu`, `actif` ou `errone`. Un fichier ajouté à la main depuis l'interface commence aussi à l'état `apercu` ; un stream, jamais vérifié, commence à l'état `actif`. Un sonore `desactive`, `expire` ou `supprime` garde son état, même si son fichier est défectueux ; l'anomalie est quand même signalée.
 
 Contraintes :
 
@@ -188,11 +189,11 @@ L'indexeur n'écrit pas dans le log : ses incidents ne figurent donc pas dans l'
 
 #### Choix de modélisation
 
-Le schéma est créé par la migration `src/machincast/migrations/0001.schema-initial.sql`, puis modifié par les suivantes (`0003.etat-sonores` : état d'un sonore, [#66](https://github.com/dascritch/machincast/issues/66)).
+Le schéma est créé par la migration `src/machincast/migrations/0001.schema-initial.sql`, puis modifié par les suivantes (`0003.etat-sonores` : état d'un sonore, [#66](https://github.com/dascritch/machincast/issues/66) ; `0004.apercu` : état aperçu, [#69](https://github.com/dascritch/machincast/issues/69)).
 
 - Durées (`duree`, crossfades, `duree_diffusee`) : type `interval`. Dates : `timestamptz`.
 - Textes saisis à la main (noms internes et publics, artiste, titre, nature d'une entrée du log) : `varchar(255)`, la même limite que l'interface. Chemins, URL et messages détaillés : `text`, sans limite fixée à l'avance.
-- Valeurs énumérées : types `ENUM` PostgreSQL (`type_sonore`, `mode_banque`, `priorite_evenement`, `jour_semaine`, `type_ligne_airplay`, `niveau_log`, `etat_sonore`). Leur ordre de déclaration permet les comparaisons : `fil_musical < emission < special`, `lundi < … < dimanche`.
+- Valeurs énumérées : types `ENUM` PostgreSQL (`type_sonore`, `mode_banque`, `priorite_evenement`, `jour_semaine`, `type_ligne_airplay`, `niveau_log`, `etat_sonore`). Ajouter une valeur se fait par `ALTER TYPE … ADD VALUE` (migration `0004.apercu`) ; en retirer une demande de recréer le type. Leur ordre de déclaration permet les comparaisons : `fil_musical < emission < special`, `lundi < … < dimanche`.
 - `jours_recurrence` : tableau de `jour_semaine`. La récurrence est calculée en heure locale par le binaire lecture.
 - `metadonnees_musicales` : objet JSON (`jsonb`), jamais un tableau ni une valeur nulle.
 - Un événement ne peut pas avoir de fin sans début.
@@ -258,7 +259,7 @@ L'indexation ne supprime rien : un fichier disparu fait passer son sonore à l'�
 
 ### 4.5 Sonore jouable
 
-Un sonore est jouable s'il est à l'état `actif`, si l'instant est dans sa période de diffusion (quand elle est renseignée), et si son maximum de lectures n'est pas atteint.
+Un sonore est jouable s'il est à l'état `actif` (jamais en `apercu`, tant que son fichier n'a pas été décodé), si l'instant est dans sa période de diffusion (quand elle est renseignée), et si son maximum de lectures n'est pas atteint.
 
 Passages automatiques à l'état `expire` par le binaire lecture, chacun consigné dans le log :
 
@@ -336,6 +337,13 @@ Sur option de lancement, le binaire simule la diffusion entre deux dates et heur
 
 `Machin_indexation` est déclenché depuis l'interface. Un cron ou un timer systemd pourra être ajouté plus tard selon les retours du terrain.
 
+### 6.0 Modes d'indexation
+
+Deux modes ([#69](https://github.com/dascritch/machincast/issues/69)).
+
+- **Indexation rapide**, par défaut : un nouveau fichier est enregistré à l'état `apercu`, sans être décodé ([§ 6.2](#62-indexation-des-répertoires-de-banques)). Seuls les sonores en aperçu sont ensuite décodés et leurs tags lus. Pour les autres, seule la présence du fichier est contrôlée : un fichier disparu passe quand même son sonore à `supprime`. Un fichier modifié n'est pas revérifié.
+- **Audit complet**, option `--audit-complet` : tous les sonores de type fichier sont décodés, comme décrit ci-dessous ; c'est lui qui revérifie les fichiers modifiés.
+
 ### 6.1 Vérification des sonores existants (hors streams)
 
 - Décodage complet du fichier (GStreamer), pour s'assurer qu'il n'est pas endommagé ([#7](https://github.com/dascritch/machincast/issues/7)). Le fichier est décodé sans être joué, bien plus vite que le temps réel (une dizaine de minutes de son en moins d'une seconde).
@@ -345,9 +353,9 @@ Sur option de lancement, le binaire simule la diffusion entre deux dates et heur
 	- **endommagé** : rupture de continuité dans le son décodé, signe que le décodeur a sauté des données (constaté en MP3, Ogg et M4A) ;
 	- **endommagé** : durée décodée plus courte que la durée annoncée par l'en-tête, au-delà de 75 ms ou de 0,1 % (fichier tronqué ou trames perdues, constaté en FLAC, AIFF et M4A).
 - Limites propres aux formats : des octets altérés dans un WAV ou un AIFF passent inaperçus (ni somme de contrôle ni trames) ; un WAV, un Ogg ou un MP3 sans en-tête de durée tronqué se décode comme un fichier plus court et sain.
-- Fichier sain : la durée décodée, la date de modification et la taille du fichier sont enregistrées ; un sonore `errone` redevient `actif`.
-- Fichier illisible ou endommagé : signalé sur STDERR, sonore `actif` passé `errone`.
-- Fichier introuvable (supprimé ou déplacé) : signalé sur STDERR, sonore `actif` ou `errone` passé `supprime`. Un fichier déplacé sera réindexé comme nouveau sonore.
+- Fichier sain : la durée décodée, la date de modification et la taille du fichier sont enregistrées ; un sonore `apercu` ou `errone` devient `actif`.
+- Fichier illisible ou endommagé : signalé sur STDERR, sonore `apercu` ou `actif` passé `errone`.
+- Fichier introuvable (supprimé ou déplacé) : signalé sur STDERR, sonore `apercu`, `actif` ou `errone` passé `supprime`. Un fichier déplacé sera réindexé comme nouveau sonore.
 - Un sonore `desactive`, `expire` ou `supprime` garde son état ; son fichier défectueux est quand même signalé ([§ 3.1](#sonores), [#66](https://github.com/dascritch/machincast/issues/66)).
 - Décodeur GStreamer absent pour un format : la vérification s'arrête et indique les paquets à installer, sans changer l'état du sonore, car le fichier n'y est pour rien.
 - Date de modification ou taille changée : nouvelle vérification complète, mise à jour de la durée et des tags, **sans toucher aux champs édités à la main**.
@@ -372,7 +380,7 @@ STDOUT et STDERR uniquement, plus une sortie texte au format CSV et HTML. L'inde
 
 - STDERR : une ligne par fichier défectueux, désigné par son chemin, avec le problème et la conséquence (« sonore passé erroné », « état désactivé conservé »). Les messages passent par `logging` : anomalies (`warning`) et erreurs (`error`) sur STDERR, informations sur STDOUT.
 - Les anomalies relevées seront regroupées dans un document d'audit, en CSV et en HTML ([#11](https://github.com/dascritch/machincast/issues/11)).
-- STDOUT : le bilan des changements d'état, par exemple « 12 sonores vérifiés : 1 erroné, 0 supprimé, 1 rétabli ».
+- STDOUT : le mode et le bilan, par exemple « indexation rapide : 3 sonores vérifiés ; 1 erroné, 1 supprimé, 0 rétabli, 3 sortis d'aperçu ». Les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état.
 - Code de sortie : 0 quand la vérification est allée au bout, même si des sonores ont changé d'état : ce sont des anomalies non bloquantes ; 1 si la base est injoignable ou si un décodeur manque ; 2 pour une configuration invalide.
 
 ## 7. Wrapper Machin
@@ -530,4 +538,5 @@ Aucun point en attente.
 - **Droits sur les marques-pages** : modifiables par l'interface seule ; le binaire lecture les lit, l'indexeur n'y accède pas ([#50](https://github.com/dascritch/machincast/issues/50), voir [§ 3.2](#32-rôles-et-droits)).
 - **Banque « ne pas répéter »** : un élément qui rappellerait une banque marquée « ne pas répéter » juste après elle est sauté, même d'un événement à l'autre ; s'il ne reste rien d'autre de jouable, l'événement se termine et l'événement inférieur prend le relais ([#63](https://github.com/dascritch/machincast/issues/63), voir [§ 4.4](#44-choix-dun-sonore-dans-une-banque)).
 - **État d'un sonore** : le booléen `actif` devient un état `actif`, `desactive`, `expire`, `errone` ou `supprime` ; seul l'indexeur rétablit automatiquement un sonore, quand il l'avait lui-même déclaré `errone` ([#66](https://github.com/dascritch/machincast/issues/66), voir [§ 3.1](#sonores)).
+- **Indexation rapide** : par défaut, l'indexeur ne décode que les nouveaux fichiers, à l'état `apercu`, et repère les fichiers disparus ; l'audit complet (`--audit-complet`) décode tout et revérifie les fichiers modifiés ([#69](https://github.com/dascritch/machincast/issues/69), voir [§ 6.0](#60-modes-dindexation)).
 - **Environnement virtuel** : isolé des paquets système, toutes les dépendances Python passent par pip ([#51](https://github.com/dascritch/machincast/issues/51), voir [§ 10](#10-installation-et-déploiement)).

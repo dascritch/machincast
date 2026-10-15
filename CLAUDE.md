@@ -48,6 +48,7 @@ bin/Machin lecture --help
 
 # Lancement avec une configuration précise, suivi des logs du service
 bin/Machin lecture --config <fichier>
+bin/Machin indexation --audit-complet   # par défaut : indexation rapide, seuls les sonores en aperçu sont décodés
 bin/Machin logs
 
 # Autocomplétion dans le shell courant

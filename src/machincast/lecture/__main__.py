@@ -1,5 +1,6 @@
 """Point d'entrée de Machin_lecture."""
 
+import argparse
 from collections.abc import Sequence
 
 from machincast.cli import lancer, non_implemente
@@ -9,7 +10,7 @@ EXECUTABLE = "Machin_lecture"
 DESCRIPTION = "Lit les événements programmés et les diffuse sur la sortie audio configurée."
 
 
-def executer(configuration: Configuration) -> int:
+def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 	return non_implemente(EXECUTABLE, 12)
 
 

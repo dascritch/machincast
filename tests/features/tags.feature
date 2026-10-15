@@ -72,7 +72,7 @@ Fonctionnalité: Lecture des tags
 	Scénario: Un sonore sain reçoit l'artiste, le titre et les métadonnées musicales de ses tags
 		Étant donné un fichier flac tagué
 		Et un sonore à l'état « actif » pour ce fichier
-		Quand l'indexeur vérifie les sonores
+		Quand l'indexeur fait un audit complet
 		Alors en base, l'artiste est « Les Gaufres Électriques » et le titre « Café à minuit »
 		Et en base, les métadonnées musicales sont {"annee": 1987, "album": "Été indien", "artiste_album": "Collectif Exemple", "genre": "Chanson", "compositeur": "Jeanne Exemple", "label": "Disques Exemple", "piste": 7}
 
@@ -80,20 +80,20 @@ Fonctionnalité: Lecture des tags
 		Étant donné un fichier flac tagué
 		Et pour ce fichier, un sonore d'artiste « Saisi à la main » et de métadonnées {"annee": 1990, "commentaire": "Face B"}
 		Et les champs « artiste » et « metadonnees_musicales.annee » de ce sonore édités à la main
-		Quand l'indexeur vérifie les sonores
+		Quand l'indexeur fait un audit complet
 		Alors en base, l'artiste est « Saisi à la main » et le titre « Café à minuit »
 		Et en base, les métadonnées musicales sont {"annee": 1990, "commentaire": "Face B", "album": "Été indien", "artiste_album": "Collectif Exemple", "genre": "Chanson", "compositeur": "Jeanne Exemple", "label": "Disques Exemple", "piste": 7}
 
 	Scénario: Un tag retiré du fichier efface le champ correspondant, s'il n'a pas été édité
 		Étant donné un fichier flac sain
 		Et pour ce fichier, un sonore de titre « Ancien titre » et de métadonnées {"album": "Ancien album", "commentaire": "Face B"}
-		Quand l'indexeur vérifie les sonores
+		Quand l'indexeur fait un audit complet
 		Alors en base, le sonore n'a ni artiste ni titre
 		Et en base, les métadonnées musicales sont {"commentaire": "Face B"}
 
 	Scénario: Un fichier défectueux ne change pas les tags enregistrés
 		Étant donné un fichier mp3 endommagé
 		Et pour ce fichier, un sonore de titre « Ancien titre » et de métadonnées {"album": "Ancien album"}
-		Quand l'indexeur vérifie les sonores
+		Quand l'indexeur fait un audit complet
 		Alors en base, le titre est toujours « Ancien titre »
 		Et en base, les métadonnées musicales sont {"album": "Ancien album"}

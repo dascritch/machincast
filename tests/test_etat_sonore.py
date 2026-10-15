@@ -123,3 +123,17 @@ def sonores_convertis(base_vide: Connexion, datatable: list[list[str]]) -> None:
 def seul_actif(base_vide: Connexion, etat: str) -> None:
 	lignes = base_vide.execute("SELECT emplacement FROM sonores WHERE actif ORDER BY emplacement").fetchall()
 	assert lignes == [(f"/{etat}.flac",)]
+
+
+@given(parsers.parse("un sonore à l'état « {premier} » et un sonore à l'état « {second} »"))
+def deux_sonores(base_vide: Connexion, premier: str, second: str) -> None:
+	for etat in (premier, second):
+		base_vide.execute(
+			"INSERT INTO sonores (type, emplacement, etat) VALUES ('fichier', %s, %s)", (f"/{etat}.flac", etat)
+		)
+
+
+@then(parsers.parse("les sonores sont aux états « {premier} » et « {second} »"))
+def etats_des_sonores(base_vide: Connexion, premier: str, second: str) -> None:
+	lignes = base_vide.execute("SELECT etat::text FROM sonores ORDER BY id").fetchall()
+	assert [ligne[0] for ligne in lignes] == [premier, second]

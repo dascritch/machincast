@@ -2,11 +2,12 @@
 
 À lire avant de toucher à `Machin_indexation`. Comportement complet : [spec.md § 6](../spec.md#6-binaire-indexation).
 
+- Deux modes ([#69](https://github.com/dascritch/machincast/issues/69)) : indexation rapide par défaut, qui ne décode que les sonores `apercu` et contrôle seulement la présence des autres fichiers ; audit complet (`--audit-complet`), qui décode tout. Un nouveau fichier est toujours enregistré à l'état `apercu`, sans être décodé.
 - Vérifier chaque fichier par **décodage complet** (GStreamer), pas seulement par son extension ou son en-tête : `machincast.indexation.decodage.verifier_fichier`. Ne pas se fier à l'absence d'erreur de GStreamer : examiner aussi les ruptures de continuité et la durée annoncée ([spec.md § 6.1](../spec.md#61-vérification-des-sonores-existants-hors-streams)).
 - Un décodeur GStreamer absent n'est jamais la faute du fichier : lever `DecodeurIndisponible` et arrêter, sans changer l'état d'aucun sonore.
 - Un décodage bloqué avant le moindre son est repris (jusqu'à trois tentatives) : GStreamer se bloque parfois au démarrage d'un pipeline, et un fichier sain ne doit jamais être déclaré erroné pour cette raison.
 - Un fichier défectueux est signalé par son chemin, jamais par l'identifiant du sonore, en anomalie (`logging`, niveau `warning`).
-- États ([#66](https://github.com/dascritch/machincast/issues/66)) : fichier illisible ou endommagé → `errone` ; fichier introuvable → `supprime` ; fichier sain d'un sonore `errone` → `actif`. Seul un sonore `actif` ou `errone` change d'état : `desactive`, `expire` et `supprime` sont conservés, le fichier défectueux est quand même signalé sur STDERR.
+- États ([#66](https://github.com/dascritch/machincast/issues/66)) : fichier illisible ou endommagé → `errone` ; fichier introuvable → `supprime` ; fichier sain d'un sonore `apercu` ou `errone` → `actif`. Seul un sonore `apercu`, `actif` ou `errone` change d'état : `desactive`, `expire` et `supprime` sont conservés, le fichier défectueux est quand même signalé sur STDERR.
 - Fichier dont la date de modification ou la taille a changé : revérifier, mettre à jour durée et tags.
 - **Ne jamais modifier un champ listé dans `sonores.champs_edites`** : l'édition manuelle prime. Une clé des métadonnées musicales y figure sous la forme `metadonnees_musicales.<clé>`.
 - Tags ([#8](https://github.com/dascritch/machincast/issues/8)) : lus pendant le décodage de la vérification (`machincast.indexation.tags`), jamais par une seconde lecture du fichier. L'indexeur ne tient que les clés `machincast.indexation.tags.CLES` de `metadonnees_musicales` ; les autres clés ne sont jamais touchées.
