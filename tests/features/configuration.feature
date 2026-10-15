@@ -46,6 +46,17 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors la sortie audio utilise le périphérique par défaut
 
+	Scénario: La socket d'état de Machin lecture est par défaut dans le répertoire d'exécution du compte
+		Étant donné le répertoire d'exécution du compte « /run/user/1000 »
+		Et une configuration valide où la clé "lecture.socket_etat" est absente
+		Quand je charge la configuration
+		Alors la socket d'état est "/run/user/1000/machincast/lecture.sock"
+
+	Scénario: La clé lecture.socket_etat choisit un autre chemin pour la socket d'état
+		Étant donné une configuration valide où la clé "lecture.socket_etat" vaut "run/lecture.sock"
+		Quand je charge la configuration
+		Alors la socket d'état est "run/lecture.sock" à côté du fichier de configuration
+
 	Plan du scénario: Une clé obligatoire manque
 		Étant donné une configuration valide où la clé "<cle>" est absente
 		Quand je charge la configuration

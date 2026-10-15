@@ -83,5 +83,7 @@ Aucune écriture en base, aucune sortie sonore, état tenu en mémoire, graine r
 
 ## Interfaces exposées
 
-- Socket Unix d'état pour l'interface graphique.
+- Socket Unix d'état pour l'interface graphique ([#20](https://github.com/dascritch/machincast/issues/20), `machincast.lecture.etat.SocketEtat`) : format décrit dans [spec.md § 5.4](../spec.md#54-socket-détat). Tout champ ajouté au message s'y ajoute : un scénario d'`etat.feature` vérifie que chaque champ y figure. Changer le sens d'un champ ou en retirer un augmente `VERSION`.
+- La socket ne doit jamais bloquer la diffusion : un fil par client, et `publier` ne fait que déposer le dernier message.
+- Le prochain sonore est réservé au début de chaque passage (`Ordonnanceur.reserver`, sans alerte de silence), et revalidé avant d'être joué (`Ordonnanceur.valider`).
 - Sortie audio GStreamer choisie dans la configuration (ALSA, PulseAudio, PipeWire).

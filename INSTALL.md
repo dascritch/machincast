@@ -118,6 +118,7 @@ La configuration est le fichier `machincast.toml`, dans le répertoire de Machin
 - `audio.peripherique` : le périphérique de l'antenne, si ce n'est pas le périphérique par défaut ;
 - `audio.preecoute` : le périphérique de pré-écoute de l'interface, différent de celui de l'antenne ;
 - `metadonnees.texte_public` : le nom affiché sur la page publique à la place d'un titre masqué ;
+- `lecture.socket_etat` : facultatif, la socket d'état lue par l'interface ; par défaut dans le répertoire d'exécution du compte (`$XDG_RUNTIME_DIR/machincast/lecture.sock`) ;
 - `[sorties]` : les chemins de l'airplay CSV (un fichier par jour), de la playlist et de la page HTML publique, dans le dossier `sorties` du répertoire de MachinCast par défaut. Pour publier la page sur le site de la radio, la copier ou la servir depuis ce chemin.
 
 Les noms des bases (`base.production` et `base.test`) se choisissent **avant** de lancer `install.sh`, qui crée les bases sous ces noms. La base de test doit porter un autre nom que la base de production : MachinCast refuse sinon la configuration.

@@ -20,9 +20,11 @@ from machincast.base import Role, connecter
 from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe
 from machincast.lecture.diffusion import Diffusion
+from machincast.lecture.etat import SocketEtat
 from machincast.lecture.moteur import MoteurAudio
 from machincast.lecture.sorties import Sorties
 from tests.base_test import configuration_test, parametres_base_test
+from tests.flux import ServeurDeFlux
 from tests.sons import copie_de_test
 
 Connexion = psycopg.Connection[tuple[object, ...]]
@@ -39,6 +41,8 @@ class Banc:
 	connexion: Connexion | None = None
 	sorties: Sorties | None = None
 	"""Modules de sortie de la diffusion ; aucun par défaut."""
+	etat: SocketEtat | None = None
+	"""Socket d'état de la diffusion ; aucune par défaut."""
 	fichiers: dict[str, Path] = field(default_factory=dict)
 
 
@@ -46,6 +50,8 @@ class Banc:
 def banc() -> Iterator[Banc]:
 	banc = Banc()
 	yield banc
+	if banc.etat is not None:
+		banc.etat.fermer()
 	if banc.moteur is not None:
 		banc.moteur.fermer()
 	if banc.connexion is not None:
@@ -131,13 +137,16 @@ def fil(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str) 
 
 @given(
 	parsers.re(
-		r"le fil musical permanent « (?P<nom>[^»]+) », avec la banque séquentielle « (?P<banque>[^»]+) »"
-		r" des sonores (?P<liste>.+)"
+		r"le fil musical permanent « (?P<nom>[^»]+) », avec la banque (?P<mode>séquentielle|aléatoire)"
+		r" « (?P<banque>[^»]+) » des sonores (?P<liste>.+)"
 	)
 )
-def fil_avec_banque(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, banque: str, liste: str) -> None:
+def fil_avec_banque(
+	banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, mode: str, banque: str, liste: str
+) -> None:
 	creee = base_vide.execute(
-		"INSERT INTO banques (nom_interne, mode) VALUES (%s, 'sequentiel') RETURNING id", (banque,)
+		"INSERT INTO banques (nom_interne, mode) VALUES (%s, %s) RETURNING id",
+		(banque, "sequentiel" if mode == "séquentielle" else "aleatoire"),
 	).fetchone()
 	assert creee is not None
 	for position, nom_sonore in enumerate((n.strip(" «»") for n in liste.split(",")), start=1):
@@ -201,6 +210,9 @@ def demarrer(banc: Banc, base_vide: Connexion, rythme: str) -> None:
 		creer_hasard(0),
 		delai_reconnexion=DELAI_RECONNEXION_TEST,
 		sorties=banc.sorties,
+		etat=banc.etat,
+		# À chaque pas, pour que la socket d'état donne la progression du moment.
+		publication_minimale=0.0,
 	)
 	banc.diffusion.demarrer()
 
@@ -338,6 +350,11 @@ def fichier_supprime(banc: Banc, nom: str) -> None:
 	banc.fichiers[nom].unlink()
 
 
+@given(parsers.parse("le sonore « {nom} » est à l'état « {etat} »"))
+def etat(base_vide: Connexion, nom: str, etat: str) -> None:
+	base_vide.execute("UPDATE sonores SET etat = %s WHERE id = %s", (etat, sonore(base_vide, nom)))
+
+
 @given(parsers.parse("le fil musical « {nom} » est supprimé"))
 def fil_supprime(base_vide: Connexion, nom: str) -> None:
 	base_vide.execute("DELETE FROM evenements WHERE nom_interne = %s", (nom,))
@@ -355,3 +372,25 @@ def sonores_de(base: Connexion, evenement: str) -> set[str]:
 @then("l'airplay ne montre aucun passage")
 def aucun_passage(base_vide: Connexion) -> None:
 	assert passages(base_vide) == []
+
+
+# ─── Streams (https://github.com/dascritch/machincast/issues/16) ───
+
+
+@pytest.fixture
+def serveur() -> Iterator[ServeurDeFlux]:
+	serveur = ServeurDeFlux()
+	yield serveur
+	serveur.fermer()
+
+
+@given(parsers.parse("un serveur de flux local, avec le flux « {flux} » en ligne"))
+def flux_en_ligne(serveur: ServeurDeFlux, flux: str) -> None:
+	serveur.en_ligne[flux] = True
+
+
+@given(parsers.parse("le stream « {nom} » à l'adresse du flux « {flux} »"))
+def stream_direct(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, flux: str) -> None:
+	base_vide.execute(
+		"INSERT INTO sonores (type, url_stream, titre) VALUES ('stream', %s, %s)", (serveur.adresse(flux), nom)
+	)

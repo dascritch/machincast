@@ -42,3 +42,8 @@ masquer = false
 # Texte affiché sur les sorties publiques à la place de l'artiste et du titre masqués,
 # quand l'événement en cours n'a pas de nom public. 255 caractères au maximum.
 texte_public = "Radio FMR"
+
+[lecture]
+# Socket d'état de Machin lecture, lue par l'interface. Facultative : par défaut
+# $XDG_RUNTIME_DIR/machincast/lecture.sock, privée au compte et effacée au redémarrage du poste.
+# socket_etat = "/run/user/1000/machincast/lecture.sock"

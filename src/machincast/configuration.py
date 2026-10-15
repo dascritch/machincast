@@ -3,6 +3,7 @@
 Le modèle documenté clé par clé est `machincast.exemple.toml`, à la racine du dépôt.
 """
 
+import os
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -67,12 +68,26 @@ class Metadonnees:
 
 
 @dataclass(frozen=True)
+class Lecture:
+	socket_etat: Path
+	"""Socket Unix d'état du binaire lecture, lue par l'interface (https://github.com/dascritch/machincast/issues/20)."""
+
+
+def socket_etat_par_defaut() -> Path:
+	"""Dans le répertoire d'exécution du compte ($XDG_RUNTIME_DIR, sinon /run/user/<uid>) : privé, effacé au
+	redémarrage du poste."""
+	repertoire = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+	return Path(repertoire) / "machincast" / "lecture.sock"
+
+
+@dataclass(frozen=True)
 class Configuration:
 	chemin: Path
 	base: Base
 	audio: Audio
 	sorties: Sorties
 	metadonnees: Metadonnees
+	lecture: Lecture
 
 
 # Clés connues, par section. Toute autre clé est refusée, pour détecter les fautes de frappe.
@@ -81,6 +96,7 @@ CLES: dict[str, frozenset[str]] = {
 	"audio": frozenset({"sortie", "peripherique", "preecoute"}),
 	"sorties": frozenset({"csv", "pls", "html"}),
 	"metadonnees": frozenset({"masquer", "texte_public"}),
+	"lecture": frozenset({"socket_etat"}),
 }
 
 
@@ -136,6 +152,12 @@ class _Lecteur:
 		if not isinstance(valeur, str):
 			raise self.erreur(f"clé {section}.{cle} : texte attendu, {_decrire(valeur)} trouvé")
 		return valeur or None
+
+	def chemin_facultatif(self, section: str, cle: str) -> Path | None:
+		"""Comme chemin_fichier, ou None si la clé est absente."""
+		if self.texte_facultatif(section, cle) is None:
+			return None
+		return self.chemin_fichier(section, cle)
 
 	def booleen(self, section: str, cle: str) -> bool:
 		valeur = self._valeur(section, cle, obligatoire=True)
@@ -214,4 +236,5 @@ def charger(chemin: Path | None = None) -> Configuration:
 			masquer=lecteur.booleen("metadonnees", "masquer"),
 			texte_public=lecteur.texte_court("metadonnees", "texte_public"),
 		),
+		lecture=Lecture(socket_etat=lecteur.chemin_facultatif("lecture", "socket_etat") or socket_etat_par_defaut()),
 	)
