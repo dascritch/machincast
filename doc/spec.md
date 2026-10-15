@@ -234,6 +234,7 @@ L'indexation ne supprime rien : un fichier disparu fait passer son sonore à l'�
 2. Deux événements de même priorité ne doivent pas se chevaucher : l'interface l'interdit à la saisie. Si le cas se présente quand même, le binaire joue le **dernier modifié en base**.
 3. Plusieurs fils musicaux peuvent coexister selon l'heure (nuit, jour), régis par leur récurrence.
 4. Le changement d'heure ne fait l'objet d'aucune règle particulière : la diffusion est toujours en fil musical à cette heure de la nuit.
+5. Occurrences ([#12](https://github.com/dascritch/machincast/issues/12), `machincast.lecture.grille`) : `debut` et `fin` sont ceux de la première occurrence. Sans récurrence, l'événement couvre `[debut, fin[`, ou `[debut, ∞[` sans fin. Avec récurrence, il revient chaque jour coché à partir du jour de `debut`, à l'heure murale de `debut`, jusqu'à l'heure murale de `fin` autant de jours plus tard que la première occurrence : un événement peut passer minuit, et c'est le jour de son début qui compte. Le poste travaille en heure locale, celle de Paris : le calcul se fait en heure murale, et un événement garde son heure au changement d'heure. Une occurrence sans fin couvre l'instant jusqu'à ce que sa liste soit épuisée ; le binaire la déclare alors terminée, et la suivante repart normalement.
 
 ### 4.2 Transitions
 

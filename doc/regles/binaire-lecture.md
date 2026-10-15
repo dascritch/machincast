@@ -16,6 +16,12 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 - Artiste et titre sont masqués selon la priorité Événement > Banque > Sonore > configuration. Les sorties privées affichent tout, les sorties publiques appliquent le masquage.
 - Jamais de silence non signalé : si rien n'est jouable, émettre un silence et lever une alerte dans le log.
 
+## Grille et événement actif
+
+- `machincast.lecture.grille.evenement_actif(evenements, instant, terminees)` donne l'occurrence active ; c'est une fonction pure, testée avec une `HorlogeFixe` ([#12](https://github.com/dascritch/machincast/issues/12)). La grille se lit en base par `lire_grille`, avec le rôle de la lecture.
+- Le poste travaille en heure locale, celle de Paris (revue de [PR #82](https://github.com/dascritch/machincast/pull/82)) : pas de fuseau à manier. La grille convertit chaque heure en heure murale du poste (`heure_murale`) et calcule la récurrence sur ces heures murales. Les tests règlent le processus sur l'heure de Paris (`TZ`), quel que soit le poste qui les lance.
+- Une occurrence terminée plus tôt (liste épuisée d'un événement sans fin) est repérée par sa clé `Occurrence.cle`, l'identifiant de l'événement et le début de l'occurrence.
+
 ## Écritures autorisées
 
 Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures sont garanties par les droits PostgreSQL ([spec.md § 3.2](../spec.md#32-rôles-et-droits)) :
