@@ -80,8 +80,11 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 ```bash
 ./install.sh --simulation   # affiche les commandes sans rien exécuter
 ./install.sh                # installe
+./install.sh --dev          # installe, avec les outils du poste de développement
 ./install.sh --help         # aide
 ```
+
+`--dev` se combine avec `--simulation`. Voir [Poste de développement](#poste-de-développement).
 
 **Relançable** : chaque étape déjà faite est laissée telle quelle. En cas d'échec, corriger ce que le message indique, puis relancer le script. À la relance, PostgreSQL signale par des lignes `NOTICE:  role … has already been granted membership …` que le compte était déjà autorisé : ce n'est pas une erreur.
 
@@ -290,14 +293,27 @@ Pour chaque greffon manquant, la commande nomme le paquet apt à installer.
 
 Un poste installé par `install.sh` suffit pour lancer les tests : le compte n'a besoin d'aucun droit PostgreSQL particulier, puisqu'il est propriétaire de la base de test et endosse déjà les trois rôles. Les tests ne créent jamais de compte PostgreSQL et n'attribuent jamais de rôle.
 
-En plus, installer les outils de développement et les dépendances de test :
+En plus, installer les outils de développement et les dépendances de test ([#77](https://github.com/dascritch/machincast/issues/77)) :
+
+```bash
+./install.sh --dev
+```
+
+`--dev` fait tout ce que fait l'installation, puis ajoute les paquets apt `bats` et `shellcheck` et installe dans le venv les dépendances de test (`pip install --editable ".[dev]"` : pytest, pytest-bdd, pytest-qt, ruff, mypy). Il est relançable, et `./install.sh --dev --simulation` montre ce qu'il fera. À la main, c'est l'équivalent de :
 
 ```bash
 sudo apt install bats shellcheck
 .venv/bin/pip install --editable ".[dev]"
 ```
 
-Puis lancer les tests depuis le répertoire de MachinCast, environnement virtuel activé :
+Deux commandes du wrapper servent ensuite :
+
+- **`Machin dev`** ouvre un nouveau shell dans le répertoire de MachinCast, environnement virtuel activé, avec l'invite `(MachinCast dev)`. Le `.bashrc` du compte est lu. `exit` en sort et ramène au shell de départ. Un programme ne peut pas activer le venv du shell qui l'a lancé : c'est pourquoi un nouveau shell s'ouvre.
+- **`Machin dev-test`** lance toutes les vérifications, depuis le répertoire de MachinCast, avec les outils du venv, sans qu'il soit activé : `ruff check`, `ruff format --check` (tous deux sans cache), `mypy --strict`, `shellcheck`, `pytest` puis `bats`. Chacun est lancé, même après l'échec d'un précédent. À la fin, un bilan donne le résultat de chaque outil (`réussi`, `échec (code N)` ou `absent`). Le code de sortie est 0 si tous ont réussi, 1 sinon.
+
+Sans `--dev`, ces deux commandes restent disponibles : il manque alors un outil ou le venv, et le message nomme ce qui manque et propose `./install.sh --dev` (code 1 pour `dev-test` quand un outil manque, 127 sans venv).
+
+Les tests se lancent aussi un par un, depuis `Machin dev` ou après avoir activé le venv :
 
 ```bash
 . .venv/bin/activate

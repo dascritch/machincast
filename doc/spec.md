@@ -414,6 +414,7 @@ Script bash `Machin` ([#6](https://github.com/dascritch/machincast/issues/6)) :
 ```
 Machin [--config FICHIER] BINAIRE [OPTIONS…]
 Machin logs [OPTIONS DE journalctl…]
+Machin dev | dev-test
 Machin -h | --help | --binaires
 ```
 
@@ -422,9 +423,10 @@ Machin -h | --help | --binaires
 - `-h` affiche une aide minimale de deux lignes, `--help` l'aide complète. L'aide d'un binaire s'obtient par `Machin BINAIRE --help`.
 - `Machin logs` suit en direct le journal du service de lecture, `machincast.service` (`journalctl --unit=machincast.service --follow`). Les options qui suivent sont transmises à `journalctl`, par exemple `--since "1 hour ago"`. Le journal d'un service système n'est lisible que par les groupes `adm` (dont fait partie le premier compte créé à l'installation d'Ubuntu) et `systemd-journal` : le compte qui utilise MachinCast doit pouvoir le lire, `install.sh` l'ajoute donc au groupe `systemd-journal`, qui donne la lecture du journal sans les droits d'administration de `adm` (voir [§ 10](#10-installation-et-déploiement)).
 - `--binaires` liste les binaires, un par ligne ; l'autocomplétion s'en sert.
-- Codes de sortie : celui du binaire ou de `journalctl` ; 2 pour un appel incorrect du wrapper (binaire ou option inconnus, `--config` sans fichier) ; 127 si le binaire ou `journalctl` est introuvable.
+- Poste de développement ([#77](https://github.com/dascritch/machincast/issues/77)) : `Machin dev` ouvre un sous-shell interactif dans le répertoire de MachinCast, qui lit le `.bashrc` du compte, active le venv, définit `MACHINCAST_DEV=1` et préfixe l'invite de `(MachinCast dev)` ; `exit` en sort, avec son code. `Machin dev-test` lance, dans le répertoire de MachinCast, avec le venv en tête du `PATH` et `VIRTUAL_ENV` défini, `ruff check --no-cache .`, `ruff format --no-cache --check .`, `mypy --strict src/`, `shellcheck -x` sur les scripts bash, `pytest` puis `bats tests/wrapper`. Il les lance tous, même après un échec, puis affiche un bilan par outil. Sans cache, ruff ne garde pas le verdict d'un fichier dont l'ordre des imports dépend d'un autre. Un outil absent compte comme un échec, avec un message qui propose `./install.sh --dev`. Ni l'un ni l'autre ne prend d'argument.
+- Codes de sortie : celui du binaire, de `journalctl` ou du sous-shell de `dev` ; 1 pour `dev-test` si un outil a échoué ou manque ; 2 pour un appel incorrect du wrapper (binaire ou option inconnus, `--config` sans fichier, argument donné à `dev` ou `dev-test`) ; 127 si le binaire, `journalctl` ou le venv est introuvable.
 
-Autocomplétion bash (`bash-completion/Machin`) : binaires et `logs`, options du wrapper, fichiers après `--config`, options d'un binaire lues dans son aide, options courantes de `journalctl` après `logs`.
+Autocomplétion bash (`bash-completion/Machin`) : binaires, `logs`, `dev` et `dev-test`, options du wrapper, fichiers après `--config`, options d'un binaire lues dans son aide, options courantes de `journalctl` après `logs`.
 
 Le wrapper n'est pas copié dans le venv : en développement, il s'appelle par `bin/Machin`. `install.sh` installe le wrapper et l'autocomplétion pour tout le système (voir [§ 10](#10-installation-et-déploiement)).
 
@@ -534,7 +536,7 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 - Cible : Ubuntu 26.04 LTS, et uniquement des versions LTS.
 - Installation mono-utilisateur : un seul compte Unix utilise MachinCast, celui qui l'installe, et MachinCast se place dans son répertoire personnel.
 - Livraison : archives `.tar.gz` publiées en releases sur le dépôt git (sur le repository <https://github.com/dascritch/machincast>).
-- Chaque archive contient un `install.sh` ([#40](https://github.com/dascritch/machincast/issues/40)), à lancer depuis le répertoire de MachinCast (release décompressée ou dépôt git) avec son propre compte, jamais avec sudo : il demande sudo pour les seules étapes qui l'exigent. Relançable, il laisse en place chaque étape déjà faite. `./install.sh --simulation` affiche les commandes sans rien exécuter. Il :
+- Chaque archive contient un `install.sh` ([#40](https://github.com/dascritch/machincast/issues/40)), à lancer depuis le répertoire de MachinCast (release décompressée ou dépôt git) avec son propre compte, jamais avec sudo : il demande sudo pour les seules étapes qui l'exigent. Relançable, il laisse en place chaque étape déjà faite. `./install.sh --simulation` affiche les commandes sans rien exécuter ; `./install.sh --dev` installe en plus les outils du poste de développement (paquets `bats` et `shellcheck`, extra `[dev]` de pip, [#77](https://github.com/dascritch/machincast/issues/77)). Il :
 	- vérifie le système : Ubuntu LTS, la cible étant 26.04 ;
 	- installe par apt les seules dépendances système (bibliothèques de compilation de PyGObject, GStreamer et ses plugins, PostgreSQL, autocomplétion bash) ;
 	- crée un environnement virtuel Python isolé, **sans** `--system-site-packages`, et y installe toutes les dépendances Python par pip (PySide6, PyGObject, psycopg, yoyo-migrations). Le projet suit ainsi l'évolution des paquets sans dépendre des versions de la distribution hôte ;

@@ -28,9 +28,14 @@ completer() {
 	[[ "${output}" == *"-F _Machin"* ]]
 }
 
-@test "Machin <TAB> propose les binaires et logs" {
+@test "Machin <TAB> propose les binaires, logs, dev et dev-test" {
 	run completer Machin ""
-	[ "${output}" = "$(printf '%s\n' indexation interface lecture logs)" ]
+	[ "${output}" = "$(printf '%s\n' dev dev-test indexation interface lecture logs)" ]
+}
+
+@test "Machin dev-test <TAB> ne propose rien de plus" {
+	run completer Machin dev-test ""
+	[ "${output}" = "" ]
 }
 
 @test "Machin in<TAB> propose les binaires qui commencent par in" {

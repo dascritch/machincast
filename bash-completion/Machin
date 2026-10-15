@@ -45,11 +45,15 @@ _Machin() {
 		if [[ "${courant}" == -* ]]; then
 			mapfile -t COMPREPLY < <(compgen -W "-h --help --config --binaires" -- "${courant}")
 		else
-			mapfile -t COMPREPLY < <(compgen -W "$("${commande}" --binaires 2>/dev/null) logs" -- "${courant}")
+			mapfile -t COMPREPLY < <(compgen -W "$("${commande}" --binaires 2>/dev/null) logs dev dev-test" -- "${courant}")
 		fi
 		return 0
 	fi
 
+	# dev et dev-test ne prennent aucun argument.
+	if [[ "${binaire}" == dev || "${binaire}" == dev-test ]]; then
+		return 0
+	fi
 	if [[ "${binaire}" == logs ]]; then
 		mapfile -t COMPREPLY < <(compgen -W "${_MACHIN_OPTIONS_LOGS}" -- "${courant}")
 		return 0

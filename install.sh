@@ -3,6 +3,8 @@
 #
 #   ./install.sh               installe, ou met à jour une installation existante : le script est relançable
 #   ./install.sh --simulation  affiche les commandes sans rien exécuter
+#   ./install.sh --dev         installe aussi les outils du poste de développement
+#                              (https://github.com/dascritch/machincast/issues/77)
 #   ./install.sh --help        aide
 #
 # À lancer depuis le répertoire de MachinCast (release décompressée ou dépôt git), avec son propre compte :
@@ -29,13 +31,16 @@ PAQUETS=(
 	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad
 	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire postgresql bash-completion
 )
+# Outils du poste de développement, installés par --dev : ceux de CLAUDE.md.
+PAQUETS_DEV=(bats shellcheck)
 
 SIMULATION=false
+DEV=false
 UTILISATEUR="$(id -un)"
 
 aide() {
 	cat <<-FIN
-		Usage : ./install.sh [--simulation]
+		Usage : ./install.sh [--simulation] [--dev]
 
 		Installe MachinCast en place, depuis ce répertoire (${RACINE}) :
 		  1. paquets système (apt) ;
@@ -46,12 +51,15 @@ aide() {
 		  5. autorisation de ${UTILISATEUR} aux rôles ${ROLES[*]}, groupe systemd-journal ;
 		  6. liens ${LIEN_INSTALLATION}, ${LIEN_WRAPPER} et l'autocomplétion bash ;
 		  7. vérification des greffons GStreamer et de la sortie audio.
+		Avec --dev, aussi les outils du poste de développement : ${PAQUETS_DEV[*]} (apt) et les
+		dépendances de test (pip, extra [dev]), pour Machin dev et Machin dev-test.
 
 		Relançable : chaque étape déjà faite est laissée telle quelle.
 		À lancer avec son propre compte, pas avec sudo : le script demande sudo quand il le faut.
 
 		Options :
 		  --simulation  affiche les commandes sans rien exécuter
+		  --dev         installe aussi les outils du poste de développement
 		  -h, --help    cette aide
 	FIN
 }
@@ -99,7 +107,9 @@ verifier_systeme() {
 installer_paquets() {
 	etape "Paquets système"
 	executer sudo apt-get update
-	executer sudo apt-get install --yes "${PAQUETS[@]}"
+	local paquets=("${PAQUETS[@]}")
+	"${DEV}" && paquets+=("${PAQUETS_DEV[@]}")
+	executer sudo apt-get install --yes "${paquets[@]}"
 }
 
 installer_venv() {
@@ -111,7 +121,11 @@ installer_venv() {
 		executer python3 -m venv "${VENV}"
 	fi
 	executer "${VENV}/bin/pip" install --upgrade pip
-	executer "${VENV}/bin/pip" install --editable "${RACINE}"
+	if "${DEV}"; then
+		executer "${VENV}/bin/pip" install --editable "${RACINE}[dev]"
+	else
+		executer "${VENV}/bin/pip" install --editable "${RACINE}"
+	fi
 }
 
 preparer_configuration() {
@@ -252,12 +266,16 @@ conclure() {
 	info "Aide : Machin --help"
 	info "Première indexation : Machin indexation, puis Machin indexation --audit-complet"
 	info "Le service de diffusion n'est pas encore installé (https://github.com/dascritch/machincast/issues/22)."
+	if "${DEV}"; then
+		info "Poste de développement : Machin dev ouvre un shell, venv activé ; Machin dev-test lance les vérifications"
+	fi
 }
 
 principal() {
 	while (($# > 0)); do
 		case "$1" in
 			--simulation) SIMULATION=true ;;
+			--dev) DEV=true ;;
 			-h | --help)
 				aide
 				exit 0

@@ -343,4 +343,3 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | Mode simulation de la diffusion | [#21](https://github.com/dascritch/machincast/issues/21) |
 | Service systemd de diffusion | [#22](https://github.com/dascritch/machincast/issues/22) |
 | Interface graphique | [#23](https://github.com/dascritch/machincast/issues/23) et suivants |
-| Outils du poste de développement | [#77](https://github.com/dascritch/machincast/issues/77) |

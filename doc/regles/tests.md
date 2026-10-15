@@ -39,6 +39,8 @@ Les scénarios Gherkin sont écrits en français (`# language: fr`).
 - Les tests bats sont dans `tests/wrapper` et se lancent par `bats tests/wrapper` (bats ≥ 1.5).
 - Ils copient le wrapper dans un projet factice dont le venv ne contient que des bouchons des binaires, et placent un bouchon de `journalctl` en tête du `PATH` (`tests/wrapper/aide_test.bash`) : ils ne lancent jamais la diffusion ni ne lisent le journal système.
 - Les tests qui demandent les vrais binaires sont ignorés si le venv du dépôt (`.venv`) n'existe pas.
+- `tests/wrapper/dev.bats` vérifie `Machin dev` et `Machin dev-test` avec des bouchons des outils, qui notent leurs appels ; `Machin dev` y reçoit ses commandes sur l'entrée standard, avec un `HOME` temporaire ([#77](https://github.com/dascritch/machincast/issues/77)).
+- Toutes les vérifications d'un coup : `Machin dev-test`, qui lance ruff sans cache (un cache peut masquer un import mal rangé quand un module est créé après coup).
 
 ## Configuration
 
