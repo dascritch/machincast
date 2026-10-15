@@ -189,11 +189,11 @@ L'indexeur n'écrit pas dans le log : ses incidents ne figurent donc pas dans l'
 
 #### Choix de modélisation
 
-Le schéma est créé par la migration `src/machincast/migrations/0001.schema-initial.sql`, puis modifié par les suivantes (`0003.etat-sonores` : état d'un sonore, [#66](https://github.com/dascritch/machincast/issues/66) ; `0004.apercu` : état aperçu, [#69](https://github.com/dascritch/machincast/issues/69)).
+Le schéma, les rôles et les droits sont créés par la migration `src/machincast/migrations/0001.schema-initial.sql`, fusion des quatre premières migrations avant toute mise en production ([PR #70](https://github.com/dascritch/machincast/pull/70)).
 
 - Durées (`duree`, crossfades, `duree_diffusee`) : type `interval`. Dates : `timestamptz`.
 - Textes saisis à la main (noms internes et publics, artiste, titre, nature d'une entrée du log) : `varchar(255)`, la même limite que l'interface. Chemins, URL et messages détaillés : `text`, sans limite fixée à l'avance.
-- Valeurs énumérées : types `ENUM` PostgreSQL (`type_sonore`, `mode_banque`, `priorite_evenement`, `jour_semaine`, `type_ligne_airplay`, `niveau_log`, `etat_sonore`). Ajouter une valeur se fait par `ALTER TYPE … ADD VALUE` (migration `0004.apercu`) ; en retirer une demande de recréer le type. Leur ordre de déclaration permet les comparaisons : `fil_musical < emission < special`, `lundi < … < dimanche`.
+- Valeurs énumérées : types `ENUM` PostgreSQL (`type_sonore`, `mode_banque`, `priorite_evenement`, `jour_semaine`, `type_ligne_airplay`, `niveau_log`, `etat_sonore`). Ajouter une valeur se fait par `ALTER TYPE … ADD VALUE` dans une nouvelle migration ; en retirer une demande de recréer le type. Leur ordre de déclaration permet les comparaisons : `fil_musical < emission < special`, `lundi < … < dimanche`.
 - `jours_recurrence` : tableau de `jour_semaine`. La récurrence est calculée en heure locale par le binaire lecture.
 - `metadonnees_musicales` : objet JSON (`jsonb`), jamais un tableau ni une valeur nulle.
 - Un événement ne peut pas avoir de fin sans début.
@@ -204,7 +204,7 @@ Le schéma est créé par la migration `src/machincast/migrations/0001.schema-in
 
 ### 3.2 Rôles et droits
 
-Un rôle PostgreSQL par binaire : `machincast_lecture`, `machincast_indexation`, `machincast_interface`. Ils sont créés par la migration `0002.droits` ([#4](https://github.com/dascritch/machincast/issues/4)) et partagés par la base de production et la base de test.
+Un rôle PostgreSQL par binaire : `machincast_lecture`, `machincast_indexation`, `machincast_interface`. Ils sont créés par la migration `0001.schema-initial` ([#4](https://github.com/dascritch/machincast/issues/4)) et partagés par la base de production et la base de test.
 
 - Ce sont des **rôles de groupe**, sans connexion. Un utilisateur système se connecte avec son propre rôle, par authentification **peer** sur la socket Unix.
 - L'utilisateur est membre des rôles qu'il peut endosser, **sans en hériter les droits** : connecté, il n'a accès à rien. Chaque binaire endosse son rôle par `SET ROLE` dès la connexion (`machincast.base.connecter`). L'indexation lancée depuis l'interface, sous l'utilisateur de bureau, agit donc avec les seuls droits de l'indexation.

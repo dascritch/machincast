@@ -79,10 +79,9 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| machincast_indexation |
 			| machincast_interface  |
 
-	Scénario: L'annulation de la migration retire les droits sans supprimer les rôles
-		Quand j'annule la migration des droits
+	Scénario: L'annulation des migrations ne supprime pas les rôles
+		Quand j'annule toutes les migrations
 		Alors les trois rôles existent toujours
-		Et le rôle "machincast_interface" ne peut plus lire les sonores
 
 	Scénario: Autoriser un utilisateur système en ligne de commande
 		Quand je lance « python -m machincast.droits » pour autoriser "machincast_essai_cli" aux rôles "lecture" et "interface"

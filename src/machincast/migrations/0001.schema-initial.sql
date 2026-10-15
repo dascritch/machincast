@@ -1,4 +1,9 @@
--- Schéma initial de MachinCast (ticket #3). Référence : doc/spec.md § 3.1.
+-- Schéma initial de MachinCast. Référence : doc/spec.md § 3.1 (tables) et § 3.2 (rôles et droits).
+--
+-- Fusion, avant toute mise en production, des quatre premières migrations
+-- (https://github.com/dascritch/machincast/pull/70) : schéma (https://github.com/dascritch/machincast/issues/3),
+-- rôles et droits (https://github.com/dascritch/machincast/issues/4), état d'un sonore
+-- (https://github.com/dascritch/machincast/issues/66) et état aperçu (https://github.com/dascritch/machincast/issues/69).
 --
 -- Textes saisis à la main (noms, artiste, titre, nature) : varchar(255), même limite que l'interface.
 -- Chemins, URL et messages détaillés : text, leur longueur n'est pas bornée à l'avance.
@@ -13,6 +18,15 @@ CREATE TYPE priorite_evenement AS ENUM ('fil_musical', 'emission', 'special');
 CREATE TYPE jour_semaine AS ENUM ('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche');
 CREATE TYPE type_ligne_airplay AS ENUM ('debut', 'fin');
 CREATE TYPE niveau_log AS ENUM ('info', 'alerte', 'incident');
+-- État d'un sonore, dans l'ordre de sa vie (doc/spec.md § 3.1) :
+--   apercu     nouveau fichier, enregistré sans être décodé ; pas jouable ;
+--   actif      jouable ;
+--   desactive  retiré par l'interface : choix humain ;
+--   expire     retiré par le binaire lecture : maximum de lectures atteint ou fin de la période de diffusion ;
+--   errone     fichier illisible ou endommagé, posé par l'indexeur, qui le rétablit si le fichier redevient sain ;
+--   supprime   fichier introuvable, posé par l'indexeur.
+-- Les valeurs sont sans accents, comme celles des autres types énumérés ; l'interface les affiche accentuées.
+CREATE TYPE etat_sonore AS ENUM ('apercu', 'actif', 'desactive', 'expire', 'errone', 'supprime');
 
 -- Mise à jour automatique de la colonne modifie_le.
 CREATE FUNCTION machincast_maj_modifie_le() RETURNS trigger
@@ -48,7 +62,7 @@ CREATE TABLE sonores (
 	crossfade_debut interval NOT NULL DEFAULT '0 s' CHECK (crossfade_debut >= '0 s'),
 	crossfade_fin interval NOT NULL DEFAULT '0 s' CHECK (crossfade_fin >= '0 s'),
 	max_lectures integer CHECK (max_lectures > 0),
-	actif boolean NOT NULL DEFAULT true,
+	etat etat_sonore NOT NULL DEFAULT 'actif',
 	masquer_metadonnees boolean,
 	duree interval CHECK (duree > '0 s'),
 	debut_diffusion timestamptz,
@@ -187,3 +201,52 @@ CREATE TABLE log (
 
 CREATE INDEX log_horodatage ON log (horodatage);
 CREATE INDEX log_incidents ON log (horodatage) WHERE niveau <> 'info';
+
+-- ─── Rôles et droits ───────────────────────────────────────
+--
+-- Les trois rôles sont des rôles de groupe, sans connexion. Un utilisateur système se connecte
+-- avec son propre rôle (authentification peer), membre de ces groupes SANS en hériter les droits :
+-- chaque binaire endosse explicitement son rôle par SET ROLE à la connexion (machincast.base.connecter).
+--
+-- Les rôles appartiennent au serveur PostgreSQL, pas à une base : ils sont partagés par la base de
+-- production et la base de test. Ils sont donc créés seulement s'ils n'existent pas encore.
+
+DO $$
+DECLARE
+	role text;
+BEGIN
+	FOREACH role IN ARRAY ARRAY['machincast_lecture', 'machincast_indexation', 'machincast_interface'] LOOP
+		IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = role) THEN
+			EXECUTE format('CREATE ROLE %I NOLOGIN', role);
+		END IF;
+	END LOOP;
+END;
+$$;
+
+GRANT USAGE ON SCHEMA public TO machincast_lecture, machincast_indexation, machincast_interface;
+
+-- ─── Machin_lecture ────────────────────────────────────────
+-- Lit la programmation, passe les sonores à l'état expire (colonne etat seule), écrit l'airplay et le log.
+-- Pas de lecture du log : une insertion dans log ne doit pas utiliser RETURNING.
+
+GRANT SELECT ON sonores, marques_pages_streams, banques, banques_sonores, evenements, evenements_elements
+	TO machincast_lecture;
+GRANT UPDATE (etat) ON sonores TO machincast_lecture;
+GRANT SELECT, INSERT ON airplay TO machincast_lecture;
+GRANT INSERT ON log TO machincast_lecture;
+
+-- ─── Machin_indexation ─────────────────────────────────────
+-- Lit les banques et leurs répertoires, crée et met à jour les sonores, les rattache à leur banque.
+-- Ne supprime rien : un fichier disparu fait passer son sonore à l'état supprime.
+
+GRANT SELECT, INSERT, UPDATE ON sonores TO machincast_indexation;
+GRANT SELECT ON banques, banques_repertoires TO machincast_indexation;
+GRANT SELECT, INSERT ON banques_sonores TO machincast_indexation;
+
+-- ─── Machin_interface ──────────────────────────────────────
+-- Gère toute la programmation ; consulte l'airplay et le log sans pouvoir les modifier.
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+	ON sonores, marques_pages_streams, banques, banques_repertoires, banques_sonores, evenements, evenements_elements
+	TO machincast_interface;
+GRANT SELECT ON airplay, log TO machincast_interface;

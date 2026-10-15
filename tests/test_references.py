@@ -14,9 +14,7 @@ EXTENSIONS = (".md", ".py", ".toml", ".sql", ".sh", ".bash", ".bats", ".feature"
 # Scripts bash sans extension : wrapper et autocomplétion (https://github.com/dascritch/machincast/issues/6).
 REPERTOIRES_SCRIPTS = ("bin/", "bash-completion/")
 
-# Migrations déjà fusionnées : jamais modifiées, même leurs commentaires.
 EXCLUSIONS = (
-	"src/machincast/migrations/0001.",
 	# Ce scénario et ses étapes contiennent volontairement des références nues, comme exemples.
 	"tests/features/references.feature",
 	"tests/test_references.py",
@@ -60,7 +58,10 @@ def fichiers(contexte: dict[str, object]) -> None:
 	contexte["fichiers"] = [
 		chemin
 		for chemin in suivis
-		if (chemin.endswith(EXTENSIONS) or chemin.startswith(REPERTOIRES_SCRIPTS)) and not chemin.startswith(EXCLUSIONS)
+		if (chemin.endswith(EXTENSIONS) or chemin.startswith(REPERTOIRES_SCRIPTS))
+		and not chemin.startswith(EXCLUSIONS)
+		# Un fichier supprimé mais pas encore retiré de l'index git n'est plus à lire.
+		and (RACINE / chemin).is_file()
 	]
 
 

@@ -41,7 +41,7 @@ journal = logging.getLogger(__name__)
 
 
 class EtatSonore(StrEnum):
-	"""Valeurs du type etat_sonore (migrations 0003.etat-sonores et 0004.apercu)."""
+	"""Valeurs du type etat_sonore (migration 0001.schema-initial)."""
 
 	APERCU = "apercu"
 	ACTIF = "actif"

@@ -6,7 +6,7 @@ PostgreSQL, par exemple :
 	sudo -u postgres python -m machincast.droits --base machincast autoriser machincast lecture
 	sudo -u postgres python -m machincast.droits --base machincast autoriser xavier interface indexation
 
-Les rôles eux-mêmes sont créés par la migration 0002.droits.
+Les rôles eux-mêmes sont créés par la migration 0001.schema-initial.
 """
 
 import argparse
