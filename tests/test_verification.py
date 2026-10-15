@@ -16,7 +16,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.indexation import decodage
 from machincast.indexation.decodage import DecodeurIndisponible, EtatFichier, Verification, verifier_fichier
-from tests.base_test import CONFIGURATION_TEST
+from tests.base_test import chemin_configuration_test
 from tests.etapes_indexation import DECIMAL, nombre
 from tests.sons import copie_de_test, corrompre, tronquer
 
@@ -171,7 +171,7 @@ def decodeur_absent(resultat: Verification | DecodeurIndisponible) -> None:
 )
 def lancer_sans_base(tmp_path: Path, executable: str) -> subprocess.CompletedProcess[str]:
 	configuration = tmp_path / "sans-base.toml"
-	texte = CONFIGURATION_TEST.read_text(encoding="utf-8")
+	texte = chemin_configuration_test().read_text(encoding="utf-8")
 	configuration.write_text(
 		texte.replace('socket = "/var/run/postgresql"', f'socket = "{tmp_path / "aucune-socket"}"'), encoding="utf-8"
 	)

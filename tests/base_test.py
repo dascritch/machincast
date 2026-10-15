@@ -18,10 +18,15 @@ from machincast.configuration import Configuration, charger
 CONFIGURATION_TEST = Path(__file__).parent / "configuration-test.toml"
 
 
+def chemin_configuration_test() -> Path:
+	"""Fichier de configuration des tests : celui que désigne MACHINCAST_CONFIG_TEST, sinon celui du dépôt."""
+	return Path(os.environ.get("MACHINCAST_CONFIG_TEST", CONFIGURATION_TEST))
+
+
 @cache
 def configuration_test() -> Configuration:
 	"""Configuration des tests ; son chargement refuse une base de test identique à la base de production."""
-	return charger(Path(os.environ.get("MACHINCAST_CONFIG_TEST", CONFIGURATION_TEST)))
+	return charger(chemin_configuration_test())
 
 
 def parametres_base_test() -> tuple[Path, str]:
