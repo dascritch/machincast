@@ -271,10 +271,12 @@ L'indexation ne supprime rien : un fichier disparu fait passer son sonore à l'�
 
 Un sonore est jouable s'il est à l'état `actif` (jamais en `apercu`, tant que son fichier n'a pas été décodé), si l'instant est dans sa période de diffusion (quand elle est renseignée), et si son maximum de lectures n'est pas atteint.
 
-Passages automatiques à l'état `expire` par le binaire lecture, chacun consigné dans le log :
+Passages automatiques à l'état `expire` par le binaire lecture, chacun consigné dans le log (`sonore expiré`, info, avec la cause) ([#18](https://github.com/dascritch/machincast/issues/18), `machincast.lecture.expiration`) :
 
-- maximum de lectures atteint (compté sur la totalité de l'historique `airplay`) ;
-- date de fin de diffusion passée.
+- maximum de lectures atteint (compté sur la totalité de l'historique `airplay`, lignes de début) : vérifié à chaque passage qui commence ;
+- date de fin de diffusion atteinte (la période s'entend fin exclue) : tous les sonores sont vérifiés au démarrage du binaire, puis chaque minute.
+
+Seul un sonore `actif` expire, et seule sa colonne `etat` change. Un état unique couvre les deux causes : l'interface retrouve la cause en comparant `max_lectures` au nombre de passages, ou `fin_diffusion` à l'heure courante.
 
 ### 4.6 Sonore « sain »
 
@@ -324,7 +326,7 @@ Boucle de diffusion ([#88](https://github.com/dascritch/machincast/issues/88), `
 ### 5.2 Écritures
 
 - `airplay` : une ligne au début et une ligne à la fin de chaque passage (insertions seules), par `machincast.lecture.enregistrement` ([#17](https://github.com/dascritch/machincast/issues/17)). La ligne de fin recopie la ligne de début : l'artiste et le titre restent ceux du moment du passage, même modifiés entre-temps. Une coupure nette n'est pas un incident (`sans_incident` vrai) ; une lecture interrompue par une erreur, si.
-- `log` : toutes les opérations, normales comme incidents, avec l'heure de l'horloge du binaire. Natures déjà consignées : `démarrage` (info), `arrêt` (info), `coupure nette` (info), `reconnexion abandonnée` (info), `silence` (alerte), `fichier modifié` (alerte), `fichier introuvable` (incident), `lecture interrompue` (incident), `flux tombé` (incident), `reprise du flux` (incident).
+- `log` : toutes les opérations, normales comme incidents, avec l'heure de l'horloge du binaire. Natures déjà consignées : `démarrage` (info), `arrêt` (info), `coupure nette` (info), `sonore expiré` (info), `reconnexion abandonnée` (info), `silence` (alerte), `fichier modifié` (alerte), `fichier introuvable` (incident), `lecture interrompue` (incident), `flux tombé` (incident), `reprise du flux` (incident).
 - `sonores.etat` : passage à `expire` ([§ 4.5](#45-sonore-jouable)).
 
 ### 5.3 Modules de sortie

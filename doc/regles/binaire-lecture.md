@@ -56,6 +56,11 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 - Les événements de secours ne sont jamais dans la grille : `lire_grille` les écarte, `lire_evenement` les lit.
 - Les scénarios des streams utilisent un serveur HTTP local ([`tests/flux.py`](../../tests/flux.py)), qui envoie le flux au rythme du temps réel ; aucun accès au réseau.
 
+## Expiration
+
+- `machincast.lecture.expiration.expirer(connexion, instant, sonore=None)` ([#18](https://github.com/dascritch/machincast/issues/18)) : une seule requête `UPDATE … RETURNING` passe à `expire` les sonores `actif` arrivés au bout, puis consigne chacun. Le `RETURNING` est permis sur `sonores`, que la lecture peut lire, jamais sur `log`.
+- La diffusion vérifie le sonore de chaque passage qui commence, et tous les sonores au démarrage puis toutes les `VERIFICATION_DES_EXPIRATIONS`.
+
 ## Écritures autorisées
 
 Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures sont garanties par les droits PostgreSQL ([spec.md § 3.2](../spec.md#32-rôles-et-droits)). L'airplay et le log ne s'écrivent que par `machincast.lecture.enregistrement` (`commencer_passage`, `terminer_passage`, `consigner`) : un scénario d'`enregistrement.feature` refuse tout autre `INSERT INTO log` dans le binaire lecture ([#17](https://github.com/dascritch/machincast/issues/17)).
