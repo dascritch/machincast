@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ChoixSonores</class>
+ <widget class="QDialog" name="ChoixSonores">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1000</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Ajouter des sonores à la banque</string>
+  </property>
+  <layout class="QVBoxLayout" name="disposition">
+   <item>
+    <widget class="QLabel" name="explication">
+     <property name="text">
+      <string>Choisir un ou plusieurs sonores déjà en base (Ctrl ou Maj pour en prendre plusieurs). Un sonore qui est déjà dans la banque n'y est pas ajouté une seconde fois.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="boutons">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

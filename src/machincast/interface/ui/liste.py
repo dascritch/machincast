@@ -16,8 +16,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QHBoxLayout, QHeaderView,
-    QLabel, QLineEdit, QSizePolicy, QTableView,
-    QVBoxLayout, QWidget)
+    QLabel, QLineEdit, QPushButton, QSizePolicy,
+    QTableView, QVBoxLayout, QWidget)
 
 class Ui_Liste(object):
     def setupUi(self, Liste):
@@ -38,6 +38,12 @@ class Ui_Liste(object):
         self.compte.setObjectName(u"compte")
 
         self.bandeau.addWidget(self.compte)
+
+        self.nouveau = QPushButton(Liste)
+        self.nouveau.setObjectName(u"nouveau")
+        self.nouveau.setVisible(False)
+
+        self.bandeau.addWidget(self.nouveau)
 
 
         self.disposition.addLayout(self.bandeau)

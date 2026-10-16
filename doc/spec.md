@@ -549,7 +549,8 @@ Mise en œuvre des listes ([#26](https://github.com/dascritch/machincast/issues/
 - **Colonnes et ordre** : événements (nom, nom public, priorité, début, fin, récurrence), du plus prioritaire au moins prioritaire ; séquences (nom, nom public) ; banques (nom, nom public, mode, ne pas répéter, premier répertoire dans l'ordre alphabétique) ; sonores (artiste, titre, type, état, durée, emplacement), par artiste puis titre. Un clic sur un titre de colonne trie.
 - **Filtre** : les lignes dont une colonne contient le texte, sans tenir compte des majuscules ni des accents (`FiltreSansAccents`) ; un compte « n sonores sur N ».
 - **Lecture** : en base, avec le rôle de l'interface, chaque fois que l'onglet s'ouvre ; jamais en boucle. Le filtre est gardé.
-- **Détail** : un double-clic ou Entrée sur une ligne émet `FenetrePrincipale.detail_demande(genre, identifiant)`. Tant que les écrans de détail ne sont pas écrits, la barre d'état l'annonce, avec le ticket de l'écran.
+- **Détail** : un double-clic ou Entrée sur une ligne émet `FenetrePrincipale.detail_demande(genre, identifiant)`. Une banque ouvre sa fiche ([§ 8.4](#84-écran-de-détails-dune-banque)). Tant que les autres écrans de détail ne sont pas écrits, la barre d'état les annonce, avec le ticket de l'écran.
+- **Création** : une liste peut avoir un bouton de création (`Source.nouveau`, signal `Liste.creation_demandee`) ; seule la liste des banques l'a pour l'instant, « Nouvelle banque ».
 - Champ de recherche globale avec auto-suggestion, résultats dans l'ordre : événements, banques, sonores. Un écran de résultats dédié.
 - Vue calendrier (jour, semaine) montrant à la fois l'airplay (ce qui a effectivement été diffusé) et les événements prévus.
 
@@ -569,6 +570,17 @@ Mise en œuvre des listes ([#26](https://github.com/dascritch/machincast/issues/
 - Liste des répertoires indexés : ajout et retrait.
 - Liste des sonores liés, réordonnable par glisser-déposer en mode séquentiel. Ajout de sonores, y compris hors des répertoires de la banque.
 - Retrait d'un sonore issu d'un répertoire de la banque : l'interface prévient qu'il sera réintégré à la prochaine indexation, et propose un lien ouvrant le navigateur de fichiers dans son répertoire. La suppression du fichier se fait hors de l'outil, parfois depuis un autre poste quand l'utilisateur n'a pas le droit d'écriture sur l'emplacement.
+
+Mise en œuvre ([#31](https://github.com/dascritch/machincast/issues/31), `machincast.interface.fiche_banque`, `machincast.interface.choix_sonores`, `machincast.interface.dialogues`) :
+
+- **Onglet** : la fiche s'ouvre dans un onglet de la fenêtre, « Banque : <nom interne> », depuis la liste des banques ; une fiche déjà ouverte revient au premier plan. Le bouton « Nouvelle banque » de la liste ouvre une fiche vide, « Nouvelle banque » : séquentielle, au masquage hérité, sans « ne pas répéter ». Seuls les onglets des fiches se ferment.
+- **Enregistrement** : les modifications restent dans la fiche jusqu'à « Enregistrer », qui les écrit en une transaction, puis relit la banque ; « Annuler » la relit sans rien écrire. Les deux boutons ne servent qu'à une fiche modifiée. Les noms sont enregistrés sans les espaces qui les entourent, un nom public vide comme NULL. Un nom interne vide ou déjà pris, ou une base injoignable, laisse la fiche modifiée, avec un message.
+- **Fermeture** : fermer une fiche modifiée, ou la fenêtre qui en a, demande Enregistrer (Entrée), Abandonner ou Annuler (Échap) ; un enregistrement refusé garde la fiche ouverte.
+- **Masquage** : « Hérité du sonore » (NULL), « Masqués » (vrai), « Affichés » (faux).
+- **Répertoires** : enregistrés sous leur forme normale (`os.path.normpath`), sans doublon, rangés dans l'ordre de leurs caractères.
+- **Sonores** : réordonnables par glisser-déposer ou par « Monter » et « Descendre », en mode séquentiel seulement ; une ligne ne se dépose pas dans une autre. Les boutons d'une ligne ne servent qu'à une ligne choisie. L'ajout se fait parmi les sonores déjà en base (`ChoixSonores`, la liste filtrable des sonores à sélection multiple) , ou par dépôt de fichiers (ci-dessous) ; le reste de l'ajout de nouveaux fichiers est l'affaire de [#30](https://github.com/dascritch/machincast/issues/30). L'avertissement de réintégration vaut pour un fichier sous l'un des répertoires de la fiche, sous-répertoires compris, et ouvre le dossier du fichier.
+- **Dépôt depuis le navigateur de fichiers** (`machincast.interface.depot.DepotDeFichiers`, un filtre d'événements sur la zone d'une liste) : des dossiers sur les répertoires, des fichiers sonores sur les sonores, dans les deux modes. Le dépôt est toujours accepté comme une copie, jamais comme un déplacement que le navigateur de fichiers achèverait en supprimant l'original ([#96](https://github.com/dascritch/machincast/issues/96)) ; un glisser qui ne propose pas la copie est refusé. Les chemins sont pris sous leur forme normale. Un fichier déjà en base reprend son sonore ; un fichier pas encore en base devient, à l'enregistrement seulement, un sonore à l'état `apercu` ([§ 8.8](#88-ajout-dun-sonore)). Le reste est ignoré, et la fiche le dit. Un glisser sans fichier local (texte, adresse web, ligne d'une liste) passe au travers.
+- **Indexation concurrente** : à l'enregistrement, la liste en base est réécrite dans l'ordre de la fiche, suivie des sonores rattachés depuis la lecture de la fiche, ni présents dans la fiche, ni retirés par elle. Un sonore effacé de la base entre-temps est oublié.
 
 ### 8.5 Écran de détails d'un événement
 
@@ -591,7 +603,7 @@ L'utilisateur saisit une date et heure de début et de fin. L'interface lance le
 
 ### 8.8 Ajout d'un sonore
 
-- Fichier : par sélecteur de fichiers ou glisser-déposer. Le fichier est référencé là où il se trouve, sans copie. Il peut être synchronisé depuis un autre ordinateur et changer de contenu sous le même nom (émission pré-enregistrée, rediffusion d'un direct). Il passe immédiatement par la vérification de l'indexeur.
+- Fichier : par sélecteur de fichiers ou glisser-déposer. Déposer un fichier sur les sonores d'une banque l'enregistre déjà, à l'état `apercu` ([§ 8.4](#84-écran-de-détails-dune-banque)). Le fichier est référencé là où il se trouve, sans copie. Il peut être synchronisé depuis un autre ordinateur et changer de contenu sous le même nom (émission pré-enregistrée, rediffusion d'un direct). Il passe immédiatement par la vérification de l'indexeur.
 - Stream : URL directe ou marque-page, et l'événement de secours.
 
 ### 8.9 Suppression

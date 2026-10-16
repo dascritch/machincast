@@ -1,0 +1,157 @@
+"""Scénarios des fenêtres de dialogue des fiches (https://github.com/dascritch/machincast/issues/31).
+
+Les vraies fenêtres s'ouvrent, hors de l'écran du poste : un minuteur y clique une fois la fenêtre modale ouverte. Le
+sélecteur de répertoires et le navigateur de fichiers du poste sont remplacés.
+"""
+
+from collections.abc import Callable, Iterator
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import pytest
+from PySide6.QtCore import Qt, QTimer, QUrl
+from PySide6.QtGui import QDesktopServices
+from PySide6.QtWidgets import QApplication, QDialogButtonBox, QFileDialog, QMessageBox, QWidget
+from pytest_bdd import parsers, scenarios, then, when
+from pytestqt.qtbot import QtBot
+
+from machincast.base import Role, connecter
+from machincast.interface import dialogues
+from machincast.interface.choix_sonores import ChoixSonores
+from tests.base_test import parametres_base_test
+from tests.etapes_interface import NOM, Connexion, identifiant
+
+scenarios("dialogues.feature")
+
+
+@dataclass
+class Dialogue:
+	parent: QWidget
+	texte: str = ""
+	boutons: list[str] = field(default_factory=list)
+	reponse: object = None
+	adresses: list[QUrl] = field(default_factory=list)
+
+
+@pytest.fixture
+def dialogue(qtbot: QtBot) -> Iterator[Dialogue]:
+	parent = QWidget()
+	qtbot.addWidget(parent)
+	yield Dialogue(parent)
+
+
+def quand_modale(geste: Callable[[QWidget], None]) -> None:
+	"""Le geste, dès que la fenêtre modale est ouverte."""
+
+	def essayer() -> None:
+		modale = QApplication.activeModalWidget()
+		if modale is None:
+			QTimer.singleShot(10, essayer)
+			return
+		try:
+			geste(modale)
+		except BaseException:
+			# Une étape en échec ne laisse pas la fenêtre modale attendre un clic.
+			modale.close()
+			raise
+
+	QTimer.singleShot(0, essayer)
+
+
+def repondre(dialogue: Dialogue, qtbot: QtBot, geste: str) -> None:
+	def faire(modale: QWidget) -> None:
+		assert isinstance(modale, QMessageBox), modale
+		dialogue.texte = modale.text()
+		dialogue.boutons = [bouton.text() for bouton in modale.buttons()]
+		touches = {"tape Échap": Qt.Key.Key_Escape, "tape Entrée": Qt.Key.Key_Return}
+		if geste in touches:
+			qtbot.keyClick(modale, touches[geste])
+			return
+		(nom,) = NOM.findall(geste)
+		(bouton,) = [bouton for bouton in modale.buttons() if bouton.text() == nom]
+		bouton.click()
+
+	quand_modale(faire)
+
+
+@when(parsers.parse("la question de fermeture de « {titre} » s'ouvre, et que j'y {geste}"))
+def fermeture(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> None:
+	repondre(dialogue, qtbot, geste)
+	dialogue.reponse = dialogues.confirmer_fermeture(dialogue.parent, titre)
+
+
+@when(parsers.parse("l'avertissement de réintégration « {texte} » s'ouvre, et que j'y {geste}"))
+def retrait(dialogue: Dialogue, qtbot: QtBot, texte: str, geste: str) -> None:
+	repondre(dialogue, qtbot, geste)
+	dialogue.reponse = dialogues.confirmer_retrait(dialogue.parent, texte)
+
+
+@when(parsers.re(r"le sélecteur de répertoires du poste donne « ?(?P<selecteur>[^»]*?) ?»"))
+def selecteur(dialogue: Dialogue, monkeypatch: pytest.MonkeyPatch, selecteur: str) -> None:
+	def choisir(_parent: QWidget, _titre: str) -> str:
+		return selecteur
+
+	monkeypatch.setattr(QFileDialog, "getExistingDirectory", choisir)
+	dialogue.reponse = dialogues.choisir_repertoire(dialogue.parent)
+
+
+@when(parsers.parse("le choix des sonores s'ouvre, et que j'y sélectionne tout, puis clique sur « {bouton} »"))
+def choix_sonores(dialogue: Dialogue, base_vide: Connexion, bouton: str) -> None:
+	def faire(modale: QWidget) -> None:
+		assert isinstance(modale, ChoixSonores), modale
+		modale.liste.table.selectAll()
+		# « Annuler » est la traduction de Qt (qtbase_fr), que les tests ne chargent pas : le bouton se trouve par son
+		# rôle.
+		standards = {"Ajouter": QDialogButtonBox.StandardButton.Ok, "Annuler": QDialogButtonBox.StandardButton.Cancel}
+		assert modale.ui.boutons.button(QDialogButtonBox.StandardButton.Ok).text() == "Ajouter"
+		modale.ui.boutons.button(standards[bouton]).click()
+
+	quand_modale(faire)
+	connexion = connecter(*parametres_base_test(), Role.INTERFACE)
+	try:
+		dialogue.reponse = dialogues.choisir_sonores(dialogue.parent, connexion)
+	finally:
+		connexion.close()
+
+
+@when(parsers.parse("j'ouvre le dossier « {dossier} »"))
+def ouvrir_dossier(dialogue: Dialogue, monkeypatch: pytest.MonkeyPatch, dossier: str) -> None:
+	def ouvrir(adresse: QUrl) -> bool:
+		dialogue.adresses.append(adresse)
+		return True
+
+	monkeypatch.setattr(QDesktopServices, "openUrl", ouvrir)
+	dialogues.ouvrir_dossier(Path(dossier))
+
+
+@then(parsers.parse("la question a dit « {texte} »"))
+def question(dialogue: Dialogue, texte: str) -> None:
+	assert dialogue.texte == texte
+
+
+@then(parsers.re(r"la question a proposé (?P<boutons>.+)"))
+def proposes(dialogue: Dialogue, boutons: str) -> None:
+	assert sorted(dialogue.boutons) == sorted(NOM.findall(boutons))
+
+
+@then(parsers.parse("la réponse est « {reponse} »"))
+def reponse(dialogue: Dialogue, reponse: str) -> None:
+	assert str(dialogue.reponse) == reponse
+
+
+@then(parsers.re(r"le répertoire choisi est (?P<choisi>.+)"))
+def repertoire(dialogue: Dialogue, choisi: str) -> None:
+	attendu = None
+	if choisi != "aucun":
+		(attendu,) = NOM.findall(choisi)
+	assert dialogue.reponse == attendu
+
+
+@then(parsers.re(r"les sonores choisis sont (?P<sonores>.+)"))
+def sonores(dialogue: Dialogue, base_vide: Connexion, sonores: str) -> None:
+	assert dialogue.reponse == [identifiant(base_vide, "sonores", "titre", titre) for titre in NOM.findall(sonores)]
+
+
+@then(parsers.parse("le poste a ouvert l'adresse « {adresse} »"))
+def adresse(dialogue: Dialogue, adresse: str) -> None:
+	assert [url.toString() for url in dialogue.adresses] == [adresse]

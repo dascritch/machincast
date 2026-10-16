@@ -4,7 +4,8 @@
 Chaque liste est un onglet de la fenêtre (machincast.interface.fenetre). Elle se lit en base avec le rôle de
 l'interface, chaque fois que son onglet s'ouvre : jamais en boucle. Le filtre garde les lignes dont une colonne contient
 le texte tapé, sans tenir compte des majuscules ni des accents. Ouvrir une ligne (double-clic ou Entrée) demande
-l'écran de détail de l'élément (signal ouverte).
+l'écran de détail de l'élément (signal ouverte). Une liste peut avoir un bouton qui crée un élément
+(signal creation_demandee) : « Nouvelle banque » (https://github.com/dascritch/machincast/issues/31).
 """
 
 import logging
@@ -57,6 +58,8 @@ class Source:
 	singulier: str
 	pluriel: str
 	aucun: str
+	nouveau: str = ""
+	"""Texte du bouton qui crée un élément de ce type ; aucun bouton sans texte."""
 
 
 def _texte(valeur: object) -> str:
@@ -151,6 +154,7 @@ BANQUES = Source(
 	"banque",
 	"banques",
 	"aucune banque",
+	"Nouvelle banque",
 )
 SEQUENCES = Source("séquence", ("Nom", "Nom public"), lire_sequences, "séquence", "séquences", "aucune séquence")
 EVENEMENTS = Source(
@@ -193,6 +197,8 @@ class FiltreSansAccents(QSortFilterProxyModel):
 class Liste(QWidget):
 	ouverte = Signal(str, int, str)
 	"""Ligne ouverte : genre, identifiant et nom de l'élément."""
+	creation_demandee = Signal(str)
+	"""Bouton de création cliqué : genre de l'élément à créer."""
 
 	def __init__(self, source: Source, connexion: Connexion, parent: QWidget | None = None) -> None:
 		super().__init__(parent)
@@ -213,6 +219,9 @@ class Liste(QWidget):
 		entete.setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
 		self.filtre.textChanged.connect(self._filtrer)
 		self.table.activated.connect(self._ouvrir)
+		self.ui.nouveau.setText(source.nouveau)
+		self.ui.nouveau.setVisible(source.nouveau != "")
+		self.ui.nouveau.clicked.connect(lambda: self.creation_demandee.emit(source.genre))
 		self._compter()
 
 	@property

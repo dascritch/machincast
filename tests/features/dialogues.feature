@@ -1,0 +1,65 @@
+# language: fr
+Fonctionnalité: Fenêtres de dialogue des fiches
+	En tant que programmateur de l'antenne,
+	je veux que les fiches me posent leurs questions dans des fenêtres claires, en français,
+	afin de ne jamais perdre une modification ni retirer un sonore sans le savoir.
+
+	https://github.com/dascritch/machincast/issues/31. Les scénarios des fiches remplacent ces fenêtres par leurs
+	réponses ; ceux-ci ouvrent les vraies fenêtres, hors de l'écran du poste, et y cliquent.
+
+	Contexte:
+		Étant donné le poste à l'heure de Paris
+
+	Plan du scénario: La question de fermeture d'une fiche modifiée propose trois réponses
+		Quand la question de fermeture de « Banque : Jingles » s'ouvre, et que j'y <geste>
+		Alors la question a dit « « Banque : Jingles » a des modifications qui ne sont pas enregistrées. »
+		Et la question a proposé « Enregistrer », « Abandonner », « Annuler »
+		Et la réponse est « <reponse> »
+
+		Exemples:
+			| geste                      | reponse     |
+			| clique sur « Enregistrer » | Enregistrer |
+			| clique sur « Abandonner »  | Abandonner  |
+			| clique sur « Annuler »     | Annuler     |
+			| tape Échap                 | Annuler     |
+			| tape Entrée                | Enregistrer |
+
+	Plan du scénario: L'avertissement de réintégration d'un sonore retiré propose trois réponses
+		Quand l'avertissement de réintégration « Café à minuit reviendra » s'ouvre, et que j'y <geste>
+		Alors la question a dit « Café à minuit reviendra »
+		Et la question a proposé « Retirer quand même », « Ouvrir le dossier », « Annuler »
+		Et la réponse est « <reponse> »
+
+		Exemples:
+			| geste                             | reponse            |
+			| clique sur « Retirer quand même » | Retirer quand même |
+			| clique sur « Ouvrir le dossier »  | Ouvrir le dossier  |
+			| clique sur « Annuler »            | Annuler            |
+			| tape Échap                        | Annuler            |
+			| tape Entrée                       | Annuler            |
+
+	Plan du scénario: Le choix d'un répertoire donne le répertoire choisi, ou rien s'il est abandonné
+		Quand le sélecteur de répertoires du poste donne « <selecteur> »
+		Alors le répertoire choisi est <choisi>
+
+		Exemples:
+			| selecteur      | choisi               |
+			| /srv/jingles   | « /srv/jingles »     |
+			|                | aucun                |
+
+	Plan du scénario: Le choix des sonores donne les sonores sélectionnés, ou aucun s'il est abandonné
+		Étant donné les sonores :
+			| artiste     | titre         | type    | etat  | duree | emplacement                  |
+			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/jingles/hiver/cafe.flac |
+			|             | Spot          | fichier | actif | 30    | /srv/pubs/spot.flac          |
+		Quand le choix des sonores s'ouvre, et que j'y sélectionne tout, puis clique sur « <bouton> »
+		Alors les sonores choisis sont <sonores>
+
+		Exemples:
+			| bouton  | sonores                       |
+			| Ajouter | « Café à minuit », « Spot »   |
+			| Annuler | aucun                         |
+
+	Scénario: Ouvrir un dossier le montre dans le navigateur de fichiers du poste
+		Quand j'ouvre le dossier « /srv/jingles/hiver »
+		Alors le poste a ouvert l'adresse « file:///srv/jingles/hiver »
