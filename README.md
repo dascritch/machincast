@@ -17,7 +17,7 @@ Cette radio utilise un logiciel d'automatisation d'antenne minimal pour gérer s
 
 Cela fait plus de 15 années que nous avons successivement tenté de migrer vers différents outils. Soit ils étaient trop compliqués, soit les outils supposés libres se sont refermés et sont devenus des solutions en SaaS.
 
-J'i estimé qu'il était plus simple de recoder de zéro un tel outil, en connnaissant parfaitement nos usages, les fonctions manquantes et les erreurs de manipulation les plus classiques de ceux qui le gèrent.
+J'ai estimé qu'il était plus simple de recoder de zéro un tel outil, en connnaissant parfaitement nos usages, les fonctions manquantes et les erreurs de manipulation les plus classiques de ceux qui le gèrent.
 
 ## Auteurs
 
