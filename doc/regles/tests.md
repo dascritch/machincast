@@ -52,6 +52,7 @@ Les tests utilisent leur propre fichier de configuration, passé par le paramèt
 ## Interface graphique
 
 - Les écrans s'ouvrent avec pytest-qt (fixture `qtbot`), hors de l'écran du poste : `tests/conftest.py` règle `QT_QPA_PLATFORM=offscreen` avant toute création d'application Qt ([#23](https://github.com/dascritch/machincast/issues/23)). Aucune fenêtre ne s'ouvre pendant les tests, même sur un poste avec affichage.
+- `QTest` ne sait taper que l'ASCII : une étape qui tape du texte insère les lettres accentuées directement dans le champ (`insert`), comme une méthode de saisie.
 - Une attente se fait par `qtbot.waitUntil`, avec un délai : jamais de `sleep`. Les étapes « bientôt » d'un scénario attendent ainsi un état publié par la socket.
 - La socket d'état d'un scénario est un vrai serveur du binaire lecture (`machincast.lecture.etat.SocketEtat`), ouvert dans le répertoire temporaire du scénario, qui y publie les états comme la diffusion.
 - Un scénario qui lance le binaire `Machin_interface` lui donne une configuration dont la socket PostgreSQL n'existe pas : il s'arrête avec le code 1, sans fenêtre, puisque le processus hérite de `QT_QPA_PLATFORM=offscreen`. La fenêtre d'erreur se vérifie en appelant `main` dans le processus des tests, sa méthode `exec` remplacée : aucune fenêtre modale n'attend un clic.

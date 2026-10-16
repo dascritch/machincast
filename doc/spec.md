@@ -541,7 +541,15 @@ Mise en œuvre ([#23](https://github.com/dascritch/machincast/issues/23), `machi
 
 ### 8.2 Recherche et navigation
 
-- Écrans de liste avec recherche pour les sonores, les banques et les événements, menant aux écrans de détail.
+- Écrans de liste avec recherche pour les sonores, les banques, les séquences et les événements, menant aux écrans de détail.
+
+Mise en œuvre des listes ([#26](https://github.com/dascritch/machincast/issues/26), `machincast.interface.listes`, `machincast.interface.fenetre`) :
+
+- **Onglets** : la fenêtre a un onglet par écran, décidé avec le ticket : Accueil (l'écran par défaut, [§ 8.1](#81-écran-par-défaut)), ouvert au lancement, puis une liste par type, dans l'ordre de la recherche : Événements, Séquences, Banques, Sonores.
+- **Colonnes et ordre** : événements (nom, nom public, priorité, début, fin, récurrence), du plus prioritaire au moins prioritaire ; séquences (nom, nom public) ; banques (nom, nom public, mode, ne pas répéter, premier répertoire dans l'ordre alphabétique) ; sonores (artiste, titre, type, état, durée, emplacement), par artiste puis titre. Un clic sur un titre de colonne trie.
+- **Filtre** : les lignes dont une colonne contient le texte, sans tenir compte des majuscules ni des accents (`FiltreSansAccents`) ; un compte « n sonores sur N ».
+- **Lecture** : en base, avec le rôle de l'interface, chaque fois que l'onglet s'ouvre ; jamais en boucle. Le filtre est gardé.
+- **Détail** : un double-clic ou Entrée sur une ligne émet `FenetrePrincipale.detail_demande(genre, identifiant)`. Tant que les écrans de détail ne sont pas écrits, la barre d'état l'annonce, avec le ticket de l'écran.
 - Champ de recherche globale avec auto-suggestion, résultats dans l'ordre : événements, banques, sonores. Un écran de résultats dédié.
 - Vue calendrier (jour, semaine) montrant à la fois l'airplay (ce qui a effectivement été diffusé) et les événements prévus.
 
