@@ -172,3 +172,171 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 			| heure | sonore  | événement | issue |
 			| 20:00 | silence | Continue  |       |
 			| 20:10 | m       | Magazine  | entier |
+
+	# ─── Banque « ne pas répéter » (https://github.com/dascritch/machincast/issues/63) ───
+	# Seuls comptent les passages joués via la banque. Les éléments sautés sont notés dans le log, en info.
+
+	Scénario: Une banque « ne pas répéter » ne passe pas deux fois de suite dans une liste
+		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
+		Et la banque « Jingles » est marquée « ne pas répéter »
+		Et les événements :
+			| nom      | priorité | début | fin   | liste                                                  |
+			| Magazine | emission | 20:00 | 20:30 | banque « Jingles », banque « Jingles », sonore « a » |
+		Quand la diffusion se déroule de 20:00 à 20:30
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | j1     | Magazine  | entier |
+			| 20:10 | a      | Magazine  | entier |
+			| 20:20 | j2     | Magazine  | entier |
+		Et le log contient 1 info « élément sauté » pour l'événement « Magazine » et la banque « Jingles »
+
+	Scénario: Sans la marque, la même liste fait passer la banque deux fois de suite
+		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
+		Et les événements :
+			| nom      | priorité | début | fin   | liste                                                  |
+			| Magazine | emission | 20:00 | 20:30 | banque « Jingles », banque « Jingles », sonore « a » |
+		Quand la diffusion se déroule de 20:00 à 20:30
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | j1     | Magazine  | entier |
+			| 20:10 | j2     | Magazine  | entier |
+			| 20:20 | a      | Magazine  | entier |
+		Et le log ne contient aucune info « élément sauté »
+
+	Scénario: Quand la liste boucle, sa première ligne ne rappelle pas la banque de sa dernière
+		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
+		Et la banque « Jingles » est marquée « ne pas répéter »
+		Et les événements :
+			| nom      | priorité | début | fin   | liste                                                  |
+			| Magazine | emission | 20:00 | 20:40 | banque « Jingles », sonore « a », banque « Jingles » |
+		Quand la diffusion se déroule de 20:00 à 20:40
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | j1     | Magazine  | entier |
+			| 20:10 | a      | Magazine  | entier |
+			| 20:20 | j2     | Magazine  | entier |
+			| 20:30 | a      | Magazine  | entier |
+
+	Scénario: La banque en fin d'un événement ne passe pas au début du suivant
+		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
+		Et la banque « Jingles » est marquée « ne pas répéter »
+		Et les événements :
+			| nom      | priorité    | début | fin   | liste                                  |
+			| Continue | fil_musical |       |       | sonore « f », banque « Jingles »       |
+			| Magazine | emission    | 20:20 | 20:40 | banque « Jingles », sonore « m »       |
+		Quand la diffusion se déroule de 20:00 à 20:40
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | f      | Continue  | entier |
+			| 20:10 | j1     | Continue  | entier |
+			| 20:20 | m      | Magazine  | entier |
+			| 20:30 | j2     | Magazine  | entier |
+		Et le log contient 1 info « élément sauté » pour l'événement « Magazine » et la banque « Jingles »
+
+	Scénario: Un sonore de la banque placé directement dans la liste ne compte pas
+		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
+		Et la banque « Jingles » est marquée « ne pas répéter »
+		Et les événements :
+			| nom      | priorité | début | fin   | liste                              |
+			| Magazine | emission | 20:00 | 20:20 | sonore « j2 », banque « Jingles » |
+		Quand la diffusion se déroule de 20:00 à 20:20
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | j2     | Magazine  | entier |
+			| 20:10 | j1     | Magazine  | entier |
+		Et le log ne contient aucune info « élément sauté »
+
+	Scénario: Un passage coupé net compte aussi
+		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
+		Et la banque « Jingles » est marquée « ne pas répéter »
+		Et les événements :
+			| nom      | priorité    | début | fin   | liste                              |
+			| Continue | fil_musical |       |       | banque « Jingles », sonore « f »   |
+			| Magazine | emission    | 20:05 | 20:35 | banque « Jingles », sonore « m »   |
+		Quand la diffusion se déroule de 20:00 à 20:35
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue         |
+			| 20:00 | j1     | Continue  | coupé à 20:05 |
+			| 20:05 | m      | Magazine  | entier        |
+			| 20:15 | j2     | Magazine  | entier        |
+			| 20:25 | m      | Magazine  | entier        |
+
+	Scénario: Après un redémarrage du binaire, la règle tient, puisqu'elle se lit dans l'airplay
+		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
+		Et la banque « Jingles » est marquée « ne pas répéter »
+		Et les événements :
+			| nom      | priorité    | début | fin | liste                                                  |
+			| Continue | fil_musical |       |     | banque « Jingles », banque « Jingles », sonore « f » |
+		Quand la diffusion se déroule de 20:00 à 20:10
+		Et le binaire redémarre
+		Et la diffusion se déroule de 20:10 à 20:30
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | j1     | Continue  | entier |
+			| 20:10 | f      | Continue  | entier |
+			| 20:20 | j2     | Continue  | entier |
+
+	Scénario: Une émission dont il ne reste que la banque sautée se termine, et le fil musical reprend
+		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
+		Et la banque « Jingles » est marquée « ne pas répéter »
+		Et les événements :
+			| nom      | priorité    | début | fin   | liste                            |
+			| Continue | fil_musical |       |       | banque « Jingles », sonore « f » |
+			| Magazine | emission    | 20:10 | 20:40 | banque « Jingles »               |
+		Quand la diffusion se déroule de 20:00 à 20:40
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | j1     | Continue  | entier |
+			| 20:10 | f      | Continue  | entier |
+			| 20:20 | j2     | Continue  | entier |
+			| 20:30 | f      | Continue  | entier |
+		Et le log contient 1 info « élément sauté » pour l'événement « Magazine » et la banque « Jingles »
+		Et le log contient 1 alerte « événement terminé plus tôt » pour l'événement « Magazine »
+
+	Scénario: Une émission terminée pour une autre raison ne donne pas l'alerte de la banque sautée
+		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
+		Et la banque « Jingles » est marquée « ne pas répéter »
+		Et le sonore « x » est à l'état « desactive »
+		Et les événements :
+			| nom      | priorité    | début | fin   | liste                            |
+			| Continue | fil_musical |       |       | banque « Jingles », sonore « f » |
+			| Magazine | emission    | 20:10 | 20:30 | sonore « x »                     |
+		Quand la diffusion se déroule de 20:00 à 20:20
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | j1     | Continue  | entier |
+			| 20:10 | f      | Continue  | entier |
+		Et le log ne contient aucune alerte « événement terminé plus tôt »
+
+	Scénario: Un fil musical dont il ne reste que la banque sautée se tait, avec une alerte
+		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
+		Et la banque « Jingles » est marquée « ne pas répéter »
+		Et les événements :
+			| nom      | priorité    | début | fin | liste              |
+			| Continue | fil_musical |       |     | banque « Jingles » |
+		Quand la diffusion se déroule de 20:00 à 20:30
+		Alors la diffusion a été :
+			| heure | sonore  | événement | issue  |
+			| 20:00 | j1      | Continue  | entier |
+			| 20:10 | silence | Continue  |        |
+		Et le log contient 1 alerte « silence » pour l'événement « Continue »
+		Et le log contient 1 info « élément sauté » pour l'événement « Continue » et la banque « Jingles »
+		Et le log ne contient aucune alerte « événement terminé plus tôt »
+
+	Plan du scénario: À l'édition d'un événement, les appels de la banque qui seront ignorés sont signalés
+		Étant donné une banque séquentielle « Jingles » contenant « j1 »
+		Et la banque « Jingles » est marquée « ne pas répéter »
+		Et une banque séquentielle « Titres » contenant « t1 »
+		Quand la liste « <liste> » est vérifiée pour un événement qui <boucle>
+		Alors les lignes signalées sont « <lignes> »
+
+		Exemples:
+			| liste                            | boucle        | lignes |
+			| Jingles, Titres, Jingles         | ne boucle pas |        |
+			| Jingles, Jingles, Titres         | ne boucle pas | 2      |
+			| Jingles, Jingles, Jingles        | ne boucle pas | 2, 3   |
+			| Jingles, Titres, Jingles         | boucle        | 1      |
+			| Titres, Titres, sonore           | boucle        |        |
+			| Jingles                          | boucle        | 1      |
+			| Jingles                          | ne boucle pas |        |
+			| sonore, Jingles, Jingles, sonore | boucle        | 3      |

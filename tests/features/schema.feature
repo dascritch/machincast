@@ -94,6 +94,19 @@ Fonctionnalité: Schéma initial de la base de données
 			| valeurs                                        |
 			| nom_interne = 'Jingles', mode = 'melange'      |
 			| mode = 'aleatoire'                             |
+			| nom_interne = 'Jingles', mode = 'aleatoire', ne_pas_repeter = NULL |
+
+	# https://github.com/dascritch/machincast/issues/63
+
+	Scénario: Une banque n'est pas marquée « ne pas répéter » par défaut
+		Étant donné les éléments de référence en base
+		Alors la banque de référence n'est pas marquée « ne pas répéter »
+
+	Scénario: La migration de la marque « ne pas répéter » laisse les banques existantes sans la marque
+		Étant donné la base sans la migration « 0002.banques-ne-pas-repeter »
+		Et une banque « Habillage » enregistrée avant cette migration
+		Quand j'applique les migrations
+		Alors la banque « Habillage » n'est pas marquée « ne pas répéter »
 
 	Scénario: Une banque peut avoir plusieurs répertoires
 		Étant donné les éléments de référence en base

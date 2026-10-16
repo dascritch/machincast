@@ -13,6 +13,12 @@ Liste de lecture d'un événement (§ 4.3) :
 - arrivée au bout, la liste reprend au début, sauf pour une émission ou un spécial sans fin, qui se termine alors
   pour cette occurrence : l'événement de priorité inférieure reprend la main ;
 - une émission ou un spécial dont plus rien n'est jouable se termine de même ;
+- une banque marquée « ne pas répéter » ne passe jamais deux fois de suite
+  (https://github.com/dascritch/machincast/issues/63) : si le dernier passage de l'airplay, tous événements
+  confondus, a été fourni par elle, l'élément qui la rappelle est sauté, comme une banque vide, et noté dans le log
+  (info « élément sauté », une fois par élément et par passage). Si l'occurrence n'a alors plus rien de jouable,
+  elle se termine (alerte « événement terminé plus tôt ») ; un fil musical se tait. À l'édition, appels_ignores
+  donne les lignes qui seront toujours sautées ;
 - l'élément suivant se lit dans l'airplay : celui qui suit le dernier élément joué. Pour une émission ou un
   spécial, seuls comptent les passages de l'occurrence en cours, qui commence donc au début de sa liste ; un fil
   musical reprend toujours à l'élément qui suit son dernier joué, d'une occurrence à l'autre (§ 4.2).
@@ -37,6 +43,8 @@ REESSAI_FICHIER_INTROUVABLE : il est traité comme non jouable, pour ne pas le r
 (https://github.com/dascritch/machincast/issues/88).
 """
 
+import uuid
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -44,7 +52,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.hasard import Hasard
-from machincast.lecture.banques import choisir_sonore, sonore_jouable
+from machincast.lecture.banques import a_ne_pas_repeter, choisir_sonore, sonore_jouable
 from machincast.lecture.grille import (
 	Evenement,
 	Occurrence,
@@ -54,7 +62,7 @@ from machincast.lecture.grille import (
 	lire_evenement,
 	lire_grille,
 )
-from machincast.lecture.historique import EN_BASE, Historique
+from machincast.lecture.historique import EN_BASE, DernierPassage, Historique
 
 REESSAI_FICHIER_INTROUVABLE = timedelta(hours=1)
 """Durée pendant laquelle un sonore au fichier introuvable n'est plus proposé."""
@@ -99,6 +107,15 @@ class Suspension:
 	occurrence: Occurrence
 	secours: Evenement | None
 	"""Événement de secours du stream ; None : l'événement de priorité inférieure."""
+
+
+@dataclass(frozen=True)
+class Repetition:
+	"""Banque « ne pas répéter » qui a fourni le dernier passage : elle ne peut pas fournir le suivant."""
+
+	passage: uuid.UUID
+	banque: int
+	nom: str
 
 
 @dataclass(frozen=True)
@@ -172,10 +189,13 @@ def prochain(
 	hasard: Hasard,
 	exclus: frozenset[int] = frozenset(),
 	historique: Historique = EN_BASE,
+	interdite: int | None = None,
+	sautes: list[Element] | None = None,
 ) -> Choix | None:
 	"""Prochain sonore de la liste de l'occurrence ; None si rien n'est jouable jusqu'à la fin de la liste.
 
-	exclus : sonores écartés, traités comme non jouables.
+	exclus : sonores écartés, traités comme non jouables. interdite : banque « ne pas répéter » qui vient de passer ;
+	les éléments qui la rappellent sont sautés, et ajoutés à sautes.
 	"""
 	elements = lire_elements(connexion, occurrence.evenement.id)
 	dernier = dernier_element(connexion, occurrence, historique)
@@ -183,6 +203,9 @@ def prochain(
 		if element.sonore is not None:
 			if element.sonore not in exclus and sonore_jouable(connexion, element.sonore, instant, historique):
 				return Choix(element.sonore, element, None, occurrence)
+		elif element.banque is not None and element.banque == interdite:
+			if sautes is not None:
+				sautes.append(element)
 		elif element.banque is not None:
 			sonore = choisir_sonore(connexion, element.banque, instant, hasard, exclus, historique)
 			if sonore is not None:
@@ -212,6 +235,8 @@ class Ordonnanceur:
 		"""Stream tombé en attente de reconnexion."""
 		self._reservation = False
 		"""Décision prise pour réserver le prochain sonore : un silence n'y est pas encore signalé."""
+		self._sauts_notes: tuple[uuid.UUID | None, set[int]] = (None, set())
+		"""Éléments sautés déjà notés dans le log, pour le dernier passage : une seule ligne par élément."""
 
 	def reserver(self, instant: datetime) -> Choix | None:
 		"""Prochain sonore, choisi dès le début du sonore en cours (https://github.com/dascritch/machincast/issues/20).
@@ -266,6 +291,36 @@ class Ordonnanceur:
 		with self.connexion.transaction():
 			return self._decider(instant, en_cours)
 
+	def _repetition(self) -> Repetition | None:
+		"""La banque « ne pas répéter » qui a fourni le dernier passage, s'il y en a une."""
+		dernier: DernierPassage | None = self.historique.dernier_passage(self.connexion)
+		if dernier is None or dernier.banque is None:
+			return None
+		nom = a_ne_pas_repeter(self.connexion, dernier.banque)
+		return None if nom is None else Repetition(dernier.id, dernier.banque, nom)
+
+	def _noter_les_sauts(
+		self, repetition: Repetition, occurrence: Occurrence, sautes: list[Element], instant: datetime
+	) -> None:
+		passage, notes = self._sauts_notes
+		if passage != repetition.passage:
+			notes = set()
+			self._sauts_notes = (repetition.passage, notes)
+		for element in sautes:
+			if element.id in notes:
+				continue
+			notes.add(element.id)
+			self.historique.consigner(
+				self.connexion,
+				"info",
+				"élément sauté",
+				f"banque « {repetition.nom} » à ne pas répéter : elle vient de passer, l'élément {element.position} de"
+				f" « {occurrence.evenement.nom} » est sauté",
+				instant,
+				banque=repetition.banque,
+				evenement=occurrence.evenement.id,
+			)
+
 	def _decider(self, instant: datetime, en_cours: EnCours | None) -> Decision:
 		evenements = lire_grille(self.connexion)
 		couper = eteindre = False
@@ -287,7 +342,21 @@ class Ordonnanceur:
 					return Decision()
 			if actif is None:
 				return self._silence(instant, couper, eteindre, None, "aucun événement actif")
-			choix = prochain(self.connexion, actif, instant, self.hasard, self._exclus(instant), self.historique)
+			# Lu seulement quand il faut choisir : pas à chaque pas d'un sonore qui continue.
+			repetition = self._repetition()
+			sautes: list[Element] = []
+			choix = prochain(
+				self.connexion,
+				actif,
+				instant,
+				self.hasard,
+				self._exclus(instant),
+				self.historique,
+				None if repetition is None else repetition.banque,
+				sautes,
+			)
+			if repetition is not None:
+				self._noter_les_sauts(repetition, actif, sautes, instant)
 			if choix is not None:
 				self.en_silence = False
 				return Decision(couper=couper, eteindre=eteindre, jouer=choix)
@@ -295,6 +364,16 @@ class Ordonnanceur:
 				return self._silence(instant, couper, eteindre, actif, "rien à diffuser dans le fil musical")
 			# Liste épuisée, ou plus rien de jouable : l'occurrence se termine, l'événement inférieur reprend.
 			self.terminees.add(actif.cle)
+			if repetition is not None and sautes:
+				self.historique.consigner(
+					self.connexion,
+					"alerte",
+					"événement terminé plus tôt",
+					f"« {actif.evenement.nom} » : plus rien de jouable une fois la banque « {repetition.nom} » sautée",
+					instant,
+					banque=repetition.banque,
+					evenement=actif.evenement.id,
+				)
 
 	def _remplacer(self, evenements: list[Evenement], instant: datetime, actif: Occurrence | None) -> Occurrence | None:
 		"""Pendant la suspension d'un stream, son occurrence cède la place à son secours ; ailleurs, la suspension
@@ -331,3 +410,20 @@ class Ordonnanceur:
 def _occurrence_de_secours(evenement: Evenement) -> Occurrence:
 	"""Un événement de secours n'a pas de dates : une seule occurrence, sans début ni fin."""
 	return Occurrence(evenement, None, None)
+
+
+def appels_ignores(banques: Sequence[int | None], ne_pas_repeter: Collection[int], boucle: bool) -> list[int]:
+	"""Lignes de la liste d'un événement, numérotées dès 1, qui rappellent la banque « ne pas répéter » de la ligne
+	précédente : elles seront toujours sautées à la diffusion. Pour un événement qui boucle, la première ligne suit la
+	dernière.
+
+	banques : la banque de chaque ligne, None pour un sonore. Pour l'avertissement de l'interface à l'édition d'un
+	événement (https://github.com/dascritch/machincast/issues/32), qui n'empêche pas d'enregistrer.
+	"""
+	signalees = []
+	for indice, banque in enumerate(banques):
+		if banque not in ne_pas_repeter or (indice == 0 and not boucle):
+			continue
+		if banques[indice - 1] == banque:
+			signalees.append(indice + 1)
+	return signalees

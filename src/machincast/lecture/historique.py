@@ -12,7 +12,9 @@ Les deux donnent les mêmes réponses pour un même historique : la logique de l
 simulation.
 """
 
+import uuid
 from collections.abc import Collection
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
 
@@ -26,6 +28,15 @@ from machincast.lecture.expiration import Expiration, expirer
 Connexion = psycopg.Connection[TupleRow]
 
 
+@dataclass(frozen=True)
+class DernierPassage:
+	"""Le passage le plus récent de tout l'historique, et la banque qui l'a fourni."""
+
+	id: uuid.UUID
+	banque: int | None
+	"""None pour un sonore placé directement dans un événement."""
+
+
 class Historique(Protocol):
 	def lectures(self, connexion: Connexion, sonores: Collection[int]) -> dict[int, int]:
 		"""Passages de chaque sonore (lignes de début), sur tout l'historique, quelle que soit la banque."""
@@ -37,6 +48,10 @@ class Historique(Protocol):
 
 	def dernier_element(self, connexion: Connexion, evenement: int, depuis: datetime | None) -> int | None:
 		"""Élément de l'événement joué en dernier, depuis cet instant s'il est donné."""
+		...
+
+	def dernier_passage(self, connexion: Connexion) -> DernierPassage | None:
+		"""Passage le plus récent, tous événements confondus ; None si l'historique est vide."""
 		...
 
 	def commencer_passage(
@@ -102,6 +117,16 @@ class HistoriqueEnBase:
 			(evenement, depuis, depuis),
 		).fetchone()
 		return None if ligne is None or ligne[0] is None else int(str(ligne[0]))
+
+	def dernier_passage(self, connexion: Connexion) -> DernierPassage | None:
+		ligne = connexion.execute(
+			"SELECT passage_id, banque_id FROM airplay WHERE type_ligne = 'debut' ORDER BY horodatage DESC, id DESC"
+			" LIMIT 1"
+		).fetchone()
+		if ligne is None:
+			return None
+		passage, banque = ligne
+		return DernierPassage(uuid.UUID(str(passage)), None if banque is None else int(str(banque)))
 
 	def commencer_passage(
 		self,

@@ -11,6 +11,7 @@
 - Un fichier ajouté à la main est enregistré à l'état `apercu` : l'indexeur le décodera ; un stream est enregistré `actif` ([#69](https://github.com/dascritch/machincast/issues/69)).
 - Tout champ d'un sonore saisi à la main est ajouté à `sonores.champs_edites` : son nom de colonne, ou `metadonnees_musicales.<clé>` pour une clé des métadonnées musicales.
 - Refuser à la saisie le chevauchement de deux événements de même priorité.
+- À l'édition d'un événement, prévenir quand une banque « ne pas répéter » occupe deux lignes contiguës, y compris la dernière et la première d'un événement qui boucle : `machincast.lecture.deroule.appels_ignores` donne les lignes qui seront sautées. L'avertissement n'empêche pas d'enregistrer ([#63](https://github.com/dascritch/machincast/issues/63), [#32](https://github.com/dascritch/machincast/issues/32)).
 - Toute suppression d'un élément référencé ailleurs passe par une validation qui liste les références.
 - Supprimer un sonore supprime sa ligne en base, jamais son fichier ([#96](https://github.com/dascritch/machincast/issues/96)) : l'interface ne supprime, ne renomme, ne déplace ni n'écrit aucun fichier sonore. Voir [developpement.md](developpement.md#fichiers-sonores).
 - Les listes d'une banque séquentielle et d'un événement se réordonnent par glisser-déposer.

@@ -267,7 +267,9 @@ L'indexation ne supprime rien : un fichier disparu fait passer son sonore à l'�
 - Seuls les sonores **jouables** sont candidats (voir ci-dessous). Si aucun ne l'est, on passe à l'élément suivant de l'événement, comme si la banque était vide.
 - **Ne pas répéter** ([#63](https://github.com/dascritch/machincast/issues/63)) : si le dernier passage de l'`airplay` a été joué via une banque marquée `ne_pas_repeter`, l'élément qui rappelle cette banque est sauté, et on passe à l'élément suivant, comme si la banque était vide. Un événement à l'autre, la règle s'applique de la même façon : la banque en fin d'un événement puis au début du suivant ne passe pas deux fois. Seuls comptent les passages joués via la banque, comme pour le cycle aléatoire : un sonore de la banque placé directement comme élément d'un événement ne compte pas.
 	- Si, une fois la banque sautée, plus rien n'est jouable dans la liste de l'événement, cet événement se termine pour cette occurrence : l'événement de priorité inférieure dont la plage couvre l'instant prend le relais. Pour un fil musical, silence et alerte, comme quand rien n'est jouable.
-	- Log : `info` pour chaque élément sauté, `alerte` pour un événement terminé plus tôt.
+	- Log : `info` `élément sauté` pour chaque élément sauté, une fois par élément et par passage ; `alerte` `événement terminé plus tôt` pour un événement terminé à cause du saut. La décision se prend quand le sonore suivant est réservé, dès le début du sonore en cours ([§ 5.4](#54-socket-détat)).
+	- Le mode simulation applique la même règle, à partir de l'airplay puis des passages simulés ([§ 5.5](#55-mode-simulation)).
+	- Schéma : colonne `banques.ne_pas_repeter`, ajoutée par la migration `0002.banques-ne-pas-repeter`.
 
 ### 4.5 Sonore jouable
 

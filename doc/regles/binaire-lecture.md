@@ -33,6 +33,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 
 - `machincast.lecture.deroule.Ordonnanceur.decider(instant, en_cours)` ([#14](https://github.com/dascritch/machincast/issues/14)) dit à la sortie audio de continuer, couper net, jouer un sonore ou se taire. Il ne garde en mémoire que les occurrences terminées plus tôt et l'état de silence : la position dans chaque liste se lit dans l'airplay.
 - Chaque passage doit donc noter dans l'airplay son événement (`evenement_id`) et son élément (`element_id`), en plus de sa banque.
+- Banque « ne pas répéter » ([#63](https://github.com/dascritch/machincast/issues/63)) : à chaque décision, l'ordonnanceur lit le dernier passage de tout l'historique (`Historique.dernier_passage`) ; si sa banque est marquée (`banques.a_ne_pas_repeter`), `prochain` saute les éléments qui la rappellent. Chaque élément sauté est noté une seule fois par passage (`élément sauté`, info), même si la décision est reprise ; une émission ou un spécial terminé à cause du saut donne l'alerte `événement terminé plus tôt`, pas un événement terminé pour une autre raison. `deroule.appels_ignores` donne à l'interface les lignes d'une liste qui seront toujours sautées.
 - Une seule alerte `silence` par silence, pas une par seconde.
 
 ## Moteur audio

@@ -69,6 +69,16 @@ Fonctionnalité: Mode simulation de Machin lecture
 		Et la simulation a consigné 1 info « sonore expiré »
 		Et le sonore « annonce » est toujours à l'état « actif » en base
 
+	Scénario: Une banque « ne pas répéter » ne passe pas deux fois de suite, d'après l'airplay puis les passages simulés
+		Étant donné la banque séquentielle « Jingles » des sonores « j1 », « j2 », marquée « ne pas répéter »
+		Et le fil musical permanent « Continue », avec la banque « Jingles », la banque « Jingles » et le sonore « f »
+		Et chaque sonore dure 1 minute
+		Et « j1 » a été joué via la banque « Jingles » le « 2026-10-19 08:00 »
+		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:03 »
+		Alors la simulation donne les titres « f », « j2 », « f »
+		Et la simulation a consigné 3 info « élément sauté »
+		Et la base n'a pas changé
+
 	# ─── Grille ────────────────────────────────────────────────
 
 	Scénario: Une émission coupe net à son heure, puis son dernier sonore va jusqu'au bout

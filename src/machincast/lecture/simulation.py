@@ -37,7 +37,7 @@ from machincast.lecture.enregistrement import Passage
 from machincast.lecture.expiration import NATURE as SONORE_EXPIRE
 from machincast.lecture.expiration import Expiration, _cause
 from machincast.lecture.grille import lire_grille, prochain_changement
-from machincast.lecture.historique import EN_BASE
+from machincast.lecture.historique import EN_BASE, DernierPassage
 from machincast.lecture.moteur import EtatVoie, VoieLecture
 from machincast.lecture.sorties import COLONNES_CSV, Ligne, ligne_csv, masque, playlist
 
@@ -198,6 +198,12 @@ class HistoriqueSimule:
 			if passage.evenement == evenement and (depuis is None or passage.debut >= depuis):
 				return passage.element
 		return EN_BASE.dernier_element(connexion, evenement, depuis)
+
+	def dernier_passage(self, connexion: Connexion) -> DernierPassage | None:
+		if self.passages:
+			passage = self.passages[-1].passage
+			return DernierPassage(passage.id, passage.banque)
+		return EN_BASE.dernier_passage(connexion)
 
 	def commencer_passage(
 		self,
