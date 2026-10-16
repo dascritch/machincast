@@ -2,7 +2,7 @@
 
 Ce guide décrit ce que MachinCast sait déjà faire, pour l'utilisateur et l'administrateur du poste de diffusion. Il ne demande pas de connaître le code. L'installation est décrite dans [INSTALL.md](../INSTALL.md) ; le fonctionnement complet visé, dans la [spécification](spec.md).
 
-> **État du projet** : MachinCast est en cours de développement. Aujourd'hui, `Machin indexation` enregistre les fichiers déposés dans les répertoires des banques et vérifie les sonores, `Machin lecture` diffuse la grille depuis un terminal, et `Machin interface` montre ce qui passe à l'antenne. Le service de diffusion et les autres écrans de l'interface sont à venir : la section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
+> **État du projet** : MachinCast est en cours de développement. Aujourd'hui, `Machin indexation` enregistre les fichiers déposés dans les répertoires des banques et vérifie les sonores, `Machin lecture` diffuse la grille depuis un terminal, et `Machin interface` montre ce qui passe à l'antenne et gère les banques. Le service de diffusion et les autres écrans de l'interface sont à venir : la section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
 
 ## Sommaire
 
@@ -31,7 +31,7 @@ Machin --help                         # aide complète
 | --- | --- |
 | `Machin lecture` | Diffusion de l'antenne, normalement lancée comme service ([à venir](#ce-qui-nexiste-pas-encore)). |
 | `Machin indexation` | Enregistrement des fichiers déposés dans les répertoires des banques, vérification des fichiers sonores et mise à jour de la base. |
-| `Machin interface` | Interface graphique de supervision et de programmation. Pour l'instant, son [écran par défaut](#interface-graphique--machin-interface). |
+| `Machin interface` | Interface graphique de supervision et de programmation. Pour l'instant, son [écran par défaut](#interface-graphique--machin-interface), les [listes](#listes) et la [fiche d'une banque](#fiche-dune-banque). |
 | `Machin logs` | Suivi en direct du journal du service de diffusion. |
 
 **Options de `Machin`**, placées avant le nom du programme :
@@ -94,14 +94,14 @@ Il ne modifie jamais les fichiers sonores eux-mêmes, et ne supprime jamais un s
 
 ### Alimenter une banque
 
-Alimenter une banque se limite à déposer des fichiers dans l'un de ses répertoires, puis à lancer `Machin indexation` ([#9](https://github.com/dascritch/machincast/issues/9)). Les répertoires d'une banque se choisissent dans l'interface ([#31](https://github.com/dascritch/machincast/issues/31)) ; une banque peut en avoir plusieurs, et un même répertoire peut alimenter plusieurs banques.
+Alimenter une banque se limite à déposer des fichiers dans l'un de ses répertoires, puis à lancer `Machin indexation` ([#9](https://github.com/dascritch/machincast/issues/9)). Les répertoires d'une banque se choisissent dans [sa fiche](#fiche-dune-banque), dans l'interface ([#31](https://github.com/dascritch/machincast/issues/31)) ; une banque peut en avoir plusieurs, et un même répertoire peut alimenter plusieurs banques.
 
 - **Sous-répertoires** : ils sont tous parcourus, dans l'ordre de leur nom. Un lien symbolique vers un autre répertoire n'est pas suivi, pour éviter les boucles ; le répertoire d'une banque peut, lui, être un lien.
 - **Formats** : `.mp3`, `.m4a`, `.aac`, `.ogg`, `.flac`, `.wav`, `.aiff` et `.aif`, que l'extension soit écrite en minuscules ou en majuscules. Les autres fichiers (pochettes, textes, vidéos `.mp4`…) sont ignorés.
 - **Fichiers cachés** : un fichier ou un répertoire dont le nom commence par un point est ignoré, comme les fichiers `._*.mp3` qu'écrit macOS sur un disque partagé.
 - **Nouveau fichier** : il devient un sonore à l'état `aperçu`, ajouté **en fin de liste** de la banque, puis décodé dans la même indexation. Les fichiers d'un même passage sont ajoutés dans l'ordre de leur chemin.
 - **Fichier déjà connu** : il n'est jamais enregistré deux fois, même trouvé par plusieurs banques. Il est ajouté en fin de liste de chaque banque dont il n'est pas encore membre.
-- **Sonore retiré à la main d'une banque** : tant que son fichier reste dans l'un des répertoires de la banque, l'indexation suivante l'y **réintègre**, en fin de liste. Pour l'en retirer durablement, il faut déplacer le fichier hors de ses répertoires.
+- **Sonore retiré à la main d'une banque** : tant que son fichier reste dans l'un des répertoires de la banque, l'indexation suivante l'y **réintègre**, en fin de liste. Pour l'en retirer durablement, il faut déplacer le fichier hors de ses répertoires. La [fiche de la banque](#fiche-dune-banque) le rappelle au retrait.
 - **Répertoire introuvable** : il est signalé sur la sortie d'erreur, avec le nom de la banque, et les autres banques sont indexées normalement. Un sous-répertoire illisible est signalé de la même façon.
 - **Fichier déplacé** : à son nouvel emplacement, c'est un nouveau sonore ; l'ancien passe à l'état `supprimé`.
 
@@ -287,11 +287,7 @@ Le choix se déduit de l'historique de diffusion : il reprend là où il en éta
 - **Dans le log** : chaque élément sauté est noté une fois, en info `élément sauté`, avec la banque et l'événement. La décision se prend dès le début du sonore précédent, quand la diffusion réserve le suivant : c'est l'heure notée dans le log.
 - **Simulation** : la simulation applique la même règle, à partir de l'historique réel puis des passages simulés.
 
-La case « ne pas répéter » d'une banque se coche dans l'interface ([#31](https://github.com/dascritch/machincast/issues/31)), qui préviendra aussi, à l'édition d'un événement, quand une banque marquée occupe deux lignes qui se suivent, y compris la dernière et la première d'une liste qui boucle : le deuxième appel sera toujours sauté ([#32](https://github.com/dascritch/machincast/issues/32)). En attendant, la marque se pose en base, par exemple avec `psql` sous le compte propriétaire de la base :
-
-```bash
-psql --dbname=machincast -c "UPDATE banques SET ne_pas_repeter = true WHERE nom_interne = 'Jingles'"
-```
+La case « ne pas répéter » d'une banque se coche dans [sa fiche](#fiche-dune-banque) ([#31](https://github.com/dascritch/machincast/issues/31)). L'interface préviendra aussi, à l'édition d'un événement, quand une banque marquée occupe deux lignes qui se suivent, y compris la dernière et la première d'une liste qui boucle : le deuxième appel sera toujours sauté ([#32](https://github.com/dascritch/machincast/issues/32)).
 
 ### Expiration des sonores
 
@@ -462,7 +458,37 @@ Les onglets Événements, Séquences, Banques et Sonores donnent chacun la liste
 - **Filtre** : le champ « Filtrer… » garde les lignes dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : `cafe` trouve « Café à minuit », `stream` tous les streams, `/srv/musique` tous les fichiers de ce répertoire. Le compte, à côté, dit combien de lignes restent, par exemple `2 sonores sur 340`. La croix du champ efface le filtre.
 - **Tri** : un clic sur le titre d'une colonne trie la liste selon cette colonne ; un second clic inverse l'ordre.
 - **Mise à jour** : une liste se relit dans la base chaque fois que son onglet s'ouvre, en gardant son filtre. Elle ne se relit jamais d'elle-même pendant qu'on la regarde.
-- **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvrira l'écran de détails de l'élément. Ces écrans sont encore à venir ([#28](https://github.com/dascritch/machincast/issues/28) pour un sonore, [#31](https://github.com/dascritch/machincast/issues/31) pour une banque, [#32](https://github.com/dascritch/machincast/issues/32) pour un événement) : en attendant, la barre d'état, en bas de la fenêtre, l'annonce.
+- **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvre l'écran de détails de l'élément. Pour une banque, c'est [sa fiche](#fiche-dune-banque). Les autres écrans sont encore à venir ([#28](https://github.com/dascritch/machincast/issues/28) pour un sonore, [#32](https://github.com/dascritch/machincast/issues/32) pour un événement) : en attendant, la barre d'état, en bas de la fenêtre, l'annonce.
+- **Créer** : le bouton **Nouvelle banque**, à côté du filtre de la liste des banques, ouvre une fiche vide. Les autres types d'éléments n'ont pas encore ce bouton.
+
+### Fiche d'une banque
+
+La fiche d'une banque s'ouvre dans un **nouvel onglet**, nommé « Banque : » suivi de son nom, depuis la liste des banques ([#31](https://github.com/dascritch/machincast/issues/31)) ; une fiche vide s'appelle « Nouvelle banque ». Une banque déjà ouverte revient au premier plan, sans second onglet. L'onglet d'une fiche se ferme par sa croix, contrairement à ceux de l'accueil et des listes.
+
+| Champ | Rôle |
+| --- | --- |
+| Nom interne | Obligatoire, et propre à la banque : c'est son nom dans les listes, le log et l'airplay. |
+| Nom public | Facultatif. Affiché sur la page publique à la place de l'artiste et du titre masqués, si l'événement et la séquence n'en ont pas ([Sorties de la diffusion](#sorties-de-la-diffusion)). |
+| Mode | `Séquentielle` : les sonores passent dans l'ordre de la liste. `Aléatoire` : ils sont tirés au hasard ([Quel sonore une banque fournit](#quel-sonore-une-banque-fournit)). |
+| Artiste et titre | `Masqués` ou `Affichés` sur la page publique, sauf si l'événement ou la séquence en décide. `Hérité du sonore` laisse décider le sonore, puis la configuration. |
+| Ne pas répéter | La banque ne passe jamais deux fois de suite ([Quel sonore une banque fournit](#quel-sonore-une-banque-fournit)). |
+
+**Enregistrer et annuler** : les modifications restent dans la fiche jusqu'au clic sur **Enregistrer**, qui les écrit toutes à la fois ; **Annuler** remet la fiche telle qu'elle est en base. Les deux boutons ne servent que quand la fiche est modifiée.
+
+- Les noms sont enregistrés sans les espaces qui les entourent. Un nom interne vide est refusé (« Le nom interne est obligatoire. »), comme celui d'une autre banque (« Une autre banque s'appelle déjà « Tubes ». ») : rien n'est enregistré, et la fiche garde ses modifications.
+- Si la base est injoignable, la fiche affiche « Enregistrement impossible : » et l'erreur de PostgreSQL, et garde ses modifications ; l'erreur s'affiche aussi sur la sortie d'erreur.
+- **Fermer une fiche modifiée**, par son onglet ou en fermant la fenêtre, demande quoi faire des modifications : **Enregistrer** (Entrée), **Abandonner**, ou **Annuler** (Échap), qui garde la fiche ouverte. Si l'enregistrement échoue, la fiche reste ouverte.
+
+**Répertoires indexés** : les fichiers sonores de ces répertoires, et de leurs sous-répertoires, sont rattachés à la banque par `Machin indexation` ([Alimenter une banque](#alimenter-une-banque)). **Ajouter un répertoire…** ouvre le sélecteur de répertoires du poste ; on peut aussi y **déposer des dossiers** glissés depuis le navigateur de fichiers (un fichier déposé là est ignoré, et la fiche le dit). Un répertoire déjà présent n'est pas ajouté deux fois. **Retirer le répertoire** retire celui qui est choisi dans la liste. Les répertoires sont rangés dans l'ordre de leurs caractères. Rien n'est indexé à l'enregistrement : les fichiers d'un nouveau répertoire arrivent dans la banque à la prochaine indexation.
+
+**Sonores** : la liste montre chaque sonore (artiste et titre), sa durée (`inconnue` pour un stream, vide pour un fichier pas encore décodé) et son emplacement.
+
+- **Ordre** : en mode séquentiel, un sonore se déplace par glisser-déposer, ou en le choisissant puis avec **Monter** et **Descendre**. En mode aléatoire, l'ordre ne compte pas, et ne se change pas.
+- **Ajouter des sonores…** ouvre la liste des sonores déjà en base, avec son filtre. Plusieurs sonores se choisissent avec Ctrl ou Maj, puis **Ajouter** ; un double-clic en choisit un seul. Ils s'ajoutent en fin de liste, même s'ils sont hors des répertoires de la banque ; un sonore déjà dans la banque n'est pas ajouté deux fois. Un nouveau fichier se dépose sur la liste (ci-dessous), ou dans un répertoire de la banque avant de lancer `Machin indexation` ; l'ajout par un sélecteur de fichiers viendra avec [#30](https://github.com/dascritch/machincast/issues/30).
+- **Déposer des fichiers** glissés depuis le navigateur de fichiers les ajoute en fin de liste, dans les deux modes, une fois chacun. Un fichier déjà en base reprend son sonore. Un fichier pas encore en base est montré par son nom, et devient à l'enregistrement un sonore à l'état `aperçu`, que la prochaine indexation décodera ; « Annuler » ou « Abandonner » ne l'enregistrent pas. Les dossiers et les fichiers qui ne sont pas sonores (voir les formats dans [Alimenter une banque](#alimenter-une-banque)) sont ignorés, et la fiche le dit.
+- **Un dépôt est toujours une copie** : le fichier reste où il est, et n'est pas touché. Même avec Maj enfoncée, qui demande d'habitude un déplacement au navigateur de fichiers, la fiche ne l'accepte que comme une copie ; un glisser qui ne propose que le déplacement est refusé.
+- **Retirer le sonore** retire le sonore choisi de la banque, sans rien demander s'il est hors de ses répertoires. Si son fichier est dans l'un des répertoires de la fiche, ou de leurs sous-répertoires, un avertissement rappelle que **la prochaine indexation l'y remettra** : **Retirer quand même**, **Ouvrir le dossier** du fichier dans le navigateur de fichiers du poste, pour l'en déplacer (le sonore reste dans la banque), ou **Annuler**. MachinCast ne déplace ni ne supprime jamais le fichier ([Les fichiers sonores ne sont jamais modifiés](#les-fichiers-sonores-ne-sont-jamais-modifiés)) : c'est à faire hors de l'outil, parfois depuis un autre poste quand le compte n'a pas le droit d'écrire dans le répertoire. Le sonore reste en base, dans ses autres banques et événements.
+- **Indexation pendant la modification** : les sonores que `Machin indexation` rattache à la banque pendant que la fiche est ouverte sont gardés à l'enregistrement, en fin de liste. Un sonore effacé de la base entre-temps est oublié.
 
 ## Suivre le journal : Machin logs
 

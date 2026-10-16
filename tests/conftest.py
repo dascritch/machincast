@@ -9,7 +9,12 @@ import pytest
 from tests.base_test import connexion_test, purger_base, reinitialiser_base, verifier_autorisations
 
 # Étapes partagées par plusieurs fonctionnalités : pytest-bdd les trouve comme celles de conftest.py.
-pytest_plugins = ["tests.etapes_indexation", "tests.etapes_lecture", "tests.etapes_diffusion"]
+pytest_plugins = [
+	"tests.etapes_indexation",
+	"tests.etapes_lecture",
+	"tests.etapes_diffusion",
+	"tests.etapes_interface",
+]
 
 # Les écrans de l'interface s'affichent hors de l'écran du poste : aucune fenêtre ne s'ouvre pendant les tests
 # (https://github.com/dascritch/machincast/issues/23).

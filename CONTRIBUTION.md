@@ -10,10 +10,10 @@ Les écrans de `Machin_interface` sont des écrans Qt Widgets, dessinés avec **
 
 ```bash
 bin/Machin dev           # sous-shell dans le dépôt, venv activé
-pyside6-designer src/machincast/interface/ui/details_banque.ui
+pyside6-designer src/machincast/interface/ui/fiche_banque.ui
 ```
 
-- Un écran = un fichier `.ui` dans `src/machincast/interface/ui/`, nommé en français et en `snake_case`, comme le module qu'il produira : `details_banque.ui`, `details_evenement.ui`.
+- Un écran = un fichier `.ui` dans `src/machincast/interface/ui/`, nommé en français et en `snake_case`, comme le module qu'il produira : `fiche_banque.ui`, `fiche_evenement.ui`.
 - Les `objectName` des widgets sont en français et en `snake_case` (`nom_interne`, `nom_public`, `liste_sonores`), puisqu'ils deviennent des attributs Python : `self.ui.nom_interne`.
 - Vocabulaire à l'écran : celui de la spécification ([§ 1](doc/spec.md#1-vocabulaire)) et des [règles de l'interface](doc/regles/interface.md), « banque » et jamais « playlist ».
 - Les champs de texte courts sont limités à 255 caractères (`maxLength`), comme en base.
@@ -24,7 +24,7 @@ pyside6-designer src/machincast/interface/ui/details_banque.ui
 Après chaque enregistrement dans le Designer, régénérer le module Python :
 
 ```bash
-pyside6-uic src/machincast/interface/ui/details_banque.ui -o src/machincast/interface/ui/details_banque.py
+pyside6-uic src/machincast/interface/ui/fiche_banque.ui -o src/machincast/interface/ui/fiche_banque.py
 ```
 
 - Le fichier `.ui` et le module généré sont versionnés ensemble, dans le même commit.
@@ -36,13 +36,13 @@ pyside6-uic src/machincast/interface/ui/details_banque.ui -o src/machincast/inte
 ```python
 from PySide6.QtWidgets import QWidget
 
-from machincast.interface.ui.details_banque import Ui_DetailsBanque
+from machincast.interface.ui.fiche_banque import Ui_FicheBanque
 
 
-class DetailsBanque(QWidget):
+class FicheBanque(QWidget):
 	def __init__(self) -> None:
 		super().__init__()
-		self.ui = Ui_DetailsBanque()
+		self.ui = Ui_FicheBanque()
 		self.ui.setupUi(self)
 		self.ui.nom_interne.textChanged.connect(self._nom_modifie)
 ```

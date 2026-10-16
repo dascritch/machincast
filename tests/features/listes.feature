@@ -152,7 +152,8 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	# ─── Vers l'écran de détail ────────────────────────────────
 
-	Plan du scénario: Ouvrir une ligne demande l'écran de détail de l'élément
+	Plan du scénario: Ouvrir une ligne demande l'écran de détail de l'élément, et l'annonce tant qu'il est à venir
+		# L'écran de détail d'une banque est sa fiche : fiche_banque.feature.
 		Étant donné les sonores :
 			| artiste     | titre         | type    | etat  | duree | emplacement            |
 			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/musique/cafe.flac |
@@ -170,7 +171,6 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Exemples:
 			| onglet     | nom           | genre        | annonce                                                                                  |
 			| Sonores    | Café à minuit | sonore       | Écran de détails du sonore « Café à minuit » : à venir, https://github.com/dascritch/machincast/issues/28 |
-			| Banques    | Tubes         | banque       | Écran de détails de la banque « Tubes » : à venir, https://github.com/dascritch/machincast/issues/31     |
 			| Séquences  | Passage pub   | séquence     | Écran de détails de la séquence « Passage pub » : à venir                                 |
 			| Événements | Continue      | événement    | Écran de détails de l'événement « Continue » : à venir, https://github.com/dascritch/machincast/issues/32 |
 

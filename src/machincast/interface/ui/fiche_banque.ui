@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FicheBanque</class>
+ <widget class="QWidget" name="FicheBanque">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1100</width>
+    <height>700</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="disposition" stretch="0,1,0">
+   <item>
+    <layout class="QFormLayout" name="formulaire">
+     <item row="0" column="0">
+      <widget class="QLabel" name="etiquette_nom_interne">
+       <property name="text">
+        <string>&amp;Nom interne</string>
+       </property>
+       <property name="buddy">
+        <cstring>nom_interne</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="nom_interne">
+       <property name="maxLength">
+        <number>255</number>
+       </property>
+       <property name="placeholderText">
+        <string>Obligatoire, et propre à cette banque</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="etiquette_nom_public">
+       <property name="text">
+        <string>Nom &amp;public</string>
+       </property>
+       <property name="buddy">
+        <cstring>nom_public</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="nom_public">
+       <property name="maxLength">
+        <number>255</number>
+       </property>
+       <property name="placeholderText">
+        <string>Affiché à la place de l'artiste et du titre masqués ; facultatif</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="etiquette_mode">
+       <property name="text">
+        <string>&amp;Mode</string>
+       </property>
+       <property name="buddy">
+        <cstring>mode</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QComboBox" name="mode"/>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="etiquette_masquage">
+       <property name="text">
+        <string>&amp;Artiste et titre</string>
+       </property>
+       <property name="buddy">
+        <cstring>masquage</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QComboBox" name="masquage"/>
+     </item>
+     <item row="4" column="1">
+      <widget class="QCheckBox" name="ne_pas_repeter">
+       <property name="text">
+        <string>Ne pas &amp;répéter : la banque ne passe jamais deux fois de suite</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="listes" stretch="1,2">
+     <item>
+      <widget class="QGroupBox" name="groupe_repertoires">
+       <property name="title">
+        <string>Répertoires indexés</string>
+       </property>
+       <layout class="QVBoxLayout" name="disposition_repertoires">
+        <item>
+         <widget class="QLabel" name="explication_repertoires">
+          <property name="text">
+           <string>Machin indexation rattache à la banque les fichiers sonores de ces répertoires et de leurs sous-répertoires.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QListWidget" name="repertoires">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="boutons_repertoires">
+          <item>
+           <widget class="QPushButton" name="ajouter_repertoire">
+            <property name="text">
+             <string>Ajouter un répertoire…</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="retirer_repertoire">
+            <property name="text">
+             <string>Retirer le répertoire</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QGroupBox" name="groupe_sonores">
+       <property name="title">
+        <string>Sonores</string>
+       </property>
+       <layout class="QVBoxLayout" name="disposition_sonores">
+        <item>
+         <widget class="QTreeWidget" name="sonores">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+          </property>
+          <property name="rootIsDecorated">
+           <bool>false</bool>
+          </property>
+          <property name="uniformRowHeights">
+           <bool>true</bool>
+          </property>
+          <column>
+           <property name="text">
+            <string>Sonore</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Durée</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Emplacement</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="boutons_sonores">
+          <item>
+           <widget class="QPushButton" name="ajouter_sonores">
+            <property name="text">
+             <string>Ajouter des sonores…</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="retirer_sonore">
+            <property name="text">
+             <string>Retirer le sonore</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="espace_sonores">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="monter">
+            <property name="text">
+             <string>Monter</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="descendre">
+            <property name="text">
+             <string>Descendre</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="pied" stretch="1,0,0">
+     <item>
+      <widget class="QLabel" name="message">
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="annuler">
+       <property name="text">
+        <string>Annuler</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="enregistrer">
+       <property name="text">
+        <string>Enregistrer</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
