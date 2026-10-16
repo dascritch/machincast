@@ -404,6 +404,7 @@ Champs communs à `en_cours` et `prochain` :
 | `type` | texte | `fichier` ou `stream`. |
 | `artiste`, `titre` | texte ou `null` | Métadonnées de la base, jamais masquées : l'interface est privée. |
 | `evenement` | texte | Nom interne de l'événement qui le joue (ou de l'événement de secours). |
+| `emplacement` | texte ou `null` | Chemin du fichier, ou adresse du stream (directe ou de son marque-page), comme dans l'`airplay`. Ajouté en relecture de [PR #106](https://github.com/dascritch/machincast/pull/106), sans changer la version. |
 | `duree` | nombre ou `null` | Durée en secondes ; `null` pour un stream, dont la durée est inconnue. |
 | `fin_estimee` | date ISO 8601 ou `null` | Fin prévue, `null` quand la durée ou le début sont inconnus. |
 
@@ -415,9 +416,11 @@ Exemple, présenté ici sur plusieurs lignes ; le binaire envoie chaque message 
 
 ```json
 {"version": 1, "horodatage": "2026-10-14T20:00:30+02:00", "etat": "diffusion",
- "en_cours": {"sonore": 12, "type": "fichier", "artiste": "Les Gaufres", "titre": "Café à minuit", "evenement": "Fil de jour",
+ "en_cours": {"sonore": 12, "type": "fichier", "artiste": "Les Gaufres", "titre": "Café à minuit",
+  "emplacement": "/srv/musique/Les Gaufres/Café à minuit.flac", "evenement": "Fil de jour",
   "debut": "2026-10-14T20:00:00+02:00", "duree": 214.5, "fin_estimee": "2026-10-14T20:03:34.500000+02:00", "position": 30.0, "progression": 0.14},
- "prochain": {"sonore": 31, "type": "fichier", "artiste": null, "titre": "Jingle", "evenement": "Fil de jour",
+ "prochain": {"sonore": 31, "type": "fichier", "artiste": null, "titre": "Jingle", "emplacement": "/srv/habillage/jingle.flac",
+  "evenement": "Fil de jour",
   "debut_estime": "2026-10-14T20:03:30.500000+02:00", "duree": 8.0, "fin_estimee": "2026-10-14T20:03:38.500000+02:00", "sain": true}}
 ```
 
@@ -524,10 +527,17 @@ Python, PySide6 (Qt 6.10, version de Kubuntu 26.04 LTS).
 - Heure actuelle.
 - État du binaire lecture (en marche ou non).
 - Airplay des 12 dernières heures, en table.
-- Sonore en cours mis en avant : heure de début, durée totale, heure de fin estimée, barre de progression.
-- Juste à côté, le prochain sonore : heures de début et de fin estimées, durée, indicateur « sain ».
+- Sonore en cours mis en avant : emplacement (chemin du fichier ou adresse du stream), heure de début, durée totale, heure de fin estimée, barre de progression.
+- Juste à côté, le prochain sonore : emplacement, heures de début et de fin estimées, durée, indicateur « sain ». Le sonore en cours et le prochain sonore occupent chacun la moitié de la largeur de l'écran ; un titre ou un nom d'événement trop long passe à la ligne (demandé en relecture de [PR #106](https://github.com/dascritch/machincast/pull/106)).
 - Pour un stream, durée et heure de fin affichées comme inconnues.
 - VU-mètre et bargraph de la sortie sonore (indisponibles avec la sortie ALSA).
+
+Mise en œuvre ([#23](https://github.com/dascritch/machincast/issues/23), `machincast.interface.ecran_par_defaut`), sans le VU-mètre, qui vient avec [#24](https://github.com/dascritch/machincast/issues/24) :
+
+- **État, sonore en cours et prochain sonore** : de la socket d'état ([§ 5.4](#54-socket-détat)), par `machincast.interface.etat.ClientEtat`, un `QLocalSocket` dans la boucle d'événements de Qt. Sans socket, ou quand elle se ferme, le binaire lecture est « À l'arrêt » et le client retente la connexion chaque seconde. Un message illisible est signalé sur la sortie d'erreur et ignoré.
+- **Airplay** : lu en base avec le rôle de l'interface (`machincast.interface.airplay.lire_airplay`), à l'ouverture, puis seulement quand la socket annonce un autre sonore en cours (ou aucun) que celui que la table connaît. Jamais en boucle. Artiste et titre toujours affichés : l'interface est privée.
+- **Inconnus** : un stream a sa durée, sa fin et sa progression « inconnue », et son indicateur « sain » « non testé ». Le début estimé du prochain sonore après un stream est « inconnu ».
+- **Lancement** : `Machin_interface` se connecte à la base avant d'ouvrir son écran. Sans base, ou sans droit sur elle, il montre une fenêtre d'erreur (`machincast.interface.erreur.FenetreBaseInjoignable`, demandée en relecture de [PR #106](https://github.com/dascritch/machincast/pull/106)) : l'interface n'est pas utilisable et pourquoi, une invitation à lire `INSTALL.md` du répertoire de MachinCast, section « En cas de problème », avec un bouton qui ouvre ce document, et l'erreur de PostgreSQL en détail. Puis il s'arrête avec le code 1. La fenêtre n'est montrée que si un affichage graphique peut la montrer (`DISPLAY`, `WAYLAND_DISPLAY` ou `QT_QPA_PLATFORM`, sauf les plateformes invisibles `offscreen` et `minimal`) ; sinon, seul le message de la sortie d'erreur reste. Les textes propres à Qt, comme « Montrer les détails… », sont en français (`machincast.interface.application`).
 
 ### 8.2 Recherche et navigation
 

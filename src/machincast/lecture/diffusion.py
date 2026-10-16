@@ -79,6 +79,9 @@ class Parametres:
 	stream: bool = False
 	adresse: str | None = None
 	"""Adresse d'un stream : directe, ou celle de son marque-page."""
+	emplacement: str | None = None
+	"""Chemin du fichier, ou adresse du stream, comme dans l'airplay
+	(https://github.com/dascritch/machincast/issues/23)."""
 	secours: int | None = None
 	"""Événement de secours d'un stream."""
 	artiste: str | None = None
@@ -131,14 +134,14 @@ def lire_parametres(connexion: psycopg.Connection[TupleRow], sonore: int) -> Par
 	with connexion.transaction():
 		ligne = connexion.execute(
 			"SELECT s.duree, s.crossfade_debut, s.crossfade_fin, s.type::text, COALESCE(s.url_stream, m.url),"
-			" s.secours_evenement_id, s.artiste, s.titre"
+			" s.secours_evenement_id, s.artiste, s.titre, COALESCE(s.emplacement, s.url_stream, m.url)"
 			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
 			" WHERE s.id = %s",
 			(sonore,),
 		).fetchone()
 	if ligne is None:
 		return Parametres(None, timedelta(0), timedelta(0))
-	duree, debut, fin, type_sonore, adresse, secours, artiste, titre = ligne
+	duree, debut, fin, type_sonore, adresse, secours, artiste, titre, emplacement = ligne
 	return Parametres(
 		duree if isinstance(duree, timedelta) else None,
 		debut if isinstance(debut, timedelta) else timedelta(0),
@@ -148,6 +151,7 @@ def lire_parametres(connexion: psycopg.Connection[TupleRow], sonore: int) -> Par
 		secours=None if secours is None else int(str(secours)),
 		artiste=None if artiste is None else str(artiste),
 		titre=None if titre is None else str(titre),
+		emplacement=None if emplacement is None else str(emplacement),
 	)
 
 
@@ -518,6 +522,7 @@ def _affichage(choix: Choix, parametres: Parametres) -> dict[str, Any]:
 		"type": "stream" if parametres.stream else "fichier",
 		"artiste": parametres.artiste,
 		"titre": parametres.titre,
+		"emplacement": parametres.emplacement,
 		"evenement": choix.occurrence.evenement.nom,
 	}
 

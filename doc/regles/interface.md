@@ -4,8 +4,11 @@
 
 - PySide6, version alignée sur Qt 6.10 (Kubuntu 26.04 LTS).
 - Vocabulaire à l'écran : « banque », jamais « playlist ».
+- Tout est en français, y compris les textes propres à Qt (boutons des fenêtres de dialogue) : l'application se crée par `machincast.interface.application.application`, qui charge la traduction `qtbase_fr` livrée avec PySide6.
 - Les champs de texte courts (noms, artiste, titre) sont limités à `LONGUEUR_TEXTE_COURT` (255 caractères), comme en base.
-- L'état du binaire lecture se lit par sa socket Unix, jamais en interrogeant `airplay` en boucle.
+- L'état du binaire lecture se lit par sa socket Unix, jamais en interrogeant `airplay` en boucle : `machincast.interface.etat.ClientEtat` émet chaque état reçu (`etat_recu`), et `ARRET` quand la socket manque ou se ferme ([#23](https://github.com/dascritch/machincast/issues/23)). Un écran ne relit l'airplay qu'à un changement de sonore annoncé par la socket.
+- Les écrans se dessinent avec Qt Widgets Designer et se compilent par `pyside6-uic` ([CONTRIBUTION.md](../../CONTRIBUTION.md)). La classe de l'écran reçoit la connexion à la base, ses chemins et une `Horloge` : ses scénarios l'ouvrent avec pytest-qt, hors de l'écran du poste, sur la base de test et une vraie socket d'état ([tests.md](tests.md#interface-graphique)).
+- `Machin_interface` se connecte à la base avant d'ouvrir son écran, et n'importe PySide6 qu'ensuite : l'aide et les erreurs de configuration ne demandent aucun affichage graphique. Une base injoignable, ou un compte sans droit, ouvre la fenêtre d'erreur `FenetreBaseInjoignable`, qui renvoie à `INSTALL.md` ([PR #106](https://github.com/dascritch/machincast/pull/106)), seulement si `affichage_disponible()` : jamais sur la plateforme `offscreen` des tests, et jamais sans affichage, où Qt s'arrêterait net.
 - Le service se pilote via systemd et polkit, jamais par sudo.
 - La pré-écoute utilise obligatoirement un autre périphérique de sortie que le binaire lecture.
 - Un fichier ajouté à la main est enregistré à l'état `apercu` : l'indexeur le décodera ; un stream est enregistré `actif` ([#69](https://github.com/dascritch/machincast/issues/69)).
