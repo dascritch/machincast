@@ -316,6 +316,42 @@ La liste d'un événement se joue ainsi ([#14](https://github.com/dascritch/mach
 - **Chaque occurrence** d'une émission récurrente reprend sa liste au début.
 - **Rien à diffuser** : silence à l'antenne, et une alerte `silence` dans le log. Le silence cesse dès qu'un sonore redevient jouable ou qu'une émission commence.
 
+### Séquences
+
+Une **séquence** est une suite de sonores et de banques, jouée dans l'ordre, qu'on place comme un seul élément dans la liste d'un ou de plusieurs événements ([#99](https://github.com/dascritch/machincast/issues/99)). Par exemple, une séquence « passage publicitaire » joue :
+
+1. le sonore « jingle début de publicité » ;
+2. la banque « publicité » ;
+3. la banque « publicité » ;
+4. le sonore « jingle fin de publicité » ;
+5. la banque « jingle station ».
+
+À la diffusion :
+
+- **Ordre** : les éléments passent dans l'ordre de la séquence, et chaque banque fait jouer un seul sonore. Une séquence ne contient que des sonores et des banques, jamais une autre séquence.
+- **Éléments sautés** : un élément non jouable de la séquence est ignoré, et la séquence passe à l'élément suivant. Une séquence dont rien n'est jouable est sautée, comme une banque vide : l'événement passe à l'élément suivant de sa liste.
+- **Banque « ne pas répéter »** : comme dans un événement, un appel à une banque marquée juste après elle est sauté. Dans l'exemple, si la banque « publicité » est marquée, sa deuxième ligne est sautée.
+- **Comme un seul sonore** : à la fin de son événement, si aucun autre ne commence, la séquence est jouée jusqu'au bout. Un événement qui commence coupe net le sonore en cours de la séquence, et la séquence avec lui : ses éléments restants ne sont pas joués.
+- **Ensuite** : après la séquence, jouée en entier ou coupée, la liste de l'événement reprend à l'élément qui suit la séquence.
+- **Redémarrage** : la position dans la séquence se lit dans l'historique de diffusion. Après un redémarrage, la séquence reprend là où elle en était, si rien d'autre n'est passé entre-temps.
+- **Stream** : un stream tombé dans une séquence est remplacé par son événement de secours, comme ailleurs (voir [Streams](#streams)).
+- **Simulation** : la simulation applique les mêmes règles.
+
+Les séquences se créent dans l'interface ([#23](https://github.com/dascritch/machincast/issues/23) et suivants). En attendant, elles s'écrivent en base, par exemple avec `psql` sous le compte propriétaire de la base :
+
+```bash
+psql --dbname=machincast <<'SQL'
+INSERT INTO sequences (nom_interne, nom_public, masquer_metadonnees)
+	VALUES ('Passage publicitaire', 'Vous écoutez Radio Thune', true);
+INSERT INTO sequences_elements (sequence_id, position, banque_id)
+	SELECT s.id, 1, b.id FROM sequences s, banques b
+	WHERE s.nom_interne = 'Passage publicitaire' AND b.nom_interne = 'Publicité';
+INSERT INTO evenements_elements (evenement_id, position, sequence_id)
+	SELECT e.id, 3, s.id FROM evenements e, sequences s
+	WHERE e.nom_interne = 'Continue' AND s.nom_interne = 'Passage publicitaire';
+SQL
+```
+
 ### Sortie audio
 
 La sortie audio de l'antenne se règle dans la configuration (`audio.sortie` : `pipewire`, `pulseaudio`, `alsa`, ou `factice` pour un essai sans son), et `install.sh` vérifie qu'elle peut être créée. Les sonores s'y enchaînent ainsi ([#15](https://github.com/dascritch/machincast/issues/15)) :
@@ -348,11 +384,11 @@ Un **événement de secours** est un événement de priorité `secours` : il n'a
 | --- | --- | --- |
 | Sortie standard | équipe | Une ligne `à l'antenne : artiste – titre (événement)` à chaque passage. |
 | Sortie d'erreur | équipe | Les alertes et incidents du log, et les erreurs du programme. |
-| CSV (`sorties.csv`) | équipe | Un fichier par jour, nommé avec sa date : `airplay.csv` donne `airplay-2026-10-15.csv`. Une ligne par passage terminé : début, fin, durée, artiste, titre, emplacement, événement, banque, sans incident (`oui` ou `non`). Séparateur `;`, s'ouvre directement dans LibreOffice ou Excel. Jamais réécrit. |
+| CSV (`sorties.csv`) | équipe | Un fichier par jour, nommé avec sa date : `airplay.csv` donne `airplay-2026-10-15.csv`. Une ligne par passage terminé : début, fin, durée, artiste, titre, emplacement, événement, séquence, banque, sans incident (`oui` ou `non`). Séparateur `;`, s'ouvre directement dans LibreOffice ou Excel. Jamais réécrit. |
 | Playlist `.pls` (`sorties.pls`) | équipe | Les 100 derniers fichiers joués, streams compris, du plus ancien au plus récent : pour réécouter ce qui est passé. |
 | Page HTML (`sorties.html`) | public | Le sonore à l'antenne et les 20 précédents, avec l'heure. Page statique, à publier sur le site de la radio ; elle se recharge toute seule toutes les 30 secondes et ne montre jamais l'emplacement d'un fichier. |
 
-**Masquage de l'artiste et du titre.** Sur la page publique seulement, l'artiste et le titre d'un passage peuvent être masqués. Le choix se fait à quatre niveaux : l'événement, puis la banque qui a fourni le sonore, puis le sonore, puis `metadonnees.masquer` dans la configuration. C'est le premier niveau renseigné qui décide : un événement qui dit « afficher » l'emporte sur un sonore qui dit « masquer ». Masqués, l'artiste et le titre laissent la place au nom public de l'événement, ou, s'il n'en a pas, à `metadonnees.texte_public`. Les autres sorties disent toujours tout.
+**Masquage de l'artiste et du titre.** Sur la page publique seulement, l'artiste et le titre d'un passage peuvent être masqués. Le choix se fait à cinq niveaux : l'événement, puis la séquence qui a fait jouer le sonore ([#99](https://github.com/dascritch/machincast/issues/99)), puis la banque qui l'a fourni, puis le sonore, puis `metadonnees.masquer` dans la configuration. C'est le premier niveau renseigné qui décide : un événement qui dit « afficher » l'emporte sur un sonore qui dit « masquer ». Masqués, l'artiste et le titre laissent la place au premier nom public renseigné, dans le même ordre : celui de l'événement, puis de la séquence, puis de la banque ; s'il n'y en a aucun, à `metadonnees.texte_public`. Les autres sorties disent toujours tout.
 
 Une sortie impossible à écrire (dossier sans droit d'écriture, disque plein) est signalée une fois dans le log par l'alerte `sortie inaccessible`, avec le chemin et l'erreur. La diffusion continue.
 
@@ -420,9 +456,9 @@ Chaque programme agit dans la base avec ses propres droits : le compte qui le la
 
 | Programme | Rôle PostgreSQL | Ce qu'il peut faire |
 | --- | --- | --- |
-| `Machin lecture` | `machincast_lecture` | Lire la programmation ; passer un sonore à `expiré` ; ajouter des lignes à l'airplay et au log, sans jamais les modifier ni les supprimer. |
+| `Machin lecture` | `machincast_lecture` | Lire la programmation, séquences comprises ; passer un sonore à `expiré` ; ajouter des lignes à l'airplay et au log, sans jamais les modifier ni les supprimer. |
 | `Machin indexation` | `machincast_indexation` | Lire les banques et leurs répertoires ; ajouter et mettre à jour des sonores, et les ranger dans les banques. Il ne supprime rien et n'écrit pas dans le log. |
-| `Machin interface` | `machincast_interface` | Tout modifier dans les sonores, les banques et les événements ; lire l'airplay et le log, sans les modifier. |
+| `Machin interface` | `machincast_interface` | Tout modifier dans les sonores, les banques, les séquences et les événements ; lire l'airplay et le log, sans les modifier. |
 
 Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rôles-et-droits). Ajouter un autre compte est décrit dans [INSTALL.md](../INSTALL.md#ajouter-un-autre-compte).
 

@@ -6,7 +6,9 @@ permettent ni de modifier ni de supprimer une ligne d'airplay ou de log, ni de l
 - Airplay : deux lignes par passage, reliées par passage_id. Chacune recopie l'emplacement (pour un stream, son
   adresse directe ou celle de son marque-page), l'artiste et le titre du sonore au moment du passage, et référence
   le sonore, la banque qui l'a fourni (aucune pour un sonore placé directement dans l'événement), l'événement et
-  l'élément de sa liste. La ligne de fin donne la durée effectivement diffusée et l'indicateur sans_incident.
+  l'élément de sa liste, et, pour un sonore joué par une séquence, la séquence et son élément
+  (https://github.com/dascritch/machincast/issues/99). La ligne de fin donne la durée effectivement diffusée et
+  l'indicateur sans_incident.
 - Log : chaque opération, normale (info) ou non (alerte, incident), avec sa nature, un message et ses références.
   Une coupure nette est une opération normale ; une lecture interrompue par une erreur est un incident, que
   l'appelant peut nommer plus précisément (flux tombé d'un stream).
@@ -40,6 +42,10 @@ class Passage:
 	evenement: int | None
 	element: int | None
 	debut: datetime
+	sequence: int | None = None
+	"""Séquence qui a fait jouer le sonore (https://github.com/dascritch/machincast/issues/99)."""
+	sequence_element: int | None = None
+	"""Élément de cette séquence."""
 
 
 def consigner(
@@ -68,10 +74,19 @@ def consigner(
 def _debut(connexion: psycopg.Connection[TupleRow], passage: Passage) -> None:
 	connexion.execute(
 		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, banque_id, evenement_id, element_id,"
-		" emplacement, artiste, titre)"
-		" SELECT %s, 'debut', %s, s.id, %s, %s, %s, COALESCE(s.emplacement, s.url_stream, m.url), s.artiste, s.titre"
-		" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
-		(passage.id, passage.debut, passage.banque, passage.evenement, passage.element, passage.sonore),
+		" sequence_id, sequence_element_id, emplacement, artiste, titre)"
+		" SELECT %s, 'debut', %s, s.id, %s, %s, %s, %s, %s, COALESCE(s.emplacement, s.url_stream, m.url), s.artiste,"
+		" s.titre FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
+		(
+			passage.id,
+			passage.debut,
+			passage.banque,
+			passage.evenement,
+			passage.element,
+			passage.sequence,
+			passage.sequence_element,
+			passage.sonore,
+		),
 	)
 
 
@@ -79,9 +94,10 @@ def _fin(connexion: psycopg.Connection[TupleRow], passage: Passage, instant: dat
 	# La ligne de fin recopie la ligne de début : l'artiste et le titre restent ceux du moment du passage.
 	connexion.execute(
 		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, banque_id, evenement_id, element_id,"
-		" emplacement, artiste, titre, duree_diffusee, sans_incident)"
-		" SELECT passage_id, 'fin', %s, sonore_id, banque_id, evenement_id, element_id, emplacement, artiste,"
-		" titre, %s, %s FROM airplay WHERE passage_id = %s AND type_ligne = 'debut'",
+		" sequence_id, sequence_element_id, emplacement, artiste, titre, duree_diffusee, sans_incident)"
+		" SELECT passage_id, 'fin', %s, sonore_id, banque_id, evenement_id, element_id, sequence_id,"
+		" sequence_element_id, emplacement, artiste, titre, %s, %s FROM airplay"
+		" WHERE passage_id = %s AND type_ligne = 'debut'",
 		(instant, instant - passage.debut, sans_incident, passage.id),
 	)
 
@@ -93,9 +109,11 @@ def commencer_passage(
 	evenement: int | None,
 	element: int | None,
 	instant: datetime,
+	sequence: int | None = None,
+	sequence_element: int | None = None,
 ) -> Passage:
 	"""Ligne de début d'un passage ; l'artiste et le titre sont recopiés tels qu'ils sont à cet instant."""
-	passage = Passage(uuid.uuid4(), sonore, banque, evenement, element, instant)
+	passage = Passage(uuid.uuid4(), sonore, banque, evenement, element, instant, sequence, sequence_element)
 	with connexion.transaction():
 		_debut(connexion, passage)
 	return passage

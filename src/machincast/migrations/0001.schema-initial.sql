@@ -7,6 +7,9 @@
 -- Puis, toujours avant la mise en production, des trois suivantes (https://github.com/dascritch/machincast/pull/90) :
 -- élément d'événement des passages (https://github.com/dascritch/machincast/issues/14), priorité « secours » et
 -- événement de secours d'un stream (https://github.com/dascritch/machincast/issues/16).
+-- Puis, encore avant la mise en production, des deux suivantes (https://github.com/dascritch/machincast/pull/100) :
+-- banque « ne pas répéter » (https://github.com/dascritch/machincast/issues/63), séquences et nom public des banques
+-- (https://github.com/dascritch/machincast/issues/99).
 --
 -- Textes saisis à la main (noms, artiste, titre, nature) : varchar(255), même limite que l'interface.
 -- Chemins, URL et messages détaillés : text, leur longueur n'est pas bornée à l'avance.
@@ -95,8 +98,12 @@ CREATE TRIGGER sonores_modifie_le BEFORE UPDATE ON sonores
 CREATE TABLE banques (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	nom_interne varchar(255) NOT NULL UNIQUE,
+	-- Affiché à la place de l'artiste et du titre masqués, après les noms publics de l'événement et de la séquence.
+	nom_public varchar(255),
 	mode mode_banque NOT NULL,
 	masquer_metadonnees boolean,
+	-- Une banque marquée ne passe jamais deux fois de suite, même d'un événement à l'autre (doc/spec.md § 4.4).
+	ne_pas_repeter boolean NOT NULL DEFAULT false,
 	modifie_le timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 
@@ -195,7 +202,38 @@ $$;
 CREATE TRIGGER evenements_secours BEFORE UPDATE OF priorite ON evenements
 	FOR EACH ROW EXECUTE FUNCTION machincast_verifier_secours_evenement();
 
--- Liste de lecture ordonnée d'un événement : chaque élément est une banque ou un sonore.
+-- ─── Séquences ─────────────────────────────────────────────
+
+-- Suites de sonores et de banques réutilisables dans les événements (doc/spec.md § 4.3).
+CREATE TABLE sequences (
+	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	nom_interne varchar(255) NOT NULL UNIQUE,
+	nom_public varchar(255),
+	masquer_metadonnees boolean,
+	modifie_le timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+
+CREATE TRIGGER sequences_modifie_le BEFORE UPDATE ON sequences
+	FOR EACH ROW EXECUTE FUNCTION machincast_maj_modifie_le();
+
+-- Liste ordonnée d'une séquence : chaque élément est une banque ou un sonore, jamais une autre séquence, pour écarter
+-- tout appel cyclique. Un même élément peut revenir plusieurs fois.
+CREATE TABLE sequences_elements (
+	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	sequence_id bigint NOT NULL REFERENCES sequences (id) ON DELETE CASCADE,
+	position integer NOT NULL CHECK (position > 0),
+	banque_id bigint REFERENCES banques (id) ON DELETE CASCADE,
+	sonore_id bigint REFERENCES sonores (id) ON DELETE CASCADE,
+	CONSTRAINT sequences_elements_banque_ou_sonore CHECK (num_nonnulls(banque_id, sonore_id) = 1),
+	CONSTRAINT sequences_elements_position UNIQUE (sequence_id, position) DEFERRABLE INITIALLY DEFERRED
+);
+
+CREATE INDEX sequences_elements_banque ON sequences_elements (banque_id);
+CREATE INDEX sequences_elements_sonore ON sequences_elements (sonore_id);
+
+-- ─── Listes de lecture des événements ──────────────────────
+
+-- Liste de lecture ordonnée d'un événement : chaque élément est une banque, un sonore ou une séquence.
 -- Un même élément peut revenir plusieurs fois.
 CREATE TABLE evenements_elements (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -203,12 +241,14 @@ CREATE TABLE evenements_elements (
 	position integer NOT NULL CHECK (position > 0),
 	banque_id bigint REFERENCES banques (id) ON DELETE CASCADE,
 	sonore_id bigint REFERENCES sonores (id) ON DELETE CASCADE,
-	CONSTRAINT evenements_elements_banque_ou_sonore CHECK (num_nonnulls(banque_id, sonore_id) = 1),
+	sequence_id bigint REFERENCES sequences (id) ON DELETE CASCADE,
+	CONSTRAINT evenements_elements_un_element CHECK (num_nonnulls(banque_id, sonore_id, sequence_id) = 1),
 	CONSTRAINT evenements_elements_position UNIQUE (evenement_id, position) DEFERRABLE INITIALLY DEFERRED
 );
 
 CREATE INDEX evenements_elements_banque ON evenements_elements (banque_id);
 CREATE INDEX evenements_elements_sonore ON evenements_elements (sonore_id);
+CREATE INDEX evenements_elements_sequence ON evenements_elements (sequence_id);
 
 -- ─── Airplay ───────────────────────────────────────────────
 
@@ -226,6 +266,9 @@ CREATE TABLE airplay (
 	-- Élément de la liste qui a fait jouer le passage : un même élément peut figurer plusieurs fois dans une liste,
 	-- seul lui dit où la reprendre, à l'élément qui suit le dernier joué.
 	element_id bigint REFERENCES evenements_elements (id) ON DELETE SET NULL,
+	-- Pour un sonore joué par une séquence : la séquence et son élément, qui dit où la reprendre.
+	sequence_id bigint REFERENCES sequences (id) ON DELETE SET NULL,
+	sequence_element_id bigint REFERENCES sequences_elements (id) ON DELETE SET NULL,
 	emplacement text,
 	artiste varchar(255),
 	titre varchar(255),
@@ -286,8 +329,8 @@ GRANT USAGE ON SCHEMA public TO machincast_lecture, machincast_indexation, machi
 -- Lit la programmation, passe les sonores à l'état expire (colonne etat seule), écrit l'airplay et le log.
 -- Pas de lecture du log : une insertion dans log ne doit pas utiliser RETURNING.
 
-GRANT SELECT ON sonores, marques_pages_streams, banques, banques_sonores, evenements, evenements_elements
-	TO machincast_lecture;
+GRANT SELECT ON sonores, marques_pages_streams, banques, banques_sonores, evenements, evenements_elements, sequences,
+	sequences_elements TO machincast_lecture;
 GRANT UPDATE (etat) ON sonores TO machincast_lecture;
 GRANT SELECT, INSERT ON airplay TO machincast_lecture;
 GRANT INSERT ON log TO machincast_lecture;
@@ -304,6 +347,7 @@ GRANT SELECT, INSERT ON banques_sonores TO machincast_indexation;
 -- Gère toute la programmation ; consulte l'airplay et le log sans pouvoir les modifier.
 
 GRANT SELECT, INSERT, UPDATE, DELETE
-	ON sonores, marques_pages_streams, banques, banques_repertoires, banques_sonores, evenements, evenements_elements
+	ON sonores, marques_pages_streams, banques, banques_repertoires, banques_sonores, evenements, evenements_elements,
+	sequences, sequences_elements
 	TO machincast_interface;
 GRANT SELECT ON airplay, log TO machincast_interface;

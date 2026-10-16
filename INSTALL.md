@@ -206,14 +206,14 @@ git pull
 .venv/bin/yoyo apply --batch --database "postgresql+psycopg:///machincast?host=/var/run/postgresql" src/machincast/migrations/
 ```
 
-**Base créée avant une fusion des migrations.** Avant toute mise en production, les migrations ont été fusionnées en une seule, deux fois ([PR #70](https://github.com/dascritch/machincast/pull/70), puis [PR #90](https://github.com/dascritch/machincast/pull/90), qui ajoute la priorité `secours` des événements). Une base créée avant une fusion ne peut pas être mise à jour. Pour la reconnaître, lister les migrations qu'elle a reçues, et vérifier qu'elle connaît la priorité `secours` :
+**Base créée avant une fusion des migrations.** Avant toute mise en production, les migrations ont été fusionnées en une seule, trois fois ([PR #70](https://github.com/dascritch/machincast/pull/70), puis [PR #90](https://github.com/dascritch/machincast/pull/90), qui ajoute la priorité `secours` des événements, puis [PR #100](https://github.com/dascritch/machincast/pull/100), qui ajoute les séquences et la banque « ne pas répéter »). Une base créée avant une fusion ne peut pas être mise à jour. Pour la reconnaître, lister les migrations qu'elle a reçues, et vérifier qu'elle connaît les séquences :
 
 ```bash
 psql --dbname=machincast -c "SELECT migration_id FROM _yoyo_migration"
-psql --dbname=machincast -c "SELECT enum_range(NULL::priorite_evenement)"
+psql --dbname=machincast -c "SELECT to_regclass('sequences')"
 ```
 
-Si la première liste contient autre chose que `0001.schema-initial`, ou si la seconde ne commence pas par `secours`, recréer la base. **Cela efface son contenu** : ce n'est possible que tant que MachinCast n'est pas en production. Les commandes de ce document utilisent le nom de base du modèle, `machincast` : le remplacer par celui de `base.production` (ou `base.test`) dans `machincast.toml`.
+Si la première liste contient autre chose que `0001.schema-initial`, ou si la seconde répond une valeur vide au lieu de `sequences`, recréer la base. **Cela efface son contenu** : ce n'est possible que tant que MachinCast n'est pas en production. Les commandes de ce document utilisent le nom de base du modèle, `machincast` : le remplacer par celui de `base.production` (ou `base.test`) dans `machincast.toml`.
 
 ```bash
 sudo -u postgres dropdb machincast

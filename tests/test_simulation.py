@@ -133,21 +133,64 @@ def banque_a_ne_pas_repeter(banc: Banc, base_vide: Connexion, tmp_path: Path, no
 		)
 
 
-@given(parsers.re(r"le fil musical permanent « (?P<nom>[^»]+) », avec (?P<liste>(?:la banque|le sonore) « .+)"))
+@given(parsers.re(r"la banque « (?P<nom>[^»]+) » des sonores (?P<liste>.+), de nom public « (?P<nom_public>[^»]+) »"))
+def banque_nommee(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str, nom_public: str) -> None:
+	creee = base_vide.execute(
+		"INSERT INTO banques (nom_interne, nom_public, mode) VALUES (%s, %s, 'sequentiel') RETURNING id",
+		(nom, nom_public),
+	).fetchone()
+	assert creee is not None
+	for position, nom_sonore in enumerate(re.findall(r"« ([^»]+) »", liste), start=1):
+		base_vide.execute(
+			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+			(creee[0], creer_sonore(banc, base_vide, tmp_path, nom_sonore), position),
+		)
+
+
+@given(
+	parsers.re(
+		r"la séquence « (?P<nom>[^»]+) », qui appelle deux fois la banque « (?P<banque>[^»]+) »,"
+		r" de nom public « (?P<nom_public>[^»]+) », masquée"
+	)
+)
+def sequence_masquee(base_vide: Connexion, nom: str, banque: str, nom_public: str) -> None:
+	creee = base_vide.execute(
+		"INSERT INTO sequences (nom_interne, nom_public, masquer_metadonnees) VALUES (%s, %s, true) RETURNING id",
+		(nom, nom_public),
+	).fetchone()
+	ligne = base_vide.execute("SELECT id FROM banques WHERE nom_interne = %s", (banque,)).fetchone()
+	assert (creee is not None) and (ligne is not None)
+	for position in (1, 2):
+		base_vide.execute(
+			"INSERT INTO sequences_elements (sequence_id, position, banque_id) VALUES (%s, %s, %s)",
+			(creee[0], position, ligne[0]),
+		)
+
+
+@given(
+	parsers.re(r"le fil musical permanent « (?P<nom>[^»]+) », avec (?P<liste>(?:la banque|la séquence|le sonore) « .+)")
+)
 def fil_avec_elements(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str) -> None:
 	cree = base_vide.execute(
 		"INSERT INTO evenements (nom_interne, priorite) VALUES (%s, 'fil_musical') RETURNING id", (nom,)
 	).fetchone()
 	assert cree is not None
-	for position, (genre, nom_element) in enumerate(re.findall(r"(banque|sonore) « ([^»]+) »", liste), start=1):
-		if genre == "banque":
-			ligne = base_vide.execute("SELECT id FROM banques WHERE nom_interne = %s", (nom_element,)).fetchone()
+	for position, (genre, nom_element) in enumerate(
+		re.findall(r"(banque|séquence|sonore) « ([^»]+) »", liste), start=1
+	):
+		table = {"banque": "banques", "séquence": "sequences"}.get(genre)
+		if table is not None:
+			ligne = base_vide.execute(
+				f"SELECT id FROM {table} WHERE nom_interne = %s",  # noqa: S608
+				(nom_element,),
+			).fetchone()
 			assert ligne is not None
 			reference = int(str(ligne[0]))
 		else:
 			reference = creer_sonore(banc, base_vide, tmp_path, nom_element)
+		colonne = {"banque": "banque_id", "séquence": "sequence_id"}.get(genre, "sonore_id")
 		base_vide.execute(
-			f"INSERT INTO evenements_elements (evenement_id, position, {genre}_id) VALUES (%s, %s, %s)",  # noqa: S608
+			f"INSERT INTO evenements_elements (evenement_id, position, {colonne}) VALUES (%s, %s, %s)",  # noqa: S608
 			(cree[0], position, reference),
 		)
 
@@ -352,6 +395,13 @@ def sorties_masquees(contexte: Contexte, visible: str, masque: str, texte: str) 
 			extension,
 			contenu,
 		)
+
+
+@then(parsers.parse("le CSV de la simulation nomme la séquence « {nom} » pour {nombre:d} passages"))
+def sequence_dans_le_csv(contexte: Contexte, nom: str, nombre: int) -> None:
+	with fichier(contexte, ".csv").open(encoding="utf-8-sig", newline="") as source:
+		lignes = list(csv.DictReader(source, delimiter=";"))
+	assert sum(1 for ligne in lignes if ligne["sequence"] == nom) == nombre, lignes
 
 
 @then(

@@ -4,10 +4,12 @@ Les étapes communes aux scénarios de la diffusion, dont le serveur de flux loc
 tests/etapes_diffusion.py.
 """
 
+from pathlib import Path
+
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from tests.etapes_diffusion import Banc, Connexion, passages, sonore, sonores_de
+from tests.etapes_diffusion import Banc, Connexion, creer_sonore, heure, passages, sonore, sonores_de
 from tests.flux import ServeurDeFlux
 from tests.sons import TAGS_DE_TEST
 
@@ -30,6 +32,48 @@ def stream_marque_page(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, m
 	).fetchone()
 	assert cree is not None
 	base_vide.execute("INSERT INTO sonores (type, marque_page_id, titre) VALUES ('stream', %s, %s)", (cree[0], nom))
+
+
+@given(
+	parsers.re(
+		r"l'émission « (?P<nom>[^»]+) » de (?P<debut>[\d:]+) à (?P<fin>[\d:]+), avec la séquence des sonores"
+		r" « (?P<avant>[^»]+) », « (?P<stream>[^»]+) », « (?P<apres>[^»]+) »"
+	)
+)
+def emission_avec_sequence(
+	banc: Banc,
+	base_vide: Connexion,
+	tmp_path: Path,
+	nom: str,
+	debut: str,
+	fin: str,
+	avant: str,
+	stream: str,
+	apres: str,
+) -> None:
+	"""Le stream existe déjà ; les deux autres sonores sont créés."""
+	sequence = base_vide.execute(
+		"INSERT INTO sequences (nom_interne) VALUES (%s) RETURNING id", (f"Séquence de {nom}",)
+	).fetchone()
+	evenement = base_vide.execute(
+		"INSERT INTO evenements (nom_interne, priorite, debut, fin) VALUES (%s, 'emission', %s, %s) RETURNING id",
+		(nom, heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}")),
+	).fetchone()
+	assert (sequence is not None) and (evenement is not None)
+	identifiants = (
+		creer_sonore(banc, base_vide, tmp_path, avant),
+		sonore(base_vide, stream),
+		creer_sonore(banc, base_vide, tmp_path, apres),
+	)
+	for position, identifiant in enumerate(identifiants, start=1):
+		base_vide.execute(
+			"INSERT INTO sequences_elements (sequence_id, position, sonore_id) VALUES (%s, %s, %s)",
+			(sequence[0], position, identifiant),
+		)
+	base_vide.execute(
+		"INSERT INTO evenements_elements (evenement_id, position, sequence_id) VALUES (%s, 1, %s)",
+		(evenement[0], sequence[0]),
+	)
 
 
 @given(parsers.parse("le stream « {nom} » est secouru par « {secours} »"))
@@ -75,11 +119,29 @@ def sans_tags_du_flux(base_vide: Connexion) -> None:
 		assert str(titre) not in TAGS_DE_TEST, titre
 
 
-@then(parsers.parse("l'airplay montre « {stream} », puis des sonores de « {evenement} », puis « {stream_fin} »"))
-def remplacement(base_vide: Connexion, stream: str, evenement: str, stream_fin: str) -> None:
-	noms = [p[0] for p in passages(base_vide)]
+@then(
+	parsers.re(
+		r"l'airplay montre « (?P<stream>[^»]+) », puis des sonores de « (?P<evenement>[^»]+) »,"
+		r" puis « (?P<stream_fin>[^»]+) »$"
+	)
+)
+def remplacement(
+	base_vide: Connexion, stream: str, evenement: str, stream_fin: str, noms: list[str] | None = None
+) -> None:
+	noms = [p[0] for p in passages(base_vide)] if noms is None else noms
 	assert len(noms) >= 3 and noms[0] == stream and noms[-1] == stream_fin, noms
 	assert set(noms[1:-1]) <= sonores_de(base_vide, evenement), noms
+
+
+@then(
+	parsers.parse(
+		"l'airplay montre « {avant} », « {stream} », puis des sonores de « {evenement} », puis « {stream_fin} »"
+	)
+)
+def remplacement_apres(base_vide: Connexion, avant: str, stream: str, evenement: str, stream_fin: str) -> None:
+	noms = [p[0] for p in passages(base_vide)]
+	assert noms[0] == avant, noms
+	remplacement(base_vide, stream, evenement, stream_fin, noms[1:])
 
 
 @then(parsers.parse("le premier passage « {nom} » a fini en incident"))

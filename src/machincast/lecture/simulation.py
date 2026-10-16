@@ -39,7 +39,7 @@ from machincast.lecture.expiration import Expiration, _cause
 from machincast.lecture.grille import lire_grille, prochain_changement
 from machincast.lecture.historique import EN_BASE, DernierPassage
 from machincast.lecture.moteur import EtatVoie, VoieLecture
-from machincast.lecture.sorties import COLONNES_CSV, Ligne, ligne_csv, masque, playlist
+from machincast.lecture.sorties import COLONNES_CSV, Ligne, ligne_csv, masque, playlist, premier_nom_public
 
 journal = logging.getLogger(__name__)
 
@@ -202,7 +202,9 @@ class HistoriqueSimule:
 	def dernier_passage(self, connexion: Connexion) -> DernierPassage | None:
 		if self.passages:
 			passage = self.passages[-1].passage
-			return DernierPassage(passage.id, passage.banque)
+			return DernierPassage(
+				passage.id, passage.banque, passage.debut, passage.evenement, passage.element, passage.sequence_element
+			)
 		return EN_BASE.dernier_passage(connexion)
 
 	def commencer_passage(
@@ -213,6 +215,8 @@ class HistoriqueSimule:
 		evenement: int | None,
 		element: int | None,
 		instant: datetime,
+		sequence: int | None = None,
+		sequence_element: int | None = None,
 	) -> Passage:
 		ligne = connexion.execute(
 			"SELECT s.artiste, s.titre, COALESCE(s.emplacement, s.url_stream, m.url) FROM sonores s"
@@ -220,7 +224,7 @@ class HistoriqueSimule:
 			(sonore,),
 		).fetchone()
 		artiste, titre, emplacement = ligne if ligne is not None else (None, None, None)
-		passage = Passage(uuid.uuid4(), sonore, banque, evenement, element, instant)
+		passage = Passage(uuid.uuid4(), sonore, banque, evenement, element, instant, sequence, sequence_element)
 		self.passages.append(
 			PassageSimule(
 				passage,
@@ -297,10 +301,17 @@ class HistoriqueSimule:
 				([s.passage.evenement for s in self.passages],),
 			).fetchall()
 		}
+		sequences = {
+			identifiant: (nom, nom_public, masque)
+			for identifiant, nom, nom_public, masque in connexion.execute(
+				"SELECT id, nom_interne, nom_public, masquer_metadonnees FROM sequences WHERE id = ANY(%s)",
+				([s.passage.sequence for s in self.passages],),
+			).fetchall()
+		}
 		banques = {
-			identifiant: (nom, masque)
-			for identifiant, nom, masque in connexion.execute(
-				"SELECT id, nom_interne, masquer_metadonnees FROM banques WHERE id = ANY(%s)",
+			identifiant: (nom, nom_public, masque)
+			for identifiant, nom, nom_public, masque in connexion.execute(
+				"SELECT id, nom_interne, nom_public, masquer_metadonnees FROM banques WHERE id = ANY(%s)",
 				([s.passage.banque for s in self.passages],),
 			).fetchall()
 		}
@@ -314,7 +325,8 @@ class HistoriqueSimule:
 		for simule in sorted(self.passages, key=lambda s: s.passage.debut):
 			passage = simule.passage
 			evenement = evenements.get(passage.evenement, (None, None, None))
-			banque = banques.get(passage.banque, (None, None))
+			sequence = sequences.get(passage.sequence, (None, None, None))
+			banque = banques.get(passage.banque, (None, None, None))
 			resultat.append(
 				Ligne(
 					debut=passage.debut,
@@ -325,9 +337,15 @@ class HistoriqueSimule:
 					titre=simule.titre,
 					emplacement=simule.emplacement,
 					evenement=_texte(evenement[0]),
-					nom_public=_texte(evenement[1]),
+					nom_public=premier_nom_public(evenement[1], sequence[1], banque[1]),
+					sequence=_texte(sequence[0]),
 					banque=_texte(banque[0]),
-					masquages=(_booleen(evenement[2]), _booleen(banque[1]), _booleen(sonores.get(passage.sonore))),
+					masquages=(
+						_booleen(evenement[2]),
+						_booleen(sequence[2]),
+						_booleen(banque[2]),
+						_booleen(sonores.get(passage.sonore)),
+					),
 				)
 			)
 		return resultat
@@ -342,8 +360,8 @@ def _booleen(valeur: object) -> bool | None:
 
 
 def masquer(ligne: Ligne, metadonnees: Metadonnees) -> Ligne:
-	"""Le passage tel que la page publique le montre : artiste et titre masqués selon les quatre niveaux, remplacés
-	par le nom public de l'événement ou le texte public (machincast.lecture.sorties). L'emplacement reste : il permet
+	"""Le passage tel que la page publique le montre : artiste et titre masqués selon les cinq niveaux, remplacés
+	par le premier nom public renseigné ou le texte public (machincast.lecture.sorties). L'emplacement reste : il permet
 	de vérifier ce qui est joué."""
 	if not masque(ligne.masquages, metadonnees.masquer):
 		return ligne
@@ -431,6 +449,7 @@ def page_de_simulation(lignes: list[Ligne], log: list[tuple[str, str, str]], deb
 		+ cellule(ligne.titre)
 		+ cellule(ligne.emplacement)
 		+ cellule(ligne.evenement)
+		+ cellule(ligne.sequence)
 		+ cellule(ligne.banque)
 		+ "</tr>"
 		for ligne in lignes
@@ -463,7 +482,7 @@ def page_de_simulation(lignes: list[Ligne], log: list[tuple[str, str, str]], deb
 	</ul>
 	<h2>Passages</h2>
 	<table>
-		<thead><tr><th>Début</th><th>Fin</th><th>Artiste</th><th>Titre</th><th>Emplacement</th><th>Événement</th><th>Banque</th></tr></thead>
+		<thead><tr><th>Début</th><th>Fin</th><th>Artiste</th><th>Titre</th><th>Emplacement</th><th>Événement</th><th>Séquence</th><th>Banque</th></tr></thead>
 		<tbody>
 {rangees}
 		</tbody>

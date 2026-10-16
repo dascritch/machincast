@@ -35,6 +35,12 @@ class DernierPassage:
 	id: uuid.UUID
 	banque: int | None
 	"""None pour un sonore placé directement dans un événement."""
+	debut: datetime | None = None
+	evenement: int | None = None
+	element: int | None = None
+	"""Élément de la liste de l'événement qui l'a fait jouer."""
+	sequence_element: int | None = None
+	"""Élément de la séquence qui l'a fait jouer (https://github.com/dascritch/machincast/issues/99)."""
 
 
 class Historique(Protocol):
@@ -62,6 +68,8 @@ class Historique(Protocol):
 		evenement: int | None,
 		element: int | None,
 		instant: datetime,
+		sequence: int | None = None,
+		sequence_element: int | None = None,
 	) -> Passage: ...
 
 	def terminer_passage(
@@ -120,13 +128,20 @@ class HistoriqueEnBase:
 
 	def dernier_passage(self, connexion: Connexion) -> DernierPassage | None:
 		ligne = connexion.execute(
-			"SELECT passage_id, banque_id FROM airplay WHERE type_ligne = 'debut' ORDER BY horodatage DESC, id DESC"
-			" LIMIT 1"
+			"SELECT passage_id, banque_id, horodatage, evenement_id, element_id, sequence_element_id FROM airplay"
+			" WHERE type_ligne = 'debut' ORDER BY horodatage DESC, id DESC LIMIT 1"
 		).fetchone()
 		if ligne is None:
 			return None
-		passage, banque = ligne
-		return DernierPassage(uuid.UUID(str(passage)), None if banque is None else int(str(banque)))
+		passage, banque, debut, evenement, element, sequence_element = ligne
+		return DernierPassage(
+			uuid.UUID(str(passage)),
+			_entier(banque),
+			debut if isinstance(debut, datetime) else None,
+			_entier(evenement),
+			_entier(element),
+			_entier(sequence_element),
+		)
 
 	def commencer_passage(
 		self,
@@ -136,8 +151,12 @@ class HistoriqueEnBase:
 		evenement: int | None,
 		element: int | None,
 		instant: datetime,
+		sequence: int | None = None,
+		sequence_element: int | None = None,
 	) -> Passage:
-		return enregistrement.commencer_passage(connexion, sonore, banque, evenement, element, instant)
+		return enregistrement.commencer_passage(
+			connexion, sonore, banque, evenement, element, instant, sequence, sequence_element
+		)
 
 	def terminer_passage(
 		self,
@@ -165,6 +184,10 @@ class HistoriqueEnBase:
 
 	def expirer(self, connexion: Connexion, instant: datetime, sonore: int | None = None) -> list[Expiration]:
 		return expirer(connexion, instant, sonore)
+
+
+def _entier(valeur: object) -> int | None:
+	return None if valeur is None else int(str(valeur))
 
 
 EN_BASE: Historique = HistoriqueEnBase()

@@ -1,10 +1,11 @@
 # language: fr
 Fonctionnalité: Masquage des métadonnées et modules de sortie
 	En tant que programmateur de l'antenne,
-	je veux que l'artiste et le titre soient masqués sur les sorties publiques selon la priorité Événement > Banque > Sonore > configuration,
+	je veux que l'artiste et le titre soient masqués sur les sorties publiques selon la priorité Événement > Séquence > Banque > Sonore > configuration,
 	afin que certaines diffusions restent anonymes pour le public.
 
-	https://github.com/dascritch/machincast/issues/19, spec § 4.8 et § 5.3. Les sorties privées (journal, CSV, .pls)
+	https://github.com/dascritch/machincast/issues/19, spec § 4.8 et § 5.3 ; niveau de la séquence :
+	https://github.com/dascritch/machincast/issues/99. Les sorties privées (journal, CSV, .pls)
 	disent tout ; la sortie publique (HTML) applique le masquage. Les fichiers de sortie sont écrits dans un
 	répertoire temporaire, à la place des chemins de la configuration.
 
@@ -14,20 +15,34 @@ Fonctionnalité: Masquage des métadonnées et modules de sortie
 
 	# ─── Masquage ──────────────────────────────────────────────
 
-	Plan du scénario: Le masquage retenu est celui du premier niveau renseigné : événement, banque, sonore, configuration
-		Étant donné le masquage <evenement> pour l'événement, <banque> pour la banque, <sonore> pour le sonore et <configuration> dans la configuration
+	Plan du scénario: Le masquage retenu est celui du premier niveau renseigné : événement, séquence, banque, sonore, configuration
+		Étant donné le masquage <evenement> pour l'événement, <sequence> pour la séquence, <banque> pour la banque, <sonore> pour le sonore et <configuration> dans la configuration
 		Alors l'artiste et le titre sont <verdict> sur la sortie publique
 
 		Exemples:
-			| evenement | banque | sonore | configuration | verdict  |
-			| vide      | vide   | vide   | non           | affichés |
-			| vide      | vide   | vide   | oui           | masqués  |
-			| vide      | vide   | oui    | non           | masqués  |
-			| vide      | vide   | non    | oui           | affichés |
-			| vide      | non    | oui    | oui           | affichés |
-			| vide      | oui    | non    | non           | masqués  |
-			| oui       | non    | non    | non           | masqués  |
-			| non       | oui    | oui    | oui           | affichés |
+			| evenement | sequence | banque | sonore | configuration | verdict  |
+			| vide      | vide     | vide   | vide   | non           | affichés |
+			| vide      | vide     | vide   | vide   | oui           | masqués  |
+			| vide      | vide     | vide   | oui    | non           | masqués  |
+			| vide      | vide     | vide   | non    | oui           | affichés |
+			| vide      | vide     | non    | oui    | oui           | affichés |
+			| vide      | vide     | oui    | non    | non           | masqués  |
+			| vide      | oui      | non    | non    | non           | masqués  |
+			| vide      | non      | oui    | oui    | oui           | affichés |
+			| oui       | non      | non    | non    | non           | masqués  |
+			| non       | oui      | oui    | oui    | oui           | affichés |
+
+	Plan du scénario: Masqués, l'artiste et le titre laissent la place au premier nom public renseigné : événement, séquence, banque
+		Étant donné un passage masqué, de nom public <evenement> pour l'événement, <sequence> pour la séquence et <banque> pour la banque
+		Quand les sorties sont mises à jour
+		Alors la page publique montre « <texte> » comme sonore à l'antenne
+
+		Exemples:
+			| evenement  | sequence     | banque       | texte                    |
+			| « Nuit »   | « Pub »      | « Jingles »  | Nuit                     |
+			| vide       | « Pub »      | « Jingles »  | Pub                      |
+			| vide       | vide         | « Jingles »  | Jingles                  |
+			| vide       | vide         | vide         | Radio Exemple            |
 
 	Scénario: Masqués, l'artiste et le titre laissent la place au nom public de l'événement
 		Étant donné le passage de « Les Gaufres » – « Café à minuit » dans l'émission « Nuit », de nom public « La nuit des auditeurs », masquée
