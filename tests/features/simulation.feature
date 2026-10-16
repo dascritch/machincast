@@ -79,6 +79,16 @@ Fonctionnalité: Mode simulation de Machin lecture
 		Et la simulation a consigné 3 info « élément sauté »
 		Et la base n'a pas changé
 
+	Scénario: Une séquence est simulée comme à la diffusion, et ses sorties la masquent par son nom public
+		Étant donné la banque « Spots » des sonores « a », « b », de nom public « Publicité »
+		Et la séquence « Pub », qui appelle deux fois la banque « Spots », de nom public « Vous écoutez Radio Thune », masquée
+		Et le fil musical permanent « Continue », avec la séquence « Pub » et le sonore « f »
+		Et chaque sonore dure 1 minute
+		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:04 »
+		Alors la simulation donne les titres « a », « b », « f », « a »
+		Et les sorties de la simulation montrent « f », mais pas « b », remplacé par « Vous écoutez Radio Thune »
+		Et le CSV de la simulation nomme la séquence « Pub » pour 3 passages
+
 	# ─── Grille ────────────────────────────────────────────────
 
 	Scénario: Une émission coupe net à son heure, puis son dernier sonore va jusqu'au bout

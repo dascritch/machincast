@@ -22,7 +22,8 @@ from tests.base_test import parametres_base_test
 scenarios("deroule.feature")
 
 Connexion = psycopg.Connection[tuple[object, ...]]
-ELEMENT = re.compile(r"(sonore|banque) « ([^»]+) »")
+ELEMENT = re.compile(r"(sonore|banque|séquence) « ([^»]+) »")
+COLONNES = {"sonore": "sonore_id", "banque": "banque_id", "séquence": "sequence_id"}
 NOM = re.compile(r"« ([^»]+) »")
 JOUR = date(2026, 10, 14)
 MODES = {"séquentielle": "sequentiel", "aléatoire": "aleatoire"}
@@ -85,6 +86,18 @@ def banque(base: Connexion, nom: str) -> int:
 	return int(str(ligne[0]))
 
 
+def sequence(base: Connexion, nom: str) -> int:
+	ligne = base.execute("SELECT id FROM sequences WHERE nom_interne = %s", (nom,)).fetchone()
+	assert ligne is not None, f"séquence {nom} inconnue"
+	return int(str(ligne[0]))
+
+
+def reference(base: Connexion, genre: str, nom: str) -> int:
+	if genre == "sonore":
+		return sonore(base, nom)
+	return banque(base, nom) if genre == "banque" else sequence(base, nom)
+
+
 # ─── Étant donné ───────────────────────────────────────────
 
 
@@ -105,6 +118,18 @@ def banque_contenant(base_vide: Connexion, mode: str, nom: str, liste: str) -> N
 		base_vide.execute(
 			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
 			(banque(base_vide, nom), sonore(base_vide, nom_sonore), position),
+		)
+
+
+@given(parsers.re(r"une séquence « (?P<nom>[^»]+) » jouant (?P<liste>.+)"))
+def sequence_jouant(base_vide: Connexion, nom: str, liste: str) -> None:
+	creee = base_vide.execute("INSERT INTO sequences (nom_interne) VALUES (%s) RETURNING id", (nom,)).fetchone()
+	assert creee is not None
+	for position, (genre, nom_element) in enumerate(ELEMENT.findall(liste), start=1):
+		base_vide.execute(
+			f"INSERT INTO sequences_elements (sequence_id, position, {COLONNES[genre]})"  # noqa: S608
+			" VALUES (%s, %s, %s)",
+			(creee[0], position, reference(base_vide, genre, nom_element)),
 		)
 
 
@@ -137,10 +162,10 @@ def evenements(base_vide: Connexion, datatable: list[list[str]]) -> None:
 		).fetchone()
 		assert cree is not None
 		for position, (genre, nom) in enumerate(ELEMENT.findall(ligne["liste"]), start=1):
-			reference = sonore(base_vide, nom) if genre == "sonore" else banque(base_vide, nom)
 			base_vide.execute(
-				f"INSERT INTO evenements_elements (evenement_id, position, {genre}_id) VALUES (%s, %s, %s)",  # noqa: S608
-				(cree[0], position, reference),
+				f"INSERT INTO evenements_elements (evenement_id, position, {COLONNES[genre]})"  # noqa: S608
+				" VALUES (%s, %s, %s)",
+				(cree[0], position, reference(base_vide, genre, nom)),
 			)
 
 
@@ -164,8 +189,17 @@ def derouler(contexte: Contexte, base: Connexion, lecture: Connexion, debut: dat
 			choix = decision.jouer
 			base.execute(
 				"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, banque_id, evenement_id,"
-				" element_id) VALUES (%s, 'debut', %s, %s, %s, %s, %s)",
-				(uuid.uuid4(), instant, choix.sonore, choix.banque, choix.occurrence.evenement.id, choix.element.id),
+				" element_id, sequence_id, sequence_element_id) VALUES (%s, 'debut', %s, %s, %s, %s, %s, %s, %s)",
+				(
+					uuid.uuid4(),
+					instant,
+					choix.sonore,
+					choix.banque,
+					choix.occurrence.evenement.id,
+					choix.element.id,
+					None if choix.ligne is None else choix.ligne.sequence,
+					None if choix.ligne is None else choix.ligne.id,
+				),
 			)
 			nom = nom_de(base, "sonores", "emplacement", choix.sonore)
 			en_cours = EnCours(choix.occurrence, instant, instant + contexte.durees.get(nom, contexte.duree))

@@ -340,3 +340,155 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 			| Jingles                          | boucle        | 1      |
 			| Jingles                          | ne boucle pas |        |
 			| sonore, Jingles, Jingles, sonore | boucle        | 3      |
+
+	# ─── Séquences (https://github.com/dascritch/machincast/issues/99) ───
+	# Une séquence joue ses éléments dans l'ordre, et se comporte, pour les transitions, comme un seul sonore.
+
+	Scénario: Une séquence joue ses éléments dans l'ordre, chaque banque fait jouer un seul sonore
+		Étant donné une banque séquentielle « Pubs » contenant « p1 », « p2 », « p3 »
+		Et une banque séquentielle « Station » contenant « s1 »
+		Et une séquence « Passage pub » jouant sonore « debut-pub », banque « Pubs », banque « Pubs », sonore « fin-pub », banque « Station »
+		Et les événements :
+			| nom      | priorité | début | fin   | liste                                               |
+			| Magazine | emission | 20:00 | 21:10 | sonore « m », séquence « Passage pub », sonore « m » |
+		Quand la diffusion se déroule de 20:00 à 21:10
+		Alors la diffusion a été :
+			| heure | sonore    | événement | issue  |
+			| 20:00 | m         | Magazine  | entier |
+			| 20:10 | debut-pub | Magazine  | entier |
+			| 20:20 | p1        | Magazine  | entier |
+			| 20:30 | p2        | Magazine  | entier |
+			| 20:40 | fin-pub   | Magazine  | entier |
+			| 20:50 | s1        | Magazine  | entier |
+			| 21:00 | m         | Magazine  | entier |
+
+	Scénario: Dans une séquence, une banque « ne pas répéter » ne passe pas deux fois de suite
+		Étant donné une banque séquentielle « Pubs » contenant « p1 », « p2 », « p3 »
+		Et la banque « Pubs » est marquée « ne pas répéter »
+		Et une séquence « Passage pub » jouant sonore « debut-pub », banque « Pubs », banque « Pubs », sonore « fin-pub »
+		Et les événements :
+			| nom      | priorité | début | fin   | liste                                 |
+			| Magazine | emission | 20:00 | 20:40 | séquence « Passage pub », sonore « m » |
+		Quand la diffusion se déroule de 20:00 à 20:40
+		Alors la diffusion a été :
+			| heure | sonore    | événement | issue  |
+			| 20:00 | debut-pub | Magazine  | entier |
+			| 20:10 | p1        | Magazine  | entier |
+			| 20:20 | fin-pub   | Magazine  | entier |
+			| 20:30 | m         | Magazine  | entier |
+		Et le log contient 1 info « élément sauté » pour l'événement « Magazine » et la banque « Pubs »
+
+	Scénario: Une banque « ne pas répéter » qui finit l'événement ne commence pas la séquence qui suit
+		Étant donné une banque séquentielle « Station » contenant « s1 », « s2 »
+		Et la banque « Station » est marquée « ne pas répéter »
+		Et une séquence « Habillage » jouant banque « Station », sonore « h »
+		Et les événements :
+			| nom      | priorité | début | fin   | liste                                       |
+			| Magazine | emission | 20:00 | 20:30 | banque « Station », séquence « Habillage » |
+		Quand la diffusion se déroule de 20:00 à 20:30
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | s1     | Magazine  | entier |
+			| 20:10 | h      | Magazine  | entier |
+			| 20:20 | s2     | Magazine  | entier |
+
+	Scénario: Un élément non jouable de la séquence est ignoré
+		Étant donné une banque séquentielle « Vide » contenant « x »
+		Et le sonore « x » est à l'état « desactive »
+		Et le sonore « y » est à l'état « expire »
+		Et une séquence « Trio » jouant sonore « a », banque « Vide », sonore « y », sonore « b »
+		Et les événements :
+			| nom      | priorité | début | fin   | liste                           |
+			| Magazine | emission | 20:00 | 20:30 | séquence « Trio », sonore « m » |
+		Quand la diffusion se déroule de 20:00 à 20:30
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | a      | Magazine  | entier |
+			| 20:10 | b      | Magazine  | entier |
+			| 20:20 | m      | Magazine  | entier |
+
+	Scénario: Une séquence dont rien n'est jouable est sautée, comme une banque vide
+		Étant donné une banque séquentielle « Vide » contenant « x »
+		Et le sonore « x » est à l'état « desactive »
+		Et le sonore « y » est à l'état « expire »
+		Et une séquence « Muette » jouant banque « Vide », sonore « y »
+		Et les événements :
+			| nom      | priorité | début | fin   | liste                              |
+			| Magazine | emission | 20:00 | 20:20 | séquence « Muette », sonore « m » |
+		Quand la diffusion se déroule de 20:00 à 20:20
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | m      | Magazine  | entier |
+			| 20:10 | m      | Magazine  | entier |
+
+	Scénario: À la fin d'un événement sans successeur, la séquence est jouée jusqu'au bout
+		Étant donné une séquence « Trio » jouant sonore « t1 », sonore « t2 », sonore « t3 »
+		Et les événements :
+			| nom      | priorité    | début | fin   | liste               |
+			| Continue | fil_musical |       |       | sonore « f »        |
+			| Magazine | emission    | 20:00 | 20:15 | séquence « Trio »   |
+		Quand la diffusion se déroule de 20:00 à 20:40
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | t1     | Magazine  | entier |
+			| 20:10 | t2     | Magazine  | entier |
+			| 20:20 | t3     | Magazine  | entier |
+			| 20:30 | f      | Continue  | entier |
+
+	Scénario: Un événement qui commence coupe net la séquence : ses éléments restants ne sont pas joués
+		Étant donné une séquence « Trio » jouant sonore « t1 », sonore « t2 », sonore « t3 »
+		Et les événements :
+			| nom      | priorité    | début | fin   | liste                             |
+			| Continue | fil_musical |       |       | séquence « Trio », sonore « f »   |
+			| Magazine | emission    | 20:15 | 20:25 | sonore « m »                      |
+		Quand la diffusion se déroule de 20:00 à 20:45
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue         |
+			| 20:00 | t1     | Continue  | entier        |
+			| 20:10 | t2     | Continue  | coupé à 20:15 |
+			| 20:15 | m      | Magazine  | entier        |
+			| 20:25 | f      | Continue  | entier        |
+			| 20:35 | t1     | Continue  | entier        |
+
+	Scénario: Après une séquence jouée en entier, le fil musical reprend à l'élément qui la suit
+		Étant donné une séquence « Duo » jouant sonore « d1 », sonore « d2 »
+		Et les événements :
+			| nom      | priorité    | début | fin | liste                          |
+			| Continue | fil_musical |       |     | séquence « Duo », sonore « f » |
+		Quand la diffusion se déroule de 20:00 à 20:40
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | d1     | Continue  | entier |
+			| 20:10 | d2     | Continue  | entier |
+			| 20:20 | f      | Continue  | entier |
+			| 20:30 | d1     | Continue  | entier |
+
+	Scénario: Après un redémarrage du binaire, la séquence reprend là où elle en était
+		Étant donné une séquence « Trio » jouant sonore « t1 », sonore « t2 », sonore « t3 »
+		Et les événements :
+			| nom      | priorité    | début | fin | liste                           |
+			| Continue | fil_musical |       |     | séquence « Trio », sonore « f » |
+		Quand la diffusion se déroule de 20:00 à 20:10
+		Et le binaire redémarre
+		Et la diffusion se déroule de 20:10 à 20:40
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | t1     | Continue  | entier |
+			| 20:10 | t2     | Continue  | entier |
+			| 20:20 | t3     | Continue  | entier |
+			| 20:30 | f      | Continue  | entier |
+
+	Scénario: Une même séquence sert dans plusieurs événements, et l'événement qui commence l'emporte sur celle du fil
+		Étant donné une séquence « Duo » jouant sonore « d1 », sonore « d2 »
+		Et les événements :
+			| nom      | priorité    | début | fin   | liste                          |
+			| Continue | fil_musical |       |       | sonore « f », séquence « Duo » |
+			| Magazine | emission    | 20:20 | 20:40 | séquence « Duo », sonore « m » |
+		Quand la diffusion se déroule de 20:00 à 20:50
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | f      | Continue  | entier |
+			| 20:10 | d1     | Continue  | entier |
+			| 20:20 | d1     | Magazine  | entier |
+			| 20:30 | d2     | Magazine  | entier |
+			| 20:40 | f      | Continue  | entier |

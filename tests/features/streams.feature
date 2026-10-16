@@ -137,6 +137,20 @@ Fonctionnalité: Diffusion des streams
 		Et le log contient 1 incident « flux tombé », qui donne l'adresse du flux « studio »
 		Et le log contient 1 incident « reprise du flux », qui donne l'adresse du flux « studio »
 
+	Scénario: Un stream tombé dans une séquence est secouru comme ailleurs : la séquence ne passe pas à sa suite
+		Étant donné le stream « Direct studio » à l'adresse du flux « studio »
+		Et l'événement de secours « Secours direct », avec les sonores « s1 »
+		Et le stream « Direct studio » est secouru par « Secours direct »
+		Et l'émission « Direct » de 19:59:50 à 20:30:00, avec la séquence des sonores « avant », « Direct studio », « après »
+		Et le flux « studio » est hors ligne
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne pendant 1,5 seconde en temps réel
+		Et le flux « studio » revient
+		Et la diffusion tourne pendant 1,5 seconde en temps réel
+		Et la diffusion s'arrête
+		Alors l'airplay montre « avant », « Direct studio », puis des sonores de « Secours direct », puis « Direct studio »
+		Et l'airplay montre 0 passage « après »
+
 	Scénario: À la fin de l'événement du stream, la reconnexion est abandonnée
 		Étant donné le stream « Direct studio » à l'adresse du flux « studio »
 		Et l'événement de secours « Secours direct », avec les sonores « s1 »

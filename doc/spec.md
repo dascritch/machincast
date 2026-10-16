@@ -27,7 +27,8 @@ MachinCast est un système automatisé de diffusion sonore pour radio. Il fourni
 | --- | --- |
 | **Sonore** | Un fichier audio ou un stream. Unité de base de la diffusion. |
 | **Banque** | Un ensemble ordonné de sonores, alimenté par un ou plusieurs répertoires indexés et/ou à la main. Quand une banque est jouée, un seul de ses sonores est tiré. |
-| **Événement** | Une plage horaire, éventuellement récurrente, avec une priorité et une liste de lecture de banques et/ou de sonores. |
+| **Événement** | Une plage horaire, éventuellement récurrente, avec une priorité et une liste de lecture de banques, de sonores et/ou de séquences. |
+| **Séquence** | Une suite ordonnée de sonores et/ou de banques, réutilisable dans un ou plusieurs événements, par exemple un passage publicitaire ([#99](https://github.com/dascritch/machincast/issues/99)). Elle se joue en entier, dans l'ordre, comme un seul sonore. |
 | **Fil musical** | Priorité la plus basse. Le fil musical tourne quand aucun événement de priorité supérieure n'est actif. |
 | **Airplay** | L'historique de ce qui a effectivement été diffusé. |
 | **Playlist** | Uniquement la liste générée à la volée par le binaire lecture et exportée en .pls, .csv ou .html. **La playlist n'existe pas en base.** Dans les écrans et les menus, on parle de « banque », jamais de « playlist ». |
@@ -114,6 +115,7 @@ Pas de champ format ni fréquence d'échantillonnage : l'échantillonnage peut v
 | Champ | Description |
 | --- | --- |
 | `id`, `nom_interne` | Identification. |
+| `nom_public` | Affiché à la place de l'artiste et du titre masqués, après ceux de l'événement et de la séquence ([§ 4.8](#48-métadonnées-publiques-et-masquage), [#99](https://github.com/dascritch/machincast/issues/99)). Vide = aucun. |
 | `mode` | `sequentiel` ou `aleatoire`. |
 | `masquer_metadonnees` | Masquage au niveau de la banque. Vide = hérite. |
 | `ne_pas_repeter` | La banque ne peut pas passer deux fois de suite, même d'un événement à l'autre (voir [§ 4.4](#44-choix-dun-sonore-dans-une-banque), [#63](https://github.com/dascritch/machincast/issues/63)). Faux par défaut. |
@@ -160,9 +162,28 @@ Règles sur les dates :
 | Champ | Description |
 | --- | --- |
 | `evenement_id`, `position` | Liste ordonnée, réordonnable par glisser-déposer. |
-| `banque_id`, `sonore_id` | Exactement un des deux est renseigné. |
+| `banque_id`, `sonore_id`, `sequence_id` | Exactement un des trois est renseigné. |
 
 Un même élément peut apparaître plusieurs fois dans la liste (par exemple un jingle entre chaque titre).
+
+#### `sequences`
+
+Suites de sonores et de banques réutilisables dans les événements ([#99](https://github.com/dascritch/machincast/issues/99)).
+
+| Champ | Description |
+| --- | --- |
+| `id`, `nom_interne`, `nom_public` | Identification. Le nom public s'affiche à la place de l'artiste et du titre masqués, après celui de l'événement ([§ 4.8](#48-métadonnées-publiques-et-masquage)). |
+| `masquer_metadonnees` | Masquage au niveau de la séquence. Vide = hérite. |
+| `modifie_le` | Horodatage de la dernière modification. |
+
+#### `sequences_elements`
+
+| Champ | Description |
+| --- | --- |
+| `sequence_id`, `position` | Liste ordonnée, réordonnable par glisser-déposer, d'au moins un élément : l'interface refuse d'enregistrer une séquence vide. |
+| `banque_id`, `sonore_id` | Exactement un des deux est renseigné. Une séquence ne contient jamais une autre séquence, pour écarter tout appel cyclique ; l'imbrication est un [développement ultérieur](#11-développements-ultérieurs). |
+
+Comme dans un événement, un même élément peut apparaître plusieurs fois (par exemple deux appels à la banque de publicités).
 
 #### `airplay`
 
@@ -175,6 +196,7 @@ L'historique de diffusion. Les lignes ne sont **jamais supprimées**, même quan
 | `horodatage` | Heure de début ou de fin. |
 | `sonore_id`, `banque_id`, `evenement_id` | Références facultatives. `banque_id` est indispensable au cycle aléatoire propre à chaque banque. |
 | `element_id` | Élément de la liste de l'événement qui a fait jouer le passage ([#14](https://github.com/dascritch/machincast/issues/14)) : un même élément peut figurer plusieurs fois dans une liste, seul lui dit où la reprendre. Vide si l'élément est supprimé. |
+| `sequence_id`, `sequence_element_id` | Pour un sonore joué par une séquence : la séquence et son élément, qui dit où la reprendre ([#99](https://github.com/dascritch/machincast/issues/99)). Vides si la séquence ou l'élément est supprimé. |
 | `emplacement`, `artiste`, `titre` | Recopiés au moment du passage, pour garder l'historique après suppression. |
 | `duree_diffusee` | Sur la ligne de fin : durée effectivement diffusée. |
 | `sans_incident` | Sur la ligne de fin : la lecture s'est-elle déroulée sans incident. |
@@ -195,7 +217,7 @@ L'indexeur n'écrit pas dans le log : ses incidents ne figurent donc pas dans l'
 
 #### Choix de modélisation
 
-Le schéma, les rôles et les droits sont créés par la migration `src/machincast/migrations/0001.schema-initial.sql`, fusion des migrations écrites avant toute mise en production ([PR #70](https://github.com/dascritch/machincast/pull/70), [PR #90](https://github.com/dascritch/machincast/pull/90)).
+Le schéma, les rôles et les droits sont créés par la migration `src/machincast/migrations/0001.schema-initial.sql`, fusion des migrations écrites avant toute mise en production ([PR #70](https://github.com/dascritch/machincast/pull/70), [PR #90](https://github.com/dascritch/machincast/pull/90), [PR #100](https://github.com/dascritch/machincast/pull/100), cette dernière pour la banque « ne pas répéter », les séquences et le nom public des banques).
 
 - Durées (`duree`, crossfades, `duree_diffusee`) : type `interval`. Dates : `timestamptz`.
 - Textes saisis à la main (noms internes et publics, artiste, titre, nature d'une entrée du log) : `varchar(255)`, la même limite que l'interface. Chemins, URL et messages détaillés : `text`, sans limite fixée à l'avance.
@@ -203,10 +225,10 @@ Le schéma, les rôles et les droits sont créés par la migration `src/machinca
 - `jours_recurrence` : tableau de `jour_semaine`. La récurrence est calculée en heure locale par le binaire lecture.
 - `metadonnees_musicales` : objet JSON (`jsonb`), jamais un tableau ni une valeur nulle.
 - Un événement ne peut pas avoir de fin sans début.
-- Positions dans `banques_sonores` et `evenements_elements` : uniques par banque ou par événement, vérifiées en fin de transaction pour permettre de réordonner.
-- Suppressions : un lien de banque ou un élément d'événement disparaît avec la banque, le sonore ou l'événement qu'il référence ; `airplay` et `log` gardent leurs lignes, avec la référence passée à vide. Un marque-page utilisé par un sonore ne peut pas être supprimé. La validation préalable des suppressions est faite par l'interface ([§ 8.9](#89-suppression)).
+- Positions dans `banques_sonores`, `evenements_elements` et `sequences_elements` : uniques par banque, par événement ou par séquence, vérifiées en fin de transaction pour permettre de réordonner.
+- Suppressions : un lien de banque, un élément d'événement ou un élément de séquence disparaît avec la banque, le sonore, la séquence ou l'événement qu'il référence ; `airplay` et `log` gardent leurs lignes, avec la référence passée à vide. Un marque-page utilisé par un sonore ne peut pas être supprimé. La validation préalable des suppressions est faite par l'interface ([§ 8.9](#89-suppression)).
 - Pour un stream, la colonne `emplacement` de `airplay` recopie l'URL diffusée.
-- `modifie_le` est mis à jour par un déclencheur à chaque modification de `sonores`, `banques` et `evenements`.
+- `modifie_le` est mis à jour par un déclencheur à chaque modification de `sonores`, `banques`, `evenements` et `sequences`.
 
 ### 3.2 Rôles et droits
 
@@ -227,6 +249,8 @@ Un rôle PostgreSQL par binaire : `machincast_lecture`, `machincast_indexation`,
 | `banques_sonores` | lire | lire, insérer | lire, insérer, modifier, supprimer |
 | `evenements` | lire | — | lire, insérer, modifier, supprimer |
 | `evenements_elements` | lire | — | lire, insérer, modifier, supprimer |
+| `sequences` | lire | — | lire, insérer, modifier, supprimer |
+| `sequences_elements` | lire | — | lire, insérer, modifier, supprimer |
 | `airplay` | lire, insérer | — | lire |
 | `log` | insérer (sans `RETURNING`) | — | lire |
 
@@ -247,6 +271,7 @@ L'indexation ne supprime rien : un fichier disparu fait passer son sonore à l'�
 - **Début d'un événement** : il coupe **net** le sonore en cours, quel que soit le sonore.
 - **Fin d'un événement** : si aucun autre événement ne suit, le dernier sonore est joué jusqu'au bout, puis le suivant est choisi selon les règles du fil musical actif. Si un autre événement suit immédiatement, son début coupe net le dernier sonore.
 - **Retour au fil musical** : il reprend à l'élément qui suit le dernier joué, d'après la table `airplay` (`element_id`), d'une occurrence à l'autre.
+- **Séquence** ([#99](https://github.com/dascritch/machincast/issues/99)) : pour les transitions, une séquence est traitée comme un seul sonore. À la fin d'un événement sans successeur immédiat, elle est jouée jusqu'au bout, au nom de son événement. Un événement qui commence coupe net le sonore en cours de la séquence, et la séquence avec lui : ses éléments restants ne sont pas joués. Après une séquence, jouée en entier ou coupée, la liste reprend à l'élément qui suit la séquence. Une séquence ne reprend que si le dernier passage de tout l'airplay vient d'elle, ce qui vaut aussi après un redémarrage. Pendant la suspension d'un stream tombé de la séquence, son secours joue comme ailleurs ([§ 4.7](#47-streams)).
 - **Rien à diffuser** : silence, et une alerte `silence` dans le log, une seule fois par silence. Le silence cesse dès qu'un sonore redevient jouable ou qu'un autre événement commence.
 - L'ordonnanceur (`machincast.lecture.deroule`, [#14](https://github.com/dascritch/machincast/issues/14)) décide à chaque instant : continuer, couper net, jouer un sonore ou se taire. Un événement coupe le sonore en cours s'il a commencé après le début de ce sonore ; sinon le sonore va jusqu'au bout.
 
@@ -254,6 +279,7 @@ L'indexation ne supprime rien : un fichier disparu fait passer son sonore à l'�
 
 - Les éléments sont joués dans l'ordre de `position`.
 - Un élément banque fait jouer **un seul** sonore de cette banque.
+- Un élément séquence ([#99](https://github.com/dascritch/machincast/issues/99)) joue les éléments de la séquence dans l'ordre de leur `position`, chaque banque faisant jouer un seul sonore. Un élément non jouable de la séquence est ignoré ; une séquence dont rien n'est jouable est sautée, comme une banque vide. Sa position se lit dans `airplay.sequence_element_id`.
 - Si la liste est terminée avant la fin de l'événement, elle reprend au début (boucle).
 - Un événement `emission` ou `special` sans date de fin ne boucle pas : il se termine à la fin de sa liste.
 - Un élément qui ne donne rien (banque sans sonore jouable, sonore non jouable) est sauté. Une émission ou un spécial dont plus rien n'est jouable se termine pour cette occurrence ; pour un fil musical, silence et alerte.
@@ -265,11 +291,11 @@ L'indexation ne supprime rien : un fichier disparu fait passer son sonore à l'�
 - **Aléatoire contrôlé** : un sonore joué via cette banque n'est plus rejouable tant que tous les autres sonores de la banque n'ont pas été joués. Chaque banque a son propre cycle. Au début d'un nouveau cycle, le dernier sonore joué est écarté, pour ne pas passer deux fois de suite (sauf s'il est seul jouable). Un sonore ajouté à la banque entre dans le cycle en cours.
 - Le choix ne garde aucun état en mémoire : ordre séquentiel et cycles se déduisent des passages de l'`airplay` fournis par la banque (`banque_id`), seuls à compter ([#13](https://github.com/dascritch/machincast/issues/13), `machincast.lecture.banques`). Un redémarrage du binaire ne perturbe donc rien.
 - Seuls les sonores **jouables** sont candidats (voir ci-dessous). Si aucun ne l'est, on passe à l'élément suivant de l'événement, comme si la banque était vide.
-- **Ne pas répéter** ([#63](https://github.com/dascritch/machincast/issues/63)) : si le dernier passage de l'`airplay` a été joué via une banque marquée `ne_pas_repeter`, l'élément qui rappelle cette banque est sauté, et on passe à l'élément suivant, comme si la banque était vide. Un événement à l'autre, la règle s'applique de la même façon : la banque en fin d'un événement puis au début du suivant ne passe pas deux fois. Seuls comptent les passages joués via la banque, comme pour le cycle aléatoire : un sonore de la banque placé directement comme élément d'un événement ne compte pas.
+- **Ne pas répéter** ([#63](https://github.com/dascritch/machincast/issues/63)) : si le dernier passage de l'`airplay` a été joué via une banque marquée `ne_pas_repeter`, l'élément qui rappelle cette banque est sauté, et on passe à l'élément suivant, comme si la banque était vide. Un événement à l'autre, la règle s'applique de la même façon : la banque en fin d'un événement puis au début du suivant ne passe pas deux fois. Il en va de même dans une séquence, et de l'événement à la séquence ([#99](https://github.com/dascritch/machincast/issues/99)) : un appel à la banque qui vient de passer est sauté, et on passe au sonore suivant de la séquence. Seuls comptent les passages joués via la banque, comme pour le cycle aléatoire : un sonore de la banque placé directement comme élément d'un événement ne compte pas.
 	- Si, une fois la banque sautée, plus rien n'est jouable dans la liste de l'événement, cet événement se termine pour cette occurrence : l'événement de priorité inférieure dont la plage couvre l'instant prend le relais. Pour un fil musical, silence et alerte, comme quand rien n'est jouable.
 	- Log : `info` `élément sauté` pour chaque élément sauté, une fois par élément et par passage ; `alerte` `événement terminé plus tôt` pour un événement terminé à cause du saut. La décision se prend quand le sonore suivant est réservé, dès le début du sonore en cours ([§ 5.4](#54-socket-détat)).
 	- Le mode simulation applique la même règle, à partir de l'airplay puis des passages simulés ([§ 5.5](#55-mode-simulation)).
-	- Schéma : colonne `banques.ne_pas_repeter`, ajoutée par la migration `0002.banques-ne-pas-repeter`.
+	- Schéma : colonne `banques.ne_pas_repeter`, dans la migration `0001.schema-initial`.
 
 ### 4.5 Sonore jouable
 
@@ -303,16 +329,16 @@ Décidé avec le ticket [#16](https://github.com/dascritch/machincast/issues/16)
 
 Artiste et titre sont **masqués**, jamais remplacés. Chaque niveau porte son indicateur de masquage. La valeur retenue est celle du premier niveau renseigné, dans cet ordre de priorité :
 
-**Événement > Banque > Sonore > valeur par défaut du fichier de configuration**
+**Événement > Séquence > Banque > Sonore > valeur par défaut du fichier de configuration**
 
 Les sorties privées affichent toujours tout. Les sorties publiques respectent le masquage.
 
 Quand l'artiste et le titre sont masqués, la sortie publique affiche à leur place :
 
-1. le nom public de l'événement en cours, s'il est renseigné ;
+1. le premier nom public renseigné, dans le même ordre que le masquage : celui de l'événement, puis de la séquence, puis de la banque ([#99](https://github.com/dascritch/machincast/issues/99)) ;
 2. sinon, le texte public par défaut de la configuration (`metadonnees.texte_public`).
 
-Mise en œuvre ([#19](https://github.com/dascritch/machincast/issues/19), `machincast.lecture.sorties`) : chaque indicateur `masquer_metadonnees` vide hérite du niveau suivant. Les indicateurs sont lus en base quand la page publique est écrite, à chaque passage. Un passage sans artiste ni titre affiche aussi le nom public de l'événement, ou le texte public.
+Mise en œuvre ([#19](https://github.com/dascritch/machincast/issues/19), `machincast.lecture.sorties`) : chaque indicateur `masquer_metadonnees` vide hérite du niveau suivant. Les indicateurs sont lus en base quand la page publique est écrite, à chaque passage. Un passage sans artiste ni titre affiche aussi le premier nom public renseigné, ou le texte public. Un nom public vide compte comme non renseigné.
 
 ## 5. Binaire lecture
 
@@ -332,7 +358,7 @@ Boucle de diffusion ([#88](https://github.com/dascritch/machincast/issues/88), `
 ### 5.2 Écritures
 
 - `airplay` : une ligne au début et une ligne à la fin de chaque passage (insertions seules), par `machincast.lecture.enregistrement` ([#17](https://github.com/dascritch/machincast/issues/17)). La ligne de fin recopie la ligne de début : l'artiste et le titre restent ceux du moment du passage, même modifiés entre-temps. Une coupure nette n'est pas un incident (`sans_incident` vrai) ; une lecture interrompue par une erreur, si.
-- `log` : toutes les opérations, normales comme incidents, avec l'heure de l'horloge du binaire. Natures déjà consignées : `démarrage` (info), `arrêt` (info), `coupure nette` (info), `sonore expiré` (info), `reconnexion abandonnée` (info), `silence` (alerte), `sortie inaccessible` (alerte), `socket d'état indisponible` (alerte), `fichier modifié` (alerte), `fichier introuvable` (incident), `lecture interrompue` (incident), `flux tombé` (incident), `reprise du flux` (incident).
+- `log` : toutes les opérations, normales comme incidents, avec l'heure de l'horloge du binaire. Natures déjà consignées : `démarrage` (info), `arrêt` (info), `coupure nette` (info), `sonore expiré` (info), `élément sauté` (info), `reconnexion abandonnée` (info), `silence` (alerte), `événement terminé plus tôt` (alerte), `sortie inaccessible` (alerte), `socket d'état indisponible` (alerte), `fichier modifié` (alerte), `fichier introuvable` (incident), `lecture interrompue` (incident), `flux tombé` (incident), `reprise du flux` (incident).
 - `sonores.etat` : passage à `expire` ([§ 4.5](#45-sonore-jouable)).
 
 ### 5.3 Modules de sortie
@@ -341,7 +367,7 @@ Boucle de diffusion ([#88](https://github.com/dascritch/machincast/issues/88), `
 | --- | --- | --- |
 | stdout | privé | Sonores lancés : une ligne d'information `à l'antenne : artiste – titre (événement)` par passage qui commence. |
 | stderr | privé | Alertes et incidents du log (`alerte : nature : message`), erreurs du binaire. |
-| CSV | privé | Airplay, un fichier par jour, nommé avec la date du jour au format ISO 8601. Une ligne par passage terminé : `debut;fin;duree;artiste;titre;emplacement;evenement;banque;sans_incident`, heures `AAAA-MM-JJ HH:MM:SS`, durée `HH:MM:SS`, `oui` ou `non`. Séparateur `;`, UTF-8 avec BOM, en-tête à la création ; jamais réécrit. |
+| CSV | privé | Airplay, un fichier par jour, nommé avec la date du jour au format ISO 8601. Une ligne par passage terminé : `debut;fin;duree;artiste;titre;emplacement;evenement;sequence;banque;sans_incident` (la colonne `sequence`, nom interne de la séquence qui a fait jouer le sonore, depuis [#99](https://github.com/dascritch/machincast/issues/99)), heures `AAAA-MM-JJ HH:MM:SS`, durée `HH:MM:SS`, `oui` ou `non`. Séparateur `;`, UTF-8 avec BOM, en-tête à la création ; jamais réécrit. |
 | .pls | privé | Les 100 derniers fichiers joués, streams compris par leur adresse, du plus ancien au plus récent, avec artiste et titre ; réécrit à chaque passage. |
 | HTML | public | Le sonore à l'antenne et les 20 précédents, du plus récent au plus ancien, avec masquage appliqué et sans emplacement de fichier ; page statique sans JavaScript, rafraîchie toutes les 30 s, réécrite à chaque passage. |
 
@@ -400,7 +426,7 @@ Exemple, présenté ici sur plusieurs lignes ; le binaire envoie chaque message 
 Sur option de lancement, le binaire simule la diffusion entre deux dates et heures :
 
 - aucune écriture en base, aucune sortie sonore ;
-- l'état de départ (positions séquentielles, cycles aléatoires, compteurs de lectures) est lu depuis `airplay`, puis tenu en mémoire pendant toute la simulation ;
+- l'état de départ (positions séquentielles, cycles aléatoires, compteurs de lectures, séquence en cours) est lu depuis `airplay`, puis tenu en mémoire pendant toute la simulation ; les règles sont celles de la diffusion, séquences comprises ;
 - une graine (seed) rend le hasard reproductible, notamment pour les tests ;
 - seules des sorties .csv, .pls et .html sont produites, nommées par défaut avec un préfixe `simulation` suivi des dates de début et de fin, nommage modifiable par paramètre.
 
@@ -518,7 +544,7 @@ Python, PySide6 (Qt 6.10, version de Kubuntu 26.04 LTS).
 
 ### 8.4 Écran de détails d'une banque
 
-- Édition du nom interne.
+- Édition du nom interne et du nom public ([#99](https://github.com/dascritch/machincast/issues/99)).
 - Masquage de l'artiste et du titre.
 - Mode séquentiel ou aléatoire.
 - Case « ne pas répéter » : la banque ne passe jamais deux fois de suite ([#63](https://github.com/dascritch/machincast/issues/63)).
@@ -533,7 +559,7 @@ Python, PySide6 (Qt 6.10, version de Kubuntu 26.04 LTS).
 - Masquage de l'artiste et du titre.
 - Dates et heures de début et de fin, avec les règles du [§ 3.1](#evenements).
 - Récurrence : jours de la semaine à cocher.
-- Liste de lecture de banques et/ou de sonores, réordonnable par glisser-déposer, doublons autorisés.
+- Liste de lecture de banques, de sonores et/ou de séquences ([#99](https://github.com/dascritch/machincast/issues/99)), réordonnable par glisser-déposer, doublons autorisés.
 - Avertissement quand une banque « ne pas répéter » occupe deux lignes contiguës, y compris la dernière et la première d'un événement qui boucle : le deuxième appel sera ignoré à la diffusion ([§ 4.4](#44-choix-dun-sonore-dans-une-banque), [#63](https://github.com/dascritch/machincast/issues/63)). L'avertissement n'empêche pas d'enregistrer.
 - Refus d'un chevauchement avec un événement de même priorité.
 
@@ -554,7 +580,7 @@ L'utilisateur saisit une date et heure de début et de fin. L'interface lance le
 
 - Un sonore présent dans un événement ou une banque n'est supprimé qu'après validation, en rappelant les événements et banques où il figure.
 - Supprimer un sonore supprime son entrée en base, **jamais son fichier**, qui reste à sa place ([#96](https://github.com/dascritch/machincast/issues/96)). Si le fichier est toujours dans le répertoire d'une banque, la prochaine indexation l'enregistre de nouveau comme un nouveau sonore.
-- Même règle pour la suppression d'une banque ou d'un événement.
+- Même règle pour la suppression d'une banque, d'une séquence ou d'un événement.
 - Les lignes `airplay` sont toujours conservées.
 
 ### 8.10 Fil musical garanti
@@ -563,10 +589,20 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 
 ### 8.11 Menu
 
-- Ajouter un sonore, une banque, un événement.
+- Ajouter un sonore, une banque, une séquence, un événement.
 - Démarrer, arrêter, redémarrer le binaire lecture (via systemd et polkit, authentification par mot de passe ou empreinte digitale).
 - Lancer une ré-indexation générale de toutes les banques.
 - Choisir la sortie audio des pré-écoutes.
+
+### 8.12 Écran de détails d'une séquence
+
+Décidé avec le ticket [#99](https://github.com/dascritch/machincast/issues/99).
+
+- Nom interne et nom public.
+- Masquage de l'artiste et du titre.
+- Liste ordonnée de sonores et/ou de banques, réordonnable par glisser-déposer, doublons autorisés, jamais une autre séquence. Une séquence vide ne s'enregistre pas.
+- Avertissement quand une banque « ne pas répéter » occupe deux lignes contiguës : le deuxième appel sera ignoré à la diffusion (`deroule.appels_ignores`, sans boucle). L'avertissement n'empêche pas d'enregistrer.
+- Liste des événements où la séquence figure. Sa suppression suit la règle du [§ 8.9](#89-suppression).
 
 ## 9. Configuration
 
@@ -618,6 +654,7 @@ Si aucun événement de priorité fil musical n'existe, l'interface en recrée u
 | Déclarations SACEM | ISRC, label, compositeur sur les sonores. | En attente de l'équipe juridique : la radio relève d'une catégorie spécifique avec un accord propre avec la SACEM. |
 | Quotas | Propriétés « francophone » et « nouveauté », attribuables au niveau du sonore ou de la banque. La « nouveauté » aura une durée maximale par sonore, comptée à partir de son indexation. | La radio a des accords spécifiques sur les quotas. |
 | Indexation planifiée | Cron ou timer systemd. | Selon les retours du terrain. |
+| Séquences imbriquées | Une séquence qui en contient une autre, avec un refus des appels cycliques. | Écarté avec les séquences ([#99](https://github.com/dascritch/machincast/issues/99)) : une séquence ne contient que des sonores et des banques. |
 
 ## 12. Points à confirmer
 

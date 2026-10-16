@@ -19,6 +19,12 @@ Liste de lecture d'un événement (§ 4.3) :
   (info « élément sauté », une fois par élément et par passage). Si l'occurrence n'a alors plus rien de jouable,
   elle se termine (alerte « événement terminé plus tôt ») ; un fil musical se tait. À l'édition, appels_ignores
   donne les lignes qui seront toujours sautées ;
+- une séquence (https://github.com/dascritch/machincast/issues/99) joue ses éléments dans l'ordre, chaque banque
+  un seul sonore ; un élément non jouable est sauté, et une séquence dont rien n'est jouable est sautée comme une
+  banque vide. Pour les transitions, elle se comporte comme un seul sonore : à la fin de son événement, elle va
+  jusqu'au bout (suite de la séquence du dernier passage, _suite), sauf si un événement commence, qui la coupe net
+  avec son sonore en cours. Sa position se lit dans l'airplay (sequence_element_id) ; elle ne reprend que si le
+  dernier passage de tout l'airplay vient d'elle. Ensuite, la liste reprend à l'élément qui suit la séquence ;
 - l'élément suivant se lit dans l'airplay : celui qui suit le dernier élément joué. Pour une émission ou un
   spécial, seuls comptent les passages de l'occurrence en cours, qui commence donc au début de sa liste ; un fil
   musical reprend toujours à l'élément qui suit son dernier joué, d'une occurrence à l'autre (§ 4.2).
@@ -63,6 +69,7 @@ from machincast.lecture.grille import (
 	lire_grille,
 )
 from machincast.lecture.historique import EN_BASE, DernierPassage, Historique
+from machincast.lecture.sequences import ElementDeSequence, elements_apres, lire_sequence
 
 REESSAI_FICHIER_INTROUVABLE = timedelta(hours=1)
 """Durée pendant laquelle un sonore au fichier introuvable n'est plus proposé."""
@@ -70,12 +77,13 @@ REESSAI_FICHIER_INTROUVABLE = timedelta(hours=1)
 
 @dataclass(frozen=True)
 class Element:
-	"""Un élément de la liste d'un événement : un sonore ou une banque."""
+	"""Un élément de la liste d'un événement : un sonore, une banque ou une séquence."""
 
 	id: int
 	position: int
 	sonore: int | None
 	banque: int | None
+	sequence: int | None = None
 
 
 @dataclass(frozen=True)
@@ -85,8 +93,10 @@ class Choix:
 	sonore: int
 	element: Element
 	banque: int | None
-	"""Banque qui a fourni le sonore ; None pour un sonore placé directement dans l'événement."""
+	"""Banque qui a fourni le sonore ; None pour un sonore placé directement dans l'événement ou la séquence."""
 	occurrence: Occurrence
+	ligne: ElementDeSequence | None = None
+	"""Élément de la séquence qui a fait jouer le sonore, quand l'élément de l'événement est une séquence."""
 
 
 @dataclass(frozen=True)
@@ -119,6 +129,16 @@ class Repetition:
 
 
 @dataclass(frozen=True)
+class Saut:
+	"""Élément sauté parce qu'il rappelle la banque « ne pas répéter » qui vient de passer."""
+
+	cle: tuple[str, int]
+	"""Table et identifiant de l'élément : un élément d'événement ou de séquence."""
+	description: str
+	evenement: int
+
+
+@dataclass(frozen=True)
 class Decision:
 	couper: bool = False
 	"""Couper net le sonore en cours."""
@@ -148,20 +168,36 @@ def elements_a_essayer(elements: list[Element], dernier: int | None, boucle: boo
 	return elements[depart:] + elements[:depart]
 
 
-def lire_elements(connexion: psycopg.Connection[TupleRow], evenement: int) -> list[Element]:
-	lignes = connexion.execute(
-		"SELECT id, position, sonore_id, banque_id FROM evenements_elements WHERE evenement_id = %s ORDER BY position",
-		(evenement,),
-	).fetchall()
+def _elements(lignes: list[TupleRow]) -> list[Element]:
 	return [
 		Element(
 			id=int(str(identifiant)),
 			position=int(str(position)),
 			sonore=None if sonore is None else int(str(sonore)),
 			banque=None if banque is None else int(str(banque)),
+			sequence=None if sequence is None else int(str(sequence)),
 		)
-		for identifiant, position, sonore, banque in lignes
+		for identifiant, position, sonore, banque, sequence in lignes
 	]
+
+
+def lire_elements(connexion: psycopg.Connection[TupleRow], evenement: int) -> list[Element]:
+	return _elements(
+		connexion.execute(
+			"SELECT id, position, sonore_id, banque_id, sequence_id FROM evenements_elements WHERE evenement_id = %s"
+			" ORDER BY position",
+			(evenement,),
+		).fetchall()
+	)
+
+
+def lire_element(connexion: psycopg.Connection[TupleRow], element: int) -> Element | None:
+	elements = _elements(
+		connexion.execute(
+			"SELECT id, position, sonore_id, banque_id, sequence_id FROM evenements_elements WHERE id = %s", (element,)
+		).fetchall()
+	)
+	return elements[0] if elements else None
 
 
 def dernier_element(
@@ -190,26 +226,82 @@ def prochain(
 	exclus: frozenset[int] = frozenset(),
 	historique: Historique = EN_BASE,
 	interdite: int | None = None,
-	sautes: list[Element] | None = None,
+	sautes: list[Saut] | None = None,
 ) -> Choix | None:
 	"""Prochain sonore de la liste de l'occurrence ; None si rien n'est jouable jusqu'à la fin de la liste.
 
 	exclus : sonores écartés, traités comme non jouables. interdite : banque « ne pas répéter » qui vient de passer ;
-	les éléments qui la rappellent sont sautés, et ajoutés à sautes.
+	les éléments qui la rappellent sont sautés, et ajoutés à sautes. Une séquence se joue depuis son premier élément
+	jouable ; sans élément jouable, elle est sautée.
 	"""
 	elements = lire_elements(connexion, occurrence.evenement.id)
 	dernier = dernier_element(connexion, occurrence, historique)
 	for element in elements_a_essayer(elements, dernier, boucle(occurrence)):
-		if element.sonore is not None:
-			if element.sonore not in exclus and sonore_jouable(connexion, element.sonore, instant, historique):
-				return Choix(element.sonore, element, None, occurrence)
-		elif element.banque is not None and element.banque == interdite:
+		if element.sequence is not None:
+			choix = dans_la_sequence(
+				connexion, occurrence, element, None, instant, hasard, exclus, historique, interdite, sautes
+			)
+			if choix is not None:
+				return choix
+		elif (element.banque is not None) and (element.banque == interdite):
 			if sautes is not None:
-				sautes.append(element)
-		elif element.banque is not None:
-			sonore = choisir_sonore(connexion, element.banque, instant, hasard, exclus, historique)
+				description = f"l'élément {element.position} de « {occurrence.evenement.nom} »"
+				sautes.append(Saut(("evenements_elements", element.id), description, occurrence.evenement.id))
+		else:
+			sonore = _fournir(connexion, element.sonore, element.banque, instant, hasard, exclus, historique)
 			if sonore is not None:
 				return Choix(sonore, element, element.banque, occurrence)
+	return None
+
+
+def dans_la_sequence(
+	connexion: psycopg.Connection[TupleRow],
+	occurrence: Occurrence,
+	element: Element,
+	dernier: int | None,
+	instant: datetime,
+	hasard: Hasard,
+	exclus: frozenset[int] = frozenset(),
+	historique: Historique = EN_BASE,
+	interdite: int | None = None,
+	sautes: list[Saut] | None = None,
+) -> Choix | None:
+	"""Premier sonore jouable de la séquence de l'élément, après son élément dernier (None : depuis le début) ;
+	None quand il ne reste rien de jouable dans la séquence. Mêmes règles que prochain."""
+	sequence = None
+	if element.sequence is not None:
+		sequence = lire_sequence(connexion, element.sequence)
+	if sequence is None:
+		return None
+	for ligne in elements_apres(sequence, dernier):
+		if (ligne.banque is not None) and (ligne.banque == interdite):
+			if sautes is not None:
+				description = (
+					f"l'élément {ligne.position} de la séquence « {sequence.nom} », dans « {occurrence.evenement.nom} »"
+				)
+				sautes.append(Saut(("sequences_elements", ligne.id), description, occurrence.evenement.id))
+			continue
+		sonore = _fournir(connexion, ligne.sonore, ligne.banque, instant, hasard, exclus, historique)
+		if sonore is not None:
+			return Choix(sonore, element, ligne.banque, occurrence, ligne)
+	return None
+
+
+def _fournir(
+	connexion: psycopg.Connection[TupleRow],
+	sonore: int | None,
+	banque: int | None,
+	instant: datetime,
+	hasard: Hasard,
+	exclus: frozenset[int],
+	historique: Historique,
+) -> int | None:
+	"""Le sonore, s'il est jouable, ou celui que la banque fournit ; None si rien n'est jouable."""
+	if sonore is not None:
+		jouable = (sonore not in exclus) and (sonore_jouable(connexion, sonore, instant, historique))
+		return sonore if jouable else None
+	if banque is not None:
+		return choisir_sonore(connexion, banque, instant, hasard, exclus, historique)
 	return None
 
 
@@ -235,7 +327,7 @@ class Ordonnanceur:
 		"""Stream tombé en attente de reconnexion."""
 		self._reservation = False
 		"""Décision prise pour réserver le prochain sonore : un silence n'y est pas encore signalé."""
-		self._sauts_notes: tuple[uuid.UUID | None, set[int]] = (None, set())
+		self._sauts_notes: tuple[uuid.UUID | None, set[tuple[str, int]]] = (None, set())
 		"""Éléments sautés déjà notés dans le log, pour le dernier passage : une seule ligne par élément."""
 
 	def reserver(self, instant: datetime) -> Choix | None:
@@ -291,34 +383,30 @@ class Ordonnanceur:
 		with self.connexion.transaction():
 			return self._decider(instant, en_cours)
 
-	def _repetition(self) -> Repetition | None:
+	def _repetition(self, dernier: DernierPassage | None) -> Repetition | None:
 		"""La banque « ne pas répéter » qui a fourni le dernier passage, s'il y en a une."""
-		dernier: DernierPassage | None = self.historique.dernier_passage(self.connexion)
 		if dernier is None or dernier.banque is None:
 			return None
 		nom = a_ne_pas_repeter(self.connexion, dernier.banque)
 		return None if nom is None else Repetition(dernier.id, dernier.banque, nom)
 
-	def _noter_les_sauts(
-		self, repetition: Repetition, occurrence: Occurrence, sautes: list[Element], instant: datetime
-	) -> None:
+	def _noter_les_sauts(self, repetition: Repetition, sautes: list[Saut], instant: datetime) -> None:
 		passage, notes = self._sauts_notes
 		if passage != repetition.passage:
 			notes = set()
 			self._sauts_notes = (repetition.passage, notes)
-		for element in sautes:
-			if element.id in notes:
+		for saut in sautes:
+			if saut.cle in notes:
 				continue
-			notes.add(element.id)
+			notes.add(saut.cle)
 			self.historique.consigner(
 				self.connexion,
 				"info",
 				"élément sauté",
-				f"banque « {repetition.nom} » à ne pas répéter : elle vient de passer, l'élément {element.position} de"
-				f" « {occurrence.evenement.nom} » est sauté",
+				f"banque « {repetition.nom} » à ne pas répéter : elle vient de passer, {saut.description} est sauté",
 				instant,
 				banque=repetition.banque,
-				evenement=occurrence.evenement.id,
+				evenement=saut.evenement,
 			)
 
 	def _decider(self, instant: datetime, en_cours: EnCours | None) -> Decision:
@@ -340,31 +428,30 @@ class Ordonnanceur:
 				else:
 					# Fin d'événement sans successeur : le sonore va jusqu'au bout.
 					return Decision()
-			if actif is None:
-				return self._silence(instant, couper, eteindre, None, "aucun événement actif")
 			# Lu seulement quand il faut choisir : pas à chaque pas d'un sonore qui continue.
-			repetition = self._repetition()
-			sautes: list[Element] = []
-			choix = prochain(
-				self.connexion,
-				actif,
-				instant,
-				self.hasard,
-				self._exclus(instant),
-				self.historique,
-				None if repetition is None else repetition.banque,
-				sautes,
-			)
+			dernier = self.historique.dernier_passage(self.connexion)
+			repetition = self._repetition(dernier)
+			interdite = None if repetition is None else repetition.banque
+			sautes: list[Saut] = []
+			# D'abord la suite de la séquence en cours, s'il en reste ; sinon, l'élément suivant de l'événement actif.
+			choix = self._suite(instant, actif, dernier, interdite, sautes)
+			if (choix is None) and (actif is not None):
+				exclus = self._exclus(instant)
+				choix = prochain(
+					self.connexion, actif, instant, self.hasard, exclus, self.historique, interdite, sautes
+				)
 			if repetition is not None:
-				self._noter_les_sauts(repetition, actif, sautes, instant)
+				self._noter_les_sauts(repetition, sautes, instant)
 			if choix is not None:
 				self.en_silence = False
 				return Decision(couper=couper, eteindre=eteindre, jouer=choix)
+			if actif is None:
+				return self._silence(instant, couper, eteindre, None, "aucun événement actif")
 			if actif.evenement.priorite is Priorite.FIL_MUSICAL:
 				return self._silence(instant, couper, eteindre, actif, "rien à diffuser dans le fil musical")
 			# Liste épuisée, ou plus rien de jouable : l'occurrence se termine, l'événement inférieur reprend.
 			self.terminees.add(actif.cle)
-			if repetition is not None and sautes:
+			if (repetition is not None) and (any(saut.evenement == actif.evenement.id for saut in sautes)):
 				self.historique.consigner(
 					self.connexion,
 					"alerte",
@@ -374,6 +461,55 @@ class Ordonnanceur:
 					banque=repetition.banque,
 					evenement=actif.evenement.id,
 				)
+
+	def _suite(
+		self,
+		instant: datetime,
+		actif: Occurrence | None,
+		dernier: DernierPassage | None,
+		interdite: int | None,
+		sautes: list[Saut],
+	) -> Choix | None:
+		"""Suite de la séquence du dernier passage, tant qu'il lui reste un élément jouable.
+
+		Une séquence se comporte comme un seul sonore : elle va jusqu'au bout, même son événement terminé, sauf si un
+		événement a commencé depuis le dernier passage, qui l'a coupée. Pendant la suspension d'un stream, elle cède la
+		place au secours.
+		"""
+		if (
+			(dernier is None)
+			or (dernier.sequence_element is None)
+			or (dernier.element is None)
+			or (self.suspension is not None)
+		):
+			return None
+		if (actif is not None) and (dernier.debut is not None) and (self._a_commence(actif, dernier.debut)):
+			return None
+		element = lire_element(self.connexion, dernier.element)
+		if element is None:
+			return None
+		occurrence = None
+		if (actif is not None) and (actif.evenement.id == dernier.evenement):
+			occurrence = actif
+		elif dernier.evenement is not None:
+			# Son événement est fini : la séquence va jusqu'au bout en son nom.
+			evenement = lire_evenement(self.connexion, dernier.evenement)
+			if evenement is not None:
+				occurrence = Occurrence(evenement, None, None)
+		if occurrence is None:
+			return None
+		return dans_la_sequence(
+			self.connexion,
+			occurrence,
+			element,
+			dernier.sequence_element,
+			instant,
+			self.hasard,
+			self._exclus(instant),
+			self.historique,
+			interdite,
+			sautes,
+		)
 
 	def _remplacer(self, evenements: list[Evenement], instant: datetime, actif: Occurrence | None) -> Occurrence | None:
 		"""Pendant la suspension d'un stream, son occurrence cède la place à son secours ; ailleurs, la suspension
@@ -393,7 +529,12 @@ class Ordonnanceur:
 
 	@staticmethod
 	def _commence_apres(actif: Occurrence, en_cours: EnCours) -> bool:
-		return actif.debut is not None and actif.debut > heure_murale(en_cours.debut)
+		return Ordonnanceur._a_commence(actif, en_cours.debut)
+
+	@staticmethod
+	def _a_commence(actif: Occurrence, depuis: datetime) -> bool:
+		"""L'occurrence a-t-elle commencé après cet instant ?"""
+		return (actif.debut is not None) and (actif.debut > heure_murale(depuis))
 
 	def _silence(
 		self, instant: datetime, couper: bool, eteindre: bool, actif: Occurrence | None, message: str

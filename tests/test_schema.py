@@ -11,16 +11,8 @@ import psycopg
 import pytest
 from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
-from yoyo import get_backend, read_migrations
 
-from machincast.base import (
-	REPERTOIRE_MIGRATIONS,
-	TABLES,
-	TYPES,
-	annuler_migrations,
-	appliquer_migrations,
-	url_yoyo,
-)
+from machincast.base import TABLES, TYPES, annuler_migrations, appliquer_migrations, url_yoyo
 from tests.base_test import parametres_base_test
 
 scenarios("schema.feature")
@@ -37,6 +29,8 @@ class Contexte:
 	references: dict[str, int] = field(default_factory=dict)
 	erreur: psycopg.Error | None = None
 	modifie_le: datetime | None = None
+	modifiee: tuple[str, str] = ("sonores", "sonore")
+	"""Table et référence dont la date de modification est suivie."""
 	connexions_avant: int = 0
 	connexions_apres: int = 0
 
@@ -93,27 +87,7 @@ def references(contexte: Contexte) -> None:
 		{"type": "'fichier'", "emplacement": "'/jingles/reference.flac'", "titre": "'Titre de référence'"},
 	)
 	r["evenement"] = inserer(contexte, "evenements", {"nom_interne": "'Fil'", "priorite": "'fil_musical'"})
-
-
-@given(parsers.parse("la base sans la migration « {migration} »"))
-def sans_la_migration(contexte: Contexte, migration: str) -> None:
-	"""Annule cette migration et celles qui la suivent ; la prochaine purge de la base les réapplique."""
-	migrations = read_migrations(str(REPERTOIRE_MIGRATIONS))
-	with get_backend(url_yoyo(*parametres_base_test())) as backend, backend.lock():
-		a_annuler = backend.to_rollback(migrations)
-		ids = [m.id for m in a_annuler]
-		assert migration in ids, ids
-		backend.rollback_migrations(a_annuler[: ids.index(migration) + 1])
-
-
-@given(parsers.parse("une banque « {nom} » enregistrée avant cette migration"))
-def banque_avant_migration(contexte: Contexte, nom: str) -> None:
-	inserer(contexte, "banques", {"nom_interne": f"'{nom}'", "mode": "'sequentiel'"})
-
-
-@when("j'applique les migrations")
-def appliquer(contexte: Contexte) -> None:
-	appliquer_migrations(url_yoyo(*parametres_base_test()))
+	r["sequence"] = inserer(contexte, "sequences", {"nom_interne": "'Passage publicitaire'"})
 
 
 @then("la banque de référence n'est pas marquée « ne pas répéter »")
@@ -121,12 +95,6 @@ def reference_sans_marque(contexte: Contexte) -> None:
 	ligne = contexte.connexion.execute(
 		"SELECT ne_pas_repeter FROM banques WHERE id = %s", (contexte.references["banque"],)
 	).fetchone()
-	assert ligne == (False,)
-
-
-@then(parsers.parse("la banque « {nom} » n'est pas marquée « ne pas répéter »"))
-def banque_sans_marque(contexte: Contexte, nom: str) -> None:
-	ligne = contexte.connexion.execute("SELECT ne_pas_repeter FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
 	assert ligne == (False,)
 
 
@@ -296,6 +264,56 @@ def element_joue(contexte: Contexte) -> None:
 	)
 
 
+@given("un élément de la séquence de référence, joué dans l'airplay")
+def element_de_sequence_joue(contexte: Contexte) -> None:
+	r = contexte.references
+	r["element_de_sequence"] = inserer(
+		contexte,
+		"sequences_elements",
+		{"sequence_id": str(r["sequence"]), "position": "1", "sonore_id": str(r["sonore"])},
+	)
+	executer_insertion(
+		contexte,
+		"airplay",
+		{
+			"passage_id": "gen_random_uuid()",
+			"type_ligne": "'debut'",
+			"sonore_id": str(r["sonore"]),
+			"sequence_id": str(r["sequence"]),
+			"sequence_element_id": str(r["element_de_sequence"]),
+		},
+	)
+
+
+@when("je modifie le nom public de la séquence de référence")
+def modifier_sequence(contexte: Contexte) -> None:
+	identifiant = contexte.references["sequence"]
+	ligne = contexte.connexion.execute("SELECT modifie_le FROM sequences WHERE id = %s", (identifiant,)).fetchone()
+	assert (ligne is not None) and (isinstance(ligne[0], datetime))
+	contexte.modifie_le = ligne[0]
+	contexte.modifiee = ("sequences", "sequence")
+	contexte.connexion.execute("UPDATE sequences SET nom_public = 'Vous écoutez' WHERE id = %s", (identifiant,))
+
+
+@when("je supprime la séquence de référence")
+def supprimer_sequence(contexte: Contexte) -> None:
+	contexte.connexion.execute("DELETE FROM sequences WHERE id = %s", (contexte.references["sequence"],))
+
+
+@then("la ligne d'airplay existe toujours, sans référence à la séquence ni à son élément")
+def airplay_sans_sequence(contexte: Contexte) -> None:
+	lignes = contexte.connexion.execute("SELECT sequence_id, sequence_element_id, sonore_id FROM airplay").fetchall()
+	assert lignes == [(None, None, contexte.references["sonore"])]
+
+
+@then("l'événement de référence n'a plus d'élément")
+def evenement_sans_element(contexte: Contexte) -> None:
+	ligne = contexte.connexion.execute(
+		"SELECT count(*) FROM evenements_elements WHERE evenement_id = %s", (contexte.references["evenement"],)
+	).fetchone()
+	assert ligne == (0,)
+
+
 @when("je supprime cet élément de l'événement")
 def supprimer_element(contexte: Contexte) -> None:
 	contexte.connexion.execute("DELETE FROM evenements_elements WHERE id = %s", (contexte.references["element"],))
@@ -367,8 +385,10 @@ def jour_avant(contexte: Contexte, premier: str, second: str) -> None:
 
 @then("sa date de modification a avancé")
 def date_avancee(contexte: Contexte) -> None:
+	table, reference = contexte.modifiee
 	ligne = contexte.connexion.execute(
-		"SELECT modifie_le FROM sonores WHERE id = %s", (contexte.references["sonore"],)
+		sql.SQL("SELECT modifie_le FROM {} WHERE id = %s").format(sql.Identifier(table)),
+		(contexte.references[reference],),
 	).fetchone()
 	assert ligne is not None and isinstance(ligne[0], datetime)
 	assert contexte.modifie_le is not None and ligne[0] > contexte.modifie_le

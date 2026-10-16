@@ -17,6 +17,8 @@ Fonctionnalité: Schéma initial de la base de données
 			| banques_sonores       |
 			| evenements            |
 			| evenements_elements   |
+			| sequences             |
+			| sequences_elements    |
 			| airplay               |
 			| log                   |
 
@@ -101,12 +103,6 @@ Fonctionnalité: Schéma initial de la base de données
 	Scénario: Une banque n'est pas marquée « ne pas répéter » par défaut
 		Étant donné les éléments de référence en base
 		Alors la banque de référence n'est pas marquée « ne pas répéter »
-
-	Scénario: La migration de la marque « ne pas répéter » laisse les banques existantes sans la marque
-		Étant donné la base sans la migration « 0002.banques-ne-pas-repeter »
-		Et une banque « Habillage » enregistrée avant cette migration
-		Quand j'applique les migrations
-		Alors la banque « Habillage » n'est pas marquée « ne pas répéter »
 
 	Scénario: Une banque peut avoir plusieurs répertoires
 		Étant donné les éléments de référence en base
@@ -220,6 +216,68 @@ Fonctionnalité: Schéma initial de la base de données
 			| , sonore_id = {sonore}                      | accepte |
 			|                                             | refuse  |
 			| , banque_id = {banque}, sonore_id = {sonore} | refuse  |
+			| , sequence_id = {sequence}                  | accepte |
+			| , sequence_id = {sequence}, sonore_id = {sonore} | refuse  |
+			| , sequence_id = {sequence}, banque_id = {banque} | refuse  |
+
+	# ─── Séquences (https://github.com/dascritch/machincast/issues/99) ───
+
+	Plan du scénario: Une séquence incohérente est refusée
+		Quand j'enregistre dans "sequences" : <valeurs>
+		Alors la base refuse l'enregistrement
+
+		Exemples:
+			| valeurs                                       |
+			| nom_public = 'Vous écoutez Radio Thune'       |
+			| nom_interne = 'Pub', masquer_metadonnees = 'peut-être' |
+
+	Scénario: Deux séquences n'ont pas le même nom interne
+		Quand j'enregistre dans "sequences" : nom_interne = 'Pub'
+		Et j'enregistre dans "sequences" : nom_interne = 'Pub'
+		Alors la base refuse l'enregistrement
+
+	Plan du scénario: Un élément de séquence est une banque ou un sonore, jamais une autre séquence
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "sequences_elements" : sequence_id = {sequence}, position = 1<complement>
+		Alors la base <verdict> l'enregistrement
+
+		Exemples:
+			| complement                                   | verdict |
+			| , banque_id = {banque}                       | accepte |
+			| , sonore_id = {sonore}                       | accepte |
+			|                                              | refuse  |
+			| , banque_id = {banque}, sonore_id = {sonore} | refuse  |
+			| , position = 0, sonore_id = {sonore}         | refuse  |
+
+	Scénario: Une séquence fait revenir un même élément, chacun à sa position
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "sequences_elements" : sequence_id = {sequence}, position = 1, sonore_id = {sonore}
+		Et j'enregistre dans "sequences_elements" : sequence_id = {sequence}, position = 2, banque_id = {banque}
+		Et j'enregistre dans "sequences_elements" : sequence_id = {sequence}, position = 3, banque_id = {banque}
+		Alors la base accepte l'enregistrement
+
+	Scénario: Deux éléments d'une séquence ne partagent pas la même position
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "sequences_elements" : sequence_id = {sequence}, position = 1, sonore_id = {sonore}
+		Et j'enregistre dans "sequences_elements" : sequence_id = {sequence}, position = 1, banque_id = {banque}
+		Alors la base refuse l'enregistrement
+
+	Scénario: La date de modification d'une séquence est tenue à jour
+		Étant donné les éléments de référence en base
+		Quand je modifie le nom public de la séquence de référence
+		Alors sa date de modification a avancé
+
+	Scénario: L'airplay note la séquence et son élément joué, et les garde vides quand ils sont supprimés
+		Étant donné les éléments de référence en base
+		Et un élément de la séquence de référence, joué dans l'airplay
+		Quand je supprime la séquence de référence
+		Alors la ligne d'airplay existe toujours, sans référence à la séquence ni à son élément
+
+	Scénario: Supprimer une séquence la retire des événements qui l'utilisaient
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "evenements_elements" : evenement_id = {evenement}, position = 1, sequence_id = {sequence}
+		Et je supprime la séquence de référence
+		Alors l'événement de référence n'a plus d'élément
 
 	Scénario: Un même jingle peut revenir plusieurs fois dans une liste
 		Étant donné les éléments de référence en base
@@ -288,6 +346,11 @@ Fonctionnalité: Schéma initial de la base de données
 			| sonores               | type = 'fichier', emplacement = '/long/titre.flac'      | titre       | 256      | refuse  |
 			| banques               | mode = 'aleatoire'                                      | nom_interne | 255      | accepte |
 			| banques               | mode = 'aleatoire'                                      | nom_interne | 256      | refuse  |
+			| banques               | mode = 'aleatoire', nom_interne = 'X'                   | nom_public  | 255      | accepte |
+			| banques               | mode = 'aleatoire', nom_interne = 'X'                   | nom_public  | 256      | refuse  |
+			| sequences             | nom_public = 'Pub'                                      | nom_interne | 255      | accepte |
+			| sequences             | nom_public = 'Pub'                                      | nom_interne | 256      | refuse  |
+			| sequences             | nom_interne = 'X'                                       | nom_public  | 256      | refuse  |
 			| evenements            | priorite = 'fil_musical'                                | nom_interne | 255      | accepte |
 			| evenements            | priorite = 'fil_musical'                                | nom_interne | 256      | refuse  |
 			| evenements            | priorite = 'fil_musical', nom_interne = 'X'             | nom_public  | 256      | refuse  |

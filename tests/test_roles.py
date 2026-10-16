@@ -28,6 +28,10 @@ INSERTIONS: dict[str, str] = {
 	"evenements_elements": (
 		"INSERT INTO evenements_elements (evenement_id, position, sonore_id) VALUES ({evenement}, 1, {sonore})"
 	),
+	"sequences": "INSERT INTO sequences (nom_interne) VALUES ('Essai')",
+	"sequences_elements": (
+		"INSERT INTO sequences_elements (sequence_id, position, sonore_id) VALUES ({sequence}, 1, {sonore})"
+	),
 	"airplay": "INSERT INTO airplay (passage_id, type_ligne) VALUES (gen_random_uuid(), 'debut')",
 	"log": "INSERT INTO log (niveau, nature) VALUES ('info', 'essai')",
 }
@@ -39,6 +43,8 @@ MODIFICATIONS: dict[str, str] = {
 	"banques_sonores": "position = 2",
 	"evenements": "nom_public = NULL",
 	"evenements_elements": "position = 2",
+	"sequences": "nom_public = NULL",
+	"sequences_elements": "position = 2",
 	"airplay": "titre = NULL",
 	"log": "message = ''",
 }
@@ -91,6 +97,7 @@ def base(contexte: Contexte) -> None:
 		contexte, "INSERT INTO sonores (type, emplacement, titre) VALUES ('fichier', '/reference.flac', 'Référence')"
 	)
 	r["evenement"] = inserer(contexte, "INSERT INTO evenements (nom_interne, priorite) VALUES ('Fil', 'fil_musical')")
+	r["sequence"] = inserer(contexte, "INSERT INTO sequences (nom_interne) VALUES ('Passage publicitaire')")
 
 
 @given("un passage du sonore de référence dans l'airplay")

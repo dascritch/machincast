@@ -30,6 +30,14 @@ Fonctionnalité: Boucle de diffusion de Machin lecture
 		Alors l'airplay montre les passages « f1 », « f2 », « f1 », « f2 », « f1 », « f2 »
 		Et chaque passage a sa ligne de fin, sans incident
 
+	Scénario: Une séquence passe à l'antenne, et l'airplay note sa séquence et son élément
+		Étant donné la séquence « Pub » des sonores « p1 », « p2 », jouée par le fil musical permanent « Continue », avant le sonore « f »
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 4 pas d'une seconde
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « p1 », « p2 », « f », « p1 »
+		Et chaque passage de « p1 » et de « p2 » note la séquence « Pub » et son élément, au début comme à la fin
+
 	Scénario: Une émission prend l'antenne à son heure, puis le fil musical reprend
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
 		Et l'émission « Flash » de 19:59:53 à 19:59:55, avec le sonore « m »

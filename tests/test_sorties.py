@@ -57,6 +57,7 @@ def passage(
 	sonore_masque: bool | None = None,
 	banque: int | None = None,
 	evenement: int | None = None,
+	sequence: int | None = None,
 ) -> None:
 	"""Un passage dans l'airplay, numero minutes après DEBUT, d'une minute s'il est terminé."""
 	emplacement = f"/musique/{numero}.flac"
@@ -68,16 +69,20 @@ def passage(
 	)
 	identifiant = uuid.uuid4()
 	debut = DEBUT + timedelta(minutes=numero)
-	colonnes = "passage_id, type_ligne, horodatage, sonore_id, banque_id, evenement_id, emplacement, artiste, titre"
+	colonnes = (
+		"passage_id, type_ligne, horodatage, sonore_id, banque_id, evenement_id, sequence_id, emplacement, artiste,"
+		" titre"
+	)
 	base.execute(
-		f"INSERT INTO airplay ({colonnes}) VALUES (%s, 'debut', %s, %s, %s, %s, %s, %s, %s)",
-		(identifiant, debut, sonore, banque, evenement, emplacement, artiste, titre),
+		f"INSERT INTO airplay ({colonnes}) VALUES (%s, 'debut', %s, %s, %s, %s, %s, %s, %s, %s)",
+		(identifiant, debut, sonore, banque, evenement, sequence, emplacement, artiste, titre),
 	)
 	if termine:
 		base.execute(
 			f"INSERT INTO airplay ({colonnes}, duree_diffusee, sans_incident)"
-			" VALUES (%s, 'fin', %s, %s, %s, %s, %s, %s, %s, '1 min', true)",
-			(identifiant, debut + timedelta(minutes=1), sonore, banque, evenement, emplacement, artiste, titre),
+			" VALUES (%s, 'fin', %s, %s, %s, %s, %s, %s, %s, %s, '1 min', true)",
+			(identifiant, debut + timedelta(minutes=1), sonore, banque, evenement, sequence)
+			+ (emplacement, artiste, titre),
 		)
 
 
@@ -105,14 +110,26 @@ def sorties_temporaires(banc: Banc, tmp_path: Path, caplog: pytest.LogCaptureFix
 
 @given(
 	parsers.parse(
-		"le masquage {evenement} pour l'événement, {banque} pour la banque, {sonore} pour le sonore"
-		" et {configuration} dans la configuration"
+		"le masquage {evenement} pour l'événement, {sequence} pour la séquence, {banque} pour la banque,"
+		" {sonore} pour le sonore et {configuration} dans la configuration"
 	)
 )
 def masquages(
-	banc: Banc, base_vide: Connexion, tmp_path: Path, evenement: str, banque: str, sonore: str, configuration: str
+	banc: Banc,
+	base_vide: Connexion,
+	tmp_path: Path,
+	evenement: str,
+	sequence: str,
+	banque: str,
+	sonore: str,
+	configuration: str,
 ) -> None:
 	preparer_sorties(banc, tmp_path, configuration == "oui", "Radio Exemple")
+	identifiant_sequence = inserer(
+		base_vide,
+		"INSERT INTO sequences (nom_interne, masquer_metadonnees) VALUES ('Séquence', %s) RETURNING id",
+		(VALEURS[sequence],),
+	)
 	identifiant_banque = inserer(
 		base_vide,
 		"INSERT INTO banques (nom_interne, mode, masquer_metadonnees) VALUES ('Banque', 'sequentiel', %s) RETURNING id",
@@ -128,6 +145,41 @@ def masquages(
 		sonore_masque=VALEURS[sonore],
 		banque=identifiant_banque,
 		evenement=identifiant_evenement,
+		sequence=identifiant_sequence,
+	)
+
+
+def nom_public(texte: str) -> str | None:
+	return None if texte == "vide" else texte.strip(" «»")
+
+
+@given(
+	parsers.parse(
+		"un passage masqué, de nom public {evenement} pour l'événement, {sequence} pour la séquence et {banque}"
+		" pour la banque"
+	)
+)
+def passage_masque_noms_publics(base_vide: Connexion, evenement: str, sequence: str, banque: str) -> None:
+	identifiant_banque = inserer(
+		base_vide,
+		"INSERT INTO banques (nom_interne, nom_public, mode) VALUES ('Banque', %s, 'sequentiel') RETURNING id",
+		(nom_public(banque),),
+	)
+	identifiant_sequence = inserer(
+		base_vide,
+		"INSERT INTO sequences (nom_interne, nom_public, masquer_metadonnees) VALUES ('Séquence', %s, true)"
+		" RETURNING id",
+		(nom_public(sequence),),
+	)
+	passage(
+		base_vide,
+		0,
+		"Artiste secret",
+		"Titre secret",
+		termine=False,
+		banque=identifiant_banque,
+		evenement=emission(base_vide, "Émission", nom_public(evenement), None),
+		sequence=identifiant_sequence,
 	)
 
 
@@ -269,9 +321,8 @@ def lignes_csv(banc: Banc, nom: str) -> list[dict[str, str]]:
 @then(parsers.parse("le CSV « {nom} » commence par l'en-tête et le BOM"))
 def entete_csv(banc: Banc, nom: str) -> None:
 	octets = (sorties_du_banc(banc).chemins.csv.parent / nom).read_bytes()
-	assert octets.startswith("﻿debut;fin;duree;artiste;titre;emplacement;evenement;banque;sans_incident\r\n".encode()), (
-		octets[:120]
-	)
+	entete = "﻿debut;fin;duree;artiste;titre;emplacement;evenement;sequence;banque;sans_incident\r\n"
+	assert octets.startswith(entete.encode()), octets[:120]
 
 
 @then(parsers.parse("le CSV « {nom} » a les lignes :"))

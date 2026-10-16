@@ -14,9 +14,10 @@ Sortie publique, avec le masquage :
 - HTML : page statique, réécrite à chaque passage, qui montre le sonore à l'antenne puis les PRECEDENTS précédents,
   sans JavaScript, rafraîchie toutes les RAFRAICHISSEMENT secondes. L'emplacement d'un fichier n'y paraît jamais.
 
-Masquage : la valeur retenue est celle du premier niveau renseigné, événement, banque, sonore, puis la configuration
-(metadonnees.masquer). Masqués, l'artiste et le titre laissent la place au nom public de l'événement, sinon au texte
-public de la configuration. Les indicateurs sont lus en base au moment d'écrire la page.
+Masquage : la valeur retenue est celle du premier niveau renseigné, événement, séquence, banque, sonore, puis la
+configuration (metadonnees.masquer). Masqués, l'artiste et le titre laissent la place au premier nom public renseigné,
+celui de l'événement, de la séquence puis de la banque (https://github.com/dascritch/machincast/issues/99), sinon au
+texte public de la configuration. Les indicateurs sont lus en base au moment d'écrire la page.
 
 Une sortie qui ne peut pas être écrite est signalée une fois dans le log (alerte « sortie inaccessible »), sans arrêter
 la diffusion ; elle est de nouveau signalée si elle redevient inaccessible après avoir été écrite.
@@ -51,7 +52,18 @@ PLAYLIST = 100
 """Fichiers de la playlist .pls."""
 RAFRAICHISSEMENT = 30
 """Délai de rafraîchissement de la page publique, en secondes."""
-COLONNES_CSV = ("debut", "fin", "duree", "artiste", "titre", "emplacement", "evenement", "banque", "sans_incident")
+COLONNES_CSV = (
+	"debut",
+	"fin",
+	"duree",
+	"artiste",
+	"titre",
+	"emplacement",
+	"evenement",
+	"sequence",
+	"banque",
+	"sans_incident",
+)
 SORTIE_INACCESSIBLE = "sortie inaccessible"
 
 
@@ -68,14 +80,23 @@ class Ligne:
 	emplacement: str | None
 	evenement: str | None
 	nom_public: str | None
+	"""Premier nom public renseigné : celui de l'événement, de la séquence, puis de la banque
+	(https://github.com/dascritch/machincast/issues/99)."""
+	sequence: str | None
 	banque: str | None
-	masquages: tuple[bool | None, bool | None, bool | None]
-	"""Masquage de l'événement, de la banque et du sonore ; None : non renseigné."""
+	masquages: tuple[bool | None, bool | None, bool | None, bool | None]
+	"""Masquage de l'événement, de la séquence, de la banque et du sonore ; None : non renseigné."""
 
 
 def masque(masquages: tuple[bool | None, ...], defaut: bool) -> bool:
-	"""Premier niveau renseigné, dans l'ordre événement, banque, sonore ; sinon la valeur de la configuration."""
+	"""Premier niveau renseigné, dans l'ordre événement, séquence, banque, sonore ; sinon la valeur de la
+	configuration."""
 	return next((valeur for valeur in masquages if valeur is not None), defaut)
+
+
+def premier_nom_public(*noms: object) -> str | None:
+	"""Premier nom public renseigné, dans l'ordre donné : événement, séquence, banque."""
+	return next((str(nom) for nom in noms if nom), None)
 
 
 def artiste_et_titre(ligne: Ligne) -> str:
@@ -114,11 +135,12 @@ def lire_passages(
 	with connexion.transaction():
 		lignes = connexion.execute(
 			"SELECT d.horodatage, f.horodatage, f.duree_diffusee, f.sans_incident, d.artiste, d.titre, d.emplacement,"
-			" e.nom_interne, e.nom_public, b.nom_interne, e.masquer_metadonnees, b.masquer_metadonnees,"
-			" s.masquer_metadonnees"
+			" e.nom_interne, e.nom_public, q.nom_public, b.nom_public, q.nom_interne, b.nom_interne,"
+			" e.masquer_metadonnees, q.masquer_metadonnees, b.masquer_metadonnees, s.masquer_metadonnees"
 			" FROM airplay d"
 			" LEFT JOIN airplay f ON f.passage_id = d.passage_id AND f.type_ligne = 'fin'"
 			" LEFT JOIN evenements e ON e.id = d.evenement_id"
+			" LEFT JOIN sequences q ON q.id = d.sequence_id"
 			" LEFT JOIN banques b ON b.id = d.banque_id"
 			" LEFT JOIN sonores s ON s.id = d.sonore_id"
 			" WHERE d.type_ligne = 'debut' AND (%s::uuid IS NULL OR d.passage_id = %s::uuid)"
@@ -135,9 +157,10 @@ def lire_passages(
 			titre=None if titre is None else str(titre),
 			emplacement=None if emplacement is None else str(emplacement),
 			evenement=None if evenement is None else str(evenement),
-			nom_public=None if nom_public is None else str(nom_public),
+			nom_public=premier_nom_public(nom_public_e, nom_public_q, nom_public_b),
+			sequence=None if sequence is None else str(sequence),
 			banque=None if banque is None else str(banque),
-			masquages=(_booleen(masque_e), _booleen(masque_b), _booleen(masque_s)),
+			masquages=(_booleen(masque_e), _booleen(masque_q), _booleen(masque_b), _booleen(masque_s)),
 		)
 		for (
 			debut,
@@ -148,9 +171,13 @@ def lire_passages(
 			titre,
 			emplacement,
 			evenement,
-			nom_public,
+			nom_public_e,
+			nom_public_q,
+			nom_public_b,
+			sequence,
 			banque,
 			masque_e,
+			masque_q,
 			masque_b,
 			masque_s,
 		) in lignes
@@ -234,6 +261,7 @@ def ligne_csv(ligne: Ligne) -> str:
 			ligne.titre or "",
 			ligne.emplacement or "",
 			ligne.evenement or "",
+			ligne.sequence or "",
 			ligne.banque or "",
 			sans_incident,
 		]

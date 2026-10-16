@@ -14,7 +14,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 - Le mode aléatoire est contrôlé : pas de répétition dans une banque avant d'avoir joué tous ses sonores. Le cycle est propre à chaque banque.
 - Une banque marquée « ne pas répéter » ne passe jamais deux fois de suite, même d'un événement à l'autre : l'élément est sauté, et l'événement se termine s'il ne reste rien d'autre de jouable ([#63](https://github.com/dascritch/machincast/issues/63)).
 - Seuls les sonores jouables sont candidats : à l'état `actif`, dans leur période de diffusion, sous leur maximum de lectures.
-- Artiste et titre sont masqués selon la priorité Événement > Banque > Sonore > configuration. Les sorties privées affichent tout, les sorties publiques appliquent le masquage.
+- Artiste et titre sont masqués selon la priorité Événement > Séquence > Banque > Sonore > configuration ; masqués, ils laissent la place au premier nom public renseigné, Événement > Séquence > Banque (`sorties.premier_nom_public`), sinon au texte public. Les sorties privées affichent tout, les sorties publiques appliquent le masquage.
 - Jamais de silence non signalé : si rien n'est jouable, émettre un silence et lever une alerte dans le log.
 
 ## Grille et événement actif
@@ -33,6 +33,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 
 - `machincast.lecture.deroule.Ordonnanceur.decider(instant, en_cours)` ([#14](https://github.com/dascritch/machincast/issues/14)) dit à la sortie audio de continuer, couper net, jouer un sonore ou se taire. Il ne garde en mémoire que les occurrences terminées plus tôt et l'état de silence : la position dans chaque liste se lit dans l'airplay.
 - Chaque passage doit donc noter dans l'airplay son événement (`evenement_id`) et son élément (`element_id`), en plus de sa banque.
+- Séquences ([#99](https://github.com/dascritch/machincast/issues/99)) : `deroule.prochain` joue un élément séquence par `dans_la_sequence`, depuis son premier élément jouable ; chaque passage note `airplay.sequence_id` et `sequence_element_id` (`Choix.ligne`). À chaque décision, `Ordonnanceur._suite` continue d'abord la séquence du dernier passage de tout l'historique, même son événement fini (au nom de cet événement), sauf si un événement a commencé depuis ce passage ou pendant la suspension d'un stream. Une séquence ne contient jamais une autre séquence. Ses lignes se lisent par `machincast.lecture.sequences`.
 - Banque « ne pas répéter » ([#63](https://github.com/dascritch/machincast/issues/63)) : à chaque décision, l'ordonnanceur lit le dernier passage de tout l'historique (`Historique.dernier_passage`) ; si sa banque est marquée (`banques.a_ne_pas_repeter`), `prochain` saute les éléments qui la rappellent. Chaque élément sauté est noté une seule fois par passage (`élément sauté`, info), même si la décision est reprise ; une émission ou un spécial terminé à cause du saut donne l'alerte `événement terminé plus tôt`, pas un événement terminé pour une autre raison. `deroule.appels_ignores` donne à l'interface les lignes d'une liste qui seront toujours sautées.
 - Une seule alerte `silence` par silence, pas une par seconde.
 
@@ -66,7 +67,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 ## Sorties
 
 - `machincast.lecture.sorties.Sorties` ([#19](https://github.com/dascritch/machincast/issues/19)) : la diffusion l'appelle à chaque passage qui commence (`passage_commence`) et qui finit (`passage_termine`). La page HTML et la playlist se recalculent depuis l'airplay, et survivent donc à un redémarrage ; le CSV du jour reçoit une ligne par passage terminé.
-- Le masquage ne s'applique qu'à la sortie publique : `masque(masquages, defaut)` prend le premier niveau renseigné, événement, banque, sonore, sinon la configuration.
+- Le masquage ne s'applique qu'à la sortie publique : `masque(masquages, defaut)` prend le premier niveau renseigné, événement, séquence, banque, sonore, sinon la configuration.
 - Une sortie ne doit jamais arrêter la diffusion : toute `OSError` à l'écriture devient une alerte `sortie inaccessible`, une fois par chemin.
 - Les tests écrivent leurs sorties dans leur répertoire temporaire, jamais aux chemins de la configuration de test.
 - `consigner` recopie les alertes et incidents dans le journal du binaire (sortie d'erreur).

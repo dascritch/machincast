@@ -370,7 +370,7 @@ class Diffusion:
 		self.en_attente, self.sonde = None, None
 		self.ordonnanceur.reprendre()
 		choix = sonde.choix
-		passage = self._commencer(choix.sonore, choix.banque, choix.occurrence.evenement.id, choix.element.id, instant)
+		passage = self._commencer(choix, instant)
 		self.courant = Lecture(choix, sonde.parametres, voie, passage)
 		self.historique.expirer(self.connexion, instant, choix.sonore)
 		self._reserver(instant)
@@ -421,23 +421,25 @@ class Diffusion:
 			fondu_d_entree(crossfade_fin_precedent, parametres.crossfade_debut),
 			parametres.crossfade_fin,
 		)
-		passage = self._commencer(
-			suivant.sonore,
-			suivant.banque,
-			suivant.occurrence.evenement.id,
-			suivant.element.id,
-			instant,
-		)
+		passage = self._commencer(suivant, instant)
 		if self.courant is not None:
 			self.sortants.append(self.courant)
 		self.courant = Lecture(suivant, parametres, voie, passage)
 		self.historique.expirer(self.connexion, instant, suivant.sonore)
 		self._reserver(instant)
 
-	def _commencer(
-		self, sonore: int, banque: int | None, evenement: int | None, element: int | None, instant: datetime
-	) -> Passage:
-		passage = self.historique.commencer_passage(self.connexion, sonore, banque, evenement, element, instant)
+	def _commencer(self, choix: Choix, instant: datetime) -> Passage:
+		ligne = choix.ligne
+		passage = self.historique.commencer_passage(
+			self.connexion,
+			choix.sonore,
+			choix.banque,
+			choix.occurrence.evenement.id,
+			choix.element.id,
+			instant,
+			None if ligne is None else ligne.sequence,
+			None if ligne is None else ligne.id,
+		)
 		if self.sorties is not None:
 			self.sorties.passage_commence(self.connexion, passage)
 		return passage
