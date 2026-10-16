@@ -1,8 +1,8 @@
 """Point d'entrée de Machin_interface (https://github.com/dascritch/machincast/issues/23).
 
-Se connecte à la base de production avec le rôle de l'interface, puis ouvre l'écran par défaut. Sans base joignable,
-s'arrête avec le code 1, après une fenêtre d'erreur qui renvoie à INSTALL.md quand un affichage graphique peut la
-montrer.
+Se connecte à la base de production avec le rôle de l'interface, puis ouvre sa fenêtre à onglets, sur l'écran par
+défaut (https://github.com/dascritch/machincast/issues/26). Sans base joignable, s'arrête avec le code 1, après une
+fenêtre d'erreur qui renvoie à INSTALL.md quand un affichage graphique peut la montrer.
 """
 
 import argparse
@@ -73,17 +73,11 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 	with connexion:
 		# PySide6 n'est importé qu'ici : l'aide et les erreurs de configuration ou de base restent disponibles sans
 		# affichage graphique.
-		from PySide6.QtWidgets import QMainWindow
-
 		from machincast.interface.application import application
-		from machincast.interface.ecran_par_defaut import EcranParDefaut
+		from machincast.interface.fenetre import FenetrePrincipale
 
 		qt = application(EXECUTABLE)
-		fenetre = QMainWindow()
-		fenetre.setWindowTitle("MachinCast")
-		ecran = EcranParDefaut(connexion, configuration.lecture.socket_etat, HorlogeSysteme(), fenetre)
-		fenetre.setCentralWidget(ecran)
-		fenetre.resize(ecran.size())
+		fenetre = FenetrePrincipale(connexion, configuration.lecture.socket_etat, HorlogeSysteme())
 		fenetre.show()
 		return qt.exec()
 

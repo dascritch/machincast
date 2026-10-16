@@ -425,7 +425,13 @@ L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture 
 
 ## Interface graphique : Machin interface
 
-`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre sur l'**écran par défaut** ([#23](https://github.com/dascritch/machincast/issues/23)), qui montre en un coup d'œil ce qui passe et ce qui va passer :
+`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques** et **Sonores**.
+
+**Sans base de données**, l'interface n'est pas utilisable : `Machin interface` ouvre alors une fenêtre d'erreur, « MachinCast : base de données injoignable ». Elle explique pourquoi, et invite à lire le document `INSTALL.md` du répertoire de MachinCast, section [En cas de problème](../INSTALL.md#en-cas-de-problème). Son bouton « Ouvrir INSTALL.md » ouvre ce document, et ses détails donnent l'erreur de PostgreSQL. À sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, par exemple dans une session SSH, seul ce message s'affiche.
+
+### Accueil
+
+L'onglet Accueil est l'**écran par défaut** ([#23](https://github.com/dascritch/machincast/issues/23)), qui montre en un coup d'œil ce qui passe et ce qui va passer :
 
 - **En haut** : la date et l'heure du poste, à la seconde, et l'état du binaire lecture : `En diffusion`, `En silence` (rien à diffuser) ou `À l'arrêt`.
 - **Sonore en cours et prochain sonore**, côte à côte, chacun sur la moitié de la largeur de la fenêtre ; un titre trop long passe à la ligne.
@@ -442,7 +448,21 @@ D'où viennent ces informations :
 
 Le VU-mètre de la sortie viendra avec [#24](https://github.com/dascritch/machincast/issues/24), et le pilotage du service avec [#25](https://github.com/dascritch/machincast/issues/25).
 
-**Sans base de données**, l'interface n'est pas utilisable : `Machin interface` ouvre alors une fenêtre d'erreur, « MachinCast : base de données injoignable ». Elle explique pourquoi, et invite à lire le document `INSTALL.md` du répertoire de MachinCast, section [En cas de problème](../INSTALL.md#en-cas-de-problème). Son bouton « Ouvrir INSTALL.md » ouvre ce document, et ses détails donnent l'erreur de PostgreSQL. À sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, par exemple dans une session SSH, seul ce message s'affiche.
+### Listes
+
+Les onglets Événements, Séquences, Banques et Sonores donnent chacun la liste de tous les éléments de ce type ([#26](https://github.com/dascritch/machincast/issues/26)) :
+
+| Onglet | Colonnes | Ordre |
+| --- | --- | --- |
+| Événements | nom, nom public, priorité, début, fin, jours de récurrence | du plus prioritaire (spécial) au moins prioritaire (secours), puis par nom |
+| Séquences | nom, nom public | par nom |
+| Banques | nom, nom public, mode (séquentielle ou aléatoire), « ne pas répéter », premier répertoire (dans l'ordre alphabétique), vide pour une banque sans répertoire | par nom |
+| Sonores | artiste, titre, type (fichier ou stream), état, durée, emplacement (chemin du fichier ou adresse du stream) | par artiste, les sonores sans artiste à la fin, puis par titre |
+
+- **Filtre** : le champ « Filtrer… » garde les lignes dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : `cafe` trouve « Café à minuit », `stream` tous les streams, `/srv/musique` tous les fichiers de ce répertoire. Le compte, à côté, dit combien de lignes restent, par exemple `2 sonores sur 340`. La croix du champ efface le filtre.
+- **Tri** : un clic sur le titre d'une colonne trie la liste selon cette colonne ; un second clic inverse l'ordre.
+- **Mise à jour** : une liste se relit dans la base chaque fois que son onglet s'ouvre, en gardant son filtre. Elle ne se relit jamais d'elle-même pendant qu'on la regarde.
+- **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvrira l'écran de détails de l'élément. Ces écrans sont encore à venir ([#28](https://github.com/dascritch/machincast/issues/28) pour un sonore, [#31](https://github.com/dascritch/machincast/issues/31) pour une banque, [#32](https://github.com/dascritch/machincast/issues/32) pour un événement) : en attendant, la barre d'état, en bas de la fenêtre, l'annonce.
 
 ## Suivre le journal : Machin logs
 
@@ -486,5 +506,5 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | Document d'audit des anomalies de l'indexation, en CSV et HTML | [#11](https://github.com/dascritch/machincast/issues/11) |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
 | Service systemd de diffusion | [#22](https://github.com/dascritch/machincast/issues/22) |
-| Autres écrans de l'interface : VU-mètre, pilotage du service, listes et recherche, détails, ajout et suppression, incidents, calendrier, simulation, indexation | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
+| Autres écrans de l'interface : VU-mètre, pilotage du service, recherche globale, détails, ajout et suppression, incidents, calendrier, simulation, indexation | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |

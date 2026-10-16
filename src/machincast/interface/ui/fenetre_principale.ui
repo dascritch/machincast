@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FenetrePrincipale</class>
+ <widget class="QMainWindow" name="FenetrePrincipale">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1100</width>
+    <height>800</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MachinCast</string>
+  </property>
+  <widget class="QWidget" name="centre">
+   <layout class="QVBoxLayout" name="disposition">
+    <item>
+     <widget class="QTabWidget" name="onglets">
+      <property name="documentMode">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="barre_d_etat"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
