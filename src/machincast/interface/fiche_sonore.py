@@ -1,0 +1,383 @@
+"""Fiche d'un sonore (https://github.com/dascritch/machincast/issues/28, spec § 8.3).
+
+La fiche s'ouvre dans un onglet de la fenêtre (machincast.interface.fenetre), depuis la liste des sonores.
+Enregistrement, annulation et fermeture : machincast.interface.fiche.
+
+- Champs : artiste, titre, les métadonnées musicales que tient l'indexeur (année, album, artiste de l'album, genre,
+  compositeur, label, piste), crossfades, maximum de lectures, masquage, période de diffusion, état. Les autres clés
+  des métadonnées musicales sont montrées, jamais modifiées. L'emplacement et la durée ne se modifient pas.
+- Seuls les champs modifiés depuis la lecture de la fiche sont écrits : ce que l'indexation ou la diffusion change
+  entre-temps est gardé. Chacun est ajouté à champs_edites, sauf l'état, que l'indexeur peut encore changer
+  (fichier défectueux, puis de nouveau sain) : l'indexeur ne modifie plus un champ édité.
+- État : l'interface pose « actif » ou « désactivé » ; un sonore expiré, erroné ou supprimé peut y revenir. Un sonore
+  en aperçu attend sa première indexation.
+- Stream : adresse directe ou marque-page, événement de secours parmi les événements de priorité secours, et test du
+  flux à la demande (machincast.interface.essai_flux), sur l'adresse saisie, même pas encore enregistrée.
+- Derniers passages : les 50 derniers, du plus récent au plus ancien, avec les alertes et incidents du log pendant
+  chaque passage.
+"""
+
+from datetime import datetime, timedelta
+from pathlib import Path
+
+from psycopg import sql
+from psycopg.types.json import Jsonb
+from PySide6.QtCore import QDateTime, QLocale, Qt
+from PySide6.QtGui import QIntValidator
+from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QLineEdit, QTableWidgetItem, QWidget
+
+from machincast.horloge import Horloge
+from machincast.interface import affichage
+from machincast.interface.essai_flux import EssaiDeFlux
+from machincast.interface.fiche import Connexion, Fiche, Refus
+from machincast.interface.listes import ETATS
+from machincast.interface.ui.fiche_sonore import Ui_FicheSonore
+
+METADONNEES: tuple[tuple[str, str], ...] = (
+	("annee", "année"),
+	("album", "album"),
+	("artiste_album", "artiste de l'album"),
+	("genre", "genre"),
+	("compositeur", "compositeur"),
+	("label", "label"),
+	("piste", "piste"),
+)
+"""Clés de metadonnees_musicales tenues par l'indexeur (machincast.indexation.tags.CLES), et leur nom à l'écran."""
+ENTIERS = frozenset({"annee", "piste"})
+"""Clés dont la valeur est un nombre entier."""
+LIBELLES: dict[str, str] = {
+	"artiste": "artiste",
+	"titre": "titre",
+	**{f"metadonnees_musicales.{cle}": nom for cle, nom in METADONNEES},
+	"crossfade_debut": "crossfade de début",
+	"crossfade_fin": "crossfade de fin",
+	"max_lectures": "maximum de lectures",
+	"masquer_metadonnees": "artiste et titre",
+	"debut_diffusion": "début de diffusion",
+	"fin_diffusion": "fin de diffusion",
+	"url_stream": "adresse directe",
+	"marque_page_id": "marque-page",
+	"secours_evenement_id": "événement de secours",
+	"duree": "durée",
+}
+"""Nom à l'écran d'un champ de champs_edites."""
+CHOIX_ETATS: dict[str, tuple[str, ...]] = {
+	"apercu": ("apercu",),
+	"actif": ("actif", "desactive"),
+	"desactive": ("desactive", "actif"),
+	"expire": ("expire", "actif", "desactive"),
+	"errone": ("errone", "actif", "desactive"),
+	"supprime": ("supprime", "actif", "desactive"),
+}
+"""L'état du sonore, puis ceux que l'interface peut poser."""
+MASQUAGES: tuple[tuple[bool | None, str], ...] = (
+	(None, "Selon la configuration"),
+	(True, "Masqués"),
+	(False, "Affichés"),
+)
+"""Valeurs de sonores.masquer_metadonnees, dans l'ordre du choix de la fiche."""
+PASSAGES = 50
+"""Nombre de derniers passages montrés."""
+URL = Qt.ItemDataRole.UserRole + 1
+"""Rôle qui porte l'adresse d'un marque-page, dans son choix."""
+FRANCAIS = QLocale(QLocale.Language.French, QLocale.Country.France)
+
+
+def _texte(valeur: object) -> str | None:
+	if valeur is None:
+		return None
+	return str(valeur)
+
+
+class FicheSonore(Fiche):
+	genre = "sonore"
+
+	def __init__(
+		self, connexion: Connexion, identifiant: int | None, horloge: Horloge, parent: QWidget | None = None
+	) -> None:
+		super().__init__(connexion, identifiant, horloge, parent)
+		self.ui = Ui_FicheSonore()
+		self.ui.setupUi(self)
+		self.brancher(self.ui.enregistrer, self.ui.annuler, self.ui.message)
+		self.metadonnees: dict[str, QLineEdit] = {cle: getattr(self.ui, cle) for cle, _nom in METADONNEES}
+		for cle in ENTIERS:
+			self.metadonnees[cle].setValidator(QIntValidator(0, 9999, self))
+		for crossfade in (self.ui.crossfade_debut, self.ui.crossfade_fin):
+			crossfade.setLocale(FRANCAIS)
+		for _valeur, texte in MASQUAGES:
+			self.ui.masquage.addItem(texte)
+		self.essai = EssaiDeFlux(self)
+		self.essai.termine.connect(self._essai_termine)
+		self._nom = ""
+		self._initiales: dict[str, object] = {}
+		"""Champs tels que la fiche les a montrés à la lecture : seuls ceux qui en diffèrent sont écrits."""
+		for champ in (self.ui.artiste, self.ui.titre, self.ui.url_stream, *self.metadonnees.values()):
+			champ.textChanged.connect(self._modifier)
+		for choix in (self.ui.etat, self.ui.masquage, self.ui.marque_page, self.ui.secours):
+			choix.currentIndexChanged.connect(self._modifier)
+		for nombre in (self.ui.crossfade_debut, self.ui.crossfade_fin, self.ui.max_lectures):
+			nombre.valueChanged.connect(self._modifier)
+		for case, date in ((self.ui.a_debut, self.ui.debut_diffusion), (self.ui.a_fin, self.ui.fin_diffusion)):
+			case.toggled.connect(date.setEnabled)
+			case.toggled.connect(self._modifier)
+			date.dateTimeChanged.connect(self._modifier)
+		self.ui.par_adresse.toggled.connect(self._mode_stream)
+		self.ui.par_adresse.toggled.connect(self._modifier)
+		self.ui.tester.clicked.connect(self._tester)
+		self.charger()
+
+	def titre(self) -> str:
+		return f"Sonore : {self._nom}"
+
+	def fermer(self) -> None:
+		self.essai.arreter()
+
+	def _lire(self) -> None:
+		with self.connexion.transaction():
+			ligne = self.connexion.execute(
+				"SELECT s.type::text, s.emplacement, s.url_stream, s.marque_page_id, m.url, s.secours_evenement_id,"
+				" s.artiste, s.titre, s.metadonnees_musicales, s.crossfade_debut, s.crossfade_fin, s.max_lectures,"
+				" s.etat::text, s.masquer_metadonnees, s.duree, s.debut_diffusion, s.fin_diffusion, s.champs_edites"
+				" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
+				(self.identifiant,),
+			).fetchone()
+			assert ligne is not None, f"sonore {self.identifiant} absent"
+			marques = self.connexion.execute("SELECT id, nom, url FROM marques_pages_streams ORDER BY nom").fetchall()
+			secours = self.connexion.execute(
+				"SELECT id, nom_interne FROM evenements WHERE priorite = 'secours' ORDER BY nom_interne"
+			).fetchall()
+			passages = self._lire_passages()
+		(
+			type_sonore,
+			emplacement,
+			url_stream,
+			marque_page,
+			url_marque_page,
+			evenement_secours,
+			artiste,
+			titre,
+			metadonnees,
+			crossfade_debut,
+			crossfade_fin,
+			max_lectures,
+			etat,
+			masquage,
+			duree,
+			debut,
+			fin,
+			champs_edites,
+		) = ligne
+		stream = type_sonore == "stream"
+		self._nom = _texte(titre) or Path(str(emplacement)).name
+		if stream:
+			self._nom = _texte(titre) or str(url_stream or url_marque_page)
+		self.ui.type_sonore.setText(str(type_sonore))
+		self.ui.emplacement.setText(str(emplacement or ""))
+		self.ui.formulaire_sonore.setRowVisible(self.ui.emplacement, not stream)
+		self.ui.groupe_stream.setVisible(stream)
+		texte_duree = ""
+		if stream:
+			texte_duree = affichage.duree(None)
+		elif isinstance(duree, timedelta):
+			texte_duree = affichage.duree(duree)
+		self.ui.duree.setText(texte_duree)
+		self.ui.etat.clear()
+		for code in CHOIX_ETATS[str(etat)]:
+			self.ui.etat.addItem(ETATS[code], code)
+		self.ui.etat.setEnabled(self.ui.etat.count() > 1)
+		self.ui.artiste.setText(str(artiste or ""))
+		self.ui.titre.setText(str(titre or ""))
+		assert isinstance(metadonnees, dict)
+		musicales = dict(metadonnees)
+		for cle, champ in self.metadonnees.items():
+			champ.setText(str(musicales.pop(cle, "")))
+		autres = [f"{cle} : {valeur}" for cle, valeur in sorted(musicales.items())]
+		self.ui.autres_metadonnees.setText(", ".join(autres))
+		self.ui.crossfade_debut.setValue(_secondes(crossfade_debut))
+		self.ui.crossfade_fin.setValue(_secondes(crossfade_fin))
+		self.ui.max_lectures.setValue(int(str(max_lectures or 0)))
+		self.ui.masquage.setCurrentIndex(next(i for i, (valeur, _texte) in enumerate(MASQUAGES) if valeur is masquage))
+		self._montrer_date(self.ui.a_debut, self.ui.debut_diffusion, debut)
+		self._montrer_date(self.ui.a_fin, self.ui.fin_diffusion, fin)
+		self.ui.marque_page.clear()
+		for identifiant, nom, url in marques:
+			self.ui.marque_page.addItem(str(nom), int(str(identifiant)))
+			self.ui.marque_page.setItemData(self.ui.marque_page.count() - 1, str(url), URL)
+		self.ui.par_marque_page.setEnabled(marques != [])
+		self.ui.marque_page.setCurrentIndex(self.ui.marque_page.findData(marque_page))
+		self.ui.url_stream.setText(str(url_stream or ""))
+		self.ui.par_marque_page.setChecked(marque_page is not None)
+		self.ui.par_adresse.setChecked(marque_page is None)
+		self._mode_stream()
+		self.ui.secours.clear()
+		self.ui.secours.addItem("Aucun : le fil musical", None)
+		for identifiant, nom in secours:
+			self.ui.secours.addItem(str(nom), int(str(identifiant)))
+		self.ui.secours.setCurrentIndex(self.ui.secours.findData(evenement_secours))
+		edites = [LIBELLES.get(str(champ), str(champ)) for champ in (champs_edites or [])]
+		texte_edites = ""
+		if edites != []:
+			texte_edites = f"Saisis à la main, que l'indexeur ne modifie plus : {', '.join(edites)}."
+		self.ui.champs_edites.setText(texte_edites)
+		self._montrer_passages(passages)
+		self._initiales = self._saisies()
+
+	def _montrer_date(self, case: QCheckBox, date: QDateTimeEdit, valeur: object) -> None:
+		"""Une période sans date part de l'heure de l'horloge, à la minute, quand sa case se coche."""
+		instant = self.horloge.maintenant().replace(second=0, microsecond=0)
+		if isinstance(valeur, datetime):
+			instant = valeur
+		date.setDateTime(QDateTime.fromSecsSinceEpoch(int(instant.timestamp())))
+		# La case active la date quand elle change d'état (toggled).
+		case.setChecked(isinstance(valeur, datetime))
+
+	def _mode_stream(self) -> None:
+		self.ui.url_stream.setEnabled(self.ui.par_adresse.isChecked())
+		self.ui.marque_page.setEnabled(self.ui.par_marque_page.isChecked())
+
+	def _saisies(self) -> dict[str, object]:
+		"""Les champs modifiables, tels que la fiche les montre : colonne de sonores, ou metadonnees_musicales.<clé>."""
+		saisies: dict[str, object] = {
+			"artiste": self.ui.artiste.text().strip() or None,
+			"titre": self.ui.titre.text().strip() or None,
+		}
+		for cle, champ in self.metadonnees.items():
+			valeur: str | int | None = champ.text().strip() or None
+			if (cle in ENTIERS) and (valeur is not None):
+				valeur = int(valeur)
+			saisies[f"metadonnees_musicales.{cle}"] = valeur
+		saisies["crossfade_debut"] = timedelta(seconds=self.ui.crossfade_debut.value())
+		saisies["crossfade_fin"] = timedelta(seconds=self.ui.crossfade_fin.value())
+		saisies["max_lectures"] = self.ui.max_lectures.value() or None
+		saisies["masquer_metadonnees"] = MASQUAGES[self.ui.masquage.currentIndex()][0]
+		saisies["debut_diffusion"] = _date(self.ui.a_debut, self.ui.debut_diffusion)
+		saisies["fin_diffusion"] = _date(self.ui.a_fin, self.ui.fin_diffusion)
+		if self.ui.groupe_stream.isVisibleTo(self):
+			saisies["url_stream"] = None
+			saisies["marque_page_id"] = None
+			if self.ui.par_adresse.isChecked():
+				saisies["url_stream"] = self.ui.url_stream.text().strip() or None
+			else:
+				saisies["marque_page_id"] = self.ui.marque_page.currentData()
+			saisies["secours_evenement_id"] = self.ui.secours.currentData()
+		saisies["etat"] = self.ui.etat.currentData()
+		return saisies
+
+	def _ecrire(self) -> int:
+		assert self.identifiant is not None
+		saisies = self._saisies()
+		debut, fin = saisies["debut_diffusion"], saisies["fin_diffusion"]
+		if (isinstance(debut, datetime)) and (isinstance(fin, datetime)) and (fin <= debut):
+			raise Refus("La fin de la diffusion doit suivre son début.")
+		if ("url_stream" in saisies) and (saisies["url_stream"] is None) and (saisies["marque_page_id"] is None):
+			raise Refus("L'adresse du stream est obligatoire.")
+		modifies = [champ for champ, valeur in saisies.items() if valeur != self._initiales[champ]]
+		ligne = self.connexion.execute(
+			"SELECT champs_edites FROM sonores WHERE id = %s FOR UPDATE", (self.identifiant,)
+		).fetchone()
+		if ligne is None:
+			raise Refus("Ce sonore n'est plus en base.")
+		edites = list(ligne[0] or [])
+		edites += [champ for champ in modifies if (champ != "etat") and (champ not in edites)]
+		colonnes = [champ for champ in modifies if not champ.startswith("metadonnees_musicales.")]
+		affectations: list[sql.Composable] = [
+			sql.SQL("{} = %s").format(sql.Identifier(colonne)) for colonne in colonnes
+		]
+		valeurs: list[object] = [saisies[colonne] for colonne in colonnes]
+		prefixe = "metadonnees_musicales."
+		musicales = {champ.removeprefix(prefixe): saisies[champ] for champ in modifies if champ.startswith(prefixe)}
+		affectations.append(sql.SQL("metadonnees_musicales = (metadonnees_musicales - %s::text[]) || %s::jsonb"))
+		valeurs += [list(musicales), Jsonb({cle: valeur for cle, valeur in musicales.items() if valeur is not None})]
+		affectations.append(sql.SQL("champs_edites = %s"))
+		valeurs.append(edites)
+		requete = sql.SQL("UPDATE sonores SET {} WHERE id = %s").format(sql.SQL(", ").join(affectations))
+		self.connexion.execute(requete, [*valeurs, self.identifiant])
+		return self.identifiant
+
+	def _lire_passages(self) -> list[tuple[object, ...]]:
+		"""Les derniers passages, avec les alertes et incidents du log pendant chacun ; dans une transaction."""
+		return self.connexion.execute(
+			"SELECT d.horodatage, f.horodatage, f.duree_diffusee, f.sans_incident, e.nom_interne, q.nom_interne,"
+			" b.nom_interne, i.horodatages, i.natures, i.messages"
+			" FROM airplay d"
+			" LEFT JOIN airplay f ON f.passage_id = d.passage_id AND f.type_ligne = 'fin'"
+			" LEFT JOIN evenements e ON e.id = d.evenement_id"
+			" LEFT JOIN sequences q ON q.id = d.sequence_id"
+			" LEFT JOIN banques b ON b.id = d.banque_id"
+			" LEFT JOIN LATERAL ("
+			"  SELECT array_agg(l.horodatage ORDER BY l.horodatage, l.id) AS horodatages,"
+			"   array_agg(l.nature::text ORDER BY l.horodatage, l.id) AS natures,"
+			"   array_agg(l.message ORDER BY l.horodatage, l.id) AS messages"
+			"  FROM log l WHERE l.sonore_id = d.sonore_id AND l.niveau <> 'info' AND l.horodatage >= d.horodatage"
+			"   AND (f.horodatage IS NULL OR l.horodatage <= f.horodatage)"
+			" ) i ON true"
+			" WHERE d.type_ligne = 'debut' AND d.sonore_id = %s"
+			" ORDER BY d.horodatage DESC, d.id DESC LIMIT %s",
+			(self.identifiant, PASSAGES),
+		).fetchall()
+
+	def _montrer_passages(self, passages: list[tuple[object, ...]]) -> None:
+		table = self.ui.passages
+		table.setRowCount(0)
+		for debut, fin, duree, sans_incident, evenement, sequence, banque, horodatages, natures, messages in passages:
+			assert isinstance(debut, datetime)
+			texte_fin, texte_duree = "en cours", ""
+			if isinstance(fin, datetime):
+				texte_fin = affichage.heure(fin)
+			if isinstance(duree, timedelta):
+				texte_duree = affichage.duree(duree)
+			sans = affichage.oui_non(None if sans_incident is None else bool(sans_incident))
+			incidents = list(zip(_liste(horodatages), _liste(natures), _liste(messages), strict=True))
+			cellules = [f"{debut.astimezone():%Y-%m-%d %H:%M:%S}", texte_fin, texte_duree]
+			cellules += [str(nom or "") for nom in (evenement, sequence, banque)]
+			cellules += [sans, ", ".join(str(nature) for _h, nature, _m in incidents)]
+			items = [QTableWidgetItem(texte) for texte in cellules]
+			details = [f"{_heure(h)} {nature} : {message}" for h, nature, message in incidents]
+			items[-1].setToolTip("\n".join(details))
+			rangee = table.rowCount()
+			table.insertRow(rangee)
+			for colonne, item in enumerate(items):
+				table.setItem(rangee, colonne, item)
+		table.resizeColumnsToContents()
+
+	def _adresse(self) -> str:
+		if self.ui.par_adresse.isChecked():
+			return self.ui.url_stream.text().strip()
+		return str(self.ui.marque_page.currentData(URL))
+
+	def _tester(self) -> None:
+		self.ui.tester.setEnabled(False)
+		self.ui.resultat_essai.setText("Test du flux en cours…")
+		self.essai.lancer(self._adresse())
+
+	def _essai_termine(self, repond: bool, detail: str) -> None:
+		verdict = "Le flux ne répond pas"
+		if repond:
+			verdict = "Le flux répond"
+		self.ui.resultat_essai.setText(f"{verdict} : {detail}")
+		self.ui.tester.setEnabled(True)
+
+
+def _secondes(valeur: object) -> float:
+	if isinstance(valeur, timedelta):
+		return valeur.total_seconds()
+	return 0.0
+
+
+def _liste(valeur: object) -> list[object]:
+	"""Un tableau lu en base, vide pour NULL."""
+	if isinstance(valeur, list):
+		return valeur
+	return []
+
+
+def _heure(valeur: object) -> str:
+	if isinstance(valeur, datetime):
+		return affichage.heure(valeur)
+	return str(valeur)
+
+
+def _date(case: QCheckBox, date: QDateTimeEdit) -> datetime | None:
+	if not case.isChecked():
+		return None
+	return datetime.fromtimestamp(date.dateTime().toSecsSinceEpoch()).astimezone()

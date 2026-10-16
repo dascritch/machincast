@@ -1,8 +1,7 @@
 """Fiche d'une banque (https://github.com/dascritch/machincast/issues/31, spec § 8.4).
 
 La fiche s'ouvre dans un onglet de la fenêtre (machincast.interface.fenetre), depuis la liste des banques, ou vide pour
-une nouvelle banque. Ses modifications restent dans la fiche jusqu'à « Enregistrer », qui les écrit en base en une
-seule transaction ; « Annuler » relit la banque en base.
+une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interface.fiche.
 
 - Les noms sont enregistrés sans les espaces qui les entourent ; un nom public vide n'en est pas un (NULL).
 - Le masquage « hérité du sonore » (NULL) laisse décider le sonore ; « masqués » et « affichés » l'imposent.
@@ -22,25 +21,21 @@ seule transaction ; « Annuler » relit la banque en base.
 Les fenêtres de dialogue sont celles de machincast.interface.dialogues.
 """
 
-import logging
 import os
 from datetime import timedelta
 from pathlib import Path
 
-import psycopg
-from psycopg.rows import TupleRow
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QTreeWidgetItem, QWidget
 
+from machincast.horloge import Horloge
 from machincast.interface import affichage, dialogues
 from machincast.interface.depot import DepotDeFichiers
-from machincast.interface.dialogues import Fermeture, Retrait
+from machincast.interface.dialogues import Retrait
+from machincast.interface.fiche import Connexion, Fiche, Refus
 from machincast.interface.ui.fiche_banque import Ui_FicheBanque
 from machincast.protection import est_fichier_sonore
 
-journal = logging.getLogger(__name__)
-
-Connexion = psycopg.Connection[TupleRow]
 MODES = (("sequentiel", "Séquentielle"), ("aleatoire", "Aléatoire"))
 MASQUAGES: tuple[tuple[bool | None, str], ...] = ((None, "Hérité du sonore"), (True, "Masqués"), (False, "Affichés"))
 """Valeurs de banques.masquer_metadonnees, dans l'ordre du choix de la fiche."""
@@ -60,10 +55,6 @@ DOSSIER_SUR_LES_SONORES = " Un dossier se dépose sur les répertoires indexés.
 """Conseil pour un dossier déposé sur les sonores."""
 
 
-class NomPris(Exception):
-	"""Une autre banque a déjà ce nom interne."""
-
-
 def avertissement_retrait(sonore: str, repertoire: str) -> str:
 	return (
 		f"« {sonore} » est un fichier du répertoire {repertoire}, indexé par cette banque : la prochaine indexation "
@@ -71,18 +62,16 @@ def avertissement_retrait(sonore: str, repertoire: str) -> str:
 	)
 
 
-class FicheBanque(QWidget):
-	titre_change = Signal(str)
-	"""Le titre de l'onglet de la fiche a changé : à la lecture, et après un enregistrement."""
-	enregistree = Signal(int)
-	"""La banque est enregistrée : son identifiant en base."""
+class FicheBanque(Fiche):
+	genre = "banque"
 
-	def __init__(self, connexion: Connexion, identifiant: int | None, parent: QWidget | None = None) -> None:
-		super().__init__(parent)
-		self.connexion = connexion
-		self.identifiant = identifiant
+	def __init__(
+		self, connexion: Connexion, identifiant: int | None, horloge: Horloge, parent: QWidget | None = None
+	) -> None:
+		super().__init__(connexion, identifiant, horloge, parent)
 		self.ui = Ui_FicheBanque()
 		self.ui.setupUi(self)
+		self.brancher(self.ui.enregistrer, self.ui.annuler, self.ui.message)
 		for valeur, texte in MODES:
 			self.ui.mode.addItem(texte, valeur)
 		for _valeur, texte in MASQUAGES:
@@ -93,8 +82,6 @@ class FicheBanque(QWidget):
 		self._nom = ""
 		self._charges: set[int] = set()
 		"""Sonores de la banque à la dernière lecture : ceux qui manquent à la fiche en ont été retirés."""
-		self._chargement = False
-		self.modifiee = False
 		self.depot_repertoires = DepotDeFichiers(self.ui.repertoires)
 		self.depot_repertoires.deposes.connect(self._deposer_repertoires)
 		self.depot_sonores = DepotDeFichiers(self.ui.sonores)
@@ -117,8 +104,6 @@ class FicheBanque(QWidget):
 		self.ui.retirer_sonore.clicked.connect(self._retirer_sonore)
 		self.ui.monter.clicked.connect(lambda: self._deplacer(-1))
 		self.ui.descendre.clicked.connect(lambda: self._deplacer(1))
-		self.ui.enregistrer.clicked.connect(self.enregistrer)
-		self.ui.annuler.clicked.connect(self.charger)
 		self.charger()
 
 	def titre(self) -> str:
@@ -126,7 +111,7 @@ class FicheBanque(QWidget):
 			return "Nouvelle banque"
 		return f"Banque : {self._nom}"
 
-	def charger(self) -> None:
+	def _lire(self) -> None:
 		"""Lit la banque en base ; une nouvelle banque est vide, séquentielle, au masquage hérité du sonore."""
 		banque: tuple[object, ...] = ("", None, MODES[0][0], None, False)
 		repertoires: list[str] = []
@@ -152,7 +137,6 @@ class FicheBanque(QWidget):
 					(self.identifiant,),
 				).fetchall()
 		nom, nom_public, mode, masquage, ne_pas_repeter = banque
-		self._chargement = True
 		self._nom = str(nom)
 		self.ui.nom_interne.setText(self._nom)
 		self.ui.nom_public.setText(str(nom_public or ""))
@@ -163,48 +147,17 @@ class FicheBanque(QWidget):
 		self.ui.sonores.clear()
 		self.ui.sonores.addTopLevelItems([self._ligne(sonore) for sonore in sonores])
 		self._charges = set(self._sonores())
-		self._chargement = False
-		self._marquer(False)
-		self.ui.message.clear()
 		self._actualiser_boutons()
-		self.titre_change.emit(self.titre())
 
-	def enregistrer(self) -> bool:
-		"""Écrit la fiche en base, puis la relit ; une fiche invalide n'est pas enregistrée, et dit pourquoi."""
+	def _ecrire(self) -> int:
 		nom = self.ui.nom_interne.text().strip()
 		if nom == "":
-			self.ui.message.setText("Le nom interne est obligatoire.")
-			return False
-		try:
-			with self.connexion.transaction():
-				identifiant = self._ecrire(nom)
-		except NomPris:
-			self.ui.message.setText(f"Une autre banque s'appelle déjà « {nom} ».")
-			return False
-		except psycopg.Error as erreur:
-			journal.error(f"banque « {nom} » non enregistrée : {erreur}")
-			self.ui.message.setText(f"Enregistrement impossible : {erreur}")
-			return False
-		self.identifiant = identifiant
-		self.charger()
-		self.enregistree.emit(identifiant)
-		return True
-
-	def peut_fermer(self) -> bool:
-		"""Une fiche modifiée demande quoi faire de ses modifications avant de se fermer."""
-		if not self.modifiee:
-			return True
-		reponse = dialogues.confirmer_fermeture(self, self.titre())
-		if reponse is Fermeture.ENREGISTRER:
-			return self.enregistrer()
-		return reponse is Fermeture.ABANDONNER
-
-	def _ecrire(self, nom: str) -> int:
+			raise Refus("Le nom interne est obligatoire.")
 		pris = self.connexion.execute(
 			"SELECT 1 FROM banques WHERE nom_interne = %s AND id IS DISTINCT FROM %s", (nom, self.identifiant)
 		).fetchone()
 		if pris is not None:
-			raise NomPris(nom)
+			raise Refus(f"Une autre banque s'appelle déjà « {nom} ».")
 		valeurs = (
 			nom,
 			self.ui.nom_public.text().strip() or None,
@@ -306,15 +259,6 @@ class FicheBanque(QWidget):
 	def _repertoires(self) -> list[str]:
 		liste = self.ui.repertoires
 		return [liste.item(rangee).text() for rangee in range(liste.count())]
-
-	def _modifier(self) -> None:
-		if not self._chargement:
-			self._marquer(True)
-
-	def _marquer(self, modifiee: bool) -> None:
-		self.modifiee = modifiee
-		self.ui.enregistrer.setEnabled(modifiee)
-		self.ui.annuler.setEnabled(modifiee)
 
 	def _actualiser_boutons(self) -> None:
 		"""Les boutons d'une ligne ne servent qu'à une ligne choisie. L'ordre des sonores ne compte, et ne se change,

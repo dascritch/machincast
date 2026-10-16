@@ -18,7 +18,7 @@ import psycopg
 import pytest
 import shiboken6
 from PySide6.QtCore import QCoreApplication, QEvent, QModelIndex, QPoint, Qt
-from PySide6.QtWidgets import QAbstractItemView, QLineEdit, QTabBar, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QLineEdit, QPushButton, QTabBar, QWidget
 from pytest_bdd import given, parsers, then, when
 from pytestqt.qtbot import QtBot
 
@@ -27,6 +27,7 @@ from machincast.horloge import HorlogeFixe
 from machincast.interface import dialogues
 from machincast.interface.dialogues import Fermeture, Retrait
 from machincast.interface.fenetre import FenetrePrincipale
+from machincast.interface.fiche import Fiche
 from machincast.interface.listes import Liste
 from tests.base_test import parametres_base_test
 
@@ -128,6 +129,12 @@ def lignes(interface: Contexte) -> list[dict[str, str]]:
 		{titre: str(modele.index(rangee, colonne).data() or "") for colonne, titre in enumerate(titres)}
 		for rangee in range(modele.rowCount())
 	]
+
+
+def fiche_ouverte(interface: Contexte) -> Fiche:
+	ouverte = fenetre(interface).ui.onglets.currentWidget()
+	assert isinstance(ouverte, Fiche), ouverte
+	return ouverte
 
 
 def onglet(interface: Contexte, titre: str) -> int:
@@ -323,6 +330,42 @@ def ouvrir_onglet(interface: Contexte, titre: str) -> None:
 	fenetre(interface).ui.onglets.setCurrentIndex(onglet(interface, titre))
 
 
+@when(parsers.parse("j'ouvre la fiche de la banque « {nom} »"))
+def ouvrir_fiche_banque(interface: Contexte, qtbot: QtBot, nom: str) -> None:
+	ouvrir_onglet(interface, "Banques")
+	ouvrir_ligne(interface, qtbot, nom)
+
+
+@when(parsers.parse("j'ouvre la fiche du sonore « {nom} »"))
+def ouvrir_fiche_sonore(interface: Contexte, qtbot: QtBot, nom: str) -> None:
+	"""Par son titre, ou son emplacement pour un sonore sans titre."""
+	ouvrir_onglet(interface, "Sonores")
+	ouvrir_ligne(interface, qtbot, nom)
+
+
+@when(parsers.parse("je clique sur « {texte} »"))
+def cliquer_sur(interface: Contexte, qtbot: QtBot, texte: str) -> None:
+	ouvert = fenetre(interface).ui.onglets.currentWidget()
+	boutons = [bouton for bouton in ouvert.findChildren(QPushButton) if bouton.text() == texte]
+	assert len(boutons) == 1, f"bouton « {texte} » : {len(boutons)} trouvés"
+	qtbot.mouseClick(boutons[0], Qt.MouseButton.LeftButton)
+
+
+@when("j'enregistre la fiche")
+def enregistrer(interface: Contexte, qtbot: QtBot) -> None:
+	qtbot.mouseClick(fiche_ouverte(interface).bouton_enregistrer, Qt.MouseButton.LeftButton)
+
+
+@when("j'annule les modifications de la fiche")
+def annuler(interface: Contexte, qtbot: QtBot) -> None:
+	qtbot.mouseClick(fiche_ouverte(interface).bouton_annuler, Qt.MouseButton.LeftButton)
+
+
+@when(parsers.parse("le sonore « {titre} » est effacé de la base"))
+def effacer(base_vide: Connexion, titre: str) -> None:
+	base_vide.execute("DELETE FROM sonores WHERE titre = %s", (titre,))
+
+
 @when(parsers.parse("je ferme l'onglet « {titre} »"))
 def fermer_onglet(interface: Contexte, qtbot: QtBot, titre: str) -> None:
 	onglets = fenetre(interface).ui.onglets
@@ -426,6 +469,35 @@ def question_de_fermeture(interface: Contexte, titre: str) -> None:
 @then(parsers.re(r"le navigateur de fichiers a ouvert (?P<dossier>.+)"))
 def dossier_ouvert(interface: Contexte, dossier: str) -> None:
 	assert interface.dossiers_ouverts == [Path(chemin) for chemin in NOM.findall(dossier)]
+
+
+@then(parsers.parse("la fiche signale « {message} »"))
+def signale(interface: Contexte, message: str) -> None:
+	assert fiche_ouverte(interface).message.text() == message
+
+
+@then("la fiche signale un enregistrement impossible")
+def enregistrement_impossible(interface: Contexte) -> None:
+	assert fiche_ouverte(interface).message.text().startswith("Enregistrement impossible : ")
+
+
+@then("la fiche ne signale rien")
+def ne_signale_rien(interface: Contexte) -> None:
+	assert fiche_ouverte(interface).message.text() == ""
+
+
+@then(parsers.re(r"les boutons « Enregistrer » et « Annuler » de la fiche sont (?P<etat>actifs|inactifs)"))
+def boutons(interface: Contexte, etat: str) -> None:
+	ouverte = fiche_ouverte(interface)
+	actifs = (ouverte.bouton_enregistrer.isEnabled(), ouverte.bouton_annuler.isEnabled())
+	assert actifs == (etat == "actifs", etat == "actifs")
+
+
+@then(parsers.re(r"la fenêtre (?P<verdict>n'a plus|a encore) d'onglet de fiche"))
+def onglet_de_fiche(interface: Contexte, verdict: str) -> None:
+	onglets = fenetre(interface).ui.onglets
+	fiches = [onglets.widget(indice) for indice in range(onglets.count())]
+	assert any(isinstance(ouverte, Fiche) for ouverte in fiches) == (verdict == "a encore")
 
 
 @then("l'onglet « Accueil » montre l'écran par défaut")

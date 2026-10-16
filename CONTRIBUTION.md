@@ -66,6 +66,8 @@ untyped_calls_exclude = ["machincast.interface.ui"]
 module = ["machincast.interface.ui.*"]
 disallow_untyped_defs = false
 disallow_untyped_calls = false
+# Les titres de colonnes d'une table (horizontalHeaderItem) y sont posés sans vérifier leur existence.
+disable_error_code = ["union-attr"]
 ```
 
 Garder `src/machincast/interface/ui/__init__.py`, sans quoi les modules générés ne sont pas importables.

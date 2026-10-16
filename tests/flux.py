@@ -5,10 +5,13 @@ comme un serveur Icecast : une courte avance au départ, puis une seconde de son
 qu'une fraction de seconde de son d'avance, et voit vite le flux tomber. Le premier envoi est le MP3 tagué
 (tests/sons.py) : ses tags ne doivent jamais remplacer les métadonnées de la base.
 
-Un flux hors ligne ferme les connexions en cours et répond 503 aux nouvelles.
+Un flux hors ligne ferme les connexions en cours et répond 503 aux nouvelles. Un flux avare n'envoie qu'une demi-seconde
+de son, puis garde la connexion ouverte sans rien envoyer. Le serveur compte ses connexions ouvertes.
 """
 
 import contextlib
+import select
+import socket
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -27,6 +30,10 @@ AVANCE_INITIALE = 1.5
 class ServeurDeFlux:
 	def __init__(self) -> None:
 		self.en_ligne: dict[str, bool] = {}
+		self.avares: set[str] = set()
+		self.connexions = 0
+		"""Connexions en cours d'envoi."""
+		self._verrou = threading.Lock()
 		serveur = self
 
 		class Gestionnaire(BaseHTTPRequestHandler):
@@ -40,9 +47,16 @@ class ServeurDeFlux:
 				self.send_response(200)
 				self.send_header("Content-Type", "audio/mpeg")
 				self.end_headers()
-				# Le lecteur peut fermer la connexion à tout moment.
-				with contextlib.suppress(BrokenPipeError, ConnectionResetError):
-					serveur.envoyer(nom, self.wfile)  # type: ignore[arg-type]
+				serveur.compter(1)
+				try:
+					# Le lecteur peut fermer la connexion à tout moment.
+					with contextlib.suppress(BrokenPipeError, ConnectionResetError):
+						if nom in serveur.avares:
+							serveur.envoyer_peu(nom, self.connection, self.wfile)  # type: ignore[arg-type]
+						else:
+							serveur.envoyer(nom, self.wfile)  # type: ignore[arg-type]
+				finally:
+					serveur.compter(-1)
 
 			def log_message(self, format: str, *args: object) -> None:
 				"""Pas de journal des requêtes."""
@@ -54,6 +68,19 @@ class ServeurDeFlux:
 
 	def adresse(self, nom: str) -> str:
 		return f"http://127.0.0.1:{self._serveur.server_address[1]}/{nom}"
+
+	def compter(self, ecart: int) -> None:
+		with self._verrou:
+			self.connexions += ecart
+
+	def envoyer_peu(self, nom: str, connexion: socket.socket, sortie: BinaryIO) -> None:
+		"""Une demi-seconde de son, puis rien, jusqu'à ce que le lecteur ferme la connexion."""
+		sortie.write(SAIN[: len(SAIN) // 2])
+		sortie.flush()
+		while self.en_ligne.get(nom, False):
+			lisible, _, _ = select.select([connexion], [], [], 0.1)
+			if (lisible != []) and (connexion.recv(1024) == b""):
+				return
 
 	def envoyer(self, nom: str, sortie: BinaryIO) -> None:
 		sortie.write(TAGUE)

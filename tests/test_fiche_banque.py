@@ -9,7 +9,7 @@ from collections.abc import Iterator
 import pytest
 from PySide6.QtCore import QItemSelectionModel, QMimeData, QPointF, Qt, QUrl
 from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDropEvent
-from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QPushButton, QTreeWidgetItem, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QTreeWidgetItem, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -25,8 +25,6 @@ from tests.etapes_interface import (
 	fenetre,
 	identifiant,
 	ouvrir_dans,
-	ouvrir_ligne,
-	ouvrir_onglet,
 	taper,
 )
 
@@ -86,20 +84,6 @@ def sans_titre(base_vide: Connexion, emplacements: str, nom: str) -> None:
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when(parsers.parse("j'ouvre la fiche de la banque « {nom} »"))
-def ouvrir_fiche(interface: Contexte, qtbot: QtBot, nom: str) -> None:
-	ouvrir_onglet(interface, "Banques")
-	ouvrir_ligne(interface, qtbot, nom)
-
-
-@when(parsers.parse("je clique sur « {texte} »"))
-def cliquer_sur(interface: Contexte, qtbot: QtBot, texte: str) -> None:
-	ouvert = fenetre(interface).ui.onglets.currentWidget()
-	boutons = [bouton for bouton in ouvert.findChildren(QPushButton) if bouton.text() == texte]
-	assert len(boutons) == 1, f"bouton « {texte} » : {len(boutons)} trouvés"
-	cliquer(qtbot, boutons[0])
-
-
 @when(parsers.re(r"je saisis le (?P<champ>nom interne|nom public) « (?P<texte>[^»]*) »"))
 def saisir(interface: Contexte, qtbot: QtBot, champ: str, texte: str) -> None:
 	ui = fiche(interface).ui
@@ -119,16 +103,6 @@ def choisir(interface: Contexte, champ: str, texte: str) -> None:
 @when(parsers.re(r"je (?P<action>coche|décoche) « ne pas répéter »"))
 def cocher(interface: Contexte, action: str) -> None:
 	fiche(interface).ui.ne_pas_repeter.setChecked(action == "coche")
-
-
-@when("j'enregistre la fiche")
-def enregistrer(interface: Contexte, qtbot: QtBot) -> None:
-	cliquer(qtbot, fiche(interface).ui.enregistrer)
-
-
-@when("j'annule les modifications de la fiche")
-def annuler(interface: Contexte, qtbot: QtBot) -> None:
-	cliquer(qtbot, fiche(interface).ui.annuler)
 
 
 @when(parsers.parse("j'ajoute le répertoire « {repertoire} »"))
@@ -189,11 +163,6 @@ def deplacer(interface: Contexte, qtbot: QtBot, base_vide: Connexion, sens: str,
 def retirer_sonore(interface: Contexte, qtbot: QtBot, base_vide: Connexion, titre: str) -> None:
 	sonore(interface, base_vide, titre)
 	cliquer(qtbot, fiche(interface).ui.retirer_sonore)
-
-
-@when(parsers.parse("le sonore « {titre} » est effacé de la base"))
-def effacer(base_vide: Connexion, titre: str) -> None:
-	base_vide.execute("DELETE FROM sonores WHERE titre = %s", (titre,))
 
 
 @when(parsers.parse("l'indexation rattache le sonore « {titre} » à la banque « {nom} »"))
@@ -345,34 +314,6 @@ def sonores_montres(interface: Contexte, sonores: str) -> None:
 	liste = fiche(interface).ui.sonores
 	montres = [liste.topLevelItem(rangee).text(0) for rangee in range(liste.topLevelItemCount())]
 	assert montres == NOM.findall(sonores)
-
-
-@then(parsers.parse("la fiche signale « {message} »"))
-def signale(interface: Contexte, message: str) -> None:
-	assert fiche(interface).ui.message.text() == message
-
-
-@then("la fiche signale un enregistrement impossible")
-def enregistrement_impossible(interface: Contexte) -> None:
-	assert fiche(interface).ui.message.text().startswith("Enregistrement impossible : ")
-
-
-@then("la fiche ne signale rien")
-def ne_signale_rien(interface: Contexte) -> None:
-	assert fiche(interface).ui.message.text() == ""
-
-
-@then(parsers.re(r"les boutons « Enregistrer » et « Annuler » de la fiche sont (?P<etat>actifs|inactifs)"))
-def boutons(interface: Contexte, etat: str) -> None:
-	ui = fiche(interface).ui
-	assert (ui.enregistrer.isEnabled(), ui.annuler.isEnabled()) == (etat == "actifs", etat == "actifs")
-
-
-@then(parsers.re(r"la fenêtre (?P<verdict>n'a plus|a encore) d'onglet de fiche"))
-def onglet_de_fiche(interface: Contexte, verdict: str) -> None:
-	onglets = fenetre(interface).ui.onglets
-	fiches = [onglets.widget(indice) for indice in range(onglets.count())]
-	assert any(isinstance(ouverte, FicheBanque) for ouverte in fiches) == (verdict == "a encore")
 
 
 @then(parsers.parse("seule la liste « {titre} » a un bouton « {texte} »"))
