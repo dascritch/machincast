@@ -549,7 +549,7 @@ Mise en œuvre des listes ([#26](https://github.com/dascritch/machincast/issues/
 - **Colonnes et ordre** : événements (nom, nom public, priorité, début, fin, récurrence), du plus prioritaire au moins prioritaire ; séquences (nom, nom public) ; banques (nom, nom public, mode, ne pas répéter, premier répertoire dans l'ordre alphabétique) ; sonores (artiste, titre, type, état, durée, emplacement), par artiste puis titre. Un clic sur un titre de colonne trie.
 - **Filtre** : les lignes dont une colonne contient le texte, sans tenir compte des majuscules ni des accents (`FiltreSansAccents`) ; un compte « n sonores sur N ».
 - **Lecture** : en base, avec le rôle de l'interface, chaque fois que l'onglet s'ouvre ; jamais en boucle. Le filtre est gardé.
-- **Détail** : un double-clic ou Entrée sur une ligne émet `FenetrePrincipale.detail_demande(genre, identifiant)`. Une banque ouvre sa fiche ([§ 8.4](#84-écran-de-détails-dune-banque)). Tant que les autres écrans de détail ne sont pas écrits, la barre d'état les annonce, avec le ticket de l'écran.
+- **Détail** : un double-clic ou Entrée sur une ligne émet `FenetrePrincipale.detail_demande(genre, identifiant)`. Une banque ou un sonore ouvre sa fiche ([§ 8.4](#84-écran-de-détails-dune-banque), [§ 8.3](#83-écran-de-détails-dun-sonore)). Tant que les autres écrans de détail ne sont pas écrits, la barre d'état les annonce, avec le ticket de l'écran.
 - **Création** : une liste peut avoir un bouton de création (`Source.nouveau`, signal `Liste.creation_demandee`) ; seule la liste des banques l'a pour l'instant, « Nouvelle banque ».
 - Champ de recherche globale avec auto-suggestion, résultats dans l'ordre : événements, banques, sonores. Un écran de résultats dédié.
 - Vue calendrier (jour, semaine) montrant à la fois l'airplay (ce qui a effectivement été diffusé) et les événements prévus.
@@ -560,6 +560,16 @@ Mise en œuvre des listes ([#26](https://github.com/dascritch/machincast/issues/
 - Pré-écoute avec un programme de lecture externe, sur un périphérique de sortie obligatoirement différent de celui du binaire lecture.
 - Pour un stream : choix entre URL directe et marque-page, choix de l'événement de secours ([§ 4.7](#47-streams)), test du stream à la demande.
 - Table des derniers passages, avec indication des incidents.
+
+Mise en œuvre ([#28](https://github.com/dascritch/machincast/issues/28), `machincast.interface.fiche_sonore`, `machincast.interface.essai_flux`), avec ce qui est commun aux fiches (`machincast.interface.fiche`, [§ 8.4](#84-écran-de-détails-dune-banque)) :
+
+- **Onglet** : « Sonore : » suivi du titre, ou du nom du fichier, ou de l'adresse d'un stream. Une fiche par sonore ; une banque et un sonore de même identifiant ont chacun la leur.
+- **Champs** : artiste, titre, les clés de `metadonnees_musicales` tenues par l'indexeur (`annee` et `piste` en nombres entiers), crossfades, maximum de lectures (0 = illimité), masquage (« Selon la configuration », « Masqués », « Affichés »), période de diffusion à cocher, état. Les autres clés des métadonnées sont montrées, jamais modifiées. Les textes sont enregistrés sans les espaces qui les entourent ; un champ vide est NULL, ou une clé absente.
+- **Écriture** : seuls les champs qui diffèrent de ce que la fiche a lu sont écrits, sous verrou de la ligne ; les autres gardent ce que l'indexation ou la diffusion y a mis entre-temps. Chacun est ajouté à `champs_edites`, sauf l'état. La fin de la période doit suivre son début ; un stream doit avoir une adresse ou un marque-page ; un sonore effacé de la base entre-temps n'est pas enregistré.
+- **État** : la fiche propose l'état du sonore, puis `actif` et `desactive` ; un sonore `apercu` ne change pas d'état.
+- **Stream** : adresse directe ou marque-page existant (leur gestion : [#34](https://github.com/dascritch/machincast/issues/34)) ; événement de secours parmi les événements `secours`, ou aucun. Le **test à la demande** décode le flux de l'adresse saisie, sans le jouer ni l'enregistrer, par GStreamer (`uridecodebin`, `fakesink`) : il répond dès une seconde de son décodée, et ne répond pas sur une erreur ou après 10 s. Le bus est relevé par un minuteur de Qt : l'interface reste utilisable. La connexion se ferme à la fin du test, à la fermeture de la fiche et à celle de la fenêtre.
+- **Passages** : les 50 derniers débuts de passage du sonore dans `airplay`, avec leur fin, et les lignes du log de ce sonore, de niveau `alerte` ou `incident`, notées entre le début et la fin du passage (ou depuis le début, pour le passage en cours).
+- La pré-écoute est l'affaire de [#29](https://github.com/dascritch/machincast/issues/29).
 
 ### 8.4 Écran de détails d'une banque
 

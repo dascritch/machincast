@@ -1,0 +1,565 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FicheSonore</class>
+ <widget class="QWidget" name="FicheSonore">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1100</width>
+    <height>760</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="disposition" stretch="1,0">
+   <item>
+    <layout class="QHBoxLayout" name="corps" stretch="1,1">
+     <item>
+      <widget class="QScrollArea" name="defilement">
+       <property name="widgetResizable">
+        <bool>true</bool>
+       </property>
+       <widget class="QWidget" name="contenu">
+        <layout class="QVBoxLayout" name="disposition_contenu">
+         <item>
+          <widget class="QGroupBox" name="groupe_sonore">
+           <property name="title">
+            <string>Sonore</string>
+           </property>
+           <layout class="QFormLayout" name="formulaire_sonore">
+            <item row="0" column="0">
+             <widget class="QLabel" name="etiquette_type">
+              <property name="text">
+               <string>Type</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLabel" name="type_sonore" />
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="etiquette_emplacement">
+              <property name="text">
+               <string>Emplacement</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="emplacement">
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="etiquette_duree">
+              <property name="text">
+               <string>Durée</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLabel" name="duree" />
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="etiquette_etat">
+              <property name="text">
+               <string>É&amp;tat</string>
+              </property>
+              <property name="buddy">
+               <cstring>etat</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QComboBox" name="etat" />
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupe_stream">
+           <property name="title">
+            <string>Stream</string>
+           </property>
+           <layout class="QGridLayout" name="grille_stream">
+            <item row="0" column="0">
+             <widget class="QRadioButton" name="par_adresse">
+              <property name="text">
+               <string>Adresse &amp;directe</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLineEdit" name="url_stream" />
+            </item>
+            <item row="1" column="0">
+             <widget class="QRadioButton" name="par_marque_page">
+              <property name="text">
+               <string>&amp;Marque-page</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="marque_page" />
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="etiquette_secours">
+              <property name="text">
+               <string>Événement de &amp;secours</string>
+              </property>
+              <property name="buddy">
+               <cstring>secours</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QComboBox" name="secours" />
+            </item>
+            <item row="3" column="0">
+             <widget class="QPushButton" name="tester">
+              <property name="text">
+               <string>&amp;Tester le flux</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QLabel" name="resultat_essai">
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupe_metadonnees">
+           <property name="title">
+            <string>Métadonnées</string>
+           </property>
+           <layout class="QFormLayout" name="formulaire_metadonnees">
+            <item row="0" column="0">
+             <widget class="QLabel" name="etiquette_artiste">
+              <property name="text">
+               <string>&amp;Artiste</string>
+              </property>
+              <property name="buddy">
+               <cstring>artiste</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLineEdit" name="artiste">
+              <property name="maxLength">
+               <number>255</number>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="etiquette_titre">
+              <property name="text">
+               <string>Tit&amp;re</string>
+              </property>
+              <property name="buddy">
+               <cstring>titre</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="titre">
+              <property name="maxLength">
+               <number>255</number>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="etiquette_annee">
+              <property name="text">
+               <string>Année</string>
+              </property>
+              <property name="buddy">
+               <cstring>annee</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLineEdit" name="annee">
+              <property name="maxLength">
+               <number>4</number>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="etiquette_album">
+              <property name="text">
+               <string>Album</string>
+              </property>
+              <property name="buddy">
+               <cstring>album</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QLineEdit" name="album">
+              <property name="maxLength">
+               <number>255</number>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0">
+             <widget class="QLabel" name="etiquette_artiste_album">
+              <property name="text">
+               <string>Artiste de l'album</string>
+              </property>
+              <property name="buddy">
+               <cstring>artiste_album</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="QLineEdit" name="artiste_album">
+              <property name="maxLength">
+               <number>255</number>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QLabel" name="etiquette_genre">
+              <property name="text">
+               <string>Genre</string>
+              </property>
+              <property name="buddy">
+               <cstring>genre</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1">
+             <widget class="QLineEdit" name="genre">
+              <property name="maxLength">
+               <number>255</number>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="0">
+             <widget class="QLabel" name="etiquette_compositeur">
+              <property name="text">
+               <string>Compositeur</string>
+              </property>
+              <property name="buddy">
+               <cstring>compositeur</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="1">
+             <widget class="QLineEdit" name="compositeur">
+              <property name="maxLength">
+               <number>255</number>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="0">
+             <widget class="QLabel" name="etiquette_label">
+              <property name="text">
+               <string>Label</string>
+              </property>
+              <property name="buddy">
+               <cstring>label</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="1">
+             <widget class="QLineEdit" name="label">
+              <property name="maxLength">
+               <number>255</number>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="0">
+             <widget class="QLabel" name="etiquette_piste">
+              <property name="text">
+               <string>Piste</string>
+              </property>
+              <property name="buddy">
+               <cstring>piste</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="1">
+             <widget class="QLineEdit" name="piste">
+              <property name="maxLength">
+               <number>4</number>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="0">
+             <widget class="QLabel" name="etiquette_autres">
+              <property name="text">
+               <string>Autres</string>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="1">
+             <widget class="QLabel" name="autres_metadonnees">
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupe_diffusion">
+           <property name="title">
+            <string>Diffusion</string>
+           </property>
+           <layout class="QFormLayout" name="formulaire_diffusion">
+            <item row="0" column="0">
+             <widget class="QLabel" name="etiquette_crossfade_debut">
+              <property name="text">
+               <string>Crossfade de début</string>
+              </property>
+              <property name="buddy">
+               <cstring>crossfade_debut</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QDoubleSpinBox" name="crossfade_debut">
+              <property name="suffix">
+               <string> s</string>
+              </property>
+              <property name="decimals">
+               <number>2</number>
+              </property>
+              <property name="maximum">
+               <double>600.0</double>
+              </property>
+              <property name="singleStep">
+               <double>0.5</double>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="etiquette_crossfade_fin">
+              <property name="text">
+               <string>Crossfade de fin</string>
+              </property>
+              <property name="buddy">
+               <cstring>crossfade_fin</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QDoubleSpinBox" name="crossfade_fin">
+              <property name="suffix">
+               <string> s</string>
+              </property>
+              <property name="decimals">
+               <number>2</number>
+              </property>
+              <property name="maximum">
+               <double>600.0</double>
+              </property>
+              <property name="singleStep">
+               <double>0.5</double>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="etiquette_max_lectures">
+              <property name="text">
+               <string>Maximum de lectures</string>
+              </property>
+              <property name="buddy">
+               <cstring>max_lectures</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QSpinBox" name="max_lectures">
+              <property name="maximum">
+               <number>1000000</number>
+              </property>
+              <property name="specialValueText">
+               <string>illimité</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="etiquette_masquage">
+              <property name="text">
+               <string>Artiste et titre</string>
+              </property>
+              <property name="buddy">
+               <cstring>masquage</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QComboBox" name="masquage" />
+            </item>
+            <item row="4" column="0">
+             <widget class="QCheckBox" name="a_debut">
+              <property name="text">
+               <string>Diffusion à partir du</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="QDateTimeEdit" name="debut_diffusion">
+              <property name="displayFormat">
+               <string>dd/MM/yyyy HH:mm</string>
+              </property>
+              <property name="calendarPopup">
+               <bool>true</bool>
+              </property>
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QCheckBox" name="a_fin">
+              <property name="text">
+               <string>Diffusion jusqu'au</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1">
+             <widget class="QDateTimeEdit" name="fin_diffusion">
+              <property name="displayFormat">
+               <string>dd/MM/yyyy HH:mm</string>
+              </property>
+              <property name="calendarPopup">
+               <bool>true</bool>
+              </property>
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="champs_edites">
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="espace_contenu">
+           <property name="orientation">
+            <enum>Qt::Orientation::Vertical</enum>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </item>
+     <item>
+      <widget class="QGroupBox" name="groupe_passages">
+       <property name="title">
+        <string>Derniers passages</string>
+       </property>
+       <layout class="QVBoxLayout" name="disposition_passages">
+        <item>
+         <widget class="QTableWidget" name="passages">
+          <property name="editTriggers">
+           <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+          </property>
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+          </property>
+          <attribute name="verticalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
+          <attribute name="horizontalHeaderStretchLastSection">
+           <bool>true</bool>
+          </attribute>
+          <column>
+           <property name="text">
+            <string>Début</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Fin</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Durée</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Événement</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Séquence</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Banque</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Sans incident</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Incidents</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="pied" stretch="1,0,0">
+     <item>
+      <widget class="QLabel" name="message">
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="annuler">
+       <property name="text">
+        <string>Annuler</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="enregistrer">
+       <property name="text">
+        <string>Enregistrer</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources />
+ <connections />
+</ui>

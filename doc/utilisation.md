@@ -2,7 +2,7 @@
 
 Ce guide décrit ce que MachinCast sait déjà faire, pour l'utilisateur et l'administrateur du poste de diffusion. Il ne demande pas de connaître le code. L'installation est décrite dans [INSTALL.md](../INSTALL.md) ; le fonctionnement complet visé, dans la [spécification](spec.md).
 
-> **État du projet** : MachinCast est en cours de développement. Aujourd'hui, `Machin indexation` enregistre les fichiers déposés dans les répertoires des banques et vérifie les sonores, `Machin lecture` diffuse la grille depuis un terminal, et `Machin interface` montre ce qui passe à l'antenne et gère les banques. Le service de diffusion et les autres écrans de l'interface sont à venir : la section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
+> **État du projet** : MachinCast est en cours de développement. Aujourd'hui, `Machin indexation` enregistre les fichiers déposés dans les répertoires des banques et vérifie les sonores, `Machin lecture` diffuse la grille depuis un terminal, et `Machin interface` montre ce qui passe à l'antenne, et gère les banques et les sonores. Le service de diffusion et les autres écrans de l'interface sont à venir : la section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
 
 ## Sommaire
 
@@ -31,7 +31,7 @@ Machin --help                         # aide complète
 | --- | --- |
 | `Machin lecture` | Diffusion de l'antenne, normalement lancée comme service ([à venir](#ce-qui-nexiste-pas-encore)). |
 | `Machin indexation` | Enregistrement des fichiers déposés dans les répertoires des banques, vérification des fichiers sonores et mise à jour de la base. |
-| `Machin interface` | Interface graphique de supervision et de programmation. Pour l'instant, son [écran par défaut](#interface-graphique--machin-interface), les [listes](#listes) et la [fiche d'une banque](#fiche-dune-banque). |
+| `Machin interface` | Interface graphique de supervision et de programmation. Pour l'instant, son [écran par défaut](#interface-graphique--machin-interface), les [listes](#listes), les fiches d'une [banque](#fiche-dune-banque) et d'un [sonore](#fiche-dun-sonore). |
 | `Machin logs` | Suivi en direct du journal du service de diffusion. |
 
 **Options de `Machin`**, placées avant le nom du programme :
@@ -169,7 +169,7 @@ Pour un fichier `sain`, l'indexeur lit les tags du fichier pendant le décodage 
 | `label` | organisation (Vorbis `ORGANIZATION`) ou éditeur (ID3 `TPUB`) |
 | `piste` | numéro de piste |
 
-Les champs suivent les tags du fichier : un tag retiré du fichier vide le champ au passage suivant. **Un champ modifié à la main dans l'interface n'est plus jamais écrasé** par l'indexeur. Les tags d'un fichier défectueux ne sont pas lus, et les valeurs en base restent telles quelles.
+Les champs suivent les tags du fichier : un tag retiré du fichier vide le champ au passage suivant. **Un champ modifié à la main dans l'interface n'est plus jamais écrasé** par l'indexeur ([Fiche d'un sonore](#fiche-dun-sonore)). Les tags d'un fichier défectueux ne sont pas lus, et les valeurs en base restent telles quelles.
 
 ### Ce qu'affiche l'indexation
 
@@ -296,7 +296,7 @@ La case « ne pas répéter » d'une banque se coche dans [sa fiche](#fiche-dune
 - **Maximum de lectures** : dès le passage qui l'atteint, compté sur toute la diffusion, quels que soient l'événement et la banque. Le sonore finit de jouer ce passage.
 - **Période de diffusion** : dès que sa date de fin est atteinte. `Machin lecture` vérifie tous les sonores à son démarrage, puis chaque minute.
 - **Dans le log** : une ligne `sonore expiré` par sonore, avec sa cause, par exemple « maximum de 2 lectures atteint » ou « période de diffusion terminée le 2026-10-14 20:00:00 ».
-- **Rien d'autre ne change** : seul l'état du sonore est modifié, et seulement depuis `actif`. Un sonore `aperçu`, `désactivé`, `erroné` ou `supprimé` garde son état. Pour le remettre à l'antenne, l'interface le repasse à `actif`, après avoir relevé son maximum ou repoussé sa période ; sinon, il expire de nouveau.
+- **Rien d'autre ne change** : seul l'état du sonore est modifié, et seulement depuis `actif`. Un sonore `aperçu`, `désactivé`, `erroné` ou `supprimé` garde son état. Pour le remettre à l'antenne, [sa fiche](#fiche-dun-sonore) le repasse à `actif`, après avoir relevé son maximum ou repoussé sa période ; sinon, il expire de nouveau.
 
 ### Comment une liste de lecture se déroule
 
@@ -370,7 +370,7 @@ Un sonore de type stream relaie un flux audio HTTP ou HTTPS, un direct extérieu
 - **Reconnexion** : tant que son événement est à l'antenne, `Machin lecture` retente la connexion toutes les 5 secondes, sans rien faire entendre. Dès que le flux revient, le stream reprend l'antenne : il monte pendant son crossfade de début, et le sonore de remplacement s'éteint pendant ce temps ; sans crossfade de début, le remplacement s'arrête net. La reprise est notée dans le log par l'incident `reprise du flux`, avec l'adresse du flux et la durée de la panne : l'écran des incidents montrera ainsi chaque panne et sa fin.
 - **Fin de l'événement pendant la panne** : la reconnexion est abandonnée (`reconnexion abandonnée` dans le log), et la diffusion continue normalement.
 
-Un **événement de secours** est un événement de priorité `secours` : il n'a ni début, ni fin, ni jours de récurrence, et ne passe jamais à l'antenne par la grille, seulement à la place d'un stream tombé. Chaque stream désigne le sien, ou aucun (`secours_evenement_id` du sonore). Tant que l'interface ne permet pas de les saisir ([#30](https://github.com/dascritch/machincast/issues/30), [#32](https://github.com/dascritch/machincast/issues/32)), ils s'enregistrent directement en base.
+Un **événement de secours** est un événement de priorité `secours` : il n'a ni début, ni fin, ni jours de récurrence, et ne passe jamais à l'antenne par la grille, seulement à la place d'un stream tombé. Chaque stream désigne le sien, ou aucun, dans [sa fiche](#fiche-dun-sonore). Tant que l'interface ne permet pas de créer un stream ([#30](https://github.com/dascritch/machincast/issues/30)) ni un événement ([#32](https://github.com/dascritch/machincast/issues/32)), ceux-ci s'enregistrent directement en base.
 
 ### Sorties de la diffusion
 
@@ -458,7 +458,7 @@ Les onglets Événements, Séquences, Banques et Sonores donnent chacun la liste
 - **Filtre** : le champ « Filtrer… » garde les lignes dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : `cafe` trouve « Café à minuit », `stream` tous les streams, `/srv/musique` tous les fichiers de ce répertoire. Le compte, à côté, dit combien de lignes restent, par exemple `2 sonores sur 340`. La croix du champ efface le filtre.
 - **Tri** : un clic sur le titre d'une colonne trie la liste selon cette colonne ; un second clic inverse l'ordre.
 - **Mise à jour** : une liste se relit dans la base chaque fois que son onglet s'ouvre, en gardant son filtre. Elle ne se relit jamais d'elle-même pendant qu'on la regarde.
-- **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvre l'écran de détails de l'élément. Pour une banque, c'est [sa fiche](#fiche-dune-banque). Les autres écrans sont encore à venir ([#28](https://github.com/dascritch/machincast/issues/28) pour un sonore, [#32](https://github.com/dascritch/machincast/issues/32) pour un événement) : en attendant, la barre d'état, en bas de la fenêtre, l'annonce.
+- **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvre l'écran de détails de l'élément. Pour une banque ou un sonore, c'est sa fiche ([banque](#fiche-dune-banque), [sonore](#fiche-dun-sonore)). Les autres écrans sont encore à venir ([#112](https://github.com/dascritch/machincast/issues/112) pour une séquence, [#32](https://github.com/dascritch/machincast/issues/32) pour un événement) : en attendant, la barre d'état, en bas de la fenêtre, l'annonce.
 - **Créer** : le bouton **Nouvelle banque**, à côté du filtre de la liste des banques, ouvre une fiche vide. Les autres types d'éléments n'ont pas encore ce bouton.
 
 ### Fiche d'une banque
@@ -489,6 +489,33 @@ La fiche d'une banque s'ouvre dans un **nouvel onglet**, nommé « Banque : » s
 - **Un dépôt est toujours une copie** : le fichier reste où il est, et n'est pas touché. Même avec Maj enfoncée, qui demande d'habitude un déplacement au navigateur de fichiers, la fiche ne l'accepte que comme une copie ; un glisser qui ne propose que le déplacement est refusé.
 - **Retirer le sonore** retire le sonore choisi de la banque, sans rien demander s'il est hors de ses répertoires. Si son fichier est dans l'un des répertoires de la fiche, ou de leurs sous-répertoires, un avertissement rappelle que **la prochaine indexation l'y remettra** : **Retirer quand même**, **Ouvrir le dossier** du fichier dans le navigateur de fichiers du poste, pour l'en déplacer (le sonore reste dans la banque), ou **Annuler**. MachinCast ne déplace ni ne supprime jamais le fichier ([Les fichiers sonores ne sont jamais modifiés](#les-fichiers-sonores-ne-sont-jamais-modifiés)) : c'est à faire hors de l'outil, parfois depuis un autre poste quand le compte n'a pas le droit d'écrire dans le répertoire. Le sonore reste en base, dans ses autres banques et événements.
 - **Indexation pendant la modification** : les sonores que `Machin indexation` rattache à la banque pendant que la fiche est ouverte sont gardés à l'enregistrement, en fin de liste. Un sonore effacé de la base entre-temps est oublié.
+
+### Fiche d'un sonore
+
+La fiche d'un sonore s'ouvre depuis la liste des sonores, dans un nouvel onglet nommé « Sonore : » suivi de son titre, ou du nom de son fichier, ou de l'adresse d'un stream ([#28](https://github.com/dascritch/machincast/issues/28)). Elle se comporte comme [celle d'une banque](#fiche-dune-banque) : **Enregistrer** et **Annuler**, une seule fiche par sonore, et la question à la fermeture d'une fiche modifiée.
+
+**Sonore** : le type, l'emplacement du fichier et sa durée, qui ne se modifient pas, et l'**état**. La fiche pose `actif` ou `désactivé` ; un sonore `expiré`, `erroné` ou `supprimé` peut revenir à `actif` (voir [États d'un sonore](#états-dun-sonore)). Un sonore en `aperçu` attend sa première indexation, et son état ne se choisit pas.
+
+**Métadonnées** : artiste, titre, année, album, artiste de l'album, genre, compositeur, label et piste. Les autres métadonnées, ajoutées hors de MachinCast, sont montrées sans se modifier. Un champ vide n'a pas de valeur ; les textes sont enregistrés sans les espaces qui les entourent.
+
+**Diffusion** :
+
+- **Crossfade de début et de fin**, en secondes (voir [Sortie audio](#sortie-audio)).
+- **Maximum de lectures** : `illimité` à 0 (voir [Expiration des sonores](#expiration-des-sonores)).
+- **Artiste et titre** : `Masqués` ou `Affichés` sur la page publique, sauf si l'événement, la séquence ou la banque en décide ; `Selon la configuration` laisse décider la configuration (voir [Sorties de la diffusion](#sorties-de-la-diffusion)).
+- **Diffusion à partir du**, **Diffusion jusqu'au** : la période de diffusion, chacune à cocher. Une case cochée part de l'heure du moment, à la minute. La fin doit suivre le début, sinon la fiche le dit et n'enregistre rien.
+
+**Saisi à la main** : chaque champ modifié à l'enregistrement est noté comme saisi à la main, et la fiche en donne la liste. L'**indexeur ne le modifie plus jamais**, même vidé : un album effacé ne revient pas des tags du fichier. L'état n'est jamais noté ainsi : l'indexeur peut encore passer un sonore à `erroné`, puis de nouveau à `actif`. Seuls les champs modifiés sont écrits : ce que l'indexation ou la diffusion change pendant que la fiche est ouverte (un titre lu dans les tags, un sonore qui expire) est gardé.
+
+**Stream** (voir [Streams](#streams)) :
+
+- **Adresse directe** ou **Marque-page**, parmi les marques-pages en base ; leur gestion viendra avec [#34](https://github.com/dascritch/machincast/issues/34). Un stream sans adresse n'est pas enregistré.
+- **Événement de secours** : parmi les événements de priorité `secours`, ou `Aucun : le fil musical`.
+- **Tester le flux** : la fiche se connecte à l'adresse saisie, même pas encore enregistrée, et dit `Le flux répond : du son arrive.` dès qu'une seconde de son est décodée. Sinon, elle dit `Le flux ne répond pas :` suivi de l'erreur (adresse invalide, serveur injoignable, réponse en erreur), ou `le son n'arrive pas en 10 s.`. Rien n'est joué. La connexion se ferme à la fin du test, et à la fermeture de la fiche ou de la fenêtre.
+
+**Derniers passages** : les 50 derniers passages du sonore, du plus récent au plus ancien, avec le début, la fin (`en cours` pour le passage à l'antenne), la durée diffusée, l'événement, la séquence, la banque, « sans incident », et les alertes et incidents que le log a notés pour ce sonore pendant le passage. L'infobulle de cette dernière colonne les détaille, avec leur heure et leur message.
+
+La pré-écoute viendra avec [#29](https://github.com/dascritch/machincast/issues/29), l'ajout d'un sonore avec [#30](https://github.com/dascritch/machincast/issues/30), sa suppression avec [#33](https://github.com/dascritch/machincast/issues/33).
 
 ## Suivre le journal : Machin logs
 
