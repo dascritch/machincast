@@ -2,7 +2,7 @@
 
 Ce guide décrit ce que MachinCast sait déjà faire, pour l'utilisateur et l'administrateur du poste de diffusion. Il ne demande pas de connaître le code. L'installation est décrite dans [INSTALL.md](../INSTALL.md) ; le fonctionnement complet visé, dans la [spécification](spec.md).
 
-> **État du projet** : MachinCast est en cours de développement. Aujourd'hui, `Machin indexation` enregistre les fichiers déposés dans les répertoires des banques et vérifie les sonores. La diffusion (`Machin lecture`) et l'interface graphique (`Machin interface`) sont à venir : la section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
+> **État du projet** : MachinCast est en cours de développement. Aujourd'hui, `Machin indexation` enregistre les fichiers déposés dans les répertoires des banques et vérifie les sonores, `Machin lecture` diffuse la grille depuis un terminal, et `Machin interface` montre ce qui passe à l'antenne. Le service de diffusion et les autres écrans de l'interface sont à venir : la section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
 
 ## Sommaire
 
@@ -29,9 +29,9 @@ Machin --help                         # aide complète
 
 | Commande | Rôle |
 | --- | --- |
-| `Machin lecture` | Diffusion de l'antenne, normalement lancée comme service. [Pas encore écrite](#diffusion--machin-lecture). |
+| `Machin lecture` | Diffusion de l'antenne, normalement lancée comme service ([à venir](#ce-qui-nexiste-pas-encore)). |
 | `Machin indexation` | Enregistrement des fichiers déposés dans les répertoires des banques, vérification des fichiers sonores et mise à jour de la base. |
-| `Machin interface` | Interface graphique de programmation. [Pas encore écrite](#interface-graphique--machin-interface). |
+| `Machin interface` | Interface graphique de supervision et de programmation. Pour l'instant, son [écran par défaut](#interface-graphique--machin-interface). |
 | `Machin logs` | Suivi en direct du journal du service de diffusion. |
 
 **Options de `Machin`**, placées avant le nom du programme :
@@ -241,7 +241,7 @@ Machin lecture --simulation "2026-10-20 06:00" "2026-10-21 06:00" --graine 42 --
 `Machin lecture` publie son état sur une socket Unix, que l'interface lit pour afficher ce qui passe à l'antenne ([#20](https://github.com/dascritch/machincast/issues/20)) :
 
 - **Emplacement** : `lecture.socket_etat` dans la configuration, ou par défaut `lecture.sock` dans le dossier `machincast` du répertoire d'exécution du compte (`$XDG_RUNTIME_DIR`, en général `/run/user/1000`). Seul le compte qui diffuse peut la lire. Elle disparaît à l'arrêt de la diffusion et au redémarrage du poste.
-- **Contenu** : l'état de marche (diffusion, silence ou arrêt), le sonore en cours (début, durée, fin prévue, progression), et le prochain sonore (début et fin prévus, durée, s'il est sain). Pour un stream, la durée et la fin sont inconnues. Le format est décrit champ par champ dans la [spécification, § 5.4](spec.md#54-socket-détat).
+- **Contenu** : l'état de marche (diffusion, silence ou arrêt), le sonore en cours (emplacement, début, durée, fin prévue, progression), et le prochain sonore (emplacement, début et fin prévus, durée, s'il est sain). Pour un stream, la durée et la fin sont inconnues. Le format est décrit champ par champ dans la [spécification, § 5.4](spec.md#54-socket-détat).
 - **Le prochain sonore annoncé est celui qui passera** : il est choisi dès le début du sonore en cours, même tiré au hasard dans une banque. Il ne change que si un événement coupe la diffusion, si son événement est fini, ou s'il est désactivé ou expiré entre-temps.
 - **Sain** : un fichier présent, lisible, à l'état `actif`, dont la dernière lecture s'est terminée sans incident. Un stream n'est pas testé : son état sain est inconnu.
 - Pour voir l'état à la main : `socat - UNIX-CONNECT:"${XDG_RUNTIME_DIR}/machincast/lecture.sock"` (paquet `socat`), une ligne JSON par changement ; `Ctrl-C` pour quitter.
@@ -425,7 +425,24 @@ L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture 
 
 ## Interface graphique : Machin interface
 
-`Machin interface` lit sa configuration, puis s'arrête avec le code 1 et le message `pas encore implémenté`, avec le lien du ticket de l'écran par défaut ([#23](https://github.com/dascritch/machincast/issues/23)).
+`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre sur l'**écran par défaut** ([#23](https://github.com/dascritch/machincast/issues/23)), qui montre en un coup d'œil ce qui passe et ce qui va passer :
+
+- **En haut** : la date et l'heure du poste, à la seconde, et l'état du binaire lecture : `En diffusion`, `En silence` (rien à diffuser) ou `À l'arrêt`.
+- **Sonore en cours et prochain sonore**, côte à côte, chacun sur la moitié de la largeur de la fenêtre ; un titre trop long passe à la ligne.
+- **Sonore en cours** : l'artiste et le titre, l'événement qui le joue, l'emplacement (chemin du fichier, ou adresse du stream), l'heure de début, la durée, l'heure de fin estimée et une barre de progression.
+- **Prochain sonore** : l'artiste et le titre, l'événement, l'emplacement, les heures de début et de fin estimées, la durée et l'indicateur « sain » (`oui` si le fichier est présent, actif, lisible et que sa dernière lecture s'est passée sans incident, `non` sinon).
+- **Emplacement** : un long chemin ne déborde pas, sa fin (le nom du fichier) reste visible ; il se fait défiler, se sélectionne et se copie, et son infobulle le donne en entier.
+- **Stream** : sa durée et sa fin sont `inconnue`, et la barre de progression affiche `durée inconnue`. Un stream n'est pas testé à l'avance : son indicateur « sain » est `non testé`. Après un stream, le début du prochain sonore est `inconnu`.
+- **Airplay des 12 dernières heures** : une table, du passage le plus récent au plus ancien, avec le début, la fin (`en cours` pour le sonore à l'antenne), la durée diffusée, l'artiste, le titre, l'événement, la séquence, la banque et `oui` ou `non` pour « sans incident ». L'interface est réservée à l'équipe : l'artiste et le titre y sont toujours affichés, même masqués sur la page publique.
+
+D'où viennent ces informations :
+
+- **Sonore en cours, prochain sonore, état** : de la socket d'état de `Machin lecture`, au chemin `lecture.socket_etat` de la configuration (voir [État de la diffusion pour l'interface](#état-de-la-diffusion-pour-linterface)). L'interface doit donc tourner sous le même compte que la diffusion, et avec la même configuration. Sans socket, ou quand `Machin lecture` s'arrête, l'écran affiche `À l'arrêt`, et se reconnecte tout seul, chaque seconde, dès que la diffusion reprend.
+- **Airplay** : de la base, à l'ouverture, puis chaque fois que la socket annonce un nouveau sonore. L'interface n'interroge jamais la base en boucle. Si la base devient injoignable, la table reste telle qu'elle était, et l'erreur `airplay illisible` s'affiche sur la sortie d'erreur.
+
+Le VU-mètre de la sortie viendra avec [#24](https://github.com/dascritch/machincast/issues/24), et le pilotage du service avec [#25](https://github.com/dascritch/machincast/issues/25).
+
+**Sans base de données**, l'interface n'est pas utilisable : `Machin interface` ouvre alors une fenêtre d'erreur, « MachinCast : base de données injoignable ». Elle explique pourquoi, et invite à lire le document `INSTALL.md` du répertoire de MachinCast, section [En cas de problème](../INSTALL.md#en-cas-de-problème). Son bouton « Ouvrir INSTALL.md » ouvre ce document, et ses détails donnent l'erreur de PostgreSQL. À sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, par exemple dans une session SSH, seul ce message s'affiche.
 
 ## Suivre le journal : Machin logs
 
@@ -444,7 +461,7 @@ Chaque message commence par le nom du programme, par exemple `Machin_indexation 
 | Code | Signification |
 | --- | --- |
 | 0 | Le programme est allé au bout. Pour l'indexation, même si des sonores ont changé d'état : ce sont des anomalies, pas des erreurs. |
-| 1 | Base de données injoignable ou perdue, décodeur GStreamer manquant, sortie audio indisponible, autre `Machin lecture` déjà en diffusion, ou fonction pas encore écrite. |
+| 1 | Base de données injoignable ou perdue (pour `Machin interface`, au lancement), décodeur GStreamer manquant, sortie audio indisponible, autre `Machin lecture` déjà en diffusion, ou fonction pas encore écrite. |
 | 2 | Configuration invalide, ou appel incorrect (option inconnue, `--config` sans fichier). |
 | 127 | Programme ou `journalctl` introuvable, signalé par `Machin`. |
 
@@ -469,4 +486,5 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | Document d'audit des anomalies de l'indexation, en CSV et HTML | [#11](https://github.com/dascritch/machincast/issues/11) |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
 | Service systemd de diffusion | [#22](https://github.com/dascritch/machincast/issues/22) |
-| Interface graphique | [#23](https://github.com/dascritch/machincast/issues/23) et suivants |
+| Autres écrans de l'interface : VU-mètre, pilotage du service, listes et recherche, détails, ajout et suppression, incidents, calendrier, simulation, indexation | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
+| Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |

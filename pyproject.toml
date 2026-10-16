@@ -48,6 +48,8 @@ machincast = ["py.typed", "migrations/*.sql"]
 target-version = "py312"
 line-length = 120
 src = ["src", "tests"]
+# Écrans compilés par pyside6-uic, jamais modifiés à la main (CONTRIBUTION.md).
+extend-exclude = ["src/machincast/interface/ui/*.py"]
 
 [tool.ruff.format]
 # Indentation par tabulations, pour des raisons d'accessibilité (doc/regles/developpement.md).
@@ -62,6 +64,14 @@ ignore = ["W191"]
 strict = true
 python_version = "3.12"
 files = ["src"]
+# setupUi n'est pas annoté : l'appeler depuis un code typé reste permis.
+untyped_calls_exclude = ["machincast.interface.ui"]
+
+[[tool.mypy.overrides]]
+# Modules générés par pyside6-uic (CONTRIBUTION.md).
+module = ["machincast.interface.ui.*"]
+disallow_untyped_defs = false
+disallow_untyped_calls = false
 
 [[tool.mypy.overrides]]
 # yoyo-migrations ne publie pas d'annotations de type.

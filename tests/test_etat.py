@@ -146,6 +146,17 @@ def temps_en_cours(client: Client, debut: str, duree: int, fin: str) -> None:
 	assert courant["duree"] == duree and heure(courant["fin_estimee"]) == heure(fin), courant
 
 
+@then(parsers.re(r"l'emplacement du (?P<lequel>sonore en cours|prochain sonore) est le fichier de « (?P<nom>[^»]+) »"))
+def emplacement_fichier(client: Client, banc: Banc, lequel: str, nom: str) -> None:
+	sonore_annonce = en_cours(client) if lequel == "sonore en cours" else prochain(client)
+	assert sonore_annonce["emplacement"] == str(banc.fichiers[nom]), sonore_annonce
+
+
+@then(parsers.parse("l'emplacement du sonore en cours est l'adresse du flux « {flux} »"))
+def emplacement_flux(client: Client, serveur: Any, flux: str) -> None:
+	assert en_cours(client)["emplacement"] == serveur.adresse(flux), en_cours(client)
+
+
 @then("sa progression est entre 0 et 1")
 def progression(client: Client) -> None:
 	valeur = en_cours(client)["progression"]

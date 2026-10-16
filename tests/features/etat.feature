@@ -26,6 +26,7 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Et le sonore en cours est « f1 », un fichier de l'événement « Continue »
 		Et il a commencé au « 2026-10-14 19:59:50 », dure 1 seconde et finira au « 2026-10-14 19:59:51 »
 		Et sa progression est entre 0 et 1
+		Et l'emplacement du sonore en cours est le fichier de « f1 »
 
 	Scénario: Un stream en cours a une durée inconnue
 		Étant donné un serveur de flux local, avec le flux « studio » en ligne
@@ -36,6 +37,7 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Et un client lit la socket d'état
 		Alors le sonore en cours est « Direct studio », un stream de l'événement « Direct »
 		Et sa durée, sa fin estimée et sa progression sont inconnues
+		Et l'emplacement du sonore en cours est l'adresse du flux « studio »
 
 	Scénario: Rien à diffuser : la socket annonce le silence
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
@@ -55,6 +57,7 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Et un client lit la socket d'état
 		Alors le prochain sonore est « f2 », sain
 		Et il commencera au « 2026-10-14 19:59:51 », dure 1 seconde et finira au « 2026-10-14 19:59:52 »
+		Et l'emplacement du prochain sonore est le fichier de « f2 »
 
 	Scénario: Avec superposition, le prochain sonore commence au début du crossfade de fin
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »

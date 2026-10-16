@@ -51,7 +51,7 @@ class DetailsBanque(QWidget):
 
 ### Configuration des outils
 
-À ajouter dans `pyproject.toml` avec le premier écran, dans les sections `[tool.ruff]` et `[tool.mypy]` qui existent déjà :
+Elle est dans `pyproject.toml` depuis le premier écran, l'écran par défaut ([#23](https://github.com/dascritch/machincast/issues/23)), dans les sections `[tool.ruff]` et `[tool.mypy]` :
 
 ```toml
 [tool.ruff]

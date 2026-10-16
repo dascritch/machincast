@@ -4,7 +4,7 @@ Ce document décrit l'installation de MachinCast sur un poste de diffusion, sa v
 
 Le script `install.sh` fait tout le travail. La section [Installer à la main](#installer-à-la-main) détaille chacune de ses étapes, pour qui veut les faire soi-même ou comprendre ce qu'il fait.
 
-> **État du projet** : MachinCast est en cours de développement. L'indexation vérifie les sonores, et `Machin lecture` diffuse la grille depuis un terminal ; le service de diffusion et l'interface graphique (`Machin interface`) ne sont pas encore écrits. La section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
+> **État du projet** : MachinCast est en cours de développement. L'indexation vérifie les sonores, et `Machin lecture` diffuse la grille depuis un terminal ; le service de diffusion n'est pas encore écrit, et l'interface graphique (`Machin interface`) n'a que son écran par défaut. La section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
 
 ## Sommaire
 
@@ -360,6 +360,7 @@ Les noms de bases sont ceux du modèle : reprendre ceux de `base.production` et 
 | `install.sh : … existe et n'est pas un lien symbolique` | Un fichier ou un répertoire occupe déjà la place d'un lien, par exemple une ancienne installation dans `/opt/machincast`. Le déplacer, puis relancer `install.sh`. |
 | `Machin_indexation : configuration invalide : …` (code 2) | Le message nomme le fichier et la clé en cause. `fichier de configuration introuvable` : le `machincast.toml` du répertoire de MachinCast n'existe pas ; le copier depuis `machincast.exemple.toml`, ou relancer `install.sh`. |
 | `Machin_indexation : erreur de base de données : … permission denied to set role …` | Le compte n'est pas autorisé à endosser le rôle : voir [Ajouter un autre compte](#ajouter-un-autre-compte). |
+| Fenêtre « MachinCast : base de données injoignable », au lancement de `Machin interface` | L'interface n'accède pas à la base de `base.production`. Le bouton « Ouvrir INSTALL.md » ouvre ce document, et les détails de la fenêtre donnent l'erreur de PostgreSQL. `connection … failed` ou `No such file or directory` : PostgreSQL n'est pas démarré (`sudo systemctl start postgresql`), ou `base.socket` ne désigne pas sa socket. `database … does not exist` : relancer `install.sh`, qui crée la base. `permission denied to set role` : voir [Ajouter un autre compte](#ajouter-un-autre-compte). |
 | `Machin logs` réclame le groupe `adm` ou `systemd-journal`, ou n'affiche que des messages de son propre compte | Le groupe n'est pas encore pris en compte par la session. Si `id -nG "$(id -un)"` cite `systemd-journal` mais pas `id -nG`, l'ajout est fait : redémarrer le poste. Sinon, relancer `install.sh`. |
 
 Les messages d'information s'affichent sur la sortie standard ; les anomalies et les erreurs sur la sortie d'erreur, préfixées du nom du programme.
@@ -370,6 +371,6 @@ Les messages d'information s'affichent sur la sortie standard ; les anomalies et
 | --- | --- |
 | Archives `.tar.gz` publiées en releases | [#41](https://github.com/dascritch/machincast/issues/41) |
 | Service systemd de diffusion et règle polkit, installation facultative | [#22](https://github.com/dascritch/machincast/issues/22) |
-| Interface graphique `Machin interface` | [#23](https://github.com/dascritch/machincast/issues/23) |
+| Autres écrans de l'interface graphique `Machin interface` | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
 | Message de l'interface tant que le service n'est pas installé | [#25](https://github.com/dascritch/machincast/issues/25) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |

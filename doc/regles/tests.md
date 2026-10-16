@@ -49,6 +49,13 @@ Les tests utilisent leur propre fichier de configuration, passé par le paramèt
 
 `tests/configuration-test.toml` nomme comme base de production une base qui n'existe pas, différente de celle du modèle `machincast.exemple.toml` : un scénario de `socle.feature` le vérifie. Un scénario qui lance un binaire avec une configuration valide lui donne une socket PostgreSQL qui n'existe pas : le binaire ne peut joindre aucune base, et surtout pas la base de production que nomme cette configuration. Les scénarios qui ont besoin de la base appellent les fonctions Python avec une connexion à la base de test.
 
+## Interface graphique
+
+- Les écrans s'ouvrent avec pytest-qt (fixture `qtbot`), hors de l'écran du poste : `tests/conftest.py` règle `QT_QPA_PLATFORM=offscreen` avant toute création d'application Qt ([#23](https://github.com/dascritch/machincast/issues/23)). Aucune fenêtre ne s'ouvre pendant les tests, même sur un poste avec affichage.
+- Une attente se fait par `qtbot.waitUntil`, avec un délai : jamais de `sleep`. Les étapes « bientôt » d'un scénario attendent ainsi un état publié par la socket.
+- La socket d'état d'un scénario est un vrai serveur du binaire lecture (`machincast.lecture.etat.SocketEtat`), ouvert dans le répertoire temporaire du scénario, qui y publie les états comme la diffusion.
+- Un scénario qui lance le binaire `Machin_interface` lui donne une configuration dont la socket PostgreSQL n'existe pas : il s'arrête avec le code 1, sans fenêtre, puisque le processus hérite de `QT_QPA_PLATFORM=offscreen`. La fenêtre d'erreur se vérifie en appelant `main` dans le processus des tests, sa méthode `exec` remplacée : aucune fenêtre modale n'attend un clic.
+
 ## Audio
 
 Les tests du binaire lecture n'utilisent pas de sortie sonore réelle : la configuration de test choisit la sortie `factice` (élément GStreamer `fakesink`), ou le mode simulation, qui n'ouvre aucune sortie ([#21](https://github.com/dascritch/machincast/issues/21)). `machincast.audio.jouer_son_de_test` vérifie qu'un son traverse une sortie jusqu'au bout.
