@@ -647,6 +647,12 @@ Mise en œuvre ([#33](https://github.com/dascritch/machincast/issues/33), `machi
 
 Si aucun événement de priorité fil musical n'existe, l'interface en recrée un.
 
+Mise en œuvre ([#39](https://github.com/dascritch/machincast/issues/39), `machincast.interface.fil_musical.garantir`, appelé par `FenetrePrincipale`) :
+
+- **Quand** : à l'ouverture de la fenêtre, après la suppression d'un événement, et après l'enregistrement d'un événement (qui peut avoir changé de priorité).
+- **Quoi** : « Fil musical », permanent (sans début, ni fin, ni jours) et sans élément ; si ce nom est pris par un autre événement, le premier libre parmi « Fil musical 2 », « Fil musical 3 »… Sa liste reste à remplir dans sa fiche ; en attendant, la diffusion se tait et alerte quand il est à l'antenne ([§ 4.2](#42-transitions)).
+- **Signalement** : la barre d'état le dit, et le journal le note en avertissement.
+
 ### 8.11 Menu
 
 - Ajouter un sonore, une banque, une séquence, un événement.

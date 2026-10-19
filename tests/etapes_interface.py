@@ -466,6 +466,8 @@ def ouvrir(interface: Contexte, base_vide: Connexion, qtbot: QtBot) -> None:
 		if texte != "":
 			interface.annonces.append(texte)
 
+	# Ce que la fenêtre annonce en s'ouvrant, avant que l'étape l'écoute.
+	annoncer(interface.fenetre.statusBar().currentMessage())
 	interface.fenetre.statusBar().messageChanged.connect(annoncer)
 
 	def abandonner(_fenetre: QWidget) -> None:

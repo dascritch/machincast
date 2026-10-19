@@ -36,6 +36,7 @@ from machincast.interface.fiche_evenement import FicheEvenement
 from machincast.interface.fiche_marque_page import FicheMarquePage
 from machincast.interface.fiche_sequence import FicheSequence
 from machincast.interface.fiche_sonore import FicheSonore
+from machincast.interface.fil_musical import garantir
 from machincast.interface.listes import BANQUES, EVENEMENTS, MARQUES_PAGES, SEQUENCES, SONORES, Liste
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 from machincast.interface.verification import Verificateur
@@ -89,6 +90,7 @@ class FenetrePrincipale(QMainWindow):
 			self._ajouter_fixe(liste, titre)
 		self.ui.onglets.setCurrentIndex(0)
 		self.ui.onglets.currentChanged.connect(self._onglet_ouvert)
+		self._garantir_fil_musical()
 		self.ui.onglets.tabCloseRequested.connect(self._fermer)
 
 	def fiches(self) -> list[Fiche]:
@@ -122,6 +124,9 @@ class FenetrePrincipale(QMainWindow):
 		fiche.titre_change.connect(lambda titre: self._renommer(fiche, titre))
 		fiche.ouverture_demandee.connect(self._ouvrir)
 		fiche.supprimee.connect(lambda: self._retirer(fiche))
+		if genre == "événement":
+			fiche.supprimee.connect(self._garantir_fil_musical)
+			fiche.enregistree.connect(self._garantir_fil_musical)
 		self.ui.onglets.addTab(fiche, fiche.titre())
 		self.ui.onglets.setCurrentWidget(fiche)
 
@@ -153,6 +158,21 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.barre_d_etat.showMessage(ajout.texte())
 		liste.actualiser()
 		self.verificateur.verifier(ajout.ajoutes)
+
+	def _garantir_fil_musical(self) -> None:
+		"""Sans fil musical en base, en crée un, permanent et vide, et le dit (spec § 8.10)."""
+		try:
+			cree = garantir(self.connexion)
+		except psycopg.Error as erreur:
+			journal.error(f"vérification du fil musical impossible : {erreur}")
+			return
+		if cree is None:
+			return
+		texte = (
+			f"Aucun fil musical : « {cree} » est créé, permanent et sans élément ; sa liste se remplit dans sa fiche."
+		)
+		journal.warning(texte)
+		self.ui.barre_d_etat.showMessage(texte)
 
 	def _verification_terminee(self, texte: str) -> None:
 		self.ui.barre_d_etat.showMessage(texte)
