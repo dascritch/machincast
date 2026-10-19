@@ -545,8 +545,8 @@ Mise en œuvre ([#23](https://github.com/dascritch/machincast/issues/23), `machi
 
 Mise en œuvre des listes ([#26](https://github.com/dascritch/machincast/issues/26), `machincast.interface.listes`, `machincast.interface.fenetre`) :
 
-- **Onglets** : la fenêtre a un onglet par écran, décidé avec le ticket : Accueil (l'écran par défaut, [§ 8.1](#81-écran-par-défaut)), ouvert au lancement, puis une liste par type, dans l'ordre de la recherche : Événements, Séquences, Banques, Sonores.
-- **Colonnes et ordre** : événements (nom, nom public, priorité, début, fin, récurrence), du plus prioritaire au moins prioritaire ; séquences (nom, nom public) ; banques (nom, nom public, mode, ne pas répéter, premier répertoire dans l'ordre alphabétique) ; sonores (artiste, titre, type, état, durée, emplacement), par artiste puis titre. Un clic sur un titre de colonne trie.
+- **Onglets** : la fenêtre a un onglet par écran, décidé avec le ticket : Accueil (l'écran par défaut, [§ 8.1](#81-écran-par-défaut)), ouvert au lancement, puis une liste par type, dans l'ordre de la recherche : Événements, Séquences, Banques, Sonores ; enfin les Marques-pages ([§ 8.13](#813-marques-pages-de-streams)).
+- **Colonnes et ordre** : événements (nom, nom public, priorité, début, fin, récurrence), du plus prioritaire au moins prioritaire ; séquences (nom, nom public) ; banques (nom, nom public, mode, ne pas répéter, premier répertoire dans l'ordre alphabétique) ; sonores (artiste, titre, type, état, durée, emplacement), par artiste puis titre ; marques-pages (nom, adresse, nombre de streams qui le suivent), par nom. Un clic sur un titre de colonne trie.
 - **Filtre** : les lignes dont une colonne contient le texte, sans tenir compte des majuscules ni des accents (`FiltreSansAccents`) ; un compte « n sonores sur N ».
 - **Lecture** : en base, avec le rôle de l'interface, chaque fois que l'onglet s'ouvre ; jamais en boucle. Le filtre est gardé.
 - **Détail** : un double-clic ou Entrée sur une ligne émet `FenetrePrincipale.detail_demande(genre, identifiant)`, et ouvre la fiche de l'élément ([§ 8.5](#85-écran-de-détails-dun-événement), [§ 8.12](#812-écran-de-détails-dune-séquence), [§ 8.4](#84-écran-de-détails-dune-banque), [§ 8.3](#83-écran-de-détails-dun-sonore)).
@@ -567,7 +567,7 @@ Mise en œuvre ([#28](https://github.com/dascritch/machincast/issues/28), `machi
 - **Champs** : artiste, titre, les clés de `metadonnees_musicales` tenues par l'indexeur (`annee` et `piste` en nombres entiers), crossfades, maximum de lectures (0 = illimité), masquage (« Selon la configuration », « Masqués », « Affichés »), période de diffusion à cocher, état. Les autres clés des métadonnées sont montrées, jamais modifiées. Les textes sont enregistrés sans les espaces qui les entourent ; un champ vide est NULL, ou une clé absente.
 - **Écriture** : seuls les champs qui diffèrent de ce que la fiche a lu sont écrits, sous verrou de la ligne ; les autres gardent ce que l'indexation ou la diffusion y a mis entre-temps. Chacun est ajouté à `champs_edites`, sauf l'état. La fin de la période doit suivre son début ; un stream doit avoir une adresse ou un marque-page ; un sonore effacé de la base entre-temps n'est pas enregistré.
 - **État** : la fiche propose l'état du sonore, puis `actif` et `desactive` ; un sonore `apercu` ne change pas d'état.
-- **Stream** : adresse directe ou marque-page existant (leur gestion : [#34](https://github.com/dascritch/machincast/issues/34)) ; événement de secours parmi les événements `secours`, ou aucun. Le **test à la demande** décode le flux de l'adresse saisie, sans le jouer ni l'enregistrer, par GStreamer (`uridecodebin`, `fakesink`) : il répond dès une seconde de son décodée, et ne répond pas sur une erreur ou après 10 s. Le bus est relevé par un minuteur de Qt : l'interface reste utilisable. La connexion se ferme à la fin du test, à la fermeture de la fiche et à celle de la fenêtre.
+- **Stream** : adresse directe ou marque-page existant (leur gestion : [§ 8.13](#813-marques-pages-de-streams)) ; événement de secours parmi les événements `secours`, ou aucun. Le **test à la demande** décode le flux de l'adresse saisie, sans le jouer ni l'enregistrer, par GStreamer (`uridecodebin`, `fakesink`) : il répond dès une seconde de son décodée, et ne répond pas sur une erreur ou après 10 s. Le bus est relevé par un minuteur de Qt : l'interface reste utilisable. La connexion se ferme à la fin du test, à la fermeture de la fiche et à celle de la fenêtre.
 - **Passages** : les 50 derniers débuts de passage du sonore dans `airplay`, avec leur fin, et les lignes du log de ce sonore, de niveau `alerte` ou `incident`, notées entre le début et la fin du passage (ou depuis le début, pour le passage en cours).
 - La pré-écoute est l'affaire de [#29](https://github.com/dascritch/machincast/issues/29).
 
@@ -672,6 +672,19 @@ Mise en œuvre ([#112](https://github.com/dascritch/machincast/issues/112), `mac
 - **Écriture** : à l'enregistrement, une ligne restée dans la liste garde son identifiant dans `sequences_elements`, à sa nouvelle position, pour que `airplay.sequence_element_id` la désigne toujours ([§ 4.3](#43-liste-de-lecture-dun-événement)) ; les lignes retirées sont supprimées, les nouvelles ajoutées. Un sonore ou une banque effacé de la base entre-temps est oublié.
 - **Avertissement** : sous la liste, une ligne par appel sauté, « Ligne N : la banque « … » vient de passer, et ne passe jamais deux fois de suite : cet appel sera sauté. », recalculé à chaque changement de la liste.
 - **Liens** : ouvrir un élément ou un événement ouvre sa fiche, par `Fiche.ouverture_demandee`, que la fenêtre traite comme l'ouverture d'une ligne de liste.
+
+### 8.13 Marques-pages de streams
+
+- Création, modification et suppression des marques-pages ([§ 3.1](#marques_pages_streams)) ; un marque-page qu'un stream suit ne se supprime pas.
+- Test du flux à la demande.
+
+Mise en œuvre ([#34](https://github.com/dascritch/machincast/issues/34), `machincast.interface.fiche_marque_page`, `listes.MARQUES_PAGES`) :
+
+- **Onglet** : la liste des marques-pages (nom, adresse, nombre de streams qui le suivent), avec « Nouveau marque-page » ; une fiche par marque-page, « Marque-page : <nom> », avec ce qui est commun aux fiches ([§ 8.4](#84-écran-de-détails-dune-banque)).
+- **Champs** : nom obligatoire et unique, adresse obligatoire, enregistrés sans les espaces qui les entourent. La diffusion lit l'adresse du marque-page à chaque passage : une nouvelle adresse vaut pour tous les streams qui le suivent.
+- **Test du flux** : `EssaiDeFlux`, comme pour un stream ([§ 8.3](#83-écran-de-détails-dun-sonore)), arrêté à la fermeture de la fiche.
+- **Streams qui le suivent** : par titre, ou par l'adresse pour un stream sans titre ; ouvrir l'un d'eux ouvre sa fiche.
+- **Suppression** : `suppression.question` lève `Empechee` pour un marque-page qu'un stream suit (la clé étrangère est `ON DELETE RESTRICT`) : la fiche nomme les streams, sans poser de question. Sinon, la confirmation habituelle ([§ 8.9](#89-suppression)).
 
 ## 9. Configuration
 

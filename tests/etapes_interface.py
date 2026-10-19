@@ -271,6 +271,32 @@ def identifiant(base: Connexion, table: str, colonne: str, valeur: str) -> int:
 	return int(str(ligne[0]))
 
 
+def bouton_de_suppression(interface: Contexte) -> QPushButton:
+	(bouton,) = [
+		bouton for bouton in fiche_ouverte(interface).findChildren(QPushButton) if bouton.text() == "Supprimer…"
+	]
+	return bouton
+
+
+def questions_de_suppression(interface: Contexte) -> list[str]:
+	return [question for question in interface.questions if question.startswith("suppression : ")]
+
+
+def lignes_attendues(interface: Contexte, datatable: list[list[str]]) -> str:
+	_entete, *lignes = datatable
+	return "\n".join(ligne[0].strip().replace("…/", f"{interface.repertoire}/") for ligne in lignes)
+
+
+TABLES = {
+	"le sonore": ("sonores", "titre"),
+	"la banque": ("banques", "nom_interne"),
+	"la séquence": ("sequences", "nom_interne"),
+	"l'événement": ("evenements", "nom_interne"),
+	"le marque-page": ("marques_pages_streams", "nom"),
+}
+"""Table et colonne du nom de chaque genre d'élément, pour le retrouver en base."""
+
+
 # ─── Étant donné ───────────────────────────────────────────
 
 
@@ -396,6 +422,13 @@ def stream_secouru(base_vide: Connexion, titre: str, secours: str) -> None:
 		"UPDATE sonores SET secours_evenement_id = %s WHERE titre = %s",
 		(identifiant(base_vide, "evenements", "nom_interne", secours), titre),
 	)
+
+
+@given(parsers.re(r"les marques-pages (?P<marques>.+)"))
+def marques_pages(base_vide: Connexion, marques: str) -> None:
+	noms = NOM.findall(marques)
+	for nom, url in zip(noms[::2], noms[1::2], strict=True):
+		base_vide.execute("INSERT INTO marques_pages_streams (nom, url) VALUES (%s, %s)", (nom, url))
 
 
 @given("les événements :")
@@ -723,6 +756,7 @@ def detail(interface: Contexte, base_vide: Connexion, genre: str, nom: str) -> N
 		"banque": ("banques", "nom_interne"),
 		"séquence": ("sequences", "nom_interne"),
 		"événement": ("evenements", "nom_interne"),
+		"marque-page": ("marques_pages_streams", "nom"),
 	}
 	table, colonne = tables[genre]
 	assert interface.demandes == [(genre, identifiant(base_vide, table, colonne, nom))], interface.demandes
@@ -776,3 +810,35 @@ def annonce(interface: Contexte, texte: str) -> None:
 @then("la barre d'état n'a rien annoncé")
 def rien_annonce(interface: Contexte) -> None:
 	assert interface.annonces == []
+
+
+@when(parsers.re(r"je supprime l'élément de la fiche, en répondant « (?P<reponse>Supprimer|Annuler) »"))
+def supprimer(interface: Contexte, qtbot: QtBot, reponse: str) -> None:
+	interface.suppression = reponse == "Supprimer"
+	qtbot.mouseClick(bouton_de_suppression(interface), Qt.MouseButton.LeftButton)
+
+
+# ─── Alors ─────────────────────────────────────────────────
+
+
+@then(parsers.parse("la question de suppression, intitulée « {titre} », a dit :"))
+def question(interface: Contexte, titre: str, datatable: list[list[str]]) -> None:
+	assert questions_de_suppression(interface) == [f"suppression : {titre}\n{lignes_attendues(interface, datatable)}"]
+
+
+@then("la dernière question de suppression a dit :")
+def derniere_question(interface: Contexte, datatable: list[list[str]]) -> None:
+	_titre, texte = questions_de_suppression(interface)[-1].split("\n", 1)
+	assert texte == lignes_attendues(interface, datatable)
+
+
+@then(
+	parsers.re(
+		r"(?P<genre>le sonore|la banque|la séquence|l'événement|le marque-page) « (?P<nom>[^»]+) »"
+		r" (?P<etat>n'est plus|est toujours) en base"
+	)
+)
+def en_base(base_vide: Connexion, genre: str, nom: str, etat: str) -> None:
+	table, colonne = TABLES[genre]
+	lignes = base_vide.execute(f"SELECT id FROM {table} WHERE {colonne} = %s", (nom,)).fetchall()  # noqa: S608
+	assert len(lignes) == {"n'est plus": 0, "est toujours": 1}[etat], lignes

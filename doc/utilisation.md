@@ -408,7 +408,7 @@ L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture 
 
 ## Interface graphique : Machin interface
 
-`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques** et **Sonores**.
+`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores** et **Marques-pages**.
 
 **Sans base de données**, l'interface n'est pas utilisable : `Machin interface` ouvre alors une fenêtre d'erreur, « MachinCast : base de données injoignable ». Elle explique pourquoi, et invite à lire le document `INSTALL.md` du répertoire de MachinCast, section [En cas de problème](../INSTALL.md#en-cas-de-problème). Son bouton « Ouvrir INSTALL.md » ouvre ce document, et ses détails donnent l'erreur de PostgreSQL. À sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, par exemple dans une session SSH, seul ce message s'affiche.
 
@@ -433,7 +433,7 @@ Le VU-mètre de la sortie viendra avec [#24](https://github.com/dascritch/machin
 
 ### Listes
 
-Les onglets Événements, Séquences, Banques et Sonores donnent chacun la liste de tous les éléments de ce type ([#26](https://github.com/dascritch/machincast/issues/26)) :
+Les onglets Événements, Séquences, Banques, Sonores et Marques-pages donnent chacun la liste de tous les éléments de ce type ([#26](https://github.com/dascritch/machincast/issues/26)) :
 
 | Onglet | Colonnes | Ordre |
 | --- | --- | --- |
@@ -441,12 +441,13 @@ Les onglets Événements, Séquences, Banques et Sonores donnent chacun la liste
 | Séquences | nom, nom public | par nom |
 | Banques | nom, nom public, mode (séquentielle ou aléatoire), « ne pas répéter », premier répertoire (dans l'ordre alphabétique), vide pour une banque sans répertoire | par nom |
 | Sonores | artiste, titre, type (fichier ou stream), état, durée, emplacement (chemin du fichier ou adresse du stream) | par artiste, les sonores sans artiste à la fin, puis par titre |
+| Marques-pages | nom, adresse, nombre de streams qui le suivent | par nom |
 
 - **Filtre** : le champ « Filtrer… » garde les lignes dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : `cafe` trouve « Café à minuit », `stream` tous les streams, `/srv/musique` tous les fichiers de ce répertoire. Le compte, à côté, dit combien de lignes restent, par exemple `2 sonores sur 340`. La croix du champ efface le filtre.
 - **Tri** : un clic sur le titre d'une colonne trie la liste selon cette colonne ; un second clic inverse l'ordre.
 - **Mise à jour** : une liste se relit dans la base chaque fois que son onglet s'ouvre, en gardant son filtre. Elle ne se relit jamais d'elle-même pendant qu'on la regarde.
 - **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvre la fiche de l'élément ([événement](#fiche-dun-événement), [séquence](#fiche-dune-séquence), [banque](#fiche-dune-banque), [sonore](#fiche-dun-sonore)).
-- **Créer** : les boutons **Nouvel événement**, **Nouvelle séquence**, **Nouvelle banque** et **Nouveau stream**, à côté du filtre de leur liste, ouvrent une fiche vide. La liste des sonores a aussi **Ajouter des fichiers…**, et accepte les fichiers déposés ([Ajouter un sonore](#ajouter-un-sonore)).
+- **Créer** : les boutons **Nouvel événement**, **Nouvelle séquence**, **Nouvelle banque**, **Nouveau stream** et **Nouveau marque-page**, à côté du filtre de leur liste, ouvrent une fiche vide. La liste des sonores a aussi **Ajouter des fichiers…**, et accepte les fichiers déposés ([Ajouter un sonore](#ajouter-un-sonore)).
 
 ### Fiche d'une banque
 
@@ -496,7 +497,7 @@ La fiche d'un sonore s'ouvre depuis la liste des sonores, dans un nouvel onglet 
 
 **Stream** (voir [Streams](#streams)) :
 
-- **Adresse directe** ou **Marque-page**, parmi les marques-pages en base ; leur gestion viendra avec [#34](https://github.com/dascritch/machincast/issues/34). Un stream sans adresse n'est pas enregistré.
+- **Adresse directe** ou **Marque-page**, parmi les [marques-pages](#marques-pages) en base. Un stream sans adresse n'est pas enregistré.
 - **Événement de secours** : parmi les événements de priorité `secours`, ou `Aucun : le fil musical`.
 - **Tester le flux** : la fiche se connecte à l'adresse saisie, même pas encore enregistrée, et dit `Le flux répond : du son arrive.` dès qu'une seconde de son est décodée. Sinon, elle dit `Le flux ne répond pas :` suivi de l'erreur (adresse invalide, serveur injoignable, réponse en erreur), ou `le son n'arrive pas en 10 s.`. Rien n'est joué. La connexion se ferme à la fin du test, et à la fermeture de la fiche ou de la fenêtre.
 
@@ -576,6 +577,15 @@ Seuls les fichiers ajoutés depuis la liste des sonores sont vérifiés aussitô
 
 **Stream** : **Nouveau stream** ouvre une [fiche de sonore](#fiche-dun-sonore) vide, nommée « Nouveau stream ». L'adresse directe ou le marque-page est obligatoire ; l'événement de secours, le titre et les autres champs se saisissent comme pour un stream existant. Le stream entre en base à l'état `actif`.
 
+### Marques-pages
+
+Un **marque-page** est une adresse de flux réutilisable, souvent en ligne par intermittence : plusieurs streams peuvent le suivre, et jouent son adresse ([#34](https://github.com/dascritch/machincast/issues/34)). L'onglet **Marques-pages** en donne la liste ; **Nouveau marque-page** ouvre une fiche vide, et un double-clic la fiche d'un marque-page, dans un onglet nommé « Marque-page : » suivi de son nom. Elle se comporte comme [celle d'une banque](#fiche-dune-banque) : **Enregistrer** et **Annuler**, une seule fiche par marque-page, et la question à la fermeture d'une fiche modifiée.
+
+- **Nom** : obligatoire, et propre au marque-page. **Adresse** : obligatoire. Les deux sont enregistrés sans les espaces qui les entourent. Une nouvelle adresse vaut aussitôt pour tous les streams qui suivent le marque-page.
+- **Tester le flux** : comme dans la [fiche d'un sonore](#fiche-dun-sonore), la fiche se connecte à l'adresse saisie, même pas encore enregistrée, et dit si du son arrive. Rien n'est joué, et la connexion se ferme à la fin du test ou à la fermeture de la fiche.
+- **Streams qui le suivent** : un double-clic ouvre la fiche du stream, où il choisit son marque-page ou une adresse directe.
+- **Supprimer…** : un marque-page qu'un stream suit ne se supprime pas ; la fiche nomme ces streams, qui doivent d'abord choisir une autre adresse. Sinon, la suppression se confirme comme ailleurs ([Supprimer un élément](#supprimer-un-élément)).
+
 ### Supprimer un élément
 
 Chaque fiche a un bouton **Supprimer…** ([#33](https://github.com/dascritch/machincast/issues/33)). Il demande toujours confirmation : **Supprimer**, ou **Annuler** (Entrée et Échap annulent). La question dit où l'élément figure, et quelle banque, séquence ou liste d'événement n'aurait plus rien après son retrait. Une fiche pas encore enregistrée n'a rien à supprimer.
@@ -588,6 +598,7 @@ Chaque fiche a un bouton **Supprimer…** ([#33](https://github.com/dascritch/ma
 | Banque | ses séquences et listes d'événements | Ses répertoires et leurs fichiers ; ses sonores, en base. |
 | Séquence | ses listes d'événements | Ses sonores et ses banques, en base. |
 | Événement | — | Ses sonores, banques et séquences, en base. Les streams qui l'avaient pour secours n'en ont plus. |
+| Marque-page | — | Rien : un marque-page qu'un stream suit ne se supprime pas. La fiche nomme les streams, qui doivent d'abord choisir une autre adresse. |
 
 La fiche se ferme après la suppression, sans demander quoi faire de ses modifications. Si la base est injoignable, rien n'est supprimé : la fiche affiche « Suppression impossible : » et l'erreur de PostgreSQL.
 

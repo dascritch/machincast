@@ -128,13 +128,6 @@ def sonore_en_base(base_vide: Connexion, nom: str, datatable: list[list[str]]) -
 		base_vide.execute(requete, (valeur, identifiant_sonore))
 
 
-@given(parsers.re(r"les marques-pages (?P<marques>.+)"))
-def marques_pages(base_vide: Connexion, marques: str) -> None:
-	noms = NOM.findall(marques)
-	for nom, url in zip(noms[::2], noms[1::2], strict=True):
-		base_vide.execute("INSERT INTO marques_pages_streams (nom, url) VALUES (%s, %s)", (nom, url))
-
-
 @given(parsers.parse("le marque-page « {nom} » à l'adresse du flux « {flux} » du serveur local"))
 def marque_page_local(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, flux: str) -> None:
 	base_vide.execute("INSERT INTO marques_pages_streams (nom, url) VALUES (%s, %s)", (nom, serveur.adresse(flux)))

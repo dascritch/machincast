@@ -113,7 +113,7 @@ Fonctionnalité: Fiche d'un événement
 
 	Scénario: Chaque liste propose de créer un élément
 		Quand la fenêtre de l'interface s'ouvre
-		Alors les listes qui proposent de créer un élément sont « Événements : Nouvel événement », « Séquences : Nouvelle séquence », « Banques : Nouvelle banque », « Sonores : Nouveau stream »
+		Alors les listes qui proposent de créer un élément sont « Événements : Nouvel événement », « Séquences : Nouvelle séquence », « Banques : Nouvelle banque », « Sonores : Nouveau stream », « Marques-pages : Nouveau marque-page »
 
 	# ─── Champs ────────────────────────────────────────────────
 
