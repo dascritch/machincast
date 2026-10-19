@@ -107,7 +107,7 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Étant donné les sonores :
 			| artiste     | titre         | type    | etat  | duree | emplacement                 |
 			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/musique/minuit.flac    |
-			| Élodie      | Été indien    | fichier | actif | 180   | /srv/musique/indien.flac    |
+			| Zélie       | Été indien    | fichier | actif | 180   | /srv/musique/indien.flac    |
 			|             | Direct studio | stream  | actif |       | https://flux.exemple/direct |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
@@ -120,7 +120,7 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 			| gauf    | « Café à minuit »                          | 1 sonore sur 3  |
 			| CAFE    | « Café à minuit »                          | 1 sonore sur 3  |
 			| ete     | « Été indien »                             | 1 sonore sur 3  |
-			| ÉLODIE  | « Été indien »                             | 1 sonore sur 3  |
+			| ZÉLIE   | « Été indien »                             | 1 sonore sur 3  |
 			| les gauf | « Café à minuit »                         | 1 sonore sur 3  |
 			| stream  | « Direct studio »                          | 1 sonore sur 3  |
 			| /srv/   | « Café à minuit », « Été indien »          | 2 sonores sur 3 |
