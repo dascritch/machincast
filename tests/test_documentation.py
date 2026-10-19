@@ -38,7 +38,7 @@ def commandes(chemin: Path) -> list[list[str]]:
 	for bloc in blocs:
 		for ligne in bloc.replace("\\\n", " ").splitlines():
 			ligne = ligne.split(" #", 1)[0].strip()
-			if not ligne or ligne.startswith("#"):
+			if (not ligne) or (ligne.startswith("#")):
 				continue
 			for commande in re.split(r"\s*(?:&&|\|\||;|\|)\s*", ligne):
 				if commande:
@@ -111,21 +111,21 @@ def commandes_machin() -> None:
 	pyproject = tomllib.loads(texte(RACINE / "pyproject.toml"))
 	binaires = {nom.removeprefix("Machin_") for nom in pyproject["project"]["scripts"]}
 	options_wrapper = {"--config", "-h", "--help", "--binaires"}
-	citees = [mots[1:] for mots in commandes(INSTALL) if mots[:1] and mots[0] in WRAPPERS]
+	citees = [mots[1:] for mots in commandes(INSTALL) if (mots[:1]) and (mots[0] in WRAPPERS)]
 	assert citees, "INSTALL.md ne cite aucune commande Machin"
 	for arguments in citees:
 		# Options du wrapper avant le binaire : --config FICHIER ou --config=FICHIER.
-		while arguments and arguments[0].startswith("-"):
+		while (arguments) and (arguments[0].startswith("-")):
 			assert arguments[0].split("=")[0] in options_wrapper, arguments
 			arguments = arguments[2:] if arguments[0] == "--config" else arguments[1:]
-		if not arguments or arguments[0] == "logs":
+		if (not arguments) or (arguments[0] == "logs"):
 			continue
 		binaire, *options = arguments
 		assert binaire in binaires, f"binaire inconnu : {binaire}"
 		aide = subprocess.run(
 			[sys.executable, "-m", f"machincast.{binaire}", "--help"], capture_output=True, text=True, check=True
 		).stdout
-		inconnues = [option for option in options if option.startswith("-") and option.split("=")[0] not in aide]
+		inconnues = [option for option in options if (option.startswith("-")) and (option.split("=")[0] not in aide)]
 		assert not inconnues, f"Machin {binaire} : {inconnues}"
 
 

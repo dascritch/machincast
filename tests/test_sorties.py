@@ -150,7 +150,9 @@ def masquages(
 
 
 def nom_public(texte: str) -> str | None:
-	return None if texte == "vide" else texte.strip(" «»")
+	if texte == "vide":
+		return None
+	return texte.strip(" «»")
 
 
 @given(
@@ -246,7 +248,7 @@ def mettre_a_jour(banc: Banc) -> None:
 @then(parsers.re(r"l'artiste et le titre sont (?P<verdict>affichés|masqués) sur la sortie publique"))
 def verdict_public(banc: Banc, verdict: str) -> None:
 	mettre_a_jour(banc)
-	visibles = "Artiste secret" in page(banc) and "Titre secret" in page(banc)
+	visibles = ("Artiste secret" in page(banc)) and ("Titre secret" in page(banc))
 	assert visibles is (verdict == "affichés"), page(banc)
 	if verdict == "masqués":
 		assert "Radio Exemple" in page(banc)
@@ -269,13 +271,13 @@ def page_ne_montre_pas_texte(banc: Banc, texte: str) -> None:
 
 @then(parsers.parse("la page publique ne montre ni « {premier} » ni « {second} »"))
 def page_ne_montre_pas(banc: Banc, premier: str, second: str) -> None:
-	assert premier not in page(banc) and second not in page(banc), page(banc)
+	assert (premier not in page(banc)) and (second not in page(banc)), page(banc)
 
 
 @then(parsers.parse("la page publique montre « {titre} » comme sonore à l'antenne"))
 def a_l_antenne(banc: Banc, titre: str) -> None:
 	en_cours = re.search(r'<section class="en-cours">(.*?)</section>', page(banc), re.DOTALL)
-	assert en_cours is not None and titre in en_cours.group(1), page(banc)
+	assert (en_cours is not None) and (titre in en_cours.group(1)), page(banc)
 
 
 @then(parsers.parse("la page publique liste {nombre:d} passages précédents, du plus récent au plus ancien"))
@@ -293,7 +295,7 @@ def rafraichie(banc: Banc) -> None:
 
 @then("la page publique ne montre pas l'emplacement du fichier")
 def sans_emplacement(banc: Banc) -> None:
-	assert "/musique/" not in page(banc) and ".flac" not in page(banc), page(banc)
+	assert ("/musique/" not in page(banc)) and (".flac" not in page(banc)), page(banc)
 
 
 @then(parsers.parse("la playlist compte {nombre:d} entrées, du passage {premier:d} au passage {dernier:d}"))
@@ -301,7 +303,7 @@ def playlist(banc: Banc, nombre: int, premier: int, dernier: int) -> None:
 	texte = sorties_du_banc(banc).chemins.pls.read_text(encoding="utf-8")
 	fichiers = re.findall(r"^File\d+=(.*)$", texte, re.MULTILINE)
 	assert texte.startswith("[playlist]\n")
-	assert f"NumberOfEntries={nombre}" in texte and "Version=2" in texte
+	assert (f"NumberOfEntries={nombre}" in texte) and ("Version=2" in texte)
 	assert fichiers == [f"/musique/{n}.flac" for n in range(premier, dernier + 1)], fichiers
 
 
@@ -309,7 +311,7 @@ def playlist(banc: Banc, nombre: int, premier: int, dernier: int) -> None:
 def titres_de_la_playlist(banc: Banc) -> None:
 	texte = sorties_du_banc(banc).chemins.pls.read_text(encoding="utf-8")
 	titres = re.findall(r"^Title(\d+)=(.*)$", texte, re.MULTILINE)
-	assert titres and all(re.fullmatch(r"Artiste \d+ – Titre \d+", titre) for _, titre in titres), titres
+	assert (titres) and (all(re.fullmatch(r"Artiste \d+ – Titre \d+", titre) for _, titre in titres)), titres
 
 
 def lignes_csv(banc: Banc, nom: str) -> list[dict[str, str]]:
@@ -339,12 +341,12 @@ def nombre_de_lignes(banc: Banc, nom: str, nombre: str) -> None:
 
 @then(parsers.parse("le journal du binaire a annoncé « {texte} », en information"))
 def annonce(caplog: pytest.LogCaptureFixture, texte: str) -> None:
-	assert any(r.levelno == logging.INFO and texte in r.getMessage() for r in caplog.records), caplog.text
+	assert any((r.levelno == logging.INFO) and (texte in r.getMessage()) for r in caplog.records), caplog.text
 
 
 @then(parsers.parse("le journal du binaire a signalé « {texte} », en anomalie"))
 def anomalie(caplog: pytest.LogCaptureFixture, texte: str) -> None:
-	assert any(r.levelno == logging.WARNING and texte in r.getMessage() for r in caplog.records), caplog.text
+	assert any((r.levelno == logging.WARNING) and (texte in r.getMessage()) for r in caplog.records), caplog.text
 
 
 @then("les sorties de Machin lecture sont celles de la configuration de test")

@@ -104,7 +104,7 @@ class Lecture:
 	@property
 	def en_cours(self) -> EnCours:
 		debut = self.passage.debut
-		fin_prevue = debut + (self.parametres.duree or timedelta(0))
+		fin_prevue = debut + ((self.parametres.duree) or (timedelta(0)))
 		return EnCours(self.choix.occurrence, debut, fin_prevue, self.parametres.stream)
 
 
@@ -142,10 +142,15 @@ def lire_parametres(connexion: psycopg.Connection[TupleRow], sonore: int) -> Par
 	if ligne is None:
 		return Parametres(None, timedelta(0), timedelta(0))
 	duree, debut, fin, type_sonore, adresse, secours, artiste, titre, emplacement = ligne
+	crossfade_debut, crossfade_fin = timedelta(0), timedelta(0)
+	if isinstance(debut, timedelta):
+		crossfade_debut = debut
+	if isinstance(fin, timedelta):
+		crossfade_fin = fin
 	return Parametres(
 		duree if isinstance(duree, timedelta) else None,
-		debut if isinstance(debut, timedelta) else timedelta(0),
-		fin if isinstance(fin, timedelta) else timedelta(0),
+		crossfade_debut,
+		crossfade_fin,
 		stream=type_sonore == "stream",
 		adresse=None if adresse is None else str(adresse),
 		secours=None if secours is None else int(str(secours)),
@@ -225,13 +230,13 @@ class Diffusion:
 				self._appliquer(decision, instant)
 			elif decision.eteindre:
 				self._eteindre(courant, decision, instant)
-			elif not courant.suivant_demande and self._au_crossfade_de_fin(courant):
+			elif (not courant.suivant_demande) and (self._au_crossfade_de_fin(courant)):
 				courant.suivant_demande = True
 				self._preparer_le_suivant(courant, instant)
 		elif not self.sortants:
 			# Rien sur la sortie ; tant qu'un stream s'éteint sans superposition, le suivant attend.
 			choix, self.en_attente = self.en_attente, None
-			choix = choix or self._prendre_la_reserve(instant)
+			choix = (choix) or (self._prendre_la_reserve(instant))
 			if choix is not None:
 				self._jouer(choix, instant)
 			else:
@@ -262,26 +267,26 @@ class Diffusion:
 		for lecture in self._lectures():
 			if lecture.voie.etat not in ("finie", "en erreur"):
 				continue
-			if lecture.parametres.stream and not lecture.eteinte:
+			if (lecture.parametres.stream) and (not lecture.eteinte):
 				# Un stream n'a pas de fin : arrêté avant son extinction, il est tombé.
-				erreur = f"{lecture.parametres.adresse} : {lecture.voie.erreur or FLUX_ARRETE}"
+				erreur = f"{lecture.parametres.adresse} : {(lecture.voie.erreur) or (FLUX_ARRETE)}"
 				self._terminer(lecture.passage, instant, erreur=erreur, nature=FLUX_TOMBE)
 				self._suspendre(lecture, instant)
 			else:
 				self._terminer(lecture.passage, instant, erreur=lecture.voie.erreur)
 		self.sortants = [s for s in self.sortants if s.voie.etat == "en cours"]
-		if self.courant is not None and self.courant.voie.etat != "en cours":
+		if (self.courant is not None) and (self.courant.voie.etat != "en cours"):
 			self.courant = None
 
 	@staticmethod
 	def _au_crossfade_de_fin(lecture: Lecture) -> bool:
 		duree = lecture.parametres.duree
-		return duree is not None and lecture.voie.position() >= duree - lecture.parametres.crossfade_fin
+		return (duree is not None) and (lecture.voie.position() >= duree - lecture.parametres.crossfade_fin)
 
 	def _prendre_la_reserve(self, instant: datetime) -> Choix | None:
 		"""Le sonore réservé, s'il est encore valable ; la réserve est vidée dans tous les cas."""
 		reserve, self.reserve = self.reserve, None
-		if reserve is not None and self.ordonnanceur.valider(reserve.choix, instant):
+		if (reserve is not None) and (self.ordonnanceur.valider(reserve.choix, instant)):
 			return reserve.choix
 		return None
 
@@ -295,7 +300,7 @@ class Diffusion:
 		)
 
 	def _preparer_le_suivant(self, courant: Lecture, instant: datetime) -> None:
-		choix = self._prendre_la_reserve(instant) or self.ordonnanceur.decider(instant, None).jouer
+		choix = (self._prendre_la_reserve(instant)) or (self.ordonnanceur.decider(instant, None).jouer)
 		if choix is None:
 			# Rien ensuite : le sonore finit avec son fondu, et le prochain pas sans voie redemande.
 			return
@@ -333,7 +338,7 @@ class Diffusion:
 		if sonde is None:
 			return
 		suspension = self.ordonnanceur.suspension
-		if suspension is None or suspension.occurrence.cle != sonde.choix.occurrence.cle:
+		if (suspension is None) or (suspension.occurrence.cle != sonde.choix.occurrence.cle):
 			if sonde.voie is not None:
 				sonde.voie.fermer()
 			self.sonde = None
@@ -348,7 +353,7 @@ class Diffusion:
 			)
 			return
 		if sonde.voie is None:
-			if instant >= sonde.prochaine_tentative and sonde.parametres.adresse is not None:
+			if (instant >= sonde.prochaine_tentative) and (sonde.parametres.adresse is not None):
 				sonde.voie = self.moteur.jouer(sonde.parametres.adresse, None, muette=True)
 			return
 		sonde.voie.traiter()
@@ -405,19 +410,17 @@ class Diffusion:
 		chemin: Path | str | None = None
 		essayes: set[int] = set()
 		# Chaque sonore n'est essayé qu'une fois : la boucle s'arrête même si l'ordonnanceur le redonne.
-		while suivant is not None and suivant.sonore not in essayes:
+		while (suivant is not None) and (suivant.sonore not in essayes):
 			parametres = lire_parametres(self.connexion, suivant.sonore)
-			chemin = (
-				parametres.adresse
-				if parametres.stream
-				else verifier_avant_lecture(self.connexion, suivant.sonore, self.historique)
-			)
+			chemin = parametres.adresse
+			if not parametres.stream:
+				chemin = verifier_avant_lecture(self.connexion, suivant.sonore, self.historique)
 			if chemin is not None:
 				break
 			essayes.add(suivant.sonore)
 			self.ordonnanceur.exclure(suivant.sonore, instant)
 			suivant = self.ordonnanceur.decider(instant, None).jouer
-		if suivant is None or chemin is None:
+		if (suivant is None) or (chemin is None):
 			return
 		voie = self.moteur.jouer(
 			chemin,
@@ -469,8 +472,8 @@ class Diffusion:
 		message = self._etat(instant, arret)
 		stable = json.dumps({**message, "en_cours": _sans_progression(message["en_cours"])}, default=str)
 		precedent, publie_a = self._publication
-		ancien = publie_a is None or instant - publie_a >= timedelta(seconds=self.publication_minimale)
-		if arret or stable != precedent or ancien:
+		ancien = (publie_a is None) or (instant - publie_a >= timedelta(seconds=self.publication_minimale))
+		if (arret) or (stable != precedent) or (ancien):
 			self.etat.publier({"horodatage": iso(instant), **message})
 			self._publication = (stable, instant)
 
@@ -487,13 +490,13 @@ class Diffusion:
 				"duree": _secondes(duree),
 				"fin_estimee": iso(None if duree is None else courant.passage.debut + duree),
 				"position": round(position.total_seconds(), 3),
-				"progression": None if not duree else round(min(1.0, position / duree), 3),
+				"progression": _progression(position, duree),
 			}
 		prochain = None
 		reserve = self.reserve
 		if reserve is not None:
 			debut = None
-			if courant is not None and courant.parametres.duree is not None:
+			if (courant is not None) and (courant.parametres.duree is not None):
 				ecart = enchainement(
 					courant.parametres.duree, courant.parametres.crossfade_fin, reserve.parametres.crossfade_debut
 				)
@@ -503,15 +506,15 @@ class Diffusion:
 				**_affichage(reserve.choix, reserve.parametres),
 				"debut_estime": iso(debut),
 				"duree": _secondes(duree),
-				"fin_estimee": iso(None if debut is None or duree is None else debut + duree),
+				"fin_estimee": iso(None if (debut is None) or (duree is None) else debut + duree),
 				"sain": reserve.sain,
 			}
-		marche = "arret" if arret else ("diffusion" if courant is not None or self.sortants else "silence")
+		marche = "arret" if arret else ("diffusion" if (courant is not None) or (self.sortants) else "silence")
 		return {"etat": marche, "en_cours": en_cours, "prochain": prochain}
 
 	def _verifier_les_expirations(self, instant: datetime) -> None:
 		derniere = self.expirations_verifiees
-		if derniere is None or instant - derniere >= VERIFICATION_DES_EXPIRATIONS:
+		if (derniere is None) or (instant - derniere >= VERIFICATION_DES_EXPIRATIONS):
 			self.expirations_verifiees = instant
 			self.historique.expirer(self.connexion, instant)
 
@@ -528,7 +531,16 @@ def _affichage(choix: Choix, parametres: Parametres) -> dict[str, Any]:
 
 
 def _secondes(duree: timedelta | None) -> float | None:
-	return None if duree is None else round(duree.total_seconds(), 3)
+	if duree is None:
+		return None
+	return round(duree.total_seconds(), 3)
+
+
+def _progression(position: timedelta, duree: timedelta | None) -> float | None:
+	"""Part jouée du sonore, de 0 à 1, au millième ; None sans durée connue."""
+	if not duree:
+		return None
+	return round(min(1.0, position / duree), 3)
 
 
 def _sans_progression(en_cours: object) -> object:

@@ -106,7 +106,7 @@ class EcranParDefaut(QWidget):
 			barre.setFormat(affichage.VIDE)
 			return
 		ui.en_cours_titre.setText(affichage.artiste_et_titre(sonore.artiste, sonore.titre))
-		ui.en_cours_evenement.setText(sonore.evenement or affichage.VIDE)
+		ui.en_cours_evenement.setText((sonore.evenement) or (affichage.VIDE))
 		ui.en_cours_debut.setText(affichage.heure(sonore.debut, "inconnu"))
 		ui.en_cours_duree.setText(affichage.duree(sonore.duree))
 		ui.en_cours_fin.setText(affichage.heure(sonore.fin_estimee))
@@ -128,7 +128,7 @@ class EcranParDefaut(QWidget):
 				champ.setText(affichage.VIDE)
 			return
 		ui.prochain_titre.setText(affichage.artiste_et_titre(sonore.artiste, sonore.titre))
-		ui.prochain_evenement.setText(sonore.evenement or affichage.VIDE)
+		ui.prochain_evenement.setText((sonore.evenement) or (affichage.VIDE))
 		ui.prochain_debut.setText(affichage.heure(sonore.debut, "inconnu"))
 		ui.prochain_fin.setText(affichage.heure(sonore.fin_estimee))
 		ui.prochain_duree.setText(affichage.duree(sonore.duree))
@@ -154,9 +154,9 @@ def _afficher_emplacement(champ: QLineEdit, sonore: SonoreAffiche | None) -> Non
 	en page, sa fin (le nom du fichier) reste visible, et l'infobulle le donne en entier."""
 	emplacement = None
 	if sonore is not None:
-		emplacement = sonore.emplacement or "inconnu"
-	champ.setText(emplacement or affichage.VIDE)
-	champ.setToolTip(emplacement or "")
+		emplacement = (sonore.emplacement) or ("inconnu")
+	champ.setText((emplacement) or (affichage.VIDE))
+	champ.setToolTip((emplacement) or (""))
 
 
 def _cellules(passage: PassageAffiche) -> list[str]:
@@ -169,10 +169,10 @@ def _cellules(passage: PassageAffiche) -> list[str]:
 		affichage.heure(passage.debut),
 		fin,
 		duree,
-		passage.artiste or "",
-		passage.titre or "",
-		passage.evenement or "",
-		passage.sequence or "",
-		passage.banque or "",
+		(passage.artiste) or (""),
+		(passage.titre) or (""),
+		(passage.evenement) or (""),
+		(passage.sequence) or (""),
+		(passage.banque) or (""),
 		affichage.oui_non(passage.sans_incident),
 	]

@@ -29,7 +29,7 @@ def avant() -> Avant:
 
 def ligne_du_sonore(base: Connexion, nom: str) -> dict[str, object]:
 	ligne = base.execute("SELECT to_jsonb(s) FROM sonores s WHERE titre = %s", (nom,)).fetchone()
-	assert ligne is not None and isinstance(ligne[0], dict)
+	assert (ligne is not None) and (isinstance(ligne[0], dict))
 	return dict(ligne[0])
 
 
@@ -128,7 +128,7 @@ def ligne_du_log(base_vide: Connexion, nombre: int, nature: str, mention: str) -
 	assert len(lignes) == nombre, lignes
 	identifiants = {int(str(i)) for (i,) in base_vide.execute("SELECT id FROM sonores").fetchall()}
 	for niveau, message, sonore_id in lignes:
-		assert niveau == "info" and mention in str(message) and sonore_id in identifiants, lignes
+		assert (niveau == "info") and (mention in str(message)) and (sonore_id in identifiants), lignes
 
 
 @then("le log est vide")

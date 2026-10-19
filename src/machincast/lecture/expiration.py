@@ -30,9 +30,9 @@ class Expiration:
 
 def _cause(maximum: int | None, lectures: int, fin: datetime | None, instant: datetime) -> str:
 	causes = []
-	if maximum is not None and lectures >= maximum:
+	if (maximum is not None) and (lectures >= maximum):
 		causes.append(f"maximum de {maximum} lecture{'s' if maximum > 1 else ''} atteint")
-	if fin is not None and fin <= instant:
+	if (fin is not None) and (fin <= instant):
 		causes.append(f"période de diffusion terminée le {fin.astimezone():%Y-%m-%d %H:%M:%S}")
 	return " ; ".join(causes)
 
@@ -71,7 +71,7 @@ def expirer(connexion: psycopg.Connection[TupleRow], instant: datetime, sonore: 
 				connexion,
 				"info",
 				NATURE,
-				f"{nom or f'sonore {expiration.sonore}'} : {expiration.cause}",
+				f"{(nom) or (f'sonore {expiration.sonore}')} : {expiration.cause}",
 				instant,
 				sonore=expiration.sonore,
 			)

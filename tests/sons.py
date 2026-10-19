@@ -101,7 +101,7 @@ def generer_son(format_sonore: str, chemin: Path, secondes: float = DUREE_SECOND
 	if tags is not None:
 		porteur = pipeline.get_by_name("tags")
 		liste = Gst.TagList.new_from_string(tags)
-		assert porteur is not None and liste is not None
+		assert (porteur is not None) and (liste is not None)
 		# L'élément nommé « tags » implémente l'interface GstTagSetter (voir ENCODEURS_TAGUES).
 		cast(Gst.TagSetter, porteur).merge_tags(liste, Gst.TagMergeMode.REPLACE)
 	pipeline.set_state(Gst.State.PLAYING)
@@ -109,7 +109,7 @@ def generer_son(format_sonore: str, chemin: Path, secondes: float = DUREE_SECOND
 	assert bus is not None
 	message = bus.timed_pop_filtered(60 * Gst.SECOND, Gst.MessageType.EOS | Gst.MessageType.ERROR)
 	pipeline.set_state(Gst.State.NULL)
-	assert message is not None and message.type == Gst.MessageType.EOS, f"génération de {chemin} impossible"
+	assert (message is not None) and (message.type == Gst.MessageType.EOS), f"génération de {chemin} impossible"
 	return chemin
 
 

@@ -46,7 +46,7 @@ def sources_desactivees(protocole: str) -> Iterator[None]:
 	fabriques = [
 		f
 		for f in Gst.ElementFactory.list_get_elements(Gst.ELEMENT_FACTORY_TYPE_SRC, Gst.Rank.MARGINAL)
-		if f.get_uri_type() == Gst.URIType.SRC and protocole in (f.get_uri_protocols() or [])
+		if (f.get_uri_type() == Gst.URIType.SRC) and (protocole in ((f.get_uri_protocols()) or ([])))
 	]
 	assert fabriques, f"aucune source pour {protocole}"
 	rangs = [(fabrique, fabrique.get_rank()) for fabrique in fabriques]

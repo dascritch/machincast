@@ -197,7 +197,7 @@ def connexions_ouvertes(contexte: Contexte) -> int:
 	ligne = contexte.connexion.execute(
 		"SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND usename = current_user"
 	).fetchone()
-	assert ligne is not None and isinstance(ligne[0], int)
+	assert (ligne is not None) and (isinstance(ligne[0], int))
 	return ligne[0]
 
 
@@ -209,7 +209,7 @@ def sans_ramasse_miettes(contexte: Contexte, migration: Callable[[str], None]) -
 		migration(url_yoyo(*parametres_base_test()))
 		# Une connexion fermée quitte pg_stat_activity peu après : quelques instants pour s'en assurer.
 		limite = time.monotonic() + 2
-		while (apres := connexions_ouvertes(contexte)) > contexte.connexions_avant and time.monotonic() < limite:
+		while ((apres := connexions_ouvertes(contexte)) > contexte.connexions_avant) and (time.monotonic() < limite):
 			time.sleep(0.05)
 		contexte.connexions_apres = apres
 	finally:
@@ -238,7 +238,7 @@ def aucune_connexion_restante(contexte: Contexte) -> None:
 def modifier_titre(contexte: Contexte) -> None:
 	identifiant = contexte.references["sonore"]
 	ligne = contexte.connexion.execute("SELECT modifie_le FROM sonores WHERE id = %s", (identifiant,)).fetchone()
-	assert ligne is not None and isinstance(ligne[0], datetime)
+	assert (ligne is not None) and (isinstance(ligne[0], datetime))
 	contexte.modifie_le = ligne[0]
 	contexte.connexion.execute("UPDATE sonores SET titre = 'Nouveau titre' WHERE id = %s", (identifiant,))
 
@@ -390,8 +390,8 @@ def date_avancee(contexte: Contexte) -> None:
 		sql.SQL("SELECT modifie_le FROM {} WHERE id = %s").format(sql.Identifier(table)),
 		(contexte.references[reference],),
 	).fetchone()
-	assert ligne is not None and isinstance(ligne[0], datetime)
-	assert contexte.modifie_le is not None and ligne[0] > contexte.modifie_le
+	assert (ligne is not None) and (isinstance(ligne[0], datetime))
+	assert (contexte.modifie_le is not None) and (ligne[0] > contexte.modifie_le)
 
 
 @then("la ligne d'airplay existe toujours, sans référence à l'élément")

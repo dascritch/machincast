@@ -107,7 +107,7 @@ def lancer_sans_base(processus: Processus, tmp_path: Path) -> None:
 	configuration.write_text(
 		texte.replace('socket = "/var/run/postgresql"', f'socket = "{tmp_path / "aucune-socket"}"'), encoding="utf-8"
 	)
-	chemin = shutil.which("Machin_lecture") or str(Path(sys.executable).parent / "Machin_lecture")
+	chemin = (shutil.which("Machin_lecture")) or (str(Path(sys.executable).parent / "Machin_lecture"))
 	processus.resultat = subprocess.run(
 		[chemin, "--config", str(configuration)], capture_output=True, text=True, timeout=60
 	)
@@ -115,7 +115,7 @@ def lancer_sans_base(processus: Processus, tmp_path: Path) -> None:
 
 @then("l'arrêt de la diffusion est demandé")
 def arret_demande(processus: Processus) -> None:
-	assert processus.arret is not None and processus.arret.wait(2)
+	assert (processus.arret is not None) and (processus.arret.wait(2))
 
 
 @then("il s'arrête avec le code 1, en signalant la base de données injoignable")

@@ -49,7 +49,7 @@ def creer_sortie(
 			f"sortie audio « {sortie} » indisponible : élément GStreamer {greffon.fabrique} introuvable, "
 			f"installer le paquet {greffon.paquet}"
 		)
-	if peripherique is not None and greffon.propriete is not None:
+	if (peripherique is not None) and (greffon.propriete is not None):
 		element.set_property(greffon.propriete, peripherique)
 	return element
 
@@ -60,7 +60,7 @@ def jouer_son_de_test(sortie: Gst.Element, duree: timedelta) -> bool:
 	pipeline = Gst.Pipeline.new("son-de-test")
 	source = Gst.ElementFactory.make("audiotestsrc", None)
 	conversion = Gst.ElementFactory.make("audioconvert", None)
-	if source is None or conversion is None:
+	if (source is None) or (conversion is None):
 		raise SortieAudioIndisponible("audiotestsrc ou audioconvert introuvable, installer gstreamer1.0-plugins-base")
 	# 44 100 échantillons par seconde, 1 024 par tampon.
 	source.set_property("num-buffers", max(1, round(duree.total_seconds() * 44100 / 1024)))
@@ -75,4 +75,4 @@ def jouer_son_de_test(sortie: Gst.Element, duree: timedelta) -> bool:
 		round((duree.total_seconds() + 5) * Gst.SECOND), Gst.MessageType.EOS | Gst.MessageType.ERROR
 	)
 	pipeline.set_state(Gst.State.NULL)
-	return message is not None and message.type == Gst.MessageType.EOS
+	return (message is not None) and (message.type == Gst.MessageType.EOS)

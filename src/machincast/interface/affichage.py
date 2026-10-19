@@ -54,7 +54,7 @@ def duree(secondes: float | timedelta | None) -> str:
 def artiste_et_titre(artiste: str | None, titre: str | None) -> str:
 	"""« Les Gaufres – Café à minuit », ou ce qui est connu des deux."""
 	texte = " – ".join(partie for partie in (artiste, titre) if partie)
-	return texte or "(sans titre)"
+	return (texte) or ("(sans titre)")
 
 
 def oui_non(valeur: bool | None, inconnu: str = "") -> str:

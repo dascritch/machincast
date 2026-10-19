@@ -114,7 +114,10 @@ def evenement(
 	assert cree is not None
 	for position, nom_sonore in enumerate(sonores, start=1):
 		existant = base.execute("SELECT id FROM sonores WHERE titre = %s", (nom_sonore,)).fetchone()
-		identifiant = int(str(existant[0])) if existant else creer_sonore(banc, base, repertoire, nom_sonore)
+		if existant is None:
+			identifiant = creer_sonore(banc, base, repertoire, nom_sonore)
+		else:
+			identifiant = int(str(existant[0]))
 		base.execute(
 			"INSERT INTO evenements_elements (evenement_id, position, sonore_id) VALUES (%s, %s, %s)",
 			(cree[0], position, identifiant),
@@ -219,8 +222,10 @@ def demarrer(banc: Banc, base_vide: Connexion, rythme: str) -> None:
 
 @when(parsers.re(r"la diffusion tourne (?P<nombre>\d+) pas d(?:'une|e (?P<duree>[\d,]+)) seconde"))
 def tourner(banc: Banc, nombre: str, duree: str | None) -> None:
-	ecart = 1.0 if duree is None else secondes(duree)
-	rythme_reel = banc.moteur is not None and banc.moteur.temps_reel
+	ecart = 1.0
+	if duree is not None:
+		ecart = secondes(duree)
+	rythme_reel = (banc.moteur is not None) and (banc.moteur.temps_reel)
 	for _ in range(int(nombre)):
 		diffusion(banc).pas()
 		# En temps réel, la pause suit l'horloge ; au plus vite, la voie finit pendant une courte pause réelle.
@@ -234,7 +239,7 @@ def tourner(banc: Banc, nombre: str, duree: str | None) -> None:
 def attendre_la_fin_des_voies(banc: Banc, delai: float = 5.0) -> None:
 	assert banc.moteur is not None
 	limite = time.monotonic() + delai
-	while any(v.etat == "en cours" for v in banc.moteur.voies_en_cours()) and time.monotonic() < limite:
+	while (any(v.etat == "en cours" for v in banc.moteur.voies_en_cours())) and (time.monotonic() < limite):
 		time.sleep(PAS_REEL / 5)
 		for voie in banc.moteur.voies_en_cours():
 			voie.traiter()
@@ -295,13 +300,13 @@ def airplay(base_vide: Connexion, liste: str) -> None:
 @then("chaque passage a sa ligne de fin, sans incident")
 def lignes_de_fin(base_vide: Connexion) -> None:
 	lignes = passages(base_vide)
-	assert lignes and all(fin is not None and sans_incident for _, _, fin, sans_incident in lignes), lignes
+	assert (lignes) and (all((fin is not None) and (sans_incident) for _, _, fin, sans_incident in lignes)), lignes
 
 
 @then(parsers.parse("le log commence par « {niveau} » « {nature} » et finit par « {niveau_fin} » « {nature_fin} »"))
 def bornes_du_log(base_vide: Connexion, niveau: str, nature: str, niveau_fin: str, nature_fin: str) -> None:
 	lignes = log(base_vide)
-	assert lignes[0] == (niveau, nature) and lignes[-1] == (niveau_fin, nature_fin), lignes
+	assert (lignes[0] == (niveau, nature)) and (lignes[-1] == (niveau_fin, nature_fin)), lignes
 
 
 @then(parsers.parse("le log finit par « {niveau} » « {nature} »"))

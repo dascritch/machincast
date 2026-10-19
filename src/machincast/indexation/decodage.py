@@ -73,7 +73,7 @@ class Verification:
 
 	@classmethod
 	def sain(cls, duree: timedelta, tags: Tags | None = None) -> "Verification":
-		return cls(EtatFichier.SAIN, duree, tags=tags or Tags(None, None, {}))
+		return cls(EtatFichier.SAIN, duree, tags=(tags) or (Tags(None, None, {})))
 
 	@classmethod
 	def defectueux(cls, etat: EtatFichier, detail: str, duree: timedelta | None = None) -> "Verification":
@@ -104,7 +104,7 @@ def _sonder(suivi: _Suivi) -> Callable[[Gst.Pad, Gst.PadProbeInfo], Gst.PadProbe
 		if tampon is None:
 			return Gst.PadProbeReturn.OK
 		suivi.tampons += 1
-		if suivi.tampons > 1 and tampon.has_flags(Gst.BufferFlags.DISCONT):
+		if (suivi.tampons > 1) and (tampon.has_flags(Gst.BufferFlags.DISCONT)):
 			suivi.ruptures += 1
 		if tampon.pts != Gst.CLOCK_TIME_NONE:
 			if suivi.debut is None:
@@ -153,12 +153,14 @@ class _Decodage:
 	def _relier(self, decodeur: Gst.Element, sortie: Gst.Pad) -> None:
 		"""Relie la première sortie audio de decodebin ; les autres flux (pochette, vidéo) sont ignorés."""
 		entree = self.conversion.get_static_pad("sink")
-		if entree is None or entree.is_linked():
+		if (entree is None) or (entree.is_linked()):
 			return
 		# decodebin annonce ses sorties avec des capacités fixées ; sans elles, la liaison décide.
 		capacites = sortie.get_current_caps()
-		structure = capacites.get_structure(0) if capacites is not None and capacites.get_size() > 0 else None
-		if structure is None or structure.get_name().startswith("audio/"):
+		structure: Gst.Structure | None = None
+		if (capacites is not None) and (capacites.get_size() > 0):
+			structure = capacites.get_structure(0)
+		if (structure is None) or (structure.get_name().startswith("audio/")):
 			sortie.link(entree)
 
 	def attendre(
@@ -190,21 +192,25 @@ class _Decodage:
 				continue
 			if message.type == Gst.MessageType.ELEMENT:
 				structure = message.get_structure()
-				if structure is not None and structure.get_name() == "missing-plugin":
+				if (structure is not None) and (structure.get_name() == "missing-plugin"):
 					detail = structure.get_value("detail")
-					self.decodeur_absent = detail.to_string() if isinstance(detail, Gst.Caps) else str(detail)
+					self.decodeur_absent = str(detail)
+					if isinstance(detail, Gst.Caps):
+						self.decodeur_absent = detail.to_string()
 				continue
 			return message
 
 	def erreur(self, message: Gst.Message) -> Verification:
 		erreur, _ = message.parse_error()
-		if self.decodeur_absent is not None or erreur.matches(Gst.StreamError.quark(), Gst.StreamError.CODEC_NOT_FOUND):
-			format_absent = self.decodeur_absent or "ce format"
+		if (self.decodeur_absent is not None) or (
+			erreur.matches(Gst.StreamError.quark(), Gst.StreamError.CODEC_NOT_FOUND)
+		):
+			format_absent = (self.decodeur_absent) or ("ce format")
 			raise DecodeurIndisponible(f"aucun décodeur GStreamer pour {format_absent} : installer {PAQUETS_DECODEURS}")
 		return Verification.defectueux(EtatFichier.ILLISIBLE, erreur.message)
 
 	def duree_decodee(self) -> timedelta | None:
-		if self.suivi.tampons == 0 or self.suivi.debut is None:
+		if (self.suivi.tampons == 0) or (self.suivi.debut is None):
 			return None
 		return _nanosecondes(self.suivi.fin - self.suivi.debut)
 
@@ -248,7 +254,9 @@ def _tentative(chemin: Path, delai_demarrage: timedelta, delai_sans_progression:
 		if message.type == Gst.MessageType.ERROR:
 			return decodage.erreur(message)
 		connue, annoncee = decodage.pipeline.query_duration(Gst.Format.TIME)
-		duree_annoncee = _nanosecondes(annoncee) if connue and annoncee > 0 else None
+		duree_annoncee: timedelta | None = None
+		if (connue) and (annoncee > 0):
+			duree_annoncee = _nanosecondes(annoncee)
 
 		decodage.pipeline.set_state(Gst.State.PLAYING)
 		message = decodage.attendre(Gst.MessageType.EOS, delai_demarrage, delai_sans_progression)
@@ -259,7 +267,7 @@ def _tentative(chemin: Path, delai_demarrage: timedelta, delai_sans_progression:
 	finally:
 		decodage.pipeline.set_state(Gst.State.NULL)
 	duree = decodage.duree_decodee()
-	if duree is None or duree <= timedelta():
+	if (duree is None) or (duree <= timedelta()):
 		return Verification.defectueux(EtatFichier.ILLISIBLE, "aucun son décodé")
 	if decodage.suivi.ruptures > 0:
 		return Verification.defectueux(

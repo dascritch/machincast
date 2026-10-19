@@ -168,11 +168,11 @@ class FicheSonore(Fiche):
 			champs_edites,
 		) = ligne
 		stream = type_sonore == "stream"
-		self._nom = _texte(titre) or Path(str(emplacement)).name
+		self._nom = (_texte(titre)) or (Path(str(emplacement)).name)
 		if stream:
-			self._nom = _texte(titre) or str(url_stream or url_marque_page)
+			self._nom = (_texte(titre)) or (str((url_stream) or (url_marque_page)))
 		self.ui.type_sonore.setText(str(type_sonore))
-		self.ui.emplacement.setText(str(emplacement or ""))
+		self.ui.emplacement.setText(str((emplacement) or ("")))
 		self.ui.formulaire_sonore.setRowVisible(self.ui.emplacement, not stream)
 		self.ui.groupe_stream.setVisible(stream)
 		texte_duree = ""
@@ -185,8 +185,8 @@ class FicheSonore(Fiche):
 		for code in CHOIX_ETATS[str(etat)]:
 			self.ui.etat.addItem(ETATS[code], code)
 		self.ui.etat.setEnabled(self.ui.etat.count() > 1)
-		self.ui.artiste.setText(str(artiste or ""))
-		self.ui.titre.setText(str(titre or ""))
+		self.ui.artiste.setText(str((artiste) or ("")))
+		self.ui.titre.setText(str((titre) or ("")))
 		assert isinstance(metadonnees, dict)
 		musicales = dict(metadonnees)
 		for cle, champ in self.metadonnees.items():
@@ -195,7 +195,7 @@ class FicheSonore(Fiche):
 		self.ui.autres_metadonnees.setText(", ".join(autres))
 		self.ui.crossfade_debut.setValue(_secondes(crossfade_debut))
 		self.ui.crossfade_fin.setValue(_secondes(crossfade_fin))
-		self.ui.max_lectures.setValue(int(str(max_lectures or 0)))
+		self.ui.max_lectures.setValue(int(str((max_lectures) or (0))))
 		self.ui.masquage.setCurrentIndex(next(i for i, (valeur, _texte) in enumerate(MASQUAGES) if valeur is masquage))
 		self._montrer_date(self.ui.a_debut, self.ui.debut_diffusion, debut)
 		self._montrer_date(self.ui.a_fin, self.ui.fin_diffusion, fin)
@@ -205,7 +205,7 @@ class FicheSonore(Fiche):
 			self.ui.marque_page.setItemData(self.ui.marque_page.count() - 1, str(url), URL)
 		self.ui.par_marque_page.setEnabled(marques != [])
 		self.ui.marque_page.setCurrentIndex(self.ui.marque_page.findData(marque_page))
-		self.ui.url_stream.setText(str(url_stream or ""))
+		self.ui.url_stream.setText(str((url_stream) or ("")))
 		self.ui.par_marque_page.setChecked(marque_page is not None)
 		self.ui.par_adresse.setChecked(marque_page is None)
 		self._mode_stream()
@@ -214,7 +214,7 @@ class FicheSonore(Fiche):
 		for identifiant, nom in secours:
 			self.ui.secours.addItem(str(nom), int(str(identifiant)))
 		self.ui.secours.setCurrentIndex(self.ui.secours.findData(evenement_secours))
-		edites = [LIBELLES.get(str(champ), str(champ)) for champ in (champs_edites or [])]
+		edites = [LIBELLES.get(str(champ), str(champ)) for champ in ((champs_edites) or ([]))]
 		texte_edites = ""
 		if edites != []:
 			texte_edites = f"Saisis à la main, que l'indexeur ne modifie plus : {', '.join(edites)}."
@@ -238,17 +238,17 @@ class FicheSonore(Fiche):
 	def _saisies(self) -> dict[str, object]:
 		"""Les champs modifiables, tels que la fiche les montre : colonne de sonores, ou metadonnees_musicales.<clé>."""
 		saisies: dict[str, object] = {
-			"artiste": self.ui.artiste.text().strip() or None,
-			"titre": self.ui.titre.text().strip() or None,
+			"artiste": (self.ui.artiste.text().strip()) or (None),
+			"titre": (self.ui.titre.text().strip()) or (None),
 		}
 		for cle, champ in self.metadonnees.items():
-			valeur: str | int | None = champ.text().strip() or None
+			valeur: str | int | None = (champ.text().strip()) or (None)
 			if (cle in ENTIERS) and (valeur is not None):
 				valeur = int(valeur)
 			saisies[f"metadonnees_musicales.{cle}"] = valeur
 		saisies["crossfade_debut"] = timedelta(seconds=self.ui.crossfade_debut.value())
 		saisies["crossfade_fin"] = timedelta(seconds=self.ui.crossfade_fin.value())
-		saisies["max_lectures"] = self.ui.max_lectures.value() or None
+		saisies["max_lectures"] = (self.ui.max_lectures.value()) or (None)
 		saisies["masquer_metadonnees"] = MASQUAGES[self.ui.masquage.currentIndex()][0]
 		saisies["debut_diffusion"] = _date(self.ui.a_debut, self.ui.debut_diffusion)
 		saisies["fin_diffusion"] = _date(self.ui.a_fin, self.ui.fin_diffusion)
@@ -256,7 +256,7 @@ class FicheSonore(Fiche):
 			saisies["url_stream"] = None
 			saisies["marque_page_id"] = None
 			if self.ui.par_adresse.isChecked():
-				saisies["url_stream"] = self.ui.url_stream.text().strip() or None
+				saisies["url_stream"] = (self.ui.url_stream.text().strip()) or (None)
 			else:
 				saisies["marque_page_id"] = self.ui.marque_page.currentData()
 			saisies["secours_evenement_id"] = self.ui.secours.currentData()
@@ -277,7 +277,7 @@ class FicheSonore(Fiche):
 		).fetchone()
 		if ligne is None:
 			raise Refus("Ce sonore n'est plus en base.")
-		edites = list(ligne[0] or [])
+		edites = list((ligne[0]) or ([]))
 		edites += [champ for champ in modifies if (champ != "etat") and (champ not in edites)]
 		colonnes = [champ for champ in modifies if not champ.startswith("metadonnees_musicales.")]
 		affectations: list[sql.Composable] = [
@@ -329,7 +329,7 @@ class FicheSonore(Fiche):
 			sans = affichage.oui_non(None if sans_incident is None else bool(sans_incident))
 			incidents = list(zip(_liste(horodatages), _liste(natures), _liste(messages), strict=True))
 			cellules = [f"{debut.astimezone():%Y-%m-%d %H:%M:%S}", texte_fin, texte_duree]
-			cellules += [str(nom or "") for nom in (evenement, sequence, banque)]
+			cellules += [str((nom) or ("")) for nom in (evenement, sequence, banque)]
 			cellules += [sans, ", ".join(str(nature) for _h, nature, _m in incidents)]
 			items = [QTableWidgetItem(texte) for texte in cellules]
 			details = [f"{_heure(h)} {nature} : {message}" for h, nature, message in incidents]

@@ -90,5 +90,39 @@ Fonctionnalité: Socle de test
 	Scénario: Les chaînes Python ne sont jamais composées avec la notation %
 		Alors aucun fichier Python du dépôt ne compose une chaîne ou un message de journal avec la notation %
 
+	# Revue de https://github.com/dascritch/machincast/pull/100, https://github.com/dascritch/machincast/issues/103 :
+	# chaque opérande d'un enchaînement de and ou de or est entre parenthèses, et une expression conditionnelle ne
+	# décide pas d'un appel. Les seuls appels permis dans ses branches sont les conversions int, str et bool.
+
+	Plan du scénario: Le style des conditions se vérifie sur un extrait de code
+		Quand je vérifie le style de l'extrait « <code> »
+		Alors l'extrait est <verdict>
+
+		Exemples:
+			| code                                                  | verdict                                                         |
+			| if (a) and (b): pass                                  | accepté                                                         |
+			| if (actif is not None) and (f(actif)): pass           | accepté                                                         |
+			| if a and (b): pass                                    | refusé : opérande sans parenthèses dans une condition enchaînée |
+			| if (a) and f(b): pass                                 | refusé : opérande sans parenthèses dans une condition enchaînée |
+			| x = ((a) or (b)) and (c)                              | accepté                                                         |
+			| x = (a or b) and (c)                                  | refusé : opérande sans parenthèses dans une condition enchaînée |
+			| x = (nom) or ("")                                     | accepté                                                         |
+			| x = nom or ""                                         | refusé : opérande sans parenthèses dans une condition enchaînée |
+			| f(a and b)                                            | refusé : opérande sans parenthèses dans une condition enchaînée |
+			| assert (a) or (b)                                     | accepté                                                         |
+			| y = [v for v in w if (v) and (z)]                     | accepté                                                         |
+			| y = a if b else c                                     | accepté                                                         |
+			| y = x if isinstance(x, int) else None                 | accepté                                                         |
+			| y = None if v is None else int(str(v))                | accepté                                                         |
+			| y = None if v is None else str(v)                     | accepté                                                         |
+			| y = bool(v) if v else None                            | accepté                                                         |
+			| y = None if i is None else lire(c, i)                 | refusé : appel dans une branche d'expression conditionnelle     |
+			| y = a.strip() if a else ""                            | refusé : appel dans une branche d'expression conditionnelle     |
+			| y = f"{d.isoformat()}" if d else ""                   | refusé : appel dans une branche d'expression conditionnelle     |
+			| y = 0 if v is None else float(v)                      | refusé : appel dans une branche d'expression conditionnelle     |
+
+	Scénario: Tout le code Python du dépôt suit le style des conditions
+		Alors aucun fichier Python de src/ ni de tests/ n'enfreint le style des conditions
+
 	Scénario: Les variables des scripts bash s'écrivent avec accolades
 		Alors aucun script bash du dépôt n'écrit une variable sans accolades

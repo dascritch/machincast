@@ -44,7 +44,7 @@ def instant(texte: str) -> datetime:
 
 
 def nom_de_sortie(texte: str) -> str:
-	if not texte or "/" in texte or texte.startswith("."):
+	if (not texte) or ("/" in texte) or (texte.startswith(".")):
 		raise argparse.ArgumentTypeError(f"nom invalide : « {texte} », sans « / » et sans point au début")
 	return texte
 
@@ -70,7 +70,7 @@ def options_propres(analyseur: argparse.ArgumentParser) -> None:
 def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 	if options.simulation is not None:
 		return executer_simulation(configuration, options)
-	if options.graine is not None or options.nom is not None:
+	if (options.graine is not None) or (options.nom is not None):
 		journal.error("--graine et --nom ne s'emploient qu'avec --simulation")
 		return CODE_CONFIGURATION_INVALIDE
 	return executer_diffusion(configuration)
@@ -98,12 +98,12 @@ def executer_simulation(configuration: Configuration, options: argparse.Namespac
 		journal.error(f"sorties de la simulation impossibles à écrire : {erreur}")
 		return CODE_ECHEC
 	anomalies = sum(1 for niveau, _, _ in resultat.log if niveau != "info")
-	nom = options.nom or nom_par_defaut(debut, fin)
+	nom = (options.nom) or (nom_par_defaut(debut, fin))
 	journal.info(
 		f"simulation {nom} : {len(resultat.passages)} passage(s), {anomalies} alerte(s) ou incident(s),"
 		" rien n'a été écrit en base"
 	)
-	for chemin in resultat.fichiers or ():
+	for chemin in (resultat.fichiers) or (()):
 		journal.info(f"sortie : {chemin}")
 	return 0
 

@@ -120,7 +120,9 @@ def volume(contexte: Contexte, instant: str, volume: str) -> None:
 )
 def point_d_enchainement(duree: str, fin: str, debut: str, apres: str, fondu: str) -> None:
 	assert enchainement(secondes(duree), secondes(fin), secondes(debut)) == secondes(apres)
-	attendu = secondes(debut) if fondu == "avec fondu d'entrée" else timedelta(0)
+	attendu = timedelta(0)
+	if fondu == "avec fondu d'entrée":
+		attendu = secondes(debut)
 	assert fondu_d_entree(secondes(fin), secondes(debut)) == attendu
 
 
@@ -154,7 +156,7 @@ def jouer_texte(contexte: Contexte, tmp_path: Path) -> None:
 @when("j'attends la fin de ses voies")
 def attendre(contexte: Contexte) -> None:
 	limite = time.monotonic() + ATTENTE_MAXIMALE
-	while moteur(contexte).voies_en_cours() and time.monotonic() < limite:
+	while (moteur(contexte).voies_en_cours()) and (time.monotonic() < limite):
 		moteur(contexte).traiter_messages()
 		time.sleep(0.01)
 	assert not moteur(contexte).voies_en_cours(), "voies toujours en cours"
@@ -198,7 +200,7 @@ def aucune(contexte: Contexte) -> None:
 def coupee(contexte: Contexte, nom: str, millisecondes: int) -> None:
 	voie = contexte.voies[nom]
 	assert voie.etat == "coupée", voie.etat
-	assert voie.position_finale is not None and voie.position_finale < timedelta(milliseconds=millisecondes)
+	assert (voie.position_finale is not None) and (voie.position_finale < timedelta(milliseconds=millisecondes))
 
 
 @then("la voie du fichier texte est en erreur, avec le motif de GStreamer")

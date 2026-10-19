@@ -35,6 +35,13 @@ def heure(contexte: Contexte, texte: str) -> datetime:
 	return datetime.fromisoformat(texte.strip()).astimezone()
 
 
+def heure_ou_rien(contexte: Contexte, texte: str) -> datetime | None:
+	"""Comme heure, et aucune heure pour une cellule vide."""
+	if texte == "":
+		return None
+	return heure(contexte, texte)
+
+
 def tableau(datatable: list[list[str]]) -> list[dict[str, str]]:
 	entetes, *lignes = datatable
 	return [dict(zip(entetes, (cellule.strip() for cellule in ligne), strict=True)) for ligne in lignes]
@@ -66,8 +73,8 @@ def evenements(contexte: Contexte, datatable: list[list[str]]) -> None:
 			id=numero,
 			nom=ligne["nom"],
 			priorite=Priorite(ligne["priorité"]),
-			debut=heure(contexte, ligne["début"]) if ligne["début"] else None,
-			fin=heure(contexte, ligne["fin"]) if ligne["fin"] else None,
+			debut=heure_ou_rien(contexte, ligne["début"]),
+			fin=heure_ou_rien(contexte, ligne["fin"]),
 			jours=frozenset(JOURS.index(jour.strip()) for jour in ligne["jours"].split(",") if jour.strip()),
 			modifie_le=heure(contexte, ligne["modifié"]),
 		)
@@ -95,7 +102,7 @@ def lire(contexte: Contexte, base_vide: Connexion) -> None:
 def terminer(contexte: Contexte, nom: str, debut: str) -> None:
 	instant = heure(contexte, debut)
 	en_cours = occurrence(nomme(contexte, nom), instant)
-	assert en_cours is not None and en_cours.debut == heure_murale(instant), en_cours
+	assert (en_cours is not None) and (en_cours.debut == heure_murale(instant)), en_cours
 	contexte.terminees.add(en_cours.cle)
 
 

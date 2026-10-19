@@ -33,7 +33,7 @@ def references_nues(ligne: str) -> list[str]:
 	nues = []
 	for reference in REFERENCE.finditer(ligne):
 		dans_un_lien = any(
-			debut <= reference.start() < fin and m.group(1) == m.group(2) == reference.group(1)
+			(debut <= reference.start() < fin) and (m.group(1) == m.group(2) == reference.group(1))
 			for (debut, fin), m in liees.items()
 		)
 		if not dans_un_lien:
@@ -58,10 +58,10 @@ def fichiers(contexte: dict[str, object]) -> None:
 	contexte["fichiers"] = [
 		chemin
 		for chemin in suivis
-		if (chemin.endswith(EXTENSIONS) or chemin.startswith(REPERTOIRES_SCRIPTS))
-		and not chemin.startswith(EXCLUSIONS)
+		if ((chemin.endswith(EXTENSIONS)) or (chemin.startswith(REPERTOIRES_SCRIPTS)))
+		and (not chemin.startswith(EXCLUSIONS))
 		# Un fichier supprimé mais pas encore retiré de l'index git n'est plus à lire.
-		and (RACINE / chemin).is_file()
+		and ((RACINE / chemin).is_file())
 	]
 
 

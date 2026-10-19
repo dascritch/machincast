@@ -63,6 +63,13 @@ def a(heure: str, jour: date = JOUR) -> datetime:
 	return datetime.combine(jour, time.fromisoformat(heure)).astimezone()
 
 
+def a_ou_rien(heure: str) -> datetime | None:
+	"""Comme a, et aucune heure pour une cellule vide."""
+	if heure == "":
+		return None
+	return a(heure)
+
+
 def sonore(base: Connexion, nom: str) -> int:
 	emplacement = f"/sons/{nom}.flac"
 	ligne = base.execute("SELECT id FROM sonores WHERE emplacement = %s", (emplacement,)).fetchone()
@@ -95,7 +102,9 @@ def sequence(base: Connexion, nom: str) -> int:
 def reference(base: Connexion, genre: str, nom: str) -> int:
 	if genre == "sonore":
 		return sonore(base, nom)
-	return banque(base, nom) if genre == "banque" else sequence(base, nom)
+	if genre == "banque":
+		return banque(base, nom)
+	return sequence(base, nom)
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -155,8 +164,8 @@ def evenements(base_vide: Connexion, datatable: list[list[str]]) -> None:
 			(
 				ligne["nom"],
 				ligne["priorité"],
-				a(ligne["début"]) if ligne["début"] else None,
-				a(ligne["fin"]) if ligne["fin"] else None,
+				a_ou_rien(ligne["début"]),
+				a_ou_rien(ligne["fin"]),
 				jours,
 			),
 		).fetchone()
@@ -179,7 +188,7 @@ def derouler(contexte: Contexte, base: Connexion, lecture: Connexion, debut: dat
 	en_silence = False
 	instant = debut
 	while instant < fin:
-		if en_cours is not None and instant >= en_cours.fin_prevue:
+		if (en_cours is not None) and (instant >= en_cours.fin_prevue):
 			en_cours = None
 		decision = contexte.ordonnanceur.decider(instant, en_cours)
 		if decision.couper:
@@ -206,7 +215,7 @@ def derouler(contexte: Contexte, base: Connexion, lecture: Connexion, debut: dat
 			issue = "entier" if en_cours.fin_prevue <= fin else "en cours"
 			contexte.journal.append(Ligne(f"{instant:%H:%M}", nom, choix.occurrence.evenement.nom, issue))
 			en_silence = False
-		elif decision.silence and not en_silence:
+		elif (decision.silence) and (not en_silence):
 			evenement = "" if decision.occurrence is None else decision.occurrence.evenement.nom
 			contexte.journal.append(Ligne(f"{instant:%H:%M}", "silence", evenement, ""))
 			en_silence = True
@@ -233,7 +242,11 @@ def redemarrage(contexte: Contexte) -> None:
 @when(parsers.re(r"la liste « (?P<liste>[^»]+) » est vérifiée pour un événement qui (?P<boucle>boucle|ne boucle pas)"))
 def verifier_la_liste(contexte: Contexte, base_vide: Connexion, liste: str, boucle: str) -> None:
 	noms = [nom.strip() for nom in liste.split(",")]
-	banques = [None if nom == "sonore" else banque(base_vide, nom) for nom in noms]
+	banques: list[int | None] = []
+	for nom in noms:
+		banques.append(None)
+		if nom != "sonore":
+			banques[-1] = banque(base_vide, nom)
 	marquees = {int(str(ligne[0])) for ligne in base_vide.execute("SELECT id FROM banques WHERE ne_pas_repeter")}
 	contexte.signalees = appels_ignores(banques, marquees, boucle == "boucle")
 

@@ -157,8 +157,8 @@ def verifier_sonores(
 	for identifiant, emplacement, etat_texte, champs_edites, artiste, titre, metadonnees in sonores:
 		chemin = Path(str(emplacement))
 		avant = EtatSonore(str(etat_texte))
-		decoder = audit_complet or avant is EtatSonore.APERCU
-		if not decoder and chemin.exists():
+		decoder = (audit_complet) or (avant is EtatSonore.APERCU)
+		if (not decoder) and (chemin.exists()):
 			continue
 		# Un fichier introuvable est déclaré tel sans décodage : l'indexation rapide repère donc les disparus.
 		resultat = verifier(chemin)
@@ -167,7 +167,7 @@ def verifier_sonores(
 		modifie_le, taille = fichier if fichier is not None else (None, None)
 		# La durée n'est enregistrée que pour un fichier sain, et jamais à la place d'une durée saisie à la main.
 		sain = resultat.etat is EtatFichier.SAIN
-		duree = resultat.duree if sain and "duree" not in champs_edites else None
+		duree = resultat.duree if (sain) and ("duree" not in champs_edites) else None
 		# Les tags d'un fichier défectueux ne sont pas lus : artiste, titre et métadonnées restent tels quels.
 		if sain:
 			artiste = artiste if "artiste" in champs_edites else resultat.tags.artiste
@@ -184,14 +184,14 @@ def verifier_sonores(
 			)
 		if decoder:
 			bilan.verifies += 1
-		if avant is EtatSonore.APERCU and apres is not EtatSonore.APERCU:
+		if (avant is EtatSonore.APERCU) and (apres is not EtatSonore.APERCU):
 			bilan.sortis_apercu += 1
 		if apres != avant:
 			if apres is EtatSonore.ERRONE:
 				bilan.errones += 1
 			elif apres is EtatSonore.SUPPRIME:
 				bilan.supprimes += 1
-			elif apres is EtatSonore.ACTIF and avant is EtatSonore.ERRONE:
+			elif (apres is EtatSonore.ACTIF) and (avant is EtatSonore.ERRONE):
 				bilan.retablis += 1
 		if resultat.etat is not EtatFichier.SAIN:
 			journal.warning(f"{emplacement} : {resultat.probleme} ; {_consequence(avant, apres)}")

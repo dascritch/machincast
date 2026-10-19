@@ -109,7 +109,7 @@ def texte_public(ligne: Ligne, metadonnees: Metadonnees) -> str:
 		visible = artiste_et_titre(ligne)
 		if visible:
 			return visible
-	return ligne.nom_public or metadonnees.texte_public
+	return (ligne.nom_public) or (metadonnees.texte_public)
 
 
 def chemin_du_csv(modele: Path, jour: datetime) -> Path:
@@ -125,7 +125,9 @@ def _duree(duree: timedelta | None) -> str:
 
 
 def _heure(instant: datetime | None) -> str:
-	return "" if instant is None else f"{instant.astimezone():%Y-%m-%d %H:%M:%S}"
+	if instant is None:
+		return ""
+	return f"{instant.astimezone():%Y-%m-%d %H:%M:%S}"
 
 
 def lire_passages(
@@ -190,21 +192,18 @@ def _booleen(valeur: object) -> bool | None:
 
 def page_publique(lignes: list[Ligne], metadonnees: Metadonnees, instant: datetime) -> str:
 	"""Page HTML publique : le sonore à l'antenne, puis les précédents, masquage appliqué."""
-	en_cours = lignes[0] if lignes and lignes[0].fin is None else None
+	en_cours = lignes[0] if (lignes) and (lignes[0].fin is None) else None
 	precedents = lignes[1:] if en_cours is not None else lignes
 	nom = html.escape(metadonnees.texte_public)
 
-	def element(ligne: Ligne) -> str:
+	def passage(ligne: Ligne) -> str:
 		texte = html.escape(texte_public(ligne, metadonnees))
-		return f'<li><time datetime="{ligne.debut.isoformat()}">{ligne.debut.astimezone():%H:%M}</time> {texte}</li>'
+		return f'<time datetime="{ligne.debut.isoformat()}">{ligne.debut.astimezone():%H:%M}</time> {texte}'
 
-	antenne = (
-		f'<time datetime="{en_cours.debut.isoformat()}">{en_cours.debut.astimezone():%H:%M}</time> '
-		f"{html.escape(texte_public(en_cours, metadonnees))}"
-		if en_cours is not None
-		else nom
-	)
-	elements = "\n".join(f"\t\t\t{element(ligne)}" for ligne in precedents[:PRECEDENTS])
+	antenne = nom
+	if en_cours is not None:
+		antenne = passage(en_cours)
+	elements = "\n".join(f"\t\t\t<li>{passage(ligne)}</li>" for ligne in precedents[:PRECEDENTS])
 	return f"""<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -242,9 +241,11 @@ def playlist(lignes: list[Ligne]) -> str:
 	jouees = [ligne for ligne in reversed(lignes) if ligne.emplacement]
 	entrees = []
 	for numero, ligne in enumerate(jouees, start=1):
-		duree = -1 if ligne.duree is None else round(ligne.duree.total_seconds())
+		duree = -1
+		if ligne.duree is not None:
+			duree = round(ligne.duree.total_seconds())
 		entrees.append(f"File{numero}={ligne.emplacement}")
-		entrees.append(f"Title{numero}={artiste_et_titre(ligne) or ligne.emplacement}")
+		entrees.append(f"Title{numero}={(artiste_et_titre(ligne)) or (ligne.emplacement)}")
 		entrees.append(f"Length{numero}={duree}")
 	return "\n".join(["[playlist]", *entrees, f"NumberOfEntries={len(jouees)}", "Version=2", ""])
 
@@ -257,12 +258,12 @@ def ligne_csv(ligne: Ligne) -> str:
 			_heure(ligne.debut),
 			_heure(ligne.fin),
 			_duree(ligne.duree),
-			ligne.artiste or "",
-			ligne.titre or "",
-			ligne.emplacement or "",
-			ligne.evenement or "",
-			ligne.sequence or "",
-			ligne.banque or "",
+			(ligne.artiste) or (""),
+			(ligne.titre) or (""),
+			(ligne.emplacement) or (""),
+			(ligne.evenement) or (""),
+			(ligne.sequence) or (""),
+			(ligne.banque) or (""),
 			sans_incident,
 		]
 	)
@@ -300,7 +301,7 @@ class Sorties:
 		"""Annonce le passage dans le journal du binaire, puis met à jour la page publique et la playlist."""
 		for ligne in lire_passages(connexion, 1, passage.id):
 			lieu = f" ({ligne.evenement})" if ligne.evenement else ""
-			journal.info(f"à l'antenne : {artiste_et_titre(ligne) or ligne.emplacement}{lieu}")
+			journal.info(f"à l'antenne : {(artiste_et_titre(ligne)) or (ligne.emplacement)}{lieu}")
 		self.mettre_a_jour(connexion, passage.debut)
 
 	def passage_termine(self, connexion: psycopg.Connection[TupleRow], passage: Passage, instant: datetime) -> None:

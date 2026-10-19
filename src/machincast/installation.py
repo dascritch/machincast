@@ -108,7 +108,7 @@ def verifier_decodeurs() -> list[Manque]:
 	for nom, format_sonore in FORMATS.items():
 		absente = next((e for e in format_sonore.exigences if not _satisfaite(e)), None)
 		if absente is not None:
-			manques.append(Manque(nom, absente.paquet or format_sonore.paquet))
+			manques.append(Manque(nom, (absente.paquet) or (format_sonore.paquet)))
 	return manques
 
 
@@ -125,7 +125,7 @@ def verifier_streams() -> list[Manque]:
 		for f in Gst.ElementFactory.list_get_elements(Gst.ELEMENT_FACTORY_TYPE_SRC, Gst.Rank.MARGINAL)
 		if f.get_uri_type() == Gst.URIType.SRC
 	]
-	lus = {protocole for f in sources for protocole in (f.get_uri_protocols() or [])}
+	lus = {protocole for f in sources for protocole in ((f.get_uri_protocols()) or ([]))}
 	return [Manque(f"stream {p}", paquet) for p, paquet in PROTOCOLES_STREAMS.items() if p not in lus]
 
 

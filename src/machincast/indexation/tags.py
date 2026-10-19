@@ -42,7 +42,7 @@ def _texte(liste: Gst.TagList, *noms: str, longueur: int | None = None) -> str |
 	"""Premier tag texte non vide parmi les noms ; plusieurs valeurs d'un même tag sont jointes par GStreamer."""
 	for nom in noms:
 		trouve, valeur = liste.get_string(nom)
-		if trouve and valeur and valeur.strip():
+		if (trouve) and (valeur) and (valeur.strip()):
 			texte = valeur.strip()
 			return texte[:longueur] if longueur is not None else texte
 	return None
@@ -55,10 +55,10 @@ def _annee(liste: Gst.TagList) -> int | None:
 	la date de création de son conteneur, qui ne doit pas devenir l'année du morceau.
 	"""
 	trouve, date = liste.get_date(Gst.TAG_DATE)
-	if trouve and date is not None and date.valid():
+	if (trouve) and (date is not None) and (date.valid()):
 		return int(date.get_year())
 	trouve, horodatage = liste.get_date_time(Gst.TAG_DATE_TIME)
-	if trouve and horodatage is not None and horodatage.has_year() and not horodatage.has_time():
+	if (trouve) and (horodatage is not None) and (horodatage.has_year()) and (not horodatage.has_time()):
 		return int(horodatage.get_year())
 	return None
 
@@ -74,7 +74,7 @@ def extraire(liste: Gst.TagList) -> Tags:
 		if texte is not None:
 			metadonnees[cle] = texte
 	trouve, piste = liste.get_uint(Gst.TAG_TRACK_NUMBER)
-	if trouve and piste > 0:
+	if (trouve) and (piste > 0):
 		metadonnees["piste"] = int(piste)
 	return Tags(
 		artiste=_texte(liste, Gst.TAG_ARTIST, longueur=LONGUEUR_TEXTE_COURT),

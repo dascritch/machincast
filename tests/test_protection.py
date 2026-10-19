@@ -230,7 +230,7 @@ def nombre_de_passages(base_vide: Connexion, nombre: int) -> None:
 @then(parsers.parse("le log contient 1 alerte « {nature} », qui mentionne « {mention} »"))
 def alerte(base_vide: Connexion, nature: str, mention: str) -> None:
 	lignes = base_vide.execute("SELECT niveau::text, message FROM log WHERE nature = %s", (nature,)).fetchall()
-	assert len(lignes) >= 1 and all(n == "alerte" and mention in str(m) for n, m in lignes), lignes
+	assert (len(lignes) >= 1) and (all((n == "alerte") and (mention in str(m)) for n, m in lignes)), lignes
 
 
 @then("l'ouverture est refusée, car c'est un fichier sonore protégé")

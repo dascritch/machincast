@@ -76,7 +76,7 @@ def metadonnees_retenues(tags: Tags, objet: str) -> None:
 
 @then("l'artiste et le titre retenus font 255 caractères")
 def tronques(tags: Tags) -> None:
-	assert tags.artiste is not None and tags.titre is not None
+	assert (tags.artiste is not None) and (tags.titre is not None)
 	assert len(tags.artiste) == len(tags.titre) == LONGUEUR_TEXTE_COURT
 
 
