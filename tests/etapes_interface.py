@@ -10,6 +10,7 @@ posée : aucune fenêtre modale n'attend un clic.
 """
 
 import re
+import shutil
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -32,6 +33,7 @@ from machincast.interface.fenetre import FenetrePrincipale
 from machincast.interface.fiche import Fiche
 from machincast.interface.listes import Liste
 from tests.base_test import parametres_base_test
+from tests.sons import FICHIERS_SONORES
 
 Connexion = psycopg.Connection[tuple[object, ...]]
 NOM = re.compile(r"« ([^»]+) »")
@@ -77,6 +79,8 @@ class Contexte:
 	"""Fichiers que donnera le prochain choix de fichiers ; aucun pour un choix abandonné."""
 	annonces: list[str] = field(default_factory=list)
 	"""Messages de la barre d'état, dans l'ordre."""
+	rapports: list[tuple[str, str, list[str]]] = field(default_factory=list)
+	"""Rapports d'indexation montrés : titre, texte et anomalies."""
 
 	def chemin_dans(self, texte: str) -> str:
 		"""Chaque « …/ » du texte désigne le répertoire temporaire du scénario."""
@@ -141,6 +145,11 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	monkeypatch.setattr(dialogues, "choisir_banques", banques)
 	monkeypatch.setattr(dialogues, "choisir_sequences", sequences)
 	monkeypatch.setattr(dialogues, "ouvrir_dossier", interface.dossiers_ouverts.append)
+	monkeypatch.setattr(
+		dialogues,
+		"montrer_rapport",
+		lambda _parent, titre, texte, anomalies: interface.rapports.append((titre, texte, anomalies)),
+	)
 
 
 def fenetre(interface: Contexte) -> FenetrePrincipale:
@@ -429,6 +438,22 @@ def marques_pages(base_vide: Connexion, marques: str) -> None:
 	noms = NOM.findall(marques)
 	for nom, url in zip(noms[::2], noms[1::2], strict=True):
 		base_vide.execute("INSERT INTO marques_pages_streams (nom, url) VALUES (%s, %s)", (nom, url))
+
+
+@given(parsers.parse("le fichier de test « {source} » copié en « {chemin} »"))
+def copie(interface: Contexte, source: str, chemin: str) -> None:
+	fichier = Path(interface.chemin(chemin))
+	fichier.parent.mkdir(parents=True, exist_ok=True)
+	shutil.copyfile(FICHIERS_SONORES / source, fichier)
+	interface.fichiers[fichier] = fichier.read_bytes()
+
+
+@given(parsers.parse("le fichier « {chemin} », qui n'est pas un son"))
+def faux_son(interface: Contexte, chemin: str) -> None:
+	fichier = Path(interface.chemin(chemin))
+	fichier.parent.mkdir(parents=True, exist_ok=True)
+	interface.fichiers[fichier] = b"Ceci n'est pas un son."
+	fichier.write_bytes(interface.fichiers[fichier])
 
 
 @given("les événements :")
@@ -803,6 +828,27 @@ def bouton_supprimer(interface: Contexte, etat: str) -> None:
 @then(parsers.parse("la barre d'état annonce « {texte} »"))
 def barre_d_etat(interface: Contexte, texte: str) -> None:
 	assert fenetre(interface).statusBar().currentMessage() == interface.chemin_dans(texte)
+
+
+ATTENTE = 20_000
+"""Millisecondes accordées à une vérification ou une indexation : un fichier de test se décode en moins d'1 s."""
+
+
+def attendre_la_verification(interface: Contexte, qtbot: QtBot) -> None:
+	verificateur = fenetre(interface).verificateur
+	qtbot.waitUntil(lambda: not verificateur.en_cours(), timeout=ATTENTE)
+
+
+@when(parsers.re(r"j'ajoute les fichiers (?P<chemins>aucun|«.+)"))
+def ajouter_fichiers(interface: Contexte, qtbot: QtBot, chemins: str) -> None:
+	"""Depuis la liste des sonores ouverte, par le sélecteur de fichiers."""
+	interface.fichiers_choisis = [Path(interface.chemin(chemin)) for chemin in NOM.findall(chemins)]
+	qtbot.mouseClick(liste(interface).ui.ajouter_fichiers, Qt.MouseButton.LeftButton)
+
+
+@when("la vérification des fichiers ajoutés se termine")
+def verification_terminee(interface: Contexte, qtbot: QtBot) -> None:
+	attendre_la_verification(interface, qtbot)
 
 
 @then(parsers.parse("la barre d'état a annoncé « {texte} »"))

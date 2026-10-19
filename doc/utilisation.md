@@ -92,6 +92,8 @@ Si une sortie devait malgré tout tomber sur un tel chemin, elle n'est pas écri
 
 Il ne modifie jamais les fichiers sonores eux-mêmes, et ne supprime jamais un sonore de la base.
 
+Il se lance depuis un terminal, ou depuis le menu **Maintenance** de l'interface ([Lancer l'indexation depuis l'interface](#lancer-lindexation-depuis-linterface)), qui fait exactement le même travail.
+
 ### Alimenter une banque
 
 Alimenter une banque se limite à déposer des fichiers dans l'un de ses répertoires, puis à lancer `Machin indexation` ([#9](https://github.com/dascritch/machincast/issues/9)). Les répertoires d'une banque se choisissent dans [sa fiche](#fiche-dune-banque), dans l'interface ([#31](https://github.com/dascritch/machincast/issues/31)) ; une banque peut en avoir plusieurs, et un même répertoire peut alimenter plusieurs banques.
@@ -409,7 +411,7 @@ L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture 
 
 ## Interface graphique : Machin interface
 
-`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores**, **Marques-pages** et **Incidents**.
+`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores**, **Marques-pages** et **Incidents**. Le menu **Maintenance**, en haut de la fenêtre, lance l'indexation ([Lancer l'indexation depuis l'interface](#lancer-lindexation-depuis-linterface)).
 
 **Sans base de données**, l'interface n'est pas utilisable : `Machin interface` ouvre alors une fenêtre d'erreur, « MachinCast : base de données injoignable ». Elle explique pourquoi, et invite à lire le document `INSTALL.md` du répertoire de MachinCast, section [En cas de problème](../INSTALL.md#en-cas-de-problème). Son bouton « Ouvrir INSTALL.md » ouvre ce document, et ses détails donnent l'erreur de PostgreSQL. À sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, par exemple dans une session SSH, seul ce message s'affiche.
 
@@ -595,7 +597,21 @@ L'onglet **Incidents** montre les alertes et les incidents que `Machin lecture` 
 - **Filtre** : comme pour les listes, sans tenir compte des majuscules ni des accents ; le compte dit combien d'entrées restent.
 - **Liens** : un double-clic sur le sonore, la banque ou l'événement d'une entrée ouvre sa fiche. Un élément supprimé depuis laisse sa cellule vide ; l'entrée garde son message.
 - **Lecture** : l'écran se relit chaque fois que son onglet s'ouvre. Seules les 500 entrées les plus récentes sont lues : le compte le dit alors (« 500 entrées, les plus récentes »).
-- `Machin indexation` n'écrit pas dans le log : ses anomalies sont sur sa sortie d'erreur, pas ici.
+- `Machin indexation` n'écrit pas dans le log : ses anomalies sont sur sa sortie d'erreur, ou dans le rapport de l'indexation lancée depuis l'interface, pas ici.
+
+### Lancer l'indexation depuis l'interface
+
+Le menu **Maintenance** lance `Machin indexation` sans passer par un terminal ([#38](https://github.com/dascritch/machincast/issues/38)), par exemple après avoir déposé des fichiers dans le répertoire d'une banque :
+
+- **Indexation rapide** : comme `Machin indexation` ; les nouveaux fichiers des banques sont enregistrés et vérifiés, la présence des autres est contrôlée.
+- **Audit complet** : comme `Machin indexation --audit-complet` ; tous les fichiers sont décodés de nouveau. Plus long, il repère un fichier abîmé ou modifié depuis son indexation.
+
+Voir [Indexation rapide et audit complet](#indexation-rapide-et-audit-complet) pour le détail des deux modes.
+
+- **En tâche de fond** : l'interface reste utilisable pendant l'indexation. La barre d'état, en bas de la fenêtre, dit « Indexation rapide en cours… » ; le menu ne propose plus rien jusqu'à la fin, une seule indexation tournant à la fois.
+- **Rapport** : à la fin, une fenêtre donne le bilan, celui que `Machin indexation` affiche ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)), par exemple « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. ». S'il y a des anomalies, elle les compte, et son bouton **Afficher les détails** les donne une par ligne, avec le chemin du fichier, le problème et sa conséquence. La barre d'état garde le bilan, et la liste ouverte se relit.
+- **Indexation impossible** : si un décodeur manque (un paquet GStreamer n'est pas installé, voir [INSTALL.md](../INSTALL.md)) ou si la base ne répond plus, le rapport le dit : « Indexation impossible : … ; les sonores déjà vérifiés le restent. ». Le travail fait jusque-là est gardé.
+- **Fermer la fenêtre** pendant une indexation attend qu'elle se termine.
 
 ### Supprimer un élément
 
@@ -655,5 +671,5 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | Document d'audit des anomalies de l'indexation, en CSV et HTML | [#11](https://github.com/dascritch/machincast/issues/11) |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
 | Service systemd de diffusion | [#22](https://github.com/dascritch/machincast/issues/22) |
-| Autres écrans de l'interface : VU-mètre, pilotage du service, recherche globale, détails, ajout et suppression, incidents, calendrier, simulation, indexation | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
+| Autres écrans de l'interface : VU-mètre, pilotage du service, recherche globale, calendrier, simulation | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |

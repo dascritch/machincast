@@ -444,7 +444,7 @@ Mise en œuvre ([#21](https://github.com/dascritch/machincast/issues/21), `machi
 
 ## 6. Binaire indexation
 
-`Machin_indexation` est déclenché depuis l'interface. Un cron ou un timer systemd pourra être ajouté plus tard selon les retours du terrain.
+`Machin_indexation` est déclenché depuis l'interface, par son menu ([§ 8.11](#811-menu), [#38](https://github.com/dascritch/machincast/issues/38)), ou depuis un terminal. Un cron ou un timer systemd pourra être ajouté plus tard selon les retours du terrain.
 
 ### 6.0 Modes d'indexation
 
@@ -666,6 +666,13 @@ Mise en œuvre ([#39](https://github.com/dascritch/machincast/issues/39), `machi
 - Démarrer, arrêter, redémarrer le binaire lecture (via systemd et polkit, authentification par mot de passe ou empreinte digitale).
 - Lancer une ré-indexation générale de toutes les banques.
 - Choisir la sortie audio des pré-écoutes.
+
+Mise en œuvre de la ré-indexation ([#38](https://github.com/dascritch/machincast/issues/38), `machincast.interface.indexation.Indexation`, appelé par `FenetrePrincipale`) :
+
+- **Menu** « Maintenance », avec « Indexation rapide » et « Audit complet » : les deux modes de `Machin_indexation` ([§ 6.0](#60-modes-dindexation)).
+- **Exécution** : `indexer`, le code de `Machin_indexation`, dans un fil à part, avec son rôle en base (`Role.INDEXATION`, sur le socket et la base de la connexion de l'interface). Une seule indexation à la fois : les actions du menu sont inactives jusqu'à la fin, et la barre d'état dit qu'elle est en cours.
+- **Rapport** : à la fin, `dialogues.montrer_rapport` donne le bilan (`texte_bilan`, [§ 6.3](#63-sorties)) et les anomalies que l'indexeur a journalisées pendant ce passage, une par fichier, dans ses détails ; la barre d'état garde le bilan, et la liste ouverte se relit. Un décodeur absent ou une base injoignable interrompt l'indexation, et le rapport le dit ; les transactions déjà faites restent.
+- **Fermeture** : fermer la fenêtre attend la fin de l'indexation en cours.
 
 ### 8.12 Écran de détails d'une séquence
 

@@ -20,4 +20,5 @@
 - Un parcours ordonné (tri des noms) : positions et bilan sont reproductibles.
 - Les streams ne sont jamais vérifiés par l'indexeur.
 - `verifier_sonores` se limite aux sonores donnés par `identifiants` : l'interface s'en sert pour vérifier aussitôt les fichiers qu'elle ajoute, avec le rôle de l'indexation, dans un fil à part ([#30](https://github.com/dascritch/machincast/issues/30)). Sans eux, il vérifie tous les sonores.
+- L'interface lance aussi `indexer` elle-même, depuis son menu « Maintenance » ([#38](https://github.com/dascritch/machincast/issues/38)), et montre ses anomalies en les recueillant dans le journal `machincast.indexation` : une anomalie s'y journalise toujours (`warning`), jamais par `print`, et commence par le chemin du fichier.
 - Sorties : STDOUT, STDERR, CSV, HTML. **Jamais d'écriture dans `log`.**
