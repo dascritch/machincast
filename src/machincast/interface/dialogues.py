@@ -84,6 +84,20 @@ def confirmer_suppression(parent: QWidget, titre: str, texte: str) -> bool:
 	return question.clickedButton() is supprimer
 
 
+def montrer_rapport(parent: QWidget, titre: str, texte: str, anomalies: list[str]) -> None:
+	"""Le rapport d'une indexation ; ses anomalies, fichier par fichier, dans les détails."""
+	rapport = QMessageBox(parent)
+	rapport.setIcon(QMessageBox.Icon.Information)
+	rapport.setWindowTitle(titre)
+	rapport.setText(texte)
+	if anomalies != []:
+		rapport.setIcon(QMessageBox.Icon.Warning)
+		pluriel = "s" * (len(anomalies) > 1)
+		rapport.setInformativeText(f"{len(anomalies)} anomalie{pluriel} : voir les détails.")
+		rapport.setDetailedText("\n".join(anomalies))
+	rapport.exec()
+
+
 def choisir_fichiers(parent: QWidget) -> list[Path]:
 	"""Les fichiers choisis dans le sélecteur du poste, plusieurs à la fois ; aucun si le choix est abandonné."""
 	motifs = " ".join(f"*{extension}" for extension in sorted(EXTENSIONS_SONORES))

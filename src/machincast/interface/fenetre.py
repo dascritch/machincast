@@ -15,6 +15,9 @@ quoi faire de ses modifications avant de se fermer, avec son onglet ou avec la f
 Le dernier onglet fixe est l'écran des incidents du log (machincast.interface.incidents,
 https://github.com/dascritch/machincast/issues/35), qui se relit aussi à l'ouverture de son onglet.
 
+Le menu « Maintenance » lance l'indexation rapide ou l'audit complet, en tâche de fond, et en montre le rapport
+(machincast.interface.indexation, https://github.com/dascritch/machincast/issues/38).
+
 Les fichiers ajoutés depuis la liste des sonores entrent en base (machincast.interface.ajout), puis l'indexeur les
 vérifie en tâche de fond (machincast.interface.verification, https://github.com/dascritch/machincast/issues/30) ; la
 barre d'état annonce l'un et l'autre.
@@ -26,7 +29,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import Signal
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtGui import QAction, QCloseEvent
 from PySide6.QtWidgets import QMainWindow, QTabBar, QWidget
 
 from machincast.horloge import Horloge
@@ -41,6 +44,7 @@ from machincast.interface.fiche_sequence import FicheSequence
 from machincast.interface.fiche_sonore import FicheSonore
 from machincast.interface.fil_musical import garantir
 from machincast.interface.incidents import EcranIncidents
+from machincast.interface.indexation import TITRES, Indexation
 from machincast.interface.listes import BANQUES, EVENEMENTS, MARQUES_PAGES, SEQUENCES, SONORES, Liste
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 from machincast.interface.verification import Verificateur
@@ -81,6 +85,14 @@ class FenetrePrincipale(QMainWindow):
 		self._ajouter_fixe(self.accueil, "Accueil")
 		self.verificateur = Verificateur(connexion, self)
 		self.verificateur.termine.connect(self._verification_terminee)
+		self.indexation = Indexation(connexion, self)
+		self.indexation.termine.connect(self._indexation_terminee)
+		maintenance = self.menuBar().addMenu("&Maintenance")
+		self.indexations: list[QAction] = []
+		for audit_complet in (False, True):
+			action = maintenance.addAction(TITRES[audit_complet])
+			action.triggered.connect(lambda _coche=False, audit=audit_complet: self._indexer(audit))
+			self.indexations.append(action)
 		self.listes: list[Liste] = []
 		for titre, source in ONGLETS:
 			liste = Liste(source, connexion)
@@ -112,6 +124,7 @@ class FenetrePrincipale(QMainWindow):
 		for fiche in self.fiches():
 			fiche.fermer()
 		self.verificateur.arreter()
+		self.indexation.arreter()
 		self.accueil.close()
 		super().closeEvent(evenement)
 
@@ -180,6 +193,22 @@ class FenetrePrincipale(QMainWindow):
 		)
 		journal.warning(texte)
 		self.ui.barre_d_etat.showMessage(texte)
+
+	def _indexer(self, audit_complet: bool) -> None:
+		"""Lance l'indexation en tâche de fond ; le menu ne propose plus rien jusqu'à sa fin."""
+		for action in self.indexations:
+			action.setEnabled(False)
+		self.ui.barre_d_etat.showMessage(f"{TITRES[audit_complet]} en cours…")
+		self.indexation.lancer(audit_complet)
+
+	def _indexation_terminee(self, titre: str, texte: str, anomalies: list[str]) -> None:
+		for action in self.indexations:
+			action.setEnabled(True)
+		self.ui.barre_d_etat.showMessage(texte)
+		ouvert = self.ui.onglets.currentWidget()
+		if isinstance(ouvert, Liste):
+			ouvert.actualiser()
+		dialogues.montrer_rapport(self, titre, texte, anomalies)
 
 	def _verification_terminee(self, texte: str) -> None:
 		self.ui.barre_d_etat.showMessage(texte)

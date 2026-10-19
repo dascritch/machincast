@@ -7,27 +7,21 @@ décodeurs, en remplaçant le décodage de l'indexeur.
 """
 
 import re
-import shutil
 import threading
 from dataclasses import dataclass, field
 from datetime import timedelta
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import Qt
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
 from machincast.interface import verification
 from machincast.interface.listes import Liste
-from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, glisser, liste
-from tests.sons import FICHIERS_SONORES
+from tests.etapes_interface import ATTENTE, Connexion, Contexte, attendre_la_verification, fenetre, glisser, liste
 
 scenarios("ajout_fichiers.feature")
-
-ATTENTE = 20_000
-"""Millisecondes accordées à une vérification : le décodage d'un fichier de test prend moins d'une seconde."""
 
 
 @pytest.fixture
@@ -50,28 +44,7 @@ def decodages() -> Decodages:
 	return Decodages()
 
 
-def attendre_la_verification(interface: Contexte, qtbot: QtBot) -> None:
-	verificateur = fenetre(interface).verificateur
-	qtbot.waitUntil(lambda: not verificateur.en_cours(), timeout=ATTENTE)
-
-
 # ─── Étant donné ───────────────────────────────────────────
-
-
-@given(parsers.parse("le fichier de test « {source} » copié en « {chemin} »"))
-def copie(interface: Contexte, source: str, chemin: str) -> None:
-	fichier = Path(interface.chemin(chemin))
-	fichier.parent.mkdir(parents=True, exist_ok=True)
-	shutil.copyfile(FICHIERS_SONORES / source, fichier)
-	interface.fichiers[fichier] = fichier.read_bytes()
-
-
-@given(parsers.parse("le fichier « {chemin} », qui n'est pas un son"))
-def faux_son(interface: Contexte, chemin: str) -> None:
-	fichier = Path(interface.chemin(chemin))
-	fichier.parent.mkdir(parents=True, exist_ok=True)
-	interface.fichiers[fichier] = b"Ceci n'est pas un son."
-	fichier.write_bytes(interface.fichiers[fichier])
 
 
 @given("une vérification des fichiers ajoutés qui attend")
@@ -101,12 +74,6 @@ def sans_decodeur(monkeypatch: pytest.MonkeyPatch) -> None:
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when(parsers.re(r"j'ajoute les fichiers (?P<chemins>aucun|«.+)"))
-def ajouter(interface: Contexte, qtbot: QtBot, chemins: str) -> None:
-	interface.fichiers_choisis = [Path(interface.chemin(chemin)) for chemin in NOM.findall(chemins)]
-	qtbot.mouseClick(liste(interface).ui.ajouter_fichiers, Qt.MouseButton.LeftButton)
-
-
 @when(
 	parsers.re(
 		r"je dépose sur la liste des sonores (?P<quoi>.+?)(?P<deplacement>, en ne proposant que le déplacement)?"
@@ -114,11 +81,6 @@ def ajouter(interface: Contexte, qtbot: QtBot, chemins: str) -> None:
 )
 def deposer(interface: Contexte, quoi: str, deplacement: str | None) -> None:
 	glisser(interface, liste(interface).table, quoi, True, deplacement is not None)
-
-
-@when("la vérification des fichiers ajoutés se termine")
-def terminer(interface: Contexte, qtbot: QtBot) -> None:
-	attendre_la_verification(interface, qtbot)
 
 
 @when("la vérification attendue reprend, et se termine")
