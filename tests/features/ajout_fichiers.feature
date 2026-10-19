@@ -13,6 +13,9 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 	Contexte:
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-19 19:00:00 »
+		Et les événements :
+			| nom      | nom_public | priorite    | debut | fin | jours |
+			| Continue |            | fil_musical |       |     |       |
 		Et le fichier de test « tags.flac » copié en « …/emissions/cafe.flac »
 		Et le fichier de test « sain.wav » copié en « …/emissions/jingle.wav »
 		Et le fichier « …/emissions/faux.mp3 », qui n'est pas un son
