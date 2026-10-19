@@ -15,8 +15,11 @@ quoi faire de ses modifications avant de se fermer, avec son onglet ou avec la f
 Le dernier onglet fixe est l'écran des incidents du log (machincast.interface.incidents,
 https://github.com/dascritch/machincast/issues/35), qui se relit aussi à l'ouverture de son onglet.
 
-Le menu « Maintenance » lance l'indexation rapide ou l'audit complet, en tâche de fond, et en montre le rapport
-(machincast.interface.indexation, https://github.com/dascritch/machincast/issues/38).
+La barre de menus a trois menus (https://github.com/dascritch/machincast/issues/117) : « Fichier », pour quitter
+(Alt+Q, comme la fermeture de la fenêtre) ; « Maintenance », qui lance l'indexation rapide ou l'audit complet, en tâche
+de fond, et en montre le rapport (machincast.interface.indexation, https://github.com/dascritch/machincast/issues/38) ;
+« Aide », pour signaler un problème et connaître la version (machincast.interface.version). Une fonction pas encore
+écrite a son entrée, inactive, dont l'infobulle donne le ticket.
 
 Les fichiers ajoutés depuis la liste des sonores entrent en base (machincast.interface.ajout), puis l'indexeur les
 vérifie en tâche de fond (machincast.interface.verification, https://github.com/dascritch/machincast/issues/30) ; la
@@ -29,11 +32,11 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import Signal
-from PySide6.QtGui import QAction, QCloseEvent
+from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import QMainWindow, QTabBar, QWidget
 
 from machincast.horloge import Horloge
-from machincast.interface import dialogues
+from machincast.interface import dialogues, version
 from machincast.interface.ajout import ajouter_fichiers
 from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.fiche import Fiche
@@ -62,6 +65,8 @@ FICHES: dict[str, type[Fiche]] = {
 	fiche.genre: fiche for fiche in (FicheEvenement, FicheSequence, FicheBanque, FicheSonore, FicheMarquePage)
 }
 """Écrans de détail : les fiches, par genre."""
+TICKETS = "https://github.com/dascritch/machincast/issues"
+"""Les tickets de MachinCast, qu'ouvre « Signaler un problème… » ; comme dans pyproject.toml."""
 
 
 class FenetrePrincipale(QMainWindow):
@@ -87,12 +92,7 @@ class FenetrePrincipale(QMainWindow):
 		self.verificateur.termine.connect(self._verification_terminee)
 		self.indexation = Indexation(connexion, self)
 		self.indexation.termine.connect(self._indexation_terminee)
-		maintenance = self.menuBar().addMenu("&Maintenance")
-		self.indexations: list[QAction] = []
-		for audit_complet in (False, True):
-			action = maintenance.addAction(TITRES[audit_complet])
-			action.triggered.connect(lambda _coche=False, audit=audit_complet: self._indexer(audit))
-			self.indexations.append(action)
+		self._garnir_menus()
 		self.listes: list[Liste] = []
 		for titre, source in ONGLETS:
 			liste = Liste(source, connexion)
@@ -111,6 +111,31 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.onglets.currentChanged.connect(self._onglet_ouvert)
 		self._garantir_fil_musical()
 		self.ui.onglets.tabCloseRequested.connect(self._fermer)
+
+	def _garnir_menus(self) -> None:
+		"""Fichier, Maintenance, Aide ; une fonction à venir a son entrée, inactive, qui donne son ticket."""
+		fichier = self.menuBar().addMenu("&Fichier")
+		# https://github.com/dascritch/machincast/issues/111 et https://github.com/dascritch/machincast/issues/145
+		_a_venir(fichier.addAction("Préférences…"), "tickets 111 et 145")
+		fichier.addSeparator()
+		quitter = fichier.addAction("Quitter")
+		quitter.setShortcut(QKeySequence("Alt+Q"))
+		quitter.triggered.connect(self.close)
+		maintenance = self.menuBar().addMenu("&Maintenance")
+		_a_venir(
+			maintenance.addAction("Moniteur de la sortie…"), "ticket 85"
+		)  # https://github.com/dascritch/machincast/issues/85
+		maintenance.addSeparator()
+		self.indexations: list[QAction] = []
+		for audit_complet in (False, True):
+			action = maintenance.addAction(TITRES[audit_complet])
+			action.triggered.connect(lambda _coche=False, audit=audit_complet: self._indexer(audit))
+			self.indexations.append(action)
+		aide = self.menuBar().addMenu("&Aide")
+		aide.addAction("Signaler un problème…").triggered.connect(lambda: dialogues.ouvrir_page(TICKETS))
+		aide.addAction("Version").triggered.connect(lambda: dialogues.montrer_version(self, version.texte()))
+		for menu in (fichier, maintenance, aide):
+			menu.setToolTipsVisible(True)
 
 	def fiches(self) -> list[Fiche]:
 		onglets = self.ui.onglets
@@ -224,3 +249,9 @@ class FenetrePrincipale(QMainWindow):
 	def _ouvrir(self, genre: str, identifiant: int, _nom: str) -> None:
 		self.detail_demande.emit(genre, identifiant)
 		self._ouvrir_fiche(genre, identifiant)
+
+
+def _a_venir(action: QAction, tickets: str) -> None:
+	"""Une infobulle ne porte pas de lien : elle nomme le ticket par son numéro, sans « # »."""
+	action.setEnabled(False)
+	action.setToolTip(f"À venir : {tickets} sur GitHub")

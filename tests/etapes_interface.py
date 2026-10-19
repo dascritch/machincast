@@ -20,8 +20,17 @@ import psycopg
 import pytest
 import shiboken6
 from PySide6.QtCore import QCoreApplication, QEvent, QMimeData, QModelIndex, QPoint, QPointF, Qt, QUrl
-from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDropEvent
-from PySide6.QtWidgets import QAbstractItemView, QApplication, QLineEdit, QListView, QPushButton, QTabBar, QWidget
+from PySide6.QtGui import QAction, QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDropEvent, QKeySequence
+from PySide6.QtWidgets import (
+	QAbstractItemView,
+	QApplication,
+	QLineEdit,
+	QListView,
+	QMenu,
+	QPushButton,
+	QTabBar,
+	QWidget,
+)
 from pytest_bdd import given, parsers, then, when
 from pytestqt.qtbot import QtBot
 
@@ -81,6 +90,10 @@ class Contexte:
 	"""Messages de la barre d'état, dans l'ordre."""
 	rapports: list[tuple[str, str, list[str]]] = field(default_factory=list)
 	"""Rapports d'indexation montrés : titre, texte et anomalies."""
+	pages_ouvertes: list[str] = field(default_factory=list)
+	"""Adresses ouvertes dans le navigateur web du poste."""
+	versions: list[str] = field(default_factory=list)
+	"""Textes montrés par la fenêtre de version."""
 
 	def chemin_dans(self, texte: str) -> str:
 		"""Chaque « …/ » du texte désigne le répertoire temporaire du scénario."""
@@ -145,6 +158,8 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	monkeypatch.setattr(dialogues, "choisir_banques", banques)
 	monkeypatch.setattr(dialogues, "choisir_sequences", sequences)
 	monkeypatch.setattr(dialogues, "ouvrir_dossier", interface.dossiers_ouverts.append)
+	monkeypatch.setattr(dialogues, "ouvrir_page", interface.pages_ouvertes.append)
+	monkeypatch.setattr(dialogues, "montrer_version", lambda _parent, texte: interface.versions.append(texte))
 	monkeypatch.setattr(
 		dialogues,
 		"montrer_rapport",
@@ -828,6 +843,92 @@ def bouton_supprimer(interface: Contexte, etat: str) -> None:
 @then(parsers.parse("la barre d'état annonce « {texte} »"))
 def barre_d_etat(interface: Contexte, texte: str) -> None:
 	assert fenetre(interface).statusBar().currentMessage() == interface.chemin_dans(texte)
+
+
+# ─── Barre de menus ────────────────────────────────────────
+
+
+def menus(interface: Contexte) -> list[QMenu]:
+	"""Les menus de la barre de menus, dans l'ordre."""
+	barre = fenetre(interface).menuBar()
+	trouves = {sous_menu.menuAction(): sous_menu for sous_menu in barre.findChildren(QMenu)}
+	return [trouves[action] for action in barre.actions()]
+
+
+def menu_nomme(interface: Contexte, menu: str) -> QMenu:
+	trouves = [sous_menu for sous_menu in menus(interface) if sous_menu.title().replace("&", "") == menu]
+	assert len(trouves) == 1, f"menu « {menu} » absent"
+	return trouves[0]
+
+
+def actions(interface: Contexte, menu: str) -> list[QAction]:
+	"""Les entrées d'un menu de la barre de menus, séparateurs compris, dans l'ordre."""
+	return list(menu_nomme(interface, menu).actions())
+
+
+@when(parsers.parse("je choisis « {titre} » dans le menu « {menu} »"))
+def choisir_dans_le_menu(interface: Contexte, titre: str, menu: str) -> None:
+	choisies = [action for action in actions(interface, menu) if action.text() == titre]
+	assert len(choisies) == 1, f"« {titre} » absent du menu « {menu} »"
+	choisies[0].trigger()
+
+
+@when(parsers.parse("j'appuie sur « {touches} »"))
+def appuyer(interface: Contexte, qtbot: QtBot, touches: str) -> None:
+	"""Les touches vont au widget qui a le focus dans la fenêtre, activée ; à la fenêtre, si aucun ne l'a."""
+	with qtbot.waitActive(fenetre(interface)):
+		fenetre(interface).activateWindow()
+	cible: QWidget = fenetre(interface)
+	focus = fenetre(interface).focusWidget()
+	if focus is not None:
+		cible = focus
+	combinaison = QKeySequence(touches)[0]
+	qtbot.keyClick(cible, combinaison.key(), combinaison.keyboardModifiers())
+
+
+@then(parsers.re(r"la barre de menus a les menus (?P<titres>«.+)"))
+def barre_de_menus(interface: Contexte, titres: str) -> None:
+	assert [sous_menu.title().replace("&", "") for sous_menu in menus(interface)] == NOM.findall(titres)
+
+
+@then(parsers.parse("le menu « {menu} » a les entrées :"))
+def entrees_du_menu(interface: Contexte, menu: str, datatable: list[list[str]]) -> None:
+	"""Un séparateur s'écrit « — ». Une infobulle s'affiche au survol de son entrée, même inactive."""
+	entetes, *rangees = datatable
+	assert [entete.strip() for entete in entetes] == ["entrée", "état", "raccourci", "infobulle"]
+	lues = []
+	for action in actions(interface, menu):
+		if action.isSeparator():
+			lues.append(["—", "", "", ""])
+			continue
+		infobulle = ""
+		if action.toolTip() != action.text().replace("&", ""):
+			infobulle = action.toolTip()
+		etat = "inactive"
+		if action.isEnabled():
+			etat = "active"
+		lues.append([action.text(), etat, action.shortcut().toString(), infobulle])
+	attendues = [[valeur.strip() for valeur in rangee] for rangee in rangees]
+	assert lues == attendues
+	if any((rangee[3] != "") for rangee in attendues):
+		assert menu_nomme(interface, menu).toolTipsVisible()
+
+
+@then(parsers.re(r"le menu « (?P<menu>[^»]+) » propose (?P<titres>«.+)"))
+def menu_propose(interface: Contexte, menu: str, titres: str) -> None:
+	actives = [action for action in actions(interface, menu) if (action.isEnabled()) and (not action.isSeparator())]
+	assert [action.text() for action in actives] == NOM.findall(titres)
+
+
+@then(parsers.parse("le menu « {menu} » ne propose plus rien"))
+def menu_inactif(interface: Contexte, menu: str) -> None:
+	actives = [action for action in actions(interface, menu) if (action.isEnabled()) and (not action.isSeparator())]
+	assert actives == []
+
+
+@then(parsers.parse("le navigateur web a ouvert « {adresse} »"))
+def page_ouverte(interface: Contexte, adresse: str) -> None:
+	assert interface.pages_ouvertes == [adresse]
 
 
 ATTENTE = 20_000

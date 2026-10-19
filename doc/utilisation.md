@@ -411,7 +411,7 @@ L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture 
 
 ## Interface graphique : Machin interface
 
-`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores**, **Marques-pages** et **Incidents**. Le menu **Maintenance**, en haut de la fenêtre, lance l'indexation ([Lancer l'indexation depuis l'interface](#lancer-lindexation-depuis-linterface)).
+`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores**, **Marques-pages** et **Incidents**. La barre de menus, en haut de la fenêtre, a trois menus ([Menus](#menus)).
 
 **Sans base de données**, l'interface n'est pas utilisable : `Machin interface` ouvre alors une fenêtre d'erreur, « MachinCast : base de données injoignable ». Elle explique pourquoi, et invite à lire le document `INSTALL.md` du répertoire de MachinCast, section [En cas de problème](../INSTALL.md#en-cas-de-problème). Son bouton « Ouvrir INSTALL.md » ouvre ce document, et ses détails donnent l'erreur de PostgreSQL. À sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, par exemple dans une session SSH, seul ce message s'affiche.
 
@@ -598,6 +598,19 @@ L'onglet **Incidents** montre les alertes et les incidents que `Machin lecture` 
 - **Liens** : un double-clic sur le sonore, la banque ou l'événement d'une entrée ouvre sa fiche. Un élément supprimé depuis laisse sa cellule vide ; l'entrée garde son message.
 - **Lecture** : l'écran se relit chaque fois que son onglet s'ouvre. Seules les 500 entrées les plus récentes sont lues : le compte le dit alors (« 500 entrées, les plus récentes »).
 - `Machin indexation` n'écrit pas dans le log : ses anomalies sont sur sa sortie d'erreur, ou dans le rapport de l'indexation lancée depuis l'interface, pas ici.
+
+### Menus
+
+La barre de menus donne accès aux fonctions générales de l'interface ([#117](https://github.com/dascritch/machincast/issues/117)). Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle, au survol, donne le ticket qui l'apportera.
+
+| Menu | Entrée | Rôle |
+| --- | --- | --- |
+| Fichier | Préférences… | À venir ([#111](https://github.com/dascritch/machincast/issues/111), [#145](https://github.com/dascritch/machincast/issues/145)). |
+| Fichier | Quitter | Ferme l'interface, aussi par <kbd>Alt</kbd> + <kbd>Q</kbd>, même depuis une fiche. Comme la fermeture de la fenêtre, demande d'abord quoi faire des fiches modifiées ; « Annuler » garde l'interface ouverte. La diffusion n'est pas concernée : `Machin lecture` continue. |
+| Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
+| Maintenance | Indexation rapide, Audit complet | Lancent l'indexation ([Lancer l'indexation depuis l'interface](#lancer-lindexation-depuis-linterface)). |
+| Aide | Signaler un problème… | Ouvre les tickets de MachinCast sur GitHub, dans le navigateur web du poste. |
+| Aide | Version | Donne le numéro de version de MachinCast, et la date de sa dernière modification : celle du dernier commit du dépôt git d'où il est installé ([INSTALL.md](../INSTALL.md)), à l'heure du poste. Une installation qui n'est pas un dépôt git, ou un poste sans git, ne donne que le numéro de version. |
 
 ### Lancer l'indexation depuis l'interface
 

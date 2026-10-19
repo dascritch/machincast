@@ -10,8 +10,6 @@ import threading
 from pathlib import Path
 
 import pytest
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMenu
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -33,18 +31,6 @@ def reprise() -> threading.Event:
 def en_attente() -> threading.Event:
 	"""Une indexation qui attend en est à son premier décodage."""
 	return threading.Event()
-
-
-def actions(interface: Contexte, menu: str) -> list[QAction]:
-	"""Les actions du menu de la barre de menus, dans l'ordre."""
-	barre = fenetre(interface).menuBar()
-	trouves = [
-		sous_menu
-		for sous_menu in barre.findChildren(QMenu)
-		if (sous_menu.title().replace("&", "") == menu) and (sous_menu.menuAction() in barre.actions())
-	]
-	assert len(trouves) == 1, f"menu « {menu} » absent"
-	return list(trouves[0].actions())
 
 
 def attendre_l_indexation(interface: Contexte, qtbot: QtBot) -> None:
@@ -83,13 +69,6 @@ def sans_decodeur(monkeypatch: pytest.MonkeyPatch) -> None:
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when(parsers.parse("je lance « {titre} » depuis le menu « {menu} »"))
-def lancer(interface: Contexte, titre: str, menu: str) -> None:
-	choisies = [action for action in actions(interface, menu) if action.text() == titre]
-	assert len(choisies) == 1, f"« {titre} » absent du menu « {menu} »"
-	choisies[0].trigger()
-
-
 @when("l'indexation se termine")
 def terminer(interface: Contexte, qtbot: QtBot) -> None:
 	attendre_l_indexation(interface, qtbot)
@@ -121,17 +100,6 @@ def apres_fermeture(qtbot: QtBot) -> None:
 
 
 # ─── Alors ─────────────────────────────────────────────────
-
-
-@then(parsers.re(r"le menu « (?P<menu>[^»]+) » propose (?P<titres>«.+)"))
-def menu_propose(interface: Contexte, menu: str, titres: str) -> None:
-	assert [action.text() for action in actions(interface, menu) if action.isEnabled()] == NOM.findall(titres)
-	assert [action.text() for action in actions(interface, menu)] == NOM.findall(titres)
-
-
-@then(parsers.parse("le menu « {menu} » ne propose plus rien"))
-def menu_inactif(interface: Contexte, menu: str) -> None:
-	assert [action.text() for action in actions(interface, menu) if action.isEnabled()] == []
 
 
 @then(parsers.parse("le rapport « {titre} » a dit « {texte} »"))

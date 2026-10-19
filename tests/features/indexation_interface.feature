@@ -31,7 +31,7 @@ Fonctionnalité: Lancer l'indexation depuis l'interface
 	Scénario: L'indexation rapide enregistre et vérifie les nouveaux fichiers des banques, puis montre son rapport
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
-		Et je lance « Indexation rapide » depuis le menu « Maintenance »
+		Et je choisis « Indexation rapide » dans le menu « Maintenance »
 		Et l'indexation se termine
 		Alors le rapport « Indexation rapide » a dit « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. »
 		Et le rapport n'a signalé aucune anomalie
@@ -47,7 +47,7 @@ Fonctionnalité: Lancer l'indexation depuis l'interface
 	Scénario: Le rapport donne les anomalies, fichier par fichier
 		Étant donné le fichier « …/pubs/faux.mp3 », qui n'est pas un son
 		Quand la fenêtre de l'interface s'ouvre
-		Et je lance « Indexation rapide » depuis le menu « Maintenance »
+		Et je choisis « Indexation rapide » dans le menu « Maintenance »
 		Et l'indexation se termine
 		Alors le rapport « Indexation rapide » a dit « Indexation rapide terminée : 3 nouveaux sonores, 0 rattachement ; 3 sonores vérifiés ; 1 erroné, 0 supprimé, 0 rétabli, 3 sortis d'aperçu. »
 		Et le rapport a signalé 1 anomalie, sur « …/pubs/faux.mp3 »
@@ -55,10 +55,10 @@ Fonctionnalité: Lancer l'indexation depuis l'interface
 	Scénario: Seul l'audit complet revérifie les sonores actifs
 		Étant donné le fichier « …/vieux.wav », qui n'est pas un son
 		Quand la fenêtre de l'interface s'ouvre
-		Et je lance « Indexation rapide » depuis le menu « Maintenance »
+		Et je choisis « Indexation rapide » dans le menu « Maintenance »
 		Et l'indexation se termine
 		Alors le sonore « Ancien » est à l'état « actif »
-		Quand je lance « Audit complet » depuis le menu « Maintenance »
+		Quand je choisis « Audit complet » dans le menu « Maintenance »
 		Et l'indexation se termine
 		Alors le rapport « Audit complet » a dit « Audit complet terminé : 0 nouveau sonore, 0 rattachement ; 3 sonores vérifiés ; 1 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu. »
 		Et le rapport a signalé 1 anomalie, sur « …/vieux.wav »
@@ -70,7 +70,7 @@ Fonctionnalité: Lancer l'indexation depuis l'interface
 		Et le fichier « …/ajouts/faux.mp3 », qui n'est pas un son
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
-		Et je lance « Indexation rapide » depuis le menu « Maintenance »
+		Et je choisis « Indexation rapide » dans le menu « Maintenance »
 		Et l'indexation en est à son premier décodage
 		Et j'ajoute les fichiers « …/ajouts/faux.mp3 »
 		Et la vérification des fichiers ajoutés se termine
@@ -82,7 +82,7 @@ Fonctionnalité: Lancer l'indexation depuis l'interface
 	Scénario: Pendant l'indexation, l'interface reste utilisable, et une seule indexation tourne à la fois
 		Étant donné une indexation qui attend
 		Quand la fenêtre de l'interface s'ouvre
-		Et je lance « Indexation rapide » depuis le menu « Maintenance »
+		Et je choisis « Indexation rapide » dans le menu « Maintenance »
 		Alors la barre d'état annonce « Indexation rapide en cours… »
 		Et le menu « Maintenance » ne propose plus rien
 		Quand j'ouvre l'onglet « Banques »
@@ -93,14 +93,14 @@ Fonctionnalité: Lancer l'indexation depuis l'interface
 	Scénario: Une indexation impossible le dit, et laisse vérifiés les sonores déjà vérifiés
 		Étant donné un indexeur qui ne sait pas décoder les fichiers
 		Quand la fenêtre de l'interface s'ouvre
-		Et je lance « Indexation rapide » depuis le menu « Maintenance »
+		Et je choisis « Indexation rapide » dans le menu « Maintenance »
 		Et l'indexation se termine
 		Alors le rapport « Indexation rapide » a dit « Indexation impossible : aucun décodeur pour ce format ; les sonores déjà vérifiés le restent. »
 
 	Scénario: Fermer la fenêtre attend la fin de l'indexation en cours
 		Étant donné une indexation qui attend
 		Quand la fenêtre de l'interface s'ouvre
-		Et je lance « Indexation rapide » depuis le menu « Maintenance »
+		Et je choisis « Indexation rapide » dans le menu « Maintenance »
 		Et je ferme la fenêtre de l'interface, pendant que l'indexation attendue reprend
 		Et la fenêtre fermée a tout traité
 		Alors aucun rapport n'a été montré
