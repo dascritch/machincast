@@ -14,6 +14,7 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 	Plan du scénario: La question de fermeture d'une fiche modifiée propose trois réponses
 		Quand la question de fermeture de « Banque : Jingles » s'ouvre, et que j'y <geste>
 		Alors la question a dit « « Banque : Jingles » a des modifications qui ne sont pas enregistrées. »
+		Et la question a précisé « Les enregistrer avant de fermer la fiche ? »
 		Et la question a proposé « Enregistrer », « Abandonner », « Annuler »
 		Et la réponse est « <reponse> »
 
@@ -24,6 +25,12 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 			| clique sur « Annuler »     | Annuler     |
 			| tape Échap                 | Annuler     |
 			| tape Entrée                | Enregistrer |
+
+	Scénario: Avant de rafraîchir une fiche modifiée, la même question le précise
+		Quand la question de rafraîchissement de « Banque : Jingles » s'ouvre, et que j'y tape Échap
+		Alors la question a dit « « Banque : Jingles » a des modifications qui ne sont pas enregistrées. »
+		Et la question a précisé « Les enregistrer avant de rafraîchir la fiche ? »
+		Et la réponse est « Annuler »
 
 	Plan du scénario: L'avertissement de réintégration d'un sonore retiré propose trois réponses
 		Quand l'avertissement de réintégration « Café à minuit reviendra » s'ouvre, et que j'y <geste>

@@ -411,7 +411,7 @@ L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture 
 
 ## Interface graphique : Machin interface
 
-`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores**, **Marques-pages** et **Incidents**. La barre de menus, en haut de la fenêtre, a trois menus ([Menus](#menus)).
+`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores**, **Marques-pages** et **Incidents**. La barre de menus, en haut de la fenêtre, a quatre menus ([Menus](#menus)).
 
 **Sans base de données**, l'interface n'est pas utilisable : `Machin interface` ouvre alors une fenêtre d'erreur, « MachinCast : base de données injoignable ». Elle explique pourquoi, et invite à lire le document `INSTALL.md` du répertoire de MachinCast, section [En cas de problème](../INSTALL.md#en-cas-de-problème). Son bouton « Ouvrir INSTALL.md » ouvre ce document, et ses détails donnent l'erreur de PostgreSQL. À sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, par exemple dans une session SSH, seul ce message s'affiche.
 
@@ -607,10 +607,22 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 | --- | --- | --- |
 | Fichier | Préférences… | À venir ([#111](https://github.com/dascritch/machincast/issues/111), [#145](https://github.com/dascritch/machincast/issues/145)). |
 | Fichier | Quitter | Ferme l'interface, aussi par <kbd>Alt</kbd> + <kbd>Q</kbd>, même depuis une fiche. Comme la fermeture de la fenêtre, demande d'abord quoi faire des fiches modifiées ; « Annuler » garde l'interface ouverte. La diffusion n'est pas concernée : `Machin lecture` continue. |
+| Affichage | Rafraîchir les onglets | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé en base, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
 | Maintenance | Indexation rapide, Audit complet | Lancent l'indexation ([Lancer l'indexation depuis l'interface](#lancer-lindexation-depuis-linterface)). |
 | Aide | Signaler un problème… | Ouvre les tickets de MachinCast sur GitHub, dans le navigateur web du poste. |
 | Aide | Version | Donne le numéro de version de MachinCast, et la date de sa dernière modification : celle du dernier commit du dépôt git d'où il est installé ([INSTALL.md](../INSTALL.md)), à l'heure du poste. Une installation qui n'est pas un dépôt git, ou un poste sans git, ne donne que le numéro de version. |
+
+### Rafraîchir les onglets
+
+Ce que montre l'interface est lu en base à l'ouverture de chaque onglet ; ce qu'un autre poste, l'indexation ou la diffusion y changent ensuite n'apparaît pas tout seul. **Affichage → Rafraîchir les onglets**, ou <kbd>F5</kbd>, relit tout d'un coup ([#148](https://github.com/dascritch/machincast/issues/148)) :
+
+- l'onglet ouvert, liste ou incidents ; les autres listes se relisent déjà quand on les ouvre ;
+- l'airplay de l'accueil ;
+- toutes les fiches ouvertes. Une fiche modifiée demande d'abord quoi faire de ses modifications, comme à sa fermeture : **Enregistrer** les écrit puis relit la fiche, **Abandonner** les perd et relit la fiche, **Annuler** laisse la fiche telle quelle. Une fiche dont l'enregistrement est refusé reste aussi telle quelle, et dit pourquoi.
+- La fiche d'un élément effacé de la base depuis un autre poste se ferme, sans question : ses modifications sont perdues.
+
+La barre d'état le confirme (« Onglets rafraîchis. »), et nomme les fiches laissées telles quelles ou fermées.
 
 ### Lancer l'indexation depuis l'interface
 
