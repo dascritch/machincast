@@ -427,6 +427,65 @@ Fonctionnalité: Fiche d'un sonore
 		Et j'enregistre la fiche
 		Alors la fiche signale « L'adresse du stream est obligatoire. »
 
+	# ─── Nouveau stream (https://github.com/dascritch/machincast/issues/30) ───
+
+	Scénario: Un nouveau stream se crée depuis la liste des sonores, à l'état actif
+		Étant donné les marques-pages « Radio Machin » à « https://machin.exemple/live »
+		Et les événements :
+			| nom          | nom_public | priorite | debut | fin | jours |
+			| Secours nuit |            | secours  |       |     |       |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Et je clique sur « Nouveau stream »
+		Alors l'onglet ouvert est « Nouveau stream »
+		Et la fiche du sonore montre :
+			| champ                | valeur                 |
+			| Type                 | stream                 |
+			| Durée                | inconnue               |
+			| État                 | actif                  |
+			| Adresse directe      |                        |
+			| Événement de secours | aucun : le fil musical |
+		Et la fiche du sonore n'a pas d'emplacement
+		Et l'état de la fiche du sonore se choisit parmi « actif », « désactivé »
+		Et le bouton « Supprimer… » de la fiche est inactif
+		Quand je saisis dans la fiche du sonore :
+			| champ                | valeur                      |
+			| Titre                | Le direct                   |
+			| Adresse directe      | https://flux.exemple/direct |
+			| Événement de secours | Secours nuit                |
+		Et j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et l'onglet ouvert est « Sonore : Le direct »
+		Et le stream « Le direct » est en base, à l'adresse « https://flux.exemple/direct », sans marque-page, secouru par « Secours nuit »
+		Et le sonore « Le direct » a en base :
+			| champ | valeur |
+			| type  | stream |
+			| etat  | actif  |
+		Et le bouton « Supprimer… » de la fiche est actif
+
+	Scénario: Un nouveau stream peut suivre un marque-page, et n'a pas besoin de titre
+		Étant donné les marques-pages « Radio Machin » à « https://machin.exemple/live »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Et je clique sur « Nouveau stream »
+		Et je saisis dans la fiche du sonore :
+			| champ       | valeur       |
+			| Marque-page | Radio Machin |
+		Et j'enregistre la fiche
+		Alors l'onglet ouvert est « Sonore : https://machin.exemple/live »
+		Et le stream « https://machin.exemple/live » est en base, sur le marque-page « Radio Machin », sans adresse directe, sans événement de secours
+
+	Scénario: Un nouveau stream sans adresse n'est pas enregistré
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Et je clique sur « Nouveau stream »
+		Et je saisis dans la fiche du sonore :
+			| champ | valeur    |
+			| Titre | Le direct |
+		Et j'enregistre la fiche
+		Alors la fiche signale « L'adresse du stream est obligatoire. »
+		Et l'onglet ouvert est « Nouveau stream »
+
 	Plan du scénario: Le test d'un flux dit s'il répond, sans attendre son enregistrement
 		Étant donné un serveur de flux local, avec le flux « direct » en ligne
 		Et les sonores :

@@ -29,7 +29,7 @@ class Choix(QDialog):
 		self.setWindowTitle(f"Ajouter des {source.pluriel}")
 		explication = f"Choisir parmi les {source.pluriel} déjà en base (Ctrl ou Maj pour en prendre plusieurs)."
 		self.ui.explication.setText(f"{explication} {remarque}".strip())
-		self.liste = Liste(source, connexion, self)
+		self.liste = Liste(source, connexion, self, actions=False)
 		self.liste.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 		self.ui.disposition.insertWidget(1, self.liste)
 		self.ui.boutons.button(QDialogButtonBox.StandardButton.Ok).setText("Ajouter")

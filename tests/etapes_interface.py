@@ -73,6 +73,14 @@ class Contexte:
 	"""Fichiers créés par le scénario, avec leur contenu."""
 	depots: list[tuple[bool, Qt.DropAction]] = field(default_factory=list)
 	"""Dépôts de fichiers : acceptés ou non, et l'action retenue."""
+	fichiers_choisis: list[Path] = field(default_factory=list)
+	"""Fichiers que donnera le prochain choix de fichiers ; aucun pour un choix abandonné."""
+	annonces: list[str] = field(default_factory=list)
+	"""Messages de la barre d'état, dans l'ordre."""
+
+	def chemin_dans(self, texte: str) -> str:
+		"""Chaque « …/ » du texte désigne le répertoire temporaire du scénario."""
+		return texte.replace("…/", f"{self.repertoire}/")
 
 	def chemin(self, texte: str) -> str:
 		"""Un chemin qui commence par « …/ » est dans le répertoire temporaire du scénario."""
@@ -123,6 +131,7 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	monkeypatch.setattr(dialogues, "confirmer_retrait", retrait)
 	monkeypatch.setattr(dialogues, "confirmer_suppression", suppression)
 	monkeypatch.setattr(dialogues, "choisir_repertoire", repertoire)
+	monkeypatch.setattr(dialogues, "choisir_fichiers", lambda _parent: interface.fichiers_choisis)
 	monkeypatch.setattr(dialogues, "choisir_sonores", sonores)
 
 	def sequences(_parent: QWidget, _connexion: Connexion, remarque: str = "") -> list[int]:
@@ -419,6 +428,13 @@ def ouvrir(interface: Contexte, base_vide: Connexion, qtbot: QtBot) -> None:
 	interface.fenetre = FenetrePrincipale(interface.connexion, interface.repertoire / "lecture.sock", interface.horloge)
 	interface.fenetre.detail_demande.connect(lambda genre, numero: interface.demandes.append((genre, numero)))
 
+	def annoncer(texte: str) -> None:
+		# Effacer la barre d'état n'annonce rien.
+		if texte != "":
+			interface.annonces.append(texte)
+
+	interface.fenetre.statusBar().messageChanged.connect(annoncer)
+
 	def abandonner(_fenetre: QWidget) -> None:
 		# À la fin du scénario, la fenêtre se ferme en abandonnant les modifications de ses fiches.
 		interface.fermeture = Fermeture.ABANDONNER
@@ -686,7 +702,7 @@ def accueil(interface: Contexte) -> None:
 @then("la liste montre :")
 def liste_attendue(interface: Contexte, datatable: list[list[str]]) -> None:
 	entetes, *rangees = datatable
-	attendues = [dict(zip(entetes, (v.strip() for v in valeurs), strict=True)) for valeurs in rangees]
+	attendues = [dict(zip(entetes, (interface.chemin(v.strip()) for v in valeurs), strict=True)) for valeurs in rangees]
 	assert lignes(interface) == attendues, lignes(interface)
 
 
@@ -740,3 +756,23 @@ def fichier_en_apercu(interface: Contexte, base_vide: Connexion, chemin: str) ->
 @then("les fichiers déposés sont intacts")
 def intacts(interface: Contexte) -> None:
 	assert {fichier: fichier.read_bytes() for fichier in interface.fichiers} == interface.fichiers
+
+
+@then(parsers.re(r"le bouton « Supprimer… » de la fiche est (?P<etat>actif|inactif)"))
+def bouton_supprimer(interface: Contexte, etat: str) -> None:
+	assert fiche_ouverte(interface).bouton_supprimer.isEnabled() == (etat == "actif")
+
+
+@then(parsers.parse("la barre d'état annonce « {texte} »"))
+def barre_d_etat(interface: Contexte, texte: str) -> None:
+	assert fenetre(interface).statusBar().currentMessage() == interface.chemin_dans(texte)
+
+
+@then(parsers.parse("la barre d'état a annoncé « {texte} »"))
+def annonce(interface: Contexte, texte: str) -> None:
+	assert interface.chemin_dans(texte) in interface.annonces, interface.annonces
+
+
+@then("la barre d'état n'a rien annoncé")
+def rien_annonce(interface: Contexte) -> None:
+	assert interface.annonces == []

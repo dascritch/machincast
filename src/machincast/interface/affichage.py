@@ -4,6 +4,7 @@ Les noms de jours et de mois sont écrits ici, en français : l'affichage ne dé
 """
 
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from machincast.lecture.grille import JOURS
 
@@ -55,6 +56,21 @@ def artiste_et_titre(artiste: str | None, titre: str | None) -> str:
 	"""« Les Gaufres – Café à minuit », ou ce qui est connu des deux."""
 	texte = " – ".join(partie for partie in (artiste, titre) if partie)
 	return (texte) or ("(sans titre)")
+
+
+def nom_du_sonore(artiste: object, titre: object, emplacement: object, adresse: object) -> str:
+	"""Artiste et titre ; sans eux, le nom du fichier, ou l'adresse du stream."""
+	if (artiste is None) and (titre is None):
+		if emplacement is not None:
+			return Path(str(emplacement)).name
+		return str((adresse) or (""))
+	return artiste_et_titre(_ou_rien(artiste), _ou_rien(titre))
+
+
+def _ou_rien(valeur: object) -> str | None:
+	if valeur is None:
+		return None
+	return str(valeur)
 
 
 def oui_non(valeur: bool | None, inconnu: str = "") -> str:

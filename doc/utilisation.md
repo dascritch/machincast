@@ -357,7 +357,7 @@ Un sonore de type stream relaie un flux audio HTTP ou HTTPS, un direct extérieu
 - **Reconnexion** : tant que son événement est à l'antenne, `Machin lecture` retente la connexion toutes les 5 secondes, sans rien faire entendre. Dès que le flux revient, le stream reprend l'antenne : il monte pendant son crossfade de début, et le sonore de remplacement s'éteint pendant ce temps ; sans crossfade de début, le remplacement s'arrête net. La reprise est notée dans le log par l'incident `reprise du flux`, avec l'adresse du flux et la durée de la panne : l'écran des incidents montrera ainsi chaque panne et sa fin.
 - **Fin de l'événement pendant la panne** : la reconnexion est abandonnée (`reconnexion abandonnée` dans le log), et la diffusion continue normalement.
 
-Un **événement de secours** est un événement de priorité `secours` : il n'a ni début, ni fin, ni jours de récurrence, et ne passe jamais à l'antenne par la grille, seulement à la place d'un stream tombé. Chaque stream désigne le sien, ou aucun, dans [sa fiche](#fiche-dun-sonore). Un événement de secours se crée dans [sa fiche](#fiche-dun-événement) ; tant que l'interface ne permet pas de créer un stream ([#30](https://github.com/dascritch/machincast/issues/30)), celui-ci s'enregistre directement en base.
+Un **événement de secours** est un événement de priorité `secours` : il n'a ni début, ni fin, ni jours de récurrence, et ne passe jamais à l'antenne par la grille, seulement à la place d'un stream tombé. Chaque stream désigne le sien, ou aucun, dans [sa fiche](#fiche-dun-sonore). Un événement de secours se crée dans [sa fiche](#fiche-dun-événement), un stream depuis la liste des sonores ([Ajouter un sonore](#ajouter-un-sonore)).
 
 ### Sorties de la diffusion
 
@@ -446,7 +446,7 @@ Les onglets Événements, Séquences, Banques et Sonores donnent chacun la liste
 - **Tri** : un clic sur le titre d'une colonne trie la liste selon cette colonne ; un second clic inverse l'ordre.
 - **Mise à jour** : une liste se relit dans la base chaque fois que son onglet s'ouvre, en gardant son filtre. Elle ne se relit jamais d'elle-même pendant qu'on la regarde.
 - **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvre la fiche de l'élément ([événement](#fiche-dun-événement), [séquence](#fiche-dune-séquence), [banque](#fiche-dune-banque), [sonore](#fiche-dun-sonore)).
-- **Créer** : les boutons **Nouvel événement**, **Nouvelle séquence** et **Nouvelle banque**, à côté du filtre de leur liste, ouvrent une fiche vide. Les sonores n'ont pas encore ce bouton ([#30](https://github.com/dascritch/machincast/issues/30)).
+- **Créer** : les boutons **Nouvel événement**, **Nouvelle séquence**, **Nouvelle banque** et **Nouveau stream**, à côté du filtre de leur liste, ouvrent une fiche vide. La liste des sonores a aussi **Ajouter des fichiers…**, et accepte les fichiers déposés ([Ajouter un sonore](#ajouter-un-sonore)).
 
 ### Fiche d'une banque
 
@@ -471,7 +471,7 @@ La fiche d'une banque s'ouvre dans un **nouvel onglet**, nommé « Banque : » s
 **Sonores** : la liste montre chaque sonore (artiste et titre), sa durée (`inconnue` pour un stream, vide pour un fichier pas encore décodé) et son emplacement.
 
 - **Ordre** : en mode séquentiel, un sonore se déplace par glisser-déposer, ou en le choisissant puis avec **Monter** et **Descendre**. En mode aléatoire, l'ordre ne compte pas, et ne se change pas.
-- **Ajouter des sonores…** ouvre la liste des sonores déjà en base, avec son filtre. Plusieurs sonores se choisissent avec Ctrl ou Maj, puis **Ajouter** ; un double-clic en choisit un seul. Ils s'ajoutent en fin de liste, même s'ils sont hors des répertoires de la banque ; un sonore déjà dans la banque n'est pas ajouté deux fois. Un nouveau fichier se dépose sur la liste (ci-dessous), ou dans un répertoire de la banque avant de lancer `Machin indexation` ; l'ajout par un sélecteur de fichiers viendra avec [#30](https://github.com/dascritch/machincast/issues/30).
+- **Ajouter des sonores…** ouvre la liste des sonores déjà en base, avec son filtre. Plusieurs sonores se choisissent avec Ctrl ou Maj, puis **Ajouter** ; un double-clic en choisit un seul. Ils s'ajoutent en fin de liste, même s'ils sont hors des répertoires de la banque ; un sonore déjà dans la banque n'est pas ajouté deux fois. Un nouveau fichier se dépose sur la liste (ci-dessous), ou dans un répertoire de la banque avant de lancer `Machin indexation`, ou s'ajoute d'abord depuis la liste des sonores ([Ajouter un sonore](#ajouter-un-sonore)).
 - **Déposer des fichiers** glissés depuis le navigateur de fichiers les ajoute en fin de liste, dans les deux modes, une fois chacun. Un fichier déjà en base reprend son sonore. Un fichier pas encore en base est montré par son nom, et devient à l'enregistrement un sonore à l'état `aperçu`, que la prochaine indexation décodera ; « Annuler » ou « Abandonner » ne l'enregistrent pas. Les dossiers et les fichiers qui ne sont pas sonores (voir les formats dans [Alimenter une banque](#alimenter-une-banque)) sont ignorés, et la fiche le dit.
 - **Un dépôt est toujours une copie** : le fichier reste où il est, et n'est pas touché. Même avec Maj enfoncée, qui demande d'habitude un déplacement au navigateur de fichiers, la fiche ne l'accepte que comme une copie ; un glisser qui ne propose que le déplacement est refusé.
 - **Retirer le sonore** retire le sonore choisi de la banque, sans rien demander s'il est hors de ses répertoires. Si son fichier est dans l'un des répertoires de la fiche, ou de leurs sous-répertoires, un avertissement rappelle que **la prochaine indexation l'y remettra** : **Retirer quand même**, **Ouvrir le dossier** du fichier dans le navigateur de fichiers du poste, pour l'en déplacer (le sonore reste dans la banque), ou **Annuler**. MachinCast ne déplace ni ne supprime jamais le fichier ([Les fichiers sonores ne sont jamais modifiés](#les-fichiers-sonores-ne-sont-jamais-modifiés)) : c'est à faire hors de l'outil, parfois depuis un autre poste quand le compte n'a pas le droit d'écrire dans le répertoire. Le sonore reste en base, dans ses autres banques et événements.
@@ -502,7 +502,7 @@ La fiche d'un sonore s'ouvre depuis la liste des sonores, dans un nouvel onglet 
 
 **Derniers passages** : les 50 derniers passages du sonore, du plus récent au plus ancien, avec le début, la fin (`en cours` pour le passage à l'antenne), la durée diffusée, l'événement, la séquence, la banque, « sans incident », et les alertes et incidents que le log a notés pour ce sonore pendant le passage. L'infobulle de cette dernière colonne les détaille, avec leur heure et leur message.
 
-La pré-écoute viendra avec [#29](https://github.com/dascritch/machincast/issues/29), l'ajout d'un sonore avec [#30](https://github.com/dascritch/machincast/issues/30). Sa suppression : [Supprimer un élément](#supprimer-un-élément).
+La pré-écoute viendra avec [#29](https://github.com/dascritch/machincast/issues/29). L'ajout d'un sonore : [Ajouter un sonore](#ajouter-un-sonore) ; sa suppression : [Supprimer un élément](#supprimer-un-élément).
 
 ### Fiche d'une séquence
 
@@ -560,6 +560,21 @@ La fiche d'un événement s'ouvre depuis la liste des événements, dans un nouv
 **Banque « ne pas répéter »** : la fiche signale chaque appel d'une banque marquée juste après elle-même, qui sera toujours sauté à la diffusion. La liste boucle, sauf pour une émission ou un spécial sans fin : la première ligne suit alors la dernière. Une séquence compte par les banques qui la commencent et la finissent (« Ligne 2 : la séquence « Pub d'abord » commence par la banque « Publicité », qui vient de passer, et ne passe jamais deux fois de suite : cet appel sera sauté. »). Ce n'est qu'un avertissement : l'événement s'enregistre quand même.
 
 **Ouvrir un élément** : un double-clic, ou Entrée, sur un sonore, une banque ou une séquence ouvre sa fiche dans un autre onglet.
+
+### Ajouter un sonore
+
+La liste des sonores ajoute des fichiers et des streams ([#30](https://github.com/dascritch/machincast/issues/30)).
+
+**Fichiers** : **Ajouter des fichiers…** ouvre le sélecteur de fichiers du poste, où plusieurs fichiers se choisissent à la fois ; on peut aussi **déposer des fichiers** sur la liste, glissés depuis le navigateur de fichiers.
+
+- Un fichier est **référencé là où il se trouve, sans copie**, et n'est jamais modifié ([Les fichiers sonores ne sont jamais modifiés](#les-fichiers-sonores-ne-sont-jamais-modifiés)). Il peut donc être synchronisé depuis un autre ordinateur, et changer de contenu sous le même nom (une émission pré-enregistrée, la rediffusion d'un direct). Un dépôt est toujours une copie : même avec Maj enfoncée, le fichier reste où il est ; un glisser qui ne propose que le déplacement est refusé.
+- Il entre en base à l'état `aperçu`, puis **l'indexeur le vérifie aussitôt**, en tâche de fond : l'interface reste utilisable. La barre d'état, en bas de la fenêtre, annonce l'ajout (« 2 fichiers ajoutés, en cours de vérification. »), puis la fin de la vérification, avec l'état de chaque sonore (« Vérification terminée : Les Gaufres – Café à minuit, actif ; faux.mp3, erroné. »). Le sonore prend alors sa durée, son artiste et son titre lus dans les tags, comme avec `Machin indexation` ([États d'un sonore](#états-dun-sonore)).
+- Un fichier déjà en base n'est pas ajouté une seconde fois ; les dossiers et les fichiers qui ne sont pas sonores (voir les formats dans [Alimenter une banque](#alimenter-une-banque)) sont ignorés. La barre d'état le dit.
+- Si l'indexeur ne sait pas décoder un format (un paquet GStreamer manque), le sonore reste en `aperçu` : la prochaine indexation le reprendra. Fermer la fenêtre attend la fin de la vérification en cours.
+
+Seuls les fichiers ajoutés depuis la liste des sonores sont vérifiés aussitôt : un fichier déposé sur une banque, une séquence ou un événement attend la prochaine indexation.
+
+**Stream** : **Nouveau stream** ouvre une [fiche de sonore](#fiche-dun-sonore) vide, nommée « Nouveau stream ». L'adresse directe ou le marque-page est obligatoire ; l'événement de secours, le titre et les autres champs se saisissent comme pour un stream existant. Le stream entre en base à l'état `actif`.
 
 ### Supprimer un élément
 

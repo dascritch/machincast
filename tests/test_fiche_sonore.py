@@ -37,11 +37,12 @@ def fiche(interface: Contexte) -> FicheSonore:
 
 
 def sonore_id(base: Connexion, nom: str) -> int:
-	"""Un sonore par son titre ; sans titre, par le nom de son fichier ou son adresse."""
+	"""Un sonore par son titre ; sans titre, par le nom de son fichier, ou l'adresse de son stream ou de son
+	marque-page."""
 	lignes = base.execute(
-		"SELECT id FROM sonores WHERE titre = %s"
-		" OR (titre IS NULL AND (emplacement LIKE '%%/' || %s OR url_stream = %s))",
-		(nom, nom, nom),
+		"SELECT s.id FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.titre = %s"
+		" OR (s.titre IS NULL AND (s.emplacement LIKE '%%/' || %s OR s.url_stream = %s OR m.url = %s))",
+		(nom, nom, nom, nom),
 	).fetchall()
 	assert len(lignes) == 1, f"« {nom} » : {lignes}"
 	return int(str(lignes[0][0]))

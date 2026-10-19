@@ -21,6 +21,7 @@ from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QHeaderView, QLabel, QLineEdit, QTableView, QWidget
 
 from machincast.interface import affichage
+from machincast.interface.depot import DepotDeFichiers
 from machincast.interface.ui.liste import Ui_Liste
 
 journal = logging.getLogger(__name__)
@@ -60,6 +61,8 @@ class Source:
 	aucun: str
 	nouveau: str = ""
 	"""Texte du bouton qui crée un élément de ce type ; aucun bouton sans texte."""
+	fichiers: str = ""
+	"""Texte du bouton qui ajoute des fichiers, qui se déposent aussi sur la liste ; ni bouton ni dépôt sans texte."""
 
 
 def _texte(valeur: object) -> str:
@@ -146,6 +149,8 @@ SONORES = Source(
 	"sonore",
 	"sonores",
 	"aucun sonore",
+	"Nouveau stream",
+	"Ajouter des fichiers…",
 )
 BANQUES = Source(
 	"banque",
@@ -202,8 +207,15 @@ class Liste(QWidget):
 	"""Ligne ouverte : genre, identifiant et nom de l'élément."""
 	creation_demandee = Signal(str)
 	"""Bouton de création cliqué : genre de l'élément à créer."""
+	ajout_demande = Signal()
+	"""Bouton d'ajout de fichiers cliqué."""
+	fichiers_deposes = Signal(list)
+	"""Fichiers déposés sur la liste (list[Path]) : https://github.com/dascritch/machincast/issues/30."""
 
-	def __init__(self, source: Source, connexion: Connexion, parent: QWidget | None = None) -> None:
+	def __init__(
+		self, source: Source, connexion: Connexion, parent: QWidget | None = None, actions: bool = True
+	) -> None:
+		"""actions : les boutons de création et d'ajout, et le dépôt de fichiers ; pas dans un choix d'éléments."""
 		super().__init__(parent)
 		self.source = source
 		self.connexion = connexion
@@ -223,8 +235,14 @@ class Liste(QWidget):
 		self.filtre.textChanged.connect(self._filtrer)
 		self.table.activated.connect(self._ouvrir)
 		self.ui.nouveau.setText(source.nouveau)
-		self.ui.nouveau.setVisible(source.nouveau != "")
+		self.ui.nouveau.setVisible((actions) and (source.nouveau != ""))
 		self.ui.nouveau.clicked.connect(lambda: self.creation_demandee.emit(source.genre))
+		self.ui.ajouter_fichiers.setText(source.fichiers)
+		self.ui.ajouter_fichiers.setVisible((actions) and (source.fichiers != ""))
+		self.ui.ajouter_fichiers.clicked.connect(self.ajout_demande)
+		if (actions) and (source.fichiers != ""):
+			self.depot = DepotDeFichiers(self.table)
+			self.depot.deposes.connect(self.fichiers_deposes)
 		self._compter()
 
 	@property

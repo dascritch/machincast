@@ -39,6 +39,12 @@ class Ui_Liste(object):
 
         self.bandeau.addWidget(self.compte)
 
+        self.ajouter_fichiers = QPushButton(Liste)
+        self.ajouter_fichiers.setObjectName(u"ajouter_fichiers")
+        self.ajouter_fichiers.setVisible(False)
+
+        self.bandeau.addWidget(self.ajouter_fichiers)
+
         self.nouveau = QPushButton(Liste)
         self.nouveau.setObjectName(u"nouveau")
         self.nouveau.setVisible(False)
@@ -68,6 +74,9 @@ class Ui_Liste(object):
     def retranslateUi(self, Liste):
         self.filtre.setPlaceholderText(QCoreApplication.translate("Liste", u"Filtrer\u2026", None))
         self.compte.setText(QCoreApplication.translate("Liste", u"\u2014", None))
+#if QT_CONFIG(tooltip)
+        self.ajouter_fichiers.setToolTip(QCoreApplication.translate("Liste", u"Les fichiers sont r\u00e9f\u00e9renc\u00e9s l\u00e0 o\u00f9 ils sont, sans copie, et v\u00e9rifi\u00e9s aussit\u00f4t ; on peut aussi les d\u00e9poser sur la liste.", None))
+#endif // QT_CONFIG(tooltip)
         pass
     # retranslateUi
 

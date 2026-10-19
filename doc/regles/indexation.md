@@ -19,4 +19,5 @@
 - Un nouveau sonore est enregistré à l'état `apercu`, puis rattaché à sa banque en fin de liste. Un emplacement n'est jamais enregistré deux fois ; un sonore connu trouvé dans le répertoire d'une banque y est rattaché s'il n'y est pas.
 - Un parcours ordonné (tri des noms) : positions et bilan sont reproductibles.
 - Les streams ne sont jamais vérifiés par l'indexeur.
+- `verifier_sonores` se limite aux sonores donnés par `identifiants` : l'interface s'en sert pour vérifier aussitôt les fichiers qu'elle ajoute, avec le rôle de l'indexation, dans un fil à part ([#30](https://github.com/dascritch/machincast/issues/30)). Sans eux, il vérifie tous les sonores.
 - Sorties : STDOUT, STDERR, CSV, HTML. **Jamais d'écriture dans `log`.**
