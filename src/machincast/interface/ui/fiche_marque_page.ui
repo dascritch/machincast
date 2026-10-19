@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FicheMarquePage</class>
+ <widget class="QWidget" name="FicheMarquePage">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>900</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="disposition" stretch="0,0,1,0">
+   <item>
+    <layout class="QFormLayout" name="formulaire">
+     <item row="0" column="0">
+      <widget class="QLabel" name="etiquette_nom">
+       <property name="text">
+        <string>&amp;Nom</string>
+       </property>
+       <property name="buddy">
+        <cstring>nom</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="nom">
+       <property name="maxLength">
+        <number>255</number>
+       </property>
+       <property name="placeholderText">
+        <string>Obligatoire, et propre à ce marque-page</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="etiquette_url">
+       <property name="text">
+        <string>A&amp;dresse</string>
+       </property>
+       <property name="buddy">
+        <cstring>url</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="url">
+       <property name="placeholderText">
+        <string>https://… : l'adresse du flux, obligatoire</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="essai" stretch="0,1">
+     <item>
+      <widget class="QPushButton" name="tester">
+       <property name="text">
+        <string>Tester le flux</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="resultat_essai">
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupe_streams">
+     <property name="title">
+      <string>Streams qui le suivent</string>
+     </property>
+     <layout class="QVBoxLayout" name="disposition_streams">
+      <item>
+       <widget class="QListWidget" name="streams">
+        <property name="alternatingRowColors">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="explication_streams">
+        <property name="text">
+         <string>Ces streams jouent l'adresse du marque-page : une nouvelle adresse vaut pour tous. Un stream choisit son marque-page dans sa fiche.</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="pied" stretch="0,1,0,0">
+     <item>
+      <widget class="QPushButton" name="supprimer">
+       <property name="text">
+        <string>Supprimer…</string>
+       </property>
+       <property name="toolTip">
+        <string>Supprime l'élément de la base, après confirmation ; aucun fichier n'est touché.</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="message">
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="annuler">
+       <property name="text">
+        <string>Annuler</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="enregistrer">
+       <property name="text">
+        <string>Enregistrer</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources />
+ <connections />
+</ui>

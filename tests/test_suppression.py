@@ -6,21 +6,12 @@ celles-ci suppriment, et lisent la base de test et le répertoire du scénario.
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QPushButton
-from pytest_bdd import given, parsers, scenarios, then, when
-from pytestqt.qtbot import QtBot
+from pytest_bdd import given, parsers, scenarios, then
 
-from tests.etapes_interface import NOM, Connexion, Contexte, fiche_ouverte, identifiant
+from tests.etapes_interface import NOM, Connexion, Contexte, fiche_ouverte, identifiant, questions_de_suppression
 
 scenarios("suppression.feature")
 
-TABLES = {
-	"le sonore": ("sonores", "titre"),
-	"la banque": ("banques", "nom_interne"),
-	"la séquence": ("sequences", "nom_interne"),
-	"l'événement": ("evenements", "nom_interne"),
-}
 NOMS = "COALESCE(s.titre, b.nom_interne, q.nom_interne)"
 LISTES = {
 	"la banque": (
@@ -44,22 +35,6 @@ LISTES = {
 """La table de la banque, de la séquence ou de l'événement, et la requête des noms de ses éléments, dans l'ordre."""
 
 
-def bouton_supprimer(interface: Contexte) -> QPushButton:
-	(bouton,) = [
-		bouton for bouton in fiche_ouverte(interface).findChildren(QPushButton) if bouton.text() == "Supprimer…"
-	]
-	return bouton
-
-
-def questions_de_suppression(interface: Contexte) -> list[str]:
-	return [question for question in interface.questions if question.startswith("suppression : ")]
-
-
-def lignes_attendues(interface: Contexte, datatable: list[list[str]]) -> str:
-	_entete, *lignes = datatable
-	return "\n".join(ligne[0].strip().replace("…/", f"{interface.repertoire}/") for ligne in lignes)
-
-
 # ─── Étant donné ───────────────────────────────────────────
 
 
@@ -77,26 +52,6 @@ def passage(base_vide: Connexion, titre: str, evenement: str) -> None:
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when(parsers.re(r"je supprime l'élément de la fiche, en répondant « (?P<reponse>Supprimer|Annuler) »"))
-def supprimer(interface: Contexte, qtbot: QtBot, reponse: str) -> None:
-	interface.suppression = reponse == "Supprimer"
-	qtbot.mouseClick(bouton_supprimer(interface), Qt.MouseButton.LeftButton)
-
-
-# ─── Alors ─────────────────────────────────────────────────
-
-
-@then(parsers.parse("la question de suppression, intitulée « {titre} », a dit :"))
-def question(interface: Contexte, titre: str, datatable: list[list[str]]) -> None:
-	assert questions_de_suppression(interface) == [f"suppression : {titre}\n{lignes_attendues(interface, datatable)}"]
-
-
-@then("la dernière question de suppression a dit :")
-def derniere_question(interface: Contexte, datatable: list[list[str]]) -> None:
-	_titre, texte = questions_de_suppression(interface)[-1].split("\n", 1)
-	assert texte == lignes_attendues(interface, datatable)
-
-
 @then("la fiche signale une suppression impossible")
 def suppression_impossible(interface: Contexte) -> None:
 	assert fiche_ouverte(interface).message.text().startswith("Suppression impossible : ")
@@ -106,18 +61,6 @@ def suppression_impossible(interface: Contexte) -> None:
 def seule_question(interface: Contexte) -> None:
 	assert len(interface.questions) == 1, interface.questions
 	assert interface.questions == questions_de_suppression(interface)
-
-
-@then(
-	parsers.re(
-		r"(?P<genre>le sonore|la banque|la séquence|l'événement) « (?P<nom>[^»]+) »"
-		r" (?P<etat>n'est plus|est toujours) en base"
-	)
-)
-def en_base(base_vide: Connexion, genre: str, nom: str, etat: str) -> None:
-	table, colonne = TABLES[genre]
-	lignes = base_vide.execute(f"SELECT id FROM {table} WHERE {colonne} = %s", (nom,)).fetchall()  # noqa: S608
-	assert len(lignes) == {"n'est plus": 0, "est toujours": 1}[etat], lignes
 
 
 @then(

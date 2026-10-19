@@ -34,6 +34,10 @@ class Genre:
 	"""Genres des listes qui peuvent le contenir."""
 	aucun: str
 	"""Phrase pour un élément qui ne figure nulle part."""
+	nom: str = "nom_interne"
+	"""Colonne de son nom."""
+	historique: bool = True
+	"""L'historique de diffusion le cite : la question rappelle qu'il garde ses passages."""
 
 
 GENRES = {
@@ -59,6 +63,9 @@ GENRES = {
 		"sequences", "la séquence", "Elle", "e", "sequence_id", ("événement",), "Elle ne figure dans aucun événement."
 	),
 	"événement": Genre("evenements", "l'événement", "Il", "", "", (), ""),
+	"marque-page": Genre(
+		"marques_pages_streams", "le marque-page", "Il", "", "", (), "Aucun stream ne le suit.", "nom", False
+	),
 }
 CONTENANTS = {
 	"banque": ("banques", "banques_sonores", "banque_id", "de la banque", "qui n'aura plus aucun sonore"),
@@ -85,7 +92,7 @@ def _nom(connexion: Connexion, genre: str, identifiant: int) -> str | None:
 	l'adresse de son stream."""
 	if genre != "sonore":
 		ligne = connexion.execute(
-			f"SELECT nom_interne FROM {GENRES[genre].table} WHERE id = %s",  # noqa: S608
+			f"SELECT {GENRES[genre].nom} FROM {GENRES[genre].table} WHERE id = %s",  # noqa: S608
 			(identifiant,),
 		).fetchone()
 		if ligne is None:
@@ -162,6 +169,8 @@ def _suites(connexion: Connexion, genre: str, identifiant: int) -> list[str]:
 		]
 	if genre == "séquence":
 		return ["Ses sonores et ses banques restent en base."]
+	if genre == "marque-page":
+		return []
 	streams = connexion.execute(
 		"SELECT COALESCE(titre, url_stream) FROM sonores WHERE secours_evenement_id = %s ORDER BY 1", (identifiant,)
 	).fetchall()
@@ -174,12 +183,33 @@ def _suites(connexion: Connexion, genre: str, identifiant: int) -> list[str]:
 	return lignes
 
 
+class Empechee(Exception):
+	"""L'élément ne peut pas être supprimé : le message dit pourquoi, et ce qu'il faut faire d'abord."""
+
+
+def _empecher(connexion: Connexion, genre: str, identifiant: int) -> None:
+	"""Un marque-page qu'un stream suit ne se supprime pas (marque_page_id ON DELETE RESTRICT)."""
+	if genre != "marque-page":
+		return
+	streams = connexion.execute(
+		"SELECT COALESCE(s.titre, m.url) FROM sonores s JOIN marques_pages_streams m ON m.id = s.marque_page_id"
+		" WHERE m.id = %s ORDER BY 1",
+		(identifiant,),
+	).fetchall()
+	if streams != []:
+		raise Empechee(
+			f"Les streams {_noms(streams)} suivent ce marque-page : choisir pour eux une autre adresse avant de le"
+			" supprimer."
+		)
+
+
 def question(connexion: Connexion, genre: str, identifiant: int) -> tuple[str, str] | None:
-	"""Le titre et le texte de la question de suppression ; None si l'élément n'est plus en base. À appeler dans une
-	transaction."""
+	"""Le titre et le texte de la question de suppression ; None si l'élément n'est plus en base. Lève Empechee pour
+	un élément qui ne peut pas être supprimé. À appeler dans une transaction."""
 	nom = _nom(connexion, genre, identifiant)
 	if nom is None:
 		return None
+	_empecher(connexion, genre, identifiant)
 	decrit = GENRES[genre]
 	lignes = [f"Supprimer de la base {decrit.article} « {nom} » ?"]
 	retraits = _retraits(connexion, genre, identifiant)
@@ -190,7 +220,8 @@ def question(connexion: Connexion, genre: str, identifiant: int) -> tuple[str, s
 	elif decrit.aucun != "":
 		lignes.append(decrit.aucun)
 	lignes += _suites(connexion, genre, identifiant)
-	lignes.append(HISTORIQUE)
+	if decrit.historique:
+		lignes.append(HISTORIQUE)
 	return f"Supprimer {decrit.article}", "\n".join(lignes)
 
 

@@ -33,17 +33,24 @@ from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.fiche import Fiche
 from machincast.interface.fiche_banque import FicheBanque
 from machincast.interface.fiche_evenement import FicheEvenement
+from machincast.interface.fiche_marque_page import FicheMarquePage
 from machincast.interface.fiche_sequence import FicheSequence
 from machincast.interface.fiche_sonore import FicheSonore
-from machincast.interface.listes import BANQUES, EVENEMENTS, SEQUENCES, SONORES, Liste
+from machincast.interface.listes import BANQUES, EVENEMENTS, MARQUES_PAGES, SEQUENCES, SONORES, Liste
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 from machincast.interface.verification import Verificateur
 
 journal = logging.getLogger(__name__)
 
-ONGLETS = (("Événements", EVENEMENTS), ("Séquences", SEQUENCES), ("Banques", BANQUES), ("Sonores", SONORES))
+ONGLETS = (
+	("Événements", EVENEMENTS),
+	("Séquences", SEQUENCES),
+	("Banques", BANQUES),
+	("Sonores", SONORES),
+	("Marques-pages", MARQUES_PAGES),
+)
 FICHES: dict[str, type[Fiche]] = {
-	fiche.genre: fiche for fiche in (FicheEvenement, FicheSequence, FicheBanque, FicheSonore)
+	fiche.genre: fiche for fiche in (FicheEvenement, FicheSequence, FicheBanque, FicheSonore, FicheMarquePage)
 }
 """Écrans de détail : les fiches, par genre."""
 

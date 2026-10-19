@@ -124,6 +124,19 @@ def lire_sequences(connexion: Connexion) -> list[Ligne]:
 	]
 
 
+def lire_marques_pages(connexion: Connexion) -> list[Ligne]:
+	"""Par nom, avec le nombre de streams qui suivent chacun (https://github.com/dascritch/machincast/issues/34)."""
+	with connexion.transaction():
+		rangees = connexion.execute(
+			"SELECT m.id, m.nom, m.url, (SELECT count(*) FROM sonores s WHERE s.marque_page_id = m.id)"
+			" FROM marques_pages_streams m ORDER BY m.nom, m.id"
+		).fetchall()
+	return [
+		Ligne(int(str(identifiant)), str(nom), [str(nom), str(url), str(streams)])
+		for identifiant, nom, url, streams in rangees
+	]
+
+
 def lire_evenements(connexion: Connexion) -> list[Ligne]:
 	"""Du plus prioritaire au moins prioritaire, puis par nom."""
 	with connexion.transaction():
@@ -172,6 +185,15 @@ EVENEMENTS = Source(
 	"événements",
 	"aucun événement",
 	"Nouvel événement",
+)
+MARQUES_PAGES = Source(
+	"marque-page",
+	("Nom", "Adresse", "Streams"),
+	lire_marques_pages,
+	"marque-page",
+	"marques-pages",
+	"aucun marque-page",
+	"Nouveau marque-page",
 )
 
 

@@ -115,6 +115,13 @@ class Fiche(QWidget):
 		try:
 			with self.connexion.transaction():
 				question = suppression.question(self.connexion, self.genre, self.identifiant)
+		except suppression.Empechee as empechee:
+			self.message.setText(str(empechee))
+			return
+		except psycopg.Error as erreur:
+			self._signaler_suppression_impossible(erreur)
+			return
+		try:
 			if question is not None:
 				titre, texte = question
 				if not dialogues.confirmer_suppression(self, titre, texte):
@@ -122,10 +129,13 @@ class Fiche(QWidget):
 				with self.connexion.transaction():
 					suppression.supprimer(self.connexion, self.genre, self.identifiant)
 		except psycopg.Error as erreur:
-			journal.error(f"{self.titre()} : suppression impossible : {erreur}")
-			self.message.setText(f"Suppression impossible : {erreur}")
+			self._signaler_suppression_impossible(erreur)
 			return
 		self.supprimee.emit()
+
+	def _signaler_suppression_impossible(self, erreur: psycopg.Error) -> None:
+		journal.error(f"{self.titre()} : suppression impossible : {erreur}")
+		self.message.setText(f"Suppression impossible : {erreur}")
 
 	def peut_fermer(self) -> bool:
 		"""Une fiche modifiée demande quoi faire de ses modifications avant de se fermer."""
