@@ -72,7 +72,7 @@ class FicheBanque(Fiche):
 		super().__init__(connexion, identifiant, horloge, parent)
 		self.ui = Ui_FicheBanque()
 		self.ui.setupUi(self)
-		self.brancher(self.ui.enregistrer, self.ui.annuler, self.ui.message)
+		self.brancher(self.ui.enregistrer, self.ui.annuler, self.ui.supprimer, self.ui.message)
 		for valeur, texte in MODES:
 			self.ui.mode.addItem(texte, valeur)
 		for _valeur, texte in MASQUAGES:

@@ -168,6 +168,11 @@ class Ui_FicheBanque(object):
 
         self.pied = QHBoxLayout()
         self.pied.setObjectName(u"pied")
+        self.supprimer = QPushButton(FicheBanque)
+        self.supprimer.setObjectName(u"supprimer")
+
+        self.pied.addWidget(self.supprimer)
+
         self.message = QLabel(FicheBanque)
         self.message.setObjectName(u"message")
         self.message.setWordWrap(True)
@@ -184,7 +189,7 @@ class Ui_FicheBanque(object):
 
         self.pied.addWidget(self.enregistrer)
 
-        self.pied.setStretch(0, 1)
+        self.pied.setStretch(1, 1)
 
         self.disposition.addLayout(self.pied)
 
@@ -225,6 +230,10 @@ class Ui_FicheBanque(object):
         self.retirer_sonore.setText(QCoreApplication.translate("FicheBanque", u"Retirer le sonore", None))
         self.monter.setText(QCoreApplication.translate("FicheBanque", u"Monter", None))
         self.descendre.setText(QCoreApplication.translate("FicheBanque", u"Descendre", None))
+        self.supprimer.setText(QCoreApplication.translate("FicheBanque", u"Supprimer\u2026", None))
+#if QT_CONFIG(tooltip)
+        self.supprimer.setToolTip(QCoreApplication.translate("FicheBanque", u"Supprime l'\u00e9l\u00e9ment de la base, apr\u00e8s confirmation ; aucun fichier n'est touch\u00e9.", None))
+#endif // QT_CONFIG(tooltip)
         self.annuler.setText(QCoreApplication.translate("FicheBanque", u"Annuler", None))
         self.enregistrer.setText(QCoreApplication.translate("FicheBanque", u"Enregistrer", None))
         pass

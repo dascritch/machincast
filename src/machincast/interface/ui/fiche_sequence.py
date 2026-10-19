@@ -149,6 +149,11 @@ class Ui_FicheSequence(object):
 
         self.pied = QHBoxLayout()
         self.pied.setObjectName(u"pied")
+        self.supprimer = QPushButton(FicheSequence)
+        self.supprimer.setObjectName(u"supprimer")
+
+        self.pied.addWidget(self.supprimer)
+
         self.message = QLabel(FicheSequence)
         self.message.setObjectName(u"message")
         self.message.setWordWrap(True)
@@ -165,7 +170,7 @@ class Ui_FicheSequence(object):
 
         self.pied.addWidget(self.enregistrer)
 
-        self.pied.setStretch(0, 1)
+        self.pied.setStretch(1, 1)
 
         self.disposition.addLayout(self.pied)
 
@@ -202,6 +207,10 @@ class Ui_FicheSequence(object):
         self.descendre.setText(QCoreApplication.translate("FicheSequence", u"Descendre", None))
         self.groupe_evenements.setTitle(QCoreApplication.translate("FicheSequence", u"\u00c9v\u00e9nements o\u00f9 elle figure", None))
         self.explication_evenements.setText(QCoreApplication.translate("FicheSequence", u"Une s\u00e9quence se place dans un \u00e9v\u00e9nement depuis la fiche de l'\u00e9v\u00e9nement.", None))
+        self.supprimer.setText(QCoreApplication.translate("FicheSequence", u"Supprimer\u2026", None))
+#if QT_CONFIG(tooltip)
+        self.supprimer.setToolTip(QCoreApplication.translate("FicheSequence", u"Supprime l'\u00e9l\u00e9ment de la base, apr\u00e8s confirmation ; aucun fichier n'est touch\u00e9.", None))
+#endif // QT_CONFIG(tooltip)
         self.annuler.setText(QCoreApplication.translate("FicheSequence", u"Annuler", None))
         self.enregistrer.setText(QCoreApplication.translate("FicheSequence", u"Enregistrer", None))
         pass

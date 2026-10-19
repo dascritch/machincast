@@ -70,6 +70,19 @@ def confirmer_retrait(parent: QWidget, avertissement: str) -> Retrait:
 	return Retrait.ANNULER
 
 
+def confirmer_suppression(parent: QWidget, titre: str, texte: str) -> bool:
+	"""Demande la confirmation d'une suppression : Entrée et Échap gardent l'élément."""
+	question = QMessageBox(parent)
+	question.setIcon(QMessageBox.Icon.Warning)
+	question.setWindowTitle(titre)
+	question.setText(texte)
+	supprimer = question.addButton("Supprimer", QMessageBox.ButtonRole.DestructiveRole)
+	annuler = question.addButton("Annuler", QMessageBox.ButtonRole.RejectRole)
+	question.setDefaultButton(annuler)
+	question.exec()
+	return question.clickedButton() is supprimer
+
+
 def choisir_repertoire(parent: QWidget) -> str | None:
 	"""Un répertoire choisi dans le sélecteur du poste, ou None si le choix est abandonné."""
 	repertoire = QFileDialog.getExistingDirectory(parent, "Répertoire indexé de la banque")

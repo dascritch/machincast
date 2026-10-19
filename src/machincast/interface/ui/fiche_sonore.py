@@ -385,6 +385,11 @@ class Ui_FicheSonore(object):
 
         self.pied = QHBoxLayout()
         self.pied.setObjectName(u"pied")
+        self.supprimer = QPushButton(FicheSonore)
+        self.supprimer.setObjectName(u"supprimer")
+
+        self.pied.addWidget(self.supprimer)
+
         self.message = QLabel(FicheSonore)
         self.message.setObjectName(u"message")
         self.message.setWordWrap(True)
@@ -401,7 +406,7 @@ class Ui_FicheSonore(object):
 
         self.pied.addWidget(self.enregistrer)
 
-        self.pied.setStretch(0, 1)
+        self.pied.setStretch(1, 1)
 
         self.disposition.addLayout(self.pied)
 
@@ -483,6 +488,10 @@ class Ui_FicheSonore(object):
         ___qtablewidgetitem6.setText(QCoreApplication.translate("FicheSonore", u"Sans incident", None))
         ___qtablewidgetitem7 = self.passages.horizontalHeaderItem(7)
         ___qtablewidgetitem7.setText(QCoreApplication.translate("FicheSonore", u"Incidents", None))
+        self.supprimer.setText(QCoreApplication.translate("FicheSonore", u"Supprimer\u2026", None))
+#if QT_CONFIG(tooltip)
+        self.supprimer.setToolTip(QCoreApplication.translate("FicheSonore", u"Supprime l'\u00e9l\u00e9ment de la base, apr\u00e8s confirmation ; aucun fichier n'est touch\u00e9.", None))
+#endif // QT_CONFIG(tooltip)
         self.annuler.setText(QCoreApplication.translate("FicheSonore", u"Annuler", None))
         self.enregistrer.setText(QCoreApplication.translate("FicheSonore", u"Enregistrer", None))
         pass

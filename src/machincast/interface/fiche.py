@@ -8,6 +8,10 @@ quoi faire de ses modifications (machincast.interface.dialogues).
 
 Une fiche concrète décrit son genre et son titre, lit l'élément en base (_lire) et l'y écrit (_ecrire). Un refus
 (Refus) laisse la fiche modifiée, avec son message.
+
+« Supprimer… » supprime l'élément de la base, après une confirmation qui dit où il figure
+(machincast.interface.suppression, https://github.com/dascritch/machincast/issues/33) : jamais un fichier ni un
+répertoire. Une fiche qui n'est pas encore enregistrée n'a rien à supprimer.
 """
 
 import logging
@@ -20,7 +24,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QLabel, QPushButton, QWidget
 
 from machincast.horloge import Horloge
-from machincast.interface import dialogues
+from machincast.interface import dialogues, suppression
 from machincast.interface.dialogues import Fermeture
 from machincast.protection import est_fichier_sonore
 
@@ -46,11 +50,14 @@ class Fiche(QWidget):
 	"""L'élément est enregistré : son identifiant en base."""
 	ouverture_demandee = Signal(str, int, str)
 	"""Un élément cité par la fiche est à ouvrir : son genre, son identifiant et son nom."""
+	supprimee = Signal()
+	"""L'élément n'est plus en base : la fiche est à fermer, sans rien demander."""
 
 	genre = ""
 	"""Genre de l'élément, celui des listes et de detail_demande : « banque », « sonore », « séquence »."""
 	bouton_enregistrer: QPushButton
 	bouton_annuler: QPushButton
+	bouton_supprimer: QPushButton
 	message: QLabel
 	"""Ce qui empêche l'enregistrement, ou ce que la fiche a ignoré."""
 
@@ -63,13 +70,15 @@ class Fiche(QWidget):
 		self.horloge = horloge
 		self.modifiee = False
 
-	def brancher(self, enregistrer: QPushButton, annuler: QPushButton, message: QLabel) -> None:
+	def brancher(self, enregistrer: QPushButton, annuler: QPushButton, supprimer: QPushButton, message: QLabel) -> None:
 		"""Les boutons et le message de la fiche ; à appeler une fois son écran construit, avant charger()."""
 		self.bouton_enregistrer = enregistrer
 		self.bouton_annuler = annuler
+		self.bouton_supprimer = supprimer
 		self.message = message
 		enregistrer.clicked.connect(self.enregistrer)
 		annuler.clicked.connect(self.charger)
+		supprimer.clicked.connect(self.supprimer)
 
 	def titre(self) -> str:
 		raise NotImplementedError
@@ -78,6 +87,7 @@ class Fiche(QWidget):
 		"""Lit l'élément en base et le montre ; la fiche n'est plus modifiée, même si la lecture a changé ses champs."""
 		self._lire()
 		self._marquer(False)
+		self.bouton_supprimer.setEnabled(self.identifiant is not None)
 		self.message.clear()
 		self.titre_change.emit(self.titre())
 
@@ -97,6 +107,25 @@ class Fiche(QWidget):
 		self.charger()
 		self.enregistree.emit(identifiant)
 		return True
+
+	def supprimer(self) -> None:
+		"""Supprime l'élément de la base, après confirmation ; un élément déjà effacé ferme simplement la fiche."""
+		if self.identifiant is None:
+			return
+		try:
+			with self.connexion.transaction():
+				question = suppression.question(self.connexion, self.genre, self.identifiant)
+			if question is not None:
+				titre, texte = question
+				if not dialogues.confirmer_suppression(self, titre, texte):
+					return
+				with self.connexion.transaction():
+					suppression.supprimer(self.connexion, self.genre, self.identifiant)
+		except psycopg.Error as erreur:
+			journal.error(f"{self.titre()} : suppression impossible : {erreur}")
+			self.message.setText(f"Suppression impossible : {erreur}")
+			return
+		self.supprimee.emit()
 
 	def peut_fermer(self) -> bool:
 		"""Une fiche modifiée demande quoi faire de ses modifications avant de se fermer."""

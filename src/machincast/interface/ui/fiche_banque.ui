@@ -216,7 +216,17 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="pied" stretch="1,0,0">
+    <layout class="QHBoxLayout" name="pied" stretch="0,1,0,0">
+     <item>
+      <widget class="QPushButton" name="supprimer">
+       <property name="text">
+        <string>Supprimer…</string>
+       </property>
+       <property name="toolTip">
+        <string>Supprime l'élément de la base, après confirmation ; aucun fichier n'est touché.</string>
+       </property>
+      </widget>
+     </item>
      <item>
       <widget class="QLabel" name="message">
        <property name="wordWrap">

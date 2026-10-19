@@ -97,6 +97,7 @@ class FenetrePrincipale(QMainWindow):
 		fiche = FICHES[genre](self.connexion, identifiant, self.horloge)
 		fiche.titre_change.connect(lambda titre: self._renommer(fiche, titre))
 		fiche.ouverture_demandee.connect(self._ouvrir)
+		fiche.supprimee.connect(lambda: self._retirer(fiche))
 		self.ui.onglets.addTab(fiche, fiche.titre())
 		self.ui.onglets.setCurrentWidget(fiche)
 
@@ -107,9 +108,13 @@ class FenetrePrincipale(QMainWindow):
 		fiche = self.ui.onglets.widget(indice)
 		assert isinstance(fiche, Fiche), fiche
 		if fiche.peut_fermer():
-			self.ui.onglets.removeTab(indice)
-			fiche.fermer()
-			fiche.deleteLater()
+			self._retirer(fiche)
+
+	def _retirer(self, fiche: Fiche) -> None:
+		"""Ferme l'onglet de la fiche, sans rien lui demander."""
+		self.ui.onglets.removeTab(self.ui.onglets.indexOf(fiche))
+		fiche.fermer()
+		fiche.deleteLater()
 
 	def _onglet_ouvert(self, indice: int) -> None:
 		ouvert = self.ui.onglets.widget(indice)

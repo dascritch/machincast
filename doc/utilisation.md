@@ -71,7 +71,7 @@ MachinCast ne fait que **lire** les fichiers sonores ([#96](https://github.com/d
 
 - un sonore passé à l'état `supprimé`, `désactivé`, `expiré` ou `erroné` garde son fichier tel quel ;
 - un sonore dont l'emplacement, l'artiste ou le titre change garde son fichier tel quel ;
-- un sonore supprimé de la base garde son fichier : s'il est encore dans le répertoire d'une banque, la prochaine indexation l'enregistre de nouveau, comme un nouveau sonore à l'état `aperçu`, puis `actif` une fois vérifié.
+- un sonore supprimé de la base, depuis [sa fiche](#supprimer-un-élément), garde son fichier : s'il est encore dans le répertoire d'une banque, la prochaine indexation l'enregistre de nouveau, comme un nouveau sonore à l'état `aperçu`, puis `actif` une fois vérifié.
 
 Supprimer un fichier sonore du disque reste une décision humaine, prise hors de MachinCast.
 
@@ -502,7 +502,7 @@ La fiche d'un sonore s'ouvre depuis la liste des sonores, dans un nouvel onglet 
 
 **Derniers passages** : les 50 derniers passages du sonore, du plus récent au plus ancien, avec le début, la fin (`en cours` pour le passage à l'antenne), la durée diffusée, l'événement, la séquence, la banque, « sans incident », et les alertes et incidents que le log a notés pour ce sonore pendant le passage. L'infobulle de cette dernière colonne les détaille, avec leur heure et leur message.
 
-La pré-écoute viendra avec [#29](https://github.com/dascritch/machincast/issues/29), l'ajout d'un sonore avec [#30](https://github.com/dascritch/machincast/issues/30), sa suppression avec [#33](https://github.com/dascritch/machincast/issues/33).
+La pré-écoute viendra avec [#29](https://github.com/dascritch/machincast/issues/29), l'ajout d'un sonore avec [#30](https://github.com/dascritch/machincast/issues/30). Sa suppression : [Supprimer un élément](#supprimer-un-élément).
 
 ### Fiche d'une séquence
 
@@ -560,6 +560,21 @@ La fiche d'un événement s'ouvre depuis la liste des événements, dans un nouv
 **Banque « ne pas répéter »** : la fiche signale chaque appel d'une banque marquée juste après elle-même, qui sera toujours sauté à la diffusion. La liste boucle, sauf pour une émission ou un spécial sans fin : la première ligne suit alors la dernière. Une séquence compte par les banques qui la commencent et la finissent (« Ligne 2 : la séquence « Pub d'abord » commence par la banque « Publicité », qui vient de passer, et ne passe jamais deux fois de suite : cet appel sera sauté. »). Ce n'est qu'un avertissement : l'événement s'enregistre quand même.
 
 **Ouvrir un élément** : un double-clic, ou Entrée, sur un sonore, une banque ou une séquence ouvre sa fiche dans un autre onglet.
+
+### Supprimer un élément
+
+Chaque fiche a un bouton **Supprimer…** ([#33](https://github.com/dascritch/machincast/issues/33)). Il demande toujours confirmation : **Supprimer**, ou **Annuler** (Entrée et Échap annulent). La question dit où l'élément figure, et quelle banque, séquence ou liste d'événement n'aurait plus rien après son retrait. Une fiche pas encore enregistrée n'a rien à supprimer.
+
+**Seule l'entrée en base est supprimée.** Les fichiers sonores et les répertoires des banques restent à leur place, intacts ([Les fichiers sonores ne sont jamais modifiés](#les-fichiers-sonores-ne-sont-jamais-modifiés)). L'élément est retiré des listes où il figure, et l'historique de diffusion garde ses passages, avec l'emplacement, l'artiste et le titre du moment.
+
+| Élément supprimé | Retiré de | Ce qui reste |
+| --- | --- | --- |
+| Sonore | ses banques, séquences et listes d'événements | Son fichier. S'il est dans un répertoire de banque, la prochaine indexation l'enregistre de nouveau, comme un nouveau sonore : la question le rappelle. |
+| Banque | ses séquences et listes d'événements | Ses répertoires et leurs fichiers ; ses sonores, en base. |
+| Séquence | ses listes d'événements | Ses sonores et ses banques, en base. |
+| Événement | — | Ses sonores, banques et séquences, en base. Les streams qui l'avaient pour secours n'en ont plus. |
+
+La fiche se ferme après la suppression, sans demander quoi faire de ses modifications. Si la base est injoignable, rien n'est supprimé : la fiche affiche « Suppression impossible : » et l'erreur de PostgreSQL.
 
 ## Suivre le journal : Machin logs
 

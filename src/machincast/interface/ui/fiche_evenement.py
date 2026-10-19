@@ -227,6 +227,11 @@ class Ui_FicheEvenement(object):
 
         self.pied = QHBoxLayout()
         self.pied.setObjectName(u"pied")
+        self.supprimer = QPushButton(FicheEvenement)
+        self.supprimer.setObjectName(u"supprimer")
+
+        self.pied.addWidget(self.supprimer)
+
         self.message = QLabel(FicheEvenement)
         self.message.setObjectName(u"message")
         self.message.setWordWrap(True)
@@ -243,7 +248,7 @@ class Ui_FicheEvenement(object):
 
         self.pied.addWidget(self.enregistrer)
 
-        self.pied.setStretch(0, 1)
+        self.pied.setStretch(1, 1)
 
         self.disposition.addLayout(self.pied)
 
@@ -294,6 +299,10 @@ class Ui_FicheEvenement(object):
         self.retirer_element.setText(QCoreApplication.translate("FicheEvenement", u"Retirer l'\u00e9l\u00e9ment", None))
         self.monter.setText(QCoreApplication.translate("FicheEvenement", u"Monter", None))
         self.descendre.setText(QCoreApplication.translate("FicheEvenement", u"Descendre", None))
+        self.supprimer.setText(QCoreApplication.translate("FicheEvenement", u"Supprimer\u2026", None))
+#if QT_CONFIG(tooltip)
+        self.supprimer.setToolTip(QCoreApplication.translate("FicheEvenement", u"Supprime l'\u00e9l\u00e9ment de la base, apr\u00e8s confirmation ; aucun fichier n'est touch\u00e9.", None))
+#endif // QT_CONFIG(tooltip)
         self.annuler.setText(QCoreApplication.translate("FicheEvenement", u"Annuler", None))
         self.enregistrer.setText(QCoreApplication.translate("FicheEvenement", u"Enregistrer", None))
         pass
