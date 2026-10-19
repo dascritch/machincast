@@ -16,7 +16,7 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	Scénario: La fenêtre s'ouvre sur l'accueil, suivi d'un onglet par liste
 		Quand la fenêtre de l'interface s'ouvre
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages »
+		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents »
 		Et l'onglet ouvert est « Accueil »
 		Et l'onglet « Accueil » montre l'écran par défaut
 

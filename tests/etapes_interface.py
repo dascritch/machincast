@@ -549,6 +549,7 @@ def annuler(interface: Contexte, qtbot: QtBot) -> None:
 	qtbot.mouseClick(fiche_ouverte(interface).bouton_annuler, Qt.MouseButton.LeftButton)
 
 
+@given(parsers.parse("le sonore « {titre} » est effacé de la base"))
 @when(parsers.parse("le sonore « {titre} » est effacé de la base"))
 def effacer(base_vide: Connexion, titre: str) -> None:
 	base_vide.execute("DELETE FROM sonores WHERE titre = %s", (titre,))

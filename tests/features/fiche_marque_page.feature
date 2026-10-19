@@ -146,7 +146,7 @@ Fonctionnalité: Marques-pages de streams
 			| Supprimer de la base le marque-page « Radio Bidule » ? |
 			| Aucun stream ne le suit.                               |
 		Et le marque-page « Radio Bidule » n'est plus en base
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages »
+		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents »
 
 	Scénario: Un stream qui suit un marque-page se supprime, lui
 		Quand la fenêtre de l'interface s'ouvre

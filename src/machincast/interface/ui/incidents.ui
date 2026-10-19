@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>EcranIncidents</class>
+ <widget class="QWidget" name="EcranIncidents">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1000</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="disposition">
+   <item>
+    <layout class="QHBoxLayout" name="bandeau">
+     <item>
+      <widget class="QLineEdit" name="filtre">
+       <property name="placeholderText">
+        <string>Filtrer…</string>
+       </property>
+       <property name="clearButtonEnabled">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="informations">
+       <property name="text">
+        <string>Montrer aussi les informations</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="compte"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QTableView" name="table">
+     <property name="editTriggers">
+      <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectionBehavior::SelectItems</enum>
+     </property>
+     <property name="toolTip">
+      <string>Un double-clic sur le sonore, la banque ou l'événement d'une entrée ouvre sa fiche.</string>
+     </property>
+     <attribute name="verticalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
+     <attribute name="horizontalHeaderStretchLastSection">
+      <bool>true</bool>
+     </attribute>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
