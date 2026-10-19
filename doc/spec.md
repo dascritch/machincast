@@ -142,7 +142,7 @@ Un sonore situé hors des répertoires d'une banque peut y être ajouté à la m
 
 | Champ | Description |
 | --- | --- |
-| `id`, `nom_interne`, `nom_public` | Identification. |
+| `id`, `nom_interne`, `nom_public` | Identification. Le nom interne est unique (migration `0002.evenements-nom-unique`, [#32](https://github.com/dascritch/machincast/issues/32)). |
 | `priorite` | `fil_musical` < `emission` < `special`, plus `secours`, hors grille ([#16](https://github.com/dascritch/machincast/issues/16)) : un événement de secours ne passe jamais à l'antenne par la grille, seulement à la place d'un stream tombé ([§ 4.7](#47-streams)). |
 | `debut`, `fin` | Date et heure de début et de fin de la première occurrence. Voir les règles ci-dessous. |
 | `jours_recurrence` | Jours de la semaine où l'événement se répète, nommés de `lundi` à `dimanche` (plusieurs jours possibles). Vide = pas de récurrence. Tous les jours cochés = quotidien. |
@@ -217,7 +217,7 @@ L'indexeur n'écrit pas dans le log : ses incidents ne figurent donc pas dans l'
 
 #### Choix de modélisation
 
-Le schéma, les rôles et les droits sont créés par la migration `src/machincast/migrations/0001.schema-initial.sql`, fusion des migrations écrites avant toute mise en production ([PR #70](https://github.com/dascritch/machincast/pull/70), [PR #90](https://github.com/dascritch/machincast/pull/90), [PR #100](https://github.com/dascritch/machincast/pull/100), cette dernière pour la banque « ne pas répéter », les séquences et le nom public des banques).
+Le schéma, les rôles et les droits sont créés par la migration `src/machincast/migrations/0001.schema-initial.sql`, fusion des migrations écrites avant toute mise en production ([PR #70](https://github.com/dascritch/machincast/pull/70), [PR #90](https://github.com/dascritch/machincast/pull/90), [PR #100](https://github.com/dascritch/machincast/pull/100), cette dernière pour la banque « ne pas répéter », les séquences et le nom public des banques). Les migrations suivantes s'ajoutent sans fusion : `0002.evenements-nom-unique` rend unique le nom interne d'un événement ([#32](https://github.com/dascritch/machincast/issues/32)).
 
 - Durées (`duree`, crossfades, `duree_diffusee`) : type `interval`. Dates : `timestamptz`.
 - Textes saisis à la main (noms internes et publics, artiste, titre, nature d'une entrée du log) : `varchar(255)`, la même limite que l'interface. Chemins, URL et messages détaillés : `text`, sans limite fixée à l'avance.
@@ -261,7 +261,7 @@ L'indexation ne supprime rien : un fichier disparu fait passer son sonore à l'�
 ### 4.1 Choix de l'événement actif
 
 1. À tout instant, l'événement actif est celui de plus haute priorité dont la plage couvre l'instant, sauf s'il s'est terminé plus tôt pour cette occurrence (liste épuisée d'un événement sans fin, ou banque « ne pas répéter » sans autre élément jouable, voir [§ 4.4](#44-choix-dun-sonore-dans-une-banque)).
-2. Deux événements de même priorité ne doivent pas se chevaucher : l'interface l'interdit à la saisie. Si le cas se présente quand même, le binaire joue le **dernier modifié en base**.
+2. Deux événements de même priorité ne doivent pas se chevaucher : l'interface l'interdit à la saisie (`machincast.lecture.grille.chevauchement`, [#32](https://github.com/dascritch/machincast/issues/32)). Deux occurrences se chevauchent si elles ont un instant commun ; une occurrence sans fin ne compte que par son début ; un fil musical permanent et un événement de secours ne chevauchent rien. À priorité égale, une occurrence sans fin, ou un fil musical permanent, laisse la place à toute occurrence qui a commencé après elle, et reprend ensuite : un fil permanent sert de fond. Si deux occurrences bornées se chevauchent quand même, le binaire joue le **dernier modifié en base**.
 3. Plusieurs fils musicaux peuvent coexister selon l'heure (nuit, jour), régis par leur récurrence.
 4. Le changement d'heure ne fait l'objet d'aucune règle particulière : la diffusion est toujours en fil musical à cette heure de la nuit.
 5. Occurrences ([#12](https://github.com/dascritch/machincast/issues/12), `machincast.lecture.grille`) : `debut` et `fin` sont ceux de la première occurrence. Sans récurrence, l'événement couvre `[debut, fin[`, ou `[debut, ∞[` sans fin. Avec récurrence, il revient chaque jour coché à partir du jour de `debut`, à l'heure murale de `debut`, jusqu'à l'heure murale de `fin` autant de jours plus tard que la première occurrence : un événement peut passer minuit, et c'est le jour de son début qui compte. Le poste travaille en heure locale, celle de Paris : le calcul se fait en heure murale, et un événement garde son heure au changement d'heure. Une occurrence sans fin couvre l'instant jusqu'à ce que sa liste soit épuisée ; le binaire la déclare alors terminée, et la suivante repart normalement.
@@ -549,8 +549,8 @@ Mise en œuvre des listes ([#26](https://github.com/dascritch/machincast/issues/
 - **Colonnes et ordre** : événements (nom, nom public, priorité, début, fin, récurrence), du plus prioritaire au moins prioritaire ; séquences (nom, nom public) ; banques (nom, nom public, mode, ne pas répéter, premier répertoire dans l'ordre alphabétique) ; sonores (artiste, titre, type, état, durée, emplacement), par artiste puis titre. Un clic sur un titre de colonne trie.
 - **Filtre** : les lignes dont une colonne contient le texte, sans tenir compte des majuscules ni des accents (`FiltreSansAccents`) ; un compte « n sonores sur N ».
 - **Lecture** : en base, avec le rôle de l'interface, chaque fois que l'onglet s'ouvre ; jamais en boucle. Le filtre est gardé.
-- **Détail** : un double-clic ou Entrée sur une ligne émet `FenetrePrincipale.detail_demande(genre, identifiant)`. Une séquence, une banque ou un sonore ouvre sa fiche ([§ 8.12](#812-écran-de-détails-dune-séquence), [§ 8.4](#84-écran-de-détails-dune-banque), [§ 8.3](#83-écran-de-détails-dun-sonore)). Tant que les autres écrans de détail ne sont pas écrits, la barre d'état les annonce, avec le ticket de l'écran.
-- **Création** : une liste peut avoir un bouton de création (`Source.nouveau`, signal `Liste.creation_demandee`) ; les listes des séquences et des banques l'ont, « Nouvelle séquence » et « Nouvelle banque ».
+- **Détail** : un double-clic ou Entrée sur une ligne émet `FenetrePrincipale.detail_demande(genre, identifiant)`, et ouvre la fiche de l'élément ([§ 8.5](#85-écran-de-détails-dun-événement), [§ 8.12](#812-écran-de-détails-dune-séquence), [§ 8.4](#84-écran-de-détails-dune-banque), [§ 8.3](#83-écran-de-détails-dun-sonore)).
+- **Création** : une liste peut avoir un bouton de création (`Source.nouveau`, signal `Liste.creation_demandee`) ; les listes des événements, des séquences et des banques l'ont : « Nouvel événement », « Nouvelle séquence » et « Nouvelle banque ».
 - Champ de recherche globale avec auto-suggestion, résultats dans l'ordre : événements, banques, sonores. Un écran de résultats dédié.
 - Vue calendrier (jour, semaine) montrant à la fois l'airplay (ce qui a effectivement été diffusé) et les événements prévus.
 
@@ -603,6 +603,14 @@ Mise en œuvre ([#31](https://github.com/dascritch/machincast/issues/31), `machi
 - Avertissement quand une banque « ne pas répéter » occupe deux lignes contiguës, y compris la dernière et la première d'un événement qui boucle : le deuxième appel sera ignoré à la diffusion ([§ 4.4](#44-choix-dun-sonore-dans-une-banque), [#63](https://github.com/dascritch/machincast/issues/63)). L'avertissement n'empêche pas d'enregistrer.
 - Refus d'un chevauchement avec un événement de même priorité.
 
+Mise en œuvre ([#32](https://github.com/dascritch/machincast/issues/32), `machincast.interface.fiche_evenement`, `machincast.interface.elements`), avec ce qui est commun aux fiches (`machincast.interface.fiche`, [§ 8.4](#84-écran-de-détails-dune-banque)) :
+
+- **Onglet** : « Événement : <nom interne> », depuis la liste des événements ; « Nouvel événement » ouvre une fiche vide, de priorité `emission`, au masquage hérité.
+- **Champs** : noms enregistrés sans les espaces qui les entourent, un nom public vide comme NULL, un nom interne unique ; priorité ; masquage « Selon la séquence, la banque ou le sonore » (NULL), « Masqués » (vrai), « Affichés » (faux).
+- **Grille** : début et fin de la première occurrence, chacun à cocher, et sept cases de jours. Un début coché part de l'heure de l'horloge, à la minute ; une fin cochée qui ne suit pas le début, d'une heure après lui. Sans début, la fin et les jours se décochent et ne se saisissent pas ; la priorité `secours` décoche le début. Refusés : une émission ou un spécial sans début, une fin qui ne suit pas le début, un chevauchement ([§ 4.1](#41-choix-de-lévénement-actif)), nommé avec le premier instant commun, et un changement de priorité d'un événement de secours qu'un stream désigne, que la base refuserait aussi.
+- **Liste de lecture** : sonores, banques et séquences, comme la liste d'une séquence ([§ 8.12](#812-écran-de-détails-dune-séquence)) ; une séquence a pour détail son nombre d'éléments. Une liste vide ne s'enregistre pas. Une ligne restée dans la liste garde son identifiant dans `evenements_elements`, que `airplay.element_id` désigne ([§ 4.2](#42-transitions)).
+- **Avertissement** : `deroule.appels_ignores_aux_bords`, la liste bouclant sauf pour une émission ou un spécial sans fin ; une séquence compte par la banque de sa première ligne et celle de sa dernière. Recalculé à chaque changement de la liste, de la priorité ou de la fin.
+
 ### 8.6 Écran des incidents
 
 Table des incidents du log : horaire, lien vers le sonore, lien vers la banque, lien vers l'événement quand il est renseigné.
@@ -648,10 +656,10 @@ Mise en œuvre ([#112](https://github.com/dascritch/machincast/issues/112), `mac
 
 - **Onglet** : « Séquence : <nom interne> », depuis la liste des séquences ; « Nouvelle séquence » ouvre une fiche vide, au masquage hérité.
 - **Champs** : noms enregistrés sans les espaces qui les entourent, un nom public vide comme NULL ; masquage « Selon la banque ou le sonore » (NULL), « Masqués » (vrai), « Affichés » (faux). Un nom interne vide ou déjà pris, ou une séquence sans élément, laisse la fiche modifiée, avec un message.
-- **Éléments** : genre, nom (artiste et titre d'un sonore, le nom du fichier d'un sonore pas encore décodé, le nom interne d'une banque) et détail (emplacement d'un sonore ; mode d'une banque, et « ne pas répéter »). Réordonnables par glisser-déposer ou par « Monter » et « Descendre » ; une ligne ne se dépose pas dans une autre. L'ajout se fait parmi les sonores et les banques déjà en base (`Choix`, avec la remarque qu'un élément peut revenir), ou par dépôt de fichiers sonores, comme sur la fiche d'une banque : copie seulement, un fichier pas encore en base devenant un sonore `apercu` à l'enregistrement.
+- **Éléments** (`machincast.interface.elements`, commun avec la fiche d'un événement) : genre, nom (artiste et titre d'un sonore, le nom du fichier d'un sonore pas encore décodé, le nom interne d'une banque) et détail (emplacement d'un sonore ; mode d'une banque, et « ne pas répéter »). Réordonnables par glisser-déposer ou par « Monter » et « Descendre » ; une ligne ne se dépose pas dans une autre. L'ajout se fait parmi les sonores et les banques déjà en base (`Choix`, avec la remarque qu'un élément peut revenir), ou par dépôt de fichiers sonores, comme sur la fiche d'une banque : copie seulement, un fichier pas encore en base devenant un sonore `apercu` à l'enregistrement.
 - **Écriture** : à l'enregistrement, une ligne restée dans la liste garde son identifiant dans `sequences_elements`, à sa nouvelle position, pour que `airplay.sequence_element_id` la désigne toujours ([§ 4.3](#43-liste-de-lecture-dun-événement)) ; les lignes retirées sont supprimées, les nouvelles ajoutées. Un sonore ou une banque effacé de la base entre-temps est oublié.
 - **Avertissement** : sous la liste, une ligne par appel sauté, « Ligne N : la banque « … » vient de passer, et ne passe jamais deux fois de suite : cet appel sera sauté. », recalculé à chaque changement de la liste.
-- **Liens** : ouvrir un élément ouvre sa fiche ; ouvrir un événement demande son écran ([#32](https://github.com/dascritch/machincast/issues/32)). Les deux passent par `Fiche.ouverture_demandee`, que la fenêtre traite comme l'ouverture d'une ligne de liste.
+- **Liens** : ouvrir un élément ou un événement ouvre sa fiche, par `Fiche.ouverture_demandee`, que la fenêtre traite comme l'ouverture d'une ligne de liste.
 
 ## 9. Configuration
 

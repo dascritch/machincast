@@ -166,6 +166,7 @@ EVENEMENTS = Source(
 	"événement",
 	"événements",
 	"aucun événement",
+	"Nouvel événement",
 )
 
 

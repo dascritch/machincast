@@ -152,18 +152,6 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	# ─── Vers l'écran de détail ────────────────────────────────
 
-	Scénario: Ouvrir une ligne demande l'écran de détail de l'élément, et l'annonce tant qu'il est à venir
-		# Ceux d'une banque, d'un sonore et d'une séquence sont leurs fiches : fiche_banque.feature,
-		# fiche_sonore.feature, fiche_sequence.feature.
-		Étant donné les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
-		Quand la fenêtre de l'interface s'ouvre
-		Et j'ouvre l'onglet « Événements »
-		Et j'ouvre la ligne « Continue »
-		Alors l'écran de détail de événement « Continue » est demandé
-		Et la barre d'état annonce « Écran de détails de l'événement « Continue » : à venir, https://github.com/dascritch/machincast/issues/32 »
-
 	Scénario: Le filtre ne change pas l'élément ouvert
 		Étant donné les sonores :
 			| artiste     | titre         | type    | etat  | duree | emplacement            |

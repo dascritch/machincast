@@ -59,6 +59,8 @@ class Contexte:
 	"""Sonores que donnera le prochain choix."""
 	banques_choisies: list[int] = field(default_factory=list)
 	"""Banques que donnera le prochain choix."""
+	sequences_choisies: list[int] = field(default_factory=list)
+	"""Séquences que donnera le prochain choix."""
 	remarques: list[str] = field(default_factory=list)
 	"""Remarques des choix de sonores ou de banques ouverts."""
 	dossiers_ouverts: list[Path] = field(default_factory=list)
@@ -115,7 +117,13 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	monkeypatch.setattr(dialogues, "confirmer_retrait", retrait)
 	monkeypatch.setattr(dialogues, "choisir_repertoire", repertoire)
 	monkeypatch.setattr(dialogues, "choisir_sonores", sonores)
+
+	def sequences(_parent: QWidget, _connexion: Connexion, remarque: str = "") -> list[int]:
+		interface.remarques.append(remarque)
+		return interface.sequences_choisies
+
 	monkeypatch.setattr(dialogues, "choisir_banques", banques)
+	monkeypatch.setattr(dialogues, "choisir_sequences", sequences)
 	monkeypatch.setattr(dialogues, "ouvrir_dossier", interface.dossiers_ouverts.append)
 
 
@@ -322,9 +330,15 @@ def repertoires(interface: Contexte, base_vide: Connexion, liste: str, nom: str)
 		)
 
 
-ELEMENT = re.compile(r"(le sonore|la banque) « ([^»]+) »")
-ELEMENTS = r"(?:le sonore|la banque) « [^»]+ »(?:, (?:le sonore|la banque) « [^»]+ »)*"
-"""Une liste d'éléments de séquence : « le sonore « Jingle » , la banque « Publicité » »."""
+ELEMENT = re.compile(r"(le sonore|la banque|la séquence) « ([^»]+) »")
+ELEMENTS = r"(?:le sonore|la banque|la séquence) « [^»]+ »(?:, (?:le sonore|la banque|la séquence) « [^»]+ »)*"
+"""Une liste d'éléments : « le sonore « Jingle », la banque « Publicité », la séquence « Passage pub » »."""
+REFERENCES = {
+	"le sonore": ("sonores", "titre", "sonore_id"),
+	"la banque": ("banques", "nom_interne", "banque_id"),
+	"la séquence": ("sequences", "nom_interne", "sequence_id"),
+}
+"""Table, colonne du nom et colonne de la liste de chaque genre d'élément."""
 
 
 @given(
@@ -340,25 +354,24 @@ def sequence(base_vide: Connexion, nom: str, nom_public: str | None, elements: s
 	).fetchone()
 	assert creee is not None
 	for position, (genre, element) in enumerate(ELEMENT.findall(elements), start=1):
-		colonne = {"le sonore": "sonore_id", "la banque": "banque_id"}[genre]
-		numero = identifiant(
-			base_vide, *{"le sonore": ("sonores", "titre"), "la banque": ("banques", "nom_interne")}[genre], element
-		)
+		table, colonne, reference = REFERENCES[genre]
 		base_vide.execute(
-			f"INSERT INTO sequences_elements (sequence_id, position, {colonne}) VALUES (%s, %s, %s)",  # noqa: S608
-			(creee[0], position, numero),
+			f"INSERT INTO sequences_elements (sequence_id, position, {reference}) VALUES (%s, %s, %s)",  # noqa: S608
+			(creee[0], position, identifiant(base_vide, table, colonne, element)),
 		)
 
 
-@given(parsers.parse("l'événement « {evenement} » joue la séquence « {nom} »"))
-def evenement_jouant(base_vide: Connexion, evenement: str, nom: str) -> None:
-	"""La séquence s'ajoute en fin de la liste de l'événement."""
+@given(parsers.re(rf"l'événement « (?P<evenement>[^»]+) » joue (?P<elements>{ELEMENTS})"))
+def evenement_jouant(base_vide: Connexion, evenement: str, elements: str) -> None:
+	"""Les éléments s'ajoutent en fin de la liste de l'événement, dans l'ordre."""
 	numero = identifiant(base_vide, "evenements", "nom_interne", evenement)
-	base_vide.execute(
-		"INSERT INTO evenements_elements (evenement_id, position, sequence_id)"
-		" SELECT %s, COALESCE(MAX(position), 0) + 1, %s FROM evenements_elements WHERE evenement_id = %s",
-		(numero, identifiant(base_vide, "sequences", "nom_interne", nom), numero),
-	)
+	for genre, element in ELEMENT.findall(elements):
+		table, colonne, reference = REFERENCES[genre]
+		base_vide.execute(
+			f"INSERT INTO evenements_elements (evenement_id, position, {reference})"  # noqa: S608
+			" SELECT %s, COALESCE(MAX(position), 0) + 1, %s FROM evenements_elements WHERE evenement_id = %s",
+			(numero, identifiant(base_vide, table, colonne, element), numero),
+		)
 
 
 @given("les événements :")
@@ -423,6 +436,12 @@ def ouvrir_fiche_sequence(interface: Contexte, qtbot: QtBot, nom: str) -> None:
 	ouvrir_ligne(interface, qtbot, nom)
 
 
+@when(parsers.parse("j'ouvre la fiche de l'événement « {nom} »"))
+def ouvrir_fiche_evenement(interface: Contexte, qtbot: QtBot, nom: str) -> None:
+	ouvrir_onglet(interface, "Événements")
+	ouvrir_ligne(interface, qtbot, nom)
+
+
 @when(parsers.parse("j'ouvre la fiche du sonore « {nom} »"))
 def ouvrir_fiche_sonore(interface: Contexte, qtbot: QtBot, nom: str) -> None:
 	"""Par son titre, ou son emplacement pour un sonore sans titre."""
@@ -445,10 +464,10 @@ def saisir_nom(interface: Contexte, qtbot: QtBot, champ: str, texte: str) -> Non
 	taper(qtbot, champs[champ], texte)
 
 
-@when(parsers.re(r"je choisis le (?P<champ>mode|masquage) « (?P<texte>[^»]+) »"))
+@when(parsers.re(r"je choisis (?:le|la) (?P<champ>mode|masquage|priorité) « (?P<texte>[^»]+) »"))
 def choisir_dans_la_fiche(interface: Contexte, champ: str, texte: str) -> None:
 	ui = fiche_ouverte(interface).ui  # type: ignore[attr-defined]
-	liste = getattr(ui, champ)
+	liste = getattr(ui, {"priorité": "priorite"}.get(champ, champ))
 	indice = liste.findText(texte, Qt.MatchFlag.MatchFixedString)
 	assert indice >= 0, f"« {texte} » absent du choix du {champ}"
 	liste.setCurrentIndex(indice)
@@ -469,24 +488,34 @@ def effacer(base_vide: Connexion, titre: str) -> None:
 	base_vide.execute("DELETE FROM sonores WHERE titre = %s", (titre,))
 
 
-@when(parsers.parse("la banque « {nom} » est effacée de la base"))
-def effacer_banque(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("DELETE FROM banques WHERE nom_interne = %s", (nom,))
+@when(parsers.re(r"la banque « (?P<nom>[^»]+) » (?P<etat>est|n'est plus) marquée « ne pas répéter » en base"))
+def marquer(base_vide: Connexion, nom: str, etat: str) -> None:
+	base_vide.execute("UPDATE banques SET ne_pas_repeter = %s WHERE nom_interne = %s", (etat == "est", nom))
 
 
-@when(parsers.re(r"j'ajoute les (?P<genre>sonores|banques) (?P<noms>aucun|« [^»]+ »(?:, « [^»]+ »)*)"))
+@when(parsers.re(r"la (?P<genre>banque|séquence) « (?P<nom>[^»]+) » est effacée de la base"))
+def effacer_banque(base_vide: Connexion, genre: str, nom: str) -> None:
+	table = {"banque": "banques", "séquence": "sequences"}[genre]
+	base_vide.execute(f"DELETE FROM {table} WHERE nom_interne = %s", (nom,))  # noqa: S608
+
+
+@when(parsers.re(r"j'ajoute les (?P<genre>sonores|banques|séquences) (?P<noms>aucun|« [^»]+ »(?:, « [^»]+ »)*)"))
 def ajouter_elements(interface: Contexte, qtbot: QtBot, base_vide: Connexion, genre: str, noms: str) -> None:
-	"""Le choix donnera ces sonores, par leur titre, ou ces banques, par leur nom ; « aucun » : le choix est
-	abandonné."""
+	"""Le choix donnera ces sonores, par leur titre, ou ces banques ou ces séquences, par leur nom ; « aucun » : le
+	choix est abandonné."""
 	ui = fiche_ouverte(interface).ui  # type: ignore[attr-defined]
 	if genre == "sonores":
 		interface.sonores_choisis = [identifiant(base_vide, "sonores", "titre", nom) for nom in NOM.findall(noms)]
-		qtbot.mouseClick(ui.ajouter_sonores, Qt.MouseButton.LeftButton)
-	else:
+	elif genre == "banques":
 		interface.banques_choisies = [
 			identifiant(base_vide, "banques", "nom_interne", nom) for nom in NOM.findall(noms)
 		]
-		qtbot.mouseClick(ui.ajouter_banques, Qt.MouseButton.LeftButton)
+	else:
+		interface.sequences_choisies = [
+			identifiant(base_vide, "sequences", "nom_interne", nom) for nom in NOM.findall(noms)
+		]
+	bouton = {"sonores": "ajouter_sonores", "banques": "ajouter_banques", "séquences": "ajouter_sequences"}[genre]
+	qtbot.mouseClick(getattr(ui, bouton), Qt.MouseButton.LeftButton)
 
 
 @when(parsers.parse("je ferme l'onglet « {titre} »"))
@@ -696,8 +725,3 @@ def fichier_en_apercu(interface: Contexte, base_vide: Connexion, chemin: str) ->
 @then("les fichiers déposés sont intacts")
 def intacts(interface: Contexte) -> None:
 	assert {fichier: fichier.read_bytes() for fichier in interface.fichiers} == interface.fichiers
-
-
-@then(parsers.parse("la barre d'état annonce « {texte} »"))
-def barre_d_etat(interface: Contexte, texte: str) -> None:
-	assert fenetre(interface).statusBar().currentMessage() == texte

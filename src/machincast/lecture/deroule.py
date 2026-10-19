@@ -562,13 +562,24 @@ def appels_ignores(banques: Sequence[int | None], ne_pas_repeter: Collection[int
 	précédente : elles seront toujours sautées à la diffusion. Pour un événement qui boucle, la première ligne suit la
 	dernière.
 
-	banques : la banque de chaque ligne, None pour un sonore. Pour l'avertissement de l'interface à l'édition d'un
-	événement (https://github.com/dascritch/machincast/issues/32), qui n'empêche pas d'enregistrer.
+	banques : la banque de chaque ligne, None pour un sonore. Pour l'avertissement de l'interface à l'édition d'une
+	séquence (https://github.com/dascritch/machincast/issues/112), qui n'empêche pas d'enregistrer.
+	"""
+	return appels_ignores_aux_bords([(banque, banque) for banque in banques], ne_pas_repeter, boucle)
+
+
+def appels_ignores_aux_bords(
+	bords: Sequence[tuple[int | None, int | None]], ne_pas_repeter: Collection[int], boucle: bool
+) -> list[int]:
+	"""Comme appels_ignores, quand une ligne commence et finit par des banques différentes : une séquence
+	(https://github.com/dascritch/machincast/issues/32). Chaque ligne donne sa première banque, celle que la ligne
+	précédente peut avoir déjà fait passer, et sa dernière, que la ligne suivante peut rappeler ; None pour un
+	sonore.
 	"""
 	signalees = []
-	for indice, banque in enumerate(banques):
-		if (banque not in ne_pas_repeter) or ((indice == 0) and (not boucle)):
+	for indice, (premiere, _derniere) in enumerate(bords):
+		if (premiere not in ne_pas_repeter) or ((indice == 0) and (not boucle)):
 			continue
-		if banques[indice - 1] == banque:
+		if bords[indice - 1][1] == premiere:
 			signalees.append(indice + 1)
 	return signalees

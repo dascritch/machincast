@@ -213,11 +213,18 @@ psql --dbname=machincast -c "SELECT migration_id FROM _yoyo_migration"
 psql --dbname=machincast -c "SELECT to_regclass('sequences')"
 ```
 
-Si la première liste contient autre chose que `0001.schema-initial`, ou si la seconde répond une valeur vide au lieu de `sequences`, recréer la base. **Cela efface son contenu** : ce n'est possible que tant que MachinCast n'est pas en production. Les commandes de ce document utilisent le nom de base du modèle, `machincast` : le remplacer par celui de `base.production` (ou `base.test`) dans `machincast.toml`.
+Si la première liste contient autre chose que `0001.schema-initial` et les migrations qui la suivent (`0002.evenements-nom-unique`…), ou si la seconde répond une valeur vide au lieu de `sequences`, recréer la base. **Cela efface son contenu** : ce n'est possible que tant que MachinCast n'est pas en production. Les commandes de ce document utilisent le nom de base du modèle, `machincast` : le remplacer par celui de `base.production` (ou `base.test`) dans `machincast.toml`.
 
 ```bash
 sudo -u postgres dropdb machincast
 ./install.sh
+```
+
+**Deux événements du même nom.** Depuis la migration `0002.evenements-nom-unique` ([#32](https://github.com/dascritch/machincast/issues/32)), deux événements n'ont plus le même nom interne. Sur une base où c'est le cas, la migration s'arrête, sans rien changer, sur l'erreur `could not create unique index "evenements_nom_interne_key"`, qui nomme le nom en double. Lister les noms en double, renommer l'un des événements, puis relancer la migration :
+
+```bash
+psql --dbname=machincast -c "SELECT nom_interne, array_agg(id) FROM evenements GROUP BY nom_interne HAVING count(*) > 1"
+psql --dbname=machincast -c "UPDATE evenements SET nom_interne = 'Matinale du samedi' WHERE id = 42"
 ```
 
 ## Installer à la main

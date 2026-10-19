@@ -70,10 +70,6 @@ Fonctionnalité: Fiche d'une séquence
 			| Ouverture   |                          |
 			| Passage pub | Vous écoutez Radio Thune |
 
-	Scénario: Seules les listes des séquences et des banques proposent de créer un élément
-		Quand la fenêtre de l'interface s'ouvre
-		Alors les listes qui proposent de créer un élément sont « Séquences : Nouvelle séquence », « Banques : Nouvelle banque »
-
 	# ─── Champs ────────────────────────────────────────────────
 
 	Plan du scénario: Les champs modifiés partent en base à l'enregistrement
@@ -268,7 +264,7 @@ Fonctionnalité: Fiche d'une séquence
 
 	# ─── Liens vers les autres fiches ──────────────────────────
 
-	Scénario: Ouvrir un élément ouvre sa fiche, et ouvrir un événement demande son écran
+	Scénario: Ouvrir un élément ou un événement ouvre sa fiche
 		Étant donné les événements :
 			| nom      | nom_public | priorite    | debut | fin | jours |
 			| Continue |            | fil_musical |       |     |       |
@@ -282,4 +278,4 @@ Fonctionnalité: Fiche d'une séquence
 		Alors l'onglet ouvert est « Sonore : Jingle fin »
 		Quand j'ouvre l'onglet « Séquence : Passage pub »
 		Et j'ouvre l'événement « Continue » de la séquence
-		Alors la barre d'état annonce « Écran de détails de l'événement « Continue » : à venir, https://github.com/dascritch/machincast/issues/32 »
+		Alors l'onglet ouvert est « Événement : Continue »
