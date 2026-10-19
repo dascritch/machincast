@@ -81,6 +81,7 @@ Lire le bloc correspondant **avant** de modifier le code concerné :
 
 - TDD avec scénarios BDD : pas de fonctionnalité sans test.
 - Un commit par fonctionnalité, lié à un ticket GitHub Issues. Sans ticket, proposer une user story et attendre.
+- Une correction d'une PR ouverte est un nouveau commit, poussé sans forcer : jamais d'amend, de rebase ni de force push ([#131](https://github.com/dascritch/machincast/issues/131)) ; voir [doc/regles/developpement.md](doc/regles/developpement.md#corrections-dune-pr-ouverte).
 - Indentation par **tabulations**.
 - Ne jamais toucher à la base de production pendant les tests.
 - **Un fichier sonore n'est jamais supprimé, renommé, déplacé, remplacé ni écrit par MachinCast**, quels que soient les changements de son entrée dans `sonores` ([#96](https://github.com/dascritch/machincast/issues/96)) : voir [doc/regles/developpement.md](doc/regles/developpement.md#fichiers-sonores).
