@@ -4,10 +4,13 @@ Un onglet par écran : l'accueil (écran par défaut, ouvert au lancement), puis
 l'ordre de la recherche (spec § 8.2) : événements, séquences, banques, sonores. Ces onglets ne se ferment pas. Une liste
 se relit chaque fois que son onglet s'ouvre. Ouvrir une ligne demande l'écran de détail de l'élément (detail_demande).
 
-L'écran de détail d'une banque est sa fiche (machincast.interface.fiche_banque,
-https://github.com/dascritch/machincast/issues/31), dans un onglet qui se ferme ; une fiche déjà ouverte revient au
-premier plan. Une fiche modifiée demande quoi faire de ses modifications avant de se fermer, avec son onglet ou avec la
-fenêtre. Tant que les autres écrans de détail n'existent pas, la barre d'état les annonce, avec leur ticket.
+L'écran de détail d'une banque, d'un sonore ou d'une séquence est sa fiche (machincast.interface.fiche_banque,
+https://github.com/dascritch/machincast/issues/31 ; machincast.interface.fiche_sonore,
+https://github.com/dascritch/machincast/issues/28 ; machincast.interface.fiche_sequence,
+https://github.com/dascritch/machincast/issues/112), dans un onglet qui se ferme ; une fiche déjà ouverte revient au
+premier plan. Un élément cité par une fiche s'ouvre comme une ligne de liste. Une fiche modifiée demande quoi faire de
+ses modifications avant de se fermer, avec son onglet ou avec la fenêtre. Tant que les autres écrans de détail
+n'existent pas, la barre d'état les annonce, avec leur ticket.
 """
 
 from pathlib import Path
@@ -22,17 +25,17 @@ from machincast.horloge import Horloge
 from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.fiche import Fiche
 from machincast.interface.fiche_banque import FicheBanque
+from machincast.interface.fiche_sequence import FicheSequence
 from machincast.interface.fiche_sonore import FicheSonore
 from machincast.interface.listes import BANQUES, EVENEMENTS, SEQUENCES, SONORES, Liste
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 
 ONGLETS = (("Événements", EVENEMENTS), ("Séquences", SEQUENCES), ("Banques", BANQUES), ("Sonores", SONORES))
 DETAILS = {
-	"séquence": ("de la séquence", "https://github.com/dascritch/machincast/issues/112"),
 	"événement": ("de l'événement", "https://github.com/dascritch/machincast/issues/32"),
 }
 """Écrans de détail encore à venir, avec leur ticket."""
-FICHES: dict[str, type[Fiche]] = {fiche.genre: fiche for fiche in (FicheBanque, FicheSonore)}
+FICHES: dict[str, type[Fiche]] = {fiche.genre: fiche for fiche in (FicheBanque, FicheSonore, FicheSequence)}
 """Écrans de détail écrits : les fiches, par genre."""
 
 
@@ -94,6 +97,7 @@ class FenetrePrincipale(QMainWindow):
 				return
 		fiche = FICHES[genre](self.connexion, identifiant, self.horloge)
 		fiche.titre_change.connect(lambda titre: self._renommer(fiche, titre))
+		fiche.ouverture_demandee.connect(self._ouvrir)
 		self.ui.onglets.addTab(fiche, fiche.titre())
 		self.ui.onglets.setCurrentWidget(fiche)
 

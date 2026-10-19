@@ -156,7 +156,9 @@ BANQUES = Source(
 	"aucune banque",
 	"Nouvelle banque",
 )
-SEQUENCES = Source("séquence", ("Nom", "Nom public"), lire_sequences, "séquence", "séquences", "aucune séquence")
+SEQUENCES = Source(
+	"séquence", ("Nom", "Nom public"), lire_sequences, "séquence", "séquences", "aucune séquence", "Nouvelle séquence"
+)
 EVENEMENTS = Source(
 	"événement",
 	("Nom", "Nom public", "Priorité", "Début", "Fin", "Récurrence"),

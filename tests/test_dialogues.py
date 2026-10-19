@@ -1,4 +1,5 @@
-"""Scénarios des fenêtres de dialogue des fiches (https://github.com/dascritch/machincast/issues/31).
+"""Scénarios des fenêtres de dialogue des fiches (https://github.com/dascritch/machincast/issues/31,
+https://github.com/dascritch/machincast/issues/112).
 
 Les vraies fenêtres s'ouvrent, hors de l'écran du poste : un minuteur y clique une fois la fenêtre modale ouverte. Le
 sélecteur de répertoires et le navigateur de fichiers du poste sont remplacés.
@@ -17,7 +18,7 @@ from pytestqt.qtbot import QtBot
 
 from machincast.base import Role, connecter
 from machincast.interface import dialogues
-from machincast.interface.choix_sonores import ChoixSonores
+from machincast.interface.choix import Choix
 from tests.base_test import parametres_base_test
 from tests.etapes_interface import NOM, Connexion, identifiant
 
@@ -28,6 +29,7 @@ scenarios("dialogues.feature")
 class Dialogue:
 	parent: QWidget
 	texte: str = ""
+	titre: str = ""
 	boutons: list[str] = field(default_factory=list)
 	reponse: object = None
 	adresses: list[QUrl] = field(default_factory=list)
@@ -95,10 +97,17 @@ def selecteur(dialogue: Dialogue, monkeypatch: pytest.MonkeyPatch, selecteur: st
 	dialogue.reponse = dialogues.choisir_repertoire(dialogue.parent)
 
 
-@when(parsers.parse("le choix des sonores s'ouvre, et que j'y sélectionne tout, puis clique sur « {bouton} »"))
-def choix_sonores(dialogue: Dialogue, base_vide: Connexion, bouton: str) -> None:
+@when(
+	parsers.re(
+		r"le choix des (?P<genre>sonores|banques) s'ouvre, avec la remarque « ?(?P<remarque>[^»]*?) ?», et que j'y"
+		r" sélectionne tout, puis clique sur « (?P<bouton>[^»]+) »"
+	)
+)
+def choix(dialogue: Dialogue, base_vide: Connexion, genre: str, remarque: str, bouton: str) -> None:
 	def faire(modale: QWidget) -> None:
-		assert isinstance(modale, ChoixSonores), modale
+		assert isinstance(modale, Choix), modale
+		dialogue.titre = modale.windowTitle()
+		dialogue.texte = modale.ui.explication.text()
 		modale.liste.table.selectAll()
 		# « Annuler » est la traduction de Qt (qtbase_fr), que les tests ne chargent pas : le bouton se trouve par son
 		# rôle.
@@ -107,9 +116,10 @@ def choix_sonores(dialogue: Dialogue, base_vide: Connexion, bouton: str) -> None
 		modale.ui.boutons.button(standards[bouton]).click()
 
 	quand_modale(faire)
+	choisir = {"sonores": dialogues.choisir_sonores, "banques": dialogues.choisir_banques}[genre]
 	connexion = connecter(*parametres_base_test(), Role.INTERFACE)
 	try:
-		dialogue.reponse = dialogues.choisir_sonores(dialogue.parent, connexion)
+		dialogue.reponse = choisir(dialogue.parent, connexion, remarque)
 	finally:
 		connexion.close()
 
@@ -147,9 +157,20 @@ def repertoire(dialogue: Dialogue, choisi: str) -> None:
 	assert dialogue.reponse == attendu
 
 
-@then(parsers.re(r"les sonores choisis sont (?P<sonores>.+)"))
-def sonores(dialogue: Dialogue, base_vide: Connexion, sonores: str) -> None:
-	assert dialogue.reponse == [identifiant(base_vide, "sonores", "titre", titre) for titre in NOM.findall(sonores)]
+@then(parsers.parse("le choix s'est intitulé « {titre} »"))
+def intitule(dialogue: Dialogue, titre: str) -> None:
+	assert dialogue.titre == titre
+
+
+@then(parsers.parse("le choix a expliqué « {texte} »"))
+def explique(dialogue: Dialogue, texte: str) -> None:
+	assert dialogue.texte == texte
+
+
+@then(parsers.re(r"les (?P<genre>sonores|banques) choisis sont (?P<noms>.+)"))
+def choisis(dialogue: Dialogue, base_vide: Connexion, genre: str, noms: str) -> None:
+	table, colonne = {"sonores": ("sonores", "titre"), "banques": ("banques", "nom_interne")}[genre]
+	assert dialogue.reponse == [identifiant(base_vide, table, colonne, nom) for nom in NOM.findall(noms)]
 
 
 @then(parsers.parse("le poste a ouvert l'adresse « {adresse} »"))

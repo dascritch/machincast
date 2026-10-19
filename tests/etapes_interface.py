@@ -1,5 +1,6 @@
 """Étapes partagées des scénarios de la fenêtre de l'interface : onglets, listes et fiches
-(https://github.com/dascritch/machincast/issues/26, https://github.com/dascritch/machincast/issues/31).
+(https://github.com/dascritch/machincast/issues/26, https://github.com/dascritch/machincast/issues/31,
+https://github.com/dascritch/machincast/issues/112).
 
 Chargé comme greffon pytest par tests/conftest.py. La fenêtre s'affiche hors de l'écran du poste
 (QT_QPA_PLATFORM=offscreen, réglé par tests/conftest.py). Elle lit la base de test, avec le rôle de l'interface. Le
@@ -17,8 +18,9 @@ from pathlib import Path
 import psycopg
 import pytest
 import shiboken6
-from PySide6.QtCore import QCoreApplication, QEvent, QModelIndex, QPoint, Qt
-from PySide6.QtWidgets import QAbstractItemView, QLineEdit, QPushButton, QTabBar, QWidget
+from PySide6.QtCore import QCoreApplication, QEvent, QMimeData, QModelIndex, QPoint, QPointF, Qt, QUrl
+from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDropEvent
+from PySide6.QtWidgets import QAbstractItemView, QApplication, QLineEdit, QListView, QPushButton, QTabBar, QWidget
 from pytest_bdd import given, parsers, then, when
 from pytestqt.qtbot import QtBot
 
@@ -55,6 +57,10 @@ class Contexte:
 	"""Répertoires que donneront les choix suivants, None pour un choix abandonné."""
 	sonores_choisis: list[int] = field(default_factory=list)
 	"""Sonores que donnera le prochain choix."""
+	banques_choisies: list[int] = field(default_factory=list)
+	"""Banques que donnera le prochain choix."""
+	remarques: list[str] = field(default_factory=list)
+	"""Remarques des choix de sonores ou de banques ouverts."""
 	dossiers_ouverts: list[Path] = field(default_factory=list)
 	"""Dossiers ouverts dans le navigateur de fichiers."""
 	fermes: list[QWidget] = field(default_factory=list)
@@ -97,13 +103,19 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	def repertoire(_parent: QWidget) -> str | None:
 		return interface.repertoires_choisis.pop(0)
 
-	def sonores(_parent: QWidget, _connexion: Connexion) -> list[int]:
+	def sonores(_parent: QWidget, _connexion: Connexion, remarque: str = "") -> list[int]:
+		interface.remarques.append(remarque)
 		return interface.sonores_choisis
+
+	def banques(_parent: QWidget, _connexion: Connexion, remarque: str = "") -> list[int]:
+		interface.remarques.append(remarque)
+		return interface.banques_choisies
 
 	monkeypatch.setattr(dialogues, "confirmer_fermeture", fermeture)
 	monkeypatch.setattr(dialogues, "confirmer_retrait", retrait)
 	monkeypatch.setattr(dialogues, "choisir_repertoire", repertoire)
 	monkeypatch.setattr(dialogues, "choisir_sonores", sonores)
+	monkeypatch.setattr(dialogues, "choisir_banques", banques)
 	monkeypatch.setattr(dialogues, "ouvrir_dossier", interface.dossiers_ouverts.append)
 
 
@@ -167,9 +179,13 @@ def taper(qtbot: QtBot, champ: QLineEdit, texte: str) -> None:
 def ouvrir_dans(qtbot: QtBot, table: QAbstractItemView, nom: str) -> None:
 	"""Double-clic sur la ligne d'une table dont une cellule est le nom."""
 	modele = table.model()
+	colonnes = 1
+	if not isinstance(table, QListView):
+		# Le modèle d'une liste n'a qu'une colonne, et ne dit pas son nombre.
+		colonnes = modele.columnCount()
 	trouve: QModelIndex | None = None
 	for rangee in range(modele.rowCount()):
-		for colonne in range(modele.columnCount()):
+		for colonne in range(colonnes):
 			if modele.index(rangee, colonne).data() == nom:
 				trouve = modele.index(rangee, colonne)
 	assert trouve is not None, f"aucune ligne « {nom} »"
@@ -177,6 +193,38 @@ def ouvrir_dans(qtbot: QtBot, table: QAbstractItemView, nom: str) -> None:
 	centre = table.visualRect(trouve).center()
 	qtbot.mouseClick(table.viewport(), Qt.MouseButton.LeftButton, pos=centre)
 	qtbot.mouseDClick(table.viewport(), Qt.MouseButton.LeftButton, pos=centre)
+
+
+def glisser(interface: Contexte, liste: QAbstractItemView, quoi: str, deposer: bool, deplacement: bool) -> None:
+	"""Un glisser venu du navigateur de fichiers, qui propose la copie, le déplacement et le lien. Maj est enfoncée :
+	le navigateur propose le déplacement, que la fiche doit changer en copie. « un texte » glisse du texte, sans
+	fichier ; un chemin en https:// est une adresse web. Le dépôt est noté dans interface.depots."""
+	cible = liste.viewport()
+	donnees = QMimeData()
+	if quoi == "un texte":
+		donnees.setText("Café à minuit")
+	else:
+		adresses = []
+		for chemin in NOM.findall(quoi):
+			adresse = QUrl(chemin)
+			if not chemin.startswith("https://"):
+				adresse = QUrl.fromLocalFile(interface.chemin(chemin))
+			adresses.append(adresse)
+		donnees.setUrls(adresses)
+	actions = Qt.DropAction.CopyAction | Qt.DropAction.MoveAction | Qt.DropAction.LinkAction
+	if deplacement:
+		actions = Qt.DropAction.MoveAction
+	centre = cible.rect().center()
+	bouton, touches = Qt.MouseButton.LeftButton, Qt.KeyboardModifier.ShiftModifier
+	QApplication.sendEvent(cible, QDragEnterEvent(centre, actions, donnees, bouton, touches))
+	QApplication.sendEvent(cible, QDragMoveEvent(centre, actions, donnees, bouton, touches))
+	if not deposer:
+		QApplication.sendEvent(cible, QDragLeaveEvent())
+		return
+	depot = QDropEvent(QPointF(centre), actions, donnees, bouton, touches)
+	assert depot.proposedAction() == Qt.DropAction.MoveAction
+	QApplication.sendEvent(cible, depot)
+	interface.depots.append((depot.isAccepted(), depot.dropAction()))
 
 
 def duree_ou_rien(secondes: str) -> timedelta | None:
@@ -274,23 +322,42 @@ def repertoires(interface: Contexte, base_vide: Connexion, liste: str, nom: str)
 		)
 
 
+ELEMENT = re.compile(r"(le sonore|la banque) « ([^»]+) »")
+ELEMENTS = r"(?:le sonore|la banque) « [^»]+ »(?:, (?:le sonore|la banque) « [^»]+ »)*"
+"""Une liste d'éléments de séquence : « le sonore « Jingle » , la banque « Publicité » »."""
+
+
 @given(
-	parsers.parse(
-		"la séquence « {nom} », de nom public « {nom_public} », avec le sonore « {sonore} » et la banque « {banque} »"
+	parsers.re(
+		r"la séquence « (?P<nom>[^»]+) », (?:de nom public « (?P<nom_public>[^»]+) »|sans nom public),"
+		rf" avec (?P<elements>{ELEMENTS})"
 	)
 )
-def sequence(base_vide: Connexion, nom: str, nom_public: str, sonore: str, banque: str) -> None:
+def sequence(base_vide: Connexion, nom: str, nom_public: str | None, elements: str) -> None:
+	"""Chaque sonore par son titre, chaque banque par son nom, dans l'ordre."""
 	creee = base_vide.execute(
 		"INSERT INTO sequences (nom_interne, nom_public) VALUES (%s, %s) RETURNING id", (nom, nom_public)
 	).fetchone()
 	assert creee is not None
+	for position, (genre, element) in enumerate(ELEMENT.findall(elements), start=1):
+		colonne = {"le sonore": "sonore_id", "la banque": "banque_id"}[genre]
+		numero = identifiant(
+			base_vide, *{"le sonore": ("sonores", "titre"), "la banque": ("banques", "nom_interne")}[genre], element
+		)
+		base_vide.execute(
+			f"INSERT INTO sequences_elements (sequence_id, position, {colonne}) VALUES (%s, %s, %s)",  # noqa: S608
+			(creee[0], position, numero),
+		)
+
+
+@given(parsers.parse("l'événement « {evenement} » joue la séquence « {nom} »"))
+def evenement_jouant(base_vide: Connexion, evenement: str, nom: str) -> None:
+	"""La séquence s'ajoute en fin de la liste de l'événement."""
+	numero = identifiant(base_vide, "evenements", "nom_interne", evenement)
 	base_vide.execute(
-		"INSERT INTO sequences_elements (sequence_id, position, sonore_id) VALUES (%s, 1, %s)",
-		(creee[0], identifiant(base_vide, "sonores", "titre", sonore)),
-	)
-	base_vide.execute(
-		"INSERT INTO sequences_elements (sequence_id, position, banque_id) VALUES (%s, 2, %s)",
-		(creee[0], identifiant(base_vide, "banques", "nom_interne", banque)),
+		"INSERT INTO evenements_elements (evenement_id, position, sequence_id)"
+		" SELECT %s, COALESCE(MAX(position), 0) + 1, %s FROM evenements_elements WHERE evenement_id = %s",
+		(numero, identifiant(base_vide, "sequences", "nom_interne", nom), numero),
 	)
 
 
@@ -350,6 +417,12 @@ def ouvrir_fiche_banque(interface: Contexte, qtbot: QtBot, nom: str) -> None:
 	ouvrir_ligne(interface, qtbot, nom)
 
 
+@when(parsers.parse("j'ouvre la fiche de la séquence « {nom} »"))
+def ouvrir_fiche_sequence(interface: Contexte, qtbot: QtBot, nom: str) -> None:
+	ouvrir_onglet(interface, "Séquences")
+	ouvrir_ligne(interface, qtbot, nom)
+
+
 @when(parsers.parse("j'ouvre la fiche du sonore « {nom} »"))
 def ouvrir_fiche_sonore(interface: Contexte, qtbot: QtBot, nom: str) -> None:
 	"""Par son titre, ou son emplacement pour un sonore sans titre."""
@@ -365,6 +438,22 @@ def cliquer_sur(interface: Contexte, qtbot: QtBot, texte: str) -> None:
 	qtbot.mouseClick(boutons[0], Qt.MouseButton.LeftButton)
 
 
+@when(parsers.re(r"je saisis le (?P<champ>nom interne|nom public) « (?P<texte>[^»]*) »"))
+def saisir_nom(interface: Contexte, qtbot: QtBot, champ: str, texte: str) -> None:
+	ui = fiche_ouverte(interface).ui  # type: ignore[attr-defined]
+	champs = {"nom interne": ui.nom_interne, "nom public": ui.nom_public}
+	taper(qtbot, champs[champ], texte)
+
+
+@when(parsers.re(r"je choisis le (?P<champ>mode|masquage) « (?P<texte>[^»]+) »"))
+def choisir_dans_la_fiche(interface: Contexte, champ: str, texte: str) -> None:
+	ui = fiche_ouverte(interface).ui  # type: ignore[attr-defined]
+	liste = getattr(ui, champ)
+	indice = liste.findText(texte, Qt.MatchFlag.MatchFixedString)
+	assert indice >= 0, f"« {texte} » absent du choix du {champ}"
+	liste.setCurrentIndex(indice)
+
+
 @when("j'enregistre la fiche")
 def enregistrer(interface: Contexte, qtbot: QtBot) -> None:
 	qtbot.mouseClick(fiche_ouverte(interface).bouton_enregistrer, Qt.MouseButton.LeftButton)
@@ -378,6 +467,26 @@ def annuler(interface: Contexte, qtbot: QtBot) -> None:
 @when(parsers.parse("le sonore « {titre} » est effacé de la base"))
 def effacer(base_vide: Connexion, titre: str) -> None:
 	base_vide.execute("DELETE FROM sonores WHERE titre = %s", (titre,))
+
+
+@when(parsers.parse("la banque « {nom} » est effacée de la base"))
+def effacer_banque(base_vide: Connexion, nom: str) -> None:
+	base_vide.execute("DELETE FROM banques WHERE nom_interne = %s", (nom,))
+
+
+@when(parsers.re(r"j'ajoute les (?P<genre>sonores|banques) (?P<noms>aucun|« [^»]+ »(?:, « [^»]+ »)*)"))
+def ajouter_elements(interface: Contexte, qtbot: QtBot, base_vide: Connexion, genre: str, noms: str) -> None:
+	"""Le choix donnera ces sonores, par leur titre, ou ces banques, par leur nom ; « aucun » : le choix est
+	abandonné."""
+	ui = fiche_ouverte(interface).ui  # type: ignore[attr-defined]
+	if genre == "sonores":
+		interface.sonores_choisis = [identifiant(base_vide, "sonores", "titre", nom) for nom in NOM.findall(noms)]
+		qtbot.mouseClick(ui.ajouter_sonores, Qt.MouseButton.LeftButton)
+	else:
+		interface.banques_choisies = [
+			identifiant(base_vide, "banques", "nom_interne", nom) for nom in NOM.findall(noms)
+		]
+		qtbot.mouseClick(ui.ajouter_banques, Qt.MouseButton.LeftButton)
 
 
 @when(parsers.parse("je ferme l'onglet « {titre} »"))
@@ -514,6 +623,17 @@ def onglet_de_fiche(interface: Contexte, verdict: str) -> None:
 	assert any(isinstance(ouverte, Fiche) for ouverte in fiches) == (verdict == "a encore")
 
 
+@then(parsers.re(r"les listes qui proposent de créer un élément sont (?P<boutons>.+)"))
+def boutons_nouveau(interface: Contexte, boutons: str) -> None:
+	onglets = fenetre(interface).ui.onglets
+	avec = []
+	for indice in range(onglets.count()):
+		ouverte = onglets.widget(indice)
+		if (isinstance(ouverte, Liste)) and (not ouverte.ui.nouveau.isHidden()):
+			avec.append(f"{onglets.tabText(indice)} : {ouverte.ui.nouveau.text()}")
+	assert avec == NOM.findall(boutons)
+
+
 @then("l'onglet « Accueil » montre l'écran par défaut")
 def accueil(interface: Contexte) -> None:
 	assert fenetre(interface).ui.onglets.widget(0) is fenetre(interface).accueil
@@ -546,6 +666,36 @@ def detail(interface: Contexte, base_vide: Connexion, genre: str, nom: str) -> N
 	}
 	table, colonne = tables[genre]
 	assert interface.demandes == [(genre, identifiant(base_vide, table, colonne, nom))], interface.demandes
+
+
+@then(parsers.re(r"(?:le choix a|les choix ont) précisé « (?P<remarque>[^»]+) »"))
+def remarque(interface: Contexte, remarque: str) -> None:
+	"""Chaque choix ouvert par la fiche a donné cette remarque."""
+	assert interface.remarques != []
+	assert set(interface.remarques) == {remarque}
+
+
+@then("le dépôt est accepté comme une copie")
+def depot_copie(interface: Contexte) -> None:
+	assert interface.depots == [(True, Qt.DropAction.CopyAction)]
+
+
+@then("le dépôt est refusé")
+def depot_refuse(interface: Contexte) -> None:
+	assert [accepte for accepte, _action in interface.depots] == [False]
+
+
+@then(parsers.parse("le fichier « {chemin} » est en base, à l'état aperçu, sans artiste ni titre"))
+def fichier_en_apercu(interface: Contexte, base_vide: Connexion, chemin: str) -> None:
+	lignes = base_vide.execute(
+		"SELECT type::text, etat::text, artiste, titre FROM sonores WHERE emplacement = %s", (interface.chemin(chemin),)
+	).fetchall()
+	assert lignes == [("fichier", "apercu", None, None)]
+
+
+@then("les fichiers déposés sont intacts")
+def intacts(interface: Contexte) -> None:
+	assert {fichier: fichier.read_bytes() for fichier in interface.fichiers} == interface.fichiers
 
 
 @then(parsers.parse("la barre d'état annonce « {texte} »"))

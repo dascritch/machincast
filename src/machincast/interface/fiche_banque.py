@@ -7,7 +7,7 @@ une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interf
 - Le masquage « hérité du sonore » (NULL) laisse décider le sonore ; « masqués » et « affichés » l'imposent.
 - Les répertoires sont enregistrés sous leur forme normale, comme les lit Machin indexation.
 - Les sonores se réordonnent par glisser-déposer, ou par les boutons « Monter » et « Descendre », en mode séquentiel
-  seulement. Ils s'ajoutent parmi les sonores déjà en base (machincast.interface.choix_sonores), y compris hors des
+  seulement. Ils s'ajoutent parmi les sonores déjà en base (machincast.interface.choix), y compris hors des
   répertoires de la banque.
 - Des dossiers déposés depuis le navigateur de fichiers s'ajoutent aux répertoires, des fichiers sonores aux sonores
   (machincast.interface.depot), toujours comme une copie. Un fichier pas encore en base devient un sonore à l'état
@@ -32,9 +32,8 @@ from machincast.horloge import Horloge
 from machincast.interface import affichage, dialogues
 from machincast.interface.depot import DepotDeFichiers
 from machincast.interface.dialogues import Retrait
-from machincast.interface.fiche import Connexion, Fiche, Refus
+from machincast.interface.fiche import Connexion, Fiche, Refus, fichiers_sonores
 from machincast.interface.ui.fiche_banque import Ui_FicheBanque
-from machincast.protection import est_fichier_sonore
 
 MODES = (("sequentiel", "Séquentielle"), ("aleatoire", "Aléatoire"))
 MASQUAGES: tuple[tuple[bool | None, str], ...] = ((None, "Hérité du sonore"), (True, "Masqués"), (False, "Affichés"))
@@ -51,6 +50,8 @@ SONORES_LUS = (
 )
 
 
+DEJA_DANS_LA_BANQUE = "Un sonore qui est déjà dans la banque n'y est pas ajouté une seconde fois."
+"""Remarque du choix des sonores."""
 DOSSIER_SUR_LES_SONORES = " Un dossier se dépose sur les répertoires indexés."
 """Conseil pour un dossier déposé sur les sonores."""
 
@@ -193,7 +194,7 @@ class FicheBanque(Fiche):
 		for ligne in self._lignes():
 			identifiant = ligne.data(0, SONORE)
 			if identifiant is None:
-				identifiant = self._enregistrer_fichier(str(ligne.data(0, FICHIER)))
+				identifiant = self.enregistrer_fichier(str(ligne.data(0, FICHIER)))
 			voulus.append(int(identifiant))
 		en_base = [
 			int(str(sonore))
@@ -214,18 +215,6 @@ class FicheBanque(Fiche):
 				"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
 				[(banque, sonore, position) for position, sonore in enumerate(ordre, start=1)],
 			)
-
-	def _enregistrer_fichier(self, fichier: str) -> int:
-		"""Un fichier déposé devient un sonore à l'état aperçu, que Machin indexation décodera ; s'il a été enregistré
-		entre-temps, le sonore est repris."""
-		ligne = self.connexion.execute("SELECT id FROM sonores WHERE emplacement = %s", (fichier,)).fetchone()
-		if ligne is None:
-			ligne = self.connexion.execute(
-				"INSERT INTO sonores (type, emplacement, etat) VALUES ('fichier', %s, 'apercu') RETURNING id",
-				(fichier,),
-			).fetchone()
-			assert ligne is not None
-		return int(str(ligne[0]))
 
 	def _ligne(self, sonore: tuple[object, ...]) -> QTreeWidgetItem:
 		"""Une ligne de sonore ; un fichier déposé, pas encore en base, n'a pas d'identifiant."""
@@ -297,13 +286,12 @@ class FicheBanque(Fiche):
 	def _deposer_repertoires(self, chemins: list[Path]) -> None:
 		"""Les dossiers déposés s'ajoutent aux répertoires ; un fichier est ignoré, et la fiche le dit."""
 		self._ajouter_repertoires([str(chemin) for chemin in chemins if chemin.is_dir()])
-		self._signaler_ignores([chemin for chemin in chemins if not chemin.is_dir()], "ce ne sont pas des répertoires")
+		self.signaler_ignores([chemin for chemin in chemins if not chemin.is_dir()], "ce ne sont pas des répertoires")
 
 	def _deposer_sonores(self, chemins: list[Path]) -> None:
 		"""Les fichiers sonores déposés s'ajoutent en fin de liste, une fois chacun. Un fichier pas encore en base est
 		montré par son nom, et deviendra un sonore à l'état aperçu à l'enregistrement."""
-		sonores = [chemin for chemin in chemins if (chemin.is_file()) and (est_fichier_sonore(chemin))]
-		fichiers = [os.path.normpath(chemin) for chemin in sonores]
+		fichiers, ignores = fichiers_sonores(chemins)
 		with self.connexion.transaction():
 			lus = self.connexion.execute(f"{SONORES_LUS} WHERE s.emplacement = ANY(%s)", (fichiers,)).fetchall()
 		par_fichier = {str(sonore[4]): sonore for sonore in lus}
@@ -320,12 +308,7 @@ class FicheBanque(Fiche):
 				lignes.append(self._ligne(sonore))
 		self.ui.sonores.addTopLevelItems(lignes)
 		self._actualiser_boutons()
-		ignores = [chemin for chemin in chemins if chemin not in sonores]
-		self._signaler_ignores(ignores, "ce ne sont pas des fichiers sonores", DOSSIER_SUR_LES_SONORES)
-
-	def _signaler_ignores(self, ignores: list[Path], raison: str, conseil: str = "") -> None:
-		if ignores != []:
-			self.ui.message.setText(f"Ignorés, {raison} : {', '.join(chemin.name for chemin in ignores)}.{conseil}")
+		self.signaler_ignores(ignores, "ce ne sont pas des fichiers sonores", DOSSIER_SUR_LES_SONORES)
 
 	def _montrer_repertoires(self, repertoires: list[str]) -> None:
 		"""Dans l'ordre de leurs caractères, quelle que soit la langue du poste."""
@@ -337,7 +320,7 @@ class FicheBanque(Fiche):
 		self._modifier()
 
 	def _ajouter_sonores(self) -> None:
-		choisis = dialogues.choisir_sonores(self, self.connexion)
+		choisis = dialogues.choisir_sonores(self, self.connexion, DEJA_DANS_LA_BANQUE)
 		presents = set(self._sonores())
 		nouveaux = [sonore for sonore in choisis if sonore not in presents]
 		with self.connexion.transaction():

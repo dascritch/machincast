@@ -267,10 +267,6 @@ Fonctionnalité: Fiche d'une banque
 		Alors l'onglet ouvert est « Banque : Habillage »
 		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Banque : Habillage »
 
-	Scénario: Seule la liste des banques propose d'en créer une
-		Quand la fenêtre de l'interface s'ouvre
-		Alors seule la liste « Banques » a un bouton « Nouvelle banque »
-
 	# ─── Répertoires ───────────────────────────────────────────
 
 	Scénario: Une banque a plusieurs répertoires, qui s'ajoutent et se retirent
@@ -372,7 +368,8 @@ Fonctionnalité: Fiche d'une banque
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et j'ajoute les sonores « Jingle », « Spot », « Café à minuit »
-		Alors la fiche montre les sonores « Les Gaufres – Café à minuit », « Aube – Matin clair », « Jingle », « Spot »
+		Alors le choix a précisé « Un sonore qui est déjà dans la banque n'y est pas ajouté une seconde fois. »
+		Et la fiche montre les sonores « Les Gaufres – Café à minuit », « Aube – Matin clair », « Jingle », « Spot »
 		Quand j'enregistre la fiche
 		Alors les sonores de la banque « Jingles » sont, dans l'ordre, « Café à minuit », « Matin clair », « Jingle », « Spot »
 
