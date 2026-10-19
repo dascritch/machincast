@@ -39,6 +39,20 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 			| tape Échap                        | Annuler            |
 			| tape Entrée                       | Annuler            |
 
+	Plan du scénario: La confirmation d'une suppression ne supprime que sur « Supprimer »
+		# https://github.com/dascritch/machincast/issues/33
+		Quand la question de suppression « Supprimer le sonore » s'ouvre, et que j'y <geste>
+		Alors la question a dit « Supprimer de la base le sonore « Spot » ? »
+		Et la question a proposé « Supprimer », « Annuler »
+		Et la réponse est « <reponse> »
+
+		Exemples:
+			| geste                    | reponse |
+			| clique sur « Supprimer » | True    |
+			| clique sur « Annuler »   | False   |
+			| tape Échap               | False   |
+			| tape Entrée              | False   |
+
 	Plan du scénario: Le choix d'un répertoire donne le répertoire choisi, ou rien s'il est abandonné
 		Quand le sélecteur de répertoires du poste donne « <selecteur> »
 		Alors le répertoire choisi est <choisi>

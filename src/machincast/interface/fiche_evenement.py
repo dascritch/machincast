@@ -72,7 +72,7 @@ class FicheEvenement(Fiche):
 		self.ui = Ui_FicheEvenement()
 		self.ui.setupUi(self)
 		ui = self.ui
-		self.brancher(ui.enregistrer, ui.annuler, ui.message)
+		self.brancher(ui.enregistrer, ui.annuler, ui.supprimer, ui.message)
 		for _valeur, texte in PRIORITES:
 			ui.priorite.addItem(texte)
 		for _masque, texte in MASQUAGES:

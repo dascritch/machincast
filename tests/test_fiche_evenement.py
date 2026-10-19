@@ -14,7 +14,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface.fiche_evenement import FicheEvenement
-from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, glisser, identifiant, ouvrir_dans
+from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, glisser, ouvrir_dans
 
 scenarios("fiche_evenement.feature")
 
@@ -76,14 +76,6 @@ def cases(evenement: FicheEvenement) -> dict[str, QAbstractButton]:
 
 
 # ─── Étant donné ───────────────────────────────────────────
-
-
-@given(parsers.parse("le stream « {titre} » a pour événement de secours « {secours} »"))
-def stream_secouru(base_vide: Connexion, titre: str, secours: str) -> None:
-	base_vide.execute(
-		"UPDATE sonores SET secours_evenement_id = %s WHERE titre = %s",
-		(identifiant(base_vide, "evenements", "nom_interne", secours), titre),
-	)
 
 
 @given(parsers.parse("« {nom} » qui vient de passer dans l'événement « {evenement} »"))

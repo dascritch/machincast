@@ -98,7 +98,7 @@ class FicheSonore(Fiche):
 		super().__init__(connexion, identifiant, horloge, parent)
 		self.ui = Ui_FicheSonore()
 		self.ui.setupUi(self)
-		self.brancher(self.ui.enregistrer, self.ui.annuler, self.ui.message)
+		self.brancher(self.ui.enregistrer, self.ui.annuler, self.ui.supprimer, self.ui.message)
 		self.metadonnees: dict[str, QLineEdit] = {cle: getattr(self.ui, cle) for cle, _nom in METADONNEES}
 		for cle in ENTIERS:
 			self.metadonnees[cle].setValidator(QIntValidator(0, 9999, self))

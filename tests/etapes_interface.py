@@ -53,6 +53,8 @@ class Contexte:
 	"""Réponse à la question de fermeture d'une fiche modifiée."""
 	retrait: Retrait = Retrait.ANNULER
 	"""Réponse à l'avertissement de réintégration d'un sonore retiré."""
+	suppression: bool = False
+	"""Réponse à la question de suppression : True pour supprimer."""
 	repertoires_choisis: list[str | None] = field(default_factory=list)
 	"""Répertoires que donneront les choix suivants, None pour un choix abandonné."""
 	sonores_choisis: list[int] = field(default_factory=list)
@@ -102,6 +104,10 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		interface.questions.append(f"retrait : {avertissement}")
 		return interface.retrait
 
+	def suppression(_parent: QWidget, titre: str, texte: str) -> bool:
+		interface.questions.append(f"suppression : {titre}\n{texte}")
+		return interface.suppression
+
 	def repertoire(_parent: QWidget) -> str | None:
 		return interface.repertoires_choisis.pop(0)
 
@@ -115,6 +121,7 @@ def remplacer_dialogues(interface: Contexte) -> None:
 
 	monkeypatch.setattr(dialogues, "confirmer_fermeture", fermeture)
 	monkeypatch.setattr(dialogues, "confirmer_retrait", retrait)
+	monkeypatch.setattr(dialogues, "confirmer_suppression", suppression)
 	monkeypatch.setattr(dialogues, "choisir_repertoire", repertoire)
 	monkeypatch.setattr(dialogues, "choisir_sonores", sonores)
 
@@ -372,6 +379,14 @@ def evenement_jouant(base_vide: Connexion, evenement: str, elements: str) -> Non
 			" SELECT %s, COALESCE(MAX(position), 0) + 1, %s FROM evenements_elements WHERE evenement_id = %s",
 			(numero, identifiant(base_vide, table, colonne, element), numero),
 		)
+
+
+@given(parsers.parse("le stream « {titre} » a pour événement de secours « {secours} »"))
+def stream_secouru(base_vide: Connexion, titre: str, secours: str) -> None:
+	base_vide.execute(
+		"UPDATE sonores SET secours_evenement_id = %s WHERE titre = %s",
+		(identifiant(base_vide, "evenements", "nom_interne", secours), titre),
+	)
 
 
 @given("les événements :")

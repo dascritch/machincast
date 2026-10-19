@@ -631,6 +631,12 @@ L'utilisateur saisit une date et heure de début et de fin. L'interface lance le
 - Même règle pour la suppression d'une banque, d'une séquence ou d'un événement.
 - Les lignes `airplay` sont toujours conservées.
 
+Mise en œuvre ([#33](https://github.com/dascritch/machincast/issues/33), `machincast.interface.suppression`, `Fiche.supprimer`) :
+
+- **Bouton** « Supprimer… » au pied de chaque fiche, actif dès que l'élément est en base. La confirmation est toujours demandée (`dialogues.confirmer_suppression`, Entrée et Échap gardent l'élément), même pour un élément qui ne figure nulle part.
+- **Question** : les banques, séquences et événements dont la liste contient l'élément, par nom, en signalant ceux qui n'auraient plus rien ; pour un sonore, son fichier, qui reste en place, et les banques dont un répertoire le contient, qui le réindexeront ; pour une banque, ses répertoires ; pour un événement, les streams qu'il secourt.
+- **Suppression** : un `DELETE` de la ligne, dans une transaction ; les clés étrangères retirent l'élément des listes (`ON DELETE CASCADE`) et vident les références de l'airplay, du log et des streams (`ON DELETE SET NULL`). Aucun fichier ni répertoire n'est touché. La fiche se ferme ensuite sans question ; un élément déjà effacé ferme simplement sa fiche.
+
 ### 8.10 Fil musical garanti
 
 Si aucun événement de priorité fil musical n'existe, l'interface en recrée un.

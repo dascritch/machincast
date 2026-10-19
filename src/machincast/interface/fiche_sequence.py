@@ -41,7 +41,7 @@ class FicheSequence(Fiche):
 		super().__init__(connexion, identifiant, horloge, parent)
 		self.ui = Ui_FicheSequence()
 		self.ui.setupUi(self)
-		self.brancher(self.ui.enregistrer, self.ui.annuler, self.ui.message)
+		self.brancher(self.ui.enregistrer, self.ui.annuler, self.ui.supprimer, self.ui.message)
 		for _valeur, texte in MASQUAGES:
 			self.ui.masquage.addItem(texte)
 		self._nom = ""
