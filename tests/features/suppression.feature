@@ -60,7 +60,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 			| Son fichier reste à sa place, intact : …/pubs/spot.flac. Il est dans un répertoire de la banque « Publicité » : la prochaine indexation l'enregistrera de nouveau, comme un nouveau sonore. |
 			| L'historique de diffusion garde ses passages.                                                                                           |
 		Et le sonore « Spot » n'est plus en base
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages »
+		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents »
 		Et la liste en base de la banque « Publicité » est rien
 		Et la liste en base de l'événement « Matinale » est « Habillage », « Passage pub »
 		Et l'historique de diffusion garde le passage de « Les Gaufres – Spot », à l'emplacement « …/pubs/spot.flac »
@@ -81,7 +81,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 			| Il ne figure dans aucune banque, aucune séquence ni aucun événement.      |
 			| Son fichier reste à sa place, intact : <emplacement>.                     |
 			| L'historique de diffusion garde ses passages.                             |
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages »
+		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents »
 
 		Exemples:
 			| artiste | titre  | emplacement                  | ouvert                       | nom              |
@@ -225,18 +225,18 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Et je supprime l'élément de la fiche, en répondant « Supprimer »
 		Alors seule la question de suppression a été posée
 		Et la banque « Habillage » n'est plus en base
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages »
+		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents »
 
 	Scénario: Un élément déjà effacé de la base ferme simplement sa fiche, sans rien demander
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Pub seule »
 		Et la séquence « Pub seule » est effacée de la base
 		Et je supprime l'élément de la fiche, en répondant « Supprimer »
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages »
+		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents »
 		Quand j'ouvre la fiche du sonore « Isolé »
 		Et le sonore « Isolé » est effacé de la base
 		Et je supprime l'élément de la fiche, en répondant « Supprimer »
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages »
+		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents »
 		Et aucune question n'a été posée
 
 	Scénario: Une base injoignable empêche la suppression, et la fiche le dit

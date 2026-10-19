@@ -12,6 +12,9 @@ L'écran de détail d'un élément est sa fiche, dans un onglet qui se ferme : �
 revient au premier plan. Un élément cité par une fiche s'ouvre comme une ligne de liste. Une fiche modifiée demande
 quoi faire de ses modifications avant de se fermer, avec son onglet ou avec la fenêtre.
 
+Le dernier onglet fixe est l'écran des incidents du log (machincast.interface.incidents,
+https://github.com/dascritch/machincast/issues/35), qui se relit aussi à l'ouverture de son onglet.
+
 Les fichiers ajoutés depuis la liste des sonores entrent en base (machincast.interface.ajout), puis l'indexeur les
 vérifie en tâche de fond (machincast.interface.verification, https://github.com/dascritch/machincast/issues/30) ; la
 barre d'état annonce l'un et l'autre.
@@ -37,6 +40,7 @@ from machincast.interface.fiche_marque_page import FicheMarquePage
 from machincast.interface.fiche_sequence import FicheSequence
 from machincast.interface.fiche_sonore import FicheSonore
 from machincast.interface.fil_musical import garantir
+from machincast.interface.incidents import EcranIncidents
 from machincast.interface.listes import BANQUES, EVENEMENTS, MARQUES_PAGES, SEQUENCES, SONORES, Liste
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 from machincast.interface.verification import Verificateur
@@ -88,6 +92,9 @@ class FenetrePrincipale(QMainWindow):
 			liste.fichiers_deposes.connect(lambda chemins, liste=liste: self._ajouter_fichiers(liste, chemins))
 			self.listes.append(liste)
 			self._ajouter_fixe(liste, titre)
+		self.incidents = EcranIncidents(connexion)
+		self.incidents.ouverte.connect(self._ouvrir)
+		self._ajouter_fixe(self.incidents, "Incidents")
 		self.ui.onglets.setCurrentIndex(0)
 		self.ui.onglets.currentChanged.connect(self._onglet_ouvert)
 		self._garantir_fil_musical()
@@ -182,7 +189,7 @@ class FenetrePrincipale(QMainWindow):
 
 	def _onglet_ouvert(self, indice: int) -> None:
 		ouvert = self.ui.onglets.widget(indice)
-		if isinstance(ouvert, Liste):
+		if isinstance(ouvert, (Liste, EcranIncidents)):
 			ouvert.actualiser()
 
 	def _ouvrir(self, genre: str, identifiant: int, _nom: str) -> None:

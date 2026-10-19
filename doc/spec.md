@@ -545,7 +545,7 @@ Mise en œuvre ([#23](https://github.com/dascritch/machincast/issues/23), `machi
 
 Mise en œuvre des listes ([#26](https://github.com/dascritch/machincast/issues/26), `machincast.interface.listes`, `machincast.interface.fenetre`) :
 
-- **Onglets** : la fenêtre a un onglet par écran, décidé avec le ticket : Accueil (l'écran par défaut, [§ 8.1](#81-écran-par-défaut)), ouvert au lancement, puis une liste par type, dans l'ordre de la recherche : Événements, Séquences, Banques, Sonores ; enfin les Marques-pages ([§ 8.13](#813-marques-pages-de-streams)).
+- **Onglets** : la fenêtre a un onglet par écran, décidé avec le ticket : Accueil (l'écran par défaut, [§ 8.1](#81-écran-par-défaut)), ouvert au lancement, puis une liste par type, dans l'ordre de la recherche : Événements, Séquences, Banques, Sonores ; puis les Marques-pages ([§ 8.13](#813-marques-pages-de-streams)) ; enfin les Incidents ([§ 8.6](#86-écran-des-incidents)).
 - **Colonnes et ordre** : événements (nom, nom public, priorité, début, fin, récurrence), du plus prioritaire au moins prioritaire ; séquences (nom, nom public) ; banques (nom, nom public, mode, ne pas répéter, premier répertoire dans l'ordre alphabétique) ; sonores (artiste, titre, type, état, durée, emplacement), par artiste puis titre ; marques-pages (nom, adresse, nombre de streams qui le suivent), par nom. Un clic sur un titre de colonne trie.
 - **Filtre** : les lignes dont une colonne contient le texte, sans tenir compte des majuscules ni des accents (`FiltreSansAccents`) ; un compte « n sonores sur N ».
 - **Lecture** : en base, avec le rôle de l'interface, chaque fois que l'onglet s'ouvre ; jamais en boucle. Le filtre est gardé.
@@ -614,6 +614,13 @@ Mise en œuvre ([#32](https://github.com/dascritch/machincast/issues/32), `machi
 ### 8.6 Écran des incidents
 
 Table des incidents du log : horaire, lien vers le sonore, lien vers la banque, lien vers l'événement quand il est renseigné.
+
+Mise en œuvre ([#35](https://github.com/dascritch/machincast/issues/35), `machincast.interface.incidents.EcranIncidents`) :
+
+- **Onglet** « Incidents », le dernier des onglets fixes ; il se relit à chaque ouverture, comme une liste.
+- **Entrées** : niveaux `alerte` et `incident`, et `info` sur demande (« Montrer aussi les informations ») ; du plus récent au plus ancien ; les 500 plus récentes au plus, ce que dit le compte. Colonnes : horaire (heure du poste), niveau, nature, message, sonore (artiste et titre, ou fichier, ou adresse), banque, événement.
+- **Filtre** : `FiltreSansAccents`, comme les listes ([§ 8.2](#82-recherche-et-navigation)).
+- **Liens** : un double-clic sur une cellule de sonore, de banque ou d'événement demande sa fiche (`EcranIncidents.ouverte`) ; ailleurs, rien. Un élément supprimé laisse sa cellule vide.
 
 ### 8.7 Écran de simulation
 

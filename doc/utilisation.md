@@ -355,7 +355,7 @@ Un sonore de type stream relaie un flux audio HTTP ou HTTPS, un direct extérieu
 - **Début d'un événement** de priorité égale ou supérieure : il coupe net le stream, comme un fichier.
 - **Fin de son événement** : le stream s'éteint pendant son crossfade de fin. Le sonore suivant démarre en même temps s'il a un crossfade de début, sinon à la fin du fondu ; sans crossfade de fin, le stream s'arrête net.
 - **Flux tombé** : un flux qui ne répond pas, ou qui s'arrête avant la fin de son événement, même proprement, est tombé. Son passage se termine en incident, et le log note l'incident `flux tombé`, avec l'adresse du flux et l'erreur. L'**événement de secours** du stream joue sa liste en boucle à sa place. Un stream sans événement de secours laisse jouer l'événement en dessous, le plus souvent le fil musical.
-- **Reconnexion** : tant que son événement est à l'antenne, `Machin lecture` retente la connexion toutes les 5 secondes, sans rien faire entendre. Dès que le flux revient, le stream reprend l'antenne : il monte pendant son crossfade de début, et le sonore de remplacement s'éteint pendant ce temps ; sans crossfade de début, le remplacement s'arrête net. La reprise est notée dans le log par l'incident `reprise du flux`, avec l'adresse du flux et la durée de la panne : l'écran des incidents montrera ainsi chaque panne et sa fin.
+- **Reconnexion** : tant que son événement est à l'antenne, `Machin lecture` retente la connexion toutes les 5 secondes, sans rien faire entendre. Dès que le flux revient, le stream reprend l'antenne : il monte pendant son crossfade de début, et le sonore de remplacement s'éteint pendant ce temps ; sans crossfade de début, le remplacement s'arrête net. La reprise est notée dans le log par l'incident `reprise du flux`, avec l'adresse du flux et la durée de la panne : l'[écran des incidents](#incidents) montre ainsi chaque panne et sa fin.
 - **Fin de l'événement pendant la panne** : la reconnexion est abandonnée (`reconnexion abandonnée` dans le log), et la diffusion continue normalement.
 
 Un **événement de secours** est un événement de priorité `secours` : il n'a ni début, ni fin, ni jours de récurrence, et ne passe jamais à l'antenne par la grille, seulement à la place d'un stream tombé. Chaque stream désigne le sien, ou aucun, dans [sa fiche](#fiche-dun-sonore). Un événement de secours se crée dans [sa fiche](#fiche-dun-événement), un stream depuis la liste des sonores ([Ajouter un sonore](#ajouter-un-sonore)).
@@ -409,7 +409,7 @@ L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture 
 
 ## Interface graphique : Machin interface
 
-`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores** et **Marques-pages**.
+`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores**, **Marques-pages** et **Incidents**.
 
 **Sans base de données**, l'interface n'est pas utilisable : `Machin interface` ouvre alors une fenêtre d'erreur, « MachinCast : base de données injoignable ». Elle explique pourquoi, et invite à lire le document `INSTALL.md` du répertoire de MachinCast, section [En cas de problème](../INSTALL.md#en-cas-de-problème). Son bouton « Ouvrir INSTALL.md » ouvre ce document, et ses détails donnent l'erreur de PostgreSQL. À sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, par exemple dans une session SSH, seul ce message s'affiche.
 
@@ -586,6 +586,16 @@ Un **marque-page** est une adresse de flux réutilisable, souvent en ligne par i
 - **Tester le flux** : comme dans la [fiche d'un sonore](#fiche-dun-sonore), la fiche se connecte à l'adresse saisie, même pas encore enregistrée, et dit si du son arrive. Rien n'est joué, et la connexion se ferme à la fin du test ou à la fermeture de la fiche.
 - **Streams qui le suivent** : un double-clic ouvre la fiche du stream, où il choisit son marque-page ou une adresse directe.
 - **Supprimer…** : un marque-page qu'un stream suit ne se supprime pas ; la fiche nomme ces streams, qui doivent d'abord choisir une autre adresse. Sinon, la suppression se confirme comme ailleurs ([Supprimer un élément](#supprimer-un-élément)).
+
+### Incidents
+
+L'onglet **Incidents** montre les alertes et les incidents que `Machin lecture` a notés dans le log, du plus récent au plus ancien ([#35](https://github.com/dascritch/machincast/issues/35)) : horaire, niveau, nature, message, et le sonore, la banque et l'événement concernés quand ils sont renseignés. La liste des natures est dans [Historique de diffusion et log](#historique-de-diffusion-et-log).
+
+- **Montrer aussi les informations** ajoute les entrées de niveau `info` (démarrage, élément sauté, sonore expiré…).
+- **Filtre** : comme pour les listes, sans tenir compte des majuscules ni des accents ; le compte dit combien d'entrées restent.
+- **Liens** : un double-clic sur le sonore, la banque ou l'événement d'une entrée ouvre sa fiche. Un élément supprimé depuis laisse sa cellule vide ; l'entrée garde son message.
+- **Lecture** : l'écran se relit chaque fois que son onglet s'ouvre. Seules les 500 entrées les plus récentes sont lues : le compte le dit alors (« 500 entrées, les plus récentes »).
+- `Machin indexation` n'écrit pas dans le log : ses anomalies sont sur sa sortie d'erreur, pas ici.
 
 ### Supprimer un élément
 
