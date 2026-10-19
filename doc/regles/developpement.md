@@ -14,7 +14,7 @@
 	```
 
 3. Écrire d'abord le scénario BDD (voir [tests.md](tests.md)), le voir échouer, puis implémenter (TDD).
-4. Une fonctionnalité = un test associé + un commit lié au ticket.
+4. Une fonctionnalité = un test associé + un commit lié au ticket, puis un commit par correction ([Corrections d'une PR ouverte](#corrections-dune-pr-ouverte)).
 5. Mettre à jour la documentation Markdown dans `/doc` dans le même commit.
 6. Vérifier la [definition of done](#definition-of-done) avant de demander la relecture.
 
@@ -52,6 +52,20 @@ Bascule sur un événement de priorité supérieure
 ```
 
 Portées usuelles : `lecture`, `indexation`, `interface`, `wrapper`, `db`, `install`, `doc`.
+
+## Corrections d'une PR ouverte
+
+Une correction d'une PR ouverte, demandée en relecture ou trouvée ensuite, est un **nouveau commit**, poussé sans forcer ([#131](https://github.com/dascritch/machincast/issues/131)). Le relecteur voit ainsi ce qui a changé depuis sa dernière relecture.
+
+- Jamais de `git commit --amend`, de `git rebase` ni de `git push --force` (ou `--force-with-lease`) sur la branche d'une PR ouverte : son historique n'est jamais réécrit.
+- Le message suit le format ci-dessus, lié au même ticket, avec le type qui convient : `fix` pour un défaut, `refactor`, `test` ou `docs` pour le reste. Par exemple :
+
+```
+fix(interface): le dépôt d'un fichier sonore n'est accepté que comme une copie
+
+https://github.com/dascritch/machincast/issues/31
+Écran de détails d'une banque
+```
 
 ## Style de code
 
