@@ -136,6 +136,16 @@ def _choisir(choix: Choix) -> list[int]:
 	return choix.selection()
 
 
+def montrer_version(parent: QWidget, texte: str) -> None:
+	"""La version de MachinCast, et la date de sa dernière modification."""
+	QMessageBox.information(parent, "Version de MachinCast", texte)
+
+
+def ouvrir_page(adresse: str) -> None:
+	"""Ouvre la page dans le navigateur web du poste."""
+	QDesktopServices.openUrl(QUrl(adresse))
+
+
 def ouvrir_dossier(dossier: Path) -> None:
 	"""Ouvre le dossier dans le navigateur de fichiers du poste."""
 	QDesktopServices.openUrl(QUrl.fromLocalFile(str(dossier)))

@@ -667,6 +667,13 @@ Mise en œuvre ([#39](https://github.com/dascritch/machincast/issues/39), `machi
 - Lancer une ré-indexation générale de toutes les banques.
 - Choisir la sortie audio des pré-écoutes.
 
+Mise en œuvre du menu ([#117](https://github.com/dascritch/machincast/issues/117), `FenetrePrincipale._garnir_menus`) :
+
+- **Fichier** : « Préférences… », à venir ; « Quitter » (Alt+Q), qui ferme la fenêtre comme sa case de fermeture, après la question sur les fiches modifiées.
+- **Maintenance** : « Moniteur de la sortie… », à venir ; « Indexation rapide » et « Audit complet » (ci-dessous).
+- **Aide** : « Signaler un problème… » ouvre les tickets GitHub dans le navigateur web (`dialogues.ouvrir_page`) ; « Version » montre le numéro de version et la date du dernier commit du dépôt d'où MachinCast est installé, à l'heure du poste (`machincast.interface.version`, `dialogues.montrer_version`), ou dit qu'elle est inconnue hors d'un dépôt git ou sans git.
+- **À venir** : une entrée inactive, dont l'infobulle donne le ticket ; elle s'active avec son ticket. Ajouter un élément se fait depuis sa liste ([§ 8.2](#82-recherche-et-navigation)) ; la sortie des pré-écoutes viendra avec elles ([#29](https://github.com/dascritch/machincast/issues/29)).
+
 Mise en œuvre de la ré-indexation ([#38](https://github.com/dascritch/machincast/issues/38), `machincast.interface.indexation.Indexation`, appelé par `FenetrePrincipale`) :
 
 - **Menu** « Maintenance », avec « Indexation rapide » et « Audit complet » : les deux modes de `Machin_indexation` ([§ 6.0](#60-modes-dindexation)).
