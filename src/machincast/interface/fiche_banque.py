@@ -139,7 +139,7 @@ class FicheBanque(Fiche):
 		nom, nom_public, mode, masquage, ne_pas_repeter = banque
 		self._nom = str(nom)
 		self.ui.nom_interne.setText(self._nom)
-		self.ui.nom_public.setText(str(nom_public or ""))
+		self.ui.nom_public.setText(str((nom_public) or ("")))
 		self.ui.mode.setCurrentIndex(self.ui.mode.findData(mode))
 		self.ui.masquage.setCurrentIndex(next(i for i, (valeur, _texte) in enumerate(MASQUAGES) if valeur is masquage))
 		self.ui.ne_pas_repeter.setChecked(bool(ne_pas_repeter))
@@ -160,7 +160,7 @@ class FicheBanque(Fiche):
 			raise Refus(f"Une autre banque s'appelle déjà « {nom} ».")
 		valeurs = (
 			nom,
-			self.ui.nom_public.text().strip() or None,
+			(self.ui.nom_public.text().strip()) or (None),
 			self.ui.mode.currentData(),
 			MASQUAGES[self.ui.masquage.currentIndex()][0],
 			self.ui.ne_pas_repeter.isChecked(),
@@ -239,7 +239,7 @@ class FicheBanque(Fiche):
 		if (artiste is None) and (titre is None) and (fichier is not None):
 			# Pas encore décodé : le nom du fichier en attendant ses tags.
 			texte = Path(str(fichier)).name
-		ligne = QTreeWidgetItem([texte, texte_duree, str(emplacement or "")])
+		ligne = QTreeWidgetItem([texte, texte_duree, str((emplacement) or (""))])
 		if identifiant is not None:
 			ligne.setData(0, SONORE, int(str(identifiant)))
 		ligne.setData(0, FICHIER, _texte(fichier))

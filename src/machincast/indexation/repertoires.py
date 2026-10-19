@@ -49,7 +49,7 @@ def fichiers_sonores(repertoire: Path) -> Iterator[Path]:
 		sous_repertoires[:] = sorted(nom for nom in sous_repertoires if not _cache(nom))
 		for nom in sorted(fichiers):
 			chemin = Path(courant) / nom
-			if not _cache(nom) and chemin.suffix.lower() in EXTENSIONS and chemin.is_file():
+			if (not _cache(nom)) and (chemin.suffix.lower() in EXTENSIONS) and (chemin.is_file()):
 				yield chemin
 
 

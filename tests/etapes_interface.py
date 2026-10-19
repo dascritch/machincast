@@ -126,7 +126,7 @@ def lignes(interface: Contexte) -> list[dict[str, str]]:
 		for colonne in range(modele.columnCount())
 	]
 	return [
-		{titre: str(modele.index(rangee, colonne).data() or "") for colonne, titre in enumerate(titres)}
+		{titre: str((modele.index(rangee, colonne).data()) or ("")) for colonne, titre in enumerate(titres)}
 		for rangee in range(modele.rowCount())
 	]
 
@@ -179,6 +179,20 @@ def ouvrir_dans(qtbot: QtBot, table: QAbstractItemView, nom: str) -> None:
 	qtbot.mouseDClick(table.viewport(), Qt.MouseButton.LeftButton, pos=centre)
 
 
+def duree_ou_rien(secondes: str) -> timedelta | None:
+	"""Une durée en secondes ; aucune pour une cellule vide."""
+	if secondes == "":
+		return None
+	return timedelta(seconds=int(secondes))
+
+
+def date_ou_rien(texte: str) -> datetime | None:
+	"""« 2026-10-12 20:00 » en heure du poste ; aucune pour une cellule vide."""
+	if texte == "":
+		return None
+	return datetime.fromisoformat(texte).astimezone()
+
+
 def identifiant(base: Connexion, table: str, colonne: str, valeur: str) -> int:
 	ligne = base.execute(f"SELECT id FROM {table} WHERE {colonne} = %s", (valeur,)).fetchone()  # noqa: S608
 	assert ligne is not None, f"{valeur} absent de {table}"
@@ -207,10 +221,10 @@ def sonores(interface: Contexte, base_vide: Connexion, datatable: list[list[str]
 				ligne["type"],
 				None if stream else ligne["emplacement"],
 				ligne["emplacement"] if stream else None,
-				ligne["artiste"] or None,
-				ligne["titre"] or None,
+				(ligne["artiste"]) or (None),
+				(ligne["titre"]) or (None),
 				ligne["etat"],
-				timedelta(seconds=int(ligne["duree"])) if ligne["duree"] else None,
+				duree_ou_rien(ligne["duree"]),
 			),
 		)
 
@@ -290,10 +304,10 @@ def evenements(base_vide: Connexion, datatable: list[list[str]]) -> None:
 			" VALUES (%s, %s, %s, %s, %s, %s::jour_semaine[])",
 			(
 				ligne["nom"],
-				ligne["nom_public"] or None,
+				(ligne["nom_public"]) or (None),
 				ligne["priorite"],
-				datetime.fromisoformat(ligne["debut"]).astimezone() if ligne["debut"] else None,
-				datetime.fromisoformat(ligne["fin"]).astimezone() if ligne["fin"] else None,
+				date_ou_rien(ligne["debut"]),
+				date_ou_rien(ligne["fin"]),
 				[jour.strip() for jour in ligne["jours"].split(",") if jour.strip()],
 			),
 		)

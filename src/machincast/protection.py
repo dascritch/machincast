@@ -46,7 +46,7 @@ def injustifiees(texte: str, bash: bool = False) -> list[tuple[int, str]]:
 	fautes = []
 	precedente = ""
 	for numero, ligne in enumerate(texte.splitlines(), start=1):
-		if motif.search(ligne) and MARQUE not in ligne and MARQUE not in precedente:
+		if (motif.search(ligne)) and (MARQUE not in ligne) and (MARQUE not in precedente):
 			fautes.append((numero, ligne))
 		precedente = ligne
 	return fautes

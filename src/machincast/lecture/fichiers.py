@@ -25,7 +25,7 @@ def verifier_avant_lecture(
 		ligne = connexion.execute(
 			"SELECT emplacement, fichier_modifie_le, fichier_taille FROM sonores WHERE id = %s", (sonore,)
 		).fetchone()
-		if ligne is None or ligne[0] is None:
+		if (ligne is None) or (ligne[0] is None):
 			return None
 		chemin = Path(str(ligne[0]))
 		modifie_le = ligne[1] if isinstance(ligne[1], datetime) else None
@@ -43,12 +43,12 @@ def verifier_avant_lecture(
 			return None
 		ecarts = []
 		sur_le_disque = datetime.fromtimestamp(etat.st_mtime, tz=UTC)
-		if modifie_le is not None and sur_le_disque != modifie_le:
+		if (modifie_le is not None) and (sur_le_disque != modifie_le):
 			ecarts.append(
 				f"date de modification {modifie_le.astimezone():%Y-%m-%d %H:%M:%S} en base,"
 				f" {sur_le_disque.astimezone():%Y-%m-%d %H:%M:%S} sur le disque"
 			)
-		if taille is not None and etat.st_size != taille:
+		if (taille is not None) and (etat.st_size != taille):
 			ecarts.append(f"taille {taille} octets en base, {etat.st_size} sur le disque")
 		if ecarts:
 			historique.consigner(

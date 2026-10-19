@@ -76,9 +76,12 @@ def ajouter(base: Connexion, nom_banque: str, nom_sonore: str) -> None:
 
 def passage(base: Connexion, nom_sonore: str, nom_banque: str | None) -> None:
 	"""Ligne de début d'un passage dans l'airplay : ce qui compte pour le choix."""
+	fournie_par = None
+	if nom_banque is not None:
+		fournie_par = banque(base, nom_banque)
 	base.execute(
 		"INSERT INTO airplay (passage_id, type_ligne, sonore_id, banque_id) VALUES (%s, 'debut', %s, %s)",
-		(uuid.uuid4(), sonore(base, nom_sonore), None if nom_banque is None else banque(base, nom_banque)),
+		(uuid.uuid4(), sonore(base, nom_sonore), fournie_par),
 	)
 
 

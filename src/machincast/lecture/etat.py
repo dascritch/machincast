@@ -60,14 +60,16 @@ def est_sain(connexion: psycopg.Connection[TupleRow], sonore: int) -> bool | Non
 	type_sonore, etat, emplacement, derniere = ligne
 	if type_sonore == "stream":
 		return None
-	if etat != "actif" or emplacement is None or derniere is False:
+	if (etat != "actif") or (emplacement is None) or (derniere is False):
 		return False
 	chemin = Path(str(emplacement))
-	return chemin.is_file() and os.access(chemin, os.R_OK)
+	return (chemin.is_file()) and (os.access(chemin, os.R_OK))
 
 
 def instant(valeur: datetime | None) -> str | None:
-	return None if valeur is None else valeur.isoformat()
+	if valeur is None:
+		return None
+	return valeur.isoformat()
 
 
 class SocketEtat:
@@ -90,7 +92,7 @@ class SocketEtat:
 		repertoire = self.chemin.parent
 		repertoire.mkdir(mode=0o700, parents=True, exist_ok=True)
 		os.chmod(repertoire, 0o700)
-		if self.chemin.exists() or self.chemin.is_symlink():
+		if (self.chemin.exists()) or (self.chemin.is_symlink()):
 			if self._occupee():
 				raise SocketEtatOccupee(f"{self.chemin} : un autre Machin lecture diffuse déjà")
 			if not stat.S_ISSOCK(self.chemin.lstat().st_mode):
@@ -143,7 +145,7 @@ class SocketEtat:
 
 	def _accepter(self) -> None:
 		serveur = self._serveur
-		while serveur is not None and not self._fermee:
+		while (serveur is not None) and (not self._fermee):
 			try:
 				client, _ = serveur.accept()
 			except TimeoutError:
@@ -153,7 +155,7 @@ class SocketEtat:
 			threading.Thread(target=self._servir, args=(client,), name="client de l'état", daemon=True).start()
 
 	def _a_envoyer(self, envoye: int) -> bool:
-		return self._numero > envoye or self._fermee
+		return (self._numero > envoye) or (self._fermee)
 
 	def _servir(self, client: socket.socket) -> None:
 		cle = threading.get_ident()

@@ -243,7 +243,9 @@ def sortie_csv(contexte: Contexte, relatif: str) -> None:
 @then(parsers.re(r'la socket d\'état est "(?P<chemin>[^"]+)"(?P<relatif> à côté du fichier de configuration)?$'))
 def socket_etat(contexte: Contexte, chemin: str, relatif: str | None) -> None:
 	assert contexte.configuration is not None
-	attendu = contexte.repertoire / chemin if relatif else Path(chemin)
+	attendu = Path(chemin)
+	if relatif:
+		attendu = contexte.repertoire / chemin
 	assert contexte.configuration.lecture.socket_etat == attendu
 
 

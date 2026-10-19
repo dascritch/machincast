@@ -91,7 +91,7 @@ def lire_sonores(connexion: Connexion) -> list[Ligne]:
 			texte_duree = affichage.duree(duree)
 		cellules = [_texte(artiste), _texte(titre), str(type_sonore), ETATS.get(str(etat), str(etat))]
 		cellules += [texte_duree, _texte(emplacement)]
-		lignes.append(Ligne(int(str(identifiant)), _texte(titre) or _texte(emplacement), cellules))
+		lignes.append(Ligne(int(str(identifiant)), (_texte(titre)) or (_texte(emplacement)), cellules))
 	return lignes
 
 
@@ -189,7 +189,7 @@ class FiltreSansAccents(QSortFilterProxyModel):
 		modele = self.sourceModel()
 		for colonne in range(modele.columnCount()):
 			valeur = modele.index(rangee, colonne, parent).data()
-			if self._texte in sans_accents(str(valeur or "")):
+			if self._texte in sans_accents(str((valeur) or (""))):
 				return True
 		return False
 

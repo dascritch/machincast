@@ -124,7 +124,7 @@ class HistoriqueEnBase:
 			" ORDER BY horodatage DESC, id DESC LIMIT 1",
 			(evenement, depuis, depuis),
 		).fetchone()
-		return None if ligne is None or ligne[0] is None else int(str(ligne[0]))
+		return None if (ligne is None) or (ligne[0] is None) else int(str(ligne[0]))
 
 	def dernier_passage(self, connexion: Connexion) -> DernierPassage | None:
 		ligne = connexion.execute(

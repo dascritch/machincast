@@ -43,6 +43,8 @@ class Priorite(StrEnum):
 
 RANGS = {priorite: rang for rang, priorite in enumerate(Priorite)}
 
+JAMAIS = datetime.min.replace(tzinfo=UTC)
+"""Date de modification d'un événement qui n'en a pas."""
 JOURS = ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")
 """Valeurs du type jour_semaine, dans l'ordre de datetime.weekday()."""
 
@@ -76,11 +78,19 @@ class Occurrence:
 
 def heure_murale(moment: datetime) -> datetime:
 	"""Heure du poste, sans fuseau : la machine travaille en heure locale, celle de Paris."""
-	return moment.astimezone().replace(tzinfo=None) if moment.tzinfo is not None else moment
+	if moment.tzinfo is None:
+		return moment
+	return moment.astimezone().replace(tzinfo=None)
+
+
+def _heure_murale_ou_rien(moment: datetime | None) -> datetime | None:
+	if moment is None:
+		return None
+	return heure_murale(moment)
 
 
 def _couvre(debut: datetime, fin: datetime | None, moment: datetime) -> bool:
-	return debut <= moment and (fin is None or moment < fin)
+	return (debut <= moment) and ((fin is None) or (moment < fin))
 
 
 def occurrence(evenement: Evenement, instant: datetime) -> Occurrence | None:
@@ -88,23 +98,27 @@ def occurrence(evenement: Evenement, instant: datetime) -> Occurrence | None:
 	if evenement.debut is None:
 		return Occurrence(evenement, None, None)
 	debut = heure_murale(evenement.debut)
-	fin = None if evenement.fin is None else heure_murale(evenement.fin)
+	fin = _heure_murale_ou_rien(evenement.fin)
 	moment = heure_murale(instant)
 	if not evenement.jours:
-		return Occurrence(evenement, debut, fin) if _couvre(debut, fin, moment) else None
+		if not _couvre(debut, fin, moment):
+			return None
+		return Occurrence(evenement, debut, fin)
 
 	premier_jour = debut.date()
-	duree_en_jours = None if fin is None else (fin.date() - premier_jour).days
+	duree_en_jours: int | None = None
+	if fin is not None:
+		duree_en_jours = (fin.date() - premier_jour).days
 	# Une occurrence avec fin a commencé au plus tôt autant de jours avant que dure la première ; une occurrence
 	# sans fin, dans la semaine qui précède.
 	recul = 7 if duree_en_jours is None else duree_en_jours
 	for ecart in range(recul + 1):
 		jour = moment.date() - timedelta(days=ecart)
-		if jour < premier_jour or (jour != premier_jour and jour.weekday() not in evenement.jours):
+		if (jour < premier_jour) or ((jour != premier_jour) and (jour.weekday() not in evenement.jours)):
 			continue
 		depart = datetime.combine(jour, debut.time())
 		arrivee = None
-		if fin is not None and duree_en_jours is not None:
+		if (fin is not None) and (duree_en_jours is not None):
 			arrivee = datetime.combine(jour + timedelta(days=duree_en_jours), fin.time())
 		if _couvre(depart, arrivee, moment):
 			return Occurrence(evenement, depart, arrivee)
@@ -123,7 +137,9 @@ def evenement_actif(
 	candidates = [
 		o
 		for e in evenements
-		if e.priorite is not Priorite.SECOURS and (o := occurrence(e, instant)) is not None and o.cle not in terminees
+		if (e.priorite is not Priorite.SECOURS)
+		and ((o := occurrence(e, instant)) is not None)
+		and (o.cle not in terminees)
 	]
 	if not candidates:
 		return None
@@ -138,25 +154,29 @@ def prochain_changement(evenements: Iterable[Evenement], instant: datetime) -> d
 	moment = heure_murale(instant)
 	candidats: list[datetime] = []
 	for evenement in evenements:
-		if evenement.priorite is Priorite.SECOURS or evenement.debut is None:
+		if (evenement.priorite is Priorite.SECOURS) or (evenement.debut is None):
 			continue
 		debut = heure_murale(evenement.debut)
-		fin = None if evenement.fin is None else heure_murale(evenement.fin)
+		fin = _heure_murale_ou_rien(evenement.fin)
 		if not evenement.jours:
 			candidats += [c for c in (debut, fin) if c is not None]
 			continue
-		duree_en_jours = None if fin is None else (fin.date() - debut.date()).days
+		duree_en_jours: int | None = None
+		if fin is not None:
+			duree_en_jours = (fin.date() - debut.date()).days
 		# Les occurrences commencées dans la semaine passée peuvent encore finir ; celles de la semaine à venir,
 		# commencer.
-		for ecart in range(-8 - (duree_en_jours or 0), 8):
+		for ecart in range(-8 - ((duree_en_jours) or (0)), 8):
 			jour = moment.date() + timedelta(days=ecart)
-			if jour < debut.date() or (jour != debut.date() and jour.weekday() not in evenement.jours):
+			if (jour < debut.date()) or ((jour != debut.date()) and (jour.weekday() not in evenement.jours)):
 				continue
 			candidats.append(datetime.combine(jour, debut.time()))
-			if fin is not None and duree_en_jours is not None:
+			if (fin is not None) and (duree_en_jours is not None):
 				candidats.append(datetime.combine(jour + timedelta(days=duree_en_jours), fin.time()))
 	apres = [candidat for candidat in candidats if candidat > moment]
-	return min(apres).astimezone() if apres else None
+	if not apres:
+		return None
+	return min(apres).astimezone()
 
 
 COLONNES = "id, nom_interne, priorite::text, debut, fin, jours_recurrence::text[], modifie_le"
@@ -187,7 +207,7 @@ def _evenements(lignes: list[TupleRow]) -> list[Evenement]:
 			debut=debut if isinstance(debut, datetime) else None,
 			fin=fin if isinstance(fin, datetime) else None,
 			jours=frozenset(JOURS.index(str(jour)) for jour in (jours if isinstance(jours, list) else [])),
-			modifie_le=modifie_le if isinstance(modifie_le, datetime) else datetime.min.replace(tzinfo=UTC),
+			modifie_le=modifie_le if isinstance(modifie_le, datetime) else JAMAIS,
 		)
 		for identifiant, nom, priorite, debut, fin, jours, modifie_le in lignes
 	]

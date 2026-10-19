@@ -58,7 +58,9 @@ indent-style = "tab"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 # W191 signale les tabulations : désactivée, puisque les tabulations sont la règle du projet.
-ignore = ["W191"]
+# SIM108 réclame une expression conditionnelle à la place d'un if : désactivée, une expression conditionnelle ne décide
+# jamais d'un appel (doc/regles/developpement.md, https://github.com/dascritch/machincast/issues/103).
+ignore = ["W191", "SIM108"]
 
 [tool.mypy]
 strict = true

@@ -152,7 +152,7 @@ class Decision:
 
 	@property
 	def continuer(self) -> bool:
-		return not (self.couper or self.eteindre or self.jouer or self.silence)
+		return not ((self.couper) or (self.eteindre) or (self.jouer) or (self.silence))
 
 
 def elements_a_essayer(elements: list[Element], dernier: int | None, boucle: bool) -> list[Element]:
@@ -162,7 +162,9 @@ def elements_a_essayer(elements: list[Element], dernier: int | None, boucle: boo
 	élément inconnu (jamais joué, ou supprimé depuis) fait repartir du début.
 	"""
 	ids = [e.id for e in elements]
-	depart = ids.index(dernier) + 1 if dernier in ids else 0
+	depart = 0
+	if dernier in ids:
+		depart = ids.index(dernier) + 1
 	if not boucle:
 		return elements[depart:]
 	return elements[depart:] + elements[:depart]
@@ -206,7 +208,7 @@ def dernier_element(
 	"""Dernier élément joué de l'événement : dans l'occurrence en cours, ou depuis toujours pour un fil musical."""
 	evenement = occurrence.evenement
 	depuis = None
-	if evenement.priorite not in (Priorite.FIL_MUSICAL, Priorite.SECOURS) and occurrence.debut is not None:
+	if (evenement.priorite not in (Priorite.FIL_MUSICAL, Priorite.SECOURS)) and (occurrence.debut is not None):
 		depuis = occurrence.debut.astimezone()
 	return historique.dernier_element(connexion, evenement.id, depuis)
 
@@ -215,7 +217,7 @@ def boucle(occurrence: Occurrence) -> bool:
 	"""Une émission ou un spécial sans fin ne boucle pas : il se termine à la fin de sa liste. Un fil musical et un
 	événement de secours bouclent toujours."""
 	permanents = (Priorite.FIL_MUSICAL, Priorite.SECOURS)
-	return occurrence.evenement.priorite in permanents or occurrence.fin is not None
+	return (occurrence.evenement.priorite in permanents) or (occurrence.fin is not None)
 
 
 def prochain(
@@ -348,7 +350,7 @@ class Ordonnanceur:
 			evenements = lire_grille(self.connexion)
 			actif = evenement_actif(evenements, instant, frozenset(self.terminees))
 			actif = self._remplacer(evenements, instant, actif)
-			if actif is None or actif.cle != choix.occurrence.cle or choix.sonore in self._exclus(instant):
+			if (actif is None) or (actif.cle != choix.occurrence.cle) or (choix.sonore in self._exclus(instant)):
 				return False
 			return sonore_jouable(self.connexion, choix.sonore, instant, self.historique)
 
@@ -366,7 +368,7 @@ class Ordonnanceur:
 		self._lever_suspension()
 
 	def _lever_suspension(self) -> None:
-		if self.suspension is not None and self.suspension.secours is not None:
+		if (self.suspension is not None) and (self.suspension.secours is not None):
 			self.terminees.discard(_occurrence_de_secours(self.suspension.secours).cle)
 		self.suspension = None
 
@@ -385,10 +387,12 @@ class Ordonnanceur:
 
 	def _repetition(self, dernier: DernierPassage | None) -> Repetition | None:
 		"""La banque « ne pas répéter » qui a fourni le dernier passage, s'il y en a une."""
-		if dernier is None or dernier.banque is None:
+		if (dernier is None) or (dernier.banque is None):
 			return None
 		nom = a_ne_pas_repeter(self.connexion, dernier.banque)
-		return None if nom is None else Repetition(dernier.id, dernier.banque, nom)
+		if nom is None:
+			return None
+		return Repetition(dernier.id, dernier.banque, nom)
 
 	def _noter_les_sauts(self, repetition: Repetition, sautes: list[Saut], instant: datetime) -> None:
 		passage, notes = self._sauts_notes
@@ -416,10 +420,10 @@ class Ordonnanceur:
 			actif = self._remplacer(
 				evenements, instant, evenement_actif(evenements, instant, frozenset(self.terminees))
 			)
-			if en_cours is not None and not (couper or eteindre):
-				if actif is not None and actif.cle == en_cours.occurrence.cle:
+			if (en_cours is not None) and (not ((couper) or (eteindre))):
+				if (actif is not None) and (actif.cle == en_cours.occurrence.cle):
 					return Decision()
-				if actif is not None and self._commence_apres(actif, en_cours):
+				if (actif is not None) and (self._commence_apres(actif, en_cours)):
 					# Un événement a commencé pendant le sonore en cours : il le coupe net.
 					couper = True
 				elif en_cours.stream:
@@ -517,7 +521,7 @@ class Ordonnanceur:
 		suspension = self.suspension
 		if suspension is None:
 			return actif
-		if actif is None or actif.cle != suspension.occurrence.cle:
+		if (actif is None) or (actif.cle != suspension.occurrence.cle):
 			self._lever_suspension()
 			return actif
 		if suspension.secours is not None:
@@ -563,7 +567,7 @@ def appels_ignores(banques: Sequence[int | None], ne_pas_repeter: Collection[int
 	"""
 	signalees = []
 	for indice, banque in enumerate(banques):
-		if banque not in ne_pas_repeter or (indice == 0 and not boucle):
+		if (banque not in ne_pas_repeter) or ((indice == 0) and (not boucle)):
 			continue
 		if banques[indice - 1] == banque:
 			signalees.append(indice + 1)

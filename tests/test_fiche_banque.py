@@ -322,7 +322,7 @@ def seul_bouton_nouveau(interface: Contexte, titre: str, texte: str) -> None:
 	avec = []
 	for indice in range(onglets.count()):
 		ouverte = onglets.widget(indice)
-		if isinstance(ouverte, Liste) and not ouverte.ui.nouveau.isHidden():
+		if (isinstance(ouverte, Liste)) and (not ouverte.ui.nouveau.isHidden()):
 			avec.append((onglets.tabText(indice), ouverte.ui.nouveau.text()))
 	assert avec == [(titre, texte)]
 

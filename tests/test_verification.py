@@ -88,7 +88,7 @@ def demarrage_bloque(monkeypatch: pytest.MonkeyPatch, echecs: str | None) -> Ten
 
 	def tentative(chemin: Path, delai_demarrage: timedelta, delai_sans_progression: timedelta) -> Verification | None:
 		tentatives.nombre += 1
-		if echecs is None or tentatives.nombre <= int(echecs):
+		if (echecs is None) or (tentatives.nombre <= int(echecs)):
 			return None
 		return vraie_tentative(chemin, delai_demarrage, delai_sans_progression)
 
@@ -148,12 +148,12 @@ def duree_mesuree(resultat: Verification, attendue: str, marge: str) -> None:
 def est_declare(resultat: Verification, verdict: str) -> None:
 	assert isinstance(resultat, Verification), resultat
 	assert resultat.etat == verdict, f"{resultat.etat} : {resultat.probleme}"
-	assert resultat.probleme is not None and resultat.probleme.startswith(verdict)
+	assert (resultat.probleme is not None) and (resultat.probleme.startswith(verdict))
 
 
 @then(parsers.parse("le problème signalé mentionne « {texte} »"))
 def probleme_mentionne(resultat: Verification, texte: str) -> None:
-	assert resultat.probleme is not None and texte in resultat.probleme, resultat.probleme
+	assert (resultat.probleme is not None) and (texte in resultat.probleme), resultat.probleme
 
 
 @then("la vérification s'arrête en signalant un décodeur absent et le paquet à installer")

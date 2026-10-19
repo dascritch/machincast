@@ -49,18 +49,20 @@ class Candidat:
 def jouable(candidat: Candidat, instant: datetime) -> bool:
 	if candidat.etat != ETAT_JOUABLE:
 		return False
-	if candidat.debut_diffusion is not None and instant < candidat.debut_diffusion:
+	if (candidat.debut_diffusion is not None) and (instant < candidat.debut_diffusion):
 		return False
-	if candidat.fin_diffusion is not None and instant >= candidat.fin_diffusion:
+	if (candidat.fin_diffusion is not None) and (instant >= candidat.fin_diffusion):
 		return False
-	return candidat.max_lectures is None or candidat.lectures < candidat.max_lectures
+	return (candidat.max_lectures is None) or (candidat.lectures < candidat.max_lectures)
 
 
 def suivant_sequentiel(ordre: list[int], jouables: set[int], dernier: int | None) -> int | None:
 	"""Premier sonore jouable après le dernier joué, en reprenant au début ; None si aucun n'est jouable."""
 	if not jouables:
 		return None
-	depart = ordre.index(dernier) + 1 if dernier in ordre else 0
+	depart = 0
+	if dernier in ordre:
+		depart = ordre.index(dernier) + 1
 	for decalage in range(len(ordre)):
 		sonore = ordre[(depart + decalage) % len(ordre)]
 		if sonore in jouables:
@@ -82,7 +84,7 @@ def reste_du_cycle(jouables: set[int], historique: list[int]) -> set[int]:
 			if vus == jouables:
 				vus = set()
 	reste = jouables - vus
-	if reste == jouables and len(reste) > 1 and historique:
+	if (reste == jouables) and (len(reste) > 1) and (historique):
 		reste.discard(historique[0])
 	return reste
 
@@ -126,7 +128,7 @@ def sonore_jouable(
 		sonore,
 		historique,
 	)
-	return bool(candidats) and jouable(candidats[0], instant)
+	return (bool(candidats)) and (jouable(candidats[0], instant))
 
 
 def _jouables(
@@ -172,4 +174,6 @@ def choisir_sonore(
 	if ligne[0] == "sequentiel":
 		return suivant_sequentiel(ordre, jouables, joues[0] if joues else None)
 	reste = reste_du_cycle(jouables, joues)
-	return hasard.choice(sorted(reste)) if reste else None
+	if not reste:
+		return None
+	return hasard.choice(sorted(reste))

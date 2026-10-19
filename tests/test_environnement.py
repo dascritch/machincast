@@ -30,7 +30,7 @@ def isole() -> None:
 @then(parsers.parse('le module "{module}" est chargé depuis l\'environnement virtuel'))
 def module_du_venv(module: str) -> None:
 	specification = importlib.util.find_spec(module)
-	assert specification is not None and specification.origin is not None, f"{module} n'est pas installé"
+	assert (specification is not None) and (specification.origin is not None), f"{module} n'est pas installé"
 	assert Path(specification.origin).resolve().is_relative_to(PREFIXE), specification.origin
 
 

@@ -173,7 +173,7 @@ def dates(base_vide: Connexion, debut: str, fin: str) -> None:
 )
 def recopie(base_vide: Connexion, emplacement: str, artiste: str, titre: str) -> None:
 	lignes = airplay(base_vide)
-	assert lignes and all(ligne[3:6] == (emplacement, artiste, titre) for ligne in lignes), lignes
+	assert (lignes) and (all(ligne[3:6] == (emplacement, artiste, titre) for ligne in lignes)), lignes
 
 
 @then(
@@ -243,6 +243,6 @@ def un_seul_journal() -> None:
 	fautes = [
 		chemin.name
 		for chemin in sorted(SOURCES_LECTURE.glob("*.py"))
-		if chemin.name != "enregistrement.py" and "INSERT INTO log" in chemin.read_text(encoding="utf-8")
+		if (chemin.name != "enregistrement.py") and ("INSERT INTO log" in chemin.read_text(encoding="utf-8"))
 	]
 	assert not fautes, fautes

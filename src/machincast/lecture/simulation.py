@@ -87,7 +87,9 @@ class VoieSimulee:
 
 	def position(self) -> timedelta:
 		ecoule = self.horloge.maintenant() - self.debut
-		return ecoule if self.duree is None else min(ecoule, self.duree)
+		if self.duree is None:
+			return ecoule
+		return min(ecoule, self.duree)
 
 	def fin_prevue(self) -> datetime | None:
 		if self.arret_prevu is not None:
@@ -96,7 +98,7 @@ class VoieSimulee:
 
 	def traiter(self) -> None:
 		fin = self.fin_prevue()
-		if self.etat == "en cours" and fin is not None and self.horloge.maintenant() >= fin:
+		if (self.etat == "en cours") and (fin is not None) and (self.horloge.maintenant() >= fin):
 			self.etat = "finie"
 
 	def couper(self) -> None:
@@ -195,7 +197,7 @@ class HistoriqueSimule:
 	def dernier_element(self, connexion: Connexion, evenement: int, depuis: datetime | None) -> int | None:
 		for simule in reversed(self.passages):
 			passage = simule.passage
-			if passage.evenement == evenement and (depuis is None or passage.debut >= depuis):
+			if (passage.evenement == evenement) and ((depuis is None) or (passage.debut >= depuis)):
 				return passage.element
 		return EN_BASE.dernier_element(connexion, evenement, depuis)
 
@@ -265,7 +267,9 @@ class HistoriqueSimule:
 		evenement: int | None = None,
 	) -> None:
 		if niveau != "info":
-			moment = "" if instant is None else f"{instant.astimezone():%Y-%m-%d %H:%M:%S} : "
+			moment = ""
+			if instant is not None:
+				moment = f"{instant.astimezone():%Y-%m-%d %H:%M:%S} : "
 			journal.warning(f"simulation : {moment}{niveau} : {nature} : {message}")
 		self.log.append((niveau, nature, message))
 
@@ -282,8 +286,8 @@ class HistoriqueSimule:
 		for identifiant, (maximum, fin, nom) in candidats.items():
 			limite = None if maximum is None else int(str(maximum))
 			fin_diffusion = fin if isinstance(fin, datetime) else None
-			if (limite is not None and lectures[identifiant] >= limite) or (
-				fin_diffusion is not None and fin_diffusion <= instant
+			if ((limite is not None) and (lectures[identifiant] >= limite)) or (
+				(fin_diffusion is not None) and (fin_diffusion <= instant)
 			):
 				expiration = Expiration(identifiant, _cause(limite, lectures[identifiant], fin_diffusion, instant))
 				self.expires.add(identifiant)
@@ -365,7 +369,7 @@ def masquer(ligne: Ligne, metadonnees: Metadonnees) -> Ligne:
 	de vérifier ce qui est joué."""
 	if not masque(ligne.masquages, metadonnees.masquer):
 		return ligne
-	return replace(ligne, artiste=None, titre=ligne.nom_public or metadonnees.texte_public)
+	return replace(ligne, artiste=None, titre=(ligne.nom_public) or (metadonnees.texte_public))
 
 
 # ─── Simulation ────────────────────────────────────────────
@@ -386,15 +390,17 @@ def _prochaine_echeance(
 	"""Le prochain instant où la diffusion peut changer : fin de voie, début de crossfade de fin, grille, silence."""
 	candidats = [fin, *moteur.echeances()]
 	courant = diffusion.courant
-	if courant is not None and not courant.suivant_demande and courant.parametres.duree is not None:
+	if (courant is not None) and (not courant.suivant_demande) and (courant.parametres.duree is not None):
 		candidats.append(courant.passage.debut + courant.parametres.duree - courant.parametres.crossfade_fin)
 	changement = prochain_changement(lire_grille(connexion), instant)
 	if changement is not None:
 		candidats.append(changement)
-	if courant is None and not diffusion.sortants:
+	if (courant is None) and (not diffusion.sortants):
 		candidats.append(instant + ATTENTE_EN_SILENCE)
 	apres = [candidat for candidat in candidats if candidat > instant]
-	return min(apres) if apres else fin
+	if not apres:
+		return fin
+	return min(apres)
 
 
 def simuler(
@@ -421,30 +427,36 @@ def simuler(
 		while horloge.maintenant() < fin:
 			instant = horloge.maintenant()
 			diffusion.pas()
-			if diffusion.courant is None and not diffusion.sortants and diffusion.en_attente is not None:
+			if (diffusion.courant is None) and (not diffusion.sortants) and (diffusion.en_attente is not None):
 				# Le sonore en attente démarre au même instant, sans laisser de silence.
 				diffusion.pas()
 			horloge.avancer(_prochaine_echeance(connexion, diffusion, moteur, instant, fin) - instant)
 		diffusion.arreter()
 		lignes = historique.lignes(connexion)
-	masquees = [masquer(ligne, metadonnees or Metadonnees(masquer=False, texte_public="")) for ligne in lignes]
-	fichiers = exporter(masquees, historique.log, repertoire, nom or nom_par_defaut(debut, fin), debut, fin)
+	masquees = [masquer(ligne, (metadonnees) or (Metadonnees(masquer=False, texte_public=""))) for ligne in lignes]
+	fichiers = exporter(masquees, historique.log, repertoire, (nom) or (nom_par_defaut(debut, fin)), debut, fin)
 	return Resultat(lignes, historique.log, fichiers)
 
 
 # ─── Sorties de la simulation ──────────────────────────────
 
 
+def _heure_de_fin(fin: datetime | None) -> str:
+	if fin is None:
+		return ""
+	return f"{fin.astimezone():%H:%M:%S}"
+
+
 def page_de_simulation(lignes: list[Ligne], log: list[tuple[str, str, str]], debut: datetime, fin: datetime) -> str:
 	periode = f"du {debut.astimezone():%Y-%m-%d %H:%M} au {fin.astimezone():%Y-%m-%d %H:%M}"
 
 	def cellule(texte: str | None) -> str:
-		return f"<td>{html.escape(texte or '')}</td>"
+		return f"<td>{html.escape((texte) or (''))}</td>"
 
 	rangees = "\n".join(
 		"\t\t\t<tr>"
 		+ cellule(f"{ligne.debut.astimezone():%Y-%m-%d %H:%M:%S}")
-		+ cellule("" if ligne.fin is None else f"{ligne.fin.astimezone():%H:%M:%S}")
+		+ cellule(_heure_de_fin(ligne.fin))
 		+ cellule(ligne.artiste)
 		+ cellule(ligne.titre)
 		+ cellule(ligne.emplacement)

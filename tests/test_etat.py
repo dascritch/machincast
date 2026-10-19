@@ -125,7 +125,7 @@ def desactiver(base_vide: Connexion, nom: str) -> None:
 
 @then(parsers.parse("le message est en version {version:d}, à l'état « {etat} »"))
 def version_et_etat(client: Client, version: int, etat: str) -> None:
-	assert message(client)["version"] == version and message(client)["etat"] == etat, message(client)
+	assert (message(client)["version"] == version) and (message(client)["etat"] == etat), message(client)
 
 
 @then(
@@ -143,12 +143,15 @@ def sonore_en_cours(client: Client, titre: str, type: str, evenement: str) -> No
 def temps_en_cours(client: Client, debut: str, duree: int, fin: str) -> None:
 	courant = en_cours(client)
 	assert heure(courant["debut"]) == heure(debut), courant
-	assert courant["duree"] == duree and heure(courant["fin_estimee"]) == heure(fin), courant
+	assert (courant["duree"] == duree) and (heure(courant["fin_estimee"]) == heure(fin)), courant
 
 
 @then(parsers.re(r"l'emplacement du (?P<lequel>sonore en cours|prochain sonore) est le fichier de « (?P<nom>[^»]+) »"))
 def emplacement_fichier(client: Client, banc: Banc, lequel: str, nom: str) -> None:
-	sonore_annonce = en_cours(client) if lequel == "sonore en cours" else prochain(client)
+	if lequel == "sonore en cours":
+		sonore_annonce = en_cours(client)
+	else:
+		sonore_annonce = prochain(client)
 	assert sonore_annonce["emplacement"] == str(banc.fichiers[nom]), sonore_annonce
 
 
@@ -160,33 +163,33 @@ def emplacement_flux(client: Client, serveur: Any, flux: str) -> None:
 @then("sa progression est entre 0 et 1")
 def progression(client: Client) -> None:
 	valeur = en_cours(client)["progression"]
-	assert isinstance(valeur, float) and 0 < valeur < 1, en_cours(client)
+	assert (isinstance(valeur, float)) and (0 < valeur < 1), en_cours(client)
 
 
 @then("sa durée, sa fin estimée et sa progression sont inconnues")
 def duree_inconnue(client: Client) -> None:
 	courant = en_cours(client)
-	assert courant["duree"] is None and courant["fin_estimee"] is None and courant["progression"] is None, courant
+	assert (courant["duree"] is None) and (courant["fin_estimee"] is None) and (courant["progression"] is None), courant
 	assert courant["position"] > 0, courant
 
 
 @then("il n'y a ni sonore en cours ni prochain sonore")
 def rien(client: Client) -> None:
-	assert message(client)["en_cours"] is None and message(client)["prochain"] is None, message(client)
+	assert (message(client)["en_cours"] is None) and (message(client)["prochain"] is None), message(client)
 
 
 @then(parsers.re(r"le prochain sonore est « (?P<titre>[^»]+) », (?P<sain>sain|pas sain|à l'état sain inconnu)$"))
 def sonore_prochain(client: Client, titre: str, sain: str) -> None:
 	suivant = prochain(client)
 	attendu = {"sain": True, "pas sain": False, "à l'état sain inconnu": None}[sain]
-	assert suivant["titre"] == titre and suivant["sain"] is attendu, suivant
+	assert (suivant["titre"] == titre) and (suivant["sain"] is attendu), suivant
 
 
 @then(parsers.parse("il commencera au « {debut} », dure {duree:d} seconde et finira au « {fin} »"))
 def temps_prochain(client: Client, debut: str, duree: int, fin: str) -> None:
 	suivant = prochain(client)
 	assert heure(suivant["debut_estime"]) == heure(debut), suivant
-	assert suivant["duree"] == duree and heure(suivant["fin_estimee"]) == heure(fin), suivant
+	assert (suivant["duree"] == duree) and (heure(suivant["fin_estimee"]) == heure(fin)), suivant
 
 
 @then(parsers.parse("le prochain sonore commencera au « {debut} » et finira au « {fin} »"))
@@ -199,7 +202,7 @@ def debut_et_fin_du_prochain(client: Client, debut: str, fin: str) -> None:
 @then("le deuxième passage est le prochain sonore annoncé")
 def reservation_tenue(base_vide: Connexion, client: Client) -> None:
 	noms = [p[0] for p in passages(base_vide)]
-	assert len(noms) == 2 and noms[1] == prochain(client)["titre"], (noms, prochain(client))
+	assert (len(noms) == 2) and (noms[1] == prochain(client)["titre"]), (noms, prochain(client))
 
 
 def attendre_la_fin(client: Client) -> None:
@@ -214,7 +217,7 @@ def vus(client: Client, liste: str) -> None:
 	titres: list[str] = []
 	for recu in client.recus:
 		courant = recu["en_cours"]
-		if courant is not None and (not titres or titres[-1] != courant["titre"]):
+		if (courant is not None) and ((not titres) or (titres[-1] != courant["titre"])):
 			titres.append(courant["titre"])
 	assert titres == [n.strip(" «»") for n in liste.split(",")], titres
 
@@ -222,7 +225,7 @@ def vus(client: Client, liste: str) -> None:
 @then(parsers.parse("son dernier message est à l'état « {etat} »"))
 def dernier(client: Client, etat: str) -> None:
 	attendre_la_fin(client)
-	assert client.recus and client.recus[-1]["etat"] == etat, client.recus[-1:]
+	assert (client.recus) and (client.recus[-1]["etat"] == etat), client.recus[-1:]
 
 
 @then("la socket d'état n'existe plus")

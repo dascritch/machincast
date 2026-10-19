@@ -18,6 +18,7 @@ from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe, HorlogeSysteme
 from machincast.journal import configurer as configurer_journal
 from tests.base_test import CONFIGURATION_TEST, chemin_configuration_test, configuration_test, purger_base
+from tests.style import fautes as fautes_de_style
 
 RACINE = Path(__file__).resolve().parents[1]
 
@@ -33,6 +34,7 @@ class Contexte:
 	hasards: list[random.Random] = field(default_factory=list)
 	element: object = None
 	capture: "CaptureResult[str] | None" = None
+	fautes_de_style: list[str] = field(default_factory=list)
 
 
 @pytest.fixture
@@ -337,6 +339,36 @@ def sans_pourcent() -> None:
 		if FORMATAGE_POURCENT.search(ligne)
 	]
 	assert not fautes, "utiliser une f-string, jamais la notation % :\n" + "\n".join(fautes)
+
+
+# Style des conditions (revue de https://github.com/dascritch/machincast/pull/100,
+# https://github.com/dascritch/machincast/issues/103), vérifié par tests/style.py. Les écrans compilés par pyside6-uic
+# n'y sont pas soumis : ils ne se modifient jamais à la main.
+
+
+@when(parsers.parse("je vérifie le style de l'extrait « {code} »"))
+def verifier_extrait(contexte: Contexte, code: str) -> None:
+	contexte.fautes_de_style = [faute.nature for faute in fautes_de_style(code)]
+
+
+@then(parsers.re(r"l'extrait est (?P<verdict>accepté|refusé : .+)"))
+def verdict_extrait(contexte: Contexte, verdict: str) -> None:
+	attendues = []
+	if verdict != "accepté":
+		attendues = [verdict.removeprefix("refusé : ")]
+	assert sorted(set(contexte.fautes_de_style)) == attendues
+
+
+@then("aucun fichier Python de src/ ni de tests/ n'enfreint le style des conditions")
+def style_des_conditions() -> None:
+	fichiers = [chemin for chemin in sorted(SOURCES.rglob("*.py")) if chemin.parent.name != "ui"]
+	fichiers += sorted((RACINE / "tests").rglob("*.py"))
+	fautes = [
+		f"{chemin.relative_to(RACINE)}:{faute.ligne} : {faute.nature}"
+		for chemin in fichiers
+		for faute in fautes_de_style(chemin.read_text(encoding="utf-8"))
+	]
+	assert not fautes, "doc/regles/developpement.md, Style de code :\n" + "\n".join(fautes[:40])
 
 
 @then("aucun script bash du dépôt n'écrit une variable sans accolades")

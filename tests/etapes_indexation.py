@@ -62,10 +62,13 @@ def verifier(fichier: Path) -> Verification | DecodeurIndisponible:
 def inserer_sonore(
 	base: Connexion, emplacement: str, etat: str, champs_edites: list[str] | None = None, duree: float | None = None
 ) -> int:
+	en_base = None
+	if duree is not None:
+		en_base = timedelta(seconds=duree)
 	ligne = base.execute(
 		"INSERT INTO sonores (type, emplacement, etat, champs_edites, duree)"
 		" VALUES ('fichier', %s, %s, %s, %s) RETURNING id",
-		(emplacement, etat, champs_edites or [], None if duree is None else timedelta(seconds=duree)),
+		(emplacement, etat, (champs_edites) or ([]), en_base),
 	).fetchone()
 	assert ligne is not None
 	return int(str(ligne[0]))
@@ -174,7 +177,7 @@ def rien_signale(execution: Execution) -> None:
 def erreur_signalee(execution: Execution, fichier: Path, verdict: str, consequence: str) -> None:
 	lignes = [ligne for ligne in execution.erreurs.splitlines() if ligne.startswith(f"{fichier} : ")]
 	assert len(lignes) == 1, execution.erreurs
-	assert f" : {verdict} : " in lignes[0] and lignes[0].endswith(f" ; {consequence}"), lignes[0]
+	assert (f" : {verdict} : " in lignes[0]) and (lignes[0].endswith(f" ; {consequence}")), lignes[0]
 
 
 @then(parsers.parse("le bilan indique « {texte} »"))

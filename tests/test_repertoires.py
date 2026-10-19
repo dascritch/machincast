@@ -104,7 +104,7 @@ def etat_du_sonore(base_vide: Connexion, racine: Path, relatif: str, etat: str) 
 @then(parsers.re(r"la base contient (?P<nombre>\d+) sonores?"))
 def nombre_de_sonores(base_vide: Connexion, nombre: str) -> None:
 	ligne = base_vide.execute("SELECT count(*) FROM sonores").fetchone()
-	assert ligne is not None and ligne[0] == int(nombre)
+	assert (ligne is not None) and (ligne[0] == int(nombre))
 
 
 @then(
@@ -115,4 +115,4 @@ def nombre_de_sonores(base_vide: Connexion, nombre: str) -> None:
 def repertoire_signale(execution: Execution, racine: Path, repertoire: str, nom: str) -> None:
 	lignes = [ligne for ligne in execution.erreurs.splitlines() if str(racine / repertoire) in ligne]
 	assert lignes, execution.erreurs
-	assert "introuvable" in lignes[0] and nom in lignes[0], lignes[0]
+	assert ("introuvable" in lignes[0]) and (nom in lignes[0]), lignes[0]

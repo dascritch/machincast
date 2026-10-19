@@ -77,7 +77,7 @@ class Lecture:
 def socket_etat_par_defaut() -> Path:
 	"""Dans le répertoire d'exécution du compte ($XDG_RUNTIME_DIR, sinon /run/user/<uid>) : privé, effacé au
 	redémarrage du poste."""
-	repertoire = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+	repertoire = (os.environ.get("XDG_RUNTIME_DIR")) or (f"/run/user/{os.getuid()}")
 	return Path(repertoire) / "machincast" / "lecture.sock"
 
 
@@ -152,7 +152,7 @@ class _Lecteur:
 			return None
 		if not isinstance(valeur, str):
 			raise self.erreur(f"clé {section}.{cle} : texte attendu, {_decrire(valeur)} trouvé")
-		return valeur or None
+		return (valeur) or (None)
 
 	def chemin_facultatif(self, section: str, cle: str) -> Path | None:
 		"""Comme chemin_fichier, ou None si la clé est absente."""
@@ -194,7 +194,7 @@ def charger(chemin: Path | None = None) -> Configuration:
 	Sans chemin, lit `machincast.toml` dans le répertoire de MachinCast (fichier_par_defaut).
 	Lève ConfigurationInvalide avec un message qui nomme le fichier et la clé en cause.
 	"""
-	chemin = (chemin or fichier_par_defaut()).expanduser().absolute()
+	chemin = ((chemin) or (fichier_par_defaut())).expanduser().absolute()
 	try:
 		with chemin.open("rb") as fichier:
 			document = tomllib.load(fichier)
@@ -229,7 +229,7 @@ def charger(chemin: Path | None = None) -> Configuration:
 		pls=lecteur.chemin_fichier("sorties", "pls"),
 		html=lecteur.chemin_fichier("sorties", "html"),
 	)
-	lecture = Lecture(socket_etat=lecteur.chemin_facultatif("lecture", "socket_etat") or socket_etat_par_defaut())
+	lecture = Lecture(socket_etat=(lecteur.chemin_facultatif("lecture", "socket_etat")) or (socket_etat_par_defaut()))
 	# Un fichier sonore n'est jamais écrit ni remplacé (https://github.com/dascritch/machincast/issues/96).
 	for cle, valeur in (
 		("sorties.csv", sorties.csv),

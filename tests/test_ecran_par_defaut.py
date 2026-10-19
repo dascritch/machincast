@@ -84,6 +84,12 @@ def heure(texte: str) -> datetime:
 	return datetime.fromisoformat(texte).astimezone()
 
 
+def heure_ou_rien(texte: str) -> datetime | None:
+	if texte == "":
+		return None
+	return heure(texte)
+
+
 def a(horaire: str) -> datetime:
 	return heure(f"{JOUR} {horaire}")
 
@@ -153,7 +159,7 @@ def inserer_passage(
 ) -> None:
 	ligne = base.execute(
 		"INSERT INTO sonores (type, emplacement, artiste, titre) VALUES ('fichier', %s, %s, %s) RETURNING id",
-		(f"/musique/{uuid.uuid4()}.flac", artiste or None, titre),
+		(f"/musique/{uuid.uuid4()}.flac", (artiste) or (None), titre),
 	).fetchone()
 	assert ligne is not None
 	references = (
@@ -166,13 +172,13 @@ def inserer_passage(
 	colonnes = "passage_id, type_ligne, horodatage, sonore_id, evenement_id, sequence_id, banque_id, artiste, titre"
 	base.execute(
 		f"INSERT INTO airplay ({colonnes}) VALUES (%s, 'debut', %s, %s, %s, %s, %s, %s, %s)",
-		(passage, debut, *references, artiste or None, titre),
+		(passage, debut, *references, (artiste) or (None), titre),
 	)
 	if fin is not None:
 		base.execute(
 			f"INSERT INTO airplay ({colonnes}, duree_diffusee, sans_incident)"
 			" VALUES (%s, 'fin', %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-			(passage, fin, *references, artiste or None, titre, fin - debut, sans_incident == "oui"),
+			(passage, fin, *references, (artiste) or (None), titre, fin - debut, sans_incident == "oui"),
 		)
 
 
@@ -326,7 +332,7 @@ def passages(base_vide: Connexion, datatable: list[list[str]]) -> None:
 		inserer_passage(
 			base_vide,
 			heure(ligne["debut"]),
-			heure(ligne["fin"]) if ligne["fin"] else None,
+			heure_ou_rien(ligne["fin"]),
 			ligne["artiste"],
 			ligne["titre"],
 			ligne["evenement"],
@@ -517,7 +523,7 @@ def traduit(contexte: Contexte, anglais: str, francais: str) -> None:
 @when("je lance Machin_interface avec une socket PostgreSQL inexistante")
 def lancer(contexte: Contexte) -> None:
 	configuration = configuration_sans_base(contexte)
-	executable = shutil.which("Machin_interface") or str(Path(sys.executable).parent / "Machin_interface")
+	executable = (shutil.which("Machin_interface")) or (str(Path(sys.executable).parent / "Machin_interface"))
 	contexte.processus = subprocess.run(
 		[executable, "--config", str(configuration)], capture_output=True, text=True, timeout=60
 	)

@@ -46,7 +46,7 @@ DELAI_CONNEXION_SECONDES = 10
 
 def superposition(crossfade_fin_sortant: timedelta, crossfade_debut_entrant: timedelta) -> bool:
 	"""Deux sonores ne se superposent que si chacun a son crossfade, de fin pour l'un, de début pour l'autre."""
-	return crossfade_fin_sortant > timedelta(0) and crossfade_debut_entrant > timedelta(0)
+	return (crossfade_fin_sortant > timedelta(0)) and (crossfade_debut_entrant > timedelta(0))
 
 
 def enchainement(duree: timedelta, crossfade_fin: timedelta, crossfade_debut_suivant: timedelta) -> timedelta:
@@ -58,7 +58,9 @@ def enchainement(duree: timedelta, crossfade_fin: timedelta, crossfade_debut_sui
 
 def fondu_d_entree(crossfade_fin_precedent: timedelta, crossfade_debut: timedelta) -> timedelta:
 	"""Durée de la montée du sonore entrant : son crossfade de début s'il se superpose au précédent, sinon rien."""
-	return crossfade_debut if superposition(crossfade_fin_precedent, crossfade_debut) else timedelta(0)
+	if not superposition(crossfade_fin_precedent, crossfade_debut):
+		return timedelta(0)
+	return crossfade_debut
 
 
 def enveloppe(
@@ -70,7 +72,7 @@ def enveloppe(
 		points += [(timedelta(0), 0.0), (crossfade_debut, 1.0)]
 	else:
 		points.append((timedelta(0), 1.0))
-	if duree is not None and crossfade_fin > timedelta(0):
+	if (duree is not None) and (crossfade_fin > timedelta(0)):
 		points += [(max(duree - crossfade_fin, points[-1][0]), 1.0), (duree, 0.0)]
 	return points
 
@@ -104,13 +106,15 @@ class Voie:
 
 		lecteur = Gst.ElementFactory.make("playbin", None)
 		volume = Gst.ElementFactory.make("volume", None)
-		if lecteur is None or volume is None:
+		if (lecteur is None) or (volume is None):
 			raise SortieAudioIndisponible("playbin ou volume introuvable, installer gstreamer1.0-plugins-base")
 		sortie = creer_sortie(audio.sortie, audio.peripherique)
 		# Une vraie sortie suit l'horloge ; la sortie factice peut aller au plus vite, pour les tests.
 		sortie.set_property("sync", temps_reel)
 		fabrique = sortie.get_factory()
-		self.fabrique_de_sortie = "" if fabrique is None else fabrique.get_name()
+		self.fabrique_de_sortie: str | None = ""
+		if fabrique is not None:
+			self.fabrique_de_sortie = fabrique.get_name()
 
 		branche = Gst.Bin.new(None)
 		branche.add(volume)
@@ -122,13 +126,17 @@ class Voie:
 
 		lecteur.set_property("flags", LECTURE_AUDIO_SEULE)
 		lecteur.set_property("audio-sink", branche)
-		adresse = chemin if isinstance(chemin, str) else Gst.filename_to_uri(str(chemin.absolute()))
+		adresse: Path | str | None = chemin
+		if not isinstance(chemin, str):
+			adresse = Gst.filename_to_uri(str(chemin.absolute()))
 		lecteur.set_property("uri", adresse)
 		lecteur.connect("source-setup", _regler_source)
 
 		source = GstController.InterpolationControlSource()
 		source.set_property("mode", GstController.InterpolationMode.LINEAR)
-		points = [(timedelta(0), 0.0)] if muette else enveloppe(duree, crossfade_debut, crossfade_fin)
+		points = [(timedelta(0), 0.0)]
+		if not muette:
+			points = enveloppe(duree, crossfade_debut, crossfade_fin)
 		for instant, valeur in points:
 			source.set(_nanosecondes(instant), valeur)
 		volume.add_control_binding(GstController.DirectControlBinding.new_absolute(volume, "volume", source))
@@ -166,11 +174,15 @@ class Voie:
 	def volume_a(self, instant: timedelta) -> float:
 		"""Volume prévu à cet instant du sonore, entre 0 et 1."""
 		valeur = self._volume.get_value("volume", _nanosecondes(instant))
-		return 1.0 if valeur is None else float(valeur)
+		if valeur is None:
+			return 1.0
+		return float(valeur)
 
 	def position(self) -> timedelta:
 		trouvee, nanosecondes = self._lecteur.query_position(Gst.Format.TIME)
-		return timedelta(microseconds=nanosecondes / 1000) if trouvee else timedelta(0)
+		if not trouvee:
+			return timedelta(0)
+		return timedelta(microseconds=nanosecondes / 1000)
 
 	def demarrer(self) -> None:
 		self.etat = "en cours"
@@ -187,12 +199,12 @@ class Voie:
 	def traiter(self) -> None:
 		"""Lit les messages du pipeline : fin du sonore, ou erreur de lecture ; arrête la voie à la fin d'un fondu
 		de sortie."""
-		if self.etat == "en cours" and self.arret_prevu is not None and self.position() >= self.arret_prevu:
+		if (self.etat == "en cours") and (self.arret_prevu is not None) and (self.position() >= self.arret_prevu):
 			self.etat = "finie"
 			self._lecteur.set_state(Gst.State.NULL)
 			return
 		bus = self._lecteur.get_bus()
-		while self.etat == "en cours" and bus is not None:
+		while (self.etat == "en cours") and (bus is not None):
 			message = bus.pop_filtered(Gst.MessageType.EOS | Gst.MessageType.ERROR)
 			if message is None:
 				return

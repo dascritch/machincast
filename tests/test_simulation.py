@@ -14,7 +14,7 @@ import sys
 import uuid
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import psycopg
@@ -257,7 +257,7 @@ def ecrire_pendant_la_simulation(contexte: Contexte, base_vide: Connexion) -> No
 
 
 def machin_lecture() -> str:
-	return shutil.which("Machin_lecture") or str(Path(sys.executable).parent / "Machin_lecture")
+	return (shutil.which("Machin_lecture")) or (str(Path(sys.executable).parent / "Machin_lecture"))
 
 
 @when(parsers.re(r"je lance Machin_lecture avec « (?P<arguments>.+) »(?P<sans_base> et une socket inexistante)?$"))
@@ -281,15 +281,17 @@ def lancer(contexte: Contexte, tmp_path: Path, arguments: str, sans_base: str | 
 # ─── Alors ─────────────────────────────────────────────────
 
 
+def fin_affichee(fin: datetime | None) -> str:
+	if fin is None:
+		return ""
+	return f"{fin.astimezone():%Y-%m-%d %H:%M:%S}"
+
+
 @then("la simulation donne les passages :")
 def passages_attendus(contexte: Contexte, datatable: list[list[str]]) -> None:
 	_, *lignes = datatable
 	obtenus = [
-		[
-			f"{p.debut.astimezone():%Y-%m-%d %H:%M:%S}",
-			f"{p.fin.astimezone():%Y-%m-%d %H:%M:%S}" if p.fin else "",
-			str(p.titre),
-		]
+		[f"{p.debut.astimezone():%Y-%m-%d %H:%M:%S}", fin_affichee(p.fin), str(p.titre)]
 		for p in resultat(contexte).passages
 	]
 	assert obtenus == lignes, obtenus
@@ -320,13 +322,13 @@ def refus(contexte: Contexte, base_vide: Connexion) -> None:
 def cycles(contexte: Contexte) -> None:
 	vus = titres(contexte)
 	assert len(vus) == 6, vus
-	assert sorted(vus[:3]) == ["a", "b", "c"] and sorted(vus[3:]) == ["a", "b", "c"], vus
+	assert (sorted(vus[:3]) == ["a", "b", "c"]) and (sorted(vus[3:]) == ["a", "b", "c"]), vus
 
 
 @then("les deux simulations donnent les mêmes passages")
 def memes_passages(contexte: Contexte) -> None:
 	premiere, seconde = ([str(p.titre) for p in r.passages] for r in contexte.resultats)
-	assert premiere == seconde and len(set(premiere)) > 1, (premiere, seconde)
+	assert (premiere == seconde) and (len(set(premiere)) > 1), (premiere, seconde)
 
 
 @then(parsers.re(r"la simulation a consigné (?P<nombre>\d+) (?P<niveau>info|alerte|incident) « (?P<nature>[^»]+) »"))
@@ -371,7 +373,7 @@ def page_avec_emplacements(contexte: Contexte) -> None:
 	page = fichier(contexte, ".html").read_text(encoding="utf-8")
 	for ligne in resultat(contexte).passages:
 		assert f">{ligne.emplacement}<" in page, page
-	assert ">f1<" not in page and ">f2<" not in page, page
+	assert (">f1<" not in page) and (">f2<" not in page), page
 
 
 @given(parsers.parse("le masquage du sonore « {nom} »"))
@@ -380,7 +382,7 @@ def masquer_un_sonore(base_vide: Connexion, nom: str) -> None:
 
 
 def sorties_lues(contexte: Contexte) -> dict[str, str]:
-	return {chemin.suffix: chemin.read_text(encoding="utf-8-sig") for chemin in resultat(contexte).fichiers or ()}
+	return {chemin.suffix: chemin.read_text(encoding="utf-8-sig") for chemin in (resultat(contexte).fichiers) or (())}
 
 
 @then(
@@ -390,8 +392,8 @@ def sorties_lues(contexte: Contexte) -> dict[str, str]:
 )
 def sorties_masquees(contexte: Contexte, visible: str, masque: str, texte: str) -> None:
 	for extension, contenu in sorties_lues(contexte).items():
-		assert visible in contenu and texte in contenu, (extension, contenu)
-		assert f">{masque}<" not in contenu and f";{masque};" not in contenu and f"={masque}\n" not in contenu, (
+		assert (visible in contenu) and (texte in contenu), (extension, contenu)
+		assert (f">{masque}<" not in contenu) and (f";{masque};" not in contenu) and (f"={masque}\n" not in contenu), (
 			extension,
 			contenu,
 		)
@@ -418,7 +420,7 @@ def sorties_avec_emplacements(contexte: Contexte, base_vide: Connexion, premier:
 @then(parsers.parse("la page de la simulation signale l'alerte « {nature} »"))
 def page_alerte(contexte: Contexte, nature: str) -> None:
 	page = fichier(contexte, ".html").read_text(encoding="utf-8")
-	assert "alerte" in page and nature in page, page
+	assert ("alerte" in page) and (nature in page), page
 
 
 @then(parsers.parse("il s'arrête avec le code {code:d}, en signalant « {motif} »"))
@@ -430,4 +432,4 @@ def arret(contexte: Contexte, code: int, motif: str) -> None:
 
 @then(parsers.parse("le journal du binaire a signalé « {texte} »"))
 def journal_signale(caplog: pytest.LogCaptureFixture, texte: str) -> None:
-	assert any(r.levelno == logging.WARNING and texte in r.getMessage() for r in caplog.records), caplog.text
+	assert any((r.levelno == logging.WARNING) and (texte in r.getMessage()) for r in caplog.records), caplog.text

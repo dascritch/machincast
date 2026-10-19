@@ -128,8 +128,9 @@ def sans_tags_du_flux(base_vide: Connexion) -> None:
 def remplacement(
 	base_vide: Connexion, stream: str, evenement: str, stream_fin: str, noms: list[str] | None = None
 ) -> None:
-	noms = [p[0] for p in passages(base_vide)] if noms is None else noms
-	assert len(noms) >= 3 and noms[0] == stream and noms[-1] == stream_fin, noms
+	if noms is None:
+		noms = [p[0] for p in passages(base_vide)]
+	assert (len(noms) >= 3) and (noms[0] == stream) and (noms[-1] == stream_fin), noms
 	assert set(noms[1:-1]) <= sonores_de(base_vide, evenement), noms
 
 
@@ -147,7 +148,7 @@ def remplacement_apres(base_vide: Connexion, avant: str, stream: str, evenement:
 @then(parsers.parse("le premier passage « {nom} » a fini en incident"))
 def premier_en_incident(base_vide: Connexion, nom: str) -> None:
 	premier = next(p for p in passages(base_vide) if p[0] == nom)
-	assert premier[2] is not None and premier[3] is False, premier
+	assert (premier[2] is not None) and (premier[3] is False), premier
 
 
 @then(parsers.re(r"le sonore joué avant la reprise a fini (?P<quand>au début|après le début) de la reprise"))
@@ -169,7 +170,7 @@ def nombre_de_passages(base_vide: Connexion, nombre: int, nom: str) -> None:
 
 @then("le stream repris joue à plein volume")
 def stream_a_plein_volume(banc: Banc) -> None:
-	assert banc.diffusion is not None and banc.diffusion.courant is not None
+	assert (banc.diffusion is not None) and (banc.diffusion.courant is not None)
 	courant = banc.diffusion.courant
 	assert courant.parametres.stream, courant
 	assert courant.voie.volume_a(courant.voie.position()) == pytest.approx(1.0)
@@ -186,7 +187,7 @@ def lignes_du_log(base: Connexion, nature: str) -> list[tuple[int, str, str]]:
 def incident_du_flux(serveur: ServeurDeFlux, base_vide: Connexion, nombre: int, nature: str, flux: str) -> None:
 	lignes = lignes_du_log(base_vide, nature)
 	assert len(lignes) == nombre, lignes
-	assert all(niveau == "incident" and serveur.adresse(flux) in message for _, niveau, message in lignes), lignes
+	assert all((niveau == "incident") and (serveur.adresse(flux) in message) for _, niveau, message in lignes), lignes
 
 
 @then(parsers.parse("l'incident « {suivante} » suit l'incident « {premiere} »"))
