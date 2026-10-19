@@ -72,6 +72,7 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 		Et la séquence « Passage pub », sans nom public, avec le sonore « Spot »
 		Quand le choix des <genre> s'ouvre, avec la remarque « <remarque> », et que j'y sélectionne tout, puis clique sur « <bouton> »
 		Alors le choix s'est intitulé « Ajouter des <genre> »
+		Et le choix n'a proposé ni création ni ajout de fichiers
 		Et le choix a expliqué « <explication> »
 		Et les <genre> choisis sont <choisis>
 

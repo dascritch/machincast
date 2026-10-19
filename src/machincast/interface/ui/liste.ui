@@ -31,6 +31,16 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="ajouter_fichiers">
+       <property name="visible">
+        <bool>false</bool>
+       </property>
+       <property name="toolTip">
+        <string>Les fichiers sont référencés là où ils sont, sans copie, et vérifiés aussitôt ; on peut aussi les déposer sur la liste.</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="nouveau">
        <property name="visible">
         <bool>false</bool>

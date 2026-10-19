@@ -96,18 +96,7 @@ def _nom(connexion: Connexion, genre: str, identifiant: int) -> str | None:
 	).fetchone()
 	if sonore is None:
 		return None
-	artiste, titre, emplacement, url = sonore
-	if (artiste is None) and (titre is None):
-		if emplacement is not None:
-			return Path(str(emplacement)).name
-		return str((url) or (""))
-	return affichage.artiste_et_titre(_texte(artiste), _texte(titre))
-
-
-def _texte(valeur: object) -> str | None:
-	if valeur is None:
-		return None
-	return str(valeur)
+	return affichage.nom_du_sonore(*sonore)
 
 
 def _retraits(connexion: Connexion, genre: str, identifiant: int) -> list[str]:

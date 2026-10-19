@@ -11,8 +11,13 @@ L'écran de détail d'un élément est sa fiche, dans un onglet qui se ferme : �
 (machincast.interface.fiche_sonore, https://github.com/dascritch/machincast/issues/28). Une fiche déjà ouverte
 revient au premier plan. Un élément cité par une fiche s'ouvre comme une ligne de liste. Une fiche modifiée demande
 quoi faire de ses modifications avant de se fermer, avec son onglet ou avec la fenêtre.
+
+Les fichiers ajoutés depuis la liste des sonores entrent en base (machincast.interface.ajout), puis l'indexeur les
+vérifie en tâche de fond (machincast.interface.verification, https://github.com/dascritch/machincast/issues/30) ; la
+barre d'état annonce l'un et l'autre.
 """
 
+import logging
 from pathlib import Path
 
 import psycopg
@@ -22,6 +27,8 @@ from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QMainWindow, QTabBar, QWidget
 
 from machincast.horloge import Horloge
+from machincast.interface import dialogues
+from machincast.interface.ajout import ajouter_fichiers
 from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.fiche import Fiche
 from machincast.interface.fiche_banque import FicheBanque
@@ -30,6 +37,9 @@ from machincast.interface.fiche_sequence import FicheSequence
 from machincast.interface.fiche_sonore import FicheSonore
 from machincast.interface.listes import BANQUES, EVENEMENTS, SEQUENCES, SONORES, Liste
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
+from machincast.interface.verification import Verificateur
+
+journal = logging.getLogger(__name__)
 
 ONGLETS = (("Événements", EVENEMENTS), ("Séquences", SEQUENCES), ("Banques", BANQUES), ("Sonores", SONORES))
 FICHES: dict[str, type[Fiche]] = {
@@ -57,11 +67,17 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.onglets.setTabsClosable(True)
 		self.accueil = EcranParDefaut(connexion, socket_etat, horloge)
 		self._ajouter_fixe(self.accueil, "Accueil")
+		self.verificateur = Verificateur(connexion, self)
+		self.verificateur.termine.connect(self._verification_terminee)
 		self.listes: list[Liste] = []
 		for titre, source in ONGLETS:
 			liste = Liste(source, connexion)
 			liste.ouverte.connect(self._ouvrir)
 			liste.creation_demandee.connect(lambda genre: self._ouvrir_fiche(genre, None))
+			liste.ajout_demande.connect(
+				lambda liste=liste: self._ajouter_fichiers(liste, dialogues.choisir_fichiers(self))
+			)
+			liste.fichiers_deposes.connect(lambda chemins, liste=liste: self._ajouter_fichiers(liste, chemins))
 			self.listes.append(liste)
 			self._ajouter_fixe(liste, titre)
 		self.ui.onglets.setCurrentIndex(0)
@@ -79,6 +95,7 @@ class FenetrePrincipale(QMainWindow):
 				return
 		for fiche in self.fiches():
 			fiche.fermer()
+		self.verificateur.arreter()
 		self.accueil.close()
 		super().closeEvent(evenement)
 
@@ -115,6 +132,26 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.onglets.removeTab(self.ui.onglets.indexOf(fiche))
 		fiche.fermer()
 		fiche.deleteLater()
+
+	def _ajouter_fichiers(self, liste: Liste, chemins: list[Path]) -> None:
+		"""Les fichiers entrent en base à l'état aperçu, puis l'indexeur les vérifie, en tâche de fond."""
+		if chemins == []:
+			return
+		try:
+			ajout = ajouter_fichiers(self.connexion, chemins)
+		except psycopg.Error as erreur:
+			journal.error(f"ajout de fichiers impossible : {erreur}")
+			self.ui.barre_d_etat.showMessage(f"Ajout impossible : {erreur}")
+			return
+		self.ui.barre_d_etat.showMessage(ajout.texte())
+		liste.actualiser()
+		self.verificateur.verifier(ajout.ajoutes)
+
+	def _verification_terminee(self, texte: str) -> None:
+		self.ui.barre_d_etat.showMessage(texte)
+		ouvert = self.ui.onglets.currentWidget()
+		if isinstance(ouvert, Liste):
+			ouvert.actualiser()
 
 	def _onglet_ouvert(self, indice: int) -> None:
 		ouvert = self.ui.onglets.widget(indice)

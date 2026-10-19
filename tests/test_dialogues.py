@@ -30,6 +30,7 @@ class Dialogue:
 	parent: QWidget
 	texte: str = ""
 	titre: str = ""
+	actions: list[str] = field(default_factory=list)
 	boutons: list[str] = field(default_factory=list)
 	reponse: object = None
 	adresses: list[QUrl] = field(default_factory=list)
@@ -115,6 +116,9 @@ def choix(dialogue: Dialogue, base_vide: Connexion, genre: str, remarque: str, b
 	def faire(modale: QWidget) -> None:
 		assert isinstance(modale, Choix), modale
 		dialogue.titre = modale.windowTitle()
+		boutons = (modale.liste.ui.nouveau, modale.liste.ui.ajouter_fichiers)
+		dialogue.actions = [bouton.text() for bouton in boutons if not bouton.isHidden()]
+		dialogue.actions += ["dépôt"] * modale.liste.table.acceptDrops()
 		dialogue.texte = modale.ui.explication.text()
 		modale.liste.table.selectAll()
 		# « Annuler » est la traduction de Qt (qtbase_fr), que les tests ne chargent pas : le bouton se trouve par son
@@ -172,6 +176,11 @@ def repertoire(dialogue: Dialogue, choisi: str) -> None:
 @then(parsers.parse("le choix s'est intitulé « {titre} »"))
 def intitule(dialogue: Dialogue, titre: str) -> None:
 	assert dialogue.titre == titre
+
+
+@then("le choix n'a proposé ni création ni ajout de fichiers")
+def sans_actions(dialogue: Dialogue) -> None:
+	assert dialogue.actions == []
 
 
 @then(parsers.parse("le choix a expliqué « {texte} »"))

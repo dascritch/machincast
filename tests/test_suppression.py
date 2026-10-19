@@ -154,8 +154,3 @@ def dossier_la(interface: Contexte, dossier: str) -> None:
 def sans_secours(base_vide: Connexion, titre: str) -> None:
 	lignes = base_vide.execute("SELECT secours_evenement_id FROM sonores WHERE titre = %s", (titre,)).fetchall()
 	assert lignes == [(None,)]
-
-
-@then(parsers.re(r"le bouton « Supprimer… » de la fiche est (?P<etat>actif|inactif)"))
-def bouton_actif(interface: Contexte, etat: str) -> None:
-	assert bouton_supprimer(interface).isEnabled() == (etat == "actif")

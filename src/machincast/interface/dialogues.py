@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox, QWidget
 
 from machincast.interface.choix import Choix
 from machincast.interface.listes import BANQUES, SEQUENCES, SONORES
+from machincast.protection import EXTENSIONS_SONORES
 
 
 class Fermeture(StrEnum):
@@ -81,6 +82,15 @@ def confirmer_suppression(parent: QWidget, titre: str, texte: str) -> bool:
 	question.setDefaultButton(annuler)
 	question.exec()
 	return question.clickedButton() is supprimer
+
+
+def choisir_fichiers(parent: QWidget) -> list[Path]:
+	"""Les fichiers choisis dans le sélecteur du poste, plusieurs à la fois ; aucun si le choix est abandonné."""
+	motifs = " ".join(f"*{extension}" for extension in sorted(EXTENSIONS_SONORES))
+	choisis, _filtre = QFileDialog.getOpenFileNames(
+		parent, "Ajouter des fichiers sonores", "", f"Fichiers sonores ({motifs});;Tous les fichiers (*)"
+	)
+	return [Path(chemin) for chemin in choisis]
 
 
 def choisir_repertoire(parent: QWidget) -> str | None:

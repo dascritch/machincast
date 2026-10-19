@@ -24,7 +24,7 @@ d'erreur). L'indexeur n'écrit jamais dans le log, et ne modifie jamais un champ
 """
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -129,11 +129,18 @@ def _etat_du_fichier(chemin: Path) -> tuple[datetime, int] | None:
 	return datetime.fromtimestamp(etat.st_mtime, tz=UTC), etat.st_size
 
 
+def _liste(identifiants: Collection[int] | None) -> list[int] | None:
+	if identifiants is None:
+		return None
+	return list(identifiants)
+
+
 def verifier_sonores(
 	connexion: psycopg.Connection[TupleRow],
 	verifier: Callable[[Path], Verification] = verifier_fichier,
 	audit_complet: bool = False,
 	bilan: Bilan | None = None,
+	identifiants: Collection[int] | None = None,
 ) -> Bilan:
 	"""Vérifie les sonores de type fichier ; chaque sonore est enregistré dans sa propre transaction.
 
@@ -143,13 +150,17 @@ def verifier_sonores(
 	En indexation rapide, seuls les sonores en aperçu sont décodés ; pour les autres, un fichier disparu est
 	quand même repéré. En audit complet, tous sont décodés.
 
+	identifiants : seuls ces sonores, pour la vérification immédiate des fichiers que l'interface ajoute
+	(https://github.com/dascritch/machincast/issues/30) ; tous les sonores sans eux.
+
 	La connexion doit avoir endossé le rôle de l'indexation (machincast.base.connecter). Lève
 	DecodeurIndisponible si GStreamer ne sait pas décoder un format : les sonores déjà vérifiés le restent.
 	"""
 	with connexion.transaction():
 		sonores = connexion.execute(
 			"SELECT id, emplacement, etat::text, champs_edites, artiste, titre, metadonnees_musicales"
-			" FROM sonores WHERE type = 'fichier' ORDER BY id"
+			" FROM sonores WHERE type = 'fichier' AND (%s::bigint[] IS NULL OR id = ANY(%s)) ORDER BY id",
+			(_liste(identifiants), _liste(identifiants)),
 		).fetchall()
 
 	if bilan is None:

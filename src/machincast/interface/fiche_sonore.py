@@ -1,7 +1,9 @@
 """Fiche d'un sonore (https://github.com/dascritch/machincast/issues/28, spec § 8.3).
 
-La fiche s'ouvre dans un onglet de la fenêtre (machincast.interface.fenetre), depuis la liste des sonores.
-Enregistrement, annulation et fermeture : machincast.interface.fiche.
+La fiche s'ouvre dans un onglet de la fenêtre (machincast.interface.fenetre), depuis la liste des sonores, ou vide
+pour un nouveau stream (https://github.com/dascritch/machincast/issues/30), qui entre en base à l'état actif ; un
+fichier s'ajoute depuis la liste (machincast.interface.ajout). Enregistrement, annulation et fermeture :
+machincast.interface.fiche.
 
 - Champs : artiste, titre, les métadonnées musicales que tient l'indexeur (année, album, artiste de l'album, genre,
   compositeur, label, piste), crossfades, maximum de lectures, masquage, période de diffusion, état. Les autres clés
@@ -76,6 +78,27 @@ MASQUAGES: tuple[tuple[bool | None, str], ...] = (
 	(False, "Affichés"),
 )
 """Valeurs de sonores.masquer_metadonnees, dans l'ordre du choix de la fiche."""
+NOUVEAU_STREAM: tuple[object, ...] = (
+	"stream",
+	None,
+	None,
+	None,
+	None,
+	None,
+	None,
+	None,
+	{},
+	timedelta(0),
+	timedelta(0),
+	None,
+	"actif",
+	None,
+	None,
+	None,
+	None,
+	[],
+)
+"""Ce que montre la fiche d'un nouveau stream, dans l'ordre des colonnes lues."""
 PASSAGES = 50
 """Nombre de derniers passages montrés."""
 URL = Qt.ItemDataRole.UserRole + 1
@@ -127,26 +150,44 @@ class FicheSonore(Fiche):
 		self.charger()
 
 	def titre(self) -> str:
+		if self.identifiant is None:
+			return "Nouveau stream"
 		return f"Sonore : {self._nom}"
 
 	def fermer(self) -> None:
 		self.essai.arreter()
 
 	def _lire(self) -> None:
+		"""Lit le sonore en base ; un nouveau stream est actif, sans adresse ni réglage."""
+		ligne: tuple[object, ...] | None = NOUVEAU_STREAM
+		passages: list[tuple[object, ...]] = []
 		with self.connexion.transaction():
-			ligne = self.connexion.execute(
-				"SELECT s.type::text, s.emplacement, s.url_stream, s.marque_page_id, m.url, s.secours_evenement_id,"
-				" s.artiste, s.titre, s.metadonnees_musicales, s.crossfade_debut, s.crossfade_fin, s.max_lectures,"
-				" s.etat::text, s.masquer_metadonnees, s.duree, s.debut_diffusion, s.fin_diffusion, s.champs_edites"
-				" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
-				(self.identifiant,),
-			).fetchone()
-			assert ligne is not None, f"sonore {self.identifiant} absent"
+			if self.identifiant is not None:
+				ligne = self._lire_sonore()
+				passages = self._lire_passages()
 			marques = self.connexion.execute("SELECT id, nom, url FROM marques_pages_streams ORDER BY nom").fetchall()
 			secours = self.connexion.execute(
 				"SELECT id, nom_interne FROM evenements WHERE priorite = 'secours' ORDER BY nom_interne"
 			).fetchall()
-			passages = self._lire_passages()
+		assert ligne is not None, f"sonore {self.identifiant} absent"
+		self._montrer(ligne, marques, secours, passages)
+
+	def _lire_sonore(self) -> tuple[object, ...] | None:
+		return self.connexion.execute(
+			"SELECT s.type::text, s.emplacement, s.url_stream, s.marque_page_id, m.url, s.secours_evenement_id,"
+			" s.artiste, s.titre, s.metadonnees_musicales, s.crossfade_debut, s.crossfade_fin, s.max_lectures,"
+			" s.etat::text, s.masquer_metadonnees, s.duree, s.debut_diffusion, s.fin_diffusion, s.champs_edites"
+			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
+			(self.identifiant,),
+		).fetchone()
+
+	def _montrer(
+		self,
+		ligne: tuple[object, ...],
+		marques: list[tuple[object, ...]],
+		secours: list[tuple[object, ...]],
+		passages: list[tuple[object, ...]],
+	) -> None:
 		(
 			type_sonore,
 			emplacement,
@@ -214,7 +255,7 @@ class FicheSonore(Fiche):
 		for identifiant, nom in secours:
 			self.ui.secours.addItem(str(nom), int(str(identifiant)))
 		self.ui.secours.setCurrentIndex(self.ui.secours.findData(evenement_secours))
-		edites = [LIBELLES.get(str(champ), str(champ)) for champ in ((champs_edites) or ([]))]
+		edites = [LIBELLES.get(str(champ), str(champ)) for champ in _liste(champs_edites)]
 		texte_edites = ""
 		if edites != []:
 			texte_edites = f"Saisis à la main, que l'indexeur ne modifie plus : {', '.join(edites)}."
@@ -264,16 +305,25 @@ class FicheSonore(Fiche):
 		return saisies
 
 	def _ecrire(self) -> int:
-		assert self.identifiant is not None
 		saisies = self._saisies()
 		debut, fin = saisies["debut_diffusion"], saisies["fin_diffusion"]
 		if (isinstance(debut, datetime)) and (isinstance(fin, datetime)) and (fin <= debut):
 			raise Refus("La fin de la diffusion doit suivre son début.")
 		if ("url_stream" in saisies) and (saisies["url_stream"] is None) and (saisies["marque_page_id"] is None):
 			raise Refus("L'adresse du stream est obligatoire.")
+		identifiant = self.identifiant
+		if identifiant is None:
+			# Un nouveau stream entre en base avec son adresse ; ses autres champs s'écrivent comme une modification.
+			cree = self.connexion.execute(
+				"INSERT INTO sonores (type, url_stream, marque_page_id, etat) VALUES ('stream', %s, %s, 'actif')"
+				" RETURNING id",
+				(saisies["url_stream"], saisies["marque_page_id"]),
+			).fetchone()
+			assert cree is not None
+			identifiant = int(str(cree[0]))
 		modifies = [champ for champ, valeur in saisies.items() if valeur != self._initiales[champ]]
 		ligne = self.connexion.execute(
-			"SELECT champs_edites FROM sonores WHERE id = %s FOR UPDATE", (self.identifiant,)
+			"SELECT champs_edites FROM sonores WHERE id = %s FOR UPDATE", (identifiant,)
 		).fetchone()
 		if ligne is None:
 			raise Refus("Ce sonore n'est plus en base.")
@@ -291,8 +341,8 @@ class FicheSonore(Fiche):
 		affectations.append(sql.SQL("champs_edites = %s"))
 		valeurs.append(edites)
 		requete = sql.SQL("UPDATE sonores SET {} WHERE id = %s").format(sql.SQL(", ").join(affectations))
-		self.connexion.execute(requete, [*valeurs, self.identifiant])
-		return self.identifiant
+		self.connexion.execute(requete, [*valeurs, identifiant])
+		return identifiant
 
 	def _lire_passages(self) -> list[tuple[object, ...]]:
 		"""Les derniers passages, avec les alertes et incidents du log pendant chacun ; dans une transaction."""
