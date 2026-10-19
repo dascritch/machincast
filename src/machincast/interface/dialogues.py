@@ -14,7 +14,7 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox, QWidget
 
 from machincast.interface.choix import Choix
-from machincast.interface.listes import BANQUES, SONORES
+from machincast.interface.listes import BANQUES, SEQUENCES, SONORES
 
 
 class Fermeture(StrEnum):
@@ -86,6 +86,11 @@ def choisir_sonores(parent: QWidget, connexion: psycopg.Connection[TupleRow], re
 def choisir_banques(parent: QWidget, connexion: psycopg.Connection[TupleRow], remarque: str = "") -> list[int]:
 	"""Les banques choisies dans la liste des banques en base ; aucune si le choix est abandonné."""
 	return _choisir(Choix(BANQUES, connexion, remarque, parent))
+
+
+def choisir_sequences(parent: QWidget, connexion: psycopg.Connection[TupleRow], remarque: str = "") -> list[int]:
+	"""Les séquences choisies dans la liste des séquences en base ; aucune si le choix est abandonné."""
+	return _choisir(Choix(SEQUENCES, connexion, remarque, parent))
 
 
 def _choisir(choix: Choix) -> list[int]:

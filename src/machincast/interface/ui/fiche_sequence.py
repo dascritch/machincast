@@ -201,7 +201,7 @@ class Ui_FicheSequence(object):
         self.monter.setText(QCoreApplication.translate("FicheSequence", u"Monter", None))
         self.descendre.setText(QCoreApplication.translate("FicheSequence", u"Descendre", None))
         self.groupe_evenements.setTitle(QCoreApplication.translate("FicheSequence", u"\u00c9v\u00e9nements o\u00f9 elle figure", None))
-        self.explication_evenements.setText(QCoreApplication.translate("FicheSequence", u"Une s\u00e9quence se place dans un \u00e9v\u00e9nement depuis l'\u00e9cran de l'\u00e9v\u00e9nement, \u00e0 venir.", None))
+        self.explication_evenements.setText(QCoreApplication.translate("FicheSequence", u"Une s\u00e9quence se place dans un \u00e9v\u00e9nement depuis la fiche de l'\u00e9v\u00e9nement.", None))
         self.annuler.setText(QCoreApplication.translate("FicheSequence", u"Annuler", None))
         self.enregistrer.setText(QCoreApplication.translate("FicheSequence", u"Enregistrer", None))
         pass

@@ -31,7 +31,7 @@ Machin --help                         # aide complète
 | --- | --- |
 | `Machin lecture` | Diffusion de l'antenne, normalement lancée comme service ([à venir](#ce-qui-nexiste-pas-encore)). |
 | `Machin indexation` | Enregistrement des fichiers déposés dans les répertoires des banques, vérification des fichiers sonores et mise à jour de la base. |
-| `Machin interface` | Interface graphique de supervision et de programmation. Pour l'instant, son [écran par défaut](#interface-graphique--machin-interface), les [listes](#listes), les fiches d'une [banque](#fiche-dune-banque), d'un [sonore](#fiche-dun-sonore) et d'une [séquence](#fiche-dune-séquence). |
+| `Machin interface` | Interface graphique de supervision et de programmation. Pour l'instant, son [écran par défaut](#interface-graphique--machin-interface), les [listes](#listes), les fiches d'un [événement](#fiche-dun-événement), d'une [séquence](#fiche-dune-séquence), d'une [banque](#fiche-dune-banque) et d'un [sonore](#fiche-dun-sonore). |
 | `Machin logs` | Suivi en direct du journal du service de diffusion. |
 
 **Options de `Machin`**, placées avant le nom du programme :
@@ -255,13 +255,13 @@ La diffusion suit les règles ci-dessous.
 À tout instant, la diffusion suit **un seul événement**, choisi ainsi ([#12](https://github.com/dascritch/machincast/issues/12)) :
 
 - **Priorité** : un événement `spécial` l'emporte sur une `émission`, qui l'emporte sur un `fil musical`. Quand l'événement prioritaire se termine, celui qui est en dessous reprend.
-- **Fil musical permanent** : un fil musical sans date de début ni de fin couvre tout le temps où rien d'autre n'est programmé.
+- **Fil musical permanent** : un fil musical sans date de début ni de fin sert de fond : il couvre tout le temps où rien d'autre n'est programmé, pas même un autre fil musical ([#32](https://github.com/dascritch/machincast/issues/32)).
 - **Dates** : le début et la fin d'un événement sont ceux de sa première diffusion. L'événement est à l'antenne de son début, inclus, à sa fin, exclue : une émission de 20:00 à 22:00 laisse la place à 22:00 pile.
 - **Récurrence** : un événement qui se répète revient chacun des jours cochés, à la même heure, à partir de sa première diffusion. Il n'a pas de date de fin de récurrence, ni d'exception pour les jours fériés.
 - **Passage de minuit** : un événement peut commencer un jour et finir le lendemain, par exemple de 23:00 à 01:00. Pour un événement récurrent, c'est le jour du début qui compte : une émission du lundi 23:00 à 01:00 est à l'antenne dans la nuit du lundi au mardi.
 - **Fils musicaux selon l'heure** : plusieurs fils musicaux peuvent se relayer, par exemple un fil de nuit de 00:00 à 06:00 et un fil de jour de 06:00 à 00:00, tous les jours.
-- **Émission ou spécial sans fin** : il reste à l'antenne jusqu'à la fin de sa liste de lecture, qui ne boucle pas ; l'événement en dessous reprend alors. S'il est récurrent, il revient à sa prochaine date.
-- **Chevauchement** : deux événements de même priorité ne devraient pas se chevaucher, et l'interface l'empêchera. Si c'est le cas quand même, c'est le dernier modifié qui passe.
+- **Émission ou spécial sans fin** : il reste à l'antenne jusqu'à la fin de sa liste de lecture, qui ne boucle pas ; l'événement en dessous reprend alors. S'il est récurrent, il revient à sa prochaine date. Un événement de même priorité qui commence après lui prend l'antenne, puis il reprend là où il en était, si sa liste n'est pas épuisée ([#32](https://github.com/dascritch/machincast/issues/32)).
+- **Chevauchement** : deux événements de même priorité ne se chevauchent pas : la [fiche d'un événement](#fiche-dun-événement) le refuse. Un fil musical permanent ne chevauche rien, et un événement sans fin ne compte que par son début. Si deux événements se chevauchent quand même, écrits directement en base, c'est le dernier modifié qui passe.
 - **Changement d'heure** : un événement garde son heure. Une émission quotidienne de 21:00 reste à 21:00 après le passage à l'heure d'été ou d'hiver. La nuit du changement d'heure, l'heure sautée ou répétée tombe dans le fil musical de nuit.
 
 Toutes les heures de la grille sont en heure de Paris, l'heure locale du poste.
@@ -287,7 +287,7 @@ Le choix se déduit de l'historique de diffusion : il reprend là où il en éta
 - **Dans le log** : chaque élément sauté est noté une fois, en info `élément sauté`, avec la banque et l'événement. La décision se prend dès le début du sonore précédent, quand la diffusion réserve le suivant : c'est l'heure notée dans le log.
 - **Simulation** : la simulation applique la même règle, à partir de l'historique réel puis des passages simulés.
 
-La case « ne pas répéter » d'une banque se coche dans [sa fiche](#fiche-dune-banque) ([#31](https://github.com/dascritch/machincast/issues/31)). La [fiche d'une séquence](#fiche-dune-séquence) prévient quand une banque marquée y occupe deux lignes qui se suivent : le deuxième appel sera toujours sauté ([#112](https://github.com/dascritch/machincast/issues/112)). L'écran d'un événement le fera aussi, y compris pour la dernière et la première ligne d'une liste qui boucle ([#32](https://github.com/dascritch/machincast/issues/32)).
+La case « ne pas répéter » d'une banque se coche dans [sa fiche](#fiche-dune-banque) ([#31](https://github.com/dascritch/machincast/issues/31)). Les fiches d'une [séquence](#fiche-dune-séquence) et d'un [événement](#fiche-dun-événement) préviennent quand une banque marquée y est appelée juste après elle-même : ce deuxième appel sera toujours sauté ([#112](https://github.com/dascritch/machincast/issues/112), [#32](https://github.com/dascritch/machincast/issues/32)). Pour un événement, la fiche compte aussi la dernière ligne avant la première quand la liste boucle, et les banques par lesquelles commencent et finissent ses séquences.
 
 ### Expiration des sonores
 
@@ -333,15 +333,7 @@ Une **séquence** est une suite de sonores et de banques, jouée dans l'ordre, q
 - **Stream** : un stream tombé dans une séquence est remplacé par son événement de secours, comme ailleurs (voir [Streams](#streams)).
 - **Simulation** : la simulation applique les mêmes règles.
 
-Les séquences se créent et se modifient dans leur fiche ([Fiche d'une séquence](#fiche-dune-séquence)). Leur place dans la liste d'un événement se choisira dans l'écran de l'événement ([#32](https://github.com/dascritch/machincast/issues/32)). En attendant, elle s'écrit en base, par exemple avec `psql` sous le compte propriétaire de la base, ici en troisième ligne de l'événement « Continue » :
-
-```bash
-psql --dbname=machincast <<'SQL'
-INSERT INTO evenements_elements (evenement_id, position, sequence_id)
-	SELECT e.id, 3, s.id FROM evenements e, sequences s
-	WHERE e.nom_interne = 'Continue' AND s.nom_interne = 'Passage publicitaire';
-SQL
-```
+Les séquences se créent et se modifient dans leur fiche ([Fiche d'une séquence](#fiche-dune-séquence)), et prennent place dans la liste de lecture d'un événement depuis la fiche de celui-ci ([Fiche d'un événement](#fiche-dun-événement)).
 
 ### Sortie audio
 
@@ -365,7 +357,7 @@ Un sonore de type stream relaie un flux audio HTTP ou HTTPS, un direct extérieu
 - **Reconnexion** : tant que son événement est à l'antenne, `Machin lecture` retente la connexion toutes les 5 secondes, sans rien faire entendre. Dès que le flux revient, le stream reprend l'antenne : il monte pendant son crossfade de début, et le sonore de remplacement s'éteint pendant ce temps ; sans crossfade de début, le remplacement s'arrête net. La reprise est notée dans le log par l'incident `reprise du flux`, avec l'adresse du flux et la durée de la panne : l'écran des incidents montrera ainsi chaque panne et sa fin.
 - **Fin de l'événement pendant la panne** : la reconnexion est abandonnée (`reconnexion abandonnée` dans le log), et la diffusion continue normalement.
 
-Un **événement de secours** est un événement de priorité `secours` : il n'a ni début, ni fin, ni jours de récurrence, et ne passe jamais à l'antenne par la grille, seulement à la place d'un stream tombé. Chaque stream désigne le sien, ou aucun, dans [sa fiche](#fiche-dun-sonore). Tant que l'interface ne permet pas de créer un stream ([#30](https://github.com/dascritch/machincast/issues/30)) ni un événement ([#32](https://github.com/dascritch/machincast/issues/32)), ceux-ci s'enregistrent directement en base.
+Un **événement de secours** est un événement de priorité `secours` : il n'a ni début, ni fin, ni jours de récurrence, et ne passe jamais à l'antenne par la grille, seulement à la place d'un stream tombé. Chaque stream désigne le sien, ou aucun, dans [sa fiche](#fiche-dun-sonore). Un événement de secours se crée dans [sa fiche](#fiche-dun-événement) ; tant que l'interface ne permet pas de créer un stream ([#30](https://github.com/dascritch/machincast/issues/30)), celui-ci s'enregistre directement en base.
 
 ### Sorties de la diffusion
 
@@ -453,8 +445,8 @@ Les onglets Événements, Séquences, Banques et Sonores donnent chacun la liste
 - **Filtre** : le champ « Filtrer… » garde les lignes dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : `cafe` trouve « Café à minuit », `stream` tous les streams, `/srv/musique` tous les fichiers de ce répertoire. Le compte, à côté, dit combien de lignes restent, par exemple `2 sonores sur 340`. La croix du champ efface le filtre.
 - **Tri** : un clic sur le titre d'une colonne trie la liste selon cette colonne ; un second clic inverse l'ordre.
 - **Mise à jour** : une liste se relit dans la base chaque fois que son onglet s'ouvre, en gardant son filtre. Elle ne se relit jamais d'elle-même pendant qu'on la regarde.
-- **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvre l'écran de détails de l'élément. Pour une séquence, une banque ou un sonore, c'est sa fiche ([séquence](#fiche-dune-séquence), [banque](#fiche-dune-banque), [sonore](#fiche-dun-sonore)). Celui d'un événement est encore à venir ([#32](https://github.com/dascritch/machincast/issues/32)) : en attendant, la barre d'état, en bas de la fenêtre, l'annonce.
-- **Créer** : les boutons **Nouvelle séquence** et **Nouvelle banque**, à côté du filtre de leur liste, ouvrent une fiche vide. Les événements et les sonores n'ont pas encore ce bouton.
+- **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvre la fiche de l'élément ([événement](#fiche-dun-événement), [séquence](#fiche-dune-séquence), [banque](#fiche-dune-banque), [sonore](#fiche-dun-sonore)).
+- **Créer** : les boutons **Nouvel événement**, **Nouvelle séquence** et **Nouvelle banque**, à côté du filtre de leur liste, ouvrent une fiche vide. Les sonores n'ont pas encore ce bouton ([#30](https://github.com/dascritch/machincast/issues/30)).
 
 ### Fiche d'une banque
 
@@ -535,7 +527,39 @@ Les noms sont enregistrés sans les espaces qui les entourent. Rien n'est enregi
 
 **Ouvrir un élément** : un double-clic, ou Entrée, sur un sonore ou une banque ouvre sa fiche dans un autre onglet. Un fichier déposé n'a pas de fiche avant l'enregistrement.
 
-**Événements** : la liste des événements où la séquence figure, par nom ; elle ne se modifie pas ici. Un double-clic demande l'écran de l'événement, encore à venir ([#32](https://github.com/dascritch/machincast/issues/32)).
+**Événements** : la liste des événements où la séquence figure, par nom ; elle ne se modifie pas ici, mais dans la [fiche de l'événement](#fiche-dun-événement), qu'un double-clic ouvre.
+
+### Fiche d'un événement
+
+La fiche d'un événement s'ouvre depuis la liste des événements, dans un nouvel onglet nommé « Événement : » suivi de son nom ([#32](https://github.com/dascritch/machincast/issues/32)) ; **Nouvel événement** ouvre une fiche vide, de priorité `Émission`. Elle se comporte comme [celle d'une banque](#fiche-dune-banque) : **Enregistrer** et **Annuler**, une seule fiche par événement, et la question à la fermeture d'une fiche modifiée.
+
+| Champ | Rôle |
+| --- | --- |
+| Nom interne | Obligatoire, et propre à l'événement : c'est son nom dans les listes, le log et l'airplay. |
+| Nom public | Facultatif. Affiché sur la page publique à la place de l'artiste et du titre masqués ([Sorties de la diffusion](#sorties-de-la-diffusion)). |
+| Priorité | `Fil musical`, `Émission` ou `Spécial` ([Quel événement est à l'antenne](#quel-événement-est-à-lantenne)), ou `Secours`, qui ne joue qu'à la place d'un stream tombé ([Streams](#streams)). |
+| Artiste et titre | `Masqués` ou `Affichés` sur la page publique, pour tout ce que l'événement fait jouer. `Selon la séquence, la banque ou le sonore` laisse décider la séquence, puis la banque, puis le sonore, puis la configuration. |
+
+**Grille** : le **Début** et la **Fin** de la première occurrence, chacun à cocher, puis les **jours** où elle revient chaque semaine, à la même heure (aucun jour coché : une seule occurrence). Toutes les heures sont celles de Paris.
+
+- Un début coché part de l'heure du moment, à la minute ; une fin cochée, d'une heure après le début.
+- Sans début, ni fin ni jours : un fil musical sans début est permanent, et sert de fond. Décocher le début décoche aussi la fin et les jours.
+- Un événement de secours n'a ni début, ni fin, ni jours : choisir `Secours` les décoche.
+- Une émission ou un spécial a un début ; sans fin, il dure jusqu'au bout de sa liste ([Quel événement est à l'antenne](#quel-événement-est-à-lantenne)).
+
+**Rien n'est enregistré**, et la fiche dit pourquoi :
+
+- un nom interne vide, ou celui d'un autre événement (« Un autre événement s'appelle déjà « Continue ». ») ;
+- une liste de lecture vide ;
+- une émission ou un spécial sans début, ou une fin qui ne suit pas le début ;
+- un **chevauchement** avec un autre événement de même priorité : la fiche nomme le premier, avec le premier instant commun (« Chevauche l'événement « Journal », de même priorité, le 21/10/2026 à 09:00. »). Les occurrences récurrentes comptent toutes. Un événement sans fin ne compte que par son début, et un fil musical permanent ne chevauche rien ;
+- une priorité changée pour un événement de secours qu'un stream désigne (« Des streams ont cet événement pour secours : « Radio Thune ». Il reste de priorité « Secours ». »).
+
+**Liste de lecture** : les sonores, les banques et les [séquences](#séquences) que l'événement joue, dans l'ordre. Elle se gère comme celle d'une [séquence](#fiche-dune-séquence) : glisser-déposer, **Monter** et **Descendre**, **Ajouter des sonores…**, **Ajouter des banques…** et **Ajouter des séquences…**, dépôt de fichiers sonores, **Retirer l'élément**. Un même élément peut revenir. Le détail d'une séquence est son nombre d'éléments. Une ligne restée dans la liste reste celle que désigne l'historique de diffusion : un fil musical reprend après elle, à sa nouvelle place ([Comment une liste de lecture se déroule](#comment-une-liste-de-lecture-se-déroule)).
+
+**Banque « ne pas répéter »** : la fiche signale chaque appel d'une banque marquée juste après elle-même, qui sera toujours sauté à la diffusion. La liste boucle, sauf pour une émission ou un spécial sans fin : la première ligne suit alors la dernière. Une séquence compte par les banques qui la commencent et la finissent (« Ligne 2 : la séquence « Pub d'abord » commence par la banque « Publicité », qui vient de passer, et ne passe jamais deux fois de suite : cet appel sera sauté. »). Ce n'est qu'un avertissement : l'événement s'enregistre quand même.
+
+**Ouvrir un élément** : un double-clic, ou Entrée, sur un sonore, une banque ou une séquence ouvre sa fiche dans un autre onglet.
 
 ## Suivre le journal : Machin logs
 

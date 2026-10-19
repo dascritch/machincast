@@ -97,6 +97,19 @@ Fonctionnalité: Détermination de l'événement actif
 			| 2026-10-14 23:59 | Jour  |
 			| 2026-10-15 00:00 | Nuit  |
 
+	Scénario: Un fil musical permanent sert de fond, là où aucun autre fil musical ne couvre l'heure
+		# https://github.com/dascritch/machincast/issues/32 : modifié en dernier, il ne l'emporte pas pour autant.
+		Étant donné les événements :
+			| nom      | priorité    | début            | fin              | jours                                                     | modifié          |
+			| Nuit     | fil_musical | 2026-10-12 00:00 | 2026-10-12 06:00 | lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche | 2026-10-01 10:00 |
+			| Continue | fil_musical |                  |                  |                                                           | 2026-10-02 10:00 |
+		Alors l'événement actif est :
+			| heure            | actif    |
+			| 2026-10-11 23:59 | Continue |
+			| 2026-10-14 05:59 | Nuit     |
+			| 2026-10-14 06:00 | Continue |
+			| 2026-10-15 00:00 | Nuit     |
+
 	# ─── Événements sans fin ───────────────────────────────────
 
 	Scénario: Une émission sans fin reste active jusqu'à ce que sa liste soit épuisée
@@ -113,6 +126,21 @@ Fonctionnalité: Détermination de l'événement actif
 		Alors l'événement actif est :
 			| heure            | actif    |
 			| 2026-10-15 03:00 | Continue |
+
+	Scénario: Une émission sans fin laisse la place à une émission qui commence après elle, puis reprend
+		# https://github.com/dascritch/machincast/issues/32 : modifiée en dernier, elle ne l'emporte pas pour autant.
+		Étant donné les événements :
+			| nom      | priorité    | début            | fin              | jours | modifié          |
+			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
+			| Magazine | emission    | 2026-10-14 21:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
+			| Direct   | emission    | 2026-10-14 20:00 |                  |       | 2026-10-02 10:00 |
+			| Tardif   | emission    | 2026-10-14 23:00 |                  |       | 2026-10-01 10:00 |
+		Alors l'événement actif est :
+			| heure            | actif    |
+			| 2026-10-14 20:30 | Direct   |
+			| 2026-10-14 21:30 | Magazine |
+			| 2026-10-14 22:30 | Direct   |
+			| 2026-10-14 23:30 | Tardif   |
 
 	Scénario: Une émission récurrente sans fin reprend à sa prochaine occurrence, même si la précédente est terminée
 		Étant donné les événements :
@@ -131,13 +159,13 @@ Fonctionnalité: Détermination de l'événement actif
 	Scénario: Deux événements de même priorité qui se chevauchent : le dernier modifié en base l'emporte
 		Étant donné les événements :
 			| nom    | priorité | début            | fin              | jours | modifié          |
-			| Ancien | emission | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
-			| Récent | emission | 2026-10-14 21:00 | 2026-10-14 23:00 |       | 2026-10-02 10:00 |
+			| Premier | emission | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-02 10:00 |
+			| Second  | emission | 2026-10-14 21:00 | 2026-10-14 23:00 |       | 2026-10-01 10:00 |
 		Alors l'événement actif est :
-			| heure            | actif  |
-			| 2026-10-14 20:30 | Ancien |
-			| 2026-10-14 21:30 | Récent |
-			| 2026-10-14 22:30 | Récent |
+			| heure            | actif   |
+			| 2026-10-14 20:30 | Premier |
+			| 2026-10-14 21:30 | Premier |
+			| 2026-10-14 22:30 | Second  |
 
 	# ─── Changement d'heure ────────────────────────────────────
 

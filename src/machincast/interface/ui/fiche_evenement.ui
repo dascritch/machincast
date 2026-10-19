@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FicheEvenement</class>
+ <widget class="QWidget" name="FicheEvenement">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1100</width>
+    <height>700</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="disposition" stretch="0,1,0">
+   <item>
+    <layout class="QHBoxLayout" name="haut" stretch="1,1">
+     <item>
+    <layout class="QFormLayout" name="formulaire">
+     <item row="0" column="0">
+      <widget class="QLabel" name="etiquette_nom_interne">
+       <property name="text">
+        <string>&amp;Nom interne</string>
+       </property>
+       <property name="buddy">
+        <cstring>nom_interne</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="nom_interne">
+       <property name="maxLength">
+        <number>255</number>
+       </property>
+       <property name="placeholderText">
+        <string>Obligatoire, et propre à cet événement</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="etiquette_nom_public">
+       <property name="text">
+        <string>Nom &amp;public</string>
+       </property>
+       <property name="buddy">
+        <cstring>nom_public</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="nom_public">
+       <property name="maxLength">
+        <number>255</number>
+       </property>
+       <property name="placeholderText">
+        <string>Affiché à la place de l'artiste et du titre masqués ; facultatif</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="etiquette_priorite">
+       <property name="text">
+        <string>P&amp;riorité</string>
+       </property>
+       <property name="buddy">
+        <cstring>priorite</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QComboBox" name="priorite" />
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="etiquette_masquage">
+       <property name="text">
+        <string>&amp;Artiste et titre</string>
+       </property>
+       <property name="buddy">
+        <cstring>masquage</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QComboBox" name="masquage" />
+     </item>
+    </layout>
+     </item>
+     <item>
+      <widget class="QGroupBox" name="groupe_grille">
+       <property name="title">
+        <string>Grille : première occurrence, et jours où elle revient</string>
+       </property>
+       <layout class="QGridLayout" name="disposition_grille">
+        <item row="0" column="0">
+         <widget class="QCheckBox" name="a_debut">
+          <property name="text">
+           <string>&amp;Début</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QDateTimeEdit" name="debut">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="displayFormat">
+           <string>dd/MM/yyyy HH:mm</string>
+          </property>
+          <property name="calendarPopup">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QCheckBox" name="a_fin">
+          <property name="text">
+           <string>&amp;Fin</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QDateTimeEdit" name="fin">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="displayFormat">
+           <string>dd/MM/yyyy HH:mm</string>
+          </property>
+          <property name="calendarPopup">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0" colspan="2">
+         <layout class="QHBoxLayout" name="disposition_jours">
+          <item>
+           <widget class="QCheckBox" name="lundi">
+            <property name="text">
+             <string>lundi</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="mardi">
+            <property name="text">
+             <string>mardi</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="mercredi">
+            <property name="text">
+             <string>mercredi</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="jeudi">
+            <property name="text">
+             <string>jeudi</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="vendredi">
+            <property name="text">
+             <string>vendredi</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="samedi">
+            <property name="text">
+             <string>samedi</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="dimanche">
+            <property name="text">
+             <string>dimanche</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item row="3" column="0" colspan="2">
+         <widget class="QLabel" name="explication_grille">
+          <property name="text">
+           <string>Sans jour coché, l'événement n'a qu'une occurrence. Sans fin, une émission ou un spécial dure jusqu'au bout de sa liste ; un fil musical sans début est permanent, et sert de fond.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="listes">
+     <item>
+      <widget class="QGroupBox" name="groupe_elements">
+       <property name="title">
+        <string>Liste de lecture, dans l'ordre de passage</string>
+       </property>
+       <layout class="QVBoxLayout" name="disposition_elements">
+        <item>
+         <widget class="QTreeWidget" name="elements">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+          </property>
+          <property name="rootIsDecorated">
+           <bool>false</bool>
+          </property>
+          <property name="uniformRowHeights">
+           <bool>true</bool>
+          </property>
+          <column>
+           <property name="text">
+            <string>Genre</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Élément</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Détail</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="avertissement">
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="boutons_elements">
+          <item>
+           <widget class="QPushButton" name="ajouter_sonores">
+            <property name="text">
+             <string>Ajouter des sonores…</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="ajouter_banques">
+            <property name="text">
+             <string>Ajouter des banques…</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="ajouter_sequences">
+            <property name="text">
+             <string>Ajouter des séquences…</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="retirer_element">
+            <property name="text">
+             <string>Retirer l'élément</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="espace_elements">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="monter">
+            <property name="text">
+             <string>Monter</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="descendre">
+            <property name="text">
+             <string>Descendre</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="pied" stretch="1,0,0">
+     <item>
+      <widget class="QLabel" name="message">
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="annuler">
+       <property name="text">
+        <string>Annuler</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="enregistrer">
+       <property name="text">
+        <string>Enregistrer</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources />
+ <connections />
+</ui>

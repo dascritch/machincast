@@ -179,7 +179,7 @@
         <item>
          <widget class="QLabel" name="explication_evenements">
           <property name="text">
-           <string>Une séquence se place dans un événement depuis l'écran de l'événement, à venir.</string>
+           <string>Une séquence se place dans un événement depuis la fiche de l'événement.</string>
           </property>
           <property name="wordWrap">
            <bool>true</bool>

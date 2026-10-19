@@ -1,7 +1,7 @@
 # language: fr
-Fonctionnalité: Schéma initial de la base de données
+Fonctionnalité: Schéma de la base de données
 	En tant que développeur de MachinCast,
-	je veux qu'une première migration yoyo crée toutes les tables de la spécification,
+	je veux que les migrations yoyo créent toutes les tables de la spécification,
 	afin que la base de production et la base de test aient un schéma strictement identique.
 
 	Contexte:
@@ -167,6 +167,12 @@ Fonctionnalité: Schéma initial de la base de données
 			| nom_interne = 'X', priorite = 'secours', debut = '2026-10-19 18:00'                              |
 			| nom_interne = 'X', priorite = 'secours', debut = '2026-10-19 18:00', fin = '2026-10-19 19:00'    |
 			| nom_interne = 'X', priorite = 'secours', jours_recurrence = '{lundi}'                            |
+
+	Scénario: Deux événements n'ont pas le même nom interne
+		# https://github.com/dascritch/machincast/issues/32, migration 0002.evenements-nom-unique.
+		Quand j'enregistre dans "evenements" : nom_interne = 'Continue', priorite = 'fil_musical'
+		Et j'enregistre dans "evenements" : nom_interne = 'Continue', priorite = 'secours'
+		Alors la base refuse l'enregistrement
 
 	Scénario: Les priorités sont ordonnées
 		Alors la priorité "secours" est inférieure à "fil_musical"

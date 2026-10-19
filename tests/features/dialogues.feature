@@ -4,7 +4,8 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 	je veux que les fiches me posent leurs questions dans des fenêtres claires, en français,
 	afin de ne jamais perdre une modification ni retirer un sonore sans le savoir.
 
-	https://github.com/dascritch/machincast/issues/31, https://github.com/dascritch/machincast/issues/112. Les scénarios des fiches remplacent ces fenêtres par leurs
+	https://github.com/dascritch/machincast/issues/31, https://github.com/dascritch/machincast/issues/112,
+	https://github.com/dascritch/machincast/issues/32. Les scénarios des fiches remplacent ces fenêtres par leurs
 	réponses ; ceux-ci ouvrent les vraies fenêtres, hors de l'écran du poste, et y cliquent.
 
 	Contexte:
@@ -47,13 +48,14 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 			| /srv/jingles   | « /srv/jingles »     |
 			|                | aucun                |
 
-	Plan du scénario: Le choix des sonores ou des banques donne ceux sélectionnés, ou aucun s'il est abandonné
+	Plan du scénario: Le choix des sonores, des banques ou des séquences donne ceux sélectionnés, ou aucun s'il est abandonné
 		Étant donné les sonores :
 			| artiste     | titre         | type    | etat  | duree | emplacement                  |
 			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/jingles/hiver/cafe.flac |
 			|             | Spot          | fichier | actif | 30    | /srv/pubs/spot.flac          |
 		Et la banque « Publicité », aléatoire, sans nom public, avec « Spot »
 		Et la banque « Habillage », séquentielle, sans nom public, avec « Café à minuit »
+		Et la séquence « Passage pub », sans nom public, avec le sonore « Spot »
 		Quand le choix des <genre> s'ouvre, avec la remarque « <remarque> », et que j'y sélectionne tout, puis clique sur « <bouton> »
 		Alors le choix s'est intitulé « Ajouter des <genre> »
 		Et le choix a expliqué « <explication> »
@@ -65,6 +67,7 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 			| sonores |                            | Annuler | Choisir parmi les sonores déjà en base (Ctrl ou Maj pour en prendre plusieurs).                       | aucun                       |
 			| banques | Une banque peut revenir.   | Ajouter | Choisir parmi les banques déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une banque peut revenir. | « Habillage », « Publicité » |
 			| banques | Une banque peut revenir.   | Annuler | Choisir parmi les banques déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une banque peut revenir. | aucun                       |
+			| séquences | Une séquence peut revenir. | Ajouter | Choisir parmi les séquences déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une séquence peut revenir. | « Passage pub » |
 
 	Scénario: Ouvrir un dossier le montre dans le navigateur de fichiers du poste
 		Quand j'ouvre le dossier « /srv/jingles/hiver »

@@ -1,5 +1,5 @@
 """Scénarios des fenêtres de dialogue des fiches (https://github.com/dascritch/machincast/issues/31,
-https://github.com/dascritch/machincast/issues/112).
+https://github.com/dascritch/machincast/issues/112, https://github.com/dascritch/machincast/issues/32).
 
 Les vraies fenêtres s'ouvrent, hors de l'écran du poste : un minuteur y clique une fois la fenêtre modale ouverte. Le
 sélecteur de répertoires et le navigateur de fichiers du poste sont remplacés.
@@ -99,8 +99,8 @@ def selecteur(dialogue: Dialogue, monkeypatch: pytest.MonkeyPatch, selecteur: st
 
 @when(
 	parsers.re(
-		r"le choix des (?P<genre>sonores|banques) s'ouvre, avec la remarque « ?(?P<remarque>[^»]*?) ?», et que j'y"
-		r" sélectionne tout, puis clique sur « (?P<bouton>[^»]+) »"
+		r"le choix des (?P<genre>sonores|banques|séquences) s'ouvre, avec la remarque « ?(?P<remarque>[^»]*?) ?»,"
+		r" et que j'y sélectionne tout, puis clique sur « (?P<bouton>[^»]+) »"
 	)
 )
 def choix(dialogue: Dialogue, base_vide: Connexion, genre: str, remarque: str, bouton: str) -> None:
@@ -116,7 +116,11 @@ def choix(dialogue: Dialogue, base_vide: Connexion, genre: str, remarque: str, b
 		modale.ui.boutons.button(standards[bouton]).click()
 
 	quand_modale(faire)
-	choisir = {"sonores": dialogues.choisir_sonores, "banques": dialogues.choisir_banques}[genre]
+	choisir = {
+		"sonores": dialogues.choisir_sonores,
+		"banques": dialogues.choisir_banques,
+		"séquences": dialogues.choisir_sequences,
+	}[genre]
 	connexion = connecter(*parametres_base_test(), Role.INTERFACE)
 	try:
 		dialogue.reponse = choisir(dialogue.parent, connexion, remarque)
@@ -167,9 +171,13 @@ def explique(dialogue: Dialogue, texte: str) -> None:
 	assert dialogue.texte == texte
 
 
-@then(parsers.re(r"les (?P<genre>sonores|banques) choisis sont (?P<noms>.+)"))
+@then(parsers.re(r"les (?P<genre>sonores|banques|séquences) choisis sont (?P<noms>.+)"))
 def choisis(dialogue: Dialogue, base_vide: Connexion, genre: str, noms: str) -> None:
-	table, colonne = {"sonores": ("sonores", "titre"), "banques": ("banques", "nom_interne")}[genre]
+	table, colonne = {
+		"sonores": ("sonores", "titre"),
+		"banques": ("banques", "nom_interne"),
+		"séquences": ("sequences", "nom_interne"),
+	}[genre]
 	assert dialogue.reponse == [identifiant(base_vide, table, colonne, nom) for nom in NOM.findall(noms)]
 
 

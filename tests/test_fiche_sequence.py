@@ -90,11 +90,6 @@ def deposer(interface: Contexte, quoi: str, deplacement: str | None) -> None:
 	glisser(interface, fiche(interface).ui.elements, quoi, True, deplacement is not None)
 
 
-@when(parsers.parse("la banque « {nom} » n'est plus marquée « ne pas répéter » en base"))
-def demarquer(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE banques SET ne_pas_repeter = false WHERE nom_interne = %s", (nom,))
-
-
 @when(parsers.parse("j'ouvre l'élément « {nom} » de la séquence"))
 def ouvrir_element(interface: Contexte, qtbot: QtBot, nom: str) -> None:
 	ouvrir_dans(qtbot, fiche(interface).ui.elements, nom)

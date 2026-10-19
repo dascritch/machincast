@@ -4,13 +4,13 @@ Un onglet par écran : l'accueil (écran par défaut, ouvert au lancement), puis
 l'ordre de la recherche (spec § 8.2) : événements, séquences, banques, sonores. Ces onglets ne se ferment pas. Une liste
 se relit chaque fois que son onglet s'ouvre. Ouvrir une ligne demande l'écran de détail de l'élément (detail_demande).
 
-L'écran de détail d'une banque, d'un sonore ou d'une séquence est sa fiche (machincast.interface.fiche_banque,
-https://github.com/dascritch/machincast/issues/31 ; machincast.interface.fiche_sonore,
-https://github.com/dascritch/machincast/issues/28 ; machincast.interface.fiche_sequence,
-https://github.com/dascritch/machincast/issues/112), dans un onglet qui se ferme ; une fiche déjà ouverte revient au
-premier plan. Un élément cité par une fiche s'ouvre comme une ligne de liste. Une fiche modifiée demande quoi faire de
-ses modifications avant de se fermer, avec son onglet ou avec la fenêtre. Tant que les autres écrans de détail
-n'existent pas, la barre d'état les annonce, avec leur ticket.
+L'écran de détail d'un élément est sa fiche, dans un onglet qui se ferme : événement
+(machincast.interface.fiche_evenement, https://github.com/dascritch/machincast/issues/32), séquence
+(machincast.interface.fiche_sequence, https://github.com/dascritch/machincast/issues/112), banque
+(machincast.interface.fiche_banque, https://github.com/dascritch/machincast/issues/31) ou sonore
+(machincast.interface.fiche_sonore, https://github.com/dascritch/machincast/issues/28). Une fiche déjà ouverte
+revient au premier plan. Un élément cité par une fiche s'ouvre comme une ligne de liste. Une fiche modifiée demande
+quoi faire de ses modifications avant de se fermer, avec son onglet ou avec la fenêtre.
 """
 
 from pathlib import Path
@@ -25,18 +25,17 @@ from machincast.horloge import Horloge
 from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.fiche import Fiche
 from machincast.interface.fiche_banque import FicheBanque
+from machincast.interface.fiche_evenement import FicheEvenement
 from machincast.interface.fiche_sequence import FicheSequence
 from machincast.interface.fiche_sonore import FicheSonore
 from machincast.interface.listes import BANQUES, EVENEMENTS, SEQUENCES, SONORES, Liste
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 
 ONGLETS = (("Événements", EVENEMENTS), ("Séquences", SEQUENCES), ("Banques", BANQUES), ("Sonores", SONORES))
-DETAILS = {
-	"événement": ("de l'événement", "https://github.com/dascritch/machincast/issues/32"),
+FICHES: dict[str, type[Fiche]] = {
+	fiche.genre: fiche for fiche in (FicheEvenement, FicheSequence, FicheBanque, FicheSonore)
 }
-"""Écrans de détail encore à venir, avec leur ticket."""
-FICHES: dict[str, type[Fiche]] = {fiche.genre: fiche for fiche in (FicheBanque, FicheSonore, FicheSequence)}
-"""Écrans de détail écrits : les fiches, par genre."""
+"""Écrans de détail : les fiches, par genre."""
 
 
 class FenetrePrincipale(QMainWindow):
@@ -117,10 +116,6 @@ class FenetrePrincipale(QMainWindow):
 		if isinstance(ouvert, Liste):
 			ouvert.actualiser()
 
-	def _ouvrir(self, genre: str, identifiant: int, nom: str) -> None:
+	def _ouvrir(self, genre: str, identifiant: int, _nom: str) -> None:
 		self.detail_demande.emit(genre, identifiant)
-		if genre in FICHES:
-			self._ouvrir_fiche(genre, identifiant)
-			return
-		article, ticket = DETAILS[genre]
-		self.ui.barre_d_etat.showMessage(f"Écran de détails {article} « {nom} » : à venir, {ticket}")
+		self._ouvrir_fiche(genre, identifiant)
