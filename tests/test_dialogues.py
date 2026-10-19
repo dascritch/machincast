@@ -29,6 +29,8 @@ scenarios("dialogues.feature")
 class Dialogue:
 	parent: QWidget
 	texte: str = ""
+	precision: str = ""
+	"""Le texte qui suit celui de la question."""
 	titre: str = ""
 	actions: list[str] = field(default_factory=list)
 	boutons: list[str] = field(default_factory=list)
@@ -65,6 +67,7 @@ def repondre(dialogue: Dialogue, qtbot: QtBot, geste: str) -> None:
 	def faire(modale: QWidget) -> None:
 		assert isinstance(modale, QMessageBox), modale
 		dialogue.texte = modale.text()
+		dialogue.precision = modale.informativeText()
 		dialogue.boutons = [bouton.text() for bouton in modale.buttons()]
 		touches = {"tape Échap": Qt.Key.Key_Escape, "tape Entrée": Qt.Key.Key_Return}
 		if geste in touches:
@@ -81,6 +84,12 @@ def repondre(dialogue: Dialogue, qtbot: QtBot, geste: str) -> None:
 def fermeture(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> None:
 	repondre(dialogue, qtbot, geste)
 	dialogue.reponse = dialogues.confirmer_fermeture(dialogue.parent, titre)
+
+
+@when(parsers.parse("la question de rafraîchissement de « {titre} » s'ouvre, et que j'y {geste}"))
+def rafraichissement(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> None:
+	repondre(dialogue, qtbot, geste)
+	dialogue.reponse = dialogues.confirmer_fermeture(dialogue.parent, titre, "rafraîchir la fiche")
 
 
 @when(parsers.parse("l'avertissement de réintégration « {texte} » s'ouvre, et que j'y {geste}"))
@@ -148,6 +157,11 @@ def ouvrir_dossier(dialogue: Dialogue, monkeypatch: pytest.MonkeyPatch, dossier:
 
 	monkeypatch.setattr(QDesktopServices, "openUrl", ouvrir)
 	dialogues.ouvrir_dossier(Path(dossier))
+
+
+@then(parsers.parse("la question a précisé « {texte} »"))
+def precision(dialogue: Dialogue, texte: str) -> None:
+	assert dialogue.precision == texte
 
 
 @then(parsers.parse("la question a dit « {texte} »"))

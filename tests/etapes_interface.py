@@ -117,12 +117,16 @@ def interface(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Conte
 		interface.connexion.close()
 
 
+QUESTIONS_DE_MODIFICATION = {"fermer la fiche": "fermeture", "rafraîchir la fiche": "rafraîchissement"}
+"""La question sur les modifications d'une fiche, selon ce qui l'a posée."""
+
+
 def remplacer_dialogues(interface: Contexte) -> None:
 	"""Les fenêtres de dialogue donnent les réponses du scénario, et notent les questions posées."""
 	monkeypatch = interface.monkeypatch
 
-	def fermeture(_parent: QWidget, titre: str) -> Fermeture:
-		interface.questions.append(f"fermeture : {titre}")
+	def fermeture(_parent: QWidget, titre: str, avant: str = "fermer la fiche") -> Fermeture:
+		interface.questions.append(f"{QUESTIONS_DE_MODIFICATION[avant]} : {titre}")
 		return interface.fermeture
 
 	def retrait(_parent: QWidget, avertissement: str) -> Retrait:
@@ -640,7 +644,7 @@ def fermer_fenetre(interface: Contexte) -> None:
 	fenetre(interface).close()
 
 
-@when(parsers.parse("je réponds « {reponse} » à la question de fermeture"))
+@when(parsers.re(r"je réponds « (?P<reponse>[^»]+) » à la question de (?:fermeture|rafraîchissement)"))
 def repondre_fermeture(interface: Contexte, reponse: str) -> None:
 	interface.fermeture = Fermeture(reponse)
 
@@ -720,9 +724,9 @@ def aucune_question(interface: Contexte) -> None:
 	assert interface.questions == []
 
 
-@then(parsers.parse("la question de fermeture a nommé « {titre} »"))
-def question_de_fermeture(interface: Contexte, titre: str) -> None:
-	assert interface.questions == [f"fermeture : {titre}"]
+@then(parsers.re(r"la question de (?P<quoi>fermeture|rafraîchissement) a nommé « (?P<titre>[^»]+) »"))
+def question_de_fermeture(interface: Contexte, quoi: str, titre: str) -> None:
+	assert interface.questions == [f"{quoi} : {titre}"]
 
 
 @then(parsers.re(r"le navigateur de fichiers a ouvert (?P<dossier>.+)"))

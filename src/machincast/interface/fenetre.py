@@ -15,11 +15,13 @@ quoi faire de ses modifications avant de se fermer, avec son onglet ou avec la f
 Le dernier onglet fixe est l'écran des incidents du log (machincast.interface.incidents,
 https://github.com/dascritch/machincast/issues/35), qui se relit aussi à l'ouverture de son onglet.
 
-La barre de menus a trois menus (https://github.com/dascritch/machincast/issues/117) : « Fichier », pour quitter
-(Alt+Q, comme la fermeture de la fenêtre) ; « Maintenance », qui lance l'indexation rapide ou l'audit complet, en tâche
-de fond, et en montre le rapport (machincast.interface.indexation, https://github.com/dascritch/machincast/issues/38) ;
-« Aide », pour signaler un problème et connaître la version (machincast.interface.version). Une fonction pas encore
-écrite a son entrée, inactive, dont l'infobulle donne le ticket.
+La barre de menus a quatre menus (https://github.com/dascritch/machincast/issues/117) : « Fichier », pour quitter
+(Alt+Q, comme la fermeture de la fenêtre) ; « Affichage », pour rafraîchir les onglets (F5,
+https://github.com/dascritch/machincast/issues/148) ; « Maintenance », qui lance l'indexation rapide ou l'audit
+complet, en tâche de fond, et en montre le rapport (machincast.interface.indexation,
+https://github.com/dascritch/machincast/issues/38) ; « Aide », pour signaler un problème et connaître la version
+(machincast.interface.version). Une fonction pas encore écrite a son entrée, inactive, dont l'infobulle donne le
+ticket.
 
 Les fichiers ajoutés depuis la liste des sonores entrent en base (machincast.interface.ajout), puis l'indexeur les
 vérifie en tâche de fond (machincast.interface.verification, https://github.com/dascritch/machincast/issues/30) ; la
@@ -39,7 +41,7 @@ from machincast.horloge import Horloge
 from machincast.interface import dialogues, version
 from machincast.interface.ajout import ajouter_fichiers
 from machincast.interface.ecran_par_defaut import EcranParDefaut
-from machincast.interface.fiche import Fiche
+from machincast.interface.fiche import Fiche, Rafraichie
 from machincast.interface.fiche_banque import FicheBanque
 from machincast.interface.fiche_evenement import FicheEvenement
 from machincast.interface.fiche_marque_page import FicheMarquePage
@@ -121,6 +123,10 @@ class FenetrePrincipale(QMainWindow):
 		quitter = fichier.addAction("Quitter")
 		quitter.setShortcut(QKeySequence("Alt+Q"))
 		quitter.triggered.connect(self.close)
+		affichage = self.menuBar().addMenu("A&ffichage")
+		rafraichir = affichage.addAction("Rafraîchir les onglets")
+		rafraichir.setShortcut(QKeySequence("F5"))
+		rafraichir.triggered.connect(self.rafraichir)
 		maintenance = self.menuBar().addMenu("&Maintenance")
 		_a_venir(
 			maintenance.addAction("Moniteur de la sortie…"), "ticket 85"
@@ -134,8 +140,29 @@ class FenetrePrincipale(QMainWindow):
 		aide = self.menuBar().addMenu("&Aide")
 		aide.addAction("Signaler un problème…").triggered.connect(lambda: dialogues.ouvrir_page(TICKETS))
 		aide.addAction("Version").triggered.connect(lambda: dialogues.montrer_version(self, version.texte()))
-		for menu in (fichier, maintenance, aide):
+		for menu in (fichier, affichage, maintenance, aide):
 			menu.setToolTipsVisible(True)
+
+	def rafraichir(self) -> None:
+		"""Relit l'onglet ouvert, l'airplay de l'accueil et les fiches ; une liste se relit déjà à son ouverture."""
+		self._onglet_ouvert(self.ui.onglets.currentIndex())
+		self.accueil.actualiser_airplay()
+		laissees: list[str] = []
+		effacees: list[str] = []
+		for fiche in self.fiches():
+			titre = fiche.titre()
+			resultat = fiche.rafraichir()
+			if resultat is Rafraichie.LAISSEE:
+				laissees.append(titre)
+			if resultat is Rafraichie.EFFACEE:
+				effacees.append(titre)
+				self._retirer(fiche)
+		texte = "Onglets rafraîchis."
+		if laissees != []:
+			texte = f"{texte} Fiches laissées telles quelles : {_titres(laissees)}."
+		if effacees != []:
+			texte = f"{texte} Fiches fermées, leur élément n'est plus en base : {_titres(effacees)}."
+		self.ui.barre_d_etat.showMessage(texte)
 
 	def fiches(self) -> list[Fiche]:
 		onglets = self.ui.onglets
@@ -255,3 +282,7 @@ def _a_venir(action: QAction, tickets: str) -> None:
 	"""Une infobulle ne porte pas de lien : elle nomme le ticket par son numéro, sans « # »."""
 	action.setEnabled(False)
 	action.setToolTip(f"À venir : {tickets} sur GitHub")
+
+
+def _titres(titres: list[str]) -> str:
+	return ", ".join(f"« {titre} »" for titre in titres)

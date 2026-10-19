@@ -34,13 +34,14 @@ class Retrait(StrEnum):
 	ANNULER = "Annuler"
 
 
-def confirmer_fermeture(parent: QWidget, titre: str) -> Fermeture:
-	"""Demande quoi faire des modifications d'une fiche qui se ferme : Entrée enregistre, Échap annule la fermeture."""
+def confirmer_fermeture(parent: QWidget, titre: str, avant: str = "fermer la fiche") -> Fermeture:
+	"""Demande quoi faire des modifications d'une fiche, avant de la fermer ou de la rafraîchir : Entrée enregistre,
+	Échap annule la fermeture ou le rafraîchissement de la fiche."""
 	question = QMessageBox(parent)
 	question.setIcon(QMessageBox.Icon.Question)
 	question.setWindowTitle(titre)
 	question.setText(f"« {titre} » a des modifications qui ne sont pas enregistrées.")
-	question.setInformativeText("Les enregistrer avant de fermer la fiche ?")
+	question.setInformativeText(f"Les enregistrer avant de {avant} ?")
 	# Le bouton du rôle AcceptRole répond à Entrée, celui du rôle RejectRole à Échap.
 	enregistrer = question.addButton(Fermeture.ENREGISTRER.value, QMessageBox.ButtonRole.AcceptRole)
 	abandonner = question.addButton(Fermeture.ABANDONNER.value, QMessageBox.ButtonRole.DestructiveRole)

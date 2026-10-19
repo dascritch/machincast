@@ -9,6 +9,9 @@ quoi faire de ses modifications (machincast.interface.dialogues).
 Une fiche concrète décrit son genre et son titre, lit l'élément en base (_lire) et l'y écrit (_ecrire). Un refus
 (Refus) laisse la fiche modifiée, avec son message.
 
+Le rafraîchissement des onglets (https://github.com/dascritch/machincast/issues/148) relit la fiche ; une fiche modifiée
+demande d'abord quoi faire de ses modifications, et la fiche d'un élément effacé de la base est à fermer.
+
 « Supprimer… » supprime l'élément de la base, après une confirmation qui dit où il figure
 (machincast.interface.suppression, https://github.com/dascritch/machincast/issues/33) : jamais un fichier ni un
 répertoire. Une fiche qui n'est pas encore enregistrée n'a rien à supprimer.
@@ -16,6 +19,7 @@ répertoire. Une fiche qui n'est pas encore enregistrée n'a rien à supprimer.
 
 import logging
 import os
+from enum import Enum
 from pathlib import Path
 
 import psycopg
@@ -37,6 +41,16 @@ def fichiers_sonores(chemins: list[Path]) -> tuple[list[str], list[Path]]:
 	"""Les fichiers sonores d'un dépôt, sous leur forme normale et dans l'ordre ; puis ce qui n'en est pas."""
 	sonores = [chemin for chemin in chemins if (chemin.is_file()) and (est_fichier_sonore(chemin))]
 	return [os.path.normpath(chemin) for chemin in sonores], [chemin for chemin in chemins if chemin not in sonores]
+
+
+class Rafraichie(Enum):
+	"""Ce qu'est devenue une fiche rafraîchie."""
+
+	RELUE = "relue"
+	LAISSEE = "laissée telle quelle"
+	"""Ses modifications sont gardées : la réponse « Annuler », ou un enregistrement refusé."""
+	EFFACEE = "effacée"
+	"""Son élément n'est plus en base : la fiche est à fermer, ses modifications perdues."""
 
 
 class Refus(Exception):
@@ -145,6 +159,28 @@ class Fiche(QWidget):
 		if reponse is Fermeture.ENREGISTRER:
 			return self.enregistrer()
 		return reponse is Fermeture.ABANDONNER
+
+	def rafraichir(self) -> Rafraichie:
+		"""Relit la fiche ; une fiche modifiée demande d'abord quoi faire de ses modifications."""
+		if (self.identifiant is not None) and (not self._en_base()):
+			return Rafraichie.EFFACEE
+		if self.modifiee:
+			reponse = dialogues.confirmer_fermeture(self, self.titre(), "rafraîchir la fiche")
+			if reponse is Fermeture.ANNULER:
+				return Rafraichie.LAISSEE
+			if reponse is Fermeture.ENREGISTRER:
+				# Enregistrer relit la fiche.
+				if self.enregistrer():
+					return Rafraichie.RELUE
+				return Rafraichie.LAISSEE
+		self.charger()
+		return Rafraichie.RELUE
+
+	def _en_base(self) -> bool:
+		table = suppression.GENRES[self.genre].table
+		with self.connexion.transaction():
+			ligne = self.connexion.execute(f"SELECT 1 FROM {table} WHERE id = %s", (self.identifiant,)).fetchone()  # noqa: S608
+		return ligne is not None
 
 	def enregistrer_fichier(self, fichier: str) -> int:
 		"""Dans la transaction d'« Enregistrer » : un fichier déposé devient un sonore à l'état aperçu, que Machin
