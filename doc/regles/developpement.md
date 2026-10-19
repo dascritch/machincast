@@ -55,9 +55,10 @@ Portées usuelles : `lecture`, `indexation`, `interface`, `wrapper`, `db`, `inst
 
 ## Corrections d'une PR ouverte
 
-Une correction d'une PR ouverte, demandée en relecture ou trouvée ensuite, est un **nouveau commit**, poussé sans forcer ([#131](https://github.com/dascritch/machincast/issues/131)). Le relecteur voit ainsi ce qui a changé depuis sa dernière relecture.
+Une correction d'une PR ouverte, demandée en relecture ou trouvée ensuite, est un **nouveau commit** ([#131](https://github.com/dascritch/machincast/issues/131)). Le relecteur voit ainsi ce qui a changé depuis sa dernière relecture.
 
-- Jamais de `git commit --amend`, de `git rebase` ni de `git push --force` (ou `--force-with-lease`) sur la branche d'une PR ouverte : son historique n'est jamais réécrit.
+- Jamais de `git commit --amend` : un commit déjà poussé n'est jamais modifié.
+- Pour remettre la branche d'une PR à jour avec `main` (par exemple après la fusion d'une autre PR qui touche les mêmes fichiers), `git rebase` sur `main`, jamais un commit de fusion : chaque commit est rejoué tel quel, et un conflit se résout dans le commit qui le provoque. La branche se pousse alors avec `git push --force-with-lease`, jamais `--force`, qui écraserait un commit poussé entre-temps.
 - Le message suit le format ci-dessus, lié au même ticket, avec le type qui convient : `fix` pour un défaut, `refactor`, `test` ou `docs` pour le reste. Par exemple :
 
 ```
