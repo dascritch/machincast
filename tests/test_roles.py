@@ -10,7 +10,7 @@ from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.base import Role, annuler_migrations, connecter, url_yoyo
-from tests.base_test import parametres_base_test
+from tests.base_test import commande_d_autorisation, parametres_base_test
 
 scenarios("roles.feature")
 
@@ -212,6 +212,23 @@ def compte_courant(contexte: Contexte) -> None:
 		" AND r.rolname = ANY(%s)",
 		([str(role) for role in Role],),
 	).fetchall()
+	compte = contexte.connexion.execute(
+		"SELECT current_user, rolsuper FROM pg_roles WHERE rolname = current_user"
+	).fetchone()
+	assert compte is not None
+	nom, superutilisateur = compte
+	explication = (
+		f"le compte {nom} n'a aucune autorisation sur les rôles de MachinCast : {commande_d_autorisation(str(nom))}"
+	)
+	if superutilisateur:
+		# Un superutilisateur endosse tous les rôles sans autorisation : les autres scénarios passent, celui-ci non.
+		explication = (
+			f"le compte {nom} est superutilisateur de PostgreSQL, et endosse les rôles sans autorisation ;"
+			f" l'installation voulue ne lui donne aucun droit particulier sur le serveur (doc/regles/tests.md, Base de"
+			f" test). Lancer :"
+			f" {commande_d_autorisation(str(nom))}, puis sudo -u postgres psql -c 'ALTER ROLE \"{nom}\" NOSUPERUSER'"
+		)
+	assert lignes != [], explication
 	# Aucune autorisation n'hérite des droits, et chaque rôle peut être endossé par au moins l'une d'elles.
-	assert lignes and not any(heritage for _, heritage, _ in lignes), lignes
+	assert not any(heritage for _, heritage, _ in lignes), lignes
 	assert {str(nom) for nom, _, endossable in lignes if endossable} == {str(role) for role in Role}, lignes

@@ -63,6 +63,12 @@ def purger_base(connexion: psycopg.Connection[tuple[object, ...]]) -> None:
 	)
 
 
+def commande_d_autorisation(nom: str) -> str:
+	"""La commande qui autorise le compte à endosser les trois rôles, comme le fait install.sh."""
+	roles = ", ".join(str(role) for role in Role)
+	return f"sudo -u postgres psql -c 'GRANT {roles} TO \"{nom}\" WITH INHERIT FALSE, SET TRUE'"
+
+
 def verifier_autorisations(connexion: psycopg.Connection[tuple[object, ...]]) -> None:
 	"""Ignore le scénario si le compte qui lance les tests ne peut pas endosser les trois rôles de MachinCast.
 

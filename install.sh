@@ -220,6 +220,13 @@ preparer_postgresql() {
 		SQL
 		info "${UTILISATEUR} peut endosser les rôles ${ROLES[*]}"
 	fi
+	# Un superutilisateur endosse tous les rôles sans autorisation, et peut tout faire sur le serveur : l'installation
+	# voulue ne donne au compte aucun droit particulier (doc/spec.md § 3.2). install.sh ne retire pas ce droit, qui peut
+	# servir à autre chose sur le poste : il le signale.
+	if existe_en_base "SELECT 1 FROM pg_roles WHERE rolname = :'nom' AND rolsuper" "${UTILISATEUR}"; then
+		info "attention : ${UTILISATEUR} est superutilisateur de PostgreSQL, ce que MachinCast ne demande pas ; pour le"
+		info "retirer : sudo -u postgres psql -c 'ALTER ROLE \"${UTILISATEUR}\" NOSUPERUSER'"
+	fi
 }
 
 autoriser_journal() {
