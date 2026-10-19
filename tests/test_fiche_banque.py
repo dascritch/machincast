@@ -7,22 +7,22 @@ manipulent la fiche, le choix des sonores, et lisent la base de test.
 from collections.abc import Iterator
 
 import pytest
-from PySide6.QtCore import QItemSelectionModel, QMimeData, QPointF, Qt, QUrl
-from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDropEvent
-from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QTreeWidgetItem, QWidget
+from PySide6.QtCore import QItemSelectionModel, Qt
+from PySide6.QtWidgets import QAbstractItemView, QDialog, QTreeWidgetItem, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.base import Role, connecter
-from machincast.interface.choix_sonores import ChoixSonores
+from machincast.interface.choix import Choix
 from machincast.interface.fiche_banque import SONORE, FicheBanque
-from machincast.interface.listes import Liste
+from machincast.interface.listes import SONORES
 from tests.base_test import parametres_base_test
 from tests.etapes_interface import (
 	NOM,
 	Connexion,
 	Contexte,
 	fenetre,
+	glisser,
 	identifiant,
 	ouvrir_dans,
 	taper,
@@ -35,9 +35,9 @@ MODES = {"séquentielle": "sequentiel", "aléatoire": "aleatoire"}
 
 
 @pytest.fixture
-def choix() -> Iterator[list[ChoixSonores]]:
+def choix() -> Iterator[list[Choix]]:
 	"""Le choix des sonores ouvert par le scénario, hors de la fenêtre."""
-	ouverts: list[ChoixSonores] = []
+	ouverts: list[Choix] = []
 	yield ouverts
 	for ouvert in ouverts:
 		ouvert.liste.connexion.close()
@@ -84,22 +84,6 @@ def sans_titre(base_vide: Connexion, emplacements: str, nom: str) -> None:
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when(parsers.re(r"je saisis le (?P<champ>nom interne|nom public) « (?P<texte>[^»]*) »"))
-def saisir(interface: Contexte, qtbot: QtBot, champ: str, texte: str) -> None:
-	ui = fiche(interface).ui
-	champs = {"nom interne": ui.nom_interne, "nom public": ui.nom_public}
-	taper(qtbot, champs[champ], texte)
-
-
-@when(parsers.re(r"je choisis le (?P<champ>mode|masquage) « (?P<texte>[^»]+) »"))
-def choisir(interface: Contexte, champ: str, texte: str) -> None:
-	ui = fiche(interface).ui
-	liste = {"mode": ui.mode, "masquage": ui.masquage}[champ]
-	indice = liste.findText(texte, Qt.MatchFlag.MatchFixedString)
-	assert indice >= 0, f"« {texte} » absent du choix du {champ}"
-	liste.setCurrentIndex(indice)
-
-
 @when(parsers.re(r"je (?P<action>coche|décoche) « ne pas répéter »"))
 def cocher(interface: Contexte, action: str) -> None:
 	fiche(interface).ui.ne_pas_repeter.setChecked(action == "coche")
@@ -124,12 +108,6 @@ def retirer_repertoire(interface: Contexte, qtbot: QtBot, repertoire: str) -> No
 	assert len(trouves) == 1, trouves
 	ui.repertoires.setCurrentItem(trouves[0])
 	cliquer(qtbot, ui.retirer_repertoire)
-
-
-@when(parsers.re(r"j'ajoute les sonores (?P<titres>« [^»]+ »(?:, « [^»]+ »)*)"))
-def ajouter_sonores(interface: Contexte, qtbot: QtBot, base_vide: Connexion, titres: str) -> None:
-	interface.sonores_choisis = [identifiant(base_vide, "sonores", "titre", titre) for titre in NOM.findall(titres)]
-	cliquer(qtbot, fiche(interface).ui.ajouter_sonores)
 
 
 @when(parsers.re(r"j'ajoute les sonores (?P<titres>.+), en effaçant « (?P<efface>[^»]+) » de la base pendant le choix"))
@@ -183,36 +161,9 @@ def rattacher(base_vide: Connexion, titre: str, nom: str) -> None:
 	)
 )
 def deposer(interface: Contexte, geste: str, liste: str, quoi: str, deplacement: str | None) -> None:
-	"""Un glisser venu du navigateur de fichiers, qui propose la copie, le déplacement et le lien. Maj est enfoncée :
-	le navigateur propose le déplacement, que la fiche doit changer en copie. « un texte » glisse du texte, sans
-	fichier ; un chemin en https:// est une adresse web."""
 	ui = fiche(interface).ui
-	cible = {"répertoires": ui.repertoires, "sonores": ui.sonores}[liste].viewport()
-	donnees = QMimeData()
-	if quoi == "un texte":
-		donnees.setText("Café à minuit")
-	else:
-		adresses = []
-		for chemin in NOM.findall(quoi):
-			adresse = QUrl(chemin)
-			if not chemin.startswith("https://"):
-				adresse = QUrl.fromLocalFile(interface.chemin(chemin))
-			adresses.append(adresse)
-		donnees.setUrls(adresses)
-	actions = Qt.DropAction.CopyAction | Qt.DropAction.MoveAction | Qt.DropAction.LinkAction
-	if deplacement is not None:
-		actions = Qt.DropAction.MoveAction
-	centre = cible.rect().center()
-	bouton, touches = Qt.MouseButton.LeftButton, Qt.KeyboardModifier.ShiftModifier
-	QApplication.sendEvent(cible, QDragEnterEvent(centre, actions, donnees, bouton, touches))
-	QApplication.sendEvent(cible, QDragMoveEvent(centre, actions, donnees, bouton, touches))
-	if geste != "dépose":
-		QApplication.sendEvent(cible, QDragLeaveEvent())
-		return
-	depot = QDropEvent(QPointF(centre), actions, donnees, bouton, touches)
-	assert depot.proposedAction() == Qt.DropAction.MoveAction
-	QApplication.sendEvent(cible, depot)
-	interface.depots.append((depot.isAccepted(), depot.dropAction()))
+	cible = {"répertoires": ui.repertoires, "sonores": ui.sonores}[liste]
+	glisser(interface, cible, quoi, geste == "dépose", deplacement is not None)
 
 
 @when(parsers.parse("l'indexation enregistre le fichier « {chemin} »"))
@@ -224,8 +175,8 @@ def indexer_fichier(interface: Contexte, base_vide: Connexion, chemin: str) -> N
 
 
 @when("j'ouvre le choix des sonores")
-def ouvrir_choix(choix: list[ChoixSonores], base_vide: Connexion, qtbot: QtBot) -> None:
-	ouvert = ChoixSonores(connecter(*parametres_base_test(), Role.INTERFACE))
+def ouvrir_choix(choix: list[Choix], base_vide: Connexion, qtbot: QtBot) -> None:
+	ouvert = Choix(SONORES, connecter(*parametres_base_test(), Role.INTERFACE))
 	choix.append(ouvert)
 	qtbot.addWidget(ouvert)
 	ouvert.show()
@@ -233,17 +184,17 @@ def ouvrir_choix(choix: list[ChoixSonores], base_vide: Connexion, qtbot: QtBot) 
 
 
 @when(parsers.parse("je tape « {texte} » dans le filtre du choix des sonores"))
-def filtrer_choix(choix: list[ChoixSonores], qtbot: QtBot, texte: str) -> None:
+def filtrer_choix(choix: list[Choix], qtbot: QtBot, texte: str) -> None:
 	taper(qtbot, choix[0].liste.filtre, texte)
 
 
 @when("je sélectionne toutes les lignes du choix des sonores")
-def tout_selectionner(choix: list[ChoixSonores]) -> None:
+def tout_selectionner(choix: list[Choix]) -> None:
 	choix[0].liste.table.selectAll()
 
 
 @when(parsers.re(r"je sélectionne les lignes (?P<titres>.+) du choix des sonores"))
-def selectionner(choix: list[ChoixSonores], titres: str) -> None:
+def selectionner(choix: list[Choix], titres: str) -> None:
 	table = choix[0].liste.table
 	modele = table.model()
 	for titre in NOM.findall(titres):
@@ -256,7 +207,7 @@ def selectionner(choix: list[ChoixSonores], titres: str) -> None:
 
 
 @when(parsers.parse("j'ouvre la ligne « {nom} » du choix des sonores"))
-def ouvrir_ligne_choix(choix: list[ChoixSonores], qtbot: QtBot, nom: str) -> None:
+def ouvrir_ligne_choix(choix: list[Choix], qtbot: QtBot, nom: str) -> None:
 	ouvrir_dans(qtbot, choix[0].liste.table, nom)
 
 
@@ -314,17 +265,6 @@ def sonores_montres(interface: Contexte, sonores: str) -> None:
 	liste = fiche(interface).ui.sonores
 	montres = [liste.topLevelItem(rangee).text(0) for rangee in range(liste.topLevelItemCount())]
 	assert montres == NOM.findall(sonores)
-
-
-@then(parsers.parse("seule la liste « {titre} » a un bouton « {texte} »"))
-def seul_bouton_nouveau(interface: Contexte, titre: str, texte: str) -> None:
-	onglets = fenetre(interface).ui.onglets
-	avec = []
-	for indice in range(onglets.count()):
-		ouverte = onglets.widget(indice)
-		if (isinstance(ouverte, Liste)) and (not ouverte.ui.nouveau.isHidden()):
-			avec.append((onglets.tabText(indice), ouverte.ui.nouveau.text()))
-	assert avec == [(titre, texte)]
 
 
 @then("aucune ligne de sonore de la fiche n'accepte qu'on y dépose une autre")
@@ -407,19 +347,9 @@ def toujours_en_base(base_vide: Connexion, titre: str) -> None:
 
 
 @then(parsers.re(r"le choix des sonores donne (?P<titres>.+)"))
-def choisis(choix: list[ChoixSonores], base_vide: Connexion, titres: str) -> None:
+def choisis(choix: list[Choix], base_vide: Connexion, titres: str) -> None:
 	attendus = [identifiant(base_vide, "sonores", "titre", titre) for titre in NOM.findall(titres)]
 	assert choix[0].selection() == attendus
-
-
-@then("le dépôt est accepté comme une copie")
-def depot_copie(interface: Contexte) -> None:
-	assert interface.depots == [(True, Qt.DropAction.CopyAction)]
-
-
-@then("le dépôt est refusé")
-def depot_refuse(interface: Contexte) -> None:
-	assert [accepte for accepte, _action in interface.depots] == [False]
 
 
 @then("les répertoires et les sonores de la fiche acceptent les dépôts")
@@ -435,19 +365,6 @@ def fichier_absent(interface: Contexte, base_vide: Connexion, chemin: str) -> No
 	assert lignes == []
 
 
-@then(parsers.parse("le fichier « {chemin} » est en base, à l'état aperçu, sans artiste ni titre"))
-def fichier_en_apercu(interface: Contexte, base_vide: Connexion, chemin: str) -> None:
-	lignes = base_vide.execute(
-		"SELECT type::text, etat::text, artiste, titre FROM sonores WHERE emplacement = %s", (interface.chemin(chemin),)
-	).fetchall()
-	assert lignes == [("fichier", "apercu", None, None)]
-
-
-@then("les fichiers déposés sont intacts")
-def intacts(interface: Contexte) -> None:
-	assert {fichier: fichier.read_bytes() for fichier in interface.fichiers} == interface.fichiers
-
-
 @then("le choix des sonores est validé")
-def valide(choix: list[ChoixSonores]) -> None:
+def valide(choix: list[Choix]) -> None:
 	assert choix[0].result() == QDialog.DialogCode.Accepted

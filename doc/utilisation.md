@@ -31,7 +31,7 @@ Machin --help                         # aide complète
 | --- | --- |
 | `Machin lecture` | Diffusion de l'antenne, normalement lancée comme service ([à venir](#ce-qui-nexiste-pas-encore)). |
 | `Machin indexation` | Enregistrement des fichiers déposés dans les répertoires des banques, vérification des fichiers sonores et mise à jour de la base. |
-| `Machin interface` | Interface graphique de supervision et de programmation. Pour l'instant, son [écran par défaut](#interface-graphique--machin-interface), les [listes](#listes), les fiches d'une [banque](#fiche-dune-banque) et d'un [sonore](#fiche-dun-sonore). |
+| `Machin interface` | Interface graphique de supervision et de programmation. Pour l'instant, son [écran par défaut](#interface-graphique--machin-interface), les [listes](#listes), les fiches d'une [banque](#fiche-dune-banque), d'un [sonore](#fiche-dun-sonore) et d'une [séquence](#fiche-dune-séquence). |
 | `Machin logs` | Suivi en direct du journal du service de diffusion. |
 
 **Options de `Machin`**, placées avant le nom du programme :
@@ -287,7 +287,7 @@ Le choix se déduit de l'historique de diffusion : il reprend là où il en éta
 - **Dans le log** : chaque élément sauté est noté une fois, en info `élément sauté`, avec la banque et l'événement. La décision se prend dès le début du sonore précédent, quand la diffusion réserve le suivant : c'est l'heure notée dans le log.
 - **Simulation** : la simulation applique la même règle, à partir de l'historique réel puis des passages simulés.
 
-La case « ne pas répéter » d'une banque se coche dans [sa fiche](#fiche-dune-banque) ([#31](https://github.com/dascritch/machincast/issues/31)). L'interface préviendra aussi, à l'édition d'un événement, quand une banque marquée occupe deux lignes qui se suivent, y compris la dernière et la première d'une liste qui boucle : le deuxième appel sera toujours sauté ([#32](https://github.com/dascritch/machincast/issues/32)).
+La case « ne pas répéter » d'une banque se coche dans [sa fiche](#fiche-dune-banque) ([#31](https://github.com/dascritch/machincast/issues/31)). La [fiche d'une séquence](#fiche-dune-séquence) prévient quand une banque marquée y occupe deux lignes qui se suivent : le deuxième appel sera toujours sauté ([#112](https://github.com/dascritch/machincast/issues/112)). L'écran d'un événement le fera aussi, y compris pour la dernière et la première ligne d'une liste qui boucle ([#32](https://github.com/dascritch/machincast/issues/32)).
 
 ### Expiration des sonores
 
@@ -333,15 +333,10 @@ Une **séquence** est une suite de sonores et de banques, jouée dans l'ordre, q
 - **Stream** : un stream tombé dans une séquence est remplacé par son événement de secours, comme ailleurs (voir [Streams](#streams)).
 - **Simulation** : la simulation applique les mêmes règles.
 
-Les séquences se créent dans l'interface ([#23](https://github.com/dascritch/machincast/issues/23) et suivants). En attendant, elles s'écrivent en base, par exemple avec `psql` sous le compte propriétaire de la base :
+Les séquences se créent et se modifient dans leur fiche ([Fiche d'une séquence](#fiche-dune-séquence)). Leur place dans la liste d'un événement se choisira dans l'écran de l'événement ([#32](https://github.com/dascritch/machincast/issues/32)). En attendant, elle s'écrit en base, par exemple avec `psql` sous le compte propriétaire de la base, ici en troisième ligne de l'événement « Continue » :
 
 ```bash
 psql --dbname=machincast <<'SQL'
-INSERT INTO sequences (nom_interne, nom_public, masquer_metadonnees)
-	VALUES ('Passage publicitaire', 'Vous écoutez Radio Thune', true);
-INSERT INTO sequences_elements (sequence_id, position, banque_id)
-	SELECT s.id, 1, b.id FROM sequences s, banques b
-	WHERE s.nom_interne = 'Passage publicitaire' AND b.nom_interne = 'Publicité';
 INSERT INTO evenements_elements (evenement_id, position, sequence_id)
 	SELECT e.id, 3, s.id FROM evenements e, sequences s
 	WHERE e.nom_interne = 'Continue' AND s.nom_interne = 'Passage publicitaire';
@@ -458,8 +453,8 @@ Les onglets Événements, Séquences, Banques et Sonores donnent chacun la liste
 - **Filtre** : le champ « Filtrer… » garde les lignes dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : `cafe` trouve « Café à minuit », `stream` tous les streams, `/srv/musique` tous les fichiers de ce répertoire. Le compte, à côté, dit combien de lignes restent, par exemple `2 sonores sur 340`. La croix du champ efface le filtre.
 - **Tri** : un clic sur le titre d'une colonne trie la liste selon cette colonne ; un second clic inverse l'ordre.
 - **Mise à jour** : une liste se relit dans la base chaque fois que son onglet s'ouvre, en gardant son filtre. Elle ne se relit jamais d'elle-même pendant qu'on la regarde.
-- **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvre l'écran de détails de l'élément. Pour une banque ou un sonore, c'est sa fiche ([banque](#fiche-dune-banque), [sonore](#fiche-dun-sonore)). Les autres écrans sont encore à venir ([#112](https://github.com/dascritch/machincast/issues/112) pour une séquence, [#32](https://github.com/dascritch/machincast/issues/32) pour un événement) : en attendant, la barre d'état, en bas de la fenêtre, l'annonce.
-- **Créer** : le bouton **Nouvelle banque**, à côté du filtre de la liste des banques, ouvre une fiche vide. Les autres types d'éléments n'ont pas encore ce bouton.
+- **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvre l'écran de détails de l'élément. Pour une séquence, une banque ou un sonore, c'est sa fiche ([séquence](#fiche-dune-séquence), [banque](#fiche-dune-banque), [sonore](#fiche-dun-sonore)). Celui d'un événement est encore à venir ([#32](https://github.com/dascritch/machincast/issues/32)) : en attendant, la barre d'état, en bas de la fenêtre, l'annonce.
+- **Créer** : les boutons **Nouvelle séquence** et **Nouvelle banque**, à côté du filtre de leur liste, ouvrent une fiche vide. Les événements et les sonores n'ont pas encore ce bouton.
 
 ### Fiche d'une banque
 
@@ -516,6 +511,31 @@ La fiche d'un sonore s'ouvre depuis la liste des sonores, dans un nouvel onglet 
 **Derniers passages** : les 50 derniers passages du sonore, du plus récent au plus ancien, avec le début, la fin (`en cours` pour le passage à l'antenne), la durée diffusée, l'événement, la séquence, la banque, « sans incident », et les alertes et incidents que le log a notés pour ce sonore pendant le passage. L'infobulle de cette dernière colonne les détaille, avec leur heure et leur message.
 
 La pré-écoute viendra avec [#29](https://github.com/dascritch/machincast/issues/29), l'ajout d'un sonore avec [#30](https://github.com/dascritch/machincast/issues/30), sa suppression avec [#33](https://github.com/dascritch/machincast/issues/33).
+
+### Fiche d'une séquence
+
+La fiche d'une [séquence](#séquences) s'ouvre depuis la liste des séquences, dans un nouvel onglet nommé « Séquence : » suivi de son nom ([#112](https://github.com/dascritch/machincast/issues/112)) ; **Nouvelle séquence** ouvre une fiche vide. Elle se comporte comme [celle d'une banque](#fiche-dune-banque) : **Enregistrer** et **Annuler**, une seule fiche par séquence, et la question à la fermeture d'une fiche modifiée.
+
+| Champ | Rôle |
+| --- | --- |
+| Nom interne | Obligatoire, et propre à la séquence : c'est son nom dans les listes, le log et l'airplay. |
+| Nom public | Facultatif. Affiché sur la page publique à la place de l'artiste et du titre masqués, si l'événement n'en a pas ([Sorties de la diffusion](#sorties-de-la-diffusion)). |
+| Artiste et titre | `Masqués` ou `Affichés` sur la page publique, pour les sonores que la séquence fait jouer, sauf si l'événement en décide. `Selon la banque ou le sonore` laisse décider la banque, puis le sonore, puis la configuration. |
+
+Les noms sont enregistrés sans les espaces qui les entourent. Rien n'est enregistré, et la fiche le dit, pour un nom interne vide (« Le nom interne est obligatoire. »), celui d'une autre séquence (« Une autre séquence s'appelle déjà « Ouverture ». »), ou une séquence sans élément (« Une séquence contient au moins un sonore ou une banque. »).
+
+**Éléments** : la liste ordonnée des sonores et des banques que la séquence joue. Chaque ligne donne le genre de l'élément, son nom (artiste et titre d'un sonore, ou le nom de son fichier tant qu'il n'est pas décodé) et un détail : l'emplacement d'un sonore, le mode d'une banque et « ne pas répéter » si elle l'est.
+
+- **Ordre** : un élément se déplace par glisser-déposer, ou en le choisissant puis avec **Monter** et **Descendre**.
+- **Ajouter des sonores…** et **Ajouter des banques…** ouvrent la liste de ceux déjà en base, avec son filtre ; plusieurs se choisissent avec Ctrl ou Maj, puis **Ajouter**. Ils s'ajoutent en fin de liste. **Un même sonore ou une même banque peut revenir** plusieurs fois. Une séquence ne contient jamais une autre séquence.
+- **Déposer des fichiers** glissés depuis le navigateur de fichiers les ajoute en fin de liste, une fois par fichier déposé, comme sur [la fiche d'une banque](#fiche-dune-banque) : un fichier déjà en base reprend son sonore, un autre devient à l'enregistrement un sonore à l'état `aperçu`, les dossiers et les fichiers qui ne sont pas sonores sont ignorés, et la fiche le dit. Un dépôt est toujours une copie : le fichier n'est pas touché.
+- **Retirer l'élément** retire la ligne choisie, sans rien demander : le sonore ou la banque reste en base.
+- **Banque « ne pas répéter »** : quand une banque marquée « ne pas répéter » est appelée deux fois de suite, la fiche signale sous la liste la ligne du deuxième appel, qui sera toujours sauté à la diffusion (« Ligne 3 : la banque « Publicité » vient de passer, et ne passe jamais deux fois de suite : cet appel sera sauté. »). Ce n'est qu'un avertissement : la séquence s'enregistre quand même.
+- **Pendant la modification** : un sonore ou une banque effacé de la base entre-temps est oublié à l'enregistrement. Une ligne restée dans la liste reste celle que désigne l'historique de diffusion : après un redémarrage, la séquence reprend après elle, à sa nouvelle place ([Séquences](#séquences)).
+
+**Ouvrir un élément** : un double-clic, ou Entrée, sur un sonore ou une banque ouvre sa fiche dans un autre onglet. Un fichier déposé n'a pas de fiche avant l'enregistrement.
+
+**Événements** : la liste des événements où la séquence figure, par nom ; elle ne se modifie pas ici. Un double-clic demande l'écran de l'événement, encore à venir ([#32](https://github.com/dascritch/machincast/issues/32)).
 
 ## Suivre le journal : Machin logs
 

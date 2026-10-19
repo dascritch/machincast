@@ -60,7 +60,7 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 			| artiste | titre | type    | etat  | duree | emplacement  |
 			|         | j1    | fichier | actif | 8     | /srv/j1.flac |
 		Et la banque « Tubes », aléatoire, sans nom public, avec « j1 »
-		Et la séquence « Passage pub », de nom public « Vous écoutez Radio Thune », avec le sonore « j1 » et la banque « Tubes »
+		Et la séquence « Passage pub », de nom public « Vous écoutez Radio Thune », avec le sonore « j1 », la banque « Tubes »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Séquences »
 		Alors la liste montre :
@@ -152,26 +152,17 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	# ─── Vers l'écran de détail ────────────────────────────────
 
-	Plan du scénario: Ouvrir une ligne demande l'écran de détail de l'élément, et l'annonce tant qu'il est à venir
-		# Ceux d'une banque et d'un sonore sont leurs fiches : fiche_banque.feature, fiche_sonore.feature.
-		Étant donné les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement            |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/musique/cafe.flac |
-		Et la banque « Tubes », aléatoire, sans nom public, avec « Café à minuit »
-		Et la séquence « Passage pub », de nom public « Vous écoutez Radio Thune », avec le sonore « Café à minuit » et la banque « Tubes »
-		Et les événements :
+	Scénario: Ouvrir une ligne demande l'écran de détail de l'élément, et l'annonce tant qu'il est à venir
+		# Ceux d'une banque, d'un sonore et d'une séquence sont leurs fiches : fiche_banque.feature,
+		# fiche_sonore.feature, fiche_sequence.feature.
+		Étant donné les événements :
 			| nom      | nom_public | priorite    | debut | fin | jours |
 			| Continue |            | fil_musical |       |     |       |
 		Quand la fenêtre de l'interface s'ouvre
-		Et j'ouvre l'onglet « <onglet> »
-		Et j'ouvre la ligne « <nom> »
-		Alors l'écran de détail de <genre> « <nom> » est demandé
-		Et la barre d'état annonce « <annonce> »
-
-		Exemples:
-			| onglet     | nom           | genre        | annonce                                                                                  |
-			| Séquences  | Passage pub   | séquence     | Écran de détails de la séquence « Passage pub » : à venir, https://github.com/dascritch/machincast/issues/112 |
-			| Événements | Continue      | événement    | Écran de détails de l'événement « Continue » : à venir, https://github.com/dascritch/machincast/issues/32 |
+		Et j'ouvre l'onglet « Événements »
+		Et j'ouvre la ligne « Continue »
+		Alors l'écran de détail de événement « Continue » est demandé
+		Et la barre d'état annonce « Écran de détails de l'événement « Continue » : à venir, https://github.com/dascritch/machincast/issues/32 »
 
 	Scénario: Le filtre ne change pas l'élément ouvert
 		Étant donné les sonores :

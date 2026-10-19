@@ -1,5 +1,5 @@
-"""Ce qui est commun aux fiches : banque, sonore (https://github.com/dascritch/machincast/issues/31,
-https://github.com/dascritch/machincast/issues/28).
+"""Ce qui est commun aux fiches : banque, sonore, séquence (https://github.com/dascritch/machincast/issues/31,
+https://github.com/dascritch/machincast/issues/28, https://github.com/dascritch/machincast/issues/112).
 
 Une fiche s'ouvre dans un onglet de la fenêtre (machincast.interface.fenetre). Ses modifications restent dans la fiche
 jusqu'à « Enregistrer », qui les écrit en base en une seule transaction, puis relit la fiche ; « Annuler » relit la
@@ -11,6 +11,8 @@ Une fiche concrète décrit son genre et son titre, lit l'élément en base (_li
 """
 
 import logging
+import os
+from pathlib import Path
 
 import psycopg
 from psycopg.rows import TupleRow
@@ -20,10 +22,17 @@ from PySide6.QtWidgets import QLabel, QPushButton, QWidget
 from machincast.horloge import Horloge
 from machincast.interface import dialogues
 from machincast.interface.dialogues import Fermeture
+from machincast.protection import est_fichier_sonore
 
 journal = logging.getLogger(__name__)
 
 Connexion = psycopg.Connection[TupleRow]
+
+
+def fichiers_sonores(chemins: list[Path]) -> tuple[list[str], list[Path]]:
+	"""Les fichiers sonores d'un dépôt, sous leur forme normale et dans l'ordre ; puis ce qui n'en est pas."""
+	sonores = [chemin for chemin in chemins if (chemin.is_file()) and (est_fichier_sonore(chemin))]
+	return [os.path.normpath(chemin) for chemin in sonores], [chemin for chemin in chemins if chemin not in sonores]
 
 
 class Refus(Exception):
@@ -35,9 +44,11 @@ class Fiche(QWidget):
 	"""Le titre de l'onglet de la fiche a changé : à la lecture, et après un enregistrement."""
 	enregistree = Signal(int)
 	"""L'élément est enregistré : son identifiant en base."""
+	ouverture_demandee = Signal(str, int, str)
+	"""Un élément cité par la fiche est à ouvrir : son genre, son identifiant et son nom."""
 
 	genre = ""
-	"""Genre de l'élément, celui des listes et de detail_demande : « banque », « sonore »."""
+	"""Genre de l'élément, celui des listes et de detail_demande : « banque », « sonore », « séquence »."""
 	bouton_enregistrer: QPushButton
 	bouton_annuler: QPushButton
 	message: QLabel
@@ -95,6 +106,23 @@ class Fiche(QWidget):
 		if reponse is Fermeture.ENREGISTRER:
 			return self.enregistrer()
 		return reponse is Fermeture.ABANDONNER
+
+	def enregistrer_fichier(self, fichier: str) -> int:
+		"""Dans la transaction d'« Enregistrer » : un fichier déposé devient un sonore à l'état aperçu, que Machin
+		indexation décodera ; s'il a été enregistré entre-temps, le sonore est repris."""
+		ligne = self.connexion.execute("SELECT id FROM sonores WHERE emplacement = %s", (fichier,)).fetchone()
+		if ligne is None:
+			ligne = self.connexion.execute(
+				"INSERT INTO sonores (type, emplacement, etat) VALUES ('fichier', %s, 'apercu') RETURNING id",
+				(fichier,),
+			).fetchone()
+			assert ligne is not None
+		return int(str(ligne[0]))
+
+	def signaler_ignores(self, ignores: list[Path], raison: str, conseil: str = "") -> None:
+		"""Ce que la fiche n'a pas pris d'un dépôt, et pourquoi."""
+		if ignores != []:
+			self.message.setText(f"Ignorés, {raison} : {', '.join(chemin.name for chemin in ignores)}.{conseil}")
 
 	def fermer(self) -> None:
 		"""La fiche va être détruite : elle arrête ce qu'elle a lancé."""

@@ -13,7 +13,8 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox, QWidget
 
-from machincast.interface.choix_sonores import ChoixSonores
+from machincast.interface.choix import Choix
+from machincast.interface.listes import BANQUES, SONORES
 
 
 class Fermeture(StrEnum):
@@ -77,9 +78,17 @@ def choisir_repertoire(parent: QWidget) -> str | None:
 	return repertoire
 
 
-def choisir_sonores(parent: QWidget, connexion: psycopg.Connection[TupleRow]) -> list[int]:
+def choisir_sonores(parent: QWidget, connexion: psycopg.Connection[TupleRow], remarque: str = "") -> list[int]:
 	"""Les sonores choisis dans la liste des sonores en base ; aucun si le choix est abandonné."""
-	choix = ChoixSonores(connexion, parent)
+	return _choisir(Choix(SONORES, connexion, remarque, parent))
+
+
+def choisir_banques(parent: QWidget, connexion: psycopg.Connection[TupleRow], remarque: str = "") -> list[int]:
+	"""Les banques choisies dans la liste des banques en base ; aucune si le choix est abandonné."""
+	return _choisir(Choix(BANQUES, connexion, remarque, parent))
+
+
+def _choisir(choix: Choix) -> list[int]:
 	if choix.exec() != QDialog.DialogCode.Accepted:
 		return []
 	return choix.selection()
