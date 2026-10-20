@@ -145,3 +145,27 @@ Fonctionnalité: Indexation rapide
 			| actif     |
 			| desactive |
 			| expire    |
+
+	# ─── Date de vérification (https://github.com/dascritch/machincast/issues/125) ─────
+
+	Scénario: Un sonore vérifié en entier reçoit la date de sa vérification
+		Étant donné un fichier flac sain
+		Et un sonore à l'état « apercu » pour ce fichier
+		Quand l'indexeur fait une indexation rapide
+		Alors la date de vérification complète du sonore est celle de l'indexation
+
+	Scénario: Un sonore dont seule la présence est contrôlée garde sa date de vérification
+		Étant donné un fichier flac sain
+		Et un sonore à l'état « actif » pour ce fichier
+		Quand l'indexeur fait une indexation rapide
+		Alors le sonore n'a pas de date de vérification complète
+
+	Scénario: Un fichier disparu garde la date de sa dernière vérification
+		Étant donné un fichier flac sain
+		Et un sonore à l'état « apercu » pour ce fichier
+		Et l'indexeur a fait une indexation rapide
+		Et ce fichier supprimé
+		Quand l'indexeur fait un audit complet
+		Alors le sonore est à l'état « supprime »
+		Et la date de vérification complète du sonore est celle de l'indexation précédente
+

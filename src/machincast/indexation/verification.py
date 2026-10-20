@@ -239,7 +239,8 @@ def verifier_sonores(
 			connexion.execute(
 				"UPDATE sonores SET etat = %s, duree = COALESCE(%s, duree),"
 				" fichier_modifie_le = COALESCE(%s, fichier_modifie_le), fichier_taille = COALESCE(%s, fichier_taille),"
-				" artiste = %s, titre = %s, metadonnees_musicales = %s, type_mime = COALESCE(%s, type_mime)"
+				" artiste = %s, titre = %s, metadonnees_musicales = %s, type_mime = COALESCE(%s, type_mime),"
+				" verifie_le = CASE WHEN %s THEN clock_timestamp() ELSE verifie_le END"
 				" WHERE id = %s",
 				(
 					apres.value,
@@ -250,6 +251,9 @@ def verifier_sonores(
 					titre,
 					Jsonb(metadonnees),
 					type_du_fichier,
+					# Un fichier trouvé arrive ici vérifié en entier ; un fichier disparu garde la date de sa dernière
+					# vérification.
+					fichier is not None,
 					identifiant,
 				),
 			)

@@ -78,6 +78,7 @@ Deux bases à la structure strictement identique : la base de production et la b
 | `duree` | Calculée par l'indexeur. Vide pour un stream. |
 | `debut_diffusion`, `fin_diffusion` | Période de diffusion facultative (annonces limitées dans le temps). |
 | `fichier_modifie_le`, `fichier_taille` | Date de modification et taille du fichier au dernier passage de l'indexeur, pour détecter un changement de contenu. |
+| `verifie_le` | Date de la dernière vérification complète du fichier par l'indexeur, type lu puis décodage, en indexation rapide comme en audit complet ([#125](https://github.com/dascritch/machincast/issues/125)) ; NULL avant. Un fichier introuvable la garde. |
 | `champs_edites` | Liste des champs saisis à la main dans l'interface : nom de colonne (`artiste`, `titre`, `duree`…), ou `metadonnees_musicales.<clé>` pour une clé des métadonnées musicales (`metadonnees_musicales.annee`). L'indexeur ne les modifie plus jamais. |
 | `indexe_le` | Date de la première indexation. |
 | `modifie_le` | Horodatage de la dernière modification en base. |
