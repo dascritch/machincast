@@ -110,7 +110,7 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="sonores" stretch="1,1">
+    <layout class="QHBoxLayout" name="sonores" stretch="1,0,1">
      <item>
       <widget class="QGroupBox" name="cadre_en_cours">
        <property name="title">
@@ -329,6 +329,77 @@
           </property>
           <property name="format">
            <string>—</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QGroupBox" name="colonne_antenne">
+       <property name="maximumSize">
+        <size>
+         <width>140</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="title">
+        <string>Antenne</string>
+       </property>
+       <layout class="QVBoxLayout" name="disposition_antenne">
+        <item>
+         <widget class="QLabel" name="voyant_saturation">
+          <property name="font">
+           <font>
+            <pointsize>7</pointsize>
+           </font>
+          </property>
+          <property name="toolTip">
+           <string>Une crête à -1 dBFS ou plus, dans les 3 dernières secondes</string>
+          </property>
+          <property name="text">
+           <string>Saturation</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignmentFlag::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QWidget" name="place_vumetre" native="true">
+          <property name="minimumSize">
+           <size>
+            <width>60</width>
+            <height>120</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="voyant_silence">
+          <property name="font">
+           <font>
+            <pointsize>7</pointsize>
+           </font>
+          </property>
+          <property name="toolTip">
+           <string>Plus de 5 secondes sous -50 dBFS</string>
+          </property>
+          <property name="text">
+           <string>Silence</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignmentFlag::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="etat_moniteur">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
           </property>
          </widget>
         </item>

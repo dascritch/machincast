@@ -19,13 +19,16 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QModelIndex, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QHeaderView, QLineEdit, QWidget
+from PySide6.QtWidgets import QHeaderView, QLineEdit, QVBoxLayout, QWidget
 
+from machincast.configuration import Audio
 from machincast.horloge import Horloge
 from machincast.interface import affichage
 from machincast.interface.airplay import FENETRE, PassageAffiche, lire_airplay
 from machincast.interface.etat import ClientEtat, EtatLecture, SonoreAffiche
+from machincast.interface.moniteur import Moniteur, nom_du_port
 from machincast.interface.ui.ecran_par_defaut import Ui_EcranParDefaut
+from machincast.interface.vumetre import VuMetre
 
 journal = logging.getLogger(__name__)
 
@@ -34,9 +37,17 @@ SECONDE = 1000
 ETATS = {"diffusion": "En diffusion", "silence": "En silence", "arret": "À l'arrêt"}
 ELEMENT = Qt.ItemDataRole.UserRole
 """Rôle qui porte, sur une cellule de l'airplay, le genre et l'identifiant de l'élément qu'elle désigne."""
+VOYANT_ALLUME = (
+	"QLabel {{ background: {teinte}; color: white; border-radius: 3px; font-weight: bold; font-size: 7pt; }}"
+)
+VOYANT_ETEINT = "QLabel { color: palette(mid); font-size: 7pt; }"
+"""Les voyants « Silence » et « Saturation » de l'antenne, allumés de leur teinte, ou éteints, grisés."""
 
 
 class EcranParDefaut(QWidget):
+	ecoute_demandee = Signal()
+	"""Clic sur le VU-mètre de l'antenne, disponible : l'écouter en pré-écoute
+	(https://github.com/dascritch/machincast/issues/24)."""
 	ouverte = Signal(str, int, str)
 	"""Fiche demandée : genre, identifiant et nom de l'élément."""
 	COLONNES_AIRPLAY = (
@@ -57,7 +68,10 @@ class EcranParDefaut(QWidget):
 		socket_etat: Path,
 		horloge: Horloge,
 		parent: QWidget | None = None,
+		audio: Audio | None = None,
 	) -> None:
+		"""audio : la sortie et le périphérique de l'antenne, dont le VU-mètre lit le port de monitoring
+		(https://github.com/dascritch/machincast/issues/24) ; sans elle, il est indisponible."""
 		super().__init__(parent)
 		self.connexion = connexion
 		self.horloge = horloge
@@ -93,10 +107,48 @@ class EcranParDefaut(QWidget):
 		self.client = ClientEtat(socket_etat, self)
 		self.client.etat_recu.connect(self.afficher)
 		self.client.connecter()
+		self.vumetre = VuMetre(ui.place_vumetre, vertical=True)
+		disposition = QVBoxLayout(ui.place_vumetre)
+		disposition.setContentsMargins(0, 0, 0, 0)
+		disposition.addWidget(self.vumetre)
+		self.vumetre.clique.connect(self._ecouter)
+		self.moniteur = Moniteur(audio, self)
+		self.moniteur.change.connect(self._montrer_l_antenne)
+		self.changer_d_antenne(audio)
+
+	def changer_d_antenne(self, audio: Audio | None) -> None:
+		"""Le VU-mètre lit le port de monitoring de cette antenne, par exemple après les préférences."""
+		self.moniteur.audio = audio
+		infobulle = "Port de monitoring inconnu."
+		if audio is not None:
+			infobulle = f"Port de monitoring : {nom_du_port(audio)}. Clic : écouter l'antenne en pré-écoute."
+		self.vumetre.setToolTip(infobulle)
+		self.moniteur.demarrer()
+
+	def _ecouter(self) -> None:
+		if self.moniteur.indisponible is None:
+			self.ecoute_demandee.emit()
+
+	def _montrer_l_antenne(self) -> None:
+		ui, moniteur = self.ui, self.moniteur
+		self.vumetre.montrer(moniteur.niveaux, moniteur.cretes)
+		ui.etat_moniteur.setText((moniteur.indisponible) or (""))
+		ui.etat_moniteur.setVisible(moniteur.indisponible is not None)
+		for voyant, allume, teinte in (
+			(ui.voyant_silence, moniteur.silence, "#e0a020"),
+			(ui.voyant_saturation, moniteur.saturation, "#d03030"),
+		):
+			if voyant.property("allume") != allume:
+				voyant.setProperty("allume", allume)
+				style = VOYANT_ETEINT
+				if allume:
+					style = VOYANT_ALLUME.format(teinte=teinte)
+				voyant.setStyleSheet(style)
 
 	def closeEvent(self, evenement: QCloseEvent) -> None:
 		self._horloge.stop()
 		self.client.fermer()
+		self.moniteur.arreter()
 		super().closeEvent(evenement)
 
 	def _afficher_heure(self) -> None:

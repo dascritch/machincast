@@ -117,7 +117,7 @@ La configuration est le fichier `machincast.toml`, dans le répertoire de Machin
 
 À adapter au moins :
 
-- `audio.sortie` : `pipewire` (valeur du modèle), `pulseaudio`, `alsa`, ou `factice` pour un essai sans aucun son ;
+- `audio.sortie` : `pipewire` (valeur du modèle), `pulseaudio`, `alsa`, ou `factice` pour un essai sans aucun son ; avec `alsa`, le VU-mètre de l'interface est indisponible, faute de port de monitoring ([#24](https://github.com/dascritch/machincast/issues/24)) ;
 - `audio.peripherique` : le périphérique de l'antenne, **obligatoire pour diffuser** (sauf avec `factice`) : sans lui, `Machin lecture` refuse de démarrer. Il peut aussi se choisir dans l'interface, **Fichier → Préférences…**, page **Audio**, qui l'écrit dans `machincast.toml`. `.venv/bin/python -m machincast.installation peripheriques` liste les périphériques de la sortie configurée, avec leur identifiant à recopier ; s'il n'en trouve aucun, il dit tout ce que voit GStreamer, et `gst-device-monitor-1.0 Audio/Sink` en donne le détail ;
 - `audio.preecoute` : le périphérique de pré-écoute de l'interface, différent de celui de l'antenne ; il peut aussi se choisir ensuite dans la fenêtre de pré-écoute de l'interface ;
 - `metadonnees.texte_public` : le nom affiché sur la page publique à la place d'un titre masqué ;
@@ -432,5 +432,5 @@ Les messages d'information s'affichent sur la sortie standard ; les anomalies et
 | Manque | Ticket |
 | --- | --- |
 | Archives `.tar.gz` publiées en releases | [#41](https://github.com/dascritch/machincast/issues/41) |
-| Autres écrans de l'interface graphique `Machin interface` | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
+| Autres écrans de l'interface graphique `Machin interface` | [#27](https://github.com/dascritch/machincast/issues/27), [#37](https://github.com/dascritch/machincast/issues/37) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |

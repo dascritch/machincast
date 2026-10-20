@@ -456,7 +456,7 @@ L'onglet Accueil est l'**écran par défaut** ([#23](https://github.com/dascritc
 
 - **En haut** : la date et l'heure du poste, à la seconde, le **texte public** du sonore en cours entre guillemets, tel que l'affiche la page publique (`—` sans texte, par exemple pour un sonore masqué), et l'état du binaire lecture : `En diffusion`, `En silence` (rien à diffuser) ou `À l'arrêt` ([#144](https://github.com/dascritch/machincast/issues/144)).
 - **Événement à l'antenne** : son nom et ses heures, « de 20:00 à 22:00 », « depuis 19:00 » pour une occurrence sans fin, ou « permanent » pour un fil musical ([#144](https://github.com/dascritch/machincast/issues/144)).
-- **Sonore en cours et prochain sonore**, côte à côte, chacun sur la moitié de la largeur de la fenêtre ; un titre trop long passe à la ligne.
+- **Sonore en cours et prochain sonore**, côte à côte, chacun sur la moitié de la largeur de la fenêtre, de part et d'autre de la colonne **Antenne** ; un titre trop long passe à la ligne.
 - **Sonore en cours** : l'artiste et le titre, l'événement qui le joue, la séquence et la banque d'où il vient (`—` s'il n'en vient pas), l'horaire sur une ligne, « 20:00:00 – 20:03:34 (3:34) » (début, fin estimée et durée), l'emplacement (chemin du fichier, ou adresse du stream) et une barre de progression qui dit le temps qui reste, « reste 3:05 » ([#144](https://github.com/dascritch/machincast/issues/144)).
 - **Prochain sonore** : les mêmes informations, avec l'horaire estimé, et l'indicateur « sain » (`oui` si le fichier est présent, actif, lisible et que sa dernière lecture s'est passée sans incident, `non` sinon).
 - **Emplacement** : un long chemin ne déborde pas, sa fin (le nom du fichier) reste visible ; il se fait défiler, se sélectionne et se copie, et son infobulle le donne en entier.
@@ -470,7 +470,24 @@ D'où viennent ces informations :
 - **Sonore en cours, prochain sonore, état** : de la socket d'état de `Machin lecture`, au chemin `lecture.socket_etat` de la configuration (voir [État de la diffusion pour l'interface](#état-de-la-diffusion-pour-linterface)). L'interface doit donc tourner sous le même compte que la diffusion, et avec la même configuration. Sans socket, ou quand `Machin lecture` s'arrête, l'écran affiche `À l'arrêt`, et se reconnecte tout seul, chaque seconde, dès que la diffusion reprend.
 - **Airplay** : de la base, à l'ouverture, puis chaque fois que la socket annonce un nouveau sonore. L'interface n'interroge jamais la base en boucle. Si la base devient injoignable, la table reste telle qu'elle était, et l'erreur `airplay illisible` s'affiche sur la sortie d'erreur.
 
-Le VU-mètre de la sortie viendra avec [#24](https://github.com/dascritch/machincast/issues/24). La diffusion se démarre et s'arrête par le menu **Diffusion** ([Piloter la diffusion depuis l'interface](#piloter-la-diffusion-depuis-linterface)).
+La diffusion se démarre et s'arrête par le menu **Diffusion** ([Piloter la diffusion depuis l'interface](#piloter-la-diffusion-depuis-linterface)).
+
+#### VU-mètre de l'antenne
+
+Entre les deux sonores, la colonne **Antenne** montre ce qui sort réellement à l'antenne ([#24](https://github.com/dascritch/machincast/issues/24)) :
+
+- **Saturation**, au-dessus du VU-mètre : ce voyant s'allume, rouge, dès qu'une crête atteint -1 dB, et le reste 3 secondes, pour qu'un écrêtage bref ne passe pas inaperçu.
+- **VU-mètre** : une barre par canal, de -60 dB en bas à 0 dB en haut. La partie pleine est le niveau moyen ; la partie plus claire au-dessus, le bargraph, la crête du moment ; un trait garde la plus haute crête pendant 2 secondes. Vert, orange au-delà de -12 dB, rouge au-delà de -3 dB.
+- **Silence**, sous le VU-mètre : ce voyant s'allume, orange, quand tous les canaux restent à -50 dB ou moins pendant 5 secondes : un blanc d'antenne. Il s'éteint dès que le son revient.
+- **Écouter l'antenne** : un clic sur le VU-mètre ouvre la [pré-écoute](#pré-écoute) sur l'antenne, sans la lancer : **⏵** la fait entendre dans le casque.
+
+Le VU-mètre écoute le port de monitoring du périphérique de l'antenne, `audio.peripherique`, que son infobulle nomme : il montre le son de l'antenne, quel que soit le programme qui le joue, et ne dérange pas `Machin lecture`. Changer l'antenne dans les [Préférences](#préférences) le fait suivre aussitôt. Il ne fonctionne qu'avec les sorties `pipewire` et `pulseaudio` :
+
+| Sous les voyants | Ce qu'il faut faire |
+| --- | --- |
+| `Indisponible avec la sortie ALSA, qui n'a pas de port de monitoring.` | Rien : ALSA ne permet pas d'écouter une sortie. Passer à `pipewire` ou `pulseaudio` pour avoir le VU-mètre. |
+| `Indisponible : périphérique de l'antenne à renseigner.` | Choisir le périphérique de l'antenne dans **Fichier → Préférences…**, page **Audio**. |
+| `Indisponible :` suivi d'une erreur de GStreamer | Le périphérique est débranché, ou le serveur son ne répond pas. Le VU-mètre réessaie toutes les 5 secondes, et reprend tout seul. |
 
 ### Listes
 
@@ -708,11 +725,11 @@ Chaque liste propose les périphériques du poste ; un périphérique configuré
 Le bouton **Pré-écoute…** de la fiche d'un sonore, fichier ou stream, l'ouvre dans la **fenêtre de pré-écoute** ([#116](https://github.com/dascritch/machincast/issues/116), [#29](https://github.com/dascritch/machincast/issues/29)) : une fenêtre à part, qui reste ouverte quand on change d'onglet. Il n'y en a qu'une : pré-écouter un autre sonore le met à la place du précédent, à l'arrêt. **Affichage → Pré-écoute…** la ramène au premier plan, ou l'ouvre sans sonore. Fermer la fenêtre arrête la pré-écoute. Un nouveau stream se pré-écoute une fois enregistré.
 
 - **Lecteur** : **⏵** lance la lecture, **⏸** la met en pause, **⏹** l'arrête et revient au début. Pendant la lecture d'un fichier, ou sa pause, la barre de position permet d'aller n'importe où, pour en vérifier la fin par exemple ; un stream n'a pas de position. À la fin du fichier, la pré-écoute revient à l'arrêt. Un fichier introuvable est signalé : « Lecture impossible : fichier introuvable, … ».
-- **VU-mètre** : le niveau de chaque canal, vert, orange au-delà de -12 dB, rouge au-delà de -3 dB.
+- **VU-mètre** : le même que celui de l'[Accueil](#vu-mètre-de-lantenne), couché : le niveau moyen de chaque canal, sa crête par-dessus et le trait de la plus haute crête.
 - **Informations** : le format, le débit (celui annoncé par le fichier ou le flux, sinon une estimation « ≈ » d'après la taille du fichier), l'échantillonnage, les canaux et, pour un stream, les secondes **pré-décodées** : le son déjà reçu d'avance, sur 5 secondes au plus. Un flux qui en a peu risque de couper.
 - **Sortie** : la pré-écoute joue sur le périphérique `audio.preecoute` de la configuration, **jamais sur celui de l'antenne**. La liste **Sortie** propose les périphériques du poste ; celui de la diffusion y est grisé, suivi de « (diffusion) » : il ne peut pas être choisi ; un périphérique configuré mais débranché reste proposé, suivi de « (introuvable) ». Choisir une autre sortie arrête la pré-écoute, et l'enregistre dans `machincast.toml`, qui garde ses commentaires.
 
-L'écoute de l'antenne elle-même viendra avec le VU-mètre de la sortie ([#24](https://github.com/dascritch/machincast/issues/24)).
+**Écouter l'antenne** ([#24](https://github.com/dascritch/machincast/issues/24)) : un clic sur le VU-mètre de l'[Accueil](#vu-mètre-de-lantenne) charge l'antenne dans la pré-écoute, à la place du sonore précédent, et à l'arrêt : la fenêtre s'intitule « Pré-écoute : Antenne », et **⏵** fait entendre, sur le périphérique de pré-écoute, ce qui sort à l'antenne. Comme un stream, l'antenne n'a ni durée ni position.
 
 ### Calendrier
 
@@ -833,5 +850,5 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | Manque | Ticket |
 | --- | --- |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
-| Autres écrans de l'interface : VU-mètre, recherche globale, simulation | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
+| Autres écrans de l'interface : recherche globale, simulation | [#27](https://github.com/dascritch/machincast/issues/27), [#37](https://github.com/dascritch/machincast/issues/37) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |

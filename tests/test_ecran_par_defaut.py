@@ -734,16 +734,19 @@ def fiches_de_l_airplay(contexte: Contexte, base_vide: Connexion, datatable: lis
 	assert contexte.fiches == attendues
 
 
-@then("le sonore en cours et le prochain sonore ont la même largeur, la moitié de l'écran")
+@then("le sonore en cours et le prochain sonore ont la même largeur, de part et d'autre de la colonne de l'antenne")
 def moities(contexte: Contexte, qtbot: QtBot) -> None:
+	"""La colonne de l'antenne est entre eux (https://github.com/dascritch/machincast/issues/24) : ils se partagent
+	le reste de la largeur."""
 	ui = ecran(contexte).ui
 	qtbot.wait(100)
-	gauche, droite = ui.cadre_en_cours.width(), ui.cadre_prochain.width()
+	gauche, colonne, droite = ui.cadre_en_cours.width(), ui.colonne_antenne.width(), ui.cadre_prochain.width()
 	assert abs(gauche - droite) <= 1, (gauche, droite)
 	espace = ui.sonores.spacing()
 	disponible = ui.sonores.geometry().width()
-	assert abs((gauche + droite + espace) - disponible) <= 1, (gauche, droite, espace, disponible)
-	assert ui.cadre_en_cours.geometry().right() < ui.cadre_prochain.geometry().left()
+	assert abs((gauche + colonne + droite + 2 * espace) - disponible) <= 1, (gauche, colonne, droite, disponible)
+	assert ui.cadre_en_cours.geometry().right() < ui.colonne_antenne.geometry().left()
+	assert ui.colonne_antenne.geometry().right() < ui.cadre_prochain.geometry().left()
 
 
 @then(parsers.re(r"le (?P<lequel>sonore en cours|prochain sonore) a pour emplacement « (?P<texte>[^»]+) »"))

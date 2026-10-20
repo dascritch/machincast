@@ -30,15 +30,17 @@ from psycopg.rows import TupleRow
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
-from PySide6.QtCore import QRectF, Qt, QTimer  # noqa: E402
-from PySide6.QtGui import QCloseEvent, QColor, QPainter, QPaintEvent, QStandardItemModel  # noqa: E402
+from PySide6.QtCore import Qt, QTimer  # noqa: E402
+from PySide6.QtGui import QCloseEvent, QStandardItemModel  # noqa: E402
 from PySide6.QtWidgets import QVBoxLayout, QWidget  # noqa: E402
 
 from machincast import audio as sorties_audio  # noqa: E402
 from machincast.audio import creer_sortie  # noqa: E402
 from machincast.configuration import Audio, SortieAudio  # noqa: E402
 from machincast.interface import affichage  # noqa: E402
+from machincast.interface.moniteur import Indisponible, nom_du_port, source_du_moniteur  # noqa: E402
 from machincast.interface.ui.preecoute import Ui_FenetrePreecoute  # noqa: E402
+from machincast.interface.vumetre import VuMetre  # noqa: E402
 
 RELEVE = 50
 """Millisecondes entre deux relèves du bus et de l'affichage."""
@@ -65,6 +67,9 @@ class Source:
 	stream: bool
 	duree: float | None
 	"""Durée en base, en secondes, montrée avant la lecture."""
+	antenne: Audio | None = None
+	"""L'antenne, écoutée sur son port de monitoring (https://github.com/dascritch/machincast/issues/24) ; None pour
+	un sonore."""
 
 
 def ecrire_preecoute(chemin: Path, identifiant: str) -> None:
@@ -140,7 +145,11 @@ class Lecteur:
 			return
 		if self._pipeline is None:
 			self.erreur = None
-			self._pipeline = self._construire(self.source)
+			try:
+				self._pipeline = self._construire(self.source)
+			except Indisponible as erreur:
+				self.erreur = str(erreur)
+				return
 		self._pipeline.set_state(Gst.State.PLAYING)
 		self.etat = "lecture"
 
@@ -232,6 +241,8 @@ class Lecteur:
 		self._lire_le_format()
 
 	def _construire(self, source: Source) -> Gst.Element:
+		if source.antenne is not None:
+			return self._construire_l_ecoute(source.antenne)
 		lecteur = Gst.ElementFactory.make("playbin", None)
 		niveau = Gst.ElementFactory.make("level", None)
 		assert (lecteur is not None) and (niveau is not None), "installer gstreamer1.0-plugins-base et -good"
@@ -251,6 +262,29 @@ class Lecteur:
 		lecteur.set_property("uri", adresse)
 		self._niveau = niveau
 		return lecteur
+
+	def _construire_l_ecoute(self, antenne: Audio) -> Gst.Element:
+		"""Le port de monitoring de l'antenne, joué sur la sortie de pré-écoute."""
+		pipeline = Gst.Pipeline.new("ecoute-antenne")
+		elements = [
+			source_du_moniteur(antenne),
+			Gst.ElementFactory.make("audioconvert", None),
+			Gst.ElementFactory.make("audioresample", None),
+			Gst.ElementFactory.make("level", None),
+			creer_sortie(self.sortie, self.peripherique),
+		]
+		assert all(element is not None for element in elements), "installer gstreamer1.0-plugins-base et -good"
+		niveau = elements[3]
+		assert niveau is not None
+		niveau.set_property("interval", INTERVALLE_DES_NIVEAUX)
+		niveau.set_property("post-messages", True)
+		for element in elements:
+			pipeline.add(element)
+		for avant, apres in zip(elements, elements[1:], strict=False):
+			assert (avant is not None) and (apres is not None)
+			avant.link(apres)
+		self._niveau = niveau
+		return pipeline
 
 	def _lire_les_tags(self, tags: Gst.TagList) -> None:
 		trouve, codec = tags.get_string(Gst.TAG_AUDIO_CODEC)
@@ -285,41 +319,6 @@ class Lecteur:
 		trouves, canaux = structure.get_int("channels")
 		if trouves:
 			self.canaux = canaux
-
-
-class VuMetre(QWidget):
-	"""Une barre par canal, du plancher à 0 dB : verte, orange au-delà de -12 dB, rouge au-delà de -3 dB."""
-
-	PLANCHER = -60.0
-
-	def __init__(self, parent: QWidget | None = None) -> None:
-		super().__init__(parent)
-		self.niveaux: list[float] = []
-		self.setMinimumHeight(24)
-		self.setToolTip("Niveau de chaque canal, en décibels")
-
-	def montrer(self, niveaux: list[float]) -> None:
-		self.niveaux = [niveau for niveau in niveaux if not math.isnan(niveau)]
-		self.update()
-
-	def paintEvent(self, _evenement: QPaintEvent) -> None:
-		peintre = QPainter(self)
-		cadre = QRectF(self.rect()).adjusted(1, 1, -1, -1)
-		peintre.fillRect(cadre, self.palette().base())
-		nombre = max(1, len(self.niveaux))
-		hauteur = cadre.height() / nombre
-		for indice, niveau in enumerate(self.niveaux):
-			part = (max(self.PLANCHER, min(0.0, niveau)) - self.PLANCHER) / -self.PLANCHER
-			couleur = QColor("#3c9d5a")
-			if niveau > -12:
-				couleur = QColor("#e0a020")
-			if niveau > -3:
-				couleur = QColor("#d03030")
-			barre = QRectF(cadre.left(), cadre.top() + indice * hauteur + 1, cadre.width() * part, hauteur - 2)
-			peintre.fillRect(barre, couleur)
-		peintre.setPen(self.palette().mid().color())
-		peintre.drawRect(cadre)
-		peintre.end()
 
 
 class FenetrePreecoute(QWidget):
@@ -366,6 +365,15 @@ class FenetrePreecoute(QWidget):
 		if source is not None:
 			self.setWindowTitle(f"Pré-écoute : {source.titre}")
 			self.ui.source.setText(source.adresse)
+		self.ui.message.clear()
+		self._rafraichir()
+
+	def ecouter_l_antenne(self) -> None:
+		"""L'antenne, sur son port de monitoring, à la place du sonore précédent, à l'arrêt."""
+		nom = nom_du_port(self.audio)
+		self.lecteur.charger(Source("Antenne", f"Antenne : {nom}", True, None, self.audio))
+		self.setWindowTitle("Pré-écoute : Antenne")
+		self.ui.source.setText(f"Antenne : {nom}")
 		self.ui.message.clear()
 		self._rafraichir()
 

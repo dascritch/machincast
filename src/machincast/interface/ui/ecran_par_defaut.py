@@ -237,6 +237,42 @@ class Ui_EcranParDefaut(object):
 
         self.sonores.addWidget(self.cadre_en_cours)
 
+        self.colonne_antenne = QGroupBox(EcranParDefaut)
+        self.colonne_antenne.setObjectName(u"colonne_antenne")
+        self.colonne_antenne.setMaximumSize(QSize(140, 16777215))
+        self.disposition_antenne = QVBoxLayout(self.colonne_antenne)
+        self.disposition_antenne.setObjectName(u"disposition_antenne")
+        self.voyant_saturation = QLabel(self.colonne_antenne)
+        self.voyant_saturation.setObjectName(u"voyant_saturation")
+        font4 = QFont()
+        font4.setPointSize(7)
+        self.voyant_saturation.setFont(font4)
+        self.voyant_saturation.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.disposition_antenne.addWidget(self.voyant_saturation)
+
+        self.place_vumetre = QWidget(self.colonne_antenne)
+        self.place_vumetre.setObjectName(u"place_vumetre")
+        self.place_vumetre.setMinimumSize(QSize(60, 120))
+
+        self.disposition_antenne.addWidget(self.place_vumetre)
+
+        self.voyant_silence = QLabel(self.colonne_antenne)
+        self.voyant_silence.setObjectName(u"voyant_silence")
+        self.voyant_silence.setFont(font4)
+        self.voyant_silence.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.disposition_antenne.addWidget(self.voyant_silence)
+
+        self.etat_moniteur = QLabel(self.colonne_antenne)
+        self.etat_moniteur.setObjectName(u"etat_moniteur")
+        self.etat_moniteur.setWordWrap(True)
+
+        self.disposition_antenne.addWidget(self.etat_moniteur)
+
+
+        self.sonores.addWidget(self.colonne_antenne)
+
         self.cadre_prochain = QGroupBox(EcranParDefaut)
         self.cadre_prochain.setObjectName(u"cadre_prochain")
         self.disposition_prochain = QVBoxLayout(self.cadre_prochain)
@@ -381,7 +417,7 @@ class Ui_EcranParDefaut(object):
         self.sonores.addWidget(self.cadre_prochain)
 
         self.sonores.setStretch(0, 1)
-        self.sonores.setStretch(1, 1)
+        self.sonores.setStretch(2, 1)
 
         self.disposition.addLayout(self.sonores)
 
@@ -448,6 +484,16 @@ class Ui_EcranParDefaut(object):
         self.intitule_en_cours_emplacement.setText(QCoreApplication.translate("EcranParDefaut", u"Emplacement", None))
         self.en_cours_emplacement.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
         self.en_cours_progression.setFormat(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
+        self.colonne_antenne.setTitle(QCoreApplication.translate("EcranParDefaut", u"Antenne", None))
+#if QT_CONFIG(tooltip)
+        self.voyant_saturation.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Une cr\u00eate \u00e0 -1 dBFS ou plus, dans les 3 derni\u00e8res secondes", None))
+#endif // QT_CONFIG(tooltip)
+        self.voyant_saturation.setText(QCoreApplication.translate("EcranParDefaut", u"Saturation", None))
+#if QT_CONFIG(tooltip)
+        self.voyant_silence.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Plus de 5 secondes sous -50 dBFS", None))
+#endif // QT_CONFIG(tooltip)
+        self.voyant_silence.setText(QCoreApplication.translate("EcranParDefaut", u"Silence", None))
+        self.etat_moniteur.setText("")
         self.cadre_prochain.setTitle(QCoreApplication.translate("EcranParDefaut", u"Prochain sonore", None))
         self.prochain_titre.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
 #if QT_CONFIG(tooltip)
