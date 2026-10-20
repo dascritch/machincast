@@ -77,7 +77,7 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 	Plan du scénario: La création d'un événement depuis le calendrier ne se fait que sur « Créer »
 		# https://github.com/dascritch/machincast/issues/36 : rien n'est enregistré avant la fiche, Entrée crée.
 		Quand la question de création s'ouvre, et que j'y <geste>
-		Alors la question a dit « Créer un événement le samedi 24 octobre 2026 à 18:00 ? »
+		Alors la question a dit « Créer un événement le dimanche 25 octobre 2026 de 13:00 à 14:00 ? »
 		Et la question a proposé « Créer », « Annuler »
 		Et la réponse est « <reponse> »
 

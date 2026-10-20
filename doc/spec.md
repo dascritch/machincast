@@ -580,7 +580,7 @@ Mise en œuvre du calendrier ([#36](https://github.com/dascritch/machincast/issu
 - **Priorités** : une case par priorité (« Spécial », « Émission », « Fil musical »), toutes cochées à l'ouverture, montre ou cache ses blocs et ses bandes ; ce qui joue ne change pas. L'airplay d'un événement supprimé est toujours montré.
 - **Survol** : l'infobulle d'un bloc donne l'événement et son nom public, sa priorité, ses heures, sa récurrence et ce qui en joue ; celle d'une bande, ses heures à la seconde et son nombre de passages.
 - **Double-clic** sur un bloc ou une bande : la fiche de son événement ([§ 8.5](#85-écran-de-détails-dun-événement)).
-- **Clic sur une heure libre** dont la demi-heure n'est pas passée : `dialogues.confirmer_creation` propose un événement à cette demi-heure (« Créer », par défaut, ou « Annuler ») ; « Créer » ouvre la fiche d'un nouvel événement, début et fin cochés (une heure), modifiée mais pas enregistrée (`FicheEvenement.prevoir`).
+- **Clic sur une heure libre** pas encore passée : `dialogues.confirmer_creation` propose un événement sur l'heure entière cliquée, 13:00 – 14:00 pour un clic à 13:37 (« Créer », par défaut, ou « Annuler ») ; « Créer » ouvre la fiche d'un nouvel événement, début et fin cochés, modifiée mais pas enregistrée (`FicheEvenement.prevoir`).
 
 ### 8.3 Écran de détails d'un sonore
 

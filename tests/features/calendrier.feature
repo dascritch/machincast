@@ -298,14 +298,14 @@ Fonctionnalité: Calendrier de la grille
 		Et je double-clique sur la bande d'airplay « Matinale » de 07:00 du mardi 20
 		Alors l'onglet ouvert est « Événement : Matinale »
 
-	Scénario: Un clic sur une heure libre propose de créer un événement, qui s'ouvre prérempli sans être enregistré
+	Scénario: Un clic sur une heure libre propose un événement sur l'heure entière, qui s'ouvre prérempli sans être enregistré
 		Étant donné que je répondrai « Créer » à la question de création
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Calendrier » dans le menu « Affichage »
-		Et je clique dans le calendrier le samedi 24 à 20:10
-		Alors la question de création a dit « Créer un événement le samedi 24 octobre 2026 à 20:00 ? »
+		Et je clique dans le calendrier le dimanche 25 à 13:37
+		Alors la question de création a dit « Créer un événement le dimanche 25 octobre 2026 de 13:00 à 14:00 ? »
 		Et l'onglet ouvert est « Nouvel événement »
-		Et la fiche de l'événement a pour début « 2026-10-24 20:00 » et pour fin « 2026-10-24 21:00 »
+		Et la fiche de l'événement a pour début « 2026-10-25 13:00 » et pour fin « 2026-10-25 14:00 »
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
 		Et la base a toujours 11 événements
 
@@ -320,13 +320,20 @@ Fonctionnalité: Calendrier de la grille
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Calendrier » dans le menu « Affichage »
 		Et je clique dans le calendrier le mercredi 21 à 08:30
-		Et je clique dans le calendrier le mardi 20 à 16:10
+		Et je clique dans le calendrier le mardi 20 à 15:50
 		Alors aucune question n'a été posée
 		Et l'onglet ouvert est « Calendrier »
 
-	Scénario: L'heure en cours est libre jusqu'à la fin de sa demi-heure
+	Scénario: L'heure en cours est libre jusqu'à sa fin
 		Étant donné que je répondrai « Annuler » à la question de création
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Calendrier » dans le menu « Affichage »
-		Et je clique dans le calendrier le mardi 20 à 16:35
-		Alors la question de création a dit « Créer un événement le mardi 20 octobre 2026 à 16:30 ? »
+		Et je clique dans le calendrier le mardi 20 à 16:55
+		Alors la question de création a dit « Créer un événement le mardi 20 octobre 2026 de 16:00 à 17:00 ? »
+
+	Scénario: Une heure qui vient de finir est passée
+		Étant donné l'horloge de l'interface au « 2026-10-20 17:00:00 »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je clique dans le calendrier le mardi 20 à 16:30
+		Alors aucune question n'a été posée
