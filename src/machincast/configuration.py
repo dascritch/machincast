@@ -5,7 +5,8 @@ Le modèle documenté clé par clé est `machincast.exemple.toml`, à la racine 
 
 import os
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -81,6 +82,25 @@ def socket_etat_par_defaut() -> Path:
 	return Path(repertoire) / "machincast" / "lecture.sock"
 
 
+Granularite = Literal["seconde", "dixieme"]
+GRANULARITES: tuple[Granularite, ...] = ("seconde", "dixieme")
+MAXIMUM_DES_CROSSFADES = timedelta(seconds=5)
+
+
+@dataclass(frozen=True)
+class Crossfades:
+	"""Réglages des crossfades (https://github.com/dascritch/machincast/issues/145), section [crossfades]."""
+
+	debut: timedelta | None = None
+	"""Crossfade de début d'un sonore sans crossfade paramétré, que sa banque ne règle pas ; None : 0 seconde."""
+	fin: timedelta | None = None
+	"""Crossfade de fin, de même."""
+	maximum: timedelta = MAXIMUM_DES_CROSSFADES
+	"""Durée la plus longue que l'interface propose pour un crossfade."""
+	granularite: Granularite = "dixieme"
+	"""Pas des crossfades dans l'interface : à la seconde ou au dixième de seconde."""
+
+
 @dataclass(frozen=True)
 class Configuration:
 	chemin: Path
@@ -89,6 +109,7 @@ class Configuration:
 	sorties: Sorties
 	metadonnees: Metadonnees
 	lecture: Lecture
+	crossfades: Crossfades = field(default_factory=Crossfades)
 
 
 # Clés connues, par section. Toute autre clé est refusée, pour détecter les fautes de frappe.
@@ -98,6 +119,7 @@ CLES: dict[str, frozenset[str]] = {
 	"sorties": frozenset({"csv", "pls", "html"}),
 	"metadonnees": frozenset({"masquer", "texte_public"}),
 	"lecture": frozenset({"socket_etat"}),
+	"crossfades": frozenset({"granularite", "maximum", "debut", "fin"}),
 }
 
 
@@ -165,6 +187,41 @@ class _Lecteur:
 		if not isinstance(valeur, bool):
 			raise self.erreur(f"clé {section}.{cle} : booléen attendu (true ou false), {_decrire(valeur)} trouvé")
 		return valeur
+
+	def nombre_facultatif(self, section: str, cle: str) -> float | None:
+		valeur = self._valeur(section, cle, obligatoire=False)
+		if valeur is None:
+			return None
+		if (isinstance(valeur, bool)) or (not isinstance(valeur, (int, float))):
+			raise self.erreur(f"clé {section}.{cle} : nombre attendu, {_decrire(valeur)} trouvé")
+		return float(valeur)
+
+	def crossfades(self) -> Crossfades:
+		"""La section [crossfades], facultative, comme toutes ses clés."""
+		granularite = (self.texte_facultatif("crossfades", "granularite")) or ("dixieme")
+		if granularite not in GRANULARITES:
+			raise self.erreur(
+				f"clé crossfades.granularite : « {granularite} » inconnue,"
+				f" valeurs possibles : {', '.join(GRANULARITES)}"
+			)
+		maximum = MAXIMUM_DES_CROSSFADES
+		secondes = self.nombre_facultatif("crossfades", "maximum")
+		if secondes is not None:
+			if secondes <= 0:
+				raise self.erreur("clé crossfades.maximum : un nombre de secondes strictement positif est attendu")
+			maximum = timedelta(seconds=secondes)
+		durees: list[timedelta | None] = []
+		for cle in ("debut", "fin"):
+			duree = self.nombre_facultatif("crossfades", cle)
+			if duree is None:
+				durees.append(None)
+				continue
+			if duree < 0:
+				raise self.erreur(f"clé crossfades.{cle} : un nombre de secondes positif ou nul est attendu")
+			if timedelta(seconds=duree) > maximum:
+				raise self.erreur(f"clé crossfades.{cle} : au plus crossfades.maximum, {maximum.total_seconds():g} s")
+			durees.append(timedelta(seconds=duree))
+		return Crossfades(durees[0], durees[1], maximum, granularite)
 
 	def chemin_fichier(self, section: str, cle: str) -> Path:
 		"""Chemin absolu tel quel ; chemin relatif résolu depuis le répertoire du fichier de configuration."""
@@ -253,4 +310,5 @@ def charger(chemin: Path | None = None) -> Configuration:
 			texte_public=lecteur.texte_court("metadonnees", "texte_public"),
 		),
 		lecture=lecture,
+		crossfades=lecteur.crossfades(),
 	)

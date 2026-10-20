@@ -44,7 +44,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast import __version__
-from machincast.configuration import Metadonnees
+from machincast.configuration import Crossfades, Metadonnees
 from machincast.hasard import Hasard
 from machincast.horloge import Horloge
 from machincast.lecture.deroule import Choix, Coupure, Decision, EnCours, Ordonnanceur
@@ -58,6 +58,8 @@ from machincast.lecture.sorties import Sorties, lire_passages, texte_public
 
 PAUSE = 0.05
 AUCUN_CROSSFADE = timedelta(0)
+SANS_DEFAUTS = Crossfades()
+"""Une configuration sans crossfades par défaut."""
 HORIZON_DES_COUPURES = timedelta(hours=12)
 """Jusqu'où chercher l'événement qui coupera un sonore de durée inconnue, un stream
 (https://github.com/dascritch/machincast/issues/169)."""
@@ -142,9 +144,12 @@ class Sonde:
 	voie: VoieLecture | None = None
 
 
-def lire_parametres(connexion: psycopg.Connection[TupleRow], choix: Choix) -> Parametres:
+def lire_parametres(
+	connexion: psycopg.Connection[TupleRow], choix: Choix, defauts: Crossfades = SANS_DEFAUTS
+) -> Parametres:
 	"""Ce qu'il faut pour jouer le sonore choisi. Ses crossfades suivent les règles de la banque qui l'a fourni
-	(https://github.com/dascritch/machincast/issues/143) ; un sonore placé directement garde les siens."""
+	(https://github.com/dascritch/machincast/issues/143), puis, s'il n'en a pas de paramétré, les crossfades par défaut
+	de la configuration (https://github.com/dascritch/machincast/issues/145)."""
 	with connexion.transaction():
 		ligne = connexion.execute(
 			"SELECT s.duree, s.crossfade_debut, s.crossfade_fin, s.type::text, COALESCE(s.url_stream, m.url),"
@@ -161,8 +166,8 @@ def lire_parametres(connexion: psycopg.Connection[TupleRow], choix: Choix) -> Pa
 	regle_debut, debut_banque, regle_fin, fin_banque = banque
 	return Parametres(
 		duree if isinstance(duree, timedelta) else None,
-		crossfade(debut, regle_debut, debut_banque),
-		crossfade(fin, regle_fin, fin_banque),
+		crossfade(debut, regle_debut, debut_banque, defauts.debut),
+		crossfade(fin, regle_fin, fin_banque, defauts.fin),
 		stream=type_sonore == "stream",
 		adresse=None if adresse is None else str(adresse),
 		secours=None if secours is None else int(str(secours)),
@@ -195,6 +200,8 @@ class Diffusion:
 	"""Intervalle maximal entre deux publications de l'état, en secondes, pour suivre la progression."""
 	metadonnees: Metadonnees | None = None
 	"""Masquage et texte public par défaut, pour le texte public de la socket d'état ; à défaut, ceux des sorties."""
+	crossfades: Crossfades = SANS_DEFAUTS
+	"""Crossfades par défaut des sonores qui n'en ont pas de paramétré (https://github.com/dascritch/machincast/issues/145)."""
 	ordonnanceur: Ordonnanceur = field(init=False)
 	courant: Lecture | None = field(default=None, init=False)
 	sortants: list[Lecture] = field(default_factory=list, init=False)
@@ -323,7 +330,7 @@ class Diffusion:
 			return
 		self.reserve = Reserve(
 			choix,
-			lire_parametres(self.connexion, choix),
+			lire_parametres(self.connexion, choix, self.crossfades),
 			est_sain(self.connexion, choix.sonore),
 			coupure is not None,
 		)
@@ -333,7 +340,7 @@ class Diffusion:
 		if choix is None:
 			# Rien ensuite : le sonore finit avec son fondu, et le prochain pas sans voie redemande.
 			return
-		parametres = lire_parametres(self.connexion, choix)
+		parametres = lire_parametres(self.connexion, choix, self.crossfades)
 		if superposition(courant.parametres.crossfade_fin, parametres.crossfade_debut):
 			self._jouer(choix, instant, courant.parametres.crossfade_fin)
 		else:
@@ -352,7 +359,7 @@ class Diffusion:
 		choix = decision.jouer
 		if choix is None:
 			return
-		if superposition(fondu, lire_parametres(self.connexion, choix).crossfade_debut):
+		if superposition(fondu, lire_parametres(self.connexion, choix, self.crossfades).crossfade_debut):
 			self._jouer(choix, instant, fondu)
 		else:
 			self.en_attente = choix
@@ -440,7 +447,7 @@ class Diffusion:
 		essayes: set[int] = set()
 		# Chaque sonore n'est essayé qu'une fois : la boucle s'arrête même si l'ordonnanceur le redonne.
 		while (suivant is not None) and (suivant.sonore not in essayes):
-			parametres = lire_parametres(self.connexion, suivant)
+			parametres = lire_parametres(self.connexion, suivant, self.crossfades)
 			chemin = parametres.adresse
 			if not parametres.stream:
 				chemin = verifier_avant_lecture(self.connexion, suivant.sonore, self.historique)
@@ -609,17 +616,20 @@ def _affichage(choix: Choix, parametres: Parametres) -> dict[str, Any]:
 	}
 
 
-def crossfade(du_sonore: object, regle: object, de_la_banque: object) -> timedelta:
-	"""Le crossfade retenu, d'un côté : celui de la banque qu'elle impose, ou qu'elle applique à défaut à un sonore
-	qui n'en a pas (0 seconde) ; sinon celui du sonore. Sans banque, la règle est None."""
-	sonore = banque = AUCUN_CROSSFADE
-	if isinstance(du_sonore, timedelta):
-		sonore = du_sonore
+def crossfade(du_sonore: object, regle: object, de_la_banque: object, defaut: timedelta | None = None) -> timedelta:
+	"""Le crossfade retenu, d'un côté : celui que la banque impose ; sinon celui du sonore, s'il est paramétré
+	(0 seconde en est un) ; sinon celui que la banque applique à défaut ; sinon celui de la configuration ; sinon
+	aucun. Sans banque, la règle est None (https://github.com/dascritch/machincast/issues/145)."""
+	banque = AUCUN_CROSSFADE
 	if isinstance(de_la_banque, timedelta):
 		banque = de_la_banque
-	if (regle == "impose") or ((regle == "a_defaut") and (sonore == AUCUN_CROSSFADE)):
+	if regle == "impose":
 		return banque
-	return sonore
+	if isinstance(du_sonore, timedelta):
+		return du_sonore
+	if regle == "a_defaut":
+		return banque
+	return (defaut) or (AUCUN_CROSSFADE)
 
 
 def _horizon(lecture: Lecture, instant: datetime) -> datetime:

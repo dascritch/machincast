@@ -25,7 +25,7 @@ import machincast.audio
 import machincast.lecture.moteur
 from machincast.audio import SortieAudioIndisponible
 from machincast.base import Role, connecter
-from machincast.configuration import Metadonnees
+from machincast.configuration import Crossfades, Metadonnees
 from machincast.lecture.simulation import Resultat, lecture_seule, simuler
 from tests.base_test import CONFIGURATION_TEST, parametres_base_test
 from tests.etapes_diffusion import Banc, Connexion, creer_sonore, evenement, heure, sonore
@@ -64,13 +64,28 @@ def etat_de_la_base(base: Connexion) -> tuple[object, ...]:
 
 
 def lancer_simulation(
-	contexte: Contexte, base: Connexion, debut: str, fin: str, graine: int | None = None, nom: str | None = None
+	contexte: Contexte,
+	base: Connexion,
+	debut: str,
+	fin: str,
+	graine: int | None = None,
+	nom: str | None = None,
+	crossfades: Crossfades | None = None,
 ) -> None:
 	assert contexte.repertoire is not None
 	contexte.avant = etat_de_la_base(base)
 	with connecter(*parametres_base_test(), Role.LECTURE) as connexion:
 		contexte.resultats.append(
-			simuler(connexion, contexte.repertoire, heure(debut), heure(fin), graine, nom, contexte.metadonnees)
+			simuler(
+				connexion,
+				contexte.repertoire,
+				heure(debut),
+				heure(fin),
+				graine,
+				nom,
+				contexte.metadonnees,
+				(crossfades) or (Crossfades()),
+			)
 		)
 
 
@@ -235,9 +250,9 @@ def maximum_du_sonore(base_vide: Connexion, nom: str, maximum: str) -> None:
 	)
 )
 def simuler_la_diffusion(
-	contexte: Contexte, base_vide: Connexion, debut: str, fin: str, graine: str | None, nom: str | None
+	contexte: Contexte, banc: Banc, base_vide: Connexion, debut: str, fin: str, graine: str | None, nom: str | None
 ) -> None:
-	lancer_simulation(contexte, base_vide, debut, fin, None if graine is None else int(graine), nom)
+	lancer_simulation(contexte, base_vide, debut, fin, None if graine is None else int(graine), nom, banc.crossfades)
 
 
 @when(parsers.parse("je simule deux fois la diffusion du « {debut} » au « {fin} », avec la graine {graine:d}"))

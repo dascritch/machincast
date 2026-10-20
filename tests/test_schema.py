@@ -5,14 +5,15 @@ import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import psycopg
 import pytest
 from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
+from yoyo import get_backend, read_migrations
 
-from machincast.base import TABLES, TYPES, annuler_migrations, appliquer_migrations, url_yoyo
+from machincast.base import REPERTOIRE_MIGRATIONS, TABLES, TYPES, annuler_migrations, appliquer_migrations, url_yoyo
 from tests.base_test import parametres_base_test
 
 scenarios("schema.feature")
@@ -404,3 +405,72 @@ def airplay_sans_element(contexte: Contexte) -> None:
 def airplay_conserve(contexte: Contexte) -> None:
 	lignes = contexte.connexion.execute("SELECT sonore_id, titre FROM airplay").fetchall()
 	assert lignes == [(None, "Titre de référence")]
+
+
+# ─── Crossfades facultatifs (https://github.com/dascritch/machincast/issues/145) ─────
+
+
+@then("les types énumérés de la base sont ceux de machincast.base.TYPES")
+def types_connus(contexte: Contexte) -> None:
+	lignes = contexte.connexion.execute(
+		"SELECT t.typname FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace"
+		" WHERE t.typtype = 'e' AND n.nspname = 'public'"
+	).fetchall()
+	assert {str(nom) for (nom,) in lignes} == set(TYPES)
+
+
+def _secondes(texte: str) -> timedelta | None:
+	if texte == "":
+		return None
+	return timedelta(seconds=float(texte.removesuffix(" s")))
+
+
+@then(parsers.re(r"le sonore « (?P<emplacement>[^»]+) » a ses crossfades (?P<valeur>non paramétrés|de 0 seconde)"))
+def crossfades_du_sonore(contexte: Contexte, emplacement: str, valeur: str) -> None:
+	ligne = contexte.connexion.execute(
+		"SELECT crossfade_debut, crossfade_fin FROM sonores WHERE emplacement = %s", (emplacement,)
+	).fetchone()
+	attendu = None
+	if valeur == "de 0 seconde":
+		attendu = timedelta(0)
+	assert ligne == (attendu, attendu), ligne
+
+
+@when(parsers.parse("j'annule les migrations depuis « {nom} »"))
+def annuler_depuis(nom: str) -> None:
+	"""Annule cette migration et celles qui la suivent, qui peuvent en dépendre."""
+	migrations = read_migrations(str(REPERTOIRE_MIGRATIONS))
+	identifiants = [migration.id for migration in migrations]
+	assert nom in identifiants, identifiants
+	a_annuler = migrations.filter(lambda migration: migration.id >= nom)
+	with get_backend(url_yoyo(*parametres_base_test())) as backend, backend.lock():
+		backend.rollback_migrations(backend.to_rollback(a_annuler))
+
+
+@when("j'applique les migrations")
+def appliquer(contexte: Contexte) -> None:
+	appliquer_migrations(url_yoyo(*parametres_base_test()))
+
+
+@when("j'enregistre les sonores aux crossfades :")
+def sonores_aux_crossfades(contexte: Contexte, datatable: list[list[str]]) -> None:
+	_entetes, *rangees = datatable
+	for emplacement, debut, fin, edites in ([valeur.strip() for valeur in rangee] for rangee in rangees):
+		champs = [champ.strip() for champ in edites.split(",") if champ.strip()]
+		contexte.connexion.execute(
+			"INSERT INTO sonores (type, emplacement, crossfade_debut, crossfade_fin, champs_edites)"
+			" VALUES ('fichier', %s, %s, %s, %s)",
+			(emplacement, _secondes(debut), _secondes(fin), champs),
+		)
+
+
+@then("les crossfades des sonores sont :")
+def crossfades_des_sonores(contexte: Contexte, datatable: list[list[str]]) -> None:
+	_entetes, *rangees = datatable
+	lues = contexte.connexion.execute(
+		"SELECT emplacement, crossfade_debut, crossfade_fin FROM sonores ORDER BY emplacement"
+	).fetchall()
+	attendues = [
+		(emplacement.strip(), _secondes(debut.strip()), _secondes(fin.strip())) for emplacement, debut, fin in rangees
+	]
+	assert lues == attendues, lues

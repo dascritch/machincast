@@ -47,3 +47,15 @@ texte_public = "Radio FMR"
 # Socket d'état de Machin lecture, lue par l'interface. Facultative : par défaut
 # $XDG_RUNTIME_DIR/machincast/lecture.sock, privée au compte et effacée au redémarrage du poste.
 # socket_etat = "/run/user/1000/machincast/lecture.sock"
+
+[crossfades]
+# Réglages des crossfades (https://github.com/dascritch/machincast/issues/145), modifiables dans les préférences de
+# l'interface. Section facultative, comme chacune de ses clés.
+# Pas des crossfades dans l'interface : "seconde" ou "dixieme" (par défaut).
+granularite = "dixieme"
+# Crossfade le plus long que l'interface propose, en secondes ; 5 par défaut.
+maximum = 5
+# Crossfades, en secondes, d'un sonore qui n'en a pas de paramétré et que sa banque ne règle pas. Sans ces clés, il
+# n'en a pas.
+# debut = 1.5
+# fin = 2

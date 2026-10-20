@@ -127,6 +127,44 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors le chargement échoue avec un message qui mentionne "audio.preecoute"
 
+	# ─── Crossfades (https://github.com/dascritch/machincast/issues/145) ─────────────────────────
+
+	Scénario: Sans section [crossfades], les crossfades se règlent au dixième de seconde, jusqu'à 5 secondes, sans défaut
+		Étant donné une configuration valide sans section "crossfades"
+		Quand je charge la configuration
+		Alors les crossfades se règlent au dixième de seconde, jusqu'à 5 secondes
+		Et les crossfades n'ont pas de durée par défaut
+
+	Scénario: La section [crossfades] donne la granularité, le maximum et les durées par défaut
+		Étant donné une configuration valide où la clé "crossfades.granularite" vaut "seconde"
+		Et la clé "crossfades.maximum" vaut 8
+		Et la clé "crossfades.debut" vaut 1.5
+		Et la clé "crossfades.fin" vaut 3
+		Quand je charge la configuration
+		Alors les crossfades se règlent à la seconde, jusqu'à 8 secondes
+		Et les crossfades durent par défaut 1,5 seconde au début et 3 secondes à la fin
+
+	Scénario: Les durées par défaut vont de 0 seconde jusqu'au maximum compris
+		Étant donné une configuration valide où la clé "crossfades.debut" vaut 0
+		Et la clé "crossfades.fin" vaut 5
+		Quand je charge la configuration
+		Alors les crossfades durent par défaut 0 seconde au début et 5 secondes à la fin
+
+	Plan du scénario: Des réglages de crossfade invalides sont refusés
+		Étant donné une configuration valide où la clé "<cle>" vaut <valeur>
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "<cle>"
+		Et le message mentionne "<attendu>"
+
+		Exemples:
+			| cle                    | valeur     | attendu                    |
+			| crossfades.granularite | "centieme" | seconde, dixieme           |
+			| crossfades.maximum     | 0          | strictement positif        |
+			| crossfades.maximum     | "5"        | nombre                     |
+			| crossfades.debut       | -1         | positif ou nul             |
+			| crossfades.fin         | 6          | au plus crossfades.maximum |
+			| crossfades.debut       | true       | nombre                     |
+
 	Scénario: Une clé inconnue est refusée
 		Étant donné une configuration valide où la clé "audio.volume" vaut 80
 		Quand je charge la configuration

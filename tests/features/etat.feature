@@ -102,12 +102,13 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Alors le prochain sonore commencera au « 2026-10-14 19:59:50.500 » et finira au « 2026-10-14 19:59:51.500 »
 
 	Plan du scénario: Une banque garde les crossfades de ses sonores, les applique à défaut, ou les impose
-		https://github.com/dascritch/machincast/issues/143 : chaque côté, début et fin, a sa règle. Un sonore sans crossfade en a un de 0 seconde :
-		« à défaut » lui donne celui de la banque. Deux sonores ne se superposent que si le sortant a un crossfade de fin
-		et l'entrant un crossfade de début ; le prochain commence alors au début du crossfade de fin du sortant.
+		https://github.com/dascritch/machincast/issues/143 : chaque côté, début et fin, a sa règle. « À défaut » ne
+		vaut que pour un sonore dont le crossfade n'est pas paramétré : 0 seconde en est un (https://github.com/dascritch/machincast/issues/145).
+		Deux sonores ne se superposent que si le sortant a un crossfade de fin et l'entrant un crossfade de début ; le
+		prochain commence alors au début du crossfade de fin du sortant.
 
 		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
-		Et chaque sonore a <sonores> seconde de crossfade de début et de fin
+		Et les crossfades de chaque sonore sont <sonores>
 		Et la banque « Titres » <debut> seconde de crossfade de début
 		Et la banque « Titres » <fin> seconde de crossfade de fin
 		Quand la diffusion démarre en temps réel
@@ -116,15 +117,48 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Alors le prochain sonore commencera au « <prochain> » et finira au « <fin_prochain> »
 
 		Exemples:
-			| sonores | debut                                  | fin                                    | prochain                | fin_prochain            |
-			| 0       | laisse ses sonores décider, malgré 0,25 | laisse ses sonores décider, malgré 0,25 | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
-			| 0,5     | laisse ses sonores décider, malgré 0,25 | laisse ses sonores décider, malgré 0,25 | 2026-10-14 19:59:50.500 | 2026-10-14 19:59:51.500 |
-			| 0       | applique à défaut 0,25                 | applique à défaut 0,25                 | 2026-10-14 19:59:50.750 | 2026-10-14 19:59:51.750 |
-			| 0,5     | applique à défaut 0,25                 | applique à défaut 0,25                 | 2026-10-14 19:59:50.500 | 2026-10-14 19:59:51.500 |
-			| 0,5     | impose 0,25                            | impose 0,25                            | 2026-10-14 19:59:50.750 | 2026-10-14 19:59:51.750 |
-			| 0,5     | impose 0                               | impose 0,25                            | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
-			| 0,5     | impose 0,25                            | laisse ses sonores décider, malgré 0,25 | 2026-10-14 19:59:50.500 | 2026-10-14 19:59:51.500 |
-			| 0       | impose 0,25                            | laisse ses sonores décider, malgré 0,25 | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
+			| sonores         | debut                                   | fin                                     | prochain                | fin_prochain            |
+			| non paramétrés  | laisse ses sonores décider, malgré 0,25 | laisse ses sonores décider, malgré 0,25 | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
+			| de 0,5 seconde  | laisse ses sonores décider, malgré 0,25 | laisse ses sonores décider, malgré 0,25 | 2026-10-14 19:59:50.500 | 2026-10-14 19:59:51.500 |
+			| non paramétrés  | applique à défaut 0,25                  | applique à défaut 0,25                  | 2026-10-14 19:59:50.750 | 2026-10-14 19:59:51.750 |
+			| de 0 seconde    | applique à défaut 0,25                  | applique à défaut 0,25                  | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
+			| de 0,5 seconde  | applique à défaut 0,25                  | applique à défaut 0,25                  | 2026-10-14 19:59:50.500 | 2026-10-14 19:59:51.500 |
+			| de 0,5 seconde  | impose 0,25                             | impose 0,25                             | 2026-10-14 19:59:50.750 | 2026-10-14 19:59:51.750 |
+			| de 0,5 seconde  | impose 0                                | impose 0,25                             | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
+			| de 0,5 seconde  | impose 0,25                             | laisse ses sonores décider, malgré 0,25 | 2026-10-14 19:59:50.500 | 2026-10-14 19:59:51.500 |
+			| de 0 seconde    | impose 0,25                             | laisse ses sonores décider, malgré 0,25 | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
+
+	Plan du scénario: Un sonore sans crossfade paramétré, que sa banque ne règle pas, prend celui de la configuration
+		https://github.com/dascritch/machincast/issues/145 : « crossfades.debut » et « crossfades.fin » valent pour un sonore sans
+		crossfade paramétré, qu'aucune banque n'impose ni n'applique à défaut.
+
+		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
+		Et les crossfades de chaque sonore sont <sonores>
+		Et la banque « Titres » <banque> seconde de crossfade de début
+		Et la banque « Titres » <banque> seconde de crossfade de fin
+		Et les crossfades par défaut de la configuration sont <defauts>
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,2 seconde
+		Et un client lit la socket d'état
+		Alors le prochain sonore commencera au « <prochain> » et finira au « <fin_prochain> »
+
+		Exemples:
+			| sonores        | banque                                 | defauts                                       | prochain                | fin_prochain            |
+			| non paramétrés | laisse ses sonores décider, malgré 0,5 | de 0,25 seconde au début et de 0,25 à la fin  | 2026-10-14 19:59:50.750 | 2026-10-14 19:59:51.750 |
+			| de 0 seconde   | laisse ses sonores décider, malgré 0,5 | de 0,25 seconde au début et de 0,25 à la fin  | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
+			| non paramétrés | applique à défaut 0,5                  | de 0,25 seconde au début et de 0,25 à la fin  | 2026-10-14 19:59:50.500 | 2026-10-14 19:59:51.500 |
+			| non paramétrés | laisse ses sonores décider, malgré 0,5 | de 0,25 seconde au début et de 0,5 à la fin   | 2026-10-14 19:59:50.500 | 2026-10-14 19:59:51.500 |
+			| non paramétrés | laisse ses sonores décider, malgré 0,5 | de 0,25 seconde au début, et absent à la fin  | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
+			| non paramétrés | laisse ses sonores décider, malgré 0,5 | absent au début, et de 0,5 à la fin           | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
+			| non paramétrés | laisse ses sonores décider, malgré 0,5 | absents                                       | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
+
+	Scénario: Un sonore placé directement dans l'événement, sans crossfade paramétré, prend aussi celui de la configuration
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et les crossfades par défaut de la configuration sont de 0,25 seconde au début et de 0,25 à la fin
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,2 seconde
+		Et un client lit la socket d'état
+		Alors le prochain sonore commencera au « 2026-10-14 19:59:50.750 » et finira au « 2026-10-14 19:59:51.750 »
 
 	Scénario: Un sonore placé directement dans l'événement garde ses crossfades, même dans une banque qui les impose
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
