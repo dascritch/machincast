@@ -502,6 +502,13 @@ class Ui_FicheSonore(object):
 
         self.pied.addWidget(self.supprimer)
 
+        self.preecouter = QPushButton(FicheSonore)
+        self.preecouter.setObjectName(u"preecouter")
+        icon1 = QIcon(QIcon.fromTheme(u"audio-headphones"))
+        self.preecouter.setIcon(icon1)
+
+        self.pied.addWidget(self.preecouter)
+
         self.message = QLabel(FicheSonore)
         self.message.setObjectName(u"message")
         self.message.setWordWrap(True)
@@ -518,7 +525,7 @@ class Ui_FicheSonore(object):
 
         self.pied.addWidget(self.enregistrer)
 
-        self.pied.setStretch(1, 1)
+        self.pied.setStretch(2, 1)
 
         self.disposition.addLayout(self.pied)
 
@@ -626,6 +633,10 @@ class Ui_FicheSonore(object):
 #if QT_CONFIG(tooltip)
         self.supprimer.setToolTip(QCoreApplication.translate("FicheSonore", u"Supprime l'\u00e9l\u00e9ment de la base, apr\u00e8s confirmation ; aucun fichier n'est touch\u00e9.", None))
 #endif // QT_CONFIG(tooltip)
+#if QT_CONFIG(tooltip)
+        self.preecouter.setToolTip(QCoreApplication.translate("FicheSonore", u"\u00c9couter le sonore sur la sortie de pr\u00e9-\u00e9coute, jamais sur l'antenne", None))
+#endif // QT_CONFIG(tooltip)
+        self.preecouter.setText(QCoreApplication.translate("FicheSonore", u"Pr\u00e9-\u00e9coute\u2026", None))
         self.annuler.setText(QCoreApplication.translate("FicheSonore", u"Annuler", None))
         self.enregistrer.setText(QCoreApplication.translate("FicheSonore", u"Enregistrer", None))
         pass

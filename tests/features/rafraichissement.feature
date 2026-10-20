@@ -27,6 +27,7 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 			| entrée                 | état   | raccourci | infobulle |
 			| Rafraîchir les onglets | active | F5        |           |
 			| Calendrier             | active |           |           |
+			| Pré-écoute…            | active |           |           |
 
 	Scénario: La liste ouverte se relit
 		Quand la fenêtre de l'interface s'ouvre

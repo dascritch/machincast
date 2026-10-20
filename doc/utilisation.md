@@ -562,7 +562,7 @@ La fiche d'un sonore s'ouvre depuis la liste des sonores, dans un nouvel onglet 
 | Créé le, Modifié le | Lus sur le fichier, à l'ouverture de la fiche, sans le modifier. La création est `inconnue` sur un système de fichiers qui ne la garde pas. Un fichier absent : `introuvable`. |
 | Dernière vérification complète | Le dernier passage de l'indexeur qui a lu son type et l'a décodé en entier, en indexation rapide comme en audit complet ; `jamais` avant le premier. |
 
-La pré-écoute viendra avec [#29](https://github.com/dascritch/machincast/issues/29). L'ajout d'un sonore : [Ajouter un sonore](#ajouter-un-sonore) ; sa suppression : [Supprimer un élément](#supprimer-un-élément).
+Le bouton **Pré-écoute…** fait écouter le sonore ([Pré-écoute](#pré-écoute)). L'ajout d'un sonore : [Ajouter un sonore](#ajouter-un-sonore) ; sa suppression : [Supprimer un élément](#supprimer-un-élément).
 
 ### Fiche d'une séquence
 
@@ -672,6 +672,7 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 | --- | --- | --- |
 | Fichier | Préférences… | Règle les crossfades de l'interface ([Préférences](#préférences)). L'icône de l'application viendra avec [#111](https://github.com/dascritch/machincast/issues/111). |
 | Fichier | Quitter | Ferme l'interface, aussi par <kbd>Alt</kbd> + <kbd>Q</kbd>, même depuis une fiche. Comme la fermeture de la fenêtre, demande d'abord quoi faire des fiches modifiées ; « Annuler » garde l'interface ouverte. La diffusion n'est pas concernée : `Machin lecture` continue. |
+| Affichage | Pré-écoute… | Ouvre la fenêtre de pré-écoute, pour écouter un sonore ou choisir sa sortie ([Pré-écoute](#pré-écoute)). |
 | Affichage | Calendrier | Ouvre l'onglet du calendrier de la grille ([Calendrier](#calendrier)). |
 | Affichage | Rafraîchir les onglets | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé en base, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
 | Diffusion | Démarrer la diffusion, Arrêter la diffusion, Redémarrer la diffusion | Pilotent le service de diffusion, selon son état ; sans le service, une diffusion d'essai ([Piloter la diffusion depuis l'interface](#piloter-la-diffusion-depuis-linterface)). |
@@ -692,6 +693,17 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 | Début par défaut, fin par défaut | À cocher : le crossfade d'un sonore qui n'en a pas de paramétré, et que sa banque ne règle pas ([D'où viennent les crossfades](#sortie-audio)). Ils ne dépassent pas la durée maximale. |
 
 **OK** les enregistre dans la section `[crossfades]` du fichier de configuration, `machincast.toml`, qui garde ses commentaires et ses autres réglages ; la barre d'état le dit. Les fiches ouvertes ensuite les suivent ; **Machin lecture** prend les durées par défaut à son prochain démarrage. Un fichier qui ne peut pas être écrit laisse les préférences telles quelles, et la barre d'état dit pourquoi. **Annuler** ne change rien.
+
+### Pré-écoute
+
+Le bouton **Pré-écoute…** de la fiche d'un sonore, fichier ou stream, l'ouvre dans la **fenêtre de pré-écoute** ([#116](https://github.com/dascritch/machincast/issues/116), [#29](https://github.com/dascritch/machincast/issues/29)) : une fenêtre à part, qui reste ouverte quand on change d'onglet. Il n'y en a qu'une : pré-écouter un autre sonore le met à la place du précédent, à l'arrêt. **Affichage → Pré-écoute…** la ramène au premier plan, ou l'ouvre sans sonore. Fermer la fenêtre arrête la pré-écoute. Un nouveau stream se pré-écoute une fois enregistré.
+
+- **Lecteur** : **⏵** lance la lecture, **⏸** la met en pause, **⏹** l'arrête et revient au début. Pendant la lecture d'un fichier, ou sa pause, la barre de position permet d'aller n'importe où, pour en vérifier la fin par exemple ; un stream n'a pas de position. À la fin du fichier, la pré-écoute revient à l'arrêt. Un fichier introuvable est signalé : « Lecture impossible : fichier introuvable, … ».
+- **VU-mètre** : le niveau de chaque canal, vert, orange au-delà de -12 dB, rouge au-delà de -3 dB.
+- **Informations** : le format, le débit (celui annoncé par le fichier ou le flux, sinon une estimation « ≈ » d'après la taille du fichier), l'échantillonnage, les canaux et, pour un stream, les secondes **pré-décodées** : le son déjà reçu d'avance, sur 5 secondes au plus. Un flux qui en a peu risque de couper.
+- **Sortie** : la pré-écoute joue sur le périphérique `audio.preecoute` de la configuration, **jamais sur celui de l'antenne**. La liste **Sortie** propose les périphériques du poste ; celui de la diffusion y est grisé, suivi de « (diffusion) » : il ne peut pas être choisi ; un périphérique configuré mais débranché reste proposé, suivi de « (introuvable) ». Choisir une autre sortie arrête la pré-écoute, et l'enregistre dans `machincast.toml`, qui garde ses commentaires.
+
+L'écoute de l'antenne elle-même viendra avec le VU-mètre de la sortie ([#24](https://github.com/dascritch/machincast/issues/24)).
 
 ### Calendrier
 

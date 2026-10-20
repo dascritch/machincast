@@ -9,6 +9,7 @@ dialogue (machincast.interface.dialogues) sont remplacées par les réponses du 
 posée : aucune fenêtre modale n'attend un clic.
 """
 
+import dataclasses
 import re
 import shutil
 from collections.abc import Iterator
@@ -69,6 +70,8 @@ class Contexte:
 	"""Réponse à la question de suppression : True pour supprimer."""
 	creation: bool = False
 	"""Réponse à la question de création d'un événement depuis le calendrier : True pour créer."""
+	peripherique_antenne: str | None = None
+	"""Périphérique de l'antenne, s'il remplace celui de la configuration des tests (aucun)."""
 	repertoires_choisis: list[str | None] = field(default_factory=list)
 	"""Répertoires que donneront les choix suivants, None pour un choix abandonné."""
 	sonores_choisis: list[int] = field(default_factory=list)
@@ -586,16 +589,21 @@ def ouvrir_la_fenetre(interface: Contexte, qtbot: QtBot, avec_configuration: boo
 	interface.connexion = connecter(*parametres_base_test(), Role.INTERFACE)
 	chemin: Path | None = None
 	crossfades = None
+	audio = configuration_test().audio
 	if avec_configuration:
 		chemin = fichier_de_configuration(interface)
 		interface.configuration_initiale = chemin.read_bytes()
 		crossfades = charger(chemin).crossfades
+		audio = charger(chemin).audio
+	if interface.peripherique_antenne is not None:
+		audio = dataclasses.replace(audio, peripherique=interface.peripherique_antenne)
 	interface.fenetre = FenetrePrincipale(
 		interface.connexion,
 		interface.repertoire / "lecture.sock",
 		interface.horloge,
 		configuration=chemin,
 		crossfades=crossfades,
+		audio=audio,
 	)
 	interface.fenetre.detail_demande.connect(lambda genre, numero: interface.demandes.append((genre, numero)))
 
