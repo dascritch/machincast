@@ -27,13 +27,13 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le sonore en cours est « — »
 		Et le prochain sonore est « — »
 
-	Plan du scénario: Le sonore en cours et le prochain sonore occupent chacun la moitié de la largeur
+	Plan du scénario: Le sonore en cours et le prochain sonore se partagent la largeur, de part et d'autre de la colonne de l'antenne
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « <titre> » de « Les Gaufres » dans « <evenement> », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Et le prochain sonore est « <prochain> » dans « <evenement> », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
 		Quand l'écran par défaut s'ouvre, large de <largeur> pixels
 		Et le sonore en cours est bientôt « Les Gaufres – <titre> »
-		Alors le sonore en cours et le prochain sonore ont la même largeur, la moitié de l'écran
+		Alors le sonore en cours et le prochain sonore ont la même largeur, de part et d'autre de la colonne de l'antenne
 
 		Exemples:
 			| largeur | titre         | prochain | evenement   |

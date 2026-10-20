@@ -18,6 +18,7 @@ pytest_plugins = [
 	"tests.etapes_lecture",
 	"tests.etapes_diffusion",
 	"tests.etapes_interface",
+	"tests.etapes_preecoute",
 ]
 
 # Les écrans de l'interface s'affichent hors de l'écran du poste : aucune fenêtre ne s'ouvre pendant les tests

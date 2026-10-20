@@ -134,7 +134,8 @@ class FenetrePrincipale(QMainWindow):
 		self.ui = Ui_FenetrePrincipale()
 		self.ui.setupUi(self)
 		self.ui.onglets.setTabsClosable(True)
-		self.accueil = EcranParDefaut(connexion, socket_etat, horloge)
+		self.accueil = EcranParDefaut(connexion, socket_etat, horloge, audio=audio)
+		self.accueil.ecoute_demandee.connect(self._ecouter_l_antenne)
 		self._ajouter_fixe(self.accueil, "Accueil")
 		self.accueil.ouverte.connect(self._ouvrir)
 		self.verificateur = Verificateur(connexion, self)
@@ -363,6 +364,13 @@ class FenetrePrincipale(QMainWindow):
 		self.preecoute.raise_()
 		self.preecoute.activateWindow()
 
+	def _ecouter_l_antenne(self) -> None:
+		"""Clic sur le VU-mètre de l'accueil : l'antenne dans la fenêtre de pré-écoute
+		(https://github.com/dascritch/machincast/issues/24)."""
+		self._preecouter(None)
+		assert self.preecoute is not None
+		self.preecoute.ecouter_l_antenne()
+
 	def _ouvrir_calendrier(self) -> None:
 		"""Un seul calendrier : celui qui est ouvert revient au premier plan."""
 		onglets = self.ui.onglets
@@ -498,6 +506,7 @@ class FenetrePrincipale(QMainWindow):
 			self.preecoute.deleteLater()
 			self.preecoute = None
 		self._signaler_l_antenne()
+		self.accueil.changer_d_antenne(self.audio)
 		self.statusBar().showMessage(
 			f"Préférences enregistrées dans {self.configuration} ;"
 			f" Machin lecture prendra {texte} à son prochain démarrage."
