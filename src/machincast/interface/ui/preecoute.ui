@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FenetrePreecoute</class>
+ <widget class="QWidget" name="FenetrePreecoute">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>520</width>
+    <height>360</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Pré-écoute</string>
+  </property>
+  <layout class="QVBoxLayout" name="disposition">
+   <item>
+    <widget class="QLabel" name="source">
+     <property name="text">
+      <string>—</string>
+     </property>
+     <property name="textInteractionFlags">
+      <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="lecteur" stretch="0,0,1,0">
+     <item>
+      <widget class="QToolButton" name="lecture">
+       <property name="toolTip">
+        <string>Lecture</string>
+       </property>
+       <property name="accessibleName">
+        <string>Lecture</string>
+       </property>
+       <property name="text">
+        <string>⏵</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="arret">
+       <property name="toolTip">
+        <string>Arrêt</string>
+       </property>
+       <property name="accessibleName">
+        <string>Arrêt</string>
+       </property>
+       <property name="text">
+        <string>⏹</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSlider" name="position">
+       <property name="toolTip">
+        <string>Position dans le fichier</string>
+       </property>
+       <property name="maximum">
+        <number>1000</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="temps">
+       <property name="text">
+        <string>—</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QWidget" name="place_vumetre" native="true">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>36</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QFormLayout" name="informations">
+     <item row="0" column="0">
+      <widget class="QLabel" name="intitule_etat">
+       <property name="text">
+        <string>État</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLabel" name="etat">
+       <property name="text">
+        <string>—</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="intitule_format">
+       <property name="text">
+        <string>Format</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLabel" name="format">
+       <property name="text">
+        <string>—</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="intitule_debit">
+       <property name="text">
+        <string>Débit</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLabel" name="debit">
+       <property name="text">
+        <string>—</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="intitule_echantillonnage">
+       <property name="text">
+        <string>Échantillonnage</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLabel" name="echantillonnage">
+       <property name="text">
+        <string>—</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="intitule_canaux">
+       <property name="text">
+        <string>Canaux</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QLabel" name="canaux">
+       <property name="text">
+        <string>—</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="intitule_predecode">
+       <property name="text">
+        <string>Pré-décodé</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QLabel" name="predecode">
+       <property name="toolTip">
+        <string>Son reçu et décodé d'avance, prêt à être joué</string>
+       </property>
+       <property name="text">
+        <string>—</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="intitule_sortie">
+       <property name="text">
+        <string>Sortie</string>
+       </property>
+       <property name="buddy">
+        <cstring>sortie</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QComboBox" name="sortie">
+       <property name="toolTip">
+        <string>Périphérique de pré-écoute, jamais celui de l'antenne</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="message">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -43,7 +43,7 @@ from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import QLabel, QMainWindow, QTabBar, QWidget
 
 from machincast import service
-from machincast.configuration import Crossfades
+from machincast.configuration import Audio, Crossfades
 from machincast.horloge import Horloge
 from machincast.interface import dialogues, indexation, pilotage, preferences, version
 from machincast.interface.ajout import ajouter_fichiers
@@ -60,6 +60,7 @@ from machincast.interface.fil_musical import garantir
 from machincast.interface.incidents import EcranIncidents
 from machincast.interface.indexation import LANCE, TERMINE, TITRES
 from machincast.interface.listes import BANQUES, EVENEMENTS, MARQUES_PAGES, SEQUENCES, SONORES, Liste
+from machincast.interface.preecoute import FenetrePreecoute
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 from machincast.interface.verification import Verificateur
 
@@ -108,6 +109,7 @@ class FenetrePrincipale(QMainWindow):
 		commande_indexation: list[str] | None = None,
 		configuration: Path | None = None,
 		crossfades: Crossfades | None = None,
+		audio: Audio | None = None,
 	) -> None:
 		"""commande_indexation : Machin indexation, avec la configuration de l'interface
 		(indexation.commande_indexation). configuration : le fichier où « Préférences… » enregistre les réglages,
@@ -115,6 +117,10 @@ class FenetrePrincipale(QMainWindow):
 		préférences ne s'enregistrent pas."""
 		super().__init__(parent)
 		self.configuration = configuration
+		self.audio = (audio) or (Audio(sortie="factice", peripherique=None, preecoute=""))
+		"""Sortie de l'antenne et périphérique de pré-écoute (https://github.com/dascritch/machincast/issues/116)."""
+		self.preecoute: FenetrePreecoute | None = None
+		"""La fenêtre de pré-écoute, une seule pour toute l'interface, créée à sa première demande."""
 		preferences.definir((crossfades) or (Crossfades()))
 		self.connexion = connexion
 		self.horloge = horloge
@@ -187,6 +193,7 @@ class FenetrePrincipale(QMainWindow):
 		rafraichir.setShortcut(QKeySequence("F5"))
 		rafraichir.triggered.connect(self.rafraichir)
 		affichage.addAction("Calendrier").triggered.connect(self._ouvrir_calendrier)
+		affichage.addAction("Pré-écoute…").triggered.connect(lambda: self._preecouter(None))
 		self.menu_diffusion = self.menuBar().addMenu("&Diffusion")
 		self.menu_diffusion.aboutToShow.connect(self._relire_le_service)
 		self.pilotes: dict[str, QAction] = {}
@@ -306,6 +313,8 @@ class FenetrePrincipale(QMainWindow):
 			fiche.fermer()
 		self.verificateur.arreter()
 		self.accueil.close()
+		if self.preecoute is not None:
+			self.preecoute.close()
 		super().closeEvent(evenement)
 
 	def _ajouter_fixe(self, ecran: QWidget, titre: str) -> None:
@@ -324,6 +333,8 @@ class FenetrePrincipale(QMainWindow):
 		fiche.titre_change.connect(lambda titre: self._renommer(fiche, titre))
 		fiche.ouverture_demandee.connect(self._ouvrir)
 		fiche.supprimee.connect(lambda: self._retirer(fiche))
+		if isinstance(fiche, FicheSonore):
+			fiche.preecoute_demandee.connect(self._preecouter)
 		if genre == "événement":
 			fiche.supprimee.connect(self._garantir_fil_musical)
 			fiche.enregistree.connect(self._garantir_fil_musical)
@@ -332,6 +343,17 @@ class FenetrePrincipale(QMainWindow):
 
 	def _renommer(self, fiche: QWidget, titre: str) -> None:
 		self.ui.onglets.setTabText(self.ui.onglets.indexOf(fiche), titre)
+
+	def _preecouter(self, sonore: int | None) -> None:
+		"""La fenêtre de pré-écoute, au premier plan : le sonore demandé y remplace le précédent ; sans sonore, elle
+		garde le sien."""
+		if self.preecoute is None:
+			self.preecoute = FenetrePreecoute(self.connexion, self.audio, self.configuration, self)
+		if (sonore is not None) or (not self.preecoute.isVisible()):
+			self.preecoute.preecouter(sonore)
+		self.preecoute.show()
+		self.preecoute.raise_()
+		self.preecoute.activateWindow()
 
 	def _ouvrir_calendrier(self) -> None:
 		"""Un seul calendrier : celui qui est ouvert revient au premier plan."""

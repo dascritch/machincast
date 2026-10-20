@@ -31,7 +31,7 @@ from pathlib import Path
 
 from psycopg import sql
 from psycopg.types.json import Jsonb
-from PySide6.QtCore import QDateTime, Qt
+from PySide6.QtCore import QDateTime, Qt, Signal
 from PySide6.QtGui import QIntValidator
 from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QDoubleSpinBox, QLineEdit, QTableWidgetItem, QWidget
 
@@ -125,6 +125,9 @@ def _texte(valeur: object) -> str | None:
 
 
 class FicheSonore(Fiche):
+	preecoute_demandee = Signal(int)
+	"""« Pré-écoute… » : le sonore à écouter dans la fenêtre de pré-écoute
+	(https://github.com/dascritch/machincast/issues/116)."""
 	genre = "sonore"
 
 	def __init__(
@@ -143,6 +146,7 @@ class FicheSonore(Fiche):
 		for _valeur, texte in MASQUAGES:
 			self.ui.masquage.addItem(texte)
 		self.essai = EssaiDeFlux(self)
+		self.ui.preecouter.clicked.connect(self._preecouter)
 		self.essai.termine.connect(self._essai_termine)
 		self._nom = ""
 		self._initiales: dict[str, object] = {}
@@ -180,8 +184,14 @@ class FicheSonore(Fiche):
 	def fermer(self) -> None:
 		self.essai.arreter()
 
+	def _preecouter(self) -> None:
+		if self.identifiant is not None:
+			self.preecoute_demandee.emit(self.identifiant)
+
 	def _lire(self) -> None:
 		"""Lit le sonore en base ; un nouveau stream est actif, sans adresse ni réglage."""
+		# Un nouveau stream n'est pas encore en base : rien à pré-écouter avant son enregistrement.
+		self.ui.preecouter.setEnabled(self.identifiant is not None)
 		ligne: tuple[object, ...] | None = NOUVEAU_STREAM
 		passages: list[tuple[object, ...]] = []
 		relations: list[tuple[object, ...]] = []
