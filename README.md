@@ -38,4 +38,4 @@ Si en tant que radio, autre organisation ou particulier, vous avez décidé d'in
  - Pascal Bouche "Raskal"
  - Fabrice Serin "DJ Tro"
 
-et aux artistes passés et à venir qui ont fait vivre l'antenne de Radio FMR
+aux animateurs, bénévoles, soutients et aux artistes passés et à venir qui ont fait vivre l'antenne de Radio FMR
