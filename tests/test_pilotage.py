@@ -6,6 +6,8 @@ d'environnement que règle le scénario.
 """
 
 import os
+import subprocess
+import sys
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -14,7 +16,6 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.configuration import REPERTOIRE_PROJET
-from machincast.lecture.etat import SocketEtat
 from tests.etapes_interface import Contexte, fenetre, fichier_de_configuration, menu_nomme
 
 scenarios("pilotage.feature")
@@ -38,11 +39,36 @@ esac
 """systemctl imité : « show » donne les propriétés demandées de l'état du service, noté dans deux fichiers ; les
 autres verbes le changent, ou échouent avec l'erreur et le code de systemctl pour une autorisation refusée (4)."""
 TERMINAL = """#!/bin/sh
+if [ -e "${MACHINCAST_TEST_ESSAI}" ]; then echo arrêtée; else echo aucune; fi > "${MACHINCAST_TEST_TERMINAL}.essai"
 for argument in "$@"; do
 	echo "${argument}"
 done > "${MACHINCAST_TEST_TERMINAL}"
 """
-"""Un terminal imité : il note ses arguments, un par ligne."""
+"""Un terminal imité : il note ses arguments, un par ligne, et si une diffusion d'essai s'était arrêtée avant."""
+LECTEUR_D_ESSAI = """
+import signal, sys, time
+from pathlib import Path
+from machincast.lecture.etat import SocketEtat
+
+socket = SocketEtat(Path(sys.argv[1]))
+socket.ouvrir()
+socket.publier({"horodatage": "2026-10-20T16:40:00+02:00", "etat": "diffusion", "en_cours": None, "prochain": None})
+
+
+def arreter(_numero, _cadre):
+	# Comme Machin lecture : un dernier état pendant que le passage en cours se termine, puis la socket se ferme.
+	socket.publier({"horodatage": "2026-10-20T16:40:01+02:00", "etat": "silence", "en_cours": None, "prochain": None})
+	time.sleep(0.5)
+	Path(sys.argv[2]).write_text("SIGTERM", encoding="utf-8")
+	socket.fermer()
+	sys.exit(0)
+
+
+signal.signal(signal.SIGTERM, arreter)
+while True:
+	time.sleep(1)
+"""
+"""Un Machin lecture lancé à la main : il annonce la diffusion sur sa socket d'état, s'arrête proprement à SIGTERM."""
 ETATS = {"arrêté": "inactive", "en marche": "active", "en échec": "failed"}
 
 
@@ -54,7 +80,8 @@ class Poste:
 		self.terminal = repertoire / "terminal.log"
 		self.service = repertoire / "service"
 		self.service.mkdir()
-		self.socket: SocketEtat | None = None
+		self.essai: subprocess.Popen[bytes] | None = None
+		self.arret_de_l_essai = repertoire / "essai.signal"
 
 	def imiter(self, nom: str, script: str) -> None:
 		chemin = self.commandes / nom
@@ -79,10 +106,12 @@ def poste(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Poste]:
 	monkeypatch.setenv("MACHINCAST_TEST_SYSTEMCTL", str(imite.systemctl))
 	monkeypatch.setenv("MACHINCAST_TEST_TERMINAL", str(imite.terminal))
 	monkeypatch.setenv("MACHINCAST_TEST_SERVICE", str(imite.service))
+	monkeypatch.setenv("MACHINCAST_TEST_ESSAI", str(imite.arret_de_l_essai))
 	monkeypatch.setenv("MACHINCAST_TEST_ERREUR", "")
 	yield imite
-	if imite.socket is not None:
-		imite.socket.fermer()
+	if imite.essai is not None:
+		imite.essai.kill()
+		imite.essai.wait()
 
 
 @given(parsers.re(r"le service de diffusion installé, (?P<etat>arrêté|en marche|en échec)"))
@@ -111,14 +140,11 @@ def sans_terminal(poste: Poste, monkeypatch: pytest.MonkeyPatch) -> None:
 	monkeypatch.setenv("PATH", str(poste.commandes))
 
 
-@given("une diffusion qui tourne déjà, hors service")
-def diffusion_hors_service(interface: Contexte, poste: Poste) -> None:
-	"""Un Machin lecture lancé à la main : sa socket d'état, là où l'interface la cherche, annonce la diffusion."""
-	poste.socket = SocketEtat(interface.repertoire / "lecture.sock")
-	poste.socket.ouvrir()
-	poste.socket.publier(
-		{"horodatage": "2026-10-20T16:40:00+02:00", "etat": "diffusion", "en_cours": None, "prochain": None}
-	)
+@given("une diffusion d'essai qui tourne, lancée à la main")
+def diffusion_d_essai(interface: Contexte, poste: Poste) -> None:
+	"""Dans un processus à part, sur la socket d'état où l'interface la cherche : c'est lui qu'arrête SIGTERM."""
+	socket = interface.repertoire / "lecture.sock"
+	poste.essai = subprocess.Popen([sys.executable, "-c", LECTEUR_D_ESSAI, str(socket), str(poste.arret_de_l_essai)])
 
 
 @when("le service de diffusion passe en marche")
@@ -178,3 +204,16 @@ def lance_dans_le_terminal(interface: Contexte, poste: Poste, qtbot: QtBot) -> N
 	arguments = poste.terminal.read_text(encoding="utf-8").splitlines()
 	attendus = ["-e", str(REPERTOIRE_PROJET / "bin" / "Machin"), "lecture", "--config"]
 	assert arguments == [*attendus, str(fichier_de_configuration(interface))], arguments
+
+
+@then("la diffusion d'essai s'est arrêtée par SIGTERM")
+def essai_arrete(poste: Poste) -> None:
+	assert poste.essai is not None
+	assert poste.essai.wait(timeout=5) == 0
+	assert poste.arret_de_l_essai.read_text(encoding="utf-8") == "SIGTERM"
+
+
+@then("le terminal a été lancé après l'arrêt de la diffusion d'essai")
+def relance_apres_l_arret(poste: Poste) -> None:
+	essai = poste.terminal.with_name(f"{poste.terminal.name}.essai")
+	assert essai.read_text(encoding="utf-8") == "arrêtée\n"

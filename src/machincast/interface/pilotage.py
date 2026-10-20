@@ -4,11 +4,15 @@ Avec le service (install.sh --service, https://github.com/dascritch/machincast/i
 redémarrer appellent systemctl sur machincast.service, dans un processus à part : la règle polkit du service les
 autorise avec l'authentification d'un administrateur, que demande l'agent polkit de la session. Jamais sudo.
 
-Sans le service, l'installation n'est pas définitive : Machin lecture se lance dans une fenêtre de terminal (konsole,
-sinon x-terminal-emulator), avec la configuration de l'interface ; Ctrl-C l'y arrête.
+Sans le service, l'installation n'est pas définitive, et le menu pilote une diffusion d'essai : Machin lecture lancé
+dans une fenêtre de terminal (konsole, sinon x-terminal-emulator), avec la configuration de l'interface. L'arrêter
+lui envoie SIGTERM, comme Ctrl-C dans ce terminal ; son processus est celui qui répond sur la socket d'état
+(ClientEtat.pid_du_lecteur). Ce n'est pas « Machin lecture --simulation », qui ne joue rien.
 """
 
+import os
 import shutil
+import signal
 from pathlib import Path
 
 from PySide6.QtCore import QObject, QProcess, Signal
@@ -22,10 +26,19 @@ VERBES = {
 	"restart": ("Redémarrer la diffusion", "Diffusion redémarrée.", "Diffusion non redémarrée"),
 }
 """Pour chaque verbe de systemctl : l'entrée du menu, ce qu'annonce sa réussite, et son échec."""
+ESSAI = {
+	"start": "Démarrer la diffusion d'essai",
+	"stop": "Arrêter la diffusion d'essai",
+	"restart": "Redémarrer la diffusion d'essai",
+}
+"""Les entrées du menu sans le service."""
 TERMINAUX = ("konsole", "x-terminal-emulator")
 """Les terminaux essayés, dans l'ordre : celui de Kubuntu, puis celui que choisit le poste."""
 SANS_TERMINAL = "Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin lecture à la main."
-LANCE = "Machin lecture lancé dans un terminal : Ctrl-C l'y arrête."
+LANCE = "Diffusion d'essai lancée dans un terminal : Ctrl-C l'y arrête."
+RELANCE = "Diffusion d'essai relancée dans un terminal : Ctrl-C l'y arrête."
+ARRET_DEMANDE = "Arrêt de la diffusion d'essai demandé…"
+ARRETEE = "Diffusion d'essai arrêtée."
 
 
 class Pilotage(QObject):
@@ -64,3 +77,12 @@ def lancer_dans_un_terminal(configuration: Path | None) -> str:
 			QProcess.startDetached(chemin, ["-e", *commande])
 			return LANCE
 	return SANS_TERMINAL
+
+
+def arreter_le_lecteur(pid: int) -> str:
+	"""SIGTERM, comme Ctrl-C : Machin lecture termine proprement le passage en cours, puis ferme sa socket d'état."""
+	try:
+		os.kill(pid, signal.SIGTERM)
+	except OSError as erreur:
+		return f"Diffusion d'essai non arrêtée : {erreur.strerror}"
+	return ARRET_DEMANDE

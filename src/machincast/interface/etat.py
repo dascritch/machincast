@@ -8,6 +8,8 @@ signalé dans le journal et ignoré.
 
 import json
 import logging
+import socket
+import struct
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -161,6 +163,16 @@ class ClientEtat(QObject):
 		self._tampon = b""
 		self._socket.abort()
 		self._socket.connectToServer(str(self.chemin))
+
+	def pid_du_lecteur(self) -> int | None:
+		"""Le processus du Machin lecture qui répond sur la socket, lu par SO_PEERCRED ; None sans connexion."""
+		if self._socket.state() != QLocalSocket.LocalSocketState.ConnectedState:
+			return None
+		# fromfd travaille sur une copie du descripteur : la fermer laisse la connexion de Qt ouverte.
+		with socket.fromfd(int(self._socket.socketDescriptor()), socket.AF_UNIX, socket.SOCK_STREAM) as copie:
+			identite = copie.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i"))
+		pid, _uid, _gid = struct.unpack("3i", identite)
+		return int(pid)
 
 	def fermer(self) -> None:
 		self._relance.stop()
