@@ -162,6 +162,17 @@ class FicheEvenement(Fiche):
 			jour.setChecked(nom_du_jour in coches)
 		self._grille()
 
+	def prevoir(self, debut: datetime, fin: datetime) -> None:
+		"""Les dates d'un nouvel événement demandé depuis le calendrier
+		(https://github.com/dascritch/machincast/issues/36) : la fiche est modifiée, rien n'est enregistré avant
+		« Enregistrer »."""
+		ui = self.ui
+		_montrer(ui.debut, debut.astimezone())
+		_montrer(ui.fin, fin.astimezone())
+		ui.a_debut.setChecked(True)
+		# Cocher les dates modifie la fiche (_modifier).
+		ui.a_fin.setChecked(True)
+
 	def _grille(self) -> None:
 		"""Ce qui se saisit de la grille : rien pour un événement de secours ; ni fin ni jours sans début."""
 		ui = self.ui

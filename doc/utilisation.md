@@ -440,7 +440,7 @@ L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture 
 
 ## Interface graphique : Machin interface
 
-`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores**, **Marques-pages** et **Incidents**. La barre de menus, en haut de la fenêtre, a cinq menus ([Menus](#menus)).
+`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores**, **Marques-pages** et **Incidents**. Le **Calendrier** s'ouvre à la demande ([Calendrier](#calendrier)). La barre de menus, en haut de la fenêtre, a cinq menus ([Menus](#menus)).
 
 **Sans base de données**, l'interface n'est pas utilisable : `Machin interface` ouvre alors une fenêtre d'erreur, « MachinCast : base de données injoignable ». Elle explique pourquoi, et invite à lire le document `INSTALL.md` du répertoire de MachinCast, section [En cas de problème](../INSTALL.md#en-cas-de-problème). Son bouton « Ouvrir INSTALL.md » ouvre ce document, et ses détails donnent l'erreur de PostgreSQL. À sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, par exemple dans une session SSH, seul ce message s'affiche.
 
@@ -666,6 +666,7 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 | --- | --- | --- |
 | Fichier | Préférences… | Règle les crossfades de l'interface ([Préférences](#préférences)). L'icône de l'application viendra avec [#111](https://github.com/dascritch/machincast/issues/111). |
 | Fichier | Quitter | Ferme l'interface, aussi par <kbd>Alt</kbd> + <kbd>Q</kbd>, même depuis une fiche. Comme la fermeture de la fenêtre, demande d'abord quoi faire des fiches modifiées ; « Annuler » garde l'interface ouverte. La diffusion n'est pas concernée : `Machin lecture` continue. |
+| Affichage | Calendrier | Ouvre l'onglet du calendrier de la grille ([Calendrier](#calendrier)). |
 | Affichage | Rafraîchir les onglets | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé en base, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
 | Diffusion | Démarrer la diffusion, Arrêter la diffusion, Redémarrer la diffusion | Pilotent le service de diffusion, selon son état ; sans le service, une diffusion d'essai ([Piloter la diffusion depuis l'interface](#piloter-la-diffusion-depuis-linterface)). |
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
@@ -685,11 +686,25 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 
 **OK** les enregistre dans la section `[crossfades]` du fichier de configuration, `machincast.toml`, qui garde ses commentaires et ses autres réglages ; la barre d'état le dit. Les fiches ouvertes ensuite les suivent ; **Machin lecture** prend les durées par défaut à son prochain démarrage. Un fichier qui ne peut pas être écrit laisse les préférences telles quelles, et la barre d'état dit pourquoi. **Annuler** ne change rien.
 
+### Calendrier
+
+**Affichage → Calendrier** ouvre la grille dans un onglet ([#36](https://github.com/dascritch/machincast/issues/36), [#118](https://github.com/dascritch/machincast/issues/118)) : ce qui est prévu, et ce qui a été diffusé. Il s'ouvre sur la semaine du jour, du lundi au dimanche, de 0 h à 24 h ; une ligne rouge marque l'heure qu'il est.
+
+- **Naviguer** : « Semaine précédente », « Aujourd'hui », « Semaine suivante », de 28 jours avant à 28 jours après aujourd'hui. « Jour » montre un seul jour, aujourd'hui s'il est dans la semaine montrée, et se pagine par jour ; « Semaine » revient à la semaine.
+- **Ce qui est prévu** : chaque occurrence d'un événement est un bloc, à sa couleur de priorité, récurrences comprises. Le bloc est **plein** là où l'événement passerait à l'antenne, **estompé** là où un autre le masque : une priorité plus haute, ou, pour un fil musical permanent, n'importe quel autre fil musical. Deux blocs qui se chevauchent se placent côte à côte. Les fils musicaux permanents et les occurrences de 24 heures ou plus sont dans la **bande de la journée entière**, sous le nom du jour. Une émission ou un spécial **sans fin** se dessine jusqu'au début suivant d'une priorité égale ou plus haute, au plus tard jusqu'à minuit : sa durée réelle dépend de sa liste. Les événements de secours ne passent jamais par la grille, et n'y sont pas.
+- **Ce qui a été diffusé** : à droite de chaque jour, sur fond plus clair pour le passé, une bande étroite par événement réellement joué : les passages successifs d'un même événement n'en font qu'une. Un écart entre le bloc et la bande montre un écart entre la grille et l'antenne.
+- **Spécial, Émission, Fil musical** : chaque case montre ou cache les blocs et les bandes de sa priorité. Ce qui joue ne change pas : un bloc caché masque toujours ceux qu'il masquait.
+- **Survoler** un bloc donne l'événement, son nom public, sa priorité, ses heures, sa récurrence et ce qui en joue ; une bande, ses heures à la seconde et son nombre de passages.
+- **Double-cliquer** sur un bloc ou une bande ouvre la fiche de son événement.
+- **Cliquer sur une heure libre**, pas encore passée, propose de créer un événement à cette demi-heure, par exemple « Créer un événement le samedi 24 octobre 2026 à 20:00 ? ». **Créer** ouvre la fiche d'un nouvel événement, qui commence à cette demi-heure et dure une heure ; rien n'est en base avant **Enregistrer**.
+
+Le calendrier se relit à l'ouverture de son onglet, à chaque changement de semaine ou de jour, et par **Affichage → Rafraîchir les onglets** (<kbd>F5</kbd>).
+
 ### Rafraîchir les onglets
 
 Ce que montre l'interface est lu en base à l'ouverture de chaque onglet ; ce qu'un autre poste, l'indexation ou la diffusion y changent ensuite n'apparaît pas tout seul. **Affichage → Rafraîchir les onglets**, ou <kbd>F5</kbd>, relit tout d'un coup ([#148](https://github.com/dascritch/machincast/issues/148)) :
 
-- l'onglet ouvert, liste ou incidents ; les autres listes se relisent déjà quand on les ouvre ;
+- l'onglet ouvert, liste, incidents ou calendrier ; les autres listes se relisent déjà quand on les ouvre ;
 - l'airplay de l'accueil ;
 - toutes les fiches ouvertes. Une fiche modifiée demande d'abord quoi faire de ses modifications, comme à sa fermeture : **Enregistrer** les écrit puis relit la fiche, **Abandonner** les perd et relit la fiche, **Annuler** laisse la fiche telle quelle. Une fiche dont l'enregistrement est refusé reste aussi telle quelle, et dit pourquoi.
 - La fiche d'un élément effacé de la base depuis un autre poste se ferme, sans question : ses modifications sont perdues.
@@ -790,5 +805,5 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | Manque | Ticket |
 | --- | --- |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
-| Autres écrans de l'interface : VU-mètre, recherche globale, calendrier, simulation | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
+| Autres écrans de l'interface : VU-mètre, recherche globale, simulation | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |

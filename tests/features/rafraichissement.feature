@@ -26,6 +26,7 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 		Et le menu « Affichage » a les entrées :
 			| entrée                 | état   | raccourci | infobulle |
 			| Rafraîchir les onglets | active | F5        |           |
+			| Calendrier             | active |           |           |
 
 	Scénario: La liste ouverte se relit
 		Quand la fenêtre de l'interface s'ouvre

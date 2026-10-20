@@ -91,6 +91,19 @@ def confirmer_retrait(parent: QWidget, avertissement: str) -> Retrait:
 	return Retrait.ANNULER
 
 
+def confirmer_creation(parent: QWidget, texte: str) -> bool:
+	"""Créer un événement depuis le calendrier ? Rien n'est enregistré avant sa fiche : Entrée crée, Échap annule."""
+	question = QMessageBox(parent)
+	question.setIcon(QMessageBox.Icon.Question)
+	question.setWindowTitle("Nouvel événement")
+	question.setText(texte)
+	creer = question.addButton("Créer", QMessageBox.ButtonRole.AcceptRole)
+	question.addButton("Annuler", QMessageBox.ButtonRole.RejectRole)
+	question.setDefaultButton(creer)
+	question.exec()
+	return question.clickedButton() is creer
+
+
 def confirmer_suppression(parent: QWidget, titre: str, texte: str) -> bool:
 	"""Demande la confirmation d'une suppression : Entrée et Échap gardent l'élément."""
 	question = QMessageBox(parent)

@@ -74,6 +74,20 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 			| tape Échap               | False   |
 			| tape Entrée              | False   |
 
+	Plan du scénario: La création d'un événement depuis le calendrier ne se fait que sur « Créer »
+		# https://github.com/dascritch/machincast/issues/36 : rien n'est enregistré avant la fiche, Entrée crée.
+		Quand la question de création s'ouvre, et que j'y <geste>
+		Alors la question a dit « Créer un événement le samedi 24 octobre 2026 à 18:00 ? »
+		Et la question a proposé « Créer », « Annuler »
+		Et la réponse est « <reponse> »
+
+		Exemples:
+			| geste                  | reponse |
+			| clique sur « Créer »   | True    |
+			| clique sur « Annuler » | False   |
+			| tape Échap             | False   |
+			| tape Entrée            | True    |
+
 	Plan du scénario: Le choix d'un répertoire donne le répertoire choisi, ou rien s'il est abandonné
 		Quand le sélecteur de répertoires du poste donne « <selecteur> »
 		Alors le répertoire choisi est <choisi>

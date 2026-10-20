@@ -143,12 +143,7 @@ def evenement_actif(
 		and ((o := occurrence(e, instant)) is not None)
 		and (o.cle not in terminees)
 	]
-	if not candidates:
-		return None
-	rang = max(RANGS[o.evenement.priorite] for o in candidates)
-	egales = [o for o in candidates if RANGS[o.evenement.priorite] == rang]
-	gardees = [o for o in egales if not _cede(o, egales)]
-	return max(gardees, key=lambda o: (o.evenement.modifie_le, o.evenement.id))
+	return _gagnante(candidates)
 
 
 def _cede(ouverte: Occurrence, autres: Iterable[Occurrence]) -> bool:
@@ -273,6 +268,87 @@ def prochain_changement(evenements: Iterable[Evenement], instant: datetime) -> d
 	if not apres:
 		return None
 	return min(apres).astimezone()
+
+
+@dataclass(frozen=True)
+class Prevue:
+	"""Une occurrence prévue, telle que la montre le calendrier (https://github.com/dascritch/machincast/issues/36)."""
+
+	occurrence: Occurrence
+	debut: datetime
+	"""Début dessiné : celui de l'occurrence, ou celui de la période pour un fil musical permanent."""
+	fin: datetime
+	"""Fin dessinée : celle de l'occurrence ; pour une occurrence sans fin, le début suivant d'une priorité égale ou
+	plus haute, au plus tard minuit ; pour un fil musical permanent, la fin de la période."""
+	joue: tuple[tuple[datetime, datetime], ...]
+	"""Les moments de la période où l'occurrence serait à l'antenne, dans l'ordre."""
+
+
+def prevoir(evenements: Iterable[Evenement], de: datetime, a: datetime) -> list[Prevue]:
+	"""Les occurrences qui touchent la période [de, a[, en heure murale, et ce que chacune en joue.
+
+	Ce qui joue suit evenement_actif, avec la fin dessinée d'une occurrence sans fin : la durée réelle de sa liste
+	n'est connue qu'à la diffusion. Les événements de secours, hors grille, n'y sont pas.
+	"""
+	de, a = heure_murale(de), heure_murale(a)
+	grille = [evenement for evenement in evenements if evenement.priorite is not Priorite.SECOURS]
+	occurrences: list[Occurrence] = []
+	for evenement in grille:
+		if evenement.debut is None:
+			occurrences.append(Occurrence(evenement, None, None))
+			continue
+		# Une occurrence commencée avant la période peut encore la toucher : autant de jours qu'elle en couvre.
+		depuis = de.date() - timedelta(days=_jours_couverts(evenement) + 1)
+		for debut, fin in _occurrences(evenement, depuis, a.date() + timedelta(days=1)):
+			occurrences.append(Occurrence(evenement, debut, fin))
+	fins = {o.cle: _fin_dessinee(o, occurrences, a) for o in occurrences}
+	# Une occurrence hors de la période n'y couvre aucun moment : elle n'y joue pas, et n'y est pas dessinée.
+	gardees = occurrences
+	bornes = sorted(
+		{de, a}
+		| {o.debut for o in gardees if (o.debut is not None) and (de < o.debut < a)}
+		| {fins[o.cle] for o in gardees if de < fins[o.cle] < a}
+	)
+	joue: dict[tuple[int, datetime | None], list[tuple[datetime, datetime]]] = {o.cle: [] for o in gardees}
+	for depart, arrivee in zip(bornes, bornes[1:], strict=False):
+		couvrantes = [o for o in gardees if ((o.debut is None) or (o.debut <= depart)) and (fins[o.cle] > depart)]
+		gagnante = _gagnante(couvrantes)
+		if gagnante is None:
+			continue
+		moments = joue[gagnante.cle]
+		if (moments) and (moments[-1][1] == depart):
+			moments[-1] = (moments[-1][0], arrivee)
+			continue
+		moments.append((depart, arrivee))
+	return [
+		Prevue(o, (o.debut) or (de), fins[o.cle], tuple(joue[o.cle]))
+		for o in sorted(gardees, key=lambda o: ((o.debut) or (de), RANGS[o.evenement.priorite], o.evenement.id))
+	]
+
+
+def _fin_dessinee(occurrence: Occurrence, toutes: list[Occurrence], a: datetime) -> datetime:
+	if occurrence.debut is None:
+		return a
+	if occurrence.fin is not None:
+		return occurrence.fin
+	minuit = datetime.combine(occurrence.debut.date() + timedelta(days=1), datetime.min.time())
+	rang = RANGS[occurrence.evenement.priorite]
+	suivantes = [
+		autre.debut
+		for autre in toutes
+		if (autre.debut is not None) and (autre.debut > occurrence.debut) and (RANGS[autre.evenement.priorite] >= rang)
+	]
+	return min([minuit, *suivantes])
+
+
+def _gagnante(couvrantes: list[Occurrence]) -> Occurrence | None:
+	"""Comme evenement_actif : la plus haute priorité, puis ce qui ne cède pas, puis la dernière modifiée."""
+	if not couvrantes:
+		return None
+	rang = max(RANGS[o.evenement.priorite] for o in couvrantes)
+	egales = [o for o in couvrantes if RANGS[o.evenement.priorite] == rang]
+	gardees = [o for o in egales if not _cede(o, egales)]
+	return max(gardees, key=lambda o: (o.evenement.modifie_le, o.evenement.id))
 
 
 COLONNES = "id, nom_interne, priorite::text, debut, fin, jours_recurrence::text[], modifie_le"
