@@ -188,6 +188,42 @@ def emission(
 	)
 
 
+@given(
+	parsers.re(
+		r"la séquence « (?P<nom>[^»]+) » des sonores « (?P<premier>[^»]+) », « (?P<second>[^»]+) », jouée par le fil"
+		r" musical permanent « (?P<fil>[^»]+) », avant le sonore « (?P<apres>[^»]+) »"
+	)
+)
+def sequence_du_fil(
+	banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, premier: str, second: str, fil: str, apres: str
+) -> None:
+	sequence = base_vide.execute("INSERT INTO sequences (nom_interne) VALUES (%s) RETURNING id", (nom,)).fetchone()
+	evenement = base_vide.execute(
+		"INSERT INTO evenements (nom_interne, priorite) VALUES (%s, 'fil_musical') RETURNING id", (fil,)
+	).fetchone()
+	assert (sequence is not None) and (evenement is not None)
+	for position, nom_sonore in enumerate((premier, second), start=1):
+		base_vide.execute(
+			"INSERT INTO sequences_elements (sequence_id, position, sonore_id) VALUES (%s, %s, %s)",
+			(sequence[0], position, creer_sonore(banc, base_vide, tmp_path, nom_sonore)),
+		)
+	base_vide.execute(
+		"INSERT INTO evenements_elements (evenement_id, position, sequence_id) VALUES (%s, 1, %s)",
+		(evenement[0], sequence[0]),
+	)
+	base_vide.execute(
+		"INSERT INTO evenements_elements (evenement_id, position, sonore_id) VALUES (%s, 2, %s)",
+		(evenement[0], creer_sonore(banc, base_vide, tmp_path, apres)),
+	)
+
+
+@given(parsers.parse("l'événement « {nom} » a pour nom public « {nom_public} », et masque ses sonores"))
+def evenement_masque(base_vide: Connexion, nom: str, nom_public: str) -> None:
+	base_vide.execute(
+		"UPDATE evenements SET nom_public = %s, masquer_metadonnees = true WHERE nom_interne = %s", (nom_public, nom)
+	)
+
+
 @given(parsers.parse("chaque sonore a {duree} seconde de crossfade de début et de fin"))
 def crossfades(base_vide: Connexion, duree: str) -> None:
 	valeur = timedelta(seconds=secondes(duree))

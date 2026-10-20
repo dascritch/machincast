@@ -409,8 +409,12 @@ Champs communs à `en_cours` et `prochain` :
 | `emplacement` | texte ou `null` | Chemin du fichier, ou adresse du stream (directe ou de son marque-page), comme dans l'`airplay`. Ajouté en relecture de [PR #106](https://github.com/dascritch/machincast/pull/106), sans changer la version. |
 | `duree` | nombre ou `null` | Durée en secondes ; `null` pour un stream, dont la durée est inconnue. |
 | `fin_estimee` | date ISO 8601 ou `null` | Fin prévue, `null` quand la durée ou le début sont inconnus. |
+| `evenement_id` | entier | Identifiant de l'événement ([#144](https://github.com/dascritch/machincast/issues/144), sans changer la version). |
+| `evenement_debut`, `evenement_fin` | date ISO 8601 ou `null` | Début et fin de l'occurrence de l'événement, en heure murale du poste, sans fuseau ; `null` pour un fil musical permanent, et pour la fin d'une occurrence sans fin. |
+| `sequence`, `sequence_id` | texte, entier ou `null` | Séquence qui joue le sonore, nom interne et identifiant ; `null` hors d'une séquence. |
+| `banque`, `banque_id` | texte, entier ou `null` | Banque qui a fourni le sonore ; `null` pour un sonore placé directement dans la liste. |
 
-Champs propres à `en_cours` : `debut` (date ISO 8601 du début du passage), `position` (secondes jouées) et `progression` (de 0 à 1, `null` pour un stream).
+Champs propres à `en_cours` : `debut` (date ISO 8601 du début du passage), `position` (secondes jouées), `progression` (de 0 à 1, `null` pour un stream) et `texte_public` ([#144](https://github.com/dascritch/machincast/issues/144)) : ce que la page publique affiche du passage, masquage appliqué ([§ 4.8](#48-métadonnées-publiques-et-masquage)) ; `null` si le passage n'est pas encore dans l'airplay. Le contexte d'un sonore (événement, séquence, banque, texte public) est lu une fois par sonore, pas à chaque message.
 
 Champs propres à `prochain` : `debut_estime` (date ISO 8601, `null` après un stream : au début du crossfade de fin du sonore en cours s'ils se superposent, à sa fin sinon) et `sain` (indicateur du [§ 4.6](#46-sonore-sain) : `true` ou `false`, `null` pour un stream, qui n'est pas testé automatiquement).
 

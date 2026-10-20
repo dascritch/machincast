@@ -48,6 +48,40 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Alors le message est en version 1, à l'état « silence »
 		Et il n'y a ni sonore en cours ni prochain sonore
 
+	# ─── Contexte du sonore (https://github.com/dascritch/machincast/issues/144) ─────
+
+	Scénario: Le sonore en cours et le prochain disent leur banque, et l'événement qui les joue
+		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,4 seconde
+		Et un client lit la socket d'état
+		Alors le sonore en cours vient de la banque « Titres », sans séquence, de l'événement « Continue », permanent
+		Et le prochain sonore vient de la banque « Titres », sans séquence, de l'événement « Continue », permanent
+		Et le texte public du sonore en cours est « f1 »
+		Et le prochain sonore n'a pas de texte public
+
+	Scénario: Un sonore joué par une séquence dit sa séquence
+		Étant donné la séquence « Pub » des sonores « s1 », « s2 », jouée par le fil musical permanent « Continue », avant le sonore « f3 »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,4 seconde
+		Et un client lit la socket d'état
+		Alors le sonore en cours vient de la séquence « Pub », sans banque, de l'événement « Continue », permanent
+
+	Scénario: Le sonore d'une émission donne les heures de début et de fin de l'événement
+		Étant donné l'émission « Journal » de 19:59:50 à 20:30:00, avec le sonore « f1 »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,4 seconde
+		Et un client lit la socket d'état
+		Alors l'événement du sonore en cours va du « 2026-10-14 19:59:50 » au « 2026-10-14 20:30:00 »
+
+	Scénario: Le texte public applique le masquage, comme la page publique
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
+		Et l'événement « Continue » a pour nom public « Radio Machin », et masque ses sonores
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,4 seconde
+		Et un client lit la socket d'état
+		Alors le texte public du sonore en cours est « Radio Machin »
+
 	# ─── Prochain sonore ───────────────────────────────────────
 
 	Scénario: Le prochain sonore est annoncé avec son début et sa fin estimés

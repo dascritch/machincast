@@ -263,3 +263,63 @@ def champs_documentes(client: Client) -> None:
 	assert section is not None
 	absents = {cle for cle in champs(message(client)) if f"`{cle}`" not in section.group(1)}
 	assert not absents, f"absents de spec § 5.4 : {sorted(absents)}"
+
+
+# ─── Contexte du sonore (https://github.com/dascritch/machincast/issues/144) ─────
+
+
+def identifiant_de(base: Connexion, table: str, nom: str | None) -> int | None:
+	if nom is None:
+		return None
+	ligne = base.execute(f"SELECT id FROM {table} WHERE nom_interne = %s", (nom,)).fetchone()  # noqa: S608
+	assert ligne is not None, nom
+	return int(str(ligne[0]))
+
+
+@then(
+	parsers.re(
+		r"le (?P<lequel>sonore en cours|prochain sonore) vient de (?:la banque « (?P<banque>[^»]+) »|la séquence"
+		r" « (?P<sequence>[^»]+) »), sans (?:séquence|banque), de l'événement « (?P<evenement>[^»]+) », permanent"
+	)
+)
+def contexte_du_sonore(
+	client: Client,
+	base_vide: Connexion,
+	lequel: str,
+	banque: str | None,
+	sequence: str | None,
+	evenement: str,
+) -> None:
+	sonore_lu = prochain(client)
+	if lequel == "sonore en cours":
+		sonore_lu = en_cours(client)
+	attendu = {
+		"banque": banque,
+		"banque_id": identifiant_de(base_vide, "banques", banque),
+		"sequence": sequence,
+		"sequence_id": identifiant_de(base_vide, "sequences", sequence),
+		"evenement": evenement,
+		"evenement_id": identifiant_de(base_vide, "evenements", evenement),
+		"evenement_debut": None,
+		"evenement_fin": None,
+	}
+	assert {cle: sonore_lu.get(cle) for cle in attendu} == attendu, sonore_lu
+
+
+@then(parsers.parse("l'événement du sonore en cours va du « {debut} » au « {fin} »"))
+def bornes_de_l_evenement(client: Client, debut: str, fin: str) -> None:
+	courant = en_cours(client)
+	assert (courant["evenement_debut"], courant["evenement_fin"]) == (
+		heure(debut).replace(tzinfo=None).isoformat(),
+		heure(fin).replace(tzinfo=None).isoformat(),
+	), courant
+
+
+@then(parsers.parse("le texte public du sonore en cours est « {texte} »"))
+def texte_public(client: Client, texte: str) -> None:
+	assert en_cours(client)["texte_public"] == texte
+
+
+@then("le prochain sonore n'a pas de texte public")
+def sans_texte_public(client: Client) -> None:
+	assert "texte_public" not in prochain(client)
