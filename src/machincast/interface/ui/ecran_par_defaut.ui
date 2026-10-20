@@ -369,8 +369,8 @@
          <widget class="QWidget" name="place_vumetre" native="true">
           <property name="minimumSize">
            <size>
-            <width>60</width>
-            <height>120</height>
+            <width>90</width>
+            <height>160</height>
            </size>
           </property>
          </widget>

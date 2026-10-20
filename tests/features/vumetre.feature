@@ -72,6 +72,36 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 			| 3,1     | -30, -30 | -25, -25 | -20, -25 |
 			| 3,5     | -30, -30 | -5, -30  | -5, -25  |
 
+	# ─── Échelle ───────────────────────────────────────────────
+
+	Scénario: Le VU-mètre de l'antenne sépare ses canaux gauche et droit par son échelle en dB
+		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
+		Quand la fenêtre de l'interface s'ouvre
+		Et le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
+		Alors de gauche à droite, le VU-mètre de l'antenne montre le canal « G », l'échelle, le canal « D »
+		Et l'échelle du VU-mètre de l'antenne va de 0 dB en haut à -60 dB en bas, sans nombres qui se chevauchent
+
+	Plan du scénario: L'échelle ne garde que les nombres qui tiennent : 0 et -60 toujours, puis -20, -6, -12, -40, -30, -50
+		Étant donné un VU-mètre <sens> de <largeur> × <hauteur> pixels
+		Alors son échelle porte les nombres « <nombres> »
+
+		Exemples:
+			| sens      | largeur | hauteur | nombres                              |
+			| vertical  | 80      | 400     | 0, -6, -12, -20, -30, -40, -50, -60  |
+			| vertical  | 80      | 60      | 0, -20, -40, -60                     |
+			| vertical  | 80      | 40      | 0, -60                               |
+			| vertical  | 80      | 24      | 0, -60                               |
+			| couché    | 600     | 56      | 0, -6, -12, -20, -30, -40, -50, -60  |
+			| couché    | 60      | 56      | 0, -20, -40, -60                     |
+			| couché    | 40      | 56      | 0, -60                               |
+			| couché    | 24      | 56      | 0, -60                               |
+
+	Scénario: Le VU-mètre de la pré-écoute a son échelle en dB sous ses canaux
+		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
+		Quand la fenêtre de l'interface s'ouvre
+		Et je clique sur le VU-mètre de l'antenne
+		Alors l'échelle du VU-mètre de la pré-écoute va de -60 dB à gauche à 0 dB à droite, sous ses canaux, sans nombres qui se chevauchent
+
 	# ─── Disponibilité ─────────────────────────────────────────
 
 	Scénario: Avec la sortie ALSA, le VU-mètre est indisponible, sans erreur

@@ -253,7 +253,7 @@ class Ui_EcranParDefaut(object):
 
         self.place_vumetre = QWidget(self.colonne_antenne)
         self.place_vumetre.setObjectName(u"place_vumetre")
-        self.place_vumetre.setMinimumSize(QSize(60, 120))
+        self.place_vumetre.setMinimumSize(QSize(90, 160))
 
         self.disposition_antenne.addWidget(self.place_vumetre)
 
