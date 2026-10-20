@@ -26,10 +26,10 @@ Fonctionnalité: Un fil musical existe toujours
 		Et le fil musical « Fil musical » est en base, permanent et sans élément
 		Quand j'ouvre l'onglet « Événements »
 		Alors la liste montre :
-			| Nom         | Nom public | Priorité    | Début            | Fin              | Récurrence |
-			| Matinale    |            | émission    | 2026-10-19 07:00 | 2026-10-19 09:00 | lundi      |
-			| Fil musical |            | fil musical |                  |                  |            |
-			| Panne       |            | secours     |                  |                  |            |
+			| Nom         | Nom public | Priorité    | Début            | Fin              | Récurrence | Anomalie       |
+			| Matinale    |            | émission    | 2026-10-19 07:00 | 2026-10-19 09:00 | lundi      | événement vide |
+			| Fil musical |            | fil musical |                  |                  |            | événement vide |
+			| Panne       |            | secours     |                  |                  |            | événement vide |
 
 	Scénario: Au lancement, un fil musical existant suffit, même daté
 		Étant donné les événements :
@@ -103,9 +103,9 @@ Fonctionnalité: Un fil musical existe toujours
 		Et les fils musicaux en base sont « Fil musical »
 		Quand j'ouvre l'onglet « Événements »
 		Alors la liste montre :
-			| Nom         | Nom public | Priorité    | Début | Fin | Récurrence |
-			| Fil musical |            | fil musical |       |     |            |
-			| Continue    |            | secours     |       |     |            |
+			| Nom         | Nom public | Priorité    | Début | Fin | Récurrence | Anomalie       |
+			| Fil musical |            | fil musical |       |     |            | événement vide |
+			| Continue    |            | secours     |       |     |            |                |
 
 	Scénario: Enregistrer un autre événement ne crée rien tant qu'un fil musical existe
 		Étant donné les événements :

@@ -434,6 +434,19 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 			| 20:00 | m      | Magazine  | entier |
 			| 20:10 | m      | Magazine  | entier |
 
+	Scénario: Une émission vide, à compléter plus tard, laisse jouer le fil musical
+		https://github.com/dascritch/machincast/issues/140
+
+		Étant donné les événements :
+			| nom      | priorité    | début | fin   | liste       |
+			| Continue | fil_musical |       |       | sonore « m » |
+			| Magazine | emission    | 20:00 | 20:20 |             |
+		Quand la diffusion se déroule de 20:00 à 20:20
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | m      | Continue  | entier |
+			| 20:10 | m      | Continue  | entier |
+
 	Scénario: À la fin d'un événement sans successeur, la séquence est jouée jusqu'au bout
 		Étant donné une séquence « Trio » jouant sonore « t1 », sonore « t2 », sonore « t3 »
 		Et les événements :
