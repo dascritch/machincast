@@ -230,7 +230,7 @@ def diffuse(
 		"fin_estimee": (commence + timedelta(seconds=longueur)).isoformat(),
 		"emplacement": emplacement(titre),
 		"position": secondes(position),
-		"progression": round(secondes(position) / longueur, 3),
+		"progression": round(min(1.0, secondes(position) / ((longueur) or (1.0))), 3),
 	}
 	publier(contexte)
 
@@ -293,6 +293,15 @@ def contexte_du_sonore(contexte: Contexte, lequel: str, datatable: list[list[str
 		if (champ in ("evenement_debut", "evenement_fin")) and (valeur != ""):
 			lu = datetime.fromisoformat(valeur).isoformat()
 		sonore[champ] = lu
+	publier(contexte)
+
+
+@given(parsers.re(r"le sonore en cours sera coupé à (?P<instant>[\d:]+) par l'événement « (?P<evenement>[^»]+) »"))
+def coupure(contexte: Contexte, instant: str, evenement: str) -> None:
+	"""La coupure annoncée par la socket (https://github.com/dascritch/machincast/issues/169) : la fin estimée devient
+	celle de la coupure."""
+	assert contexte.en_cours is not None
+	contexte.en_cours |= {"fin_estimee": a(instant).isoformat(), "coupe_par": evenement, "coupe_par_id": 8}
 	publier(contexte)
 
 
@@ -585,7 +594,7 @@ def prochain_affiche(contexte: Contexte, qtbot: QtBot, bientot: str | None, text
 @then(
 	parsers.re(
 		r"le (?P<lequel>sonore en cours|prochain sonore) a pour événement « (?P<evenement>[^»]+) »"
-		r" et pour horaire « (?P<horaire>[^»]+) »"
+		r" et pour horaire « (?P<horaire>.+) »$"
 	)
 )
 def evenement_et_horaire(contexte: Contexte, lequel: str, evenement: str, horaire: str) -> None:
@@ -736,8 +745,8 @@ def sain(contexte: Contexte, texte: str) -> None:
 
 @then(
 	parsers.re(
-		r"la barre de progression du sonore en cours est (?P<bientot>bientôt )?à « (?P<texte>[^»]+) »"
-		r"(?:, remplie à (?P<valeur>\d+) %)?"
+		r"la barre de progression du sonore en cours est (?P<bientot>bientôt )?à « (?P<texte>.+?) »"
+		r"(?:, remplie à (?P<valeur>\d+) %)?$"
 	)
 )
 def progression(contexte: Contexte, qtbot: QtBot, bientot: str | None, texte: str, valeur: str | None) -> None:
