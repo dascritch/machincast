@@ -106,14 +106,23 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| Arrêter la diffusion d'essai      | inactive |           | Aucune diffusion d'essai en cours                          |
 			| Redémarrer la diffusion d'essai   | inactive |           | Aucune diffusion d'essai en cours                          |
 
-	Scénario: Sans service, « Démarrer la diffusion d'essai » lance Machin lecture dans une fenêtre de terminal
+	Scénario: Sans service, « Démarrer la diffusion d'essai » lance Machin lecture comme le service, dans une fenêtre de terminal
+		Étant donné le service de diffusion non installé
+		Et le terminal « konsole » du poste
+		Et l'interface lancée sur la configuration du service
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Démarrer la diffusion d'essai » dans le menu « Diffusion »
+		Alors le terminal a lancé bientôt Machin lecture, comme le service
+		Et la barre d'état annonce « Diffusion d'essai lancée dans un terminal : Ctrl-C l'y arrête. »
+		Et systemctl n'a reçu que des demandes d'état
+
+	Scénario: Une interface sur une autre configuration que le service lance quand même la diffusion d'essai comme lui, et le dit
 		Étant donné le service de diffusion non installé
 		Et le terminal « konsole » du poste
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Démarrer la diffusion d'essai » dans le menu « Diffusion »
-		Alors le terminal a lancé bientôt Machin lecture, avec la configuration de l'interface
-		Et la barre d'état annonce « Diffusion d'essai lancée dans un terminal : Ctrl-C l'y arrête. »
-		Et systemctl n'a reçu que des demandes d'état
+		Alors le terminal a lancé bientôt Machin lecture, comme le service
+		Et la barre d'état annonce que la diffusion d'essai lit la configuration du service, et non celle de l'interface
 
 	Scénario: Sans service, une diffusion d'essai qui tourne s'arrête ou se redémarre, mais ne se relance pas
 		Étant donné le service de diffusion non installé
@@ -142,12 +151,13 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Étant donné le service de diffusion non installé
 		Et le terminal « konsole » du poste
 		Et une diffusion d'essai qui tourne, lancée à la main
+		Et l'interface lancée sur la configuration du service
 		Quand la fenêtre de l'interface s'ouvre
 		Et l'état du binaire lecture est bientôt « En diffusion » sur l'accueil
 		Et je choisis « Redémarrer la diffusion d'essai » dans le menu « Diffusion »
 		Alors la barre d'état annonce bientôt « Diffusion d'essai relancée dans un terminal : Ctrl-C l'y arrête. »
 		Et la diffusion d'essai s'est arrêtée par SIGTERM
-		Et le terminal a lancé bientôt Machin lecture, avec la configuration de l'interface
+		Et le terminal a lancé bientôt Machin lecture, comme le service
 		Et le terminal a été lancé après l'arrêt de la diffusion d'essai
 
 	Scénario: Sans terminal sur le poste, la barre d'état dit comment lancer la diffusion d'essai

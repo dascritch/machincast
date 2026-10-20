@@ -241,10 +241,7 @@ class FenetrePrincipale(QMainWindow):
 		if verbe == "stop":
 			self.ui.barre_d_etat.showMessage(pilotage.ARRETEE)
 			return
-		texte = pilotage.lancer_dans_un_terminal(self.configuration)
-		if texte == pilotage.LANCE:
-			texte = pilotage.RELANCE
-		self.ui.barre_d_etat.showMessage(texte)
+		self.ui.barre_d_etat.showMessage(pilotage.lancer_dans_un_terminal(self.configuration, pilotage.RELANCE))
 
 	def _presenter_la_diffusion(self) -> None:
 		"""Les entrées du menu « Diffusion » selon l'état du service ; sans lui, le signal d'installation à terminer."""

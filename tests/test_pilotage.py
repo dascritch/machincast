@@ -16,6 +16,9 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.configuration import REPERTOIRE_PROJET
+from machincast.installation import Compte, unite_systemd
+from machincast.interface import pilotage
+from machincast.interface.pilotage import configuration_du_service
 from tests.etapes_interface import Contexte, fenetre, fichier_de_configuration, menu_nomme
 
 scenarios("pilotage.feature")
@@ -198,12 +201,34 @@ def signal(interface: Contexte, texte: str, infobulle: str) -> None:
 	assert (etiquette.text(), etiquette.toolTip()) == (texte, infobulle)
 
 
-@then("le terminal a lancé bientôt Machin lecture, avec la configuration de l'interface")
-def lance_dans_le_terminal(interface: Contexte, poste: Poste, qtbot: QtBot) -> None:
+@then("le terminal a lancé bientôt Machin lecture, comme le service")
+def lance_dans_le_terminal(poste: Poste, qtbot: QtBot) -> None:
+	"""La commande de l'ExecStart de machincast.service, sans --config : la configuration du service."""
 	qtbot.waitUntil(poste.terminal.exists, timeout=5000)
 	arguments = poste.terminal.read_text(encoding="utf-8").splitlines()
-	attendus = ["-e", str(REPERTOIRE_PROJET / "bin" / "Machin"), "lecture", "--config"]
-	assert arguments == [*attendus, str(fichier_de_configuration(interface))], arguments
+	assert arguments == ["-e", str(REPERTOIRE_PROJET / "bin" / "Machin"), "lecture"], arguments
+	assert (
+		unite_systemd(Compte("radio", "antenne", 1001), REPERTOIRE_PROJET).count(
+			f"ExecStart={REPERTOIRE_PROJET}/bin/Machin lecture\n"
+		)
+		== 1
+	)
+
+
+@given("l'interface lancée sur la configuration du service")
+def sur_la_configuration_du_service(interface: Contexte, monkeypatch: pytest.MonkeyPatch) -> None:
+	"""Le machincast.toml du répertoire de MachinCast n'est jamais touché : la copie des tests en tient lieu."""
+	copie = fichier_de_configuration(interface)
+	monkeypatch.setattr(pilotage, "configuration_du_service", lambda: copie)
+
+
+@then("la barre d'état annonce que la diffusion d'essai lit la configuration du service, et non celle de l'interface")
+def ecart_annonce(interface: Contexte) -> None:
+	attendu = (
+		f"{pilotage.LANCE} Elle lit {configuration_du_service()}, comme le service,"
+		f" et non {fichier_de_configuration(interface)}, celle de l'interface."
+	)
+	assert fenetre(interface).statusBar().currentMessage() == attendu
 
 
 @then("la diffusion d'essai s'est arrêtée par SIGTERM")
