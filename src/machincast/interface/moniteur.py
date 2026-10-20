@@ -8,6 +8,9 @@ rien demander à Machin lecture :
 - ALSA n'a pas de port de monitoring : le moniteur est indisponible, sans erreur ;
 - la sortie factice des tests et des essais : un signal de test en stéréo (SIGNAL_FACTICE).
 
+Le port est capté en stéréo (CANAUX) : sans contrainte, pipewiresrc et pulsesrc se contentent d'un canal, et le
+VU-mètre n'en montrerait qu'un.
+
 Le pipeline (port ! audioconvert ! level ! fakesink) ne joue rien ; son bus est relevé par un minuteur de Qt. Le
 moniteur donne le VU (RMS) et la crête de chaque canal, et deux voyants : le silence, après DUREE_DU_SILENCE secondes
 sous SEUIL_DU_SILENCE, et la saturation, dès qu'une crête atteint SEUIL_DE_SATURATION, gardée MAINTIEN_DE_SATURATION
@@ -37,6 +40,8 @@ RELEVE = 50
 REESSAI = 5000
 """Millisecondes avant de rouvrir un port de monitoring qui ne s'est pas ouvert, ou qui s'est fermé."""
 INTERVALLE_DES_NIVEAUX = 50 * Gst.MSECOND
+CANAUX = "audio/x-raw,channels=2"
+"""Ce que donne le port de monitoring : les deux canaux de l'antenne."""
 SANS_ALSA = "Indisponible avec la sortie ALSA, qui n'a pas de port de monitoring."
 SANS_ANTENNE = "Indisponible : périphérique de l'antenne à renseigner."
 
@@ -71,18 +76,32 @@ def source_du_moniteur(audio: Audio) -> Gst.Element:
 	verifier(audio)
 	if audio.sortie == "factice":
 		try:
-			return Gst.parse_bin_from_description(f"{SIGNAL_FACTICE} ! capsfilter caps=audio/x-raw,channels=2", True)
+			return Gst.parse_bin_from_description(f"{SIGNAL_FACTICE} ! capsfilter caps={CANAUX}", True)
 		except GLib.Error as erreur:
 			raise Indisponible(f"Indisponible : {erreur.message}") from None
 	if audio.sortie == "pulseaudio":
 		source = _element("pulsesrc")
 		source.set_property("device", f"{audio.peripherique}.monitor")
-		return source
+		return _en_stereo(source)
 	source = _element("pipewiresrc")
 	source.set_property("target-object", audio.peripherique)
 	proprietes, _fin = Gst.Structure.from_string("props, stream.capture.sink=(boolean)true")
 	source.set_property("stream-properties", proprietes)
-	return source
+	return _en_stereo(source)
+
+
+def _en_stereo(source: Gst.Element) -> Gst.Element:
+	"""La source, suivie d'un filtre qui lui demande les deux canaux de l'antenne."""
+	bloc = Gst.Bin.new(None)
+	filtre = _element("capsfilter")
+	filtre.set_property("caps", Gst.Caps.from_string(CANAUX))
+	bloc.add(source)
+	bloc.add(filtre)
+	source.link(filtre)
+	sortie = filtre.get_static_pad("src")
+	assert sortie is not None
+	bloc.add_pad(Gst.GhostPad.new("src", sortie))
+	return bloc
 
 
 def _element(fabrique: str) -> Gst.Element:

@@ -142,9 +142,10 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le VU-mètre de l'antenne est bientôt indisponible, avec une erreur qui commence par « Indisponible : le port de monitoring s'est fermé. »
 
-	Plan du scénario: Le port de monitoring de PipeWire et de PulseAudio est celui du périphérique de l'antenne
+	Plan du scénario: Le port de monitoring de PipeWire et de PulseAudio est celui du périphérique de l'antenne, capté en stéréo
 		Quand je construis le port de monitoring de la sortie « <sortie> », périphérique « <peripherique> »
 		Alors c'est l'élément « <element> », avec <proprietes>
+		Et le port de monitoring donne 2 canaux
 
 		Exemples:
 			| sortie     | peripherique             | element     | proprietes                                                                         |
