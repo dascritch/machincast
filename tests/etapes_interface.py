@@ -407,7 +407,7 @@ REFERENCES = {
 @given(
 	parsers.re(
 		r"la séquence « (?P<nom>[^»]+) », (?:de nom public « (?P<nom_public>[^»]+) »|sans nom public),"
-		rf" avec (?P<elements>{ELEMENTS})"
+		rf" avec (?P<elements>{ELEMENTS}|rien)"
 	)
 )
 def sequence(base_vide: Connexion, nom: str, nom_public: str | None, elements: str) -> None:
@@ -782,6 +782,25 @@ def liste_attendue(interface: Contexte, datatable: list[list[str]]) -> None:
 @then(parsers.re(r"la liste montre les titres (?P<titres>.+)"))
 def titres_affiches(interface: Contexte, titres: str) -> None:
 	assert [ligne["Titre"] for ligne in lignes(interface)] == NOM.findall(titres), lignes(interface)
+
+
+@then(parsers.re(r"la liste marque en anomalie les lignes (?P<noms>.+), avec l'infobulle « (?P<infobulle>[^»]+) »"))
+def anomalies(interface: Contexte, noms: str, infobulle: str) -> None:
+	"""Une ligne en anomalie a l'icône d'avertissement sur sa première cellule, et l'infobulle sur toutes ; les autres
+	n'ont ni l'une ni l'autre (https://github.com/dascritch/machincast/issues/138)."""
+	modele = liste(interface).table.model()
+	marquees = []
+	for rangee in range(modele.rowCount()):
+		icone = modele.index(rangee, 0).data(Qt.ItemDataRole.DecorationRole)
+		bulles = {
+			modele.index(rangee, colonne).data(Qt.ItemDataRole.ToolTipRole) for colonne in range(modele.columnCount())
+		}
+		if icone is not None:
+			assert bulles == {infobulle}, bulles
+			marquees.append(str(modele.index(rangee, 0).data()))
+		else:
+			assert bulles == {None}, bulles
+	assert marquees == NOM.findall(noms)
 
 
 @then(parsers.parse("le compte de la liste est « {texte} »"))

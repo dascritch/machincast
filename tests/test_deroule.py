@@ -130,6 +130,11 @@ def banque_contenant(base_vide: Connexion, mode: str, nom: str, liste: str) -> N
 		)
 
 
+@given(parsers.re(r"une séquence vide « (?P<nom>[^»]+) »"))
+def sequence_vide(base_vide: Connexion, nom: str) -> None:
+	base_vide.execute("INSERT INTO sequences (nom_interne) VALUES (%s)", (nom,))
+
+
 @given(parsers.re(r"une séquence « (?P<nom>[^»]+) » jouant (?P<liste>.+)"))
 def sequence_jouant(base_vide: Connexion, nom: str, liste: str) -> None:
 	creee = base_vide.execute("INSERT INTO sequences (nom_interne) VALUES (%s) RETURNING id", (nom,)).fetchone()

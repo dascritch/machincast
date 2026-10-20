@@ -469,12 +469,13 @@ Les onglets Événements, Séquences, Banques, Sonores et Marques-pages donnent 
 | Onglet | Colonnes | Ordre |
 | --- | --- | --- |
 | Événements | nom, nom public, priorité, début, fin, jours de récurrence | du plus prioritaire (spécial) au moins prioritaire (secours), puis par nom |
-| Séquences | nom, nom public | par nom |
+| Séquences | nom, nom public, anomalie (`séquence vide`) | par nom |
 | Banques | nom, nom public, mode (séquentielle ou aléatoire), « ne pas répéter », premier répertoire (dans l'ordre alphabétique), vide pour une banque sans répertoire | par nom |
 | Sonores | artiste, titre, type (fichier ou stream), état, durée, emplacement (chemin du fichier ou adresse du stream) | par artiste, les sonores sans artiste à la fin, puis par titre |
 | Marques-pages | nom, adresse, nombre de streams qui le suivent | par nom |
 
 - **Filtre** : le champ « Filtrer… » garde les lignes dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : `cafe` trouve « Café à minuit », `stream` tous les streams, `/srv/musique` tous les fichiers de ce répertoire. Le compte, à côté, dit combien de lignes restent, par exemple `2 sonores sur 340`. La croix du champ efface le filtre.
+- **Anomalies** ([#138](https://github.com/dascritch/machincast/issues/138)) : une ligne qui pose problème, une séquence vide par exemple, a l'icône d'avertissement, et son infobulle dit pourquoi. Le compte les dénombre parmi les lignes montrées : `3 séquences, dont 2 en anomalie`. Taper `vide` dans le filtre ne garde que les séquences vides.
 - **Tri** : un clic sur le titre d'une colonne trie la liste selon cette colonne ; un second clic inverse l'ordre.
 - **Mise à jour** : une liste se relit dans la base chaque fois que son onglet s'ouvre, en gardant son filtre. Elle ne se relit jamais d'elle-même pendant qu'on la regarde.
 - **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvre la fiche de l'élément ([événement](#fiche-dun-événement), [séquence](#fiche-dune-séquence), [banque](#fiche-dune-banque), [sonore](#fiche-dun-sonore)).
@@ -561,7 +562,9 @@ La fiche d'une [séquence](#séquences) s'ouvre depuis la liste des séquences, 
 | Nom public | Facultatif. Affiché sur la page publique à la place de l'artiste et du titre masqués, si l'événement n'en a pas ([Sorties de la diffusion](#sorties-de-la-diffusion)). |
 | Artiste et titre | `Masqués` ou `Affichés` sur la page publique, pour les sonores que la séquence fait jouer, sauf si l'événement en décide. `Selon la banque ou le sonore` laisse décider la banque, puis le sonore, puis la configuration. |
 
-Les noms sont enregistrés sans les espaces qui les entourent. Rien n'est enregistré, et la fiche le dit, pour un nom interne vide (« Le nom interne est obligatoire. »), celui d'une autre séquence (« Une autre séquence s'appelle déjà « Ouverture ». »), ou une séquence sans élément (« Une séquence contient au moins un sonore ou une banque. »).
+Les noms sont enregistrés sans les espaces qui les entourent. Rien n'est enregistré, et la fiche le dit, pour un nom interne vide (« Le nom interne est obligatoire. ») ou celui d'une autre séquence (« Une autre séquence s'appelle déjà « Ouverture ». »).
+
+**Séquence vide** ([#138](https://github.com/dascritch/machincast/issues/138)) : une séquence sans élément s'enregistre, pour être complétée plus tard. La fiche avertit « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. » : la diffusion la saute sans bloquer l'événement, et la liste des séquences la montre en anomalie.
 
 **Éléments** : la liste ordonnée des sonores et des banques que la séquence joue. Chaque ligne donne le genre de l'élément, son nom (artiste et titre d'un sonore, ou le nom de son fichier tant qu'il n'est pas décodé) et un détail : l'emplacement d'un sonore, le mode d'une banque et « ne pas répéter » si elle l'est.
 

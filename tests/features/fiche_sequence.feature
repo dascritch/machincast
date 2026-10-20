@@ -66,9 +66,9 @@ Fonctionnalité: Fiche d'une séquence
 		Et l'onglet ouvert est « Séquence : Ouverture »
 		Quand j'ouvre l'onglet « Séquences »
 		Alors la liste montre :
-			| Nom         | Nom public               |
-			| Ouverture   |                          |
-			| Passage pub | Vous écoutez Radio Thune |
+			| Nom         | Nom public               | Anomalie |
+			| Ouverture   |                          |          |
+			| Passage pub | Vous écoutez Radio Thune |          |
 
 	# ─── Champs ────────────────────────────────────────────────
 
@@ -102,7 +102,6 @@ Fonctionnalité: Fiche d'une séquence
 			| nom         | action                                                                       | message                                                    |
 			|             | je saisis le nom public « Autre »                                            | Le nom interne est obligatoire.                            |
 			| Ouverture   | je saisis le nom public « Autre »                                            | Une autre séquence s'appelle déjà « Ouverture ».           |
-			| Passage pub | je retire les éléments « Jingle début », « Publicité », « Jingle fin »       | Une séquence contient au moins un sonore ou une banque.    |
 
 	# ─── Éléments ──────────────────────────────────────────────
 
@@ -233,6 +232,32 @@ Fonctionnalité: Fiche d'une séquence
 			| la banque « Publicité », le sonore « Spot », la banque « Publicité »                | de rien                                                                                                           |
 			| la banque « Habillage », la banque « Habillage »                                    | de rien                                                                                                           |
 			| la banque « Publicité », le sonore « Spot », la banque « Publicité », la banque « Publicité » | « Ligne 4 : la banque « Publicité » vient de passer, et ne passe jamais deux fois de suite : cet appel sera sauté. » |
+
+	Scénario: Une séquence vide s'enregistre, avec un avertissement
+		https://github.com/dascritch/machincast/issues/138 : elle se complétera plus tard ; la diffusion la saute (deroule.feature), et la liste
+		des séquences la montre en anomalie (listes.feature).
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Passage pub »
+		Et je retire les éléments « Jingle début », « Publicité », « Jingle fin »
+		Alors la fiche de la séquence avertit « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
+		Quand j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et les éléments de la séquence « Passage pub » sont, dans l'ordre, aucun
+		Et la fiche de la séquence avertit « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
+		Quand j'ajoute les sonores « Spot »
+		Alors la fiche de la séquence n'avertit de rien
+
+	Scénario: Une nouvelle séquence, vide, s'enregistre avec son seul nom
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Séquences »
+		Et je clique sur « Nouvelle séquence »
+		Alors la fiche de la séquence avertit « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
+		Quand je saisis le nom interne « À compléter »
+		Et j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et la séquence « À compléter » est en base : sans nom public, masquage « selon la banque ou le sonore »
+		Et les éléments de la séquence « À compléter » sont, dans l'ordre, aucun
 
 	Scénario: L'avertissement suit les modifications, et la séquence s'enregistre quand même
 		Quand la fenêtre de l'interface s'ouvre
