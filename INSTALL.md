@@ -188,7 +188,7 @@ systemctl restart machincast.service
 systemctl status machincast.service
 ```
 
-**Depuis l'interface**, le menu **Diffusion** fait la même chose, avec la même authentification ([guide d'utilisation](doc/utilisation.md#piloter-la-diffusion-depuis-linterface), [#25](https://github.com/dascritch/machincast/issues/25)). Tant que le service n'est pas installé, la barre d'état de l'interface affiche `Installation non définitive : diffusion sans service`, et « Démarrer la diffusion » ouvre `Machin lecture` dans une fenêtre de terminal.
+**Depuis l'interface**, le menu **Diffusion** fait la même chose, avec la même authentification ([guide d'utilisation](doc/utilisation.md#piloter-la-diffusion-depuis-linterface), [#25](https://github.com/dascritch/machincast/issues/25)). Tant que le service n'est pas installé, la barre d'état de l'interface affiche `Installation non définitive : diffusion sans service`, et le menu **Diffusion** pilote une diffusion d'essai : `Machin lecture` dans une fenêtre de terminal, que l'interface sait arrêter et redémarrer.
 
 **Avant d'installer le service**, arrêter tout `Machin lecture` lancé à la main : un second Machin lecture est refusé, tant que la socket d'état est occupée, et le service redémarrerait sans fin.
 

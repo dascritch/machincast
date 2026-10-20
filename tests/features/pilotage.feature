@@ -7,8 +7,9 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 	https://github.com/dascritch/machincast/issues/25, spec § 8.11. Le menu « Diffusion » appelle systemctl sur le
 	service machincast.service, que la règle polkit d'install.sh --service autorise avec l'authentification d'un
 	administrateur (https://github.com/dascritch/machincast/issues/22) : jamais sudo. Sans service, l'interface dit que
-	l'installation n'est pas définitive, et comment la terminer ; « Démarrer la diffusion » lance alors Machin lecture
-	dans une fenêtre de terminal. Les commandes systemctl et konsole du scénario sont des imitations, en tête du PATH :
+	l'installation n'est pas définitive, et comment la terminer ; le menu pilote alors une diffusion d'essai : Machin
+	lecture lancé dans une fenêtre de terminal, qu'arrêter ou redémarrer arrête par SIGTERM, comme Ctrl-C. Son processus
+	est celui qui répond sur la socket d'état. Ce n'est pas « Machin lecture --simulation », qui ne joue rien. Les commandes systemctl et konsole du scénario sont des imitations, en tête du PATH :
 	elles notent leurs arguments, et répondent ce que dit le scénario ; systemctl
 	change l'état du service qu'il imite.
 
@@ -94,41 +95,64 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 
 	# ─── Sans le service ───────────────────────────────────────
 
-	Scénario: Sans service, la barre d'état dit que l'installation n'est pas définitive, et comment la terminer
+	Scénario: Sans service, la barre d'état dit que l'installation n'est pas définitive, et le menu pilote une diffusion d'essai
 		Étant donné le service de diffusion non installé
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la barre d'état signale « Installation non définitive : diffusion sans service », avec l'infobulle « La diffusion ne démarre pas avec le poste, et ne redémarre pas seule après un plantage. Sur un ordinateur dédié à l'antenne, installer le service : ./install.sh --service (INSTALL.md, Service de diffusion). »
+		Et la barre de menus a les menus « Fichier », « Affichage », « Diffusion », « Maintenance », « Aide »
 		Et le menu « Diffusion » a les entrées :
-			| entrée                    | état     | raccourci | infobulle                                                     |
-			| Démarrer la diffusion     | active   |           | Sans service : Machin lecture dans une fenêtre de terminal    |
-			| Arrêter la diffusion      | inactive |           | Sans service : Ctrl-C dans le terminal de Machin lecture      |
-			| Redémarrer la diffusion   | inactive |           | Sans service : Ctrl-C dans le terminal de Machin lecture      |
+			| entrée                            | état     | raccourci | infobulle                                                  |
+			| Démarrer la diffusion d'essai     | active   |           | Sans service : Machin lecture dans une fenêtre de terminal |
+			| Arrêter la diffusion d'essai      | inactive |           | Aucune diffusion d'essai en cours                          |
+			| Redémarrer la diffusion d'essai   | inactive |           | Aucune diffusion d'essai en cours                          |
 
-	Scénario: Sans service, « Démarrer la diffusion » lance Machin lecture dans une fenêtre de terminal
+	Scénario: Sans service, « Démarrer la diffusion d'essai » lance Machin lecture dans une fenêtre de terminal
 		Étant donné le service de diffusion non installé
 		Et le terminal « konsole » du poste
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Démarrer la diffusion » dans le menu « Diffusion »
+		Et je choisis « Démarrer la diffusion d'essai » dans le menu « Diffusion »
 		Alors le terminal a lancé bientôt Machin lecture, avec la configuration de l'interface
-		Et la barre d'état annonce « Machin lecture lancé dans un terminal : Ctrl-C l'y arrête. »
+		Et la barre d'état annonce « Diffusion d'essai lancée dans un terminal : Ctrl-C l'y arrête. »
 		Et systemctl n'a reçu que des demandes d'état
 
-	Scénario: Sans service, une diffusion qui tourne déjà n'est pas relancée
+	Scénario: Sans service, une diffusion d'essai qui tourne s'arrête ou se redémarre, mais ne se relance pas
 		Étant donné le service de diffusion non installé
-		Et le terminal « konsole » du poste
-		Et une diffusion qui tourne déjà, hors service
+		Et une diffusion d'essai qui tourne, lancée à la main
 		Quand la fenêtre de l'interface s'ouvre
 		Et l'état du binaire lecture est bientôt « En diffusion » sur l'accueil
 		Et j'ouvre le menu « Diffusion »
 		Alors le menu « Diffusion » a les entrées :
-			| entrée                    | état     | raccourci | infobulle                                                     |
-			| Démarrer la diffusion     | inactive |           | La diffusion tourne déjà                                      |
-			| Arrêter la diffusion      | inactive |           | Sans service : Ctrl-C dans le terminal de Machin lecture      |
-			| Redémarrer la diffusion   | inactive |           | Sans service : Ctrl-C dans le terminal de Machin lecture      |
+			| entrée                            | état     | raccourci | infobulle                                                                 |
+			| Démarrer la diffusion d'essai     | inactive |           | La diffusion d'essai tourne déjà                                          |
+			| Arrêter la diffusion d'essai      | active   |           | Sans service : arrête le Machin lecture lancé à la main, comme Ctrl-C     |
+			| Redémarrer la diffusion d'essai   | active   |           | Sans service : l'arrête, puis le relance dans une fenêtre de terminal     |
 
-	Scénario: Sans terminal sur le poste, la barre d'état dit comment lancer la diffusion
+	Scénario: Sans service, « Arrêter la diffusion d'essai » arrête Machin lecture comme Ctrl-C
+		Étant donné le service de diffusion non installé
+		Et une diffusion d'essai qui tourne, lancée à la main
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'état du binaire lecture est bientôt « En diffusion » sur l'accueil
+		Et je choisis « Arrêter la diffusion d'essai » dans le menu « Diffusion »
+		Alors la barre d'état annonce « Arrêt de la diffusion d'essai demandé… »
+		Et la barre d'état annonce bientôt « Diffusion d'essai arrêtée. »
+		Et la diffusion d'essai s'est arrêtée par SIGTERM
+		Et systemctl n'a reçu que des demandes d'état
+
+	Scénario: Sans service, « Redémarrer la diffusion d'essai » l'arrête, puis la relance dans une fenêtre de terminal
+		Étant donné le service de diffusion non installé
+		Et le terminal « konsole » du poste
+		Et une diffusion d'essai qui tourne, lancée à la main
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'état du binaire lecture est bientôt « En diffusion » sur l'accueil
+		Et je choisis « Redémarrer la diffusion d'essai » dans le menu « Diffusion »
+		Alors la barre d'état annonce bientôt « Diffusion d'essai relancée dans un terminal : Ctrl-C l'y arrête. »
+		Et la diffusion d'essai s'est arrêtée par SIGTERM
+		Et le terminal a lancé bientôt Machin lecture, avec la configuration de l'interface
+		Et le terminal a été lancé après l'arrêt de la diffusion d'essai
+
+	Scénario: Sans terminal sur le poste, la barre d'état dit comment lancer la diffusion d'essai
 		Étant donné le service de diffusion non installé
 		Et aucun terminal sur le poste
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Démarrer la diffusion » dans le menu « Diffusion »
+		Et je choisis « Démarrer la diffusion d'essai » dans le menu « Diffusion »
 		Alors la barre d'état annonce « Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin lecture à la main. »

@@ -19,12 +19,12 @@ La barre de menus a cinq menus (https://github.com/dascritch/machincast/issues/1
 comme la fermeture de la fenêtre) ; « Affichage », pour rafraîchir les onglets (F5,
 https://github.com/dascritch/machincast/issues/148) ; « Diffusion », qui démarre, arrête ou redémarre le service de
 diffusion (machincast.interface.pilotage, https://github.com/dascritch/machincast/issues/25) selon son état, relu à
-l'ouverture du menu ; sans le service, la barre d'état dit que l'installation n'est pas définitive ; « Maintenance »,
-qui lance l'indexation rapide ou l'audit complet (https://github.com/dascritch/machincast/issues/38) dans un processus à
-part, avec la fenêtre de son journal (machincast.interface.indexation,
-https://github.com/dascritch/machincast/issues/120) : fermer l'interface ne l'arrête pas ; « Aide », pour signaler un
-problème et connaître la version (machincast.interface.version). Une fonction pas encore écrite a son entrée, inactive,
-dont l'infobulle donne le ticket.
+l'ouverture du menu ; sans le service, la barre d'état dit que l'installation n'est pas définitive, et le menu pilote
+une diffusion d'essai ; « Maintenance », qui lance l'indexation rapide ou l'audit complet
+(https://github.com/dascritch/machincast/issues/38) dans un processus à part, avec la fenêtre de son journal
+(machincast.interface.indexation, https://github.com/dascritch/machincast/issues/120) : fermer l'interface ne l'arrête
+pas ; « Aide », pour signaler un problème et connaître la version (machincast.interface.version). Une fonction pas
+encore écrite a son entrée, inactive, dont l'infobulle donne le ticket.
 
 Les fichiers ajoutés depuis la liste des sonores entrent en base (machincast.interface.ajout), puis l'indexeur les
 vérifie en tâche de fond (machincast.interface.verification, https://github.com/dascritch/machincast/issues/30) ; la
@@ -84,8 +84,10 @@ INSTALLER_LE_SERVICE = (
 	"l'antenne, installer le service : ./install.sh --service (INSTALL.md, Service de diffusion)."
 )
 SANS_SERVICE_DEMARRER = "Sans service : Machin lecture dans une fenêtre de terminal"
-SANS_SERVICE_ARRETER = "Sans service : Ctrl-C dans le terminal de Machin lecture"
-DEJA_EN_MARCHE = "La diffusion tourne déjà"
+SANS_ESSAI = "Aucune diffusion d'essai en cours"
+ESSAI_ARRETER = "Sans service : arrête le Machin lecture lancé à la main, comme Ctrl-C"
+ESSAI_REDEMARRER = "Sans service : l'arrête, puis le relance dans une fenêtre de terminal"
+DEJA_EN_MARCHE = "La diffusion d'essai tourne déjà"
 
 
 class FenetrePrincipale(QMainWindow):
@@ -133,8 +135,8 @@ class FenetrePrincipale(QMainWindow):
 		self.pilotage.termine.connect(self._pilotage_termine)
 		self.service = service.ABSENT
 		"""L'état du service de diffusion, relu au lancement, à l'ouverture du menu et après chaque commande."""
-		self._lecture_en_marche = False
-		"""Machin lecture répond sur sa socket d'état : la diffusion tourne, avec ou sans le service."""
+		self._apres_l_arret: str | None = None
+		"""Sans service, « stop » ou « restart » : ce qu'il reste à faire quand la diffusion d'essai s'est arrêtée."""
 		self.sans_service = QLabel(SANS_SERVICE)
 		self.sans_service.setToolTip(INSTALLER_LE_SERVICE)
 		self.ui.barre_d_etat.addPermanentWidget(self.sans_service)
@@ -207,8 +209,17 @@ class FenetrePrincipale(QMainWindow):
 		self._presenter_la_diffusion()
 
 	def _etat_de_la_lecture(self, etat: EtatLecture) -> None:
-		"""Retenu pour la prochaine ouverture du menu « Diffusion », seul endroit où il se voit."""
-		self._lecture_en_marche = etat.etat != "arret"
+		"""La diffusion d'essai arrêtée depuis le menu : l'annoncer, ou la relancer."""
+		if (etat.etat != "arret") or (self._apres_l_arret is None):
+			return
+		verbe, self._apres_l_arret = self._apres_l_arret, None
+		if verbe == "stop":
+			self.ui.barre_d_etat.showMessage(pilotage.ARRETEE)
+			return
+		texte = pilotage.lancer_dans_un_terminal(self.configuration)
+		if texte == pilotage.LANCE:
+			texte = pilotage.RELANCE
+		self.ui.barre_d_etat.showMessage(texte)
 
 	def _presenter_la_diffusion(self) -> None:
 		"""Les entrées du menu « Diffusion » selon l'état du service ; sans lui, le signal d'installation à terminer."""
@@ -221,23 +232,34 @@ class FenetrePrincipale(QMainWindow):
 				"restart": self.service.actif != "inactive",
 			}
 			for verbe, action in self.pilotes.items():
+				action.setText(pilotage.VERBES[verbe][0])
 				action.setEnabled(permis[verbe])
 				action.setToolTip("")
 			return
-		demarrer = self.pilotes["start"]
-		demarrer.setEnabled(not self._lecture_en_marche)
-		demarrer.setToolTip(SANS_SERVICE_DEMARRER)
-		if self._lecture_en_marche:
-			demarrer.setToolTip(DEJA_EN_MARCHE)
-		for verbe in ("stop", "restart"):
-			self.pilotes[verbe].setEnabled(False)
-			self.pilotes[verbe].setToolTip(SANS_SERVICE_ARRETER)
+		en_cours = self.accueil.client.pid_du_lecteur() is not None
+		infobulles = {"start": SANS_SERVICE_DEMARRER, "stop": SANS_ESSAI, "restart": SANS_ESSAI}
+		if en_cours:
+			infobulles = {"start": DEJA_EN_MARCHE, "stop": ESSAI_ARRETER, "restart": ESSAI_REDEMARRER}
+		for verbe, action in self.pilotes.items():
+			action.setText(pilotage.ESSAI[verbe])
+			action.setEnabled((verbe == "start") != en_cours)
+			action.setToolTip(infobulles[verbe])
 
 	def _piloter(self, verbe: str) -> None:
 		if self.service.installe:
 			self.pilotage.piloter(verbe)
 			return
-		self.ui.barre_d_etat.showMessage(pilotage.lancer_dans_un_terminal(self.configuration))
+		if verbe == "start":
+			self.ui.barre_d_etat.showMessage(pilotage.lancer_dans_un_terminal(self.configuration))
+			return
+		pid = self.accueil.client.pid_du_lecteur()
+		if pid is None:
+			# Le menu relu à son ouverture n'active l'entrée qu'avec une diffusion d'essai : elle vient de s'arrêter.
+			return
+		texte = pilotage.arreter_le_lecteur(pid)
+		self.ui.barre_d_etat.showMessage(texte)
+		if texte == pilotage.ARRET_DEMANDE:
+			self._apres_l_arret = verbe
 
 	def _pilotage_termine(self, texte: str) -> None:
 		self.ui.barre_d_etat.showMessage(texte)

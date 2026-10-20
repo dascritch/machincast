@@ -667,7 +667,7 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 | Fichier | Préférences… | Règle les crossfades de l'interface ([Préférences](#préférences)). L'icône de l'application viendra avec [#111](https://github.com/dascritch/machincast/issues/111). |
 | Fichier | Quitter | Ferme l'interface, aussi par <kbd>Alt</kbd> + <kbd>Q</kbd>, même depuis une fiche. Comme la fermeture de la fenêtre, demande d'abord quoi faire des fiches modifiées ; « Annuler » garde l'interface ouverte. La diffusion n'est pas concernée : `Machin lecture` continue. |
 | Affichage | Rafraîchir les onglets | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé en base, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
-| Diffusion | Démarrer la diffusion, Arrêter la diffusion, Redémarrer la diffusion | Pilotent `Machin lecture`, selon son état ([Piloter la diffusion depuis l'interface](#piloter-la-diffusion-depuis-linterface)). |
+| Diffusion | Démarrer la diffusion, Arrêter la diffusion, Redémarrer la diffusion | Pilotent le service de diffusion, selon son état ; sans le service, une diffusion d'essai ([Piloter la diffusion depuis l'interface](#piloter-la-diffusion-depuis-linterface)). |
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
 | Maintenance | Indexation rapide, Audit complet | Lancent l'indexation ([Lancer l'indexation depuis l'interface](#lancer-lindexation-depuis-linterface)). |
 | Aide | Signaler un problème… | Ouvre les tickets de MachinCast sur GitHub, dans le navigateur web du poste. |
@@ -710,7 +710,15 @@ Le menu **Diffusion** démarre, arrête et redémarre `Machin lecture`, sans ter
 
 Chaque entrée demande le mot de passe, ou l'empreinte, d'un administrateur du poste : c'est la règle polkit du service, qui n'autorise rien d'autre. L'interface reste utilisable pendant la demande. La barre d'état dit ensuite ce qu'il en est : `Diffusion démarrée.`, `Diffusion arrêtée.`, `Diffusion redémarrée.`, ou l'échec avec la raison donnée par systemd, par exemple `Diffusion non démarrée : …` quand l'authentification est refusée ; la diffusion reste alors telle qu'elle était.
 
-**Sans le service**, l'installation n'est pas définitive : la diffusion ne démarre pas avec le poste, et ne redémarre pas seule après un plantage. La barre d'état l'affiche en permanence, à droite : `Installation non définitive : diffusion sans service` ; son infobulle dit comment installer le service. « Démarrer la diffusion » ouvre alors `Machin lecture` dans une fenêtre de terminal (konsole, sinon le terminal par défaut du poste, `x-terminal-emulator`), avec la configuration de l'interface ; fermer l'interface ne l'arrête pas. On l'arrête par <kbd>Ctrl</kbd> + <kbd>C</kbd> dans ce terminal : « Arrêter » et « Redémarrer » restent grisées. Quand une diffusion tourne déjà, « Démarrer » est grisée aussi. Sans terminal sur le poste, la barre d'état dit de lancer `Machin lecture` à la main.
+**Sans le service**, l'installation n'est pas définitive : la diffusion ne démarre pas avec le poste, et ne redémarre pas seule après un plantage. La barre d'état l'affiche en permanence, à droite : `Installation non définitive : diffusion sans service` ; son infobulle dit comment installer le service. Le menu pilote alors une **diffusion d'essai** : `Machin lecture` lancé à la main, qui joue bel et bien à l'antenne (rien à voir avec `Machin lecture --simulation`, qui ne joue rien, [Simuler la diffusion](#simuler-la-diffusion)).
+
+| Entrée | Active | Ce qu'elle fait |
+| --- | --- | --- |
+| Démarrer la diffusion d'essai | Quand rien ne diffuse | Ouvre `Machin lecture` dans une fenêtre de terminal (konsole, sinon le terminal par défaut du poste, `x-terminal-emulator`), avec la configuration de l'interface. Fermer l'interface ne l'arrête pas. |
+| Arrêter la diffusion d'essai | Quand une diffusion d'essai tourne | L'arrête comme <kbd>Ctrl</kbd> + <kbd>C</kbd> dans son terminal : le passage en cours se termine proprement. La barre d'état annonce `Arrêt de la diffusion d'essai demandé…`, puis `Diffusion d'essai arrêtée.` |
+| Redémarrer la diffusion d'essai | Quand une diffusion d'essai tourne | L'arrête de même, puis la relance dans une nouvelle fenêtre de terminal. |
+
+Une diffusion d'essai lancée depuis un terminal, sans passer par l'interface, se pilote de la même façon : l'interface reconnaît le `Machin lecture` qui lui répond sur la socket d'état. Sans terminal sur le poste, la barre d'état dit de lancer `Machin lecture` à la main.
 
 ### Lancer l'indexation depuis l'interface
 

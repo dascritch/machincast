@@ -1022,6 +1022,8 @@ def actions(interface: Contexte, menu: str) -> list[QAction]:
 
 @when(parsers.parse("je choisis « {titre} » dans le menu « {menu} »"))
 def choisir_dans_le_menu(interface: Contexte, titre: str, menu: str) -> None:
+	"""Le menu s'ouvre d'abord, comme sous la souris : il peut relire ce qu'il propose (aboutToShow)."""
+	menu_nomme(interface, menu).aboutToShow.emit()
 	choisies = [action for action in actions(interface, menu) if action.text() == titre]
 	assert len(choisies) == 1, f"« {titre} » absent du menu « {menu} »"
 	choisies[0].trigger()
