@@ -610,10 +610,10 @@ Fonctionnalité: Fiche d'un sonore
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors les derniers passages du sonore sont :
-			| Début               | Fin      | Durée | Événement | Séquence | Banque  | Sans incident | Incidents        |
-			| 2026-10-16 20:00:00 | en cours |       | Continue  |          |         |               |                  |
-			| 2026-10-16 19:00:00 | 19:02:00 | 2:00  | Continue  |          | Jingles | non           | coupure, reprise |
-			| 2026-10-15 09:00:00 | 09:03:34 | 3:34  | Continue  |          | Jingles | oui           |                  |
+			| Début               | Fin      | Durée | Événement | Séquence | Banque  | Incidents        |
+			| 2026-10-16 20:00:00 | en cours |       | Continue  |          |         |                  |
+			| 2026-10-16 19:00:00 | 19:02:00 | 2:00  | Continue  |          | Jingles | coupure, reprise |
+			| 2026-10-15 09:00:00 | 09:03:34 | 3:34  | Continue  |          | Jingles |                  |
 		Et l'infobulle des incidents du passage de « 2026-10-16 19:00:00 » est « 19:01:00 coupure : décodeur perdu⏎19:01:30 reprise : après 30 s »
 
 	Scénario: Seuls les 50 derniers passages sont montrés
@@ -621,3 +621,100 @@ Fonctionnalité: Fiche d'un sonore
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors la fiche du sonore montre 50 passages, du « 2026-10-16 14:30:00 » au « 2026-10-16 10:25:00 »
+
+	# ─── Améliorations (https://github.com/dascritch/machincast/issues/125) ─────
+
+	Scénario: Le bouton du dossier ouvre le dossier du fichier dans le navigateur de fichiers
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Et je clique sur le bouton du dossier du fichier
+		Alors le navigateur de fichiers a ouvert « /srv/jingles/hiver »
+
+	Scénario: Les relations montrent les séquences, banques et événements qui citent le sonore, et s'ouvrent
+		Étant donné les événements :
+			| nom      | nom_public | priorite    | debut | fin | jours |
+			| Continue |            | fil_musical |       |     |       |
+		Et la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
+		Et la banque « Tubes », aléatoire, sans nom public, avec aucun
+		Et la séquence « Passage pub », sans nom public, avec le sonore « Café à minuit », la banque « Tubes »
+		Et la séquence « Autre passage », sans nom public, avec la banque « Tubes »
+		Et l'événement « Continue » joue le sonore « Café à minuit », le sonore « Café à minuit »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Alors les relations du sonore sont :
+			| Genre     | Nom         |
+			| séquence  | Passage pub |
+			| banque    | Jingles     |
+			| événement | Continue    |
+		Et la fiche du sonore ne dit pas qu'aucun élément ne le cite
+		Quand j'ouvre la relation « Passage pub » du sonore
+		Alors l'onglet ouvert est « Séquence : Passage pub »
+
+	Scénario: Un sonore cité nulle part le dit
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Alors les relations du sonore sont :
+			| Genre | Nom |
+		Et la fiche du sonore dit « Aucune séquence, banque ni événement ne cite ce sonore. »
+
+	# La taille et les dates viennent du fichier lui-même, qui n'est que lu ; sa création, telle que la donne stat.
+	Plan du scénario: L'encart « Fichier » donne le type, l'encodage moyen, la taille et les dates du fichier
+		Étant donné le fichier « …/emissions/matin.flac », de <octets> octets, modifié le « 2026-10-14 07:30:00 »
+		Et les sonores :
+			| artiste | titre | type    | etat  | duree | emplacement            |
+			|         | Matin | fichier | actif | 100   | …/emissions/matin.flac |
+		Et le sonore « Matin » a en base :
+			| champ          | valeur              |
+			| type_mime      | audio/flac          |
+			| verifie_le     | 2026-10-15 08:15:00 |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Matin »
+		Alors l'encart « Fichier » de la fiche du sonore montre :
+			| champ                          | valeur              |
+			| Type                           | audio/flac          |
+			| Encodage moyen                 | <encodage>          |
+			| Taille                         | <taille>            |
+			| Créé le                        | <création du fichier> |
+			| Modifié le                     | 2026-10-14 07:30:00 |
+			| Dernière vérification complète | 2026-10-15 08:15:00 |
+
+		Exemples:
+			| octets  | encodage    | taille |
+			| 1234567 | ≈ 99 kbit/s | 1,2 Mo |
+			| 512     | ≈ 0 kbit/s  | 512 o  |
+
+	Scénario: Sur un système de fichiers qui ne garde pas la date de création, elle est inconnue
+		Étant donné le fichier « …/emissions/matin.flac », de 512 octets, modifié le « 2026-10-14 07:30:00 »
+		Et les sonores :
+			| artiste | titre | type    | etat  | duree | emplacement            |
+			|         | Matin | fichier | actif | 100   | …/emissions/matin.flac |
+		Et un système de fichiers qui ne garde pas la date de création
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Matin »
+		Alors l'encart « Fichier » de la fiche du sonore montre :
+			| champ   | valeur   |
+			| Créé le | inconnue |
+
+	Scénario: Un fichier jamais vérifié, ou disparu, le dit dans l'encart « Fichier »
+		Étant donné les sonores :
+			| artiste | titre   | type    | etat   | duree | emplacement        |
+			|         | Disparu | fichier | apercu |       | …/disparu.flac     |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Disparu »
+		Alors l'encart « Fichier » de la fiche du sonore montre :
+			| champ                          | valeur      |
+			| Type                           | inconnu     |
+			| Encodage moyen                 | inconnu     |
+			| Taille                         | introuvable |
+			| Créé le                        | introuvable |
+			| Modifié le                     | introuvable |
+			| Dernière vérification complète | jamais      |
+
+	Scénario: Un stream n'a ni encart « Fichier », ni bouton du dossier
+		Étant donné les sonores :
+			| artiste | titre       | type   | etat  | duree | emplacement             |
+			|         | Machin soir | stream | actif |       | https://flux.exemple/a  |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Machin soir »
+		Alors la fiche du sonore n'a ni encart « Fichier », ni bouton du dossier
+

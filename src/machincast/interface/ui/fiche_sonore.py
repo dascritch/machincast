@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComb
     QGroupBox, QHBoxLayout, QHeaderView, QLabel,
     QLineEdit, QPushButton, QRadioButton, QScrollArea,
     QSizePolicy, QSpacerItem, QSpinBox, QTableWidget,
-    QTableWidgetItem, QVBoxLayout, QWidget)
+    QTableWidgetItem, QToolButton, QVBoxLayout, QWidget)
 
 class Ui_FicheSonore(object):
     def setupUi(self, FicheSonore):
@@ -57,11 +57,23 @@ class Ui_FicheSonore(object):
 
         self.formulaire_sonore.setWidget(1, QFormLayout.ItemRole.LabelRole, self.etiquette_emplacement)
 
+        self.ligne_emplacement = QHBoxLayout()
+        self.ligne_emplacement.setObjectName(u"ligne_emplacement")
         self.emplacement = QLineEdit(self.groupe_sonore)
         self.emplacement.setObjectName(u"emplacement")
         self.emplacement.setReadOnly(True)
 
-        self.formulaire_sonore.setWidget(1, QFormLayout.ItemRole.FieldRole, self.emplacement)
+        self.ligne_emplacement.addWidget(self.emplacement)
+
+        self.ouvrir_dossier = QToolButton(self.groupe_sonore)
+        self.ouvrir_dossier.setObjectName(u"ouvrir_dossier")
+        icon = QIcon(QIcon.fromTheme(u"folder-open"))
+        self.ouvrir_dossier.setIcon(icon)
+
+        self.ligne_emplacement.addWidget(self.ouvrir_dossier)
+
+
+        self.formulaire_sonore.setLayout(1, QFormLayout.ItemRole.FieldRole, self.ligne_emplacement)
 
         self.etiquette_duree = QLabel(self.groupe_sonore)
         self.etiquette_duree.setObjectName(u"etiquette_duree")
@@ -329,6 +341,106 @@ class Ui_FicheSonore(object):
 
         self.disposition_contenu.addWidget(self.groupe_diffusion)
 
+        self.groupe_relations = QGroupBox(self.contenu)
+        self.groupe_relations.setObjectName(u"groupe_relations")
+        self.disposition_relations = QVBoxLayout(self.groupe_relations)
+        self.disposition_relations.setObjectName(u"disposition_relations")
+        self.relations = QTableWidget(self.groupe_relations)
+        if (self.relations.columnCount() < 2):
+            self.relations.setColumnCount(2)
+        __qtablewidgetitem = QTableWidgetItem()
+        self.relations.setHorizontalHeaderItem(0, __qtablewidgetitem)
+        __qtablewidgetitem1 = QTableWidgetItem()
+        self.relations.setHorizontalHeaderItem(1, __qtablewidgetitem1)
+        self.relations.setObjectName(u"relations")
+        self.relations.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.relations.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.relations.horizontalHeader().setStretchLastSection(True)
+        self.relations.verticalHeader().setVisible(False)
+
+        self.disposition_relations.addWidget(self.relations)
+
+        self.aucune_relation = QLabel(self.groupe_relations)
+        self.aucune_relation.setObjectName(u"aucune_relation")
+
+        self.disposition_relations.addWidget(self.aucune_relation)
+
+
+        self.disposition_contenu.addWidget(self.groupe_relations)
+
+        self.groupe_fichier = QGroupBox(self.contenu)
+        self.groupe_fichier.setObjectName(u"groupe_fichier")
+        self.formulaire_fichier = QFormLayout(self.groupe_fichier)
+        self.formulaire_fichier.setObjectName(u"formulaire_fichier")
+        self.etiquette_type_mime = QLabel(self.groupe_fichier)
+        self.etiquette_type_mime.setObjectName(u"etiquette_type_mime")
+
+        self.formulaire_fichier.setWidget(0, QFormLayout.ItemRole.LabelRole, self.etiquette_type_mime)
+
+        self.type_mime = QLabel(self.groupe_fichier)
+        self.type_mime.setObjectName(u"type_mime")
+        self.type_mime.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        self.formulaire_fichier.setWidget(0, QFormLayout.ItemRole.FieldRole, self.type_mime)
+
+        self.etiquette_encodage = QLabel(self.groupe_fichier)
+        self.etiquette_encodage.setObjectName(u"etiquette_encodage")
+
+        self.formulaire_fichier.setWidget(1, QFormLayout.ItemRole.LabelRole, self.etiquette_encodage)
+
+        self.encodage = QLabel(self.groupe_fichier)
+        self.encodage.setObjectName(u"encodage")
+        self.encodage.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        self.formulaire_fichier.setWidget(1, QFormLayout.ItemRole.FieldRole, self.encodage)
+
+        self.etiquette_taille = QLabel(self.groupe_fichier)
+        self.etiquette_taille.setObjectName(u"etiquette_taille")
+
+        self.formulaire_fichier.setWidget(2, QFormLayout.ItemRole.LabelRole, self.etiquette_taille)
+
+        self.taille = QLabel(self.groupe_fichier)
+        self.taille.setObjectName(u"taille")
+        self.taille.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        self.formulaire_fichier.setWidget(2, QFormLayout.ItemRole.FieldRole, self.taille)
+
+        self.etiquette_cree_le = QLabel(self.groupe_fichier)
+        self.etiquette_cree_le.setObjectName(u"etiquette_cree_le")
+
+        self.formulaire_fichier.setWidget(3, QFormLayout.ItemRole.LabelRole, self.etiquette_cree_le)
+
+        self.cree_le = QLabel(self.groupe_fichier)
+        self.cree_le.setObjectName(u"cree_le")
+        self.cree_le.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        self.formulaire_fichier.setWidget(3, QFormLayout.ItemRole.FieldRole, self.cree_le)
+
+        self.etiquette_modifie_le = QLabel(self.groupe_fichier)
+        self.etiquette_modifie_le.setObjectName(u"etiquette_modifie_le")
+
+        self.formulaire_fichier.setWidget(4, QFormLayout.ItemRole.LabelRole, self.etiquette_modifie_le)
+
+        self.modifie_le = QLabel(self.groupe_fichier)
+        self.modifie_le.setObjectName(u"modifie_le")
+        self.modifie_le.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        self.formulaire_fichier.setWidget(4, QFormLayout.ItemRole.FieldRole, self.modifie_le)
+
+        self.etiquette_verifie_le = QLabel(self.groupe_fichier)
+        self.etiquette_verifie_le.setObjectName(u"etiquette_verifie_le")
+
+        self.formulaire_fichier.setWidget(5, QFormLayout.ItemRole.LabelRole, self.etiquette_verifie_le)
+
+        self.verifie_le = QLabel(self.groupe_fichier)
+        self.verifie_le.setObjectName(u"verifie_le")
+        self.verifie_le.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        self.formulaire_fichier.setWidget(5, QFormLayout.ItemRole.FieldRole, self.verifie_le)
+
+
+        self.disposition_contenu.addWidget(self.groupe_fichier)
+
         self.champs_edites = QLabel(self.contenu)
         self.champs_edites.setObjectName(u"champs_edites")
         self.champs_edites.setWordWrap(True)
@@ -348,24 +460,22 @@ class Ui_FicheSonore(object):
         self.disposition_passages = QVBoxLayout(self.groupe_passages)
         self.disposition_passages.setObjectName(u"disposition_passages")
         self.passages = QTableWidget(self.groupe_passages)
-        if (self.passages.columnCount() < 8):
-            self.passages.setColumnCount(8)
-        __qtablewidgetitem = QTableWidgetItem()
-        self.passages.setHorizontalHeaderItem(0, __qtablewidgetitem)
-        __qtablewidgetitem1 = QTableWidgetItem()
-        self.passages.setHorizontalHeaderItem(1, __qtablewidgetitem1)
+        if (self.passages.columnCount() < 7):
+            self.passages.setColumnCount(7)
         __qtablewidgetitem2 = QTableWidgetItem()
-        self.passages.setHorizontalHeaderItem(2, __qtablewidgetitem2)
+        self.passages.setHorizontalHeaderItem(0, __qtablewidgetitem2)
         __qtablewidgetitem3 = QTableWidgetItem()
-        self.passages.setHorizontalHeaderItem(3, __qtablewidgetitem3)
+        self.passages.setHorizontalHeaderItem(1, __qtablewidgetitem3)
         __qtablewidgetitem4 = QTableWidgetItem()
-        self.passages.setHorizontalHeaderItem(4, __qtablewidgetitem4)
+        self.passages.setHorizontalHeaderItem(2, __qtablewidgetitem4)
         __qtablewidgetitem5 = QTableWidgetItem()
-        self.passages.setHorizontalHeaderItem(5, __qtablewidgetitem5)
+        self.passages.setHorizontalHeaderItem(3, __qtablewidgetitem5)
         __qtablewidgetitem6 = QTableWidgetItem()
-        self.passages.setHorizontalHeaderItem(6, __qtablewidgetitem6)
+        self.passages.setHorizontalHeaderItem(4, __qtablewidgetitem6)
         __qtablewidgetitem7 = QTableWidgetItem()
-        self.passages.setHorizontalHeaderItem(7, __qtablewidgetitem7)
+        self.passages.setHorizontalHeaderItem(5, __qtablewidgetitem7)
+        __qtablewidgetitem8 = QTableWidgetItem()
+        self.passages.setHorizontalHeaderItem(6, __qtablewidgetitem8)
         self.passages.setObjectName(u"passages")
         self.passages.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.passages.setAlternatingRowColors(True)
@@ -441,6 +551,10 @@ class Ui_FicheSonore(object):
         self.groupe_sonore.setTitle(QCoreApplication.translate("FicheSonore", u"Sonore", None))
         self.etiquette_type.setText(QCoreApplication.translate("FicheSonore", u"Type", None))
         self.etiquette_emplacement.setText(QCoreApplication.translate("FicheSonore", u"Emplacement", None))
+#if QT_CONFIG(tooltip)
+        self.ouvrir_dossier.setToolTip(QCoreApplication.translate("FicheSonore", u"Ouvrir le dossier du fichier dans le navigateur de fichiers", None))
+#endif // QT_CONFIG(tooltip)
+        self.ouvrir_dossier.setText(QCoreApplication.translate("FicheSonore", u"Dossier\u2026", None))
         self.etiquette_duree.setText(QCoreApplication.translate("FicheSonore", u"Dur\u00e9e", None))
         self.etiquette_etat.setText(QCoreApplication.translate("FicheSonore", u"\u00c9&tat", None))
         self.groupe_stream.setTitle(QCoreApplication.translate("FicheSonore", u"Stream", None))
@@ -471,23 +585,37 @@ class Ui_FicheSonore(object):
         self.debut_diffusion.setDisplayFormat(QCoreApplication.translate("FicheSonore", u"dd/MM/yyyy HH:mm", None))
         self.a_fin.setText(QCoreApplication.translate("FicheSonore", u"Diffusion jusqu'au", None))
         self.fin_diffusion.setDisplayFormat(QCoreApplication.translate("FicheSonore", u"dd/MM/yyyy HH:mm", None))
+        self.groupe_relations.setTitle(QCoreApplication.translate("FicheSonore", u"Relations", None))
+        ___qtablewidgetitem = self.relations.horizontalHeaderItem(0)
+        ___qtablewidgetitem.setText(QCoreApplication.translate("FicheSonore", u"Genre", None))
+        ___qtablewidgetitem1 = self.relations.horizontalHeaderItem(1)
+        ___qtablewidgetitem1.setText(QCoreApplication.translate("FicheSonore", u"Nom", None))
+#if QT_CONFIG(tooltip)
+        self.relations.setToolTip(QCoreApplication.translate("FicheSonore", u"Double-clic : ouvrir la fiche", None))
+#endif // QT_CONFIG(tooltip)
+        self.aucune_relation.setText(QCoreApplication.translate("FicheSonore", u"Aucune s\u00e9quence, banque ni \u00e9v\u00e9nement ne cite ce sonore.", None))
+        self.groupe_fichier.setTitle(QCoreApplication.translate("FicheSonore", u"Fichier", None))
+        self.etiquette_type_mime.setText(QCoreApplication.translate("FicheSonore", u"Type", None))
+        self.etiquette_encodage.setText(QCoreApplication.translate("FicheSonore", u"Encodage moyen", None))
+        self.etiquette_taille.setText(QCoreApplication.translate("FicheSonore", u"Taille", None))
+        self.etiquette_cree_le.setText(QCoreApplication.translate("FicheSonore", u"Cr\u00e9\u00e9 le", None))
+        self.etiquette_modifie_le.setText(QCoreApplication.translate("FicheSonore", u"Modifi\u00e9 le", None))
+        self.etiquette_verifie_le.setText(QCoreApplication.translate("FicheSonore", u"Derni\u00e8re v\u00e9rification compl\u00e8te", None))
         self.groupe_passages.setTitle(QCoreApplication.translate("FicheSonore", u"Derniers passages", None))
-        ___qtablewidgetitem = self.passages.horizontalHeaderItem(0)
-        ___qtablewidgetitem.setText(QCoreApplication.translate("FicheSonore", u"D\u00e9but", None))
-        ___qtablewidgetitem1 = self.passages.horizontalHeaderItem(1)
-        ___qtablewidgetitem1.setText(QCoreApplication.translate("FicheSonore", u"Fin", None))
-        ___qtablewidgetitem2 = self.passages.horizontalHeaderItem(2)
-        ___qtablewidgetitem2.setText(QCoreApplication.translate("FicheSonore", u"Dur\u00e9e", None))
-        ___qtablewidgetitem3 = self.passages.horizontalHeaderItem(3)
-        ___qtablewidgetitem3.setText(QCoreApplication.translate("FicheSonore", u"\u00c9v\u00e9nement", None))
-        ___qtablewidgetitem4 = self.passages.horizontalHeaderItem(4)
-        ___qtablewidgetitem4.setText(QCoreApplication.translate("FicheSonore", u"S\u00e9quence", None))
-        ___qtablewidgetitem5 = self.passages.horizontalHeaderItem(5)
-        ___qtablewidgetitem5.setText(QCoreApplication.translate("FicheSonore", u"Banque", None))
-        ___qtablewidgetitem6 = self.passages.horizontalHeaderItem(6)
-        ___qtablewidgetitem6.setText(QCoreApplication.translate("FicheSonore", u"Sans incident", None))
-        ___qtablewidgetitem7 = self.passages.horizontalHeaderItem(7)
-        ___qtablewidgetitem7.setText(QCoreApplication.translate("FicheSonore", u"Incidents", None))
+        ___qtablewidgetitem2 = self.passages.horizontalHeaderItem(0)
+        ___qtablewidgetitem2.setText(QCoreApplication.translate("FicheSonore", u"D\u00e9but", None))
+        ___qtablewidgetitem3 = self.passages.horizontalHeaderItem(1)
+        ___qtablewidgetitem3.setText(QCoreApplication.translate("FicheSonore", u"Fin", None))
+        ___qtablewidgetitem4 = self.passages.horizontalHeaderItem(2)
+        ___qtablewidgetitem4.setText(QCoreApplication.translate("FicheSonore", u"Dur\u00e9e", None))
+        ___qtablewidgetitem5 = self.passages.horizontalHeaderItem(3)
+        ___qtablewidgetitem5.setText(QCoreApplication.translate("FicheSonore", u"\u00c9v\u00e9nement", None))
+        ___qtablewidgetitem6 = self.passages.horizontalHeaderItem(4)
+        ___qtablewidgetitem6.setText(QCoreApplication.translate("FicheSonore", u"S\u00e9quence", None))
+        ___qtablewidgetitem7 = self.passages.horizontalHeaderItem(5)
+        ___qtablewidgetitem7.setText(QCoreApplication.translate("FicheSonore", u"Banque", None))
+        ___qtablewidgetitem8 = self.passages.horizontalHeaderItem(6)
+        ___qtablewidgetitem8.setText(QCoreApplication.translate("FicheSonore", u"Incidents", None))
         self.supprimer.setText(QCoreApplication.translate("FicheSonore", u"Supprimer\u2026", None))
 #if QT_CONFIG(tooltip)
         self.supprimer.setToolTip(QCoreApplication.translate("FicheSonore", u"Supprime l'\u00e9l\u00e9ment de la base, apr\u00e8s confirmation ; aucun fichier n'est touch\u00e9.", None))

@@ -531,7 +531,21 @@ La fiche d'un sonore s'ouvre depuis la liste des sonores, dans un nouvel onglet 
 - **Événement de secours** : parmi les événements de priorité `secours`, ou `Aucun : le fil musical`.
 - **Tester le flux** : la fiche se connecte à l'adresse saisie, même pas encore enregistrée, et dit `Le flux répond : du son arrive.` dès qu'une seconde de son est décodée. Sinon, elle dit `Le flux ne répond pas :` suivi de l'erreur (adresse invalide, serveur injoignable, réponse en erreur), ou `le son n'arrive pas en 10 s.`. Rien n'est joué. La connexion se ferme à la fin du test, et à la fermeture de la fiche ou de la fenêtre.
 
-**Derniers passages** : les 50 derniers passages du sonore, du plus récent au plus ancien, avec le début, la fin (`en cours` pour le passage à l'antenne), la durée diffusée, l'événement, la séquence, la banque, « sans incident », et les alertes et incidents que le log a notés pour ce sonore pendant le passage. L'infobulle de cette dernière colonne les détaille, avec leur heure et leur message.
+**Derniers passages** : les 50 derniers passages du sonore, du plus récent au plus ancien, avec le début, la fin (`en cours` pour le passage à l'antenne), la durée diffusée, l'événement, la séquence, la banque, et les alertes et incidents que le log a notés pour ce sonore pendant le passage. L'infobulle de cette dernière colonne les détaille, avec leur heure et leur message.
+
+**Dossier** : le bouton à droite de l'emplacement ouvre le dossier du fichier dans le navigateur de fichiers du poste ([#125](https://github.com/dascritch/machincast/issues/125)), par exemple pour en écarter le fichier. MachinCast lui-même n'y touche pas ([Les fichiers sonores ne sont jamais modifiés](#les-fichiers-sonores-ne-sont-jamais-modifiés)).
+
+**Relations** : les séquences, banques et événements dont la liste cite directement le sonore, par genre puis par nom. Un double-clic ouvre leur fiche. Sans relation, la fiche le dit.
+
+**Fichier**, pour un sonore de type fichier :
+
+| Champ | Contenu |
+| --- | --- |
+| Type | Le type réel du fichier, lu par l'indexeur ([Verdicts de la vérification d'un fichier](#verdicts-de-la-vérification-dun-fichier)) ; `inconnu` avant sa première vérification. |
+| Encodage moyen | La taille du fichier rapportée à sa durée, en kbit/s : une moyenne sur le fichier entier, pochette et tags compris. |
+| Taille | En unités décimales : `1,2 Mo` pour 1 234 567 octets. |
+| Créé le, Modifié le | Lus sur le fichier, à l'ouverture de la fiche, sans le modifier. La création est `inconnue` sur un système de fichiers qui ne la garde pas. Un fichier absent : `introuvable`. |
+| Dernière vérification complète | Le dernier passage de l'indexeur qui a lu son type et l'a décodé en entier, en indexation rapide comme en audit complet ; `jamais` avant le premier. |
 
 La pré-écoute viendra avec [#29](https://github.com/dascritch/machincast/issues/29). L'ajout d'un sonore : [Ajouter un sonore](#ajouter-un-sonore) ; sa suppression : [Supprimer un élément](#supprimer-un-élément).
 

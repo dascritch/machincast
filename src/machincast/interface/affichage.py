@@ -79,3 +79,23 @@ def oui_non(valeur: bool | None, inconnu: str = "") -> str:
 	if valeur:
 		return "oui"
 	return "non"
+
+
+UNITES_DE_TAILLE = ("ko", "Mo", "Go", "To")
+
+
+def taille(octets: int) -> str:
+	"""« 1,2 Mo », en unités décimales, à un chiffre après la virgule ; « 512 o » en deçà d'un kilo-octet."""
+	if octets < 1000:
+		return f"{octets} o"
+	valeur = octets / 1000
+	rang = 0
+	while (valeur >= 1000) and (rang < len(UNITES_DE_TAILLE) - 1):
+		valeur /= 1000
+		rang += 1
+	return f"{valeur:.1f} {UNITES_DE_TAILLE[rang]}".replace(".", ",")
+
+
+def date(instant: datetime) -> str:
+	"""« 2026-10-14 07:30:00 », en heure du poste."""
+	return f"{instant.astimezone():%Y-%m-%d %H:%M:%S}"

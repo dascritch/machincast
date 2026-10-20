@@ -17,8 +17,15 @@ machincast.interface.fiche.
   flux à la demande (machincast.interface.essai_flux), sur l'adresse saisie, même pas encore enregistrée.
 - Derniers passages : les 50 derniers, du plus récent au plus ancien, avec les alertes et incidents du log pendant
   chaque passage.
+- Relations (https://github.com/dascritch/machincast/issues/125) : les séquences, banques et événements qui citent le
+  sonore dans leur liste ; un double-clic ouvre leur fiche.
+- Fichier : type lu par l'indexeur (https://github.com/dascritch/machincast/issues/121), encodage moyen (taille sur
+  durée, pochette et tags compris), taille, dates de création et de modification lues sur le fichier, qui n'est que lu,
+  et date de sa dernière vérification complète par l'indexeur. Le bouton du dossier ouvre le dossier du fichier dans
+  le navigateur de fichiers du poste.
 """
 
+import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -29,7 +36,7 @@ from PySide6.QtGui import QIntValidator
 from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QLineEdit, QTableWidgetItem, QWidget
 
 from machincast.horloge import Horloge
-from machincast.interface import affichage
+from machincast.interface import affichage, dialogues
 from machincast.interface.essai_flux import EssaiDeFlux
 from machincast.interface.fiche import Connexion, Fiche, Refus
 from machincast.interface.listes import ETATS
@@ -98,8 +105,12 @@ NOUVEAU_STREAM: tuple[object, ...] = (
 	None,
 	None,
 	[],
+	None,
+	None,
 )
 """Ce que montre la fiche d'un nouveau stream, dans l'ordre des colonnes lues."""
+RELATION = Qt.ItemDataRole.UserRole
+"""Rôle qui porte, sur la cellule du nom d'une relation, son genre et son identifiant."""
 PASSAGES = 50
 """Nombre de derniers passages montrés."""
 URL = Qt.ItemDataRole.UserRole + 1
@@ -148,6 +159,10 @@ class FicheSonore(Fiche):
 		self.ui.par_adresse.toggled.connect(self._mode_stream)
 		self.ui.par_adresse.toggled.connect(self._modifier)
 		self.ui.tester.clicked.connect(self._tester)
+		self.ui.ouvrir_dossier.clicked.connect(
+			lambda: dialogues.ouvrir_dossier(Path(self.ui.emplacement.text()).parent)
+		)
+		self.ui.relations.itemActivated.connect(self._ouvrir_relation)
 		self.charger()
 
 	def titre(self) -> str:
@@ -162,22 +177,26 @@ class FicheSonore(Fiche):
 		"""Lit le sonore en base ; un nouveau stream est actif, sans adresse ni réglage."""
 		ligne: tuple[object, ...] | None = NOUVEAU_STREAM
 		passages: list[tuple[object, ...]] = []
+		relations: list[tuple[object, ...]] = []
 		with self.connexion.transaction():
 			if self.identifiant is not None:
 				ligne = self._lire_sonore()
 				passages = self._lire_passages()
+				relations = self._lire_relations()
 			marques = self.connexion.execute("SELECT id, nom, url FROM marques_pages_streams ORDER BY nom").fetchall()
 			secours = self.connexion.execute(
 				"SELECT id, nom_interne FROM evenements WHERE priorite = 'secours' ORDER BY nom_interne"
 			).fetchall()
 		assert ligne is not None, f"sonore {self.identifiant} absent"
 		self._montrer(ligne, marques, secours, passages)
+		self._montrer_relations(relations)
 
 	def _lire_sonore(self) -> tuple[object, ...] | None:
 		return self.connexion.execute(
 			"SELECT s.type::text, s.emplacement, s.url_stream, s.marque_page_id, m.url, s.secours_evenement_id,"
 			" s.artiste, s.titre, s.metadonnees_musicales, s.crossfade_debut, s.crossfade_fin, s.max_lectures,"
-			" s.etat::text, s.masquer_metadonnees, s.duree, s.debut_diffusion, s.fin_diffusion, s.champs_edites"
+			" s.etat::text, s.masquer_metadonnees, s.duree, s.debut_diffusion, s.fin_diffusion, s.champs_edites,"
+			" s.type_mime, s.verifie_le"
 			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
 			(self.identifiant,),
 		).fetchone()
@@ -208,6 +227,8 @@ class FicheSonore(Fiche):
 			debut,
 			fin,
 			champs_edites,
+			type_mime,
+			verifie_le,
 		) = ligne
 		stream = type_sonore == "stream"
 		self._nom = (_texte(titre)) or (Path(str(emplacement)).name)
@@ -215,7 +236,10 @@ class FicheSonore(Fiche):
 			self._nom = (_texte(titre)) or (str((url_stream) or (url_marque_page)))
 		self.ui.type_sonore.setText(str(type_sonore))
 		self.ui.emplacement.setText(str((emplacement) or ("")))
-		self.ui.formulaire_sonore.setRowVisible(self.ui.emplacement, not stream)
+		self.ui.formulaire_sonore.setRowVisible(self.ui.etiquette_emplacement, not stream)
+		self.ui.groupe_fichier.setVisible(not stream)
+		if not stream:
+			self._montrer_fichier(Path(str(emplacement)), type_mime, duree, verifie_le)
 		self.ui.groupe_stream.setVisible(stream)
 		texte_duree = ""
 		if stream:
@@ -345,10 +369,66 @@ class FicheSonore(Fiche):
 		self.connexion.execute(requete, [*valeurs, identifiant])
 		return identifiant
 
+	def _lire_relations(self) -> list[tuple[object, ...]]:
+		"""Les séquences, banques et événements dont la liste cite le sonore ; dans une transaction."""
+		return self.connexion.execute(
+			"SELECT genre, id, nom FROM ("
+			" SELECT 1 AS ordre, 'séquence' AS genre, q.id, q.nom_interne AS nom FROM sequences q"
+			"  WHERE EXISTS (SELECT 1 FROM sequences_elements x WHERE x.sequence_id = q.id AND x.sonore_id = %s)"
+			" UNION ALL SELECT 2, 'banque', b.id, b.nom_interne FROM banques b"
+			"  WHERE EXISTS (SELECT 1 FROM banques_sonores x WHERE x.banque_id = b.id AND x.sonore_id = %s)"
+			" UNION ALL SELECT 3, 'événement', e.id, e.nom_interne FROM evenements e"
+			"  WHERE EXISTS (SELECT 1 FROM evenements_elements x WHERE x.evenement_id = e.id AND x.sonore_id = %s)"
+			") r ORDER BY ordre, nom, id",
+			(self.identifiant, self.identifiant, self.identifiant),
+		).fetchall()
+
+	def _montrer_relations(self, relations: list[tuple[object, ...]]) -> None:
+		table = self.ui.relations
+		table.setRowCount(0)
+		for genre, identifiant, nom in relations:
+			rangee = table.rowCount()
+			table.insertRow(rangee)
+			table.setItem(rangee, 0, QTableWidgetItem(str(genre)))
+			cellule = QTableWidgetItem(str(nom))
+			cellule.setData(RELATION, (str(genre), int(str(identifiant))))
+			table.setItem(rangee, 1, cellule)
+		self.ui.aucune_relation.setVisible(relations == [])
+
+	def _ouvrir_relation(self, cellule: QTableWidgetItem) -> None:
+		nom = self.ui.relations.item(cellule.row(), 1)
+		assert nom is not None
+		genre, identifiant = nom.data(RELATION)
+		self.ouverture_demandee.emit(genre, identifiant, nom.text())
+
+	def _montrer_fichier(self, chemin: Path, type_mime: object, duree: object, verifie_le: object) -> None:
+		"""Ce que la base sait du fichier, et ce que le fichier dit de lui-même, sans être modifié."""
+		ui = self.ui
+		ui.type_mime.setText(str((type_mime) or ("inconnu")))
+		ui.verifie_le.setText("jamais")
+		if isinstance(verifie_le, datetime):
+			ui.verifie_le.setText(affichage.date(verifie_le))
+		ui.encodage.setText("inconnu")
+		try:
+			etat = chemin.stat()
+		except OSError:
+			for champ in (ui.taille, ui.cree_le, ui.modifie_le):
+				champ.setText("introuvable")
+			return
+		ui.taille.setText(affichage.taille(etat.st_size))
+		ui.modifie_le.setText(affichage.date(datetime.fromtimestamp(etat.st_mtime).astimezone()))
+		ui.cree_le.setText("inconnue")
+		naissance = _naissance(chemin)
+		if naissance is not None:
+			ui.cree_le.setText(affichage.date(naissance))
+		# La base refuse une durée nulle.
+		if isinstance(duree, timedelta):
+			ui.encodage.setText(f"≈ {round(etat.st_size * 8 / duree.total_seconds() / 1000)} kbit/s")
+
 	def _lire_passages(self) -> list[tuple[object, ...]]:
 		"""Les derniers passages, avec les alertes et incidents du log pendant chacun ; dans une transaction."""
 		return self.connexion.execute(
-			"SELECT d.horodatage, f.horodatage, f.duree_diffusee, f.sans_incident, e.nom_interne, q.nom_interne,"
+			"SELECT d.horodatage, f.horodatage, f.duree_diffusee, e.nom_interne, q.nom_interne,"
 			" b.nom_interne, i.horodatages, i.natures, i.messages"
 			" FROM airplay d"
 			" LEFT JOIN airplay f ON f.passage_id = d.passage_id AND f.type_ligne = 'fin'"
@@ -370,18 +450,17 @@ class FicheSonore(Fiche):
 	def _montrer_passages(self, passages: list[tuple[object, ...]]) -> None:
 		table = self.ui.passages
 		table.setRowCount(0)
-		for debut, fin, duree, sans_incident, evenement, sequence, banque, horodatages, natures, messages in passages:
+		for debut, fin, duree, evenement, sequence, banque, horodatages, natures, messages in passages:
 			assert isinstance(debut, datetime)
 			texte_fin, texte_duree = "en cours", ""
 			if isinstance(fin, datetime):
 				texte_fin = affichage.heure(fin)
 			if isinstance(duree, timedelta):
 				texte_duree = affichage.duree(duree)
-			sans = affichage.oui_non(None if sans_incident is None else bool(sans_incident))
 			incidents = list(zip(_liste(horodatages), _liste(natures), _liste(messages), strict=True))
 			cellules = [f"{debut.astimezone():%Y-%m-%d %H:%M:%S}", texte_fin, texte_duree]
 			cellules += [str((nom) or ("")) for nom in (evenement, sequence, banque)]
-			cellules += [sans, ", ".join(str(nature) for _h, nature, _m in incidents)]
+			cellules.append(", ".join(str(nature) for _h, nature, _m in incidents))
 			items = [QTableWidgetItem(texte) for texte in cellules]
 			details = [f"{_heure(h)} {nature} : {message}" for h, nature, message in incidents]
 			items[-1].setToolTip("\n".join(details))
@@ -432,3 +511,18 @@ def _date(case: QCheckBox, date: QDateTimeEdit) -> datetime | None:
 	if not case.isChecked():
 		return None
 	return datetime.fromtimestamp(date.dateTime().toSecsSinceEpoch()).astimezone()
+
+
+def _naissance(chemin: Path) -> datetime | None:
+	"""La date de création du fichier, que stat lit dans le système de fichiers ; None si le système n'en garde pas.
+
+	Python ne la donne pas sous Linux : stat (coreutils) la demande à statx.
+	"""
+	try:
+		sortie = subprocess.run(["stat", "--format=%W", str(chemin)], capture_output=True, text=True, check=True).stdout
+	except (OSError, subprocess.CalledProcessError):
+		return None
+	secondes = int((sortie.strip()) or ("0"))
+	if secondes <= 0:
+		return None
+	return datetime.fromtimestamp(secondes).astimezone()

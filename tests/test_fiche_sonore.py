@@ -5,10 +5,13 @@ tests/etapes_diffusion.py. Celles-ci manipulent la fiche d'un sonore et lisent l
 """
 
 import json
+import os
 import socket
+import subprocess
 import uuid
 from collections.abc import Callable, Iterator
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QDateTime, Qt
@@ -16,9 +19,9 @@ from PySide6.QtWidgets import QAbstractButton, QComboBox
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
-from machincast.interface import essai_flux
+from machincast.interface import essai_flux, fiche_sonore
 from machincast.interface.fiche_sonore import FicheSonore
-from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, identifiant, taper
+from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, identifiant, ouvrir_dans, taper
 from tests.flux import ServeurDeFlux
 
 scenarios("fiche_sonore.feature")
@@ -122,7 +125,7 @@ def sonore_en_base(base_vide: Connexion, nom: str, datatable: list[list[str]]) -
 	identifiant_sonore = sonore_id(base_vide, nom)
 	for champ, texte in ((champ.strip(), texte.strip()) for champ, texte in rangees):
 		valeur: object = texte
-		if champ in ("debut_diffusion", "fin_diffusion"):
+		if champ in ("debut_diffusion", "fin_diffusion", "verifie_le"):
 			valeur = heure_de_paris(texte)
 		requete = f"UPDATE sonores SET {champ} = %s WHERE id = %s"
 		base_vide.execute(requete, (valeur, identifiant_sonore))
@@ -542,7 +545,7 @@ def infobulle(interface: Contexte, debut: str, texte: str) -> None:
 	table = fiche(interface).ui.passages
 	rangees = [rangee for rangee in range(table.rowCount()) if table.item(rangee, 0).text() == debut]
 	assert len(rangees) == 1
-	assert table.item(rangees[0], 7).toolTip() == texte.replace(RETOUR, "\n")
+	assert table.item(rangees[0], table.columnCount() - 1).toolTip() == texte.replace(RETOUR, "\n")
 
 
 @then(parsers.parse("la fiche du sonore montre {nombre:d} passages, du « {premier} » au « {dernier} »"))
@@ -550,3 +553,96 @@ def nombre_de_passages(interface: Contexte, nombre: int, premier: str, dernier: 
 	table = fiche(interface).ui.passages
 	debuts = [table.item(rangee, 0).text() for rangee in range(table.rowCount())]
 	assert (len(debuts), debuts[0], debuts[-1]) == (nombre, premier, dernier)
+
+
+# ─── Améliorations (https://github.com/dascritch/machincast/issues/125) ─────
+
+
+@given(parsers.parse("le fichier « {chemin} », de {octets:d} octets, modifié le « {instant} »"))
+def fichier_date(interface: Contexte, chemin: str, octets: int, instant: str) -> None:
+	fichier = Path(interface.chemin(chemin))
+	fichier.parent.mkdir(parents=True, exist_ok=True)
+	fichier.write_bytes(b"\0" * octets)
+	horodatage = heure_de_paris(instant).timestamp()
+	os.utime(fichier, (horodatage, horodatage))
+
+
+@when("je clique sur le bouton du dossier du fichier")
+def ouvrir_le_dossier(interface: Contexte, qtbot: QtBot) -> None:
+	qtbot.mouseClick(fiche(interface).ui.ouvrir_dossier, Qt.MouseButton.LeftButton)
+
+
+@when(parsers.parse("j'ouvre la relation « {nom} » du sonore"))
+def ouvrir_relation(interface: Contexte, qtbot: QtBot, nom: str) -> None:
+	ouvrir_dans(qtbot, fiche(interface).ui.relations, nom)
+
+
+@then("les relations du sonore sont :")
+def relations(interface: Contexte, datatable: list[list[str]]) -> None:
+	table = fiche(interface).ui.relations
+	entetes, *rangees = datatable
+	colonnes = [table.horizontalHeaderItem(colonne).text() for colonne in range(table.columnCount())]
+	assert colonnes == [entete.strip() for entete in entetes]
+	lues = [
+		[table.item(rangee, colonne).text() for colonne in range(table.columnCount())]
+		for rangee in range(table.rowCount())
+	]
+	assert lues == [[valeur.strip() for valeur in rangee] for rangee in rangees]
+
+
+@then(parsers.parse("la fiche du sonore dit « {texte} »"))
+def dit(interface: Contexte, texte: str) -> None:
+	assert fiche(interface).ui.aucune_relation.isVisible()
+	assert fiche(interface).ui.aucune_relation.text() == texte
+
+
+@then("l'encart « Fichier » de la fiche du sonore montre :")
+def encart_fichier(interface: Contexte, datatable: list[list[str]]) -> None:
+	"""« <création du fichier> » : la date de naissance que donne stat (format W), ou « inconnue » si le système n'en a
+	pas."""
+	ui = fiche(interface).ui
+	assert ui.groupe_fichier.isVisible()
+	champs = {
+		"Type": ui.type_mime,
+		"Encodage moyen": ui.encodage,
+		"Taille": ui.taille,
+		"Créé le": ui.cree_le,
+		"Modifié le": ui.modifie_le,
+		"Dernière vérification complète": ui.verifie_le,
+	}
+	_entetes, *rangees = datatable
+	emplacement = Path(ui.emplacement.text())
+	for champ, valeur in ((champ.strip(), valeur.strip()) for champ, valeur in rangees):
+		if valeur == "<création du fichier>":
+			naissance = int(
+				subprocess.run(["stat", "--format=%W", str(emplacement)], capture_output=True, text=True).stdout
+			)
+			valeur = "inconnue"
+			if naissance > 0:
+				valeur = f"{datetime.fromtimestamp(naissance).astimezone():%Y-%m-%d %H:%M:%S}"
+		assert (champ, champs[champ].text()) == (champ, valeur)
+
+
+@then("la fiche du sonore n'a ni encart « Fichier », ni bouton du dossier")
+def sans_fichier(interface: Contexte) -> None:
+	ui = fiche(interface).ui
+	assert not ui.groupe_fichier.isVisible()
+	assert not ui.ouvrir_dossier.isVisible()
+
+
+@then("la fiche du sonore ne dit pas qu'aucun élément ne le cite")
+def ne_dit_pas(interface: Contexte) -> None:
+	assert not fiche(interface).ui.aucune_relation.isVisible()
+
+
+@given("un système de fichiers qui ne garde pas la date de création")
+def sans_date_de_creation(monkeypatch: pytest.MonkeyPatch) -> None:
+	"""stat répond 0 quand le système de fichiers ne garde pas la date de naissance d'un fichier."""
+	executer = subprocess.run
+
+	def stat(commande: list[str], **options: object) -> subprocess.CompletedProcess[str]:
+		if commande[:2] == ["stat", "--format=%W"]:
+			return subprocess.CompletedProcess(commande, 0, "0\n", "")
+		return executer(commande, **options)  # type: ignore[call-overload,no-any-return]
+
+	monkeypatch.setattr(fiche_sonore.subprocess, "run", stat)
