@@ -14,7 +14,7 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox, QWidget
 
 from machincast.interface.choix import Choix
-from machincast.interface.listes import BANQUES, SEQUENCES, SONORES
+from machincast.interface.listes import BANQUES, MARQUES_PAGES, SEQUENCES, SONORES
 from machincast.protection import EXTENSIONS_SONORES
 
 
@@ -132,6 +132,12 @@ def choisir_banques(parent: QWidget, connexion: psycopg.Connection[TupleRow], re
 def choisir_sequences(parent: QWidget, connexion: psycopg.Connection[TupleRow], remarque: str = "") -> list[int]:
 	"""Les séquences choisies dans la liste des séquences en base ; aucune si le choix est abandonné."""
 	return _choisir(Choix(SEQUENCES, connexion, remarque, parent))
+
+
+def choisir_marques_pages(parent: QWidget, connexion: psycopg.Connection[TupleRow], remarque: str = "") -> list[int]:
+	"""Les marques-pages choisis dans la liste des marques-pages en base ; aucun si le choix est abandonné
+	(https://github.com/dascritch/machincast/issues/167)."""
+	return _choisir(Choix(MARQUES_PAGES, connexion, remarque, parent))
 
 
 def _choisir(choix: Choix) -> list[int]:

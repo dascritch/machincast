@@ -73,6 +73,7 @@ class Contexte:
 	banques_choisies: list[int] = field(default_factory=list)
 	"""Banques que donnera le prochain choix."""
 	sequences_choisies: list[int] = field(default_factory=list)
+	marques_pages_choisis: list[int] = field(default_factory=list)
 	"""Séquences que donnera le prochain choix."""
 	remarques: list[str] = field(default_factory=list)
 	"""Remarques des choix de sonores ou de banques ouverts."""
@@ -157,8 +158,13 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		interface.remarques.append(remarque)
 		return interface.sequences_choisies
 
+	def marques_pages(_parent: QWidget, _connexion: Connexion, remarque: str = "") -> list[int]:
+		interface.remarques.append(remarque)
+		return interface.marques_pages_choisis
+
 	monkeypatch.setattr(dialogues, "choisir_banques", banques)
 	monkeypatch.setattr(dialogues, "choisir_sequences", sequences)
+	monkeypatch.setattr(dialogues, "choisir_marques_pages", marques_pages)
 	monkeypatch.setattr(dialogues, "ouvrir_dossier", interface.dossiers_ouverts.append)
 	monkeypatch.setattr(dialogues, "ouvrir_page", interface.pages_ouvertes.append)
 	monkeypatch.setattr(dialogues, "montrer_version", lambda _parent, texte: interface.versions.append(texte))
@@ -452,6 +458,20 @@ def marques_pages(base_vide: Connexion, marques: str) -> None:
 		base_vide.execute("INSERT INTO marques_pages_streams (nom, url) VALUES (%s, %s)", (nom, url))
 
 
+@given(parsers.re(r"(?:les streams|le stream) (?P<titres>.+) (?:suivent|suit) le marque-page « (?P<marque>[^»]+) »"))
+def suivent(base_vide: Connexion, titres: str, marque: str) -> None:
+	for titre in NOM.findall(titres):
+		base_vide.execute(
+			"UPDATE sonores SET url_stream = NULL, marque_page_id = %s WHERE titre = %s",
+			(identifiant(base_vide, "marques_pages_streams", "nom", marque), titre),
+		)
+
+
+@when(parsers.parse("le marque-page « {nom} » est effacé de la base"))
+def effacer_marque_page(base_vide: Connexion, nom: str) -> None:
+	base_vide.execute("DELETE FROM marques_pages_streams WHERE nom = %s", (nom,))
+
+
 @given(parsers.parse("le fichier de test « {source} » copié en « {chemin} »"))
 def copie(interface: Contexte, source: str, chemin: str) -> None:
 	fichier = Path(interface.chemin(chemin))
@@ -601,6 +621,37 @@ def marquer(base_vide: Connexion, nom: str, etat: str) -> None:
 def effacer_banque(base_vide: Connexion, genre: str, nom: str) -> None:
 	table = {"banque": "banques", "séquence": "sequences"}[genre]
 	base_vide.execute(f"DELETE FROM {table} WHERE nom_interne = %s", (nom,))  # noqa: S608
+
+
+@when(parsers.re(r"j'ajoute les marques-pages (?P<noms>aucun|« [^»]+ »(?:, « [^»]+ »)*)"))
+def ajouter_marques_pages(interface: Contexte, qtbot: QtBot, base_vide: Connexion, noms: str) -> None:
+	"""Le choix donnera ces marques-pages, par leur nom ; « aucun » : le choix est abandonné
+	(https://github.com/dascritch/machincast/issues/167)."""
+	ui = fiche_ouverte(interface).ui  # type: ignore[attr-defined]
+	interface.marques_pages_choisis = [
+		identifiant(base_vide, "marques_pages_streams", "nom", nom) for nom in NOM.findall(noms)
+	]
+	qtbot.mouseClick(ui.ajouter_marques_pages, Qt.MouseButton.LeftButton)
+
+
+@then(parsers.parse("le stream « {titre} » est en base, actif, et suit le marque-page « {marque} »"))
+def stream_du_marque_page(base_vide: Connexion, titre: str, marque: str) -> None:
+	ligne = base_vide.execute(
+		"SELECT s.type::text, s.etat::text, s.url_stream, m.nom FROM sonores s"
+		" JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.titre = %s",
+		(titre,),
+	).fetchall()
+	assert ligne == [("stream", "actif", None, marque)], ligne
+
+
+@then(parsers.re(r"(?P<nombre>\d+) streams? (?:suit|suivent) le marque-page « (?P<marque>[^»]+) »"))
+def nombre_de_streams(base_vide: Connexion, nombre: str, marque: str) -> None:
+	ligne = base_vide.execute(
+		"SELECT count(*) FROM sonores s JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE m.nom = %s",
+		(marque,),
+	).fetchone()
+	assert ligne is not None
+	assert int(str(ligne[0])) == int(nombre)
 
 
 @when(parsers.re(r"j'ajoute les (?P<genre>sonores|banques|séquences) (?P<noms>aucun|« [^»]+ »(?:, « [^»]+ »)*)"))

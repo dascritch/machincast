@@ -83,7 +83,12 @@ class FicheEvenement(Fiche):
 		self.jours = [getattr(ui, jour) for jour in JOURS]
 		self._nom = ""
 		boutons = Boutons(
-			{"sonore": ui.ajouter_sonores, "banque": ui.ajouter_banques, "séquence": ui.ajouter_sequences},
+			{
+				"sonore": ui.ajouter_sonores,
+				"banque": ui.ajouter_banques,
+				"séquence": ui.ajouter_sequences,
+				"marque-page": ui.ajouter_marques_pages,
+			},
 			ui.retirer_element,
 			ui.monter,
 			ui.descendre,

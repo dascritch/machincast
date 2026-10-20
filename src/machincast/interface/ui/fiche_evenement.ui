@@ -267,6 +267,16 @@
            </widget>
           </item>
           <item>
+           <widget class="QPushButton" name="ajouter_marques_pages">
+            <property name="toolTip">
+             <string>Ajoute le stream qui suit chaque marque-page choisi, ou en crée un à l'enregistrement</string>
+            </property>
+            <property name="text">
+             <string>Ajouter des marques-pages…</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QPushButton" name="retirer_element">
             <property name="text">
              <string>Retirer l'élément</string>

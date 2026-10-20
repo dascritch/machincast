@@ -14,7 +14,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface.fiche_evenement import FicheEvenement
-from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, glisser, ouvrir_dans
+from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, glisser, identifiant, ouvrir_dans
 
 scenarios("fiche_evenement.feature")
 
@@ -133,6 +133,27 @@ def saisir_fin(interface: Contexte, texte: str) -> None:
 @when(parsers.parse("je choisis l'élément « {nom} » de l'événement"))
 def choisir_element(interface: Contexte, nom: str) -> None:
 	choisir(interface, nom)
+
+
+@then(parsers.re(r"les boutons de ligne actifs de l'événement sont (?P<boutons>.+)"))
+def boutons_de_ligne(interface: Contexte, boutons: str) -> None:
+	ui = fiche(interface).ui
+	actifs = [bouton.text() for bouton in (ui.retirer_element, ui.monter, ui.descendre) if bouton.isEnabled()]
+	assert actifs == NOM.findall(boutons)
+
+
+@when(
+	parsers.re(
+		r"j'ajoute les marques-pages (?P<noms>« [^»]+ »(?:, « [^»]+ »)*),"
+		r" en effaçant « (?P<efface>[^»]+) » de la base pendant le choix"
+	)
+)
+def ajouter_en_effacant(interface: Contexte, qtbot: QtBot, base_vide: Connexion, noms: str, efface: str) -> None:
+	interface.marques_pages_choisis = [
+		identifiant(base_vide, "marques_pages_streams", "nom", nom) for nom in NOM.findall(noms)
+	]
+	base_vide.execute("DELETE FROM marques_pages_streams WHERE nom = %s", (efface,))
+	qtbot.mouseClick(fiche(interface).ui.ajouter_marques_pages, Qt.MouseButton.LeftButton)
 
 
 @when(parsers.parse("je choisis l'élément n° {numero:d} de l'événement"))
