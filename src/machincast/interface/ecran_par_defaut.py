@@ -143,15 +143,21 @@ class EcranParDefaut(QWidget):
 		if sonore is None:
 			barre.setFormat(affichage.VIDE)
 			return
-		if (sonore.duree is None) or (sonore.position is None) or (sonore.progression is None):
+		longueur = _longueur(sonore)
+		if (longueur is None) or (sonore.position is None):
 			barre.setFormat("durée inconnue")
 			return
 		# Une barre hors de ses bornes garde son ancienne valeur : un sonore qui dépasse sa durée la remplit.
-		barre.setValue(min(100, round(sonore.progression * 100)))
+		barre.setValue(100)
+		if longueur > 0:
+			barre.setValue(min(100, round(sonore.position / longueur * 100)))
 		# Le temps qui reste se compte à la seconde entamée : « reste 0:01 » jusqu'à la fin, puis « reste 0:00 ».
-		reste = math.ceil(max(0.0, sonore.duree - sonore.position))
+		reste = math.ceil(max(0.0, longueur - sonore.position))
 		# Texte composé ici : les codes de format de Qt s'écrivent avec la notation %, que refuse socle.feature.
-		barre.setFormat(f"reste {affichage.duree(reste)}")
+		texte = f"reste {affichage.duree(reste)}"
+		if sonore.coupe_par is not None:
+			texte = f"{texte} avant « {sonore.coupe_par} »"
+		barre.setFormat(texte)
 
 	def _afficher_antenne(self, sonore: SonoreAffiche | None) -> None:
 		"""Le texte public entre guillemets, et l'événement à l'antenne avec ses heures."""
@@ -245,11 +251,26 @@ def _elements(passage: PassageAffiche) -> dict[int, tuple[str, int, str]]:
 
 
 def _horaire(sonore: SonoreAffiche) -> str:
-	"""« 20:00:00 – 20:03:34 (3:34) » : début, fin et durée sur une ligne ; « 20:00:00, durée inconnue » sans durée."""
+	"""« 20:00:00 – 20:03:34 (3:34) » : début, fin et durée sur une ligne ; « 20:00:00, durée inconnue » sans durée.
+	Un sonore qu'un événement coupera finit à la coupure : « 20:00:00 – 20:02:00 (coupé par « Journal », sur 3:34) »
+	(https://github.com/dascritch/machincast/issues/169)."""
 	debut = affichage.heure(sonore.debut, "inconnu")
+	if sonore.coupe_par is not None:
+		duree = "durée inconnue"
+		if sonore.duree is not None:
+			duree = f"sur {affichage.duree(sonore.duree)}"
+		return f"{debut} – {affichage.heure(sonore.fin_estimee)} (coupé par « {sonore.coupe_par} », {duree})"
 	if sonore.duree is None:
 		return f"{debut}, durée inconnue"
 	return f"{debut} – {affichage.heure(sonore.fin_estimee)} ({affichage.duree(sonore.duree)})"
+
+
+def _longueur(sonore: SonoreAffiche) -> float | None:
+	"""Combien de secondes le sonore passera, de son début à sa fin estimée : sa durée, ou jusqu'à la coupure annoncée ;
+	None sans fin estimée, pour un stream que rien ne coupera."""
+	if (sonore.debut is None) or (sonore.fin_estimee is None):
+		return None
+	return (sonore.fin_estimee - sonore.debut).total_seconds()
 
 
 def _heures_de_l_evenement(sonore: SonoreAffiche) -> str:

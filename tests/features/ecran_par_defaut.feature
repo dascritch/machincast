@@ -67,6 +67,34 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 107,25 secondes
 		Alors la barre de progression du sonore en cours est bientôt à « reste 1:48 »
 
+	Scénario: Un sonore de durée nulle a sa barre remplie
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Bip » de « Radio » dans « Fil de jour », commencé à 20:00:00, de 0 secondes, joué depuis 0 secondes
+		Quand l'écran par défaut s'ouvre
+		Alors la barre de progression du sonore en cours est bientôt à « reste 0:00 », remplie à 100 %
+
+	Scénario: Un sonore qu'un événement coupera montre la coupure, et le temps qui lui reste jusqu'à elle
+		https://github.com/dascritch/machincast/issues/169 : le binaire lecture annonce la coupure et le sonore que jouera l'événement.
+
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le sonore en cours sera coupé à 20:02:00 par l'événement « Journal »
+		Et le prochain sonore est « Flash info » dans « Journal », estimé de 20:02:00 à 20:02:30, de 30 secondes, sain : oui
+		Quand l'écran par défaut s'ouvre
+		Alors le prochain sonore est bientôt « Flash info »
+		Et le sonore en cours a pour événement « Fil de jour » et pour horaire « 20:00:00 – 20:02:00 (coupé par « Journal », sur 3:34) »
+		Et la barre de progression du sonore en cours est à « reste 1:30 avant « Journal » », remplie à 25 %
+		Et le prochain sonore a pour événement « Journal » et pour horaire « 20:02:00 – 20:02:30 (0:30) »
+
+	Scénario: Un stream qu'un événement coupera a une fin, et un temps qui reste
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse le stream « Direct studio » dans « Direct », commencé à 20:00:00, joué depuis 30 secondes
+		Et le sonore en cours sera coupé à 20:05:00 par l'événement « Flash »
+		Quand l'écran par défaut s'ouvre
+		Alors le sonore en cours est bientôt « Direct studio »
+		Et le sonore en cours a pour événement « Direct » et pour horaire « 20:00:00 – 20:05:00 (coupé par « Flash », durée inconnue) »
+		Et la barre de progression du sonore en cours est à « reste 4:30 avant « Flash » », remplie à 10 %
+
 	Plan du scénario: Le prochain sonore montre ses heures estimées, sa durée et l'indicateur « sain »
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes

@@ -56,6 +56,8 @@ class SonoreAffiche:
 	banque_id: int | None = None
 	texte_public: str | None = None
 	"""Ce que la page publique affiche du sonore en cours, masquage appliqué."""
+	coupe_par: str | None = None
+	"""L'événement qui coupera le sonore en cours, à sa fin estimée (https://github.com/dascritch/machincast/issues/169)."""
 
 
 @dataclass(frozen=True)
@@ -119,6 +121,7 @@ def _sonore(champs: dict[str, Any] | None, debut: str) -> SonoreAffiche | None:
 		banque=_texte(champs.get("banque")),
 		banque_id=_entier(champs.get("banque_id")),
 		texte_public=_texte(champs.get("texte_public")),
+		coupe_par=_texte(champs.get("coupe_par")),
 	)
 
 
