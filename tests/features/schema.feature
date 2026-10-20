@@ -102,6 +102,9 @@ Fonctionnalité: Schéma de la base de données
 			| nom_interne = 'Jingles', mode = 'aleatoire', crossfade_debut = NULL |
 			| nom_interne = 'Jingles', mode = 'aleatoire', crossfade_fin_regle = 'toujours' |
 			| nom_interne = 'Jingles', mode = 'aleatoire', crossfade_debut_regle = NULL |
+			| nom_interne = 'Jingles', mode = 'aleatoire', duree_min = '0 s' |
+			| nom_interne = 'Jingles', mode = 'aleatoire', duree_max = '-1 s' |
+			| nom_interne = 'Jingles', mode = 'aleatoire', duree_min = '2 min', duree_max = '1 min' |
 
 	# https://github.com/dascritch/machincast/issues/63
 

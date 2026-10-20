@@ -6,6 +6,9 @@ Les noms de jours et de mois sont écrits ici, en français : l'affichage ne dé
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QStyle, QWidget
+
 from machincast.lecture.grille import JOURS
 
 MOIS = (
@@ -79,6 +82,32 @@ def oui_non(valeur: bool | None, inconnu: str = "") -> str:
 	if valeur:
 		return "oui"
 	return "non"
+
+
+def hors_durees(
+	duree_du_sonore: timedelta | None,
+	minimum: timedelta | None,
+	maximum: timedelta | None,
+	banque: str | None = None,
+) -> str | None:
+	"""« 3:20 : plus court que le minimum de la banque « Jingles », 3:30. » : un sonore hors des durées d'une banque
+	(https://github.com/dascritch/machincast/issues/147), nommée si on la donne. None pour un sonore dans ses durées,
+	ou de durée inconnue."""
+	nom = "la banque"
+	if banque is not None:
+		nom = f"la banque « {banque} »"
+	if duree_du_sonore is None:
+		return None
+	if (minimum is not None) and (duree_du_sonore < minimum):
+		return f"{duree(duree_du_sonore)} : plus court que le minimum de {nom}, {duree(minimum)}."
+	if (maximum is not None) and (duree_du_sonore > maximum):
+		return f"{duree(duree_du_sonore)} : plus long que le maximum de {nom}, {duree(maximum)}."
+	return None
+
+
+def icone_d_anomalie(widget: QWidget) -> QIcon:
+	"""L'icône d'avertissement du style du poste, qui marque ce qui est en anomalie."""
+	return widget.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning)
 
 
 UNITES_DE_TAILLE = ("ko", "Mo", "Go", "To")

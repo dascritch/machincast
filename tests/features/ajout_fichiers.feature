@@ -34,10 +34,10 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 			| …/emissions/faux.mp3  | fichier | non_supporte | None              | None          | None    |
 		# Les fichiers de test durent un peu moins d'une seconde : la liste ne compte que les secondes pleines.
 		Et la liste montre :
-			| Artiste                 | Titre         | Type    | État   | Durée | Emplacement            |
-			| Les Gaufres Électriques | Café à minuit | fichier | actif  | 0:00  | …/emissions/cafe.flac  |
-			|                         |               | fichier | actif  | 0:00  | …/emissions/jingle.wav |
-			|                         |               | fichier | non supporté |       | …/emissions/faux.mp3   |
+			| Artiste                 | Titre         | Type    | État   | Durée | Emplacement            | Anomalie |
+			| Les Gaufres Électriques | Café à minuit | fichier | actif  | 0:00  | …/emissions/cafe.flac  |          |
+			|                         |               | fichier | actif  | 0:00  | …/emissions/jingle.wav |          |
+			|                         |               | fichier | non supporté |       | …/emissions/faux.mp3   |          |
 		Et les fichiers déposés sont intacts
 
 	Scénario: Un fichier ajouté entre en base à l'état aperçu, avant sa vérification
@@ -50,8 +50,8 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 			| emplacement            | type    | etat   | artiste | titre | duree |
 			| …/emissions/jingle.wav | fichier | apercu | None    | None  | None  |
 		Et la liste montre :
-			| Artiste | Titre | Type    | État   | Durée | Emplacement            |
-			|         |       | fichier | aperçu |       | …/emissions/jingle.wav |
+			| Artiste | Titre | Type    | État   | Durée | Emplacement            | Anomalie |
+			|         |       | fichier | aperçu |       | …/emissions/jingle.wav |          |
 		Quand la vérification attendue reprend, et se termine
 		Alors les sonores ajoutés sont en base :
 			| emplacement            | type    | etat  | artiste | titre | duree   |

@@ -646,3 +646,18 @@ def sans_date_de_creation(monkeypatch: pytest.MonkeyPatch) -> None:
 		return executer(commande, **options)  # type: ignore[call-overload,no-any-return]
 
 	monkeypatch.setattr(fiche_sonore.subprocess, "run", stat)
+
+
+@then("la fiche du sonore marque hors des durées les banques :")
+def banques_hors_durees(interface: Contexte, datatable: list[list[str]]) -> None:
+	"""Les banques de ses relations dont le sonore sort des durées : icône et infobulle sur leur nom
+	(https://github.com/dascritch/machincast/issues/147)."""
+	table = fiche(interface).ui.relations
+	marquees = []
+	for rangee in range(table.rowCount()):
+		nom = table.item(rangee, 1)
+		assert nom is not None
+		if not nom.icon().isNull():
+			marquees.append([nom.text(), nom.toolTip()])
+	_entetes, *rangees = datatable
+	assert marquees == [[banque.strip(), infobulle.strip()] for banque, infobulle in rangees]

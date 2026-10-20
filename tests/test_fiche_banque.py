@@ -8,8 +8,17 @@ from collections.abc import Iterator
 from datetime import timedelta
 
 import pytest
-from PySide6.QtCore import QItemSelectionModel, Qt
-from PySide6.QtWidgets import QAbstractItemView, QComboBox, QDialog, QDoubleSpinBox, QTreeWidgetItem, QWidget
+from PySide6.QtCore import QItemSelectionModel, Qt, QTime
+from PySide6.QtWidgets import (
+	QAbstractItemView,
+	QCheckBox,
+	QComboBox,
+	QDialog,
+	QDoubleSpinBox,
+	QTimeEdit,
+	QTreeWidgetItem,
+	QWidget,
+)
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -440,3 +449,84 @@ def crossfades_en_base(base_vide: Connexion, nom: str, regle_debut: str, debut: 
 	).fetchall()
 	secondes = [timedelta(seconds=float(valeur.replace(",", "."))) for valeur in (debut, fin)]
 	assert lignes == [(regle_debut, secondes[0], regle_fin, secondes[1])]
+
+
+# ─── Durées des sonores (https://github.com/dascritch/machincast/issues/147) ─────
+
+
+def _duree(interface: Contexte, borne: str) -> tuple[QCheckBox, QTimeEdit]:
+	ui = fiche(interface).ui
+	suffixe = {"minimale": "min", "maximale": "max"}[borne]
+	return getattr(ui, f"a_duree_{suffixe}"), getattr(ui, f"duree_{suffixe}")
+
+
+@when(parsers.re(r"je fixe la durée (?P<borne>minimale|maximale) des sonores à « (?P<texte>[\d:]+) »"))
+def fixer_duree(interface: Contexte, qtbot: QtBot, borne: str, texte: str) -> None:
+	case, champ = _duree(interface, borne)
+	if not case.isChecked():
+		qtbot.mouseClick(case, Qt.MouseButton.LeftButton)
+	assert champ.isEnabled(), borne
+	champ.setTime(QTime.fromString(texte, "H:mm:ss"))
+
+
+@when(parsers.re(r"je retire la durée (?P<borne>minimale|maximale) des sonores"))
+def retirer_duree(interface: Contexte, qtbot: QtBot, borne: str) -> None:
+	case, _champ = _duree(interface, borne)
+	assert case.isChecked(), borne
+	qtbot.mouseClick(case, Qt.MouseButton.LeftButton)
+
+
+@then(
+	parsers.re(
+		r"la fiche montre les durées des sonores : minimale (?:aucune|« (?P<minimale>[^»]+) »),"
+		r" maximale (?:aucune|« (?P<maximale>[^»]+) »)"
+	)
+)
+def durees_montrees(interface: Contexte, minimale: str | None, maximale: str | None) -> None:
+	for borne, attendue in (("minimale", minimale), ("maximale", maximale)):
+		case, champ = _duree(interface, borne)
+		assert case.isChecked() is (attendue is not None), borne
+		assert champ.isEnabled() is (attendue is not None), borne
+		if attendue is not None:
+			assert champ.text() == attendue, champ.text()
+
+
+@then(
+	parsers.re(
+		r"la banque « (?P<nom>[^»]+) » a en base les durées des sonores d(?:e (?P<minimum>\d+)|'aucune)"
+		r" à (?:(?P<maximum>\d+)|aucune) secondes"
+	)
+)
+def durees_en_base(base_vide: Connexion, nom: str, minimum: str | None, maximum: str | None) -> None:
+	lignes = base_vide.execute("SELECT duree_min, duree_max FROM banques WHERE nom_interne = %s", (nom,)).fetchall()
+	attendues: list[timedelta | None] = []
+	for valeur in (minimum, maximum):
+		attendue = None
+		if valeur is not None:
+			attendue = timedelta(seconds=int(valeur))
+		attendues.append(attendue)
+	assert lignes == [tuple(attendues)], lignes
+
+
+def _marques(interface: Contexte) -> list[list[str]]:
+	return [
+		[ligne.text(0), ligne.toolTip(0)]
+		for ligne in (
+			fiche(interface).ui.sonores.topLevelItem(rangee)
+			for rangee in range(fiche(interface).ui.sonores.topLevelItemCount())
+		)
+		if (ligne is not None) and (not ligne.icon(0).isNull())
+	]
+
+
+@then("la fiche ne marque aucun sonore hors des durées")
+def aucune_marque(interface: Contexte) -> None:
+	assert _marques(interface) == []
+	lignes = fiche(interface).ui.sonores
+	assert all(lignes.topLevelItem(rangee).toolTip(0) == "" for rangee in range(lignes.topLevelItemCount()))
+
+
+@then("la fiche marque hors des durées les sonores :")
+def marques(interface: Contexte, datatable: list[list[str]]) -> None:
+	_entetes, *rangees = datatable
+	assert _marques(interface) == [[sonore.strip(), infobulle.strip()] for sonore, infobulle in rangees]

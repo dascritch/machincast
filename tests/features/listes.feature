@@ -32,12 +32,38 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Alors la liste montre :
-			| Artiste     | Titre         | Type    | État      | Durée   | Emplacement                 |
-			| Aube        | Matin clair   | fichier | désactivé | 1:02:05 | /srv/musique/matin.flac     |
-			| Les Gaufres | Café à minuit | fichier | actif     | 3:34    | /srv/musique/cafe.flac      |
-			|             | Direct studio | stream  | actif     | inconnue | https://flux.exemple/direct |
-			|             | Jingle        | fichier | aperçu    |         | /srv/habillage/jingle.flac  |
+			| Artiste     | Titre         | Type    | État      | Durée   | Emplacement                 | Anomalie |
+			| Aube        | Matin clair   | fichier | désactivé | 1:02:05 | /srv/musique/matin.flac     |          |
+			| Les Gaufres | Café à minuit | fichier | actif     | 3:34    | /srv/musique/cafe.flac      |          |
+			|             | Direct studio | stream  | actif     | inconnue | https://flux.exemple/direct |          |
+			|             | Jingle        | fichier | aperçu    |         | /srv/habillage/jingle.flac  |          |
 		Et le compte de la liste est « 4 sonores »
+
+	Scénario: Un sonore hors des durées d'une banque où il figure est signalé en anomalie
+		https://github.com/dascritch/machincast/issues/147 : chaque banque dont il sort des durées est nommée dans l'infobulle.
+
+		Étant donné les sonores :
+			| artiste     | titre         | type    | etat  | duree | emplacement            |
+			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/musique/cafe.flac |
+			|             | Spot          | fichier | actif | 30    | /srv/pubs/spot.flac    |
+			|             | Jingle        | fichier | actif | 8     | /srv/habillage/jingle.flac |
+		Et la banque « Chansons », aléatoire, sans nom public, avec « Café à minuit », « Spot »
+		Et la banque « Pubs », aléatoire, sans nom public, avec « Spot », « Café à minuit », « Jingle »
+		Et la banque « Chansons » veut des sonores de 2:00 à 6:00
+		Et la banque « Pubs » veut des sonores d'au moins 0:10 et d'au plus 1:00
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Alors la liste montre :
+			| Artiste     | Titre         | Type    | État  | Durée | Emplacement                | Anomalie     |
+			| Les Gaufres | Café à minuit | fichier | actif | 3:34  | /srv/musique/cafe.flac     | hors durées  |
+			|             | Jingle        | fichier | actif | 0:08  | /srv/habillage/jingle.flac | hors durées  |
+			|             | Spot          | fichier | actif | 0:30  | /srv/pubs/spot.flac        | hors durées  |
+		Et le compte de la liste est « 3 sonores, dont 3 en anomalie »
+		Et la liste marque en anomalie les lignes et infobulles :
+			| ligne       | infobulle                                                    |
+			| Les Gaufres | 3:34 : plus long que le maximum de la banque « Pubs », 1:00. |
+			|             | 0:08 : plus court que le minimum de la banque « Pubs », 0:10. |
+			|             | 0:30 : plus court que le minimum de la banque « Chansons », 2:00. |
 
 	Scénario: La liste des banques
 		Étant donné les sonores :
