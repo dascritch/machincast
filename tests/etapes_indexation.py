@@ -5,7 +5,7 @@ Chargé comme greffon pytest par tests/conftest.py, pour servir à verification.
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -33,6 +33,8 @@ def nombre(texte: str) -> float:
 class Execution:
 	bilan: Bilan
 	erreurs: str
+	informations: list[str] = field(default_factory=list)
+	"""Ce qui va sur la sortie standard, ligne par ligne : niveau INFO."""
 
 
 # ─── Fichiers ──────────────────────────────────────────────
@@ -126,7 +128,8 @@ def indexer(base_vide: Connexion, caplog: pytest.LogCaptureFixture, audit_comple
 		bilan = indexer_complet(c, audit_complet=audit_complet)
 	# Les anomalies et les erreurs vont sur la sortie d'erreur : niveau WARNING et au-delà.
 	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
-	return Execution(bilan, "\n".join(anomalies))
+	informations = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+	return Execution(bilan, "\n".join(anomalies), informations)
 
 
 @when("l'indexeur fait un audit complet", target_fixture="execution")

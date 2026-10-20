@@ -53,7 +53,10 @@ def fichiers_sonores(repertoire: Path) -> Iterator[Path]:
 				yield chemin
 
 
-def _enregistrer(connexion: psycopg.Connection[TupleRow], banque: int, emplacement: str, bilan: Bilan) -> None:
+def _enregistrer(
+	connexion: psycopg.Connection[TupleRow], banque: int, nom: str, emplacement: str, bilan: Bilan
+) -> None:
+	"""Enregistre le fichier comme nouveau sonore s'il ne l'est pas, et le rattache à la banque ; une ligne le dit."""
 	with connexion.transaction():
 		ligne = connexion.execute("SELECT id FROM sonores WHERE emplacement = %s", (emplacement,)).fetchone()
 		nouveau = ligne is None
@@ -72,8 +75,10 @@ def _enregistrer(connexion: psycopg.Connection[TupleRow], banque: int, emplaceme
 		).rowcount
 	if nouveau:
 		bilan.nouveaux += 1
+		journal.info(f"{emplacement} : nouveau sonore, ajouté à la banque {nom}")
 	elif rattache:
 		bilan.rattaches += 1
+		journal.info(f"{emplacement} : rattaché à la banque {nom}")
 
 
 def indexer_repertoires(connexion: psycopg.Connection[TupleRow], bilan: Bilan) -> None:
@@ -95,4 +100,4 @@ def indexer_repertoires(connexion: psycopg.Connection[TupleRow], bilan: Bilan) -
 			journal.warning(f"{chemin} : répertoire introuvable, ignoré pour la banque {nom}")
 			continue
 		for fichier in fichiers_sonores(chemin):
-			_enregistrer(connexion, int(str(banque)), str(fichier), bilan)
+			_enregistrer(connexion, int(str(banque)), str(nom), str(fichier), bilan)

@@ -493,7 +493,8 @@ STDOUT et STDERR uniquement, plus une sortie texte au format CSV et HTML. L'inde
 
 - STDERR : une ligne par fichier défectueux, désigné par son chemin, avec le problème et la conséquence (« sonore passé erroné », « état désactivé conservé »). Les messages passent par `logging` : anomalies (`warning`) et erreurs (`error`) sur STDERR, informations sur STDOUT.
 - Les anomalies relevées seront regroupées dans un document d'audit, en CSV et en HTML ([#11](https://github.com/dascritch/machincast/issues/11)).
-- STDOUT : le mode et le bilan, par exemple « indexation rapide : 3 nouveaux sonores, 1 rattachement ; 3 sonores vérifiés ; 1 erroné, 1 supprimé, 0 rétabli, 3 sortis d'aperçu ». Les nouveaux sonores et les rattachements (sonore déjà connu ajouté à une banque) viennent du parcours des répertoires ; les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état.
+- STDOUT, au fil de l'indexation ([#120](https://github.com/dascritch/machincast/issues/120)) : une ligne par fichier trouvé dans les répertoires des banques (« nouveau sonore, ajouté à la banque … », « rattaché à la banque … ») et par fichier décodé sain (« sain, Artiste – Titre ; sonore passé actif », « … ; état actif conservé »), désigné par son chemin.
+- STDOUT, à la fin : le mode et le bilan, par exemple « indexation rapide : 3 nouveaux sonores, 1 rattachement ; 3 sonores vérifiés ; 1 erroné, 1 supprimé, 0 rétabli, 3 sortis d'aperçu ». Les nouveaux sonores et les rattachements (sonore déjà connu ajouté à une banque) viennent du parcours des répertoires ; les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état.
 - Code de sortie : 0 quand la vérification est allée au bout, même si des sonores ont changé d'état : ce sont des anomalies non bloquantes ; 1 si la base est injoignable ou si un décodeur manque ; 2 pour une configuration invalide.
 
 ## 7. Wrapper Machin
@@ -680,7 +681,7 @@ Mise en œuvre de la ré-indexation ([#38](https://github.com/dascritch/machinca
 
 - **Menu** « Maintenance », avec « Indexation rapide » et « Audit complet » : les deux modes de `Machin_indexation` ([§ 6.0](#60-modes-dindexation)).
 - **Exécution** : `indexer`, le code de `Machin_indexation`, dans un fil à part, avec son rôle en base (`Role.INDEXATION`, sur le socket et la base de la connexion de l'interface). Une seule indexation à la fois : les actions du menu sont inactives jusqu'à la fin, et la barre d'état dit qu'elle est en cours.
-- **Rapport** : à la fin, `dialogues.montrer_rapport` donne le bilan (`texte_bilan`, [§ 6.3](#63-sorties)) et les anomalies que l'indexeur a journalisées pendant ce passage, une par fichier, dans ses détails ; la barre d'état garde le bilan, et la liste ouverte se relit. Un décodeur absent ou une base injoignable interrompt l'indexation, et le rapport le dit ; les transactions déjà faites restent.
+- **Journal** ([#120](https://github.com/dascritch/machincast/issues/120), `machincast.interface.journal_indexation.FenetreJournal`) : une fenêtre à part, ouverte au lancement et vidée à chaque lancement, montre au fil de l'eau les lignes que l'indexeur journalise pendant ce passage, comme dans le terminal ([§ 6.3](#63-sorties)) : sonores indexés, anomalies, bilan. À la fin, elle conclut par le bilan et le nombre d'anomalies ; la barre d'état garde le bilan, et la liste ouverte se relit. Un décodeur absent ou une base injoignable interrompt l'indexation, et le journal le dit ; les transactions déjà faites restent. Elle se ferme avec la fenêtre de l'interface.
 - **Fermeture** : fermer la fenêtre attend la fin de l'indexation en cours.
 
 ### 8.12 Écran de détails d'une séquence
