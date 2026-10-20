@@ -31,3 +31,11 @@ Si en tant que radio, autre organisation ou particulier, vous avez décidé d'in
 [GPLv3](LICENSE)
 
 © Xavier Mouton-Dubosc pour [Radio &lt;FMR&gt;](https://radio-fmr.net)
+
+## Hommage
+
+ - Patrick Chabouté "Docteur rock"
+ - Pascal Bouche "Raskal"
+ - Fabrice Serin "DJ Tro"
+
+et aux artistes passés et à venir qui ont fait vivre l'antenne de Radio FMR
