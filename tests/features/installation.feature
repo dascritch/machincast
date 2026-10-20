@@ -63,3 +63,67 @@ Fonctionnalité: Vérifications de l'installation
 		Quand je lance « python -m machincast.installation migrer » avec une configuration dont la socket n'existe pas
 		Alors la commande se termine avec le code 1
 		Et sa sortie d'erreur mentionne « base de données injoignable »
+
+	# ─── Service systemd (https://github.com/dascritch/machincast/issues/22) ─────
+	# Facultatif, pour un ordinateur dédié à l'antenne : install.sh --service installe l'unité et la règle polkit que
+	# rédige machincast.installation. Le service tourne sous le compte de MachinCast, dont la session garde PipeWire.
+
+	Scénario: L'unité du service lance Machin lecture sous le compte de MachinCast, et la relance après un plantage
+		Quand je lance « python -m machincast.installation unite » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et l'unité a, dans la section « Unit » :
+			| clé         | valeur                                                     |
+			| Description | MachinCast : diffusion de l'antenne (Machin lecture)       |
+			| Wants       | network-online.target                                      |
+			| After       | network-online.target postgresql.service sound.target      |
+		Et l'unité a, dans la section « Service » :
+			| clé              | valeur                                          |
+			| Type             | simple                                          |
+			| User             | <compte>                                        |
+			| Group            | <groupe>                                        |
+			| WorkingDirectory | <répertoire>                                    |
+			| Environment      | XDG_RUNTIME_DIR=/run/user/<uid>                 |
+			| ExecStart        | <répertoire>/bin/Machin lecture                 |
+			| Restart          | on-failure                                      |
+			| RestartSec       | 5                                               |
+			| KillSignal       | SIGTERM                                         |
+			| TimeoutStopSec   | 15                                              |
+			| SyslogIdentifier | machincast                                      |
+		Et l'unité a, dans la section « Install » :
+			| clé      | valeur            |
+			| WantedBy | multi-user.target |
+
+	Scénario: L'unité et la règle suivent le compte de MachinCast, quel qu'il soit
+		Quand l'unité et la règle sont rédigées pour le compte « radio », du groupe « antenne », d'uid 1001, dans « /home/radio/machincast »
+		Alors l'unité a, dans la section « Service », entre autres :
+			| clé              | valeur                                |
+			| User             | radio                                 |
+			| Group            | antenne                               |
+			| WorkingDirectory | /home/radio/machincast                |
+			| Environment      | XDG_RUNTIME_DIR=/run/user/1001        |
+			| ExecStart        | /home/radio/machincast/bin/Machin lecture |
+		Et la règle ne concerne que le compte « radio »
+
+	Scénario: systemd accepte l'unité du service
+		Étant donné l'outil « systemd-analyze » du poste
+		Quand je lance « python -m machincast.installation unite » avec la configuration de test
+		Et j'enregistre sa sortie en « machincast.service »
+		Alors « systemd-analyze verify » accepte « machincast.service »
+
+	Plan du scénario: La règle polkit n'autorise que démarrer, arrêter et redémarrer le service, par un administrateur, au compte de MachinCast
+		Étant donné l'outil « node » du poste
+		Quand je lance « python -m machincast.installation regle » avec la configuration de test
+		Alors la règle polkit répond <reponse> à l'action « <action> » sur « <unite> », verbe « <verbe> », pour <qui>
+
+		Exemples:
+			| action                                 | unite              | verbe   | qui                  | reponse         |
+			| org.freedesktop.systemd1.manage-units  | machincast.service | start   | le compte            | « auth_admin »  |
+			| org.freedesktop.systemd1.manage-units  | machincast.service | stop    | le compte            | « auth_admin »  |
+			| org.freedesktop.systemd1.manage-units  | machincast.service | restart | le compte            | « auth_admin »  |
+			| org.freedesktop.systemd1.manage-units  | machincast.service | enable  | le compte            | rien            |
+			| org.freedesktop.systemd1.manage-units  | ssh.service        | stop    | le compte            | rien            |
+			| org.freedesktop.systemd1.manage-units  | machincast.service | stop    | un autre compte      | rien            |
+			| org.freedesktop.systemd1.manage-unit-files | machincast.service | stop | le compte          | rien            |
+
+	Scénario: L'unité porte le nom que le wrapper suit dans le journal
+		Alors l'unité de machincast.installation est celle de « Machin logs »

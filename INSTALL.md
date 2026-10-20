@@ -14,6 +14,7 @@ Le script `install.sh` fait tout le travail. La section [Installer à la main](#
 - [Installer avec install.sh](#installer-avec-installsh)
 - [Adapter la configuration](#adapter-la-configuration)
 - [Vérifier l'installation](#vérifier-linstallation)
+- [Service de diffusion](#service-de-diffusion)
 - [Ajouter un autre compte](#ajouter-un-autre-compte)
 - [Mettre à jour](#mettre-à-jour)
 - [Installer à la main](#installer-à-la-main)
@@ -82,6 +83,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 ./install.sh --simulation   # affiche les commandes sans rien exécuter
 ./install.sh                # installe
 ./install.sh --dev          # installe, avec les outils du poste de développement
+./install.sh --service      # installe, avec le service de diffusion : ordinateur dédié à l'antenne seulement
 ./install.sh --help         # aide
 ```
 
@@ -89,7 +91,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 
 **Relançable** : chaque étape déjà faite est laissée telle quelle. En cas d'échec, corriger ce que le message indique, puis relancer le script. À la relance, PostgreSQL signale par des lignes `NOTICE:  role … has already been granted membership …` que le compte était déjà autorisé : ce n'est pas une erreur.
 
-**Ce qu'il demande** : le mot de passe `sudo`, pour apt, pour les commandes passées en tant qu'utilisateur `postgres`, pour l'ajout au groupe `systemd-journal` et pour les liens dans `/opt`, `/usr/local/bin` et `/usr/share`. Rien d'autre : il n'y a aucune question.
+**Ce qu'il demande** : le mot de passe `sudo`, pour apt, pour les commandes passées en tant qu'utilisateur `postgres`, pour l'ajout au groupe `systemd-journal`, pour les liens dans `/opt`, `/usr/local/bin` et `/usr/share`, et, avec `--service`, pour la session du compte, l'unité systemd et la règle polkit. Rien d'autre : il n'y a aucune question.
 
 **Ce qu'il fait**, dans l'ordre :
 
@@ -105,7 +107,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 | Liens | `/opt/machincast` vers le répertoire de MachinCast ; `/usr/local/bin/Machin` vers le wrapper ; l'autocomplétion bash dans `/usr/share/bash-completion/completions/Machin`. | Trois liens symboliques. |
 | Greffons GStreamer et sortie audio | Vérifie que GStreamer sait décoder MP3, M4A, AAC, Ogg, FLAC, WAV et AIFF, lire les streams HTTP et HTTPS, et créer la sortie audio de `machincast.toml`, sans jouer aucun son. | Rien. |
 
-À la fin, il affiche `Installation terminée`. Le service de diffusion n'est pas installé : il le sera par une étape facultative, pour pouvoir essayer MachinCast avant de l'installer définitivement ([#22](https://github.com/dascritch/machincast/issues/22)).
+À la fin, il affiche `Installation terminée`. Le service de diffusion n'est installé que sur demande : voir [Service de diffusion](#service-de-diffusion).
 
 **Rôles PostgreSQL.** Chaque programme de MachinCast agit avec ses propres droits : `machincast_lecture` pour la diffusion, `machincast_indexation` pour l'indexation, `machincast_interface` pour l'interface graphique. Un compte de la radio se connecte avec son propre rôle PostgreSQL, qui ne donne accès à rien en lui-même : chaque programme endosse son rôle dès la connexion. Le détail est dans la [spécification, § 3.2](doc/spec.md#32-rôles-et-droits).
 
@@ -156,6 +158,51 @@ Machin indexation --audit-complet   # complet, à lancer une fois après la prem
 Les anomalies (fichier endommagé, illisible ou introuvable) s'affichent sur la sortie d'erreur avec le chemin du fichier ; elles ne bloquent pas l'indexation.
 
 **Journal du service.** `Machin logs` suit le journal du service de diffusion. Tant que le service n'est pas installé ([#22](https://github.com/dascritch/machincast/issues/22)), il n'affiche rien, ce qui est normal.
+
+## Service de diffusion
+
+**Pour un ordinateur dédié à l'antenne seulement** ([#22](https://github.com/dascritch/machincast/issues/22)). Sans service, `Machin lecture` se lance à la main, et s'arrête avec son terminal : c'est ce qui convient pour essayer MachinCast. Avec le service, `machincast.service`, la diffusion démarre avec le poste, sans connexion de personne, et redémarre seule après un plantage.
+
+```bash
+./install.sh --service            # installe le service, ou le met à jour
+./install.sh --retirer-service    # le retire
+```
+
+`--service` se combine avec `--simulation`. **Ce qu'il fait**, après les étapes habituelles :
+
+| Étape | Ce qui se passe | Ce qui est modifié sur le poste |
+| --- | --- | --- |
+| Session du compte | Garde active, dès le démarrage du poste, la session du compte qui installe (`loginctl enable-linger`) : c'est là que tournent PipeWire ou PulseAudio, et la socket d'état que lit l'interface. | Session du compte. |
+| Unité systemd | Installe `/etc/systemd/system/machincast.service`, rédigé par `python -m machincast.installation unite`, puis recharge systemd. | Une unité systemd. |
+| Règle polkit | Installe `/etc/polkit-1/rules.d/50-machincast.rules`, rédigée par `python -m machincast.installation regle`. | Une règle polkit. |
+| Activation | Active le service au démarrage du poste, et le démarre ; une unité modifiée redémarre le service. | Service activé. |
+
+**Le service** tourne sous le compte qui a installé MachinCast, pas sous un compte système : il en a le rôle PostgreSQL, les fichiers et la session audio. Il lance `bin/Machin lecture`, avec le `machincast.toml` du répertoire de MachinCast, et le relance 5 secondes après un plantage. Son arrêt envoie `SIGTERM`, qui termine proprement le passage en cours. Ses messages vont dans le journal du système : `Machin logs` les suit.
+
+**La règle polkit** n'autorise que trois actions sur `machincast.service`, au seul compte de MachinCast : le démarrer, l'arrêter et le redémarrer, avec le mot de passe, ou l'empreinte, d'un administrateur du poste. Elle n'autorise rien d'autre, ni sur une autre unité. Jamais de `sudo` pour piloter la diffusion :
+
+```bash
+systemctl start machincast.service
+systemctl stop machincast.service
+systemctl restart machincast.service
+systemctl status machincast.service
+```
+
+**Avant d'installer le service**, arrêter tout `Machin lecture` lancé à la main : un second Machin lecture est refusé, tant que la socket d'état est occupée, et le service redémarrerait sans fin.
+
+À la main, sans `install.sh` :
+
+```bash
+sudo loginctl enable-linger "$(id -un)"
+.venv/bin/python -m machincast.installation unite --config machincast.toml > machincast.service
+.venv/bin/python -m machincast.installation regle --config machincast.toml > 50-machincast.rules
+sudo install --mode=644 machincast.service /etc/systemd/system/machincast.service
+sudo install --mode=644 50-machincast.rules /etc/polkit-1/rules.d/50-machincast.rules
+sudo systemctl daemon-reload
+sudo systemctl enable --now machincast.service
+```
+
+`--retirer-service` arrête et désactive le service, puis retire l'unité et la règle. La session du compte reste active au démarrage ; `sudo loginctl disable-linger "$(id -un)"` la retire.
 
 ## Ajouter un autre compte
 
@@ -345,6 +392,7 @@ Sans `install.sh`, préparer la base de test à la main avec les étapes 2, 4 et
 ## Désinstaller
 
 ```bash
+./install.sh --retirer-service   # si le service de diffusion est installé
 sudo rm /opt/machincast /usr/local/bin/Machin /usr/share/bash-completion/completions/Machin
 sudo -u postgres dropdb machincast
 sudo -u postgres dropdb machincast_test
@@ -381,7 +429,6 @@ Les messages d'information s'affichent sur la sortie standard ; les anomalies et
 | Manque | Ticket |
 | --- | --- |
 | Archives `.tar.gz` publiées en releases | [#41](https://github.com/dascritch/machincast/issues/41) |
-| Service systemd de diffusion et règle polkit, installation facultative | [#22](https://github.com/dascritch/machincast/issues/22) |
 | Autres écrans de l'interface graphique `Machin interface` | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
-| Message de l'interface tant que le service n'est pas installé | [#25](https://github.com/dascritch/machincast/issues/25) |
+| Pilotage du service depuis l'interface, et son message tant que le service n'est pas installé | [#25](https://github.com/dascritch/machincast/issues/25) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |

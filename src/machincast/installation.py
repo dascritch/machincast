@@ -3,16 +3,24 @@
 	python -m machincast.installation bases     --config machincast.toml   socket, base de production, base de test
 	python -m machincast.installation migrer    --config machincast.toml   schéma appliqué aux deux bases
 	python -m machincast.installation verifier  --config machincast.toml   décodeurs GStreamer et sortie audio
+	python -m machincast.installation unite     --config machincast.toml   unité systemd du service de lecture
+	python -m machincast.installation regle     --config machincast.toml   règle polkit qui le pilote
 
 install.sh enchaîne les commandes système (apt, sudo, psql, liens) ; ce module porte ce qui se teste : la lecture
-de la configuration, les migrations et la vérification des greffons GStreamer.
+de la configuration, les migrations, la vérification des greffons GStreamer, et le texte de l'unité systemd et de la
+règle polkit du service de lecture (https://github.com/dascritch/machincast/issues/22), qu'install.sh --service
+installe.
 """
 
 import argparse
+import grp
 import logging
+import os
+import pwd
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 import gi
 import psycopg
@@ -23,7 +31,7 @@ from gi.repository import Gst  # noqa: E402
 from machincast.audio import GREFFONS, Greffon, SortieAudioIndisponible, creer_sortie  # noqa: E402
 from machincast.base import appliquer_migrations, url_yoyo  # noqa: E402
 from machincast.cli import lancer  # noqa: E402
-from machincast.configuration import Configuration, SortieAudio  # noqa: E402
+from machincast.configuration import REPERTOIRE_PROJET, Configuration, SortieAudio  # noqa: E402
 
 EXECUTABLE = "machincast.installation"
 DESCRIPTION = "Étapes d'installation de MachinCast, appelées par install.sh."
@@ -174,7 +182,81 @@ def _verifier(configuration: Configuration) -> int:
 	return 0
 
 
-ACTIONS = {"bases": _bases, "migrer": _migrer, "verifier": _verifier}
+UNITE = "machincast.service"
+"""L'unité systemd du service de lecture, celle que suit « Machin logs » : le même nom dans bin/Machin."""
+
+
+@dataclass(frozen=True)
+class Compte:
+	"""Le compte de MachinCast, celui qui l'installe : le service tourne sous lui, avec sa session audio."""
+
+	nom: str
+	groupe: str
+	uid: int
+
+	@classmethod
+	def courant(cls) -> "Compte":
+		entree = pwd.getpwuid(os.getuid())
+		return cls(entree.pw_name, grp.getgrgid(entree.pw_gid).gr_name, entree.pw_uid)
+
+
+def unite_systemd(compte: Compte, repertoire: Path = REPERTOIRE_PROJET) -> str:
+	"""L'unité du service de lecture : Machin lecture, sous le compte de MachinCast, relancé après un plantage. Son
+	répertoire d'exécution est celui de la session du compte, gardée active au démarrage (loginctl enable-linger) :
+	PipeWire ou PulseAudio, et la socket d'état que lit l'interface. Ses messages vont dans journald."""
+	return f"""# Service de diffusion de MachinCast (https://github.com/dascritch/machincast/issues/22).
+# Installé par install.sh --service ; ne pas modifier ici, relancer install.sh --service.
+
+[Unit]
+Description=MachinCast : diffusion de l'antenne (Machin lecture)
+Wants=network-online.target
+After=network-online.target postgresql.service sound.target
+
+[Service]
+Type=simple
+User={compte.nom}
+Group={compte.groupe}
+WorkingDirectory={repertoire}
+Environment=XDG_RUNTIME_DIR=/run/user/{compte.uid}
+ExecStart={repertoire}/bin/Machin lecture
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=15
+SyslogIdentifier=machincast
+
+[Install]
+WantedBy=multi-user.target
+"""
+
+
+def regle_polkit(compte: Compte) -> str:
+	"""La règle polkit du service de lecture : son compte le démarre, l'arrête ou le redémarre, avec
+	l'authentification d'un administrateur ; rien d'autre, ni sur une autre unité."""
+	return f"""// Pilotage du service de diffusion de MachinCast (https://github.com/dascritch/machincast/issues/22).
+// Installé par install.sh --service ; ne pas modifier ici, relancer install.sh --service.
+polkit.addRule(function (action, subject) {{
+	if ((action.id == "org.freedesktop.systemd1.manage-units") && (action.lookup("unit") == "{UNITE}")
+		&& (["start", "stop", "restart"].indexOf(action.lookup("verb")) >= 0) && (subject.user == "{compte.nom}")) {{
+		return polkit.Result.AUTH_ADMIN;
+	}}
+	return polkit.Result.NOT_HANDLED;
+}});
+"""
+
+
+def _unite(_configuration: Configuration) -> int:
+	# Le texte de l'unité, qu'install.sh installe : ce n'est pas un message, d'où l'écriture directe.
+	sys.stdout.write(unite_systemd(Compte.courant()))
+	return 0
+
+
+def _regle(_configuration: Configuration) -> int:
+	sys.stdout.write(regle_polkit(Compte.courant()))
+	return 0
+
+
+ACTIONS = {"bases": _bases, "migrer": _migrer, "regle": _regle, "unite": _unite, "verifier": _verifier}
 
 
 def _options(analyseur: argparse.ArgumentParser) -> None:
