@@ -86,6 +86,94 @@
        </property>
       </widget>
      </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="etiquette_crossfade_debut">
+       <property name="text">
+        <string>Crossfade de début</string>
+       </property>
+       <property name="buddy">
+        <cstring>regle_crossfade_debut</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <layout class="QHBoxLayout" name="disposition_crossfade_debut" stretch="0,0,1">
+       <item>
+        <widget class="QComboBox" name="regle_crossfade_debut">
+         <property name="toolTip">
+          <string>Le crossfade de début des sonores joués via cette banque : le leur, celui de la banque pour ceux qui n'en ont pas, ou celui de la banque pour tous</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QDoubleSpinBox" name="crossfade_debut">
+         <property name="suffix">
+          <string> s</string>
+         </property>
+         <property name="decimals">
+          <number>2</number>
+         </property>
+         <property name="maximum">
+          <double>600.0</double>
+         </property>
+         <property name="singleStep">
+          <double>0.5</double>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="espace_crossfade_debut">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="etiquette_crossfade_fin">
+       <property name="text">
+        <string>Crossfade de fin</string>
+       </property>
+       <property name="buddy">
+        <cstring>regle_crossfade_fin</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <layout class="QHBoxLayout" name="disposition_crossfade_fin" stretch="0,0,1">
+       <item>
+        <widget class="QComboBox" name="regle_crossfade_fin">
+         <property name="toolTip">
+          <string>Le crossfade de fin des sonores joués via cette banque : le leur, celui de la banque pour ceux qui n'en ont pas, ou celui de la banque pour tous</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QDoubleSpinBox" name="crossfade_fin">
+         <property name="suffix">
+          <string> s</string>
+         </property>
+         <property name="decimals">
+          <number>2</number>
+         </property>
+         <property name="maximum">
+          <double>600.0</double>
+         </property>
+         <property name="singleStep">
+          <double>0.5</double>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="espace_crossfade_fin">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
     </layout>
    </item>
    <item>

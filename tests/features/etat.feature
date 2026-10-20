@@ -101,6 +101,41 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Et un client lit la socket d'état
 		Alors le prochain sonore commencera au « 2026-10-14 19:59:50.500 » et finira au « 2026-10-14 19:59:51.500 »
 
+	Plan du scénario: Une banque garde les crossfades de ses sonores, les applique à défaut, ou les impose
+		https://github.com/dascritch/machincast/issues/143 : chaque côté, début et fin, a sa règle. Un sonore sans crossfade en a un de 0 seconde :
+		« à défaut » lui donne celui de la banque. Deux sonores ne se superposent que si le sortant a un crossfade de fin
+		et l'entrant un crossfade de début ; le prochain commence alors au début du crossfade de fin du sortant.
+
+		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
+		Et chaque sonore a <sonores> seconde de crossfade de début et de fin
+		Et la banque « Titres » <debut> seconde de crossfade de début
+		Et la banque « Titres » <fin> seconde de crossfade de fin
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,2 seconde
+		Et un client lit la socket d'état
+		Alors le prochain sonore commencera au « <prochain> » et finira au « <fin_prochain> »
+
+		Exemples:
+			| sonores | debut                                  | fin                                    | prochain                | fin_prochain            |
+			| 0       | laisse ses sonores décider, malgré 0,25 | laisse ses sonores décider, malgré 0,25 | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
+			| 0,5     | laisse ses sonores décider, malgré 0,25 | laisse ses sonores décider, malgré 0,25 | 2026-10-14 19:59:50.500 | 2026-10-14 19:59:51.500 |
+			| 0       | applique à défaut 0,25                 | applique à défaut 0,25                 | 2026-10-14 19:59:50.750 | 2026-10-14 19:59:51.750 |
+			| 0,5     | applique à défaut 0,25                 | applique à défaut 0,25                 | 2026-10-14 19:59:50.500 | 2026-10-14 19:59:51.500 |
+			| 0,5     | impose 0,25                            | impose 0,25                            | 2026-10-14 19:59:50.750 | 2026-10-14 19:59:51.750 |
+			| 0,5     | impose 0                               | impose 0,25                            | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
+			| 0,5     | impose 0,25                            | laisse ses sonores décider, malgré 0,25 | 2026-10-14 19:59:50.500 | 2026-10-14 19:59:51.500 |
+			| 0       | impose 0,25                            | laisse ses sonores décider, malgré 0,25 | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
+
+	Scénario: Un sonore placé directement dans l'événement garde ses crossfades, même dans une banque qui les impose
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et la banque « Titres », séquentielle, avec les sonores « f1 », « f2 »
+		Et la banque « Titres » impose 0,25 seconde de crossfade de début
+		Et la banque « Titres » impose 0,25 seconde de crossfade de fin
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,2 seconde
+		Et un client lit la socket d'état
+		Alors le prochain sonore commencera au « 2026-10-14 19:59:51 » et finira au « 2026-10-14 19:59:52 »
+
 	Plan du scénario: Un prochain sonore n'est pas sain si son fichier pose problème
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
 		Et <probleme>

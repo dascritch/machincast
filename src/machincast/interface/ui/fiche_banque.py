@@ -16,10 +16,10 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComboBox,
-    QFormLayout, QGroupBox, QHBoxLayout, QHeaderView,
-    QLabel, QLineEdit, QListWidget, QListWidgetItem,
-    QPushButton, QSizePolicy, QSpacerItem, QTreeWidget,
-    QTreeWidgetItem, QVBoxLayout, QWidget)
+    QDoubleSpinBox, QFormLayout, QGroupBox, QHBoxLayout,
+    QHeaderView, QLabel, QLineEdit, QListWidget,
+    QListWidgetItem, QPushButton, QSizePolicy, QSpacerItem,
+    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 class Ui_FicheBanque(object):
     def setupUi(self, FicheBanque):
@@ -76,6 +76,62 @@ class Ui_FicheBanque(object):
         self.ne_pas_repeter.setObjectName(u"ne_pas_repeter")
 
         self.formulaire.setWidget(4, QFormLayout.ItemRole.FieldRole, self.ne_pas_repeter)
+
+        self.etiquette_crossfade_debut = QLabel(FicheBanque)
+        self.etiquette_crossfade_debut.setObjectName(u"etiquette_crossfade_debut")
+
+        self.formulaire.setWidget(5, QFormLayout.ItemRole.LabelRole, self.etiquette_crossfade_debut)
+
+        self.disposition_crossfade_debut = QHBoxLayout()
+        self.disposition_crossfade_debut.setObjectName(u"disposition_crossfade_debut")
+        self.regle_crossfade_debut = QComboBox(FicheBanque)
+        self.regle_crossfade_debut.setObjectName(u"regle_crossfade_debut")
+
+        self.disposition_crossfade_debut.addWidget(self.regle_crossfade_debut)
+
+        self.crossfade_debut = QDoubleSpinBox(FicheBanque)
+        self.crossfade_debut.setObjectName(u"crossfade_debut")
+        self.crossfade_debut.setDecimals(2)
+        self.crossfade_debut.setMaximum(600.000000000000000)
+        self.crossfade_debut.setSingleStep(0.500000000000000)
+
+        self.disposition_crossfade_debut.addWidget(self.crossfade_debut)
+
+        self.espace_crossfade_debut = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.disposition_crossfade_debut.addItem(self.espace_crossfade_debut)
+
+        self.disposition_crossfade_debut.setStretch(2, 1)
+
+        self.formulaire.setLayout(5, QFormLayout.ItemRole.FieldRole, self.disposition_crossfade_debut)
+
+        self.etiquette_crossfade_fin = QLabel(FicheBanque)
+        self.etiquette_crossfade_fin.setObjectName(u"etiquette_crossfade_fin")
+
+        self.formulaire.setWidget(6, QFormLayout.ItemRole.LabelRole, self.etiquette_crossfade_fin)
+
+        self.disposition_crossfade_fin = QHBoxLayout()
+        self.disposition_crossfade_fin.setObjectName(u"disposition_crossfade_fin")
+        self.regle_crossfade_fin = QComboBox(FicheBanque)
+        self.regle_crossfade_fin.setObjectName(u"regle_crossfade_fin")
+
+        self.disposition_crossfade_fin.addWidget(self.regle_crossfade_fin)
+
+        self.crossfade_fin = QDoubleSpinBox(FicheBanque)
+        self.crossfade_fin.setObjectName(u"crossfade_fin")
+        self.crossfade_fin.setDecimals(2)
+        self.crossfade_fin.setMaximum(600.000000000000000)
+        self.crossfade_fin.setSingleStep(0.500000000000000)
+
+        self.disposition_crossfade_fin.addWidget(self.crossfade_fin)
+
+        self.espace_crossfade_fin = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.disposition_crossfade_fin.addItem(self.espace_crossfade_fin)
+
+        self.disposition_crossfade_fin.setStretch(2, 1)
+
+        self.formulaire.setLayout(6, QFormLayout.ItemRole.FieldRole, self.disposition_crossfade_fin)
 
 
         self.disposition.addLayout(self.formulaire)
@@ -199,6 +255,8 @@ class Ui_FicheBanque(object):
         self.etiquette_nom_public.setBuddy(self.nom_public)
         self.etiquette_mode.setBuddy(self.mode)
         self.etiquette_masquage.setBuddy(self.masquage)
+        self.etiquette_crossfade_debut.setBuddy(self.regle_crossfade_debut)
+        self.etiquette_crossfade_fin.setBuddy(self.regle_crossfade_fin)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(FicheBanque)
@@ -217,6 +275,16 @@ class Ui_FicheBanque(object):
         self.etiquette_mode.setText(QCoreApplication.translate("FicheBanque", u"&Mode", None))
         self.etiquette_masquage.setText(QCoreApplication.translate("FicheBanque", u"&Artiste et titre", None))
         self.ne_pas_repeter.setText(QCoreApplication.translate("FicheBanque", u"Ne pas &r\u00e9p\u00e9ter : la banque ne passe jamais deux fois de suite", None))
+        self.etiquette_crossfade_debut.setText(QCoreApplication.translate("FicheBanque", u"Crossfade de d\u00e9but", None))
+#if QT_CONFIG(tooltip)
+        self.regle_crossfade_debut.setToolTip(QCoreApplication.translate("FicheBanque", u"Le crossfade de d\u00e9but des sonores jou\u00e9s via cette banque : le leur, celui de la banque pour ceux qui n'en ont pas, ou celui de la banque pour tous", None))
+#endif // QT_CONFIG(tooltip)
+        self.crossfade_debut.setSuffix(QCoreApplication.translate("FicheBanque", u" s", None))
+        self.etiquette_crossfade_fin.setText(QCoreApplication.translate("FicheBanque", u"Crossfade de fin", None))
+#if QT_CONFIG(tooltip)
+        self.regle_crossfade_fin.setToolTip(QCoreApplication.translate("FicheBanque", u"Le crossfade de fin des sonores jou\u00e9s via cette banque : le leur, celui de la banque pour ceux qui n'en ont pas, ou celui de la banque pour tous", None))
+#endif // QT_CONFIG(tooltip)
+        self.crossfade_fin.setSuffix(QCoreApplication.translate("FicheBanque", u" s", None))
         self.groupe_repertoires.setTitle(QCoreApplication.translate("FicheBanque", u"R\u00e9pertoires index\u00e9s", None))
         self.explication_repertoires.setText(QCoreApplication.translate("FicheBanque", u"Machin indexation rattache \u00e0 la banque les fichiers sonores de ces r\u00e9pertoires et de leurs sous-r\u00e9pertoires.", None))
         self.ajouter_repertoire.setText(QCoreApplication.translate("FicheBanque", u"Ajouter un r\u00e9pertoire\u2026", None))

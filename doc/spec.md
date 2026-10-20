@@ -121,6 +121,7 @@ Pas de champ format ni fréquence d'échantillonnage : l'échantillonnage peut v
 | `mode` | `sequentiel` ou `aleatoire`. |
 | `masquer_metadonnees` | Masquage au niveau de la banque. Vide = hérite. |
 | `ne_pas_repeter` | La banque ne peut pas passer deux fois de suite, même d'un événement à l'autre (voir [§ 4.4](#44-choix-dun-sonore-dans-une-banque), [#63](https://github.com/dascritch/machincast/issues/63)). Faux par défaut. |
+| `crossfade_debut_regle`, `crossfade_debut`, `crossfade_fin_regle`, `crossfade_fin` | Crossfades des sonores joués via la banque, chaque côté avec sa règle (type `regle_crossfade`) : `sonore` garde celui du sonore (par défaut), `a_defaut` donne celui de la banque au sonore qui n'en a pas (0 seconde), `impose` le donne à tout sonore ([#143](https://github.com/dascritch/machincast/issues/143), migration `0005.banques-crossfades`). |
 | `modifie_le` | Horodatage de la dernière modification. |
 
 #### `banques_repertoires`
@@ -354,6 +355,7 @@ Boucle de diffusion ([#88](https://github.com/dascritch/machincast/issues/88), `
 - Sortie au choix dans la configuration : ALSA, PulseAudio ou PipeWire, chacune fournie par son greffon GStreamer (`gstreamer1.0-alsa`, `gstreamer1.0-pulseaudio`, `gstreamer1.0-pipewire`). La sortie `factice` ne joue aucun son, pour les tests et les essais (`machincast.audio`).
 - L'heure courante est lue par une horloge injectable (`machincast.horloge`) et les tirages aléatoires par un générateur à graine (`machincast.hasard`).
 - Crossfade selon `crossfade_debut` et `crossfade_fin` de chaque sonore ([#15](https://github.com/dascritch/machincast/issues/15), `machincast.lecture.moteur`) : le sonore monte de 0 à plein volume pendant `crossfade_debut` ; il s'éteint pendant ses `crossfade_fin` dernières secondes, et le sonore suivant démarre à ce moment-là. Deux sonores ne se superposent que si le sortant a un `crossfade_fin` et l'entrant un `crossfade_debut` : si l'un des deux vaut 0, le sortant joue jusqu'au bout à plein volume, puis l'entrant démarre à plein volume (décidé en relecture de [PR #86](https://github.com/dascritch/machincast/pull/86)). Chaque sonore joue dans sa propre voie (pipeline GStreamer) : deux voies se superposent pendant un crossfade, et la sortie les mélange (en ALSA, un périphérique qui mélange, comme `default`). La coupure nette arrête toutes les voies aussitôt.
+- Un sonore joué via une banque prend les crossfades que retient la règle de cette banque, côté par côté ([#143](https://github.com/dascritch/machincast/issues/143), `machincast.lecture.diffusion.crossfade`) : le sien, celui de la banque s'il n'en a pas, ou celui de la banque imposé. Un sonore placé directement dans un événement ou une séquence garde les siens, même s'il figure dans une banque qui les impose. L'enchaînement, l'heure estimée du prochain sonore sur la socket d'état et la simulation suivent les mêmes crossfades.
 - Avant de jouer un fichier, le binaire compare sa date de modification et sa taille avec la base. En cas d'écart, il le consigne dans le log (`alerte`, `fichier modifié`) et joue le fichier ; c'est l'indexeur qui mettra la base à jour. Un fichier introuvable n'est pas joué (`incident`, `fichier introuvable`) : l'ordonnanceur l'écarte pendant une heure, comme un sonore non jouable, et passe au suivant.
 - S'il n'a aucun élément à lire dans le fil musical, il émet un silence et lève une alerte dans le log.
 
@@ -593,6 +595,7 @@ Mise en œuvre ([#28](https://github.com/dascritch/machincast/issues/28), `machi
 - Masquage de l'artiste et du titre.
 - Mode séquentiel ou aléatoire.
 - Case « ne pas répéter » : la banque ne passe jamais deux fois de suite ([#63](https://github.com/dascritch/machincast/issues/63)).
+- Crossfades de début et de fin ([#143](https://github.com/dascritch/machincast/issues/143)) : pour chacun, une règle, « Garder ceux des sonores », « Appliquer si le sonore n'en a pas » ou « Imposer à tous les sonores », et une durée, qui ne se modifie pas tant que la banque garde ceux des sonores.
 - Liste des répertoires indexés : ajout et retrait.
 - Liste des sonores liés, réordonnable par glisser-déposer en mode séquentiel. Ajout de sonores, y compris hors des répertoires de la banque.
 - Retrait d'un sonore issu d'un répertoire de la banque : l'interface prévient qu'il sera réintégré à la prochaine indexation, et propose un lien ouvrant le navigateur de fichiers dans son répertoire. La suppression du fichier se fait hors de l'outil, parfois depuis un autre poste quand l'utilisateur n'a pas le droit d'écriture sur l'emplacement.
