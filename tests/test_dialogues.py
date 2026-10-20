@@ -95,6 +95,14 @@ def suppression(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> Non
 	)
 
 
+@when(parsers.parse("la question de création s'ouvre, et que j'y {geste}"))
+def creation(dialogue: Dialogue, qtbot: QtBot, geste: str) -> None:
+	repondre(dialogue, qtbot, geste)
+	dialogue.reponse = dialogues.confirmer_creation(
+		dialogue.parent, "Créer un événement le samedi 24 octobre 2026 à 18:00 ?"
+	)
+
+
 @when(parsers.re(r"le sélecteur de répertoires du poste donne « ?(?P<selecteur>[^»]*?) ?»"))
 def selecteur(dialogue: Dialogue, monkeypatch: pytest.MonkeyPatch, selecteur: str) -> None:
 	def choisir(_parent: QWidget, _titre: str) -> str:

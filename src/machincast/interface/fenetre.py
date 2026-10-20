@@ -16,7 +16,8 @@ Le dernier onglet fixe est l'écran des incidents du log (machincast.interface.i
 https://github.com/dascritch/machincast/issues/35), qui se relit aussi à l'ouverture de son onglet.
 
 La barre de menus a cinq menus (https://github.com/dascritch/machincast/issues/117) : « Fichier », pour quitter (Alt+Q,
-comme la fermeture de la fenêtre) ; « Affichage », pour rafraîchir les onglets (F5,
+comme la fermeture de la fenêtre) ; « Affichage », pour le calendrier de la grille (machincast.interface.calendrier,
+https://github.com/dascritch/machincast/issues/36), dans un onglet qui se ferme, et pour rafraîchir les onglets (F5,
 https://github.com/dascritch/machincast/issues/148) ; « Diffusion », qui démarre, arrête ou redémarre le service de
 diffusion (machincast.interface.pilotage, https://github.com/dascritch/machincast/issues/25) selon son état, relu à
 l'ouverture du menu ; sans le service, la barre d'état dit que l'installation n'est pas définitive, et le menu pilote
@@ -32,6 +33,7 @@ barre d'état annonce l'un et l'autre.
 """
 
 import logging
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import psycopg
@@ -45,6 +47,7 @@ from machincast.configuration import Crossfades
 from machincast.horloge import Horloge
 from machincast.interface import dialogues, indexation, pilotage, preferences, version
 from machincast.interface.ajout import ajouter_fichiers
+from machincast.interface.calendrier import Calendrier, date_longue
 from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.etat import EtatLecture
 from machincast.interface.fiche import Fiche, Rafraichie
@@ -75,6 +78,8 @@ FICHES: dict[str, type[Fiche]] = {
 """Écrans de détail : les fiches, par genre."""
 SUIVI_INDEXATION = 1000
 """Millisecondes entre deux regards sur le processus de l'indexation lancée depuis le menu."""
+DUREE_PROPOSEE = timedelta(hours=1)
+"""Durée d'un événement créé depuis le calendrier : sa fin se règle ensuite dans sa fiche."""
 TICKETS = "https://github.com/dascritch/machincast/issues"
 """Les tickets de MachinCast, qu'ouvre « Signaler un problème… » ; comme dans pyproject.toml."""
 SANS_SERVICE = "Installation non définitive : diffusion sans service"
@@ -181,6 +186,7 @@ class FenetrePrincipale(QMainWindow):
 		rafraichir = affichage.addAction("Rafraîchir les onglets")
 		rafraichir.setShortcut(QKeySequence("F5"))
 		rafraichir.triggered.connect(self.rafraichir)
+		affichage.addAction("Calendrier").triggered.connect(self._ouvrir_calendrier)
 		self.menu_diffusion = self.menuBar().addMenu("&Diffusion")
 		self.menu_diffusion.aboutToShow.connect(self._relire_le_service)
 		self.pilotes: dict[str, QAction] = {}
@@ -326,8 +332,34 @@ class FenetrePrincipale(QMainWindow):
 	def _renommer(self, fiche: QWidget, titre: str) -> None:
 		self.ui.onglets.setTabText(self.ui.onglets.indexOf(fiche), titre)
 
+	def _ouvrir_calendrier(self) -> None:
+		"""Un seul calendrier : celui qui est ouvert revient au premier plan."""
+		onglets = self.ui.onglets
+		for indice in range(onglets.count()):
+			if isinstance(onglets.widget(indice), Calendrier):
+				onglets.setCurrentIndex(indice)
+				return
+		calendrier = Calendrier(self.connexion, self.horloge)
+		calendrier.ouverte.connect(self._ouvrir)
+		calendrier.creation_demandee.connect(self._creer_evenement)
+		onglets.setCurrentIndex(onglets.addTab(calendrier, "Calendrier"))
+
+	def _creer_evenement(self, debut: datetime) -> None:
+		"""Un nouvel événement, à l'heure cliquée dans le calendrier, s'ouvre dans sa fiche si on le confirme."""
+		texte = f"Créer un événement le {date_longue(debut.date())} à {debut:%H:%M} ?"
+		if not dialogues.confirmer_creation(self, texte):
+			return
+		self._ouvrir_fiche("événement", None)
+		fiche = self.ui.onglets.currentWidget()
+		assert isinstance(fiche, FicheEvenement)
+		fiche.prevoir(debut, debut + DUREE_PROPOSEE)
+
 	def _fermer(self, indice: int) -> None:
 		fiche = self.ui.onglets.widget(indice)
+		if isinstance(fiche, Calendrier):
+			self.ui.onglets.removeTab(indice)
+			fiche.deleteLater()
+			return
 		assert isinstance(fiche, Fiche), fiche
 		if fiche.peut_fermer():
 			self._retirer(fiche)
@@ -406,7 +438,7 @@ class FenetrePrincipale(QMainWindow):
 
 	def _onglet_ouvert(self, indice: int) -> None:
 		ouvert = self.ui.onglets.widget(indice)
-		if isinstance(ouvert, (Liste, EcranIncidents)):
+		if isinstance(ouvert, (Liste, EcranIncidents, Calendrier)):
 			ouvert.actualiser()
 
 	def _preferences(self) -> None:

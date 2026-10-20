@@ -67,6 +67,8 @@ class Contexte:
 	"""Réponse à l'avertissement de réintégration d'un sonore retiré."""
 	suppression: bool = False
 	"""Réponse à la question de suppression : True pour supprimer."""
+	creation: bool = False
+	"""Réponse à la question de création d'un événement depuis le calendrier : True pour créer."""
 	repertoires_choisis: list[str | None] = field(default_factory=list)
 	"""Répertoires que donneront les choix suivants, None pour un choix abandonné."""
 	sonores_choisis: list[int] = field(default_factory=list)
@@ -145,6 +147,10 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		interface.questions.append(f"suppression : {titre}\n{texte}")
 		return interface.suppression
 
+	def creation(_parent: QWidget, texte: str) -> bool:
+		interface.questions.append(f"création : {texte}")
+		return interface.creation
+
 	def repertoire(_parent: QWidget) -> str | None:
 		return interface.repertoires_choisis.pop(0)
 
@@ -159,6 +165,7 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	monkeypatch.setattr(dialogues, "confirmer_fermeture", fermeture)
 	monkeypatch.setattr(dialogues, "confirmer_retrait", retrait)
 	monkeypatch.setattr(dialogues, "confirmer_suppression", suppression)
+	monkeypatch.setattr(dialogues, "confirmer_creation", creation)
 	monkeypatch.setattr(dialogues, "choisir_repertoire", repertoire)
 	monkeypatch.setattr(dialogues, "choisir_fichiers", lambda _parent: interface.fichiers_choisis)
 	monkeypatch.setattr(dialogues, "choisir_sonores", sonores)
