@@ -733,7 +733,7 @@ La fiche se ferme après la suppression, sans demander quoi faire de ses modific
 Machin logs --since "1 hour ago" --priority=warning
 ```
 
-Lire ce journal demande d'appartenir au groupe `systemd-journal`, ce que fait `install.sh`, effectif après le redémarrage du poste. Tant que le service de diffusion n'est pas installé ([#22](https://github.com/dascritch/machincast/issues/22)), le journal est vide. `Ctrl-C` arrête le suivi.
+Lire ce journal demande d'appartenir au groupe `systemd-journal`, ce que fait `install.sh`, effectif après le redémarrage du poste. Tant que le service de diffusion n'est pas installé ([#22](https://github.com/dascritch/machincast/issues/22), [Service de diffusion](../INSTALL.md#service-de-diffusion)), le journal est vide : `Machin lecture`, lancé à la main, écrit dans son terminal. `Ctrl-C` arrête le suivi.
 
 ## Messages et codes de sortie
 
@@ -765,6 +765,5 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | Manque | Ticket |
 | --- | --- |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
-| Service systemd de diffusion | [#22](https://github.com/dascritch/machincast/issues/22) |
 | Autres écrans de l'interface : VU-mètre, pilotage du service, recherche globale, calendrier, simulation | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |

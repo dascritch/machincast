@@ -5,11 +5,14 @@
 #   ./install.sh --simulation  affiche les commandes sans rien exécuter
 #   ./install.sh --dev         installe aussi les outils du poste de développement
 #                              (https://github.com/dascritch/machincast/issues/77)
+#   ./install.sh --service     installe aussi le service de diffusion : pour un ordinateur dédié à l'antenne
+#                              (https://github.com/dascritch/machincast/issues/22)
+#   ./install.sh --retirer-service   retire ce service, la diffusion se lance de nouveau à la main
 #   ./install.sh --help        aide
 #
 # À lancer depuis le répertoire de MachinCast (release décompressée ou dépôt git), avec son propre compte :
 # le script demande sudo pour les seules étapes qui l'exigent. L'installation reste en place ; /opt/machincast
-# est un lien vers ce répertoire. Le service systemd n'est pas installé ici
+# est un lien vers ce répertoire. Le service systemd ne l'est que sur demande, avec --service
 # (https://github.com/dascritch/machincast/issues/22).
 #
 # Règles : doc/regles/wrapper.md. Documentation : INSTALL.md (https://github.com/dascritch/machincast/issues/71).
@@ -20,6 +23,11 @@ RACINE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 LIEN_INSTALLATION="/opt/machincast"
 LIEN_WRAPPER="/usr/local/bin/Machin"
 LIEN_COMPLETION="/usr/share/bash-completion/completions/Machin"
+# Service de diffusion, facultatif (https://github.com/dascritch/machincast/issues/22) : le même nom dans bin/Machin
+# et machincast.installation.
+UNITE="machincast.service"
+FICHIER_UNITE="/etc/systemd/system/${UNITE}"
+FICHIER_REGLE="/etc/polkit-1/rules.d/50-machincast.rules"
 CONFIGURATION="${RACINE}/machincast.toml"
 VENV="${RACINE}/.venv"
 ROLES=(lecture indexation interface)
@@ -36,6 +44,8 @@ PAQUETS_DEV=(bats shellcheck)
 
 SIMULATION=false
 DEV=false
+SERVICE=false
+RETIRER_SERVICE=false
 UTILISATEUR="$(id -un)"
 
 aide() {
@@ -53,6 +63,10 @@ aide() {
 		  7. vérification des greffons GStreamer et de la sortie audio.
 		Avec --dev, aussi les outils du poste de développement : ${PAQUETS_DEV[*]} (apt) et les
 		dépendances de test (pip, extra [dev]), pour Machin dev et Machin dev-test.
+		Avec --service, aussi le service de diffusion ${UNITE}, seulement pour un ordinateur dédié à
+		l'antenne : Machin lecture démarre avec le poste, sous le compte ${UTILISATEUR}, et redémarre après un
+		plantage ; une règle polkit le laisse démarrer, arrêter et redémarrer avec le mot de passe d'un
+		administrateur. Sans --service, rien de cela n'est installé : la diffusion se lance à la main.
 
 		Relançable : chaque étape déjà faite est laissée telle quelle.
 		À lancer avec son propre compte, pas avec sudo : le script demande sudo quand il le faut.
@@ -60,6 +74,9 @@ aide() {
 		Options :
 		  --simulation  affiche les commandes sans rien exécuter
 		  --dev         installe aussi les outils du poste de développement
+		  --service     installe aussi le service de diffusion (ordinateur dédié à l'antenne seulement)
+		  --retirer-service
+		                retire le service de diffusion et sa règle polkit
 		  -h, --help    cette aide
 	FIN
 }
@@ -268,11 +285,75 @@ verifier_greffons() {
 	installation verifier || echec "installer les paquets indiqués, puis relancer install.sh"
 }
 
+# Installe le fichier rédigé par machincast.installation, s'il diffère de celui en place ; vrai s'il a changé.
+installer_fichier() {
+	local action="$1" destination="$2" redige
+	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
+		info "[simulation] ${destination}, rédigé par machincast.installation ${action}"
+		return 0
+	fi
+	redige="$(mktemp)"
+	installation "${action}" >"${redige}"
+	if [[ -r "${destination}" ]] && cmp --silent "${redige}" "${destination}"; then
+		info "${destination} est à jour"
+		rm --force "${redige}" # fichier de MachinCast : unité ou règle rédigée, temporaire
+		return 1
+	fi
+	executer sudo install --mode=644 --owner=root --group=root "${redige}" "${destination}"
+	rm --force "${redige}" # fichier de MachinCast : unité ou règle rédigée, temporaire
+	return 0
+}
+
+installer_service() {
+	etape "Service de diffusion"
+	if ! "${SERVICE}"; then
+		info "non installé : la diffusion se lance à la main, par Machin lecture"
+		info "sur un ordinateur dédié à l'antenne : ./install.sh --service"
+		return
+	fi
+	info "pour un ordinateur dédié à l'antenne : Machin lecture démarre avec le poste, sous ${UTILISATEUR}"
+	# La session du compte reste active sans connexion : PipeWire ou PulseAudio y tournent, comme la socket d'état.
+	if [[ "$(loginctl show-user "${UTILISATEUR}" --property=Linger --value 2>/dev/null)" == yes ]]; then
+		info "la session de ${UTILISATEUR} reste active au démarrage du poste"
+	else
+		executer sudo loginctl enable-linger "${UTILISATEUR}"
+	fi
+	local unite_changee=false
+	if installer_fichier unite "${FICHIER_UNITE}"; then
+		unite_changee=true
+		executer sudo systemctl daemon-reload
+	fi
+	installer_fichier regle "${FICHIER_REGLE}" || true
+	executer sudo systemctl enable --now "${UNITE}"
+	if "${unite_changee}"; then
+		# Une unité modifiée ne vaut qu'au redémarrage du service, s'il tournait déjà.
+		executer sudo systemctl try-restart "${UNITE}"
+	fi
+	info "suivre la diffusion : Machin logs"
+}
+
+retirer_service() {
+	etape "Retrait du service de diffusion"
+	if [[ -e "${FICHIER_UNITE}" ]]; then
+		executer sudo systemctl disable --now "${UNITE}"
+		executer sudo rm --force "${FICHIER_UNITE}" # fichier de MachinCast : unité installée par --service
+		executer sudo systemctl daemon-reload
+	else
+		info "${FICHIER_UNITE} absent"
+	fi
+	if [[ -e "${FICHIER_REGLE}" ]]; then
+		executer sudo rm --force "${FICHIER_REGLE}" # fichier de MachinCast : règle installée par --service
+	else
+		info "${FICHIER_REGLE} absent"
+	fi
+	info "la session de ${UTILISATEUR} reste active au démarrage : sudo loginctl disable-linger ${UTILISATEUR} la retire"
+	info "la diffusion se lance de nouveau à la main, par Machin lecture"
+}
+
 conclure() {
 	etape "Installation terminée"
 	info "Aide : Machin --help"
 	info "Première indexation : Machin indexation, puis Machin indexation --audit-complet"
-	info "Le service de diffusion n'est pas encore installé (https://github.com/dascritch/machincast/issues/22)."
 	if "${DEV}"; then
 		info "Poste de développement : Machin dev ouvre un shell, venv activé ; Machin dev-test lance les vérifications"
 	fi
@@ -283,6 +364,8 @@ principal() {
 		case "$1" in
 			--simulation) SIMULATION=true ;;
 			--dev) DEV=true ;;
+			--service) SERVICE=true ;;
+			--retirer-service) RETIRER_SERVICE=true ;;
 			-h | --help)
 				aide
 				exit 0
@@ -294,6 +377,9 @@ principal() {
 		esac
 		shift
 	done
+	if "${SERVICE}" && "${RETIRER_SERVICE}"; then
+		echec "--service et --retirer-service ne vont pas ensemble"
+	fi
 	cd "${RACINE}"
 	verifier_systeme
 	installer_paquets
@@ -303,6 +389,11 @@ principal() {
 	autoriser_journal
 	installer_liens
 	verifier_greffons
+	if "${RETIRER_SERVICE}"; then
+		retirer_service
+	else
+		installer_service
+	fi
 	conclure
 }
 
