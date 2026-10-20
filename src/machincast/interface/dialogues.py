@@ -54,6 +54,23 @@ def confirmer_fermeture(parent: QWidget, titre: str, avant: str = "fermer la fic
 	return Fermeture.ANNULER
 
 
+def confirmer_arret_indexation(parent: QWidget, titre: str) -> bool:
+	"""Arrêter l'indexation en cours ? Entrée et Échap la laissent continuer."""
+	question = QMessageBox(parent)
+	question.setIcon(QMessageBox.Icon.Question)
+	question.setWindowTitle(titre)
+	question.setText(f"L'indexation est en cours : « {titre} ».")
+	question.setInformativeText(
+		"L'arrêter ? Elle s'arrête après le fichier en cours ; le travail fait est gardé, la prochaine indexation"
+		" reprendra le reste."
+	)
+	arreter = question.addButton("Arrêter", QMessageBox.ButtonRole.DestructiveRole)
+	continuer = question.addButton("Continuer", QMessageBox.ButtonRole.RejectRole)
+	question.setDefaultButton(continuer)
+	question.exec()
+	return question.clickedButton() is arreter
+
+
 def confirmer_retrait(parent: QWidget, avertissement: str) -> Retrait:
 	"""Prévient qu'un sonore retiré reviendra : Entrée et Échap gardent le sonore."""
 	question = QMessageBox(parent)

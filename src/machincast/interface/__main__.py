@@ -75,9 +75,15 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 		# affichage graphique.
 		from machincast.interface.application import application
 		from machincast.interface.fenetre import FenetrePrincipale
+		from machincast.interface.indexation import commande_indexation
 
 		qt = application(EXECUTABLE)
-		fenetre = FenetrePrincipale(connexion, configuration.lecture.socket_etat, HorlogeSysteme())
+		fenetre = FenetrePrincipale(
+			connexion,
+			configuration.lecture.socket_etat,
+			HorlogeSysteme(),
+			commande_indexation=commande_indexation(options.config),
+		)
 		fenetre.show()
 		return qt.exec()
 

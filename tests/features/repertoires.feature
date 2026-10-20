@@ -98,6 +98,33 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 			| …/jingles/intro.flac : sain ; sonore passé actif                 |
 		Et la sortie d'erreur signale « …/jingles/abime.mp3 », avec « sonore passé erroné »
 
+	# ─── Une indexation à la fois ──────────────────────────────
+
+	Scénario: Machin indexation refuse de commencer pendant une autre indexation sur la même base
+		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
+		Et le fichier « jingles/intro.flac », sain
+		Et une autre indexation en cours sur la base
+		Quand Machin indexation est lancé sur la base de test
+		Alors Machin indexation se termine avec le code 1, en signalant « indexation refusée : une autre indexation est en cours sur cette base »
+		Et la base contient 0 sonore
+		Quand l'autre indexation se termine
+		Et Machin indexation est lancé sur la base de test
+		Alors Machin indexation se termine avec le code 0, en signalant « indexation rapide : 1 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Et la base contient 1 sonore
+
+	Scénario: Une indexation arrêtée avant son début n'enregistre ni ne vérifie rien
+		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
+		Et le fichier « jingles/intro.flac », sain
+		Quand l'indexeur fait une indexation rapide, dont l'arrêt est déjà demandé
+		Alors la base contient 0 sonore
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+
+	Scénario: L'indexation rend son verrou dès sa fin
+		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
+		Et le fichier « jingles/intro.flac », sain
+		Quand l'indexeur fait une indexation rapide
+		Alors le verrou de l'indexation a été rendu dès la fin de l'indexation
+
 	Scénario: Un rattachement a sa ligne, et un sonore revérifié dit que son état est conservé
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
 		Et le fichier « jingles/a.flac », sain

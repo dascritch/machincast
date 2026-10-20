@@ -32,6 +32,20 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 		Et la question a précisé « Les enregistrer avant de rafraîchir la fiche ? »
 		Et la réponse est « Annuler »
 
+	Plan du scénario: Fermer le journal d'une indexation en cours demande s'il faut l'arrêter
+		Quand la question d'arrêt de « Audit complet » s'ouvre, et que j'y <geste>
+		Alors la question a dit « L'indexation est en cours : « Audit complet ». »
+		Et la question a précisé « L'arrêter ? Elle s'arrête après le fichier en cours ; le travail fait est gardé, la prochaine indexation reprendra le reste. »
+		Et la question a proposé « Arrêter », « Continuer »
+		Et la réponse est « <reponse> »
+
+		Exemples:
+			| geste                    | reponse |
+			| clique sur « Arrêter »   | True    |
+			| clique sur « Continuer » | False   |
+			| tape Échap               | False   |
+			| tape Entrée              | False   |
+
 	Plan du scénario: L'avertissement de réintégration d'un sonore retiré propose trois réponses
 		Quand l'avertissement de réintégration « Café à minuit reviendra » s'ouvre, et que j'y <geste>
 		Alors la question a dit « Café à minuit reviendra »

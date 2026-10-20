@@ -24,6 +24,7 @@ d'erreur). L'indexeur n'écrit jamais dans le log, et ne modifie jamais un champ
 """
 
 import logging
+import threading
 from collections.abc import Callable, Collection
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -141,6 +142,7 @@ def verifier_sonores(
 	audit_complet: bool = False,
 	bilan: Bilan | None = None,
 	identifiants: Collection[int] | None = None,
+	arret: threading.Event | None = None,
 ) -> Bilan:
 	"""Vérifie les sonores de type fichier ; chaque sonore est enregistré dans sa propre transaction.
 
@@ -152,6 +154,8 @@ def verifier_sonores(
 
 	identifiants : seuls ces sonores, pour la vérification immédiate des fichiers que l'interface ajoute
 	(https://github.com/dascritch/machincast/issues/30) ; tous les sonores sans eux.
+
+	arret : une fois posé, la vérification s'arrête avant le sonore suivant.
 
 	La connexion doit avoir endossé le rôle de l'indexation (machincast.base.connecter). Lève
 	DecodeurIndisponible si GStreamer ne sait pas décoder un format : les sonores déjà vérifiés le restent.
@@ -166,6 +170,8 @@ def verifier_sonores(
 	if bilan is None:
 		bilan = Bilan(audit_complet=audit_complet)
 	for identifiant, emplacement, etat_texte, champs_edites, artiste, titre, metadonnees in sonores:
+		if (arret is not None) and (arret.is_set()):
+			break
 		chemin = Path(str(emplacement))
 		avant = EtatSonore(str(etat_texte))
 		decoder = (audit_complet) or (avant is EtatSonore.APERCU)
