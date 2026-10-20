@@ -205,6 +205,8 @@
            </widget>
           </item>
           <item row="1" column="1">
+           <layout class="QHBoxLayout" name="ligne_en_cours_sequence" stretch="1,0">
+            <item>
            <widget class="QLabel" name="en_cours_sequence">
        <property name="text">
         <string>—</string>
@@ -216,6 +218,24 @@
         <bool>true</bool>
        </property>
       </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="ouvrir_sequence_en_cours">
+          <property name="toolTip">
+           <string>Ouvrir la fiche de la séquence</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="icon">
+           <iconset theme="view-media-playlist"/>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+            </item>
+           </layout>
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="intitule_en_cours_banque">
@@ -225,6 +245,8 @@
            </widget>
           </item>
           <item row="2" column="1">
+           <layout class="QHBoxLayout" name="ligne_en_cours_banque" stretch="1,0">
+            <item>
            <widget class="QLabel" name="en_cours_banque">
        <property name="text">
         <string>—</string>
@@ -236,6 +258,24 @@
         <bool>true</bool>
        </property>
       </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="ouvrir_banque_en_cours">
+          <property name="toolTip">
+           <string>Ouvrir la fiche de la banque</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="icon">
+           <iconset theme="folder-music"/>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+            </item>
+           </layout>
           </item>
           <item row="3" column="0">
            <widget class="QLabel" name="intitule_en_cours_horaire">
@@ -389,6 +429,8 @@
            </widget>
           </item>
           <item row="1" column="1">
+           <layout class="QHBoxLayout" name="ligne_prochain_sequence" stretch="1,0">
+            <item>
            <widget class="QLabel" name="prochain_sequence">
        <property name="text">
         <string>—</string>
@@ -400,6 +442,24 @@
         <bool>true</bool>
        </property>
       </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="ouvrir_sequence_prochain">
+          <property name="toolTip">
+           <string>Ouvrir la fiche de la séquence</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="icon">
+           <iconset theme="view-media-playlist"/>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+            </item>
+           </layout>
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="intitule_prochain_banque">
@@ -409,6 +469,8 @@
            </widget>
           </item>
           <item row="2" column="1">
+           <layout class="QHBoxLayout" name="ligne_prochain_banque" stretch="1,0">
+            <item>
            <widget class="QLabel" name="prochain_banque">
        <property name="text">
         <string>—</string>
@@ -420,6 +482,24 @@
         <bool>true</bool>
        </property>
       </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="ouvrir_banque_prochain">
+          <property name="toolTip">
+           <string>Ouvrir la fiche de la banque</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="icon">
+           <iconset theme="folder-music"/>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+            </item>
+           </layout>
           </item>
           <item row="3" column="0">
            <widget class="QLabel" name="intitule_prochain_horaire">
