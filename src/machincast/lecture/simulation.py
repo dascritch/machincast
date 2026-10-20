@@ -29,7 +29,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 
-from machincast.configuration import Metadonnees
+from machincast.configuration import Crossfades, Metadonnees
 from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe
 from machincast.lecture.diffusion import Diffusion
@@ -411,6 +411,7 @@ def simuler(
 	graine: int | None = None,
 	nom: str | None = None,
 	metadonnees: Metadonnees | None = None,
+	crossfades: Crossfades | None = None,
 ) -> Resultat:
 	"""Simule la diffusion de debut à fin, puis écrit les sorties de la simulation dans le répertoire.
 
@@ -422,7 +423,14 @@ def simuler(
 	horloge = HorlogeFixe(debut)
 	moteur = MoteurSimule(horloge)
 	with lecture_seule(connexion):
-		diffusion = Diffusion(connexion, moteur, horloge, creer_hasard(graine), historique=historique)
+		diffusion = Diffusion(
+			connexion,
+			moteur,
+			horloge,
+			creer_hasard(graine),
+			historique=historique,
+			crossfades=(crossfades) or (Crossfades()),
+		)
 		diffusion.demarrer()
 		while horloge.maintenant() < fin:
 			instant = horloge.maintenant()

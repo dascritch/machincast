@@ -17,6 +17,7 @@ import pytest
 from pytest_bdd import given, parsers, then, when
 
 from machincast.base import Role, connecter
+from machincast.configuration import Crossfades
 from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe
 from machincast.lecture.diffusion import Diffusion
@@ -44,6 +45,8 @@ class Banc:
 	etat: SocketEtat | None = None
 	"""Socket d'état de la diffusion ; aucune par défaut."""
 	fichiers: dict[str, Path] = field(default_factory=dict)
+	crossfades: Crossfades = field(default_factory=Crossfades)
+	"""Crossfades de la configuration : sans durée par défaut, sauf si le scénario en donne."""
 
 
 @pytest.fixture
@@ -230,6 +233,32 @@ def crossfades(base_vide: Connexion, duree: str) -> None:
 	base_vide.execute("UPDATE sonores SET crossfade_debut = %s, crossfade_fin = %s", (valeur, valeur))
 
 
+@given(parsers.re(r"les crossfades de chaque sonore sont (?:de (?P<duree>[\d,]+) seconde|non paramétrés)"))
+def crossfades_des_sonores(base_vide: Connexion, duree: str | None) -> None:
+	"""Non paramétrés : NULL ; 0 seconde est un crossfade paramétré (https://github.com/dascritch/machincast/issues/145)."""
+	valeur = None
+	if duree is not None:
+		valeur = timedelta(seconds=secondes(duree))
+	base_vide.execute("UPDATE sonores SET crossfade_debut = %s, crossfade_fin = %s", (valeur, valeur))
+
+
+@given(
+	parsers.re(
+		r"les crossfades par défaut de la configuration sont (?:absents|de (?P<debut>[\d,]+) seconde au début"
+		r"(?: et de (?P<fin>[\d,]+) à la fin|, et absent à la fin)"
+		r"|absent au début, et de (?P<fin_seule>[\d,]+) à la fin)"
+	)
+)
+def crossfades_par_defaut(banc: Banc, debut: str | None, fin: str | None, fin_seule: str | None) -> None:
+	durees: list[timedelta | None] = []
+	for valeur in (debut, (fin) or (fin_seule)):
+		duree = None
+		if valeur is not None:
+			duree = timedelta(seconds=secondes(valeur))
+		durees.append(duree)
+	banc.crossfades = Crossfades(debut=durees[0], fin=durees[1])
+
+
 REGLES_DE_CROSSFADE = {
 	"laisse ses sonores décider, malgré": "sonore",
 	"applique à défaut": "a_defaut",
@@ -288,6 +317,7 @@ def demarrer(banc: Banc, base_vide: Connexion, rythme: str) -> None:
 		etat=banc.etat,
 		# À chaque pas, pour que la socket d'état donne la progression du moment.
 		publication_minimale=0.0,
+		crossfades=banc.crossfades,
 	)
 	banc.diffusion.demarrer()
 

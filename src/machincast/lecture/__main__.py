@@ -86,7 +86,14 @@ def executer_simulation(configuration: Configuration, options: argparse.Namespac
 	try:
 		with connecter(base.socket, base.production, Role.LECTURE) as connexion:
 			resultat = simuler(
-				connexion, repertoire, debut, fin, options.graine, options.nom, configuration.metadonnees
+				connexion,
+				repertoire,
+				debut,
+				fin,
+				options.graine,
+				options.nom,
+				configuration.metadonnees,
+				configuration.crossfades,
 			)
 	except psycopg.OperationalError as erreur:
 		journal.error(f"base de données injoignable ({base.production} par {base.socket}) : {erreur}")
@@ -123,6 +130,7 @@ def executer_diffusion(configuration: Configuration) -> int:
 					creer_hasard(None),
 					sorties=Sorties.depuis(configuration),
 					etat=SocketEtat(configuration.lecture.socket_etat),
+					crossfades=configuration.crossfades,
 				)
 				diffuser(diffusion, arret)
 			finally:

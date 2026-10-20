@@ -22,6 +22,43 @@ Fonctionnalité: Schéma de la base de données
 			| airplay               |
 			| log                   |
 
+	Scénario: Chaque type énuméré créé par les migrations est connu de MachinCast
+		Alors les types énumérés de la base sont ceux de machincast.base.TYPES
+
+	Scénario: Un sonore peut ne pas avoir de crossfade paramétré, et 0 seconde en est un
+		https://github.com/dascritch/machincast/issues/145
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "sonores" : type = 'fichier', emplacement = '/a.flac'
+		Alors le sonore « /a.flac » a ses crossfades non paramétrés
+		Quand j'enregistre dans "sonores" : type = 'fichier', emplacement = '/b.flac', crossfade_debut = '0 s', crossfade_fin = '0 s'
+		Alors le sonore « /b.flac » a ses crossfades de 0 seconde
+
+	Scénario: La migration des crossfades facultatifs ne garde que les crossfades saisis à la main
+		https://github.com/dascritch/machincast/issues/145 : un crossfade de 0 seconde que personne n'a saisi n'était qu'une valeur par défaut ;
+		saisi à la main (champs_edites), 0 seconde compris, il est gardé.
+
+		Quand j'annule les migrations depuis « 0007.sonores-crossfades-facultatifs »
+		Et j'enregistre les sonores aux crossfades :
+			| emplacement | crossfade_debut | crossfade_fin | champs_edites                     |
+			| /a.flac     | 0 s             | 0 s           |                                   |
+			| /b.flac     | 0 s             | 2 s           | crossfade_debut                   |
+			| /c.flac     | 1 s             | 0 s           | crossfade_debut, crossfade_fin    |
+			| /d.flac     | 3 s             | 0 s           |                                   |
+		Et j'applique les migrations
+		Alors les crossfades des sonores sont :
+			| emplacement | crossfade_debut | crossfade_fin |
+			| /a.flac     |                 |               |
+			| /b.flac     | 0 s             |               |
+			| /c.flac     | 1 s             | 0 s           |
+			| /d.flac     |                 |               |
+		Quand j'annule les migrations depuis « 0007.sonores-crossfades-facultatifs »
+		Alors les crossfades des sonores sont :
+			| emplacement | crossfade_debut | crossfade_fin |
+			| /a.flac     | 0 s             | 0 s           |
+			| /b.flac     | 0 s             | 0 s           |
+			| /c.flac     | 1 s             | 0 s           |
+			| /d.flac     | 0 s             | 0 s           |
+
 	Scénario: Les migrations s'annulent proprement
 		Quand j'annule toutes les migrations
 		Alors la base ne contient plus aucune table ni aucun type de MachinCast

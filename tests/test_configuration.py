@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 from dataclasses import dataclass, field
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -92,6 +93,17 @@ def cle_vaut(contexte: Contexte, cle: str, valeur: str) -> None:
 	valeur = valeur.replace("<256 caractères>", "é" * 256)
 	contexte.cles.setdefault(section, {})[nom] = valeur
 	ecrire(contexte)
+
+
+@given(parsers.parse('une configuration valide sans section "{section}"'))
+def sans_section(contexte: Contexte, section: str) -> None:
+	contexte.cles.pop(section, None)
+	ecrire(contexte)
+
+
+@given(parsers.parse('la clé "{cle}" vaut {valeur}'))
+def et_la_cle_vaut(contexte: Contexte, cle: str, valeur: str) -> None:
+	cle_vaut(contexte, cle, valeur)
 
 
 @given(parsers.parse("le répertoire d'exécution du compte « {repertoire} »"))
@@ -299,3 +311,37 @@ def code_retour(contexte: Contexte, code: int) -> None:
 def erreur_chemin(contexte: Contexte) -> None:
 	assert contexte.resultat is not None
 	assert str(contexte.chemin) in contexte.resultat.stderr
+
+
+# ─── Crossfades (https://github.com/dascritch/machincast/issues/145) ─────
+
+
+@then(
+	parsers.re(
+		r"les crossfades se règlent (?P<granularite>au dixième de seconde|à la seconde),"
+		r" jusqu'à (?P<maximum>\d+) secondes"
+	)
+)
+def granularite_et_maximum(contexte: Contexte, granularite: str, maximum: str) -> None:
+	assert contexte.configuration is not None, contexte.erreur
+	crossfades = contexte.configuration.crossfades
+	attendue = {"au dixième de seconde": "dixieme", "à la seconde": "seconde"}[granularite]
+	assert (crossfades.granularite, crossfades.maximum) == (attendue, timedelta(seconds=int(maximum)))
+
+
+@then("les crossfades n'ont pas de durée par défaut")
+def sans_defaut(contexte: Contexte) -> None:
+	assert contexte.configuration is not None, contexte.erreur
+	assert (contexte.configuration.crossfades.debut, contexte.configuration.crossfades.fin) == (None, None)
+
+
+@then(
+	parsers.re(
+		r"les crossfades durent par défaut (?P<debut>[\d,]+) secondes? au début et (?P<fin>[\d,]+) secondes? à la fin"
+	)
+)
+def defauts(contexte: Contexte, debut: str, fin: str) -> None:
+	assert contexte.configuration is not None, contexte.erreur
+	crossfades = contexte.configuration.crossfades
+	attendus = tuple(timedelta(seconds=float(valeur.replace(",", "."))) for valeur in (debut, fin))
+	assert (crossfades.debut, crossfades.fin) == attendus

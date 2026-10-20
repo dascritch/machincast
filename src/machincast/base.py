@@ -38,6 +38,7 @@ TYPES: tuple[str, ...] = (
 	"type_ligne_airplay",
 	"niveau_log",
 	"etat_sonore",
+	"regle_crossfade",
 )
 """Types énumérés créés par les migrations."""
 
