@@ -185,9 +185,17 @@ def sonore_titre_edite(base_vide: Connexion, fichier: Path, etat: str, titre: st
 	return sonore
 
 
+@pytest.fixture
+def indexations() -> list[tuple[datetime, datetime]]:
+	"""Le début et la fin de chaque indexation du scénario, à l'heure de la base."""
+	return []
+
+
 @given("l'indexeur a fait une indexation rapide")
-def indexation_prealable(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> None:
-	indexer(base_vide, caplog, audit_complet=False)
+def indexation_prealable(
+	base_vide: Connexion, caplog: pytest.LogCaptureFixture, indexations: list[tuple[datetime, datetime]]
+) -> None:
+	indexer(base_vide, caplog, audit_complet=False, indexations=indexations)
 
 
 @given(
@@ -257,13 +265,26 @@ def stream(base_vide: Connexion) -> tuple[int, object]:
 	return int(str(ligne[0])), ligne[1]
 
 
+def maintenant_en_base(base: Connexion) -> datetime:
+	ligne = base.execute("SELECT clock_timestamp()").fetchone()
+	assert (ligne is not None) and (isinstance(ligne[0], datetime))
+	return ligne[0]
+
+
 def indexer(
-	base_vide: Connexion, caplog: pytest.LogCaptureFixture, audit_complet: bool, arret: threading.Event | None = None
+	base_vide: Connexion,
+	caplog: pytest.LogCaptureFixture,
+	audit_complet: bool,
+	arret: threading.Event | None = None,
+	indexations: list[tuple[datetime, datetime]] | None = None,
 ) -> Execution:
 	# Le compte qui lance les tests endosse déjà le rôle de l'indexation (vérifié par base_vide).
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:
+		debut = maintenant_en_base(base_vide)
 		bilan = indexer_complet(c, audit_complet=audit_complet, arret=arret)
+		if indexations is not None:
+			indexations.append((debut, maintenant_en_base(base_vide)))
 		verrou_rendu = verrou_libre()
 	# Les anomalies et les erreurs vont sur la sortie d'erreur : niveau WARNING et au-delà.
 	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
@@ -272,8 +293,10 @@ def indexer(
 
 
 @when("l'indexeur fait un audit complet", target_fixture="execution")
-def audit_complet(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> Execution:
-	return indexer(base_vide, caplog, audit_complet=True)
+def audit_complet(
+	base_vide: Connexion, caplog: pytest.LogCaptureFixture, indexations: list[tuple[datetime, datetime]]
+) -> Execution:
+	return indexer(base_vide, caplog, audit_complet=True, indexations=indexations)
 
 
 @when("l'indexeur fait une indexation rapide, dont l'arrêt est déjà demandé", target_fixture="execution")
@@ -284,8 +307,10 @@ def indexation_arretee(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -
 
 
 @when("l'indexeur fait une indexation rapide", target_fixture="execution")
-def indexation_rapide(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> Execution:
-	return indexer(base_vide, caplog, audit_complet=False)
+def indexation_rapide(
+	base_vide: Connexion, caplog: pytest.LogCaptureFixture, indexations: list[tuple[datetime, datetime]]
+) -> Execution:
+	return indexer(base_vide, caplog, audit_complet=False, indexations=indexations)
 
 
 def lire_sonore(base: Connexion, sonore: int) -> tuple[object, ...]:
@@ -404,3 +429,24 @@ def anomalie_csv(repertoire_d_audit: Path, fichier: Path, nom: str, verdict: str
 	_date, chemin, lu, probleme, suite = anomalie
 	assert (chemin, lu, suite) == (str(fichier), verdict, consequence)
 	assert (probleme != "") and (not probleme.startswith(verdict)), probleme
+
+
+def verifie_le(base: Connexion, sonore: int) -> object:
+	ligne = base.execute("SELECT verifie_le FROM sonores WHERE id = %s", (sonore,)).fetchone()
+	assert ligne is not None
+	return ligne[0]
+
+
+@then(parsers.re(r"la date de vérification complète du sonore est celle de l'indexation(?P<precedente> précédente)?"))
+def date_de_verification(
+	base_vide: Connexion, sonore: int, indexations: list[tuple[datetime, datetime]], precedente: str | None
+) -> None:
+	debut, fin = indexations[-2 if precedente is not None else -1]
+	date = verifie_le(base_vide, sonore)
+	assert isinstance(date, datetime)
+	assert debut <= date <= fin, (debut, date, fin)
+
+
+@then("le sonore n'a pas de date de vérification complète")
+def sans_date_de_verification(base_vide: Connexion, sonore: int) -> None:
+	assert verifie_le(base_vide, sonore) is None
