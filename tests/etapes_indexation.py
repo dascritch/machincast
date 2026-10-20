@@ -396,7 +396,9 @@ def lancer_sur_la_base_de_test(
 	)
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"):
-		code = executer(sur_la_base_de_test, argparse.Namespace(audit_complet=audit is not None, fenetre=False))
+		code = executer(
+			sur_la_base_de_test, argparse.Namespace(audit_complet=audit is not None, fenetre=False, sonore=None)
+		)
 	return code, [enregistrement.getMessage() for enregistrement in caplog.records]
 
 

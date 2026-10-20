@@ -20,6 +20,7 @@ from machincast.base import Role, connecter
 from machincast.configuration import Crossfades
 from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe
+from machincast.lecture.analyse import Analyseur
 from machincast.lecture.diffusion import Diffusion
 from machincast.lecture.etat import SocketEtat
 from machincast.lecture.moteur import MoteurAudio
@@ -47,6 +48,8 @@ class Banc:
 	fichiers: dict[str, Path] = field(default_factory=dict)
 	crossfades: Crossfades = field(default_factory=Crossfades)
 	"""Crossfades de la configuration : sans durée par défaut, sauf si le scénario en donne."""
+	analyseur: Analyseur | None = None
+	"""Analyse du prochain sonore (https://github.com/dascritch/machincast/issues/181) : aucune par défaut."""
 
 
 @pytest.fixture
@@ -352,6 +355,7 @@ def demarrer(banc: Banc, base_vide: Connexion, rythme: str) -> None:
 		# À chaque pas, pour que la socket d'état donne la progression du moment.
 		publication_minimale=0.0,
 		crossfades=banc.crossfades,
+		analyseur=banc.analyseur,
 	)
 	banc.diffusion.demarrer()
 

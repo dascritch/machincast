@@ -18,6 +18,7 @@ from machincast.cli import CODE_CONFIGURATION_INVALIDE, lancer
 from machincast.configuration import Configuration
 from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeSysteme
+from machincast.lecture.analyse import Analyseur, commande_d_analyse
 from machincast.lecture.diffusion import Diffusion, diffuser, installer_arret
 from machincast.lecture.etat import SocketEtat, SocketEtatOccupee
 from machincast.lecture.moteur import MoteurAudio
@@ -131,6 +132,7 @@ def executer_diffusion(configuration: Configuration) -> int:
 					sorties=Sorties.depuis(configuration),
 					etat=SocketEtat(configuration.lecture.socket_etat),
 					crossfades=configuration.crossfades,
+					analyseur=Analyseur(commande_d_analyse(configuration.chemin)),
 				)
 				diffuser(diffusion, arret)
 			finally:
