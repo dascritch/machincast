@@ -36,6 +36,38 @@ Fonctionnalité: Fiche d'une banque
 			| Aube – Matin clair          | 3:20  | /srv/jingles/hiver/matin.flac |
 		Et l'écran de détail de banque « Jingles » est demandé
 
+	# ─── Ouvrir un sonore (https://github.com/dascritch/machincast/issues/115) ─────
+
+	Scénario: Un double-clic sur un sonore de la banque ouvre sa fiche
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et j'ouvre le sonore « Aube – Matin clair » de la banque
+		Alors l'onglet ouvert est « Sonore : Matin clair »
+		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents », « Banque : Jingles », « Sonore : Matin clair »
+
+	Scénario: Entrée sur le sonore choisi ouvre aussi sa fiche
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je choisis le sonore « Les Gaufres – Café à minuit » de la banque, puis j'appuie sur Entrée
+		Alors l'onglet ouvert est « Sonore : Café à minuit »
+
+	Scénario: Ouvrir un sonore laisse la banque modifiée telle quelle
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je saisis le nom interne « Jingles du soir »
+		Et j'ouvre le sonore « Aube – Matin clair » de la banque
+		Et j'ouvre l'onglet « Banque : Jingles »
+		Alors les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
+		Et aucune question n'a été posée
+
+	Scénario: Un fichier déposé, pas encore enregistré, n'a pas encore de fiche
+		Étant donné les fichiers « …/nouveau.ogg » du scénario
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je dépose sur les sonores de la fiche « …/nouveau.ogg »
+		Et j'ouvre le sonore « nouveau.ogg » de la banque
+		Alors l'onglet ouvert est « Banque : Jingles »
+
 	Scénario: Un sonore sans durée ou sans titre le montre, un fichier pas encore décodé par son nom
 		Étant donné les sonores :
 			| artiste | titre         | type    | etat   | duree | emplacement                 |

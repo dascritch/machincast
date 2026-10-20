@@ -6,6 +6,8 @@ une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interf
 - Les noms sont enregistrés sans les espaces qui les entourent ; un nom public vide n'en est pas un (NULL).
 - Le masquage « hérité du sonore » (NULL) laisse décider le sonore ; « masqués » et « affichés » l'imposent.
 - Les répertoires sont enregistrés sous leur forme normale, comme les lit Machin indexation.
+- Ouvrir un sonore, par un double-clic ou Entrée, ouvre sa fiche (https://github.com/dascritch/machincast/issues/115) ;
+  la banque reste telle quelle, modifications comprises. Un fichier déposé n'a de fiche qu'une fois enregistré.
 - Les sonores se réordonnent par glisser-déposer, ou par les boutons « Monter » et « Descendre », en mode séquentiel
   seulement. Ils s'ajoutent parmi les sonores déjà en base (machincast.interface.choix), y compris hors des
   répertoires de la banque.
@@ -99,6 +101,7 @@ class FicheBanque(Fiche):
 		modele.rowsRemoved.connect(self._modifier)
 		self.ui.repertoires.currentItemChanged.connect(self._actualiser_boutons)
 		self.ui.sonores.currentItemChanged.connect(self._actualiser_boutons)
+		self.ui.sonores.itemActivated.connect(self._ouvrir_sonore)
 		self.ui.ajouter_repertoire.clicked.connect(self._ajouter_repertoire)
 		self.ui.retirer_repertoire.clicked.connect(self._retirer_repertoire)
 		self.ui.ajouter_sonores.clicked.connect(self._ajouter_sonores)
@@ -234,6 +237,12 @@ class FicheBanque(Fiche):
 		ligne.setData(0, FICHIER, _texte(fichier))
 		ligne.setFlags(LIGNE)
 		return ligne
+
+	def _ouvrir_sonore(self, ligne: QTreeWidgetItem) -> None:
+		"""Ouvrir un sonore demande sa fiche ; un fichier déposé n'en a pas avant l'enregistrement."""
+		identifiant = ligne.data(0, SONORE)
+		if identifiant is not None:
+			self.ouverture_demandee.emit("sonore", int(identifiant), ligne.text(0))
 
 	def _lignes(self) -> list[QTreeWidgetItem]:
 		liste = self.ui.sonores
