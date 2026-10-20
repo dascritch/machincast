@@ -220,40 +220,6 @@ def sequence_du_fil(
 	)
 
 
-@given(parsers.re(r"le fil musical permanent « (?P<fil>[^»]+) » joue les séquences (?P<liste>.+)"))
-def fil_des_sequences(banc: Banc, base_vide: Connexion, tmp_path: Path, fil: str, liste: str) -> None:
-	"""« A » des sonores « a1 », « a2 », puis « B » des sonores « b1 » : chaque séquence est un élément du fil."""
-	evenement_cree = base_vide.execute(
-		"INSERT INTO evenements (nom_interne, priorite) VALUES (%s, 'fil_musical') RETURNING id", (fil,)
-	).fetchone()
-	assert evenement_cree is not None
-	for rang, partie in enumerate(liste.split(", puis "), start=1):
-		nom, sonores = partie.split(" des sonores ")
-		sequence = base_vide.execute(
-			"INSERT INTO sequences (nom_interne) VALUES (%s) RETURNING id", (nom.strip(" «»"),)
-		).fetchone()
-		assert sequence is not None
-		for position, nom_sonore in enumerate((n.strip(" «»") for n in sonores.split(",")), start=1):
-			base_vide.execute(
-				"INSERT INTO sequences_elements (sequence_id, position, sonore_id) VALUES (%s, %s, %s)",
-				(sequence[0], position, creer_sonore(banc, base_vide, tmp_path, nom_sonore)),
-			)
-		base_vide.execute(
-			"INSERT INTO evenements_elements (evenement_id, position, sequence_id) VALUES (%s, %s, %s)",
-			(evenement_cree[0], rang, sequence[0]),
-		)
-
-
-@given(
-	parsers.re(
-		r"le spécial « (?P<nom>[^»]+) » à partir de (?P<debut>[\d:]+), sans fin,"
-		r" avec le sonore « (?P<nom_sonore>[^»]+) »"
-	)
-)
-def special_sans_fin(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, debut: str, nom_sonore: str) -> None:
-	evenement(banc, base_vide, tmp_path, nom, "special", heure(f"2026-10-14 {debut}"), None, [nom_sonore])
-
-
 @given(parsers.parse("l'événement « {nom} » a pour nom public « {nom_public} », et masque ses sonores"))
 def evenement_masque(base_vide: Connexion, nom: str, nom_public: str) -> None:
 	base_vide.execute(
@@ -453,25 +419,6 @@ def fin_du_log(base_vide: Connexion, niveau: str, nature: str) -> None:
 @then(parsers.re(r"le log contient (?P<nombre>\d+) (?P<niveau>info|alerte|incident) « (?P<nature>[^»]+) »"))
 def lignes_du_log(base_vide: Connexion, nombre: str, niveau: str, nature: str) -> None:
 	assert log(base_vide).count((niveau, nature)) == int(nombre), log(base_vide)
-
-
-NATURES_DE_L_ANTENNE = ("début d'événement", "fin d'événement", "début de séquence", "fin de séquence")
-"""Ce que le log note des événements et des séquences à l'antenne (https://github.com/dascritch/machincast/issues/153)."""
-
-
-@then("le log note pour les événements et les séquences :")
-def log_de_l_antenne(base_vide: Connexion, datatable: list[list[str]]) -> None:
-	_entetes, *rangees = datatable
-	lues = base_vide.execute(
-		"SELECT l.horodatage, l.niveau::text, l.nature, l.message, e.nom_interne FROM log l"
-		" LEFT JOIN evenements e ON e.id = l.evenement_id WHERE l.nature = ANY(%s) ORDER BY l.id",
-		(list(NATURES_DE_L_ANTENNE),),
-	).fetchall()
-	attendues = [
-		(heure(horodatage.strip()), "info", nature.strip(), message.strip(), evenement.strip())
-		for horodatage, nature, message, evenement in rangees
-	]
-	assert lues == attendues, lues
 
 
 @then(parsers.parse("le passage « {nom} » a été coupé net au « {instant} »"))

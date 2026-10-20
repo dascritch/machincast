@@ -304,11 +304,6 @@ class Sorties:
 			journal.info(f"à l'antenne : {(artiste_et_titre(ligne)) or (ligne.emplacement)}{lieu}")
 		self.mettre_a_jour(connexion, passage.debut)
 
-	def annoncer(self, nature: str, message: str) -> None:
-		"""Un début ou une fin d'événement ou de séquence, dans le journal du binaire
-		(https://github.com/dascritch/machincast/issues/153)."""
-		journal.info(f"{nature} : {message}")
-
 	def passage_termine(self, connexion: psycopg.Connection[TupleRow], passage: Passage, instant: datetime) -> None:
 		"""Ajoute le passage au CSV de son jour, puis met à jour la page publique et la playlist."""
 		for ligne in lire_passages(connexion, 1, passage.id):

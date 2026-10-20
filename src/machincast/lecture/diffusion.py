@@ -52,22 +52,12 @@ from machincast.lecture.enregistrement import Passage
 from machincast.lecture.etat import PUBLICATION_MINIMALE, SocketEtat, SocketEtatOccupee, est_sain
 from machincast.lecture.etat import instant as iso
 from machincast.lecture.fichiers import verifier_avant_lecture
-from machincast.lecture.grille import Occurrence, Priorite
 from machincast.lecture.historique import EN_BASE, Historique
 from machincast.lecture.moteur import Moteur, VoieLecture, enchainement, fondu_d_entree, superposition
 from machincast.lecture.sorties import Sorties, lire_passages, texte_public
 
 PAUSE = 0.05
 AUCUN_CROSSFADE = timedelta(0)
-DEBUT_D_EVENEMENT, FIN_D_EVENEMENT = "début d'événement", "fin d'événement"
-DEBUT_DE_SEQUENCE, FIN_DE_SEQUENCE = "début de séquence", "fin de séquence"
-"""Natures, au niveau info, des débuts et des fins à l'antenne (https://github.com/dascritch/machincast/issues/153)."""
-PRIORITES = {
-	Priorite.SPECIAL: "spécial",
-	Priorite.EMISSION: "émission",
-	Priorite.FIL_MUSICAL: "fil musical",
-	Priorite.SECOURS: "secours",
-}
 SANS_DEFAUTS = Crossfades()
 """Une configuration sans crossfades par défaut."""
 HORIZON_DES_COUPURES = timedelta(hours=12)
@@ -228,10 +218,6 @@ class Diffusion:
 	"""Dernier état publié sur la socket, sans ce qui change à chaque pas, et heure de sa publication."""
 	_details_reserve: tuple[Reserve, dict[str, Any]] | None = field(default=None, init=False)
 	"""Contexte du sonore réservé, lu une fois pour lui."""
-	_a_l_antenne: Choix | None = field(default=None, init=False)
-	"""Le dernier passage commencé, pour noter les débuts et les fins d'événements et de séquences."""
-	_sequence_a_l_antenne: str = field(default="", init=False)
-	"""Le message de la séquence à l'antenne, gardé pour sa fin."""
 
 	def __post_init__(self) -> None:
 		self.ordonnanceur = Ordonnanceur(self.connexion, self.hasard, self.historique)
@@ -290,7 +276,6 @@ class Diffusion:
 		for lecture in self._lectures():
 			self._terminer(lecture.passage, instant)
 		self.courant, self.sortants, self.en_attente, self.sonde, self.reserve = None, [], None, None, None
-		self._noter_l_antenne(None, instant)
 		self.historique.consigner(self.connexion, "info", "arrêt", "arrêt demandé", instant)
 		self._publier(instant, arret=True)
 		if self.etat is not None:
@@ -487,7 +472,6 @@ class Diffusion:
 		self._reserver(instant)
 
 	def _commencer(self, choix: Choix, instant: datetime) -> Passage:
-		self._noter_l_antenne(choix, instant)
 		ligne = choix.ligne
 		passage = self.historique.commencer_passage(
 			self.connexion,
@@ -578,42 +562,6 @@ class Diffusion:
 		marche = "arret" if arret else ("diffusion" if (courant is not None) or (self.sortants) else "silence")
 		return {"etat": marche, "en_cours": en_cours, "prochain": prochain}
 
-	def _noter_l_antenne(self, choix: Choix | None, instant: datetime) -> None:
-		"""Avant le passage qui commence, ou à l'arrêt (None) : la fin de la séquence et de l'événement qu'il ne
-		continue pas, puis le début des siens, dans le log et le journal du binaire
-		(https://github.com/dascritch/machincast/issues/153). Les heures sont celles de l'antenne."""
-		precedent, self._a_l_antenne = self._a_l_antenne, choix
-		meme_occurrence = (
-			(precedent is not None) and (choix is not None) and (precedent.occurrence.cle == choix.occurrence.cle)
-		)
-		suite = (meme_occurrence) and (_continue_la_sequence(precedent, choix))
-		if (precedent is not None) and (precedent.ligne is not None) and (not suite):
-			self._noter(FIN_DE_SEQUENCE, self._sequence_a_l_antenne, precedent, instant)
-		if (precedent is not None) and (not meme_occurrence):
-			self._noter(FIN_D_EVENEMENT, f"« {precedent.occurrence.evenement.nom} »", precedent, instant)
-		if choix is None:
-			return
-		if not meme_occurrence:
-			self._noter(DEBUT_D_EVENEMENT, _evenement_a_l_antenne(choix.occurrence), choix, instant)
-		if (choix.ligne is not None) and (not suite):
-			# Dans sa propre transaction : la connexion n'en laisse jamais une ouverte, qui retiendrait l'airplay.
-			with self.connexion.transaction():
-				ligne = self.connexion.execute(
-					"SELECT nom_interne FROM sequences WHERE id = %s", (choix.ligne.sequence,)
-				).fetchone()
-			nom = str(choix.ligne.sequence)
-			if ligne is not None:
-				nom = str(ligne[0])
-			self._sequence_a_l_antenne = f"« {nom} », dans « {choix.occurrence.evenement.nom} »"
-			self._noter(DEBUT_DE_SEQUENCE, self._sequence_a_l_antenne, choix, instant)
-
-	def _noter(self, nature: str, message: str, choix: Choix, instant: datetime) -> None:
-		self.historique.consigner(
-			self.connexion, "info", nature, message, instant, evenement=choix.occurrence.evenement.id
-		)
-		if self.sorties is not None:
-			self.sorties.annoncer(nature, message)
-
 	def _details(self, choix: Choix, passage: Passage | None) -> dict[str, Any]:
 		"""Le contexte d'un sonore pour la socket d'état (https://github.com/dascritch/machincast/issues/144) :
 		l'occurrence de son événement, sa séquence et sa banque ; pour le sonore en cours, le texte que la page
@@ -666,31 +614,6 @@ def _affichage(choix: Choix, parametres: Parametres) -> dict[str, Any]:
 		"emplacement": parametres.emplacement,
 		"evenement": choix.occurrence.evenement.nom,
 	}
-
-
-def _continue_la_sequence(precedent: Choix | None, choix: Choix | None) -> bool:
-	"""Le passage suit-il le précédent dans la même séquence, un élément plus loin ?"""
-	if (precedent is None) or (choix is None) or (precedent.ligne is None) or (choix.ligne is None):
-		return False
-	return (precedent.element.id == choix.element.id) and (choix.ligne.position > precedent.ligne.position)
-
-
-def _heure(instant: datetime) -> str:
-	"""« 20:00 », ou « 19:59:51 » quand les secondes comptent."""
-	if instant.second == 0:
-		return f"{instant:%H:%M}"
-	return f"{instant:%H:%M:%S}"
-
-
-def _evenement_a_l_antenne(occurrence: Occurrence) -> str:
-	"""« « Journal », émission, de 20:00 à 20:30 » ; « depuis 19:00 » sans fin, « permanent » pour un fil musical."""
-	debut, fin = occurrence.debut, occurrence.fin
-	heures = "permanent"
-	if (debut is not None) and (fin is None):
-		heures = f"depuis {_heure(debut)}"
-	if (debut is not None) and (fin is not None):
-		heures = f"de {_heure(debut)} à {_heure(fin)}"
-	return f"« {occurrence.evenement.nom} », {PRIORITES[occurrence.evenement.priorite]}, {heures}"
 
 
 def crossfade(du_sonore: object, regle: object, de_la_banque: object, defaut: timedelta | None = None) -> timedelta:
