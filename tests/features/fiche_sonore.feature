@@ -46,8 +46,8 @@ Fonctionnalité: Fiche d'un sonore
 			| Compositeur           |                              |
 			| Label                 |                              |
 			| Piste                 |                              |
-			| Crossfade de début    | 1,50 s                       |
-			| Crossfade de fin      | 0,00 s                       |
+			| Crossfade de début    | 1,5 s                        |
+			| Crossfade de fin      |                              |
 			| Maximum de lectures   | 12                           |
 			| Artiste et titre      | selon la configuration       |
 			| Diffusion à partir du | 01/10/2026 00:00             |
@@ -166,7 +166,7 @@ Fonctionnalité: Fiche d'un sonore
 		Et je saisis dans la fiche du sonore :
 			| champ                 | valeur           |
 			| Crossfade de début    | 0,5              |
-			| Crossfade de fin      | 2,25             |
+			| Crossfade de fin      | 2,2              |
 			| Maximum de lectures   | 3                |
 			| Artiste et titre      | masqués          |
 			| Diffusion à partir du | 02/10/2026 08:00 |
@@ -175,12 +175,47 @@ Fonctionnalité: Fiche d'un sonore
 		Alors le sonore « Café à minuit » a en base :
 			| champ               | valeur                    |
 			| crossfade_debut     | 0:00:00.500000            |
-			| crossfade_fin       | 0:00:02.250000            |
+			| crossfade_fin       | 0:00:02.200000            |
 			| max_lectures        | 3                         |
 			| masquer_metadonnees | True                      |
 			| debut_diffusion     | 2026-10-02 08:00:00+02:00 |
 			| fin_diffusion       | 2026-12-31 23:30:00+01:00 |
 		Et les champs saisis à la main de « Café à minuit » sont « titre », « crossfade_debut », « crossfade_fin », « max_lectures », « masquer_metadonnees », « debut_diffusion », « fin_diffusion »
+
+	Scénario: Un crossfade se paramètre en le cochant, et 0 seconde en est un
+		https://github.com/dascritch/machincast/issues/145 : décoché, le crossfade n'est pas paramétré ; il vient alors de la banque ou de la
+		configuration (spec § 4).
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Et je saisis dans la fiche du sonore :
+			| champ              | valeur |
+			| Crossfade de début |        |
+			| Crossfade de fin   | 0      |
+		Alors la fiche du sonore montre :
+			| champ              | valeur |
+			| Crossfade de début |        |
+			| Crossfade de fin   | 0,0 s  |
+		Et le champ du crossfade de début de la fiche du sonore est inactif, celui de fin actif
+		Quand j'enregistre la fiche
+		Alors le sonore « Café à minuit » a en base :
+			| champ           | valeur  |
+			| crossfade_debut | None    |
+			| crossfade_fin   | 0:00:00 |
+		Et les champs saisis à la main de « Café à minuit » sont « titre », « crossfade_debut », « crossfade_fin »
+
+	Scénario: Un crossfade plus long que la durée maximale des préférences reste tel quel
+		https://github.com/dascritch/machincast/issues/145 : 5 secondes au plus, par défaut.
+
+		Étant donné le sonore « Café à minuit » a en base :
+			| champ         | valeur |
+			| crossfade_fin | 8 s    |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Alors la fiche du sonore montre :
+			| champ            | valeur |
+			| Crossfade de fin | 8,0 s  |
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
 
 	Scénario: Sans maximum de lectures ni période, le sonore n'a pas de limite
 		Quand la fenêtre de l'interface s'ouvre

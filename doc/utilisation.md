@@ -371,7 +371,7 @@ La sortie audio de l'antenne se règle dans la configuration (`audio.sortie` : `
 - **Crossfade de début** d'un sonore : il monte progressivement, de silencieux à plein volume, pendant ce temps.
 - **Crossfade de fin** d'un sonore : le sonore suivant démarre autant avant la fin, et celui-ci s'éteint progressivement pendant ce temps. Les deux se superposent.
 - **Les deux crossfades sont nécessaires** : deux sonores ne se superposent que si le premier a un crossfade de fin **et** le second un crossfade de début. Si l'un des deux est à 0, le premier joue jusqu'au bout à plein volume, puis le second démarre aussitôt à plein volume, sans fondu.
-- **D'où viennent les crossfades** ([#145](https://github.com/dascritch/machincast/issues/145)) : ceux qu'impose la banque qui a fourni le sonore ; sinon ceux de la fiche du sonore, s'ils y sont paramétrés (0 seconde en est un) ; sinon ceux que la banque applique à défaut ; sinon ceux de la configuration, section `[crossfades]` du `machincast.toml` ; sinon aucun.
+- **D'où viennent les crossfades** ([#145](https://github.com/dascritch/machincast/issues/145)) : ceux qu'impose la banque qui a fourni le sonore ; sinon ceux de la fiche du sonore, s'ils y sont paramétrés (0 seconde en est un) ; sinon ceux que la banque applique à défaut ; sinon ceux des [préférences](#préférences), section `[crossfades]` du `machincast.toml` ; sinon aucun.
 - **Coupure nette** : au début d'un événement, le sonore en cours s'arrête aussitôt, sans fondu.
 - **Avant de jouer un fichier**, sa date de modification et sa taille sont comparées à celles de l'indexation. Un écart est noté dans le log en alerte `fichier modifié`, et le fichier est quand même joué ; la prochaine indexation, même rapide, le revérifie et met la base à jour. Un fichier disparu n'est pas joué : l'incident `fichier introuvable` est noté dans le log, et la diffusion passe aussitôt au sonore suivant. Le sonore n'est plus proposé pendant une heure, pour ne pas noter le même incident à chaque tour de liste ; la prochaine indexation le passera à l'état `supprimé`.
 - **Superposition** : pendant un crossfade, deux sonores jouent en même temps. PipeWire et PulseAudio les mélangent toujours. En `alsa`, il faut un périphérique qui mélange, comme `default` ; un périphérique matériel direct (`hw:…`) ne joue qu'un son à la fois.
@@ -525,7 +525,7 @@ La fiche d'un sonore s'ouvre depuis la liste des sonores, dans un nouvel onglet 
 
 **Diffusion** :
 
-- **Crossfade de début et de fin**, en secondes (voir [Sortie audio](#sortie-audio)).
+- **Crossfade de début et de fin**, en secondes (voir [Sortie audio](#sortie-audio)), à cocher ([#145](https://github.com/dascritch/machincast/issues/145)) : décoché, le crossfade n'est pas paramétré, et vient de la banque ou des [préférences](#préférences) ; 0 seconde est un crossfade paramétré. Leur pas et leur durée maximale suivent les préférences.
 - **Maximum de lectures** : `illimité` à 0 (voir [Expiration des sonores](#expiration-des-sonores)).
 - **Artiste et titre** : `Masqués` ou `Affichés` sur la page publique, sauf si l'événement, la séquence ou la banque en décide ; `Selon la configuration` laisse décider la configuration (voir [Sorties de la diffusion](#sorties-de-la-diffusion)).
 - **Diffusion à partir du**, **Diffusion jusqu'au** : la période de diffusion, chacune à cocher. Une case cochée part de l'heure du moment, à la minute. La fin doit suivre le début, sinon la fiche le dit et n'enregistre rien.
@@ -662,13 +662,25 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 
 | Menu | Entrée | Rôle |
 | --- | --- | --- |
-| Fichier | Préférences… | À venir ([#111](https://github.com/dascritch/machincast/issues/111), [#145](https://github.com/dascritch/machincast/issues/145)). |
+| Fichier | Préférences… | Règle les crossfades de l'interface ([Préférences](#préférences)). L'icône de l'application viendra avec [#111](https://github.com/dascritch/machincast/issues/111). |
 | Fichier | Quitter | Ferme l'interface, aussi par <kbd>Alt</kbd> + <kbd>Q</kbd>, même depuis une fiche. Comme la fermeture de la fenêtre, demande d'abord quoi faire des fiches modifiées ; « Annuler » garde l'interface ouverte. La diffusion n'est pas concernée : `Machin lecture` continue. |
 | Affichage | Rafraîchir les onglets | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé en base, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
 | Maintenance | Indexation rapide, Audit complet | Lancent l'indexation ([Lancer l'indexation depuis l'interface](#lancer-lindexation-depuis-linterface)). |
 | Aide | Signaler un problème… | Ouvre les tickets de MachinCast sur GitHub, dans le navigateur web du poste. |
 | Aide | Version | Donne le numéro de version de MachinCast, et la date de sa dernière modification : celle du dernier commit du dépôt git d'où il est installé ([INSTALL.md](../INSTALL.md)), à l'heure du poste. Une installation qui n'est pas un dépôt git, ou un poste sans git, ne donne que le numéro de version. |
+
+### Préférences
+
+**Fichier → Préférences…** ouvre la fenêtre des préférences ([#145](https://github.com/dascritch/machincast/issues/145)). Sa page **Interface** règle les crossfades :
+
+| Réglage | Rôle |
+| --- | --- |
+| Granularité | `Au dixième de seconde` (par défaut) ou `À la seconde` : le pas des champs de crossfade des fiches d'un sonore et d'une banque. |
+| Durée maximale | Le crossfade le plus long que proposent ces champs, 5 secondes par défaut. Une valeur déjà plus longue reste telle quelle. |
+| Début par défaut, fin par défaut | À cocher : le crossfade d'un sonore qui n'en a pas de paramétré, et que sa banque ne règle pas ([D'où viennent les crossfades](#sortie-audio)). Ils ne dépassent pas la durée maximale. |
+
+**OK** les enregistre dans la section `[crossfades]` du fichier de configuration, `machincast.toml`, qui garde ses commentaires et ses autres réglages ; la barre d'état le dit. Les fiches ouvertes ensuite les suivent ; **Machin lecture** prend les durées par défaut à son prochain démarrage. Un fichier qui ne peut pas être écrit laisse les préférences telles quelles, et la barre d'état dit pourquoi. **Annuler** ne change rien.
 
 ### Rafraîchir les onglets
 

@@ -35,13 +35,14 @@ from pytest_bdd import given, parsers, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.base import Role, connecter
+from machincast.configuration import Crossfades, charger
 from machincast.horloge import HorlogeFixe
 from machincast.interface import dialogues
 from machincast.interface.dialogues import Fermeture, Retrait
 from machincast.interface.fenetre import FenetrePrincipale
 from machincast.interface.fiche import Fiche
 from machincast.interface.listes import Liste
-from tests.base_test import parametres_base_test
+from tests.base_test import configuration_test, parametres_base_test
 from tests.sons import FICHIERS_SONORES
 
 Connexion = psycopg.Connection[tuple[object, ...]]
@@ -93,6 +94,14 @@ class Contexte:
 	"""Adresses ouvertes dans le navigateur web du poste."""
 	versions: list[str] = field(default_factory=list)
 	"""Textes montrés par la fenêtre de version."""
+	configuration: Path | None = None
+	"""Fichier de configuration de la fenêtre : une copie de celui des tests, dans le répertoire du scénario."""
+	preferences_reglees: Crossfades | None = None
+	"""Ce que donnera la fenêtre des préférences ; None : elle est abandonnée."""
+	preferences_montrees: list[Crossfades] = field(default_factory=list)
+	"""Les réglages que la fenêtre des préférences a montrés, à chaque ouverture."""
+	configuration_initiale: bytes = b""
+	"""Le fichier de configuration à l'ouverture de la fenêtre."""
 
 	def chemin_dans(self, texte: str) -> str:
 		"""Chaque « …/ » du texte désigne le répertoire temporaire du scénario."""
@@ -168,6 +177,20 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	monkeypatch.setattr(dialogues, "ouvrir_dossier", interface.dossiers_ouverts.append)
 	monkeypatch.setattr(dialogues, "ouvrir_page", interface.pages_ouvertes.append)
 	monkeypatch.setattr(dialogues, "montrer_version", lambda _parent, texte: interface.versions.append(texte))
+
+	def preferences(_parent: QWidget, crossfades: Crossfades) -> Crossfades | None:
+		interface.preferences_montrees.append(crossfades)
+		return interface.preferences_reglees
+
+	monkeypatch.setattr(dialogues, "regler_preferences", preferences)
+
+
+def fichier_de_configuration(interface: Contexte) -> Path:
+	"""La copie du fichier de configuration des tests dans le répertoire du scénario, créée au besoin."""
+	if interface.configuration is None:
+		interface.configuration = interface.repertoire / "machincast.toml"
+		shutil.copyfile(configuration_test().chemin, interface.configuration)
+	return interface.configuration
 
 
 def fenetre(interface: Contexte) -> FenetrePrincipale:
@@ -545,10 +568,28 @@ def evenements(base_vide: Connexion, datatable: list[list[str]]) -> None:
 
 @when("la fenêtre de l'interface s'ouvre")
 def ouvrir(interface: Contexte, base_vide: Connexion, qtbot: QtBot) -> None:
+	ouvrir_la_fenetre(interface, qtbot)
+
+
+def ouvrir_la_fenetre(interface: Contexte, qtbot: QtBot, avec_configuration: bool = True) -> None:
+	"""La fenêtre de l'interface, sur une copie du fichier de configuration des tests ; sans lui, elle ne peut pas
+	enregistrer ses préférences."""
 	assert interface.horloge is not None
 	remplacer_dialogues(interface)
 	interface.connexion = connecter(*parametres_base_test(), Role.INTERFACE)
-	interface.fenetre = FenetrePrincipale(interface.connexion, interface.repertoire / "lecture.sock", interface.horloge)
+	chemin: Path | None = None
+	crossfades = None
+	if avec_configuration:
+		chemin = fichier_de_configuration(interface)
+		interface.configuration_initiale = chemin.read_bytes()
+		crossfades = charger(chemin).crossfades
+	interface.fenetre = FenetrePrincipale(
+		interface.connexion,
+		interface.repertoire / "lecture.sock",
+		interface.horloge,
+		configuration=chemin,
+		crossfades=crossfades,
+	)
 	interface.fenetre.detail_demande.connect(lambda genre, numero: interface.demandes.append((genre, numero)))
 
 	def annoncer(texte: str) -> None:

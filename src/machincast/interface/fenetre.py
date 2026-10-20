@@ -38,8 +38,9 @@ from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import QMainWindow, QTabBar, QWidget
 
+from machincast.configuration import Crossfades
 from machincast.horloge import Horloge
-from machincast.interface import dialogues, indexation, version
+from machincast.interface import dialogues, indexation, preferences, version
 from machincast.interface.ajout import ajouter_fichiers
 from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.fiche import Fiche, Rafraichie
@@ -85,10 +86,16 @@ class FenetrePrincipale(QMainWindow):
 		horloge: Horloge,
 		parent: QWidget | None = None,
 		commande_indexation: list[str] | None = None,
+		configuration: Path | None = None,
+		crossfades: Crossfades | None = None,
 	) -> None:
 		"""commande_indexation : Machin indexation, avec la configuration de l'interface
-		(indexation.commande_indexation)."""
+		(indexation.commande_indexation). configuration : le fichier où « Préférences… » enregistre les réglages,
+		crossfades ceux qu'il donne (https://github.com/dascritch/machincast/issues/145) ; sans fichier, les
+		préférences ne s'enregistrent pas."""
 		super().__init__(parent)
+		self.configuration = configuration
+		preferences.definir((crossfades) or (Crossfades()))
 		self.connexion = connexion
 		self.horloge = horloge
 		self.ui = Ui_FenetrePrincipale()
@@ -132,8 +139,13 @@ class FenetrePrincipale(QMainWindow):
 	def _garnir_menus(self) -> None:
 		"""Fichier, Maintenance, Aide ; une fonction à venir a son entrée, inactive, qui donne son ticket."""
 		fichier = self.menuBar().addMenu("&Fichier")
-		# https://github.com/dascritch/machincast/issues/111 et https://github.com/dascritch/machincast/issues/145
-		_a_venir(fichier.addAction("Préférences…"), "tickets 111 et 145")
+		# La page « Interface » : https://github.com/dascritch/machincast/issues/145 ; l'icône viendra avec
+		# https://github.com/dascritch/machincast/issues/111.
+		reglages = fichier.addAction("Préférences…")
+		reglages.triggered.connect(self._preferences)
+		if self.configuration is None:
+			reglages.setEnabled(False)
+			reglages.setToolTip("Sans fichier de configuration, les préférences ne s'enregistrent pas")
 		fichier.addSeparator()
 		quitter = fichier.addAction("Quitter")
 		quitter.setShortcut(QKeySequence("Alt+Q"))
@@ -301,6 +313,24 @@ class FenetrePrincipale(QMainWindow):
 		ouvert = self.ui.onglets.widget(indice)
 		if isinstance(ouvert, (Liste, EcranIncidents)):
 			ouvert.actualiser()
+
+	def _preferences(self) -> None:
+		"""Les préférences réglées s'enregistrent dans le fichier de configuration, puis valent pour les fiches
+		ouvertes ensuite ; un fichier qui ne s'écrit pas les laisse inchangées, et la barre d'état le dit."""
+		assert self.configuration is not None
+		reglages = dialogues.regler_preferences(self, preferences.crossfades())
+		if reglages is None:
+			return
+		try:
+			preferences.ecrire(self.configuration, reglages)
+		except OSError as erreur:
+			self.statusBar().showMessage(f"Préférences non enregistrées dans {self.configuration} : {erreur}")
+			return
+		preferences.definir(reglages)
+		self.statusBar().showMessage(
+			f"Préférences enregistrées dans {self.configuration} ;"
+			" Machin lecture prendra les crossfades par défaut à son prochain démarrage."
+		)
 
 	def _ouvrir(self, genre: str, identifiant: int, _nom: str) -> None:
 		self.detail_demande.emit(genre, identifiant)

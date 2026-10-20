@@ -83,6 +83,8 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 			configuration.lecture.socket_etat,
 			HorlogeSysteme(),
 			commande_indexation=commande_indexation(options.config),
+			configuration=configuration.chemin,
+			crossfades=configuration.crossfades,
 		)
 		fenetre.show()
 		return qt.exec()

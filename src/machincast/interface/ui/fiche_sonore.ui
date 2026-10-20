@@ -332,17 +332,20 @@
            </property>
            <layout class="QFormLayout" name="formulaire_diffusion">
             <item row="0" column="0">
-             <widget class="QLabel" name="etiquette_crossfade_debut">
+             <widget class="QCheckBox" name="a_crossfade_debut">
               <property name="text">
                <string>Crossfade de début</string>
               </property>
-              <property name="buddy">
-               <cstring>crossfade_debut</cstring>
+              <property name="toolTip">
+               <string>Décoché, le crossfade n'est pas paramétré : il vient de la banque, ou des préférences. 0 seconde en est un.</string>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
              <widget class="QDoubleSpinBox" name="crossfade_debut">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="suffix">
                <string> s</string>
               </property>
@@ -358,17 +361,20 @@
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QLabel" name="etiquette_crossfade_fin">
+             <widget class="QCheckBox" name="a_crossfade_fin">
               <property name="text">
                <string>Crossfade de fin</string>
               </property>
-              <property name="buddy">
-               <cstring>crossfade_fin</cstring>
+              <property name="toolTip">
+               <string>Décoché, le crossfade n'est pas paramétré : il vient de la banque, ou des préférences. 0 seconde en est un.</string>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
              <widget class="QDoubleSpinBox" name="crossfade_fin">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="suffix">
                <string> s</string>
               </property>

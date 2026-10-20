@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FenetrePreferences</class>
+ <widget class="QDialog" name="FenetrePreferences">
+  <property name="windowTitle">
+   <string>Préférences</string>
+  </property>
+  <layout class="QVBoxLayout" name="disposition">
+   <item>
+    <widget class="QTabWidget" name="pages">
+     <widget class="QWidget" name="page_interface">
+      <attribute name="title">
+       <string>Interface</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="disposition_interface">
+       <item>
+        <widget class="QGroupBox" name="groupe_crossfades">
+         <property name="title">
+          <string>Crossfades</string>
+         </property>
+         <layout class="QFormLayout" name="formulaire_crossfades">
+          <item row="0" column="0">
+           <widget class="QLabel" name="etiquette_granularite">
+            <property name="text">
+             <string>&amp;Granularité</string>
+            </property>
+            <property name="buddy">
+             <cstring>granularite</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="granularite">
+            <property name="toolTip">
+             <string>Le pas de tous les crossfades de l'interface</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="etiquette_maximum">
+            <property name="text">
+             <string>Durée &amp;maximale</string>
+            </property>
+            <property name="buddy">
+             <cstring>maximum</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QDoubleSpinBox" name="maximum">
+            <property name="toolTip">
+             <string>Le crossfade le plus long que proposent les fiches</string>
+            </property>
+            <property name="suffix">
+             <string> s</string>
+            </property>
+            <property name="maximum">
+             <double>600.0</double>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QCheckBox" name="a_debut">
+            <property name="text">
+             <string>&amp;Début par défaut</string>
+            </property>
+            <property name="toolTip">
+             <string>Le crossfade de début d'un sonore qui n'en a pas de paramétré, et que sa banque ne règle pas</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QDoubleSpinBox" name="debut">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="suffix">
+             <string> s</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QCheckBox" name="a_fin">
+            <property name="text">
+             <string>&amp;Fin par défaut</string>
+            </property>
+            <property name="toolTip">
+             <string>Le crossfade de fin d'un sonore qui n'en a pas de paramétré, et que sa banque ne règle pas</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QDoubleSpinBox" name="fin">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="suffix">
+             <string> s</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="explication">
+         <property name="text">
+          <string>Les fiches ouvertes ensuite suivent ces réglages. Machin lecture prend les durées par défaut à son prochain démarrage.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="boutons">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
