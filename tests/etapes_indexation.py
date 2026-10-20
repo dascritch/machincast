@@ -4,6 +4,8 @@ Chargé comme greffon pytest par tests/conftest.py, pour servir à verification.
 (https://github.com/dascritch/machincast/issues/7) comme à tags.feature (https://github.com/dascritch/machincast/issues/8).
 """
 
+import argparse
+import dataclasses
 import logging
 import os
 import threading
@@ -17,11 +19,12 @@ import pytest
 from pytest_bdd import given, parsers, then, when
 
 from machincast.base import Role, connecter
+from machincast.indexation.__main__ import executer
 from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
 from machincast.indexation.indexeur import VERROU
 from machincast.indexation.indexeur import indexer as indexer_complet
 from machincast.indexation.verification import Bilan, texte_bilan
-from tests.base_test import parametres_base_test
+from tests.base_test import configuration_test, parametres_base_test
 from tests.sons import copie_de_test, corrompre
 
 Connexion = psycopg.Connection[tuple[object, ...]]
@@ -325,3 +328,32 @@ def lire_tags_en_base(base: Connexion, sonore: int) -> tuple[object, object, obj
 @then(parsers.parse("en base, l'artiste est « {artiste} » et le titre « {titre} »"))
 def artiste_et_titre_en_base(base_vide: Connexion, sonore: int, artiste: str, titre: str) -> None:
 	assert lire_tags_en_base(base_vide, sonore)[:2] == (artiste, titre)
+
+
+# ─── Machin indexation ─────────────────────────────────────
+
+
+@when(
+	parsers.re(r"Machin indexation est lancé sur la base de test(?P<audit>, en audit complet)?"),
+	target_fixture="lancement",
+)
+def lancer_sur_la_base_de_test(
+	base_vide: Connexion, caplog: pytest.LogCaptureFixture, audit: str | None
+) -> tuple[int, list[str]]:
+	"""Son action, avec une configuration dont la base de production est la base de test."""
+	configuration = configuration_test()
+	sur_la_base_de_test = dataclasses.replace(
+		configuration, base=dataclasses.replace(configuration.base, production=configuration.base.test)
+	)
+	caplog.clear()
+	with caplog.at_level(logging.INFO, logger="machincast"):
+		code = executer(sur_la_base_de_test, argparse.Namespace(audit_complet=audit is not None, fenetre=False))
+	return code, [enregistrement.getMessage() for enregistrement in caplog.records]
+
+
+@then(parsers.parse("Machin indexation se termine avec le code {code:d}, en signalant « {texte} »"))
+def lancement_termine(lancement: tuple[int, list[str]], tmp_path: Path, code: int, texte: str) -> None:
+	"""Un « …/ » désigne le répertoire du scénario."""
+	obtenu, messages = lancement
+	texte = texte.replace("…/", f"{tmp_path}/")
+	assert (obtenu, texte in messages) == (code, True), messages

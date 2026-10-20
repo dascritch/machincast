@@ -7,7 +7,8 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 	https://github.com/dascritch/machincast/issues/120, spec § 6.3 et § 8.11. Machin indexation --fenetre, que
 	l'interface lance dans un processus à part (indexation_interface.feature), montre dans sa fenêtre ce qu'il écrirait
 	dans le terminal ; à la fin, il conclut par le bilan et le nombre d'anomalies. Fermer la fenêtre pendant
-	l'indexation demande s'il faut l'arrêter. Les scénarios ouvrent la fenêtre dans le processus des tests. Les
+	l'indexation demande s'il faut l'arrêter. Comme dans le terminal, le journal annonce le document d'audit du passage
+	(audit_indexation.feature). Les scénarios ouvrent la fenêtre dans le processus des tests. Les
 	fichiers de test sont ceux de tests/fichiers-sonores ; un chemin qui commence par « …/ » est dans le répertoire
 	temporaire du scénario.
 
@@ -32,6 +33,7 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 			| Machin_indexation : …/pubs/cafe.flac : sain, Les Gaufres Électriques – Café à minuit ; sonore passé actif                 |
 			| Machin_indexation : …/pubs/jingle.wav : sain ; sonore passé actif                                                         |
 			| Machin_indexation : indexation rapide : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 supprimé, 0 rétabli, 2 sortis d'aperçu |
+			| Machin_indexation : document d'audit : …/audit/machincast-audit-2026-10-15T08:15:00.csv, …/audit/machincast-audit-2026-10-15T08:15:00.html |
 		Et le journal « Indexation rapide » de l'indexation conclut « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. »
 		Et le journal de l'indexation ne signale aucune anomalie
 		Et les sonores de la banque « Publicité » en base sont :

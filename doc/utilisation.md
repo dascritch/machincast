@@ -202,7 +202,15 @@ Puis le bilan, sur la sortie standard :
 Machin_indexation : indexation rapide : 3 nouveaux sonores, 1 rattachement ; 3 sonores vérifiés ; 1 erroné, 1 supprimé, 0 rétabli, 3 sortis d'aperçu
 ```
 
-Les nouveaux sonores sont les fichiers enregistrés pour la première fois ; les rattachements, les sonores déjà connus ajoutés à une banque dont ils n'étaient pas membres. Les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état. Un regroupement de ces anomalies dans un document d'audit, en CSV et en HTML, est à venir ([#11](https://github.com/dascritch/machincast/issues/11)).
+Les nouveaux sonores sont les fichiers enregistrés pour la première fois ; les rattachements, les sonores déjà connus ajoutés à une banque dont ils n'étaient pas membres. Les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état.
+
+Enfin, le chemin du **document d'audit** du passage ([#11](https://github.com/dascritch/machincast/issues/11)) :
+
+```text
+Machin_indexation : document d'audit : /tmp/machincast-audit-2026-10-15T08:15:00.csv, /tmp/machincast-audit-2026-10-15T08:15:00.html
+```
+
+Chaque indexation, rapide ou complète, lancée d'un terminal ou de l'interface, écrit ce document dans `/tmp`, en deux formats : un `.csv` pour un tableur (séparé par des points-virgules) et un `.html` pour un navigateur. Il est nommé avec la date et l'heure locale de son lancement. Il ne liste que les **anomalies**, une ligne par fichier défectueux : date du passage, chemin du fichier, verdict (`endommagé`, `illisible`, `introuvable`), problème et conséquence pour le sonore. Les opérations normales n'y figurent pas. La dernière ligne du CSV, de verdict `bilan`, porte le bilan du passage ; sans anomalie, c'est la seule. Les répertoires de banque introuvables restent sur la sortie d'erreur. Le document n'est pas écrit quand l'indexation s'interrompt (décodeur manquant, base perdue, autre indexation en cours). S'il ne peut pas être écrit, l'indexation le signale sur la sortie d'erreur et va quand même au bout. `/tmp` se vide au redémarrage de la machine : copier ailleurs les documents à garder.
 
 Si GStreamer n'a pas de décodeur pour un format, la vérification s'arrête et nomme les paquets à installer, sans changer l'état des sonores : le fichier n'y est pour rien.
 
@@ -611,7 +619,7 @@ L'onglet **Incidents** montre les alertes et les incidents que `Machin lecture` 
 - **Filtre** : comme pour les listes, sans tenir compte des majuscules ni des accents ; le compte dit combien d'entrées restent.
 - **Liens** : un double-clic sur le sonore, la banque ou l'événement d'une entrée ouvre sa fiche. Un élément supprimé depuis laisse sa cellule vide ; l'entrée garde son message.
 - **Lecture** : l'écran se relit chaque fois que son onglet s'ouvre. Seules les 500 entrées les plus récentes sont lues : le compte le dit alors (« 500 entrées, les plus récentes »).
-- `Machin indexation` n'écrit pas dans le log : ses anomalies sont sur sa sortie d'erreur, ou dans le journal de l'indexation lancée depuis l'interface, pas ici.
+- `Machin indexation` n'écrit pas dans le log : ses anomalies sont sur sa sortie d'erreur, dans son document d'audit ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)), ou dans le journal de l'indexation lancée depuis l'interface, pas ici.
 
 ### Menus
 
@@ -707,7 +715,6 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 
 | Manque | Ticket |
 | --- | --- |
-| Document d'audit des anomalies de l'indexation, en CSV et HTML | [#11](https://github.com/dascritch/machincast/issues/11) |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
 | Service systemd de diffusion | [#22](https://github.com/dascritch/machincast/issues/22) |
 | Autres écrans de l'interface : VU-mètre, pilotage du service, recherche globale, calendrier, simulation | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
