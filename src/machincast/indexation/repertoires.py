@@ -19,6 +19,7 @@ Chaque fichier est enregistré dans sa propre transaction, pour qu'une interrupt
 
 import logging
 import os
+import threading
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -81,8 +82,12 @@ def _enregistrer(
 		journal.info(f"{emplacement} : rattaché à la banque {nom}")
 
 
-def indexer_repertoires(connexion: psycopg.Connection[TupleRow], bilan: Bilan) -> None:
+def indexer_repertoires(
+	connexion: psycopg.Connection[TupleRow], bilan: Bilan, arret: threading.Event | None = None
+) -> None:
 	"""Enregistre et rattache à leurs banques les fichiers sonores de leurs répertoires ; complète le bilan.
+
+	arret : une fois posé, le parcours s'arrête avant le fichier suivant.
 
 	La connexion doit avoir endossé le rôle de l'indexation (machincast.base.connecter).
 	"""
@@ -100,4 +105,6 @@ def indexer_repertoires(connexion: psycopg.Connection[TupleRow], bilan: Bilan) -
 			journal.warning(f"{chemin} : répertoire introuvable, ignoré pour la banque {nom}")
 			continue
 		for fichier in fichiers_sonores(chemin):
+			if (arret is not None) and (arret.is_set()):
+				return
 			_enregistrer(connexion, int(str(banque)), str(nom), str(fichier), bilan)

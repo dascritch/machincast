@@ -113,6 +113,9 @@ Alimenter une banque se limite à déposer des fichiers dans l'un de ses répert
 | --- | --- |
 | `Machin indexation` | **Indexation rapide**, par défaut. Seuls les sonores à l'état `aperçu`, c'est-à-dire nouvellement trouvés, sont décodés et leurs tags lus. Pour les autres, seule la présence du fichier est contrôlée : un fichier disparu est quand même repéré. |
 | `Machin indexation --audit-complet` | **Audit complet** : tous les sonores de type fichier sont décodés. C'est lui qui repère un fichier abîmé après son indexation, ou modifié depuis. À lancer après la première indexation, puis de temps en temps. |
+| `Machin indexation --fenetre` | La même indexation, rapide ou complète (avec `--audit-complet`), qui montre son journal dans une fenêtre au lieu du terminal : c'est ainsi que l'interface la lance ([Lancer l'indexation depuis l'interface](#lancer-lindexation-depuis-linterface)). Il faut un affichage graphique. |
+
+**Une seule indexation à la fois** sur une base, qu'elle soit lancée d'un terminal, de l'interface ou d'un autre poste : une deuxième s'arrête aussitôt, sans rien toucher, avec le message `indexation refusée : une autre indexation est en cours sur cette base` et le code 1. Elle pourra être relancée une fois la première finie.
 
 Le décodage est fait sans jouer le son, bien plus vite que le temps réel : une dizaine de minutes de son en moins d'une seconde. Un audit complet d'une grande discothèque peut tout de même prendre du temps.
 
@@ -644,10 +647,10 @@ Le menu **Maintenance** lance `Machin indexation` sans passer par un terminal ([
 
 Voir [Indexation rapide et audit complet](#indexation-rapide-et-audit-complet) pour le détail des deux modes.
 
-- **En tâche de fond** : l'interface reste utilisable pendant l'indexation. La barre d'état, en bas de la fenêtre, dit « Indexation rapide en cours… » ; le menu ne propose plus rien jusqu'à la fin, une seule indexation tournant à la fois.
-- **Journal** : une fenêtre à part s'ouvre au lancement ([#120](https://github.com/dascritch/machincast/issues/120)). Elle montre, ligne par ligne et au fil de l'indexation, ce que `Machin indexation` écrirait dans le terminal ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)) : chaque sonore indexé avec son statut, les anomalies, puis le bilan. Le texte se sélectionne et se copie. À la fin, elle conclut par le bilan, par exemple « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. », suivi du nombre d'anomalies s'il y en a. **Fermer** la referme ; elle se vide à la prochaine indexation, et se ferme avec l'interface. La barre d'état garde le bilan, et la liste ouverte se relit.
-- **Indexation impossible** : si un décodeur manque (un paquet GStreamer n'est pas installé, voir [INSTALL.md](../INSTALL.md)) ou si la base ne répond plus, le journal le dit : « Indexation impossible : … ; les sonores déjà vérifiés le restent. ». Le travail fait jusque-là est gardé.
-- **Fermer la fenêtre** pendant une indexation attend qu'elle se termine.
+- **Dans son propre programme** ([#120](https://github.com/dascritch/machincast/issues/120)) : l'interface lance `Machin indexation --fenetre`, avec sa configuration, à part d'elle. L'interface reste utilisable, et **peut être fermée** : l'indexation continue, avec sa fenêtre. La barre d'état dit « Indexation rapide lancée, dans sa propre fenêtre. » ; tant que l'indexation tourne, le menu ne la propose plus. À sa fin, la barre d'état le dit : **Affichage → Rafraîchir les onglets** (<kbd>F5</kbd>) montre alors ses changements ([Rafraîchir les onglets](#rafraîchir-les-onglets)).
+- **Sa fenêtre** montre, ligne par ligne et au fil de l'indexation, ce que `Machin indexation` écrirait dans le terminal ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)) : chaque sonore indexé avec son statut, les anomalies, puis le bilan. Le texte se sélectionne et se copie. À la fin, elle conclut par le bilan, par exemple « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. », suivi du nombre d'anomalies s'il y en a.
+- **Fermer sa fenêtre** pendant l'indexation demande s'il faut l'arrêter. **Arrêter** l'arrête après le fichier en cours : le travail fait est gardé, et la prochaine indexation reprendra le reste. **Continuer**, ou Échap, laisse la fenêtre ouverte et l'indexation continuer. Une fois l'indexation finie, **Fermer** la referme sans question.
+- **Indexation impossible** : si un décodeur manque (un paquet GStreamer n'est pas installé, voir [INSTALL.md](../INSTALL.md)), si la base ne répond plus, ou si une autre indexation tourne déjà sur la base, la fenêtre le dit : « Indexation impossible : … ; les sonores déjà vérifiés le restent. ». Le travail fait jusque-là est gardé.
 
 ### Supprimer un élément
 
@@ -682,7 +685,7 @@ Chaque message commence par le nom du programme, par exemple `Machin_indexation 
 | Code | Signification |
 | --- | --- |
 | 0 | Le programme est allé au bout. Pour l'indexation, même si des sonores ont changé d'état : ce sont des anomalies, pas des erreurs. |
-| 1 | Base de données injoignable ou perdue (pour `Machin interface`, au lancement), décodeur GStreamer manquant, sortie audio indisponible, autre `Machin lecture` déjà en diffusion, ou fonction pas encore écrite. |
+| 1 | Base de données injoignable ou perdue (pour `Machin interface`, au lancement), décodeur GStreamer manquant, autre indexation en cours sur la base, `Machin indexation --fenetre` sans affichage graphique, sortie audio indisponible, autre `Machin lecture` déjà en diffusion, ou fonction pas encore écrite. |
 | 2 | Configuration invalide, ou appel incorrect (option inconnue, `--config` sans fichier). |
 | 127 | Programme ou `journalctl` introuvable, signalé par `Machin`. |
 

@@ -444,7 +444,7 @@ Mise en œuvre ([#21](https://github.com/dascritch/machincast/issues/21), `machi
 
 ## 6. Binaire indexation
 
-`Machin_indexation` est déclenché depuis l'interface, par son menu ([§ 8.11](#811-menu), [#38](https://github.com/dascritch/machincast/issues/38)), ou depuis un terminal. Un cron ou un timer systemd pourra être ajouté plus tard selon les retours du terrain.
+`Machin_indexation` est déclenché depuis l'interface, par son menu ([§ 8.11](#811-menu), [#38](https://github.com/dascritch/machincast/issues/38)), dans un processus à part avec la fenêtre de son journal (`--fenetre`, [#120](https://github.com/dascritch/machincast/issues/120)), ou depuis un terminal. Une seule indexation à la fois sur une base : elle tient un verrou consultatif de PostgreSQL (`pg_try_advisory_lock`) pendant tout son passage, et une deuxième s'arrête aussitôt, sans rien toucher (code de sortie 1). Une indexation peut être arrêtée entre deux fichiers ; le travail fait est gardé. Un cron ou un timer systemd pourra être ajouté plus tard selon les retours du terrain.
 
 ### 6.0 Modes d'indexation
 
@@ -677,12 +677,12 @@ Mise en œuvre du menu ([#117](https://github.com/dascritch/machincast/issues/11
 - **Aide** : « Signaler un problème… » ouvre les tickets GitHub dans le navigateur web (`dialogues.ouvrir_page`) ; « Version » montre le numéro de version et la date du dernier commit du dépôt d'où MachinCast est installé, à l'heure du poste (`machincast.interface.version`, `dialogues.montrer_version`), ou dit qu'elle est inconnue hors d'un dépôt git ou sans git.
 - **À venir** : une entrée inactive, dont l'infobulle donne le ticket ; elle s'active avec son ticket. Ajouter un élément se fait depuis sa liste ([§ 8.2](#82-recherche-et-navigation)) ; la sortie des pré-écoutes viendra avec elles ([#29](https://github.com/dascritch/machincast/issues/29)).
 
-Mise en œuvre de la ré-indexation ([#38](https://github.com/dascritch/machincast/issues/38), `machincast.interface.indexation.Indexation`, appelé par `FenetrePrincipale`) :
+Mise en œuvre de la ré-indexation ([#38](https://github.com/dascritch/machincast/issues/38), [#120](https://github.com/dascritch/machincast/issues/120), `machincast.interface.indexation`) :
 
 - **Menu** « Maintenance », avec « Indexation rapide » et « Audit complet » : les deux modes de `Machin_indexation` ([§ 6.0](#60-modes-dindexation)).
-- **Exécution** : `indexer`, le code de `Machin_indexation`, dans un fil à part, avec son rôle en base (`Role.INDEXATION`, sur le socket et la base de la connexion de l'interface). Une seule indexation à la fois : les actions du menu sont inactives jusqu'à la fin, et la barre d'état dit qu'elle est en cours.
-- **Journal** ([#120](https://github.com/dascritch/machincast/issues/120), `machincast.interface.journal_indexation.FenetreJournal`) : une fenêtre à part, ouverte au lancement et vidée à chaque lancement, montre au fil de l'eau les lignes que l'indexeur journalise pendant ce passage, comme dans le terminal ([§ 6.3](#63-sorties)) : sonores indexés, anomalies, bilan. À la fin, elle conclut par le bilan et le nombre d'anomalies ; la barre d'état garde le bilan, et la liste ouverte se relit. Un décodeur absent ou une base injoignable interrompt l'indexation, et le journal le dit ; les transactions déjà faites restent. Elle se ferme avec la fenêtre de l'interface.
-- **Fermeture** : fermer la fenêtre attend la fin de l'indexation en cours.
+- **Processus à part** : l'interface lance `Machin_indexation --fenetre` (et `--audit-complet`), par le Python de l'interface et avec sa configuration (`commande_indexation`), dans un processus détaché (`lancer_detachee`, `QProcess.startDetached`). Fermer l'interface ne l'attend pas et ne l'arrête pas. Tant que ce processus tourne (`processus_actif`, regardé chaque seconde), les actions du menu sont inactives ; à sa fin, la barre d'état le dit, et renvoie au rafraîchissement des onglets. Un processus qui ne se lance pas est signalé dans la barre d'état.
+- **Journal** (`machincast.interface.journal_indexation.FenetreJournal`) : la fenêtre de `Machin_indexation --fenetre`. `Indexation` y fait tourner `indexer` dans un fil à part, avec son rôle en base, et relaie au fil de l'eau les lignes que l'indexeur journalise, comme dans le terminal ([§ 6.3](#63-sorties)) : sonores indexés, anomalies, bilan. À la fin, la fenêtre conclut par le bilan et le nombre d'anomalies. Un décodeur absent, une base injoignable ou une autre indexation en cours interrompt l'indexation, et le journal le dit ; les transactions déjà faites restent.
+- **Fermeture du journal** : pendant l'indexation, `dialogues.confirmer_arret_indexation` demande s'il faut l'arrêter (« Continuer » par défaut, Échap aussi). « Arrêter » pose l'arrêt de l'indexeur, qui s'arrête après le fichier en cours ; la fenêtre se ferme ensuite, et le processus s'arrête.
 
 ### 8.12 Écran de détails d'une séquence
 

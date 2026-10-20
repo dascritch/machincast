@@ -1,175 +1,91 @@
-"""Scénarios du lancement de l'indexation depuis l'interface (https://github.com/dascritch/machincast/issues/38).
+"""Scénarios du lancement de l'indexation depuis l'interface (https://github.com/dascritch/machincast/issues/38,
+https://github.com/dascritch/machincast/issues/120).
 
-Les étapes de la fenêtre, des listes et des fenêtres de dialogue sont dans tests/etapes_interface.py. L'indexation
-décode vraiment les fichiers de test ; ses scénarios peuvent la faire attendre, ou lui retirer ses décodeurs, en
-remplaçant le décodage de l'indexeur.
+Les étapes de la fenêtre, de sa barre de menus et des fenêtres de dialogue sont dans tests/etapes_interface.py.
+Machin indexation est remplacé par un programme factice, lancé pour de vrai dans un processus détaché : il note ses
+options dans un fichier, puis attend qu'un autre fichier apparaisse.
 """
 
-import logging
-import threading
+import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import Qt
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
-from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
-from machincast.indexation.verification import LIBELLES
 from machincast.interface import indexation
-from machincast.interface.journal_indexation import FenetreJournal
-from tests.etapes_interface import ATTENTE, NOM, Connexion, Contexte, fenetre
+from machincast.interface.fenetre import SUIVI_INDEXATION
+from tests.etapes_interface import ATTENTE, NOM, Contexte, fenetre
 
 scenarios("indexation_interface.feature")
 
+COMMANDE_INDEXATION = indexation.commande_indexation
+"""La vraie, que le Contexte remplace par celle du programme factice."""
+
+FACTICE = """
+import pathlib, sys, time
+pathlib.Path(sys.argv[1]).write_text("\\n".join(sys.argv[3:]))
+fin = pathlib.Path(sys.argv[2])
+while not fin.exists():
+	time.sleep(0.05)
+"""
+
 
 @pytest.fixture
-def reprise() -> threading.Event:
-	"""Ce qu'attend une indexation qui attend."""
-	return threading.Event()
+def factice(interface: Contexte) -> Iterator[tuple[Path, Path]]:
+	"""Le fichier des options du programme factice, et celui qui le termine ; il est terminé en fin de scénario."""
+	options, fin = interface.repertoire / "options-indexation", interface.repertoire / "fin-indexation"
+	yield options, fin
+	fin.touch()
 
 
-@pytest.fixture
-def en_attente() -> threading.Event:
-	"""Une indexation qui attend en est à son premier décodage."""
-	return threading.Event()
+@given("un Machin indexation factice, qui attend")
+def machin_factice(interface: Contexte, factice: tuple[Path, Path]) -> None:
+	options, fin = factice
+	commande = [sys.executable, "-c", FACTICE, str(options), str(fin)]
+	interface.monkeypatch.setattr(indexation, "commande_indexation", lambda _configuration: commande)
 
 
-def attendre_l_indexation(interface: Contexte, qtbot: QtBot) -> None:
-	lanceur = fenetre(interface).indexation
-	qtbot.waitUntil(lambda: not lanceur.en_cours(), timeout=ATTENTE)
+@given("un Machin indexation introuvable")
+def machin_introuvable(interface: Contexte) -> None:
+	commande = [str(interface.repertoire / "aucun" / "Machin_indexation")]
+	interface.monkeypatch.setattr(indexation, "commande_indexation", lambda _configuration: commande)
 
 
-def journal(interface: Contexte) -> FenetreJournal:
-	return fenetre(interface).journal_indexation
+@when("l'interface a regardé plusieurs fois si le Machin indexation factice tourne")
+def plusieurs_regards(qtbot: QtBot) -> None:
+	qtbot.wait(SUIVI_INDEXATION * 2 + 500)
 
 
-# ─── Étant donné ───────────────────────────────────────────
+@when("le Machin indexation factice se termine")
+def terminer(interface: Contexte, qtbot: QtBot, factice: tuple[Path, Path]) -> None:
+	_options, fin = factice
+	fin.touch()
+	qtbot.waitUntil(lambda: fenetre(interface).indexation_lancee is None, timeout=ATTENTE)
 
 
-@given("une indexation qui attend")
-def indexation_qui_attend(
-	monkeypatch: pytest.MonkeyPatch, reprise: threading.Event, en_attente: threading.Event
-) -> None:
-	def decoder(chemin: Path) -> Verification:
-		en_attente.set()
-		assert reprise.wait(ATTENTE / 1000), "l'indexation attendue n'a jamais repris"
-		return verifier_fichier(chemin)
-
-	monkeypatch.setattr(indexation, "verifier_fichier", decoder)
+@then(parsers.re(r"Machin indexation a été lancé avec (?P<options>«.+)"))
+def lance_avec(qtbot: QtBot, factice: tuple[Path, Path], options: str) -> None:
+	fichier, _fin = factice
+	qtbot.waitUntil(fichier.exists, timeout=ATTENTE)
+	assert fichier.read_text().splitlines() == NOM.findall(options)
 
 
-@given("un indexeur qui ne sait pas décoder les fichiers")
-def sans_decodeur(monkeypatch: pytest.MonkeyPatch) -> None:
-	def decoder(_chemin: Path) -> Verification:
-		raise DecodeurIndisponible("aucun décodeur pour ce format")
-
-	monkeypatch.setattr(indexation, "verifier_fichier", decoder)
-
-
-# ─── Quand ─────────────────────────────────────────────────
+@then("le Machin indexation factice tourne toujours")
+def tourne_toujours(interface: Contexte, factice: tuple[Path, Path]) -> None:
+	numero = fenetre(interface).indexation_lancee
+	assert numero is not None
+	assert indexation.processus_actif(numero)
+	assert not factice[1].exists()
 
 
-@when("l'indexation se termine")
-def terminer(interface: Contexte, qtbot: QtBot) -> None:
-	attendre_l_indexation(interface, qtbot)
-
-
-@when("l'indexation en est à son premier décodage")
-def premier_decodage(en_attente: threading.Event) -> None:
-	"""Elle a déjà choisi les sonores qu'elle décode."""
-	assert en_attente.wait(ATTENTE / 1000), "l'indexation n'a jamais commencé à décoder"
-
-
-@when("l'indexation attendue reprend, et se termine")
-def reprendre(interface: Contexte, qtbot: QtBot, reprise: threading.Event) -> None:
-	reprise.set()
-	attendre_l_indexation(interface, qtbot)
-
-
-@when("je ferme la fenêtre de l'interface, pendant que l'indexation attendue reprend")
-def fermer_pendant(interface: Contexte, reprise: threading.Event) -> None:
-	assert fenetre(interface).indexation.en_cours()
-	threading.Timer(0.3, reprise.set).start()
-	fenetre(interface).close()
-	assert not fenetre(interface).indexation.en_cours()
-
-
-@when("la fenêtre fermée a tout traité")
-def apres_fermeture(qtbot: QtBot) -> None:
-	qtbot.wait(300)
-
-
-# ─── Alors ─────────────────────────────────────────────────
-
-
-@then(parsers.parse("le journal « {titre} » de l'indexation conclut « {texte} »"))
-def conclusion(interface: Contexte, titre: str, texte: str) -> None:
-	assert (journal(interface).windowTitle(), journal(interface).ui.conclusion.text()) == (titre, texte)
-
-
-@then(parsers.parse("le journal « {titre} » de l'indexation est ouvert"))
-def journal_ouvert(interface: Contexte, titre: str) -> None:
-	assert journal(interface).isVisible()
-	assert journal(interface).windowTitle() == titre
-
-
-@when("je ferme le journal de l'indexation")
-def fermer_journal(interface: Contexte, qtbot: QtBot) -> None:
-	qtbot.mouseClick(journal(interface).ui.fermer, Qt.MouseButton.LeftButton)
-
-
-@then(parsers.parse("la première ligne du journal de l'indexation commence par « {debut} »"))
-def premiere_ligne(interface: Contexte, debut: str) -> None:
-	assert journal(interface).lignes()[0].startswith(interface.chemin_dans(debut)), journal(interface).lignes()
-
-
-@then("le journal de l'indexation est fermé")
-def journal_ferme(interface: Contexte) -> None:
-	assert not journal(interface).isVisible()
-
-
-@then("le journal de l'indexeur n'est plus écouté")
-def journal_libre() -> None:
-	assert logging.getLogger("machincast.indexation").handlers == []
-
-
-@then("le journal de l'indexation montre :")
-def lignes_du_journal(interface: Contexte, datatable: list[list[str]]) -> None:
-	"""Les lignes, comme dans le terminal ; un chemin qui commence par « …/ » est dans le répertoire du scénario."""
-	_entete, *lignes = datatable
-	assert journal(interface).lignes() == [interface.chemin_dans(ligne.strip()) for (ligne,) in lignes]
-
-
-@then("le journal de l'indexation ne signale aucune anomalie")
-def sans_anomalie(interface: Contexte) -> None:
-	assert journal(interface).anomalies == []
-
-
-@then(parsers.re(r"le journal de l'indexation signale (?P<nombre>\d+) anomalies?, sur (?P<chemins>«.+)"))
-def anomalies(interface: Contexte, nombre: str, chemins: str) -> None:
-	signalees = journal(interface).anomalies
-	assert len(signalees) == int(nombre), signalees
-	for anomalie, chemin in zip(signalees, NOM.findall(chemins), strict=True):
-		assert anomalie.startswith(f"Machin_indexation : {interface.chemin(chemin)} : "), anomalie
-
-
-@then(parsers.parse("les sonores de la banque « {nom} » en base sont :"))
-def sonores_de_la_banque(interface: Contexte, base_vide: Connexion, nom: str, datatable: list[list[str]]) -> None:
-	entetes, *rangees = datatable
-	lus = base_vide.execute(
-		"SELECT s.emplacement, s.etat::text, s.titre FROM sonores s"
-		" JOIN banques_sonores bs ON bs.sonore_id = s.id JOIN banques b ON b.id = bs.banque_id"
-		" WHERE b.nom_interne = %s ORDER BY bs.position",
-		(nom,),
-	).fetchall()
-	assert [entete.strip() for entete in entetes] == ["emplacement", "etat", "titre"]
-	attendus = [tuple(interface.chemin(valeur.strip()) for valeur in rangee) for rangee in rangees]
-	assert [tuple(str(valeur) for valeur in ligne) for ligne in lus] == attendus
-
-
-@then(parsers.parse("le sonore « {titre} » est à l'état « {libelle} »"))
-def etat(base_vide: Connexion, titre: str, libelle: str) -> None:
-	lu = base_vide.execute("SELECT etat::text FROM sonores WHERE titre = %s", (titre,)).fetchone()
-	assert lu is not None, f"sonore « {titre} » absent"
-	assert LIBELLES[lu[0]] == libelle
+@then(parsers.re(r"la commande d'indexation, pour la configuration (?P<configuration>.+), est « (?P<attendue>.+) »"))
+def commande(interface: Contexte, monkeypatch: pytest.MonkeyPatch, configuration: str, attendue: str) -> None:
+	monkeypatch.chdir(interface.repertoire)
+	chemin: Path | None = None
+	if configuration != "par défaut":
+		(nom,) = NOM.findall(configuration)
+		chemin = Path(nom)
+	attendue = interface.chemin_dans(attendue).replace("<python>", sys.executable)
+	assert COMMANDE_INDEXATION(chemin) == attendue.split(" ")

@@ -92,6 +92,12 @@ def rafraichissement(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -
 	dialogue.reponse = dialogues.confirmer_fermeture(dialogue.parent, titre, "rafraîchir la fiche")
 
 
+@when(parsers.parse("la question d'arrêt de « {titre} » s'ouvre, et que j'y {geste}"))
+def arret(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> None:
+	repondre(dialogue, qtbot, geste)
+	dialogue.reponse = dialogues.confirmer_arret_indexation(dialogue.parent, titre)
+
+
 @when(parsers.parse("l'avertissement de réintégration « {texte} » s'ouvre, et que j'y {geste}"))
 def retrait(dialogue: Dialogue, qtbot: QtBot, texte: str, geste: str) -> None:
 	repondre(dialogue, qtbot, geste)

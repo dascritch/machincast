@@ -5,6 +5,8 @@ Chargé comme greffon pytest par tests/conftest.py, pour servir à verification.
 """
 
 import logging
+import threading
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -15,6 +17,7 @@ from pytest_bdd import given, parsers, then, when
 
 from machincast.base import Role, connecter
 from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
+from machincast.indexation.indexeur import VERROU
 from machincast.indexation.indexeur import indexer as indexer_complet
 from machincast.indexation.verification import Bilan, texte_bilan
 from tests.base_test import parametres_base_test
@@ -35,6 +38,48 @@ class Execution:
 	erreurs: str
 	informations: list[str] = field(default_factory=list)
 	"""Ce qui va sur la sortie standard, ligne par ligne : niveau INFO."""
+	verrou_rendu: bool = False
+	"""Le verrou de l'indexation était libre dès la fin de l'indexation, sa connexion encore ouverte."""
+
+
+def verrou_libre() -> bool:
+	"""Une autre connexion peut-elle prendre le verrou de l'indexation ? Elle le rend aussitôt."""
+	with connecter(*parametres_base_test(), Role.INDEXATION) as autre:
+		pris = autre.execute("SELECT pg_try_advisory_lock(%s)", (VERROU,)).fetchone()
+		assert pris is not None
+		autre.execute("SELECT pg_advisory_unlock(%s)", (VERROU,))
+		return bool(pris[0])
+
+
+@dataclass
+class AutreIndexation:
+	"""Une autre connexion, qui tient le verrou de l'indexation jusqu'à sa fin."""
+
+	connexion: psycopg.Connection[tuple[object, ...]] | None = None
+
+	def terminer(self) -> None:
+		if self.connexion is not None:
+			self.connexion.close()
+		self.connexion = None
+
+
+@pytest.fixture
+def autre_indexation() -> Iterator[AutreIndexation]:
+	autre = AutreIndexation()
+	yield autre
+	autre.terminer()
+
+
+@given("une autre indexation en cours sur la base")
+def indexation_en_cours(base_vide: Connexion, autre_indexation: AutreIndexation) -> None:
+	autre_indexation.connexion = connecter(*parametres_base_test(), Role.INDEXATION)
+	autre_indexation.connexion.execute("SELECT pg_advisory_lock(%s)", (VERROU,))
+	autre_indexation.connexion.commit()
+
+
+@when("l'autre indexation se termine")
+def fin_de_l_autre(autre_indexation: AutreIndexation) -> None:
+	autre_indexation.terminer()
 
 
 # ─── Fichiers ──────────────────────────────────────────────
@@ -121,20 +166,30 @@ def stream(base_vide: Connexion) -> tuple[int, object]:
 	return int(str(ligne[0])), ligne[1]
 
 
-def indexer(base_vide: Connexion, caplog: pytest.LogCaptureFixture, audit_complet: bool) -> Execution:
+def indexer(
+	base_vide: Connexion, caplog: pytest.LogCaptureFixture, audit_complet: bool, arret: threading.Event | None = None
+) -> Execution:
 	# Le compte qui lance les tests endosse déjà le rôle de l'indexation (vérifié par base_vide).
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:
-		bilan = indexer_complet(c, audit_complet=audit_complet)
+		bilan = indexer_complet(c, audit_complet=audit_complet, arret=arret)
+		verrou_rendu = verrou_libre()
 	# Les anomalies et les erreurs vont sur la sortie d'erreur : niveau WARNING et au-delà.
 	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
 	informations = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
-	return Execution(bilan, "\n".join(anomalies), informations)
+	return Execution(bilan, "\n".join(anomalies), informations, verrou_rendu)
 
 
 @when("l'indexeur fait un audit complet", target_fixture="execution")
 def audit_complet(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> Execution:
 	return indexer(base_vide, caplog, audit_complet=True)
+
+
+@when("l'indexeur fait une indexation rapide, dont l'arrêt est déjà demandé", target_fixture="execution")
+def indexation_arretee(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> Execution:
+	arret = threading.Event()
+	arret.set()
+	return indexer(base_vide, caplog, audit_complet=False, arret=arret)
 
 
 @when("l'indexeur fait une indexation rapide", target_fixture="execution")

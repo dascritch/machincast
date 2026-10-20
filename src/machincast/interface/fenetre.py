@@ -18,9 +18,9 @@ https://github.com/dascritch/machincast/issues/35), qui se relit aussi à l'ouve
 La barre de menus a quatre menus (https://github.com/dascritch/machincast/issues/117) : « Fichier », pour quitter
 (Alt+Q, comme la fermeture de la fenêtre) ; « Affichage », pour rafraîchir les onglets (F5,
 https://github.com/dascritch/machincast/issues/148) ; « Maintenance », qui lance l'indexation rapide ou l'audit
-complet, en tâche de fond (machincast.interface.indexation, https://github.com/dascritch/machincast/issues/38), et en
-montre le journal dans une fenêtre à part (machincast.interface.journal_indexation,
-https://github.com/dascritch/machincast/issues/120) ; « Aide », pour signaler un problème et connaître la version
+complet (https://github.com/dascritch/machincast/issues/38) dans un processus à part, avec la fenêtre de son journal
+(machincast.interface.indexation, https://github.com/dascritch/machincast/issues/120) : fermer l'interface ne
+l'arrête pas ; « Aide », pour signaler un problème et connaître la version
 (machincast.interface.version). Une fonction pas encore écrite a son entrée, inactive, dont l'infobulle donne le
 ticket.
 
@@ -34,12 +34,12 @@ from pathlib import Path
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import QMainWindow, QTabBar, QWidget
 
 from machincast.horloge import Horloge
-from machincast.interface import dialogues, version
+from machincast.interface import dialogues, indexation, version
 from machincast.interface.ajout import ajouter_fichiers
 from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.fiche import Fiche, Rafraichie
@@ -50,8 +50,7 @@ from machincast.interface.fiche_sequence import FicheSequence
 from machincast.interface.fiche_sonore import FicheSonore
 from machincast.interface.fil_musical import garantir
 from machincast.interface.incidents import EcranIncidents
-from machincast.interface.indexation import TITRES, Indexation
-from machincast.interface.journal_indexation import FenetreJournal
+from machincast.interface.indexation import LANCE, TERMINE, TITRES
 from machincast.interface.listes import BANQUES, EVENEMENTS, MARQUES_PAGES, SEQUENCES, SONORES, Liste
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 from machincast.interface.verification import Verificateur
@@ -69,6 +68,8 @@ FICHES: dict[str, type[Fiche]] = {
 	fiche.genre: fiche for fiche in (FicheEvenement, FicheSequence, FicheBanque, FicheSonore, FicheMarquePage)
 }
 """Écrans de détail : les fiches, par genre."""
+SUIVI_INDEXATION = 1000
+"""Millisecondes entre deux regards sur le processus de l'indexation lancée depuis le menu."""
 TICKETS = "https://github.com/dascritch/machincast/issues"
 """Les tickets de MachinCast, qu'ouvre « Signaler un problème… » ; comme dans pyproject.toml."""
 
@@ -83,7 +84,10 @@ class FenetrePrincipale(QMainWindow):
 		socket_etat: Path,
 		horloge: Horloge,
 		parent: QWidget | None = None,
+		commande_indexation: list[str] | None = None,
 	) -> None:
+		"""commande_indexation : Machin indexation, avec la configuration de l'interface
+		(indexation.commande_indexation)."""
 		super().__init__(parent)
 		self.connexion = connexion
 		self.horloge = horloge
@@ -94,10 +98,16 @@ class FenetrePrincipale(QMainWindow):
 		self._ajouter_fixe(self.accueil, "Accueil")
 		self.verificateur = Verificateur(connexion, self)
 		self.verificateur.termine.connect(self._verification_terminee)
-		self.indexation = Indexation(connexion, self)
-		self.indexation.termine.connect(self._indexation_terminee)
-		self.journal_indexation = FenetreJournal(self)
-		self.indexation.ligne.connect(self.journal_indexation.ajouter)
+		if commande_indexation is None:
+			commande_indexation = indexation.commande_indexation(None)
+		self.commande_indexation = commande_indexation
+		self.indexation_lancee: int | None = None
+		"""Numéro du processus de l'indexation lancée depuis le menu, tant qu'il tourne."""
+		self._suivi_indexation = QTimer(self)
+		self._suivi_indexation.setInterval(SUIVI_INDEXATION)
+		self._suivi_indexation.timeout.connect(self._suivre_indexation)
+		self._mode_lance = False
+		"""Audit complet ou indexation rapide, pour l'indexation lancée."""
 		self._garnir_menus()
 		self.listes: list[Liste] = []
 		for titre, source in ONGLETS:
@@ -180,8 +190,6 @@ class FenetrePrincipale(QMainWindow):
 		for fiche in self.fiches():
 			fiche.fermer()
 		self.verificateur.arreter()
-		self.indexation.arreter()
-		self.journal_indexation.close()
 		self.accueil.close()
 		super().closeEvent(evenement)
 
@@ -252,21 +260,35 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.barre_d_etat.showMessage(texte)
 
 	def _indexer(self, audit_complet: bool) -> None:
-		"""Lance l'indexation en tâche de fond, et ouvre son journal ; le menu ne la propose plus jusqu'à sa fin."""
+		"""Lance Machin indexation dans son propre processus, avec sa fenêtre ; le menu ne la propose plus tant qu'il
+		tourne."""
+		commande = [*self.commande_indexation, "--fenetre"]
+		if audit_complet:
+			commande.append("--audit-complet")
+		self._mode_lance = audit_complet
+		self.indexation_lancee = indexation.lancer_detachee(commande)
+		if self.indexation_lancee is None:
+			journal.error(f"indexation impossible à lancer : {' '.join(commande)}")
+			self.ui.barre_d_etat.showMessage("Indexation impossible : Machin indexation n'a pas pu être lancé.")
+			return
 		for action in self.indexations:
 			action.setEnabled(False)
-		self.ui.barre_d_etat.showMessage(f"{TITRES[audit_complet]} en cours…")
-		self.journal_indexation.commencer(TITRES[audit_complet])
-		self.indexation.lancer(audit_complet)
+		titre = TITRES[audit_complet]
+		self.ui.barre_d_etat.showMessage(f"{titre} {LANCE[audit_complet]}, dans sa propre fenêtre.")
+		self._suivi_indexation.start()
 
-	def _indexation_terminee(self, texte: str) -> None:
+	def _suivre_indexation(self) -> None:
+		assert self.indexation_lancee is not None
+		if indexation.processus_actif(self.indexation_lancee):
+			return
+		self._suivi_indexation.stop()
+		self.indexation_lancee = None
 		for action in self.indexations:
 			action.setEnabled(True)
-		self.ui.barre_d_etat.showMessage(texte)
-		ouvert = self.ui.onglets.currentWidget()
-		if isinstance(ouvert, Liste):
-			ouvert.actualiser()
-		self.journal_indexation.conclure(texte)
+		titre = TITRES[self._mode_lance]
+		self.ui.barre_d_etat.showMessage(
+			f"{titre} {TERMINE[self._mode_lance]} ; « Rafraîchir les onglets » (F5) montre ses changements."
+		)
 
 	def _verification_terminee(self, texte: str) -> None:
 		self.ui.barre_d_etat.showMessage(texte)

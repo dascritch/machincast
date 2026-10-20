@@ -2,7 +2,9 @@
 
 Parcours des répertoires des banques (https://github.com/dascritch/machincast/issues/9), puis vérification
 des sonores (https://github.com/dascritch/machincast/issues/7), en indexation rapide par défaut ou en audit
-complet (https://github.com/dascritch/machincast/issues/69).
+complet (https://github.com/dascritch/machincast/issues/69). Avec --fenetre, l'indexation montre son journal dans une
+fenêtre, ligne par ligne : c'est ainsi que l'interface la lance, dans un processus à part
+(https://github.com/dascritch/machincast/issues/120).
 """
 
 import argparse
@@ -15,8 +17,9 @@ from machincast.base import Role, connecter
 from machincast.cli import lancer
 from machincast.configuration import Configuration
 from machincast.indexation.decodage import DecodeurIndisponible
-from machincast.indexation.indexeur import indexer
+from machincast.indexation.indexeur import IndexationEnCours, indexer
 from machincast.indexation.verification import texte_bilan
+from machincast.interface.__main__ import affichage_disponible
 
 EXECUTABLE = "Machin_indexation"
 DESCRIPTION = "Vérifie les sonores et indexe les répertoires des banques."
@@ -33,10 +36,25 @@ def options_propres(analyseur: argparse.ArgumentParser) -> None:
 		action="store_true",
 		help="décode tous les sonores ; par défaut, l'indexation rapide ne décode que les sonores en aperçu",
 	)
+	analyseur.add_argument(
+		"--fenetre",
+		action="store_true",
+		help="montre le journal de l'indexation dans une fenêtre, ligne par ligne, comme le lance l'interface",
+	)
 
 
 def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 	base = configuration.base
+	if options.fenetre:
+		if not affichage_disponible():
+			journal.error(
+				"--fenetre demande un affichage graphique : sans lui, lancer Machin indexation sans --fenetre"
+			)
+			return CODE_ECHEC
+		# PySide6 n'est importé qu'ici : sans --fenetre, l'indexation ne demande aucun affichage graphique.
+		from machincast.interface.journal_indexation import lancer_fenetre
+
+		return lancer_fenetre(base.socket, base.production, options.audit_complet)
 	try:
 		with connecter(base.socket, base.production, Role.INDEXATION) as connexion:
 			bilan = indexer(connexion, audit_complet=options.audit_complet)
@@ -48,6 +66,9 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 		return CODE_ECHEC
 	except DecodeurIndisponible as erreur:
 		journal.error(f"vérification interrompue : {erreur}")
+		return CODE_ECHEC
+	except IndexationEnCours as erreur:
+		journal.error(f"indexation refusée : {erreur}")
 		return CODE_ECHEC
 	journal.info(texte_bilan(bilan))
 	return 0
