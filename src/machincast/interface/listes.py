@@ -35,6 +35,7 @@ ETATS = {
 	"desactive": "désactivé",
 	"expire": "expiré",
 	"errone": "erroné",
+	"non_supporte": "non supporté",
 	"supprime": "supprimé",
 }
 PRIORITES = {"special": "spécial", "emission": "émission", "fil_musical": "fil musical", "secours": "secours"}

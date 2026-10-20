@@ -29,7 +29,7 @@ ROLES=(lecture indexation interface)
 PAQUETS=(
 	python3-venv python3-dev build-essential pkg-config libgirepository-2.0-dev libcairo2-dev
 	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad
-	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire postgresql bash-completion
+	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire libmagic1t64 postgresql bash-completion
 )
 # Outils du poste de développement, installés par --dev : ceux de CLAUDE.md.
 PAQUETS_DEV=(bats shellcheck)

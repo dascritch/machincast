@@ -69,6 +69,7 @@ CHOIX_ETATS: dict[str, tuple[str, ...]] = {
 	"desactive": ("desactive", "actif"),
 	"expire": ("expire", "actif", "desactive"),
 	"errone": ("errone", "actif", "desactive"),
+	"non_supporte": ("non_supporte", "actif", "desactive"),
 	"supprime": ("supprime", "actif", "desactive"),
 }
 """L'état du sonore, puis ceux que l'interface peut poser."""

@@ -61,7 +61,7 @@ Fonctionnalité: Indexation rapide
 		Et un sonore à l'état « apercu » pour ce fichier
 		Quand l'indexeur fait un audit complet
 		Alors le sonore est à l'état « actif »
-		Et le bilan indique « audit complet : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Et le bilan indique « audit complet : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
 
 	Scénario: Le bilan de l'indexation rapide compte les sonores sortis de l'aperçu et les fichiers disparus
 		Étant donné un fichier mp3 sain
@@ -69,7 +69,7 @@ Fonctionnalité: Indexation rapide
 		Et un deuxième fichier wav sain, dont le sonore est à l'état « actif »
 		Et un troisième sonore, actif, dont le fichier a disparu
 		Quand l'indexeur fait une indexation rapide
-		Alors le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 1 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Alors le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 1 sorti d'aperçu »
 
 	Scénario: Machin_indexation propose l'audit complet en option
 		Quand je lance "Machin_indexation" avec l'option "--help"
@@ -86,7 +86,7 @@ Fonctionnalité: Indexation rapide
 		Alors le sonore est à l'état « actif »
 		Et en base, l'artiste est « Les Gaufres Électriques » et le titre « Café à minuit »
 		Et la date de modification et la taille du fichier sont enregistrées
-		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Un fichier dont seule la date de modification a changé est aussi revérifié
 		Étant donné un fichier flac sain
@@ -95,7 +95,7 @@ Fonctionnalité: Indexation rapide
 		Et ce fichier touché, sans changer son contenu
 		Quand l'indexeur fait une indexation rapide
 		Alors la date de modification et la taille du fichier sont enregistrées
-		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Un fichier remplacé en gardant sa date de modification est revérifié, sa taille ayant changé
 		Étant donné un fichier flac sain
@@ -112,14 +112,14 @@ Fonctionnalité: Indexation rapide
 		Et ce fichier supprimé
 		Quand l'indexeur fait une indexation rapide
 		Alors le sonore est à l'état « supprime »
-		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 1 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Un fichier inchangé depuis sa dernière vérification n'est pas redécodé
 		Étant donné un fichier flac sain
 		Et un sonore à l'état « apercu » pour ce fichier
 		Et l'indexeur a fait une indexation rapide
 		Quand l'indexeur fait une indexation rapide
-		Alors le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Alors le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Un fichier remplacé par un fichier endommagé est signalé, et son sonore passe erroné
 		Étant donné un fichier mp3 sain

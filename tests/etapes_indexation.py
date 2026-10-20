@@ -5,6 +5,7 @@ Chargé comme greffon pytest par tests/conftest.py, pour servir à verification.
 """
 
 import argparse
+import csv
 import dataclasses
 import logging
 import os
@@ -123,6 +124,29 @@ def inserer_sonore(
 	).fetchone()
 	assert ligne is not None
 	return int(str(ligne[0]))
+
+
+@given(parsers.parse("un fichier « {nom} » qui contient du texte"), target_fixture="fichier")
+def fichier_de_texte(tmp_path: Path, nom: str) -> Path:
+	fichier = tmp_path / nom
+	fichier.write_text("Ceci n'est pas un son, malgré son extension.\n", encoding="utf-8")
+	return fichier
+
+
+@given(parsers.parse("un fichier « {nom} » vide"), target_fixture="fichier")
+def fichier_vide_nomme(tmp_path: Path, nom: str) -> Path:
+	fichier = tmp_path / nom
+	fichier.write_bytes(b"")
+	return fichier
+
+
+@given(parsers.parse("une image « {nom} »"), target_fixture="fichier")
+def image(tmp_path: Path, nom: str) -> Path:
+	"""Le début d'une image PNG d'un pixel : sa signature et son en-tête suffisent à libmagic."""
+	fichier = tmp_path / nom
+	entete = b"\x00\x00\x00\x0dIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde"
+	fichier.write_bytes(b"\x89PNG\r\n\x1a\n" + entete)
+	return fichier
 
 
 @given("un fichier mp3 endommagé", target_fixture="fichier")
@@ -357,3 +381,26 @@ def lancement_termine(lancement: tuple[int, list[str]], tmp_path: Path, code: in
 	obtenu, messages = lancement
 	texte = texte.replace("…/", f"{tmp_path}/")
 	assert (obtenu, texte in messages) == (code, True), messages
+
+
+@then(parsers.parse("le type du fichier en base est « {type_mime} »"))
+def type_en_base(base_vide: Connexion, sonore: int, type_mime: str) -> None:
+	assert base_vide.execute("SELECT type_mime FROM sonores WHERE id = %s", (sonore,)).fetchone() == (type_mime,)
+
+
+@then(parsers.parse("la sortie d'erreur mentionne « {texte} »"))
+def erreur_mentionne(execution: Execution, texte: str) -> None:
+	assert texte in execution.erreurs, execution.erreurs
+
+
+def lire_csv(repertoire: Path, nom: str) -> list[list[str]]:
+	with (repertoire / nom).open(encoding="utf-8-sig", newline="") as fichier:
+		return list(csv.reader(fichier, delimiter=";"))
+
+
+@then(parsers.parse("le document d'audit « {nom} » signale ce fichier, « {verdict} », avec « {consequence} »"))
+def anomalie_csv(repertoire_d_audit: Path, fichier: Path, nom: str, verdict: str, consequence: str) -> None:
+	_entete, anomalie, _bilan = lire_csv(repertoire_d_audit, nom)
+	_date, chemin, lu, probleme, suite = anomalie
+	assert (chemin, lu, suite) == (str(fichier), verdict, consequence)
+	assert (probleme != "") and (not probleme.startswith(verdict)), probleme
