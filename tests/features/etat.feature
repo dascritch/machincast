@@ -123,6 +123,102 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Et un client lit la socket d'état
 		Alors le prochain sonore est « Direct studio », à l'état sain inconnu
 
+	# ─── Coupure par un événement à venir (https://github.com/dascritch/machincast/issues/169) ─────
+
+	Scénario: Un événement qui commencera pendant le sonore en cours : la socket annonce la coupure et le sonore suivant
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et le sonore « f1 » dure 600 secondes en base
+		Et l'émission « Journal » de 20:00:00 à 20:30:00, avec le sonore « j1 »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,4 seconde
+		Et un client lit la socket d'état
+		Alors le sonore en cours finira au « 2026-10-14 20:00:00 », coupé par l'événement « Journal »
+		Et le prochain sonore est « j1 », sain
+		Et il commencera au « 2026-10-14 20:00:00 », dure 1 seconde et finira au « 2026-10-14 20:00:01 »
+		Et le prochain sonore est joué par l'événement « Journal »
+
+	Plan du scénario: Un événement qui commencera après le sonore en cours, ou pendant son crossfade de fin, ne le coupe pas
+		Le sonore suivant est demandé au début du crossfade de fin : c'est lui que l'événement coupera.
+
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et le sonore « f1 » dure 600 secondes en base
+		Et le sonore « f1 » a 20 seconde de crossfade de fin
+		Et l'émission « Journal » de <debut> à 20:30:00, avec le sonore « j1 »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,4 seconde
+		Et un client lit la socket d'état
+		Alors le sonore en cours finira au « 2026-10-14 20:09:50 », sans être coupé
+		Et le prochain sonore est « f2 », sain
+		Et le prochain sonore est joué par l'événement « Continue »
+
+		Exemples:
+			| debut    |
+			| 20:09:50 |
+			| 20:09:40 |
+
+	Scénario: Le premier changement de la grille qui ne coupe pas n'empêche pas de trouver le suivant, qui coupe
+		Étant donné le fil musical permanent « Continue », avec les sonores « f2 »
+		Et l'émission « Magazine » de 19:59:50 à 20:00:05, avec le sonore « f1 »
+		Et le sonore « f1 » dure 600 secondes en base
+		Et l'émission « Journal » de 20:01:00 à 20:30:00, avec le sonore « j1 »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,4 seconde
+		Et un client lit la socket d'état
+		Alors le sonore en cours finira au « 2026-10-14 20:01:00 », coupé par l'événement « Journal »
+
+	Scénario: Un stream s'éteint à la fin de son événement : un événement qui commence ensuite ne le coupe pas
+		Étant donné un serveur de flux local, avec le flux « studio » en ligne
+		Et le stream « Direct studio » à l'adresse du flux « studio »
+		Et l'émission « Direct » de 19:59:50 à 20:00:00, avec le sonore « Direct studio »
+		Et le spécial « Flash » de 20:00:30 à 20:05:00, avec le sonore « j1 »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne pendant 1 seconde en temps réel
+		Et un client lit la socket d'état
+		Alors le sonore en cours n'a pas de fin estimée, sans être coupé
+
+	Scénario: Un stream en cours, de durée inconnue, annonce aussi sa coupure
+		Étant donné un serveur de flux local, avec le flux « studio » en ligne
+		Et le stream « Direct studio » à l'adresse du flux « studio »
+		Et l'émission « Direct » de 19:59:50 à 20:30:00, avec le sonore « Direct studio »
+		Et le spécial « Flash » de 20:00:00 à 20:05:00, avec le sonore « j1 »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne pendant 1 seconde en temps réel
+		Et un client lit la socket d'état
+		Alors le sonore en cours finira au « 2026-10-14 20:00:00 », coupé par l'événement « Flash »
+		Et le prochain sonore est « j1 », sain
+		Et il commencera au « 2026-10-14 20:00:00 », dure 1 seconde et finira au « 2026-10-14 20:00:01 »
+
+	Scénario: Le sonore annoncé après la coupure est celui qui est joué, même tiré au hasard
+		Sept sonores : avec la graine des tests, les deux premiers tirages diffèrent, et un hasard que l'anticipation
+		aurait fait avancer donnerait un autre sonore.
+
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
+		Et le sonore « f1 » dure 600 secondes en base
+		Et l'émission « Journal » de 20:00:00 à 20:30:00, avec la banque aléatoire « Rotation » des sonores « a », « b », « c », « d », « e », « g », « h »
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 1 pas d'une seconde
+		Et un client lit la socket d'état
+		Et l'horloge du binaire passe au « 2026-10-14 20:00:00 »
+		Et la diffusion tourne 1 pas d'une seconde
+		Alors le deuxième passage est le prochain sonore annoncé
+
+	Scénario: Anticiper le sonore qui suivra la coupure ne laisse aucune trace dans le log
+		Le saut d'une banque « ne pas répéter » est noté quand la coupure a lieu, pas quand elle est annoncée.
+
+		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
+		Et le sonore « f1 » dure 600 secondes en base
+		Et la banque « Titres » est marquée « ne pas répéter »
+		Et l'émission « Journal » de 20:00:00 à 20:30:00, qui joue la banque « Titres », puis le sonore « j1 »
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 1 pas d'une seconde
+		Et un client lit la socket d'état
+		Alors le prochain sonore est « j1 », sain
+		Et le log contient 0 info « élément sauté »
+		Quand l'horloge du binaire passe au « 2026-10-14 20:00:00 »
+		Et la diffusion tourne 1 pas d'une seconde
+		Alors l'airplay montre les passages « f1 », « j1 »
+		Et le log contient 1 info « élément sauté »
+
 	# ─── Réservation ───────────────────────────────────────────
 
 	Scénario: Le sonore réservé est celui qui est joué, même tiré au hasard

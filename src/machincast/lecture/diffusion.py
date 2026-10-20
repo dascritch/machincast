@@ -47,7 +47,7 @@ from machincast import __version__
 from machincast.configuration import Metadonnees
 from machincast.hasard import Hasard
 from machincast.horloge import Horloge
-from machincast.lecture.deroule import Choix, Decision, EnCours, Ordonnanceur
+from machincast.lecture.deroule import Choix, Coupure, Decision, EnCours, Ordonnanceur
 from machincast.lecture.enregistrement import Passage
 from machincast.lecture.etat import PUBLICATION_MINIMALE, SocketEtat, SocketEtatOccupee, est_sain
 from machincast.lecture.etat import instant as iso
@@ -57,6 +57,9 @@ from machincast.lecture.moteur import Moteur, VoieLecture, enchainement, fondu_d
 from machincast.lecture.sorties import Sorties, lire_passages, texte_public
 
 PAUSE = 0.05
+HORIZON_DES_COUPURES = timedelta(hours=12)
+"""Jusqu'où chercher l'événement qui coupera un sonore de durée inconnue, un stream
+(https://github.com/dascritch/machincast/issues/169)."""
 """Pause entre deux pas de la boucle, en secondes : la précision de l'enchaînement et de la coupure."""
 
 DELAI_RECONNEXION = timedelta(seconds=5)
@@ -103,6 +106,8 @@ class Lecture:
 	"""La voie s'éteint en fondu et s'arrêtera d'elle-même : la fin du passage est normale."""
 	details: dict[str, Any] | None = None
 	"""Ce que la socket d'état dit de son contexte, lu une fois (Diffusion._details)."""
+	coupure: Coupure | None = None
+	"""L'événement qui le coupera net, cherché à sa réservation (https://github.com/dascritch/machincast/issues/169)."""
 
 	@property
 	def en_cours(self) -> EnCours:
@@ -119,6 +124,9 @@ class Reserve:
 	parametres: Parametres
 	sain: bool | None
 	"""Indicateur « sain » (spec § 4.6) ; None pour un stream."""
+	anticipee: bool = False
+	"""Réservé pour après une coupure : seulement annoncé, il sera choisi par la décision prise à la coupure, qui
+	consigne ce qu'il faut (https://github.com/dascritch/machincast/issues/169)."""
 
 
 @dataclass
@@ -293,17 +301,30 @@ class Diffusion:
 	def _prendre_la_reserve(self, instant: datetime) -> Choix | None:
 		"""Le sonore réservé, s'il est encore valable ; la réserve est vidée dans tous les cas."""
 		reserve, self.reserve = self.reserve, None
-		if (reserve is not None) and (self.ordonnanceur.valider(reserve.choix, instant)):
+		if (reserve is not None) and (not reserve.anticipee) and (self.ordonnanceur.valider(reserve.choix, instant)):
 			return reserve.choix
 		return None
 
 	def _reserver(self, instant: datetime) -> None:
-		choix = self.ordonnanceur.reserver(instant)
+		"""Réserve le prochain sonore. Si un événement doit couper le sonore en cours, c'est celui que cet événement
+		jouera, anticipé à l'instant de la coupure (https://github.com/dascritch/machincast/issues/169)."""
+		courant = self.courant
+		coupure = None
+		if courant is not None:
+			coupure = self.ordonnanceur.coupure(courant.en_cours, instant, _horizon(courant, instant))
+			courant.coupure = coupure
+		if coupure is None:
+			choix = self.ordonnanceur.reserver(instant)
+		else:
+			choix = self.ordonnanceur.anticiper(coupure.instant)
 		if choix is None:
 			self.reserve = None
 			return
 		self.reserve = Reserve(
-			choix, lire_parametres(self.connexion, choix.sonore), est_sain(self.connexion, choix.sonore)
+			choix,
+			lire_parametres(self.connexion, choix.sonore),
+			est_sain(self.connexion, choix.sonore),
+			coupure is not None,
 		)
 
 	def _preparer_le_suivant(self, courant: Lecture, instant: datetime) -> None:
@@ -498,10 +519,15 @@ class Diffusion:
 				**courant.details,
 				"debut": iso(courant.passage.debut),
 				"duree": _secondes(duree),
-				"fin_estimee": iso(None if duree is None else courant.passage.debut + duree),
+				"fin_estimee": iso(_fin_estimee(courant)),
+				"coupe_par": None,
+				"coupe_par_id": None,
 				"position": round(position.total_seconds(), 3),
 				"progression": _progression(position, duree),
 			}
+			if courant.coupure is not None:
+				evenement = courant.coupure.occurrence.evenement
+				en_cours |= {"coupe_par": evenement.nom, "coupe_par_id": evenement.id}
 		prochain = None
 		reserve = self.reserve
 		if reserve is not None:
@@ -511,6 +537,9 @@ class Diffusion:
 					courant.parametres.duree, courant.parametres.crossfade_fin, reserve.parametres.crossfade_debut
 				)
 				debut = courant.passage.debut + ecart
+			if (courant is not None) and (courant.coupure is not None):
+				# Une coupure est nette : le sonore de l'événement qui commence démarre à son début.
+				debut = courant.coupure.instant
 			duree = reserve.parametres.duree
 			if (self._details_reserve is None) or (self._details_reserve[0] is not reserve):
 				self._details_reserve = (reserve, self._details(reserve.choix, None))
@@ -577,6 +606,28 @@ def _affichage(choix: Choix, parametres: Parametres) -> dict[str, Any]:
 		"emplacement": parametres.emplacement,
 		"evenement": choix.occurrence.evenement.nom,
 	}
+
+
+def _horizon(lecture: Lecture, instant: datetime) -> datetime:
+	"""Jusqu'où un événement qui commence coupe le sonore : jusqu'à ce que le suivant soit demandé, au début de son
+	crossfade de fin ; pour un stream, jusqu'à la fin de son occurrence, où il s'éteint, ou HORIZON_DES_COUPURES."""
+	duree = lecture.parametres.duree
+	if duree is not None:
+		return lecture.passage.debut + duree - lecture.parametres.crossfade_fin
+	horizon = instant + HORIZON_DES_COUPURES
+	fin = lecture.choix.occurrence.fin
+	if fin is not None:
+		horizon = min(horizon, fin.astimezone())
+	return horizon
+
+
+def _fin_estimee(lecture: Lecture) -> datetime | None:
+	"""L'instant de la coupure annoncée, sinon la fin du sonore ; None pour un stream qui ne sera pas coupé."""
+	if lecture.coupure is not None:
+		return lecture.coupure.instant
+	if lecture.parametres.duree is None:
+		return None
+	return lecture.passage.debut + lecture.parametres.duree
 
 
 def _secondes(duree: timedelta | None) -> float | None:
