@@ -31,12 +31,12 @@ from pathlib import Path
 
 from psycopg import sql
 from psycopg.types.json import Jsonb
-from PySide6.QtCore import QDateTime, QLocale, Qt
+from PySide6.QtCore import QDateTime, Qt
 from PySide6.QtGui import QIntValidator
-from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QLineEdit, QTableWidgetItem, QWidget
+from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QDoubleSpinBox, QLineEdit, QTableWidgetItem, QWidget
 
 from machincast.horloge import Horloge
-from machincast.interface import affichage, dialogues
+from machincast.interface import affichage, dialogues, preferences
 from machincast.interface.essai_flux import EssaiDeFlux
 from machincast.interface.fiche import Connexion, Fiche, Refus
 from machincast.interface.listes import ETATS
@@ -115,7 +115,6 @@ PASSAGES = 50
 """Nombre de derniers passages montrés."""
 URL = Qt.ItemDataRole.UserRole + 1
 """Rôle qui porte l'adresse d'un marque-page, dans son choix."""
-FRANCAIS = QLocale(QLocale.Language.French, QLocale.Country.France)
 
 
 def _texte(valeur: object) -> str | None:
@@ -137,8 +136,9 @@ class FicheSonore(Fiche):
 		self.metadonnees: dict[str, QLineEdit] = {cle: getattr(self.ui, cle) for cle, _nom in METADONNEES}
 		for cle in ENTIERS:
 			self.metadonnees[cle].setValidator(QIntValidator(0, 9999, self))
+		# Le pas et la durée maximale des préférences (https://github.com/dascritch/machincast/issues/145).
 		for crossfade in (self.ui.crossfade_debut, self.ui.crossfade_fin):
-			crossfade.setLocale(FRANCAIS)
+			preferences.regler_selon_les_preferences(crossfade)
 		for _valeur, texte in MASQUAGES:
 			self.ui.masquage.addItem(texte)
 		self.essai = EssaiDeFlux(self)
@@ -152,6 +152,12 @@ class FicheSonore(Fiche):
 			choix.currentIndexChanged.connect(self._modifier)
 		for nombre in (self.ui.crossfade_debut, self.ui.crossfade_fin, self.ui.max_lectures):
 			nombre.valueChanged.connect(self._modifier)
+		for case, nombre in (
+			(self.ui.a_crossfade_debut, self.ui.crossfade_debut),
+			(self.ui.a_crossfade_fin, self.ui.crossfade_fin),
+		):
+			case.toggled.connect(nombre.setEnabled)
+			case.toggled.connect(self._modifier)
 		for case, date in ((self.ui.a_debut, self.ui.debut_diffusion), (self.ui.a_fin, self.ui.fin_diffusion)):
 			case.toggled.connect(date.setEnabled)
 			case.toggled.connect(self._modifier)
@@ -259,8 +265,13 @@ class FicheSonore(Fiche):
 			champ.setText(str(musicales.pop(cle, "")))
 		autres = [f"{cle} : {valeur}" for cle, valeur in sorted(musicales.items())]
 		self.ui.autres_metadonnees.setText(", ".join(autres))
-		self.ui.crossfade_debut.setValue(_secondes(crossfade_debut))
-		self.ui.crossfade_fin.setValue(_secondes(crossfade_fin))
+		# Un crossfade non paramétré (NULL) est décoché ; 0 seconde en est un (https://github.com/dascritch/machincast/issues/145).
+		for case, nombre, crossfade in (
+			(self.ui.a_crossfade_debut, self.ui.crossfade_debut, crossfade_debut),
+			(self.ui.a_crossfade_fin, self.ui.crossfade_fin, crossfade_fin),
+		):
+			preferences.montrer(nombre, _secondes(crossfade))
+			case.setChecked(isinstance(crossfade, timedelta))
 		self.ui.max_lectures.setValue(int(str((max_lectures) or (0))))
 		self.ui.masquage.setCurrentIndex(next(i for i, (valeur, _texte) in enumerate(MASQUAGES) if valeur is masquage))
 		self._montrer_date(self.ui.a_debut, self.ui.debut_diffusion, debut)
@@ -312,8 +323,8 @@ class FicheSonore(Fiche):
 			if (cle in ENTIERS) and (valeur is not None):
 				valeur = int(valeur)
 			saisies[f"metadonnees_musicales.{cle}"] = valeur
-		saisies["crossfade_debut"] = timedelta(seconds=self.ui.crossfade_debut.value())
-		saisies["crossfade_fin"] = timedelta(seconds=self.ui.crossfade_fin.value())
+		saisies["crossfade_debut"] = _crossfade(self.ui.a_crossfade_debut, self.ui.crossfade_debut)
+		saisies["crossfade_fin"] = _crossfade(self.ui.a_crossfade_fin, self.ui.crossfade_fin)
 		saisies["max_lectures"] = (self.ui.max_lectures.value()) or (None)
 		saisies["masquer_metadonnees"] = MASQUAGES[self.ui.masquage.currentIndex()][0]
 		saisies["debut_diffusion"] = _date(self.ui.a_debut, self.ui.debut_diffusion)
@@ -492,6 +503,13 @@ class FicheSonore(Fiche):
 			verdict = "Le flux répond"
 		self.ui.resultat_essai.setText(f"{verdict} : {detail}")
 		self.ui.tester.setEnabled(True)
+
+
+def _crossfade(case: QCheckBox, nombre: QDoubleSpinBox) -> timedelta | None:
+	"""Le crossfade saisi ; None s'il n'est pas paramétré."""
+	if not case.isChecked():
+		return None
+	return timedelta(seconds=nombre.value())
 
 
 def _secondes(valeur: object) -> float:

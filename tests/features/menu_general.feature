@@ -22,7 +22,7 @@ Fonctionnalité: Menu général de l'interface
 		Alors la barre de menus a les menus « Fichier », « Affichage », « Maintenance », « Aide »
 		Et le menu « Fichier » a les entrées :
 			| entrée       | état     | raccourci | infobulle                               |
-			| Préférences… | inactive |           | À venir : tickets 111 et 145 sur GitHub |
+			| Préférences… | active   |           |                                         |
 			| —            |          |           |                                         |
 			| Quitter      | active   | Alt+Q     |                                         |
 		Et le menu « Maintenance » a les entrées :

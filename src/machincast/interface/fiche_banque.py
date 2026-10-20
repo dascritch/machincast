@@ -36,7 +36,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from PySide6.QtCore import QLocale, Qt, QTime
+from PySide6.QtCore import Qt, QTime
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
 	QAbstractItemView,
@@ -50,7 +50,7 @@ from PySide6.QtWidgets import (
 )
 
 from machincast.horloge import Horloge
-from machincast.interface import affichage, dialogues
+from machincast.interface import affichage, dialogues, preferences
 from machincast.interface.depot import DepotDeFichiers
 from machincast.interface.dialogues import Retrait
 from machincast.interface.fiche import Connexion, Fiche, Refus, fichiers_sonores
@@ -62,8 +62,6 @@ REGLES_DE_CROSSFADE = (
 	("a_defaut", "Appliquer si le sonore n'en a pas"),
 	("impose", "Imposer à tous les sonores"),
 )
-FRANCAIS = QLocale(QLocale.Language.French, QLocale.Country.France)
-"""Les durées s'écrivent avec une virgule, comme dans la fiche d'un sonore."""
 MASQUAGES: tuple[tuple[bool | None, str], ...] = ((None, "Hérité du sonore"), (True, "Masqués"), (False, "Affichés"))
 """Valeurs de banques.masquer_metadonnees, dans l'ordre du choix de la fiche."""
 SONORE = Qt.ItemDataRole.UserRole
@@ -126,7 +124,8 @@ class FicheBanque(Fiche):
 		for regle, duree in self._crossfades():
 			for valeur, texte in REGLES_DE_CROSSFADE:
 				regle.addItem(texte, valeur)
-			duree.setLocale(FRANCAIS)
+			# Le pas et la durée maximale des préférences (https://github.com/dascritch/machincast/issues/145).
+			preferences.regler_selon_les_preferences(duree)
 			regle.currentIndexChanged.connect(self._modifier)
 			regle.currentIndexChanged.connect(self._actualiser_crossfades)
 			duree.valueChanged.connect(self._modifier)
@@ -207,7 +206,7 @@ class FicheBanque(Fiche):
 		):
 			regle.setCurrentIndex(regle.findData(valeur))
 			if isinstance(secondes, timedelta):
-				duree.setValue(secondes.total_seconds())
+				preferences.montrer(duree, secondes.total_seconds())
 		self._actualiser_crossfades()
 		for (case, champ), borne in zip(self._durees(), (duree_min, duree_max), strict=True):
 			case.setChecked(isinstance(borne, timedelta))

@@ -94,8 +94,8 @@ def montre(sonore: FicheSonore) -> dict[str, Callable[[], str]]:
 		"Compositeur": ui.compositeur.text,
 		"Label": ui.label.text,
 		"Piste": ui.piste.text,
-		"Crossfade de début": ui.crossfade_debut.text,
-		"Crossfade de fin": ui.crossfade_fin.text,
+		"Crossfade de début": si_coche(ui.a_crossfade_debut, ui.crossfade_debut.text),
+		"Crossfade de fin": si_coche(ui.a_crossfade_fin, ui.crossfade_fin.text),
 		"Maximum de lectures": ui.max_lectures.text,
 		"Artiste et titre": lambda: ui.masquage.currentText().casefold(),
 		"Diffusion à partir du": si_coche(ui.a_debut, ui.debut_diffusion.text),
@@ -260,9 +260,14 @@ def saisir(interface: Contexte, qtbot: QtBot, datatable: list[list[str]]) -> Non
 			if brut != "":
 				date.setDateTime(QDateTime.fromString(brut, DATE))
 		elif champ in ("Crossfade de début", "Crossfade de fin"):
-			{"Crossfade de début": ui.crossfade_debut, "Crossfade de fin": ui.crossfade_fin}[champ].setValue(
-				float(brut.replace(",", "."))
-			)
+			# Un crossfade vide n'est pas paramétré (https://github.com/dascritch/machincast/issues/145).
+			case, nombre = {
+				"Crossfade de début": (ui.a_crossfade_debut, ui.crossfade_debut),
+				"Crossfade de fin": (ui.a_crossfade_fin, ui.crossfade_fin),
+			}[champ]
+			case.setChecked(brut != "")
+			if brut != "":
+				nombre.setValue(float(brut.replace(",", ".")))
 		elif champ == "Maximum de lectures":
 			ui.max_lectures.setValue(int(brut))
 		elif champ == "Adresse directe":
@@ -661,3 +666,9 @@ def banques_hors_durees(interface: Contexte, datatable: list[list[str]]) -> None
 			marquees.append([nom.text(), nom.toolTip()])
 	_entetes, *rangees = datatable
 	assert marquees == [[banque.strip(), infobulle.strip()] for banque, infobulle in rangees]
+
+
+@then("le champ du crossfade de début de la fiche du sonore est inactif, celui de fin actif")
+def champs_de_crossfade(interface: Contexte) -> None:
+	ui = fiche(interface).ui
+	assert (ui.crossfade_debut.isEnabled(), ui.crossfade_fin.isEnabled()) == (False, True)

@@ -187,8 +187,8 @@ Fonctionnalité: Fiche d'une banque
 		Et je clique sur « Nouvelle banque »
 		Alors la fiche montre les crossfades :
 			| côté  | règle                   | durée | durée modifiable |
-			| début | Garder ceux des sonores | 0,00 s | non             |
-			| fin   | Garder ceux des sonores | 0,00 s | non             |
+			| début | Garder ceux des sonores | 0,0 s | non              |
+			| fin   | Garder ceux des sonores | 0,0 s | non              |
 		Et le crossfade de début se règle parmi « Garder ceux des sonores », « Appliquer si le sonore n'en a pas », « Imposer à tous les sonores »
 
 	Scénario: Les règles et les durées des crossfades partent en base à l'enregistrement, chaque côté la sienne
@@ -197,20 +197,20 @@ Fonctionnalité: Fiche d'une banque
 		Et je choisis pour le crossfade de début la règle « Imposer à tous les sonores »
 		Et je saisis 1,5 seconde de crossfade de début dans la fiche
 		Et je choisis pour le crossfade de fin la règle « Appliquer si le sonore n'en a pas »
-		Et je saisis 2,25 seconde de crossfade de fin dans la fiche
+		Et je saisis 2,2 seconde de crossfade de fin dans la fiche
 		Alors la fiche montre les crossfades :
 			| côté  | règle                             | durée  | durée modifiable |
-			| début | Imposer à tous les sonores        | 1,50 s | oui              |
-			| fin   | Appliquer si le sonore n'en a pas | 2,25 s | oui              |
+			| début | Imposer à tous les sonores        | 1,5 s  | oui              |
+			| fin   | Appliquer si le sonore n'en a pas | 2,2 s  | oui              |
 		Quand j'enregistre la fiche
-		Alors la banque « Jingles » a en base les crossfades « impose » 1,5 seconde au début, et « a_defaut » 2,25 secondes à la fin
+		Alors la banque « Jingles » a en base les crossfades « impose » 1,5 seconde au début, et « a_defaut » 2,2 secondes à la fin
 		Quand je choisis pour le crossfade de début la règle « Garder ceux des sonores »
 		Et j'enregistre la fiche
-		Alors la banque « Jingles » a en base les crossfades « sonore » 1,5 seconde au début, et « a_defaut » 2,25 secondes à la fin
+		Alors la banque « Jingles » a en base les crossfades « sonore » 1,5 seconde au début, et « a_defaut » 2,2 secondes à la fin
 		Et la fiche montre les crossfades :
 			| côté  | règle                             | durée  | durée modifiable |
-			| début | Garder ceux des sonores           | 1,50 s | non              |
-			| fin   | Appliquer si le sonore n'en a pas | 2,25 s | oui              |
+			| début | Garder ceux des sonores           | 1,5 s  | non              |
+			| fin   | Appliquer si le sonore n'en a pas | 2,2 s  | oui              |
 
 	# ─── Durées des sonores (https://github.com/dascritch/machincast/issues/147) ───────────────────
 

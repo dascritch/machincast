@@ -5,14 +5,14 @@ Les vraies fenêtres s'ouvrent, hors de l'écran du poste : un minuteur y clique
 sélecteur de répertoires et le navigateur de fichiers du poste sont remplacés.
 """
 
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import Qt, QTimer, QUrl
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QApplication, QDialogButtonBox, QFileDialog, QMessageBox, QWidget
+from PySide6.QtWidgets import QDialogButtonBox, QFileDialog, QMessageBox, QWidget
 from pytest_bdd import parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -21,6 +21,7 @@ from machincast.interface import dialogues
 from machincast.interface.choix import Choix
 from tests.base_test import parametres_base_test
 from tests.etapes_interface import NOM, Connexion, identifiant
+from tests.modales import quand_modale
 
 scenarios("dialogues.feature")
 
@@ -43,24 +44,6 @@ def dialogue(qtbot: QtBot) -> Iterator[Dialogue]:
 	parent = QWidget()
 	qtbot.addWidget(parent)
 	yield Dialogue(parent)
-
-
-def quand_modale(geste: Callable[[QWidget], None]) -> None:
-	"""Le geste, dès que la fenêtre modale est ouverte."""
-
-	def essayer() -> None:
-		modale = QApplication.activeModalWidget()
-		if modale is None:
-			QTimer.singleShot(10, essayer)
-			return
-		try:
-			geste(modale)
-		except BaseException:
-			# Une étape en échec ne laisse pas la fenêtre modale attendre un clic.
-			modale.close()
-			raise
-
-	QTimer.singleShot(0, essayer)
 
 
 def repondre(dialogue: Dialogue, qtbot: QtBot, geste: str) -> None:
