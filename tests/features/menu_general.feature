@@ -4,8 +4,8 @@ Fonctionnalité: Menu général de l'interface
 	je veux un menu général,
 	afin d'accéder rapidement aux fonctions de maintenance de l'interface.
 
-	https://github.com/dascritch/machincast/issues/117, spec § 8.11. La barre de menus a quatre menus : « Fichier »,
-	« Affichage » (rafraichissement.feature), « Maintenance » et « Aide ». Une fonction pas encore écrite a son entrée, inactive, dont l'infobulle donne le ticket
+	https://github.com/dascritch/machincast/issues/117, spec § 8.11. La barre de menus a cinq menus : « Fichier »,
+	« Affichage » (rafraichissement.feature), « Diffusion » (pilotage.feature), « Maintenance » et « Aide ». Une fonction pas encore écrite a son entrée, inactive, dont l'infobulle donne le ticket
 	qui l'apportera. « Version » donne la date du dernier commit du dépôt git d'où MachinCast est installé ; dans les
 	textes attendus, « <version> » est le numéro de version de MachinCast. L'indexation lancée depuis « Maintenance » a ses propres scénarios (indexation_interface.feature).
 
@@ -17,9 +17,9 @@ Fonctionnalité: Menu général de l'interface
 			| Continue |            | fil_musical |       |     |       |
 		Et la banque « Jingles », séquentielle, sans nom public, avec aucun
 
-	Scénario: La barre de menus a les menus « Fichier », « Maintenance » et « Aide »
+	Scénario: La barre de menus a les menus « Fichier », « Affichage », « Diffusion », « Maintenance » et « Aide »
 		Quand la fenêtre de l'interface s'ouvre
-		Alors la barre de menus a les menus « Fichier », « Affichage », « Maintenance », « Aide »
+		Alors la barre de menus a les menus « Fichier », « Affichage », « Diffusion », « Maintenance », « Aide »
 		Et le menu « Fichier » a les entrées :
 			| entrée       | état     | raccourci | infobulle                               |
 			| Préférences… | active   |           |                                         |

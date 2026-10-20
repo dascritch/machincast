@@ -32,6 +32,7 @@ from machincast.audio import GREFFONS, Greffon, SortieAudioIndisponible, creer_s
 from machincast.base import appliquer_migrations, url_yoyo  # noqa: E402
 from machincast.cli import lancer  # noqa: E402
 from machincast.configuration import REPERTOIRE_PROJET, Configuration, SortieAudio  # noqa: E402
+from machincast.service import UNITE  # noqa: E402
 
 EXECUTABLE = "machincast.installation"
 DESCRIPTION = "Étapes d'installation de MachinCast, appelées par install.sh."
@@ -180,10 +181,6 @@ def _verifier(configuration: Configuration) -> int:
 		return CODE_ECHEC
 	journal.info("décodeurs, source des streams et sortie audio disponibles")
 	return 0
-
-
-UNITE = "machincast.service"
-"""L'unité systemd du service de lecture, celle que suit « Machin logs » : le même nom dans bin/Machin."""
 
 
 @dataclass(frozen=True)

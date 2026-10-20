@@ -4,7 +4,7 @@ Ce document décrit l'installation de MachinCast sur un poste de diffusion, sa v
 
 Le script `install.sh` fait tout le travail. La section [Installer à la main](#installer-à-la-main) détaille chacune de ses étapes, pour qui veut les faire soi-même ou comprendre ce qu'il fait.
 
-> **État du projet** : MachinCast est en cours de développement. L'indexation vérifie les sonores, et `Machin lecture` diffuse la grille depuis un terminal ; le service de diffusion n'est pas encore écrit, et l'interface graphique (`Machin interface`) n'a que son écran par défaut. La section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
+> **État du projet** : MachinCast est en cours de développement. L'indexation vérifie les sonores, et `Machin lecture` diffuse la grille, depuis un terminal ou comme service, et l'interface graphique (`Machin interface`) n'a pas encore tous ses écrans. La section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
 
 ## Sommaire
 
@@ -187,6 +187,8 @@ systemctl stop machincast.service
 systemctl restart machincast.service
 systemctl status machincast.service
 ```
+
+**Depuis l'interface**, le menu **Diffusion** fait la même chose, avec la même authentification ([guide d'utilisation](doc/utilisation.md#piloter-la-diffusion-depuis-linterface), [#25](https://github.com/dascritch/machincast/issues/25)). Tant que le service n'est pas installé, la barre d'état de l'interface affiche `Installation non définitive : diffusion sans service`, et « Démarrer la diffusion » ouvre `Machin lecture` dans une fenêtre de terminal.
 
 **Avant d'installer le service**, arrêter tout `Machin lecture` lancé à la main : un second Machin lecture est refusé, tant que la socket d'état est occupée, et le service redémarrerait sans fin.
 
@@ -430,5 +432,4 @@ Les messages d'information s'affichent sur la sortie standard ; les anomalies et
 | --- | --- |
 | Archives `.tar.gz` publiées en releases | [#41](https://github.com/dascritch/machincast/issues/41) |
 | Autres écrans de l'interface graphique `Machin interface` | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
-| Pilotage du service depuis l'interface, et son message tant que le service n'est pas installé | [#25](https://github.com/dascritch/machincast/issues/25) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |
