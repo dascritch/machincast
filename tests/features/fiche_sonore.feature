@@ -650,6 +650,22 @@ Fonctionnalité: Fiche d'un sonore
 		Quand j'ouvre la relation « Passage pub » du sonore
 		Alors l'onglet ouvert est « Séquence : Passage pub »
 
+	Scénario: Les banques dont le sonore sort des durées sont marquées parmi ses relations
+		https://github.com/dascritch/machincast/issues/147
+
+		Étant donné la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
+		Et la banque « Tubes », aléatoire, sans nom public, avec « Café à minuit »
+		Et la banque « Pubs », aléatoire, sans nom public, avec « Café à minuit »
+		Et la banque « Jingles » veut des sonores d'au plus 1:00
+		Et la banque « Tubes » veut des sonores de 2:00 à 6:00
+		Et la banque « Pubs » veut des sonores d'au moins 5:00
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Alors la fiche du sonore marque hors des durées les banques :
+			| banque  | infobulle                                                       |
+			| Jingles | 3:34 : plus long que le maximum de la banque « Jingles », 1:00. |
+			| Pubs    | 3:34 : plus court que le minimum de la banque « Pubs », 5:00.   |
+
 	Scénario: Un sonore cité nulle part le dit
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »

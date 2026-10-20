@@ -372,26 +372,32 @@ class FicheSonore(Fiche):
 	def _lire_relations(self) -> list[tuple[object, ...]]:
 		"""Les séquences, banques et événements dont la liste cite le sonore ; dans une transaction."""
 		return self.connexion.execute(
-			"SELECT genre, id, nom FROM ("
-			" SELECT 1 AS ordre, 'séquence' AS genre, q.id, q.nom_interne AS nom FROM sequences q"
+			"SELECT genre, id, nom, minimum, maximum, (SELECT duree FROM sonores WHERE id = %s) FROM ("
+			" SELECT 1 AS ordre, 'séquence' AS genre, q.id, q.nom_interne AS nom, NULL::interval AS minimum,"
+			"  NULL::interval AS maximum FROM sequences q"
 			"  WHERE EXISTS (SELECT 1 FROM sequences_elements x WHERE x.sequence_id = q.id AND x.sonore_id = %s)"
-			" UNION ALL SELECT 2, 'banque', b.id, b.nom_interne FROM banques b"
+			" UNION ALL SELECT 2, 'banque', b.id, b.nom_interne, b.duree_min, b.duree_max FROM banques b"
 			"  WHERE EXISTS (SELECT 1 FROM banques_sonores x WHERE x.banque_id = b.id AND x.sonore_id = %s)"
-			" UNION ALL SELECT 3, 'événement', e.id, e.nom_interne FROM evenements e"
+			" UNION ALL SELECT 3, 'événement', e.id, e.nom_interne, NULL, NULL FROM evenements e"
 			"  WHERE EXISTS (SELECT 1 FROM evenements_elements x WHERE x.evenement_id = e.id AND x.sonore_id = %s)"
 			") r ORDER BY ordre, nom, id",
-			(self.identifiant, self.identifiant, self.identifiant),
+			(self.identifiant, self.identifiant, self.identifiant, self.identifiant),
 		).fetchall()
 
 	def _montrer_relations(self, relations: list[tuple[object, ...]]) -> None:
 		table = self.ui.relations
 		table.setRowCount(0)
-		for genre, identifiant, nom in relations:
+		for genre, identifiant, nom, minimum, maximum, duree in relations:
 			rangee = table.rowCount()
 			table.insertRow(rangee)
 			table.setItem(rangee, 0, QTableWidgetItem(str(genre)))
 			cellule = QTableWidgetItem(str(nom))
 			cellule.setData(RELATION, (str(genre), int(str(identifiant))))
+			# Une banque dont le sonore sort des durées (https://github.com/dascritch/machincast/issues/147).
+			ecart = affichage.hors_durees(_duree(duree), _duree(minimum), _duree(maximum), str(nom))
+			if ecart is not None:
+				cellule.setIcon(affichage.icone_d_anomalie(self))
+				cellule.setToolTip(ecart)
 			table.setItem(rangee, 1, cellule)
 		self.ui.aucune_relation.setVisible(relations == [])
 
@@ -526,3 +532,9 @@ def _naissance(chemin: Path) -> datetime | None:
 	if secondes <= 0:
 		return None
 	return datetime.fromtimestamp(secondes).astimezone()
+
+
+def _duree(valeur: object) -> timedelta | None:
+	if not isinstance(valeur, timedelta):
+		return None
+	return valeur

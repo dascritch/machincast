@@ -467,6 +467,39 @@ def suivent(base_vide: Connexion, titres: str, marque: str) -> None:
 		)
 
 
+def _minutes(texte: str | None) -> timedelta | None:
+	"""« 2:00 » : deux minutes ; None sans texte."""
+	if texte is None:
+		return None
+	minutes, secondes = texte.split(":")
+	return timedelta(minutes=int(minutes), seconds=int(secondes))
+
+
+@given(
+	parsers.re(
+		r"la banque « (?P<nom>[^»]+) » veut des sonores"
+		r" (?:de (?P<de>[\d:]+) à (?P<a>[\d:]+)"
+		r"|d'au moins (?P<au_moins>[\d:]+)(?: et d'au plus (?P<puis_au_plus>[\d:]+))?"
+		r"|d'au plus (?P<au_plus>[\d:]+))$"
+	)
+)
+def durees_de_banque(
+	base_vide: Connexion,
+	nom: str,
+	de: str | None,
+	a: str | None,
+	au_moins: str | None,
+	puis_au_plus: str | None,
+	au_plus: str | None,
+) -> None:
+	"""Les durées minimale et maximale des sonores de la banque (https://github.com/dascritch/machincast/issues/147)."""
+	minimum = _minutes((de) or (au_moins))
+	maximum = _minutes((a) or (puis_au_plus) or (au_plus))
+	base_vide.execute(
+		"UPDATE banques SET duree_min = %s, duree_max = %s WHERE nom_interne = %s", (minimum, maximum, nom)
+	)
+
+
 @when(parsers.parse("le marque-page « {nom} » est effacé de la base"))
 def effacer_marque_page(base_vide: Connexion, nom: str) -> None:
 	base_vide.execute("DELETE FROM marques_pages_streams WHERE nom = %s", (nom,))

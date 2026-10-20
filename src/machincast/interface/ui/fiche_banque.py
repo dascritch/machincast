@@ -19,7 +19,8 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComb
     QDoubleSpinBox, QFormLayout, QGroupBox, QHBoxLayout,
     QHeaderView, QLabel, QLineEdit, QListWidget,
     QListWidgetItem, QPushButton, QSizePolicy, QSpacerItem,
-    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
+    QTimeEdit, QTreeWidget, QTreeWidgetItem, QVBoxLayout,
+    QWidget)
 
 class Ui_FicheBanque(object):
     def setupUi(self, FicheBanque):
@@ -132,6 +133,48 @@ class Ui_FicheBanque(object):
         self.disposition_crossfade_fin.setStretch(2, 1)
 
         self.formulaire.setLayout(6, QFormLayout.ItemRole.FieldRole, self.disposition_crossfade_fin)
+
+        self.a_duree_min = QCheckBox(FicheBanque)
+        self.a_duree_min.setObjectName(u"a_duree_min")
+
+        self.formulaire.setWidget(7, QFormLayout.ItemRole.LabelRole, self.a_duree_min)
+
+        self.disposition_duree_min = QHBoxLayout()
+        self.disposition_duree_min.setObjectName(u"disposition_duree_min")
+        self.duree_min = QTimeEdit(FicheBanque)
+        self.duree_min.setObjectName(u"duree_min")
+        self.duree_min.setEnabled(False)
+
+        self.disposition_duree_min.addWidget(self.duree_min)
+
+        self.espace_duree_min = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.disposition_duree_min.addItem(self.espace_duree_min)
+
+        self.disposition_duree_min.setStretch(1, 1)
+
+        self.formulaire.setLayout(7, QFormLayout.ItemRole.FieldRole, self.disposition_duree_min)
+
+        self.a_duree_max = QCheckBox(FicheBanque)
+        self.a_duree_max.setObjectName(u"a_duree_max")
+
+        self.formulaire.setWidget(8, QFormLayout.ItemRole.LabelRole, self.a_duree_max)
+
+        self.disposition_duree_max = QHBoxLayout()
+        self.disposition_duree_max.setObjectName(u"disposition_duree_max")
+        self.duree_max = QTimeEdit(FicheBanque)
+        self.duree_max.setObjectName(u"duree_max")
+        self.duree_max.setEnabled(False)
+
+        self.disposition_duree_max.addWidget(self.duree_max)
+
+        self.espace_duree_max = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.disposition_duree_max.addItem(self.espace_duree_max)
+
+        self.disposition_duree_max.setStretch(1, 1)
+
+        self.formulaire.setLayout(8, QFormLayout.ItemRole.FieldRole, self.disposition_duree_max)
 
 
         self.disposition.addLayout(self.formulaire)
@@ -285,6 +328,16 @@ class Ui_FicheBanque(object):
         self.regle_crossfade_fin.setToolTip(QCoreApplication.translate("FicheBanque", u"Le crossfade de fin des sonores jou\u00e9s via cette banque : le leur, celui de la banque pour ceux qui n'en ont pas, ou celui de la banque pour tous", None))
 #endif // QT_CONFIG(tooltip)
         self.crossfade_fin.setSuffix(QCoreApplication.translate("FicheBanque", u" s", None))
+        self.a_duree_min.setText(QCoreApplication.translate("FicheBanque", u"Dur\u00e9e minimale des sonores", None))
+#if QT_CONFIG(tooltip)
+        self.a_duree_min.setToolTip(QCoreApplication.translate("FicheBanque", u"Facultative : un sonore de la banque qui en sort est signal\u00e9, sans \u00eatre refus\u00e9", None))
+#endif // QT_CONFIG(tooltip)
+        self.duree_min.setDisplayFormat(QCoreApplication.translate("FicheBanque", u"H:mm:ss", None))
+        self.a_duree_max.setText(QCoreApplication.translate("FicheBanque", u"Dur\u00e9e maximale des sonores", None))
+#if QT_CONFIG(tooltip)
+        self.a_duree_max.setToolTip(QCoreApplication.translate("FicheBanque", u"Facultative : un sonore de la banque qui en sort est signal\u00e9, sans \u00eatre refus\u00e9", None))
+#endif // QT_CONFIG(tooltip)
+        self.duree_max.setDisplayFormat(QCoreApplication.translate("FicheBanque", u"H:mm:ss", None))
         self.groupe_repertoires.setTitle(QCoreApplication.translate("FicheBanque", u"R\u00e9pertoires index\u00e9s", None))
         self.explication_repertoires.setText(QCoreApplication.translate("FicheBanque", u"Machin indexation rattache \u00e0 la banque les fichiers sonores de ces r\u00e9pertoires et de leurs sous-r\u00e9pertoires.", None))
         self.ajouter_repertoire.setText(QCoreApplication.translate("FicheBanque", u"Ajouter un r\u00e9pertoire\u2026", None))

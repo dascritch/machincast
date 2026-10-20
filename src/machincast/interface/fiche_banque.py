@@ -11,6 +11,10 @@ une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interf
   plus tard, ne se modifie pas ; « Appliquer si le sonore n'en a pas » la donne aux sonores sans crossfade
   (0 seconde) ; « Imposer à tous les sonores », à tous. La diffusion l'applique aux sonores joués via la banque
   (machincast.lecture.diffusion.crossfade).
+- Durées des sonores (https://github.com/dascritch/machincast/issues/147) : une durée minimale et une durée maximale,
+  facultatives, à cocher. Un sonore qui en sort est marqué dans la liste, d'après les durées de la fiche, avant même
+  l'enregistrement ; rien n'est refusé, la diffusion n'en tient pas compte. Une minimale qui dépasse la maximale
+  n'est pas enregistrée.
 - Ouvrir un sonore, par un double-clic ou Entrée, ouvre sa fiche (https://github.com/dascritch/machincast/issues/115) ;
   la banque reste telle quelle, modifications comprises. Un fichier déposé n'a de fiche qu'une fois enregistré.
 - Les sonores se réordonnent par glisser-déposer, ou par les boutons « Monter » et « Descendre », en mode séquentiel
@@ -32,8 +36,18 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from PySide6.QtCore import QLocale, Qt
-from PySide6.QtWidgets import QAbstractItemView, QComboBox, QDoubleSpinBox, QHeaderView, QTreeWidgetItem, QWidget
+from PySide6.QtCore import QLocale, Qt, QTime
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import (
+	QAbstractItemView,
+	QCheckBox,
+	QComboBox,
+	QDoubleSpinBox,
+	QHeaderView,
+	QTimeEdit,
+	QTreeWidgetItem,
+	QWidget,
+)
 
 from machincast.horloge import Horloge
 from machincast.interface import affichage, dialogues
@@ -56,6 +70,8 @@ SONORE = Qt.ItemDataRole.UserRole
 """Rôle qui porte, sur la première colonne d'une ligne de sonore, son identifiant en base."""
 FICHIER = Qt.ItemDataRole.UserRole + 1
 """Rôle qui porte le chemin du fichier du sonore, None pour un stream."""
+DUREE = Qt.ItemDataRole.UserRole + 2
+"""Rôle qui porte la durée du sonore, absente quand elle est inconnue."""
 LIGNE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsDragEnabled
 """Une ligne de sonore se glisse, mais rien ne se dépose dedans : la liste reste à plat."""
 SONORES_LUS = (
@@ -114,9 +130,16 @@ class FicheBanque(Fiche):
 			regle.currentIndexChanged.connect(self._modifier)
 			regle.currentIndexChanged.connect(self._actualiser_crossfades)
 			duree.valueChanged.connect(self._modifier)
+		for case, champ in self._durees():
+			case.toggled.connect(champ.setEnabled)
+			case.toggled.connect(self._modifier)
+			case.toggled.connect(self._marquer_hors_durees)
+			champ.timeChanged.connect(self._modifier)
+			champ.timeChanged.connect(self._marquer_hors_durees)
 		modele = self.ui.sonores.model()
 		# Le glisser-déposer déplace une ligne en la retirant, puis en l'insérant.
 		modele.rowsInserted.connect(self._modifier)
+		modele.rowsInserted.connect(self._marquer_hors_durees)
 		modele.rowsRemoved.connect(self._modifier)
 		self.ui.repertoires.currentItemChanged.connect(self._actualiser_boutons)
 		self.ui.sonores.currentItemChanged.connect(self._actualiser_boutons)
@@ -146,6 +169,8 @@ class FicheBanque(Fiche):
 			timedelta(0),
 			"sonore",
 			timedelta(0),
+			None,
+			None,
 		)
 		repertoires: list[str] = []
 		sonores: list[tuple[object, ...]] = []
@@ -153,8 +178,8 @@ class FicheBanque(Fiche):
 			if self.identifiant is not None:
 				ligne = self.connexion.execute(
 					"SELECT nom_interne, nom_public, mode::text, masquer_metadonnees, ne_pas_repeter,"
-					" crossfade_debut_regle::text, crossfade_debut, crossfade_fin_regle::text, crossfade_fin"
-					" FROM banques WHERE id = %s",
+					" crossfade_debut_regle::text, crossfade_debut, crossfade_fin_regle::text, crossfade_fin,"
+					" duree_min, duree_max FROM banques WHERE id = %s",
 					(self.identifiant,),
 				).fetchone()
 				assert ligne is not None, f"banque {self.identifiant} absente"
@@ -170,7 +195,7 @@ class FicheBanque(Fiche):
 					" WHERE bs.banque_id = %s ORDER BY bs.position",
 					(self.identifiant,),
 				).fetchall()
-		nom, nom_public, mode, masquage, ne_pas_repeter, *crossfades = banque
+		nom, nom_public, mode, masquage, ne_pas_repeter, *crossfades, duree_min, duree_max = banque
 		self._nom = str(nom)
 		self.ui.nom_interne.setText(self._nom)
 		self.ui.nom_public.setText(str((nom_public) or ("")))
@@ -184,6 +209,10 @@ class FicheBanque(Fiche):
 			if isinstance(secondes, timedelta):
 				duree.setValue(secondes.total_seconds())
 		self._actualiser_crossfades()
+		for (case, champ), borne in zip(self._durees(), (duree_min, duree_max), strict=True):
+			case.setChecked(isinstance(borne, timedelta))
+			if isinstance(borne, timedelta):
+				champ.setTime(QTime(0, 0).addSecs(int(borne.total_seconds())))
 		self._montrer_repertoires(repertoires)
 		self.ui.sonores.clear()
 		self.ui.sonores.addTopLevelItems([self._ligne(sonore) for sonore in sonores])
@@ -208,11 +237,15 @@ class FicheBanque(Fiche):
 		]
 		for regle, duree in self._crossfades():
 			valeurs += [regle.currentData(), timedelta(seconds=duree.value())]
+		minimum, maximum = self._bornes()
+		if (minimum is not None) and (maximum is not None) and (minimum > maximum):
+			raise Refus("La durée minimale des sonores dépasse la durée maximale.")
+		valeurs += [minimum, maximum]
 		if self.identifiant is None:
 			creee = self.connexion.execute(
 				"INSERT INTO banques (nom_interne, nom_public, mode, masquer_metadonnees, ne_pas_repeter,"
-				" crossfade_debut_regle, crossfade_debut, crossfade_fin_regle, crossfade_fin)"
-				" VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+				" crossfade_debut_regle, crossfade_debut, crossfade_fin_regle, crossfade_fin, duree_min, duree_max)"
+				" VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
 				valeurs,
 			).fetchone()
 			assert creee is not None
@@ -222,7 +255,7 @@ class FicheBanque(Fiche):
 			self.connexion.execute(
 				"UPDATE banques SET nom_interne = %s, nom_public = %s, mode = %s, masquer_metadonnees = %s,"
 				" ne_pas_repeter = %s, crossfade_debut_regle = %s, crossfade_debut = %s, crossfade_fin_regle = %s,"
-				" crossfade_fin = %s WHERE id = %s",
+				" crossfade_fin = %s, duree_min = %s, duree_max = %s WHERE id = %s",
 				(*valeurs, identifiant),
 			)
 		self.connexion.execute("DELETE FROM banques_repertoires WHERE banque_id = %s", (identifiant,))
@@ -237,6 +270,33 @@ class FicheBanque(Fiche):
 		"""La règle et la durée du crossfade de début, puis celles du crossfade de fin."""
 		ui = self.ui
 		return ((ui.regle_crossfade_debut, ui.crossfade_debut), (ui.regle_crossfade_fin, ui.crossfade_fin))
+
+	def _durees(self) -> tuple[tuple[QCheckBox, QTimeEdit], tuple[QCheckBox, QTimeEdit]]:
+		"""La case et le champ de la durée minimale des sonores, puis ceux de la durée maximale."""
+		ui = self.ui
+		return ((ui.a_duree_min, ui.duree_min), (ui.a_duree_max, ui.duree_max))
+
+	def _bornes(self) -> tuple[timedelta | None, timedelta | None]:
+		"""Les durées minimale et maximale de la fiche ; None pour une durée décochée."""
+		bornes: list[timedelta | None] = []
+		for case, champ in self._durees():
+			borne = None
+			if case.isChecked():
+				borne = timedelta(seconds=QTime(0, 0).secsTo(champ.time()))
+			bornes.append(borne)
+		return bornes[0], bornes[1]
+
+	def _marquer_hors_durees(self) -> None:
+		"""Les sonores hors des durées de la fiche ont l'icône d'anomalie et une infobulle qui dit pourquoi ; un sonore
+		de durée inconnue, ou dans les durées, n'a ni l'une ni l'autre."""
+		minimum, maximum = self._bornes()
+		for ligne in self._lignes():
+			ecart = affichage.hors_durees(ligne.data(0, DUREE), minimum, maximum)
+			ligne.setIcon(0, QIcon())
+			ligne.setToolTip(0, "")
+			if ecart is not None:
+				ligne.setIcon(0, affichage.icone_d_anomalie(self))
+				ligne.setToolTip(0, ecart)
 
 	def _actualiser_crossfades(self) -> None:
 		"""La durée d'une banque qui garde les crossfades de ses sonores ne sert pas : elle ne se modifie pas."""
@@ -286,6 +346,8 @@ class FicheBanque(Fiche):
 		if identifiant is not None:
 			ligne.setData(0, SONORE, int(str(identifiant)))
 		ligne.setData(0, FICHIER, _texte(fichier))
+		if isinstance(duree, timedelta):
+			ligne.setData(0, DUREE, duree)
 		ligne.setFlags(LIGNE)
 		return ligne
 

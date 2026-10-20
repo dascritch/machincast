@@ -472,11 +472,11 @@ Les onglets Événements, Séquences, Banques, Sonores et Marques-pages donnent 
 | Événements | nom, nom public, priorité, début, fin, jours de récurrence, anomalie (`événement vide`) | du plus prioritaire (spécial) au moins prioritaire (secours), puis par nom |
 | Séquences | nom, nom public, anomalie (`séquence vide`) | par nom |
 | Banques | nom, nom public, mode (séquentielle ou aléatoire), « ne pas répéter », premier répertoire (dans l'ordre alphabétique), vide pour une banque sans répertoire | par nom |
-| Sonores | artiste, titre, type (fichier ou stream), état, durée, emplacement (chemin du fichier ou adresse du stream) | par artiste, les sonores sans artiste à la fin, puis par titre |
+| Sonores | artiste, titre, type (fichier ou stream), état, durée, emplacement (chemin du fichier ou adresse du stream), anomalie (`hors durées` d'une banque où il figure, [#147](https://github.com/dascritch/machincast/issues/147)) | par artiste, les sonores sans artiste à la fin, puis par titre |
 | Marques-pages | nom, adresse, nombre de streams qui le suivent | par nom |
 
 - **Filtre** : le champ « Filtrer… » garde les lignes dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : `cafe` trouve « Café à minuit », `stream` tous les streams, `/srv/musique` tous les fichiers de ce répertoire. Le compte, à côté, dit combien de lignes restent, par exemple `2 sonores sur 340`. La croix du champ efface le filtre.
-- **Anomalies** ([#138](https://github.com/dascritch/machincast/issues/138), [#140](https://github.com/dascritch/machincast/issues/140)) : une ligne qui pose problème, une séquence ou un événement vide, a l'icône d'avertissement, et son infobulle dit pourquoi. Le compte les dénombre parmi les lignes montrées : `3 séquences, dont 2 en anomalie`. Taper `vide` dans le filtre ne garde que les séquences vides.
+- **Anomalies** ([#138](https://github.com/dascritch/machincast/issues/138), [#140](https://github.com/dascritch/machincast/issues/140)) : une ligne qui pose problème, une séquence ou un événement vide, un sonore hors des durées d'une banque ([#147](https://github.com/dascritch/machincast/issues/147)), a l'icône d'avertissement, et son infobulle dit pourquoi. Le compte les dénombre parmi les lignes montrées : `3 séquences, dont 2 en anomalie`. Taper `vide` dans le filtre ne garde que les séquences vides.
 - **Tri** : un clic sur le titre d'une colonne trie la liste selon cette colonne ; un second clic inverse l'ordre.
 - **Mise à jour** : une liste se relit dans la base chaque fois que son onglet s'ouvre, en gardant son filtre. Elle ne se relit jamais d'elle-même pendant qu'on la regarde.
 - **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvre la fiche de l'élément ([événement](#fiche-dun-événement), [séquence](#fiche-dune-séquence), [banque](#fiche-dune-banque), [sonore](#fiche-dun-sonore)).
@@ -493,6 +493,7 @@ La fiche d'une banque s'ouvre dans un **nouvel onglet**, nommé « Banque : » s
 | Mode | `Séquentielle` : les sonores passent dans l'ordre de la liste. `Aléatoire` : ils sont tirés au hasard ([Quel sonore une banque fournit](#quel-sonore-une-banque-fournit)). |
 | Artiste et titre | `Masqués` ou `Affichés` sur la page publique, sauf si l'événement ou la séquence en décide. `Hérité du sonore` laisse décider le sonore, puis la configuration. |
 | Ne pas répéter | La banque ne passe jamais deux fois de suite ([Quel sonore une banque fournit](#quel-sonore-une-banque-fournit)). |
+| Durée minimale, durée maximale des sonores | Facultatives, à cocher ([#147](https://github.com/dascritch/machincast/issues/147)) : pour ne pas confondre un mix, une chanson et une publicité. Un sonore qui en sort est marqué dans la liste des sonores de la fiche, dès la saisie, avec une infobulle (« 3:20 : plus court que le minimum de la banque, 3:30. ») ; il l'est aussi dans l'onglet Sonores et dans les relations de sa fiche. Rien n'est refusé, et la diffusion n'en tient pas compte ; seule une durée minimale plus longue que la maximale empêche d'enregistrer. |
 | Crossfade de début, crossfade de fin | Pour les sonores joués via la banque ([#143](https://github.com/dascritch/machincast/issues/143)), chacun avec sa règle : `Garder ceux des sonores` laisse le crossfade de chaque sonore (la durée de la banque est alors grisée) ; `Appliquer si le sonore n'en a pas` donne la durée de la banque aux sonores dont le crossfade est de 0 seconde ; `Imposer à tous les sonores` la donne à tous. Un sonore placé directement dans un événement ou une séquence garde toujours les siens. |
 
 **Enregistrer et annuler** : les modifications restent dans la fiche jusqu'au clic sur **Enregistrer**, qui les écrit toutes à la fois ; **Annuler** remet la fiche telle qu'elle est en base. Les deux boutons ne servent que quand la fiche est modifiée.
@@ -540,7 +541,7 @@ La fiche d'un sonore s'ouvre depuis la liste des sonores, dans un nouvel onglet 
 
 **Dossier** : le bouton à droite de l'emplacement ouvre le dossier du fichier dans le navigateur de fichiers du poste ([#125](https://github.com/dascritch/machincast/issues/125)), par exemple pour en écarter le fichier. MachinCast lui-même n'y touche pas ([Les fichiers sonores ne sont jamais modifiés](#les-fichiers-sonores-ne-sont-jamais-modifiés)).
 
-**Relations** : les séquences, banques et événements dont la liste cite directement le sonore, par genre puis par nom. Un double-clic ouvre leur fiche. Sans relation, la fiche le dit.
+**Relations** : les séquences, banques et événements dont la liste cite directement le sonore, par genre puis par nom. Un double-clic ouvre leur fiche. Sans relation, la fiche le dit. Une banque dont le sonore sort des durées a l'icône d'avertissement, et son infobulle dit pourquoi ([#147](https://github.com/dascritch/machincast/issues/147)).
 
 **Fichier**, pour un sonore de type fichier :
 

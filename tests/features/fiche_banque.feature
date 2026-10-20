@@ -212,6 +212,81 @@ Fonctionnalité: Fiche d'une banque
 			| début | Garder ceux des sonores           | 1,50 s | non              |
 			| fin   | Appliquer si le sonore n'en a pas | 2,25 s | oui              |
 
+	# ─── Durées des sonores (https://github.com/dascritch/machincast/issues/147) ───────────────────
+
+	Scénario: Les durées minimale et maximale des sonores sont facultatives, et partent en base
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Alors la fiche montre les durées des sonores : minimale aucune, maximale aucune
+		Quand je fixe la durée minimale des sonores à « 0:03:00 »
+		Et je fixe la durée maximale des sonores à « 0:06:30 »
+		Et j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et la banque « Jingles » a en base les durées des sonores de 180 à 390 secondes
+		Quand je retire la durée minimale des sonores
+		Et j'enregistre la fiche
+		Alors la banque « Jingles » a en base les durées des sonores d'aucune à 390 secondes
+		Et la fiche montre les durées des sonores : minimale aucune, maximale « 0:06:30 »
+
+	Scénario: Une durée minimale plus longue que la maximale n'est pas enregistrée, et dit pourquoi
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je fixe la durée minimale des sonores à « 0:05:00 »
+		Et je fixe la durée maximale des sonores à « 0:04:00 »
+		Et j'enregistre la fiche
+		Alors la fiche signale « La durée minimale des sonores dépasse la durée maximale. »
+		Et la banque « Jingles » a en base les durées des sonores d'aucune à aucune secondes
+
+	Scénario: Un sonore hors des durées de la banque est signalé dans sa liste, sans être refusé
+		https://github.com/dascritch/machincast/issues/147 : le signalement est permissif ; il suit les durées de la fiche, avant même
+		l'enregistrement. Un sonore de durée inconnue n'est pas signalé.
+
+		Étant donné les sonores :
+			| artiste | titre    | type    | etat   | duree | emplacement                 |
+			|         | Inconnu  | fichier | apercu |       | /srv/jingles/hiver/inconnu.flac |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et j'ajoute les sonores « Inconnu »
+		Alors la fiche ne marque aucun sonore hors des durées
+		Quand je fixe la durée minimale des sonores à « 0:03:20 »
+		Et je fixe la durée maximale des sonores à « 0:03:34 »
+		Alors la fiche ne marque aucun sonore hors des durées
+		Quand je retire la durée maximale des sonores
+		Et je fixe la durée minimale des sonores à « 0:03:30 »
+		Alors la fiche marque hors des durées les sonores :
+			| sonore             | infobulle                                                    |
+			| Aube – Matin clair | 3:20 : plus court que le minimum de la banque, 3:30.         |
+		Quand je fixe la durée maximale des sonores à « 0:03:30 »
+		Alors la fiche marque hors des durées les sonores :
+			| sonore                      | infobulle                                            |
+			| Les Gaufres – Café à minuit | 3:34 : plus long que le maximum de la banque, 3:30.  |
+			| Aube – Matin clair          | 3:20 : plus court que le minimum de la banque, 3:30. |
+		Quand j'ajoute les sonores « Jingle »
+		Alors la fiche marque hors des durées les sonores :
+			| sonore                      | infobulle                                            |
+			| Les Gaufres – Café à minuit | 3:34 : plus long que le maximum de la banque, 3:30.  |
+			| Aube – Matin clair          | 3:20 : plus court que le minimum de la banque, 3:30. |
+			| Jingle                      | 0:08 : plus court que le minimum de la banque, 3:30. |
+		Quand j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et la banque « Jingles » a en base les durées des sonores de 210 à 210 secondes
+		Quand je retire la durée minimale des sonores
+		Et je retire la durée maximale des sonores
+		Alors la fiche ne marque aucun sonore hors des durées
+
+	Scénario: Les durées en base marquent les sonores dès l'ouverture, et changer une durée déjà fixée modifie la fiche
+		Étant donné la banque « Jingles » veut des sonores d'au plus 3:30
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Alors la fiche montre les durées des sonores : minimale aucune, maximale « 0:03:30 »
+		Et la fiche marque hors des durées les sonores :
+			| sonore                      | infobulle                                           |
+			| Les Gaufres – Café à minuit | 3:34 : plus long que le maximum de la banque, 3:30. |
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
+		Quand je fixe la durée maximale des sonores à « 0:20:00 »
+		Alors la fiche ne marque aucun sonore hors des durées
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
+
 	Scénario: Les noms sont enregistrés sans les espaces qui les entourent, et un nom public vide n'en est pas un
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
@@ -296,6 +371,8 @@ Fonctionnalité: Fiche d'une banque
 			| je choisis pour le crossfade de début la règle « Imposer à tous les sonores »                 |
 			| je choisis pour le crossfade de fin la règle « Garder ceux des sonores »                      |
 			| je saisis 2 seconde de crossfade de fin dans la fiche                                         |
+			| je fixe la durée minimale des sonores à « 0:01:00 »                                           |
+			| je fixe la durée maximale des sonores à « 0:10:00 »                                           |
 			| j'ajoute le répertoire « /srv/jingles/automne »                                               |
 			| je retire le répertoire « /srv/jingles/hiver »                                                |
 			| j'ajoute les sonores « Spot »                                                                 |

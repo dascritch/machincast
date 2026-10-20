@@ -20,7 +20,7 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSortFilterProxyModel, Qt, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QHeaderView, QLabel, QLineEdit, QStyle, QTableView, QWidget
+from PySide6.QtWidgets import QHeaderView, QLabel, QLineEdit, QTableView, QWidget
 
 from machincast.interface import affichage
 from machincast.interface.depot import DepotDeFichiers
@@ -88,6 +88,12 @@ def _texte(valeur: object) -> str:
 	return str(valeur)
 
 
+def _duree(valeur: object) -> timedelta | None:
+	if not isinstance(valeur, timedelta):
+		return None
+	return valeur
+
+
 def _date(valeur: object) -> str:
 	if not isinstance(valeur, datetime):
 		return ""
@@ -102,6 +108,11 @@ def lire_sonores(connexion: Connexion) -> list[Ligne]:
 			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
 			" ORDER BY s.artiste NULLS LAST, s.titre, s.id"
 		).fetchall()
+		bornes = connexion.execute(
+			"SELECT bs.sonore_id, b.nom_interne, b.duree_min, b.duree_max FROM banques_sonores bs"
+			" JOIN banques b ON b.id = bs.banque_id"
+			" WHERE b.duree_min IS NOT NULL OR b.duree_max IS NOT NULL ORDER BY b.nom_interne, b.id"
+		).fetchall()
 	lignes = []
 	for identifiant, artiste, titre, type_sonore, etat, duree, emplacement in rangees:
 		texte_duree = ""
@@ -110,8 +121,17 @@ def lire_sonores(connexion: Connexion) -> list[Ligne]:
 		elif isinstance(duree, timedelta):
 			texte_duree = affichage.duree(duree)
 		cellules = [_texte(artiste), _texte(titre), str(type_sonore), ETATS.get(str(etat), str(etat))]
-		cellules += [texte_duree, _texte(emplacement)]
-		lignes.append(Ligne(int(str(identifiant)), (_texte(titre)) or (_texte(emplacement)), cellules))
+		# Hors des durées d'une banque où il figure (https://github.com/dascritch/machincast/issues/147).
+		ecarts = [
+			affichage.hors_durees(_duree(duree), _duree(minimum), _duree(maximum), str(banque))
+			for sonore, banque, minimum, maximum in bornes
+			if sonore == identifiant
+		]
+		anomalie = "\n".join(ecart for ecart in ecarts if ecart is not None)
+		cellules += [texte_duree, _texte(emplacement), ""]
+		if anomalie:
+			cellules[-1] = "hors durées"
+		lignes.append(Ligne(int(str(identifiant)), (_texte(titre)) or (_texte(emplacement)), cellules, anomalie))
 	return lignes
 
 
@@ -187,7 +207,7 @@ def lire_evenements(connexion: Connexion) -> list[Ligne]:
 
 SONORES = Source(
 	"sonore",
-	("Artiste", "Titre", "Type", "État", "Durée", "Emplacement"),
+	("Artiste", "Titre", "Type", "État", "Durée", "Emplacement", "Anomalie"),
 	lire_sonores,
 	"sonore",
 	"sonores",
@@ -328,7 +348,7 @@ class Liste(QWidget):
 			cellules[0].setData(ligne.identifiant, IDENTIFIANT)
 			cellules[0].setData(ligne.nom, IDENTIFIANT + 1)
 			if ligne.anomalie:
-				cellules[0].setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning))
+				cellules[0].setIcon(affichage.icone_d_anomalie(self))
 				for cellule in cellules:
 					cellule.setToolTip(ligne.anomalie)
 			self.modele.appendRow(cellules)
