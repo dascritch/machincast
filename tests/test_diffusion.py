@@ -17,7 +17,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.lecture.diffusion import installer_arret
 from tests.base_test import CONFIGURATION_TEST
-from tests.etapes_diffusion import Banc, Connexion, creer_sonore
+from tests.etapes_diffusion import Connexion
 
 scenarios("diffusion.feature")
 
@@ -31,35 +31,6 @@ class Processus:
 @pytest.fixture
 def processus() -> Processus:
 	return Processus()
-
-
-@given(
-	parsers.re(
-		r"la séquence « (?P<nom>[^»]+) » des sonores « (?P<premier>[^»]+) », « (?P<second>[^»]+) », jouée par le fil"
-		r" musical permanent « (?P<fil>[^»]+) », avant le sonore « (?P<apres>[^»]+) »"
-	)
-)
-def sequence_du_fil(
-	banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, premier: str, second: str, fil: str, apres: str
-) -> None:
-	sequence = base_vide.execute("INSERT INTO sequences (nom_interne) VALUES (%s) RETURNING id", (nom,)).fetchone()
-	evenement = base_vide.execute(
-		"INSERT INTO evenements (nom_interne, priorite) VALUES (%s, 'fil_musical') RETURNING id", (fil,)
-	).fetchone()
-	assert (sequence is not None) and (evenement is not None)
-	for position, nom_sonore in enumerate((premier, second), start=1):
-		base_vide.execute(
-			"INSERT INTO sequences_elements (sequence_id, position, sonore_id) VALUES (%s, %s, %s)",
-			(sequence[0], position, creer_sonore(banc, base_vide, tmp_path, nom_sonore)),
-		)
-	base_vide.execute(
-		"INSERT INTO evenements_elements (evenement_id, position, sequence_id) VALUES (%s, 1, %s)",
-		(evenement[0], sequence[0]),
-	)
-	base_vide.execute(
-		"INSERT INTO evenements_elements (evenement_id, position, sonore_id) VALUES (%s, 2, %s)",
-		(evenement[0], creer_sonore(banc, base_vide, tmp_path, apres)),
-	)
 
 
 @then(

@@ -44,6 +44,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast import __version__
+from machincast.configuration import Metadonnees
 from machincast.hasard import Hasard
 from machincast.horloge import Horloge
 from machincast.lecture.deroule import Choix, Decision, EnCours, Ordonnanceur
@@ -53,7 +54,7 @@ from machincast.lecture.etat import instant as iso
 from machincast.lecture.fichiers import verifier_avant_lecture
 from machincast.lecture.historique import EN_BASE, Historique
 from machincast.lecture.moteur import Moteur, VoieLecture, enchainement, fondu_d_entree, superposition
-from machincast.lecture.sorties import Sorties
+from machincast.lecture.sorties import Sorties, lire_passages, texte_public
 
 PAUSE = 0.05
 """Pause entre deux pas de la boucle, en secondes : la précision de l'enchaînement et de la coupure."""
@@ -100,6 +101,8 @@ class Lecture:
 	"""L'ordonnanceur a déjà donné le sonore suivant, au début du crossfade de fin."""
 	eteinte: bool = False
 	"""La voie s'éteint en fondu et s'arrêtera d'elle-même : la fin du passage est normale."""
+	details: dict[str, Any] | None = None
+	"""Ce que la socket d'état dit de son contexte, lu une fois (Diffusion._details)."""
 
 	@property
 	def en_cours(self) -> EnCours:
@@ -181,6 +184,8 @@ class Diffusion:
 	"""Où se lisent et s'écrivent passages et log : la base, ou la mémoire en simulation."""
 	publication_minimale: float = PUBLICATION_MINIMALE
 	"""Intervalle maximal entre deux publications de l'état, en secondes, pour suivre la progression."""
+	metadonnees: Metadonnees | None = None
+	"""Masquage et texte public par défaut, pour le texte public de la socket d'état ; à défaut, ceux des sorties."""
 	ordonnanceur: Ordonnanceur = field(init=False)
 	courant: Lecture | None = field(default=None, init=False)
 	sortants: list[Lecture] = field(default_factory=list, init=False)
@@ -195,6 +200,8 @@ class Diffusion:
 	"""Prochain sonore, réservé au début du sonore en cours : il sera joué s'il est encore valable."""
 	_publication: tuple[str, datetime | None] = field(default=("", None), init=False)
 	"""Dernier état publié sur la socket, sans ce qui change à chaque pas, et heure de sa publication."""
+	_details_reserve: tuple[Reserve, dict[str, Any]] | None = field(default=None, init=False)
+	"""Contexte du sonore réservé, lu une fois pour lui."""
 
 	def __post_init__(self) -> None:
 		self.ordonnanceur = Ordonnanceur(self.connexion, self.hasard, self.historique)
@@ -484,8 +491,11 @@ class Diffusion:
 			parametres = courant.parametres
 			position = courant.voie.position()
 			duree = parametres.duree
+			if courant.details is None:
+				courant.details = self._details(courant.choix, courant.passage)
 			en_cours = {
 				**_affichage(courant.choix, parametres),
+				**courant.details,
 				"debut": iso(courant.passage.debut),
 				"duree": _secondes(duree),
 				"fin_estimee": iso(None if duree is None else courant.passage.debut + duree),
@@ -502,8 +512,11 @@ class Diffusion:
 				)
 				debut = courant.passage.debut + ecart
 			duree = reserve.parametres.duree
+			if (self._details_reserve is None) or (self._details_reserve[0] is not reserve):
+				self._details_reserve = (reserve, self._details(reserve.choix, None))
 			prochain = {
 				**_affichage(reserve.choix, reserve.parametres),
+				**self._details_reserve[1],
 				"debut_estime": iso(debut),
 				"duree": _secondes(duree),
 				"fin_estimee": iso(None if (debut is None) or (duree is None) else debut + duree),
@@ -511,6 +524,42 @@ class Diffusion:
 			}
 		marche = "arret" if arret else ("diffusion" if (courant is not None) or (self.sortants) else "silence")
 		return {"etat": marche, "en_cours": en_cours, "prochain": prochain}
+
+	def _details(self, choix: Choix, passage: Passage | None) -> dict[str, Any]:
+		"""Le contexte d'un sonore pour la socket d'état (https://github.com/dascritch/machincast/issues/144) :
+		l'occurrence de son événement, sa séquence et sa banque ; pour le sonore en cours, le texte que la page
+		publique affiche de son passage, masquage appliqué."""
+		occurrence = choix.occurrence
+		sequence = choix.element.sequence
+		with self.connexion.transaction():
+			noms = self.connexion.execute(
+				"SELECT (SELECT nom_interne FROM sequences WHERE id = %s),"
+				" (SELECT nom_interne FROM banques WHERE id = %s)",
+				(sequence, choix.banque),
+			).fetchone()
+		assert noms is not None
+		details: dict[str, Any] = {
+			"evenement_id": occurrence.evenement.id,
+			"evenement_debut": iso(occurrence.debut),
+			"evenement_fin": iso(occurrence.fin),
+			"sequence": noms[0],
+			"sequence_id": sequence,
+			"banque": noms[1],
+			"banque_id": choix.banque,
+		}
+		if passage is not None:
+			lignes = lire_passages(self.connexion, 1, passage.id)
+			details["texte_public"] = None
+			if lignes != []:
+				details["texte_public"] = texte_public(lignes[0], self._metadonnees())
+		return details
+
+	def _metadonnees(self) -> Metadonnees:
+		if self.metadonnees is not None:
+			return self.metadonnees
+		if self.sorties is not None:
+			return self.sorties.metadonnees
+		return Metadonnees(masquer=False, texte_public="")
 
 	def _verifier_les_expirations(self, instant: datetime) -> None:
 		derniere = self.expirations_verifiees
