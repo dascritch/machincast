@@ -27,7 +27,6 @@ import logging
 import threading
 from collections.abc import Callable, Collection
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 
@@ -35,6 +34,7 @@ import psycopg
 from psycopg.rows import TupleRow
 from psycopg.types.json import Jsonb
 
+from machincast.empreinte import etat_du_fichier, modifie
 from machincast.indexation.audit import Anomalie
 from machincast.indexation.decodage import EtatFichier, Verification, verifier_fichier
 from machincast.indexation.tags import fusionner
@@ -133,27 +133,6 @@ def _consequence(avant: EtatSonore, apres: EtatSonore) -> str:
 	return f"sonore passé {LIBELLES[apres]}"
 
 
-def _etat_du_fichier(chemin: Path) -> tuple[datetime, int] | None:
-	"""Date de modification et taille du fichier, ou None s'il est introuvable."""
-	try:
-		etat = chemin.stat()
-	except OSError:
-		return None
-	return datetime.fromtimestamp(etat.st_mtime, tz=UTC), etat.st_size
-
-
-def _modifie(chemin: Path, modifie_le: object, taille: object) -> bool:
-	"""Le fichier a-t-il changé depuis sa dernière vérification (https://github.com/dascritch/machincast/issues/10) ?
-
-	Sa date de modification ou sa taille diffère de celles enregistrées, toujours ensemble. Un sonore jamais vérifié
-	n'en a pas, et un fichier introuvable n'a rien à comparer : ni l'un ni l'autre n'est dit modifié.
-	"""
-	if modifie_le is None:
-		return False
-	fichier = _etat_du_fichier(chemin)
-	return (fichier is not None) and (fichier != (modifie_le, taille))
-
-
 def _liste(identifiants: Collection[int] | None) -> list[int] | None:
 	if identifiants is None:
 		return None
@@ -211,7 +190,7 @@ def verifier_sonores(
 		) = ligne
 		chemin = Path(str(emplacement))
 		avant = EtatSonore(str(etat_texte))
-		decoder = (audit_complet) or (avant is EtatSonore.APERCU) or (_modifie(chemin, modifie_avant, taille_avant))
+		decoder = (audit_complet) or (avant is EtatSonore.APERCU) or (modifie(chemin, modifie_avant, taille_avant))
 		if (not decoder) and (chemin.exists()):
 			continue
 		# Un fichier introuvable est déclaré tel sans décodage : l'indexation rapide repère donc les disparus.
@@ -224,7 +203,7 @@ def verifier_sonores(
 		else:
 			resultat = verifier(chemin)
 		apres = nouvel_etat(avant, resultat.etat)
-		fichier = _etat_du_fichier(chemin)
+		fichier = etat_du_fichier(chemin)
 		modifie_le, taille = fichier if fichier is not None else (None, None)
 		# La durée n'est enregistrée que pour un fichier sain, et jamais à la place d'une durée saisie à la main.
 		sain = resultat.etat is EtatFichier.SAIN

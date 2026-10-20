@@ -47,6 +47,7 @@ from machincast import __version__
 from machincast.configuration import Crossfades, Metadonnees
 from machincast.hasard import Hasard
 from machincast.horloge import Horloge
+from machincast.lecture.analyse import Analyseur, a_analyser
 from machincast.lecture.deroule import Choix, Coupure, Decision, EnCours, Ordonnanceur
 from machincast.lecture.enregistrement import Passage
 from machincast.lecture.etat import PUBLICATION_MINIMALE, SocketEtat, SocketEtatOccupee, est_sain
@@ -212,6 +213,9 @@ class Diffusion:
 	"""Masquage et texte public par défaut, pour le texte public de la socket d'état ; à défaut, ceux des sorties."""
 	crossfades: Crossfades = SANS_DEFAUTS
 	"""Crossfades par défaut des sonores qui n'en ont pas de paramétré (https://github.com/dascritch/machincast/issues/145)."""
+	analyseur: Analyseur | None = None
+	"""Analyse du prochain sonore qui n'a pas été vérifié en entier
+	(https://github.com/dascritch/machincast/issues/181) ; aucune en simulation."""
 	ordonnanceur: Ordonnanceur = field(init=False)
 	courant: Lecture | None = field(default=None, init=False)
 	sortants: list[Lecture] = field(default_factory=list, init=False)
@@ -348,6 +352,33 @@ class Diffusion:
 			lire_parametres(self.connexion, choix, self.crossfades),
 			est_sain(self.connexion, choix.sonore),
 			coupure is not None,
+		)
+		self._analyser(self.reserve, instant)
+
+	def _analyser(self, reserve: Reserve, instant: datetime) -> None:
+		"""Fait analyser le sonore réservé s'il n'a pas été vérifié en entier, sans attendre l'analyse."""
+		analyseur = self.analyseur
+		sonore = reserve.choix.sonore
+		if (analyseur is None) or (not analyseur.a_demander(sonore, instant)):
+			return
+		with self.connexion.transaction():
+			if not a_analyser(self.connexion, sonore):
+				return
+		emplacement = reserve.parametres.emplacement
+		try:
+			analyseur.lancer(sonore, instant)
+		except OSError as erreur:
+			self.historique.consigner(
+				self.connexion, "alerte", "analyse impossible", f"{emplacement} : {erreur}", instant, sonore=sonore
+			)
+			return
+		self.historique.consigner(
+			self.connexion,
+			"info",
+			"analyse du prochain sonore",
+			f"{emplacement} : audit complet par Machin indexation, avant sa lecture",
+			instant,
+			sonore=sonore,
 		)
 
 	def _preparer_le_suivant(self, courant: Lecture, instant: datetime) -> None:
