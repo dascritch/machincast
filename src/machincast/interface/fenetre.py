@@ -24,8 +24,8 @@ l'ouverture du menu ; sans le service, la barre d'état dit que l'installation n
 une diffusion d'essai ; « Maintenance », qui lance l'indexation rapide ou l'audit complet
 (https://github.com/dascritch/machincast/issues/38) dans un processus à part, avec la fenêtre de son journal
 (machincast.interface.indexation, https://github.com/dascritch/machincast/issues/120) : fermer l'interface ne l'arrête
-pas ; « Aide », pour signaler un problème et connaître la version (machincast.interface.version). Une fonction pas
-encore écrite a son entrée, inactive, dont l'infobulle donne le ticket.
+pas ; « Aide », pour lire la documentation, signaler un problème et connaître la version (machincast.interface.version).
+Une fonction pas encore écrite a son entrée, inactive, dont l'infobulle donne le ticket.
 
 Les fichiers ajoutés depuis la liste des sonores entrent en base (machincast.interface.ajout), puis l'indexeur les
 vérifie en tâche de fond (machincast.interface.verification, https://github.com/dascritch/machincast/issues/30) ; la
@@ -78,6 +78,8 @@ FICHES: dict[str, type[Fiche]] = {
 """Écrans de détail : les fiches, par genre."""
 SUIVI_INDEXATION = 1000
 """Millisecondes entre deux regards sur le processus de l'indexation lancée depuis le menu."""
+DOCUMENTATION = "https://github.com/dascritch/machincast/blob/main/doc/utilisation.md"
+"""Le guide d'utilisation, qu'ouvre « Documentation »."""
 TICKETS = "https://github.com/dascritch/machincast/issues"
 """Les tickets de MachinCast, qu'ouvre « Signaler un problème… » ; comme dans pyproject.toml."""
 SANS_SERVICE = "Installation non définitive : diffusion sans service"
@@ -203,6 +205,7 @@ class FenetrePrincipale(QMainWindow):
 			action.triggered.connect(lambda _coche=False, audit=audit_complet: self._indexer(audit))
 			self.indexations.append(action)
 		aide = self.menuBar().addMenu("&Aide")
+		aide.addAction("Documentation").triggered.connect(lambda: dialogues.ouvrir_page(DOCUMENTATION))
 		aide.addAction("Signaler un problème…").triggered.connect(lambda: dialogues.ouvrir_page(TICKETS))
 		aide.addAction("Version").triggered.connect(lambda: dialogues.montrer_version(self, version.texte()))
 		for menu in (fichier, affichage, self.menu_diffusion, maintenance, aide):
