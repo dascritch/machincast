@@ -24,6 +24,21 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 			| aac    |
 			| aiff   |
 
+	# https://github.com/dascritch/machincast/issues/149 : chaque décodage gardait deux descripteurs ouverts. Passé la
+	# limite du système (1024 par défaut), GStreamer ne pouvait plus attendre ses messages, et tous les fichiers qui
+	# suivaient, sains compris, étaient déclarés illisibles.
+	Plan du scénario: Une longue vérification ne garde aucun descripteur de fichier ouvert
+		Étant donné un fichier <format> sain
+		Et un processus limité à 40 descripteurs de fichier de plus que ceux déjà ouverts
+		Quand je vérifie ce fichier 60 fois de suite
+		Alors le fichier est sain à chaque vérification
+		Et autant de descripteurs de fichier sont ouverts qu'avant les vérifications
+
+		Exemples:
+			| format |
+			| ogg    |
+			| flac   |
+
 	Scénario: Un fichier qui n'est pas du son est illisible
 		Étant donné un fichier "faux.mp3" qui contient du texte
 		Quand je vérifie ce fichier

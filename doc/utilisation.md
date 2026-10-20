@@ -131,6 +131,8 @@ Chaque fichier décodé reçoit l'un de ces verdicts :
 
 Un décodage qui ne produit aucun son en 5 secondes est repris depuis le début, jusqu'à trois fois : un disque réseau en veille a ainsi le temps de répondre.
 
+Jusqu'à la correction de [#149](https://github.com/dascritch/machincast/issues/149), une indexation de plus de quelques centaines de fichiers épuisait les descripteurs de fichier du système : la console répétait des messages `GStreamer-CRITICAL` (`gst_bus_timed_pop_filtered`, `gst_poll_get_read_gpollfd`), et les fichiers suivants, même sains, étaient déclarés `illisible` (« décodage bloqué au démarrage »). Après la mise à jour, un **audit complet** les décode de nouveau : les sonores sains passés `erroné` redeviennent `actif`, et le bilan les compte parmi les rétablis. Ces messages ne doivent plus apparaître ; s'ils reviennent, c'est à signaler dans un ticket.
+
 Quelques défauts échappent à la vérification : des octets altérés dans un WAV ou un AIFF, qui n'ont ni somme de contrôle ni trames ; un WAV, un Ogg, un MP3 sans durée dans son en-tête ou un AAC brut (`.aac`), tronqué, qui se décode comme un fichier plus court mais sain.
 
 ### États d'un sonore
