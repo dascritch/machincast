@@ -249,14 +249,27 @@ def ne_capture_rien(interface: Contexte) -> None:
 
 @then(parsers.re(r"c'est l'élément « (?P<fabrique>[^»]+) », avec (?P<proprietes>.+)"))
 def element(port: object, fabrique: str, proprietes: str) -> None:
-	assert hasattr(port, "get_factory")
-	assert port.get_factory().get_name() == fabrique
+	trouves = [enfant for enfant in port.children if enfant.get_factory().get_name() == fabrique]  # type: ignore[attr-defined]
+	assert len(trouves) == 1, port.children  # type: ignore[attr-defined]
+	source = trouves[0]
 	for cle, valeur in re.findall(r"([\w-]+) « ([^»]+) »", proprietes):
 		if cle == "stream-properties":
 			champ, attendu = valeur.split("=")
-			assert port.get_property(cle).get_value(champ) == (attendu == "true")  # type: ignore[attr-defined]
+			assert source.get_property(cle).get_value(champ) == (attendu == "true")
 			continue
-		assert port.get_property(cle) == valeur  # type: ignore[attr-defined]
+		assert source.get_property(cle) == valeur
+
+
+@then(parsers.parse("le port de monitoring donne {nombre:d} canaux"))
+def canaux_du_port(port: object, nombre: int) -> None:
+	"""Sans contrainte, pipewiresrc et pulsesrc se contentent d'un canal : le port en demande deux."""
+	sortie = port.get_static_pad("src")  # type: ignore[attr-defined]
+	assert sortie is not None
+	caps = sortie.query_caps(None)
+	assert not caps.is_empty()
+	for indice in range(caps.get_size()):
+		trouve, canaux = caps.get_structure(indice).get_int("channels")
+		assert (trouve, canaux) == (True, nombre), caps.to_string()
 
 
 @then("il n'y a pas de fenêtre de pré-écoute")
