@@ -11,6 +11,7 @@ import stat
 import threading
 import uuid
 from dataclasses import dataclass, field
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +19,7 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.lecture.etat import SocketEtat, SocketEtatOccupee
-from tests.etapes_diffusion import Banc, Connexion, heure, passages, sonore
+from tests.etapes_diffusion import Banc, Connexion, creer_sonore, evenement, heure, passages, sonore
 
 scenarios("etat.feature")
 
@@ -323,3 +324,91 @@ def texte_public(client: Client, texte: str) -> None:
 @then("le prochain sonore n'a pas de texte public")
 def sans_texte_public(client: Client) -> None:
 	assert "texte_public" not in prochain(client)
+
+
+# ─── Coupure par un événement à venir (https://github.com/dascritch/machincast/issues/169) ─────
+
+
+@given(parsers.parse("le sonore « {nom} » dure {duree:d} secondes en base"))
+def duree_en_base(base_vide: Connexion, nom: str, duree: int) -> None:
+	"""La durée en base décide des heures annoncées ; le fichier joué reste le court fichier de test."""
+	base_vide.execute("UPDATE sonores SET duree = %s WHERE id = %s", (timedelta(seconds=duree), sonore(base_vide, nom)))
+
+
+@given(parsers.parse("la banque « {nom} » est marquée « ne pas répéter »"))
+def ne_pas_repeter(base_vide: Connexion, nom: str) -> None:
+	base_vide.execute("UPDATE banques SET ne_pas_repeter = true WHERE nom_interne = %s", (nom,))
+
+
+@given(
+	parsers.re(
+		r"l'émission « (?P<nom>[^»]+) » de (?P<debut>[\d:]+) à (?P<fin>[\d:]+),"
+		r" qui joue la banque « (?P<banque>[^»]+) », puis le sonore « (?P<nom_sonore>[^»]+) »"
+	)
+)
+def emission_banque_puis_sonore(
+	banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, debut: str, fin: str, banque: str, nom_sonore: str
+) -> None:
+	evenement(banc, base_vide, tmp_path, nom, "emission", heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}"), [])
+	base_vide.execute(
+		"INSERT INTO evenements_elements (evenement_id, position, banque_id)"
+		" SELECT e.id, 1, b.id FROM evenements e, banques b WHERE e.nom_interne = %s AND b.nom_interne = %s",
+		(nom, banque),
+	)
+	base_vide.execute(
+		"INSERT INTO evenements_elements (evenement_id, position, sonore_id)"
+		" SELECT id, 2, %s FROM evenements WHERE nom_interne = %s",
+		(creer_sonore(banc, base_vide, tmp_path, nom_sonore), nom),
+	)
+
+
+@then(
+	parsers.re(
+		r"le sonore en cours finira au « (?P<fin>[^»]+) »,"
+		r" (?:coupé par l'événement « (?P<evenement>[^»]+) »|sans être coupé)"
+	)
+)
+def fin_du_sonore_en_cours(client: Client, base_vide: Connexion, fin: str, evenement: str | None) -> None:
+	courant = en_cours(client)
+	assert heure(courant["fin_estimee"]) == heure(fin), courant
+	attendu = None
+	if evenement is not None:
+		attendu = identifiant_de(base_vide, "evenements", evenement)
+	assert (courant["coupe_par"], courant["coupe_par_id"]) == (evenement, attendu), courant
+
+
+@then(parsers.parse("le prochain sonore est joué par l'événement « {evenement} »"))
+def evenement_du_prochain(client: Client, evenement: str) -> None:
+	assert prochain(client)["evenement"] == evenement, prochain(client)
+
+
+@given(
+	parsers.re(
+		r"l'émission « (?P<nom>[^»]+) » de (?P<debut>[\d:]+) à (?P<fin>[\d:]+), avec la banque aléatoire"
+		r" « (?P<banque>[^»]+) » des sonores (?P<liste>.+)"
+	)
+)
+def emission_banque_aleatoire(
+	banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, debut: str, fin: str, banque: str, liste: str
+) -> None:
+	evenement(banc, base_vide, tmp_path, nom, "emission", heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}"), [])
+	creee = base_vide.execute(
+		"INSERT INTO banques (nom_interne, mode) VALUES (%s, 'aleatoire') RETURNING id", (banque,)
+	).fetchone()
+	assert creee is not None
+	for position, nom_sonore in enumerate((n.strip(" «»") for n in liste.split(",")), start=1):
+		base_vide.execute(
+			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+			(creee[0], creer_sonore(banc, base_vide, tmp_path, nom_sonore), position),
+		)
+	base_vide.execute(
+		"INSERT INTO evenements_elements (evenement_id, position, banque_id)"
+		" SELECT id, 1, %s FROM evenements WHERE nom_interne = %s",
+		(creee[0], nom),
+	)
+
+
+@then("le sonore en cours n'a pas de fin estimée, sans être coupé")
+def ni_fin_ni_coupure(client: Client) -> None:
+	courant = en_cours(client)
+	assert (courant["fin_estimee"], courant["coupe_par"], courant["coupe_par_id"]) == (None, None, None), courant

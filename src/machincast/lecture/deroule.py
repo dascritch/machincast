@@ -67,8 +67,9 @@ from machincast.lecture.grille import (
 	heure_murale,
 	lire_evenement,
 	lire_grille,
+	prochain_changement,
 )
-from machincast.lecture.historique import EN_BASE, DernierPassage, Historique
+from machincast.lecture.historique import EN_BASE, DernierPassage, Historique, HistoriqueEnLecture
 from machincast.lecture.sequences import ElementDeSequence, elements_apres, lire_sequence
 
 REESSAI_FICHIER_INTROUVABLE = timedelta(hours=1)
@@ -108,6 +109,15 @@ class EnCours:
 	fin_prevue: datetime
 	stream: bool = False
 	"""Un stream n'a pas de fin connue : il s'éteint à la fin de son événement."""
+
+
+@dataclass(frozen=True)
+class Coupure:
+	"""L'événement qui commencera pendant le sonore en cours, et le coupera net
+	(https://github.com/dascritch/machincast/issues/169)."""
+
+	instant: datetime
+	occurrence: Occurrence
 
 
 @dataclass(frozen=True)
@@ -343,6 +353,41 @@ class Ordonnanceur:
 			return self.decider(instant, None).jouer
 		finally:
 			self._reservation = False
+
+	def coupure(self, en_cours: EnCours, instant: datetime, horizon: datetime) -> Coupure | None:
+		"""Le premier événement qui commencera après l'instant et avant l'horizon, et coupera net le sonore en cours,
+		comme le décidera decider ; None si le sonore va jusqu'à l'horizon. Rien n'est changé."""
+		with self.connexion.transaction():
+			evenements = lire_grille(self.connexion)
+		terminees = frozenset(self.terminees)
+		moment = prochain_changement(evenements, instant)
+		while (moment is not None) and (moment < horizon):
+			actif = evenement_actif(evenements, moment, terminees)
+			if (
+				(actif is not None)
+				and (actif.cle != en_cours.occurrence.cle)
+				and (self._commence_apres(actif, en_cours))
+			):
+				return Coupure(moment, actif)
+			moment = prochain_changement(evenements, moment)
+		return None
+
+	def anticiper(self, instant: datetime) -> Choix | None:
+		"""Le sonore que réserverait la décision à un instant à venir, sans en garder de trace : rien n'est consigné,
+		aucune occurrence n'est terminée, aucune suspension levée, aucun saut noté, aucun sonore écarté n'est oublié,
+		et le hasard n'avance pas : la décision prise à cet instant tirera le même sonore, si rien n'a changé
+		(https://github.com/dascritch/machincast/issues/169)."""
+		# Une décision note les sauts d'un autre passage dans un nouvel ensemble : garder l'ancien suffit.
+		sauts = self._sauts_notes
+		etat = (set(self.terminees), self.en_silence, self.suspension, dict(self.exclus), self.historique)
+		tirages = self.hasard.getstate()
+		self.historique = HistoriqueEnLecture(self.historique)
+		try:
+			return self.reserver(instant)
+		finally:
+			self.terminees, self.en_silence, self.suspension, self.exclus, self.historique = etat
+			self.hasard.setstate(tirages)
+			self._sauts_notes = sauts
 
 	def valider(self, choix: Choix, instant: datetime) -> bool:
 		"""Le sonore réservé peut-il encore être joué : son occurrence est toujours active et il est jouable."""

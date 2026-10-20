@@ -408,15 +408,15 @@ Champs communs à `en_cours` et `prochain` :
 | `evenement` | texte | Nom interne de l'événement qui le joue (ou de l'événement de secours). |
 | `emplacement` | texte ou `null` | Chemin du fichier, ou adresse du stream (directe ou de son marque-page), comme dans l'`airplay`. Ajouté en relecture de [PR #106](https://github.com/dascritch/machincast/pull/106), sans changer la version. |
 | `duree` | nombre ou `null` | Durée en secondes ; `null` pour un stream, dont la durée est inconnue. |
-| `fin_estimee` | date ISO 8601 ou `null` | Fin prévue, `null` quand la durée ou le début sont inconnus. |
+| `fin_estimee` | date ISO 8601 ou `null` | Fin prévue, `null` quand la durée ou le début sont inconnus. Pour le sonore en cours qu'un événement coupera, l'instant de la coupure, même pour un stream ([#169](https://github.com/dascritch/machincast/issues/169)). |
 | `evenement_id` | entier | Identifiant de l'événement ([#144](https://github.com/dascritch/machincast/issues/144), sans changer la version). |
 | `evenement_debut`, `evenement_fin` | date ISO 8601 ou `null` | Début et fin de l'occurrence de l'événement, en heure murale du poste, sans fuseau ; `null` pour un fil musical permanent, et pour la fin d'une occurrence sans fin. |
 | `sequence`, `sequence_id` | texte, entier ou `null` | Séquence qui joue le sonore, nom interne et identifiant ; `null` hors d'une séquence. |
 | `banque`, `banque_id` | texte, entier ou `null` | Banque qui a fourni le sonore ; `null` pour un sonore placé directement dans la liste. |
 
-Champs propres à `en_cours` : `debut` (date ISO 8601 du début du passage), `position` (secondes jouées), `progression` (de 0 à 1, `null` pour un stream) et `texte_public` ([#144](https://github.com/dascritch/machincast/issues/144)) : ce que la page publique affiche du passage, masquage appliqué ([§ 4.8](#48-métadonnées-publiques-et-masquage)) ; `null` si le passage n'est pas encore dans l'airplay. Le contexte d'un sonore (événement, séquence, banque, texte public) est lu une fois par sonore, pas à chaque message.
+Champs propres à `en_cours` : `debut` (date ISO 8601 du début du passage), `position` (secondes jouées), `progression` (de 0 à 1, `null` pour un stream) et `texte_public` ([#144](https://github.com/dascritch/machincast/issues/144)) : ce que la page publique affiche du passage, masquage appliqué ([§ 4.8](#48-métadonnées-publiques-et-masquage)) ; `null` si le passage n'est pas encore dans l'airplay. `coupe_par` et `coupe_par_id` ([#169](https://github.com/dascritch/machincast/issues/169)) : le nom interne et l'identifiant de l'événement qui commencera pendant le sonore et le coupera net ([§ 4.2](#42-transitions)), `null` s'il ira jusqu'à sa fin. La coupure est cherchée au début du sonore, jusqu'au début de son crossfade de fin ; pour un stream, jusqu'à la fin de son occurrence, et 12 heures au plus. Le contexte d'un sonore (événement, séquence, banque, texte public) est lu une fois par sonore, pas à chaque message.
 
-Champs propres à `prochain` : `debut_estime` (date ISO 8601, `null` après un stream : au début du crossfade de fin du sonore en cours s'ils se superposent, à sa fin sinon) et `sain` (indicateur du [§ 4.6](#46-sonore-sain) : `true` ou `false`, `null` pour un stream, qui n'est pas testé automatiquement).
+Champs propres à `prochain` : `debut_estime` (date ISO 8601, `null` après un stream : au début du crossfade de fin du sonore en cours s'ils se superposent, à sa fin sinon ; à l'instant de la coupure si un événement coupe le sonore en cours) et `sain` (indicateur du [§ 4.6](#46-sonore-sain) : `true` ou `false`, `null` pour un stream, qui n'est pas testé automatiquement). Après une coupure annoncée, le prochain sonore est **anticipé** ([#169](https://github.com/dascritch/machincast/issues/169)) : c'est celui que choisira la décision prise à la coupure, si rien ne change d'ici là, tirage au hasard compris. L'anticipation ne laisse aucune trace : rien n'est consigné, aucune occurrence n'est terminée et le hasard n'avance pas ; c'est la décision prise à la coupure qui choisit le sonore et consigne ce qu'il faut, comme un élément sauté.
 
 Exemple, présenté ici sur plusieurs lignes ; le binaire envoie chaque message sur une seule :
 
@@ -424,7 +424,7 @@ Exemple, présenté ici sur plusieurs lignes ; le binaire envoie chaque message 
 {"version": 1, "horodatage": "2026-10-14T20:00:30+02:00", "etat": "diffusion",
  "en_cours": {"sonore": 12, "type": "fichier", "artiste": "Les Gaufres", "titre": "Café à minuit",
   "emplacement": "/srv/musique/Les Gaufres/Café à minuit.flac", "evenement": "Fil de jour",
-  "debut": "2026-10-14T20:00:00+02:00", "duree": 214.5, "fin_estimee": "2026-10-14T20:03:34.500000+02:00", "position": 30.0, "progression": 0.14},
+  "debut": "2026-10-14T20:00:00+02:00", "duree": 214.5, "fin_estimee": "2026-10-14T20:03:34.500000+02:00", "coupe_par": null, "coupe_par_id": null, "position": 30.0, "progression": 0.14},
  "prochain": {"sonore": 31, "type": "fichier", "artiste": null, "titre": "Jingle", "emplacement": "/srv/habillage/jingle.flac",
   "evenement": "Fil de jour",
   "debut_estime": "2026-10-14T20:03:30.500000+02:00", "duree": 8.0, "fin_estimee": "2026-10-14T20:03:38.500000+02:00", "sain": true}}

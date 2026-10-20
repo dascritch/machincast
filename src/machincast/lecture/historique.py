@@ -97,6 +97,66 @@ class Historique(Protocol):
 	def expirer(self, connexion: Connexion, instant: datetime, sonore: int | None = None) -> list[Expiration]: ...
 
 
+@dataclass(frozen=True)
+class HistoriqueEnLecture:
+	"""Un historique qui lit celui qu'il enveloppe, sans jamais rien écrire : pour anticiper une décision sans en
+	laisser de trace (https://github.com/dascritch/machincast/issues/169)."""
+
+	source: Historique
+
+	def lectures(self, connexion: Connexion, sonores: Collection[int]) -> dict[int, int]:
+		return self.source.lectures(connexion, sonores)
+
+	def joues_via_banque(self, connexion: Connexion, banque: int) -> list[int]:
+		return self.source.joues_via_banque(connexion, banque)
+
+	def dernier_element(self, connexion: Connexion, evenement: int, depuis: datetime | None) -> int | None:
+		return self.source.dernier_element(connexion, evenement, depuis)
+
+	def dernier_passage(self, connexion: Connexion) -> DernierPassage | None:
+		return self.source.dernier_passage(connexion)
+
+	def commencer_passage(
+		self,
+		connexion: Connexion,
+		sonore: int,
+		banque: int | None,
+		evenement: int | None,
+		element: int | None,
+		instant: datetime,
+		sequence: int | None = None,
+		sequence_element: int | None = None,
+	) -> Passage:
+		raise AssertionError("une anticipation ne commence aucun passage")
+
+	def terminer_passage(
+		self,
+		connexion: Connexion,
+		passage: Passage,
+		instant: datetime,
+		coupe: bool = False,
+		erreur: str | None = None,
+		nature: str = "lecture interrompue",
+	) -> None:
+		raise AssertionError("une anticipation ne termine aucun passage")
+
+	def consigner(
+		self,
+		connexion: Connexion,
+		niveau: str,
+		nature: str,
+		message: str,
+		instant: datetime | None = None,
+		sonore: int | None = None,
+		banque: int | None = None,
+		evenement: int | None = None,
+	) -> None:
+		"""Rien n'est consigné : ce sera fait quand la décision sera prise pour de bon."""
+
+	def expirer(self, connexion: Connexion, instant: datetime, sonore: int | None = None) -> list[Expiration]:
+		return []
+
+
 class HistoriqueEnBase:
 	"""L'airplay et le log de la base, avec les droits de la lecture."""
 
