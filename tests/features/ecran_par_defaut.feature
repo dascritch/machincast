@@ -49,16 +49,23 @@ Fonctionnalité: Écran par défaut de l'interface
 		Quand l'écran par défaut s'ouvre
 		Alors l'état du binaire lecture est bientôt « En diffusion »
 		Et le sonore en cours est « Les Gaufres – Café à minuit »
-		Et le sonore en cours a pour événement « Fil de jour », début « 20:00:00 », durée « 3:34 » et fin estimée « 20:03:34 »
+		Et le sonore en cours a pour événement « Fil de jour » et pour horaire « 20:00:00 – 20:03:34 (3:34) »
 		Et le sonore en cours a pour emplacement « /srv/musique/Café_à_minuit.flac »
-		Et la barre de progression du sonore en cours est à « 14 % »
+		Et la barre de progression du sonore en cours est à « reste 3:05 », remplie à 14 %
+		Et le sonore en cours n'a pas d'intitulé « Progression »
+
+	Scénario: Un sonore qui dépasse sa durée annoncée n'a plus de temps qui reste
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 220 secondes
+		Quand l'écran par défaut s'ouvre
+		Alors la barre de progression du sonore en cours est bientôt à « reste 0:00 », remplie à 100 %
 
 	Scénario: La progression suit les états publiés
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Quand l'écran par défaut s'ouvre
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 107,25 secondes
-		Alors la barre de progression du sonore en cours est bientôt à « 50 % »
+		Alors la barre de progression du sonore en cours est bientôt à « reste 1:48 »
 
 	Plan du scénario: Le prochain sonore montre ses heures estimées, sa durée et l'indicateur « sain »
 		Étant donné la socket d'état du binaire lecture ouverte
@@ -66,7 +73,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : <sain>
 		Quand l'écran par défaut s'ouvre
 		Alors le prochain sonore est bientôt « Jingle »
-		Et le prochain sonore a pour événement « Fil de jour », début estimé « 20:03:30 », fin estimée « 20:03:38 » et durée « 0:08 »
+		Et le prochain sonore a pour événement « Fil de jour » et pour horaire « 20:03:30 – 20:03:38 (0:08) »
 		Et le prochain sonore a pour emplacement « /srv/musique/Jingle.flac »
 		Et le prochain sonore est sain : « <affiche> »
 
@@ -81,10 +88,10 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le prochain sonore est le stream « Relais » dans « Direct », de début inconnu
 		Quand l'écran par défaut s'ouvre
 		Alors le sonore en cours est bientôt « Direct studio »
-		Et le sonore en cours a pour événement « Direct », début « 20:00:00 », durée « inconnue » et fin estimée « inconnue »
+		Et le sonore en cours a pour événement « Direct » et pour horaire « 20:00:00, durée inconnue »
 		Et la barre de progression du sonore en cours est à « durée inconnue »
 		Et le sonore en cours a pour emplacement « https://flux.exemple/Direct_studio »
-		Et le prochain sonore a pour événement « Direct », début estimé « inconnu », fin estimée « inconnue » et durée « inconnue »
+		Et le prochain sonore a pour événement « Direct » et pour horaire « inconnu, durée inconnue »
 		Et le prochain sonore a pour emplacement « https://flux.exemple/Relais »
 		Et le prochain sonore est sain : « non testé »
 
@@ -105,6 +112,30 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le binaire lecture s'arrête
 		Alors l'état du binaire lecture est bientôt « À l'arrêt »
 		Et le sonore en cours est « — »
+
+	Scénario: Le binaire lecture qui s'arrête efface tout ce que l'écran disait du sonore en cours
+		https://github.com/dascritch/machincast/issues/144
+
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le sonore en cours a pour contexte :
+			| champ           | valeur              |
+			| evenement_id    | 3                   |
+			| evenement_debut | 2026-10-16 20:00:00 |
+			| evenement_fin   | 2026-10-16 22:00:00 |
+			| sequence        | Pub                 |
+			| banque          | Spots               |
+			| texte_public    | Radio Machin        |
+		Quand l'écran par défaut s'ouvre
+		Et le sonore en cours est bientôt « Les Gaufres – Café à minuit »
+		Et le binaire lecture s'arrête
+		Alors l'état du binaire lecture est bientôt « À l'arrêt »
+		Et le sonore en cours a pour événement « — » et pour horaire « — »
+		Et le sonore en cours a pour séquence « — » et pour banque « — »
+		Et la barre de progression du sonore en cours est à « — », remplie à 0 %
+		Et le bandeau montre le texte public « — »
+		Et l'événement à l'antenne est « — »
+		Et les boutons de fiche de l'accueil sont inactifs
 
 	Scénario: Un binaire lecture arrêté brutalement, sans dernier état, met aussi l'écran à l'arrêt
 		Étant donné la socket d'état du binaire lecture ouverte
@@ -142,6 +173,102 @@ Fonctionnalité: Écran par défaut de l'interface
 		Alors le sonore en cours est bientôt « (sans titre) »
 		Et le sonore en cours a pour emplacement « inconnu »
 
+	# ─── Contexte du sonore (https://github.com/dascritch/machincast/issues/144) ─────
+
+	Scénario: Le bandeau montre le texte public entre guillemets, et l'événement à l'antenne avec ses heures
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le sonore en cours a pour contexte :
+			| champ           | valeur              |
+			| evenement_id    | 3                   |
+			| evenement_debut | 2026-10-16 20:00:00 |
+			| evenement_fin   | 2026-10-16 22:00:00 |
+			| sequence        | Pub                 |
+			| sequence_id     | 4                   |
+			| banque          | Spots               |
+			| banque_id       | 5                   |
+			| texte_public    | Radio Machin        |
+		Quand l'écran par défaut s'ouvre
+		Alors le bandeau montre bientôt le texte public « « Radio Machin » »
+		Et l'événement à l'antenne est « Fil de jour, de 20:00 à 22:00 »
+		Et le sonore en cours a pour séquence « Pub » et pour banque « Spots »
+
+	Plan du scénario: L'événement à l'antenne dit s'il est permanent, ou sans fin prévue
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le sonore en cours a pour contexte :
+			| champ           | valeur  |
+			| evenement_debut | <debut> |
+			| evenement_fin   | <fin>   |
+		Quand l'écran par défaut s'ouvre
+		Alors l'événement à l'antenne est bientôt « <texte> »
+
+		Exemples:
+			| debut               | fin | texte                      |
+			|                     |     | Fil de jour, permanent     |
+			| 2026-10-16 19:00:00 |     | Fil de jour, depuis 19:00  |
+
+	Scénario: Hors d'une séquence ou d'une banque, le sonore le montre
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
+		Et le prochain sonore a pour contexte :
+			| champ     | valeur  |
+			| banque    | Jingles |
+			| banque_id | 6       |
+		Quand l'écran par défaut s'ouvre
+		Alors le prochain sonore est bientôt « Jingle »
+		Et le sonore en cours a pour séquence « — » et pour banque « — »
+		Et le prochain sonore a pour séquence « — » et pour banque « Jingles »
+		Et le bandeau montre le texte public « — »
+
+	Scénario: Les boutons de l'accueil ouvrent la fiche du sonore et celle de l'événement
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le sonore en cours a pour contexte :
+			| champ        | valeur |
+			| evenement_id | 3      |
+		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
+		Et le prochain sonore a pour contexte :
+			| champ        | valeur |
+			| evenement_id | 8      |
+		Quand l'écran par défaut s'ouvre
+		Et le sonore en cours est bientôt « Les Gaufres – Café à minuit »
+		Et je clique sur le bouton « ouvrir_sonore_en_cours » de l'accueil
+		Et je clique sur le bouton « ouvrir_evenement_en_cours » de l'accueil
+		Et je clique sur le bouton « ouvrir_sonore_prochain » de l'accueil
+		Et je clique sur le bouton « ouvrir_evenement_prochain » de l'accueil
+		Alors l'accueil a demandé les fiches :
+			| genre     | identifiant | nom                         |
+			| sonore    | 12          | Les Gaufres – Café à minuit |
+			| événement | 3           | Fil de jour                 |
+			| sonore    | 31          | Jingle                      |
+			| événement | 8           | Fil de jour                 |
+
+	Scénario: Sans événement connu, l'accueil ne propose pas sa fiche
+		https://github.com/dascritch/machincast/issues/144 : un binaire lecture d'avant ce ticket ne dit pas
+		l'identifiant de l'événement ; un état peut ne pas dire l'événement du tout.
+
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le sonore en cours a pour contexte :
+			| champ     | valeur |
+			| evenement |        |
+		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
+		Quand l'écran par défaut s'ouvre
+		Alors le prochain sonore est bientôt « Jingle »
+		Et le sonore en cours a pour événement « — » et pour horaire « 20:00:00 – 20:03:34 (3:34) »
+		Et l'événement à l'antenne est « — »
+		Et le prochain sonore a pour événement « Fil de jour » et pour horaire « 20:03:30 – 20:03:38 (0:08) »
+		Et les boutons de fiche de l'accueil sont, dans l'ordre sonore en cours, son événement, prochain sonore, son événement : actif, inactif, actif, inactif
+
+	Scénario: Sans sonore, les boutons de fiche de l'accueil sont inactifs
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture est en silence
+		Quand l'écran par défaut s'ouvre
+		Alors l'état du binaire lecture est bientôt « En silence »
+		Et les boutons de fiche de l'accueil sont inactifs
+
 	# ─── Airplay des 12 dernières heures ───────────────────────
 
 	Scénario: L'airplay des 12 dernières heures, du plus récent au plus ancien
@@ -154,11 +281,11 @@ Fonctionnalité: Écran par défaut de l'interface
 			| 2026-10-16 20:00:00 |                     | Les Gaufres | Café à minuit | Fil de jour |          | Titres  |               |
 		Quand l'écran par défaut s'ouvre
 		Alors la table de l'airplay montre :
-			| debut    | fin      | duree | artiste     | titre         | evenement   | sequence | banque | sans_incident |
-			| 20:00:00 | en cours |       | Les Gaufres | Café à minuit | Fil de jour |          | Titres |               |
-			| 19:50:00 | 19:51:00 | 1:00  |             | Spot          | Fil de jour | Pub      | Spots  | non           |
-			| 18:00:00 | 19:02:05 | 1:02:05 |           | Le journal    | Journal     |          |        | oui           |
-			| 08:01:00 | 08:04:00 | 3:00  | Les Gaufres | Le matin      | Fil de jour |          | Titres | oui           |
+			| debut    | fin      | duree | artiste     | titre         | evenement   | sequence | banque | incident |
+			| 20:00:00 | en cours |       | Les Gaufres | Café à minuit | Fil de jour |          | Titres |  |
+			| 19:50:00 | 19:51:00 | 1:00  |             | Spot          | Fil de jour | Pub      | Spots  | oui |
+			| 18:00:00 | 19:02:05 | 1:02:05 |           | Le journal    | Journal     |          |        |  |
+			| 08:01:00 | 08:04:00 | 3:00  | Les Gaufres | Le matin      | Fil de jour |          | Titres |  |
 
 	Scénario: L'interface est privée : l'airplay montre l'artiste et le titre, même masqués
 		Étant donné les passages dans l'airplay :
@@ -167,8 +294,8 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le masquage de tous les sonores et de tous les événements
 		Quand l'écran par défaut s'ouvre
 		Alors la table de l'airplay montre :
-			| debut    | fin      | duree | artiste     | titre         | evenement   | sequence | banque | sans_incident |
-			| 19:50:00 | 19:53:00 | 3:00  | Les Gaufres | Café à minuit | Fil de jour |          |        | oui           |
+			| debut    | fin      | duree | artiste     | titre         | evenement   | sequence | banque | incident |
+			| 19:50:00 | 19:53:00 | 3:00  | Les Gaufres | Café à minuit | Fil de jour |          |        |  |
 
 	Scénario: L'airplay se relit à chaque nouveau sonore, jamais en boucle
 		Étant donné les passages dans l'airplay :
@@ -238,3 +365,35 @@ Fonctionnalité: Écran par défaut de l'interface
 			| DISPLAY=:0, QT_QPA_PLATFORM=offscreen | ne peut pas |
 			| QT_QPA_PLATFORM=minimal               | ne peut pas |
 			| vide                                  | ne peut pas |
+
+	Scénario: Un double-clic sur un élément absent, ou effacé de la base depuis, ne demande aucune fiche
+		Étant donné les passages dans l'airplay :
+			| debut               | fin                 | artiste | titre | evenement   | sequence | banque | sans_incident |
+			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 | Radio   | Spot  | Fil de jour |          |        | non           |
+		Et le sonore « Spot » est effacé de la base
+		Quand l'écran par défaut s'ouvre
+		Et j'ouvre dans l'airplay la cellule « Spot »
+		Et j'ouvre dans l'airplay la cellule de la colonne « Séquence »
+		Et j'ouvre dans l'airplay la cellule de la colonne « Banque »
+		Alors l'accueil n'a demandé aucune fiche
+
+	Scénario: Un double-clic sur l'airplay ouvre la fiche du sonore, de l'événement, de la séquence ou de la banque
+		Étant donné les passages dans l'airplay :
+			| debut               | fin                 | artiste | titre | evenement   | sequence | banque | sans_incident |
+			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 | Radio   | Spot  | Fil de jour | Pub      | Spots  | non           |
+		Quand l'écran par défaut s'ouvre
+		Et j'ouvre dans l'airplay la cellule « Radio »
+		Et j'ouvre dans l'airplay la cellule « Spot »
+		Et j'ouvre dans l'airplay la cellule « Fil de jour »
+		Et j'ouvre dans l'airplay la cellule « Pub »
+		Et j'ouvre dans l'airplay la cellule « Spots »
+		Et j'ouvre dans l'airplay la cellule « 19:50:00 »
+		Et j'ouvre dans l'airplay la cellule « oui »
+		Alors l'accueil a demandé les fiches de l'airplay :
+			| genre     | nom         |
+			| sonore    | Spot        |
+			| sonore    | Spot        |
+			| événement | Fil de jour |
+			| séquence  | Pub         |
+			| banque    | Spots       |
+

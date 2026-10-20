@@ -8,8 +8,9 @@ import uuid
 from datetime import datetime, time
 
 from pytest_bdd import parsers, scenarios, then, when
+from pytestqt.qtbot import QtBot
 
-from tests.etapes_interface import Connexion, Contexte, fenetre, identifiant
+from tests.etapes_interface import Connexion, Contexte, fenetre, identifiant, ouvrir_dans
 
 scenarios("rafraichissement.feature")
 
@@ -58,3 +59,8 @@ def airplay_vide(interface: Contexte) -> None:
 def airplay(interface: Contexte, titre: str) -> None:
 	modele = fenetre(interface).accueil.modele_airplay
 	assert [modele.item(ligne, TITRE).text() for ligne in range(modele.rowCount())] == [titre]
+
+
+@when(parsers.parse("je double-clique sur « {titre} » dans l'airplay de l'accueil"))
+def ouvrir_depuis_l_airplay(interface: Contexte, qtbot: QtBot, titre: str) -> None:
+	ouvrir_dans(qtbot, fenetre(interface).accueil.ui.table_airplay, titre)

@@ -17,6 +17,8 @@ from typing import Any
 
 import psycopg
 import pytest
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QLabel
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -32,6 +34,7 @@ from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.erreur import FenetreBaseInjoignable
 from machincast.lecture.etat import SocketEtat
 from tests.base_test import CONFIGURATION_TEST, parametres_base_test
+from tests.etapes_interface import ouvrir_dans
 
 scenarios("ecran_par_defaut.feature")
 
@@ -52,6 +55,8 @@ class Contexte:
 	connexion: Connexion | None = None
 	lectures: list[datetime] = field(default_factory=list)
 	"""Instants où l'écran a lu l'airplay."""
+	fiches: list[tuple[str, int, str]] = field(default_factory=list)
+	"""Fiches que l'écran a demandées (ouverte) : genre, identifiant et nom."""
 	processus: subprocess.CompletedProcess[str] | None = None
 	fenetres: list[FenetreBaseInjoignable] = field(default_factory=list)
 	"""Fenêtres d'erreur montrées par Machin interface lancé dans le test."""
@@ -275,6 +280,22 @@ def prochain(contexte: Contexte, titre: str, evenement: str, debut: str, fin: st
 	publier(contexte)
 
 
+@given(parsers.re(r"le (?P<lequel>sonore en cours|prochain sonore) a pour contexte :"))
+def contexte_du_sonore(contexte: Contexte, lequel: str, datatable: list[list[str]]) -> None:
+	"""Les champs de contexte de la socket d'état (spec § 5.4) : identifiants en nombres, heures murales, textes."""
+	sonore = contexte.en_cours if lequel == "sonore en cours" else contexte.prochain
+	assert sonore is not None
+	_entetes, *rangees = datatable
+	for champ, valeur in ((champ.strip(), valeur.strip()) for champ, valeur in rangees):
+		lu: object = (valeur) or (None)
+		if (champ.endswith("_id")) and (valeur != ""):
+			lu = int(valeur)
+		if (champ in ("evenement_debut", "evenement_fin")) and (valeur != ""):
+			lu = datetime.fromisoformat(valeur).isoformat()
+		sonore[champ] = lu
+	publier(contexte)
+
+
 @given(parsers.parse("le prochain sonore est le stream « {titre} » dans « {evenement} », de début inconnu"))
 def prochain_stream(contexte: Contexte, titre: str, evenement: str) -> None:
 	contexte.prochain = {
@@ -363,6 +384,7 @@ def ouvrir(contexte: Contexte, base_vide: Connexion, qtbot: QtBot, monkeypatch: 
 	monkeypatch.setattr(module_ecran, "lire_airplay", lire_et_compter)
 	contexte.connexion = connecter(*parametres_base_test(), Role.INTERFACE)
 	contexte.ecran = EcranParDefaut(contexte.connexion, contexte.chemin, contexte.horloge)
+	contexte.ecran.ouverte.connect(lambda genre, numero, nom: contexte.fiches.append((genre, numero, nom)))
 	qtbot.addWidget(contexte.ecran)
 	contexte.ecran.show()
 
@@ -561,27 +583,127 @@ def prochain_affiche(contexte: Contexte, qtbot: QtBot, bientot: str | None, text
 
 
 @then(
-	parsers.parse(
-		"le sonore en cours a pour événement « {evenement} », début « {debut} », durée « {duree} »"
-		" et fin estimée « {fin} »"
+	parsers.re(
+		r"le (?P<lequel>sonore en cours|prochain sonore) a pour événement « (?P<evenement>[^»]+) »"
+		r" et pour horaire « (?P<horaire>[^»]+) »"
 	)
 )
-def details_en_cours(contexte: Contexte, evenement: str, debut: str, duree: str, fin: str) -> None:
+def evenement_et_horaire(contexte: Contexte, lequel: str, evenement: str, horaire: str) -> None:
 	ui = ecran(contexte).ui
-	obtenus = (ui.en_cours_evenement.text(), ui.en_cours_debut.text(), ui.en_cours_duree.text(), ui.en_cours_fin.text())
-	assert obtenus == (evenement, debut, duree, fin)
+	champs = {"sonore en cours": "en_cours", "prochain sonore": "prochain"}[lequel]
+	obtenus = (getattr(ui, f"{champs}_evenement").text(), getattr(ui, f"{champs}_horaire").text())
+	assert obtenus == (evenement, horaire)
 
 
 @then(
-	parsers.parse(
-		"le prochain sonore a pour événement « {evenement} », début estimé « {debut} », fin estimée « {fin} »"
-		" et durée « {duree} »"
+	parsers.re(
+		r"le (?P<lequel>sonore en cours|prochain sonore) a pour séquence « (?P<sequence>[^»]+) »"
+		r" et pour banque « (?P<banque>[^»]+) »"
 	)
 )
-def details_prochain(contexte: Contexte, evenement: str, debut: str, fin: str, duree: str) -> None:
+def sequence_et_banque(contexte: Contexte, lequel: str, sequence: str, banque: str) -> None:
 	ui = ecran(contexte).ui
-	obtenus = (ui.prochain_evenement.text(), ui.prochain_debut.text(), ui.prochain_fin.text(), ui.prochain_duree.text())
-	assert obtenus == (evenement, debut, fin, duree)
+	champs = {"sonore en cours": "en_cours", "prochain sonore": "prochain"}[lequel]
+	obtenus = (getattr(ui, f"{champs}_sequence").text(), getattr(ui, f"{champs}_banque").text())
+	assert obtenus == (sequence, banque)
+
+
+@then(parsers.parse("le sonore en cours n'a pas d'intitulé « {intitule} »"))
+def sans_intitule(contexte: Contexte, intitule: str) -> None:
+	textes = [etiquette.text() for etiquette in ecran(contexte).ui.cadre_en_cours.findChildren(QLabel)]
+	assert intitule not in textes, textes
+
+
+@then(parsers.re(r"le bandeau montre (?P<bientot>bientôt )?le texte public « (?P<texte>.+) »$"))
+def texte_public(contexte: Contexte, qtbot: QtBot, bientot: str | None, texte: str) -> None:
+	etiquette = ecran(contexte).ui.texte_public
+	if bientot:
+		attendre(qtbot, lambda: etiquette.text() == texte)
+	assert etiquette.text() == texte
+
+
+@then(parsers.re(r"l'événement à l'antenne est (?P<bientot>bientôt )?« (?P<texte>[^»]+) »"))
+def evenement_antenne(contexte: Contexte, qtbot: QtBot, bientot: str | None, texte: str) -> None:
+	etiquette = ecran(contexte).ui.evenement_antenne
+	if bientot:
+		attendre(qtbot, lambda: etiquette.text() == texte)
+	assert etiquette.text() == texte
+
+
+@when(parsers.parse("je clique sur le bouton « {nom} » de l'accueil"))
+def cliquer_bouton(contexte: Contexte, qtbot: QtBot, nom: str) -> None:
+	bouton = getattr(ecran(contexte).ui, nom)
+	assert bouton.isEnabled(), nom
+	qtbot.mouseClick(bouton, Qt.MouseButton.LeftButton)
+
+
+@then("l'accueil a demandé les fiches :")
+def fiches_demandees(contexte: Contexte, datatable: list[list[str]]) -> None:
+	_entetes, *rangees = datatable
+	attendues = [(genre.strip(), int(numero), nom.strip()) for genre, numero, nom in rangees]
+	assert contexte.fiches == attendues
+
+
+@then("les boutons de fiche de l'accueil sont inactifs")
+def boutons_inactifs(contexte: Contexte) -> None:
+	ui = ecran(contexte).ui
+	boutons = (ui.ouvrir_sonore_en_cours, ui.ouvrir_evenement_en_cours, ui.ouvrir_sonore_prochain)
+	assert [bouton.isEnabled() for bouton in (*boutons, ui.ouvrir_evenement_prochain)] == [False] * 4
+
+
+@then(
+	parsers.re(
+		r"les boutons de fiche de l'accueil sont, dans l'ordre sonore en cours, son événement, prochain sonore,"
+		r" son événement : (?P<etats>.+)"
+	)
+)
+def etats_des_boutons(contexte: Contexte, etats: str) -> None:
+	ui = ecran(contexte).ui
+	boutons = (ui.ouvrir_sonore_en_cours, ui.ouvrir_evenement_en_cours, ui.ouvrir_sonore_prochain)
+	obtenus = ["actif" if bouton.isEnabled() else "inactif" for bouton in (*boutons, ui.ouvrir_evenement_prochain)]
+	assert obtenus == etats.split(", ")
+
+
+@given(parsers.parse("le sonore « {titre} » est effacé de la base"))
+def effacer_sonore(base_vide: Connexion, titre: str) -> None:
+	base_vide.execute("DELETE FROM sonores WHERE titre = %s", (titre,))
+
+
+@when(parsers.parse("j'ouvre dans l'airplay la cellule de la colonne « {colonne} »"))
+def ouvrir_colonne(contexte: Contexte, qtbot: QtBot, colonne: str) -> None:
+	"""Double-clic sur la première ligne de l'airplay, dans cette colonne, même vide."""
+	table_airplay = ecran(contexte).ui.table_airplay
+	titres = [titre for _nom, titre in ecran(contexte).COLONNES_AIRPLAY]
+	index = table_airplay.model().index(0, titres.index(colonne))
+	table_airplay.scrollTo(index)
+	position = table_airplay.visualRect(index).center()
+	qtbot.mouseClick(table_airplay.viewport(), Qt.MouseButton.LeftButton, pos=position)
+	qtbot.mouseDClick(table_airplay.viewport(), Qt.MouseButton.LeftButton, pos=position)
+
+
+@then("l'accueil n'a demandé aucune fiche")
+def aucune_fiche(contexte: Contexte) -> None:
+	assert contexte.fiches == []
+
+
+@when(parsers.parse("j'ouvre dans l'airplay la cellule « {texte} »"))
+def ouvrir_cellule(contexte: Contexte, qtbot: QtBot, texte: str) -> None:
+	ouvrir_dans(qtbot, ecran(contexte).ui.table_airplay, texte)
+
+
+@then("l'accueil a demandé les fiches de l'airplay :")
+def fiches_de_l_airplay(contexte: Contexte, base_vide: Connexion, datatable: list[list[str]]) -> None:
+	"""Chaque fiche par son identifiant en base : le sonore par son titre, les autres par leur nom interne."""
+	tables = {"sonore": ("sonores", "titre"), "événement": ("evenements", "nom_interne")}
+	tables |= {"séquence": ("sequences", "nom_interne"), "banque": ("banques", "nom_interne")}
+	_entetes, *rangees = datatable
+	attendues = []
+	for genre, nom in ((genre.strip(), nom.strip()) for genre, nom in rangees):
+		table_en_base, colonne = tables[genre]
+		ligne = base_vide.execute(f"SELECT id FROM {table_en_base} WHERE {colonne} = %s", (nom,)).fetchone()  # noqa: S608
+		assert ligne is not None, nom
+		attendues.append((genre, int(str(ligne[0])), nom))
+	assert contexte.fiches == attendues
 
 
 @then("le sonore en cours et le prochain sonore ont la même largeur, la moitié de l'écran")
@@ -612,12 +734,19 @@ def sain(contexte: Contexte, texte: str) -> None:
 	assert ecran(contexte).ui.prochain_sain.text() == texte
 
 
-@then(parsers.re(r"la barre de progression du sonore en cours est (?P<bientot>bientôt )?à « (?P<texte>[^»]+) »"))
-def progression(contexte: Contexte, qtbot: QtBot, bientot: str | None, texte: str) -> None:
+@then(
+	parsers.re(
+		r"la barre de progression du sonore en cours est (?P<bientot>bientôt )?à « (?P<texte>[^»]+) »"
+		r"(?:, remplie à (?P<valeur>\d+) %)?"
+	)
+)
+def progression(contexte: Contexte, qtbot: QtBot, bientot: str | None, texte: str, valeur: str | None) -> None:
 	barre = ecran(contexte).ui.en_cours_progression
 	if bientot:
 		attendre(qtbot, lambda: barre.text() == texte)
 	assert barre.text() == texte
+	if valeur is not None:
+		assert barre.value() == int(valeur)
 
 
 def table(contexte: Contexte) -> list[dict[str, str]]:

@@ -15,13 +15,12 @@
   </property>
   <layout class="QVBoxLayout" name="disposition">
    <item>
-    <layout class="QHBoxLayout" name="bandeau">
+    <layout class="QHBoxLayout" name="bandeau" stretch="0,1,0,0">
      <item>
       <widget class="QLabel" name="heure">
        <property name="font">
         <font>
-         <pointsize>16</pointsize>
-         <bold>true</bold>
+         <pointsize>16</pointsize><bold>true</bold>
         </font>
        </property>
        <property name="text">
@@ -33,11 +32,29 @@
       </widget>
      </item>
      <item>
-      <spacer name="espace_bandeau">
-       <property name="orientation">
-        <enum>Qt::Orientation::Horizontal</enum>
+      <widget class="QLabel" name="texte_public">
+       <property name="toolTip">
+        <string>Ce que les sorties publiques affichent du sonore en cours</string>
        </property>
-      </spacer>
+       <property name="font">
+        <font>
+         <pointsize>12</pointsize>
+         <italic>true</italic>
+        </font>
+       </property>
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignCenter</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QLabel" name="intitule_etat_lecture">
@@ -50,8 +67,7 @@
       <widget class="QLabel" name="etat_lecture">
        <property name="font">
         <font>
-         <pointsize>12</pointsize>
-         <bold>true</bold>
+         <pointsize>12</pointsize><bold>true</bold>
         </font>
        </property>
        <property name="text">
@@ -59,6 +75,35 @@
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="ligne_evenement_antenne" stretch="0,1">
+     <item>
+      <widget class="QLabel" name="intitule_evenement_antenne">
+       <property name="text">
+        <string>Événement à l'antenne :</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="evenement_antenne">
+       <property name="font">
+        <font>
+         <pointsize>12</pointsize><bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -73,23 +118,42 @@
        </property>
        <layout class="QVBoxLayout" name="disposition_en_cours">
         <item>
-         <widget class="QLabel" name="en_cours_titre">
-          <property name="font">
-           <font>
-            <pointsize>14</pointsize>
-            <bold>true</bold>
-           </font>
+         <layout class="QHBoxLayout" name="ligne_en_cours_titre" stretch="1,0">
+          <item>
+           <widget class="QLabel" name="en_cours_titre">
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize><bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="ouvrir_sonore_en_cours">
+          <property name="toolTip">
+           <string>Ouvrir la fiche du sonore</string>
           </property>
           <property name="text">
-           <string>—</string>
+           <string>Fiche…</string>
           </property>
-          <property name="textInteractionFlags">
-           <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+          <property name="icon">
+           <iconset theme="document-properties"/>
           </property>
-          <property name="wordWrap">
-           <bool>true</bool>
+          <property name="enabled">
+           <bool>false</bool>
           </property>
          </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <layout class="QFormLayout" name="formulaire_en_cours">
@@ -101,26 +165,106 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QLabel" name="en_cours_evenement">
+           <layout class="QHBoxLayout" name="ligne_en_cours_evenement" stretch="1,0">
+            <item>
+             <widget class="QLabel" name="en_cours_evenement">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="ouvrir_evenement_en_cours">
+          <property name="toolTip">
+           <string>Ouvrir la fiche de l'événement</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="icon">
+           <iconset theme="view-calendar"/>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="intitule_en_cours_sequence">
             <property name="text">
-             <string>—</string>
-            </property>
-            <property name="textInteractionFlags">
-             <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
+             <string>Séquence</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
+          <item row="1" column="1">
+           <widget class="QLabel" name="en_cours_sequence">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="intitule_en_cours_banque">
+            <property name="text">
+             <string>Banque</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="en_cours_banque">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="intitule_en_cours_horaire">
+            <property name="text">
+             <string>Horaire</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLabel" name="en_cours_horaire">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+          </item>
+          <item row="4" column="0">
            <widget class="QLabel" name="intitule_en_cours_emplacement">
             <property name="text">
              <string>Emplacement</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
+          <item row="4" column="1">
            <widget class="QLineEdit" name="en_cours_emplacement">
             <property name="text">
              <string>—</string>
@@ -133,78 +277,20 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="intitule_en_cours_debut">
-            <property name="text">
-             <string>Début</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QLabel" name="en_cours_debut">
-            <property name="text">
-             <string>—</string>
-            </property>
-            <property name="textInteractionFlags">
-             <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="intitule_en_cours_duree">
-            <property name="text">
-             <string>Durée</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="1">
-           <widget class="QLabel" name="en_cours_duree">
-            <property name="text">
-             <string>—</string>
-            </property>
-            <property name="textInteractionFlags">
-             <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="0">
-           <widget class="QLabel" name="intitule_en_cours_fin">
-            <property name="text">
-             <string>Fin estimée</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="1">
-           <widget class="QLabel" name="en_cours_fin">
-            <property name="text">
-             <string>—</string>
-            </property>
-            <property name="textInteractionFlags">
-             <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="0">
-           <widget class="QLabel" name="intitule_en_cours_progression">
-            <property name="text">
-             <string>Progression</string>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="1">
-           <widget class="QProgressBar" name="en_cours_progression">
-            <property name="maximum">
-             <number>100</number>
-            </property>
-            <property name="value">
-             <number>0</number>
-            </property>
-            <property name="format">
-             <string>—</string>
-            </property>
-           </widget>
-          </item>
          </layout>
+        </item>
+        <item>
+         <widget class="QProgressBar" name="en_cours_progression">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="value">
+           <number>0</number>
+          </property>
+          <property name="format">
+           <string>—</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -216,22 +302,42 @@
        </property>
        <layout class="QVBoxLayout" name="disposition_prochain">
         <item>
-         <widget class="QLabel" name="prochain_titre">
-          <property name="font">
-           <font>
-            <bold>true</bold>
-           </font>
+         <layout class="QHBoxLayout" name="ligne_prochain_titre" stretch="1,0">
+          <item>
+           <widget class="QLabel" name="prochain_titre">
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize><bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="ouvrir_sonore_prochain">
+          <property name="toolTip">
+           <string>Ouvrir la fiche du sonore</string>
           </property>
           <property name="text">
-           <string>—</string>
+           <string>Fiche…</string>
           </property>
-          <property name="textInteractionFlags">
-           <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+          <property name="icon">
+           <iconset theme="document-properties"/>
           </property>
-          <property name="wordWrap">
-           <bool>true</bool>
+          <property name="enabled">
+           <bool>false</bool>
           </property>
          </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <layout class="QFormLayout" name="formulaire_prochain">
@@ -243,26 +349,106 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QLabel" name="prochain_evenement">
+           <layout class="QHBoxLayout" name="ligne_prochain_evenement" stretch="1,0">
+            <item>
+             <widget class="QLabel" name="prochain_evenement">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="ouvrir_evenement_prochain">
+          <property name="toolTip">
+           <string>Ouvrir la fiche de l'événement</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="icon">
+           <iconset theme="view-calendar"/>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="intitule_prochain_sequence">
             <property name="text">
-             <string>—</string>
-            </property>
-            <property name="textInteractionFlags">
-             <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
+             <string>Séquence</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
+          <item row="1" column="1">
+           <widget class="QLabel" name="prochain_sequence">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="intitule_prochain_banque">
+            <property name="text">
+             <string>Banque</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="prochain_banque">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="intitule_prochain_horaire">
+            <property name="text">
+             <string>Horaire estimé</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLabel" name="prochain_horaire">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+          </item>
+          <item row="4" column="0">
            <widget class="QLabel" name="intitule_prochain_emplacement">
             <property name="text">
              <string>Emplacement</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
+          <item row="4" column="1">
            <widget class="QLineEdit" name="prochain_emplacement">
             <property name="text">
              <string>—</string>
@@ -275,57 +461,6 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="intitule_prochain_debut">
-            <property name="text">
-             <string>Début estimé</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QLabel" name="prochain_debut">
-            <property name="text">
-             <string>—</string>
-            </property>
-            <property name="textInteractionFlags">
-             <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="intitule_prochain_fin">
-            <property name="text">
-             <string>Fin estimée</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="1">
-           <widget class="QLabel" name="prochain_fin">
-            <property name="text">
-             <string>—</string>
-            </property>
-            <property name="textInteractionFlags">
-             <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="0">
-           <widget class="QLabel" name="intitule_prochain_duree">
-            <property name="text">
-             <string>Durée</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="1">
-           <widget class="QLabel" name="prochain_duree">
-            <property name="text">
-             <string>—</string>
-            </property>
-            <property name="textInteractionFlags">
-             <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
-            </property>
-           </widget>
-          </item>
           <item row="5" column="0">
            <widget class="QLabel" name="intitule_prochain_sain">
             <property name="text">
@@ -335,13 +470,13 @@
           </item>
           <item row="5" column="1">
            <widget class="QLabel" name="prochain_sain">
-            <property name="text">
-             <string>—</string>
-            </property>
-            <property name="textInteractionFlags">
-             <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
-            </property>
-           </widget>
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+      </widget>
           </item>
          </layout>
         </item>
@@ -358,6 +493,9 @@
      <layout class="QVBoxLayout" name="disposition_airplay">
       <item>
        <widget class="QTableView" name="table_airplay">
+        <property name="toolTip">
+         <string>Double-clic sur un sonore, un événement, une séquence ou une banque : ouvrir sa fiche</string>
+        </property>
         <property name="editTriggers">
          <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
         </property>

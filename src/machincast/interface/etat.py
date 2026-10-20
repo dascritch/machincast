@@ -42,6 +42,20 @@ class SonoreAffiche:
 	"""De 0 à 1, pour le sonore en cours ; None pour un stream."""
 	sain: bool | None
 	"""Pour le prochain sonore ; None pour un stream, qui n'est pas testé."""
+	position: float | None = None
+	"""Secondes jouées, pour le sonore en cours."""
+	evenement_id: int | None = None
+	evenement_debut: datetime | None = None
+	"""Début de l'occurrence de l'événement, en heure murale ; None pour un fil musical permanent
+	(https://github.com/dascritch/machincast/issues/144)."""
+	evenement_fin: datetime | None = None
+	"""Fin de l'occurrence ; None pour une occurrence sans fin."""
+	sequence: str | None = None
+	sequence_id: int | None = None
+	banque: str | None = None
+	banque_id: int | None = None
+	texte_public: str | None = None
+	"""Ce que la page publique affiche du sonore en cours, masquage appliqué."""
 
 
 @dataclass(frozen=True)
@@ -68,6 +82,12 @@ def _nombre(valeur: object) -> float | None:
 	return float(str(valeur))
 
 
+def _entier(valeur: object) -> int | None:
+	if valeur is None:
+		return None
+	return int(str(valeur))
+
+
 def _texte(valeur: object) -> str | None:
 	if valeur is None:
 		return None
@@ -90,6 +110,15 @@ def _sonore(champs: dict[str, Any] | None, debut: str) -> SonoreAffiche | None:
 		fin_estimee=_instant(champs.get("fin_estimee")),
 		progression=_nombre(champs.get("progression")),
 		sain=None if sain is None else bool(sain),
+		position=_nombre(champs.get("position")),
+		evenement_id=_entier(champs.get("evenement_id")),
+		evenement_debut=_instant(champs.get("evenement_debut")),
+		evenement_fin=_instant(champs.get("evenement_fin")),
+		sequence=_texte(champs.get("sequence")),
+		sequence_id=_entier(champs.get("sequence_id")),
+		banque=_texte(champs.get("banque")),
+		banque_id=_entier(champs.get("banque_id")),
+		texte_public=_texte(champs.get("texte_public")),
 	)
 
 
