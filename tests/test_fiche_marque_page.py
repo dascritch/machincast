@@ -9,7 +9,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface.fiche_marque_page import FicheMarquePage
-from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, identifiant, ouvrir_dans, taper
+from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, ouvrir_dans, taper
 from tests.flux import ServeurDeFlux
 
 scenarios("fiche_marque_page.feature")
@@ -22,15 +22,6 @@ def fiche(interface: Contexte) -> FicheMarquePage:
 
 
 # ─── Étant donné ───────────────────────────────────────────
-
-
-@given(parsers.re(r"(?:les streams|le stream) (?P<titres>.+) (?:suivent|suit) le marque-page « (?P<marque>[^»]+) »"))
-def suivent(base_vide: Connexion, titres: str, marque: str) -> None:
-	for titre in NOM.findall(titres):
-		base_vide.execute(
-			"UPDATE sonores SET url_stream = NULL, marque_page_id = %s WHERE titre = %s",
-			(identifiant(base_vide, "marques_pages_streams", "nom", marque), titre),
-		)
 
 
 @given(parsers.parse("le flux « {flux} » du serveur local est avare"))

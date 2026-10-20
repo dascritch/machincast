@@ -333,6 +333,59 @@ Fonctionnalité: Fiche d'un événement
 		Et le fichier « …/Annonce.ogg » est en base, à l'état aperçu, sans artiste ni titre
 		Et les fichiers déposés sont intacts
 
+	Scénario: Un marque-page ajouté reprend le stream qui le suit, ou en crée un à l'enregistrement
+		https://github.com/dascritch/machincast/issues/167 : pour retransmettre une émission en extérieur, le stream s'ajoute depuis son
+		marque-page, sans passer par la liste des sonores. Le premier stream par titre qui suit le marque-page est repris ;
+		sans stream qui le suive, un stream actif, titré du nom du marque-page, est créé à l'enregistrement.
+
+		Étant donné les marques-pages « Studio B », « https://flux.exemple/studio-b », « Relais », « https://flux.exemple/relais »
+		Et les sonores :
+			| artiste | titre        | type   | etat  | duree | emplacement                   |
+			|         | Studio B bis | stream | actif |       | https://flux.exemple/studio-b |
+			|         | Direct B     | stream | actif |       | https://flux.exemple/studio-b |
+		Et les streams « Studio B bis », « Direct B » suivent le marque-page « Studio B »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Et j'ajoute les marques-pages « Studio B », « Relais »
+		Alors la fiche de l'événement montre les éléments :
+			| Genre  | Élément  | Détail                                       |
+			| sonore | Direct B | https://flux.exemple/studio-b                |
+			| sonore | Relais   | https://flux.exemple/relais, nouveau stream |
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
+		Quand j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et les éléments de l'événement « Journal » sont, dans l'ordre, le sonore « Direct B », le sonore « Relais »
+		Et le stream « Relais » est en base, actif, et suit le marque-page « Relais »
+		Et la fiche de l'événement montre les éléments « Direct B », « Relais »
+
+	Scénario: Un même marque-page ajouté deux fois ne crée qu'un stream, et un marque-page effacé entre-temps est oublié
+		Étant donné les marques-pages « Relais », « https://flux.exemple/relais », « Ancien », « https://flux.exemple/ancien »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Et j'ajoute les marques-pages « Relais », « Ancien », « Relais »
+		Et le marque-page « Ancien » est effacé de la base
+		Et j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et les éléments de l'événement « Journal » sont, dans l'ordre, le sonore « Relais », le sonore « Relais »
+		Et 1 stream suit le marque-page « Relais »
+
+	Scénario: Un marque-page effacé pendant son choix est oublié, et les boutons de ligne suivent l'ajout
+		Étant donné les marques-pages « Relais », « https://flux.exemple/relais », « Ancien », « https://flux.exemple/ancien »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et je choisis l'élément n° 3 de l'événement
+		Alors les boutons de ligne actifs de l'événement sont « Retirer l'élément », « Monter »
+		Quand j'ajoute les marques-pages « Ancien », « Relais », en effaçant « Ancien » de la base pendant le choix
+		Alors la fiche de l'événement montre les éléments « Habillage », « Passage pub », « Les Gaufres – Spot », « Relais »
+		Et les boutons de ligne actifs de l'événement sont « Retirer l'élément », « Monter », « Descendre »
+
+	Scénario: Renoncer au choix des marques-pages ne change rien
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Et j'ajoute les marques-pages aucun
+		Alors la fiche de l'événement montre les éléments aucun
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
+
 	Plan du scénario: Toute modification rend « Enregistrer » et « Annuler » actifs
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »

@@ -83,7 +83,7 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 			| /srv/jingles   | « /srv/jingles »     |
 			|                | aucun                |
 
-	Plan du scénario: Le choix des sonores, des banques ou des séquences donne ceux sélectionnés, ou aucun s'il est abandonné
+	Plan du scénario: Le choix des sonores, des banques, des séquences ou des marques-pages donne ceux sélectionnés, ou aucun s'il est abandonné
 		Étant donné les sonores :
 			| artiste     | titre         | type    | etat  | duree | emplacement                  |
 			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/jingles/hiver/cafe.flac |
@@ -91,6 +91,7 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 		Et la banque « Publicité », aléatoire, sans nom public, avec « Spot »
 		Et la banque « Habillage », séquentielle, sans nom public, avec « Café à minuit »
 		Et la séquence « Passage pub », sans nom public, avec le sonore « Spot »
+		Et les marques-pages « Relais », « https://flux.exemple/relais »
 		Quand le choix des <genre> s'ouvre, avec la remarque « <remarque> », et que j'y sélectionne tout, puis clique sur « <bouton> »
 		Alors le choix s'est intitulé « Ajouter des <genre> »
 		Et le choix n'a proposé ni création ni ajout de fichiers
@@ -104,6 +105,7 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 			| banques | Une banque peut revenir.   | Ajouter | Choisir parmi les banques déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une banque peut revenir. | « Habillage », « Publicité » |
 			| banques | Une banque peut revenir.   | Annuler | Choisir parmi les banques déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une banque peut revenir. | aucun                       |
 			| séquences | Une séquence peut revenir. | Ajouter | Choisir parmi les séquences déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une séquence peut revenir. | « Passage pub » |
+			| marques-pages | Un élément peut revenir. | Ajouter | Choisir parmi les marques-pages déjà en base (Ctrl ou Maj pour en prendre plusieurs). Un élément peut revenir. | « Relais » |
 
 	Scénario: Ouvrir un dossier le montre dans le navigateur de fichiers du poste
 		Quand j'ouvre le dossier « /srv/jingles/hiver »
