@@ -1190,17 +1190,21 @@ def peripheriques_du_poste(monkeypatch: pytest.MonkeyPatch, datatable: list[list
 CONFIGURATION_AUDIO = (
 	r"(?:sortie « (?P<sortie>[^»]+) », )?"
 	r"(?:sans périphérique d'antenne|avec le périphérique d'antenne « (?P<antenne>[^»]+) »)"
+	r"(?: et de pré-écoute « (?P<preecoute>[^»]+) »)?"
 )
 
 
 @given(parsers.re(r"la configuration audio (?P<reglages>.+)"))
 def configuration_audio(interface: Contexte, reglages: str) -> None:
-	"""« sortie « pipewire », sans périphérique d'antenne » ou « avec le périphérique d'antenne « x » »."""
+	"""« sortie « pipewire », sans périphérique d'antenne » ou « avec le périphérique d'antenne « x » », suivi ou non
+	de « et de pré-écoute « y » »."""
 	trouvee = re.fullmatch(CONFIGURATION_AUDIO, reglages)
 	assert trouvee is not None, reglages
 	if trouvee["sortie"] is not None:
 		interface.audio["sortie"] = trouvee["sortie"]
 	interface.audio["peripherique"] = trouvee["antenne"]
+	if trouvee["preecoute"] is not None:
+		interface.audio["preecoute"] = trouvee["preecoute"]
 
 
 @given(parsers.parse("les préférences régleront l'antenne « {antenne} » et la pré-écoute « {preecoute} »"))

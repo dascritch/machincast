@@ -6,6 +6,7 @@ scénario choisit (moniteur.SIGNAL_FACTICE).
 """
 
 import re
+from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QRectF, Qt
@@ -13,7 +14,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.configuration import Audio
-from machincast.interface import moniteur
+from machincast.interface import liaison, moniteur, preecoute
 from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.moniteur import Moniteur, source_du_moniteur
 from machincast.interface.vumetre import VuMetre
@@ -345,3 +346,105 @@ def echelle_couchee(interface: Contexte) -> None:
 	assert abs(etiquettes[-1][1].center().x() - canal.left()) <= 1
 	assert disposition.echelle.top() >= max(cadre.bottom() for cadre in disposition.canaux)
 	assert all(cadre.top() >= disposition.echelle.top() for _texte, cadre in etiquettes)
+
+
+# ─── PipeWire simulé ───────────────────────────────────────
+
+FAUX_PW_LINK = """#!/bin/bash
+# Le pw-link des scénarios : il note chaque appel, et liste les ports du scénario.
+dossier="${0%/*}"
+echo "$*" >> "${dossier}/journal"
+case "$1" in
+	-o) cat "${dossier}/sorties" ;;
+	-i) cat "${dossier}/entrees" ;;
+	-d) ;;
+	*)
+		if [[ -f "${dossier}/refus" ]]; then
+			cat "${dossier}/refus" >&2
+			exit 1
+		fi
+		;;
+esac
+"""
+
+
+def simuler_le_port_de_monitoring(monkeypatch: pytest.MonkeyPatch) -> None:
+	"""Les ports de PipeWire n'existent pas en test : le VU-mètre et la pré-écoute écoutent le signal de test."""
+
+	def signal_de_test(_audio: Audio) -> object:
+		return source_du_moniteur(Audio("factice", None, "casque"))  # type: ignore[arg-type]
+
+	monkeypatch.setattr(moniteur, "source_du_moniteur", signal_de_test)
+	monkeypatch.setattr(preecoute, "source_du_moniteur", signal_de_test)
+
+
+@given(
+	parsers.re(r"PipeWire simulé, avec les ports de sortie « (?P<sorties>[^»]+) » et d'entrée « (?P<entrees>[^»]+) »"),
+	target_fixture="pipewire",
+)
+def pipewire_simule(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, sorties: str, entrees: str) -> Path:
+	dossier = tmp_path / "pipewire"
+	dossier.mkdir()
+	commande = dossier / "pw-link"
+	commande.write_text(FAUX_PW_LINK)
+	commande.chmod(0o755)
+	(dossier / "sorties").write_text("\n".join(sorties.split(", ")) + "\n")
+	(dossier / "entrees").write_text("\n".join(entrees.split(", ")) + "\n")
+	monkeypatch.setattr(liaison, "COMMANDE", str(commande))
+	simuler_le_port_de_monitoring(monkeypatch)
+	return dossier
+
+
+@given("PipeWire simulé, sans pw-link", target_fixture="pipewire")
+def pipewire_sans_pw_link(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+	monkeypatch.setattr(liaison, "COMMANDE", str(tmp_path / "pw-link-absent"))
+	simuler_le_port_de_monitoring(monkeypatch)
+	return tmp_path
+
+
+def liens_de_pipewire(pipewire: Path) -> set[tuple[str, str]]:
+	"""Les liens en place, d'après les appels notés : « sortie entrée » relie, « -d sortie entrée » délie."""
+	journal = pipewire / "journal"
+	liens: set[tuple[str, str]] = set()
+	if not journal.exists():
+		return liens
+	for ligne in journal.read_text().splitlines():
+		arguments = ligne.split(" ")
+		if arguments[0] == "-d":
+			liens.discard((arguments[1], arguments[2]))
+		elif (arguments[0] not in ("-o", "-i")) and (not (pipewire / "refus").exists()):
+			liens.add((arguments[0], arguments[1]))
+	return liens
+
+
+@then(parsers.re(r"PipeWire relie (?P<paires>« .+)"))
+def relie(pipewire: Path, paires: str) -> None:
+	attendus = set(re.findall(r"« ([^»]+) » à « ([^»]+) »", paires))
+	assert attendus
+	assert liens_de_pipewire(pipewire) == attendus
+
+
+@then("PipeWire ne relie plus rien")
+def ne_relie_rien(pipewire: Path) -> None:
+	assert liens_de_pipewire(pipewire) == set()
+
+
+@given(parsers.parse("PipeWire simulé refuse de relier : « {message} »"))
+def pipewire_refuse(pipewire: Path, message: str) -> None:
+	(pipewire / "refus").write_text(f"{message}\n")
+
+
+@when(
+	parsers.parse("je construis l'écoute de l'antenne sur la sortie « {sortie} », pré-écoute « {peripherique} »"),
+	target_fixture="ecoute",
+)
+def construire_l_ecoute(sortie: str, peripherique: str) -> object:
+	antenne = Audio(sortie, "antenne-ua22", peripherique)  # type: ignore[arg-type]
+	lecteur = preecoute.Lecteur(sortie, peripherique)  # type: ignore[arg-type]
+	return lecteur._construire(preecoute.Source("Antenne", "Antenne", True, None, antenne))
+
+
+@then(parsers.parse("l'écoute de l'antenne finit par l'élément « {fabrique} »"))
+def finit_par(ecoute: object, fabrique: str) -> None:
+	puits = [element for element in ecoute.children if not element.srcpads]  # type: ignore[attr-defined]
+	assert [element.get_factory().get_name() for element in puits] == [fabrique]
