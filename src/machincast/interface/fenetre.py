@@ -96,6 +96,7 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.onglets.setTabsClosable(True)
 		self.accueil = EcranParDefaut(connexion, socket_etat, horloge)
 		self._ajouter_fixe(self.accueil, "Accueil")
+		self.accueil.ouverte.connect(self._ouvrir)
 		self.verificateur = Verificateur(connexion, self)
 		self.verificateur.termine.connect(self._verification_terminee)
 		if commande_indexation is None:

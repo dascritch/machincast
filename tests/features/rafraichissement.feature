@@ -43,6 +43,15 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 		Quand je choisis « Rafraîchir les onglets » dans le menu « Affichage »
 		Alors l'airplay de l'accueil montre « Café à minuit »
 
+	Scénario: Un double-clic dans l'airplay relu ouvre la fiche du sonore
+		https://github.com/dascritch/machincast/issues/144
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et la diffusion note dans l'airplay le passage de « Café à minuit » à 21:40
+		Et j'appuie sur « F5 »
+		Et je double-clique sur « Café à minuit » dans l'airplay de l'accueil
+		Alors l'onglet ouvert est « Sonore : Café à minuit »
+
 	Scénario: Une fiche ouverte, qui n'est pas modifiée, se relit sans rien demander
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
