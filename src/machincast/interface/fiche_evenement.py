@@ -13,8 +13,10 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
   Une date cochée part de l'heure de l'horloge, à la minute ; une fin, d'une heure après le début.
 - Un événement ne chevauche pas un autre événement de même priorité (machincast.lecture.grille.chevauchement).
 - Un événement de secours qu'un stream désigne reste de priorité secours : la base le refuserait aussi.
-- La liste de lecture : sonores, banques et séquences (machincast.interface.elements). Un événement vide ne
-  s'enregistre pas. L'avertissement d'une banque « ne pas répéter » appelée juste après elle-même suit la boucle de la
+- La liste de lecture : sonores, banques et séquences (machincast.interface.elements). Un événement vide
+  s'enregistre, pour être complété plus tard, avec un avertissement qui dit ce qu'en fait la diffusion selon sa
+  priorité ; la liste des événements le montre en anomalie (https://github.com/dascritch/machincast/issues/140).
+  L'avertissement d'une banque « ne pas répéter » appelée juste après elle-même suit la boucle de la
   liste : elle boucle, sauf pour une émission ou un spécial sans fin.
 """
 
@@ -26,6 +28,7 @@ from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QWidget
 from machincast.horloge import Horloge
 from machincast.interface.elements import Boutons, ListeElements
 from machincast.interface.fiche import Connexion, Fiche, Refus
+from machincast.interface.listes import EVENEMENT_VIDE
 from machincast.interface.ui.fiche_evenement import Ui_FicheEvenement
 from machincast.lecture.grille import JAMAIS, JOURS, Evenement, Priorite, chevauchement, lire_grille
 
@@ -179,10 +182,13 @@ class FicheEvenement(Fiche):
 			ui.fin.setDateTime(ui.debut.dateTime().addSecs(int(DUREE_PAR_DEFAUT.total_seconds())))
 
 	def _avertir(self) -> None:
-		"""Une banque « ne pas répéter » appelée juste après elle-même : cet appel sera sauté. La liste boucle, sauf
-		pour une émission ou un spécial sans fin."""
+		"""Un événement vide, selon sa priorité, ou une banque « ne pas répéter » appelée juste après elle-même : cet
+		appel sera sauté. La liste boucle, sauf pour une émission ou un spécial sans fin."""
 		boucle = (self._priorite() not in SANS_FIN_NE_BOUCLE_PAS) or (self.ui.a_fin.isChecked())
-		self.ui.avertissement.setText("\n".join(self.elements.avertissements(boucle)))
+		avertissements = self.elements.avertissements(boucle)
+		if self.elements.lignes() == []:
+			avertissements = [EVENEMENT_VIDE[self._priorite()]]
+		self.ui.avertissement.setText("\n".join(avertissements))
 
 	def _ecrire(self) -> int:
 		ui = self.ui
@@ -194,8 +200,6 @@ class FicheEvenement(Fiche):
 		).fetchone()
 		if pris is not None:
 			raise Refus(f"Un autre événement s'appelle déjà « {nom} ».")
-		if self.elements.lignes() == []:
-			raise Refus("Un événement contient au moins un sonore, une banque ou une séquence.")
 		priorite = self._priorite()
 		debut, fin = _date(ui.a_debut, ui.debut), _date(ui.a_fin, ui.fin)
 		if (priorite in SANS_FIN_NE_BOUCLE_PAS) and (debut is None):

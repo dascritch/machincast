@@ -803,6 +803,19 @@ def anomalies(interface: Contexte, noms: str, infobulle: str) -> None:
 	assert marquees == NOM.findall(noms)
 
 
+@then("la liste marque en anomalie les lignes et infobulles :")
+def anomalies_et_infobulles(interface: Contexte, datatable: list[list[str]]) -> None:
+	"""Chaque ligne en anomalie a son infobulle, propre à la ligne (https://github.com/dascritch/machincast/issues/140)."""
+	modele = liste(interface).table.model()
+	marquees = []
+	for rangee in range(modele.rowCount()):
+		if modele.index(rangee, 0).data(Qt.ItemDataRole.DecorationRole) is not None:
+			infobulle = modele.index(rangee, 0).data(Qt.ItemDataRole.ToolTipRole)
+			marquees.append([str(modele.index(rangee, 0).data()), str(infobulle)])
+	_entetes, *rangees = datatable
+	assert marquees == [[ligne.strip(), infobulle.strip()] for ligne, infobulle in rangees]
+
+
 @then(parsers.parse("le compte de la liste est « {texte} »"))
 def compte(interface: Contexte, texte: str) -> None:
 	assert liste(interface).compte.text() == texte

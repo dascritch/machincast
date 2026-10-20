@@ -6,8 +6,8 @@ l'interface, chaque fois que son onglet s'ouvre : jamais en boucle. Le filtre ga
 le texte tapé, sans tenir compte des majuscules ni des accents. Ouvrir une ligne (double-clic ou Entrée) demande
 l'écran de détail de l'élément (signal ouverte). Une liste peut avoir un bouton qui crée un élément
 (signal creation_demandee) : « Nouvelle banque » (https://github.com/dascritch/machincast/issues/31). Une ligne en
-anomalie, une séquence vide par exemple, a l'icône d'avertissement, une infobulle qui l'explique, et le compte les
-dénombre (https://github.com/dascritch/machincast/issues/138).
+anomalie, une séquence ou un événement vide, a l'icône d'avertissement, une infobulle qui l'explique, et le compte les
+dénombre (https://github.com/dascritch/machincast/issues/138, https://github.com/dascritch/machincast/issues/140).
 """
 
 import logging
@@ -43,6 +43,17 @@ ETATS = {
 PRIORITES = {"special": "spécial", "emission": "émission", "fil_musical": "fil musical", "secours": "secours"}
 MODES = {"sequentiel": "séquentielle", "aleatoire": "aléatoire"}
 SEQUENCE_VIDE = "Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant."
+_RELAIS = "Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage."
+EVENEMENT_VIDE = {
+	"special": _RELAIS,
+	"emission": _RELAIS,
+	"fil_musical": (
+		"Événement vide : il ne joue rien, et la diffusion se tait, avec une alerte, quand il est à l'antenne."
+	),
+	"secours": "Événement vide : il ne joue rien, et l'événement de priorité inférieure remplace le stream tombé.",
+}
+"""Ce que fait la diffusion d'un événement vide, selon sa priorité (spec § 4.2,
+https://github.com/dascritch/machincast/issues/140)."""
 
 
 @dataclass(frozen=True)
@@ -154,17 +165,23 @@ def lire_evenements(connexion: Connexion) -> list[Ligne]:
 	"""Du plus prioritaire au moins prioritaire, puis par nom."""
 	with connexion.transaction():
 		rangees = connexion.execute(
-			"SELECT e.id, e.nom_interne, e.nom_public, e.priorite::text, e.debut, e.fin, e.jours_recurrence::text[]"
+			"SELECT e.id, e.nom_interne, e.nom_public, e.priorite::text, e.debut, e.fin, e.jours_recurrence::text[],"
+			" NOT EXISTS (SELECT 1 FROM evenements_elements x WHERE x.evenement_id = e.id)"
 			# e.priorite : l'ordre du type énuméré, pas celui du texte de la colonne affichée.
 			" FROM evenements e ORDER BY e.priorite DESC, e.nom_interne, e.id"
 		).fetchall()
 	lignes = []
-	for identifiant, nom, nom_public, priorite, debut, fin, jours in rangees:
+	for identifiant, nom, nom_public, priorite, debut, fin, jours, vide in rangees:
 		recurrence = ""
 		if isinstance(jours, list):
 			recurrence = ", ".join(str(jour) for jour in jours)
 		cellules = [str(nom), _texte(nom_public), PRIORITES.get(str(priorite), str(priorite)), _date(debut), _date(fin)]
-		lignes.append(Ligne(int(str(identifiant)), str(nom), [*cellules, recurrence]))
+		cellules += [recurrence, ""]
+		anomalie = ""
+		if vide:
+			cellules[-1] = "événement vide"
+			anomalie = EVENEMENT_VIDE[str(priorite)]
+		lignes.append(Ligne(int(str(identifiant)), str(nom), cellules, anomalie))
 	return lignes
 
 
@@ -198,7 +215,7 @@ SEQUENCES = Source(
 )
 EVENEMENTS = Source(
 	"événement",
-	("Nom", "Nom public", "Priorité", "Début", "Fin", "Récurrence"),
+	("Nom", "Nom public", "Priorité", "Début", "Fin", "Récurrence", "Anomalie"),
 	lire_evenements,
 	"événement",
 	"événements",

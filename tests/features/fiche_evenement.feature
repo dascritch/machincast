@@ -104,12 +104,12 @@ Fonctionnalité: Fiche d'un événement
 		Et l'onglet ouvert est « Événement : Midi »
 		Quand j'ouvre l'onglet « Événements »
 		Alors la liste montre :
-			| Nom      | Nom public | Priorité    | Début            | Fin              | Récurrence                              |
-			| Journal  |            | émission    | 2026-10-21 09:00 | 2026-10-21 09:30 |                                         |
-			| Matinale | Le réveil  | émission    | 2026-10-19 07:00 | 2026-10-19 09:00 | lundi, mardi, mercredi, jeudi, vendredi |
-			| Midi     |            | émission    | 2026-10-19 15:30 | 2026-10-19 16:30 | lundi, jeudi                            |
-			| Continue |            | fil musical |                  |                  |                                         |
-			| Panne    |            | secours     |                  |                  |                                         |
+			| Nom      | Nom public | Priorité    | Début            | Fin              | Récurrence                              | Anomalie       |
+			| Journal  |            | émission    | 2026-10-21 09:00 | 2026-10-21 09:30 |                                         | événement vide |
+			| Matinale | Le réveil  | émission    | 2026-10-19 07:00 | 2026-10-19 09:00 | lundi, mardi, mercredi, jeudi, vendredi |                |
+			| Midi     |            | émission    | 2026-10-19 15:30 | 2026-10-19 16:30 | lundi, jeudi                            |                |
+			| Continue |            | fil musical |                  |                  |                                         |                |
+			| Panne    |            | secours     |                  |                  |                                         | événement vide |
 
 	Scénario: Chaque liste propose de créer un élément
 		Quand la fenêtre de l'interface s'ouvre
@@ -194,6 +194,41 @@ Fonctionnalité: Fiche d'un événement
 			| Fin   | 22/10/2026 19:00 |
 		Et la grille de la fiche de l'événement se saisit par « Début », « Fin », les jours
 
+	Scénario: Un événement vide s'enregistre, avec un avertissement
+		https://github.com/dascritch/machincast/issues/140 : il se complétera plus tard ; la diffusion ne s'y bloque pas (deroule.feature), et la
+		liste des événements le montre en anomalie (listes.feature).
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et je retire les éléments « Habillage », « Passage pub », « Les Gaufres – Spot »
+		Alors la fiche de l'événement avertit « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
+		Quand j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et les éléments de l'événement « Matinale » sont, dans l'ordre, aucun
+		Et la fiche de l'événement avertit « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
+		Quand j'ajoute les sonores « Spot »
+		Alors la fiche de l'événement n'avertit de rien
+
+	Scénario: L'avertissement d'un événement vide dit ce que fait la diffusion, selon sa priorité
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Panne »
+		Alors la fiche de l'événement avertit « Événement vide : il ne joue rien, et l'événement de priorité inférieure remplace le stream tombé. »
+		Quand je choisis la priorité « fil musical »
+		Alors la fiche de l'événement avertit « Événement vide : il ne joue rien, et la diffusion se tait, avec une alerte, quand il est à l'antenne. »
+		Quand je choisis la priorité « spécial »
+		Alors la fiche de l'événement avertit « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
+
+	Scénario: Un nouvel événement, vide, s'enregistre sans élément
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Événements »
+		Et je clique sur « Nouvel événement »
+		Alors la fiche de l'événement avertit « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
+		Quand je saisis le nom interne « Brouillon »
+		Et je coche « Début » dans la fiche de l'événement
+		Et j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et les éléments de l'événement « Brouillon » sont, dans l'ordre, aucun
+
 	Plan du scénario: Un événement invalide n'est pas enregistré, et dit pourquoi
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
@@ -210,7 +245,6 @@ Fonctionnalité: Fiche d'un événement
 			| action                                                                       | message                                                                                    |
 			| je saisis le nom interne «  »                                                | Le nom interne est obligatoire.                                                            |
 			| je saisis le nom interne « Continue »                                        | Un autre événement s'appelle déjà « Continue ».                                            |
-			| je retire les éléments « Habillage », « Passage pub », « Les Gaufres – Spot » | Un événement contient au moins un sonore, une banque ou une séquence.                     |
 			| je décoche « Début » dans la fiche de l'événement                            | Une émission ou un spécial a un début.                                                     |
 			| je saisis la fin « 19/10/2026 07:00 » dans la fiche de l'événement           | La fin doit suivre le début.                                                               |
 			| je saisis la fin « 19/10/2026 09:15 » dans la fiche de l'événement           | Chevauche l'événement « Journal », de même priorité, le 21/10/2026 à 09:00.                |

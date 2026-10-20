@@ -103,12 +103,36 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Événements »
 		Alors la liste montre :
-			| Nom       | Nom public      | Priorité    | Début            | Fin              | Récurrence                |
-			| Élections | Soirée élection | spécial     | 2026-10-18 20:00 |                  |                           |
-			| Magazine  | Le magazine     | émission    | 2026-10-12 20:00 | 2026-10-12 21:00 | lundi, mercredi, vendredi |
-			| Continue  |                 | fil musical |                  |                  |                           |
-			| Secours   |                 | secours     |                  |                  |                           |
-		Et le compte de la liste est « 4 événements »
+			| Nom       | Nom public      | Priorité    | Début            | Fin              | Récurrence                | Anomalie       |
+			| Élections | Soirée élection | spécial     | 2026-10-18 20:00 |                  |                           | événement vide |
+			| Magazine  | Le magazine     | émission    | 2026-10-12 20:00 | 2026-10-12 21:00 | lundi, mercredi, vendredi | événement vide |
+			| Continue  |                 | fil musical |                  |                  |                           | événement vide |
+			| Secours   |                 | secours     |                  |                  |                           | événement vide |
+		Et le compte de la liste est « 4 événements, dont 4 en anomalie »
+
+	Scénario: Un événement vide est signalé en anomalie dans la liste, avec ce que fait la diffusion selon sa priorité
+		https://github.com/dascritch/machincast/issues/140 : un événement vide s'enregistre, pour être complété plus tard.
+
+		Étant donné les sonores :
+			| artiste | titre | type    | etat  | duree | emplacement  |
+			|         | j1    | fichier | actif | 8     | /srv/j1.flac |
+		Et les événements :
+			| nom       | nom_public | priorite    | debut            | fin              | jours |
+			| Continue  |            | fil_musical |                  |                  |       |
+			| Nuit      |            | fil_musical | 2026-10-12 00:00 | 2026-10-12 06:00 |       |
+			| Magazine  |            | emission    | 2026-10-12 20:00 | 2026-10-12 21:00 |       |
+			| Élections |            | special     | 2026-10-18 20:00 |                  |       |
+			| Secours   |            | secours     |                  |                  |       |
+		Et l'événement « Continue » joue le sonore « j1 »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Événements »
+		Alors le compte de la liste est « 5 événements, dont 4 en anomalie »
+		Et la liste marque en anomalie les lignes et infobulles :
+			| ligne     | infobulle |
+			| Élections | Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. |
+			| Magazine  | Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. |
+			| Nuit      | Événement vide : il ne joue rien, et la diffusion se tait, avec une alerte, quand il est à l'antenne. |
+			| Secours   | Événement vide : il ne joue rien, et l'événement de priorité inférieure remplace le stream tombé. |
 
 	Scénario: Une liste se relit chaque fois que son onglet s'ouvre
 		Étant donné les sonores :
