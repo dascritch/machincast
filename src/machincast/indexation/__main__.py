@@ -16,6 +16,7 @@ import psycopg
 from machincast.base import Role, connecter
 from machincast.cli import lancer
 from machincast.configuration import Configuration
+from machincast.indexation import audit
 from machincast.indexation.decodage import DecodeurIndisponible
 from machincast.indexation.indexeur import IndexationEnCours, indexer
 from machincast.indexation.verification import texte_bilan
@@ -55,6 +56,7 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 		from machincast.interface.journal_indexation import lancer_fenetre
 
 		return lancer_fenetre(base.socket, base.production, options.audit_complet)
+	debut = audit.HORLOGE.maintenant()
 	try:
 		with connecter(base.socket, base.production, Role.INDEXATION) as connexion:
 			bilan = indexer(connexion, audit_complet=options.audit_complet)
@@ -71,6 +73,7 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 		journal.error(f"indexation refusée : {erreur}")
 		return CODE_ECHEC
 	journal.info(texte_bilan(bilan))
+	audit.produire(bilan.anomalies, texte_bilan(bilan), debut)
 	return 0
 
 

@@ -22,6 +22,7 @@ import psycopg
 from PySide6.QtCore import QObject, QProcess, Signal, SignalInstance
 
 from machincast.base import Role, connecter
+from machincast.indexation import audit
 from machincast.indexation.__main__ import EXECUTABLE
 from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
 from machincast.indexation.indexeur import IndexationEnCours, indexer
@@ -119,11 +120,13 @@ class Indexation(QObject):
 		indexeur = logging.getLogger(JOURNAL_DE_L_INDEXEUR)
 		lignes = _Lignes(self._ligne)
 		indexeur.addHandler(lignes)
+		debut = audit.HORLOGE.maintenant()
 		try:
 			with connecter(self.socket, self.base, Role.INDEXATION) as connexion:
 				bilan = indexer(connexion, audit_complet, _verifier_fichier, self._arret)
-			# Le bilan, comme Machin indexation l'écrit à la fin.
+			# Le bilan, puis le document d'audit, comme Machin indexation les écrit à la fin.
 			indexeur.info(texte_bilan(bilan))
+			audit.produire(bilan.anomalies, texte_bilan(bilan), debut)
 			mode, _deux_points, detail = texte_bilan(bilan).partition(" : ")
 			texte = f"{mode.capitalize()} {TERMINE[audit_complet]} : {detail}."
 		except (DecodeurIndisponible, IndexationEnCours, psycopg.Error) as erreur:

@@ -26,7 +26,7 @@ d'erreur). L'indexeur n'écrit jamais dans le log, et ne modifie jamais un champ
 import logging
 import threading
 from collections.abc import Callable, Collection
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
@@ -35,6 +35,7 @@ import psycopg
 from psycopg.rows import TupleRow
 from psycopg.types.json import Jsonb
 
+from machincast.indexation.audit import Anomalie
 from machincast.indexation.decodage import EtatFichier, Verification, verifier_fichier
 from machincast.indexation.tags import fusionner
 
@@ -77,6 +78,8 @@ class Bilan:
 	retablis: int = 0
 	"""Sonores erronés redevenus actifs."""
 	sortis_apercu: int = 0
+	anomalies: list[Anomalie] = field(default_factory=list)
+	"""Les fichiers défectueux du passage, pour le document d'audit (https://github.com/dascritch/machincast/issues/11)."""
 
 
 def _accorder(nombre: int, singulier: str, pluriel: str) -> str:
@@ -236,7 +239,10 @@ def verifier_sonores(
 			elif (apres is EtatSonore.ACTIF) and (avant is EtatSonore.ERRONE):
 				bilan.retablis += 1
 		if resultat.etat is not EtatFichier.SAIN:
-			journal.warning(f"{emplacement} : {resultat.probleme} ; {_consequence(avant, apres)}")
+			consequence = _consequence(avant, apres)
+			journal.warning(f"{emplacement} : {resultat.probleme} ; {consequence}")
+			detail = str(resultat.probleme).removeprefix(f"{resultat.etat} : ")
+			bilan.anomalies.append(Anomalie(str(emplacement), str(resultat.etat), detail, consequence))
 		else:
 			journal.info(f"{emplacement} : {_sain(artiste, titre)} ; {_consequence(avant, apres)}")
 	return bilan

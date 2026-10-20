@@ -1,18 +1,13 @@
 """Étapes de l'indexation récursive des répertoires de banques (https://github.com/dascritch/machincast/issues/9)."""
 
-import argparse
-import dataclasses
-import logging
 import re
 import shutil
 from pathlib import Path
 
 import psycopg
 import pytest
-from pytest_bdd import given, parsers, scenarios, then, when
+from pytest_bdd import given, parsers, scenarios, then
 
-from machincast.indexation.__main__ import executer
-from tests.base_test import configuration_test
 from tests.etapes_indexation import Execution
 from tests.sons import copie_de_test, corrompre
 
@@ -130,25 +125,6 @@ def erreur_signalee(execution: Execution, racine: Path, chemin: str, consequence
 	(ligne,) = execution.erreurs.splitlines()
 	assert ligne.startswith(f"{chemin.replace('…/', f'{racine}/')} : "), ligne
 	assert ligne.endswith(f" ; {consequence}"), ligne
-
-
-@when("Machin indexation est lancé sur la base de test", target_fixture="lancement")
-def lancer_sur_la_base_de_test(caplog: pytest.LogCaptureFixture) -> tuple[int, list[str]]:
-	"""Son action, avec une configuration dont la base de production est la base de test."""
-	configuration = configuration_test()
-	sur_la_base_de_test = dataclasses.replace(
-		configuration, base=dataclasses.replace(configuration.base, production=configuration.base.test)
-	)
-	caplog.clear()
-	with caplog.at_level(logging.INFO, logger="machincast"):
-		code = executer(sur_la_base_de_test, argparse.Namespace(audit_complet=False, fenetre=False))
-	return code, [enregistrement.getMessage() for enregistrement in caplog.records]
-
-
-@then(parsers.parse("Machin indexation se termine avec le code {code:d}, en signalant « {texte} »"))
-def lancement_termine(lancement: tuple[int, list[str]], code: int, texte: str) -> None:
-	obtenu, messages = lancement
-	assert (obtenu, messages[-1]) == (code, texte), messages
 
 
 @then("le verrou de l'indexation a été rendu dès la fin de l'indexation")

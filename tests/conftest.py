@@ -2,10 +2,14 @@
 
 import os
 from collections.abc import Iterator
+from datetime import UTC, datetime
+from pathlib import Path
 
 import psycopg
 import pytest
 
+from machincast.horloge import HorlogeFixe
+from machincast.indexation import audit
 from tests.base_test import connexion_test, purger_base, reinitialiser_base, verifier_autorisations
 
 # Étapes partagées par plusieurs fonctionnalités : pytest-bdd les trouve comme celles de conftest.py.
@@ -21,6 +25,20 @@ pytest_plugins = [
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 _schema_recree = False
+
+LANCEMENT_DE_L_AUDIT = datetime(2026, 10, 15, 6, 15, tzinfo=UTC)
+"""Lancement de toute indexation des scénarios : 08:15 à Paris, pour le nom du document d'audit."""
+
+
+@pytest.fixture(autouse=True)
+def repertoire_d_audit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+	"""Les documents d'audit de l'indexation vont dans le répertoire du scénario, jamais dans /tmp, à heure fixe
+	(https://github.com/dascritch/machincast/issues/11)."""
+	repertoire = tmp_path / "audit"
+	repertoire.mkdir()
+	monkeypatch.setattr(audit, "REPERTOIRE", repertoire)
+	monkeypatch.setattr(audit, "HORLOGE", HorlogeFixe(LANCEMENT_DE_L_AUDIT))
+	return repertoire
 
 
 @pytest.fixture
