@@ -75,6 +75,10 @@ class EcranParDefaut(QWidget):
 		ui.ouvrir_sonore_prochain.clicked.connect(lambda: self._ouvrir_sonore(self._prochain))
 		ui.ouvrir_evenement_en_cours.clicked.connect(lambda: self._ouvrir_evenement(self._en_cours))
 		ui.ouvrir_evenement_prochain.clicked.connect(lambda: self._ouvrir_evenement(self._prochain))
+		ui.ouvrir_sequence_en_cours.clicked.connect(lambda: self._ouvrir_sequence(self._en_cours))
+		ui.ouvrir_sequence_prochain.clicked.connect(lambda: self._ouvrir_sequence(self._prochain))
+		ui.ouvrir_banque_en_cours.clicked.connect(lambda: self._ouvrir_banque(self._en_cours))
+		ui.ouvrir_banque_prochain.clicked.connect(lambda: self._ouvrir_banque(self._prochain))
 		self._passage_connu: datetime | None = None
 		"""Début du sonore en cours que l'airplay affiché connaît : il n'est relu que si un autre est annoncé."""
 		self._afficher_heure()
@@ -126,6 +130,8 @@ class EcranParDefaut(QWidget):
 		_afficher_emplacement(getattr(ui, f"{lequel}_emplacement"), sonore)
 		getattr(ui, f"ouvrir_sonore_{lequel}").setEnabled(sonore is not None)
 		getattr(ui, f"ouvrir_evenement_{lequel}").setEnabled((sonore is not None) and (sonore.evenement_id is not None))
+		getattr(ui, f"ouvrir_sequence_{lequel}").setEnabled((sonore is not None) and (sonore.sequence_id is not None))
+		getattr(ui, f"ouvrir_banque_{lequel}").setEnabled((sonore is not None) and (sonore.banque_id is not None))
 		if sonore is None:
 			for champ in champs:
 				champ.setText(affichage.VIDE)
@@ -178,6 +184,14 @@ class EcranParDefaut(QWidget):
 	def _ouvrir_evenement(self, sonore: SonoreAffiche | None) -> None:
 		if (sonore is not None) and (sonore.evenement_id is not None):
 			self.ouverte.emit("événement", sonore.evenement_id, str(sonore.evenement))
+
+	def _ouvrir_sequence(self, sonore: SonoreAffiche | None) -> None:
+		if (sonore is not None) and (sonore.sequence_id is not None):
+			self.ouverte.emit("séquence", sonore.sequence_id, str(sonore.sequence))
+
+	def _ouvrir_banque(self, sonore: SonoreAffiche | None) -> None:
+		if (sonore is not None) and (sonore.banque_id is not None):
+			self.ouverte.emit("banque", sonore.banque_id, str(sonore.banque))
 
 	def _ouvrir_cellule(self, index: QModelIndex) -> None:
 		"""Un double-clic sur une cellule qui désigne un élément demande sa fiche ; ailleurs, il ne fait rien."""

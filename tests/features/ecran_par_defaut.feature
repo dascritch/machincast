@@ -273,6 +273,48 @@ Fonctionnalité: Écran par défaut de l'interface
 			| sonore    | 31          | Jingle                      |
 			| événement | 8           | Fil de jour                 |
 
+	Scénario: Les boutons de l'accueil ouvrent la fiche de la séquence et celle de la banque
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le sonore en cours a pour contexte :
+			| champ       | valeur  |
+			| sequence    | Pub     |
+			| sequence_id | 5       |
+			| banque      | Jingles |
+			| banque_id   | 7       |
+		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
+		Et le prochain sonore a pour contexte :
+			| champ       | valeur   |
+			| sequence    | Météo    |
+			| sequence_id | 6        |
+			| banque      | Rotation |
+			| banque_id   | 9        |
+		Quand l'écran par défaut s'ouvre
+		Et le sonore en cours est bientôt « Les Gaufres – Café à minuit »
+		Et je clique sur le bouton « ouvrir_sequence_en_cours » de l'accueil
+		Et je clique sur le bouton « ouvrir_banque_en_cours » de l'accueil
+		Et je clique sur le bouton « ouvrir_sequence_prochain » de l'accueil
+		Et je clique sur le bouton « ouvrir_banque_prochain » de l'accueil
+		Alors l'accueil a demandé les fiches :
+			| genre    | identifiant | nom      |
+			| séquence | 5           | Pub      |
+			| banque   | 7           | Jingles  |
+			| séquence | 6           | Météo    |
+			| banque   | 9           | Rotation |
+
+	Scénario: Sans séquence ni banque, l'accueil ne propose pas leur fiche
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le sonore en cours a pour contexte :
+			| champ       | valeur  |
+			| sequence    | Pub     |
+			| banque      | Jingles |
+			| banque_id   | 7       |
+		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
+		Quand l'écran par défaut s'ouvre
+		Alors le prochain sonore est bientôt « Jingle »
+		Et les boutons de séquence et de banque de l'accueil sont, pour le sonore en cours puis le prochain : inactif, actif, inactif, inactif
+
 	Scénario: Sans événement connu, l'accueil ne propose pas sa fiche
 		https://github.com/dascritch/machincast/issues/144 : un binaire lecture d'avant ce ticket ne dit pas
 		l'identifiant de l'événement ; un état peut ne pas dire l'événement du tout.

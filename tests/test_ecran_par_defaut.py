@@ -656,8 +656,27 @@ def fiches_demandees(contexte: Contexte, datatable: list[list[str]]) -> None:
 @then("les boutons de fiche de l'accueil sont inactifs")
 def boutons_inactifs(contexte: Contexte) -> None:
 	ui = ecran(contexte).ui
-	boutons = (ui.ouvrir_sonore_en_cours, ui.ouvrir_evenement_en_cours, ui.ouvrir_sonore_prochain)
-	assert [bouton.isEnabled() for bouton in (*boutons, ui.ouvrir_evenement_prochain)] == [False] * 4
+	boutons = [
+		getattr(ui, f"ouvrir_{genre}_{lequel}")
+		for lequel in ("en_cours", "prochain")
+		for genre in ("sonore", "evenement", "sequence", "banque")
+	]
+	assert [bouton.isEnabled() for bouton in boutons] == [False] * 8
+
+
+@then(
+	parsers.re(
+		r"les boutons de séquence et de banque de l'accueil sont, pour le sonore en cours puis le prochain :"
+		r" (?P<etats>.+)"
+	)
+)
+def etats_sequence_banque(contexte: Contexte, etats: str) -> None:
+	ui = ecran(contexte).ui
+	obtenus = []
+	for lequel in ("en_cours", "prochain"):
+		for genre in ("sequence", "banque"):
+			obtenus.append("actif" if getattr(ui, f"ouvrir_{genre}_{lequel}").isEnabled() else "inactif")
+	assert obtenus == etats.split(", ")
 
 
 @then(

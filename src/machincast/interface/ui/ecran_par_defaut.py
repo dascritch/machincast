@@ -153,24 +153,52 @@ class Ui_EcranParDefaut(object):
 
         self.formulaire_en_cours.setWidget(1, QFormLayout.ItemRole.LabelRole, self.intitule_en_cours_sequence)
 
+        self.ligne_en_cours_sequence = QHBoxLayout()
+        self.ligne_en_cours_sequence.setObjectName(u"ligne_en_cours_sequence")
         self.en_cours_sequence = QLabel(self.cadre_en_cours)
         self.en_cours_sequence.setObjectName(u"en_cours_sequence")
         self.en_cours_sequence.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.en_cours_sequence.setWordWrap(True)
 
-        self.formulaire_en_cours.setWidget(1, QFormLayout.ItemRole.FieldRole, self.en_cours_sequence)
+        self.ligne_en_cours_sequence.addWidget(self.en_cours_sequence)
+
+        self.ouvrir_sequence_en_cours = QToolButton(self.cadre_en_cours)
+        self.ouvrir_sequence_en_cours.setObjectName(u"ouvrir_sequence_en_cours")
+        icon2 = QIcon(QIcon.fromTheme(u"view-media-playlist"))
+        self.ouvrir_sequence_en_cours.setIcon(icon2)
+        self.ouvrir_sequence_en_cours.setEnabled(False)
+
+        self.ligne_en_cours_sequence.addWidget(self.ouvrir_sequence_en_cours)
+
+        self.ligne_en_cours_sequence.setStretch(0, 1)
+
+        self.formulaire_en_cours.setLayout(1, QFormLayout.ItemRole.FieldRole, self.ligne_en_cours_sequence)
 
         self.intitule_en_cours_banque = QLabel(self.cadre_en_cours)
         self.intitule_en_cours_banque.setObjectName(u"intitule_en_cours_banque")
 
         self.formulaire_en_cours.setWidget(2, QFormLayout.ItemRole.LabelRole, self.intitule_en_cours_banque)
 
+        self.ligne_en_cours_banque = QHBoxLayout()
+        self.ligne_en_cours_banque.setObjectName(u"ligne_en_cours_banque")
         self.en_cours_banque = QLabel(self.cadre_en_cours)
         self.en_cours_banque.setObjectName(u"en_cours_banque")
         self.en_cours_banque.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.en_cours_banque.setWordWrap(True)
 
-        self.formulaire_en_cours.setWidget(2, QFormLayout.ItemRole.FieldRole, self.en_cours_banque)
+        self.ligne_en_cours_banque.addWidget(self.en_cours_banque)
+
+        self.ouvrir_banque_en_cours = QToolButton(self.cadre_en_cours)
+        self.ouvrir_banque_en_cours.setObjectName(u"ouvrir_banque_en_cours")
+        icon3 = QIcon(QIcon.fromTheme(u"folder-music"))
+        self.ouvrir_banque_en_cours.setIcon(icon3)
+        self.ouvrir_banque_en_cours.setEnabled(False)
+
+        self.ligne_en_cours_banque.addWidget(self.ouvrir_banque_en_cours)
+
+        self.ligne_en_cours_banque.setStretch(0, 1)
+
+        self.formulaire_en_cours.setLayout(2, QFormLayout.ItemRole.FieldRole, self.ligne_en_cours_banque)
 
         self.intitule_en_cours_horaire = QLabel(self.cadre_en_cours)
         self.intitule_en_cours_horaire.setObjectName(u"intitule_en_cours_horaire")
@@ -266,24 +294,50 @@ class Ui_EcranParDefaut(object):
 
         self.formulaire_prochain.setWidget(1, QFormLayout.ItemRole.LabelRole, self.intitule_prochain_sequence)
 
+        self.ligne_prochain_sequence = QHBoxLayout()
+        self.ligne_prochain_sequence.setObjectName(u"ligne_prochain_sequence")
         self.prochain_sequence = QLabel(self.cadre_prochain)
         self.prochain_sequence.setObjectName(u"prochain_sequence")
         self.prochain_sequence.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.prochain_sequence.setWordWrap(True)
 
-        self.formulaire_prochain.setWidget(1, QFormLayout.ItemRole.FieldRole, self.prochain_sequence)
+        self.ligne_prochain_sequence.addWidget(self.prochain_sequence)
+
+        self.ouvrir_sequence_prochain = QToolButton(self.cadre_prochain)
+        self.ouvrir_sequence_prochain.setObjectName(u"ouvrir_sequence_prochain")
+        self.ouvrir_sequence_prochain.setIcon(icon2)
+        self.ouvrir_sequence_prochain.setEnabled(False)
+
+        self.ligne_prochain_sequence.addWidget(self.ouvrir_sequence_prochain)
+
+        self.ligne_prochain_sequence.setStretch(0, 1)
+
+        self.formulaire_prochain.setLayout(1, QFormLayout.ItemRole.FieldRole, self.ligne_prochain_sequence)
 
         self.intitule_prochain_banque = QLabel(self.cadre_prochain)
         self.intitule_prochain_banque.setObjectName(u"intitule_prochain_banque")
 
         self.formulaire_prochain.setWidget(2, QFormLayout.ItemRole.LabelRole, self.intitule_prochain_banque)
 
+        self.ligne_prochain_banque = QHBoxLayout()
+        self.ligne_prochain_banque.setObjectName(u"ligne_prochain_banque")
         self.prochain_banque = QLabel(self.cadre_prochain)
         self.prochain_banque.setObjectName(u"prochain_banque")
         self.prochain_banque.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.prochain_banque.setWordWrap(True)
 
-        self.formulaire_prochain.setWidget(2, QFormLayout.ItemRole.FieldRole, self.prochain_banque)
+        self.ligne_prochain_banque.addWidget(self.prochain_banque)
+
+        self.ouvrir_banque_prochain = QToolButton(self.cadre_prochain)
+        self.ouvrir_banque_prochain.setObjectName(u"ouvrir_banque_prochain")
+        self.ouvrir_banque_prochain.setIcon(icon3)
+        self.ouvrir_banque_prochain.setEnabled(False)
+
+        self.ligne_prochain_banque.addWidget(self.ouvrir_banque_prochain)
+
+        self.ligne_prochain_banque.setStretch(0, 1)
+
+        self.formulaire_prochain.setLayout(2, QFormLayout.ItemRole.FieldRole, self.ligne_prochain_banque)
 
         self.intitule_prochain_horaire = QLabel(self.cadre_prochain)
         self.intitule_prochain_horaire.setObjectName(u"intitule_prochain_horaire")
@@ -379,8 +433,16 @@ class Ui_EcranParDefaut(object):
         self.ouvrir_evenement_en_cours.setText(QCoreApplication.translate("EcranParDefaut", u"Fiche\u2026", None))
         self.intitule_en_cours_sequence.setText(QCoreApplication.translate("EcranParDefaut", u"S\u00e9quence", None))
         self.en_cours_sequence.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
+#if QT_CONFIG(tooltip)
+        self.ouvrir_sequence_en_cours.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Ouvrir la fiche de la s\u00e9quence", None))
+#endif // QT_CONFIG(tooltip)
+        self.ouvrir_sequence_en_cours.setText(QCoreApplication.translate("EcranParDefaut", u"Fiche\u2026", None))
         self.intitule_en_cours_banque.setText(QCoreApplication.translate("EcranParDefaut", u"Banque", None))
         self.en_cours_banque.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
+#if QT_CONFIG(tooltip)
+        self.ouvrir_banque_en_cours.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Ouvrir la fiche de la banque", None))
+#endif // QT_CONFIG(tooltip)
+        self.ouvrir_banque_en_cours.setText(QCoreApplication.translate("EcranParDefaut", u"Fiche\u2026", None))
         self.intitule_en_cours_horaire.setText(QCoreApplication.translate("EcranParDefaut", u"Horaire", None))
         self.en_cours_horaire.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
         self.intitule_en_cours_emplacement.setText(QCoreApplication.translate("EcranParDefaut", u"Emplacement", None))
@@ -400,8 +462,16 @@ class Ui_EcranParDefaut(object):
         self.ouvrir_evenement_prochain.setText(QCoreApplication.translate("EcranParDefaut", u"Fiche\u2026", None))
         self.intitule_prochain_sequence.setText(QCoreApplication.translate("EcranParDefaut", u"S\u00e9quence", None))
         self.prochain_sequence.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
+#if QT_CONFIG(tooltip)
+        self.ouvrir_sequence_prochain.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Ouvrir la fiche de la s\u00e9quence", None))
+#endif // QT_CONFIG(tooltip)
+        self.ouvrir_sequence_prochain.setText(QCoreApplication.translate("EcranParDefaut", u"Fiche\u2026", None))
         self.intitule_prochain_banque.setText(QCoreApplication.translate("EcranParDefaut", u"Banque", None))
         self.prochain_banque.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
+#if QT_CONFIG(tooltip)
+        self.ouvrir_banque_prochain.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Ouvrir la fiche de la banque", None))
+#endif // QT_CONFIG(tooltip)
+        self.ouvrir_banque_prochain.setText(QCoreApplication.translate("EcranParDefaut", u"Fiche\u2026", None))
         self.intitule_prochain_horaire.setText(QCoreApplication.translate("EcranParDefaut", u"Horaire estim\u00e9", None))
         self.prochain_horaire.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
         self.intitule_prochain_emplacement.setText(QCoreApplication.translate("EcranParDefaut", u"Emplacement", None))
