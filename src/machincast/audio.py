@@ -33,6 +33,70 @@ GREFFONS: dict[SortieAudio, Greffon] = {
 }
 
 
+TYPES_D_APPAREILS: dict[SortieAudio, tuple[str, ...]] = {
+	"pipewire": ("GstPipeWireDevice",),
+	"pulseaudio": ("GstPulseDevice",),
+	"alsa": ("GstAlsaDevice",),
+}
+"""Le type GStreamer des périphériques de chaque sortie ; la sortie factice n'en a pas."""
+CLASSE_DES_SORTIES = "Audio/Sink"
+
+
+@dataclass(frozen=True)
+class Peripherique:
+	"""Un périphérique de sortie du poste (https://github.com/dascritch/machincast/issues/116)."""
+
+	identifiant: str
+	"""Ce qu'écrivent audio.peripherique et audio.preecoute : le nom du nœud PipeWire, le nom interne du périphérique
+	PulseAudio ou ALSA."""
+	nom: str
+	"""Ce que le poste en montre."""
+
+
+def appareils() -> list[Gst.Device]:
+	"""Les périphériques de sortie audio que voit GStreamer, toutes sorties confondues, comme gst-device-monitor-1.0
+	Audio/Sink : un moniteur de périphériques attend que chaque fournisseur ait donné les siens."""
+	Gst.init(None)
+	moniteur = Gst.DeviceMonitor.new()
+	moniteur.add_filter(CLASSE_DES_SORTIES, None)
+	if not moniteur.start():
+		return []
+	try:
+		return list(moniteur.get_devices())
+	finally:
+		moniteur.stop()
+
+
+def type_d_appareil(appareil: Gst.Device) -> str:
+	return str(appareil.__gtype__.name)
+
+
+def identifiant(appareil: Gst.Device) -> str | None:
+	"""Le nom du nœud PipeWire, sinon le nom interne du périphérique (PulseAudio, ALSA) ; None s'il n'en a pas."""
+	proprietes = appareil.get_properties()
+	if proprietes is not None:
+		nom = proprietes.get_string("node.name")
+		if nom:
+			return str(nom)
+	try:
+		interne = appareil.get_property("internal-name")
+	except TypeError:
+		return None
+	return (str(interne)) or (None)
+
+
+def peripheriques(sortie: SortieAudio) -> list[Peripherique]:
+	"""Les périphériques de sortie du poste pour cette sortie, dans l'ordre de GStreamer ; aucun pour la sortie
+	factice."""
+	types = TYPES_D_APPAREILS.get(sortie, ())
+	trouves = []
+	for appareil in appareils():
+		nom = identifiant(appareil)
+		if (type_d_appareil(appareil) in types) and (nom is not None):
+			trouves.append(Peripherique(nom, appareil.get_display_name()))
+	return trouves
+
+
 class SortieAudioIndisponible(Exception):
 	"""Le greffon GStreamer de la sortie choisie n'est pas installé."""
 
