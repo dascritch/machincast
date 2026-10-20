@@ -395,7 +395,7 @@ Un **événement de secours** est un événement de priorité `secours` : il n'a
 
 | Sortie | Pour qui | Contenu |
 | --- | --- | --- |
-| Sortie standard | équipe | Une ligne `à l'antenne : artiste – titre (événement)` à chaque passage. |
+| Sortie standard | équipe | Une ligne `à l'antenne : artiste – titre (événement)` à chaque passage, et une ligne à chaque début ou fin d'événement ou de séquence, comme dans le log : `début d'événement : « Journal », émission, de 20:00 à 20:30` ([#153](https://github.com/dascritch/machincast/issues/153)). |
 | Sortie d'erreur | équipe | Les alertes et incidents du log, et les erreurs du programme. |
 | CSV (`sorties.csv`) | équipe | Un fichier par jour, nommé avec sa date : `airplay.csv` donne `airplay-2026-10-15.csv`. Une ligne par passage terminé : début, fin, durée, artiste, titre, emplacement, événement, séquence, banque, sans incident (`oui` ou `non`). Séparateur `;`, s'ouvre directement dans LibreOffice ou Excel. Jamais réécrit. |
 | Playlist `.pls` (`sorties.pls`) | équipe | Les 100 derniers fichiers joués, streams compris, du plus ancien au plus récent : pour réécouter ce qui est passé. |
@@ -432,6 +432,8 @@ Le **log** note les opérations du binaire lecture, avec leur heure, leur niveau
 | `sortie inaccessible` | alerte | Une sortie (CSV, .pls ou page HTML) ne peut pas être écrite ; le message donne le chemin et l'erreur. |
 | `élément sauté` | info | Un élément rappelle la banque « ne pas répéter » qui vient de passer : il est sauté. Le message donne la banque et la position de l'élément. |
 | `événement terminé plus tôt` | alerte | Une émission ou un spécial n'a plus rien de jouable une fois la banque « ne pas répéter » sautée : il se termine, et l'événement en dessous reprend. |
+| `début d'événement`, `fin d'événement` | info | Un événement prend l'antenne, avec son premier sonore, ou la laisse, quand un sonore d'un autre événement commence, ou à l'arrêt de `Machin lecture` ([#153](https://github.com/dascritch/machincast/issues/153)). Le message donne son nom, sa priorité et ses heures : « « Journal », émission, de 20:00 à 20:30 ». Un silence ne termine pas l'événement. |
+| `début de séquence`, `fin de séquence` | info | De même pour une séquence : « « Pub », dans « Continue » ». Une séquence qui revient aussitôt recommence. |
 | `reconnexion abandonnée` | info | L'événement d'un stream tombé n'est plus à l'antenne : plus de tentative de reconnexion. |
 
 L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture : il ne peut qu'y ajouter des lignes.
@@ -650,7 +652,7 @@ Un **marque-page** est une adresse de flux réutilisable, souvent en ligne par i
 
 L'onglet **Incidents** montre les alertes et les incidents que `Machin lecture` a notés dans le log, du plus récent au plus ancien ([#35](https://github.com/dascritch/machincast/issues/35)) : horaire, niveau, nature, message, et le sonore, la banque et l'événement concernés quand ils sont renseignés. La liste des natures est dans [Historique de diffusion et log](#historique-de-diffusion-et-log).
 
-- **Montrer aussi les informations** ajoute les entrées de niveau `info` (démarrage, élément sauté, sonore expiré…).
+- **Montrer aussi les informations** ajoute les entrées de niveau `info` (démarrage, élément sauté, sonore expiré, débuts et fins d'événements et de séquences [#153](https://github.com/dascritch/machincast/issues/153)…).
 - **Filtre** : comme pour les listes, sans tenir compte des majuscules ni des accents ; le compte dit combien d'entrées restent.
 - **Liens** : un double-clic sur le sonore, la banque ou l'événement d'une entrée ouvre sa fiche. Un élément supprimé depuis laisse sa cellule vide ; l'entrée garde son message.
 - **Lecture** : l'écran se relit chaque fois que son onglet s'ouvre. Seules les 500 entrées les plus récentes sont lues : le compte le dit alors (« 500 entrées, les plus récentes »).
