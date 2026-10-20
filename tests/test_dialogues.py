@@ -99,7 +99,7 @@ def suppression(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> Non
 def creation(dialogue: Dialogue, qtbot: QtBot, geste: str) -> None:
 	repondre(dialogue, qtbot, geste)
 	dialogue.reponse = dialogues.confirmer_creation(
-		dialogue.parent, "Créer un événement le samedi 24 octobre 2026 à 18:00 ?"
+		dialogue.parent, "Créer un événement le dimanche 25 octobre 2026 de 13:00 à 14:00 ?"
 	)
 
 

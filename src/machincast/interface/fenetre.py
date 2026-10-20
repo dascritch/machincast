@@ -33,7 +33,7 @@ barre d'état annonce l'un et l'autre.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import psycopg
@@ -47,7 +47,7 @@ from machincast.configuration import Crossfades
 from machincast.horloge import Horloge
 from machincast.interface import dialogues, indexation, pilotage, preferences, version
 from machincast.interface.ajout import ajouter_fichiers
-from machincast.interface.calendrier import Calendrier, date_longue
+from machincast.interface.calendrier import UNE_HEURE, Calendrier, date_longue
 from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.etat import EtatLecture
 from machincast.interface.fiche import Fiche, Rafraichie
@@ -78,8 +78,6 @@ FICHES: dict[str, type[Fiche]] = {
 """Écrans de détail : les fiches, par genre."""
 SUIVI_INDEXATION = 1000
 """Millisecondes entre deux regards sur le processus de l'indexation lancée depuis le menu."""
-DUREE_PROPOSEE = timedelta(hours=1)
-"""Durée d'un événement créé depuis le calendrier : sa fin se règle ensuite dans sa fiche."""
 TICKETS = "https://github.com/dascritch/machincast/issues"
 """Les tickets de MachinCast, qu'ouvre « Signaler un problème… » ; comme dans pyproject.toml."""
 SANS_SERVICE = "Installation non définitive : diffusion sans service"
@@ -346,13 +344,14 @@ class FenetrePrincipale(QMainWindow):
 
 	def _creer_evenement(self, debut: datetime) -> None:
 		"""Un nouvel événement, à l'heure cliquée dans le calendrier, s'ouvre dans sa fiche si on le confirme."""
-		texte = f"Créer un événement le {date_longue(debut.date())} à {debut:%H:%M} ?"
+		fin = debut + UNE_HEURE
+		texte = f"Créer un événement le {date_longue(debut.date())} de {debut:%H:%M} à {fin:%H:%M} ?"
 		if not dialogues.confirmer_creation(self, texte):
 			return
 		self._ouvrir_fiche("événement", None)
 		fiche = self.ui.onglets.currentWidget()
 		assert isinstance(fiche, FicheEvenement)
-		fiche.prevoir(debut, debut + DUREE_PROPOSEE)
+		fiche.prevoir(debut, fin)
 
 	def _fermer(self, indice: int) -> None:
 		fiche = self.ui.onglets.widget(indice)

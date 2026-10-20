@@ -13,7 +13,7 @@ aujourd'hui.
   une seule bande ; un passage sans fin dure jusqu'au passage suivant, ou jusqu'à maintenant pour le dernier.
 - Une case par priorité montre ou cache ses blocs et ses bandes ; ce qui joue ne change pas.
 - Survoler un bloc ou une bande donne son infobulle ; un double-clic ouvre son événement (signal ouverte). Un clic
-  sur une heure libre, pas encore passée, demande la création d'un événement à sa demi-heure (creation_demandee).
+  sur une heure libre, pas encore passée, demande la création d'un événement sur son heure entière (creation_demandee).
 
 Le calendrier se relit à l'ouverture de son onglet, à chaque changement de période et par « Rafraîchir les onglets » ;
 jamais en boucle.
@@ -64,9 +64,8 @@ ESTOMPE = 70
 """Opacité, sur 255, de ce qu'un autre événement masque."""
 PORTEE = timedelta(days=28)
 """Le calendrier va de PORTEE avant à PORTEE après aujourd'hui."""
-DEMI_HEURE = timedelta(minutes=30)
-DUREE_PROPOSEE = timedelta(hours=1)
-"""Durée d'un événement créé depuis le calendrier."""
+UNE_HEURE = timedelta(hours=1)
+"""Un événement créé depuis le calendrier occupe l'heure entière cliquée : 13:37 donne 13:00 – 14:00."""
 UN_JOUR = timedelta(days=1)
 HAUTEUR_HEURE = 48
 MARGE = 52
@@ -610,14 +609,14 @@ class Grille(QWidget):
 		_ouvrir(self.calendrier, self.element_en(evenement.position()))
 
 	def mousePressEvent(self, evenement: QMouseEvent) -> None:
-		"""Une heure libre, dont la demi-heure n'est pas passée, propose un événement à cette demi-heure."""
+		"""Une heure libre, pas encore passée, propose un événement sur l'heure entière : 13:00 – 14:00 pour 13:37."""
 		if (evenement.button() != Qt.MouseButton.LeftButton) or (self.element_en(evenement.position()) is not None):
 			return
 		moment = self._moment_en(evenement.position())
 		if moment is None:
 			return
-		debut = minuit(moment.date()) + (moment - minuit(moment.date())) // DEMI_HEURE * DEMI_HEURE
-		if debut + DEMI_HEURE <= self.calendrier.maintenant():
+		debut = moment.replace(minute=0, second=0, microsecond=0)
+		if debut + UNE_HEURE <= self.calendrier.maintenant():
 			return
 		self.calendrier.creation_demandee.emit(debut)
 

@@ -696,7 +696,7 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 - **Spécial, Émission, Fil musical** : chaque case montre ou cache les blocs et les bandes de sa priorité. Ce qui joue ne change pas : un bloc caché masque toujours ceux qu'il masquait.
 - **Survoler** un bloc donne l'événement, son nom public, sa priorité, ses heures, sa récurrence et ce qui en joue ; une bande, ses heures à la seconde et son nombre de passages.
 - **Double-cliquer** sur un bloc ou une bande ouvre la fiche de son événement.
-- **Cliquer sur une heure libre**, pas encore passée, propose de créer un événement à cette demi-heure, par exemple « Créer un événement le samedi 24 octobre 2026 à 20:00 ? ». **Créer** ouvre la fiche d'un nouvel événement, qui commence à cette demi-heure et dure une heure ; rien n'est en base avant **Enregistrer**.
+- **Cliquer sur une heure libre**, pas encore passée, propose de créer un événement sur l'heure entière : un clic à 13:37 propose 13:00 – 14:00, par exemple « Créer un événement le dimanche 25 octobre 2026 de 13:00 à 14:00 ? ». **Créer** ouvre la fiche d'un nouvel événement, réglé sur cette heure ; rien n'est en base avant **Enregistrer**.
 
 Le calendrier se relit à l'ouverture de son onglet, à chaque changement de semaine ou de jour, et par **Affichage → Rafraîchir les onglets** (<kbd>F5</kbd>).
 
