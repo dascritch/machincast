@@ -34,6 +34,7 @@ from PySide6.QtCore import QRectF, Qt, QTimer  # noqa: E402
 from PySide6.QtGui import QCloseEvent, QColor, QPainter, QPaintEvent, QStandardItemModel  # noqa: E402
 from PySide6.QtWidgets import QVBoxLayout, QWidget  # noqa: E402
 
+from machincast import audio as sorties_audio  # noqa: E402
 from machincast.audio import creer_sortie  # noqa: E402
 from machincast.configuration import Audio, SortieAudio  # noqa: E402
 from machincast.interface import affichage  # noqa: E402
@@ -44,12 +45,6 @@ RELEVE = 50
 INTERVALLE_DES_NIVEAUX = 50 * Gst.MSECOND
 TAMPON_DES_STREAMS = 5
 """Secondes de son qu'un stream reçoit d'avance : le pré-décodé en est la part remplie."""
-FOURNISSEURS: dict[SortieAudio, str] = {
-	"pipewire": "pipewiredeviceprovider",
-	"pulseaudio": "pulsedeviceprovider",
-	"alsa": "alsadeviceprovider",
-}
-"""Le fournisseur de périphériques de GStreamer de chaque sortie ; la sortie factice n'en a pas."""
 ETATS = {"arret": "À l'arrêt", "lecture": "En lecture", "pause": "En pause"}
 AUCUN = "Aucun sonore"
 CANAUX = {1: "mono", 2: "stéréo"}
@@ -58,14 +53,6 @@ DIFFUSION = "(diffusion)"
 LECTURE = ("⏵", "Lecture")
 PAUSE = ("⏸", "Pause")
 """Le symbole du bouton, et son infobulle, qui le nomme aussi pour les technologies d'assistance ; l'arrêt est « ⏹ »."""
-
-
-@dataclass(frozen=True)
-class Peripherique:
-	identifiant: str
-	"""Ce qu'écrit audio.preecoute : le nom du nœud PipeWire, du périphérique PulseAudio ou ALSA."""
-	nom: str
-	"""Ce que le poste en montre."""
 
 
 @dataclass(frozen=True)
@@ -78,38 +65,6 @@ class Source:
 	stream: bool
 	duree: float | None
 	"""Durée en base, en secondes, montrée avant la lecture."""
-
-
-def peripheriques(sortie: SortieAudio) -> list[Peripherique]:
-	"""Les périphériques de sortie audio du poste, pour la sortie de l'antenne ; aucun pour la sortie factice."""
-	Gst.init(None)
-	nom = FOURNISSEURS.get(sortie)
-	if nom is None:
-		return []
-	fournisseur = Gst.DeviceProviderFactory.get_by_name(nom)
-	if (fournisseur is None) or (not fournisseur.start()):
-		return []
-	try:
-		trouves = []
-		for appareil in fournisseur.get_devices():
-			identifiant = _identifiant(appareil, sortie)
-			if (appareil.has_classes("Audio/Sink")) and (identifiant is not None):
-				trouves.append(Peripherique(identifiant, appareil.get_display_name()))
-		return trouves
-	finally:
-		fournisseur.stop()
-
-
-def _identifiant(appareil: Gst.Device, sortie: SortieAudio) -> str | None:
-	if sortie == "pipewire":
-		proprietes = appareil.get_properties()
-		if proprietes is None:
-			return None
-		return proprietes.get_string("node.name")
-	try:
-		return str(appareil.get_property("internal-name"))
-	except TypeError:
-		return None
 
 
 def ecrire_preecoute(chemin: Path, identifiant: str) -> None:
@@ -423,7 +378,7 @@ class FenetrePreecoute(QWidget):
 		"""Le périphérique configuré d'abord, puis les autres du poste, dans leur ordre. Celui de la diffusion y est,
 		grisé : il ne peut pas être choisi."""
 		choix = self.ui.sortie
-		trouves = peripheriques(self.audio.sortie)
+		trouves = sorties_audio.peripheriques(self.audio.sortie)
 		configure = next((p for p in trouves if p.identifiant == self.audio.preecoute), None)
 		nom = f"{self.audio.preecoute} (introuvable)"
 		if configure is not None:

@@ -24,8 +24,8 @@ from PySide6.QtCore import QLocale
 from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QWidget
 
+from machincast import audio as sorties_audio
 from machincast.configuration import Crossfades, Granularite, SortieAudio
-from machincast.interface import preecoute
 from machincast.interface.ui.preferences import Ui_FenetrePreferences
 
 FRANCAIS = QLocale(QLocale.Language.French, QLocale.Country.France)
@@ -128,7 +128,7 @@ class FenetrePreferences(QDialog):
 		self.ui.setupUi(self)
 		ui = self.ui
 		reglages = tous.crossfades
-		trouves = preecoute.peripheriques(sortie)
+		trouves = sorties_audio.peripheriques(sortie)
 		_garnir(ui.antenne, tous.antenne, trouves)
 		_garnir(ui.preecoute, tous.preecoute, trouves)
 		ui.antenne.currentIndexChanged.connect(self._exclure)
@@ -191,7 +191,7 @@ class FenetrePreferences(QDialog):
 		return Reglages(crossfades, None if antenne is None else str(antenne), str(ui.preecoute.currentData()))
 
 
-def _garnir(choix: QComboBox, actuel: str | None, trouves: list[preecoute.Peripherique]) -> None:
+def _garnir(choix: QComboBox, actuel: str | None, trouves: list[sorties_audio.Peripherique]) -> None:
 	"""Le périphérique configuré d'abord, « (introuvable) » s'il n'est pas sur le poste, puis les autres."""
 	if actuel is None:
 		choix.addItem(A_RENSEIGNER, None)

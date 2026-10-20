@@ -5,6 +5,10 @@
 	python -m machincast.installation verifier  --config machincast.toml   décodeurs GStreamer et sortie audio
 	python -m machincast.installation unite     --config machincast.toml   unité systemd du service de lecture
 	python -m machincast.installation regle     --config machincast.toml   règle polkit qui le pilote
+	python -m machincast.installation peripheriques --config machincast.toml   périphériques de sortie du poste
+
+peripheriques n'est pas appelé par install.sh : il aide à trouver les identifiants à recopier dans audio.peripherique
+et audio.preecoute (https://github.com/dascritch/machincast/issues/116).
 
 install.sh enchaîne les commandes système (apt, sudo, psql, liens) ; ce module porte ce qui se teste : la lecture
 de la configuration, les migrations, la vérification des greffons GStreamer, et le texte de l'unité systemd et de la
@@ -28,6 +32,7 @@ import psycopg
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
+from machincast import audio as sorties_audio  # noqa: E402
 from machincast.audio import GREFFONS, Greffon, SortieAudioIndisponible, creer_sortie  # noqa: E402
 from machincast.base import appliquer_migrations, url_yoyo  # noqa: E402
 from machincast.cli import lancer  # noqa: E402
@@ -253,7 +258,39 @@ def _regle(_configuration: Configuration) -> int:
 	return 0
 
 
-ACTIONS = {"bases": _bases, "migrer": _migrer, "regle": _regle, "unite": _unite, "verifier": _verifier}
+def lister_peripheriques(configuration: Configuration) -> str:
+	"""Les périphériques de sortie de la sortie configurée, un par ligne : identifiant, nom, et leur rôle dans la
+	configuration (https://github.com/dascritch/machincast/issues/116). Sans aucun, tout ce que voit GStreamer, pour
+	comprendre pourquoi."""
+	audio = configuration.audio
+	roles = {audio.peripherique: "antenne", audio.preecoute: "pré-écoute"}
+	trouves = sorties_audio.peripheriques(audio.sortie)
+	lignes = [f"{p.identifiant}\t{p.nom}\t{roles.get(p.identifiant, '')}".rstrip("\t") for p in trouves]
+	if trouves:
+		return "\n".join(lignes) + "\n"
+	lignes = [f"aucun périphérique de sortie « {audio.sortie} » ; périphériques de sortie vus par GStreamer :"]
+	for appareil in sorties_audio.appareils():
+		nom = sorties_audio.identifiant(appareil)
+		lignes.append(
+			f"{sorties_audio.type_d_appareil(appareil)}\t{appareil.get_display_name()}\t{(nom) or ('sans identifiant')}"
+		)
+	return "\n".join(lignes) + "\n"
+
+
+def _peripheriques(configuration: Configuration) -> int:
+	# Une liste à lire, ou à recopier dans audio.peripherique et audio.preecoute : écrite telle quelle.
+	sys.stdout.write(lister_peripheriques(configuration))
+	return 0
+
+
+ACTIONS = {
+	"bases": _bases,
+	"migrer": _migrer,
+	"peripheriques": _peripheriques,
+	"regle": _regle,
+	"unite": _unite,
+	"verifier": _verifier,
+}
 
 
 def _options(analyseur: argparse.ArgumentParser) -> None:

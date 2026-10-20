@@ -35,15 +35,16 @@ from PySide6.QtWidgets import (
 from pytest_bdd import given, parsers, then, when
 from pytestqt.qtbot import QtBot
 
+from machincast import audio
+from machincast.audio import Peripherique
 from machincast.base import Role, connecter
 from machincast.configuration import Crossfades, SortieAudio, charger
 from machincast.horloge import HorlogeFixe
-from machincast.interface import dialogues, preecoute
+from machincast.interface import dialogues
 from machincast.interface.dialogues import Fermeture, Retrait
 from machincast.interface.fenetre import FenetrePrincipale
 from machincast.interface.fiche import Fiche
 from machincast.interface.listes import Liste
-from machincast.interface.preecoute import Peripherique
 from machincast.interface.preferences import Reglages
 from tests.base_test import configuration_test, parametres_base_test
 from tests.sons import FICHIERS_SONORES
@@ -1183,7 +1184,7 @@ def peripheriques_du_poste(monkeypatch: pytest.MonkeyPatch, datatable: list[list
 	def lister(_sortie: SortieAudio) -> list[Peripherique]:
 		return trouves
 
-	monkeypatch.setattr(preecoute, "peripheriques", lister)
+	monkeypatch.setattr(audio, "peripheriques", lister)
 
 
 CONFIGURATION_AUDIO = (
