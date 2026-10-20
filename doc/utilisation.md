@@ -677,6 +677,7 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 | Diffusion | Démarrer la diffusion, Arrêter la diffusion, Redémarrer la diffusion | Pilotent le service de diffusion, selon son état ; sans le service, une diffusion d'essai ([Piloter la diffusion depuis l'interface](#piloter-la-diffusion-depuis-linterface)). |
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
 | Maintenance | Indexation rapide, Audit complet | Lancent l'indexation ([Lancer l'indexation depuis l'interface](#lancer-lindexation-depuis-linterface)). |
+| Aide | Documentation | Ouvre ce guide d'utilisation sur GitHub, dans le navigateur web du poste. |
 | Aide | Signaler un problème… | Ouvre les tickets de MachinCast sur GitHub, dans le navigateur web du poste. |
 | Aide | Version | Donne le numéro de version de MachinCast, et la date de sa dernière modification : celle du dernier commit du dépôt git d'où il est installé ([INSTALL.md](../INSTALL.md)), à l'heure du poste. Une installation qui n'est pas un dépôt git, ou un poste sans git, ne donne que le numéro de version. |
 
