@@ -6,6 +6,11 @@ une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interf
 - Les noms sont enregistrés sans les espaces qui les entourent ; un nom public vide n'en est pas un (NULL).
 - Le masquage « hérité du sonore » (NULL) laisse décider le sonore ; « masqués » et « affichés » l'imposent.
 - Les répertoires sont enregistrés sous leur forme normale, comme les lit Machin indexation.
+- Crossfades (https://github.com/dascritch/machincast/issues/143) : pour le début comme pour la fin, une règle et une
+  durée. « Garder ceux des sonores » laisse le crossfade de chaque sonore, et la durée de la banque, gardée pour
+  plus tard, ne se modifie pas ; « Appliquer si le sonore n'en a pas » la donne aux sonores sans crossfade
+  (0 seconde) ; « Imposer à tous les sonores », à tous. La diffusion l'applique aux sonores joués via la banque
+  (machincast.lecture.diffusion.crossfade).
 - Ouvrir un sonore, par un double-clic ou Entrée, ouvre sa fiche (https://github.com/dascritch/machincast/issues/115) ;
   la banque reste telle quelle, modifications comprises. Un fichier déposé n'a de fiche qu'une fois enregistré.
 - Les sonores se réordonnent par glisser-déposer, ou par les boutons « Monter » et « Descendre », en mode séquentiel
@@ -27,8 +32,8 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QTreeWidgetItem, QWidget
+from PySide6.QtCore import QLocale, Qt
+from PySide6.QtWidgets import QAbstractItemView, QComboBox, QDoubleSpinBox, QHeaderView, QTreeWidgetItem, QWidget
 
 from machincast.horloge import Horloge
 from machincast.interface import affichage, dialogues
@@ -38,6 +43,13 @@ from machincast.interface.fiche import Connexion, Fiche, Refus, fichiers_sonores
 from machincast.interface.ui.fiche_banque import Ui_FicheBanque
 
 MODES = (("sequentiel", "Séquentielle"), ("aleatoire", "Aléatoire"))
+REGLES_DE_CROSSFADE = (
+	("sonore", "Garder ceux des sonores"),
+	("a_defaut", "Appliquer si le sonore n'en a pas"),
+	("impose", "Imposer à tous les sonores"),
+)
+FRANCAIS = QLocale(QLocale.Language.French, QLocale.Country.France)
+"""Les durées s'écrivent avec une virgule, comme dans la fiche d'un sonore."""
 MASQUAGES: tuple[tuple[bool | None, str], ...] = ((None, "Hérité du sonore"), (True, "Masqués"), (False, "Affichés"))
 """Valeurs de banques.masquer_metadonnees, dans l'ordre du choix de la fiche."""
 SONORE = Qt.ItemDataRole.UserRole
@@ -95,6 +107,13 @@ class FicheBanque(Fiche):
 		self.ui.mode.currentIndexChanged.connect(self._actualiser_boutons)
 		self.ui.masquage.currentIndexChanged.connect(self._modifier)
 		self.ui.ne_pas_repeter.toggled.connect(self._modifier)
+		for regle, duree in self._crossfades():
+			for valeur, texte in REGLES_DE_CROSSFADE:
+				regle.addItem(texte, valeur)
+			duree.setLocale(FRANCAIS)
+			regle.currentIndexChanged.connect(self._modifier)
+			regle.currentIndexChanged.connect(self._actualiser_crossfades)
+			duree.valueChanged.connect(self._modifier)
 		modele = self.ui.sonores.model()
 		# Le glisser-déposer déplace une ligne en la retirant, puis en l'insérant.
 		modele.rowsInserted.connect(self._modifier)
@@ -117,13 +136,24 @@ class FicheBanque(Fiche):
 
 	def _lire(self) -> None:
 		"""Lit la banque en base ; une nouvelle banque est vide, séquentielle, au masquage hérité du sonore."""
-		banque: tuple[object, ...] = ("", None, MODES[0][0], None, False)
+		banque: tuple[object, ...] = (
+			"",
+			None,
+			MODES[0][0],
+			None,
+			False,
+			"sonore",
+			timedelta(0),
+			"sonore",
+			timedelta(0),
+		)
 		repertoires: list[str] = []
 		sonores: list[tuple[object, ...]] = []
 		with self.connexion.transaction():
 			if self.identifiant is not None:
 				ligne = self.connexion.execute(
-					"SELECT nom_interne, nom_public, mode::text, masquer_metadonnees, ne_pas_repeter"
+					"SELECT nom_interne, nom_public, mode::text, masquer_metadonnees, ne_pas_repeter,"
+					" crossfade_debut_regle::text, crossfade_debut, crossfade_fin_regle::text, crossfade_fin"
 					" FROM banques WHERE id = %s",
 					(self.identifiant,),
 				).fetchone()
@@ -140,13 +170,20 @@ class FicheBanque(Fiche):
 					" WHERE bs.banque_id = %s ORDER BY bs.position",
 					(self.identifiant,),
 				).fetchall()
-		nom, nom_public, mode, masquage, ne_pas_repeter = banque
+		nom, nom_public, mode, masquage, ne_pas_repeter, *crossfades = banque
 		self._nom = str(nom)
 		self.ui.nom_interne.setText(self._nom)
 		self.ui.nom_public.setText(str((nom_public) or ("")))
 		self.ui.mode.setCurrentIndex(self.ui.mode.findData(mode))
 		self.ui.masquage.setCurrentIndex(next(i for i, (valeur, _texte) in enumerate(MASQUAGES) if valeur is masquage))
 		self.ui.ne_pas_repeter.setChecked(bool(ne_pas_repeter))
+		for (regle, duree), (valeur, secondes) in zip(
+			self._crossfades(), (crossfades[:2], crossfades[2:]), strict=True
+		):
+			regle.setCurrentIndex(regle.findData(valeur))
+			if isinstance(secondes, timedelta):
+				duree.setValue(secondes.total_seconds())
+		self._actualiser_crossfades()
 		self._montrer_repertoires(repertoires)
 		self.ui.sonores.clear()
 		self.ui.sonores.addTopLevelItems([self._ligne(sonore) for sonore in sonores])
@@ -162,17 +199,20 @@ class FicheBanque(Fiche):
 		).fetchone()
 		if pris is not None:
 			raise Refus(f"Une autre banque s'appelle déjà « {nom} ».")
-		valeurs = (
+		valeurs: list[object] = [
 			nom,
 			(self.ui.nom_public.text().strip()) or (None),
 			self.ui.mode.currentData(),
 			MASQUAGES[self.ui.masquage.currentIndex()][0],
 			self.ui.ne_pas_repeter.isChecked(),
-		)
+		]
+		for regle, duree in self._crossfades():
+			valeurs += [regle.currentData(), timedelta(seconds=duree.value())]
 		if self.identifiant is None:
 			creee = self.connexion.execute(
-				"INSERT INTO banques (nom_interne, nom_public, mode, masquer_metadonnees, ne_pas_repeter)"
-				" VALUES (%s, %s, %s, %s, %s) RETURNING id",
+				"INSERT INTO banques (nom_interne, nom_public, mode, masquer_metadonnees, ne_pas_repeter,"
+				" crossfade_debut_regle, crossfade_debut, crossfade_fin_regle, crossfade_fin)"
+				" VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
 				valeurs,
 			).fetchone()
 			assert creee is not None
@@ -181,7 +221,8 @@ class FicheBanque(Fiche):
 			identifiant = self.identifiant
 			self.connexion.execute(
 				"UPDATE banques SET nom_interne = %s, nom_public = %s, mode = %s, masquer_metadonnees = %s,"
-				" ne_pas_repeter = %s WHERE id = %s",
+				" ne_pas_repeter = %s, crossfade_debut_regle = %s, crossfade_debut = %s, crossfade_fin_regle = %s,"
+				" crossfade_fin = %s WHERE id = %s",
 				(*valeurs, identifiant),
 			)
 		self.connexion.execute("DELETE FROM banques_repertoires WHERE banque_id = %s", (identifiant,))
@@ -191,6 +232,16 @@ class FicheBanque(Fiche):
 		)
 		self._ecrire_sonores(identifiant)
 		return identifiant
+
+	def _crossfades(self) -> tuple[tuple[QComboBox, QDoubleSpinBox], tuple[QComboBox, QDoubleSpinBox]]:
+		"""La règle et la durée du crossfade de début, puis celles du crossfade de fin."""
+		ui = self.ui
+		return ((ui.regle_crossfade_debut, ui.crossfade_debut), (ui.regle_crossfade_fin, ui.crossfade_fin))
+
+	def _actualiser_crossfades(self) -> None:
+		"""La durée d'une banque qui garde les crossfades de ses sonores ne sert pas : elle ne se modifie pas."""
+		for regle, duree in self._crossfades():
+			duree.setEnabled(regle.currentData() != "sonore")
 
 	def _ecrire_sonores(self, banque: int) -> None:
 		voulus = []

@@ -5,10 +5,11 @@ manipulent la fiche, le choix des sonores, et lisent la base de test.
 """
 
 from collections.abc import Iterator
+from datetime import timedelta
 
 import pytest
 from PySide6.QtCore import QItemSelectionModel, Qt
-from PySide6.QtWidgets import QAbstractItemView, QDialog, QTreeWidgetItem, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QComboBox, QDialog, QDoubleSpinBox, QTreeWidgetItem, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -382,3 +383,60 @@ def fichier_absent(interface: Contexte, base_vide: Connexion, chemin: str) -> No
 @then("le choix des sonores est validé")
 def valide(choix: list[Choix]) -> None:
 	assert choix[0].result() == QDialog.DialogCode.Accepted
+
+
+# ─── Crossfades (https://github.com/dascritch/machincast/issues/143) ─────
+
+
+def _crossfade(interface: Contexte, cote: str) -> tuple[QComboBox, QDoubleSpinBox]:
+	ui = fiche(interface).ui
+	suffixe = {"début": "debut", "fin": "fin"}[cote]
+	return getattr(ui, f"regle_crossfade_{suffixe}"), getattr(ui, f"crossfade_{suffixe}")
+
+
+@when(parsers.re(r"je choisis pour le crossfade de (?P<cote>début|fin) la règle « (?P<regle>[^»]+) »"))
+def choisir_regle(interface: Contexte, cote: str, regle: str) -> None:
+	liste, _duree = _crossfade(interface, cote)
+	rang = liste.findText(regle)
+	assert rang >= 0, regle
+	liste.setCurrentIndex(rang)
+
+
+@when(parsers.re(r"je saisis (?P<duree>[\d,]+) seconde de crossfade de (?P<cote>début|fin) dans la fiche"))
+def saisir_crossfade(interface: Contexte, duree: str, cote: str) -> None:
+	_liste, champ = _crossfade(interface, cote)
+	assert champ.isEnabled(), cote
+	champ.setValue(float(duree.replace(",", ".")))
+
+
+@then("la fiche montre les crossfades :")
+def crossfades_montres(interface: Contexte, datatable: list[list[str]]) -> None:
+	_entetes, *rangees = datatable
+	montres = []
+	for cote, *_valeurs in rangees:
+		liste, champ = _crossfade(interface, cote.strip())
+		modifiable = "oui" if champ.isEnabled() else "non"
+		montres.append([cote.strip(), liste.currentText(), champ.text(), modifiable])
+	assert montres == [[valeur.strip() for valeur in rangee] for rangee in rangees]
+
+
+@then(parsers.re(r"le crossfade de début se règle parmi (?P<regles>.+)"))
+def regles_proposees(interface: Contexte, regles: str) -> None:
+	liste, _champ = _crossfade(interface, "début")
+	assert [liste.itemText(rang) for rang in range(liste.count())] == NOM.findall(regles)
+
+
+@then(
+	parsers.re(
+		r"la banque « (?P<nom>[^»]+) » a en base les crossfades « (?P<regle_debut>[^»]+) » (?P<debut>[\d,]+) secondes?"
+		r" au début, et « (?P<regle_fin>[^»]+) » (?P<fin>[\d,]+) secondes? à la fin"
+	)
+)
+def crossfades_en_base(base_vide: Connexion, nom: str, regle_debut: str, debut: str, regle_fin: str, fin: str) -> None:
+	lignes = base_vide.execute(
+		"SELECT crossfade_debut_regle::text, crossfade_debut, crossfade_fin_regle::text, crossfade_fin"
+		" FROM banques WHERE nom_interne = %s",
+		(nom,),
+	).fetchall()
+	secondes = [timedelta(seconds=float(valeur.replace(",", "."))) for valeur in (debut, fin)]
+	assert lignes == [(regle_debut, secondes[0], regle_fin, secondes[1])]

@@ -230,6 +230,42 @@ def crossfades(base_vide: Connexion, duree: str) -> None:
 	base_vide.execute("UPDATE sonores SET crossfade_debut = %s, crossfade_fin = %s", (valeur, valeur))
 
 
+REGLES_DE_CROSSFADE = {
+	"laisse ses sonores décider, malgré": "sonore",
+	"applique à défaut": "a_defaut",
+	"impose": "impose",
+}
+"""La règle de crossfade d'une banque, telle que la disent les scénarios (https://github.com/dascritch/machincast/issues/143)."""
+
+
+@given(
+	parsers.re(
+		r"la banque « (?P<nom>[^»]+) » (?P<regle>laisse ses sonores décider, malgré|applique à défaut|impose)"
+		r" (?P<duree>[\d,]+) seconde de crossfade de (?P<cote>début|fin)"
+	)
+)
+def crossfade_de_banque(base_vide: Connexion, nom: str, regle: str, duree: str, cote: str) -> None:
+	colonne = {"début": "crossfade_debut", "fin": "crossfade_fin"}[cote]
+	base_vide.execute(
+		f"UPDATE banques SET {colonne}_regle = %s, {colonne} = %s WHERE nom_interne = %s",  # noqa: S608
+		(REGLES_DE_CROSSFADE[regle], timedelta(seconds=secondes(duree)), nom),
+	)
+
+
+@given(parsers.re(r"la banque « (?P<nom>[^»]+) », séquentielle, avec les sonores (?P<liste>.+)"))
+def banque_des_sonores(base_vide: Connexion, nom: str, liste: str) -> None:
+	"""Une banque des sonores déjà en base, sans qu'un événement l'appelle."""
+	creee = base_vide.execute(
+		"INSERT INTO banques (nom_interne, mode) VALUES (%s, 'sequentiel') RETURNING id", (nom,)
+	).fetchone()
+	assert creee is not None
+	for position, nom_sonore in enumerate((n.strip(" «»") for n in liste.split(",")), start=1):
+		base_vide.execute(
+			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+			(creee[0], sonore(base_vide, nom_sonore), position),
+		)
+
+
 @given(parsers.parse("chaque sonore a {duree} seconde de crossfade de fin, et aucun de début"))
 def crossfade_de_fin(base_vide: Connexion, duree: str) -> None:
 	base_vide.execute("UPDATE sonores SET crossfade_fin = %s", (timedelta(seconds=secondes(duree)),))

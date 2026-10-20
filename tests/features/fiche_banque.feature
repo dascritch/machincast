@@ -20,6 +20,7 @@ Fonctionnalité: Fiche d'une banque
 			|             | Spot          | fichier | actif | 30    | /srv/pubs/spot.flac           |
 		Et la banque « Jingles », séquentielle, de nom public « Radio Thune », marquée « ne pas répéter », avec « Café à minuit », « Matin clair »
 		Et les répertoires « /srv/jingles/hiver » de la banque « Jingles »
+		Et la banque « Jingles » applique à défaut 1 seconde de crossfade de fin
 
 	# ─── Ouverture et fermeture ────────────────────────────────
 
@@ -178,6 +179,39 @@ Fonctionnalité: Fiche d'une banque
 			| masqués          |
 			| affichés         |
 
+	# ─── Crossfades (https://github.com/dascritch/machincast/issues/143) ─────────────────────────
+
+	Scénario: Une banque laisse d'abord ses sonores décider de leurs crossfades
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Banques »
+		Et je clique sur « Nouvelle banque »
+		Alors la fiche montre les crossfades :
+			| côté  | règle                   | durée | durée modifiable |
+			| début | Garder ceux des sonores | 0,00 s | non             |
+			| fin   | Garder ceux des sonores | 0,00 s | non             |
+		Et le crossfade de début se règle parmi « Garder ceux des sonores », « Appliquer si le sonore n'en a pas », « Imposer à tous les sonores »
+
+	Scénario: Les règles et les durées des crossfades partent en base à l'enregistrement, chaque côté la sienne
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je choisis pour le crossfade de début la règle « Imposer à tous les sonores »
+		Et je saisis 1,5 seconde de crossfade de début dans la fiche
+		Et je choisis pour le crossfade de fin la règle « Appliquer si le sonore n'en a pas »
+		Et je saisis 2,25 seconde de crossfade de fin dans la fiche
+		Alors la fiche montre les crossfades :
+			| côté  | règle                             | durée  | durée modifiable |
+			| début | Imposer à tous les sonores        | 1,50 s | oui              |
+			| fin   | Appliquer si le sonore n'en a pas | 2,25 s | oui              |
+		Quand j'enregistre la fiche
+		Alors la banque « Jingles » a en base les crossfades « impose » 1,5 seconde au début, et « a_defaut » 2,25 secondes à la fin
+		Quand je choisis pour le crossfade de début la règle « Garder ceux des sonores »
+		Et j'enregistre la fiche
+		Alors la banque « Jingles » a en base les crossfades « sonore » 1,5 seconde au début, et « a_defaut » 2,25 secondes à la fin
+		Et la fiche montre les crossfades :
+			| côté  | règle                             | durée  | durée modifiable |
+			| début | Garder ceux des sonores           | 1,50 s | non              |
+			| fin   | Appliquer si le sonore n'en a pas | 2,25 s | oui              |
+
 	Scénario: Les noms sont enregistrés sans les espaces qui les entourent, et un nom public vide n'en est pas un
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
@@ -259,6 +293,9 @@ Fonctionnalité: Fiche d'une banque
 			| je choisis le mode « aléatoire »                                                              |
 			| je choisis le masquage « masqués »                                                            |
 			| je décoche « ne pas répéter »                                                                 |
+			| je choisis pour le crossfade de début la règle « Imposer à tous les sonores »                 |
+			| je choisis pour le crossfade de fin la règle « Garder ceux des sonores »                      |
+			| je saisis 2 seconde de crossfade de fin dans la fiche                                         |
 			| j'ajoute le répertoire « /srv/jingles/automne »                                               |
 			| je retire le répertoire « /srv/jingles/hiver »                                                |
 			| j'ajoute les sonores « Spot »                                                                 |

@@ -493,6 +493,7 @@ La fiche d'une banque s'ouvre dans un **nouvel onglet**, nommé « Banque : » s
 | Mode | `Séquentielle` : les sonores passent dans l'ordre de la liste. `Aléatoire` : ils sont tirés au hasard ([Quel sonore une banque fournit](#quel-sonore-une-banque-fournit)). |
 | Artiste et titre | `Masqués` ou `Affichés` sur la page publique, sauf si l'événement ou la séquence en décide. `Hérité du sonore` laisse décider le sonore, puis la configuration. |
 | Ne pas répéter | La banque ne passe jamais deux fois de suite ([Quel sonore une banque fournit](#quel-sonore-une-banque-fournit)). |
+| Crossfade de début, crossfade de fin | Pour les sonores joués via la banque ([#143](https://github.com/dascritch/machincast/issues/143)), chacun avec sa règle : `Garder ceux des sonores` laisse le crossfade de chaque sonore (la durée de la banque est alors grisée) ; `Appliquer si le sonore n'en a pas` donne la durée de la banque aux sonores dont le crossfade est de 0 seconde ; `Imposer à tous les sonores` la donne à tous. Un sonore placé directement dans un événement ou une séquence garde toujours les siens. |
 
 **Enregistrer et annuler** : les modifications restent dans la fiche jusqu'au clic sur **Enregistrer**, qui les écrit toutes à la fois ; **Annuler** remet la fiche telle qu'elle est en base. Les deux boutons ne servent que quand la fiche est modifiée.
 

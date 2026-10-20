@@ -117,6 +117,20 @@ Fonctionnalité: Mode simulation de Machin lecture
 			| 2026-10-20 20:00:50 | 2026-10-20 20:01:50 | f2    |
 			| 2026-10-20 20:01:40 | 2026-10-20 20:02:00 | f1    |
 
+	Scénario: Les crossfades qu'une banque impose sont simulés
+		https://github.com/dascritch/machincast/issues/143
+
+		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
+		Et chaque sonore dure 1 minute
+		Et la banque « Titres » impose 10 seconde de crossfade de début
+		Et la banque « Titres » applique à défaut 20 seconde de crossfade de fin
+		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
+		Alors la simulation donne les passages :
+			| debut               | fin                 | titre |
+			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1    |
+			| 2026-10-20 20:00:40 | 2026-10-20 20:01:40 | f2    |
+			| 2026-10-20 20:01:20 | 2026-10-20 20:02:00 | f1    |
+
 	Scénario: Un stream simulé dure jusqu'à la fin de son événement, sans contacter le flux
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
 		Et le stream « Direct » à l'adresse « http://127.0.0.1:9/aucun-flux »
