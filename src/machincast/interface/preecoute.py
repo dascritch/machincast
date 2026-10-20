@@ -37,7 +37,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget  # noqa: E402
 from machincast import audio as sorties_audio  # noqa: E402
 from machincast.audio import creer_sortie  # noqa: E402
 from machincast.configuration import Audio, SortieAudio  # noqa: E402
-from machincast.interface import affichage  # noqa: E402
+from machincast.interface import affichage, liaison  # noqa: E402
 from machincast.interface.moniteur import Indisponible, nom_du_port, source_du_moniteur  # noqa: E402
 from machincast.interface.ui.preecoute import Ui_FenetrePreecoute  # noqa: E402
 from machincast.interface.vumetre import VuMetre  # noqa: E402
@@ -114,6 +114,8 @@ class Lecteur:
 		self.source: Source | None = None
 		self._pipeline: Gst.Element | None = None
 		self._niveau: Gst.Element | None = None
+		self._liens: list[liaison.Paire] = []
+		"""Les liens de PipeWire qui copient l'antenne sur la pré-écoute, tant qu'elle joue."""
 		self.etat = "arret"
 		self.niveaux: list[float] = []
 		"""Niveau RMS de chaque canal, en décibels ; vide à l'arrêt."""
@@ -152,18 +154,39 @@ class Lecteur:
 				return
 		self._pipeline.set_state(Gst.State.PLAYING)
 		self.etat = "lecture"
+		antenne = self._antenne_par_pipewire(self.source.antenne)
+		if (antenne is not None) and (not self._liens):
+			try:
+				self._liens = liaison.paires(antenne, self.peripherique)
+				liaison.relier(self._liens)
+			except liaison.LiaisonImpossible as erreur:
+				self.arreter()
+				self.erreur = str(erreur)
 
 	def mettre_en_pause(self) -> None:
 		if self._pipeline is not None:
 			self._pipeline.set_state(Gst.State.PAUSED)
 			self.etat = "pause"
+		self._delier()
 
 	def arreter(self) -> None:
+		self._delier()
 		if self._pipeline is not None:
 			self._pipeline.set_state(Gst.State.NULL)
 		self._pipeline, self._niveau = None, None
 		self.etat = "arret"
 		self.niveaux = []
+
+	def _delier(self) -> None:
+		liaison.delier(self._liens)
+		self._liens = []
+
+	def _antenne_par_pipewire(self, antenne: Audio | None) -> str | None:
+		"""Le périphérique de l'antenne, quand elle s'écoute par un lien de PipeWire : sur la sortie pipewire, qui est
+		aussi celle de la pré-écoute."""
+		if (antenne is None) or (antenne.sortie != "pipewire"):
+			return None
+		return antenne.peripherique
 
 	def placer(self, fraction: float) -> None:
 		"""Va à cette fraction du fichier, de 0 à 1."""
@@ -264,14 +287,20 @@ class Lecteur:
 		return lecteur
 
 	def _construire_l_ecoute(self, antenne: Audio) -> Gst.Element:
-		"""Le port de monitoring de l'antenne, joué sur la sortie de pré-écoute."""
+		"""Le port de monitoring de l'antenne, joué sur la sortie de pré-écoute. Sous PipeWire, le son passe par un
+		lien (machincast.interface.liaison) : le pipeline ne fait que mesurer, pour le VU-mètre."""
 		pipeline = Gst.Pipeline.new("ecoute-antenne")
+		sortie = Gst.ElementFactory.make("fakesink", None)
+		assert sortie is not None
+		sortie.set_property("sync", False)
+		if self._antenne_par_pipewire(antenne) is None:
+			sortie = creer_sortie(self.sortie, self.peripherique)
 		elements = [
 			source_du_moniteur(antenne),
 			Gst.ElementFactory.make("audioconvert", None),
 			Gst.ElementFactory.make("audioresample", None),
 			Gst.ElementFactory.make("level", None),
-			creer_sortie(self.sortie, self.peripherique),
+			sortie,
 		]
 		assert all(element is not None for element in elements), "installer gstreamer1.0-plugins-base et -good"
 		niveau = elements[3]

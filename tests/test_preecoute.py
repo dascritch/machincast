@@ -12,7 +12,6 @@ from datetime import timedelta
 from pathlib import Path
 
 import psycopg
-from PySide6.QtCore import Qt
 from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QApplication
 from pytest_bdd import given, parsers, scenarios, then, when
@@ -66,18 +65,6 @@ def antenne(interface: Contexte, identifiant: str) -> None:
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when("je mets la pré-écoute en pause")
-def pause(interface: Contexte, qtbot: QtBot) -> None:
-	bouton = fenetre_de_preecoute(interface).ui.lecture
-	qtbot.waitUntil(lambda: (bouton.text(), bouton.toolTip()) == ("⏸", "Pause"), timeout=DELAI)
-	qtbot.mouseClick(bouton, Qt.MouseButton.LeftButton)
-
-
-@when("j'arrête la pré-écoute")
-def arreter(interface: Contexte, qtbot: QtBot) -> None:
-	qtbot.mouseClick(fenetre_de_preecoute(interface).ui.arret, Qt.MouseButton.LeftButton)
-
-
 @when(parsers.parse("je place la position de la pré-écoute à {pourcentage:d} %"))
 def placer(interface: Contexte, pourcentage: int) -> None:
 	barre = fenetre_de_preecoute(interface).ui.position
@@ -86,11 +73,6 @@ def placer(interface: Contexte, pourcentage: int) -> None:
 	barre.setValue(round(barre.maximum() * pourcentage / 100))
 	barre.sliderReleased.emit()
 	barre.setSliderDown(False)
-
-
-@when("je ferme la fenêtre de pré-écoute")
-def fermer(interface: Contexte) -> None:
-	fenetre_de_preecoute(interface).close()
 
 
 @when(parsers.parse("je choisis la sortie « {nom} » pour la pré-écoute"))

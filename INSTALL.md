@@ -58,6 +58,7 @@ Paquets installés par apt : uniquement ce que pip ne peut pas fournir. Toutes l
 | `gstreamer1.0-alsa` | Sortie audio `alsa`. |
 | `gstreamer1.0-pulseaudio` | Sortie audio `pulseaudio`. |
 | `gstreamer1.0-pipewire` | Sortie audio `pipewire`. |
+| `pipewire-bin` | `pw-link`, qui relie l'antenne à la pré-écoute pour l'écouter sous PipeWire ([#24](https://github.com/dascritch/machincast/issues/24)). Déjà présent avec PipeWire sur une Ubuntu de bureau. |
 | `libmagic1t64` | Reconnaissance du type réel des fichiers sonores, sans se fier à leur extension ([#121](https://github.com/dascritch/machincast/issues/121)). |
 | `postgresql` | Serveur de base de données. |
 | `bash-completion` | Chargement de l'autocomplétion de `Machin`. Déjà présent sur une Ubuntu standard, absent d'une installation minimale. |
@@ -286,7 +287,7 @@ Les commandes ci-dessous sont celles qu'enchaîne `install.sh`. Elles se lancent
 ```bash
 sudo apt install python3-venv python3-dev build-essential pkg-config libgirepository-2.0-dev libcairo2-dev \
 	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
-	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire libmagic1t64 postgresql bash-completion
+	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire pipewire-bin libmagic1t64 postgresql bash-completion
 ```
 
 **2. Environnement virtuel Python.** Jamais `--system-site-packages` : MachinCast ne doit pas dépendre des versions des paquets Python de la distribution.

@@ -28,6 +28,23 @@ def lancer(interface: Contexte, qtbot: QtBot) -> None:
 	qtbot.mouseClick(bouton, Qt.MouseButton.LeftButton)
 
 
+@when("je mets la pré-écoute en pause")
+def pause(interface: Contexte, qtbot: QtBot) -> None:
+	bouton = fenetre_de_preecoute(interface).ui.lecture
+	qtbot.waitUntil(lambda: (bouton.text(), bouton.toolTip()) == ("⏸", "Pause"), timeout=DELAI)
+	qtbot.mouseClick(bouton, Qt.MouseButton.LeftButton)
+
+
+@when("j'arrête la pré-écoute")
+def arreter(interface: Contexte, qtbot: QtBot) -> None:
+	qtbot.mouseClick(fenetre_de_preecoute(interface).ui.arret, Qt.MouseButton.LeftButton)
+
+
+@when("je ferme la fenêtre de pré-écoute")
+def fermer(interface: Contexte) -> None:
+	fenetre_de_preecoute(interface).close()
+
+
 @then(parsers.parse("la fenêtre de pré-écoute est ouverte, titrée « {titre} »"))
 def ouverte(interface: Contexte, titre: str) -> None:
 	ouverte = fenetre_de_preecoute(interface)

@@ -174,6 +174,91 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Alors la pré-écoute signale bientôt « Lecture impossible : Indisponible : »
 		Et la pré-écoute est « À l'arrêt »
 
+	Scénario: Sous PipeWire, écouter l'antenne relie ses ports de monitoring au périphérique de pré-écoute
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « antenne-ua22 » et de pré-écoute « casque-usb »
+		Et PipeWire simulé, avec les ports de sortie « antenne-ua22:monitor_FL, antenne-ua22:monitor_FR, casque-usb:monitor_FL, casque-usb:monitor_FR » et d'entrée « casque-usb:playback_FR, casque-usb:playback_FL, antenne-ua22:playback_FL, antenne-ua22:playback_FR »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je clique sur le VU-mètre de l'antenne
+		Et je lance la pré-écoute
+		Alors la pré-écoute est bientôt « En lecture »
+		Et PipeWire relie « antenne-ua22:monitor_FL » à « casque-usb:playback_FL », et « antenne-ua22:monitor_FR » à « casque-usb:playback_FR »
+		Et le VU-mètre de la pré-écoute montre bientôt du son
+		Quand je mets la pré-écoute en pause
+		Alors PipeWire ne relie plus rien
+		Quand je lance la pré-écoute
+		Alors PipeWire relie « antenne-ua22:monitor_FL » à « casque-usb:playback_FL », et « antenne-ua22:monitor_FR » à « casque-usb:playback_FR »
+		Quand j'arrête la pré-écoute
+		Alors PipeWire ne relie plus rien
+
+	Scénario: Un casque mono, sous PipeWire, reçoit les deux canaux de l'antenne
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « antenne-ua22 » et de pré-écoute « casque-mono »
+		Et PipeWire simulé, avec les ports de sortie « antenne-ua22:monitor_FL, antenne-ua22:monitor_FR » et d'entrée « enceintes:playback_FL, casque-mono:playback_MONO, enceintes:playback_FR »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je clique sur le VU-mètre de l'antenne
+		Et je lance la pré-écoute
+		Alors PipeWire relie « antenne-ua22:monitor_FL » à « casque-mono:playback_MONO », et « antenne-ua22:monitor_FR » à « casque-mono:playback_MONO »
+
+	Scénario: Fermer la pré-écoute, sous PipeWire, défait ses liens
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « antenne-ua22 » et de pré-écoute « casque-usb »
+		Et PipeWire simulé, avec les ports de sortie « antenne-ua22:monitor_FL, antenne-ua22:monitor_FR » et d'entrée « casque-usb:playback_FL, casque-usb:playback_FR »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je clique sur le VU-mètre de l'antenne
+		Et je lance la pré-écoute
+		Et la pré-écoute est bientôt « En lecture »
+		Et je ferme la fenêtre de pré-écoute
+		Alors PipeWire ne relie plus rien
+
+	Plan du scénario: Sans les ports de l'antenne ou de la pré-écoute, PipeWire ne relie rien, et la pré-écoute le dit
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « antenne-ua22 » et de pré-écoute « casque-usb »
+		Et PipeWire simulé, avec les ports de sortie « <sorties> » et d'entrée « <entrees> »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je clique sur le VU-mètre de l'antenne
+		Et je lance la pré-écoute
+		Alors la pré-écoute signale « Lecture impossible : PipeWire n'a pas de port de monitoring pour antenne-ua22, ou pas d'entrée pour casque-usb. »
+		Et la pré-écoute est « À l'arrêt »
+		Et PipeWire ne relie plus rien
+
+		Exemples:
+			| sorties                                     | entrees                                       |
+			| casque-usb:monitor_FL                       | casque-usb:playback_FL                        |
+			| antenne-ua22:monitor_FL, casque-usb:monitor_FL | antenne-ua22:playback_FL, enceintes:playback_FL |
+
+	Scénario: PipeWire qui refuse un lien arrête la pré-écoute, et elle le dit
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « antenne-ua22 » et de pré-écoute « casque-usb »
+		Et PipeWire simulé, avec les ports de sortie « antenne-ua22:monitor_FL » et d'entrée « casque-usb:playback_FL »
+		Et PipeWire simulé refuse de relier : « failed to link ports: Operation not permitted »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je clique sur le VU-mètre de l'antenne
+		Et je lance la pré-écoute
+		Alors la pré-écoute signale « Lecture impossible : pw-link antenne-ua22:monitor_FL casque-usb:playback_FL : failed to link ports: Operation not permitted »
+		Et la pré-écoute est « À l'arrêt »
+
+	Scénario: Un lien que PipeWire a déjà n'empêche pas d'écouter l'antenne
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « antenne-ua22 » et de pré-écoute « casque-usb »
+		Et PipeWire simulé, avec les ports de sortie « antenne-ua22:monitor_FL » et d'entrée « casque-usb:playback_FL »
+		Et PipeWire simulé refuse de relier : « failed to link ports: File exists »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je clique sur le VU-mètre de l'antenne
+		Et je lance la pré-écoute
+		Alors la pré-écoute est bientôt « En lecture »
+
+	Plan du scénario: L'écoute de l'antenne joue sur la pré-écoute avec PulseAudio, et ne fait que mesurer sous PipeWire
+		Quand je construis l'écoute de l'antenne sur la sortie « <sortie> », pré-écoute « casque-usb »
+		Alors l'écoute de l'antenne finit par l'élément « <element> »
+
+		Exemples:
+			| sortie     | element   |
+			| pulseaudio | pulsesink |
+			| pipewire   | fakesink  |
+
+	Scénario: Sans pw-link, la pré-écoute de l'antenne le dit
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « antenne-ua22 » et de pré-écoute « casque-usb »
+		Et PipeWire simulé, sans pw-link
+		Quand la fenêtre de l'interface s'ouvre
+		Et je clique sur le VU-mètre de l'antenne
+		Et je lance la pré-écoute
+		Alors la pré-écoute signale « Lecture impossible : pw-link introuvable ; installer pipewire-bin. »
+
 	Scénario: Un VU-mètre indisponible n'écoute rien
 		Étant donné la configuration audio sortie « alsa », avec le périphérique d'antenne « hw:0 »
 		Quand la fenêtre de l'interface s'ouvre
