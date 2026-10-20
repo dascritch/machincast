@@ -131,7 +131,13 @@ def executer_diffusion(configuration: Configuration) -> int:
 		with connecter(base.socket, base.production, Role.LECTURE) as connexion:
 			moteur = MoteurAudio(configuration.audio)
 			try:
-				journal.info(f"diffusion sur la sortie {configuration.audio.sortie}, arrêt par Ctrl-C ou SIGTERM")
+				peripherique = ""
+				if audio.peripherique is not None:
+					peripherique = f", périphérique {audio.peripherique}"
+				journal.info(
+					f"diffusion sur la sortie {audio.sortie}{peripherique}, configuration {configuration.chemin},"
+					" arrêt par Ctrl-C ou SIGTERM"
+				)
 				diffusion = Diffusion(
 					connexion,
 					moteur,

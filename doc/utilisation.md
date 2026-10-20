@@ -757,7 +757,7 @@ Chaque entrée demande le mot de passe, ou l'empreinte, d'un administrateur du p
 
 | Entrée | Active | Ce qu'elle fait |
 | --- | --- | --- |
-| Démarrer la diffusion d'essai | Quand rien ne diffuse | Ouvre `Machin lecture` dans une fenêtre de terminal (konsole, sinon le terminal par défaut du poste, `x-terminal-emulator`), avec la configuration de l'interface. Fermer l'interface ne l'arrête pas. |
+| Démarrer la diffusion d'essai | Quand rien ne diffuse | Ouvre `Machin lecture` dans une fenêtre de terminal (konsole, sinon le terminal par défaut du poste, `x-terminal-emulator`), comme le lancerait le service : avec le `machincast.toml` du répertoire de MachinCast, donc sur le même périphérique d'antenne. Si l'interface a été lancée avec une autre configuration, la barre d'état le dit. La première ligne du terminal donne la sortie, le périphérique et la configuration de la diffusion. Fermer l'interface ne l'arrête pas. |
 | Arrêter la diffusion d'essai | Quand une diffusion d'essai tourne | L'arrête comme <kbd>Ctrl</kbd> + <kbd>C</kbd> dans son terminal : le passage en cours se termine proprement. La barre d'état annonce `Arrêt de la diffusion d'essai demandé…`, puis `Diffusion d'essai arrêtée.` |
 | Redémarrer la diffusion d'essai | Quand une diffusion d'essai tourne | L'arrête de même, puis la relance dans une nouvelle fenêtre de terminal. |
 

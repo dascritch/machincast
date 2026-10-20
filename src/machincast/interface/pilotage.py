@@ -5,7 +5,8 @@ redémarrer appellent systemctl sur machincast.service, dans un processus à par
 autorise avec l'authentification d'un administrateur, que demande l'agent polkit de la session. Jamais sudo.
 
 Sans le service, l'installation n'est pas définitive, et le menu pilote une diffusion d'essai : Machin lecture lancé
-dans une fenêtre de terminal (konsole, sinon x-terminal-emulator), avec la configuration de l'interface. L'arrêter
+dans une fenêtre de terminal (konsole, sinon x-terminal-emulator), par la commande du service, sur sa configuration :
+la diffusion d'essai sort sur le même périphérique que sortirait le service. L'arrêter
 lui envoie SIGTERM, comme Ctrl-C dans ce terminal ; son processus est celui qui répond sur la socket d'état
 (ClientEtat.pid_du_lecteur). Ce n'est pas « Machin lecture --simulation », qui ne joue rien.
 """
@@ -17,7 +18,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QObject, QProcess, Signal
 
-from machincast.configuration import REPERTOIRE_PROJET
+from machincast.configuration import REPERTOIRE_PROJET, fichier_par_defaut
 from machincast.service import UNITE
 
 VERBES = {
@@ -35,6 +36,8 @@ ESSAI = {
 TERMINAUX = ("konsole", "x-terminal-emulator")
 """Les terminaux essayés, dans l'ordre : celui de Kubuntu, puis celui que choisit le poste."""
 SANS_TERMINAL = "Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin lecture à la main."
+COMMANDE_DU_SERVICE = [str(REPERTOIRE_PROJET / "bin" / "Machin"), "lecture"]
+"""Comme l'ExecStart de machincast.service : la diffusion d'essai sort là où sortirait le service."""
 LANCE = "Diffusion d'essai lancée dans un terminal : Ctrl-C l'y arrête."
 RELANCE = "Diffusion d'essai relancée dans un terminal : Ctrl-C l'y arrête."
 ARRET_DEMANDE = "Arrêt de la diffusion d'essai demandé…"
@@ -66,17 +69,28 @@ class Pilotage(QObject):
 		self.termine.emit(f"{echec} : {(erreur) or (processus.errorString())}")
 
 
-def lancer_dans_un_terminal(configuration: Path | None) -> str:
-	"""Machin lecture, détaché, dans le premier terminal trouvé ; ce que la barre d'état en dit."""
-	commande = [str(REPERTOIRE_PROJET / "bin" / "Machin"), "lecture"]
-	if configuration is not None:
-		commande += ["--config", str(configuration)]
+def lancer_dans_un_terminal(configuration: Path | None, lance: str = LANCE) -> str:
+	"""Machin lecture, détaché, dans le premier terminal trouvé, par la commande même du service : il lit la
+	configuration du service, le machincast.toml du répertoire de MachinCast, et diffuse donc sur le même périphérique
+	que lui. Ce que la barre d'état en dit : lance, et l'écart avec la configuration de l'interface s'il y en a un."""
 	for terminal in TERMINAUX:
 		chemin = shutil.which(terminal)
 		if chemin is not None:
-			QProcess.startDetached(chemin, ["-e", *commande])
-			return LANCE
+			QProcess.startDetached(chemin, ["-e", *COMMANDE_DU_SERVICE])
+			return f"{lance}{_ecart(configuration)}"
 	return SANS_TERMINAL
+
+
+def _ecart(configuration: Path | None) -> str:
+	du_service = configuration_du_service()
+	if (configuration is None) or (configuration.resolve() == du_service.resolve()):
+		return ""
+	return f" Elle lit {du_service}, comme le service, et non {configuration}, celle de l'interface."
+
+
+def configuration_du_service() -> Path:
+	"""Le fichier que lit le service, lancé sans --config (machincast.installation.unite_systemd)."""
+	return fichier_par_defaut()
 
 
 def arreter_le_lecteur(pid: int) -> str:
