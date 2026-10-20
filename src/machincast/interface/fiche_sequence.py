@@ -7,8 +7,10 @@ pour une nouvelle séquence. Enregistrement, annulation et fermeture : machincas
 - Le masquage « selon la banque ou le sonore » (NULL) laisse décider le niveau suivant ; « masqués » et « affichés »
   l'imposent.
 - Les éléments sont des sonores et des banques, jamais une autre séquence (machincast.interface.elements). Une
-  séquence vide ne s'enregistre pas : la base ne la refuse pas, mais elle ne jouerait rien. L'avertissement d'une
-  banque « ne pas répéter » appelée deux fois de suite ne boucle pas : la séquence ne reprend pas à son début.
+  séquence vide s'enregistre, pour être complétée plus tard, avec un avertissement : elle ne joue rien, la diffusion
+  la saute, et la liste des séquences la montre en anomalie (https://github.com/dascritch/machincast/issues/138).
+  L'avertissement d'une banque « ne pas répéter » appelée deux fois de suite ne boucle pas : la séquence ne reprend
+  pas à son début.
 - Les événements où la séquence figure sont montrés ; ouvrir un événement ouvre sa fiche.
 """
 
@@ -18,6 +20,7 @@ from PySide6.QtWidgets import QListWidgetItem, QWidget
 from machincast.horloge import Horloge
 from machincast.interface.elements import Boutons, ListeElements
 from machincast.interface.fiche import Connexion, Fiche, Refus
+from machincast.interface.listes import SEQUENCE_VIDE
 from machincast.interface.ui.fiche_sequence import Ui_FicheSequence
 
 MASQUAGES: tuple[tuple[bool | None, str], ...] = (
@@ -92,6 +95,8 @@ class FicheSequence(Fiche):
 			item = QListWidgetItem(str(nom_evenement))
 			item.setData(EVENEMENT, int(str(identifiant)))
 			self.ui.evenements.addItem(item)
+		# Une liste lue vide ne change pas : l'avertissement d'une séquence vide se pose ici.
+		self._avertir()
 
 	def _ecrire(self) -> int:
 		nom = self.ui.nom_interne.text().strip()
@@ -102,8 +107,6 @@ class FicheSequence(Fiche):
 		).fetchone()
 		if pris is not None:
 			raise Refus(f"Une autre séquence s'appelle déjà « {nom} ».")
-		if self.elements.lignes() == []:
-			raise Refus("Une séquence contient au moins un sonore ou une banque.")
 		valeurs = (
 			nom,
 			(self.ui.nom_public.text().strip()) or (None),
@@ -126,8 +129,11 @@ class FicheSequence(Fiche):
 		return identifiant
 
 	def _avertir(self) -> None:
-		"""Une banque « ne pas répéter » appelée juste après elle-même : cet appel sera sauté."""
-		self.ui.avertissement.setText("\n".join(self.elements.avertissements(False)))
+		"""Une séquence vide, ou une banque « ne pas répéter » appelée juste après elle-même : cet appel sera sauté."""
+		avertissements = self.elements.avertissements(False)
+		if self.elements.lignes() == []:
+			avertissements = [SEQUENCE_VIDE]
+		self.ui.avertissement.setText("\n".join(avertissements))
 
 	def _ouvrir_evenement(self, item: QListWidgetItem) -> None:
 		self.ouverture_demandee.emit("événement", int(item.data(EVENEMENT)), item.text())

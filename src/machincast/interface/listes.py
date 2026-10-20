@@ -5,7 +5,9 @@ Chaque liste est un onglet de la fenêtre (machincast.interface.fenetre). Elle s
 l'interface, chaque fois que son onglet s'ouvre : jamais en boucle. Le filtre garde les lignes dont une colonne contient
 le texte tapé, sans tenir compte des majuscules ni des accents. Ouvrir une ligne (double-clic ou Entrée) demande
 l'écran de détail de l'élément (signal ouverte). Une liste peut avoir un bouton qui crée un élément
-(signal creation_demandee) : « Nouvelle banque » (https://github.com/dascritch/machincast/issues/31).
+(signal creation_demandee) : « Nouvelle banque » (https://github.com/dascritch/machincast/issues/31). Une ligne en
+anomalie, une séquence vide par exemple, a l'icône d'avertissement, une infobulle qui l'explique, et le compte les
+dénombre (https://github.com/dascritch/machincast/issues/138).
 """
 
 import logging
@@ -18,7 +20,7 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSortFilterProxyModel, Qt, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QHeaderView, QLabel, QLineEdit, QTableView, QWidget
+from PySide6.QtWidgets import QHeaderView, QLabel, QLineEdit, QStyle, QTableView, QWidget
 
 from machincast.interface import affichage
 from machincast.interface.depot import DepotDeFichiers
@@ -40,6 +42,7 @@ ETATS = {
 }
 PRIORITES = {"special": "spécial", "emission": "émission", "fil_musical": "fil musical", "secours": "secours"}
 MODES = {"sequentiel": "séquentielle", "aleatoire": "aléatoire"}
+SEQUENCE_VIDE = "Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant."
 
 
 @dataclass(frozen=True)
@@ -48,6 +51,8 @@ class Ligne:
 	nom: str
 	"""Nom de l'élément, pour l'annoncer."""
 	cellules: list[str]
+	anomalie: str = ""
+	"""Ce qui ne va pas, en une phrase, pour l'infobulle de la ligne ; rien pour une ligne saine."""
 
 
 @dataclass(frozen=True)
@@ -117,12 +122,19 @@ def lire_banques(connexion: Connexion) -> list[Ligne]:
 def lire_sequences(connexion: Connexion) -> list[Ligne]:
 	with connexion.transaction():
 		rangees = connexion.execute(
-			"SELECT id, nom_interne, nom_public FROM sequences ORDER BY nom_interne, id"
+			"SELECT q.id, q.nom_interne, q.nom_public,"
+			" NOT EXISTS (SELECT 1 FROM sequences_elements e WHERE e.sequence_id = q.id)"
+			" FROM sequences q ORDER BY q.nom_interne, q.id"
 		).fetchall()
-	return [
-		Ligne(int(str(identifiant)), str(nom), [str(nom), _texte(nom_public)])
-		for identifiant, nom, nom_public in rangees
-	]
+	lignes = []
+	for identifiant, nom, nom_public, vide in rangees:
+		cellules = [str(nom), _texte(nom_public), ""]
+		anomalie = ""
+		if vide:
+			cellules[2] = "séquence vide"
+			anomalie = SEQUENCE_VIDE
+		lignes.append(Ligne(int(str(identifiant)), str(nom), cellules, anomalie))
+	return lignes
 
 
 def lire_marques_pages(connexion: Connexion) -> list[Ligne]:
@@ -176,7 +188,13 @@ BANQUES = Source(
 	"Nouvelle banque",
 )
 SEQUENCES = Source(
-	"séquence", ("Nom", "Nom public"), lire_sequences, "séquence", "séquences", "aucune séquence", "Nouvelle séquence"
+	"séquence",
+	("Nom", "Nom public", "Anomalie"),
+	lire_sequences,
+	"séquence",
+	"séquences",
+	"aucune séquence",
+	"Nouvelle séquence",
 )
 EVENEMENTS = Source(
 	"événement",
@@ -292,6 +310,10 @@ class Liste(QWidget):
 			cellules = [QStandardItem(texte) for texte in ligne.cellules]
 			cellules[0].setData(ligne.identifiant, IDENTIFIANT)
 			cellules[0].setData(ligne.nom, IDENTIFIANT + 1)
+			if ligne.anomalie:
+				cellules[0].setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning))
+				for cellule in cellules:
+					cellule.setToolTip(ligne.anomalie)
 			self.modele.appendRow(cellules)
 		self._compter()
 
@@ -303,11 +325,18 @@ class Liste(QWidget):
 		total = self.modele.rowCount()
 		visibles = self.proxy.rowCount()
 		if self.filtre.text() != "":
-			self.compte.setText(f"{visibles} {self._mot(visibles)} sur {total}")
+			texte = f"{visibles} {self._mot(visibles)} sur {total}"
 		elif total == 0:
-			self.compte.setText(self.source.aucun)
+			texte = self.source.aucun
 		else:
-			self.compte.setText(f"{total} {self._mot(total)}")
+			texte = f"{total} {self._mot(total)}"
+		# Les lignes en anomalie parmi celles que montre le filtre.
+		anomalies = sum(
+			1 for rangee in range(visibles) if self.proxy.index(rangee, 0).data(Qt.ItemDataRole.ToolTipRole)
+		)
+		if anomalies > 0:
+			texte = f"{texte}, dont {anomalies} en anomalie"
+		self.compte.setText(texte)
 
 	def _mot(self, nombre: int) -> str:
 		if nombre > 1:

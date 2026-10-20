@@ -64,9 +64,34 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Séquences »
 		Alors la liste montre :
-			| Nom         | Nom public               |
-			| Passage pub | Vous écoutez Radio Thune |
+			| Nom         | Nom public               | Anomalie |
+			| Passage pub | Vous écoutez Radio Thune |          |
 		Et le compte de la liste est « 1 séquence »
+
+	Scénario: Une séquence vide est signalée en anomalie dans la liste
+		https://github.com/dascritch/machincast/issues/138 : une séquence vide s'enregistre, pour être complétée plus tard.
+
+		Étant donné les sonores :
+			| artiste | titre | type    | etat  | duree | emplacement  |
+			|         | j1    | fichier | actif | 8     | /srv/j1.flac |
+		Et la séquence « Passage pub », sans nom public, avec le sonore « j1 »
+		Et la séquence « Brouillon », sans nom public, avec rien
+		Et la séquence « Habillage », sans nom public, avec rien
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Séquences »
+		Alors la liste montre :
+			| Nom         | Nom public | Anomalie      |
+			| Brouillon   |            | séquence vide |
+			| Habillage   |            | séquence vide |
+			| Passage pub |            |               |
+		Et le compte de la liste est « 3 séquences, dont 2 en anomalie »
+		Et la liste marque en anomalie les lignes « Brouillon », « Habillage », avec l'infobulle « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
+		Quand je tape « vide » dans le filtre de la liste
+		Alors le compte de la liste est « 2 séquences sur 3, dont 2 en anomalie »
+		Quand je tape « pub » dans le filtre de la liste
+		Alors le compte de la liste est « 1 séquence sur 3 »
+		Quand je tape « brouillon » dans le filtre de la liste
+		Alors le compte de la liste est « 1 séquence sur 3, dont 1 en anomalie »
 
 	Scénario: La liste des événements, du plus prioritaire au moins prioritaire
 		Étant donné les événements :

@@ -421,6 +421,19 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 			| 20:00 | m      | Magazine  | entier |
 			| 20:10 | m      | Magazine  | entier |
 
+	Scénario: Une séquence vide, à compléter plus tard, est sautée sans bloquer l'événement
+		https://github.com/dascritch/machincast/issues/138
+
+		Étant donné une séquence vide « À compléter »
+		Et les événements :
+			| nom      | priorité | début | fin   | liste                                   |
+			| Magazine | emission | 20:00 | 20:20 | séquence « À compléter », sonore « m » |
+		Quand la diffusion se déroule de 20:00 à 20:20
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | m      | Magazine  | entier |
+			| 20:10 | m      | Magazine  | entier |
+
 	Scénario: À la fin d'un événement sans successeur, la séquence est jouée jusqu'au bout
 		Étant donné une séquence « Trio » jouant sonore « t1 », sonore « t2 », sonore « t3 »
 		Et les événements :

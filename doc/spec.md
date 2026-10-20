@@ -182,7 +182,7 @@ Suites de sonores et de banques réutilisables dans les événements ([#99](http
 
 | Champ | Description |
 | --- | --- |
-| `sequence_id`, `position` | Liste ordonnée, réordonnable par glisser-déposer, d'au moins un élément : l'interface refuse d'enregistrer une séquence vide. |
+| `sequence_id`, `position` | Liste ordonnée, réordonnable par glisser-déposer, éventuellement vide : une séquence vide s'enregistre, pour être complétée plus tard, et la diffusion la saute ([#138](https://github.com/dascritch/machincast/issues/138)). |
 | `banque_id`, `sonore_id` | Exactement un des deux est renseigné. Une séquence ne contient jamais une autre séquence, pour écarter tout appel cyclique ; l'imbrication est un [développement ultérieur](#11-développements-ultérieurs). |
 
 Comme dans un événement, un même élément peut apparaître plusieurs fois (par exemple deux appels à la banque de publicités).
@@ -557,7 +557,8 @@ Mise en œuvre ([#23](https://github.com/dascritch/machincast/issues/23), `machi
 Mise en œuvre des listes ([#26](https://github.com/dascritch/machincast/issues/26), `machincast.interface.listes`, `machincast.interface.fenetre`) :
 
 - **Onglets** : la fenêtre a un onglet par écran, décidé avec le ticket : Accueil (l'écran par défaut, [§ 8.1](#81-écran-par-défaut)), ouvert au lancement, puis une liste par type, dans l'ordre de la recherche : Événements, Séquences, Banques, Sonores ; puis les Marques-pages ([§ 8.13](#813-marques-pages-de-streams)) ; enfin les Incidents ([§ 8.6](#86-écran-des-incidents)).
-- **Colonnes et ordre** : événements (nom, nom public, priorité, début, fin, récurrence), du plus prioritaire au moins prioritaire ; séquences (nom, nom public) ; banques (nom, nom public, mode, ne pas répéter, premier répertoire dans l'ordre alphabétique) ; sonores (artiste, titre, type, état, durée, emplacement), par artiste puis titre ; marques-pages (nom, adresse, nombre de streams qui le suivent), par nom. Un clic sur un titre de colonne trie.
+- **Colonnes et ordre** : événements (nom, nom public, priorité, début, fin, récurrence), du plus prioritaire au moins prioritaire ; séquences (nom, nom public, anomalie : « séquence vide », [#138](https://github.com/dascritch/machincast/issues/138)) ; banques (nom, nom public, mode, ne pas répéter, premier répertoire dans l'ordre alphabétique) ; sonores (artiste, titre, type, état, durée, emplacement), par artiste puis titre ; marques-pages (nom, adresse, nombre de streams qui le suivent), par nom. Un clic sur un titre de colonne trie.
+- **Anomalies** ([#138](https://github.com/dascritch/machincast/issues/138)) : une ligne en anomalie (`Ligne.anomalie`) a l'icône d'avertissement de Qt sur sa première cellule et son explication en infobulle sur toutes ; le compte ajoute « dont n en anomalie », parmi les lignes que garde le filtre.
 - **Filtre** : les lignes dont une colonne contient le texte, sans tenir compte des majuscules ni des accents (`FiltreSansAccents`) ; un compte « n sonores sur N ».
 - **Lecture** : en base, avec le rôle de l'interface, chaque fois que l'onglet s'ouvre ; jamais en boucle. Le filtre est gardé.
 - **Détail** : un double-clic ou Entrée sur une ligne émet `FenetrePrincipale.detail_demande(genre, identifiant)`, et ouvre la fiche de l'élément ([§ 8.5](#85-écran-de-détails-dun-événement), [§ 8.12](#812-écran-de-détails-dune-séquence), [§ 8.4](#84-écran-de-détails-dune-banque), [§ 8.3](#83-écran-de-détails-dun-sonore)).
@@ -702,14 +703,14 @@ Décidé avec le ticket [#99](https://github.com/dascritch/machincast/issues/99)
 
 - Nom interne et nom public.
 - Masquage de l'artiste et du titre.
-- Liste ordonnée de sonores et/ou de banques, réordonnable par glisser-déposer, doublons autorisés, jamais une autre séquence. Une séquence vide ne s'enregistre pas.
+- Liste ordonnée de sonores et/ou de banques, réordonnable par glisser-déposer, doublons autorisés, jamais une autre séquence. Une séquence vide s'enregistre, avec un avertissement, et la liste des séquences la signale en anomalie ([#138](https://github.com/dascritch/machincast/issues/138)).
 - Avertissement quand une banque « ne pas répéter » occupe deux lignes contiguës : le deuxième appel sera ignoré à la diffusion (`deroule.appels_ignores`, sans boucle). L'avertissement n'empêche pas d'enregistrer.
 - Liste des événements où la séquence figure. Sa suppression suit la règle du [§ 8.9](#89-suppression).
 
 Mise en œuvre ([#112](https://github.com/dascritch/machincast/issues/112), `machincast.interface.fiche_sequence`), avec ce qui est commun aux fiches (`machincast.interface.fiche`, [§ 8.4](#84-écran-de-détails-dune-banque)) :
 
 - **Onglet** : « Séquence : <nom interne> », depuis la liste des séquences ; « Nouvelle séquence » ouvre une fiche vide, au masquage hérité.
-- **Champs** : noms enregistrés sans les espaces qui les entourent, un nom public vide comme NULL ; masquage « Selon la banque ou le sonore » (NULL), « Masqués » (vrai), « Affichés » (faux). Un nom interne vide ou déjà pris, ou une séquence sans élément, laisse la fiche modifiée, avec un message.
+- **Champs** : noms enregistrés sans les espaces qui les entourent, un nom public vide comme NULL ; masquage « Selon la banque ou le sonore » (NULL), « Masqués » (vrai), « Affichés » (faux). Un nom interne vide ou déjà pris laisse la fiche modifiée, avec un message ; une séquence sans élément s'enregistre, et la fiche avertit qu'elle ne joue rien ([#138](https://github.com/dascritch/machincast/issues/138)).
 - **Éléments** (`machincast.interface.elements`, commun avec la fiche d'un événement) : genre, nom (artiste et titre d'un sonore, le nom du fichier d'un sonore pas encore décodé, le nom interne d'une banque) et détail (emplacement d'un sonore ; mode d'une banque, et « ne pas répéter »). Réordonnables par glisser-déposer ou par « Monter » et « Descendre » ; une ligne ne se dépose pas dans une autre. L'ajout se fait parmi les sonores et les banques déjà en base (`Choix`, avec la remarque qu'un élément peut revenir), ou par dépôt de fichiers sonores, comme sur la fiche d'une banque : copie seulement, un fichier pas encore en base devenant un sonore `apercu` à l'enregistrement.
 - **Écriture** : à l'enregistrement, une ligne restée dans la liste garde son identifiant dans `sequences_elements`, à sa nouvelle position, pour que `airplay.sequence_element_id` la désigne toujours ([§ 4.3](#43-liste-de-lecture-dun-événement)) ; les lignes retirées sont supprimées, les nouvelles ajoutées. Un sonore ou une banque effacé de la base entre-temps est oublié.
 - **Avertissement** : sous la liste, une ligne par appel sauté, « Ligne N : la banque « … » vient de passer, et ne passe jamais deux fois de suite : cet appel sera sauté. », recalculé à chaque changement de la liste.
