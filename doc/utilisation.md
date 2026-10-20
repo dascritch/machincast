@@ -177,7 +177,16 @@ Les champs suivent les tags du fichier : un tag retiré du fichier vide le champ
 
 ### Ce qu'affiche l'indexation
 
-Une ligne par fichier défectueux, sur la sortie d'erreur, avec le chemin du fichier, le problème et sa conséquence :
+Une ligne par sonore indexé, au fil de l'indexation ([#120](https://github.com/dascritch/machincast/issues/120)), avec le chemin du fichier et son statut. Sur la sortie standard, les fichiers trouvés dans les répertoires des banques, puis chaque fichier décodé sain, avec le nom du sonore quand ses tags en donnent un, et ce que devient son état :
+
+```text
+Machin_indexation : /musique/jingles/intro.flac : nouveau sonore, ajouté à la banque Jingles
+Machin_indexation : /musique/titres/cafe.flac : rattaché à la banque Nuit
+Machin_indexation : /musique/jingles/intro.flac : sain, Radio Machin – Générique ; sonore passé actif
+Machin_indexation : /musique/titres/cafe.flac : sain, Les Gaufres – Café à minuit ; état actif conservé
+```
+
+En indexation rapide, un sonore qui n'est ni nouveau ni en aperçu n'est pas décodé, et n'a donc pas de ligne, sauf si son fichier a disparu. Sur la sortie d'erreur, une ligne par fichier défectueux, avec le problème et sa conséquence :
 
 ```text
 Machin_indexation : /musique/jingles/intro.mp3 : endommagé : 2 rupture(s) de continuité au décodage, des données ont été perdues ; sonore passé erroné
@@ -599,7 +608,7 @@ L'onglet **Incidents** montre les alertes et les incidents que `Machin lecture` 
 - **Filtre** : comme pour les listes, sans tenir compte des majuscules ni des accents ; le compte dit combien d'entrées restent.
 - **Liens** : un double-clic sur le sonore, la banque ou l'événement d'une entrée ouvre sa fiche. Un élément supprimé depuis laisse sa cellule vide ; l'entrée garde son message.
 - **Lecture** : l'écran se relit chaque fois que son onglet s'ouvre. Seules les 500 entrées les plus récentes sont lues : le compte le dit alors (« 500 entrées, les plus récentes »).
-- `Machin indexation` n'écrit pas dans le log : ses anomalies sont sur sa sortie d'erreur, ou dans le rapport de l'indexation lancée depuis l'interface, pas ici.
+- `Machin indexation` n'écrit pas dans le log : ses anomalies sont sur sa sortie d'erreur, ou dans le journal de l'indexation lancée depuis l'interface, pas ici.
 
 ### Menus
 
@@ -636,8 +645,8 @@ Le menu **Maintenance** lance `Machin indexation` sans passer par un terminal ([
 Voir [Indexation rapide et audit complet](#indexation-rapide-et-audit-complet) pour le détail des deux modes.
 
 - **En tâche de fond** : l'interface reste utilisable pendant l'indexation. La barre d'état, en bas de la fenêtre, dit « Indexation rapide en cours… » ; le menu ne propose plus rien jusqu'à la fin, une seule indexation tournant à la fois.
-- **Rapport** : à la fin, une fenêtre donne le bilan, celui que `Machin indexation` affiche ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)), par exemple « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. ». S'il y a des anomalies, elle les compte, et son bouton **Afficher les détails** les donne une par ligne, avec le chemin du fichier, le problème et sa conséquence. La barre d'état garde le bilan, et la liste ouverte se relit.
-- **Indexation impossible** : si un décodeur manque (un paquet GStreamer n'est pas installé, voir [INSTALL.md](../INSTALL.md)) ou si la base ne répond plus, le rapport le dit : « Indexation impossible : … ; les sonores déjà vérifiés le restent. ». Le travail fait jusque-là est gardé.
+- **Journal** : une fenêtre à part s'ouvre au lancement ([#120](https://github.com/dascritch/machincast/issues/120)). Elle montre, ligne par ligne et au fil de l'indexation, ce que `Machin indexation` écrirait dans le terminal ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)) : chaque sonore indexé avec son statut, les anomalies, puis le bilan. Le texte se sélectionne et se copie. À la fin, elle conclut par le bilan, par exemple « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. », suivi du nombre d'anomalies s'il y en a. **Fermer** la referme ; elle se vide à la prochaine indexation, et se ferme avec l'interface. La barre d'état garde le bilan, et la liste ouverte se relit.
+- **Indexation impossible** : si un décodeur manque (un paquet GStreamer n'est pas installé, voir [INSTALL.md](../INSTALL.md)) ou si la base ne répond plus, le journal le dit : « Indexation impossible : … ; les sonores déjà vérifiés le restent. ». Le travail fait jusque-là est gardé.
 - **Fermer la fenêtre** pendant une indexation attend qu'elle se termine.
 
 ### Supprimer un élément

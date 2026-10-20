@@ -88,8 +88,6 @@ class Contexte:
 	"""Fichiers que donnera le prochain choix de fichiers ; aucun pour un choix abandonné."""
 	annonces: list[str] = field(default_factory=list)
 	"""Messages de la barre d'état, dans l'ordre."""
-	rapports: list[tuple[str, str, list[str]]] = field(default_factory=list)
-	"""Rapports d'indexation montrés : titre, texte et anomalies."""
 	pages_ouvertes: list[str] = field(default_factory=list)
 	"""Adresses ouvertes dans le navigateur web du poste."""
 	versions: list[str] = field(default_factory=list)
@@ -164,11 +162,6 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	monkeypatch.setattr(dialogues, "ouvrir_dossier", interface.dossiers_ouverts.append)
 	monkeypatch.setattr(dialogues, "ouvrir_page", interface.pages_ouvertes.append)
 	monkeypatch.setattr(dialogues, "montrer_version", lambda _parent, texte: interface.versions.append(texte))
-	monkeypatch.setattr(
-		dialogues,
-		"montrer_rapport",
-		lambda _parent, titre, texte, anomalies: interface.rapports.append((titre, texte, anomalies)),
-	)
 
 
 def fenetre(interface: Contexte) -> FenetrePrincipale:

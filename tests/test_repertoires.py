@@ -116,3 +116,17 @@ def repertoire_signale(execution: Execution, racine: Path, repertoire: str, nom:
 	lignes = [ligne for ligne in execution.erreurs.splitlines() if str(racine / repertoire) in ligne]
 	assert lignes, execution.erreurs
 	assert ("introuvable" in lignes[0]) and (nom in lignes[0]), lignes[0]
+
+
+@then("la sortie standard montre, ligne par ligne :")
+def sortie_standard(execution: Execution, racine: Path, datatable: list[list[str]]) -> None:
+	"""Un chemin qui commence par « …/ » est dans le répertoire du scénario."""
+	_entete, *lignes = datatable
+	assert execution.informations == [ligne.strip().replace("…/", f"{racine}/") for (ligne,) in lignes]
+
+
+@then(parsers.parse("la sortie d'erreur signale « {chemin} », avec « {consequence} »"))
+def erreur_signalee(execution: Execution, racine: Path, chemin: str, consequence: str) -> None:
+	(ligne,) = execution.erreurs.splitlines()
+	assert ligne.startswith(f"{chemin.replace('…/', f'{racine}/')} : "), ligne
+	assert ligne.endswith(f" ; {consequence}"), ligne

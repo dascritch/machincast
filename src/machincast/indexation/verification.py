@@ -206,4 +206,14 @@ def verifier_sonores(
 				bilan.retablis += 1
 		if resultat.etat is not EtatFichier.SAIN:
 			journal.warning(f"{emplacement} : {resultat.probleme} ; {_consequence(avant, apres)}")
+		else:
+			journal.info(f"{emplacement} : {_sain(artiste, titre)} ; {_consequence(avant, apres)}")
 	return bilan
+
+
+def _sain(artiste: object, titre: object) -> str:
+	"""« sain », suivi du nom du sonore quand il en a un : « sain, Les Gaufres – Café à minuit »."""
+	nom = " – ".join(str(partie) for partie in (artiste, titre) if partie is not None)
+	if nom == "":
+		return "sain"
+	return f"sain, {nom}"

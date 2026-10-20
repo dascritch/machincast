@@ -84,6 +84,31 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Alors la banque « Jingles » contient, dans l'ordre, « jingles/b.flac », « jingles/a.flac »
 		Et le bilan indique « indexation rapide : 0 nouveau sonore, 1 rattachement ; 0 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
+	# ─── Sortie ligne par ligne ────────────────────────────────
+
+	Scénario: Chaque sonore indexé a sa ligne sur la sortie standard, avec son statut
+		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
+		Et le fichier « jingles/intro.flac », sain
+		Et le fichier « jingles/abime.mp3 », endommagé
+		Quand l'indexeur fait une indexation rapide
+		Alors la sortie standard montre, ligne par ligne :
+			| ligne                                                            |
+			| …/jingles/abime.mp3 : nouveau sonore, ajouté à la banque Jingles |
+			| …/jingles/intro.flac : nouveau sonore, ajouté à la banque Jingles |
+			| …/jingles/intro.flac : sain ; sonore passé actif                 |
+		Et la sortie d'erreur signale « …/jingles/abime.mp3 », avec « sonore passé erroné »
+
+	Scénario: Un rattachement a sa ligne, et un sonore revérifié dit que son état est conservé
+		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
+		Et le fichier « jingles/a.flac », sain
+		Et l'indexeur a fait une indexation rapide
+		Et « jingles/a.flac » a été retiré à la main de la banque « Jingles »
+		Quand l'indexeur fait un audit complet
+		Alors la sortie standard montre, ligne par ligne :
+			| ligne                                       |
+			| …/jingles/a.flac : rattaché à la banque Jingles |
+			| …/jingles/a.flac : sain ; état actif conservé  |
+
 	Scénario: Un nouveau fichier s'ajoute après les sonores déjà présents dans la banque
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
 		Et le fichier « jingles/b.flac », sain

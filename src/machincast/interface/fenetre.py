@@ -18,8 +18,9 @@ https://github.com/dascritch/machincast/issues/35), qui se relit aussi à l'ouve
 La barre de menus a quatre menus (https://github.com/dascritch/machincast/issues/117) : « Fichier », pour quitter
 (Alt+Q, comme la fermeture de la fenêtre) ; « Affichage », pour rafraîchir les onglets (F5,
 https://github.com/dascritch/machincast/issues/148) ; « Maintenance », qui lance l'indexation rapide ou l'audit
-complet, en tâche de fond, et en montre le rapport (machincast.interface.indexation,
-https://github.com/dascritch/machincast/issues/38) ; « Aide », pour signaler un problème et connaître la version
+complet, en tâche de fond (machincast.interface.indexation, https://github.com/dascritch/machincast/issues/38), et en
+montre le journal dans une fenêtre à part (machincast.interface.journal_indexation,
+https://github.com/dascritch/machincast/issues/120) ; « Aide », pour signaler un problème et connaître la version
 (machincast.interface.version). Une fonction pas encore écrite a son entrée, inactive, dont l'infobulle donne le
 ticket.
 
@@ -50,6 +51,7 @@ from machincast.interface.fiche_sonore import FicheSonore
 from machincast.interface.fil_musical import garantir
 from machincast.interface.incidents import EcranIncidents
 from machincast.interface.indexation import TITRES, Indexation
+from machincast.interface.journal_indexation import FenetreJournal
 from machincast.interface.listes import BANQUES, EVENEMENTS, MARQUES_PAGES, SEQUENCES, SONORES, Liste
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 from machincast.interface.verification import Verificateur
@@ -94,6 +96,8 @@ class FenetrePrincipale(QMainWindow):
 		self.verificateur.termine.connect(self._verification_terminee)
 		self.indexation = Indexation(connexion, self)
 		self.indexation.termine.connect(self._indexation_terminee)
+		self.journal_indexation = FenetreJournal(self)
+		self.indexation.ligne.connect(self.journal_indexation.ajouter)
 		self._garnir_menus()
 		self.listes: list[Liste] = []
 		for titre, source in ONGLETS:
@@ -177,6 +181,7 @@ class FenetrePrincipale(QMainWindow):
 			fiche.fermer()
 		self.verificateur.arreter()
 		self.indexation.arreter()
+		self.journal_indexation.close()
 		self.accueil.close()
 		super().closeEvent(evenement)
 
@@ -247,20 +252,21 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.barre_d_etat.showMessage(texte)
 
 	def _indexer(self, audit_complet: bool) -> None:
-		"""Lance l'indexation en tâche de fond ; le menu ne propose plus rien jusqu'à sa fin."""
+		"""Lance l'indexation en tâche de fond, et ouvre son journal ; le menu ne la propose plus jusqu'à sa fin."""
 		for action in self.indexations:
 			action.setEnabled(False)
 		self.ui.barre_d_etat.showMessage(f"{TITRES[audit_complet]} en cours…")
+		self.journal_indexation.commencer(TITRES[audit_complet])
 		self.indexation.lancer(audit_complet)
 
-	def _indexation_terminee(self, titre: str, texte: str, anomalies: list[str]) -> None:
+	def _indexation_terminee(self, texte: str) -> None:
 		for action in self.indexations:
 			action.setEnabled(True)
 		self.ui.barre_d_etat.showMessage(texte)
 		ouvert = self.ui.onglets.currentWidget()
 		if isinstance(ouvert, Liste):
 			ouvert.actualiser()
-		dialogues.montrer_rapport(self, titre, texte, anomalies)
+		self.journal_indexation.conclure(texte)
 
 	def _verification_terminee(self, texte: str) -> None:
 		self.ui.barre_d_etat.showMessage(texte)

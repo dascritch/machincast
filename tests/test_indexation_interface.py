@@ -10,12 +10,14 @@ import threading
 from pathlib import Path
 
 import pytest
+from PySide6.QtCore import Qt
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
 from machincast.indexation.verification import LIBELLES
 from machincast.interface import indexation
+from machincast.interface.journal_indexation import FenetreJournal
 from tests.etapes_interface import ATTENTE, NOM, Connexion, Contexte, fenetre
 
 scenarios("indexation_interface.feature")
@@ -38,9 +40,8 @@ def attendre_l_indexation(interface: Contexte, qtbot: QtBot) -> None:
 	qtbot.waitUntil(lambda: not lanceur.en_cours(), timeout=ATTENTE)
 
 
-def dernier_rapport(interface: Contexte) -> tuple[str, str, list[str]]:
-	assert interface.rapports != [], "aucun rapport montré"
-	return interface.rapports[-1]
+def journal(interface: Contexte) -> FenetreJournal:
+	return fenetre(interface).journal_indexation
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -102,14 +103,30 @@ def apres_fermeture(qtbot: QtBot) -> None:
 # ─── Alors ─────────────────────────────────────────────────
 
 
-@then(parsers.parse("le rapport « {titre} » a dit « {texte} »"))
-def rapport(interface: Contexte, titre: str, texte: str) -> None:
-	assert dernier_rapport(interface)[:2] == (titre, texte)
+@then(parsers.parse("le journal « {titre} » de l'indexation conclut « {texte} »"))
+def conclusion(interface: Contexte, titre: str, texte: str) -> None:
+	assert (journal(interface).windowTitle(), journal(interface).ui.conclusion.text()) == (titre, texte)
 
 
-@then("aucun rapport n'a été montré")
-def sans_rapport(interface: Contexte) -> None:
-	assert interface.rapports == []
+@then(parsers.parse("le journal « {titre} » de l'indexation est ouvert"))
+def journal_ouvert(interface: Contexte, titre: str) -> None:
+	assert journal(interface).isVisible()
+	assert journal(interface).windowTitle() == titre
+
+
+@when("je ferme le journal de l'indexation")
+def fermer_journal(interface: Contexte, qtbot: QtBot) -> None:
+	qtbot.mouseClick(journal(interface).ui.fermer, Qt.MouseButton.LeftButton)
+
+
+@then(parsers.parse("la première ligne du journal de l'indexation commence par « {debut} »"))
+def premiere_ligne(interface: Contexte, debut: str) -> None:
+	assert journal(interface).lignes()[0].startswith(interface.chemin_dans(debut)), journal(interface).lignes()
+
+
+@then("le journal de l'indexation est fermé")
+def journal_ferme(interface: Contexte) -> None:
+	assert not journal(interface).isVisible()
 
 
 @then("le journal de l'indexeur n'est plus écouté")
@@ -117,17 +134,24 @@ def journal_libre() -> None:
 	assert logging.getLogger("machincast.indexation").handlers == []
 
 
-@then("le rapport n'a signalé aucune anomalie")
+@then("le journal de l'indexation montre :")
+def lignes_du_journal(interface: Contexte, datatable: list[list[str]]) -> None:
+	"""Les lignes, comme dans le terminal ; un chemin qui commence par « …/ » est dans le répertoire du scénario."""
+	_entete, *lignes = datatable
+	assert journal(interface).lignes() == [interface.chemin_dans(ligne.strip()) for (ligne,) in lignes]
+
+
+@then("le journal de l'indexation ne signale aucune anomalie")
 def sans_anomalie(interface: Contexte) -> None:
-	assert dernier_rapport(interface)[2] == []
+	assert journal(interface).anomalies == []
 
 
-@then(parsers.re(r"le rapport a signalé (?P<nombre>\d+) anomalies?, sur (?P<chemins>«.+)"))
+@then(parsers.re(r"le journal de l'indexation signale (?P<nombre>\d+) anomalies?, sur (?P<chemins>«.+)"))
 def anomalies(interface: Contexte, nombre: str, chemins: str) -> None:
-	signalees = dernier_rapport(interface)[2]
+	signalees = journal(interface).anomalies
 	assert len(signalees) == int(nombre), signalees
 	for anomalie, chemin in zip(signalees, NOM.findall(chemins), strict=True):
-		assert anomalie.startswith(f"{interface.chemin(chemin)} : "), anomalie
+		assert anomalie.startswith(f"Machin_indexation : {interface.chemin(chemin)} : "), anomalie
 
 
 @then(parsers.parse("les sonores de la banque « {nom} » en base sont :"))
