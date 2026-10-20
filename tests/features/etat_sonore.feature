@@ -4,9 +4,9 @@ Fonctionnalité: État d'un sonore
 	je veux que l'état d'un sonore dise pourquoi il ne passe pas à l'antenne,
 	afin de distinguer un choix de programmation d'un incident sur le fichier.
 
-	Scénario: Un sonore a six états possibles, dans un ordre fixe
+	Scénario: Un sonore a sept états possibles, dans un ordre fixe
 		Étant donné une base de test vide où les migrations sont appliquées
-		Alors le type "etat_sonore" a pour valeurs, dans l'ordre : apercu, actif, desactive, expire, errone, supprime
+		Alors le type "etat_sonore" a pour valeurs, dans l'ordre : apercu, actif, desactive, expire, errone, non_supporte, supprime
 
 	Scénario: Un nouveau sonore est actif
 		Étant donné une base de test vide où les migrations sont appliquées

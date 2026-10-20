@@ -4,7 +4,6 @@ Les étapes des fichiers, des sonores et du lancement de Machin indexation sont 
 répertoire et l'heure des documents sont fixés par tests/conftest.py (repertoire_d_audit).
 """
 
-import csv
 import html
 import logging
 import re
@@ -14,7 +13,7 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then
 
 from machincast.indexation import audit
-from tests.etapes_indexation import Connexion
+from tests.etapes_indexation import Connexion, lire_csv
 
 scenarios("audit_indexation.feature")
 
@@ -24,11 +23,6 @@ NOM = r"« ([^»]+) »"
 def dans_le_scenario(texte: str, tmp_path: Path) -> str:
 	"""Un « …/ » désigne le répertoire du scénario."""
 	return texte.replace("…/", f"{tmp_path}/")
-
-
-def lire_csv(repertoire: Path, nom: str) -> list[list[str]]:
-	with (repertoire / nom).open(encoding="utf-8-sig", newline="") as fichier:
-		return list(csv.reader(fichier, delimiter=";"))
 
 
 @given("un répertoire d'audit où l'on ne peut pas écrire")
@@ -43,14 +37,6 @@ def repertoire_impossible(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
 def contenu_csv(repertoire_d_audit: Path, tmp_path: Path, nom: str, datatable: list[list[str]]) -> None:
 	attendu = [[dans_le_scenario(valeur.strip(), tmp_path) for valeur in rangee] for rangee in datatable]
 	assert lire_csv(repertoire_d_audit, nom) == attendu
-
-
-@then(parsers.parse("le document d'audit « {nom} » signale ce fichier, « {verdict} », avec « {consequence} »"))
-def anomalie_csv(repertoire_d_audit: Path, fichier: Path, nom: str, verdict: str, consequence: str) -> None:
-	_entete, anomalie, _bilan = lire_csv(repertoire_d_audit, nom)
-	_date, chemin, lu, probleme, suite = anomalie
-	assert (chemin, lu, suite) == (str(fichier), verdict, consequence)
-	assert (probleme != "") and (not probleme.startswith(verdict)), probleme
 
 
 @then(parsers.parse("la page d'audit « {nom} » s'intitule « {titre} »"))

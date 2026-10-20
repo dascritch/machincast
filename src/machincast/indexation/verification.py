@@ -38,6 +38,7 @@ from psycopg.types.json import Jsonb
 from machincast.indexation.audit import Anomalie
 from machincast.indexation.decodage import EtatFichier, Verification, verifier_fichier
 from machincast.indexation.tags import fusionner
+from machincast.indexation.type_fichier import Nature, nature, type_mime
 
 journal = logging.getLogger(__name__)
 
@@ -50,6 +51,8 @@ class EtatSonore(StrEnum):
 	DESACTIVE = "desactive"
 	EXPIRE = "expire"
 	ERRONE = "errone"
+	NON_SUPPORTE = "non_supporte"
+	"""Le fichier n'est pas du son (https://github.com/dascritch/machincast/issues/121, migration 0003)."""
 	SUPPRIME = "supprime"
 
 
@@ -59,6 +62,7 @@ LIBELLES = {
 	EtatSonore.DESACTIVE: "désactivé",
 	EtatSonore.EXPIRE: "expiré",
 	EtatSonore.ERRONE: "erroné",
+	EtatSonore.NON_SUPPORTE: "non supporté",
 	EtatSonore.SUPPRIME: "supprimé",
 }
 """Libellés accentués, pour les messages et l'interface."""
@@ -74,6 +78,8 @@ class Bilan:
 	verifies: int = 0
 	"""Sonores décodés."""
 	errones: int = 0
+	non_supportes: int = 0
+	"""Sonores passés non supportés : leur fichier n'est pas du son."""
 	supprimes: int = 0
 	retablis: int = 0
 	"""Sonores erronés redevenus actifs."""
@@ -88,7 +94,7 @@ def _accorder(nombre: int, singulier: str, pluriel: str) -> str:
 
 
 def texte_bilan(bilan: Bilan) -> str:
-	"""« indexation rapide : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 1 erroné, 0 supprimé, … ».
+	"""« indexation rapide : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 1 erroné, 0 non supporté, … ».
 
 	Les nouveaux sonores et les rattachements viennent du parcours des répertoires des banques ; le nombre de
 	sonores vérifiés est celui des sonores décodés ; les autres nombres comptent les changements d'état.
@@ -99,6 +105,7 @@ def texte_bilan(bilan: Bilan) -> str:
 		f"{_accorder(bilan.rattaches, 'rattachement', 'rattachements')} ; "
 		f"{_accorder(bilan.verifies, 'sonore vérifié', 'sonores vérifiés')} ; "
 		f"{_accorder(bilan.errones, 'erroné', 'erronés')}, "
+		f"{_accorder(bilan.non_supportes, 'non supporté', 'non supportés')}, "
 		f"{_accorder(bilan.supprimes, 'supprimé', 'supprimés')}, "
 		f"{_accorder(bilan.retablis, 'rétabli', 'rétablis')}, "
 		f"{_accorder(bilan.sortis_apercu, 'sorti', 'sortis')} d'aperçu"
@@ -107,19 +114,21 @@ def texte_bilan(bilan: Bilan) -> str:
 
 def nouvel_etat(etat: EtatSonore, verdict: EtatFichier) -> EtatSonore:
 	"""État du sonore après la vérification de son fichier."""
-	if etat not in (EtatSonore.APERCU, EtatSonore.ACTIF, EtatSonore.ERRONE):
+	if etat not in (EtatSonore.APERCU, EtatSonore.ACTIF, EtatSonore.ERRONE, EtatSonore.NON_SUPPORTE):
 		return etat
 	if verdict is EtatFichier.SAIN:
 		return EtatSonore.ACTIF
 	if verdict is EtatFichier.INTROUVABLE:
 		return EtatSonore.SUPPRIME
+	if verdict is EtatFichier.NON_SUPPORTE:
+		return EtatSonore.NON_SUPPORTE
 	return EtatSonore.ERRONE
 
 
 def _consequence(avant: EtatSonore, apres: EtatSonore) -> str:
 	if avant == apres:
-		if avant is EtatSonore.ERRONE:
-			return "sonore toujours erroné"
+		if avant in (EtatSonore.ERRONE, EtatSonore.NON_SUPPORTE):
+			return f"sonore toujours {LIBELLES[avant]}"
 		return f"état {LIBELLES[avant]} conservé"
 	return f"sonore passé {LIBELLES[apres]}"
 
@@ -206,7 +215,14 @@ def verifier_sonores(
 		if (not decoder) and (chemin.exists()):
 			continue
 		# Un fichier introuvable est déclaré tel sans décodage : l'indexation rapide repère donc les disparus.
-		resultat = verifier(chemin)
+		# Un fichier dont le type n'est pas sonore n'est pas décodé non plus.
+		type_du_fichier = type_mime(chemin)
+		if (type_du_fichier is not None) and (nature(type_du_fichier) is Nature.NON_SONORE):
+			resultat = Verification.defectueux(
+				EtatFichier.NON_SUPPORTE, f"de type {type_du_fichier}, ce n'est pas un fichier sonore"
+			)
+		else:
+			resultat = verifier(chemin)
 		apres = nouvel_etat(avant, resultat.etat)
 		fichier = _etat_du_fichier(chemin)
 		modifie_le, taille = fichier if fichier is not None else (None, None)
@@ -223,9 +239,19 @@ def verifier_sonores(
 			connexion.execute(
 				"UPDATE sonores SET etat = %s, duree = COALESCE(%s, duree),"
 				" fichier_modifie_le = COALESCE(%s, fichier_modifie_le), fichier_taille = COALESCE(%s, fichier_taille),"
-				" artiste = %s, titre = %s, metadonnees_musicales = %s"
+				" artiste = %s, titre = %s, metadonnees_musicales = %s, type_mime = COALESCE(%s, type_mime)"
 				" WHERE id = %s",
-				(apres.value, duree, modifie_le, taille, artiste, titre, Jsonb(metadonnees), identifiant),
+				(
+					apres.value,
+					duree,
+					modifie_le,
+					taille,
+					artiste,
+					titre,
+					Jsonb(metadonnees),
+					type_du_fichier,
+					identifiant,
+				),
 			)
 		if decoder:
 			bilan.verifies += 1
@@ -234,9 +260,11 @@ def verifier_sonores(
 		if apres != avant:
 			if apres is EtatSonore.ERRONE:
 				bilan.errones += 1
+			elif apres is EtatSonore.NON_SUPPORTE:
+				bilan.non_supportes += 1
 			elif apres is EtatSonore.SUPPRIME:
 				bilan.supprimes += 1
-			elif (apres is EtatSonore.ACTIF) and (avant is EtatSonore.ERRONE):
+			elif (apres is EtatSonore.ACTIF) and (avant in (EtatSonore.ERRONE, EtatSonore.NON_SUPPORTE)):
 				bilan.retablis += 1
 		if resultat.etat is not EtatFichier.SAIN:
 			consequence = _consequence(avant, apres)

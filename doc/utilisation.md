@@ -123,12 +123,15 @@ Les streams ne sont jamais vérifiés.
 
 ### Verdicts de la vérification d'un fichier
 
-Chaque fichier décodé reçoit l'un de ces verdicts :
+Avant de le décoder, l'indexeur lit le **type réel** du fichier dans ses premiers octets, avec libmagic, sans se fier à son extension ([#121](https://github.com/dascritch/machincast/issues/121)). Ce type est enregistré en base, par exemple `audio/mpeg`, `audio/flac`, ou `video/mp4` pour un `.m4a`. Un type qui n'est pas du son (texte, image, PDF…) donne aussitôt le verdict `non supporté`, sans décodage. Un type que libmagic ne reconnaît pas, comme un fichier vide, laisse le décodage trancher.
+
+Chaque fichier examiné reçoit l'un de ces verdicts :
 
 | Verdict | Signification |
 | --- | --- |
 | `sain` | Le fichier se décode entièrement. Sa durée décodée, sa date de modification et sa taille sont enregistrées. |
 | `endommagé` | Le fichier se décode, mais des données manquent : rupture de continuité dans le son, ou durée décodée plus courte que celle annoncée par l'en-tête du fichier (fichier tronqué, trames perdues). |
+| `non supporté` | Le type du fichier n'est pas sonore, quelle que soit son extension : un texte ou une image renommés en `.mp3`, par exemple. Le fichier n'est pas décodé, et le problème donne son type (« de type text/plain, ce n'est pas un fichier sonore »). |
 | `illisible` | Le fichier n'est pas du son, il est vide ou son conteneur est cassé, aucun son n'a pu être décodé, ou le décodage ne progresse plus pendant 30 secondes (disque ou partage réseau bloqué). |
 | `introuvable` | Aucun fichier à l'emplacement enregistré : il a été supprimé ou déplacé. |
 
@@ -147,16 +150,17 @@ Quelques défauts échappent à la vérification : des octets altérés dans un 
 | `désactivé` | Retiré de l'antenne par un choix humain, dans l'interface. | non | Par l'interface seulement. |
 | `expiré` | Maximum de lectures atteint, ou période de diffusion terminée : posé par `Machin lecture` ([#18](https://github.com/dascritch/machincast/issues/18)). | non | Par l'interface seulement. |
 | `erroné` | Fichier `endommagé` ou `illisible`. | non | Automatiquement, quand l'indexeur trouve le fichier redevenu sain : il redevient `actif`. |
+| `non supporté` | Fichier dont le type n'est pas sonore ([#121](https://github.com/dascritch/machincast/issues/121)). | non | Automatiquement, quand le fichier est remplacé par un vrai son : l'indexation suivante le décode, et il redevient `actif`. L'interface peut aussi le passer `actif` ou `désactivé`. |
 | `supprimé` | Fichier `introuvable`. | non | Par l'interface seulement. Un fichier déplacé est réindexé comme un nouveau sonore. |
 
-L'indexeur ne change que l'état d'un sonore en `aperçu`, `actif` ou `erroné` :
+L'indexeur ne change que l'état d'un sonore en `aperçu`, `actif`, `erroné` ou `non supporté` :
 
-| État avant | Fichier `sain` | Fichier `endommagé` ou `illisible` | Fichier `introuvable` |
-| --- | --- | --- | --- |
-| `aperçu` | `actif` | `erroné` | `supprimé` |
-| `actif` | `actif` | `erroné` | `supprimé` |
-| `erroné` | `actif` | `erroné` | `supprimé` |
-| `désactivé`, `expiré`, `supprimé` | inchangé | inchangé, anomalie signalée | inchangé, anomalie signalée |
+| État avant | Fichier `sain` | Fichier `endommagé` ou `illisible` | Fichier `non supporté` | Fichier `introuvable` |
+| --- | --- | --- | --- | --- |
+| `aperçu`, `actif`, `erroné`, `non supporté` | `actif` | `erroné` | `non supporté` | `supprimé` |
+| `désactivé`, `expiré`, `supprimé` | inchangé | inchangé, anomalie signalée | inchangé, anomalie signalée | inchangé, anomalie signalée |
+
+Le bilan compte à part les sonores passés `non supporté`, et compte parmi les rétablis ceux qui redeviennent `actif`.
 
 L'indexeur ne supprime jamais un sonore de la base.
 
@@ -199,7 +203,7 @@ Machin_indexation : /musique/fond/nappe.flac : introuvable : aucun fichier à ce
 Puis le bilan, sur la sortie standard :
 
 ```text
-Machin_indexation : indexation rapide : 3 nouveaux sonores, 1 rattachement ; 3 sonores vérifiés ; 1 erroné, 1 supprimé, 0 rétabli, 3 sortis d'aperçu
+Machin_indexation : indexation rapide : 3 nouveaux sonores, 1 rattachement ; 3 sonores vérifiés ; 1 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 3 sortis d'aperçu
 ```
 
 Les nouveaux sonores sont les fichiers enregistrés pour la première fois ; les rattachements, les sonores déjà connus ajoutés à une banque dont ils n'étaient pas membres. Les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état.
@@ -657,7 +661,7 @@ Le menu **Maintenance** lance `Machin indexation` sans passer par un terminal ([
 Voir [Indexation rapide et audit complet](#indexation-rapide-et-audit-complet) pour le détail des deux modes.
 
 - **Dans son propre programme** ([#120](https://github.com/dascritch/machincast/issues/120)) : l'interface lance `Machin indexation --fenetre`, avec sa configuration, à part d'elle. L'interface reste utilisable, et **peut être fermée** : l'indexation continue, avec sa fenêtre. La barre d'état dit « Indexation rapide lancée, dans sa propre fenêtre. » ; tant que l'indexation tourne, le menu ne la propose plus. À sa fin, la barre d'état le dit : **Affichage → Rafraîchir les onglets** (<kbd>F5</kbd>) montre alors ses changements ([Rafraîchir les onglets](#rafraîchir-les-onglets)).
-- **Sa fenêtre** montre, ligne par ligne et au fil de l'indexation, ce que `Machin indexation` écrirait dans le terminal ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)) : chaque sonore indexé avec son statut, les anomalies, puis le bilan. Le texte se sélectionne et se copie. À la fin, elle conclut par le bilan, par exemple « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. », suivi du nombre d'anomalies s'il y en a.
+- **Sa fenêtre** montre, ligne par ligne et au fil de l'indexation, ce que `Machin indexation` écrirait dans le terminal ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)) : chaque sonore indexé avec son statut, les anomalies, puis le bilan. Le texte se sélectionne et se copie. À la fin, elle conclut par le bilan, par exemple « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. », suivi du nombre d'anomalies s'il y en a.
 - **Fermer sa fenêtre** pendant l'indexation demande s'il faut l'arrêter. **Arrêter** l'arrête après le fichier en cours : le travail fait est gardé, et la prochaine indexation reprendra le reste. **Continuer**, ou Échap, laisse la fenêtre ouverte et l'indexation continuer. Une fois l'indexation finie, **Fermer** la referme sans question.
 - **Indexation impossible** : si un décodeur manque (un paquet GStreamer n'est pas installé, voir [INSTALL.md](../INSTALL.md)), si la base ne répond plus, ou si une autre indexation tourne déjà sur la base, la fenêtre le dit : « Indexation impossible : … ; les sonores déjà vérifiés le restent. ». Le travail fait jusque-là est gardé.
 

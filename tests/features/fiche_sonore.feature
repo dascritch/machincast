@@ -273,6 +273,7 @@ Fonctionnalité: Fiche d'un sonore
 			| desactive | « désactivé », « actif »               |
 			| expire    | « expiré », « actif », « désactivé »   |
 			| errone    | « erroné », « actif », « désactivé »   |
+			| non_supporte | « non supporté », « actif », « désactivé » |
 			| supprime  | « supprimé », « actif », « désactivé » |
 			| apercu    | « aperçu »                             |
 

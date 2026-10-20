@@ -15,7 +15,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Quand l'indexeur fait une indexation rapide
 		Alors la banque « Jingles » contient, dans l'ordre, « jingles/intro.flac »
 		Et le sonore de « jingles/intro.flac » est à l'état « actif »
-		Et le bilan indique « indexation rapide : 1 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Et le bilan indique « indexation rapide : 1 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
 
 	Scénario: Les sous-répertoires sont parcourus, les fichiers ajoutés dans l'ordre de leur chemin
 		Étant donné une banque « Fond » alimentée par le répertoire « fond »
@@ -62,7 +62,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Quand l'indexeur fait une indexation rapide
 		Alors la base contient 1 sonore
 		Et la banque « Jingles » contient, dans l'ordre, « jingles/intro.flac »
-		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Un répertoire qui alimente deux banques donne un seul sonore, présent dans les deux banques
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
@@ -72,7 +72,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Alors la base contient 1 sonore
 		Et la banque « Jingles » contient, dans l'ordre, « jingles/intro.flac »
 		Et la banque « Identifiants » contient, dans l'ordre, « jingles/intro.flac »
-		Et le bilan indique « indexation rapide : 1 nouveau sonore, 1 rattachement ; 1 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Et le bilan indique « indexation rapide : 1 nouveau sonore, 1 rattachement ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
 
 	Scénario: Un sonore retiré à la main d'une banque y est réintégré en fin de liste
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
@@ -82,7 +82,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Et « jingles/a.flac » a été retiré à la main de la banque « Jingles »
 		Quand l'indexeur fait une indexation rapide
 		Alors la banque « Jingles » contient, dans l'ordre, « jingles/b.flac », « jingles/a.flac »
-		Et le bilan indique « indexation rapide : 0 nouveau sonore, 1 rattachement ; 0 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 1 rattachement ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	# ─── Sortie ligne par ligne ────────────────────────────────
 
@@ -109,7 +109,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Et la base contient 0 sonore
 		Quand l'autre indexation se termine
 		Et Machin indexation est lancé sur la base de test
-		Alors Machin indexation se termine avec le code 0, en signalant « indexation rapide : 1 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Alors Machin indexation se termine avec le code 0, en signalant « indexation rapide : 1 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
 		Et la base contient 1 sonore
 
 	Scénario: Une indexation arrêtée avant son début n'enregistre ni ne vérifie rien
@@ -117,7 +117,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Et le fichier « jingles/intro.flac », sain
 		Quand l'indexeur fait une indexation rapide, dont l'arrêt est déjà demandé
 		Alors la base contient 0 sonore
-		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: L'indexation rend son verrou dès sa fin
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »

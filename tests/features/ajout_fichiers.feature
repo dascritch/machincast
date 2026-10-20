@@ -26,18 +26,18 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 		Et j'ajoute les fichiers « …/emissions/cafe.flac », « …/emissions/jingle.wav », « …/emissions/faux.mp3 »
 		Et la vérification des fichiers ajoutés se termine
 		Alors la barre d'état a annoncé « 3 fichiers ajoutés, en cours de vérification. »
-		Et la barre d'état annonce « Vérification terminée : Les Gaufres Électriques – Café à minuit, actif ; jingle.wav, actif ; faux.mp3, erroné. »
+		Et la barre d'état annonce « Vérification terminée : Les Gaufres Électriques – Café à minuit, actif ; jingle.wav, actif ; faux.mp3, non supporté. »
 		Et les sonores ajoutés sont en base :
 			| emplacement           | type    | etat   | artiste                 | titre         | duree   |
 			| …/emissions/cafe.flac | fichier | actif  | Les Gaufres Électriques | Café à minuit | 0:00:01 |
 			| …/emissions/jingle.wav | fichier | actif | None                    | None          | 0:00:01 |
-			| …/emissions/faux.mp3  | fichier | errone | None                    | None          | None    |
+			| …/emissions/faux.mp3  | fichier | non_supporte | None              | None          | None    |
 		# Les fichiers de test durent un peu moins d'une seconde : la liste ne compte que les secondes pleines.
 		Et la liste montre :
 			| Artiste                 | Titre         | Type    | État   | Durée | Emplacement            |
 			| Les Gaufres Électriques | Café à minuit | fichier | actif  | 0:00  | …/emissions/cafe.flac  |
 			|                         |               | fichier | actif  | 0:00  | …/emissions/jingle.wav |
-			|                         |               | fichier | erroné |       | …/emissions/faux.mp3   |
+			|                         |               | fichier | non supporté |       | …/emissions/faux.mp3   |
 		Et les fichiers déposés sont intacts
 
 	Scénario: Un fichier ajouté entre en base à l'état aperçu, avant sa vérification
@@ -116,7 +116,7 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 		Et j'ajoute les fichiers « …/emissions/cafe.flac »
 		Et j'ajoute les fichiers « …/emissions/faux.mp3 »
 		Et la vérification attendue reprend, et se termine
-		Alors la barre d'état a annoncé, dans l'ordre, « Vérification terminée : jingle.wav, actif. », « Vérification terminée : Les Gaufres Électriques – Café à minuit, actif. », « Vérification terminée : faux.mp3, erroné. »
+		Alors la barre d'état a annoncé, dans l'ordre, « Vérification terminée : jingle.wav, actif. », « Vérification terminée : Les Gaufres Électriques – Café à minuit, actif. », « Vérification terminée : faux.mp3, non supporté. »
 		Et les vérifications ont décodé un fichier à la fois
 
 	Scénario: Le même fichier choisi deux fois n'est ajouté qu'une fois, sous son chemin normalisé

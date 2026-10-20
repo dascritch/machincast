@@ -59,6 +59,8 @@ class EtatFichier(StrEnum):
 	ENDOMMAGE = "endommagé"
 	ILLISIBLE = "illisible"
 	INTROUVABLE = "introuvable"
+	NON_SUPPORTE = "non supporté"
+	"""Le fichier n'est pas du son, d'après son type (machincast.indexation.type_fichier) : il n'est pas décodé."""
 
 
 @dataclass(frozen=True)
