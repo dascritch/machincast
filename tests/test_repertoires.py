@@ -13,7 +13,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.indexation.__main__ import executer
 from tests.base_test import configuration_test
-from tests.etapes_indexation import Execution, indexer
+from tests.etapes_indexation import Execution
 from tests.sons import copie_de_test, corrompre
 
 scenarios("repertoires.feature")
@@ -71,11 +71,6 @@ def fichier(tmp_path: Path, racine: Path, relatif: str, etat: str) -> None:
 	if etat == "endommagé":
 		corrompre(source, 1000, 1 / 3)
 	shutil.move(source, cible)
-
-
-@given("l'indexeur a fait une indexation rapide")
-def indexation_prealable(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> None:
-	indexer(base_vide, caplog, audit_complet=False)
 
 
 @given(parsers.parse("« {relatif} » a été retiré à la main de la banque « {nom} »"))
@@ -159,3 +154,11 @@ def lancement_termine(lancement: tuple[int, list[str]], code: int, texte: str) -
 @then("le verrou de l'indexation a été rendu dès la fin de l'indexation")
 def verrou_rendu(execution: Execution) -> None:
 	assert execution.verrou_rendu
+
+
+@given(parsers.parse("« {relatif} » déplacé en « {destination} »"))
+def deplacer(racine: Path, relatif: str, destination: str) -> None:
+	"""Un déplacement hors de MachinCast, comme le ferait le navigateur de fichiers."""
+	cible = racine / destination
+	cible.parent.mkdir(parents=True, exist_ok=True)
+	shutil.move(racine / relatif, cible)

@@ -450,8 +450,8 @@ Mise en œuvre ([#21](https://github.com/dascritch/machincast/issues/21), `machi
 
 Deux modes ([#69](https://github.com/dascritch/machincast/issues/69)).
 
-- **Indexation rapide**, par défaut : un nouveau fichier est enregistré à l'état `apercu`, sans être décodé ([§ 6.2](#62-indexation-des-répertoires-de-banques)). Seuls les sonores en aperçu sont ensuite décodés et leurs tags lus. Pour les autres, seule la présence du fichier est contrôlée : un fichier disparu passe quand même son sonore à `supprime`. Un fichier modifié n'est pas revérifié.
-- **Audit complet**, option `--audit-complet` : tous les sonores de type fichier sont décodés, comme décrit ci-dessous ; c'est lui qui revérifie les fichiers modifiés.
+- **Indexation rapide**, par défaut : un nouveau fichier est enregistré à l'état `apercu`, sans être décodé ([§ 6.2](#62-indexation-des-répertoires-de-banques)). Seuls les sonores en aperçu, et ceux dont le fichier a changé depuis sa dernière vérification (date de modification ou taille, [#10](https://github.com/dascritch/machincast/issues/10)), sont ensuite décodés et leurs tags lus. Pour les autres, seule la présence du fichier est contrôlée : un fichier disparu passe quand même son sonore à `supprime`. Un fichier jamais vérifié, sans date ni taille enregistrées, n'est pas comparé.
+- **Audit complet**, option `--audit-complet` : tous les sonores de type fichier sont décodés, comme décrit ci-dessous ; c'est lui qui repère un fichier abîmé sans que sa date ni sa taille aient changé.
 
 ### 6.1 Vérification des sonores existants (hors streams)
 
@@ -779,5 +779,5 @@ Aucun point en attente.
 - **Droits sur les marques-pages** : modifiables par l'interface seule ; le binaire lecture les lit, l'indexeur n'y accède pas ([#50](https://github.com/dascritch/machincast/issues/50), voir [§ 3.2](#32-rôles-et-droits)).
 - **Banque « ne pas répéter »** : un élément qui rappellerait une banque marquée « ne pas répéter » juste après elle est sauté, même d'un événement à l'autre ; s'il ne reste rien d'autre de jouable, l'événement se termine et l'événement inférieur prend le relais ([#63](https://github.com/dascritch/machincast/issues/63), voir [§ 4.4](#44-choix-dun-sonore-dans-une-banque)).
 - **État d'un sonore** : le booléen `actif` devient un état `actif`, `desactive`, `expire`, `errone` ou `supprime` ; seul l'indexeur rétablit automatiquement un sonore, quand il l'avait lui-même déclaré `errone` ([#66](https://github.com/dascritch/machincast/issues/66), voir [§ 3.1](#sonores)).
-- **Indexation rapide** : par défaut, l'indexeur ne décode que les nouveaux fichiers, à l'état `apercu`, et repère les fichiers disparus ; l'audit complet (`--audit-complet`) décode tout et revérifie les fichiers modifiés ([#69](https://github.com/dascritch/machincast/issues/69), voir [§ 6.0](#60-modes-dindexation)).
+- **Indexation rapide** : par défaut, l'indexeur ne décode que les nouveaux fichiers, à l'état `apercu`, et ceux dont la date ou la taille a changé ([#10](https://github.com/dascritch/machincast/issues/10)), et repère les fichiers disparus ; l'audit complet (`--audit-complet`) décode tout ([#69](https://github.com/dascritch/machincast/issues/69), voir [§ 6.0](#60-modes-dindexation)).
 - **Environnement virtuel** : isolé des paquets système, toutes les dépendances Python passent par pip ([#51](https://github.com/dascritch/machincast/issues/51), voir [§ 10](#10-installation-et-déploiement)).

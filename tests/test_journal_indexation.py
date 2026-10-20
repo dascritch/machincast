@@ -26,7 +26,6 @@ from machincast.indexation.verification import LIBELLES
 from machincast.interface import dialogues, indexation
 from machincast.interface.journal_indexation import FenetreJournal
 from tests.base_test import chemin_configuration_test, parametres_base_test
-from tests.etapes_indexation import indexer as indexer_sans_fenetre
 from tests.etapes_interface import ATTENTE, NOM, Connexion, Contexte
 
 scenarios("journal_indexation.feature")
@@ -93,11 +92,6 @@ def sans_decodeur(monkeypatch: pytest.MonkeyPatch) -> None:
 		raise DecodeurIndisponible("aucun décodeur pour ce format")
 
 	monkeypatch.setattr(indexation, "verifier_fichier", decoder)
-
-
-@given("l'indexeur a fait une indexation rapide")
-def indexation_prealable(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> None:
-	indexer_sans_fenetre(base_vide, caplog, audit_complet=False)
 
 
 # ─── Quand ─────────────────────────────────────────────────

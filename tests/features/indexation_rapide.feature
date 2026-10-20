@@ -74,3 +74,74 @@ Fonctionnalité: Indexation rapide
 	Scénario: Machin_indexation propose l'audit complet en option
 		Quand je lance "Machin_indexation" avec l'option "--help"
 		Alors la sortie mentionne "--audit-complet"
+
+	# ─── Fichiers modifiés (https://github.com/dascritch/machincast/issues/10) ─────
+
+	Scénario: L'indexation rapide revérifie un fichier remplacé sous le même nom
+		Étant donné un fichier flac sain
+		Et un sonore à l'état « apercu » pour ce fichier
+		Et l'indexeur a fait une indexation rapide
+		Et ce fichier remplacé, sous le même nom, par un fichier flac tagué
+		Quand l'indexeur fait une indexation rapide
+		Alors le sonore est à l'état « actif »
+		Et en base, l'artiste est « Les Gaufres Électriques » et le titre « Café à minuit »
+		Et la date de modification et la taille du fichier sont enregistrées
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+
+	Scénario: Un fichier dont seule la date de modification a changé est aussi revérifié
+		Étant donné un fichier flac sain
+		Et un sonore à l'état « apercu » pour ce fichier
+		Et l'indexeur a fait une indexation rapide
+		Et ce fichier touché, sans changer son contenu
+		Quand l'indexeur fait une indexation rapide
+		Alors la date de modification et la taille du fichier sont enregistrées
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+
+	Scénario: Un fichier remplacé en gardant sa date de modification est revérifié, sa taille ayant changé
+		Étant donné un fichier flac sain
+		Et un sonore à l'état « apercu » pour ce fichier
+		Et l'indexeur a fait une indexation rapide
+		Et ce fichier remplacé, sous le même nom, par un fichier flac tagué, en gardant sa date de modification
+		Quand l'indexeur fait une indexation rapide
+		Alors en base, l'artiste est « Les Gaufres Électriques » et le titre « Café à minuit »
+
+	Scénario: Un fichier déjà vérifié qui disparaît passe supprimé, sans compter comme vérifié
+		Étant donné un fichier flac sain
+		Et un sonore à l'état « apercu » pour ce fichier
+		Et l'indexeur a fait une indexation rapide
+		Et ce fichier supprimé
+		Quand l'indexeur fait une indexation rapide
+		Alors le sonore est à l'état « supprime »
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 1 supprimé, 0 rétabli, 0 sorti d'aperçu »
+
+	Scénario: Un fichier inchangé depuis sa dernière vérification n'est pas redécodé
+		Étant donné un fichier flac sain
+		Et un sonore à l'état « apercu » pour ce fichier
+		Et l'indexeur a fait une indexation rapide
+		Quand l'indexeur fait une indexation rapide
+		Alors le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+
+	Scénario: Un fichier remplacé par un fichier endommagé est signalé, et son sonore passe erroné
+		Étant donné un fichier mp3 sain
+		Et un sonore à l'état « apercu » pour ce fichier
+		Et l'indexeur a fait une indexation rapide
+		Et ce fichier remplacé, sous le même nom, par un fichier mp3 endommagé
+		Quand l'indexeur fait une indexation rapide
+		Alors le sonore est à l'état « errone »
+		Et la sortie d'erreur signale ce fichier comme « endommagé », avec « sonore passé erroné »
+
+	Plan du scénario: Un fichier remplacé garde les champs saisis à la main, et l'état que l'indexeur ne change pas
+		Étant donné un fichier flac sain
+		Et un sonore à l'état « apercu » pour ce fichier, dont le titre a été saisi à la main « Rediffusion du matin »
+		Et l'indexeur a fait une indexation rapide
+		Et le sonore est passé à l'état « <etat> »
+		Et ce fichier remplacé, sous le même nom, par un fichier flac tagué
+		Quand l'indexeur fait une indexation rapide
+		Alors le sonore est à l'état « <etat> »
+		Et en base, l'artiste est « Les Gaufres Électriques » et le titre « Rediffusion du matin »
+
+		Exemples:
+			| etat      |
+			| actif     |
+			| desactive |
+			| expire    |

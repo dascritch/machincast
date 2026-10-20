@@ -111,8 +111,8 @@ Alimenter une banque se limite à déposer des fichiers dans l'un de ses répert
 
 | Commande | Ce qui est vérifié |
 | --- | --- |
-| `Machin indexation` | **Indexation rapide**, par défaut. Seuls les sonores à l'état `aperçu`, c'est-à-dire nouvellement trouvés, sont décodés et leurs tags lus. Pour les autres, seule la présence du fichier est contrôlée : un fichier disparu est quand même repéré. |
-| `Machin indexation --audit-complet` | **Audit complet** : tous les sonores de type fichier sont décodés. C'est lui qui repère un fichier abîmé après son indexation, ou modifié depuis. À lancer après la première indexation, puis de temps en temps. |
+| `Machin indexation` | **Indexation rapide**, par défaut. Sont décodés, et leurs tags lus, les sonores à l'état `aperçu`, c'est-à-dire nouvellement trouvés, et ceux dont le fichier a changé depuis sa dernière vérification : sa date de modification ou sa taille diffère ([#10](https://github.com/dascritch/machincast/issues/10)). Une émission pré-enregistrée remplacée sous le même nom, par exemple synchronisée depuis un autre poste, est ainsi revérifiée : nouvelle durée, nouveaux tags, sauf les champs saisis à la main. Pour les autres, seule la présence du fichier est contrôlée : un fichier disparu est quand même repéré, et son sonore passe `supprimé`. Un fichier déplacé est enregistré comme un nouveau sonore, à son nouvel emplacement, s'il est dans le répertoire d'une banque. |
+| `Machin indexation --audit-complet` | **Audit complet** : tous les sonores de type fichier sont décodés. C'est lui qui repère un fichier abîmé après son indexation sans que sa date ni sa taille aient changé. À lancer après la première indexation, puis de temps en temps. |
 | `Machin indexation --fenetre` | La même indexation, rapide ou complète (avec `--audit-complet`), qui montre son journal dans une fenêtre au lieu du terminal : c'est ainsi que l'interface la lance ([Lancer l'indexation depuis l'interface](#lancer-lindexation-depuis-linterface)). Il faut un affichage graphique. |
 
 **Une seule indexation à la fois** sur une base, qu'elle soit lancée d'un terminal, de l'interface ou d'un autre poste : une deuxième s'arrête aussitôt, sans rien toucher, avec le message `indexation refusée : une autre indexation est en cours sur cette base` et le code 1. Elle pourra être relancée une fois la première finie.
@@ -360,7 +360,7 @@ La sortie audio de l'antenne se règle dans la configuration (`audio.sortie` : `
 - **Crossfade de fin** d'un sonore : le sonore suivant démarre autant avant la fin, et celui-ci s'éteint progressivement pendant ce temps. Les deux se superposent.
 - **Les deux crossfades sont nécessaires** : deux sonores ne se superposent que si le premier a un crossfade de fin **et** le second un crossfade de début. Si l'un des deux est à 0, le premier joue jusqu'au bout à plein volume, puis le second démarre aussitôt à plein volume, sans fondu.
 - **Coupure nette** : au début d'un événement, le sonore en cours s'arrête aussitôt, sans fondu.
-- **Avant de jouer un fichier**, sa date de modification et sa taille sont comparées à celles de l'indexation. Un écart est noté dans le log en alerte `fichier modifié`, et le fichier est quand même joué ; la prochaine indexation mettra la base à jour. Un fichier disparu n'est pas joué : l'incident `fichier introuvable` est noté dans le log, et la diffusion passe aussitôt au sonore suivant. Le sonore n'est plus proposé pendant une heure, pour ne pas noter le même incident à chaque tour de liste ; la prochaine indexation le passera à l'état `supprimé`.
+- **Avant de jouer un fichier**, sa date de modification et sa taille sont comparées à celles de l'indexation. Un écart est noté dans le log en alerte `fichier modifié`, et le fichier est quand même joué ; la prochaine indexation, même rapide, le revérifie et met la base à jour. Un fichier disparu n'est pas joué : l'incident `fichier introuvable` est noté dans le log, et la diffusion passe aussitôt au sonore suivant. Le sonore n'est plus proposé pendant une heure, pour ne pas noter le même incident à chaque tour de liste ; la prochaine indexation le passera à l'état `supprimé`.
 - **Superposition** : pendant un crossfade, deux sonores jouent en même temps. PipeWire et PulseAudio les mélangent toujours. En `alsa`, il faut un périphérique qui mélange, comme `default` ; un périphérique matériel direct (`hw:…`) ne joue qu'un son à la fois.
 
 ### Streams
@@ -642,8 +642,8 @@ La barre d'état le confirme (« Onglets rafraîchis. »), et nomme les fiches l
 
 Le menu **Maintenance** lance `Machin indexation` sans passer par un terminal ([#38](https://github.com/dascritch/machincast/issues/38)), par exemple après avoir déposé des fichiers dans le répertoire d'une banque :
 
-- **Indexation rapide** : comme `Machin indexation` ; les nouveaux fichiers des banques sont enregistrés et vérifiés, la présence des autres est contrôlée.
-- **Audit complet** : comme `Machin indexation --audit-complet` ; tous les fichiers sont décodés de nouveau. Plus long, il repère un fichier abîmé ou modifié depuis son indexation.
+- **Indexation rapide** : comme `Machin indexation` ; les nouveaux fichiers des banques sont enregistrés et vérifiés, ceux qui ont changé sont revérifiés, la présence des autres est contrôlée.
+- **Audit complet** : comme `Machin indexation --audit-complet` ; tous les fichiers sont décodés de nouveau. Plus long, il repère aussi un fichier abîmé sans que sa date ni sa taille aient changé.
 
 Voir [Indexation rapide et audit complet](#indexation-rapide-et-audit-complet) pour le détail des deux modes.
 
