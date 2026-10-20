@@ -13,6 +13,7 @@ gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
 from machincast.base import LONGUEUR_TEXTE_COURT  # noqa: E402
+from machincast.conformation import conformer  # noqa: E402
 
 Valeur = str | int
 
@@ -39,11 +40,14 @@ class Tags:
 
 
 def _texte(liste: Gst.TagList, *noms: str, longueur: int | None = None) -> str | None:
-	"""Premier tag texte non vide parmi les noms ; plusieurs valeurs d'un même tag sont jointes par GStreamer."""
+	"""Premier tag texte non vide parmi les noms, une fois conformé
+	(https://github.com/dascritch/machincast/issues/108) ; plusieurs valeurs d'un tag sont jointes par GStreamer."""
 	for nom in noms:
 		trouve, valeur = liste.get_string(nom)
-		if (trouve) and (valeur) and (valeur.strip()):
-			texte = valeur.strip()
+		if not trouve:
+			continue
+		texte = conformer((valeur) or (""))
+		if texte != "":
 			return texte[:longueur] if longueur is not None else texte
 	return None
 

@@ -16,6 +16,7 @@
 - Fichier dont la date de modification ou la taille a changé : revérifier, mettre à jour durée et tags, en indexation rapide comme en audit complet ([#10](https://github.com/dascritch/machincast/issues/10)). Un sonore sans date enregistrée n'est jamais dit modifié.
 - **Ne jamais modifier un champ listé dans `sonores.champs_edites`** : l'édition manuelle prime. Une clé des métadonnées musicales y figure sous la forme `metadonnees_musicales.<clé>`.
 - Tags ([#8](https://github.com/dascritch/machincast/issues/8)) : lus pendant le décodage de la vérification (`machincast.indexation.tags`), jamais par une seconde lecture du fichier. L'indexeur ne tient que les clés `machincast.indexation.tags.CLES` de `metadonnees_musicales` ; les autres clés ne sont jamais touchées.
+- Chaque tag texte est conformé (`machincast.conformation.conformer`, [#108](https://github.com/dascritch/machincast/issues/108)) avant d'être gardé : un tag vide une fois conformé laisse la place au suivant.
 - L'année ne vient jamais d'un horodatage avec heure : c'est une date de création, pas de sortie.
 - L'indexeur ne rétablit que les sonores qu'il a lui-même déclarés `errone`.
 - Connexion par `machincast.base.connecter(…, Role.INDEXATION)` ; une transaction par sonore, pour qu'une interruption garde le travail fait.

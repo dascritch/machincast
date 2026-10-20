@@ -16,6 +16,7 @@ Enregistrement, annulation et fermeture : machincast.interface.fiche.
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QListWidgetItem, QWidget
 
+from machincast.conformation import conformer
 from machincast.horloge import Horloge
 from machincast.interface.essai_flux import EssaiDeFlux
 from machincast.interface.fiche import Connexion, Fiche, Refus
@@ -77,7 +78,7 @@ class FicheMarquePage(Fiche):
 			self.ui.streams.addItem(item)
 
 	def _ecrire(self) -> int:
-		nom = self.ui.nom.text().strip()
+		nom = conformer(self.ui.nom.text())
 		url = self.ui.url.text().strip()
 		if nom == "":
 			raise Refus("Le nom est obligatoire.")

@@ -497,7 +497,7 @@ Deux modes ([#69](https://github.com/dascritch/machincast/issues/69)).
 - Les tags sont lus par GStreamer pendant le décodage complet de la vérification, sans autre lecture du fichier : ID3 (MP3, et AIFF quand le fichier en porte), Vorbis comments (Ogg, FLAC), atomes MP4 (M4A), chunk INFO (WAV : artiste, titre, album, genre, année seulement).
 - Correspondance : artiste ← artiste ; titre ← titre ; `annee` ← date de sortie ; `album`, `artiste_album`, `genre`, `compositeur` ← tags du même nom ; `label` ← organisation (Vorbis `ORGANIZATION`) ou éditeur (ID3 `TPUB`) ; `piste` ← numéro de piste.
 - L'année vient d'une date, ou d'un horodatage **sans heure** : un horodatage avec heure est une date de création, comme celle qu'un M4A sans date de sortie annonce pour son conteneur, et ne devient jamais l'année du morceau.
-- Textes vides ou faits d'espaces ignorés ; artiste et titre tronqués à 255 caractères, la limite des colonnes.
+- Textes conformés comme ceux de l'interface ([#108](https://github.com/dascritch/machincast/issues/108), [§ 8](#8-interface-graphique)), puis ignorés s'ils sont vides, au profit du tag suivant ; artiste et titre tronqués à 255 caractères, la limite des colonnes.
 - Pour un fichier sain, l'indexeur tient l'artiste, le titre et les clés ci-dessus à l'image des tags : un tag absent vide le champ, sauf s'il a été édité à la main. Les tags d'un fichier défectueux ne sont pas lus : les valeurs en base restent telles quelles.
 
 ### 6.3 Sorties
@@ -536,6 +536,8 @@ Le wrapper n'est pas copié dans le venv : en développement, il s'appelle par `
 ## 8. Interface graphique
 
 Python, PySide6 (Qt 6.10, version de Kubuntu 26.04 LTS).
+
+**Conformation des textes** ([#108](https://github.com/dascritch/machincast/issues/108), `machincast.conformation.conformer`) : les noms (interne et public) des événements, séquences, banques et marques-pages, l'artiste, le titre et les métadonnées musicales des sonores saisis dans une fiche sont conformés à l'enregistrement : tout espace Unicode (tabulation, retour à la ligne, espace insécable, espace fine…) devient une espace simple, les espaces de début et de fin sont retirées et jamais deux ne se suivent ; les caractères de contrôle, les sélecteurs de variante, les caractères spéciaux (U+FFF0 à U+FFFF), les caractères à usage privé, les caractères non attribués et les espaces sans largeur (U+200B, U+FEFF) sont supprimés. Rien d'autre n'est changé : accents, écritures non latines et emoji restent tels quels. Les chemins et les adresses ne le sont jamais. Une fiche compare des textes conformés : un texte relu tel qu'en base, non conforme, n'est pas une modification.
 
 ### 8.1 Écran par défaut
 

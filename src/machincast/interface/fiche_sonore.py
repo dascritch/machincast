@@ -35,6 +35,7 @@ from PySide6.QtCore import QDateTime, Qt
 from PySide6.QtGui import QIntValidator
 from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QDoubleSpinBox, QLineEdit, QTableWidgetItem, QWidget
 
+from machincast.conformation import conformer
 from machincast.horloge import Horloge
 from machincast.interface import affichage, dialogues, preferences
 from machincast.interface.essai_flux import EssaiDeFlux
@@ -315,11 +316,11 @@ class FicheSonore(Fiche):
 	def _saisies(self) -> dict[str, object]:
 		"""Les champs modifiables, tels que la fiche les montre : colonne de sonores, ou metadonnees_musicales.<clé>."""
 		saisies: dict[str, object] = {
-			"artiste": (self.ui.artiste.text().strip()) or (None),
-			"titre": (self.ui.titre.text().strip()) or (None),
+			"artiste": (conformer(self.ui.artiste.text())) or (None),
+			"titre": (conformer(self.ui.titre.text())) or (None),
 		}
 		for cle, champ in self.metadonnees.items():
-			valeur: str | int | None = (champ.text().strip()) or (None)
+			valeur: str | int | None = (conformer(champ.text())) or (None)
 			if (cle in ENTIERS) and (valeur is not None):
 				valeur = int(valeur)
 			saisies[f"metadonnees_musicales.{cle}"] = valeur

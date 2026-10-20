@@ -3,7 +3,8 @@
 La fiche s'ouvre dans un onglet de la fenêtre (machincast.interface.fenetre), depuis la liste des séquences, ou vide
 pour une nouvelle séquence. Enregistrement, annulation et fermeture : machincast.interface.fiche.
 
-- Les noms sont enregistrés sans les espaces qui les entourent ; un nom public vide n'en est pas un (NULL).
+- Les noms sont enregistrés conformés (machincast.conformation, https://github.com/dascritch/machincast/issues/108) ; un
+  nom public vide n'en est pas un (NULL).
 - Le masquage « selon la banque ou le sonore » (NULL) laisse décider le niveau suivant ; « masqués » et « affichés »
   l'imposent.
 - Les éléments sont des sonores et des banques, jamais une autre séquence (machincast.interface.elements). Une
@@ -17,6 +18,7 @@ pour une nouvelle séquence. Enregistrement, annulation et fermeture : machincas
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QListWidgetItem, QWidget
 
+from machincast.conformation import conformer
 from machincast.horloge import Horloge
 from machincast.interface.elements import Boutons, ListeElements
 from machincast.interface.fiche import Connexion, Fiche, Refus
@@ -99,7 +101,7 @@ class FicheSequence(Fiche):
 		self._avertir()
 
 	def _ecrire(self) -> int:
-		nom = self.ui.nom_interne.text().strip()
+		nom = conformer(self.ui.nom_interne.text())
 		if nom == "":
 			raise Refus("Le nom interne est obligatoire.")
 		pris = self.connexion.execute(
@@ -109,7 +111,7 @@ class FicheSequence(Fiche):
 			raise Refus(f"Une autre séquence s'appelle déjà « {nom} ».")
 		valeurs = (
 			nom,
-			(self.ui.nom_public.text().strip()) or (None),
+			(conformer(self.ui.nom_public.text())) or (None),
 			MASQUAGES[self.ui.masquage.currentIndex()][0],
 		)
 		if self.identifiant is None:

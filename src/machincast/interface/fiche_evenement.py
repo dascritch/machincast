@@ -3,8 +3,8 @@
 La fiche s'ouvre dans un onglet de la fenêtre (machincast.interface.fenetre), depuis la liste des événements, ou vide
 pour un nouvel événement. Enregistrement, annulation et fermeture : machincast.interface.fiche.
 
-- Les noms sont enregistrés sans les espaces qui les entourent ; un nom public vide n'en est pas un (NULL). Deux
-  événements n'ont pas le même nom interne.
+- Les noms sont enregistrés conformés (machincast.conformation, https://github.com/dascritch/machincast/issues/108) ; un
+  nom public vide n'en est pas un (NULL). Deux événements n'ont pas le même nom interne.
 - Le masquage « selon la séquence, la banque ou le sonore » (NULL) laisse décider le niveau suivant ; « masqués » et
   « affichés » l'imposent.
 - Grille (spec § 3.1) : le début et la fin de la première occurrence, chacun à cocher, et les jours où elle revient.
@@ -25,6 +25,7 @@ from datetime import datetime, timedelta
 from PySide6.QtCore import QDateTime
 from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QWidget
 
+from machincast.conformation import conformer
 from machincast.horloge import Horloge
 from machincast.interface.elements import Boutons, ListeElements
 from machincast.interface.fiche import Connexion, Fiche, Refus
@@ -208,7 +209,7 @@ class FicheEvenement(Fiche):
 
 	def _ecrire(self) -> int:
 		ui = self.ui
-		nom = ui.nom_interne.text().strip()
+		nom = conformer(ui.nom_interne.text())
 		if nom == "":
 			raise Refus("Le nom interne est obligatoire.")
 		pris = self.connexion.execute(
@@ -227,7 +228,7 @@ class FicheEvenement(Fiche):
 		self._refuser_secours_designe(priorite)
 		valeurs = (
 			nom,
-			(ui.nom_public.text().strip()) or (None),
+			(conformer(ui.nom_public.text())) or (None),
 			priorite,
 			debut,
 			fin,

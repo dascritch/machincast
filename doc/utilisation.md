@@ -167,7 +167,7 @@ L'indexeur ne supprime jamais un sonore de la base.
 
 ### Tags et métadonnées
 
-Pour un fichier `sain`, l'indexeur lit les tags du fichier pendant le décodage : ID3 (MP3, et AIFF quand il en porte), commentaires Vorbis (Ogg, FLAC), atomes MP4 (M4A) et chunk INFO (WAV, qui ne porte que l'artiste, le titre, l'album, le genre et l'année).
+Pour un fichier `sain`, l'indexeur lit les tags du fichier pendant le décodage, et les nettoie comme les textes saisis dans l'interface ([#108](https://github.com/dascritch/machincast/issues/108), [Interface graphique](#interface-graphique--machin-interface)) : ID3 (MP3, et AIFF quand il en porte), commentaires Vorbis (Ogg, FLAC), atomes MP4 (M4A) et chunk INFO (WAV, qui ne porte que l'artiste, le titre, l'album, le genre et l'année).
 
 | Champ du sonore | Tag lu |
 | --- | --- |
@@ -443,6 +443,8 @@ Le **log** note les opérations du binaire lecture, avec leur heure, leur niveau
 L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture : il ne peut qu'y ajouter des lignes.
 
 ## Interface graphique : Machin interface
+
+**Textes saisis** ([#108](https://github.com/dascritch/machincast/issues/108)) : les noms, l'artiste, le titre et les métadonnées musicales sont nettoyés à l'enregistrement, pour ne pas gêner les sorties, les flux et les afficheurs : tout espace Unicode (tabulation, retour à la ligne, espace insécable, espace fine…) devient une espace simple, les espaces de début et de fin sont retirées et jamais deux ne se suivent ; les caractères de contrôle, les sélecteurs de variante, les caractères spéciaux (U+FFF0 à U+FFFF), les caractères à usage privé, les caractères non attribués et les espaces sans largeur (U+200B, U+FEFF) sont supprimés. Rien d'autre n'est changé : accents, écritures non latines et emoji restent tels quels. Les chemins de fichiers et les adresses de streams sont gardés tels quels. Les tags lus par l'indexeur sont nettoyés de même.
 
 `Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores**, **Marques-pages** et **Incidents**. Le **Calendrier** s'ouvre à la demande ([Calendrier](#calendrier)). La barre de menus, en haut de la fenêtre, a cinq menus ([Menus](#menus)).
 

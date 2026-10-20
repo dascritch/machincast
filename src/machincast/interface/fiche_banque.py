@@ -3,7 +3,8 @@
 La fiche s'ouvre dans un onglet de la fenêtre (machincast.interface.fenetre), depuis la liste des banques, ou vide pour
 une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interface.fiche.
 
-- Les noms sont enregistrés sans les espaces qui les entourent ; un nom public vide n'en est pas un (NULL).
+- Les noms sont enregistrés conformés (machincast.conformation, https://github.com/dascritch/machincast/issues/108) ; un
+  nom public vide n'en est pas un (NULL).
 - Le masquage « hérité du sonore » (NULL) laisse décider le sonore ; « masqués » et « affichés » l'imposent.
 - Les répertoires sont enregistrés sous leur forme normale, comme les lit Machin indexation.
 - Crossfades (https://github.com/dascritch/machincast/issues/143) : pour le début comme pour la fin, une règle et une
@@ -49,6 +50,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
+from machincast.conformation import conformer
 from machincast.horloge import Horloge
 from machincast.interface import affichage, dialogues, preferences
 from machincast.interface.depot import DepotDeFichiers
@@ -219,7 +221,7 @@ class FicheBanque(Fiche):
 		self._actualiser_boutons()
 
 	def _ecrire(self) -> int:
-		nom = self.ui.nom_interne.text().strip()
+		nom = conformer(self.ui.nom_interne.text())
 		if nom == "":
 			raise Refus("Le nom interne est obligatoire.")
 		pris = self.connexion.execute(
@@ -229,7 +231,7 @@ class FicheBanque(Fiche):
 			raise Refus(f"Une autre banque s'appelle déjà « {nom} ».")
 		valeurs: list[object] = [
 			nom,
-			(self.ui.nom_public.text().strip()) or (None),
+			(conformer(self.ui.nom_public.text())) or (None),
 			self.ui.mode.currentData(),
 			MASQUAGES[self.ui.masquage.currentIndex()][0],
 			self.ui.ne_pas_repeter.isChecked(),
