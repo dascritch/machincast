@@ -220,7 +220,7 @@ Si GStreamer n'a pas de décodeur pour un format, la vérification s'arrête et 
 
 ## Diffusion : Machin lecture
 
-`Machin lecture` diffuse la grille sur la sortie audio de la configuration, en continu, jusqu'à ce qu'on l'arrête ([#88](https://github.com/dascritch/machincast/issues/88)), fichiers et streams. Il sait aussi simuler une période à l'avance, sans son ni écriture en base (voir [Simuler la diffusion](#simuler-la-diffusion)). Le service systemd est à venir (voir [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore)).
+`Machin lecture` diffuse la grille sur la sortie audio de la configuration, en continu, jusqu'à ce qu'on l'arrête ([#88](https://github.com/dascritch/machincast/issues/88)), fichiers et streams. Il sait aussi simuler une période à l'avance, sans son ni écriture en base (voir [Simuler la diffusion](#simuler-la-diffusion)). Sur un ordinateur dédié à l'antenne, il tourne comme service, `machincast.service` ([INSTALL.md](../INSTALL.md#service-de-diffusion)), que l'interface démarre, arrête et redémarre ([Piloter la diffusion depuis l'interface](#piloter-la-diffusion-depuis-linterface)).
 
 ### Lancer et arrêter la diffusion
 
@@ -440,7 +440,7 @@ L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture 
 
 ## Interface graphique : Machin interface
 
-`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores**, **Marques-pages** et **Incidents**. La barre de menus, en haut de la fenêtre, a quatre menus ([Menus](#menus)).
+`Machin interface` se connecte à la base de production, avec les droits de l'interface, puis ouvre sa fenêtre. Elle a un onglet par écran ([#26](https://github.com/dascritch/machincast/issues/26)) : **Accueil**, ouvert au lancement, puis **Événements**, **Séquences**, **Banques**, **Sonores**, **Marques-pages** et **Incidents**. La barre de menus, en haut de la fenêtre, a cinq menus ([Menus](#menus)).
 
 **Sans base de données**, l'interface n'est pas utilisable : `Machin interface` ouvre alors une fenêtre d'erreur, « MachinCast : base de données injoignable ». Elle explique pourquoi, et invite à lire le document `INSTALL.md` du répertoire de MachinCast, section [En cas de problème](../INSTALL.md#en-cas-de-problème). Son bouton « Ouvrir INSTALL.md » ouvre ce document, et ses détails donnent l'erreur de PostgreSQL. À sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, par exemple dans une session SSH, seul ce message s'affiche.
 
@@ -464,7 +464,7 @@ D'où viennent ces informations :
 - **Sonore en cours, prochain sonore, état** : de la socket d'état de `Machin lecture`, au chemin `lecture.socket_etat` de la configuration (voir [État de la diffusion pour l'interface](#état-de-la-diffusion-pour-linterface)). L'interface doit donc tourner sous le même compte que la diffusion, et avec la même configuration. Sans socket, ou quand `Machin lecture` s'arrête, l'écran affiche `À l'arrêt`, et se reconnecte tout seul, chaque seconde, dès que la diffusion reprend.
 - **Airplay** : de la base, à l'ouverture, puis chaque fois que la socket annonce un nouveau sonore. L'interface n'interroge jamais la base en boucle. Si la base devient injoignable, la table reste telle qu'elle était, et l'erreur `airplay illisible` s'affiche sur la sortie d'erreur.
 
-Le VU-mètre de la sortie viendra avec [#24](https://github.com/dascritch/machincast/issues/24), et le pilotage du service avec [#25](https://github.com/dascritch/machincast/issues/25).
+Le VU-mètre de la sortie viendra avec [#24](https://github.com/dascritch/machincast/issues/24). La diffusion se démarre et s'arrête par le menu **Diffusion** ([Piloter la diffusion depuis l'interface](#piloter-la-diffusion-depuis-linterface)).
 
 ### Listes
 
@@ -667,6 +667,7 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 | Fichier | Préférences… | Règle les crossfades de l'interface ([Préférences](#préférences)). L'icône de l'application viendra avec [#111](https://github.com/dascritch/machincast/issues/111). |
 | Fichier | Quitter | Ferme l'interface, aussi par <kbd>Alt</kbd> + <kbd>Q</kbd>, même depuis une fiche. Comme la fermeture de la fenêtre, demande d'abord quoi faire des fiches modifiées ; « Annuler » garde l'interface ouverte. La diffusion n'est pas concernée : `Machin lecture` continue. |
 | Affichage | Rafraîchir les onglets | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé en base, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
+| Diffusion | Démarrer la diffusion, Arrêter la diffusion, Redémarrer la diffusion | Pilotent `Machin lecture`, selon son état ([Piloter la diffusion depuis l'interface](#piloter-la-diffusion-depuis-linterface)). |
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
 | Maintenance | Indexation rapide, Audit complet | Lancent l'indexation ([Lancer l'indexation depuis l'interface](#lancer-lindexation-depuis-linterface)). |
 | Aide | Signaler un problème… | Ouvre les tickets de MachinCast sur GitHub, dans le navigateur web du poste. |
@@ -694,6 +695,22 @@ Ce que montre l'interface est lu en base à l'ouverture de chaque onglet ; ce qu
 - La fiche d'un élément effacé de la base depuis un autre poste se ferme, sans question : ses modifications sont perdues.
 
 La barre d'état le confirme (« Onglets rafraîchis. »), et nomme les fiches laissées telles quelles ou fermées.
+
+### Piloter la diffusion depuis l'interface
+
+Le menu **Diffusion** démarre, arrête et redémarre `Machin lecture`, sans terminal ([#25](https://github.com/dascritch/machincast/issues/25)). Ses entrées suivent l'état de la diffusion, relu à chaque ouverture du menu.
+
+**Avec le service** de diffusion (`./install.sh --service`, [INSTALL.md](../INSTALL.md#service-de-diffusion)) :
+
+| État du service | Entrées actives |
+| --- | --- |
+| Arrêté | Démarrer la diffusion |
+| En marche | Arrêter la diffusion, Redémarrer la diffusion |
+| En échec (il a planté trop souvent) | Démarrer la diffusion, Redémarrer la diffusion |
+
+Chaque entrée demande le mot de passe, ou l'empreinte, d'un administrateur du poste : c'est la règle polkit du service, qui n'autorise rien d'autre. L'interface reste utilisable pendant la demande. La barre d'état dit ensuite ce qu'il en est : `Diffusion démarrée.`, `Diffusion arrêtée.`, `Diffusion redémarrée.`, ou l'échec avec la raison donnée par systemd, par exemple `Diffusion non démarrée : …` quand l'authentification est refusée ; la diffusion reste alors telle qu'elle était.
+
+**Sans le service**, l'installation n'est pas définitive : la diffusion ne démarre pas avec le poste, et ne redémarre pas seule après un plantage. La barre d'état l'affiche en permanence, à droite : `Installation non définitive : diffusion sans service` ; son infobulle dit comment installer le service. « Démarrer la diffusion » ouvre alors `Machin lecture` dans une fenêtre de terminal (konsole, sinon le terminal par défaut du poste, `x-terminal-emulator`), avec la configuration de l'interface ; fermer l'interface ne l'arrête pas. On l'arrête par <kbd>Ctrl</kbd> + <kbd>C</kbd> dans ce terminal : « Arrêter » et « Redémarrer » restent grisées. Quand une diffusion tourne déjà, « Démarrer » est grisée aussi. Sans terminal sur le poste, la barre d'état dit de lancer `Machin lecture` à la main.
 
 ### Lancer l'indexation depuis l'interface
 
@@ -765,5 +782,5 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | Manque | Ticket |
 | --- | --- |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
-| Autres écrans de l'interface : VU-mètre, pilotage du service, recherche globale, calendrier, simulation | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
+| Autres écrans de l'interface : VU-mètre, recherche globale, calendrier, simulation | [#24](https://github.com/dascritch/machincast/issues/24) à [#39](https://github.com/dascritch/machincast/issues/39) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |
