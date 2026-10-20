@@ -115,7 +115,8 @@ class FenetrePrincipale(QMainWindow):
 		commande_indexation: list[str] | None = None,
 		configuration: Path | None = None,
 		crossfades: Crossfades | None = None,
-		audio: Audio | None = None,
+		*,
+		audio: Audio,
 	) -> None:
 		"""commande_indexation : Machin indexation, avec la configuration de l'interface
 		(indexation.commande_indexation). configuration : le fichier où « Préférences… » enregistre les réglages,
@@ -123,7 +124,7 @@ class FenetrePrincipale(QMainWindow):
 		préférences ne s'enregistrent pas."""
 		super().__init__(parent)
 		self.configuration = configuration
-		self.audio = (audio) or (Audio(sortie="factice", peripherique=None, preecoute=""))
+		self.audio = audio
 		"""Sortie de l'antenne et périphérique de pré-écoute (https://github.com/dascritch/machincast/issues/116)."""
 		self.preecoute: FenetrePreecoute | None = None
 		"""La fenêtre de pré-écoute, une seule pour toute l'interface, créée à sa première demande."""

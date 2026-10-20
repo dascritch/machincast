@@ -18,10 +18,14 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.configuration import Crossfades, charger
+from machincast.interface import __main__ as module_interface
+from machincast.interface import application as module_application
 from machincast.interface import dialogues, preferences
+from machincast.interface.fenetre import FenetrePrincipale
 from machincast.interface.fiche_banque import FicheBanque
 from machincast.interface.fiche_sonore import FicheSonore
 from machincast.interface.preferences import FenetrePreferences, Reglages
+from tests.base_test import configuration_test
 from tests.etapes_interface import Connexion, Contexte, fenetre, fichier_de_configuration, ouvrir_la_fenetre
 from tests.modales import quand_modale
 
@@ -389,3 +393,84 @@ def antenne_signalee(interface: Contexte, signale: str) -> None:
 	assert etiquette.isVisibleTo(fenetre(interface)) == (signale == "signale")
 	assert etiquette.text() == "Périphérique de l'antenne à renseigner"
 	assert etiquette.toolTip().startswith("Machin lecture refuse de diffuser sans lui")
+
+
+# ─── Machin interface ──────────────────────────────────────
+
+
+@given(
+	parsers.parse(
+		"un fichier de configuration sur la base de test, la sortie « {sortie} », l'antenne « {antenne} »"
+		" et la pré-écoute « {preecoute} »"
+	),
+	target_fixture="configuration_lancee",
+)
+def configuration_lancee(base_vide: Connexion, tmp_path: Path, sortie: str, antenne: str, preecoute: str) -> Path:
+	"""La configuration des tests, sur la base de test comme base de production : sa base de test, qui doit en
+	différer, en devient une autre, que l'interface n'ouvre pas."""
+	source = configuration_test()
+	texte = (
+		source.chemin.read_text(encoding="utf-8")
+		.replace(f'test = "{source.base.test}"', f'test = "{source.base.test}_inutilisee"')
+		.replace(f'production = "{source.base.production}"', f'production = "{source.base.test}"')
+		.replace('sortie = "factice"', f'sortie = "{sortie}"\nperipherique = "{antenne}"')
+		.replace(f'preecoute = "{source.audio.preecoute}"', f'preecoute = "{preecoute}"')
+	)
+	chemin = tmp_path / "machincast.toml"
+	chemin.write_text(texte, encoding="utf-8")
+	return chemin
+
+
+class Lancement:
+	fenetre: FenetrePrincipale | None = None
+	montres: tuple[Reglages, str] | None = None
+
+
+@pytest.fixture
+def lancement() -> Lancement:
+	return Lancement()
+
+
+@when("Machin interface est lancé avec ce fichier")
+def lancer_l_interface(
+	configuration_lancee: Path, lancement: Lancement, monkeypatch: pytest.MonkeyPatch, qtbot: QtBot
+) -> None:
+	"""Son point d'entrée, jusqu'à la boucle de Qt, qui rend la main aussitôt : la fenêtre reste à examiner."""
+
+	class Application:
+		def exec(self) -> int:
+			return 0
+
+	def montrer(fenetre: FenetrePrincipale) -> None:
+		qtbot.addWidget(fenetre)
+		lancement.fenetre = fenetre
+
+	monkeypatch.setattr(module_application, "application", lambda _nom: Application())
+	monkeypatch.setattr(FenetrePrincipale, "show", montrer)
+	assert module_interface.main(["--config", str(configuration_lancee)]) == 0
+
+
+@then(parsers.parse("sa fenêtre a la sortie « {sortie} », l'antenne « {antenne} » et la pré-écoute « {preecoute} »"))
+def audio_de_la_fenetre(lancement: Lancement, sortie: str, antenne: str, preecoute: str) -> None:
+	assert lancement.fenetre is not None
+	audio = lancement.fenetre.audio
+	assert (audio.sortie, audio.peripherique, audio.preecoute) == (sortie, antenne, preecoute)
+
+
+@then(
+	parsers.parse(
+		"ses préférences montrent l'antenne « {antenne} » et la pré-écoute « {preecoute} », sur la sortie « {sortie} »"
+	)
+)
+def preferences_de_la_fenetre(
+	lancement: Lancement, monkeypatch: pytest.MonkeyPatch, antenne: str, preecoute: str, sortie: str
+) -> None:
+	def regler(_parent: QWidget, montres: Reglages, sortie_montree: str) -> None:
+		lancement.montres = (montres, sortie_montree)
+
+	monkeypatch.setattr(dialogues, "regler_preferences", regler)
+	assert lancement.fenetre is not None
+	lancement.fenetre._preferences()
+	assert lancement.montres is not None
+	montres, sortie_montree = lancement.montres
+	assert (montres.antenne, montres.preecoute, sortie_montree) == (antenne, preecoute, sortie)
