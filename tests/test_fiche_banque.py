@@ -166,6 +166,20 @@ def deposer(interface: Contexte, geste: str, liste: str, quoi: str, deplacement:
 	glisser(interface, cible, quoi, geste == "dépose", deplacement is not None)
 
 
+@when(parsers.parse("j'ouvre le sonore « {nom} » de la banque"))
+def ouvrir_sonore(interface: Contexte, qtbot: QtBot, nom: str) -> None:
+	ouvrir_dans(qtbot, fiche(interface).ui.sonores, nom)
+
+
+@when(parsers.parse("je choisis le sonore « {nom} » de la banque, puis j'appuie sur Entrée"))
+def ouvrir_sonore_au_clavier(interface: Contexte, qtbot: QtBot, nom: str) -> None:
+	sonores = fiche(interface).ui.sonores
+	(ligne,) = sonores.findItems(nom, Qt.MatchFlag.MatchExactly, 0)
+	sonores.setCurrentItem(ligne)
+	sonores.setFocus()
+	qtbot.keyClick(sonores, Qt.Key.Key_Return)
+
+
 @when(parsers.parse("l'indexation enregistre le fichier « {chemin} »"))
 def indexer_fichier(interface: Contexte, base_vide: Connexion, chemin: str) -> None:
 	base_vide.execute(
