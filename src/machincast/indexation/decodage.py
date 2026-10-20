@@ -139,7 +139,11 @@ class _Decodage:
 			self.pipeline.add(element)
 		source.link(decodeur)
 		self.conversion.link(puits)
-		decodeur.connect("pad-added", self._relier)
+		self.decodeur = decodeur
+		self.liaison = decodeur.connect("pad-added", self._relier)
+		"""Le gestionnaire de decodebin retient ce décodage, qui retient le pipeline : un cycle que le ramasse-miettes
+		de Python ne voit pas. Sans liberer(), chaque décodage garderait les deux descripteurs de son bus
+		(https://github.com/dascritch/machincast/issues/149)."""
 		self.suivi = _Suivi()
 		entree = puits.get_static_pad("sink")
 		assert entree is not None
@@ -149,6 +153,11 @@ class _Decodage:
 		self.bus = bus
 		self.decodeur_absent: str | None = None
 		self.tags = Gst.TagList.new_empty()
+
+	def liberer(self) -> None:
+		"""Arrête le pipeline et rompt le cycle de liaison : le pipeline et son bus sont alors détruits."""
+		self.pipeline.set_state(Gst.State.NULL)
+		self.decodeur.disconnect(self.liaison)
 
 	def _relier(self, decodeur: Gst.Element, sortie: Gst.Pad) -> None:
 		"""Relie la première sortie audio de decodebin ; les autres flux (pochette, vidéo) sont ignorés."""
@@ -265,7 +274,7 @@ def _tentative(chemin: Path, delai_demarrage: timedelta, delai_sans_progression:
 		if message.type == Gst.MessageType.ERROR:
 			return decodage.erreur(message)
 	finally:
-		decodage.pipeline.set_state(Gst.State.NULL)
+		decodage.liberer()
 	duree = decodage.duree_decodee()
 	if (duree is None) or (duree <= timedelta()):
 		return Verification.defectueux(EtatFichier.ILLISIBLE, "aucun son décodé")

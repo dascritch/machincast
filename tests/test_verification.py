@@ -1,6 +1,7 @@
 """Étapes des scénarios de vérification des fichiers (https://github.com/dascritch/machincast/issues/7)."""
 
 import os
+import resource
 import shutil
 import subprocess
 import threading
@@ -122,6 +123,49 @@ def aiff_desactive() -> Iterator[None]:
 	yield
 	for fabrique, rang in rangs:
 		fabrique.set_rank(rang)
+
+
+def descripteurs_ouverts() -> int:
+	return len(os.listdir("/proc/self/fd"))
+
+
+@dataclass
+class Limite:
+	"""Descripteurs ouverts avant les vérifications."""
+
+	ouverts: int = 0
+
+
+@pytest.fixture
+def limite() -> Iterator[Limite]:
+	"""La limite de descripteurs du processus, rétablie en fin de scénario."""
+	souple, dure = resource.getrlimit(resource.RLIMIT_NOFILE)
+	yield Limite()
+	resource.setrlimit(resource.RLIMIT_NOFILE, (souple, dure))
+
+
+@given(parsers.parse("un processus limité à {marge:d} descripteurs de fichier de plus que ceux déjà ouverts"))
+def limiter(limite: Limite, fichier: Path, marge: int) -> None:
+	# Un premier décodage ouvre ce que GStreamer garde pour toute la durée du processus (registre, horloge).
+	assert verifier_fichier(fichier).etat == EtatFichier.SAIN
+	limite.ouverts = descripteurs_ouverts()
+	_souple, dure = resource.getrlimit(resource.RLIMIT_NOFILE)
+	resource.setrlimit(resource.RLIMIT_NOFILE, (limite.ouverts + marge, dure))
+
+
+@when(parsers.parse("je vérifie ce fichier {fois:d} fois de suite"), target_fixture="resultats")
+def verifier_plusieurs_fois(fichier: Path, fois: int) -> list[Verification]:
+	return [verifier_fichier(fichier) for _ in range(fois)]
+
+
+@then("le fichier est sain à chaque vérification")
+def toujours_sain(resultats: list[Verification]) -> None:
+	assert [resultat.probleme for resultat in resultats if resultat.etat != EtatFichier.SAIN] == []
+
+
+@then("autant de descripteurs de fichier sont ouverts qu'avant les vérifications")
+def sans_fuite(limite: Limite) -> None:
+	assert descripteurs_ouverts() == limite.ouverts
 
 
 @when(

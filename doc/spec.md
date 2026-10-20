@@ -466,6 +466,7 @@ Deux modes ([#69](https://github.com/dascritch/machincast/issues/69)).
 - Fichier illisible ou endommagé : signalé sur STDERR, sonore `apercu` ou `actif` passé `errone`.
 - Fichier introuvable (supprimé ou déplacé) : signalé sur STDERR, sonore `apercu`, `actif` ou `errone` passé `supprime`. Un fichier déplacé sera réindexé comme nouveau sonore.
 - Un sonore `desactive`, `expire` ou `supprime` garde son état ; son fichier défectueux est quand même signalé ([§ 3.1](#sonores), [#66](https://github.com/dascritch/machincast/issues/66)).
+- Chaque décodage libère tout ce qu'il a ouvert : une indexation de milliers de fichiers ne garde aucun descripteur de fichier ouvert ([#149](https://github.com/dascritch/machincast/issues/149)).
 - Décodeur GStreamer absent pour un format : la vérification s'arrête et indique les paquets à installer, sans changer l'état du sonore, car le fichier n'y est pour rien.
 - Date de modification ou taille changée : nouvelle vérification complète, mise à jour de la durée et des tags, **sans toucher aux champs édités à la main**.
 
