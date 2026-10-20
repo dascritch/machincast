@@ -33,3 +33,4 @@
 - Prévoir l'absence de VU-mètre (sortie ALSA) et l'absence de durée (streams).
 - Un travail long (test d'un flux) ne bloque jamais l'interface : GStreamer travaille dans ses fils, et un minuteur de Qt relève son bus (`machincast.interface.essai_flux`).
 - Un stream propose son événement de secours parmi les seuls événements de priorité `secours`, ou aucun (le fil musical) ; un événement de secours ne se saisit ni avec des dates, ni avec des jours, et n'apparaît pas dans la vue calendrier ([#16](https://github.com/dascritch/machincast/issues/16)).
+- La fiche d'un sonore lit son fichier (taille, dates), sans jamais l'ouvrir en écriture ([#125](https://github.com/dascritch/machincast/issues/125), [#96](https://github.com/dascritch/machincast/issues/96)) : `stat`, et `stat --format=%W` pour la date de création, que Python ne donne pas sous Linux.
