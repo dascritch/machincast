@@ -223,6 +223,10 @@ Fonctionnalité: Boucle de diffusion de Machin lecture
 		Quand le processus reçoit SIGTERM
 		Alors l'arrêt de la diffusion est demandé
 
+	Scénario: Sans périphérique d'antenne, Machin lecture refuse de diffuser sur une vraie sortie
+		Quand je lance Machin_lecture sur la sortie « pipewire », sans périphérique d'antenne
+		Alors il s'arrête avec le code 2, en signalant « périphérique de l'antenne non renseigné »
+
 	Scénario: Sans base de données joignable, Machin lecture s'arrête avec le code 1
 		Quand je lance Machin_lecture avec une configuration dont la socket n'existe pas
 		Alors il s'arrête avec le code 1, en signalant la base de données injoignable

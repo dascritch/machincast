@@ -118,7 +118,7 @@ La configuration est le fichier `machincast.toml`, dans le répertoire de Machin
 À adapter au moins :
 
 - `audio.sortie` : `pipewire` (valeur du modèle), `pulseaudio`, `alsa`, ou `factice` pour un essai sans aucun son ;
-- `audio.peripherique` : le périphérique de l'antenne, si ce n'est pas le périphérique par défaut ;
+- `audio.peripherique` : le périphérique de l'antenne, **obligatoire pour diffuser** (sauf avec `factice`) : sans lui, `Machin lecture` refuse de démarrer. Il peut aussi se choisir dans l'interface, **Fichier → Préférences…**, page **Audio**, qui l'écrit dans `machincast.toml` ;
 - `audio.preecoute` : le périphérique de pré-écoute de l'interface, différent de celui de l'antenne ; il peut aussi se choisir ensuite dans la fenêtre de pré-écoute de l'interface ;
 - `metadonnees.texte_public` : le nom affiché sur la page publique à la place d'un titre masqué ;
 - `lecture.socket_etat` : facultatif, la socket d'état lue par l'interface ; par défaut dans le répertoire d'exécution du compte (`$XDG_RUNTIME_DIR/machincast/lecture.sock`) ;
@@ -411,6 +411,7 @@ Les noms de bases sont ceux du modèle : reprendre ceux de `base.production` et 
 | `install.sh : lancer install.sh avec son propre compte, sans sudo` | Le script a été lancé avec `sudo` ou en `root`. Le relancer avec son compte. |
 | `install.sh : Ubuntu LTS requis (cible : 26.04 LTS)` | Le système n'est pas une Ubuntu LTS. `./install.sh --simulation` montre tout de même les commandes. |
 | `install.sh : configuration … à corriger, puis relancer install.sh` | `machincast.toml` est invalide : le message précédent nomme la clé en cause. |
+| `Machin_lecture : périphérique de l'antenne non renseigné : …` | `audio.peripherique` manque : le donner dans `machincast.toml`, ou dans l'interface, **Fichier → Préférences…**, page **Audio**. Puis relancer la diffusion. |
 | `Machin_lecture : sortie audio indisponible : …` | La sortie de `audio.sortie` ne peut pas être créée : installer le greffon nommé, ou vérifier `audio.peripherique`. Relancer `install.sh` vérifie la sortie. |
 | `Machin_indexation : indexation refusée : une autre indexation est en cours sur cette base` | Une indexation tourne déjà sur la base, lancée d'un terminal, de l'interface ou d'un autre poste. Attendre sa fin, puis relancer. Sa fenêtre, si elle vient de l'interface, peut l'arrêter. |
 | `Machin_indexation : --fenetre demande un affichage graphique …` | `--fenetre` a été donné sans session graphique, par exemple en SSH : lancer `Machin indexation` sans `--fenetre`, son journal s'affiche dans le terminal. |

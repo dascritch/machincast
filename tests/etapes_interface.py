@@ -36,13 +36,15 @@ from pytest_bdd import given, parsers, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.base import Role, connecter
-from machincast.configuration import Crossfades, charger
+from machincast.configuration import Crossfades, SortieAudio, charger
 from machincast.horloge import HorlogeFixe
-from machincast.interface import dialogues
+from machincast.interface import dialogues, preecoute
 from machincast.interface.dialogues import Fermeture, Retrait
 from machincast.interface.fenetre import FenetrePrincipale
 from machincast.interface.fiche import Fiche
 from machincast.interface.listes import Liste
+from machincast.interface.preecoute import Peripherique
+from machincast.interface.preferences import Reglages
 from tests.base_test import configuration_test, parametres_base_test
 from tests.sons import FICHIERS_SONORES
 
@@ -70,8 +72,12 @@ class Contexte:
 	"""Réponse à la question de suppression : True pour supprimer."""
 	creation: bool = False
 	"""Réponse à la question de création d'un événement depuis le calendrier : True pour créer."""
-	peripherique_antenne: str | None = None
-	"""Périphérique de l'antenne, s'il remplace celui de la configuration des tests (aucun)."""
+	audio: dict[str, object] = field(default_factory=dict)
+	"""Ce qui remplace la section [audio] de la configuration des tests : sortie, périphériques."""
+	reglages_audio: tuple[str, str] | None = None
+	"""Périphériques de l'antenne et de la pré-écoute que donnera la fenêtre des préférences ; None : inchangés."""
+	audio_montre: list[tuple[str | None, str]] = field(default_factory=list)
+	"""Périphériques de l'antenne et de la pré-écoute montrés par la fenêtre des préférences."""
 	repertoires_choisis: list[str | None] = field(default_factory=list)
 	"""Répertoires que donneront les choix suivants, None pour un choix abandonné."""
 	sonores_choisis: list[int] = field(default_factory=list)
@@ -188,9 +194,14 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	monkeypatch.setattr(dialogues, "ouvrir_page", interface.pages_ouvertes.append)
 	monkeypatch.setattr(dialogues, "montrer_version", lambda _parent, texte: interface.versions.append(texte))
 
-	def preferences(_parent: QWidget, crossfades: Crossfades) -> Crossfades | None:
-		interface.preferences_montrees.append(crossfades)
-		return interface.preferences_reglees
+	def preferences(_parent: QWidget, montres: Reglages, _sortie: SortieAudio) -> Reglages | None:
+		"""Les crossfades et les périphériques du scénario ; ceux qu'il ne règle pas restent ceux montrés."""
+		interface.preferences_montrees.append(montres.crossfades)
+		interface.audio_montre.append((montres.antenne, montres.preecoute))
+		if (interface.preferences_reglees is None) and (interface.reglages_audio is None):
+			return None
+		antenne, preecoute = (interface.reglages_audio) or ((montres.antenne, montres.preecoute))
+		return Reglages((interface.preferences_reglees) or (montres.crossfades), antenne, preecoute)
 
 	monkeypatch.setattr(dialogues, "regler_preferences", preferences)
 
@@ -595,8 +606,7 @@ def ouvrir_la_fenetre(interface: Contexte, qtbot: QtBot, avec_configuration: boo
 		interface.configuration_initiale = chemin.read_bytes()
 		crossfades = charger(chemin).crossfades
 		audio = charger(chemin).audio
-	if interface.peripherique_antenne is not None:
-		audio = dataclasses.replace(audio, peripherique=interface.peripherique_antenne)
+	audio = dataclasses.replace(audio, **interface.audio)  # type: ignore[arg-type]
 	interface.fenetre = FenetrePrincipale(
 		interface.connexion,
 		interface.repertoire / "lecture.sock",
@@ -1163,3 +1173,35 @@ def en_base(base_vide: Connexion, genre: str, nom: str, etat: str) -> None:
 	table, colonne = TABLES[genre]
 	lignes = base_vide.execute(f"SELECT id FROM {table} WHERE {colonne} = %s", (nom,)).fetchall()  # noqa: S608
 	assert len(lignes) == {"n'est plus": 0, "est toujours": 1}[etat], lignes
+
+
+@given("les périphériques audio du poste :")
+def peripheriques_du_poste(monkeypatch: pytest.MonkeyPatch, datatable: list[list[str]]) -> None:
+	"""Ceux que donnerait le fournisseur de périphériques de GStreamer, pour la pré-écoute et les préférences."""
+	trouves = [Peripherique(identifiant.strip(), nom.strip()) for identifiant, nom in datatable[1:]]
+
+	def lister(_sortie: SortieAudio) -> list[Peripherique]:
+		return trouves
+
+	monkeypatch.setattr(preecoute, "peripheriques", lister)
+
+
+CONFIGURATION_AUDIO = (
+	r"(?:sortie « (?P<sortie>[^»]+) », )?"
+	r"(?:sans périphérique d'antenne|avec le périphérique d'antenne « (?P<antenne>[^»]+) »)"
+)
+
+
+@given(parsers.re(r"la configuration audio (?P<reglages>.+)"))
+def configuration_audio(interface: Contexte, reglages: str) -> None:
+	"""« sortie « pipewire », sans périphérique d'antenne » ou « avec le périphérique d'antenne « x » »."""
+	trouvee = re.fullmatch(CONFIGURATION_AUDIO, reglages)
+	assert trouvee is not None, reglages
+	if trouvee["sortie"] is not None:
+		interface.audio["sortie"] = trouvee["sortie"]
+	interface.audio["peripherique"] = trouvee["antenne"]
+
+
+@given(parsers.parse("les préférences régleront l'antenne « {antenne} » et la pré-écoute « {preecoute} »"))
+def audio_regle(interface: Contexte, antenne: str, preecoute: str) -> None:
+	interface.reglages_audio = (antenne, preecoute)

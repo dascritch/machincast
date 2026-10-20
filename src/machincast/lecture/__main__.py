@@ -118,6 +118,14 @@ def executer_simulation(configuration: Configuration, options: argparse.Namespac
 
 def executer_diffusion(configuration: Configuration) -> int:
 	base = configuration.base
+	audio = configuration.audio
+	if (audio.sortie != "factice") and (audio.peripherique is None):
+		# Le périphérique par défaut pourrait être celui de la pré-écoute, ou changer avec un branchement.
+		journal.error(
+			f"périphérique de l'antenne non renseigné : le donner dans audio.peripherique de {configuration.chemin},"
+			" ou dans Fichier → Préférences… de Machin interface, page Audio"
+		)
+		return CODE_CONFIGURATION_INVALIDE
 	arret = installer_arret()
 	try:
 		with connecter(base.socket, base.production, Role.LECTURE) as connexion:

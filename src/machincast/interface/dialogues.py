@@ -13,10 +13,10 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox, QWidget
 
-from machincast.configuration import Crossfades
+from machincast.configuration import SortieAudio
 from machincast.interface.choix import Choix
 from machincast.interface.listes import BANQUES, MARQUES_PAGES, SEQUENCES, SONORES
-from machincast.interface.preferences import FenetrePreferences
+from machincast.interface.preferences import FenetrePreferences, Reglages
 from machincast.protection import EXTENSIONS_SONORES
 
 
@@ -161,10 +161,10 @@ def _choisir(choix: Choix) -> list[int]:
 	return choix.selection()
 
 
-def regler_preferences(parent: QWidget, reglages: Crossfades) -> Crossfades | None:
+def regler_preferences(parent: QWidget, reglages: Reglages, sortie: SortieAudio) -> Reglages | None:
 	"""Les préférences réglées dans leur fenêtre ; None si elle est abandonnée
 	(https://github.com/dascritch/machincast/issues/145)."""
-	fenetre = FenetrePreferences(reglages, parent)
+	fenetre = FenetrePreferences(reglages, sortie, parent)
 	if fenetre.exec() != QDialog.DialogCode.Accepted:
 		return None
 	return fenetre.reglages()

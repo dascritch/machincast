@@ -21,7 +21,9 @@ test = "machincast_test"
 # Avec "alsa", le VU-mètre de l'interface n'est pas disponible, et le périphérique doit mélanger deux sons
 # (crossfade) : "default" convient, un périphérique matériel direct ("hw:…") non.
 sortie = "pipewire"
-# Périphérique de l'antenne. Facultatif : sans cette clé, le périphérique par défaut de la sortie est utilisé.
+# Périphérique de l'antenne. Obligatoire pour diffuser, sauf sur la sortie "factice" : sans lui, Machin lecture refuse
+# de démarrer, car le périphérique par défaut pourrait être celui de la pré-écoute. Il se choisit aussi dans
+# Machin interface, Fichier → Préférences…, page Audio, qui l'écrit ici.
 # peripherique = "alsa_output.pci-0000_00_1f.3.analog-stereo"
 # Périphérique de pré-écoute de l'interface. Obligatoire, et différent du périphérique de l'antenne.
 preecoute = "alsa_output.usb-casque.analog-stereo"

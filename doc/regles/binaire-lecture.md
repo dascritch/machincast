@@ -15,6 +15,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 - Une banque marquée « ne pas répéter » ne passe jamais deux fois de suite, même d'un événement à l'autre : l'élément est sauté, et l'événement se termine s'il ne reste rien d'autre de jouable ([#63](https://github.com/dascritch/machincast/issues/63)).
 - Seuls les sonores jouables sont candidats : à l'état `actif`, dans leur période de diffusion, sous leur maximum de lectures.
 - Artiste et titre sont masqués selon la priorité Événement > Séquence > Banque > Sonore > configuration ; masqués, ils laissent la place au premier nom public renseigné, Événement > Séquence > Banque (`sorties.premier_nom_public`), sinon au texte public. Les sorties privées affichent tout, les sorties publiques appliquent le masquage.
+- Jamais de diffusion sur un périphérique implicite : sans `audio.peripherique`, `Machin_lecture` refuse de diffuser (code 2), sauf sur la sortie `factice` ([#116](https://github.com/dascritch/machincast/issues/116)).
 - Jamais de silence non signalé : si rien n'est jouable, émettre un silence et lever une alerte dans le log.
 
 ## Grille et événement actif
