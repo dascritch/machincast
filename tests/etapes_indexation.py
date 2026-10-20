@@ -5,6 +5,7 @@ Chargé comme greffon pytest par tests/conftest.py, pour servir à verification.
 """
 
 import logging
+import os
 import threading
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -142,6 +143,69 @@ def sonore_dans_etat(base_vide: Connexion, fichier: Path, etat: str) -> int:
 )
 def sonore_duree_editee(base_vide: Connexion, fichier: Path, secondes: str) -> int:
 	return inserer_sonore(base_vide, str(fichier), "actif", ["duree"], nombre(secondes))
+
+
+@given(
+	parsers.re(
+		r"un sonore à l'état « (?P<etat>[^»]+) » pour ce fichier,"
+		r" dont le titre a été saisi à la main « (?P<titre>[^»]+) »"
+	),
+	target_fixture="sonore",
+)
+def sonore_titre_edite(base_vide: Connexion, fichier: Path, etat: str, titre: str) -> int:
+	sonore = inserer_sonore(base_vide, str(fichier), etat, ["titre"])
+	base_vide.execute("UPDATE sonores SET titre = %s WHERE id = %s", (titre, sonore))
+	return sonore
+
+
+@given("l'indexeur a fait une indexation rapide")
+def indexation_prealable(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> None:
+	indexer(base_vide, caplog, audit_complet=False)
+
+
+@given(
+	parsers.re(
+		r"ce fichier remplacé, sous le même nom, par un fichier (?P<format_sonore>\w+) (?P<etat>tagué|endommagé)"
+	)
+)
+def fichier_remplace(fichier: Path, tmp_path: Path, format_sonore: str, etat: str) -> None:
+	"""Comme une synchronisation depuis un autre poste : le contenu change, la date de modification aussi."""
+	repertoire = tmp_path / "remplacement"
+	repertoire.mkdir(exist_ok=True)
+	source = copie_de_test(format_sonore, repertoire, "tags")
+	if etat == "endommagé":
+		source = copie_de_test(format_sonore, repertoire)
+		corrompre(source, 1000, 1 / 3)
+	fichier.write_bytes(source.read_bytes())
+	plus_tard = fichier.stat().st_mtime + 60
+	os.utime(fichier, (plus_tard, plus_tard))
+
+
+@given(parsers.parse("le sonore est passé à l'état « {etat} »"))
+def changer_etat(base_vide: Connexion, sonore: int, etat: str) -> None:
+	base_vide.execute("UPDATE sonores SET etat = %s WHERE id = %s", (etat, sonore))
+
+
+@given("ce fichier remplacé, sous le même nom, par un fichier flac tagué, en gardant sa date de modification")
+def fichier_remplace_meme_date(fichier: Path, tmp_path: Path) -> None:
+	"""Comme une copie qui garde la date d'origine : seule la taille trahit le changement."""
+	etat = fichier.stat()
+	repertoire = tmp_path / "remplacement"
+	repertoire.mkdir(exist_ok=True)
+	fichier.write_bytes(copie_de_test("flac", repertoire, "tags").read_bytes())
+	assert fichier.stat().st_size != etat.st_size
+	os.utime(fichier, ns=(etat.st_atime_ns, etat.st_mtime_ns))
+
+
+@given("ce fichier supprimé")
+def fichier_supprime(fichier: Path) -> None:
+	fichier.unlink()
+
+
+@given("ce fichier touché, sans changer son contenu")
+def fichier_touche(fichier: Path) -> None:
+	plus_tard = fichier.stat().st_mtime + 60
+	os.utime(fichier, (plus_tard, plus_tard))
 
 
 @given(parsers.parse("un deuxième fichier {format_sonore} sain, dont le sonore est à l'état « {etat} »"))

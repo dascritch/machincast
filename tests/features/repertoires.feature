@@ -160,3 +160,14 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Quand l'indexeur fait une indexation rapide
 		Alors la banque « Jingles » contient, dans l'ordre, « jingles/abime.mp3 »
 		Et le sonore de « jingles/abime.mp3 » est à l'état « errone »
+
+	# ─── Fichier déplacé (https://github.com/dascritch/machincast/issues/10) ─────
+
+	Scénario: Un fichier déplacé est enregistré comme un nouveau sonore, et l'ancien passe supprimé
+		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
+		Et le fichier « jingles/intro.flac », sain
+		Et l'indexeur a fait une indexation rapide
+		Et « jingles/intro.flac » déplacé en « jingles/archives/intro.flac »
+		Quand l'indexeur fait une indexation rapide
+		Alors le sonore de « jingles/intro.flac » est à l'état « supprime »
+		Et le sonore de « jingles/archives/intro.flac » est à l'état « actif »

@@ -130,6 +130,18 @@ def _etat_du_fichier(chemin: Path) -> tuple[datetime, int] | None:
 	return datetime.fromtimestamp(etat.st_mtime, tz=UTC), etat.st_size
 
 
+def _modifie(chemin: Path, modifie_le: object, taille: object) -> bool:
+	"""Le fichier a-t-il changé depuis sa dernière vérification (https://github.com/dascritch/machincast/issues/10) ?
+
+	Sa date de modification ou sa taille diffère de celles enregistrées, toujours ensemble. Un sonore jamais vérifié
+	n'en a pas, et un fichier introuvable n'a rien à comparer : ni l'un ni l'autre n'est dit modifié.
+	"""
+	if modifie_le is None:
+		return False
+	fichier = _etat_du_fichier(chemin)
+	return (fichier is not None) and (fichier != (modifie_le, taille))
+
+
 def _liste(identifiants: Collection[int] | None) -> list[int] | None:
 	if identifiants is None:
 		return None
@@ -149,8 +161,9 @@ def verifier_sonores(
 	Le bilan reçu, celui du parcours des répertoires (machincast.indexation.indexeur), est complété ; sans bilan,
 	un nouveau est créé.
 
-	En indexation rapide, seuls les sonores en aperçu sont décodés ; pour les autres, un fichier disparu est
-	quand même repéré. En audit complet, tous sont décodés.
+	En indexation rapide, seuls les sonores en aperçu, et ceux dont le fichier a changé depuis sa dernière
+	vérification (date de modification ou taille), sont décodés ; pour les autres, un fichier disparu est quand même
+	repéré. En audit complet, tous sont décodés.
 
 	identifiants : seuls ces sonores, pour la vérification immédiate des fichiers que l'interface ajoute
 	(https://github.com/dascritch/machincast/issues/30) ; tous les sonores sans eux.
@@ -162,19 +175,31 @@ def verifier_sonores(
 	"""
 	with connexion.transaction():
 		sonores = connexion.execute(
-			"SELECT id, emplacement, etat::text, champs_edites, artiste, titre, metadonnees_musicales"
+			"SELECT id, emplacement, etat::text, champs_edites, artiste, titre, metadonnees_musicales,"
+			" fichier_modifie_le, fichier_taille"
 			" FROM sonores WHERE type = 'fichier' AND (%s::bigint[] IS NULL OR id = ANY(%s)) ORDER BY id",
 			(_liste(identifiants), _liste(identifiants)),
 		).fetchall()
 
 	if bilan is None:
 		bilan = Bilan(audit_complet=audit_complet)
-	for identifiant, emplacement, etat_texte, champs_edites, artiste, titre, metadonnees in sonores:
+	for ligne in sonores:
 		if (arret is not None) and (arret.is_set()):
 			break
+		(
+			identifiant,
+			emplacement,
+			etat_texte,
+			champs_edites,
+			artiste,
+			titre,
+			metadonnees,
+			modifie_avant,
+			taille_avant,
+		) = ligne
 		chemin = Path(str(emplacement))
 		avant = EtatSonore(str(etat_texte))
-		decoder = (audit_complet) or (avant is EtatSonore.APERCU)
+		decoder = (audit_complet) or (avant is EtatSonore.APERCU) or (_modifie(chemin, modifie_avant, taille_avant))
 		if (not decoder) and (chemin.exists()):
 			continue
 		# Un fichier introuvable est déclaré tel sans décodage : l'indexation rapide repère donc les disparus.
