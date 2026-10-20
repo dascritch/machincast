@@ -209,3 +209,21 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Et la pré-écoute est « À l'arrêt », à « 0:00 / 0:01 »
 		Et la pré-écoute signale « Sortie de pré-écoute enregistrée dans …/machincast.toml. »
 		Et le fichier de configuration a pour pré-écoute « casque-usb », avec ses commentaires
+
+	Scénario: La pré-écoute suit les périphériques réglés dans les préférences
+		Étant donné les périphériques audio du poste :
+			| identifiant       | nom           |
+			| carte-2           | Carte 2       |
+			| casque-usb        | Casque USB    |
+			| preecoute-factice | Haut-parleurs |
+		Et les préférences régleront l'antenne « carte-2 » et la pré-écoute « casque-usb »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Pré-écoute… » dans le menu « Affichage »
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Pré-écoute… » dans le menu « Affichage »
+		Alors la sortie de la pré-écoute est « casque-usb »
+		Et la pré-écoute propose les sorties :
+			| sortie              | état     |
+			| Casque USB          | active   |
+			| Carte 2 (diffusion) | inactive |
+			| Haut-parleurs       | active   |

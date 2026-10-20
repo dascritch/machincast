@@ -12,7 +12,8 @@ from datetime import timedelta
 from pathlib import Path
 
 import pytest
-from PySide6.QtWidgets import QDialogButtonBox, QDoubleSpinBox, QWidget
+from PySide6.QtGui import QStandardItemModel
+from PySide6.QtWidgets import QComboBox, QDialogButtonBox, QDoubleSpinBox, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -20,7 +21,7 @@ from machincast.configuration import Crossfades, charger
 from machincast.interface import dialogues, preferences
 from machincast.interface.fiche_banque import FicheBanque
 from machincast.interface.fiche_sonore import FicheSonore
-from machincast.interface.preferences import FenetrePreferences
+from machincast.interface.preferences import FenetrePreferences, Reglages
 from tests.etapes_interface import Connexion, Contexte, fenetre, fichier_de_configuration, ouvrir_la_fenetre
 from tests.modales import quand_modale
 
@@ -31,6 +32,8 @@ REGLAGES = (
 	r" début par défaut (?:(?P<debut>[\d,]+) s|aucune), fin par défaut (?:(?P<fin>[\d,]+) s|aucune)"
 )
 """Les réglages des crossfades, tels que les écrit un scénario."""
+PREECOUTE_DES_TESTS = "preecoute-factice"
+"""Le périphérique de pré-écoute de la configuration des tests."""
 
 
 def _secondes(texte: str | None) -> timedelta | None:
@@ -66,7 +69,7 @@ def configuration_refusee(interface: Contexte, monkeypatch: pytest.MonkeyPatch) 
 	"""Les tests tournent parfois sous root, que les droits d'un fichier n'arrêtent pas : l'écriture est refusée."""
 	fichier_de_configuration(interface)
 
-	def refuser(chemin: Path, _crossfades: Crossfades) -> None:
+	def refuser(chemin: Path, _reglages: Reglages) -> None:
 		raise PermissionError(13, "Permission non accordée", str(chemin))
 
 	monkeypatch.setattr(preferences, "ecrire", refuser)
@@ -98,12 +101,16 @@ def contient_encore(interface: Contexte, ligne: str) -> None:
 	assert ligne in fichier_de_configuration(interface).read_text(encoding="utf-8").splitlines()
 
 
-@then("le fichier de configuration contient encore les autres sections")
-def autres_sections(interface: Contexte) -> None:
+@then(parsers.re(r"le fichier de configuration contient encore les autres sections(?P<hors_audio>, hors \[audio\])?"))
+def autres_sections(interface: Contexte, hors_audio: str | None) -> None:
 	avant = tomllib.loads(interface.configuration_initiale.decode("utf-8"))
 	apres = tomllib.loads(fichier_de_configuration(interface).read_text(encoding="utf-8"))
-	avant.pop("crossfades", None)
-	apres.pop("crossfades", None)
+	retirees = ["crossfades"]
+	if hors_audio is not None:
+		retirees.append("audio")
+	for section in retirees:
+		avant.pop(section, None)
+		apres.pop(section, None)
 	assert apres == avant
 
 
@@ -151,7 +158,7 @@ def parent(qtbot: QtBot) -> Iterator[QWidget]:
 
 class Ouverte:
 	fenetre: FenetrePreferences | None = None
-	donnes: Crossfades | None = None
+	donnes: Reglages | None = None
 
 
 @pytest.fixture
@@ -168,14 +175,15 @@ def la_fenetre(ouverte: Ouverte) -> FenetrePreferences:
 def ouvrir_les_preferences(
 	ouverte: Ouverte, parent: QWidget, granularite: str, maximum: str, debut: str | None, fin: str | None
 ) -> None:
-	ouverte.fenetre = FenetrePreferences(reglages(granularite, maximum, debut, fin), parent)
+	tous = Reglages(reglages(granularite, maximum, debut, fin), None, PREECOUTE_DES_TESTS)
+	ouverte.fenetre = FenetrePreferences(tous, "factice", parent)
 
 
 @then(parsers.parse("elle s'intitule « {titre} », avec la page « {page} »"))
 def titre_et_page(ouverte: Ouverte, titre: str, page: str) -> None:
 	ui = la_fenetre(ouverte).ui
 	pages = [ui.pages.tabText(rang) for rang in range(ui.pages.count())]
-	assert (la_fenetre(ouverte).windowTitle(), pages) == (titre, [page])
+	assert (la_fenetre(ouverte).windowTitle(), pages[0]) == (titre, page)
 
 
 def _montree(case_et_champ: tuple[object, QDoubleSpinBox] | QDoubleSpinBox) -> str | None:
@@ -248,7 +256,8 @@ def cliquer(ouverte: Ouverte, bouton: str) -> None:
 
 @then(parsers.re(rf"elle a donné : {REGLAGES}"))
 def donnes(ouverte: Ouverte, granularite: str, maximum: str, debut: str | None, fin: str | None) -> None:
-	assert ouverte.donnes == reglages(granularite, maximum, debut, fin)
+	assert ouverte.donnes is not None
+	assert ouverte.donnes.crossfades == reglages(granularite, maximum, debut, fin)
 
 
 @when(parsers.re(rf"je réponds « (?P<bouton>OK|Annuler) » à la fenêtre des préférences ouverte sur : {REGLAGES}"))
@@ -267,7 +276,8 @@ def repondre(
 		modale.ui.boutons.button(role).click()
 
 	quand_modale(faire)
-	ouverte.donnes = dialogues.regler_preferences(parent, reglages(granularite, maximum, debut, fin))
+	tous = Reglages(reglages(granularite, maximum, debut, fin), None, PREECOUTE_DES_TESTS)
+	ouverte.donnes = dialogues.regler_preferences(parent, tous, "factice")
 
 
 @then(parsers.re(rf"les réglages donnés sont (?:aucun|{REGLAGES})"))
@@ -280,7 +290,7 @@ def reglages_donnes(
 ) -> None:
 	attendus = None
 	if (granularite is not None) and (maximum is not None):
-		attendus = reglages(granularite, maximum, debut, fin)
+		attendus = Reglages(reglages(granularite, maximum, debut, fin), None, PREECOUTE_DES_TESTS)
 	assert ouverte.donnes == attendus
 
 
@@ -299,3 +309,83 @@ def pas_du_maximum(ouverte: Ouverte, pas: str, minimum: str) -> None:
 	champ = la_fenetre(ouverte).ui.maximum
 	attendus = tuple(float(valeur.replace(",", ".")) for valeur in (pas, minimum))
 	assert (champ.singleStep(), champ.minimum()) == attendus
+
+
+# ─── Page « Audio » ────────────────────────────────────────
+
+
+@when(
+	parsers.re(
+		r"la fenêtre des préférences s'ouvre sur l'antenne (?:« (?P<antenne>[^»]+) »|non renseignée)"
+		r" et la pré-écoute « (?P<preecoute>[^»]+) »"
+	)
+)
+def ouvrir_sur_l_audio(ouverte: Ouverte, parent: QWidget, antenne: str | None, preecoute: str) -> None:
+	ouverte.fenetre = FenetrePreferences(Reglages(Crossfades(), antenne, preecoute), "pipewire", parent)
+
+
+def choix_audio(ouverte: Ouverte, nom: str) -> QComboBox:
+	ui = la_fenetre(ouverte).ui
+	return {"antenne": ui.antenne, "pré-écoute": ui.preecoute}[nom]
+
+
+@then(parsers.re(r"le choix (?:de l'|de la )(?P<nom>antenne|pré-écoute) propose :"))
+def choix_propose(ouverte: Ouverte, nom: str, datatable: list[list[str]]) -> None:
+	choix = choix_audio(ouverte, nom)
+	modele = choix.model()
+	assert isinstance(modele, QStandardItemModel)
+	lues = []
+	for indice in range(choix.count()):
+		etat_de_la_ligne = "inactive"
+		if modele.item(indice).isEnabled():
+			etat_de_la_ligne = "active"
+		lues.append([choix.itemText(indice), etat_de_la_ligne])
+	assert lues == [[cellule.strip() for cellule in rangee] for rangee in datatable[1:]]
+
+
+@when(parsers.re(r"j'y choisis (?:pour l'|pour la )(?P<nom>antenne|pré-écoute) « (?P<texte>[^»]+) »"))
+def choisir_peripherique(ouverte: Ouverte, nom: str, texte: str) -> None:
+	choix = choix_audio(ouverte, nom)
+	indice = choix.findText(texte)
+	assert indice >= 0, texte
+	choix.setCurrentIndex(indice)
+
+
+@then(parsers.re(r"son bouton « OK » est (?P<etat>actif|inactif)"))
+def bouton_ok(ouverte: Ouverte, etat: str) -> None:
+	bouton = la_fenetre(ouverte).ui.boutons.button(QDialogButtonBox.StandardButton.Ok)
+	assert bouton.isEnabled() == (etat == "actif")
+
+
+@then(
+	parsers.re(
+		r"elle a donné l'antenne (?:« (?P<antenne>[^»]+) »|non renseignée) et la pré-écoute « (?P<preecoute>[^»]+) »"
+	)
+)
+def audio_donne(ouverte: Ouverte, antenne: str | None, preecoute: str) -> None:
+	assert ouverte.donnes is not None
+	assert (ouverte.donnes.antenne, ouverte.donnes.preecoute) == (antenne, preecoute)
+
+
+@then(
+	parsers.re(
+		r"les préférences ont montré l'antenne (?:« (?P<antenne>[^»]+) »|non renseignée)"
+		r" et la pré-écoute « (?P<preecoute>[^»]+) »"
+	)
+)
+def audio_montre(interface: Contexte, antenne: str | None, preecoute: str) -> None:
+	assert interface.audio_montre[-1] == (antenne, preecoute)
+
+
+@then(parsers.parse("le fichier de configuration donne l'antenne « {antenne} » et la pré-écoute « {preecoute} »"))
+def audio_du_fichier(interface: Contexte, antenne: str, preecoute: str) -> None:
+	audio = charger(fichier_de_configuration(interface)).audio
+	assert (audio.peripherique, audio.preecoute) == (antenne, preecoute)
+
+
+@then(parsers.re(r"la barre d'état (?P<signale>signale|ne signale pas) « Périphérique de l'antenne à renseigner »"))
+def antenne_signalee(interface: Contexte, signale: str) -> None:
+	etiquette = fenetre(interface).antenne_a_renseigner
+	assert etiquette.isVisibleTo(fenetre(interface)) == (signale == "signale")
+	assert etiquette.text() == "Périphérique de l'antenne à renseigner"
+	assert etiquette.toolTip().startswith("Machin lecture refuse de diffuser sans lui")

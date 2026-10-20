@@ -32,6 +32,7 @@ vérifie en tâche de fond (machincast.interface.verification, https://github.co
 barre d'état annonce l'un et l'autre.
 """
 
+import dataclasses
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -93,6 +94,11 @@ SANS_SERVICE_DEMARRER = "Sans service : Machin lecture dans une fenêtre de term
 SANS_ESSAI = "Aucune diffusion d'essai en cours"
 ESSAI_ARRETER = "Sans service : arrête le Machin lecture lancé à la main, comme Ctrl-C"
 ESSAI_REDEMARRER = "Sans service : l'arrête, puis le relance dans une fenêtre de terminal"
+ANTENNE_A_RENSEIGNER = "Périphérique de l'antenne à renseigner"
+REGLER_L_ANTENNE = (
+	"Machin lecture refuse de diffuser sans lui : le choisir dans Fichier → Préférences…, page Audio, ou le donner"
+	" dans audio.peripherique du fichier de configuration."
+)
 DEJA_EN_MARCHE = "La diffusion d'essai tourne déjà"
 
 
@@ -151,6 +157,10 @@ class FenetrePrincipale(QMainWindow):
 		self.sans_service = QLabel(SANS_SERVICE)
 		self.sans_service.setToolTip(INSTALLER_LE_SERVICE)
 		self.ui.barre_d_etat.addPermanentWidget(self.sans_service)
+		self.antenne_a_renseigner = QLabel(ANTENNE_A_RENSEIGNER)
+		self.antenne_a_renseigner.setToolTip(REGLER_L_ANTENNE)
+		self.ui.barre_d_etat.addPermanentWidget(self.antenne_a_renseigner)
+		self._signaler_l_antenne()
 		self._garnir_menus()
 		self.accueil.client.etat_recu.connect(self._etat_de_la_lecture)
 		self._relire_le_service()
@@ -469,7 +479,9 @@ class FenetrePrincipale(QMainWindow):
 		"""Les préférences réglées s'enregistrent dans le fichier de configuration, puis valent pour les fiches
 		ouvertes ensuite ; un fichier qui ne s'écrit pas les laisse inchangées, et la barre d'état le dit."""
 		assert self.configuration is not None
-		reglages = dialogues.regler_preferences(self, preferences.crossfades())
+		audio = self.audio
+		montres = preferences.Reglages(preferences.crossfades(), audio.peripherique, audio.preecoute)
+		reglages = dialogues.regler_preferences(self, montres, audio.sortie)
 		if reglages is None:
 			return
 		try:
@@ -477,11 +489,26 @@ class FenetrePrincipale(QMainWindow):
 		except OSError as erreur:
 			self.statusBar().showMessage(f"Préférences non enregistrées dans {self.configuration} : {erreur}")
 			return
-		preferences.definir(reglages)
+		preferences.definir(reglages.crossfades)
+		texte = "les crossfades par défaut"
+		if reglages.antenne != audio.peripherique:
+			texte = "les crossfades par défaut et le périphérique de l'antenne"
+		self.audio = dataclasses.replace(audio, peripherique=reglages.antenne, preecoute=reglages.preecoute)
+		if self.preecoute is not None:
+			# La pré-écoute repart des nouveaux périphériques à sa prochaine ouverture.
+			self.preecoute.close()
+			self.preecoute.deleteLater()
+			self.preecoute = None
+		self._signaler_l_antenne()
 		self.statusBar().showMessage(
 			f"Préférences enregistrées dans {self.configuration} ;"
-			" Machin lecture prendra les crossfades par défaut à son prochain démarrage."
+			f" Machin lecture prendra {texte} à son prochain démarrage."
 		)
+
+	def _signaler_l_antenne(self) -> None:
+		"""Sans périphérique d'antenne, sur une vraie sortie, Machin lecture refuse de diffuser : la barre d'état le
+		dit."""
+		self.antenne_a_renseigner.setVisible((self.audio.sortie != "factice") and (self.audio.peripherique is None))
 
 	def _ouvrir(self, genre: str, identifiant: int, _nom: str) -> None:
 		self.detail_demande.emit(genre, identifiant)

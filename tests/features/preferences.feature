@@ -9,8 +9,10 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 	seconde), leur durée maximale, et leurs durées par défaut, pour un sonore sans crossfade paramétré que sa banque ne
 	règle pas. Les préférences s'enregistrent dans la section [crossfades] du fichier de configuration, qui garde ses
 	commentaires ; les fiches ouvertes ensuite les suivent, et Machin lecture les prend à son prochain démarrage.
-	La fenêtre de l'interface s'ouvre sur une copie du fichier de configuration des tests, dans le répertoire du
-	scénario.
+	Sa page « Audio » règle les périphériques de l'antenne (audio.peripherique) et de la pré-écoute (audio.preecoute,
+	https://github.com/dascritch/machincast/issues/116) : chacun est grisé dans l'autre choix, et Machin lecture refuse
+	de diffuser sans périphérique d'antenne. La fenêtre de l'interface s'ouvre sur une copie du fichier de configuration
+	des tests, dans le répertoire du scénario ; sa sortie est factice, et sans périphérique d'antenne.
 
 	Contexte:
 		Étant donné le poste à l'heure de Paris
@@ -108,6 +110,27 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Quand j'ouvre la fiche du sonore « Café à minuit »
 		Alors les crossfades de la fiche se règlent au dixième de seconde, jusqu'à 5 s
 
+	Scénario: Les périphériques réglés vont dans la section [audio] du fichier de configuration
+		Étant donné les préférences régleront l'antenne « carte-2 » et la pré-écoute « casque-usb »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors les préférences ont montré l'antenne non renseignée et la pré-écoute « preecoute-factice »
+		Et le fichier de configuration donne l'antenne « carte-2 » et la pré-écoute « casque-usb »
+		Et le fichier de configuration contient encore les autres sections, hors [audio]
+		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin lecture prendra les crossfades par défaut et le périphérique de l'antenne à son prochain démarrage. »
+
+	Scénario: Sur une vraie sortie, la barre d'état signale l'antenne à renseigner, jusqu'à ce qu'elle le soit
+		Étant donné la configuration audio sortie « pipewire », sans périphérique d'antenne
+		Et les préférences régleront l'antenne « carte-2 » et la pré-écoute « casque-usb »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors la barre d'état signale « Périphérique de l'antenne à renseigner »
+		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Alors la barre d'état ne signale pas « Périphérique de l'antenne à renseigner »
+
+	Scénario: Sur la sortie factice des essais, l'antenne n'a pas à être renseignée
+		Quand la fenêtre de l'interface s'ouvre
+		Alors la barre d'état ne signale pas « Périphérique de l'antenne à renseigner »
+
 	# ─── Fenêtre des préférences ───────────────────────────────
 
 	Scénario: La page « Interface » montre les réglages, et donne ceux qui sont saisis
@@ -137,3 +160,53 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| bouton  | donnes                                                                               |
 			| OK      | granularité « seconde », maximum 8 s, début par défaut 2 s, fin par défaut aucune |
 			| Annuler | aucun                                                                                |
+
+	Scénario: La page « Audio » montre les périphériques, chacun grisé dans l'autre choix
+		Étant donné les périphériques audio du poste :
+			| identifiant       | nom           |
+			| carte-1           | Carte 1       |
+			| casque-usb        | Casque USB    |
+			| preecoute-factice | Haut-parleurs |
+		Quand la fenêtre des préférences s'ouvre sur l'antenne « carte-1 » et la pré-écoute « preecoute-factice »
+		Alors elle s'intitule « Préférences », avec la page « Interface »
+		Et le choix de l'antenne propose :
+			| sortie        | état     |
+			| Carte 1       | active   |
+			| Casque USB    | active   |
+			| Haut-parleurs | inactive |
+		Et le choix de la pré-écoute propose :
+			| sortie        | état     |
+			| Haut-parleurs | active   |
+			| Carte 1       | inactive |
+			| Casque USB    | active   |
+		Quand j'y choisis pour l'antenne « Casque USB »
+		Alors le choix de la pré-écoute propose :
+			| sortie        | état     |
+			| Haut-parleurs | active   |
+			| Carte 1       | active   |
+			| Casque USB    | inactive |
+		Quand j'y clique sur « OK »
+		Alors elle a donné l'antenne « casque-usb » et la pré-écoute « preecoute-factice »
+
+	Scénario: Une antenne non renseignée se propose « (à renseigner) », et un périphérique absent « (introuvable) »
+		Étant donné les périphériques audio du poste :
+			| identifiant | nom        |
+			| casque-usb  | Casque USB |
+		Quand la fenêtre des préférences s'ouvre sur l'antenne non renseignée et la pré-écoute « debranche »
+		Alors le choix de l'antenne propose :
+			| sortie          | état   |
+			| (à renseigner)  | active |
+			| Casque USB      | active |
+		Et le choix de la pré-écoute propose :
+			| sortie                   | état   |
+			| debranche (introuvable)  | active |
+			| Casque USB               | active |
+		Quand j'y clique sur « OK »
+		Alors elle a donné l'antenne non renseignée et la pré-écoute « debranche »
+
+	Scénario: Un même périphérique ne peut pas servir à l'antenne et à la pré-écoute
+		Étant donné les périphériques audio du poste :
+			| identifiant | nom        |
+			| casque-usb  | Casque USB |
+		Quand la fenêtre des préférences s'ouvre sur l'antenne « casque-usb » et la pré-écoute « casque-usb »
+		Alors son bouton « OK » est inactif

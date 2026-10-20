@@ -12,16 +12,13 @@ from datetime import timedelta
 from pathlib import Path
 
 import psycopg
-import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QApplication
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
-from machincast.configuration import SortieAudio
-from machincast.interface import preecoute
-from machincast.interface.preecoute import FenetrePreecoute, Peripherique
+from machincast.interface.preecoute import FenetrePreecoute
 from tests.etapes_interface import NOM, Contexte, fenetre, fichier_de_configuration
 from tests.sons import FICHIERS_SONORES
 
@@ -69,19 +66,9 @@ def fichier_supprime(base_vide: Connexion, titre: str) -> None:
 	Path(str(ligne[0])).unlink()
 
 
-@given("les périphériques audio du poste :")
-def peripheriques(monkeypatch: pytest.MonkeyPatch, datatable: list[list[str]]) -> None:
-	trouves = [Peripherique(identifiant.strip(), nom.strip()) for identifiant, nom in datatable[1:]]
-
-	def lister(_sortie: SortieAudio) -> list[Peripherique]:
-		return trouves
-
-	monkeypatch.setattr(preecoute, "peripheriques", lister)
-
-
 @given(parsers.parse("le périphérique de l'antenne « {identifiant} »"))
 def antenne(interface: Contexte, identifiant: str) -> None:
-	interface.peripherique_antenne = identifiant
+	interface.audio["peripherique"] = identifiant
 
 
 # ─── Quand ─────────────────────────────────────────────────

@@ -94,3 +94,23 @@ def code_un(processus: Processus) -> None:
 	assert processus.resultat is not None
 	assert processus.resultat.returncode == 1, processus.resultat.stderr
 	assert "base de données injoignable" in processus.resultat.stderr
+
+
+@when(parsers.parse("je lance Machin_lecture sur la sortie « {sortie} », sans périphérique d'antenne"))
+def lancer_sans_antenne(processus: Processus, tmp_path: Path, sortie: str) -> None:
+	"""La configuration des tests n'a pas de périphérique d'antenne : sa sortie factice n'en demande pas."""
+	configuration = tmp_path / "sans-antenne.toml"
+	texte = CONFIGURATION_TEST.read_text(encoding="utf-8")
+	assert "peripherique =" not in texte
+	configuration.write_text(texte.replace('sortie = "factice"', f'sortie = "{sortie}"'), encoding="utf-8")
+	chemin = (shutil.which("Machin_lecture")) or (str(Path(sys.executable).parent / "Machin_lecture"))
+	processus.resultat = subprocess.run(
+		[chemin, "--config", str(configuration)], capture_output=True, text=True, timeout=60
+	)
+
+
+@then(parsers.parse("il s'arrête avec le code {code:d}, en signalant « {texte} »"))
+def code_et_message(processus: Processus, code: int, texte: str) -> None:
+	assert processus.resultat is not None
+	assert processus.resultat.returncode == code, processus.resultat.stderr
+	assert texte in processus.resultat.stderr, processus.resultat.stderr

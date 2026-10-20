@@ -231,7 +231,7 @@ Machin lecture --config <fichier>
 ```
 
 - **Base** : `Machin lecture` diffuse la grille de la base de production (`base.production`), avec le rôle `machincast_lecture`. Si la base est injoignable, il s'arrête aussitôt avec le code 1 et le message `base de données injoignable`.
-- **Sortie** : il joue sur la sortie de `audio.sortie`. Si elle ne peut pas être créée, il s'arrête avec le code 1 et le message `sortie audio indisponible`.
+- **Sortie** : il joue sur la sortie de `audio.sortie`, sur le périphérique de l'antenne, `audio.peripherique`. Sans ce périphérique, il refuse de diffuser avec le code 2 et le message `périphérique de l'antenne non renseigné` : le périphérique par défaut pourrait être celui de la pré-écoute. Il se règle dans `machincast.toml` ou dans les [préférences](#préférences) de l'interface ([#116](https://github.com/dascritch/machincast/issues/116)) ; seule la sortie `factice` des essais s'en passe. Si la sortie ne peut pas être créée, il s'arrête avec le code 1 et le message `sortie audio indisponible`.
 - **En marche** : il affiche la sortie utilisée, note `démarrage` dans le log, puis enchaîne les sonores sans intervention. Chaque passage est écrit dans l'airplay au moment où il commence et où il finit.
 - **Arrêt** : `Ctrl-C` dans le terminal, ou le signal `SIGTERM` (arrêt d'un service). Le sonore en cours s'arrête, son passage est terminé dans l'airplay, sans incident, `arrêt` est noté dans le log, et le programme s'arrête avec le code 0.
 - **Perte de la base en cours de diffusion** : la sortie se coupe, et le programme s'arrête avec le code 1 et le message `erreur de base de données`.
@@ -692,7 +692,16 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 | Durée maximale | Le crossfade le plus long que proposent ces champs, 5 secondes par défaut. Une valeur déjà plus longue reste telle quelle. |
 | Début par défaut, fin par défaut | À cocher : le crossfade d'un sonore qui n'en a pas de paramétré, et que sa banque ne règle pas ([D'où viennent les crossfades](#sortie-audio)). Ils ne dépassent pas la durée maximale. |
 
-**OK** les enregistre dans la section `[crossfades]` du fichier de configuration, `machincast.toml`, qui garde ses commentaires et ses autres réglages ; la barre d'état le dit. Les fiches ouvertes ensuite les suivent ; **Machin lecture** prend les durées par défaut à son prochain démarrage. Un fichier qui ne peut pas être écrit laisse les préférences telles quelles, et la barre d'état dit pourquoi. **Annuler** ne change rien.
+Sa page **Audio** règle les périphériques ([#116](https://github.com/dascritch/machincast/issues/116)) :
+
+| Réglage | Rôle |
+| --- | --- |
+| Antenne | Le périphérique sur lequel `Machin lecture` diffuse, `audio.peripherique`. Tant qu'il n'est pas renseigné, il se propose « (à renseigner) », la barre d'état de l'interface affiche `Périphérique de l'antenne à renseigner`, et `Machin lecture` refuse de diffuser. |
+| Pré-écoute | Le périphérique de la [pré-écoute](#pré-écoute), `audio.preecoute`. |
+
+Chaque liste propose les périphériques du poste ; un périphérique configuré mais débranché reste proposé, suivi de « (introuvable) ». Le périphérique choisi pour l'un est grisé dans l'autre : l'antenne et la pré-écoute n'utilisent jamais le même. **Machin lecture** prend le nouveau périphérique d'antenne à son prochain démarrage (**Diffusion → Redémarrer la diffusion**).
+
+**OK** les enregistre dans les sections `[crossfades]` et `[audio]` du fichier de configuration, `machincast.toml`, qui garde ses commentaires et ses autres réglages ; la barre d'état le dit. Les fiches ouvertes ensuite les suivent ; **Machin lecture** prend les durées par défaut à son prochain démarrage. Un fichier qui ne peut pas être écrit laisse les préférences telles quelles, et la barre d'état dit pourquoi. **Annuler** ne change rien.
 
 ### Pré-écoute
 

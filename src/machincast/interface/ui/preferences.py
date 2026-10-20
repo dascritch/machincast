@@ -17,8 +17,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractButton, QApplication, QCheckBox, QComboBox,
     QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout,
-    QGroupBox, QLabel, QSizePolicy, QTabWidget,
-    QVBoxLayout, QWidget)
+    QGroupBox, QLabel, QSizePolicy, QSpacerItem,
+    QTabWidget, QVBoxLayout, QWidget)
 
 class Ui_FenetrePreferences(object):
     def setupUi(self, FenetrePreferences):
@@ -89,6 +89,48 @@ class Ui_FenetrePreferences(object):
         self.disposition_interface.addWidget(self.explication)
 
         self.pages.addTab(self.page_interface, "")
+        self.page_audio = QWidget()
+        self.page_audio.setObjectName(u"page_audio")
+        self.disposition_audio = QVBoxLayout(self.page_audio)
+        self.disposition_audio.setObjectName(u"disposition_audio")
+        self.groupe_peripheriques = QGroupBox(self.page_audio)
+        self.groupe_peripheriques.setObjectName(u"groupe_peripheriques")
+        self.formulaire_peripheriques = QFormLayout(self.groupe_peripheriques)
+        self.formulaire_peripheriques.setObjectName(u"formulaire_peripheriques")
+        self.etiquette_antenne = QLabel(self.groupe_peripheriques)
+        self.etiquette_antenne.setObjectName(u"etiquette_antenne")
+
+        self.formulaire_peripheriques.setWidget(0, QFormLayout.ItemRole.LabelRole, self.etiquette_antenne)
+
+        self.antenne = QComboBox(self.groupe_peripheriques)
+        self.antenne.setObjectName(u"antenne")
+
+        self.formulaire_peripheriques.setWidget(0, QFormLayout.ItemRole.FieldRole, self.antenne)
+
+        self.etiquette_preecoute = QLabel(self.groupe_peripheriques)
+        self.etiquette_preecoute.setObjectName(u"etiquette_preecoute")
+
+        self.formulaire_peripheriques.setWidget(1, QFormLayout.ItemRole.LabelRole, self.etiquette_preecoute)
+
+        self.preecoute = QComboBox(self.groupe_peripheriques)
+        self.preecoute.setObjectName(u"preecoute")
+
+        self.formulaire_peripheriques.setWidget(1, QFormLayout.ItemRole.FieldRole, self.preecoute)
+
+
+        self.disposition_audio.addWidget(self.groupe_peripheriques)
+
+        self.explication_audio = QLabel(self.page_audio)
+        self.explication_audio.setObjectName(u"explication_audio")
+        self.explication_audio.setWordWrap(True)
+
+        self.disposition_audio.addWidget(self.explication_audio)
+
+        self.espace_audio = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.disposition_audio.addItem(self.espace_audio)
+
+        self.pages.addTab(self.page_audio, "")
 
         self.disposition.addWidget(self.pages)
 
@@ -101,6 +143,8 @@ class Ui_FenetrePreferences(object):
 #if QT_CONFIG(shortcut)
         self.etiquette_granularite.setBuddy(self.granularite)
         self.etiquette_maximum.setBuddy(self.maximum)
+        self.etiquette_antenne.setBuddy(self.antenne)
+        self.etiquette_preecoute.setBuddy(self.preecoute)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(FenetrePreferences)
@@ -132,5 +176,16 @@ class Ui_FenetrePreferences(object):
         self.fin.setSuffix(QCoreApplication.translate("FenetrePreferences", u" s", None))
         self.explication.setText(QCoreApplication.translate("FenetrePreferences", u"Les fiches ouvertes ensuite suivent ces r\u00e9glages. Machin lecture prend les dur\u00e9es par d\u00e9faut \u00e0 son prochain d\u00e9marrage.", None))
         self.pages.setTabText(self.pages.indexOf(self.page_interface), QCoreApplication.translate("FenetrePreferences", u"Interface", None))
+        self.groupe_peripheriques.setTitle(QCoreApplication.translate("FenetrePreferences", u"P\u00e9riph\u00e9riques", None))
+        self.etiquette_antenne.setText(QCoreApplication.translate("FenetrePreferences", u"&Antenne", None))
+#if QT_CONFIG(tooltip)
+        self.antenne.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Le p\u00e9riph\u00e9rique sur lequel Machin lecture diffuse l'antenne", None))
+#endif // QT_CONFIG(tooltip)
+        self.etiquette_preecoute.setText(QCoreApplication.translate("FenetrePreferences", u"&Pr\u00e9-\u00e9coute", None))
+#if QT_CONFIG(tooltip)
+        self.preecoute.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Le p\u00e9riph\u00e9rique de la pr\u00e9-\u00e9coute de l'interface, jamais celui de l'antenne", None))
+#endif // QT_CONFIG(tooltip)
+        self.explication_audio.setText(QCoreApplication.translate("FenetrePreferences", u"Machin lecture prend le p\u00e9riph\u00e9rique de l'antenne \u00e0 son prochain d\u00e9marrage ; sans lui, il refuse de diffuser. La pr\u00e9-\u00e9coute ne peut jamais utiliser le p\u00e9riph\u00e9rique de l'antenne : chacun est gris\u00e9 dans l'autre choix.", None))
+        self.pages.setTabText(self.pages.indexOf(self.page_audio), QCoreApplication.translate("FenetrePreferences", u"Audio", None))
     # retranslateUi
 
