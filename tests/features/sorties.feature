@@ -110,6 +110,19 @@ Fonctionnalité: Masquage des métadonnées et modules de sortie
 		Alors le CSV « airplay-2026-10-14.csv » a 2 lignes de passage
 		Et le CSV « airplay-2026-10-15.csv » a 1 ligne de passage
 
+	Scénario: Le journal du binaire annonce le début et la fin des événements et des séquences
+		https://github.com/dascritch/machincast/issues/153
+
+		Étant donné l'horloge du binaire au « 2026-10-14 19:59:50 »
+		Et la séquence « Pub » des sonores « s1 », « s2 », jouée par le fil musical permanent « Continue », avant le sonore « f3 »
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 1 pas d'une seconde
+		Et la diffusion s'arrête
+		Alors le journal du binaire a annoncé « début d'événement : « Continue », fil musical, permanent », en information
+		Et le journal du binaire a annoncé « début de séquence : « Pub », dans « Continue » », en information
+		Et le journal du binaire a annoncé « fin de séquence : « Pub », dans « Continue » », en information
+		Et le journal du binaire a annoncé « fin d'événement : « Continue » », en information
+
 	Scénario: Le journal du binaire annonce chaque passage avec l'artiste et le titre, même masqués
 		Étant donné l'horloge du binaire au « 2026-10-14 19:59:50 »
 		Et le fil musical permanent « Continue », avec les sonores « f1 »

@@ -105,6 +105,109 @@ Fonctionnalité: Boucle de diffusion de Machin lecture
 		Et la diffusion s'arrête
 		Alors le passage « f2 » a commencé après la fin du passage « f1 »
 
+	# ─── Événements et séquences dans le log (https://github.com/dascritch/machincast/issues/153) ─────────────
+	# Les heures sont celles de l'antenne : un événement commence avec son premier passage, et finit quand un passage
+	# d'un autre événement commence, ou à l'arrêt ; de même pour une séquence.
+
+	Scénario: Le log note le début et la fin de chaque événement à l'antenne
+		Étant donné l'horloge du binaire au « 2026-10-14 19:59:50 »
+		Et le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'émission « Flash » de 19:59:51 à 19:59:53, avec le sonore « m »
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 4 pas d'une seconde
+		Et la diffusion s'arrête
+		Alors le log note pour les événements et les séquences :
+			| horodatage          | nature            | message                                  | événement |
+			| 2026-10-14 19:59:50 | début d'événement | « Continue », fil musical, permanent     | Continue  |
+			| 2026-10-14 19:59:51 | fin d'événement   | « Continue »                             | Continue  |
+			| 2026-10-14 19:59:51 | début d'événement | « Flash », émission, de 19:59:51 à 19:59:53 | Flash  |
+			| 2026-10-14 19:59:53 | fin d'événement   | « Flash »                                | Flash     |
+			| 2026-10-14 19:59:53 | début d'événement | « Continue », fil musical, permanent     | Continue  |
+			| 2026-10-14 19:59:54 | fin d'événement   | « Continue »                             | Continue  |
+
+	Scénario: Le log note le début et la fin de chaque séquence, même quand elle revient aussitôt
+		Étant donné l'horloge du binaire au « 2026-10-14 19:59:50 »
+		Et la séquence « Pub » des sonores « s1 », « s2 », jouée par le fil musical permanent « Continue », avant le sonore « f3 »
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 4 pas d'une seconde
+		Et la diffusion s'arrête
+		Alors le log note pour les événements et les séquences :
+			| horodatage          | nature             | message                          | événement |
+			| 2026-10-14 19:59:50 | début d'événement  | « Continue », fil musical, permanent | Continue |
+			| 2026-10-14 19:59:50 | début de séquence  | « Pub », dans « Continue »       | Continue  |
+			| 2026-10-14 19:59:52 | fin de séquence    | « Pub », dans « Continue »       | Continue  |
+			| 2026-10-14 19:59:53 | début de séquence  | « Pub », dans « Continue »       | Continue  |
+			| 2026-10-14 19:59:54 | fin de séquence    | « Pub », dans « Continue »       | Continue  |
+			| 2026-10-14 19:59:54 | fin d'événement    | « Continue »                     | Continue  |
+
+	Scénario: Un événement qui coupe une séquence la termine, avant de commencer
+		Étant donné l'horloge du binaire au « 2026-10-14 19:59:50 »
+		Et la séquence « Pub » des sonores « s1 », « s2 », jouée par le fil musical permanent « Continue », avant le sonore « f3 »
+		Et l'émission « Flash » de 19:59:51 à 19:59:52, avec le sonore « m »
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 3 pas d'une seconde
+		Et la diffusion s'arrête
+		Alors le log note pour les événements et les séquences :
+			| horodatage          | nature             | message                          | événement |
+			| 2026-10-14 19:59:50 | début d'événement  | « Continue », fil musical, permanent | Continue |
+			| 2026-10-14 19:59:50 | début de séquence  | « Pub », dans « Continue »       | Continue  |
+			| 2026-10-14 19:59:51 | fin de séquence    | « Pub », dans « Continue »       | Continue  |
+			| 2026-10-14 19:59:51 | fin d'événement    | « Continue »                     | Continue  |
+			| 2026-10-14 19:59:51 | début d'événement  | « Flash », émission, de 19:59:51 à 19:59:52 | Flash |
+			| 2026-10-14 19:59:52 | fin d'événement    | « Flash »                        | Flash     |
+			| 2026-10-14 19:59:52 | début d'événement  | « Continue », fil musical, permanent | Continue |
+			| 2026-10-14 19:59:53 | fin d'événement    | « Continue »                     | Continue  |
+
+	Scénario: Une séquence qui revient aussitôt, et une autre qui commence à son deuxième élément, commencent chacune
+		Étant donné l'horloge du binaire au « 2026-10-14 19:59:50 »
+		Et le fil musical permanent « Continue » joue les séquences « A » des sonores « a1 », puis « B » des sonores « b1 », « b2 »
+		Et le sonore « b1 » est à l'état « desactive »
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 3 pas d'une seconde
+		Et la diffusion s'arrête
+		Alors le log note pour les événements et les séquences :
+			| horodatage          | nature             | message                              | événement |
+			| 2026-10-14 19:59:50 | début d'événement  | « Continue », fil musical, permanent | Continue  |
+			| 2026-10-14 19:59:50 | début de séquence  | « A », dans « Continue »             | Continue  |
+			| 2026-10-14 19:59:51 | fin de séquence    | « A », dans « Continue »             | Continue  |
+			| 2026-10-14 19:59:51 | début de séquence  | « B », dans « Continue »             | Continue  |
+			| 2026-10-14 19:59:52 | fin de séquence    | « B », dans « Continue »             | Continue  |
+			| 2026-10-14 19:59:52 | début de séquence  | « A », dans « Continue »             | Continue  |
+			| 2026-10-14 19:59:53 | fin de séquence    | « A », dans « Continue »             | Continue  |
+			| 2026-10-14 19:59:53 | fin d'événement    | « Continue »                         | Continue  |
+
+	Scénario: Une même séquence seule dans la liste recommence à chaque tour
+		Étant donné l'horloge du binaire au « 2026-10-14 19:59:50 »
+		Et le fil musical permanent « Continue » joue les séquences « Pub » des sonores « s1 », « s2 »
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 3 pas d'une seconde
+		Et la diffusion s'arrête
+		Alors le log note pour les événements et les séquences :
+			| horodatage          | nature             | message                              | événement |
+			| 2026-10-14 19:59:50 | début d'événement  | « Continue », fil musical, permanent | Continue  |
+			| 2026-10-14 19:59:50 | début de séquence  | « Pub », dans « Continue »           | Continue  |
+			| 2026-10-14 19:59:52 | fin de séquence    | « Pub », dans « Continue »           | Continue  |
+			| 2026-10-14 19:59:52 | début de séquence  | « Pub », dans « Continue »           | Continue  |
+			| 2026-10-14 19:59:53 | fin de séquence    | « Pub », dans « Continue »           | Continue  |
+			| 2026-10-14 19:59:53 | fin d'événement    | « Continue »                         | Continue  |
+
+	Scénario: Les heures d'un événement s'écrivent à la minute, à la seconde quand elle compte, et sans fin « depuis »
+		Étant donné l'horloge du binaire au « 2026-10-14 19:59:59 »
+		Et le fil musical permanent « Continue », avec les sonores « f1 »
+		Et l'émission « Flash » de 20:00:00 à 20:00:01, avec le sonore « m »
+		Et le spécial « Élections » à partir de 20:00:01, sans fin, avec le sonore « e »
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 3 pas d'une seconde
+		Et la diffusion s'arrête
+		Alors le log note pour les événements et les séquences :
+			| horodatage          | nature            | message                                     | événement |
+			| 2026-10-14 19:59:59 | début d'événement | « Continue », fil musical, permanent        | Continue  |
+			| 2026-10-14 20:00:00 | fin d'événement   | « Continue »                                | Continue  |
+			| 2026-10-14 20:00:00 | début d'événement | « Flash », émission, de 20:00 à 20:00:01    | Flash     |
+			| 2026-10-14 20:00:01 | fin d'événement   | « Flash »                                   | Flash     |
+			| 2026-10-14 20:00:01 | début d'événement | « Élections », spécial, depuis 20:00:01     | Élections |
+			| 2026-10-14 20:00:02 | fin d'événement   | « Élections »                               | Élections |
+
 	# ─── Arrêt ─────────────────────────────────────────────────
 
 	Scénario: L'arrêt termine le passage en cours dans l'airplay
