@@ -4,7 +4,9 @@ Deux modes (https://github.com/dascritch/machincast/issues/69) :
 
 - indexation rapide, par défaut : seuls les sonores en aperçu (fichiers nouveaux, jamais vérifiés) sont décodés ;
   pour les autres, seule la présence du fichier est contrôlée, sans décodage ;
-- audit complet : chaque sonore de type fichier est décodé en entier.
+- audit complet : chaque sonore de type fichier est décodé en entier, blancs mesurés, sauf s'il a déjà été audité au
+  même seuil de blanc et que son fichier n'a pas changé depuis (https://github.com/dascritch/machincast/issues/206) :
+  sonores.audite_le et sonores.audit_seuil gardent son dernier audit ; forcer décode tout.
 
 Les streams ne sont jamais vérifiés. Un fichier sain enregistre sa durée, la date de modification et la taille
 du fichier. L'état du sonore suit le verdict (https://github.com/dascritch/machincast/issues/66) :
@@ -27,7 +29,7 @@ import logging
 import threading
 from collections.abc import Collection
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 
@@ -88,6 +90,9 @@ class Bilan:
 	retablis: int = 0
 	"""Sonores erronés redevenus actifs."""
 	sortis_apercu: int = 0
+	deja_audites: list[int] = field(default_factory=list)
+	"""Sonores dont l'audit complet est sauté : déjà audités au même seuil, fichier inchangé
+	(https://github.com/dascritch/machincast/issues/206)."""
 	anomalies: list[Anomalie] = field(default_factory=list)
 	"""Les fichiers défectueux du passage, pour le document d'audit (https://github.com/dascritch/machincast/issues/11)."""
 
@@ -153,6 +158,7 @@ def verifier_sonores(
 	identifiants: Collection[int] | None = None,
 	arret: threading.Event | None = None,
 	seuil_blancs: float = SEUIL_DE_BLANC,
+	forcer: bool = False,
 ) -> Bilan:
 	"""Vérifie les sonores de type fichier ; chaque sonore est enregistré dans sa propre transaction.
 
@@ -174,13 +180,17 @@ def verifier_sonores(
 	enregistre, sauf ceux saisis à la main (https://github.com/dascritch/machincast/issues/146). L'indexation rapide ne
 	les mesure que pour les sonores dont l'audit complet est demandé.
 
+	Un audit complet, général, demandé ou d'un seul sonore, saute un sonore déjà audité au même seuil dont le fichier
+	n'a pas changé depuis (deja_audite, https://github.com/dascritch/machincast/issues/206) ; sa demande tombe. Une
+	ligne compte les sonores sautés. forcer : tous sont audités.
+
 	La connexion doit avoir endossé le rôle de l'indexation (machincast.base.connecter). Lève
 	DecodeurIndisponible si GStreamer ne sait pas décoder un format : les sonores déjà vérifiés le restent.
 	"""
 	with connexion.transaction():
 		sonores = connexion.execute(
 			"SELECT id, emplacement, etat::text, champs_edites, artiste, titre, metadonnees_musicales,"
-			" fichier_modifie_le, fichier_taille, debut_detecte, fin_detectee, audit_demande"
+			" fichier_modifie_le, fichier_taille, debut_detecte, fin_detectee, audit_demande, audite_le, audit_seuil"
 			" FROM sonores WHERE type = 'fichier' AND (%s::bigint[] IS NULL OR id = ANY(%s)) ORDER BY id",
 			(_liste(identifiants), _liste(identifiants)),
 		).fetchall()
@@ -203,12 +213,25 @@ def verifier_sonores(
 			debut_detecte,
 			fin_detectee,
 			demande,
+			audite_le,
+			audit_seuil,
 		) = ligne
 		chemin = Path(str(emplacement))
 		avant = EtatSonore(str(etat_texte))
 		audite = (audit_complet) or (demande is True)
+		if (
+			(audite)
+			and (not forcer)
+			and (deja_audite(chemin, modifie_avant, taille_avant, audite_le, audit_seuil, seuil_blancs))
+		):
+			audite = False
+			bilan.deja_audites.append(int(str(identifiant)))
 		decoder = (audite) or (avant is EtatSonore.APERCU) or (modifie(chemin, modifie_avant, taille_avant))
 		if (not decoder) and (chemin.exists()):
+			if demande is True:
+				# La demande est faite : le dernier audit vaut toujours.
+				with connexion.transaction():
+					connexion.execute("UPDATE sonores SET audit_demande = false WHERE id = %s", (identifiant,))
 			continue
 		# Un fichier introuvable est déclaré tel sans décodage : l'indexation rapide repère donc les disparus.
 		# Un fichier dont le type n'est pas sonore n'est pas décodé non plus.
@@ -245,7 +268,9 @@ def verifier_sonores(
 				" fichier_modifie_le = COALESCE(%s, fichier_modifie_le), fichier_taille = COALESCE(%s, fichier_taille),"
 				" artiste = %s, titre = %s, metadonnees_musicales = %s, type_mime = COALESCE(%s, type_mime),"
 				" verifie_le = CASE WHEN %s THEN clock_timestamp() ELSE verifie_le END,"
-				" debut_detecte = %s, fin_detectee = %s, audit_demande = audit_demande AND NOT %s"
+				" debut_detecte = %s, fin_detectee = %s, audit_demande = audit_demande AND NOT %s,"
+				" audite_le = CASE WHEN %s THEN clock_timestamp() ELSE audite_le END,"
+				" audit_seuil = CASE WHEN %s THEN %s ELSE audit_seuil END"
 				" WHERE id = %s",
 				(
 					apres.value,
@@ -263,6 +288,10 @@ def verifier_sonores(
 					_duree(fin_detectee),
 					# La marque d'un audit demandé tombe avec la vérification du fichier, pas avant.
 					fichier is not None,
+					# Un audit complet d'un fichier trouvé est retenu, avec son seuil, quel que soit le verdict.
+					(audite) and (fichier is not None),
+					(audite) and (fichier is not None),
+					seuil_blancs,
 					identifiant,
 				),
 			)
@@ -286,7 +315,36 @@ def verifier_sonores(
 			bilan.anomalies.append(Anomalie(str(emplacement), str(resultat.etat), detail, consequence))
 		else:
 			journal.info(f"{emplacement} : {_sain(artiste, titre)} ; {_consequence(avant, apres)}")
+	if bilan.deja_audites:
+		journal.info(_deja_audites(len(bilan.deja_audites), seuil_blancs))
 	return bilan
+
+
+def deja_audite(
+	chemin: Path, modifie_avant: object, taille_avant: object, audite_le: object, audit_seuil: object, seuil: float
+) -> bool:
+	"""Le sonore a déjà eu un audit complet à ce seuil, et son fichier n'a pas changé depuis : ni sa date de
+	modification, plus ancienne que l'audit, ni sa date et sa taille, celles enregistrées
+	(https://github.com/dascritch/machincast/issues/206)."""
+	if (not isinstance(audite_le, datetime)) or (audit_seuil != seuil):
+		return False
+	fichier = etat_du_fichier(chemin)
+	return (fichier is not None) and (fichier == (modifie_avant, taille_avant)) and (fichier[0] <= audite_le)
+
+
+def texte_du_seuil(seuil: float) -> str:
+	"""« -40 », « -55,5 » : un seuil de blanc, en dB, à la française."""
+	return f"{seuil:g}".replace(".", ",")
+
+
+def _deja_audites(nombre: int, seuil: float) -> str:
+	"""« 2 sonores déjà audités au seuil de -40 dB, aux fichiers inchangés : non décodés ; … »."""
+	texte_seuil = texte_du_seuil(seuil)
+	if nombre > 1:
+		debut = f"{nombre} sonores déjà audités au seuil de {texte_seuil} dB, aux fichiers inchangés : non décodés"
+	else:
+		debut = f"{nombre} sonore déjà audité au seuil de {texte_seuil} dB, au fichier inchangé : non décodé"
+	return f"{debut} ; --forcer décode tous les sonores"
 
 
 def _sain(artiste: object, titre: object) -> str:

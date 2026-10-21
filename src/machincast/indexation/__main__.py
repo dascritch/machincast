@@ -40,6 +40,12 @@ def options_propres(analyseur: argparse.ArgumentParser) -> None:
 		help="décode tous les sonores ; par défaut, l'indexation rapide ne décode que les sonores en aperçu",
 	)
 	analyseur.add_argument(
+		"--forcer",
+		action="store_true",
+		help="avec --audit-complet, décode aussi les sonores déjà audités au même seuil de blanc, dont le fichier n'a"
+		" pas changé depuis ; sans lui, l'audit complet les saute",
+	)
+	analyseur.add_argument(
 		"--fenetre",
 		action="store_true",
 		help="montre le journal de l'indexation dans une fenêtre, ligne par ligne, comme le lance l'interface",
@@ -49,7 +55,7 @@ def options_propres(analyseur: argparse.ArgumentParser) -> None:
 		type=int,
 		metavar="N",
 		help="ne vérifie que le sonore N, sans parcourir les répertoires ni écrire de document d'audit ;"
-		" avec --audit-complet, son fichier est décodé quoi qu'il en soit",
+		" avec --audit-complet, son fichier est décodé s'il n'a pas déjà été audité, inchangé, au même seuil",
 	)
 
 
@@ -58,8 +64,11 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 	if (options.sonore is not None) and (options.fenetre):
 		journal.error("--sonore ne s'emploie pas avec --fenetre")
 		return CODE_CONFIGURATION_INVALIDE
+	if (options.forcer) and (not options.audit_complet):
+		journal.error("--forcer ne s'emploie qu'avec --audit-complet")
+		return CODE_CONFIGURATION_INVALIDE
 	if options.sonore is not None:
-		return verifier_un_sonore(configuration, options.sonore, options.audit_complet)
+		return verifier_un_sonore(configuration, options.sonore, options.audit_complet, options.forcer)
 	if options.fenetre:
 		if not affichage_disponible():
 			journal.error(
@@ -69,11 +78,18 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 		# PySide6 n'est importé qu'ici : sans --fenetre, l'indexation ne demande aucun affichage graphique.
 		from machincast.interface.journal_indexation import lancer_fenetre
 
-		return lancer_fenetre(base.socket, base.production, options.audit_complet, configuration.blancs.seuil)
+		return lancer_fenetre(
+			base.socket, base.production, options.audit_complet, configuration.blancs.seuil, options.forcer
+		)
 	debut = audit.HORLOGE.maintenant()
 	try:
 		with connecter(base.socket, base.production, Role.INDEXATION) as connexion:
-			bilan = indexer(connexion, audit_complet=options.audit_complet, seuil_blancs=configuration.blancs.seuil)
+			bilan = indexer(
+				connexion,
+				audit_complet=options.audit_complet,
+				seuil_blancs=configuration.blancs.seuil,
+				forcer=options.forcer,
+			)
 	except psycopg.OperationalError as erreur:
 		journal.error(f"base de données injoignable ({base.production} par {base.socket}) : {erreur}")
 		return CODE_ECHEC
@@ -91,7 +107,7 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 	return 0
 
 
-def verifier_un_sonore(configuration: Configuration, sonore: int, audit_complet: bool) -> int:
+def verifier_un_sonore(configuration: Configuration, sonore: int, audit_complet: bool, forcer: bool = False) -> int:
 	"""Ce sonore seulement, s'il est un fichier : sans verrou, comme la vérification des fichiers ajoutés depuis
 	l'interface, car une indexation en cours peut le vérifier aussi sans dommage."""
 	base = configuration.base
@@ -104,7 +120,7 @@ def verifier_un_sonore(configuration: Configuration, sonore: int, audit_complet:
 			if fichier is None:
 				journal.error(f"sonore {sonore} : inconnu, ou pas un fichier")
 				return CODE_ECHEC
-			bilan = indexer_un_sonore(connexion, sonore, audit_complet, configuration.blancs.seuil)
+			bilan = indexer_un_sonore(connexion, sonore, audit_complet, configuration.blancs.seuil, forcer)
 	except psycopg.OperationalError as erreur:
 		journal.error(f"base de données injoignable ({base.production} par {base.socket}) : {erreur}")
 		return CODE_ECHEC

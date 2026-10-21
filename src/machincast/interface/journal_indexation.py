@@ -78,9 +78,12 @@ class FenetreJournal(QWidget):
 		super().closeEvent(evenement)
 
 
-def lancer_fenetre(socket: Path, base: str, audit_complet: bool, seuil_blancs: float = SEUIL_DE_BLANC) -> int:
-	"""Machin indexation --fenetre : la fenêtre du journal, jusqu'à sa fermeture."""
+def lancer_fenetre(
+	socket: Path, base: str, audit_complet: bool, seuil_blancs: float = SEUIL_DE_BLANC, forcer: bool = False
+) -> int:
+	"""Machin indexation --fenetre : la fenêtre du journal, jusqu'à sa fermeture ; forcer, avec --forcer."""
 	qt = application(EXECUTABLE)
 	fenetre = FenetreJournal(socket, base, audit_complet, seuil_blancs=seuil_blancs)
+	fenetre.indexation.forcer = forcer
 	fenetre.lancer()
 	return qt.exec()

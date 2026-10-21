@@ -95,6 +95,9 @@ class Indexation(QObject):
 		self.base = base
 		self.seuil_blancs = seuil_blancs
 		"""Seuil de blanc de l'audit complet (https://github.com/dascritch/machincast/issues/146)."""
+		self.forcer = False
+		"""L'audit complet décode aussi les sonores déjà audités et inchangés : Machin indexation --forcer
+		(https://github.com/dascritch/machincast/issues/206) ; jamais depuis le menu de l'interface."""
 		self._fil: threading.Thread | None = None
 		self._arret = threading.Event()
 		self._ligne.connect(self.ligne.emit)
@@ -128,7 +131,9 @@ class Indexation(QObject):
 		debut = audit.HORLOGE.maintenant()
 		try:
 			with connecter(self.socket, self.base, Role.INDEXATION) as connexion:
-				bilan = indexer(connexion, audit_complet, _verifier_fichier, self._arret, self.seuil_blancs)
+				bilan = indexer(
+					connexion, audit_complet, _verifier_fichier, self._arret, self.seuil_blancs, forcer=self.forcer
+				)
 			# Le bilan, puis le document d'audit, comme Machin indexation les écrit à la fin.
 			indexeur.info(texte_bilan(bilan))
 			audit.produire(bilan.anomalies, texte_bilan(bilan), debut)

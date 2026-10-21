@@ -16,6 +16,7 @@ from PySide6.QtWidgets import QGroupBox, QPushButton
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
+from machincast.empreinte import etat_du_fichier
 from machincast.indexation.decodage import Verification
 from machincast.interface import verification
 from machincast.interface.depliable import est_replie
@@ -63,6 +64,26 @@ def retenir(monkeypatch: pytest.MonkeyPatch, retenue: threading.Event) -> None:
 		return vraie(chemin, seuil_blancs=seuil_blancs)
 
 	monkeypatch.setattr(verification, "_verifier_fichier_complet", attendre)
+
+
+@given(
+	parsers.re(
+		r"le sonore « (?P<titre>[^»]+) » déjà audité au seuil de (?P<seuil>-?\d+) dB, son fichier inchangé depuis"
+	)
+)
+def deja_audite(interface: Contexte, base_vide: Connexion, titre: str, seuil: str) -> None:
+	"""Sa date et sa taille sont celles du fichier, audité après sa dernière modification."""
+	ligne = base_vide.execute("SELECT emplacement FROM sonores WHERE titre = %s", (titre,)).fetchone()
+	assert ligne is not None
+	emplacement = ligne[0]
+	etat = etat_du_fichier(Path(str(emplacement)))
+	assert etat is not None
+	modifie_le, taille = etat
+	base_vide.execute(
+		"UPDATE sonores SET fichier_modifie_le = %s, fichier_taille = %s, verifie_le = clock_timestamp(),"
+		" audite_le = clock_timestamp(), audit_seuil = %s WHERE titre = %s",
+		(modifie_le, taille, float(seuil), titre),
+	)
 
 
 @given("le refus de rafraîchir la fiche après la vérification")

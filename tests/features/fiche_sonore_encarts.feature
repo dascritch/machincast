@@ -68,6 +68,16 @@ Fonctionnalité: Encarts dépliables et vérification complète dans la fiche d'
 		Et la fiche montre une dernière vérification complète datée
 		Et le sonore du fichier « …/jingles/neige.flac » a été vérifié en entier, ses blancs mesurés
 
+	Scénario: Un sonore déjà audité au même seuil, au fichier inchangé, n'est pas redécodé, et la question le dit
+		https://github.com/dascritch/machincast/issues/206 : le titre « Neige » reste, puisque le fichier n'est pas relu.
+
+		Étant donné le sonore « Neige » déjà audité au seuil de -40 dB, son fichier inchangé depuis
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Et je clique sur « Vérification complète »
+		Et la vérification complète se termine
+		Alors la question après la vérification a dit « Déjà audité au seuil de -40 dB, fichier inchangé : Neige, actif. Rafraîchir la fiche ? »
+
 	Scénario: Refuser de rafraîchir laisse la fiche telle quelle
 		Étant donné la vérification complète retenue par le scénario
 		Et le refus de rafraîchir la fiche après la vérification
