@@ -105,6 +105,12 @@ def action(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> None:
 	)
 
 
+@when(parsers.parse("la question après la vérification s'ouvre, et que j'y {geste}"))
+def apres_verification(dialogue: Dialogue, qtbot: QtBot, geste: str) -> None:
+	repondre(dialogue, qtbot, geste)
+	dialogue.reponse = dialogues.proposer_rafraichissement(dialogue.parent, "Vérification terminée : Neige, actif.")
+
+
 @when(parsers.parse("la question de création s'ouvre, et que j'y {geste}"))
 def creation(dialogue: Dialogue, qtbot: QtBot, geste: str) -> None:
 	repondre(dialogue, qtbot, geste)

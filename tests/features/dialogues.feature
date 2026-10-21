@@ -88,6 +88,20 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 			| tape Échap                | False   |
 			| tape Entrée               | True    |
 
+	Plan du scénario: Après la vérification complète d'un sonore, rafraîchir sa fiche se propose
+		# https://github.com/dascritch/machincast/issues/190
+		Quand la question après la vérification s'ouvre, et que j'y <geste>
+		Alors la question a dit « Vérification terminée : Neige, actif. Rafraîchir la fiche ? »
+		Et la question a proposé « Rafraîchir », « Plus tard »
+		Et la réponse est « <reponse> »
+
+		Exemples:
+			| geste                     | reponse |
+			| clique sur « Rafraîchir » | True    |
+			| clique sur « Plus tard »  | False   |
+			| tape Échap                | False   |
+			| tape Entrée               | True    |
+
 	Plan du scénario: La création d'un événement depuis le calendrier ne se fait que sur « Créer »
 		# https://github.com/dascritch/machincast/issues/36 : rien n'est enregistré avant la fiche, Entrée crée.
 		Quand la question de création s'ouvre, et que j'y <geste>

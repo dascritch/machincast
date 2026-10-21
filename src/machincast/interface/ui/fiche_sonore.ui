@@ -764,7 +764,7 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="pied" stretch="0,0,1,0,0">
+    <layout class="QHBoxLayout" name="pied" stretch="0,0,0,1,0,0">
      <item>
       <widget class="QPushButton" name="supprimer">
        <property name="text">
@@ -785,6 +785,16 @@
        </property>
        <property name="icon">
         <iconset theme="audio-headphones"/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="verifier">
+       <property name="toolTip">
+        <string>Décoder le fichier en entier et mesurer ses blancs, comme l'audit complet de Machin indexation, pour ce seul sonore</string>
+       </property>
+       <property name="text">
+        <string>Vérification complète</string>
        </property>
       </widget>
      </item>

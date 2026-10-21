@@ -63,7 +63,7 @@ from machincast.interface.indexation import LANCE, TERMINE, TITRES
 from machincast.interface.listes import BANQUES, EVENEMENTS, MARQUES_PAGES, SEQUENCES, SONORES, Liste
 from machincast.interface.preecoute import FenetrePreecoute
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
-from machincast.interface.verification import Verificateur
+from machincast.interface.verification import Verificateur, VerificationComplete
 
 journal = logging.getLogger(__name__)
 
@@ -156,6 +156,9 @@ class FenetrePrincipale(QMainWindow):
 		self.accueil.ouverte.connect(self._ouvrir)
 		self.verificateur = Verificateur(connexion, self)
 		self.verificateur.termine.connect(self._verification_terminee)
+		self.verification_complete = VerificationComplete(connexion, self)
+		"""L'audit complet d'un sonore, demandé depuis sa fiche (https://github.com/dascritch/machincast/issues/190)."""
+		self.verification_complete.terminee.connect(self._verification_complete_terminee)
 		if commande_indexation is None:
 			commande_indexation = indexation.commande_indexation(None)
 		self.commande_indexation = commande_indexation
@@ -340,6 +343,7 @@ class FenetrePrincipale(QMainWindow):
 		for fiche in self.fiches():
 			fiche.fermer()
 		self.verificateur.arreter()
+		self.verification_complete.arreter()
 		self.accueil.close()
 		if self.preecoute is not None:
 			self.preecoute.close()
@@ -369,8 +373,8 @@ class FenetrePrincipale(QMainWindow):
 			raccourci.activated.connect(lambda rang=rang: self._aller_a_l_onglet(rang))
 
 	def _aller_a_l_onglet(self, rang: int) -> None:
-		if rang < self.ui.onglets.count():
-			self.ui.onglets.setCurrentIndex(rang)
+		"""Un rang sans onglet ne change rien : Qt ignore l'indice."""
+		self.ui.onglets.setCurrentIndex(rang)
 
 	def _numeroter_les_onglets(self) -> None:
 		"""L'infobulle de chaque onglet donne son raccourci ; au-delà des 12 premiers, il n'en a pas."""
@@ -394,6 +398,7 @@ class FenetrePrincipale(QMainWindow):
 		fiche.duplication_demandee.connect(self._dupliquer)
 		if isinstance(fiche, FicheSonore):
 			fiche.preecoute_demandee.connect(self._preecouter)
+			fiche.verification_demandee.connect(lambda sonore, fiche=fiche: self._verifier_completement(fiche, sonore))
 		if genre == "événement":
 			fiche.supprimee.connect(self._garantir_fil_musical)
 			fiche.enregistree.connect(self._garantir_fil_musical)
@@ -407,6 +412,18 @@ class FenetrePrincipale(QMainWindow):
 		fiche = self.ui.onglets.currentWidget()
 		assert isinstance(fiche, Fiche)
 		fiche.copier(identifiant)
+
+	def _verifier_completement(self, fiche: FicheSonore, sonore: int) -> None:
+		"""L'audit complet du sonore, au seuil de blanc de la configuration ; sa fiche attend."""
+		fiche.attendre_la_verification()
+		self.verification_complete.lancer(sonore, self.seuil_blancs)
+
+	def _verification_complete_terminee(self, sonore: int, texte: str) -> None:
+		"""La barre d'état le dit ; la fiche du sonore, encore ouverte, propose de se rafraîchir."""
+		self.ui.barre_d_etat.showMessage(texte)
+		for fiche in self.fiches():
+			if (isinstance(fiche, FicheSonore)) and (fiche.identifiant == sonore):
+				fiche.verification_terminee(texte)
 
 	def _renommer(self, fiche: QWidget, titre: str) -> None:
 		self.ui.onglets.setTabText(self.ui.onglets.indexOf(fiche), titre)

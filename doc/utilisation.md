@@ -576,6 +576,8 @@ La fiche d'une banque s'ouvre dans un **nouvel onglet**, nommé « Banque : » s
 
 La fiche d'un sonore s'ouvre depuis la liste des sonores, dans un nouvel onglet nommé « Sonore : » suivi de son titre, ou du nom de son fichier, ou de l'adresse d'un stream ([#28](https://github.com/dascritch/machincast/issues/28)). Elle se comporte comme [celle d'une banque](#fiche-dune-banque) : **Enregistrer** et **Annuler**, une seule fiche par sonore, et la question à la fermeture d'une fiche modifiée.
 
+**Encarts repliés** ([#190](https://github.com/dascritch/machincast/issues/190)) : pour garder l'essentiel en vue, les encarts **Métadonnées**, **Diffusion**, **Détection de blanc**, **Relations** et **Fichier** s'ouvrent repliés, leur titre précédé de « ▸ ». Un clic sur le titre les déplie (« ▾ »), un autre les replie.
+
 **Sonore** : le type, l'emplacement du fichier et sa durée, qui ne se modifient pas, et l'**état**. La fiche pose `actif` ou `désactivé` ; un sonore `expiré`, `erroné` ou `supprimé` peut revenir à `actif` (voir [États d'un sonore](#états-dun-sonore)). Un sonore en `aperçu` attend sa première indexation, et son état ne se choisit pas.
 
 **Métadonnées** : artiste, titre, année, album, artiste de l'album, genre, compositeur, label et piste. Les autres métadonnées, ajoutées hors de MachinCast, sont montrées sans se modifier. Un champ vide n'a pas de valeur ; les textes sont enregistrés sans les espaces qui les entourent.
@@ -616,7 +618,7 @@ La fiche d'un sonore s'ouvre depuis la liste des sonores, dans un nouvel onglet 
 | Créé le, Modifié le | Lus sur le fichier, à l'ouverture de la fiche, sans le modifier. La création est `inconnue` sur un système de fichiers qui ne la garde pas. Un fichier absent : `introuvable`. |
 | Dernière vérification complète | Le dernier passage de l'indexeur qui a lu son type et l'a décodé en entier, en indexation rapide comme en audit complet ; `jamais` avant le premier. |
 
-Le bouton **Pré-écoute…** fait écouter le sonore ([Pré-écoute](#pré-écoute)). L'ajout d'un sonore : [Ajouter un sonore](#ajouter-un-sonore) ; sa suppression : [Supprimer un élément](#supprimer-un-élément).
+Le bouton **Pré-écoute…** fait écouter le sonore ([Pré-écoute](#pré-écoute)). Le bouton **Vérification complète** ([#190](https://github.com/dascritch/machincast/issues/190)), pour un fichier, le décode en entier et mesure ses blancs, comme l'[audit complet](#indexation-rapide-et-audit-complet) de ce seul sonore, sans attendre la prochaine indexation : utile pour un fichier douteux, ou après avoir changé le seuil de blanc. Le bouton attend la fin (« Vérification… »), puis une question propose de **Rafraîchir** la fiche pour voir le résultat, ou de le faire **Plus tard** ; la barre d'état le dit aussi. Les tags du fichier remplacent ceux de la fiche qui n'ont pas été saisis à la main. L'ajout d'un sonore : [Ajouter un sonore](#ajouter-un-sonore) ; sa suppression : [Supprimer un élément](#supprimer-un-élément).
 
 ### Fiche d'une séquence
 

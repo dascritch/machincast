@@ -24,6 +24,12 @@ machincast.interface.fiche.
   durée, pochette et tags compris), taille, dates de création et de modification lues sur le fichier, qui n'est que lu,
   et date de sa dernière vérification complète par l'indexeur. Le bouton du dossier ouvre le dossier du fichier dans
   le navigateur de fichiers du poste.
+- Encarts (https://github.com/dascritch/machincast/issues/190) : « Métadonnées », « Diffusion », « Détection de
+  blanc », « Relations » et « Fichier » sont repliés à l'ouverture de la fiche, et se déplient d'un clic sur leur
+  titre (machincast.interface.depliable).
+- « Vérification complète », pour un fichier enregistré, demande l'audit complet de ce seul sonore
+  (verification_demandee) ; le bouton attend sa fin (attendre_la_verification), puis une question propose de
+  rafraîchir la fiche (verification_terminee).
 """
 
 import subprocess
@@ -38,7 +44,7 @@ from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QDoubleSpinBox, QLineEdi
 
 from machincast.conformation import conformer
 from machincast.horloge import Horloge
-from machincast.interface import affichage, dialogues, preferences
+from machincast.interface import affichage, depliable, dialogues, preferences
 from machincast.interface.essai_flux import EssaiDeFlux
 from machincast.interface.fiche import Connexion, Fiche, Refus
 from machincast.interface.listes import ETATS
@@ -135,6 +141,9 @@ class FicheSonore(Fiche):
 	preecoute_demandee = Signal(int)
 	"""« Pré-écoute… » : le sonore à écouter dans la fenêtre de pré-écoute
 	(https://github.com/dascritch/machincast/issues/116)."""
+	verification_demandee = Signal(int)
+	"""« Vérification complète » : le sonore dont faire l'audit complet
+	(https://github.com/dascritch/machincast/issues/190)."""
 	genre = "sonore"
 
 	def __init__(
@@ -154,6 +163,18 @@ class FicheSonore(Fiche):
 			self.ui.masquage.addItem(texte)
 		self.essai = EssaiDeFlux(self)
 		self.ui.preecouter.clicked.connect(self._preecouter)
+		self.ui.verifier.clicked.connect(self._verifier)
+		self._fichier = False
+		"""Le sonore lu est un fichier : seul un fichier se vérifie."""
+		self._en_verification = False
+		for groupe in (
+			self.ui.groupe_metadonnees,
+			self.ui.groupe_diffusion,
+			self.ui.groupe_blancs,
+			self.ui.groupe_relations,
+			self.ui.groupe_fichier,
+		):
+			depliable.rendre_depliable(groupe)
 		self.essai.termine.connect(self._essai_termine)
 		self._nom = ""
 		self._initiales: dict[str, object] = {}
@@ -206,6 +227,31 @@ class FicheSonore(Fiche):
 	def _preecouter(self) -> None:
 		if self.identifiant is not None:
 			self.preecoute_demandee.emit(self.identifiant)
+
+	def _verifier(self) -> None:
+		if self.identifiant is not None:
+			self.verification_demandee.emit(self.identifiant)
+
+	def attendre_la_verification(self) -> None:
+		"""La vérification complète est lancée : le bouton attend sa fin."""
+		self._en_verification = True
+		self.ui.verifier.setText("Vérification…")
+		self._actualiser_la_verification()
+		self.message.setText("Vérification complète en cours…")
+
+	def verification_terminee(self, texte: str) -> None:
+		"""La vérification complète est finie : une question propose de rafraîchir la fiche, qui montre alors ce que
+		l'indexeur a écrit."""
+		self._en_verification = False
+		self.ui.verifier.setText("Vérification complète")
+		self._actualiser_la_verification()
+		self.message.clear()
+		if dialogues.proposer_rafraichissement(self, texte):
+			self.rafraichir()
+
+	def _actualiser_la_verification(self) -> None:
+		"""Un fichier enregistré se vérifie, une seule fois à la fois ; un stream ne se vérifie pas."""
+		self.ui.verifier.setEnabled((self.identifiant is not None) and (self._fichier) and (not self._en_verification))
 
 	def _lire(self) -> None:
 		"""Lit le sonore en base ; un nouveau stream est actif, sans adresse ni réglage."""
@@ -279,6 +325,8 @@ class FicheSonore(Fiche):
 		self.ui.groupe_fichier.setVisible(not stream)
 		if not stream:
 			self._montrer_fichier(Path(str(emplacement)), type_mime, duree, verifie_le)
+		self._fichier = type_sonore == "fichier"
+		self._actualiser_la_verification()
 		self.ui.groupe_stream.setVisible(stream)
 		# Un stream n'a pas de blancs détectés : seul un fichier est audité.
 		self.ui.groupe_blancs.setVisible(not stream)

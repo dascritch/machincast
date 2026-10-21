@@ -73,6 +73,9 @@ class Contexte:
 	"""Réponse à la question de suppression : True pour supprimer."""
 	creation: bool = False
 	"""Réponse à la question de création d'un événement depuis le calendrier : True pour créer."""
+	rafraichir_apres_verification: bool = True
+	"""Réponse à la question après la vérification complète d'un sonore : True pour rafraîchir sa fiche
+	(https://github.com/dascritch/machincast/issues/190)."""
 	action: bool = True
 	"""Réponse à la confirmation d'une action sur une sélection : True pour la faire
 	(https://github.com/dascritch/machincast/issues/114)."""
@@ -199,6 +202,12 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	monkeypatch.setattr(dialogues, "confirmer_suppression", suppression)
 	monkeypatch.setattr(dialogues, "confirmer_creation", creation)
 	monkeypatch.setattr(dialogues, "confirmer_action", action)
+
+	def apres_verification(_parent: QWidget, texte: str) -> bool:
+		interface.questions.append(f"après vérification : {texte} Rafraîchir la fiche ?")
+		return interface.rafraichir_apres_verification
+
+	monkeypatch.setattr(dialogues, "proposer_rafraichissement", apres_verification)
 	monkeypatch.setattr(dialogues, "choisir_repertoire", repertoire)
 	monkeypatch.setattr(dialogues, "choisir_fichiers", lambda _parent: interface.fichiers_choisis)
 	monkeypatch.setattr(dialogues, "choisir_sonores", sonores)
