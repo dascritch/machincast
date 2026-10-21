@@ -1,8 +1,11 @@
 """Fenêtre de Machin_interface (https://github.com/dascritch/machincast/issues/26).
 
 Un onglet par écran : l'accueil (écran par défaut, ouvert au lancement), puis une liste par type d'élément, dans
-l'ordre de la recherche (spec § 8.2) : événements, séquences, banques, sonores. Ces onglets ne se ferment pas. Une liste
-se relit chaque fois que son onglet s'ouvre. Ouvrir une ligne demande l'écran de détail de l'élément (detail_demande).
+l'ordre de la recherche (spec § 8.2) : événements, séquences, banques, sonores, marques-pages. Les listes des sonores
+et des marques-pages ne s'ouvrent qu'à la demande, par le menu « Affichage », à leur place parmi les autres, et se
+ferment (https://github.com/dascritch/machincast/issues/180) ; les autres onglets fixes ne se ferment pas. Une liste
+fermée est gardée : rouverte, elle retrouve son filtre et son tri. Une liste se relit chaque fois que son onglet
+s'ouvre. Ouvrir une ligne demande l'écran de détail de l'élément (detail_demande).
 
 L'écran de détail d'un élément est sa fiche, dans un onglet qui se ferme : événement
 (machincast.interface.fiche_evenement, https://github.com/dascritch/machincast/issues/32), séquence
@@ -16,8 +19,9 @@ Le dernier onglet fixe est l'écran des incidents du log (machincast.interface.i
 https://github.com/dascritch/machincast/issues/35), qui se relit aussi à l'ouverture de son onglet.
 
 La barre de menus a cinq menus (https://github.com/dascritch/machincast/issues/117) : « Fichier », pour quitter (Alt+Q,
-comme la fermeture de la fenêtre) ; « Affichage », pour le calendrier de la grille (machincast.interface.calendrier,
-https://github.com/dascritch/machincast/issues/36), dans un onglet qui se ferme, et pour rafraîchir les onglets (F5,
+comme la fermeture de la fenêtre) ; « Affichage », pour ouvrir les listes des sonores et des marques-pages, et le
+calendrier de la grille, « Grille horaire » (machincast.interface.calendrier,
+https://github.com/dascritch/machincast/issues/36), dans des onglets qui se ferment, et pour rafraîchir les onglets (F5,
 https://github.com/dascritch/machincast/issues/148) ; « Diffusion », qui démarre, arrête ou redémarre le service de
 diffusion (machincast.interface.pilotage, https://github.com/dascritch/machincast/issues/25) selon son état, relu à
 l'ouverture du menu ; sans le service, la barre d'état dit que l'installation n'est pas définitive, et le menu pilote
@@ -75,6 +79,9 @@ ONGLETS = (
 	("Sonores", SONORES),
 	("Marques-pages", MARQUES_PAGES),
 )
+A_LA_DEMANDE = frozenset({"Sonores", "Marques-pages"})
+"""Les listes qui ne s'ouvrent pas au lancement, mais par le menu « Affichage », et qui se ferment
+(https://github.com/dascritch/machincast/issues/180)."""
 FICHES: dict[str, type[Fiche]] = {
 	fiche.genre: fiche for fiche in (FicheEvenement, FicheSequence, FicheBanque, FicheSonore, FicheMarquePage)
 }
@@ -187,6 +194,8 @@ class FenetrePrincipale(QMainWindow):
 		self.accueil.client.etat_recu.connect(self._etat_de_la_lecture)
 		self._relire_le_service()
 		self.listes: list[Liste] = []
+		self._titres: dict[QWidget, str] = {}
+		"""Le titre de l'onglet de chaque liste, ouverte ou non."""
 		for titre, source in ONGLETS:
 			liste = Liste(source, connexion)
 			liste.ouverte.connect(self._ouvrir)
@@ -198,7 +207,9 @@ class FenetrePrincipale(QMainWindow):
 			)
 			liste.fichiers_deposes.connect(lambda chemins, liste=liste: self._ajouter_fichiers(liste, chemins))
 			self.listes.append(liste)
-			self._ajouter_fixe(liste, titre)
+			self._titres[liste] = titre
+			if titre not in A_LA_DEMANDE:
+				self._ajouter_fixe(liste, titre)
 		self.incidents = EcranIncidents(connexion)
 		self.incidents.ouverte.connect(self._ouvrir)
 		self._ajouter_fixe(self.incidents, "Incidents")
@@ -230,7 +241,10 @@ class FenetrePrincipale(QMainWindow):
 		rechercher = affichage.addAction("Rechercher…")
 		rechercher.setShortcut(QKeySequence("Ctrl+F"))
 		rechercher.triggered.connect(self._ouvrir_recherche)
-		affichage.addAction("Calendrier").triggered.connect(self._ouvrir_calendrier)
+		for titre in ("Sonores", "Marques-pages"):
+			ouvrir = affichage.addAction(f"Ouvrir l'onglet {titre}")
+			ouvrir.triggered.connect(lambda _coche=False, titre=titre: self.ouvrir_liste(titre))
+		affichage.addAction("Ouvrir l'onglet Grille horaire").triggered.connect(self._ouvrir_calendrier)
 		affichage.addAction("Pré-écoute…").triggered.connect(lambda: self._preecouter(None))
 		self.menu_diffusion = self.menuBar().addMenu("&Diffusion")
 		self.menu_diffusion.aboutToShow.connect(self._relire_le_service)
@@ -475,6 +489,20 @@ class FenetrePrincipale(QMainWindow):
 		onglets.setCurrentWidget(recherche)
 		recherche.focaliser()
 
+	def ouvrir_liste(self, titre: str) -> None:
+		"""Ouvre une liste à la demande à sa place, après les listes qui la précèdent et avant les incidents, ou la
+		ramène au premier plan (https://github.com/dascritch/machincast/issues/180)."""
+		onglets = self.ui.onglets
+		(liste,) = (liste for liste in self.listes if self._titres[liste] == titre)
+		indice = onglets.indexOf(liste)
+		if indice < 0:
+			ordre: list[QWidget] = [self.accueil, *self.listes]
+			rang = ordre.index(liste)
+			place = sum(1 for ecran in ordre[:rang] if onglets.indexOf(ecran) >= 0)
+			indice = onglets.insertTab(place, liste, titre)
+			self._numeroter_les_onglets()
+		onglets.setCurrentIndex(indice)
+
 	def _creer_evenement(self, debut: datetime) -> None:
 		"""Un nouvel événement, à l'heure cliquée dans le calendrier, s'ouvre dans sa fiche si on le confirme."""
 		fin = debut + UNE_HEURE
@@ -491,6 +519,10 @@ class FenetrePrincipale(QMainWindow):
 		if isinstance(fiche, (Calendrier, EcranRecherche)):
 			self._retirer_onglet(indice)
 			fiche.deleteLater()
+			return
+		if isinstance(fiche, Liste):
+			# Une liste à la demande est gardée : rouverte, elle retrouve son filtre et son tri.
+			self._retirer_onglet(indice)
 			return
 		assert isinstance(fiche, Fiche), fiche
 		if fiche.peut_fermer():

@@ -695,9 +695,21 @@ def base_injoignable(interface: Contexte) -> None:
 	interface.connexion.close()
 
 
+A_LA_DEMANDE = {"Sonores": "Ouvrir l'onglet Sonores", "Marques-pages": "Ouvrir l'onglet Marques-pages"}
+"""Les listes qui ne s'ouvrent pas au lancement, et l'entrée du menu « Affichage » qui les ouvre
+(https://github.com/dascritch/machincast/issues/180)."""
+
+
 @when(parsers.parse("j'ouvre l'onglet « {titre} »"))
 def ouvrir_onglet(interface: Contexte, titre: str) -> None:
-	fenetre(interface).ui.onglets.setCurrentIndex(onglet(interface, titre))
+	"""Une liste ouverte à la demande, pas encore ouverte, s'ouvre par le menu « Affichage », comme le ferait
+	l'utilisateur (https://github.com/dascritch/machincast/issues/180)."""
+	onglets = fenetre(interface).ui.onglets
+	titres = [onglets.tabText(indice) for indice in range(onglets.count())]
+	if (titre in A_LA_DEMANDE) and (titre not in titres):
+		choisir_dans_le_menu(interface, A_LA_DEMANDE[titre], "Affichage")
+		return
+	onglets.setCurrentIndex(onglet(interface, titre))
 
 
 @when(parsers.parse("j'ouvre la fiche de la banque « {nom} »"))
@@ -892,6 +904,30 @@ def onglets(interface: Contexte, titres: str) -> None:
 def onglet_ouvert(interface: Contexte, titre: str) -> None:
 	onglets = fenetre(interface).ui.onglets
 	assert onglets.tabText(onglets.currentIndex()) == titre
+
+
+def fermables(interface: Contexte) -> list[str]:
+	onglets = fenetre(interface).ui.onglets
+	return [
+		onglets.tabText(indice)
+		for indice in range(onglets.count())
+		if bouton_de_fermeture(onglets.tabBar(), indice) is not None
+	]
+
+
+@then("aucun onglet n'a de bouton de fermeture")
+def aucun_fermable(interface: Contexte) -> None:
+	assert fermables(interface) == []
+
+
+@then(parsers.re(r"seuls les onglets (?P<titres>«.+) ont un bouton de fermeture"))
+def seuls_fermables(interface: Contexte, titres: str) -> None:
+	assert fermables(interface) == NOM.findall(titres)
+
+
+@when("j'efface le filtre de la liste")
+def effacer_le_filtre(interface: Contexte) -> None:
+	liste(interface).filtre.clear()
 
 
 @then(parsers.parse("seul l'onglet « {titre} » a un bouton de fermeture"))

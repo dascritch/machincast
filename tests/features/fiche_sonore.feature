@@ -87,7 +87,7 @@ Fonctionnalité: Fiche d'un sonore
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors l'onglet ouvert est « Sonore : Café à minuit »
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents », « Banque : Jingles », « Sonore : Café à minuit »
+		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Incidents », « Banque : Jingles », « Sonore : Café à minuit »
 
 	# ─── Métadonnées ───────────────────────────────────────────
 

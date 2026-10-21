@@ -44,7 +44,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et j'ouvre le sonore « Aube – Matin clair » de la banque
 		Alors l'onglet ouvert est « Sonore : Matin clair »
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents », « Banque : Jingles », « Sonore : Matin clair »
+		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents », « Banque : Jingles », « Sonore : Matin clair »
 
 	Scénario: Entrée sur le sonore choisi ouvre aussi sa fiche
 		Quand la fenêtre de l'interface s'ouvre
@@ -95,7 +95,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre l'onglet « Accueil »
 		Et j'ouvre la fiche de la banque « Jingles »
 		Alors l'onglet ouvert est « Banque : Jingles »
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents », « Banque : Jingles »
+		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents », « Banque : Jingles »
 
 	Scénario: Chaque clic sur « Nouvelle banque » ouvre une nouvelle fiche
 		Quand la fenêtre de l'interface s'ouvre
@@ -103,7 +103,7 @@ Fonctionnalité: Fiche d'une banque
 		Et je clique sur « Nouvelle banque »
 		Et j'ouvre l'onglet « Banques »
 		Et je clique sur « Nouvelle banque »
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents », « Nouvelle banque », « Nouvelle banque »
+		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents », « Nouvelle banque », « Nouvelle banque »
 
 	Scénario: Seuls les onglets des fiches se ferment, pas ceux de l'accueil et des listes
 		Quand la fenêtre de l'interface s'ouvre
@@ -115,7 +115,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et je ferme l'onglet « Banque : Jingles »
 		Alors aucune question n'a été posée
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents »
+		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents »
 		Et la fiche fermée est libérée
 
 	Plan du scénario: Fermer une fiche modifiée demande quoi faire de ses modifications
@@ -446,7 +446,7 @@ Fonctionnalité: Fiche d'une banque
 			| Jingles   | Radio Thune | séquentielle | oui            | /srv/jingles/hiver |
 		Quand j'ouvre la ligne « Habillage »
 		Alors l'onglet ouvert est « Banque : Habillage »
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents », « Banque : Habillage »
+		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents », « Banque : Habillage »
 
 	# ─── Répertoires ───────────────────────────────────────────
 

@@ -21,17 +21,22 @@ Fonctionnalité: Raccourcis des onglets
 		Et la séquence « Cinq », sans nom public, avec rien
 		Et la séquence « Six », sans nom public, avec rien
 
-	Scénario: Maj+F1 ramène à l'accueil, Maj+F7 aux incidents
+	Scénario: Maj+F1 ramène à l'accueil, Maj+F5 aux incidents
+		Les onglets « Sonores » et « Marques-pages » ne s'ouvrent qu'à la demande
+		(https://github.com/dascritch/machincast/issues/180) : au lancement, les incidents sont le cinquième onglet.
+
 		Quand la fenêtre de l'interface s'ouvre
-		Et j'ouvre l'onglet « Sonores »
+		Et j'ouvre l'onglet « Banques »
 		Et j'appuie sur « Shift+F1 »
 		Alors l'onglet ouvert est « Accueil »
-		Quand j'appuie sur « Shift+F7 »
+		Quand j'appuie sur « Shift+F5 »
 		Alors l'onglet ouvert est « Incidents »
-		Et les onglets ont pour infobulles « Maj+F1 », « Maj+F2 », « Maj+F3 », « Maj+F4 », « Maj+F5 », « Maj+F6 », « Maj+F7 »
+		Et les onglets ont pour infobulles « Maj+F1 », « Maj+F2 », « Maj+F3 », « Maj+F4 », « Maj+F5 »
 
 	Scénario: Seuls les 12 premiers onglets ont un raccourci
 		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Et j'ouvre l'onglet « Marques-pages »
 		Et j'ouvre la fiche de la séquence « Un »
 		Et j'ouvre la fiche de la séquence « Deux »
 		Et j'ouvre la fiche de la séquence « Trois »
@@ -48,19 +53,19 @@ Fonctionnalité: Raccourcis des onglets
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Un »
 		Et j'ouvre la fiche de la séquence « Deux »
-		Alors l'onglet « Séquence : Deux » a pour infobulle « Maj+F9 »
+		Alors l'onglet « Séquence : Deux » a pour infobulle « Maj+F7 »
 		Quand je ferme l'onglet « Séquence : Un »
-		Alors l'onglet « Séquence : Deux » a pour infobulle « Maj+F8 »
+		Alors l'onglet « Séquence : Deux » a pour infobulle « Maj+F6 »
 		Quand j'appuie sur « Shift+F1 »
-		Et j'appuie sur « Shift+F8 »
+		Et j'appuie sur « Shift+F6 »
 		Alors l'onglet ouvert est « Séquence : Deux »
-		Quand j'appuie sur « Shift+F9 »
+		Quand j'appuie sur « Shift+F7 »
 		Alors l'onglet ouvert est « Séquence : Deux »
 
 	Scénario: Le calendrier a aussi son raccourci, et le rend en se fermant
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
-		Alors l'onglet « Calendrier » a pour infobulle « Maj+F8 »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Alors l'onglet « Calendrier » a pour infobulle « Maj+F6 »
 		Quand j'ouvre la fiche de la séquence « Un »
 		Et je ferme l'onglet « Calendrier »
-		Alors l'onglet « Séquence : Un » a pour infobulle « Maj+F8 »
+		Alors l'onglet « Séquence : Un » a pour infobulle « Maj+F6 »
