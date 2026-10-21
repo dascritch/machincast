@@ -43,10 +43,11 @@ from PySide6.QtGui import QIntValidator
 from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QDoubleSpinBox, QLineEdit, QTableWidgetItem, QWidget
 
 from machincast.conformation import conformer
+from machincast.conversion import duree_ou_rien, texte_ou_rien
 from machincast.horloge import Horloge
 from machincast.interface import affichage, depliable, dialogues, icones, preferences
 from machincast.interface.colonnes import Colonnes
-from machincast.interface.essai_flux import EssaiDeFlux
+from machincast.interface.essai_flux import EssaiDeFlux, resultat_de_l_essai
 from machincast.interface.fiche import Connexion, Fiche, Refus
 from machincast.interface.listes import ETATS
 from machincast.interface.ui.fiche_sonore import Ui_FicheSonore
@@ -132,10 +133,8 @@ URL = Qt.ItemDataRole.UserRole + 1
 """Rôle qui porte l'adresse d'un marque-page, dans son choix."""
 
 
-def _texte(valeur: object) -> str | None:
-	if valeur is None:
-		return None
-	return str(valeur)
+DELAI_DE_STAT = 5
+"""Secondes laissées à stat pour lire la date de création d'un fichier, sur un partage réseau par exemple."""
 
 
 class FicheSonore(Fiche):
@@ -319,9 +318,9 @@ class FicheSonore(Fiche):
 			fin_detectee,
 		) = ligne
 		stream = type_sonore == "stream"
-		self._nom = (_texte(titre)) or (Path(str(emplacement)).name)
+		self._nom = (texte_ou_rien(titre)) or (Path(str(emplacement)).name)
 		if stream:
-			self._nom = (_texte(titre)) or (str((url_stream) or (url_marque_page)))
+			self._nom = (texte_ou_rien(titre)) or (str((url_stream) or (url_marque_page)))
 		self.ui.type_sonore.setText(str(type_sonore))
 		self.ui.emplacement.setText(str((emplacement) or ("")))
 		self.ui.formulaire_sonore.setRowVisible(self.ui.etiquette_emplacement, not stream)
@@ -423,8 +422,8 @@ class FicheSonore(Fiche):
 		saisies["crossfade_fin"] = _crossfade(self.ui.a_crossfade_fin, self.ui.crossfade_fin)
 		saisies["max_lectures"] = (self.ui.max_lectures.value()) or (None)
 		saisies["masquer_metadonnees"] = MASQUAGES[self.ui.masquage.currentIndex()][0]
-		saisies["debut_diffusion"] = _date(self.ui.a_debut, self.ui.debut_diffusion)
-		saisies["fin_diffusion"] = _date(self.ui.a_fin, self.ui.fin_diffusion)
+		saisies["debut_diffusion"] = affichage.date_cochee(self.ui.a_debut, self.ui.debut_diffusion)
+		saisies["fin_diffusion"] = affichage.date_cochee(self.ui.a_fin, self.ui.fin_diffusion)
 		if self.ui.groupe_blancs.isVisibleTo(self):
 			saisies["detection_blancs"] = self.ui.detection_blancs.isChecked()
 			saisies["debut_detecte"] = _crossfade(self.ui.a_debut_detecte, self.ui.debut_detecte)
@@ -512,7 +511,9 @@ class FicheSonore(Fiche):
 			cellule = QTableWidgetItem(str(nom))
 			cellule.setData(RELATION, (str(genre), int(str(identifiant))))
 			# Une banque dont le sonore sort des durées (https://github.com/dascritch/machincast/issues/147).
-			ecart = affichage.hors_durees(_duree(duree), _duree(minimum), _duree(maximum), str(nom))
+			ecart = affichage.hors_durees(
+				duree_ou_rien(duree), duree_ou_rien(minimum), duree_ou_rien(maximum), str(nom)
+			)
 			if ecart is not None:
 				cellule.setIcon(affichage.icone_d_anomalie(self))
 				cellule.setToolTip(ecart)
@@ -604,10 +605,7 @@ class FicheSonore(Fiche):
 		self.essai.lancer(self._adresse())
 
 	def _essai_termine(self, repond: bool, detail: str) -> None:
-		verdict = "Le flux ne répond pas"
-		if repond:
-			verdict = "Le flux répond"
-		self.ui.resultat_essai.setText(f"{verdict} : {detail}")
+		self.ui.resultat_essai.setText(resultat_de_l_essai(repond, detail))
 		self.ui.tester.setEnabled(True)
 
 
@@ -637,28 +635,20 @@ def _heure(valeur: object) -> str:
 	return str(valeur)
 
 
-def _date(case: QCheckBox, date: QDateTimeEdit) -> datetime | None:
-	if not case.isChecked():
-		return None
-	return datetime.fromtimestamp(date.dateTime().toSecsSinceEpoch()).astimezone()
-
-
 def _naissance(chemin: Path) -> datetime | None:
 	"""La date de création du fichier, que stat lit dans le système de fichiers ; None si le système n'en garde pas.
 
 	Python ne la donne pas sous Linux : stat (coreutils) la demande à statx.
 	"""
 	try:
-		sortie = subprocess.run(["stat", "--format=%W", str(chemin)], capture_output=True, text=True, check=True).stdout
-	except (OSError, subprocess.CalledProcessError):
+		sortie = subprocess.run(
+			["stat", "--format=%W", str(chemin)], capture_output=True, text=True, check=True, timeout=DELAI_DE_STAT
+		).stdout
+		secondes = int((sortie.strip()) or ("0"))
+	# Un partage réseau qui ne répond plus, ou une réponse inattendue, laisse la date inconnue, sans figer ni faire
+	# planter la fiche (https://github.com/dascritch/machincast/issues/187).
+	except (OSError, subprocess.SubprocessError, ValueError):
 		return None
-	secondes = int((sortie.strip()) or ("0"))
 	if secondes <= 0:
 		return None
 	return datetime.fromtimestamp(secondes).astimezone()
-
-
-def _duree(valeur: object) -> timedelta | None:
-	if not isinstance(valeur, timedelta):
-		return None
-	return valeur

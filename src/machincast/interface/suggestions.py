@@ -25,6 +25,7 @@ from PySide6.QtWidgets import QDialog, QDialogButtonBox, QListWidgetItem, QWidge
 
 from machincast import audio as sorties_audio
 from machincast.configuration import Audio
+from machincast.conversion import texte_ou_rien
 from machincast.interface import fil_musical
 from machincast.interface.ui.suggestions import Ui_FenetreSuggestions
 
@@ -208,7 +209,7 @@ class FenetreSuggestions(QDialog):
 		antenne = None
 		if self.manques.antennes is not None:
 			donnee = self.ui.antenne.currentData()
-			antenne = None if donnee is None else str(donnee)
+			antenne = texte_ou_rien(donnee)
 		return Reponse(
 			creer=True,
 			fil_musical=FIL_MUSICAL in cochees,

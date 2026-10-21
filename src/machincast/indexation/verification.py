@@ -29,7 +29,7 @@ import logging
 import threading
 from collections.abc import Collection
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 
@@ -38,6 +38,7 @@ from psycopg.rows import TupleRow
 from psycopg.types.json import Jsonb
 
 from machincast.configuration import SEUIL_DE_BLANC
+from machincast.conversion import duree_ou_rien, liste_ou_rien
 from machincast.empreinte import etat_du_fichier, modifie
 from machincast.indexation.audit import Anomalie
 from machincast.indexation.decodage import EtatFichier, Verificateur, Verification, verifier_fichier
@@ -144,12 +145,6 @@ def _consequence(avant: EtatSonore, apres: EtatSonore) -> str:
 	return f"sonore passé {LIBELLES[apres]}"
 
 
-def _liste(identifiants: Collection[int] | None) -> list[int] | None:
-	if identifiants is None:
-		return None
-	return list(identifiants)
-
-
 def verifier_sonores(
 	connexion: psycopg.Connection[TupleRow],
 	verifier: Verificateur = verifier_fichier,
@@ -192,7 +187,7 @@ def verifier_sonores(
 			"SELECT id, emplacement, etat::text, champs_edites, artiste, titre, metadonnees_musicales,"
 			" fichier_modifie_le, fichier_taille, debut_detecte, fin_detectee, audit_demande, audite_le, audit_seuil"
 			" FROM sonores WHERE type = 'fichier' AND (%s::bigint[] IS NULL OR id = ANY(%s)) ORDER BY id",
-			(_liste(identifiants), _liste(identifiants)),
+			(liste_ou_rien(identifiants), liste_ou_rien(identifiants)),
 		).fetchall()
 
 	if bilan is None:
@@ -284,8 +279,8 @@ def verifier_sonores(
 					# Un fichier trouvé arrive ici vérifié en entier ; un fichier disparu garde la date de sa dernière
 					# vérification.
 					fichier is not None,
-					_duree(debut_detecte),
-					_duree(fin_detectee),
+					duree_ou_rien(debut_detecte),
+					duree_ou_rien(fin_detectee),
 					# La marque d'un audit demandé tombe avec la vérification du fichier, pas avant.
 					fichier is not None,
 					# Un audit complet d'un fichier trouvé est retenu, avec son seuil, quel que soit le verdict.
@@ -353,10 +348,3 @@ def _sain(artiste: object, titre: object) -> str:
 	if nom == "":
 		return "sain"
 	return f"sain, {nom}"
-
-
-def _duree(valeur: object) -> timedelta | None:
-	"""Une durée lue en base, ou mesurée ; None pour NULL."""
-	if isinstance(valeur, timedelta):
-		return valeur
-	return None

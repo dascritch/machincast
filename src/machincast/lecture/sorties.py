@@ -41,6 +41,7 @@ from psycopg.rows import TupleRow
 
 from machincast.configuration import Configuration, Metadonnees
 from machincast.configuration import Sorties as Chemins
+from machincast.conversion import booleen_ou_rien, texte_ou_rien
 from machincast.lecture.enregistrement import Passage, consigner
 from machincast.protection import verifier_ecriture
 
@@ -154,15 +155,20 @@ def lire_passages(
 			debut=debut,
 			fin=fin if isinstance(fin, datetime) else None,
 			duree=duree if isinstance(duree, timedelta) else None,
-			sans_incident=None if sans_incident is None else bool(sans_incident),
-			artiste=None if artiste is None else str(artiste),
-			titre=None if titre is None else str(titre),
-			emplacement=None if emplacement is None else str(emplacement),
-			evenement=None if evenement is None else str(evenement),
+			sans_incident=booleen_ou_rien(sans_incident),
+			artiste=texte_ou_rien(artiste),
+			titre=texte_ou_rien(titre),
+			emplacement=texte_ou_rien(emplacement),
+			evenement=texte_ou_rien(evenement),
 			nom_public=premier_nom_public(nom_public_e, nom_public_q, nom_public_b),
-			sequence=None if sequence is None else str(sequence),
-			banque=None if banque is None else str(banque),
-			masquages=(_booleen(masque_e), _booleen(masque_q), _booleen(masque_b), _booleen(masque_s)),
+			sequence=texte_ou_rien(sequence),
+			banque=texte_ou_rien(banque),
+			masquages=(
+				booleen_ou_rien(masque_e),
+				booleen_ou_rien(masque_q),
+				booleen_ou_rien(masque_b),
+				booleen_ou_rien(masque_s),
+			),
 		)
 		for (
 			debut,
@@ -184,10 +190,6 @@ def lire_passages(
 			masque_s,
 		) in lignes
 	]
-
-
-def _booleen(valeur: object) -> bool | None:
-	return None if valeur is None else bool(valeur)
 
 
 def page_publique(lignes: list[Ligne], metadonnees: Metadonnees, instant: datetime) -> str:

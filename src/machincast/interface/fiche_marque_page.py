@@ -18,7 +18,7 @@ from PySide6.QtWidgets import QListWidgetItem, QWidget
 
 from machincast.conformation import conformer
 from machincast.horloge import Horloge
-from machincast.interface.essai_flux import EssaiDeFlux
+from machincast.interface.essai_flux import EssaiDeFlux, resultat_de_l_essai
 from machincast.interface.fiche import Connexion, Fiche, Refus
 from machincast.interface.ui.fiche_marque_page import Ui_FicheMarquePage
 
@@ -106,10 +106,7 @@ class FicheMarquePage(Fiche):
 		self.essai.lancer(self.ui.url.text().strip())
 
 	def _essai_termine(self, repond: bool, detail: str) -> None:
-		verdict = "Le flux ne répond pas"
-		if repond:
-			verdict = "Le flux répond"
-		self.ui.resultat_essai.setText(f"{verdict} : {detail}")
+		self.ui.resultat_essai.setText(resultat_de_l_essai(repond, detail))
 		self.ui.tester.setEnabled(True)
 
 	def _ouvrir_stream(self, item: QListWidgetItem) -> None:

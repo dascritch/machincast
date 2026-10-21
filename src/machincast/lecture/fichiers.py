@@ -11,6 +11,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.conversion import entier_ou_rien
 from machincast.lecture.historique import EN_BASE, Historique
 
 
@@ -29,7 +30,7 @@ def verifier_avant_lecture(
 			return None
 		chemin = Path(str(ligne[0]))
 		modifie_le = ligne[1] if isinstance(ligne[1], datetime) else None
-		taille = None if ligne[2] is None else int(str(ligne[2]))
+		taille = entier_ou_rien(ligne[2])
 		try:
 			etat = chemin.stat()
 		except OSError:

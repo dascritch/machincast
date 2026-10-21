@@ -154,14 +154,19 @@ class SocketEtat:
 				raise OSError(f"{self.chemin} existe et n'est pas une socket")
 			self.chemin.unlink()  # fichier de MachinCast : socket d'état laissée par un arrêt brutal
 		serveur = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-		ancien = os.umask(0o177)
 		try:
-			serveur.bind(str(self.chemin))
-		finally:
-			os.umask(ancien)
-		os.chmod(self.chemin, 0o600)
-		serveur.listen()
-		serveur.settimeout(0.2)
+			ancien = os.umask(0o177)
+			try:
+				serveur.bind(str(self.chemin))
+			finally:
+				os.umask(ancien)
+			os.chmod(self.chemin, 0o600)
+			serveur.listen()
+			serveur.settimeout(0.2)
+		except BaseException:
+			# Une socket qui n'écoute pas ne reste pas ouverte (https://github.com/dascritch/machincast/issues/187).
+			serveur.close()
+			raise
 		self._serveur = serveur
 		self._fil = threading.Thread(target=self._accepter, name="socket d'état", daemon=True)
 		self._fil.start()

@@ -26,6 +26,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import QAbstractItemView, QPushButton, QTreeWidget, QTreeWidgetItem
 
+from machincast.conversion import entier_ou_rien, texte_ou_rien
 from machincast.interface import affichage, dialogues
 from machincast.interface.colonnes import Colonnes
 from machincast.interface.depot import DepotDeFichiers
@@ -82,18 +83,6 @@ class Boutons:
 	retirer: QPushButton
 	monter: QPushButton
 	descendre: QPushButton
-
-
-def _texte(valeur: object) -> str | None:
-	if valeur is None:
-		return None
-	return str(valeur)
-
-
-def _entier(valeur: object) -> int | None:
-	if valeur is None:
-		return None
-	return int(str(valeur))
 
 
 VUES = {"sequences_elements": "fiche-sequence-elements", "evenements_elements": "fiche-evenement-elements"}
@@ -264,7 +253,7 @@ class ListeElements(QObject):
 		detail = MODES.get(str(mode), str(mode))
 		if marquee:
 			detail = f"{detail}, ne pas répéter"
-		ligne = self._ligne("banque", [str(nom), detail], (_entier(identifiant), _entier(identifiant)))
+		ligne = self._ligne("banque", [str(nom), detail], (entier_ou_rien(identifiant), entier_ou_rien(identifiant)))
 		ligne.setData(0, ELEMENT, int(str(identifiant)))
 		return ligne
 
@@ -273,14 +262,14 @@ class ListeElements(QObject):
 		detail = f"{nombre} éléments"
 		if int(str(nombre)) == 1:
 			detail = "1 élément"
-		ligne = self._ligne("séquence", [str(nom), detail], (_entier(premiere), _entier(derniere)))
+		ligne = self._ligne("séquence", [str(nom), detail], (entier_ou_rien(premiere), entier_ou_rien(derniere)))
 		ligne.setData(0, ELEMENT, int(str(identifiant)))
 		return ligne
 
 	def _ligne_sonore(self, sonore: tuple[object, ...]) -> QTreeWidgetItem:
 		"""Une ligne de sonore ; un fichier déposé, pas encore en base, n'a pas d'identifiant."""
 		identifiant, artiste, titre, fichier, emplacement = sonore
-		texte = affichage.artiste_et_titre(_texte(artiste), _texte(titre))
+		texte = affichage.artiste_et_titre(texte_ou_rien(artiste), texte_ou_rien(titre))
 		if (artiste is None) and (titre is None) and (fichier is not None):
 			# Pas encore décodé : le nom du fichier en attendant ses tags.
 			texte = Path(str(fichier)).name

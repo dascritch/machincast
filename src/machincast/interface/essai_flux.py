@@ -27,6 +27,14 @@ def _millisecondes(duree: timedelta) -> int:
 	return int(duree.total_seconds() * 1000)
 
 
+def resultat_de_l_essai(repond: bool, detail: str) -> str:
+	"""« Le flux répond : du son arrive. », ou « Le flux ne répond pas : … », pour la fiche qui a lancé l'essai."""
+	verdict = "Le flux ne répond pas"
+	if repond:
+		verdict = "Le flux répond"
+	return f"{verdict} : {detail}"
+
+
 class EssaiDeFlux(QObject):
 	termine = Signal(bool, str)
 	"""Fin du test : le flux répond-il, et sinon pourquoi."""

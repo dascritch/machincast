@@ -36,6 +36,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.conversion import liste_ou_rien
 from machincast.indexation.verification import Bilan, EtatSonore
 from machincast.protection import EXTENSIONS_SONORES
 
@@ -209,18 +210,12 @@ def retirer_hors_durees(
 			"SELECT bs.banque_id, bs.sonore_id, b.nom_interne, s.emplacement, s.duree, b.duree_min, b.duree_max"
 			" FROM banques_sonores bs JOIN banques b ON b.id = bs.banque_id JOIN sonores s ON s.id = bs.sonore_id"
 			f" WHERE (%s::bigint[] IS NULL OR s.id = ANY(%s)) AND {HORS_DUREES} ORDER BY b.id, bs.position",
-			(_liste(identifiants), _liste(identifiants)),
+			(liste_ou_rien(identifiants), liste_ou_rien(identifiants)),
 		).fetchall()
 		for banque, sonore, nom, emplacement, duree, minimum, maximum in hors:
 			connexion.execute("DELETE FROM banques_sonores WHERE banque_id = %s AND sonore_id = %s", (banque, sonore))
 			bilan.retraits += 1
 			journal.info(f"{emplacement} : retiré de la banque {nom}, {_hors_durees(duree, minimum, maximum)}")
-
-
-def _liste(identifiants: Collection[int] | None) -> list[int] | None:
-	if identifiants is None:
-		return None
-	return list(identifiants)
 
 
 def _duree(valeur: object) -> str:

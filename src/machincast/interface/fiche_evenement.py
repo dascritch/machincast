@@ -26,10 +26,11 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
 from datetime import datetime, timedelta
 
 from PySide6.QtCore import QDateTime
-from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QWidget
+from PySide6.QtWidgets import QDateTimeEdit, QWidget
 
 from machincast.conformation import conformer
 from machincast.horloge import Horloge
+from machincast.interface import affichage
 from machincast.interface.elements import Boutons, ListeElements
 from machincast.interface.fiche import Connexion, Fiche, Refus
 from machincast.interface.listes import EVENEMENT_VIDE
@@ -57,12 +58,6 @@ REPETITION = "Un sonore, une banque ou une séquence peut revenir plusieurs fois
 """Remarque des choix d'éléments."""
 DUREE_PAR_DEFAUT = timedelta(hours=1)
 """Écart entre le début et une fin qui se coche."""
-
-
-def _date(case: QCheckBox, date: QDateTimeEdit) -> datetime | None:
-	if not case.isChecked():
-		return None
-	return datetime.fromtimestamp(date.dateTime().toSecsSinceEpoch()).astimezone()
 
 
 def _montrer(date: QDateTimeEdit, instant: datetime) -> None:
@@ -229,7 +224,7 @@ class FicheEvenement(Fiche):
 		if pris is not None:
 			raise Refus(f"Un autre événement s'appelle déjà « {nom} ».")
 		priorite = self._priorite()
-		debut, fin = _date(ui.a_debut, ui.debut), _date(ui.a_fin, ui.fin)
+		debut, fin = affichage.date_cochee(ui.a_debut, ui.debut), affichage.date_cochee(ui.a_fin, ui.fin)
 		if (priorite in SANS_FIN_NE_BOUCLE_PAS) and (debut is None):
 			raise Refus("Une émission ou un spécial a un début.")
 		if (debut is not None) and (fin is not None) and (fin <= debut):

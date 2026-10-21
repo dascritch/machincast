@@ -11,6 +11,8 @@ from dataclasses import dataclass
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.conversion import entier_ou_rien
+
 
 @dataclass(frozen=True)
 class ElementDeSequence:
@@ -44,8 +46,8 @@ def lire_sequence(connexion: psycopg.Connection[TupleRow], identifiant: int) -> 
 			id=int(str(element)),
 			sequence=identifiant,
 			position=int(str(position)),
-			sonore=None if sonore is None else int(str(sonore)),
-			banque=None if banque is None else int(str(banque)),
+			sonore=entier_ou_rien(sonore),
+			banque=entier_ou_rien(banque),
 		)
 		for element, position, sonore, banque in lignes
 	]
