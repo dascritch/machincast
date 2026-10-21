@@ -77,6 +77,8 @@ class Bilan:
 	"""Fichiers trouvés dans les répertoires des banques et enregistrés comme nouveaux sonores."""
 	rattaches: int = 0
 	"""Sonores déjà connus, ajoutés à une banque dont ils n'étaient pas membres."""
+	retraits: int = 0
+	"""Sonores retirés d'une banque dont ils sortent des durées (https://github.com/dascritch/machincast/issues/195)."""
 	verifies: int = 0
 	"""Sonores décodés."""
 	errones: int = 0
@@ -96,15 +98,17 @@ def _accorder(nombre: int, singulier: str, pluriel: str) -> str:
 
 
 def texte_bilan(bilan: Bilan) -> str:
-	"""« indexation rapide : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 1 erroné, 0 non supporté, … ».
+	"""« indexation rapide : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; … ».
 
-	Les nouveaux sonores et les rattachements viennent du parcours des répertoires des banques ; le nombre de
+	Les nouveaux sonores et les rattachements viennent du parcours des répertoires des banques, les retraits des durées
+	des banques (https://github.com/dascritch/machincast/issues/195) ; le nombre de
 	sonores vérifiés est celui des sonores décodés ; les autres nombres comptent les changements d'état.
 	"""
 	mode = "audit complet" if bilan.audit_complet else "indexation rapide"
 	return (
 		f"{mode} : {_accorder(bilan.nouveaux, 'nouveau sonore', 'nouveaux sonores')}, "
-		f"{_accorder(bilan.rattaches, 'rattachement', 'rattachements')} ; "
+		f"{_accorder(bilan.rattaches, 'rattachement', 'rattachements')}, "
+		f"{_accorder(bilan.retraits, 'retrait', 'retraits')} ; "
 		f"{_accorder(bilan.verifies, 'sonore vérifié', 'sonores vérifiés')} ; "
 		f"{_accorder(bilan.errones, 'erroné', 'erronés')}, "
 		f"{_accorder(bilan.non_supportes, 'non supporté', 'non supportés')}, "

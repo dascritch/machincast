@@ -37,7 +37,7 @@ Règles :
 Points sensibles :
 
 - `Machin_lecture` n'écrit dans `sonores` que le champ `etat`, pour le passer à `expire`. Dans `airplay` et `log`, il ne fait que des insertions.
-- `Machin_indexation` n'écrit que dans `sonores` et `banques_sonores`, et jamais dans `log`.
+- `Machin_indexation` n'écrit que dans `sonores` et `banques_sonores`, et jamais dans `log`. Il ne supprime que des lignes de `banques_sonores`, pour retirer d'une banque les sonores hors de ses durées ([#195](https://github.com/dascritch/machincast/issues/195)).
 - En mode simulation, `Machin_lecture` n'écrit **rien** en base : toute la simulation tient dans une transaction en lecture seule (`machincast.lecture.simulation.lecture_seule`), où PostgreSQL refuse toute écriture ([#21](https://github.com/dascritch/machincast/issues/21)).
 
 ## Intégrité

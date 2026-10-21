@@ -11,7 +11,10 @@ qui suit le décode dans le même passage.
 - Les sous-répertoires sont parcourus dans l'ordre de leur nom, sans suivre les liens symboliques vers d'autres
   répertoires, qui pourraient former une boucle ; un répertoire de banque qui est lui-même un lien est suivi.
 - Un fichier déjà indexé n'est jamais dupliqué, même trouvé par plusieurs banques : l'emplacement est unique.
-- Un sonore trouvé dans le répertoire d'une banque y est rattaché s'il n'y est pas, même retiré à la main.
+- Un sonore trouvé dans le répertoire d'une banque y est rattaché s'il n'y est pas, même retiré à la main, sauf si sa
+  durée est connue et sort des durées de la banque (https://github.com/dascritch/machincast/issues/195).
+- Après la vérification, retirer_hors_durees retire de chaque banque les sonores de durée connue qui sortent de ses
+  durées, qu'ils viennent de ses répertoires ou qu'ils aient été ajoutés à la main.
 - Un répertoire introuvable ou illisible est signalé en anomalie ; les autres banques sont indexées.
 
 Chaque fichier est enregistré dans sa propre transaction, pour qu'une interruption garde le travail fait.
@@ -20,7 +23,8 @@ Chaque fichier est enregistré dans sa propre transaction, pour qu'une interrupt
 import logging
 import os
 import threading
-from collections.abc import Iterator
+from collections.abc import Collection, Iterator
+from datetime import timedelta
 from pathlib import Path
 
 import psycopg
@@ -37,6 +41,14 @@ EXTENSIONS = EXTENSIONS_SONORES
 
 def _cache(nom: str) -> bool:
 	return nom.startswith(".")
+
+
+HORS_DUREES = (
+	"s.duree IS NOT NULL AND ((b.duree_min IS NOT NULL AND s.duree < b.duree_min)"
+	" OR (b.duree_max IS NOT NULL AND s.duree > b.duree_max))"
+)
+"""Condition SQL : le sonore s, de durée connue, sort des durées de la banque b, bornes comprises dans les durées
+(https://github.com/dascritch/machincast/issues/147, https://github.com/dascritch/machincast/issues/195)."""
 
 
 def fichiers_sonores(repertoire: Path) -> Iterator[Path]:
@@ -68,11 +80,15 @@ def _enregistrer(
 				(emplacement, EtatSonore.APERCU.value),
 			).fetchone()
 			assert ligne is not None
+		# Un sonore de durée connue, hors des durées de la banque, n'y est pas rattaché ; un nouveau fichier, de durée
+		# encore inconnue, l'est, et le retrait qui suit la vérification l'en retire s'il le faut
+		# (https://github.com/dascritch/machincast/issues/195).
 		rattache = connexion.execute(
 			"INSERT INTO banques_sonores (banque_id, sonore_id, position)"
-			" SELECT %s, %s, COALESCE(MAX(position), 0) + 1 FROM banques_sonores WHERE banque_id = %s"
+			" SELECT %s, %s, (SELECT COALESCE(MAX(position), 0) + 1 FROM banques_sonores WHERE banque_id = %s)"
+			f" WHERE NOT EXISTS (SELECT 1 FROM sonores s, banques b WHERE s.id = %s AND b.id = %s AND {HORS_DUREES})"
 			" ON CONFLICT (banque_id, sonore_id) DO NOTHING",
-			(banque, ligne[0], banque),
+			(banque, ligne[0], banque, ligne[0], banque),
 		).rowcount
 	if nouveau:
 		bilan.nouveaux += 1
@@ -108,3 +124,50 @@ def indexer_repertoires(
 			if (arret is not None) and (arret.is_set()):
 				return
 			_enregistrer(connexion, int(str(banque)), str(nom), str(fichier), bilan)
+
+
+def retirer_hors_durees(
+	connexion: psycopg.Connection[TupleRow], bilan: Bilan, identifiants: Collection[int] | None = None
+) -> None:
+	"""Retire de chaque banque les sonores dont la durée en base est connue et sort de ses durées ; complète le bilan
+	(https://github.com/dascritch/machincast/issues/195).
+
+	Seule la ligne de banques_sonores disparaît : le sonore reste en base, dans ses autres banques, séquences et
+	événements, et son fichier n'est jamais touché. La durée comparée est la durée complète, même saisie à la main.
+	identifiants : seuls ces sonores ; tous sans eux. Chaque retrait a sa ligne, désignée par le chemin du fichier.
+	"""
+	with connexion.transaction():
+		hors = connexion.execute(
+			"SELECT bs.banque_id, bs.sonore_id, b.nom_interne, s.emplacement, s.duree, b.duree_min, b.duree_max"
+			" FROM banques_sonores bs JOIN banques b ON b.id = bs.banque_id JOIN sonores s ON s.id = bs.sonore_id"
+			f" WHERE (%s::bigint[] IS NULL OR s.id = ANY(%s)) AND {HORS_DUREES} ORDER BY b.id, bs.position",
+			(_liste(identifiants), _liste(identifiants)),
+		).fetchall()
+		for banque, sonore, nom, emplacement, duree, minimum, maximum in hors:
+			connexion.execute("DELETE FROM banques_sonores WHERE banque_id = %s AND sonore_id = %s", (banque, sonore))
+			bilan.retraits += 1
+			journal.info(f"{emplacement} : retiré de la banque {nom}, {_hors_durees(duree, minimum, maximum)}")
+
+
+def _liste(identifiants: Collection[int] | None) -> list[int] | None:
+	if identifiants is None:
+		return None
+	return list(identifiants)
+
+
+def _duree(valeur: object) -> str:
+	"""« 3:34 », ou « 1:02:05 » au-delà d'une heure, à la seconde la plus proche : un fichier d'une seconde décodé en
+	0,998 seconde dure « 0:01 »."""
+	assert isinstance(valeur, timedelta), valeur
+	heures, reste = divmod(round(valeur.total_seconds()), 3600)
+	minutes, secondes = divmod(reste, 60)
+	if heures > 0:
+		return f"{heures}:{minutes:02d}:{secondes:02d}"
+	return f"{minutes}:{secondes:02d}"
+
+
+def _hors_durees(duree: object, minimum: object, maximum: object) -> str:
+	"""« durée 0:30 plus courte que son minimum, 1:00 », ou « … plus longue que son maximum, 2:00 »."""
+	if (isinstance(minimum, timedelta)) and (isinstance(duree, timedelta)) and (duree < minimum):
+		return f"durée {_duree(duree)} plus courte que son minimum, {_duree(minimum)}"
+	return f"durée {_duree(duree)} plus longue que son maximum, {_duree(maximum)}"

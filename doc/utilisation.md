@@ -104,6 +104,13 @@ Alimenter une banque se limite à déposer des fichiers dans l'un de ses répert
 - **Nouveau fichier** : il devient un sonore à l'état `aperçu`, ajouté **en fin de liste** de la banque, puis décodé dans la même indexation. Les fichiers d'un même passage sont ajoutés dans l'ordre de leur chemin.
 - **Fichier déjà connu** : il n'est jamais enregistré deux fois, même trouvé par plusieurs banques. Il est ajouté en fin de liste de chaque banque dont il n'est pas encore membre.
 - **Sonore retiré à la main d'une banque** : tant que son fichier reste dans l'un des répertoires de la banque, l'indexation suivante l'y **réintègre**, en fin de liste. Pour l'en retirer durablement, il faut déplacer le fichier hors de ses répertoires. La [fiche de la banque](#fiche-dune-banque) le rappelle au retrait.
+- **Durées de la banque** ([#195](https://github.com/dascritch/machincast/issues/195)) : une banque qui a une durée minimale ou maximale ([fiche de la banque](#fiche-dune-banque)) ne garde que les sonores dans ses durées, bornes comprises.
+  - Un sonore déjà connu, de durée connue, hors de ses durées, n'y est pas ajouté, même si son fichier est dans l'un de ses répertoires.
+  - Un nouveau fichier est ajouté, décodé, puis retiré dans la même indexation s'il sort de ses durées.
+  - **Chaque indexation**, rapide ou complète, retire de la banque les sonores de durée connue qui sortent de ses durées, **même ajoutés à la main** : des durées resserrées s'appliquent dès l'indexation suivante. `Machin indexation --sonore N` le fait pour ce seul sonore. Une indexation arrêtée ne retire rien, ni la vérification des fichiers ajoutés depuis l'interface.
+  - La durée comparée est la durée complète du fichier, même saisie à la main dans la fiche du sonore, jamais celle sans ses blancs. Un sonore de durée inconnue, comme un stream, n'est jamais retiré.
+  - Un sonore retiré reste en base, dans ses autres banques, séquences et événements, et son fichier n'est pas touché. Chaque retrait a sa ligne ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)).
+  - Une fiche de la banque ouverte pendant l'indexation remet le sonore à l'enregistrement ; l'indexation suivante le retire de nouveau.
 - **Répertoire introuvable** : il est signalé sur la sortie d'erreur, avec le nom de la banque, et les autres banques sont indexées normalement. Un sous-répertoire illisible est signalé de la même façon.
 - **Fichier déplacé** : à son nouvel emplacement, c'est un nouveau sonore ; l'ancien passe à l'état `supprimé`.
 
@@ -186,13 +193,14 @@ Les champs suivent les tags du fichier : un tag retiré du fichier vide le champ
 
 ### Ce qu'affiche l'indexation
 
-Une ligne par sonore indexé, au fil de l'indexation ([#120](https://github.com/dascritch/machincast/issues/120)), avec le chemin du fichier et son statut. Sur la sortie standard, les fichiers trouvés dans les répertoires des banques, puis chaque fichier décodé sain, avec le nom du sonore quand ses tags en donnent un, et ce que devient son état :
+Une ligne par sonore indexé, au fil de l'indexation ([#120](https://github.com/dascritch/machincast/issues/120)), avec le chemin du fichier et son statut. Sur la sortie standard, les fichiers trouvés dans les répertoires des banques, puis chaque fichier décodé sain, avec le nom du sonore quand ses tags en donnent un, et ce que devient son état, puis chaque sonore retiré d'une banque dont il sort des durées ([#195](https://github.com/dascritch/machincast/issues/195)) :
 
 ```text
 Machin_indexation : /musique/jingles/intro.flac : nouveau sonore, ajouté à la banque Jingles
 Machin_indexation : /musique/titres/cafe.flac : rattaché à la banque Nuit
 Machin_indexation : /musique/jingles/intro.flac : sain, Radio Machin – Générique ; sonore passé actif
 Machin_indexation : /musique/titres/cafe.flac : sain, Les Gaufres – Café à minuit ; état actif conservé
+Machin_indexation : /musique/titres/mix.flac : retiré de la banque Nuit, durée 1:02:05 plus longue que son maximum, 8:00
 ```
 
 En indexation rapide, un sonore qui n'est ni nouveau ni en aperçu n'est pas décodé, et n'a donc pas de ligne, sauf si son fichier a disparu. Sur la sortie d'erreur, une ligne par fichier défectueux, avec le problème et sa conséquence :
@@ -205,10 +213,10 @@ Machin_indexation : /musique/fond/nappe.flac : introuvable : aucun fichier à ce
 Puis le bilan, sur la sortie standard :
 
 ```text
-Machin_indexation : indexation rapide : 3 nouveaux sonores, 1 rattachement ; 3 sonores vérifiés ; 1 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 3 sortis d'aperçu
+Machin_indexation : indexation rapide : 3 nouveaux sonores, 1 rattachement, 0 retrait ; 3 sonores vérifiés ; 1 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 3 sortis d'aperçu
 ```
 
-Les nouveaux sonores sont les fichiers enregistrés pour la première fois ; les rattachements, les sonores déjà connus ajoutés à une banque dont ils n'étaient pas membres. Les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état.
+Les nouveaux sonores sont les fichiers enregistrés pour la première fois ; les rattachements, les sonores déjà connus ajoutés à une banque dont ils n'étaient pas membres ; les retraits, les sonores retirés d'une banque dont ils sortent des durées ([Alimenter une banque](#alimenter-une-banque)). Les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état.
 
 Enfin, le chemin du **document d'audit** du passage ([#11](https://github.com/dascritch/machincast/issues/11)) :
 
@@ -550,7 +558,7 @@ La fiche d'une banque s'ouvre dans un **nouvel onglet**, nommé « Banque : » s
 | Artiste et titre | `Masqués` ou `Affichés` sur la page publique, sauf si l'événement ou la séquence en décide. `Hérité du sonore` laisse décider le sonore, puis la configuration. |
 | Ne pas répéter | La banque ne passe jamais deux fois de suite ([Quel sonore une banque fournit](#quel-sonore-une-banque-fournit)). |
 | Détection de blanc | Décochée pour une nouvelle banque. Cochée, les sonores joués via la banque le sont sans les blancs détectés à leur début et à leur fin ([Détection de blanc](#détection-de-blanc)). |
-| Durée minimale, durée maximale des sonores | Facultatives, à cocher ([#147](https://github.com/dascritch/machincast/issues/147)) : pour ne pas confondre un mix, une chanson et une publicité. Un sonore qui en sort est marqué dans la liste des sonores de la fiche, dès la saisie, avec une infobulle (« 3:20 : plus court que le minimum de la banque, 3:30. ») ; il l'est aussi dans l'onglet Sonores et dans les relations de sa fiche. Rien n'est refusé, et la diffusion n'en tient pas compte ; seule une durée minimale plus longue que la maximale empêche d'enregistrer. |
+| Durée minimale, durée maximale des sonores | Facultatives, à cocher ([#147](https://github.com/dascritch/machincast/issues/147)) : pour ne pas confondre un mix, une chanson et une publicité. Un sonore qui en sort est marqué dans la liste des sonores de la fiche, dès la saisie, avec une infobulle (« 3:20 : plus court que le minimum de la banque, 3:30. ») ; il l'est aussi dans l'onglet Sonores et dans les relations de sa fiche. Rien n'est refusé, et la diffusion n'en tient pas compte ; seule une durée minimale plus longue que la maximale empêche d'enregistrer. La prochaine indexation retire de la banque les sonores qui en sortent, même ajoutés à la main ([#195](https://github.com/dascritch/machincast/issues/195), [Alimenter une banque](#alimenter-une-banque)). |
 | Crossfade de début, crossfade de fin | Pour les sonores joués via la banque ([#143](https://github.com/dascritch/machincast/issues/143)), chacun avec sa règle : `Garder ceux des sonores` laisse le crossfade de chaque sonore (la durée de la banque est alors grisée) ; `Appliquer si le sonore n'en a pas` donne la durée de la banque aux sonores dont le crossfade est de 0 seconde ; `Imposer à tous les sonores` la donne à tous. Un sonore placé directement dans un événement ou une séquence garde toujours les siens. |
 
 **Enregistrer et annuler** : les modifications restent dans la fiche jusqu'au clic sur **Enregistrer**, qui les écrit toutes à la fois ; **Annuler** remet la fiche telle qu'elle est en base. Les deux boutons ne servent que quand la fiche est modifiée.
@@ -837,7 +845,7 @@ Le menu **Maintenance** lance `Machin indexation` sans passer par un terminal ([
 Voir [Indexation rapide et audit complet](#indexation-rapide-et-audit-complet) pour le détail des deux modes.
 
 - **Dans son propre programme** ([#120](https://github.com/dascritch/machincast/issues/120)) : l'interface lance `Machin indexation --fenetre`, avec sa configuration, à part d'elle. L'interface reste utilisable, et **peut être fermée** : l'indexation continue, avec sa fenêtre. La barre d'état dit « Indexation rapide lancée, dans sa propre fenêtre. » ; tant que l'indexation tourne, le menu ne la propose plus. À sa fin, la barre d'état le dit : **Affichage → Rafraîchir les onglets** (<kbd>F5</kbd>) montre alors ses changements ([Rafraîchir les onglets](#rafraîchir-les-onglets)).
-- **Sa fenêtre** montre, ligne par ligne et au fil de l'indexation, ce que `Machin indexation` écrirait dans le terminal ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)) : chaque sonore indexé avec son statut, les anomalies, puis le bilan. Le texte se sélectionne et se copie. À la fin, elle conclut par le bilan, par exemple « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. », suivi du nombre d'anomalies s'il y en a.
+- **Sa fenêtre** montre, ligne par ligne et au fil de l'indexation, ce que `Machin indexation` écrirait dans le terminal ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)) : chaque sonore indexé avec son statut, les anomalies, puis le bilan. Le texte se sélectionne et se copie. À la fin, elle conclut par le bilan, par exemple « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. », suivi du nombre d'anomalies s'il y en a.
 - **Fermer sa fenêtre** pendant l'indexation demande s'il faut l'arrêter. **Arrêter** l'arrête après le fichier en cours : le travail fait est gardé, et la prochaine indexation reprendra le reste. **Continuer**, ou Échap, laisse la fenêtre ouverte et l'indexation continuer. Une fois l'indexation finie, **Fermer** la referme sans question.
 - **Indexation impossible** : si un décodeur manque (un paquet GStreamer n'est pas installé, voir [INSTALL.md](../INSTALL.md)), si la base ne répond plus, ou si une autre indexation tourne déjà sur la base, la fenêtre le dit : « Indexation impossible : … ; les sonores déjà vérifiés le restent. ». Le travail fait jusque-là est gardé.
 

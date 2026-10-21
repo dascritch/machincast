@@ -16,14 +16,14 @@ Fonctionnalité: Audit complet demandé pour certains sonores
 		Quand l'indexeur fait une indexation rapide
 		Alors en base, le début détecté du sonore est de 0,5 seconde et sa fin détectée de 0,25 seconde, à 0,01 seconde près
 		Et ce sonore n'a plus d'audit complet demandé
-		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Sans marque, l'indexation rapide ne revérifie pas un sonore actif
 		Étant donné un fichier flac avec des blancs
 		Et un sonore à l'état « actif » pour ce fichier
 		Quand l'indexeur fait une indexation rapide
 		Alors en base, le sonore n'a ni début ni fin détectés
-		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Un sonore marqué dont le fichier est introuvable garde sa marque
 		Étant donné un fichier introuvable

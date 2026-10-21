@@ -17,7 +17,7 @@ from psycopg.rows import TupleRow
 
 from machincast.configuration import SEUIL_DE_BLANC
 from machincast.indexation.decodage import Verificateur, verifier_fichier
-from machincast.indexation.repertoires import indexer_repertoires
+from machincast.indexation.repertoires import indexer_repertoires, retirer_hors_durees
 from machincast.indexation.verification import Bilan, verifier_sonores
 
 VERROU = 0x4D616368_696E6478
@@ -51,7 +51,25 @@ def indexer(
 		bilan = Bilan(audit_complet=audit_complet)
 		indexer_repertoires(connexion, bilan, arret)
 		verifier_sonores(connexion, verifier, audit_complet, bilan, arret=arret, seuil_blancs=seuil_blancs)
+		# Les durées vérifiées, chaque banque ne garde que les sonores dans ses durées ; une indexation arrêtée ne
+		# retire rien (https://github.com/dascritch/machincast/issues/195).
+		if (arret is None) or (not arret.is_set()):
+			retirer_hors_durees(connexion, bilan)
 	finally:
 		with connexion.transaction():
 			connexion.execute("SELECT pg_advisory_unlock(%s)", (VERROU,))
+	return bilan
+
+
+def indexer_un_sonore(
+	connexion: psycopg.Connection[TupleRow],
+	sonore: int,
+	audit_complet: bool = False,
+	seuil_blancs: float = SEUIL_DE_BLANC,
+) -> Bilan:
+	"""Machin_indexation --sonore N (https://github.com/dascritch/machincast/issues/181) : vérifie ce seul sonore, sans
+	parcours ni verrou, puis le retire des banques dont il sort des durées
+	(https://github.com/dascritch/machincast/issues/195)."""
+	bilan = verifier_sonores(connexion, audit_complet=audit_complet, identifiants=[sonore], seuil_blancs=seuil_blancs)
+	retirer_hors_durees(connexion, bilan, [sonore])
 	return bilan

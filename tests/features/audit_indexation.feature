@@ -19,10 +19,10 @@ Fonctionnalité: Document d'audit de l'indexation, en CSV et en HTML
 		Alors le document d'audit « machincast-audit-2026-10-15T08:15:00.csv » contient :
 			| date                | chemin           | verdict     | problème                                                                                             | conséquence           |
 			| 2026-10-15 08:15:00 | …/disparu.flac   | introuvable | aucun fichier à cet emplacement                                                                      | sonore passé supprimé |
-			| 2026-10-15 08:15:00 |                  | bilan       | indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 0 sorti d'aperçu |    |
+			| 2026-10-15 08:15:00 |                  | bilan       | indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 0 sorti d'aperçu |    |
 		Et la page d'audit « machincast-audit-2026-10-15T08:15:00.html » s'intitule « Audit de l'indexation du 2026-10-15 08:15:00 »
 		Et la page d'audit « machincast-audit-2026-10-15T08:15:00.html » montre « …/disparu.flac », « introuvable », « aucun fichier à cet emplacement », « sonore passé supprimé »
-		Et la page d'audit « machincast-audit-2026-10-15T08:15:00.html » montre « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Et la page d'audit « machincast-audit-2026-10-15T08:15:00.html » montre « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Le problème d'un fichier endommagé est donné sans répéter son verdict
 		Étant donné un fichier mp3 endommagé
@@ -36,7 +36,7 @@ Fonctionnalité: Document d'audit de l'indexation, en CSV et en HTML
 		Quand Machin indexation est lancé sur la base de test, en audit complet
 		Alors le document d'audit « machincast-audit-2026-10-15T08:15:00.csv » contient :
 			| date                | chemin | verdict | problème                                                                                                 | conséquence |
-			| 2026-10-15 08:15:00 |        | bilan   | audit complet : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu |   |
+			| 2026-10-15 08:15:00 |        | bilan   | audit complet : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu |   |
 		Et la page d'audit « machincast-audit-2026-10-15T08:15:00.html » montre « Aucune anomalie. »
 
 	Scénario: Les chemins du document sont annoncés sur la sortie standard, après le bilan
@@ -47,7 +47,7 @@ Fonctionnalité: Document d'audit de l'indexation, en CSV et en HTML
 	Scénario: Un document qui ne peut pas être écrit est signalé, sans arrêter l'indexation
 		Étant donné un répertoire d'audit où l'on ne peut pas écrire
 		Quand Machin indexation est lancé sur la base de test
-		Alors Machin indexation se termine avec le code 0, en signalant « indexation rapide : 0 nouveau sonore, 0 rattachement ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Alors Machin indexation se termine avec le code 0, en signalant « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 		Et la sortie d'erreur de Machin indexation mentionne « document d'audit impossible à écrire dans »
 
 	Scénario: Rien n'est écrit dans le log
