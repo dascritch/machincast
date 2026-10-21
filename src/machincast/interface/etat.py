@@ -19,8 +19,12 @@ from typing import Any
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtNetwork import QLocalSocket
 
+from machincast.conversion import booleen_ou_rien, entier_ou_rien, texte_ou_rien
+
 journal = logging.getLogger(__name__)
 
+TAILLE_MAXIMALE = 65536
+"""Octets au plus d'une ligne de la socket d'état : un message, même avec de longs chemins, en fait bien moins."""
 RELANCE = 1000
 """Délai entre deux tentatives de connexion à la socket d'état, en millisecondes."""
 
@@ -87,18 +91,6 @@ def _nombre(valeur: object) -> float | None:
 	return float(str(valeur))
 
 
-def _entier(valeur: object) -> int | None:
-	if valeur is None:
-		return None
-	return int(str(valeur))
-
-
-def _texte(valeur: object) -> str | None:
-	if valeur is None:
-		return None
-	return str(valeur)
-
-
 def _sonore(champs: dict[str, Any] | None, debut: str) -> SonoreAffiche | None:
 	if champs is None:
 		return None
@@ -106,25 +98,25 @@ def _sonore(champs: dict[str, Any] | None, debut: str) -> SonoreAffiche | None:
 	return SonoreAffiche(
 		sonore=int(champs["sonore"]),
 		stream=champs["type"] == "stream",
-		artiste=_texte(champs.get("artiste")),
-		titre=_texte(champs.get("titre")),
-		evenement=_texte(champs.get("evenement")),
-		emplacement=_texte(champs.get("emplacement")),
+		artiste=texte_ou_rien(champs.get("artiste")),
+		titre=texte_ou_rien(champs.get("titre")),
+		evenement=texte_ou_rien(champs.get("evenement")),
+		emplacement=texte_ou_rien(champs.get("emplacement")),
 		debut=_instant(champs.get(debut)),
 		duree=_nombre(champs.get("duree")),
 		fin_estimee=_instant(champs.get("fin_estimee")),
 		progression=_nombre(champs.get("progression")),
-		sain=None if sain is None else bool(sain),
+		sain=booleen_ou_rien(sain),
 		position=_nombre(champs.get("position")),
-		evenement_id=_entier(champs.get("evenement_id")),
+		evenement_id=entier_ou_rien(champs.get("evenement_id")),
 		evenement_debut=_instant(champs.get("evenement_debut")),
 		evenement_fin=_instant(champs.get("evenement_fin")),
-		sequence=_texte(champs.get("sequence")),
-		sequence_id=_entier(champs.get("sequence_id")),
-		banque=_texte(champs.get("banque")),
-		banque_id=_entier(champs.get("banque_id")),
-		texte_public=_texte(champs.get("texte_public")),
-		coupe_par=_texte(champs.get("coupe_par")),
+		sequence=texte_ou_rien(champs.get("sequence")),
+		sequence_id=entier_ou_rien(champs.get("sequence_id")),
+		banque=texte_ou_rien(champs.get("banque")),
+		banque_id=entier_ou_rien(champs.get("banque_id")),
+		texte_public=texte_ou_rien(champs.get("texte_public")),
+		coupe_par=texte_ou_rien(champs.get("coupe_par")),
 	)
 
 
@@ -192,9 +184,18 @@ class ClientEtat(QObject):
 		if not self._relance.isActive():
 			self._relance.start()
 
+	def tampon_en_attente(self) -> bytes:
+		"""Ce qui a été reçu après la dernière fin de ligne."""
+		return self._tampon
+
 	def _lire(self) -> None:
 		self._tampon += bytes(self._socket.readAll().data())
 		*lignes, self._tampon = self._tampon.split(b"\n")
+		if len(self._tampon) > TAILLE_MAXIMALE:
+			# Une ligne sans fin ne fait pas grossir la mémoire de l'interface
+			# (https://github.com/dascritch/machincast/issues/187).
+			journal.warning(f"socket d'état {self.chemin} : message trop long ignoré, plus de {TAILLE_MAXIMALE} octets")
+			self._tampon = b""
 		for ligne in lignes:
 			try:
 				etat = lire_message(ligne.decode())

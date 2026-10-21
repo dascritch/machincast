@@ -21,6 +21,7 @@ from typing import Protocol
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.conversion import entier_ou_rien
 from machincast.lecture import enregistrement
 from machincast.lecture.enregistrement import Passage
 from machincast.lecture.expiration import Expiration, expirer
@@ -196,11 +197,11 @@ class HistoriqueEnBase:
 		passage, banque, debut, evenement, element, sequence_element = ligne
 		return DernierPassage(
 			uuid.UUID(str(passage)),
-			_entier(banque),
+			entier_ou_rien(banque),
 			debut if isinstance(debut, datetime) else None,
-			_entier(evenement),
-			_entier(element),
-			_entier(sequence_element),
+			entier_ou_rien(evenement),
+			entier_ou_rien(element),
+			entier_ou_rien(sequence_element),
 		)
 
 	def commencer_passage(
@@ -244,10 +245,6 @@ class HistoriqueEnBase:
 
 	def expirer(self, connexion: Connexion, instant: datetime, sonore: int | None = None) -> list[Expiration]:
 		return expirer(connexion, instant, sonore)
-
-
-def _entier(valeur: object) -> int | None:
-	return None if valeur is None else int(str(valeur))
 
 
 EN_BASE: Historique = HistoriqueEnBase()

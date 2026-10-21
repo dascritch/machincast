@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
+from machincast.conversion import texte_ou_rien
 from machincast.horloge import Horloge
 from machincast.interface.affichage import MOIS
 from machincast.lecture.grille import JOURS, RANGS, Evenement, Prevue, Priorite, heure_murale, lire_grille, prevoir
@@ -268,14 +269,8 @@ def lire_passages(connexion: Connexion, de: datetime, a: datetime) -> list[Passa
 		rang = None
 		if priorite is not None:
 			rang = Priorite(str(priorite))
-		passages.append(Passage(heure_murale(debut), arrivee, identifiant, _texte(nom), rang))
+		passages.append(Passage(heure_murale(debut), arrivee, identifiant, texte_ou_rien(nom), rang))
 	return passages
-
-
-def _texte(valeur: object) -> str | None:
-	if valeur is None:
-		return None
-	return str(valeur)
 
 
 def bandes(passages: list[Passage], jours: list[date], maintenant: datetime) -> list[Bande]:
@@ -435,7 +430,7 @@ class Calendrier(QWidget):
 		with self.connexion.transaction():
 			evenements = lire_grille(self.connexion)
 			noms_publics = {
-				int(str(identifiant)): _texte(nom_public)
+				int(str(identifiant)): texte_ou_rien(nom_public)
 				for identifiant, nom_public in self.connexion.execute("SELECT id, nom_public FROM evenements")
 			}
 			passages = lire_passages(self.connexion, de, a)

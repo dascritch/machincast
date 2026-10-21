@@ -11,6 +11,8 @@ from datetime import datetime, timedelta
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.conversion import booleen_ou_rien, entier_ou_rien, texte_ou_rien
+
 FENETRE = timedelta(hours=12)
 """Profondeur de l'airplay affiché."""
 
@@ -33,18 +35,6 @@ class PassageAffiche:
 	banque_id: int | None = None
 	"""Les éléments du passage, pour ouvrir leur fiche (https://github.com/dascritch/machincast/issues/144) ; None
 	pour un élément supprimé depuis."""
-
-
-def _texte(valeur: object) -> str | None:
-	if valeur is None:
-		return None
-	return str(valeur)
-
-
-def _entier(valeur: object) -> int | None:
-	if valeur is None:
-		return None
-	return int(str(valeur))
 
 
 def lire_airplay(connexion: psycopg.Connection[TupleRow], depuis: datetime) -> list[PassageAffiche]:
@@ -72,16 +62,16 @@ def lire_airplay(connexion: psycopg.Connection[TupleRow], depuis: datetime) -> l
 				debut=debut,
 				fin=fin if isinstance(fin, datetime) else None,
 				duree=duree if isinstance(duree, timedelta) else None,
-				artiste=_texte(artiste),
-				titre=_texte(titre),
-				evenement=_texte(evenement),
-				sequence=_texte(sequence),
-				banque=_texte(banque),
-				sans_incident=None if sans_incident is None else bool(sans_incident),
-				sonore_id=_entier(identifiants[0]),
-				evenement_id=_entier(identifiants[1]),
-				sequence_id=_entier(identifiants[2]),
-				banque_id=_entier(identifiants[3]),
+				artiste=texte_ou_rien(artiste),
+				titre=texte_ou_rien(titre),
+				evenement=texte_ou_rien(evenement),
+				sequence=texte_ou_rien(sequence),
+				banque=texte_ou_rien(banque),
+				sans_incident=booleen_ou_rien(sans_incident),
+				sonore_id=entier_ou_rien(identifiants[0]),
+				evenement_id=entier_ou_rien(identifiants[1]),
+				sequence_id=entier_ou_rien(identifiants[2]),
+				banque_id=entier_ou_rien(identifiants[3]),
 			)
 		)
 	return passages

@@ -17,6 +17,7 @@ from datetime import datetime
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.conversion import entier_ou_rien
 from machincast.lecture.enregistrement import consigner
 
 NATURE = "sonore expiré"
@@ -61,7 +62,7 @@ def expirer(connexion: psycopg.Connection[TupleRow], instant: datetime, sonore: 
 			expiration = Expiration(
 				int(str(identifiant)),
 				_cause(
-					None if maximum is None else int(str(maximum)),
+					entier_ou_rien(maximum),
 					int(str(lectures)),
 					fin if isinstance(fin, datetime) else None,
 					instant,

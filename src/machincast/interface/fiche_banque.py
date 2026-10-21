@@ -59,6 +59,7 @@ from PySide6.QtWidgets import (
 )
 
 from machincast.conformation import conformer
+from machincast.conversion import texte_ou_rien
 from machincast.horloge import Horloge
 from machincast.interface import affichage, dialogues, preferences
 from machincast.interface.colonnes import Colonnes
@@ -415,8 +416,11 @@ class FicheBanque(Fiche):
 				"SELECT sonore_id FROM banques_sonores WHERE banque_id = %s ORDER BY position FOR UPDATE", (banque,)
 			)
 		]
-		# Rattachés par une indexation depuis la lecture de la fiche : gardés, en fin de liste.
-		rattaches = [sonore for sonore in en_base if (sonore not in self._charges) and (sonore not in voulus)]
+		# Rattachés par une indexation depuis la lecture de la fiche : gardés, en fin de liste. Un ensemble, et non la
+		# liste voulue, pour qu'une banque de milliers de sonores s'enregistre en un temps linéaire
+		# (https://github.com/dascritch/machincast/issues/187).
+		gardes = set(voulus)
+		rattaches = [sonore for sonore in en_base if (sonore not in self._charges) and (sonore not in gardes)]
 		existants = {
 			int(str(sonore))
 			for (sonore,) in self.connexion.execute("SELECT id FROM sonores WHERE id = ANY(%s)", (voulus,))
@@ -437,7 +441,7 @@ class FicheBanque(Fiche):
 			texte_duree = affichage.duree(None)
 		elif isinstance(duree, timedelta):
 			texte_duree = affichage.duree(duree)
-		texte = affichage.artiste_et_titre(_texte(artiste), _texte(titre))
+		texte = affichage.artiste_et_titre(texte_ou_rien(artiste), texte_ou_rien(titre))
 		if (artiste is None) and (titre is None) and (fichier is not None):
 			# Pas encore décodé : le nom du fichier en attendant ses tags.
 			texte = Path(str(fichier)).name
@@ -445,7 +449,7 @@ class FicheBanque(Fiche):
 		ligne.setData(0, ETAT, str(etat))
 		if identifiant is not None:
 			ligne.setData(0, SONORE, int(str(identifiant)))
-		ligne.setData(0, FICHIER, _texte(fichier))
+		ligne.setData(0, FICHIER, texte_ou_rien(fichier))
 		if isinstance(duree, timedelta):
 			ligne.setData(0, DUREE, duree)
 		ligne.setFlags(LIGNE)
@@ -600,9 +604,3 @@ class FicheBanque(Fiche):
 		liste.insertTopLevelItem(rangee + decalage, ligne)
 		# Rendue courante, la ligne déplacée met à jour les boutons (currentItemChanged).
 		liste.setCurrentItem(ligne)
-
-
-def _texte(valeur: object) -> str | None:
-	if valeur is None:
-		return None
-	return str(valeur)

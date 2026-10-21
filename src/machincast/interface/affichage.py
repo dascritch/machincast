@@ -7,7 +7,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QStyle, QWidget
+from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QStyle, QWidget
+
+from machincast.conversion import texte_ou_rien
 
 MOIS = (
 	"janvier",
@@ -59,13 +61,7 @@ def nom_du_sonore(artiste: object, titre: object, emplacement: object, adresse: 
 		if emplacement is not None:
 			return Path(str(emplacement)).name
 		return str((adresse) or (""))
-	return artiste_et_titre(_ou_rien(artiste), _ou_rien(titre))
-
-
-def _ou_rien(valeur: object) -> str | None:
-	if valeur is None:
-		return None
-	return str(valeur)
+	return artiste_et_titre(texte_ou_rien(artiste), texte_ou_rien(titre))
 
 
 def oui_non(valeur: bool | None, inconnu: str = "") -> str:
@@ -120,3 +116,10 @@ def taille(octets: int) -> str:
 def date(instant: datetime) -> str:
 	"""« 2026-10-14 07:30:00 », en heure du poste."""
 	return f"{instant.astimezone():%Y-%m-%d %H:%M:%S}"
+
+
+def date_cochee(case: QCheckBox, date: QDateTimeEdit) -> datetime | None:
+	"""La date saisie, à l'heure du poste ; None si sa case n'est pas cochée."""
+	if not case.isChecked():
+		return None
+	return datetime.fromtimestamp(date.dateTime().toSecsSinceEpoch()).astimezone()

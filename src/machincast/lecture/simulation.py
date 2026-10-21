@@ -30,6 +30,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.configuration import Crossfades, Metadonnees
+from machincast.conversion import booleen_ou_rien, entier_ou_rien, texte_ou_rien
 from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe
 from machincast.lecture.diffusion import Diffusion
@@ -232,9 +233,9 @@ class HistoriqueSimule:
 		self.passages.append(
 			PassageSimule(
 				passage,
-				None if artiste is None else str(artiste),
-				None if titre is None else str(titre),
-				None if emplacement is None else str(emplacement),
+				texte_ou_rien(artiste),
+				texte_ou_rien(titre),
+				texte_ou_rien(emplacement),
 			)
 		)
 		return passage
@@ -286,7 +287,7 @@ class HistoriqueSimule:
 		lectures = self.lectures(connexion, list(candidats))
 		expirations = []
 		for identifiant, (maximum, fin, nom) in candidats.items():
-			limite = None if maximum is None else int(str(maximum))
+			limite = entier_ou_rien(maximum)
 			fin_diffusion = fin if isinstance(fin, datetime) else None
 			if ((limite is not None) and (lectures[identifiant] >= limite)) or (
 				(fin_diffusion is not None) and (fin_diffusion <= instant)
@@ -342,27 +343,19 @@ class HistoriqueSimule:
 					artiste=simule.artiste,
 					titre=simule.titre,
 					emplacement=simule.emplacement,
-					evenement=_texte(evenement[0]),
+					evenement=texte_ou_rien(evenement[0]),
 					nom_public=premier_nom_public(evenement[1], sequence[1], banque[1]),
-					sequence=_texte(sequence[0]),
-					banque=_texte(banque[0]),
+					sequence=texte_ou_rien(sequence[0]),
+					banque=texte_ou_rien(banque[0]),
 					masquages=(
-						_booleen(evenement[2]),
-						_booleen(sequence[2]),
-						_booleen(banque[2]),
-						_booleen(sonores.get(passage.sonore)),
+						booleen_ou_rien(evenement[2]),
+						booleen_ou_rien(sequence[2]),
+						booleen_ou_rien(banque[2]),
+						booleen_ou_rien(sonores.get(passage.sonore)),
 					),
 				)
 			)
 		return resultat
-
-
-def _texte(valeur: object) -> str | None:
-	return None if valeur is None else str(valeur)
-
-
-def _booleen(valeur: object) -> bool | None:
-	return None if valeur is None else bool(valeur)
 
 
 def masquer(ligne: Ligne, metadonnees: Metadonnees) -> Ligne:

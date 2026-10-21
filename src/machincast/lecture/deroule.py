@@ -62,6 +62,7 @@ from datetime import datetime, timedelta
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.conversion import entier_ou_rien
 from machincast.hasard import Hasard
 from machincast.lecture.banques import a_ne_pas_repeter, choisir_sonore, sonore_jouable
 from machincast.lecture.grille import (
@@ -190,9 +191,9 @@ def _elements(lignes: list[TupleRow]) -> list[Element]:
 		Element(
 			id=int(str(identifiant)),
 			position=int(str(position)),
-			sonore=None if sonore is None else int(str(sonore)),
-			banque=None if banque is None else int(str(banque)),
-			sequence=None if sequence is None else int(str(sequence)),
+			sonore=entier_ou_rien(sonore),
+			banque=entier_ou_rien(banque),
+			sequence=entier_ou_rien(sequence),
 		)
 		for identifiant, position, sonore, banque, sequence in lignes
 	]

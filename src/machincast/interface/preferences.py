@@ -30,6 +30,7 @@ from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QDoubleSpinB
 
 from machincast import audio as sorties_audio
 from machincast.configuration import SEUIL_DE_BLANC, Crossfades, Granularite, SortieAudio
+from machincast.conversion import texte_ou_rien
 from machincast.interface.application import ICONE, lisible
 from machincast.interface.ui.preferences import Ui_FenetrePreferences
 
@@ -273,7 +274,7 @@ class FenetrePreferences(QDialog):
 		antenne = ui.antenne.currentData()
 		return Reglages(
 			crossfades,
-			None if antenne is None else str(antenne),
+			texte_ou_rien(antenne),
 			str(ui.preecoute.currentData()),
 			round(ui.seuil_blancs.value(), 1),
 			ui.saturation.isChecked(),

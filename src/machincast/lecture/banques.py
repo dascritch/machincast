@@ -27,6 +27,7 @@ from datetime import datetime
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.conversion import entier_ou_rien
 from machincast.hasard import Hasard
 from machincast.lecture.historique import EN_BASE, Historique
 
@@ -100,7 +101,7 @@ def _lire_candidats(
 			etat=str(etat),
 			debut_diffusion=debut if isinstance(debut, datetime) else None,
 			fin_diffusion=fin if isinstance(fin, datetime) else None,
-			max_lectures=None if maximum is None else int(str(maximum)),
+			max_lectures=entier_ou_rien(maximum),
 			lectures=lectures[int(str(sonore))],
 		)
 		for sonore, etat, debut, fin, maximum in lignes

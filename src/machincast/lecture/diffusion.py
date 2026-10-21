@@ -54,6 +54,7 @@ from psycopg.rows import TupleRow
 
 from machincast import __version__
 from machincast.configuration import Crossfades, Metadonnees
+from machincast.conversion import entier_ou_rien, texte_ou_rien
 from machincast.hasard import Hasard
 from machincast.horloge import Horloge
 from machincast.lecture.analyse import Analyseur, a_analyser
@@ -204,11 +205,11 @@ def lire_parametres(
 		crossfade(debut, regle_debut, debut_banque, defauts.debut),
 		crossfade(fin, regle_fin, fin_banque, defauts.fin),
 		stream=type_sonore == "stream",
-		adresse=None if adresse is None else str(adresse),
-		secours=None if secours is None else int(str(secours)),
-		artiste=None if artiste is None else str(artiste),
-		titre=None if titre is None else str(titre),
-		emplacement=None if emplacement is None else str(emplacement),
+		adresse=texte_ou_rien(adresse),
+		secours=entier_ou_rien(secours),
+		artiste=texte_ou_rien(artiste),
+		titre=texte_ou_rien(titre),
+		emplacement=texte_ou_rien(emplacement),
 		decalage=decalage,
 	)
 
@@ -890,7 +891,9 @@ def installer_arret() -> threading.Event:
 def diffuser(diffusion: Diffusion, arret: threading.Event, pause: float = PAUSE) -> None:
 	"""Fait tourner la diffusion jusqu'à la demande d'arrêt, puis l'arrête proprement.
 
-	Sur une erreur (base de données perdue, par exemple), la sortie est coupée et l'erreur remonte.
+	Sur une erreur (base de données perdue, par exemple), la sortie est coupée, la socket d'état fermée et effacée,
+	pour que l'interface voie aussitôt l'arrêt (https://github.com/dascritch/machincast/issues/187), et l'erreur
+	remonte.
 	"""
 	diffusion.demarrer()
 	try:
@@ -899,5 +902,7 @@ def diffuser(diffusion: Diffusion, arret: threading.Event, pause: float = PAUSE)
 			arret.wait(pause)
 	except BaseException:
 		diffusion.moteur.couper()
+		if diffusion.etat is not None:
+			diffusion.etat.fermer()
 		raise
 	diffusion.arreter()
