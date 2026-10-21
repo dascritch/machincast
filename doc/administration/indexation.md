@@ -34,8 +34,8 @@ Alimenter une banque se limite à déposer des fichiers dans l'un de ses répert
 - **Sonore retiré à la main d'une banque** : tant que son fichier reste dans l'un des répertoires de la banque, l'indexation suivante l'y **réintègre**, en fin de liste. Pour l'en retirer durablement, il faut déplacer le fichier hors de ses répertoires. La [fiche de la banque](../utilisateur/sonores.md#fiche-dune-banque) le rappelle au retrait.
 - **Durées de la banque** ([#195](https://github.com/dascritch/machincast/issues/195)) : une banque qui a une durée minimale ou maximale ([fiche de la banque](../utilisateur/sonores.md#fiche-dune-banque)) ne garde que les sonores dans ses durées, bornes comprises.
   - Un sonore déjà connu, de durée connue, hors de ses durées, n'y est pas ajouté, même si son fichier est dans l'un de ses répertoires.
-  - Un nouveau fichier est ajouté, décodé, puis retiré dans la même indexation s'il sort de ses durées.
-  - **Chaque indexation**, rapide ou complète, retire de la banque les sonores de durée connue qui sortent de ses durées, **même ajoutés à la main** : des durées resserrées s'appliquent dès l'indexation suivante. `Machin indexation --sonore N` le fait pour ce seul sonore. Une indexation arrêtée ne retire rien, ni la vérification des fichiers ajoutés depuis l'interface.
+  - Un nouveau fichier, ou un sonore de durée encore inconnue, n'y entre qu'une fois décodé, à la fin de l'indexation, et seulement s'il est dans ses durées ([#210](https://github.com/dascritch/machincast/issues/210)). Sinon, il n'y passe jamais : ni ligne, ni rattachement, ni retrait au bilan. Un même répertoire peut donc alimenter une banque de jingles courts et une banque de titres longs sans que chaque fichier soit annoncé comme retiré de l'autre. Si l'indexation est arrêtée avant de le décoder, sa durée reste inconnue et il y entre.
+  - **Chaque indexation**, rapide ou complète, retire de la banque les sonores qui y étaient déjà, de durée connue, qui sortent de ses durées, **même ajoutés à la main** : des durées resserrées s'appliquent dès l'indexation suivante. `Machin indexation --sonore N` le fait pour ce seul sonore. Une indexation arrêtée ne retire rien, ni la vérification des fichiers ajoutés depuis l'interface.
   - La durée comparée est la durée complète du fichier, même saisie à la main dans la fiche du sonore, jamais celle sans ses blancs. Un sonore de durée inconnue, comme un stream, n'est jamais retiré.
   - Un sonore retiré reste en base, dans ses autres banques, séquences et événements, et son fichier n'est pas touché. Chaque retrait a sa ligne ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)).
   - Une fiche de la banque ouverte pendant l'indexation remet le sonore à l'enregistrement ; l'indexation suivante le retire de nouveau.
@@ -133,13 +133,15 @@ Un fichier peut commencer ou finir par un blanc : un silence, un souffle, une fi
 
 ## Ce qu'affiche l'indexation
 
-Une ligne par sonore indexé, au fil de l'indexation ([#120](https://github.com/dascritch/machincast/issues/120)), avec le chemin du fichier et son statut. Sur la sortie standard, les fichiers trouvés dans les répertoires des banques, puis chaque fichier décodé sain, avec le nom du sonore quand ses tags en donnent un, et ce que devient son état, puis chaque sonore retiré d'une banque dont il sort des durées ([#195](https://github.com/dascritch/machincast/issues/195)) :
+Une ligne par sonore indexé, au fil de l'indexation ([#120](https://github.com/dascritch/machincast/issues/120)), avec le chemin du fichier et son statut. Sur la sortie standard, les fichiers trouvés dans les répertoires des banques, puis chaque fichier décodé sain, avec le nom du sonore quand ses tags en donnent un, et ce que devient son état, puis les nouveaux fichiers de durée encore inconnue, une fois décodés, dans les seules banques dont ils respectent les durées, ou seuls s'ils n'en respectent aucune ([#210](https://github.com/dascritch/machincast/issues/210)), puis chaque sonore déjà membre d'une banque, retiré parce qu'il sort de ses durées ([#195](https://github.com/dascritch/machincast/issues/195)) :
 
 ```text
 Machin_indexation : /musique/jingles/intro.flac : nouveau sonore, ajouté à la banque Jingles
 Machin_indexation : /musique/titres/cafe.flac : rattaché à la banque Nuit
 Machin_indexation : /musique/jingles/intro.flac : sain, Radio Machin – Générique ; sonore passé actif
 Machin_indexation : /musique/titres/cafe.flac : sain, Les Gaufres – Café à minuit ; état actif conservé
+Machin_indexation : /musique/titres/aube.flac : sain, Aube – Matin clair ; sonore passé actif
+Machin_indexation : /musique/titres/aube.flac : nouveau sonore, ajouté à la banque Nuit
 Machin_indexation : /musique/titres/mix.flac : retiré de la banque Nuit, durée 1:02:05 plus longue que son maximum, 8:00
 ```
 
@@ -156,7 +158,7 @@ Puis le bilan, sur la sortie standard :
 Machin_indexation : indexation rapide : 3 nouveaux sonores, 1 rattachement, 0 retrait ; 3 sonores vérifiés ; 1 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 3 sortis d'aperçu
 ```
 
-Les nouveaux sonores sont les fichiers enregistrés pour la première fois ; les rattachements, les sonores déjà connus ajoutés à une banque dont ils n'étaient pas membres ; les retraits, les sonores retirés d'une banque dont ils sortent des durées ([Alimenter une banque](#alimenter-une-banque)). Les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état.
+Les nouveaux sonores sont les fichiers enregistrés pour la première fois ; les rattachements, les sonores déjà connus ajoutés à une banque dont ils n'étaient pas membres ; les retraits, les sonores déjà membres d'une banque, retirés parce qu'ils sortent de ses durées ([Alimenter une banque](#alimenter-une-banque)). Les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état.
 
 Enfin, le chemin du **document d'audit** du passage ([#11](https://github.com/dascritch/machincast/issues/11)) :
 

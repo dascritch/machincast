@@ -95,12 +95,6 @@ def _texte(valeur: object) -> str:
 	return str(valeur)
 
 
-def _duree(valeur: object) -> timedelta | None:
-	if not isinstance(valeur, timedelta):
-		return None
-	return valeur
-
-
 def _date(valeur: object) -> str:
 	if not isinstance(valeur, datetime):
 		return ""
@@ -115,11 +109,6 @@ def lire_sonores(connexion: Connexion) -> list[Ligne]:
 			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
 			" ORDER BY s.artiste NULLS LAST, s.titre, s.id"
 		).fetchall()
-		bornes = connexion.execute(
-			"SELECT bs.sonore_id, b.nom_interne, b.duree_min, b.duree_max FROM banques_sonores bs"
-			" JOIN banques b ON b.id = bs.banque_id"
-			" WHERE b.duree_min IS NOT NULL OR b.duree_max IS NOT NULL ORDER BY b.nom_interne, b.id"
-		).fetchall()
 	lignes = []
 	for identifiant, artiste, titre, type_sonore, etat, audit_demande, duree, emplacement in rangees:
 		texte_duree = ""
@@ -131,18 +120,10 @@ def lire_sonores(connexion: Connexion) -> list[Ligne]:
 		if audit_demande is True:
 			# https://github.com/dascritch/machincast/issues/114
 			texte_etat = f"{texte_etat}, audit demandé"
-		cellules = [_texte(artiste), _texte(titre), str(type_sonore), texte_etat]
-		# Hors des durées d'une banque où il figure (https://github.com/dascritch/machincast/issues/147).
-		ecarts = [
-			affichage.hors_durees(_duree(duree), _duree(minimum), _duree(maximum), str(banque))
-			for sonore, banque, minimum, maximum in bornes
-			if sonore == identifiant
-		]
-		anomalie = "\n".join(ecart for ecart in ecarts if ecart is not None)
-		cellules += [texte_duree, _texte(emplacement), ""]
-		if anomalie:
-			cellules[-1] = "hors durées"
-		lignes.append(Ligne(int(str(identifiant)), (_texte(titre)) or (_texte(emplacement)), cellules, anomalie))
+		# Les durées d'une banque ne se signalent que dans sa fiche, et parmi les relations du sonore, jamais ici
+		# (https://github.com/dascritch/machincast/issues/210).
+		cellules = [_texte(artiste), _texte(titre), str(type_sonore), texte_etat, texte_duree, _texte(emplacement)]
+		lignes.append(Ligne(int(str(identifiant)), (_texte(titre)) or (_texte(emplacement)), cellules))
 	return lignes
 
 
@@ -218,7 +199,7 @@ def lire_evenements(connexion: Connexion) -> list[Ligne]:
 
 SONORES = Source(
 	"sonore",
-	("Artiste", "Titre", "Type", "État", "Durée", "Emplacement", "Anomalie"),
+	("Artiste", "Titre", "Type", "État", "Durée", "Emplacement"),
 	lire_sonores,
 	"sonore",
 	"sonores",

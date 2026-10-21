@@ -17,7 +17,7 @@ from psycopg.rows import TupleRow
 
 from machincast.configuration import SEUIL_DE_BLANC
 from machincast.indexation.decodage import Verificateur, verifier_fichier
-from machincast.indexation.repertoires import indexer_repertoires, retirer_hors_durees
+from machincast.indexation.repertoires import indexer_repertoires, rattacher_en_attente, retirer_hors_durees
 from machincast.indexation.verification import Bilan, verifier_sonores
 
 VERROU = 0x4D616368_696E6478
@@ -49,10 +49,12 @@ def indexer(
 		raise IndexationEnCours("une autre indexation est en cours sur cette base")
 	try:
 		bilan = Bilan(audit_complet=audit_complet)
-		indexer_repertoires(connexion, bilan, arret)
+		parcours = indexer_repertoires(connexion, bilan, arret)
 		verifier_sonores(connexion, verifier, audit_complet, bilan, arret=arret, seuil_blancs=seuil_blancs)
-		# Les durées vérifiées, chaque banque ne garde que les sonores dans ses durées ; une indexation arrêtée ne
-		# retire rien (https://github.com/dascritch/machincast/issues/195).
+		# Les durées vérifiées, les sonores en attente n'entrent que dans les banques dont ils sont dans les durées,
+		# même après un arrêt (https://github.com/dascritch/machincast/issues/210) ; puis chaque banque ne garde que les
+		# sonores dans ses durées, sauf après un arrêt (https://github.com/dascritch/machincast/issues/195).
+		rattacher_en_attente(connexion, bilan, parcours)
 		if (arret is None) or (not arret.is_set()):
 			retirer_hors_durees(connexion, bilan)
 	finally:

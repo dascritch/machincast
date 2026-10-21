@@ -88,20 +88,79 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 	# Une banque qui a une durée minimale ou maximale (https://github.com/dascritch/machincast/issues/147) ne garde que
 	# les sonores dont la durée en base est connue et dans ses limites, bornes comprises. Les fichiers de test durent une
 	# seconde.
+	#
+	# Un sonore de durée encore inconnue, trouvé dans le répertoire d'une banque qui a des durées, n'y est rattaché
+	# qu'une fois vérifié, à la fin du passage, et seulement s'il est dans ses durées : un sonore qui en sort ne passe
+	# jamais par la banque, et rien ne le dit, ni au journal ni au bilan
+	# (https://github.com/dascritch/machincast/issues/210).
 
-	Scénario: Un nouveau fichier hors des durées est ajouté, vérifié, puis retiré dans le même passage
+	Scénario: Un nouveau fichier hors des durées n'entre pas dans la banque, sans retrait au journal ni au bilan
 		Étant donné une banque « Longs » alimentée par le répertoire « longs »
 		Et la banque « Longs » n'accepte que les sonores d'au moins 2 secondes
 		Et le fichier « longs/court.flac », sain
 		Quand l'indexeur fait une indexation rapide
 		Alors la banque « Longs » ne contient aucun sonore
 		Et le sonore de « longs/court.flac » est à l'état « actif »
-		Et le bilan indique « indexation rapide : 1 nouveau sonore, 0 rattachement, 1 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Et le bilan indique « indexation rapide : 1 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
 		Et la sortie standard montre, ligne par ligne :
-			| ligne                                                                                          |
-			| …/longs/court.flac : nouveau sonore, ajouté à la banque Longs                                  |
-			| …/longs/court.flac : sain ; sonore passé actif                                                 |
-			| …/longs/court.flac : retiré de la banque Longs, durée 0:01 plus courte que son minimum, 0:02   |
+			| ligne                                              |
+			| …/longs/court.flac : sain ; sonore passé actif     |
+			| …/longs/court.flac : nouveau sonore                |
+
+	Scénario: Un nouveau fichier dans les durées entre dans la banque une fois vérifié
+		Étant donné une banque « Courts » alimentée par le répertoire « courts »
+		Et la banque « Courts » n'accepte que les sonores d'au plus 2 secondes
+		Et le fichier « courts/a.flac », sain
+		Et le fichier « courts/b.flac », sain
+		Quand l'indexeur fait une indexation rapide
+		Alors la banque « Courts » contient, dans l'ordre, « courts/a.flac », « courts/b.flac »
+		Et le bilan indique « indexation rapide : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu »
+		Et la sortie standard montre, ligne par ligne :
+			| ligne                                                       |
+			| …/courts/a.flac : sain ; sonore passé actif                 |
+			| …/courts/b.flac : sain ; sonore passé actif                 |
+			| …/courts/a.flac : nouveau sonore, ajouté à la banque Courts |
+			| …/courts/b.flac : nouveau sonore, ajouté à la banque Courts |
+
+	Scénario: Un nouveau fichier de deux banques n'est annoncé que dans celle dont il respecte les durées
+		Étant donné une banque « Identifiants » alimentée par le répertoire « jingles »
+		Et la banque « Identifiants » n'accepte que les sonores d'au plus 0,5 seconde
+		Et une banque « Jingles » alimentée par le répertoire « jingles »
+		Et le fichier « jingles/intro.flac », sain
+		Quand l'indexeur fait un audit complet
+		Alors la banque « Identifiants » ne contient aucun sonore
+		Et la banque « Jingles » contient, dans l'ordre, « jingles/intro.flac »
+		Et le bilan indique « audit complet : 1 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Et la sortie standard montre, ligne par ligne :
+			| ligne                                                              |
+			| …/jingles/intro.flac : nouveau sonore, ajouté à la banque Jingles  |
+			| …/jingles/intro.flac : sain ; sonore passé actif                   |
+
+	Scénario: Un sonore connu, de durée encore inconnue, hors des durées, n'entre pas dans la banque, sans rien en dire
+		Étant donné une banque « Longs » alimentée par le répertoire « longs »
+		Et la banque « Longs » n'accepte que les sonores d'au moins 2 secondes
+		Et le fichier « longs/court.flac », sain
+		Et un sonore à l'état « apercu », de durée inconnue, pour « longs/court.flac »
+		Quand l'indexeur fait une indexation rapide
+		Alors la banque « Longs » ne contient aucun sonore
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Et la sortie standard montre, ligne par ligne :
+			| ligne                                              |
+			| …/longs/court.flac : sain ; sonore passé actif     |
+
+	Scénario: Une indexation arrêtée pendant la vérification rattache les sonores de durée encore inconnue, sans rien retirer
+		Étant donné une banque « Longs » alimentée par le répertoire « longs »
+		Et la banque « Longs » n'accepte que les sonores d'au moins 2 secondes
+		Et le fichier « longs/a.flac », sain
+		Et le fichier « longs/b.flac », sain
+		Quand l'indexeur fait une indexation rapide, arrêtée pendant la vérification du premier sonore
+		Alors la banque « Longs » contient, dans l'ordre, « longs/b.flac »
+		Et le bilan indique « indexation rapide : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Et la sortie standard montre, ligne par ligne :
+			| ligne                                                    |
+			| …/longs/a.flac : sain ; sonore passé actif               |
+			| …/longs/b.flac : nouveau sonore, ajouté à la banque Longs |
+			| …/longs/a.flac : nouveau sonore                          |
 
 	Scénario: Un sonore connu, hors des durées, n'est pas rattaché à la banque de son répertoire
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
@@ -136,13 +195,14 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 	Scénario: Un sonore retiré d'une banque reste en base et dans ses autres banques
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
 		Et une banque « Identifiants » alimentée par le répertoire « jingles »
-		Et la banque « Identifiants » n'accepte que les sonores d'au plus 0,5 seconde
 		Et le fichier « jingles/intro.flac », sain
+		Et l'indexeur a fait une indexation rapide
+		Et la banque « Identifiants » n'accepte que les sonores d'au plus 0,5 seconde
 		Quand l'indexeur fait un audit complet
 		Alors la banque « Identifiants » ne contient aucun sonore
 		Et la banque « Jingles » contient, dans l'ordre, « jingles/intro.flac »
 		Et la base contient 1 sonore
-		Et le bilan indique « audit complet : 1 nouveau sonore, 1 rattachement, 1 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Et le bilan indique « audit complet : 0 nouveau sonore, 0 rattachement, 1 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Un sonore de durée inconnue n'est jamais retiré
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »

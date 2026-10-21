@@ -3,6 +3,7 @@
 import logging
 import re
 import shutil
+import threading
 from datetime import timedelta
 from pathlib import Path
 
@@ -11,9 +12,11 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.base import Role, connecter
+from machincast.indexation.decodage import Verification, verifier_fichier
+from machincast.indexation.indexeur import indexer as indexer_complet
 from machincast.indexation.indexeur import indexer_un_sonore
 from tests.base_test import parametres_base_test
-from tests.etapes_indexation import Execution, nombre
+from tests.etapes_indexation import Execution, inserer_sonore, nombre
 from tests.sons import copie_de_test, corrompre
 
 scenarios("repertoires.feature")
@@ -205,6 +208,32 @@ def duree_en_base(base_vide: Connexion, racine: Path, relatif: str, secondes: st
 		"UPDATE sonores SET duree = %s WHERE id = %s",
 		(timedelta(seconds=nombre(secondes)), sonore_de(base_vide, racine, relatif)),
 	)
+
+
+@given(parsers.parse("un sonore à l'état « {etat} », de durée inconnue, pour « {relatif} »"))
+def sonore_sans_duree(base_vide: Connexion, racine: Path, etat: str, relatif: str) -> None:
+	"""Comme un fichier enregistré par une indexation interrompue avant de le vérifier."""
+	inserer_sonore(base_vide, str(racine / relatif), etat)
+
+
+@when(
+	"l'indexeur fait une indexation rapide, arrêtée pendant la vérification du premier sonore",
+	target_fixture="execution",
+)
+def arretee_pendant_la_verification(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> Execution:
+	"""L'arrêt est demandé pendant le décodage du premier sonore : la vérification s'arrête avant le suivant."""
+	arret = threading.Event()
+
+	def verifier(chemin: Path, *, seuil_blancs: float | None = None) -> Verification:
+		arret.set()
+		return verifier_fichier(chemin, seuil_blancs=seuil_blancs)
+
+	caplog.clear()
+	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:
+		bilan = indexer_complet(c, verifier=verifier, arret=arret)
+	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
+	informations = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+	return Execution(bilan, "\n".join(anomalies), informations)
 
 
 @when(

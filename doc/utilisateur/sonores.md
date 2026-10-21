@@ -92,7 +92,7 @@ La fiche d'un sonore s'ouvre dans un onglet nommé « Sonore : » suivi de son t
   - **Diffusion à partir du**, **Diffusion jusqu'au** : la période de diffusion, chacune à cocher.
 - **Détection de blanc**, pour un fichier : **Jouer sans les blancs détectés**, et le **début** et la **fin détectés**, en secondes, mesurés par l'audit complet et corrigibles à la main ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)).
 - **Stream** : l'**adresse directe** ou un **marque-page**, et l'**événement de secours** ([Streams](antenne.md#streams)). **Tester le flux** se connecte à l'adresse saisie et dit `Le flux répond : du son arrive.`, ou pourquoi il ne répond pas. Rien n'est joué à l'antenne.
-- **Relations** : les séquences, banques et événements qui citent le sonore ; un double-clic ouvre leur fiche.
+- **Relations** : les séquences, banques et événements qui citent le sonore ; un double-clic ouvre leur fiche. Une banque dont le sonore sort des durées y a l'icône d'avertissement, avec une infobulle qui dit pourquoi.
 - **Fichier** : le type réel du fichier, son encodage moyen, sa taille, ses dates et sa dernière vérification complète.
 - **Derniers passages** : les 50 derniers passages du sonore à l'antenne, avec les alertes et incidents notés pendant chacun.
 
@@ -127,7 +127,7 @@ La fiche d'une banque s'ouvre dans un onglet nommé « Banque : » suivi de son 
 | Artiste et titre | `Masqués` ou `Affichés` sur la page publique, sauf si l'événement ou la séquence en décide ; `Hérité du sonore` laisse décider le sonore. |
 | Ne pas répéter | La banque ne passe jamais deux fois de suite. |
 | Détection de blanc | Cochée, les sonores joués par la banque le sont sans leurs blancs ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)). |
-| Durée minimale, durée maximale des sonores | Facultatives : pour ne pas confondre un mix, une chanson et une publicité. Un sonore qui en sort est marqué, avec une infobulle (« 3:20 : plus court que le minimum de la banque, 3:30. »), et la prochaine indexation l'en retire, même ajouté à la main. |
+| Durée minimale, durée maximale des sonores | Facultatives : pour ne pas confondre un mix, une chanson et une publicité. Un sonore qui en sort est marqué dans cette fiche seulement, avec une infobulle (« 3:20 : plus court que le minimum de la banque, 3:30. »), et la prochaine indexation l'en retire, même ajouté à la main. Un nouveau fichier qui en sort n'y entre jamais. |
 | Crossfade de début, crossfade de fin | Pour les sonores joués par la banque : `Garder ceux des sonores` ; `Appliquer si le sonore n'en a pas` ; `Imposer à tous les sonores`. |
 
 **Répertoires indexés** : les fichiers de ces répertoires, et de leurs sous-répertoires, rejoignent la banque à chaque indexation ([Alimenter une banque par ses répertoires](#alimenter-une-banque-par-ses-répertoires)). **Ajouter un répertoire…** ouvre le sélecteur de répertoires ; on peut aussi y déposer des dossiers. **Retirer le répertoire** retire celui qui est choisi. Rien n'est indexé à l'enregistrement : les fichiers d'un nouveau répertoire arrivent à la prochaine indexation.
@@ -148,7 +148,7 @@ Alimenter une banque se limite à déposer des fichiers dans l'un de ses répert
 - **Nouveau fichier** : il devient un sonore `aperçu`, ajouté **en fin de liste** de la banque, puis vérifié dans la même indexation.
 - **Fichier déjà connu** : il n'est jamais enregistré deux fois, même trouvé par plusieurs banques ; il rejoint chaque banque dont il n'est pas encore membre.
 - **Sonore retiré à la main** : tant que son fichier reste dans l'un des répertoires de la banque, l'indexation suivante l'y **remet**. Pour l'en retirer durablement, déplacer le fichier hors de ses répertoires.
-- **Durées de la banque** : chaque indexation retire de la banque les sonores qui sortent de sa durée minimale ou maximale, même ajoutés à la main. Le sonore reste en base, dans ses autres banques et listes.
+- **Durées de la banque** : un nouveau fichier n'entre dans la banque que s'il respecte sa durée minimale et sa durée maximale ; sinon, l'indexation n'en dit rien. Chaque indexation retire de la banque les sonores qui en sortent, même ajoutés à la main. Le sonore reste en base, dans ses autres banques et listes.
 - **Fichier déplacé** : à son nouvel emplacement, c'est un nouveau sonore ; l'ancien passe `supprimé`.
 
 ## Indexation depuis l'interface

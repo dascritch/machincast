@@ -20,11 +20,11 @@ Les onglets **Événements**, **Séquences**, **Banques**, **Sonores** et **Marq
 | Événements | nom, nom public, priorité, début, fin, jours, anomalie (`événement vide`) | du plus prioritaire au moins prioritaire, puis par nom |
 | Séquences | nom, nom public, anomalie (`séquence vide`) | par nom |
 | Banques | nom, nom public, mode, « ne pas répéter », premier répertoire | par nom |
-| Sonores | artiste, titre, type, état, durée, emplacement, anomalie (`hors durées` d'une banque) | par artiste, puis par titre |
+| Sonores | artiste, titre, type, état, durée, emplacement | par artiste, puis par titre |
 | Marques-pages | nom, adresse, nombre de streams qui le suivent | par nom |
 
 - **Filtre** : le champ « Filtrer… » garde les lignes dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : `cafe` trouve « Café à minuit », `stream` tous les streams. Le compte dit combien de lignes restent, « 2 sonores sur 340 ».
-- **Anomalies** : une séquence ou un événement vide, un sonore hors des durées d'une banque, a l'icône d'avertissement, et son infobulle dit pourquoi. Taper `vide` dans le filtre ne garde que les éléments vides.
+- **Anomalies** : une séquence ou un événement vide a l'icône d'avertissement, et son infobulle dit pourquoi. Taper `vide` dans le filtre ne garde que les éléments vides. Un sonore hors des durées d'une banque n'est signalé que dans la [fiche de cette banque](sonores.md#fiche-dune-banque) et dans les relations de la [fiche du sonore](sonores.md#fiche-dun-sonore).
 - **Tri** : un clic sur le titre d'une colonne trie la liste ; un second inverse l'ordre.
 - **Mise à jour** : une liste se relit chaque fois que son onglet s'ouvre, et par <kbd>F5</kbd>.
 - **Ouvrir** : un double-clic sur une ligne, ou <kbd>Entrée</kbd>, ouvre la fiche de l'élément.
