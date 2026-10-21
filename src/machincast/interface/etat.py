@@ -1,7 +1,8 @@
 """État du binaire lecture, lu par sa socket d'état (https://github.com/dascritch/machincast/issues/23, spec § 5.4).
 
-L'interface ne fait que lire : à la connexion, le binaire lecture envoie son dernier état, puis chaque nouvel état,
-une ligne JSON par état (machincast.lecture.etat). Sans socket, ou quand elle se ferme, le binaire lecture est
+À la connexion, le binaire lecture envoie son dernier état, puis chaque nouvel état, une ligne JSON par état
+(machincast.lecture.etat). Dans l'autre sens, l'interface n'envoie que des demandes d'interruption manuelle (envoyer,
+https://github.com/dascritch/machincast/issues/104). Sans socket, ou quand elle se ferme, le binaire lecture est
 considéré à l'arrêt, et ClientEtat retente la connexion toutes les RELANCE millisecondes. Un message illisible est
 signalé dans le journal et ignoré.
 """
@@ -173,6 +174,14 @@ class ClientEtat(QObject):
 			identite = copie.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i"))
 		pid, _uid, _gid = struct.unpack("3i", identite)
 		return int(pid)
+
+	def envoyer(self, ligne: str) -> bool:
+		"""Envoie une ligne au binaire lecture ; False sans connexion."""
+		if self._socket.state() != QLocalSocket.LocalSocketState.ConnectedState:
+			return False
+		self._socket.write(ligne.encode())
+		self._socket.flush()
+		return True
 
 	def fermer(self) -> None:
 		self._relance.stop()

@@ -50,11 +50,20 @@ from PySide6.QtWidgets import QLabel, QMainWindow, QTabBar, QWidget
 from machincast import service
 from machincast.configuration import Audio, Blancs, Crossfades, Interface
 from machincast.horloge import Horloge
-from machincast.interface import dialogues, groupes, indexation, pilotage, preferences, suggestions, version
+from machincast.interface import (
+	dialogues,
+	groupes,
+	indexation,
+	interruption,
+	pilotage,
+	preferences,
+	suggestions,
+	version,
+)
 from machincast.interface.ajout import ajouter_fichiers
 from machincast.interface.calendrier import UNE_HEURE, Calendrier, date_longue
 from machincast.interface.ecran_par_defaut import EcranParDefaut
-from machincast.interface.etat import EtatLecture
+from machincast.interface.etat import ARRET, EtatLecture
 from machincast.interface.fiche import Fiche, Rafraichie
 from machincast.interface.fiche_banque import FicheBanque
 from machincast.interface.fiche_evenement import FicheEvenement
@@ -70,6 +79,7 @@ from machincast.interface.recherche import EcranRecherche
 from machincast.interface.simulation import EcranSimulation
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 from machincast.interface.verification import Verificateur, VerificationComplete
+from machincast.lecture.etat import demande_d_interruption
 
 journal = logging.getLogger(__name__)
 
@@ -195,6 +205,8 @@ class FenetrePrincipale(QMainWindow):
 		self._signaler_l_antenne()
 		self._garnir_menus()
 		self.accueil.client.etat_recu.connect(self._etat_de_la_lecture)
+		self.accueil.client.etat_recu.connect(self._proposer_les_interruptions)
+		self._proposer_les_interruptions(ARRET)
 		self._relire_le_service()
 		self.listes: list[Liste] = []
 		self._titres: dict[QWidget, str] = {}
@@ -256,6 +268,13 @@ class FenetrePrincipale(QMainWindow):
 			action = self.menu_diffusion.addAction(entree)
 			action.triggered.connect(lambda _coche=False, verbe=verbe: self._piloter(verbe))
 			self.pilotes[verbe] = action
+		self.menu_diffusion.addSeparator()
+		# https://github.com/dascritch/machincast/issues/104
+		self.interruptions: dict[str, QAction] = {}
+		for element, entree in interruption.ENTREES.items():
+			action = self.menu_diffusion.addAction(entree)
+			action.triggered.connect(lambda _coche=False, element=element: self._interrompre(element))
+			self.interruptions[element] = action
 		maintenance = self.menuBar().addMenu("&Maintenance")
 		_a_venir(
 			maintenance.addAction("Moniteur de la sortie…"), "ticket 85"
@@ -286,6 +305,20 @@ class FenetrePrincipale(QMainWindow):
 			self.ui.barre_d_etat.showMessage(pilotage.ARRETEE)
 			return
 		self.ui.barre_d_etat.showMessage(pilotage.lancer_dans_un_terminal(self.configuration, pilotage.RELANCE))
+
+	def _proposer_les_interruptions(self, etat: EtatLecture) -> None:
+		"""Les interruptions du menu « Diffusion » suivent ce qui est à l'antenne."""
+		for element, proposition in interruption.proposer(etat).items():
+			action = self.interruptions[element]
+			action.setEnabled(proposition.active)
+			action.setToolTip(proposition.infobulle)
+
+	def _interrompre(self, element: str) -> None:
+		"""Demande à Machin lecture d'interrompre l'élément, sans question : l'antenne n'attend pas."""
+		annonce = interruption.SANS_LECTURE
+		if self.accueil.client.envoyer(demande_d_interruption(element)):
+			annonce = interruption.ANNONCES[element]
+		self.ui.barre_d_etat.showMessage(annonce)
 
 	def _presenter_la_diffusion(self) -> None:
 		"""Les entrées du menu « Diffusion » selon l'état du service ; sans lui, le signal d'installation à terminer."""

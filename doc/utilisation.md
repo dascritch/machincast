@@ -283,6 +283,7 @@ Machin lecture --simulation "2026-10-20 06:00" "2026-10-21 06:00" --graine 42 --
 - **Contenu** : l'état de marche (diffusion, silence ou arrêt), le sonore en cours (emplacement, début, durée, fin prévue, progression), et le prochain sonore (emplacement, début et fin prévus, durée, s'il est sain). Pour un stream, la durée et la fin sont inconnues. Le format est décrit champ par champ dans la [spécification, § 5.4](spec.md#54-socket-détat).
 - **Le prochain sonore annoncé est celui qui passera** : il est choisi dès le début du sonore en cours, même tiré au hasard dans une banque. Il ne change que si un événement coupe la diffusion, si son événement est fini, ou s'il est désactivé ou expiré entre-temps.
 - **Sain** : un fichier présent, lisible, à l'état `actif`, dont la dernière lecture s'est terminée sans incident. Un stream n'est pas testé : son état sain est inconnu.
+- **Demandes** : dans l'autre sens, l'interface y envoie ses demandes d'interruption ([Interrompre l'antenne](#interrompre-lantenne), [#104](https://github.com/dascritch/machincast/issues/104)).
 - Pour voir l'état à la main : `socat - UNIX-CONNECT:"${XDG_RUNTIME_DIR}/machincast/lecture.sock"` (paquet `socat`), une ligne JSON par changement ; `Ctrl-C` pour quitter.
 
 Une socket impossible à créer (dossier sans droit d'écriture, par exemple) est signalée dans le log par l'alerte `socket d'état indisponible` : la diffusion continue sans elle.
@@ -445,6 +446,7 @@ Le **log** note les opérations du binaire lecture, avec leur heure, leur niveau
 | `démarrage` | info | `Machin lecture` démarre la diffusion ; le message donne sa version. |
 | `arrêt` | info | `Machin lecture` arrête la diffusion, sur `Ctrl-C` ou `SIGTERM`. |
 | `coupure nette` | info | Un événement commence et coupe le sonore en cours. |
+| `interruption manuelle` | info | Le sonore, la séquence ou l'événement en cours a été interrompu depuis l'interface ([Interrompre l'antenne](#interrompre-lantenne)) ; le message dit lequel, par exemple `du sonore « Café à minuit »`. |
 | `silence` | alerte | Rien à diffuser. |
 | `analyse du prochain sonore` | info | Le prochain sonore n'a pas été vérifié en entier, ou son fichier a changé : `Machin indexation` l'analyse en arrière-plan ([Sortie audio](#sortie-audio)). |
 | `analyse impossible` | alerte | `Machin indexation` n'a pas pu être lancé pour le prochain sonore ; le message donne l'erreur. Le sonore est joué quand même. |
@@ -778,6 +780,7 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 | Affichage | Ouvrir l'onglet Simulation | Ouvre l'onglet de la simulation de la grille ([Simulation](#simulation)). |
 | Affichage | Rafraîchir les onglets | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé en base, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
 | Diffusion | Démarrer la diffusion, Arrêter la diffusion, Redémarrer la diffusion | Pilotent le service de diffusion, selon son état ; sans le service, une diffusion d'essai ([Piloter la diffusion depuis l'interface](#piloter-la-diffusion-depuis-linterface)). |
+| Diffusion | Interrompre le sonore, Interrompre la séquence, Interrompre l'événement | Passent au suivant, selon ce qui est à l'antenne ([Interrompre l'antenne](#interrompre-lantenne)). |
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
 | Maintenance | Indexation rapide, Audit complet | Lancent l'indexation ([Lancer l'indexation depuis l'interface](#lancer-lindexation-depuis-linterface)). |
 | Aide | Documentation | Ouvre ce guide d'utilisation sur GitHub, dans le navigateur web du poste. |
@@ -879,6 +882,21 @@ Chaque entrée demande le mot de passe, ou l'empreinte, d'un administrateur du p
 | Redémarrer la diffusion d'essai | Quand une diffusion d'essai tourne | L'arrête de même, puis la relance dans une nouvelle fenêtre de terminal. |
 
 Une diffusion d'essai lancée depuis un terminal, sans passer par l'interface, se pilote de la même façon : l'interface reconnaît le `Machin lecture` qui lui répond sur la socket d'état. Sans terminal sur le poste, la barre d'état dit de lancer `Machin lecture` à la main.
+
+### Interrompre l'antenne
+
+Le menu **Diffusion** propose aussi, après un trait, d'interrompre ce qui passe à l'antenne pour passer au suivant ([#104](https://github.com/dascritch/machincast/issues/104)) :
+
+| Entrée | Effet |
+| --- | --- |
+| Interrompre le sonore | Le sonore en cours s'arrête, et le suivant de la liste, ou de la séquence, enchaîne. |
+| Interrompre la séquence | Le sonore en cours s'arrête, et le reste de sa séquence n'est pas joué : la liste reprend à l'élément qui suit la séquence. |
+| Interrompre l'événement | L'événement en cours rend l'antenne : celui qui est en dessous, en général le fil musical, la reprend jusqu'à la fin prévue de l'événement interrompu. Interrompre le fil musical lui-même arrête son élément et le fait reprendre au **début** de sa liste. |
+
+- Chaque entrée n'est active que si son élément est à l'antenne ; son infobulle le nomme, ou dit pourquoi elle est inactive (« Rien à l'antenne », « Aucune séquence à l'antenne »).
+- La demande part **aussitôt, sans question** : l'antenne n'attend pas. La barre d'état l'annonce, par exemple `Interruption du sonore demandée.` ; elle dit si `Machin lecture` ne répond pas.
+- Le sonore interrompu s'éteint pendant son crossfade de fin, ou s'arrête net s'il n'en a pas ; le suivant enchaîne comme à une fin normale. Son passage se termine **sans incident** dans l'airplay, et le log note l'info `interruption manuelle`.
+- Un événement interrompu ne revient pas avant sa prochaine diffusion, sauf si `Machin lecture` redémarre entre-temps : il reprend alors l'antenne.
 
 ### Lancer l'indexation depuis l'interface
 

@@ -44,6 +44,11 @@ Streams (§ 4.7, https://github.com/dascritch/machincast/issues/16) :
   du stream la remplace, ou, sans secours, l'événement de priorité inférieure ; la diffusion retente la connexion
   et reprend le stream dès qu'il revient (reprendre). Une autre occurrence active met fin à la suspension.
 
+Interruption manuelle (https://github.com/dascritch/machincast/issues/104) : interrompre une séquence l'abandonne
+(abandonner_la_sequence), et la liste reprend à l'élément qui la suit ; interrompre un événement l'abandonne aussi, et
+termine son occurrence (interrompre), comme une liste épuisée : l'événement de priorité inférieure reprend la main
+jusqu'à la fin prévue de l'occurrence. Le fil musical, qui n'a rien en dessous de lui, reprend au début de sa liste.
+
 Un sonore dont le fichier est introuvable au moment de le jouer est écarté (exclure) pendant
 REESSAI_FICHIER_INTROUVABLE : il est traité comme non jouable, pour ne pas le réessayer à chaque tour de liste
 (https://github.com/dascritch/machincast/issues/88).
@@ -239,15 +244,19 @@ def prochain(
 	historique: Historique = EN_BASE,
 	interdite: int | None = None,
 	sautes: list[Saut] | None = None,
+	depuis_le_debut: bool = False,
 ) -> Choix | None:
 	"""Prochain sonore de la liste de l'occurrence ; None si rien n'est jouable jusqu'à la fin de la liste.
 
 	exclus : sonores écartés, traités comme non jouables. interdite : banque « ne pas répéter » qui vient de passer ;
 	les éléments qui la rappellent sont sautés, et ajoutés à sautes. Une séquence se joue depuis son premier élément
-	jouable ; sans élément jouable, elle est sautée.
+	jouable ; sans élément jouable, elle est sautée. depuis_le_debut : la liste reprend à son premier élément, quel que
+	soit le dernier joué.
 	"""
 	elements = lire_elements(connexion, occurrence.evenement.id)
-	dernier = dernier_element(connexion, occurrence, historique)
+	dernier = None
+	if not depuis_le_debut:
+		dernier = dernier_element(connexion, occurrence, historique)
 	for element in elements_a_essayer(elements, dernier, boucle(occurrence)):
 		if element.sequence is not None:
 			choix = dans_la_sequence(
@@ -341,6 +350,10 @@ class Ordonnanceur:
 		"""Décision prise pour réserver le prochain sonore : un silence n'y est pas encore signalé."""
 		self._sauts_notes: tuple[uuid.UUID | None, set[tuple[str, int]]] = (None, set())
 		"""Éléments sautés déjà notés dans le log, pour le dernier passage : une seule ligne par élément."""
+		self.sequence_abandonnee: uuid.UUID | None = None
+		"""Passage dont la séquence a été interrompue : elle ne continue pas après lui."""
+		self.depuis_le_debut: set[int] = set()
+		"""Fils musicaux interrompus, qui reprendront au début de leur liste."""
 
 	def reserver(self, instant: datetime) -> Choix | None:
 		"""Prochain sonore, choisi dès le début du sonore en cours (https://github.com/dascritch/machincast/issues/20).
@@ -380,12 +393,14 @@ class Ordonnanceur:
 		# Une décision note les sauts d'un autre passage dans un nouvel ensemble : garder l'ancien suffit.
 		sauts = self._sauts_notes
 		etat = (set(self.terminees), self.en_silence, self.suspension, dict(self.exclus), self.historique)
+		depuis_le_debut = set(self.depuis_le_debut)
 		tirages = self.hasard.getstate()
 		self.historique = HistoriqueEnLecture(self.historique)
 		try:
 			return self.reserver(instant)
 		finally:
 			self.terminees, self.en_silence, self.suspension, self.exclus, self.historique = etat
+			self.depuis_le_debut = depuis_le_debut
 			self.hasard.setstate(tirages)
 			self._sauts_notes = sauts
 
@@ -416,6 +431,18 @@ class Ordonnanceur:
 		if (self.suspension is not None) and (self.suspension.secours is not None):
 			self.terminees.discard(_occurrence_de_secours(self.suspension.secours).cle)
 		self.suspension = None
+
+	def abandonner_la_sequence(self, passage: uuid.UUID) -> None:
+		"""La séquence du passage est interrompue : la liste de son événement reprend à l'élément qui la suit."""
+		self.sequence_abandonnee = passage
+
+	def interrompre(self, occurrence: Occurrence) -> None:
+		"""L'occurrence est interrompue : terminée, comme une liste épuisée. Un fil musical, qui n'a rien en dessous de
+		lui, reprend au début de sa liste."""
+		if occurrence.evenement.priorite is Priorite.FIL_MUSICAL:
+			self.depuis_le_debut.add(occurrence.evenement.id)
+			return
+		self.terminees.add(occurrence.cle)
 
 	def exclure(self, sonore: int, instant: datetime) -> None:
 		"""Écarte un sonore pendant REESSAI_FICHIER_INTROUVABLE, par exemple quand son fichier est introuvable."""
@@ -486,9 +513,20 @@ class Ordonnanceur:
 			choix = self._suite(instant, actif, dernier, interdite, sautes)
 			if (choix is None) and (actif is not None):
 				exclus = self._exclus(instant)
+				depuis_le_debut = actif.evenement.id in self.depuis_le_debut
 				choix = prochain(
-					self.connexion, actif, instant, self.hasard, exclus, self.historique, interdite, sautes
+					self.connexion,
+					actif,
+					instant,
+					self.hasard,
+					exclus,
+					self.historique,
+					interdite,
+					sautes,
+					depuis_le_debut,
 				)
+				if choix is not None:
+					self.depuis_le_debut.discard(actif.evenement.id)
 			if repetition is not None:
 				self._noter_les_sauts(repetition, sautes, instant)
 			if choix is not None:
@@ -530,6 +568,7 @@ class Ordonnanceur:
 			or (dernier.sequence_element is None)
 			or (dernier.element is None)
 			or (self.suspension is not None)
+			or (dernier.id == self.sequence_abandonnee)
 		):
 			return None
 		if (actif is not None) and (dernier.debut is not None) and (self._a_commence(actif, dernier.debut)):
