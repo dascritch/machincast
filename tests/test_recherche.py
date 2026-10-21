@@ -7,6 +7,7 @@ Les étapes de la fenêtre, des onglets et des éléments en base sont dans test
 import psycopg
 import pytest
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QCompleter
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.interface import recherche
@@ -61,17 +62,6 @@ def taper(interface: Contexte, texte: str) -> None:
 	ecran(interface).champ.setText(texte)
 
 
-@when(parsers.parse("je choisis la suggestion « {texte} »"))
-def choisir_la_suggestion(interface: Contexte, texte: str) -> None:
-	completer = ecran(interface).completer
-	popup = completer.popup()
-	assert popup is not None
-	modele = popup.model()
-	(rangee,) = [rangee for rangee in range(modele.rowCount()) if modele.index(rangee, 0).data() == texte]
-	popup.setCurrentIndex(modele.index(rangee, 0))
-	completer.activated.emit(texte)
-
-
 @when(parsers.parse("j'ouvre le résultat « {nom} »"))
 def ouvrir_le_resultat(interface: Contexte, nom: str) -> None:
 	ouvert = ecran(interface)
@@ -103,9 +93,16 @@ def contient(interface: Contexte, texte: str) -> None:
 	assert ecran(interface).champ.text() == texte
 
 
-@then(parsers.re(r"les suggestions sont (?P<textes>aucune|«.+)"))
-def suggestions(interface: Contexte, textes: str) -> None:
-	assert ecran(interface).suggestions() == NOM.findall(textes)
+@then("le champ de recherche ne propose pas de suggestions")
+def sans_suggestions(interface: Contexte) -> None:
+	ouvert = ecran(interface)
+	assert ouvert.champ.completer() is None
+	assert ouvert.findChildren(QCompleter) == []
+
+
+@then(parsers.re(r"les résultats nommés sont (?P<noms>aucun|«.+)"))
+def noms_des_resultats(interface: Contexte, noms: str) -> None:
+	assert [ligne[1] for ligne in lignes(interface)] == NOM.findall(noms)
 
 
 @then("les résultats sont :")
@@ -120,8 +117,3 @@ def resultats(interface: Contexte, datatable: list[list[str]]) -> None:
 @then(parsers.parse("le compte des résultats est « {texte} »"))
 def compte(interface: Contexte, texte: str) -> None:
 	assert ecran(interface).compte.text() == texte
-
-
-@then(parsers.parse("la table montre {nombre:d} résultats"))
-def nombre_de_lignes(interface: Contexte, nombre: int) -> None:
-	assert len(lignes(interface)) == nombre

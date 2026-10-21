@@ -586,15 +586,15 @@ Mise en œuvre des listes ([#26](https://github.com/dascritch/machincast/issues/
 - **Lecture** : en base, avec le rôle de l'interface, chaque fois que l'onglet s'ouvre ; jamais en boucle. Le filtre est gardé.
 - **Détail** : un double-clic ou Entrée sur une ligne émet `FenetrePrincipale.detail_demande(genre, identifiant)`, et ouvre la fiche de l'élément ([§ 8.5](#85-écran-de-détails-dun-événement), [§ 8.12](#812-écran-de-détails-dune-séquence), [§ 8.4](#84-écran-de-détails-dune-banque), [§ 8.3](#83-écran-de-détails-dun-sonore)).
 - **Création** : une liste peut avoir un bouton de création (`Source.nouveau`, signal `Liste.creation_demandee`) ; les listes des événements, des séquences, des banques et des sonores l'ont : « Nouvel événement », « Nouvelle séquence », « Nouvelle banque » et « Nouveau stream ». La liste des sonores a aussi « Ajouter des fichiers… » et accepte les dépôts de fichiers (`Source.fichiers`, signaux `Liste.ajout_demande` et `Liste.fichiers_deposes`) ; une liste dans un choix d'éléments n'a ni l'un ni l'autre.
-- Champ de recherche globale avec auto-suggestion, résultats dans l'ordre : événements, séquences, banques, sonores. Un écran de résultats dédié.
+- Champ de recherche globale, résultats au fil de la frappe dans l'ordre : événements, séquences, banques, sonores. Un écran de résultats dédié.
 
 Mise en œuvre de la recherche globale ([#27](https://github.com/dascritch/machincast/issues/27), [#105](https://github.com/dascritch/machincast/issues/105), `machincast.interface.recherche`) :
 
 - **Onglet** : « Recherche », qui se ferme, unique ; **Affichage → Rechercher…** ou Ctrl+F l'ouvre, ou y revient, le curseur dans le champ et son texte sélectionné (`EcranRecherche.focaliser`).
 - **Champs cherchés** : le nom interne et le nom public des événements, des séquences et des banques ; l'artiste et le titre des sonores, jamais leur emplacement. Le texte est cherché dès 2 caractères (`MINIMUM`), n'importe où dans le champ, sans tenir compte des majuscules ni des accents (`translate()` et `lower()` en base, `listes.sans_accents` pour le texte tapé) ; `%`, `_` et `\` sont cherchés tels quels. En dessous, le compte dit « Tapez au moins 2 caractères. ».
 - **Ordre** : événements, séquences, banques, sonores ; dans chaque type, par nom, sans tenir compte des majuscules. Un sonore se nomme « artiste – titre ».
-- **Suggestions** : sous le champ, au fil de la frappe, les 10 premiers résultats (`SUGGESTIONS`), « Type : nom » ; en choisir une ouvre la fiche de l'élément, sans toucher au texte tapé.
-- **Table des résultats** : colonnes Type, Nom interne, Nom public, Statut (l'état d'un sonore) ; jusqu'à 500 lignes (`LIMITE`). Le compte dit « aucun résultat », « 1 résultat », « N résultats », ou « N premiers résultats sur T » quand la limite coupe la table. Un double-clic ou Entrée sur une ligne ouvre la fiche de l'élément.
+- **Sans suggestions** : le champ ne propose pas de suggestions sous lui, jugées peu pratiques à l'usage ; la table suit la frappe.
+- **Table des résultats** : colonnes Type, Nom interne, Nom public, Statut (l'état d'un sonore) ; jusqu'à 500 lignes (`LIMITE`). Le compte dit « aucun résultat », « 1 résultat », « N résultats », ou « N premiers résultats sur T » quand la limite coupe la table. Un double-clic ou Entrée sur une ligne ouvre la fiche de l'élément, sans toucher au texte tapé.
 - **Lecture** : en base, avec le rôle de l'interface, à chaque frappe, à l'ouverture de l'onglet et par « Rafraîchir les onglets » (F5) ; jamais en boucle. Une erreur de base s'affiche à la place du compte.
 - Vue calendrier (jour, semaine) montrant à la fois l'airplay (ce qui a effectivement été diffusé) et les événements prévus.
 
