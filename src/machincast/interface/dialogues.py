@@ -92,6 +92,20 @@ def confirmer_retrait(parent: QWidget, avertissement: str) -> Retrait:
 	return Retrait.ANNULER
 
 
+def proposer_rafraichissement(parent: QWidget, texte: str) -> bool:
+	"""Après la vérification complète d'un sonore (https://github.com/dascritch/machincast/issues/190) : rafraîchir sa
+	fiche ? Entrée rafraîchit, Échap laisse la fiche telle quelle."""
+	question = QMessageBox(parent)
+	question.setIcon(QMessageBox.Icon.Question)
+	question.setWindowTitle("Vérification complète")
+	question.setText(f"{texte} Rafraîchir la fiche ?")
+	rafraichir = question.addButton("Rafraîchir", QMessageBox.ButtonRole.AcceptRole)
+	question.addButton("Plus tard", QMessageBox.ButtonRole.RejectRole)
+	question.setDefaultButton(rafraichir)
+	question.exec()
+	return question.clickedButton() is rafraichir
+
+
 def confirmer_creation(parent: QWidget, texte: str) -> bool:
 	"""Créer un événement depuis le calendrier ? Rien n'est enregistré avant sa fiche : Entrée crée, Échap annule."""
 	question = QMessageBox(parent)

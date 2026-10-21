@@ -7,6 +7,10 @@ une annonce (termine), avec l'état de chaque sonore. Si l'indexeur ne sait pas 
 injoignable, les sonores restent en aperçu : la prochaine indexation les reprendra.
 
 Fermer la fenêtre attend la fin de la vérification en cours (arreter).
+
+La vérification complète d'un sonore, demandée depuis sa fiche (VerificationComplete,
+https://github.com/dascritch/machincast/issues/190), est l'audit complet de son seul fichier, comme
+Machin indexation --audit-complet --sonore N : décodé en entier, ses blancs mesurés au seuil de la configuration.
 """
 
 import logging
@@ -98,6 +102,80 @@ class Verificateur(QObject):
 			for artiste, titre, emplacement, etat in lignes
 		]
 		return f"Vérification terminée : {' ; '.join(etats)}."
+
+
+def etats_des_sonores(connexion: psycopg.Connection[TupleRow], identifiants: list[int]) -> str:
+	"""« Neige, actif ; Café à minuit, erroné » : chaque sonore et son état, après sa vérification."""
+	with connexion.transaction():
+		lignes = connexion.execute(
+			"SELECT artiste, titre, emplacement, etat::text FROM sonores WHERE id = ANY(%s) ORDER BY id",
+			(identifiants,),
+		).fetchall()
+	return " ; ".join(
+		f"{affichage.nom_du_sonore(artiste, titre, emplacement, None)}, {ETATS.get(str(etat), str(etat))}"
+		for artiste, titre, emplacement, etat in lignes
+	)
+
+
+class VerificationComplete(QObject):
+	"""L'audit complet d'un sonore, en tâche de fond ; chaque fin s'annonce (terminee), avec son sonore."""
+
+	terminee = Signal(int, str)
+	"""Le sonore vérifié, et ce que la vérification en dit. Émis dans le fil de l'interface."""
+	_finie = Signal(int, str)
+
+	def __init__(self, connexion: psycopg.Connection[TupleRow], parent: QObject | None = None) -> None:
+		super().__init__(parent)
+		self.socket = Path(str(connexion.info.host))
+		self.base = connexion.info.dbname
+		self._fils: list[threading.Thread] = []
+		self._restantes = 0
+		"""Vérifications lancées dont la fin n'est pas encore annoncée ; tenu dans le fil de l'interface."""
+		self._finie.connect(self._annoncer)
+
+	def lancer(self, sonore: int, seuil_blancs: float) -> None:
+		self._restantes += 1
+		fil = threading.Thread(
+			target=lambda: self._finie.emit(sonore, self._verifier(sonore, seuil_blancs)),
+			name="vérification complète",
+			daemon=True,
+		)
+		self._fils.append(fil)
+		fil.start()
+
+	def en_cours(self) -> bool:
+		return self._restantes > 0
+
+	def arreter(self) -> None:
+		"""Attend la fin des vérifications lancées ; la fenêtre se ferme, leur fin ne s'annonce plus."""
+		for fil in self._fils:
+			fil.join()
+		self._restantes = 0
+
+	def _annoncer(self, sonore: int, texte: str) -> None:
+		self._restantes -= 1
+		self.terminee.emit(sonore, texte)
+
+	def _verifier(self, sonore: int, seuil_blancs: float) -> str:
+		def verifier(chemin: Path, *, seuil_blancs: float | None = None) -> Verification:
+			# Appelé par son nom au moment du décodage : les scénarios le remplacent.
+			return _verifier_fichier_complet(chemin, seuil_blancs=seuil_blancs)
+
+		try:
+			with connecter(self.socket, self.base, Role.INDEXATION) as connexion:
+				verifier_sonores(
+					connexion, verifier, audit_complet=True, identifiants=[sonore], seuil_blancs=seuil_blancs
+				)
+				etats = etats_des_sonores(connexion, [sonore])
+		except (DecodeurIndisponible, psycopg.Error) as erreur:
+			journal.error(f"vérification complète impossible : {erreur}")
+			return f"Vérification impossible : {erreur}."
+		return f"Vérification terminée : {etats}."
+
+
+def _verifier_fichier_complet(chemin: Path, *, seuil_blancs: float | None = None) -> Verification:
+	"""Le décodage de l'audit complet, blancs compris."""
+	return verifier_fichier(chemin, seuil_blancs=seuil_blancs)
 
 
 def _verifier_fichier(chemin: Path, *, seuil_blancs: float | None = None) -> Verification:

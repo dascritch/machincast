@@ -549,6 +549,11 @@ class Ui_FicheSonore(object):
 
         self.pied.addWidget(self.preecouter)
 
+        self.verifier = QPushButton(FicheSonore)
+        self.verifier.setObjectName(u"verifier")
+
+        self.pied.addWidget(self.verifier)
+
         self.message = QLabel(FicheSonore)
         self.message.setObjectName(u"message")
         self.message.setWordWrap(True)
@@ -565,7 +570,7 @@ class Ui_FicheSonore(object):
 
         self.pied.addWidget(self.enregistrer)
 
-        self.pied.setStretch(2, 1)
+        self.pied.setStretch(3, 1)
 
         self.disposition.addLayout(self.pied)
 
@@ -692,6 +697,10 @@ class Ui_FicheSonore(object):
         self.preecouter.setToolTip(QCoreApplication.translate("FicheSonore", u"\u00c9couter le sonore sur la sortie de pr\u00e9-\u00e9coute, jamais sur l'antenne", None))
 #endif // QT_CONFIG(tooltip)
         self.preecouter.setText(QCoreApplication.translate("FicheSonore", u"Pr\u00e9-\u00e9coute\u2026", None))
+#if QT_CONFIG(tooltip)
+        self.verifier.setToolTip(QCoreApplication.translate("FicheSonore", u"D\u00e9coder le fichier en entier et mesurer ses blancs, comme l'audit complet de Machin indexation, pour ce seul sonore", None))
+#endif // QT_CONFIG(tooltip)
+        self.verifier.setText(QCoreApplication.translate("FicheSonore", u"V\u00e9rification compl\u00e8te", None))
         self.annuler.setText(QCoreApplication.translate("FicheSonore", u"Annuler", None))
         self.enregistrer.setText(QCoreApplication.translate("FicheSonore", u"Enregistrer", None))
         pass

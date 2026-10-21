@@ -617,7 +617,8 @@ def relations(interface: Contexte, datatable: list[list[str]]) -> None:
 
 @then(parsers.parse("la fiche du sonore dit « {texte} »"))
 def dit(interface: Contexte, texte: str) -> None:
-	assert fiche(interface).ui.aucune_relation.isVisible()
+	# Ce que la fiche montre, que l'encart Relations soit déplié ou non (https://github.com/dascritch/machincast/issues/190).
+	assert not fiche(interface).ui.aucune_relation.isHidden()
 	assert fiche(interface).ui.aucune_relation.text() == texte
 
 
@@ -652,12 +653,12 @@ def encart_fichier(interface: Contexte, datatable: list[list[str]]) -> None:
 def sans_fichier(interface: Contexte) -> None:
 	ui = fiche(interface).ui
 	assert not ui.groupe_fichier.isVisible()
-	assert not ui.ouvrir_dossier.isVisible()
+	assert ui.ouvrir_dossier.isHidden()
 
 
 @then("la fiche du sonore ne dit pas qu'aucun élément ne le cite")
 def ne_dit_pas(interface: Contexte) -> None:
-	assert not fiche(interface).ui.aucune_relation.isVisible()
+	assert fiche(interface).ui.aucune_relation.isHidden()
 
 
 @given("un système de fichiers qui ne garde pas la date de création")
