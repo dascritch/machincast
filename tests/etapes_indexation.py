@@ -316,9 +316,14 @@ def indexation_arretee(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -
 
 @when("l'indexeur fait une indexation rapide", target_fixture="execution")
 def indexation_rapide(
-	base_vide: Connexion, caplog: pytest.LogCaptureFixture, indexations: list[tuple[datetime, datetime]]
+	base_vide: Connexion,
+	caplog: pytest.LogCaptureFixture,
+	indexations: list[tuple[datetime, datetime]],
+	seuil_blancs: list[float],
 ) -> Execution:
-	return indexer(base_vide, caplog, audit_complet=False, indexations=indexations)
+	"""Le seuil de blanc sert aux sonores dont l'audit complet est demandé
+	(https://github.com/dascritch/machincast/issues/114)."""
+	return indexer(base_vide, caplog, audit_complet=False, indexations=indexations, seuil_blancs=seuil_blancs)
 
 
 def lire_sonore(base: Connexion, sonore: int) -> tuple[object, ...]:

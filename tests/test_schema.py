@@ -514,3 +514,25 @@ def banque_sans_detection(contexte: Contexte, nom: str) -> None:
 @then(parsers.parse("le sonore « {emplacement} » n'active pas la détection de blanc"))
 def sonore_sans_detection(contexte: Contexte, emplacement: str) -> None:
 	assert _detection(contexte, "sonores", "emplacement", emplacement) is False
+
+
+# ─── Audit demandé (https://github.com/dascritch/machincast/issues/114) ───
+
+
+def _audit_demande(contexte: Contexte, colonne: str, valeur: object) -> object:
+	ligne = contexte.connexion.execute(
+		f"SELECT audit_demande FROM sonores WHERE {colonne} = %s",  # noqa: S608
+		(valeur,),
+	).fetchone()
+	assert ligne is not None
+	return ligne[0]
+
+
+@then("le sonore de référence n'a pas d'audit complet demandé")
+def sonore_de_reference_sans_audit(contexte: Contexte) -> None:
+	assert _audit_demande(contexte, "id", contexte.references["sonore"]) is False
+
+
+@then(parsers.parse("le sonore « {emplacement} » n'a pas d'audit complet demandé"))
+def sonore_sans_audit(contexte: Contexte, emplacement: str) -> None:
+	assert _audit_demande(contexte, "emplacement", emplacement) is False

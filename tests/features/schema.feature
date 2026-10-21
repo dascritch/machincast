@@ -115,6 +115,7 @@ Fonctionnalité: Schéma de la base de données
 			| type = 'fichier', emplacement = '/a.flac', debut_detecte = '-0.1 s'                             |
 			| type = 'fichier', emplacement = '/a.flac', fin_detectee = '-1 s'                                |
 			| type = 'fichier', emplacement = '/a.flac', detection_blancs = NULL                              |
+			| type = 'fichier', emplacement = '/a.flac', audit_demande = NULL                                 |
 
 	Scénario: Deux sonores ne peuvent pas avoir le même emplacement
 		Étant donné les éléments de référence en base
@@ -170,6 +171,20 @@ Fonctionnalité: Schéma de la base de données
 		Alors la banque « Titres » n'active pas la détection de blanc
 		Et le sonore « /a.flac » n'active pas la détection de blanc
 		Quand j'annule les migrations depuis « 0008.detection-blancs »
+		Alors aucune connexion supplémentaire à la base de test ne reste ouverte
+
+	# https://github.com/dascritch/machincast/issues/114
+
+	Scénario: Un sonore n'a pas d'audit complet demandé par défaut
+		Étant donné les éléments de référence en base
+		Alors le sonore de référence n'a pas d'audit complet demandé
+
+	Scénario: La migration de l'audit demandé n'en demande pour aucun sonore existant
+		Quand j'annule les migrations depuis « 0009.sonores-audit-demande »
+		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/a.flac'
+		Et j'applique les migrations
+		Alors le sonore « /a.flac » n'a pas d'audit complet demandé
+		Quand j'annule les migrations depuis « 0009.sonores-audit-demande »
 		Alors aucune connexion supplémentaire à la base de test ne reste ouverte
 
 	Scénario: Une banque peut avoir plusieurs répertoires
