@@ -295,22 +295,23 @@ class Lecteur:
 		sortie.set_property("sync", False)
 		if self._antenne_par_pipewire(antenne) is None:
 			sortie = creer_sortie(self.sortie, self.peripherique)
-		elements = [
+		crees = [
 			source_du_moniteur(antenne),
 			Gst.ElementFactory.make("audioconvert", None),
 			Gst.ElementFactory.make("audioresample", None),
 			Gst.ElementFactory.make("level", None),
 			sortie,
 		]
-		assert all(element is not None for element in elements), "installer gstreamer1.0-plugins-base et -good"
+		# ElementFactory.make rend None pour un élément introuvable : pygobject-stubs le type ainsi depuis sa
+		# version 2.19, et mypy refuse alors de l'ajouter au pipeline sans l'avoir écarté.
+		elements = [element for element in crees if element is not None]
+		assert len(elements) == len(crees), "installer gstreamer1.0-plugins-base et -good"
 		niveau = elements[3]
-		assert niveau is not None
 		niveau.set_property("interval", INTERVALLE_DES_NIVEAUX)
 		niveau.set_property("post-messages", True)
 		for element in elements:
 			pipeline.add(element)
 		for avant, apres in zip(elements, elements[1:], strict=False):
-			assert (avant is not None) and (apres is not None)
 			avant.link(apres)
 		self._niveau = niveau
 		return pipeline
