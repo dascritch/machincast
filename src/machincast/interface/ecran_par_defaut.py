@@ -23,7 +23,7 @@ from PySide6.QtWidgets import QLineEdit, QVBoxLayout, QWidget
 
 from machincast.configuration import Audio
 from machincast.horloge import Horloge
-from machincast.interface import affichage
+from machincast.interface import affichage, icones
 from machincast.interface.airplay import FENETRE, PassageAffiche, lire_airplay
 from machincast.interface.calendrier import date_longue
 from machincast.interface.colonnes import Colonnes
@@ -87,6 +87,15 @@ class EcranParDefaut(QWidget):
 		self._en_cours: SonoreAffiche | None = None
 		self._prochain: SonoreAffiche | None = None
 		ui = self.ui
+		# Chaque bouton « Fiche… » porte l'icône du genre qu'il ouvre (https://github.com/dascritch/machincast/issues/215).
+		for genre, boutons in (
+			("sonore", (ui.ouvrir_sonore_en_cours, ui.ouvrir_sonore_prochain)),
+			("événement", (ui.ouvrir_evenement_en_cours, ui.ouvrir_evenement_prochain)),
+			("séquence", (ui.ouvrir_sequence_en_cours, ui.ouvrir_sequence_prochain)),
+			("banque", (ui.ouvrir_banque_en_cours, ui.ouvrir_banque_prochain)),
+		):
+			for bouton in boutons:
+				bouton.setIcon(icones.icone(genre))
 		ui.ouvrir_sonore_en_cours.clicked.connect(lambda: self._ouvrir_sonore(self._en_cours))
 		ui.ouvrir_sonore_prochain.clicked.connect(lambda: self._ouvrir_sonore(self._prochain))
 		ui.ouvrir_evenement_en_cours.clicked.connect(lambda: self._ouvrir_evenement(self._en_cours))

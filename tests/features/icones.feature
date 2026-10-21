@@ -9,7 +9,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 	dossier pour une banque, une montre pour un événement, un calendrier pour la grille, une boule de divination pour la
 	simulation. Elle prend la couleur du texte du thème, clair ou sombre. Elle désigne le genre dans les onglets (listes,
 	fiches, grille, simulation), le menu « Affichage », la colonne « Type » de la recherche et les relations de la fiche
-	d'un sonore. Les autres écrans, Accueil, Incidents, Recherche et Marques-pages, n'en ont pas.
+	d'un sonore, et les boutons « Fiche… » de l'accueil. Les onglets Accueil, Incidents, Recherche et Marques-pages n'en ont pas.
 
 	Contexte:
 		Étant donné l'horloge de l'interface au « 2026-10-21 09:00:00 »
@@ -70,6 +70,32 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| Calendrier               | grille     |
 			| Simulation               | simulation |
 			| Recherche                | aucune     |
+
+	Scénario: Les boutons de l'accueil qui ouvrent une fiche portent l'icône de son genre
+		Pour le sonore en cours de diffusion comme pour le suivant, chaque bouton « Fiche… » ouvre la fiche d'un sonore,
+		d'un événement, d'une séquence ou d'une banque : il en porte l'icône, et non une icône du thème du poste.
+
+		Quand la fenêtre de l'interface s'ouvre
+		Alors les boutons de l'accueil portent les icônes :
+			| bouton                    | icône     |
+			| ouvrir_sonore_en_cours    | sonore    |
+			| ouvrir_evenement_en_cours | événement |
+			| ouvrir_sequence_en_cours  | séquence  |
+			| ouvrir_banque_en_cours    | banque    |
+			| ouvrir_sonore_prochain    | sonore    |
+			| ouvrir_evenement_prochain | événement |
+			| ouvrir_sequence_prochain  | séquence  |
+			| ouvrir_banque_prochain    | banque    |
+
+	Scénario: Les écrans n'emploient d'icônes du thème du poste que pour ce qui n'est pas un genre
+		Les écrans dessinés avec Qt Widgets Designer ne prennent pas d'icône du thème pour un genre : celle-ci se pose dans
+		le code, par machincast.interface.icones. Seuls restent « Dossier… », le dossier du fichier sur le disque, et
+		« Pré-écoute… », un casque, dans la fiche d'un sonore.
+
+		Alors les icônes du thème des écrans sont seulement :
+			| écran            | bouton        | icône du thème   |
+			| fiche_sonore.ui  | ouvrir_dossier | folder-open      |
+			| fiche_sonore.ui  | preecouter     | audio-headphones |
 
 	Scénario: Une nouvelle fiche porte l'icône de son genre dès son ouverture
 		Quand la fenêtre de l'interface s'ouvre
