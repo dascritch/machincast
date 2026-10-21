@@ -1,6 +1,6 @@
 # MachinCast
 
-Système automatisé de diffusion sonore pour radio, sous Linux : il fournit un fil antenne en dehors des émissions en direct, à partir de banques de sonores et d'événements horaires.
+Système automatisé de diffusion sonore pour cotinuité d'antenne radio, sous Linux : il fournit un fil antenne en dehors des émissions en direct, à partir de banques de sonores et d'événements horaires. 
 
 - **Équipe de l'antenne** : le [guide de l'antenne](doc/utilisateur/README.md), pour programmer et suivre l'antenne depuis l'interface graphique
 - **Administrateur du poste** : [INSTALL.md](INSTALL.md) pour l'installation, puis le [guide d'administration](doc/administration/README.md)
@@ -8,7 +8,7 @@ Système automatisé de diffusion sonore pour radio, sous Linux : il fournit un 
 
 ## Configuration recommandée
 
-Système Linux graphique, avec le moteur audio PipeWire, idéalement Debian ou Ubuntu LTS, et deux sorties sons distinctes, dont une de qualité pour la sortie antenne.
+Système Linux graphique, avec le moteur audio PipeWire, idéalement Debian ou Ubuntu LTS, et deux sorties sons distinctes, dont une de qualité pour la sortie antenne qui doit aller vers la régie finale de la station ou son nodal.
 
 ## Contexte
 
