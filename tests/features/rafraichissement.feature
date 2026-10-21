@@ -27,7 +27,9 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 			| entrée                 | état   | raccourci | infobulle |
 			| Rafraîchir les onglets | active | F5        |           |
 			| Rechercher…            | active | Ctrl+F    |           |
-			| Calendrier           | active |           |           |
+			| Ouvrir l'onglet Sonores        | active |           |           |
+			| Ouvrir l'onglet Marques-pages  | active |           |           |
+			| Ouvrir l'onglet Grille horaire | active |           |           |
 			| Pré-écoute…            | active |           |           |
 
 	Scénario: La liste ouverte se relit

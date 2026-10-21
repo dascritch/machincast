@@ -41,27 +41,27 @@ Fonctionnalité: Calendrier de la grille
 
 	Scénario: Le calendrier s'ouvre depuis le menu « Affichage », dans son onglet, sur la semaine du jour
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Alors l'onglet ouvert est « Calendrier »
 		Et le calendrier montre « Semaine du lundi 19 au dimanche 25 octobre 2026 »
 		Et le calendrier a les jours « lundi 19 », « mardi 20 », « mercredi 21 », « jeudi 22 », « vendredi 23 », « samedi 24 », « dimanche 25 »
 
 	Scénario: Le calendrier n'a qu'un onglet, qui se ferme
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et j'ouvre l'onglet « Accueil »
-		Et je choisis « Calendrier » dans le menu « Affichage »
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents », « Calendrier »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents », « Calendrier »
 		Et l'onglet ouvert est « Calendrier »
 		Et seul l'onglet « Calendrier » a un bouton de fermeture
 		Quand je ferme l'onglet « Calendrier »
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents »
+		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents »
 
 	# ─── Prévu ─────────────────────────────────────────────────
 
 	Scénario: Les occurrences prévues de la semaine, récurrences comprises, et ce qui en joue
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Alors le calendrier montre les blocs :
 			| jour        | début | fin   | événement | état           |
 			| lundi 19    | 00:00 | 01:00 | Nuit      | joue           |
@@ -91,7 +91,7 @@ Fonctionnalité: Calendrier de la grille
 
 	Scénario: Des blocs qui se chevauchent sont côte à côte, chacun à la première place libre
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Alors les blocs « Matinale » et « Concert » du mercredi 21 sont côte à côte
 		Et le bloc « Midi » du mercredi 21 a toute la largeur des blocs prévus
 		Et les blocs « Week-end » et « Flash » du samedi 24 sont côte à côte
@@ -100,7 +100,7 @@ Fonctionnalité: Calendrier de la grille
 
 	Scénario: Survoler un bloc dit l'événement, ses heures, sa récurrence et ce qui en joue
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Alors le bloc « Matinale » du mercredi 21 a l'infobulle :
 			"""
 			Matinale (Le réveil) — Émission
@@ -143,7 +143,7 @@ Fonctionnalité: Calendrier de la grille
 			| (supprimé)| 2026-10-20 16:00:00 | 2026-10-20 16:20:00 |
 			| Continue  | 2026-10-20 16:20:00 |                     |
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Alors le calendrier montre les bandes d'airplay :
 			| jour     | début | fin   | événement          | passages |
 			| mardi 20 | 07:00 | 07:58 | Matinale           | 2        |
@@ -180,7 +180,7 @@ Fonctionnalité: Calendrier de la grille
 			| Matinale  | 2026-10-20 07:00:00 | 2026-10-20 09:00:00 |
 			| Continue  | 2026-10-20 09:00:00 | 2026-10-20 09:03:00 |
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Alors le calendrier a les cases cochées « Spécial », « Émission », « Fil musical »
 		Quand je décoche la case « Émission » du calendrier
 		Alors le calendrier montre les blocs :
@@ -211,7 +211,7 @@ Fonctionnalité: Calendrier de la grille
 
 	Scénario: Le calendrier se pagine par semaine, de 28 jours avant à 28 jours après aujourd'hui
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je clique 4 fois sur « Semaine suivante » du calendrier
 		Alors le calendrier montre « Semaine du lundi 16 au dimanche 22 novembre 2026 »
 		Et le bouton « Semaine suivante » du calendrier est inactif
@@ -224,7 +224,7 @@ Fonctionnalité: Calendrier de la grille
 
 	Scénario: La vue jour montre un seul jour, et se pagine par jour
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je clique sur « Jour » du calendrier
 		Alors le calendrier montre « mardi 20 octobre 2026 »
 		Et le calendrier a les jours « mardi 20 »
@@ -240,7 +240,7 @@ Fonctionnalité: Calendrier de la grille
 
 	Scénario: La vue jour va aussi de 28 jours avant à 28 jours après aujourd'hui
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je clique sur « Jour » du calendrier
 		Et je clique 28 fois sur « Jour suivant » du calendrier
 		Alors le calendrier montre « mardi 17 novembre 2026 »
@@ -252,13 +252,13 @@ Fonctionnalité: Calendrier de la grille
 	Scénario: Une semaine à cheval sur deux années les nomme toutes les deux
 		Étant donné l'horloge de l'interface au « 2026-12-30 10:00:00 »
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Alors le calendrier montre « Semaine du lundi 28 décembre 2026 au dimanche 3 janvier 2027 »
 		Et le calendrier a les jours « lundi 28 », « mardi 29 », « mercredi 30 », « jeudi 31 », « vendredi 1er », « samedi 2 », « dimanche 3 »
 
 	Scénario: Une semaine à cheval sur deux mois les nomme tous les deux
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je clique 2 fois sur « Semaine suivante » du calendrier
 		Alors le calendrier montre « Semaine du lundi 2 au dimanche 8 novembre 2026 »
 		Quand je clique sur « Semaine précédente » du calendrier
@@ -266,7 +266,7 @@ Fonctionnalité: Calendrier de la grille
 
 	Scénario: Le calendrier se relit à l'ouverture de son onglet et par « Rafraîchir les onglets »
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et l'événement « Matinale » est effacé de la base
 		Et j'appuie sur « F5 »
 		Alors le calendrier montre les blocs :
@@ -285,7 +285,7 @@ Fonctionnalité: Calendrier de la grille
 
 	Scénario: Un double-clic sur un bloc ouvre la fiche de son événement
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je double-clique sur le bloc « Concert » du mercredi 21
 		Alors l'onglet ouvert est « Événement : Concert »
 
@@ -294,14 +294,14 @@ Fonctionnalité: Calendrier de la grille
 			| événement | début               | fin                 |
 			| Matinale  | 2026-10-20 07:00:00 | 2026-10-20 09:00:00 |
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je double-clique sur la bande d'airplay « Matinale » de 07:00 du mardi 20
 		Alors l'onglet ouvert est « Événement : Matinale »
 
 	Scénario: Un clic sur une heure libre propose un événement sur l'heure entière, qui s'ouvre prérempli sans être enregistré
 		Étant donné que je répondrai « Créer » à la question de création
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je clique dans le calendrier le dimanche 25 à 13:37
 		Alors la question de création a dit « Créer un événement le dimanche 25 octobre 2026 de 13:00 à 14:00 ? »
 		Et l'onglet ouvert est « Nouvel événement »
@@ -312,13 +312,13 @@ Fonctionnalité: Calendrier de la grille
 	Scénario: Refuser la création ne crée rien
 		Étant donné que je répondrai « Annuler » à la question de création
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je clique dans le calendrier le samedi 24 à 20:10
 		Alors l'onglet ouvert est « Calendrier »
 
 	Scénario: Un clic sur un bloc, ou sur une heure passée, ne propose rien
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je clique dans le calendrier le mercredi 21 à 08:30
 		Et je clique dans le calendrier le mardi 20 à 15:50
 		Alors aucune question n'a été posée
@@ -327,13 +327,13 @@ Fonctionnalité: Calendrier de la grille
 	Scénario: L'heure en cours est libre jusqu'à sa fin
 		Étant donné que je répondrai « Annuler » à la question de création
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je clique dans le calendrier le mardi 20 à 16:55
 		Alors la question de création a dit « Créer un événement le mardi 20 octobre 2026 de 16:00 à 17:00 ? »
 
 	Scénario: Une heure qui vient de finir est passée
 		Étant donné l'horloge de l'interface au « 2026-10-20 17:00:00 »
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Calendrier » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je clique dans le calendrier le mardi 20 à 16:30
 		Alors aucune question n'a été posée
