@@ -19,13 +19,14 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QModelIndex, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QHeaderView, QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLineEdit, QVBoxLayout, QWidget
 
 from machincast.configuration import Audio
 from machincast.horloge import Horloge
 from machincast.interface import affichage
 from machincast.interface.airplay import FENETRE, PassageAffiche, lire_airplay
 from machincast.interface.calendrier import date_longue
+from machincast.interface.colonnes import Colonnes
 from machincast.interface.etat import ClientEtat, EtatLecture, SonoreAffiche
 from machincast.interface.moniteur import Moniteur, nom_du_port
 from machincast.interface.ui.ecran_par_defaut import Ui_EcranParDefaut
@@ -81,7 +82,7 @@ class EcranParDefaut(QWidget):
 		self.modele_airplay = QStandardItemModel(0, len(self.COLONNES_AIRPLAY), self)
 		self.modele_airplay.setHorizontalHeaderLabels([titre for _, titre in self.COLONNES_AIRPLAY])
 		self.ui.table_airplay.setModel(self.modele_airplay)
-		self.ui.table_airplay.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+		self.colonnes_airplay = Colonnes(self.ui.table_airplay, "accueil-airplay")
 		self.ui.table_airplay.activated.connect(self._ouvrir_cellule)
 		self._en_cours: SonoreAffiche | None = None
 		self._prochain: SonoreAffiche | None = None

@@ -38,7 +38,7 @@ from machincast import audio as sorties_audio  # noqa: E402
 from machincast.base import Role, connecter  # noqa: E402
 from machincast.configuration import Crossfades, Metadonnees  # noqa: E402
 from machincast.horloge import HorlogeFixe  # noqa: E402
-from machincast.interface import depliable  # noqa: E402
+from machincast.interface import colonnes, depliable  # noqa: E402
 from machincast.interface.calendrier import Calendrier  # noqa: E402
 from machincast.interface.fenetre import FenetrePrincipale  # noqa: E402
 from machincast.interface.preecoute import FenetrePreecoute  # noqa: E402
@@ -83,6 +83,7 @@ CAPTURES = (
 	"menu-diffusion",
 	"liste-evenements",
 	"liste-sonores",
+	"menu-colonnes",
 	"fiche-evenement",
 	"fiche-sequence",
 	"fiche-banque",
@@ -544,6 +545,8 @@ def produire(repertoire: Path) -> dict[str, Path]:
 		demonstration = remplir(proprietaire)
 	travail = Path(tempfile.mkdtemp(prefix="machincast-captures-"))
 	configuration = travail / "machincast.toml"
+	# Les colonnes d'origine, ajustées au contenu : jamais la disposition gardée par le compte qui fait les captures.
+	vues, colonnes.FICHIER = colonnes.FICHIER, travail / "vues.ini"
 	shutil.copyfile(RACINE / "tests" / "configuration-test.toml", configuration)
 	socket = SocketEtat(travail / "lecture.sock")
 	socket.ouvrir()
@@ -578,6 +581,12 @@ def produire(repertoire: Path) -> dict[str, Path]:
 		prendre("liste-evenements", fenetre)
 		fenetre.ouvrir_liste("Sonores")
 		prendre("liste-sonores", fenetre)
+		(sonores,) = [liste for liste in fenetre.listes if fenetre._titres[liste] == "Sonores"]
+		menu = sonores.colonnes.menu()
+		menu.popup(fenetre.mapToGlobal(QPoint(400, 110)))
+		attendre(lambda: menu.isVisible())
+		prendre("menu-colonnes", menu)
+		menu.hide()
 		for nom, genre, identifiant in (
 			("fiche-evenement", "événement", demonstration.evenements["matinale"]),
 			("fiche-sequence", "séquence", demonstration.sequence),
@@ -618,6 +627,7 @@ def produire(repertoire: Path) -> dict[str, Path]:
 		connexion.close()
 		socket.fermer()
 		sorties_audio.peripheriques = peripheriques
+		colonnes.FICHIER = vues
 		# fichier de MachinCast : le répertoire de travail des captures, sa configuration et sa socket.
 		shutil.rmtree(travail, ignore_errors=True)
 	return captures

@@ -52,7 +52,6 @@ from PySide6.QtWidgets import (
 	QCheckBox,
 	QComboBox,
 	QDoubleSpinBox,
-	QHeaderView,
 	QMenu,
 	QTimeEdit,
 	QTreeWidgetItem,
@@ -62,6 +61,7 @@ from PySide6.QtWidgets import (
 from machincast.conformation import conformer
 from machincast.horloge import Horloge
 from machincast.interface import affichage, dialogues, preferences
+from machincast.interface.colonnes import Colonnes
 from machincast.interface.depot import DepotDeFichiers
 from machincast.interface.dialogues import Retrait
 from machincast.interface.fiche import Connexion, Fiche, Refus, fichiers_sonores
@@ -139,9 +139,7 @@ class FicheBanque(Fiche):
 			self.ui.mode.addItem(texte, valeur)
 		for _valeur, texte in MASQUAGES:
 			self.ui.masquage.addItem(texte)
-		entete = self.ui.sonores.header()
-		entete.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-		entete.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+		self.colonnes = Colonnes(self.ui.sonores, "fiche-banque-sonores")
 		self._nom = ""
 		self._charges: set[int] = set()
 		"""Sonores de la banque à la dernière lecture : ceux qui manquent à la fiche en ont été retirés."""

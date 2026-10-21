@@ -45,6 +45,7 @@ from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QDoubleSpinBox, QLineEdi
 from machincast.conformation import conformer
 from machincast.horloge import Horloge
 from machincast.interface import affichage, depliable, dialogues, preferences
+from machincast.interface.colonnes import Colonnes
 from machincast.interface.essai_flux import EssaiDeFlux
 from machincast.interface.fiche import Connexion, Fiche, Refus
 from machincast.interface.listes import ETATS
@@ -214,6 +215,8 @@ class FicheSonore(Fiche):
 			lambda: dialogues.ouvrir_dossier(Path(self.ui.emplacement.text()).parent)
 		)
 		self.ui.relations.itemActivated.connect(self._ouvrir_relation)
+		self.colonnes_relations = Colonnes(self.ui.relations, "fiche-sonore-relations")
+		self.colonnes_passages = Colonnes(self.ui.passages, "fiche-sonore-passages")
 		self.charger()
 
 	def titre(self) -> str:
@@ -588,7 +591,6 @@ class FicheSonore(Fiche):
 			table.insertRow(rangee)
 			for colonne, item in enumerate(items):
 				table.setItem(rangee, colonne, item)
-		table.resizeColumnsToContents()
 
 	def _adresse(self) -> str:
 		if self.ui.par_adresse.isChecked():

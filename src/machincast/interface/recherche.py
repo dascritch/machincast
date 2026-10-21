@@ -23,7 +23,6 @@ from PySide6.QtCore import QModelIndex, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
 	QAbstractItemView,
-	QHeaderView,
 	QLabel,
 	QLineEdit,
 	QTableView,
@@ -31,6 +30,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
+from machincast.interface.colonnes import Colonnes
 from machincast.interface.listes import ETATS, sans_accents
 
 journal = logging.getLogger(__name__)
@@ -151,8 +151,8 @@ class EcranRecherche(QWidget):
 		self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 		self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 		self.table.verticalHeader().hide()
-		self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 		self.table.horizontalHeader().setStretchLastSection(True)
+		self.colonnes = Colonnes(self.table, "recherche")
 		disposition.addWidget(self.table)
 		self.champ.textChanged.connect(self._chercher)
 		self.table.activated.connect(self._ligne_ouverte)
