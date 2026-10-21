@@ -352,3 +352,10 @@ def seuil_de_blanc(contexte: Contexte, seuil: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/146"""
 	assert contexte.configuration is not None, contexte.erreur
 	assert contexte.configuration.blancs.seuil == float(seuil.replace(",", "."))
+
+
+@then(parsers.re(r"le voyant « Saturation » de l'accueil est (?P<etat>affiché|caché)"))
+def voyant_de_saturation(contexte: Contexte, etat: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/191"""
+	assert contexte.configuration is not None, contexte.erreur
+	assert contexte.configuration.interface.saturation is (etat == "affiché")

@@ -125,6 +125,11 @@ class EcranParDefaut(QWidget):
 		self.vumetre.setToolTip(infobulle)
 		self.moniteur.demarrer()
 
+	def montrer_la_saturation(self, affiche: bool) -> None:
+		"""Le voyant « Saturation » de la colonne Antenne, affiché ou caché selon les préférences
+		(https://github.com/dascritch/machincast/issues/191) ; le VU-mètre montre toujours les crêtes."""
+		self.ui.voyant_saturation.setVisible(affiche)
+
 	def _ecouter(self) -> None:
 		if self.moniteur.indisponible is None:
 			self.ecoute_demandee.emit()

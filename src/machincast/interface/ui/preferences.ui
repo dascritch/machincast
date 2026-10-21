@@ -103,6 +103,25 @@
         </widget>
        </item>
        <item>
+        <widget class="QGroupBox" name="groupe_accueil">
+         <property name="title">
+          <string>Accueil</string>
+         </property>
+         <layout class="QVBoxLayout" name="disposition_accueil">
+          <item>
+           <widget class="QCheckBox" name="saturation">
+            <property name="text">
+             <string>Afficher le voyant de saturation de l'accueil</string>
+            </property>
+            <property name="toolTip">
+             <string>Le voyant « Saturation » de la colonne Antenne, au-dessus du VU-mètre ; le VU-mètre montre toujours les crêtes.</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="explication">
          <property name="text">
           <string>Les fiches ouvertes ensuite suivent ces réglages. Machin lecture prend les durées par défaut à son prochain démarrage.</string>

@@ -122,6 +122,11 @@ class Contexte:
 	None : celui qu'elle a montré."""
 	seuils_montres: list[float] = field(default_factory=list)
 	"""Les seuils de blanc que la fenêtre des préférences a montrés, à chaque ouverture."""
+	saturation_reglee: bool | None = None
+	"""Le voyant « Saturation » que donnera la fenêtre des préférences ; None : inchangé
+	(https://github.com/dascritch/machincast/issues/191)."""
+	saturations_montrees: list[bool] = field(default_factory=list)
+	"""Le voyant « Saturation » montré par la fenêtre des préférences, à chaque ouverture."""
 	configuration_initiale: bytes = b""
 	"""Le fichier de configuration à l'ouverture de la fenêtre."""
 
@@ -218,17 +223,22 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		interface.preferences_montrees.append(montres.crossfades)
 		interface.audio_montre.append((montres.antenne, montres.preecoute))
 		interface.seuils_montres.append(montres.seuil_blancs)
+		interface.saturations_montrees.append(montres.saturation)
 		if (
 			(interface.preferences_reglees is None)
 			and (interface.reglages_audio is None)
 			and (interface.seuil_regle is None)
+			and (interface.saturation_reglee is None)
 		):
 			return None
 		antenne, preecoute = (interface.reglages_audio) or ((montres.antenne, montres.preecoute))
 		seuil = montres.seuil_blancs
 		if interface.seuil_regle is not None:
 			seuil = interface.seuil_regle
-		return Reglages((interface.preferences_reglees) or (montres.crossfades), antenne, preecoute, seuil)
+		saturation = montres.saturation
+		if interface.saturation_reglee is not None:
+			saturation = interface.saturation_reglee
+		return Reglages((interface.preferences_reglees) or (montres.crossfades), antenne, preecoute, seuil, saturation)
 
 	monkeypatch.setattr(dialogues, "regler_preferences", preferences)
 
@@ -628,12 +638,14 @@ def ouvrir_la_fenetre(interface: Contexte, qtbot: QtBot, avec_configuration: boo
 	chemin: Path | None = None
 	crossfades = None
 	blancs = None
+	reglages_de_l_interface = None
 	audio = configuration_test().audio
 	if avec_configuration:
 		chemin = fichier_de_configuration(interface)
 		interface.configuration_initiale = chemin.read_bytes()
 		crossfades = charger(chemin).crossfades
 		blancs = charger(chemin).blancs
+		reglages_de_l_interface = charger(chemin).interface
 		audio = charger(chemin).audio
 	audio = dataclasses.replace(audio, **interface.audio)  # type: ignore[arg-type]
 	interface.fenetre = FenetrePrincipale(
@@ -644,6 +656,7 @@ def ouvrir_la_fenetre(interface: Contexte, qtbot: QtBot, avec_configuration: boo
 		crossfades=crossfades,
 		audio=audio,
 		blancs=blancs,
+		interface=reglages_de_l_interface,
 	)
 	interface.fenetre.detail_demande.connect(lambda genre, numero: interface.demandes.append((genre, numero)))
 

@@ -69,3 +69,9 @@ maximum = 5
 # compris à 0 exclu ; -40 par défaut. L'audit complet mesure les blancs à ce seuil : un nouveau seuil vaut pour les
 # audits suivants. Une banque, ou un sonore, choisit ensuite d'être joué sans ses blancs.
 seuil = -40
+
+[interface]
+# Réglages de l'interface graphique (https://github.com/dascritch/machincast/issues/191), modifiables dans ses
+# préférences, page « Interface ». Section facultative, comme sa clé.
+# Le voyant « Saturation » de la colonne Antenne de l'accueil : true pour l'afficher (par défaut), false pour le cacher.
+# saturation = true

@@ -54,6 +54,9 @@ class Reglages:
 	"""audio.preecoute."""
 	seuil_blancs: float = SEUIL_DE_BLANC
 	"""blancs.seuil, en dB crête (https://github.com/dascritch/machincast/issues/146)."""
+	saturation: bool = True
+	"""interface.saturation : le voyant « Saturation » de l'accueil est affiché
+	(https://github.com/dascritch/machincast/issues/191)."""
 
 
 _courantes = Crossfades()
@@ -98,8 +101,8 @@ def _secondes(duree: timedelta) -> int | float:
 
 
 def ecrire(chemin: Path, reglages: Reglages) -> None:
-	"""Écrit les réglages dans les sections [crossfades], [audio] et [blancs] du fichier de configuration, qui garde le
-	reste tel quel, commentaires compris."""
+	"""Écrit les réglages dans les sections [crossfades], [audio], [blancs] et [interface] du fichier de
+	configuration, qui garde le reste tel quel, commentaires compris."""
 	document = tomlkit.parse(chemin.read_text(encoding="utf-8"))
 	if "crossfades" not in document:
 		document.add("crossfades", tomlkit.table())
@@ -127,6 +130,11 @@ def ecrire(chemin: Path, reglages: Reglages) -> None:
 	if seuil == int(seuil):
 		seuil = int(seuil)
 	blancs["seuil"] = seuil
+	if "interface" not in document:
+		document.add("interface", tomlkit.table())
+	section_interface = document["interface"]
+	assert isinstance(section_interface, tomlkit.items.Table)
+	section_interface["saturation"] = reglages.saturation
 	chemin.write_text(tomlkit.dumps(document), encoding="utf-8")
 
 
@@ -159,6 +167,7 @@ class FenetrePreferences(QDialog):
 				champ.setValue(duree.total_seconds())
 		ui.seuil_blancs.setLocale(FRANCAIS)
 		ui.seuil_blancs.setValue(tous.seuil_blancs)
+		ui.saturation.setChecked(tous.saturation)
 		ui.granularite.currentIndexChanged.connect(self._granularite)
 		ui.maximum.valueChanged.connect(self._maximum)
 		ui.boutons.accepted.connect(self.accept)
@@ -207,6 +216,7 @@ class FenetrePreferences(QDialog):
 			None if antenne is None else str(antenne),
 			str(ui.preecoute.currentData()),
 			round(ui.seuil_blancs.value(), 1),
+			ui.saturation.isChecked(),
 		)
 
 

@@ -268,3 +268,31 @@ Fonctionnalité: Fichier de configuration
 		Quand je lance "Machin_lecture" avec ce chemin de configuration
 		Alors le binaire s'arrête avec le code 2
 		Et l'erreur affichée mentionne le chemin du fichier
+
+	# ─── Interface (https://github.com/dascritch/machincast/issues/191) ─────────────────
+
+	Scénario: Sans section [interface], le voyant « Saturation » de l'accueil est affiché
+		Étant donné une configuration valide sans section "interface"
+		Quand je charge la configuration
+		Alors le voyant « Saturation » de l'accueil est affiché
+
+	Plan du scénario: La clé interface.saturation affiche ou cache le voyant « Saturation » de l'accueil
+		Étant donné une configuration valide où la clé "interface.saturation" vaut <valeur>
+		Quand je charge la configuration
+		Alors le voyant « Saturation » de l'accueil est <etat>
+
+		Exemples:
+			| valeur | etat    |
+			| true   | affiché |
+			| false  | caché   |
+
+	Plan du scénario: Une valeur de interface.saturation qui n'est pas un booléen est refusée, comme une clé inconnue
+		Étant donné une configuration valide où la clé "<cle>" vaut <valeur>
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "<cle>"
+
+		Exemples:
+			| cle                  | valeur |
+			| interface.saturation | "oui"  |
+			| interface.saturation | 1      |
+			| interface.silence    | true   |

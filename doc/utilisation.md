@@ -489,7 +489,7 @@ La diffusion se démarre et s'arrête par le menu **Diffusion** ([Piloter la dif
 
 Entre les deux sonores, la colonne **Antenne** montre ce qui sort réellement à l'antenne ([#24](https://github.com/dascritch/machincast/issues/24)) :
 
-- **Saturation**, au-dessus du VU-mètre : ce voyant s'allume, rouge, dès qu'une crête atteint -1 dB, et le reste 3 secondes, pour qu'un écrêtage bref ne passe pas inaperçu.
+- **Saturation**, au-dessus du VU-mètre : ce voyant s'allume, rouge, dès qu'une crête atteint -1 dB, et le reste 3 secondes, pour qu'un écrêtage bref ne passe pas inaperçu. Il se cache dans les [Préférences](#préférences), page « Interface », si l'on n'en veut pas ([#191](https://github.com/dascritch/machincast/issues/191)).
 - **VU-mètre** : une barre par canal, de -60 dB en bas à 0 dB en haut ; la barre du canal gauche, « G », et celle du canal droit, « D », sont séparées par l'échelle en dB. Quand la colonne est trop basse, l'échelle n'écrit que les nombres qui tiennent, toujours 0 et -60. La partie pleine est le niveau moyen ; la partie plus claire au-dessus, le bargraph, la crête du moment ; un trait garde la plus haute crête pendant 2 secondes. Vert, orange au-delà de -12 dB, rouge au-delà de -3 dB.
 - **Silence**, sous le VU-mètre : ce voyant s'allume, orange, quand tous les canaux restent à -50 dB ou moins pendant 5 secondes : un blanc d'antenne. Il s'éteint dès que le son revient.
 - **Écouter l'antenne** : un clic sur le VU-mètre ouvre la [pré-écoute](#pré-écoute) sur l'antenne, sans la lancer : **⏵** la fait entendre dans le casque.
@@ -746,6 +746,8 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 | Durée maximale | Le crossfade le plus long que proposent ces champs, 5 secondes par défaut. Une valeur déjà plus longue reste telle quelle. |
 | Début par défaut, fin par défaut | À cocher : le crossfade d'un sonore qui n'en a pas de paramétré, et que sa banque ne règle pas ([D'où viennent les crossfades](#sortie-audio)). Ils ne dépassent pas la durée maximale. |
 
+La même page règle l'**accueil** ([#191](https://github.com/dascritch/machincast/issues/191)) : **Afficher le voyant de saturation de l'accueil**, cochée par défaut, montre le voyant « Saturation » de la colonne Antenne. Décochée, il disparaît aussitôt, à l'enregistrement des préférences ; le VU-mètre montre toujours les crêtes, et le voyant « Silence » reste. Elle s'enregistre dans `interface.saturation`.
+
 Sa page **Audio** règle les périphériques ([#116](https://github.com/dascritch/machincast/issues/116)) :
 
 | Réglage | Rôle |
@@ -757,7 +759,7 @@ Chaque liste propose les périphériques du poste ; un périphérique configuré
 
 La même page règle le **seuil de blanc** ([#146](https://github.com/dascritch/machincast/issues/146)), `blancs.seuil`, de -100 à -0,1 dB, -40 dB par défaut : le niveau crête sous lequel le début et la fin d'un sonore sont un blanc ([Détection de blanc](#détection-de-blanc)). Un nouveau seuil vaut pour les audits complets suivants : les blancs déjà mesurés ne changent qu'au prochain audit.
 
-**OK** les enregistre dans les sections `[crossfades]`, `[audio]` et `[blancs]` du fichier de configuration, `machincast.toml`, qui garde ses commentaires et ses autres réglages ; la barre d'état le dit. Les fiches ouvertes ensuite les suivent ; **Machin lecture** prend les durées par défaut à son prochain démarrage. Un fichier qui ne peut pas être écrit laisse les préférences telles quelles, et la barre d'état dit pourquoi. **Annuler** ne change rien.
+**OK** les enregistre dans les sections `[crossfades]`, `[audio]`, `[blancs]` et `[interface]` du fichier de configuration, `machincast.toml`, qui garde ses commentaires et ses autres réglages ; la barre d'état le dit. Les fiches ouvertes ensuite les suivent ; **Machin lecture** prend les durées par défaut à son prochain démarrage. Un fichier qui ne peut pas être écrit laisse les préférences telles quelles, et la barre d'état dit pourquoi. **Annuler** ne change rien.
 
 ### Pré-écoute
 
