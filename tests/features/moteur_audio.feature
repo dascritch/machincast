@@ -48,6 +48,28 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Alors à 58 secondes, son volume est de 1
 		Et à 60 secondes, son volume est de 1
 
+	# ─── Sonore rogné par la détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
+	# Les instants et la position d'une voie se comptent depuis son début détecté, pas depuis le début du fichier.
+
+	Plan du scénario: Le volume d'un sonore rogné suit ses crossfades à partir de son début détecté
+		Étant donné une voie pour un sonore de 60 secondes commencé à 5 secondes du début du fichier, avec <debut> secondes de crossfade de début et <fin> de fin
+		Alors à <instant> secondes, son volume est de <volume>
+
+		Exemples:
+			| debut | fin | instant | volume |
+			| 2     | 0   | 0       | 0      |
+			| 2     | 0   | 1       | 0,5    |
+			| 2     | 0   | 2       | 1      |
+			| 0     | 4   | 58      | 0,5    |
+			| 0     | 4   | 60      | 0      |
+
+	Scénario: Un sonore rogné joue de son début détecté à sa fin détectée
+		Étant donné un moteur audio sur la sortie de la configuration de test, au plus vite
+		Quand il joue le fichier de test « blancs.flac » de 0,5 à 1,5 seconde du fichier
+		Et j'attends la fin de ses voies
+		Alors la voie de « blancs.flac » est finie
+		Et elle s'est arrêtée à 1,5 seconde du fichier, à 0,05 seconde près, après avoir joué 1 seconde
+
 	# ─── Fondus d'un stream (https://github.com/dascritch/machincast/issues/16) ───
 
 	Scénario: Une voie muette reste silencieuse, puis monte en fondu

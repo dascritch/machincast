@@ -530,3 +530,22 @@ def aucune_marque(interface: Contexte) -> None:
 def marques(interface: Contexte, datatable: list[list[str]]) -> None:
 	_entetes, *rangees = datatable
 	assert _marques(interface) == [[sonore.strip(), infobulle.strip()] for sonore, infobulle in rangees]
+
+
+# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
+
+
+@when(parsers.re(r"je (?P<action>coche|décoche) « détection de blanc »"))
+def cocher_la_detection(interface: Contexte, action: str) -> None:
+	fiche(interface).ui.detection_blancs.setChecked(action == "coche")
+
+
+@then("la case « détection de blanc » de la fiche est décochée")
+def detection_decochee(interface: Contexte) -> None:
+	assert not fiche(interface).ui.detection_blancs.isChecked()
+
+
+@then(parsers.re(r"la banque « (?P<nom>[^»]+) » (?P<verdict>active|n'active pas) la détection de blanc"))
+def detection_en_base(base_vide: Connexion, nom: str, verdict: str) -> None:
+	ligne = base_vide.execute("SELECT detection_blancs FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
+	assert ligne == (verdict == "active",), ligne

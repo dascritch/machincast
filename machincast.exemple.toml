@@ -61,3 +61,11 @@ maximum = 5
 # n'en a pas.
 # debut = 1.5
 # fin = 2
+
+[blancs]
+# Détection de blanc (https://github.com/dascritch/machincast/issues/146), modifiable dans les préférences de
+# l'interface, page « Audio ». Section facultative, comme sa clé.
+# Niveau crête, en dB, sous lequel le début et la fin d'un sonore sont un blanc : 0 dB est la pleine échelle. De -100
+# compris à 0 exclu ; -40 par défaut. L'audit complet mesure les blancs à ce seuil : un nouveau seuil vaut pour les
+# audits suivants. Une banque, ou un sonore, choisit ensuite d'être joué sans ses blancs.
+seuil = -40

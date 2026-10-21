@@ -474,3 +474,43 @@ def crossfades_des_sonores(contexte: Contexte, datatable: list[list[str]]) -> No
 		(emplacement.strip(), _secondes(debut.strip()), _secondes(fin.strip())) for emplacement, debut, fin in rangees
 	]
 	assert lues == attendues, lues
+
+
+# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
+
+
+def _detection(contexte: Contexte, table: str, colonne: str, valeur: object) -> object:
+	requete = sql.SQL("SELECT detection_blancs FROM {} WHERE {} = %s").format(
+		sql.Identifier(table), sql.Identifier(colonne)
+	)
+	ligne = contexte.connexion.execute(requete, (valeur,)).fetchone()
+	assert ligne is not None
+	return ligne[0]
+
+
+@then("la banque de référence n'active pas la détection de blanc")
+def banque_de_reference_sans_detection(contexte: Contexte) -> None:
+	assert _detection(contexte, "banques", "id", contexte.references["banque"]) is False
+
+
+@then("le sonore de référence n'active pas la détection de blanc")
+def sonore_de_reference_sans_detection(contexte: Contexte) -> None:
+	assert _detection(contexte, "sonores", "id", contexte.references["sonore"]) is False
+
+
+@then("le sonore de référence n'a ni début ni fin détectés")
+def sonore_de_reference_sans_blancs(contexte: Contexte) -> None:
+	ligne = contexte.connexion.execute(
+		"SELECT debut_detecte, fin_detectee FROM sonores WHERE id = %s", (contexte.references["sonore"],)
+	).fetchone()
+	assert ligne == (None, None)
+
+
+@then(parsers.parse("la banque « {nom} » n'active pas la détection de blanc"))
+def banque_sans_detection(contexte: Contexte, nom: str) -> None:
+	assert _detection(contexte, "banques", "nom_interne", nom) is False
+
+
+@then(parsers.parse("le sonore « {emplacement} » n'active pas la détection de blanc"))
+def sonore_sans_detection(contexte: Contexte, emplacement: str) -> None:
+	assert _detection(contexte, "sonores", "emplacement", emplacement) is False

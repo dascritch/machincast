@@ -20,11 +20,12 @@ import pytest
 from pytest_bdd import given, parsers, then, when
 
 from machincast.base import Role, connecter
+from machincast.configuration import SEUIL_DE_BLANC
 from machincast.indexation.__main__ import executer
-from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
+from machincast.indexation.decodage import Blancs, DecodeurIndisponible, Verification, verifier_fichier
 from machincast.indexation.indexeur import VERROU
 from machincast.indexation.indexeur import indexer as indexer_complet
-from machincast.indexation.verification import Bilan, texte_bilan
+from machincast.indexation.verification import Bilan, texte_bilan, verifier_sonores
 from tests.base_test import configuration_test, parametres_base_test
 from tests.sons import copie_de_test, corrompre
 
@@ -277,12 +278,16 @@ def indexer(
 	audit_complet: bool,
 	arret: threading.Event | None = None,
 	indexations: list[tuple[datetime, datetime]] | None = None,
+	seuil_blancs: list[float] | None = None,
 ) -> Execution:
 	# Le compte qui lance les tests endosse déjà le rôle de l'indexation (vérifié par base_vide).
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:
 		debut = maintenant_en_base(base_vide)
-		bilan = indexer_complet(c, audit_complet=audit_complet, arret=arret)
+		seuil = SEUIL_DE_BLANC
+		if seuil_blancs:
+			seuil = seuil_blancs[-1]
+		bilan = indexer_complet(c, audit_complet=audit_complet, arret=arret, seuil_blancs=seuil)
 		if indexations is not None:
 			indexations.append((debut, maintenant_en_base(base_vide)))
 		verrou_rendu = verrou_libre()
@@ -294,9 +299,12 @@ def indexer(
 
 @when("l'indexeur fait un audit complet", target_fixture="execution")
 def audit_complet(
-	base_vide: Connexion, caplog: pytest.LogCaptureFixture, indexations: list[tuple[datetime, datetime]]
+	base_vide: Connexion,
+	caplog: pytest.LogCaptureFixture,
+	indexations: list[tuple[datetime, datetime]],
+	seuil_blancs: list[float],
 ) -> Execution:
-	return indexer(base_vide, caplog, audit_complet=True, indexations=indexations)
+	return indexer(base_vide, caplog, audit_complet=True, indexations=indexations, seuil_blancs=seuil_blancs)
 
 
 @when("l'indexeur fait une indexation rapide, dont l'arrêt est déjà demandé", target_fixture="execution")
@@ -452,3 +460,119 @@ def date_de_verification(
 @then("le sonore n'a pas de date de vérification complète")
 def sans_date_de_verification(base_vide: Connexion, sonore: int) -> None:
 	assert verifie_le(base_vide, sonore) is None
+
+
+# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
+
+
+@given(parsers.re(r"un fichier (?P<format_sonore>\w+) avec des blancs"), target_fixture="fichier")
+def fichier_avec_blancs(tmp_path: Path, format_sonore: str) -> Path:
+	return copie_de_test(format_sonore, tmp_path, "blancs")
+
+
+@when(
+	parsers.re(rf"je vérifie ce fichier en détectant les blancs au seuil de (?P<seuil>-?{DECIMAL}) dB"),
+	target_fixture="resultat",
+)
+def verifier_les_blancs(fichier: Path, seuil: str) -> Verification:
+	return verifier_fichier(fichier, seuil_blancs=nombre(seuil))
+
+
+def _proche(valeur: timedelta | None, attendue: str, marge: str) -> bool:
+	return (valeur is not None) and (abs(valeur.total_seconds() - nombre(attendue)) <= nombre(marge))
+
+
+@then(parsers.re(rf"son début détecté est de (?P<attendu>{DECIMAL}) secondes? à (?P<marge>{DECIMAL}) seconde près"))
+def debut_detecte(resultat: Verification, attendu: str, marge: str) -> None:
+	assert resultat.blancs is not None
+	assert _proche(resultat.blancs.debut, attendu, marge), resultat.blancs
+
+
+@then(parsers.re(rf"sa fin détectée est de (?P<attendue>{DECIMAL}) secondes? à (?P<marge>{DECIMAL}) seconde près"))
+def fin_detectee(resultat: Verification, attendue: str, marge: str) -> None:
+	assert resultat.blancs is not None
+	assert _proche(resultat.blancs.fin, attendue, marge), resultat.blancs
+
+
+@then("aucun blanc n'est détecté")
+def aucun_blanc(resultat: Verification) -> None:
+	assert resultat.blancs == Blancs(None, None), resultat.blancs
+
+
+@then("les blancs n'ont pas été mesurés")
+def blancs_non_mesures(resultat: Verification) -> None:
+	assert resultat.blancs is None, resultat.blancs
+
+
+@pytest.fixture
+def seuil_blancs() -> list[float]:
+	"""Le seuil de blanc de la configuration, s'il est donné par le scénario ; celui par défaut sinon."""
+	return []
+
+
+@given(parsers.re(rf"un seuil de blanc de (?P<seuil>-?{DECIMAL}) dB dans la configuration"))
+def seuil_configure(seuil_blancs: list[float], seuil: str) -> None:
+	seuil_blancs.append(nombre(seuil))
+
+
+@given(
+	parsers.re(
+		rf"un sonore à l'état « actif » pour ce fichier, avec (?P<secondes>{DECIMAL}) secondes? de début et de fin"
+		r" détectés"
+	),
+	target_fixture="sonore",
+)
+def sonore_avec_blancs(base_vide: Connexion, fichier: Path, secondes: str) -> int:
+	sonore = inserer_sonore(base_vide, str(fichier), "actif")
+	duree = timedelta(seconds=nombre(secondes))
+	base_vide.execute("UPDATE sonores SET debut_detecte = %s, fin_detectee = %s WHERE id = %s", (duree, duree, sonore))
+	return sonore
+
+
+@given(
+	parsers.re(
+		r"un sonore à l'état « actif » pour ce fichier, dont le début et la fin détectés ont été saisis à la main"
+		rf" à (?P<secondes>{DECIMAL}) secondes?"
+	),
+	target_fixture="sonore",
+)
+def sonore_blancs_edites(base_vide: Connexion, fichier: Path, secondes: str) -> int:
+	sonore = inserer_sonore(base_vide, str(fichier), "actif", ["debut_detecte", "fin_detectee"])
+	duree = timedelta(seconds=nombre(secondes))
+	base_vide.execute("UPDATE sonores SET debut_detecte = %s, fin_detectee = %s WHERE id = %s", (duree, duree, sonore))
+	return sonore
+
+
+@when("l'indexeur fait l'audit complet de ce seul sonore", target_fixture="execution")
+def audit_d_un_sonore(base_vide: Connexion, caplog: pytest.LogCaptureFixture, sonore: int) -> Execution:
+	"""Comme Machin_indexation --audit-complet --sonore N, avec le seuil par défaut."""
+	caplog.clear()
+	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:
+		bilan = verifier_sonores(c, audit_complet=True, identifiants=[sonore])
+	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
+	return Execution(bilan, "\n".join(anomalies))
+
+
+def blancs_en_base(base: Connexion, sonore: int) -> tuple[object, object]:
+	ligne = base.execute("SELECT debut_detecte, fin_detectee FROM sonores WHERE id = %s", (sonore,)).fetchone()
+	assert ligne is not None
+	return ligne[0], ligne[1]
+
+
+@then(
+	parsers.re(
+		rf"en base, le début détecté du sonore est de (?P<debut>{DECIMAL}) secondes? et sa fin détectée"
+		rf" de (?P<fin>{DECIMAL}) secondes?, à (?P<marge>{DECIMAL}) seconde près"
+	)
+)
+def blancs_du_sonore(base_vide: Connexion, sonore: int, debut: str, fin: str, marge: str) -> None:
+	en_base = blancs_en_base(base_vide, sonore)
+	assert all(isinstance(valeur, timedelta) for valeur in en_base), en_base
+	valeur_debut, valeur_fin = (valeur for valeur in en_base if isinstance(valeur, timedelta))
+	assert _proche(valeur_debut, debut, marge), en_base
+	assert _proche(valeur_fin, fin, marge), en_base
+
+
+@then("en base, le sonore n'a ni début ni fin détectés")
+def sans_blancs_en_base(base_vide: Connexion, sonore: int) -> None:
+	assert blancs_en_base(base_vide, sonore) == (None, None)

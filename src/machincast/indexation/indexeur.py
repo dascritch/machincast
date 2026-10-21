@@ -11,13 +11,12 @@ fichiers (arret) : sa fenêtre de journal le demande quand on la ferme
 """
 
 import threading
-from collections.abc import Callable
-from pathlib import Path
 
 import psycopg
 from psycopg.rows import TupleRow
 
-from machincast.indexation.decodage import Verification, verifier_fichier
+from machincast.configuration import SEUIL_DE_BLANC
+from machincast.indexation.decodage import Verificateur, verifier_fichier
 from machincast.indexation.repertoires import indexer_repertoires
 from machincast.indexation.verification import Bilan, verifier_sonores
 
@@ -32,12 +31,14 @@ class IndexationEnCours(Exception):
 def indexer(
 	connexion: psycopg.Connection[TupleRow],
 	audit_complet: bool = False,
-	verifier: Callable[[Path], Verification] = verifier_fichier,
+	verifier: Verificateur = verifier_fichier,
 	arret: threading.Event | None = None,
+	seuil_blancs: float = SEUIL_DE_BLANC,
 ) -> Bilan:
 	"""Parcourt les répertoires des banques, puis vérifie les sonores ; renvoie le bilan des deux étapes.
 
 	arret : une fois posé, l'indexation s'arrête après le fichier en cours ; le travail fait est gardé.
+	seuil_blancs : seuil de blanc de l'audit complet, en dB crête (https://github.com/dascritch/machincast/issues/146).
 	Lève IndexationEnCours si une autre indexation tourne sur la base, DecodeurIndisponible si GStreamer ne sait
 	pas décoder un format.
 	"""
@@ -49,7 +50,7 @@ def indexer(
 	try:
 		bilan = Bilan(audit_complet=audit_complet)
 		indexer_repertoires(connexion, bilan, arret)
-		verifier_sonores(connexion, verifier, audit_complet, bilan, arret=arret)
+		verifier_sonores(connexion, verifier, audit_complet, bilan, arret=arret, seuil_blancs=seuil_blancs)
 	finally:
 		with connexion.transaction():
 			connexion.execute("SELECT pg_advisory_unlock(%s)", (VERROU,))

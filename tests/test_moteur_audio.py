@@ -71,6 +71,25 @@ def voie_preparee(contexte: Contexte, duree: str, debut: str, fin: str) -> None:
 	)
 
 
+@given(
+	parsers.parse(
+		"une voie pour un sonore de {duree} secondes commencé à {decalage} secondes du début du fichier,"
+		" avec {debut} secondes de crossfade de début et {fin} de fin"
+	)
+)
+def voie_rognee(contexte: Contexte, duree: str, decalage: str, debut: str, fin: str) -> None:
+	"""Un sonore rogné par la détection de blanc (https://github.com/dascritch/machincast/issues/146)."""
+	contexte.voie = Voie(
+		FICHIERS_SONORES / "sain.flac",
+		configuration_test().audio,
+		secondes(duree),
+		secondes(debut),
+		secondes(fin),
+		temps_reel=False,
+		decalage=secondes(decalage),
+	)
+
+
 @given("une voie muette, pour un stream")
 def voie_muette(contexte: Contexte) -> None:
 	contexte.voie = Voie("http://127.0.0.1:9/aucun-flux", configuration_test().audio, None, muette=True)
@@ -144,6 +163,27 @@ def moteur_de_test(contexte: Contexte, rythme: str) -> None:
 def jouer(contexte: Contexte, nom: str) -> None:
 	contexte.voies[nom] = moteur(contexte).jouer(FICHIERS_SONORES / nom, timedelta(seconds=1))
 	contexte.demarrages[nom] = time.monotonic()
+
+
+@when(parsers.parse("il joue le fichier de test « {nom} » de {debut} à {fin} seconde du fichier"))
+def jouer_rogne(contexte: Contexte, nom: str, debut: str, fin: str) -> None:
+	contexte.voies[nom] = moteur(contexte).jouer(
+		FICHIERS_SONORES / nom, secondes(fin) - secondes(debut), decalage=secondes(debut)
+	)
+	contexte.voie = contexte.voies[nom]
+
+
+@then(
+	parsers.parse(
+		"elle s'est arrêtée à {fin} seconde du fichier, à {marge} seconde près, après avoir joué {jouee} seconde"
+	)
+)
+def arretee_a(contexte: Contexte, fin: str, marge: str, jouee: str) -> None:
+	voie = contexte.voie
+	assert (voie is not None) and (voie.position_finale is not None)
+	ecart = secondes(marge)
+	assert abs(voie.decalage + voie.position_finale - secondes(fin)) <= ecart, (voie.decalage, voie.position_finale)
+	assert abs(voie.position_finale - secondes(jouee)) <= ecart, voie.position_finale
 
 
 @when("il joue un fichier qui contient du texte")

@@ -165,6 +165,44 @@ Fonctionnalité: Fichier de configuration
 			| crossfades.fin         | 6          | au plus crossfades.maximum |
 			| crossfades.debut       | true       | nombre                     |
 
+	# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ─────────────────
+
+	Scénario: Sans section [blancs], le seuil de blanc est de -40 dB
+		Étant donné une configuration valide sans section "blancs"
+		Quand je charge la configuration
+		Alors le seuil de blanc est de -40 dB
+
+	Plan du scénario: La clé blancs.seuil donne le seuil de blanc, de -100 dB compris à 0 dB exclu
+		Étant donné une configuration valide où la clé "blancs.seuil" vaut <valeur>
+		Quand je charge la configuration
+		Alors le seuil de blanc est de <seuil> dB
+
+		Exemples:
+			| valeur | seuil |
+			| -60    | -60   |
+			| -48.5  | -48,5 |
+			| -100   | -100  |
+			| -0.1   | -0,1  |
+
+	Plan du scénario: Un seuil de blanc invalide est refusé
+		Étant donné une configuration valide où la clé "blancs.seuil" vaut <valeur>
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "blancs.seuil"
+		Et le message mentionne "<attendu>"
+
+		Exemples:
+			| valeur | attendu                          |
+			| 0      | de -100 dB compris à 0 dB exclu  |
+			| 3      | de -100 dB compris à 0 dB exclu  |
+			| -101   | de -100 dB compris à 0 dB exclu  |
+			| "-40"  | nombre                           |
+			| true   | nombre                           |
+
+	Scénario: Une clé inconnue de la section [blancs] est refusée
+		Étant donné une configuration valide où la clé "blancs.duree" vaut 1
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "blancs.duree"
+
 	Scénario: Une clé inconnue est refusée
 		Étant donné une configuration valide où la clé "audio.volume" vaut 80
 		Quand je charge la configuration

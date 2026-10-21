@@ -137,6 +137,23 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Alors sa fenêtre a la sortie « pipewire », l'antenne « carte-1 » et la pré-écoute « casque-usb »
 		Et ses préférences montrent l'antenne « carte-1 » et la pré-écoute « casque-usb », sur la sortie « pipewire »
 
+	Scénario: Le seuil de blanc enregistré va dans la section [blancs] du fichier de configuration
+		https://github.com/dascritch/machincast/issues/146 : le seuil vaut pour les audits complets suivants.
+
+		Étant donné le fichier de configuration de l'interface, avec :
+			"""
+			[blancs]
+			# Seuil de l'antenne du matin.
+			seuil = -50
+			"""
+		Et les préférences seront réglées avec le seuil de blanc -55,5 dB
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors les préférences ont montré le seuil de blanc -50 dB
+		Et le fichier de configuration contient la ligne « seuil = -55.5 »
+		Et le fichier de configuration contient encore « # Seuil de l'antenne du matin. »
+		Et le fichier de configuration contient encore les autres sections
+
 	# ─── Fenêtre des préférences ───────────────────────────────
 
 	Scénario: La page « Interface » montre les réglages, et donne ceux qui sont saisis
@@ -166,6 +183,13 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| bouton  | donnes                                                                               |
 			| OK      | granularité « seconde », maximum 8 s, début par défaut 2 s, fin par défaut aucune |
 			| Annuler | aucun                                                                                |
+
+	Scénario: La page « Audio » montre le seuil de blanc, et donne celui qui est saisi
+		Quand la fenêtre des préférences s'ouvre sur le seuil de blanc -40 dB
+		Alors elle montre le seuil de blanc « -40,0 dB », réglable de -100,0 à -0,1 dB
+		Quand j'y saisis le seuil de blanc -55,5
+		Et j'y clique sur « OK »
+		Alors elle a donné le seuil de blanc -55,5 dB
 
 	Scénario: La page « Audio » montre les périphériques, chacun grisé dans l'autre choix
 		Étant donné les périphériques audio du poste :

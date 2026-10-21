@@ -97,6 +97,17 @@ Fonctionnalité: Boucle de diffusion de Machin lecture
 		Et la diffusion s'arrête
 		Alors le passage « f2 » a commencé avant la fin du passage « f1 »
 
+	Scénario: Un sonore qui active la détection de blanc passe à l'antenne entre son début et sa fin détectés
+		https://github.com/dascritch/machincast/issues/146 : le fichier d'une seconde est joué de 0,25 à 0,75 seconde.
+
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et le sonore « f1 » active la détection de blanc, avec 0,25 seconde de blanc détecté au début et 0,25 à la fin
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne pendant 1,2 seconde en temps réel
+		Et la diffusion s'arrête
+		Alors le passage « f1 » a duré 0,5 seconde, à 0,15 seconde près
+		Et la voie de « f1 » a joué son fichier de 0,25 à 0,75 seconde, à 0,05 seconde près
+
 	Scénario: Sans crossfade de début, le sonore suivant attend la fin du précédent
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
 		Et chaque sonore a 0,5 seconde de crossfade de fin, et aucun de début

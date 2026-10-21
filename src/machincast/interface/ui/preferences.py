@@ -126,6 +126,34 @@ class Ui_FenetrePreferences(object):
 
         self.disposition_audio.addWidget(self.explication_audio)
 
+        self.groupe_blancs = QGroupBox(self.page_audio)
+        self.groupe_blancs.setObjectName(u"groupe_blancs")
+        self.formulaire_blancs = QFormLayout(self.groupe_blancs)
+        self.formulaire_blancs.setObjectName(u"formulaire_blancs")
+        self.etiquette_seuil_blancs = QLabel(self.groupe_blancs)
+        self.etiquette_seuil_blancs.setObjectName(u"etiquette_seuil_blancs")
+
+        self.formulaire_blancs.setWidget(0, QFormLayout.ItemRole.LabelRole, self.etiquette_seuil_blancs)
+
+        self.seuil_blancs = QDoubleSpinBox(self.groupe_blancs)
+        self.seuil_blancs.setObjectName(u"seuil_blancs")
+        self.seuil_blancs.setDecimals(1)
+        self.seuil_blancs.setMinimum(-100.000000000000000)
+        self.seuil_blancs.setMaximum(-0.100000000000000)
+        self.seuil_blancs.setSingleStep(1.000000000000000)
+        self.seuil_blancs.setValue(-40.000000000000000)
+
+        self.formulaire_blancs.setWidget(0, QFormLayout.ItemRole.FieldRole, self.seuil_blancs)
+
+
+        self.disposition_audio.addWidget(self.groupe_blancs)
+
+        self.explication_blancs = QLabel(self.page_audio)
+        self.explication_blancs.setObjectName(u"explication_blancs")
+        self.explication_blancs.setWordWrap(True)
+
+        self.disposition_audio.addWidget(self.explication_blancs)
+
         self.espace_audio = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.disposition_audio.addItem(self.espace_audio)
@@ -145,6 +173,7 @@ class Ui_FenetrePreferences(object):
         self.etiquette_maximum.setBuddy(self.maximum)
         self.etiquette_antenne.setBuddy(self.antenne)
         self.etiquette_preecoute.setBuddy(self.preecoute)
+        self.etiquette_seuil_blancs.setBuddy(self.seuil_blancs)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(FenetrePreferences)
@@ -186,6 +215,13 @@ class Ui_FenetrePreferences(object):
         self.preecoute.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Le p\u00e9riph\u00e9rique de la pr\u00e9-\u00e9coute de l'interface, jamais celui de l'antenne", None))
 #endif // QT_CONFIG(tooltip)
         self.explication_audio.setText(QCoreApplication.translate("FenetrePreferences", u"Machin lecture prend le p\u00e9riph\u00e9rique de l'antenne \u00e0 son prochain d\u00e9marrage ; sans lui, il refuse de diffuser. La pr\u00e9-\u00e9coute ne peut jamais utiliser le p\u00e9riph\u00e9rique de l'antenne : chacun est gris\u00e9 dans l'autre choix.", None))
+        self.groupe_blancs.setTitle(QCoreApplication.translate("FenetrePreferences", u"D\u00e9tection de blanc", None))
+        self.etiquette_seuil_blancs.setText(QCoreApplication.translate("FenetrePreferences", u"&Seuil de blanc", None))
+#if QT_CONFIG(tooltip)
+        self.seuil_blancs.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Niveau cr\u00eate sous lequel le d\u00e9but et la fin d'un sonore sont un blanc ; 0 dB est la pleine \u00e9chelle", None))
+#endif // QT_CONFIG(tooltip)
+        self.seuil_blancs.setSuffix(QCoreApplication.translate("FenetrePreferences", u" dB", None))
+        self.explication_blancs.setText(QCoreApplication.translate("FenetrePreferences", u"L'audit complet mesure les blancs au d\u00e9but et \u00e0 la fin de chaque fichier \u00e0 ce seuil ; un nouveau seuil vaut pour les audits suivants. Une banque, ou un sonore, choisit d'\u00eatre jou\u00e9 sans ses blancs.", None))
         self.pages.setTabText(self.pages.indexOf(self.page_audio), QCoreApplication.translate("FenetrePreferences", u"Audio", None))
     # retranslateUi
 

@@ -136,7 +136,9 @@ class MoteurSimule:
 		crossfade_debut: timedelta = timedelta(0),
 		crossfade_fin: timedelta = timedelta(0),
 		muette: bool = False,
+		decalage: timedelta | None = None,
 	) -> VoieLecture:
+		"""La durée d'un sonore rogné est déjà sans ses blancs : le décalage ne change rien à la voie simulée."""
 		voie = VoieSimulee(self.horloge, duree)
 		self._voies.append(voie)
 		return voie

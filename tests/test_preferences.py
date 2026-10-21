@@ -109,7 +109,8 @@ def contient_encore(interface: Contexte, ligne: str) -> None:
 def autres_sections(interface: Contexte, hors_audio: str | None) -> None:
 	avant = tomllib.loads(interface.configuration_initiale.decode("utf-8"))
 	apres = tomllib.loads(fichier_de_configuration(interface).read_text(encoding="utf-8"))
-	retirees = ["crossfades"]
+	# Les préférences tiennent toujours [crossfades] et [blancs] (https://github.com/dascritch/machincast/issues/146).
+	retirees = ["crossfades", "blancs"]
 	if hors_audio is not None:
 		retirees.append("audio")
 	for section in retirees:
@@ -474,3 +475,48 @@ def preferences_de_la_fenetre(
 	assert lancement.montres is not None
 	montres, sortie_montree = lancement.montres
 	assert (montres.antenne, montres.preecoute, sortie_montree) == (antenne, preecoute, sortie)
+
+
+# ─── Seuil de blanc (https://github.com/dascritch/machincast/issues/146) ───
+
+
+def _decibels(texte: str) -> float:
+	return float(texte.replace(",", "."))
+
+
+@given(parsers.re(r"les préférences seront réglées avec le seuil de blanc (?P<seuil>-?[\d,]+) dB"))
+def seuil_regle(interface: Contexte, seuil: str) -> None:
+	interface.seuil_regle = _decibels(seuil)
+
+
+@then(parsers.re(r"les préférences ont montré le seuil de blanc (?P<seuil>-?[\d,]+) dB"))
+def seuil_montre(interface: Contexte, seuil: str) -> None:
+	assert interface.seuils_montres == [_decibels(seuil)]
+
+
+@when(parsers.re(r"la fenêtre des préférences s'ouvre sur le seuil de blanc (?P<seuil>-?[\d,]+) dB"))
+def ouvrir_sur_le_seuil(ouverte: Ouverte, parent: QWidget, seuil: str) -> None:
+	tous = Reglages(Crossfades(), None, PREECOUTE_DES_TESTS, _decibels(seuil))
+	ouverte.fenetre = FenetrePreferences(tous, "factice", parent)
+
+
+@then(
+	parsers.re(
+		r"elle montre le seuil de blanc « (?P<texte>[^»]+) », réglable de (?P<minimum>-?[\d,]+)"
+		r" à (?P<maximum>-?[\d,]+) dB"
+	)
+)
+def seuil_affiche(ouverte: Ouverte, texte: str, minimum: str, maximum: str) -> None:
+	champ = la_fenetre(ouverte).ui.seuil_blancs
+	assert (champ.text(), champ.minimum(), champ.maximum()) == (texte, _decibels(minimum), _decibels(maximum))
+
+
+@when(parsers.re(r"j'y saisis le seuil de blanc (?P<seuil>-?[\d,]+)"))
+def saisir_le_seuil(ouverte: Ouverte, seuil: str) -> None:
+	la_fenetre(ouverte).ui.seuil_blancs.setValue(_decibels(seuil))
+
+
+@then(parsers.re(r"elle a donné le seuil de blanc (?P<seuil>-?[\d,]+) dB"))
+def seuil_donne(ouverte: Ouverte, seuil: str) -> None:
+	assert ouverte.donnes is not None
+	assert ouverte.donnes.seuil_blancs == _decibels(seuil)

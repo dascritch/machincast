@@ -101,6 +101,21 @@ class Crossfades:
 	"""Pas des crossfades dans l'interface : à la seconde ou au dixième de seconde."""
 
 
+SEUIL_DE_BLANC = -40.0
+"""Seuil de blanc par défaut, en dB crête : 0 dB est la pleine échelle (https://github.com/dascritch/machincast/issues/146)."""
+SEUIL_DE_BLANC_MINIMUM = -100.0
+"""Seuil de blanc le plus bas accepté, compris ; le plus haut est 0 dB, exclu."""
+
+
+@dataclass(frozen=True)
+class Blancs:
+	"""Détection de blanc (https://github.com/dascritch/machincast/issues/146), section [blancs]."""
+
+	seuil: float = SEUIL_DE_BLANC
+	"""Niveau crête, en dB, sous lequel le début et la fin d'un sonore sont un blanc : l'audit complet mesure les
+	blancs à ce seuil."""
+
+
 @dataclass(frozen=True)
 class Configuration:
 	chemin: Path
@@ -110,6 +125,7 @@ class Configuration:
 	metadonnees: Metadonnees
 	lecture: Lecture
 	crossfades: Crossfades = field(default_factory=Crossfades)
+	blancs: Blancs = field(default_factory=Blancs)
 
 
 # Clés connues, par section. Toute autre clé est refusée, pour détecter les fautes de frappe.
@@ -120,6 +136,7 @@ CLES: dict[str, frozenset[str]] = {
 	"metadonnees": frozenset({"masquer", "texte_public"}),
 	"lecture": frozenset({"socket_etat"}),
 	"crossfades": frozenset({"granularite", "maximum", "debut", "fin"}),
+	"blancs": frozenset({"seuil"}),
 }
 
 
@@ -223,6 +240,18 @@ class _Lecteur:
 			durees.append(timedelta(seconds=duree))
 		return Crossfades(durees[0], durees[1], maximum, granularite)
 
+	def blancs(self) -> Blancs:
+		"""La section [blancs], facultative, comme sa clé."""
+		seuil = self.nombre_facultatif("blancs", "seuil")
+		if seuil is None:
+			return Blancs()
+		if not (SEUIL_DE_BLANC_MINIMUM <= seuil < 0):
+			raise self.erreur(
+				f"clé blancs.seuil : un nombre de dB de {SEUIL_DE_BLANC_MINIMUM:g} dB compris à 0 dB exclu est attendu,"
+				f" {seuil:g} trouvé"
+			)
+		return Blancs(seuil)
+
 	def chemin_fichier(self, section: str, cle: str) -> Path:
 		"""Chemin absolu tel quel ; chemin relatif résolu depuis le répertoire du fichier de configuration."""
 		chemin = Path(self.texte(section, cle)).expanduser()
@@ -311,4 +340,5 @@ def charger(chemin: Path | None = None) -> Configuration:
 		),
 		lecture=lecture,
 		crossfades=lecteur.crossfades(),
+		blancs=lecteur.blancs(),
 	)

@@ -15,6 +15,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QCloseEvent, QFontDatabase
 from PySide6.QtWidgets import QWidget
 
+from machincast.configuration import SEUIL_DE_BLANC
 from machincast.indexation.__main__ import EXECUTABLE
 from machincast.interface import dialogues
 from machincast.interface.application import application
@@ -23,7 +24,14 @@ from machincast.interface.ui.journal_indexation import Ui_FenetreJournal
 
 
 class FenetreJournal(QWidget):
-	def __init__(self, socket: Path, base: str, audit_complet: bool, parent: QWidget | None = None) -> None:
+	def __init__(
+		self,
+		socket: Path,
+		base: str,
+		audit_complet: bool,
+		parent: QWidget | None = None,
+		seuil_blancs: float = SEUIL_DE_BLANC,
+	) -> None:
 		super().__init__(parent, Qt.WindowType.Window)
 		self.ui = Ui_FenetreJournal()
 		self.ui.setupUi(self)
@@ -33,7 +41,7 @@ class FenetreJournal(QWidget):
 		self.setWindowTitle(TITRES[audit_complet])
 		self.anomalies: list[str] = []
 		"""Les lignes d'anomalie et d'erreur de l'indexation."""
-		self.indexation = Indexation(socket, base, self)
+		self.indexation = Indexation(socket, base, self, seuil_blancs)
 		self.indexation.ligne.connect(self.ajouter)
 		self.indexation.termine.connect(self.conclure)
 
@@ -70,9 +78,9 @@ class FenetreJournal(QWidget):
 		super().closeEvent(evenement)
 
 
-def lancer_fenetre(socket: Path, base: str, audit_complet: bool) -> int:
+def lancer_fenetre(socket: Path, base: str, audit_complet: bool, seuil_blancs: float = SEUIL_DE_BLANC) -> int:
 	"""Machin indexation --fenetre : la fenêtre du journal, jusqu'à sa fermeture."""
 	qt = application(EXECUTABLE)
-	fenetre = FenetreJournal(socket, base, audit_complet)
+	fenetre = FenetreJournal(socket, base, audit_complet, seuil_blancs=seuil_blancs)
 	fenetre.lancer()
 	return qt.exec()

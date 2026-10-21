@@ -44,7 +44,7 @@ from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import QLabel, QMainWindow, QTabBar, QWidget
 
 from machincast import service
-from machincast.configuration import Audio, Crossfades
+from machincast.configuration import Audio, Blancs, Crossfades
 from machincast.horloge import Horloge
 from machincast.interface import dialogues, indexation, pilotage, preferences, version
 from machincast.interface.ajout import ajouter_fichiers
@@ -117,11 +117,13 @@ class FenetrePrincipale(QMainWindow):
 		crossfades: Crossfades | None = None,
 		*,
 		audio: Audio,
+		blancs: Blancs | None = None,
 	) -> None:
 		"""commande_indexation : Machin indexation, avec la configuration de l'interface
 		(indexation.commande_indexation). configuration : le fichier où « Préférences… » enregistre les réglages,
 		crossfades ceux qu'il donne (https://github.com/dascritch/machincast/issues/145) ; sans fichier, les
-		préférences ne s'enregistrent pas."""
+		préférences ne s'enregistrent pas. blancs : la détection de blanc qu'il donne
+		(https://github.com/dascritch/machincast/issues/146)."""
 		super().__init__(parent)
 		self.configuration = configuration
 		self.audio = audio
@@ -129,6 +131,8 @@ class FenetrePrincipale(QMainWindow):
 		self.preecoute: FenetrePreecoute | None = None
 		"""La fenêtre de pré-écoute, une seule pour toute l'interface, créée à sa première demande."""
 		preferences.definir((crossfades) or (Crossfades()))
+		self.seuil_blancs = ((blancs) or (Blancs())).seuil
+		"""Seuil de blanc du fichier de configuration, que montrent les préférences."""
 		self.connexion = connexion
 		self.horloge = horloge
 		self.ui = Ui_FenetrePrincipale()
@@ -496,7 +500,7 @@ class FenetrePrincipale(QMainWindow):
 		ouvertes ensuite ; un fichier qui ne s'écrit pas les laisse inchangées, et la barre d'état le dit."""
 		assert self.configuration is not None
 		audio = self.audio
-		montres = preferences.Reglages(preferences.crossfades(), audio.peripherique, audio.preecoute)
+		montres = preferences.Reglages(preferences.crossfades(), audio.peripherique, audio.preecoute, self.seuil_blancs)
 		reglages = dialogues.regler_preferences(self, montres, audio.sortie)
 		if reglages is None:
 			return
@@ -506,6 +510,7 @@ class FenetrePrincipale(QMainWindow):
 			self.statusBar().showMessage(f"Préférences non enregistrées dans {self.configuration} : {erreur}")
 			return
 		preferences.definir(reglages.crossfades)
+		self.seuil_blancs = reglages.seuil_blancs
 		texte = "les crossfades par défaut"
 		if reglages.antenne != audio.peripherique:
 			texte = "les crossfades par défaut et le périphérique de l'antenne"

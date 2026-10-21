@@ -345,3 +345,10 @@ def defauts(contexte: Contexte, debut: str, fin: str) -> None:
 	crossfades = contexte.configuration.crossfades
 	attendus = tuple(timedelta(seconds=float(valeur.replace(",", "."))) for valeur in (debut, fin))
 	assert (crossfades.debut, crossfades.fin) == attendus
+
+
+@then(parsers.re(r"le seuil de blanc est de (?P<seuil>-?[\d,]+) dB"))
+def seuil_de_blanc(contexte: Contexte, seuil: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/146"""
+	assert contexte.configuration is not None, contexte.erreur
+	assert contexte.configuration.blancs.seuil == float(seuil.replace(",", "."))

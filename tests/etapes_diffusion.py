@@ -17,13 +17,13 @@ import pytest
 from pytest_bdd import given, parsers, then, when
 
 from machincast.base import Role, connecter
-from machincast.configuration import Crossfades
+from machincast.configuration import Audio, Crossfades
 from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe
 from machincast.lecture.analyse import Analyseur
 from machincast.lecture.diffusion import Diffusion
 from machincast.lecture.etat import SocketEtat
-from machincast.lecture.moteur import MoteurAudio
+from machincast.lecture.moteur import MoteurAudio, Voie
 from machincast.lecture.sorties import Sorties
 from tests.base_test import configuration_test, parametres_base_test
 from tests.flux import ServeurDeFlux
@@ -35,11 +35,32 @@ DELAI_RECONNEXION_TEST = timedelta(seconds=0.2)
 """Délai entre deux tentatives de reconnexion d'un stream, raccourci pour les scénarios."""
 
 
+class MoteurNote(MoteurAudio):
+	"""Le moteur audio de la diffusion, qui garde chaque voie jouée, par fichier, même finie."""
+
+	def __init__(self, audio: Audio, temps_reel: bool = True) -> None:
+		super().__init__(audio, temps_reel)
+		self.jouees: dict[str, Voie] = {}
+
+	def jouer(
+		self,
+		chemin: Path | str,
+		duree: timedelta | None,
+		crossfade_debut: timedelta = timedelta(0),
+		crossfade_fin: timedelta = timedelta(0),
+		muette: bool = False,
+		decalage: timedelta | None = None,
+	) -> Voie:
+		voie = super().jouer(chemin, duree, crossfade_debut, crossfade_fin, muette, decalage)
+		self.jouees[str(chemin)] = voie
+		return voie
+
+
 @dataclass
 class Banc:
 	horloge: HorlogeFixe | None = None
 	diffusion: Diffusion | None = None
-	moteur: MoteurAudio | None = None
+	moteur: MoteurNote | None = None
 	connexion: Connexion | None = None
 	sorties: Sorties | None = None
 	"""Modules de sortie de la diffusion ; aucun par défaut."""
@@ -337,13 +358,58 @@ def crossfade_de_fin(base_vide: Connexion, duree: str) -> None:
 	base_vide.execute("UPDATE sonores SET crossfade_fin = %s", (timedelta(seconds=secondes(duree)),))
 
 
+# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
+
+
+@given(
+	parsers.re(
+		r"chaque sonore a (?:aucun blanc détecté|(?P<debut>[\d,]+) secondes? de blanc détecté au début"
+		r"(?:, et aucun à la fin| et (?P<fin>[\d,]+) à la fin))"
+	)
+)
+def blancs_detectes(base_vide: Connexion, debut: str | None, fin: str | None) -> None:
+	"""La fin détectée se compte depuis la fin du fichier ; aucun blanc détecté : NULL."""
+	durees: list[timedelta | None] = []
+	for valeur in (debut, fin):
+		duree = None
+		if valeur is not None:
+			duree = timedelta(seconds=secondes(valeur))
+		durees.append(duree)
+	base_vide.execute(
+		"UPDATE sonores SET debut_detecte = %s, fin_detectee = %s WHERE type = 'fichier'", (durees[0], durees[1])
+	)
+
+
+@given(parsers.parse("la banque « {nom} » active la détection de blanc"))
+def banque_detecte_les_blancs(base_vide: Connexion, nom: str) -> None:
+	base_vide.execute("UPDATE banques SET detection_blancs = true WHERE nom_interne = %s", (nom,))
+
+
+@given(parsers.re(r"le sonore « (?P<nom>[^»]+) » active la détection de blanc$"))
+def sonore_detecte_les_blancs(base_vide: Connexion, nom: str) -> None:
+	base_vide.execute("UPDATE sonores SET detection_blancs = true WHERE id = %s", (sonore(base_vide, nom),))
+
+
+@given(
+	parsers.re(
+		r"le sonore « (?P<nom>[^»]+) » active la détection de blanc, avec (?P<debut>[\d,]+) secondes? de blanc"
+		r" détecté au début et (?P<fin>[\d,]+) à la fin"
+	)
+)
+def sonore_rogne(base_vide: Connexion, nom: str, debut: str, fin: str) -> None:
+	base_vide.execute(
+		"UPDATE sonores SET detection_blancs = true, debut_detecte = %s, fin_detectee = %s WHERE id = %s",
+		(timedelta(seconds=secondes(debut)), timedelta(seconds=secondes(fin)), sonore(base_vide, nom)),
+	)
+
+
 # ─── Quand ─────────────────────────────────────────────────
 
 
 @when(parsers.re(r"la diffusion démarre (?P<rythme>au plus vite|en temps réel)"))
 def demarrer(banc: Banc, base_vide: Connexion, rythme: str) -> None:
 	banc.connexion = connecter(*parametres_base_test(), Role.LECTURE)
-	banc.moteur = MoteurAudio(configuration_test().audio, temps_reel=rythme == "en temps réel")
+	banc.moteur = MoteurNote(configuration_test().audio, temps_reel=rythme == "en temps réel")
 	banc.diffusion = Diffusion(
 		banc.connexion,
 		banc.moteur,
@@ -558,3 +624,23 @@ def stream_direct(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, flux: 
 	base_vide.execute(
 		"INSERT INTO sonores (type, url_stream, titre) VALUES ('stream', %s, %s)", (serveur.adresse(flux), nom)
 	)
+
+
+@then(parsers.parse("le passage « {nom} » a duré {duree} seconde, à {marge} seconde près"))
+def duree_du_passage(base_vide: Connexion, nom: str, duree: str, marge: str) -> None:
+	"""Du début à la fin du passage, à l'heure du binaire (https://github.com/dascritch/machincast/issues/146)."""
+	trouves = [(debut, fin) for titre, debut, fin, _ in passages(base_vide) if titre == nom]
+	assert trouves, f"aucun passage de {nom}"
+	debut, fin = trouves[0]
+	assert fin is not None, f"passage de {nom} sans fin"
+	assert abs((fin - debut).total_seconds() - secondes(duree)) <= secondes(marge), fin - debut
+
+
+@then(parsers.parse("la voie de « {nom} » a joué son fichier de {debut} à {fin} seconde, à {marge} seconde près"))
+def voie_jouee(banc: Banc, nom: str, debut: str, fin: str, marge: str) -> None:
+	assert banc.moteur is not None
+	voie = banc.moteur.jouees[str(banc.fichiers[nom])]
+	assert voie.position_finale is not None, voie.etat
+	ecart = secondes(marge)
+	assert abs(voie.decalage.total_seconds() - secondes(debut)) <= ecart, voie.decalage
+	assert abs((voie.decalage + voie.position_finale).total_seconds() - secondes(fin)) <= ecart, voie.position_finale

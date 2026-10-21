@@ -10,6 +10,10 @@ moindre erreur, en donnant un son plus court ou parasité. Le décodage examine 
 3. une durée décodée plus courte que la durée annoncée par l'en-tête : fichier tronqué ou trames
    perdues, fichier endommagé.
 
+Pendant l'audit complet, le décodage mesure aussi les blancs au début et à la fin du fichier
+(https://github.com/dascritch/machincast/issues/146) : un élément level relève le niveau crête de chaque tranche de
+INTERVALLE_DES_BLANCS, et le blanc s'arrête à la première tranche dont le canal le plus fort atteint le seuil.
+
 Limites, propres aux formats : un WAV ou un AIFF n'a ni somme de contrôle ni structure en trames,
 des octets altérés y passent inaperçus ; un WAV, un Ogg ou un MP3 sans en-tête de durée tronqué se
 décode comme un fichier plus court, sans rien qui le distingue d'un fichier sain.
@@ -20,6 +24,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import StrEnum
 from pathlib import Path
+from typing import Protocol
 
 import gi
 
@@ -49,6 +54,9 @@ TOLERANCE_RELATIVE = 0.001
 
 PAS_D_ATTENTE = timedelta(milliseconds=250)
 
+INTERVALLE_DES_BLANCS = timedelta(milliseconds=10)
+"""Durée des tranches dont le niveau crête est mesuré : la précision des blancs détectés."""
+
 PAQUETS_DECODEURS = "gstreamer1.0-plugins-base, gstreamer1.0-plugins-good et gstreamer1.0-plugins-bad"
 
 
@@ -64,6 +72,17 @@ class EtatFichier(StrEnum):
 
 
 @dataclass(frozen=True)
+class Blancs:
+	"""Blancs détectés au début et à la fin d'un fichier (https://github.com/dascritch/machincast/issues/146).
+
+	La fin se compte depuis la fin du son décodé : c'est la durée du blanc final. Un fichier qui n'atteint jamais le
+	seuil n'a ni l'un ni l'autre (None)."""
+
+	debut: timedelta | None
+	fin: timedelta | None
+
+
+@dataclass(frozen=True)
 class Verification:
 	etat: EtatFichier
 	duree: timedelta | None
@@ -72,14 +91,22 @@ class Verification:
 	"""Description du problème, commençant par l'état (« endommagé : … ») ; None pour un fichier sain."""
 	tags: Tags = field(default_factory=lambda: Tags(None, None, {}))
 	"""Tags lus pendant le décodage (https://github.com/dascritch/machincast/issues/8)."""
+	blancs: Blancs | None = None
+	"""Blancs mesurés pendant le décodage d'un fichier sain ; None s'ils n'ont pas été mesurés, sans seuil."""
 
 	@classmethod
-	def sain(cls, duree: timedelta, tags: Tags | None = None) -> "Verification":
-		return cls(EtatFichier.SAIN, duree, tags=(tags) or (Tags(None, None, {})))
+	def sain(cls, duree: timedelta, tags: Tags | None = None, blancs: Blancs | None = None) -> "Verification":
+		return cls(EtatFichier.SAIN, duree, tags=(tags) or (Tags(None, None, {})), blancs=blancs)
 
 	@classmethod
 	def defectueux(cls, etat: EtatFichier, detail: str, duree: timedelta | None = None) -> "Verification":
 		return cls(etat, duree, f"{etat} : {detail}")
+
+
+class Verificateur(Protocol):
+	"""Ce que l'indexeur appelle pour vérifier un fichier : verifier_fichier, ou ce qui le remplace."""
+
+	def __call__(self, chemin: Path, *, seuil_blancs: float | None = None) -> Verification: ...
 
 
 class DecodeurIndisponible(Exception):
@@ -98,6 +125,26 @@ class _Suivi:
 	ruptures: int = 0
 	debut: int | None = None
 	fin: int = 0
+
+
+@dataclass
+class _Niveaux:
+	"""Les tranches dont le niveau crête atteint le seuil : la première et la dernière, en nanosecondes."""
+
+	seuil: float
+	premier_son: int | None = None
+	fin_du_son: int | None = None
+
+	def noter(self, structure: Gst.Structure) -> None:
+		"""Un message de l'élément level : le niveau crête de chaque canal, en dB, sur une tranche."""
+		cretes = [float(valeur) for valeur in ((structure.get_value("peak")) or ([]))]
+		if (not cretes) or (max(cretes) < self.seuil):
+			return
+		debut = int(str(structure.get_value("timestamp")))
+		fin = debut + int(str(structure.get_value("duration")))
+		if self.premier_son is None:
+			self.premier_son = debut
+		self.fin_du_son = max(fin, (self.fin_du_son) or (0))
 
 
 def _sonder(suivi: _Suivi) -> Callable[[Gst.Pad, Gst.PadProbeInfo], Gst.PadProbeReturn]:
@@ -127,20 +174,35 @@ def _nanosecondes(valeur: int) -> timedelta:
 
 
 class _Decodage:
-	"""Un pipeline filesrc ! decodebin ! audioconvert ! fakesink, aussi rapide que le disque le permet."""
+	"""Un pipeline filesrc ! decodebin ! audioconvert ! fakesink, aussi rapide que le disque le permet.
 
-	def __init__(self, chemin: Path) -> None:
+	Avec un seuil de blanc, un élément level, entre audioconvert et fakesink, mesure le niveau crête de chaque
+	tranche (https://github.com/dascritch/machincast/issues/146)."""
+
+	def __init__(self, chemin: Path, seuil_blancs: float | None = None) -> None:
 		self.pipeline = Gst.Pipeline.new("verification")
-		elements = [Gst.ElementFactory.make(nom, None) for nom in ("filesrc", "decodebin", "audioconvert", "fakesink")]
+		noms = ["filesrc", "decodebin", "audioconvert", "fakesink"]
+		if seuil_blancs is not None:
+			noms.insert(3, "level")
+		elements = [Gst.ElementFactory.make(nom, None) for nom in noms]
 		if any(element is None for element in elements):
 			raise DecodeurIndisponible(f"éléments GStreamer de base introuvables : installer {PAQUETS_DECODEURS}")
-		source, decodeur, self.conversion, puits = (element for element in elements if element is not None)
+		trouves = [element for element in elements if element is not None]
+		source, decodeur, self.conversion, puits = trouves[0], trouves[1], trouves[2], trouves[-1]
 		source.set_property("location", str(chemin))
 		puits.set_property("sync", False)
-		for element in (source, decodeur, self.conversion, puits):
+		for element in trouves:
 			self.pipeline.add(element)
 		source.link(decodeur)
-		self.conversion.link(puits)
+		for amont, aval in zip(trouves[2:], trouves[3:], strict=False):
+			amont.link(aval)
+		self.niveaux: _Niveaux | None = None
+		self.mesure: Gst.Element | None = None
+		if seuil_blancs is not None:
+			self.niveaux = _Niveaux(seuil_blancs)
+			self.mesure = trouves[3]
+			self.mesure.set_property("interval", round(INTERVALLE_DES_BLANCS.total_seconds() * Gst.SECOND))
+			self.mesure.set_property("post-messages", True)
 		self.decodeur = decodeur
 		self.liaison = decodeur.connect("pad-added", self._relier)
 		"""Le gestionnaire de decodebin retient ce décodage, qui retient le pipeline : un cycle que le ramasse-miettes
@@ -203,6 +265,14 @@ class _Decodage:
 				continue
 			if message.type == Gst.MessageType.ELEMENT:
 				structure = message.get_structure()
+				if (
+					(self.niveaux is not None)
+					and (structure is not None)
+					and (message.src == self.mesure)
+					and (structure.get_name() == "level")
+				):
+					self.niveaux.noter(structure)
+					continue
 				if (structure is not None) and (structure.get_name() == "missing-plugin"):
 					detail = structure.get_value("detail")
 					self.decodeur_absent = str(detail)
@@ -225,13 +295,28 @@ class _Decodage:
 			return None
 		return _nanosecondes(self.suivi.fin - self.suivi.debut)
 
+	def blancs(self) -> Blancs | None:
+		"""Les blancs mesurés, comptés depuis le début et la fin du son décodé ; None sans mesure."""
+		niveaux = self.niveaux
+		if niveaux is None:
+			return None
+		if (niveaux.premier_son is None) or (niveaux.fin_du_son is None) or (self.suivi.debut is None):
+			return Blancs(None, None)
+		debut = max(0, niveaux.premier_son - self.suivi.debut)
+		fin = max(0, self.suivi.fin - niveaux.fin_du_son)
+		return Blancs(_nanosecondes(debut), _nanosecondes(fin))
+
 
 def verifier_fichier(
 	chemin: Path,
 	delai_sans_progression: timedelta = DELAI_SANS_PROGRESSION,
 	delai_demarrage: timedelta = DELAI_DEMARRAGE,
+	seuil_blancs: float | None = None,
 ) -> Verification:
 	"""Décode le fichier en entier et rend son verdict, avec la durée effectivement décodée.
+
+	Avec un seuil de blanc, en dB crête, le verdict d'un fichier sain donne aussi les blancs mesurés au début et à la
+	fin (https://github.com/dascritch/machincast/issues/146).
 
 	Un décodage qui ne démarre pas est repris, jusqu'à TENTATIVES fois. Lève DecodeurIndisponible si GStreamer
 	n'a pas de décodeur pour ce format.
@@ -240,7 +325,7 @@ def verifier_fichier(
 		return Verification.defectueux(EtatFichier.INTROUVABLE, "aucun fichier à cet emplacement")
 	Gst.init(None)
 	for _ in range(TENTATIVES):
-		resultat = _tentative(chemin, delai_demarrage, delai_sans_progression)
+		resultat = _tentative(chemin, delai_demarrage, delai_sans_progression, seuil_blancs)
 		if resultat is not None:
 			return resultat
 	return Verification.defectueux(
@@ -249,9 +334,11 @@ def verifier_fichier(
 	)
 
 
-def _tentative(chemin: Path, delai_demarrage: timedelta, delai_sans_progression: timedelta) -> Verification | None:
+def _tentative(
+	chemin: Path, delai_demarrage: timedelta, delai_sans_progression: timedelta, seuil_blancs: float | None = None
+) -> Verification | None:
 	"""Un décodage complet ; None s'il s'est bloqué avant le moindre son décodé, pour qu'il soit repris."""
-	decodage = _Decodage(chemin)
+	decodage = _Decodage(chemin, seuil_blancs)
 	bloque = Verification.defectueux(
 		EtatFichier.ILLISIBLE,
 		f"décodage bloqué, aucun son décodé pendant {_en_secondes(delai_sans_progression)}",
@@ -295,4 +382,4 @@ def _tentative(chemin: Path, delai_demarrage: timedelta, delai_sans_progression:
 				" fichier tronqué ou trames perdues",
 				duree,
 			)
-	return Verification.sain(duree, extraire(decodage.tags))
+	return Verification.sain(duree, extraire(decodage.tags), decodage.blancs())

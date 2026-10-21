@@ -50,6 +50,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 
 - `machincast.lecture.diffusion.Diffusion` ([#88](https://github.com/dascritch/machincast/issues/88)) assemble l'ordonnanceur, le moteur, la vérification des fichiers et l'enregistrement. Elle avance par `pas()`, à l'heure de l'`Horloge` reçue : les tests la font tourner pas à pas avec une `HorlogeFixe`, sur la sortie factice, au plus vite ou en temps réel.
 - Le moment d'enchaîner vient de la position de la voie (`duree - crossfade_fin`) ; les heures de l'airplay et du log viennent de l'horloge.
+- Détection de blanc ([#146](https://github.com/dascritch/machincast/issues/146)) : `lire_parametres` décide seul du rognage (`rognage`), et donne au moteur la durée sans les blancs et le début détecté (`Parametres.decalage`) ; le reste de la diffusion ne voit que cette durée. Une voie rognée (`decalage` non `None`) pré-lit son fichier puis le borne par une recherche, et compte sa position, son enveloppe et ses fondus depuis son début détecté ; une voie sans décalage joue le fichier en entier, sans recherche. Le fichier n'est jamais modifié.
 - Un fichier introuvable est écarté par `Ordonnanceur.exclure` pendant `REESSAI_FICHIER_INTROUVABLE` ; `prochain` et `choisir_sonore` reçoivent ces sonores écartés et les traitent comme non jouables.
 - Les signaux ne font que lever un `threading.Event` (`installer_arret`) : l'arrêt se fait entre deux pas, jamais au milieu d'une écriture.
 
