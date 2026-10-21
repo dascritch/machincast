@@ -40,7 +40,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QTimer, Signal
-from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
+from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import QLabel, QMainWindow, QTabBar, QWidget
 
 from machincast import service
@@ -101,6 +101,8 @@ REGLER_L_ANTENNE = (
 )
 DEJA_EN_MARCHE = "La diffusion d'essai tourne déjà"
 
+RACCOURCIS_DES_ONGLETS = 12
+"""Les onglets qui ont un raccourci, Maj+F1 à Maj+F12 (https://github.com/dascritch/machincast/issues/192)."""
 AJOUT_A_DES_BANQUES = "Les sonores choisis s'ajoutent à la fin de chaque banque."
 """Remarque du choix des banques où ajouter des sonores (https://github.com/dascritch/machincast/issues/114)."""
 RETRAIT_DE_BANQUES = "Seules les banques où figure l'un des sonores choisis sont proposées."
@@ -200,6 +202,7 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.onglets.currentChanged.connect(self._onglet_ouvert)
 		self._garantir_fil_musical()
 		self.ui.onglets.tabCloseRequested.connect(self._fermer)
+		self._creer_les_raccourcis()
 
 	def _garnir_menus(self) -> None:
 		"""Fichier, Affichage, Diffusion, Maintenance, Aide ; une fonction à venir a son entrée, inactive, avec son
@@ -344,9 +347,39 @@ class FenetrePrincipale(QMainWindow):
 
 	def _ajouter_fixe(self, ecran: QWidget, titre: str) -> None:
 		"""Un onglet sans bouton de fermeture."""
-		indice = self.ui.onglets.addTab(ecran, titre)
+		indice = self._ajouter_onglet(ecran, titre)
 		for cote in (QTabBar.ButtonPosition.LeftSide, QTabBar.ButtonPosition.RightSide):
 			self.ui.onglets.tabBar().setTabButton(indice, cote, None)
+
+	def _ajouter_onglet(self, ecran: QWidget, titre: str) -> int:
+		"""Tout onglet s'ajoute par ici, et se retire par _retirer_onglet : les raccourcis suivent."""
+		indice = self.ui.onglets.addTab(ecran, titre)
+		self._numeroter_les_onglets()
+		return indice
+
+	def _retirer_onglet(self, indice: int) -> None:
+		self.ui.onglets.removeTab(indice)
+		self._numeroter_les_onglets()
+
+	def _creer_les_raccourcis(self) -> None:
+		"""Maj+F1 à Maj+F12 : les 12 premiers onglets, selon leur rang
+		(https://github.com/dascritch/machincast/issues/192)."""
+		for rang in range(RACCOURCIS_DES_ONGLETS):
+			raccourci = QShortcut(QKeySequence(f"Shift+F{rang + 1}"), self)
+			raccourci.activated.connect(lambda rang=rang: self._aller_a_l_onglet(rang))
+
+	def _aller_a_l_onglet(self, rang: int) -> None:
+		if rang < self.ui.onglets.count():
+			self.ui.onglets.setCurrentIndex(rang)
+
+	def _numeroter_les_onglets(self) -> None:
+		"""L'infobulle de chaque onglet donne son raccourci ; au-delà des 12 premiers, il n'en a pas."""
+		onglets = self.ui.onglets
+		for indice in range(onglets.count()):
+			texte = ""
+			if indice < RACCOURCIS_DES_ONGLETS:
+				texte = f"Maj+F{indice + 1}"
+			onglets.setTabToolTip(indice, texte)
 
 	def _ouvrir_fiche(self, genre: str, identifiant: int | None) -> None:
 		"""Ouvre la fiche d'un élément, ou ramène au premier plan celle déjà ouverte ; None pour un nouvel élément."""
@@ -364,7 +397,7 @@ class FenetrePrincipale(QMainWindow):
 		if genre == "événement":
 			fiche.supprimee.connect(self._garantir_fil_musical)
 			fiche.enregistree.connect(self._garantir_fil_musical)
-		self.ui.onglets.addTab(fiche, fiche.titre())
+		self._ajouter_onglet(fiche, fiche.titre())
 		self.ui.onglets.setCurrentWidget(fiche)
 
 	def _dupliquer(self, genre: str, identifiant: int) -> None:
@@ -406,7 +439,7 @@ class FenetrePrincipale(QMainWindow):
 		calendrier = Calendrier(self.connexion, self.horloge)
 		calendrier.ouverte.connect(self._ouvrir)
 		calendrier.creation_demandee.connect(self._creer_evenement)
-		onglets.setCurrentIndex(onglets.addTab(calendrier, "Calendrier"))
+		onglets.setCurrentIndex(self._ajouter_onglet(calendrier, "Calendrier"))
 
 	def _creer_evenement(self, debut: datetime) -> None:
 		"""Un nouvel événement, à l'heure cliquée dans le calendrier, s'ouvre dans sa fiche si on le confirme."""
@@ -422,7 +455,7 @@ class FenetrePrincipale(QMainWindow):
 	def _fermer(self, indice: int) -> None:
 		fiche = self.ui.onglets.widget(indice)
 		if isinstance(fiche, Calendrier):
-			self.ui.onglets.removeTab(indice)
+			self._retirer_onglet(indice)
 			fiche.deleteLater()
 			return
 		assert isinstance(fiche, Fiche), fiche
@@ -431,7 +464,7 @@ class FenetrePrincipale(QMainWindow):
 
 	def _retirer(self, fiche: Fiche) -> None:
 		"""Ferme l'onglet de la fiche, sans rien lui demander."""
-		self.ui.onglets.removeTab(self.ui.onglets.indexOf(fiche))
+		self._retirer_onglet(self.ui.onglets.indexOf(fiche))
 		fiche.fermer()
 		fiche.deleteLater()
 

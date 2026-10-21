@@ -718,6 +718,10 @@ L'onglet **Incidents** montre les alertes et les incidents que `Machin lecture` 
 - **Lecture** : l'écran se relit chaque fois que son onglet s'ouvre. Seules les 500 entrées les plus récentes sont lues : le compte le dit alors (« 500 entrées, les plus récentes »).
 - `Machin indexation` n'écrit pas dans le log : ses anomalies sont sur sa sortie d'erreur, dans son document d'audit ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)), ou dans le journal de l'indexation lancée depuis l'interface, pas ici.
 
+### Passer d'un onglet à l'autre au clavier
+
+Les 12 premiers onglets s'ouvrent au clavier, par <kbd>Maj</kbd>+<kbd>F1</kbd> à <kbd>Maj</kbd>+<kbd>F12</kbd>, selon leur rang ([#192](https://github.com/dascritch/machincast/issues/192)) : <kbd>Maj</kbd>+<kbd>F1</kbd> est toujours l'Accueil, <kbd>Maj</kbd>+<kbd>F2</kbd> à <kbd>Maj</kbd>+<kbd>F6</kbd> les listes Événements, Séquences, Banques, Sonores et Marques-pages, <kbd>Maj</kbd>+<kbd>F7</kbd> les Incidents, puis les fiches et le calendrier dans l'ordre où ils sont ouverts. Fermer un onglet décale ceux qui le suivent : leur raccourci change. L'infobulle de chaque onglet donne le sien ; au-delà du douzième, un onglet n'en a pas.
+
 ### Menus
 
 La barre de menus donne accès aux fonctions générales de l'interface ([#117](https://github.com/dascritch/machincast/issues/117)). Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle, au survol, donne le ticket qui l'apportera.
