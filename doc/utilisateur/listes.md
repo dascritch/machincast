@@ -62,7 +62,7 @@ Dans les listes **Sonores** et **Banques**, plusieurs lignes se sélectionnent �
 | Sonores | **Activer**, **Désactiver** | L'état des sonores choisis. Un sonore en aperçu le reste, jusqu'à sa vérification. |
 | Sonores | **Ajouter à des banques…** | Chaque sonore s'ajoute à la fin de chaque banque choisie, s'il n'y est pas déjà. |
 | Sonores | **Retirer de banques…** | Les sonores sont retirés des banques choisies. Un sonore dont le fichier est dans un répertoire de la banque y reviendra à la prochaine indexation. |
-| Sonores | **Demander un audit complet** | La prochaine indexation, même rapide, vérifie ces fichiers en entier et mesure leurs blancs. La colonne État dit « actif, audit demandé » en attendant. |
+| Sonores | **Demander un audit complet** | La prochaine indexation, même rapide, vérifie ces fichiers en entier et mesure leurs blancs, sauf ceux déjà vérifiés ainsi et inchangés depuis. La colonne État dit « actif, audit demandé » en attendant. |
 | Banques | **Demander l'audit complet de leurs sonores** | La même demande, pour tous les sonores des banques choisies. |
 | Banques | **Masquer l'artiste et le titre**, **Afficher l'artiste et le titre**, **Artiste et titre hérités du sonore** | Le réglage « Artiste et titre » de chaque banque choisie. |
 

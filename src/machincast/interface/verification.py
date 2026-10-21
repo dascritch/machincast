@@ -23,7 +23,7 @@ from PySide6.QtCore import QObject, Signal
 
 from machincast.base import Role, connecter
 from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
-from machincast.indexation.verification import verifier_sonores
+from machincast.indexation.verification import texte_du_seuil, verifier_sonores
 from machincast.interface import affichage
 from machincast.interface.listes import ETATS
 
@@ -163,13 +163,16 @@ class VerificationComplete(QObject):
 
 		try:
 			with connecter(self.socket, self.base, Role.INDEXATION) as connexion:
-				verifier_sonores(
+				bilan = verifier_sonores(
 					connexion, verifier, audit_complet=True, identifiants=[sonore], seuil_blancs=seuil_blancs
 				)
 				etats = etats_des_sonores(connexion, [sonore])
 		except (DecodeurIndisponible, psycopg.Error) as erreur:
 			journal.error(f"vérification complète impossible : {erreur}")
 			return f"Vérification impossible : {erreur}."
+		if bilan.deja_audites:
+			# https://github.com/dascritch/machincast/issues/206
+			return f"Déjà audité au seuil de {texte_du_seuil(seuil_blancs)} dB, fichier inchangé : {etats}."
 		return f"Vérification terminée : {etats}."
 
 

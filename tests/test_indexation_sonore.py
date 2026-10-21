@@ -41,7 +41,7 @@ def lancer(
 	caplog.clear()
 	debut = maintenant_en_base(base)
 	with caplog.at_level(logging.INFO, logger="machincast"):
-		options = argparse.Namespace(audit_complet=audit_complet, fenetre=fenetre, sonore=sonore)
+		options = argparse.Namespace(audit_complet=audit_complet, fenetre=fenetre, sonore=sonore, forcer=False)
 		code = executer(sur_la_base_de_test, options)
 	messages = [enregistrement.getMessage() for enregistrement in caplog.records]
 	return Lancement(code, messages, debut, maintenant_en_base(base))

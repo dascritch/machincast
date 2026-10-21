@@ -116,6 +116,10 @@ Fonctionnalité: Schéma de la base de données
 			| type = 'fichier', emplacement = '/a.flac', fin_detectee = '-1 s'                                |
 			| type = 'fichier', emplacement = '/a.flac', detection_blancs = NULL                              |
 			| type = 'fichier', emplacement = '/a.flac', audit_demande = NULL                                 |
+			| type = 'fichier', emplacement = '/a.flac', audite_le = now()                                     |
+			| type = 'fichier', emplacement = '/a.flac', audit_seuil = -40                                    |
+			| type = 'fichier', emplacement = '/a.flac', audite_le = now(), audit_seuil = 0                   |
+			| type = 'fichier', emplacement = '/a.flac', audite_le = now(), audit_seuil = -100.5              |
 
 	Scénario: Deux sonores ne peuvent pas avoir le même emplacement
 		Étant donné les éléments de référence en base

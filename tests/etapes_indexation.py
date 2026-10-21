@@ -279,6 +279,7 @@ def indexer(
 	arret: threading.Event | None = None,
 	indexations: list[tuple[datetime, datetime]] | None = None,
 	seuil_blancs: list[float] | None = None,
+	forcer: bool = False,
 ) -> Execution:
 	# Le compte qui lance les tests endosse déjà le rôle de l'indexation (vérifié par base_vide).
 	caplog.clear()
@@ -287,7 +288,7 @@ def indexer(
 		seuil = SEUIL_DE_BLANC
 		if seuil_blancs:
 			seuil = seuil_blancs[-1]
-		bilan = indexer_complet(c, audit_complet=audit_complet, arret=arret, seuil_blancs=seuil)
+		bilan = indexer_complet(c, audit_complet=audit_complet, arret=arret, seuil_blancs=seuil, forcer=forcer)
 		if indexations is not None:
 			indexations.append((debut, maintenant_en_base(base_vide)))
 		verrou_rendu = verrou_libre()
@@ -410,7 +411,8 @@ def lancer_sur_la_base_de_test(
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		code = executer(
-			sur_la_base_de_test, argparse.Namespace(audit_complet=audit is not None, fenetre=False, sonore=None)
+			sur_la_base_de_test,
+			argparse.Namespace(audit_complet=audit is not None, fenetre=False, sonore=None, forcer=False),
 		)
 	return code, [enregistrement.getMessage() for enregistrement in caplog.records]
 
@@ -555,7 +557,8 @@ def audit_d_un_sonore(base_vide: Connexion, caplog: pytest.LogCaptureFixture, so
 	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:
 		bilan = indexer_un_sonore(c, sonore, audit_complet=True)
 	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
-	return Execution(bilan, "\n".join(anomalies))
+	informations = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+	return Execution(bilan, "\n".join(anomalies), informations)
 
 
 def blancs_en_base(base: Connexion, sonore: int) -> tuple[object, object]:

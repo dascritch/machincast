@@ -34,8 +34,12 @@ def indexer(
 	verifier: Verificateur = verifier_fichier,
 	arret: threading.Event | None = None,
 	seuil_blancs: float = SEUIL_DE_BLANC,
+	forcer: bool = False,
 ) -> Bilan:
 	"""Parcourt les répertoires des banques, puis vérifie les sonores ; renvoie le bilan des deux étapes.
+
+	forcer : l'audit complet décode aussi les sonores déjà audités et inchangés
+	(https://github.com/dascritch/machincast/issues/206).
 
 	arret : une fois posé, l'indexation s'arrête après le fichier en cours ; le travail fait est gardé.
 	seuil_blancs : seuil de blanc de l'audit complet, en dB crête (https://github.com/dascritch/machincast/issues/146).
@@ -50,7 +54,9 @@ def indexer(
 	try:
 		bilan = Bilan(audit_complet=audit_complet)
 		parcours = indexer_repertoires(connexion, bilan, arret)
-		verifier_sonores(connexion, verifier, audit_complet, bilan, arret=arret, seuil_blancs=seuil_blancs)
+		verifier_sonores(
+			connexion, verifier, audit_complet, bilan, arret=arret, seuil_blancs=seuil_blancs, forcer=forcer
+		)
 		# Les durées vérifiées, les sonores en attente n'entrent que dans les banques dont ils sont dans les durées,
 		# même après un arrêt (https://github.com/dascritch/machincast/issues/210) ; puis chaque banque ne garde que les
 		# sonores dans ses durées, sauf après un arrêt (https://github.com/dascritch/machincast/issues/195).
@@ -68,10 +74,13 @@ def indexer_un_sonore(
 	sonore: int,
 	audit_complet: bool = False,
 	seuil_blancs: float = SEUIL_DE_BLANC,
+	forcer: bool = False,
 ) -> Bilan:
 	"""Machin_indexation --sonore N (https://github.com/dascritch/machincast/issues/181) : vérifie ce seul sonore, sans
 	parcours ni verrou, puis le retire des banques dont il sort des durées
 	(https://github.com/dascritch/machincast/issues/195)."""
-	bilan = verifier_sonores(connexion, audit_complet=audit_complet, identifiants=[sonore], seuil_blancs=seuil_blancs)
+	bilan = verifier_sonores(
+		connexion, audit_complet=audit_complet, identifiants=[sonore], seuil_blancs=seuil_blancs, forcer=forcer
+	)
 	retirer_hors_durees(connexion, bilan, [sonore])
 	return bilan
