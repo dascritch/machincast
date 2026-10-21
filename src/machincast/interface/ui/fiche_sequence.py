@@ -154,6 +154,11 @@ class Ui_FicheSequence(object):
 
         self.pied.addWidget(self.supprimer)
 
+        self.dupliquer = QPushButton(FicheSequence)
+        self.dupliquer.setObjectName(u"dupliquer")
+
+        self.pied.addWidget(self.dupliquer)
+
         self.message = QLabel(FicheSequence)
         self.message.setObjectName(u"message")
         self.message.setWordWrap(True)
@@ -170,7 +175,7 @@ class Ui_FicheSequence(object):
 
         self.pied.addWidget(self.enregistrer)
 
-        self.pied.setStretch(1, 1)
+        self.pied.setStretch(2, 1)
 
         self.disposition.addLayout(self.pied)
 
@@ -210,6 +215,10 @@ class Ui_FicheSequence(object):
         self.supprimer.setText(QCoreApplication.translate("FicheSequence", u"Supprimer\u2026", None))
 #if QT_CONFIG(tooltip)
         self.supprimer.setToolTip(QCoreApplication.translate("FicheSequence", u"Supprime l'\u00e9l\u00e9ment de la base, apr\u00e8s confirmation ; aucun fichier n'est touch\u00e9.", None))
+#endif // QT_CONFIG(tooltip)
+        self.dupliquer.setText(QCoreApplication.translate("FicheSequence", u"Dupliquer", None))
+#if QT_CONFIG(tooltip)
+        self.dupliquer.setToolTip(QCoreApplication.translate("FicheSequence", u"Ouvre une copie de l'\u00e9l\u00e9ment dans une nouvelle fiche ; rien n'est enregistr\u00e9 avant \u00ab Enregistrer \u00bb.", None))
 #endif // QT_CONFIG(tooltip)
         self.annuler.setText(QCoreApplication.translate("FicheSequence", u"Annuler", None))
         self.enregistrer.setText(QCoreApplication.translate("FicheSequence", u"Enregistrer", None))

@@ -272,6 +272,11 @@ class Ui_FicheBanque(object):
 
         self.pied.addWidget(self.supprimer)
 
+        self.dupliquer = QPushButton(FicheBanque)
+        self.dupliquer.setObjectName(u"dupliquer")
+
+        self.pied.addWidget(self.dupliquer)
+
         self.message = QLabel(FicheBanque)
         self.message.setObjectName(u"message")
         self.message.setWordWrap(True)
@@ -288,7 +293,7 @@ class Ui_FicheBanque(object):
 
         self.pied.addWidget(self.enregistrer)
 
-        self.pied.setStretch(1, 1)
+        self.pied.setStretch(2, 1)
 
         self.disposition.addLayout(self.pied)
 
@@ -354,6 +359,10 @@ class Ui_FicheBanque(object):
         self.supprimer.setText(QCoreApplication.translate("FicheBanque", u"Supprimer\u2026", None))
 #if QT_CONFIG(tooltip)
         self.supprimer.setToolTip(QCoreApplication.translate("FicheBanque", u"Supprime l'\u00e9l\u00e9ment de la base, apr\u00e8s confirmation ; aucun fichier n'est touch\u00e9.", None))
+#endif // QT_CONFIG(tooltip)
+        self.dupliquer.setText(QCoreApplication.translate("FicheBanque", u"Dupliquer", None))
+#if QT_CONFIG(tooltip)
+        self.dupliquer.setToolTip(QCoreApplication.translate("FicheBanque", u"Ouvre une copie de l'\u00e9l\u00e9ment dans une nouvelle fiche ; rien n'est enregistr\u00e9 avant \u00ab Enregistrer \u00bb.", None))
 #endif // QT_CONFIG(tooltip)
         self.annuler.setText(QCoreApplication.translate("FicheBanque", u"Annuler", None))
         self.enregistrer.setText(QCoreApplication.translate("FicheBanque", u"Enregistrer", None))

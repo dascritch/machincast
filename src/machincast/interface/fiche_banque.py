@@ -29,6 +29,9 @@ une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interf
   (https://github.com/dascritch/machincast/issues/96).
 - À l'enregistrement, les sonores qu'une indexation a rattachés à la banque depuis l'ouverture de la fiche sont gardés,
   en fin de liste ; un sonore effacé de la base entre-temps est oublié.
+- Sa copie (https://github.com/dascritch/machincast/issues/130) garde tout sauf sa liste de sonores : nom public, mode,
+  masquage, « ne pas répéter », crossfades, durées et répertoires. Ses répertoires la rempliront à la prochaine
+  indexation.
 
 Les fenêtres de dialogue sont celles de machincast.interface.dialogues.
 """
@@ -102,7 +105,7 @@ class FicheBanque(Fiche):
 		super().__init__(connexion, identifiant, horloge, parent)
 		self.ui = Ui_FicheBanque()
 		self.ui.setupUi(self)
-		self.brancher(self.ui.enregistrer, self.ui.annuler, self.ui.supprimer, self.ui.message)
+		self.brancher(self.ui.enregistrer, self.ui.annuler, self.ui.supprimer, self.ui.message, self.ui.dupliquer)
 		for valeur, texte in MODES:
 			self.ui.mode.addItem(texte, valeur)
 		for _valeur, texte in MASQUAGES:
@@ -154,12 +157,15 @@ class FicheBanque(Fiche):
 		self.charger()
 
 	def titre(self) -> str:
+		if self.est_une_copie():
+			return f"Nouvelle banque, copie de {self._nom}"
 		if self.identifiant is None:
 			return "Nouvelle banque"
 		return f"Banque : {self._nom}"
 
 	def _lire(self) -> None:
-		"""Lit la banque en base ; une nouvelle banque est vide, séquentielle, au masquage hérité du sonore."""
+		"""Lit la banque en base, ou celle qu'elle copie, sans ses sonores ; une nouvelle banque est vide, séquentielle,
+		au masquage hérité du sonore."""
 		banque: tuple[object, ...] = (
 			"",
 			None,
@@ -175,22 +181,24 @@ class FicheBanque(Fiche):
 		)
 		repertoires: list[str] = []
 		sonores: list[tuple[object, ...]] = []
+		lu = self.lu()
 		with self.connexion.transaction():
-			if self.identifiant is not None:
+			if lu is not None:
 				ligne = self.connexion.execute(
 					"SELECT nom_interne, nom_public, mode::text, masquer_metadonnees, ne_pas_repeter,"
 					" crossfade_debut_regle::text, crossfade_debut, crossfade_fin_regle::text, crossfade_fin,"
 					" duree_min, duree_max FROM banques WHERE id = %s",
-					(self.identifiant,),
+					(lu,),
 				).fetchone()
-				assert ligne is not None, f"banque {self.identifiant} absente"
+				assert ligne is not None, f"banque {lu} absente"
 				banque = ligne
 				repertoires = [
 					str(repertoire)
 					for (repertoire,) in self.connexion.execute(
-						"SELECT repertoire FROM banques_repertoires WHERE banque_id = %s", (self.identifiant,)
+						"SELECT repertoire FROM banques_repertoires WHERE banque_id = %s", (lu,)
 					)
 				]
+			if self.identifiant is not None:
 				sonores = self.connexion.execute(
 					f"{SONORES_LUS} JOIN banques_sonores bs ON bs.sonore_id = s.id"
 					" WHERE bs.banque_id = %s ORDER BY bs.position",
@@ -199,6 +207,8 @@ class FicheBanque(Fiche):
 		nom, nom_public, mode, masquage, ne_pas_repeter, *crossfades, duree_min, duree_max = banque
 		self._nom = str(nom)
 		self.ui.nom_interne.setText(self._nom)
+		if self.est_une_copie():
+			self.ui.nom_interne.setText(self.nom_de_la_copie(self._nom))
 		self.ui.nom_public.setText(str((nom_public) or ("")))
 		self.ui.mode.setCurrentIndex(self.ui.mode.findData(mode))
 		self.ui.masquage.setCurrentIndex(next(i for i, (valeur, _texte) in enumerate(MASQUAGES) if valeur is masquage))

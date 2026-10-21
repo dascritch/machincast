@@ -171,6 +171,7 @@ class FenetrePrincipale(QMainWindow):
 			liste = Liste(source, connexion)
 			liste.ouverte.connect(self._ouvrir)
 			liste.creation_demandee.connect(lambda genre: self._ouvrir_fiche(genre, None))
+			liste.duplication_demandee.connect(self._dupliquer)
 			liste.ajout_demande.connect(
 				lambda liste=liste: self._ajouter_fichiers(liste, dialogues.choisir_fichiers(self))
 			)
@@ -342,6 +343,7 @@ class FenetrePrincipale(QMainWindow):
 		fiche.titre_change.connect(lambda titre: self._renommer(fiche, titre))
 		fiche.ouverture_demandee.connect(self._ouvrir)
 		fiche.supprimee.connect(lambda: self._retirer(fiche))
+		fiche.duplication_demandee.connect(self._dupliquer)
 		if isinstance(fiche, FicheSonore):
 			fiche.preecoute_demandee.connect(self._preecouter)
 		if genre == "événement":
@@ -349,6 +351,14 @@ class FenetrePrincipale(QMainWindow):
 			fiche.enregistree.connect(self._garantir_fil_musical)
 		self.ui.onglets.addTab(fiche, fiche.titre())
 		self.ui.onglets.setCurrentWidget(fiche)
+
+	def _dupliquer(self, genre: str, identifiant: int) -> None:
+		"""Une nouvelle fiche, copie de l'élément (https://github.com/dascritch/machincast/issues/130) : rien n'est
+		enregistré avant « Enregistrer »."""
+		self._ouvrir_fiche(genre, None)
+		fiche = self.ui.onglets.currentWidget()
+		assert isinstance(fiche, Fiche)
+		fiche.copier(identifiant)
 
 	def _renommer(self, fiche: QWidget, titre: str) -> None:
 		self.ui.onglets.setTabText(self.ui.onglets.indexOf(fiche), titre)

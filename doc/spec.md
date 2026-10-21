@@ -761,6 +761,24 @@ Mise en œuvre ([#34](https://github.com/dascritch/machincast/issues/34), `machi
 - **Streams qui le suivent** : par titre, ou par l'adresse pour un stream sans titre ; ouvrir l'un d'eux ouvre sa fiche.
 - **Suppression** : `suppression.question` lève `Empechee` pour un marque-page qu'un stream suit (la clé étrangère est `ON DELETE RESTRICT`) : la fiche nomme les streams, sans poser de question. Sinon, la confirmation habituelle ([§ 8.9](#89-suppression)).
 
+### 8.14 Duplication
+
+Un événement, une séquence ou une banque se duplique pour en faire une variante sans tout ressaisir ([#130](https://github.com/dascritch/machincast/issues/130)).
+
+Mise en œuvre (`Fiche.copier`, `machincast.interface.fiche.nom_de_copie`, `FenetrePrincipale._dupliquer`) :
+
+- **Accès** : le bouton « Dupliquer » au pied de la fiche, actif pour un élément enregistré dont la fiche n'est pas modifiée ; le clic droit sur une ligne des listes Événements, Séquences et Banques, entrée « Dupliquer » (`Liste.menu_de_la_ligne`, `Source.duplicable`). Les sonores et les marques-pages ne se dupliquent pas.
+- **Nouvelle fiche** : la copie s'ouvre dans un nouvel onglet, « Nouvelle séquence, copie de Passage pub », sans rien écrire en base. Son nom interne est celui de l'original suivi de « (copie) », ou « (copie 2) », « (copie 3) »… s'il est pris, raccourci pour tenir dans les 255 caractères ; le nom public est le même. La fiche est modifiée dès son ouverture : « Enregistrer » crée l'élément, « Annuler » relit l'original, et fermer l'onglet demande quoi faire de la copie, comme pour toute fiche modifiée.
+- **Ce qui est copié** :
+
+| Élément | Copié | Pas copié |
+| --- | --- | --- |
+| Séquence | nom public, masquage, éléments dans l'ordre | les événements où elle figure |
+| Événement | priorité, nom public, masquage, liste de lecture dans l'ordre | début, fin et jours de récurrence : une émission ou un spécial ne s'enregistre pas sans début, et le refus des chevauchements s'applique comme à tout événement |
+| Banque | nom public, mode, masquage, « ne pas répéter », crossfades, durées des sonores, répertoires | la liste des sonores : la prochaine indexation la remplit depuis les répertoires |
+
+- **Original intact** : les lignes d'une liste copiée sont des lignes nouvelles de la copie (`ListeElements.charger(…, copie=True)`) ; l'enregistrement ne reprend jamais une ligne d'une autre séquence ou d'un autre événement. Si l'original est effacé de la base pendant que sa copie est ouverte, « Annuler » et le rafraîchissement laissent la copie telle quelle, en le disant ; elle s'enregistre toujours.
+
 ## 9. Configuration
 
 - Format TOML, lu par `tomllib`.

@@ -507,6 +507,7 @@ Les onglets Événements, Séquences, Banques, Sonores et Marques-pages donnent 
 - **Mise à jour** : une liste se relit dans la base chaque fois que son onglet s'ouvre, en gardant son filtre. Elle ne se relit jamais d'elle-même pendant qu'on la regarde.
 - **Détails** : un double-clic sur une ligne, ou la touche Entrée, ouvre la fiche de l'élément ([événement](#fiche-dun-événement), [séquence](#fiche-dune-séquence), [banque](#fiche-dune-banque), [sonore](#fiche-dun-sonore)).
 - **Créer** : les boutons **Nouvel événement**, **Nouvelle séquence**, **Nouvelle banque**, **Nouveau stream** et **Nouveau marque-page**, à côté du filtre de leur liste, ouvrent une fiche vide. La liste des sonores a aussi **Ajouter des fichiers…**, et accepte les fichiers déposés ([Ajouter un sonore](#ajouter-un-sonore)).
+- **Dupliquer** ([#130](https://github.com/dascritch/machincast/issues/130)) : un clic droit sur une ligne des listes Événements, Séquences et Banques propose **Dupliquer**, qui ouvre une copie de l'élément dans une nouvelle fiche ([Dupliquer un élément](#dupliquer-un-élément)).
 
 ### Fiche d'une banque
 
@@ -793,6 +794,20 @@ Voir [Indexation rapide et audit complet](#indexation-rapide-et-audit-complet) p
 - **Sa fenêtre** montre, ligne par ligne et au fil de l'indexation, ce que `Machin indexation` écrirait dans le terminal ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)) : chaque sonore indexé avec son statut, les anomalies, puis le bilan. Le texte se sélectionne et se copie. À la fin, elle conclut par le bilan, par exemple « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. », suivi du nombre d'anomalies s'il y en a.
 - **Fermer sa fenêtre** pendant l'indexation demande s'il faut l'arrêter. **Arrêter** l'arrête après le fichier en cours : le travail fait est gardé, et la prochaine indexation reprendra le reste. **Continuer**, ou Échap, laisse la fenêtre ouverte et l'indexation continuer. Une fois l'indexation finie, **Fermer** la referme sans question.
 - **Indexation impossible** : si un décodeur manque (un paquet GStreamer n'est pas installé, voir [INSTALL.md](../INSTALL.md)), si la base ne répond plus, ou si une autre indexation tourne déjà sur la base, la fenêtre le dit : « Indexation impossible : … ; les sonores déjà vérifiés le restent. ». Le travail fait jusque-là est gardé.
+
+### Dupliquer un élément
+
+Pour créer une variante d'un événement, d'une séquence ou d'une banque, **Dupliquer** en fait une copie ([#130](https://github.com/dascritch/machincast/issues/130)) : le bouton au pied de sa fiche, ou le clic droit sur sa ligne dans la liste. Le bouton n'est actif que pour un élément déjà enregistré, dont la fiche n'a pas de modification en cours : enregistrer ou annuler d'abord.
+
+La copie s'ouvre dans un nouvel onglet, par exemple « Nouvelle séquence, copie de Passage pub ». **Rien n'est enregistré tant qu'on n'a pas cliqué sur Enregistrer** : fermer l'onglet propose d'enregistrer la copie ou de l'abandonner. Son nom interne est celui de l'original suivi de « (copie) », puis « (copie 2) », « (copie 3) »… si ce nom est déjà pris ; on le change avant d'enregistrer. **Annuler** revient à la copie telle qu'elle s'est ouverte.
+
+| Copie d'une | Elle garde | Elle n'a pas |
+| --- | --- | --- |
+| Séquence | le nom public, le masquage et tous les éléments, dans l'ordre | — |
+| Événement | la priorité, le nom public, le masquage et la liste de lecture | de dates ni de jours : choisir son créneau avant d'enregistrer. Une émission ou un spécial sans début ne s'enregistre pas, et deux événements de même priorité ne se chevauchent pas. |
+| Banque | le nom public, le mode, le masquage, « ne pas répéter », les crossfades, les durées et les répertoires | de sonores : la prochaine indexation la remplit depuis ses répertoires. Sans répertoire, ajouter ses sonores à la main. |
+
+L'original n'est jamais modifié. S'il est supprimé pendant que sa copie est ouverte, la copie reste telle quelle et s'enregistre normalement.
 
 ### Supprimer un élément
 

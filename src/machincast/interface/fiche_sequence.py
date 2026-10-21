@@ -13,6 +13,8 @@ pour une nouvelle séquence. Enregistrement, annulation et fermeture : machincas
   L'avertissement d'une banque « ne pas répéter » appelée deux fois de suite ne boucle pas : la séquence ne reprend
   pas à son début.
 - Les événements où la séquence figure sont montrés ; ouvrir un événement ouvre sa fiche.
+- Sa copie (https://github.com/dascritch/machincast/issues/130) garde tout : nom public, masquage et éléments ; elle
+  ne figure encore dans aucun événement.
 """
 
 from PySide6.QtCore import Qt
@@ -46,7 +48,7 @@ class FicheSequence(Fiche):
 		super().__init__(connexion, identifiant, horloge, parent)
 		self.ui = Ui_FicheSequence()
 		self.ui.setupUi(self)
-		self.brancher(self.ui.enregistrer, self.ui.annuler, self.ui.supprimer, self.ui.message)
+		self.brancher(self.ui.enregistrer, self.ui.annuler, self.ui.supprimer, self.ui.message, self.ui.dupliquer)
 		for _valeur, texte in MASQUAGES:
 			self.ui.masquage.addItem(texte)
 		self._nom = ""
@@ -64,32 +66,38 @@ class FicheSequence(Fiche):
 		self.charger()
 
 	def titre(self) -> str:
+		if self.est_une_copie():
+			return f"Nouvelle séquence, copie de {self._nom}"
 		if self.identifiant is None:
 			return "Nouvelle séquence"
 		return f"Séquence : {self._nom}"
 
 	def _lire(self) -> None:
-		"""Lit la séquence en base ; une nouvelle séquence est vide, au masquage hérité de la banque ou du sonore."""
+		"""Lit la séquence en base, ou celle qu'elle copie ; une nouvelle séquence est vide, au masquage hérité de la
+		banque ou du sonore."""
 		sequence: tuple[object, ...] = ("", None, None)
 		evenements: list[tuple[object, ...]] = []
+		lu = self.lu()
 		with self.connexion.transaction():
-			if self.identifiant is not None:
+			if lu is not None:
 				ligne = self.connexion.execute(
-					"SELECT nom_interne, nom_public, masquer_metadonnees FROM sequences WHERE id = %s",
-					(self.identifiant,),
+					"SELECT nom_interne, nom_public, masquer_metadonnees FROM sequences WHERE id = %s", (lu,)
 				).fetchone()
-				assert ligne is not None, f"séquence {self.identifiant} absente"
+				assert ligne is not None, f"séquence {lu} absente"
 				sequence = ligne
+			if self.identifiant is not None:
 				evenements = self.connexion.execute(
 					"SELECT DISTINCT ev.id, ev.nom_interne FROM evenements ev"
 					" JOIN evenements_elements ee ON ee.evenement_id = ev.id"
 					" WHERE ee.sequence_id = %s ORDER BY ev.nom_interne, ev.id",
 					(self.identifiant,),
 				).fetchall()
-			self.elements.charger(self.identifiant)
+			self.elements.charger(lu, self.est_une_copie())
 		nom, nom_public, masquage = sequence
 		self._nom = str(nom)
 		self.ui.nom_interne.setText(self._nom)
+		if self.est_une_copie():
+			self.ui.nom_interne.setText(self.nom_de_la_copie(self._nom))
 		self.ui.nom_public.setText(str((nom_public) or ("")))
 		self.ui.masquage.setCurrentIndex(next(i for i, (valeur, _texte) in enumerate(MASQUAGES) if valeur is masquage))
 		self.ui.evenements.clear()

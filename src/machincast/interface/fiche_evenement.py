@@ -18,6 +18,9 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
   priorité ; la liste des événements le montre en anomalie (https://github.com/dascritch/machincast/issues/140).
   L'avertissement d'une banque « ne pas répéter » appelée juste après elle-même suit la boucle de la
   liste : elle boucle, sauf pour une émission ou un spécial sans fin.
+- Sa copie (https://github.com/dascritch/machincast/issues/130) garde sa priorité, ses noms, son masquage et sa liste
+  de lecture, sans dates ni jours : son créneau est à choisir, une émission ou un spécial ne s'enregistrant pas sans
+  début.
 """
 
 from datetime import datetime, timedelta
@@ -76,7 +79,7 @@ class FicheEvenement(Fiche):
 		self.ui = Ui_FicheEvenement()
 		self.ui.setupUi(self)
 		ui = self.ui
-		self.brancher(ui.enregistrer, ui.annuler, ui.supprimer, ui.message)
+		self.brancher(ui.enregistrer, ui.annuler, ui.supprimer, ui.message, ui.dupliquer)
 		for _valeur, texte in PRIORITES:
 			ui.priorite.addItem(texte)
 		for _masque, texte in MASQUAGES:
@@ -116,6 +119,8 @@ class FicheEvenement(Fiche):
 		self.charger()
 
 	def titre(self) -> str:
+		if self.est_une_copie():
+			return f"Nouvel événement, copie de {self._nom}"
 		if self.identifiant is None:
 			return "Nouvel événement"
 		return f"Événement : {self._nom}"
@@ -124,22 +129,28 @@ class FicheEvenement(Fiche):
 		return PRIORITES[self.ui.priorite.currentIndex()][0]
 
 	def _lire(self) -> None:
-		"""Lit l'événement en base ; un nouvel événement est une émission, sans dates, au masquage hérité."""
+		"""Lit l'événement en base, ou celui qu'il copie, sans ses dates ni ses jours ; un nouvel événement est une
+		émission, sans dates, au masquage hérité."""
 		evenement: tuple[object, ...] = ("", None, NOUVELLE, None, None, [], None)
+		lu = self.lu()
 		with self.connexion.transaction():
-			if self.identifiant is not None:
+			if lu is not None:
 				ligne = self.connexion.execute(
 					"SELECT nom_interne, nom_public, priorite::text, debut, fin, jours_recurrence::text[],"
 					" masquer_metadonnees FROM evenements WHERE id = %s",
-					(self.identifiant,),
+					(lu,),
 				).fetchone()
-				assert ligne is not None, f"événement {self.identifiant} absent"
+				assert ligne is not None, f"événement {lu} absent"
 				evenement = ligne
-			self.elements.charger(self.identifiant)
+			self.elements.charger(lu, self.est_une_copie())
 		nom, nom_public, priorite, debut, fin, jours, masquage = evenement
+		if self.est_une_copie():
+			debut, fin, jours = None, None, []
 		ui = self.ui
 		self._nom = str(nom)
 		ui.nom_interne.setText(self._nom)
+		if self.est_une_copie():
+			ui.nom_interne.setText(self.nom_de_la_copie(self._nom))
 		ui.nom_public.setText(str((nom_public) or ("")))
 		ui.priorite.setCurrentIndex(next(i for i, (valeur, _texte) in enumerate(PRIORITES) if valeur == priorite))
 		ui.masquage.setCurrentIndex(next(i for i, (valeur, _texte) in enumerate(MASQUAGES) if valeur is masquage))
