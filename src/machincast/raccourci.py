@@ -22,8 +22,9 @@ from machincast.configuration import REPERTOIRE_PROJET
 
 NOM = "machincast.desktop"
 """Le nom du raccourci ; l'interface s'en réclame (setDesktopFileName), sans « .desktop »."""
-ICONE = Path(__file__).resolve().parent / "interface" / "machincast.svg"
-"""L'icône de MachinCast, dans le paquet : celle du raccourci et des fenêtres, sauf icône choisie."""
+ICONE = Path(__file__).resolve().parent / "interface" / "machincast.png"
+"""L'icône de MachinCast, dans le paquet : celle du raccourci et des fenêtres, sauf icône choisie. C'est le logo des
+équipes techniques de la radio qui commissionne MachinCast (https://github.com/dascritch/machincast/issues/213)."""
 DOSSIER_MENU: Path | None = None
 """Le dossier du menu des applications ; None : celui du compte, sous $XDG_DATA_HOME."""
 DOSSIER_BUREAU: Path | None = None

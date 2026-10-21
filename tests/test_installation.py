@@ -13,8 +13,7 @@ from pathlib import Path
 import gi
 import pytest
 import tomlkit
-from PySide6.QtGui import QColor, QIcon, QImage, QPainter
-from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtGui import QColor, QIcon, QImage
 from PySide6.QtWidgets import QApplication
 from pytest_bdd import given, parsers, scenarios, then, when
 
@@ -356,15 +355,17 @@ def raccourci_accepte(tmp_path: Path, nom: str) -> None:
 	assert (verification.returncode == 0) and (verification.stdout == ""), verification.stdout
 
 
-@then("l'icône de MachinCast est une image SVG carrée")
-def icone_svg(qapp: QApplication) -> None:
-	rendu = QSvgRenderer(str(ICONE))
-	assert rendu.isValid()
-	cadre = rendu.viewBoxF()
-	assert (cadre.width() > 0) and (cadre.width() == cadre.height()), cadre
+@then(parsers.parse("l'icône de MachinCast est une image PNG carrée de {cote:d} pixels, aux coins transparents"))
+def icone_png(cote: int) -> None:
+	assert ICONE.suffix == ".png"
+	image = QImage(str(ICONE))
+	assert (image.width(), image.height()) == (cote, cote)
+	for x, y in ((0, 0), (cote - 1, 0), (0, cote - 1), (cote - 1, cote - 1)):
+		assert image.pixelColor(x, y).alpha() == 0, (x, y)
 
 
-COULEURS_DE_L_ICONE = {"fond": QColor("#1f3a5f"), "rouage": QColor("#f1f5f9"), "ondes": QColor("#f4a261")}
+COULEURS_DE_L_ICONE = {"losange orange": QColor("#fe4300"), "casque noir": QColor(0, 0, 0)}
+"""Les couleurs du logo des équipes techniques de la radio (https://github.com/dascritch/machincast/issues/213)."""
 
 
 def _proche(couleur: QColor, attendue: QColor) -> bool:
@@ -374,24 +375,22 @@ def _proche(couleur: QColor, attendue: QColor) -> bool:
 			abs(couleur.green() - attendue.green()),
 			abs(couleur.blue() - attendue.blue()),
 		)
-		<= 24
+		<= 80
 	)
 
 
-@then(parsers.re(r"rendue en (?P<tailles>[\d, et]+) pixels, l'icône montre son fond, son rouage et ses ondes"))
+@then(parsers.re(r"rendue en (?P<tailles>[\d, et]+) pixels, l'icône montre son losange orange et son casque noir"))
 def icone_lisible(qapp: QApplication, tailles: str) -> None:
-	"""À chaque taille, chacune des trois couleurs couvre au moins un pixel sur vingt : rien ne disparaît."""
-	rendu = QSvgRenderer(str(ICONE))
+	"""À chaque taille, chacune des couleurs couvre au moins un pixel sur quarante : rien ne disparaît. Le casque, au
+	trait fin, n'a que quelques pixels à 16 pixels ; les bords lissés s'écartent du noir pur."""
+	icone = QIcon(str(ICONE))
 	for taille in (int(nombre) for nombre in re.findall(r"\d+", tailles)):
-		image = QImage(taille, taille, QImage.Format.Format_ARGB32)
-		image.fill(QColor(0, 0, 0, 0))
-		peintre = QPainter(image)
-		rendu.render(peintre)
-		peintre.end()
+		image = icone.pixmap(taille).toImage()
+		assert (image.width(), image.height()) == (taille, taille)
 		pixels = [image.pixelColor(x, y) for x in range(taille) for y in range(taille)]
 		for nom, couleur in COULEURS_DE_L_ICONE.items():
 			part = sum(1 for pixel in pixels if (pixel.alpha() > 200) and (_proche(pixel, couleur))) / len(pixels)
-			assert part >= 1 / 20, f"{nom} à {taille} pixels : {part:.3f}"
+			assert part >= 1 / 40, f"{nom} à {taille} pixels : {part:.3f}"
 
 
 @when("l'application Qt de l'interface est créée", target_fixture="application_qt")

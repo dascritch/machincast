@@ -352,7 +352,7 @@ install -D --mode=755 machincast.desktop "$(xdg-user-dir DESKTOP)/machincast.des
 rm machincast.desktop
 ```
 
-Le raccourci lance `bin/Machin interface` depuis le répertoire de MachinCast, avec l'icône `src/machincast/interface/machincast.svg`, ou l'image de `interface.icone` quand elle existe ([#111](https://github.com/dascritch/machincast/issues/111)) ; une icône choisie dans les préférences de l'interface réécrit aussitôt les raccourcis installés. Déplacer le répertoire de MachinCast demande de le refaire.
+Le raccourci lance `bin/Machin interface` depuis le répertoire de MachinCast, avec l'icône `src/machincast/interface/machincast.png`, le logo des équipes techniques de la radio ([#213](https://github.com/dascritch/machincast/issues/213)), ou l'image de `interface.icone` quand elle existe ([#111](https://github.com/dascritch/machincast/issues/111)) ; une icône choisie dans les préférences de l'interface réécrit aussitôt les raccourcis installés. Déplacer le répertoire de MachinCast demande de le refaire.
 
 **8. Vérification des greffons GStreamer et de la sortie audio.**
 

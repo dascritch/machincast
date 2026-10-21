@@ -144,7 +144,7 @@ Fonctionnalité: Vérifications de l'installation
 			| Comment        | Programmer l'antenne et suivre la diffusion            |
 			| Exec           | <répertoire>/bin/Machin interface                      |
 			| Path           | <répertoire>                                           |
-			| Icon           | <répertoire>/src/machincast/interface/machincast.svg   |
+			| Icon           | <répertoire>/src/machincast/interface/machincast.png   |
 			| Terminal       | false                                                  |
 			| Categories     | AudioVideo;Audio;                                      |
 			| Keywords       | radio;antenne;diffusion;programmation;                 |
@@ -157,7 +157,7 @@ Fonctionnalité: Vérifications de l'installation
 			| clé  | valeur      |
 			| Exec | <exec>      |
 			| Path | <répertoire> |
-			| Icon | <répertoire>/src/machincast/interface/machincast.svg |
+			| Icon | <répertoire>/src/machincast/interface/machincast.png |
 
 		Exemples:
 			| répertoire                    | exec                                                |
@@ -173,9 +173,11 @@ Fonctionnalité: Vérifications de l'installation
 		Et j'enregistre sa sortie en « machincast.desktop »
 		Alors « desktop-file-validate » accepte « machincast.desktop »
 
-	Scénario: L'icône de MachinCast se lit de 16 à 256 pixels
-		Alors l'icône de MachinCast est une image SVG carrée
-		Et rendue en 16, 24, 32, 48, 64, 128 et 256 pixels, l'icône montre son fond, son rouage et ses ondes
+	Scénario: L'icône de MachinCast, le logo des équipes techniques de la radio, se lit de 16 à 256 pixels
+		[#213](https://github.com/dascritch/machincast/issues/213) : un panneau de chantier orange en losange, avec un casque audio.
+
+		Alors l'icône de MachinCast est une image PNG carrée de 512 pixels, aux coins transparents
+		Et rendue en 16, 24, 32, 48, 64, 128 et 256 pixels, l'icône montre son losange orange et son casque noir
 
 	Scénario: L'interface porte l'icône de MachinCast et le nom de son raccourci
 		Quand l'application Qt de l'interface est créée
@@ -194,4 +196,4 @@ Fonctionnalité: Vérifications de l'installation
 		Quand le raccourci est rédigé pour le répertoire « /home/radio/machincast », avec l'icône « /home/radio/disparu.png »
 		Alors le raccourci a, dans la section « Desktop Entry », entre autres :
 			| clé  | valeur                                                     |
-			| Icon | /home/radio/machincast/src/machincast/interface/machincast.svg |
+			| Icon | /home/radio/machincast/src/machincast/interface/machincast.png |
