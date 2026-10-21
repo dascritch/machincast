@@ -31,7 +31,7 @@ Si en tant que radio, autre organisation ou particulier, vous avez décidé d'in
 
 [GPLv3](LICENSE)
 
-© Xavier Mouton-Dubosc pour [Radio &lt;FMR&gt;](https://radio-fmr.net)
+© [Xavier Mouton-Dubosc aka DaScritch](https://dascritch.com) pour [Radio &lt;FMR&gt;](https://radio-fmr.net)
 
 ## Hommage
 
