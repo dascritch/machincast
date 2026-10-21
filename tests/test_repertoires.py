@@ -1,14 +1,19 @@
 """Étapes de l'indexation récursive des répertoires de banques (https://github.com/dascritch/machincast/issues/9)."""
 
+import logging
 import re
 import shutil
+from datetime import timedelta
 from pathlib import Path
 
 import psycopg
 import pytest
-from pytest_bdd import given, parsers, scenarios, then
+from pytest_bdd import given, parsers, scenarios, then, when
 
-from tests.etapes_indexation import Execution
+from machincast.base import Role, connecter
+from machincast.indexation.indexeur import indexer_un_sonore
+from tests.base_test import parametres_base_test
+from tests.etapes_indexation import Execution, nombre
 from tests.sons import copie_de_test, corrompre
 
 scenarios("repertoires.feature")
@@ -138,3 +143,98 @@ def deplacer(racine: Path, relatif: str, destination: str) -> None:
 	cible = racine / destination
 	cible.parent.mkdir(parents=True, exist_ok=True)
 	shutil.move(racine / relatif, cible)
+
+
+# ─── Durées des sonores d'une banque (https://github.com/dascritch/machincast/issues/195) ───
+
+
+@given(
+	parsers.re(
+		r"la banque « (?P<nom>[^»]+) » n'accepte que les sonores (?:d'au moins (?P<minimum>[\d,]+)"
+		r"|d'au plus (?P<maximum>[\d,]+)|de (?P<de>[\d,]+) à (?P<a>[\d,]+)) secondes?"
+	)
+)
+def durees_de_la_banque(
+	base_vide: Connexion, nom: str, minimum: str | None, maximum: str | None, de: str | None, a: str | None
+) -> None:
+	bornes: list[timedelta | None] = []
+	for valeur in ((minimum) or (de), (maximum) or (a)):
+		borne = None
+		if valeur is not None:
+			borne = timedelta(seconds=nombre(valeur))
+		bornes.append(borne)
+	base_vide.execute(
+		"UPDATE banques SET duree_min = %s, duree_max = %s WHERE id = %s", (*bornes, banque(base_vide, nom))
+	)
+
+
+def _ajouter(base: Connexion, nom: str, sonore: object) -> None:
+	identifiant = banque(base, nom)
+	base.execute(
+		"INSERT INTO banques_sonores (banque_id, sonore_id, position)"
+		" SELECT %s, %s, COALESCE(MAX(position), 0) + 1 FROM banques_sonores WHERE banque_id = %s",
+		(identifiant, sonore, identifiant),
+	)
+
+
+def sonore_de(base: Connexion, racine: Path, relatif: str) -> int:
+	ligne = base.execute("SELECT id FROM sonores WHERE emplacement = %s", (str(racine / relatif),)).fetchone()
+	assert ligne is not None, f"aucun sonore pour {relatif}"
+	return int(str(ligne[0]))
+
+
+@given(parsers.parse("« {relatif} » est ajouté à la main à la banque « {nom} »"))
+def ajoute_a_la_main(base_vide: Connexion, racine: Path, relatif: str, nom: str) -> None:
+	_ajouter(base_vide, nom, sonore_de(base_vide, racine, relatif))
+
+
+@given(parsers.parse("le stream « {titre} » est ajouté à la main à la banque « {nom} »"))
+def stream_ajoute(base_vide: Connexion, titre: str, nom: str) -> None:
+	ligne = base_vide.execute(
+		"INSERT INTO sonores (type, url_stream, titre, etat) VALUES ('stream', 'https://flux.exemple', %s, 'actif')"
+		" RETURNING id",
+		(titre,),
+	).fetchone()
+	assert ligne is not None
+	_ajouter(base_vide, nom, ligne[0])
+
+
+@given(parsers.re(r"la durée en base du sonore de « (?P<relatif>[^»]+) » est de (?P<secondes>[\d,]+) secondes"))
+def duree_en_base(base_vide: Connexion, racine: Path, relatif: str, secondes: str) -> None:
+	base_vide.execute(
+		"UPDATE sonores SET duree = %s WHERE id = %s",
+		(timedelta(seconds=nombre(secondes)), sonore_de(base_vide, racine, relatif)),
+	)
+
+
+@when(
+	parsers.parse("l'indexeur vérifie seulement le sonore de « {relatif} », en audit complet"),
+	target_fixture="execution",
+)
+def un_seul_sonore(base_vide: Connexion, racine: Path, caplog: pytest.LogCaptureFixture, relatif: str) -> Execution:
+	"""Comme Machin_indexation --audit-complet --sonore N."""
+	caplog.clear()
+	sonore = sonore_de(base_vide, racine, relatif)
+	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:
+		bilan = indexer_un_sonore(c, sonore, audit_complet=True)
+	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
+	informations = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+	return Execution(bilan, "\n".join(anomalies), informations)
+
+
+@then(parsers.parse("la banque « {nom} » ne contient aucun sonore"))
+def banque_vide(base_vide: Connexion, nom: str) -> None:
+	ligne = base_vide.execute(
+		"SELECT count(*) FROM banques_sonores WHERE banque_id = %s", (banque(base_vide, nom),)
+	).fetchone()
+	assert ligne == (0,), ligne
+
+
+@then(parsers.parse("la banque « {nom} » contient le stream « {titre} »"))
+def contient_le_stream(base_vide: Connexion, nom: str, titre: str) -> None:
+	ligne = base_vide.execute(
+		"SELECT count(*) FROM banques_sonores bs JOIN sonores s ON s.id = bs.sonore_id"
+		" WHERE bs.banque_id = %s AND s.titre = %s",
+		(banque(base_vide, nom), titre),
+	).fetchone()
+	assert ligne == (1,), ligne

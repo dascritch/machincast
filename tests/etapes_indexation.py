@@ -23,9 +23,9 @@ from machincast.base import Role, connecter
 from machincast.configuration import SEUIL_DE_BLANC
 from machincast.indexation.__main__ import executer
 from machincast.indexation.decodage import Blancs, DecodeurIndisponible, Verification, verifier_fichier
-from machincast.indexation.indexeur import VERROU
+from machincast.indexation.indexeur import VERROU, indexer_un_sonore
 from machincast.indexation.indexeur import indexer as indexer_complet
-from machincast.indexation.verification import Bilan, texte_bilan, verifier_sonores
+from machincast.indexation.verification import Bilan, texte_bilan
 from tests.base_test import configuration_test, parametres_base_test
 from tests.sons import copie_de_test, corrompre
 
@@ -553,7 +553,7 @@ def audit_d_un_sonore(base_vide: Connexion, caplog: pytest.LogCaptureFixture, so
 	"""Comme Machin_indexation --audit-complet --sonore N, avec le seuil par défaut."""
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:
-		bilan = verifier_sonores(c, audit_complet=True, identifiants=[sonore])
+		bilan = indexer_un_sonore(c, sonore, audit_complet=True)
 	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
 	return Execution(bilan, "\n".join(anomalies))
 

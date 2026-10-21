@@ -23,13 +23,15 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| log                   | non  | oui     | non      | non       |
 
 	Scénario: Droits du binaire indexation
+		https://github.com/dascritch/machincast/issues/195 : l'indexation retire d'une banque les sonores hors de ses durées.
+
 		Alors le rôle "machincast_indexation" a exactement ces droits :
 			| table                 | lire | inserer | modifier | supprimer |
 			| sonores               | oui  | oui     | oui      | non       |
 			| marques_pages_streams | non  | non     | non      | non       |
 			| banques               | oui  | non     | non      | non       |
 			| banques_repertoires   | oui  | non     | non      | non       |
-			| banques_sonores       | oui  | oui     | non      | non       |
+			| banques_sonores       | oui  | oui     | non      | oui       |
 			| evenements            | non  | non     | non      | non       |
 			| evenements_elements   | non  | non     | non      | non       |
 			| sequences             | non  | non     | non      | non       |

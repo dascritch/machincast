@@ -20,8 +20,8 @@ from machincast.cli import CODE_CONFIGURATION_INVALIDE, lancer
 from machincast.configuration import Configuration
 from machincast.indexation import audit
 from machincast.indexation.decodage import DecodeurIndisponible
-from machincast.indexation.indexeur import IndexationEnCours, indexer
-from machincast.indexation.verification import texte_bilan, verifier_sonores
+from machincast.indexation.indexeur import IndexationEnCours, indexer, indexer_un_sonore
+from machincast.indexation.verification import texte_bilan
 from machincast.interface.__main__ import affichage_disponible
 
 EXECUTABLE = "Machin_indexation"
@@ -104,9 +104,7 @@ def verifier_un_sonore(configuration: Configuration, sonore: int, audit_complet:
 			if fichier is None:
 				journal.error(f"sonore {sonore} : inconnu, ou pas un fichier")
 				return CODE_ECHEC
-			bilan = verifier_sonores(
-				connexion, audit_complet=audit_complet, identifiants=[sonore], seuil_blancs=configuration.blancs.seuil
-			)
+			bilan = indexer_un_sonore(connexion, sonore, audit_complet, configuration.blancs.seuil)
 	except psycopg.OperationalError as erreur:
 		journal.error(f"base de données injoignable ({base.production} par {base.socket}) : {erreur}")
 		return CODE_ECHEC

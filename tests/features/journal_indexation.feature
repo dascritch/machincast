@@ -32,9 +32,9 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 			| Machin_indexation : …/pubs/jingle.wav : nouveau sonore, ajouté à la banque Publicité                                      |
 			| Machin_indexation : …/pubs/cafe.flac : sain, Les Gaufres Électriques – Café à minuit ; sonore passé actif                 |
 			| Machin_indexation : …/pubs/jingle.wav : sain ; sonore passé actif                                                         |
-			| Machin_indexation : indexation rapide : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu |
+			| Machin_indexation : indexation rapide : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu |
 			| Machin_indexation : document d'audit : …/audit/machincast-audit-2026-10-15T08:15:00.csv, …/audit/machincast-audit-2026-10-15T08:15:00.html |
-		Et le journal « Indexation rapide » de l'indexation conclut « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. »
+		Et le journal « Indexation rapide » de l'indexation conclut « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. »
 		Et le journal de l'indexation ne signale aucune anomalie
 		Et les sonores de la banque « Publicité » en base sont :
 			| emplacement       | etat  | titre         |
@@ -50,7 +50,7 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 		Étant donné le fichier « …/pubs/faux.mp3 », qui n'est pas un son
 		Quand le journal « Indexation rapide » de l'indexation s'ouvre
 		Et l'indexation se termine
-		Alors le journal « Indexation rapide » de l'indexation conclut « Indexation rapide terminée : 3 nouveaux sonores, 0 rattachement ; 3 sonores vérifiés ; 0 erroné, 1 non supporté, 0 supprimé, 0 rétabli, 3 sortis d'aperçu. 1 anomalie, dans le journal ci-dessus. »
+		Alors le journal « Indexation rapide » de l'indexation conclut « Indexation rapide terminée : 3 nouveaux sonores, 0 rattachement, 0 retrait ; 3 sonores vérifiés ; 0 erroné, 1 non supporté, 0 supprimé, 0 rétabli, 3 sortis d'aperçu. 1 anomalie, dans le journal ci-dessus. »
 		Et le journal de l'indexation signale 1 anomalie, sur « …/pubs/faux.mp3 »
 
 	Scénario: Seul l'audit complet revérifie les sonores actifs
@@ -60,7 +60,7 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 		Alors le sonore « Ancien » est à l'état « actif »
 		Quand le journal « Audit complet » de l'indexation s'ouvre
 		Et l'indexation se termine
-		Alors le journal « Audit complet » de l'indexation conclut « Audit complet terminé : 0 nouveau sonore, 0 rattachement ; 4 sonores vérifiés ; 0 erroné, 1 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu. 2 anomalies, dans le journal ci-dessus. »
+		Alors le journal « Audit complet » de l'indexation conclut « Audit complet terminé : 0 nouveau sonore, 0 rattachement, 0 retrait ; 4 sonores vérifiés ; 0 erroné, 1 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu. 2 anomalies, dans le journal ci-dessus. »
 		Et le journal de l'indexation signale 2 anomalies, sur « …/vieux.wav », « …/pubs/faux.mp3 »
 		Et le sonore « Ancien » est à l'état « non supporté »
 		Et le journal de l'indexeur n'est plus écouté
@@ -71,7 +71,7 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 		Alors le journal « Indexation rapide » de l'indexation est ouvert
 		Et le journal « Indexation rapide » de l'indexation conclut « Indexation rapide en cours… »
 		Quand l'indexation attendue reprend, et se termine
-		Alors le journal « Indexation rapide » de l'indexation conclut « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. »
+		Alors le journal « Indexation rapide » de l'indexation conclut « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. »
 
 	Scénario: Une indexation impossible le dit, et laisse vérifiés les sonores déjà vérifiés
 		Étant donné un indexeur qui ne sait pas décoder les fichiers

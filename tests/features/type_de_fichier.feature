@@ -32,7 +32,7 @@ Fonctionnalité: Type de fichier d'un sonore
 		Alors le sonore est à l'état « non_supporte »
 		Et le type du fichier en base est « <type> »
 		Et la sortie d'erreur signale ce fichier comme « non supporté », avec « sonore passé non supporté »
-		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 1 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 1 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
 
 		Exemples:
 			| fichier                                        | type       |
@@ -80,7 +80,7 @@ Fonctionnalité: Type de fichier d'un sonore
 		Quand l'indexeur fait une indexation rapide
 		Alors le sonore est à l'état « actif »
 		Et le type du fichier en base est « audio/mpeg »
-		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 1 rétabli, 0 sorti d'aperçu »
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 1 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Le document d'audit donne le verdict « non supporté »
 		Étant donné le poste à l'heure de Paris
