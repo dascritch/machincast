@@ -50,7 +50,7 @@ from PySide6.QtWidgets import QLabel, QMainWindow, QTabBar, QWidget
 from machincast import service
 from machincast.configuration import Audio, Blancs, Crossfades, Interface
 from machincast.horloge import Horloge
-from machincast.interface import dialogues, groupes, indexation, pilotage, preferences, version
+from machincast.interface import dialogues, groupes, indexation, pilotage, preferences, suggestions, version
 from machincast.interface.ajout import ajouter_fichiers
 from machincast.interface.calendrier import UNE_HEURE, Calendrier, date_longue
 from machincast.interface.ecran_par_defaut import EcranParDefaut
@@ -152,6 +152,8 @@ class FenetrePrincipale(QMainWindow):
 		self.seuil_blancs = ((blancs) or (Blancs())).seuil
 		self.saturation = ((interface) or (Interface())).saturation
 		"""Le voyant « Saturation » de l'accueil est affiché (https://github.com/dascritch/machincast/issues/191)."""
+		self.suggestions = ((interface) or (Interface())).suggestions
+		"""Au lancement, proposer ce qui manque pour démarrer (https://github.com/dascritch/machincast/issues/119)."""
 		"""Seuil de blanc du fichier de configuration, que montrent les préférences."""
 		self.connexion = connexion
 		self.horloge = horloge
@@ -216,7 +218,6 @@ class FenetrePrincipale(QMainWindow):
 		self._ajouter_fixe(self.incidents, "Incidents")
 		self.ui.onglets.setCurrentIndex(0)
 		self.ui.onglets.currentChanged.connect(self._onglet_ouvert)
-		self._garantir_fil_musical()
 		self.ui.onglets.tabCloseRequested.connect(self._fermer)
 		self._creer_les_raccourcis()
 
@@ -596,6 +597,46 @@ class FenetrePrincipale(QMainWindow):
 		liste.actualiser()
 		self.verificateur.verifier(ajout.ajoutes)
 
+	def proposer_au_lancement(self) -> None:
+		"""Une fois la fenêtre montrée : la fenêtre des suggestions, s'il manque de quoi démarrer
+		(https://github.com/dascritch/machincast/issues/119) ; sans les suggestions, le fil musical garanti, comme avant
+		(spec § 8.10)."""
+		if not self.suggestions:
+			self._garantir_fil_musical()
+			return
+		try:
+			manques = suggestions.manquants(self.connexion, self.audio)
+		except psycopg.Error as erreur:
+			journal.error(f"suggestions impossibles : {erreur}")
+			return
+		if manques.vide():
+			return
+		reponse = dialogues.suggerer(self, manques)
+		if self.configuration is not None:
+			try:
+				suggestions.enregistrer(self.configuration, reponse.antenne, reponse.ne_plus_proposer)
+			except OSError as erreur:
+				self.statusBar().showMessage(f"Réglages non enregistrés dans {self.configuration} : {erreur}")
+				return
+		if reponse.ne_plus_proposer:
+			self.suggestions = False
+		if not reponse.creer:
+			return
+		try:
+			texte = suggestions.creer(self.connexion, reponse)
+		except psycopg.Error as erreur:
+			self.statusBar().showMessage(f"Création impossible : {erreur}")
+			return
+		if texte is not None:
+			self.statusBar().showMessage(texte)
+		if (reponse.antenne is not None) and (self.configuration is not None):
+			self.audio = dataclasses.replace(self.audio, peripherique=reponse.antenne)
+			self._signaler_l_antenne()
+			self.accueil.changer_d_antenne(self.audio)
+			self.statusBar().showMessage(
+				f"Périphérique de l'antenne : {reponse.antenne} ; Machin lecture le prendra à son prochain démarrage."
+			)
+
 	def _garantir_fil_musical(self) -> None:
 		"""Sans fil musical en base, en crée un, permanent et vide, et le dit (spec § 8.10)."""
 		try:
@@ -659,7 +700,12 @@ class FenetrePrincipale(QMainWindow):
 		assert self.configuration is not None
 		audio = self.audio
 		montres = preferences.Reglages(
-			preferences.crossfades(), audio.peripherique, audio.preecoute, self.seuil_blancs, self.saturation
+			preferences.crossfades(),
+			audio.peripherique,
+			audio.preecoute,
+			self.seuil_blancs,
+			self.saturation,
+			self.suggestions,
 		)
 		reglages = dialogues.regler_preferences(self, montres, audio.sortie)
 		if reglages is None:
@@ -672,6 +718,7 @@ class FenetrePrincipale(QMainWindow):
 		preferences.definir(reglages.crossfades)
 		self.seuil_blancs = reglages.seuil_blancs
 		self.saturation = reglages.saturation
+		self.suggestions = reglages.suggestions
 		self.accueil.montrer_la_saturation(self.saturation)
 		texte = "les crossfades par défaut"
 		if reglages.antenne != audio.peripherique:

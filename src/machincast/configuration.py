@@ -122,6 +122,9 @@ class Interface:
 
 	saturation: bool = True
 	"""Le voyant « Saturation » de la colonne Antenne de l'accueil est affiché."""
+	suggestions: bool = True
+	"""Au lancement, l'interface propose de créer ce qui manque pour démarrer
+	(https://github.com/dascritch/machincast/issues/119)."""
 
 
 @dataclass(frozen=True)
@@ -146,7 +149,7 @@ CLES: dict[str, frozenset[str]] = {
 	"lecture": frozenset({"socket_etat"}),
 	"crossfades": frozenset({"granularite", "maximum", "debut", "fin"}),
 	"blancs": frozenset({"seuil"}),
-	"interface": frozenset({"saturation"}),
+	"interface": frozenset({"saturation", "suggestions"}),
 }
 
 
@@ -359,5 +362,8 @@ def charger(chemin: Path | None = None) -> Configuration:
 		lecture=lecture,
 		crossfades=lecteur.crossfades(),
 		blancs=lecteur.blancs(),
-		interface=Interface(saturation=lecteur.booleen_facultatif("interface", "saturation", True)),
+		interface=Interface(
+			saturation=lecteur.booleen_facultatif("interface", "saturation", True),
+			suggestions=lecteur.booleen_facultatif("interface", "suggestions", True),
+		),
 	)

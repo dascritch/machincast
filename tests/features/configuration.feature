@@ -295,4 +295,18 @@ Fonctionnalité: Fichier de configuration
 			| cle                  | valeur |
 			| interface.saturation | "oui"  |
 			| interface.saturation | 1      |
+			| interface.suggestions | "non" |
 			| interface.silence    | true   |
+
+	Plan du scénario: La clé interface.suggestions active ou éteint les suggestions au lancement, actives par défaut
+		https://github.com/dascritch/machincast/issues/119
+
+		Étant donné <configuration>
+		Quand je charge la configuration
+		Alors les suggestions au lancement sont <etat>
+
+		Exemples:
+			| configuration                                                     | etat     |
+			| une configuration valide sans section "interface"                 | actives  |
+			| une configuration valide où la clé "interface.suggestions" vaut true  | actives  |
+			| une configuration valide où la clé "interface.suggestions" vaut false | éteintes |

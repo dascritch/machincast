@@ -57,6 +57,9 @@ class Reglages:
 	saturation: bool = True
 	"""interface.saturation : le voyant « Saturation » de l'accueil est affiché
 	(https://github.com/dascritch/machincast/issues/191)."""
+	suggestions: bool = True
+	"""interface.suggestions : au lancement, l'interface propose ce qui manque pour démarrer
+	(https://github.com/dascritch/machincast/issues/119)."""
 
 
 _courantes = Crossfades()
@@ -135,6 +138,7 @@ def ecrire(chemin: Path, reglages: Reglages) -> None:
 	section_interface = document["interface"]
 	assert isinstance(section_interface, tomlkit.items.Table)
 	section_interface["saturation"] = reglages.saturation
+	section_interface["suggestions"] = reglages.suggestions
 	chemin.write_text(tomlkit.dumps(document), encoding="utf-8")
 
 
@@ -168,6 +172,7 @@ class FenetrePreferences(QDialog):
 		ui.seuil_blancs.setLocale(FRANCAIS)
 		ui.seuil_blancs.setValue(tous.seuil_blancs)
 		ui.saturation.setChecked(tous.saturation)
+		ui.suggestions.setChecked(tous.suggestions)
 		ui.granularite.currentIndexChanged.connect(self._granularite)
 		ui.maximum.valueChanged.connect(self._maximum)
 		ui.boutons.accepted.connect(self.accept)
@@ -217,6 +222,7 @@ class FenetrePreferences(QDialog):
 			str(ui.preecoute.currentData()),
 			round(ui.seuil_blancs.value(), 1),
 			ui.saturation.isChecked(),
+			ui.suggestions.isChecked(),
 		)
 
 

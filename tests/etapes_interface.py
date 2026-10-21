@@ -12,7 +12,7 @@ posée : aucune fenêtre modale n'attend un clic.
 import dataclasses
 import re
 import shutil
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -38,7 +38,7 @@ from pytestqt.qtbot import QtBot
 from machincast import audio
 from machincast.audio import Peripherique
 from machincast.base import Role, connecter
-from machincast.configuration import Crossfades, SortieAudio, charger
+from machincast.configuration import Crossfades, Interface, SortieAudio, charger
 from machincast.horloge import HorlogeFixe
 from machincast.interface import dialogues
 from machincast.interface.dialogues import Fermeture, Retrait
@@ -46,6 +46,7 @@ from machincast.interface.fenetre import FenetrePrincipale
 from machincast.interface.fiche import Fiche
 from machincast.interface.listes import Liste
 from machincast.interface.preferences import Reglages
+from machincast.interface.suggestions import Manques, Reponse
 from tests.base_test import configuration_test, parametres_base_test
 from tests.sons import FICHIERS_SONORES
 
@@ -125,6 +126,13 @@ class Contexte:
 	None : celui qu'elle a montré."""
 	seuils_montres: list[float] = field(default_factory=list)
 	"""Les seuils de blanc que la fenêtre des préférences a montrés, à chaque ouverture."""
+	suggestions_actives: bool = False
+	"""Les scénarios n'ont pas de suggestions au lancement, sauf ceux qui les activent
+	(https://github.com/dascritch/machincast/issues/119) : sans elles, le fil musical est recréé comme avant."""
+	reponse_aux_suggestions: Callable[[Manques], Reponse] = lambda _manques: Reponse(creer=False)
+	"""Ce que donnera la fenêtre des suggestions, d'après ce qu'elle propose : « Plus tard » par défaut."""
+	suggestions_faites: list[Manques] = field(default_factory=list)
+	"""Ce que la fenêtre des suggestions a proposé, à chaque lancement."""
 	duree_de_reponse: float = 0.0
 	"""Temps qu'a pris la dernière action mesurée, en secondes (https://github.com/dascritch/machincast/issues/194)."""
 	saturation_reglee: bool | None = None
@@ -249,9 +257,22 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		saturation = montres.saturation
 		if interface.saturation_reglee is not None:
 			saturation = interface.saturation_reglee
-		return Reglages((interface.preferences_reglees) or (montres.crossfades), antenne, preecoute, seuil, saturation)
+		return Reglages(
+			(interface.preferences_reglees) or (montres.crossfades),
+			antenne,
+			preecoute,
+			seuil,
+			saturation,
+			montres.suggestions,
+		)
 
 	monkeypatch.setattr(dialogues, "regler_preferences", preferences)
+
+	def suggerer(_parent: QWidget, manques: Manques) -> Reponse:
+		interface.suggestions_faites.append(manques)
+		return interface.reponse_aux_suggestions(manques)
+
+	monkeypatch.setattr(dialogues, "suggerer", suggerer)
 
 
 def fichier_de_configuration(interface: Contexte) -> Path:
@@ -658,6 +679,8 @@ def ouvrir_la_fenetre(interface: Contexte, qtbot: QtBot, avec_configuration: boo
 		blancs = charger(chemin).blancs
 		reglages_de_l_interface = charger(chemin).interface
 		audio = charger(chemin).audio
+	if not interface.suggestions_actives:
+		reglages_de_l_interface = dataclasses.replace((reglages_de_l_interface) or (Interface()), suggestions=False)
 	audio = dataclasses.replace(audio, **interface.audio)  # type: ignore[arg-type]
 	interface.fenetre = FenetrePrincipale(
 		interface.connexion,
@@ -687,6 +710,8 @@ def ouvrir_la_fenetre(interface: Contexte, qtbot: QtBot, avec_configuration: boo
 	qtbot.addWidget(interface.fenetre, before_close_func=abandonner)
 	interface.fenetre.show()
 	qtbot.waitExposed(interface.fenetre)
+	# Comme Machin_interface, une fois la fenêtre montrée (https://github.com/dascritch/machincast/issues/119).
+	interface.fenetre.proposer_au_lancement()
 
 
 @when("la base devient injoignable pour l'interface")
