@@ -14,6 +14,10 @@
 
 ## La fenêtre
 
+**Pour l'ouvrir**, choisir **MachinCast** dans le menu des applications, rubrique Multimédia, ou double-cliquer sur son icône, un rouage d'où partent des ondes, sur le bureau quand l'installation l'y a déposée. Aucun terminal n'est nécessaire.
+
+<img src="../../src/machincast/interface/machincast.svg" width="64" height="64" alt="Icône de MachinCast : un rouage blanc d'où partent deux ondes orange, sur fond bleu nuit">
+
 **Machin interface** s'ouvre sur une fenêtre à onglets, un par écran. Au lancement : **Accueil**, **Événements**, **Séquences**, **Banques** et **Incidents**. Les listes des **Sonores** et des **Marques-pages**, et le **Calendrier**, s'ouvrent à la demande, par le menu **Affichage** : « Ouvrir l'onglet Sonores », « Ouvrir l'onglet Marques-pages » et « Ouvrir l'onglet Grille horaire ». Les Sonores et les Marques-pages se placent après les Banques ; un onglet déjà ouvert revient au premier plan. Les onglets ouverts à la demande, et ceux des fiches, se ferment par leur croix ; une liste fermée puis rouverte retrouve son filtre et son tri.
 
 **Sans base de données**, l'interface ne peut rien montrer : une fenêtre d'erreur, « MachinCast : base de données injoignable », l'explique, et son bouton « Ouvrir INSTALL.md » mène à la section [En cas de problème](../../INSTALL.md#en-cas-de-problème), pour l'administrateur du poste.

@@ -8,6 +8,8 @@
 #   ./install.sh --service     installe aussi le service de diffusion : pour un ordinateur dédié à l'antenne
 #                              (https://github.com/dascritch/machincast/issues/22)
 #   ./install.sh --retirer-service   retire ce service, la diffusion se lance de nouveau à la main
+#   ./install.sh --bureau      dépose aussi le raccourci de l'interface sur le bureau, sans le demander
+#   ./install.sh --sans-bureau ne le dépose pas, sans le demander (https://github.com/dascritch/machincast/issues/62)
 #   ./install.sh --help        aide
 #
 # À lancer depuis le répertoire de MachinCast (release décompressée ou dépôt git), avec son propre compte :
@@ -28,6 +30,10 @@ LIEN_COMPLETION="/usr/share/bash-completion/completions/Machin"
 UNITE="machincast.service"
 FICHIER_UNITE="/etc/systemd/system/${UNITE}"
 FICHIER_REGLE="/etc/polkit-1/rules.d/50-machincast.rules"
+# Raccourci de l'interface (https://github.com/dascritch/machincast/issues/62) : dans le menu des applications du
+# compte, et sur son bureau s'il le veut. Le même nom que RACCOURCI de machincast.interface.application.
+RACCOURCI="machincast.desktop"
+DOSSIER_APPLICATIONS="${XDG_DATA_HOME:-${HOME}/.local/share}/applications"
 CONFIGURATION="${RACINE}/machincast.toml"
 VENV="${RACINE}/.venv"
 ROLES=(lecture indexation interface)
@@ -40,17 +46,19 @@ PAQUETS=(
 	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire pipewire-bin libmagic1t64 postgresql bash-completion
 )
 # Outils du poste de développement, installés par --dev : ceux de CLAUDE.md.
-PAQUETS_DEV=(bats shellcheck)
+PAQUETS_DEV=(bats shellcheck desktop-file-utils)
 
 SIMULATION=false
 DEV=false
 SERVICE=false
 RETIRER_SERVICE=false
+# Raccourci sur le bureau : demander, oui ou non.
+BUREAU=demander
 UTILISATEUR="$(id -un)"
 
 aide() {
 	cat <<-FIN
-		Usage : ./install.sh [--simulation] [--dev]
+		Usage : ./install.sh [--simulation] [--dev] [--service | --retirer-service] [--bureau | --sans-bureau]
 
 		Installe MachinCast en place, depuis ce répertoire (${RACINE}) :
 		  1. paquets système (apt) ;
@@ -60,7 +68,9 @@ aide() {
 		     dont il est propriétaire, rôles de MachinCast, schéma ;
 		  5. autorisation de ${UTILISATEUR} aux rôles ${ROLES[*]}, groupe systemd-journal ;
 		  6. liens ${LIEN_INSTALLATION}, ${LIEN_WRAPPER} et l'autocomplétion bash ;
-		  7. vérification des greffons GStreamer et de la sortie audio.
+		  7. vérification des greffons GStreamer et de la sortie audio ;
+		  8. raccourci de l'interface dans le menu des applications de ${UTILISATEUR}, et, s'il le veut,
+		     sur son bureau : la question est posée, sauf avec --bureau ou --sans-bureau.
 		Avec --dev, aussi les outils du poste de développement : ${PAQUETS_DEV[*]} (apt) et les
 		dépendances de test (pip, extra [dev]), pour Machin dev et Machin dev-test.
 		Avec --service, aussi le service de diffusion ${UNITE}, seulement pour un ordinateur dédié à
@@ -77,6 +87,8 @@ aide() {
 		  --service     installe aussi le service de diffusion (ordinateur dédié à l'antenne seulement)
 		  --retirer-service
 		                retire le service de diffusion et sa règle polkit
+		  --bureau      dépose aussi le raccourci de l'interface sur le bureau, sans le demander
+		  --sans-bureau ne le dépose pas sur le bureau, sans le demander
 		  -h, --help    cette aide
 	FIN
 }
@@ -293,7 +305,8 @@ installer_fichier() {
 		return 0
 	fi
 	redige="$(mktemp)"
-	installation "${action}" >"${redige}"
+	# Appelée par if ou ||, la fonction ne s'arrête pas d'elle-même sur une erreur (set -e) : jamais de fichier vide.
+	installation "${action}" >"${redige}" || echec "machincast.installation ${action} a échoué : ${destination} non installé"
 	if [[ -r "${destination}" ]] && cmp --silent "${redige}" "${destination}"; then
 		info "${destination} est à jour"
 		rm --force "${redige}" # fichier de MachinCast : unité ou règle rédigée, temporaire
@@ -302,6 +315,77 @@ installer_fichier() {
 	executer sudo install --mode=644 --owner=root --group=root "${redige}" "${destination}"
 	rm --force "${redige}" # fichier de MachinCast : unité ou règle rédigée, temporaire
 	return 0
+}
+
+# Installe pour le compte, sans sudo, le raccourci rédigé par machincast.installation, s'il diffère de celui en place
+# ou n'a pas les droits voulus ; vrai s'il a changé.
+installer_raccourci_en() {
+	local destination="$1" droits="$2" redige
+	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
+		info "[simulation] ${destination}, rédigé par machincast.installation raccourci"
+		return 0
+	fi
+	redige="$(mktemp)"
+	installation raccourci >"${redige}" || echec "machincast.installation raccourci a échoué : ${destination} non installé"
+	if [[ -r "${destination}" ]] && cmp --silent "${redige}" "${destination}" \
+		&& [[ "$(stat --format=%a "${destination}")" == "${droits}" ]]; then
+		info "${destination} est à jour"
+		rm --force "${redige}" # fichier de MachinCast : raccourci rédigé, temporaire
+		return 1
+	fi
+	executer install -D --mode="${droits}" "${redige}" "${destination}"
+	rm --force "${redige}" # fichier de MachinCast : raccourci rédigé, temporaire
+	return 0
+}
+
+# Le dossier du bureau du compte, « Bureau » en français ; rien s'il n'en a pas.
+dossier_du_bureau() {
+	local dossier
+	command -v xdg-user-dir >/dev/null || return 0
+	dossier="$(xdg-user-dir DESKTOP)"
+	# Sans bureau configuré, xdg-user-dir répond le dossier personnel.
+	if [[ -n "${dossier}" && "${dossier}" != "${HOME}" ]]; then
+		printf '%s\n' "${dossier}"
+	fi
+}
+
+# Vrai si le raccourci va sur le bureau : déjà là, demandé par --bureau, ou accepté à la question.
+vouloir_le_bureau() {
+	local raccourci="$1" reponse
+	case "${BUREAU}" in
+		oui) return 0 ;;
+		non) return 1 ;;
+	esac
+	[[ -e "${raccourci}" ]] && return 0
+	if "${SIMULATION}"; then
+		info "[simulation] question : déposer aussi le raccourci sur le bureau ?"
+		return 0
+	fi
+	if [[ ! -t 0 ]]; then
+		info "pas de question sans terminal : ./install.sh --bureau le dépose sur le bureau"
+		return 1
+	fi
+	read -r -p "    Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] " reponse
+	[[ ! "${reponse}" =~ ^[nN] ]]
+}
+
+installer_raccourci() {
+	etape "Raccourci de l'interface"
+	installer_raccourci_en "${DOSSIER_APPLICATIONS}/${RACCOURCI}" 644 || true
+	local bureau
+	bureau="$(dossier_du_bureau)"
+	if [[ -z "${bureau}" ]]; then
+		info "pas de dossier de bureau pour ${UTILISATEUR} : raccourci dans le menu des applications seulement"
+		return
+	fi
+	if vouloir_le_bureau "${bureau}/${RACCOURCI}"; then
+		# Exécutable : Plasma lance alors le raccourci du bureau sans demander de confirmation.
+		installer_raccourci_en "${bureau}/${RACCOURCI}" 755 || true
+	elif [[ -e "${bureau}/${RACCOURCI}" ]]; then
+		info "${bureau}/${RACCOURCI} laissé tel quel"
+	else
+		info "pas de raccourci sur le bureau ; ./install.sh --bureau l'y dépose"
+	fi
 }
 
 installer_service() {
@@ -353,6 +437,7 @@ retirer_service() {
 conclure() {
 	etape "Installation terminée"
 	info "Aide : Machin --help"
+	info "Interface : MachinCast, dans le menu des applications, ou Machin interface"
 	info "Première indexation : Machin indexation, puis Machin indexation --audit-complet"
 	if "${DEV}"; then
 		info "Poste de développement : Machin dev ouvre un shell, venv activé ; Machin dev-test lance les vérifications"
@@ -366,6 +451,8 @@ principal() {
 			--dev) DEV=true ;;
 			--service) SERVICE=true ;;
 			--retirer-service) RETIRER_SERVICE=true ;;
+			--bureau) BUREAU=oui ;;
+			--sans-bureau) BUREAU=non ;;
 			-h | --help)
 				aide
 				exit 0
@@ -389,6 +476,7 @@ principal() {
 	autoriser_journal
 	installer_liens
 	verifier_greffons
+	installer_raccourci
 	if "${RETIRER_SERVICE}"; then
 		retirer_service
 	else

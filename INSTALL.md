@@ -84,6 +84,8 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 ./install.sh                # installe
 ./install.sh --dev          # installe, avec les outils du poste de développement
 ./install.sh --service      # installe, avec le service de diffusion : ordinateur dédié à l'antenne seulement
+./install.sh --bureau       # installe, et dépose le raccourci de l'interface sur le bureau sans le demander
+./install.sh --sans-bureau  # installe, sans raccourci sur le bureau ni question
 ./install.sh --help         # aide
 ```
 
@@ -91,7 +93,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 
 **Relançable** : chaque étape déjà faite est laissée telle quelle. En cas d'échec, corriger ce que le message indique, puis relancer le script. À la relance, PostgreSQL signale par des lignes `NOTICE:  role … has already been granted membership …` que le compte était déjà autorisé : ce n'est pas une erreur.
 
-**Ce qu'il demande** : le mot de passe `sudo`, pour apt, pour les commandes passées en tant qu'utilisateur `postgres`, pour l'ajout au groupe `systemd-journal`, pour les liens dans `/opt`, `/usr/local/bin` et `/usr/share`, et, avec `--service`, pour la session du compte, l'unité systemd et la règle polkit. Rien d'autre : il n'y a aucune question.
+**Ce qu'il demande** : le mot de passe `sudo`, pour apt, pour les commandes passées en tant qu'utilisateur `postgres`, pour l'ajout au groupe `systemd-journal`, pour les liens dans `/opt`, `/usr/local/bin` et `/usr/share`, et, avec `--service`, pour la session du compte, l'unité systemd et la règle polkit. Une seule question, à la première installation : « Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] » ; Entrée répond oui. `--bureau` et `--sans-bureau` y répondent d'avance ; sans terminal, par exemple dans un script, elle n'est pas posée, et le raccourci ne va pas sur le bureau.
 
 **Ce qu'il fait**, dans l'ordre :
 
@@ -106,6 +108,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 | Journal système | Ajoute le compte au groupe `systemd-journal`, pour lire le journal du service. Effectif après le redémarrage du poste. | Groupes du compte. |
 | Liens | `/opt/machincast` vers le répertoire de MachinCast ; `/usr/local/bin/Machin` vers le wrapper ; l'autocomplétion bash dans `/usr/share/bash-completion/completions/Machin`. | Trois liens symboliques. |
 | Greffons GStreamer et sortie audio | Vérifie que GStreamer sait décoder MP3, M4A, AAC, Ogg, FLAC, WAV et AIFF, lire les streams HTTP et HTTPS, et créer la sortie audio de `machincast.toml`, sans jouer aucun son. | Rien. |
+| Raccourci de l'interface | Installe le raccourci **MachinCast**, avec son icône, dans le menu des applications du compte, rubrique Multimédia. Selon la réponse à la question, ou `--bureau`, le dépose aussi sur le bureau du compte (le dossier que donne `xdg-user-dir DESKTOP`, « Bureau » en français), exécutable pour que Plasma le lance sans avertissement. Un raccourci déjà sur le bureau est mis à jour sans question ; `--sans-bureau` le laisse tel quel ([#62](https://github.com/dascritch/machincast/issues/62)). | `~/.local/share/applications/machincast.desktop`, et `machincast.desktop` sur le bureau. |
 
 À la fin, il affiche `Installation terminée`. Le service de diffusion n'est installé que sur demande : voir [Service de diffusion](#service-de-diffusion).
 
@@ -340,6 +343,17 @@ sudo ln --symbolic --force --no-dereference /opt/machincast/bash-completion/Mach
 
 Sans ces liens, le wrapper s'appelle par `bin/Machin` depuis le répertoire de MachinCast, et l'autocomplétion se charge dans le shell courant par `source bash-completion/Machin`.
 
+**Raccourci de l'interface.** Dans le menu des applications, puis, si on le veut, sur le bureau, exécutable :
+
+```bash
+.venv/bin/python -m machincast.installation raccourci --config machincast.toml >machincast.desktop
+install -D --mode=644 machincast.desktop ~/.local/share/applications/machincast.desktop
+install -D --mode=755 machincast.desktop "$(xdg-user-dir DESKTOP)/machincast.desktop"
+rm machincast.desktop
+```
+
+Le raccourci lance `bin/Machin interface` depuis le répertoire de MachinCast, avec l'icône `src/machincast/interface/machincast.svg`. Déplacer le répertoire de MachinCast demande de le refaire.
+
 **8. Vérification des greffons GStreamer et de la sortie audio.**
 
 ```bash
@@ -353,6 +367,7 @@ Pour chaque greffon manquant, la commande nomme le paquet apt à installer.
 ```bash
 ./install.sh --retirer-service   # si le service de diffusion est installé
 sudo rm /opt/machincast /usr/local/bin/Machin /usr/share/bash-completion/completions/Machin
+rm --force ~/.local/share/applications/machincast.desktop "$(xdg-user-dir DESKTOP)/machincast.desktop"
 sudo -u postgres dropdb machincast
 sudo -u postgres dropdb machincast_test
 ```
@@ -389,4 +404,3 @@ Les messages d'information s'affichent sur la sortie standard ; les anomalies et
 | Manque | Ticket |
 | --- | --- |
 | Archives `.tar.gz` publiées en releases | [#41](https://github.com/dascritch/machincast/issues/41) |
-| Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |

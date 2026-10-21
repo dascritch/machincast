@@ -127,3 +127,57 @@ Fonctionnalité: Vérifications de l'installation
 
 	Scénario: L'unité porte le nom que le wrapper suit dans le journal
 		Alors l'unité de machincast.installation est celle de « Machin logs »
+
+	# ─── Raccourci et icône de l'interface (https://github.com/dascritch/machincast/issues/62) ─────
+	# install.sh installe le raccourci que rédige machincast.installation dans le menu des applications du compte, et,
+	# sur demande, sur son bureau. Lancé depuis une icône, le programme démarre dans le répertoire de MachinCast.
+
+	Scénario: Le raccourci lance Machin interface depuis le répertoire de MachinCast, avec son icône
+		Quand je lance « python -m machincast.installation raccourci » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et le raccourci a, dans la section « Desktop Entry » :
+			| clé            | valeur                                                 |
+			| Type           | Application                                            |
+			| Version        | 1.5                                                    |
+			| Name           | MachinCast                                             |
+			| GenericName    | Diffusion radio automatisée                            |
+			| Comment        | Programmer l'antenne et suivre la diffusion            |
+			| Exec           | <répertoire>/bin/Machin interface                      |
+			| Path           | <répertoire>                                           |
+			| Icon           | <répertoire>/src/machincast/interface/machincast.svg   |
+			| Terminal       | false                                                  |
+			| Categories     | AudioVideo;Audio;                                      |
+			| Keywords       | radio;antenne;diffusion;programmation;                 |
+			| StartupNotify  | true                                                   |
+			| StartupWMClass | MachinCast                                             |
+
+	Plan du scénario: Le raccourci suit le répertoire de MachinCast, quel qu'il soit
+		Quand le raccourci est rédigé pour le répertoire « <répertoire> »
+		Alors le raccourci a, dans la section « Desktop Entry », entre autres :
+			| clé  | valeur      |
+			| Exec | <exec>      |
+			| Path | <répertoire> |
+			| Icon | <répertoire>/src/machincast/interface/machincast.svg |
+
+		Exemples:
+			| répertoire                    | exec                                                |
+			| /home/radio/machincast        | /home/radio/machincast/bin/Machin interface         |
+			| /home/radio/Ma radio/machincast | "/home/radio/Ma radio/machincast/bin/Machin" interface |
+			| /home/radio/l'antenne         | "/home/radio/l'antenne/bin/Machin" interface        |
+			| /home/radio/100%              | /home/radio/100%%/bin/Machin interface              |
+			| /home/radio/$HOME             | "/home/radio/\\\\$HOME/bin/Machin" interface        |
+
+	Scénario: desktop-file-validate accepte le raccourci
+		Étant donné l'outil « desktop-file-validate » du poste
+		Quand je lance « python -m machincast.installation raccourci » avec la configuration de test
+		Et j'enregistre sa sortie en « machincast.desktop »
+		Alors « desktop-file-validate » accepte « machincast.desktop »
+
+	Scénario: L'icône de MachinCast se lit de 16 à 256 pixels
+		Alors l'icône de MachinCast est une image SVG carrée
+		Et rendue en 16, 24, 32, 48, 64, 128 et 256 pixels, l'icône montre son fond, son rouage et ses ondes
+
+	Scénario: L'interface porte l'icône de MachinCast et le nom de son raccourci
+		Quand l'application Qt de l'interface est créée
+		Alors sa fenêtre a l'icône de MachinCast
+		Et l'application se réclame du raccourci « machincast »

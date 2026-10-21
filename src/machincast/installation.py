@@ -5,6 +5,7 @@
 	python -m machincast.installation verifier  --config machincast.toml   décodeurs GStreamer et sortie audio
 	python -m machincast.installation unite     --config machincast.toml   unité systemd du service de lecture
 	python -m machincast.installation regle     --config machincast.toml   règle polkit qui le pilote
+	python -m machincast.installation raccourci --config machincast.toml   raccourci de l'interface (.desktop)
 	python -m machincast.installation peripheriques --config machincast.toml   périphériques de sortie du poste
 
 peripheriques n'est pas appelé par install.sh : il aide à trouver les identifiants à recopier dans audio.peripherique
@@ -13,7 +14,8 @@ et audio.preecoute (https://github.com/dascritch/machincast/issues/116).
 install.sh enchaîne les commandes système (apt, sudo, psql, liens) ; ce module porte ce qui se teste : la lecture
 de la configuration, les migrations, la vérification des greffons GStreamer, et le texte de l'unité systemd et de la
 règle polkit du service de lecture (https://github.com/dascritch/machincast/issues/22), qu'install.sh --service
-installe.
+installe, et celui du raccourci de l'interface, qu'install.sh met dans le menu des applications du compte et, sur
+demande, sur son bureau (https://github.com/dascritch/machincast/issues/62).
 """
 
 import argparse
@@ -247,6 +249,52 @@ polkit.addRule(function (action, subject) {{
 """
 
 
+ICONE = Path(__file__).resolve().parent / "interface" / "machincast.svg"
+"""L'icône de MachinCast, dans le paquet : celle du raccourci et de la fenêtre de l'interface
+(https://github.com/dascritch/machincast/issues/62)."""
+RESERVES = frozenset(" \t\n\"'\\><~|&;$*?#()`")
+"""Caractères qui imposent de citer un argument de la clé Exec (Desktop Entry Specification, « The Exec key »)."""
+
+
+def _argument(texte: str) -> str:
+	"""Un argument de la clé Exec, cité s'il contient un caractère réservé ; dans les guillemets, « " », « ` », « $ » et
+	« \\ » sont précédés d'une barre oblique inversée."""
+	if not any(caractere in RESERVES for caractere in texte):
+		return texte
+	cite = "".join(f"\\{caractere}" if caractere in '"`$\\' else caractere for caractere in texte)
+	return f'"{cite}"'
+
+
+def _chaine(texte: str) -> str:
+	"""Une valeur de type chaîne d'une entrée .desktop : la barre oblique inversée y est doublée."""
+	return texte.replace("\\", "\\\\")
+
+
+def raccourci(repertoire: Path = REPERTOIRE_PROJET) -> str:
+	"""Le raccourci de l'interface (Desktop Entry Specification 1.5) : Machin interface, lancé depuis le répertoire de
+	MachinCast (clé Path), avec l'icône de MachinCast. StartupWMClass est le nom de l'application, que Qt donne pour
+	classe à ses fenêtres sous X11 ; sous Wayland, l'application se réclame du raccourci par son nom, machincast."""
+	commande = f"{_argument(str(repertoire / 'bin' / 'Machin'))} interface".replace("%", "%%")
+	icone = repertoire / ICONE.relative_to(REPERTOIRE_PROJET)
+	return f"""# Raccourci de l'interface de MachinCast (https://github.com/dascritch/machincast/issues/62).
+# Installé par install.sh ; ne pas modifier ici, relancer install.sh.
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=MachinCast
+GenericName=Diffusion radio automatisée
+Comment=Programmer l'antenne et suivre la diffusion
+Exec={_chaine(commande)}
+Path={_chaine(str(repertoire))}
+Icon={_chaine(str(icone))}
+Terminal=false
+Categories=AudioVideo;Audio;
+Keywords=radio;antenne;diffusion;programmation;
+StartupNotify=true
+StartupWMClass=MachinCast
+"""
+
+
 def _unite(_configuration: Configuration) -> int:
 	# Le texte de l'unité, qu'install.sh installe : ce n'est pas un message, d'où l'écriture directe.
 	sys.stdout.write(unite_systemd(Compte.courant()))
@@ -255,6 +303,11 @@ def _unite(_configuration: Configuration) -> int:
 
 def _regle(_configuration: Configuration) -> int:
 	sys.stdout.write(regle_polkit(Compte.courant()))
+	return 0
+
+
+def _raccourci(_configuration: Configuration) -> int:
+	sys.stdout.write(raccourci())
 	return 0
 
 
@@ -287,6 +340,7 @@ ACTIONS = {
 	"bases": _bases,
 	"migrer": _migrer,
 	"peripheriques": _peripheriques,
+	"raccourci": _raccourci,
 	"regle": _regle,
 	"unite": _unite,
 	"verifier": _verifier,
