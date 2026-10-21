@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+	<title>Grille : un calendrier</title>
+	<path fill-rule="evenodd" fill="currentColor" d="M3 5 Q3 4 4 4 H20 Q21 4 21 5 V20 Q21 21 20 21 H4 Q3 21 3 20 Z M5 10 V19 H19 V10 Z"/>
+	<rect x="6.5" y="2" width="2" height="4.5" rx="1" fill="currentColor"/>
+	<rect x="15.5" y="2" width="2" height="4.5" rx="1" fill="currentColor"/>
+	<rect x="7" y="12" width="2.4" height="2.4" fill="currentColor"/>
+	<rect x="10.8" y="12" width="2.4" height="2.4" fill="currentColor"/>
+	<rect x="14.6" y="12" width="2.4" height="2.4" fill="currentColor"/>
+	<rect x="7" y="15.6" width="2.4" height="2.4" fill="currentColor"/>
+	<rect x="10.8" y="15.6" width="2.4" height="2.4" fill="currentColor"/>
+</svg>

@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
+from machincast.interface import icones
 from machincast.interface.colonnes import Colonnes
 from machincast.interface.listes import ETATS, sans_accents
 
@@ -179,6 +180,8 @@ class EcranRecherche(QWidget):
 		self.modele.setRowCount(0)
 		for resultat in self.resultats:
 			cellules = [QStandardItem(texte) for texte in (TYPES[resultat.genre], resultat.nom, resultat.nom_public)]
+			# L'icône du genre (https://github.com/dascritch/machincast/issues/215).
+			cellules[0].setIcon(icones.icone_de(resultat.genre))
 			cellules.append(QStandardItem(resultat.statut))
 			self.modele.appendRow(cellules)
 		texte = TROP_COURT

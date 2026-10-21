@@ -53,6 +53,7 @@ from machincast.horloge import Horloge
 from machincast.interface import (
 	dialogues,
 	groupes,
+	icones,
 	indexation,
 	interruption,
 	pilotage,
@@ -128,6 +129,20 @@ AJOUT_A_DES_BANQUES = "Les sonores choisis s'ajoutent à la fin de chaque banque
 """Remarque du choix des banques où ajouter des sonores (https://github.com/dascritch/machincast/issues/114)."""
 RETRAIT_DE_BANQUES = "Seules les banques où figure l'un des sonores choisis sont proposées."
 """Remarque du choix des banques d'où retirer des sonores."""
+
+
+def genre_de_l_ecran(ecran: QWidget) -> str:
+	"""Le genre que montre un onglet, pour son icône (https://github.com/dascritch/machincast/issues/215) ; rien pour
+	l'accueil, les incidents et la recherche."""
+	if isinstance(ecran, Liste):
+		return ecran.source.genre
+	if isinstance(ecran, Fiche):
+		return ecran.genre
+	if isinstance(ecran, Calendrier):
+		return "grille"
+	if isinstance(ecran, EcranSimulation):
+		return "simulation"
+	return ""
 
 
 class FenetrePrincipale(QMainWindow):
@@ -282,11 +297,15 @@ class FenetrePrincipale(QMainWindow):
 		rechercher = affichage.addAction("Rechercher…")
 		rechercher.setShortcut(QKeySequence("Ctrl+F"))
 		rechercher.triggered.connect(self._ouvrir_recherche)
-		for titre in ("Sonores", "Marques-pages"):
-			ouvrir = affichage.addAction(f"Ouvrir l'onglet {titre}")
+		for titre, source in ONGLETS:
+			if titre not in A_LA_DEMANDE:
+				continue
+			ouvrir = affichage.addAction(icones.icone_de(source.genre), f"Ouvrir l'onglet {titre}")
 			ouvrir.triggered.connect(lambda _coche=False, titre=titre: self.ouvrir_liste(titre))
-		affichage.addAction("Ouvrir l'onglet Grille horaire").triggered.connect(self._ouvrir_calendrier)
-		affichage.addAction("Ouvrir l'onglet Simulation").triggered.connect(self._ouvrir_simulation)
+		grille = affichage.addAction(icones.icone("grille"), "Ouvrir l'onglet Grille horaire")
+		grille.triggered.connect(self._ouvrir_calendrier)
+		simulation = affichage.addAction(icones.icone("simulation"), "Ouvrir l'onglet Simulation")
+		simulation.triggered.connect(self._ouvrir_simulation)
 		affichage.addAction("Pré-écoute…").triggered.connect(lambda: self._preecouter(None))
 		self.menu_diffusion = self.menuBar().addMenu("&Diffusion")
 		self.menu_diffusion.aboutToShow.connect(self._relire_le_service)
@@ -443,7 +462,7 @@ class FenetrePrincipale(QMainWindow):
 
 	def _ajouter_onglet(self, ecran: QWidget, titre: str) -> int:
 		"""Tout onglet s'ajoute par ici, et se retire par _retirer_onglet : les raccourcis suivent."""
-		indice = self.ui.onglets.addTab(ecran, titre)
+		indice = self.ui.onglets.addTab(ecran, icones.icone_de(genre_de_l_ecran(ecran)), titre)
 		self._numeroter_les_onglets()
 		return indice
 
@@ -567,7 +586,7 @@ class FenetrePrincipale(QMainWindow):
 			ordre: list[QWidget] = [self.accueil, *self.listes]
 			rang = ordre.index(liste)
 			place = sum(1 for ecran in ordre[:rang] if onglets.indexOf(ecran) >= 0)
-			indice = onglets.insertTab(place, liste, titre)
+			indice = onglets.insertTab(place, liste, icones.icone_de(genre_de_l_ecran(liste)), titre)
 			self._numeroter_les_onglets()
 		onglets.setCurrentIndex(indice)
 

@@ -42,7 +42,7 @@ Machin_interface = "machincast.interface.__main__:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-machincast = ["py.typed", "migrations/*.sql", "interface/*.png"]
+machincast = ["py.typed", "migrations/*.sql", "interface/*.png", "interface/icones/*.svg"]
 
 # ─── Qualité ───────────────────────────────────────────────
 
