@@ -157,7 +157,9 @@ def verifier_sonores(
 
 	En indexation rapide, seuls les sonores en aperçu, et ceux dont le fichier a changé depuis sa dernière
 	vérification (date de modification ou taille), sont décodés ; pour les autres, un fichier disparu est quand même
-	repéré. En audit complet, tous sont décodés.
+	repéré. En audit complet, tous sont décodés. Un sonore dont l'interface a demandé l'audit complet
+	(sonores.audit_demande, https://github.com/dascritch/machincast/issues/114) est audité en entier, blancs compris,
+	même en indexation rapide ; sa marque s'efface dès que son fichier est trouvé et vérifié.
 
 	identifiants : seuls ces sonores, pour la vérification immédiate des fichiers que l'interface ajoute
 	(https://github.com/dascritch/machincast/issues/30) ; tous les sonores sans eux.
@@ -166,7 +168,7 @@ def verifier_sonores(
 
 	seuil_blancs : en audit complet, le décodage d'un fichier sain mesure ses blancs à ce seuil, en dB crête, et les
 	enregistre, sauf ceux saisis à la main (https://github.com/dascritch/machincast/issues/146). L'indexation rapide ne
-	les mesure pas.
+	les mesure que pour les sonores dont l'audit complet est demandé.
 
 	La connexion doit avoir endossé le rôle de l'indexation (machincast.base.connecter). Lève
 	DecodeurIndisponible si GStreamer ne sait pas décoder un format : les sonores déjà vérifiés le restent.
@@ -174,7 +176,7 @@ def verifier_sonores(
 	with connexion.transaction():
 		sonores = connexion.execute(
 			"SELECT id, emplacement, etat::text, champs_edites, artiste, titre, metadonnees_musicales,"
-			" fichier_modifie_le, fichier_taille, debut_detecte, fin_detectee"
+			" fichier_modifie_le, fichier_taille, debut_detecte, fin_detectee, audit_demande"
 			" FROM sonores WHERE type = 'fichier' AND (%s::bigint[] IS NULL OR id = ANY(%s)) ORDER BY id",
 			(_liste(identifiants), _liste(identifiants)),
 		).fetchall()
@@ -196,10 +198,12 @@ def verifier_sonores(
 			taille_avant,
 			debut_detecte,
 			fin_detectee,
+			demande,
 		) = ligne
 		chemin = Path(str(emplacement))
 		avant = EtatSonore(str(etat_texte))
-		decoder = (audit_complet) or (avant is EtatSonore.APERCU) or (modifie(chemin, modifie_avant, taille_avant))
+		audite = (audit_complet) or (demande is True)
+		decoder = (audite) or (avant is EtatSonore.APERCU) or (modifie(chemin, modifie_avant, taille_avant))
 		if (not decoder) and (chemin.exists()):
 			continue
 		# Un fichier introuvable est déclaré tel sans décodage : l'indexation rapide repère donc les disparus.
@@ -209,7 +213,7 @@ def verifier_sonores(
 			resultat = Verification.defectueux(
 				EtatFichier.NON_SUPPORTE, f"de type {type_du_fichier}, ce n'est pas un fichier sonore"
 			)
-		elif audit_complet:
+		elif audite:
 			resultat = verifier(chemin, seuil_blancs=seuil_blancs)
 		else:
 			resultat = verifier(chemin)
@@ -237,7 +241,7 @@ def verifier_sonores(
 				" fichier_modifie_le = COALESCE(%s, fichier_modifie_le), fichier_taille = COALESCE(%s, fichier_taille),"
 				" artiste = %s, titre = %s, metadonnees_musicales = %s, type_mime = COALESCE(%s, type_mime),"
 				" verifie_le = CASE WHEN %s THEN clock_timestamp() ELSE verifie_le END,"
-				" debut_detecte = %s, fin_detectee = %s"
+				" debut_detecte = %s, fin_detectee = %s, audit_demande = audit_demande AND NOT %s"
 				" WHERE id = %s",
 				(
 					apres.value,
@@ -253,6 +257,8 @@ def verifier_sonores(
 					fichier is not None,
 					_duree(debut_detecte),
 					_duree(fin_detectee),
+					# La marque d'un audit demandé tombe avec la vérification du fichier, pas avant.
+					fichier is not None,
 					identifiant,
 				),
 			)
