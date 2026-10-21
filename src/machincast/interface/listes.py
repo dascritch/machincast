@@ -24,9 +24,10 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QPoint, QSortFilterProxyModel, Qt, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QLabel, QLineEdit, QMenu, QTableView, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QLabel, QLineEdit, QMenu, QTableView, QWidget
 
 from machincast.interface import affichage, groupes
+from machincast.interface.colonnes import Colonnes
 from machincast.interface.depot import DepotDeFichiers
 from machincast.interface.ui.liste import Ui_Liste
 
@@ -266,6 +267,11 @@ MARQUES_PAGES = Source(
 )
 
 
+def nom_de_vue(texte: str) -> str:
+	"""« marques-pages », « evenements » : sans accents, ni majuscules, ni espaces."""
+	return sans_accents(texte).replace(" ", "-")
+
+
 def sans_accents(texte: str) -> str:
 	"""Le texte en minuscules, sans accents ni cédilles : « Été » donne « ete »."""
 	decompose = unicodedata.normalize("NFKD", texte.casefold())
@@ -308,8 +314,15 @@ class Liste(QWidget):
 	"""Une action choisie au clic droit (machincast.interface.groupes) : sa clé, et les éléments (list[int])."""
 
 	def __init__(
-		self, source: Source, connexion: Connexion, parent: QWidget | None = None, actions: bool = True
+		self,
+		source: Source,
+		connexion: Connexion,
+		parent: QWidget | None = None,
+		actions: bool = True,
+		vue: str | None = None,
 	) -> None:
+		"""vue : le nom sous lequel ses colonnes sont gardées ; par défaut, « liste- » suivi du pluriel du genre
+		({I})."""
 		"""actions : les boutons de création et d'ajout, et le dépôt de fichiers ; pas dans un choix d'éléments."""
 		super().__init__(parent)
 		self.source = source
@@ -323,7 +336,9 @@ class Liste(QWidget):
 		self.proxy.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
 		self.table.setModel(self.proxy)
 		entete = self.table.horizontalHeader()
-		entete.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+		if vue is None:
+			vue = f"liste-{nom_de_vue(source.pluriel)}"
+		self.colonnes = Colonnes(self.table, vue)
 		# Un clic sur un titre de colonne trie la liste ; avant, elle garde l'ordre de la base.
 		self.table.setSortingEnabled(True)
 		entete.setSortIndicator(-1, Qt.SortOrder.AscendingOrder)

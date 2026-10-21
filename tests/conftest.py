@@ -42,6 +42,17 @@ def repertoire_d_audit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 	return repertoire
 
 
+@pytest.fixture(autouse=True)
+def reglages_des_vues(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+	"""Les réglages des colonnes de l'interface, dans le répertoire du test : jamais ceux du compte qui lance les tests
+	(https://github.com/dascritch/machincast/issues/207)."""
+	from machincast.interface import colonnes
+
+	chemin = tmp_path / "vues.ini"
+	monkeypatch.setattr(colonnes, "FICHIER", chemin)
+	return chemin
+
+
 @pytest.fixture
 def base_vide() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
 	"""Base de test migrée et vide : le schéma est recréé une fois par session, puis les tables sont purgées."""

@@ -17,9 +17,10 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QModelIndex, Qt, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QHeaderView, QTableView, QWidget
+from PySide6.QtWidgets import QTableView, QWidget
 
 from machincast.interface import affichage
+from machincast.interface.colonnes import Colonnes
 from machincast.interface.listes import FiltreSansAccents
 from machincast.interface.ui.incidents import Ui_EcranIncidents
 
@@ -48,7 +49,7 @@ class EcranIncidents(QWidget):
 		self.proxy = FiltreSansAccents(self)
 		self.proxy.setSourceModel(self.modele)
 		self.table.setModel(self.proxy)
-		self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+		self.colonnes = Colonnes(self.table, "incidents")
 		self._limite_atteinte = False
 		self.ui.filtre.textChanged.connect(self._filtrer)
 		self.ui.informations.toggled.connect(self.actualiser)

@@ -24,9 +24,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, Signal
-from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QPushButton, QTreeWidget, QTreeWidgetItem
+from PySide6.QtWidgets import QAbstractItemView, QPushButton, QTreeWidget, QTreeWidgetItem
 
 from machincast.interface import affichage, dialogues
+from machincast.interface.colonnes import Colonnes
 from machincast.interface.depot import DepotDeFichiers
 from machincast.interface.fiche import Fiche, fichiers_sonores
 from machincast.interface.listes import MODES
@@ -95,6 +96,10 @@ def _entier(valeur: object) -> int | None:
 	return int(str(valeur))
 
 
+VUES = {"sequences_elements": "fiche-sequence-elements", "evenements_elements": "fiche-evenement-elements"}
+"""Le nom de la vue des éléments, selon la table de la fiche (https://github.com/dascritch/machincast/issues/207)."""
+
+
 class ListeElements(QObject):
 	changee = Signal()
 	"""Une ligne a été ajoutée, retirée ou déplacée : le glisser-déposer déplace en retirant, puis en insérant."""
@@ -113,9 +118,7 @@ class ListeElements(QObject):
 		self.remarque = remarque
 		self.marquees: dict[int, str] = {}
 		"""Banques « ne pas répéter », par identifiant, avec leur nom."""
-		entete = liste.header()
-		entete.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-		entete.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+		self.colonnes = Colonnes(liste, VUES[table])
 		liste.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
 		self.depot = DepotDeFichiers(liste)
 		self.depot.deposes.connect(self._deposer)

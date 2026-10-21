@@ -3,6 +3,7 @@
 [Guide de l'antenne](README.md) › Listes et actions
 
 - [Listes](#listes)
+- [Colonnes des tableaux](#colonnes-des-tableaux)
 - [Enregistrer, annuler, fermer](#enregistrer-annuler-fermer)
 - [Agir sur plusieurs sonores ou banques](#agir-sur-plusieurs-sonores-ou-banques)
 - [Dupliquer un élément](#dupliquer-un-élément)
@@ -29,6 +30,18 @@ Les onglets **Événements**, **Séquences**, **Banques**, **Sonores** et **Marq
 - **Ouvrir** : un double-clic sur une ligne, ou <kbd>Entrée</kbd>, ouvre la fiche de l'élément.
 - **Créer** : **Nouvel événement**, **Nouvelle séquence**, **Nouvelle banque**, **Nouveau stream** et **Nouveau marque-page** ouvrent une fiche vide. La liste des sonores a aussi **Ajouter des fichiers…** ([Ajouter un sonore](sonores.md#ajouter-un-sonore)).
 - **Clic droit** : **Dupliquer**, dans les listes Événements, Séquences et Banques ; des actions sur plusieurs éléments, dans les listes Sonores et Banques.
+
+## Colonnes des tableaux
+
+Tous les tableaux de l'interface se règlent de la même façon : les listes, la recherche, les incidents, l'airplay de l'accueil, la simulation, et les tableaux des fiches.
+
+![Le clic droit sur les titres de la liste des sonores : une case par colonne, et « Rétablir les colonnes »](../captures/menu-colonnes.png)
+
+- **Largeur** : les colonnes s'ajustent à leur contenu à chaque lecture du tableau. Pour en élargir ou en rétrécir une, glisser la bordure droite de son titre ; dès lors, le tableau garde les largeurs choisies, et ne s'ajuste plus de lui-même.
+- **Ordre** : glisser le titre d'une colonne la déplace.
+- **Colonnes montrées** : un clic droit sur les titres ouvre le menu des colonnes. Chaque case montre ou cache sa colonne ; la dernière colonne montrée ne se cache pas.
+- **Rétablir les colonnes**, en bas de ce menu, revient à l'ordre et aux colonnes d'origine, ajustées au contenu.
+- **Gardé d'une session à l'autre** : chaque tableau garde sa disposition pour toutes les fois où il s'ouvre, par exemple le tableau des sonores de toutes les fiches de banque. Elle est gardée pour votre compte : un autre compte du poste a la sienne.
 
 ## Enregistrer, annuler, fermer
 

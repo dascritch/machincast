@@ -29,7 +29,6 @@ from PySide6.QtWidgets import (
 	QAbstractItemView,
 	QDateTimeEdit,
 	QHBoxLayout,
-	QHeaderView,
 	QLabel,
 	QListWidget,
 	QPushButton,
@@ -40,6 +39,7 @@ from PySide6.QtWidgets import (
 
 from machincast.horloge import Horloge
 from machincast.interface import dialogues
+from machincast.interface.colonnes import Colonnes
 from machincast.lecture.simulation import nom_par_defaut
 from machincast.protection import verifier_ecriture
 
@@ -151,8 +151,8 @@ class EcranSimulation(QWidget):
 		self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
 		self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 		self.table.verticalHeader().hide()
-		self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 		self.table.horizontalHeader().setStretchLastSection(True)
+		self.colonnes = Colonnes(self.table, "simulation")
 		disposition.addWidget(self.table, 1)
 		self.anomalies = QListWidget(self)
 		self.anomalies.setToolTip("Alertes et incidents de la simulation")
