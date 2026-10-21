@@ -433,5 +433,5 @@ Les messages d'information s'affichent sur la sortie standard ; les anomalies et
 | Manque | Ticket |
 | --- | --- |
 | Archives `.tar.gz` publiées en releases | [#41](https://github.com/dascritch/machincast/issues/41) |
-| Autres écrans de l'interface graphique `Machin interface` | [#27](https://github.com/dascritch/machincast/issues/27), [#37](https://github.com/dascritch/machincast/issues/37) |
+| Autres écrans de l'interface graphique `Machin interface` : simulation | [#37](https://github.com/dascritch/machincast/issues/37) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |

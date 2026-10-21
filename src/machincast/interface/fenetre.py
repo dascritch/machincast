@@ -62,6 +62,7 @@ from machincast.interface.incidents import EcranIncidents
 from machincast.interface.indexation import LANCE, TERMINE, TITRES
 from machincast.interface.listes import BANQUES, EVENEMENTS, MARQUES_PAGES, SEQUENCES, SONORES, Liste
 from machincast.interface.preecoute import FenetrePreecoute
+from machincast.interface.recherche import EcranRecherche
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 from machincast.interface.verification import Verificateur, VerificationComplete
 
@@ -226,6 +227,9 @@ class FenetrePrincipale(QMainWindow):
 		rafraichir = affichage.addAction("Rafraîchir les onglets")
 		rafraichir.setShortcut(QKeySequence("F5"))
 		rafraichir.triggered.connect(self.rafraichir)
+		rechercher = affichage.addAction("Rechercher…")
+		rechercher.setShortcut(QKeySequence("Ctrl+F"))
+		rechercher.triggered.connect(self._ouvrir_recherche)
 		affichage.addAction("Calendrier").triggered.connect(self._ouvrir_calendrier)
 		affichage.addAction("Pré-écoute…").triggered.connect(lambda: self._preecouter(None))
 		self.menu_diffusion = self.menuBar().addMenu("&Diffusion")
@@ -458,6 +462,19 @@ class FenetrePrincipale(QMainWindow):
 		calendrier.creation_demandee.connect(self._creer_evenement)
 		onglets.setCurrentIndex(self._ajouter_onglet(calendrier, "Calendrier"))
 
+	def _ouvrir_recherche(self) -> None:
+		"""Un seul onglet de recherche (https://github.com/dascritch/machincast/issues/27) : celui qui est ouvert
+		revient au premier plan ; le curseur va dans son champ."""
+		onglets = self.ui.onglets
+		ouvertes = [onglets.widget(indice) for indice in range(onglets.count())]
+		recherche = next((ecran for ecran in ouvertes if isinstance(ecran, EcranRecherche)), None)
+		if recherche is None:
+			recherche = EcranRecherche(self.connexion)
+			recherche.ouverte.connect(self._ouvrir)
+			self._ajouter_onglet(recherche, "Recherche")
+		onglets.setCurrentWidget(recherche)
+		recherche.focaliser()
+
 	def _creer_evenement(self, debut: datetime) -> None:
 		"""Un nouvel événement, à l'heure cliquée dans le calendrier, s'ouvre dans sa fiche si on le confirme."""
 		fin = debut + UNE_HEURE
@@ -471,7 +488,7 @@ class FenetrePrincipale(QMainWindow):
 
 	def _fermer(self, indice: int) -> None:
 		fiche = self.ui.onglets.widget(indice)
-		if isinstance(fiche, Calendrier):
+		if isinstance(fiche, (Calendrier, EcranRecherche)):
 			self._retirer_onglet(indice)
 			fiche.deleteLater()
 			return
@@ -581,7 +598,7 @@ class FenetrePrincipale(QMainWindow):
 
 	def _onglet_ouvert(self, indice: int) -> None:
 		ouvert = self.ui.onglets.widget(indice)
-		if isinstance(ouvert, (Liste, EcranIncidents, Calendrier)):
+		if isinstance(ouvert, (Liste, EcranIncidents, Calendrier, EcranRecherche)):
 			ouvert.actualiser()
 
 	def _preferences(self) -> None:

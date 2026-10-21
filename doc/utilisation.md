@@ -728,9 +728,22 @@ L'onglet **Incidents** montre les alertes et les incidents que `Machin lecture` 
 - **Lecture** : l'écran se relit chaque fois que son onglet s'ouvre. Seules les 500 entrées les plus récentes sont lues : le compte le dit alors (« 500 entrées, les plus récentes »).
 - `Machin indexation` n'écrit pas dans le log : ses anomalies sont sur sa sortie d'erreur, dans son document d'audit ([Ce qu'affiche l'indexation](#ce-quaffiche-lindexation)), ou dans le journal de l'indexation lancée depuis l'interface, pas ici.
 
+### Rechercher
+
+**Affichage → Rechercher…**, ou <kbd>Ctrl</kbd>+<kbd>F</kbd>, ouvre l'onglet **Recherche** ([#27](https://github.com/dascritch/machincast/issues/27), [#105](https://github.com/dascritch/machincast/issues/105)), ou y revient : le curseur est dans le champ, et ce qui y était tapé est sélectionné, pour être remplacé par une nouvelle frappe. L'onglet se ferme par sa croix.
+
+Dès 2 caractères, sans tenir compte des majuscules ni des accents, le texte tapé est cherché :
+
+- dans le nom interne et le nom public des **événements**, des **séquences** et des **banques** ;
+- dans l'artiste et le titre des **sonores**, mais pas dans leur emplacement.
+
+Au fil de la frappe, les 10 premiers résultats sont proposés sous le champ, comme « Séquence : Café-croissant » ou « Sonore : Les Gaufres – Café à minuit » ; en choisir un ouvre sa fiche, sans effacer le texte tapé. La table, en dessous, donne tous les résultats, jusqu'à 500, avec leur Type, Nom interne, Nom public et Statut (l'état d'un sonore) ; un double-clic ou <kbd>Entrée</kbd> sur une ligne ouvre la fiche. Suggestions et table vont dans le même ordre : événements, séquences, banques, puis sonores, chacun par nom. Le compte, au-dessus de la table, dit combien il y a de résultats, ou « 500 premiers résultats sur … » quand il y en a davantage : préciser alors le texte.
+
+La recherche se relance à l'ouverture de son onglet et par **Affichage → Rafraîchir les onglets** (<kbd>F5</kbd>).
+
 ### Passer d'un onglet à l'autre au clavier
 
-Les 12 premiers onglets s'ouvrent au clavier, par <kbd>Maj</kbd>+<kbd>F1</kbd> à <kbd>Maj</kbd>+<kbd>F12</kbd>, selon leur rang ([#192](https://github.com/dascritch/machincast/issues/192)) : <kbd>Maj</kbd>+<kbd>F1</kbd> est toujours l'Accueil, <kbd>Maj</kbd>+<kbd>F2</kbd> à <kbd>Maj</kbd>+<kbd>F6</kbd> les listes Événements, Séquences, Banques, Sonores et Marques-pages, <kbd>Maj</kbd>+<kbd>F7</kbd> les Incidents, puis les fiches et le calendrier dans l'ordre où ils sont ouverts. Fermer un onglet décale ceux qui le suivent : leur raccourci change. L'infobulle de chaque onglet donne le sien ; au-delà du douzième, un onglet n'en a pas.
+Les 12 premiers onglets s'ouvrent au clavier, par <kbd>Maj</kbd>+<kbd>F1</kbd> à <kbd>Maj</kbd>+<kbd>F12</kbd>, selon leur rang ([#192](https://github.com/dascritch/machincast/issues/192)) : <kbd>Maj</kbd>+<kbd>F1</kbd> est toujours l'Accueil, <kbd>Maj</kbd>+<kbd>F2</kbd> à <kbd>Maj</kbd>+<kbd>F6</kbd> les listes Événements, Séquences, Banques, Sonores et Marques-pages, <kbd>Maj</kbd>+<kbd>F7</kbd> les Incidents, puis les fiches, le calendrier et la recherche dans l'ordre où ils sont ouverts. Fermer un onglet décale ceux qui le suivent : leur raccourci change. L'infobulle de chaque onglet donne le sien ; au-delà du douzième, un onglet n'en a pas.
 
 ### Menus
 
@@ -740,6 +753,7 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 | --- | --- | --- |
 | Fichier | Préférences… | Règle les crossfades de l'interface ([Préférences](#préférences)). L'icône de l'application viendra avec [#111](https://github.com/dascritch/machincast/issues/111). |
 | Fichier | Quitter | Ferme l'interface, aussi par <kbd>Alt</kbd> + <kbd>Q</kbd>, même depuis une fiche. Comme la fermeture de la fenêtre, demande d'abord quoi faire des fiches modifiées ; « Annuler » garde l'interface ouverte. La diffusion n'est pas concernée : `Machin lecture` continue. |
+| Affichage | Rechercher… | Ouvre l'onglet de la recherche globale, ou y revient, aussi par <kbd>Ctrl</kbd>+<kbd>F</kbd> ([Rechercher](#rechercher)). |
 | Affichage | Pré-écoute… | Ouvre la fenêtre de pré-écoute, pour écouter un sonore ou choisir sa sortie ([Pré-écoute](#pré-écoute)). |
 | Affichage | Calendrier | Ouvre l'onglet du calendrier de la grille ([Calendrier](#calendrier)). |
 | Affichage | Rafraîchir les onglets | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé en base, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
@@ -919,5 +933,5 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | Manque | Ticket |
 | --- | --- |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
-| Autres écrans de l'interface : recherche globale, simulation | [#27](https://github.com/dascritch/machincast/issues/27), [#37](https://github.com/dascritch/machincast/issues/37) |
+| Autres écrans de l'interface : simulation | [#37](https://github.com/dascritch/machincast/issues/37) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |
