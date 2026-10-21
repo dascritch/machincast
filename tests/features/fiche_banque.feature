@@ -179,6 +179,21 @@ Fonctionnalité: Fiche d'une banque
 			| masqués          |
 			| affichés         |
 
+	Plan du scénario: Cocher une durée des sonores d'une grande banque ne gèle pas la fiche
+		https://github.com/dascritch/machincast/issues/194 : chaque marque posée ou effacée faisait recalculer la largeur de
+		toute la colonne, et cocher la durée maximale, encore à 0:00:00, marquait d'un coup tous les sonores.
+
+		Étant donné 3000 sonores de 3:00 de plus dans la banque « Jingles »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je coche la durée <borne> des sonores
+		Alors la fiche a marqué hors des durées <marques> sonores en moins de 2 secondes
+
+		Exemples:
+			| borne    | marques |
+			| maximale | 3002    |
+			| minimale | 0       |
+
 	# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ─────────────────
 
 	Scénario: Une nouvelle banque n'active pas la détection de blanc

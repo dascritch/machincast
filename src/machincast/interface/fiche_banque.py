@@ -374,15 +374,30 @@ class FicheBanque(Fiche):
 
 	def _marquer_hors_durees(self) -> None:
 		"""Les sonores hors des durées de la fiche ont l'icône d'anomalie et une infobulle qui dit pourquoi ; un sonore
-		de durée inconnue, ou dans les durées, n'a ni l'une ni l'autre."""
+		de durée inconnue, ou dans les durées, n'a ni l'une ni l'autre.
+
+		Seules les lignes dont la marque change sont touchées, et la liste n'est prévenue qu'une fois, à la fin : chaque
+		changement prévenu à part faisait recalculer la largeur de toute la colonne (ResizeToContents), et une banque
+		de milliers de sonores gelait l'interface quand on cochait une durée (https://github.com/dascritch/machincast/issues/194)."""
 		minimum, maximum = self._bornes()
-		for ligne in self._lignes():
-			ecart = affichage.hors_durees(ligne.data(0, DUREE), minimum, maximum)
-			ligne.setIcon(0, QIcon())
-			ligne.setToolTip(0, "")
-			if ecart is not None:
-				ligne.setIcon(0, affichage.icone_d_anomalie(self))
+		icone = affichage.icone_d_anomalie(self)
+		modele = self.ui.sonores.model()
+		changees: list[int] = []
+		bloque = modele.blockSignals(True)
+		try:
+			for rangee, ligne in enumerate(self._lignes()):
+				ecart = (affichage.hors_durees(ligne.data(0, DUREE), minimum, maximum)) or ("")
+				if ligne.toolTip(0) == ecart:
+					continue
+				changees.append(rangee)
 				ligne.setToolTip(0, ecart)
+				ligne.setIcon(0, QIcon())
+				if ecart != "":
+					ligne.setIcon(0, icone)
+		finally:
+			modele.blockSignals(bloque)
+		if changees:
+			modele.dataChanged.emit(modele.index(min(changees), 0), modele.index(max(changees), 0))
 
 	def _actualiser_crossfades(self) -> None:
 		"""La durée d'une banque qui garde les crossfades de ses sonores ne sert pas : elle ne se modifie pas."""

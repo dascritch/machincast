@@ -4,6 +4,7 @@ Les étapes de la fenêtre, des listes et des fenêtres de dialogue sont dans te
 manipulent la fiche, le choix des sonores, et lisent la base de test.
 """
 
+import time
 from collections.abc import Iterator
 from datetime import timedelta
 
@@ -549,3 +550,34 @@ def detection_decochee(interface: Contexte) -> None:
 def detection_en_base(base_vide: Connexion, nom: str, verdict: str) -> None:
 	ligne = base_vide.execute("SELECT detection_blancs FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
 	assert ligne == (verdict == "active",), ligne
+
+
+# ─── Grande banque (https://github.com/dascritch/machincast/issues/194) ───
+
+
+@given(parsers.parse("{nombre:d} sonores de 3:00 de plus dans la banque « {nom} »"))
+def grande_banque(base_vide: Connexion, nombre: int, nom: str) -> None:
+	base_vide.execute(
+		"WITH nouveaux AS (INSERT INTO sonores (type, emplacement, etat, duree)"
+		" SELECT 'fichier', '/srv/grande/' || n || '.flac', 'actif', '3 min' FROM generate_series(1, %s) n"
+		" RETURNING id)"
+		" INSERT INTO banques_sonores (banque_id, sonore_id, position)"
+		" SELECT b.id, nouveaux.id, 1000 + nouveaux.id FROM nouveaux, banques b WHERE b.nom_interne = %s",
+		(nombre, nom),
+	)
+
+
+@when(parsers.re(r"je coche la durée (?P<borne>minimale|maximale) des sonores$"))
+def cocher_une_duree(interface: Contexte, qtbot: QtBot, borne: str) -> None:
+	case, _champ = _duree(interface, borne)
+	debut = time.monotonic()
+	qtbot.mouseClick(case, Qt.MouseButton.LeftButton)
+	interface.duree_de_reponse = time.monotonic() - debut
+
+
+@then(parsers.parse("la fiche a marqué hors des durées {nombre:d} sonores en moins de {secondes:d} secondes"))
+def marquees_vite(interface: Contexte, nombre: int, secondes: int) -> None:
+	lignes = fiche(interface).ui.sonores
+	marquees = [rangee for rangee in range(lignes.topLevelItemCount()) if lignes.topLevelItem(rangee).toolTip(0) != ""]
+	assert len(marquees) == nombre
+	assert interface.duree_de_reponse < secondes, interface.duree_de_reponse
