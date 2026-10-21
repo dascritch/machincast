@@ -227,7 +227,7 @@ class Ui_FicheBanque(object):
         self.sonores = QTreeWidget(self.groupe_sonores)
         self.sonores.setObjectName(u"sonores")
         self.sonores.setAlternatingRowColors(True)
-        self.sonores.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.sonores.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.sonores.setRootIsDecorated(False)
         self.sonores.setUniformRowHeights(True)
 
@@ -358,7 +358,8 @@ class Ui_FicheBanque(object):
         self.retirer_repertoire.setText(QCoreApplication.translate("FicheBanque", u"Retirer le r\u00e9pertoire", None))
         self.groupe_sonores.setTitle(QCoreApplication.translate("FicheBanque", u"Sonores", None))
         ___qtreewidgetitem = self.sonores.headerItem()
-        ___qtreewidgetitem.setText(2, QCoreApplication.translate("FicheBanque", u"Emplacement", None))
+        ___qtreewidgetitem.setText(3, QCoreApplication.translate("FicheBanque", u"Emplacement", None))
+        ___qtreewidgetitem.setText(2, QCoreApplication.translate("FicheBanque", u"\u00c9tat", None))
         ___qtreewidgetitem.setText(1, QCoreApplication.translate("FicheBanque", u"Dur\u00e9e", None))
         ___qtreewidgetitem.setText(0, QCoreApplication.translate("FicheBanque", u"Sonore", None))
         self.ajouter_sonores.setText(QCoreApplication.translate("FicheBanque", u"Ajouter des sonores\u2026", None))

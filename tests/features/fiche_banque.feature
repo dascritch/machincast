@@ -32,9 +32,9 @@ Fonctionnalité: Fiche d'une banque
 		Et la fiche montre le nom interne « Jingles », le nom public « Radio Thune », le mode « séquentielle », le masquage « hérité du sonore » et « ne pas répéter » coché
 		Et la fiche montre les répertoires « /srv/jingles/hiver »
 		Et la fiche montre les sonores :
-			| Sonore                      | Durée | Emplacement                   |
-			| Les Gaufres – Café à minuit | 3:34  | /srv/jingles/hiver/cafe.flac  |
-			| Aube – Matin clair          | 3:20  | /srv/jingles/hiver/matin.flac |
+			| Sonore                      | Durée | État  | Emplacement                   |
+			| Les Gaufres – Café à minuit | 3:34  | actif | /srv/jingles/hiver/cafe.flac  |
+			| Aube – Matin clair          | 3:20  | actif | /srv/jingles/hiver/matin.flac |
 		Et l'écran de détail de banque « Jingles » est demandé
 
 	# ─── Ouvrir un sonore (https://github.com/dascritch/machincast/issues/115) ─────
@@ -82,12 +82,12 @@ Fonctionnalité: Fiche d'une banque
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Tubes »
 		Alors la fiche montre les sonores :
-			| Sonore        | Durée    | Emplacement                 |
-			| Direct studio | inconnue | https://flux.exemple/direct |
-			| Nouveau       |          | /srv/jingles/nouveau.flac   |
-			| (sans titre)  | inconnue | https://flux.exemple/autre  |
-			| Aube          | 1:00     | /srv/jingles/aube.flac      |
-			| brut.flac     |          | /srv/jingles/brut.flac      |
+			| Sonore        | Durée    | État   | Emplacement                 |
+			| Direct studio | inconnue | actif  | https://flux.exemple/direct |
+			| Nouveau       |          | aperçu | /srv/jingles/nouveau.flac   |
+			| (sans titre)  | inconnue | actif  | https://flux.exemple/autre  |
+			| Aube          | 1:00     | actif  | /srv/jingles/aube.flac      |
+			| brut.flac     |          | aperçu | /srv/jingles/brut.flac      |
 
 	Scénario: Une fiche déjà ouverte revient au premier plan, sans second onglet
 		Quand la fenêtre de l'interface s'ouvre
@@ -651,11 +651,11 @@ Fonctionnalité: Fiche d'une banque
 		Et je dépose sur les sonores de la fiche « …/nouveaux/Gros titre.MP3 », « …/nouveaux/../jingles/neige.flac », « …/notes.txt », « …/nouveaux », « …/album.flac », « …/nouveaux/Gros titre.MP3 »
 		Alors le dépôt est accepté comme une copie
 		Et la fiche montre les sonores :
-			| Sonore                      | Durée | Emplacement                   |
-			| Les Gaufres – Café à minuit | 3:34  | /srv/jingles/hiver/cafe.flac  |
-			| Aube – Matin clair          | 3:20  | /srv/jingles/hiver/matin.flac |
-			| Gros titre.MP3              |       | …/nouveaux/Gros titre.MP3     |
-			| Neige                       | 0:12  | …/jingles/neige.flac          |
+			| Sonore                      | Durée | État   | Emplacement                   |
+			| Les Gaufres – Café à minuit | 3:34  | actif  | /srv/jingles/hiver/cafe.flac  |
+			| Aube – Matin clair          | 3:20  | actif  | /srv/jingles/hiver/matin.flac |
+			| Gros titre.MP3              |       | aperçu | …/nouveaux/Gros titre.MP3     |
+			| Neige                       | 0:12  | actif  | …/jingles/neige.flac          |
 		Et la fiche signale « Ignorés, ce ne sont pas des fichiers sonores : notes.txt, nouveaux, album.flac. Un dossier se dépose sur les répertoires indexés. »
 		Et le fichier « …/nouveaux/Gros titre.MP3 » n'est pas en base
 		Quand j'enregistre la fiche

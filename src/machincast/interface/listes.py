@@ -9,7 +9,9 @@ l'écran de détail de l'élément (signal ouverte). Une liste peut avoir un bou
 anomalie, une séquence ou un événement vide, a l'icône d'avertissement, une infobulle qui l'explique, et le compte les
 dénombre (https://github.com/dascritch/machincast/issues/138, https://github.com/dascritch/machincast/issues/140).
 Le clic droit sur une ligne d'événement, de séquence ou de banque propose « Dupliquer » (signal duplication_demandee,
-https://github.com/dascritch/machincast/issues/130).
+https://github.com/dascritch/machincast/issues/130). Les listes des sonores et des banques sélectionnent plusieurs
+lignes (Ctrl, Maj) ; leur clic droit propose les actions sur la sélection, ou sur la seule ligne cliquée hors de la
+sélection (signal action_demandee, machincast.interface.groupes, https://github.com/dascritch/machincast/issues/114).
 """
 
 import logging
@@ -22,9 +24,9 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QPoint, QSortFilterProxyModel, Qt, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QHeaderView, QLabel, QLineEdit, QMenu, QTableView, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QLabel, QLineEdit, QMenu, QTableView, QWidget
 
-from machincast.interface import affichage
+from machincast.interface import affichage, groupes
 from machincast.interface.depot import DepotDeFichiers
 from machincast.interface.ui.liste import Ui_Liste
 
@@ -107,7 +109,7 @@ def _date(valeur: object) -> str:
 def lire_sonores(connexion: Connexion) -> list[Ligne]:
 	with connexion.transaction():
 		rangees = connexion.execute(
-			"SELECT s.id, s.artiste, s.titre, s.type::text, s.etat::text, s.duree,"
+			"SELECT s.id, s.artiste, s.titre, s.type::text, s.etat::text, s.audit_demande, s.duree,"
 			" COALESCE(s.emplacement, s.url_stream, m.url)"
 			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
 			" ORDER BY s.artiste NULLS LAST, s.titre, s.id"
@@ -118,13 +120,17 @@ def lire_sonores(connexion: Connexion) -> list[Ligne]:
 			" WHERE b.duree_min IS NOT NULL OR b.duree_max IS NOT NULL ORDER BY b.nom_interne, b.id"
 		).fetchall()
 	lignes = []
-	for identifiant, artiste, titre, type_sonore, etat, duree, emplacement in rangees:
+	for identifiant, artiste, titre, type_sonore, etat, audit_demande, duree, emplacement in rangees:
 		texte_duree = ""
 		if type_sonore == "stream":
 			texte_duree = affichage.duree(None)
 		elif isinstance(duree, timedelta):
 			texte_duree = affichage.duree(duree)
-		cellules = [_texte(artiste), _texte(titre), str(type_sonore), ETATS.get(str(etat), str(etat))]
+		texte_etat = ETATS.get(str(etat), str(etat))
+		if audit_demande is True:
+			# https://github.com/dascritch/machincast/issues/114
+			texte_etat = f"{texte_etat}, audit demandé"
+		cellules = [_texte(artiste), _texte(titre), str(type_sonore), texte_etat]
 		# Hors des durées d'une banque où il figure (https://github.com/dascritch/machincast/issues/147).
 		ecarts = [
 			affichage.hors_durees(_duree(duree), _duree(minimum), _duree(maximum), str(banque))
@@ -298,6 +304,8 @@ class Liste(QWidget):
 	"""Fichiers déposés sur la liste (list[Path]) : https://github.com/dascritch/machincast/issues/30."""
 	duplication_demandee = Signal(str, int)
 	"""« Dupliquer » choisi au clic droit sur une ligne : genre et identifiant de l'élément."""
+	action_demandee = Signal(str, list)
+	"""Une action choisie au clic droit (machincast.interface.groupes) : sa clé, et les éléments (list[int])."""
 
 	def __init__(
 		self, source: Source, connexion: Connexion, parent: QWidget | None = None, actions: bool = True
@@ -331,7 +339,13 @@ class Liste(QWidget):
 			self.depot = DepotDeFichiers(self.table)
 			self.depot.deposes.connect(self.fichiers_deposes)
 		self.duplicable = (actions) and (source.duplicable)
-		if self.duplicable:
+		self.actions_groupees: tuple[groupes.Action, ...] = ()
+		"""Les actions sur la sélection ; aucune hors des listes des sonores et des banques, ou dans un choix."""
+		if actions:
+			self.actions_groupees = groupes.ACTIONS.get(source.genre, ())
+		if self.actions_groupees != ():
+			self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+		if (self.duplicable) or (self.actions_groupees != ()):
 			self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 			self.table.customContextMenuRequested.connect(self._menu)
 		self._compter()
@@ -393,16 +407,31 @@ class Liste(QWidget):
 			return self.source.pluriel
 		return self.source.singulier
 
-	def menu_de_la_ligne(self, index: QModelIndex) -> QMenu | None:
-		"""Le menu du clic droit sur cette ligne de la table ; aucun hors d'une ligne, ou pour une liste qui ne duplique
-		pas."""
-		if (not self.duplicable) or (not index.isValid()):
-			return None
+	def selection(self) -> list[int]:
+		"""Les éléments des lignes sélectionnées, dans l'ordre de la liste affichée."""
+		rangees = sorted(index.row() for index in self.table.selectionModel().selectedRows())
+		return [self._element(self.proxy.index(rangee, 0)) for rangee in rangees]
+
+	def _element(self, index: QModelIndex) -> int:
 		premiere = self.modele.index(self.proxy.mapToSource(index).row(), 0)
-		element = int(premiere.data(IDENTIFIANT))
+		return int(premiere.data(IDENTIFIANT))
+
+	def menu_de_la_ligne(self, index: QModelIndex) -> QMenu | None:
+		"""Le menu du clic droit sur cette ligne de la table : sur la sélection si elle en fait partie, sur elle seule
+		sinon ; aucun hors d'une ligne, ou pour une liste sans actions. « Dupliquer » ne vaut que pour un élément."""
+		if (not index.isValid()) or ((not self.duplicable) and (self.actions_groupees == ())):
+			return None
+		cliquee = self._element(index)
+		elements = self.selection()
+		if cliquee not in elements:
+			elements = [cliquee]
 		menu = QMenu(self)
-		dupliquer = menu.addAction("Dupliquer")
-		dupliquer.triggered.connect(lambda: self.duplication_demandee.emit(self.source.genre, element))
+		if (self.duplicable) and (len(elements) == 1):
+			dupliquer = menu.addAction("Dupliquer")
+			dupliquer.triggered.connect(lambda: self.duplication_demandee.emit(self.source.genre, cliquee))
+		for action in self.actions_groupees:
+			entree = menu.addAction(action.texte)
+			entree.triggered.connect(lambda _coche=False, cle=action.cle: self.action_demandee.emit(cle, elements))
 		return menu
 
 	def _menu(self, position: QPoint) -> None:

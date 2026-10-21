@@ -4,6 +4,7 @@ Chaque question est une fonction de ce module, appelée par son nom (dialogues.c
 la remplacent par la réponse attendue, et aucune fenêtre modale n'attend un clic pendant les tests.
 """
 
+import dataclasses
 from enum import StrEnum
 from pathlib import Path
 
@@ -117,6 +118,20 @@ def confirmer_suppression(parent: QWidget, titre: str, texte: str) -> bool:
 	return question.clickedButton() is supprimer
 
 
+def confirmer_action(parent: QWidget, titre: str, texte: str) -> bool:
+	"""Une action sur plusieurs éléments à la fois (https://github.com/dascritch/machincast/issues/114) : Entrée la
+	fait, Échap l'annule."""
+	question = QMessageBox(parent)
+	question.setIcon(QMessageBox.Icon.Question)
+	question.setWindowTitle(titre)
+	question.setText(texte)
+	faire = question.addButton(titre, QMessageBox.ButtonRole.AcceptRole)
+	question.addButton("Annuler", QMessageBox.ButtonRole.RejectRole)
+	question.setDefaultButton(faire)
+	question.exec()
+	return question.clickedButton() is faire
+
+
 def choisir_fichiers(parent: QWidget) -> list[Path]:
 	"""Les fichiers choisis dans le sélecteur du poste, plusieurs à la fois ; aucun si le choix est abandonné."""
 	motifs = " ".join(f"*{extension}" for extension in sorted(EXTENSIONS_SONORES))
@@ -139,9 +154,18 @@ def choisir_sonores(parent: QWidget, connexion: psycopg.Connection[TupleRow], re
 	return _choisir(Choix(SONORES, connexion, remarque, parent))
 
 
-def choisir_banques(parent: QWidget, connexion: psycopg.Connection[TupleRow], remarque: str = "") -> list[int]:
-	"""Les banques choisies dans la liste des banques en base ; aucune si le choix est abandonné."""
-	return _choisir(Choix(BANQUES, connexion, remarque, parent))
+def choisir_banques(
+	parent: QWidget, connexion: psycopg.Connection[TupleRow], remarque: str = "", parmi: list[int] | None = None
+) -> list[int]:
+	"""Les banques choisies dans la liste des banques en base, ou parmi celles-ci seulement ; aucune si le choix est
+	abandonné."""
+	source = BANQUES
+	if parmi is not None:
+		proposees = set(parmi)
+		source = dataclasses.replace(
+			BANQUES, lire=lambda lue: [ligne for ligne in BANQUES.lire(lue) if ligne.identifiant in proposees]
+		)
+	return _choisir(Choix(source, connexion, remarque, parent))
 
 
 def choisir_sequences(parent: QWidget, connexion: psycopg.Connection[TupleRow], remarque: str = "") -> list[int]:

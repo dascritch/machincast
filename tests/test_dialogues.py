@@ -34,6 +34,8 @@ class Dialogue:
 	"""Le texte qui suit celui de la question."""
 	titre: str = ""
 	actions: list[str] = field(default_factory=list)
+	menus: list[object] = field(default_factory=list)
+	"""Le menu du clic droit sur la première ligne d'un choix ; None sans menu."""
 	boutons: list[str] = field(default_factory=list)
 	reponse: object = None
 	adresses: list[QUrl] = field(default_factory=list)
@@ -95,6 +97,14 @@ def suppression(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> Non
 	)
 
 
+@when(parsers.parse("la confirmation de l'action « {titre} » s'ouvre, et que j'y {geste}"))
+def action(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> None:
+	repondre(dialogue, qtbot, geste)
+	dialogue.reponse = dialogues.confirmer_action(
+		dialogue.parent, titre, "Désactiver 2 sonores ? Un sonore en aperçu reste en aperçu."
+	)
+
+
 @when(parsers.parse("la question de création s'ouvre, et que j'y {geste}"))
 def creation(dialogue: Dialogue, qtbot: QtBot, geste: str) -> None:
 	repondre(dialogue, qtbot, geste)
@@ -126,6 +136,7 @@ def choix(dialogue: Dialogue, base_vide: Connexion, genre: str, remarque: str, b
 		boutons = (modale.liste.ui.nouveau, modale.liste.ui.ajouter_fichiers)
 		dialogue.actions = [bouton.text() for bouton in boutons if not bouton.isHidden()]
 		dialogue.actions += ["dépôt"] * modale.liste.table.acceptDrops()
+		dialogue.menus = [modale.liste.menu_de_la_ligne(modale.liste.proxy.index(0, 0))]
 		dialogue.texte = modale.ui.explication.text()
 		modale.liste.table.selectAll()
 		# « Annuler » est la traduction de Qt (qtbase_fr), que les tests ne chargent pas : le bouton se trouve par son
@@ -144,6 +155,30 @@ def choix(dialogue: Dialogue, base_vide: Connexion, genre: str, remarque: str, b
 	connexion = connecter(*parametres_base_test(), Role.INTERFACE)
 	try:
 		dialogue.reponse = choisir(dialogue.parent, connexion, remarque)
+	finally:
+		connexion.close()
+
+
+@when(
+	parsers.re(
+		r"le choix des banques s'ouvre, parmi (?P<noms>«.+), et que j'y sélectionne tout, puis clique sur « Ajouter »"
+	)
+)
+def choix_parmi(dialogue: Dialogue, base_vide: Connexion, noms: str) -> None:
+	def faire(modale: QWidget) -> None:
+		assert isinstance(modale, Choix), modale
+		modale.liste.table.selectAll()
+		modale.ui.boutons.button(QDialogButtonBox.StandardButton.Ok).click()
+
+	quand_modale(faire)
+	parmi = [
+		int(str(ligne[0]))
+		for nom in NOM.findall(noms)
+		if (ligne := base_vide.execute("SELECT id FROM banques WHERE nom_interne = %s", (nom,)).fetchone())
+	]
+	connexion = connecter(*parametres_base_test(), Role.INTERFACE)
+	try:
+		dialogue.reponse = dialogues.choisir_banques(dialogue.parent, connexion, "", parmi)
 	finally:
 		connexion.close()
 
@@ -201,7 +236,7 @@ def explique(dialogue: Dialogue, texte: str) -> None:
 	assert dialogue.texte == texte
 
 
-@then(parsers.re(r"les (?P<genre>sonores|banques|séquences|marques-pages) choisis sont (?P<noms>.+)"))
+@then(parsers.re(r"les (?P<genre>sonores|banques|séquences|marques-pages) choisi(?:e)?s sont (?P<noms>.+)"))
 def choisis(dialogue: Dialogue, base_vide: Connexion, genre: str, noms: str) -> None:
 	table, colonne = {
 		"sonores": ("sonores", "titre"),
@@ -215,3 +250,8 @@ def choisis(dialogue: Dialogue, base_vide: Connexion, genre: str, noms: str) -> 
 @then(parsers.parse("le poste a ouvert l'adresse « {adresse} »"))
 def adresse(dialogue: Dialogue, adresse: str) -> None:
 	assert [url.toString() for url in dialogue.adresses] == [adresse]
+
+
+@then("le choix n'a proposé aucune action au clic droit")
+def sans_menu(dialogue: Dialogue) -> None:
+	assert dialogue.menus == [None]

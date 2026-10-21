@@ -73,6 +73,11 @@ class Contexte:
 	"""Réponse à la question de suppression : True pour supprimer."""
 	creation: bool = False
 	"""Réponse à la question de création d'un événement depuis le calendrier : True pour créer."""
+	action: bool = True
+	"""Réponse à la confirmation d'une action sur une sélection : True pour la faire
+	(https://github.com/dascritch/machincast/issues/114)."""
+	banques_proposees: list[list[int] | None] = field(default_factory=list)
+	"""Banques que chaque choix de banques a proposées ; None : toutes."""
 	audio: dict[str, object] = field(default_factory=dict)
 	"""Ce qui remplace la section [audio] de la configuration des tests : sortie, périphériques."""
 	reglages_audio: tuple[str, str] | None = None
@@ -173,14 +178,22 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		interface.remarques.append(remarque)
 		return interface.sonores_choisis
 
-	def banques(_parent: QWidget, _connexion: Connexion, remarque: str = "") -> list[int]:
+	def banques(
+		_parent: QWidget, _connexion: Connexion, remarque: str = "", parmi: list[int] | None = None
+	) -> list[int]:
 		interface.remarques.append(remarque)
+		interface.banques_proposees.append(parmi)
 		return interface.banques_choisies
+
+	def action(_parent: QWidget, titre: str, texte: str) -> bool:
+		interface.questions.append(f"action : {titre}\n{texte}")
+		return interface.action
 
 	monkeypatch.setattr(dialogues, "confirmer_fermeture", fermeture)
 	monkeypatch.setattr(dialogues, "confirmer_retrait", retrait)
 	monkeypatch.setattr(dialogues, "confirmer_suppression", suppression)
 	monkeypatch.setattr(dialogues, "confirmer_creation", creation)
+	monkeypatch.setattr(dialogues, "confirmer_action", action)
 	monkeypatch.setattr(dialogues, "choisir_repertoire", repertoire)
 	monkeypatch.setattr(dialogues, "choisir_fichiers", lambda _parent: interface.fichiers_choisis)
 	monkeypatch.setattr(dialogues, "choisir_sonores", sonores)
