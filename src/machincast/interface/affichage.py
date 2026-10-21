@@ -9,8 +9,6 @@ from pathlib import Path
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QStyle, QWidget
 
-from machincast.lecture.grille import JOURS
-
 MOIS = (
 	"janvier",
 	"février",
@@ -27,12 +25,6 @@ MOIS = (
 )
 VIDE = "—"
 """Ce que montre un champ sans valeur : aucun sonore, par exemple."""
-
-
-def date_et_heure(instant: datetime) -> str:
-	"""« vendredi 16 octobre 2026, 20:00:30 », en heure du poste."""
-	local = instant.astimezone()
-	return f"{JOURS[local.weekday()]} {local.day} {MOIS[local.month - 1]} {local.year}, {local:%H:%M:%S}"
 
 
 def heure(instant: datetime | None, inconnue: str = "inconnue") -> str:

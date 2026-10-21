@@ -15,11 +15,15 @@ Fonctionnalité: Écran par défaut de l'interface
 
 	# ─── Heure et état du binaire lecture ─────────────────────
 
-	Scénario: L'écran affiche l'heure actuelle, et la suit
+	Scénario: L'écran affiche l'heure actuelle, sans la date, et la suit
+		Seule l'heure compte sur cet écran (demandé avec https://github.com/dascritch/machincast/issues/191) : la date du
+		jour n'est plus qu'en infobulle.
+
 		Quand l'écran par défaut s'ouvre
-		Alors l'écran affiche l'heure « vendredi 16 octobre 2026, 20:00:30 »
+		Alors l'écran affiche l'heure « 20:00:30 »
+		Et l'heure a pour infobulle « vendredi 16 octobre 2026 »
 		Quand l'horloge de l'interface avance de 5 secondes
-		Alors l'écran affiche bientôt l'heure « vendredi 16 octobre 2026, 20:00:35 »
+		Alors l'écran affiche bientôt l'heure « 20:00:35 »
 
 	Scénario: Sans socket d'état, le binaire lecture est à l'arrêt
 		Quand l'écran par défaut s'ouvre
