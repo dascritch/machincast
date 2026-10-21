@@ -14,9 +14,9 @@
 
 ## La fenêtre
 
-**Pour l'ouvrir**, choisir **MachinCast** dans le menu des applications, rubrique Multimédia, ou double-cliquer sur son icône, un rouage d'où partent des ondes, sur le bureau quand l'installation l'y a déposée. Aucun terminal n'est nécessaire.
+**Pour l'ouvrir**, choisir **MachinCast** dans le menu des applications, rubrique Multimédia, ou double-cliquer sur son icône, le panneau orange au casque des équipes techniques, sur le bureau quand l'installation l'y a déposée. Aucun terminal n'est nécessaire.
 
-<img src="../../src/machincast/interface/machincast.svg" width="64" height="64" alt="Icône de MachinCast : un rouage blanc d'où partent deux ondes orange, sur fond bleu nuit">
+<img src="../../src/machincast/interface/machincast.png" width="64" height="64" alt="Icône de MachinCast : un panneau de chantier orange en losange, avec un casque audio noir et les lettres AMR">
 
 **Machin interface** s'ouvre sur une fenêtre à onglets, un par écran. Au lancement : **Accueil**, **Événements**, **Séquences**, **Banques** et **Incidents**. Les listes des **Sonores** et des **Marques-pages**, et le **Calendrier**, s'ouvrent à la demande, par le menu **Affichage** : « Ouvrir l'onglet Sonores », « Ouvrir l'onglet Marques-pages » et « Ouvrir l'onglet Grille horaire ». Les Sonores et les Marques-pages se placent après les Banques ; un onglet déjà ouvert revient au premier plan. Les onglets ouverts à la demande, et ceux des fiches, se ferment par leur croix ; une liste fermée puis rouverte retrouve son filtre et son tri.
 
