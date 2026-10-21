@@ -1,13 +1,13 @@
-"""Recherche globale avec auto-suggestion (https://github.com/dascritch/machincast/issues/27,
+"""Recherche globale (https://github.com/dascritch/machincast/issues/27,
 https://github.com/dascritch/machincast/issues/105, spec § 8.2).
 
 L'onglet « Recherche » (EcranRecherche), qui se ferme, s'ouvre par « Affichage → Rechercher… » ou Ctrl+F
 (machincast.interface.fenetre). Dès MINIMUM caractères, le texte tapé est cherché, sans tenir compte des majuscules ni
 des accents, dans le nom interne et le nom public des événements, des séquences et des banques, et dans l'artiste et
 le titre des sonores (chercher). Les résultats vont dans l'ordre : événements, séquences, banques, sonores, chacun par
-nom. Les suggestions, sous le champ, en donnent les SUGGESTIONS premiers ; la table, tous, jusqu'à LIMITE, avec le
-compte. Choisir une suggestion, ou ouvrir une ligne de la table (double-clic, Entrée), demande la fiche de l'élément
-(signal ouverte), sans toucher au texte cherché. La recherche se relance à l'ouverture de l'onglet et au
+nom. La table les donne au fil de la frappe, jusqu'à LIMITE, avec le compte ; le champ ne propose pas de suggestions.
+Ouvrir une ligne de la table (double-clic, Entrée) demande la fiche de l'élément (signal ouverte), sans toucher au texte
+cherché. La recherche se relance à l'ouverture de l'onglet et au
 rafraîchissement des onglets : jamais en boucle.
 
 Les accents sont retirés des deux côtés : en base par translate(), pour les lettres de ACCENTUEES ; dans le texte tapé
@@ -23,7 +23,6 @@ from PySide6.QtCore import QModelIndex, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
 	QAbstractItemView,
-	QCompleter,
 	QHeaderView,
 	QLabel,
 	QLineEdit,
@@ -39,8 +38,6 @@ journal = logging.getLogger(__name__)
 Connexion = psycopg.Connection[TupleRow]
 MINIMUM = 2
 """Caractères à taper avant de chercher."""
-SUGGESTIONS = 10
-"""Résultats proposés sous le champ."""
 LIMITE = 500
 """Lignes de la table des résultats, au plus."""
 COLONNES = ("Type", "Nom interne", "Nom public", "Statut")
@@ -62,10 +59,6 @@ class Resultat:
 	nom_public: str
 	statut: str
 	"""L'état d'un sonore ; rien pour les autres."""
-
-	def suggestion(self) -> str:
-		"""« Séquence : Café-croissant »."""
-		return f"{TYPES[self.genre]} : {self.nom}"
 
 
 def _normalise(colonne: str) -> str:
@@ -134,7 +127,7 @@ def chercher(connexion: Connexion, texte: str, limite: int) -> tuple[list[Result
 
 class EcranRecherche(QWidget):
 	ouverte = Signal(str, int, str)
-	"""Suggestion choisie, ou ligne ouverte : genre, identifiant et nom de l'élément."""
+	"""Ligne ouverte : genre, identifiant et nom de l'élément."""
 
 	def __init__(self, connexion: Connexion, parent: QWidget | None = None) -> None:
 		super().__init__(parent)
@@ -161,12 +154,6 @@ class EcranRecherche(QWidget):
 		self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 		self.table.horizontalHeader().setStretchLastSection(True)
 		disposition.addWidget(self.table)
-		# Les suggestions ne complètent pas le champ : choisies, elles ouvrent une fiche.
-		self.suggeres = QStandardItemModel(self)
-		self.completer = QCompleter(self.suggeres, self)
-		self.completer.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
-		self.completer.setWidget(self.champ)
-		self.completer.activated.connect(self._suggestion_choisie)
 		self.champ.textChanged.connect(self._chercher)
 		self.table.activated.connect(self._ligne_ouverte)
 
@@ -176,13 +163,10 @@ class EcranRecherche(QWidget):
 		self.champ.selectAll()
 
 	def actualiser(self) -> None:
-		"""Relance la recherche du texte tapé, sans montrer les suggestions."""
-		self._chercher(self.champ.text(), suggerer=False)
+		"""Relance la recherche du texte tapé."""
+		self._chercher(self.champ.text())
 
-	def suggestions(self) -> list[str]:
-		return [str(self.suggeres.item(rangee).text()) for rangee in range(self.suggeres.rowCount())]
-
-	def _chercher(self, texte: str, suggerer: bool = True) -> None:
+	def _chercher(self, texte: str) -> None:
 		try:
 			self.resultats, total = chercher(self.connexion, texte, LIMITE)
 		except psycopg.Error as erreur:
@@ -190,15 +174,6 @@ class EcranRecherche(QWidget):
 			self.compte.setText(f"Recherche impossible : {erreur}")
 			return
 		self._montrer(total, len(texte.strip()) >= MINIMUM)
-		self.suggeres.clear()
-		for resultat in self.resultats[:SUGGESTIONS]:
-			self.suggeres.appendRow(QStandardItem(resultat.suggestion()))
-		popup = self.completer.popup()
-		assert popup is not None
-		if (suggerer) and (self.suggeres.rowCount() > 0):
-			self.completer.complete()
-		else:
-			popup.hide()
 
 	def _montrer(self, total: int, cherche: bool) -> None:
 		self.modele.setRowCount(0)
@@ -216,12 +191,6 @@ class EcranRecherche(QWidget):
 		elif cherche:
 			texte = f"{total} résultats"
 		self.compte.setText(texte)
-
-	def _suggestion_choisie(self, _texte: str) -> None:
-		"""La ligne choisie dans les suggestions : deux suggestions peuvent avoir le même texte."""
-		popup = self.completer.popup()
-		assert popup is not None
-		self._ouvrir(popup.currentIndex().row())
 
 	def _ligne_ouverte(self, index: QModelIndex) -> None:
 		self._ouvrir(index.row())

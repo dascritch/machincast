@@ -737,7 +737,7 @@ Dès 2 caractères, sans tenir compte des majuscules ni des accents, le texte ta
 - dans le nom interne et le nom public des **événements**, des **séquences** et des **banques** ;
 - dans l'artiste et le titre des **sonores**, mais pas dans leur emplacement.
 
-Au fil de la frappe, les 10 premiers résultats sont proposés sous le champ, comme « Séquence : Café-croissant » ou « Sonore : Les Gaufres – Café à minuit » ; en choisir un ouvre sa fiche, sans effacer le texte tapé. La table, en dessous, donne tous les résultats, jusqu'à 500, avec leur Type, Nom interne, Nom public et Statut (l'état d'un sonore) ; un double-clic ou <kbd>Entrée</kbd> sur une ligne ouvre la fiche. Suggestions et table vont dans le même ordre : événements, séquences, banques, puis sonores, chacun par nom. Le compte, au-dessus de la table, dit combien il y a de résultats, ou « 500 premiers résultats sur … » quand il y en a davantage : préciser alors le texte.
+La table, sous le champ, donne les résultats au fil de la frappe, jusqu'à 500, avec leur Type, Nom interne, Nom public et Statut (l'état d'un sonore), dans l'ordre : événements, séquences, banques, puis sonores, chacun par nom. Un sonore s'y nomme « artiste – titre ». Un double-clic ou <kbd>Entrée</kbd> sur une ligne ouvre la fiche, sans effacer le texte tapé. Le compte, au-dessus de la table, dit combien il y a de résultats, ou « 500 premiers résultats sur … » quand il y en a davantage : préciser alors le texte.
 
 La recherche se relance à l'ouverture de son onglet et par **Affichage → Rafraîchir les onglets** (<kbd>F5</kbd>).
 
