@@ -359,3 +359,10 @@ def voyant_de_saturation(contexte: Contexte, etat: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/191"""
 	assert contexte.configuration is not None, contexte.erreur
 	assert contexte.configuration.interface.saturation is (etat == "affiché")
+
+
+@then(parsers.re(r"les suggestions au lancement sont (?P<etat>actives|éteintes)"))
+def suggestions_au_lancement(contexte: Contexte, etat: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/119"""
+	assert contexte.configuration is not None, contexte.erreur
+	assert contexte.configuration.interface.suggestions is (etat == "actives")

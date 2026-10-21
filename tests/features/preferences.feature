@@ -213,6 +213,15 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et j'y clique sur « OK »
 		Alors elle a donné le voyant « Saturation » caché
 
+	Scénario: La page « Interface » montre les suggestions au lancement, et donne ce qui est coché
+		https://github.com/dascritch/machincast/issues/119
+
+		Quand la fenêtre des préférences s'ouvre sur les suggestions au lancement actives
+		Alors elle montre la case des suggestions « Proposer au lancement ce qui manque pour démarrer », cochée
+		Quand j'y décoche la case des suggestions au lancement
+		Et j'y clique sur « OK »
+		Alors elle a donné les suggestions au lancement éteintes
+
 	Scénario: La page « Audio » montre le seuil de blanc, et donne celui qui est saisi
 		Quand la fenêtre des préférences s'ouvre sur le seuil de blanc -40 dB
 		Alors elle montre le seuil de blanc « -40,0 dB », réglable de -100,0 à -0,1 dB

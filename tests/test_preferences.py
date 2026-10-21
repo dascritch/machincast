@@ -25,6 +25,7 @@ from machincast.interface.fenetre import FenetrePrincipale
 from machincast.interface.fiche_banque import FicheBanque
 from machincast.interface.fiche_sonore import FicheSonore
 from machincast.interface.preferences import FenetrePreferences, Reglages
+from machincast.interface.suggestions import Reponse
 from tests.base_test import configuration_test
 from tests.etapes_interface import Connexion, Contexte, fenetre, fichier_de_configuration, ouvrir_la_fenetre
 from tests.modales import quand_modale
@@ -449,6 +450,9 @@ def lancer_l_interface(
 
 	monkeypatch.setattr(module_application, "application", lambda _nom: Application())
 	monkeypatch.setattr(FenetrePrincipale, "show", montrer)
+	# La fenêtre des suggestions au lancement est refermée par « Plus tard »
+	# (https://github.com/dascritch/machincast/issues/119).
+	monkeypatch.setattr(dialogues, "suggerer", lambda _parent, _manques: Reponse(creer=False))
 	assert module_interface.main(["--config", str(configuration_lancee)]) == 0
 
 
@@ -564,3 +568,29 @@ def decocher_la_saturation(ouverte: Ouverte) -> None:
 def saturation_donnee(ouverte: Ouverte, etat: str) -> None:
 	assert ouverte.donnes is not None
 	assert ouverte.donnes.saturation is (etat == "affiché")
+
+
+# ─── Suggestions au lancement (https://github.com/dascritch/machincast/issues/119) ───
+
+
+@when(parsers.re(r"la fenêtre des préférences s'ouvre sur les suggestions au lancement (?P<etat>actives|éteintes)"))
+def ouvrir_sur_les_suggestions(ouverte: Ouverte, parent: QWidget, etat: str) -> None:
+	tous = Reglages(Crossfades(), None, PREECOUTE_DES_TESTS, suggestions=etat == "actives")
+	ouverte.fenetre = FenetrePreferences(tous, "factice", parent)
+
+
+@then(parsers.re(r"elle montre la case des suggestions « (?P<texte>[^»]+) », (?P<etat>cochée|décochée)"))
+def case_des_suggestions(ouverte: Ouverte, texte: str, etat: str) -> None:
+	case = la_fenetre(ouverte).ui.suggestions
+	assert (case.text(), case.isChecked()) == (texte, etat == "cochée")
+
+
+@when("j'y décoche la case des suggestions au lancement")
+def decocher_les_suggestions(ouverte: Ouverte) -> None:
+	la_fenetre(ouverte).ui.suggestions.setChecked(False)
+
+
+@then(parsers.re(r"elle a donné les suggestions au lancement (?P<etat>actives|éteintes)"))
+def suggestions_donnees(ouverte: Ouverte, etat: str) -> None:
+	assert ouverte.donnes is not None
+	assert ouverte.donnes.suggestions is (etat == "actives")

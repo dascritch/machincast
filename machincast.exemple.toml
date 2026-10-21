@@ -75,3 +75,7 @@ seuil = -40
 # préférences, page « Interface ». Section facultative, comme sa clé.
 # Le voyant « Saturation » de la colonne Antenne de l'accueil : true pour l'afficher (par défaut), false pour le cacher.
 # saturation = true
+# Au lancement, l'interface propose de créer ce qui manque pour démarrer : fil musical, banques de base, périphérique
+# de l'antenne (https://github.com/dascritch/machincast/issues/119). true par défaut ; false l'éteint, comme la case
+# « Ne plus proposer au lancement » de sa fenêtre.
+# suggestions = true

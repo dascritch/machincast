@@ -472,6 +472,23 @@ L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture 
 
 **Sans base de données**, l'interface n'est pas utilisable : `Machin interface` ouvre alors une fenêtre d'erreur, « MachinCast : base de données injoignable ». Elle explique pourquoi, et invite à lire le document `INSTALL.md` du répertoire de MachinCast, section [En cas de problème](../INSTALL.md#en-cas-de-problème). Son bouton « Ouvrir INSTALL.md » ouvre ce document, et ses détails donnent l'erreur de PostgreSQL. À sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, par exemple dans une session SSH, seul ce message s'affiche.
 
+### Pour bien démarrer
+
+Au lancement, l'interface cherche ce qui manque pour démarrer l'antenne ([#119](https://github.com/dascritch/machincast/issues/119)) :
+
+- un **fil musical**, l'événement qui tient l'antenne quand aucun autre ne la prend ;
+- les banques **Identifiant station**, **Musique rotation lourde**, **Musique rotation normale**, **Musique rotation rare** et **Musique rotation de nuit**, reconnues à leur nom interne, sans tenir compte des majuscules ;
+- sur une vraie sortie audio, le **périphérique de l'antenne**, sans lequel `Machin lecture` refuse de diffuser.
+
+S'il en manque, une fenêtre **Pour bien démarrer** les propose, chacun coché :
+
+- **Créer** crée ce qui est coché. Le fil musical est permanent. Les banques sont aléatoires et sans répertoire : elles se remplissent depuis leur [fiche](#fiche-dune-banque), ou par l'indexation de leurs répertoires ; « Identifiant station » est marquée « ne pas répéter ». Un fil musical encore vide reçoit une rotation type : Identifiant station, rotation lourde, normale, lourde, rare. La rotation de nuit reste à placer dans un événement de nuit. La barre d'état dit ce qui a été créé.
+- Le **périphérique de l'antenne** se choisit parmi ceux du poste, sauf celui de la pré-écoute ; il s'enregistre dans `audio.peripherique`, et `Machin lecture` le prend à son prochain démarrage (**Diffusion → Redémarrer la diffusion**).
+- **Plus tard** ne crée rien : la fenêtre revient au lancement suivant. Sans fil musical, l'antenne n'a alors rien à jouer en dehors des autres événements.
+- **Ne plus proposer au lancement** éteint la fenêtre, dans `interface.suggestions`, aussi réglable dans les [préférences](#préférences). Sans elle, l'interface recrée au lancement un fil musical vide s'il n'en existe aucun, et le dit dans la barre d'état ([#39](https://github.com/dascritch/machincast/issues/39)).
+
+Après la suppression ou l'enregistrement d'un événement, l'interface recrée toujours un fil musical s'il n'en reste aucun.
+
 ### Accueil
 
 L'onglet Accueil est l'**écran par défaut** ([#23](https://github.com/dascritch/machincast/issues/23)), qui montre en un coup d'œil ce qui passe et ce qui va passer :
@@ -777,7 +794,7 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 | Durée maximale | Le crossfade le plus long que proposent ces champs, 5 secondes par défaut. Une valeur déjà plus longue reste telle quelle. |
 | Début par défaut, fin par défaut | À cocher : le crossfade d'un sonore qui n'en a pas de paramétré, et que sa banque ne règle pas ([D'où viennent les crossfades](#sortie-audio)). Ils ne dépassent pas la durée maximale. |
 
-La même page règle l'**accueil** ([#191](https://github.com/dascritch/machincast/issues/191)) : **Afficher le voyant de saturation de l'accueil**, cochée par défaut, montre le voyant « Saturation » de la colonne Antenne. Décochée, il disparaît aussitôt, à l'enregistrement des préférences ; le VU-mètre montre toujours les crêtes, et le voyant « Silence » reste. Elle s'enregistre dans `interface.saturation`.
+La même page règle l'**accueil** ([#191](https://github.com/dascritch/machincast/issues/191)) : **Afficher le voyant de saturation de l'accueil**, cochée par défaut, montre le voyant « Saturation » de la colonne Antenne. Décochée, il disparaît aussitôt, à l'enregistrement des préférences ; le VU-mètre montre toujours les crêtes, et le voyant « Silence » reste. Elle s'enregistre dans `interface.saturation`. **Proposer au lancement ce qui manque pour démarrer**, cochée par défaut, montre au lancement la fenêtre [Pour bien démarrer](#pour-bien-démarrer) ; elle s'enregistre dans `interface.suggestions` ([#119](https://github.com/dascritch/machincast/issues/119)).
 
 Sa page **Audio** règle les périphériques ([#116](https://github.com/dascritch/machincast/issues/116)) :
 

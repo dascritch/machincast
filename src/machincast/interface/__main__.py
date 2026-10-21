@@ -90,6 +90,7 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 			interface=configuration.interface,
 		)
 		fenetre.show()
+		fenetre.proposer_au_lancement()
 		return qt.exec()
 
 

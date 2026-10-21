@@ -118,6 +118,16 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QCheckBox" name="suggestions">
+            <property name="text">
+             <string>Proposer au lancement ce qui manque pour démarrer</string>
+            </property>
+            <property name="toolTip">
+             <string>Fil musical, banques de base et périphérique de l'antenne, dans une fenêtre au lancement de l'interface.</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>

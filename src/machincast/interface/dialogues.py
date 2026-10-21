@@ -18,6 +18,7 @@ from machincast.configuration import SortieAudio
 from machincast.interface.choix import Choix
 from machincast.interface.listes import BANQUES, MARQUES_PAGES, SEQUENCES, SONORES
 from machincast.interface.preferences import FenetrePreferences, Reglages
+from machincast.interface.suggestions import FenetreSuggestions, Manques, Reponse
 from machincast.protection import EXTENSIONS_SONORES
 
 
@@ -216,6 +217,14 @@ def regler_preferences(parent: QWidget, reglages: Reglages, sortie: SortieAudio)
 	if fenetre.exec() != QDialog.DialogCode.Accepted:
 		return None
 	return fenetre.reglages()
+
+
+def suggerer(parent: QWidget, manques: Manques) -> Reponse:
+	"""La fenêtre modale des suggestions au lancement (https://github.com/dascritch/machincast/issues/119) : ce qu'il
+	faut créer, ou rien sur « Plus tard »."""
+	fenetre = FenetreSuggestions(manques, parent)
+	fenetre.exec()
+	return fenetre.reponse()
 
 
 def montrer_version(parent: QWidget, texte: str) -> None:

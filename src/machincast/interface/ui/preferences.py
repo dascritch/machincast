@@ -91,6 +91,11 @@ class Ui_FenetrePreferences(object):
 
         self.disposition_accueil.addWidget(self.saturation)
 
+        self.suggestions = QCheckBox(self.groupe_accueil)
+        self.suggestions.setObjectName(u"suggestions")
+
+        self.disposition_accueil.addWidget(self.suggestions)
+
 
         self.disposition_interface.addWidget(self.groupe_accueil)
 
@@ -219,6 +224,10 @@ class Ui_FenetrePreferences(object):
         self.saturation.setText(QCoreApplication.translate("FenetrePreferences", u"Afficher le voyant de saturation de l'accueil", None))
 #if QT_CONFIG(tooltip)
         self.saturation.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Le voyant \u00ab Saturation \u00bb de la colonne Antenne, au-dessus du VU-m\u00e8tre ; le VU-m\u00e8tre montre toujours les cr\u00eates.", None))
+#endif // QT_CONFIG(tooltip)
+        self.suggestions.setText(QCoreApplication.translate("FenetrePreferences", u"Proposer au lancement ce qui manque pour d\u00e9marrer", None))
+#if QT_CONFIG(tooltip)
+        self.suggestions.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Fil musical, banques de base et p\u00e9riph\u00e9rique de l'antenne, dans une fen\u00eatre au lancement de l'interface.", None))
 #endif // QT_CONFIG(tooltip)
         self.explication.setText(QCoreApplication.translate("FenetrePreferences", u"Les fiches ouvertes ensuite suivent ces r\u00e9glages. Machin lecture prend les dur\u00e9es par d\u00e9faut \u00e0 son prochain d\u00e9marrage.", None))
         self.pages.setTabText(self.pages.indexOf(self.page_interface), QCoreApplication.translate("FenetrePreferences", u"Interface", None))
