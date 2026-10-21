@@ -26,12 +26,21 @@ Streams (https://github.com/dascritch/machincast/issues/16, spec § 4.7) :
   début), et l'incident « reprise du flux » donne la durée de la panne ;
 - si l'événement du stream n'est plus actif, la reconnexion est abandonnée.
 
+Interruption manuelle (https://github.com/dascritch/machincast/issues/104, interrompre) : demandée par l'interface sur
+la socket d'état, et traitée au début du pas suivant. Le sonore en cours s'éteint pendant son crossfade de fin, ou
+s'arrête net sans crossfade, comme un stream à la fin de son événement ; son passage se termine sans incident, et le
+suivant enchaîne : celui de la liste pour un sonore, celui qui suit la séquence pour une séquence, celui de
+l'événement de priorité inférieure pour un événement (Ordonnanceur.interrompre). Le log note l'info « interruption
+manuelle », avec ce qui est interrompu. Sans rien à l'antenne, ou hors d'une séquence pour une séquence, la demande
+est ignorée et signalée dans le journal du binaire.
+
 Expiration (https://github.com/dascritch/machincast/issues/18, machincast.lecture.expiration) : chaque passage qui
 commence vérifie si son sonore a atteint son maximum de lectures ; tous les sonores sont vérifiés au démarrage, puis
 toutes les VERIFICATION_DES_EXPIRATIONS, pour les périodes de diffusion terminées.
 """
 
 import json
+import logging
 import signal
 import threading
 from dataclasses import dataclass, field
@@ -57,6 +66,8 @@ from machincast.lecture.grille import Occurrence, Priorite
 from machincast.lecture.historique import EN_BASE, Historique
 from machincast.lecture.moteur import Moteur, VoieLecture, enchainement, fondu_d_entree, superposition
 from machincast.lecture.sorties import Sorties, lire_passages, texte_public
+
+journal = logging.getLogger(__name__)
 
 PAUSE = 0.05
 AUCUN_CROSSFADE = timedelta(0)
@@ -85,6 +96,8 @@ VERIFICATION_DES_EXPIRATIONS = timedelta(minutes=1)
 FLUX_ARRETE = "le flux s'est arrêté avant la fin de son événement"
 FLUX_TOMBE = "flux tombé"
 REPRISE_DU_FLUX = "reprise du flux"
+INTERRUPTION_MANUELLE = "interruption manuelle"
+IGNOREE = f"{INTERRUPTION_MANUELLE} ignorée"
 
 
 @dataclass(frozen=True)
@@ -291,6 +304,9 @@ class Diffusion:
 		self._verifier_les_expirations(instant)
 		self.moteur.traiter_messages()
 		self._terminer_les_voies_arretees(instant)
+		if self.etat is not None:
+			for demande in self.etat.demandes():
+				self.interrompre(demande.element)
 		courant = self.courant
 		if courant is not None:
 			decision = self.ordonnanceur.decider(instant, courant.en_cours)
@@ -327,6 +343,53 @@ class Diffusion:
 		self._publier(instant, arret=True)
 		if self.etat is not None:
 			self.etat.fermer()
+
+	def interrompre(self, element: str) -> bool:
+		"""Interruption manuelle du sonore, de la séquence ou de l'événement en cours (« sonore », « sequence »,
+		« evenement ») ; False si elle est ignorée, faute de rien à interrompre."""
+		instant = self.horloge.maintenant()
+		courant = self.courant
+		if courant is None:
+			journal.warning(f"{IGNOREE} : rien à l'antenne")
+			return False
+		choix = courant.choix
+		evenement = choix.occurrence.evenement
+		if element == "sequence":
+			if choix.ligne is None:
+				journal.warning(f"{IGNOREE} : aucune séquence à l'antenne")
+				return False
+			message = f"de la séquence {self._sequence_a_l_antenne}"
+		elif element == "evenement":
+			message = f"de l'événement « {evenement.nom} »"
+		else:
+			message = f"du sonore « {self._nom_du_sonore(choix.sonore)} »"
+		if element != "sonore":
+			self.ordonnanceur.abandonner_la_sequence(courant.passage.id)
+		if element == "evenement":
+			self.ordonnanceur.interrompre(choix.occurrence)
+		self.historique.consigner(
+			self.connexion,
+			"info",
+			INTERRUPTION_MANUELLE,
+			message,
+			instant,
+			sonore=choix.sonore,
+			evenement=evenement.id,
+		)
+		if self.sorties is not None:
+			self.sorties.annoncer(INTERRUPTION_MANUELLE, message)
+		self._eteindre(courant, self.ordonnanceur.decider(instant, None), instant)
+		self._publier(instant)
+		return True
+
+	def _nom_du_sonore(self, sonore: int) -> str:
+		with self.connexion.transaction():
+			ligne = self.connexion.execute(
+				"SELECT COALESCE(titre, emplacement, url_stream) FROM sonores WHERE id = %s", (sonore,)
+			).fetchone()
+		if (ligne is None) or (ligne[0] is None):
+			return str(sonore)
+		return str(ligne[0])
 
 	# ─── Étapes ────────────────────────────────────────────
 
@@ -422,7 +485,8 @@ class Diffusion:
 			self.en_attente = choix
 
 	def _eteindre(self, courant: Lecture, decision: Decision, instant: datetime) -> None:
-		"""Fin de l'événement d'un stream : il s'éteint pendant son crossfade de fin."""
+		"""Fin de l'événement d'un stream, ou interruption manuelle : le sonore s'éteint pendant son crossfade de fin,
+		et le sonore de la décision enchaîne."""
 		fondu = courant.parametres.crossfade_fin
 		courant.eteinte = True
 		self.reserve = None

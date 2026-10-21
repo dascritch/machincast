@@ -10,15 +10,24 @@ ouverte par un autre Machin lecture refuse la seconde diffusion (SocketEtatOccup
 binaire arrêté brutalement est remplacée.
 
 Chaque client a son fil : un client lent ou qui se déconnecte ne bloque jamais la diffusion.
+
+Dans l'autre sens, un client peut envoyer des demandes, une ligne JSON par demande
+(https://github.com/dascritch/machincast/issues/104) : {"commande": "interrompre", "element": E}, où E est
+« sonore », « sequence » ou « evenement » (INTERRUPTIONS). Un fil par client les lit, et les garde jusqu'au pas suivant
+de la diffusion (demandes). Une demande illisible, inconnue, ou plus longue que TAILLE_MAXIMALE, est ignorée et
+signalée dans le journal du binaire. Seul le compte qui diffuse peut ouvrir la socket : il n'y a rien d'autre à
+vérifier.
 """
 
 import functools
 import json
 import logging
 import os
+import queue
 import socket
 import stat
 import threading
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -36,6 +45,42 @@ PUBLICATION_MINIMALE = 1.0
 """Intervalle maximal entre deux messages, en secondes, pour suivre la progression."""
 ATTENTE_DES_CLIENTS = 1.0
 """Délai laissé aux clients pour recevoir le dernier message, à la fermeture."""
+INTERROMPRE = "interrompre"
+INTERRUPTIONS = ("sonore", "sequence", "evenement")
+"""Ce qu'une demande peut interrompre (https://github.com/dascritch/machincast/issues/104)."""
+TAILLE_MAXIMALE = 4096
+"""Octets d'une demande, au plus : au-delà, ce qui a été reçu est ignoré."""
+DEMANDE_IGNOREE = "demande ignorée sur la socket d'état"
+
+
+@dataclass(frozen=True)
+class Demande:
+	"""Une demande d'un client de la socket d'état : interrompre un élément de l'antenne."""
+
+	element: str
+	"""« sonore », « sequence » ou « evenement »."""
+
+
+def demande_d_interruption(element: str) -> str:
+	"""La ligne qu'un client envoie pour demander l'interruption de l'élément."""
+	return json.dumps({"commande": INTERROMPRE, "element": element}) + "\n"
+
+
+def lire_demande(ligne: bytes) -> Demande:
+	"""Une demande reçue ; ValueError si elle est illisible ou inconnue."""
+	try:
+		message = json.loads(ligne.decode())
+	except (UnicodeDecodeError, json.JSONDecodeError) as erreur:
+		raise ValueError(f"illisible : {erreur}") from erreur
+	if not isinstance(message, dict):
+		raise ValueError("une demande est un objet JSON")
+	commande = message.get("commande")
+	element = message.get("element")
+	if commande != INTERROMPRE:
+		raise ValueError(f"commande inconnue : {commande}")
+	if element not in INTERRUPTIONS:
+		raise ValueError(f"rien à interrompre de tel : {element}")
+	return Demande(str(element))
 
 
 class SocketEtatOccupee(Exception):
@@ -85,6 +130,16 @@ class SocketEtat:
 		self._envoyes: dict[int, int] = {}
 		"""Dernier message envoyé à chaque client, par identifiant de fil."""
 		self._fil: threading.Thread | None = None
+		self._demandes: queue.SimpleQueue[Demande] = queue.SimpleQueue()
+
+	def demandes(self) -> list[Demande]:
+		"""Les demandes reçues depuis le dernier appel, dans l'ordre d'arrivée."""
+		recues = []
+		while True:
+			try:
+				recues.append(self._demandes.get_nowait())
+			except queue.Empty:
+				return recues
 
 	def ouvrir(self) -> None:
 		"""Crée la socket ; lève SocketEtatOccupee si un autre Machin lecture l'a déjà ouverte."""
@@ -162,6 +217,7 @@ class SocketEtat:
 		envoye = 0
 		with client:
 			client.settimeout(ATTENTE_DES_CLIENTS)
+			threading.Thread(target=self._ecouter, args=(client,), name="demandes d'un client", daemon=True).start()
 			while True:
 				with self._condition:
 					self._envoyes[cle] = envoye
@@ -179,3 +235,31 @@ class SocketEtat:
 			with self._condition:
 				self._envoyes.pop(cle, None)
 				self._condition.notify_all()
+
+	def _ecouter(self, client: socket.socket) -> None:
+		"""Les demandes du client, jusqu'à sa déconnexion ou la fermeture de la socket."""
+		tampon = b""
+		while not self._fermee:
+			try:
+				recu = client.recv(TAILLE_MAXIMALE)
+			except TimeoutError:
+				continue
+			except OSError:
+				return
+			if recu == b"":
+				return
+			tampon += recu
+			*lignes, tampon = tampon.split(b"\n")
+			if len(tampon) > TAILLE_MAXIMALE:
+				journal.warning(f"{DEMANDE_IGNOREE} : plus de {TAILLE_MAXIMALE} octets")
+				tampon = b""
+			for ligne in lignes:
+				self._recevoir(ligne)
+
+	def _recevoir(self, ligne: bytes) -> None:
+		if ligne.strip() == b"":
+			return
+		try:
+			self._demandes.put(lire_demande(ligne))
+		except ValueError as erreur:
+			journal.warning(f"{DEMANDE_IGNOREE} : {erreur}")
