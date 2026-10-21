@@ -2,13 +2,16 @@
 
 Diffuse la grille sur la sortie audio de la configuration, jusqu'à SIGTERM (arrêt du service) ou Ctrl-C. Avec
 --simulation DEBUT FIN, simule la diffusion entre ces deux instants, sans son ni écriture en base
-(https://github.com/dascritch/machincast/issues/21).
+(https://github.com/dascritch/machincast/issues/21) ; --repertoire place ses sorties ailleurs que dans le répertoire
+des sorties de la configuration, comme le fait l'écran de simulation de l'interface
+(https://github.com/dascritch/machincast/issues/37).
 """
 
 import argparse
 import logging
 from collections.abc import Sequence
 from datetime import datetime
+from pathlib import Path
 
 import psycopg
 
@@ -66,13 +69,19 @@ def options_propres(analyseur: argparse.ArgumentParser) -> None:
 		metavar="NOM",
 		help="nom des sorties .csv, .pls et .html de la simulation (par défaut : simulation-DEBUT-FIN)",
 	)
+	simulation.add_argument(
+		"--repertoire",
+		type=Path,
+		metavar="REPERTOIRE",
+		help="répertoire des sorties de la simulation (par défaut : celui de sorties.csv de la configuration)",
+	)
 
 
 def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 	if options.simulation is not None:
 		return executer_simulation(configuration, options)
-	if (options.graine is not None) or (options.nom is not None):
-		journal.error("--graine et --nom ne s'emploient qu'avec --simulation")
+	if (options.graine is not None) or (options.nom is not None) or (options.repertoire is not None):
+		journal.error("--graine, --nom et --repertoire ne s'emploient qu'avec --simulation")
 		return CODE_CONFIGURATION_INVALIDE
 	return executer_diffusion(configuration)
 
@@ -84,6 +93,8 @@ def executer_simulation(configuration: Configuration, options: argparse.Namespac
 		return CODE_CONFIGURATION_INVALIDE
 	base = configuration.base
 	repertoire = configuration.sorties.csv.parent
+	if options.repertoire is not None:
+		repertoire = options.repertoire
 	try:
 		with connecter(base.socket, base.production, Role.LECTURE) as connexion:
 			resultat = simuler(
