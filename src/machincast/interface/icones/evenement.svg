@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+	<title>Événement : une montre</title>
+	<path fill="currentColor" d="M8 1 H16 L15 5 H9 Z"/>
+	<path fill="currentColor" d="M9 19 H15 L16 23 H8 Z"/>
+	<path fill-rule="evenodd" fill="currentColor" d="M12 4.5 A7.5 7.5 0 1 1 11.99 4.5 Z M12 6.5 A5.5 5.5 0 1 0 12.01 6.5 Z"/>
+	<rect x="11.1" y="7.8" width="1.8" height="4.6" fill="currentColor"/>
+	<rect x="11.4" y="11.1" width="1.8" height="3.6" transform="rotate(-55 12.3 12)" fill="currentColor"/>
+	<rect x="19.2" y="10.8" width="2" height="2.4" fill="currentColor"/>
+</svg>
