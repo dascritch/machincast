@@ -44,7 +44,7 @@ from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QDoubleSpinBox, QLineEdi
 
 from machincast.conformation import conformer
 from machincast.horloge import Horloge
-from machincast.interface import affichage, depliable, dialogues, preferences
+from machincast.interface import affichage, depliable, dialogues, icones, preferences
 from machincast.interface.colonnes import Colonnes
 from machincast.interface.essai_flux import EssaiDeFlux
 from machincast.interface.fiche import Connexion, Fiche, Refus
@@ -507,7 +507,8 @@ class FicheSonore(Fiche):
 		for genre, identifiant, nom, minimum, maximum, duree in relations:
 			rangee = table.rowCount()
 			table.insertRow(rangee)
-			table.setItem(rangee, 0, QTableWidgetItem(str(genre)))
+			# L'icône du genre (https://github.com/dascritch/machincast/issues/215).
+			table.setItem(rangee, 0, QTableWidgetItem(icones.icone_de(str(genre)), str(genre)))
 			cellule = QTableWidgetItem(str(nom))
 			cellule.setData(RELATION, (str(genre), int(str(identifiant))))
 			# Une banque dont le sonore sort des durées (https://github.com/dascritch/machincast/issues/147).
