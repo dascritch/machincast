@@ -109,8 +109,9 @@ def contient_encore(interface: Contexte, ligne: str) -> None:
 def autres_sections(interface: Contexte, hors_audio: str | None) -> None:
 	avant = tomllib.loads(interface.configuration_initiale.decode("utf-8"))
 	apres = tomllib.loads(fichier_de_configuration(interface).read_text(encoding="utf-8"))
-	# Les préférences tiennent toujours [crossfades] et [blancs] (https://github.com/dascritch/machincast/issues/146).
-	retirees = ["crossfades", "blancs"]
+	# Les préférences tiennent toujours [crossfades], [blancs] (https://github.com/dascritch/machincast/issues/146) et
+	# [interface] (https://github.com/dascritch/machincast/issues/191).
+	retirees = ["crossfades", "blancs", "interface"]
 	if hors_audio is not None:
 		retirees.append("audio")
 	for section in retirees:
@@ -520,3 +521,46 @@ def saisir_le_seuil(ouverte: Ouverte, seuil: str) -> None:
 def seuil_donne(ouverte: Ouverte, seuil: str) -> None:
 	assert ouverte.donnes is not None
 	assert ouverte.donnes.seuil_blancs == _decibels(seuil)
+
+
+# ─── Voyant « Saturation » (https://github.com/dascritch/machincast/issues/191) ───
+
+
+@given(parsers.re(r"les préférences seront réglées avec le voyant « Saturation » (?P<etat>affiché|caché)"))
+def saturation_reglee(interface: Contexte, etat: str) -> None:
+	interface.saturation_reglee = etat == "affiché"
+
+
+@then(parsers.re(r"les préférences ont montré le voyant « Saturation » (?P<etat>affiché|caché)"))
+def saturation_montree(interface: Contexte, etat: str) -> None:
+	assert interface.saturations_montrees == [etat == "affiché"]
+
+
+@then(parsers.re(r"le voyant « (?P<nom>Saturation|Silence) » de l'antenne est (?P<etat>affiché|caché) à l'accueil"))
+def voyant_a_l_accueil(interface: Contexte, nom: str, etat: str) -> None:
+	ui = fenetre(interface).accueil.ui
+	voyant = {"Saturation": ui.voyant_saturation, "Silence": ui.voyant_silence}[nom]
+	assert voyant.isHidden() is (etat == "caché")
+
+
+@when(parsers.re(r"la fenêtre des préférences s'ouvre sur le voyant « Saturation » (?P<etat>affiché|caché)"))
+def ouvrir_sur_la_saturation(ouverte: Ouverte, parent: QWidget, etat: str) -> None:
+	tous = Reglages(Crossfades(), None, PREECOUTE_DES_TESTS, saturation=etat == "affiché")
+	ouverte.fenetre = FenetrePreferences(tous, "factice", parent)
+
+
+@then(parsers.re(r"elle montre la case « (?P<texte>[^»]+) », (?P<etat>cochée|décochée)"))
+def case_de_saturation(ouverte: Ouverte, texte: str, etat: str) -> None:
+	case = la_fenetre(ouverte).ui.saturation
+	assert (case.text(), case.isChecked()) == (texte, etat == "cochée")
+
+
+@when("j'y décoche la case du voyant « Saturation »")
+def decocher_la_saturation(ouverte: Ouverte) -> None:
+	la_fenetre(ouverte).ui.saturation.setChecked(False)
+
+
+@then(parsers.re(r"elle a donné le voyant « Saturation » (?P<etat>affiché|caché)"))
+def saturation_donnee(ouverte: Ouverte, etat: str) -> None:
+	assert ouverte.donnes is not None
+	assert ouverte.donnes.saturation is (etat == "affiché")

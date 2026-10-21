@@ -44,7 +44,7 @@ from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import QLabel, QMainWindow, QTabBar, QWidget
 
 from machincast import service
-from machincast.configuration import Audio, Blancs, Crossfades
+from machincast.configuration import Audio, Blancs, Crossfades, Interface
 from machincast.horloge import Horloge
 from machincast.interface import dialogues, groupes, indexation, pilotage, preferences, version
 from machincast.interface.ajout import ajouter_fichiers
@@ -123,12 +123,14 @@ class FenetrePrincipale(QMainWindow):
 		*,
 		audio: Audio,
 		blancs: Blancs | None = None,
+		interface: Interface | None = None,
 	) -> None:
 		"""commande_indexation : Machin indexation, avec la configuration de l'interface
 		(indexation.commande_indexation). configuration : le fichier où « Préférences… » enregistre les réglages,
 		crossfades ceux qu'il donne (https://github.com/dascritch/machincast/issues/145) ; sans fichier, les
 		préférences ne s'enregistrent pas. blancs : la détection de blanc qu'il donne
-		(https://github.com/dascritch/machincast/issues/146)."""
+		(https://github.com/dascritch/machincast/issues/146). interface : ses réglages de l'interface, le voyant
+		« Saturation » de l'accueil (https://github.com/dascritch/machincast/issues/191)."""
 		super().__init__(parent)
 		self.configuration = configuration
 		self.audio = audio
@@ -137,6 +139,8 @@ class FenetrePrincipale(QMainWindow):
 		"""La fenêtre de pré-écoute, une seule pour toute l'interface, créée à sa première demande."""
 		preferences.definir((crossfades) or (Crossfades()))
 		self.seuil_blancs = ((blancs) or (Blancs())).seuil
+		self.saturation = ((interface) or (Interface())).saturation
+		"""Le voyant « Saturation » de l'accueil est affiché (https://github.com/dascritch/machincast/issues/191)."""
 		"""Seuil de blanc du fichier de configuration, que montrent les préférences."""
 		self.connexion = connexion
 		self.horloge = horloge
@@ -144,6 +148,7 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.setupUi(self)
 		self.ui.onglets.setTabsClosable(True)
 		self.accueil = EcranParDefaut(connexion, socket_etat, horloge, audio=audio)
+		self.accueil.montrer_la_saturation(self.saturation)
 		self.accueil.ecoute_demandee.connect(self._ecouter_l_antenne)
 		self._ajouter_fixe(self.accueil, "Accueil")
 		self.accueil.ouverte.connect(self._ouvrir)
@@ -534,7 +539,9 @@ class FenetrePrincipale(QMainWindow):
 		ouvertes ensuite ; un fichier qui ne s'écrit pas les laisse inchangées, et la barre d'état le dit."""
 		assert self.configuration is not None
 		audio = self.audio
-		montres = preferences.Reglages(preferences.crossfades(), audio.peripherique, audio.preecoute, self.seuil_blancs)
+		montres = preferences.Reglages(
+			preferences.crossfades(), audio.peripherique, audio.preecoute, self.seuil_blancs, self.saturation
+		)
 		reglages = dialogues.regler_preferences(self, montres, audio.sortie)
 		if reglages is None:
 			return
@@ -545,6 +552,8 @@ class FenetrePrincipale(QMainWindow):
 			return
 		preferences.definir(reglages.crossfades)
 		self.seuil_blancs = reglages.seuil_blancs
+		self.saturation = reglages.saturation
+		self.accueil.montrer_la_saturation(self.saturation)
 		texte = "les crossfades par défaut"
 		if reglages.antenne != audio.peripherique:
 			texte = "les crossfades par défaut et le périphérique de l'antenne"

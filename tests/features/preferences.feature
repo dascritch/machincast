@@ -154,6 +154,28 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et le fichier de configuration contient encore « # Seuil de l'antenne du matin. »
 		Et le fichier de configuration contient encore les autres sections
 
+	Scénario: Le voyant « Saturation » réglé dans les préférences va dans la section [interface], et l'accueil le suit aussitôt
+		https://github.com/dascritch/machincast/issues/191 : le voyant reste affiché par défaut.
+
+		Étant donné les préférences seront réglées avec le voyant « Saturation » caché
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le voyant « Saturation » de l'antenne est affiché à l'accueil
+		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Alors les préférences ont montré le voyant « Saturation » affiché
+		Et le fichier de configuration contient la ligne « saturation = false »
+		Et le fichier de configuration contient encore les autres sections
+		Et le voyant « Saturation » de l'antenne est caché à l'accueil
+
+	Scénario: L'accueil s'ouvre sans le voyant « Saturation » quand la configuration le cache
+		Étant donné le fichier de configuration de l'interface, avec :
+			"""
+			[interface]
+			saturation = false
+			"""
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le voyant « Saturation » de l'antenne est caché à l'accueil
+		Et le voyant « Silence » de l'antenne est affiché à l'accueil
+
 	# ─── Fenêtre des préférences ───────────────────────────────
 
 	Scénario: La page « Interface » montre les réglages, et donne ceux qui sont saisis
@@ -183,6 +205,13 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| bouton  | donnes                                                                               |
 			| OK      | granularité « seconde », maximum 8 s, début par défaut 2 s, fin par défaut aucune |
 			| Annuler | aucun                                                                                |
+
+	Scénario: La page « Interface » montre le voyant « Saturation », et donne ce qui est coché
+		Quand la fenêtre des préférences s'ouvre sur le voyant « Saturation » affiché
+		Alors elle montre la case « Afficher le voyant de saturation de l'accueil », cochée
+		Quand j'y décoche la case du voyant « Saturation »
+		Et j'y clique sur « OK »
+		Alors elle a donné le voyant « Saturation » caché
 
 	Scénario: La page « Audio » montre le seuil de blanc, et donne celui qui est saisi
 		Quand la fenêtre des préférences s'ouvre sur le seuil de blanc -40 dB

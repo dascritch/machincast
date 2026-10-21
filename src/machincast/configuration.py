@@ -117,6 +117,14 @@ class Blancs:
 
 
 @dataclass(frozen=True)
+class Interface:
+	"""Réglages de l'interface graphique (https://github.com/dascritch/machincast/issues/191), section [interface]."""
+
+	saturation: bool = True
+	"""Le voyant « Saturation » de la colonne Antenne de l'accueil est affiché."""
+
+
+@dataclass(frozen=True)
 class Configuration:
 	chemin: Path
 	base: Base
@@ -126,6 +134,7 @@ class Configuration:
 	lecture: Lecture
 	crossfades: Crossfades = field(default_factory=Crossfades)
 	blancs: Blancs = field(default_factory=Blancs)
+	interface: Interface = field(default_factory=Interface)
 
 
 # Clés connues, par section. Toute autre clé est refusée, pour détecter les fautes de frappe.
@@ -137,6 +146,7 @@ CLES: dict[str, frozenset[str]] = {
 	"lecture": frozenset({"socket_etat"}),
 	"crossfades": frozenset({"granularite", "maximum", "debut", "fin"}),
 	"blancs": frozenset({"seuil"}),
+	"interface": frozenset({"saturation"}),
 }
 
 
@@ -201,6 +211,14 @@ class _Lecteur:
 
 	def booleen(self, section: str, cle: str) -> bool:
 		valeur = self._valeur(section, cle, obligatoire=True)
+		if not isinstance(valeur, bool):
+			raise self.erreur(f"clé {section}.{cle} : booléen attendu (true ou false), {_decrire(valeur)} trouvé")
+		return valeur
+
+	def booleen_facultatif(self, section: str, cle: str, defaut: bool) -> bool:
+		valeur = self._valeur(section, cle, obligatoire=False)
+		if valeur is None:
+			return defaut
 		if not isinstance(valeur, bool):
 			raise self.erreur(f"clé {section}.{cle} : booléen attendu (true ou false), {_decrire(valeur)} trouvé")
 		return valeur
@@ -341,4 +359,5 @@ def charger(chemin: Path | None = None) -> Configuration:
 		lecture=lecture,
 		crossfades=lecteur.crossfades(),
 		blancs=lecteur.blancs(),
+		interface=Interface(saturation=lecteur.booleen_facultatif("interface", "saturation", True)),
 	)

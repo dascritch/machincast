@@ -82,6 +82,18 @@ class Ui_FenetrePreferences(object):
 
         self.disposition_interface.addWidget(self.groupe_crossfades)
 
+        self.groupe_accueil = QGroupBox(self.page_interface)
+        self.groupe_accueil.setObjectName(u"groupe_accueil")
+        self.disposition_accueil = QVBoxLayout(self.groupe_accueil)
+        self.disposition_accueil.setObjectName(u"disposition_accueil")
+        self.saturation = QCheckBox(self.groupe_accueil)
+        self.saturation.setObjectName(u"saturation")
+
+        self.disposition_accueil.addWidget(self.saturation)
+
+
+        self.disposition_interface.addWidget(self.groupe_accueil)
+
         self.explication = QLabel(self.page_interface)
         self.explication.setObjectName(u"explication")
         self.explication.setWordWrap(True)
@@ -203,6 +215,11 @@ class Ui_FenetrePreferences(object):
         self.a_fin.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Le crossfade de fin d'un sonore qui n'en a pas de param\u00e9tr\u00e9, et que sa banque ne r\u00e8gle pas", None))
 #endif // QT_CONFIG(tooltip)
         self.fin.setSuffix(QCoreApplication.translate("FenetrePreferences", u" s", None))
+        self.groupe_accueil.setTitle(QCoreApplication.translate("FenetrePreferences", u"Accueil", None))
+        self.saturation.setText(QCoreApplication.translate("FenetrePreferences", u"Afficher le voyant de saturation de l'accueil", None))
+#if QT_CONFIG(tooltip)
+        self.saturation.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Le voyant \u00ab Saturation \u00bb de la colonne Antenne, au-dessus du VU-m\u00e8tre ; le VU-m\u00e8tre montre toujours les cr\u00eates.", None))
+#endif // QT_CONFIG(tooltip)
         self.explication.setText(QCoreApplication.translate("FenetrePreferences", u"Les fiches ouvertes ensuite suivent ces r\u00e9glages. Machin lecture prend les dur\u00e9es par d\u00e9faut \u00e0 son prochain d\u00e9marrage.", None))
         self.pages.setTabText(self.pages.indexOf(self.page_interface), QCoreApplication.translate("FenetrePreferences", u"Interface", None))
         self.groupe_peripheriques.setTitle(QCoreApplication.translate("FenetrePreferences", u"P\u00e9riph\u00e9riques", None))
