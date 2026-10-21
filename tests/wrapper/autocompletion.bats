@@ -30,9 +30,9 @@ completer() {
 	[[ "${output}" == *"-F _Machin"* ]]
 }
 
-@test "Machin <TAB> propose les binaires, logs, dev et dev-test" {
+@test "Machin <TAB> propose les binaires, logs, dev, dev-test et dev-captures" {
 	run completer Machin ""
-	[ "${output}" = "$(printf '%s\n' dev dev-test indexation interface lecture logs)" ]
+	[ "${output}" = "$(printf '%s\n' dev dev-captures dev-test indexation interface lecture logs)" ]
 }
 
 @test "Machin dev-test <TAB> ne propose rien de plus" {
@@ -48,6 +48,14 @@ completer() {
 @test "Machin -<TAB> propose les options du wrapper" {
 	run completer Machin -
 	[ "${output}" = "$(printf '%s\n' --binaires --config --help -h)" ]
+}
+
+@test "Machin dev-captures <TAB> propose des répertoires, pas des fichiers" {
+	cd "${BATS_TEST_TMPDIR}"
+	mkdir captures-essai
+	touch captures.txt
+	run completer Machin dev-captures cap
+	[ "${output}" = "captures-essai" ]
 }
 
 @test "Machin --config <TAB> propose des fichiers" {

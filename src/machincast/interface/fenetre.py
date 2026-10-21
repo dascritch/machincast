@@ -99,7 +99,8 @@ FICHES: dict[str, type[Fiche]] = {
 """Écrans de détail : les fiches, par genre."""
 SUIVI_INDEXATION = 1000
 """Millisecondes entre deux regards sur le processus de l'indexation lancée depuis le menu."""
-DOCUMENTATION = "https://github.com/dascritch/machincast/blob/main/doc/utilisation.md"
+DOCUMENTATION = "https://github.com/dascritch/machincast/blob/main/doc/utilisateur/README.md"
+"""Le guide de l'antenne, pour l'équipe qui se sert de l'interface (https://github.com/dascritch/machincast/issues/128)."""
 """Le guide d'utilisation, qu'ouvre « Documentation »."""
 TICKETS = "https://github.com/dascritch/machincast/issues"
 """Les tickets de MachinCast, qu'ouvre « Signaler un problème… » ; comme dans pyproject.toml."""

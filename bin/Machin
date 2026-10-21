@@ -5,6 +5,7 @@
 #   Machin logs [OPTIONS DE journalctl…]           suit en direct le journal du service de lecture
 #   Machin dev                                      sous-shell de développement, venv activé
 #   Machin dev-test                                 lance tous les outils de vérification, avec un bilan
+#   Machin dev-captures [REPERTOIRE]                refait les captures d'écran du guide de l'antenne
 #
 # Règles : doc/regles/wrapper.md. Tests : bats tests/wrapper.
 
@@ -21,7 +22,7 @@ aide_minimale() {
 	local liste
 	liste="$(printf '%s, ' "${BINAIRES[@]}")"
 	cat <<-FIN
-		Usage : Machin [--config FICHIER] BINAIRE [OPTIONS…]  ou  Machin logs|dev|dev-test
+		Usage : Machin [--config FICHIER] BINAIRE [OPTIONS…]  ou  Machin logs|dev|dev-test|dev-captures
 		Binaires : ${liste%, }. Aide complète : Machin --help
 	FIN
 }
@@ -33,7 +34,7 @@ aide_complete() {
 		Usage :
 		  Machin [--config FICHIER] BINAIRE [OPTIONS…]
 		  Machin logs [OPTIONS DE journalctl…]
-		  Machin dev | dev-test
+		  Machin dev | dev-test | dev-captures [REPERTOIRE]
 		  Machin -h | --help | --binaires
 
 		Binaires (Machin BINAIRE appelle Machin_BINAIRE avec les options qui suivent,
@@ -58,6 +59,9 @@ aide_complete() {
 		               puis bats, tous même après un échec, avec les outils du venv sans qu'il
 		               soit activé ; affiche un bilan par outil et se termine en échec si l'un
 		               d'eux échoue. Un outil absent se signale : ./install.sh --dev l'installe.
+		  dev-captures refait les captures d'écran du guide de l'antenne, dans doc/captures
+		               ou dans REPERTOIRE : l'interface hors de l'écran, sur une démonstration
+		               écrite dans la base de test, jamais dans celle de production.
 
 		Options du wrapper :
 		  --config FICHIER, --config=FICHIER
@@ -229,6 +233,16 @@ lancer_dev_test() {
 	exit 1
 }
 
+# Captures d'écran du guide de l'antenne (https://github.com/dascritch/machincast/issues/128) : tests/captures.py,
+# avec le Python du venv, depuis le répertoire de MachinCast, où il trouve le paquet tests.
+lancer_dev_captures() {
+	local venv
+	venv="$(exiger_venv)"
+	cd "$(projet)"
+	export VIRTUAL_ENV="${venv}"
+	exec "${venv}/bin/python" -m tests.captures "$@"
+}
+
 principal() {
 	local configuration=() binaire chemin
 
@@ -280,6 +294,12 @@ principal() {
 		(($# == 0)) || erreur_usage "${binaire} ne prend pas d'argument"
 		[[ "${binaire}" == dev ]] && ouvrir_dev
 		lancer_dev_test
+	fi
+
+	if [[ "${binaire}" == dev-captures ]]; then
+		((${#configuration[@]} == 0)) || erreur_usage "--config ne s'applique pas à dev-captures"
+		(($# <= 1)) || erreur_usage "dev-captures prend au plus un répertoire"
+		lancer_dev_captures "$@"
 	fi
 
 	est_binaire "${binaire}" || erreur_usage "binaire inconnu : ${binaire}"

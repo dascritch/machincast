@@ -45,13 +45,19 @@ _Machin() {
 		if [[ "${courant}" == -* ]]; then
 			mapfile -t COMPREPLY < <(compgen -W "-h --help --config --binaires" -- "${courant}")
 		else
-			mapfile -t COMPREPLY < <(compgen -W "$("${commande}" --binaires 2>/dev/null) logs dev dev-test" -- "${courant}")
+			mapfile -t COMPREPLY < <(compgen -W "$("${commande}" --binaires 2>/dev/null) logs dev dev-test dev-captures" \
+				-- "${courant}")
 		fi
 		return 0
 	fi
 
-	# dev et dev-test ne prennent aucun argument.
+	# dev et dev-test ne prennent aucun argument ; dev-captures, un répertoire.
 	if [[ "${binaire}" == dev || "${binaire}" == dev-test ]]; then
+		return 0
+	fi
+	if [[ "${binaire}" == dev-captures ]]; then
+		compopt -o filenames 2>/dev/null
+		mapfile -t COMPREPLY < <(compgen -d -- "${courant}")
 		return 0
 	fi
 	if [[ "${binaire}" == logs ]]; then
