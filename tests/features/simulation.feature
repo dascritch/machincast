@@ -285,6 +285,16 @@ Fonctionnalité: Mode simulation de Machin lecture
 			| "hier"              | "2026-10-20 20:00"  | date invalide                 |
 			| "2026-10-20 20:00"  | "2026-10-20 20:00"  | la fin doit suivre le début   |
 
+	Plan du scénario: Les options de la simulation ne s'emploient qu'avec --simulation
+		Quand je lance Machin_lecture avec « <option> »
+		Alors il s'arrête avec le code 2, en signalant « --graine, --nom et --repertoire ne s'emploient qu'avec --simulation »
+
+		Exemples:
+			| option                       |
+			| --graine 3                   |
+			| --nom essai                  |
+			| --repertoire /tmp/simulation |
+
 	Scénario: Sans base de données joignable, la simulation s'arrête avec le code 1
 		Quand je lance Machin_lecture avec « --simulation "2026-10-20 20:00" "2026-10-20 21:00" » et une socket inexistante
 		Alors il s'arrête avec le code 1, en signalant « base de données injoignable »

@@ -155,6 +155,16 @@ def choisir_fichiers(parent: QWidget) -> list[Path]:
 	return [Path(chemin) for chemin in choisis]
 
 
+def choisir_export(parent: QWidget, propose: str, filtres: list[str]) -> tuple[Path, str] | None:
+	"""Le fichier où exporter, et le filtre choisi, qui en donne le format ; None si le choix est abandonné."""
+	chemin, filtre = QFileDialog.getSaveFileName(
+		parent, "Exporter la simulation", str(Path.home() / propose), ";;".join(filtres)
+	)
+	if chemin == "":
+		return None
+	return Path(chemin), filtre
+
+
 def choisir_repertoire(parent: QWidget) -> str | None:
 	"""Un répertoire choisi dans le sélecteur du poste, ou None si le choix est abandonné."""
 	repertoire = QFileDialog.getExistingDirectory(parent, "Répertoire indexé de la banque")

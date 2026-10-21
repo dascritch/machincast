@@ -30,6 +30,7 @@ Fonctionnalité: Onglets ouverts à la demande
 			| Ouvrir l'onglet Sonores         | active |           |           |
 			| Ouvrir l'onglet Marques-pages   | active |           |           |
 			| Ouvrir l'onglet Grille horaire  | active |           |           |
+			| Ouvrir l'onglet Simulation      | active |           |           |
 			| Pré-écoute…                     | active |           |           |
 
 	Scénario: Les onglets demandés s'ouvrent à leur place, et se ferment

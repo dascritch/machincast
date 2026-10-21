@@ -260,19 +260,20 @@ Machin lecture --simulation "2026-10-20 06:00" "2026-10-21 06:00" --graine 42 --
 | `--simulation DEBUT FIN` | Période simulée, en heure du poste : `2026-10-20 20:00`, ou `2026-10-20T20:00:00`. La fin doit suivre le début. |
 | `--graine N` | Graine du hasard : la même graine donne la même simulation, tirages aléatoires compris. Sans graine, chaque simulation tire autrement. |
 | `--nom NOM` | Nom des fichiers produits, sans extension ni `/`. Par défaut, `simulation-` suivi des dates de début et de fin, par exemple `simulation-2026-10-20T0600-2026-10-20T2200`. |
+| `--repertoire REPERTOIRE` | Répertoire où écrire les fichiers produits ([#37](https://github.com/dascritch/machincast/issues/37)). Par défaut, celui de `sorties.csv` de la configuration. L'écran de simulation de l'interface s'en sert pour son répertoire temporaire. |
 
 - **Rien n'est écrit en base**, au sens strict : la simulation lit la base de production dans une transaction en lecture seule, où PostgreSQL refuse toute écriture. Elle part de l'état réel, c'est-à-dire la position dans chaque liste, le cycle de chaque banque aléatoire et le nombre de lectures de chaque sonore, puis tient ses propres passages en mémoire. Un sonore qui atteindrait son maximum de lectures pendant la simulation est noté expiré dans la simulation seulement.
 - **Aucun son n'est joué**, et la sortie audio n'est pas ouverte : une simulation peut tourner pendant la diffusion, sur le même poste. Elle ne dure que quelques secondes pour une journée.
 - **Durées** : ce sont celles de la base, mesurées par l'indexation. Un stream n'est pas contacté : la simulation suppose qu'il tient jusqu'à la fin de son événement.
 - **Mêmes règles que la diffusion** : priorités, coupures nettes, crossfades, fichiers disparus (incident `fichier introuvable`), silences (alerte `silence`).
-- **Résultat** : trois fichiers dans le dossier des sorties (celui de `sorties.csv`), pour toute la période :
+- **Résultat** : trois fichiers dans le dossier des sorties (celui de `sorties.csv`, ou celui de `--repertoire`), pour toute la période :
   - un CSV, avec les mêmes colonnes que l'airplay CSV ;
   - une playlist `.pls` ;
   - une page HTML, avec la liste des alertes et incidents simulés puis le tableau des passages.
 
   L'artiste et le titre y sont masqués comme sur la page publique (voir [Sorties de la diffusion](#sorties-de-la-diffusion)), et l'emplacement de chaque fichier, donné partout, permet de vérifier ce qui sera joué. Un fichier du même nom est remplacé.
 - **Messages** : les alertes et incidents simulés s'affichent aussi au fil de l'eau sur la sortie d'erreur, datés et préfixés de `simulation :`. Le bilan, avec le nombre de passages, d'alertes et d'incidents et les chemins des fichiers, s'affiche à la fin.
-- **Codes de sortie** : 0 une fois la simulation finie, même avec des alertes ; 1 si la base est injoignable ou si les fichiers ne peuvent pas être écrits ; 2 pour une période ou un nom invalides, ou pour `--graine` ou `--nom` sans `--simulation`.
+- **Codes de sortie** : 0 une fois la simulation finie, même avec des alertes ; 1 si la base est injoignable ou si les fichiers ne peuvent pas être écrits ; 2 pour une période ou un nom invalides, ou pour `--graine`, `--nom` ou `--repertoire` sans `--simulation`.
 
 ### État de la diffusion pour l'interface
 
@@ -743,7 +744,7 @@ La recherche se relance à l'ouverture de son onglet et par **Affichage → Rafr
 
 ### Passer d'un onglet à l'autre au clavier
 
-Les 12 premiers onglets s'ouvrent au clavier, par <kbd>Maj</kbd>+<kbd>F1</kbd> à <kbd>Maj</kbd>+<kbd>F12</kbd>, selon leur rang ([#192](https://github.com/dascritch/machincast/issues/192)) : <kbd>Maj</kbd>+<kbd>F1</kbd> est toujours l'Accueil ; au lancement, <kbd>Maj</kbd>+<kbd>F2</kbd> à <kbd>Maj</kbd>+<kbd>F4</kbd> mènent aux listes Événements, Séquences et Banques, <kbd>Maj</kbd>+<kbd>F5</kbd> aux Incidents, puis les fiches, le calendrier et la recherche dans l'ordre où ils sont ouverts. Ouvrir les Sonores ou les Marques-pages décale les Incidents et les onglets suivants. Fermer un onglet décale ceux qui le suivent : leur raccourci change. L'infobulle de chaque onglet donne le sien ; au-delà du douzième, un onglet n'en a pas.
+Les 12 premiers onglets s'ouvrent au clavier, par <kbd>Maj</kbd>+<kbd>F1</kbd> à <kbd>Maj</kbd>+<kbd>F12</kbd>, selon leur rang ([#192](https://github.com/dascritch/machincast/issues/192)) : <kbd>Maj</kbd>+<kbd>F1</kbd> est toujours l'Accueil ; au lancement, <kbd>Maj</kbd>+<kbd>F2</kbd> à <kbd>Maj</kbd>+<kbd>F4</kbd> mènent aux listes Événements, Séquences et Banques, <kbd>Maj</kbd>+<kbd>F5</kbd> aux Incidents, puis les fiches, le calendrier, la recherche et la simulation dans l'ordre où ils sont ouverts. Ouvrir les Sonores ou les Marques-pages décale les Incidents et les onglets suivants. Fermer un onglet décale ceux qui le suivent : leur raccourci change. L'infobulle de chaque onglet donne le sien ; au-delà du douzième, un onglet n'en a pas.
 
 ### Menus
 
@@ -757,6 +758,7 @@ La barre de menus donne accès aux fonctions générales de l'interface ([#117](
 | Affichage | Pré-écoute… | Ouvre la fenêtre de pré-écoute, pour écouter un sonore ou choisir sa sortie ([Pré-écoute](#pré-écoute)). |
 | Affichage | Ouvrir l'onglet Sonores, Ouvrir l'onglet Marques-pages | Ouvrent ces listes, qui ne le sont pas au lancement, ou les ramènent au premier plan ([#180](https://github.com/dascritch/machincast/issues/180)). |
 | Affichage | Ouvrir l'onglet Grille horaire | Ouvre l'onglet du calendrier de la grille, « Calendrier » ([Calendrier](#calendrier)). |
+| Affichage | Ouvrir l'onglet Simulation | Ouvre l'onglet de la simulation de la grille ([Simulation](#simulation)). |
 | Affichage | Rafraîchir les onglets | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé en base, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
 | Diffusion | Démarrer la diffusion, Arrêter la diffusion, Redémarrer la diffusion | Pilotent le service de diffusion, selon son état ; sans le service, une diffusion d'essai ([Piloter la diffusion depuis l'interface](#piloter-la-diffusion-depuis-linterface)). |
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
@@ -814,6 +816,17 @@ Le bouton **Pré-écoute…** de la fiche d'un sonore, fichier ou stream, l'ouvr
 - **Cliquer sur une heure libre**, pas encore passée, propose de créer un événement sur l'heure entière : un clic à 13:37 propose 13:00 – 14:00, par exemple « Créer un événement le dimanche 25 octobre 2026 de 13:00 à 14:00 ? ». **Créer** ouvre la fiche d'un nouvel événement, réglé sur cette heure ; rien n'est en base avant **Enregistrer**.
 
 Le calendrier se relit à l'ouverture de son onglet, à chaque changement de semaine ou de jour, et par **Affichage → Rafraîchir les onglets** (<kbd>F5</kbd>).
+
+### Simulation
+
+**Affichage → Ouvrir l'onglet Simulation** ouvre l'onglet **Simulation** ([#37](https://github.com/dascritch/machincast/issues/37)), ou y revient avec son dernier résultat. Il vérifie une grille sans terminal : c'est [Simuler la diffusion](#simuler-la-diffusion), lancé par l'interface. L'onglet se ferme par sa croix.
+
+- **Période** : du début à la fin, à la minute. À l'ouverture, elle commence à l'heure qu'il est et dure un jour. Une fin qui ne suit pas le début ne lance rien : « La fin doit suivre le début. »
+- **Simuler** lance `Machin lecture --simulation` sur la période, avec la configuration de l'interface, dans un programme à part : l'interface reste utilisable pendant ce temps. Comme en ligne de commande, rien n'est écrit en base et aucun son n'est joué. Chaque simulation tire au hasard : il n'y a pas de graine.
+- **Résultat** : la table donne chaque passage simulé, avec son début, sa fin, son artiste, son titre, l'emplacement de son fichier, son événement, sa séquence et sa banque. L'artiste et le titre y sont masqués comme sur la page publique. Au-dessus, le bilan : « 3 passages, aucune alerte ni incident. Rien n'a été écrit en base. ». En dessous, la liste des alertes et incidents simulés, datés, comme « 2026-10-21 09:00:00 : alerte : silence : rien à diffuser dans le fil musical ». Une nouvelle simulation remplace la précédente.
+- **Échec** : une base injoignable, ou un `Machin lecture` qui ne se lance pas, s'affiche à la place du bilan, après « Simulation impossible : ».
+- **Exporter…** enregistre le résultat. Le filtre du sélecteur de fichier choisit le format : **Tableur CSV**, **Playlist PLS** ou **Page HTML**, les trois fichiers de [Simuler la diffusion](#simuler-la-diffusion). Le nom proposé est celui de la période, comme `simulation-2026-10-21T0900-2026-10-22T0900.csv`. Le fichier reçoit l'extension du format s'il ne l'a pas déjà : `grille` devient `grille.pls`, et `matinale.flac` devient `matinale.flac.csv`, si bien qu'un export ne remplace jamais un fichier sonore. La barre d'état dit où il a été enregistré.
+- Les fichiers de la simulation restent dans un dossier temporaire, effacé à la fermeture de l'onglet ou de l'interface. Fermer l'onglet pendant une simulation l'arrête.
 
 ### Rafraîchir les onglets
 
@@ -934,5 +947,4 @@ Le détail, table par table, est dans la [spécification, § 3.2](spec.md#32-rô
 | Manque | Ticket |
 | --- | --- |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
-| Autres écrans de l'interface : simulation | [#37](https://github.com/dascritch/machincast/issues/37) |
 | Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |

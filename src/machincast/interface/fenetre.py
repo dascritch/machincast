@@ -67,6 +67,7 @@ from machincast.interface.indexation import LANCE, TERMINE, TITRES
 from machincast.interface.listes import BANQUES, EVENEMENTS, MARQUES_PAGES, SEQUENCES, SONORES, Liste
 from machincast.interface.preecoute import FenetrePreecoute
 from machincast.interface.recherche import EcranRecherche
+from machincast.interface.simulation import EcranSimulation
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 from machincast.interface.verification import Verificateur, VerificationComplete
 
@@ -245,6 +246,7 @@ class FenetrePrincipale(QMainWindow):
 			ouvrir = affichage.addAction(f"Ouvrir l'onglet {titre}")
 			ouvrir.triggered.connect(lambda _coche=False, titre=titre: self.ouvrir_liste(titre))
 		affichage.addAction("Ouvrir l'onglet Grille horaire").triggered.connect(self._ouvrir_calendrier)
+		affichage.addAction("Ouvrir l'onglet Simulation").triggered.connect(self._ouvrir_simulation)
 		affichage.addAction("Pré-écoute…").triggered.connect(lambda: self._preecouter(None))
 		self.menu_diffusion = self.menuBar().addMenu("&Diffusion")
 		self.menu_diffusion.aboutToShow.connect(self._relire_le_service)
@@ -360,6 +362,11 @@ class FenetrePrincipale(QMainWindow):
 				return
 		for fiche in self.fiches():
 			fiche.fermer()
+		onglets = self.ui.onglets
+		for indice in range(onglets.count()):
+			simulation = onglets.widget(indice)
+			if isinstance(simulation, EcranSimulation):
+				simulation.fermer()
 		self.verificateur.arreter()
 		self.verification_complete.arreter()
 		self.accueil.close()
@@ -503,6 +510,17 @@ class FenetrePrincipale(QMainWindow):
 			self._numeroter_les_onglets()
 		onglets.setCurrentIndex(indice)
 
+	def _ouvrir_simulation(self) -> None:
+		"""Un seul onglet de simulation (https://github.com/dascritch/machincast/issues/37) : celui qui est ouvert
+		revient au premier plan, avec son résultat."""
+		onglets = self.ui.onglets
+		ouverts = [onglets.widget(indice) for indice in range(onglets.count())]
+		simulation = next((ecran for ecran in ouverts if isinstance(ecran, EcranSimulation)), None)
+		if simulation is None:
+			simulation = EcranSimulation(self.horloge, self.configuration)
+			self._ajouter_onglet(simulation, "Simulation")
+		onglets.setCurrentWidget(simulation)
+
 	def _creer_evenement(self, debut: datetime) -> None:
 		"""Un nouvel événement, à l'heure cliquée dans le calendrier, s'ouvre dans sa fiche si on le confirme."""
 		fin = debut + UNE_HEURE
@@ -516,7 +534,9 @@ class FenetrePrincipale(QMainWindow):
 
 	def _fermer(self, indice: int) -> None:
 		fiche = self.ui.onglets.widget(indice)
-		if isinstance(fiche, (Calendrier, EcranRecherche)):
+		if isinstance(fiche, (Calendrier, EcranRecherche, EcranSimulation)):
+			if isinstance(fiche, EcranSimulation):
+				fiche.fermer()
 			self._retirer_onglet(indice)
 			fiche.deleteLater()
 			return
