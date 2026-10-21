@@ -12,20 +12,26 @@ from pathlib import Path
 
 import gi
 import pytest
+from PySide6.QtGui import QColor, QIcon, QImage, QPainter
+from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtWidgets import QApplication
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.audio import Greffon
 from machincast.configuration import REPERTOIRE_PROJET, SortieAudio
 from machincast.installation import (
+	ICONE,
 	UNITE,
 	Compte,
 	Manque,
+	raccourci,
 	regle_polkit,
 	unite_systemd,
 	verifier_decodeurs,
 	verifier_sortie,
 	verifier_streams,
 )
+from machincast.interface.application import application
 from tests.base_test import chemin_configuration_test, configuration_test
 
 gi.require_version("Gst", "1.0")
@@ -316,3 +322,89 @@ def section_redigee(redigees: tuple[str, str], nom: str, datatable: list[list[st
 @then(parsers.parse("la règle ne concerne que le compte « {nom} »"))
 def regle_du_compte(redigees: tuple[str, str], nom: str) -> None:
 	assert re.findall(r'subject\.user == "([^"]+)"', redigees[1]) == [nom]
+
+
+# ─── Raccourci et icône de l'interface (https://github.com/dascritch/machincast/issues/62) ─────
+
+
+@then(parsers.parse("le raccourci a, dans la section « {nom} » :"))
+def section_du_raccourci(commande: subprocess.CompletedProcess[str], nom: str, datatable: list[list[str]]) -> None:
+	_entetes, *rangees = datatable
+	attendues = {cle.strip(): valeur.strip().replace("<répertoire>", str(REPERTOIRE_PROJET)) for cle, valeur in rangees}
+	assert _section(commande.stdout, nom) == attendues, commande.stdout
+
+
+@when(parsers.parse("le raccourci est rédigé pour le répertoire « {repertoire} »"), target_fixture="redige")
+def rediger_le_raccourci(repertoire: str) -> str:
+	return raccourci(Path(repertoire))
+
+
+@then(parsers.parse("le raccourci a, dans la section « {nom} », entre autres :"))
+def section_du_raccourci_redige(redige: str, nom: str, datatable: list[list[str]]) -> None:
+	_entetes, *rangees = datatable
+	section = _section(redige, nom)
+	assert {cle.strip(): section.get(cle.strip()) for cle, _valeur in rangees} == {
+		cle.strip(): valeur.strip() for cle, valeur in rangees
+	}, redige
+
+
+@then(parsers.parse("« desktop-file-validate » accepte « {nom} »"))
+def raccourci_accepte(tmp_path: Path, nom: str) -> None:
+	verification = subprocess.run(["desktop-file-validate", str(tmp_path / nom)], capture_output=True, text=True)
+	# desktop-file-validate ne signale les erreurs et les avertissements que sur sa sortie : rien n'est attendu.
+	assert (verification.returncode == 0) and (verification.stdout == ""), verification.stdout
+
+
+@then("l'icône de MachinCast est une image SVG carrée")
+def icone_svg(qapp: QApplication) -> None:
+	rendu = QSvgRenderer(str(ICONE))
+	assert rendu.isValid()
+	cadre = rendu.viewBoxF()
+	assert (cadre.width() > 0) and (cadre.width() == cadre.height()), cadre
+
+
+COULEURS_DE_L_ICONE = {"fond": QColor("#1f3a5f"), "rouage": QColor("#f1f5f9"), "ondes": QColor("#f4a261")}
+
+
+def _proche(couleur: QColor, attendue: QColor) -> bool:
+	return (
+		max(
+			abs(couleur.red() - attendue.red()),
+			abs(couleur.green() - attendue.green()),
+			abs(couleur.blue() - attendue.blue()),
+		)
+		<= 24
+	)
+
+
+@then(parsers.re(r"rendue en (?P<tailles>[\d, et]+) pixels, l'icône montre son fond, son rouage et ses ondes"))
+def icone_lisible(qapp: QApplication, tailles: str) -> None:
+	"""À chaque taille, chacune des trois couleurs couvre au moins un pixel sur vingt : rien ne disparaît."""
+	rendu = QSvgRenderer(str(ICONE))
+	for taille in (int(nombre) for nombre in re.findall(r"\d+", tailles)):
+		image = QImage(taille, taille, QImage.Format.Format_ARGB32)
+		image.fill(QColor(0, 0, 0, 0))
+		peintre = QPainter(image)
+		rendu.render(peintre)
+		peintre.end()
+		pixels = [image.pixelColor(x, y) for x in range(taille) for y in range(taille)]
+		for nom, couleur in COULEURS_DE_L_ICONE.items():
+			part = sum(1 for pixel in pixels if (pixel.alpha() > 200) and (_proche(pixel, couleur))) / len(pixels)
+			assert part >= 1 / 20, f"{nom} à {taille} pixels : {part:.3f}"
+
+
+@when("l'application Qt de l'interface est créée", target_fixture="application_qt")
+def application_qt(qapp: QApplication) -> QApplication:
+	return application("Machin_interface")
+
+
+@then("sa fenêtre a l'icône de MachinCast")
+def icone_de_l_application(application_qt: QApplication) -> None:
+	icone = application_qt.windowIcon()
+	assert not icone.isNull()
+	assert icone.pixmap(32).toImage() == QIcon(str(ICONE)).pixmap(32).toImage()
+
+
+@then(parsers.parse("l'application se réclame du raccourci « {nom} »"))
+def nom_du_raccourci(application_qt: QApplication, nom: str) -> None:
+	assert application_qt.desktopFileName() == nom

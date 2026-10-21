@@ -17,11 +17,11 @@ Python · PySide6 (Qt 6.10) · PostgreSQL via socket Unix (psycopg 3, auth peer)
 sudo apt install python3-venv python3-dev build-essential pkg-config libgirepository-2.0-dev libcairo2-dev \
 	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
 	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire pipewire-bin libmagic1t64 postgresql bash-completion
-# Outils de développement du wrapper bash
-sudo apt install bats shellcheck
+# Outils de développement du wrapper bash, et desktop-file-validate pour le raccourci de l'interface
+sudo apt install bats shellcheck desktop-file-utils
 
 # Installation d'un poste, relançable : ./install.sh (--simulation pour voir les commandes sans les exécuter,
-# --dev pour ajouter bats, shellcheck et les dépendances de test)
+# --dev pour ajouter bats, shellcheck, desktop-file-utils et les dépendances de test)
 # Installation de dev : venv isolé, jamais --system-site-packages (https://github.com/dascritch/machincast/issues/51)
 python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"   # procédure complète : INSTALL.md
 cp machincast.exemple.toml machincast.toml   # puis l'adapter ; jamais versionné
