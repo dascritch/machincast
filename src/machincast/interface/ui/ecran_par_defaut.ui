@@ -137,9 +137,6 @@
           <property name="text">
            <string>Fiche…</string>
           </property>
-          <property name="icon">
-           <iconset theme="document-properties"/>
-          </property>
           <property name="enabled">
            <bool>false</bool>
           </property>
@@ -179,9 +176,6 @@
           <property name="text">
            <string>Fiche…</string>
           </property>
-          <property name="icon">
-           <iconset theme="view-calendar"/>
-          </property>
           <property name="enabled">
            <bool>false</bool>
           </property>
@@ -219,9 +213,6 @@
           <property name="text">
            <string>Fiche…</string>
           </property>
-          <property name="icon">
-           <iconset theme="view-media-playlist"/>
-          </property>
           <property name="enabled">
            <bool>false</bool>
           </property>
@@ -258,9 +249,6 @@
           </property>
           <property name="text">
            <string>Fiche…</string>
-          </property>
-          <property name="icon">
-           <iconset theme="folder-music"/>
           </property>
           <property name="enabled">
            <bool>false</bool>
@@ -432,9 +420,6 @@
           <property name="text">
            <string>Fiche…</string>
           </property>
-          <property name="icon">
-           <iconset theme="document-properties"/>
-          </property>
           <property name="enabled">
            <bool>false</bool>
           </property>
@@ -474,9 +459,6 @@
           <property name="text">
            <string>Fiche…</string>
           </property>
-          <property name="icon">
-           <iconset theme="view-calendar"/>
-          </property>
           <property name="enabled">
            <bool>false</bool>
           </property>
@@ -514,9 +496,6 @@
           <property name="text">
            <string>Fiche…</string>
           </property>
-          <property name="icon">
-           <iconset theme="view-media-playlist"/>
-          </property>
           <property name="enabled">
            <bool>false</bool>
           </property>
@@ -553,9 +532,6 @@
           </property>
           <property name="text">
            <string>Fiche…</string>
-          </property>
-          <property name="icon">
-           <iconset theme="folder-music"/>
           </property>
           <property name="enabled">
            <bool>false</bool>

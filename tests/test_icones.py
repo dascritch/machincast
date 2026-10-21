@@ -4,6 +4,8 @@ Les étapes de la fenêtre, des fiches, des menus et des éléments en base sont
 """
 
 from collections.abc import Iterator
+from pathlib import Path
+from xml.etree import ElementTree
 
 import pytest
 from PySide6.QtCore import Qt
@@ -148,3 +150,25 @@ def icones_des_relations(interface: Contexte, datatable: list[list[str]]) -> Non
 def taper(interface: Contexte, texte: str) -> None:
 	(recherche,) = fenetre(interface).findChildren(EcranRecherche)
 	recherche.champ.setText(texte)
+
+
+@then("les boutons de l'accueil portent les icônes :")
+def icones_de_l_accueil(interface: Contexte, datatable: list[list[str]]) -> None:
+	_entetes, *rangees = datatable
+	ui = fenetre(interface).accueil.ui
+	for nom, icone in rangees:
+		bouton = getattr(ui, nom.strip())
+		assert _portee(bouton.icon()) == _attendue(icone.strip()), nom
+
+
+@then("les icônes du thème des écrans sont seulement :")
+def icones_du_theme(datatable: list[list[str]]) -> None:
+	"""Chaque iconset theme des fichiers .ui, avec le widget qui le porte."""
+	_entetes, *rangees = datatable
+	trouvees = []
+	for fichier in sorted((Path(icones.__file__).parent / "ui").glob("*.ui")):
+		for widget in ElementTree.parse(fichier).iter("widget"):
+			for propriete in widget.findall("property[@name='icon']"):
+				for iconset in propriete.iter("iconset"):
+					trouvees.append([fichier.name, str(widget.get("name")), str(iconset.get("theme"))])
+	assert trouvees == [[cellule.strip() for cellule in rangee] for rangee in rangees]

@@ -100,8 +100,6 @@ class Ui_EcranParDefaut(object):
 
         self.ouvrir_sonore_en_cours = QToolButton(self.cadre_en_cours)
         self.ouvrir_sonore_en_cours.setObjectName(u"ouvrir_sonore_en_cours")
-        icon = QIcon(QIcon.fromTheme(u"document-properties"))
-        self.ouvrir_sonore_en_cours.setIcon(icon)
         self.ouvrir_sonore_en_cours.setEnabled(False)
 
         self.ligne_en_cours_titre.addWidget(self.ouvrir_sonore_en_cours)
@@ -128,8 +126,6 @@ class Ui_EcranParDefaut(object):
 
         self.ouvrir_evenement_en_cours = QToolButton(self.cadre_en_cours)
         self.ouvrir_evenement_en_cours.setObjectName(u"ouvrir_evenement_en_cours")
-        icon1 = QIcon(QIcon.fromTheme(u"view-calendar"))
-        self.ouvrir_evenement_en_cours.setIcon(icon1)
         self.ouvrir_evenement_en_cours.setEnabled(False)
 
         self.ligne_en_cours_evenement.addWidget(self.ouvrir_evenement_en_cours)
@@ -154,8 +150,6 @@ class Ui_EcranParDefaut(object):
 
         self.ouvrir_sequence_en_cours = QToolButton(self.cadre_en_cours)
         self.ouvrir_sequence_en_cours.setObjectName(u"ouvrir_sequence_en_cours")
-        icon2 = QIcon(QIcon.fromTheme(u"view-media-playlist"))
-        self.ouvrir_sequence_en_cours.setIcon(icon2)
         self.ouvrir_sequence_en_cours.setEnabled(False)
 
         self.ligne_en_cours_sequence.addWidget(self.ouvrir_sequence_en_cours)
@@ -180,8 +174,6 @@ class Ui_EcranParDefaut(object):
 
         self.ouvrir_banque_en_cours = QToolButton(self.cadre_en_cours)
         self.ouvrir_banque_en_cours.setObjectName(u"ouvrir_banque_en_cours")
-        icon3 = QIcon(QIcon.fromTheme(u"folder-music"))
-        self.ouvrir_banque_en_cours.setIcon(icon3)
         self.ouvrir_banque_en_cours.setEnabled(False)
 
         self.ligne_en_cours_banque.addWidget(self.ouvrir_banque_en_cours)
@@ -279,7 +271,6 @@ class Ui_EcranParDefaut(object):
 
         self.ouvrir_sonore_prochain = QToolButton(self.cadre_prochain)
         self.ouvrir_sonore_prochain.setObjectName(u"ouvrir_sonore_prochain")
-        self.ouvrir_sonore_prochain.setIcon(icon)
         self.ouvrir_sonore_prochain.setEnabled(False)
 
         self.ligne_prochain_titre.addWidget(self.ouvrir_sonore_prochain)
@@ -306,7 +297,6 @@ class Ui_EcranParDefaut(object):
 
         self.ouvrir_evenement_prochain = QToolButton(self.cadre_prochain)
         self.ouvrir_evenement_prochain.setObjectName(u"ouvrir_evenement_prochain")
-        self.ouvrir_evenement_prochain.setIcon(icon1)
         self.ouvrir_evenement_prochain.setEnabled(False)
 
         self.ligne_prochain_evenement.addWidget(self.ouvrir_evenement_prochain)
@@ -331,7 +321,6 @@ class Ui_EcranParDefaut(object):
 
         self.ouvrir_sequence_prochain = QToolButton(self.cadre_prochain)
         self.ouvrir_sequence_prochain.setObjectName(u"ouvrir_sequence_prochain")
-        self.ouvrir_sequence_prochain.setIcon(icon2)
         self.ouvrir_sequence_prochain.setEnabled(False)
 
         self.ligne_prochain_sequence.addWidget(self.ouvrir_sequence_prochain)
@@ -356,7 +345,6 @@ class Ui_EcranParDefaut(object):
 
         self.ouvrir_banque_prochain = QToolButton(self.cadre_prochain)
         self.ouvrir_banque_prochain.setObjectName(u"ouvrir_banque_prochain")
-        self.ouvrir_banque_prochain.setIcon(icon3)
         self.ouvrir_banque_prochain.setEnabled(False)
 
         self.ligne_prochain_banque.addWidget(self.ouvrir_banque_prochain)
