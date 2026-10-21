@@ -25,6 +25,7 @@ from machincast.configuration import Audio
 from machincast.horloge import Horloge
 from machincast.interface import affichage
 from machincast.interface.airplay import FENETRE, PassageAffiche, lire_airplay
+from machincast.interface.calendrier import date_longue
 from machincast.interface.etat import ClientEtat, EtatLecture, SonoreAffiche
 from machincast.interface.moniteur import Moniteur, nom_du_port
 from machincast.interface.ui.ecran_par_defaut import Ui_EcranParDefaut
@@ -157,7 +158,11 @@ class EcranParDefaut(QWidget):
 		super().closeEvent(evenement)
 
 	def _afficher_heure(self) -> None:
-		self.ui.heure.setText(affichage.date_et_heure(self.horloge.maintenant()))
+		"""L'heure seule, à la seconde ; la date du jour en infobulle (demandé avec
+		https://github.com/dascritch/machincast/issues/191)."""
+		maintenant = self.horloge.maintenant()
+		self.ui.heure.setText(affichage.heure(maintenant))
+		self.ui.heure.setToolTip(date_longue(maintenant.astimezone().date()))
 
 	# ─── État du binaire lecture ───────────────────────────
 

@@ -882,3 +882,8 @@ def infobulle_du_bandeau(contexte: Contexte, quoi: str, texte: str) -> None:
 	ui = ecran(contexte).ui
 	etiquette = {"l'état du binaire lecture": ui.etat_lecture, "l'événement à l'antenne": ui.evenement_antenne}[quoi]
 	assert etiquette.toolTip() == texte
+
+
+@then(parsers.parse("l'heure a pour infobulle « {texte} »"))
+def infobulle_de_l_heure(contexte: Contexte, texte: str) -> None:
+	assert ecran(contexte).ui.heure.toolTip() == texte
