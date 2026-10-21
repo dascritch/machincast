@@ -20,17 +20,6 @@
 
 **Machin interface** s'ouvre sur une fenêtre à onglets, un par écran. Au lancement : **Accueil**, **Événements**, **Séquences**, **Banques** et **Incidents**. Les listes des **Sonores** et des **Marques-pages**, et le **Calendrier**, s'ouvrent à la demande, par le menu **Affichage** : « Ouvrir l'onglet Sonores », « Ouvrir l'onglet Marques-pages » et « Ouvrir l'onglet Grille horaire ». Les Sonores et les Marques-pages se placent après les Banques ; un onglet déjà ouvert revient au premier plan. Les onglets ouverts à la demande, et ceux des fiches, se ferment par leur croix ; une liste fermée puis rouverte retrouve son filtre et son tri.
 
-**Icônes** : une même icône désigne partout un même genre, dans les onglets, le menu **Affichage**, la recherche et les relations d'un sonore ([#215](https://github.com/dascritch/machincast/issues/215)). Elles prennent la couleur du texte, en thème clair comme en thème sombre.
-
-| Icône | Genre |
-| --- | --- |
-| une croche | Sonore |
-| une feuille et sa liste à puces | Séquence |
-| un dossier | Banque |
-| une montre | Événement |
-| un calendrier | Grille horaire (onglet « Calendrier ») |
-| une boule de divination | Simulation |
-
 **Sans base de données**, l'interface ne peut rien montrer : une fenêtre d'erreur, « MachinCast : base de données injoignable », l'explique, et son bouton « Ouvrir INSTALL.md » mène à la section [En cas de problème](../../INSTALL.md#en-cas-de-problème), pour l'administrateur du poste.
 
 ## Pour bien démarrer
