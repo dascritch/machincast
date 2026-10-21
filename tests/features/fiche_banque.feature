@@ -322,6 +322,19 @@ Fonctionnalité: Fiche d'une banque
 		Alors la fiche ne marque aucun sonore hors des durées
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
 
+	Scénario: Un sonore hors des durées d'une autre banque n'est pas signalé dans celle-ci
+		https://github.com/dascritch/machincast/issues/210 : chaque banque ne signale que ses propres durées.
+
+		Étant donné la banque « Pubs », aléatoire, sans nom public, avec « Café à minuit », « Spot »
+		Et la banque « Pubs » veut des sonores d'au moins 0:10 et d'au plus 1:00
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Alors la fiche ne marque aucun sonore hors des durées
+		Quand j'ouvre la fiche de la banque « Pubs »
+		Alors la fiche marque hors des durées les sonores :
+			| sonore                      | infobulle                                           |
+			| Les Gaufres – Café à minuit | 3:34 : plus long que le maximum de la banque, 1:00. |
+
 	Scénario: Les noms sont enregistrés sans les espaces qui les entourent, et un nom public vide n'en est pas un
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
