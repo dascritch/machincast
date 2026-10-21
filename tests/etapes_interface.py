@@ -125,6 +125,8 @@ class Contexte:
 	None : celui qu'elle a montré."""
 	seuils_montres: list[float] = field(default_factory=list)
 	"""Les seuils de blanc que la fenêtre des préférences a montrés, à chaque ouverture."""
+	duree_de_reponse: float = 0.0
+	"""Temps qu'a pris la dernière action mesurée, en secondes (https://github.com/dascritch/machincast/issues/194)."""
 	saturation_reglee: bool | None = None
 	"""Le voyant « Saturation » que donnera la fenêtre des préférences ; None : inchangé
 	(https://github.com/dascritch/machincast/issues/191)."""
