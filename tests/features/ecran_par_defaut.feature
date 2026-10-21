@@ -221,6 +221,15 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et l'événement à l'antenne est « Fil de jour, de 20:00 à 22:00 »
 		Et le sonore en cours a pour séquence « Pub » et pour banque « Spots »
 
+	Scénario: Le bandeau ne montre que des valeurs : l'état et l'événement à l'antenne se disent en infobulle
+		Demandé avec https://github.com/dascritch/machincast/issues/191 : « Binaire lecture : » est implicite, et « Événement à
+		l'antenne : » double l'événement du sonore en cours.
+
+		Quand l'écran par défaut s'ouvre
+		Alors l'écran n'a aucun intitulé « Binaire lecture : » ni « Événement à l'antenne : »
+		Et l'état du binaire lecture a pour infobulle « État de Machin lecture »
+		Et l'événement à l'antenne a pour infobulle « Événement à l'antenne »
+
 	Plan du scénario: L'événement à l'antenne dit s'il est permanent, ou sans fin prévue
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
