@@ -160,12 +160,12 @@ class VuMetre(QWidget):
 			return echelle.echelle.bottom() - part(niveau) * echelle.echelle.height()
 		return echelle.echelle.left() + part(niveau) * echelle.echelle.width()
 
-	def etiquettes(self) -> list[tuple[str, QRectF]]:
-		"""Les nombres écrits sur l'échelle, de 0 au plancher, et leur cadre : ceux qui ne chevauchent pas un nombre
-		plus important."""
+	def candidates(self) -> list[tuple[int, QRectF]]:
+		"""Chaque graduation de l'échelle et le cadre de son nombre, du plus important au moins important
+		(IMPORTANCE), qu'il tienne ou non."""
 		disposition = self.disposition()
 		metriques = QFontMetricsF(self.police)
-		retenues: dict[int, QRectF] = {}
+		cadres = []
 		for graduation in IMPORTANCE:
 			texte = str(graduation)
 			largeur, hauteur = metriques.horizontalAdvance(texte), metriques.height()
@@ -174,7 +174,15 @@ class VuMetre(QWidget):
 				centre = QPointF(disposition.echelle.center().x(), endroit)
 			else:
 				centre = QPointF(endroit, disposition.echelle.top() + TRAIT + hauteur / 2)
-			cadre = QRectF(centre.x() - largeur / 2, centre.y() - hauteur / 2, largeur, hauteur)
+			cadres.append((graduation, QRectF(centre.x() - largeur / 2, centre.y() - hauteur / 2, largeur, hauteur)))
+		return cadres
+
+	def etiquettes(self) -> list[tuple[str, QRectF]]:
+		"""Les nombres écrits sur l'échelle, de 0 au plancher, et leur cadre : 0 et le plancher toujours, puis, par
+		ordre d'importance, ceux qui ne chevauchent pas un nombre déjà gardé. Combien tiennent dépend de la police du
+		poste."""
+		retenues: dict[int, QRectF] = {}
+		for graduation, cadre in self.candidates():
 			if (graduation in (0, int(PLANCHER))) or (all(not cadre.intersects(autre) for autre in retenues.values())):
 				retenues[graduation] = cadre
 		return [(str(graduation), cadre) for graduation, cadre in sorted(retenues.items(), reverse=True)]

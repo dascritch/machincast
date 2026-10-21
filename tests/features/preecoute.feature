@@ -13,7 +13,8 @@ Fonctionnalité: Pré-écoute d'un sonore
 	L'écoute de l'antenne viendra avec le VU-mètre de la sortie (https://github.com/dascritch/machincast/issues/24).
 
 	Les scénarios jouent sur la sortie factice de la configuration des tests, en temps réel ; les périphériques du poste
-	sont ceux que donne le scénario.
+	sont ceux que donne le scénario. Le libellé du format vient de GStreamer, et change avec sa version : un scénario
+	n'en vérifie que le nom court, « FLAC » ou « MP3 » (https://github.com/dascritch/machincast/issues/187).
 
 	Contexte:
 		Étant donné le poste à l'heure de Paris
@@ -73,10 +74,10 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Alors la pré-écoute est bientôt « En lecture »
 		Et le VU-mètre de la pré-écoute montre bientôt du son
 		Et la pré-écoute montre bientôt les informations :
-			| information     | valeur       |
-			| Format          | Free Lossless Audio Codec (FLAC) |
-			| Échantillonnage | 44 100 Hz    |
-			| Canaux          | mono         |
+			| information     | valeur           |
+			| Format          | contient « FLAC » |
+			| Échantillonnage | 44 100 Hz        |
+			| Canaux          | mono             |
 		Et le débit de la pré-écoute est bientôt donné en kbit/s
 		Et les commandes de la pré-écoute sont : pause active, arrêt actif, position active
 
@@ -153,8 +154,8 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Et la pré-écoute donne bientôt des secondes pré-décodées
 		Et le débit de la pré-écoute est bientôt donné en kbit/s
 		Et la pré-écoute montre bientôt les informations :
-			| information | valeur |
-			| Format      | MPEG-1 Layer 3 (MP3) |
+			| information | valeur           |
+			| Format      | contient « MP3 » |
 
 	# ─── Sortie ────────────────────────────────────────────────
 

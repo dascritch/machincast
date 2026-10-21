@@ -82,18 +82,38 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et l'échelle du VU-mètre de l'antenne va de 0 dB en haut à -60 dB en bas, sans nombres qui se chevauchent
 
 	Plan du scénario: L'échelle ne garde que les nombres qui tiennent : 0 et -60 toujours, puis -20, -6, -12, -40, -30, -50
+		Combien de nombres tiennent à une taille donnée dépend de la police du poste : à mi-chemin, quelques pixels de
+		largeur de chiffre font gagner ou perdre un nombre. Le scénario vérifie donc la règle, quelle que soit la police
+		(https://github.com/dascritch/machincast/issues/187).
+
+		Étant donné un VU-mètre <sens> de <largeur> × <hauteur> pixels
+		Alors son échelle commence à 0 et finit à -60
+		Et ses nombres ne se chevauchent pas, hors 0 et -60, toujours écrits même sur un tout petit VU-mètre
+		Et chaque nombre écarté chevauche un nombre gardé plus important, dans l'ordre 0, -60, -20, -6, -12, -40, -30, -50
+
+		Exemples:
+			| sens      | largeur | hauteur |
+			| vertical  | 80      | 400     |
+			| vertical  | 80      | 60      |
+			| vertical  | 80      | 40      |
+			| vertical  | 80      | 24      |
+			| couché    | 600     | 56      |
+			| couché    | 60      | 56      |
+			| couché    | 40      | 56      |
+			| couché    | 24      | 56      |
+
+	Plan du scénario: Loin des seuils, l'échelle porte les mêmes nombres sur tous les postes
+		Tous les nombres sur un grand VU-mètre, 0 et -60 seuls sur un tout petit : ces tailles restent loin des seuils
+		pour une police de 20 % plus étroite ou plus large.
+
 		Étant donné un VU-mètre <sens> de <largeur> × <hauteur> pixels
 		Alors son échelle porte les nombres « <nombres> »
 
 		Exemples:
 			| sens      | largeur | hauteur | nombres                              |
 			| vertical  | 80      | 400     | 0, -6, -12, -20, -30, -40, -50, -60  |
-			| vertical  | 80      | 60      | 0, -20, -40, -60                     |
-			| vertical  | 80      | 40      | 0, -60                               |
 			| vertical  | 80      | 24      | 0, -60                               |
 			| couché    | 600     | 56      | 0, -6, -12, -20, -30, -40, -50, -60  |
-			| couché    | 60      | 56      | 0, -20, -40, -60                     |
-			| couché    | 40      | 56      | 0, -60                               |
 			| couché    | 24      | 56      | 0, -60                               |
 
 	Scénario: Le VU-mètre de la pré-écoute a son échelle en dB sous ses canaux

@@ -312,6 +312,37 @@ def nombres_de_l_echelle(vumetre_seul: VuMetre, nombres: str) -> None:
 	assert [texte for texte, _cadre in vumetre_seul.etiquettes()] == nombres.split(", ")
 
 
+@then("son échelle commence à 0 et finit à -60")
+def bornes(vumetre_seul: VuMetre) -> None:
+	textes = [texte for texte, _cadre in vumetre_seul.etiquettes()]
+	assert (textes[0], textes[-1]) == ("0", "-60"), textes
+
+
+@then("ses nombres ne se chevauchent pas, hors 0 et -60, toujours écrits même sur un tout petit VU-mètre")
+def sans_chevauchement_seul(vumetre_seul: VuMetre) -> None:
+	etiquettes = vumetre_seul.etiquettes()
+	for indice, (texte, cadre) in enumerate(etiquettes):
+		for autre, cadre_autre in etiquettes[indice + 1 :]:
+			if {texte, autre} != {"0", "-60"}:
+				assert not cadre.intersects(cadre_autre), etiquettes
+
+
+@then(parsers.re(r"chaque nombre écarté chevauche un nombre gardé plus important, dans l'ordre (?P<ordre>.+)"))
+def ecartes(vumetre_seul: VuMetre, ordre: str) -> None:
+	"""Un nombre n'est écarté que parce qu'il chevauche un nombre gardé, venu avant lui dans l'ordre d'importance."""
+	importance = [int(nombre) for nombre in ordre.split(", ")]
+	candidates = vumetre_seul.candidates()
+	assert [graduation for graduation, _cadre in candidates] == importance
+	gardees = {int(texte) for texte, _cadre in vumetre_seul.etiquettes()}
+	for rang, (graduation, cadre) in enumerate(candidates):
+		if graduation in gardees:
+			continue
+		avant = [
+			autre for autre, cadre_autre in candidates[:rang] if (autre in gardees) and (cadre.intersects(cadre_autre))
+		]
+		assert avant != [], f"{graduation} écarté sans chevaucher un nombre gardé plus important"
+
+
 def sans_chevauchement(vumetre: VuMetre) -> list[tuple[str, QRectF]]:
 	etiquettes = vumetre.etiquettes()
 	for indice, (_texte, cadre) in enumerate(etiquettes):
