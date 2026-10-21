@@ -5,6 +5,7 @@ est un vrai serveur du binaire lecture (machincast.lecture.etat.SocketEtat), qui
 """
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -866,3 +867,18 @@ def arret_du_binaire(contexte: Contexte, code: int, motif: str) -> None:
 	assert contexte.processus is not None
 	assert contexte.processus.returncode == code, contexte.processus.stderr
 	assert motif in contexte.processus.stderr, contexte.processus.stderr
+
+
+@then(parsers.re(r"l'écran n'a aucun intitulé (?P<textes>«.+)"))
+def sans_intitule_au_bandeau(contexte: Contexte, textes: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/191"""
+	montres = {etiquette.text() for etiquette in ecran(contexte).findChildren(QLabel)}
+	for texte in re.findall(r"« ([^»]+) »", textes):
+		assert texte not in montres, texte
+
+
+@then(parsers.re(r"(?P<quoi>l'état du binaire lecture|l'événement à l'antenne) a pour infobulle « (?P<texte>[^»]+) »"))
+def infobulle_du_bandeau(contexte: Contexte, quoi: str, texte: str) -> None:
+	ui = ecran(contexte).ui
+	etiquette = {"l'état du binaire lecture": ui.etat_lecture, "l'événement à l'antenne": ui.evenement_antenne}[quoi]
+	assert etiquette.toolTip() == texte

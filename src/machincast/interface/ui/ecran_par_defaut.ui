@@ -15,7 +15,7 @@
   </property>
   <layout class="QVBoxLayout" name="disposition">
    <item>
-    <layout class="QHBoxLayout" name="bandeau" stretch="0,1,0,0">
+    <layout class="QHBoxLayout" name="bandeau" stretch="0,1,0">
      <item>
       <widget class="QLabel" name="heure">
        <property name="font">
@@ -57,14 +57,10 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="intitule_etat_lecture">
-       <property name="text">
-        <string>Binaire lecture :</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QLabel" name="etat_lecture">
+       <property name="toolTip">
+        <string>État de Machin lecture</string>
+       </property>
        <property name="font">
         <font>
          <pointsize>12</pointsize><bold>true</bold>
@@ -81,16 +77,12 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="ligne_evenement_antenne" stretch="0,1">
-     <item>
-      <widget class="QLabel" name="intitule_evenement_antenne">
-       <property name="text">
-        <string>Événement à l'antenne :</string>
-       </property>
-      </widget>
-     </item>
+    <layout class="QHBoxLayout" name="ligne_evenement_antenne" stretch="1">
      <item>
       <widget class="QLabel" name="evenement_antenne">
+       <property name="toolTip">
+        <string>Événement à l'antenne</string>
+       </property>
        <property name="font">
         <font>
          <pointsize>12</pointsize><bold>true</bold>

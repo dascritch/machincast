@@ -51,11 +51,6 @@ class Ui_EcranParDefaut(object):
 
         self.bandeau.addWidget(self.texte_public)
 
-        self.intitule_etat_lecture = QLabel(EcranParDefaut)
-        self.intitule_etat_lecture.setObjectName(u"intitule_etat_lecture")
-
-        self.bandeau.addWidget(self.intitule_etat_lecture)
-
         self.etat_lecture = QLabel(EcranParDefaut)
         self.etat_lecture.setObjectName(u"etat_lecture")
         font2 = QFont()
@@ -72,11 +67,6 @@ class Ui_EcranParDefaut(object):
 
         self.ligne_evenement_antenne = QHBoxLayout()
         self.ligne_evenement_antenne.setObjectName(u"ligne_evenement_antenne")
-        self.intitule_evenement_antenne = QLabel(EcranParDefaut)
-        self.intitule_evenement_antenne.setObjectName(u"intitule_evenement_antenne")
-
-        self.ligne_evenement_antenne.addWidget(self.intitule_evenement_antenne)
-
         self.evenement_antenne = QLabel(EcranParDefaut)
         self.evenement_antenne.setObjectName(u"evenement_antenne")
         self.evenement_antenne.setFont(font2)
@@ -85,7 +75,7 @@ class Ui_EcranParDefaut(object):
 
         self.ligne_evenement_antenne.addWidget(self.evenement_antenne)
 
-        self.ligne_evenement_antenne.setStretch(1, 1)
+        self.ligne_evenement_antenne.setStretch(0, 1)
 
         self.disposition.addLayout(self.ligne_evenement_antenne)
 
@@ -451,9 +441,13 @@ class Ui_EcranParDefaut(object):
         self.texte_public.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Ce que les sorties publiques affichent du sonore en cours", None))
 #endif // QT_CONFIG(tooltip)
         self.texte_public.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
-        self.intitule_etat_lecture.setText(QCoreApplication.translate("EcranParDefaut", u"Binaire lecture :", None))
+#if QT_CONFIG(tooltip)
+        self.etat_lecture.setToolTip(QCoreApplication.translate("EcranParDefaut", u"\u00c9tat de Machin lecture", None))
+#endif // QT_CONFIG(tooltip)
         self.etat_lecture.setText(QCoreApplication.translate("EcranParDefaut", u"\u00c0 l'arr\u00eat", None))
-        self.intitule_evenement_antenne.setText(QCoreApplication.translate("EcranParDefaut", u"\u00c9v\u00e9nement \u00e0 l'antenne :", None))
+#if QT_CONFIG(tooltip)
+        self.evenement_antenne.setToolTip(QCoreApplication.translate("EcranParDefaut", u"\u00c9v\u00e9nement \u00e0 l'antenne", None))
+#endif // QT_CONFIG(tooltip)
         self.evenement_antenne.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
         self.cadre_en_cours.setTitle(QCoreApplication.translate("EcranParDefaut", u"Sonore en cours", None))
         self.en_cours_titre.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
