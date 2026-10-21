@@ -7,7 +7,9 @@ Système automatisé de diffusion sonore pour radio, sous Linux : il fournit un 
 - **Spécification fonctionnelle** : [doc/spec.md](doc/spec.md)
 - **Règles de développement** : [doc/regles](doc/regles/developpement.md)
 
+## Configuration recommandée
 
+Système Linux graphique, avec le moteur audio PipeWire, idéalement Debian ou Ubuntu LTS, et deux sorties sons distinctes, dont une de qualité pour la sortie antenne.
 
 ## Contexte
 
