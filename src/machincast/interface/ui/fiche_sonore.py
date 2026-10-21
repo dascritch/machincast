@@ -343,6 +343,46 @@ class Ui_FicheSonore(object):
 
         self.disposition_contenu.addWidget(self.groupe_diffusion)
 
+        self.groupe_blancs = QGroupBox(self.contenu)
+        self.groupe_blancs.setObjectName(u"groupe_blancs")
+        self.formulaire_blancs = QFormLayout(self.groupe_blancs)
+        self.formulaire_blancs.setObjectName(u"formulaire_blancs")
+        self.detection_blancs = QCheckBox(self.groupe_blancs)
+        self.detection_blancs.setObjectName(u"detection_blancs")
+
+        self.formulaire_blancs.setWidget(0, QFormLayout.ItemRole.SpanningRole, self.detection_blancs)
+
+        self.a_debut_detecte = QCheckBox(self.groupe_blancs)
+        self.a_debut_detecte.setObjectName(u"a_debut_detecte")
+
+        self.formulaire_blancs.setWidget(1, QFormLayout.ItemRole.LabelRole, self.a_debut_detecte)
+
+        self.debut_detecte = QDoubleSpinBox(self.groupe_blancs)
+        self.debut_detecte.setObjectName(u"debut_detecte")
+        self.debut_detecte.setEnabled(False)
+        self.debut_detecte.setDecimals(2)
+        self.debut_detecte.setMaximum(86400.000000000000000)
+        self.debut_detecte.setSingleStep(0.010000000000000)
+
+        self.formulaire_blancs.setWidget(1, QFormLayout.ItemRole.FieldRole, self.debut_detecte)
+
+        self.a_fin_detectee = QCheckBox(self.groupe_blancs)
+        self.a_fin_detectee.setObjectName(u"a_fin_detectee")
+
+        self.formulaire_blancs.setWidget(2, QFormLayout.ItemRole.LabelRole, self.a_fin_detectee)
+
+        self.fin_detectee = QDoubleSpinBox(self.groupe_blancs)
+        self.fin_detectee.setObjectName(u"fin_detectee")
+        self.fin_detectee.setEnabled(False)
+        self.fin_detectee.setDecimals(2)
+        self.fin_detectee.setMaximum(86400.000000000000000)
+        self.fin_detectee.setSingleStep(0.010000000000000)
+
+        self.formulaire_blancs.setWidget(2, QFormLayout.ItemRole.FieldRole, self.fin_detectee)
+
+
+        self.disposition_contenu.addWidget(self.groupe_blancs)
+
         self.groupe_relations = QGroupBox(self.contenu)
         self.groupe_relations.setObjectName(u"groupe_relations")
         self.disposition_relations = QVBoxLayout(self.groupe_relations)
@@ -598,6 +638,21 @@ class Ui_FicheSonore(object):
         self.debut_diffusion.setDisplayFormat(QCoreApplication.translate("FicheSonore", u"dd/MM/yyyy HH:mm", None))
         self.a_fin.setText(QCoreApplication.translate("FicheSonore", u"Diffusion jusqu'au", None))
         self.fin_diffusion.setDisplayFormat(QCoreApplication.translate("FicheSonore", u"dd/MM/yyyy HH:mm", None))
+        self.groupe_blancs.setTitle(QCoreApplication.translate("FicheSonore", u"D\u00e9tection de blanc", None))
+        self.detection_blancs.setText(QCoreApplication.translate("FicheSonore", u"Jouer sans les blancs d\u00e9tect\u00e9s", None))
+#if QT_CONFIG(tooltip)
+        self.detection_blancs.setToolTip(QCoreApplication.translate("FicheSonore", u"Coch\u00e9, le sonore est jou\u00e9 de son d\u00e9but d\u00e9tect\u00e9 \u00e0 sa fin d\u00e9tect\u00e9e, m\u00eame hors d'une banque qui retire les blancs.", None))
+#endif // QT_CONFIG(tooltip)
+        self.a_debut_detecte.setText(QCoreApplication.translate("FicheSonore", u"D\u00e9but d\u00e9tect\u00e9", None))
+#if QT_CONFIG(tooltip)
+        self.a_debut_detecte.setToolTip(QCoreApplication.translate("FicheSonore", u"Blanc au d\u00e9but du fichier, mesur\u00e9 par l'audit complet. D\u00e9coch\u00e9, aucun blanc n'est d\u00e9tect\u00e9 : le d\u00e9but n'est pas rogn\u00e9.", None))
+#endif // QT_CONFIG(tooltip)
+        self.debut_detecte.setSuffix(QCoreApplication.translate("FicheSonore", u" s", None))
+        self.a_fin_detectee.setText(QCoreApplication.translate("FicheSonore", u"Fin d\u00e9tect\u00e9e", None))
+#if QT_CONFIG(tooltip)
+        self.a_fin_detectee.setToolTip(QCoreApplication.translate("FicheSonore", u"Blanc \u00e0 la fin du fichier, compt\u00e9 depuis sa fin, mesur\u00e9 par l'audit complet. D\u00e9coch\u00e9, aucun blanc n'est d\u00e9tect\u00e9 : la fin n'est pas rogn\u00e9e.", None))
+#endif // QT_CONFIG(tooltip)
+        self.fin_detectee.setSuffix(QCoreApplication.translate("FicheSonore", u" s", None))
         self.groupe_relations.setTitle(QCoreApplication.translate("FicheSonore", u"Relations", None))
         ___qtablewidgetitem = self.relations.horizontalHeaderItem(0)
         ___qtablewidgetitem.setText(QCoreApplication.translate("FicheSonore", u"Genre", None))

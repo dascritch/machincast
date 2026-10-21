@@ -4,7 +4,9 @@
 granularité (à la seconde ou au dixième de seconde), leur durée maximale, et leurs durées par défaut, celles d'un
 sonore sans crossfade paramétré que sa banque ne règle pas (machincast.lecture.diffusion.crossfade). Sa page « Audio »
 règle les périphériques de l'antenne (audio.peripherique), que Machin lecture prend à son prochain démarrage, et de la
-pré-écoute (audio.preecoute, https://github.com/dascritch/machincast/issues/116) : chacun est grisé dans l'autre choix.
+pré-écoute (audio.preecoute, https://github.com/dascritch/machincast/issues/116) : chacun est grisé dans l'autre choix ;
+elle règle aussi le seuil de blanc (blancs.seuil, https://github.com/dascritch/machincast/issues/146), que l'audit
+complet prend à son prochain passage.
 
 - Les préférences s'enregistrent dans la section [crossfades] du fichier de configuration (ecrire), qui garde ses
   commentaires et ses autres sections : tomlkit le réécrit tel qu'il l'a lu, sauf les clés réglées. Une durée par
@@ -25,7 +27,7 @@ from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QWidget
 
 from machincast import audio as sorties_audio
-from machincast.configuration import Crossfades, Granularite, SortieAudio
+from machincast.configuration import SEUIL_DE_BLANC, Crossfades, Granularite, SortieAudio
 from machincast.interface.ui.preferences import Ui_FenetrePreferences
 
 FRANCAIS = QLocale(QLocale.Language.French, QLocale.Country.France)
@@ -50,6 +52,8 @@ class Reglages:
 	"""audio.peripherique ; None tant qu'il n'est pas renseigné."""
 	preecoute: str
 	"""audio.preecoute."""
+	seuil_blancs: float = SEUIL_DE_BLANC
+	"""blancs.seuil, en dB crête (https://github.com/dascritch/machincast/issues/146)."""
 
 
 _courantes = Crossfades()
@@ -94,8 +98,8 @@ def _secondes(duree: timedelta) -> int | float:
 
 
 def ecrire(chemin: Path, reglages: Reglages) -> None:
-	"""Écrit les réglages dans les sections [crossfades] et [audio] du fichier de configuration, qui garde le reste
-	tel quel, commentaires compris."""
+	"""Écrit les réglages dans les sections [crossfades], [audio] et [blancs] du fichier de configuration, qui garde le
+	reste tel quel, commentaires compris."""
 	document = tomlkit.parse(chemin.read_text(encoding="utf-8"))
 	if "crossfades" not in document:
 		document.add("crossfades", tomlkit.table())
@@ -115,6 +119,14 @@ def ecrire(chemin: Path, reglages: Reglages) -> None:
 				del section[cle]
 			continue
 		section[cle] = _secondes(duree)
+	if "blancs" not in document:
+		document.add("blancs", tomlkit.table())
+	blancs = document["blancs"]
+	assert isinstance(blancs, tomlkit.items.Table)
+	seuil: int | float = reglages.seuil_blancs
+	if seuil == int(seuil):
+		seuil = int(seuil)
+	blancs["seuil"] = seuil
 	chemin.write_text(tomlkit.dumps(document), encoding="utf-8")
 
 
@@ -145,6 +157,8 @@ class FenetrePreferences(QDialog):
 			case.setChecked(duree is not None)
 			if duree is not None:
 				champ.setValue(duree.total_seconds())
+		ui.seuil_blancs.setLocale(FRANCAIS)
+		ui.seuil_blancs.setValue(tous.seuil_blancs)
 		ui.granularite.currentIndexChanged.connect(self._granularite)
 		ui.maximum.valueChanged.connect(self._maximum)
 		ui.boutons.accepted.connect(self.accept)
@@ -188,7 +202,12 @@ class FenetrePreferences(QDialog):
 			durees.append(duree)
 		crossfades = Crossfades(durees[0], durees[1], timedelta(seconds=ui.maximum.value()), self._choisie())
 		antenne = ui.antenne.currentData()
-		return Reglages(crossfades, None if antenne is None else str(antenne), str(ui.preecoute.currentData()))
+		return Reglages(
+			crossfades,
+			None if antenne is None else str(antenne),
+			str(ui.preecoute.currentData()),
+			round(ui.seuil_blancs.value(), 1),
+		)
 
 
 def _garnir(choix: QComboBox, actuel: str | None, trouves: list[sorties_audio.Peripherique]) -> None:

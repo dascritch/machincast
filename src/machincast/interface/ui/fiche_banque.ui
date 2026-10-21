@@ -86,7 +86,17 @@
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
+     <item row="5" column="1">
+      <widget class="QCheckBox" name="detection_blancs">
+       <property name="text">
+        <string>Détection de &amp;blanc : les sonores sont joués sans leurs blancs détectés</string>
+       </property>
+       <property name="toolTip">
+        <string>Chaque sonore joué via la banque commence à son début détecté et s'arrête à sa fin détectée, mesurés par l'audit complet.</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
       <widget class="QLabel" name="etiquette_crossfade_debut">
        <property name="text">
         <string>Crossfade de début</string>
@@ -96,7 +106,7 @@
        </property>
       </widget>
      </item>
-     <item row="5" column="1">
+     <item row="6" column="1">
       <layout class="QHBoxLayout" name="disposition_crossfade_debut" stretch="0,0,1">
        <item>
         <widget class="QComboBox" name="regle_crossfade_debut">
@@ -130,7 +140,7 @@
        </item>
       </layout>
      </item>
-     <item row="6" column="0">
+     <item row="7" column="0">
       <widget class="QLabel" name="etiquette_crossfade_fin">
        <property name="text">
         <string>Crossfade de fin</string>
@@ -140,7 +150,7 @@
        </property>
       </widget>
      </item>
-     <item row="6" column="1">
+     <item row="7" column="1">
       <layout class="QHBoxLayout" name="disposition_crossfade_fin" stretch="0,0,1">
        <item>
         <widget class="QComboBox" name="regle_crossfade_fin">
@@ -174,7 +184,7 @@
        </item>
       </layout>
      </item>
-     <item row="7" column="0">
+     <item row="8" column="0">
       <widget class="QCheckBox" name="a_duree_min">
        <property name="text">
         <string>Durée minimale des sonores</string>
@@ -184,7 +194,7 @@
        </property>
       </widget>
      </item>
-     <item row="7" column="1">
+     <item row="8" column="1">
       <layout class="QHBoxLayout" name="disposition_duree_min" stretch="0,1">
        <item>
         <widget class="QTimeEdit" name="duree_min">
@@ -205,7 +215,7 @@
        </item>
       </layout>
      </item>
-     <item row="8" column="0">
+     <item row="9" column="0">
       <widget class="QCheckBox" name="a_duree_max">
        <property name="text">
         <string>Durée maximale des sonores</string>
@@ -215,7 +225,7 @@
        </property>
       </widget>
      </item>
-     <item row="8" column="1">
+     <item row="9" column="1">
       <layout class="QHBoxLayout" name="disposition_duree_max" stretch="0,1">
        <item>
         <widget class="QTimeEdit" name="duree_max">

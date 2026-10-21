@@ -78,10 +78,15 @@ class Ui_FicheBanque(object):
 
         self.formulaire.setWidget(4, QFormLayout.ItemRole.FieldRole, self.ne_pas_repeter)
 
+        self.detection_blancs = QCheckBox(FicheBanque)
+        self.detection_blancs.setObjectName(u"detection_blancs")
+
+        self.formulaire.setWidget(5, QFormLayout.ItemRole.FieldRole, self.detection_blancs)
+
         self.etiquette_crossfade_debut = QLabel(FicheBanque)
         self.etiquette_crossfade_debut.setObjectName(u"etiquette_crossfade_debut")
 
-        self.formulaire.setWidget(5, QFormLayout.ItemRole.LabelRole, self.etiquette_crossfade_debut)
+        self.formulaire.setWidget(6, QFormLayout.ItemRole.LabelRole, self.etiquette_crossfade_debut)
 
         self.disposition_crossfade_debut = QHBoxLayout()
         self.disposition_crossfade_debut.setObjectName(u"disposition_crossfade_debut")
@@ -104,12 +109,12 @@ class Ui_FicheBanque(object):
 
         self.disposition_crossfade_debut.setStretch(2, 1)
 
-        self.formulaire.setLayout(5, QFormLayout.ItemRole.FieldRole, self.disposition_crossfade_debut)
+        self.formulaire.setLayout(6, QFormLayout.ItemRole.FieldRole, self.disposition_crossfade_debut)
 
         self.etiquette_crossfade_fin = QLabel(FicheBanque)
         self.etiquette_crossfade_fin.setObjectName(u"etiquette_crossfade_fin")
 
-        self.formulaire.setWidget(6, QFormLayout.ItemRole.LabelRole, self.etiquette_crossfade_fin)
+        self.formulaire.setWidget(7, QFormLayout.ItemRole.LabelRole, self.etiquette_crossfade_fin)
 
         self.disposition_crossfade_fin = QHBoxLayout()
         self.disposition_crossfade_fin.setObjectName(u"disposition_crossfade_fin")
@@ -132,12 +137,12 @@ class Ui_FicheBanque(object):
 
         self.disposition_crossfade_fin.setStretch(2, 1)
 
-        self.formulaire.setLayout(6, QFormLayout.ItemRole.FieldRole, self.disposition_crossfade_fin)
+        self.formulaire.setLayout(7, QFormLayout.ItemRole.FieldRole, self.disposition_crossfade_fin)
 
         self.a_duree_min = QCheckBox(FicheBanque)
         self.a_duree_min.setObjectName(u"a_duree_min")
 
-        self.formulaire.setWidget(7, QFormLayout.ItemRole.LabelRole, self.a_duree_min)
+        self.formulaire.setWidget(8, QFormLayout.ItemRole.LabelRole, self.a_duree_min)
 
         self.disposition_duree_min = QHBoxLayout()
         self.disposition_duree_min.setObjectName(u"disposition_duree_min")
@@ -153,12 +158,12 @@ class Ui_FicheBanque(object):
 
         self.disposition_duree_min.setStretch(1, 1)
 
-        self.formulaire.setLayout(7, QFormLayout.ItemRole.FieldRole, self.disposition_duree_min)
+        self.formulaire.setLayout(8, QFormLayout.ItemRole.FieldRole, self.disposition_duree_min)
 
         self.a_duree_max = QCheckBox(FicheBanque)
         self.a_duree_max.setObjectName(u"a_duree_max")
 
-        self.formulaire.setWidget(8, QFormLayout.ItemRole.LabelRole, self.a_duree_max)
+        self.formulaire.setWidget(9, QFormLayout.ItemRole.LabelRole, self.a_duree_max)
 
         self.disposition_duree_max = QHBoxLayout()
         self.disposition_duree_max.setObjectName(u"disposition_duree_max")
@@ -174,7 +179,7 @@ class Ui_FicheBanque(object):
 
         self.disposition_duree_max.setStretch(1, 1)
 
-        self.formulaire.setLayout(8, QFormLayout.ItemRole.FieldRole, self.disposition_duree_max)
+        self.formulaire.setLayout(9, QFormLayout.ItemRole.FieldRole, self.disposition_duree_max)
 
 
         self.disposition.addLayout(self.formulaire)
@@ -323,6 +328,10 @@ class Ui_FicheBanque(object):
         self.etiquette_mode.setText(QCoreApplication.translate("FicheBanque", u"&Mode", None))
         self.etiquette_masquage.setText(QCoreApplication.translate("FicheBanque", u"&Artiste et titre", None))
         self.ne_pas_repeter.setText(QCoreApplication.translate("FicheBanque", u"Ne pas &r\u00e9p\u00e9ter : la banque ne passe jamais deux fois de suite", None))
+        self.detection_blancs.setText(QCoreApplication.translate("FicheBanque", u"D\u00e9tection de &blanc : les sonores sont jou\u00e9s sans leurs blancs d\u00e9tect\u00e9s", None))
+#if QT_CONFIG(tooltip)
+        self.detection_blancs.setToolTip(QCoreApplication.translate("FicheBanque", u"Chaque sonore jou\u00e9 via la banque commence \u00e0 son d\u00e9but d\u00e9tect\u00e9 et s'arr\u00eate \u00e0 sa fin d\u00e9tect\u00e9e, mesur\u00e9s par l'audit complet.", None))
+#endif // QT_CONFIG(tooltip)
         self.etiquette_crossfade_debut.setText(QCoreApplication.translate("FicheBanque", u"Crossfade de d\u00e9but", None))
 #if QT_CONFIG(tooltip)
         self.regle_crossfade_debut.setToolTip(QCoreApplication.translate("FicheBanque", u"Le crossfade de d\u00e9but des sonores jou\u00e9s via cette banque : le leur, celui de la banque pour ceux qui n'en ont pas, ou celui de la banque pour tous", None))

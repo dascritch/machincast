@@ -22,6 +22,7 @@ import psycopg
 from PySide6.QtCore import QObject, QProcess, Signal, SignalInstance
 
 from machincast.base import Role, connecter
+from machincast.configuration import SEUIL_DE_BLANC
 from machincast.indexation import audit
 from machincast.indexation.__main__ import EXECUTABLE
 from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
@@ -86,10 +87,14 @@ class Indexation(QObject):
 	_ligne = Signal(str, bool)
 	_finie = Signal(str)
 
-	def __init__(self, socket: Path, base: str, parent: QObject | None = None) -> None:
+	def __init__(
+		self, socket: Path, base: str, parent: QObject | None = None, seuil_blancs: float = SEUIL_DE_BLANC
+	) -> None:
 		super().__init__(parent)
 		self.socket = socket
 		self.base = base
+		self.seuil_blancs = seuil_blancs
+		"""Seuil de blanc de l'audit complet (https://github.com/dascritch/machincast/issues/146)."""
 		self._fil: threading.Thread | None = None
 		self._arret = threading.Event()
 		self._ligne.connect(self.ligne.emit)
@@ -123,7 +128,7 @@ class Indexation(QObject):
 		debut = audit.HORLOGE.maintenant()
 		try:
 			with connecter(self.socket, self.base, Role.INDEXATION) as connexion:
-				bilan = indexer(connexion, audit_complet, _verifier_fichier, self._arret)
+				bilan = indexer(connexion, audit_complet, _verifier_fichier, self._arret, self.seuil_blancs)
 			# Le bilan, puis le document d'audit, comme Machin indexation les écrit à la fin.
 			indexeur.info(texte_bilan(bilan))
 			audit.produire(bilan.anomalies, texte_bilan(bilan), debut)
@@ -137,6 +142,8 @@ class Indexation(QObject):
 		self._finie.emit(texte)
 
 
-def _verifier_fichier(chemin: Path) -> Verification:
+def _verifier_fichier(chemin: Path, *, seuil_blancs: float | None = None) -> Verification:
 	"""Le décodage de l'indexeur, appelé par son nom : les scénarios le remplacent."""
-	return verifier_fichier(chemin)
+	if seuil_blancs is None:
+		return verifier_fichier(chemin)
+	return verifier_fichier(chemin, seuil_blancs=seuil_blancs)

@@ -7,7 +7,7 @@ import hashlib
 import re
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -259,3 +259,12 @@ def garde_fou(contexte: Contexte, verdict: str) -> None:
 	bash = contexte.code.startswith(("rm ", "mv "))
 	trouvees = injustifiees(contexte.code, bash)
 	assert bool(trouvees) is (verdict == "refuse"), trouvees
+
+
+@then(parsers.parse("le sonore de « {nom} » a un début et une fin détectés"))
+def blancs_detectes(contexte: Contexte, base_vide: Connexion, nom: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/146"""
+	ligne = base_vide.execute(
+		"SELECT debut_detecte, fin_detectee FROM sonores WHERE id = %s", (sonore_de(base_vide, contexte, nom),)
+	).fetchone()
+	assert (ligne is not None) and (all(isinstance(valeur, timedelta) for valeur in ligne)), ligne

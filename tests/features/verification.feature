@@ -167,6 +167,74 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 		Alors sa durée en base est de 99 secondes à 0,1 seconde près
 		Et la date de modification et la taille du fichier sont enregistrées
 
+	# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
+	# blancs.flac : une demi-seconde de silence, une seconde à -6 dB, un quart de seconde à -50,5 dB, puis un quart de
+	# seconde de silence (tests.sons.BLANCS). La fin détectée se compte depuis la fin du fichier.
+
+	Plan du scénario: Le décodage mesure les blancs au début et à la fin d'un fichier, d'après le seuil en crête
+		Étant donné un fichier flac avec des blancs
+		Quand je vérifie ce fichier en détectant les blancs au seuil de <seuil> dB
+		Alors le fichier est sain
+		Et son début détecté est de <debut> seconde à 0,01 seconde près
+		Et sa fin détectée est de <fin> seconde à 0,01 seconde près
+
+		Exemples:
+			| seuil | debut | fin  |
+			| -40   | 0,5   | 0,5  |
+			| -60   | 0,5   | 0,25 |
+			| -10   | 0,5   | 0,5  |
+
+	Scénario: Un fichier qui n'atteint jamais le seuil n'a aucun blanc détecté
+		Étant donné un fichier flac sain
+		Quand je vérifie ce fichier en détectant les blancs au seuil de -1 dB
+		Alors le fichier est sain
+		Et aucun blanc n'est détecté
+
+	Scénario: Sans seuil, le décodage ne mesure pas les blancs
+		Étant donné un fichier flac avec des blancs
+		Quand je vérifie ce fichier
+		Alors le fichier est sain
+		Et les blancs n'ont pas été mesurés
+
+	Scénario: L'audit complet enregistre les blancs détectés au seuil de la configuration
+		Étant donné un fichier flac avec des blancs
+		Et un sonore à l'état « actif » pour ce fichier
+		Et un seuil de blanc de -60 dB dans la configuration
+		Quand l'indexeur fait un audit complet
+		Alors en base, le début détecté du sonore est de 0,5 seconde et sa fin détectée de 0,25 seconde, à 0,01 seconde près
+
+	Scénario: L'audit complet d'un seul sonore enregistre ses blancs, au seuil de -40 dB par défaut
+		Étant donné un fichier flac avec des blancs
+		Et un sonore à l'état « actif » pour ce fichier
+		Quand l'indexeur fait l'audit complet de ce seul sonore
+		Alors en base, le début détecté du sonore est de 0,5 seconde et sa fin détectée de 0,5 seconde, à 0,01 seconde près
+
+	Scénario: L'indexation rapide ne détecte pas les blancs
+		Étant donné un fichier flac avec des blancs
+		Et un sonore à l'état « apercu » pour ce fichier
+		Quand l'indexeur fait une indexation rapide
+		Alors le sonore est à l'état « actif »
+		Et en base, le sonore n'a ni début ni fin détectés
+
+	Scénario: Un audit complet efface les blancs d'un fichier qui n'atteint plus le seuil
+		Étant donné un fichier flac sain
+		Et un sonore à l'état « actif » pour ce fichier, avec 1 seconde de début et de fin détectés
+		Et un seuil de blanc de -1 dB dans la configuration
+		Quand l'indexeur fait un audit complet
+		Alors en base, le sonore n'a ni début ni fin détectés
+
+	Scénario: Un début et une fin détectés saisis à la main ne sont pas remplacés
+		Étant donné un fichier flac avec des blancs
+		Et un sonore à l'état « actif » pour ce fichier, dont le début et la fin détectés ont été saisis à la main à 0,1 seconde
+		Quand l'indexeur fait un audit complet
+		Alors en base, le début détecté du sonore est de 0,1 seconde et sa fin détectée de 0,1 seconde, à 0,01 seconde près
+
+	Scénario: Les blancs d'un fichier défectueux ne sont pas touchés
+		Étant donné un fichier mp3 endommagé
+		Et un sonore à l'état « actif » pour ce fichier, avec 1 seconde de début et de fin détectés
+		Quand l'indexeur fait un audit complet
+		Alors en base, le début détecté du sonore est de 1 seconde et sa fin détectée de 1 seconde, à 0,01 seconde près
+
 	Scénario: Les streams ne sont jamais vérifiés
 		Étant donné un stream enregistré
 		Quand l'indexeur fait un audit complet

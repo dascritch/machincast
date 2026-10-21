@@ -53,6 +53,20 @@ Fonctionnalité: Un fichier sonore n'est jamais supprimé par MachinCast
 		Alors l'airplay montre 3 passages
 		Et les fichiers sonores de la banque sont intacts
 
+	Scénario: La détection de blanc, à l'audit complet puis à la diffusion, laisse les fichiers sonores intacts
+		https://github.com/dascritch/machincast/issues/146 : les blancs détectés ne sont écrits qu'en base.
+
+		Étant donné l'horloge du binaire au « 2026-10-14 19:59:50 »
+		Et le fil musical permanent « Continue », avec la banque « Musique »
+		Et la banque « Musique » active la détection de blanc
+		Quand l'indexeur fait une indexation rapide, puis un audit complet
+		Et la diffusion démarre au plus vite
+		Et la diffusion tourne 3 pas d'une seconde
+		Et la diffusion s'arrête
+		Alors le sonore de « titre.flac » a un début et une fin détectés
+		Et l'airplay montre 3 passages
+		Et les fichiers sonores de la banque sont intacts
+
 	# ─── Sorties ───────────────────────────────────────────────
 
 	Plan du scénario: Une sortie placée sur un fichier sonore est refusée à l'écriture, et le fichier reste intact

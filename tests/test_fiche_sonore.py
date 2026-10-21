@@ -97,6 +97,9 @@ def montre(sonore: FicheSonore) -> dict[str, Callable[[], str]]:
 		"Crossfade de début": si_coche(ui.a_crossfade_debut, ui.crossfade_debut.text),
 		"Crossfade de fin": si_coche(ui.a_crossfade_fin, ui.crossfade_fin.text),
 		"Maximum de lectures": ui.max_lectures.text,
+		"Détection de blanc": lambda: "oui" if ui.detection_blancs.isChecked() else "non",
+		"Début détecté": si_coche(ui.a_debut_detecte, ui.debut_detecte.text),
+		"Fin détectée": si_coche(ui.a_fin_detectee, ui.fin_detectee.text),
 		"Artiste et titre": lambda: ui.masquage.currentText().casefold(),
 		"Diffusion à partir du": si_coche(ui.a_debut, ui.debut_diffusion.text),
 		"Diffusion jusqu'au": si_coche(ui.a_fin, ui.fin_diffusion.text),
@@ -270,6 +273,17 @@ def saisir(interface: Contexte, qtbot: QtBot, datatable: list[list[str]]) -> Non
 				nombre.setValue(float(brut.replace(",", ".")))
 		elif champ == "Maximum de lectures":
 			ui.max_lectures.setValue(int(brut))
+		elif champ == "Détection de blanc":
+			ui.detection_blancs.setChecked(brut == "oui")
+		elif champ in ("Début détecté", "Fin détectée"):
+			# Un blanc vide n'est pas détecté (https://github.com/dascritch/machincast/issues/146).
+			case, nombre = {
+				"Début détecté": (ui.a_debut_detecte, ui.debut_detecte),
+				"Fin détectée": (ui.a_fin_detectee, ui.fin_detectee),
+			}[champ]
+			case.setChecked(brut != "")
+			if brut != "":
+				nombre.setValue(float(brut.replace(",", ".")))
 		elif champ == "Adresse directe":
 			qtbot.mouseClick(ui.par_adresse, Qt.MouseButton.LeftButton)
 			taper(qtbot, ui.url_stream, brut)
@@ -370,6 +384,12 @@ def emplacement_fixe(interface: Contexte) -> None:
 def sans_stream(interface: Contexte) -> None:
 	ui = fiche(interface).ui
 	assert (ui.groupe_stream.isHidden(), ui.emplacement.isHidden()) == (True, False)
+
+
+@then("la fiche du sonore n'a pas de détection de blanc")
+def sans_detection(interface: Contexte) -> None:
+	"""Un stream n'a pas de blancs détectés (https://github.com/dascritch/machincast/issues/146)."""
+	assert fiche(interface).ui.groupe_blancs.isHidden()
 
 
 @then("la fiche du sonore n'a pas d'emplacement")

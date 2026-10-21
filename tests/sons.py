@@ -10,7 +10,9 @@ Pour les régénérer (encodeurs GStreamer nécessaires) : python -m tests.sons
 """
 
 import logging
+import math
 import shutil
+import struct
 from pathlib import Path
 from typing import cast
 
@@ -113,6 +115,48 @@ def generer_son(format_sonore: str, chemin: Path, secondes: float = DUREE_SECOND
 	return chemin
 
 
+BLANCS: tuple[tuple[float, float], ...] = (
+	(0.5, 0.0),
+	(1.0, 0.5),
+	(0.25, 0.003),
+	(0.25, 0.0),
+)
+"""Le fichier blancs.flac, morceau par morceau : durée en secondes et amplitude crête de la sinusoïde (1 = 0 dB) ;
+détection de blanc (https://github.com/dascritch/machincast/issues/146). Une demi-seconde de silence, une seconde à
+-6 dB, un quart de seconde à -50,5 dB, puis un quart de seconde de silence : au seuil de -40 dB, une demi-seconde de
+blanc au début et à la fin ; au seuil de -60 dB, un quart de seconde à la fin."""
+
+
+def generer_blancs(chemin: Path) -> Path:
+	"""Écrit en FLAC un son mono fait des morceaux de BLANCS, chacun aligné sur l'échantillon."""
+	Gst.init(None)
+	echantillons = bytearray()
+	for secondes, amplitude in BLANCS:
+		for indice in range(round(secondes * FREQUENCE)):
+			valeur = round(amplitude * 32767 * math.sin(2 * math.pi * 440 * indice / FREQUENCE))
+			echantillons += struct.pack("<h", valeur)
+	pipeline = Gst.parse_launch(
+		f"appsrc name=source format=time caps=audio/x-raw,format=S16LE,layout=interleaved,rate={FREQUENCE},channels=1"
+		" ! audioconvert ! flacenc ! filesink name=fichier"
+	)
+	assert isinstance(pipeline, Gst.Bin)
+	source, fichier = pipeline.get_by_name("source"), pipeline.get_by_name("fichier")
+	assert (source is not None) and (fichier is not None)
+	fichier.set_property("location", str(chemin))
+	pipeline.set_state(Gst.State.PLAYING)
+	tampon = Gst.Buffer.new_wrapped(bytes(echantillons))
+	tampon.pts = 0
+	tampon.duration = round(len(echantillons) / 2 / FREQUENCE * Gst.SECOND)
+	source.emit("push-buffer", tampon)
+	source.emit("end-of-stream")
+	bus = pipeline.get_bus()
+	assert bus is not None
+	message = bus.timed_pop_filtered(60 * Gst.SECOND, Gst.MessageType.EOS | Gst.MessageType.ERROR)
+	pipeline.set_state(Gst.State.NULL)
+	assert (message is not None) and (message.type == Gst.MessageType.EOS), f"génération de {chemin} impossible"
+	return chemin
+
+
 if __name__ == "__main__":
 	logging.basicConfig(level=logging.INFO, format="{message}", style="{")
 	FICHIERS_SONORES.mkdir(exist_ok=True)
@@ -122,3 +166,5 @@ if __name__ == "__main__":
 	for format_sonore in ENCODEURS_TAGUES:
 		chemin = generer_son(format_sonore, FICHIERS_SONORES / f"tags.{format_sonore}", tags=TAGS_DE_TEST)
 		logging.info(f"{chemin.name} : {chemin.stat().st_size} octets")
+	chemin = generer_blancs(FICHIERS_SONORES / "blancs.flac")
+	logging.info(f"{chemin.name} : {chemin.stat().st_size} octets")

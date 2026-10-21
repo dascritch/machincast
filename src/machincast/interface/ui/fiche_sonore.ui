@@ -466,6 +466,83 @@
           </widget>
          </item>
          <item>
+          <widget class="QGroupBox" name="groupe_blancs">
+           <property name="title">
+            <string>Détection de blanc</string>
+           </property>
+           <layout class="QFormLayout" name="formulaire_blancs">
+            <item row="0" column="0" colspan="2">
+             <widget class="QCheckBox" name="detection_blancs">
+              <property name="text">
+               <string>Jouer sans les blancs détectés</string>
+              </property>
+              <property name="toolTip">
+               <string>Coché, le sonore est joué de son début détecté à sa fin détectée, même hors d'une banque qui retire les blancs.</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QCheckBox" name="a_debut_detecte">
+              <property name="text">
+               <string>Début détecté</string>
+              </property>
+              <property name="toolTip">
+               <string>Blanc au début du fichier, mesuré par l'audit complet. Décoché, aucun blanc n'est détecté : le début n'est pas rogné.</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QDoubleSpinBox" name="debut_detecte">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="suffix">
+               <string> s</string>
+              </property>
+              <property name="decimals">
+               <number>2</number>
+              </property>
+              <property name="maximum">
+               <double>86400.0</double>
+              </property>
+              <property name="singleStep">
+               <double>0.01</double>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QCheckBox" name="a_fin_detectee">
+              <property name="text">
+               <string>Fin détectée</string>
+              </property>
+              <property name="toolTip">
+               <string>Blanc à la fin du fichier, compté depuis sa fin, mesuré par l'audit complet. Décoché, aucun blanc n'est détecté : la fin n'est pas rognée.</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QDoubleSpinBox" name="fin_detectee">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="suffix">
+               <string> s</string>
+              </property>
+              <property name="decimals">
+               <number>2</number>
+              </property>
+              <property name="maximum">
+               <double>86400.0</double>
+              </property>
+              <property name="singleStep">
+               <double>0.01</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
           <widget class="QGroupBox" name="groupe_relations">
            <property name="title">
             <string>Relations</string>

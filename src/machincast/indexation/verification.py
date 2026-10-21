@@ -25,8 +25,9 @@ d'erreur). L'indexeur n'écrit jamais dans le log, et ne modifie jamais un champ
 
 import logging
 import threading
-from collections.abc import Callable, Collection
+from collections.abc import Collection
 from dataclasses import dataclass, field
+from datetime import timedelta
 from enum import StrEnum
 from pathlib import Path
 
@@ -34,9 +35,10 @@ import psycopg
 from psycopg.rows import TupleRow
 from psycopg.types.json import Jsonb
 
+from machincast.configuration import SEUIL_DE_BLANC
 from machincast.empreinte import etat_du_fichier, modifie
 from machincast.indexation.audit import Anomalie
-from machincast.indexation.decodage import EtatFichier, Verification, verifier_fichier
+from machincast.indexation.decodage import EtatFichier, Verificateur, Verification, verifier_fichier
 from machincast.indexation.tags import fusionner
 from machincast.indexation.type_fichier import Nature, nature, type_mime
 
@@ -141,11 +143,12 @@ def _liste(identifiants: Collection[int] | None) -> list[int] | None:
 
 def verifier_sonores(
 	connexion: psycopg.Connection[TupleRow],
-	verifier: Callable[[Path], Verification] = verifier_fichier,
+	verifier: Verificateur = verifier_fichier,
 	audit_complet: bool = False,
 	bilan: Bilan | None = None,
 	identifiants: Collection[int] | None = None,
 	arret: threading.Event | None = None,
+	seuil_blancs: float = SEUIL_DE_BLANC,
 ) -> Bilan:
 	"""Vérifie les sonores de type fichier ; chaque sonore est enregistré dans sa propre transaction.
 
@@ -161,13 +164,17 @@ def verifier_sonores(
 
 	arret : une fois posé, la vérification s'arrête avant le sonore suivant.
 
+	seuil_blancs : en audit complet, le décodage d'un fichier sain mesure ses blancs à ce seuil, en dB crête, et les
+	enregistre, sauf ceux saisis à la main (https://github.com/dascritch/machincast/issues/146). L'indexation rapide ne
+	les mesure pas.
+
 	La connexion doit avoir endossé le rôle de l'indexation (machincast.base.connecter). Lève
 	DecodeurIndisponible si GStreamer ne sait pas décoder un format : les sonores déjà vérifiés le restent.
 	"""
 	with connexion.transaction():
 		sonores = connexion.execute(
 			"SELECT id, emplacement, etat::text, champs_edites, artiste, titre, metadonnees_musicales,"
-			" fichier_modifie_le, fichier_taille"
+			" fichier_modifie_le, fichier_taille, debut_detecte, fin_detectee"
 			" FROM sonores WHERE type = 'fichier' AND (%s::bigint[] IS NULL OR id = ANY(%s)) ORDER BY id",
 			(_liste(identifiants), _liste(identifiants)),
 		).fetchall()
@@ -187,6 +194,8 @@ def verifier_sonores(
 			metadonnees,
 			modifie_avant,
 			taille_avant,
+			debut_detecte,
+			fin_detectee,
 		) = ligne
 		chemin = Path(str(emplacement))
 		avant = EtatSonore(str(etat_texte))
@@ -200,6 +209,8 @@ def verifier_sonores(
 			resultat = Verification.defectueux(
 				EtatFichier.NON_SUPPORTE, f"de type {type_du_fichier}, ce n'est pas un fichier sonore"
 			)
+		elif audit_complet:
+			resultat = verifier(chemin, seuil_blancs=seuil_blancs)
 		else:
 			resultat = verifier(chemin)
 		apres = nouvel_etat(avant, resultat.etat)
@@ -213,13 +224,20 @@ def verifier_sonores(
 			artiste = artiste if "artiste" in champs_edites else resultat.tags.artiste
 			titre = titre if "titre" in champs_edites else resultat.tags.titre
 			metadonnees = fusionner(dict(metadonnees), resultat.tags.metadonnees, list(champs_edites))
+		# Les blancs mesurés remplacent ceux en base, sauf ceux saisis à la main ; sans mesure, rien ne change.
+		if (sain) and (resultat.blancs is not None):
+			if "debut_detecte" not in champs_edites:
+				debut_detecte = resultat.blancs.debut
+			if "fin_detectee" not in champs_edites:
+				fin_detectee = resultat.blancs.fin
 		with connexion.transaction():
 			# Un fichier introuvable garde la date et la taille de son dernier passage.
 			connexion.execute(
 				"UPDATE sonores SET etat = %s, duree = COALESCE(%s, duree),"
 				" fichier_modifie_le = COALESCE(%s, fichier_modifie_le), fichier_taille = COALESCE(%s, fichier_taille),"
 				" artiste = %s, titre = %s, metadonnees_musicales = %s, type_mime = COALESCE(%s, type_mime),"
-				" verifie_le = CASE WHEN %s THEN clock_timestamp() ELSE verifie_le END"
+				" verifie_le = CASE WHEN %s THEN clock_timestamp() ELSE verifie_le END,"
+				" debut_detecte = %s, fin_detectee = %s"
 				" WHERE id = %s",
 				(
 					apres.value,
@@ -233,6 +251,8 @@ def verifier_sonores(
 					# Un fichier trouvé arrive ici vérifié en entier ; un fichier disparu garde la date de sa dernière
 					# vérification.
 					fichier is not None,
+					_duree(debut_detecte),
+					_duree(fin_detectee),
 					identifiant,
 				),
 			)
@@ -265,3 +285,10 @@ def _sain(artiste: object, titre: object) -> str:
 	if nom == "":
 		return "sain"
 	return f"sain, {nom}"
+
+
+def _duree(valeur: object) -> timedelta | None:
+	"""Une durée lue en base, ou mesurée ; None pour NULL."""
+	if isinstance(valeur, timedelta):
+		return valeur
+	return None

@@ -69,11 +69,11 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 		# PySide6 n'est importé qu'ici : sans --fenetre, l'indexation ne demande aucun affichage graphique.
 		from machincast.interface.journal_indexation import lancer_fenetre
 
-		return lancer_fenetre(base.socket, base.production, options.audit_complet)
+		return lancer_fenetre(base.socket, base.production, options.audit_complet, configuration.blancs.seuil)
 	debut = audit.HORLOGE.maintenant()
 	try:
 		with connecter(base.socket, base.production, Role.INDEXATION) as connexion:
-			bilan = indexer(connexion, audit_complet=options.audit_complet)
+			bilan = indexer(connexion, audit_complet=options.audit_complet, seuil_blancs=configuration.blancs.seuil)
 	except psycopg.OperationalError as erreur:
 		journal.error(f"base de données injoignable ({base.production} par {base.socket}) : {erreur}")
 		return CODE_ECHEC
@@ -104,7 +104,9 @@ def verifier_un_sonore(configuration: Configuration, sonore: int, audit_complet:
 			if fichier is None:
 				journal.error(f"sonore {sonore} : inconnu, ou pas un fichier")
 				return CODE_ECHEC
-			bilan = verifier_sonores(connexion, audit_complet=audit_complet, identifiants=[sonore])
+			bilan = verifier_sonores(
+				connexion, audit_complet=audit_complet, identifiants=[sonore], seuil_blancs=configuration.blancs.seuil
+			)
 	except psycopg.OperationalError as erreur:
 		journal.error(f"base de données injoignable ({base.production} par {base.socket}) : {erreur}")
 		return CODE_ECHEC

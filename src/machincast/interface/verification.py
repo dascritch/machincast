@@ -100,6 +100,7 @@ class Verificateur(QObject):
 		return f"Vérification terminée : {' ; '.join(etats)}."
 
 
-def _verifier_fichier(chemin: Path) -> Verification:
-	"""Le décodage de l'indexeur, appelé par son nom : les scénarios le remplacent."""
+def _verifier_fichier(chemin: Path, *, seuil_blancs: float | None = None) -> Verification:
+	"""Le décodage de l'indexeur, appelé par son nom : les scénarios le remplacent. La vérification des fichiers
+	ajoutés n'est pas un audit complet : elle ne mesure pas les blancs (seuil_blancs n'est jamais donné)."""
 	return verifier_fichier(chemin)

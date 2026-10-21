@@ -6,8 +6,9 @@ fichier s'ajoute depuis la liste (machincast.interface.ajout). Enregistrement, a
 machincast.interface.fiche.
 
 - Champs : artiste, titre, les métadonnées musicales que tient l'indexeur (année, album, artiste de l'album, genre,
-  compositeur, label, piste), crossfades, maximum de lectures, masquage, période de diffusion, état. Les autres clés
-  des métadonnées musicales sont montrées, jamais modifiées. L'emplacement et la durée ne se modifient pas.
+  compositeur, label, piste), crossfades, maximum de lectures, masquage, période de diffusion, état, et pour un fichier
+  la détection de blanc, avec le début et la fin détectés (https://github.com/dascritch/machincast/issues/146). Les
+  autres clés des métadonnées musicales sont montrées, jamais modifiées. L'emplacement et la durée ne se modifient pas.
 - Seuls les champs modifiés depuis la lecture de la fiche sont écrits : ce que l'indexation ou la diffusion change
   entre-temps est gardé. Chacun est ajouté à champs_edites, sauf l'état, que l'indexeur peut encore changer
   (fichier défectueux, puis de nouveau sain) : l'indexeur ne modifie plus un champ édité.
@@ -68,6 +69,9 @@ LIBELLES: dict[str, str] = {
 	"url_stream": "adresse directe",
 	"marque_page_id": "marque-page",
 	"secours_evenement_id": "événement de secours",
+	"detection_blancs": "détection de blanc",
+	"debut_detecte": "début détecté",
+	"fin_detectee": "fin détectée",
 	"duree": "durée",
 }
 """Nom à l'écran d'un champ de champs_edites."""
@@ -106,6 +110,9 @@ NOUVEAU_STREAM: tuple[object, ...] = (
 	None,
 	None,
 	[],
+	None,
+	None,
+	False,
 	None,
 	None,
 )
@@ -163,6 +170,18 @@ class FicheSonore(Fiche):
 		):
 			case.toggled.connect(nombre.setEnabled)
 			case.toggled.connect(self._modifier)
+		# Détection de blanc (https://github.com/dascritch/machincast/issues/146) : un blanc décoché n'est pas détecté.
+		self.ui.detection_blancs.toggled.connect(self._modifier)
+		for case, nombre in (
+			(self.ui.a_debut_detecte, self.ui.debut_detecte),
+			(self.ui.a_fin_detectee, self.ui.fin_detectee),
+		):
+			nombre.setLocale(preferences.FRANCAIS)
+			nombre.valueChanged.connect(self._modifier)
+			case.toggled.connect(nombre.setEnabled)
+			case.toggled.connect(self._modifier)
+		self._duree: timedelta | None = None
+		"""Durée du fichier en base, que les blancs détectés ne peuvent pas couvrir à eux deux."""
 		for case, date in ((self.ui.a_debut, self.ui.debut_diffusion), (self.ui.a_fin, self.ui.fin_diffusion)):
 			case.toggled.connect(date.setEnabled)
 			case.toggled.connect(self._modifier)
@@ -213,7 +232,7 @@ class FicheSonore(Fiche):
 			"SELECT s.type::text, s.emplacement, s.url_stream, s.marque_page_id, m.url, s.secours_evenement_id,"
 			" s.artiste, s.titre, s.metadonnees_musicales, s.crossfade_debut, s.crossfade_fin, s.max_lectures,"
 			" s.etat::text, s.masquer_metadonnees, s.duree, s.debut_diffusion, s.fin_diffusion, s.champs_edites,"
-			" s.type_mime, s.verifie_le"
+			" s.type_mime, s.verifie_le, s.detection_blancs, s.debut_detecte, s.fin_detectee"
 			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
 			(self.identifiant,),
 		).fetchone()
@@ -246,6 +265,9 @@ class FicheSonore(Fiche):
 			champs_edites,
 			type_mime,
 			verifie_le,
+			detection_blancs,
+			debut_detecte,
+			fin_detectee,
 		) = ligne
 		stream = type_sonore == "stream"
 		self._nom = (_texte(titre)) or (Path(str(emplacement)).name)
@@ -258,6 +280,18 @@ class FicheSonore(Fiche):
 		if not stream:
 			self._montrer_fichier(Path(str(emplacement)), type_mime, duree, verifie_le)
 		self.ui.groupe_stream.setVisible(stream)
+		# Un stream n'a pas de blancs détectés : seul un fichier est audité.
+		self.ui.groupe_blancs.setVisible(not stream)
+		self.ui.detection_blancs.setChecked(detection_blancs is True)
+		for case, nombre, blanc in (
+			(self.ui.a_debut_detecte, self.ui.debut_detecte, debut_detecte),
+			(self.ui.a_fin_detectee, self.ui.fin_detectee, fin_detectee),
+		):
+			nombre.setValue(_secondes(blanc))
+			case.setChecked(isinstance(blanc, timedelta))
+		self._duree = None
+		if isinstance(duree, timedelta):
+			self._duree = duree
 		texte_duree = ""
 		if stream:
 			texte_duree = affichage.duree(None)
@@ -340,6 +374,10 @@ class FicheSonore(Fiche):
 		saisies["masquer_metadonnees"] = MASQUAGES[self.ui.masquage.currentIndex()][0]
 		saisies["debut_diffusion"] = _date(self.ui.a_debut, self.ui.debut_diffusion)
 		saisies["fin_diffusion"] = _date(self.ui.a_fin, self.ui.fin_diffusion)
+		if self.ui.groupe_blancs.isVisibleTo(self):
+			saisies["detection_blancs"] = self.ui.detection_blancs.isChecked()
+			saisies["debut_detecte"] = _crossfade(self.ui.a_debut_detecte, self.ui.debut_detecte)
+			saisies["fin_detectee"] = _crossfade(self.ui.a_fin_detectee, self.ui.fin_detectee)
 		if self.ui.groupe_stream.isVisibleTo(self):
 			saisies["url_stream"] = None
 			saisies["marque_page_id"] = None
@@ -358,6 +396,12 @@ class FicheSonore(Fiche):
 			raise Refus("La fin de la diffusion doit suivre son début.")
 		if ("url_stream" in saisies) and (saisies["url_stream"] is None) and (saisies["marque_page_id"] is None):
 			raise Refus("L'adresse du stream est obligatoire.")
+		# Seuls des blancs saisis sont refusés : l'indexeur ne mesure jamais des blancs qui couvrent tout le fichier.
+		cotes = ("debut_detecte", "fin_detectee")
+		saisis = any(saisies.get(cote) != self._initiales.get(cote) for cote in cotes)
+		blancs = [blanc for blanc in (saisies.get(cote) for cote in cotes) if isinstance(blanc, timedelta)]
+		if (saisis) and (self._duree is not None) and (sum(blancs, timedelta(0)) >= self._duree):
+			raise Refus("Les blancs détectés doivent laisser du son : ensemble, plus courts que la durée du sonore.")
 		identifiant = self.identifiant
 		if identifiant is None:
 			# Un nouveau stream entre en base avec son adresse ; ses autres champs s'écrivent comme une modification.
@@ -517,7 +561,7 @@ class FicheSonore(Fiche):
 
 
 def _crossfade(case: QCheckBox, nombre: QDoubleSpinBox) -> timedelta | None:
-	"""Le crossfade saisi ; None s'il n'est pas paramétré."""
+	"""Le crossfade, ou le blanc détecté, saisi ; None s'il n'est pas paramétré, ou pas détecté."""
 	if not case.isChecked():
 		return None
 	return timedelta(seconds=nombre.value())

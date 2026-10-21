@@ -90,6 +90,7 @@ Fonctionnalité: Schéma de la base de données
 			| type = 'stream', marque_page_id = {marque_page}                           |
 			| type = 'fichier', emplacement = '/c.mp3', debut_diffusion = '2026-11-01', fin_diffusion = '2026-11-30' |
 			| type = 'fichier', emplacement = '/d.ogg', metadonnees_musicales = '{"annee": 1987, "label": "Disques Exemple"}' |
+			| type = 'fichier', emplacement = '/e.flac', debut_detecte = '0 s', fin_detectee = '2.5 s', detection_blancs = true |
 
 	Plan du scénario: Un sonore incohérent est refusé
 		Étant donné les éléments de référence en base
@@ -111,6 +112,9 @@ Fonctionnalité: Schéma de la base de données
 			| type = 'fichier', emplacement = '/a.flac', debut_diffusion = '2026-11-30', fin_diffusion = '2026-11-01' |
 			| type = 'fichier', emplacement = '/a.flac', metadonnees_musicales = '[1987]'                     |
 			| type = 'fichier', emplacement = '/a.flac', metadonnees_musicales = 'null'                       |
+			| type = 'fichier', emplacement = '/a.flac', debut_detecte = '-0.1 s'                             |
+			| type = 'fichier', emplacement = '/a.flac', fin_detectee = '-1 s'                                |
+			| type = 'fichier', emplacement = '/a.flac', detection_blancs = NULL                              |
 
 	Scénario: Deux sonores ne peuvent pas avoir le même emplacement
 		Étant donné les éléments de référence en base
@@ -142,12 +146,31 @@ Fonctionnalité: Schéma de la base de données
 			| nom_interne = 'Jingles', mode = 'aleatoire', duree_min = '0 s' |
 			| nom_interne = 'Jingles', mode = 'aleatoire', duree_max = '-1 s' |
 			| nom_interne = 'Jingles', mode = 'aleatoire', duree_min = '2 min', duree_max = '1 min' |
+			| nom_interne = 'Jingles', mode = 'aleatoire', detection_blancs = NULL |
 
 	# https://github.com/dascritch/machincast/issues/63
 
 	Scénario: Une banque n'est pas marquée « ne pas répéter » par défaut
 		Étant donné les éléments de référence en base
 		Alors la banque de référence n'est pas marquée « ne pas répéter »
+
+	# https://github.com/dascritch/machincast/issues/146
+
+	Scénario: La détection de blanc n'est activée par défaut ni pour une banque, ni pour un sonore, qui n'ont aucun blanc détecté
+		Étant donné les éléments de référence en base
+		Alors la banque de référence n'active pas la détection de blanc
+		Et le sonore de référence n'active pas la détection de blanc
+		Et le sonore de référence n'a ni début ni fin détectés
+
+	Scénario: La migration de la détection de blanc ne l'active pour aucune banque ni aucun sonore existants
+		Quand j'annule les migrations depuis « 0008.detection-blancs »
+		Et j'enregistre dans "banques" : nom_interne = 'Titres', mode = 'aleatoire'
+		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/a.flac'
+		Et j'applique les migrations
+		Alors la banque « Titres » n'active pas la détection de blanc
+		Et le sonore « /a.flac » n'active pas la détection de blanc
+		Quand j'annule les migrations depuis « 0008.detection-blancs »
+		Alors aucune connexion supplémentaire à la base de test ne reste ouverte
 
 	Scénario: Une banque peut avoir plusieurs répertoires
 		Étant donné les éléments de référence en base

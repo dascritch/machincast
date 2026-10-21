@@ -86,6 +86,7 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 			configuration=configuration.chemin,
 			crossfades=configuration.crossfades,
 			audio=configuration.audio,
+			blancs=configuration.blancs,
 		)
 		fenetre.show()
 		return qt.exec()

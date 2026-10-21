@@ -17,6 +17,11 @@ comme « default » avec dmix).
   et s'arrête d'elle-même à la fin du fondu (eteindre). La source ne retente pas seule une connexion perdue : la
   diffusion s'en charge.
 
+Sonore rogné par la détection de blanc (https://github.com/dascritch/machincast/issues/146) : la voie commence à
+decalage secondes du début du fichier (son début détecté) et s'arrête d'elle-même après duree secondes (à sa fin
+détectée), par une recherche (seek) qui borne la lecture du fichier. La position de la voie, l'enveloppe et les fondus
+se comptent depuis ce début : le fichier n'est jamais modifié.
+
 Le volume suit une enveloppe posée à l'avance sur l'élément volume (GstController), d'après la durée connue du
 sonore. Le moteur ne lit l'heure que par la position des voies : il ne décide de rien, l'ordonnanceur
 (machincast.lecture.deroule) lui dit quoi jouer et quand couper.
@@ -39,6 +44,10 @@ EtatVoie = Literal["prête", "en cours", "finie", "coupée", "en erreur"]
 
 # GstPlayFlags : audio seulement, sans vidéo ni sous-titres.
 LECTURE_AUDIO_SEULE = 0x00000002
+
+DELAI_PRELECTURE = timedelta(seconds=2)
+"""Délai accordé à la pré-lecture d'un fichier rogné, avant la recherche de son début détecté : au-delà, la voie joue
+le fichier depuis son début."""
 
 DELAI_CONNEXION_SECONDES = 10
 """Délai de connexion et de réponse d'un flux HTTP, au-delà duquel la voie passe en erreur."""
@@ -93,14 +102,25 @@ class Voie:
 		crossfade_fin: timedelta = timedelta(0),
 		temps_reel: bool = True,
 		muette: bool = False,
+		decalage: timedelta | None = None,
 	) -> None:
-		"""chemin : un fichier, ou l'adresse d'un stream. Muette, la voie joue à volume nul jusqu'à un fondu."""
+		"""chemin : un fichier, ou l'adresse d'un stream. Muette, la voie joue à volume nul jusqu'à un fondu.
+
+		decalage : pour un sonore rogné par la détection de blanc, la voie commence à cette position du fichier, et
+		s'arrête après duree (https://github.com/dascritch/machincast/issues/146) ; None : le fichier est joué en
+		entier."""
 		Gst.init(None)
 		self.chemin = chemin
 		self.etat: EtatVoie = "prête"
 		self.erreur: str | None = None
+		self.decalage = timedelta(0)
+		"""Position du fichier où la voie commence : son début détecté ; 0 pour un sonore joué en entier."""
+		self._rognee = (decalage is not None) and (not isinstance(chemin, str))
+		"""La voie ne joue qu'une partie du fichier, du début détecté à la fin détectée."""
+		if decalage is not None:
+			self.decalage = max(decalage, timedelta(0))
 		self.position_finale: timedelta | None = None
-		"""Position atteinte quand la voie a été coupée."""
+		"""Position atteinte quand la voie a été coupée, ou quand elle s'est finie."""
 		self.arret_prevu: timedelta | None = None
 		"""Position où la voie s'arrête d'elle-même, à la fin d'un fondu de sortie (eteindre)."""
 
@@ -137,8 +157,6 @@ class Voie:
 		points = [(timedelta(0), 0.0)]
 		if not muette:
 			points = enveloppe(duree, crossfade_debut, crossfade_fin)
-		for instant, valeur in points:
-			source.set(_nanosecondes(instant), valeur)
 		volume.add_control_binding(GstController.DirectControlBinding.new_absolute(volume, "volume", source))
 
 		self._lecteur = lecteur
@@ -146,12 +164,18 @@ class Voie:
 		self._source = source
 		self._duree = duree
 		self._crossfade_debut = crossfade_debut
+		for instant, valeur in points:
+			self._poser(instant, valeur)
+
+	def _poser(self, instant: timedelta, valeur: float) -> None:
+		"""Un point de l'enveloppe, à cet instant de la voie : l'élément volume suit la position dans le fichier."""
+		self._source.set(_nanosecondes(self.decalage + instant), valeur)
 
 	def supprimer_fondu_de_sortie(self) -> None:
 		"""Le sonore suivant ne se superpose pas : celui-ci joue jusqu'au bout, à plein volume."""
 		self._source.unset_all()
 		for instant, valeur in enveloppe(self._duree, self._crossfade_debut, timedelta(0)):
-			self._source.set(_nanosecondes(instant), valeur)
+			self._poser(instant, valeur)
 
 	def fondu(self, cible: float, duree: timedelta) -> None:
 		"""Le volume va de sa valeur actuelle à la cible pendant la durée, à partir de la position actuelle."""
@@ -159,8 +183,8 @@ class Voie:
 		actuel = self.volume_a(position)
 		self._source.unset_all()
 		if duree > timedelta(0):
-			self._source.set(_nanosecondes(position), actuel)
-		self._source.set(_nanosecondes(position + duree), cible)
+			self._poser(position, actuel)
+		self._poser(position + duree, cible)
 
 	def eteindre(self, duree: timedelta) -> None:
 		"""Fondu de sortie à partir de maintenant ; la voie s'arrête à la fin du fondu, aussitôt sans durée."""
@@ -173,21 +197,47 @@ class Voie:
 
 	def volume_a(self, instant: timedelta) -> float:
 		"""Volume prévu à cet instant du sonore, entre 0 et 1."""
-		valeur = self._volume.get_value("volume", _nanosecondes(instant))
+		valeur = self._volume.get_value("volume", _nanosecondes(self.decalage + instant))
 		if valeur is None:
 			return 1.0
 		return float(valeur)
 
 	def position(self) -> timedelta:
+		"""Position de la voie, depuis son début : pour un sonore rogné, depuis son début détecté."""
 		trouvee, nanosecondes = self._lecteur.query_position(Gst.Format.TIME)
 		if not trouvee:
 			return timedelta(0)
-		return timedelta(microseconds=nanosecondes / 1000)
+		return max(timedelta(0), timedelta(microseconds=nanosecondes / 1000) - self.decalage)
 
 	def demarrer(self) -> None:
 		self.etat = "en cours"
+		if self._rognee:
+			self._borner()
 		if self._lecteur.set_state(Gst.State.PLAYING) == Gst.StateChangeReturn.FAILURE:
 			self.traiter()
+
+	def _borner(self) -> None:
+		"""Pré-lit le fichier, puis borne sa lecture : du début détecté à la fin détectée
+		(https://github.com/dascritch/machincast/issues/146). Un fichier qui ne se pré-lit pas est joué en entier ;
+		son erreur viendra à la lecture."""
+		if self._lecteur.set_state(Gst.State.PAUSED) == Gst.StateChangeReturn.FAILURE:
+			return
+		resultat, _etat, _attendu = self._lecteur.get_state(_nanosecondes(DELAI_PRELECTURE))
+		if resultat == Gst.StateChangeReturn.FAILURE:
+			return
+		fin_type, fin = Gst.SeekType.NONE, -1
+		if self._duree is not None:
+			fin_type, fin = Gst.SeekType.SET, _nanosecondes(self.decalage + self._duree)
+		self._lecteur.seek(
+			1.0,
+			Gst.Format.TIME,
+			Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
+			Gst.SeekType.SET,
+			_nanosecondes(self.decalage),
+			fin_type,
+			fin,
+		)
+		self._lecteur.get_state(_nanosecondes(DELAI_PRELECTURE))
 
 	def couper(self) -> None:
 		"""Arrêt net, sans fondu."""
@@ -213,6 +263,7 @@ class Voie:
 				self.etat, self.erreur = "en erreur", erreur.message
 			else:
 				self.etat = "finie"
+				self.position_finale = self.position()
 			self._lecteur.set_state(Gst.State.NULL)
 
 	def fermer(self) -> None:
@@ -260,6 +311,7 @@ class Moteur(Protocol):
 		crossfade_debut: timedelta = ...,
 		crossfade_fin: timedelta = ...,
 		muette: bool = ...,
+		decalage: timedelta | None = ...,
 	) -> VoieLecture: ...
 
 	def traiter_messages(self) -> None: ...
@@ -284,9 +336,11 @@ class MoteurAudio:
 		crossfade_debut: timedelta = timedelta(0),
 		crossfade_fin: timedelta = timedelta(0),
 		muette: bool = False,
+		decalage: timedelta | None = None,
 	) -> Voie:
-		"""Démarre le sonore dans une nouvelle voie, en plus de celles en cours (crossfade)."""
-		voie = Voie(chemin, self.audio, duree, crossfade_debut, crossfade_fin, self.temps_reel, muette)
+		"""Démarre le sonore dans une nouvelle voie, en plus de celles en cours (crossfade) ; un sonore rogné commence à
+		decalage secondes du début de son fichier (https://github.com/dascritch/machincast/issues/146)."""
+		voie = Voie(chemin, self.audio, duree, crossfade_debut, crossfade_fin, self.temps_reel, muette, decalage)
 		voie.demarrer()
 		self._voies.append(voie)
 		return voie

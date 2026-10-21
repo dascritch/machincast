@@ -144,6 +144,90 @@ Fonctionnalité: Mode simulation de Machin lecture
 			| 2026-10-20 20:00:50 | 2026-10-20 20:01:50 | f2    |
 			| 2026-10-20 20:01:40 | 2026-10-20 20:02:00 | f1    |
 
+	# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
+	# Un sonore est joué entre son début et sa fin détectés s'il active la détection de blanc, ou si la banque qui
+	# l'a fourni l'active. La fin détectée se compte depuis la fin du fichier.
+
+	Scénario: Une banque qui active la détection de blanc joue ses sonores sans leurs blancs
+		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
+		Et chaque sonore dure 1 minute
+		Et chaque sonore a 5 secondes de blanc détecté au début et 10 à la fin
+		Et la banque « Titres » active la détection de blanc
+		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
+		Alors la simulation donne les passages :
+			| debut               | fin                 | titre |
+			| 2026-10-20 20:00:00 | 2026-10-20 20:00:45 | f1    |
+			| 2026-10-20 20:00:45 | 2026-10-20 20:01:30 | f2    |
+			| 2026-10-20 20:01:30 | 2026-10-20 20:02:00 | f1    |
+
+	Scénario: Sans détection de blanc, ni par la banque ni par le sonore, les sonores sont joués en entier
+		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
+		Et chaque sonore dure 1 minute
+		Et chaque sonore a 5 secondes de blanc détecté au début et 10 à la fin
+		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
+		Alors la simulation donne les passages :
+			| debut               | fin                 | titre |
+			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1    |
+			| 2026-10-20 20:01:00 | 2026-10-20 20:02:00 | f2    |
+
+	Scénario: Un sonore qui active la détection de blanc est joué sans ses blancs, avec ou sans banque
+		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
+		Et chaque sonore dure 1 minute
+		Et chaque sonore a 5 secondes de blanc détecté au début et 10 à la fin
+		Et le sonore « f2 » active la détection de blanc
+		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:03 »
+		Alors la simulation donne les passages :
+			| debut               | fin                 | titre |
+			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1    |
+			| 2026-10-20 20:01:00 | 2026-10-20 20:01:45 | f2    |
+			| 2026-10-20 20:01:45 | 2026-10-20 20:02:45 | f1    |
+			| 2026-10-20 20:02:45 | 2026-10-20 20:03:00 | f2    |
+
+	Scénario: Un sonore placé directement dans un événement suit son propre réglage de détection de blanc
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 1 minute
+		Et chaque sonore a 5 secondes de blanc détecté au début et 10 à la fin
+		Et le sonore « f1 » active la détection de blanc
+		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
+		Alors la simulation donne les passages :
+			| debut               | fin                 | titre |
+			| 2026-10-20 20:00:00 | 2026-10-20 20:00:45 | f1    |
+			| 2026-10-20 20:00:45 | 2026-10-20 20:01:45 | f2    |
+			| 2026-10-20 20:01:45 | 2026-10-20 20:02:00 | f1    |
+
+	Scénario: Les crossfades se comptent depuis le début et la fin détectés
+		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
+		Et chaque sonore dure 1 minute
+		Et chaque sonore a 5 secondes de blanc détecté au début et 10 à la fin
+		Et chaque sonore a 10 seconde de crossfade de début et de fin
+		Et la banque « Titres » active la détection de blanc
+		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
+		Alors la simulation donne les passages :
+			| debut               | fin                 | titre |
+			| 2026-10-20 20:00:00 | 2026-10-20 20:00:45 | f1    |
+			| 2026-10-20 20:00:35 | 2026-10-20 20:01:20 | f2    |
+			| 2026-10-20 20:01:10 | 2026-10-20 20:01:55 | f1    |
+			| 2026-10-20 20:01:45 | 2026-10-20 20:02:00 | f2    |
+
+	Plan du scénario: Un côté sans blanc détecté n'est pas rogné, et des blancs qui couvrent tout le sonore sont ignorés
+		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
+		Et chaque sonore dure 1 minute
+		Et chaque sonore a <blancs>
+		Et la banque « Titres » active la détection de blanc
+		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02:30 »
+		Alors la simulation donne les passages :
+			| debut               | fin                 | titre |
+			| 2026-10-20 20:00:00 | <fin_f1>            | f1    |
+			| <fin_f1>            | <fin_f2>            | f2    |
+			| <fin_f2>            | 2026-10-20 20:02:30 | f1    |
+
+		Exemples:
+			| blancs                                                  | fin_f1              | fin_f2              |
+			| aucun blanc détecté                                     | 2026-10-20 20:01:00 | 2026-10-20 20:02:00 |
+			| 5 secondes de blanc détecté au début, et aucun à la fin | 2026-10-20 20:00:55 | 2026-10-20 20:01:50 |
+			| 30 secondes de blanc détecté au début et 30 à la fin    | 2026-10-20 20:01:00 | 2026-10-20 20:02:00 |
+			| 40 secondes de blanc détecté au début et 30 à la fin    | 2026-10-20 20:01:00 | 2026-10-20 20:02:00 |
+
 	Scénario: Un stream simulé dure jusqu'à la fin de son événement, sans contacter le flux
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
 		Et le stream « Direct » à l'adresse « http://127.0.0.1:9/aucun-flux »
