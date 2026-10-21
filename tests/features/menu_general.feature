@@ -37,10 +37,10 @@ Fonctionnalité: Menu général de l'interface
 			| Signaler un problème… | active |           |           |
 			| Version               | active |           |           |
 
-	Scénario: « Documentation » ouvre le guide d'utilisation dans le navigateur web
+	Scénario: « Documentation » ouvre le guide de l'antenne dans le navigateur web
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Documentation » dans le menu « Aide »
-		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/main/doc/utilisation.md »
+		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/main/doc/utilisateur/README.md »
 		Et la fenêtre de l'interface est ouverte
 
 	Scénario: « Signaler un problème… » ouvre les tickets de MachinCast dans le navigateur web

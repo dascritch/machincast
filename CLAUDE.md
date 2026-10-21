@@ -37,6 +37,7 @@ sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machi
 
 # Toutes les vérifications ci-dessous d'un coup, avec un bilan par outil (venv non activé) : bin/Machin dev-test
 # Sous-shell dans le dépôt, venv activé : bin/Machin dev
+# Captures d'écran du guide de l'antenne, sur la base de test : bin/Machin dev-captures (doc/developpement/poste.md)
 
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/

@@ -1,6 +1,6 @@
 # Installer MachinCast
 
-Ce document décrit l'installation de MachinCast sur un poste de diffusion, sa vérification, sa mise à jour et l'ajout d'autres comptes. Il s'adresse à l'administrateur du poste : il ne demande pas de connaître le code. L'usage des programmes une fois installés est décrit dans le [guide d'utilisation](doc/utilisation.md).
+Ce document décrit l'installation de MachinCast sur un poste de diffusion, sa vérification, sa mise à jour et l'ajout d'autres comptes. Il s'adresse à l'administrateur du poste : il ne demande pas de connaître le code. L'usage des programmes une fois installés est décrit dans le [guide d'administration](doc/administration/README.md), et celui de l'interface graphique dans le [guide de l'antenne](doc/utilisateur/README.md). Le poste de développement est décrit dans le [guide du développement](doc/developpement/poste.md).
 
 Le script `install.sh` fait tout le travail. La section [Installer à la main](#installer-à-la-main) détaille chacune de ses étapes, pour qui veut les faire soi-même ou comprendre ce qu'il fait.
 
@@ -18,7 +18,6 @@ Le script `install.sh` fait tout le travail. La section [Installer à la main](#
 - [Ajouter un autre compte](#ajouter-un-autre-compte)
 - [Mettre à jour](#mettre-à-jour)
 - [Installer à la main](#installer-à-la-main)
-- [Poste de développement](#poste-de-développement)
 - [Désinstaller](#désinstaller)
 - [En cas de problème](#en-cas-de-problème)
 - [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore)
@@ -88,7 +87,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 ./install.sh --help         # aide
 ```
 
-`--dev` se combine avec `--simulation`. Voir [Poste de développement](#poste-de-développement).
+`--dev` se combine avec `--simulation`. Voir [Poste de développement](doc/developpement/poste.md).
 
 **Relançable** : chaque étape déjà faite est laissée telle quelle. En cas d'échec, corriger ce que le message indique, puis relancer le script. À la relance, PostgreSQL signale par des lignes `NOTICE:  role … has already been granted membership …` que le compte était déjà autorisé : ce n'est pas une erreur.
 
@@ -189,7 +188,7 @@ systemctl restart machincast.service
 systemctl status machincast.service
 ```
 
-**Depuis l'interface**, le menu **Diffusion** fait la même chose, avec la même authentification ([guide d'utilisation](doc/utilisation.md#piloter-la-diffusion-depuis-linterface), [#25](https://github.com/dascritch/machincast/issues/25)). Tant que le service n'est pas installé, la barre d'état de l'interface affiche `Installation non définitive : diffusion sans service`, et le menu **Diffusion** pilote une diffusion d'essai : `Machin lecture` dans une fenêtre de terminal, que l'interface sait arrêter et redémarrer.
+**Depuis l'interface**, le menu **Diffusion** fait la même chose, avec la même authentification ([guide de l'antenne](doc/utilisateur/antenne.md#piloter-la-diffusion), [#25](https://github.com/dascritch/machincast/issues/25)). Tant que le service n'est pas installé, la barre d'état de l'interface affiche `Installation non définitive : diffusion sans service`, et le menu **Diffusion** pilote une diffusion d'essai : `Machin lecture` dans une fenêtre de terminal, que l'interface sait arrêter et redémarrer.
 
 **Avant d'installer le service**, arrêter tout `Machin lecture` lancé à la main : un second Machin lecture est refusé, tant que la socket d'état est occupée, et le service redémarrerait sans fin.
 
@@ -348,49 +347,6 @@ Sans ces liens, le wrapper s'appelle par `bin/Machin` depuis le répertoire de M
 ```
 
 Pour chaque greffon manquant, la commande nomme le paquet apt à installer.
-
-## Poste de développement
-
-Un poste installé par `install.sh` suffit pour lancer les tests : le compte n'a besoin d'aucun droit PostgreSQL particulier, puisqu'il est propriétaire de la base de test et endosse déjà les trois rôles. Les tests ne créent jamais de compte PostgreSQL et n'attribuent jamais de rôle.
-
-En plus, installer les outils de développement et les dépendances de test ([#77](https://github.com/dascritch/machincast/issues/77)) :
-
-```bash
-./install.sh --dev
-```
-
-`--dev` fait tout ce que fait l'installation, puis ajoute les paquets apt `bats` et `shellcheck` et installe dans le venv les dépendances de test (`pip install --editable ".[dev]"` : pytest, pytest-bdd, pytest-qt, ruff, mypy). Il est relançable, et `./install.sh --dev --simulation` montre ce qu'il fera. À la main, c'est l'équivalent de :
-
-```bash
-sudo apt install bats shellcheck
-.venv/bin/pip install --editable ".[dev]"
-```
-
-Deux commandes du wrapper servent ensuite :
-
-- **`Machin dev`** ouvre un nouveau shell dans le répertoire de MachinCast, environnement virtuel activé, avec l'invite `(MachinCast dev)`. Le `.bashrc` du compte est lu. `exit` en sort et ramène au shell de départ. Un programme ne peut pas activer le venv du shell qui l'a lancé : c'est pourquoi un nouveau shell s'ouvre.
-- **`Machin dev-test`** lance toutes les vérifications, depuis le répertoire de MachinCast, avec les outils du venv, sans qu'il soit activé : `ruff check`, `ruff format --check` (tous deux sans cache), `mypy --strict`, `shellcheck`, `pytest` puis `bats`. Chacun est lancé, même après l'échec d'un précédent. À la fin, un bilan donne le résultat de chaque outil (`réussi`, `échec (code N)` ou `absent`). Le code de sortie est 0 si tous ont réussi, 1 sinon.
-
-Sans `--dev`, ces deux commandes restent disponibles : il manque alors un outil ou le venv, et le message nomme ce qui manque et propose `./install.sh --dev` (code 1 pour `dev-test` quand un outil manque, 127 sans venv).
-
-Les tests se lancent aussi un par un, depuis `Machin dev` ou après avoir activé le venv :
-
-```bash
-. .venv/bin/activate
-pytest
-bats tests/wrapper
-```
-
-Les tests lisent `tests/configuration-test.toml`, qui désigne la base de test `machincast_test`, celle du modèle de configuration. Ils ne touchent jamais à la base de production. Si `base.test` porte un autre nom dans `machincast.toml`, copier `tests/configuration-test.toml` dans le répertoire de MachinCast, y changer `base.test`, et désigner cette copie par la variable `MACHINCAST_CONFIG_TEST` :
-
-```bash
-cp tests/configuration-test.toml configuration-test-locale.toml   # puis y changer base.test
-MACHINCAST_CONFIG_TEST=configuration-test-locale.toml pytest
-```
-
-Si PostgreSQL est injoignable, ou si le compte n'endosse pas les trois rôles, les scénarios de base de données sont ignorés avec la commande à lancer.
-
-Sans `install.sh`, préparer la base de test à la main avec les étapes 2, 4 et 5 de [Installer à la main](#installer-à-la-main), en ne créant que la base `machincast_test`. Les commandes de développement sont résumées dans [CLAUDE.md](CLAUDE.md), et les règles du projet dans [doc/regles](doc/regles/developpement.md).
 
 ## Désinstaller
 

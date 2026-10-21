@@ -1,0 +1,84 @@
+# Listes et actions
+
+[Guide de l'antenne](README.md) › Listes et actions
+
+- [Listes](#listes)
+- [Enregistrer, annuler, fermer](#enregistrer-annuler-fermer)
+- [Agir sur plusieurs sonores ou banques](#agir-sur-plusieurs-sonores-ou-banques)
+- [Dupliquer un élément](#dupliquer-un-élément)
+- [Supprimer un élément](#supprimer-un-élément)
+
+## Listes
+
+Les onglets **Événements**, **Séquences**, **Banques**, **Sonores** et **Marques-pages** donnent chacun la liste de tous les éléments de ce type.
+
+![La liste des événements : le spécial, les émissions, les fils musicaux et l'événement de secours, du plus prioritaire au moins prioritaire](../captures/liste-evenements.png)
+
+| Onglet | Colonnes | Ordre |
+| --- | --- | --- |
+| Événements | nom, nom public, priorité, début, fin, jours, anomalie (`événement vide`) | du plus prioritaire au moins prioritaire, puis par nom |
+| Séquences | nom, nom public, anomalie (`séquence vide`) | par nom |
+| Banques | nom, nom public, mode, « ne pas répéter », premier répertoire | par nom |
+| Sonores | artiste, titre, type, état, durée, emplacement, anomalie (`hors durées` d'une banque) | par artiste, puis par titre |
+| Marques-pages | nom, adresse, nombre de streams qui le suivent | par nom |
+
+- **Filtre** : le champ « Filtrer… » garde les lignes dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : `cafe` trouve « Café à minuit », `stream` tous les streams. Le compte dit combien de lignes restent, « 2 sonores sur 340 ».
+- **Anomalies** : une séquence ou un événement vide, un sonore hors des durées d'une banque, a l'icône d'avertissement, et son infobulle dit pourquoi. Taper `vide` dans le filtre ne garde que les éléments vides.
+- **Tri** : un clic sur le titre d'une colonne trie la liste ; un second inverse l'ordre.
+- **Mise à jour** : une liste se relit chaque fois que son onglet s'ouvre, et par <kbd>F5</kbd>.
+- **Ouvrir** : un double-clic sur une ligne, ou <kbd>Entrée</kbd>, ouvre la fiche de l'élément.
+- **Créer** : **Nouvel événement**, **Nouvelle séquence**, **Nouvelle banque**, **Nouveau stream** et **Nouveau marque-page** ouvrent une fiche vide. La liste des sonores a aussi **Ajouter des fichiers…** ([Ajouter un sonore](sonores.md#ajouter-un-sonore)).
+- **Clic droit** : **Dupliquer**, dans les listes Événements, Séquences et Banques ; des actions sur plusieurs éléments, dans les listes Sonores et Banques.
+
+## Enregistrer, annuler, fermer
+
+Toutes les fiches, d'un événement, d'une séquence, d'une banque, d'un sonore ou d'un marque-page, se comportent de la même façon :
+
+- **Un onglet par élément** : une fiche déjà ouverte revient au premier plan.
+- **Enregistrer** écrit toutes les modifications à la fois ; **Annuler** remet la fiche telle qu'elle est en base. Les deux boutons ne servent que quand la fiche est modifiée.
+- **Refus** : un nom interne vide, ou déjà pris par un élément du même type, n'est pas enregistré ; la fiche dit pourquoi, et garde ses modifications. De même si la base ne répond pas : « Enregistrement impossible : … ».
+- **Fermer une fiche modifiée**, par son onglet ou en fermant la fenêtre, demande quoi faire : **Enregistrer** (<kbd>Entrée</kbd>), **Abandonner**, ou **Annuler** (<kbd>Échap</kbd>), qui la garde ouverte.
+- **Pendant la modification**, ce qu'une indexation ou la diffusion change en base (un sonore rattaché à une banque, un sonore qui expire) est gardé à l'enregistrement.
+
+## Agir sur plusieurs sonores ou banques
+
+Dans les listes **Sonores** et **Banques**, plusieurs lignes se sélectionnent à la fois, avec <kbd>Ctrl</kbd> (une par une) ou <kbd>Maj</kbd> (d'une ligne à une autre). Le **clic droit** propose des actions sur toute la sélection. Chacune demande confirmation, « Désactiver 3 sonores ? », puis la barre d'état dit ce qui a changé, « 2 sonores désactivés. ».
+
+| Liste | Action | Effet |
+| --- | --- | --- |
+| Sonores | **Activer**, **Désactiver** | L'état des sonores choisis. Un sonore en aperçu le reste, jusqu'à sa vérification. |
+| Sonores | **Ajouter à des banques…** | Chaque sonore s'ajoute à la fin de chaque banque choisie, s'il n'y est pas déjà. |
+| Sonores | **Retirer de banques…** | Les sonores sont retirés des banques choisies. Un sonore dont le fichier est dans un répertoire de la banque y reviendra à la prochaine indexation. |
+| Sonores | **Demander un audit complet** | La prochaine indexation, même rapide, vérifie ces fichiers en entier et mesure leurs blancs. La colonne État dit « actif, audit demandé » en attendant. |
+| Banques | **Demander l'audit complet de leurs sonores** | La même demande, pour tous les sonores des banques choisies. |
+| Banques | **Masquer l'artiste et le titre**, **Afficher l'artiste et le titre**, **Artiste et titre hérités du sonore** | Le réglage « Artiste et titre » de chaque banque choisie. |
+
+## Dupliquer un élément
+
+Pour créer une variante d'un événement, d'une séquence ou d'une banque, **Dupliquer** en fait une copie : le bouton au pied de sa fiche, ou le clic droit sur sa ligne. Le bouton n'est actif que pour un élément enregistré, sans modification en cours.
+
+La copie s'ouvre dans un nouvel onglet, par exemple « Nouvelle séquence, copie de Passage pub ». **Rien n'est enregistré tant qu'on n'a pas cliqué sur Enregistrer.** Son nom interne est celui de l'original suivi de « (copie) », puis « (copie 2) »… ; on le change avant d'enregistrer.
+
+| Copie d'une | Elle garde | Elle n'a pas |
+| --- | --- | --- |
+| Séquence | le nom public, le masquage et tous les éléments | — |
+| Événement | la priorité, le nom public, le masquage et la liste de lecture | de dates ni de jours : choisir son créneau avant d'enregistrer |
+| Banque | le nom public, le mode, le masquage, « ne pas répéter », les crossfades, les durées et les répertoires | de sonores : la prochaine indexation la remplit depuis ses répertoires |
+
+L'original n'est jamais modifié.
+
+## Supprimer un élément
+
+Chaque fiche a un bouton **Supprimer…**. Il demande toujours confirmation : **Supprimer**, ou **Annuler** (<kbd>Entrée</kbd> et <kbd>Échap</kbd> annulent). La question dit où l'élément figure, et ce qui n'aurait plus rien après son retrait.
+
+**Seule l'entrée en base est supprimée.** Les fichiers sonores et les répertoires des banques restent à leur place, intacts. L'historique de diffusion garde ses passages.
+
+| Élément supprimé | Retiré de | Ce qui reste |
+| --- | --- | --- |
+| Sonore | ses banques, séquences et listes d'événements | Son fichier. S'il est dans un répertoire de banque, la prochaine indexation l'enregistre de nouveau : la question le rappelle. |
+| Banque | ses séquences et listes d'événements | Ses répertoires et leurs fichiers ; ses sonores. |
+| Séquence | ses listes d'événements | Ses sonores et ses banques. |
+| Événement | — | Ses sonores, banques et séquences. Les streams qui l'avaient pour secours n'en ont plus. |
+| Marque-page | — | Rien : un marque-page qu'un stream suit ne se supprime pas. |
+
+La fiche se ferme après la suppression.
