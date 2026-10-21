@@ -12,6 +12,7 @@ from pathlib import Path
 
 import gi
 import pytest
+import tomlkit
 from PySide6.QtGui import QColor, QIcon, QImage, QPainter
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QApplication
@@ -408,3 +409,46 @@ def icone_de_l_application(application_qt: QApplication) -> None:
 @then(parsers.parse("l'application se réclame du raccourci « {nom} »"))
 def nom_du_raccourci(application_qt: QApplication, nom: str) -> None:
 	assert application_qt.desktopFileName() == nom
+
+
+# ─── Icône choisie (https://github.com/dascritch/machincast/issues/111) ─────
+
+
+@given(parsers.parse("une image PNG « {nom} »"), target_fixture="image")
+def image_png(tmp_path: Path, nom: str) -> Path:
+	chemin = tmp_path / nom
+	image = QImage(32, 32, QImage.Format.Format_ARGB32)
+	image.fill(QColor("#c0392b"))
+	assert image.save(str(chemin), "PNG")
+	return chemin
+
+
+@when(
+	parsers.parse(
+		"je lance « python -m machincast.installation {action} » avec une configuration dont l'icône est cette image"
+	),
+	target_fixture="commande",
+)
+def lancer_avec_une_icone(tmp_path: Path, image: Path, action: str) -> subprocess.CompletedProcess[str]:
+	configuration = tmp_path / "icone.toml"
+	document = tomlkit.parse(chemin_configuration_test().read_text(encoding="utf-8"))
+	if "interface" not in document:
+		document.add("interface", tomlkit.table())
+	section = document["interface"]
+	assert isinstance(section, tomlkit.items.Table)
+	section["icone"] = str(image)
+	configuration.write_text(tomlkit.dumps(document), encoding="utf-8")
+	return lancer(action, configuration)
+
+
+@then("le raccourci a l'icône de cette image")
+def icone_de_l_image(commande: subprocess.CompletedProcess[str], image: Path) -> None:
+	assert _section(commande.stdout, "Desktop Entry")["Icon"] == str(image), commande.stdout
+
+
+@when(
+	parsers.parse("le raccourci est rédigé pour le répertoire « {repertoire} », avec l'icône « {icone} »"),
+	target_fixture="redige",
+)
+def rediger_avec_une_icone(repertoire: str, icone: str) -> str:
+	return raccourci(Path(repertoire), Path(icone))

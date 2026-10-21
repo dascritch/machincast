@@ -366,3 +366,19 @@ def suggestions_au_lancement(contexte: Contexte, etat: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/119"""
 	assert contexte.configuration is not None, contexte.erreur
 	assert contexte.configuration.interface.suggestions is (etat == "actives")
+
+
+# ─── Icône de l'interface (https://github.com/dascritch/machincast/issues/111) ───
+
+
+@then("l'icône de l'interface est celle de MachinCast")
+def icone_par_defaut(contexte: Contexte) -> None:
+	assert contexte.configuration is not None
+	assert contexte.configuration.interface.icone is None
+
+
+@then(parsers.parse("l'icône de l'interface est \"{relatif}\" à côté du fichier de configuration"))
+def icone_relative(contexte: Contexte, relatif: str) -> None:
+	assert contexte.configuration is not None
+	assert contexte.chemin is not None
+	assert contexte.configuration.interface.icone == contexte.chemin.parent / relatif

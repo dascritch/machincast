@@ -310,3 +310,34 @@ Fonctionnalité: Fichier de configuration
 			| une configuration valide sans section "interface"                 | actives  |
 			| une configuration valide où la clé "interface.suggestions" vaut true  | actives  |
 			| une configuration valide où la clé "interface.suggestions" vaut false | éteintes |
+
+	# ─── Icône de l'interface (https://github.com/dascritch/machincast/issues/111) ───────
+
+	Scénario: Sans clé interface.icone, l'interface a l'icône de MachinCast
+		Étant donné une configuration valide sans section "interface"
+		Quand je charge la configuration
+		Alors l'icône de l'interface est celle de MachinCast
+
+	Plan du scénario: La clé interface.icone désigne une image SVG, PNG ou JPEG, relative au fichier de configuration
+		Étant donné une configuration valide où la clé "interface.icone" vaut "<chemin>"
+		Quand je charge la configuration
+		Alors l'icône de l'interface est "<chemin>" à côté du fichier de configuration
+
+		Exemples:
+			| chemin           |
+			| images/logo.png  |
+			| logo.SVG         |
+			| photos/radio.jpg |
+			| radio.jpeg       |
+
+	Plan du scénario: Une icône qui n'est pas une image SVG, PNG ou JPEG est refusée
+		Étant donné une configuration valide où la clé "interface.icone" vaut <valeur>
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "interface.icone"
+
+		Exemples:
+			| valeur                |
+			| "logo.gif"            |
+			| "musique/jingle.mp3"  |
+			| "logo"                |
+			| true                  |

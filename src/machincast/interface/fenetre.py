@@ -45,9 +45,9 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QShortcut
-from PySide6.QtWidgets import QLabel, QMainWindow, QTabBar, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QTabBar, QWidget
 
-from machincast import service
+from machincast import raccourci, service
 from machincast.configuration import Audio, Blancs, Crossfades, Interface
 from machincast.horloge import Horloge
 from machincast.interface import (
@@ -61,6 +61,7 @@ from machincast.interface import (
 	version,
 )
 from machincast.interface.ajout import ajouter_fichiers
+from machincast.interface.application import identifier
 from machincast.interface.calendrier import UNE_HEURE, Calendrier, date_longue
 from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.etat import ARRET, EtatLecture
@@ -164,6 +165,9 @@ class FenetrePrincipale(QMainWindow):
 		self.saturation = ((interface) or (Interface())).saturation
 		"""Le voyant « Saturation » de l'accueil est affiché (https://github.com/dascritch/machincast/issues/191)."""
 		self.suggestions = ((interface) or (Interface())).suggestions
+		self.icone = ((interface) or (Interface())).icone
+		"""L'icône choisie pour l'application ; None : celle de MachinCast
+		(https://github.com/dascritch/machincast/issues/111)."""
 		"""Au lancement, proposer ce qui manque pour démarrer (https://github.com/dascritch/machincast/issues/119)."""
 		"""Seuil de blanc du fichier de configuration, que montrent les préférences."""
 		self.connexion = connexion
@@ -233,6 +237,28 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.onglets.currentChanged.connect(self._onglet_ouvert)
 		self.ui.onglets.tabCloseRequested.connect(self._fermer)
 		self._creer_les_raccourcis()
+		if not identifier(self._application(), self.icone):
+			self.statusBar().showMessage(
+				f"Icône {self.icone} illisible ou introuvable : icône de MachinCast à la place."
+			)
+
+	@staticmethod
+	def _application() -> QApplication:
+		application = QApplication.instance()
+		assert isinstance(application, QApplication)
+		return application
+
+	def _changer_d_icone(self, icone: Path | None) -> str:
+		"""L'icône choisie, pour les fenêtres et les raccourcis déjà installés ; ce qu'en dit la barre d'état."""
+		self.icone = icone
+		identifier(self._application(), icone)
+		try:
+			lieux = raccourci.reecrire(icone)
+		except OSError as erreur:
+			return f" Raccourcis non mis à jour : {erreur}."
+		if not lieux:
+			return ""
+		return f" Icône mise à jour {' et '.join(lieux)}."
 
 	def _garnir_menus(self) -> None:
 		"""Fichier, Affichage, Diffusion, Maintenance, Aide ; une fonction à venir a son entrée, inactive, avec son
@@ -740,6 +766,7 @@ class FenetrePrincipale(QMainWindow):
 			self.seuil_blancs,
 			self.saturation,
 			self.suggestions,
+			self.icone,
 		)
 		reglages = dialogues.regler_preferences(self, montres, audio.sortie)
 		if reglages is None:
@@ -754,6 +781,9 @@ class FenetrePrincipale(QMainWindow):
 		self.saturation = reglages.saturation
 		self.suggestions = reglages.suggestions
 		self.accueil.montrer_la_saturation(self.saturation)
+		icone = ""
+		if reglages.icone != self.icone:
+			icone = self._changer_d_icone(reglages.icone)
 		texte = "les crossfades par défaut"
 		if reglages.antenne != audio.peripherique:
 			texte = "les crossfades par défaut et le périphérique de l'antenne"
@@ -767,7 +797,7 @@ class FenetrePrincipale(QMainWindow):
 		self.accueil.changer_d_antenne(self.audio)
 		self.statusBar().showMessage(
 			f"Préférences enregistrées dans {self.configuration} ;"
-			f" Machin lecture prendra {texte} à son prochain démarrage."
+			f" Machin lecture prendra {texte} à son prochain démarrage.{icone}"
 		)
 
 	def _signaler_l_antenne(self) -> None:

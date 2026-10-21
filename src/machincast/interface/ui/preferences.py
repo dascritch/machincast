@@ -17,8 +17,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractButton, QApplication, QCheckBox, QComboBox,
     QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout,
-    QGroupBox, QLabel, QSizePolicy, QSpacerItem,
-    QTabWidget, QVBoxLayout, QWidget)
+    QGroupBox, QHBoxLayout, QLabel, QPushButton,
+    QSizePolicy, QSpacerItem, QTabWidget, QVBoxLayout,
+    QWidget)
 
 class Ui_FenetrePreferences(object):
     def setupUi(self, FenetrePreferences):
@@ -98,6 +99,49 @@ class Ui_FenetrePreferences(object):
 
 
         self.disposition_interface.addWidget(self.groupe_accueil)
+
+        self.groupe_icone = QGroupBox(self.page_interface)
+        self.groupe_icone.setObjectName(u"groupe_icone")
+        self.disposition_icone = QVBoxLayout(self.groupe_icone)
+        self.disposition_icone.setObjectName(u"disposition_icone")
+        self.ligne_icone = QHBoxLayout()
+        self.ligne_icone.setObjectName(u"ligne_icone")
+        self.icone_apercu = QLabel(self.groupe_icone)
+        self.icone_apercu.setObjectName(u"icone_apercu")
+        self.icone_apercu.setMinimumSize(QSize(48, 48))
+        self.icone_apercu.setMaximumSize(QSize(48, 48))
+
+        self.ligne_icone.addWidget(self.icone_apercu)
+
+        self.icone_chemin = QLabel(self.groupe_icone)
+        self.icone_chemin.setObjectName(u"icone_chemin")
+        self.icone_chemin.setWordWrap(True)
+        self.icone_chemin.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        self.ligne_icone.addWidget(self.icone_chemin)
+
+        self.choisir_icone = QPushButton(self.groupe_icone)
+        self.choisir_icone.setObjectName(u"choisir_icone")
+
+        self.ligne_icone.addWidget(self.choisir_icone)
+
+        self.icone_par_defaut = QPushButton(self.groupe_icone)
+        self.icone_par_defaut.setObjectName(u"icone_par_defaut")
+
+        self.ligne_icone.addWidget(self.icone_par_defaut)
+
+        self.ligne_icone.setStretch(1, 1)
+
+        self.disposition_icone.addLayout(self.ligne_icone)
+
+        self.icone_erreur = QLabel(self.groupe_icone)
+        self.icone_erreur.setObjectName(u"icone_erreur")
+        self.icone_erreur.setWordWrap(True)
+
+        self.disposition_icone.addWidget(self.icone_erreur)
+
+
+        self.disposition_interface.addWidget(self.groupe_icone)
 
         self.explication = QLabel(self.page_interface)
         self.explication.setObjectName(u"explication")
@@ -228,6 +272,18 @@ class Ui_FenetrePreferences(object):
         self.suggestions.setText(QCoreApplication.translate("FenetrePreferences", u"Proposer au lancement ce qui manque pour d\u00e9marrer", None))
 #if QT_CONFIG(tooltip)
         self.suggestions.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Fil musical, banques de base et p\u00e9riph\u00e9rique de l'antenne, dans une fen\u00eatre au lancement de l'interface.", None))
+#endif // QT_CONFIG(tooltip)
+        self.groupe_icone.setTitle(QCoreApplication.translate("FenetrePreferences", u"Ic\u00f4ne de l'application", None))
+#if QT_CONFIG(tooltip)
+        self.groupe_icone.setToolTip(QCoreApplication.translate("FenetrePreferences", u"L'ic\u00f4ne des fen\u00eatres de MachinCast, de son raccourci dans le menu des applications et sur le bureau, et de la barre des t\u00e2ches.", None))
+#endif // QT_CONFIG(tooltip)
+        self.choisir_icone.setText(QCoreApplication.translate("FenetrePreferences", u"&Choisir une image\u2026", None))
+#if QT_CONFIG(tooltip)
+        self.choisir_icone.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Une image SVG, PNG ou JPEG, de pr\u00e9f\u00e9rence carr\u00e9e", None))
+#endif // QT_CONFIG(tooltip)
+        self.icone_par_defaut.setText(QCoreApplication.translate("FenetrePreferences", u"Ic\u00f4ne de MachinCast", None))
+#if QT_CONFIG(tooltip)
+        self.icone_par_defaut.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Revenir \u00e0 l'ic\u00f4ne de MachinCast", None))
 #endif // QT_CONFIG(tooltip)
         self.explication.setText(QCoreApplication.translate("FenetrePreferences", u"Les fiches ouvertes ensuite suivent ces r\u00e9glages. Machin lecture prend les dur\u00e9es par d\u00e9faut \u00e0 son prochain d\u00e9marrage.", None))
         self.pages.setTabText(self.pages.indexOf(self.page_interface), QCoreApplication.translate("FenetrePreferences", u"Interface", None))

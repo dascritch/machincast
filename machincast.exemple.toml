@@ -79,3 +79,8 @@ seuil = -40
 # de l'antenne (https://github.com/dascritch/machincast/issues/119). true par défaut ; false l'éteint, comme la case
 # « Ne plus proposer au lancement » de sa fenêtre.
 # suggestions = true
+# Icône de l'application (https://github.com/dascritch/machincast/issues/111) : une image SVG, PNG ou JPEG, de
+# préférence carrée, pour les fenêtres de MachinCast, ses raccourcis et la barre des tâches. Sans cette clé, ou si
+# l'image manque sur le poste, l'icône de MachinCast. Se choisit aussi dans les préférences, page « Interface », qui
+# l'écrit ici et met à jour les raccourcis déjà installés.
+# icone = "/home/radio/images/logo-radio.png"
