@@ -6,6 +6,7 @@ tests/etapes_diffusion.py. La pré-écoute joue sur la sortie factice des tests,
 VU-mètre avancent comme sur un vrai périphérique. Les périphériques du poste sont remplacés par ceux du scénario.
 """
 
+import re
 import shutil
 import tomllib
 from datetime import timedelta
@@ -15,6 +16,7 @@ import psycopg
 from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QApplication
 from pytest_bdd import given, parsers, scenarios, then, when
+from pytestqt.exceptions import TimeoutError as DelaiDepasse
 from pytestqt.qtbot import QtBot
 
 from machincast.interface.preecoute import FenetrePreecoute
@@ -111,10 +113,22 @@ def informations(interface: Contexte, qtbot: QtBot, datatable: list[list[str]]) 
 	champs = {"Format": ui.format, "Échantillonnage": ui.echantillonnage, "Canaux": ui.canaux}
 	attendues = [(nom.strip(), valeur.strip()) for nom, valeur in datatable[1:]]
 
-	def lues() -> list[tuple[str, str]]:
-		return [(nom, champs[nom].text()) for nom, _valeur in attendues]
+	def conforme(lue: str, attendue: str) -> bool:
+		"""« contient « FLAC » » : le libellé, qui vient de GStreamer, contient ce nom ; sinon, égal."""
+		contenu = re.fullmatch(r"contient « (.+) »", attendue)
+		if contenu is not None:
+			return contenu.group(1) in lue
+		return lue == attendue
 
-	qtbot.waitUntil(lambda: lues() == attendues, timeout=DELAI)
+	def toutes() -> bool:
+		return all(conforme(champs[nom].text(), valeur) for nom, valeur in attendues)
+
+	try:
+		qtbot.waitUntil(toutes, timeout=DELAI)
+	except DelaiDepasse as erreur:
+		# Les valeurs lues, pour comprendre l'écart sur un autre poste.
+		lues = {nom: champs[nom].text() for nom, _valeur in attendues}
+		raise AssertionError(f"informations lues : {lues}, attendues : {dict(attendues)}") from erreur
 
 
 @then("le débit de la pré-écoute est bientôt donné en kbit/s")
