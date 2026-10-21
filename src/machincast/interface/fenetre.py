@@ -46,7 +46,7 @@ from PySide6.QtWidgets import QLabel, QMainWindow, QTabBar, QWidget
 from machincast import service
 from machincast.configuration import Audio, Blancs, Crossfades
 from machincast.horloge import Horloge
-from machincast.interface import dialogues, indexation, pilotage, preferences, version
+from machincast.interface import dialogues, groupes, indexation, pilotage, preferences, version
 from machincast.interface.ajout import ajouter_fichiers
 from machincast.interface.calendrier import UNE_HEURE, Calendrier, date_longue
 from machincast.interface.ecran_par_defaut import EcranParDefaut
@@ -100,6 +100,11 @@ REGLER_L_ANTENNE = (
 	" dans audio.peripherique du fichier de configuration."
 )
 DEJA_EN_MARCHE = "La diffusion d'essai tourne déjà"
+
+AJOUT_A_DES_BANQUES = "Les sonores choisis s'ajoutent à la fin de chaque banque."
+"""Remarque du choix des banques où ajouter des sonores (https://github.com/dascritch/machincast/issues/114)."""
+RETRAIT_DE_BANQUES = "Seules les banques où figure l'un des sonores choisis sont proposées."
+"""Remarque du choix des banques d'où retirer des sonores."""
 
 
 class FenetrePrincipale(QMainWindow):
@@ -176,6 +181,7 @@ class FenetrePrincipale(QMainWindow):
 			liste.ouverte.connect(self._ouvrir)
 			liste.creation_demandee.connect(lambda genre: self._ouvrir_fiche(genre, None))
 			liste.duplication_demandee.connect(self._dupliquer)
+			liste.action_demandee.connect(lambda cle, elements, liste=liste: self._agir(liste, cle, elements))
 			liste.ajout_demande.connect(
 				lambda liste=liste: self._ajouter_fichiers(liste, dialogues.choisir_fichiers(self))
 			)
@@ -423,6 +429,34 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.onglets.removeTab(self.ui.onglets.indexOf(fiche))
 		fiche.fermer()
 		fiche.deleteLater()
+
+	def _agir(self, liste: Liste, cle: str, elements: list[int]) -> None:
+		"""Une action sur la sélection d'une liste (https://github.com/dascritch/machincast/issues/114) : le choix des
+		banques s'il en faut, la confirmation, puis l'action en une transaction ; la liste se relit et la barre d'état
+		annonce ce qui a changé. Un choix abandonné, ou une confirmation refusée, ne change rien."""
+		action = groupes.action(liste.source.genre, cle)
+		banques: list[int] = []
+		try:
+			if action.choix == "toutes":
+				banques = dialogues.choisir_banques(self, self.connexion, AJOUT_A_DES_BANQUES)
+			elif action.choix == "leurs":
+				with self.connexion.transaction():
+					parmi = groupes.banques_des_sonores(self.connexion, elements)
+				banques = dialogues.choisir_banques(self, self.connexion, RETRAIT_DE_BANQUES, parmi)
+			if (action.choix != "") and (banques == []):
+				return
+			with self.connexion.transaction():
+				noms = groupes.noms_des_banques(self.connexion, banques)
+			if not dialogues.confirmer_action(self, action.titre, action.question(len(elements), noms)):
+				return
+			with self.connexion.transaction():
+				annonce = action.executer(self.connexion, elements, banques)
+		except psycopg.Error as erreur:
+			journal.error(f"{action.titre} : impossible : {erreur}")
+			self.ui.barre_d_etat.showMessage(f"{action.titre} : impossible : {erreur}")
+			return
+		self.ui.barre_d_etat.showMessage(annonce)
+		liste.actualiser()
 
 	def _ajouter_fichiers(self, liste: Liste, chemins: list[Path]) -> None:
 		"""Les fichiers entrent en base à l'état aperçu, puis l'indexeur les vérifie, en tâche de fond."""

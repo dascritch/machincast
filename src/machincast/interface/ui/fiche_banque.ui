@@ -306,7 +306,7 @@
            <bool>true</bool>
           </property>
           <property name="selectionMode">
-           <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+           <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
           </property>
           <property name="rootIsDecorated">
            <bool>false</bool>
@@ -322,6 +322,11 @@
           <column>
            <property name="text">
             <string>Durée</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>État</string>
            </property>
           </column>
           <column>

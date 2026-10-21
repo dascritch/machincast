@@ -74,6 +74,20 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 			| tape Échap               | False   |
 			| tape Entrée              | False   |
 
+	Plan du scénario: La confirmation d'une action sur une sélection ne la fait que sur son bouton, ou Entrée
+		# https://github.com/dascritch/machincast/issues/114
+		Quand la confirmation de l'action « Désactiver » s'ouvre, et que j'y <geste>
+		Alors la question a dit « Désactiver 2 sonores ? Un sonore en aperçu reste en aperçu. »
+		Et la question a proposé « Désactiver », « Annuler »
+		Et la réponse est « <reponse> »
+
+		Exemples:
+			| geste                     | reponse |
+			| clique sur « Désactiver » | True    |
+			| clique sur « Annuler »    | False   |
+			| tape Échap                | False   |
+			| tape Entrée               | True    |
+
 	Plan du scénario: La création d'un événement depuis le calendrier ne se fait que sur « Créer »
 		# https://github.com/dascritch/machincast/issues/36 : rien n'est enregistré avant la fiche, Entrée crée.
 		Quand la question de création s'ouvre, et que j'y <geste>
@@ -109,6 +123,7 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 		Quand le choix des <genre> s'ouvre, avec la remarque « <remarque> », et que j'y sélectionne tout, puis clique sur « <bouton> »
 		Alors le choix s'est intitulé « Ajouter des <genre> »
 		Et le choix n'a proposé ni création ni ajout de fichiers
+		Et le choix n'a proposé aucune action au clic droit
 		Et le choix a expliqué « <explication> »
 		Et les <genre> choisis sont <choisis>
 
@@ -120,6 +135,17 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 			| banques | Une banque peut revenir.   | Annuler | Choisir parmi les banques déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une banque peut revenir. | aucun                       |
 			| séquences | Une séquence peut revenir. | Ajouter | Choisir parmi les séquences déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une séquence peut revenir. | « Passage pub » |
 			| marques-pages | Un élément peut revenir. | Ajouter | Choisir parmi les marques-pages déjà en base (Ctrl ou Maj pour en prendre plusieurs). Un élément peut revenir. | « Relais » |
+
+	Scénario: Le choix des banques peut ne proposer que certaines d'entre elles
+		# https://github.com/dascritch/machincast/issues/114
+		Étant donné les sonores :
+			| artiste     | titre         | type    | etat  | duree | emplacement                  |
+			|             | Spot          | fichier | actif | 30    | /srv/pubs/spot.flac          |
+		Et la banque « Publicité », aléatoire, sans nom public, avec « Spot »
+		Et la banque « Habillage », séquentielle, sans nom public, avec « Spot »
+		Et la banque « Nuit », aléatoire, sans nom public, avec « Spot »
+		Quand le choix des banques s'ouvre, parmi « Publicité », « Nuit », et que j'y sélectionne tout, puis clique sur « Ajouter »
+		Alors les banques choisies sont « Nuit », « Publicité »
 
 	Scénario: Ouvrir un dossier le montre dans le navigateur de fichiers du poste
 		Quand j'ouvre le dossier « /srv/jingles/hiver »

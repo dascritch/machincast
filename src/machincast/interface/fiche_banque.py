@@ -29,6 +29,11 @@ une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interf
   (https://github.com/dascritch/machincast/issues/96).
 - À l'enregistrement, les sonores qu'une indexation a rattachés à la banque depuis l'ouverture de la fiche sont gardés,
   en fin de liste ; un sonore effacé de la base entre-temps est oublié.
+- Sélection multiple (https://github.com/dascritch/machincast/issues/114) : Ctrl et Maj choisissent plusieurs sonores.
+  « Retirer le sonore » les retire tous, avec un seul avertissement pour ceux des répertoires de la fiche ; « Monter »
+  et « Descendre » ne servent qu'à un sonore seul. Le clic droit propose « Activer » et « Désactiver » : la colonne
+  État montre aussitôt l'état choisi, que « Enregistrer » écrit avec le reste de la fiche et qu'« Annuler » oublie.
+  Un sonore en aperçu reste en aperçu, un fichier déposé aussi.
 - Sa copie (https://github.com/dascritch/machincast/issues/130) garde tout sauf sa liste de sonores : nom public, mode,
   masquage, « ne pas répéter », crossfades, durées et répertoires. Ses répertoires la rempliront à la prochaine
   indexation.
@@ -40,7 +45,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTime
+from PySide6.QtCore import QPoint, Qt, QTime
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
 	QAbstractItemView,
@@ -48,6 +53,7 @@ from PySide6.QtWidgets import (
 	QComboBox,
 	QDoubleSpinBox,
 	QHeaderView,
+	QMenu,
 	QTimeEdit,
 	QTreeWidgetItem,
 	QWidget,
@@ -59,6 +65,7 @@ from machincast.interface import affichage, dialogues, preferences
 from machincast.interface.depot import DepotDeFichiers
 from machincast.interface.dialogues import Retrait
 from machincast.interface.fiche import Connexion, Fiche, Refus, fichiers_sonores
+from machincast.interface.listes import ETATS
 from machincast.interface.ui.fiche_banque import Ui_FicheBanque
 
 MODES = (("sequentiel", "Séquentielle"), ("aleatoire", "Aléatoire"))
@@ -75,10 +82,18 @@ FICHIER = Qt.ItemDataRole.UserRole + 1
 """Rôle qui porte le chemin du fichier du sonore, None pour un stream."""
 DUREE = Qt.ItemDataRole.UserRole + 2
 """Rôle qui porte la durée du sonore, absente quand elle est inconnue."""
+ETAT = Qt.ItemDataRole.UserRole + 3
+"""Rôle qui porte l'état du sonore en base ; « apercu » pour un fichier déposé."""
+ETAT_CHOISI = Qt.ItemDataRole.UserRole + 4
+"""Rôle qui porte l'état choisi au clic droit, écrit à l'enregistrement ; absent sans choix."""
+COLONNE_ETAT = 2
+ETATS_CHOISIS = (("actif", "Activer"), ("desactive", "Désactiver"))
+"""Les états qui se choisissent au clic droit sur les sonores, et leur entrée de menu."""
 LIGNE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsDragEnabled
 """Une ligne de sonore se glisse, mais rien ne se dépose dedans : la liste reste à plat."""
 SONORES_LUS = (
-	"SELECT s.id, s.artiste, s.titre, s.duree, s.emplacement, COALESCE(s.emplacement, s.url_stream, m.url)"
+	"SELECT s.id, s.artiste, s.titre, s.duree, s.emplacement, COALESCE(s.emplacement, s.url_stream, m.url),"
+	" s.etat::text"
 	" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
 )
 
@@ -87,6 +102,20 @@ DEJA_DANS_LA_BANQUE = "Un sonore qui est déjà dans la banque n'y est pas ajout
 """Remarque du choix des sonores."""
 DOSSIER_SUR_LES_SONORES = " Un dossier se dépose sur les répertoires indexés."
 """Conseil pour un dossier déposé sur les sonores."""
+
+
+def avertissement_retrait_groupe(sonores: list[str], repertoires: list[str]) -> str:
+	"""L'avertissement d'un retrait de sonores des répertoires de la banque ; celui d'un seul sonore, pour un seul."""
+	if (len(sonores) == 1) and (len(repertoires) == 1):
+		return avertissement_retrait(sonores[0], repertoires[0])
+	noms = ", ".join(f"« {sonore} »" for sonore in sonores)
+	ou = f"du répertoire {repertoires[0]}, indexé"
+	if len(repertoires) > 1:
+		ou = f"des répertoires {', '.join(repertoires)}, indexés"
+	return (
+		f"{noms} sont des fichiers {ou} par cette banque : la prochaine indexation les y remettra. Pour les écarter"
+		" pour de bon, déplacez leurs fichiers hors de ces répertoires, en dehors de MachinCast."
+	)
 
 
 def avertissement_retrait(sonore: str, repertoire: str) -> str:
@@ -148,6 +177,9 @@ class FicheBanque(Fiche):
 		modele.rowsRemoved.connect(self._modifier)
 		self.ui.repertoires.currentItemChanged.connect(self._actualiser_boutons)
 		self.ui.sonores.currentItemChanged.connect(self._actualiser_boutons)
+		self.ui.sonores.itemSelectionChanged.connect(self._actualiser_boutons)
+		self.ui.sonores.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+		self.ui.sonores.customContextMenuRequested.connect(self._menu_des_sonores)
 		self.ui.sonores.itemActivated.connect(self._ouvrir_sonore)
 		self.ui.ajouter_repertoire.clicked.connect(self._ajouter_repertoire)
 		self.ui.retirer_repertoire.clicked.connect(self._retirer_repertoire)
@@ -278,7 +310,47 @@ class FicheBanque(Fiche):
 			(identifiant, self._repertoires()),
 		)
 		self._ecrire_sonores(identifiant)
+		self._ecrire_les_etats()
 		return identifiant
+
+	def _ecrire_les_etats(self) -> None:
+		"""Les états choisis au clic droit ; un sonore passé en aperçu entre-temps y reste."""
+		for ligne in self._lignes():
+			choisi = ligne.data(0, ETAT_CHOISI)
+			sonore = ligne.data(0, SONORE)
+			if (choisi is not None) and (sonore is not None):
+				self.connexion.execute(
+					"UPDATE sonores SET etat = %s WHERE id = %s AND etat <> 'apercu'", (choisi, int(sonore))
+				)
+
+	def menu_des_sonores(self, ligne: QTreeWidgetItem | None) -> QMenu | None:
+		"""Le menu du clic droit sur cette ligne : sur les sonores choisis si elle en fait partie, sur elle seule
+		sinon ; aucun hors d'une ligne."""
+		if ligne is None:
+			return None
+		lignes = self.ui.sonores.selectedItems()
+		if ligne not in lignes:
+			lignes = [ligne]
+		menu = QMenu(self)
+		for etat, texte in ETATS_CHOISIS:
+			entree = menu.addAction(texte)
+			entree.triggered.connect(lambda _coche=False, etat=etat: self._choisir_l_etat(lignes, etat))
+		return menu
+
+	def _menu_des_sonores(self, position: QPoint) -> None:
+		menu = self.menu_des_sonores(self.ui.sonores.itemAt(position))
+		if menu is not None:
+			menu.exec(self.ui.sonores.viewport().mapToGlobal(position))
+			menu.deleteLater()
+
+	def _choisir_l_etat(self, lignes: list[QTreeWidgetItem], etat: str) -> None:
+		"""L'état choisi se montre aussitôt ; un sonore en aperçu, ou pas encore en base, garde le sien."""
+		for ligne in lignes:
+			if ligne.data(0, ETAT) == "apercu":
+				continue
+			ligne.setData(0, ETAT_CHOISI, etat)
+			ligne.setText(COLONNE_ETAT, ETATS[etat])
+		self._modifier()
 
 	def _crossfades(self) -> tuple[tuple[QComboBox, QDoubleSpinBox], tuple[QComboBox, QDoubleSpinBox]]:
 		"""La règle et la durée du crossfade de début, puis celles du crossfade de fin."""
@@ -346,7 +418,7 @@ class FicheBanque(Fiche):
 
 	def _ligne(self, sonore: tuple[object, ...]) -> QTreeWidgetItem:
 		"""Une ligne de sonore ; un fichier déposé, pas encore en base, n'a pas d'identifiant."""
-		identifiant, artiste, titre, duree, fichier, emplacement = sonore
+		identifiant, artiste, titre, duree, fichier, emplacement, etat = sonore
 		texte_duree = ""
 		if fichier is None:
 			texte_duree = affichage.duree(None)
@@ -356,7 +428,8 @@ class FicheBanque(Fiche):
 		if (artiste is None) and (titre is None) and (fichier is not None):
 			# Pas encore décodé : le nom du fichier en attendant ses tags.
 			texte = Path(str(fichier)).name
-		ligne = QTreeWidgetItem([texte, texte_duree, str((emplacement) or (""))])
+		ligne = QTreeWidgetItem([texte, texte_duree, ETATS.get(str(etat), str(etat)), str((emplacement) or (""))])
+		ligne.setData(0, ETAT, str(etat))
 		if identifiant is not None:
 			ligne.setData(0, SONORE, int(str(identifiant)))
 		ligne.setData(0, FICHIER, _texte(fichier))
@@ -396,11 +469,11 @@ class FicheBanque(Fiche):
 		self.ui.sonores.setDragDropMode(mode)
 		self.depot_sonores.accepter()
 		liste = self.ui.sonores
-		ligne = liste.currentItem()
-		self.ui.retirer_sonore.setEnabled(ligne is not None)
+		choisies = liste.selectedItems()
+		self.ui.retirer_sonore.setEnabled(choisies != [])
 		rangee = -1
-		if ligne is not None:
-			rangee = liste.indexOfTopLevelItem(ligne)
+		if len(choisies) == 1:
+			rangee = liste.indexOfTopLevelItem(choisies[0])
 		self.ui.monter.setEnabled((sequentiel) and (rangee > 0))
 		self.ui.descendre.setEnabled((sequentiel) and (0 <= rangee < liste.topLevelItemCount() - 1))
 
@@ -435,7 +508,7 @@ class FicheBanque(Fiche):
 		presents |= {ligne.data(0, FICHIER) for ligne in self._lignes()}
 		lignes = []
 		for fichier in fichiers:
-			sonore = par_fichier.get(fichier, (None, None, None, None, fichier, fichier))
+			sonore = par_fichier.get(fichier, (None, None, None, None, fichier, fichier, "apercu"))
 			cle = sonore[0]
 			if cle is None:
 				cle = fichier
@@ -467,18 +540,31 @@ class FicheBanque(Fiche):
 		self._actualiser_boutons()
 
 	def _retirer_sonore(self) -> None:
-		ligne = self.ui.sonores.currentItem()
-		if ligne is None:
+		"""Les sonores choisis ; ceux des répertoires de la fiche y reviendront à la prochaine indexation, ce qu'un seul
+		avertissement dit pour tous. « Ouvrir le dossier » ouvre celui du premier."""
+		lignes = [ligne for ligne in self._lignes() if ligne.isSelected()]
+		if lignes == []:
 			return
-		fichier = ligne.data(0, FICHIER)
-		repertoire = self._repertoire_de(fichier)
+		reintegres = [
+			(ligne, repertoire)
+			for ligne in lignes
+			if (repertoire := self._repertoire_de(ligne.data(0, FICHIER))) is not None
+		]
 		reponse = Retrait.RETIRER
-		if repertoire is not None:
-			reponse = dialogues.confirmer_retrait(self, avertissement_retrait(ligne.text(0), repertoire))
+		if reintegres != []:
+			sonores = [ligne.text(0) for ligne, _repertoire in reintegres]
+			repertoires = list(dict.fromkeys(repertoire for _ligne, repertoire in reintegres))
+			reponse = dialogues.confirmer_retrait(self, avertissement_retrait_groupe(sonores, repertoires))
 		if reponse is Retrait.RETIRER:
-			self.ui.sonores.takeTopLevelItem(self.ui.sonores.indexOfTopLevelItem(ligne))
+			for ligne in lignes:
+				self.ui.sonores.takeTopLevelItem(self.ui.sonores.indexOfTopLevelItem(ligne))
+			# La ligne qui suit devient la ligne choisie, prête à être retirée à son tour.
+			suivante = self.ui.sonores.currentItem()
+			if suivante is not None:
+				self.ui.sonores.setCurrentItem(suivante)
 		elif reponse is Retrait.OUVRIR_DOSSIER:
-			dialogues.ouvrir_dossier(Path(str(fichier)).parent)
+			premiere, _repertoire = reintegres[0]
+			dialogues.ouvrir_dossier(Path(str(premiere.data(0, FICHIER))).parent)
 		self._actualiser_boutons()
 
 	def _repertoire_de(self, fichier: object) -> str | None:
