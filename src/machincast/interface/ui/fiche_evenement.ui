@@ -312,7 +312,7 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="pied" stretch="0,1,0,0">
+    <layout class="QHBoxLayout" name="pied" stretch="0,0,1,0,0">
      <item>
       <widget class="QPushButton" name="supprimer">
        <property name="text">
@@ -320,6 +320,16 @@
        </property>
        <property name="toolTip">
         <string>Supprime l'élément de la base, après confirmation ; aucun fichier n'est touché.</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="dupliquer">
+       <property name="text">
+        <string>Dupliquer</string>
+       </property>
+       <property name="toolTip">
+        <string>Ouvre une copie de l'élément dans une nouvelle fiche ; rien n'est enregistré avant « Enregistrer ».</string>
        </property>
       </widget>
      </item>

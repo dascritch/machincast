@@ -130,9 +130,10 @@ class ListeElements(QObject):
 		boutons.monter.clicked.connect(lambda: self._deplacer(-1))
 		boutons.descendre.clicked.connect(lambda: self._deplacer(1))
 
-	def charger(self, parent: int | None) -> None:
-		"""Lit en base les éléments de la séquence ou de l'événement, dans l'ordre ; aucun pour un nouveau. À appeler
-		dans une transaction."""
+	def charger(self, parent: int | None, copie: bool = False) -> None:
+		"""Lit en base les éléments de la séquence ou de l'événement, dans l'ordre ; aucun pour un nouveau. Une copie
+		(https://github.com/dascritch/machincast/issues/130) les lit comme des lignes ajoutées : l'enregistrement les
+		crée pour elle, et laisse celles de l'original. À appeler dans une transaction."""
 		self._lire_marquees()
 		rangees: list[tuple[object, ...]] = []
 		if parent is not None:
@@ -153,7 +154,8 @@ class ListeElements(QObject):
 		for ligne_en_base, genre, identifiant in elements:
 			# Un même élément peut revenir : chaque ligne a son exemplaire.
 			ligne = lus[genre][identifiant].clone()
-			ligne.setData(0, LIGNE_EN_BASE, ligne_en_base)
+			if not copie:
+				ligne.setData(0, LIGNE_EN_BASE, ligne_en_base)
 			lignes.append(ligne)
 		self.liste.addTopLevelItems(lignes)
 		self._actualiser_boutons()
@@ -208,7 +210,11 @@ class ListeElements(QObject):
 		)
 		for position, (ligne, genre, element) in enumerate(gardes, start=1):
 			if ligne is not None:
-				connexion.execute(f"UPDATE {self.table} SET position = %s WHERE id = %s", (position, ligne))  # noqa: S608
+				# Une ligne n'est jamais reprise d'une autre séquence ou d'un autre événement.
+				connexion.execute(
+					f"UPDATE {self.table} SET position = %s WHERE id = %s AND {self.parent_colonne} = %s",  # noqa: S608
+					(position, ligne, parent),
+				)
 				continue
 			connexion.execute(
 				f"INSERT INTO {self.table} ({self.parent_colonne}, position, {COLONNES[genre]})"  # noqa: S608

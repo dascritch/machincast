@@ -8,6 +8,8 @@ l'écran de détail de l'élément (signal ouverte). Une liste peut avoir un bou
 (signal creation_demandee) : « Nouvelle banque » (https://github.com/dascritch/machincast/issues/31). Une ligne en
 anomalie, une séquence ou un événement vide, a l'icône d'avertissement, une infobulle qui l'explique, et le compte les
 dénombre (https://github.com/dascritch/machincast/issues/138, https://github.com/dascritch/machincast/issues/140).
+Le clic droit sur une ligne d'événement, de séquence ou de banque propose « Dupliquer » (signal duplication_demandee,
+https://github.com/dascritch/machincast/issues/130).
 """
 
 import logging
@@ -18,9 +20,9 @@ from datetime import datetime, timedelta
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSortFilterProxyModel, Qt, Signal
+from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QPoint, QSortFilterProxyModel, Qt, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QHeaderView, QLabel, QLineEdit, QTableView, QWidget
+from PySide6.QtWidgets import QHeaderView, QLabel, QLineEdit, QMenu, QTableView, QWidget
 
 from machincast.interface import affichage
 from machincast.interface.depot import DepotDeFichiers
@@ -80,6 +82,8 @@ class Source:
 	"""Texte du bouton qui crée un élément de ce type ; aucun bouton sans texte."""
 	fichiers: str = ""
 	"""Texte du bouton qui ajoute des fichiers, qui se déposent aussi sur la liste ; ni bouton ni dépôt sans texte."""
+	duplicable: bool = False
+	"""Le clic droit sur une ligne propose « Dupliquer »."""
 
 
 def _texte(valeur: object) -> str:
@@ -223,6 +227,7 @@ BANQUES = Source(
 	"banques",
 	"aucune banque",
 	"Nouvelle banque",
+	duplicable=True,
 )
 SEQUENCES = Source(
 	"séquence",
@@ -232,6 +237,7 @@ SEQUENCES = Source(
 	"séquences",
 	"aucune séquence",
 	"Nouvelle séquence",
+	duplicable=True,
 )
 EVENEMENTS = Source(
 	"événement",
@@ -241,6 +247,7 @@ EVENEMENTS = Source(
 	"événements",
 	"aucun événement",
 	"Nouvel événement",
+	duplicable=True,
 )
 MARQUES_PAGES = Source(
 	"marque-page",
@@ -289,6 +296,8 @@ class Liste(QWidget):
 	"""Bouton d'ajout de fichiers cliqué."""
 	fichiers_deposes = Signal(list)
 	"""Fichiers déposés sur la liste (list[Path]) : https://github.com/dascritch/machincast/issues/30."""
+	duplication_demandee = Signal(str, int)
+	"""« Dupliquer » choisi au clic droit sur une ligne : genre et identifiant de l'élément."""
 
 	def __init__(
 		self, source: Source, connexion: Connexion, parent: QWidget | None = None, actions: bool = True
@@ -321,6 +330,10 @@ class Liste(QWidget):
 		if (actions) and (source.fichiers != ""):
 			self.depot = DepotDeFichiers(self.table)
 			self.depot.deposes.connect(self.fichiers_deposes)
+		self.duplicable = (actions) and (source.duplicable)
+		if self.duplicable:
+			self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+			self.table.customContextMenuRequested.connect(self._menu)
 		self._compter()
 
 	@property
@@ -379,6 +392,24 @@ class Liste(QWidget):
 		if nombre > 1:
 			return self.source.pluriel
 		return self.source.singulier
+
+	def menu_de_la_ligne(self, index: QModelIndex) -> QMenu | None:
+		"""Le menu du clic droit sur cette ligne de la table ; aucun hors d'une ligne, ou pour une liste qui ne duplique
+		pas."""
+		if (not self.duplicable) or (not index.isValid()):
+			return None
+		premiere = self.modele.index(self.proxy.mapToSource(index).row(), 0)
+		element = int(premiere.data(IDENTIFIANT))
+		menu = QMenu(self)
+		dupliquer = menu.addAction("Dupliquer")
+		dupliquer.triggered.connect(lambda: self.duplication_demandee.emit(self.source.genre, element))
+		return menu
+
+	def _menu(self, position: QPoint) -> None:
+		menu = self.menu_de_la_ligne(self.table.indexAt(position))
+		if menu is not None:
+			menu.exec(self.table.viewport().mapToGlobal(position))
+			menu.deleteLater()
 
 	def _ouvrir(self, index: QModelIndex) -> None:
 		premiere = self.modele.index(self.proxy.mapToSource(index).row(), 0)
