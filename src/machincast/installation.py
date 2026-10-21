@@ -35,6 +35,7 @@ gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
 from machincast import audio as sorties_audio  # noqa: E402
+from machincast import raccourci as rediger_le_raccourci  # noqa: E402
 from machincast.audio import GREFFONS, Greffon, SortieAudioIndisponible, creer_sortie  # noqa: E402
 from machincast.base import appliquer_migrations, url_yoyo  # noqa: E402
 from machincast.cli import lancer  # noqa: E402
@@ -249,50 +250,13 @@ polkit.addRule(function (action, subject) {{
 """
 
 
-ICONE = Path(__file__).resolve().parent / "interface" / "machincast.svg"
-"""L'icône de MachinCast, dans le paquet : celle du raccourci et de la fenêtre de l'interface
-(https://github.com/dascritch/machincast/issues/62)."""
-RESERVES = frozenset(" \t\n\"'\\><~|&;$*?#()`")
-"""Caractères qui imposent de citer un argument de la clé Exec (Desktop Entry Specification, « The Exec key »)."""
+ICONE = rediger_le_raccourci.ICONE
 
 
-def _argument(texte: str) -> str:
-	"""Un argument de la clé Exec, cité s'il contient un caractère réservé ; dans les guillemets, « " », « ` », « $ » et
-	« \\ » sont précédés d'une barre oblique inversée."""
-	if not any(caractere in RESERVES for caractere in texte):
-		return texte
-	cite = "".join(f"\\{caractere}" if caractere in '"`$\\' else caractere for caractere in texte)
-	return f'"{cite}"'
-
-
-def _chaine(texte: str) -> str:
-	"""Une valeur de type chaîne d'une entrée .desktop : la barre oblique inversée y est doublée."""
-	return texte.replace("\\", "\\\\")
-
-
-def raccourci(repertoire: Path = REPERTOIRE_PROJET) -> str:
-	"""Le raccourci de l'interface (Desktop Entry Specification 1.5) : Machin interface, lancé depuis le répertoire de
-	MachinCast (clé Path), avec l'icône de MachinCast. StartupWMClass est le nom de l'application, que Qt donne pour
-	classe à ses fenêtres sous X11 ; sous Wayland, l'application se réclame du raccourci par son nom, machincast."""
-	commande = f"{_argument(str(repertoire / 'bin' / 'Machin'))} interface".replace("%", "%%")
-	icone = repertoire / ICONE.relative_to(REPERTOIRE_PROJET)
-	return f"""# Raccourci de l'interface de MachinCast (https://github.com/dascritch/machincast/issues/62).
-# Installé par install.sh ; ne pas modifier ici, relancer install.sh.
-[Desktop Entry]
-Type=Application
-Version=1.5
-Name=MachinCast
-GenericName=Diffusion radio automatisée
-Comment=Programmer l'antenne et suivre la diffusion
-Exec={_chaine(commande)}
-Path={_chaine(str(repertoire))}
-Icon={_chaine(str(icone))}
-Terminal=false
-Categories=AudioVideo;Audio;
-Keywords=radio;antenne;diffusion;programmation;
-StartupNotify=true
-StartupWMClass=MachinCast
-"""
+def raccourci(repertoire: Path = REPERTOIRE_PROJET, icone: Path | None = None) -> str:
+	"""Le raccourci de l'interface (machincast.raccourci), avec l'icône choisie s'il y en a une qui existe
+	(https://github.com/dascritch/machincast/issues/111)."""
+	return rediger_le_raccourci.rediger(repertoire, icone)
 
 
 def _unite(_configuration: Configuration) -> int:
@@ -306,8 +270,8 @@ def _regle(_configuration: Configuration) -> int:
 	return 0
 
 
-def _raccourci(_configuration: Configuration) -> int:
-	sys.stdout.write(raccourci())
+def _raccourci(configuration: Configuration) -> int:
+	sys.stdout.write(raccourci(icone=configuration.interface.icone))
 	return 0
 
 

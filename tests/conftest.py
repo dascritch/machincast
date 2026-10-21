@@ -53,6 +53,16 @@ def reglages_des_vues(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 	return chemin
 
 
+@pytest.fixture(autouse=True)
+def raccourcis_du_test(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+	"""Le menu des applications et le bureau, dans le répertoire du test : jamais les raccourcis du compte qui lance
+	les tests (https://github.com/dascritch/machincast/issues/111)."""
+	from machincast import raccourci
+
+	monkeypatch.setattr(raccourci, "DOSSIER_MENU", tmp_path / "applications")
+	monkeypatch.setattr(raccourci, "DOSSIER_BUREAU", tmp_path / "Bureau")
+
+
 @pytest.fixture
 def base_vide() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
 	"""Base de test migrée et vide : le schéma est recréé une fois par session, puis les tables sont purgées."""

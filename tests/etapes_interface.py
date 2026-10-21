@@ -140,6 +140,11 @@ class Contexte:
 	(https://github.com/dascritch/machincast/issues/191)."""
 	saturations_montrees: list[bool] = field(default_factory=list)
 	"""Le voyant « Saturation » montré par la fenêtre des préférences, à chaque ouverture."""
+	icone_reglee: tuple[Path | None] | None = None
+	"""L'icône que donnera la fenêtre des préférences, None dans le tuple pour celle de MachinCast ; None : inchangée
+	(https://github.com/dascritch/machincast/issues/111)."""
+	icones_montrees: list[Path | None] = field(default_factory=list)
+	"""L'icône montrée par la fenêtre des préférences, à chaque ouverture."""
 	configuration_initiale: bytes = b""
 	"""Le fichier de configuration à l'ouverture de la fenêtre."""
 
@@ -243,11 +248,13 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		interface.audio_montre.append((montres.antenne, montres.preecoute))
 		interface.seuils_montres.append(montres.seuil_blancs)
 		interface.saturations_montrees.append(montres.saturation)
+		interface.icones_montrees.append(montres.icone)
 		if (
 			(interface.preferences_reglees is None)
 			and (interface.reglages_audio is None)
 			and (interface.seuil_regle is None)
 			and (interface.saturation_reglee is None)
+			and (interface.icone_reglee is None)
 		):
 			return None
 		antenne, preecoute = (interface.reglages_audio) or ((montres.antenne, montres.preecoute))
@@ -257,6 +264,9 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		saturation = montres.saturation
 		if interface.saturation_reglee is not None:
 			saturation = interface.saturation_reglee
+		icone = montres.icone
+		if interface.icone_reglee is not None:
+			icone = interface.icone_reglee[0]
 		return Reglages(
 			(interface.preferences_reglees) or (montres.crossfades),
 			antenne,
@@ -264,6 +274,7 @@ def remplacer_dialogues(interface: Contexte) -> None:
 			seuil,
 			saturation,
 			montres.suggestions,
+			icone,
 		)
 
 	monkeypatch.setattr(dialogues, "regler_preferences", preferences)

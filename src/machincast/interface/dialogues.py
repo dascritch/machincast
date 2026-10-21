@@ -14,7 +14,7 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox, QWidget
 
-from machincast.configuration import SortieAudio
+from machincast.configuration import EXTENSIONS_D_ICONE, SortieAudio
 from machincast.interface.choix import Choix
 from machincast.interface.listes import BANQUES, MARQUES_PAGES, SEQUENCES, SONORES
 from machincast.interface.preferences import FenetrePreferences, Reglages
@@ -154,6 +154,16 @@ def choisir_fichiers(parent: QWidget) -> list[Path]:
 		parent, "Ajouter des fichiers sonores", "", f"Fichiers sonores ({motifs});;Tous les fichiers (*)"
 	)
 	return [Path(chemin) for chemin in choisis]
+
+
+def choisir_icone(parent: QWidget) -> Path | None:
+	"""L'image choisie pour icône de l'application (https://github.com/dascritch/machincast/issues/111) ; None si le
+	choix est abandonné."""
+	motifs = " ".join(f"*{extension}" for extension in sorted(EXTENSIONS_D_ICONE))
+	chemin, _filtre = QFileDialog.getOpenFileName(parent, "Icône de l'application", "", f"Images ({motifs})")
+	if chemin == "":
+		return None
+	return Path(chemin)
 
 
 def choisir_export(parent: QWidget, propose: str, filtres: list[str]) -> tuple[Path, str] | None:

@@ -125,6 +125,13 @@ class Interface:
 	suggestions: bool = True
 	"""Au lancement, l'interface propose de créer ce qui manque pour démarrer
 	(https://github.com/dascritch/machincast/issues/119)."""
+	icone: Path | None = None
+	"""L'image choisie pour icône de l'application, ses fenêtres et ses raccourcis ; None : celle de MachinCast
+	(https://github.com/dascritch/machincast/issues/111)."""
+
+
+EXTENSIONS_D_ICONE = frozenset({".svg", ".png", ".jpg", ".jpeg"})
+"""Les images acceptées pour icône, quelle que soit la casse de l'extension."""
 
 
 @dataclass(frozen=True)
@@ -149,7 +156,7 @@ CLES: dict[str, frozenset[str]] = {
 	"lecture": frozenset({"socket_etat"}),
 	"crossfades": frozenset({"granularite", "maximum", "debut", "fin"}),
 	"blancs": frozenset({"seuil"}),
-	"interface": frozenset({"saturation", "suggestions"}),
+	"interface": frozenset({"saturation", "suggestions", "icone"}),
 }
 
 
@@ -211,6 +218,14 @@ class _Lecteur:
 		if self.texte_facultatif(section, cle) is None:
 			return None
 		return self.chemin_fichier(section, cle)
+
+	def icone(self) -> Path | None:
+		"""interface.icone : une image SVG, PNG ou JPEG ; elle peut manquer sur le poste, l'interface prend alors
+		l'icône de MachinCast."""
+		chemin = self.chemin_facultatif("interface", "icone")
+		if (chemin is not None) and (chemin.suffix.lower() not in EXTENSIONS_D_ICONE):
+			raise self.erreur(f"clé interface.icone : image SVG, PNG ou JPEG attendue, « {chemin.name} » trouvé")
+		return chemin
 
 	def booleen(self, section: str, cle: str) -> bool:
 		valeur = self._valeur(section, cle, obligatoire=True)
@@ -365,5 +380,6 @@ def charger(chemin: Path | None = None) -> Configuration:
 		interface=Interface(
 			saturation=lecteur.booleen_facultatif("interface", "saturation", True),
 			suggestions=lecteur.booleen_facultatif("interface", "suggestions", True),
+			icone=lecteur.icone(),
 		),
 	)

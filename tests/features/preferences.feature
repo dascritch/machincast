@@ -278,3 +278,99 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| casque-usb  | Casque USB |
 		Quand la fenêtre des préférences s'ouvre sur l'antenne « casque-usb » et la pré-écoute « casque-usb »
 		Alors son bouton « OK » est inactif
+
+	# ─── Icône de l'interface (https://github.com/dascritch/machincast/issues/111) ───
+
+	Scénario: L'icône choisie dans les préférences va dans la section [interface], et l'application la prend aussitôt
+		Étant donné une image PNG « …/logo.png »
+		Et les préférences seront réglées avec l'icône « …/logo.png »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors l'application a l'icône de MachinCast
+		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Alors les préférences ont montré l'icône de MachinCast
+		Et le fichier de configuration donne l'icône « …/logo.png »
+		Et le fichier de configuration contient encore les autres sections
+		Et l'application a l'icône « …/logo.png »
+
+	Scénario: Les raccourcis déjà installés prennent aussitôt l'icône choisie, sans qu'aucun soit créé
+		Étant donné une image PNG « …/logo.png »
+		Et le raccourci de MachinCast installé dans le menu des applications
+		Et les préférences seront réglées avec l'icône « …/logo.png »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors le raccourci du menu des applications a l'icône « …/logo.png »
+		Et il n'y a pas de raccourci de MachinCast sur le bureau
+		Et la barre d'état dit « Icône mise à jour dans le menu des applications »
+
+	Scénario: Le raccourci du bureau prend l'icône choisie, et reste exécutable
+		Étant donné une image PNG « …/logo.png »
+		Et le raccourci de MachinCast installé dans le menu des applications
+		Et le raccourci de MachinCast installé sur le bureau
+		Et les préférences seront réglées avec l'icône « …/logo.png »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors le raccourci du menu des applications a l'icône « …/logo.png »
+		Et le raccourci du bureau a l'icône « …/logo.png », et reste exécutable
+		Et la barre d'état dit « Icône mise à jour dans le menu des applications et sur le bureau »
+
+	Scénario: Revenir à l'icône de MachinCast retire la clé, et les raccourcis la reprennent
+		Étant donné une image PNG « …/logo.png »
+		Et le fichier de configuration de l'interface a l'icône « …/logo.png »
+		Et le raccourci de MachinCast installé dans le menu des applications
+		Et les préférences seront réglées avec l'icône de MachinCast
+		Quand la fenêtre de l'interface s'ouvre
+		Alors l'application a l'icône « …/logo.png »
+		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Alors les préférences ont montré l'icône « …/logo.png »
+		Et le fichier de configuration n'a pas d'icône
+		Et l'application a l'icône de MachinCast
+		Et le raccourci du menu des applications a l'icône de MachinCast
+
+	Scénario: Garder la même icône ne réécrit pas les raccourcis
+		Étant donné une image PNG « …/logo.png »
+		Et le fichier de configuration de l'interface a l'icône « …/logo.png »
+		Et le raccourci de MachinCast installé dans le menu des applications
+		Et les préférences seront réglées avec le voyant « Saturation » caché
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors le raccourci du menu des applications a l'icône de MachinCast
+		Et la barre d'état ne dit pas « Icône mise à jour »
+
+	Scénario: Une icône introuvable au lancement laisse celle de MachinCast, et la barre d'état le dit
+		Étant donné le fichier de configuration de l'interface a l'icône « …/disparu.png »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors l'application a l'icône de MachinCast
+		Et la barre d'état dit « Icône …/disparu.png illisible ou introuvable : icône de MachinCast à la place. »
+
+	Scénario: La page « Interface » montre l'icône, en fait choisir une autre, et donne celle qui est choisie
+		Étant donné une image PNG « …/logo.png »
+		Quand la fenêtre des préférences s'ouvre sur l'icône de MachinCast
+		Alors elle montre l'icône de MachinCast
+		Et son bouton « Icône de MachinCast » est inactif
+		Quand j'y choisis l'image « …/logo.png »
+		Alors elle montre l'icône « …/logo.png »
+		Et son bouton « Icône de MachinCast » est actif
+		Quand j'y clique sur « OK »
+		Alors elle a donné l'icône « …/logo.png »
+
+	Scénario: Le bouton « Icône de MachinCast » revient à l'icône par défaut
+		Étant donné une image PNG « …/logo.png »
+		Quand la fenêtre des préférences s'ouvre sur l'icône « …/logo.png »
+		Alors elle montre l'icône « …/logo.png »
+		Quand j'y clique sur le bouton « Icône de MachinCast »
+		Alors elle montre l'icône de MachinCast
+		Quand j'y clique sur « OK »
+		Alors elle a donné l'icône de MachinCast
+
+	Scénario: Une image illisible n'est pas prise, et la page le dit
+		Étant donné un fichier « …/faux.png » qui n'est pas une image
+		Quand la fenêtre des préférences s'ouvre sur l'icône de MachinCast
+		Et j'y choisis l'image « …/faux.png »
+		Alors elle montre l'icône de MachinCast
+		Et elle signale « Image illisible : …/faux.png »
+
+	Scénario: Renoncer au choix d'une image ne change rien
+		Étant donné une image PNG « …/logo.png »
+		Quand la fenêtre des préférences s'ouvre sur l'icône « …/logo.png »
+		Et j'y renonce au choix d'une image
+		Alors elle montre l'icône « …/logo.png »

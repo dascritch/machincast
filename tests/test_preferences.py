@@ -6,17 +6,20 @@ du poste.
 """
 
 import re
+import stat
 import tomllib
 from collections.abc import Iterator
 from datetime import timedelta
 from pathlib import Path
 
 import pytest
-from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QComboBox, QDialogButtonBox, QDoubleSpinBox, QWidget
+import tomlkit
+from PySide6.QtGui import QColor, QIcon, QImage, QStandardItemModel
+from PySide6.QtWidgets import QApplication, QComboBox, QDialogButtonBox, QDoubleSpinBox, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
+from machincast import raccourci
 from machincast.configuration import Crossfades, charger
 from machincast.interface import __main__ as module_interface
 from machincast.interface import application as module_application
@@ -26,6 +29,7 @@ from machincast.interface.fiche_banque import FicheBanque
 from machincast.interface.fiche_sonore import FicheSonore
 from machincast.interface.preferences import FenetrePreferences, Reglages
 from machincast.interface.suggestions import Reponse
+from machincast.raccourci import ICONE
 from tests.base_test import configuration_test
 from tests.etapes_interface import Connexion, Contexte, fenetre, fichier_de_configuration, ouvrir_la_fenetre
 from tests.modales import quand_modale
@@ -594,3 +598,164 @@ def decocher_les_suggestions(ouverte: Ouverte) -> None:
 def suggestions_donnees(ouverte: Ouverte, etat: str) -> None:
 	assert ouverte.donnes is not None
 	assert ouverte.donnes.suggestions is (etat == "actives")
+
+
+# ─── Icône de l'interface (https://github.com/dascritch/machincast/issues/111) ───
+
+
+def _image(chemin: Path | None) -> QImage:
+	"""L'icône, à 32 pixels : celle de MachinCast pour None."""
+	return QIcon(str((chemin) or (ICONE))).pixmap(32).toImage()
+
+
+def _icone(interface: Contexte, texte: str | None) -> Path | None:
+	"""« de MachinCast » donne None, « « …/logo.png » » le chemin dans le répertoire du scénario."""
+	if texte is None:
+		return None
+	return Path(interface.chemin_dans(texte))
+
+
+ICONE_DU_SCENARIO = r"(?:de MachinCast|« (?P<chemin>[^»]+) »)"
+
+
+@given(parsers.parse("une image PNG « {chemin} »"))
+def image_png(interface: Contexte, chemin: str) -> None:
+	image = QImage(32, 32, QImage.Format.Format_ARGB32)
+	image.fill(QColor("#c0392b"))
+	assert image.save(interface.chemin_dans(chemin), "PNG")
+
+
+@given(parsers.parse("un fichier « {chemin} » qui n'est pas une image"))
+def fausse_image(interface: Contexte, chemin: str) -> None:
+	Path(interface.chemin_dans(chemin)).write_text("pas une image", encoding="utf-8")
+
+
+@given(parsers.re(rf"les préférences seront réglées avec l'icône {ICONE_DU_SCENARIO}"))
+def icone_reglee(interface: Contexte, chemin: str | None) -> None:
+	interface.icone_reglee = (_icone(interface, chemin),)
+
+
+@given(parsers.parse("le fichier de configuration de l'interface a l'icône « {chemin} »"))
+def configuration_avec_icone(interface: Contexte, chemin: str) -> None:
+	fichier = fichier_de_configuration(interface)
+	document = tomlkit.parse(fichier.read_text(encoding="utf-8"))
+	if "interface" not in document:
+		document.add("interface", tomlkit.table())
+	section = document["interface"]
+	assert isinstance(section, tomlkit.items.Table)
+	section["icone"] = interface.chemin_dans(chemin)
+	fichier.write_text(tomlkit.dumps(document), encoding="utf-8")
+
+
+def _lieu(lieu: str) -> Path:
+	if lieu == "dans le menu des applications":
+		return raccourci.dossier_du_menu() / raccourci.NOM
+	dossier = raccourci.dossier_du_bureau()
+	assert dossier is not None
+	return dossier / raccourci.NOM
+
+
+@given(parsers.re(r"le raccourci de MachinCast installé (?P<lieu>dans le menu des applications|sur le bureau)"))
+def raccourci_installe(lieu: str) -> None:
+	chemin = _lieu(lieu)
+	chemin.parent.mkdir(parents=True, exist_ok=True)
+	chemin.write_text(raccourci.rediger(), encoding="utf-8")
+	chemin.chmod(0o755 if lieu == "sur le bureau" else 0o644)
+
+
+def _icone_du_raccourci(chemin: Path) -> str:
+	lignes = [ligne for ligne in chemin.read_text(encoding="utf-8").splitlines() if ligne.startswith("Icon=")]
+	assert len(lignes) == 1, lignes
+	return lignes[0].removeprefix("Icon=")
+
+
+@then(parsers.re(rf"le raccourci du menu des applications a l'icône {ICONE_DU_SCENARIO}"))
+def raccourci_du_menu(interface: Contexte, chemin: str | None) -> None:
+	attendue = (_icone(interface, chemin)) or (ICONE)
+	assert _icone_du_raccourci(_lieu("dans le menu des applications")) == str(attendue)
+
+
+@then(parsers.re(rf"le raccourci du bureau a l'icône {ICONE_DU_SCENARIO}, et reste exécutable"))
+def raccourci_du_bureau(interface: Contexte, chemin: str | None) -> None:
+	fichier = _lieu("sur le bureau")
+	assert _icone_du_raccourci(fichier) == str((_icone(interface, chemin)) or (ICONE))
+	assert stat.S_IMODE(fichier.stat().st_mode) == 0o755
+
+
+@then("il n'y a pas de raccourci de MachinCast sur le bureau")
+def pas_de_raccourci_sur_le_bureau() -> None:
+	assert not _lieu("sur le bureau").exists()
+
+
+@then(parsers.re(rf"l'application a l'icône {ICONE_DU_SCENARIO}"))
+def icone_de_l_application(interface: Contexte, chemin: str | None) -> None:
+	application = QApplication.instance()
+	assert isinstance(application, QApplication)
+	assert application.windowIcon().pixmap(32).toImage() == _image(_icone(interface, chemin))
+
+
+@then(parsers.re(rf"les préférences ont montré l'icône {ICONE_DU_SCENARIO}"))
+def icone_montree(interface: Contexte, chemin: str | None) -> None:
+	assert interface.icones_montrees == [_icone(interface, chemin)]
+
+
+@then(parsers.parse("le fichier de configuration donne l'icône « {chemin} »"))
+def icone_du_fichier(interface: Contexte, chemin: str) -> None:
+	document = tomllib.loads(fichier_de_configuration(interface).read_text(encoding="utf-8"))
+	assert document["interface"]["icone"] == interface.chemin_dans(chemin)
+
+
+@then("le fichier de configuration n'a pas d'icône")
+def sans_icone(interface: Contexte) -> None:
+	document = tomllib.loads(fichier_de_configuration(interface).read_text(encoding="utf-8"))
+	assert "icone" not in document.get("interface", {}), document
+
+
+@then(parsers.re(r"la barre d'état (?P<sens>dit|ne dit pas) « (?P<texte>[^»]+) »"))
+def barre_d_etat_dit(interface: Contexte, sens: str, texte: str) -> None:
+	message = fenetre(interface).statusBar().currentMessage()
+	assert (interface.chemin_dans(texte) in message) is (sens == "dit"), message
+
+
+@when(parsers.re(rf"la fenêtre des préférences s'ouvre sur l'icône {ICONE_DU_SCENARIO}"))
+def ouvrir_sur_l_icone(interface: Contexte, ouverte: Ouverte, parent: QWidget, chemin: str | None) -> None:
+	tous = Reglages(Crossfades(), None, PREECOUTE_DES_TESTS, icone=_icone(interface, chemin))
+	ouverte.fenetre = FenetrePreferences(tous, "factice", parent)
+
+
+@then(parsers.re(rf"elle montre l'icône {ICONE_DU_SCENARIO}"))
+def montre_l_icone(interface: Contexte, ouverte: Ouverte, chemin: str | None) -> None:
+	ui = la_fenetre(ouverte).ui
+	attendue = _icone(interface, chemin)
+	texte = preferences.ICONE_PAR_DEFAUT
+	if attendue is not None:
+		texte = str(attendue)
+	assert ui.icone_chemin.text() == texte
+	assert ui.icone_apercu.pixmap().toImage() == QIcon(str((attendue) or (ICONE))).pixmap(48).toImage()
+
+
+@then(parsers.re(r"son bouton « Icône de MachinCast » est (?P<etat>actif|inactif)"))
+def bouton_par_defaut(ouverte: Ouverte, etat: str) -> None:
+	assert la_fenetre(ouverte).ui.icone_par_defaut.isEnabled() is (etat == "actif")
+
+
+@when(parsers.re(r"j'y (?:choisis l'image « (?P<chemin>[^»]+) »|renonce au choix d'une image)"))
+def choisir_l_image(interface: Contexte, ouverte: Ouverte, monkeypatch: pytest.MonkeyPatch, chemin: str | None) -> None:
+	monkeypatch.setattr(dialogues, "choisir_icone", lambda _parent: _icone(interface, chemin))
+	la_fenetre(ouverte).ui.choisir_icone.click()
+
+
+@when("j'y clique sur le bouton « Icône de MachinCast »")
+def revenir_a_l_icone_par_defaut(ouverte: Ouverte) -> None:
+	la_fenetre(ouverte).ui.icone_par_defaut.click()
+
+
+@then(parsers.re(rf"elle a donné l'icône {ICONE_DU_SCENARIO}"))
+def icone_donnee(interface: Contexte, ouverte: Ouverte, chemin: str | None) -> None:
+	assert ouverte.donnes is not None
+	assert ouverte.donnes.icone == _icone(interface, chemin)
+
+
+@then(parsers.parse("elle signale « {texte} »"))
+def signale(interface: Contexte, ouverte: Ouverte, texte: str) -> None:
+	assert la_fenetre(ouverte).ui.icone_erreur.text() == interface.chemin_dans(texte)

@@ -181,3 +181,17 @@ Fonctionnalité: Vérifications de l'installation
 		Quand l'application Qt de l'interface est créée
 		Alors sa fenêtre a l'icône de MachinCast
 		Et l'application se réclame du raccourci « machincast »
+
+	# ─── Icône choisie (https://github.com/dascritch/machincast/issues/111) ─────
+
+	Scénario: Le raccourci prend l'icône choisie dans la configuration
+		Étant donné une image PNG « logo.png »
+		Quand je lance « python -m machincast.installation raccourci » avec une configuration dont l'icône est cette image
+		Alors la commande se termine sans erreur
+		Et le raccourci a l'icône de cette image
+
+	Scénario: Une icône choisie introuvable laisse au raccourci l'icône de MachinCast
+		Quand le raccourci est rédigé pour le répertoire « /home/radio/machincast », avec l'icône « /home/radio/disparu.png »
+		Alors le raccourci a, dans la section « Desktop Entry », entre autres :
+			| clé  | valeur                                                     |
+			| Icon | /home/radio/machincast/src/machincast/interface/machincast.svg |

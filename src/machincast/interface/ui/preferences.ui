@@ -132,6 +132,75 @@
         </widget>
        </item>
        <item>
+        <widget class="QGroupBox" name="groupe_icone">
+         <property name="title">
+          <string>Icône de l'application</string>
+         </property>
+         <property name="toolTip">
+          <string>L'icône des fenêtres de MachinCast, de son raccourci dans le menu des applications et sur le bureau, et de la barre des tâches.</string>
+         </property>
+         <layout class="QVBoxLayout" name="disposition_icone">
+          <item>
+           <layout class="QHBoxLayout" name="ligne_icone" stretch="0,1,0,0">
+            <item>
+             <widget class="QLabel" name="icone_apercu">
+              <property name="minimumSize">
+               <size>
+                <width>48</width>
+                <height>48</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>48</width>
+                <height>48</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="icone_chemin">
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+              <property name="textInteractionFlags">
+               <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="choisir_icone">
+              <property name="text">
+               <string>&amp;Choisir une image…</string>
+              </property>
+              <property name="toolTip">
+               <string>Une image SVG, PNG ou JPEG, de préférence carrée</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="icone_par_defaut">
+              <property name="text">
+               <string>Icône de MachinCast</string>
+              </property>
+              <property name="toolTip">
+               <string>Revenir à l'icône de MachinCast</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QLabel" name="icone_erreur">
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="explication">
          <property name="text">
           <string>Les fiches ouvertes ensuite suivent ces réglages. Machin lecture prend les durées par défaut à son prochain démarrage.</string>

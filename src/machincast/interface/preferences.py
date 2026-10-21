@@ -6,7 +6,9 @@ sonore sans crossfade paramétré que sa banque ne règle pas (machincast.lectur
 règle les périphériques de l'antenne (audio.peripherique), que Machin lecture prend à son prochain démarrage, et de la
 pré-écoute (audio.preecoute, https://github.com/dascritch/machincast/issues/116) : chacun est grisé dans l'autre choix ;
 elle règle aussi le seuil de blanc (blancs.seuil, https://github.com/dascritch/machincast/issues/146), que l'audit
-complet prend à son prochain passage.
+complet prend à son prochain passage. La page « Interface » choisit aussi l'icône de l'application (interface.icone,
+https://github.com/dascritch/machincast/issues/111) : une image lisible, ou celle de MachinCast ; la fenêtre principale
+la donne aussitôt à ses fenêtres et aux raccourcis déjà installés (machincast.raccourci.reecrire).
 
 - Les préférences s'enregistrent dans la section [crossfades] du fichier de configuration (ecrire), qui garde ses
   commentaires et ses autres sections : tomlkit le réécrit tel qu'il l'a lu, sauf les clés réglées. Une durée par
@@ -23,11 +25,12 @@ from pathlib import Path
 
 import tomlkit
 from PySide6.QtCore import QLocale
-from PySide6.QtGui import QStandardItemModel
+from PySide6.QtGui import QIcon, QStandardItemModel
 from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QWidget
 
 from machincast import audio as sorties_audio
 from machincast.configuration import SEUIL_DE_BLANC, Crossfades, Granularite, SortieAudio
+from machincast.interface.application import ICONE, lisible
 from machincast.interface.ui.preferences import Ui_FenetrePreferences
 
 FRANCAIS = QLocale(QLocale.Language.French, QLocale.Country.France)
@@ -39,6 +42,9 @@ GRANULARITES: tuple[tuple[Granularite, str], ...] = (
 PAS: dict[Granularite, tuple[int, float]] = {"dixieme": (1, 0.1), "seconde": (0, 1.0)}
 """Pour chaque granularité : les décimales et le pas d'un champ de crossfade."""
 
+ICONE_PAR_DEFAUT = "Icône de MachinCast"
+"""Ce que montre la page « Interface » quand aucune image n'est choisie."""
+TAILLE_DE_L_APERCU = 48
 A_RENSEIGNER = "(à renseigner)"
 """Le périphérique de l'antenne, quand la configuration ne le donne pas : Machin lecture refuse alors de diffuser."""
 
@@ -60,6 +66,9 @@ class Reglages:
 	suggestions: bool = True
 	"""interface.suggestions : au lancement, l'interface propose ce qui manque pour démarrer
 	(https://github.com/dascritch/machincast/issues/119)."""
+	icone: Path | None = None
+	"""interface.icone : l'image choisie pour icône de l'application ; None : celle de MachinCast
+	(https://github.com/dascritch/machincast/issues/111)."""
 
 
 _courantes = Crossfades()
@@ -139,6 +148,10 @@ def ecrire(chemin: Path, reglages: Reglages) -> None:
 	assert isinstance(section_interface, tomlkit.items.Table)
 	section_interface["saturation"] = reglages.saturation
 	section_interface["suggestions"] = reglages.suggestions
+	if reglages.icone is not None:
+		section_interface["icone"] = str(reglages.icone)
+	elif "icone" in section_interface:
+		del section_interface["icone"]
 	chemin.write_text(tomlkit.dumps(document), encoding="utf-8")
 
 
@@ -173,10 +186,52 @@ class FenetrePreferences(QDialog):
 		ui.seuil_blancs.setValue(tous.seuil_blancs)
 		ui.saturation.setChecked(tous.saturation)
 		ui.suggestions.setChecked(tous.suggestions)
+		self.icone = tous.icone
+		self._montrer_l_icone()
+		self._signaler("")
+		ui.choisir_icone.clicked.connect(self._choisir_l_icone)
+		ui.icone_par_defaut.clicked.connect(self._revenir_a_l_icone_par_defaut)
 		ui.granularite.currentIndexChanged.connect(self._granularite)
 		ui.maximum.valueChanged.connect(self._maximum)
 		ui.boutons.accepted.connect(self.accept)
 		ui.boutons.rejected.connect(self.reject)
+
+	def _montrer_l_icone(self) -> None:
+		"""L'aperçu et le chemin de l'icône ; « Icône de MachinCast » ne sert que pour une autre icône."""
+		ui = self.ui
+		image = ICONE
+		texte = ICONE_PAR_DEFAUT
+		if self.icone is not None:
+			image = self.icone
+			texte = str(self.icone)
+		ui.icone_apercu.setPixmap(QIcon(str(image)).pixmap(TAILLE_DE_L_APERCU))
+		ui.icone_chemin.setText(texte)
+		ui.icone_par_defaut.setEnabled(self.icone is not None)
+
+	def _choisir_l_icone(self) -> None:
+		"""Une image que Qt ne sait pas lire n'est pas prise : la page le dit."""
+		# Importé ici : dialogues ouvre cette fenêtre, et importe donc ce module.
+		from machincast.interface import dialogues
+
+		choisie = dialogues.choisir_icone(self)
+		if choisie is None:
+			return
+		if not lisible(choisie):
+			self._signaler(f"Image illisible : {choisie}")
+			return
+		self._signaler("")
+		self.icone = choisie
+		self._montrer_l_icone()
+
+	def _revenir_a_l_icone_par_defaut(self) -> None:
+		self._signaler("")
+		self.icone = None
+		self._montrer_l_icone()
+
+	def _signaler(self, texte: str) -> None:
+		"""Ce qui ne va pas avec l'image choisie ; rien, sans place prise sur la page."""
+		self.ui.icone_erreur.setText(texte)
+		self.ui.icone_erreur.setVisible(texte != "")
 
 	def _choisie(self) -> Granularite:
 		granularite: Granularite = self.ui.granularite.currentData()
@@ -223,6 +278,7 @@ class FenetrePreferences(QDialog):
 			round(ui.seuil_blancs.value(), 1),
 			ui.saturation.isChecked(),
 			ui.suggestions.isChecked(),
+			self.icone,
 		)
 
 
