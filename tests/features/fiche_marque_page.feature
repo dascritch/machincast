@@ -118,7 +118,7 @@ Fonctionnalité: Marques-pages de streams
 
 		Exemples:
 			| flux   | verdict                                  |
-			| direct | « Le flux répond : du son arrive. »      |
+			| direct | « Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 224 kbit/s. »      |
 			| muet   | qu'il ne répond pas                      |
 
 	Scénario: Fermer la fiche arrête le test en cours

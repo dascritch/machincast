@@ -38,6 +38,7 @@ from machincast.interface.frise import HAUTEUR, Frise
 from machincast.lecture.etat import SocketEtat
 from tests.base_test import CONFIGURATION_TEST, parametres_base_test
 from tests.etapes_interface import ouvrir_dans
+from tests.flux import ServeurDeFlux
 from tests.sons import FICHIERS_SONORES
 
 scenarios("ecran_par_defaut.feature")
@@ -325,6 +326,23 @@ def sonores_a_venir(contexte: Contexte, datatable: list[list[str]]) -> None:
 				"sain": ligne["sain"] == "oui",
 			}
 		)
+	publier(contexte)
+
+
+@given(parsers.parse("le prochain sonore est le stream du flux « {flux} » dans « {evenement} »"))
+def prochain_flux(contexte: Contexte, serveur: ServeurDeFlux, flux: str, evenement: str) -> None:
+	contexte.prochain = {
+		"sonore": 8,
+		"type": "stream",
+		"artiste": None,
+		"titre": "Direct studio",
+		"evenement": evenement,
+		"debut_estime": None,
+		"duree": None,
+		"fin_estimee": None,
+		"emplacement": serveur.adresse(flux),
+		"sain": None,
+	}
 	publier(contexte)
 
 
@@ -640,6 +658,7 @@ def en_cours_affiche(contexte: Contexte, qtbot: QtBot, bientot: str | None, text
 	assert ecran(contexte).ui.en_cours_titre.text() == texte
 
 
+@when(parsers.re(r"le prochain sonore est (?P<bientot>bientôt )?« (?P<texte>[^»]+) »"))
 @then(parsers.re(r"le prochain sonore est (?P<bientot>bientôt )?« (?P<texte>[^»]+) »"))
 def prochain_affiche(contexte: Contexte, qtbot: QtBot, bientot: str | None, texte: str) -> None:
 	if bientot:
@@ -919,6 +938,34 @@ def menu_a_venir(contexte: Contexte, entree: str, titre: str) -> None:
 @then(parsers.parse("la pré-écoute du sonore {sonore:d} a été demandée"))
 def preecoute_demandee(contexte: Contexte, sonore: int) -> None:
 	assert contexte.preecoutes == [sonore]
+
+
+@then(
+	parsers.re(
+		r"l'accueil propose pour le prochain sonore : pré-écoute (?P<preecoute>active|inactive),"
+		r" test du flux (?P<flux>actif|inactif|caché)"
+	)
+)
+def ecoutes_du_prochain(contexte: Contexte, preecoute: str, flux: str) -> None:
+	ui = ecran(contexte).ui
+	assert ui.preecouter_prochain.isEnabled() == (preecoute == "active")
+	assert ui.tester_le_flux_prochain.isVisibleTo(ecran(contexte)) == (flux != "caché")
+	if flux != "caché":
+		assert ui.tester_le_flux_prochain.isEnabled() == (flux == "actif")
+
+
+@when("je clique sur la frise du prochain sonore")
+def cliquer_la_frise_du_prochain(contexte: Contexte, qtbot: QtBot) -> None:
+	frise = ecran(contexte).frise_prochain
+	attendre(qtbot, lambda: frise.isVisibleTo(ecran(contexte)))
+	qtbot.mouseClick(frise, Qt.MouseButton.LeftButton, pos=frise.rect().center())
+
+
+@then(parsers.parse("le test du flux du prochain sonore dit bientôt « {texte} »"))
+def flux_du_prochain_teste(contexte: Contexte, qtbot: QtBot, texte: str) -> None:
+	etiquette = ecran(contexte).ui.prochain_flux
+	qtbot.waitUntil(lambda: etiquette.text() != "Test du flux en cours…", timeout=15000)
+	assert etiquette.text() == texte
 
 
 @then("la table de l'airplay montre :")

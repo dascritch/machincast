@@ -481,6 +481,9 @@ class Frise(QWidget):
 
 	placee = Signal(float)
 	"""Une position demandée, en secondes du fichier."""
+	cliquee = Signal()
+	"""Un clic sur une frise qui n'est pas interactive : sur l'accueil, il demande la pré-écoute du sonore
+	(https://github.com/dascritch/machincast/issues/223)."""
 
 	def __init__(self, parent: QWidget | None = None, interactive: bool = True) -> None:
 		"""interactive : un clic, un glissement ou les flèches demandent une position ; sur l'accueil, la frise ne fait
@@ -586,6 +589,8 @@ class Frise(QWidget):
 
 	def mousePressEvent(self, evenement: QMouseEvent) -> None:
 		if not self.interactive:
+			if evenement.button() == Qt.MouseButton.LeftButton:
+				self.cliquee.emit()
 			super().mousePressEvent(evenement)
 			return
 		if evenement.button() != Qt.MouseButton.LeftButton:

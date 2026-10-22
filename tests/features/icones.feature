@@ -98,6 +98,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors le bouton « preecouter » de la fiche ouverte porte l'icône « pré-écoute »
+		Et le bouton « preecouter_prochain » de l'accueil porte l'icône « pré-écoute »
 		Et le bouton « preecouter_l_antenne » de la fenêtre porte l'icône « pré-écoute »
 
 	Scénario: Les écrans n'emploient d'icônes du thème du poste que pour ce qui n'est pas un genre
