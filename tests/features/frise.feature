@@ -151,3 +151,9 @@ Fonctionnalité: Frise de la pré-écoute d'un fichier
 		Étant donné la forme d'onde du fichier de test « blancs.flac », de 2 secondes, en cours de calcul
 		Et la forme d'onde est bientôt complète
 		Alors la frise de cette forme d'onde se dessine pareil, active ou inactive
+
+	Scénario: Une légende s'écrit au milieu de la frise, sur un fond qui la garde lisible
+		Étant donné un fichier de 2 s, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, sans crossfade
+		Et la frise large de 400 points
+		Quand la frise a pour légende « reste 1:23:45 »
+		Alors la légende de la frise est centrée, sur un fond qui l'entoure

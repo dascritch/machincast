@@ -58,6 +58,8 @@ PAS_SANS_DUREE = 0.05
 HAUTEUR = 72
 """Points de la frise en hauteur."""
 INDISPONIBLE = "Forme d'onde indisponible :"
+MARGE_DE_LA_LEGENDE = 6
+"""Points autour du texte de la légende, sur son fond."""
 Hachures = Literal["pleines", "pâles", "aucune"]
 
 
@@ -430,6 +432,9 @@ class Frise(QWidget):
 		self.forme: FormeDOnde | None = None
 		self.tete: float | None = None
 		"""La tête de lecture, en secondes du fichier ; None : pas de lecture."""
+		self.legende = ""
+		"""Un texte écrit au milieu de la frise, sur un fond qui le garde lisible : le temps qui reste au sonore en
+		cours, sur l'accueil (https://github.com/dascritch/machincast/issues/230) ; vide : aucun."""
 		self._glisse = False
 		self.setMinimumHeight(HAUTEUR)
 		self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -464,6 +469,21 @@ class Frise(QWidget):
 		if position != self.tete:
 			self.tete = position
 			self.update()
+
+	def montrer_la_legende(self, texte: str) -> None:
+		if texte != self.legende:
+			self.legende = texte
+			self.update()
+
+	def fond_de_la_legende(self) -> QRectF | None:
+		"""Le fond de la légende, centré sur la frise : le texte, avec une marge ; None sans légende."""
+		if self.legende == "":
+			return None
+		texte = self.fontMetrics().boundingRect(self.legende)
+		largeur = min(float(self.width() - 2), texte.width() + 2.0 * MARGE_DE_LA_LEGENDE)
+		hauteur = min(float(self.height() - 2), texte.height() + float(MARGE_DE_LA_LEGENDE))
+		centre = QRectF(self.rect()).center()
+		return QRectF(centre.x() - largeur / 2, centre.y() - hauteur / 2, largeur, hauteur)
 
 	def remarque(self) -> str:
 		"""Ce que la frise dit en clair : « Forme d'onde indisponible : … », ou rien."""
@@ -566,9 +586,22 @@ class Frise(QWidget):
 			self._dessiner_les_fondus(peintre, palette.color(groupe, QPalette.ColorRole.Highlight))
 		self._dessiner_la_tete(peintre, palette.color(groupe, QPalette.ColorRole.Highlight))
 		remarque = self.remarque()
+		fond = self.fond_de_la_legende()
 		if remarque != "":
+			# Sous la légende, s'il y en a une : la remarque prend le bas de la frise.
+			place = QRectF(cadre)
+			if fond is not None:
+				place.setTop(fond.bottom())
 			peintre.setPen(palette.color(groupe, QPalette.ColorRole.Text))
-			peintre.drawText(cadre, Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap, remarque)
+			peintre.drawText(place, Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap, remarque)
+		if fond is not None:
+			voile = QColor(palette.color(groupe, QPalette.ColorRole.Base))
+			voile.setAlpha(225)
+			peintre.setPen(QPen(palette.color(groupe, QPalette.ColorRole.Mid), 1))
+			peintre.setBrush(voile)
+			peintre.drawRoundedRect(fond, 4, 4)
+			peintre.setPen(palette.color(groupe, QPalette.ColorRole.Text))
+			peintre.drawText(fond, Qt.AlignmentFlag.AlignCenter, self.legende)
 		peintre.setPen(QPen(palette.color(groupe, QPalette.ColorRole.Mid), 1))
 		peintre.setBrush(Qt.BrushStyle.NoBrush)
 		peintre.drawRect(cadre)

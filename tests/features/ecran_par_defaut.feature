@@ -117,7 +117,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Quand l'écran par défaut s'ouvre, large de 1100 pixels
 		Et le sonore en cours est bientôt « Les Gaufres – Café à minuit »
 		Alors les frises du sonore en cours et du prochain sonore sont au-dessus de leur titre, à la même hauteur
-		Et le temps qui reste au sonore en cours est entre sa frise et son titre
+		Et le temps qui reste au sonore en cours est écrit au milieu de sa frise, sans autre ligne sous elle
 
 	Scénario: Le VU-mètre de l'antenne prend toute la hauteur que lui laissent les frises
 		Étant donné la socket d'état du binaire lecture ouverte
