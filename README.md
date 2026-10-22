@@ -1,6 +1,6 @@
 # MachinCast
 
-Système automatisé de diffusion sonore pour cotinuité d'antenne radio, sous Linux : il fournit un fil antenne en dehors des émissions en direct, à partir de banques de sonores et d'événements horaires. 
+Système automatisé de diffusion sonore pour continuité d'antenne radio, sous Linux : il fournit un fil antenne en dehors des émissions en direct, à partir de banques de sonores et d'événements horaires. Le service a des tolérance de sources, des scénarios de secours et sépare les services métiers.
 
 - **Équipe de l'antenne** : le [guide de l'antenne](doc/utilisateur/README.md), pour programmer et suivre l'antenne depuis l'interface graphique
 - **Administrateur du poste** : [INSTALL.md](INSTALL.md) pour l'installation, puis le [guide d'administration](doc/administration/README.md)
@@ -30,7 +30,7 @@ Si en tant que radio, autre organisation ou particulier, vous avez décidé d'in
 - [Xavier Mouton-Dubosc aka `dascritch`](https://dascritch.com)
 - Claude.AI
 
-La construction de code avec et par une IA est [dans le cadre d'une future émission de CPU et sera documenté en tant que tellle](https://cpu.pm)
+La construction de code avec et par une IA est [dans le cadre d'une future émission de CPU et sera documenté en tant que tellle](https://cpu.pm). Il a été écrit avec des contraintes fortes de qualité de code (TDD, BDD, E2E, tolérances d'échecs, reprise d'incidents).
 
 ## Licence
 
