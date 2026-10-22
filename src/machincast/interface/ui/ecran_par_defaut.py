@@ -599,7 +599,7 @@ class Ui_EcranParDefaut(object):
 #if QT_CONFIG(tooltip)
         self.table_a_venir.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Les sonores pr\u00e9vus apr\u00e8s le prochain, le plus lointain en haut. Double-clic sur un sonore, un \u00e9v\u00e9nement, une s\u00e9quence ou une banque : ouvrir sa fiche", None))
 #endif // QT_CONFIG(tooltip)
-        self.cadre_airplay.setTitle(QCoreApplication.translate("EcranParDefaut", u"Airplay des 12 derni\u00e8res heures", None))
+        self.cadre_airplay.setTitle(QCoreApplication.translate("EcranParDefaut", u"Airplay : les 10 derniers sonores", None))
 #if QT_CONFIG(tooltip)
         self.table_airplay.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Double-clic sur un sonore, un \u00e9v\u00e9nement, une s\u00e9quence ou une banque : ouvrir sa fiche", None))
 #endif // QT_CONFIG(tooltip)

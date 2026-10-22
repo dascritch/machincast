@@ -39,6 +39,7 @@ VUES = {
 	"incidents",
 	"accueil-airplay",
 	"accueil-a-venir",
+	"onglet-airplay",
 	"simulation",
 	"fiche-banque-sonores",
 	"fiche-sequence-elements",
@@ -206,6 +207,7 @@ def tout_ouvrir(interface: Contexte, qtbot: QtBot) -> None:
 		"Ouvrir l'onglet Sonores",
 		"Ouvrir l'onglet Marques-pages",
 		"Ouvrir l'onglet Simulation",
+		"Ouvrir l'onglet Airplay",
 		"Rechercher…",
 	):
 		choisir_dans_le_menu(interface, entree_du_menu, "Affichage")

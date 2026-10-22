@@ -23,7 +23,7 @@ from machincast.indexation.decodage import Verification
 from machincast.interface import preferences, verification
 from machincast.interface.depliable import est_replie
 from machincast.interface.fiche_sonore import FicheSonore
-from tests.etapes_interface import NOM, Contexte, fenetre, ouvrir_la_fenetre
+from tests.etapes_interface import NOM, Contexte, fenetre
 
 scenarios("fiche_sonore_encarts.feature")
 
@@ -114,12 +114,6 @@ def preferences_au_dixieme(monkeypatch: pytest.MonkeyPatch, maximum: int) -> Non
 	monkeypatch.setattr(
 		preferences, "_courantes", Crossfades(granularite="dixieme", maximum=timedelta(seconds=maximum))
 	)
-
-
-@when("la fenêtre de l'interface se ferme, puis s'ouvre de nouveau")
-def rouvrir(interface: Contexte, qtbot: QtBot) -> None:
-	fenetre(interface).close()
-	ouvrir_la_fenetre(interface, qtbot)
 
 
 @when(

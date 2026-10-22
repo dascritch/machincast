@@ -25,8 +25,8 @@ from PySide6.QtWidgets import QAbstractItemView, QLineEdit, QMenu, QSizePolicy, 
 
 from machincast.configuration import Audio
 from machincast.horloge import Horloge
-from machincast.interface import affichage, icones, preferences
-from machincast.interface.airplay import FENETRE, PassageAffiche, lire_airplay
+from machincast.interface import affichage, depliable, icones, preferences
+from machincast.interface.airplay import DERNIERS, PassageAffiche, lire_airplay
 from machincast.interface.calendrier import date_longue
 from machincast.interface.colonnes import Colonnes
 from machincast.interface.essai_flux import EssaiDeFlux, resultat_de_l_essai
@@ -45,6 +45,8 @@ RELEVE_DES_FORMES = 100
 ETATS = {"diffusion": "En diffusion", "silence": "En silence", "arret": "À l'arrêt"}
 A_VENIR = 5
 """Lignes que montre la table des sonores à venir, autant que Machin lecture en prévoit."""
+ENCARTS_REPLIES = "accueil/encarts-replies"
+"""Dans les réglages des vues du compte : les encarts de l'accueil repliés, dépliés sinon."""
 LIGNES_A_VENIR_AU_MOINS = 2
 """Lignes de la table des sonores à venir sur un écran trop petit pour les 5."""
 ESSAI_EN_COURS = "Test du flux en cours…"
@@ -63,6 +65,8 @@ class EcranParDefaut(QWidget):
 	ecoute_demandee = Signal()
 	"""Clic sur le VU-mètre de l'antenne, disponible : l'écouter en pré-écoute
 	(https://github.com/dascritch/machincast/issues/24)."""
+	airplay_relu = Signal()
+	"""L'airplay de l'accueil a été relu : un nouveau sonore, ou un rafraîchissement."""
 	ouverte = Signal(str, int, str)
 	"""Fiche demandée : genre, identifiant et nom de l'élément."""
 	preecoute_demandee = Signal(int)
@@ -125,6 +129,13 @@ class EcranParDefaut(QWidget):
 		disposition_de_l_ecran = self.layout()
 		assert isinstance(disposition_de_l_ecran, QVBoxLayout)
 		disposition_de_l_ecran.setStretchFactor(self.ui.cadre_airplay, 1)
+		# Les deux encarts se replient d'un clic sur leur titre ; un encart replié le reste pour le compte
+		# (https://github.com/dascritch/machincast/issues/244).
+		replies = depliable.retenus(ENCARTS_REPLIES)
+		for groupe in (self.ui.cadre_a_venir, self.ui.cadre_airplay):
+			depliable.rendre_depliable(
+				groupe, groupe.objectName() not in replies, depliable.retenir_dans(ENCARTS_REPLIES, deplies=False)
+			)
 		self._en_cours: SonoreAffiche | None = None
 		self._prochain: SonoreAffiche | None = None
 		self._flux_teste: int | None = None
@@ -501,18 +512,20 @@ class EcranParDefaut(QWidget):
 	# ─── Airplay ───────────────────────────────────────────
 
 	def actualiser_airplay(self) -> list[PassageAffiche]:
-		"""Relit l'airplay des 12 dernières heures ; une base injoignable laisse la table telle qu'elle était."""
+		"""Relit les DERNIERS passages de l'airplay (https://github.com/dascritch/machincast/issues/244) ; une base
+		injoignable laisse la table telle qu'elle était. airplay_relu le dit, pour l'onglet Airplay."""
 		try:
-			passages = lire_airplay(self.connexion, self.horloge.maintenant() - FENETRE)
+			passages = lire_airplay(self.connexion, nombre=DERNIERS)
 		except psycopg.Error as erreur:
 			journal.error(f"airplay illisible : {erreur}")
 			return []
 		self.modele_airplay.setRowCount(0)
 		for passage in passages:
-			cellules = [QStandardItem(texte) for texte in _cellules(passage)]
-			for colonne, element in _elements(passage).items():
+			cellules = [QStandardItem(texte) for texte in cellules_du_passage(passage)]
+			for colonne, element in elements_du_passage(passage).items():
 				cellules[colonne].setData(element, ELEMENT)
 			self.modele_airplay.appendRow(cellules)
+		self.airplay_relu.emit()
 		return passages
 
 
@@ -526,7 +539,7 @@ def _afficher_emplacement(champ: QLineEdit, sonore: SonoreAffiche | None) -> Non
 	champ.setToolTip((emplacement) or (""))
 
 
-def _cellules(passage: PassageAffiche) -> list[str]:
+def cellules_du_passage(passage: PassageAffiche) -> list[str]:
 	fin = "en cours"
 	duree = ""
 	if passage.fin is not None:
@@ -545,7 +558,7 @@ def _cellules(passage: PassageAffiche) -> list[str]:
 	]
 
 
-def _elements(passage: PassageAffiche) -> dict[int, tuple[str, int, str]]:
+def elements_du_passage(passage: PassageAffiche) -> dict[int, tuple[str, int, str]]:
 	"""Les cellules qui désignent un élément, par colonne : artiste et titre le sonore, puis événement, séquence et
 	banque ; un élément supprimé depuis n'en désigne plus."""
 	elements: dict[int, tuple[str, int, str]] = {}

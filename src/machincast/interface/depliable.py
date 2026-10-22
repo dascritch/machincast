@@ -4,7 +4,8 @@ Un encart (QGroupBox) devient dépliable : son contenu passe dans un conteneur i
 Espace et Entrée quand l'encart a le focus, montre ou cache. Le titre commence par « ▾ » déplié, « ▸ » replié. Ce
 que la fiche cache ou montre dans l'encart, selon le sonore, n'est pas touché : seul le conteneur l'est. Une fonction
 retenir, facultative, apprend chaque dépliage ou repliage fait à la main, pour que d'autres fiches s'en souviennent
-(https://github.com/dascritch/machincast/issues/223).
+(https://github.com/dascritch/machincast/issues/223) ; retenir_dans en donne une qui les garde dans les réglages des
+vues du compte (machincast.interface.colonnes), et retenus les y relit.
 """
 
 from collections.abc import Callable
@@ -12,6 +13,8 @@ from collections.abc import Callable
 from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import QGroupBox, QVBoxLayout, QWidget
+
+from machincast.interface import colonnes
 
 DEPLIE, REPLIE = "▾", "▸"
 CONTENU = "contenu_depliable"
@@ -26,6 +29,30 @@ HAUTEUR_LIBRE = 16777215
 
 Retenir = Callable[[QGroupBox, bool], None]
 """Ce qui retient un encart déplié (True) ou replié (False) à la main."""
+
+
+def retenus(cle: str) -> set[str]:
+	"""Les noms des encarts gardés sous cette clé des réglages des vues du compte."""
+	valeur = colonnes.reglages().value(cle)
+	if isinstance(valeur, str):
+		return {valeur}
+	if isinstance(valeur, list):
+		return {str(nom) for nom in valeur}
+	return set()
+
+
+def retenir_dans(cle: str, deplies: bool = True) -> Retenir:
+	"""Garde sous cette clé les noms des encarts dépliés, ou, deplies faux, ceux des encarts repliés."""
+
+	def retenir(groupe: QGroupBox, deplie: bool) -> None:
+		noms = retenus(cle)
+		if deplie is deplies:
+			noms.add(groupe.objectName())
+		else:
+			noms.discard(groupe.objectName())
+		colonnes.reglages().setValue(cle, sorted(noms))
+
+	return retenir
 
 
 def rendre_depliable(groupe: QGroupBox, deplie: bool = False, retenir: Retenir | None = None) -> None:

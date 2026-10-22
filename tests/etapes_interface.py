@@ -13,6 +13,7 @@ import dataclasses
 import json
 import re
 import shutil
+import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -692,6 +693,12 @@ def evenements(base_vide: Connexion, datatable: list[list[str]]) -> None:
 
 @when("la fenêtre de l'interface s'ouvre")
 def ouvrir(interface: Contexte, base_vide: Connexion, qtbot: QtBot) -> None:
+	ouvrir_la_fenetre(interface, qtbot)
+
+
+@when("la fenêtre de l'interface se ferme, puis s'ouvre de nouveau")
+def rouvrir(interface: Contexte, qtbot: QtBot) -> None:
+	fenetre(interface).close()
 	ouvrir_la_fenetre(interface, qtbot)
 
 
@@ -1422,3 +1429,105 @@ def diffuse_au_texte_public(lecteur: Lecteur, texte: str) -> None:
 		"texte_public": texte,
 	}
 	publier(lecteur, "diffusion", en_cours)
+
+
+# ─── Airplay (https://github.com/dascritch/machincast/issues/244) ───
+
+JOUR_DE_L_AIRPLAY = "2026-10-16"
+"""Le jour des passages des scénarios de l'airplay, quand seule leur heure est donnée."""
+
+
+def heure(texte: str) -> datetime:
+	return datetime.fromisoformat(texte).astimezone()
+
+
+def heure_ou_rien(texte: str) -> datetime | None:
+	if texte == "":
+		return None
+	return heure(texte)
+
+
+def a(horaire: str) -> datetime:
+	return heure(f"{JOUR_DE_L_AIRPLAY} {horaire}")
+
+
+def reference(base: Connexion, table: str, nom: str) -> int | None:
+	"""Identifiant de l'entrée de ce nom interne, créée au besoin ; None pour un nom vide."""
+	if not nom:
+		return None
+	valeurs = {"evenements": ", priorite) VALUES (%s, 'fil_musical')", "banques": ", mode) VALUES (%s, 'sequentiel')"}
+	ligne = base.execute(f"SELECT id FROM {table} WHERE nom_interne = %s", (nom,)).fetchone()  # noqa: S608
+	if ligne is None:
+		suite = valeurs.get(table, ") VALUES (%s)")
+		ligne = base.execute(f"INSERT INTO {table} (nom_interne{suite} RETURNING id", (nom,)).fetchone()  # noqa: S608
+	assert ligne is not None
+	return int(str(ligne[0]))
+
+
+def inserer_passage(
+	base: Connexion,
+	debut: datetime,
+	fin: datetime | None,
+	artiste: str,
+	titre: str,
+	evenement: str,
+	sequence: str = "",
+	banque: str = "",
+	sans_incident: str = "",
+) -> None:
+	emplacement = f"/musique/{uuid.uuid4()}.flac"
+	ligne = base.execute(
+		"INSERT INTO sonores (type, emplacement, artiste, titre) VALUES ('fichier', %s, %s, %s) RETURNING id",
+		(emplacement, (artiste) or (None), titre),
+	).fetchone()
+	assert ligne is not None
+	references = (
+		ligne[0],
+		reference(base, "evenements", evenement),
+		reference(base, "sequences", sequence),
+		reference(base, "banques", banque),
+	)
+	passage = uuid.uuid4()
+	colonnes = (
+		"passage_id, type_ligne, horodatage, sonore_id, evenement_id, sequence_id, banque_id, artiste, titre,"
+		" emplacement"
+	)
+	base.execute(
+		f"INSERT INTO airplay ({colonnes}) VALUES (%s, 'debut', %s, %s, %s, %s, %s, %s, %s, %s)",
+		(passage, debut, *references, (artiste) or (None), titre, emplacement),
+	)
+	if fin is not None:
+		base.execute(
+			f"INSERT INTO airplay ({colonnes}, duree_diffusee, sans_incident)"
+			" VALUES (%s, 'fin', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+			(passage, fin, *references, (artiste) or (None), titre, emplacement, fin - debut, sans_incident == "oui"),
+		)
+
+
+@given("les passages dans l'airplay :")
+def passages(base_vide: Connexion, datatable: list[list[str]]) -> None:
+	entetes, *lignes = datatable
+	for valeurs in lignes:
+		ligne = dict(zip(entetes, (v.strip() for v in valeurs), strict=True))
+		inserer_passage(
+			base_vide,
+			heure(ligne["debut"]),
+			heure_ou_rien(ligne["fin"]),
+			ligne["artiste"],
+			ligne["titre"],
+			ligne["evenement"],
+			ligne["sequence"],
+			ligne["banque"],
+			ligne["sans_incident"],
+		)
+
+
+@given("le masquage de tous les sonores et de tous les événements")
+def masquer(base_vide: Connexion) -> None:
+	base_vide.execute("UPDATE sonores SET masquer_metadonnees = true")
+	base_vide.execute("UPDATE evenements SET masquer_metadonnees = true")
+
+
+@when(parsers.parse("le passage de « {titre} » commence dans l'airplay à {debut}"))
+def nouveau_passage(base_vide: Connexion, titre: str, debut: str) -> None:
+	inserer_passage(base_vide, a(debut), None, "Radio", titre, "Fil de jour")

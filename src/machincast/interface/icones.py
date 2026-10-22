@@ -26,10 +26,12 @@ FICHIERS = {
 	"grille": "grille.svg",
 	"simulation": "simulation.svg",
 	"pré-écoute": "preecoute.svg",
+	"airplay": "airplay.svg",
 }
 """Le dessin de chaque genre ; les fiches et la recherche nomment les genres ainsi. « pré-écoute », un casque, n'est pas
 un genre : il marque chaque bouton et chaque entrée de menu qui lance une pré-écoute
-(https://github.com/dascritch/machincast/issues/223)."""
+(https://github.com/dascritch/machincast/issues/223). « airplay » marque l'onglet de l'historique de diffusion
+(https://github.com/dascritch/machincast/issues/244)."""
 TAILLES = (16, 24, 32, 48, 64)
 """Les tailles dessinées : Qt prend la plus proche de celle demandée."""
 COULEUR = "currentColor"

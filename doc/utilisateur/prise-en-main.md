@@ -5,6 +5,7 @@
 - [La fenêtre](#la-fenêtre)
 - [Pour bien démarrer](#pour-bien-démarrer)
 - [Accueil](#accueil)
+- [Onglet Airplay](#onglet-airplay)
 - [Passer d'un onglet à l'autre](#passer-dun-onglet-à-lautre)
 - [Menus](#menus)
 - [Rafraîchir les onglets](#rafraîchir-les-onglets)
@@ -67,7 +68,8 @@ L'onglet **Accueil** montre en un coup d'œil ce qui passe et ce qui va passer.
 - **Stream** : son horaire est « 20:00:00, durée inconnue », et il n'est pas testé à l'avance : `non testé`.
 - **Emplacement** : un long chemin ne déborde pas ; sa fin reste visible, il se sélectionne et se copie, et son infobulle le donne en entier.
 - **Boutons Fiche…** : à droite du titre, de l'événement, de la séquence et de la banque, ils ouvrent la fiche de l'élément.
-- **Airplay des 12 dernières heures** : les passages, du plus récent au plus ancien, avec le début, la fin (`en cours` pour le sonore à l'antenne), la durée, l'artiste, le titre, l'événement, la séquence, la banque, et `oui` dans la colonne « Incident » pour un passage qui en a eu un. Un double-clic sur une ligne ouvre la fiche du sonore, de l'événement, de la séquence ou de la banque cliqué ; un clic droit propose la [pré-écoute](sonores.md#pré-écoute) du sonore. L'interface est réservée à l'équipe : l'artiste et le titre y sont toujours affichés, même masqués sur la page publique.
+- **Airplay : les 10 derniers sonores** ([#244](https://github.com/dascritch/machincast/issues/244)) : les 10 derniers passages, du plus récent au plus ancien, avec le début, la fin (`en cours` pour le sonore à l'antenne), la durée, l'artiste, le titre, l'événement, la séquence, la banque, et `oui` dans la colonne « Incident » pour un passage qui en a eu un. Un double-clic sur une ligne ouvre la fiche du sonore, de l'événement, de la séquence ou de la banque cliqué ; un clic droit propose la [pré-écoute](sonores.md#pré-écoute) du sonore. L'interface est réservée à l'équipe : l'artiste et le titre y sont toujours affichés, même masqués sur la page publique. Pour remonter plus loin, l'[onglet Airplay](#onglet-airplay).
+- **Encarts repliables** : un clic sur le titre « À venir après le prochain sonore » ou « Airplay : les 10 derniers sonores » replie l'encart (« ▸ »), ou le déplie (« ▾ »). Un encart replié le reste aux prochaines ouvertures de l'interface.
 
 L'accueil suit la diffusion en direct. Quand elle s'arrête, il affiche `À l'arrêt`, et la retrouve tout seul dès qu'elle reprend. Il doit tourner sur le poste de la diffusion, avec le même compte : sinon il ne la voit pas.
 
@@ -88,6 +90,16 @@ Le VU-mètre écoute le périphérique de l'antenne, quel que soit le programme 
 | `Indisponible : périphérique de l'antenne à renseigner.` | Choisir le périphérique de l'antenne dans **Fichier → Préférences…**, page **Audio**. |
 | `Indisponible :` suivi d'une erreur | Le périphérique est débranché, ou le son du poste ne répond pas. Le VU-mètre réessaie toutes les 5 secondes. |
 
+## Onglet Airplay
+
+**Affichage → Ouvrir l'onglet Airplay** ouvre l'historique de diffusion dans un onglet à part ([#244](https://github.com/dascritch/machincast/issues/244)), fermé au lancement de l'interface ; sa croix le ferme.
+
+![L'onglet Airplay : le réglage des dernières heures et le bouton d'export en haut, puis les passages, du plus récent au plus ancien](../captures/onglet-airplay.png)
+
+- **Dernières heures**, en haut : combien d'heures remonter, 12 par défaut, jusqu'à un mois. Le réglage est retenu pour les prochaines ouvertures.
+- **La table** a les mêmes colonnes que l'airplay de l'accueil, et s'utilise de même : double-clic vers les fiches, clic droit pour la [pré-écoute](sonores.md#pré-écoute). Elle se met à jour à chaque nouveau sonore à l'antenne.
+- **Exporter…** enregistre ce que montre l'onglet, au format choisi dans la fenêtre d'enregistrement : **Tableur CSV**, **Page HTML** ou **Liste de lecture M3U**. Chaque export donne à la fois l'artiste, le titre et l'emplacement du fichier, et le **texte public**, tel que la page publique de la radio l'affiche, masquage compris. La liste M3U va du plus ancien au plus récent, et se lit dans un lecteur ; le texte public y est en commentaire. Le nom reçoit l'extension du format : un export ne remplace jamais un fichier sonore. La barre d'état dit où il est enregistré.
+
 ## Passer d'un onglet à l'autre
 
 Les 12 premiers onglets s'ouvrent au clavier, par <kbd>Maj</kbd>+<kbd>F1</kbd> à <kbd>Maj</kbd>+<kbd>F12</kbd>, selon leur rang : <kbd>Maj</kbd>+<kbd>F1</kbd> est toujours l'Accueil ; au lancement, <kbd>Maj</kbd>+<kbd>F2</kbd> à <kbd>Maj</kbd>+<kbd>F4</kbd> mènent aux Événements, Séquences et Banques, <kbd>Maj</kbd>+<kbd>F5</kbd> aux Incidents, puis aux fiches et aux autres onglets, dans l'ordre où ils sont ouverts. Ouvrir ou fermer un onglet décale ceux qui le suivent. L'infobulle de chaque onglet donne son raccourci.
@@ -105,6 +117,7 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | Affichage | Ouvrir l'onglet Sonores, Ouvrir l'onglet Marques-pages | Ouvrent ces listes, ou les ramènent au premier plan ([Listes](listes.md#listes)). |
 | Affichage | Ouvrir l'onglet Grille horaire | Ouvre le calendrier ([Calendrier](grille.md#calendrier)). |
 | Affichage | Ouvrir l'onglet Simulation | Ouvre la simulation ([Simulation](grille.md#simulation)). |
+| Affichage | Ouvrir l'onglet Airplay | Ouvre l'historique de diffusion, réglable et exportable ([Onglet Airplay](#onglet-airplay)). |
 | Affichage | Pré-écoute… | Ouvre la fenêtre de pré-écoute ([Pré-écoute](sonores.md#pré-écoute)). Comme chaque bouton et chaque entrée de pré-écoute, elle porte un casque. |
 | Diffusion | Démarrer, Arrêter la diffusion | Pilotent la diffusion ([Piloter la diffusion](antenne.md#piloter-la-diffusion)). |
 | Diffusion | Sauter au sonore suivant, Sauter après la séquence, Couper l'événement par le fil musical | Corrigent l'antenne sans attendre ([Interrompre l'antenne](antenne.md#interrompre-lantenne)). |
@@ -119,7 +132,7 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 
 Chaque onglet lit la base quand il s'ouvre ; ce qu'un autre poste, l'indexation ou la diffusion changent ensuite n'apparaît pas tout seul. **Affichage → Rafraîchir les onglets**, ou <kbd>F5</kbd>, relit tout d'un coup :
 
-- l'onglet ouvert : une liste, les incidents, le calendrier ou la recherche ;
+- l'onglet ouvert : une liste, les incidents, le calendrier, la recherche ou l'airplay ;
 - l'airplay de l'accueil ;
 - toutes les fiches ouvertes. Une fiche modifiée demande d'abord quoi faire de ses modifications : **Enregistrer** les écrit puis relit la fiche, **Abandonner** les perd et relit la fiche, **Annuler** la laisse telle quelle.
 - La fiche d'un élément effacé depuis un autre poste se ferme, sans question.

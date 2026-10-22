@@ -48,7 +48,7 @@ from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QTabBar, QWidget
 
 from machincast import raccourci, service
-from machincast.configuration import Audio, Blancs, Crossfades, Interface
+from machincast.configuration import Audio, Blancs, ConfigurationInvalide, Crossfades, Interface, Metadonnees, charger
 from machincast.horloge import Horloge
 from machincast.interface import (
 	dialogues,
@@ -76,6 +76,7 @@ from machincast.interface.fil_musical import garantir
 from machincast.interface.incidents import EcranIncidents
 from machincast.interface.indexation import LANCE, TERMINE, TITRES
 from machincast.interface.listes import BANQUES, EVENEMENTS, MARQUES_PAGES, SEQUENCES, SONORES, Liste
+from machincast.interface.onglet_airplay import SANS_METADONNEES, EcranAirplay
 from machincast.interface.preecoute import FenetrePreecoute
 from machincast.interface.recherche import EcranRecherche
 from machincast.interface.simulation import EcranSimulation
@@ -141,6 +142,8 @@ def genre_de_l_ecran(ecran: QWidget) -> str:
 		return "grille"
 	if isinstance(ecran, EcranSimulation):
 		return "simulation"
+	if isinstance(ecran, EcranAirplay):
+		return "airplay"
 	return ""
 
 
@@ -312,6 +315,8 @@ class FenetrePrincipale(QMainWindow):
 		grille.triggered.connect(self._ouvrir_calendrier)
 		simulation = affichage.addAction(icones.icone("simulation"), "Ouvrir l'onglet Simulation")
 		simulation.triggered.connect(self._ouvrir_simulation)
+		airplay = affichage.addAction(icones.icone("airplay"), "Ouvrir l'onglet Airplay")
+		airplay.triggered.connect(self._ouvrir_airplay)
 		preecoute = affichage.addAction(icones.icone("pré-écoute"), "Pré-écoute…")
 		preecoute.triggered.connect(lambda: self._preecouter(None))
 		self.menu_diffusion = self.menuBar().addMenu("&Diffusion")
@@ -614,6 +619,31 @@ class FenetrePrincipale(QMainWindow):
 			self._ajouter_onglet(simulation, "Simulation")
 		onglets.setCurrentWidget(simulation)
 
+	def _ouvrir_airplay(self) -> None:
+		"""Un seul onglet Airplay (https://github.com/dascritch/machincast/issues/244) : celui qui est ouvert revient au
+		premier plan. Il se relit quand l'accueil voit un nouveau sonore."""
+		onglets = self.ui.onglets
+		ouverts = [onglets.widget(indice) for indice in range(onglets.count())]
+		airplay = next((ecran for ecran in ouverts if isinstance(ecran, EcranAirplay)), None)
+		if airplay is None:
+			airplay = EcranAirplay(self.connexion, self.horloge, self._metadonnees())
+			airplay.ouverte.connect(self._ouvrir)
+			airplay.preecoute_demandee.connect(self._preecouter)
+			airplay.annonce.connect(self.ui.barre_d_etat.showMessage)
+			self.accueil.airplay_relu.connect(airplay.actualiser)
+			self._ajouter_onglet(airplay, "Airplay")
+		onglets.setCurrentWidget(airplay)
+
+	def _metadonnees(self) -> Metadonnees:
+		"""Le masquage et le texte public de la configuration, pour le texte public des exports de l'airplay."""
+		if self.configuration is None:
+			return SANS_METADONNEES
+		try:
+			return charger(self.configuration).metadonnees
+		except (ConfigurationInvalide, OSError) as erreur:
+			journal.warning(f"configuration illisible, exports sans masquage : {erreur}")
+			return SANS_METADONNEES
+
 	def _creer_evenement(self, debut: datetime) -> None:
 		"""Un nouvel événement, à l'heure cliquée dans le calendrier, s'ouvre dans sa fiche si on le confirme."""
 		fin = debut + UNE_HEURE
@@ -627,7 +657,9 @@ class FenetrePrincipale(QMainWindow):
 
 	def _fermer(self, indice: int) -> None:
 		fiche = self.ui.onglets.widget(indice)
-		if isinstance(fiche, (Calendrier, EcranRecherche, EcranSimulation)):
+		if isinstance(fiche, (Calendrier, EcranRecherche, EcranSimulation, EcranAirplay)):
+			if isinstance(fiche, EcranAirplay):
+				self.accueil.airplay_relu.disconnect(fiche.actualiser)
 			if isinstance(fiche, EcranSimulation):
 				fiche.fermer()
 			self._retirer_onglet(indice)
@@ -792,7 +824,7 @@ class FenetrePrincipale(QMainWindow):
 
 	def _onglet_ouvert(self, indice: int) -> None:
 		ouvert = self.ui.onglets.widget(indice)
-		if isinstance(ouvert, (Liste, EcranIncidents, Calendrier, EcranRecherche)):
+		if isinstance(ouvert, (Liste, EcranIncidents, Calendrier, EcranRecherche, EcranAirplay)):
 			ouvert.actualiser()
 
 	def _preferences(self) -> None:
