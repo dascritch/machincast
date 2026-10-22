@@ -59,6 +59,7 @@ bin/Machin lecture --help
 bin/Machin lecture --config <fichier>
 bin/Machin indexation --audit-complet   # par défaut : indexation rapide, seuls les sonores en aperçu sont décodés
 bin/Machin logs
+bin/Machin maintenance-db   # sauvegarde (pg_dump), schéma et rôles, VACUUM ANALYZE de la base de production
 
 # Autocomplétion dans le shell courant
 source bash-completion/Machin

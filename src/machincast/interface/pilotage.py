@@ -40,6 +40,14 @@ COMMANDE_DU_SERVICE = [str(REPERTOIRE_PROJET / "bin" / "Machin"), "lecture"]
 """Comme l'ExecStart de machincast.service : la diffusion d'essai sort là où sortirait le service."""
 LANCE = "Diffusion d'essai lancée dans un terminal : Ctrl-C l'y arrête."
 RELANCE = "Diffusion d'essai relancée dans un terminal : Ctrl-C l'y arrête."
+MAINTENANCE = "Maintenance de la base de données…"
+"""L'entrée du menu « Maintenance » (https://github.com/dascritch/machincast/issues/127)."""
+MAINTENANCE_LANCEE = (
+	"Maintenance de la base de données lancée dans un terminal : sauvegarde, vérification du schéma, optimisation."
+)
+SANS_TERMINAL_POUR_LA_MAINTENANCE = (
+	"Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin maintenance-db à la main."
+)
 ARRET_DEMANDE = "Arrêt de la diffusion d'essai demandé…"
 ARRETEE = "Diffusion d'essai arrêtée."
 
@@ -69,16 +77,34 @@ class Pilotage(QObject):
 		self.termine.emit(f"{echec} : {(erreur) or (processus.errorString())}")
 
 
+def ouvrir_un_terminal(commande: list[str]) -> bool:
+	"""La commande, détachée de l'interface, dans le premier terminal trouvé ; False sans terminal."""
+	for terminal in TERMINAUX:
+		chemin = shutil.which(terminal)
+		if chemin is not None:
+			QProcess.startDetached(chemin, ["-e", *commande])
+			return True
+	return False
+
+
 def lancer_dans_un_terminal(configuration: Path | None, lance: str = LANCE) -> str:
 	"""Machin lecture, détaché, dans le premier terminal trouvé, par la commande même du service : il lit la
 	configuration du service, le machincast.toml du répertoire de MachinCast, et diffuse donc sur le même périphérique
 	que lui. Ce que la barre d'état en dit : lance, et l'écart avec la configuration de l'interface s'il y en a un."""
-	for terminal in TERMINAUX:
-		chemin = shutil.which(terminal)
-		if chemin is not None:
-			QProcess.startDetached(chemin, ["-e", *COMMANDE_DU_SERVICE])
-			return f"{lance}{_ecart(configuration)}"
+	if ouvrir_un_terminal(COMMANDE_DU_SERVICE):
+		return f"{lance}{_ecart(configuration)}"
 	return SANS_TERMINAL
+
+
+def lancer_la_maintenance(configuration: Path | None) -> str:
+	"""Machin maintenance-db sur la base de l'interface, dans un terminal qui attend Entrée avant de se fermer
+	(https://github.com/dascritch/machincast/issues/127) ; ce qu'en dit la barre d'état."""
+	commande = [str(REPERTOIRE_PROJET / "bin" / "Machin")]
+	if configuration is not None:
+		commande += ["--config", str(configuration)]
+	if ouvrir_un_terminal([*commande, "maintenance-db", "--attendre"]):
+		return MAINTENANCE_LANCEE
+	return SANS_TERMINAL_POUR_LA_MAINTENANCE
 
 
 def _ecart(configuration: Path | None) -> str:

@@ -31,6 +31,8 @@ Fonctionnalité: Menu général de l'interface
 			| —                      |          |           |                                |
 			| Indexation rapide      | active   |           |                                |
 			| Audit complet          | active   |           |                                |
+			| —                      |          |           |                                |
+			| Maintenance de la base de données… | active |   |                                |
 		Et le menu « Aide » a les entrées :
 			| entrée                | état   | raccourci | infobulle |
 			| Documentation         | active |           |           |

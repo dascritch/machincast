@@ -190,3 +190,21 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Démarrer la diffusion d'essai » dans le menu « Diffusion »
 		Alors la barre d'état annonce « Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin lecture à la main. »
+
+	# ─── Maintenance de la base de données (https://github.com/dascritch/machincast/issues/127) ───
+
+	Scénario: « Maintenance de la base de données… » lance Machin maintenance-db dans un terminal, sur la configuration de l'interface
+		Étant donné le service de diffusion non installé
+		Et le terminal « konsole » du poste
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Maintenance de la base de données… » dans le menu « Maintenance »
+		Alors le terminal a lancé bientôt Machin maintenance-db, sur la configuration de l'interface, en attendant Entrée
+		Et la barre d'état annonce « Maintenance de la base de données lancée dans un terminal : sauvegarde, vérification du schéma, optimisation. »
+
+	Scénario: Sans terminal, la barre d'état dit comment lancer la maintenance à la main
+		Étant donné le service de diffusion non installé
+		Et aucun terminal sur le poste
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Maintenance de la base de données… » dans le menu « Maintenance »
+		Alors la barre d'état annonce « Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin maintenance-db à la main. »
+

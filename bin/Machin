@@ -12,7 +12,7 @@
 set -euo pipefail
 
 # Binaires connus, dans l'ordre de l'aide. Un test vérifie qu'ils correspondent à [project.scripts] de pyproject.toml.
-BINAIRES=(lecture indexation interface)
+BINAIRES=(lecture indexation interface maintenance-db)
 UNITE_LECTURE="machincast.service"
 
 CODE_USAGE=2
@@ -42,6 +42,9 @@ aide_complete() {
 		  lecture      diffusion de l'antenne, normalement lancée comme service systemd
 		  indexation   vérification des fichiers sonores et mise à jour de la base
 		  interface    interface graphique de programmation
+		  maintenance-db
+		               sauvegarde, vérifie et optimise la base de données
+		               (https://github.com/dascritch/machincast/issues/127)
 
 		  Aide d'un binaire : Machin BINAIRE --help
 

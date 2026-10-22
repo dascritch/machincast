@@ -242,3 +242,17 @@ def essai_arrete(poste: Poste) -> None:
 def relance_apres_l_arret(poste: Poste) -> None:
 	essai = poste.terminal.with_name(f"{poste.terminal.name}.essai")
 	assert essai.read_text(encoding="utf-8") == "arrêtée\n"
+
+
+@then("le terminal a lancé bientôt Machin maintenance-db, sur la configuration de l'interface, en attendant Entrée")
+def maintenance_dans_le_terminal(interface: Contexte, poste: Poste, qtbot: QtBot) -> None:
+	qtbot.waitUntil(poste.terminal.exists, timeout=5000)
+	arguments = poste.terminal.read_text(encoding="utf-8").splitlines()
+	assert arguments == [
+		"-e",
+		str(REPERTOIRE_PROJET / "bin" / "Machin"),
+		"--config",
+		str(fichier_de_configuration(interface)),
+		"maintenance-db",
+		"--attendre",
+	], arguments
