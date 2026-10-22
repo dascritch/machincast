@@ -146,3 +146,8 @@ Fonctionnalité: Frise de la pré-écoute d'un fichier
 		Étant donné la forme d'onde d'un fichier qui n'est pas un sonore, en cours de calcul
 		Alors la forme d'onde est bientôt indisponible
 		Et la frise de cette forme d'onde dit « Forme d'onde indisponible : » suivi de l'erreur de GStreamer
+
+	Scénario: Hors de la lecture, la frise inactive garde les couleurs de sa forme d'onde, sans être grisée
+		Étant donné la forme d'onde du fichier de test « blancs.flac », de 2 secondes, en cours de calcul
+		Et la forme d'onde est bientôt complète
+		Alors la frise de cette forme d'onde se dessine pareil, active ou inactive
