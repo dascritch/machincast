@@ -101,8 +101,8 @@ class Crossfades:
 	granularite: Granularite = "dixieme"
 	"""Pas des crossfades dans l'interface : à la seconde ou au dixième de seconde."""
 	entree: Position = ENTREE_PAR_DEFAUT
-	"""Où le fade-in se place par rapport au début détecté d'un sonore joué sans ses blancs (https://github.com/dascritch/machincast/issues/234),
-	sauf banque qui en décide."""
+	"""Où le fade-in se place par rapport au début détecté d'un sonore joué sans ses blancs
+	(https://github.com/dascritch/machincast/issues/234)."""
 	sortie: Position = SORTIE_PAR_DEFAUT
 	"""Où le fade-out se place par rapport à sa fin détectée, de même."""
 

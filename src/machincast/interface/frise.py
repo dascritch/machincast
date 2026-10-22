@@ -53,7 +53,6 @@ from machincast.lecture.fondus import (  # noqa: E402
 	Placement,
 	Position,
 	placer,
-	position_ou,
 )
 from machincast.lecture.moteur import enveloppe  # noqa: E402
 
@@ -296,12 +295,11 @@ def plan_du_sonore(
 	defauts: Crossfades,
 	audite: bool,
 	banque: tuple[RegleDeBanque, RegleDeBanque] = (SANS_BANQUE, SANS_BANQUE),
-	positions: tuple[object, object] = (None, None),
 ) -> Plan:
 	"""Le plan d'un sonore d'après ses colonnes en base. Sans banque, un crossfade non paramétré (None) est celui des
 	préférences ; avec, les règles de crossfade de début et de fin de la banque s'appliquent avant, comme à la
 	diffusion (https://github.com/dascritch/machincast/issues/230). detection_blancs : celle du sonore, ou de sa
-	banque. positions : celles des fondus qu'impose la banque, sinon (None) celles des préférences
+	banque. Les fondus se placent selon les positions des préférences
 	(https://github.com/dascritch/machincast/issues/234)."""
 
 	def facultative(valeur: timedelta | None) -> float | None:
@@ -320,8 +318,8 @@ def plan_du_sonore(
 		origine_debut=origine_du_crossfade(crossfade_debut, debut, defauts.debut),
 		origine_fin=origine_du_crossfade(crossfade_fin, fin, defauts.fin),
 		audite=audite,
-		position_entree=position_ou(positions[0], defauts.entree),
-		position_sortie=position_ou(positions[1], defauts.sortie),
+		position_entree=defauts.entree,
+		position_sortie=defauts.sortie,
 	)
 
 
@@ -336,14 +334,14 @@ def lire_le_plan(
 			"SELECT s.type::text, s.duree, s.debut_detecte, s.fin_detectee,"
 			" s.detection_blancs OR coalesce(b.detection_blancs, false), s.crossfade_debut, s.crossfade_fin,"
 			" s.audite_le IS NOT NULL, b.crossfade_debut_regle::text, b.crossfade_debut, b.crossfade_fin_regle::text,"
-			" b.crossfade_fin, b.position_fondu_entree::text, b.position_fondu_sortie::text"
+			" b.crossfade_fin"
 			" FROM sonores s LEFT JOIN banques b ON b.id = %s WHERE s.id = %s",
 			(banque, sonore),
 		).fetchone()
 	if ligne is None:
 		return None
 	genre, duree, debut, fin, detection, cd, cf, audite, *regles = ligne
-	regle_debut, banque_debut, regle_fin, banque_fin, position_entree, position_sortie = regles
+	regle_debut, banque_debut, regle_fin, banque_fin = regles
 	if (genre != "fichier") or (not isinstance(duree, timedelta)):
 		return None
 	return plan_du_sonore(
@@ -359,7 +357,6 @@ def lire_le_plan(
 			RegleDeBanque(_texte(regle_debut), _intervalle(banque_debut)),
 			RegleDeBanque(_texte(regle_fin), _intervalle(banque_fin)),
 		),
-		(position_entree, position_sortie),
 	)
 
 

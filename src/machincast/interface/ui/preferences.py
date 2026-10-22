@@ -312,7 +312,7 @@ class Ui_FenetrePreferences(object):
         self.fin.setSuffix(QCoreApplication.translate("FenetrePreferences", u" s", None))
         self.groupe_positions.setTitle(QCoreApplication.translate("FenetrePreferences", u"Position des fondus, pour un sonore jou\u00e9 sans ses blancs", None))
 #if QT_CONFIG(tooltip)
-        self.groupe_positions.setToolTip(QCoreApplication.translate("FenetrePreferences", u"O\u00f9 tombent les fondus par rapport au d\u00e9but et \u00e0 la fin d\u00e9tect\u00e9s d'un sonore ; une banque peut imposer les siennes", None))
+        self.groupe_positions.setToolTip(QCoreApplication.translate("FenetrePreferences", u"O\u00f9 tombent les fondus par rapport au d\u00e9but et \u00e0 la fin d\u00e9tect\u00e9s d'un sonore jou\u00e9 sans ses blancs, quelle que soit sa banque", None))
 #endif // QT_CONFIG(tooltip)
         self.etiquette_position_entree.setText(QCoreApplication.translate("FenetrePreferences", u"Le fade-in, au d\u00e9but d\u00e9tect\u00e9", None))
         self.etiquette_position_sortie.setText(QCoreApplication.translate("FenetrePreferences", u"Le fade-out, \u00e0 la fin d\u00e9tect\u00e9e", None))

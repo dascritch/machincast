@@ -149,7 +149,7 @@ Page **Crossfades** ([#234](https://github.com/dascritch/machincast/issues/234))
 | Le fade-in, au début détecté | Pour un sonore joué sans ses blancs : le fade-in `commence`, `est en cours` ou `se termine` (par défaut) au début détecté ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)). |
 | Le fade-out, à la fin détectée | De même, à la fin détectée : `commence` (par défaut), `est en cours` ou `se termine`. |
 
-Sous ces réglages, une **frise de démonstration** montre un sonore inventé de 30 secondes, aux blancs de 3 et 4 secondes : ses fondus s'y placent selon les durées par défaut saisies et les positions choisies, à chaque changement. Une banque peut imposer ses positions à ses sonores.
+Sous ces réglages, une **frise de démonstration** montre un sonore inventé de 30 secondes, aux blancs de 3 et 4 secondes : ses fondus s'y placent selon les durées par défaut saisies et les positions choisies, à chaque changement.
 
 Page **Interface** :
 

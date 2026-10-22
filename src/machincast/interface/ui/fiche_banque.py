@@ -139,30 +139,10 @@ class Ui_FicheBanque(object):
 
         self.formulaire.setLayout(7, QFormLayout.ItemRole.FieldRole, self.disposition_crossfade_fin)
 
-        self.etiquette_position_entree = QLabel(FicheBanque)
-        self.etiquette_position_entree.setObjectName(u"etiquette_position_entree")
-
-        self.formulaire.setWidget(8, QFormLayout.ItemRole.LabelRole, self.etiquette_position_entree)
-
-        self.position_entree = QComboBox(FicheBanque)
-        self.position_entree.setObjectName(u"position_entree")
-
-        self.formulaire.setWidget(8, QFormLayout.ItemRole.FieldRole, self.position_entree)
-
-        self.etiquette_position_sortie = QLabel(FicheBanque)
-        self.etiquette_position_sortie.setObjectName(u"etiquette_position_sortie")
-
-        self.formulaire.setWidget(9, QFormLayout.ItemRole.LabelRole, self.etiquette_position_sortie)
-
-        self.position_sortie = QComboBox(FicheBanque)
-        self.position_sortie.setObjectName(u"position_sortie")
-
-        self.formulaire.setWidget(9, QFormLayout.ItemRole.FieldRole, self.position_sortie)
-
         self.a_duree_min = QCheckBox(FicheBanque)
         self.a_duree_min.setObjectName(u"a_duree_min")
 
-        self.formulaire.setWidget(10, QFormLayout.ItemRole.LabelRole, self.a_duree_min)
+        self.formulaire.setWidget(8, QFormLayout.ItemRole.LabelRole, self.a_duree_min)
 
         self.disposition_duree_min = QHBoxLayout()
         self.disposition_duree_min.setObjectName(u"disposition_duree_min")
@@ -178,12 +158,12 @@ class Ui_FicheBanque(object):
 
         self.disposition_duree_min.setStretch(1, 1)
 
-        self.formulaire.setLayout(10, QFormLayout.ItemRole.FieldRole, self.disposition_duree_min)
+        self.formulaire.setLayout(8, QFormLayout.ItemRole.FieldRole, self.disposition_duree_min)
 
         self.a_duree_max = QCheckBox(FicheBanque)
         self.a_duree_max.setObjectName(u"a_duree_max")
 
-        self.formulaire.setWidget(11, QFormLayout.ItemRole.LabelRole, self.a_duree_max)
+        self.formulaire.setWidget(9, QFormLayout.ItemRole.LabelRole, self.a_duree_max)
 
         self.disposition_duree_max = QHBoxLayout()
         self.disposition_duree_max.setObjectName(u"disposition_duree_max")
@@ -199,7 +179,7 @@ class Ui_FicheBanque(object):
 
         self.disposition_duree_max.setStretch(1, 1)
 
-        self.formulaire.setLayout(11, QFormLayout.ItemRole.FieldRole, self.disposition_duree_max)
+        self.formulaire.setLayout(9, QFormLayout.ItemRole.FieldRole, self.disposition_duree_max)
 
 
         self.disposition.addLayout(self.formulaire)
@@ -330,8 +310,6 @@ class Ui_FicheBanque(object):
         self.etiquette_masquage.setBuddy(self.masquage)
         self.etiquette_crossfade_debut.setBuddy(self.regle_crossfade_debut)
         self.etiquette_crossfade_fin.setBuddy(self.regle_crossfade_fin)
-        self.etiquette_position_entree.setBuddy(self.position_entree)
-        self.etiquette_position_sortie.setBuddy(self.position_sortie)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(FicheBanque)
@@ -364,14 +342,6 @@ class Ui_FicheBanque(object):
         self.regle_crossfade_fin.setToolTip(QCoreApplication.translate("FicheBanque", u"Le crossfade de fin des sonores jou\u00e9s via cette banque : le leur, celui de la banque pour ceux qui n'en ont pas, ou celui de la banque pour tous", None))
 #endif // QT_CONFIG(tooltip)
         self.crossfade_fin.setSuffix(QCoreApplication.translate("FicheBanque", u" s", None))
-        self.etiquette_position_entree.setText(QCoreApplication.translate("FicheBanque", u"Fade-&in", None))
-#if QT_CONFIG(tooltip)
-        self.position_entree.setToolTip(QCoreApplication.translate("FicheBanque", u"O\u00f9 le fade-in des sonores jou\u00e9s sans leurs blancs se place par rapport \u00e0 leur d\u00e9but d\u00e9tect\u00e9", None))
-#endif // QT_CONFIG(tooltip)
-        self.etiquette_position_sortie.setText(QCoreApplication.translate("FicheBanque", u"Fade-&out", None))
-#if QT_CONFIG(tooltip)
-        self.position_sortie.setToolTip(QCoreApplication.translate("FicheBanque", u"O\u00f9 le fade-out des sonores jou\u00e9s sans leurs blancs se place par rapport \u00e0 leur fin d\u00e9tect\u00e9e", None))
-#endif // QT_CONFIG(tooltip)
         self.a_duree_min.setText(QCoreApplication.translate("FicheBanque", u"Dur\u00e9e minimale des sonores", None))
 #if QT_CONFIG(tooltip)
         self.a_duree_min.setToolTip(QCoreApplication.translate("FicheBanque", u"Facultative : un sonore de la banque qui en sort est signal\u00e9, sans \u00eatre refus\u00e9", None))

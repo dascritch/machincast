@@ -163,14 +163,15 @@ def positions_de_la_configuration(essai: Essai, entree: str, sortie: str) -> Non
 
 @given(
 	parsers.re(
-		r"la banque « (?P<nom>[^»]+) », avec « (?P<titre>[^»]+) », dont le fade-in « (?P<entree>[^»]+) » au début"
-		r" détecté, le fade-out selon les préférences"
+		r"la banque « (?P<nom>[^»]+) », avec « (?P<titre>[^»]+) », qui impose un crossfade de fin de"
+		r" (?P<duree>[\d,]+) secondes"
 	)
 )
-def banque(essai: Essai, base_vide: Connexion, nom: str, titre: str, entree: str) -> None:
+def banque(essai: Essai, base_vide: Connexion, nom: str, titre: str, duree: str) -> None:
 	ligne = base_vide.execute(
-		"INSERT INTO banques (nom_interne, mode, position_fondu_entree) VALUES (%s, 'aleatoire', %s) RETURNING id",
-		(nom, POSITION[entree]),
+		"INSERT INTO banques (nom_interne, mode, crossfade_fin_regle, crossfade_fin)"
+		" VALUES (%s, 'aleatoire', 'impose', %s) RETURNING id",
+		(nom, timedelta(seconds=secondes(duree))),
 	).fetchone()
 	assert ligne is not None
 	essai.banques[nom] = int(str(ligne[0]))
