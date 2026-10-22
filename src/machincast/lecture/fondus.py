@@ -23,7 +23,8 @@ from typing import Literal
 
 Position = Literal["commence", "en_cours", "termine"]
 POSITIONS: tuple[Position, ...] = ("commence", "en_cours", "termine")
-"""Les positions d'un fondu, telles qu'elles s'écrivent dans la configuration et en base (position_fondu)."""
+"""Les positions d'un fondu, telles qu'elles s'écrivent dans la configuration (crossfades.position_entree et
+position_sortie)."""
 LIBELLES: dict[Position, str] = {"commence": "commence", "en_cours": "est en cours", "termine": "se termine"}
 """Ce que dit chaque position, dans « le fade-in se termine au début détecté »."""
 ENTREE_PAR_DEFAUT: Position = "termine"
@@ -95,10 +96,3 @@ def _part(passe: timedelta, fondu: timedelta) -> float:
 	if fondu <= timedelta(0):
 		return 0.0
 	return min(1.0, max(0.0, passe / fondu))
-
-
-def position_ou(valeur: object, defaut: Position) -> Position:
-	"""La position lue en base (position_fondu), ou celle des préférences sans position (NULL)."""
-	if valeur in POSITIONS:
-		return valeur
-	return defaut

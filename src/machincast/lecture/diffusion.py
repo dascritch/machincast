@@ -63,7 +63,7 @@ from machincast.lecture.enregistrement import Passage
 from machincast.lecture.etat import PUBLICATION_MINIMALE, SocketEtat, SocketEtatOccupee, est_sain
 from machincast.lecture.etat import instant as iso
 from machincast.lecture.fichiers import verifier_avant_lecture
-from machincast.lecture.fondus import Placement, placer, position_ou
+from machincast.lecture.fondus import Placement, placer
 from machincast.lecture.grille import Occurrence, Priorite
 from machincast.lecture.historique import EN_BASE, Historique
 from machincast.lecture.moteur import Moteur, VoieLecture, enchainement, fondu_d_entree, superposition
@@ -191,8 +191,7 @@ def lire_parametres(
 			"SELECT s.duree, s.crossfade_debut, s.crossfade_fin, s.type::text, COALESCE(s.url_stream, m.url),"
 			" s.secours_evenement_id, s.artiste, s.titre, COALESCE(s.emplacement, s.url_stream, m.url),"
 			" s.detection_blancs OR COALESCE(b.detection_blancs, false), s.debut_detecte, s.fin_detectee,"
-			" b.crossfade_debut_regle::text, b.crossfade_debut, b.crossfade_fin_regle::text, b.crossfade_fin,"
-			" b.position_fondu_entree::text, b.position_fondu_sortie::text"
+			" b.crossfade_debut_regle::text, b.crossfade_debut, b.crossfade_fin_regle::text, b.crossfade_fin"
 			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
 			" LEFT JOIN banques b ON b.id = %s"
 			" WHERE s.id = %s",
@@ -201,7 +200,7 @@ def lire_parametres(
 	if ligne is None:
 		return Parametres(None, timedelta(0), timedelta(0))
 	duree, debut, fin, type_sonore, adresse, secours, artiste, titre, emplacement, *suite = ligne
-	detection, debut_detecte, fin_detectee, regle_debut, debut_banque, regle_fin, fin_banque, *positions = suite
+	detection, debut_detecte, fin_detectee, regle_debut, debut_banque, regle_fin, fin_banque = suite
 	crossfade_debut = crossfade(debut, regle_debut, debut_banque, defauts.debut)
 	crossfade_fin = crossfade(fin, regle_fin, fin_banque, defauts.fin)
 	# Sans durée connue (un stream), les crossfades restent tels quels.
@@ -215,8 +214,8 @@ def lire_parametres(
 			(detection is True) and (type_sonore == "fichier"),
 			crossfade_debut,
 			crossfade_fin,
-			position_ou(positions[0], defauts.entree),
-			position_ou(positions[1], defauts.sortie),
+			defauts.entree,
+			defauts.sortie,
 		)
 		duree_jouee = placement.duree
 	return Parametres(

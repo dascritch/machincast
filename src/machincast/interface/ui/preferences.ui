@@ -108,7 +108,7 @@
           <string>Position des fondus, pour un sonore joué sans ses blancs</string>
          </property>
          <property name="toolTip">
-          <string>Où tombent les fondus par rapport au début et à la fin détectés d'un sonore ; une banque peut imposer les siennes</string>
+          <string>Où tombent les fondus par rapport au début et à la fin détectés d'un sonore joué sans ses blancs, quelle que soit sa banque</string>
          </property>
          <layout class="QFormLayout" name="formulaire_positions">
           <item row="0" column="0">

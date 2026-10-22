@@ -11,7 +11,7 @@ Fonctionnalité: Position des fondus par rapport aux blancs détectés
 	que le fondu y déborde. Un fondu qui sortirait du fichier n'est pas joué hors du fichier : la lecture commence, ou
 	s'arrête, au bord du fichier, au volume qu'aurait le fondu à cet instant, comme s'il avait déjà commencé. Un sonore
 	joué avec ses blancs l'est en entier, fondus aux bouts du fichier. La position se règle dans les préférences
-	(section [crossfades]), et une banque peut imposer la sienne.
+	(section [crossfades]), pour tous les sonores : une banque ne règle que la présence et la durée des crossfades.
 
 	Ces scénarios essaient le placement seul (machincast.lecture.fondus), puis la diffusion sur la base de test.
 
@@ -58,9 +58,9 @@ Fonctionnalité: Position des fondus par rapport aux blancs détectés
 		Quand la diffusion lit les paramètres de « Respiration », sans banque
 		Alors ses paramètres de lecture : à partir de 1 s du fichier, pendant 59 s, fade-in de 4 s depuis 0, fade-out de 6 s jusqu'à 0,25
 
-	Scénario: Une banque impose ses positions, qui l'emportent sur celles des préférences
+	Scénario: Une banque règle la durée des crossfades, les préférences leur position
 		Étant donné le sonore « Respiration », de 60 secondes, aux blancs détectés de 5 s au début et 6 s à la fin, qui active la détection de blanc, avec des crossfades de 4 secondes au début et 8 à la fin
 		Et les positions des fondus de la configuration : fade-in « est en cours », fade-out « se termine »
-		Et la banque « Nuit », avec « Respiration », dont le fade-in « commence » au début détecté, le fade-out selon les préférences
+		Et la banque « Nuit », avec « Respiration », qui impose un crossfade de fin de 2 secondes
 		Quand la diffusion lit les paramètres de « Respiration », de la banque « Nuit »
-		Alors ses paramètres de lecture : à partir de 5 s du fichier, pendant 49 s, fade-in de 4 s depuis 0, fade-out de 8 s jusqu'à 0
+		Alors ses paramètres de lecture : à partir de 3 s du fichier, pendant 51 s, fade-in de 4 s depuis 0, fade-out de 2 s jusqu'à 0

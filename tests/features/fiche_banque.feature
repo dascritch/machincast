@@ -247,30 +247,6 @@ Fonctionnalité: Fiche d'une banque
 			| début | Garder ceux des sonores           | 1,5 s  | non              |
 			| fin   | Appliquer si le sonore n'en a pas | 2,2 s  | oui              |
 
-	# ─── Position des fondus (https://github.com/dascritch/machincast/issues/234) ─────────────────
-
-	Scénario: Une nouvelle banque laisse les préférences placer ses fondus
-		Quand la fenêtre de l'interface s'ouvre
-		Et j'ouvre l'onglet « Banques »
-		Et je clique sur « Nouvelle banque »
-		Alors la fiche montre les positions des fondus : fade-in « Selon les préférences », fade-out « Selon les préférences »
-		Et le fade-in se place parmi « Selon les préférences », « commence au début détecté », « est en cours au début détecté », « se termine au début détecté »
-		Et le fade-out se place parmi « Selon les préférences », « commence à la fin détectée », « est en cours à la fin détectée », « se termine à la fin détectée »
-
-	Scénario: Les positions des fondus partent en base à l'enregistrement, et en reviennent
-		Quand la fenêtre de l'interface s'ouvre
-		Et j'ouvre la fiche de la banque « Jingles »
-		Et je place le fade-in : « commence au début détecté »
-		Et je place le fade-out : « est en cours à la fin détectée »
-		Et j'enregistre la fiche
-		Alors la banque « Jingles » a en base les positions des fondus « commence » et « en_cours »
-		Quand je place le fade-in : « Selon les préférences »
-		Et j'enregistre la fiche
-		Alors la banque « Jingles » a en base les positions des fondus aucune et « en_cours »
-		Quand je ferme l'onglet « Banque : Jingles »
-		Et j'ouvre la fiche de la banque « Jingles »
-		Alors la fiche montre les positions des fondus : fade-in « Selon les préférences », fade-out « est en cours à la fin détectée »
-
 	# ─── Durées des sonores (https://github.com/dascritch/machincast/issues/147) ───────────────────
 
 	Scénario: Les durées minimale et maximale des sonores sont facultatives, et partent en base
