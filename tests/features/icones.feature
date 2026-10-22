@@ -25,11 +25,12 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| événement  | #2a2a2a |
 			| grille     | #2a2a2a |
 			| simulation | #2a2a2a |
+			| pré-écoute | #2a2a2a |
 			| sonore     | #f0f0f0 |
 			| simulation | #f0f0f0 |
 
-	Scénario: Les six icônes sont différentes les unes des autres
-		Alors les icônes « sonore », « séquence », « banque », « événement », « grille » et « simulation » sont toutes différentes
+	Scénario: Les sept icônes sont différentes les unes des autres
+		Alors les icônes « sonore », « séquence », « banque », « événement », « grille », « simulation » et « pré-écoute » sont toutes différentes
 
 	Scénario: L'icône suit la couleur du texte du thème de l'application
 		Quand le thème de l'application écrit en #f0f0f0
@@ -87,15 +88,26 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| ouvrir_sequence_prochain  | séquence  |
 			| ouvrir_banque_prochain    | banque    |
 
+	Scénario: Chaque bouton de pré-écoute porte le casque
+		https://github.com/dascritch/machincast/issues/223 : le casque de MachinCast, et non une icône du thème du poste,
+		qui peut manquer.
+
+		Étant donné les sonores :
+			| artiste     | titre         | type    | etat  | duree | emplacement            |
+			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/musique/cafe.flac |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Alors le bouton « preecouter » de la fiche ouverte porte l'icône « pré-écoute »
+		Et le bouton « preecouter_l_antenne » de la fenêtre porte l'icône « pré-écoute »
+
 	Scénario: Les écrans n'emploient d'icônes du thème du poste que pour ce qui n'est pas un genre
 		Les écrans dessinés avec Qt Widgets Designer ne prennent pas d'icône du thème pour un genre : celle-ci se pose dans
-		le code, par machincast.interface.icones. Seuls restent « Dossier… », le dossier du fichier sur le disque, et
-		« Pré-écoute… », un casque, dans la fiche d'un sonore.
+		le code, par machincast.interface.icones. Seul reste « Dossier… », le dossier du fichier sur le disque, dans la
+		fiche d'un sonore.
 
 		Alors les icônes du thème des écrans sont seulement :
-			| écran            | bouton        | icône du thème   |
-			| fiche_sonore.ui  | ouvrir_dossier | folder-open      |
-			| fiche_sonore.ui  | preecouter     | audio-headphones |
+			| écran           | bouton         | icône du thème |
+			| fiche_sonore.ui | ouvrir_dossier | folder-open    |
 
 	Scénario: Une nouvelle fiche porte l'icône de son genre dès son ouverture
 		Quand la fenêtre de l'interface s'ouvre
@@ -113,7 +125,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| Ouvrir l'onglet Marques-pages   | aucune     |
 			| Ouvrir l'onglet Grille horaire  | grille     |
 			| Ouvrir l'onglet Simulation      | simulation |
-			| Pré-écoute…                     | aucune     |
+			| Pré-écoute…                     | pré-écoute |
 
 	Scénario: La colonne « Type » de la recherche porte l'icône de chaque genre
 		Étant donné les sonores :

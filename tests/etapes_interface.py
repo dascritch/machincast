@@ -10,6 +10,7 @@ posée : aucune fenêtre modale n'attend un clic.
 """
 
 import dataclasses
+import json
 import re
 import shutil
 from collections.abc import Callable, Iterator
@@ -21,7 +22,16 @@ import psycopg
 import pytest
 import shiboken6
 from PySide6.QtCore import QCoreApplication, QEvent, QMimeData, QModelIndex, QPoint, QPointF, Qt, QUrl
-from PySide6.QtGui import QAction, QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDropEvent, QKeySequence
+from PySide6.QtGui import (
+	QAction,
+	QDragEnterEvent,
+	QDragLeaveEvent,
+	QDragMoveEvent,
+	QDropEvent,
+	QIcon,
+	QImage,
+	QKeySequence,
+)
 from PySide6.QtWidgets import (
 	QAbstractItemView,
 	QApplication,
@@ -47,6 +57,7 @@ from machincast.interface.fiche import Fiche
 from machincast.interface.listes import Liste
 from machincast.interface.preferences import Reglages
 from machincast.interface.suggestions import Manques, Reponse
+from machincast.lecture.etat import Demande, SocketEtat
 from tests.base_test import configuration_test, parametres_base_test
 from tests.sons import FICHIERS_SONORES
 
@@ -1347,3 +1358,67 @@ def configuration_audio(interface: Contexte, reglages: str) -> None:
 @given(parsers.parse("les préférences régleront l'antenne « {antenne} » et la pré-écoute « {preecoute} »"))
 def audio_regle(interface: Contexte, antenne: str, preecoute: str) -> None:
 	interface.reglages_audio = (antenne, preecoute)
+
+
+def meme_icone(une: QIcon, autre: QIcon, taille: int = 24) -> bool:
+	"""Deux icônes dessinent la même image, à cette taille ; une icône nulle n'est la même que nulle autre."""
+	if (une.isNull()) or (autre.isNull()):
+		return False
+	format_ = QImage.Format.Format_ARGB32
+	return une.pixmap(taille).toImage().convertToFormat(format_) == autre.pixmap(taille).toImage().convertToFormat(
+		format_
+	)
+
+
+# ─── Machin lecture imaginaire, sur la socket d'état (https://github.com/dascritch/machincast/issues/104) ─────
+
+
+@dataclass
+class Lecteur:
+	socket: SocketEtat | None = None
+	publie: str = ""
+	"""Le dernier état publié, tel que la socket l'envoie."""
+	recues: list[Demande] = field(default_factory=list)
+
+
+@pytest.fixture
+def lecteur() -> Iterator[Lecteur]:
+	lecteur = Lecteur()
+	yield lecteur
+	if lecteur.socket is not None:
+		lecteur.socket.fermer()
+
+
+def publier(lecteur: Lecteur, etat: str, en_cours: dict[str, object] | None = None) -> None:
+	assert lecteur.socket is not None
+	message = {"etat": etat, "en_cours": en_cours, "prochain": None}
+	lecteur.publie = json.dumps({"version": 1, **message})
+	lecteur.socket.publier(message)
+
+
+@given("la socket d'état de Machin lecture ouverte pour l'interface")
+def socket_ouverte(interface: Contexte, lecteur: Lecteur) -> None:
+	lecteur.socket = SocketEtat(interface.repertoire / "lecture.sock")
+	lecteur.socket.ouvrir()
+
+
+@given(parsers.parse("Machin lecture diffuse un sonore au texte public « {texte} »"))
+@when(parsers.parse("Machin lecture diffuse un sonore au texte public « {texte} »"))
+def diffuse_au_texte_public(lecteur: Lecteur, texte: str) -> None:
+	"""Le texte public du sonore en cours, ce que la page publique en affiche
+	(https://github.com/dascritch/machincast/issues/223)."""
+	en_cours = {
+		"sonore": 12,
+		"type": "fichier",
+		"artiste": None,
+		"titre": texte,
+		"evenement": "Continue",
+		"emplacement": "/srv/musique/minuit.flac",
+		"debut": "2026-10-21T08:59:00+02:00",
+		"duree": 214.0,
+		"fin_estimee": "2026-10-21T09:02:34+02:00",
+		"position": 60.0,
+		"progression": 0.28,
+		"texte_public": texte,
+	}
+	publier(lecteur, "diffusion", en_cours)

@@ -22,7 +22,9 @@ bloque l'interface.
 - Informations : format (codec), débit (celui des tags, sinon la taille du fichier sur sa durée), échantillonnage,
   canaux, et pour un stream, les secondes pré-décodées : le son reçu d'avance, que GStreamer garde en mémoire.
 
-L'écoute de l'antenne viendra avec le VU-mètre de la sortie (https://github.com/dascritch/machincast/issues/24).
+L'écoute de l'antenne (https://github.com/dascritch/machincast/issues/24), par le VU-mètre de l'accueil ou le bouton
+« Pré-écoute » de la fenêtre, a pour titre « en cours : » et le texte public du sonore en cours
+(https://github.com/dascritch/machincast/issues/223).
 """
 
 import math
@@ -434,6 +436,10 @@ class Lecteur:
 			self.canaux = canaux
 
 
+EN_COURS = "en cours : "
+"""Début du titre de l'écoute de l'antenne, suivi du texte public du sonore en cours."""
+
+
 class FenetrePreecoute(QWidget):
 	"""La fenêtre de pré-écoute : indépendante, elle ne se ferme pas avec la fiche qui l'a ouverte."""
 
@@ -475,10 +481,13 @@ class FenetrePreecoute(QWidget):
 		self._releve.setInterval(RELEVE)
 		self._releve.timeout.connect(self._rafraichir)
 		self._releve.start()
+		self.a_l_antenne = False
+		"""La fenêtre écoute l'antenne : son titre suit le texte public du sonore en cours."""
 		self.preecouter(None)
 
 	def preecouter(self, sonore: int | None) -> None:
 		"""Le sonore à pré-écouter, à l'arrêt, à la place du précédent ; None : aucun."""
+		self.a_l_antenne = False
 		source = None
 		if sonore is not None:
 			source = lire_source(self.connexion, sonore, preferences.crossfades())
@@ -492,16 +501,26 @@ class FenetrePreecoute(QWidget):
 		self.ui.message.clear()
 		self._rafraichir()
 
-	def ecouter_l_antenne(self) -> None:
-		"""L'antenne, sur son port de monitoring, à la place du sonore précédent, à l'arrêt."""
+	def ecouter_l_antenne(self, texte_public: str | None, lancer: bool = False) -> None:
+		"""L'antenne, sur son port de monitoring, à la place du sonore précédent : à l'arrêt, ou lancée aussitôt. Le
+		titre de la fenêtre est « en cours : » et le texte public du sonore en cours
+		(https://github.com/dascritch/machincast/issues/223)."""
 		nom = nom_du_port(self.audio)
 		source = Source("Antenne", f"Antenne : {nom}", True, None, self.audio)
 		self.lecteur.charger(source)
 		self._montrer_la_frise(source)
-		self.setWindowTitle("Pré-écoute : Antenne")
+		self.a_l_antenne = True
+		self.suivre_l_antenne(texte_public)
 		self.ui.source.setText(f"Antenne : {nom}")
 		self.ui.message.clear()
+		if lancer:
+			self._lire_ou_mettre_en_pause()
 		self._rafraichir()
+
+	def suivre_l_antenne(self, texte_public: str | None) -> None:
+		"""Le texte public du sonore en cours a changé : le titre le suit, tant que la fenêtre écoute l'antenne."""
+		if self.a_l_antenne:
+			self.setWindowTitle(f"{EN_COURS}{(texte_public) or (affichage.VIDE)}")
 
 	def _montrer_la_frise(self, source: Source | None) -> None:
 		"""La frise d'un fichier, et le calcul de sa forme d'onde, lancé en tâche de fond ; rien pour un stream."""

@@ -2,9 +2,9 @@
 
 Chaque genre a son icône monochrome, dessinée pour MachinCast, en SVG dans le dossier icones/ du paquet : une croche
 pour un sonore, une feuille et sa liste à puces pour une séquence, un dossier pour une banque, une montre pour un
-événement, un calendrier pour la grille, une boule de divination pour la simulation. Chaque SVG ne dessine qu'en
-« currentColor », que icone remplace par la couleur du texte du thème (QPalette.WindowText), clair ou sombre : l'icône
-se lit sur le fond de la fenêtre.
+événement, un calendrier pour la grille, une boule de divination pour la simulation, et un casque pour la pré-écoute.
+Chaque SVG ne dessine qu'en « currentColor », que icone remplace par la couleur du texte du thème (QPalette.WindowText),
+clair ou sombre : l'icône se lit sur le fond de la fenêtre.
 
 L'icône d'un genre désigne ce genre partout où il apparaît : onglets des listes, des fiches, de la grille et de la
 simulation, menu « Affichage », colonne « Type » de la recherche, relations de la fiche d'un sonore. Un genre sans
@@ -25,8 +25,11 @@ FICHIERS = {
 	"événement": "evenement.svg",
 	"grille": "grille.svg",
 	"simulation": "simulation.svg",
+	"pré-écoute": "preecoute.svg",
 }
-"""Le dessin de chaque genre ; les fiches et la recherche nomment les genres ainsi."""
+"""Le dessin de chaque genre ; les fiches et la recherche nomment les genres ainsi. « pré-écoute », un casque, n'est pas
+un genre : il marque chaque bouton et chaque entrée de menu qui lance une pré-écoute
+(https://github.com/dascritch/machincast/issues/223)."""
 TAILLES = (16, 24, 32, 48, 64)
 """Les tailles dessinées : Qt prend la plus proche de celle demandée."""
 COULEUR = "currentColor"

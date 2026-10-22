@@ -783,9 +783,6 @@
        <property name="text">
         <string>Pré-écoute…</string>
        </property>
-       <property name="icon">
-        <iconset theme="audio-headphones"/>
-       </property>
       </widget>
      </item>
      <item>

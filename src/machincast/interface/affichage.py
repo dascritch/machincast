@@ -11,6 +11,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QMenu, QStyle, QWidget
 
 from machincast.conversion import texte_ou_rien
+from machincast.interface import icones
 
 MOIS = (
 	"janvier",
@@ -137,7 +138,7 @@ def proposer_la_preecoute(menu: QMenu, sonore: int, demander: Callable[[int], No
 	premiere = None
 	if menu.actions():
 		premiere = menu.actions()[0]
-	entree = menu.addAction(QIcon.fromTheme("audio-headphones"), PREECOUTE)
+	entree = menu.addAction(icones.icone("pré-écoute"), PREECOUTE)
 	entree.triggered.connect(lambda _coche=False: demander(sonore))
 	if premiere is not None:
 		menu.removeAction(entree)

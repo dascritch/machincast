@@ -130,19 +130,19 @@ L'accueil montre le texte public du sonore en cours, tel que la page publique l'
 
 ## Piloter la diffusion
 
-Le menu **Diffusion** démarre, arrête et redémarre la diffusion, sans terminal. Ses entrées suivent l'état de la diffusion, relu à chaque ouverture du menu.
+Le menu **Diffusion** démarre et arrête la diffusion, sans terminal. Pour la redémarrer, l'arrêter puis la démarrer ([#223](https://github.com/dascritch/machincast/issues/223)). Ses entrées suivent l'état de la diffusion, relu à chaque ouverture du menu.
 
-![Le menu Diffusion : démarrer, arrêter, redémarrer, puis les trois interruptions](../captures/menu-diffusion.png)
+![Le menu Diffusion : démarrer, arrêter, puis les trois interruptions](../captures/menu-diffusion.png)
 
 **Sur un poste installé pour l'antenne**, la diffusion tourne comme un service du poste :
 
 | État de la diffusion | Entrées actives |
 | --- | --- |
 | Arrêtée | Démarrer la diffusion |
-| En marche | Arrêter la diffusion, Redémarrer la diffusion |
-| En échec (elle a planté trop souvent) | Démarrer la diffusion, Redémarrer la diffusion |
+| En marche | Arrêter la diffusion |
+| En échec (elle a planté trop souvent) | Démarrer la diffusion |
 
-Chaque entrée demande le mot de passe d'un administrateur du poste. La barre d'état dit ensuite ce qu'il en est : `Diffusion démarrée.`, `Diffusion arrêtée.`, `Diffusion redémarrée.`, ou l'échec et sa raison, par exemple quand le mot de passe est refusé.
+Chaque entrée demande le mot de passe d'un administrateur du poste. La barre d'état dit ensuite ce qu'il en est : `Diffusion démarrée.`, `Diffusion arrêtée.`, ou l'échec et sa raison, par exemple quand le mot de passe est refusé.
 
 **Sur un poste d'essai**, sans ce service, la barre d'état affiche en permanence `Installation non définitive : diffusion sans service`, et le menu pilote une **diffusion d'essai**, qui joue bel et bien à l'antenne :
 
@@ -150,7 +150,6 @@ Chaque entrée demande le mot de passe d'un administrateur du poste. La barre d'
 | --- | --- |
 | Démarrer la diffusion d'essai | Ouvre la diffusion dans une fenêtre de terminal, qui en montre le journal. Fermer l'interface ne l'arrête pas. |
 | Arrêter la diffusion d'essai | L'arrête proprement : le passage en cours se termine. La barre d'état annonce `Diffusion d'essai arrêtée.` |
-| Redémarrer la diffusion d'essai | L'arrête, puis la relance dans une nouvelle fenêtre de terminal. |
 
 ## Interrompre l'antenne
 

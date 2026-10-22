@@ -4,12 +4,15 @@ Chargé comme greffon pytest par tests/conftest.py : la pré-écoute d'un sonore
 l'antenne depuis le VU-mètre (test_vumetre.py, https://github.com/dascritch/machincast/issues/24) s'en servent.
 """
 
-from PySide6.QtCore import Qt
+import psycopg
+from PySide6.QtCore import QPoint, Qt
 from pytest_bdd import parsers, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface.preecoute import FenetrePreecoute
-from tests.etapes_interface import Contexte, fenetre
+from tests.etapes_interface import Contexte, fenetre, identifiant
+
+Connexion = psycopg.Connection[tuple[object, ...]]
 
 DELAI = 5000
 """Millisecondes laissées à GStreamer pour ce qui arrive « bientôt »."""
@@ -108,3 +111,40 @@ def signale_bientot(interface: Contexte, qtbot: QtBot, debut: str) -> None:
 def signale(interface: Contexte, texte: str) -> None:
 	attendu = texte.replace("…/", f"{interface.repertoire}/")
 	assert fenetre_de_preecoute(interface).ui.message.text() == attendu
+
+
+@then(parsers.parse("la fenêtre de pré-écoute est bientôt titrée « {titre} »"))
+def bientot_titree(interface: Contexte, qtbot: QtBot, titre: str) -> None:
+	qtbot.waitUntil(lambda: fenetre_de_preecoute(interface).windowTitle() == titre, timeout=DELAI)
+
+
+@then(parsers.parse("la fenêtre de pré-écoute reste titrée « {titre} »"))
+def reste_titree(interface: Contexte, qtbot: QtBot, titre: str) -> None:
+	"""Le temps qu'un état publié arrive à l'interface."""
+	qtbot.wait(500)
+	assert fenetre_de_preecoute(interface).windowTitle() == titre
+
+
+@when(parsers.parse("je demande la pré-écoute du sonore « {titre} »"))
+def demander(interface: Contexte, base_vide: Connexion, titre: str) -> None:
+	fenetre(interface)._preecouter(identifiant(base_vide, "sonores", "titre", titre))
+
+
+@then("le bouton « Pré-écoute » est en bas à gauche de la fenêtre, hors des onglets")
+def en_bas_a_gauche(interface: Contexte, qtbot: QtBot) -> None:
+	"""https://github.com/dascritch/machincast/issues/223 : dans la barre d'état, à gauche de ses messages."""
+	ouverte = fenetre(interface)
+	ouverte.show()
+	qtbot.wait(50)
+	bouton = ouverte.ui.preecouter_l_antenne
+	assert bouton.isVisible()
+	assert bouton.text() == "Pré-écoute"
+	assert not ouverte.ui.onglets.isAncestorOf(bouton)
+	coin = bouton.mapTo(ouverte, QPoint(0, 0))
+	assert coin.x() < ouverte.width() / 4, coin
+	assert coin.y() > ouverte.ui.onglets.mapTo(ouverte, QPoint(0, ouverte.ui.onglets.height())).y(), coin
+
+
+@when("je clique sur le bouton « Pré-écoute » de la fenêtre")
+def cliquer_preecoute(interface: Contexte, qtbot: QtBot) -> None:
+	qtbot.mouseClick(fenetre(interface).ui.preecouter_l_antenne, Qt.MouseButton.LeftButton)

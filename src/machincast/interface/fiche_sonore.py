@@ -160,6 +160,7 @@ class FicheSonore(Fiche):
 		for _valeur, texte in MASQUAGES:
 			self.ui.masquage.addItem(texte)
 		self.essai = EssaiDeFlux(self)
+		self.ui.preecouter.setIcon(icones.icone("pré-écoute"))
 		self.ui.preecouter.clicked.connect(self._preecouter)
 		self.ui.verifier.clicked.connect(self._verifier)
 		self._fichier = False

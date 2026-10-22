@@ -22,6 +22,33 @@
       </property>
      </widget>
     </item>
+    <item>
+     <layout class="QHBoxLayout" name="pied">
+      <item>
+       <widget class="QPushButton" name="preecouter_l_antenne">
+        <property name="toolTip">
+         <string>Écouter l'antenne sur la sortie de pré-écoute, aussitôt</string>
+        </property>
+        <property name="text">
+         <string>Pré-écoute</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="pousser_le_pied">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>0</width>
+          <height>0</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
    </layout>
   </widget>
   <widget class="QStatusBar" name="barre_d_etat"/>
