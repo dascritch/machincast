@@ -231,8 +231,6 @@ class FenetrePrincipale(QMainWindow):
 		self.accueil.client.etat_recu.connect(self._suivre_le_texte_public)
 		self._texte_public: str | None = None
 		"""Le texte public du sonore en cours, titre de l'écoute de l'antenne."""
-		self.ui.preecouter_l_antenne.setIcon(icones.icone("pré-écoute"))
-		self.ui.preecouter_l_antenne.clicked.connect(lambda: self._ecouter_l_antenne(lancer=True))
 		self.accueil.client.etat_recu.connect(self._proposer_les_interruptions)
 		self._proposer_les_interruptions(ARRET)
 		self._relire_le_service()
@@ -321,6 +319,11 @@ class FenetrePrincipale(QMainWindow):
 		preecoute.triggered.connect(lambda: self._preecouter(None))
 		self.menu_diffusion = self.menuBar().addMenu("&Diffusion")
 		self.menu_diffusion.aboutToShow.connect(self._relire_le_service)
+		# L'écoute de l'antenne, lancée aussitôt, en tête du menu (https://github.com/dascritch/machincast/issues/245).
+		ecouter = self.menu_diffusion.addAction(icones.icone("pré-écoute"), "Pré-écoute de l'antenne")
+		ecouter.setToolTip("Écouter l'antenne sur la sortie de pré-écoute, aussitôt")
+		ecouter.triggered.connect(lambda: self._ecouter_l_antenne(lancer=True))
+		self.menu_diffusion.addSeparator()
 		self.pilotes: dict[str, QAction] = {}
 		for verbe, (entree, _reussite, _echec) in pilotage.VERBES.items():
 			action = self.menu_diffusion.addAction(entree)

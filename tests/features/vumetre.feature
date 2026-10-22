@@ -211,11 +211,13 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et Machin lecture diffuse un sonore au texte public « Radio Thune, la radio »
 		Alors la fenêtre de pré-écoute reste titrée « Pré-écoute : Jingle »
 
-	Scénario: Le bouton « Pré-écoute » de la fenêtre, en bas à gauche, écoute l'antenne aussitôt
+	Scénario: « Pré-écoute de l'antenne », en tête du menu « Diffusion », écoute l'antenne aussitôt
+		https://github.com/dascritch/machincast/issues/245 : l'entrée remplace le bouton du bas de la fenêtre.
+
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
-		Alors le bouton « Pré-écoute » est en bas à gauche de la fenêtre, hors des onglets
-		Quand je clique sur le bouton « Pré-écoute » de la fenêtre
+		Alors la fenêtre n'a pas de bouton « Pré-écoute » sous ses onglets
+		Quand je choisis « Pré-écoute de l'antenne » dans le menu « Diffusion »
 		Alors la fenêtre de pré-écoute est ouverte, titrée « en cours : — »
 		Et la pré-écoute montre la source « Antenne : sortie factice, signal de test »
 		Et la pré-écoute est bientôt « En lecture »

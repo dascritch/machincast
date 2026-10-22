@@ -28,13 +28,15 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la barre de menus a les menus « Fichier », « Affichage », « Diffusion », « Maintenance », « Aide »
 		Et le menu « Diffusion » a les entrées :
-			| entrée                                | état         | raccourci | infobulle        |
-			| Démarrer la diffusion                 | <demarrer>   |           |                  |
-			| Arrêter la diffusion                  | <arreter>    |           |                  |
-			| —                                     |              |           |                  |
-			| Sauter au sonore suivant              | inactive     |           | Rien à l'antenne |
-			| Sauter après la séquence              | inactive     |           | Rien à l'antenne |
-			| Couper l'événement par le fil musical | inactive     |           | Rien à l'antenne |
+			| entrée                                | état       | raccourci | infobulle                                               |
+			| Pré-écoute de l'antenne               | active     |           | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
+			| —                                     |            |           |                                                         |
+			| Démarrer la diffusion                 | <demarrer> |           |                                                         |
+			| Arrêter la diffusion                  | <arreter>  |           |                                                         |
+			| —                                     |            |           |                                                         |
+			| Sauter au sonore suivant              | inactive   |           | Rien à l'antenne                                        |
+			| Sauter après la séquence              | inactive   |           | Rien à l'antenne                                        |
+			| Couper l'événement par le fil musical | inactive   |           | Rien à l'antenne                                        |
 		Et la barre d'état ne signale pas d'installation à terminer
 
 		Exemples:
@@ -68,13 +70,15 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et le service de diffusion passe en marche
 		Et j'ouvre le menu « Diffusion »
 		Alors le menu « Diffusion » a les entrées :
-			| entrée                                | état     | raccourci | infobulle        |
-			| Démarrer la diffusion                 | inactive |           |                  |
-			| Arrêter la diffusion                  | active   |           |                  |
-			| —                                     |          |           |                  |
-			| Sauter au sonore suivant              | inactive |           | Rien à l'antenne |
-			| Sauter après la séquence              | inactive |           | Rien à l'antenne |
-			| Couper l'événement par le fil musical | inactive |           | Rien à l'antenne |
+			| entrée                                | état     | raccourci | infobulle                                               |
+			| Pré-écoute de l'antenne               | active   |           | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
+			| —                                     |          |           |                                                         |
+			| Démarrer la diffusion                 | inactive |           |                                                         |
+			| Arrêter la diffusion                  | active   |           |                                                         |
+			| —                                     |          |           |                                                         |
+			| Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
+			| Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
+			| Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
 
 	Scénario: Après une commande, le menu suit le nouvel état du service
 		Étant donné le service de diffusion installé, arrêté
@@ -82,13 +86,15 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et je choisis « Démarrer la diffusion » dans le menu « Diffusion »
 		Alors la barre d'état annonce bientôt « Diffusion démarrée. »
 		Et le menu « Diffusion » a les entrées :
-			| entrée                                | état     | raccourci | infobulle        |
-			| Démarrer la diffusion                 | inactive |           |                  |
-			| Arrêter la diffusion                  | active   |           |                  |
-			| —                                     |          |           |                  |
-			| Sauter au sonore suivant              | inactive |           | Rien à l'antenne |
-			| Sauter après la séquence              | inactive |           | Rien à l'antenne |
-			| Couper l'événement par le fil musical | inactive |           | Rien à l'antenne |
+			| entrée                                | état     | raccourci | infobulle                                               |
+			| Pré-écoute de l'antenne               | active   |           | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
+			| —                                     |          |           |                                                         |
+			| Démarrer la diffusion                 | inactive |           |                                                         |
+			| Arrêter la diffusion                  | active   |           |                                                         |
+			| —                                     |          |           |                                                         |
+			| Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
+			| Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
+			| Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
 
 	Scénario: Le service installé pendant que l'interface est ouverte se pilote dès l'ouverture du menu
 		Étant donné le service de diffusion non installé
@@ -96,13 +102,15 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et le service de diffusion s'installe, arrêté
 		Et j'ouvre le menu « Diffusion »
 		Alors le menu « Diffusion » a les entrées :
-			| entrée                                | état     | raccourci | infobulle        |
-			| Démarrer la diffusion                 | active   |           |                  |
-			| Arrêter la diffusion                  | inactive |           |                  |
-			| —                                     |          |           |                  |
-			| Sauter au sonore suivant              | inactive |           | Rien à l'antenne |
-			| Sauter après la séquence              | inactive |           | Rien à l'antenne |
-			| Couper l'événement par le fil musical | inactive |           | Rien à l'antenne |
+			| entrée                                | état     | raccourci | infobulle                                               |
+			| Pré-écoute de l'antenne               | active   |           | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
+			| —                                     |          |           |                                                         |
+			| Démarrer la diffusion                 | active   |           |                                                         |
+			| Arrêter la diffusion                  | inactive |           |                                                         |
+			| —                                     |          |           |                                                         |
+			| Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
+			| Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
+			| Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
 		Et la barre d'état ne signale pas d'installation à terminer
 
 	# ─── Sans le service ───────────────────────────────────────
@@ -114,6 +122,8 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et la barre de menus a les menus « Fichier », « Affichage », « Diffusion », « Maintenance », « Aide »
 		Et le menu « Diffusion » a les entrées :
 			| entrée                                | état     | raccourci | infobulle                                                  |
+			| Pré-écoute de l'antenne               | active   |           | Écouter l'antenne sur la sortie de pré-écoute, aussitôt    |
+			| —                                     |          |           |                                                            |
 			| Démarrer la diffusion d'essai         | active   |           | Sans service : Machin lecture dans une fenêtre de terminal |
 			| Arrêter la diffusion d'essai          | inactive |           | Aucune diffusion d'essai en cours                          |
 			| —                                     |          |           |                                                            |
@@ -147,6 +157,8 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et j'ouvre le menu « Diffusion »
 		Alors le menu « Diffusion » a les entrées :
 			| entrée                                | état     | raccourci | infobulle                                                             |
+			| Pré-écoute de l'antenne               | active   |           | Écouter l'antenne sur la sortie de pré-écoute, aussitôt               |
+			| —                                     |          |           |                                                                       |
 			| Démarrer la diffusion d'essai         | inactive |           | La diffusion d'essai tourne déjà                                      |
 			| Arrêter la diffusion d'essai          | active   |           | Sans service : arrête le Machin lecture lancé à la main, comme Ctrl-C |
 			| —                                     |          |           |                                                                       |
