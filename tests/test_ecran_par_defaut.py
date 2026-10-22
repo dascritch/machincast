@@ -209,9 +209,15 @@ def diffuse(
 	parsers.re(
 		r"le binaire lecture diffuse le stream « (?P<titre>[^»]+) » dans « (?P<evenement>[^»]+) »,"
 		r" commencé à (?P<debut>[\d:]+), joué depuis (?P<position>[\d,]+) secondes"
+		r"(?:, jusqu'à la fin de son événement à (?P<fin>[\d:]+))?"
 	)
 )
-def diffuse_un_stream(contexte: Contexte, titre: str, evenement: str, debut: str, position: str) -> None:
+def diffuse_un_stream(
+	contexte: Contexte, titre: str, evenement: str, debut: str, position: str, fin: str | None
+) -> None:
+	fin_estimee = None
+	if fin is not None:
+		fin_estimee = a(fin).isoformat()
 	contexte.en_cours = {
 		"sonore": 7,
 		"type": "stream",
@@ -220,7 +226,7 @@ def diffuse_un_stream(contexte: Contexte, titre: str, evenement: str, debut: str
 		"evenement": evenement,
 		"debut": a(debut).isoformat(),
 		"duree": None,
-		"fin_estimee": None,
+		"fin_estimee": fin_estimee,
 		"emplacement": adresse(titre),
 		"position": secondes(position),
 		"progression": None,

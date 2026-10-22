@@ -201,7 +201,17 @@ Fonctionnalité: Écran par défaut de l'interface
 			| oui  | oui     |
 			| non  | non     |
 
-	Scénario: Pour un stream, la durée et la fin sont inconnues
+	Scénario: Un stream qui finit avec son événement a sa fin, et le temps qui lui reste
+		https://github.com/dascritch/machincast/issues/242
+
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse le stream « Direct studio » dans « Direct », commencé à 19:00:00, joué depuis 1800 secondes, jusqu'à la fin de son événement à 20:00:00
+		Quand l'écran par défaut s'ouvre
+		Alors le sonore en cours est bientôt « Direct studio »
+		Et le sonore en cours a pour événement « Direct » et pour horaire « 19:00:00 – 20:00:00 (fin de l'événement) »
+		Et l'avancement du sonore en cours est à « reste 30:00 », à 50 %
+
+	Scénario: Pour un stream sans fin d'événement, la durée et la fin sont inconnues
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse le stream « Direct studio » dans « Direct », commencé à 20:00:00, joué depuis 30 secondes
 		Et le prochain sonore est le stream « Relais » dans « Direct », de début inconnu
