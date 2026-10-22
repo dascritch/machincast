@@ -11,7 +11,7 @@ Système automatisé de diffusion sonore pour cotinuité d'antenne radio, sous L
 
 ## Configuration recommandée
 
-Système Linux graphique, avec le moteur audio PipeWire, idéalement Debian ou Ubuntu LTS, et deux sorties sons distinctes, dont une de qualité pour la sortie antenne qui doit aller vers la régie finale de la station ou son nodal.
+Système Linux graphique, avec le moteur audio PipeWire, idéalement Debian ou Ubuntu LTS, et deux sorties sons distinctes, dont une <q>de qualité</q> pour la sortie vers la régie finale de la station ou son nodal.
 
 ## Contexte
 
@@ -21,7 +21,7 @@ Cette radio utilise un logiciel d'automatisation d'antenne minimal pour gérer s
 
 Cela fait plus de 15 années que nous avons successivement tenté de migrer vers différents outils. Soit ils étaient trop compliqués, soit les outils supposés libres se sont refermés et sont devenus des solutions en SaaS.
 
-J'ai estimé qu'il était plus simple de recoder de zéro un tel outil, en connnaissant parfaitement nos usages, les fonctions manquantes et les erreurs de manipulation les plus classiques de ceux qui le gèrent. L'outil ne sert pas à produire une diffusion en stream directement, la sortie sonore d'une carte son professionnelle est envoyée vers une régie finale, et des outils techniques pour les affichages DAB+ et RDS.
+J'ai estimé qu'il était plus simple de recoder de zéro un tel outil, en connaissant parfaitement nos usages, nos équipements, les fonctions manquantes et les erreurs de manipulation les plus classiques de ceux qui le gèrent. L'outil ne sert pas à produire une diffusion en stream directement, la sortie sonore d'une carte son professionnelle (XLR analogique symétrique, SPDIF ou AES3) est envoyée vers une régie finale, et des outils techniques pour les affichages DAB+ et RDS.
 
 Si en tant que radio, autre organisation ou particulier, vous avez décidé d'installer ce logiciel, n'hésitez absolument pas à prendre contact pour parler de votre expérience, ccas d'usage et dans quelle installation vous l'avez inséré.
 
