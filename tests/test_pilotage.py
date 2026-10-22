@@ -249,8 +249,23 @@ def relance_apres_l_arret(poste: Poste) -> None:
 	assert essai.read_text(encoding="utf-8") == "arrêtée\n"
 
 
-@then("le terminal a lancé bientôt Machin maintenance-db, sur la configuration de l'interface, en attendant Entrée")
-def maintenance_dans_le_terminal(interface: Contexte, poste: Poste, qtbot: QtBot) -> None:
+@given(parsers.parse("l'emplacement « {repertoire} » choisi pour les sauvegardes de la maintenance"))
+def emplacement_choisi(interface: Contexte, repertoire: str) -> None:
+	interface.sauvegardes_choisies = Path(repertoire)
+
+
+@then(
+	parsers.re(
+		r"le terminal a lancé bientôt Machin maintenance-db, sur la configuration de l'interface, avec les sauvegardes"
+		r" dans « (?P<sauvegardes>[^»]+) »(?P<a_cote> à côté d'elle)?, le terminal restant ouvert"
+	)
+)
+def maintenance_dans_le_terminal(
+	interface: Contexte, poste: Poste, qtbot: QtBot, sauvegardes: str, a_cote: str | None
+) -> None:
+	repertoire = Path(sauvegardes)
+	if a_cote is not None:
+		repertoire = fichier_de_configuration(interface).resolve().parent / sauvegardes
 	qtbot.waitUntil(poste.terminal.exists, timeout=5000)
 	arguments = poste.terminal.read_text(encoding="utf-8").splitlines()
 	assert arguments == [
@@ -259,7 +274,9 @@ def maintenance_dans_le_terminal(interface: Contexte, poste: Poste, qtbot: QtBot
 		"--config",
 		str(fichier_de_configuration(interface)),
 		"maintenance-db",
-		"--attendre",
+		"--sauvegardes",
+		str(repertoire),
+		"--garder-ouvert",
 	], arguments
 
 

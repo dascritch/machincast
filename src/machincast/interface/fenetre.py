@@ -738,12 +738,13 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.barre_d_etat.showMessage(texte)
 
 	def _maintenir_la_base(self) -> None:
-		"""Machin maintenance-db dans un terminal, une fois confirmée, avec l'emplacement de sa sauvegarde
+		"""Machin maintenance-db dans un terminal, une fois confirmée, avec l'emplacement de sa sauvegarde, au choix
 		(https://github.com/dascritch/machincast/issues/127)."""
-		if not dialogues.confirmer_maintenance(self, pilotage.sauvegardes_de_la_maintenance(self.configuration)):
+		sauvegardes = dialogues.confirmer_maintenance(self, pilotage.sauvegardes_de_la_maintenance(self.configuration))
+		if sauvegardes is None:
 			self.statusBar().showMessage(pilotage.MAINTENANCE_ABANDONNEE)
 			return
-		self.statusBar().showMessage(pilotage.lancer_la_maintenance(self.configuration))
+		self.statusBar().showMessage(pilotage.lancer_la_maintenance(self.configuration, sauvegardes))
 
 	def _indexer(self, audit_complet: bool) -> None:
 		"""Lance Machin indexation dans son propre processus, avec sa fenêtre ; le menu ne la propose plus tant qu'il

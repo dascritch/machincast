@@ -38,6 +38,10 @@ class Retrait(StrEnum):
 	ANNULER = "Annuler"
 
 
+CHOISIR_L_EMPLACEMENT = "Choisir l'emplacement…"
+"""Le bouton de la confirmation de la maintenance qui ouvre le sélecteur de répertoires."""
+
+
 def confirmer_fermeture(parent: QWidget, titre: str, avant: str = "fermer la fiche") -> Fermeture:
 	"""Demande quoi faire des modifications d'une fiche, avant de la fermer ou de la rafraîchir : Entrée enregistre,
 	Échap annule la fermeture ou le rafraîchissement de la fiche."""
@@ -147,19 +151,29 @@ def confirmer_action(parent: QWidget, titre: str, texte: str) -> bool:
 	return question.clickedButton() is faire
 
 
-def confirmer_maintenance(parent: QWidget, sauvegardes: Path) -> bool:
-	"""Lancer la maintenance de la base, qui écrit une sauvegarde dans sauvegardes ? Entrée et Échap l'annulent : elle
-	ne se lance que par son bouton (https://github.com/dascritch/machincast/issues/127)."""
-	question = QMessageBox(parent)
-	question.setIcon(QMessageBox.Icon.Question)
-	question.setWindowTitle("Maintenance de la base de données")
-	question.setText("Êtes-vous sûr de vouloir lancer cette opération ?")
-	question.setInformativeText(f"Une sauvegarde de la base sera enregistrée à l'emplacement {sauvegardes}.")
-	lancer = question.addButton("Lancer la maintenance", QMessageBox.ButtonRole.AcceptRole)
-	annuler = question.addButton("Annuler", QMessageBox.ButtonRole.RejectRole)
-	question.setDefaultButton(annuler)
-	question.exec()
-	return question.clickedButton() is lancer
+def confirmer_maintenance(parent: QWidget, sauvegardes: Path) -> Path | None:
+	"""Lancer la maintenance de la base, qui écrit une sauvegarde dans sauvegardes, ou dans un autre répertoire choisi
+	depuis la question ? L'emplacement de la sauvegarde, ou None si elle est annulée. Entrée et Échap l'annulent :
+	elle ne se lance que par son bouton (https://github.com/dascritch/machincast/issues/127)."""
+	while True:
+		question = QMessageBox(parent)
+		question.setIcon(QMessageBox.Icon.Question)
+		question.setWindowTitle("Maintenance de la base de données")
+		question.setText("Êtes-vous sûr de vouloir lancer cette opération ?")
+		question.setInformativeText(f"Une sauvegarde de la base sera enregistrée à l'emplacement {sauvegardes}.")
+		lancer = question.addButton("Lancer la maintenance", QMessageBox.ButtonRole.AcceptRole)
+		choisir = question.addButton(CHOISIR_L_EMPLACEMENT, QMessageBox.ButtonRole.ActionRole)
+		annuler = question.addButton("Annuler", QMessageBox.ButtonRole.RejectRole)
+		question.setDefaultButton(annuler)
+		question.exec()
+		if question.clickedButton() is lancer:
+			return sauvegardes
+		if question.clickedButton() is not choisir:
+			return None
+		# Un choix abandonné garde l'emplacement d'avant ; la question se repose, avec l'emplacement à jour.
+		choix = choisir_repertoire(parent, "Emplacement de la sauvegarde de la base", str(sauvegardes))
+		if choix is not None:
+			sauvegardes = Path(choix)
 
 
 def choisir_fichiers(parent: QWidget) -> list[Path]:
@@ -191,9 +205,9 @@ def choisir_export(parent: QWidget, propose: str, filtres: list[str]) -> tuple[P
 	return Path(chemin), filtre
 
 
-def choisir_repertoire(parent: QWidget) -> str | None:
-	"""Un répertoire choisi dans le sélecteur du poste, ou None si le choix est abandonné."""
-	repertoire = QFileDialog.getExistingDirectory(parent, "Répertoire indexé de la banque")
+def choisir_repertoire(parent: QWidget, titre: str = "Répertoire indexé de la banque", depart: str = "") -> str | None:
+	"""Un répertoire choisi dans le sélecteur du poste, ouvert sur depart, ou None si le choix est abandonné."""
+	repertoire = QFileDialog.getExistingDirectory(parent, titre, depart)
 	if repertoire == "":
 		return None
 	return repertoire

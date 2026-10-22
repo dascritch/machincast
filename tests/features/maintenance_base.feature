@@ -53,11 +53,15 @@ Fonctionnalité: Maintenance de la base de données
 		Et la maintenance a annoncé « base machincast_test optimisée (VACUUM ANALYZE) »
 		Et la maintenance a annoncé « maintenance terminée, avec des anomalies »
 
-	Scénario: Dans un terminal, la maintenance attend Entrée avant de rendre la main
-		Quand je lance « Machin maintenance-db --attendre », puis j'appuie sur Entrée
+	Scénario: Dans un terminal, la maintenance le garde ouvert jusqu'à sa fermeture, même après Entrée
+		Quand je lance « Machin maintenance-db --garder-ouvert », j'appuie deux fois sur Entrée, puis je ferme le terminal
 		Alors la maintenance se termine avec le code 0
-		Et la maintenance a demandé « Appuyer sur Entrée pour fermer. »
-		Et la maintenance a lu la touche Entrée
+		Et la maintenance a dit « Maintenance finie : cette fenêtre reste ouverte, la fermer quand vous voulez. »
+		Et la maintenance n'a rendu la main qu'à la fermeture du terminal
+
+	Scénario: Ctrl-C dans le terminal gardé ouvert rend la main sans erreur
+		Quand je lance « Machin maintenance-db --garder-ouvert », puis je tape Ctrl-C
+		Alors la maintenance se termine avec le code 0
 
 	Scénario: Le wrapper connaît maintenance-db
 		Alors « maintenance-db » est un binaire du wrapper, déclaré dans pyproject.toml

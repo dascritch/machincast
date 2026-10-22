@@ -79,15 +79,27 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 		Quand la confirmation de la maintenance, sauvegardes dans « /srv/radio/sauvegardes », s'ouvre, et que j'y <geste>
 		Alors la question a dit « Êtes-vous sûr de vouloir lancer cette opération ? »
 		Et la question a précisé « Une sauvegarde de la base sera enregistrée à l'emplacement /srv/radio/sauvegardes. »
-		Et la question a proposé « Lancer la maintenance », « Annuler »
+		Et la question a proposé « Lancer la maintenance », « Choisir l'emplacement… », « Annuler »
 		Et la réponse est « <reponse> »
 
 		Exemples:
-			| geste                                | reponse |
-			| clique sur « Lancer la maintenance » | True    |
-			| clique sur « Annuler »               | False   |
-			| tape Échap                           | False   |
-			| tape Entrée                          | False   |
+			| geste                                | reponse                |
+			| clique sur « Lancer la maintenance » | /srv/radio/sauvegardes |
+			| clique sur « Annuler »               | None                   |
+			| tape Échap                           | None                   |
+			| tape Entrée                          | None                   |
+
+	Plan du scénario: L'emplacement de la sauvegarde se choisit depuis la confirmation de la maintenance
+		Quand la confirmation de la maintenance, sauvegardes dans « /srv/radio/sauvegardes », s'ouvre, que j'y choisis l'emplacement, que le sélecteur de répertoires donne « <selecteur> », puis que j'y clique sur « <bouton> »
+		Alors le sélecteur de répertoires s'est ouvert sur « /srv/radio/sauvegardes »
+		Et la question a précisé « Une sauvegarde de la base sera enregistrée à l'emplacement <emplacement>. »
+		Et la réponse est « <reponse> »
+
+		Exemples:
+			| selecteur              | bouton                | emplacement            | reponse                |
+			| /media/cle/sauvegardes | Lancer la maintenance | /media/cle/sauvegardes | /media/cle/sauvegardes |
+			|                        | Lancer la maintenance | /srv/radio/sauvegardes | /srv/radio/sauvegardes |
+			| /media/cle/sauvegardes | Annuler               | /media/cle/sauvegardes | None                   |
 
 	Plan du scénario: La confirmation d'une action sur une sélection ne la fait que sur son bouton, ou Entrée
 		# https://github.com/dascritch/machincast/issues/114
