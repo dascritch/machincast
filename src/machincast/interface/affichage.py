@@ -3,11 +3,12 @@
 Les noms de jours et de mois sont écrits ici, en français : l'affichage ne dépend pas de la langue du poste.
 """
 
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QStyle, QWidget
+from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QMenu, QStyle, QWidget
 
 from machincast.conversion import texte_ou_rien
 
@@ -123,3 +124,22 @@ def date_cochee(case: QCheckBox, date: QDateTimeEdit) -> datetime | None:
 	if not case.isChecked():
 		return None
 	return datetime.fromtimestamp(date.dateTime().toSecsSinceEpoch()).astimezone()
+
+
+PREECOUTE = "Pré-écoute…"
+"""L'entrée des menus contextuels qui pré-écoute le sonore de la ligne, comme le bouton de sa fiche
+(https://github.com/dascritch/machincast/issues/226)."""
+
+
+def proposer_la_preecoute(menu: QMenu, sonore: int, demander: Callable[[int], None]) -> None:
+	"""« Pré-écoute… » en tête du menu d'une ligne de sonore, avec l'icône du bouton de la fiche, séparée des entrées
+	qui suivent."""
+	premiere = None
+	if menu.actions():
+		premiere = menu.actions()[0]
+	entree = menu.addAction(QIcon.fromTheme("audio-headphones"), PREECOUTE)
+	entree.triggered.connect(lambda _coche=False: demander(sonore))
+	if premiere is not None:
+		menu.removeAction(entree)
+		menu.insertAction(premiere, entree)
+		menu.insertSeparator(premiere)

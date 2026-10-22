@@ -195,6 +195,7 @@ class FenetrePrincipale(QMainWindow):
 		self.accueil.ecoute_demandee.connect(self._ecouter_l_antenne)
 		self._ajouter_fixe(self.accueil, "Accueil")
 		self.accueil.ouverte.connect(self._ouvrir)
+		self.accueil.preecoute_demandee.connect(self._preecouter)
 		self.verificateur = Verificateur(connexion, self)
 		self.verificateur.termine.connect(self._verification_terminee)
 		self.verification_complete = VerificationComplete(connexion, self)
@@ -236,6 +237,7 @@ class FenetrePrincipale(QMainWindow):
 			liste.ouverte.connect(self._ouvrir)
 			liste.creation_demandee.connect(lambda genre: self._ouvrir_fiche(genre, None))
 			liste.duplication_demandee.connect(self._dupliquer)
+			liste.preecoute_demandee.connect(self._preecouter)
 			liste.action_demandee.connect(lambda cle, elements, liste=liste: self._agir(liste, cle, elements))
 			liste.ajout_demande.connect(
 				lambda liste=liste: self._ajouter_fichiers(liste, dialogues.choisir_fichiers(self))
@@ -507,8 +509,8 @@ class FenetrePrincipale(QMainWindow):
 		fiche.ouverture_demandee.connect(self._ouvrir)
 		fiche.supprimee.connect(lambda: self._retirer(fiche))
 		fiche.duplication_demandee.connect(self._dupliquer)
+		fiche.preecoute_demandee.connect(self._preecouter)
 		if isinstance(fiche, FicheSonore):
-			fiche.preecoute_demandee.connect(self._preecouter)
 			fiche.verification_demandee.connect(lambda sonore, fiche=fiche: self._verifier_completement(fiche, sonore))
 		if genre == "événement":
 			fiche.supprimee.connect(self._garantir_fil_musical)

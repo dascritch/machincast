@@ -91,6 +91,9 @@ class Fiche(QWidget):
 	supprimee = Signal()
 	"""L'élément n'est plus en base : la fiche est à fermer, sans rien demander."""
 	duplication_demandee = Signal(str, int)
+	preecoute_demandee = Signal(int)
+	"""Un sonore est à pré-écouter : depuis le bouton de la fiche d'un sonore, ou le menu contextuel d'une ligne de
+	sonore d'une banque, d'une séquence ou d'un événement (https://github.com/dascritch/machincast/issues/226)."""
 	"""« Dupliquer » cliqué : le genre et l'identifiant de l'élément à copier dans une nouvelle fiche."""
 
 	genre = ""

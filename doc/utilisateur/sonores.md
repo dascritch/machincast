@@ -103,7 +103,7 @@ La fiche d'un sonore s'ouvre dans un onglet nommé « Sonore : » suivi de son t
 
 ## Pré-écoute
 
-La **fenêtre de pré-écoute** fait écouter un sonore, ou l'antenne, sur le casque de la régie, **jamais sur l'antenne**. Le bouton **Pré-écoute…** d'une fiche de sonore, ou **Affichage → Pré-écoute…**, l'ouvre ; un clic sur le [VU-mètre de l'accueil](prise-en-main.md#vu-mètre-de-lantenne) y charge l'antenne.
+La **fenêtre de pré-écoute** fait écouter un sonore, ou l'antenne, sur le casque de la régie, **jamais sur l'antenne**. Le bouton **Pré-écoute…** d'une fiche de sonore, ou **Affichage → Pré-écoute…**, l'ouvre. Le **clic droit** sur la ligne d'un sonore propose aussi **Pré-écoute…**, en tête du menu ([#226](https://github.com/dascritch/machincast/issues/226)) : dans l'airplay de l'accueil, la liste des sonores, les éléments d'une séquence ou d'un événement, et les sonores d'une banque. Il pré-écoute le sonore de la ligne cliquée, même au milieu d'une sélection ; une ligne qui ne désigne pas de sonore enregistré (une banque, un fichier déposé pas encore enregistré, un sonore supprimé depuis son passage) ne le propose pas. un clic sur le [VU-mètre de l'accueil](prise-en-main.md#vu-mètre-de-lantenne) y charge l'antenne.
 
 ![La fenêtre de pré-écoute, à l'arrêt, chargée sur l'antenne, avec sa sortie : le casque de la régie](../captures/preecoute.png)
 
@@ -157,7 +157,7 @@ La fiche d'une banque s'ouvre dans un onglet nommé « Banque : » suivi de son 
 - **Ordre** : en mode séquentiel, un sonore se déplace par glisser-déposer, ou avec **Monter** et **Descendre**. En mode aléatoire, l'ordre ne compte pas.
 - **Ajouter des sonores…** ouvre la liste des sonores en base ; **déposer des fichiers** les ajoute en fin de liste, comme nouveaux sonores `aperçu` s'ils ne sont pas encore en base.
 - **Retirer le sonore** retire le sonore choisi de la banque. Si son fichier est dans l'un des répertoires de la banque, un avertissement rappelle que **la prochaine indexation l'y remettra** : **Retirer quand même**, **Ouvrir le dossier** du fichier pour l'en déplacer, ou **Annuler**. Le sonore reste en base.
-- **Plusieurs sonores** se choisissent avec <kbd>Ctrl</kbd> ou <kbd>Maj</kbd> ; le clic droit propose **Activer** et **Désactiver**, enregistrés avec le reste de la fiche.
+- **Plusieurs sonores** se choisissent avec <kbd>Ctrl</kbd> ou <kbd>Maj</kbd> ; le clic droit propose **Pré-écoute…** du sonore cliqué, puis **Activer** et **Désactiver**, enregistrés avec le reste de la fiche.
 - **Ouvrir un sonore** : un double-clic ouvre sa fiche dans un autre onglet.
 
 ## Alimenter une banque par ses répertoires

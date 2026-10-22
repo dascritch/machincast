@@ -138,9 +138,7 @@ DELAI_DE_STAT = 5
 
 
 class FicheSonore(Fiche):
-	preecoute_demandee = Signal(int)
-	"""« Pré-écoute… » : le sonore à écouter dans la fenêtre de pré-écoute
-	(https://github.com/dascritch/machincast/issues/116)."""
+	# « Pré-écoute… » émet preecoute_demandee, de la Fiche (https://github.com/dascritch/machincast/issues/116).
 	verification_demandee = Signal(int)
 	"""« Vérification complète » : le sonore dont faire l'audit complet
 	(https://github.com/dascritch/machincast/issues/190)."""
