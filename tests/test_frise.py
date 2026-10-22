@@ -252,6 +252,7 @@ def _relever_jusqu_a(qtbot: QtBot, forme: FormeDOnde, condition: str) -> None:
 	qtbot.waitUntil(atteint, timeout=DELAI)
 
 
+@given("la forme d'onde est bientôt complète")
 @then("la forme d'onde est bientôt complète")
 def complete(essai: Essai, qtbot: QtBot) -> None:
 	assert essai.forme is not None
@@ -309,3 +310,29 @@ def sans_trou(essai: Essai, largeur: int, de: str, a: str) -> None:
 	colonnes = frise.colonnes()
 	gauche, droite = round(frise.secondes_vers_x(secondes(de))), round(frise.secondes_vers_x(secondes(a)))
 	assert all(hauteur > 0.4 for hauteur in colonnes[gauche:droite]), colonnes[gauche:droite]
+
+
+@then("la frise de cette forme d'onde se dessine pareil, active ou inactive")
+def pareil(essai: Essai) -> None:
+	"""Inactive, à l'arrêt, la frise ne se grise pas : sa forme d'onde, ses blancs et ses fondus gardent leurs couleurs."""
+	assert essai.forme is not None
+	frise = Frise(essai.parent)
+	frise.resize(400, 72)
+	frise.montrer(
+		plan_du_sonore(
+			timedelta(seconds=2),
+			timedelta(seconds=0.5),
+			timedelta(seconds=0.5),
+			True,
+			timedelta(seconds=0.2),
+			timedelta(seconds=0.3),
+			Crossfades(),
+			audite=True,
+		),
+		2.0,
+	)
+	frise.montrer_la_forme(essai.forme)
+	active = frise.grab().toImage()
+	frise.setEnabled(False)
+	inactive = frise.grab().toImage()
+	assert active == inactive

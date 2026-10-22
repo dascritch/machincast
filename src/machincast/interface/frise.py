@@ -459,9 +459,8 @@ class Frise(QWidget):
 		peintre = QPainter(self)
 		peintre.setRenderHint(QPainter.RenderHint.Antialiasing)
 		palette = self.palette()
+		# Jamais grisée : à l'arrêt, la frise reste lisible, et se lit comme pendant la lecture.
 		groupe = QPalette.ColorGroup.Normal
-		if not self.isEnabled():
-			groupe = QPalette.ColorGroup.Disabled
 		cadre = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
 		peintre.fillRect(cadre, palette.color(groupe, QPalette.ColorRole.Base))
 		self._dessiner_la_forme(peintre, palette.color(groupe, QPalette.ColorRole.Text))
