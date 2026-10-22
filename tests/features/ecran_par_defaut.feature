@@ -110,6 +110,24 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le prochain sonore a une frise, sans tête de lecture
 		Et l'avancement du sonore en cours est bientôt à « reste 3:05 », à 14 %
 
+	Scénario: Les deux frises sont en tête de leur sonore, au-dessus du titre, au même niveau
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
+		Quand l'écran par défaut s'ouvre, large de 1100 pixels
+		Et le sonore en cours est bientôt « Les Gaufres – Café à minuit »
+		Alors les frises du sonore en cours et du prochain sonore sont au-dessus de leur titre, à la même hauteur
+		Et le temps qui reste au sonore en cours est entre sa frise et son titre
+
+	Scénario: Le VU-mètre de l'antenne prend toute la hauteur que lui laissent les frises
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
+		Quand l'écran par défaut s'ouvre, large de 1100 pixels
+		Et le sonore en cours est bientôt « Les Gaufres – Café à minuit »
+		Et la colonne de l'antenne est plus haute qu'il ne lui faut
+		Alors le VU-mètre de l'antenne occupe sa colonne : ses voyants gardent leur hauteur, il prend le reste
+
 	Scénario: Un stream garde sa barre de progression, et n'a pas de frise
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse le stream « Direct studio » dans « Direct », commencé à 20:00:00, joué depuis 30 secondes
