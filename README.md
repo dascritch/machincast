@@ -6,6 +6,9 @@ Système automatisé de diffusion sonore pour cotinuité d'antenne radio, sous L
 - **Administrateur du poste** : [INSTALL.md](INSTALL.md) pour l'installation, puis le [guide d'administration](doc/administration/README.md)
 - **Développeur** : le [guide du développement](doc/developpement/README.md), avec la [spécification fonctionnelle](doc/spec.md) et les [règles du projet](doc/regles/developpement.md)
 
+<img width="1106" height="840" alt="image" src="https://github.com/user-attachments/assets/447d0ffb-c26d-4a45-bb50-3270a7d4f967" />
+
+
 ## Configuration recommandée
 
 Système Linux graphique, avec le moteur audio PipeWire, idéalement Debian ou Ubuntu LTS, et deux sorties sons distinctes, dont une de qualité pour la sortie antenne qui doit aller vers la régie finale de la station ou son nodal.
