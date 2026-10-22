@@ -55,27 +55,27 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le sonore en cours est « Les Gaufres – Café à minuit »
 		Et le sonore en cours a pour événement « Fil de jour » et pour horaire « 20:00:00 – 20:03:34 (3:34) »
 		Et le sonore en cours a pour emplacement « /srv/musique/Café_à_minuit.flac »
-		Et la barre de progression du sonore en cours est à « reste 3:05 », remplie à 14 %
+		Et l'avancement du sonore en cours est à « reste 3:05 », à 14 %
 		Et le sonore en cours n'a pas d'intitulé « Progression »
 
 	Scénario: Un sonore qui dépasse sa durée annoncée n'a plus de temps qui reste
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 220 secondes
 		Quand l'écran par défaut s'ouvre
-		Alors la barre de progression du sonore en cours est bientôt à « reste 0:00 », remplie à 100 %
+		Alors l'avancement du sonore en cours est bientôt à « reste 0:00 », à 100 %
 
 	Scénario: La progression suit les états publiés
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Quand l'écran par défaut s'ouvre
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 107,25 secondes
-		Alors la barre de progression du sonore en cours est bientôt à « reste 1:48 »
+		Alors l'avancement du sonore en cours est bientôt à « reste 1:48 »
 
-	Scénario: Un sonore de durée nulle a sa barre remplie
+	Scénario: Un sonore de durée nulle est au bout de son avancement
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Bip » de « Radio » dans « Fil de jour », commencé à 20:00:00, de 0 secondes, joué depuis 0 secondes
 		Quand l'écran par défaut s'ouvre
-		Alors la barre de progression du sonore en cours est bientôt à « reste 0:00 », remplie à 100 %
+		Alors l'avancement du sonore en cours est bientôt à « reste 0:00 », à 100 %
 
 	Scénario: Un sonore qu'un événement coupera montre la coupure, et le temps qui lui reste jusqu'à elle
 		https://github.com/dascritch/machincast/issues/169 : le binaire lecture annonce la coupure et le sonore que jouera l'événement.
@@ -87,7 +87,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Quand l'écran par défaut s'ouvre
 		Alors le prochain sonore est bientôt « Flash info »
 		Et le sonore en cours a pour événement « Fil de jour » et pour horaire « 20:00:00 – 20:02:00 (coupé par « Journal », sur 3:34) »
-		Et la barre de progression du sonore en cours est à « reste 1:30 avant « Journal » », remplie à 25 %
+		Et l'avancement du sonore en cours est à « reste 1:30 avant « Journal » », à 25 %
 		Et le prochain sonore a pour événement « Journal » et pour horaire « 20:02:00 – 20:02:30 (0:30) »
 
 	Scénario: Un stream qu'un événement coupera a une fin, et un temps qui reste
@@ -97,7 +97,76 @@ Fonctionnalité: Écran par défaut de l'interface
 		Quand l'écran par défaut s'ouvre
 		Alors le sonore en cours est bientôt « Direct studio »
 		Et le sonore en cours a pour événement « Direct » et pour horaire « 20:00:00 – 20:05:00 (coupé par « Flash », durée inconnue) »
-		Et la barre de progression du sonore en cours est à « reste 4:30 avant « Flash » », remplie à 10 %
+		Et l'avancement du sonore en cours est à « reste 4:30 avant « Flash » », à 10 %
+
+	# ─── Frises (https://github.com/dascritch/machincast/issues/230) ───
+
+	Scénario: Un fichier en cours a une frise à la place de la barre de progression, et le temps qui reste dessous
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
+		Quand l'écran par défaut s'ouvre
+		Alors le sonore en cours a une frise, sans barre de progression
+		Et le prochain sonore a une frise, sans tête de lecture
+		Et l'avancement du sonore en cours est bientôt à « reste 3:05 », à 14 %
+
+	Scénario: Un stream garde sa barre de progression, et n'a pas de frise
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse le stream « Direct studio » dans « Direct », commencé à 20:00:00, joué depuis 30 secondes
+		Et le prochain sonore est le stream « Relais » dans « Direct », de début inconnu
+		Quand l'écran par défaut s'ouvre
+		Alors le sonore en cours est bientôt « Direct studio »
+		Et le sonore en cours a une barre de progression, sans frise
+		Et le prochain sonore n'a pas de frise
+
+	Scénario: La frise du sonore en cours montre ce que la diffusion en fait, règles de sa banque comprises
+		Étant donné le sonore « Respiration » en base, pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, sans détection de blanc, aux crossfades de 0,2 s au début et 0,3 s à la fin
+		Et la banque « Nuit » en base, qui retire les blancs et impose un crossfade de fin de 0,4 s, avec « Respiration »
+		Et la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Respiration », de la banque « Nuit », commencé à 20:00:00, joué depuis 0,4 seconde
+		Quand l'écran par défaut s'ouvre
+		Alors la frise du sonore en cours montre bientôt les zones :
+			| zone            | de   | à    | hachures | infobulle                                                                  |
+			| blanc de début  | 0,00 | 0,50 | pleines  | Blanc de début : 0,50 s, retiré à l'antenne                                |
+			| fondu d'entrée  | 0,50 | 0,70 | aucune   | Crossfade de début : 0,20 s, montée si le sonore précédent a un crossfade de fin |
+			| fondu de sortie | 1,10 | 1,50 | aucune   | Crossfade de fin : 0,40 s (imposé par la banque)                           |
+			| blanc de fin    | 1,50 | 2,00 | pleines  | Blanc de fin : 0,50 s, retiré à l'antenne                                  |
+		Et la tête de lecture de la frise du sonore en cours est à 0,9 seconde, la position jouée comptée depuis le début détecté
+		Et la forme d'onde de la frise du sonore en cours est bientôt complète
+
+	Scénario: La frise du prochain sonore, sans banque, montre ses propres réglages
+		Étant donné le sonore « Respiration » en base, pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, sans détection de blanc, aux crossfades de 0,2 s au début et 0,3 s à la fin
+		Et la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le prochain sonore est « Respiration » en base, sans banque
+		Quand l'écran par défaut s'ouvre
+		Alors la frise du prochain sonore montre bientôt les zones « blanc de début », « fondu d'entrée », « fondu de sortie », « blanc de fin », ses blancs joués à l'antenne
+
+	Scénario: La forme d'onde du prochain sonore sert encore quand il passe à l'antenne, sans être recalculée
+		Étant donné le sonore « Respiration » en base, pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, sans détection de blanc, aux crossfades de 0,2 s au début et 0,3 s à la fin
+		Et la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le prochain sonore est « Respiration » en base, sans banque
+		Quand l'écran par défaut s'ouvre
+		Et la forme d'onde de la frise du prochain sonore est bientôt complète
+		Et le binaire lecture diffuse « Respiration », sans banque, commencé à 20:03:34, joué depuis 0,2 seconde
+		Alors la frise du sonore en cours dessine bientôt la forme d'onde qu'avait le prochain sonore
+
+	Scénario: Le plan d'un sonore se lit une fois en base, pas à chaque état publié
+		Étant donné le sonore « Respiration » en base, pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, sans détection de blanc, aux crossfades de 0,2 s au début et 0,3 s à la fin
+		Et la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Respiration », sans banque, commencé à 20:00:00, joué depuis 0,2 seconde
+		Quand l'écran par défaut s'ouvre
+		Et le binaire lecture diffuse « Respiration », sans banque, commencé à 20:00:00, joué depuis 0,6 seconde
+		Alors la tête de lecture de la frise du sonore en cours est à 0,6 seconde, la position jouée comptée depuis le début détecté
+		Et le plan du sonore « Respiration » n'a été lu qu'une fois en base
+
+	Scénario: Sur l'accueil, la frise ne déplace aucune lecture
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Quand l'écran par défaut s'ouvre
+		Et je clique au milieu de la frise du sonore en cours
+		Alors la frise du sonore en cours n'a demandé aucune position
 
 	Plan du scénario: Le prochain sonore montre ses heures estimées, sa durée et l'indicateur « sain »
 		Étant donné la socket d'état du binaire lecture ouverte
@@ -121,7 +190,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Quand l'écran par défaut s'ouvre
 		Alors le sonore en cours est bientôt « Direct studio »
 		Et le sonore en cours a pour événement « Direct » et pour horaire « 20:00:00, durée inconnue »
-		Et la barre de progression du sonore en cours est à « durée inconnue »
+		Et l'avancement du sonore en cours est à « durée inconnue »
 		Et le sonore en cours a pour emplacement « https://flux.exemple/Direct_studio »
 		Et le prochain sonore a pour événement « Direct » et pour horaire « inconnu, durée inconnue »
 		Et le prochain sonore a pour emplacement « https://flux.exemple/Relais »
@@ -135,7 +204,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le sonore en cours est « — »
 		Et le sonore en cours a pour emplacement « — »
 		Et le prochain sonore a pour emplacement « — »
-		Et la barre de progression du sonore en cours est à « — »
+		Et l'avancement du sonore en cours est à « — »
 
 	Scénario: Le dernier état du binaire lecture qui s'arrête met l'écran à l'arrêt
 		Étant donné la socket d'état du binaire lecture ouverte
@@ -164,7 +233,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Alors l'état du binaire lecture est bientôt « À l'arrêt »
 		Et le sonore en cours a pour événement « — » et pour horaire « — »
 		Et le sonore en cours a pour séquence « — » et pour banque « — »
-		Et la barre de progression du sonore en cours est à « — », remplie à 0 %
+		Et l'avancement du sonore en cours est à « — », à 0 %
 		Et le bandeau montre le texte public « — »
 		Et l'événement à l'antenne est « — »
 		Et les boutons de fiche de l'accueil sont inactifs

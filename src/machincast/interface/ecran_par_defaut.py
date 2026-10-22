@@ -23,11 +23,12 @@ from PySide6.QtWidgets import QLineEdit, QMenu, QVBoxLayout, QWidget
 
 from machincast.configuration import Audio
 from machincast.horloge import Horloge
-from machincast.interface import affichage, icones
+from machincast.interface import affichage, icones, preferences
 from machincast.interface.airplay import FENETRE, PassageAffiche, lire_airplay
 from machincast.interface.calendrier import date_longue
 from machincast.interface.colonnes import Colonnes
 from machincast.interface.etat import ClientEtat, EtatLecture, SonoreAffiche
+from machincast.interface.frise import FormeDOnde, Frise, Plan, lire_le_plan
 from machincast.interface.moniteur import Moniteur, nom_du_port
 from machincast.interface.ui.ecran_par_defaut import Ui_EcranParDefaut
 from machincast.interface.vumetre import VuMetre
@@ -36,6 +37,8 @@ journal = logging.getLogger(__name__)
 
 SECONDE = 1000
 """Rafraîchissement de l'heure, en millisecondes."""
+RELEVE_DES_FORMES = 100
+"""Millisecondes entre deux relèves des formes d'onde en cours de calcul (https://github.com/dascritch/machincast/issues/230)."""
 ETATS = {"diffusion": "En diffusion", "silence": "En silence", "arret": "À l'arrêt"}
 ELEMENT = Qt.ItemDataRole.UserRole
 """Rôle qui porte, sur une cellule de l'airplay, le genre et l'identifiant de l'élément qu'elle désigne."""
@@ -111,6 +114,20 @@ class EcranParDefaut(QWidget):
 		ui.ouvrir_banque_prochain.clicked.connect(lambda: self._ouvrir_banque(self._prochain))
 		self._passage_connu: datetime | None = None
 		"""Début du sonore en cours que l'airplay affiché connaît : il n'est relu que si un autre est annoncé."""
+		# Les frises des deux sonores (https://github.com/dascritch/machincast/issues/230) : elles se regardent, sans
+		# déplacer de lecture.
+		self.frise_en_cours = _poser_la_frise(ui.place_frise_en_cours)
+		self.frise_prochain = _poser_la_frise(ui.place_frise_prochain)
+		self._formes: dict[tuple[int, str], FormeDOnde] = {}
+		"""Les formes d'onde, par sonore et fichier : celle du prochain sonore sert encore quand il passe à
+		l'antenne."""
+		self._plans: dict[tuple[int, int | None], Plan | None] = {}
+		"""Les plans lus en base, par sonore et banque."""
+		self.avancement_en_cours = 0
+		"""La part jouée du sonore en cours, en pour cent, que montre sa barre de progression ou sa frise."""
+		self._releve_des_formes = QTimer(self)
+		self._releve_des_formes.setInterval(RELEVE_DES_FORMES)
+		self._releve_des_formes.timeout.connect(self._relever_les_formes)
 		self._afficher_heure()
 		self._horloge = QTimer(self)
 		self._horloge.setInterval(SECONDE)
@@ -168,6 +185,9 @@ class EcranParDefaut(QWidget):
 
 	def closeEvent(self, evenement: QCloseEvent) -> None:
 		self._horloge.stop()
+		self._releve_des_formes.stop()
+		for forme in self._formes.values():
+			forme.arreter()
 		self.client.fermer()
 		self.moniteur.arreter()
 		super().closeEvent(evenement)
@@ -187,6 +207,8 @@ class EcranParDefaut(QWidget):
 		self._afficher_sonore("en_cours", etat.en_cours)
 		self._afficher_sonore("prochain", etat.prochain)
 		self._afficher_progression(etat.en_cours)
+		self._montrer_la_frise(self.frise_prochain, etat.prochain)
+		self._oublier_les_formes()
 		self._afficher_antenne(etat.en_cours)
 		prochain = etat.prochain
 		self.ui.prochain_sain.setText(affichage.VIDE)
@@ -220,27 +242,92 @@ class EcranParDefaut(QWidget):
 		horaire.setText(_horaire(sonore))
 
 	def _afficher_progression(self, sonore: SonoreAffiche | None) -> None:
-		"""Le temps qui reste au sonore en cours, plutôt qu'un pourcentage."""
+		"""Le temps qui reste au sonore en cours, plutôt qu'un pourcentage : sur la barre de progression d'un stream,
+		sous la frise d'un fichier, qui la remplace (https://github.com/dascritch/machincast/issues/230)."""
+		texte, valeur = _avancement(sonore)
+		self.avancement_en_cours = valeur
+		fichier = (sonore is not None) and (not sonore.stream)
 		barre = self.ui.en_cours_progression
-		barre.setValue(0)
-		if sonore is None:
-			barre.setFormat(affichage.VIDE)
-			return
-		longueur = _longueur(sonore)
-		if (longueur is None) or (sonore.position is None):
-			barre.setFormat("durée inconnue")
-			return
-		# Une barre hors de ses bornes garde son ancienne valeur : un sonore qui dépasse sa durée la remplit.
-		barre.setValue(100)
-		if longueur > 0:
-			barre.setValue(min(100, round(sonore.position / longueur * 100)))
-		# Le temps qui reste se compte à la seconde entamée : « reste 0:01 » jusqu'à la fin, puis « reste 0:00 ».
-		reste = math.ceil(max(0.0, longueur - sonore.position))
+		barre.setVisible(not fichier)
+		self.ui.en_cours_reste.setVisible(fichier)
+		barre.setValue(valeur)
 		# Texte composé ici : les codes de format de Qt s'écrivent avec la notation %, que refuse socle.feature.
-		texte = f"reste {affichage.duree(reste)}"
-		if sonore.coupe_par is not None:
-			texte = f"{texte} avant « {sonore.coupe_par} »"
 		barre.setFormat(texte)
+		self.ui.en_cours_reste.setText(texte)
+		self._montrer_la_frise(self.frise_en_cours, sonore)
+
+	# ─── Frises (https://github.com/dascritch/machincast/issues/230) ───
+
+	def _montrer_la_frise(self, frise: Frise, sonore: SonoreAffiche | None) -> None:
+		"""La frise d'un fichier : son plan tel que la diffusion le joue, sa forme d'onde, et pour le sonore en cours,
+		la tête de lecture, la position jouée comptée depuis le début détecté d'un sonore rogné. Rien pour un stream."""
+		fichier = (sonore is not None) and (not sonore.stream) and (sonore.emplacement is not None)
+		place = frise.parentWidget()
+		assert place is not None
+		place.setVisible(fichier)
+		if (sonore is None) or (not fichier):
+			frise.montrer(None, None)
+			frise.montrer_la_forme(None)
+			return
+		plan = self._plan(sonore)
+		duree = sonore.duree
+		if plan is not None:
+			duree = plan.duree
+		if (frise.plan is not plan) or (frise.duree != duree):
+			frise.montrer(plan, duree)
+		forme = self._forme(sonore)
+		if frise.forme is not forme:
+			frise.montrer_la_forme(forme)
+		if frise is not self.frise_en_cours:
+			return
+		tete = sonore.position
+		if (tete is not None) and (plan is not None) and (plan.rogne()):
+			tete += plan.partie()[0]
+		frise.placer_la_tete(tete)
+
+	def _plan(self, sonore: SonoreAffiche) -> Plan | None:
+		"""Lu en base une fois par sonore et par banque ; une base injoignable laisse la frise sans plan."""
+		cle = (sonore.sonore, sonore.banque_id)
+		if cle not in self._plans:
+			try:
+				self._plans[cle] = lire_le_plan(
+					self.connexion, sonore.sonore, sonore.banque_id, preferences.crossfades()
+				)
+			except psycopg.Error as erreur:
+				journal.error(f"plan du sonore {sonore.sonore} illisible : {erreur}")
+				return None
+		return self._plans[cle]
+
+	def _forme(self, sonore: SonoreAffiche) -> FormeDOnde:
+		"""Calculée en tâche de fond une seule fois par sonore et fichier."""
+		cle = (sonore.sonore, str(sonore.emplacement))
+		forme = self._formes.get(cle)
+		if forme is None:
+			forme = FormeDOnde(Path(str(sonore.emplacement)), sonore.duree)
+			self._formes[cle] = forme
+			forme.demarrer()
+			self._releve_des_formes.start()
+		return forme
+
+	def _oublier_les_formes(self) -> None:
+		"""Seules restent les formes et les plans des deux sonores montrés ; un calcul en cours d'un autre s'arrête."""
+		gardees = {frise.forme for frise in (self.frise_en_cours, self.frise_prochain)}
+		for fichier, forme in list(self._formes.items()):
+			if forme not in gardees:
+				forme.arreter()
+				del self._formes[fichier]
+		plans = {(sonore.sonore, sonore.banque_id) for sonore in (self._en_cours, self._prochain) if sonore is not None}
+		for oublie in [cle for cle in self._plans if cle not in plans]:
+			del self._plans[oublie]
+
+	def _relever_les_formes(self) -> None:
+		for forme in self._formes.values():
+			if forme.relever():
+				for frise in (self.frise_en_cours, self.frise_prochain):
+					if frise.forme is forme:
+						frise.update()
+		if all(forme.finie for forme in self._formes.values()):
+			self._releve_des_formes.stop()
 
 	def _afficher_antenne(self, sonore: SonoreAffiche | None) -> None:
 		"""Le texte public entre guillemets, et l'événement à l'antenne avec ses heures."""
@@ -377,6 +464,33 @@ def _horaire(sonore: SonoreAffiche) -> str:
 	if sonore.duree is None:
 		return f"{debut}, durée inconnue"
 	return f"{debut} – {affichage.heure(sonore.fin_estimee)} ({affichage.duree(sonore.duree)})"
+
+
+def _poser_la_frise(place: QWidget) -> Frise:
+	frise = Frise(place, interactive=False)
+	disposition = QVBoxLayout(place)
+	disposition.setContentsMargins(0, 0, 0, 0)
+	disposition.addWidget(frise)
+	return frise
+
+
+def _avancement(sonore: SonoreAffiche | None) -> tuple[str, int]:
+	"""Le temps qui reste au sonore en cours, et la part jouée en pour cent : « — » sans sonore, « durée inconnue »
+	sans fin estimée. Un sonore qui dépasse sa durée est à 100 %."""
+	if sonore is None:
+		return affichage.VIDE, 0
+	longueur = _longueur(sonore)
+	if (longueur is None) or (sonore.position is None):
+		return "durée inconnue", 0
+	valeur = 100
+	if longueur > 0:
+		valeur = min(100, round(sonore.position / longueur * 100))
+	# Le temps qui reste se compte à la seconde entamée : « reste 0:01 » jusqu'à la fin, puis « reste 0:00 ».
+	reste = math.ceil(max(0.0, longueur - sonore.position))
+	texte = f"reste {affichage.duree(reste)}"
+	if sonore.coupe_par is not None:
+		texte = f"{texte} avant « {sonore.coupe_par} »"
+	return texte, valeur
 
 
 def _longueur(sonore: SonoreAffiche) -> float | None:

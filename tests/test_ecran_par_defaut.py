@@ -33,9 +33,11 @@ from machincast.horloge import HorlogeFixe
 from machincast.interface.application import traduire
 from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.erreur import FenetreBaseInjoignable
+from machincast.interface.frise import Frise
 from machincast.lecture.etat import SocketEtat
 from tests.base_test import CONFIGURATION_TEST, parametres_base_test
 from tests.etapes_interface import ouvrir_dans
+from tests.sons import FICHIERS_SONORES
 
 scenarios("ecran_par_defaut.feature")
 
@@ -62,6 +64,15 @@ class Contexte:
 	fenetres: list[FenetreBaseInjoignable] = field(default_factory=list)
 	"""Fenêtres d'erreur montrées par Machin interface lancé dans le test."""
 	code: int | None = None
+	en_base: dict[str, tuple[int, str]] = field(default_factory=dict)
+	"""Sonores en base du scénario, par titre : identifiant et emplacement
+	(https://github.com/dascritch/machincast/issues/230)."""
+	banques: dict[str, int] = field(default_factory=dict)
+	forme_du_prochain: object = None
+	"""La forme d'onde de la frise du prochain sonore, retenue pour la retrouver quand il passe à l'antenne."""
+	positions_demandees: list[float] = field(default_factory=list)
+	plans_lus: list[int] = field(default_factory=list)
+	"""Sonores dont l'écran a lu le plan en base."""
 	sortie_d_erreur: str = ""
 	ouverts: list[str] = field(default_factory=list)
 	"""Documents ouverts par le bouton de la fenêtre d'erreur."""
@@ -392,6 +403,13 @@ def ouvrir(contexte: Contexte, base_vide: Connexion, qtbot: QtBot, monkeypatch: 
 		return lire(connexion, depuis)
 
 	monkeypatch.setattr(module_ecran, "lire_airplay", lire_et_compter)
+	lire_le_plan = module_ecran.lire_le_plan
+
+	def lire_le_plan_et_compter(connexion: Any, sonore: int, *autres: Any) -> Any:
+		contexte.plans_lus.append(sonore)
+		return lire_le_plan(connexion, sonore, *autres)
+
+	monkeypatch.setattr(module_ecran, "lire_le_plan", lire_le_plan_et_compter)
 	contexte.connexion = connecter(*parametres_base_test(), Role.INTERFACE)
 	contexte.ecran = EcranParDefaut(contexte.connexion, contexte.chemin, contexte.horloge)
 	contexte.ecran.ouverte.connect(lambda genre, numero, nom: contexte.fiches.append((genre, numero, nom)))
@@ -768,17 +786,25 @@ def sain(contexte: Contexte, texte: str) -> None:
 
 @then(
 	parsers.re(
-		r"la barre de progression du sonore en cours est (?P<bientot>bientôt )?à « (?P<texte>.+?) »"
-		r"(?:, remplie à (?P<valeur>\d+) %)?$"
+		r"l'avancement du sonore en cours est (?P<bientot>bientôt )?à « (?P<texte>.+?) »"
+		r"(?:, à (?P<valeur>\d+) %)?$"
 	)
 )
 def progression(contexte: Contexte, qtbot: QtBot, bientot: str | None, texte: str, valeur: str | None) -> None:
-	barre = ecran(contexte).ui.en_cours_progression
+	"""Sur la barre de progression d'un stream, ou sous la frise d'un fichier
+	(https://github.com/dascritch/machincast/issues/230) : le texte montré, et la part jouée."""
+	ouvert = ecran(contexte)
+
+	def montre() -> str:
+		if ouvert.ui.en_cours_progression.isVisibleTo(ouvert):
+			return ouvert.ui.en_cours_progression.text()
+		return ouvert.ui.en_cours_reste.text()
+
 	if bientot:
-		attendre(qtbot, lambda: barre.text() == texte)
-	assert barre.text() == texte
+		attendre(qtbot, lambda: montre() == texte)
+	assert montre() == texte
 	if valeur is not None:
-		assert barre.value() == int(valeur)
+		assert ouvert.avancement_en_cours == int(valeur), ouvert.avancement_en_cours
 
 
 def table(contexte: Contexte) -> list[dict[str, str]]:
@@ -887,3 +913,231 @@ def infobulle_du_bandeau(contexte: Contexte, quoi: str, texte: str) -> None:
 @then(parsers.parse("l'heure a pour infobulle « {texte} »"))
 def infobulle_de_l_heure(contexte: Contexte, texte: str) -> None:
 	assert ecran(contexte).ui.heure.toolTip() == texte
+
+
+# ─── Frises (https://github.com/dascritch/machincast/issues/230) ───
+
+
+@given(
+	parsers.re(
+		r"le sonore « (?P<titre>[^»]+) » en base, pour une copie du fichier de test « (?P<fichier>[^»]+) », de"
+		r" (?P<duree>\d+) secondes, aux blancs de (?P<debut>[\d,]+) s au début et (?P<fin>[\d,]+) s à la fin,"
+		r" sans détection de blanc, aux crossfades de (?P<cd>[\d,]+) s au début et (?P<cf>[\d,]+) s à la fin"
+	)
+)
+def sonore_en_base(
+	contexte: Contexte,
+	base_vide: Connexion,
+	titre: str,
+	fichier: str,
+	duree: str,
+	debut: str,
+	fin: str,
+	cd: str,
+	cf: str,
+) -> None:
+	copie = contexte.repertoire / fichier
+	shutil.copyfile(FICHIERS_SONORES / fichier, copie)
+	ligne = base_vide.execute(
+		"INSERT INTO sonores (type, emplacement, titre, etat, duree, debut_detecte, fin_detectee, crossfade_debut,"
+		" crossfade_fin, audite_le, audit_seuil) VALUES ('fichier', %s, %s, 'actif', %s, %s, %s, %s, %s, now(), -40)"
+		" RETURNING id",
+		(
+			str(copie),
+			titre,
+			timedelta(seconds=int(duree)),
+			timedelta(seconds=secondes(debut)),
+			timedelta(seconds=secondes(fin)),
+			timedelta(seconds=secondes(cd)),
+			timedelta(seconds=secondes(cf)),
+		),
+	).fetchone()
+	assert ligne is not None
+	contexte.en_base[titre] = (int(str(ligne[0])), str(copie))
+
+
+@given(
+	parsers.re(
+		r"la banque « (?P<nom>[^»]+) » en base, qui retire les blancs et impose un crossfade de fin de"
+		r" (?P<cf>[\d,]+) s, avec « (?P<titre>[^»]+) »"
+	)
+)
+def banque_en_base(contexte: Contexte, base_vide: Connexion, nom: str, cf: str, titre: str) -> None:
+	ligne = base_vide.execute(
+		"INSERT INTO banques (nom_interne, mode, detection_blancs, crossfade_fin_regle, crossfade_fin)"
+		" VALUES (%s, 'aleatoire', true, 'impose', %s) RETURNING id",
+		(nom, timedelta(seconds=secondes(cf))),
+	).fetchone()
+	assert ligne is not None
+	contexte.banques[nom] = int(str(ligne[0]))
+	base_vide.execute(
+		"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, 1)",
+		(ligne[0], contexte.en_base[titre][0]),
+	)
+
+
+@given(
+	parsers.re(
+		r"le binaire lecture diffuse « (?P<titre>[^»]+) », (?:de la banque « (?P<banque>[^»]+) »|sans banque),"
+		r" commencé à (?P<debut>[\d:]+), joué depuis (?P<position>[\d,]+) seconde"
+	)
+)
+@when(
+	parsers.re(
+		r"le binaire lecture diffuse « (?P<titre>[^»]+) », (?:de la banque « (?P<banque>[^»]+) »|sans banque),"
+		r" commencé à (?P<debut>[\d:]+), joué depuis (?P<position>[\d,]+) seconde"
+	)
+)
+def diffuse_en_base(contexte: Contexte, titre: str, banque: str | None, debut: str, position: str) -> None:
+	"""Un sonore en base ; la durée annoncée par la socket est celle de la partie jouée, sans les blancs retirés."""
+	identifiant, chemin = contexte.en_base[titre]
+	commence = a(debut)
+	contexte.en_cours = {
+		"sonore": identifiant,
+		"type": "fichier",
+		"artiste": None,
+		"titre": titre,
+		"evenement": "Fil de nuit",
+		"debut": commence.isoformat(),
+		"duree": 1.0,
+		"fin_estimee": (commence + timedelta(seconds=1.0)).isoformat(),
+		"emplacement": chemin,
+		"position": secondes(position),
+		"progression": round(secondes(position), 3),
+		"banque": banque,
+		"banque_id": contexte.banques.get((banque) or ("")),
+	}
+	publier(contexte)
+
+
+@given(parsers.parse("le prochain sonore est « {titre} » en base, sans banque"))
+def prochain_en_base(contexte: Contexte, titre: str) -> None:
+	identifiant, chemin = contexte.en_base[titre]
+	contexte.prochain = {
+		"sonore": identifiant,
+		"type": "fichier",
+		"artiste": None,
+		"titre": titre,
+		"evenement": "Fil de jour",
+		"debut_estime": a("20:03:34").isoformat(),
+		"duree": 2.0,
+		"fin_estimee": a("20:03:36").isoformat(),
+		"emplacement": chemin,
+		"sain": True,
+	}
+	publier(contexte)
+
+
+def _frise(contexte: Contexte, lequel: str) -> Frise:
+	ouvert = ecran(contexte)
+	if lequel == "sonore en cours":
+		return ouvert.frise_en_cours
+	return ouvert.frise_prochain
+
+
+@then(
+	parsers.re(
+		r"le (?P<lequel>sonore en cours|prochain sonore) a une frise(?P<sans_tete>, sans tête de lecture)?"
+		r"(?P<sans_barre>, sans barre de progression)?$"
+	)
+)
+def a_une_frise(contexte: Contexte, qtbot: QtBot, lequel: str, sans_tete: str | None, sans_barre: str | None) -> None:
+	ouvert = ecran(contexte)
+	frise = _frise(contexte, lequel)
+	attendre(qtbot, lambda: frise.isVisibleTo(ouvert))
+	if sans_barre is not None:
+		assert not ouvert.ui.en_cours_progression.isVisibleTo(ouvert)
+	if sans_tete is not None:
+		assert frise.tete is None
+
+
+@then(
+	parsers.re(r"le (?P<lequel>sonore en cours|prochain sonore) (?:a une barre de progression, sans|n'a pas de) frise")
+)
+def sans_frise(contexte: Contexte, lequel: str) -> None:
+	ouvert = ecran(contexte)
+	assert not _frise(contexte, lequel).isVisibleTo(ouvert)
+	if lequel == "sonore en cours":
+		assert ouvert.ui.en_cours_progression.isVisibleTo(ouvert)
+
+
+@then(parsers.parse("la frise du sonore en cours montre bientôt les zones :"))
+def zones_en_cours(contexte: Contexte, qtbot: QtBot, datatable: list[list[str]]) -> None:
+	frise = _frise(contexte, "sonore en cours")
+	attendre(qtbot, lambda: frise.plan is not None)
+	assert frise.plan is not None
+	lues = [
+		[
+			zone.nom,
+			f"{zone.debut:.2f}".replace(".", ","),
+			f"{zone.fin:.2f}".replace(".", ","),
+			zone.hachures,
+			zone.infobulle,
+		]
+		for zone in frise.plan.zones()
+	]
+	assert lues == [[cellule.strip() for cellule in rangee] for rangee in datatable[1:]]
+
+
+@then(parsers.re(r"la frise du prochain sonore montre bientôt les zones (?P<noms>«.+»), ses blancs joués à l'antenne"))
+def zones_du_prochain(contexte: Contexte, qtbot: QtBot, noms: str) -> None:
+	frise = _frise(contexte, "prochain sonore")
+	attendre(qtbot, lambda: frise.plan is not None)
+	assert frise.plan is not None
+	zones = frise.plan.zones()
+	assert [zone.nom for zone in zones] == re.findall(r"« ([^»]+) »", noms)
+	assert {zone.hachures for zone in zones if zone.nom.startswith("blanc")} == {"pâles"}
+
+
+@then(
+	parsers.parse(
+		"la tête de lecture de la frise du sonore en cours est à {position} seconde, la position jouée comptée depuis"
+		" le début détecté"
+	)
+)
+def tete(contexte: Contexte, qtbot: QtBot, position: str) -> None:
+	frise = _frise(contexte, "sonore en cours")
+	attendre(qtbot, lambda: (frise.tete is not None) and (abs(frise.tete - secondes(position)) < 0.001))
+
+
+@when(parsers.re(r"la forme d'onde de la frise du (?P<lequel>sonore en cours|prochain sonore) est bientôt complète"))
+@then(parsers.re(r"la forme d'onde de la frise du (?P<lequel>sonore en cours|prochain sonore) est bientôt complète"))
+def forme_complete(contexte: Contexte, qtbot: QtBot, lequel: str) -> None:
+	frise = _frise(contexte, lequel)
+
+	def finie() -> bool:
+		return (frise.forme is not None) and (frise.forme.finie)
+
+	attendre(qtbot, finie)
+	assert (frise.forme is not None) and (frise.forme.erreur is None), frise.remarque()
+	assert max(frise.forme.amplitudes(0.6, 1.4)) > 0.4
+	if lequel == "prochain sonore":
+		contexte.forme_du_prochain = frise.forme
+
+
+@then("la frise du sonore en cours dessine bientôt la forme d'onde qu'avait le prochain sonore")
+def meme_forme(contexte: Contexte, qtbot: QtBot) -> None:
+	frise = _frise(contexte, "sonore en cours")
+	assert contexte.forme_du_prochain is not None
+	attendre(qtbot, lambda: frise.forme is contexte.forme_du_prochain)
+
+
+@when("je clique au milieu de la frise du sonore en cours")
+def cliquer_la_frise(contexte: Contexte, qtbot: QtBot) -> None:
+	frise = _frise(contexte, "sonore en cours")
+	attendre(qtbot, lambda: frise.isVisibleTo(ecran(contexte)))
+	contexte.positions_demandees = []
+	frise.placee.connect(contexte.positions_demandees.append)
+	avant = frise.tete
+	qtbot.mouseClick(frise, Qt.MouseButton.LeftButton, pos=frise.rect().center())
+	assert frise.tete == avant
+
+
+@then("la frise du sonore en cours n'a demandé aucune position")
+def aucune_position(contexte: Contexte) -> None:
+	assert contexte.positions_demandees == []
+
+
+@then(parsers.parse("le plan du sonore « {titre} » n'a été lu qu'une fois en base"))
+def plan_lu_une_fois(contexte: Contexte, titre: str) -> None:
+	assert contexte.plans_lus.count(contexte.en_base[titre][0]) == 1, contexte.plans_lus

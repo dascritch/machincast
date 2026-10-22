@@ -177,15 +177,18 @@ RESPIRATION = Sonore("Brume", "Respiration", 40, "nuit")
 fichier généré, avec ses blancs, hors de toute banque."""
 
 
-def morceaux_de_respiration() -> tuple[tuple[float, float], ...]:
+def morceaux_de_respiration(duree: float = 40.0, graine: float = 0.0) -> tuple[tuple[float, float], ...]:
 	"""Une seconde de silence, une montée, un thème qui respire, une extinction, puis une seconde et demie de silence :
-	des morceaux de 0,1 seconde, chacun à son amplitude."""
+	des morceaux, chacun à son amplitude, sur toute la durée. graine : décale le souffle, pour que deux sonores
+	générés ne se ressemblent pas."""
 	morceaux = [(1.0, 0.0)]
-	pas = 0.1
-	for indice in range(round(37.0 / pas)):
+	corps = duree - 3.0
+	pas = max(0.1, corps / 400)
+	for indice in range(round(corps / pas)):
 		instant = indice * pas
-		enveloppe = min(1.0, instant / 3.0, (37.0 - instant) / 6.0)
-		souffle = 0.55 + 0.3 * math.sin(instant * 1.3) + 0.15 * math.sin(instant * 7.1)
+		enveloppe = min(1.0, instant / 3.0, (corps - instant) / 6.0)
+		rythme = instant * 40.0 / corps
+		souffle = 0.55 + 0.3 * math.sin(rythme * 1.3 + graine) + 0.15 * math.sin(rythme * 7.1 + 2 * graine)
 		morceaux.append((pas, max(0.0, min(0.95, enveloppe * souffle))))
 	morceaux += [(0.5, 0.004), (1.5, 0.0)]
 	return tuple(morceaux)
@@ -512,6 +515,20 @@ def _affiche(demonstration: Demonstration, rang: int, cle_debut: str) -> dict[st
 	}
 
 
+def donner_du_relief(connexion: Connexion, demonstration: Demonstration) -> None:
+	"""Les frises de l'accueil (https://github.com/dascritch/machincast/issues/230) : le sonore en cours et le
+	prochain ont un fichier généré à leur durée, à basse fréquence pour l'écrire vite, et leurs blancs et
+	crossfades, tels qu'un audit complet et leur fiche les auraient posés."""
+	for rang, graine in ((-1, 0.0), (-6, 2.0)):
+		cle = demonstration.passages[rang][2]
+		generer_blancs(_emplacement(cle), morceaux_de_respiration(SONORES[cle].duree, graine), frequence=4000)
+		connexion.execute(
+			"UPDATE sonores SET debut_detecte = '1 s', fin_detectee = '1.5 s', detection_blancs = true,"
+			" crossfade_debut = '2 s', crossfade_fin = '4 s', audite_le = %s, audit_seuil = -40 WHERE id = %s",
+			(MAINTENANT - timedelta(days=2), demonstration.sonores[cle]),
+		)
+
+
 def publier(socket: SocketEtat, demonstration: Demonstration) -> None:
 	"""L'état qu'aurait publié Machin lecture à MAINTENANT : le dernier passage en cours, le suivant réservé."""
 	en_cours = _affiche(demonstration, -1, "debut")
@@ -585,6 +602,7 @@ def produire(repertoire: Path) -> dict[str, Path]:
 	with connexion_test() as proprietaire:
 		purger_base(proprietaire)
 		demonstration = remplir(proprietaire)
+		donner_du_relief(proprietaire, demonstration)
 	travail = Path(tempfile.mkdtemp(prefix="machincast-captures-"))
 	configuration = travail / "machincast.toml"
 	# Les colonnes d'origine, ajustées au contenu : jamais la disposition gardée par le compte qui fait les captures.
@@ -607,6 +625,8 @@ def produire(repertoire: Path) -> dict[str, Path]:
 		fenetre.resize(LARGEUR, HAUTEUR)
 		fenetre.show()
 		attendre(lambda: fenetre.accueil.ui.etat_lecture.text() == "En diffusion")
+		frises = (fenetre.accueil.frise_en_cours, fenetre.accueil.frise_prochain)
+		attendre(lambda: all((frise.forme is not None) and (frise.forme.finie) for frise in frises))
 		prendre("accueil", fenetre)
 		suggestions = FenetreSuggestions(
 			Manques(True, ("Identifiant station", "Musique rotation lourde", "Musique rotation de nuit")), fenetre
