@@ -314,7 +314,8 @@ def sans_trou(essai: Essai, largeur: int, de: str, a: str) -> None:
 
 @then("la frise de cette forme d'onde se dessine pareil, active ou inactive")
 def pareil(essai: Essai) -> None:
-	"""Inactive, à l'arrêt, la frise ne se grise pas : sa forme d'onde, ses blancs et ses fondus gardent leurs couleurs."""
+	"""Inactive, à l'arrêt, la frise ne se grise pas : sa forme d'onde, ses blancs et ses fondus gardent leurs
+	couleurs."""
 	assert essai.forme is not None
 	frise = Frise(essai.parent)
 	frise.resize(400, 72)
