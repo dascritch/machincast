@@ -127,17 +127,19 @@ détection de blanc (https://github.com/dascritch/machincast/issues/146). Une de
 blanc au début et à la fin ; au seuil de -60 dB, un quart de seconde à la fin."""
 
 
-def generer_blancs(chemin: Path, morceaux: tuple[tuple[float, float], ...] = BLANCS) -> Path:
+def generer_blancs(
+	chemin: Path, morceaux: tuple[tuple[float, float], ...] = BLANCS, frequence: int = FREQUENCE
+) -> Path:
 	"""Écrit en FLAC un son mono fait de morceaux de sinusoïde (BLANCS par défaut), chacun aligné sur l'échantillon :
-	durée en secondes et amplitude crête."""
+	durée en secondes et amplitude crête. frequence : d'échantillonnage, plus basse pour un long fichier vite écrit."""
 	Gst.init(None)
 	echantillons = bytearray()
 	for secondes, amplitude in morceaux:
-		for indice in range(round(secondes * FREQUENCE)):
-			valeur = round(amplitude * 32767 * math.sin(2 * math.pi * 440 * indice / FREQUENCE))
+		for indice in range(round(secondes * frequence)):
+			valeur = round(amplitude * 32767 * math.sin(2 * math.pi * 440 * indice / frequence))
 			echantillons += struct.pack("<h", valeur)
 	pipeline = Gst.parse_launch(
-		f"appsrc name=source format=time caps=audio/x-raw,format=S16LE,layout=interleaved,rate={FREQUENCE},channels=1"
+		f"appsrc name=source format=time caps=audio/x-raw,format=S16LE,layout=interleaved,rate={frequence},channels=1"
 		" ! audioconvert ! flacenc ! filesink name=fichier"
 	)
 	assert isinstance(pipeline, Gst.Bin)
@@ -147,7 +149,7 @@ def generer_blancs(chemin: Path, morceaux: tuple[tuple[float, float], ...] = BLA
 	pipeline.set_state(Gst.State.PLAYING)
 	tampon = Gst.Buffer.new_wrapped(bytes(echantillons))
 	tampon.pts = 0
-	tampon.duration = round(len(echantillons) / 2 / FREQUENCE * Gst.SECOND)
+	tampon.duration = round(len(echantillons) / 2 / frequence * Gst.SECOND)
 	source.emit("push-buffer", tampon)
 	source.emit("end-of-stream")
 	bus = pipeline.get_bus()

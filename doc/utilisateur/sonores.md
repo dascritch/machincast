@@ -131,7 +131,7 @@ Sous la frise :
 - **Début joué** lance la lecture au début de cette partie ; **Fin jouée**, 5 secondes avant le fondu de sortie, pour entendre arriver l'enchaînement ;
 - **Écouter comme à l'antenne** ne joue que cette partie, avec ses fondus.
 
-La frise montre ce qui est enregistré : enregistrer la fiche avant de pré-écouter un réglage. Elle ne connaît pas la banque par laquelle passera le sonore : une banque qui impose ses crossfades, ou retire les blancs, n'y apparaît pas.
+La frise montre ce qui est enregistré : enregistrer la fiche avant de pré-écouter un réglage. Elle ne connaît pas la banque par laquelle passera le sonore : une banque qui impose ses crossfades, ou retire les blancs, n'y apparaît pas. Sur l'accueil, la même frise montre le sonore en cours et le prochain, tels que l'antenne les joue, règles de leur banque comprises ([Accueil](prise-en-main.md#accueil)).
 
 ## Fiche d'une banque
 

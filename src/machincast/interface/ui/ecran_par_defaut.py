@@ -216,6 +216,18 @@ class Ui_EcranParDefaut(object):
 
         self.disposition_en_cours.addWidget(self.en_cours_progression)
 
+        self.place_frise_en_cours = QWidget(self.cadre_en_cours)
+        self.place_frise_en_cours.setObjectName(u"place_frise_en_cours")
+        self.place_frise_en_cours.setMinimumSize(QSize(0, 72))
+
+        self.disposition_en_cours.addWidget(self.place_frise_en_cours)
+
+        self.en_cours_reste = QLabel(self.cadre_en_cours)
+        self.en_cours_reste.setObjectName(u"en_cours_reste")
+        self.en_cours_reste.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        self.disposition_en_cours.addWidget(self.en_cours_reste)
+
 
         self.sonores.addWidget(self.cadre_en_cours)
 
@@ -391,6 +403,12 @@ class Ui_EcranParDefaut(object):
 
         self.disposition_prochain.addLayout(self.formulaire_prochain)
 
+        self.place_frise_prochain = QWidget(self.cadre_prochain)
+        self.place_frise_prochain.setObjectName(u"place_frise_prochain")
+        self.place_frise_prochain.setMinimumSize(QSize(0, 72))
+
+        self.disposition_prochain.addWidget(self.place_frise_prochain)
+
 
         self.sonores.addWidget(self.cadre_prochain)
 
@@ -466,6 +484,10 @@ class Ui_EcranParDefaut(object):
         self.intitule_en_cours_emplacement.setText(QCoreApplication.translate("EcranParDefaut", u"Emplacement", None))
         self.en_cours_emplacement.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
         self.en_cours_progression.setFormat(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
+#if QT_CONFIG(tooltip)
+        self.place_frise_en_cours.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Forme d'onde, blancs et fondus du sonore en cours, tels que la diffusion le joue", None))
+#endif // QT_CONFIG(tooltip)
+        self.en_cours_reste.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
         self.colonne_antenne.setTitle(QCoreApplication.translate("EcranParDefaut", u"Antenne", None))
 #if QT_CONFIG(tooltip)
         self.voyant_saturation.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Une cr\u00eate \u00e0 -1 dBFS ou plus, dans les 3 derni\u00e8res secondes", None))
@@ -506,6 +528,9 @@ class Ui_EcranParDefaut(object):
         self.prochain_emplacement.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
         self.intitule_prochain_sain.setText(QCoreApplication.translate("EcranParDefaut", u"Sain", None))
         self.prochain_sain.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
+#if QT_CONFIG(tooltip)
+        self.place_frise_prochain.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Forme d'onde, blancs et fondus du prochain sonore, tels que la diffusion le jouera", None))
+#endif // QT_CONFIG(tooltip)
         self.cadre_airplay.setTitle(QCoreApplication.translate("EcranParDefaut", u"Airplay des 12 derni\u00e8res heures", None))
 #if QT_CONFIG(tooltip)
         self.table_airplay.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Double-clic sur un sonore, un \u00e9v\u00e9nement, une s\u00e9quence ou une banque : ouvrir sa fiche", None))

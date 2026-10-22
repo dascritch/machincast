@@ -25,7 +25,9 @@ from typing import Literal
 import gi
 
 gi.require_version("Gst", "1.0")
+import psycopg  # noqa: E402
 from gi.repository import Gst  # noqa: E402
+from psycopg.rows import TupleRow  # noqa: E402
 from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, Signal  # noqa: E402
 from PySide6.QtGui import (  # noqa: E402
 	QBrush,
@@ -99,9 +101,10 @@ class Plan:
 	"""Le sonore active la détection de blanc : ses blancs ne sont pas joués."""
 	crossfade_debut: float = 0.0
 	crossfade_fin: float = 0.0
-	debut_par_defaut: bool = False
-	"""Le crossfade de début n'est pas paramétré : c'est celui des préférences."""
-	fin_par_defaut: bool = False
+	origine_debut: str | None = None
+	"""D'où vient le crossfade de début, quand ce n'est pas du sonore : « défaut », les préférences, ou la banque
+	(« imposé par la banque », « de la banque »). None : celui du sonore, ou aucun."""
+	origine_fin: str | None = None
 	audite: bool = True
 	"""Un audit complet a mesuré ses blancs (audite_le)."""
 
@@ -159,12 +162,12 @@ class Plan:
 		entree, sortie = self.fondus()
 		if entree is not None:
 			texte = (
-				f"Crossfade de début : {secondes(self.crossfade_debut)}{_par_defaut(self.debut_par_defaut)},"
+				f"Crossfade de début : {secondes(self.crossfade_debut)}{_origine(self.origine_debut)},"
 				" montée si le sonore précédent a un crossfade de fin"
 			)
 			zones.append(Zone("fondu d'entrée", entree[0], entree[1], "aucune", texte))
 		if sortie is not None:
-			texte = f"Crossfade de fin : {secondes(self.crossfade_fin)}{_par_defaut(self.fin_par_defaut)}"
+			texte = f"Crossfade de fin : {secondes(self.crossfade_fin)}{_origine(self.origine_fin)}"
 			zones.append(Zone("fondu de sortie", sortie[0], sortie[1], "aucune", texte))
 		if (self.blanc_fin is not None) and (self.blanc_fin > 0):
 			texte = f"Blanc de fin : {secondes(self.blanc_fin)}, {sort}"
@@ -209,10 +212,34 @@ class Plan:
 		return points[-1][1]
 
 
-def _par_defaut(defaut: bool) -> str:
-	if defaut:
-		return " (défaut)"
-	return ""
+def _origine(origine: str | None) -> str:
+	if origine is None:
+		return ""
+	return f" ({origine})"
+
+
+@dataclass(frozen=True)
+class RegleDeBanque:
+	"""La règle d'un côté des crossfades de la banque qui fournit le sonore (regle_crossfade), et sa durée."""
+
+	regle: str | None = None
+	duree: timedelta | None = None
+
+
+SANS_BANQUE = RegleDeBanque()
+
+
+def origine_du_crossfade(du_sonore: timedelta | None, banque: RegleDeBanque, defaut: timedelta | None) -> str | None:
+	"""D'où vient le crossfade que retient machincast.lecture.diffusion.crossfade, dans le même ordre."""
+	if banque.regle == "impose":
+		return "imposé par la banque"
+	if du_sonore is not None:
+		return None
+	if banque.regle == "a_defaut":
+		return "de la banque"
+	if defaut is not None:
+		return "défaut"
+	return None
 
 
 def plan_du_sonore(
@@ -224,26 +251,78 @@ def plan_du_sonore(
 	crossfade_fin: timedelta | None,
 	defauts: Crossfades,
 	audite: bool,
+	banque: tuple[RegleDeBanque, RegleDeBanque] = (SANS_BANQUE, SANS_BANQUE),
 ) -> Plan:
-	"""Le plan d'un sonore d'après ses colonnes en base ; un crossfade non paramétré (None) est celui des préférences,
-	comme pour un sonore joué sans banque."""
+	"""Le plan d'un sonore d'après ses colonnes en base. Sans banque, un crossfade non paramétré (None) est celui des
+	préférences ; avec, les règles de crossfade de début et de fin de la banque s'appliquent avant, comme à la
+	diffusion (https://github.com/dascritch/machincast/issues/230). detection_blancs : celle du sonore, ou de sa
+	banque."""
 
 	def facultative(valeur: timedelta | None) -> float | None:
 		if valeur is None:
 			return None
 		return valeur.total_seconds()
 
+	debut, fin = banque
 	return Plan(
 		duree=duree.total_seconds(),
 		blanc_debut=facultative(debut_detecte),
 		blanc_fin=facultative(fin_detectee),
 		blancs_retires=detection_blancs,
-		crossfade_debut=crossfade(crossfade_debut, None, None, defauts.debut).total_seconds(),
-		crossfade_fin=crossfade(crossfade_fin, None, None, defauts.fin).total_seconds(),
-		debut_par_defaut=(crossfade_debut is None) and (defauts.debut is not None),
-		fin_par_defaut=(crossfade_fin is None) and (defauts.fin is not None),
+		crossfade_debut=crossfade(crossfade_debut, debut.regle, debut.duree, defauts.debut).total_seconds(),
+		crossfade_fin=crossfade(crossfade_fin, fin.regle, fin.duree, defauts.fin).total_seconds(),
+		origine_debut=origine_du_crossfade(crossfade_debut, debut, defauts.debut),
+		origine_fin=origine_du_crossfade(crossfade_fin, fin, defauts.fin),
 		audite=audite,
 	)
+
+
+def lire_le_plan(
+	connexion: psycopg.Connection[TupleRow], sonore: int, banque: int | None, defauts: Crossfades
+) -> Plan | None:
+	"""Le plan d'un fichier tel que la diffusion le joue, fourni par cette banque ou sans banque (None) : ses blancs
+	retirés si le sonore ou la banque active la détection, ses crossfades selon les règles de la banque ; None pour un
+	stream, un fichier sans durée, ou un sonore qui n'est plus en base (https://github.com/dascritch/machincast/issues/230)."""
+	with connexion.transaction():
+		ligne = connexion.execute(
+			"SELECT s.type::text, s.duree, s.debut_detecte, s.fin_detectee,"
+			" s.detection_blancs OR coalesce(b.detection_blancs, false), s.crossfade_debut, s.crossfade_fin,"
+			" s.audite_le IS NOT NULL, b.crossfade_debut_regle::text, b.crossfade_debut, b.crossfade_fin_regle::text,"
+			" b.crossfade_fin"
+			" FROM sonores s LEFT JOIN banques b ON b.id = %s WHERE s.id = %s",
+			(banque, sonore),
+		).fetchone()
+	if ligne is None:
+		return None
+	genre, duree, debut, fin, detection, cd, cf, audite, regle_debut, banque_debut, regle_fin, banque_fin = ligne
+	if (genre != "fichier") or (not isinstance(duree, timedelta)):
+		return None
+	return plan_du_sonore(
+		duree,
+		_intervalle(debut),
+		_intervalle(fin),
+		bool(detection),
+		_intervalle(cd),
+		_intervalle(cf),
+		defauts,
+		bool(audite),
+		(
+			RegleDeBanque(_texte(regle_debut), _intervalle(banque_debut)),
+			RegleDeBanque(_texte(regle_fin), _intervalle(banque_fin)),
+		),
+	)
+
+
+def _intervalle(valeur: object) -> timedelta | None:
+	if isinstance(valeur, timedelta):
+		return valeur
+	return None
+
+
+def _texte(valeur: object) -> str | None:
+	if valeur is None:
+		return None
+	return str(valeur)
 
 
 class FormeDOnde:
@@ -341,8 +420,11 @@ class Frise(QWidget):
 	placee = Signal(float)
 	"""Une position demandée, en secondes du fichier."""
 
-	def __init__(self, parent: QWidget | None = None) -> None:
+	def __init__(self, parent: QWidget | None = None, interactive: bool = True) -> None:
+		"""interactive : un clic, un glissement ou les flèches demandent une position ; sur l'accueil, la frise ne fait
+		que se regarder (https://github.com/dascritch/machincast/issues/230)."""
 		super().__init__(parent)
+		self.interactive = interactive
 		self.plan: Plan | None = None
 		self.duree: float | None = None
 		self.forme: FormeDOnde | None = None
@@ -351,8 +433,11 @@ class Frise(QWidget):
 		self._glisse = False
 		self.setMinimumHeight(HAUTEUR)
 		self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-		self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-		self.setAccessibleName("Position dans le fichier")
+		self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+		self.setAccessibleName("Frise du fichier")
+		if interactive:
+			self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+			self.setAccessibleName("Position dans le fichier")
 		self.setAttribute(Qt.WidgetAttribute.WA_Hover)
 
 	def montrer(self, plan: Plan | None, duree: float | None) -> None:
@@ -420,6 +505,9 @@ class Frise(QWidget):
 		return super().event(evenement)
 
 	def mousePressEvent(self, evenement: QMouseEvent) -> None:
+		if not self.interactive:
+			super().mousePressEvent(evenement)
+			return
 		if evenement.button() != Qt.MouseButton.LeftButton:
 			super().mousePressEvent(evenement)
 			return
@@ -427,10 +515,16 @@ class Frise(QWidget):
 		self._suivre(evenement.position().x())
 
 	def mouseMoveEvent(self, evenement: QMouseEvent) -> None:
+		if not self.interactive:
+			super().mouseMoveEvent(evenement)
+			return
 		if self._glisse:
 			self._suivre(evenement.position().x())
 
 	def mouseReleaseEvent(self, evenement: QMouseEvent) -> None:
+		if not self.interactive:
+			super().mouseReleaseEvent(evenement)
+			return
 		if (evenement.button() != Qt.MouseButton.LeftButton) or (not self._glisse):
 			super().mouseReleaseEvent(evenement)
 			return
@@ -440,6 +534,9 @@ class Frise(QWidget):
 		self.placee.emit(self.tete)
 
 	def keyPressEvent(self, evenement: QKeyEvent) -> None:
+		if not self.interactive:
+			super().keyPressEvent(evenement)
+			return
 		pas = {Qt.Key.Key_Right: 1.0, Qt.Key.Key_Left: -1.0}.get(Qt.Key(evenement.key()))
 		if pas is None:
 			super().keyPressEvent(evenement)

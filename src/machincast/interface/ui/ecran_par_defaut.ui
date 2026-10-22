@@ -312,6 +312,29 @@
           </property>
          </widget>
         </item>
+        <item>
+         <widget class="QWidget" name="place_frise_en_cours" native="true">
+          <property name="toolTip">
+           <string>Forme d'onde, blancs et fondus du sonore en cours, tels que la diffusion le joue</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>72</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="en_cours_reste">
+          <property name="text">
+           <string>—</string>
+          </property>
+          <property name="textInteractionFlags">
+           <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
      </item>
@@ -598,6 +621,19 @@
       </widget>
           </item>
          </layout>
+        </item>
+        <item>
+         <widget class="QWidget" name="place_frise_prochain" native="true">
+          <property name="toolTip">
+           <string>Forme d'onde, blancs et fondus du prochain sonore, tels que la diffusion le jouera</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>72</height>
+           </size>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
