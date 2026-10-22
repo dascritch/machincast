@@ -544,8 +544,6 @@ class Ui_FicheSonore(object):
 
         self.preecouter = QPushButton(FicheSonore)
         self.preecouter.setObjectName(u"preecouter")
-        icon1 = QIcon(QIcon.fromTheme(u"audio-headphones"))
-        self.preecouter.setIcon(icon1)
 
         self.pied.addWidget(self.preecouter)
 

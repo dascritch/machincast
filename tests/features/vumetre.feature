@@ -178,13 +178,47 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
 		Et je clique sur le VU-mètre de l'antenne
-		Alors la fenêtre de pré-écoute est ouverte, titrée « Pré-écoute : Antenne »
+		Alors la fenêtre de pré-écoute est ouverte, titrée « en cours : — »
 		Et la pré-écoute montre la source « Antenne : sortie factice, signal de test »
 		Et les commandes de la pré-écoute sont : lecture active, arrêt inactif, position inactive
 		Quand je lance la pré-écoute
 		Alors la pré-écoute est bientôt « En lecture »
 		Et le VU-mètre de la pré-écoute montre bientôt du son
 		Et les commandes de la pré-écoute sont : pause active, arrêt actif, position inactive
+
+	Scénario: L'écoute de l'antenne a pour titre le texte public du sonore en cours, et le suit
+		https://github.com/dascritch/machincast/issues/223 : le texte public est ce que la page publique affiche.
+
+		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
+		Et la socket d'état de Machin lecture ouverte pour l'interface
+		Et Machin lecture diffuse un sonore au texte public « Les Gaufres – Café à minuit »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je clique sur le VU-mètre de l'antenne
+		Alors la fenêtre de pré-écoute est bientôt titrée « en cours : Les Gaufres – Café à minuit »
+		Quand Machin lecture diffuse un sonore au texte public « Radio Thune, la radio »
+		Alors la fenêtre de pré-écoute est bientôt titrée « en cours : Radio Thune, la radio »
+
+	Scénario: Un sonore pré-écouté ne prend pas le titre de l'antenne
+		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
+		Et la socket d'état de Machin lecture ouverte pour l'interface
+		Et Machin lecture diffuse un sonore au texte public « Les Gaufres – Café à minuit »
+		Et les sonores :
+			| artiste | titre  | type    | etat  | duree | emplacement      |
+			|         | Jingle | fichier | actif | 8     | /srv/jingle.flac |
+		Quand la fenêtre de l'interface s'ouvre
+		Et je clique sur le VU-mètre de l'antenne
+		Et je demande la pré-écoute du sonore « Jingle »
+		Et Machin lecture diffuse un sonore au texte public « Radio Thune, la radio »
+		Alors la fenêtre de pré-écoute reste titrée « Pré-écoute : Jingle »
+
+	Scénario: Le bouton « Pré-écoute » de la fenêtre, en bas à gauche, écoute l'antenne aussitôt
+		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le bouton « Pré-écoute » est en bas à gauche de la fenêtre, hors des onglets
+		Quand je clique sur le bouton « Pré-écoute » de la fenêtre
+		Alors la fenêtre de pré-écoute est ouverte, titrée « en cours : — »
+		Et la pré-écoute montre la source « Antenne : sortie factice, signal de test »
+		Et la pré-écoute est bientôt « En lecture »
 
 	Scénario: Une antenne devenue indisponible ne se pré-écoute pas
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice

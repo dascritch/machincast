@@ -1,7 +1,7 @@
 """Pilotage de la diffusion depuis l'interface (https://github.com/dascritch/machincast/issues/25, spec § 8.11).
 
-Avec le service (install.sh --service, https://github.com/dascritch/machincast/issues/22), démarrer, arrêter et
-redémarrer appellent systemctl sur machincast.service, dans un processus à part : la règle polkit du service les
+Avec le service (install.sh --service, https://github.com/dascritch/machincast/issues/22), démarrer et arrêter
+appellent systemctl sur machincast.service, dans un processus à part : la règle polkit du service les
 autorise avec l'authentification d'un administrateur, que demande l'agent polkit de la session. Jamais sudo.
 
 Sans le service, l'installation n'est pas définitive, et le menu pilote une diffusion d'essai : Machin lecture lancé
@@ -25,13 +25,11 @@ from machincast.service import UNITE
 VERBES = {
 	"start": ("Démarrer la diffusion", "Diffusion démarrée.", "Diffusion non démarrée"),
 	"stop": ("Arrêter la diffusion", "Diffusion arrêtée.", "Diffusion non arrêtée"),
-	"restart": ("Redémarrer la diffusion", "Diffusion redémarrée.", "Diffusion non redémarrée"),
 }
 """Pour chaque verbe de systemctl : l'entrée du menu, ce qu'annonce sa réussite, et son échec."""
 ESSAI = {
 	"start": "Démarrer la diffusion d'essai",
 	"stop": "Arrêter la diffusion d'essai",
-	"restart": "Redémarrer la diffusion d'essai",
 }
 """Les entrées du menu sans le service."""
 TERMINAUX = ("konsole", "x-terminal-emulator")
@@ -40,7 +38,6 @@ SANS_TERMINAL = "Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer 
 COMMANDE_DU_SERVICE = [str(REPERTOIRE_PROJET / "bin" / "Machin"), "lecture"]
 """Comme l'ExecStart de machincast.service : la diffusion d'essai sort là où sortirait le service."""
 LANCE = "Diffusion d'essai lancée dans un terminal : Ctrl-C l'y arrête."
-RELANCE = "Diffusion d'essai relancée dans un terminal : Ctrl-C l'y arrête."
 MAINTENANCE = "Maintenance de la base de données…"
 """L'entrée du menu « Maintenance » (https://github.com/dascritch/machincast/issues/127)."""
 MAINTENANCE_LANCEE = (

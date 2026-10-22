@@ -115,7 +115,6 @@ INSTALLER_LE_SERVICE = (
 SANS_SERVICE_DEMARRER = "Sans service : Machin lecture dans une fenêtre de terminal"
 SANS_ESSAI = "Aucune diffusion d'essai en cours"
 ESSAI_ARRETER = "Sans service : arrête le Machin lecture lancé à la main, comme Ctrl-C"
-ESSAI_REDEMARRER = "Sans service : l'arrête, puis le relance dans une fenêtre de terminal"
 ANTENNE_A_RENSEIGNER = "Périphérique de l'antenne à renseigner"
 REGLER_L_ANTENNE = (
 	"Machin lecture refuse de diffuser sans lui : le choisir dans Fichier → Préférences…, page Audio, ou le donner"
@@ -215,8 +214,8 @@ class FenetrePrincipale(QMainWindow):
 		self.pilotage.termine.connect(self._pilotage_termine)
 		self.service = service.ABSENT
 		"""L'état du service de diffusion, relu au lancement, à l'ouverture du menu et après chaque commande."""
-		self._apres_l_arret: str | None = None
-		"""Sans service, « stop » ou « restart » : ce qu'il reste à faire quand la diffusion d'essai s'est arrêtée."""
+		self._arret_demande = False
+		"""Sans service : l'arrêt de la diffusion d'essai, demandé depuis le menu, est à annoncer quand il a lieu."""
 		self.sans_service = QLabel(SANS_SERVICE)
 		self.sans_service.setToolTip(INSTALLER_LE_SERVICE)
 		self.ui.barre_d_etat.addPermanentWidget(self.sans_service)
@@ -226,6 +225,11 @@ class FenetrePrincipale(QMainWindow):
 		self._signaler_l_antenne()
 		self._garnir_menus()
 		self.accueil.client.etat_recu.connect(self._etat_de_la_lecture)
+		self.accueil.client.etat_recu.connect(self._suivre_le_texte_public)
+		self._texte_public: str | None = None
+		"""Le texte public du sonore en cours, titre de l'écoute de l'antenne."""
+		self.ui.preecouter_l_antenne.setIcon(icones.icone("pré-écoute"))
+		self.ui.preecouter_l_antenne.clicked.connect(lambda: self._ecouter_l_antenne(lancer=True))
 		self.accueil.client.etat_recu.connect(self._proposer_les_interruptions)
 		self._proposer_les_interruptions(ARRET)
 		self._relire_le_service()
@@ -308,7 +312,8 @@ class FenetrePrincipale(QMainWindow):
 		grille.triggered.connect(self._ouvrir_calendrier)
 		simulation = affichage.addAction(icones.icone("simulation"), "Ouvrir l'onglet Simulation")
 		simulation.triggered.connect(self._ouvrir_simulation)
-		affichage.addAction("Pré-écoute…").triggered.connect(lambda: self._preecouter(None))
+		preecoute = affichage.addAction(icones.icone("pré-écoute"), "Pré-écoute…")
+		preecoute.triggered.connect(lambda: self._preecouter(None))
 		self.menu_diffusion = self.menuBar().addMenu("&Diffusion")
 		self.menu_diffusion.aboutToShow.connect(self._relire_le_service)
 		self.pilotes: dict[str, QAction] = {}
@@ -351,14 +356,11 @@ class FenetrePrincipale(QMainWindow):
 		self._presenter_la_diffusion()
 
 	def _etat_de_la_lecture(self, etat: EtatLecture) -> None:
-		"""La diffusion d'essai arrêtée depuis le menu : l'annoncer, ou la relancer."""
-		if (etat.etat != "arret") or (self._apres_l_arret is None):
+		"""La diffusion d'essai arrêtée depuis le menu : l'annoncer."""
+		if (etat.etat != "arret") or (not self._arret_demande):
 			return
-		verbe, self._apres_l_arret = self._apres_l_arret, None
-		if verbe == "stop":
-			self.ui.barre_d_etat.showMessage(pilotage.ARRETEE)
-			return
-		self.ui.barre_d_etat.showMessage(pilotage.lancer_dans_un_terminal(self.configuration, pilotage.RELANCE))
+		self._arret_demande = False
+		self.ui.barre_d_etat.showMessage(pilotage.ARRETEE)
 
 	def _proposer_les_interruptions(self, etat: EtatLecture) -> None:
 		"""Les interruptions du menu « Diffusion » suivent ce qui est à l'antenne."""
@@ -378,21 +380,17 @@ class FenetrePrincipale(QMainWindow):
 		"""Les entrées du menu « Diffusion » selon l'état du service ; sans lui, le signal d'installation à terminer."""
 		self.sans_service.setVisible(not self.service.installe)
 		if self.service.installe:
-			# active : arrêter ou redémarrer ; en échec : démarrer ou redémarrer ; arrêté : démarrer.
-			permis = {
-				"start": not self.service.en_marche,
-				"stop": self.service.en_marche,
-				"restart": self.service.actif != "inactive",
-			}
+			# En marche : arrêter ; arrêté ou en échec : démarrer.
+			permis = {"start": not self.service.en_marche, "stop": self.service.en_marche}
 			for verbe, action in self.pilotes.items():
 				action.setText(pilotage.VERBES[verbe][0])
 				action.setEnabled(permis[verbe])
 				action.setToolTip("")
 			return
 		en_cours = self.accueil.client.pid_du_lecteur() is not None
-		infobulles = {"start": SANS_SERVICE_DEMARRER, "stop": SANS_ESSAI, "restart": SANS_ESSAI}
+		infobulles = {"start": SANS_SERVICE_DEMARRER, "stop": SANS_ESSAI}
 		if en_cours:
-			infobulles = {"start": DEJA_EN_MARCHE, "stop": ESSAI_ARRETER, "restart": ESSAI_REDEMARRER}
+			infobulles = {"start": DEJA_EN_MARCHE, "stop": ESSAI_ARRETER}
 		for verbe, action in self.pilotes.items():
 			action.setText(pilotage.ESSAI[verbe])
 			action.setEnabled((verbe == "start") != en_cours)
@@ -411,8 +409,7 @@ class FenetrePrincipale(QMainWindow):
 			return
 		texte = pilotage.arreter_le_lecteur(pid)
 		self.ui.barre_d_etat.showMessage(texte)
-		if texte == pilotage.ARRET_DEMANDE:
-			self._apres_l_arret = verbe
+		self._arret_demande = texte == pilotage.ARRET_DEMANDE
 
 	def _pilotage_termine(self, texte: str) -> None:
 		self.ui.barre_d_etat.showMessage(texte)
@@ -552,12 +549,20 @@ class FenetrePrincipale(QMainWindow):
 		self.preecoute.raise_()
 		self.preecoute.activateWindow()
 
-	def _ecouter_l_antenne(self) -> None:
+	def _ecouter_l_antenne(self, lancer: bool = False) -> None:
 		"""Clic sur le VU-mètre de l'accueil : l'antenne dans la fenêtre de pré-écoute
-		(https://github.com/dascritch/machincast/issues/24)."""
+		(https://github.com/dascritch/machincast/issues/24) ; par le bouton « Pré-écoute » de la fenêtre, lancée
+		aussitôt (https://github.com/dascritch/machincast/issues/223)."""
 		self._preecouter(None)
 		assert self.preecoute is not None
-		self.preecoute.ecouter_l_antenne()
+		self.preecoute.ecouter_l_antenne(self._texte_public, lancer)
+
+	def _suivre_le_texte_public(self, etat: EtatLecture) -> None:
+		self._texte_public = None
+		if etat.en_cours is not None:
+			self._texte_public = etat.en_cours.texte_public
+		if self.preecoute is not None:
+			self.preecoute.suivre_l_antenne(self._texte_public)
 
 	def _ouvrir_calendrier(self) -> None:
 		"""Un seul calendrier : celui qui est ouvert revient au premier plan."""

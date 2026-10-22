@@ -161,6 +161,22 @@ def icones_de_l_accueil(interface: Contexte, datatable: list[list[str]]) -> None
 		assert _portee(bouton.icon()) == _attendue(icone.strip()), nom
 
 
+@then(
+	parsers.re(
+		r"le bouton « (?P<nom>[^»]+) » de (?P<ou>la fiche ouverte|l'accueil|la fenêtre)"
+		r" porte l'icône « (?P<icone>[^»]+) »"
+	)
+)
+def icone_du_bouton(interface: Contexte, nom: str, ou: str, icone: str) -> None:
+	ouverte = fenetre(interface)
+	porteur: object = ouverte.ui
+	if ou == "l'accueil":
+		porteur = ouverte.accueil.ui
+	if ou == "la fiche ouverte":
+		porteur = ouverte.ui.onglets.currentWidget().ui
+	assert _portee(getattr(porteur, nom).icon()) == _attendue(icone), nom
+
+
 @then("les icônes du thème des écrans sont seulement :")
 def icones_du_theme(datatable: list[list[str]]) -> None:
 	"""Chaque iconset theme des fichiers .ui, avec le widget qui le porte."""

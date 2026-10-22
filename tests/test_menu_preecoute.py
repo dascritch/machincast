@@ -16,11 +16,12 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu, QTreeWidget, QTreeWidgetItem
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from machincast.interface import affichage, icones
 from machincast.interface.fiche_banque import FicheBanque
 from machincast.interface.fiche_evenement import FicheEvenement
 from machincast.interface.fiche_sequence import FicheSequence
 from machincast.interface.listes import Liste
-from tests.etapes_interface import Contexte, fenetre, glisser, identifiant, liste
+from tests.etapes_interface import Contexte, fenetre, glisser, identifiant, liste, meme_icone
 
 scenarios("menu_preecoute.feature")
 
@@ -159,6 +160,10 @@ def choisir(menu: Menu, entree: str) -> None:
 @then(parsers.re(r"le menu contextuel commence par « (?P<entree>[^»]+) »(?P<separateur>, puis un séparateur)?"))
 def commence_par(menu: Menu, entree: str, separateur: str | None) -> None:
 	assert menu.entrees[:1] == [entree], menu.entrees
+	if entree == affichage.PREECOUTE:
+		# Toute entrée « Pré-écoute… » porte le casque (https://github.com/dascritch/machincast/issues/223).
+		assert menu.ouvert is not None
+		assert meme_icone(menu.ouvert.actions()[0].icon(), icones.icone("pré-écoute"))
 	if separateur is not None:
 		assert menu.ouvert is not None
 		assert menu.ouvert.actions()[1].isSeparator(), menu.entrees

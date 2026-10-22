@@ -4,12 +4,8 @@ Une vraie socket d'état (machincast.lecture.etat.SocketEtat), là où l'interfa
 lecture imaginaire et reçoit les demandes de l'interface. Les étapes de la fenêtre sont dans tests/etapes_interface.py.
 """
 
-import json
 import time
-from collections.abc import Iterator
-from dataclasses import dataclass, field
 
-import pytest
 from PySide6.QtGui import QAction
 from PySide6.QtNetwork import QLocalSocket
 from pytest_bdd import given, parsers, scenarios, then, when
@@ -17,8 +13,8 @@ from pytestqt.qtbot import QtBot
 
 from machincast.interface import interruption
 from machincast.interface.etat import lire_message
-from machincast.lecture.etat import Demande, SocketEtat
-from tests.etapes_interface import Contexte, fenetre
+from machincast.lecture.etat import Demande
+from tests.etapes_interface import Contexte, Lecteur, fenetre, publier
 
 scenarios("interruption_interface.feature")
 
@@ -26,40 +22,11 @@ ATTENTE = 5000
 """Millisecondes qu'un état ou une demande a pour arriver."""
 
 
-@dataclass
-class Lecteur:
-	socket: SocketEtat | None = None
-	publie: str = ""
-	"""Le dernier état publié, tel que la socket l'envoie."""
-	recues: list[Demande] = field(default_factory=list)
-
-
-@pytest.fixture
-def lecteur() -> Iterator[Lecteur]:
-	lecteur = Lecteur()
-	yield lecteur
-	if lecteur.socket is not None:
-		lecteur.socket.fermer()
-
-
-def publier(lecteur: Lecteur, etat: str, en_cours: dict[str, object] | None = None) -> None:
-	assert lecteur.socket is not None
-	message = {"etat": etat, "en_cours": en_cours, "prochain": None}
-	lecteur.publie = json.dumps({"version": 1, **message})
-	lecteur.socket.publier(message)
-
-
 def entrees(interface: Contexte) -> dict[str, QAction]:
 	return fenetre(interface).interruptions
 
 
 # ─── Étant donné ───────────────────────────────────────────
-
-
-@given("la socket d'état de Machin lecture ouverte pour l'interface")
-def socket_ouverte(interface: Contexte, lecteur: Lecteur) -> None:
-	lecteur.socket = SocketEtat(interface.repertoire / "lecture.sock")
-	lecteur.socket.ouvrir()
 
 
 @given(
