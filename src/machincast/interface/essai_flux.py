@@ -3,7 +3,9 @@ spec § 4.6).
 
 GStreamer se connecte à l'adresse et décode le flux, sans rien jouer. Le flux répond dès qu'une seconde de son est
 décodée ; il ne répond pas si GStreamer signale une erreur (adresse injoignable, réponse en erreur), ou si cette seconde
-de son n'arrive pas dans le délai. Le test terminé, la connexion au flux est fermée. Le test ne bloque pas l'interface :
+de son n'arrive pas dans le délai. Qui répond dit aussi le type du flux et son débit, lus dans les tags que GStreamer
+trouve en le décodant (https://github.com/dascritch/machincast/issues/223) : le codec, puis le débit nominal, sinon le
+débit mesuré. Le test terminé, la connexion au flux est fermée. Le test ne bloque pas l'interface :
 le bus de GStreamer est relevé par un minuteur de Qt.
 """
 
@@ -35,6 +37,17 @@ def resultat_de_l_essai(repond: bool, detail: str) -> str:
 	return f"{verdict} : {detail}"
 
 
+def decrire(type_du_flux: str | None, debit: int | None) -> str:
+	"""« en MPEG-1 Layer 3 (MP3) à 128 kbit/s », ce qu'on en sait."""
+	type_lu = "de type inconnu"
+	if type_du_flux is not None:
+		type_lu = f"en {type_du_flux}"
+	debit_lu = "à débit inconnu"
+	if debit is not None:
+		debit_lu = f"à {round(debit / 1000)} kbit/s"
+	return f"{type_lu} {debit_lu}"
+
+
 class EssaiDeFlux(QObject):
 	termine = Signal(bool, str)
 	"""Fin du test : le flux répond-il, et sinon pourquoi."""
@@ -45,6 +58,9 @@ class EssaiDeFlux(QObject):
 		self._pipeline: Gst.Pipeline | None = None
 		self._son = 0
 		"""Son décodé, en nanosecondes."""
+		self._type: str | None = None
+		self._debit: int | None = None
+		"""En bits par seconde : le débit nominal du flux, sinon le dernier mesuré."""
 		self._releve = QTimer(self)
 		self._releve.setInterval(_millisecondes(RELEVE))
 		self._releve.timeout.connect(self._relever)
@@ -69,6 +85,7 @@ class EssaiDeFlux(QObject):
 		source.set_property("uri", adresse)
 		sortie.connect("handoff", self._recu)
 		self._son = 0
+		self._type, self._debit = None, None
 		self._pipeline = pipeline
 		pipeline.set_state(Gst.State.PLAYING)
 		self._releve.start()
@@ -87,12 +104,29 @@ class EssaiDeFlux(QObject):
 
 	def _relever(self) -> None:
 		assert self._pipeline is not None
-		message = self._pipeline.get_bus().pop_filtered(Gst.MessageType.ERROR)
-		if message is not None:
+		bus = self._pipeline.get_bus()
+		# pop_filtered jette les messages d'autres types : les tags et les erreurs se lisent ensemble.
+		while (message := bus.pop_filtered(Gst.MessageType.TAG | Gst.MessageType.ERROR)) is not None:
+			if message.type == Gst.MessageType.TAG:
+				self._lire_les_tags(message.parse_tag())
+				continue
 			erreur, _detail = message.parse_error()
 			self._finir(False, f"{erreur.message.rstrip('.')}.")
-		elif self._son >= SON_ATTENDU.total_seconds() * Gst.SECOND:
-			self._finir(True, "du son arrive.")
+			return
+		if self._son >= SON_ATTENDU.total_seconds() * Gst.SECOND:
+			self._finir(True, f"du son arrive, {decrire(self._type, self._debit)}.")
+
+	def _lire_les_tags(self, tags: Gst.TagList) -> None:
+		trouve, codec = tags.get_string(Gst.TAG_AUDIO_CODEC)
+		if trouve:
+			self._type = codec
+		trouve, nominal = tags.get_uint(Gst.TAG_NOMINAL_BITRATE)
+		if (trouve) and (nominal > 0):
+			self._debit = nominal
+			return
+		trouve, mesure = tags.get_uint(Gst.TAG_BITRATE)
+		if (trouve) and (mesure > 0) and (self._debit is None):
+			self._debit = mesure
 
 	def _expirer(self) -> None:
 		self._finir(False, f"le son n'arrive pas en {int(DELAI.total_seconds())} s.")

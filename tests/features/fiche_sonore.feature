@@ -583,7 +583,7 @@ Fonctionnalité: Fiche d'un sonore
 
 		Exemples:
 			| flux   | verdict                                       |
-			| direct | « Le flux répond : du son arrive. »           |
+			| direct | « Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 224 kbit/s. »           |
 			| muet   | qu'il ne répond pas, avec l'erreur du serveur |
 
 	Scénario: Une adresse qui n'en est pas une n'est pas testée
@@ -609,9 +609,9 @@ Fonctionnalité: Fiche d'un sonore
 		Et j'ouvre la fiche du sonore « Direct »
 		Et je saisis l'adresse du flux « direct » du serveur local dans la fiche du sonore
 		Et je teste le flux
-		Alors le test du flux dit bientôt « Le flux répond : du son arrive. »
+		Alors le test du flux dit bientôt « Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 224 kbit/s. »
 		Et le serveur de flux local n'a bientôt plus de connexion
-		Et après 2 secondes, le test du flux dit toujours « Le flux répond : du son arrive. »
+		Et après 2 secondes, le test du flux dit toujours « Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 224 kbit/s. »
 		Quand le flux « avare » du serveur local est avare
 		Et je saisis l'adresse du flux « avare » du serveur local dans la fiche du sonore
 		Et je teste le flux
@@ -650,7 +650,7 @@ Fonctionnalité: Fiche d'un sonore
 			| champ       | valeur |
 			| Marque-page | Local  |
 		Et je teste le flux
-		Alors le test du flux dit bientôt « Le flux répond : du son arrive. »
+		Alors le test du flux dit bientôt « Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 224 kbit/s. »
 
 	Scénario: Un test sans réponse s'arrête de lui-même
 		Étant donné un serveur qui accepte les connexions sans jamais répondre

@@ -92,7 +92,7 @@ La fiche d'un sonore s'ouvre dans un onglet nommé « Sonore : » suivi de son t
   - **Artiste et titre** : `Masqués` ou `Affichés` sur la page publique, sauf si l'événement, la séquence ou la banque en décide ([Page publique et masquage](antenne.md#page-publique-et-masquage)) ;
   - **Diffusion à partir du**, **Diffusion jusqu'au** : la période de diffusion, chacune à cocher.
 - **Détection de blanc**, pour un fichier : **Jouer sans les blancs détectés**, et le **début** et la **fin détectés**, en secondes, mesurés par l'audit complet et corrigibles à la main ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)).
-- **Stream** : l'**adresse directe** ou un **marque-page**, et l'**événement de secours** ([Streams](antenne.md#streams)). **Tester le flux** se connecte à l'adresse saisie et dit `Le flux répond : du son arrive.`, ou pourquoi il ne répond pas. Rien n'est joué à l'antenne.
+- **Stream** : l'**adresse directe** ou un **marque-page**, et l'**événement de secours** ([Streams](antenne.md#streams)). **Tester le flux** se connecte à l'adresse saisie et dit, par exemple, `Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 128 kbit/s.` : le type du flux et son débit ([#223](https://github.com/dascritch/machincast/issues/223)), ou pourquoi il ne répond pas. Rien n'est joué à l'antenne.
 - **Relations** : les séquences, banques et événements qui citent le sonore ; un double-clic ouvre leur fiche. Une banque dont le sonore sort des durées y a l'icône d'avertissement, avec une infobulle qui dit pourquoi.
 - **Fichier** : le type réel du fichier, son encodage moyen, sa taille, ses dates et sa dernière vérification complète.
 - **Derniers passages** : les 50 derniers passages du sonore à l'antenne, avec les alertes et incidents notés pendant chacun.
@@ -187,6 +187,6 @@ L'indexation tourne dans sa propre fenêtre, qui montre ligne par ligne chaque s
 Un **marque-page** est une adresse de flux réutilisable, souvent en ligne par intermittence, comme le studio mobile de la radio : plusieurs streams peuvent le suivre. **Affichage → Ouvrir l'onglet Marques-pages** en donne la liste ; **Nouveau marque-page** ouvre une fiche vide.
 
 - **Nom** et **Adresse** : obligatoires. Une nouvelle adresse vaut aussitôt pour tous les streams qui suivent le marque-page.
-- **Tester le flux** : comme dans la fiche d'un sonore, dit si du son arrive à l'adresse saisie.
+- **Tester le flux** : comme dans la fiche d'un sonore, dit si du son arrive à l'adresse saisie, de quel type et à quel débit.
 - **Streams qui le suivent** : un double-clic ouvre leur fiche.
 - **Supprimer…** : un marque-page qu'un stream suit ne se supprime pas ; la fiche nomme ces streams, qui doivent d'abord choisir une autre adresse.

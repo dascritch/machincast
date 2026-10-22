@@ -29,6 +29,7 @@ from machincast.interface import affichage, icones, preferences
 from machincast.interface.airplay import FENETRE, PassageAffiche, lire_airplay
 from machincast.interface.calendrier import date_longue
 from machincast.interface.colonnes import Colonnes
+from machincast.interface.essai_flux import EssaiDeFlux, resultat_de_l_essai
 from machincast.interface.etat import ClientEtat, EtatLecture, SonoreAffiche
 from machincast.interface.frise import FormeDOnde, Frise, Plan, lire_le_plan
 from machincast.interface.moniteur import Moniteur, nom_du_port
@@ -44,6 +45,7 @@ RELEVE_DES_FORMES = 100
 ETATS = {"diffusion": "En diffusion", "silence": "En silence", "arret": "À l'arrêt"}
 A_VENIR = 5
 """Lignes que montre la table des sonores à venir, autant que Machin lecture en prévoit."""
+ESSAI_EN_COURS = "Test du flux en cours…"
 PAS_SAIN = "pas sain"
 """Colonne « Incident » d'un sonore à venir dont le fichier a posé problème (spec § 4.6)."""
 ELEMENT = Qt.ItemDataRole.UserRole
@@ -116,6 +118,8 @@ class EcranParDefaut(QWidget):
 		)
 		self._en_cours: SonoreAffiche | None = None
 		self._prochain: SonoreAffiche | None = None
+		self._flux_teste: int | None = None
+		"""Le stream dont le flux est testé, ou l'a été : son résultat reste tant qu'il est le prochain sonore."""
 		ui = self.ui
 		# Chaque bouton « Fiche… » porte l'icône du genre qu'il ouvre (https://github.com/dascritch/machincast/issues/215).
 		for genre, boutons in (
@@ -140,6 +144,13 @@ class EcranParDefaut(QWidget):
 		# déplacer de lecture.
 		self.frise_en_cours = _poser_la_frise(ui.place_frise_en_cours)
 		self.frise_prochain = _poser_la_frise(ui.place_frise_prochain)
+		# Écouter le prochain sonore, et tester le flux d'un stream (https://github.com/dascritch/machincast/issues/223).
+		ui.preecouter_prochain.setIcon(icones.icone("pré-écoute"))
+		ui.preecouter_prochain.clicked.connect(self._preecouter_le_prochain)
+		self.frise_prochain.cliquee.connect(self._preecouter_le_prochain)
+		self.essai_du_flux = EssaiDeFlux(self)
+		self.essai_du_flux.termine.connect(self._essai_du_flux_termine)
+		ui.tester_le_flux_prochain.clicked.connect(self._tester_le_flux_du_prochain)
 		self._formes: dict[tuple[int, str], FormeDOnde] = {}
 		"""Les formes d'onde, par sonore et fichier : celle du prochain sonore sert encore quand il passe à
 		l'antenne."""
@@ -210,6 +221,7 @@ class EcranParDefaut(QWidget):
 		self._releve_des_formes.stop()
 		for forme in self._formes.values():
 			forme.arreter()
+		self.essai_du_flux.arreter()
 		self.client.fermer()
 		self.moniteur.arreter()
 		super().closeEvent(evenement)
@@ -237,6 +249,7 @@ class EcranParDefaut(QWidget):
 		self.ui.prochain_sain.setText(affichage.VIDE)
 		if prochain is not None:
 			self.ui.prochain_sain.setText(affichage.oui_non(prochain.sain, "non testé"))
+		self._proposer_les_ecoutes(prochain)
 		debut = None
 		if etat.en_cours is not None:
 			debut = etat.en_cours.debut
@@ -429,6 +442,41 @@ class EcranParDefaut(QWidget):
 		if menu is not None:
 			menu.exec(table.viewport().mapToGlobal(position))
 			menu.deleteLater()
+
+	# ─── Écouter le prochain sonore ────────────────────────
+
+	def _proposer_les_ecoutes(self, prochain: SonoreAffiche | None) -> None:
+		"""La pré-écoute, s'il y a un prochain sonore ; le test du flux, pour un stream. Un autre prochain sonore
+		efface le résultat du test précédent."""
+		ui = self.ui
+		ui.preecouter_prochain.setEnabled(prochain is not None)
+		stream = (prochain is not None) and (prochain.stream)
+		ui.tester_le_flux_prochain.setVisible(stream)
+		ui.tester_le_flux_prochain.setEnabled((stream) and (not self.essai_du_flux.en_cours()))
+		sonore = None if prochain is None else prochain.sonore
+		if sonore != self._flux_teste:
+			self._flux_teste = None
+			ui.prochain_flux.clear()
+		ui.prochain_flux.setVisible(ui.prochain_flux.text() != "")
+
+	def _preecouter_le_prochain(self) -> None:
+		if self._prochain is not None:
+			self.preecoute_demandee.emit(self._prochain.sonore)
+
+	def _tester_le_flux_du_prochain(self) -> None:
+		prochain = self._prochain
+		if (prochain is None) or (prochain.emplacement is None):
+			return
+		self._flux_teste = prochain.sonore
+		self.ui.tester_le_flux_prochain.setEnabled(False)
+		self.ui.prochain_flux.setText(ESSAI_EN_COURS)
+		self.ui.prochain_flux.setVisible(True)
+		self.essai_du_flux.lancer(prochain.emplacement)
+
+	def _essai_du_flux_termine(self, repond: bool, detail: str) -> None:
+		if self._flux_teste is not None:
+			self.ui.prochain_flux.setText(resultat_de_l_essai(repond, detail))
+		self._proposer_les_ecoutes(self._prochain)
 
 	# ─── Sonores à venir ───────────────────────────────────
 

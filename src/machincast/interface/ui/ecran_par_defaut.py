@@ -17,8 +17,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QFormLayout, QGroupBox,
     QHBoxLayout, QHeaderView, QLabel, QLineEdit,
-    QProgressBar, QSizePolicy, QSpacerItem, QTableView,
-    QToolButton, QVBoxLayout, QWidget)
+    QProgressBar, QPushButton, QSizePolicy, QSpacerItem,
+    QTableView, QToolButton, QVBoxLayout, QWidget)
 
 class Ui_EcranParDefaut(object):
     def setupUi(self, EcranParDefaut):
@@ -404,11 +404,37 @@ class Ui_EcranParDefaut(object):
 
         self.formulaire_prochain.setWidget(5, QFormLayout.ItemRole.LabelRole, self.intitule_prochain_sain)
 
+        self.ligne_prochain_sain = QHBoxLayout()
+        self.ligne_prochain_sain.setObjectName(u"ligne_prochain_sain")
         self.prochain_sain = QLabel(self.cadre_prochain)
         self.prochain_sain.setObjectName(u"prochain_sain")
         self.prochain_sain.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
 
-        self.formulaire_prochain.setWidget(5, QFormLayout.ItemRole.FieldRole, self.prochain_sain)
+        self.ligne_prochain_sain.addWidget(self.prochain_sain)
+
+        self.pousser_les_ecoutes = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.ligne_prochain_sain.addItem(self.pousser_les_ecoutes)
+
+        self.tester_le_flux_prochain = QPushButton(self.cadre_prochain)
+        self.tester_le_flux_prochain.setObjectName(u"tester_le_flux_prochain")
+
+        self.ligne_prochain_sain.addWidget(self.tester_le_flux_prochain)
+
+        self.preecouter_prochain = QPushButton(self.cadre_prochain)
+        self.preecouter_prochain.setObjectName(u"preecouter_prochain")
+
+        self.ligne_prochain_sain.addWidget(self.preecouter_prochain)
+
+
+        self.formulaire_prochain.setLayout(5, QFormLayout.ItemRole.SpanningRole, self.ligne_prochain_sain)
+
+        self.prochain_flux = QLabel(self.cadre_prochain)
+        self.prochain_flux.setObjectName(u"prochain_flux")
+        self.prochain_flux.setWordWrap(True)
+        self.prochain_flux.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        self.formulaire_prochain.setWidget(6, QFormLayout.ItemRole.SpanningRole, self.prochain_flux)
 
 
         self.disposition_prochain.addLayout(self.formulaire_prochain)
@@ -561,6 +587,14 @@ class Ui_EcranParDefaut(object):
         self.prochain_emplacement.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
         self.intitule_prochain_sain.setText(QCoreApplication.translate("EcranParDefaut", u"Sain", None))
         self.prochain_sain.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
+#if QT_CONFIG(tooltip)
+        self.tester_le_flux_prochain.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Se connecter au flux du prochain sonore, sans rien jouer : re\u00e7oit-il du son, de quel type, \u00e0 quel d\u00e9bit ?", None))
+#endif // QT_CONFIG(tooltip)
+        self.tester_le_flux_prochain.setText(QCoreApplication.translate("EcranParDefaut", u"Tester la connexion du flux", None))
+#if QT_CONFIG(tooltip)
+        self.preecouter_prochain.setToolTip(QCoreApplication.translate("EcranParDefaut", u"\u00c9couter le prochain sonore sur la sortie de pr\u00e9-\u00e9coute, jamais sur l'antenne", None))
+#endif // QT_CONFIG(tooltip)
+        self.preecouter_prochain.setText(QCoreApplication.translate("EcranParDefaut", u"Pr\u00e9-\u00e9coute", None))
         self.cadre_a_venir.setTitle(QCoreApplication.translate("EcranParDefaut", u"\u00c0 venir apr\u00e8s le prochain sonore", None))
 #if QT_CONFIG(tooltip)
         self.table_a_venir.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Les sonores pr\u00e9vus apr\u00e8s le prochain, le plus lointain en haut. Double-clic sur un sonore, un \u00e9v\u00e9nement, une s\u00e9quence ou une banque : ouvrir sa fiche", None))

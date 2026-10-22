@@ -439,6 +439,45 @@ Fonctionnalité: Écran par défaut de l'interface
 		Alors l'état du binaire lecture est bientôt « En silence »
 		Et les boutons de fiche de l'accueil sont inactifs
 
+	# ─── Écouter le prochain sonore (https://github.com/dascritch/machincast/issues/223) ─────
+
+	Scénario: Pour un fichier, la ligne « Sain » du prochain sonore propose sa pré-écoute
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
+		Quand l'écran par défaut s'ouvre
+		Et le prochain sonore est bientôt « Jingle »
+		Alors l'accueil propose pour le prochain sonore : pré-écoute active, test du flux caché
+		Quand je clique sur le bouton « preecouter_prochain » de l'accueil
+		Alors la pré-écoute du sonore 31 a été demandée
+
+	Scénario: Un clic sur la frise du prochain sonore ouvre aussi sa pré-écoute
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
+		Quand l'écran par défaut s'ouvre
+		Et le prochain sonore est bientôt « Jingle »
+		Et je clique sur la frise du prochain sonore
+		Alors la pré-écoute du sonore 31 a été demandée
+
+	Scénario: Sans prochain sonore, l'accueil ne propose ni pré-écoute ni test du flux
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Quand l'écran par défaut s'ouvre
+		Et le sonore en cours est bientôt « Les Gaufres – Café à minuit »
+		Alors l'accueil propose pour le prochain sonore : pré-écoute inactive, test du flux caché
+
+	Scénario: Pour un stream, l'accueil propose de tester la connexion de son flux, qui dit son type et son débit
+		Étant donné un serveur de flux local, avec le flux « studio » en ligne
+		Et la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le prochain sonore est le stream du flux « studio » dans « Direct »
+		Quand l'écran par défaut s'ouvre
+		Et le prochain sonore est bientôt « Direct studio »
+		Alors l'accueil propose pour le prochain sonore : pré-écoute active, test du flux actif
+		Quand je clique sur le bouton « tester_le_flux_prochain » de l'accueil
+		Alors le test du flux du prochain sonore dit bientôt « Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 224 kbit/s. »
+
 	# ─── Sonores à venir (https://github.com/dascritch/machincast/issues/228) ─────
 
 	Scénario: Au-dessus de l'airplay, les sonores à venir après le prochain, le plus lointain en haut
