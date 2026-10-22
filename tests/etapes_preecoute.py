@@ -5,7 +5,8 @@ l'antenne depuis le VU-mètre (test_vumetre.py, https://github.com/dascritch/mac
 """
 
 import psycopg
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QPushButton
 from pytest_bdd import parsers, then, when
 from pytestqt.qtbot import QtBot
 
@@ -130,21 +131,11 @@ def demander(interface: Contexte, base_vide: Connexion, titre: str) -> None:
 	fenetre(interface)._preecouter(identifiant(base_vide, "sonores", "titre", titre))
 
 
-@then("le bouton « Pré-écoute » est en bas à gauche de la fenêtre, hors des onglets")
-def en_bas_a_gauche(interface: Contexte, qtbot: QtBot) -> None:
-	"""https://github.com/dascritch/machincast/issues/223 : dans la barre d'état, à gauche de ses messages."""
+@then("la fenêtre n'a pas de bouton « Pré-écoute » sous ses onglets")
+def sans_bouton(interface: Contexte) -> None:
+	"""https://github.com/dascritch/machincast/issues/245 : l'entrée du menu « Diffusion » remplace le bouton."""
 	ouverte = fenetre(interface)
-	ouverte.show()
-	qtbot.wait(50)
-	bouton = ouverte.ui.preecouter_l_antenne
-	assert bouton.isVisible()
-	assert bouton.text() == "Pré-écoute"
-	assert not ouverte.ui.onglets.isAncestorOf(bouton)
-	coin = bouton.mapTo(ouverte, QPoint(0, 0))
-	assert coin.x() < ouverte.width() / 4, coin
-	assert coin.y() > ouverte.ui.onglets.mapTo(ouverte, QPoint(0, ouverte.ui.onglets.height())).y(), coin
-
-
-@when("je clique sur le bouton « Pré-écoute » de la fenêtre")
-def cliquer_preecoute(interface: Contexte, qtbot: QtBot) -> None:
-	qtbot.mouseClick(fenetre(interface).ui.preecouter_l_antenne, Qt.MouseButton.LeftButton)
+	hors_des_onglets = [
+		bouton for bouton in ouverte.findChildren(QPushButton) if not ouverte.ui.onglets.isAncestorOf(bouton)
+	]
+	assert [bouton.text() for bouton in hors_des_onglets if "Pré-écoute" in bouton.text()] == []

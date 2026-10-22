@@ -102,7 +102,9 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors le bouton « preecouter » de la fiche ouverte porte l'icône « pré-écoute »
 		Et le bouton « preecouter_prochain » de l'accueil porte l'icône « pré-écoute »
-		Et le bouton « preecouter_l_antenne » de la fenêtre porte l'icône « pré-écoute »
+		Et les entrées du menu « Diffusion » portent les icônes :
+			| entrée                  | icône      |
+			| Pré-écoute de l'antenne | pré-écoute |
 
 	Scénario: Les écrans n'emploient d'icônes du thème du poste que pour ce qui n'est pas un genre
 		Les écrans dessinés avec Qt Widgets Designer ne prennent pas d'icône du thème pour un genre : celle-ci se pose dans
