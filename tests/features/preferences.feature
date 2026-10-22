@@ -73,13 +73,13 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Étant donné les préférences seront réglées : granularité « seconde », maximum 8 s, début par défaut aucune, fin par défaut aucune
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
-		Alors les crossfades de la fiche se règlent au dixième de seconde, jusqu'à 5 s
+		Alors les crossfades de la fiche se règlent au dixième de seconde, jusqu'à 10 s
 		Quand je choisis « Préférences… » dans le menu « Fichier »
 		Alors le fichier de configuration donne les crossfades : granularité « seconde », maximum 8 s, début par défaut aucune, fin par défaut aucune
 		Quand j'ouvre la fiche de la banque « Jingles »
 		Alors les crossfades de la fiche se règlent à la seconde, jusqu'à 8 s
 		Quand j'ouvre l'onglet « Sonore : Café à minuit »
-		Alors les crossfades de la fiche se règlent au dixième de seconde, jusqu'à 5 s
+		Alors les crossfades de la fiche se règlent au dixième de seconde, jusqu'à 10 s
 
 	Scénario: Sans fichier de configuration, les préférences ne s'enregistrent pas
 		Quand la fenêtre de l'interface s'ouvre, sans fichier de configuration
@@ -108,7 +108,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Alors le fichier de configuration n'a pas changé
 		Et la barre d'état annonce une erreur qui commence par « Préférences non enregistrées dans …/machincast.toml : »
 		Quand j'ouvre la fiche du sonore « Café à minuit »
-		Alors les crossfades de la fiche se règlent au dixième de seconde, jusqu'à 5 s
+		Alors les crossfades de la fiche se règlent au dixième de seconde, jusqu'à 10 s
 
 	Scénario: Les périphériques réglés vont dans la section [audio] du fichier de configuration
 		Étant donné les préférences régleront l'antenne « carte-2 » et la pré-écoute « casque-usb »

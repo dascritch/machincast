@@ -7,21 +7,23 @@ retenir jusqu'à ce qu'il le laisse finir.
 """
 
 import threading
+from datetime import timedelta
 from pathlib import Path
 
 import psycopg
 import pytest
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtWidgets import QGroupBox, QPushButton
+from PySide6.QtWidgets import QCheckBox, QFormLayout, QGroupBox, QLabel, QPushButton, QSlider
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
+from machincast.configuration import Crossfades
 from machincast.empreinte import etat_du_fichier
 from machincast.indexation.decodage import Verification
-from machincast.interface import verification
+from machincast.interface import preferences, verification
 from machincast.interface.depliable import est_replie
 from machincast.interface.fiche_sonore import FicheSonore
-from tests.etapes_interface import NOM, Contexte, fenetre
+from tests.etapes_interface import NOM, Contexte, fenetre, ouvrir_la_fenetre
 
 scenarios("fiche_sonore_encarts.feature")
 
@@ -107,6 +109,49 @@ def terminer(interface: Contexte, qtbot: QtBot, retenue: threading.Event) -> Non
 	qtbot.waitUntil(lambda: not fenetre(interface).verification_complete.en_cours(), timeout=DELAI)
 
 
+@given(parsers.parse("les crossfades des préférences au dixième de seconde, jusqu'à {maximum:d} secondes"))
+def preferences_au_dixieme(monkeypatch: pytest.MonkeyPatch, maximum: int) -> None:
+	monkeypatch.setattr(
+		preferences, "_courantes", Crossfades(granularite="dixieme", maximum=timedelta(seconds=maximum))
+	)
+
+
+@when("la fenêtre de l'interface se ferme, puis s'ouvre de nouveau")
+def rouvrir(interface: Contexte, qtbot: QtBot) -> None:
+	fenetre(interface).close()
+	ouvrir_la_fenetre(interface, qtbot)
+
+
+@when(
+	parsers.re(
+		r"je coche le crossfade de (?P<cote>début|fin) de la fiche, et pousse son curseur de (?P<crans>\d+) crans"
+	)
+)
+def pousser(interface: Contexte, qtbot: QtBot, cote: str, crans: str) -> None:
+	ui = fiche(interface).ui
+	case, champ = (
+		(ui.a_crossfade_debut, ui.crossfade_debut) if cote == "début" else (ui.a_crossfade_fin, ui.crossfade_fin)
+	)
+	case.setChecked(True)
+	curseur = champ.findChild(QSlider)
+	assert curseur is not None
+	curseur.setFocus()
+	for _ in range(int(crans)):
+		qtbot.keyClick(curseur, Qt.Key.Key_Right)
+
+
+@when(parsers.parse("je coche le début détecté de la fiche, à {secondes} seconde"))
+def debut_detecte(interface: Contexte, secondes: str) -> None:
+	ui = fiche(interface).ui
+	ui.a_debut_detecte.setChecked(True)
+	ui.debut_detecte.setValue(float(secondes.replace(",", ".")))
+
+
+@when(parsers.re(r"je (?P<geste>coche|décoche) « Jouer sans les blancs détectés » dans la fiche"))
+def jouer_sans_blancs(interface: Contexte, geste: str) -> None:
+	fiche(interface).ui.detection_blancs.setChecked(geste == "coche")
+
+
 # ─── Alors ─────────────────────────────────────────────────
 
 
@@ -167,3 +212,120 @@ def titre_et_contenu(interface: Contexte, nom: str, texte: str, geste: str) -> N
 	(groupe,) = [groupe for groupe in encarts(interface) if titre(groupe) == nom]
 	assert groupe.title() == texte
 	assert fiche(interface).ui.verifie_le.isVisible() is (geste == "montre")
+
+
+def libelles(groupe: QGroupBox) -> list[str]:
+	"""Les libellés des lignes du formulaire de l'encart, dans l'ordre : l'étiquette, la case, ou la case seule."""
+	formulaire = groupe.findChild(QFormLayout)
+	assert formulaire is not None
+	trouves: list[str] = []
+	for ligne in range(formulaire.rowCount()):
+		for role in (QFormLayout.ItemRole.LabelRole, QFormLayout.ItemRole.SpanningRole):
+			element = formulaire.itemAt(ligne, role)
+			if element is None:
+				continue
+			widget = element.widget()
+			if isinstance(widget, (QLabel, QCheckBox)):
+				trouves.append(widget.text())
+	return trouves
+
+
+@then(parsers.re(r"l'encart « (?P<nom>[^»]+) » a les champs (?P<noms>«.+)"))
+def champs_de_l_encart(interface: Contexte, nom: str, noms: str) -> None:
+	(groupe,) = [groupe for groupe in encarts(interface) if titre(groupe) == nom]
+	assert libelles(groupe) == NOM.findall(noms)
+
+
+@then(
+	parsers.re(
+		r"le crossfade de début de la fiche est un curseur horizontal de 0 à (?P<maximum>\d+) secondes,"
+		r" au pas de (?P<pas>[\d,]+) seconde"
+	)
+)
+def curseur_du_crossfade(interface: Contexte, maximum: str, pas: str) -> None:
+	champ = fiche(interface).ui.crossfade_debut
+	curseur = champ.findChild(QSlider)
+	assert curseur is not None
+	assert curseur.orientation() == Qt.Orientation.Horizontal
+	assert (curseur.minimum(), champ.maximum()) == (0, float(maximum))
+	assert curseur.maximum() * float(pas.replace(",", ".")) == float(maximum)
+
+
+@given(parsers.parse("le sonore « {nom} » a {secondes:d} secondes de crossfade de début en base"))
+def crossfade_en_base(base_vide: Connexion, nom: str, secondes: int) -> None:
+	base_vide.execute("UPDATE sonores SET crossfade_debut = %s WHERE titre = %s", (timedelta(seconds=secondes), nom))
+
+
+@then(parsers.parse("la frise de la fiche montre un crossfade de fin de {fin} seconde"))
+def crossfade_de_fin_de_la_frise(interface: Contexte, fin: str) -> None:
+	plan = fiche(interface).frise.plan
+	assert (plan is not None) and (plan.crossfade_fin == float(fin.replace(",", "."))), plan
+
+
+@then(parsers.parse("le crossfade de début de la fiche montre « {texte} »"))
+def valeur_du_crossfade(interface: Contexte, texte: str) -> None:
+	assert fiche(interface).ui.crossfade_debut.text() == texte
+
+
+@then("l'état de la fiche propose :")
+def etats_proposes(interface: Contexte, datatable: list[list[str]]) -> None:
+	choix = fiche(interface).ui.etat
+	modele = choix.model()
+	trouves = []
+	for rang in range(choix.count()):
+		actif = bool(modele.flags(modele.index(rang, 0)) & Qt.ItemFlag.ItemIsEnabled)
+		etat = "possible" if actif else "grisé"
+		if rang == choix.currentIndex():
+			etat = "choisi"
+		trouves.append([choix.itemText(rang), etat])
+	_entetes, *rangees = datatable
+	assert trouves == [[etat.strip(), quoi.strip()] for etat, quoi in rangees]
+
+
+@then("la frise de la fiche est sur toute sa largeur, au-dessus des encarts")
+def frise_pleine_largeur(interface: Contexte, qtbot: QtBot) -> None:
+	ouverte = fiche(interface)
+	fenetre(interface).show()
+	qtbot.wait(50)
+	frise = ouverte.frise
+	assert frise.isVisibleTo(ouverte)
+	assert frise.width() >= ouverte.width() - 40, (frise.width(), ouverte.width())
+	bas = frise.mapTo(ouverte, QPoint(0, frise.height())).y()
+	assert bas <= ouverte.ui.groupe_sonore.mapTo(ouverte, QPoint(0, 0)).y()
+
+
+@then("la frise de la fiche dessine bientôt la forme d'onde de son fichier")
+def forme_de_la_fiche(interface: Contexte, qtbot: QtBot) -> None:
+	frise = fiche(interface).frise
+	qtbot.waitUntil(
+		lambda: (frise.forme is not None) and (frise.forme.finie) and (frise.forme.erreur is None), timeout=DELAI
+	)
+	assert frise.forme is not None
+	assert len(frise.forme.pics) > 0
+
+
+@then(
+	parsers.parse(
+		"la frise de la fiche montre un crossfade de fin de {fin} seconde, un blanc de {blanc} seconde au début,"
+		" retiré à l'antenne"
+	)
+)
+def plan_de_la_fiche(interface: Contexte, fin: str, blanc: str) -> None:
+	plan = fiche(interface).frise.plan
+	assert plan is not None
+	assert (plan.crossfade_fin, plan.blanc_debut, plan.blancs_retires) == (
+		float(fin.replace(",", ".")),
+		float(blanc.replace(",", ".")),
+		True,
+	), plan
+
+
+@then("la frise de la fiche montre les blancs joués")
+def blancs_joues(interface: Contexte) -> None:
+	plan = fiche(interface).frise.plan
+	assert (plan is not None) and (not plan.blancs_retires), plan
+
+
+@then("la fiche n'a pas de frise")
+def sans_frise(interface: Contexte) -> None:
+	assert not fiche(interface).ui.place_frise.isVisibleTo(fiche(interface))

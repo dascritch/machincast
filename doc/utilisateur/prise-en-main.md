@@ -145,7 +145,7 @@ Page **Crossfades** ([#234](https://github.com/dascritch/machincast/issues/234))
 | Réglage | Rôle |
 | --- | --- |
 | Granularité | `Au dixième de seconde` (par défaut) ou `À la seconde` : le pas des crossfades dans les fiches. |
-| Durée maximale | Le crossfade le plus long que proposent les fiches, 5 secondes par défaut. |
+| Durée maximale | Le crossfade le plus long que proposent les fiches, 10 secondes par défaut. |
 | Début par défaut, fin par défaut | Le crossfade d'un sonore qui n'en a pas, et que sa banque ne règle pas ([Enchaînements](antenne.md#enchaînements)). |
 | Le fade-in, au début détecté | Pour un sonore joué sans ses blancs : le fade-in `commence`, `est en cours` ou `se termine` (par défaut) au début détecté ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)). |
 | Le fade-out, à la fin détectée | De même, à la fin détectée : `commence` (par défaut), `est en cours` ou `se termine`. |

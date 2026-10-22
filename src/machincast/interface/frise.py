@@ -372,8 +372,16 @@ def _texte(valeur: object) -> str | None:
 	return str(valeur)
 
 
+OPACITE_DES_CRETES, OPACITE_DU_MOYEN = 90, 90
+"""Opacité, sur 255, des crêtes de la forme d'onde, et du niveau moyen par-dessus : là où ils se superposent, le
+niveau moyen est plus foncé."""
+RAPPORT_DE_DEMONSTRATION = 0.6
+"""Niveau moyen de la forme d'onde de démonstration, rapporté à sa crête."""
+
+
 class FormeDOnde:
-	"""La forme d'onde d'un fichier : le niveau crête de chaque mesure, de 0 à 1, calculé en tâche de fond."""
+	"""La forme d'onde d'un fichier : le niveau crête et le niveau moyen (RMS) de chaque mesure, de 0 à 1, calculés en
+	tâche de fond (https://github.com/dascritch/machincast/issues/223)."""
 
 	def __init__(self, chemin: Path, duree: float | None) -> None:
 		Gst.init(None)
@@ -383,6 +391,8 @@ class FormeDOnde:
 		if (duree is not None) and (duree > 0):
 			self.pas = max(PAS_MINIMAL, duree / PICS)
 		self.pics: list[float] = []
+		self.moyens: list[float] = []
+		"""Niveau moyen de chaque mesure, au rang de sa crête."""
 		self.finie = False
 		"""Le calcul est fini : tout le fichier est mesuré, ou une erreur l'a arrêté."""
 		self.erreur: str | None = None
@@ -441,6 +451,14 @@ class FormeDOnde:
 			pic for indice, pic in enumerate(self.pics) if (indice * self.pas >= de) and ((indice + 1) * self.pas <= a)
 		]
 
+	def moyens_entre(self, de: float, a: float) -> list[float]:
+		"""Les niveaux moyens des mesures entièrement comprises entre ces deux instants."""
+		return [
+			moyen
+			for indice, moyen in enumerate(self.moyens)
+			if (indice * self.pas >= de) and ((indice + 1) * self.pas <= a)
+		]
+
 	def _echouer(self, erreur: str) -> None:
 		self.arreter()
 		self.erreur = erreur
@@ -449,16 +467,21 @@ class FormeDOnde:
 	def _mesurer(self, structure: Gst.Structure | None) -> bool:
 		if (structure is None) or (structure.get_name() != "level"):
 			return False
-		crete = structure.get_value("peak")
-		if not crete:
+		crete, moyen = structure.get_value("peak"), structure.get_value("rms")
+		if (not crete) or (not moyen):
 			return False
-		# Le canal le plus fort ; un silence numérique donne -inf, ou un niveau très bas.
-		decibels = max(float(valeur) for valeur in crete)
-		amplitude = 0.0
-		if math.isfinite(decibels):
-			amplitude = min(1.0, max(0.0, 10 ** (decibels / 20)))
-		self.pics.append(amplitude)
+		self.pics.append(_amplitude(crete))
+		self.moyens.append(min(self.pics[-1], _amplitude(moyen)))
 		return True
+
+
+def _amplitude(niveaux: object) -> float:
+	"""Le canal le plus fort, de 0 à 1 ; un silence numérique donne -inf, ou un niveau très bas."""
+	assert isinstance(niveaux, (list, tuple))
+	decibels = max(float(valeur) for valeur in niveaux)
+	if not math.isfinite(decibels):
+		return 0.0
+	return min(1.0, max(0.0, 10 ** (decibels / 20)))
 
 
 def forme_de_demonstration(duree: float, blanc_debut: float, blanc_fin: float) -> FormeDOnde:
@@ -472,6 +495,7 @@ def forme_de_demonstration(duree: float, blanc_debut: float, blanc_fin: float) -
 		if blanc_debut <= instant < duree - blanc_fin:
 			amplitude = 0.5 + 0.25 * math.sin(instant * 1.7) + 0.15 * math.sin(instant * 6.3)
 		forme.pics.append(amplitude)
+		forme.moyens.append(amplitude * RAPPORT_DE_DEMONSTRATION)
 	forme.finie = True
 	return forme
 
@@ -673,12 +697,23 @@ class Frise(QWidget):
 		peintre.end()
 
 	def colonnes(self) -> list[float]:
-		"""L'amplitude de chaque colonne de points : la plus forte des mesures qui y tombent."""
-		if (self.forme is None) or (not self.forme.pics):
+		"""L'amplitude crête de chaque colonne de points : la plus forte des mesures qui y tombent."""
+		if self.forme is None:
+			return []
+		return self._colonnes(self.forme.pics)
+
+	def colonnes_moyennes(self) -> list[float]:
+		"""Le niveau moyen de chaque colonne de points : le plus fort des mesures qui y tombent, sous la crête."""
+		if self.forme is None:
+			return []
+		return self._colonnes(self.forme.moyens)
+
+	def _colonnes(self, mesures: list[float]) -> list[float]:
+		if (self.forme is None) or (not mesures):
 			return []
 		hauteurs = [0.0] * max(1, self.width())
 		pas = self.forme.pas
-		for indice, pic in enumerate(self.forme.pics):
+		for indice, pic in enumerate(mesures):
 			# Une mesure plus large qu'un point en couvre plusieurs : aucune colonne ne reste vide entre deux mesures.
 			gauche = min(len(hauteurs) - 1, int(self.secondes_vers_x(indice * pas)))
 			droite = max(gauche + 1, min(len(hauteurs), math.ceil(self.secondes_vers_x((indice + 1) * pas))))
@@ -688,18 +723,20 @@ class Frise(QWidget):
 		return hauteurs[:derniere]
 
 	def _dessiner_la_forme(self, peintre: QPainter, couleur: QColor) -> None:
-		hauteurs = self.colonnes()
-		if not hauteurs:
-			return
-		milieu = self.height() / 2
-		demi = milieu - 2
-		haut = [QPointF(x + 0.5, milieu - hauteur * demi) for x, hauteur in enumerate(hauteurs)]
-		bas = [QPointF(x + 0.5, milieu + hauteur * demi) for x, hauteur in reversed(list(enumerate(hauteurs)))]
-		teinte = QColor(couleur)
-		teinte.setAlpha(110)
-		peintre.setPen(Qt.PenStyle.NoPen)
-		peintre.setBrush(teinte)
-		peintre.drawPolygon(QPolygonF(haut + bas))
+		"""Les crêtes, pâles, puis par-dessus le niveau moyen, plus foncé
+		(https://github.com/dascritch/machincast/issues/223)."""
+		for hauteurs, opacite in ((self.colonnes(), OPACITE_DES_CRETES), (self.colonnes_moyennes(), OPACITE_DU_MOYEN)):
+			if not hauteurs:
+				continue
+			milieu = self.height() / 2
+			demi = milieu - 2
+			haut = [QPointF(x + 0.5, milieu - hauteur * demi) for x, hauteur in enumerate(hauteurs)]
+			bas = [QPointF(x + 0.5, milieu + hauteur * demi) for x, hauteur in reversed(list(enumerate(hauteurs)))]
+			teinte = QColor(couleur)
+			teinte.setAlpha(opacite)
+			peintre.setPen(Qt.PenStyle.NoPen)
+			peintre.setBrush(teinte)
+			peintre.drawPolygon(QPolygonF(haut + bas))
 
 	def _dessiner_les_zones(self, peintre: QPainter, couleur: QColor) -> None:
 		"""Les blancs : hachures pleines et voile s'ils sont retirés à l'antenne, hachures pâles sans voile s'ils y

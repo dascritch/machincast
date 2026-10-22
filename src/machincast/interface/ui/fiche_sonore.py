@@ -22,6 +22,8 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComb
     QSizePolicy, QSpacerItem, QSpinBox, QTableWidget,
     QTableWidgetItem, QToolButton, QVBoxLayout, QWidget)
 
+from machincast.interface.curseur import CurseurDeDuree
+
 class Ui_FicheSonore(object):
     def setupUi(self, FicheSonore):
         if not FicheSonore.objectName():
@@ -29,6 +31,11 @@ class Ui_FicheSonore(object):
         FicheSonore.resize(1100, 760)
         self.disposition = QVBoxLayout(FicheSonore)
         self.disposition.setObjectName(u"disposition")
+        self.place_frise = QWidget(FicheSonore)
+        self.place_frise.setObjectName(u"place_frise")
+
+        self.disposition.addWidget(self.place_frise)
+
         self.corps = QHBoxLayout()
         self.corps.setObjectName(u"corps")
         self.defilement = QScrollArea(FicheSonore)
@@ -267,78 +274,50 @@ class Ui_FicheSonore(object):
         self.groupe_diffusion.setObjectName(u"groupe_diffusion")
         self.formulaire_diffusion = QFormLayout(self.groupe_diffusion)
         self.formulaire_diffusion.setObjectName(u"formulaire_diffusion")
-        self.a_crossfade_debut = QCheckBox(self.groupe_diffusion)
-        self.a_crossfade_debut.setObjectName(u"a_crossfade_debut")
-
-        self.formulaire_diffusion.setWidget(0, QFormLayout.ItemRole.LabelRole, self.a_crossfade_debut)
-
-        self.crossfade_debut = QDoubleSpinBox(self.groupe_diffusion)
-        self.crossfade_debut.setObjectName(u"crossfade_debut")
-        self.crossfade_debut.setEnabled(False)
-        self.crossfade_debut.setDecimals(2)
-        self.crossfade_debut.setMaximum(600.000000000000000)
-        self.crossfade_debut.setSingleStep(0.500000000000000)
-
-        self.formulaire_diffusion.setWidget(0, QFormLayout.ItemRole.FieldRole, self.crossfade_debut)
-
-        self.a_crossfade_fin = QCheckBox(self.groupe_diffusion)
-        self.a_crossfade_fin.setObjectName(u"a_crossfade_fin")
-
-        self.formulaire_diffusion.setWidget(1, QFormLayout.ItemRole.LabelRole, self.a_crossfade_fin)
-
-        self.crossfade_fin = QDoubleSpinBox(self.groupe_diffusion)
-        self.crossfade_fin.setObjectName(u"crossfade_fin")
-        self.crossfade_fin.setEnabled(False)
-        self.crossfade_fin.setDecimals(2)
-        self.crossfade_fin.setMaximum(600.000000000000000)
-        self.crossfade_fin.setSingleStep(0.500000000000000)
-
-        self.formulaire_diffusion.setWidget(1, QFormLayout.ItemRole.FieldRole, self.crossfade_fin)
-
-        self.etiquette_max_lectures = QLabel(self.groupe_diffusion)
-        self.etiquette_max_lectures.setObjectName(u"etiquette_max_lectures")
-
-        self.formulaire_diffusion.setWidget(2, QFormLayout.ItemRole.LabelRole, self.etiquette_max_lectures)
-
-        self.max_lectures = QSpinBox(self.groupe_diffusion)
-        self.max_lectures.setObjectName(u"max_lectures")
-        self.max_lectures.setMaximum(1000000)
-
-        self.formulaire_diffusion.setWidget(2, QFormLayout.ItemRole.FieldRole, self.max_lectures)
-
         self.etiquette_masquage = QLabel(self.groupe_diffusion)
         self.etiquette_masquage.setObjectName(u"etiquette_masquage")
 
-        self.formulaire_diffusion.setWidget(3, QFormLayout.ItemRole.LabelRole, self.etiquette_masquage)
+        self.formulaire_diffusion.setWidget(0, QFormLayout.ItemRole.LabelRole, self.etiquette_masquage)
 
         self.masquage = QComboBox(self.groupe_diffusion)
         self.masquage.setObjectName(u"masquage")
 
-        self.formulaire_diffusion.setWidget(3, QFormLayout.ItemRole.FieldRole, self.masquage)
+        self.formulaire_diffusion.setWidget(0, QFormLayout.ItemRole.FieldRole, self.masquage)
 
         self.a_debut = QCheckBox(self.groupe_diffusion)
         self.a_debut.setObjectName(u"a_debut")
 
-        self.formulaire_diffusion.setWidget(4, QFormLayout.ItemRole.LabelRole, self.a_debut)
+        self.formulaire_diffusion.setWidget(1, QFormLayout.ItemRole.LabelRole, self.a_debut)
 
         self.debut_diffusion = QDateTimeEdit(self.groupe_diffusion)
         self.debut_diffusion.setObjectName(u"debut_diffusion")
         self.debut_diffusion.setCalendarPopup(True)
         self.debut_diffusion.setEnabled(False)
 
-        self.formulaire_diffusion.setWidget(4, QFormLayout.ItemRole.FieldRole, self.debut_diffusion)
+        self.formulaire_diffusion.setWidget(1, QFormLayout.ItemRole.FieldRole, self.debut_diffusion)
 
         self.a_fin = QCheckBox(self.groupe_diffusion)
         self.a_fin.setObjectName(u"a_fin")
 
-        self.formulaire_diffusion.setWidget(5, QFormLayout.ItemRole.LabelRole, self.a_fin)
+        self.formulaire_diffusion.setWidget(2, QFormLayout.ItemRole.LabelRole, self.a_fin)
 
         self.fin_diffusion = QDateTimeEdit(self.groupe_diffusion)
         self.fin_diffusion.setObjectName(u"fin_diffusion")
         self.fin_diffusion.setCalendarPopup(True)
         self.fin_diffusion.setEnabled(False)
 
-        self.formulaire_diffusion.setWidget(5, QFormLayout.ItemRole.FieldRole, self.fin_diffusion)
+        self.formulaire_diffusion.setWidget(2, QFormLayout.ItemRole.FieldRole, self.fin_diffusion)
+
+        self.etiquette_max_lectures = QLabel(self.groupe_diffusion)
+        self.etiquette_max_lectures.setObjectName(u"etiquette_max_lectures")
+
+        self.formulaire_diffusion.setWidget(3, QFormLayout.ItemRole.LabelRole, self.etiquette_max_lectures)
+
+        self.max_lectures = QSpinBox(self.groupe_diffusion)
+        self.max_lectures.setObjectName(u"max_lectures")
+        self.max_lectures.setMaximum(1000000)
+
+        self.formulaire_diffusion.setWidget(3, QFormLayout.ItemRole.FieldRole, self.max_lectures)
 
 
         self.disposition_contenu.addWidget(self.groupe_diffusion)
@@ -379,6 +358,28 @@ class Ui_FicheSonore(object):
         self.fin_detectee.setSingleStep(0.010000000000000)
 
         self.formulaire_blancs.setWidget(2, QFormLayout.ItemRole.FieldRole, self.fin_detectee)
+
+        self.a_crossfade_debut = QCheckBox(self.groupe_blancs)
+        self.a_crossfade_debut.setObjectName(u"a_crossfade_debut")
+
+        self.formulaire_blancs.setWidget(3, QFormLayout.ItemRole.LabelRole, self.a_crossfade_debut)
+
+        self.crossfade_debut = CurseurDeDuree(self.groupe_blancs)
+        self.crossfade_debut.setObjectName(u"crossfade_debut")
+        self.crossfade_debut.setEnabled(False)
+
+        self.formulaire_blancs.setWidget(3, QFormLayout.ItemRole.FieldRole, self.crossfade_debut)
+
+        self.a_crossfade_fin = QCheckBox(self.groupe_blancs)
+        self.a_crossfade_fin.setObjectName(u"a_crossfade_fin")
+
+        self.formulaire_blancs.setWidget(4, QFormLayout.ItemRole.LabelRole, self.a_crossfade_fin)
+
+        self.crossfade_fin = CurseurDeDuree(self.groupe_blancs)
+        self.crossfade_fin.setObjectName(u"crossfade_fin")
+        self.crossfade_fin.setEnabled(False)
+
+        self.formulaire_blancs.setWidget(4, QFormLayout.ItemRole.FieldRole, self.crossfade_fin)
 
 
         self.disposition_contenu.addWidget(self.groupe_blancs)
@@ -572,7 +573,7 @@ class Ui_FicheSonore(object):
 
         self.disposition.addLayout(self.pied)
 
-        self.disposition.setStretch(0, 1)
+        self.disposition.setStretch(1, 1)
 #if QT_CONFIG(shortcut)
         self.etiquette_etat.setBuddy(self.etat)
         self.etiquette_secours.setBuddy(self.secours)
@@ -585,8 +586,8 @@ class Ui_FicheSonore(object):
         self.etiquette_compositeur.setBuddy(self.compositeur)
         self.etiquette_label.setBuddy(self.label)
         self.etiquette_piste.setBuddy(self.piste)
-        self.etiquette_max_lectures.setBuddy(self.max_lectures)
         self.etiquette_masquage.setBuddy(self.masquage)
+        self.etiquette_max_lectures.setBuddy(self.max_lectures)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(FicheSonore)
@@ -598,6 +599,9 @@ class Ui_FicheSonore(object):
     # setupUi
 
     def retranslateUi(self, FicheSonore):
+#if QT_CONFIG(tooltip)
+        self.place_frise.setToolTip(QCoreApplication.translate("FicheSonore", u"Le fichier tel que l'antenne le jouera, selon les r\u00e9glages de la fiche, m\u00eame pas encore enregistr\u00e9s", None))
+#endif // QT_CONFIG(tooltip)
         self.groupe_sonore.setTitle(QCoreApplication.translate("FicheSonore", u"Sonore", None))
         self.etiquette_type.setText(QCoreApplication.translate("FicheSonore", u"Type", None))
         self.etiquette_emplacement.setText(QCoreApplication.translate("FicheSonore", u"Emplacement", None))
@@ -624,24 +628,14 @@ class Ui_FicheSonore(object):
         self.etiquette_piste.setText(QCoreApplication.translate("FicheSonore", u"Piste", None))
         self.etiquette_autres.setText(QCoreApplication.translate("FicheSonore", u"Autres", None))
         self.groupe_diffusion.setTitle(QCoreApplication.translate("FicheSonore", u"Diffusion", None))
-        self.a_crossfade_debut.setText(QCoreApplication.translate("FicheSonore", u"Crossfade de d\u00e9but", None))
-#if QT_CONFIG(tooltip)
-        self.a_crossfade_debut.setToolTip(QCoreApplication.translate("FicheSonore", u"D\u00e9coch\u00e9, le crossfade n'est pas param\u00e9tr\u00e9 : il vient de la banque, ou des pr\u00e9f\u00e9rences. 0 seconde en est un.", None))
-#endif // QT_CONFIG(tooltip)
-        self.crossfade_debut.setSuffix(QCoreApplication.translate("FicheSonore", u" s", None))
-        self.a_crossfade_fin.setText(QCoreApplication.translate("FicheSonore", u"Crossfade de fin", None))
-#if QT_CONFIG(tooltip)
-        self.a_crossfade_fin.setToolTip(QCoreApplication.translate("FicheSonore", u"D\u00e9coch\u00e9, le crossfade n'est pas param\u00e9tr\u00e9 : il vient de la banque, ou des pr\u00e9f\u00e9rences. 0 seconde en est un.", None))
-#endif // QT_CONFIG(tooltip)
-        self.crossfade_fin.setSuffix(QCoreApplication.translate("FicheSonore", u" s", None))
-        self.etiquette_max_lectures.setText(QCoreApplication.translate("FicheSonore", u"Maximum de lectures", None))
-        self.max_lectures.setSpecialValueText(QCoreApplication.translate("FicheSonore", u"illimit\u00e9", None))
         self.etiquette_masquage.setText(QCoreApplication.translate("FicheSonore", u"Artiste et titre", None))
         self.a_debut.setText(QCoreApplication.translate("FicheSonore", u"Diffusion \u00e0 partir du", None))
         self.debut_diffusion.setDisplayFormat(QCoreApplication.translate("FicheSonore", u"dd/MM/yyyy HH:mm", None))
         self.a_fin.setText(QCoreApplication.translate("FicheSonore", u"Diffusion jusqu'au", None))
         self.fin_diffusion.setDisplayFormat(QCoreApplication.translate("FicheSonore", u"dd/MM/yyyy HH:mm", None))
-        self.groupe_blancs.setTitle(QCoreApplication.translate("FicheSonore", u"D\u00e9tection de blanc", None))
+        self.etiquette_max_lectures.setText(QCoreApplication.translate("FicheSonore", u"Maximum de lectures", None))
+        self.max_lectures.setSpecialValueText(QCoreApplication.translate("FicheSonore", u"illimit\u00e9", None))
+        self.groupe_blancs.setTitle(QCoreApplication.translate("FicheSonore", u"Enchainement", None))
         self.detection_blancs.setText(QCoreApplication.translate("FicheSonore", u"Jouer sans les blancs d\u00e9tect\u00e9s", None))
 #if QT_CONFIG(tooltip)
         self.detection_blancs.setToolTip(QCoreApplication.translate("FicheSonore", u"Coch\u00e9, le sonore est jou\u00e9 de son d\u00e9but d\u00e9tect\u00e9 \u00e0 sa fin d\u00e9tect\u00e9e, m\u00eame hors d'une banque qui retire les blancs.", None))
@@ -656,6 +650,14 @@ class Ui_FicheSonore(object):
         self.a_fin_detectee.setToolTip(QCoreApplication.translate("FicheSonore", u"Blanc \u00e0 la fin du fichier, compt\u00e9 depuis sa fin, mesur\u00e9 par l'audit complet. D\u00e9coch\u00e9, aucun blanc n'est d\u00e9tect\u00e9 : la fin n'est pas rogn\u00e9e.", None))
 #endif // QT_CONFIG(tooltip)
         self.fin_detectee.setSuffix(QCoreApplication.translate("FicheSonore", u" s", None))
+        self.a_crossfade_debut.setText(QCoreApplication.translate("FicheSonore", u"Crossfade de d\u00e9but", None))
+#if QT_CONFIG(tooltip)
+        self.a_crossfade_debut.setToolTip(QCoreApplication.translate("FicheSonore", u"D\u00e9coch\u00e9, le crossfade n'est pas param\u00e9tr\u00e9 : il vient de la banque, ou des pr\u00e9f\u00e9rences. 0 seconde en est un.", None))
+#endif // QT_CONFIG(tooltip)
+        self.a_crossfade_fin.setText(QCoreApplication.translate("FicheSonore", u"Crossfade de fin", None))
+#if QT_CONFIG(tooltip)
+        self.a_crossfade_fin.setToolTip(QCoreApplication.translate("FicheSonore", u"D\u00e9coch\u00e9, le crossfade n'est pas param\u00e9tr\u00e9 : il vient de la banque, ou des pr\u00e9f\u00e9rences. 0 seconde en est un.", None))
+#endif // QT_CONFIG(tooltip)
         self.groupe_relations.setTitle(QCoreApplication.translate("FicheSonore", u"Relations", None))
         ___qtablewidgetitem = self.relations.horizontalHeaderItem(0)
         ___qtablewidgetitem.setText(QCoreApplication.translate("FicheSonore", u"Genre", None))

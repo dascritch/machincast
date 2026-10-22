@@ -129,10 +129,10 @@ Fonctionnalité: Fichier de configuration
 
 	# ─── Crossfades (https://github.com/dascritch/machincast/issues/145) ─────────────────────────
 
-	Scénario: Sans section [crossfades], les crossfades se règlent au dixième de seconde, jusqu'à 5 secondes, sans défaut
+	Scénario: Sans section [crossfades], les crossfades se règlent au dixième de seconde, jusqu'à 10 secondes, sans défaut
 		Étant donné une configuration valide sans section "crossfades"
 		Quand je charge la configuration
-		Alors les crossfades se règlent au dixième de seconde, jusqu'à 5 secondes
+		Alors les crossfades se règlent au dixième de seconde, jusqu'à 10 secondes
 		Et les crossfades n'ont pas de durée par défaut
 		Et le fade-in se termine au début détecté, et le fade-out commence à la fin détectée
 
@@ -171,7 +171,7 @@ Fonctionnalité: Fichier de configuration
 			| crossfades.maximum     | 0          | strictement positif        |
 			| crossfades.maximum     | "5"        | nombre                     |
 			| crossfades.debut       | -1         | positif ou nul             |
-			| crossfades.fin         | 6          | au plus crossfades.maximum |
+			| crossfades.fin         | 11         | au plus crossfades.maximum |
 			| crossfades.debut       | true       | nombre                     |
 			| crossfades.position_entree | "avant" | commence, en_cours, termine |
 			| crossfades.position_sortie | 2       | texte                       |

@@ -10,7 +10,14 @@
     <height>760</height>
    </rect>
   </property>
-  <layout class="QVBoxLayout" name="disposition" stretch="1,0">
+  <layout class="QVBoxLayout" name="disposition" stretch="0,1,0">
+   <item>
+    <widget class="QWidget" name="place_frise">
+     <property name="toolTip">
+      <string>Le fichier tel que l'antenne le jouera, selon les réglages de la fiche, même pas encore enregistrés</string>
+     </property>
+    </widget>
+   </item>
    <item>
     <layout class="QHBoxLayout" name="corps" stretch="1,1">
      <item>
@@ -332,84 +339,6 @@
            </property>
            <layout class="QFormLayout" name="formulaire_diffusion">
             <item row="0" column="0">
-             <widget class="QCheckBox" name="a_crossfade_debut">
-              <property name="text">
-               <string>Crossfade de début</string>
-              </property>
-              <property name="toolTip">
-               <string>Décoché, le crossfade n'est pas paramétré : il vient de la banque, ou des préférences. 0 seconde en est un.</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QDoubleSpinBox" name="crossfade_debut">
-              <property name="enabled">
-               <bool>false</bool>
-              </property>
-              <property name="suffix">
-               <string> s</string>
-              </property>
-              <property name="decimals">
-               <number>2</number>
-              </property>
-              <property name="maximum">
-               <double>600.0</double>
-              </property>
-              <property name="singleStep">
-               <double>0.5</double>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QCheckBox" name="a_crossfade_fin">
-              <property name="text">
-               <string>Crossfade de fin</string>
-              </property>
-              <property name="toolTip">
-               <string>Décoché, le crossfade n'est pas paramétré : il vient de la banque, ou des préférences. 0 seconde en est un.</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QDoubleSpinBox" name="crossfade_fin">
-              <property name="enabled">
-               <bool>false</bool>
-              </property>
-              <property name="suffix">
-               <string> s</string>
-              </property>
-              <property name="decimals">
-               <number>2</number>
-              </property>
-              <property name="maximum">
-               <double>600.0</double>
-              </property>
-              <property name="singleStep">
-               <double>0.5</double>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="etiquette_max_lectures">
-              <property name="text">
-               <string>Maximum de lectures</string>
-              </property>
-              <property name="buddy">
-               <cstring>max_lectures</cstring>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="QSpinBox" name="max_lectures">
-              <property name="maximum">
-               <number>1000000</number>
-              </property>
-              <property name="specialValueText">
-               <string>illimité</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
              <widget class="QLabel" name="etiquette_masquage">
               <property name="text">
                <string>Artiste et titre</string>
@@ -419,17 +348,17 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="1">
+            <item row="0" column="1">
              <widget class="QComboBox" name="masquage" />
             </item>
-            <item row="4" column="0">
+            <item row="1" column="0">
              <widget class="QCheckBox" name="a_debut">
               <property name="text">
                <string>Diffusion à partir du</string>
               </property>
              </widget>
             </item>
-            <item row="4" column="1">
+            <item row="1" column="1">
              <widget class="QDateTimeEdit" name="debut_diffusion">
               <property name="displayFormat">
                <string>dd/MM/yyyy HH:mm</string>
@@ -442,14 +371,14 @@
               </property>
              </widget>
             </item>
-            <item row="5" column="0">
+            <item row="2" column="0">
              <widget class="QCheckBox" name="a_fin">
               <property name="text">
                <string>Diffusion jusqu'au</string>
               </property>
              </widget>
             </item>
-            <item row="5" column="1">
+            <item row="2" column="1">
              <widget class="QDateTimeEdit" name="fin_diffusion">
               <property name="displayFormat">
                <string>dd/MM/yyyy HH:mm</string>
@@ -462,13 +391,33 @@
               </property>
              </widget>
             </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="etiquette_max_lectures">
+              <property name="text">
+               <string>Maximum de lectures</string>
+              </property>
+              <property name="buddy">
+               <cstring>max_lectures</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QSpinBox" name="max_lectures">
+              <property name="maximum">
+               <number>1000000</number>
+              </property>
+              <property name="specialValueText">
+               <string>illimité</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </item>
          <item>
           <widget class="QGroupBox" name="groupe_blancs">
            <property name="title">
-            <string>Détection de blanc</string>
+            <string>Enchainement</string>
            </property>
            <layout class="QFormLayout" name="formulaire_blancs">
             <item row="0" column="0" colspan="2">
@@ -536,6 +485,41 @@
               </property>
               <property name="singleStep">
                <double>0.01</double>
+              </property>
+             </widget>
+            </item>
+
+            <item row="3" column="0">
+             <widget class="QCheckBox" name="a_crossfade_debut">
+              <property name="text">
+               <string>Crossfade de début</string>
+              </property>
+              <property name="toolTip">
+               <string>Décoché, le crossfade n'est pas paramétré : il vient de la banque, ou des préférences. 0 seconde en est un.</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="CurseurDeDuree" name="crossfade_debut">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0">
+             <widget class="QCheckBox" name="a_crossfade_fin">
+              <property name="text">
+               <string>Crossfade de fin</string>
+              </property>
+              <property name="toolTip">
+               <string>Décoché, le crossfade n'est pas paramétré : il vient de la banque, ou des préférences. 0 seconde en est un.</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="CurseurDeDuree" name="crossfade_fin">
+              <property name="enabled">
+               <bool>false</bool>
               </property>
              </widget>
             </item>
@@ -823,6 +807,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>CurseurDeDuree</class>
+   <extends>QWidget</extends>
+   <header>machincast/interface/curseur.h</header>
+  </customwidget>
+ </customwidgets>
  <resources />
  <connections />
 </ui>

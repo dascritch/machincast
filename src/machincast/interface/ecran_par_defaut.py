@@ -21,7 +21,7 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QModelIndex, QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QAbstractItemView, QLineEdit, QMenu, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QLineEdit, QMenu, QSizePolicy, QVBoxLayout, QWidget
 
 from machincast.configuration import Audio
 from machincast.horloge import Horloge
@@ -45,6 +45,8 @@ RELEVE_DES_FORMES = 100
 ETATS = {"diffusion": "En diffusion", "silence": "En silence", "arret": "À l'arrêt"}
 A_VENIR = 5
 """Lignes que montre la table des sonores à venir, autant que Machin lecture en prévoit."""
+LIGNES_A_VENIR_AU_MOINS = 2
+"""Lignes de la table des sonores à venir sur un écran trop petit pour les 5."""
 ESSAI_EN_COURS = "Test du flux en cours…"
 PAS_SAIN = "pas sain"
 """Colonne « Incident » d'un sonore à venir dont le fichier a posé problème (spec § 4.6)."""
@@ -109,13 +111,20 @@ class EcranParDefaut(QWidget):
 		table_a_venir.activated.connect(self._ouvrir_cellule)
 		table_a_venir.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 		table_a_venir.customContextMenuRequested.connect(self._menu_des_sonores_a_venir)
-		hauteur = table_a_venir.horizontalHeader().sizeHint().height()
-		hauteur += A_VENIR * table_a_venir.verticalHeader().defaultSectionSize() + 2 * table_a_venir.frameWidth()
-		table_a_venir.setFixedHeight(hauteur)
-		# L'airplay se tasse, jusqu'à une ligne, pour que la fenêtre garde sa hauteur.
-		self.ui.table_airplay.setMinimumHeight(
-			hauteur - (A_VENIR - 1) * table_a_venir.verticalHeader().defaultSectionSize()
-		)
+		# Les 5 sonores à venir quand la place le permet ; sur un petit écran, la table se tasse jusqu'à 2 lignes, et
+		# l'airplay jusqu'à une : la fenêtre garde une hauteur raisonnable.
+		ligne = table_a_venir.verticalHeader().defaultSectionSize()
+		entete = table_a_venir.horizontalHeader().sizeHint().height() + 2 * table_a_venir.frameWidth()
+		table_a_venir.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+		table_a_venir.setMaximumHeight(entete + A_VENIR * ligne)
+		table_a_venir.setMinimumHeight(entete + LIGNES_A_VENIR_AU_MOINS * ligne)
+		table_a_venir.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+		self.ui.table_airplay.setMinimumHeight(entete + ligne)
+		# L'airplay ne prend que la place que les sonores à venir lui laissent.
+		self.ui.table_airplay.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
+		disposition_de_l_ecran = self.layout()
+		assert isinstance(disposition_de_l_ecran, QVBoxLayout)
+		disposition_de_l_ecran.setStretchFactor(self.ui.cadre_airplay, 1)
 		self._en_cours: SonoreAffiche | None = None
 		self._prochain: SonoreAffiche | None = None
 		self._flux_teste: int | None = None
