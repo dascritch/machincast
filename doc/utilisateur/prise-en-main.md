@@ -137,15 +137,24 @@ Dès 2 caractères, sans tenir compte des majuscules ni des accents, le texte ta
 
 **Fichier → Préférences…** ouvre la fenêtre des préférences.
 
-![Les préférences, page « Interface » : les crossfades par défaut et les réglages de l'accueil](../captures/preferences.png)
+![Les préférences, page « Crossfades » : les durées, la position des fondus et leur frise de démonstration](../captures/preferences.png)
 
-Page **Interface** :
+Page **Crossfades** ([#234](https://github.com/dascritch/machincast/issues/234)) :
 
 | Réglage | Rôle |
 | --- | --- |
 | Granularité | `Au dixième de seconde` (par défaut) ou `À la seconde` : le pas des crossfades dans les fiches. |
 | Durée maximale | Le crossfade le plus long que proposent les fiches, 5 secondes par défaut. |
 | Début par défaut, fin par défaut | Le crossfade d'un sonore qui n'en a pas, et que sa banque ne règle pas ([Enchaînements](antenne.md#enchaînements)). |
+| Le fade-in, au début détecté | Pour un sonore joué sans ses blancs : le fade-in `commence`, `est en cours` ou `se termine` (par défaut) au début détecté ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)). |
+| Le fade-out, à la fin détectée | De même, à la fin détectée : `commence` (par défaut), `est en cours` ou `se termine`. |
+
+Sous ces réglages, une **frise de démonstration** montre un sonore inventé de 30 secondes, aux blancs de 3 et 4 secondes : ses fondus s'y placent selon les durées par défaut saisies et les positions choisies, à chaque changement. Une banque peut imposer ses positions à ses sonores.
+
+Page **Interface** :
+
+| Réglage | Rôle |
+| --- | --- |
 | Afficher le voyant de saturation de l'accueil | Cochée par défaut ; décochée, le voyant « Saturation » disparaît du [VU-mètre](#vu-mètre-de-lantenne). |
 | Proposer au lancement ce qui manque pour démarrer | Cochée par défaut : la fenêtre [Pour bien démarrer](#pour-bien-démarrer). |
 | Icône de l'application | L'icône des fenêtres de MachinCast, de son raccourci dans le menu des applications et sur le bureau, et de la barre des tâches. **Choisir une image…** en prend une autre, SVG, PNG ou JPEG, de préférence carrée, le logo de la radio par exemple ; **Icône de MachinCast** revient à celle d'origine. Une image illisible n'est pas prise : `Image illisible : …`. La nouvelle icône vaut dès **OK**. |

@@ -3,11 +3,12 @@
 La frise remplace la barre de position de la pré-écoute d'un fichier. Elle s'étend sur toute la durée du fichier :
 
 - Plan : ce que l'antenne fera du fichier, d'après la base. Ses blancs détectés (debut_detecte, fin_detectee,
-  https://github.com/dascritch/machincast/issues/146), retirés s'il active la détection ; la partie jouée, qui suit la
-  règle de la diffusion (machincast.lecture.diffusion.rognage) ; ses crossfades, posés sur la partie jouée, ceux des
-  préférences pour un crossfade non paramétré (machincast.lecture.diffusion.crossfade, sans banque), et le volume de
-  l'écoute comme à l'antenne, le long de l'enveloppe de la diffusion (machincast.lecture.moteur.enveloppe). La
-  pré-écoute ne connaît pas la banque par laquelle passera le sonore : ses règles n'y figurent pas.
+  https://github.com/dascritch/machincast/issues/146), retirés s'il active la détection ; la partie jouée et ses
+  fondus, placés autour des blancs comme la diffusion les place (machincast.lecture.fondus.placer, selon les positions
+  des fondus, https://github.com/dascritch/machincast/issues/234) ; ses crossfades, ceux des préférences pour un
+  crossfade non paramétré (machincast.lecture.diffusion.crossfade), et le volume de l'écoute comme à l'antenne, le
+  long de l'enveloppe de la diffusion (machincast.lecture.moteur.enveloppe). Ouverte depuis une fiche, la pré-écoute
+  ne connaît pas la banque par laquelle passera le sonore : ses règles n'y figurent pas ; l'accueil les connaît.
 - FormeDOnde : la forme d'onde, calculée en tâche de fond par un pipeline GStreamer à part (uridecodebin, level,
   fakesink sans synchronisation : aussi vite que le décodage). Le minuteur de la pré-écoute relève son bus : rien ne
   bloque l'interface, et la forme apparaît au fil du décodage. Le fichier n'est que lu.
@@ -44,7 +45,16 @@ from PySide6.QtGui import (  # noqa: E402
 from PySide6.QtWidgets import QSizePolicy, QToolTip, QWidget  # noqa: E402
 
 from machincast.configuration import Crossfades  # noqa: E402
-from machincast.lecture.diffusion import crossfade, rognage  # noqa: E402
+from machincast.lecture.diffusion import crossfade  # noqa: E402
+from machincast.lecture.fondus import (  # noqa: E402
+	ENTREE_PAR_DEFAUT,
+	LIBELLES,
+	SORTIE_PAR_DEFAUT,
+	Placement,
+	Position,
+	placer,
+	position_ou,
+)
 from machincast.lecture.moteur import enveloppe  # noqa: E402
 
 APPROCHE = 5.0
@@ -109,47 +119,63 @@ class Plan:
 	origine_fin: str | None = None
 	audite: bool = True
 	"""Un audit complet a mesuré ses blancs (audite_le)."""
+	position_entree: Position = ENTREE_PAR_DEFAUT
+	"""Où le fade-in se place par rapport au début détecté, pour un sonore joué sans ses blancs
+	(https://github.com/dascritch/machincast/issues/234)."""
+	position_sortie: Position = SORTIE_PAR_DEFAUT
+	"""Où le fade-out se place par rapport à la fin détectée, de même."""
 
-	def _rognage(self) -> tuple[float, float | None]:
-		def duree(valeur: float | None) -> timedelta | None:
-			if valeur is None:
-				return None
-			return timedelta(seconds=valeur)
-
-		jouee, decalage = rognage(timedelta(seconds=self.duree), duree(self.blanc_debut), duree(self.blanc_fin))
-		if decalage is None:
-			return jouee.total_seconds(), None
-		return jouee.total_seconds(), decalage.total_seconds()
+	def placement(self) -> Placement:
+		"""La lecture et ses fondus, comme la diffusion les place (machincast.lecture.fondus.placer) : autour des
+		blancs détectés d'un sonore joué sans eux, selon les positions des fondus
+		(https://github.com/dascritch/machincast/issues/234)."""
+		return placer(
+			timedelta(seconds=self.duree),
+			_duree(self.blanc_debut),
+			_duree(self.blanc_fin),
+			self.blancs_retires,
+			timedelta(seconds=self.crossfade_debut),
+			timedelta(seconds=self.crossfade_fin),
+			self.position_entree,
+			self.position_sortie,
+		)
 
 	def rogne(self) -> bool:
 		"""Les blancs sont retirés à l'antenne : le sonore les active, et ils laissent quelque chose du fichier."""
-		return (self.blancs_retires) and (self._rognage()[1] is not None)
+		debut = (self.blanc_debut) or (0.0)
+		fin = self.duree - ((self.blanc_fin) or (0.0))
+		return (self.blancs_retires) and (fin > debut)
 
 	def partie(self) -> tuple[float, float]:
 		"""Début et fin de la partie jouée à l'antenne, en secondes du fichier."""
-		jouee, decalage = self._rognage()
-		if (not self.blancs_retires) or (decalage is None):
-			return 0.0, self.duree
-		return decalage, decalage + jouee
+		placement = self.placement()
+		de = placement.debut.total_seconds()
+		return de, de + placement.duree.total_seconds()
 
 	def _points(self) -> list[tuple[timedelta, float]]:
-		de, a = self.partie()
+		placement = self.placement()
 		return enveloppe(
-			timedelta(seconds=a - de), timedelta(seconds=self.crossfade_debut), timedelta(seconds=self.crossfade_fin)
+			placement.duree, placement.fondu_entree, placement.fondu_sortie, placement.depart, placement.arrivee
 		)
 
 	def fondus(self) -> tuple[tuple[float, float] | None, tuple[float, float] | None]:
-		"""Les fondus d'entrée et de sortie, en secondes du fichier, comme l'enveloppe de la diffusion les place ;
-		None sans crossfade de ce côté."""
+		"""Les fondus d'entrée et de sortie, en secondes du fichier, comme l'enveloppe de la diffusion les place, sans
+		leur part hors du fichier ; None sans crossfade de ce côté."""
 		de, _a = self.partie()
+		placement = self.placement()
 		points = [(de + moment.total_seconds(), volume) for moment, volume in self._points()]
 		entree = None
-		if self.crossfade_debut > 0:
+		if placement.fondu_entree > timedelta(0):
 			entree = (points[0][0], points[1][0])
 		sortie = None
-		if self.crossfade_fin > 0:
+		if placement.fondu_sortie > timedelta(0):
 			sortie = (points[-2][0], points[-1][0])
 		return entree, sortie
+
+	def volumes_aux_bords(self) -> tuple[float, float]:
+		"""Le volume au début de la lecture, et à sa fin : 0, sauf un fondu qui déborde du fichier."""
+		placement = self.placement()
+		return placement.depart, placement.arrivee
 
 	def zones(self) -> list[Zone]:
 		"""Les blancs et les fondus, dans l'ordre du fichier : blanc de début, fondus, blanc de fin."""
@@ -165,16 +191,26 @@ class Plan:
 		if entree is not None:
 			texte = (
 				f"Crossfade de début : {secondes(self.crossfade_debut)}{_origine(self.origine_debut)},"
+				f"{self._position(self.position_entree, 'au début détecté')}"
 				" montée si le sonore précédent a un crossfade de fin"
 			)
 			zones.append(Zone("fondu d'entrée", entree[0], entree[1], "aucune", texte))
 		if sortie is not None:
 			texte = f"Crossfade de fin : {secondes(self.crossfade_fin)}{_origine(self.origine_fin)}"
+			position = self._position(self.position_sortie, "à la fin détectée")
+			if position != "":
+				texte = f"{texte},{position.rstrip(',')}"
 			zones.append(Zone("fondu de sortie", sortie[0], sortie[1], "aucune", texte))
 		if (self.blanc_fin is not None) and (self.blanc_fin > 0):
 			texte = f"Blanc de fin : {secondes(self.blanc_fin)}, {sort}"
 			zones.append(Zone("blanc de fin", self.duree - self.blanc_fin, self.duree, hachures, texte))
 		return zones
+
+	def _position(self, position: Position, ou: str) -> str:
+		"""« se termine au début détecté, » : où le fondu tombe, pour un sonore joué sans ses blancs ; rien sinon."""
+		if not self.rogne():
+			return ""
+		return f" {LIBELLES[position]} {ou},"
 
 	def resume(self) -> str:
 		"""« Joué à l'antenne : 0:00,50 → 0:01,50 (0:01,00) », et si ses blancs n'ont jamais été mesurés, le dire."""
@@ -212,6 +248,12 @@ class Plan:
 					return vers
 				return depuis + (vers - depuis) * (relative - avant) / (apres - avant)
 		return points[-1][1]
+
+
+def _duree(valeur: float | None) -> timedelta | None:
+	if valeur is None:
+		return None
+	return timedelta(seconds=valeur)
 
 
 def _origine(origine: str | None) -> str:
@@ -254,11 +296,13 @@ def plan_du_sonore(
 	defauts: Crossfades,
 	audite: bool,
 	banque: tuple[RegleDeBanque, RegleDeBanque] = (SANS_BANQUE, SANS_BANQUE),
+	positions: tuple[object, object] = (None, None),
 ) -> Plan:
 	"""Le plan d'un sonore d'après ses colonnes en base. Sans banque, un crossfade non paramétré (None) est celui des
 	préférences ; avec, les règles de crossfade de début et de fin de la banque s'appliquent avant, comme à la
 	diffusion (https://github.com/dascritch/machincast/issues/230). detection_blancs : celle du sonore, ou de sa
-	banque."""
+	banque. positions : celles des fondus qu'impose la banque, sinon (None) celles des préférences
+	(https://github.com/dascritch/machincast/issues/234)."""
 
 	def facultative(valeur: timedelta | None) -> float | None:
 		if valeur is None:
@@ -276,6 +320,8 @@ def plan_du_sonore(
 		origine_debut=origine_du_crossfade(crossfade_debut, debut, defauts.debut),
 		origine_fin=origine_du_crossfade(crossfade_fin, fin, defauts.fin),
 		audite=audite,
+		position_entree=position_ou(positions[0], defauts.entree),
+		position_sortie=position_ou(positions[1], defauts.sortie),
 	)
 
 
@@ -290,13 +336,14 @@ def lire_le_plan(
 			"SELECT s.type::text, s.duree, s.debut_detecte, s.fin_detectee,"
 			" s.detection_blancs OR coalesce(b.detection_blancs, false), s.crossfade_debut, s.crossfade_fin,"
 			" s.audite_le IS NOT NULL, b.crossfade_debut_regle::text, b.crossfade_debut, b.crossfade_fin_regle::text,"
-			" b.crossfade_fin"
+			" b.crossfade_fin, b.position_fondu_entree::text, b.position_fondu_sortie::text"
 			" FROM sonores s LEFT JOIN banques b ON b.id = %s WHERE s.id = %s",
 			(banque, sonore),
 		).fetchone()
 	if ligne is None:
 		return None
-	genre, duree, debut, fin, detection, cd, cf, audite, regle_debut, banque_debut, regle_fin, banque_fin = ligne
+	genre, duree, debut, fin, detection, cd, cf, audite, *regles = ligne
+	regle_debut, banque_debut, regle_fin, banque_fin, position_entree, position_sortie = regles
 	if (genre != "fichier") or (not isinstance(duree, timedelta)):
 		return None
 	return plan_du_sonore(
@@ -312,6 +359,7 @@ def lire_le_plan(
 			RegleDeBanque(_texte(regle_debut), _intervalle(banque_debut)),
 			RegleDeBanque(_texte(regle_fin), _intervalle(banque_fin)),
 		),
+		(position_entree, position_sortie),
 	)
 
 
@@ -414,6 +462,21 @@ class FormeDOnde:
 			amplitude = min(1.0, max(0.0, 10 ** (decibels / 20)))
 		self.pics.append(amplitude)
 		return True
+
+
+def forme_de_demonstration(duree: float, blanc_debut: float, blanc_fin: float) -> FormeDOnde:
+	"""Une forme d'onde déjà calculée, sans fichier, pour montrer une frise
+	(https://github.com/dascritch/machincast/issues/234) : un son qui respire, silencieux pendant ses blancs."""
+	forme = FormeDOnde(Path("demonstration"), duree)
+	mesures = round(duree / forme.pas)
+	for indice in range(mesures):
+		instant = indice * forme.pas
+		amplitude = 0.0
+		if blanc_debut <= instant < duree - blanc_fin:
+			amplitude = 0.5 + 0.25 * math.sin(instant * 1.7) + 0.15 * math.sin(instant * 6.3)
+		forme.pics.append(amplitude)
+	forme.finie = True
+	return forme
 
 
 class Frise(QWidget):
@@ -662,23 +725,27 @@ class Frise(QWidget):
 		"""Les fondus : une rampe, et le volume retiré au-dessus d'elle, voilé."""
 		assert self.plan is not None
 		entree, sortie = self.plan.fondus()
+		depart, arrivee = self.plan.volumes_aux_bords()
 		haut, bas = 1.0, self.height() - 1.0
+		# Un fondu qui déborde du fichier part, ou s'arrête, au volume qu'il a au bord du fichier.
+		bas_de_l_entree = bas - depart * (bas - haut)
+		bas_de_la_sortie = bas - arrivee * (bas - haut)
 		voile = QColor(couleur)
 		voile.setAlpha(50)
 		for fondu, montee in ((entree, True), (sortie, False)):
 			if fondu is None:
 				continue
 			gauche, droite = self.secondes_vers_x(fondu[0]), self.secondes_vers_x(fondu[1])
-			depart, arrivee = QPointF(gauche, bas), QPointF(droite, haut)
+			origine, fin = QPointF(gauche, bas_de_l_entree), QPointF(droite, haut)
 			coin = QPointF(gauche, haut)
 			if not montee:
-				depart, arrivee = QPointF(gauche, haut), QPointF(droite, bas)
+				origine, fin = QPointF(gauche, haut), QPointF(droite, bas_de_la_sortie)
 				coin = QPointF(droite, haut)
 			peintre.setPen(Qt.PenStyle.NoPen)
 			peintre.setBrush(voile)
-			peintre.drawPolygon(QPolygonF([depart, arrivee, coin]))
+			peintre.drawPolygon(QPolygonF([origine, fin, coin]))
 			peintre.setPen(QPen(couleur, 2))
-			peintre.drawLine(depart, arrivee)
+			peintre.drawLine(origine, fin)
 
 	def _dessiner_la_tete(self, peintre: QPainter, couleur: QColor) -> None:
 		if self.tete is None:

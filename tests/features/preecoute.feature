@@ -150,7 +150,7 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Et je clique sur « Pré-écoute… »
 		Alors la pré-écoute a une frise
 		Et la frise de la pré-écoute montre les zones « blanc de début », « fondu d'entrée », « fondu de sortie », « blanc de fin »
-		Et la frise de la pré-écoute résume « Joué à l'antenne : 0:00,50 → 0:01,50 (0:01,00) »
+		Et la frise de la pré-écoute résume « Joué à l'antenne : 0:00,30 → 0:01,80 (0:01,50) »
 		Et la forme d'onde de la pré-écoute est bientôt complète, silencieuse au début et sonore au milieu
 
 	Scénario: Un crossfade non paramétré montre celui de la configuration, marqué « (défaut) »
@@ -159,7 +159,7 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Respiration »
 		Et je clique sur « Pré-écoute… »
-		Alors l'infobulle « fondu d'entrée » de la frise de la pré-écoute est « Crossfade de début : 0,40 s (défaut), montée si le sonore précédent a un crossfade de fin »
+		Alors l'infobulle « fondu d'entrée » de la frise de la pré-écoute est « Crossfade de début : 0,40 s (défaut), se termine au début détecté, montée si le sonore précédent a un crossfade de fin »
 
 	Scénario: Écoutée comme à l'antenne, la pré-écoute ne joue que la partie jouée, en montant depuis le silence
 		Étant donné le sonore « Respiration », pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
@@ -169,10 +169,10 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Et je coche « Écouter comme à l'antenne » dans la pré-écoute
 		Et je lance la pré-écoute
 		Alors le volume de la pré-écoute est sous 25 %, au début de la montée
-		Et la position de la pré-écoute passe d'emblée au début de la partie jouée, 0,5 seconde
+		Et la position de la pré-écoute passe d'emblée au début de la partie jouée, 0,3 seconde, le fade-in se terminant au début détecté
 		Et le volume de la pré-écoute est bientôt de 100 %
 		Et la pré-écoute est bientôt « À l'arrêt »
-		Et la pré-écoute s'est arrêtée avant 1,7 seconde, à la fin de la partie jouée
+		Et la pré-écoute s'est arrêtée avant 1,9 seconde, à la fin de la partie jouée
 
 	Scénario: Décocher l'écoute comme à l'antenne rend aussitôt le plein volume
 		Étant donné le sonore « Respiration », pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
@@ -202,7 +202,7 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Et je clique sur « Pré-écoute… »
 		Et je clique sur « Début joué » dans la pré-écoute
 		Alors la pré-écoute est bientôt « En lecture »
-		Et la position de la pré-écoute est bientôt entre 0,5 et 0,8 seconde
+		Et la position de la pré-écoute est bientôt entre 0,3 et 0,6 seconde
 
 	Scénario: Un fichier introuvable n'a pas de forme d'onde
 		Étant donné le fichier du sonore « Jingle » supprimé

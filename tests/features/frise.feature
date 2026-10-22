@@ -40,14 +40,17 @@ Fonctionnalité: Frise de la pré-écoute d'un fichier
 
 	# ─── Zones ─────────────────────────────────────────────────
 
-	Scénario: Des blancs retirés et des crossfades : hachures pleines, et fondus sur la partie jouée
+	Scénario: Des blancs retirés et des crossfades : hachures pleines, et fondus placés autour des blancs
+		Par défaut, le fade-in se termine au début détecté, et le fade-out commence à la fin détectée
+		(https://github.com/dascritch/machincast/issues/234) : la lecture s'étend dans les blancs, sous les fondus.
+
 		Étant donné un fichier de 2 s, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
 		Alors la frise montre les zones :
-			| zone            | de   | à    | hachures | infobulle                                                                  |
-			| blanc de début  | 0,00 | 0,50 | pleines  | Blanc de début : 0,50 s, retiré à l'antenne                                |
-			| fondu d'entrée  | 0,50 | 0,70 | aucune   | Crossfade de début : 0,20 s, montée si le sonore précédent a un crossfade de fin |
-			| fondu de sortie | 1,20 | 1,50 | aucune   | Crossfade de fin : 0,30 s                                                  |
-			| blanc de fin    | 1,50 | 2,00 | pleines  | Blanc de fin : 0,50 s, retiré à l'antenne                                  |
+			| zone            | de   | à    | hachures | infobulle                                                                                               |
+			| blanc de début  | 0,00 | 0,50 | pleines  | Blanc de début : 0,50 s, retiré à l'antenne                                                             |
+			| fondu d'entrée  | 0,30 | 0,50 | aucune   | Crossfade de début : 0,20 s, se termine au début détecté, montée si le sonore précédent a un crossfade de fin |
+			| fondu de sortie | 1,50 | 1,80 | aucune   | Crossfade de fin : 0,30 s, commence à la fin détectée                                                   |
+			| blanc de fin    | 1,50 | 2,00 | pleines  | Blanc de fin : 0,50 s, retiré à l'antenne                                                               |
 
 	Scénario: Des blancs joués : hachures pâles, et fondus aux bouts du fichier
 		Étant donné un fichier de 2 s, aux blancs de 0,5 s au début et 0,5 s à la fin, joués à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
@@ -61,10 +64,10 @@ Fonctionnalité: Frise de la pré-écoute d'un fichier
 	Scénario: Un crossfade non paramétré est celui des préférences, marqué « (défaut) »
 		Étant donné un fichier de 2 s, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades non paramétrés, par défaut de 0,4 s au début et absent à la fin
 		Alors la frise montre les zones :
-			| zone           | de   | à    | hachures | infobulle                                                                            |
-			| blanc de début | 0,00 | 0,50 | pleines  | Blanc de début : 0,50 s, retiré à l'antenne                                          |
-			| fondu d'entrée | 0,50 | 0,90 | aucune   | Crossfade de début : 0,40 s (défaut), montée si le sonore précédent a un crossfade de fin |
-			| blanc de fin   | 1,50 | 2,00 | pleines  | Blanc de fin : 0,50 s, retiré à l'antenne                                            |
+			| zone           | de   | à    | hachures | infobulle                                                                                                         |
+			| blanc de début | 0,00 | 0,50 | pleines  | Blanc de début : 0,50 s, retiré à l'antenne                                                                       |
+			| fondu d'entrée | 0,10 | 0,50 | aucune   | Crossfade de début : 0,40 s (défaut), se termine au début détecté, montée si le sonore précédent a un crossfade de fin |
+			| blanc de fin   | 1,50 | 2,00 | pleines  | Blanc de fin : 0,50 s, retiré à l'antenne                                                                         |
 
 	Scénario: Hors des zones, l'infobulle donne l'instant du fichier sous la souris
 		Étant donné un fichier de 2 s, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, sans crossfade
@@ -80,22 +83,23 @@ Fonctionnalité: Frise de la pré-écoute d'un fichier
 
 		Exemples:
 			| duree | debut | fin |
-			| 60    | 1     | 49  |
+			| 60    | 1     | 53  |
 			| 8     | 1     | 1   |
 
-	Plan du scénario: Écoutée comme à l'antenne, le volume suit les fondus de la partie jouée
+	Plan du scénario: Écoutée comme à l'antenne, le volume suit les fondus de la partie jouée, placés autour des blancs
 		Étant donné un fichier de 2 s, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,4 s à la fin
 		Alors à <position> seconde, le volume de l'écoute comme à l'antenne est de <volume> %
 
 		Exemples:
 			| position | volume |
 			| 0,25     | 0      |
-			| 0,5      | 0      |
-			| 0,6      | 50     |
+			| 0,3      | 0      |
+			| 0,4      | 50     |
+			| 0,5      | 100    |
 			| 1        | 100    |
-			| 1,3      | 50     |
-			| 1,5      | 0      |
-			| 1,8      | 0      |
+			| 1,7      | 50     |
+			| 1,9      | 0      |
+			| 1,95     | 0      |
 
 	Plan du scénario: Écoutée comme à l'antenne, sans crossfade, le volume est plein dans la partie jouée, nul hors d'elle
 		Étant donné un fichier de 2 s, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, sans crossfade

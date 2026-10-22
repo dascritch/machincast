@@ -73,16 +73,22 @@ def fondu_d_entree(crossfade_fin_precedent: timedelta, crossfade_debut: timedelt
 
 
 def enveloppe(
-	duree: timedelta | None, crossfade_debut: timedelta, crossfade_fin: timedelta
+	duree: timedelta | None,
+	crossfade_debut: timedelta,
+	crossfade_fin: timedelta,
+	depart: float = 0.0,
+	arrivee: float = 0.0,
 ) -> list[tuple[timedelta, float]]:
-	"""Points du volume au fil du sonore, reliés par des droites : montée, plein volume, extinction."""
+	"""Points du volume au fil du sonore, reliés par des droites : montée, plein volume, extinction. Un fade-in qui a
+	commencé avant le fichier part du volume depart ; un fade-out qui finit après lui s'arrête au volume arrivee
+	(https://github.com/dascritch/machincast/issues/234)."""
 	points: list[tuple[timedelta, float]] = []
 	if crossfade_debut > timedelta(0):
-		points += [(timedelta(0), 0.0), (crossfade_debut, 1.0)]
+		points += [(timedelta(0), depart), (crossfade_debut, 1.0)]
 	else:
 		points.append((timedelta(0), 1.0))
 	if (duree is not None) and (crossfade_fin > timedelta(0)):
-		points += [(max(duree - crossfade_fin, points[-1][0]), 1.0), (duree, 0.0)]
+		points += [(max(duree - crossfade_fin, points[-1][0]), 1.0), (duree, arrivee)]
 	return points
 
 
@@ -103,8 +109,13 @@ class Voie:
 		temps_reel: bool = True,
 		muette: bool = False,
 		decalage: timedelta | None = None,
+		depart: float = 0.0,
+		arrivee: float = 0.0,
 	) -> None:
 		"""chemin : un fichier, ou l'adresse d'un stream. Muette, la voie joue à volume nul jusqu'à un fondu.
+
+		depart, arrivee : volumes au début et à la fin de la voie, quand ses fondus débordent du fichier
+		(https://github.com/dascritch/machincast/issues/234, machincast.lecture.fondus).
 
 		decalage : pour un sonore rogné par la détection de blanc, la voie commence à cette position du fichier, et
 		s'arrête après duree (https://github.com/dascritch/machincast/issues/146) ; None : le fichier est joué en
@@ -156,7 +167,7 @@ class Voie:
 		source.set_property("mode", GstController.InterpolationMode.LINEAR)
 		points = [(timedelta(0), 0.0)]
 		if not muette:
-			points = enveloppe(duree, crossfade_debut, crossfade_fin)
+			points = enveloppe(duree, crossfade_debut, crossfade_fin, depart, arrivee)
 		volume.add_control_binding(GstController.DirectControlBinding.new_absolute(volume, "volume", source))
 
 		self._lecteur = lecteur
@@ -164,6 +175,7 @@ class Voie:
 		self._source = source
 		self._duree = duree
 		self._crossfade_debut = crossfade_debut
+		self._depart = depart
 		for instant, valeur in points:
 			self._poser(instant, valeur)
 
@@ -174,7 +186,7 @@ class Voie:
 	def supprimer_fondu_de_sortie(self) -> None:
 		"""Le sonore suivant ne se superpose pas : celui-ci joue jusqu'au bout, à plein volume."""
 		self._source.unset_all()
-		for instant, valeur in enveloppe(self._duree, self._crossfade_debut, timedelta(0)):
+		for instant, valeur in enveloppe(self._duree, self._crossfade_debut, timedelta(0), self._depart):
 			self._poser(instant, valeur)
 
 	def fondu(self, cible: float, duree: timedelta) -> None:
@@ -312,6 +324,8 @@ class Moteur(Protocol):
 		crossfade_fin: timedelta = ...,
 		muette: bool = ...,
 		decalage: timedelta | None = ...,
+		depart: float = ...,
+		arrivee: float = ...,
 	) -> VoieLecture: ...
 
 	def traiter_messages(self) -> None: ...
@@ -337,10 +351,23 @@ class MoteurAudio:
 		crossfade_fin: timedelta = timedelta(0),
 		muette: bool = False,
 		decalage: timedelta | None = None,
+		depart: float = 0.0,
+		arrivee: float = 0.0,
 	) -> Voie:
 		"""Démarre le sonore dans une nouvelle voie, en plus de celles en cours (crossfade) ; un sonore rogné commence à
 		decalage secondes du début de son fichier (https://github.com/dascritch/machincast/issues/146)."""
-		voie = Voie(chemin, self.audio, duree, crossfade_debut, crossfade_fin, self.temps_reel, muette, decalage)
+		voie = Voie(
+			chemin,
+			self.audio,
+			duree,
+			crossfade_debut,
+			crossfade_fin,
+			self.temps_reel,
+			muette,
+			decalage,
+			depart,
+			arrivee,
+		)
 		voie.demarrer()
 		self._voies.append(voie)
 		return voie

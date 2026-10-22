@@ -14,6 +14,7 @@ from machincast import configuration as module_configuration
 from machincast.cli import CODE_CONFIGURATION_INVALIDE
 from machincast.cli import lancer as lancer_binaire
 from machincast.configuration import Configuration, ConfigurationInvalide, charger, fichier_par_defaut
+from machincast.lecture.fondus import LIBELLES
 
 scenarios("configuration.feature")
 
@@ -382,3 +383,16 @@ def icone_relative(contexte: Contexte, relatif: str) -> None:
 	assert contexte.configuration is not None
 	assert contexte.chemin is not None
 	assert contexte.configuration.interface.icone == contexte.chemin.parent / relatif
+
+
+@then(
+	parsers.re(
+		r"le fade-in (?P<entree>commence|est en cours|se termine) au début détecté, et le fade-out"
+		r" (?P<sortie>commence|est en cours|se termine) à la fin détectée"
+	)
+)
+def positions_des_fondus(contexte: Contexte, entree: str, sortie: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/234"""
+	assert contexte.configuration is not None, contexte.erreur
+	crossfades = contexte.configuration.crossfades
+	assert (LIBELLES[crossfades.entree], LIBELLES[crossfades.sortie]) == (entree, sortie)

@@ -61,6 +61,11 @@ maximum = 5
 # n'en a pas.
 # debut = 1.5
 # fin = 2
+# Position des fondus d'un sonore joué sans ses blancs détectés (https://github.com/dascritch/machincast/issues/234) :
+# le fade-in "commence", est "en_cours" ou se "termine" au début détecté ; le fade-out, à la fin détectée. Une banque
+# peut imposer les siennes.
+position_entree = "termine"
+position_sortie = "commence"
 
 [blancs]
 # Détection de blanc (https://github.com/dascritch/machincast/issues/146), modifiable dans les préférences de

@@ -284,7 +284,8 @@ class EcranParDefaut(QWidget):
 		if frise is not self.frise_en_cours:
 			return
 		tete = sonore.position
-		if (tete is not None) and (plan is not None) and (plan.rogne()):
+		# La position se compte depuis le début de la lecture, qui suit les blancs et la position du fade-in.
+		if (tete is not None) and (plan is not None):
 			tete += plan.partie()[0]
 		frise.placer_la_tete(tete)
 

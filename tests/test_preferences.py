@@ -5,6 +5,7 @@ préférences est remplacée par les réglages du scénario. La vraie fenêtre d
 du poste.
 """
 
+import dataclasses
 import re
 import stat
 import tomllib
@@ -31,7 +32,7 @@ from machincast.interface.preferences import FenetrePreferences, Reglages
 from machincast.interface.suggestions import Reponse
 from machincast.raccourci import ICONE
 from tests.base_test import configuration_test
-from tests.etapes_interface import Connexion, Contexte, fenetre, fichier_de_configuration, ouvrir_la_fenetre
+from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, fichier_de_configuration, ouvrir_la_fenetre
 from tests.modales import quand_modale
 
 scenarios("preferences.feature")
@@ -190,11 +191,14 @@ def ouvrir_les_preferences(
 	ouverte.fenetre = FenetrePreferences(tous, "factice", parent)
 
 
-@then(parsers.parse("elle s'intitule « {titre} », avec la page « {page} »"))
-def titre_et_page(ouverte: Ouverte, titre: str, page: str) -> None:
+@then(parsers.re(r"elle s'intitule « (?P<titre>[^»]+) », avec les pages (?P<pages>«.+)"))
+def titre_et_pages(ouverte: Ouverte, titre: str, pages: str) -> None:
+	"""Les pages dans l'ordre, la première ouverte : les crossfades ont la leur
+	(https://github.com/dascritch/machincast/issues/234)."""
 	ui = la_fenetre(ouverte).ui
-	pages = [ui.pages.tabText(rang) for rang in range(ui.pages.count())]
-	assert (la_fenetre(ouverte).windowTitle(), pages[0]) == (titre, page)
+	lues = [ui.pages.tabText(rang) for rang in range(ui.pages.count())]
+	assert (la_fenetre(ouverte).windowTitle(), lues) == (titre, NOM.findall(pages))
+	assert ui.pages.currentIndex() == 0
 
 
 def _montree(case_et_champ: tuple[object, QDoubleSpinBox] | QDoubleSpinBox) -> str | None:
@@ -759,3 +763,79 @@ def icone_donnee(interface: Contexte, ouverte: Ouverte, chemin: str | None) -> N
 @then(parsers.parse("elle signale « {texte} »"))
 def signale(interface: Contexte, ouverte: Ouverte, texte: str) -> None:
 	assert la_fenetre(ouverte).ui.icone_erreur.text() == interface.chemin_dans(texte)
+
+
+# ─── Positions des fondus (https://github.com/dascritch/machincast/issues/234) ───
+
+
+def _choix_de_position(ouverte: Ouverte, fondu: str) -> QComboBox:
+	ui = la_fenetre(ouverte).ui
+	return {"fade-in": ui.position_entree, "fade-out": ui.position_sortie}[fondu]
+
+
+@then(
+	parsers.re(
+		r"le (?P<fondu>fade-in|fade-out) se propose (?P<textes>«.+») (?:au début détecté|à la fin détectée),"
+		r" et « (?P<choisi>[^»]+) » est choisi"
+	)
+)
+def positions_proposees(ouverte: Ouverte, fondu: str, textes: str, choisi: str) -> None:
+	choix = _choix_de_position(ouverte, fondu)
+	assert [choix.itemText(rang) for rang in range(choix.count())] == NOM.findall(textes)
+	assert choix.currentText() == choisi
+
+
+@when(parsers.parse("j'y choisis le fade-in « {entree} » et le fade-out « {sortie} »"))
+def choisir_les_positions(ouverte: Ouverte, entree: str, sortie: str) -> None:
+	for fondu, texte in (("fade-in", entree), ("fade-out", sortie)):
+		choix = _choix_de_position(ouverte, fondu)
+		rang = choix.findText(texte)
+		assert rang >= 0, texte
+		choix.setCurrentIndex(rang)
+
+
+@then(parsers.parse("elle a donné les positions : fade-in « {entree} », fade-out « {sortie} »"))
+def positions_donnees(ouverte: Ouverte, entree: str, sortie: str) -> None:
+	assert ouverte.donnes is not None
+	assert (ouverte.donnes.crossfades.entree, ouverte.donnes.crossfades.sortie) == (entree, sortie)
+
+
+@then(
+	parsers.parse(
+		"la frise de démonstration montre le fade-in de {de_entree:d} à {a_entree:d} s, et le fade-out de"
+		" {de_sortie:d} à {a_sortie:d} s"
+	)
+)
+def frise_de_demonstration(ouverte: Ouverte, de_entree: int, a_entree: int, de_sortie: int, a_sortie: int) -> None:
+	plan = la_fenetre(ouverte).demonstration.plan
+	assert plan is not None
+	entree, sortie = plan.fondus()
+	assert (entree, sortie) == (
+		pytest.approx((de_entree, a_entree)),
+		pytest.approx((de_sortie, a_sortie)),
+	), (entree, sortie)
+
+
+@then("la frise de démonstration a sa forme d'onde, sans tête de lecture")
+def forme_de_demonstration(ouverte: Ouverte) -> None:
+	frise = la_fenetre(ouverte).demonstration
+	assert (frise.forme is not None) and (frise.forme.finie) and (frise.forme.pics)
+	assert frise.tete is None
+	assert not frise.interactive
+
+
+@given(parsers.parse("les positions des fondus seront réglées : fade-in « {entree} », fade-out « {sortie} »"))
+def positions_reglees(interface: Contexte, entree: str, sortie: str) -> None:
+	interface.preferences_reglees = dataclasses.replace(
+		(interface.preferences_reglees) or (Crossfades()), entree=entree, sortie=sortie
+	)
+
+
+@then(
+	parsers.parse(
+		"le fichier de configuration donne les positions des fondus : fade-in « {entree} », fade-out « {sortie} »"
+	)
+)
+def positions_du_fichier(interface: Contexte, entree: str, sortie: str) -> None:
+	crossfades = charger(fichier_de_configuration(interface)).crossfades
+	assert (crossfades.entree, crossfades.sortie) == (entree, sortie)

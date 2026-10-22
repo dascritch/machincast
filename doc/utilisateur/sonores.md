@@ -122,7 +122,7 @@ Un fichier a une **frise** ([#224](https://github.com/dascritch/machincast/issue
 
 - **Forme d'onde** : elle se dessine dès l'ouverture, au fil du décodage du fichier, sans faire attendre la fenêtre.
 - **Blancs** au début et à la fin, tels que la dernière vérification complète les a mesurés ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)) : **hachures serrées** s'ils sont retirés à l'antenne, **hachures pâles** s'ils y sont joués. Un fichier jamais vérifié le dit, sous la frise : « blancs jamais mesurés ».
-- **Fondus** : le crossfade de début monte, celui de fin descend, posés sur la partie jouée. Un crossfade non renseigné dans la fiche est celui des préférences, marqué « (défaut) » dans l'infobulle.
+- **Fondus** : le crossfade de début monte, celui de fin descend, placés autour des blancs retirés selon les [positions des fondus](antenne.md#blancs-au-début-et-à-la-fin) ([#234](https://github.com/dascritch/machincast/issues/234)) ; l'infobulle dit la position (« se termine au début détecté »). Un fondu qui déborde du fichier part, ou s'arrête, en cours de route. Un crossfade non renseigné dans la fiche est celui des préférences, marqué « (défaut) » dans l'infobulle.
 - **Tête de lecture** : un clic sur la frise y place la lecture, comme un glissement une fois relâché. Les flèches du clavier la déplacent d'une seconde. L'infobulle nomme ce qui est sous la souris.
 
 Sous la frise :
@@ -149,6 +149,7 @@ La fiche d'une banque s'ouvre dans un onglet nommé « Banque : » suivi de son 
 | Détection de blanc | Cochée, les sonores joués par la banque le sont sans leurs blancs ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)). |
 | Durée minimale, durée maximale des sonores | Facultatives : pour ne pas confondre un mix, une chanson et une publicité. Un sonore qui en sort est marqué dans cette fiche seulement, avec une infobulle (« 3:20 : plus court que le minimum de la banque, 3:30. »), et la prochaine indexation l'en retire, même ajouté à la main. Un nouveau fichier qui en sort n'y entre jamais. |
 | Crossfade de début, crossfade de fin | Pour les sonores joués par la banque : `Garder ceux des sonores` ; `Appliquer si le sonore n'en a pas` ; `Imposer à tous les sonores`. |
+| Fade-in, fade-out | Pour les sonores joués par la banque sans leurs blancs : où tombent leurs fondus, « commence », « est en cours » ou « se termine » au début détecté, et à la fin détectée ([#234](https://github.com/dascritch/machincast/issues/234)). `Selon les préférences` par défaut ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)). |
 
 **Répertoires indexés** : les fichiers de ces répertoires, et de leurs sous-répertoires, rejoignent la banque à chaque indexation ([Alimenter une banque par ses répertoires](#alimenter-une-banque-par-ses-répertoires)). **Ajouter un répertoire…** ouvre le sélecteur de répertoires ; on peut aussi y déposer des dossiers. **Retirer le répertoire** retire celui qui est choisi. Rien n'est indexé à l'enregistrement : les fichiers d'un nouveau répertoire arrivent à la prochaine indexation.
 

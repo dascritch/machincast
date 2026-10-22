@@ -1092,7 +1092,7 @@ def zones_du_prochain(contexte: Contexte, qtbot: QtBot, noms: str) -> None:
 @then(
 	parsers.parse(
 		"la tête de lecture de la frise du sonore en cours est à {position} seconde, la position jouée comptée depuis"
-		" le début détecté"
+		" le début de la lecture"
 	)
 )
 def tete(contexte: Contexte, qtbot: QtBot, position: str) -> None:

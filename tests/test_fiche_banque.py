@@ -581,3 +581,43 @@ def marquees_vite(interface: Contexte, nombre: int, secondes: int) -> None:
 	marquees = [rangee for rangee in range(lignes.topLevelItemCount()) if lignes.topLevelItem(rangee).toolTip(0) != ""]
 	assert len(marquees) == nombre
 	assert interface.duree_de_reponse < secondes, interface.duree_de_reponse
+
+
+# ─── Position des fondus (https://github.com/dascritch/machincast/issues/234) ───
+
+
+def _positions(interface: Contexte) -> tuple[QComboBox, QComboBox]:
+	ui = fiche(interface).ui
+	return ui.position_entree, ui.position_sortie
+
+
+@then(parsers.parse("la fiche montre les positions des fondus : fade-in « {entree} », fade-out « {sortie} »"))
+def positions_montrees(interface: Contexte, entree: str, sortie: str) -> None:
+	assert tuple(liste.currentText() for liste in _positions(interface)) == (entree, sortie)
+
+
+@then(parsers.re(r"le (?P<fondu>fade-in|fade-out) se place parmi (?P<choix>«.+)"))
+def positions_proposees(interface: Contexte, fondu: str, choix: str) -> None:
+	liste = _positions(interface)[fondu == "fade-out"]
+	assert [liste.itemText(rang) for rang in range(liste.count())] == NOM.findall(choix)
+
+
+@when(parsers.re(r"je place le (?P<fondu>fade-in|fade-out) : « (?P<choix>[^»]+) »"))
+def placer_un_fondu(interface: Contexte, fondu: str, choix: str) -> None:
+	liste = _positions(interface)[fondu == "fade-out"]
+	rang = liste.findText(choix)
+	assert rang >= 0, choix
+	liste.setCurrentIndex(rang)
+
+
+@then(
+	parsers.re(
+		r"la banque « (?P<nom>[^»]+) » a en base les positions des fondus (?:« (?P<entree>[^»]+) »|aucune) et"
+		r" « (?P<sortie>[^»]+) »"
+	)
+)
+def positions_en_base(base_vide: Connexion, nom: str, entree: str | None, sortie: str) -> None:
+	ligne = base_vide.execute(
+		"SELECT position_fondu_entree::text, position_fondu_sortie::text FROM banques WHERE nom_interne = %s", (nom,)
+	).fetchone()
+	assert ligne == (entree, sortie), ligne

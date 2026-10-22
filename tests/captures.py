@@ -673,8 +673,11 @@ def produire(repertoire: Path) -> dict[str, Path]:
 		_fermer_l_onglet(fenetre)
 		_onglet(fenetre, "Incidents")
 		prendre("incidents", fenetre)
+		# Des crossfades par défaut, pour que la frise de démonstration montre ses fondus
+		# (https://github.com/dascritch/machincast/issues/234).
+		crossfades = Crossfades(debut=timedelta(seconds=2), fin=timedelta(seconds=4))
 		preferences = FenetrePreferences(
-			Reglages(Crossfades(), audio.peripherique, audio.preecoute), audio.sortie, fenetre
+			Reglages(crossfades, audio.peripherique, audio.preecoute), audio.sortie, fenetre
 		)
 		preferences.show()
 		prendre("preferences", preferences)

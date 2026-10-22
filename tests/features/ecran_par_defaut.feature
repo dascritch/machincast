@@ -144,12 +144,12 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le binaire lecture diffuse « Respiration », de la banque « Nuit », commencé à 20:00:00, joué depuis 0,4 seconde
 		Quand l'écran par défaut s'ouvre
 		Alors la frise du sonore en cours montre bientôt les zones :
-			| zone            | de   | à    | hachures | infobulle                                                                  |
-			| blanc de début  | 0,00 | 0,50 | pleines  | Blanc de début : 0,50 s, retiré à l'antenne                                |
-			| fondu d'entrée  | 0,50 | 0,70 | aucune   | Crossfade de début : 0,20 s, montée si le sonore précédent a un crossfade de fin |
-			| fondu de sortie | 1,10 | 1,50 | aucune   | Crossfade de fin : 0,40 s (imposé par la banque)                           |
-			| blanc de fin    | 1,50 | 2,00 | pleines  | Blanc de fin : 0,50 s, retiré à l'antenne                                  |
-		Et la tête de lecture de la frise du sonore en cours est à 0,9 seconde, la position jouée comptée depuis le début détecté
+			| zone            | de   | à    | hachures | infobulle                                                                                               |
+			| blanc de début  | 0,00 | 0,50 | pleines  | Blanc de début : 0,50 s, retiré à l'antenne                                                             |
+			| fondu d'entrée  | 0,30 | 0,50 | aucune   | Crossfade de début : 0,20 s, se termine au début détecté, montée si le sonore précédent a un crossfade de fin |
+			| fondu de sortie | 1,50 | 1,90 | aucune   | Crossfade de fin : 0,40 s (imposé par la banque), commence à la fin détectée                            |
+			| blanc de fin    | 1,50 | 2,00 | pleines  | Blanc de fin : 0,50 s, retiré à l'antenne                                                               |
+		Et la tête de lecture de la frise du sonore en cours est à 0,7 seconde, la position jouée comptée depuis le début de la lecture
 		Et la forme d'onde de la frise du sonore en cours est bientôt complète
 
 	Scénario: La frise du prochain sonore, sans banque, montre ses propres réglages
@@ -176,7 +176,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le binaire lecture diffuse « Respiration », sans banque, commencé à 20:00:00, joué depuis 0,2 seconde
 		Quand l'écran par défaut s'ouvre
 		Et le binaire lecture diffuse « Respiration », sans banque, commencé à 20:00:00, joué depuis 0,6 seconde
-		Alors la tête de lecture de la frise du sonore en cours est à 0,6 seconde, la position jouée comptée depuis le début détecté
+		Alors la tête de lecture de la frise du sonore en cours est à 0,6 seconde, la position jouée comptée depuis le début de la lecture
 		Et le plan du sonore « Respiration » n'a été lu qu'une fois en base
 
 	Scénario: Sur l'accueil, la frise ne déplace aucune lecture

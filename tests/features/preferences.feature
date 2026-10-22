@@ -178,9 +178,11 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 
 	# ─── Fenêtre des préférences ───────────────────────────────
 
-	Scénario: La page « Interface » montre les réglages, et donne ceux qui sont saisis
+	Scénario: La page « Crossfades » montre les réglages, et donne ceux qui sont saisis
+		Les crossfades ont leur propre page, la première (https://github.com/dascritch/machincast/issues/234).
+
 		Quand la fenêtre des préférences s'ouvre sur : granularité « dixieme », maximum 5 s, début par défaut 1,5 s, fin par défaut aucune
-		Alors elle s'intitule « Préférences », avec la page « Interface »
+		Alors elle s'intitule « Préférences », avec les pages « Crossfades », « Interface », « Audio »
 		Et elle montre : granularité « Au dixième de seconde », maximum « 5,0 s », début par défaut « 1,5 s », fin par défaut aucune
 		Et son maximum se règle par pas de 0,1 s, à partir de 0,1 s
 		Quand j'y choisis la granularité « À la seconde »
@@ -191,6 +193,38 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Alors elle montre : granularité « À la seconde », maximum « 3 s », début par défaut aucune, fin par défaut « 2 s »
 		Quand j'y clique sur « OK »
 		Alors elle a donné : granularité « seconde », maximum 3 s, début par défaut aucune, fin par défaut 2 s
+
+	Scénario: La page « Crossfades » montre les positions des fondus, et donne celles qui sont choisies
+		Quand la fenêtre des préférences s'ouvre sur : granularité « dixieme », maximum 5 s, début par défaut 2 s, fin par défaut 4 s
+		Alors le fade-in se propose « commence », « est en cours », « se termine » au début détecté, et « se termine » est choisi
+		Et le fade-out se propose « commence », « est en cours », « se termine » à la fin détectée, et « commence » est choisi
+		Quand j'y choisis le fade-in « est en cours » et le fade-out « se termine »
+		Et j'y clique sur « OK »
+		Alors elle a donné les positions : fade-in « en_cours », fade-out « termine »
+
+	Scénario: La frise de démonstration montre où tombent les fondus, et suit les réglages
+		Un sonore de démonstration de 30 secondes, aux blancs détectés de 3 s au début et 4 s à la fin, retirés à
+		l'antenne : son début détecté est à 3 s, sa fin détectée à 26 s. Ses crossfades sont les durées par défaut
+		saisies, même décochées.
+
+		Quand la fenêtre des préférences s'ouvre sur : granularité « dixieme », maximum 5 s, début par défaut 2 s, fin par défaut 4 s
+		Alors la frise de démonstration montre le fade-in de 1 à 3 s, et le fade-out de 26 à 30 s
+		Et la frise de démonstration a sa forme d'onde, sans tête de lecture
+		Quand j'y choisis le fade-in « commence » et le fade-out « se termine »
+		Alors la frise de démonstration montre le fade-in de 3 à 5 s, et le fade-out de 22 à 26 s
+		Quand j'y choisis le fade-in « est en cours » et le fade-out « est en cours »
+		Alors la frise de démonstration montre le fade-in de 2 à 4 s, et le fade-out de 24 à 28 s
+		Quand j'y retire la durée de début par défaut
+		Et j'y saisis la durée de fin par défaut 2
+		Alors la frise de démonstration montre le fade-in de 2 à 4 s, et le fade-out de 25 à 27 s
+
+	Scénario: Les positions enregistrées vont dans la section [crossfades] du fichier de configuration
+		Étant donné les positions des fondus seront réglées : fade-in « en_cours », fade-out « termine »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors le fichier de configuration contient la ligne « position_entree = "en_cours" »
+		Et le fichier de configuration contient la ligne « position_sortie = "termine" »
+		Et le fichier de configuration donne les positions des fondus : fade-in « en_cours », fade-out « termine »
 
 	Scénario: Une durée par défaut ne dépasse pas le maximum
 		Quand la fenêtre des préférences s'ouvre sur : granularité « dixieme », maximum 5 s, début par défaut 4 s, fin par défaut 5 s
@@ -236,7 +270,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| casque-usb        | Casque USB    |
 			| preecoute-factice | Haut-parleurs |
 		Quand la fenêtre des préférences s'ouvre sur l'antenne « carte-1 » et la pré-écoute « preecoute-factice »
-		Alors elle s'intitule « Préférences », avec la page « Interface »
+		Alors elle s'intitule « Préférences », avec les pages « Crossfades », « Interface », « Audio »
 		Et le choix de l'antenne propose :
 			| sortie        | état     |
 			| Carte 1       | active   |

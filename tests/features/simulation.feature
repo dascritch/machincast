@@ -195,7 +195,12 @@ Fonctionnalité: Mode simulation de Machin lecture
 			| 2026-10-20 20:00:45 | 2026-10-20 20:01:45 | f2    |
 			| 2026-10-20 20:01:45 | 2026-10-20 20:02:00 | f1    |
 
-	Scénario: Les crossfades se comptent depuis le début et la fin détectés
+	Scénario: Les crossfades se placent autour des blancs détectés, selon les positions par défaut
+		Par défaut, le fade-in se termine au début détecté et le fade-out commence à la fin détectée
+		(https://github.com/dascritch/machincast/issues/234) : les fondus de 10 secondes débordent des blancs de 5 et 10
+		secondes, et la lecture va d'un bout à l'autre du fichier. Les positions elles-mêmes sont essayées dans
+		position_des_fondus.feature.
+
 		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
 		Et chaque sonore dure 1 minute
 		Et chaque sonore a 5 secondes de blanc détecté au début et 10 à la fin
@@ -204,10 +209,9 @@ Fonctionnalité: Mode simulation de Machin lecture
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
 		Alors la simulation donne les passages :
 			| debut               | fin                 | titre |
-			| 2026-10-20 20:00:00 | 2026-10-20 20:00:45 | f1    |
-			| 2026-10-20 20:00:35 | 2026-10-20 20:01:20 | f2    |
-			| 2026-10-20 20:01:10 | 2026-10-20 20:01:55 | f1    |
-			| 2026-10-20 20:01:45 | 2026-10-20 20:02:00 | f2    |
+			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1    |
+			| 2026-10-20 20:00:50 | 2026-10-20 20:01:50 | f2    |
+			| 2026-10-20 20:01:40 | 2026-10-20 20:02:00 | f1    |
 
 	Plan du scénario: Un côté sans blanc détecté n'est pas rogné, et des blancs qui couvrent tout le sonore sont ignorés
 		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »

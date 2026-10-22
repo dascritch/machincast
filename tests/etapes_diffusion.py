@@ -50,8 +50,10 @@ class MoteurNote(MoteurAudio):
 		crossfade_fin: timedelta = timedelta(0),
 		muette: bool = False,
 		decalage: timedelta | None = None,
+		depart: float = 0.0,
+		arrivee: float = 0.0,
 	) -> Voie:
-		voie = super().jouer(chemin, duree, crossfade_debut, crossfade_fin, muette, decalage)
+		voie = super().jouer(chemin, duree, crossfade_debut, crossfade_fin, muette, decalage, depart, arrivee)
 		self.jouees[str(chemin)] = voie
 		return voie
 

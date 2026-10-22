@@ -8,15 +8,15 @@
   <layout class="QVBoxLayout" name="disposition">
    <item>
     <widget class="QTabWidget" name="pages">
-     <widget class="QWidget" name="page_interface">
+     <widget class="QWidget" name="page_crossfades">
       <attribute name="title">
-       <string>Interface</string>
+       <string>Crossfades</string>
       </attribute>
-      <layout class="QVBoxLayout" name="disposition_interface">
+      <layout class="QVBoxLayout" name="disposition_crossfades">
        <item>
         <widget class="QGroupBox" name="groupe_crossfades">
          <property name="title">
-          <string>Crossfades</string>
+          <string>Durées</string>
          </property>
          <layout class="QFormLayout" name="formulaire_crossfades">
           <item row="0" column="0">
@@ -102,6 +102,84 @@
          </layout>
         </widget>
        </item>
+       <item>
+        <widget class="QGroupBox" name="groupe_positions">
+         <property name="title">
+          <string>Position des fondus, pour un sonore joué sans ses blancs</string>
+         </property>
+         <property name="toolTip">
+          <string>Où tombent les fondus par rapport au début et à la fin détectés d'un sonore ; une banque peut imposer les siennes</string>
+         </property>
+         <layout class="QFormLayout" name="formulaire_positions">
+          <item row="0" column="0">
+           <widget class="QLabel" name="etiquette_position_entree">
+            <property name="text">
+             <string>Le fade-in, au début détecté</string>
+            </property>
+            <property name="buddy">
+             <cstring>position_entree</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="position_entree"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="etiquette_position_sortie">
+            <property name="text">
+             <string>Le fade-out, à la fin détectée</string>
+            </property>
+            <property name="buddy">
+             <cstring>position_sortie</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="position_sortie"/>
+          </item>
+          <item row="2" column="0" colspan="2">
+           <widget class="QWidget" name="place_demonstration" native="true">
+            <property name="toolTip">
+             <string>Démonstration : un sonore de 30 s, aux blancs de 3 s au début et 4 s à la fin, retirés à l'antenne, avec les crossfades par défaut saisis</string>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>360</width>
+              <height>72</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0" colspan="2">
+           <widget class="QLabel" name="legende_demonstration">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="explication">
+         <property name="text">
+          <string>Les fiches ouvertes ensuite suivent ces réglages. Machin lecture prend les durées par défaut à son prochain démarrage.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="page_interface">
+      <attribute name="title">
+       <string>Interface</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="disposition_interface">
        <item>
         <widget class="QGroupBox" name="groupe_accueil">
          <property name="title">
@@ -198,16 +276,6 @@
            </widget>
           </item>
          </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="explication">
-         <property name="text">
-          <string>Les fiches ouvertes ensuite suivent ces réglages. Machin lecture prend les durées par défaut à son prochain démarrage.</string>
-         </property>
-         <property name="wordWrap">
-          <bool>true</bool>
-         </property>
         </widget>
        </item>
       </layout>

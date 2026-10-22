@@ -70,6 +70,29 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Alors la voie de « blancs.flac » est finie
 		Et elle s'est arrêtée à 1,5 seconde du fichier, à 0,05 seconde près, après avoir joué 1 seconde
 
+	# ─── Fondus qui débordent du fichier (https://github.com/dascritch/machincast/issues/234) ───
+	# Un fondu placé par rapport aux blancs détectés peut commencer avant le début du fichier, ou finir après sa fin :
+	# la voie part du volume où en est le fade-in, et s'arrête au volume où en est le fade-out.
+
+	Plan du scénario: Un fondu qui déborde du fichier part, ou s'arrête, au volume où il en est
+		Étant donné une voie pour un sonore de 10 secondes, avec 1 seconde de fade-in depuis le volume 0,75 et 6 de fade-out jusqu'au volume 0,25
+		Alors à <instant> secondes, son volume est de <volume>
+
+		Exemples:
+			| instant | volume |
+			| 0       | 0,75   |
+			| 0,5     | 0,875  |
+			| 1       | 1      |
+			| 4       | 1      |
+			| 7       | 0,625  |
+			| 10      | 0,25   |
+
+	Scénario: Sans superposition, un sonore qui part d'un fade-in entamé joue jusqu'au bout à plein volume, sans s'éteindre
+		Étant donné une voie pour un sonore de 10 secondes, avec 1 seconde de fade-in depuis le volume 0,75 et 6 de fade-out jusqu'au volume 0,25
+		Quand le sonore suivant n'a pas de crossfade de début
+		Alors à 0 secondes, son volume est de 0,75
+		Et à 10 secondes, son volume est de 1
+
 	# ─── Fondus d'un stream (https://github.com/dascritch/machincast/issues/16) ───
 
 	Scénario: Une voie muette reste silencieuse, puis monte en fondu

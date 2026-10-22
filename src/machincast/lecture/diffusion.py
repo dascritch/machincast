@@ -63,6 +63,7 @@ from machincast.lecture.enregistrement import Passage
 from machincast.lecture.etat import PUBLICATION_MINIMALE, SocketEtat, SocketEtatOccupee, est_sain
 from machincast.lecture.etat import instant as iso
 from machincast.lecture.fichiers import verifier_avant_lecture
+from machincast.lecture.fondus import Placement, placer, position_ou
 from machincast.lecture.grille import Occurrence, Priorite
 from machincast.lecture.historique import EN_BASE, Historique
 from machincast.lecture.moteur import Moteur, VoieLecture, enchainement, fondu_d_entree, superposition
@@ -119,8 +120,13 @@ class Parametres:
 	artiste: str | None = None
 	titre: str | None = None
 	decalage: timedelta | None = None
-	"""Sonore rogné par la détection de blanc (https://github.com/dascritch/machincast/issues/146) : son début
-	détecté, d'où part la lecture du fichier ; sa durée est alors celle sans ses blancs. None : joué en entier."""
+	"""Sonore rogné par la détection de blanc (https://github.com/dascritch/machincast/issues/146) : d'où part la
+	lecture du fichier, selon la position de son fade-in (https://github.com/dascritch/machincast/issues/234) ; sa durée
+	est alors celle de la partie jouée. None : joué en entier."""
+	volume_de_depart: float = 0.0
+	"""Volume au début de la lecture, quand le fade-in déborde avant le début du fichier ; 0 sinon."""
+	volume_d_arrivee: float = 0.0
+	"""Volume à la fin de la lecture, quand le fade-out déborde après la fin du fichier ; 0 sinon."""
 
 
 @dataclass
@@ -179,13 +185,14 @@ def lire_parametres(
 	(https://github.com/dascritch/machincast/issues/143), puis, s'il n'en a pas de paramétré, les crossfades par défaut
 	de la configuration (https://github.com/dascritch/machincast/issues/145). Un fichier qui active la détection de
 	blanc, ou fourni par une banque qui l'active, est joué sans ses blancs détectés
-	(https://github.com/dascritch/machincast/issues/146, rognage)."""
+	(https://github.com/dascritch/machincast/issues/146, machincast.lecture.fondus.placer)."""
 	with connexion.transaction():
 		ligne = connexion.execute(
 			"SELECT s.duree, s.crossfade_debut, s.crossfade_fin, s.type::text, COALESCE(s.url_stream, m.url),"
 			" s.secours_evenement_id, s.artiste, s.titre, COALESCE(s.emplacement, s.url_stream, m.url),"
 			" s.detection_blancs OR COALESCE(b.detection_blancs, false), s.debut_detecte, s.fin_detectee,"
-			" b.crossfade_debut_regle::text, b.crossfade_debut, b.crossfade_fin_regle::text, b.crossfade_fin"
+			" b.crossfade_debut_regle::text, b.crossfade_debut, b.crossfade_fin_regle::text, b.crossfade_fin,"
+			" b.position_fondu_entree::text, b.position_fondu_sortie::text"
 			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
 			" LEFT JOIN banques b ON b.id = %s"
 			" WHERE s.id = %s",
@@ -194,40 +201,44 @@ def lire_parametres(
 	if ligne is None:
 		return Parametres(None, timedelta(0), timedelta(0))
 	duree, debut, fin, type_sonore, adresse, secours, artiste, titre, emplacement, *suite = ligne
-	detection, debut_detecte, fin_detectee, regle_debut, debut_banque, regle_fin, fin_banque = suite
-	duree_jouee, decalage = None, None
+	detection, debut_detecte, fin_detectee, regle_debut, debut_banque, regle_fin, fin_banque, *positions = suite
+	crossfade_debut = crossfade(debut, regle_debut, debut_banque, defauts.debut)
+	crossfade_fin = crossfade(fin, regle_fin, fin_banque, defauts.fin)
+	# Sans durée connue (un stream), les crossfades restent tels quels.
+	placement = Placement(timedelta(0), None, crossfade_debut, 0.0, crossfade_fin, 0.0)
+	duree_jouee = None
 	if isinstance(duree, timedelta):
-		duree_jouee = duree
-		if (detection is True) and (type_sonore == "fichier"):
-			duree_jouee, decalage = rognage(duree, debut_detecte, fin_detectee)
+		placement = placer(
+			duree,
+			_intervalle(debut_detecte),
+			_intervalle(fin_detectee),
+			(detection is True) and (type_sonore == "fichier"),
+			crossfade_debut,
+			crossfade_fin,
+			position_ou(positions[0], defauts.entree),
+			position_ou(positions[1], defauts.sortie),
+		)
+		duree_jouee = placement.duree
 	return Parametres(
 		duree_jouee,
-		crossfade(debut, regle_debut, debut_banque, defauts.debut),
-		crossfade(fin, regle_fin, fin_banque, defauts.fin),
+		placement.fondu_entree,
+		placement.fondu_sortie,
 		stream=type_sonore == "stream",
 		adresse=texte_ou_rien(adresse),
 		secours=entier_ou_rien(secours),
 		artiste=texte_ou_rien(artiste),
 		titre=texte_ou_rien(titre),
 		emplacement=texte_ou_rien(emplacement),
-		decalage=decalage,
+		decalage=placement.decalage,
+		volume_de_depart=placement.depart,
+		volume_d_arrivee=placement.arrivee,
 	)
 
 
-def rognage(duree: timedelta, debut_detecte: object, fin_detectee: object) -> tuple[timedelta, timedelta | None]:
-	"""La durée jouée d'un fichier sans ses blancs détectés, et le début détecté d'où part sa lecture
-	(https://github.com/dascritch/machincast/issues/146). La fin détectée se compte depuis la fin du fichier ; un côté
-	sans blanc détecté (NULL) n'est pas rogné. Sans blanc, ou avec des blancs qui ne laissent rien du sonore, il est
-	joué en entier : le décalage est None."""
-	debut, fin = timedelta(0), timedelta(0)
-	if isinstance(debut_detecte, timedelta):
-		debut = debut_detecte
-	if isinstance(fin_detectee, timedelta):
-		fin = fin_detectee
-	jouee = duree - debut - fin
-	if (debut + fin == timedelta(0)) or (jouee <= timedelta(0)):
-		return duree, None
-	return jouee, debut
+def _intervalle(valeur: object) -> timedelta | None:
+	if isinstance(valeur, timedelta):
+		return valeur
+	return None
 
 
 @dataclass
@@ -603,6 +614,8 @@ class Diffusion:
 			fondu_d_entree(crossfade_fin_precedent, parametres.crossfade_debut),
 			parametres.crossfade_fin,
 			decalage=parametres.decalage,
+			depart=parametres.volume_de_depart,
+			arrivee=parametres.volume_d_arrivee,
 		)
 		passage = self._commencer(suivant, instant)
 		if self.courant is not None:
