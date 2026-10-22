@@ -7,7 +7,9 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 	https://github.com/dascritch/machincast/issues/148, spec § 8.11. « Rafraîchir les onglets », dans le menu
 	« Affichage » ou par F5, relit l'onglet ouvert, l'airplay de l'accueil et toutes les fiches ouvertes ; les autres
 	listes se relisent déjà à l'ouverture de leur onglet. Une fiche modifiée demande d'abord quoi faire de ses
-	modifications, comme à sa fermeture. Les changements faits « par un autre poste » sont écrits directement en base.
+	modifications, comme à sa fermeture. Passer à un onglet le relit aussi, s'il n'est pas en cours d'édition
+	(https://github.com/dascritch/machincast/issues/241) : une fiche modifiée, ou pas encore enregistrée, reste telle
+	quelle, sans question. Les changements faits « par un autre poste » sont écrits directement en base.
 
 	Contexte:
 		Étant donné le poste à l'heure de Paris
@@ -111,4 +113,54 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 		Et je clique sur « Nouvelle banque »
 		Et j'appuie sur « F5 »
 		Alors l'onglet ouvert est « Nouvelle banque »
+		Et aucune question n'a été posée
+
+	# ─── À l'ouverture d'un onglet (https://github.com/dascritch/machincast/issues/241) ─────
+
+	Scénario: Revenir à l'onglet d'une fiche qui n'est pas modifiée la relit, sans rien demander
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et j'ouvre l'onglet « Accueil »
+		Et un autre poste renomme la banque « Jingles » en « Jingles du matin »
+		Et j'ouvre l'onglet « Banque : Jingles »
+		Alors aucune question n'a été posée
+		Et l'onglet ouvert est « Banque : Jingles du matin »
+		Et le nom interne de la fiche est « Jingles du matin »
+
+	Scénario: Revenir à l'onglet d'une fiche en cours d'édition la laisse telle quelle, sans rien demander
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je saisis le nom interne « Jingles du soir »
+		Et j'ouvre l'onglet « Accueil »
+		Et un autre poste renomme la banque « Jingles » en « Jingles du matin »
+		Et j'ouvre l'onglet « Banque : Jingles »
+		Alors aucune question n'a été posée
+		Et le nom interne de la fiche est « Jingles du soir »
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
+
+	Scénario: Revenir à l'onglet d'une fiche dont l'élément a été effacé par un autre poste la ferme
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et j'ouvre l'onglet « Accueil »
+		Et un autre poste efface la banque « Jingles »
+		Et j'ouvre l'onglet « Banque : Jingles »
+		Alors aucune question n'a été posée
+		Et la fenêtre n'a plus d'onglet de fiche
+		Et la barre d'état annonce « Fiche fermée, son élément n'est plus en base : « Banque : Jingles ». »
+
+	Scénario: Revenir à l'accueil relit son airplay
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Banques »
+		Et la diffusion note dans l'airplay le passage de « Café à minuit » à 21:40
+		Et j'ouvre l'onglet « Accueil »
+		Alors l'airplay de l'accueil montre « Café à minuit »
+
+	Scénario: Revenir à une nouvelle fiche, pas encore enregistrée, la laisse telle quelle
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Banques »
+		Et je clique sur « Nouvelle banque »
+		Et je saisis le nom interne « Publicité »
+		Et j'ouvre l'onglet « Accueil »
+		Et j'ouvre l'onglet « Nouvelle banque »
+		Alors le nom interne de la fiche est « Publicité »
 		Et aucune question n'a été posée

@@ -130,7 +130,7 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 
 ## Rafraîchir les onglets
 
-Chaque onglet lit la base quand il s'ouvre ; ce qu'un autre poste, l'indexation ou la diffusion changent ensuite n'apparaît pas tout seul. **Affichage → Rafraîchir les onglets**, ou <kbd>F5</kbd>, relit tout d'un coup :
+Chaque onglet relit la base quand on y passe ([#241](https://github.com/dascritch/machincast/issues/241)) : une liste, les incidents, le calendrier, la recherche, l'airplay, l'accueil, et une fiche, sauf si on est en train de la modifier. Une fiche modifiée reste telle quelle, sans question ; une fiche dont l'élément a été effacé depuis un autre poste se ferme, et la barre d'état le dit. Pendant qu'un onglet reste affiché, ce qu'un autre poste, l'indexation ou la diffusion changent n'apparaît pas tout seul. **Affichage → Rafraîchir les onglets**, ou <kbd>F5</kbd>, relit tout d'un coup :
 
 - l'onglet ouvert : une liste, les incidents, le calendrier, la recherche ou l'airplay ;
 - l'airplay de l'accueil ;

@@ -823,9 +823,21 @@ class FenetrePrincipale(QMainWindow):
 			ouvert.actualiser()
 
 	def _onglet_ouvert(self, indice: int) -> None:
+		"""L'onglet qui passe au premier plan se relit, s'il n'est pas en cours d'édition
+		(https://github.com/dascritch/machincast/issues/241) : une liste, les incidents, le calendrier, la recherche,
+		l'airplay, l'airplay de l'accueil, et une fiche qui n'est pas modifiée, sans rien demander. Une fiche modifiée
+		reste telle quelle ; celle d'un élément effacé de la base se ferme."""
 		ouvert = self.ui.onglets.widget(indice)
 		if isinstance(ouvert, (Liste, EcranIncidents, Calendrier, EcranRecherche, EcranAirplay)):
 			ouvert.actualiser()
+		if ouvert is self.accueil:
+			self.accueil.actualiser_airplay()
+		if (not isinstance(ouvert, Fiche)) or (ouvert.modifiee):
+			return
+		titre = ouvert.titre()
+		if ouvert.rafraichir() is Rafraichie.EFFACEE:
+			self._retirer(ouvert)
+			self.ui.barre_d_etat.showMessage(f"Fiche fermée, son élément n'est plus en base : « {titre} ».")
 
 	def _preferences(self) -> None:
 		"""Les préférences réglées s'enregistrent dans le fichier de configuration, puis valent pour les fiches
