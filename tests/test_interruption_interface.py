@@ -65,16 +65,18 @@ def socket_ouverte(interface: Contexte, lecteur: Lecteur) -> None:
 @given(
 	parsers.re(
 		r"Machin lecture diffuse « (?P<titre>[^»]+) »(?:, de la séquence « (?P<sequence>[^»]+) »)?,"
-		r" dans « (?P<evenement>[^»]+) »"
+		r" dans (?P<fil>le fil musical )?« (?P<evenement>[^»]+) »"
 	)
 )
-def diffuse(lecteur: Lecteur, titre: str, sequence: str | None, evenement: str) -> None:
+def diffuse(lecteur: Lecteur, titre: str, sequence: str | None, fil: str | None, evenement: str) -> None:
+	"""Un événement sans précision est une émission."""
 	en_cours = {
 		"sonore": 12,
 		"type": "fichier",
 		"artiste": None,
 		"titre": titre,
 		"evenement": evenement,
+		"evenement_priorite": "emission" if fil is None else "fil_musical",
 		"sequence": sequence,
 		"emplacement": "/srv/musique/minuit.flac",
 		"debut": "2026-10-21T08:59:00+02:00",

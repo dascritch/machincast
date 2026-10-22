@@ -2,16 +2,18 @@
 
 En un coup d'œil : l'heure, le texte public du sonore en cours entre guillemets, l'état du binaire lecture, l'événement
 à l'antenne et ses heures, le sonore en cours et le temps qui lui reste, le prochain sonore, chacun avec son événement,
-sa séquence, sa banque et son horaire sur une ligne, et l'airplay des 12 dernières heures
-(https://github.com/dascritch/machincast/issues/144). Les boutons de chaque sonore, et un double-clic dans l'airplay,
-demandent la fiche du sonore, de l'événement, de la séquence ou de la banque (ouverte). Le sonore en cours et le
-prochain viennent de la socket d'état du binaire lecture (ClientEtat). L'airplay se lit en base à l'ouverture, puis à
-chaque changement de sonore annoncé par la socket : jamais en boucle. La disposition est dessinée dans
-ui/ecran_par_defaut.ui (CONTRIBUTION.md).
+sa séquence, sa banque et son horaire sur une ligne, les sonores à venir après le prochain, le plus lointain en haut
+(https://github.com/dascritch/machincast/issues/228), et l'airplay des 12 dernières heures
+(https://github.com/dascritch/machincast/issues/144). Les boutons de chaque sonore, et un double-clic dans les sonores
+à venir ou l'airplay, demandent la fiche du sonore, de l'événement, de la séquence ou de la banque (ouverte). Le sonore
+en cours, le prochain et les sonores à venir viennent de la socket d'état du binaire lecture (ClientEtat). L'airplay se
+lit en base à l'ouverture, puis à chaque changement de sonore annoncé par la socket : jamais en boucle. La disposition
+est dessinée dans ui/ecran_par_defaut.ui (CONTRIBUTION.md).
 """
 
 import logging
 import math
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
@@ -19,7 +21,7 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QModelIndex, QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QLineEdit, QMenu, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QLineEdit, QMenu, QVBoxLayout, QWidget
 
 from machincast.configuration import Audio
 from machincast.horloge import Horloge
@@ -40,6 +42,10 @@ SECONDE = 1000
 RELEVE_DES_FORMES = 100
 """Millisecondes entre deux relèves des formes d'onde en cours de calcul (https://github.com/dascritch/machincast/issues/230)."""
 ETATS = {"diffusion": "En diffusion", "silence": "En silence", "arret": "À l'arrêt"}
+A_VENIR = 5
+"""Lignes que montre la table des sonores à venir, autant que Machin lecture en prévoit."""
+PAS_SAIN = "pas sain"
+"""Colonne « Incident » d'un sonore à venir dont le fichier a posé problème (spec § 4.6)."""
 ELEMENT = Qt.ItemDataRole.UserRole
 """Rôle qui porte, sur une cellule de l'airplay, le genre et l'identifiant de l'élément qu'elle désigne."""
 VOYANT_ALLUME = (
@@ -92,6 +98,22 @@ class EcranParDefaut(QWidget):
 		self.ui.table_airplay.activated.connect(self._ouvrir_cellule)
 		self.ui.table_airplay.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 		self.ui.table_airplay.customContextMenuRequested.connect(self._menu_de_l_airplay)
+		# Les sonores à venir, avec les colonnes de l'airplay (https://github.com/dascritch/machincast/issues/228).
+		self.modele_a_venir = QStandardItemModel(0, len(self.COLONNES_AIRPLAY), self)
+		self.modele_a_venir.setHorizontalHeaderLabels([titre for _, titre in self.COLONNES_AIRPLAY])
+		table_a_venir = self.ui.table_a_venir
+		table_a_venir.setModel(self.modele_a_venir)
+		self.colonnes_a_venir = Colonnes(table_a_venir, "accueil-a-venir")
+		table_a_venir.activated.connect(self._ouvrir_cellule)
+		table_a_venir.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+		table_a_venir.customContextMenuRequested.connect(self._menu_des_sonores_a_venir)
+		hauteur = table_a_venir.horizontalHeader().sizeHint().height()
+		hauteur += A_VENIR * table_a_venir.verticalHeader().defaultSectionSize() + 2 * table_a_venir.frameWidth()
+		table_a_venir.setFixedHeight(hauteur)
+		# L'airplay se tasse, jusqu'à une ligne, pour que la fenêtre garde sa hauteur.
+		self.ui.table_airplay.setMinimumHeight(
+			hauteur - (A_VENIR - 1) * table_a_venir.verticalHeader().defaultSectionSize()
+		)
 		self._en_cours: SonoreAffiche | None = None
 		self._prochain: SonoreAffiche | None = None
 		ui = self.ui
@@ -210,6 +232,7 @@ class EcranParDefaut(QWidget):
 		self._montrer_la_frise(self.frise_prochain, etat.prochain)
 		self._oublier_les_formes()
 		self._afficher_antenne(etat.en_cours)
+		self._afficher_a_venir(etat.a_venir)
 		prochain = etat.prochain
 		self.ui.prochain_sain.setText(affichage.VIDE)
 		if prochain is not None:
@@ -371,11 +394,19 @@ class EcranParDefaut(QWidget):
 	def menu_de_l_airplay(self, index: QModelIndex) -> QMenu | None:
 		"""Le menu du clic droit sur une ligne de l'airplay : « Pré-écoute… » de son sonore ; aucun hors d'une ligne,
 		ou pour un sonore supprimé depuis (https://github.com/dascritch/machincast/issues/226)."""
+		return self._menu_de_la_ligne(self.modele_airplay, index)
+
+	def menu_des_sonores_a_venir(self, index: QModelIndex) -> QMenu | None:
+		"""Le menu du clic droit sur une ligne des sonores à venir : « Pré-écoute… » de son sonore
+		(https://github.com/dascritch/machincast/issues/228)."""
+		return self._menu_de_la_ligne(self.modele_a_venir, index)
+
+	def _menu_de_la_ligne(self, modele: QStandardItemModel, index: QModelIndex) -> QMenu | None:
 		if not index.isValid():
 			return None
 		sonore = None
-		for colonne in range(self.modele_airplay.columnCount()):
-			element = self.modele_airplay.index(index.row(), colonne).data(ELEMENT)
+		for colonne in range(modele.columnCount()):
+			element = modele.index(index.row(), colonne).data(ELEMENT)
 			if (element is not None) and (element[0] == "sonore"):
 				sonore = int(element[1])
 		if sonore is None:
@@ -385,11 +416,30 @@ class EcranParDefaut(QWidget):
 		return menu
 
 	def _menu_de_l_airplay(self, position: QPoint) -> None:
-		table = self.ui.table_airplay
-		menu = self.menu_de_l_airplay(table.indexAt(position))
+		self._montrer_le_menu(self.ui.table_airplay, self.menu_de_l_airplay, position)
+
+	def _menu_des_sonores_a_venir(self, position: QPoint) -> None:
+		self._montrer_le_menu(self.ui.table_a_venir, self.menu_des_sonores_a_venir, position)
+
+	@staticmethod
+	def _montrer_le_menu(
+		table: QAbstractItemView, menu_de: Callable[[QModelIndex], QMenu | None], position: QPoint
+	) -> None:
+		menu = menu_de(table.indexAt(position))
 		if menu is not None:
 			menu.exec(table.viewport().mapToGlobal(position))
 			menu.deleteLater()
+
+	# ─── Sonores à venir ───────────────────────────────────
+
+	def _afficher_a_venir(self, sonores: tuple[SonoreAffiche, ...]) -> None:
+		"""Les sonores à venir, le plus lointain en haut : le plus proche est juste au-dessus de l'airplay."""
+		self.modele_a_venir.setRowCount(0)
+		for sonore in reversed(sonores):
+			cellules = [QStandardItem(texte) for texte in _cellules_a_venir(sonore)]
+			for colonne, element in _elements_a_venir(sonore).items():
+				cellules[colonne].setData(element, ELEMENT)
+			self.modele_a_venir.appendRow(cellules)
 
 	# ─── Airplay ───────────────────────────────────────────
 
@@ -449,6 +499,41 @@ def _elements(passage: PassageAffiche) -> dict[int, tuple[str, int, str]]:
 		(5, "événement", passage.evenement_id, passage.evenement),
 		(6, "séquence", passage.sequence_id, passage.sequence),
 		(7, "banque", passage.banque_id, passage.banque),
+	):
+		if identifiant is not None:
+			elements[colonne] = (genre, identifiant, str(nom))
+	return elements
+
+
+def _cellules_a_venir(sonore: SonoreAffiche) -> list[str]:
+	"""Les colonnes de l'airplay, pour un sonore à venir : son début et sa fin estimés, sa durée."""
+	duree = ""
+	if sonore.duree is not None:
+		duree = affichage.duree(sonore.duree)
+	return [
+		affichage.heure(sonore.debut, ""),
+		affichage.heure(sonore.fin_estimee, ""),
+		duree,
+		(sonore.artiste) or (""),
+		(sonore.titre) or (""),
+		(sonore.evenement) or (""),
+		(sonore.sequence) or (""),
+		(sonore.banque) or (""),
+		PAS_SAIN if sonore.sain is False else "",
+	]
+
+
+def _elements_a_venir(sonore: SonoreAffiche) -> dict[int, tuple[str, int, str]]:
+	"""Les cellules qui désignent un élément, par colonne, comme dans l'airplay."""
+	titre = (sonore.titre) or (affichage.artiste_et_titre(sonore.artiste, sonore.titre))
+	elements: dict[int, tuple[str, int, str]] = {
+		3: ("sonore", sonore.sonore, titre),
+		4: ("sonore", sonore.sonore, titre),
+	}
+	for colonne, genre, identifiant, nom in (
+		(5, "événement", sonore.evenement_id, sonore.evenement),
+		(6, "séquence", sonore.sequence_id, sonore.sequence),
+		(7, "banque", sonore.banque_id, sonore.banque),
 	):
 		if identifiant is not None:
 			elements[colonne] = (genre, identifiant, str(nom))

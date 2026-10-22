@@ -663,6 +663,46 @@
     </layout>
    </item>
    <item>
+    <widget class="QGroupBox" name="cadre_a_venir">
+     <property name="title">
+      <string>À venir après le prochain sonore</string>
+     </property>
+     <layout class="QVBoxLayout" name="disposition_a_venir">
+      <item>
+       <widget class="QTableView" name="table_a_venir">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="toolTip">
+         <string>Les sonores prévus après le prochain, le plus lointain en haut. Double-clic sur un sonore, un événement, une séquence ou une banque : ouvrir sa fiche</string>
+        </property>
+        <property name="editTriggers">
+         <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+        </property>
+        <property name="alternatingRowColors">
+         <bool>true</bool>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+        </property>
+        <property name="verticalScrollBarPolicy">
+         <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
+        </property>
+        <attribute name="verticalHeaderVisible">
+         <bool>false</bool>
+        </attribute>
+        <attribute name="horizontalHeaderStretchLastSection">
+         <bool>true</bool>
+        </attribute>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="cadre_airplay">
      <property name="title">
       <string>Airplay des 12 dernières heures</string>

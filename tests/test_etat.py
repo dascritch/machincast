@@ -200,6 +200,12 @@ def debut_et_fin_du_prochain(client: Client, debut: str, fin: str) -> None:
 	assert heure(suivant["fin_estimee"]) == heure(fin), suivant
 
 
+@then(parsers.parse("le prochain sonore commencera au « {debut} »"))
+def debut_du_prochain(client: Client, debut: str) -> None:
+	suivant = prochain(client)
+	assert heure(suivant["debut_estime"]) == heure(debut), suivant
+
+
 @then("le deuxième passage est le prochain sonore annoncé")
 def reservation_tenue(base_vide: Connexion, client: Client) -> None:
 	noms = [p[0] for p in passages(base_vide)]
@@ -264,6 +270,54 @@ def champs_documentes(client: Client) -> None:
 	assert section is not None
 	absents = {cle for cle in champs(message(client)) if f"`{cle}`" not in section.group(1)}
 	assert not absents, f"absents de spec § 5.4 : {sorted(absents)}"
+
+
+# ─── Playlist immédiate (https://github.com/dascritch/machincast/issues/228) ─────
+
+
+def a_venir(client: Client) -> list[dict[str, Any]]:
+	sonores = message(client)["a_venir"]
+	assert isinstance(sonores, list), message(client)
+	return sonores
+
+
+@then(parsers.re(r"la socket annonce les sonores à venir (?P<liste>.+), sains"))
+def sonores_a_venir(client: Client, liste: str) -> None:
+	sonores = a_venir(client)
+	assert [s["titre"] for s in sonores] == [n.strip(" «»") for n in liste.split(",")], sonores
+	assert all(s["sain"] is True for s in sonores), sonores
+
+
+@then(
+	parsers.re(
+		r"le (?P<lequel>premier|dernier) sonore à venir commencera au « (?P<debut>[^»]+) »"
+		r" et finira au « (?P<fin>[^»]+) »"
+	)
+)
+def heures_a_venir(client: Client, lequel: str, debut: str, fin: str) -> None:
+	sonore_lu = a_venir(client)[0 if lequel == "premier" else -1]
+	assert heure(sonore_lu["debut_estime"]) == heure(debut), sonore_lu
+	assert heure(sonore_lu["fin_estimee"]) == heure(fin), sonore_lu
+
+
+@then(parsers.parse("le premier sonore à venir vient de l'événement « {evenement} », permanent"))
+def evenement_a_venir(client: Client, evenement: str) -> None:
+	sonore_lu = a_venir(client)[0]
+	assert (sonore_lu["evenement"], sonore_lu["evenement_debut"], sonore_lu["evenement_fin"]) == (
+		evenement,
+		None,
+		None,
+	), sonore_lu
+
+
+@then("il n'y a aucun sonore à venir")
+def aucun_a_venir(client: Client) -> None:
+	assert a_venir(client) == []
+
+
+@then(parsers.parse("le sonore en cours est joué par un événement de priorité « {priorite} »"))
+def priorite_en_cours(client: Client, priorite: str) -> None:
+	assert en_cours(client)["evenement_priorite"] == priorite
 
 
 # ─── Contexte du sonore (https://github.com/dascritch/machincast/issues/144) ─────

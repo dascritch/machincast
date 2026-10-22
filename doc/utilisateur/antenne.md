@@ -154,18 +154,19 @@ Chaque entrée demande le mot de passe d'un administrateur du poste. La barre d'
 
 ## Interrompre l'antenne
 
-Le menu **Diffusion** propose aussi, après un trait, d'interrompre ce qui passe pour passer au suivant :
+Le menu **Diffusion** propose aussi, après un trait, de corriger ce qui passe, sans attendre ([#228](https://github.com/dascritch/machincast/issues/228)) :
 
 | Entrée | Effet |
 | --- | --- |
-| Interrompre le sonore | Le sonore en cours s'arrête, et le suivant de la liste, ou de la séquence, enchaîne. |
-| Interrompre la séquence | Le sonore en cours s'arrête, et le reste de sa séquence n'est pas joué : la liste reprend à l'élément qui suit la séquence. |
-| Interrompre l'événement | L'événement en cours rend l'antenne : celui qui est en dessous, en général le fil musical, la reprend jusqu'à la fin prévue de l'événement interrompu. Interrompre le fil musical lui-même arrête son élément et le fait reprendre au **début** de sa liste. |
+| Sauter au sonore suivant | Le sonore en cours est coupé, et le prochain sonore annoncé sur l'accueil passe aussitôt ; les sonores à venir avancent d'un cran. |
+| Sauter après la séquence | Le sonore en cours est coupé, et le reste de sa séquence n'est pas joué : le sonore prévu après la séquence passe aussitôt, et les sonores à venir qui le suivent sont gardés. |
+| Couper l'événement par le fil musical | Le sonore en cours est coupé, et le fil musical prend aussitôt l'antenne, jusqu'à la fin prévue de l'événement coupé : un spécial et l'émission qu'il recouvre laissent tous les deux la place. Inactive dans le fil musical. |
 
-- Chaque entrée n'est active que si son élément est à l'antenne ; son infobulle le nomme, ou dit pourquoi elle est inactive (« Rien à l'antenne », « Aucune séquence à l'antenne »).
-- La demande part **aussitôt, sans question** : l'antenne n'attend pas. La barre d'état l'annonce, par exemple `Interruption du sonore demandée.`
-- Le sonore interrompu s'éteint pendant son crossfade de fin, ou s'arrête net s'il n'en a pas. Son passage se termine sans incident, et le journal note `interruption manuelle`.
-- Un événement interrompu ne revient pas avant sa prochaine diffusion, sauf si la diffusion redémarre entre-temps.
+- Chaque entrée n'est active que si son élément est à l'antenne ; son infobulle le nomme, ou dit pourquoi elle est inactive (« Rien à l'antenne », « Aucune séquence à l'antenne », « Le fil musical est déjà à l'antenne »).
+- La demande part **aussitôt, sans question** : l'antenne n'attend pas. La barre d'état l'annonce, par exemple `Saut au sonore suivant demandé.`
+- Le sonore coupé s'éteint pendant le crossfade de fin par défaut des [préférences](prise-en-main.md#préférences), et le suivant monte pendant le crossfade de début par défaut ; sans crossfade par défaut, la coupure est nette, quels que soient les crossfades du sonore. Son passage se termine sans incident, et le journal note `interruption manuelle`.
+- Un événement coupé par le fil musical ne revient pas avant sa prochaine diffusion, sauf si la diffusion redémarre entre-temps.
+- Si le sonore annoncé n'est plus jouable, la diffusion en choisit un autre, et recalcule les sonores à venir.
 
 ## Historique et incidents
 

@@ -542,8 +542,24 @@ def publier(socket: SocketEtat, demonstration: Demonstration) -> None:
 		"sain": True,
 	}
 	prochain["fin_estimee"] = (fin + timedelta(seconds=float(str(prochain["duree"])))).isoformat()
+	# Les sonores à venir (https://github.com/dascritch/machincast/issues/228) : d'autres passages de la
+	# démonstration, enchaînés après le prochain.
+	a_venir = []
+	debut_suivant = datetime.fromisoformat(str(prochain["fin_estimee"]))
+	for rang in (-2, -3, -4, -5, -7):
+		sonore = {**_affiche(demonstration, rang, "debut_estime"), "sain": rang != -4}
+		sonore["debut_estime"] = debut_suivant.isoformat()
+		debut_suivant += timedelta(seconds=float(str(sonore["duree"])))
+		sonore["fin_estimee"] = debut_suivant.isoformat()
+		a_venir.append(sonore)
 	socket.publier(
-		{"horodatage": MAINTENANT.isoformat(), "etat": "diffusion", "en_cours": en_cours, "prochain": prochain}
+		{
+			"horodatage": MAINTENANT.isoformat(),
+			"etat": "diffusion",
+			"en_cours": en_cours,
+			"prochain": prochain,
+			"a_venir": a_venir,
+		}
 	)
 
 

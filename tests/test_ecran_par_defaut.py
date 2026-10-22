@@ -19,6 +19,7 @@ from typing import Any
 import psycopg
 import pytest
 from PySide6.QtCore import QPoint, Qt
+from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QLabel, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
@@ -54,6 +55,8 @@ class Contexte:
 	socket: SocketEtat | None = None
 	en_cours: dict[str, Any] | None = None
 	prochain: dict[str, Any] | None = None
+	a_venir: list[dict[str, Any]] = field(default_factory=list)
+	"""Les sonores à venir après le prochain (https://github.com/dascritch/machincast/issues/228)."""
 	ecran: EcranParDefaut | None = None
 	connexion: Connexion | None = None
 	lectures: list[datetime] = field(default_factory=list)
@@ -79,6 +82,8 @@ class Contexte:
 	affichage: bool | None = None
 	clic: str | None = None
 	"""Bouton que le technicien choisit dans la fenêtre d'erreur."""
+	preecoutes: list[int] = field(default_factory=list)
+	"""Sonores dont l'écran a demandé la pré-écoute."""
 
 	@property
 	def chemin(self) -> Path:
@@ -133,6 +138,7 @@ def publier(contexte: Contexte, etat: str = "diffusion") -> None:
 			"etat": etat,
 			"en_cours": contexte.en_cours if etat == "diffusion" else None,
 			"prochain": contexte.prochain,
+			"a_venir": contexte.a_venir if etat == "diffusion" else [],
 		}
 	)
 
@@ -292,6 +298,36 @@ def prochain(contexte: Contexte, titre: str, evenement: str, debut: str, fin: st
 	publier(contexte)
 
 
+@given("les sonores à venir après le prochain sont :")
+def sonores_a_venir(contexte: Contexte, datatable: list[list[str]]) -> None:
+	"""Chaque sonore à venir a ses identifiants : 41, 42… pour les sonores, 51… pour les événements, 61… pour les
+	séquences et 71… pour les banques, selon son rang."""
+	entetes, *rangees = datatable
+	contexte.a_venir = []
+	for rang, valeurs in enumerate(rangees, start=1):
+		ligne = dict(zip(entetes, (valeur.strip() for valeur in valeurs), strict=True))
+		contexte.a_venir.append(
+			{
+				"sonore": 40 + rang,
+				"type": "fichier",
+				"artiste": (ligne["artiste"]) or (None),
+				"titre": ligne["titre"],
+				"evenement": ligne["evenement"],
+				"evenement_id": 50 + rang,
+				"sequence": (ligne["sequence"]) or (None),
+				"sequence_id": (60 + rang) if ligne["sequence"] else None,
+				"banque": (ligne["banque"]) or (None),
+				"banque_id": (70 + rang) if ligne["banque"] else None,
+				"debut_estime": a(ligne["debut"]).isoformat(),
+				"duree": secondes(ligne["duree"]),
+				"fin_estimee": a(ligne["fin"]).isoformat(),
+				"emplacement": emplacement(ligne["titre"]),
+				"sain": ligne["sain"] == "oui",
+			}
+		)
+	publier(contexte)
+
+
 @given(parsers.re(r"le (?P<lequel>sonore en cours|prochain sonore) a pour contexte :"))
 def contexte_du_sonore(contexte: Contexte, lequel: str, datatable: list[list[str]]) -> None:
 	"""Les champs de contexte de la socket d'état (spec § 5.4) : identifiants en nombres, heures murales, textes."""
@@ -413,6 +449,7 @@ def ouvrir(contexte: Contexte, base_vide: Connexion, qtbot: QtBot, monkeypatch: 
 	contexte.connexion = connecter(*parametres_base_test(), Role.INTERFACE)
 	contexte.ecran = EcranParDefaut(contexte.connexion, contexte.chemin, contexte.horloge)
 	contexte.ecran.ouverte.connect(lambda genre, numero, nom: contexte.fiches.append((genre, numero, nom)))
+	contexte.ecran.preecoute_demandee.connect(contexte.preecoutes.append)
 	qtbot.addWidget(contexte.ecran)
 	contexte.ecran.show()
 
@@ -814,6 +851,74 @@ def table(contexte: Contexte) -> list[dict[str, str]]:
 		{cle: modele.item(rangee, colonne).text() for colonne, (cle, _) in enumerate(colonnes)}
 		for rangee in range(modele.rowCount())
 	]
+
+
+def table_a_venir(contexte: Contexte) -> list[dict[str, str]]:
+	modele = ecran(contexte).modele_a_venir
+	colonnes = ecran(contexte).COLONNES_AIRPLAY
+	return [
+		{cle: modele.item(rangee, colonne).text() for colonne, (cle, _) in enumerate(colonnes)}
+		for rangee in range(modele.rowCount())
+	]
+
+
+@then("la table des sonores à venir montre :")
+def table_a_venir_attendue(contexte: Contexte, qtbot: QtBot, datatable: list[list[str]]) -> None:
+	entetes, *lignes = datatable
+	attendues = [dict(zip(entetes, (v.strip() for v in valeurs), strict=True)) for valeurs in lignes]
+	attendre(qtbot, lambda: len(table_a_venir(contexte)) == len(attendues))
+	assert table_a_venir(contexte) == attendues, table_a_venir(contexte)
+
+
+@then(parsers.re(r"la table des sonores à venir a bientôt (?P<nombre>\d+) lignes?"))
+@when(parsers.re(r"la table des sonores à venir a bientôt (?P<nombre>\d+) lignes?"))
+def lignes_a_venir(contexte: Contexte, qtbot: QtBot, nombre: str) -> None:
+	attendre(qtbot, lambda: ecran(contexte).modele_a_venir.rowCount() == int(nombre))
+
+
+@then("la table des sonores à venir a les colonnes de l'airplay, dans le même ordre")
+def colonnes_a_venir(contexte: Contexte) -> None:
+	ouvert = ecran(contexte)
+
+	def entetes(modele: QStandardItemModel) -> list[str]:
+		return [str(modele.headerData(colonne, Qt.Orientation.Horizontal)) for colonne in range(modele.columnCount())]
+
+	assert entetes(ouvert.modele_a_venir) == entetes(ouvert.modele_airplay), entetes(ouvert.modele_a_venir)
+
+
+@then("la table des sonores à venir est au-dessus de celle de l'airplay")
+def a_venir_au_dessus(contexte: Contexte, qtbot: QtBot) -> None:
+	ui = ecran(contexte).ui
+	ecran(contexte).show()
+	qtbot.wait(50)
+	haut_de_l_airplay = ui.table_airplay.mapTo(ecran(contexte), ui.table_airplay.rect().topLeft()).y()
+	bas_a_venir = ui.table_a_venir.mapTo(ecran(contexte), ui.table_a_venir.rect().bottomLeft()).y()
+	assert bas_a_venir < haut_de_l_airplay, (bas_a_venir, haut_de_l_airplay)
+
+
+@when(parsers.parse("j'ouvre dans les sonores à venir la cellule « {texte} »"))
+def ouvrir_a_venir(contexte: Contexte, qtbot: QtBot, texte: str) -> None:
+	ouvrir_dans(qtbot, ecran(contexte).ui.table_a_venir, texte)
+
+
+@when(parsers.parse("je choisis « {entree} » au clic droit sur la ligne « {titre} » des sonores à venir"))
+def menu_a_venir(contexte: Contexte, entree: str, titre: str) -> None:
+	ouvert = ecran(contexte)
+	modele = ouvert.modele_a_venir
+	(rangee,) = [
+		rangee
+		for rangee in range(modele.rowCount())
+		if any(modele.index(rangee, colonne).data() == titre for colonne in range(modele.columnCount()))
+	]
+	menu = ouvert.menu_des_sonores_a_venir(modele.index(rangee, 0))
+	assert menu is not None
+	(action,) = [action for action in menu.actions() if action.text() == entree]
+	action.trigger()
+
+
+@then(parsers.parse("la pré-écoute du sonore {sonore:d} a été demandée"))
+def preecoute_demandee(contexte: Contexte, sonore: int) -> None:
+	assert contexte.preecoutes == [sonore]
 
 
 @then("la table de l'airplay montre :")

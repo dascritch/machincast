@@ -425,6 +425,29 @@ class Ui_EcranParDefaut(object):
 
         self.disposition.addLayout(self.sonores)
 
+        self.cadre_a_venir = QGroupBox(EcranParDefaut)
+        self.cadre_a_venir.setObjectName(u"cadre_a_venir")
+        self.disposition_a_venir = QVBoxLayout(self.cadre_a_venir)
+        self.disposition_a_venir.setObjectName(u"disposition_a_venir")
+        self.table_a_venir = QTableView(self.cadre_a_venir)
+        self.table_a_venir.setObjectName(u"table_a_venir")
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.table_a_venir.sizePolicy().hasHeightForWidth())
+        self.table_a_venir.setSizePolicy(sizePolicy1)
+        self.table_a_venir.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table_a_venir.setAlternatingRowColors(True)
+        self.table_a_venir.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_a_venir.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table_a_venir.horizontalHeader().setStretchLastSection(True)
+        self.table_a_venir.verticalHeader().setVisible(False)
+
+        self.disposition_a_venir.addWidget(self.table_a_venir)
+
+
+        self.disposition.addWidget(self.cadre_a_venir)
+
         self.cadre_airplay = QGroupBox(EcranParDefaut)
         self.cadre_airplay.setObjectName(u"cadre_airplay")
         self.disposition_airplay = QVBoxLayout(self.cadre_airplay)
@@ -538,6 +561,10 @@ class Ui_EcranParDefaut(object):
         self.prochain_emplacement.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
         self.intitule_prochain_sain.setText(QCoreApplication.translate("EcranParDefaut", u"Sain", None))
         self.prochain_sain.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
+        self.cadre_a_venir.setTitle(QCoreApplication.translate("EcranParDefaut", u"\u00c0 venir apr\u00e8s le prochain sonore", None))
+#if QT_CONFIG(tooltip)
+        self.table_a_venir.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Les sonores pr\u00e9vus apr\u00e8s le prochain, le plus lointain en haut. Double-clic sur un sonore, un \u00e9v\u00e9nement, une s\u00e9quence ou une banque : ouvrir sa fiche", None))
+#endif // QT_CONFIG(tooltip)
         self.cadre_airplay.setTitle(QCoreApplication.translate("EcranParDefaut", u"Airplay des 12 derni\u00e8res heures", None))
 #if QT_CONFIG(tooltip)
         self.table_airplay.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Double-clic sur un sonore, un \u00e9v\u00e9nement, une s\u00e9quence ou une banque : ouvrir sa fiche", None))

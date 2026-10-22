@@ -288,6 +288,60 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Alors l'airplay montre les passages « f1 », « j1 »
 		Et le log contient 1 info « élément sauté »
 
+	# ─── Playlist immédiate (https://github.com/dascritch/machincast/issues/228) ─────
+
+	Scénario: La socket annonce les cinq sonores qui suivront le prochain, avec leurs heures estimées
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 », « f3 », « f4 », « f5 », « f6 », « f7 »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,4 seconde
+		Et un client lit la socket d'état
+		Alors la socket annonce les sonores à venir « f3 », « f4 », « f5 », « f6 », « f7 », sains
+		Et le premier sonore à venir commencera au « 2026-10-14 19:59:52 » et finira au « 2026-10-14 19:59:53 »
+		Et le dernier sonore à venir commencera au « 2026-10-14 19:59:56 » et finira au « 2026-10-14 19:59:57 »
+		Et le premier sonore à venir vient de l'événement « Continue », permanent
+
+	Scénario: Les sonores à venir se chevauchent comme le prochain, chacun pendant son crossfade
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 », « f3 »
+		Et chaque sonore a 0,5 seconde de crossfade de début et de fin
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,1 seconde
+		Et un client lit la socket d'état
+		Alors le premier sonore à venir commencera au « 2026-10-14 19:59:51 » et finira au « 2026-10-14 19:59:52 »
+
+	Scénario: Un sonore à venir qu'un événement coupera finit à la coupure, et le sonore de l'événement le suit
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 », « f3 »
+		Et le sonore « f3 » dure 600 secondes en base
+		Et l'émission « Journal » de 20:00:00 à 20:30:00, avec le sonore « j1 »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,4 seconde
+		Et un client lit la socket d'état
+		Alors la socket annonce les sonores à venir « f3 », « j1 », « j1 », « j1 », « j1 », sains
+		Et le premier sonore à venir commencera au « 2026-10-14 19:59:52 » et finira au « 2026-10-14 20:00:00 »
+
+	Scénario: Après un stream qui s'éteint à la fin de son événement, le suivant attend la fin de son fondu
+		Étant donné un serveur de flux local, avec le flux « studio » en ligne
+		Et le stream « Direct studio » à l'adresse du flux « studio »
+		Et l'émission « Direct » de 19:59:50 à 20:00:00, avec le sonore « Direct studio »
+		Et le sonore « Direct studio » a 3 seconde de crossfade de fin
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne pendant 1 seconde en temps réel
+		Et un client lit la socket d'état
+		Alors le prochain sonore commencera au « 2026-10-14 20:00:03 »
+
+	Scénario: Rien à diffuser après le prochain : aucun sonore à venir
+		Étant donné l'émission « Journal » de 19:59:50 à 19:59:51, avec le sonore « j1 »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,4 seconde
+		Et un client lit la socket d'état
+		Alors il n'y a aucun sonore à venir
+
+	Scénario: Le sonore en cours dit la priorité de son événement
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,4 seconde
+		Et un client lit la socket d'état
+		Alors le sonore en cours est joué par un événement de priorité « fil_musical »
+
 	# ─── Réservation ───────────────────────────────────────────
 
 	Scénario: Le sonore réservé est celui qui est joué, même tiré au hasard
