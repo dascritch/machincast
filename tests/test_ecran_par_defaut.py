@@ -18,8 +18,8 @@ from typing import Any
 
 import psycopg
 import pytest
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel
+from PySide6.QtCore import QPoint, Qt
+from PySide6.QtWidgets import QLabel, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -33,7 +33,7 @@ from machincast.horloge import HorlogeFixe
 from machincast.interface.application import traduire
 from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.erreur import FenetreBaseInjoignable
-from machincast.interface.frise import Frise
+from machincast.interface.frise import HAUTEUR, Frise
 from machincast.lecture.etat import SocketEtat
 from tests.base_test import CONFIGURATION_TEST, parametres_base_test
 from tests.etapes_interface import ouvrir_dans
@@ -1141,3 +1141,47 @@ def aucune_position(contexte: Contexte) -> None:
 @then(parsers.parse("le plan du sonore « {titre} » n'a été lu qu'une fois en base"))
 def plan_lu_une_fois(contexte: Contexte, titre: str) -> None:
 	assert contexte.plans_lus.count(contexte.en_base[titre][0]) == 1, contexte.plans_lus
+
+
+def _haut(contexte: Contexte, widget: QWidget) -> int:
+	"""L'ordonnée du haut d'un élément, dans l'écran."""
+	return widget.mapTo(ecran(contexte), QPoint(0, 0)).y()
+
+
+@then("les frises du sonore en cours et du prochain sonore sont au-dessus de leur titre, à la même hauteur")
+def frises_en_tete(contexte: Contexte, qtbot: QtBot) -> None:
+	ouvert = ecran(contexte)
+	en_cours, prochain = ouvert.frise_en_cours, ouvert.frise_prochain
+	attendre(qtbot, lambda: (en_cours.isVisible()) and (prochain.isVisible()))
+	assert _haut(contexte, en_cours) == _haut(contexte, prochain)
+	assert _haut(contexte, en_cours) + en_cours.height() <= _haut(contexte, ouvert.ui.en_cours_titre)
+	assert _haut(contexte, prochain) + prochain.height() <= _haut(contexte, ouvert.ui.prochain_titre)
+
+
+@then("le temps qui reste au sonore en cours est entre sa frise et son titre")
+def reste_sous_la_frise(contexte: Contexte) -> None:
+	ouvert = ecran(contexte)
+	reste = _haut(contexte, ouvert.ui.en_cours_reste)
+	assert _haut(contexte, ouvert.frise_en_cours) < reste < _haut(contexte, ouvert.ui.en_cours_titre)
+
+
+@when("la colonne de l'antenne est plus haute qu'il ne lui faut")
+def colonne_haute(contexte: Contexte, qtbot: QtBot) -> None:
+	"""Les frises font les sonores plus hauts que la colonne de l'antenne ne le demande : il y a de la hauteur à
+	prendre. Sans assez de hauteur, l'écran s'allonge, comme sur un poste où les textes sont plus grands."""
+	ouvert = ecran(contexte)
+	colonne = ouvert.ui.colonne_antenne
+	ouvert.ui.cadre_en_cours.setMinimumHeight(colonne.sizeHint().height() + 2 * HAUTEUR)
+	attendre(qtbot, lambda: colonne.height() > colonne.sizeHint().height() + HAUTEUR)
+
+
+@then("le VU-mètre de l'antenne occupe sa colonne : ses voyants gardent leur hauteur, il prend le reste")
+def vumetre_dans_sa_colonne(contexte: Contexte) -> None:
+	ui = ecran(contexte).ui
+	for voyant in (ui.voyant_saturation, ui.voyant_silence, ui.etat_moniteur):
+		# Un texte qui passe à la ligne a la hauteur de ses lignes, à sa largeur.
+		attendue = voyant.sizeHint().height()
+		if voyant.hasHeightForWidth():
+			attendue = voyant.heightForWidth(voyant.width())
+		assert voyant.height() == attendue, (voyant.objectName(), voyant.height(), attendue)
+	assert ui.colonne_antenne.height() == ui.cadre_en_cours.height()
