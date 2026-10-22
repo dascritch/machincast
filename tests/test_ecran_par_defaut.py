@@ -798,7 +798,7 @@ def progression(contexte: Contexte, qtbot: QtBot, bientot: str | None, texte: st
 	def montre() -> str:
 		if ouvert.ui.en_cours_progression.isVisibleTo(ouvert):
 			return ouvert.ui.en_cours_progression.text()
-		return ouvert.ui.en_cours_reste.text()
+		return ouvert.frise_en_cours.legende
 
 	if bientot:
 		attendre(qtbot, lambda: montre() == texte)
@@ -1158,11 +1158,15 @@ def frises_en_tete(contexte: Contexte, qtbot: QtBot) -> None:
 	assert _haut(contexte, prochain) + prochain.height() <= _haut(contexte, ouvert.ui.prochain_titre)
 
 
-@then("le temps qui reste au sonore en cours est entre sa frise et son titre")
-def reste_sous_la_frise(contexte: Contexte) -> None:
+@then("le temps qui reste au sonore en cours est écrit au milieu de sa frise, sans autre ligne sous elle")
+def reste_dans_la_frise(contexte: Contexte) -> None:
 	ouvert = ecran(contexte)
-	reste = _haut(contexte, ouvert.ui.en_cours_reste)
-	assert _haut(contexte, ouvert.frise_en_cours) < reste < _haut(contexte, ouvert.ui.en_cours_titre)
+	frise = ouvert.frise_en_cours
+	assert frise.legende.startswith("reste "), frise.legende
+	assert frise.fond_de_la_legende() is not None
+	assert not hasattr(ouvert.ui, "en_cours_reste")
+	espace = ouvert.ui.disposition_en_cours.spacing()
+	assert _haut(contexte, frise) + frise.height() + espace >= _haut(contexte, ouvert.ui.en_cours_titre) - 1
 
 
 @when("la colonne de l'antenne est plus haute qu'il ne lui faut")

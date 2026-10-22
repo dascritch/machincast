@@ -123,16 +123,6 @@
          </widget>
         </item>
         <item>
-         <widget class="QLabel" name="en_cours_reste">
-          <property name="text">
-           <string>—</string>
-          </property>
-          <property name="textInteractionFlags">
-           <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
-          </property>
-         </widget>
-        </item>
-        <item>
          <widget class="QProgressBar" name="en_cours_progression">
           <property name="maximum">
            <number>100</number>

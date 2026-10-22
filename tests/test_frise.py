@@ -10,7 +10,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import QPoint, QRectF, Qt
 from PySide6.QtWidgets import QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
@@ -337,3 +337,23 @@ def pareil(essai: Essai) -> None:
 	frise.setEnabled(False)
 	inactive = frise.grab().toImage()
 	assert active == inactive
+
+
+@when(parsers.parse("la frise a pour légende « {texte} »"))
+def legende(essai: Essai, texte: str) -> None:
+	essai.la_frise().montrer_la_legende(texte)
+
+
+@then("la légende de la frise est centrée, sur un fond qui l'entoure")
+def legende_centree(essai: Essai) -> None:
+	"""Calculée à part du dessin (https://github.com/dascritch/machincast/issues/230) : le fond, centré sur la frise,
+	contient le texte, et tient dans la frise."""
+	frise = essai.la_frise()
+	fond = frise.fond_de_la_legende()
+	assert fond is not None
+	centre = QRectF(frise.rect()).center()
+	assert abs(fond.center().x() - centre.x()) <= 1, (fond, centre)
+	assert abs(fond.center().y() - centre.y()) <= 1, (fond, centre)
+	texte = frise.fontMetrics().boundingRect(frise.legende)
+	assert (fond.width() > texte.width()) and (fond.height() > texte.height()), (fond, texte)
+	assert QRectF(frise.rect()).contains(fond), (fond, frise.rect())

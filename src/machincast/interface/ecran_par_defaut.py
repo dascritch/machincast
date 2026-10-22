@@ -243,17 +243,20 @@ class EcranParDefaut(QWidget):
 
 	def _afficher_progression(self, sonore: SonoreAffiche | None) -> None:
 		"""Le temps qui reste au sonore en cours, plutôt qu'un pourcentage : sur la barre de progression d'un stream,
-		sous la frise d'un fichier, qui la remplace (https://github.com/dascritch/machincast/issues/230)."""
+		au milieu de la frise d'un fichier, qui la remplace (https://github.com/dascritch/machincast/issues/230)."""
 		texte, valeur = _avancement(sonore)
 		self.avancement_en_cours = valeur
 		fichier = (sonore is not None) and (not sonore.stream)
 		barre = self.ui.en_cours_progression
 		barre.setVisible(not fichier)
-		self.ui.en_cours_reste.setVisible(fichier)
 		barre.setValue(valeur)
 		# Texte composé ici : les codes de format de Qt s'écrivent avec la notation %, que refuse socle.feature.
 		barre.setFormat(texte)
-		self.ui.en_cours_reste.setText(texte)
+		# Pour un fichier, au milieu de sa frise ; vide pour un stream, qui garde sa barre.
+		legende = ""
+		if fichier:
+			legende = texte
+		self.frise_en_cours.montrer_la_legende(legende)
 		self._montrer_la_frise(self.frise_en_cours, sonore)
 
 	# ─── Frises (https://github.com/dascritch/machincast/issues/230) ───

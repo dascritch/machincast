@@ -91,12 +91,6 @@ class Ui_EcranParDefaut(object):
 
         self.disposition_en_cours.addWidget(self.place_frise_en_cours)
 
-        self.en_cours_reste = QLabel(self.cadre_en_cours)
-        self.en_cours_reste.setObjectName(u"en_cours_reste")
-        self.en_cours_reste.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-
-        self.disposition_en_cours.addWidget(self.en_cours_reste)
-
         self.en_cours_progression = QProgressBar(self.cadre_en_cours)
         self.en_cours_progression.setObjectName(u"en_cours_progression")
         self.en_cours_progression.setMaximum(100)
@@ -473,7 +467,6 @@ class Ui_EcranParDefaut(object):
 #if QT_CONFIG(tooltip)
         self.place_frise_en_cours.setToolTip(QCoreApplication.translate("EcranParDefaut", u"Forme d'onde, blancs et fondus du sonore en cours, tels que la diffusion le joue", None))
 #endif // QT_CONFIG(tooltip)
-        self.en_cours_reste.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
         self.en_cours_progression.setFormat(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
         self.en_cours_titre.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
 #if QT_CONFIG(tooltip)
