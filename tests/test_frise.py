@@ -275,6 +275,53 @@ def sonore(essai: Essai, de: str, a: str) -> None:
 	assert (amplitudes) and (all(0.4 <= amplitude <= 0.6 for amplitude in amplitudes)), amplitudes
 
 
+@then(
+	parsers.parse(
+		"le niveau moyen de la forme d'onde est de {niveau} de {de} à {a} seconde, et nul de {de_2} à {a_2} seconde"
+	)
+)
+def niveau_moyen(essai: Essai, niveau: str, de: str, a: str, de_2: str, a_2: str) -> None:
+	forme = essai.forme
+	assert forme is not None
+	assert len(forme.moyens) == len(forme.pics)
+	moyens = forme.moyens_entre(secondes(de), secondes(a))
+	assert (moyens) and (all(abs(moyen - secondes(niveau)) < 0.03 for moyen in moyens)), moyens
+	silences = forme.moyens_entre(secondes(de_2), secondes(a_2))
+	assert (silences) and (max(silences) < 0.01), silences
+
+
+@then(
+	parsers.parse(
+		"dessinée sur une frise de {largeur:d} points, le niveau moyen reste sous les crêtes, en chaque point"
+	)
+)
+def moyen_sous_les_cretes(essai: Essai, largeur: int) -> None:
+	frise = Frise(essai.parent)
+	frise.resize(largeur, 40)
+	frise.montrer(None, 2.0)
+	frise.montrer_la_forme(essai.forme)
+	cretes, moyens = frise.colonnes(), frise.colonnes_moyennes()
+	assert len(cretes) == len(moyens)
+	assert all(moyen <= crete for moyen, crete in zip(moyens, cretes, strict=True))
+	assert max(moyens) > 0.3
+
+
+@then("la frise de cette forme d'onde dessine le niveau moyen par-dessus les crêtes, plus foncé")
+def moyen_dessine(essai: Essai) -> None:
+	"""Au milieu de la frise, sur la ligne médiane, le niveau moyen ; près du bord haut de la partie sonore, la crête
+	seule, plus claire."""
+	frise = Frise(essai.parent)
+	frise.resize(400, 100)
+	frise.montrer(None, 2.0)
+	frise.montrer_la_forme(essai.forme)
+	image = frise.grab().toImage()
+	fond = image.pixelColor(200, 3).lightness()
+	moyen = image.pixelColor(200, 50).lightness()
+	# La crête monte à mi-hauteur au-dessus du milieu (0,5 de 48 points), le niveau moyen à 0,35.
+	crete = image.pixelColor(200, 50 - 21).lightness()
+	assert moyen < crete < fond, (moyen, crete, fond)
+
+
 @then("la forme d'onde est bientôt indisponible")
 def indisponible(essai: Essai, qtbot: QtBot) -> None:
 	assert essai.forme is not None

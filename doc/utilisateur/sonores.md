@@ -82,16 +82,19 @@ La fiche d'un sonore s'ouvre dans un onglet nommé « Sonore : » suivi de son t
 
 ![La fiche du sonore « Café à minuit » : son état, ses métadonnées dépliées, et ses derniers passages à l'antenne](../captures/fiche-sonore.png)
 
-**Encarts** : pour garder l'essentiel en vue, **Métadonnées**, **Diffusion**, **Détection de blanc**, **Relations** et **Fichier** s'ouvrent repliés, leur titre précédé de « ▸ ». Un clic sur le titre les déplie (« ▾ »).
+**Frise** ([#223](https://github.com/dascritch/machincast/issues/223)) : en haut de la fiche d'un fichier, sur toute sa largeur, la [frise](#frise-dun-fichier) montre le fichier tel que l'antenne le jouera. Elle suit aussitôt ce qu'on change dans la fiche, avant même d'enregistrer : crossfades, blancs détectés et **Jouer sans les blancs détectés**.
 
-- **Sonore** : le type, l'emplacement du fichier et sa durée, qui ne se modifient pas, et l'**état** : `actif` ou `désactivé` ; un sonore `expiré`, `erroné` ou `supprimé` peut revenir à `actif`. Un sonore en `aperçu` attend sa vérification. Le bouton **Dossier…** ouvre le dossier du fichier dans le navigateur de fichiers du poste.
+**Encarts** : pour garder l'essentiel en vue, **Métadonnées**, **Diffusion**, **Enchainement**, **Relations** et **Fichier** s'ouvrent repliés, leur titre précédé de « ▸ ». Un clic sur le titre les déplie (« ▾ »). Les encarts dépliés sont retenus : la fiche de sonore suivante les montre dépliés de même, même après avoir relancé l'interface.
+
+- **Sonore** : le type, l'emplacement du fichier et sa durée, qui ne se modifient pas, et l'**état** : `actif` ou `désactivé` ; un sonore `expiré`, `erroné` ou `supprimé` peut revenir à `actif`. La liste montre tous les états, ceux qu'on ne peut pas choisir grisés. Un sonore en `aperçu` attend sa vérification. Le bouton **Dossier…** ouvre le dossier du fichier dans le navigateur de fichiers du poste.
 - **Métadonnées** : artiste, titre et les autres champs des [tags](#tags-et-métadonnées).
 - **Diffusion** :
-  - **Crossfade de début et de fin**, à cocher : décochés, ils viennent de la banque ou des préférences ([Enchaînements](antenne.md#enchaînements)) ; 0 seconde est un crossfade paramétré ;
-  - **Maximum de lectures** : `illimité` à 0 ([Expiration des sonores](antenne.md#expiration-des-sonores)) ;
   - **Artiste et titre** : `Masqués` ou `Affichés` sur la page publique, sauf si l'événement, la séquence ou la banque en décide ([Page publique et masquage](antenne.md#page-publique-et-masquage)) ;
-  - **Diffusion à partir du**, **Diffusion jusqu'au** : la période de diffusion, chacune à cocher.
-- **Détection de blanc**, pour un fichier : **Jouer sans les blancs détectés**, et le **début** et la **fin détectés**, en secondes, mesurés par l'audit complet et corrigibles à la main ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)).
+  - **Diffusion à partir du**, **Diffusion jusqu'au** : la période de diffusion, chacune à cocher ;
+  - **Maximum de lectures** : `illimité` à 0 ([Expiration des sonores](antenne.md#expiration-des-sonores)).
+- **Enchainement** :
+  - pour un fichier, **Jouer sans les blancs détectés**, et le **début** et la **fin détectés**, en secondes, mesurés par l'audit complet et corrigibles à la main ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)) ;
+  - **Crossfade de début** et **Crossfade de fin**, à cocher, chacun réglé d'un curseur de 0 à la durée maximale des [préférences](prise-en-main.md#préférences), 10 secondes par défaut, sa valeur écrite à droite : décochés, ils viennent de la banque ou des préférences ([Enchaînements](antenne.md#enchaînements)) ; 0 seconde est un crossfade paramétré.
 - **Stream** : l'**adresse directe** ou un **marque-page**, et l'**événement de secours** ([Streams](antenne.md#streams)). **Tester le flux** se connecte à l'adresse saisie et dit, par exemple, `Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 128 kbit/s.` : le type du flux et son débit ([#223](https://github.com/dascritch/machincast/issues/223)), ou pourquoi il ne répond pas. Rien n'est joué à l'antenne.
 - **Relations** : les séquences, banques et événements qui citent le sonore ; un double-clic ouvre leur fiche. Une banque dont le sonore sort des durées y a l'icône d'avertissement, avec une infobulle qui dit pourquoi.
 - **Fichier** : le type réel du fichier, son encodage moyen, sa taille, ses dates et sa dernière vérification complète.
@@ -120,7 +123,7 @@ Un fichier a une **frise** ([#224](https://github.com/dascritch/machincast/issue
 
 ![La pré-écoute d'un fichier, en pause : sa forme d'onde, ses blancs hachurés aux deux bouts, ses fondus d'entrée et de sortie, et la partie jouée à l'antenne](../captures/preecoute-fichier.png)
 
-- **Forme d'onde** : elle se dessine dès l'ouverture, au fil du décodage du fichier, sans faire attendre la fenêtre.
+- **Forme d'onde** : elle se dessine dès l'ouverture, au fil du décodage du fichier, sans faire attendre la fenêtre. En clair, les **crêtes** du signal ; par-dessus, plus foncé, son **niveau moyen** ([#223](https://github.com/dascritch/machincast/issues/223)) : un passage fort mais peu dense a des crêtes hautes et un niveau moyen bas.
 - **Blancs** au début et à la fin, tels que la dernière vérification complète les a mesurés ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)) : **hachures serrées** s'ils sont retirés à l'antenne, **hachures pâles** s'ils y sont joués. Un fichier jamais vérifié le dit, sous la frise : « blancs jamais mesurés ».
 - **Fondus** : le crossfade de début monte, celui de fin descend, placés autour des blancs retirés selon les [positions des fondus](antenne.md#blancs-au-début-et-à-la-fin) ([#234](https://github.com/dascritch/machincast/issues/234)) ; l'infobulle dit la position (« se termine au début détecté »). Un fondu qui déborde du fichier part, ou s'arrête, en cours de route. Un crossfade non renseigné dans la fiche est celui des préférences, marqué « (défaut) » dans l'infobulle.
 - **Tête de lecture** : un clic sur la frise y place la lecture, comme un glissement une fois relâché. Les flèches du clavier la déplacent d'une seconde. L'infobulle nomme ce qui est sous la souris.

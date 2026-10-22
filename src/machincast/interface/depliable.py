@@ -2,8 +2,12 @@
 
 Un encart (QGroupBox) devient dépliable : son contenu passe dans un conteneur intérieur, qu'un clic sur le titre, ou
 Espace et Entrée quand l'encart a le focus, montre ou cache. Le titre commence par « ▾ » déplié, « ▸ » replié. Ce
-que la fiche cache ou montre dans l'encart, selon le sonore, n'est pas touché : seul le conteneur l'est.
+que la fiche cache ou montre dans l'encart, selon le sonore, n'est pas touché : seul le conteneur l'est. Une fonction
+retenir, facultative, apprend chaque dépliage ou repliage fait à la main, pour que d'autres fiches s'en souviennent
+(https://github.com/dascritch/machincast/issues/223).
 """
+
+from collections.abc import Callable
 
 from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent
@@ -20,7 +24,11 @@ HAUTEUR_LIBRE = 16777215
 """La hauteur maximale d'un widget de Qt (QWIDGETSIZE_MAX) : celle d'un encart déplié."""
 
 
-def rendre_depliable(groupe: QGroupBox, deplie: bool = False) -> None:
+Retenir = Callable[[QGroupBox, bool], None]
+"""Ce qui retient un encart déplié (True) ou replié (False) à la main."""
+
+
+def rendre_depliable(groupe: QGroupBox, deplie: bool = False, retenir: Retenir | None = None) -> None:
 	contenu = QWidget(groupe)
 	contenu.setObjectName(CONTENU)
 	disposition = groupe.layout()
@@ -33,7 +41,7 @@ def rendre_depliable(groupe: QGroupBox, deplie: bool = False) -> None:
 	groupe.setProperty(TITRE, groupe.title())
 	groupe.setFocusPolicy(Qt.FocusPolicy.TabFocus)
 	groupe.setToolTip("Cliquer sur le titre pour déplier ou replier")
-	groupe.installEventFilter(_Titre(groupe))
+	groupe.installEventFilter(_Titre(groupe, retenir))
 	montrer(groupe, deplie)
 
 
@@ -70,20 +78,26 @@ def basculer(groupe: QGroupBox) -> None:
 class _Titre(QObject):
 	"""Le clic sur le titre de l'encart, ou Espace et Entrée, le déplie ou le replie."""
 
-	def __init__(self, groupe: QGroupBox) -> None:
+	def __init__(self, groupe: QGroupBox, retenir: Retenir | None) -> None:
 		super().__init__(groupe)
 		self.groupe = groupe
+		self.retenir = retenir
+
+	def _basculer(self) -> None:
+		basculer(self.groupe)
+		if self.retenir is not None:
+			self.retenir(self.groupe, not est_replie(self.groupe))
 
 	def eventFilter(self, _objet: QObject, evenement: QEvent) -> bool:
 		if evenement.type() == QEvent.Type.MouseButtonPress:
 			assert isinstance(evenement, QMouseEvent)
 			hauteur = self.groupe.fontMetrics().height() + MARGE_DU_TITRE
 			if (evenement.button() == Qt.MouseButton.LeftButton) and (evenement.position().y() <= hauteur):
-				basculer(self.groupe)
+				self._basculer()
 				return True
 		if evenement.type() == QEvent.Type.KeyPress:
 			assert isinstance(evenement, QKeyEvent)
 			if evenement.key() in (Qt.Key.Key_Space, Qt.Key.Key_Return, Qt.Key.Key_Enter):
-				basculer(self.groupe)
+				self._basculer()
 				return True
 		return False

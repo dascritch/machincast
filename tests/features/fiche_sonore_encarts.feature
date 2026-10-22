@@ -4,8 +4,9 @@ Fonctionnalité: Encarts dépliables et vérification complète dans la fiche d'
 	je veux une fiche de sonore plus compacte, et vérifier un fichier en entier depuis elle,
 	afin de voir l'essentiel d'un coup d'œil, et de contrôler un fichier douteux sans auditer toute la discothèque.
 
-	https://github.com/dascritch/machincast/issues/190, spec § 8.3. Les encarts « Métadonnées », « Diffusion », « Détection
-	de blanc », « Relations » et « Fichier » sont repliés à l'ouverture de la fiche ; un clic sur leur titre les déplie.
+	https://github.com/dascritch/machincast/issues/190 et https://github.com/dascritch/machincast/issues/223, spec § 8.3.
+	Les encarts « Métadonnées », « Diffusion », « Enchainement », « Relations » et « Fichier » sont repliés à la première
+	ouverture d'une fiche ; un clic sur leur titre les déplie, et les fiches de sonore suivantes les déplient de même.
 	« Vérification complète », à côté de « Pré-écoute… », fait l'audit complet du fichier du sonore, en tâche de fond :
 	le bouton attend la fin, puis une question propose de rafraîchir la fiche. Le décodage peut être retenu par le
 	scénario, pour observer l'attente. Le fichier de test n'a pas de tags : l'audit complet efface le titre « Neige », que
@@ -17,7 +18,7 @@ Fonctionnalité: Encarts dépliables et vérification complète dans la fiche d'
 		Et le fichier de test « sain.flac » copié en « …/jingles/neige.flac »
 		Et les sonores :
 			| artiste | titre  | type    | etat  | duree | emplacement                 |
-			|         | Neige  | fichier | actif |       | …/jingles/neige.flac        |
+			|         | Neige  | fichier | actif | 10    | …/jingles/neige.flac        |
 			|         | Direct | stream  | actif |       | https://flux.exemple/direct |
 		Et les événements :
 			| nom         | nom_public | priorite    | debut | fin | jours |
@@ -28,7 +29,7 @@ Fonctionnalité: Encarts dépliables et vérification complète dans la fiche d'
 	Scénario: Les encarts secondaires d'un fichier sont repliés à l'ouverture de sa fiche
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Neige »
-		Alors les encarts repliés de la fiche sont « Métadonnées », « Diffusion », « Détection de blanc », « Relations », « Fichier »
+		Alors les encarts repliés de la fiche sont « Métadonnées », « Diffusion », « Enchainement », « Relations », « Fichier »
 		Et les encarts dépliés de la fiche sont « Sonore », « Derniers passages »
 		Et l'encart « Fichier » a pour titre « ▸ Fichier », et cache la dernière vérification complète
 
@@ -36,20 +37,94 @@ Fonctionnalité: Encarts dépliables et vérification complète dans la fiche d'
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Neige »
 		Et je clique sur le titre de l'encart « Fichier »
-		Alors les encarts repliés de la fiche sont « Métadonnées », « Diffusion », « Détection de blanc », « Relations »
+		Alors les encarts repliés de la fiche sont « Métadonnées », « Diffusion », « Enchainement », « Relations »
 		Et l'encart « Fichier » a pour titre « ▾ Fichier », et montre la dernière vérification complète
 		Et la fiche montre la dernière vérification complète « jamais »
 		Quand je clique dans l'encart « Fichier », sous son titre
-		Alors les encarts repliés de la fiche sont « Métadonnées », « Diffusion », « Détection de blanc », « Relations »
+		Alors les encarts repliés de la fiche sont « Métadonnées », « Diffusion », « Enchainement », « Relations »
 		Quand je clique sur le titre de l'encart « Fichier »
-		Alors les encarts repliés de la fiche sont « Métadonnées », « Diffusion », « Détection de blanc », « Relations », « Fichier »
+		Alors les encarts repliés de la fiche sont « Métadonnées », « Diffusion », « Enchainement », « Relations », « Fichier »
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
 
-	Scénario: La fiche d'un stream n'a ni « Fichier » ni « Détection de blanc », et replie les autres
+	Scénario: La fiche d'un stream n'a ni « Fichier » ni « Enchainement », et replie les autres
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
 		Alors les encarts repliés de la fiche sont « Métadonnées », « Diffusion », « Relations »
 		Et les encarts dépliés de la fiche sont « Sonore », « Stream », « Derniers passages »
+
+	Scénario: Les encarts dépliés sont retenus, et dépliés sur les fiches de sonore suivantes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Et je clique sur le titre de l'encart « Métadonnées »
+		Et je clique sur le titre de l'encart « Enchainement »
+		Et j'ouvre la fiche du sonore « Direct »
+		Alors les encarts dépliés de la fiche sont « Sonore », « Stream », « Métadonnées », « Derniers passages »
+		Quand je clique sur le titre de l'encart « Métadonnées »
+		Et la fenêtre de l'interface se ferme, puis s'ouvre de nouveau
+		Et j'ouvre la fiche du sonore « Neige »
+		Alors les encarts dépliés de la fiche sont « Sonore », « Enchainement », « Derniers passages »
+
+	# ─── Contenu des encarts (https://github.com/dascritch/machincast/issues/223) ─────
+
+	Scénario: « Diffusion » donne l'artiste et le titre, la période de diffusion et le maximum de lectures, dans cet ordre
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Alors l'encart « Diffusion » a les champs « Artiste et titre », « Diffusion à partir du », « Diffusion jusqu'au », « Maximum de lectures »
+		Et l'encart « Enchainement » a les champs « Jouer sans les blancs détectés », « Début détecté », « Fin détectée », « Crossfade de début », « Crossfade de fin »
+
+	Scénario: Un crossfade se règle d'un curseur, de 0 à la durée maximale des préférences, à leur pas
+		Étant donné les crossfades des préférences au dixième de seconde, jusqu'à 10 secondes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Alors le crossfade de début de la fiche est un curseur horizontal de 0 à 10 secondes, au pas de 0,1 seconde
+		Quand je coche le crossfade de début de la fiche, et pousse son curseur de 25 crans
+		Alors le crossfade de début de la fiche montre « 2,5 s »
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
+
+	Scénario: Un crossfade enregistré plus long que la durée maximale allonge le curseur, sans être raboté
+		Étant donné les crossfades des préférences au dixième de seconde, jusqu'à 10 secondes
+		Et le sonore « Neige » a 15 secondes de crossfade de début en base
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Alors le crossfade de début de la fiche montre « 15,0 s »
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
+
+	Scénario: L'état montre toutes les possibilités, celles que l'interface ne pose pas grisées
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Alors l'état de la fiche propose :
+			| état        | choix     |
+			| aperçu      | grisé     |
+			| actif       | choisi    |
+			| désactivé   | possible  |
+			| expiré      | grisé     |
+			| erroné      | grisé     |
+			| non supporté| grisé     |
+			| supprimé    | grisé     |
+
+	# ─── Frise (https://github.com/dascritch/machincast/issues/223) ─────
+
+	Scénario: La fiche d'un fichier montre sa frise sur toute sa largeur, au-dessus des encarts
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Alors la frise de la fiche est sur toute sa largeur, au-dessus des encarts
+		Et la frise de la fiche dessine bientôt la forme d'onde de son fichier
+
+	Scénario: La frise suit aussitôt les crossfades, les blancs détectés et leur retrait, avant tout enregistrement
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Et je coche le crossfade de fin de la fiche, et pousse son curseur de 12 crans
+		Alors la frise de la fiche montre un crossfade de fin de 1,2 seconde
+		Quand je coche le début détecté de la fiche, à 0,3 seconde
+		Et je coche « Jouer sans les blancs détectés » dans la fiche
+		Alors la frise de la fiche montre un crossfade de fin de 1,2 seconde, un blanc de 0,3 seconde au début, retiré à l'antenne
+		Quand je décoche « Jouer sans les blancs détectés » dans la fiche
+		Alors la frise de la fiche montre les blancs joués
+
+	Scénario: La fiche d'un stream n'a pas de frise
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Direct »
+		Alors la fiche n'a pas de frise
 
 	# ─── Vérification complète ─────────────────────────────────
 

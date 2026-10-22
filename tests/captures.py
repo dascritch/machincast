@@ -13,6 +13,7 @@ un changement d'écran, puis les relire avant de les livrer avec le ticket.
 """
 
 import dataclasses
+import functools
 import logging
 import math
 import os
@@ -42,6 +43,7 @@ from machincast.horloge import HorlogeFixe  # noqa: E402
 from machincast.interface import colonnes, depliable  # noqa: E402
 from machincast.interface.calendrier import Calendrier  # noqa: E402
 from machincast.interface.fenetre import FenetrePrincipale  # noqa: E402
+from machincast.interface.fiche_sonore import FicheSonore  # noqa: E402
 from machincast.interface.preecoute import FenetrePreecoute  # noqa: E402
 from machincast.interface.preferences import FenetrePreferences, Reglages  # noqa: E402
 from machincast.interface.recherche import EcranRecherche  # noqa: E402
@@ -515,12 +517,16 @@ def _affiche(demonstration: Demonstration, rang: int, cle_debut: str) -> dict[st
 	}
 
 
+def _forme_finie(fiche: FicheSonore) -> bool:
+	return (fiche.forme is not None) and (fiche.forme.finie)
+
+
 def donner_du_relief(connexion: Connexion, demonstration: Demonstration) -> None:
 	"""Les frises de l'accueil (https://github.com/dascritch/machincast/issues/230) : le sonore en cours et le
 	prochain ont un fichier généré à leur durée, à basse fréquence pour l'écrire vite, et leurs blancs et
-	crossfades, tels qu'un audit complet et leur fiche les auraient posés."""
-	for rang, graine in ((-1, 0.0), (-6, 2.0)):
-		cle = demonstration.passages[rang][2]
+	crossfades, tels qu'un audit complet et leur fiche les auraient posés. De même pour « Café à minuit », dont la
+	fiche montre la frise (https://github.com/dascritch/machincast/issues/223)."""
+	for cle, graine in ((demonstration.passages[-1][2], 0.0), (demonstration.passages[-6][2], 2.0), ("cafe", 4.0)):
 		generer_blancs(_emplacement(cle), morceaux_de_respiration(SONORES[cle].duree, graine), frequence=4000)
 		connexion.execute(
 			"UPDATE sonores SET debut_detecte = '1 s', fin_detectee = '1.5 s', detection_blancs = true,"
@@ -674,6 +680,9 @@ def produire(repertoire: Path) -> dict[str, Path]:
 			fenetre._ouvrir(genre, identifiant, "")
 			if genre == "sonore":
 				_deplier(fenetre, "Métadonnées")
+				fiche = fenetre.ui.onglets.currentWidget()
+				assert isinstance(fiche, FicheSonore)
+				attendre(functools.partial(_forme_finie, fiche))
 			prendre(nom, fenetre)
 			_fermer_l_onglet(fenetre)
 		fenetre._ouvrir_calendrier()
@@ -699,7 +708,7 @@ def produire(repertoire: Path) -> dict[str, Path]:
 		prendre("preferences", preferences)
 		preferences.close()
 		preecoute = FenetrePreecoute(connexion, audio, configuration)
-		preecoute.ecouter_l_antenne()
+		preecoute.ecouter_l_antenne("Café Noir – Nuit blanche")
 		preecoute.show()
 		prendre("preecoute", preecoute)
 		preecoute.preecouter(demonstration.sonores["respiration"])

@@ -146,6 +146,16 @@ Fonctionnalité: Frise de la pré-écoute d'un fichier
 		Et la forme d'onde est sonore de 0,6 à 1,4 seconde, à mi-hauteur
 		Et dessinée sur une frise de 400 points, la forme d'onde couvre chaque point de 0,6 à 1,4 seconde, sans trou
 
+	Scénario: La forme d'onde trace les crêtes, et par-dessus le niveau moyen
+		Le fichier de test est une sinusoïde : son niveau moyen (RMS) est sa crête divisée par la racine de 2
+		(https://github.com/dascritch/machincast/issues/223).
+
+		Étant donné la forme d'onde du fichier de test « blancs.flac », de 2 secondes, en cours de calcul
+		Et la forme d'onde est bientôt complète
+		Alors le niveau moyen de la forme d'onde est de 0,35 de 0,6 à 1,4 seconde, et nul de 0 à 0,45 seconde
+		Et dessinée sur une frise de 400 points, le niveau moyen reste sous les crêtes, en chaque point
+		Et la frise de cette forme d'onde dessine le niveau moyen par-dessus les crêtes, plus foncé
+
 	Scénario: Un fichier illisible n'a pas de forme d'onde, et la frise le dit
 		Étant donné la forme d'onde d'un fichier qui n'est pas un sonore, en cours de calcul
 		Alors la forme d'onde est bientôt indisponible

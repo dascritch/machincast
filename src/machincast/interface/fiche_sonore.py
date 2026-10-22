@@ -38,17 +38,28 @@ from pathlib import Path
 
 from psycopg import sql
 from psycopg.types.json import Jsonb
-from PySide6.QtCore import QDateTime, Qt, Signal
-from PySide6.QtGui import QIntValidator
-from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QDoubleSpinBox, QLineEdit, QTableWidgetItem, QWidget
+from PySide6.QtCore import QDateTime, Qt, QTimer, Signal
+from PySide6.QtGui import QIntValidator, QStandardItemModel
+from PySide6.QtWidgets import (
+	QCheckBox,
+	QDateTimeEdit,
+	QDoubleSpinBox,
+	QGroupBox,
+	QLineEdit,
+	QTableWidgetItem,
+	QVBoxLayout,
+	QWidget,
+)
 
 from machincast.conformation import conformer
 from machincast.conversion import duree_ou_rien, texte_ou_rien
 from machincast.horloge import Horloge
-from machincast.interface import affichage, depliable, dialogues, icones, preferences
+from machincast.interface import affichage, colonnes, depliable, dialogues, icones, preferences
 from machincast.interface.colonnes import Colonnes
+from machincast.interface.curseur import CurseurDeDuree
 from machincast.interface.essai_flux import EssaiDeFlux, resultat_de_l_essai
 from machincast.interface.fiche import Connexion, Fiche, Refus
+from machincast.interface.frise import FormeDOnde, Frise, plan_du_sonore
 from machincast.interface.listes import ETATS
 from machincast.interface.ui.fiche_sonore import Ui_FicheSonore
 
@@ -123,6 +134,7 @@ NOUVEAU_STREAM: tuple[object, ...] = (
 	False,
 	None,
 	None,
+	False,
 )
 """Ce que montre la fiche d'un nouveau stream, dans l'ordre des colonnes lues."""
 RELATION = Qt.ItemDataRole.UserRole
@@ -132,6 +144,14 @@ PASSAGES = 50
 URL = Qt.ItemDataRole.UserRole + 1
 """Rôle qui porte l'adresse d'un marque-page, dans son choix."""
 
+
+ENCARTS_DEPLIES = "fiche-sonore/encarts-deplies"
+"""Dans les réglages des vues du compte (machincast.interface.colonnes) : les encarts dépliés des fiches de sonore."""
+RELEVE_DE_LA_FORME = 100
+"""Millisecondes entre deux relèves de la forme d'onde en cours de calcul."""
+TITRE_DE_LA_FRISE = (
+	"Le fichier tel que l'antenne le jouera, selon les réglages de la fiche, même pas encore enregistrés"
+)
 
 DELAI_DE_STAT = 5
 """Secondes laissées à stat pour lire la date de création d'un fichier, sur un partage réseau par exemple."""
@@ -154,9 +174,20 @@ class FicheSonore(Fiche):
 		self.metadonnees: dict[str, QLineEdit] = {cle: getattr(self.ui, cle) for cle, _nom in METADONNEES}
 		for cle in ENTIERS:
 			self.metadonnees[cle].setValidator(QIntValidator(0, 9999, self))
-		# Le pas et la durée maximale des préférences (https://github.com/dascritch/machincast/issues/145).
+		# Le pas et la durée maximale des préférences (https://github.com/dascritch/machincast/issues/145), sur un
+		# curseur (https://github.com/dascritch/machincast/issues/223).
 		for crossfade in (self.ui.crossfade_debut, self.ui.crossfade_fin):
-			preferences.regler_selon_les_preferences(crossfade)
+			crossfade.regler_selon_les_preferences()
+		# La frise, sur toute la largeur de la fiche (https://github.com/dascritch/machincast/issues/223).
+		self.frise = Frise(self.ui.place_frise, interactive=False)
+		disposition_de_la_frise = QVBoxLayout(self.ui.place_frise)
+		disposition_de_la_frise.setContentsMargins(0, 0, 0, 0)
+		disposition_de_la_frise.addWidget(self.frise)
+		self.forme: FormeDOnde | None = None
+		self._audite = False
+		self._releve_de_la_forme = QTimer(self)
+		self._releve_de_la_forme.setInterval(RELEVE_DE_LA_FORME)
+		self._releve_de_la_forme.timeout.connect(self._relever_la_forme)
 		for _valeur, texte in MASQUAGES:
 			self.ui.masquage.addItem(texte)
 		self.essai = EssaiDeFlux(self)
@@ -166,6 +197,8 @@ class FicheSonore(Fiche):
 		self._fichier = False
 		"""Le sonore lu est un fichier : seul un fichier se vérifie."""
 		self._en_verification = False
+		# Les encarts dépliés sont retenus pour le compte (https://github.com/dascritch/machincast/issues/223).
+		deplies = encarts_deplies()
 		for groupe in (
 			self.ui.groupe_metadonnees,
 			self.ui.groupe_diffusion,
@@ -173,7 +206,7 @@ class FicheSonore(Fiche):
 			self.ui.groupe_relations,
 			self.ui.groupe_fichier,
 		):
-			depliable.rendre_depliable(groupe)
+			depliable.rendre_depliable(groupe, groupe.objectName() in deplies, retenir_l_encart)
 		self.essai.termine.connect(self._essai_termine)
 		self._nom = ""
 		self._initiales: dict[str, object] = {}
@@ -182,24 +215,29 @@ class FicheSonore(Fiche):
 			champ.textChanged.connect(self._modifier)
 		for choix in (self.ui.etat, self.ui.masquage, self.ui.marque_page, self.ui.secours):
 			choix.currentIndexChanged.connect(self._modifier)
-		for nombre in (self.ui.crossfade_debut, self.ui.crossfade_fin, self.ui.max_lectures):
-			nombre.valueChanged.connect(self._modifier)
-		for case, nombre in (
+		self.ui.max_lectures.valueChanged.connect(self._modifier)
+		for case, curseur in (
 			(self.ui.a_crossfade_debut, self.ui.crossfade_debut),
 			(self.ui.a_crossfade_fin, self.ui.crossfade_fin),
 		):
-			case.toggled.connect(nombre.setEnabled)
+			curseur.valueChanged.connect(self._modifier)
+			curseur.valueChanged.connect(self._actualiser_la_frise)
+			case.toggled.connect(curseur.setEnabled)
 			case.toggled.connect(self._modifier)
+			case.toggled.connect(self._actualiser_la_frise)
 		# Détection de blanc (https://github.com/dascritch/machincast/issues/146) : un blanc décoché n'est pas détecté.
 		self.ui.detection_blancs.toggled.connect(self._modifier)
+		self.ui.detection_blancs.toggled.connect(self._actualiser_la_frise)
 		for case, nombre in (
 			(self.ui.a_debut_detecte, self.ui.debut_detecte),
 			(self.ui.a_fin_detectee, self.ui.fin_detectee),
 		):
 			nombre.setLocale(preferences.FRANCAIS)
 			nombre.valueChanged.connect(self._modifier)
+			nombre.valueChanged.connect(self._actualiser_la_frise)
 			case.toggled.connect(nombre.setEnabled)
 			case.toggled.connect(self._modifier)
+			case.toggled.connect(self._actualiser_la_frise)
 		self._duree: timedelta | None = None
 		"""Durée du fichier en base, que les blancs détectés ne peuvent pas couvrir à eux deux."""
 		for case, date in ((self.ui.a_debut, self.ui.debut_diffusion), (self.ui.a_fin, self.ui.fin_diffusion)):
@@ -221,6 +259,57 @@ class FicheSonore(Fiche):
 		if self.identifiant is None:
 			return "Nouveau stream"
 		return f"Sonore : {self._nom}"
+
+	def _actualiser_la_frise(self) -> None:
+		"""Le plan du fichier selon les champs de la fiche, même pas encore enregistrés : crossfades, blancs détectés et
+		leur retrait, avec les crossfades par défaut et les positions des fondus des préférences."""
+		duree = self._duree
+		if (not self._fichier) or (duree is None):
+			self.frise.montrer(None, None)
+			return
+		ui = self.ui
+		plan = plan_du_sonore(
+			duree,
+			_crossfade(ui.a_debut_detecte, ui.debut_detecte),
+			_crossfade(ui.a_fin_detectee, ui.fin_detectee),
+			ui.detection_blancs.isChecked(),
+			_crossfade(ui.a_crossfade_debut, ui.crossfade_debut),
+			_crossfade(ui.a_crossfade_fin, ui.crossfade_fin),
+			preferences.crossfades(),
+			self._audite,
+		)
+		self.frise.montrer(plan, duree.total_seconds())
+		self.ui.place_frise.setToolTip(f"{plan.resume()}\n{TITRE_DE_LA_FRISE}")
+
+	def _montrer_la_forme(self, chemin: Path | None) -> None:
+		"""La forme d'onde du fichier, calculée en tâche de fond, une fois par fichier."""
+		if (self.forme is not None) and (chemin is not None) and (self.forme.chemin == chemin):
+			return
+		self._arreter_la_forme()
+		if chemin is not None:
+			duree = None
+			if self._duree is not None:
+				duree = self._duree.total_seconds()
+			self.forme = FormeDOnde(chemin, duree)
+			self.forme.demarrer()
+			self._releve_de_la_forme.start()
+		self.frise.montrer_la_forme(self.forme)
+
+	def _relever_la_forme(self) -> None:
+		forme = self.forme
+		if forme is None:
+			self._releve_de_la_forme.stop()
+			return
+		if forme.relever():
+			self.frise.update()
+		if forme.finie:
+			self._releve_de_la_forme.stop()
+
+	def _arreter_la_forme(self) -> None:
+		self._releve_de_la_forme.stop()
+		if self.forme is not None:
+			self.forme.arreter()
+		self.forme = None
 
 	def fermer(self) -> None:
 		self.essai.arreter()
@@ -279,7 +368,7 @@ class FicheSonore(Fiche):
 			"SELECT s.type::text, s.emplacement, s.url_stream, s.marque_page_id, m.url, s.secours_evenement_id,"
 			" s.artiste, s.titre, s.metadonnees_musicales, s.crossfade_debut, s.crossfade_fin, s.max_lectures,"
 			" s.etat::text, s.masquer_metadonnees, s.duree, s.debut_diffusion, s.fin_diffusion, s.champs_edites,"
-			" s.type_mime, s.verifie_le, s.detection_blancs, s.debut_detecte, s.fin_detectee"
+			" s.type_mime, s.verifie_le, s.detection_blancs, s.debut_detecte, s.fin_detectee, s.audite_le IS NOT NULL"
 			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
 			(self.identifiant,),
 		).fetchone()
@@ -315,7 +404,9 @@ class FicheSonore(Fiche):
 			detection_blancs,
 			debut_detecte,
 			fin_detectee,
+			audite,
 		) = ligne
+		self._audite = audite is True
 		stream = type_sonore == "stream"
 		self._nom = (texte_ou_rien(titre)) or (Path(str(emplacement)).name)
 		if stream:
@@ -347,10 +438,19 @@ class FicheSonore(Fiche):
 		elif isinstance(duree, timedelta):
 			texte_duree = affichage.duree(duree)
 		self.ui.duree.setText(texte_duree)
+		# Tous les états, dans leur ordre ; ceux que l'interface ne pose pas sont grisés
+		# (https://github.com/dascritch/machincast/issues/223).
 		self.ui.etat.clear()
-		for code in CHOIX_ETATS[str(etat)]:
-			self.ui.etat.addItem(ETATS[code], code)
-		self.ui.etat.setEnabled(self.ui.etat.count() > 1)
+		possibles = CHOIX_ETATS[str(etat)]
+		modele = self.ui.etat.model()
+		assert isinstance(modele, QStandardItemModel)
+		for code, nom_de_l_etat in ETATS.items():
+			self.ui.etat.addItem(nom_de_l_etat, code)
+			if code not in possibles:
+				element = modele.item(self.ui.etat.count() - 1)
+				element.setFlags(element.flags() & ~Qt.ItemFlag.ItemIsEnabled)
+		self.ui.etat.setCurrentIndex(self.ui.etat.findData(str(etat)))
+		self.ui.etat.setEnabled(len(possibles) > 1)
 		self.ui.artiste.setText(str((artiste) or ("")))
 		self.ui.titre.setText(str((titre) or ("")))
 		assert isinstance(metadonnees, dict)
@@ -360,11 +460,11 @@ class FicheSonore(Fiche):
 		autres = [f"{cle} : {valeur}" for cle, valeur in sorted(musicales.items())]
 		self.ui.autres_metadonnees.setText(", ".join(autres))
 		# Un crossfade non paramétré (NULL) est décoché ; 0 seconde en est un (https://github.com/dascritch/machincast/issues/145).
-		for case, nombre, crossfade in (
+		for case, curseur, crossfade in (
 			(self.ui.a_crossfade_debut, self.ui.crossfade_debut, crossfade_debut),
 			(self.ui.a_crossfade_fin, self.ui.crossfade_fin, crossfade_fin),
 		):
-			preferences.montrer(nombre, _secondes(crossfade))
+			curseur.montrer(_secondes(crossfade))
 			case.setChecked(isinstance(crossfade, timedelta))
 		self.ui.max_lectures.setValue(int(str((max_lectures) or (0))))
 		self.ui.masquage.setCurrentIndex(next(i for i, (valeur, _texte) in enumerate(MASQUAGES) if valeur is masquage))
@@ -391,6 +491,12 @@ class FicheSonore(Fiche):
 			texte_edites = f"Saisis à la main, que l'indexeur ne modifie plus : {', '.join(edites)}."
 		self.ui.champs_edites.setText(texte_edites)
 		self._montrer_passages(passages)
+		self.ui.place_frise.setVisible(self._fichier)
+		fichier = None
+		if self._fichier:
+			fichier = Path(str(emplacement))
+		self._montrer_la_forme(fichier)
+		self._actualiser_la_frise()
 		self._initiales = self._saisies()
 
 	def _montrer_date(self, case: QCheckBox, date: QDateTimeEdit, valeur: object) -> None:
@@ -608,7 +714,27 @@ class FicheSonore(Fiche):
 		self.ui.tester.setEnabled(True)
 
 
-def _crossfade(case: QCheckBox, nombre: QDoubleSpinBox) -> timedelta | None:
+def encarts_deplies() -> set[str]:
+	"""Les encarts que le compte a laissés dépliés dans la dernière fiche de sonore."""
+	valeur = colonnes.reglages().value(ENCARTS_DEPLIES)
+	if isinstance(valeur, str):
+		return {valeur}
+	if isinstance(valeur, list):
+		return {str(nom) for nom in valeur}
+	return set()
+
+
+def retenir_l_encart(groupe: QGroupBox, deplie: bool) -> None:
+	"""Un encart déplié ou replié : les fiches de sonore qui s'ouvrent ensuite le montrent de même."""
+	deplies = encarts_deplies()
+	if deplie:
+		deplies.add(groupe.objectName())
+	else:
+		deplies.discard(groupe.objectName())
+	colonnes.reglages().setValue(ENCARTS_DEPLIES, sorted(deplies))
+
+
+def _crossfade(case: QCheckBox, nombre: QDoubleSpinBox | CurseurDeDuree) -> timedelta | None:
 	"""Le crossfade, ou le blanc détecté, saisi ; None s'il n'est pas paramétré, ou pas détecté."""
 	if not case.isChecked():
 		return None

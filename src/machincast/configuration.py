@@ -85,7 +85,9 @@ def socket_etat_par_defaut() -> Path:
 
 Granularite = Literal["seconde", "dixieme"]
 GRANULARITES: tuple[Granularite, ...] = ("seconde", "dixieme")
-MAXIMUM_DES_CROSSFADES = timedelta(seconds=5)
+MAXIMUM_DES_CROSSFADES = timedelta(seconds=10)
+"""Le crossfade le plus long que l'interface propose, sans réglage : 10 s
+(https://github.com/dascritch/machincast/issues/223)."""
 
 
 @dataclass(frozen=True)

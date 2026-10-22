@@ -453,9 +453,18 @@ def colonnes_en_base(base_vide: Connexion, nom: str, datatable: list[list[str]])
 
 @then(parsers.re(r"l'état de la fiche du sonore se choisit parmi (?P<etats>.+)"))
 def etats(interface: Contexte, etats: str) -> None:
+	"""L'état du sonore, puis ceux que l'interface peut poser : les autres sont grisés
+	(https://github.com/dascritch/machincast/issues/223)."""
 	choix = fiche(interface).ui.etat
+	modele = choix.model()
+	possibles = [
+		choix.itemText(rang).casefold()
+		for rang in range(choix.count())
+		if (rang != choix.currentIndex()) and (modele.flags(modele.index(rang, 0)) & Qt.ItemFlag.ItemIsEnabled)
+	]
 	attendus = NOM.findall(etats)
-	assert (textes(choix), choix.isEnabled()) == (attendus, len(attendus) > 1)
+	obtenus = [choix.currentText().casefold(), *possibles]
+	assert (obtenus, choix.isEnabled()) == (attendus, len(attendus) > 1)
 
 
 @then(parsers.re(r"les marques-pages proposés sont (?P<noms>.+)"))

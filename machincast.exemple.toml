@@ -55,8 +55,8 @@ texte_public = "Radio FMR"
 # l'interface. Section facultative, comme chacune de ses clés.
 # Pas des crossfades dans l'interface : "seconde" ou "dixieme" (par défaut).
 granularite = "dixieme"
-# Crossfade le plus long que l'interface propose, en secondes ; 5 par défaut.
-maximum = 5
+# Crossfade le plus long que l'interface propose, en secondes ; 10 par défaut.
+maximum = 10
 # Crossfades, en secondes, d'un sonore qui n'en a pas de paramétré et que sa banque ne règle pas. Sans ces clés, il
 # n'en a pas.
 # debut = 1.5
