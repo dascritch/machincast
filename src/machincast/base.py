@@ -39,6 +39,7 @@ TYPES: tuple[str, ...] = (
 	"niveau_log",
 	"etat_sonore",
 	"regle_crossfade",
+	"position_fondu",
 )
 """Types énumérés créés par les migrations."""
 

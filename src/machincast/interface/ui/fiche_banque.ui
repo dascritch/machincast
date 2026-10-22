@@ -185,6 +185,40 @@
       </layout>
      </item>
      <item row="8" column="0">
+      <widget class="QLabel" name="etiquette_position_entree">
+       <property name="text">
+        <string>Fade-&amp;in</string>
+       </property>
+       <property name="buddy">
+        <cstring>position_entree</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QComboBox" name="position_entree">
+       <property name="toolTip">
+        <string>Où le fade-in des sonores joués sans leurs blancs se place par rapport à leur début détecté</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="0">
+      <widget class="QLabel" name="etiquette_position_sortie">
+       <property name="text">
+        <string>Fade-&amp;out</string>
+       </property>
+       <property name="buddy">
+        <cstring>position_sortie</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <widget class="QComboBox" name="position_sortie">
+       <property name="toolTip">
+        <string>Où le fade-out des sonores joués sans leurs blancs se place par rapport à leur fin détectée</string>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="0">
       <widget class="QCheckBox" name="a_duree_min">
        <property name="text">
         <string>Durée minimale des sonores</string>
@@ -194,7 +228,7 @@
        </property>
       </widget>
      </item>
-     <item row="8" column="1">
+     <item row="10" column="1">
       <layout class="QHBoxLayout" name="disposition_duree_min" stretch="0,1">
        <item>
         <widget class="QTimeEdit" name="duree_min">
@@ -215,7 +249,7 @@
        </item>
       </layout>
      </item>
-     <item row="9" column="0">
+     <item row="11" column="0">
       <widget class="QCheckBox" name="a_duree_max">
        <property name="text">
         <string>Durée maximale des sonores</string>
@@ -225,7 +259,7 @@
        </property>
       </widget>
      </item>
-     <item row="9" column="1">
+     <item row="11" column="1">
       <layout class="QHBoxLayout" name="disposition_duree_max" stretch="0,1">
        <item>
         <widget class="QTimeEdit" name="duree_max">

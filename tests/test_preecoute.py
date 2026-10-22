@@ -360,11 +360,17 @@ def arretee_apres(interface: Contexte, limite: str) -> None:
 	assert (derniere is not None) and (derniere >= _secondes(limite)), derniere
 
 
-@then("la position de la pré-écoute passe d'emblée au début de la partie jouée, 0,5 seconde")
-def d_emblee(interface: Contexte, qtbot: QtBot) -> None:
-	"""Bien avant que la lecture ne l'atteigne d'elle-même, en une demi-seconde : la lecture y a sauté."""
+@then(
+	parsers.re(
+		r"la position de la pré-écoute passe d'emblée au début de la partie jouée, (?P<debut>[\d,]+) seconde"
+		r"(?:, .+)?$"
+	)
+)
+def d_emblee(interface: Contexte, qtbot: QtBot, debut: str) -> None:
+	"""Bien avant que la lecture ne l'atteigne d'elle-même : la lecture y a sauté."""
 	lecteur = fenetre_de_preecoute(interface).lecteur
-	qtbot.waitUntil(lambda: 0.45 <= ((lecteur.position()) or (0.0)) <= 0.8, timeout=350)
+	attendu = _secondes(debut)
+	qtbot.waitUntil(lambda: attendu - 0.05 <= ((lecteur.position()) or (0.0)) <= attendu + 0.3, timeout=250)
 
 
 @then("la pré-écoute ne calcule plus de forme d'onde")

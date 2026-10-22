@@ -134,6 +134,7 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors les crossfades se règlent au dixième de seconde, jusqu'à 5 secondes
 		Et les crossfades n'ont pas de durée par défaut
+		Et le fade-in se termine au début détecté, et le fade-out commence à la fin détectée
 
 	Scénario: La section [crossfades] donne la granularité, le maximum et les durées par défaut
 		Étant donné une configuration valide où la clé "crossfades.granularite" vaut "seconde"
@@ -150,6 +151,14 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors les crossfades durent par défaut 0 seconde au début et 5 secondes à la fin
 
+	Scénario: La section [crossfades] donne la position des fondus par rapport aux blancs détectés
+		https://github.com/dascritch/machincast/issues/234
+
+		Étant donné une configuration valide où la clé "crossfades.position_entree" vaut "en_cours"
+		Et la clé "crossfades.position_sortie" vaut "termine"
+		Quand je charge la configuration
+		Alors le fade-in est en cours au début détecté, et le fade-out se termine à la fin détectée
+
 	Plan du scénario: Des réglages de crossfade invalides sont refusés
 		Étant donné une configuration valide où la clé "<cle>" vaut <valeur>
 		Quand je charge la configuration
@@ -164,6 +173,8 @@ Fonctionnalité: Fichier de configuration
 			| crossfades.debut       | -1         | positif ou nul             |
 			| crossfades.fin         | 6          | au plus crossfades.maximum |
 			| crossfades.debut       | true       | nombre                     |
+			| crossfades.position_entree | "avant" | commence, en_cours, termine |
+			| crossfades.position_sortie | 2       | texte                       |
 
 	# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ─────────────────
 

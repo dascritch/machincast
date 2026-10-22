@@ -73,6 +73,26 @@ def voie_preparee(contexte: Contexte, duree: str, debut: str, fin: str) -> None:
 
 @given(
 	parsers.parse(
+		"une voie pour un sonore de {duree} secondes, avec {debut} seconde de fade-in depuis le volume {depart} et"
+		" {fin} de fade-out jusqu'au volume {arrivee}"
+	)
+)
+def voie_debordante(contexte: Contexte, duree: str, debut: str, depart: str, fin: str, arrivee: str) -> None:
+	"""Des fondus qui débordent du fichier (https://github.com/dascritch/machincast/issues/234)."""
+	contexte.voie = Voie(
+		FICHIERS_SONORES / "sain.flac",
+		configuration_test().audio,
+		secondes(duree),
+		secondes(debut),
+		secondes(fin),
+		temps_reel=False,
+		depart=float(depart.replace(",", ".")),
+		arrivee=float(arrivee.replace(",", ".")),
+	)
+
+
+@given(
+	parsers.parse(
 		"une voie pour un sonore de {duree} secondes commencé à {decalage} secondes du début du fichier,"
 		" avec {debut} secondes de crossfade de début et {fin} de fin"
 	)

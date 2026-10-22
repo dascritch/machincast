@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 from machincast.base import LONGUEUR_TEXTE_COURT
+from machincast.lecture.fondus import ENTREE_PAR_DEFAUT, POSITIONS, SORTIE_PAR_DEFAUT, Position
 from machincast.protection import est_fichier_sonore
 
 NOM_FICHIER = "machincast.toml"
@@ -99,6 +100,11 @@ class Crossfades:
 	"""Durée la plus longue que l'interface propose pour un crossfade."""
 	granularite: Granularite = "dixieme"
 	"""Pas des crossfades dans l'interface : à la seconde ou au dixième de seconde."""
+	entree: Position = ENTREE_PAR_DEFAUT
+	"""Où le fade-in se place par rapport au début détecté d'un sonore joué sans ses blancs (https://github.com/dascritch/machincast/issues/234),
+	sauf banque qui en décide."""
+	sortie: Position = SORTIE_PAR_DEFAUT
+	"""Où le fade-out se place par rapport à sa fin détectée, de même."""
 
 
 SEUIL_DE_BLANC = -40.0
@@ -154,7 +160,7 @@ CLES: dict[str, frozenset[str]] = {
 	"sorties": frozenset({"csv", "pls", "html"}),
 	"metadonnees": frozenset({"masquer", "texte_public"}),
 	"lecture": frozenset({"socket_etat"}),
-	"crossfades": frozenset({"granularite", "maximum", "debut", "fin"}),
+	"crossfades": frozenset({"granularite", "maximum", "debut", "fin", "position_entree", "position_sortie"}),
 	"blancs": frozenset({"seuil"}),
 	"interface": frozenset({"saturation", "suggestions", "icone"}),
 }
@@ -274,7 +280,15 @@ class _Lecteur:
 			if timedelta(seconds=duree) > maximum:
 				raise self.erreur(f"clé crossfades.{cle} : au plus crossfades.maximum, {maximum.total_seconds():g} s")
 			durees.append(timedelta(seconds=duree))
-		return Crossfades(durees[0], durees[1], maximum, granularite)
+		positions: list[Position] = []
+		for cle, defaut in (("position_entree", ENTREE_PAR_DEFAUT), ("position_sortie", SORTIE_PAR_DEFAUT)):
+			lue = (self.texte_facultatif("crossfades", cle)) or (defaut)
+			if lue not in POSITIONS:
+				raise self.erreur(
+					f"clé crossfades.{cle} : « {lue} » inconnue, valeurs possibles : {', '.join(POSITIONS)}"
+				)
+			positions.append(lue)
+		return Crossfades(durees[0], durees[1], maximum, granularite, positions[0], positions[1])
 
 	def blancs(self) -> Blancs:
 		"""La section [blancs], facultative, comme sa clé."""

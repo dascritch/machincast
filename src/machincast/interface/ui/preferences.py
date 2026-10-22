@@ -29,11 +29,11 @@ class Ui_FenetrePreferences(object):
         self.disposition.setObjectName(u"disposition")
         self.pages = QTabWidget(FenetrePreferences)
         self.pages.setObjectName(u"pages")
-        self.page_interface = QWidget()
-        self.page_interface.setObjectName(u"page_interface")
-        self.disposition_interface = QVBoxLayout(self.page_interface)
-        self.disposition_interface.setObjectName(u"disposition_interface")
-        self.groupe_crossfades = QGroupBox(self.page_interface)
+        self.page_crossfades = QWidget()
+        self.page_crossfades.setObjectName(u"page_crossfades")
+        self.disposition_crossfades = QVBoxLayout(self.page_crossfades)
+        self.disposition_crossfades.setObjectName(u"disposition_crossfades")
+        self.groupe_crossfades = QGroupBox(self.page_crossfades)
         self.groupe_crossfades.setObjectName(u"groupe_crossfades")
         self.formulaire_crossfades = QFormLayout(self.groupe_crossfades)
         self.formulaire_crossfades.setObjectName(u"formulaire_crossfades")
@@ -81,8 +81,58 @@ class Ui_FenetrePreferences(object):
         self.formulaire_crossfades.setWidget(3, QFormLayout.ItemRole.FieldRole, self.fin)
 
 
-        self.disposition_interface.addWidget(self.groupe_crossfades)
+        self.disposition_crossfades.addWidget(self.groupe_crossfades)
 
+        self.groupe_positions = QGroupBox(self.page_crossfades)
+        self.groupe_positions.setObjectName(u"groupe_positions")
+        self.formulaire_positions = QFormLayout(self.groupe_positions)
+        self.formulaire_positions.setObjectName(u"formulaire_positions")
+        self.etiquette_position_entree = QLabel(self.groupe_positions)
+        self.etiquette_position_entree.setObjectName(u"etiquette_position_entree")
+
+        self.formulaire_positions.setWidget(0, QFormLayout.ItemRole.LabelRole, self.etiquette_position_entree)
+
+        self.position_entree = QComboBox(self.groupe_positions)
+        self.position_entree.setObjectName(u"position_entree")
+
+        self.formulaire_positions.setWidget(0, QFormLayout.ItemRole.FieldRole, self.position_entree)
+
+        self.etiquette_position_sortie = QLabel(self.groupe_positions)
+        self.etiquette_position_sortie.setObjectName(u"etiquette_position_sortie")
+
+        self.formulaire_positions.setWidget(1, QFormLayout.ItemRole.LabelRole, self.etiquette_position_sortie)
+
+        self.position_sortie = QComboBox(self.groupe_positions)
+        self.position_sortie.setObjectName(u"position_sortie")
+
+        self.formulaire_positions.setWidget(1, QFormLayout.ItemRole.FieldRole, self.position_sortie)
+
+        self.place_demonstration = QWidget(self.groupe_positions)
+        self.place_demonstration.setObjectName(u"place_demonstration")
+        self.place_demonstration.setMinimumSize(QSize(360, 72))
+
+        self.formulaire_positions.setWidget(2, QFormLayout.ItemRole.SpanningRole, self.place_demonstration)
+
+        self.legende_demonstration = QLabel(self.groupe_positions)
+        self.legende_demonstration.setObjectName(u"legende_demonstration")
+        self.legende_demonstration.setWordWrap(True)
+
+        self.formulaire_positions.setWidget(3, QFormLayout.ItemRole.SpanningRole, self.legende_demonstration)
+
+
+        self.disposition_crossfades.addWidget(self.groupe_positions)
+
+        self.explication = QLabel(self.page_crossfades)
+        self.explication.setObjectName(u"explication")
+        self.explication.setWordWrap(True)
+
+        self.disposition_crossfades.addWidget(self.explication)
+
+        self.pages.addTab(self.page_crossfades, "")
+        self.page_interface = QWidget()
+        self.page_interface.setObjectName(u"page_interface")
+        self.disposition_interface = QVBoxLayout(self.page_interface)
+        self.disposition_interface.setObjectName(u"disposition_interface")
         self.groupe_accueil = QGroupBox(self.page_interface)
         self.groupe_accueil.setObjectName(u"groupe_accueil")
         self.disposition_accueil = QVBoxLayout(self.groupe_accueil)
@@ -142,12 +192,6 @@ class Ui_FenetrePreferences(object):
 
 
         self.disposition_interface.addWidget(self.groupe_icone)
-
-        self.explication = QLabel(self.page_interface)
-        self.explication.setObjectName(u"explication")
-        self.explication.setWordWrap(True)
-
-        self.disposition_interface.addWidget(self.explication)
 
         self.pages.addTab(self.page_interface, "")
         self.page_audio = QWidget()
@@ -232,6 +276,8 @@ class Ui_FenetrePreferences(object):
 #if QT_CONFIG(shortcut)
         self.etiquette_granularite.setBuddy(self.granularite)
         self.etiquette_maximum.setBuddy(self.maximum)
+        self.etiquette_position_entree.setBuddy(self.position_entree)
+        self.etiquette_position_sortie.setBuddy(self.position_sortie)
         self.etiquette_antenne.setBuddy(self.antenne)
         self.etiquette_preecoute.setBuddy(self.preecoute)
         self.etiquette_seuil_blancs.setBuddy(self.seuil_blancs)
@@ -244,7 +290,7 @@ class Ui_FenetrePreferences(object):
 
     def retranslateUi(self, FenetrePreferences):
         FenetrePreferences.setWindowTitle(QCoreApplication.translate("FenetrePreferences", u"Pr\u00e9f\u00e9rences", None))
-        self.groupe_crossfades.setTitle(QCoreApplication.translate("FenetrePreferences", u"Crossfades", None))
+        self.groupe_crossfades.setTitle(QCoreApplication.translate("FenetrePreferences", u"Dur\u00e9es", None))
         self.etiquette_granularite.setText(QCoreApplication.translate("FenetrePreferences", u"&Granularit\u00e9", None))
 #if QT_CONFIG(tooltip)
         self.granularite.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Le pas de tous les crossfades de l'interface", None))
@@ -264,6 +310,18 @@ class Ui_FenetrePreferences(object):
         self.a_fin.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Le crossfade de fin d'un sonore qui n'en a pas de param\u00e9tr\u00e9, et que sa banque ne r\u00e8gle pas", None))
 #endif // QT_CONFIG(tooltip)
         self.fin.setSuffix(QCoreApplication.translate("FenetrePreferences", u" s", None))
+        self.groupe_positions.setTitle(QCoreApplication.translate("FenetrePreferences", u"Position des fondus, pour un sonore jou\u00e9 sans ses blancs", None))
+#if QT_CONFIG(tooltip)
+        self.groupe_positions.setToolTip(QCoreApplication.translate("FenetrePreferences", u"O\u00f9 tombent les fondus par rapport au d\u00e9but et \u00e0 la fin d\u00e9tect\u00e9s d'un sonore ; une banque peut imposer les siennes", None))
+#endif // QT_CONFIG(tooltip)
+        self.etiquette_position_entree.setText(QCoreApplication.translate("FenetrePreferences", u"Le fade-in, au d\u00e9but d\u00e9tect\u00e9", None))
+        self.etiquette_position_sortie.setText(QCoreApplication.translate("FenetrePreferences", u"Le fade-out, \u00e0 la fin d\u00e9tect\u00e9e", None))
+#if QT_CONFIG(tooltip)
+        self.place_demonstration.setToolTip(QCoreApplication.translate("FenetrePreferences", u"D\u00e9monstration : un sonore de 30 s, aux blancs de 3 s au d\u00e9but et 4 s \u00e0 la fin, retir\u00e9s \u00e0 l'antenne, avec les crossfades par d\u00e9faut saisis", None))
+#endif // QT_CONFIG(tooltip)
+        self.legende_demonstration.setText("")
+        self.explication.setText(QCoreApplication.translate("FenetrePreferences", u"Les fiches ouvertes ensuite suivent ces r\u00e9glages. Machin lecture prend les dur\u00e9es par d\u00e9faut \u00e0 son prochain d\u00e9marrage.", None))
+        self.pages.setTabText(self.pages.indexOf(self.page_crossfades), QCoreApplication.translate("FenetrePreferences", u"Crossfades", None))
         self.groupe_accueil.setTitle(QCoreApplication.translate("FenetrePreferences", u"Accueil", None))
         self.saturation.setText(QCoreApplication.translate("FenetrePreferences", u"Afficher le voyant de saturation de l'accueil", None))
 #if QT_CONFIG(tooltip)
@@ -285,7 +343,6 @@ class Ui_FenetrePreferences(object):
 #if QT_CONFIG(tooltip)
         self.icone_par_defaut.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Revenir \u00e0 l'ic\u00f4ne de MachinCast", None))
 #endif // QT_CONFIG(tooltip)
-        self.explication.setText(QCoreApplication.translate("FenetrePreferences", u"Les fiches ouvertes ensuite suivent ces r\u00e9glages. Machin lecture prend les dur\u00e9es par d\u00e9faut \u00e0 son prochain d\u00e9marrage.", None))
         self.pages.setTabText(self.pages.indexOf(self.page_interface), QCoreApplication.translate("FenetrePreferences", u"Interface", None))
         self.groupe_peripheriques.setTitle(QCoreApplication.translate("FenetrePreferences", u"P\u00e9riph\u00e9riques", None))
         self.etiquette_antenne.setText(QCoreApplication.translate("FenetrePreferences", u"&Antenne", None))

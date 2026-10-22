@@ -1,12 +1,16 @@
 """Préférences de l'interface (https://github.com/dascritch/machincast/issues/145, spec § 8.11).
 
-« Préférences… », dans le menu « Fichier », ouvre FenetrePreferences. Sa page « Interface » règle les crossfades : leur
-granularité (à la seconde ou au dixième de seconde), leur durée maximale, et leurs durées par défaut, celles d'un
-sonore sans crossfade paramétré que sa banque ne règle pas (machincast.lecture.diffusion.crossfade). Sa page « Audio »
-règle les périphériques de l'antenne (audio.peripherique), que Machin lecture prend à son prochain démarrage, et de la
-pré-écoute (audio.preecoute, https://github.com/dascritch/machincast/issues/116) : chacun est grisé dans l'autre choix ;
-elle règle aussi le seuil de blanc (blancs.seuil, https://github.com/dascritch/machincast/issues/146), que l'audit
-complet prend à son prochain passage. La page « Interface » choisit aussi l'icône de l'application (interface.icone,
+« Préférences… », dans le menu « Fichier », ouvre FenetrePreferences. Sa page « Crossfades », la première
+(https://github.com/dascritch/machincast/issues/234), règle les crossfades : leur granularité (à la seconde ou au
+dixième de seconde), leur durée maximale, leurs durées par défaut, celles d'un sonore sans crossfade paramétré que sa
+banque ne règle pas (machincast.lecture.diffusion.crossfade), et la position des fondus par rapport aux blancs détectés
+d'un sonore joué sans eux (crossfades.position_entree et position_sortie, machincast.lecture.fondus). Une frise de
+démonstration (machincast.interface.frise) montre où tombent les fondus, sur un sonore inventé, et suit les réglages. Sa
+page « Audio » règle les périphériques de l'antenne (audio.peripherique), que Machin lecture prend à son prochain
+démarrage, et de la pré-écoute (audio.preecoute, https://github.com/dascritch/machincast/issues/116) : chacun est grisé
+dans l'autre choix ; elle règle aussi le seuil de blanc (blancs.seuil,
+https://github.com/dascritch/machincast/issues/146), que l'audit complet prend à son prochain passage. La page
+« Interface » règle l'accueil, et choisit l'icône de l'application (interface.icone,
 https://github.com/dascritch/machincast/issues/111) : une image lisible, ou celle de MachinCast ; la fenêtre principale
 la donne aussitôt à ses fenêtres et aux raccourcis déjà installés (machincast.raccourci.reecrire).
 
@@ -26,13 +30,15 @@ from pathlib import Path
 import tomlkit
 from PySide6.QtCore import QLocale
 from PySide6.QtGui import QIcon, QStandardItemModel
-from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QWidget
+from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QVBoxLayout, QWidget
 
 from machincast import audio as sorties_audio
 from machincast.configuration import SEUIL_DE_BLANC, Crossfades, Granularite, SortieAudio
 from machincast.conversion import texte_ou_rien
 from machincast.interface.application import ICONE, lisible
+from machincast.interface.frise import Frise, Plan, forme_de_demonstration
 from machincast.interface.ui.preferences import Ui_FenetrePreferences
+from machincast.lecture.fondus import LIBELLES, POSITIONS, Position
 
 FRANCAIS = QLocale(QLocale.Language.French, QLocale.Country.France)
 """Les durées s'écrivent avec une virgule."""
@@ -73,6 +79,11 @@ class Reglages:
 
 
 _courantes = Crossfades()
+
+
+DEMONSTRATION = (30.0, 3.0, 4.0)
+"""Le sonore de la frise de démonstration (https://github.com/dascritch/machincast/issues/234) : sa durée, et ses
+blancs détectés au début et à la fin, en secondes ; il est joué sans eux."""
 
 
 def crossfades() -> Crossfades:
@@ -124,6 +135,8 @@ def ecrire(chemin: Path, reglages: Reglages) -> None:
 	crossfades = reglages.crossfades
 	section["granularite"] = crossfades.granularite
 	section["maximum"] = _secondes(crossfades.maximum)
+	section["position_entree"] = crossfades.entree
+	section["position_sortie"] = crossfades.sortie
 	audio = document["audio"]
 	assert isinstance(audio, tomlkit.items.Table)
 	if reglages.antenne is not None:
@@ -194,6 +207,21 @@ class FenetrePreferences(QDialog):
 		ui.icone_par_defaut.clicked.connect(self._revenir_a_l_icone_par_defaut)
 		ui.granularite.currentIndexChanged.connect(self._granularite)
 		ui.maximum.valueChanged.connect(self._maximum)
+		# Les positions des fondus, et leur frise de démonstration (https://github.com/dascritch/machincast/issues/234).
+		for choix, actuelle in ((ui.position_entree, reglages.entree), (ui.position_sortie, reglages.sortie)):
+			for position in POSITIONS:
+				choix.addItem(LIBELLES[position], position)
+			choix.setCurrentIndex(choix.findData(actuelle))
+			choix.currentIndexChanged.connect(self._demontrer)
+		self.demonstration = Frise(ui.place_demonstration, interactive=False)
+		disposition = QVBoxLayout(ui.place_demonstration)
+		disposition.setContentsMargins(0, 0, 0, 0)
+		disposition.addWidget(self.demonstration)
+		longueur, blanc_debut, blanc_fin = DEMONSTRATION
+		self.demonstration.montrer_la_forme(forme_de_demonstration(longueur, blanc_debut, blanc_fin))
+		for champ in (ui.debut, ui.fin):
+			champ.valueChanged.connect(self._demontrer)
+		self._demontrer()
 		ui.boutons.accepted.connect(self.accept)
 		ui.boutons.rejected.connect(self.reject)
 
@@ -254,6 +282,31 @@ class FenetrePreferences(QDialog):
 		for champ in (self.ui.debut, self.ui.fin):
 			regler(champ, self._choisie(), timedelta(seconds=self.ui.maximum.value()))
 
+	def _positions(self) -> tuple[Position, Position]:
+		entree: Position = self.ui.position_entree.currentData()
+		sortie: Position = self.ui.position_sortie.currentData()
+		return entree, sortie
+
+	def _demontrer(self) -> None:
+		"""La frise de démonstration : le sonore inventé, avec les durées par défaut saisies, même décochées, et les
+		positions choisies."""
+		duree, blanc_debut, blanc_fin = DEMONSTRATION
+		entree, sortie = self._positions()
+		plan = Plan(
+			duree,
+			blanc_debut,
+			blanc_fin,
+			blancs_retires=True,
+			crossfade_debut=self.ui.debut.value(),
+			crossfade_fin=self.ui.fin.value(),
+			position_entree=entree,
+			position_sortie=sortie,
+		)
+		self.demonstration.montrer(plan, duree)
+		self.ui.legende_demonstration.setText(
+			f"Démonstration : un sonore de 30 s, aux blancs de 3 s et 4 s. {plan.resume()}"
+		)
+
 	def _exclure(self) -> None:
 		"""Le périphérique choisi pour l'un est grisé dans l'autre ; « OK » ne donne jamais le même aux deux."""
 		ui = self.ui
@@ -270,7 +323,10 @@ class FenetrePreferences(QDialog):
 			if case.isChecked():
 				duree = timedelta(seconds=champ.value())
 			durees.append(duree)
-		crossfades = Crossfades(durees[0], durees[1], timedelta(seconds=ui.maximum.value()), self._choisie())
+		entree, sortie = self._positions()
+		crossfades = Crossfades(
+			durees[0], durees[1], timedelta(seconds=ui.maximum.value()), self._choisie(), entree, sortie
+		)
 		antenne = ui.antenne.currentData()
 		return Reglages(
 			crossfades,
