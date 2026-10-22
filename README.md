@@ -27,6 +27,8 @@ Si en tant que radio, autre organisation ou particulier, vous avez décidé d'in
 - [Xavier Mouton-Dubosc aka `dascritch`](https://dascritch.com)
 - Claude.AI
 
+La construction de code avec et par une IA est [dans le cadre d'une future émission de CPU et sera documenté en tant que tellle](https://cpu.pm)
+
 ## Licence
 
 [GPLv3](LICENSE)
