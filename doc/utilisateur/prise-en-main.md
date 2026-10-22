@@ -108,6 +108,7 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | Diffusion | Démarrer, Arrêter, Redémarrer la diffusion | Pilotent la diffusion ([Piloter la diffusion](antenne.md#piloter-la-diffusion)). |
 | Diffusion | Interrompre le sonore, la séquence, l'événement | Passent au suivant ([Interrompre l'antenne](antenne.md#interrompre-lantenne)). |
 | Maintenance | Indexation rapide, Audit complet | Vérifient les sonores ([Indexation depuis l'interface](sonores.md#indexation-depuis-linterface)). |
+| Maintenance | Maintenance de la base de données… | Sauvegarde, vérifie et optimise la base, dans une fenêtre de terminal ; Entrée la referme. Inactive pendant une indexation. Voir le [guide d'administration](../administration/commandes.md#maintenance-de-la-base--machin-maintenance-db). |
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
 | Aide | Documentation | Ouvre ce guide dans le navigateur web. |
 | Aide | Signaler un problème… | Ouvre les tickets de MachinCast dans le navigateur web. |

@@ -87,7 +87,7 @@ setup() {
 	run "${MACHIN}" --binaires
 	[ "${status}" -eq 0 ]
 	local declares
-	declares="$(sed -n 's/^Machin_\([a-z]*\) = .*/\1/p' "${RACINE}/pyproject.toml" | LC_ALL=C sort)"
+	declares="$(sed -n 's/^Machin_\([a-z-]*\) = .*/\1/p' "${RACINE}/pyproject.toml" | LC_ALL=C sort)"
 	[ -n "${declares}" ]
 	[ "$(printf '%s\n' "${lines[@]}" | LC_ALL=C sort)" = "${declares}" ]
 }

@@ -29,7 +29,8 @@ Le tableau des droits par binaire est dans [spec.md § 3.2](../spec.md#32-rôles
 
 Règles :
 
-- Un binaire ouvre toujours sa connexion avec `machincast.base.connecter(socket, base, Role.…)`, jamais avec `psycopg.connect` directement : sans `SET ROLE`, l'utilisateur n'a aucun droit.
+- Un binaire ouvre toujours sa connexion avec `machincast.base.connecter(socket, base, Role.…)`, jamais avec `psycopg.connect` directement : sans `SET ROLE`, l'utilisateur n'a aucun droit. Seules exceptions, les opérations de propriétaire de la base : les migrations (`machincast.installation`) et `Machin_maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)), dont `VACUUM` et la vérification des rôles demandent le compte lui-même. Elles ne lisent ni n'écrivent aucune donnée des tables.
+- Toute opération qui modifie la base hors des binaires de l'antenne (schéma, optimisation) est précédée d'une sauvegarde, et s'arrête si elle échoue ; une sauvegarde n'est jamais effacée par MachinCast.
 - Toute connexion se ferme explicitement, par un `with`, y compris celle d'un backend yoyo : laissée au ramasse-miettes, elle peut épuiser les connexions du serveur ([#78](https://github.com/dascritch/machincast/issues/78)). Deux scénarios de `schema.feature` le vérifient pour les migrations, ramasse-miettes suspendu.
 - Tout changement de droits passe par une nouvelle migration et par la matrice de [`tests/features/roles.feature`](../../tests/features/roles.feature), qui vérifie chaque opération de chaque rôle sur chaque table.
 - Une nouvelle table n'est accessible à aucun rôle tant qu'une migration ne lui accorde pas de droits.

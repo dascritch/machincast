@@ -331,6 +331,12 @@ class FenetrePrincipale(QMainWindow):
 			action = maintenance.addAction(TITRES[audit_complet])
 			action.triggered.connect(lambda _coche=False, audit=audit_complet: self._indexer(audit))
 			self.indexations.append(action)
+		maintenance.addSeparator()
+		# Grisée, comme l'indexation, pendant une indexation lancée d'ici : ses migrations attendraient la base
+		# (https://github.com/dascritch/machincast/issues/127).
+		base = maintenance.addAction(pilotage.MAINTENANCE)
+		base.triggered.connect(lambda: self.statusBar().showMessage(pilotage.lancer_la_maintenance(self.configuration)))
+		self.indexations.append(base)
 		aide = self.menuBar().addMenu("&Aide")
 		aide.addAction("Documentation").triggered.connect(lambda: dialogues.ouvrir_page(DOCUMENTATION))
 		aide.addAction("Signaler un problème…").triggered.connect(lambda: dialogues.ouvrir_page(TICKETS))
