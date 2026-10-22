@@ -1,6 +1,7 @@
 """Scénarios du rafraîchissement des onglets de l'interface (https://github.com/dascritch/machincast/issues/148).
 
-Les étapes de la fenêtre, de sa barre de menus, des fiches et des fenêtres de dialogue sont dans
+Le rafraîchissement à l'ouverture d'un onglet : https://github.com/dascritch/machincast/issues/241. Les étapes de la
+fenêtre, de sa barre de menus, des fiches et des fenêtres de dialogue sont dans
 tests/etapes_interface.py. Ce qu'un autre poste ou la diffusion change, le scénario l'écrit directement en base.
 """
 
@@ -64,3 +65,9 @@ def airplay(interface: Contexte, titre: str) -> None:
 @when(parsers.parse("je double-clique sur « {titre} » dans l'airplay de l'accueil"))
 def ouvrir_depuis_l_airplay(interface: Contexte, qtbot: QtBot, titre: str) -> None:
 	ouvrir_dans(qtbot, fenetre(interface).accueil.ui.table_airplay, titre)
+
+
+@then(parsers.parse("le nom interne de la fiche est « {nom} »"))
+def nom_interne(interface: Contexte, nom: str) -> None:
+	fiche = fenetre(interface).ui.onglets.currentWidget()
+	assert fiche.ui.nom_interne.text() == nom  # type: ignore[attr-defined]
