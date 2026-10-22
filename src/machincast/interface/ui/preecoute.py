@@ -15,9 +15,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QComboBox, QFormLayout, QHBoxLayout,
-    QLabel, QSizePolicy, QSlider, QToolButton,
-    QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout,
+    QHBoxLayout, QLabel, QSizePolicy, QSpacerItem,
+    QToolButton, QVBoxLayout, QWidget)
 
 class Ui_FenetrePreecoute(object):
     def setupUi(self, FenetrePreecoute):
@@ -45,12 +45,9 @@ class Ui_FenetrePreecoute(object):
 
         self.lecteur.addWidget(self.arret)
 
-        self.position = QSlider(FenetrePreecoute)
-        self.position.setObjectName(u"position")
-        self.position.setMaximum(1000)
-        self.position.setOrientation(Qt.Orientation.Horizontal)
+        self.espace_lecteur = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.lecteur.addWidget(self.position)
+        self.lecteur.addItem(self.espace_lecteur)
 
         self.temps = QLabel(FenetrePreecoute)
         self.temps.setObjectName(u"temps")
@@ -60,6 +57,50 @@ class Ui_FenetrePreecoute(object):
         self.lecteur.setStretch(2, 1)
 
         self.disposition.addLayout(self.lecteur)
+
+        self.zone_frise = QWidget(FenetrePreecoute)
+        self.zone_frise.setObjectName(u"zone_frise")
+        self.disposition_frise = QVBoxLayout(self.zone_frise)
+        self.disposition_frise.setObjectName(u"disposition_frise")
+        self.disposition_frise.setContentsMargins(0, 0, 0, 0)
+        self.place_frise = QWidget(self.zone_frise)
+        self.place_frise.setObjectName(u"place_frise")
+        self.place_frise.setMinimumSize(QSize(0, 72))
+
+        self.disposition_frise.addWidget(self.place_frise)
+
+        self.plage = QLabel(self.zone_frise)
+        self.plage.setObjectName(u"plage")
+        self.plage.setWordWrap(True)
+
+        self.disposition_frise.addWidget(self.plage)
+
+        self.reperes = QHBoxLayout()
+        self.reperes.setObjectName(u"reperes")
+        self.debut_joue = QToolButton(self.zone_frise)
+        self.debut_joue.setObjectName(u"debut_joue")
+
+        self.reperes.addWidget(self.debut_joue)
+
+        self.fin_jouee = QToolButton(self.zone_frise)
+        self.fin_jouee.setObjectName(u"fin_jouee")
+
+        self.reperes.addWidget(self.fin_jouee)
+
+        self.espace_reperes = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.reperes.addItem(self.espace_reperes)
+
+        self.comme_a_l_antenne = QCheckBox(self.zone_frise)
+        self.comme_a_l_antenne.setObjectName(u"comme_a_l_antenne")
+
+        self.reperes.addWidget(self.comme_a_l_antenne)
+
+
+        self.disposition_frise.addLayout(self.reperes)
+
+
+        self.disposition.addWidget(self.zone_frise)
 
         self.place_vumetre = QWidget(FenetrePreecoute)
         self.place_vumetre.setObjectName(u"place_vumetre")
@@ -174,10 +215,23 @@ class Ui_FenetrePreecoute(object):
         self.arret.setAccessibleName(QCoreApplication.translate("FenetrePreecoute", u"Arr\u00eat", None))
 #endif // QT_CONFIG(accessibility)
         self.arret.setText(QCoreApplication.translate("FenetrePreecoute", u"\u23f9", None))
-#if QT_CONFIG(tooltip)
-        self.position.setToolTip(QCoreApplication.translate("FenetrePreecoute", u"Position dans le fichier", None))
-#endif // QT_CONFIG(tooltip)
         self.temps.setText(QCoreApplication.translate("FenetrePreecoute", u"\u2014", None))
+#if QT_CONFIG(tooltip)
+        self.plage.setToolTip(QCoreApplication.translate("FenetrePreecoute", u"Partie du fichier jou\u00e9e \u00e0 l'antenne, sans ses blancs s'ils y sont retir\u00e9s", None))
+#endif // QT_CONFIG(tooltip)
+        self.plage.setText("")
+#if QT_CONFIG(tooltip)
+        self.debut_joue.setToolTip(QCoreApplication.translate("FenetrePreecoute", u"Lire depuis le d\u00e9but de la partie jou\u00e9e \u00e0 l'antenne", None))
+#endif // QT_CONFIG(tooltip)
+        self.debut_joue.setText(QCoreApplication.translate("FenetrePreecoute", u"\u21e4 D\u00e9but jou\u00e9", None))
+#if QT_CONFIG(tooltip)
+        self.fin_jouee.setToolTip(QCoreApplication.translate("FenetrePreecoute", u"Lire depuis quelques secondes avant le fondu de sortie", None))
+#endif // QT_CONFIG(tooltip)
+        self.fin_jouee.setText(QCoreApplication.translate("FenetrePreecoute", u"Fin jou\u00e9e \u21e5", None))
+#if QT_CONFIG(tooltip)
+        self.comme_a_l_antenne.setToolTip(QCoreApplication.translate("FenetrePreecoute", u"Ne jouer que la partie jou\u00e9e \u00e0 l'antenne, avec ses fondus", None))
+#endif // QT_CONFIG(tooltip)
+        self.comme_a_l_antenne.setText(QCoreApplication.translate("FenetrePreecoute", u"\u00c9couter comme \u00e0 l'antenne", None))
         self.intitule_etat.setText(QCoreApplication.translate("FenetrePreecoute", u"\u00c9tat", None))
         self.etat.setText(QCoreApplication.translate("FenetrePreecoute", u"\u2014", None))
         self.intitule_format.setText(QCoreApplication.translate("FenetrePreecoute", u"Format", None))

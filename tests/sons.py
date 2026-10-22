@@ -127,11 +127,12 @@ détection de blanc (https://github.com/dascritch/machincast/issues/146). Une de
 blanc au début et à la fin ; au seuil de -60 dB, un quart de seconde à la fin."""
 
 
-def generer_blancs(chemin: Path) -> Path:
-	"""Écrit en FLAC un son mono fait des morceaux de BLANCS, chacun aligné sur l'échantillon."""
+def generer_blancs(chemin: Path, morceaux: tuple[tuple[float, float], ...] = BLANCS) -> Path:
+	"""Écrit en FLAC un son mono fait de morceaux de sinusoïde (BLANCS par défaut), chacun aligné sur l'échantillon :
+	durée en secondes et amplitude crête."""
 	Gst.init(None)
 	echantillons = bytearray()
-	for secondes, amplitude in BLANCS:
+	for secondes, amplitude in morceaux:
 		for indice in range(round(secondes * FREQUENCE)):
 			valeur = round(amplitude * 32767 * math.sin(2 * math.pi * 440 * indice / FREQUENCE))
 			echantillons += struct.pack("<h", valeur)

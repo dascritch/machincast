@@ -14,6 +14,7 @@ un changement d'écran, puis les relire avant de les livrer avec le ticket.
 
 import dataclasses
 import logging
+import math
 import os
 import shutil
 import sys
@@ -55,7 +56,7 @@ from tests.base_test import (  # noqa: E402
 	purger_base,
 	reinitialiser_base,  # noqa: E402
 )
-from tests.sons import FICHIERS_SONORES  # noqa: E402
+from tests.sons import FICHIERS_SONORES, generer_blancs  # noqa: E402
 
 journal = logging.getLogger("machincast.captures")
 
@@ -94,6 +95,7 @@ CAPTURES = (
 	"incidents",
 	"preferences",
 	"preecoute",
+	"preecoute-fichier",
 )
 """Les captures, par nom de fichier sans extension, dans l'ordre où elles sont prises."""
 
@@ -170,6 +172,25 @@ def _emplacement(cle: str) -> Path:
 	return DEMONSTRATION / sonore.dossier / f"{nom}.flac"
 
 
+RESPIRATION = Sonore("Brume", "Respiration", 40, "nuit")
+"""Le sonore de la capture de la frise de la pré-écoute (https://github.com/dascritch/machincast/issues/224) : un
+fichier généré, avec ses blancs, hors de toute banque."""
+
+
+def morceaux_de_respiration() -> tuple[tuple[float, float], ...]:
+	"""Une seconde de silence, une montée, un thème qui respire, une extinction, puis une seconde et demie de silence :
+	des morceaux de 0,1 seconde, chacun à son amplitude."""
+	morceaux = [(1.0, 0.0)]
+	pas = 0.1
+	for indice in range(round(37.0 / pas)):
+		instant = indice * pas
+		enveloppe = min(1.0, instant / 3.0, (37.0 - instant) / 6.0)
+		souffle = 0.55 + 0.3 * math.sin(instant * 1.3) + 0.15 * math.sin(instant * 7.1)
+		morceaux.append((pas, max(0.0, min(0.95, enveloppe * souffle))))
+	morceaux += [(0.5, 0.004), (1.5, 0.0)]
+	return tuple(morceaux)
+
+
 def remplir(connexion: Connexion) -> Demonstration:
 	"""La démonstration, dans la base de test vide."""
 	# fichier de MachinCast : les copies de fichier de test de la démonstration précédente.
@@ -196,6 +217,27 @@ def remplir(connexion: Connexion) -> Demonstration:
 				verifie,
 			),
 		)
+	respiration = DEMONSTRATION / RESPIRATION.dossier / f"{RESPIRATION.artiste} - {RESPIRATION.titre}.flac"
+	generer_blancs(respiration, morceaux_de_respiration())
+	# Ses blancs, retirés à l'antenne, et ses crossfades, tels qu'un audit complet et sa fiche les auraient posés.
+	sonores["respiration"] = _un(
+		connexion,
+		"INSERT INTO sonores (type, emplacement, artiste, titre, etat, duree, type_mime, verifie_le, debut_detecte,"
+		" fin_detectee, detection_blancs, crossfade_debut, crossfade_fin, audite_le, audit_seuil)"
+		" VALUES ('fichier', %s, %s, %s, 'actif', %s, 'audio/flac', %s, %s, %s, true, %s, %s, %s, -40) RETURNING id",
+		(
+			str(respiration),
+			RESPIRATION.artiste,
+			RESPIRATION.titre,
+			timedelta(seconds=RESPIRATION.duree),
+			MAINTENANT - timedelta(days=2),
+			timedelta(seconds=1.0),
+			timedelta(seconds=2.0),
+			timedelta(seconds=2.0),
+			timedelta(seconds=4.0),
+			MAINTENANT - timedelta(days=2),
+		),
+	)
 	marque = _un(
 		connexion,
 		"INSERT INTO marques_pages_streams (nom, url) VALUES ('Studio mobile', 'https://flux.radio-exemple.test/mobile')"
@@ -621,6 +663,13 @@ def produire(repertoire: Path) -> dict[str, Path]:
 		preecoute.ecouter_l_antenne()
 		preecoute.show()
 		prendre("preecoute", preecoute)
+		preecoute.preecouter(demonstration.sonores["respiration"])
+		attendre(lambda: (preecoute.forme is not None) and (preecoute.forme.finie))
+		preecoute.lecteur.lire()
+		preecoute.lecteur.placer_a(14.2)
+		preecoute.lecteur.mettre_en_pause()
+		attendre(lambda: preecoute.frise.tete is not None)
+		prendre("preecoute-fichier", preecoute)
 		preecoute.close()
 	finally:
 		fenetre.close()
