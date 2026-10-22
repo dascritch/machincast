@@ -29,10 +29,11 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 	# ─── Sonores ───────────────────────────────────────────────
 
 	Scénario: Plusieurs sonores se sélectionnent, et le clic droit propose les actions sur la sélection
+		# La pré-écoute, en tête, ne vaut que pour la ligne cliquée (https://github.com/dascritch/machincast/issues/226).
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et je sélectionne les lignes « Café à minuit », « Gaufre royale » de la liste
-		Alors le clic droit sur la sélection propose « Activer », « Désactiver », « Ajouter à des banques… », « Retirer de banques… », « Demander un audit complet »
+		Alors le clic droit sur la sélection propose « Pré-écoute… », « Activer », « Désactiver », « Ajouter à des banques… », « Retirer de banques… », « Demander un audit complet »
 
 	Scénario: Désactiver plusieurs sonores, après confirmation
 		Quand la fenêtre de l'interface s'ouvre

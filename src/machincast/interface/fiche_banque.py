@@ -323,8 +323,8 @@ class FicheBanque(Fiche):
 				)
 
 	def menu_des_sonores(self, ligne: QTreeWidgetItem | None) -> QMenu | None:
-		"""Le menu du clic droit sur cette ligne : sur les sonores choisis si elle en fait partie, sur elle seule
-		sinon ; aucun hors d'une ligne."""
+		"""Le menu du clic droit sur cette ligne : « Pré-écoute… » de son sonore, puis l'état des sonores choisis si
+		elle en fait partie, d'elle seule sinon ; aucun hors d'une ligne."""
 		if ligne is None:
 			return None
 		lignes = self.ui.sonores.selectedItems()
@@ -334,6 +334,11 @@ class FicheBanque(Fiche):
 		for etat, texte in ETATS_CHOISIS:
 			entree = menu.addAction(texte)
 			entree.triggered.connect(lambda _coche=False, etat=etat: self._choisir_l_etat(lignes, etat))
+		# La ligne cliquée seule, si son sonore est en base : un fichier déposé ne l'est pas avant l'enregistrement
+		# (https://github.com/dascritch/machincast/issues/226).
+		sonore = ligne.data(0, SONORE)
+		if sonore is not None:
+			affichage.proposer_la_preecoute(menu, int(sonore), self.preecoute_demandee.emit)
 		return menu
 
 	def _menu_des_sonores(self, position: QPoint) -> None:

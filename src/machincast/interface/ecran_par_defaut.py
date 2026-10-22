@@ -17,9 +17,9 @@ from pathlib import Path
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QModelIndex, Qt, QTimer, Signal
+from PySide6.QtCore import QModelIndex, QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLineEdit, QMenu, QVBoxLayout, QWidget
 
 from machincast.configuration import Audio
 from machincast.horloge import Horloge
@@ -52,6 +52,9 @@ class EcranParDefaut(QWidget):
 	(https://github.com/dascritch/machincast/issues/24)."""
 	ouverte = Signal(str, int, str)
 	"""Fiche demandée : genre, identifiant et nom de l'élément."""
+	preecoute_demandee = Signal(int)
+	"""« Pré-écoute… » choisi au clic droit sur une ligne de l'airplay : son sonore
+	(https://github.com/dascritch/machincast/issues/226)."""
 	COLONNES_AIRPLAY = (
 		("debut", "Début"),
 		("fin", "Fin"),
@@ -84,6 +87,8 @@ class EcranParDefaut(QWidget):
 		self.ui.table_airplay.setModel(self.modele_airplay)
 		self.colonnes_airplay = Colonnes(self.ui.table_airplay, "accueil-airplay")
 		self.ui.table_airplay.activated.connect(self._ouvrir_cellule)
+		self.ui.table_airplay.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+		self.ui.table_airplay.customContextMenuRequested.connect(self._menu_de_l_airplay)
 		self._en_cours: SonoreAffiche | None = None
 		self._prochain: SonoreAffiche | None = None
 		ui = self.ui
@@ -271,6 +276,29 @@ class EcranParDefaut(QWidget):
 		if element is not None:
 			genre, identifiant, nom = element
 			self.ouverte.emit(genre, identifiant, nom)
+
+	def menu_de_l_airplay(self, index: QModelIndex) -> QMenu | None:
+		"""Le menu du clic droit sur une ligne de l'airplay : « Pré-écoute… » de son sonore ; aucun hors d'une ligne,
+		ou pour un sonore supprimé depuis (https://github.com/dascritch/machincast/issues/226)."""
+		if not index.isValid():
+			return None
+		sonore = None
+		for colonne in range(self.modele_airplay.columnCount()):
+			element = self.modele_airplay.index(index.row(), colonne).data(ELEMENT)
+			if (element is not None) and (element[0] == "sonore"):
+				sonore = int(element[1])
+		if sonore is None:
+			return None
+		menu = QMenu(self)
+		affichage.proposer_la_preecoute(menu, sonore, self.preecoute_demandee.emit)
+		return menu
+
+	def _menu_de_l_airplay(self, position: QPoint) -> None:
+		table = self.ui.table_airplay
+		menu = self.menu_de_l_airplay(table.indexAt(position))
+		if menu is not None:
+			menu.exec(table.viewport().mapToGlobal(position))
+			menu.deleteLater()
 
 	# ─── Airplay ───────────────────────────────────────────
 

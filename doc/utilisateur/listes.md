@@ -55,7 +55,7 @@ Toutes les fiches, d'un événement, d'une séquence, d'une banque, d'un sonore 
 
 ## Agir sur plusieurs sonores ou banques
 
-Dans les listes **Sonores** et **Banques**, plusieurs lignes se sélectionnent à la fois, avec <kbd>Ctrl</kbd> (une par une) ou <kbd>Maj</kbd> (d'une ligne à une autre). Le **clic droit** propose des actions sur toute la sélection. Chacune demande confirmation, « Désactiver 3 sonores ? », puis la barre d'état dit ce qui a changé, « 2 sonores désactivés. ».
+Dans les listes **Sonores** et **Banques**, plusieurs lignes se sélectionnent à la fois, avec <kbd>Ctrl</kbd> (une par une) ou <kbd>Maj</kbd> (d'une ligne à une autre). Le **clic droit** propose des actions sur toute la sélection ; dans les sonores, **Pré-écoute…**, en tête, ne vaut que pour la ligne cliquée ([Pré-écoute](sonores.md#pré-écoute)). Chacune demande confirmation, « Désactiver 3 sonores ? », puis la barre d'état dit ce qui a changé, « 2 sonores désactivés. ».
 
 | Liste | Action | Effet |
 | --- | --- | --- |

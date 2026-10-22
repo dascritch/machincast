@@ -38,7 +38,8 @@ def index_de(ouverte: Liste, nom: str) -> QModelIndex:
 def menu(ouverte: Liste, index: QModelIndex) -> list[str]:
 	choix = ouverte.menu_de_la_ligne(index)
 	assert choix is not None
-	return [action.text() for action in choix.actions()]
+	# Les séparateurs ne sont pas des entrées.
+	return [action.text() for action in choix.actions() if not action.isSeparator()]
 
 
 def declencher(ouverte: Liste, index: QModelIndex, texte: str) -> None:

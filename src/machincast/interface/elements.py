@@ -23,8 +23,8 @@ Commune aux fiches d'une séquence (machincast.interface.fiche_sequence) et d'un
 from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, Signal
-from PySide6.QtWidgets import QAbstractItemView, QPushButton, QTreeWidget, QTreeWidgetItem
+from PySide6.QtCore import QObject, QPoint, Qt, Signal
+from PySide6.QtWidgets import QAbstractItemView, QMenu, QPushButton, QTreeWidget, QTreeWidgetItem
 
 from machincast.conversion import entier_ou_rien, texte_ou_rien
 from machincast.interface import affichage, dialogues
@@ -116,6 +116,8 @@ class ListeElements(QObject):
 			signal.connect(self.changee)
 		liste.currentItemChanged.connect(self._actualiser_boutons)
 		liste.itemActivated.connect(self._ouvrir)
+		liste.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+		liste.customContextMenuRequested.connect(self._menu)
 		for genre, bouton in boutons.ajouter.items():
 			bouton.clicked.connect(lambda _coche=False, genre=genre: self._ajouter(genre))
 		boutons.retirer.clicked.connect(self._retirer)
@@ -366,6 +368,21 @@ class ListeElements(QObject):
 		self.liste.insertTopLevelItem(rangee + decalage, ligne)
 		# Rendue courante, la ligne déplacée met à jour les boutons (currentItemChanged).
 		self.liste.setCurrentItem(ligne)
+
+	def menu_de_la_ligne(self, ligne: QTreeWidgetItem | None) -> QMenu | None:
+		"""Le menu du clic droit sur une ligne : « Pré-écoute… » d'un sonore en base ; aucun pour une banque, une
+		séquence, un fichier déposé pas encore enregistré, ou hors d'une ligne (https://github.com/dascritch/machincast/issues/226)."""
+		if (ligne is None) or (ligne.data(0, GENRE) != "sonore") or (ligne.data(0, ELEMENT) is None):
+			return None
+		menu = QMenu(self.liste)
+		affichage.proposer_la_preecoute(menu, int(ligne.data(0, ELEMENT)), self.fiche.preecoute_demandee.emit)
+		return menu
+
+	def _menu(self, position: QPoint) -> None:
+		menu = self.menu_de_la_ligne(self.liste.itemAt(position))
+		if menu is not None:
+			menu.exec(self.liste.viewport().mapToGlobal(position))
+			menu.deleteLater()
 
 	def _ouvrir(self, ligne: QTreeWidgetItem) -> None:
 		"""Ouvrir un élément demande sa fiche ; un fichier déposé n'en a pas avant l'enregistrement."""

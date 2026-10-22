@@ -293,6 +293,9 @@ class Liste(QWidget):
 	"""« Dupliquer » choisi au clic droit sur une ligne : genre et identifiant de l'élément."""
 	action_demandee = Signal(str, list)
 	"""Une action choisie au clic droit (machincast.interface.groupes) : sa clé, et les éléments (list[int])."""
+	preecoute_demandee = Signal(int)
+	"""« Pré-écoute… » choisi au clic droit sur une ligne de la liste des sonores : le sonore de cette ligne
+	(https://github.com/dascritch/machincast/issues/226)."""
 
 	def __init__(
 		self,
@@ -341,7 +344,9 @@ class Liste(QWidget):
 			self.actions_groupees = groupes.ACTIONS.get(source.genre, ())
 		if self.actions_groupees != ():
 			self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-		if (self.duplicable) or (self.actions_groupees != ()):
+		self.preecoutable = (actions) and (source.genre == "sonore")
+		"""La liste des sonores, hors d'un choix : le clic droit sur une ligne en propose la pré-écoute."""
+		if (self.duplicable) or (self.actions_groupees != ()) or (self.preecoutable):
 			self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 			self.table.customContextMenuRequested.connect(self._menu)
 		self._compter()
@@ -414,8 +419,10 @@ class Liste(QWidget):
 
 	def menu_de_la_ligne(self, index: QModelIndex) -> QMenu | None:
 		"""Le menu du clic droit sur cette ligne de la table : sur la sélection si elle en fait partie, sur elle seule
-		sinon ; aucun hors d'une ligne, ou pour une liste sans actions. « Dupliquer » ne vaut que pour un élément."""
-		if (not index.isValid()) or ((not self.duplicable) and (self.actions_groupees == ())):
+		sinon ; aucun hors d'une ligne, ou pour une liste sans actions. « Dupliquer » ne vaut que pour un élément.
+		« Pré-écoute… », en tête, vaut pour la ligne cliquée seule, même dans une sélection."""
+		sans_actions = (not self.duplicable) and (self.actions_groupees == ()) and (not self.preecoutable)
+		if (not index.isValid()) or (sans_actions):
 			return None
 		cliquee = self._element(index)
 		elements = self.selection()
@@ -428,6 +435,8 @@ class Liste(QWidget):
 		for action in self.actions_groupees:
 			entree = menu.addAction(action.texte)
 			entree.triggered.connect(lambda _coche=False, cle=action.cle: self.action_demandee.emit(cle, elements))
+		if self.preecoutable:
+			affichage.proposer_la_preecoute(menu, cliquee, self.preecoute_demandee.emit)
 		return menu
 
 	def _menu(self, position: QPoint) -> None:
