@@ -439,6 +439,69 @@ Fonctionnalité: Écran par défaut de l'interface
 		Alors l'état du binaire lecture est bientôt « En silence »
 		Et les boutons de fiche de l'accueil sont inactifs
 
+	# ─── Sonores à venir (https://github.com/dascritch/machincast/issues/228) ─────
+
+	Scénario: Au-dessus de l'airplay, les sonores à venir après le prochain, le plus lointain en haut
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
+		Et les sonores à venir après le prochain sont :
+			| debut    | fin      | duree | artiste     | titre      | evenement   | sequence | banque | sain |
+			| 20:03:38 | 20:06:38 | 180   | Les Gaufres | Le matin   | Fil de jour |          | Titres | oui  |
+			| 20:06:38 | 20:07:08 | 30    |             | Spot       | Fil de jour | Pub      | Spots  | non  |
+			| 20:07:08 | 20:30:00 | 1800  |             | Le journal | Journal     |          |        | oui  |
+		Quand l'écran par défaut s'ouvre
+		Et le sonore en cours est bientôt « Les Gaufres – Café à minuit »
+		Alors la table des sonores à venir montre :
+			| debut    | fin      | duree | artiste     | titre      | evenement   | sequence | banque | incident |
+			| 20:07:08 | 20:30:00 | 30:00 |             | Le journal | Journal     |          |        |          |
+			| 20:06:38 | 20:07:08 | 0:30  |             | Spot       | Fil de jour | Pub      | Spots  | pas sain |
+			| 20:03:38 | 20:06:38 | 3:00  | Les Gaufres | Le matin   | Fil de jour |          | Titres |          |
+		Et la table des sonores à venir a les colonnes de l'airplay, dans le même ordre
+		Et la table des sonores à venir est au-dessus de celle de l'airplay
+
+	Scénario: Les sonores à venir suivent les états publiés, et disparaissent à l'arrêt
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et les sonores à venir après le prochain sont :
+			| debut    | fin      | duree | artiste | titre    | evenement   | sequence | banque | sain |
+			| 20:03:38 | 20:06:38 | 180   |         | Le matin | Fil de jour |          |        | oui  |
+		Quand l'écran par défaut s'ouvre
+		Alors la table des sonores à venir a bientôt 1 ligne
+		Quand le binaire lecture s'arrête
+		Alors la table des sonores à venir a bientôt 0 ligne
+
+	Scénario: Un double-clic sur un sonore à venir ouvre sa fiche, celle de son événement, de sa séquence ou de sa banque
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et les sonores à venir après le prochain sont :
+			| debut    | fin      | duree | artiste | titre | evenement   | sequence | banque | sain |
+			| 20:06:38 | 20:07:08 | 30    | Radio   | Spot  | Fil de jour | Pub      | Spots  | oui  |
+		Quand l'écran par défaut s'ouvre
+		Et la table des sonores à venir a bientôt 1 ligne
+		Et j'ouvre dans les sonores à venir la cellule « Radio »
+		Et j'ouvre dans les sonores à venir la cellule « Fil de jour »
+		Et j'ouvre dans les sonores à venir la cellule « Pub »
+		Et j'ouvre dans les sonores à venir la cellule « Spots »
+		Et j'ouvre dans les sonores à venir la cellule « 20:06:38 »
+		Alors l'accueil a demandé les fiches :
+			| genre     | identifiant | nom         |
+			| sonore    | 41          | Spot        |
+			| événement | 51          | Fil de jour |
+			| séquence  | 61          | Pub         |
+			| banque    | 71          | Spots       |
+
+	Scénario: Une ligne des sonores à venir propose la pré-écoute de son sonore
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et les sonores à venir après le prochain sont :
+			| debut    | fin      | duree | artiste | titre | evenement   | sequence | banque | sain |
+			| 20:06:38 | 20:07:08 | 30    | Radio   | Spot  | Fil de jour |          |        | oui  |
+		Quand l'écran par défaut s'ouvre
+		Et la table des sonores à venir a bientôt 1 ligne
+		Et je choisis « Pré-écoute… » au clic droit sur la ligne « Spot » des sonores à venir
+		Alors la pré-écoute du sonore 41 a été demandée
+
 	# ─── Airplay des 12 dernières heures ───────────────────────
 
 	Scénario: L'airplay des 12 dernières heures, du plus récent au plus ancien

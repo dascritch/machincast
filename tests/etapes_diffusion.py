@@ -23,7 +23,8 @@ from machincast.horloge import HorlogeFixe
 from machincast.lecture.analyse import Analyseur
 from machincast.lecture.diffusion import Diffusion
 from machincast.lecture.etat import SocketEtat
-from machincast.lecture.moteur import MoteurAudio, Voie
+from machincast.lecture.moteur import MoteurAudio, Voie, VoieLecture
+from machincast.lecture.simulation import MoteurSimule
 from machincast.lecture.sorties import Sorties
 from tests.base_test import configuration_test, parametres_base_test
 from tests.flux import ServeurDeFlux
@@ -58,6 +59,37 @@ class MoteurNote(MoteurAudio):
 		return voie
 
 
+class MoteurSimuleNote(MoteurSimule):
+	"""Le moteur simulé de la simulation, qui garde la montée de chaque sonore joué, par nom de sonore : chaque
+	fichier est dans un répertoire au nom de son sonore (creer_sonore)."""
+
+	def __init__(self, horloge: HorlogeFixe) -> None:
+		super().__init__(horloge)
+		self.montees: dict[str, timedelta] = {}
+
+	def jouer(
+		self,
+		chemin: Path | str,
+		duree: timedelta | None,
+		crossfade_debut: timedelta = timedelta(0),
+		crossfade_fin: timedelta = timedelta(0),
+		muette: bool = False,
+		decalage: timedelta | None = None,
+		depart: float = 0.0,
+		arrivee: float = 0.0,
+	) -> VoieLecture:
+		self.montees[Path(str(chemin)).parent.name] = crossfade_debut
+		return super().jouer(chemin, duree, crossfade_debut, crossfade_fin, muette, decalage, depart, arrivee)
+
+
+ELEMENTS = {
+	"saute au sonore suivant": "sonore",
+	"saute après la séquence": "sequence",
+	"coupe l'événement par le fil musical": "evenement",
+}
+"""Interruptions manuelles (https://github.com/dascritch/machincast/issues/228), par leur texte dans les scénarios."""
+
+
 @dataclass
 class Banc:
 	horloge: HorlogeFixe | None = None
@@ -73,6 +105,8 @@ class Banc:
 	"""Crossfades de la configuration : sans durée par défaut, sauf si le scénario en donne."""
 	analyseur: Analyseur | None = None
 	"""Analyse du prochain sonore (https://github.com/dascritch/machincast/issues/181) : aucune par défaut."""
+	simule: MoteurSimuleNote | None = None
+	"""Moteur simulé, qui suit l'horloge du binaire, quand la diffusion démarre sur lui."""
 
 
 @pytest.fixture
@@ -219,6 +253,42 @@ def emission(
 
 @given(
 	parsers.re(
+		r"(?P<genre>l'émission|le spécial) « (?P<nom>[^»]+) » de (?P<debut>[\d:]+) à (?P<fin>[\d:]+),"
+		r" avec les sonores (?P<liste>.+)"
+	)
+)
+def emission_des_sonores(
+	banc: Banc, base_vide: Connexion, tmp_path: Path, genre: str, nom: str, debut: str, fin: str, liste: str
+) -> None:
+	evenement(
+		banc,
+		base_vide,
+		tmp_path,
+		nom,
+		"emission" if genre == "l'émission" else "special",
+		heure(f"2026-10-14 {debut}"),
+		heure(f"2026-10-14 {fin}"),
+		[n.strip(" «»") for n in liste.split(",")],
+	)
+
+
+@given(
+	parsers.re(r"le spécial « (?P<nom>[^»]+) » à partir de (?P<debut>[\d:]+), sans fin, avec les sonores (?P<liste>.+)")
+)
+def special_sans_fin_des_sonores(
+	banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, debut: str, liste: str
+) -> None:
+	noms = [n.strip(" «»") for n in liste.split(",")]
+	evenement(banc, base_vide, tmp_path, nom, "special", heure(f"2026-10-14 {debut}"), None, noms)
+
+
+@given(parsers.parse("chaque sonore dure {duree:d} secondes"))
+def duree_des_sonores(base_vide: Connexion, duree: int) -> None:
+	base_vide.execute("UPDATE sonores SET duree = %s", (timedelta(seconds=duree),))
+
+
+@given(
+	parsers.re(
 		r"la séquence « (?P<nom>[^»]+) » des sonores « (?P<premier>[^»]+) », « (?P<second>[^»]+) », jouée par le fil"
 		r" musical permanent « (?P<fil>[^»]+) », avant le sonore « (?P<apres>[^»]+) »"
 	)
@@ -268,6 +338,39 @@ def fil_des_sequences(banc: Banc, base_vide: Connexion, tmp_path: Path, fil: str
 			"INSERT INTO evenements_elements (evenement_id, position, sequence_id) VALUES (%s, %s, %s)",
 			(evenement_cree[0], rang, sequence[0]),
 		)
+
+
+@given(
+	parsers.re(
+		r"le fil musical permanent « (?P<fil>[^»]+) » joue la séquence « (?P<sequence>[^»]+) » des sonores"
+		r" (?P<de_la_sequence>.+), puis la banque aléatoire « (?P<banque>[^»]+) » des sonores (?P<de_la_banque>.+)"
+	)
+)
+def fil_sequence_puis_banque(
+	banc: Banc,
+	base_vide: Connexion,
+	tmp_path: Path,
+	fil: str,
+	sequence: str,
+	de_la_sequence: str,
+	banque: str,
+	de_la_banque: str,
+) -> None:
+	fil_des_sequences(banc, base_vide, tmp_path, fil, f"« {sequence} » des sonores {de_la_sequence}")
+	creee = base_vide.execute(
+		"INSERT INTO banques (nom_interne, mode) VALUES (%s, 'aleatoire') RETURNING id", (banque,)
+	).fetchone()
+	assert creee is not None
+	for position, nom_sonore in enumerate((n.strip(" «»") for n in de_la_banque.split(",")), start=1):
+		base_vide.execute(
+			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+			(creee[0], creer_sonore(banc, base_vide, tmp_path, nom_sonore), position),
+		)
+	base_vide.execute(
+		"INSERT INTO evenements_elements (evenement_id, position, banque_id)"
+		" SELECT id, 2, %s FROM evenements WHERE nom_interne = %s",
+		(creee[0], fil),
+	)
 
 
 @given(
@@ -428,6 +531,35 @@ def demarrer(banc: Banc, base_vide: Connexion, rythme: str) -> None:
 	banc.diffusion.demarrer()
 
 
+@when("la diffusion démarre sur un moteur simulé")
+def demarrer_sur_un_moteur_simule(banc: Banc, base_vide: Connexion) -> None:
+	"""Le moteur simulé suit l'horloge du binaire : un sonore d'une minute se joue sans attendre."""
+	banc.connexion = connecter(*parametres_base_test(), Role.LECTURE)
+	banc.simule = MoteurSimuleNote(horloge(banc))
+	banc.diffusion = Diffusion(
+		banc.connexion,
+		banc.simule,
+		horloge(banc),
+		creer_hasard(0),
+		etat=banc.etat,
+		crossfades=banc.crossfades,
+	)
+	banc.diffusion.demarrer()
+
+
+@when(parsers.re(r"la diffusion avance de (?P<nombre>\d+) secondes?"))
+def avancer(banc: Banc, nombre: str) -> None:
+	"""Un pas par seconde, sur le moteur simulé."""
+	for _ in range(int(nombre)):
+		diffusion(banc).pas()
+		horloge(banc).avancer(timedelta(seconds=1))
+
+
+@when(parsers.re(r"je (?P<quoi>saute au sonore suivant|saute après la séquence|coupe l'événement par le fil musical)$"))
+def interrompre(banc: Banc, quoi: str) -> None:
+	diffusion(banc).interrompre(ELEMENTS[quoi])
+
+
 @when(parsers.re(r"la diffusion tourne (?P<nombre>\d+) pas d(?:'une|e (?P<duree>[\d,]+)) seconde"))
 def tourner(banc: Banc, nombre: str, duree: str | None) -> None:
 	ecart = 1.0
@@ -503,6 +635,86 @@ def log(base: Connexion) -> list[tuple[str, str]]:
 @then(parsers.re(r"l'airplay montre les passages (?P<liste>.+)"))
 def airplay(base_vide: Connexion, liste: str) -> None:
 	assert [p[0] for p in passages(base_vide)] == [n.strip(" «»") for n in liste.split(",")], passages(base_vide)
+
+
+def titre(base: Connexion, sonore: int) -> str:
+	ligne = base.execute("SELECT titre FROM sonores WHERE id = %s", (sonore,)).fetchone()
+	assert ligne is not None
+	return str(ligne[0])
+
+
+def annonces(banc: Banc, base: Connexion) -> list[str]:
+	return [titre(base, prevu.choix.sonore) for prevu in diffusion(banc).a_venir]
+
+
+def liste(texte: str) -> list[str]:
+	return [nom.strip(" «»") for nom in texte.split(",")]
+
+
+@then(parsers.parse("le prochain sonore réservé est « {nom} »"))
+def prochain_reserve(banc: Banc, base_vide: Connexion, nom: str) -> None:
+	reserve = diffusion(banc).reserve
+	assert reserve is not None
+	assert titre(base_vide, reserve.choix.sonore) == nom
+
+
+@then(parsers.re(r"les sonores à venir sont (?P<noms>.+)"))
+def a_venir(banc: Banc, base_vide: Connexion, noms: str) -> None:
+	assert annonces(banc, base_vide) == liste(noms)
+
+
+@pytest.fixture
+def notes() -> list[str]:
+	"""Les sonores annoncés, notés par le scénario."""
+	return []
+
+
+@when("je note les sonores annoncés")
+def noter(banc: Banc, base_vide: Connexion, notes: list[str]) -> None:
+	reserve = diffusion(banc).reserve
+	assert reserve is not None
+	notes.extend([titre(base_vide, reserve.choix.sonore), *annonces(banc, base_vide)])
+
+
+@then(parsers.parse("le passage n°{passage:d} est le sonore noté n°{rang:d}"))
+def passage_note(base_vide: Connexion, notes: list[str], passage: int, rang: int) -> None:
+	joues = [p[0] for p in passages(base_vide)]
+	assert joues[passage - 1] == notes[rang - 1], (joues, notes)
+
+
+@then(parsers.parse("le prochain sonore et les sonores à venir reprennent les sonores notés à partir du n°{rang:d}"))
+def suite_notee(banc: Banc, base_vide: Connexion, notes: list[str], rang: int) -> None:
+	reserve = diffusion(banc).reserve
+	assert reserve is not None
+	annonces_ = [titre(base_vide, reserve.choix.sonore), *annonces(banc, base_vide)]
+	assert annonces_[: len(notes) - rang + 1] == notes[rang - 1 :], (annonces_, notes)
+
+
+def heure_de_fin(fin: datetime | None) -> str:
+	if fin is None:
+		return ""
+	return f"{fin.astimezone():%H:%M:%S}"
+
+
+@then("l'airplay montre :")
+def airplay_detaille(base_vide: Connexion, datatable: list[list[str]]) -> None:
+	_, *lignes = datatable
+	obtenus = [
+		[titre, f"{debut.astimezone():%H:%M:%S}", heure_de_fin(fin), "oui" if sans_incident else "non"]
+		for titre, debut, fin, sans_incident in passages(base_vide)
+	]
+	assert obtenus == [[valeur.strip() for valeur in ligne] for ligne in lignes], obtenus
+
+
+@then(
+	parsers.re(r"le sonore « (?P<nom>[^»]+) » a démarré (?:avec une montée de (?P<duree>[\d,]+) secondes|sans montée)")
+)
+def montee(banc: Banc, nom: str, duree: str | None) -> None:
+	assert banc.simule is not None
+	attendue = timedelta(0)
+	if duree is not None:
+		attendue = timedelta(seconds=secondes(duree))
+	assert banc.simule.montees[nom] == attendue, banc.simule.montees
 
 
 @then("chaque passage a sa ligne de fin, sans incident")

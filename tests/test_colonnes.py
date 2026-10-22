@@ -38,6 +38,7 @@ VUES = {
 	"recherche",
 	"incidents",
 	"accueil-airplay",
+	"accueil-a-venir",
 	"simulation",
 	"fiche-banque-sonores",
 	"fiche-sequence-elements",

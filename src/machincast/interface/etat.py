@@ -52,6 +52,8 @@ class SonoreAffiche:
 	position: float | None = None
 	"""Secondes jouées, pour le sonore en cours."""
 	evenement_id: int | None = None
+	evenement_priorite: str | None = None
+	"""« special », « emission », « fil_musical » ou « secours » (https://github.com/dascritch/machincast/issues/228)."""
 	evenement_debut: datetime | None = None
 	"""Début de l'occurrence de l'événement, en heure murale ; None pour un fil musical permanent
 	(https://github.com/dascritch/machincast/issues/144)."""
@@ -73,6 +75,8 @@ class EtatLecture:
 	"""« diffusion », « silence » ou « arret »."""
 	en_cours: SonoreAffiche | None = None
 	prochain: SonoreAffiche | None = None
+	a_venir: tuple[SonoreAffiche, ...] = ()
+	"""Les sonores prévus après le prochain, dans l'ordre (https://github.com/dascritch/machincast/issues/228)."""
 
 
 ARRET = EtatLecture("arret")
@@ -109,6 +113,7 @@ def _sonore(champs: dict[str, Any] | None, debut: str) -> SonoreAffiche | None:
 		sain=booleen_ou_rien(sain),
 		position=_nombre(champs.get("position")),
 		evenement_id=entier_ou_rien(champs.get("evenement_id")),
+		evenement_priorite=texte_ou_rien(champs.get("evenement_priorite")),
 		evenement_debut=_instant(champs.get("evenement_debut")),
 		evenement_fin=_instant(champs.get("evenement_fin")),
 		sequence=texte_ou_rien(champs.get("sequence")),
@@ -124,10 +129,12 @@ def lire_message(ligne: str) -> EtatLecture:
 	"""Un message de la socket d'état ; ValueError s'il est illisible."""
 	try:
 		message = json.loads(ligne)
+		a_venir = [_sonore(champs, "debut_estime") for champs in (message.get("a_venir")) or ([])]
 		return EtatLecture(
 			str(message["etat"]),
 			_sonore(message.get("en_cours"), "debut"),
 			_sonore(message.get("prochain"), "debut_estime"),
+			tuple(sonore for sonore in a_venir if sonore is not None),
 		)
 	except (KeyError, TypeError, AttributeError) as erreur:
 		raise ValueError(f"message incomplet : {erreur}") from erreur

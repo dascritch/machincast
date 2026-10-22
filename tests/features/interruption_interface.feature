@@ -1,10 +1,11 @@
 # language: fr
 Fonctionnalité: Interrompre l'antenne depuis l'interface
 	En tant que responsable d'antenne,
-	je veux que le menu « Diffusion » propose d'interrompre le sonore, la séquence ou l'événement en cours,
-	afin de passer au suivant sans terminal.
+	je veux que le menu « Diffusion » propose de sauter au sonore suivant, de sauter après la séquence en cours, ou de
+	couper l'événement par le fil musical, afin de corriger l'antenne sans terminal.
 
-	https://github.com/dascritch/machincast/issues/104, spec § 8.11. Les entrées suivent l'état que Machin lecture
+	https://github.com/dascritch/machincast/issues/104 et https://github.com/dascritch/machincast/issues/228,
+	spec § 8.11. Les entrées suivent l'état que Machin lecture
 	publie sur sa socket d'état : chacune n'est active que si son élément est à l'antenne, et son infobulle le nomme.
 	Elle envoie la demande sur la socket, aussitôt, sans question ; la barre d'état l'annonce.
 
@@ -17,35 +18,45 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Et l'interface a reçu l'état de Machin lecture
 		Alors les interruptions du menu « Diffusion » sont :
-			| entrée                  | état   | infobulle                                  |
-			| Interrompre le sonore   | active | « Café à minuit »  |
-			| Interrompre la séquence | active | « Pub »            |
-			| Interrompre l'événement | active | « Matinale »       |
+			| entrée                                | état   | infobulle         |
+			| Sauter au sonore suivant              | active | « Café à minuit » |
+			| Sauter après la séquence              | active | « Pub »           |
+			| Couper l'événement par le fil musical | active | « Matinale »      |
 
 	Scénario: Hors d'une séquence, seule l'interruption de la séquence est inactive
 		Étant donné Machin lecture diffuse « Café à minuit », dans « Matinale »
 		Quand la fenêtre de l'interface s'ouvre
 		Et l'interface a reçu l'état de Machin lecture
 		Alors les interruptions du menu « Diffusion » sont :
-			| entrée                  | état     | infobulle                                  |
-			| Interrompre le sonore   | active   | « Café à minuit »  |
-			| Interrompre la séquence | inactive | Aucune séquence à l'antenne                |
-			| Interrompre l'événement | active   | « Matinale »       |
+			| entrée                                | état     | infobulle                   |
+			| Sauter au sonore suivant              | active   | « Café à minuit »           |
+			| Sauter après la séquence              | inactive | Aucune séquence à l'antenne |
+			| Couper l'événement par le fil musical | active   | « Matinale »                |
+
+	Scénario: Dans le fil musical, couper l'événement par le fil musical est inactif
+		Étant donné Machin lecture diffuse « Café à minuit », de la séquence « Pub », dans le fil musical « Continue »
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'interface a reçu l'état de Machin lecture
+		Alors les interruptions du menu « Diffusion » sont :
+			| entrée                                | état     | infobulle                           |
+			| Sauter au sonore suivant              | active   | « Café à minuit »                   |
+			| Sauter après la séquence              | active   | « Pub »                             |
+			| Couper l'événement par le fil musical | inactive | Le fil musical est déjà à l'antenne |
 
 	Plan du scénario: Sans rien à l'antenne, aucune interruption n'est proposée
 		Étant donné Machin lecture <situation>
 		Quand la fenêtre de l'interface s'ouvre
 		Et l'interface a reçu l'état de Machin lecture
 		Alors les interruptions du menu « Diffusion » sont :
-			| entrée                  | état     | infobulle          |
-			| Interrompre le sonore   | inactive | Rien à l'antenne   |
-			| Interrompre la séquence | inactive | Rien à l'antenne   |
-			| Interrompre l'événement | inactive | Rien à l'antenne   |
+			| entrée                                | état     | infobulle        |
+			| Sauter au sonore suivant              | inactive | Rien à l'antenne |
+			| Sauter après la séquence              | inactive | Rien à l'antenne |
+			| Couper l'événement par le fil musical | inactive | Rien à l'antenne |
 
 		Exemples:
-			| situation              |
-			| est en silence         |
-			| s'est arrêté           |
+			| situation      |
+			| est en silence |
+			| s'est arrêté   |
 
 	Plan du scénario: Chaque interruption est envoyée à Machin lecture, et annoncée
 		Étant donné Machin lecture diffuse « Café à minuit », de la séquence « Pub », dans « Matinale »
@@ -57,16 +68,16 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 		Et aucune question n'a été posée
 
 		Exemples:
-			| entrée                  | élément   | annonce                                 |
-			| Interrompre le sonore   | sonore    | Interruption du sonore demandée.        |
-			| Interrompre la séquence | sequence  | Interruption de la séquence demandée.   |
-			| Interrompre l'événement | evenement | Interruption de l'événement demandée.   |
+			| entrée                                | élément   | annonce                                             |
+			| Sauter au sonore suivant              | sonore    | Saut au sonore suivant demandé.                     |
+			| Sauter après la séquence              | sequence  | Saut après la séquence demandé.                     |
+			| Couper l'événement par le fil musical | evenement | Coupure de l'événement par le fil musical demandée. |
 
 	Scénario: Une demande que Machin lecture ne peut pas recevoir n'est pas annoncée comme envoyée
 		Étant donné Machin lecture diffuse « Café à minuit », dans « Matinale »
 		Quand la fenêtre de l'interface s'ouvre
 		Et l'interface a reçu l'état de Machin lecture
-		Et Machin lecture ferme sa socket d'état, juste avant que je choisisse « Interrompre le sonore »
+		Et Machin lecture ferme sa socket d'état, juste avant que je choisisse « Sauter au sonore suivant »
 		Alors la barre d'état a annoncé « Interruption impossible : Machin lecture ne répond pas sur sa socket d'état. »
 
 	Scénario: Les entrées suivent l'antenne

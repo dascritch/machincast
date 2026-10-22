@@ -6,7 +6,9 @@ dans les listes), et tout ce qu'il y écrit (passages, log, expirations), passe 
 - HistoriqueEnBase (EN_BASE), pour la diffusion : il lit et écrit la base, par machincast.lecture.enregistrement et
   machincast.lecture.expiration ;
 - HistoriqueSimule (machincast.lecture.simulation), pour la simulation : il lit la base sans jamais y écrire, et tient
-  en mémoire les passages, le log et les expirations simulés, dont ses lectures tiennent compte.
+  en mémoire les passages, le log et les expirations simulés, dont ses lectures tiennent compte ;
+- HistoriqueEnLecture et HistoriquePrevu, pour anticiper une décision ou prévoir les sonores à venir : ils lisent
+  l'historique de la diffusion sans jamais y écrire, le second en y ajoutant des passages prévus.
 
 Les deux donnent les mêmes réponses pour un même historique : la logique de lecture est la même en diffusion et en
 simulation.
@@ -14,9 +16,9 @@ simulation.
 
 import uuid
 from collections.abc import Collection
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 import psycopg
 from psycopg.rows import TupleRow
@@ -156,6 +158,65 @@ class HistoriqueEnLecture:
 
 	def expirer(self, connexion: Connexion, instant: datetime, sonore: int | None = None) -> list[Expiration]:
 		return []
+
+
+@dataclass(frozen=True)
+class HistoriquePrevu(HistoriqueEnLecture):
+	"""Un historique qui lit celui qu'il enveloppe, suivi des passages prévus, sans jamais rien écrire : pour prévoir
+	les sonores à venir (https://github.com/dascritch/machincast/issues/228). Les passages prévus, du plus ancien au
+	plus récent, comptent comme s'ils avaient été joués ; la liste s'allonge au fil de la prévision. Ce que les
+	décisions consigneraient est gardé dans consignes, sans heure : la diffusion le consigne quand le sonore prévu
+	devient le prochain."""
+
+	prevus: list[Passage] = field(default_factory=list)
+	consignes: list[dict[str, Any]] = field(default_factory=list)
+
+	def consigner(
+		self,
+		connexion: Connexion,
+		niveau: str,
+		nature: str,
+		message: str,
+		instant: datetime | None = None,
+		sonore: int | None = None,
+		banque: int | None = None,
+		evenement: int | None = None,
+	) -> None:
+		self.consignes.append(
+			{
+				"niveau": niveau,
+				"nature": nature,
+				"message": message,
+				"sonore": sonore,
+				"banque": banque,
+				"evenement": evenement,
+			}
+		)
+
+	def lectures(self, connexion: Connexion, sonores: Collection[int]) -> dict[int, int]:
+		comptes = self.source.lectures(connexion, sonores)
+		for passage in self.prevus:
+			if passage.sonore in comptes:
+				comptes[passage.sonore] += 1
+		return comptes
+
+	def joues_via_banque(self, connexion: Connexion, banque: int) -> list[int]:
+		prevus = [passage.sonore for passage in reversed(self.prevus) if passage.banque == banque]
+		return prevus + self.source.joues_via_banque(connexion, banque)
+
+	def dernier_element(self, connexion: Connexion, evenement: int, depuis: datetime | None) -> int | None:
+		for passage in reversed(self.prevus):
+			if (passage.evenement == evenement) and ((depuis is None) or (passage.debut >= depuis)):
+				return passage.element
+		return self.source.dernier_element(connexion, evenement, depuis)
+
+	def dernier_passage(self, connexion: Connexion) -> DernierPassage | None:
+		if not self.prevus:
+			return self.source.dernier_passage(connexion)
+		passage = self.prevus[-1]
+		return DernierPassage(
+			passage.id, passage.banque, passage.debut, passage.evenement, passage.element, passage.sequence_element
+		)
 
 
 class HistoriqueEnBase:

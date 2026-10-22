@@ -26,13 +26,23 @@ Streams (https://github.com/dascritch/machincast/issues/16, spec § 4.7) :
   début), et l'incident « reprise du flux » donne la durée de la panne ;
 - si l'événement du stream n'est plus actif, la reconnexion est abandonnée.
 
-Interruption manuelle (https://github.com/dascritch/machincast/issues/104, interrompre) : demandée par l'interface sur
-la socket d'état, et traitée au début du pas suivant. Le sonore en cours s'éteint pendant son crossfade de fin, ou
-s'arrête net sans crossfade, comme un stream à la fin de son événement ; son passage se termine sans incident, et le
-suivant enchaîne : celui de la liste pour un sonore, celui qui suit la séquence pour une séquence, celui de
-l'événement de priorité inférieure pour un événement (Ordonnanceur.interrompre). Le log note l'info « interruption
-manuelle », avec ce qui est interrompu. Sans rien à l'antenne, ou hors d'une séquence pour une séquence, la demande
-est ignorée et signalée dans le journal du binaire.
+Playlist immédiate (https://github.com/dascritch/machincast/issues/228) : après le prochain sonore, réservé au début
+du sonore en cours, la diffusion prévoit les A_VENIR sonores suivants (a_venir), chacun à l'heure où il serait choisi,
+en tenant compte des coupures par les événements qui commencent. Ils sont engagés : à chaque changement de sonore, si
+c'est le prochain sonore qui a démarré, que la grille n'a pas changé et que la coupure du sonore en cours est celle
+qui était prévue, le premier sonore à venir devient le prochain, et un nouveau est prévu au bout de la liste ; sinon,
+sur un imprévu, le prochain sonore et toute la liste sont recalculés. Un sonore à venir qui n'est plus jouable à son
+tour est remplacé par la décision de l'ordonnanceur, qui fait recalculer la liste.
+
+Interruption manuelle (https://github.com/dascritch/machincast/issues/104,
+https://github.com/dascritch/machincast/issues/228, interrompre) : demandée par l'interface sur la socket d'état, et
+traitée au début du pas suivant. Le sonore en cours s'éteint aussitôt pendant le crossfade de fin par défaut de la
+configuration, ou s'arrête net sans lui ; son passage se termine sans incident, et le suivant démarre avec le crossfade
+de début par défaut, ou à plein volume : le prochain sonore pour un sonore, le premier sonore prévu après la séquence
+pour une séquence (les sonores à venir qui le suivent sont gardés), le fil musical pour un événement
+(Ordonnanceur.rendre_au_fil_musical). Le log note l'info « interruption manuelle », avec ce qui est interrompu. Sans
+rien à l'antenne, hors d'une séquence pour une séquence, ou dans le fil musical pour un événement, la demande est
+ignorée et signalée dans le journal du binaire.
 
 Expiration (https://github.com/dascritch/machincast/issues/18, machincast.lecture.expiration) : chaque passage qui
 commence vérifie si son sonore a atteint son maximum de lectures ; tous les sonores sont vérifiés au démarrage, puis
@@ -43,6 +53,7 @@ import json
 import logging
 import signal
 import threading
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -87,7 +98,14 @@ SANS_DEFAUTS = Crossfades()
 HORIZON_DES_COUPURES = timedelta(hours=12)
 """Jusqu'où chercher l'événement qui coupera un sonore de durée inconnue, un stream
 (https://github.com/dascritch/machincast/issues/169)."""
-"""Pause entre deux pas de la boucle, en secondes : la précision de l'enchaînement et de la coupure."""
+A_VENIR = 5
+"""Sonores prévus après le prochain : la playlist immédiate (https://github.com/dascritch/machincast/issues/228)."""
+EMPREINTE_DE_LA_GRILLE = (
+	"SELECT md5(concat_ws('|', (SELECT string_agg(e::text, ',' ORDER BY e.id) FROM evenements e),"
+	" (SELECT string_agg(x::text, ',' ORDER BY x.id) FROM evenements_elements x),"
+	" (SELECT string_agg(l::text, ',' ORDER BY l.id) FROM sequences_elements l)))"
+)
+"""Empreinte des événements, de leurs listes et des séquences : changée, elle fait recalculer les sonores à venir."""
 
 DELAI_RECONNEXION = timedelta(seconds=5)
 """Délai entre deux tentatives de reconnexion d'un stream tombé."""
@@ -164,6 +182,24 @@ class Reserve:
 	anticipee: bool = False
 	"""Réservé pour après une coupure : seulement annoncé, il sera choisi par la décision prise à la coupure, qui
 	consigne ce qu'il faut (https://github.com/dascritch/machincast/issues/169)."""
+
+
+@dataclass(frozen=True)
+class Prevu:
+	"""Un sonore à venir, après le prochain (https://github.com/dascritch/machincast/issues/228) : engagé, il sera joué
+	si rien d'imprévu n'arrive."""
+
+	choix: Choix
+	parametres: Parametres
+	sain: bool | None
+	coupure: Coupure | None
+	"""L'événement qui coupe net le sonore précédent, au début duquel celui-ci démarre ; None s'il enchaîne."""
+	terminees: frozenset[tuple[int, datetime | None]]
+	"""Occurrences terminées par l'ordonnanceur une fois ce sonore choisi (Ordonnanceur.engager)."""
+	details: dict[str, Any] = field(default_factory=dict, compare=False)
+	"""Ce que la socket d'état dit de son contexte (Diffusion._details), lu une fois."""
+	consignes: tuple[dict[str, Any], ...] = field(default=(), compare=False)
+	"""Ce que sa décision consignerait, comme un élément sauté : consigné quand il devient le prochain sonore."""
 
 
 @dataclass
@@ -288,6 +324,12 @@ class Diffusion:
 	"""Le dernier passage commencé, pour noter les débuts et les fins d'événements et de séquences."""
 	_sequence_a_l_antenne: str = field(default="", init=False)
 	"""Le message de la séquence à l'antenne, gardé pour sa fin."""
+	a_venir: list[Prevu] = field(default_factory=list, init=False)
+	"""Les sonores prévus après le prochain, dans l'ordre (https://github.com/dascritch/machincast/issues/228)."""
+	_attendu: Choix | None = field(default=None, init=False)
+	"""Le prochain sonore, pris pour être joué : s'il démarre, les sonores à venir avancent d'un cran."""
+	_empreinte: str | None = field(default=None, init=False)
+	"""Empreinte de la grille quand les sonores à venir ont été prévus (EMPREINTE_DE_LA_GRILLE)."""
 
 	def __post_init__(self) -> None:
 		self.ordonnanceur = Ordonnanceur(self.connexion, self.hasard, self.historique)
@@ -322,21 +364,23 @@ class Diffusion:
 		if courant is not None:
 			decision = self.ordonnanceur.decider(instant, courant.en_cours)
 			if decision.couper:
+				reserve = self.reserve
 				self._couper(instant)
-				self._appliquer(decision, instant)
+				self._jouer_la_decision(decision, reserve, instant)
 			elif decision.eteindre:
-				self._eteindre(courant, decision, instant)
+				self._eteindre(courant, (self._prendre_la_reserve(instant)) or (decision.jouer), instant)
 			elif (not courant.suivant_demande) and (self._au_crossfade_de_fin(courant)):
 				courant.suivant_demande = True
 				self._preparer_le_suivant(courant, instant)
 		elif not self.sortants:
 			# Rien sur la sortie ; tant qu'un stream s'éteint sans superposition, le suivant attend.
+			reserve = self.reserve
 			choix, self.en_attente = self.en_attente, None
 			choix = (choix) or (self._prendre_la_reserve(instant))
 			if choix is not None:
 				self._jouer(choix, instant)
 			else:
-				self._appliquer(self.ordonnanceur.decider(instant, None), instant)
+				self._jouer_la_decision(self.ordonnanceur.decider(instant, None), reserve, instant)
 		self._suivre_la_sonde(instant)
 		self._publier(instant)
 
@@ -349,6 +393,7 @@ class Diffusion:
 		for lecture in self._lectures():
 			self._terminer(lecture.passage, instant)
 		self.courant, self.sortants, self.en_attente, self.sonde, self.reserve = None, [], None, None, None
+		self.a_venir = []
 		self._noter_l_antenne(None, instant)
 		self.historique.consigner(self.connexion, "info", "arrêt", "arrêt demandé", instant)
 		self._publier(instant, arret=True)
@@ -356,8 +401,9 @@ class Diffusion:
 			self.etat.fermer()
 
 	def interrompre(self, element: str) -> bool:
-		"""Interruption manuelle du sonore, de la séquence ou de l'événement en cours (« sonore », « sequence »,
-		« evenement ») ; False si elle est ignorée, faute de rien à interrompre."""
+		"""Interruption manuelle (https://github.com/dascritch/machincast/issues/228) : sauter au sonore suivant
+		(« sonore »), sauter après la séquence (« sequence »), ou couper l'événement par le fil musical
+		(« evenement ») ; False si elle est ignorée, faute de rien à interrompre."""
 		instant = self.horloge.maintenant()
 		courant = self.courant
 		if courant is None:
@@ -365,19 +411,17 @@ class Diffusion:
 			return False
 		choix = courant.choix
 		evenement = choix.occurrence.evenement
+		if (element == "sequence") and (choix.ligne is None):
+			journal.warning(f"{IGNOREE} : aucune séquence à l'antenne")
+			return False
+		if (element == "evenement") and (evenement.priorite is Priorite.FIL_MUSICAL):
+			journal.warning(f"{IGNOREE} : le fil musical est déjà à l'antenne")
+			return False
+		message = f"du sonore « {self._nom_du_sonore(choix.sonore)} »"
 		if element == "sequence":
-			if choix.ligne is None:
-				journal.warning(f"{IGNOREE} : aucune séquence à l'antenne")
-				return False
 			message = f"de la séquence {self._sequence_a_l_antenne}"
-		elif element == "evenement":
-			message = f"de l'événement « {evenement.nom} »"
-		else:
-			message = f"du sonore « {self._nom_du_sonore(choix.sonore)} »"
-		if element != "sonore":
-			self.ordonnanceur.abandonner_la_sequence(courant.passage.id)
 		if element == "evenement":
-			self.ordonnanceur.interrompre(choix.occurrence)
+			message = f"de l'événement « {evenement.nom} »"
 		self.historique.consigner(
 			self.connexion,
 			"info",
@@ -389,9 +433,44 @@ class Diffusion:
 		)
 		if self.sorties is not None:
 			self.sorties.annoncer(INTERRUPTION_MANUELLE, message)
-		self._eteindre(courant, self.ordonnanceur.decider(instant, None), instant)
+		if element != "sonore":
+			self.ordonnanceur.abandonner_la_sequence(courant.passage.id)
+		suivant = None
+		if element == "evenement":
+			self.ordonnanceur.rendre_au_fil_musical(instant)
+			self.a_venir = []
+		else:
+			suivant = self._sauter(courant, element == "sequence", instant)
+		if suivant is None:
+			suivant = self.ordonnanceur.decider(instant, None).jouer
+		fondu = (self.crossfades.fin) or (AUCUN_CROSSFADE)
+		self._eteindre(courant, suivant, instant, fondu, (self.crossfades.debut) or (AUCUN_CROSSFADE))
 		self._publier(instant)
 		return True
+
+	def _sauter(self, courant: Lecture, apres_la_sequence: bool, instant: datetime) -> Choix | None:
+		"""Le sonore où sauter : le prochain, ou, après la séquence, le premier sonore prévu qui ne la continue pas ;
+		les sonores à venir qui le suivent sont gardés. None s'il n'est pas prévu, ou plus jouable : l'ordonnanceur
+		décide alors, et la liste sera recalculée."""
+		reserve = self.reserve
+		if (reserve is None) or (reserve.anticipee):
+			return None
+		candidats: list[tuple[Choix, Prevu | None]] = [(reserve.choix, None)]
+		candidats += [(prevu.choix, prevu) for prevu in self.a_venir]
+		precedent = courant.choix
+		for rang, (choix, prevu) in enumerate(candidats):
+			meme_occurrence = precedent.occurrence.cle == choix.occurrence.cle
+			if (apres_la_sequence) and (meme_occurrence) and (_continue_la_sequence(precedent, choix)):
+				precedent = choix
+				continue
+			if not self.ordonnanceur.valider(choix, instant):
+				return None
+			if prevu is not None:
+				self._engager(prevu, instant)
+			self.a_venir = self.a_venir[rang:]
+			self._attendu = choix
+			return choix
+		return None
 
 	def _nom_du_sonore(self, sonore: int) -> str:
 		with self.connexion.transaction():
@@ -431,31 +510,151 @@ class Diffusion:
 		"""Le sonore réservé, s'il est encore valable ; la réserve est vidée dans tous les cas."""
 		reserve, self.reserve = self.reserve, None
 		if (reserve is not None) and (not reserve.anticipee) and (self.ordonnanceur.valider(reserve.choix, instant)):
+			self._attendu = reserve.choix
 			return reserve.choix
 		return None
 
+	def _jouer_la_decision(self, decision: Decision, reserve: Reserve | None, instant: datetime) -> None:
+		"""Joue le sonore de la décision ; à la coupure par un événement, ou quand le sonore coupé a fini plus tôt, le
+		sonore réservé pour cet événement est joué à sa place, même tiré au hasard, s'il est encore valable."""
+		choix = decision.jouer
+		if (
+			(choix is not None)
+			and (reserve is not None)
+			and (reserve.anticipee)
+			and (reserve.choix.occurrence.cle == choix.occurrence.cle)
+			and (self.ordonnanceur.valider(reserve.choix, instant))
+		):
+			choix = reserve.choix
+			self._attendu = choix
+		if choix is not None:
+			self._jouer(choix, instant)
+
 	def _reserver(self, instant: datetime) -> None:
-		"""Réserve le prochain sonore. Si un événement doit couper le sonore en cours, c'est celui que cet événement
-		jouera, anticipé à l'instant de la coupure (https://github.com/dascritch/machincast/issues/169)."""
+		"""Au début du sonore en cours, réserve le prochain sonore, puis prévoit les sonores à venir.
+
+		Si c'est le prochain sonore attendu qui a démarré, que la grille n'a pas changé et que la coupure du sonore en
+		cours est celle qui était prévue, le premier sonore à venir devient le prochain
+		(https://github.com/dascritch/machincast/issues/228). Sinon, le prochain est choisi : si un événement doit
+		couper le sonore en cours, c'est celui que cet événement jouera, anticipé à l'instant de la coupure
+		(https://github.com/dascritch/machincast/issues/169) ; et les sonores à venir sont recalculés."""
 		courant = self.courant
+		attendu, self._attendu = self._attendu, None
 		coupure = None
 		if courant is not None:
 			coupure = self.ordonnanceur.coupure(courant.en_cours, instant, _horizon(courant, instant))
 			courant.coupure = coupure
+		empreinte = self._empreinte_de_la_grille()
+		engage = (
+			(courant is not None)
+			and (attendu is not None)
+			and (attendu is courant.choix)
+			and (self.a_venir != [])
+			and (empreinte == self._empreinte)
+			and (_meme_coupure(self.a_venir[0].coupure, coupure))
+		)
+		self._empreinte = empreinte
+		if engage:
+			prevu = self.a_venir.pop(0)
+			self._engager(prevu, instant)
+			self.reserve = Reserve(prevu.choix, prevu.parametres, prevu.sain, prevu.coupure is not None)
+		else:
+			self.a_venir = []
+			self.reserve = self._choisir_la_reserve(coupure, instant)
+		if self.reserve is not None:
+			self._analyser(self.reserve, instant)
+		self._prolonger(instant)
+
+	def _engager(self, prevu: Prevu, instant: datetime) -> None:
+		"""Le sonore prévu devient le prochain : ce que sa décision a terminé l'est pour de bon, et ce qu'elle
+		consignerait est consigné, à l'heure où le prochain sonore est réservé."""
+		self.ordonnanceur.engager(prevu.terminees)
+		for consigne in prevu.consignes:
+			self.historique.consigner(self.connexion, instant=instant, **consigne)
+
+	def _choisir_la_reserve(self, coupure: Coupure | None, instant: datetime) -> Reserve | None:
 		if coupure is None:
 			choix = self.ordonnanceur.reserver(instant)
 		else:
 			choix = self.ordonnanceur.anticiper(coupure.instant)
 		if choix is None:
-			self.reserve = None
-			return
-		self.reserve = Reserve(
+			return None
+		return Reserve(
 			choix,
 			lire_parametres(self.connexion, choix, self.crossfades),
 			est_sain(self.connexion, choix.sonore),
 			coupure is not None,
 		)
-		self._analyser(self.reserve, instant)
+
+	def _empreinte_de_la_grille(self) -> str:
+		with self.connexion.transaction():
+			ligne = self.connexion.execute(EMPREINTE_DE_LA_GRILLE).fetchone()
+		return "" if ligne is None else str(ligne[0])
+
+	def _prolonger(self, instant: datetime) -> None:
+		"""Prévoit les sonores à venir jusqu'à A_VENIR, au bout de la liste : chacun est choisi à l'heure où le
+		précédent appellera son suivant, ou à celle de l'événement qui le coupera. La liste s'arrête sur un silence, ou
+		après un sonore dont la fin est inconnue."""
+		courant, reserve = self.courant, self.reserve
+		if (courant is None) or (reserve is None):
+			self.a_venir = []
+			return
+		debuts = self._debuts()
+		chaine = [(reserve.choix, reserve.parametres)] + [(prevu.choix, prevu.parametres) for prevu in self.a_venir]
+		if any(debut is None for debut in debuts):
+			return
+		prevus = [_passage_prevu(choix, debut) for (choix, _), debut in zip(chaine, debuts, strict=True) if debut]
+		precedent, parametres = chaine[-1]
+		debut = debuts[-1]
+		terminees: frozenset[tuple[int, datetime | None]] = frozenset()
+		if self.a_venir != []:
+			terminees = self.a_venir[-1].terminees
+		with self.ordonnanceur.prevision(prevus, terminees) as prevision:
+			while (len(self.a_venir) < A_VENIR) and (debut is not None):
+				occurrence = precedent.occurrence
+				en_cours = EnCours(occurrence, debut, debut + ((parametres.duree) or (timedelta(0))), parametres.stream)
+				horizon = _horizon_de(debut, parametres, occurrence, instant)
+				coupure = self.ordonnanceur.coupure(en_cours, debut, horizon)
+				moment = _instant_du_suivant(debut, parametres, occurrence, coupure)
+				if moment is None:
+					return
+				deja = len(prevision.consignes)
+				choix = self.ordonnanceur.reserver(moment)
+				if choix is None:
+					return
+				entrant = lire_parametres(self.connexion, choix, self.crossfades)
+				prevu = Prevu(
+					choix,
+					entrant,
+					est_sain(self.connexion, choix.sonore),
+					coupure,
+					frozenset(self.ordonnanceur.terminees),
+					self._details(choix, None),
+					tuple(prevision.consignes[deja:]),
+				)
+				self.a_venir.append(prevu)
+				debut = _debut_du_suivant(debut, parametres, occurrence, coupure, entrant)
+				if debut is not None:
+					prevus.append(_passage_prevu(choix, debut))
+				precedent, parametres = choix, entrant
+
+	def _debuts(self) -> list[datetime | None]:
+		"""Débuts estimés du prochain sonore et des sonores à venir, enchaînés depuis le sonore en cours ; None à partir
+		d'un sonore dont la fin est inconnue."""
+		courant, reserve = self.courant, self.reserve
+		if (courant is None) or (reserve is None):
+			return []
+		suite = [(reserve.choix, reserve.parametres)] + [(prevu.choix, prevu.parametres) for prevu in self.a_venir]
+		coupures = [courant.coupure] + [prevu.coupure for prevu in self.a_venir]
+		debut: datetime | None = courant.passage.debut
+		parametres, occurrence = courant.parametres, courant.choix.occurrence
+		debuts: list[datetime | None] = []
+		for (choix, entrant), coupure in zip(suite, coupures, strict=True):
+			if debut is not None:
+				debut = _debut_du_suivant(debut, parametres, occurrence, coupure, entrant)
+			debuts.append(debut)
+			parametres, occurrence = entrant, choix.occurrence
+		return debuts
 
 	def _analyser(self, reserve: Reserve, instant: datetime) -> None:
 		"""Fait analyser le sonore réservé s'il n'a pas été vérifié en entier, sans attendre l'analyse."""
@@ -495,27 +694,39 @@ class Diffusion:
 			courant.voie.supprimer_fondu_de_sortie()
 			self.en_attente = choix
 
-	def _eteindre(self, courant: Lecture, decision: Decision, instant: datetime) -> None:
-		"""Fin de l'événement d'un stream, ou interruption manuelle : le sonore s'éteint pendant son crossfade de fin,
-		et le sonore de la décision enchaîne."""
-		fondu = courant.parametres.crossfade_fin
+	def _eteindre(
+		self,
+		courant: Lecture,
+		choix: Choix | None,
+		instant: datetime,
+		fondu: timedelta | None = None,
+		montee: timedelta | None = None,
+	) -> None:
+		"""Fin de l'événement d'un stream : le sonore s'éteint pendant son crossfade de fin, et le sonore choisi
+		enchaîne. Pour une interruption manuelle, le sonore s'éteint pendant fondu, aussitôt sans durée, et le sonore
+		choisi monte pendant montee : il démarre aussitôt, sauf s'il doit attendre la fin d'un fondu sans montée."""
+		if fondu is None:
+			fondu = courant.parametres.crossfade_fin
 		courant.eteinte = True
 		self.reserve = None
 		courant.voie.eteindre(fondu)
 		self.courant = None
 		self.sortants.append(courant)
 		self._terminer_les_voies_arretees(instant)
-		choix = decision.jouer
 		if choix is None:
 			return
-		if superposition(fondu, lire_parametres(self.connexion, choix, self.crossfades).crossfade_debut):
-			self._jouer(choix, instant, fondu)
+		entree = montee
+		if entree is None:
+			entree = lire_parametres(self.connexion, choix, self.crossfades).crossfade_debut
+		if ((montee is not None) and (fondu <= timedelta(0))) or (superposition(fondu, entree)):
+			self._jouer(choix, instant, fondu, montee)
 		else:
 			self.en_attente = choix
 
 	def _suspendre(self, lecture: Lecture, instant: datetime) -> None:
 		"""Stream tombé : l'ordonnanceur le remplace, et la sonde le reconnectera."""
 		self.ordonnanceur.suspendre(lecture.choix.occurrence, lecture.parametres.secours)
+		self.a_venir = []
 		self.sonde = Sonde(lecture.choix, lecture.parametres, instant + self.delai_reconnexion, instant)
 
 	def _suivre_la_sonde(self, instant: datetime) -> None:
@@ -585,12 +796,16 @@ class Diffusion:
 			self._terminer(lecture.passage, instant, coupe=True)
 		self.courant, self.sortants, self.en_attente, self.reserve = None, [], None, None
 
-	def _appliquer(self, decision: Decision, instant: datetime) -> None:
-		if decision.jouer is not None:
-			self._jouer(decision.jouer, instant)
-
-	def _jouer(self, choix: Choix, instant: datetime, crossfade_fin_precedent: timedelta = timedelta(0)) -> None:
-		"""Démarre le sonore ; un fichier introuvable est écarté, et l'ordonnanceur donne le suivant."""
+	def _jouer(
+		self,
+		choix: Choix,
+		instant: datetime,
+		crossfade_fin_precedent: timedelta = timedelta(0),
+		montee: timedelta | None = None,
+	) -> None:
+		"""Démarre le sonore ; un fichier introuvable est écarté, et l'ordonnanceur donne le suivant. montee : la durée
+		de la montée, imposée par une interruption manuelle ; sinon, son crossfade de début s'il se superpose au
+		précédent."""
 		suivant: Choix | None = choix
 		chemin: Path | str | None = None
 		essayes: set[int] = set()
@@ -607,10 +822,12 @@ class Diffusion:
 			suivant = self.ordonnanceur.decider(instant, None).jouer
 		if (suivant is None) or (chemin is None):
 			return
+		if montee is None:
+			montee = fondu_d_entree(crossfade_fin_precedent, parametres.crossfade_debut)
 		voie = self.moteur.jouer(
 			chemin,
 			parametres.duree,
-			fondu_d_entree(crossfade_fin_precedent, parametres.crossfade_debut),
+			montee,
 			parametres.crossfade_fin,
 			decalage=parametres.decalage,
 			depart=parametres.volume_de_depart,
@@ -690,30 +907,25 @@ class Diffusion:
 				evenement = courant.coupure.occurrence.evenement
 				en_cours |= {"coupe_par": evenement.nom, "coupe_par_id": evenement.id}
 		prochain = None
+		a_venir: list[dict[str, Any]] = []
 		reserve = self.reserve
 		if reserve is not None:
-			debut = None
-			if (courant is not None) and (courant.parametres.duree is not None):
-				ecart = enchainement(
-					courant.parametres.duree, courant.parametres.crossfade_fin, reserve.parametres.crossfade_debut
-				)
-				debut = courant.passage.debut + ecart
-			if (courant is not None) and (courant.coupure is not None):
-				# Une coupure est nette : le sonore de l'événement qui commence démarre à son début.
-				debut = courant.coupure.instant
-			duree = reserve.parametres.duree
 			if (self._details_reserve is None) or (self._details_reserve[0] is not reserve):
 				self._details_reserve = (reserve, self._details(reserve.choix, None))
-			prochain = {
-				**_affichage(reserve.choix, reserve.parametres),
-				**self._details_reserve[1],
-				"debut_estime": iso(debut),
-				"duree": _secondes(duree),
-				"fin_estimee": iso(None if (debut is None) or (duree is None) else debut + duree),
-				"sain": reserve.sain,
-			}
+			debuts = self._debuts()
+			if debuts == []:
+				debuts = [None]
+			# La fin de chaque sonore : le début de l'événement qui coupera le suivant, sinon sa durée.
+			coupures = [prevu.coupure for prevu in self.a_venir] + [None]
+			suite = [(reserve.choix, reserve.parametres, reserve.sain, self._details_reserve[1])]
+			suite += [(prevu.choix, prevu.parametres, prevu.sain, prevu.details) for prevu in self.a_venir]
+			annonces = [
+				_annonce(choix, parametres, sain, details, debut, coupure)
+				for (choix, parametres, sain, details), debut, coupure in zip(suite, debuts, coupures, strict=False)
+			]
+			prochain, a_venir = annonces[0], annonces[1:]
 		marche = "arret" if arret else ("diffusion" if (courant is not None) or (self.sortants) else "silence")
-		return {"etat": marche, "en_cours": en_cours, "prochain": prochain}
+		return {"etat": marche, "en_cours": en_cours, "prochain": prochain, "a_venir": a_venir}
 
 	def _noter_l_antenne(self, choix: Choix | None, instant: datetime) -> None:
 		"""Avant le passage qui commence, ou à l'arrêt (None) : la fin de la séquence et de l'événement qu'il ne
@@ -766,6 +978,7 @@ class Diffusion:
 		assert noms is not None
 		details: dict[str, Any] = {
 			"evenement_id": occurrence.evenement.id,
+			"evenement_priorite": occurrence.evenement.priorite.value,
 			"evenement_debut": iso(occurrence.debut),
 			"evenement_fin": iso(occurrence.fin),
 			"sequence": noms[0],
@@ -803,6 +1016,89 @@ def _affichage(choix: Choix, parametres: Parametres) -> dict[str, Any]:
 		"emplacement": parametres.emplacement,
 		"evenement": choix.occurrence.evenement.nom,
 	}
+
+
+def _annonce(
+	choix: Choix,
+	parametres: Parametres,
+	sain: bool | None,
+	details: dict[str, Any],
+	debut: datetime | None,
+	coupure: Coupure | None,
+) -> dict[str, Any]:
+	"""Ce que la socket d'état dit du prochain sonore, ou d'un sonore à venir."""
+	duree = parametres.duree
+	fin = None
+	if (debut is not None) and (duree is not None):
+		fin = debut + duree
+	if coupure is not None:
+		fin = coupure.instant
+	return {
+		**_affichage(choix, parametres),
+		**details,
+		"debut_estime": iso(debut),
+		"duree": _secondes(duree),
+		"fin_estimee": iso(fin),
+		"sain": sain,
+	}
+
+
+def _passage_prevu(choix: Choix, debut: datetime) -> Passage:
+	ligne = choix.ligne
+	return Passage(
+		uuid.uuid4(),
+		choix.sonore,
+		choix.banque,
+		choix.occurrence.evenement.id,
+		choix.element.id,
+		debut,
+		None if ligne is None else ligne.sequence,
+		None if ligne is None else ligne.id,
+	)
+
+
+def _meme_coupure(prevue: Coupure | None, coupure: Coupure | None) -> bool:
+	if (prevue is None) or (coupure is None):
+		return (prevue is None) and (coupure is None)
+	return (prevue.instant == coupure.instant) and (prevue.occurrence.cle == coupure.occurrence.cle)
+
+
+def _fin_de_l_occurrence(occurrence: Occurrence) -> datetime | None:
+	if occurrence.fin is None:
+		return None
+	return occurrence.fin.astimezone()
+
+
+def _instant_du_suivant(
+	debut: datetime, parametres: Parametres, occurrence: Occurrence, coupure: Coupure | None
+) -> datetime | None:
+	"""Quand le sonore qui commence à debut appellera son suivant : à la coupure, au début de son crossfade de fin, ou,
+	pour un stream, à la fin de son événement ; None si on ne le sait pas."""
+	if coupure is not None:
+		return coupure.instant
+	if parametres.duree is not None:
+		return debut + max(timedelta(0), parametres.duree - parametres.crossfade_fin)
+	if not parametres.stream:
+		return None
+	return _fin_de_l_occurrence(occurrence)
+
+
+def _debut_du_suivant(
+	debut: datetime, parametres: Parametres, occurrence: Occurrence, coupure: Coupure | None, entrant: Parametres
+) -> datetime | None:
+	"""Quand démarrera le sonore entrant, après celui qui commence à debut : à la coupure, qui est nette ; au début du
+	crossfade de fin s'ils se superposent, sinon à la fin ; pour un stream, à la fin de son événement, où il s'éteint.
+	None si on ne le sait pas."""
+	if coupure is not None:
+		return coupure.instant
+	if parametres.duree is not None:
+		return debut + enchainement(parametres.duree, parametres.crossfade_fin, entrant.crossfade_debut)
+	fin = None
+	if parametres.stream:
+		fin = _fin_de_l_occurrence(occurrence)
+	if (fin is None) or (superposition(parametres.crossfade_fin, entrant.crossfade_debut)):
+		return fin
+	return fin + parametres.crossfade_fin
 
 
 def _continue_la_sequence(precedent: Choix | None, choix: Choix | None) -> bool:
@@ -849,13 +1145,17 @@ def crossfade(du_sonore: object, regle: object, de_la_banque: object, defaut: ti
 def _horizon(lecture: Lecture, instant: datetime) -> datetime:
 	"""Jusqu'où un événement qui commence coupe le sonore : jusqu'à ce que le suivant soit demandé, au début de son
 	crossfade de fin ; pour un stream, jusqu'à la fin de son occurrence, où il s'éteint, ou HORIZON_DES_COUPURES."""
-	duree = lecture.parametres.duree
+	return _horizon_de(lecture.passage.debut, lecture.parametres, lecture.choix.occurrence, instant)
+
+
+def _horizon_de(debut: datetime, parametres: Parametres, occurrence: Occurrence, instant: datetime) -> datetime:
+	duree = parametres.duree
 	if duree is not None:
-		return lecture.passage.debut + duree - lecture.parametres.crossfade_fin
-	horizon = instant + HORIZON_DES_COUPURES
-	fin = lecture.choix.occurrence.fin
+		return debut + duree - parametres.crossfade_fin
+	horizon = max(instant, debut) + HORIZON_DES_COUPURES
+	fin = _fin_de_l_occurrence(occurrence)
 	if fin is not None:
-		horizon = min(horizon, fin.astimezone())
+		horizon = min(horizon, fin)
 	return horizon
 
 
