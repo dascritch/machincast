@@ -97,6 +97,14 @@ def suppression(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> Non
 	)
 
 
+@when(
+	parsers.parse("la confirmation de la maintenance, sauvegardes dans « {repertoire} », s'ouvre, et que j'y {geste}")
+)
+def maintenance(dialogue: Dialogue, qtbot: QtBot, repertoire: str, geste: str) -> None:
+	repondre(dialogue, qtbot, geste)
+	dialogue.reponse = dialogues.confirmer_maintenance(dialogue.parent, Path(repertoire))
+
+
 @when(parsers.parse("la confirmation de l'action « {titre} » s'ouvre, et que j'y {geste}"))
 def action(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> None:
 	repondre(dialogue, qtbot, geste)

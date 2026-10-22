@@ -147,6 +147,21 @@ def confirmer_action(parent: QWidget, titre: str, texte: str) -> bool:
 	return question.clickedButton() is faire
 
 
+def confirmer_maintenance(parent: QWidget, sauvegardes: Path) -> bool:
+	"""Lancer la maintenance de la base, qui écrit une sauvegarde dans sauvegardes ? Entrée et Échap l'annulent : elle
+	ne se lance que par son bouton (https://github.com/dascritch/machincast/issues/127)."""
+	question = QMessageBox(parent)
+	question.setIcon(QMessageBox.Icon.Question)
+	question.setWindowTitle("Maintenance de la base de données")
+	question.setText("Êtes-vous sûr de vouloir lancer cette opération ?")
+	question.setInformativeText(f"Une sauvegarde de la base sera enregistrée à l'emplacement {sauvegardes}.")
+	lancer = question.addButton("Lancer la maintenance", QMessageBox.ButtonRole.AcceptRole)
+	annuler = question.addButton("Annuler", QMessageBox.ButtonRole.RejectRole)
+	question.setDefaultButton(annuler)
+	question.exec()
+	return question.clickedButton() is lancer
+
+
 def choisir_fichiers(parent: QWidget) -> list[Path]:
 	"""Les fichiers choisis dans le sélecteur du poste, plusieurs à la fois ; aucun si le choix est abandonné."""
 	motifs = " ".join(f"*{extension}" for extension in sorted(EXTENSIONS_SONORES))

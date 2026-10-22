@@ -69,6 +69,8 @@ class Contexte:
 	fermeture: Fermeture = Fermeture.ABANDONNER
 	"""Réponse à la question de fermeture d'une fiche modifiée."""
 	retrait: Retrait = Retrait.ANNULER
+	maintenance: bool = True
+	"""Réponse à la confirmation de la maintenance de la base (https://github.com/dascritch/machincast/issues/127)."""
 	"""Réponse à l'avertissement de réintégration d'un sonore retiré."""
 	suppression: bool = False
 	"""Réponse à la question de suppression : True pour supprimer."""
@@ -217,6 +219,12 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	monkeypatch.setattr(dialogues, "confirmer_suppression", suppression)
 	monkeypatch.setattr(dialogues, "confirmer_creation", creation)
 	monkeypatch.setattr(dialogues, "confirmer_action", action)
+
+	def maintenance(_parent: QWidget, sauvegardes: Path) -> bool:
+		interface.questions.append(f"maintenance : {sauvegardes}")
+		return interface.maintenance
+
+	monkeypatch.setattr(dialogues, "confirmer_maintenance", maintenance)
 
 	def apres_verification(_parent: QWidget, texte: str) -> bool:
 		interface.questions.append(f"après vérification : {texte} Rafraîchir la fiche ?")

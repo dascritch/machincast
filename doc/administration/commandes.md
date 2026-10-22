@@ -63,7 +63,7 @@ Machin --help                         # aide complète
 2. **Schéma** : les migrations manquantes sont appliquées, comme le fait `install.sh`, puis chacun des trois rôles de MachinCast doit pouvoir être endossé par le compte. Un rôle absent ou non autorisé est signalé, avec les deux commandes qu'un administrateur lance pour l'autoriser.
 3. **Optimisation** : `VACUUM (ANALYZE)` récupère la place des lignes effacées et met à jour les statistiques qui guident PostgreSQL. La diffusion peut continuer pendant ce temps.
 
-Le compte qui la lance doit être celui de MachinCast, propriétaire de la base : il n'a besoin d'aucun droit particulier sur le serveur. Elle se lance aussi depuis l'interface, menu **Maintenance → Maintenance de la base de données…**, qui l'ouvre dans une fenêtre de terminal, avec la configuration de l'interface.
+Le compte qui la lance doit être celui de MachinCast, propriétaire de la base : il n'a besoin d'aucun droit particulier sur le serveur. Elle se lance aussi depuis l'interface, menu **Maintenance → Maintenance de la base de données…**. L'interface demande d'abord confirmation, en donnant le répertoire où la sauvegarde sera enregistrée (`sauvegardes`, à côté de sa configuration), puis l'ouvre dans une fenêtre de terminal, avec la configuration de l'interface.
 
 ```bash
 Machin maintenance-db

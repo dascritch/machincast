@@ -55,6 +55,11 @@ class EchecDeSauvegarde(Exception):
 	"""La sauvegarde n'a pas pu être faite : la maintenance s'arrête."""
 
 
+def sauvegardes_par_defaut(fichier_de_configuration: Path) -> Path:
+	"""Le répertoire des sauvegardes sans --sauvegardes : « sauvegardes », à côté du fichier de configuration."""
+	return fichier_de_configuration.parent / SAUVEGARDES
+
+
 def compte() -> str:
 	"""Le compte qui lance la maintenance, celui de MachinCast."""
 	return getpass.getuser()
@@ -158,7 +163,7 @@ def options_propres(analyseur: argparse.ArgumentParser) -> None:
 
 
 def executer(configuration: Configuration, options: argparse.Namespace) -> int:
-	repertoire = (options.sauvegardes) or (configuration.chemin.parent / SAUVEGARDES)
+	repertoire = (options.sauvegardes) or (sauvegardes_par_defaut(configuration.chemin))
 	code = CODE_ECHEC
 	try:
 		if maintenir(configuration, Path(repertoire).expanduser()):

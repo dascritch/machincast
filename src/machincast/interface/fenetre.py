@@ -335,7 +335,7 @@ class FenetrePrincipale(QMainWindow):
 		# Grisée, comme l'indexation, pendant une indexation lancée d'ici : ses migrations attendraient la base
 		# (https://github.com/dascritch/machincast/issues/127).
 		base = maintenance.addAction(pilotage.MAINTENANCE)
-		base.triggered.connect(lambda: self.statusBar().showMessage(pilotage.lancer_la_maintenance(self.configuration)))
+		base.triggered.connect(self._maintenir_la_base)
 		self.indexations.append(base)
 		aide = self.menuBar().addMenu("&Aide")
 		aide.addAction("Documentation").triggered.connect(lambda: dialogues.ouvrir_page(DOCUMENTATION))
@@ -736,6 +736,14 @@ class FenetrePrincipale(QMainWindow):
 		)
 		journal.warning(texte)
 		self.ui.barre_d_etat.showMessage(texte)
+
+	def _maintenir_la_base(self) -> None:
+		"""Machin maintenance-db dans un terminal, une fois confirmée, avec l'emplacement de sa sauvegarde
+		(https://github.com/dascritch/machincast/issues/127)."""
+		if not dialogues.confirmer_maintenance(self, pilotage.sauvegardes_de_la_maintenance(self.configuration)):
+			self.statusBar().showMessage(pilotage.MAINTENANCE_ABANDONNEE)
+			return
+		self.statusBar().showMessage(pilotage.lancer_la_maintenance(self.configuration))
 
 	def _indexer(self, audit_complet: bool) -> None:
 		"""Lance Machin indexation dans son propre processus, avec sa fenêtre ; le menu ne la propose plus tant qu'il
