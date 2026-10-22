@@ -6,7 +6,7 @@ Système automatisé de diffusion sonore pour continuité d'antenne radio, sous 
 - **Administrateur du poste** : [INSTALL.md](INSTALL.md) pour l'installation, puis le [guide d'administration](doc/administration/README.md)
 - **Développeur** : le [guide du développement](doc/developpement/README.md), avec la [spécification fonctionnelle](doc/spec.md) et les [règles du projet](doc/regles/developpement.md)
 
-[<img width="1106" height="840" alt="image" src="https://github.com/user-attachments/assets/447d0ffb-c26d-4a45-bb50-3270a7d4f967" />](https://github.com/dascritch/machincast/raw/main/doc/captures/accueil.png)
+![Capture de l'interface de pilotage de MachinCast](https://github.com/dascritch/machincast/raw/main/doc/captures/accueil.png)
 
 ## Configuration recommandée
 
