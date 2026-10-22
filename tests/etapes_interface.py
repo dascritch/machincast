@@ -70,6 +70,8 @@ class Contexte:
 	"""Réponse à la question de fermeture d'une fiche modifiée."""
 	retrait: Retrait = Retrait.ANNULER
 	maintenance: bool = True
+	sauvegardes_choisies: Path | None = None
+	"""L'emplacement des sauvegardes choisi dans la confirmation de la maintenance ; None : celui proposé."""
 	"""Réponse à la confirmation de la maintenance de la base (https://github.com/dascritch/machincast/issues/127)."""
 	"""Réponse à l'avertissement de réintégration d'un sonore retiré."""
 	suppression: bool = False
@@ -196,7 +198,7 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		interface.questions.append(f"création : {texte}")
 		return interface.creation
 
-	def repertoire(_parent: QWidget) -> str | None:
+	def repertoire(_parent: QWidget, *_titre_et_depart: str) -> str | None:
 		return interface.repertoires_choisis.pop(0)
 
 	def sonores(_parent: QWidget, _connexion: Connexion, remarque: str = "") -> list[int]:
@@ -220,9 +222,11 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	monkeypatch.setattr(dialogues, "confirmer_creation", creation)
 	monkeypatch.setattr(dialogues, "confirmer_action", action)
 
-	def maintenance(_parent: QWidget, sauvegardes: Path) -> bool:
+	def maintenance(_parent: QWidget, sauvegardes: Path) -> Path | None:
 		interface.questions.append(f"maintenance : {sauvegardes}")
-		return interface.maintenance
+		if not interface.maintenance:
+			return None
+		return (interface.sauvegardes_choisies) or (sauvegardes)
 
 	monkeypatch.setattr(dialogues, "confirmer_maintenance", maintenance)
 

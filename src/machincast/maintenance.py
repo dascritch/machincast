@@ -11,8 +11,9 @@ Sur la base de production de la configuration, trois étapes, dans l'ordre :
    la diffusion peut continuer pendant ce temps.
 
 Le compte de MachinCast est propriétaire de la base et de ses tables : il fait tout cela sans endosser de rôle, et
-sans droit particulier sur le serveur. Avec --attendre, la maintenance attend Entrée avant de rendre la main, pour
-qu'une fenêtre de terminal ouverte par l'interface reste lisible. Le code de sortie est 0 si tout s'est bien passé,
+sans droit particulier sur le serveur. Avec --garder-ouvert, la maintenance finie ne rend la main qu'à la fermeture
+de son terminal (fin de l'entrée standard, ou Ctrl-C) : la fenêtre ouverte par l'interface reste lisible, Entrée n'y
+fait rien. Le code de sortie est 0 si tout s'est bien passé,
 1 sinon.
 """
 
@@ -45,7 +46,7 @@ ROLES: tuple[str, ...] = tuple(role.value for role in Role)
 """Les rôles que le compte doit pouvoir endosser."""
 HORLOGE: Horloge = HorlogeSysteme()
 """L'heure qui date les sauvegardes ; les scénarios la fixent."""
-ENTREE = "Appuyer sur Entrée pour fermer."
+FIN = "Maintenance finie : cette fenêtre reste ouverte, la fermer quand vous voulez."
 
 # Nom explicite : lancé par son script, ce module garde le journal « machincast ».
 journal = logging.getLogger("machincast.maintenance")
@@ -156,10 +157,21 @@ def options_propres(analyseur: argparse.ArgumentParser) -> None:
 		help=f"répertoire des sauvegardes ; par défaut « {SAUVEGARDES} », à côté du fichier de configuration",
 	)
 	analyseur.add_argument(
-		"--attendre",
+		"--garder-ouvert",
 		action="store_true",
-		help="attend Entrée avant de rendre la main : pour une fenêtre de terminal, comme l'ouvre l'interface",
+		help="garde le terminal ouvert à la fin, jusqu'à sa fermeture : pour la fenêtre qu'ouvre l'interface",
 	)
+
+
+def garder_ouvert() -> None:
+	"""Jusqu'à la fermeture du terminal : la fin de l'entrée standard, ou Ctrl-C. Fermer la fenêtre envoie SIGHUP,
+	qui arrête aussi le programme."""
+	sys.stdout.write(f"{FIN}\n")
+	sys.stdout.flush()
+	try:
+		sys.stdin.read()
+	except KeyboardInterrupt:
+		sys.stdout.write("\n")
 
 
 def executer(configuration: Configuration, options: argparse.Namespace) -> int:
@@ -177,10 +189,8 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 		journal.error(f"base de données injoignable ({configuration.base.production}) : {erreur}")
 	except psycopg.Error as erreur:
 		journal.error(f"erreur de base de données : {erreur}")
-	if options.attendre:
-		sys.stdout.write(f"{ENTREE}\n")
-		sys.stdout.flush()
-		sys.stdin.readline()
+	if options.garder_ouvert:
+		garder_ouvert()
 	return code
 
 

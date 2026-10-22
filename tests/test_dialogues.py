@@ -39,6 +39,8 @@ class Dialogue:
 	boutons: list[str] = field(default_factory=list)
 	reponse: object = None
 	adresses: list[QUrl] = field(default_factory=list)
+	depart: str = ""
+	"""Le répertoire où le sélecteur de répertoires s'est ouvert."""
 
 
 @pytest.fixture
@@ -105,6 +107,41 @@ def maintenance(dialogue: Dialogue, qtbot: QtBot, repertoire: str, geste: str) -
 	dialogue.reponse = dialogues.confirmer_maintenance(dialogue.parent, Path(repertoire))
 
 
+@when(
+	parsers.re(
+		r"la confirmation de la maintenance, sauvegardes dans « (?P<repertoire>[^»]+) », s'ouvre, que j'y choisis"
+		r" l'emplacement, que le sélecteur de répertoires donne « ?(?P<selecteur>[^»]*?) ?», puis que j'y clique sur"
+		r" « (?P<bouton>[^»]+) »"
+	)
+)
+def maintenance_ailleurs(
+	dialogue: Dialogue, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, repertoire: str, selecteur: str, bouton: str
+) -> None:
+	"""Deux gestes : « Choisir l'emplacement… », qui ouvre le sélecteur, puis le bouton, dans la question rouverte."""
+
+	def choisir(_parent: QWidget, titre: str, depart: str) -> str | None:
+		dialogue.titre = titre
+		dialogue.depart = depart
+		return (selecteur) or (None)
+
+	monkeypatch.setattr(dialogues, "choisir_repertoire", choisir)
+
+	def choisir_l_emplacement(modale: QWidget) -> None:
+		assert isinstance(modale, QMessageBox), modale
+		(choix,) = [b for b in modale.buttons() if b.text() == dialogues.CHOISIR_L_EMPLACEMENT]
+		choix.click()
+		repondre(dialogue, qtbot, f"clique sur « {bouton} »")
+
+	quand_modale(choisir_l_emplacement)
+	dialogue.reponse = dialogues.confirmer_maintenance(dialogue.parent, Path(repertoire))
+
+
+@then(parsers.parse("le sélecteur de répertoires s'est ouvert sur « {depart} »"))
+def ouvert_sur(dialogue: Dialogue, depart: str) -> None:
+	assert dialogue.depart == depart, dialogue.depart
+	assert dialogue.titre == "Emplacement de la sauvegarde de la base", dialogue.titre
+
+
 @when(parsers.parse("la confirmation de l'action « {titre} » s'ouvre, et que j'y {geste}"))
 def action(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> None:
 	repondre(dialogue, qtbot, geste)
@@ -129,7 +166,7 @@ def creation(dialogue: Dialogue, qtbot: QtBot, geste: str) -> None:
 
 @when(parsers.re(r"le sélecteur de répertoires du poste donne « ?(?P<selecteur>[^»]*?) ?»"))
 def selecteur(dialogue: Dialogue, monkeypatch: pytest.MonkeyPatch, selecteur: str) -> None:
-	def choisir(_parent: QWidget, _titre: str) -> str:
+	def choisir(_parent: QWidget, _titre: str, _depart: str = "") -> str:
 		return selecteur
 
 	monkeypatch.setattr(QFileDialog, "getExistingDirectory", choisir)

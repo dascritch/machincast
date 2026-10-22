@@ -199,8 +199,16 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Maintenance de la base de données… » dans le menu « Maintenance »
 		Alors l'interface a demandé confirmation, avec l'emplacement des sauvegardes : le répertoire « sauvegardes » de sa configuration
-		Et le terminal a lancé bientôt Machin maintenance-db, sur la configuration de l'interface, en attendant Entrée
+		Et le terminal a lancé bientôt Machin maintenance-db, sur la configuration de l'interface, avec les sauvegardes dans « sauvegardes » à côté d'elle, le terminal restant ouvert
 		Et la barre d'état annonce « Maintenance de la base de données lancée dans un terminal : sauvegarde, vérification du schéma, optimisation. »
+
+	Scénario: Les sauvegardes vont à l'emplacement choisi dans la confirmation
+		Étant donné le service de diffusion non installé
+		Et le terminal « konsole » du poste
+		Et l'emplacement « /media/cle/sauvegardes » choisi pour les sauvegardes de la maintenance
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Maintenance de la base de données… » dans le menu « Maintenance »
+		Alors le terminal a lancé bientôt Machin maintenance-db, sur la configuration de l'interface, avec les sauvegardes dans « /media/cle/sauvegardes », le terminal restant ouvert
 
 	Scénario: Une maintenance de la base non confirmée n'est pas lancée
 		Étant donné le service de diffusion non installé

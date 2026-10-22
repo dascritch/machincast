@@ -63,7 +63,7 @@ Machin --help                         # aide complète
 2. **Schéma** : les migrations manquantes sont appliquées, comme le fait `install.sh`, puis chacun des trois rôles de MachinCast doit pouvoir être endossé par le compte. Un rôle absent ou non autorisé est signalé, avec les deux commandes qu'un administrateur lance pour l'autoriser.
 3. **Optimisation** : `VACUUM (ANALYZE)` récupère la place des lignes effacées et met à jour les statistiques qui guident PostgreSQL. La diffusion peut continuer pendant ce temps.
 
-Le compte qui la lance doit être celui de MachinCast, propriétaire de la base : il n'a besoin d'aucun droit particulier sur le serveur. Elle se lance aussi depuis l'interface, menu **Maintenance → Maintenance de la base de données…**. L'interface demande d'abord confirmation, en donnant le répertoire où la sauvegarde sera enregistrée (`sauvegardes`, à côté de sa configuration), puis l'ouvre dans une fenêtre de terminal, avec la configuration de l'interface.
+Le compte qui la lance doit être celui de MachinCast, propriétaire de la base : il n'a besoin d'aucun droit particulier sur le serveur. Elle se lance aussi depuis l'interface, menu **Maintenance → Maintenance de la base de données…**. L'interface demande d'abord confirmation, en donnant le répertoire où la sauvegarde sera enregistrée (`sauvegardes`, à côté de sa configuration), que le bouton « Choisir l'emplacement… » permet de changer. Elle l'ouvre ensuite dans une fenêtre de terminal, avec la configuration de l'interface et ce répertoire (`--sauvegardes`) ; la fenêtre reste ouverte à la fin, jusqu'à ce qu'on la ferme.
 
 ```bash
 Machin maintenance-db
@@ -73,7 +73,7 @@ Machin maintenance-db --sauvegardes /srv/sauvegardes/machincast
 | Option | Effet |
 | --- | --- |
 | `--sauvegardes REPERTOIRE` | Répertoire des sauvegardes, au lieu de `sauvegardes` à côté du fichier de configuration. |
-| `--attendre` | Attend la touche Entrée avant de rendre la main, pour qu'une fenêtre de terminal reste lisible. L'interface s'en sert. |
+| `--garder-ouvert` | Une fois la maintenance finie, garde le terminal ouvert jusqu'à sa fermeture (ou `Ctrl-D`, `Ctrl-C`) ; Entrée n'y fait rien. L'interface s'en sert, pour que le compte rendu reste lisible. |
 
 Elle se termine par `maintenance terminée` (code 0), ou par `maintenance terminée, avec des anomalies` (code 1) quand un rôle manque. Une base injoignable ou une sauvegarde impossible donnent aussi le code 1.
 

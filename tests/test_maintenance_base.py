@@ -39,7 +39,7 @@ class Execution:
 	erreurs: list[str] = dataclasses.field(default_factory=list)
 	demande: str = ""
 	entree_restante: str = ""
-	"""Ce qui reste à lire sur l'entrée standard après la maintenance : vide, si elle a attendu Entrée."""
+	"""Ce qui reste à lire sur l'entrée standard après la maintenance : vide, si elle a attendu sa fin."""
 	debut: datetime | None = None
 	"""L'heure du serveur PostgreSQL au lancement : le VACUUM de la maintenance la suit."""
 
@@ -109,8 +109,26 @@ def lancer(configuration: Configuration, execution: Execution, caplog: pytest.Lo
 	_lancer(configuration, execution, caplog, commande)
 
 
-@when(parsers.parse("je lance « {commande} », puis j'appuie sur Entrée"))
-def lancer_et_valider(
+class CtrlC(io.StringIO):
+	def read(self, _taille: int | None = -1) -> str:
+		raise KeyboardInterrupt
+
+
+@when(parsers.parse("je lance « {commande} », puis je tape Ctrl-C"))
+def lancer_et_interrompre(
+	configuration: Configuration,
+	execution: Execution,
+	caplog: pytest.LogCaptureFixture,
+	monkeypatch: pytest.MonkeyPatch,
+	commande: str,
+) -> None:
+	monkeypatch.setattr("sys.stdin", CtrlC())
+	monkeypatch.setattr("sys.stdout", io.StringIO())
+	_lancer(configuration, execution, caplog, commande)
+
+
+@when(parsers.parse("je lance « {commande} », j'appuie deux fois sur Entrée, puis je ferme le terminal"))
+def lancer_et_fermer(
 	configuration: Configuration,
 	execution: Execution,
 	caplog: pytest.LogCaptureFixture,
@@ -118,7 +136,8 @@ def lancer_et_valider(
 	commande: str,
 ) -> None:
 	sortie = io.StringIO()
-	clavier = io.StringIO("\n")
+	# Deux fois Entrée, puis la fin de l'entrée standard : le terminal se ferme.
+	clavier = io.StringIO("\n\n")
 	monkeypatch.setattr("sys.stdin", clavier)
 	monkeypatch.setattr("sys.stdout", sortie)
 	_lancer(configuration, execution, caplog, commande)
@@ -174,12 +193,12 @@ def rien_d_autre(execution: Execution) -> None:
 	assert not any(("schéma" in ligne) or ("optimisée" in ligne) for ligne in execution.informations)
 
 
-@then(parsers.parse("la maintenance a demandé « {texte} »"))
+@then(parsers.parse("la maintenance a dit « {texte} »"))
 def demande(execution: Execution, texte: str) -> None:
 	assert texte in execution.demande, execution.demande
 
 
-@then("la maintenance a lu la touche Entrée")
+@then("la maintenance n'a rendu la main qu'à la fermeture du terminal")
 def entree_lue(execution: Execution) -> None:
 	assert execution.entree_restante == "", repr(execution.entree_restante)
 

@@ -107,13 +107,13 @@ def sauvegardes_de_la_maintenance(configuration: Path | None) -> Path:
 	return sauvegardes_par_defaut(fichier.resolve())
 
 
-def lancer_la_maintenance(configuration: Path | None) -> str:
-	"""Machin maintenance-db sur la base de l'interface, dans un terminal qui attend Entrée avant de se fermer
-	(https://github.com/dascritch/machincast/issues/127) ; ce qu'en dit la barre d'état."""
+def lancer_la_maintenance(configuration: Path | None, sauvegardes: Path) -> str:
+	"""Machin maintenance-db sur la base de l'interface, avec ses sauvegardes dans sauvegardes, dans un terminal
+	qui reste ouvert à la fin (https://github.com/dascritch/machincast/issues/127) ; ce qu'en dit la barre d'état."""
 	commande = [str(REPERTOIRE_PROJET / "bin" / "Machin")]
 	if configuration is not None:
 		commande += ["--config", str(configuration)]
-	if ouvrir_un_terminal([*commande, "maintenance-db", "--attendre"]):
+	if ouvrir_un_terminal([*commande, "maintenance-db", "--sauvegardes", str(sauvegardes), "--garder-ouvert"]):
 		return MAINTENANCE_LANCEE
 	return SANS_TERMINAL_POUR_LA_MAINTENANCE
 
