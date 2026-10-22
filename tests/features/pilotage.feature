@@ -198,8 +198,18 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et le terminal « konsole » du poste
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Maintenance de la base de données… » dans le menu « Maintenance »
-		Alors le terminal a lancé bientôt Machin maintenance-db, sur la configuration de l'interface, en attendant Entrée
+		Alors l'interface a demandé confirmation, avec l'emplacement des sauvegardes : le répertoire « sauvegardes » de sa configuration
+		Et le terminal a lancé bientôt Machin maintenance-db, sur la configuration de l'interface, en attendant Entrée
 		Et la barre d'état annonce « Maintenance de la base de données lancée dans un terminal : sauvegarde, vérification du schéma, optimisation. »
+
+	Scénario: Une maintenance de la base non confirmée n'est pas lancée
+		Étant donné le service de diffusion non installé
+		Et le terminal « konsole » du poste
+		Et la maintenance de la base non confirmée
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Maintenance de la base de données… » dans le menu « Maintenance »
+		Alors la barre d'état annonce « Maintenance de la base de données abandonnée : rien n'a été lancé. »
+		Et le terminal n'a rien lancé
 
 	Scénario: Sans terminal, la barre d'état dit comment lancer la maintenance à la main
 		Étant donné le service de diffusion non installé

@@ -19,6 +19,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QProcess, Signal
 
 from machincast.configuration import REPERTOIRE_PROJET, fichier_par_defaut
+from machincast.maintenance import sauvegardes_par_defaut
 from machincast.service import UNITE
 
 VERBES = {
@@ -45,6 +46,7 @@ MAINTENANCE = "Maintenance de la base de données…"
 MAINTENANCE_LANCEE = (
 	"Maintenance de la base de données lancée dans un terminal : sauvegarde, vérification du schéma, optimisation."
 )
+MAINTENANCE_ABANDONNEE = "Maintenance de la base de données abandonnée : rien n'a été lancé."
 SANS_TERMINAL_POUR_LA_MAINTENANCE = (
 	"Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin maintenance-db à la main."
 )
@@ -94,6 +96,15 @@ def lancer_dans_un_terminal(configuration: Path | None, lance: str = LANCE) -> s
 	if ouvrir_un_terminal(COMMANDE_DU_SERVICE):
 		return f"{lance}{_ecart(configuration)}"
 	return SANS_TERMINAL
+
+
+def sauvegardes_de_la_maintenance(configuration: Path | None) -> Path:
+	"""Où la maintenance lancée par l'interface écrira sa sauvegarde, en chemin absolu : le répertoire « sauvegardes »
+	à côté de la configuration de l'interface, ou du machincast.toml du répertoire de MachinCast."""
+	fichier = fichier_par_defaut()
+	if configuration is not None:
+		fichier = configuration
+	return sauvegardes_par_defaut(fichier.resolve())
 
 
 def lancer_la_maintenance(configuration: Path | None) -> str:

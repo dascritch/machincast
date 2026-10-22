@@ -143,6 +143,11 @@ def sans_terminal(poste: Poste, monkeypatch: pytest.MonkeyPatch) -> None:
 	monkeypatch.setenv("PATH", str(poste.commandes))
 
 
+@given("la maintenance de la base non confirmée")
+def maintenance_refusee(interface: Contexte) -> None:
+	interface.maintenance = False
+
+
 @given("une diffusion d'essai qui tourne, lancée à la main")
 def diffusion_d_essai(interface: Contexte, poste: Poste) -> None:
 	"""Dans un processus à part, sur la socket d'état où l'interface la cherche : c'est lui qu'arrête SIGTERM."""
@@ -256,3 +261,18 @@ def maintenance_dans_le_terminal(interface: Contexte, poste: Poste, qtbot: QtBot
 		"maintenance-db",
 		"--attendre",
 	], arguments
+
+
+@then(
+	"l'interface a demandé confirmation, avec l'emplacement des sauvegardes : le répertoire « sauvegardes » de sa"
+	" configuration"
+)
+def confirmation_demandee(interface: Contexte) -> None:
+	attendu = fichier_de_configuration(interface).resolve().parent / "sauvegardes"
+	assert interface.questions == [f"maintenance : {attendu}"], interface.questions
+
+
+@then("le terminal n'a rien lancé")
+def rien_lance(poste: Poste) -> None:
+	"""Le terminal se lance avant que la barre d'état ne le dise : après l'annonce, il n'y a plus rien à attendre."""
+	assert not poste.terminal.exists()
