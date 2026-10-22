@@ -28,7 +28,7 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Et sa progression est entre 0 et 1
 		Et l'emplacement du sonore en cours est le fichier de « f1 »
 
-	Scénario: Un stream en cours a une durée inconnue
+	Scénario: Un stream en cours a une durée inconnue, et finit avec son événement
 		Étant donné un serveur de flux local, avec le flux « studio » en ligne
 		Et le stream « Direct studio » à l'adresse du flux « studio »
 		Et l'émission « Direct » de 19:59:50 à 20:30:00, avec le sonore « Direct studio »
@@ -36,7 +36,7 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Et la diffusion tourne pendant 1 seconde en temps réel
 		Et un client lit la socket d'état
 		Alors le sonore en cours est « Direct studio », un stream de l'événement « Direct »
-		Et sa durée, sa fin estimée et sa progression sont inconnues
+		Et sa durée et sa progression sont inconnues, et il finira au « 2026-10-14 20:30:00 », avec son événement
 		Et l'emplacement du sonore en cours est l'adresse du flux « studio »
 
 	Scénario: Rien à diffuser : la socket annonce le silence
@@ -243,7 +243,22 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Quand la diffusion démarre en temps réel
 		Et la diffusion tourne pendant 1 seconde en temps réel
 		Et un client lit la socket d'état
-		Alors le sonore en cours n'a pas de fin estimée, sans être coupé
+		Alors le sonore en cours finira au « 2026-10-14 20:00:00 », sans être coupé
+
+	Scénario: Après un stream qui finit avec son événement, le prochain sonore est celui qui reprendra l'antenne
+		https://github.com/dascritch/machincast/issues/242 : le prochain sonore se choisit pour la fin du stream, pas pour son début, où son
+		émission, qui boucle, le redonnerait.
+
+		Étant donné un serveur de flux local, avec le flux « studio » en ligne
+		Et le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et le stream « Direct studio » à l'adresse du flux « studio »
+		Et l'émission « Direct » de 19:59:50 à 20:00:00, avec le sonore « Direct studio »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne pendant 1 seconde en temps réel
+		Et un client lit la socket d'état
+		Alors le prochain sonore est « f1 », sain
+		Et le prochain sonore est joué par l'événement « Continue »
+		Et il commencera au « 2026-10-14 20:00:00 », dure 1 seconde et finira au « 2026-10-14 20:00:01 »
 
 	Scénario: Un stream en cours, de durée inconnue, annonce aussi sa coupure
 		Étant donné un serveur de flux local, avec le flux « studio » en ligne
@@ -320,6 +335,7 @@ Fonctionnalité: Socket d'état du binaire lecture
 
 	Scénario: Après un stream qui s'éteint à la fin de son événement, le suivant attend la fin de son fondu
 		Étant donné un serveur de flux local, avec le flux « studio » en ligne
+		Et le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
 		Et le stream « Direct studio » à l'adresse du flux « studio »
 		Et l'émission « Direct » de 19:59:50 à 20:00:00, avec le sonore « Direct studio »
 		Et le sonore « Direct studio » a 3 seconde de crossfade de fin

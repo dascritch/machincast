@@ -167,10 +167,11 @@ def progression(client: Client) -> None:
 	assert (isinstance(valeur, float)) and (0 < valeur < 1), en_cours(client)
 
 
-@then("sa durée, sa fin estimée et sa progression sont inconnues")
-def duree_inconnue(client: Client) -> None:
+@then(parsers.parse("sa durée et sa progression sont inconnues, et il finira au « {fin} », avec son événement"))
+def duree_inconnue(client: Client, fin: str) -> None:
 	courant = en_cours(client)
-	assert (courant["duree"] is None) and (courant["fin_estimee"] is None) and (courant["progression"] is None), courant
+	assert (courant["duree"] is None) and (courant["progression"] is None), courant
+	assert heure(courant["fin_estimee"]) == heure(fin), courant
 	assert courant["position"] > 0, courant
 
 

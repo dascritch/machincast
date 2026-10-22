@@ -573,8 +573,15 @@ class Diffusion:
 			self.historique.consigner(self.connexion, instant=instant, **consigne)
 
 	def _choisir_la_reserve(self, coupure: Coupure | None, instant: datetime) -> Reserve | None:
+		"""Le prochain sonore, choisi au début du sonore en cours ; pour un stream qui s'éteindra à la fin de son
+		événement, choisi pour cette fin, où un autre événement reprendra l'antenne
+		(https://github.com/dascritch/machincast/issues/242) ; après une coupure, anticipé à son instant."""
 		if coupure is None:
-			choix = self.ordonnanceur.reserver(instant)
+			moment = instant
+			courant = self.courant
+			if (courant is not None) and (courant.parametres.stream):
+				moment = (_fin_de_l_occurrence(courant.choix.occurrence)) or (instant)
+			choix = self.ordonnanceur.reserver(max(instant, moment))
 		else:
 			choix = self.ordonnanceur.anticiper(coupure.instant)
 		if choix is None:
@@ -1160,11 +1167,14 @@ def _horizon_de(debut: datetime, parametres: Parametres, occurrence: Occurrence,
 
 
 def _fin_estimee(lecture: Lecture) -> datetime | None:
-	"""L'instant de la coupure annoncée, sinon la fin du sonore ; None pour un stream qui ne sera pas coupé."""
+	"""L'instant de la coupure annoncée, sinon la fin du sonore ; pour un stream, la fin de son événement, où il
+	s'éteint (https://github.com/dascritch/machincast/issues/242), None sans elle."""
 	if lecture.coupure is not None:
 		return lecture.coupure.instant
 	if lecture.parametres.duree is None:
-		return None
+		if not lecture.parametres.stream:
+			return None
+		return _fin_de_l_occurrence(lecture.choix.occurrence)
 	return lecture.passage.debut + lecture.parametres.duree
 
 

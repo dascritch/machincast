@@ -620,6 +620,9 @@ def _horaire(sonore: SonoreAffiche) -> str:
 		if sonore.duree is not None:
 			duree = f"sur {affichage.duree(sonore.duree)}"
 		return f"{debut} – {affichage.heure(sonore.fin_estimee)} (coupé par « {sonore.coupe_par} », {duree})"
+	if (sonore.duree is None) and (sonore.fin_estimee is not None):
+		# Un stream finit avec son événement (https://github.com/dascritch/machincast/issues/242).
+		return f"{debut} – {affichage.heure(sonore.fin_estimee)} (fin de l'événement)"
 	if sonore.duree is None:
 		return f"{debut}, durée inconnue"
 	return f"{debut} – {affichage.heure(sonore.fin_estimee)} ({affichage.duree(sonore.duree)})"
