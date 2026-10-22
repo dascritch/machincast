@@ -31,6 +31,7 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 			| Ouvrir l'onglet Marques-pages  | active |           |           |
 			| Ouvrir l'onglet Grille horaire | active |           |           |
 			| Ouvrir l'onglet Simulation     | active |           |           |
+			| Ouvrir l'onglet Airplay        | active |           |           |
 			| Pré-écoute…            | active |           |           |
 
 	Scénario: La liste ouverte se relit

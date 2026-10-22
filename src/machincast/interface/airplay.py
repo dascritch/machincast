@@ -1,4 +1,5 @@
-"""Airplay récent, pour l'écran par défaut (https://github.com/dascritch/machincast/issues/23, spec § 8.1).
+"""Airplay récent, pour l'écran par défaut (https://github.com/dascritch/machincast/issues/23, spec § 8.1) et l'onglet
+Airplay (https://github.com/dascritch/machincast/issues/244).
 
 Lu avec le rôle de l'interface, qui lit l'airplay sans pouvoir l'écrire. L'écran ne le relit qu'à chaque changement de
 sonore annoncé par la socket d'état, jamais en boucle (doc/regles/interface.md). L'interface est privée : l'artiste et
@@ -13,8 +14,10 @@ from psycopg.rows import TupleRow
 
 from machincast.conversion import booleen_ou_rien, entier_ou_rien, texte_ou_rien
 
-FENETRE = timedelta(hours=12)
-"""Profondeur de l'airplay affiché."""
+HEURES = 12
+"""Heures de l'airplay que montre l'onglet Airplay, sans réglage du compte."""
+DERNIERS = 10
+"""Passages de l'airplay que montre l'accueil."""
 
 
 @dataclass(frozen=True)
@@ -37,8 +40,10 @@ class PassageAffiche:
 	pour un élément supprimé depuis."""
 
 
-def lire_airplay(connexion: psycopg.Connection[TupleRow], depuis: datetime) -> list[PassageAffiche]:
-	"""Passages commencés depuis cet instant, du plus récent au plus ancien."""
+def lire_airplay(
+	connexion: psycopg.Connection[TupleRow], depuis: datetime | None = None, nombre: int | None = None
+) -> list[PassageAffiche]:
+	"""Passages commencés depuis cet instant, ou les derniers, du plus récent au plus ancien ; nombre au plus."""
 	with connexion.transaction():
 		lignes = connexion.execute(
 			"SELECT d.horodatage, f.horodatage, f.duree_diffusee, f.sans_incident, d.artiste, d.titre,"
@@ -48,9 +53,9 @@ def lire_airplay(connexion: psycopg.Connection[TupleRow], depuis: datetime) -> l
 			" LEFT JOIN evenements e ON e.id = d.evenement_id"
 			" LEFT JOIN sequences q ON q.id = d.sequence_id"
 			" LEFT JOIN banques b ON b.id = d.banque_id"
-			" WHERE d.type_ligne = 'debut' AND d.horodatage >= %s"
-			" ORDER BY d.horodatage DESC, d.id DESC",
-			(depuis,),
+			" WHERE d.type_ligne = 'debut' AND (%s::timestamptz IS NULL OR d.horodatage >= %s::timestamptz)"
+			" ORDER BY d.horodatage DESC, d.id DESC LIMIT %s",
+			(depuis, depuis, nombre),
 		).fetchall()
 	passages = []
 	for ligne in lignes:

@@ -26,11 +26,12 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| grille     | #2a2a2a |
 			| simulation | #2a2a2a |
 			| pré-écoute | #2a2a2a |
+			| airplay    | #2a2a2a |
 			| sonore     | #f0f0f0 |
 			| simulation | #f0f0f0 |
 
-	Scénario: Les sept icônes sont différentes les unes des autres
-		Alors les icônes « sonore », « séquence », « banque », « événement », « grille », « simulation » et « pré-écoute » sont toutes différentes
+	Scénario: Les huit icônes sont différentes les unes des autres
+		Alors les icônes « sonore », « séquence », « banque », « événement », « grille », « simulation », « pré-écoute » et « airplay » sont toutes différentes
 
 	Scénario: L'icône suit la couleur du texte du thème de l'application
 		Quand le thème de l'application écrit en #f0f0f0
@@ -54,6 +55,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je choisis « Ouvrir l'onglet Simulation » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
 		Et j'appuie sur « Ctrl+F »
 		Alors les onglets portent les icônes :
 			| onglet                   | icône      |
@@ -70,6 +72,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| Sonore : Café à minuit   | sonore     |
 			| Calendrier               | grille     |
 			| Simulation               | simulation |
+			| Airplay                  | airplay    |
 			| Recherche                | aucune     |
 
 	Scénario: Les boutons de l'accueil qui ouvrent une fiche portent l'icône de son genre
@@ -126,6 +129,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| Ouvrir l'onglet Marques-pages   | aucune     |
 			| Ouvrir l'onglet Grille horaire  | grille     |
 			| Ouvrir l'onglet Simulation      | simulation |
+			| Ouvrir l'onglet Airplay         | airplay    |
 			| Pré-écoute…                     | pré-écoute |
 
 	Scénario: La colonne « Type » de la recherche porte l'icône de chaque genre

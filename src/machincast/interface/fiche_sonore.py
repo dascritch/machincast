@@ -44,7 +44,6 @@ from PySide6.QtWidgets import (
 	QCheckBox,
 	QDateTimeEdit,
 	QDoubleSpinBox,
-	QGroupBox,
 	QLineEdit,
 	QTableWidgetItem,
 	QVBoxLayout,
@@ -54,7 +53,7 @@ from PySide6.QtWidgets import (
 from machincast.conformation import conformer
 from machincast.conversion import duree_ou_rien, texte_ou_rien
 from machincast.horloge import Horloge
-from machincast.interface import affichage, colonnes, depliable, dialogues, icones, preferences
+from machincast.interface import affichage, depliable, dialogues, icones, preferences
 from machincast.interface.colonnes import Colonnes
 from machincast.interface.curseur import CurseurDeDuree
 from machincast.interface.essai_flux import EssaiDeFlux, resultat_de_l_essai
@@ -198,7 +197,7 @@ class FicheSonore(Fiche):
 		"""Le sonore lu est un fichier : seul un fichier se vérifie."""
 		self._en_verification = False
 		# Les encarts dépliés sont retenus pour le compte (https://github.com/dascritch/machincast/issues/223).
-		deplies = encarts_deplies()
+		deplies = depliable.retenus(ENCARTS_DEPLIES)
 		for groupe in (
 			self.ui.groupe_metadonnees,
 			self.ui.groupe_diffusion,
@@ -206,7 +205,7 @@ class FicheSonore(Fiche):
 			self.ui.groupe_relations,
 			self.ui.groupe_fichier,
 		):
-			depliable.rendre_depliable(groupe, groupe.objectName() in deplies, retenir_l_encart)
+			depliable.rendre_depliable(groupe, groupe.objectName() in deplies, depliable.retenir_dans(ENCARTS_DEPLIES))
 		self.essai.termine.connect(self._essai_termine)
 		self._nom = ""
 		self._initiales: dict[str, object] = {}
@@ -712,26 +711,6 @@ class FicheSonore(Fiche):
 	def _essai_termine(self, repond: bool, detail: str) -> None:
 		self.ui.resultat_essai.setText(resultat_de_l_essai(repond, detail))
 		self.ui.tester.setEnabled(True)
-
-
-def encarts_deplies() -> set[str]:
-	"""Les encarts que le compte a laissés dépliés dans la dernière fiche de sonore."""
-	valeur = colonnes.reglages().value(ENCARTS_DEPLIES)
-	if isinstance(valeur, str):
-		return {valeur}
-	if isinstance(valeur, list):
-		return {str(nom) for nom in valeur}
-	return set()
-
-
-def retenir_l_encart(groupe: QGroupBox, deplie: bool) -> None:
-	"""Un encart déplié ou replié : les fiches de sonore qui s'ouvrent ensuite le montrent de même."""
-	deplies = encarts_deplies()
-	if deplie:
-		deplies.add(groupe.objectName())
-	else:
-		deplies.discard(groupe.objectName())
-	colonnes.reglages().setValue(ENCARTS_DEPLIES, sorted(deplies))
 
 
 def _crossfade(case: QCheckBox, nombre: QDoubleSpinBox | CurseurDeDuree) -> timedelta | None:

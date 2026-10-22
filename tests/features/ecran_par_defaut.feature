@@ -541,23 +541,40 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et je choisis « Pré-écoute… » au clic droit sur la ligne « Spot » des sonores à venir
 		Alors la pré-écoute du sonore 41 a été demandée
 
-	# ─── Airplay des 12 dernières heures ───────────────────────
+	# ─── Airplay des derniers sonores (https://github.com/dascritch/machincast/issues/244) ───
 
-	Scénario: L'airplay des 12 dernières heures, du plus récent au plus ancien
+	Scénario: L'airplay de l'accueil montre les derniers passages, du plus récent au plus ancien, même anciens
 		Étant donné les passages dans l'airplay :
 			| debut               | fin                 | artiste     | titre         | evenement   | sequence | banque  | sans_incident |
-			| 2026-10-16 08:00:00 | 2026-10-16 08:03:00 | Ancien      | Trop ancien   | Fil de nuit |          |         | oui           |
+			| 2026-10-14 08:00:00 | 2026-10-14 08:03:00 | Ancien      | Avant-hier    | Fil de nuit |          |         | oui           |
 			| 2026-10-16 08:01:00 | 2026-10-16 08:04:00 | Les Gaufres | Le matin      | Fil de jour |          | Titres  | oui           |
 			| 2026-10-16 18:00:00 | 2026-10-16 19:02:05 |             | Le journal    | Journal     |          |         | oui           |
 			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 |             | Spot          | Fil de jour | Pub      | Spots   | non           |
 			| 2026-10-16 20:00:00 |                     | Les Gaufres | Café à minuit | Fil de jour |          | Titres  |               |
 		Quand l'écran par défaut s'ouvre
-		Alors la table de l'airplay montre :
+		Alors l'encart de l'airplay de l'accueil s'intitule « Airplay : les 10 derniers sonores »
+		Et la table de l'airplay montre :
 			| debut    | fin      | duree | artiste     | titre         | evenement   | sequence | banque | incident |
 			| 20:00:00 | en cours |       | Les Gaufres | Café à minuit | Fil de jour |          | Titres |  |
 			| 19:50:00 | 19:51:00 | 1:00  |             | Spot          | Fil de jour | Pub      | Spots  | oui |
 			| 18:00:00 | 19:02:05 | 1:02:05 |           | Le journal    | Journal     |          |        |  |
 			| 08:01:00 | 08:04:00 | 3:00  | Les Gaufres | Le matin      | Fil de jour |          | Titres |  |
+			| 08:00:00 | 08:03:00 | 3:00  | Ancien      | Avant-hier    | Fil de nuit |          |        |  |
+
+	Scénario: L'airplay de l'accueil s'arrête aux 10 derniers sonores
+		Étant donné 12 passages d'une minute dans l'airplay, « Passage 1 » à 19:48:00, le dernier en cours
+		Quand l'écran par défaut s'ouvre
+		Alors la table de l'airplay a 10 lignes, de « Passage 12 » à « Passage 3 »
+
+	Scénario: Les sonores à venir et l'airplay de l'accueil se replient, et leur repli est retenu pour le compte
+		Étant donné la socket d'état du binaire lecture ouverte
+		Quand l'écran par défaut s'ouvre
+		Alors les encarts « À venir après le prochain sonore » et « Airplay : les 10 derniers sonores » de l'accueil sont dépliés
+		Quand je clique sur le titre de l'encart « Airplay : les 10 derniers sonores » de l'accueil
+		Alors l'encart « Airplay : les 10 derniers sonores » de l'accueil est replié
+		Quand l'écran par défaut se ferme, puis s'ouvre de nouveau
+		Alors l'encart « Airplay : les 10 derniers sonores » de l'accueil est replié
+		Et l'encart « À venir après le prochain sonore » de l'accueil est déplié
 
 	Scénario: L'interface est privée : l'airplay montre l'artiste et le titre, même masqués
 		Étant donné les passages dans l'airplay :

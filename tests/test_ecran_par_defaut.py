@@ -9,7 +9,6 @@ import re
 import shutil
 import subprocess
 import sys
-import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -20,7 +19,7 @@ import psycopg
 import pytest
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QLabel, QWidget
+from PySide6.QtWidgets import QGroupBox, QLabel, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -31,13 +30,14 @@ import machincast.interface.erreur as module_erreur
 from machincast.base import Role, connecter
 from machincast.configuration import REPERTOIRE_PROJET
 from machincast.horloge import HorlogeFixe
+from machincast.interface import depliable
 from machincast.interface.application import traduire
 from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.erreur import FenetreBaseInjoignable
 from machincast.interface.frise import HAUTEUR, Frise
 from machincast.lecture.etat import SocketEtat
 from tests.base_test import CONFIGURATION_TEST, parametres_base_test
-from tests.etapes_interface import ouvrir_dans
+from tests.etapes_interface import inserer_passage, ouvrir_dans
 from tests.flux import ServeurDeFlux
 from tests.sons import FICHIERS_SONORES
 
@@ -155,55 +155,6 @@ def adresse(titre: str) -> str:
 
 def attendre(qtbot: QtBot, condition: Callable[[], bool]) -> None:
 	qtbot.waitUntil(condition, timeout=ATTENTE)
-
-
-def reference(base: Connexion, table: str, nom: str) -> int | None:
-	"""Identifiant de l'entrée de ce nom interne, créée au besoin ; None pour un nom vide."""
-	if not nom:
-		return None
-	valeurs = {"evenements": ", priorite) VALUES (%s, 'fil_musical')", "banques": ", mode) VALUES (%s, 'sequentiel')"}
-	ligne = base.execute(f"SELECT id FROM {table} WHERE nom_interne = %s", (nom,)).fetchone()  # noqa: S608
-	if ligne is None:
-		suite = valeurs.get(table, ") VALUES (%s)")
-		ligne = base.execute(f"INSERT INTO {table} (nom_interne{suite} RETURNING id", (nom,)).fetchone()  # noqa: S608
-	assert ligne is not None
-	return int(str(ligne[0]))
-
-
-def inserer_passage(
-	base: Connexion,
-	debut: datetime,
-	fin: datetime | None,
-	artiste: str,
-	titre: str,
-	evenement: str,
-	sequence: str = "",
-	banque: str = "",
-	sans_incident: str = "",
-) -> None:
-	ligne = base.execute(
-		"INSERT INTO sonores (type, emplacement, artiste, titre) VALUES ('fichier', %s, %s, %s) RETURNING id",
-		(f"/musique/{uuid.uuid4()}.flac", (artiste) or (None), titre),
-	).fetchone()
-	assert ligne is not None
-	references = (
-		ligne[0],
-		reference(base, "evenements", evenement),
-		reference(base, "sequences", sequence),
-		reference(base, "banques", banque),
-	)
-	passage = uuid.uuid4()
-	colonnes = "passage_id, type_ligne, horodatage, sonore_id, evenement_id, sequence_id, banque_id, artiste, titre"
-	base.execute(
-		f"INSERT INTO airplay ({colonnes}) VALUES (%s, 'debut', %s, %s, %s, %s, %s, %s, %s)",
-		(passage, debut, *references, (artiste) or (None), titre),
-	)
-	if fin is not None:
-		base.execute(
-			f"INSERT INTO airplay ({colonnes}, duree_diffusee, sans_incident)"
-			" VALUES (%s, 'fin', %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-			(passage, fin, *references, (artiste) or (None), titre, fin - debut, sans_incident == "oui"),
-		)
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -420,30 +371,6 @@ def en_silence(contexte: Contexte) -> None:
 	publier(contexte, "silence")
 
 
-@given("les passages dans l'airplay :")
-def passages(base_vide: Connexion, datatable: list[list[str]]) -> None:
-	entetes, *lignes = datatable
-	for valeurs in lignes:
-		ligne = dict(zip(entetes, (v.strip() for v in valeurs), strict=True))
-		inserer_passage(
-			base_vide,
-			heure(ligne["debut"]),
-			heure_ou_rien(ligne["fin"]),
-			ligne["artiste"],
-			ligne["titre"],
-			ligne["evenement"],
-			ligne["sequence"],
-			ligne["banque"],
-			ligne["sans_incident"],
-		)
-
-
-@given("le masquage de tous les sonores et de tous les événements")
-def masquer(base_vide: Connexion) -> None:
-	base_vide.execute("UPDATE sonores SET masquer_metadonnees = true")
-	base_vide.execute("UPDATE evenements SET masquer_metadonnees = true")
-
-
 # ─── Quand ─────────────────────────────────────────────────
 
 
@@ -452,9 +379,10 @@ def ouvrir(contexte: Contexte, base_vide: Connexion, qtbot: QtBot, monkeypatch: 
 	assert contexte.horloge is not None
 	lire = module_ecran.lire_airplay
 
-	def lire_et_compter(connexion: Any, depuis: datetime) -> Any:
-		contexte.lectures.append(depuis)
-		return lire(connexion, depuis)
+	def lire_et_compter(connexion: Any, *autres: Any, **nommes: Any) -> Any:
+		assert contexte.horloge is not None
+		contexte.lectures.append(contexte.horloge.maintenant())
+		return lire(connexion, *autres, **nommes)
 
 	monkeypatch.setattr(module_ecran, "lire_airplay", lire_et_compter)
 	lire_le_plan = module_ecran.lire_le_plan
@@ -536,11 +464,6 @@ def en_deux_envois(contexte: Contexte, qtbot: QtBot) -> None:
 	envoyer_brut(contexte, ligne[:moitie])
 	qtbot.wait(300)
 	envoyer_brut(contexte, ligne[moitie:])
-
-
-@when(parsers.parse("le passage de « {titre} » commence dans l'airplay à {debut}"))
-def nouveau_passage(base_vide: Connexion, titre: str, debut: str) -> None:
-	inserer_passage(base_vide, a(debut), None, "Radio", titre, "Fil de jour")
 
 
 def configuration_sans_base(contexte: Contexte) -> Path:
@@ -966,6 +889,64 @@ def flux_du_prochain_teste(contexte: Contexte, qtbot: QtBot, texte: str) -> None
 	etiquette = ecran(contexte).ui.prochain_flux
 	qtbot.waitUntil(lambda: etiquette.text() != "Test du flux en cours…", timeout=15000)
 	assert etiquette.text() == texte
+
+
+@given(
+	parsers.re(
+		r"(?P<nombre>\d+) passages d'une minute dans l'airplay, « (?P<nom>[^»]+) 1 » à (?P<debut>[\d:]+),"
+		r" le dernier en cours"
+	)
+)
+def passages_d_une_minute(base_vide: Connexion, nombre: str, nom: str, debut: str) -> None:
+	depart = a(debut)
+	for rang in range(int(nombre)):
+		commence = depart + timedelta(minutes=rang)
+		fin = None
+		if rang < int(nombre) - 1:
+			fin = commence + timedelta(minutes=1)
+		inserer_passage(base_vide, commence, fin, "", f"{nom} {rang + 1}", "Fil de jour", "", "", "oui")
+
+
+@then(parsers.parse("la table de l'airplay a {nombre:d} lignes, de « {premier} » à « {dernier} »"))
+def lignes_de_l_airplay(contexte: Contexte, nombre: int, premier: str, dernier: str) -> None:
+	titres = [ligne["titre"] for ligne in table(contexte)]
+	assert (len(titres), titres[0], titres[-1]) == (nombre, premier, dernier), titres
+
+
+def encart(contexte: Contexte, titre: str) -> QGroupBox:
+	(groupe,) = [
+		groupe
+		for groupe in (ecran(contexte).ui.cadre_a_venir, ecran(contexte).ui.cadre_airplay)
+		if groupe.property(depliable.TITRE) == titre
+	]
+	return groupe
+
+
+@then(parsers.parse("l'encart de l'airplay de l'accueil s'intitule « {titre} »"))
+def titre_de_l_airplay(contexte: Contexte, titre: str) -> None:
+	assert ecran(contexte).ui.cadre_airplay.property(depliable.TITRE) == titre
+
+
+@then(parsers.parse("les encarts « {premier} » et « {second} » de l'accueil sont dépliés"))
+def deux_encarts_deplies(contexte: Contexte, premier: str, second: str) -> None:
+	assert not depliable.est_replie(encart(contexte, premier))
+	assert not depliable.est_replie(encart(contexte, second))
+
+
+@then(parsers.re(r"l'encart « (?P<titre>[^»]+) » de l'accueil est (?P<etat>déplié|replié)"))
+def encart_de_l_accueil(contexte: Contexte, titre: str, etat: str) -> None:
+	assert depliable.est_replie(encart(contexte, titre)) is (etat == "replié")
+
+
+@when(parsers.parse("je clique sur le titre de l'encart « {titre} » de l'accueil"))
+def cliquer_le_titre(contexte: Contexte, qtbot: QtBot, titre: str) -> None:
+	qtbot.mouseClick(encart(contexte, titre), Qt.MouseButton.LeftButton, pos=QPoint(20, 5))
+
+
+@when("l'écran par défaut se ferme, puis s'ouvre de nouveau")
+def rouvrir_l_ecran(contexte: Contexte, base_vide: Connexion, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+	ecran(contexte).close()
+	ouvrir(contexte, base_vide, qtbot, monkeypatch)
 
 
 @then("la table de l'airplay montre :")

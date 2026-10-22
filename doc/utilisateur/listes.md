@@ -33,7 +33,7 @@ Les onglets **Événements**, **Séquences**, **Banques**, **Sonores** et **Marq
 
 ## Colonnes des tableaux
 
-Tous les tableaux de l'interface se règlent de la même façon : les listes, la recherche, les incidents, l'airplay de l'accueil, la simulation, et les tableaux des fiches.
+Tous les tableaux de l'interface se règlent de la même façon : les listes, la recherche, les incidents, l'airplay de l'accueil et son onglet, la simulation, et les tableaux des fiches.
 
 ![Le clic droit sur les titres de la liste des sonores : une case par colonne, et « Rétablir les colonnes »](../captures/menu-colonnes.png)
 

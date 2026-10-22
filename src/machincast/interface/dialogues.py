@@ -195,11 +195,11 @@ def choisir_icone(parent: QWidget) -> Path | None:
 	return Path(chemin)
 
 
-def choisir_export(parent: QWidget, propose: str, filtres: list[str]) -> tuple[Path, str] | None:
+def choisir_export(
+	parent: QWidget, propose: str, filtres: list[str], titre: str = "Exporter la simulation"
+) -> tuple[Path, str] | None:
 	"""Le fichier où exporter, et le filtre choisi, qui en donne le format ; None si le choix est abandonné."""
-	chemin, filtre = QFileDialog.getSaveFileName(
-		parent, "Exporter la simulation", str(Path.home() / propose), ";;".join(filtres)
-	)
+	chemin, filtre = QFileDialog.getSaveFileName(parent, titre, str(Path.home() / propose), ";;".join(filtres))
 	if chemin == "":
 		return None
 	return Path(chemin), filtre

@@ -94,6 +94,7 @@ CAPTURES = (
 	"calendrier",
 	"simulation",
 	"recherche",
+	"onglet-airplay",
 	"incidents",
 	"preferences",
 	"preecoute",
@@ -695,6 +696,9 @@ def produire(repertoire: Path) -> dict[str, Path]:
 		fenetre._ouvrir_recherche()
 		_ecran(fenetre, EcranRecherche).champ.setText("café")
 		prendre("recherche", fenetre)
+		_fermer_l_onglet(fenetre)
+		fenetre._ouvrir_airplay()
+		prendre("onglet-airplay", fenetre)
 		_fermer_l_onglet(fenetre)
 		_onglet(fenetre, "Incidents")
 		prendre("incidents", fenetre)

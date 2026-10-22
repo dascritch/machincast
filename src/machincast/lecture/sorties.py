@@ -132,9 +132,14 @@ def _heure(instant: datetime | None) -> str:
 
 
 def lire_passages(
-	connexion: psycopg.Connection[TupleRow], nombre: int, passage: uuid.UUID | None = None
+	connexion: psycopg.Connection[TupleRow],
+	nombre: int | None,
+	passage: uuid.UUID | None = None,
+	depuis: datetime | None = None,
 ) -> list[Ligne]:
-	"""Les derniers passages, du plus récent au plus ancien, ou un seul ; la connexion a le rôle de la lecture."""
+	"""Les derniers passages, du plus récent au plus ancien, ou un seul ; nombre None : tous, depuis cet instant s'il
+	est donné. La connexion a le rôle de la lecture, ou celui de l'interface pour l'export de son onglet Airplay
+	(https://github.com/dascritch/machincast/issues/244)."""
 	with connexion.transaction():
 		lignes = connexion.execute(
 			"SELECT d.horodatage, f.horodatage, f.duree_diffusee, f.sans_incident, d.artiste, d.titre, d.emplacement,"
@@ -147,8 +152,9 @@ def lire_passages(
 			" LEFT JOIN banques b ON b.id = d.banque_id"
 			" LEFT JOIN sonores s ON s.id = d.sonore_id"
 			" WHERE d.type_ligne = 'debut' AND (%s::uuid IS NULL OR d.passage_id = %s::uuid)"
+			" AND (%s::timestamptz IS NULL OR d.horodatage >= %s::timestamptz)"
 			" ORDER BY d.horodatage DESC, d.id DESC LIMIT %s",
-			(passage, passage, nombre),
+			(passage, passage, depuis, depuis, nombre),
 		).fetchall()
 	return [
 		Ligne(

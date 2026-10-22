@@ -752,7 +752,7 @@
    <item>
     <widget class="QGroupBox" name="cadre_airplay">
      <property name="title">
-      <string>Airplay des 12 dernières heures</string>
+      <string>Airplay : les 10 derniers sonores</string>
      </property>
      <layout class="QVBoxLayout" name="disposition_airplay">
       <item>
