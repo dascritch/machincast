@@ -10,8 +10,14 @@ bloque l'interface.
   (audio.sortie), jamais le périphérique de l'antenne. Le choix liste les périphériques du poste (peripheriques), celui
   de l'antenne grisé ; un périphérique configuré mais absent reste proposé. Le choix s'enregistre dans le fichier de
   configuration (ecrire_preecoute), qui garde ses commentaires, et arrête la lecture en cours.
-- Lecteur : lecture et pause, arrêt, qui ramène au début, et barre de position, pendant la lecture d'un fichier ou sa
-  pause. Un stream n'a pas de position. La fin du fichier ramène à l'arrêt ; une erreur aussi, et elle est signalée.
+- Lecteur : lecture et pause, arrêt, qui ramène au début. La fin du fichier ramène à l'arrêt ; une erreur aussi, et
+  elle est signalée.
+- Frise d'un fichier (machincast.interface.frise, https://github.com/dascritch/machincast/issues/224) : elle tient
+  lieu de barre de position, pendant la lecture ou sa pause, et montre sa forme d'onde, calculée en tâche de fond à
+  l'ouverture, ses blancs et ses crossfades enregistrés, et la partie jouée à l'antenne. « Début joué » et « Fin
+  jouée » y placent la lecture, en la lançant au besoin. Écouté comme à l'antenne, le fichier n'est joué que de sa
+  partie jouée, au volume de l'enveloppe de la diffusion, réglé à chaque relève : il commence au début de la partie
+  jouée, et s'arrête à sa fin. Un stream n'a ni frise ni barre de position.
 - VU-mètre : le niveau RMS de chaque canal, par l'élément level de GStreamer, en décibels.
 - Informations : format (codec), débit (celui des tags, sinon la taille du fichier sur sa durée), échantillonnage,
   canaux, et pour un stream, les secondes pré-décodées : le son reçu d'avance, que GStreamer garde en mémoire.
@@ -21,6 +27,7 @@ L'écoute de l'antenne viendra avec le VU-mètre de la sortie (https://github.co
 
 import math
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 
 import gi
@@ -36,8 +43,9 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget  # noqa: E402
 
 from machincast import audio as sorties_audio  # noqa: E402
 from machincast.audio import creer_sortie  # noqa: E402
-from machincast.configuration import Audio, SortieAudio  # noqa: E402
-from machincast.interface import affichage, liaison  # noqa: E402
+from machincast.configuration import Audio, Crossfades, SortieAudio  # noqa: E402
+from machincast.interface import affichage, liaison, preferences  # noqa: E402
+from machincast.interface.frise import FormeDOnde, Frise, Plan, plan_du_sonore  # noqa: E402
 from machincast.interface.moniteur import Indisponible, nom_du_port, source_du_moniteur  # noqa: E402
 from machincast.interface.ui.preecoute import Ui_FenetrePreecoute  # noqa: E402
 from machincast.interface.vumetre import VuMetre  # noqa: E402
@@ -70,6 +78,9 @@ class Source:
 	antenne: Audio | None = None
 	"""L'antenne, écoutée sur son port de monitoring (https://github.com/dascritch/machincast/issues/24) ; None pour
 	un sonore."""
+	plan: Plan | None = None
+	"""Ce que l'antenne fera d'un fichier de durée connue, montré par sa frise
+	(https://github.com/dascritch/machincast/issues/224) ; None pour un stream, ou sans durée."""
 
 
 def ecrire_preecoute(chemin: Path, identifiant: str) -> None:
@@ -81,18 +92,22 @@ def ecrire_preecoute(chemin: Path, identifiant: str) -> None:
 	chemin.write_text(tomlkit.dumps(document), encoding="utf-8")
 
 
-def lire_source(connexion: psycopg.Connection[TupleRow], sonore: int) -> Source | None:
-	"""Le fichier ou l'adresse du sonore, et ce qui le nomme ; None s'il n'est plus en base."""
+def lire_source(
+	connexion: psycopg.Connection[TupleRow], sonore: int, defauts: Crossfades | None = None
+) -> Source | None:
+	"""Le fichier ou l'adresse du sonore, ce qui le nomme, et pour un fichier, le plan de sa frise, ses crossfades non
+	paramétrés pris dans defauts ; None s'il n'est plus en base."""
 	with connexion.transaction():
 		ligne = connexion.execute(
 			"SELECT s.type::text, s.emplacement, coalesce(s.url_stream, m.url), s.artiste, s.titre,"
-			" extract(epoch FROM s.duree)"
+			" extract(epoch FROM s.duree), s.duree, s.debut_detecte, s.fin_detectee, s.detection_blancs,"
+			" s.crossfade_debut, s.crossfade_fin, s.audite_le IS NOT NULL"
 			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
 			(sonore,),
 		).fetchone()
 	if ligne is None:
 		return None
-	type_du_sonore, emplacement, url, artiste, titre, duree = ligne
+	type_du_sonore, emplacement, url, artiste, titre, duree, intervalle, *details = ligne
 	stream = type_du_sonore == "stream"
 	adresse = str((emplacement) or (""))
 	if stream:
@@ -101,7 +116,26 @@ def lire_source(connexion: psycopg.Connection[TupleRow], sonore: int) -> Source 
 	secondes = None
 	if duree is not None:
 		secondes = float(str(duree))
-	return Source(nom, adresse, stream, secondes)
+	plan = None
+	if (not stream) and (isinstance(intervalle, timedelta)):
+		debut_detecte, fin_detectee, detection, crossfade_debut, crossfade_fin, audite = details
+		plan = plan_du_sonore(
+			intervalle,
+			_intervalle(debut_detecte),
+			_intervalle(fin_detectee),
+			bool(detection),
+			_intervalle(crossfade_debut),
+			_intervalle(crossfade_fin),
+			(defauts) or (Crossfades()),
+			bool(audite),
+		)
+	return Source(nom, adresse, stream, secondes, plan=plan)
+
+
+def _intervalle(valeur: object) -> timedelta | None:
+	if isinstance(valeur, timedelta):
+		return valeur
+	return None
 
 
 class Lecteur:
@@ -125,9 +159,17 @@ class Lecteur:
 		"""Débit annoncé par les tags, en bits par seconde."""
 		self.frequence: int | None = None
 		self.canaux: int | None = None
+		self.comme_a_l_antenne = False
+		"""Ne jouer que la partie jouée à l'antenne, au volume de ses fondus
+		(https://github.com/dascritch/machincast/issues/224)."""
+		self.volume = 1.0
+		"""Volume de la lecture, de 0 à 1 : plein, sauf écouté comme à l'antenne."""
+		self.derniere_position: float | None = None
+		"""La dernière position relevée pendant la lecture, gardée après l'arrêt."""
 
 	def charger(self, source: Source | None) -> None:
 		self.arreter()
+		self.derniere_position = None
 		self.source = source
 		self.erreur = None
 		self.codec, self.debit, self.frequence, self.canaux = None, None, None, None
@@ -145,6 +187,7 @@ class Lecteur:
 		if (not self.source.stream) and (not Path(self.source.adresse).is_file()):
 			self.erreur = f"fichier introuvable, {self.source.adresse}"
 			return
+		depuis_le_debut = self._pipeline is None
 		if self._pipeline is None:
 			self.erreur = None
 			try:
@@ -152,8 +195,13 @@ class Lecteur:
 			except Indisponible as erreur:
 				self.erreur = str(erreur)
 				return
+		plan = self._plan_a_l_antenne()
+		if plan is not None:
+			self._regler_le_volume(plan.volume(plan.repere_de_debut()))
 		self._pipeline.set_state(Gst.State.PLAYING)
 		self.etat = "lecture"
+		if (plan is not None) and (depuis_le_debut):
+			self.placer_a(plan.repere_de_debut())
 		antenne = self._antenne_par_pipewire(self.source.antenne)
 		if (antenne is not None) and (not self._liens):
 			try:
@@ -188,12 +236,16 @@ class Lecteur:
 			return None
 		return antenne.peripherique
 
-	def placer(self, fraction: float) -> None:
-		"""Va à cette fraction du fichier, de 0 à 1."""
+	def placer_a(self, position: float) -> None:
+		"""Va à cette position du fichier, en secondes ; écouté comme à l'antenne, dans sa partie jouée."""
 		duree = self.duree()
 		if (self._pipeline is None) or (duree is None):
 			return
-		instant = round(max(0.0, min(1.0, fraction)) * duree * Gst.SECOND)
+		plan = self._plan_a_l_antenne()
+		if plan is not None:
+			de, a = plan.partie()
+			position = max(de, min(a, position))
+		instant = round(max(0.0, min(duree, position)) * Gst.SECOND)
 		# Un déplacement demandé pendant un changement d'état (une pause qui s'installe) serait perdu : il attend sa
 		# fin, une demi-seconde au plus.
 		self._pipeline.get_state(Gst.SECOND // 2)
@@ -262,6 +314,37 @@ class Lecteur:
 			if (message.type == Gst.MessageType.ELEMENT) and (message.src == self._niveau):
 				self._lire_les_niveaux(message.get_structure())
 		self._lire_le_format()
+		self._suivre_la_partie_jouee()
+
+	def _plan_a_l_antenne(self) -> Plan | None:
+		"""Le plan du fichier, s'il est écouté comme à l'antenne ; None sinon."""
+		if (not self.comme_a_l_antenne) or (self.source is None) or (self.source.antenne is not None):
+			return None
+		return self.source.plan
+
+	def _regler_le_volume(self, volume: float) -> None:
+		self.volume = volume
+		if (self._pipeline is not None) and (self.source is not None) and (self.source.antenne is None):
+			self._pipeline.set_property("volume", volume)
+
+	def _suivre_la_partie_jouee(self) -> None:
+		"""Note la position ; écouté comme à l'antenne, règle le volume de l'enveloppe, et s'arrête à la fin de la
+		partie jouée. Sinon, le volume est plein."""
+		position = self.position()
+		if (self.etat == "lecture") and (position is not None):
+			self.derniere_position = position
+		plan = self._plan_a_l_antenne()
+		if plan is None:
+			if self.volume != 1.0:
+				self._regler_le_volume(1.0)
+			return
+		if (position is None) or (self.etat != "lecture"):
+			return
+		_de, a = plan.partie()
+		if (a < plan.duree) and (position >= a):
+			self.arreter()
+			return
+		self._regler_le_volume(plan.volume(position))
 
 	def _construire(self, source: Source) -> Gst.Element:
 		if source.antenne is not None:
@@ -373,12 +456,21 @@ class FenetrePreecoute(QWidget):
 		disposition = QVBoxLayout(self.ui.place_vumetre)
 		disposition.setContentsMargins(0, 0, 0, 0)
 		disposition.addWidget(self.vumetre)
+		self.frise = Frise(self.ui.place_frise)
+		disposition_de_la_frise = QVBoxLayout(self.ui.place_frise)
+		disposition_de_la_frise.setContentsMargins(0, 0, 0, 0)
+		disposition_de_la_frise.addWidget(self.frise)
+		self.forme: FormeDOnde | None = None
+		"""La forme d'onde du fichier, calculée en tâche de fond (https://github.com/dascritch/machincast/issues/224)."""
 		self.lecteur = Lecteur(audio.sortie, audio.preecoute)
 		self._garnir_les_sorties()
 		self.ui.sortie.currentIndexChanged.connect(self._changer_de_sortie)
 		self.ui.lecture.clicked.connect(self._lire_ou_mettre_en_pause)
 		self.ui.arret.clicked.connect(self._arreter)
-		self.ui.position.sliderReleased.connect(self._placer)
+		self.frise.placee.connect(self._placer)
+		self.ui.debut_joue.clicked.connect(lambda: self._aller_au_repere(debut=True))
+		self.ui.fin_jouee.clicked.connect(lambda: self._aller_au_repere(debut=False))
+		self.ui.comme_a_l_antenne.toggled.connect(self._ecouter_comme_a_l_antenne)
 		self._releve = QTimer(self)
 		self._releve.setInterval(RELEVE)
 		self._releve.timeout.connect(self._rafraichir)
@@ -389,8 +481,9 @@ class FenetrePreecoute(QWidget):
 		"""Le sonore à pré-écouter, à l'arrêt, à la place du précédent ; None : aucun."""
 		source = None
 		if sonore is not None:
-			source = lire_source(self.connexion, sonore)
+			source = lire_source(self.connexion, sonore, preferences.crossfades())
 		self.lecteur.charger(source)
+		self._montrer_la_frise(source)
 		self.setWindowTitle("Pré-écoute")
 		self.ui.source.setText(affichage.VIDE)
 		if source is not None:
@@ -402,13 +495,41 @@ class FenetrePreecoute(QWidget):
 	def ecouter_l_antenne(self) -> None:
 		"""L'antenne, sur son port de monitoring, à la place du sonore précédent, à l'arrêt."""
 		nom = nom_du_port(self.audio)
-		self.lecteur.charger(Source("Antenne", f"Antenne : {nom}", True, None, self.audio))
+		source = Source("Antenne", f"Antenne : {nom}", True, None, self.audio)
+		self.lecteur.charger(source)
+		self._montrer_la_frise(source)
 		self.setWindowTitle("Pré-écoute : Antenne")
 		self.ui.source.setText(f"Antenne : {nom}")
 		self.ui.message.clear()
 		self._rafraichir()
 
+	def _montrer_la_frise(self, source: Source | None) -> None:
+		"""La frise d'un fichier, et le calcul de sa forme d'onde, lancé en tâche de fond ; rien pour un stream."""
+		self._arreter_la_forme()
+		fichier = (source is not None) and (not source.stream)
+		self.ui.zone_frise.setVisible(fichier)
+		plan = None
+		duree = None
+		if (source is not None) and (fichier):
+			plan, duree = source.plan, source.duree
+			self.forme = FormeDOnde(Path(source.adresse), duree)
+			self.forme.demarrer()
+		self.frise.montrer(plan, duree)
+		self.frise.montrer_la_forme(self.forme)
+		resume = ""
+		if plan is not None:
+			resume = plan.resume()
+		self.ui.plage.setText(resume)
+		for commande in (self.ui.debut_joue, self.ui.fin_jouee, self.ui.comme_a_l_antenne):
+			commande.setEnabled(plan is not None)
+
+	def _arreter_la_forme(self) -> None:
+		if self.forme is not None:
+			self.forme.arreter()
+		self.forme = None
+
 	def closeEvent(self, evenement: QCloseEvent) -> None:
+		self._arreter_la_forme()
 		self.lecteur.arreter()
 		self._rafraichir()
 		super().closeEvent(evenement)
@@ -467,9 +588,27 @@ class FenetrePreecoute(QWidget):
 		self.lecteur.arreter()
 		self._rafraichir()
 
-	def _placer(self) -> None:
-		barre = self.ui.position
-		self.lecteur.placer(barre.value() / barre.maximum())
+	def _placer(self, position: float) -> None:
+		self.lecteur.placer_a(position)
+		self._rafraichir()
+
+	def _aller_au_repere(self, debut: bool) -> None:
+		"""« Début joué » ou « Fin jouée » : la lecture y va, lancée au besoin."""
+		source = self.lecteur.source
+		if (source is None) or (source.plan is None):
+			return
+		repere = source.plan.repere_de_fin()
+		if debut:
+			repere = source.plan.repere_de_debut()
+		if self.lecteur.etat != "lecture":
+			self.ui.message.clear()
+			self.lecteur.lire()
+		self.lecteur.placer_a(repere)
+		self._rafraichir()
+
+	def _ecouter_comme_a_l_antenne(self, coche: bool) -> None:
+		self.lecteur.comme_a_l_antenne = coche
+		self._rafraichir()
 
 	def _rafraichir(self) -> None:
 		lecteur = self.lecteur
@@ -490,10 +629,14 @@ class FenetrePreecoute(QWidget):
 		ui.lecture.setAccessibleName(bouton[1])
 		ui.arret.setEnabled(lecteur.actif())
 		duree = lecteur.duree()
-		ui.position.setEnabled((lecteur.actif()) and (duree is not None))
+		self.frise.setEnabled((lecteur.actif()) and (duree is not None))
 		ui.temps.setText(self._temps(duree))
-		if (duree) and (not ui.position.isSliderDown()):
-			ui.position.setValue(round(((lecteur.position()) or (0.0)) / duree * ui.position.maximum()))
+		tete = None
+		if lecteur.actif():
+			tete = lecteur.position()
+		self.frise.placer_la_tete(tete)
+		if (self.forme is not None) and (self.forme.relever()):
+			self.frise.update()
 		self.vumetre.montrer(lecteur.niveaux)
 		ui.format.setText((lecteur.codec) or (affichage.VIDE))
 		ui.debit.setText((lecteur.debit_en_kbits()) or (affichage.VIDE))

@@ -56,17 +56,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QSlider" name="position">
-       <property name="toolTip">
-        <string>Position dans le fichier</string>
-       </property>
-       <property name="maximum">
-        <number>1000</number>
-       </property>
+      <spacer name="espace_lecteur">
        <property name="orientation">
         <enum>Qt::Orientation::Horizontal</enum>
        </property>
-      </widget>
+      </spacer>
      </item>
      <item>
       <widget class="QLabel" name="temps">
@@ -76,6 +70,88 @@
       </widget>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="QWidget" name="zone_frise" native="true">
+     <layout class="QVBoxLayout" name="disposition_frise">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QWidget" name="place_frise" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>72</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="plage">
+        <property name="toolTip">
+         <string>Partie du fichier jouée à l'antenne, sans ses blancs s'ils y sont retirés</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="reperes">
+        <item>
+         <widget class="QToolButton" name="debut_joue">
+          <property name="toolTip">
+           <string>Lire depuis le début de la partie jouée à l'antenne</string>
+          </property>
+          <property name="text">
+           <string>⇤ Début joué</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QToolButton" name="fin_jouee">
+          <property name="toolTip">
+           <string>Lire depuis quelques secondes avant le fondu de sortie</string>
+          </property>
+          <property name="text">
+           <string>Fin jouée ⇥</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="espace_reperes">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="comme_a_l_antenne">
+          <property name="toolTip">
+           <string>Ne jouer que la partie jouée à l'antenne, avec ses fondus</string>
+          </property>
+          <property name="text">
+           <string>Écouter comme à l'antenne</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
    </item>
    <item>
     <widget class="QWidget" name="place_vumetre" native="true">

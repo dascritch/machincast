@@ -13,8 +13,10 @@ from datetime import timedelta
 from pathlib import Path
 
 import psycopg
+import pytest
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QSlider
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.exceptions import TimeoutError as DelaiDepasse
 from pytestqt.qtbot import QtBot
@@ -51,6 +53,56 @@ def sonore(interface: Contexte, base_vide: Connexion, titre: str, fichier: str) 
 	inserer(base_vide, interface, titre, None, fichier)
 
 
+@given(
+	parsers.re(
+		r"le sonore « (?P<titre>[^»]+) », pour une copie du fichier de test « (?P<fichier>[^»]+) », de (?P<duree>\d+)"
+		r" secondes, aux blancs de (?P<debut>[\d,]+) s au début et (?P<fin>[\d,]+) s à la fin, retirés à l'antenne,"
+		r" aux crossfades (?:de (?P<cd>[\d,]+) s au début et (?P<cf>[\d,]+) s à la fin|non paramétrés)"
+	)
+)
+def sonore_audite(
+	interface: Contexte,
+	base_vide: Connexion,
+	titre: str,
+	fichier: str,
+	duree: str,
+	debut: str,
+	fin: str,
+	cd: str | None,
+	cf: str | None,
+) -> None:
+	"""Un fichier audité, ses blancs retirés à l'antenne ; ses crossfades, ou aucun de paramétré (NULL)."""
+	copie = interface.repertoire / fichier
+	shutil.copyfile(FICHIERS_SONORES / fichier, copie)
+	crossfades = [None, None]
+	if (cd is not None) and (cf is not None):
+		crossfades = [timedelta(seconds=_secondes(cd)), timedelta(seconds=_secondes(cf))]
+	base_vide.execute(
+		"INSERT INTO sonores (type, emplacement, titre, etat, duree, debut_detecte, fin_detectee, detection_blancs,"
+		" crossfade_debut, crossfade_fin, audite_le, audit_seuil)"
+		" VALUES ('fichier', %s, %s, 'actif', %s, %s, %s, true, %s, %s, now(), -40)",
+		(
+			str(copie),
+			titre,
+			timedelta(seconds=int(duree)),
+			timedelta(seconds=_secondes(debut)),
+			timedelta(seconds=_secondes(fin)),
+			*crossfades,
+		),
+	)
+
+
+def _secondes(texte: str) -> float:
+	return float(texte.replace(",", "."))
+
+
+@given(parsers.parse("le crossfade de début par défaut de {duree} seconde dans la configuration"))
+def crossfade_par_defaut(interface: Contexte, duree: str) -> None:
+	chemin = fichier_de_configuration(interface)
+	with chemin.open("a", encoding="utf-8") as fichier:
+		fichier.write(f"\n[crossfades]\ndebut = {_secondes(duree)}\n")
+
+
 @given(parsers.parse("le fichier du sonore « {titre} » supprimé"))
 def fichier_supprime(base_vide: Connexion, titre: str) -> None:
 	ligne = base_vide.execute("SELECT emplacement FROM sonores WHERE titre = %s", (titre,)).fetchone()
@@ -67,14 +119,26 @@ def antenne(interface: Contexte, identifiant: str) -> None:
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when(parsers.parse("je place la position de la pré-écoute à {pourcentage:d} %"))
-def placer(interface: Contexte, pourcentage: int) -> None:
-	barre = fenetre_de_preecoute(interface).ui.position
-	# Comme à la souris : la barre est tenue, déplacée, puis relâchée.
-	barre.setSliderDown(True)
-	barre.setValue(round(barre.maximum() * pourcentage / 100))
-	barre.sliderReleased.emit()
-	barre.setSliderDown(False)
+@when(parsers.parse("je clique sur la frise de la pré-écoute à {pourcentage:d} % de sa largeur"))
+def placer(interface: Contexte, qtbot: QtBot, pourcentage: int) -> None:
+	frise = fenetre_de_preecoute(interface).frise
+	point = QPoint(round(frise.width() * pourcentage / 100), frise.height() // 2)
+	qtbot.mouseClick(frise, Qt.MouseButton.LeftButton, pos=point)
+
+
+@when(parsers.re(r"je (?P<geste>coche|décoche) « Écouter comme à l'antenne » dans la pré-écoute"))
+def comme_a_l_antenne(interface: Contexte, geste: str) -> None:
+	case = fenetre_de_preecoute(interface).ui.comme_a_l_antenne
+	assert case.text() == "Écouter comme à l'antenne"
+	case.setChecked(geste == "coche")
+
+
+@when(parsers.re(r"je clique sur « (?P<nom>Début joué|Fin jouée) » dans la pré-écoute"))
+def repere(interface: Contexte, qtbot: QtBot, nom: str) -> None:
+	ui = fenetre_de_preecoute(interface).ui
+	bouton = {"Début joué": ui.debut_joue, "Fin jouée": ui.fin_jouee}[nom]
+	assert nom in bouton.text(), bouton.text()
+	qtbot.mouseClick(bouton, Qt.MouseButton.LeftButton)
 
 
 @when(parsers.parse("je choisis la sortie « {nom} » pour la pré-écoute"))
@@ -205,3 +269,104 @@ def configuration_intacte(interface: Contexte, identifiant: str) -> None:
 	chemin = fichier_de_configuration(interface)
 	assert tomllib.loads(chemin.read_text(encoding="utf-8"))["audio"]["preecoute"] == identifiant
 	assert chemin.read_bytes() == interface.configuration_initiale
+
+
+# ─── Frise (https://github.com/dascritch/machincast/issues/224) ───
+
+
+@then("la pré-écoute a une frise")
+def a_une_frise(interface: Contexte) -> None:
+	ouverte = fenetre_de_preecoute(interface)
+	assert ouverte.ui.zone_frise.isVisibleTo(ouverte)
+
+
+@then("la pré-écoute n'a ni frise ni barre de position")
+def sans_frise(interface: Contexte) -> None:
+	ouverte = fenetre_de_preecoute(interface)
+	assert not ouverte.ui.zone_frise.isVisibleTo(ouverte)
+	assert ouverte.findChildren(QSlider) == []
+
+
+@then(parsers.re(r"la frise de la pré-écoute montre les zones (?P<noms>«.+)"))
+def zones(interface: Contexte, noms: str) -> None:
+	plan = fenetre_de_preecoute(interface).frise.plan
+	assert plan is not None
+	assert [zone.nom for zone in plan.zones()] == NOM.findall(noms)
+
+
+@then(parsers.parse("la frise de la pré-écoute résume « {texte} »"))
+def resume(interface: Contexte, texte: str) -> None:
+	assert fenetre_de_preecoute(interface).ui.plage.text() == texte
+
+
+@then(parsers.parse("l'infobulle « {nom} » de la frise de la pré-écoute est « {texte} »"))
+def infobulle(interface: Contexte, nom: str, texte: str) -> None:
+	plan = fenetre_de_preecoute(interface).frise.plan
+	assert plan is not None
+	assert [zone.infobulle for zone in plan.zones() if zone.nom == nom] == [texte]
+
+
+@then("la forme d'onde de la pré-écoute est bientôt complète, silencieuse au début et sonore au milieu")
+def forme_complete(interface: Contexte, qtbot: QtBot) -> None:
+	ouverte = fenetre_de_preecoute(interface)
+
+	def finie() -> bool:
+		forme = ouverte.forme
+		return (forme is not None) and (forme.finie)
+
+	qtbot.waitUntil(finie, timeout=DELAI)
+	forme = ouverte.forme
+	assert (forme is not None) and (forme.erreur is None)
+	assert max(forme.amplitudes(0.0, 0.45)) < 0.01
+	assert min(forme.amplitudes(0.6, 1.4)) > 0.4
+	# La frise dessine ce que la forme a calculé.
+	assert ouverte.frise.forme is forme
+
+
+@then(parsers.parse("la frise de la pré-écoute dit « {texte} »"))
+def remarque(interface: Contexte, qtbot: QtBot, texte: str) -> None:
+	frise = fenetre_de_preecoute(interface).frise
+	attendu = texte.replace("…/", f"{interface.repertoire}/")
+	qtbot.waitUntil(lambda: frise.remarque() == attendu, timeout=DELAI)
+
+
+@then(parsers.re(r"le volume de la pré-écoute est (?P<bientot>bientôt )?de (?P<volume>\d+) %"))
+def volume(interface: Contexte, qtbot: QtBot, bientot: str | None, volume: str) -> None:
+	lecteur = fenetre_de_preecoute(interface).lecteur
+	attendu = int(volume) / 100
+	if bientot is not None:
+		qtbot.waitUntil(lambda: abs(lecteur.volume - attendu) < 0.001, timeout=DELAI)
+	assert lecteur.volume == pytest.approx(attendu), lecteur.volume
+
+
+@then(parsers.parse("le volume de la pré-écoute est sous {volume:d} %, au début de la montée"))
+def volume_montant(interface: Contexte, volume: int) -> None:
+	"""Juste après le lancement : la montée de 0,2 seconde commence, au plus une relève de l'affichage plus tôt."""
+	lecteur = fenetre_de_preecoute(interface).lecteur
+	assert lecteur.volume < volume / 100, lecteur.volume
+
+
+@then(parsers.parse("la pré-écoute s'est arrêtée avant {limite} seconde, à la fin de la partie jouée"))
+def arretee_avant(interface: Contexte, limite: str) -> None:
+	lecteur = fenetre_de_preecoute(interface).lecteur
+	derniere = lecteur.derniere_position
+	assert derniere is not None
+	assert 1.3 <= derniere <= _secondes(limite), derniere
+
+
+@then(parsers.parse("la pré-écoute s'est arrêtée après {limite} seconde"))
+def arretee_apres(interface: Contexte, limite: str) -> None:
+	derniere = fenetre_de_preecoute(interface).lecteur.derniere_position
+	assert (derniere is not None) and (derniere >= _secondes(limite)), derniere
+
+
+@then("la position de la pré-écoute passe d'emblée au début de la partie jouée, 0,5 seconde")
+def d_emblee(interface: Contexte, qtbot: QtBot) -> None:
+	"""Bien avant que la lecture ne l'atteigne d'elle-même, en une demi-seconde : la lecture y a sauté."""
+	lecteur = fenetre_de_preecoute(interface).lecteur
+	qtbot.waitUntil(lambda: 0.45 <= ((lecteur.position()) or (0.0)) <= 0.8, timeout=350)
+
+
+@then("la pré-écoute ne calcule plus de forme d'onde")
+def plus_de_forme(interface: Contexte) -> None:
+	assert fenetre_de_preecoute(interface).forme is None

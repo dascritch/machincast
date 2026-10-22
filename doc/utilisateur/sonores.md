@@ -8,6 +8,7 @@
 - [Tags et métadonnées](#tags-et-métadonnées)
 - [Fiche d'un sonore](#fiche-dun-sonore)
 - [Pré-écoute](#pré-écoute)
+	- [Frise d'un fichier](#frise-dun-fichier)
 - [Fiche d'une banque](#fiche-dune-banque)
 - [Alimenter une banque par ses répertoires](#alimenter-une-banque-par-ses-répertoires)
 - [Indexation depuis l'interface](#indexation-depuis-linterface)
@@ -106,12 +107,31 @@ La **fenêtre de pré-écoute** fait écouter un sonore, ou l'antenne, sur le ca
 
 ![La fenêtre de pré-écoute, à l'arrêt, chargée sur l'antenne, avec sa sortie : le casque de la régie](../captures/preecoute.png)
 
-- **Lecteur** : **⏵** lance la lecture, **⏸** la met en pause, **⏹** l'arrête. Pendant la lecture d'un fichier, la barre de position va n'importe où, pour en vérifier la fin par exemple.
+- **Lecteur** : **⏵** lance la lecture, **⏸** la met en pause, **⏹** l'arrête.
 - **VU-mètre** : comme celui de l'accueil, couché.
 - **Informations** : le format, le débit, l'échantillonnage, les canaux, et pour un stream le son déjà reçu d'avance : un flux qui en a peu risque de couper.
 - **Sortie** : le périphérique de pré-écoute ; celui de l'antenne est grisé, et ne peut pas être choisi.
 
 Il n'y a qu'une fenêtre de pré-écoute : pré-écouter un autre sonore le met à la place du précédent. La fermer arrête la pré-écoute.
+
+### Frise d'un fichier
+
+Un fichier a une **frise** ([#224](https://github.com/dascritch/machincast/issues/224)), qui s'étend sur toute sa durée. Un stream, ou l'antenne, n'en a pas.
+
+![La pré-écoute d'un fichier, en pause : sa forme d'onde, ses blancs hachurés aux deux bouts, ses fondus d'entrée et de sortie, et la partie jouée à l'antenne](../captures/preecoute-fichier.png)
+
+- **Forme d'onde** : elle se dessine dès l'ouverture, au fil du décodage du fichier, sans faire attendre la fenêtre.
+- **Blancs** au début et à la fin, tels que la dernière vérification complète les a mesurés ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)) : **hachures serrées** s'ils sont retirés à l'antenne, **hachures pâles** s'ils y sont joués. Un fichier jamais vérifié le dit, sous la frise : « blancs jamais mesurés ».
+- **Fondus** : le crossfade de début monte, celui de fin descend, posés sur la partie jouée. Un crossfade non renseigné dans la fiche est celui des préférences, marqué « (défaut) » dans l'infobulle.
+- **Tête de lecture** : un clic sur la frise y place la lecture, comme un glissement une fois relâché. Les flèches du clavier la déplacent d'une seconde. L'infobulle nomme ce qui est sous la souris.
+
+Sous la frise :
+
+- **Joué à l'antenne** : où commence et où finit ce qui passera à l'antenne, et sa durée ;
+- **Début joué** lance la lecture au début de cette partie ; **Fin jouée**, 5 secondes avant le fondu de sortie, pour entendre arriver l'enchaînement ;
+- **Écouter comme à l'antenne** ne joue que cette partie, avec ses fondus.
+
+La frise montre ce qui est enregistré : enregistrer la fiche avant de pré-écouter un réglage. Elle ne connaît pas la banque par laquelle passera le sonore : une banque qui impose ses crossfades, ou retire les blancs, n'y apparaît pas.
 
 ## Fiche d'une banque
 

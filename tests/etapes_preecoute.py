@@ -74,11 +74,17 @@ def etat(interface: Contexte, qtbot: QtBot, bientot: str | None, etat: str, temp
 @then(parsers.re(r"les commandes de la pré-écoute sont : (?P<commandes>.+)"))
 def commandes(interface: Contexte, commandes: str) -> None:
 	ui = fenetre_de_preecoute(interface).ui
+	ouverte = fenetre_de_preecoute(interface)
 	lues = []
 	assert (ui.arret.text(), ui.arret.toolTip()) == ("⏹", "Arrêt")
-	for nom, bouton in ((ui.lecture.toolTip().lower(), ui.lecture), ("arrêt", ui.arret), ("position", ui.position)):
+	for nom, actif in (
+		(ui.lecture.toolTip().lower(), ui.lecture.isEnabled()),
+		("arrêt", ui.arret.isEnabled()),
+		# La position se règle sur la frise, que seul un fichier a (https://github.com/dascritch/machincast/issues/224).
+		("position", (ui.zone_frise.isVisibleTo(ouverte)) and (ouverte.frise.isEnabled())),
+	):
 		etat_du_bouton = "inactif"
-		if bouton.isEnabled():
+		if actif:
 			etat_du_bouton = "actif"
 		lues.append(f"{nom} {etat_du_bouton}")
 	attendues = [c.replace("active", "actif").replace("inactive", "inactif") for c in commandes.split(", ")]
