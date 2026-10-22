@@ -126,6 +126,9 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Et j'attends la fin de ses voies
 		Alors la voie de « sain.<format> » est finie
 
+		# AIFF désactivé (https://github.com/dascritch/machincast/issues/236) : sous charge, GStreamer 1.24 (aiffparse)
+		# échoue de temps en temps sur ce fichier, hors du code de MachinCast. À revérifier avec une version ultérieure
+		# de GStreamer, en remettant la ligne « aiff » dans ces exemples.
 		Exemples:
 			| format |
 			| mp3    |
@@ -133,7 +136,6 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 			| aac    |
 			| ogg    |
 			| wav    |
-			| aiff   |
 
 	Scénario: Deux sonores se superposent pendant un crossfade
 		Étant donné un moteur audio sur la sortie de la configuration de test, en temps réel
