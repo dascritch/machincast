@@ -14,7 +14,7 @@ machincast.interface.fiche.
   (fichier défectueux, puis de nouveau sain) : l'indexeur ne modifie plus un champ édité.
 - État : l'interface pose « actif » ou « désactivé » ; un sonore expiré, erroné ou supprimé peut y revenir. Un sonore
   en aperçu attend sa première indexation.
-- Stream : adresse directe ou marque-page, événement de secours parmi les événements de priorité secours, et test du
+- Stream : adresse directe ou feed, événement de secours parmi les événements de priorité secours, et test du
   flux à la demande (machincast.interface.essai_flux), sur l'adresse saisie, même pas encore enregistrée.
 - Derniers passages : les 50 derniers, du plus récent au plus ancien, avec les alertes et incidents du log pendant
   chaque passage.
@@ -85,7 +85,7 @@ LIBELLES: dict[str, str] = {
 	"debut_diffusion": "début de diffusion",
 	"fin_diffusion": "fin de diffusion",
 	"url_stream": "adresse directe",
-	"marque_page_id": "marque-page",
+	"feed_id": "feed",
 	"secours_evenement_id": "événement de secours",
 	"detection_blancs": "détection de blanc",
 	"debut_detecte": "début détecté",
@@ -141,7 +141,7 @@ RELATION = Qt.ItemDataRole.UserRole
 PASSAGES = 50
 """Nombre de derniers passages montrés."""
 URL = Qt.ItemDataRole.UserRole + 1
-"""Rôle qui porte l'adresse d'un marque-page, dans son choix."""
+"""Rôle qui porte l'adresse d'un feed, dans son choix."""
 
 
 ENCARTS_DEPLIES = "fiche-sonore/encarts-deplies"
@@ -212,7 +212,7 @@ class FicheSonore(Fiche):
 		"""Champs tels que la fiche les a montrés à la lecture : seuls ceux qui en diffèrent sont écrits."""
 		for champ in (self.ui.artiste, self.ui.titre, self.ui.url_stream, *self.metadonnees.values()):
 			champ.textChanged.connect(self._modifier)
-		for choix in (self.ui.etat, self.ui.masquage, self.ui.marque_page, self.ui.secours):
+		for choix in (self.ui.etat, self.ui.masquage, self.ui.feed, self.ui.secours):
 			choix.currentIndexChanged.connect(self._modifier)
 		self.ui.max_lectures.valueChanged.connect(self._modifier)
 		for case, curseur in (
@@ -354,7 +354,7 @@ class FicheSonore(Fiche):
 				ligne = self._lire_sonore()
 				passages = self._lire_passages()
 				relations = self._lire_relations()
-			marques = self.connexion.execute("SELECT id, nom, url FROM marques_pages_streams ORDER BY nom").fetchall()
+			marques = self.connexion.execute("SELECT id, nom, url FROM feeds ORDER BY nom").fetchall()
 			secours = self.connexion.execute(
 				"SELECT id, nom_interne FROM evenements WHERE priorite = 'secours' ORDER BY nom_interne"
 			).fetchall()
@@ -364,11 +364,11 @@ class FicheSonore(Fiche):
 
 	def _lire_sonore(self) -> tuple[object, ...] | None:
 		return self.connexion.execute(
-			"SELECT s.type::text, s.emplacement, s.url_stream, s.marque_page_id, m.url, s.secours_evenement_id,"
+			"SELECT s.type::text, s.emplacement, s.url_stream, s.feed_id, m.url, s.secours_evenement_id,"
 			" s.artiste, s.titre, s.metadonnees_musicales, s.crossfade_debut, s.crossfade_fin, s.max_lectures,"
 			" s.etat::text, s.masquer_metadonnees, s.duree, s.debut_diffusion, s.fin_diffusion, s.champs_edites,"
 			" s.type_mime, s.verifie_le, s.detection_blancs, s.debut_detecte, s.fin_detectee, s.audite_le IS NOT NULL"
-			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
+			" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 			(self.identifiant,),
 		).fetchone()
 
@@ -383,8 +383,8 @@ class FicheSonore(Fiche):
 			type_sonore,
 			emplacement,
 			url_stream,
-			marque_page,
-			url_marque_page,
+			feed,
+			url_feed,
 			evenement_secours,
 			artiste,
 			titre,
@@ -409,7 +409,7 @@ class FicheSonore(Fiche):
 		stream = type_sonore == "stream"
 		self._nom = (texte_ou_rien(titre)) or (Path(str(emplacement)).name)
 		if stream:
-			self._nom = (texte_ou_rien(titre)) or (str((url_stream) or (url_marque_page)))
+			self._nom = (texte_ou_rien(titre)) or (str((url_stream) or (url_feed)))
 		self.ui.type_sonore.setText(str(type_sonore))
 		self.ui.emplacement.setText(str((emplacement) or ("")))
 		self.ui.formulaire_sonore.setRowVisible(self.ui.etiquette_emplacement, not stream)
@@ -469,15 +469,15 @@ class FicheSonore(Fiche):
 		self.ui.masquage.setCurrentIndex(next(i for i, (valeur, _texte) in enumerate(MASQUAGES) if valeur is masquage))
 		self._montrer_date(self.ui.a_debut, self.ui.debut_diffusion, debut)
 		self._montrer_date(self.ui.a_fin, self.ui.fin_diffusion, fin)
-		self.ui.marque_page.clear()
+		self.ui.feed.clear()
 		for identifiant, nom, url in marques:
-			self.ui.marque_page.addItem(str(nom), int(str(identifiant)))
-			self.ui.marque_page.setItemData(self.ui.marque_page.count() - 1, str(url), URL)
-		self.ui.par_marque_page.setEnabled(marques != [])
-		self.ui.marque_page.setCurrentIndex(self.ui.marque_page.findData(marque_page))
+			self.ui.feed.addItem(str(nom), int(str(identifiant)))
+			self.ui.feed.setItemData(self.ui.feed.count() - 1, str(url), URL)
+		self.ui.par_feed.setEnabled(marques != [])
+		self.ui.feed.setCurrentIndex(self.ui.feed.findData(feed))
 		self.ui.url_stream.setText(str((url_stream) or ("")))
-		self.ui.par_marque_page.setChecked(marque_page is not None)
-		self.ui.par_adresse.setChecked(marque_page is None)
+		self.ui.par_feed.setChecked(feed is not None)
+		self.ui.par_adresse.setChecked(feed is None)
 		self._mode_stream()
 		self.ui.secours.clear()
 		self.ui.secours.addItem("Aucun : le fil musical", None)
@@ -509,7 +509,7 @@ class FicheSonore(Fiche):
 
 	def _mode_stream(self) -> None:
 		self.ui.url_stream.setEnabled(self.ui.par_adresse.isChecked())
-		self.ui.marque_page.setEnabled(self.ui.par_marque_page.isChecked())
+		self.ui.feed.setEnabled(self.ui.par_feed.isChecked())
 
 	def _saisies(self) -> dict[str, object]:
 		"""Les champs modifiables, tels que la fiche les montre : colonne de sonores, ou metadonnees_musicales.<clé>."""
@@ -534,11 +534,11 @@ class FicheSonore(Fiche):
 			saisies["fin_detectee"] = _crossfade(self.ui.a_fin_detectee, self.ui.fin_detectee)
 		if self.ui.groupe_stream.isVisibleTo(self):
 			saisies["url_stream"] = None
-			saisies["marque_page_id"] = None
+			saisies["feed_id"] = None
 			if self.ui.par_adresse.isChecked():
 				saisies["url_stream"] = (self.ui.url_stream.text().strip()) or (None)
 			else:
-				saisies["marque_page_id"] = self.ui.marque_page.currentData()
+				saisies["feed_id"] = self.ui.feed.currentData()
 			saisies["secours_evenement_id"] = self.ui.secours.currentData()
 		saisies["etat"] = self.ui.etat.currentData()
 		return saisies
@@ -548,7 +548,7 @@ class FicheSonore(Fiche):
 		debut, fin = saisies["debut_diffusion"], saisies["fin_diffusion"]
 		if (isinstance(debut, datetime)) and (isinstance(fin, datetime)) and (fin <= debut):
 			raise Refus("La fin de la diffusion doit suivre son début.")
-		if ("url_stream" in saisies) and (saisies["url_stream"] is None) and (saisies["marque_page_id"] is None):
+		if ("url_stream" in saisies) and (saisies["url_stream"] is None) and (saisies["feed_id"] is None):
 			raise Refus("L'adresse du stream est obligatoire.")
 		# Seuls des blancs saisis sont refusés : l'indexeur ne mesure jamais des blancs qui couvrent tout le fichier.
 		cotes = ("debut_detecte", "fin_detectee")
@@ -560,9 +560,8 @@ class FicheSonore(Fiche):
 		if identifiant is None:
 			# Un nouveau stream entre en base avec son adresse ; ses autres champs s'écrivent comme une modification.
 			cree = self.connexion.execute(
-				"INSERT INTO sonores (type, url_stream, marque_page_id, etat) VALUES ('stream', %s, %s, 'actif')"
-				" RETURNING id",
-				(saisies["url_stream"], saisies["marque_page_id"]),
+				"INSERT INTO sonores (type, url_stream, feed_id, etat) VALUES ('stream', %s, %s, 'actif') RETURNING id",
+				(saisies["url_stream"], saisies["feed_id"]),
 			).fetchone()
 			assert cree is not None
 			identifiant = int(str(cree[0]))
@@ -701,7 +700,7 @@ class FicheSonore(Fiche):
 	def _adresse(self) -> str:
 		if self.ui.par_adresse.isChecked():
 			return self.ui.url_stream.text().strip()
-		return str(self.ui.marque_page.currentData(URL))
+		return str(self.ui.feed.currentData(URL))
 
 	def _tester(self) -> None:
 		self.ui.tester.setEnabled(False)

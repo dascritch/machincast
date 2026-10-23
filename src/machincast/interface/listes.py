@@ -106,7 +106,7 @@ def lire_sonores(connexion: Connexion) -> list[Ligne]:
 		rangees = connexion.execute(
 			"SELECT s.id, s.artiste, s.titre, s.type::text, s.etat::text, s.audit_demande, s.duree,"
 			" COALESCE(s.emplacement, s.url_stream, m.url)"
-			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
+			" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id"
 			" ORDER BY s.artiste NULLS LAST, s.titre, s.id"
 		).fetchall()
 	lignes = []
@@ -160,12 +160,12 @@ def lire_sequences(connexion: Connexion) -> list[Ligne]:
 	return lignes
 
 
-def lire_marques_pages(connexion: Connexion) -> list[Ligne]:
+def lire_feeds(connexion: Connexion) -> list[Ligne]:
 	"""Par nom, avec le nombre de streams qui suivent chacun (https://github.com/dascritch/machincast/issues/34)."""
 	with connexion.transaction():
 		rangees = connexion.execute(
-			"SELECT m.id, m.nom, m.url, (SELECT count(*) FROM sonores s WHERE s.marque_page_id = m.id)"
-			" FROM marques_pages_streams m ORDER BY m.nom, m.id"
+			"SELECT m.id, m.nom, m.url, (SELECT count(*) FROM sonores s WHERE s.feed_id = m.id)"
+			" FROM feeds m ORDER BY m.nom, m.id"
 		).fetchall()
 	return [
 		Ligne(int(str(identifiant)), str(nom), [str(nom), str(url), str(streams)])
@@ -237,19 +237,19 @@ EVENEMENTS = Source(
 	"Nouvel événement",
 	duplicable=True,
 )
-MARQUES_PAGES = Source(
-	"marque-page",
+FEEDS = Source(
+	"feed",
 	("Nom", "Adresse", "Streams"),
-	lire_marques_pages,
-	"marque-page",
-	"marques-pages",
-	"aucun marque-page",
-	"Nouveau marque-page",
+	lire_feeds,
+	"feed",
+	"feeds",
+	"aucun feed",
+	"Nouveau feed",
 )
 
 
 def nom_de_vue(texte: str) -> str:
-	"""« marques-pages », « evenements » : sans accents, ni majuscules, ni espaces."""
+	"""« feeds », « evenements » : sans accents, ni majuscules, ni espaces."""
 	return sans_accents(texte).replace(" ", "-")
 
 

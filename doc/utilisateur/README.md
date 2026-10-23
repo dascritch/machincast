@@ -22,7 +22,7 @@ MachinCast fait tourner l'antenne tout seul, en dehors des émissions en direct,
 1. [Prendre en main l'interface](prise-en-main.md) : la fenêtre, l'accueil, les onglets, les menus, les préférences, la recherche.
 2. [Ce qui passe à l'antenne](antenne.md) : quel événement, quel sonore, les enchaînements, les streams, piloter et interrompre la diffusion, l'historique et les incidents.
 3. [Programmer la grille](grille.md) : les événements, les séquences, le calendrier et la simulation.
-4. [Sonores, banques et marques-pages](sonores.md) : ajouter des sonores, leurs états, leurs fiches, la pré-écoute, les banques et leur indexation.
+4. [Sonores, banques et feeds](sonores.md) : ajouter des sonores, leurs états, leurs fiches, la pré-écoute, les banques et leur indexation.
 5. [Listes et actions](listes.md) : les listes, agir sur plusieurs éléments, dupliquer, supprimer.
 
 ## Une règle à retenir : les fichiers ne sont jamais touchés

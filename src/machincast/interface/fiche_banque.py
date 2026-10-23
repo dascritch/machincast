@@ -95,7 +95,7 @@ LIGNE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.I
 SONORES_LUS = (
 	"SELECT s.id, s.artiste, s.titre, s.duree, s.emplacement, COALESCE(s.emplacement, s.url_stream, m.url),"
 	" s.etat::text"
-	" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
+	" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id"
 )
 
 

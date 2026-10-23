@@ -119,15 +119,15 @@ class Ui_FicheSonore(object):
 
         self.grille_stream.addWidget(self.url_stream, 0, 1, 1, 1)
 
-        self.par_marque_page = QRadioButton(self.groupe_stream)
-        self.par_marque_page.setObjectName(u"par_marque_page")
+        self.par_feed = QRadioButton(self.groupe_stream)
+        self.par_feed.setObjectName(u"par_feed")
 
-        self.grille_stream.addWidget(self.par_marque_page, 1, 0, 1, 1)
+        self.grille_stream.addWidget(self.par_feed, 1, 0, 1, 1)
 
-        self.marque_page = QComboBox(self.groupe_stream)
-        self.marque_page.setObjectName(u"marque_page")
+        self.feed = QComboBox(self.groupe_stream)
+        self.feed.setObjectName(u"feed")
 
-        self.grille_stream.addWidget(self.marque_page, 1, 1, 1, 1)
+        self.grille_stream.addWidget(self.feed, 1, 1, 1, 1)
 
         self.etiquette_secours = QLabel(self.groupe_stream)
         self.etiquette_secours.setObjectName(u"etiquette_secours")
@@ -613,7 +613,7 @@ class Ui_FicheSonore(object):
         self.etiquette_etat.setText(QCoreApplication.translate("FicheSonore", u"\u00c9&tat", None))
         self.groupe_stream.setTitle(QCoreApplication.translate("FicheSonore", u"Stream", None))
         self.par_adresse.setText(QCoreApplication.translate("FicheSonore", u"Adresse &directe", None))
-        self.par_marque_page.setText(QCoreApplication.translate("FicheSonore", u"&Marque-page", None))
+        self.par_feed.setText(QCoreApplication.translate("FicheSonore", u"&Feed", None))
         self.etiquette_secours.setText(QCoreApplication.translate("FicheSonore", u"\u00c9v\u00e9nement de &secours", None))
         self.tester.setText(QCoreApplication.translate("FicheSonore", u"&Tester le flux", None))
         self.groupe_metadonnees.setTitle(QCoreApplication.translate("FicheSonore", u"M\u00e9tadonn\u00e9es", None))

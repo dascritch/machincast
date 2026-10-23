@@ -8,7 +8,7 @@ clair ou sombre : l'icône se lit sur le fond de la fenêtre.
 
 L'icône d'un genre désigne ce genre partout où il apparaît : onglets des listes, des fiches, de la grille et de la
 simulation, menu « Affichage », colonne « Type » de la recherche, relations de la fiche d'un sonore. Un genre sans
-icône (marque-page) n'en montre aucune : icone_de rend alors une icône nulle.
+icône (feed) n'en montre aucune : icone_de rend alors une icône nulle.
 """
 
 from pathlib import Path

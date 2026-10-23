@@ -270,5 +270,5 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 	Scénario: Les autres listes ne sélectionnent qu'une ligne à la fois
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
-		Et je choisis « Ouvrir l'onglet Marques-pages » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Feeds » dans le menu « Affichage »
 		Alors les listes qui sélectionnent plusieurs lignes sont « Banques », « Sonores »

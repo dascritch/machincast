@@ -11,7 +11,7 @@
 
 ## Listes
 
-Les onglets **Événements**, **Séquences**, **Banques**, **Sonores** et **Marques-pages** donnent chacun la liste de tous les éléments de ce type.
+Les onglets **Événements**, **Séquences**, **Banques**, **Sonores** et **Feeds** donnent chacun la liste de tous les éléments de ce type.
 
 ![La liste des événements : le spécial, les émissions, les fils musicaux et l'événement de secours, du plus prioritaire au moins prioritaire](../captures/liste-evenements.png)
 
@@ -21,14 +21,14 @@ Les onglets **Événements**, **Séquences**, **Banques**, **Sonores** et **Marq
 | Séquences | nom, nom public, anomalie (`séquence vide`) | par nom |
 | Banques | nom, nom public, mode, « ne pas répéter », premier répertoire | par nom |
 | Sonores | artiste, titre, type, état, durée, emplacement | par artiste, puis par titre |
-| Marques-pages | nom, adresse, nombre de streams qui le suivent | par nom |
+| Feeds | nom, adresse, nombre de streams qui le suivent | par nom |
 
 - **Filtre** : le champ « Filtrer… » garde les lignes dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : `cafe` trouve « Café à minuit », `stream` tous les streams. Le compte dit combien de lignes restent, « 2 sonores sur 340 ».
 - **Anomalies** : une séquence ou un événement vide a l'icône d'avertissement, et son infobulle dit pourquoi. Taper `vide` dans le filtre ne garde que les éléments vides. Un sonore hors des durées d'une banque n'est signalé que dans la [fiche de cette banque](sonores.md#fiche-dune-banque) et dans les relations de la [fiche du sonore](sonores.md#fiche-dun-sonore).
 - **Tri** : un clic sur le titre d'une colonne trie la liste ; un second inverse l'ordre.
 - **Mise à jour** : une liste se relit chaque fois que son onglet s'ouvre, et par <kbd>F5</kbd>.
 - **Ouvrir** : un double-clic sur une ligne, ou <kbd>Entrée</kbd>, ouvre la fiche de l'élément.
-- **Créer** : **Nouvel événement**, **Nouvelle séquence**, **Nouvelle banque**, **Nouveau stream** et **Nouveau marque-page** ouvrent une fiche vide. La liste des sonores a aussi **Ajouter des fichiers…** ([Ajouter un sonore](sonores.md#ajouter-un-sonore)).
+- **Créer** : **Nouvel événement**, **Nouvelle séquence**, **Nouvelle banque**, **Nouveau stream** et **Nouveau feed** ouvrent une fiche vide. La liste des sonores a aussi **Ajouter des fichiers…** ([Ajouter un sonore](sonores.md#ajouter-un-sonore)).
 - **Clic droit** : **Dupliquer**, dans les listes Événements, Séquences et Banques ; des actions sur plusieurs éléments, dans les listes Sonores et Banques.
 
 ## Colonnes des tableaux
@@ -45,7 +45,7 @@ Tous les tableaux de l'interface se règlent de la même façon : les listes, la
 
 ## Enregistrer, annuler, fermer
 
-Toutes les fiches, d'un événement, d'une séquence, d'une banque, d'un sonore ou d'un marque-page, se comportent de la même façon :
+Toutes les fiches, d'un événement, d'une séquence, d'une banque, d'un sonore ou d'un feed, se comportent de la même façon :
 
 - **Un onglet par élément** : une fiche déjà ouverte revient au premier plan.
 - **Enregistrer** écrit toutes les modifications à la fois ; **Annuler** remet la fiche telle qu'elle est en base. Les deux boutons ne servent que quand la fiche est modifiée.
@@ -92,6 +92,6 @@ Chaque fiche a un bouton **Supprimer…**. Il demande toujours confirmation : **
 | Banque | ses séquences et listes d'événements | Ses répertoires et leurs fichiers ; ses sonores. |
 | Séquence | ses listes d'événements | Ses sonores et ses banques. |
 | Événement | — | Ses sonores, banques et séquences. Les streams qui l'avaient pour secours n'en ont plus. |
-| Marque-page | — | Rien : un marque-page qu'un stream suit ne se supprime pas. |
+| Feed | — | Rien : un feed qu'un stream suit ne se supprime pas. |
 
 La fiche se ferme après la suppression.

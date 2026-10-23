@@ -117,14 +117,14 @@
              <widget class="QLineEdit" name="url_stream" />
             </item>
             <item row="1" column="0">
-             <widget class="QRadioButton" name="par_marque_page">
+             <widget class="QRadioButton" name="par_feed">
               <property name="text">
-               <string>&amp;Marque-page</string>
+               <string>&amp;Feed</string>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QComboBox" name="marque_page" />
+             <widget class="QComboBox" name="feed" />
             </item>
             <item row="2" column="0">
              <widget class="QLabel" name="etiquette_secours">

@@ -1,15 +1,15 @@
-"""Fiche d'un marque-page de stream (https://github.com/dascritch/machincast/issues/34, spec § 8.13).
+"""Fiche d'un feed de stream (https://github.com/dascritch/machincast/issues/34, spec § 8.13).
 
-Un marque-page est une adresse de flux réutilisable, souvent en ligne par intermittence : plusieurs streams peuvent le
+Un feed est une adresse de flux réutilisable, souvent en ligne par intermittence : plusieurs streams peuvent le
 suivre, et jouent son adresse (machincast.lecture.diffusion). La fiche s'ouvre dans un onglet de la fenêtre
-(machincast.interface.fenetre), depuis la liste des marques-pages, ou vide pour un nouveau marque-page.
+(machincast.interface.fenetre), depuis la liste des feeds, ou vide pour un nouveau feed.
 Enregistrement, annulation et fermeture : machincast.interface.fiche.
 
-- Le nom est obligatoire, propre au marque-page ; l'adresse est obligatoire. Les deux sont enregistrés sans les
+- Le nom est obligatoire, propre au feed ; l'adresse est obligatoire. Les deux sont enregistrés sans les
   espaces qui les entourent. Une nouvelle adresse vaut pour tous les streams qui le suivent.
 - Le test du flux (machincast.interface.essai_flux) porte sur l'adresse saisie, même pas encore enregistrée ; il
   s'arrête à la fermeture de la fiche.
-- Les streams qui le suivent sont montrés ; ouvrir l'un d'eux ouvre sa fiche. Un marque-page qu'un stream suit ne se
+- Les streams qui le suivent sont montrés ; ouvrir l'un d'eux ouvre sa fiche. Un feed qu'un stream suit ne se
   supprime pas (machincast.interface.suppression) : la base le refuserait aussi.
 """
 
@@ -20,20 +20,20 @@ from machincast.conformation import conformer
 from machincast.horloge import Horloge
 from machincast.interface.essai_flux import EssaiDeFlux, resultat_de_l_essai
 from machincast.interface.fiche import Connexion, Fiche, Refus
-from machincast.interface.ui.fiche_marque_page import Ui_FicheMarquePage
+from machincast.interface.ui.fiche_feed import Ui_FicheFeed
 
 SONORE = Qt.ItemDataRole.UserRole
 """Rôle qui porte l'identifiant d'un stream, dans la liste des streams."""
 
 
-class FicheMarquePage(Fiche):
-	genre = "marque-page"
+class FicheFeed(Fiche):
+	genre = "feed"
 
 	def __init__(
 		self, connexion: Connexion, identifiant: int | None, horloge: Horloge, parent: QWidget | None = None
 	) -> None:
 		super().__init__(connexion, identifiant, horloge, parent)
-		self.ui = Ui_FicheMarquePage()
+		self.ui = Ui_FicheFeed()
 		self.ui.setupUi(self)
 		self.brancher(self.ui.enregistrer, self.ui.annuler, self.ui.supprimer, self.ui.message)
 		self._nom = ""
@@ -47,8 +47,8 @@ class FicheMarquePage(Fiche):
 
 	def titre(self) -> str:
 		if self.identifiant is None:
-			return "Nouveau marque-page"
-		return f"Marque-page : {self._nom}"
+			return "Nouveau feed"
+		return f"Feed : {self._nom}"
 
 	def fermer(self) -> None:
 		self.essai.arreter()
@@ -59,12 +59,12 @@ class FicheMarquePage(Fiche):
 		with self.connexion.transaction():
 			if self.identifiant is not None:
 				ligne = self.connexion.execute(
-					"SELECT nom, url FROM marques_pages_streams WHERE id = %s", (self.identifiant,)
+					"SELECT nom, url FROM feeds WHERE id = %s", (self.identifiant,)
 				).fetchone()
-				assert ligne is not None, f"marque-page {self.identifiant} absent"
+				assert ligne is not None, f"feed {self.identifiant} absent"
 				marque = ligne
 				streams = self.connexion.execute(
-					"SELECT id, COALESCE(titre, %s) FROM sonores WHERE marque_page_id = %s ORDER BY 2, id",
+					"SELECT id, COALESCE(titre, %s) FROM sonores WHERE feed_id = %s ORDER BY 2, id",
 					(str(marque[1]), self.identifiant),
 				).fetchall()
 		nom, url = marque
@@ -83,21 +83,19 @@ class FicheMarquePage(Fiche):
 		if nom == "":
 			raise Refus("Le nom est obligatoire.")
 		pris = self.connexion.execute(
-			"SELECT 1 FROM marques_pages_streams WHERE nom = %s AND id IS DISTINCT FROM %s", (nom, self.identifiant)
+			"SELECT 1 FROM feeds WHERE nom = %s AND id IS DISTINCT FROM %s", (nom, self.identifiant)
 		).fetchone()
 		if pris is not None:
-			raise Refus(f"Un autre marque-page s'appelle déjà « {nom} ».")
+			raise Refus(f"Un autre feed s'appelle déjà « {nom} ».")
 		if url == "":
 			raise Refus("L'adresse est obligatoire.")
 		if self.identifiant is None:
 			cree = self.connexion.execute(
-				"INSERT INTO marques_pages_streams (nom, url) VALUES (%s, %s) RETURNING id", (nom, url)
+				"INSERT INTO feeds (nom, url) VALUES (%s, %s) RETURNING id", (nom, url)
 			).fetchone()
 			assert cree is not None
 			return int(str(cree[0]))
-		self.connexion.execute(
-			"UPDATE marques_pages_streams SET nom = %s, url = %s WHERE id = %s", (nom, url, self.identifiant)
-		)
+		self.connexion.execute("UPDATE feeds SET nom = %s, url = %s WHERE id = %s", (nom, url, self.identifiant))
 		return self.identifiant
 
 	def _tester(self) -> None:

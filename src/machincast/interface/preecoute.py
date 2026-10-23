@@ -104,7 +104,7 @@ def lire_source(
 			"SELECT s.type::text, s.emplacement, coalesce(s.url_stream, m.url), s.artiste, s.titre,"
 			" extract(epoch FROM s.duree), s.duree, s.debut_detecte, s.fin_detectee, s.detection_blancs,"
 			" s.crossfade_debut, s.crossfade_fin, s.audite_le IS NOT NULL"
-			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
+			" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 			(sonore,),
 		).fetchone()
 	if ligne is None:

@@ -175,7 +175,7 @@ def selecteur(dialogue: Dialogue, monkeypatch: pytest.MonkeyPatch, selecteur: st
 
 @when(
 	parsers.re(
-		r"le choix des (?P<genre>sonores|banques|séquences|marques-pages) s'ouvre,"
+		r"le choix des (?P<genre>sonores|banques|séquences|feeds) s'ouvre,"
 		r" avec la remarque « ?(?P<remarque>[^»]*?) ?»,"
 		r" et que j'y sélectionne tout, puis clique sur « (?P<bouton>[^»]+) »"
 	)
@@ -201,7 +201,7 @@ def choix(dialogue: Dialogue, base_vide: Connexion, genre: str, remarque: str, b
 		"sonores": dialogues.choisir_sonores,
 		"banques": dialogues.choisir_banques,
 		"séquences": dialogues.choisir_sequences,
-		"marques-pages": dialogues.choisir_marques_pages,
+		"feeds": dialogues.choisir_feeds,
 	}[genre]
 	connexion = connecter(*parametres_base_test(), Role.INTERFACE)
 	try:
@@ -287,13 +287,13 @@ def explique(dialogue: Dialogue, texte: str) -> None:
 	assert dialogue.texte == texte
 
 
-@then(parsers.re(r"les (?P<genre>sonores|banques|séquences|marques-pages) choisi(?:e)?s sont (?P<noms>.+)"))
+@then(parsers.re(r"les (?P<genre>sonores|banques|séquences|feeds) choisi(?:e)?s sont (?P<noms>.+)"))
 def choisis(dialogue: Dialogue, base_vide: Connexion, genre: str, noms: str) -> None:
 	table, colonne = {
 		"sonores": ("sonores", "titre"),
 		"banques": ("banques", "nom_interne"),
 		"séquences": ("sequences", "nom_interne"),
-		"marques-pages": ("marques_pages_streams", "nom"),
+		"feeds": ("feeds", "nom"),
 	}[genre]
 	assert dialogue.reponse == [identifiant(base_vide, table, colonne, nom) for nom in NOM.findall(noms)]
 

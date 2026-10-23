@@ -17,7 +17,7 @@ REPERTOIRE_MIGRATIONS = Path(__file__).parent / "migrations"
 
 TABLES: tuple[str, ...] = (
 	"sonores",
-	"marques_pages_streams",
+	"feeds",
 	"banques",
 	"banques_repertoires",
 	"banques_sonores",

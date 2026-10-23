@@ -4,7 +4,7 @@ Le binaire lecture n'écrit que par ce module, et seulement des insertions : ses
 permettent ni de modifier ni de supprimer une ligne d'airplay ou de log, ni de lire le log (pas de RETURNING).
 
 - Airplay : deux lignes par passage, reliées par passage_id. Chacune recopie l'emplacement (pour un stream, son
-  adresse directe ou celle de son marque-page), l'artiste et le titre du sonore au moment du passage, et référence
+  adresse directe ou celle de son feed), l'artiste et le titre du sonore au moment du passage, et référence
   le sonore, la banque qui l'a fourni (aucune pour un sonore placé directement dans l'événement), l'événement et
   l'élément de sa liste, et, pour un sonore joué par une séquence, la séquence et son élément
   (https://github.com/dascritch/machincast/issues/99). La ligne de fin donne la durée effectivement diffusée et
@@ -76,7 +76,7 @@ def _debut(connexion: psycopg.Connection[TupleRow], passage: Passage) -> None:
 		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, banque_id, evenement_id, element_id,"
 		" sequence_id, sequence_element_id, emplacement, artiste, titre)"
 		" SELECT %s, 'debut', %s, s.id, %s, %s, %s, %s, %s, COALESCE(s.emplacement, s.url_stream, m.url), s.artiste,"
-		" s.titre FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
+		" s.titre FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 		(
 			passage.id,
 			passage.debut,

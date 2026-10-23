@@ -44,7 +44,7 @@ Points sensibles :
 ## Intégrité
 
 - Les lignes `airplay` ne sont jamais supprimées. Elles recopient emplacement, artiste et titre au moment du passage.
-- Les contraintes « exactement un des deux » (stream : URL ou marque-page ; élément d'événement : banque ou sonore) sont posées en base par des `CHECK`.
+- Les contraintes « exactement un des deux » (stream : URL ou feed ; élément d'événement : banque ou sonore) sont posées en base par des `CHECK`.
 - Une contrainte qui porte sur une autre table passe par un déclencheur qui lève une `check_violation`, comme le secours d'un stream, toujours un événement de priorité `secours` ([#16](https://github.com/dascritch/machincast/issues/16)). La requête du déclencheur est imbriquée sous la condition qui la rend nécessaire, pour qu'un rôle qui n'a pas le droit de lire l'autre table puisse continuer à écrire.
 - Une valeur ajoutée par `ALTER TYPE … ADD VALUE` ne peut pas servir dans la transaction qui l'ajoute, donc pas dans la même migration yoyo : les contraintes qui l'utilisent vont dans la migration suivante.
 - Les champs listés dans `sonores.champs_edites` ne sont jamais modifiés par l'indexeur.

@@ -267,12 +267,12 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="ajouter_marques_pages">
+           <widget class="QPushButton" name="ajouter_feeds">
             <property name="toolTip">
-             <string>Ajoute le stream qui suit chaque marque-page choisi, ou en crée un à l'enregistrement</string>
+             <string>Ajoute le stream qui suit chaque feed choisi, ou en crée un à l'enregistrement</string>
             </property>
             <property name="text">
-             <string>Ajouter des marques-pages…</string>
+             <string>Ajouter des feeds…</string>
             </property>
            </widget>
           </item>

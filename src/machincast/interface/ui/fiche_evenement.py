@@ -197,10 +197,10 @@ class Ui_FicheEvenement(object):
 
         self.boutons_elements.addWidget(self.ajouter_sequences)
 
-        self.ajouter_marques_pages = QPushButton(self.groupe_elements)
-        self.ajouter_marques_pages.setObjectName(u"ajouter_marques_pages")
+        self.ajouter_feeds = QPushButton(self.groupe_elements)
+        self.ajouter_feeds.setObjectName(u"ajouter_feeds")
 
-        self.boutons_elements.addWidget(self.ajouter_marques_pages)
+        self.boutons_elements.addWidget(self.ajouter_feeds)
 
         self.retirer_element = QPushButton(self.groupe_elements)
         self.retirer_element.setObjectName(u"retirer_element")
@@ -307,9 +307,9 @@ class Ui_FicheEvenement(object):
         self.ajouter_banques.setText(QCoreApplication.translate("FicheEvenement", u"Ajouter des banques\u2026", None))
         self.ajouter_sequences.setText(QCoreApplication.translate("FicheEvenement", u"Ajouter des s\u00e9quences\u2026", None))
 #if QT_CONFIG(tooltip)
-        self.ajouter_marques_pages.setToolTip(QCoreApplication.translate("FicheEvenement", u"Ajoute le stream qui suit chaque marque-page choisi, ou en cr\u00e9e un \u00e0 l'enregistrement", None))
+        self.ajouter_feeds.setToolTip(QCoreApplication.translate("FicheEvenement", u"Ajoute le stream qui suit chaque feed choisi, ou en cr\u00e9e un \u00e0 l'enregistrement", None))
 #endif // QT_CONFIG(tooltip)
-        self.ajouter_marques_pages.setText(QCoreApplication.translate("FicheEvenement", u"Ajouter des marques-pages\u2026", None))
+        self.ajouter_feeds.setText(QCoreApplication.translate("FicheEvenement", u"Ajouter des feeds\u2026", None))
         self.retirer_element.setText(QCoreApplication.translate("FicheEvenement", u"Retirer l'\u00e9l\u00e9ment", None))
         self.monter.setText(QCoreApplication.translate("FicheEvenement", u"Monter", None))
         self.descendre.setText(QCoreApplication.translate("FicheEvenement", u"Descendre", None))

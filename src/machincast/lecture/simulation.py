@@ -227,7 +227,7 @@ class HistoriqueSimule:
 	) -> Passage:
 		ligne = connexion.execute(
 			"SELECT s.artiste, s.titre, COALESCE(s.emplacement, s.url_stream, m.url) FROM sonores s"
-			" LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = %s",
+			" LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 			(sonore,),
 		).fetchone()
 		artiste, titre, emplacement = ligne if ligne is not None else (None, None, None)

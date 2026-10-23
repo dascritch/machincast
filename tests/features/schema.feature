@@ -11,7 +11,7 @@ Fonctionnalité: Schéma de la base de données
 		Alors la base contient les tables :
 			| table                 |
 			| sonores               |
-			| marques_pages_streams |
+			| feeds                 |
 			| banques               |
 			| banques_repertoires   |
 			| banques_sonores       |
@@ -87,7 +87,7 @@ Fonctionnalité: Schéma de la base de données
 			| type = 'fichier', emplacement = '/musique/e.flac', etat = 'expire'        |
 			| type = 'fichier', emplacement = '/musique/b.flac', duree = '3 min 12 s'   |
 			| type = 'stream', url_stream = 'https://flux.exemple/direct?SESSIONID=42'  |
-			| type = 'stream', marque_page_id = {marque_page}                           |
+			| type = 'stream', feed_id = {feed}                           |
 			| type = 'fichier', emplacement = '/c.mp3', debut_diffusion = '2026-11-01', fin_diffusion = '2026-11-30' |
 			| type = 'fichier', emplacement = '/d.ogg', metadonnees_musicales = '{"annee": 1987, "label": "Disques Exemple"}' |
 			| type = 'fichier', emplacement = '/e.flac', debut_detecte = '0 s', fin_detectee = '2.5 s', detection_blancs = true |
@@ -104,7 +104,7 @@ Fonctionnalité: Schéma de la base de données
 			| type = 'fichier'                                                                |
 			| type = 'fichier', emplacement = '/a.flac', url_stream = 'https://flux.exemple'  |
 			| type = 'stream'                                                                 |
-			| type = 'stream', url_stream = 'https://flux.exemple', marque_page_id = {marque_page} |
+			| type = 'stream', url_stream = 'https://flux.exemple', feed_id = {feed} |
 			| type = 'stream', url_stream = 'https://flux.exemple', emplacement = '/a.flac'   |
 			| type = 'stream', url_stream = 'https://flux.exemple', duree = '1 min'           |
 			| type = 'fichier', emplacement = '/a.flac', crossfade_debut = '-2 s'             |
@@ -189,6 +189,20 @@ Fonctionnalité: Schéma de la base de données
 		Et j'applique les migrations
 		Alors le sonore « /a.flac » n'a pas d'audit complet demandé
 		Quand j'annule les migrations depuis « 0009.sonores-audit-demande »
+		Alors aucune connexion supplémentaire à la base de test ne reste ouverte
+
+	Scénario: La migration des feeds renomme les marques-pages de streams sans toucher à leurs données
+		https://github.com/dascritch/machincast/issues/252 : la table marques_pages_streams devient feeds, et la colonne
+		marque_page_id des sonores devient feed_id ; un nouveau feed prend l'identifiant suivant.
+
+		Quand j'annule les migrations depuis « 0012.feeds »
+		Et j'enregistre dans "marques_pages_streams" : nom = 'Studio mobile', url = 'https://flux.exemple'
+		Et j'enregistre dans "sonores" : type = 'stream', titre = 'Le direct', marque_page_id = (SELECT max(id) FROM marques_pages_streams)
+		Et j'applique les migrations
+		Alors le sonore « Le direct » suit le feed « Studio mobile »
+		Quand j'enregistre dans "feeds" : nom = 'Radio FMR', url = 'https://fmr.exemple'
+		Alors la base accepte l'enregistrement
+		Quand j'annule les migrations depuis « 0012.feeds »
 		Alors aucune connexion supplémentaire à la base de test ne reste ouverte
 
 	Scénario: Une banque peut avoir plusieurs répertoires
@@ -432,8 +446,8 @@ Fonctionnalité: Schéma de la base de données
 
 		Exemples:
 			| table                 | autres                                                  | colonne     | longueur | verdict |
-			| marques_pages_streams | url = 'https://flux.exemple'                            | nom         | 255      | accepte |
-			| marques_pages_streams | url = 'https://flux.exemple'                            | nom         | 256      | refuse  |
+			| feeds | url = 'https://flux.exemple'                            | nom         | 255      | accepte |
+			| feeds | url = 'https://flux.exemple'                            | nom         | 256      | refuse  |
 			| sonores               | type = 'fichier', emplacement = '/long/artiste.flac'    | artiste     | 255      | accepte |
 			| sonores               | type = 'fichier', emplacement = '/long/artiste.flac'    | artiste     | 256      | refuse  |
 			| sonores               | type = 'fichier', emplacement = '/long/titre.flac'      | titre       | 256      | refuse  |
@@ -461,6 +475,6 @@ Fonctionnalité: Schéma de la base de données
 			| table                 | autres                                       | colonne     | prefixe                     |
 			| sonores               | type = 'fichier'                             | emplacement | /musique/                   |
 			| sonores               | type = 'stream'                              | url_stream  | https://flux.exemple/?SESSIONID= |
-			| marques_pages_streams | nom = 'Long'                                 | url         | https://flux.exemple/       |
+			| feeds | nom = 'Long'                                 | url         | https://flux.exemple/       |
 			| banques_repertoires   | banque_id = {banque}                         | repertoire  | /habillages/                |
 			| log                   | niveau = 'incident', nature = 'flux'         | message     | Détail :                    |

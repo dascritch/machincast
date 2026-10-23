@@ -107,7 +107,7 @@ Un fichier peut commencer ou finir par un blanc : un silence, un souffle, une fi
 
 ## Streams
 
-Un **stream** relaie un flux audio par Internet, un direct extérieur par exemple, à son adresse ou à celle d'un [marque-page](sonores.md#marques-pages) :
+Un **stream** relaie un flux audio par Internet, un direct extérieur par exemple, à son adresse ou à celle d'un [feed](sonores.md#feeds) :
 
 - **Début d'un événement** de priorité égale ou supérieure : il coupe le stream net, comme un fichier.
 - **Fin de son événement** : le stream s'éteint pendant son crossfade de fin, et le sonore suivant enchaîne.

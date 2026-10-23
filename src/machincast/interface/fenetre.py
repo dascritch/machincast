@@ -1,8 +1,8 @@
 """Fenêtre de Machin_interface (https://github.com/dascritch/machincast/issues/26).
 
 Un onglet par écran : l'accueil (écran par défaut, ouvert au lancement), puis une liste par type d'élément, dans
-l'ordre de la recherche (spec § 8.2) : événements, séquences, banques, sonores, marques-pages. Les listes des sonores
-et des marques-pages ne s'ouvrent qu'à la demande, par le menu « Affichage », à leur place parmi les autres, et se
+l'ordre de la recherche (spec § 8.2) : événements, séquences, banques, sonores, feeds. Les listes des sonores
+et des feeds ne s'ouvrent qu'à la demande, par le menu « Affichage », à leur place parmi les autres, et se
 ferment (https://github.com/dascritch/machincast/issues/180) ; les autres onglets fixes ne se ferment pas. Une liste
 fermée est gardée : rouverte, elle retrouve son filtre et son tri. Une liste se relit chaque fois que son onglet
 s'ouvre. Ouvrir une ligne demande l'écran de détail de l'élément (detail_demande).
@@ -19,7 +19,7 @@ Le dernier onglet fixe est l'écran des incidents du log (machincast.interface.i
 https://github.com/dascritch/machincast/issues/35), qui se relit aussi à l'ouverture de son onglet.
 
 La barre de menus a cinq menus (https://github.com/dascritch/machincast/issues/117) : « Fichier », pour quitter (Alt+Q,
-comme la fermeture de la fenêtre) ; « Affichage », pour ouvrir les listes des sonores et des marques-pages, et le
+comme la fermeture de la fenêtre) ; « Affichage », pour ouvrir les listes des sonores et des feeds, et le
 calendrier de la grille, « Grille horaire » (machincast.interface.calendrier,
 https://github.com/dascritch/machincast/issues/36), dans des onglets qui se ferment, et pour rafraîchir les onglets (F5,
 https://github.com/dascritch/machincast/issues/148) ; « Diffusion », qui démarre, arrête ou redémarre le service de
@@ -69,13 +69,13 @@ from machincast.interface.etat import ARRET, EtatLecture
 from machincast.interface.fiche import Fiche, Rafraichie
 from machincast.interface.fiche_banque import FicheBanque
 from machincast.interface.fiche_evenement import FicheEvenement
-from machincast.interface.fiche_marque_page import FicheMarquePage
+from machincast.interface.fiche_feed import FicheFeed
 from machincast.interface.fiche_sequence import FicheSequence
 from machincast.interface.fiche_sonore import FicheSonore
 from machincast.interface.fil_musical import garantir
 from machincast.interface.incidents import EcranIncidents
 from machincast.interface.indexation import LANCE, TERMINE, TITRES
-from machincast.interface.listes import BANQUES, EVENEMENTS, MARQUES_PAGES, SEQUENCES, SONORES, Liste
+from machincast.interface.listes import BANQUES, EVENEMENTS, FEEDS, SEQUENCES, SONORES, Liste
 from machincast.interface.onglet_airplay import SANS_METADONNEES, EcranAirplay
 from machincast.interface.preecoute import FenetrePreecoute
 from machincast.interface.recherche import EcranRecherche
@@ -91,13 +91,13 @@ ONGLETS = (
 	("Séquences", SEQUENCES),
 	("Banques", BANQUES),
 	("Sonores", SONORES),
-	("Marques-pages", MARQUES_PAGES),
+	("Feeds", FEEDS),
 )
-A_LA_DEMANDE = frozenset({"Sonores", "Marques-pages"})
+A_LA_DEMANDE = frozenset({"Sonores", "Feeds"})
 """Les listes qui ne s'ouvrent pas au lancement, mais par le menu « Affichage », et qui se ferment
 (https://github.com/dascritch/machincast/issues/180)."""
 FICHES: dict[str, type[Fiche]] = {
-	fiche.genre: fiche for fiche in (FicheEvenement, FicheSequence, FicheBanque, FicheSonore, FicheMarquePage)
+	fiche.genre: fiche for fiche in (FicheEvenement, FicheSequence, FicheBanque, FicheSonore, FicheFeed)
 }
 """Écrans de détail : les fiches, par genre."""
 SUIVI_INDEXATION = 1000

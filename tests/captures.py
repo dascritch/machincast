@@ -246,8 +246,7 @@ def remplir(connexion: Connexion) -> Demonstration:
 	)
 	marque = _un(
 		connexion,
-		"INSERT INTO marques_pages_streams (nom, url) VALUES ('Studio mobile', 'https://flux.radio-exemple.test/mobile')"
-		" RETURNING id",
+		"INSERT INTO feeds (nom, url) VALUES ('Studio mobile', 'https://flux.radio-exemple.test/mobile') RETURNING id",
 		(),
 	)
 	banques = {}
@@ -290,7 +289,7 @@ def remplir(connexion: Connexion) -> Demonstration:
 	evenements = _evenements(connexion, sonores, banques, sequence)
 	stream = _un(
 		connexion,
-		"INSERT INTO sonores (type, marque_page_id, titre, etat, secours_evenement_id)"
+		"INSERT INTO sonores (type, feed_id, titre, etat, secours_evenement_id)"
 		" VALUES ('stream', %s, 'Studio mobile', 'actif', %s) RETURNING id",
 		(marque, evenements["secours"]),
 	)

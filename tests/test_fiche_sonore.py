@@ -14,8 +14,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QDateTime, Qt
-from PySide6.QtWidgets import QAbstractButton, QComboBox
+from PySide6.QtCore import QDateTime, QPoint, Qt
+from PySide6.QtWidgets import QAbstractButton, QComboBox, QRadioButton
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -41,9 +41,9 @@ def fiche(interface: Contexte) -> FicheSonore:
 
 def sonore_id(base: Connexion, nom: str) -> int:
 	"""Un sonore par son titre ; sans titre, par le nom de son fichier, ou l'adresse de son stream ou de son
-	marque-page."""
+	feed."""
 	lignes = base.execute(
-		"SELECT s.id FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.titre = %s"
+		"SELECT s.id FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.titre = %s"
 		" OR (s.titre IS NULL AND (s.emplacement LIKE '%%/' || %s OR s.url_stream = %s OR m.url = %s))",
 		(nom, nom, nom, nom),
 	).fetchall()
@@ -104,7 +104,7 @@ def montre(sonore: FicheSonore) -> dict[str, Callable[[], str]]:
 		"Diffusion à partir du": si_coche(ui.a_debut, ui.debut_diffusion.text),
 		"Diffusion jusqu'au": si_coche(ui.a_fin, ui.fin_diffusion.text),
 		"Adresse directe": si_coche(ui.par_adresse, ui.url_stream.text),
-		"Marque-page": si_coche(ui.par_marque_page, ui.marque_page.currentText),
+		"Feed": si_coche(ui.par_feed, ui.feed.currentText),
 		"Événement de secours": lambda: ui.secours.currentText().casefold(),
 	}
 
@@ -134,16 +134,16 @@ def sonore_en_base(base_vide: Connexion, nom: str, datatable: list[list[str]]) -
 		base_vide.execute(requete, (valeur, identifiant_sonore))
 
 
-@given(parsers.parse("le marque-page « {nom} » à l'adresse du flux « {flux} » du serveur local"))
-def marque_page_local(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, flux: str) -> None:
-	base_vide.execute("INSERT INTO marques_pages_streams (nom, url) VALUES (%s, %s)", (nom, serveur.adresse(flux)))
+@given(parsers.parse("le feed « {nom} » à l'adresse du flux « {flux} » du serveur local"))
+def feed_local(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, flux: str) -> None:
+	base_vide.execute("INSERT INTO feeds (nom, url) VALUES (%s, %s)", (nom, serveur.adresse(flux)))
 
 
-@given(parsers.parse("le stream « {nom} » est sur le marque-page « {marque} »"))
-def sur_marque_page(base_vide: Connexion, nom: str, marque: str) -> None:
+@given(parsers.parse("le stream « {nom} » est sur le feed « {marque} »"))
+def sur_feed(base_vide: Connexion, nom: str, marque: str) -> None:
 	base_vide.execute(
-		"UPDATE sonores SET url_stream = NULL, marque_page_id = %s WHERE id = %s",
-		(identifiant(base_vide, "marques_pages_streams", "nom", marque), sonore_id(base_vide, nom)),
+		"UPDATE sonores SET url_stream = NULL, feed_id = %s WHERE id = %s",
+		(identifiant(base_vide, "feeds", "nom", marque), sonore_id(base_vide, nom)),
 	)
 
 
@@ -229,6 +229,11 @@ def passages_reguliers(base_vide: Connexion, nom: str, fois: int, minutes: int, 
 		passage(base_vide, sonore, commence, commence + timedelta(minutes=1), sans_incident=True)
 
 
+def cliquer_le_choix(qtbot: QtBot, choix: QRadioButton) -> None:
+	"""Clique sur le rond du choix : au-delà de son libellé, la largeur de sa colonne ne répond pas au clic."""
+	qtbot.mouseClick(choix, Qt.MouseButton.LeftButton, pos=QPoint(choix.height() // 2, choix.height() // 2))
+
+
 # ─── Quand ─────────────────────────────────────────────────
 
 
@@ -285,12 +290,12 @@ def saisir(interface: Contexte, qtbot: QtBot, datatable: list[list[str]]) -> Non
 			if brut != "":
 				nombre.setValue(float(brut.replace(",", ".")))
 		elif champ == "Adresse directe":
-			qtbot.mouseClick(ui.par_adresse, Qt.MouseButton.LeftButton)
+			cliquer_le_choix(qtbot, ui.par_adresse)
 			taper(qtbot, ui.url_stream, brut)
 		else:
-			assert champ == "Marque-page", champ
-			qtbot.mouseClick(ui.par_marque_page, Qt.MouseButton.LeftButton)
-			choisir_texte(ui.marque_page, brut)
+			assert champ == "Feed", champ
+			cliquer_le_choix(qtbot, ui.par_feed)
+			choisir_texte(ui.feed, brut)
 
 
 @when(parsers.parse("je coche « {case} » dans la fiche du sonore"))
@@ -316,7 +321,7 @@ def diffusion(base_vide: Connexion, nom: str, etat: str) -> None:
 @when(parsers.parse("je saisis l'adresse du flux « {flux} » du serveur local dans la fiche du sonore"))
 def adresse_locale(interface: Contexte, qtbot: QtBot, serveur: ServeurDeFlux, flux: str) -> None:
 	ui = fiche(interface).ui
-	qtbot.mouseClick(ui.par_adresse, Qt.MouseButton.LeftButton)
+	cliquer_le_choix(qtbot, ui.par_adresse)
 	taper(qtbot, ui.url_stream, serveur.adresse(flux))
 
 
@@ -327,7 +332,7 @@ def adresse_muette(interface: Contexte, qtbot: QtBot, serveur_muet: str) -> None
 
 @when("je choisis l'adresse directe dans la fiche du sonore")
 def choisir_adresse(interface: Contexte, qtbot: QtBot) -> None:
-	qtbot.mouseClick(fiche(interface).ui.par_adresse, Qt.MouseButton.LeftButton)
+	cliquer_le_choix(qtbot, fiche(interface).ui.par_adresse)
 
 
 @when(parsers.parse("le flux « {flux} » du serveur local est avare"))
@@ -467,9 +472,9 @@ def etats(interface: Contexte, etats: str) -> None:
 	assert (obtenus, choix.isEnabled()) == (attendus, len(attendus) > 1)
 
 
-@then(parsers.re(r"les marques-pages proposés sont (?P<noms>.+)"))
+@then(parsers.re(r"les feeds proposés sont (?P<noms>.+)"))
 def marques_proposees(interface: Contexte, noms: str) -> None:
-	assert textes(fiche(interface).ui.marque_page) == [nom.casefold() for nom in NOM.findall(noms)]
+	assert textes(fiche(interface).ui.feed) == [nom.casefold() for nom in NOM.findall(noms)]
 
 
 @then(parsers.re(r"les événements de secours proposés sont (?P<noms>.+)"))
@@ -480,24 +485,24 @@ def secours_proposes(interface: Contexte, noms: str) -> None:
 @then(
 	parsers.re(
 		r"le stream « (?P<nom>[^»]+) » est en base,"
-		r" (?:sur le marque-page « (?P<marque>[^»]+) »|à l'adresse « (?P<url>[^»]+) »),"
-		r" (?:sans adresse directe|sans marque-page),"
+		r" (?:sur le feed « (?P<marque>[^»]+) »|à l'adresse « (?P<url>[^»]+) »),"
+		r" (?:sans adresse directe|sans feed),"
 		r" (?:secouru par « (?P<secours>[^»]+) »|sans événement de secours)"
 	)
 )
 def stream_en_base(base_vide: Connexion, nom: str, marque: str | None, url: str | None, secours: str | None) -> None:
 	ligne = base_vide.execute(
 		"SELECT s.url_stream, m.nom, e.nom_interne FROM sonores s"
-		" LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
+		" LEFT JOIN feeds m ON m.id = s.feed_id"
 		" LEFT JOIN evenements e ON e.id = s.secours_evenement_id WHERE s.id = %s",
 		(sonore_id(base_vide, nom),),
 	).fetchone()
 	assert ligne == (url, marque, secours)
 
 
-@then("le choix d'un marque-page est inactif")
-def marque_page_inactif(interface: Contexte) -> None:
-	assert not fiche(interface).ui.par_marque_page.isEnabled()
+@then("le choix d'un feed est inactif")
+def feed_inactif(interface: Contexte) -> None:
+	assert not fiche(interface).ui.par_feed.isEnabled()
 
 
 @then("le test du flux est en cours")
@@ -546,7 +551,7 @@ def dates_actives(interface: Contexte, dates: str) -> None:
 @then(parsers.parse("seul le champ « {nom} » du stream se saisit"))
 def champ_de_stream(interface: Contexte, nom: str) -> None:
 	ui = fiche(interface).ui
-	champs = {"Adresse directe": ui.url_stream, "Marque-page": ui.marque_page}
+	champs = {"Adresse directe": ui.url_stream, "Feed": ui.feed}
 	assert [cle for cle, champ in champs.items() if champ.isEnabled()] == [nom]
 
 

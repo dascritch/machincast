@@ -20,7 +20,7 @@ Connexion = psycopg.Connection[tuple[object, ...]]
 # les droits avant d'exécuter, même quand aucune ligne n'est concernée.
 INSERTIONS: dict[str, str] = {
 	"sonores": "INSERT INTO sonores (type, emplacement) VALUES ('fichier', '/essai/insertion.flac')",
-	"marques_pages_streams": "INSERT INTO marques_pages_streams (nom, url) VALUES ('Essai', 'https://flux.exemple/essai')",
+	"feeds": "INSERT INTO feeds (nom, url) VALUES ('Essai', 'https://flux.exemple/essai')",
 	"banques": "INSERT INTO banques (nom_interne, mode) VALUES ('Essai', 'aleatoire')",
 	"banques_repertoires": "INSERT INTO banques_repertoires (banque_id, repertoire) VALUES ({banque}, '/essai')",
 	"banques_sonores": "INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES ({banque}, {sonore}, 1)",
@@ -37,7 +37,7 @@ INSERTIONS: dict[str, str] = {
 }
 MODIFICATIONS: dict[str, str] = {
 	"sonores": "titre = NULL",
-	"marques_pages_streams": "url = 'https://flux.exemple/autre'",
+	"feeds": "url = 'https://flux.exemple/autre'",
 	"banques": "masquer_metadonnees = NULL",
 	"banques_repertoires": "repertoire = '/autre'",
 	"banques_sonores": "position = 2",

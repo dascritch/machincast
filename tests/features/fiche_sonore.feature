@@ -409,16 +409,16 @@ Fonctionnalité: Fiche d'un sonore
 			| Type                 | stream                      |
 			| Durée                | inconnue                    |
 			| Adresse directe      | https://flux.exemple/direct |
-			| Marque-page          |                             |
+			| Feed          |                             |
 			| Événement de secours | aucun : le fil musical      |
 		Et la fiche du sonore n'a pas d'emplacement
 		Et la fiche du sonore n'a pas de détection de blanc
 
-	Scénario: Un stream passe d'une adresse directe à un marque-page, et choisit son événement de secours
+	Scénario: Un stream passe d'une adresse directe à un feed, et choisit son événement de secours
 		Étant donné les sonores :
 			| artiste | titre  | type   | etat  | duree | emplacement                 |
 			|         | Direct | stream | actif |       | https://flux.exemple/direct |
-		Et les marques-pages « Radio Machin » à « https://machin.exemple/live », « Radio Bidule » à « https://bidule.exemple/live »
+		Et les feeds « Radio Machin » à « https://machin.exemple/live », « Radio Bidule » à « https://bidule.exemple/live »
 		Et les événements :
 			| nom          | nom_public | priorite    | debut | fin | jours |
 			| Continue     |            | fil_musical |       |     |       |
@@ -426,35 +426,35 @@ Fonctionnalité: Fiche d'un sonore
 			| Secours jour |            | secours     |       |     |       |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
-		Alors les marques-pages proposés sont « Radio Bidule », « Radio Machin »
+		Alors les feeds proposés sont « Radio Bidule », « Radio Machin »
 		Et les événements de secours proposés sont « aucun : le fil musical », « Secours jour », « Secours nuit »
 		Quand je saisis dans la fiche du sonore :
 			| champ                | valeur       |
-			| Marque-page          | Radio Machin |
+			| Feed          | Radio Machin |
 			| Événement de secours | Secours nuit |
 		Et j'enregistre la fiche
-		Alors le stream « Direct » est en base, sur le marque-page « Radio Machin », sans adresse directe, secouru par « Secours nuit »
-		Et les champs saisis à la main de « Direct » sont « url_stream », « marque_page_id », « secours_evenement_id »
+		Alors le stream « Direct » est en base, sur le feed « Radio Machin », sans adresse directe, secouru par « Secours nuit »
+		Et les champs saisis à la main de « Direct » sont « url_stream », « feed_id », « secours_evenement_id »
 		Quand je saisis dans la fiche du sonore :
 			| champ                | valeur                       |
 			| Adresse directe      | https://flux.exemple/nouveau |
 			| Événement de secours | aucun : le fil musical       |
 		Et j'enregistre la fiche
-		Alors le stream « Direct » est en base, à l'adresse « https://flux.exemple/nouveau », sans marque-page, sans événement de secours
+		Alors le stream « Direct » est en base, à l'adresse « https://flux.exemple/nouveau », sans feed, sans événement de secours
 
 	Scénario: Le mode d'un stream décide du champ qui se saisit, et en changer modifie la fiche
 		Étant donné les sonores :
 			| artiste | titre  | type   | etat  | duree | emplacement                 |
 			|         | Direct | stream | actif |       | https://flux.exemple/direct |
-		Et les marques-pages « Radio Machin » à « https://machin.exemple/live »
-		Et le stream « Direct » est sur le marque-page « Radio Machin »
+		Et les feeds « Radio Machin » à « https://machin.exemple/live »
+		Et le stream « Direct » est sur le feed « Radio Machin »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
 		Alors la fiche du sonore montre :
 			| champ           | valeur       |
 			| Adresse directe |              |
-			| Marque-page     | Radio Machin |
-		Et seul le champ « Marque-page » du stream se saisit
+			| Feed     | Radio Machin |
+		Et seul le champ « Feed » du stream se saisit
 		Quand je choisis l'adresse directe dans la fiche du sonore
 		Alors seul le champ « Adresse directe » du stream se saisit
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
@@ -465,7 +465,7 @@ Fonctionnalité: Fiche d'un sonore
 		Étant donné les sonores :
 			| artiste | titre  | type   | etat  | duree | emplacement                 |
 			|         | Direct | stream | actif |       | https://flux.exemple/direct |
-		Et les marques-pages « Radio Machin » à « https://machin.exemple/live »
+		Et les feeds « Radio Machin » à « https://machin.exemple/live »
 		Et les événements :
 			| nom          | nom_public | priorite | debut | fin | jours |
 			| Secours nuit |            | secours  |       |     |       |
@@ -478,7 +478,7 @@ Fonctionnalité: Fiche d'un sonore
 			| Événement de secours | Secours nuit |
 		Et j'enregistre la fiche
 		Alors l'état de la fiche du sonore se choisit parmi « actif », « désactivé »
-		Et les marques-pages proposés sont « Radio Machin »
+		Et les feeds proposés sont « Radio Machin »
 		Et les événements de secours proposés sont « aucun : le fil musical », « Secours nuit »
 		Et la fiche du sonore montre 2 passages, du « 2026-10-16 10:05:00 » au « 2026-10-16 10:00:00 »
 		Et la fiche du sonore montre les champs saisis à la main « événement de secours »
@@ -488,13 +488,13 @@ Fonctionnalité: Fiche d'un sonore
 			| Événement de secours | secours nuit                |
 		Et seul le champ « Adresse directe » du stream se saisit
 
-	Scénario: Sans marque-page en base, un stream ne peut pas en choisir
+	Scénario: Sans feed en base, un stream ne peut pas en choisir
 		Étant donné les sonores :
 			| artiste | titre  | type   | etat  | duree | emplacement                 |
 			|         | Direct | stream | actif |       | https://flux.exemple/direct |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
-		Alors le choix d'un marque-page est inactif
+		Alors le choix d'un feed est inactif
 
 	Scénario: Un stream sans adresse n'est pas enregistré
 		Étant donné les sonores :
@@ -511,7 +511,7 @@ Fonctionnalité: Fiche d'un sonore
 	# ─── Nouveau stream (https://github.com/dascritch/machincast/issues/30) ───
 
 	Scénario: Un nouveau stream se crée depuis la liste des sonores, à l'état actif
-		Étant donné les marques-pages « Radio Machin » à « https://machin.exemple/live »
+		Étant donné les feeds « Radio Machin » à « https://machin.exemple/live »
 		Et les événements :
 			| nom          | nom_public | priorite | debut | fin | jours |
 			| Secours nuit |            | secours  |       |     |       |
@@ -537,24 +537,24 @@ Fonctionnalité: Fiche d'un sonore
 		Et j'enregistre la fiche
 		Alors la fiche ne signale rien
 		Et l'onglet ouvert est « Sonore : Le direct »
-		Et le stream « Le direct » est en base, à l'adresse « https://flux.exemple/direct », sans marque-page, secouru par « Secours nuit »
+		Et le stream « Le direct » est en base, à l'adresse « https://flux.exemple/direct », sans feed, secouru par « Secours nuit »
 		Et le sonore « Le direct » a en base :
 			| champ | valeur |
 			| type  | stream |
 			| etat  | actif  |
 		Et le bouton « Supprimer… » de la fiche est actif
 
-	Scénario: Un nouveau stream peut suivre un marque-page, et n'a pas besoin de titre
-		Étant donné les marques-pages « Radio Machin » à « https://machin.exemple/live »
+	Scénario: Un nouveau stream peut suivre un feed, et n'a pas besoin de titre
+		Étant donné les feeds « Radio Machin » à « https://machin.exemple/live »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et je clique sur « Nouveau stream »
 		Et je saisis dans la fiche du sonore :
 			| champ       | valeur       |
-			| Marque-page | Radio Machin |
+			| Feed | Radio Machin |
 		Et j'enregistre la fiche
 		Alors l'onglet ouvert est « Sonore : https://machin.exemple/live »
-		Et le stream « https://machin.exemple/live » est en base, sur le marque-page « Radio Machin », sans adresse directe, sans événement de secours
+		Et le stream « https://machin.exemple/live » est en base, sur le feed « Radio Machin », sans adresse directe, sans événement de secours
 
 	Scénario: Un nouveau stream sans adresse n'est pas enregistré
 		Quand la fenêtre de l'interface s'ouvre
@@ -638,17 +638,17 @@ Fonctionnalité: Fiche d'un sonore
 			| l'onglet « Sonore : Direct »    |
 			| la fenêtre de l'interface       |
 
-	Scénario: Le test d'un flux sur marque-page prend l'adresse du marque-page
+	Scénario: Le test d'un flux sur feed prend l'adresse du feed
 		Étant donné un serveur de flux local, avec le flux « direct » en ligne
 		Et les sonores :
 			| artiste | titre  | type   | etat  | duree | emplacement                 |
 			|         | Direct | stream | actif |       | https://flux.exemple/direct |
-		Et le marque-page « Local » à l'adresse du flux « direct » du serveur local
+		Et le feed « Local » à l'adresse du flux « direct » du serveur local
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
 		Et je saisis dans la fiche du sonore :
 			| champ       | valeur |
-			| Marque-page | Local  |
+			| Feed | Local  |
 		Et je teste le flux
 		Alors le test du flux dit bientôt « Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 224 kbit/s. »
 

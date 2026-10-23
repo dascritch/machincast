@@ -63,9 +63,7 @@ GENRES = {
 		"sequences", "la séquence", "Elle", "e", "sequence_id", ("événement",), "Elle ne figure dans aucun événement."
 	),
 	"événement": Genre("evenements", "l'événement", "Il", "", "", (), ""),
-	"marque-page": Genre(
-		"marques_pages_streams", "le marque-page", "Il", "", "", (), "Aucun stream ne le suit.", "nom", False
-	),
+	"feed": Genre("feeds", "le feed", "Il", "", "", (), "Aucun stream ne le suit.", "nom", False),
 }
 CONTENANTS = {
 	"banque": ("banques", "banques_sonores", "banque_id", "de la banque", "qui n'aura plus aucun sonore"),
@@ -169,7 +167,7 @@ def _suites(connexion: Connexion, genre: str, identifiant: int) -> list[str]:
 		]
 	if genre == "séquence":
 		return ["Ses sonores et ses banques restent en base."]
-	if genre == "marque-page":
+	if genre == "feed":
 		return []
 	streams = connexion.execute(
 		"SELECT COALESCE(titre, url_stream) FROM sonores WHERE secours_evenement_id = %s ORDER BY 1", (identifiant,)
@@ -188,18 +186,16 @@ class Empechee(Exception):
 
 
 def _empecher(connexion: Connexion, genre: str, identifiant: int) -> None:
-	"""Un marque-page qu'un stream suit ne se supprime pas (marque_page_id ON DELETE RESTRICT)."""
-	if genre != "marque-page":
+	"""Un feed qu'un stream suit ne se supprime pas (feed_id ON DELETE RESTRICT)."""
+	if genre != "feed":
 		return
 	streams = connexion.execute(
-		"SELECT COALESCE(s.titre, m.url) FROM sonores s JOIN marques_pages_streams m ON m.id = s.marque_page_id"
-		" WHERE m.id = %s ORDER BY 1",
+		"SELECT COALESCE(s.titre, m.url) FROM sonores s JOIN feeds m ON m.id = s.feed_id WHERE m.id = %s ORDER BY 1",
 		(identifiant,),
 	).fetchall()
 	if streams != []:
 		raise Empechee(
-			f"Les streams {_noms(streams)} suivent ce marque-page : choisir pour eux une autre adresse avant de le"
-			" supprimer."
+			f"Les streams {_noms(streams)} suivent ce feed : choisir pour eux une autre adresse avant de le supprimer."
 		)
 
 

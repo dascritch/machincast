@@ -1,11 +1,11 @@
 # language: fr
 Fonctionnalité: Onglets ouverts à la demande
 	En tant que programmateur de l'antenne,
-	je veux que les onglets « Sonores », « Marques-pages » et le calendrier ne s'ouvrent que quand je les demande,
+	je veux que les onglets « Sonores », « Feeds » et le calendrier ne s'ouvrent que quand je les demande,
 	afin que la fenêtre ne montre au lancement que ce dont j'ai besoin chaque jour.
 
 	https://github.com/dascritch/machincast/issues/180. Le menu « Affichage » ouvre chacun de ces onglets, ou le ramène
-	au premier plan. « Sonores » et « Marques-pages » se rouvrent à leur place habituelle, après « Banques » et avant
+	au premier plan. « Sonores » et « Feeds » se rouvrent à leur place habituelle, après « Banques » et avant
 	« Incidents » ; le calendrier, nommé « Grille horaire » dans le menu, s'ajoute après les autres onglets.
 
 	Contexte:
@@ -19,7 +19,7 @@ Fonctionnalité: Onglets ouverts à la demande
 			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/jingles/hiver/cafe.flac |
 			| Aube        | Matin clair   | fichier | actif | 200   | /srv/jingles/hiver/matin.flac |
 
-	Scénario: Au lancement, ni les sonores, ni les marques-pages, ni le calendrier ne sont ouverts
+	Scénario: Au lancement, ni les sonores, ni les feeds, ni le calendrier ne sont ouverts
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents »
 		Et aucun onglet n'a de bouton de fermeture
@@ -28,7 +28,7 @@ Fonctionnalité: Onglets ouverts à la demande
 			| Rafraîchir les onglets          | active | F5        |           |
 			| Rechercher…                     | active | Ctrl+F    |           |
 			| Ouvrir l'onglet Sonores         | active |           |           |
-			| Ouvrir l'onglet Marques-pages   | active |           |           |
+			| Ouvrir l'onglet Feeds   | active |           |           |
 			| Ouvrir l'onglet Grille horaire  | active |           |           |
 			| Ouvrir l'onglet Simulation      | active |           |           |
 			| Ouvrir l'onglet Airplay         | active |           |           |
@@ -36,16 +36,16 @@ Fonctionnalité: Onglets ouverts à la demande
 
 	Scénario: Les onglets demandés s'ouvrent à leur place, et se ferment
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Ouvrir l'onglet Marques-pages » dans le menu « Affichage »
-		Alors l'onglet ouvert est « Marques-pages »
+		Et je choisis « Ouvrir l'onglet Feeds » dans le menu « Affichage »
+		Alors l'onglet ouvert est « Feeds »
 		Quand je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Alors l'onglet ouvert est « Calendrier »
 		Quand je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
 		Alors l'onglet ouvert est « Sonores »
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Marques-pages », « Incidents », « Calendrier »
-		Et seuls les onglets « Sonores », « Marques-pages », « Calendrier » ont un bouton de fermeture
+		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Feeds », « Incidents », « Calendrier »
+		Et seuls les onglets « Sonores », « Feeds », « Calendrier » ont un bouton de fermeture
 		Quand je ferme l'onglet « Sonores »
-		Et je ferme l'onglet « Marques-pages »
+		Et je ferme l'onglet « Feeds »
 		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents », « Calendrier »
 
 	Scénario: Un onglet déjà ouvert revient au premier plan, sans second onglet

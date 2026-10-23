@@ -1,6 +1,6 @@
-# Sonores, banques et marques-pages
+# Sonores, banques et feeds
 
-[Guide de l'antenne](README.md) › Sonores, banques et marques-pages
+[Guide de l'antenne](README.md) › Sonores, banques et feeds
 
 - [Ajouter un sonore](#ajouter-un-sonore)
 - [États d'un sonore](#états-dun-sonore)
@@ -12,7 +12,7 @@
 - [Fiche d'une banque](#fiche-dune-banque)
 - [Alimenter une banque par ses répertoires](#alimenter-une-banque-par-ses-répertoires)
 - [Indexation depuis l'interface](#indexation-depuis-linterface)
-- [Marques-pages](#marques-pages)
+- [Feeds](#feeds)
 
 ## Ajouter un sonore
 
@@ -28,7 +28,7 @@ La liste des **Sonores** (**Affichage → Ouvrir l'onglet Sonores**) ajoute des 
 
 Seuls les fichiers ajoutés depuis la liste des sonores sont vérifiés aussitôt : un fichier déposé sur une banque, une séquence ou un événement attend la prochaine [indexation](#indexation-depuis-linterface).
 
-**Stream** : **Nouveau stream** ouvre une [fiche de sonore](#fiche-dun-sonore) vide. L'adresse du flux, ou un marque-page, est obligatoire. Le stream entre à l'état `actif`.
+**Stream** : **Nouveau stream** ouvre une [fiche de sonore](#fiche-dun-sonore) vide. L'adresse du flux, ou un feed, est obligatoire. Le stream entre à l'état `actif`.
 
 ## États d'un sonore
 
@@ -95,7 +95,7 @@ La fiche d'un sonore s'ouvre dans un onglet nommé « Sonore : » suivi de son t
 - **Enchainement** :
   - pour un fichier, **Jouer sans les blancs détectés**, et le **début** et la **fin détectés**, en secondes, mesurés par l'audit complet et corrigibles à la main ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)) ;
   - **Crossfade de début** et **Crossfade de fin**, à cocher, chacun réglé d'un curseur de 0 à la durée maximale des [préférences](prise-en-main.md#préférences), 10 secondes par défaut, sa valeur écrite à droite : décochés, ils viennent de la banque ou des préférences ([Enchaînements](antenne.md#enchaînements)) ; 0 seconde est un crossfade paramétré.
-- **Stream** : l'**adresse directe** ou un **marque-page**, et l'**événement de secours** ([Streams](antenne.md#streams)). **Tester le flux** se connecte à l'adresse saisie et dit, par exemple, `Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 128 kbit/s.` : le type du flux et son débit ([#223](https://github.com/dascritch/machincast/issues/223)), ou pourquoi il ne répond pas. Rien n'est joué à l'antenne.
+- **Stream** : l'**adresse directe** ou un **feed**, et l'**événement de secours** ([Streams](antenne.md#streams)). **Tester le flux** se connecte à l'adresse saisie et dit, par exemple, `Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 128 kbit/s.` : le type du flux et son débit ([#223](https://github.com/dascritch/machincast/issues/223)), ou pourquoi il ne répond pas. Rien n'est joué à l'antenne.
 - **Relations** : les séquences, banques et événements qui citent le sonore ; un double-clic ouvre leur fiche. Une banque dont le sonore sort des durées y a l'icône d'avertissement, avec une infobulle qui dit pourquoi.
 - **Fichier** : le type réel du fichier, son encodage moyen, sa taille, ses dates et sa dernière vérification complète.
 - **Derniers passages** : les 50 derniers passages du sonore à l'antenne, avec les alertes et incidents notés pendant chacun.
@@ -185,11 +185,11 @@ Pour ne vérifier que quelques sonores en entier, sans tout auditer, le clic dro
 
 L'indexation tourne dans sa propre fenêtre, qui montre ligne par ligne chaque sonore vérifié, les anomalies, puis le bilan : « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. ». L'interface reste utilisable, et peut même être fermée. Une seule indexation tourne à la fois. Fermer sa fenêtre pendant l'indexation propose de l'arrêter après le fichier en cours : le travail fait est gardé. À la fin, **Affichage → Rafraîchir les onglets** (<kbd>F5</kbd>) montre ses changements.
 
-## Marques-pages
+## Feeds
 
-Un **marque-page** est une adresse de flux réutilisable, souvent en ligne par intermittence, comme le studio mobile de la radio : plusieurs streams peuvent le suivre. **Affichage → Ouvrir l'onglet Marques-pages** en donne la liste ; **Nouveau marque-page** ouvre une fiche vide.
+Un **feed** est une adresse de flux réutilisable, souvent en ligne par intermittence, comme le studio mobile de la radio : plusieurs streams peuvent le suivre. **Affichage → Ouvrir l'onglet Feeds** en donne la liste ; **Nouveau feed** ouvre une fiche vide.
 
-- **Nom** et **Adresse** : obligatoires. Une nouvelle adresse vaut aussitôt pour tous les streams qui suivent le marque-page.
+- **Nom** et **Adresse** : obligatoires. Une nouvelle adresse vaut aussitôt pour tous les streams qui suivent le feed.
 - **Tester le flux** : comme dans la fiche d'un sonore, dit si du son arrive à l'adresse saisie, de quel type et à quel débit.
 - **Streams qui le suivent** : un double-clic ouvre leur fiche.
-- **Supprimer…** : un marque-page qu'un stream suit ne se supprime pas ; la fiche nomme ces streams, qui doivent d'abord choisir une autre adresse.
+- **Supprimer…** : un feed qu'un stream suit ne se supprime pas ; la fiche nomme ces streams, qui doivent d'abord choisir une autre adresse.
