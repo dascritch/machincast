@@ -55,7 +55,7 @@ Fonctionnalité: Conformation des textes
 		Et les événements :
 			| nom      | nom_public | priorite    | debut | fin | jours |
 			| Continue |            | fil_musical |       |     |       |
-		Et les marques-pages « Radio » « https://flux.exemple/radio »
+		Et les feeds « Radio » « https://flux.exemple/radio »
 		Et les sonores :
 			| artiste | titre  | type    | etat  | duree | emplacement        |
 			| Gaufres | Minuit | fichier | actif | 180   | /musique/minuit.ogg |
@@ -73,7 +73,7 @@ Fonctionnalité: Conformation des textes
 			| j'ouvre la fiche de la séquence « Pub »    | nom_public  | \u{a0}                        | sequences     | nom_public                         |                  |
 			| j'ouvre la fiche de l'événement « Continue » | nom_interne | Continue\u{200b}  nuit      | evenements    | nom_interne                        | Continue nuit    |
 			| j'ouvre la fiche de l'événement « Continue » | nom_public  | La\u{202f}nuit\u{7}         | evenements    | nom_public                         | La nuit          |
-			| j'ouvre la fiche du marque-page « Radio »  | nom         | Radio\u{a0}\u{a0}locale\u{feff} | marques_pages_streams | nom                       | Radio locale     |
+			| j'ouvre la fiche du feed « Radio »  | nom         | Radio\u{a0}\u{a0}locale\u{feff} | feeds | nom                       | Radio locale     |
 			| j'ouvre la fiche du sonore « Minuit »      | artiste     | Les\u{a0}Gaufres\u{20}        | sonores       | artiste                            | Les Gaufres      |
 			| j'ouvre la fiche du sonore « Minuit »      | titre       | Café\u{2028}à minuit          | sonores       | titre                              | Café à minuit    |
 			| j'ouvre la fiche du sonore « Minuit »      | album       | Nuit\u{fffd} blanche          | sonores       | metadonnees_musicales.album        | Nuit blanche     |

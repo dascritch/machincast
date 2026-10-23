@@ -144,16 +144,14 @@ def boutons_de_ligne(interface: Contexte, boutons: str) -> None:
 
 @when(
 	parsers.re(
-		r"j'ajoute les marques-pages (?P<noms>« [^»]+ »(?:, « [^»]+ »)*),"
+		r"j'ajoute les feeds (?P<noms>« [^»]+ »(?:, « [^»]+ »)*),"
 		r" en effaçant « (?P<efface>[^»]+) » de la base pendant le choix"
 	)
 )
 def ajouter_en_effacant(interface: Contexte, qtbot: QtBot, base_vide: Connexion, noms: str, efface: str) -> None:
-	interface.marques_pages_choisis = [
-		identifiant(base_vide, "marques_pages_streams", "nom", nom) for nom in NOM.findall(noms)
-	]
-	base_vide.execute("DELETE FROM marques_pages_streams WHERE nom = %s", (efface,))
-	qtbot.mouseClick(fiche(interface).ui.ajouter_marques_pages, Qt.MouseButton.LeftButton)
+	interface.feeds_choisis = [identifiant(base_vide, "feeds", "nom", nom) for nom in NOM.findall(noms)]
+	base_vide.execute("DELETE FROM feeds WHERE nom = %s", (efface,))
+	qtbot.mouseClick(fiche(interface).ui.ajouter_feeds, Qt.MouseButton.LeftButton)
 
 
 @when(parsers.parse("je choisis l'élément n° {numero:d} de l'événement"))

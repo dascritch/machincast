@@ -24,14 +24,14 @@ def flux_hors_ligne(serveur: ServeurDeFlux, flux: str) -> None:
 	serveur.en_ligne[flux] = False
 
 
-@given(parsers.parse("le stream « {nom} » sur le marque-page « {marque_page} » du flux « {flux} »"))
-def stream_marque_page(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, marque_page: str, flux: str) -> None:
+@given(parsers.parse("le stream « {nom} » sur le feed « {feed} » du flux « {flux} »"))
+def stream_feed(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, feed: str, flux: str) -> None:
 	cree = base_vide.execute(
-		"INSERT INTO marques_pages_streams (nom, url) VALUES (%s, %s) RETURNING id",
-		(marque_page, serveur.adresse(flux)),
+		"INSERT INTO feeds (nom, url) VALUES (%s, %s) RETURNING id",
+		(feed, serveur.adresse(flux)),
 	).fetchone()
 	assert cree is not None
-	base_vide.execute("INSERT INTO sonores (type, marque_page_id, titre) VALUES ('stream', %s, %s)", (cree[0], nom))
+	base_vide.execute("INSERT INTO sonores (type, feed_id, titre) VALUES ('stream', %s, %s)", (cree[0], nom))
 
 
 @given(

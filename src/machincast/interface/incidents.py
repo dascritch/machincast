@@ -71,7 +71,7 @@ class EcranIncidents(QWidget):
 					"SELECT l.horodatage, l.niveau::text, l.nature, l.message, s.id, s.artiste, s.titre, s.emplacement,"
 					" COALESCE(s.url_stream, m.url), b.id, b.nom_interne, e.id, e.nom_interne FROM log l"
 					" LEFT JOIN sonores s ON s.id = l.sonore_id"
-					" LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
+					" LEFT JOIN feeds m ON m.id = s.feed_id"
 					" LEFT JOIN banques b ON b.id = l.banque_id LEFT JOIN evenements e ON e.id = l.evenement_id"
 					" WHERE l.niveau::text = ANY(%s) ORDER BY l.horodatage DESC, l.id DESC LIMIT %s",
 					(niveaux, LIMITE),

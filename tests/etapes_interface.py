@@ -111,7 +111,7 @@ class Contexte:
 	banques_choisies: list[int] = field(default_factory=list)
 	"""Banques que donnera le prochain choix."""
 	sequences_choisies: list[int] = field(default_factory=list)
-	marques_pages_choisis: list[int] = field(default_factory=list)
+	feeds_choisis: list[int] = field(default_factory=list)
 	"""Séquences que donnera le prochain choix."""
 	remarques: list[str] = field(default_factory=list)
 	"""Remarques des choix de sonores ou de banques ouverts."""
@@ -255,13 +255,13 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		interface.remarques.append(remarque)
 		return interface.sequences_choisies
 
-	def marques_pages(_parent: QWidget, _connexion: Connexion, remarque: str = "") -> list[int]:
+	def feeds(_parent: QWidget, _connexion: Connexion, remarque: str = "") -> list[int]:
 		interface.remarques.append(remarque)
-		return interface.marques_pages_choisis
+		return interface.feeds_choisis
 
 	monkeypatch.setattr(dialogues, "choisir_banques", banques)
 	monkeypatch.setattr(dialogues, "choisir_sequences", sequences)
-	monkeypatch.setattr(dialogues, "choisir_marques_pages", marques_pages)
+	monkeypatch.setattr(dialogues, "choisir_feeds", feeds)
 	monkeypatch.setattr(dialogues, "ouvrir_dossier", interface.dossiers_ouverts.append)
 	monkeypatch.setattr(dialogues, "ouvrir_page", interface.pages_ouvertes.append)
 	monkeypatch.setattr(dialogues, "montrer_version", lambda _parent, texte: interface.versions.append(texte))
@@ -467,7 +467,7 @@ TABLES = {
 	"la banque": ("banques", "nom_interne"),
 	"la séquence": ("sequences", "nom_interne"),
 	"l'événement": ("evenements", "nom_interne"),
-	"le marque-page": ("marques_pages_streams", "nom"),
+	"le feed": ("feeds", "nom"),
 }
 """Table et colonne du nom de chaque genre d'élément, pour le retrouver en base."""
 
@@ -599,19 +599,19 @@ def stream_secouru(base_vide: Connexion, titre: str, secours: str) -> None:
 	)
 
 
-@given(parsers.re(r"les marques-pages (?P<marques>.+)"))
-def marques_pages(base_vide: Connexion, marques: str) -> None:
+@given(parsers.re(r"les feeds (?P<marques>.+)"))
+def feeds(base_vide: Connexion, marques: str) -> None:
 	noms = NOM.findall(marques)
 	for nom, url in zip(noms[::2], noms[1::2], strict=True):
-		base_vide.execute("INSERT INTO marques_pages_streams (nom, url) VALUES (%s, %s)", (nom, url))
+		base_vide.execute("INSERT INTO feeds (nom, url) VALUES (%s, %s)", (nom, url))
 
 
-@given(parsers.re(r"(?:les streams|le stream) (?P<titres>.+) (?:suivent|suit) le marque-page « (?P<marque>[^»]+) »"))
+@given(parsers.re(r"(?:les streams|le stream) (?P<titres>.+) (?:suivent|suit) le feed « (?P<marque>[^»]+) »"))
 def suivent(base_vide: Connexion, titres: str, marque: str) -> None:
 	for titre in NOM.findall(titres):
 		base_vide.execute(
-			"UPDATE sonores SET url_stream = NULL, marque_page_id = %s WHERE titre = %s",
-			(identifiant(base_vide, "marques_pages_streams", "nom", marque), titre),
+			"UPDATE sonores SET url_stream = NULL, feed_id = %s WHERE titre = %s",
+			(identifiant(base_vide, "feeds", "nom", marque), titre),
 		)
 
 
@@ -648,9 +648,9 @@ def durees_de_banque(
 	)
 
 
-@when(parsers.parse("le marque-page « {nom} » est effacé de la base"))
-def effacer_marque_page(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("DELETE FROM marques_pages_streams WHERE nom = %s", (nom,))
+@when(parsers.parse("le feed « {nom} » est effacé de la base"))
+def effacer_feed(base_vide: Connexion, nom: str) -> None:
+	base_vide.execute("DELETE FROM feeds WHERE nom = %s", (nom,))
 
 
 @given(parsers.parse("le fichier de test « {source} » copié en « {chemin} »"))
@@ -761,7 +761,7 @@ def base_injoignable(interface: Contexte) -> None:
 	interface.connexion.close()
 
 
-A_LA_DEMANDE = {"Sonores": "Ouvrir l'onglet Sonores", "Marques-pages": "Ouvrir l'onglet Marques-pages"}
+A_LA_DEMANDE = {"Sonores": "Ouvrir l'onglet Sonores", "Feeds": "Ouvrir l'onglet Feeds"}
 """Les listes qui ne s'ouvrent pas au lancement, et l'entrée du menu « Affichage » qui les ouvre
 (https://github.com/dascritch/machincast/issues/180)."""
 
@@ -854,31 +854,29 @@ def effacer_banque(base_vide: Connexion, genre: str, nom: str) -> None:
 	base_vide.execute(f"DELETE FROM {table} WHERE nom_interne = %s", (nom,))  # noqa: S608
 
 
-@when(parsers.re(r"j'ajoute les marques-pages (?P<noms>aucun|« [^»]+ »(?:, « [^»]+ »)*)"))
-def ajouter_marques_pages(interface: Contexte, qtbot: QtBot, base_vide: Connexion, noms: str) -> None:
-	"""Le choix donnera ces marques-pages, par leur nom ; « aucun » : le choix est abandonné
+@when(parsers.re(r"j'ajoute les feeds (?P<noms>aucun|« [^»]+ »(?:, « [^»]+ »)*)"))
+def ajouter_feeds(interface: Contexte, qtbot: QtBot, base_vide: Connexion, noms: str) -> None:
+	"""Le choix donnera ces feeds, par leur nom ; « aucun » : le choix est abandonné
 	(https://github.com/dascritch/machincast/issues/167)."""
 	ui = fiche_ouverte(interface).ui  # type: ignore[attr-defined]
-	interface.marques_pages_choisis = [
-		identifiant(base_vide, "marques_pages_streams", "nom", nom) for nom in NOM.findall(noms)
-	]
-	qtbot.mouseClick(ui.ajouter_marques_pages, Qt.MouseButton.LeftButton)
+	interface.feeds_choisis = [identifiant(base_vide, "feeds", "nom", nom) for nom in NOM.findall(noms)]
+	qtbot.mouseClick(ui.ajouter_feeds, Qt.MouseButton.LeftButton)
 
 
-@then(parsers.parse("le stream « {titre} » est en base, actif, et suit le marque-page « {marque} »"))
-def stream_du_marque_page(base_vide: Connexion, titre: str, marque: str) -> None:
+@then(parsers.parse("le stream « {titre} » est en base, actif, et suit le feed « {marque} »"))
+def stream_du_feed(base_vide: Connexion, titre: str, marque: str) -> None:
 	ligne = base_vide.execute(
 		"SELECT s.type::text, s.etat::text, s.url_stream, m.nom FROM sonores s"
-		" JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.titre = %s",
+		" JOIN feeds m ON m.id = s.feed_id WHERE s.titre = %s",
 		(titre,),
 	).fetchall()
 	assert ligne == [("stream", "actif", None, marque)], ligne
 
 
-@then(parsers.re(r"(?P<nombre>\d+) streams? (?:suit|suivent) le marque-page « (?P<marque>[^»]+) »"))
+@then(parsers.re(r"(?P<nombre>\d+) streams? (?:suit|suivent) le feed « (?P<marque>[^»]+) »"))
 def nombre_de_streams(base_vide: Connexion, nombre: str, marque: str) -> None:
 	ligne = base_vide.execute(
-		"SELECT count(*) FROM sonores s JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE m.nom = %s",
+		"SELECT count(*) FROM sonores s JOIN feeds m ON m.id = s.feed_id WHERE m.nom = %s",
 		(marque,),
 	).fetchone()
 	assert ligne is not None
@@ -1134,7 +1132,7 @@ def detail(interface: Contexte, base_vide: Connexion, genre: str, nom: str) -> N
 		"banque": ("banques", "nom_interne"),
 		"séquence": ("sequences", "nom_interne"),
 		"événement": ("evenements", "nom_interne"),
-		"marque-page": ("marques_pages_streams", "nom"),
+		"feed": ("feeds", "nom"),
 	}
 	table, colonne = tables[genre]
 	assert interface.demandes == [(genre, identifiant(base_vide, table, colonne, nom))], interface.demandes
@@ -1321,7 +1319,7 @@ def derniere_question(interface: Contexte, datatable: list[list[str]]) -> None:
 
 @then(
 	parsers.re(
-		r"(?P<genre>le sonore|la banque|la séquence|l'événement|le marque-page) « (?P<nom>[^»]+) »"
+		r"(?P<genre>le sonore|la banque|la séquence|l'événement|le feed) « (?P<nom>[^»]+) »"
 		r" (?P<etat>n'est plus|est toujours) en base"
 	)
 )

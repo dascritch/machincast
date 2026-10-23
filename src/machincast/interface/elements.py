@@ -10,9 +10,9 @@ Commune aux fiches d'une séquence (machincast.interface.fiche_sequence) et d'un
 - ils se réordonnent par glisser-déposer, ou par « Monter » et « Descendre » ; une ligne ne se dépose pas dans une
   autre. Ils s'ajoutent parmi ceux déjà en base (machincast.interface.choix), ou par dépôt de fichiers sonores
   (machincast.interface.depot), toujours comme une copie ; un fichier pas encore en base devient un sonore à l'état
-  aperçu à l'enregistrement seulement. Dans un événement, un marque-page choisi ajoute le premier stream, par titre, qui
-  le suit ; sans stream qui le suive, un stream actif, titré du nom du marque-page, est créé à l'enregistrement, un
-  seul par marque-page (https://github.com/dascritch/machincast/issues/167) ;
+  aperçu à l'enregistrement seulement. Dans un événement, un feed choisi ajoute le premier stream, par titre, qui
+  le suit ; sans stream qui le suive, un stream actif, titré du nom du feed, est créé à l'enregistrement, un
+  seul par feed (https://github.com/dascritch/machincast/issues/167) ;
 - une banque « ne pas répéter » appelée juste après elle-même est signalée : cet appel sera sauté à la diffusion
   (machincast.lecture.deroule.appels_ignores_aux_bords). Une séquence compte par la première et la dernière de ses
   lignes, quand ce sont des banques ;
@@ -47,8 +47,8 @@ ENTREE = Qt.ItemDataRole.UserRole + 4
 si c'est une banque ; None sinon."""
 SORTIE = Qt.ItemDataRole.UserRole + 5
 """Rôle qui porte la banque par laquelle finit une ligne, comme ENTREE."""
-MARQUE_PAGE = Qt.ItemDataRole.UserRole + 6
-"""Rôle qui porte le marque-page d'un stream à créer à l'enregistrement, faute de stream qui le suive."""
+FEED = Qt.ItemDataRole.UserRole + 6
+"""Rôle qui porte le feed d'un stream à créer à l'enregistrement, faute de stream qui le suive."""
 LIGNE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsDragEnabled
 """Une ligne se glisse, mais rien ne se dépose dedans : la liste reste à plat."""
 
@@ -58,7 +58,7 @@ TABLES = {"sonore": "sonores", "banque": "banques", "séquence": "sequences"}
 LECTURES = {
 	"sonore": (
 		"SELECT s.id, s.artiste, s.titre, s.emplacement, COALESCE(s.emplacement, s.url_stream, m.url)"
-		" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id WHERE s.id = ANY(%s)"
+		" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = ANY(%s)"
 	),
 	"banque": "SELECT b.id, b.nom_interne, b.mode::text, b.ne_pas_repeter FROM banques b WHERE b.id = ANY(%s)",
 	"séquence": (
@@ -70,8 +70,8 @@ LECTURES = {
 }
 """Ce que montre la ligne d'un élément, lu par identifiants."""
 SONORES_PAR_FICHIER = LECTURES["sonore"].replace("s.id = ANY(%s)", "s.emplacement = ANY(%s)")
-STREAM_DU_MARQUE_PAGE = "SELECT id FROM sonores WHERE marque_page_id = %s ORDER BY titre, id LIMIT 1"
-"""Le stream repris pour un marque-page : le premier par titre qui le suit."""
+STREAM_DU_FEED = "SELECT id FROM sonores WHERE feed_id = %s ORDER BY titre, id LIMIT 1"
+"""Le stream repris pour un feed : le premier par titre qui le suit."""
 SAUTE = "ne passe jamais deux fois de suite : cet appel sera sauté."
 
 
@@ -185,8 +185,8 @@ class ListeElements(QObject):
 		"""Ligne en base, genre et identifiant de l'élément."""
 		for item in self.lignes():
 			identifiant = item.data(0, ELEMENT)
-			if item.data(0, MARQUE_PAGE) is not None:
-				identifiant = self._enregistrer_stream(int(item.data(0, MARQUE_PAGE)), item.text(1))
+			if item.data(0, FEED) is not None:
+				identifiant = self._enregistrer_stream(int(item.data(0, FEED)), item.text(1))
 			elif identifiant is None:
 				identifiant = self.fiche.enregistrer_fichier(str(item.data(0, FICHIER)))
 			if identifiant is not None:
@@ -216,19 +216,18 @@ class ListeElements(QObject):
 				(parent, position, element),
 			)
 
-	def _enregistrer_stream(self, marque_page: int, nom: str) -> int | None:
-		"""Dans la transaction d'« Enregistrer » : le stream qui suit le marque-page, créé s'il n'y en a pas, actif et
-		titré du nom du marque-page ; un second ajout du même marque-page le reprend. None pour un marque-page effacé
+	def _enregistrer_stream(self, feed: int, nom: str) -> int | None:
+		"""Dans la transaction d'« Enregistrer » : le stream qui suit le feed, créé s'il n'y en a pas, actif et
+		titré du nom du feed ; un second ajout du même feed le reprend. None pour un feed effacé
 		de la base entre-temps : la ligne est oubliée."""
 		connexion = self.fiche.connexion
-		if connexion.execute("SELECT 1 FROM marques_pages_streams WHERE id = %s", (marque_page,)).fetchone() is None:
+		if connexion.execute("SELECT 1 FROM feeds WHERE id = %s", (feed,)).fetchone() is None:
 			return None
-		ligne = connexion.execute(STREAM_DU_MARQUE_PAGE, (marque_page,)).fetchone()
+		ligne = connexion.execute(STREAM_DU_FEED, (feed,)).fetchone()
 		if ligne is None:
 			ligne = connexion.execute(
-				"INSERT INTO sonores (type, marque_page_id, titre, etat) VALUES ('stream', %s, %s, 'actif')"
-				" RETURNING id",
-				(marque_page, nom),
+				"INSERT INTO sonores (type, feed_id, titre, etat) VALUES ('stream', %s, %s, 'actif') RETURNING id",
+				(feed, nom),
 			).fetchone()
 			assert ligne is not None
 		return int(str(ligne[0]))
@@ -305,8 +304,8 @@ class ListeElements(QObject):
 	def _ajouter(self, genre: str) -> None:
 		"""Les éléments choisis s'ajoutent en fin de liste, dans l'ordre du choix ; un élément effacé de la base
 		pendant le choix est oublié."""
-		if genre == "marque-page":
-			self._ajouter_marques_pages()
+		if genre == "feed":
+			self._ajouter_feeds()
 			return
 		choisir = {
 			"sonore": dialogues.choisir_sonores,
@@ -320,26 +319,24 @@ class ListeElements(QObject):
 		self.liste.addTopLevelItems([lus[choisi] for choisi in choisis if choisi in lus])
 		self._actualiser_boutons()
 
-	def _ajouter_marques_pages(self) -> None:
-		"""Pour chaque marque-page choisi, le stream qui le suit ; sans stream, une ligne qui en créera un à
+	def _ajouter_feeds(self) -> None:
+		"""Pour chaque feed choisi, le stream qui le suit ; sans stream, une ligne qui en créera un à
 		l'enregistrement (https://github.com/dascritch/machincast/issues/167)."""
-		choisis = dialogues.choisir_marques_pages(self.fiche, self.fiche.connexion, self.remarque)
+		choisis = dialogues.choisir_feeds(self.fiche, self.fiche.connexion, self.remarque)
 		connexion = self.fiche.connexion
 		lignes: list[QTreeWidgetItem] = []
 		with connexion.transaction():
-			for marque_page in choisis:
-				marque = connexion.execute(
-					"SELECT nom, url FROM marques_pages_streams WHERE id = %s", (marque_page,)
-				).fetchone()
+			for feed in choisis:
+				marque = connexion.execute("SELECT nom, url FROM feeds WHERE id = %s", (feed,)).fetchone()
 				if marque is None:
 					continue
-				stream = connexion.execute(STREAM_DU_MARQUE_PAGE, (marque_page,)).fetchone()
+				stream = connexion.execute(STREAM_DU_FEED, (feed,)).fetchone()
 				if stream is not None:
 					lignes += self._lire({"sonore": [int(str(stream[0]))]})["sonore"].values()
 					continue
 				nom, url = marque
 				ligne = self._ligne("sonore", [str(nom), f"{url}, nouveau stream"], (None, None))
-				ligne.setData(0, MARQUE_PAGE, marque_page)
+				ligne.setData(0, FEED, feed)
 				lignes.append(ligne)
 		self.liste.addTopLevelItems(lignes)
 		self._actualiser_boutons()

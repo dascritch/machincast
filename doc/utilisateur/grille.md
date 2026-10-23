@@ -42,7 +42,7 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 
 - **Ordre** : un élément se déplace par glisser-déposer, ou avec **Monter** et **Descendre**. Un même élément peut revenir.
 - **Ajouter des sonores…**, **Ajouter des banques…**, **Ajouter des séquences…** ouvrent la liste de ceux déjà en base, avec son filtre ; plusieurs se choisissent avec <kbd>Ctrl</kbd> ou <kbd>Maj</kbd>, puis **Ajouter**.
-- **Ajouter des marques-pages…** ajoute un stream depuis un [marque-page](sonores.md#marques-pages), pour retransmettre une émission en extérieur : le stream qui suit déjà ce marque-page, sinon un nouveau stream, créé à l'enregistrement (la ligne le dit : « nouveau stream »).
+- **Ajouter des feeds…** ajoute un stream depuis un [feed](sonores.md#feeds), pour retransmettre une émission en extérieur : le stream qui suit déjà ce feed, sinon un nouveau stream, créé à l'enregistrement (la ligne le dit : « nouveau stream »).
 - **Déposer des fichiers** glissés depuis le navigateur de fichiers les ajoute en fin de liste ([Ajouter un sonore](sonores.md#ajouter-un-sonore)).
 - **Retirer l'élément** retire la ligne choisie, sans rien demander : le sonore, la banque ou la séquence reste en base.
 - **Banque « ne pas répéter »** : la fiche signale chaque appel d'une banque marquée juste après elle-même, qui sera toujours sauté. Ce n'est qu'un avertissement.

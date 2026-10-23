@@ -14,7 +14,7 @@ Ce guide a été découpé par public ([#128](https://github.com/dascritch/machi
 | Configuration | [Configuration et droits](administration/configuration.md#configuration) |
 | Les fichiers sonores ne sont jamais modifiés | [Guide de l'antenne](utilisateur/README.md#une-règle-à-retenir--les-fichiers-ne-sont-jamais-touchés), et [Configuration et droits](administration/configuration.md#les-fichiers-sonores-ne-sont-jamais-modifiés) |
 | Vérifier les sonores : Machin indexation | [Indexation : Machin indexation](administration/indexation.md), et pour l'interface [Indexation depuis l'interface](utilisateur/sonores.md#indexation-depuis-linterface) |
-| États d'un sonore, verdicts, tags | [Sonores, banques et marques-pages](utilisateur/sonores.md#états-dun-sonore) |
+| États d'un sonore, verdicts, tags | [Sonores, banques et feeds](utilisateur/sonores.md#états-dun-sonore) |
 | Diffusion : Machin lecture | [Diffusion : Machin lecture](administration/diffusion.md), et pour les règles de l'antenne [Ce qui passe à l'antenne](utilisateur/antenne.md) |
 | Interface graphique : Machin interface | [Guide de l'antenne](utilisateur/README.md) |
 | Suivre le journal : Machin logs | [Commandes et messages](administration/commandes.md#suivre-le-journal--machin-logs) |

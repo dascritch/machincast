@@ -9,7 +9,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 	dossier pour une banque, une montre pour un événement, un calendrier pour la grille, une boule de divination pour la
 	simulation. Elle prend la couleur du texte du thème, clair ou sombre. Elle désigne le genre dans les onglets (listes,
 	fiches, grille, simulation), le menu « Affichage », la colonne « Type » de la recherche et les relations de la fiche
-	d'un sonore, et les boutons « Fiche… » de l'accueil. Les onglets Accueil, Incidents, Recherche et Marques-pages n'en ont pas.
+	d'un sonore, et les boutons « Fiche… » de l'accueil. Les onglets Accueil, Incidents, Recherche et Feeds n'en ont pas.
 
 	Contexte:
 		Étant donné l'horloge de l'interface au « 2026-10-21 09:00:00 »
@@ -48,7 +48,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| Fil de jour |            | fil_musical |       |     |       |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
-		Et j'ouvre l'onglet « Marques-pages »
+		Et j'ouvre l'onglet « Feeds »
 		Et j'ouvre la fiche de la banque « Rotation »
 		Et j'ouvre la fiche de la séquence « Passage pub »
 		Et j'ouvre la fiche de l'événement « Fil de jour »
@@ -64,7 +64,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| Séquences                | séquence   |
 			| Banques                  | banque     |
 			| Sonores                  | sonore     |
-			| Marques-pages            | aucune     |
+			| Feeds            | aucune     |
 			| Incidents                | aucune     |
 			| Banque : Rotation        | banque     |
 			| Séquence : Passage pub   | séquence   |
@@ -128,7 +128,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| Rafraîchir les onglets          | aucune     |
 			| Rechercher…                     | aucune     |
 			| Ouvrir l'onglet Sonores         | sonore     |
-			| Ouvrir l'onglet Marques-pages   | aucune     |
+			| Ouvrir l'onglet Feeds   | aucune     |
 			| Ouvrir l'onglet Grille horaire  | grille     |
 			| Ouvrir l'onglet Simulation      | simulation |
 			| Ouvrir l'onglet Airplay         | airplay    |

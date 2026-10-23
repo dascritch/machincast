@@ -86,7 +86,7 @@ class FicheEvenement(Fiche):
 				"sonore": ui.ajouter_sonores,
 				"banque": ui.ajouter_banques,
 				"séquence": ui.ajouter_sequences,
-				"marque-page": ui.ajouter_marques_pages,
+				"feed": ui.ajouter_feeds,
 			},
 			ui.retirer_element,
 			ui.monter,

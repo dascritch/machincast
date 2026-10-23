@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>FicheMarquePage</class>
- <widget class="QWidget" name="FicheMarquePage">
+ <class>FicheFeed</class>
+ <widget class="QWidget" name="FicheFeed">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -29,7 +29,7 @@
         <number>255</number>
        </property>
        <property name="placeholderText">
-        <string>Obligatoire, et propre à ce marque-page</string>
+        <string>Obligatoire, et propre à ce feed</string>
        </property>
       </widget>
      </item>
@@ -86,7 +86,7 @@
       <item>
        <widget class="QLabel" name="explication_streams">
         <property name="text">
-         <string>Ces streams jouent l'adresse du marque-page : une nouvelle adresse vaut pour tous. Un stream choisit son marque-page dans sa fiche.</string>
+         <string>Ces streams jouent l'adresse du feed : une nouvelle adresse vaut pour tous. Un stream choisit son feed dans sa fiche.</string>
         </property>
         <property name="wordWrap">
          <bool>true</bool>

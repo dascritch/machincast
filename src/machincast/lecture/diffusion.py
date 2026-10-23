@@ -129,7 +129,7 @@ class Parametres:
 	crossfade_fin: timedelta
 	stream: bool = False
 	adresse: str | None = None
-	"""Adresse d'un stream : directe, ou celle de son marque-page."""
+	"""Adresse d'un stream : directe, ou celle de son feed."""
 	emplacement: str | None = None
 	"""Chemin du fichier, ou adresse du stream, comme dans l'airplay
 	(https://github.com/dascritch/machincast/issues/23)."""
@@ -228,7 +228,7 @@ def lire_parametres(
 			" s.secours_evenement_id, s.artiste, s.titre, COALESCE(s.emplacement, s.url_stream, m.url),"
 			" s.detection_blancs OR COALESCE(b.detection_blancs, false), s.debut_detecte, s.fin_detectee,"
 			" b.crossfade_debut_regle::text, b.crossfade_debut, b.crossfade_fin_regle::text, b.crossfade_fin"
-			" FROM sonores s LEFT JOIN marques_pages_streams m ON m.id = s.marque_page_id"
+			" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id"
 			" LEFT JOIN banques b ON b.id = %s"
 			" WHERE s.id = %s",
 			(choix.banque, choix.sonore),

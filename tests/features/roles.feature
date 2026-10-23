@@ -11,7 +11,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 		Alors le rôle "machincast_lecture" a exactement ces droits :
 			| table                 | lire | inserer | modifier | supprimer |
 			| sonores               | oui  | non     | non      | non       |
-			| marques_pages_streams | oui  | non     | non      | non       |
+			| feeds | oui  | non     | non      | non       |
 			| banques               | oui  | non     | non      | non       |
 			| banques_repertoires   | non  | non     | non      | non       |
 			| banques_sonores       | oui  | non     | non      | non       |
@@ -28,7 +28,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 		Alors le rôle "machincast_indexation" a exactement ces droits :
 			| table                 | lire | inserer | modifier | supprimer |
 			| sonores               | oui  | oui     | oui      | non       |
-			| marques_pages_streams | non  | non     | non      | non       |
+			| feeds | non  | non     | non      | non       |
 			| banques               | oui  | non     | non      | non       |
 			| banques_repertoires   | oui  | non     | non      | non       |
 			| banques_sonores       | oui  | oui     | non      | oui       |
@@ -43,7 +43,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 		Alors le rôle "machincast_interface" a exactement ces droits :
 			| table                 | lire | inserer | modifier | supprimer |
 			| sonores               | oui  | oui     | oui      | oui       |
-			| marques_pages_streams | oui  | oui     | oui      | oui       |
+			| feeds | oui  | oui     | oui      | oui       |
 			| banques               | oui  | oui     | oui      | oui       |
 			| banques_repertoires   | oui  | oui     | oui      | oui       |
 			| banques_sonores       | oui  | oui     | oui      | oui       |

@@ -22,7 +22,7 @@ Fonctionnalité: Raccourcis des onglets
 		Et la séquence « Six », sans nom public, avec rien
 
 	Scénario: Maj+F1 ramène à l'accueil, Maj+F5 aux incidents
-		Les onglets « Sonores » et « Marques-pages » ne s'ouvrent qu'à la demande
+		Les onglets « Sonores » et « Feeds » ne s'ouvrent qu'à la demande
 		(https://github.com/dascritch/machincast/issues/180) : au lancement, les incidents sont le cinquième onglet.
 
 		Quand la fenêtre de l'interface s'ouvre
@@ -36,7 +36,7 @@ Fonctionnalité: Raccourcis des onglets
 	Scénario: Seuls les 12 premiers onglets ont un raccourci
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
-		Et j'ouvre l'onglet « Marques-pages »
+		Et j'ouvre l'onglet « Feeds »
 		Et j'ouvre la fiche de la séquence « Un »
 		Et j'ouvre la fiche de la séquence « Deux »
 		Et j'ouvre la fiche de la séquence « Trois »

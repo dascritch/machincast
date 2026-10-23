@@ -24,7 +24,7 @@ scenarios("conformation.feature")
 
 Connexion = psycopg.Connection[tuple[object, ...]]
 ECHAPPEMENT = re.compile(r"\\u\{([0-9a-fA-F]+)\}")
-TABLES = {"banques", "sequences", "evenements", "marques_pages_streams", "sonores"}
+TABLES = {"banques", "sequences", "evenements", "feeds", "sonores"}
 """Les tables dont un scénario lit une colonne : chacune n'a qu'une ligne."""
 
 
@@ -76,9 +76,9 @@ def metadonnees(tags_extraits: Tags, cle: str, valeur: str) -> None:
 # ─── Fiches ────────────────────────────────────────────────
 
 
-@when(parsers.parse("j'ouvre la fiche du marque-page « {nom} »"))
-def ouvrir_marque_page(interface: Contexte, qtbot: QtBot, nom: str) -> None:
-	ouvrir_onglet(interface, "Marques-pages")
+@when(parsers.parse("j'ouvre la fiche du feed « {nom} »"))
+def ouvrir_feed(interface: Contexte, qtbot: QtBot, nom: str) -> None:
+	ouvrir_onglet(interface, "Feeds")
 	ouvrir_ligne(interface, qtbot, nom)
 
 

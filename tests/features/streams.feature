@@ -29,8 +29,8 @@ Fonctionnalité: Diffusion des streams
 		Et aucun passage ne porte l'artiste ou le titre des tags du flux
 		Et chaque passage a sa ligne de fin, sans incident
 
-	Scénario: Un stream sur un marque-page est relayé à l'adresse du marque-page
-		Étant donné le stream « Direct mobile » sur le marque-page « Studio mobile » du flux « studio »
+	Scénario: Un stream sur un feed est relayé à l'adresse du feed
+		Étant donné le stream « Direct mobile » sur le feed « Studio mobile » du flux « studio »
 		Et l'émission « Direct » de 19:59:50 à 20:30:00, avec le sonore « Direct mobile »
 		Quand la diffusion démarre en temps réel
 		Et la diffusion tourne pendant 1,5 seconde en temps réel

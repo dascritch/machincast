@@ -30,7 +30,7 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 			| Rafraîchir les onglets | active | F5        |           |
 			| Rechercher…            | active | Ctrl+F    |           |
 			| Ouvrir l'onglet Sonores        | active |           |           |
-			| Ouvrir l'onglet Marques-pages  | active |           |           |
+			| Ouvrir l'onglet Feeds  | active |           |           |
 			| Ouvrir l'onglet Grille horaire | active |           |           |
 			| Ouvrir l'onglet Simulation     | active |           |           |
 			| Ouvrir l'onglet Airplay        | active |           |           |

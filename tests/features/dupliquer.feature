@@ -164,6 +164,6 @@ Fonctionnalité: Dupliquer un événement, une séquence ou une banque
 			| Banques     | Publicité   | Nouvelle banque, copie de Publicité       | Publicité (copie)   | Pub                      |
 
 	Scénario: Seules les listes des événements, des séquences et des banques proposent de dupliquer
-		Étant donné les marques-pages « Relais », « https://flux.exemple/relais »
+		Étant donné les feeds « Relais », « https://flux.exemple/relais »
 		Quand la fenêtre de l'interface s'ouvre
 		Alors les listes qui proposent de dupliquer au clic droit sont « Événements », « Séquences », « Banques »

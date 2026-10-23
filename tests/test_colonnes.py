@@ -34,7 +34,7 @@ VUES = {
 	"liste-sequences",
 	"liste-banques",
 	"liste-sonores",
-	"liste-marques-pages",
+	"liste-feeds",
 	"recherche",
 	"incidents",
 	"accueil-airplay",
@@ -205,7 +205,7 @@ def tout_ouvrir(interface: Contexte, qtbot: QtBot) -> None:
 	ouverte = fenetre(interface)
 	for entree_du_menu in (
 		"Ouvrir l'onglet Sonores",
-		"Ouvrir l'onglet Marques-pages",
+		"Ouvrir l'onglet Feeds",
 		"Ouvrir l'onglet Simulation",
 		"Ouvrir l'onglet Airplay",
 		"Rechercher…",

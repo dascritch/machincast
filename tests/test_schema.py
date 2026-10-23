@@ -78,9 +78,7 @@ def base_migree(contexte: Contexte) -> None:
 @given("les éléments de référence en base")
 def references(contexte: Contexte) -> None:
 	r = contexte.references
-	r["marque_page"] = inserer(
-		contexte, "marques_pages_streams", {"nom": "'Studio mobile'", "url": "'https://flux.exemple'"}
-	)
+	r["feed"] = inserer(contexte, "feeds", {"nom": "'Studio mobile'", "url": "'https://flux.exemple'"})
 	r["banque"] = inserer(contexte, "banques", {"nom_interne": "'Jingles'", "mode": "'aleatoire'"})
 	r["sonore"] = inserer(
 		contexte,
@@ -536,3 +534,11 @@ def sonore_de_reference_sans_audit(contexte: Contexte) -> None:
 @then(parsers.parse("le sonore « {emplacement} » n'a pas d'audit complet demandé"))
 def sonore_sans_audit(contexte: Contexte, emplacement: str) -> None:
 	assert _audit_demande(contexte, "emplacement", emplacement) is False
+
+
+@then(parsers.parse("le sonore « {titre} » suit le feed « {nom} »"))
+def sonore_du_feed(contexte: Contexte, titre: str, nom: str) -> None:
+	ligne = contexte.connexion.execute(
+		"SELECT f.nom FROM sonores s JOIN feeds f ON f.id = s.feed_id WHERE s.titre = %s", (titre,)
+	).fetchone()
+	assert ligne == (nom,), ligne
