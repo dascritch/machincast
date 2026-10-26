@@ -447,6 +447,20 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 			| 20:00 | m      | Continue  | entier |
 			| 20:10 | m      | Continue  | entier |
 
+	Scénario: Une émission vide qui commence pendant un sonore du fil musical ne le coupe pas
+		https://github.com/dascritch/machincast/issues/253 : l'émission vide laisse l'antenne au fil musical, sans couper
+		son sonore en cours pour en relancer un autre.
+
+		Étant donné les événements :
+			| nom      | priorité    | début | fin   | liste        |
+			| Continue | fil_musical |       |       | sonore « m » |
+			| Magazine | emission    | 20:05 | 20:20 |              |
+		Quand la diffusion se déroule de 20:00 à 20:20
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | m      | Continue  | entier |
+			| 20:10 | m      | Continue  | entier |
+
 	Scénario: À la fin d'un événement sans successeur, la séquence est jouée jusqu'au bout
 		Étant donné une séquence « Trio » jouant sonore « t1 », sonore « t2 », sonore « t3 »
 		Et les événements :

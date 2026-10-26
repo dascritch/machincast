@@ -36,7 +36,7 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 - un **chevauchement** avec un autre événement de même priorité, occurrences récurrentes comprises : « Chevauche l'événement « Journal », de même priorité, le 21/10/2026 à 09:00. » ;
 - une priorité changée pour un événement de secours qu'un stream désigne.
 
-**Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion : une émission vide laisse l'événement en dessous prendre le relais ; un fil musical vide laisse l'antenne en silence, avec une alerte. La liste des événements le montre en anomalie.
+**Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion : une émission vide laisse l'événement en dessous prendre le relais, sans couper le sonore en cours, et l'accueil n'annonce aucune coupure à son heure ; un fil musical vide laisse l'antenne en silence, avec une alerte. La liste des événements le montre en anomalie.
 
 **Liste de lecture** : les sonores, les banques et les séquences que l'événement joue, dans l'ordre.
 
