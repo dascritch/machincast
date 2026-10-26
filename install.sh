@@ -10,6 +10,9 @@
 #   ./install.sh --retirer-service   retire ce service, la diffusion se lance de nouveau à la main
 #   ./install.sh --bureau      dépose aussi le raccourci de l'interface sur le bureau, sans le demander
 #   ./install.sh --sans-bureau ne le dépose pas, sans le demander (https://github.com/dascritch/machincast/issues/62)
+#   ./install.sh --arreter-les-programmes   arrête les programmes de MachinCast en cours, sans le demander
+#   ./install.sh --laisser-les-programmes   les laisse tourner, sans le demander
+#                              (https://github.com/dascritch/machincast/issues/254)
 #   ./install.sh --help        aide
 #
 # À lancer depuis le répertoire de MachinCast (release décompressée ou dépôt git), avec son propre compte :
@@ -54,13 +57,30 @@ SERVICE=false
 RETIRER_SERVICE=false
 # Raccourci sur le bureau : demander, oui ou non.
 BUREAU=demander
+# Programmes de MachinCast en cours (https://github.com/dascritch/machincast/issues/254) : demander, oui ou non ;
+# ceux qu'install.sh a arrêtés, à relancer à la fin, même après un échec.
+ARRETER=demander
+ARRETER_DEMANDE=0
+ETAT_DES_PROGRAMMES=""
+PROGRAMMES_ARRETES=false
+SERVICE_ARRETE=false
+# Secondes laissées à un programme pour s'arrêter, avant de l'y forcer.
+DELAI_D_ARRET=15
 UTILISATEUR="$(id -un)"
 
 aide() {
 	cat <<-FIN
 		Usage : ./install.sh [--simulation] [--dev] [--service | --retirer-service] [--bureau | --sans-bureau]
+		                    [--arreter-les-programmes | --laisser-les-programmes]
 
 		Installe MachinCast en place, depuis ce répertoire (${RACINE}) :
+		  0. programmes de MachinCast en cours, sous tous les comptes du poste : Machin lecture (service de
+		     diffusion, diffusion d'essai, simulation), Machin indexation, Machin interface. S'ils tournent,
+		     la question est posée de les arrêter pendant l'installation, sauf avec --arreter-les-programmes ou
+		     --laisser-les-programmes ; sans réponse possible, ils continuent. Arrêtée, la diffusion se tait
+		     jusqu'à la fin, et l'interface perd ses fiches non enregistrées. À la fin, même après un échec,
+		     install.sh relance le service de diffusion, et la diffusion d'essai et l'interface de ${UTILISATEUR} ;
+		     il dit ce qui reste à rouvrir : l'indexation, et les programmes des autres comptes ;
 		  1. paquets système (apt) ;
 		  2. environnement virtuel Python isolé et dépendances (pip) ;
 		  3. machincast.toml, copié du modèle s'il n'existe pas ;
@@ -89,6 +109,10 @@ aide() {
 		                retire le service de diffusion et sa règle polkit
 		  --bureau      dépose aussi le raccourci de l'interface sur le bureau, sans le demander
 		  --sans-bureau ne le dépose pas sur le bureau, sans le demander
+		  --arreter-les-programmes
+		                arrête les programmes de MachinCast en cours, sans le demander
+		  --laisser-les-programmes
+		                les laisse tourner pendant l'installation, sans le demander
 		  -h, --help    cette aide
 	FIN
 }
@@ -131,6 +155,119 @@ verifier_systeme() {
 	else
 		info "Ubuntu ${version} LTS"
 	fi
+}
+
+# Programmes de MachinCast en cours (https://github.com/dascritch/machincast/issues/254), lus par
+# machincast.programmes avec le python3 du système : le venv peut manquer, ou changer pendant l'installation.
+programmes() {
+	PYTHONPATH="${RACINE}/src" python3 -m machincast.programmes "$@"
+}
+
+vouloir_arreter() {
+	local reponse
+	case "${ARRETER}" in
+		oui) return 0 ;;
+		non) return 1 ;;
+	esac
+	if "${SIMULATION}"; then
+		info "[simulation] question : les arrêter pendant l'installation ?"
+		return 0
+	fi
+	if [[ ! -t 0 ]]; then
+		info "pas de question sans terminal : ./install.sh --arreter-les-programmes les arrête"
+		return 1
+	fi
+	read -r -p "    Les arrêter pendant l'installation, puis les relancer ? [o/N] " reponse
+	[[ "${reponse}" =~ ^[oO] ]]
+}
+
+# Attend la fin des processus, puis force celle des retardataires ; ceux d'un autre compte, par sudo.
+attendre_l_arret() {
+	local pid du_compte restant attente
+	for ((attente = 0; attente < DELAI_D_ARRET; attente++)); do
+		restant=false
+		for pid in "$@"; do
+			[[ -e "/proc/${pid%:*}" ]] && restant=true
+		done
+		"${restant}" || return 0
+		sleep 1
+	done
+	for pid in "$@"; do
+		du_compte="${pid#*:}"
+		pid="${pid%:*}"
+		[[ -e "/proc/${pid}" ]] || continue
+		info "pid ${pid} toujours là après ${DELAI_D_ARRET} s : arrêt forcé"
+		if [[ "${du_compte}" == oui ]]; then
+			kill -KILL "${pid}" 2>/dev/null || true
+		else
+			sudo kill -KILL "${pid}" || true
+		fi
+	done
+}
+
+arreter_les_programmes() {
+	etape "Programmes de MachinCast en cours"
+	ETAT_DES_PROGRAMMES="$(mktemp --tmpdir machincast-programmes.XXXXXX.json)"
+	local liste
+	if ! liste="$(programmes lister --etat "${ETAT_DES_PROGRAMMES}")"; then
+		info "programmes en cours illisibles : l'installation se fait sans les arrêter"
+		return
+	fi
+	if [[ -z "${liste}" ]]; then
+		info "aucun"
+		return
+	fi
+	local pid du_compte service libelle
+	while IFS=$'\t' read -r pid du_compte service libelle; do
+		info "${libelle}, pid ${pid}"
+	done <<<"${liste}"
+	info "une mise à jour, et ses migrations de la base, ne doit pas se faire sous eux"
+	info "arrêtée, la diffusion se tait jusqu'à la fin de l'installation ; l'interface perd ses fiches non enregistrées"
+	if ! vouloir_arreter; then
+		info "ils continuent : la base peut changer sous eux, les relancer après l'installation"
+		return
+	fi
+	PROGRAMMES_ARRETES=true
+	trap relancer_les_programmes EXIT
+	local arretes=()
+	while IFS=$'\t' read -r pid du_compte service libelle; do
+		if [[ "${service}" == oui ]]; then
+			if ! "${SERVICE_ARRETE}"; then
+				executer sudo systemctl stop "${UNITE}"
+				SERVICE_ARRETE=true
+			fi
+		elif [[ "${du_compte}" == oui ]]; then
+			executer kill -TERM "${pid}"
+			arretes+=("${pid}:oui")
+		else
+			executer sudo kill -TERM "${pid}"
+			arretes+=("${pid}:non")
+		fi
+	done <<<"${liste}"
+	if ! "${SIMULATION}" && ((${#arretes[@]} > 0)); then
+		attendre_l_arret "${arretes[@]}"
+	fi
+	info "arrêtés : relancés à la fin de l'installation"
+}
+
+# À la fin, ou à la sortie d'install.sh après un échec : une seule fois.
+relancer_les_programmes() {
+	"${PROGRAMMES_ARRETES}" || return 0
+	PROGRAMMES_ARRETES=false
+	etape "Relance des programmes de MachinCast"
+	if "${SERVICE_ARRETE}"; then
+		if "${RETIRER_SERVICE}"; then
+			info "service de diffusion retiré : pas relancé"
+		else
+			executer sudo systemctl start "${UNITE}" || info "service de diffusion non relancé : Machin logs dit pourquoi"
+		fi
+	fi
+	local options=() ligne
+	"${SIMULATION}" && options+=(--simulation)
+	while IFS= read -r ligne; do
+		info "${ligne}"
+	done < <(programmes relancer --etat "${ETAT_DES_PROGRAMMES}" "${options[@]}")
+	rm --force "${ETAT_DES_PROGRAMMES}" # fichier de MachinCast : état des programmes arrêtés, temporaire
 }
 
 installer_paquets() {
@@ -453,6 +590,14 @@ principal() {
 			--retirer-service) RETIRER_SERVICE=true ;;
 			--bureau) BUREAU=oui ;;
 			--sans-bureau) BUREAU=non ;;
+			--arreter-les-programmes)
+				ARRETER=oui
+				ARRETER_DEMANDE=$((ARRETER_DEMANDE + 1))
+				;;
+			--laisser-les-programmes)
+				ARRETER=non
+				ARRETER_DEMANDE=$((ARRETER_DEMANDE + 1))
+				;;
 			-h | --help)
 				aide
 				exit 0
@@ -467,8 +612,12 @@ principal() {
 	if "${SERVICE}" && "${RETIRER_SERVICE}"; then
 		echec "--service et --retirer-service ne vont pas ensemble"
 	fi
+	if [[ "${ARRETER}" != demander ]] && ((ARRETER_DEMANDE > 1)); then
+		echec "--arreter-les-programmes et --laisser-les-programmes ne vont pas ensemble"
+	fi
 	cd "${RACINE}"
 	verifier_systeme
+	arreter_les_programmes
 	installer_paquets
 	installer_venv
 	preparer_configuration
@@ -482,6 +631,7 @@ principal() {
 	else
 		installer_service
 	fi
+	relancer_les_programmes
 	conclure
 }
 
