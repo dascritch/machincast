@@ -844,11 +844,6 @@ def positions_du_fichier(interface: Contexte, entree: str, sortie: str) -> None:
 # ─── Durée de péremption (https://github.com/dascritch/machincast/issues/268) ───
 
 
-@given(parsers.parse("les préférences seront réglées avec la durée de péremption de {jours:d} jours"))
-def peremption_reglee(interface: Contexte, jours: int) -> None:
-	interface.peremption_reglee = jours
-
-
 @then(parsers.parse("les préférences ont montré la durée de péremption de {jours:d} jours"))
 def peremption_montree(interface: Contexte, jours: int) -> None:
 	assert interface.peremptions_montrees == [jours]

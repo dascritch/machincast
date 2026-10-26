@@ -186,7 +186,7 @@ Page **Base** ([#268](https://github.com/dascritch/machincast/issues/268)) :
 
 | Réglage | Rôle |
 | --- | --- |
-| Durée de péremption | De 1 à 3650 jours, 60 par défaut : l'airplay et le journal plus anciens s'effacent de la base, comme les éléments [supprimés](listes.md#supprimer-un-élément) depuis plus longtemps, qui ne se restaurent plus. Les fichiers sonores ne sont jamais touchés. L'effacement se fait chaque jour à midi sur l'ordinateur de l'antenne ; la fiche d'un élément supprimé donne le jour où il sera effacé. |
+| Durée de péremption | De 1 à 3650 jours, 60 par défaut : l'airplay et le journal plus anciens s'effacent de la base, comme les éléments [supprimés](listes.md#supprimer-un-élément) depuis plus longtemps, qui ne se restaurent plus. Les fichiers sonores ne sont jamais touchés. L'effacement se fait chaque jour à midi sur l'ordinateur de l'antenne ; la fiche d'un élément supprimé donne le jour où il sera effacé, et le [calendrier](grille.md#calendrier) ne remonte pas plus loin. |
 
 **OK** les enregistre ; la barre d'état le dit. **Annuler** ne change rien.
 

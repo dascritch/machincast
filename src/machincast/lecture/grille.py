@@ -62,6 +62,10 @@ class Evenement:
 	jours: frozenset[int]
 	"""Jours de récurrence, 0 pour lundi ; vide si l'événement n'a qu'une occurrence."""
 	modifie_le: datetime
+	supprime_le: datetime | None = None
+	"""Supprimé depuis l'interface (https://github.com/dascritch/machincast/issues/267) : il ne joue plus après ;
+	seul le calendrier lit un événement supprimé, pour ses occurrences d'avant
+	(https://github.com/dascritch/machincast/issues/269)."""
 
 
 @dataclass(frozen=True)
@@ -288,20 +292,29 @@ def prevoir(evenements: Iterable[Evenement], de: datetime, a: datetime) -> list[
 	"""Les occurrences qui touchent la période [de, a[, en heure murale, et ce que chacune en joue.
 
 	Ce qui joue suit evenement_actif, avec la fin dessinée d'une occurrence sans fin : la durée réelle de sa liste
-	n'est connue qu'à la diffusion. Les événements de secours, hors grille, n'y sont pas.
+	n'est connue qu'à la diffusion. Les événements de secours, hors grille, n'y sont pas. Un événement supprimé
+	n'a que ses occurrences commencées avant sa suppression, arrêtées à elle
+	(https://github.com/dascritch/machincast/issues/269).
 	"""
 	de, a = heure_murale(de), heure_murale(a)
 	grille = [evenement for evenement in evenements if evenement.priorite is not Priorite.SECOURS]
 	occurrences: list[Occurrence] = []
 	for evenement in grille:
+		supprime = _heure_murale_ou_rien(evenement.supprime_le)
 		if evenement.debut is None:
-			occurrences.append(Occurrence(evenement, None, None))
+			if (supprime is None) or (supprime > de):
+				occurrences.append(Occurrence(evenement, None, None))
 			continue
 		# Une occurrence commencée avant la période peut encore la toucher : autant de jours qu'elle en couvre.
 		depuis = de.date() - timedelta(days=_jours_couverts(evenement) + 1)
 		for debut, fin in _occurrences(evenement, depuis, a.date() + timedelta(days=1)):
-			occurrences.append(Occurrence(evenement, debut, fin))
+			if (supprime is None) or (debut < supprime):
+				occurrences.append(Occurrence(evenement, debut, fin))
 	fins = {o.cle: _fin_dessinee(o, occurrences, a) for o in occurrences}
+	for o in occurrences:
+		supprime = _heure_murale_ou_rien(o.evenement.supprime_le)
+		if supprime is not None:
+			fins[o.cle] = min(fins[o.cle], supprime)
 	# Une occurrence hors de la période n'y couvre aucun moment : elle n'y joue pas, et n'y est pas dessinée.
 	gardees = occurrences
 	bornes = sorted(
@@ -351,15 +364,19 @@ def _gagnante(couvrantes: list[Occurrence]) -> Occurrence | None:
 	return max(gardees, key=lambda o: (o.evenement.modifie_le, o.evenement.id))
 
 
-COLONNES = "id, nom_interne, priorite::text, debut, fin, jours_recurrence::text[], modifie_le"
+COLONNES = "id, nom_interne, priorite::text, debut, fin, jours_recurrence::text[], modifie_le, supprime_le"
 
 
-def lire_grille(connexion: psycopg.Connection[TupleRow]) -> list[Evenement]:
+def lire_grille(connexion: psycopg.Connection[TupleRow], supprimes: bool = False) -> list[Evenement]:
 	"""Événements de la grille, sans les événements de secours ; la connexion a endossé le rôle de la lecture
-	(machincast.base.connecter)."""
-	# Un événement supprimé ne joue plus (https://github.com/dascritch/machincast/issues/267).
+	(machincast.base.connecter). Un événement supprimé ne joue plus
+	(https://github.com/dascritch/machincast/issues/267) : seul le calendrier les demande (supprimes), pour leurs
+	occurrences d'avant leur suppression."""
+	condition = "supprime_le IS NULL"
+	if supprimes:
+		condition = "TRUE"
 	lignes = connexion.execute(
-		f"SELECT {COLONNES} FROM evenements WHERE priorite <> 'secours' AND supprime_le IS NULL ORDER BY id"
+		f"SELECT {COLONNES} FROM evenements WHERE priorite <> 'secours' AND {condition} ORDER BY id"  # noqa: S608
 	).fetchall()
 	return _evenements(lignes)
 
@@ -383,6 +400,7 @@ def _evenements(lignes: list[TupleRow]) -> list[Evenement]:
 			fin=fin if isinstance(fin, datetime) else None,
 			jours=frozenset(JOURS.index(str(jour)) for jour in (jours if isinstance(jours, list) else [])),
 			modifie_le=modifie_le if isinstance(modifie_le, datetime) else JAMAIS,
+			supprime_le=supprime_le if isinstance(supprime_le, datetime) else None,
 		)
-		for identifiant, nom, priorite, debut, fin, jours, modifie_le in lignes
+		for identifiant, nom, priorite, debut, fin, jours, modifie_le, supprime_le in lignes
 	]

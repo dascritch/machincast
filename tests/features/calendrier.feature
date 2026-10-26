@@ -6,7 +6,11 @@ Fonctionnalité: Calendrier de la grille
 
 	https://github.com/dascritch/machincast/issues/36 et https://github.com/dascritch/machincast/issues/118, spec § 8.2.
 	Le calendrier s'ouvre dans son onglet, depuis le menu « Affichage », sur la semaine du jour : du lundi au dimanche,
-	de 0 h à 24 h. Il se pagine par semaine, ou par jour en vue jour, de 28 jours avant à 28 jours après aujourd'hui.
+	de 0 h à 24 h. Il se pagine par semaine, ou par jour en vue jour, jusqu'à 28 jours après aujourd'hui, et pas avant
+	la durée de péremption (https://github.com/dascritch/machincast/issues/269) : Machin purge efface de la base ce qui
+	est plus vieux (https://github.com/dascritch/machincast/issues/268). En vue semaine, les jours d'avant sont grisés,
+	vides. Un événement supprimé (https://github.com/dascritch/machincast/issues/267) garde ses occurrences d'avant sa
+	suppression, jusqu'à leur péremption.
 
 	Chaque occurrence d'un événement prévu est un bloc ; deux blocs qui se chevauchent se placent côte à côte. Un bloc
 	« joue » quand son événement serait à l'antenne pendant toute l'occurrence (machincast.lecture.grille) ; il est
@@ -209,7 +213,8 @@ Fonctionnalité: Calendrier de la grille
 
 	# ─── Navigation ────────────────────────────────────────────
 
-	Scénario: Le calendrier se pagine par semaine, de 28 jours avant à 28 jours après aujourd'hui
+	Scénario: Le calendrier se pagine par semaine, jusqu'à 28 jours après aujourd'hui, et jusqu'à la péremption avant
+		Étant donné la durée de péremption du fichier de configuration de l'interface est de 28 jours
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je clique 4 fois sur « Semaine suivante » du calendrier
@@ -238,7 +243,8 @@ Fonctionnalité: Calendrier de la grille
 		Quand je clique sur « Semaine » du calendrier
 		Alors le calendrier montre « Semaine du lundi 19 au dimanche 25 octobre 2026 »
 
-	Scénario: La vue jour va aussi de 28 jours avant à 28 jours après aujourd'hui
+	Scénario: La vue jour va aussi de la péremption à 28 jours après aujourd'hui
+		Étant donné la durée de péremption du fichier de configuration de l'interface est de 28 jours
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je clique sur « Jour » du calendrier
@@ -248,6 +254,106 @@ Fonctionnalité: Calendrier de la grille
 		Quand je clique 56 fois sur « Jour précédent » du calendrier
 		Alors le calendrier montre « mardi 22 septembre 2026 »
 		Et le bouton « Jour précédent » du calendrier est inactif
+
+	Scénario: Le calendrier ne remonte pas avant la péremption, 60 jours par défaut, et grise les jours d'avant
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Et je clique 9 fois sur « Semaine précédente » du calendrier
+		Alors le calendrier montre « Semaine du lundi 17 au dimanche 23 août 2026 »
+		Et le bouton « Semaine précédente » du calendrier est inactif
+		Et le calendrier grise les jours « lundi 17 », « mardi 18 », « mercredi 19 », « jeudi 20 »
+
+	Scénario: Un jour grisé ne montre ni ce qui était prévu, ni ce qui a été diffusé
+		Étant donné les passages de l'airplay :
+			| événement | début               | fin                 |
+			| Continue  | 2026-08-20 10:00:00 | 2026-08-20 11:00:00 |
+			| Continue  | 2026-08-21 10:00:00 | 2026-08-21 11:00:00 |
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Et je clique 9 fois sur « Semaine précédente » du calendrier
+		Alors la bande de la journée entière montre :
+			| jour        | événement | état |
+			| vendredi 21 | Continue  | joue |
+			| samedi 22   | Continue  | joue |
+			| dimanche 23 | Continue  | joue |
+		Et le calendrier montre les bandes d'airplay :
+			| jour        | début | fin   | événement | passages |
+			| vendredi 21 | 10:00 | 11:00 | Continue  | 1        |
+
+	Scénario: La vue jour ne remonte pas avant la péremption, que les préférences changent
+		Étant donné la durée de péremption du fichier de configuration de l'interface est de 30 jours
+		Et les préférences seront réglées avec la durée de péremption de 10 jours
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Et je clique sur « Jour » du calendrier
+		Et je clique 30 fois sur « Jour précédent » du calendrier
+		Alors le calendrier montre « dimanche 20 septembre 2026 »
+		Et le bouton « Jour précédent » du calendrier est inactif
+		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Et j'appuie sur « F5 »
+		Alors le calendrier montre « samedi 10 octobre 2026 »
+		Et le bouton « Jour précédent » du calendrier est inactif
+
+	Scénario: Un événement supprimé garde ses occurrences d'avant sa suppression, et l'infobulle le dit
+		Étant donné l'événement « Matinale » supprimé le « 2026-10-20 08:00 »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Alors le calendrier montre les blocs :
+			| jour        | début | fin   | événement | état           |
+			| lundi 19    | 00:00 | 01:00 | Nuit      | joue           |
+			| lundi 19    | 07:00 | 09:00 | Matinale  | joue           |
+			| mardi 20    | 07:00 | 08:00 | Matinale  | joue           |
+			| mercredi 21 | 08:00 | 10:00 | Concert   | joue           |
+			| mercredi 21 | 12:00 | 13:00 | Midi      | joue           |
+			| jeudi 22    | 14:00 | 20:00 | Direct    | joue           |
+			| jeudi 22    | 20:00 | 21:00 | Soirée    | joue           |
+			| samedi 24   | 10:00 | 18:00 | Week-end  | joue en partie |
+			| samedi 24   | 12:00 | 13:00 | Flash     | joue           |
+			| samedi 24   | 17:30 | 19:00 | Rediff    | joue           |
+			| dimanche 25 | 23:00 | 24:00 | Nuit      | joue           |
+		Et le bloc « Continue » de la journée du mardi 20 a l'infobulle :
+			"""
+			Continue — Fil musical
+			Fil musical permanent
+			Joue de 00:00 à 07:00 et de 08:00 à 24:00 ; masqué le reste du temps par un autre événement
+			Double-clic : ouvrir l'événement
+			"""
+		Et le bloc « Matinale » du mardi 20 a l'infobulle :
+			"""
+			Matinale (Le réveil) — Émission
+			mardi 20 octobre, 07:00 – 09:00
+			Revient le lundi, mardi, mercredi, jeudi, vendredi
+			Supprimé le mardi 20 octobre à 08:00 : la suite n'est plus prévue
+			Joue en entier
+			Double-clic : ouvrir l'événement
+			"""
+
+	Scénario: Une occurrence d'un événement supprimé, prévue après sa suppression, n'arrête plus une émission sans fin
+		Étant donné l'événement « Soirée » supprimé le « 2026-10-20 08:00 »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Alors le bloc « Direct » du jeudi 22 a l'infobulle :
+			"""
+			Direct — Émission
+			jeudi 22 octobre, à partir de 14:00, sans fin : jusqu'à l'épuisement de sa liste
+			Joue en entier
+			Double-clic : ouvrir l'événement
+			"""
+		Et le calendrier montre les blocs :
+			| jour        | début | fin   | événement | état           |
+			| lundi 19    | 00:00 | 01:00 | Nuit      | joue           |
+			| lundi 19    | 07:00 | 09:00 | Matinale  | joue           |
+			| mardi 20    | 07:00 | 09:00 | Matinale  | joue           |
+			| mercredi 21 | 07:00 | 09:00 | Matinale  | joue en partie |
+			| mercredi 21 | 08:00 | 10:00 | Concert   | joue           |
+			| mercredi 21 | 12:00 | 13:00 | Midi      | joue           |
+			| jeudi 22    | 07:00 | 09:00 | Matinale  | joue           |
+			| jeudi 22    | 14:00 | 24:00 | Direct    | joue           |
+			| vendredi 23 | 07:00 | 09:00 | Matinale  | estompé        |
+			| samedi 24   | 10:00 | 18:00 | Week-end  | joue en partie |
+			| samedi 24   | 12:00 | 13:00 | Flash     | joue           |
+			| samedi 24   | 17:30 | 19:00 | Rediff    | joue           |
+			| dimanche 25 | 23:00 | 24:00 | Nuit      | joue           |
 
 	Scénario: Une semaine à cheval sur deux années les nomme toutes les deux
 		Étant donné l'horloge de l'interface au « 2026-12-30 10:00:00 »

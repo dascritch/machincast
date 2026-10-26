@@ -6,6 +6,7 @@ dans une fenêtre visible, hors écran, à une taille fixe : ses blocs y ont une
 survolent.
 """
 
+import re
 import uuid
 from datetime import date, datetime, time, timedelta
 
@@ -120,6 +121,14 @@ def passages(base_vide: Connexion, datatable: list[list[str]]) -> None:
 			" VALUES (%s, 'fin', %s, %s, %s, true)",
 			(passage, arrivee, evenement, arrivee - depart),
 		)
+
+
+@given(parsers.parse("l'événement « {nom} » supprimé le « {moment} »"))
+def evenement_supprime(base_vide: Connexion, nom: str, moment: str) -> None:
+	base_vide.execute(
+		"UPDATE evenements SET supprime_le = %s WHERE nom_interne = %s",
+		(datetime.fromisoformat(moment).astimezone(), nom),
+	)
 
 
 @given(parsers.parse("je répondrai « {reponse} » à la question de création"))
@@ -276,6 +285,12 @@ def infobulle_de_la_bande(interface: Contexte, nom: str, debut: str, jour: str, 
 def cases_cochees(interface: Contexte, textes: str) -> None:
 	vue = calendrier(interface)
 	assert [c.text() for c in vue.findChildren(QCheckBox) if c.isChecked()] == NOM.findall(textes)
+
+
+@then(parsers.re(r"le calendrier grise les jours (?P<jours>«.+)"))
+def jours_grises(interface: Contexte, jours: str) -> None:
+	vue = calendrier(interface)
+	assert [libelle_du_jour(jour) for jour in vue.jours_perimes()] == re.findall(r"« ([^»]+) »", jours)
 
 
 @then(parsers.parse("le bouton « {texte} » du calendrier est inactif"))
