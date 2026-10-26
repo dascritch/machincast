@@ -62,7 +62,7 @@ Fonctionnalité: Un fil musical existe toujours
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Continue »
 		Et je supprime l'élément de la fiche, en répondant « Supprimer »
-		Alors l'événement « Continue » n'est plus en base
+		Alors l'événement « Continue » est marqué « supprimé » en base
 		Et la barre d'état annonce « Aucun fil musical : « Fil musical » est créé, permanent et sans élément ; sa liste se remplit dans sa fiche. »
 		Et le fil musical « Fil musical » est en base, permanent et sans élément
 

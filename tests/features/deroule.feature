@@ -434,6 +434,20 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 			| 20:00 | m      | Magazine  | entier |
 			| 20:10 | m      | Magazine  | entier |
 
+	Scénario: Un événement supprimé ne joue plus
+		https://github.com/dascritch/machincast/issues/267
+
+		Étant donné les événements :
+			| nom      | priorité    | début | fin   | liste        |
+			| Continue | fil_musical |       |       | sonore « f » |
+			| Magazine | emission    | 20:00 | 20:20 | sonore « m » |
+		Et l'événement « Magazine » est supprimé depuis l'interface
+		Quand la diffusion se déroule de 20:00 à 20:20
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | f      | Continue  | entier |
+			| 20:10 | f      | Continue  | entier |
+
 	Scénario: Une émission vide, à compléter plus tard, laisse jouer le fil musical
 		https://github.com/dascritch/machincast/issues/140
 

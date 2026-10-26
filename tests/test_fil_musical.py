@@ -29,6 +29,6 @@ def permanent(base_vide: Connexion, nom: str) -> None:
 @then(parsers.re(r"les fils musicaux en base sont (?P<noms>aucun|«.+)"))
 def fils(base_vide: Connexion, noms: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT nom_interne FROM evenements WHERE priorite = 'fil_musical' ORDER BY nom_interne"
+		"SELECT nom_interne FROM evenements WHERE priorite = 'fil_musical' AND supprime_le IS NULL ORDER BY nom_interne"
 	).fetchall()
 	assert [str(nom) for (nom,) in lignes] == NOM.findall(noms)

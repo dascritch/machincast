@@ -89,7 +89,7 @@ class FicheSequence(Fiche):
 				evenements = self.connexion.execute(
 					"SELECT DISTINCT ev.id, ev.nom_interne FROM evenements ev"
 					" JOIN evenements_elements ee ON ee.evenement_id = ev.id"
-					" WHERE ee.sequence_id = %s ORDER BY ev.nom_interne, ev.id",
+					" WHERE ee.sequence_id = %s AND ev.supprime_le IS NULL ORDER BY ev.nom_interne, ev.id",
 					(self.identifiant,),
 				).fetchall()
 			self.elements.charger(lu, self.est_une_copie())
@@ -113,7 +113,8 @@ class FicheSequence(Fiche):
 		if nom == "":
 			raise Refus("Le nom interne est obligatoire.")
 		pris = self.connexion.execute(
-			"SELECT 1 FROM sequences WHERE nom_interne = %s AND id IS DISTINCT FROM %s", (nom, self.identifiant)
+			"SELECT 1 FROM sequences WHERE nom_interne = %s AND id IS DISTINCT FROM %s AND supprime_le IS NULL",
+			(nom, self.identifiant),
 		).fetchone()
 		if pris is not None:
 			raise Refus(f"Une autre séquence s'appelle déjà « {nom} ».")

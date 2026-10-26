@@ -542,3 +542,20 @@ def sonore_du_feed(contexte: Contexte, titre: str, nom: str) -> None:
 		"SELECT f.nom FROM sonores s JOIN feeds f ON f.id = s.feed_id WHERE s.titre = %s", (titre,)
 	).fetchone()
 	assert ligne == (nom,), ligne
+
+
+@then(parsers.parse("la table « {table} » a {nombre:d} ligne"))
+@then(parsers.parse("la table « {table} » a {nombre:d} lignes"))
+def lignes_de_la_table(contexte: Contexte, table: str, nombre: int) -> None:
+	assert table in TABLES, table
+	ligne = contexte.connexion.execute(f"SELECT count(*) FROM {table}").fetchone()  # noqa: S608 : table connue
+	assert ligne == (nombre,), ligne
+
+
+@then(parsers.re(r"le sonore « (?P<emplacement>[^»]+) » (?P<a>a|n'a pas de) (?:une )?date de disparition"))
+def date_de_disparition(contexte: Contexte, emplacement: str, a: str) -> None:
+	ligne = contexte.connexion.execute(
+		"SELECT disparu_le FROM sonores WHERE emplacement = %s", (emplacement,)
+	).fetchone()
+	assert ligne is not None
+	assert (ligne[0] is not None) == (a == "a"), ligne

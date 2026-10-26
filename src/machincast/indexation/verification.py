@@ -186,7 +186,8 @@ def verifier_sonores(
 		sonores = connexion.execute(
 			"SELECT id, emplacement, etat::text, champs_edites, artiste, titre, metadonnees_musicales,"
 			" fichier_modifie_le, fichier_taille, debut_detecte, fin_detectee, audit_demande, audite_le, audit_seuil"
-			" FROM sonores WHERE type = 'fichier' AND (%s::bigint[] IS NULL OR id = ANY(%s)) ORDER BY id",
+			" FROM sonores WHERE type = 'fichier' AND supprime_le IS NULL AND (%s::bigint[] IS NULL OR id = ANY(%s))"
+			" ORDER BY id",
 			(liste_ou_rien(identifiants), liste_ou_rien(identifiants)),
 		).fetchall()
 
@@ -265,7 +266,10 @@ def verifier_sonores(
 				" verifie_le = CASE WHEN %s THEN clock_timestamp() ELSE verifie_le END,"
 				" debut_detecte = %s, fin_detectee = %s, audit_demande = audit_demande AND NOT %s,"
 				" audite_le = CASE WHEN %s THEN clock_timestamp() ELSE audite_le END,"
-				" audit_seuil = CASE WHEN %s THEN %s ELSE audit_seuil END"
+				" audit_seuil = CASE WHEN %s THEN %s ELSE audit_seuil END,"
+				# La disparition du fichier est datée une fois ; un fichier revenu ne l'est plus
+				# (https://github.com/dascritch/machincast/issues/267).
+				" disparu_le = CASE WHEN %s THEN COALESCE(disparu_le, clock_timestamp()) END"
 				" WHERE id = %s",
 				(
 					apres.value,
@@ -287,6 +291,7 @@ def verifier_sonores(
 					(audite) and (fichier is not None),
 					(audite) and (fichier is not None),
 					seuil_blancs,
+					apres is EtatSonore.SUPPRIME,
 					identifiant,
 				),
 			)

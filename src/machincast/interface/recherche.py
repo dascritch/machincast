@@ -79,18 +79,19 @@ def _trouve(*colonnes: str) -> str:
 TROUVES = f"""
 	WITH recherche AS (SELECT %s::text AS motif)
 	SELECT 1 AS rang, 'événement' AS genre, id, nom_interne AS nom, nom_public, NULL AS etat FROM evenements, recherche
-		WHERE {_trouve("nom_interne", "nom_public")}
+		WHERE (supprime_le IS NULL) AND ({_trouve("nom_interne", "nom_public")})
 	UNION ALL
 	SELECT 2, 'séquence', id, nom_interne, nom_public, NULL FROM sequences, recherche
-		WHERE {_trouve("nom_interne", "nom_public")}
+		WHERE (supprime_le IS NULL) AND ({_trouve("nom_interne", "nom_public")})
 	UNION ALL
 	SELECT 3, 'banque', id, nom_interne, nom_public, NULL FROM banques, recherche
-		WHERE {_trouve("nom_interne", "nom_public")}
+		WHERE (supprime_le IS NULL) AND ({_trouve("nom_interne", "nom_public")})
 	UNION ALL
 	SELECT 4, 'sonore', id, concat_ws(' – ', artiste, titre), NULL, etat::text FROM sonores, recherche
-		WHERE {_trouve("artiste", "titre")}
+		WHERE (supprime_le IS NULL) AND ({_trouve("artiste", "titre")})
 """
-"""Les éléments où se trouve le motif, lié une seule fois (recherche.motif), avec le rang de leur type."""
+"""Les éléments où se trouve le motif, lié une seule fois (recherche.motif), avec le rang de leur type ; jamais un
+élément supprimé (https://github.com/dascritch/machincast/issues/267)."""
 
 
 def _statut(etat: object) -> str:

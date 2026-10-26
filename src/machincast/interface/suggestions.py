@@ -116,8 +116,13 @@ class Reponse:
 def manquants(connexion: psycopg.Connection[TupleRow], audio: Audio) -> Manques:
 	"""Ce qui manque : fil musical, banques suggérées, périphérique d'antenne sur une vraie sortie."""
 	with connexion.transaction():
-		fil = connexion.execute("SELECT 1 FROM evenements WHERE priorite = 'fil_musical' LIMIT 1").fetchone()
-		existantes = {str(nom).casefold() for (nom,) in connexion.execute("SELECT nom_interne FROM banques")}
+		fil = connexion.execute(
+			"SELECT 1 FROM evenements WHERE priorite = 'fil_musical' AND supprime_le IS NULL LIMIT 1"
+		).fetchone()
+		existantes = {
+			str(nom).casefold()
+			for (nom,) in connexion.execute("SELECT nom_interne FROM banques WHERE supprime_le IS NULL")
+		}
 	banques = tuple(banque for banque in BANQUES if banque.casefold() not in existantes)
 	antennes = None
 	if (audio.sortie != "factice") and (audio.peripherique is None):
@@ -164,7 +169,7 @@ def creer(connexion: psycopg.Connection[TupleRow], reponse: Reponse) -> str | No
 def _remplir_un_fil_vide(connexion: psycopg.Connection[TupleRow]) -> None:
 	"""Le premier fil musical sans élément, par nom, reçoit la rotation type, avec les banques qui existent."""
 	vide = connexion.execute(
-		"SELECT e.id FROM evenements e WHERE e.priorite = 'fil_musical'"
+		"SELECT e.id FROM evenements e WHERE e.priorite = 'fil_musical' AND e.supprime_le IS NULL"
 		" AND NOT EXISTS (SELECT 1 FROM evenements_elements x WHERE x.evenement_id = e.id)"
 		" ORDER BY e.nom_interne LIMIT 1"
 	).fetchone()
@@ -172,7 +177,9 @@ def _remplir_un_fil_vide(connexion: psycopg.Connection[TupleRow]) -> None:
 		return
 	banques = {
 		str(nom).casefold(): int(str(identifiant))
-		for identifiant, nom in connexion.execute("SELECT id, nom_interne FROM banques ORDER BY id")
+		for identifiant, nom in connexion.execute(
+			"SELECT id, nom_interne FROM banques WHERE supprime_le IS NULL ORDER BY id"
+		)
 	}
 	position = 0
 	for banque in ROTATION:

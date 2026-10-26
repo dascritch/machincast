@@ -84,14 +84,16 @@ L'original n'est jamais modifié.
 
 Chaque fiche a un bouton **Supprimer…**. Il demande toujours confirmation : **Supprimer**, ou **Annuler** (<kbd>Entrée</kbd> et <kbd>Échap</kbd> annulent). La question dit où l'élément figure, et ce qui n'aurait plus rien après son retrait.
 
-**Seule l'entrée en base est supprimée.** Les fichiers sonores et les répertoires des banques restent à leur place, intacts. L'historique de diffusion garde ses passages.
+**Seule l'entrée en base change.** Les fichiers sonores et les répertoires des banques restent à leur place, intacts. L'historique de diffusion garde ses passages.
+
+**Un élément supprimé se restaure** ([#267](https://github.com/dascritch/machincast/issues/267)). Un sonore, une banque, une séquence ou un événement supprimé reste en base, marqué « supprimé » : il disparaît des listes, de la recherche et des choix, et n'est plus joué. Un double-clic sur sa cellule, dans l'airplay ou les incidents, rouvre sa fiche, qui dit quand il a été supprimé ; elle ne se modifie pas, et son bouton **Restaurer** le remet en service. Restauré, il ne revient pas dans les listes d'où il avait été retiré, ni comme secours des streams. Si un autre élément a pris son nom entre-temps, ou son fichier pour un sonore, la fiche dit pourquoi elle ne peut pas le restaurer.
 
 | Élément supprimé | Retiré de | Ce qui reste |
 | --- | --- | --- |
 | Sonore | ses banques, séquences et listes d'événements | Son fichier. S'il est dans un répertoire de banque, la prochaine indexation l'enregistre de nouveau : la question le rappelle. |
 | Banque | ses séquences et listes d'événements | Ses répertoires et leurs fichiers ; ses sonores. |
 | Séquence | ses listes d'événements | Ses sonores et ses banques. |
-| Événement | — | Ses sonores, banques et séquences. Les streams qui l'avaient pour secours n'en ont plus. |
-| Feed | — | Rien : un feed qu'un stream suit ne se supprime pas. |
+| Événement | — | Sa liste de lecture ; ses sonores, banques et séquences. Il ne joue plus, et les streams qui l'avaient pour secours n'en ont plus. |
+| Feed | — | Rien : il quitte la base, sans se restaurer. Un feed qu'un stream suit ne se supprime pas. |
 
 La fiche se ferme après la suppression.

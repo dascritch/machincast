@@ -113,6 +113,17 @@ Fonctionnalité: Indexation rapide
 		Quand l'indexeur fait une indexation rapide
 		Alors le sonore est à l'état « supprime »
 		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Et la disparition du fichier du sonore est datée
+
+	Scénario: Un sonore supprimé depuis l'interface n'est plus vérifié
+		https://github.com/dascritch/machincast/issues/267
+
+		Étant donné un fichier flac sain
+		Et un sonore à l'état « apercu » pour ce fichier
+		Et le sonore est supprimé depuis l'interface
+		Quand l'indexeur fait une indexation rapide
+		Alors le sonore est à l'état « apercu »
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Un fichier inchangé depuis sa dernière vérification n'est pas redécodé
 		Étant donné un fichier flac sain

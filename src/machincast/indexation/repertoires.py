@@ -124,7 +124,7 @@ def _enregistrer(
 	with connexion.transaction():
 		ligne = connexion.execute(
 			"SELECT s.id, s.duree IS NULL AND (b.duree_min IS NOT NULL OR b.duree_max IS NOT NULL)"
-			" FROM sonores s, banques b WHERE s.emplacement = %s AND b.id = %s",
+			" FROM sonores s, banques b WHERE s.emplacement = %s AND s.supprime_le IS NULL AND b.id = %s",
 			(emplacement, banque),
 		).fetchone()
 		if ligne is None:
@@ -178,7 +178,7 @@ def indexer_repertoires(
 	with connexion.transaction():
 		repertoires = connexion.execute(
 			"SELECT b.id, b.nom_interne, r.repertoire FROM banques_repertoires r JOIN banques b ON b.id = r.banque_id"
-			" ORDER BY b.id, r.repertoire"
+			" WHERE b.supprime_le IS NULL ORDER BY b.id, r.repertoire"
 		).fetchall()
 	for banque, nom, repertoire in repertoires:
 		chemin = Path(os.path.normpath(str(repertoire)))
@@ -209,7 +209,8 @@ def retirer_hors_durees(
 		hors = connexion.execute(
 			"SELECT bs.banque_id, bs.sonore_id, b.nom_interne, s.emplacement, s.duree, b.duree_min, b.duree_max"
 			" FROM banques_sonores bs JOIN banques b ON b.id = bs.banque_id JOIN sonores s ON s.id = bs.sonore_id"
-			f" WHERE (%s::bigint[] IS NULL OR s.id = ANY(%s)) AND {HORS_DUREES} ORDER BY b.id, bs.position",
+			f" WHERE (%s::bigint[] IS NULL OR s.id = ANY(%s)) AND b.supprime_le IS NULL AND {HORS_DUREES}"
+			" ORDER BY b.id, bs.position",
 			(liste_ou_rien(identifiants), liste_ou_rien(identifiants)),
 		).fetchall()
 		for banque, sonore, nom, emplacement, duree, minimum, maximum in hors:

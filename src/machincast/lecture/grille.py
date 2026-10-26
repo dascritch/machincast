@@ -357,7 +357,10 @@ COLONNES = "id, nom_interne, priorite::text, debut, fin, jours_recurrence::text[
 def lire_grille(connexion: psycopg.Connection[TupleRow]) -> list[Evenement]:
 	"""Événements de la grille, sans les événements de secours ; la connexion a endossé le rôle de la lecture
 	(machincast.base.connecter)."""
-	lignes = connexion.execute(f"SELECT {COLONNES} FROM evenements WHERE priorite <> 'secours' ORDER BY id").fetchall()
+	# Un événement supprimé ne joue plus (https://github.com/dascritch/machincast/issues/267).
+	lignes = connexion.execute(
+		f"SELECT {COLONNES} FROM evenements WHERE priorite <> 'secours' AND supprime_le IS NULL ORDER BY id"
+	).fetchall()
 	return _evenements(lignes)
 
 

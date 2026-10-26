@@ -127,6 +127,38 @@ Fonctionnalité: Schéma de la base de données
 		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/musique/a.flac'
 		Alors la base refuse l'enregistrement
 
+	# ─── Suppression différée (https://github.com/dascritch/machincast/issues/267) ───
+
+	Plan du scénario: Un élément supprimé libère son nom, ou son emplacement, pour un nouvel élément
+		Quand j'enregistre dans "<table>" : <valeurs>, supprime_le = now()
+		Et j'enregistre dans "<table>" : <valeurs>
+		Alors la base accepte l'enregistrement
+		Quand j'enregistre dans "<table>" : <valeurs>
+		Alors la base refuse l'enregistrement
+
+		Exemples:
+			| table      | valeurs                                            |
+			| sonores    | type = 'fichier', emplacement = '/musique/a.flac'  |
+			| banques    | nom_interne = 'Jingles', mode = 'aleatoire'        |
+			| sequences  | nom_interne = 'Ouverture'                          |
+			| evenements | nom_interne = 'Matinale', priorite = 'fil_musical' |
+
+	Scénario: Annuler la migration de la suppression différée efface les éléments supprimés
+		Quand j'enregistre dans "banques" : nom_interne = 'Jingles', mode = 'aleatoire', supprime_le = now()
+		Et j'enregistre dans "banques" : nom_interne = 'Jingles', mode = 'aleatoire'
+		Et j'annule les migrations depuis « 0013.suppression-differee »
+		Alors la table « banques » a 1 ligne
+		Quand j'applique les migrations
+		Alors aucune connexion supplémentaire à la base de test ne reste ouverte
+
+	Scénario: La migration date la disparition des sonores déjà à l'état supprimé
+		Quand j'annule les migrations depuis « 0013.suppression-differee »
+		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/a.flac', etat = 'supprime'
+		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/b.flac', etat = 'actif'
+		Et j'applique les migrations
+		Alors le sonore « /a.flac » a une date de disparition
+		Et le sonore « /b.flac » n'a pas de date de disparition
+
 	Scénario: La date de modification est tenue à jour
 		Étant donné les éléments de référence en base
 		Quand je modifie le titre du sonore de référence

@@ -65,7 +65,9 @@ Deux bases à la structure strictement identique : la base de production et la b
 | --- | --- |
 | `id` | Identifiant. |
 | `type` | `fichier` ou `stream`. |
-| `emplacement` | Chemin du fichier. Clé unique pour les fichiers. Vide pour un stream. |
+| `emplacement` | Chemin du fichier. Clé unique pour les fichiers qui ne sont pas supprimés. Vide pour un stream. |
+| `supprime_le` | Demande de suppression depuis l'interface ; vide pour un sonore en service ([#267](https://github.com/dascritch/machincast/issues/267), [§ 8.9](#89-suppression)). Même colonne pour `banques`, `sequences` et `evenements`, dont le nom interne n'est unique que parmi ceux qui ne sont pas supprimés. |
+| `disparu_le` | Disparition du fichier, constatée par l'indexation (état `supprime`) ; vide quand il n'a pas disparu ([#267](https://github.com/dascritch/machincast/issues/267)). |
 | `url_stream` | URL directe d'un stream à usage unique (par exemple avec un SESSIONID dans l'URL). |
 | `feed_id` | Référence à un feed de stream. |
 | `secours_evenement_id` | Stream seulement : événement de priorité `secours` qui joue à la place du stream quand son flux tombe. Vide = l'événement de priorité inférieure (fil musical). Voir [§ 4.7](#47-streams). |
@@ -236,7 +238,7 @@ Le schéma, les rôles et les droits sont créés par la migration `src/machinca
 - `metadonnees_musicales` : objet JSON (`jsonb`), jamais un tableau ni une valeur nulle.
 - Un événement ne peut pas avoir de fin sans début.
 - Positions dans `banques_sonores`, `evenements_elements` et `sequences_elements` : uniques par banque, par événement ou par séquence, vérifiées en fin de transaction pour permettre de réordonner.
-- Suppressions : un lien de banque, un élément d'événement ou un élément de séquence disparaît avec la banque, le sonore, la séquence ou l'événement qu'il référence ; `airplay` et `log` gardent leurs lignes, avec la référence passée à vide. Un feed utilisé par un sonore ne peut pas être supprimé. La validation préalable des suppressions est faite par l'interface ([§ 8.9](#89-suppression)).
+- Suppressions : un lien de banque, un élément d'événement ou un élément de séquence disparaît avec la banque, le sonore, la séquence ou l'événement qu'il référence, et quand l'interface le marque supprimé ([§ 8.9](#89-suppression)) ; `airplay` et `log` gardent leurs lignes, avec la référence passée à vide. Un feed utilisé par un sonore ne peut pas être supprimé. La validation préalable des suppressions est faite par l'interface ([§ 8.9](#89-suppression)).
 - Pour un stream, la colonne `emplacement` de `airplay` recopie l'URL diffusée.
 - `modifie_le` est mis à jour par un déclencheur à chaque modification de `sonores`, `banques`, `evenements` et `sequences`.
 
@@ -768,15 +770,20 @@ Mise en œuvre ([#30](https://github.com/dascritch/machincast/issues/30), `machi
 ### 8.9 Suppression
 
 - Un sonore présent dans un événement ou une banque n'est supprimé qu'après validation, en rappelant les événements et banques où il figure.
-- Supprimer un sonore supprime son entrée en base, **jamais son fichier**, qui reste à sa place ([#96](https://github.com/dascritch/machincast/issues/96)). Si le fichier est toujours dans le répertoire d'une banque, la prochaine indexation l'enregistre de nouveau comme un nouveau sonore.
+- Supprimer un sonore le retire des listes où il figure, **jamais son fichier**, qui reste à sa place ([#96](https://github.com/dascritch/machincast/issues/96)). Si le fichier est toujours dans le répertoire d'une banque, la prochaine indexation l'enregistre de nouveau comme un nouveau sonore.
 - Même règle pour la suppression d'une banque, d'une séquence ou d'un événement.
+- **Suppression différée** ([#267](https://github.com/dascritch/machincast/issues/267), partie de [#251](https://github.com/dascritch/machincast/issues/251)) : un sonore, une banque, une séquence ou un événement supprimé reste en base, marqué « supprimé » (`supprime_le`), jusqu'à sa péremption ; il n'est plus joué, ni proposé dans les listes, la recherche, les choix, les suggestions et la grille. Sa fiche se rouvre depuis l'historique, et se restaure. Un feed quitte la base.
 - Les lignes `airplay` sont toujours conservées.
 
 Mise en œuvre ([#33](https://github.com/dascritch/machincast/issues/33), `machincast.interface.suppression`, `Fiche.supprimer`) :
 
 - **Bouton** « Supprimer… » au pied de chaque fiche, actif dès que l'élément est en base. La confirmation est toujours demandée (`dialogues.confirmer_suppression`, Entrée et Échap gardent l'élément), même pour un élément qui ne figure nulle part.
 - **Question** : les banques, séquences et événements dont la liste contient l'élément, par nom, en signalant ceux qui n'auraient plus rien ; pour un sonore, son fichier, qui reste en place, et les banques dont un répertoire le contient, qui le réindexeront ; pour une banque, ses répertoires ; pour un événement, les streams qu'il secourt.
-- **Suppression** : un `DELETE` de la ligne, dans une transaction ; les clés étrangères retirent l'élément des listes (`ON DELETE CASCADE`) et vident les références de l'airplay, du log et des streams (`ON DELETE SET NULL`). Aucun fichier ni répertoire n'est touché. La fiche se ferme ensuite sans question ; un élément déjà effacé ferme simplement sa fiche.
+- **Question** : elle finit, sauf pour un feed, par « Marqué « supprimé », il se restaure depuis sa fiche. » (au féminin pour une banque ou une séquence).
+- **Suppression** (`suppression.supprimer`, dans une transaction) : les lignes qui citent l'élément dans les listes des banques, des séquences et des événements sont effacées ; un événement ne secourt plus aucun stream (`secours_evenement_id` vidé) ; puis l'élément est marqué, `supprime_le` à l'heure de l'interface. Ses propres listes, ses répertoires, et les références de l'airplay et du log restent. Un feed est effacé (`DELETE`). Aucun fichier ni répertoire n'est touché. La fiche se ferme ensuite sans question ; un élément déjà effacé de la base ferme simplement sa fiche.
+- **Fiche d'un élément supprimé** (`Fiche._montrer_la_suppression`) : rouverte depuis l'airplay, les incidents ou toute cellule qui le cite, elle dit « Supprimé le 19/10/2026 à 15:30 : « Restaurer » le remet en service. » ; ses champs, ses listes et ses boutons ne se modifient pas, et « Restaurer » remplace « Supprimer… ».
+- **Restaurer** (`suppression.restaurer`) : `supprime_le` redevient vide ; l'élément ne revient pas dans les listes d'où il avait été retiré, ni comme secours des streams. Il est refusé si un autre élément a pris son nom, ou, pour un sonore, son fichier : « Restauration impossible : une autre banque s'appelle déjà « Publicité ». ».
+- **Lecture et indexation** : la grille ignore les événements supprimés ; l'indexation ignore les sonores supprimés, et les répertoires des banques supprimées ; elle date la disparition d'un fichier (`disparu_le`).
 
 ### 8.10 Fil musical garanti
 

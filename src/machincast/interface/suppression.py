@@ -1,14 +1,18 @@
 """Suppression d'un élément depuis sa fiche (https://github.com/dascritch/machincast/issues/33, spec § 8.9).
 
-Supprimer un sonore, une banque, une séquence ou un événement supprime sa ligne en base, et le retire des listes où il
-figure (les clés étrangères en cascade) : jamais un fichier sonore ni un répertoire, qui restent à leur place, intacts
-(https://github.com/dascritch/machincast/issues/96). L'historique de diffusion garde ses passages (les références de
-airplay passent à NULL), comme les streams qu'un événement de secours supprimé secourait.
+Supprimer un sonore, une banque, une séquence ou un événement le retire des listes où il figure, et le marque
+« supprimé », avec l'instant de la demande (supprime_le) : il reste en base jusqu'à sa péremption, hors des listes, de
+la recherche et de la grille, et se restaure depuis sa fiche (restaurer,
+https://github.com/dascritch/machincast/issues/267). Restauré, il ne revient pas dans les listes d'où il avait été
+retiré. Un événement supprimé ne secourt plus aucun stream. Un feed quitte la base. Jamais un fichier sonore ni un
+répertoire, qui restent à leur place, intacts (https://github.com/dascritch/machincast/issues/96). L'historique de
+diffusion garde ses passages.
 
 La question de confirmation dit où l'élément figure, et quelle liste n'aurait plus rien après son retrait.
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 import psycopg
@@ -38,6 +42,15 @@ class Genre:
 	"""Colonne de son nom."""
 	historique: bool = True
 	"""L'historique de diffusion le cite : la question rappelle qu'il garde ses passages."""
+	differee: bool = True
+	"""Supprimé, il reste en base, marqué, jusqu'à sa péremption ; sinon, il quitte la base."""
+
+	@property
+	def objet(self) -> str:
+		"""« le » ou « la » : le pronom qui le reprend."""
+		if self.accord == "e":
+			return "la"
+		return "le"
 
 
 GENRES = {
@@ -63,7 +76,7 @@ GENRES = {
 		"sequences", "la séquence", "Elle", "e", "sequence_id", ("événement",), "Elle ne figure dans aucun événement."
 	),
 	"événement": Genre("evenements", "l'événement", "Il", "", "", (), ""),
-	"feed": Genre("feeds", "le feed", "Il", "", "", (), "Aucun stream ne le suit.", "nom", False),
+	"feed": Genre("feeds", "le feed", "Il", "", "", (), "Aucun stream ne le suit.", "nom", False, False),
 }
 CONTENANTS = {
 	"banque": ("banques", "banques_sonores", "banque_id", "de la banque", "qui n'aura plus aucun sonore"),
@@ -177,7 +190,9 @@ def _suites(connexion: Connexion, genre: str, identifiant: int) -> list[str]:
 		lignes.append(f"Il est l'événement de secours du stream {_noms(streams)}, qui n'en aura plus.")
 	elif streams != []:
 		lignes.append(f"Il est l'événement de secours des streams {_noms(streams)}, qui n'en auront plus.")
-	lignes.append("Sa liste de lecture disparaît avec lui ; ses sonores, banques et séquences restent en base.")
+	lignes.append(
+		"Il ne joue plus ; sa liste de lecture reste avec lui. Ses sonores, banques et séquences restent en base."
+	)
 	return lignes
 
 
@@ -207,7 +222,9 @@ def question(connexion: Connexion, genre: str, identifiant: int) -> tuple[str, s
 		return None
 	_empecher(connexion, genre, identifiant)
 	decrit = GENRES[genre]
-	lignes = [f"Supprimer de la base {decrit.article} « {nom} » ?"]
+	lignes = [f"Supprimer {decrit.article} « {nom} » ?"]
+	if not decrit.differee:
+		lignes = [f"Supprimer de la base {decrit.article} « {nom} » ?"]
 	retraits = _retraits(connexion, genre, identifiant)
 	if retraits != []:
 		lignes.append(f"{decrit.pronom} en sera retiré{decrit.accord} :")
@@ -218,9 +235,80 @@ def question(connexion: Connexion, genre: str, identifiant: int) -> tuple[str, s
 	lignes += _suites(connexion, genre, identifiant)
 	if decrit.historique:
 		lignes.append(HISTORIQUE)
+	if decrit.differee:
+		lignes.append(
+			f"Marqué{decrit.accord} « supprimé{decrit.accord} », {decrit.pronom.lower()} se restaure depuis sa fiche."
+		)
 	return f"Supprimer {decrit.article}", "\n".join(lignes)
 
 
-def supprimer(connexion: Connexion, genre: str, identifiant: int) -> None:
-	"""Supprime la ligne de l'élément, dans la transaction en cours ; les listes qui le contiennent le perdent."""
-	connexion.execute(f"DELETE FROM {GENRES[genre].table} WHERE id = %s", (identifiant,))  # noqa: S608
+def supprimer(connexion: Connexion, genre: str, identifiant: int, instant: datetime) -> None:
+	"""Dans la transaction en cours : retire l'élément des listes qui le contiennent, et le marque « supprimé » à cet
+	instant ; un événement ne secourt plus aucun stream. Un feed quitte la base."""
+	decrit = GENRES[genre]
+	if not decrit.differee:
+		connexion.execute(f"DELETE FROM {decrit.table} WHERE id = %s", (identifiant,))  # noqa: S608
+		return
+	for contenant in decrit.contenants:
+		_table, elements, _parent, _nommer, _vide = CONTENANTS[contenant]
+		connexion.execute(f"DELETE FROM {elements} WHERE {decrit.colonne} = %s", (identifiant,))  # noqa: S608
+	if genre == "événement":
+		connexion.execute(
+			"UPDATE sonores SET secours_evenement_id = NULL WHERE secours_evenement_id = %s", (identifiant,)
+		)
+	connexion.execute(
+		f"UPDATE {decrit.table} SET supprime_le = %s WHERE id = %s",  # noqa: S608
+		(instant, identifiant),
+	)
+
+
+def supprime_le(connexion: Connexion, genre: str, identifiant: int) -> datetime | None:
+	"""L'instant de la demande de suppression ; None pour un élément qui n'est pas supprimé, ou qui ne l'est jamais
+	qu'en quittant la base."""
+	decrit = GENRES[genre]
+	if not decrit.differee:
+		return None
+	ligne = connexion.execute(
+		f"SELECT supprime_le FROM {decrit.table} WHERE id = %s",  # noqa: S608
+		(identifiant,),
+	).fetchone()
+	if (ligne is None) or (not isinstance(ligne[0], datetime)):
+		return None
+	return ligne[0]
+
+
+def marque(genre: str, instant: datetime) -> str:
+	"""Ce que dit la fiche d'un élément supprimé."""
+	decrit = GENRES[genre]
+	return (
+		f"Supprimé{decrit.accord} le {instant.astimezone():%d/%m/%Y à %H:%M} : « Restaurer » {decrit.objet} remet en"
+		" service."
+	)
+
+
+def restaurer(connexion: Connexion, genre: str, identifiant: int) -> None:
+	"""Dans la transaction en cours : l'élément n'est plus supprimé, sans revenir dans les listes d'où il avait été
+	retiré. Lève Empechee si un autre élément a repris son nom, ou son emplacement."""
+	decrit = GENRES[genre]
+	colonne = "emplacement"
+	if genre != "sonore":
+		colonne = decrit.nom
+	pris = connexion.execute(
+		f"SELECT o.{colonne} FROM {decrit.table} s JOIN {decrit.table} o ON o.{colonne} = s.{colonne}"  # noqa: S608
+		" AND o.id <> s.id AND o.supprime_le IS NULL WHERE s.id = %s",
+		(identifiant,),
+	).fetchone()
+	if pris is not None:
+		qui = f"{_un_autre(decrit)} s'appelle déjà « {pris[0]} »"
+		if genre == "sonore":
+			qui = f"un autre sonore a déjà ce fichier, {pris[0]}"
+		raise Empechee(f"Restauration impossible : {qui}.")
+	connexion.execute(f"UPDATE {decrit.table} SET supprime_le = NULL WHERE id = %s", (identifiant,))  # noqa: S608
+
+
+def _un_autre(decrit: Genre) -> str:
+	"""« une autre banque », « un autre événement »…"""
+	nom = decrit.article.split(" ", 1)[-1].removeprefix("l'")
+	if decrit.accord == "e":
+		return f"une autre {nom}"
+	return f"un autre {nom}"

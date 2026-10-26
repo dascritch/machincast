@@ -106,7 +106,7 @@ def lire_sonores(connexion: Connexion) -> list[Ligne]:
 		rangees = connexion.execute(
 			"SELECT s.id, s.artiste, s.titre, s.type::text, s.etat::text, s.audit_demande, s.duree,"
 			" COALESCE(s.emplacement, s.url_stream, m.url)"
-			" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id"
+			" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.supprime_le IS NULL"
 			" ORDER BY s.artiste NULLS LAST, s.titre, s.id"
 		).fetchall()
 	lignes = []
@@ -132,7 +132,7 @@ def lire_banques(connexion: Connexion) -> list[Ligne]:
 		rangees = connexion.execute(
 			"SELECT b.id, b.nom_interne, b.nom_public, b.mode::text, b.ne_pas_repeter,"
 			" (SELECT min(r.repertoire) FROM banques_repertoires r WHERE r.banque_id = b.id)"
-			" FROM banques b ORDER BY b.nom_interne, b.id"
+			" FROM banques b WHERE b.supprime_le IS NULL ORDER BY b.nom_interne, b.id"
 		).fetchall()
 	lignes = []
 	for identifiant, nom, nom_public, mode, marquee, repertoire in rangees:
@@ -147,7 +147,7 @@ def lire_sequences(connexion: Connexion) -> list[Ligne]:
 		rangees = connexion.execute(
 			"SELECT q.id, q.nom_interne, q.nom_public,"
 			" NOT EXISTS (SELECT 1 FROM sequences_elements e WHERE e.sequence_id = q.id)"
-			" FROM sequences q ORDER BY q.nom_interne, q.id"
+			" FROM sequences q WHERE q.supprime_le IS NULL ORDER BY q.nom_interne, q.id"
 		).fetchall()
 	lignes = []
 	for identifiant, nom, nom_public, vide in rangees:
@@ -164,7 +164,8 @@ def lire_feeds(connexion: Connexion) -> list[Ligne]:
 	"""Par nom, avec le nombre de streams qui suivent chacun (https://github.com/dascritch/machincast/issues/34)."""
 	with connexion.transaction():
 		rangees = connexion.execute(
-			"SELECT m.id, m.nom, m.url, (SELECT count(*) FROM sonores s WHERE s.feed_id = m.id)"
+			"SELECT m.id, m.nom, m.url,"
+			" (SELECT count(*) FROM sonores s WHERE s.feed_id = m.id AND s.supprime_le IS NULL)"
 			" FROM feeds m ORDER BY m.nom, m.id"
 		).fetchall()
 	return [
@@ -180,7 +181,7 @@ def lire_evenements(connexion: Connexion) -> list[Ligne]:
 			"SELECT e.id, e.nom_interne, e.nom_public, e.priorite::text, e.debut, e.fin, e.jours_recurrence::text[],"
 			" NOT EXISTS (SELECT 1 FROM evenements_elements x WHERE x.evenement_id = e.id)"
 			# e.priorite : l'ordre du type énuméré, pas celui du texte de la colonne affichée.
-			" FROM evenements e ORDER BY e.priorite DESC, e.nom_interne, e.id"
+			" FROM evenements e WHERE e.supprime_le IS NULL ORDER BY e.priorite DESC, e.nom_interne, e.id"
 		).fetchall()
 	lignes = []
 	for identifiant, nom, nom_public, priorite, debut, fin, jours, vide in rangees:

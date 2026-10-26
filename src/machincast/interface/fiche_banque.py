@@ -269,7 +269,8 @@ class FicheBanque(Fiche):
 		if nom == "":
 			raise Refus("Le nom interne est obligatoire.")
 		pris = self.connexion.execute(
-			"SELECT 1 FROM banques WHERE nom_interne = %s AND id IS DISTINCT FROM %s", (nom, self.identifiant)
+			"SELECT 1 FROM banques WHERE nom_interne = %s AND id IS DISTINCT FROM %s AND supprime_le IS NULL",
+			(nom, self.identifiant),
 		).fetchone()
 		if pris is not None:
 			raise Refus(f"Une autre banque s'appelle déjà « {nom} ».")

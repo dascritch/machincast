@@ -6,9 +6,25 @@ celles-ci suppriment, et lisent la base de test et le répertoire du scénario.
 
 from pathlib import Path
 
-from pytest_bdd import given, parsers, scenarios, then
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QLineEdit, QPushButton
+from pytest_bdd import given, parsers, scenarios, then, when
+from pytestqt.qtbot import QtBot
 
-from tests.etapes_interface import NOM, Connexion, Contexte, fiche_ouverte, identifiant, questions_de_suppression
+from machincast.interface import recherche
+from machincast.interface.choix import Choix
+from machincast.interface.listes import SONORES
+from tests.etapes_interface import (
+	NOM,
+	TABLES,
+	Connexion,
+	Contexte,
+	fenetre,
+	fiche_ouverte,
+	identifiant,
+	lignes,
+	questions_de_suppression,
+)
 
 scenarios("suppression.feature")
 
@@ -97,3 +113,78 @@ def dossier_la(interface: Contexte, dossier: str) -> None:
 def sans_secours(base_vide: Connexion, titre: str) -> None:
 	lignes = base_vide.execute("SELECT secours_evenement_id FROM sonores WHERE titre = %s", (titre,)).fetchall()
 	assert lignes == [(None,)]
+
+
+# ─── Suppression différée (https://github.com/dascritch/machincast/issues/267) ───
+
+GENRES = {"du sonore": "le sonore", "de la banque": "la banque", "de la séquence": "la séquence"}
+GENRES["de l'événement"] = "l'événement"
+FICHES = {"le sonore": "sonore", "la banque": "banque", "la séquence": "séquence", "l'événement": "événement"}
+
+
+@when(
+	parsers.re(
+		r"j'ouvre depuis l'historique la fiche (?P<de>du sonore|de la banque|de la séquence|de l'événement)"
+		r" « (?P<nom>[^»]+) »"
+	)
+)
+def ouvrir_depuis_l_historique(interface: Contexte, base_vide: Connexion, qtbot: QtBot, de: str, nom: str) -> None:
+	"""Comme un double-clic sur sa cellule de l'airplay, des incidents ou du calendrier : par son identifiant, l'élément
+	supprimé d'abord, quand un autre a repris son nom."""
+	genre = GENRES[de]
+	table, colonne = TABLES[genre]
+	ligne = base_vide.execute(
+		f"SELECT id FROM {table} WHERE {colonne} = %s ORDER BY supprime_le IS NULL, id",  # noqa: S608
+		(nom,),
+	).fetchone()
+	assert ligne is not None, nom
+	fenetre(interface)._ouvrir(FICHES[genre], int(str(ligne[0])), nom)
+
+
+@when(parsers.parse("une autre banque « {nom} » est créée en base"))
+def autre_banque(base_vide: Connexion, nom: str) -> None:
+	base_vide.execute("INSERT INTO banques (nom_interne, mode) VALUES (%s, 'aleatoire')", (nom,))
+
+
+@then(parsers.re(r"les champs de la fiche (?P<non>ne )?se modifient(?: pas)?"))
+def champs(interface: Contexte, non: str | None) -> None:
+	"""Les champs de saisie ; la case et les boutons de la fiche en lecture seule, sauf « Restaurer »."""
+	fiche = fiche_ouverte(interface)
+	saisies = [champ for champ in fiche.findChildren(QLineEdit) if champ.parent() is not None]
+	assert saisies != []
+	actifs = [champ.objectName() for champ in saisies if champ.isEnabled()]
+	if non is None:
+		assert actifs != [], "aucun champ modifiable"
+	else:
+		assert actifs == [], actifs
+
+
+@then(parsers.re(r"la fiche propose « (?P<oui>[^»]+) », pas « (?P<non>[^»]+) »"))
+def propose(interface: Contexte, oui: str, non: str) -> None:
+	textes = {bouton.text(): bouton for bouton in fiche_ouverte(interface).findChildren(QPushButton)}
+	assert (oui in textes) and (textes[oui].isEnabled()), list(textes)
+	assert non not in textes, list(textes)
+
+
+@then(parsers.re(r"la liste montre les noms (?P<noms>.+)"))
+def noms_affiches(interface: Contexte, noms: str) -> None:
+	assert [ligne["Nom"] for ligne in lignes(interface)] == NOM.findall(noms), lignes(interface)
+
+
+@then(parsers.parse("la recherche de « {texte} » ne trouve rien"))
+def recherche_vide(interface: Contexte, texte: str) -> None:
+	assert interface.connexion is not None
+	trouves, nombre = recherche.chercher(interface.connexion, texte, 50)
+	assert (trouves, nombre) == ([], 0), trouves
+
+
+@then(parsers.parse("le choix des sonores d'une banque ne propose pas « {titre} »"))
+def choix_sans(interface: Contexte, qtbot: QtBot, titre: str) -> None:
+	assert interface.connexion is not None
+	choix = Choix(SONORES, interface.connexion)
+	qtbot.addWidget(choix)
+	modele = choix.liste.table.model()
+	colonne = [modele.headerData(c, Qt.Orientation.Horizontal) for c in range(modele.columnCount())].index("Titre")
+	titres = [modele.index(rangee, colonne).data() for rangee in range(modele.rowCount())]
+	assert titres != []
+	assert titre not in titres, titres
