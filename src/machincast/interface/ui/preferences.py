@@ -18,8 +18,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
 from PySide6.QtWidgets import (QAbstractButton, QApplication, QCheckBox, QComboBox,
     QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout,
     QGroupBox, QHBoxLayout, QLabel, QPushButton,
-    QSizePolicy, QSpacerItem, QTabWidget, QVBoxLayout,
-    QWidget)
+    QSizePolicy, QSpacerItem, QSpinBox, QTabWidget,
+    QVBoxLayout, QWidget)
 
 class Ui_FenetrePreferences(object):
     def setupUi(self, FenetrePreferences):
@@ -264,6 +264,39 @@ class Ui_FenetrePreferences(object):
         self.disposition_audio.addItem(self.espace_audio)
 
         self.pages.addTab(self.page_audio, "")
+        self.page_base = QWidget()
+        self.page_base.setObjectName(u"page_base")
+        self.disposition_base = QVBoxLayout(self.page_base)
+        self.disposition_base.setObjectName(u"disposition_base")
+        self.formulaire_base = QFormLayout()
+        self.formulaire_base.setObjectName(u"formulaire_base")
+        self.etiquette_peremption = QLabel(self.page_base)
+        self.etiquette_peremption.setObjectName(u"etiquette_peremption")
+
+        self.formulaire_base.setWidget(0, QFormLayout.ItemRole.LabelRole, self.etiquette_peremption)
+
+        self.peremption = QSpinBox(self.page_base)
+        self.peremption.setObjectName(u"peremption")
+        self.peremption.setMinimum(1)
+        self.peremption.setMaximum(3650)
+        self.peremption.setValue(60)
+
+        self.formulaire_base.setWidget(0, QFormLayout.ItemRole.FieldRole, self.peremption)
+
+
+        self.disposition_base.addLayout(self.formulaire_base)
+
+        self.explication_peremption = QLabel(self.page_base)
+        self.explication_peremption.setObjectName(u"explication_peremption")
+        self.explication_peremption.setWordWrap(True)
+
+        self.disposition_base.addWidget(self.explication_peremption)
+
+        self.espace_base = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.disposition_base.addItem(self.espace_base)
+
+        self.pages.addTab(self.page_base, "")
 
         self.disposition.addWidget(self.pages)
 
@@ -281,6 +314,7 @@ class Ui_FenetrePreferences(object):
         self.etiquette_antenne.setBuddy(self.antenne)
         self.etiquette_preecoute.setBuddy(self.preecoute)
         self.etiquette_seuil_blancs.setBuddy(self.seuil_blancs)
+        self.etiquette_peremption.setBuddy(self.peremption)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(FenetrePreferences)
@@ -362,5 +396,9 @@ class Ui_FenetrePreferences(object):
         self.seuil_blancs.setSuffix(QCoreApplication.translate("FenetrePreferences", u" dB", None))
         self.explication_blancs.setText(QCoreApplication.translate("FenetrePreferences", u"L'audit complet mesure les blancs au d\u00e9but et \u00e0 la fin de chaque fichier \u00e0 ce seuil ; un nouveau seuil vaut pour les audits suivants. Une banque, ou un sonore, choisit d'\u00eatre jou\u00e9 sans ses blancs.", None))
         self.pages.setTabText(self.pages.indexOf(self.page_audio), QCoreApplication.translate("FenetrePreferences", u"Audio", None))
+        self.etiquette_peremption.setText(QCoreApplication.translate("FenetrePreferences", u"&Dur\u00e9e de p\u00e9remption", None))
+        self.peremption.setSuffix(QCoreApplication.translate("FenetrePreferences", u" jours", None))
+        self.explication_peremption.setText(QCoreApplication.translate("FenetrePreferences", u"Machin purge efface de la base les passages de l'airplay et les lignes du log plus vieux que cette dur\u00e9e, et les sonores, banques, s\u00e9quences et \u00e9v\u00e9nements supprim\u00e9s depuis plus longtemps. Il ne touche jamais aux fichiers sonores.", None))
+        self.pages.setTabText(self.pages.indexOf(self.page_base), QCoreApplication.translate("FenetrePreferences", u"Base", None))
     # retranslateUi
 

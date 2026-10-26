@@ -154,6 +154,17 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et le fichier de configuration contient encore « # Seuil de l'antenne du matin. »
 		Et le fichier de configuration contient encore les autres sections
 
+	Scénario: La durée de péremption réglée dans les préférences va dans la section [base], et les fiches la suivent
+		https://github.com/dascritch/machincast/issues/268 : Machin purge la prend à son prochain passage.
+
+		Étant donné la durée de péremption du fichier de configuration de l'interface est de 30 jours
+		Et les préférences seront réglées avec la durée de péremption de 90 jours
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors les préférences ont montré la durée de péremption de 30 jours
+		Et le fichier de configuration contient la ligne « peremption = 90 »
+		Et la durée de péremption de l'interface est de 90 jours
+
 	Scénario: Le voyant « Saturation » réglé dans les préférences va dans la section [interface], et l'accueil le suit aussitôt
 		https://github.com/dascritch/machincast/issues/191 : le voyant reste affiché par défaut.
 
@@ -182,7 +193,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Les crossfades ont leur propre page, la première (https://github.com/dascritch/machincast/issues/234).
 
 		Quand la fenêtre des préférences s'ouvre sur : granularité « dixieme », maximum 5 s, début par défaut 1,5 s, fin par défaut aucune
-		Alors elle s'intitule « Préférences », avec les pages « Crossfades », « Interface », « Audio »
+		Alors elle s'intitule « Préférences », avec les pages « Crossfades », « Interface », « Audio », « Base »
 		Et elle montre : granularité « Au dixième de seconde », maximum « 5,0 s », début par défaut « 1,5 s », fin par défaut aucune
 		Et son maximum se règle par pas de 0,1 s, à partir de 0,1 s
 		Quand j'y choisis la granularité « À la seconde »
@@ -263,6 +274,13 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et j'y clique sur « OK »
 		Alors elle a donné le seuil de blanc -55,5 dB
 
+	Scénario: La page « Base » montre la durée de péremption, et donne celle qui est saisie
+		Quand la fenêtre des préférences s'ouvre sur la durée de péremption de 60 jours
+		Alors elle montre la durée de péremption « 60 jours », réglable de 1 à 3650 jours
+		Quand j'y saisis la durée de péremption de 90 jours
+		Et j'y clique sur « OK »
+		Alors elle a donné la durée de péremption de 90 jours
+
 	Scénario: La page « Audio » montre les périphériques, chacun grisé dans l'autre choix
 		Étant donné les périphériques audio du poste :
 			| identifiant       | nom           |
@@ -270,7 +288,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| casque-usb        | Casque USB    |
 			| preecoute-factice | Haut-parleurs |
 		Quand la fenêtre des préférences s'ouvre sur l'antenne « carte-1 » et la pré-écoute « preecoute-factice »
-		Alors elle s'intitule « Préférences », avec les pages « Crossfades », « Interface », « Audio »
+		Alors elle s'intitule « Préférences », avec les pages « Crossfades », « Interface », « Audio », « Base »
 		Et le choix de l'antenne propose :
 			| sortie        | état     |
 			| Carte 1       | active   |

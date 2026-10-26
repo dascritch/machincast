@@ -14,6 +14,7 @@ Fonctionnalité: Aide des exécutables
 			| Machin_lecture    |
 			| Machin_indexation |
 			| Machin_interface  |
+			| Machin_purge      |
 
 	Plan du scénario: Un exécutable affiche sa version
 		Quand je lance "<executable>" avec l'option "--version"
@@ -25,3 +26,4 @@ Fonctionnalité: Aide des exécutables
 			| Machin_lecture    |
 			| Machin_indexation |
 			| Machin_interface  |
+			| Machin_purge      |

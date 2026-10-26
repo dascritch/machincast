@@ -10,6 +10,8 @@ page « Audio » règle les périphériques de l'antenne (audio.peripherique), q
 démarrage, et de la pré-écoute (audio.preecoute, https://github.com/dascritch/machincast/issues/116) : chacun est grisé
 dans l'autre choix ; elle règle aussi le seuil de blanc (blancs.seuil,
 https://github.com/dascritch/machincast/issues/146), que l'audit complet prend à son prochain passage. La page
+« Base » règle la durée de péremption (base.peremption, https://github.com/dascritch/machincast/issues/268), que
+Machin purge prend à son prochain passage, et que suit la fiche d'un élément supprimé. La page
 « Interface » règle l'accueil, et choisit l'icône de l'application (interface.icone,
 https://github.com/dascritch/machincast/issues/111) : une image lisible, ou celle de MachinCast ; la fenêtre principale
 la donne aussitôt à ses fenêtres et aux raccourcis déjà installés (machincast.raccourci.reecrire).
@@ -33,7 +35,7 @@ from PySide6.QtGui import QIcon, QStandardItemModel
 from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QVBoxLayout, QWidget
 
 from machincast import audio as sorties_audio
-from machincast.configuration import SEUIL_DE_BLANC, Crossfades, Granularite, SortieAudio
+from machincast.configuration import PEREMPTION, SEUIL_DE_BLANC, Crossfades, Granularite, SortieAudio
 from machincast.conversion import texte_ou_rien
 from machincast.interface.application import ICONE, lisible
 from machincast.interface.frise import Frise, Plan, forme_de_demonstration
@@ -76,9 +78,13 @@ class Reglages:
 	icone: Path | None = None
 	"""interface.icone : l'image choisie pour icône de l'application ; None : celle de MachinCast
 	(https://github.com/dascritch/machincast/issues/111)."""
+	peremption: int = PEREMPTION
+	"""base.peremption, en jours : au-delà, Machin purge efface de la base
+	(https://github.com/dascritch/machincast/issues/268)."""
 
 
 _courantes = Crossfades()
+_peremption = PEREMPTION
 
 
 DEMONSTRATION = (30.0, 3.0, 4.0)
@@ -94,6 +100,16 @@ def crossfades() -> Crossfades:
 def definir(reglages: Crossfades) -> None:
 	global _courantes  # noqa: PLW0603 : les préférences de la session, une seule par interface
 	_courantes = reglages
+
+
+def peremption() -> int:
+	"""La durée de péremption de la session, en jours : la fiche d'un élément supprimé dit quand il sera effacé."""
+	return _peremption
+
+
+def definir_peremption(jours: int) -> None:
+	global _peremption  # noqa: PLW0603 : les préférences de la session, une seule par interface
+	_peremption = jours
 
 
 def regler(champ: QDoubleSpinBox, granularite: Granularite, maximum: timedelta) -> None:
@@ -125,9 +141,14 @@ def _secondes(duree: timedelta) -> int | float:
 
 
 def ecrire(chemin: Path, reglages: Reglages) -> None:
-	"""Écrit les réglages dans les sections [crossfades], [audio], [blancs] et [interface] du fichier de
+	"""Écrit les réglages dans les sections [crossfades], [audio], [blancs], [interface] et [base] du fichier de
 	configuration, qui garde le reste tel quel, commentaires compris."""
 	document = tomlkit.parse(chemin.read_text(encoding="utf-8"))
+	base = document["base"]
+	assert isinstance(base, tomlkit.items.Table)
+	# La durée par défaut ne s'écrit pas dans une section qui ne la donne pas : [base] reste telle quelle.
+	if ("peremption" in base) or (reglages.peremption != PEREMPTION):
+		base["peremption"] = reglages.peremption
 	if "crossfades" not in document:
 		document.add("crossfades", tomlkit.table())
 	section = document["crossfades"]
@@ -198,6 +219,7 @@ class FenetrePreferences(QDialog):
 				champ.setValue(duree.total_seconds())
 		ui.seuil_blancs.setLocale(FRANCAIS)
 		ui.seuil_blancs.setValue(tous.seuil_blancs)
+		ui.peremption.setValue(tous.peremption)
 		ui.saturation.setChecked(tous.saturation)
 		ui.suggestions.setChecked(tous.suggestions)
 		self.icone = tous.icone
@@ -336,6 +358,7 @@ class FenetrePreferences(QDialog):
 			ui.saturation.isChecked(),
 			ui.suggestions.isChecked(),
 			self.icone,
+			ui.peremption.value(),
 		)
 
 

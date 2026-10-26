@@ -37,6 +37,7 @@ Fonctionnalité: Programmes de MachinCast en cours pendant l'installation
 			| 203 | radio  | /opt/machincast/.venv/bin/python3 -m machincast.installation migrer |        |
 			| 204 | radio  | /usr/bin/python3 -m machincast.programmes lister                    |        |
 			| 205 | radio  | /opt/machincast/.venv/bin/Machin_maintenance-db                     |        |
+			| 208 | radio  | /opt/machincast/.venv/bin/Machin_purge                              |        |
 		Et le processus 206 sans ligne de commande, comme un fil du noyau
 		Et le processus 207 disparu pendant la lecture
 		Alors aucun programme n'est en cours

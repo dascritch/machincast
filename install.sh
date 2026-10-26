@@ -7,7 +7,9 @@
 #                              (https://github.com/dascritch/machincast/issues/77)
 #   ./install.sh --service     installe aussi le service de diffusion : pour un ordinateur dédié à l'antenne
 #                              (https://github.com/dascritch/machincast/issues/22)
-#   ./install.sh --retirer-service   retire ce service, la diffusion se lance de nouveau à la main
+#                              et le minuteur de la purge quotidienne de la base, à midi
+#                              (https://github.com/dascritch/machincast/issues/268)
+#   ./install.sh --retirer-service   retire ce service et ce minuteur, la diffusion se lance de nouveau à la main
 #   ./install.sh --bureau      dépose aussi le raccourci de l'interface sur le bureau, sans le demander
 #   ./install.sh --sans-bureau ne le dépose pas, sans le demander (https://github.com/dascritch/machincast/issues/62)
 #   ./install.sh --arreter-les-programmes   arrête les programmes de MachinCast en cours, sans le demander
@@ -33,6 +35,12 @@ LIEN_COMPLETION="/usr/share/bash-completion/completions/Machin"
 UNITE="machincast.service"
 FICHIER_UNITE="/etc/systemd/system/${UNITE}"
 FICHIER_REGLE="/etc/polkit-1/rules.d/50-machincast.rules"
+# Purge quotidienne de la base, installée avec le service (https://github.com/dascritch/machincast/issues/268) : les
+# mêmes noms dans machincast.installation.
+UNITE_PURGE="machincast-purge.service"
+MINUTEUR_PURGE="machincast-purge.timer"
+FICHIER_UNITE_PURGE="/etc/systemd/system/${UNITE_PURGE}"
+FICHIER_MINUTEUR_PURGE="/etc/systemd/system/${MINUTEUR_PURGE}"
 # Raccourci de l'interface (https://github.com/dascritch/machincast/issues/62) : dans le menu des applications du
 # compte, et sur son bureau s'il le veut. Le même nom que RACCOURCI de machincast.interface.application.
 RACCOURCI="machincast.desktop"
@@ -96,7 +104,9 @@ aide() {
 		Avec --service, aussi le service de diffusion ${UNITE}, seulement pour un ordinateur dédié à
 		l'antenne : Machin lecture démarre avec le poste, sous le compte ${UTILISATEUR}, et redémarre après un
 		plantage ; une règle polkit le laisse démarrer, arrêter et redémarrer avec le mot de passe d'un
-		administrateur. Sans --service, rien de cela n'est installé : la diffusion se lance à la main.
+		administrateur ; un minuteur systemd, ${MINUTEUR_PURGE}, lance chaque jour à midi Machin purge, qui
+		efface de la base ce qui dépasse la durée de péremption. Sans --service, rien de cela n'est installé :
+		la diffusion et la purge se lancent à la main.
 
 		Relançable : chaque étape déjà faite est laissée telle quelle.
 		À lancer avec son propre compte, pas avec sudo : le script demande sudo quand il le faut.
@@ -106,7 +116,7 @@ aide() {
 		  --dev         installe aussi les outils du poste de développement
 		  --service     installe aussi le service de diffusion (ordinateur dédié à l'antenne seulement)
 		  --retirer-service
-		                retire le service de diffusion et sa règle polkit
+		                retire le service de diffusion, sa règle polkit et le minuteur de la purge
 		  --bureau      dépose aussi le raccourci de l'interface sur le bureau, sans le demander
 		  --sans-bureau ne le dépose pas sur le bureau, sans le demander
 		  --arreter-les-programmes
@@ -539,9 +549,17 @@ installer_service() {
 	else
 		executer sudo loginctl enable-linger "${UTILISATEUR}"
 	fi
-	local unite_changee=false
+	local unite_changee=false purge_changee=false
 	if installer_fichier unite "${FICHIER_UNITE}"; then
 		unite_changee=true
+	fi
+	if installer_fichier unite-purge "${FICHIER_UNITE_PURGE}"; then
+		purge_changee=true
+	fi
+	if installer_fichier minuteur-purge "${FICHIER_MINUTEUR_PURGE}"; then
+		purge_changee=true
+	fi
+	if "${unite_changee}" || "${purge_changee}"; then
 		executer sudo systemctl daemon-reload
 	fi
 	installer_fichier regle "${FICHIER_REGLE}" || true
@@ -550,7 +568,9 @@ installer_service() {
 		# Une unité modifiée ne vaut qu'au redémarrage du service, s'il tournait déjà.
 		executer sudo systemctl try-restart "${UNITE}"
 	fi
-	info "suivre la diffusion : Machin logs"
+	# La purge de la base, chaque jour à midi : Machin purge, sous le même compte.
+	executer sudo systemctl enable --now "${MINUTEUR_PURGE}"
+	info "suivre la diffusion : Machin logs ; la purge quotidienne : journalctl --unit=${UNITE_PURGE}"
 }
 
 retirer_service() {
@@ -562,13 +582,25 @@ retirer_service() {
 	else
 		info "${FICHIER_UNITE} absent"
 	fi
+	if [[ -e "${FICHIER_MINUTEUR_PURGE}" ]]; then
+		executer sudo systemctl disable --now "${MINUTEUR_PURGE}"
+		executer sudo rm --force "${FICHIER_MINUTEUR_PURGE}" # fichier de MachinCast : minuteur installé par --service
+	else
+		info "${FICHIER_MINUTEUR_PURGE} absent"
+	fi
+	if [[ -e "${FICHIER_UNITE_PURGE}" ]]; then
+		executer sudo rm --force "${FICHIER_UNITE_PURGE}" # fichier de MachinCast : unité installée par --service
+		executer sudo systemctl daemon-reload
+	else
+		info "${FICHIER_UNITE_PURGE} absent"
+	fi
 	if [[ -e "${FICHIER_REGLE}" ]]; then
 		executer sudo rm --force "${FICHIER_REGLE}" # fichier de MachinCast : règle installée par --service
 	else
 		info "${FICHIER_REGLE} absent"
 	fi
 	info "la session de ${UTILISATEUR} reste active au démarrage : sudo loginctl disable-linger ${UTILISATEUR} la retire"
-	info "la diffusion se lance de nouveau à la main, par Machin lecture"
+	info "la diffusion se lance de nouveau à la main, par Machin lecture ; la purge de la base, par Machin purge"
 }
 
 conclure() {

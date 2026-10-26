@@ -5,6 +5,8 @@
 	python -m machincast.installation verifier  --config machincast.toml   décodeurs GStreamer et sortie audio
 	python -m machincast.installation unite     --config machincast.toml   unité systemd du service de lecture
 	python -m machincast.installation regle     --config machincast.toml   règle polkit qui le pilote
+	python -m machincast.installation unite-purge    --config machincast.toml   unité systemd de la purge
+	python -m machincast.installation minuteur-purge --config machincast.toml   son minuteur, chaque jour à midi
 	python -m machincast.installation raccourci --config machincast.toml   raccourci de l'interface (.desktop)
 	python -m machincast.installation peripheriques --config machincast.toml   périphériques de sortie du poste
 
@@ -13,7 +15,8 @@ et audio.preecoute (https://github.com/dascritch/machincast/issues/116).
 
 install.sh enchaîne les commandes système (apt, sudo, psql, liens) ; ce module porte ce qui se teste : la lecture
 de la configuration, les migrations, la vérification des greffons GStreamer, et le texte de l'unité systemd et de la
-règle polkit du service de lecture (https://github.com/dascritch/machincast/issues/22), qu'install.sh --service
+règle polkit du service de lecture (https://github.com/dascritch/machincast/issues/22), et ceux de l'unité et du
+minuteur de la purge quotidienne (https://github.com/dascritch/machincast/issues/268), qu'install.sh --service
 installe, et celui du raccourci de l'interface, qu'install.sh met dans le menu des applications du compte et, sur
 demande, sur son bureau (https://github.com/dascritch/machincast/issues/62).
 """
@@ -45,6 +48,11 @@ from machincast.service import UNITE  # noqa: E402
 EXECUTABLE = "machincast.installation"
 DESCRIPTION = "Étapes d'installation de MachinCast, appelées par install.sh."
 CODE_ECHEC = 1
+UNITE_PURGE = "machincast-purge.service"
+"""L'unité de la purge, Machin purge : les mêmes noms dans install.sh."""
+MINUTEUR_PURGE = "machincast-purge.timer"
+HEURE_PURGE = "*-*-* 12:00:00"
+"""Chaque jour à midi : en journée, quand le poste de l'antenne est allumé."""
 
 # Nom explicite : lancé par python -m, ce module s'appelle __main__, hors du journal « machincast ».
 journal = logging.getLogger("machincast.installation")
@@ -235,6 +243,44 @@ WantedBy=multi-user.target
 """
 
 
+def unite_purge(compte: Compte, repertoire: Path = REPERTOIRE_PROJET) -> str:
+	"""L'unité de la purge : Machin purge, une fois, sous le compte de MachinCast, propriétaire de la base. Son
+	minuteur la lance ; elle n'a pas de section Install. Ses messages vont dans journald."""
+	return f"""# Purge de la base de MachinCast (https://github.com/dascritch/machincast/issues/268).
+# Installé par install.sh --service ; ne pas modifier ici, relancer install.sh --service.
+
+[Unit]
+Description=MachinCast : purge de la base de données (Machin purge)
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User={compte.nom}
+Group={compte.groupe}
+WorkingDirectory={repertoire}
+ExecStart={repertoire}/bin/Machin purge
+SyslogIdentifier=machincast-purge
+"""
+
+
+def minuteur_purge() -> str:
+	"""Le minuteur de la purge : chaque jour à midi ; une purge manquée, poste éteint, se fait à son démarrage."""
+	return f"""# Purge quotidienne de la base de MachinCast (https://github.com/dascritch/machincast/issues/268).
+# Installé par install.sh --service ; ne pas modifier ici, relancer install.sh --service.
+
+[Unit]
+Description=MachinCast : purge quotidienne de la base, à midi
+
+[Timer]
+OnCalendar={HEURE_PURGE}
+Persistent=true
+Unit={UNITE_PURGE}
+
+[Install]
+WantedBy=timers.target
+"""
+
+
 def regle_polkit(compte: Compte) -> str:
 	"""La règle polkit du service de lecture : son compte le démarre, l'arrête ou le redémarre, avec
 	l'authentification d'un administrateur ; rien d'autre, ni sur une autre unité."""
@@ -262,6 +308,16 @@ def raccourci(repertoire: Path = REPERTOIRE_PROJET, icone: Path | None = None) -
 def _unite(_configuration: Configuration) -> int:
 	# Le texte de l'unité, qu'install.sh installe : ce n'est pas un message, d'où l'écriture directe.
 	sys.stdout.write(unite_systemd(Compte.courant()))
+	return 0
+
+
+def _unite_purge(_configuration: Configuration) -> int:
+	sys.stdout.write(unite_purge(Compte.courant()))
+	return 0
+
+
+def _minuteur_purge(_configuration: Configuration) -> int:
+	sys.stdout.write(minuteur_purge())
 	return 0
 
 
@@ -303,10 +359,12 @@ def _peripheriques(configuration: Configuration) -> int:
 ACTIONS = {
 	"bases": _bases,
 	"migrer": _migrer,
+	"minuteur-purge": _minuteur_purge,
 	"peripheriques": _peripheriques,
 	"raccourci": _raccourci,
 	"regle": _regle,
 	"unite": _unite,
+	"unite-purge": _unite_purge,
 	"verifier": _verifier,
 }
 

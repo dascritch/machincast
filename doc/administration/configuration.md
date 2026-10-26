@@ -58,6 +58,15 @@ Une sortie impossible à écrire (dossier sans droit d'écriture, disque plein) 
 
 L'interface garde, pour chaque compte, la disposition des colonnes de chacun de ses tableaux : leur ordre, les colonnes cachées et les largeurs choisies ([#207](https://github.com/dascritch/machincast/issues/207), [Colonnes des tableaux](../utilisateur/listes.md#colonnes-des-tableaux)). Ce n'est pas un réglage du poste : il n'est pas dans `machincast.toml`, mais dans `~/.config/machincast/vues.ini` (ou `$XDG_CONFIG_HOME/machincast/vues.ini`), une section par tableau, comme `[liste-sonores]` ou `[fiche-banque-sonores]`. Supprimer ce fichier rend à tous les tableaux du compte leur disposition d'origine ; « Rétablir les colonnes », dans l'interface, le fait pour un seul. Une disposition gardée pour d'autres colonnes, par une version précédente de MachinCast, est oubliée.
 
+## Durée de péremption
+
+`base.peremption` ([#268](https://github.com/dascritch/machincast/issues/268)) est la durée, en jours entiers, 1 au moins, après laquelle [`Machin purge`](commandes.md#purge-de-la-base--machin-purge) efface de la base les passages de l'airplay, les lignes du log, et les éléments supprimés ou dont le fichier a disparu. 60 jours par défaut ; un nombre décimal, un texte ou 0 sont refusés (code 2). L'interface la règle aussi, **Fichier → Préférences…**, page **Base**, qui l'écrit dans la section `[base]`, et la fiche d'un élément supprimé donne le jour où il sera effacé.
+
+```toml
+[base]
+peremption = 90
+```
+
 ## Droits de chaque programme dans la base
 
 Chaque programme agit dans la base avec ses propres droits : le compte qui le lance n'a accès à rien par lui-même, et le programme endosse son rôle PostgreSQL dès la connexion. Un programme ne peut donc pas faire plus que ce qui suit, même lancé par un compte qui a les trois rôles.
@@ -67,5 +76,7 @@ Chaque programme agit dans la base avec ses propres droits : le compte qui le la
 | `Machin lecture` | `machincast_lecture` | Lire la programmation, séquences comprises ; passer un sonore à `expiré` ; ajouter des lignes à l'airplay et au log, sans jamais les modifier ni les supprimer. |
 | `Machin indexation` | `machincast_indexation` | Lire les banques et leurs répertoires ; ajouter et mettre à jour des sonores, et les ranger dans les banques. Il ne supprime rien et n'écrit pas dans le log. |
 | `Machin interface` | `machincast_interface` | Tout modifier dans les sonores, les banques, les séquences et les événements ; lire l'airplay et le log, sans les modifier. |
+
+`Machin maintenance-db` et `Machin purge` n'endossent aucun rôle : ils agissent en propriétaire de la base, ce qu'est le compte de MachinCast. Seule la purge efface des lignes de l'airplay et du log.
 
 Le détail, table par table, est dans la [spécification, § 3.2](../spec.md#32-rôles-et-droits). Ajouter un autre compte est décrit dans [INSTALL.md](../../INSTALL.md#ajouter-un-autre-compte).

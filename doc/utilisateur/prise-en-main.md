@@ -182,6 +182,12 @@ Page **Audio** :
 | Pré-écoute | Le périphérique de la [pré-écoute](sonores.md#pré-écoute), le casque de la régie par exemple. L'antenne et la pré-écoute n'utilisent jamais le même : celui de l'une est grisé dans l'autre. |
 | Seuil de blanc | De -100 à -0,1 dB, -40 dB par défaut : le niveau sous lequel le début et la fin d'un sonore sont un blanc ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)). |
 
+Page **Base** ([#268](https://github.com/dascritch/machincast/issues/268)) :
+
+| Réglage | Rôle |
+| --- | --- |
+| Durée de péremption | De 1 à 3650 jours, 60 par défaut : l'airplay et le journal plus anciens s'effacent de la base, comme les éléments [supprimés](listes.md#supprimer-un-élément) depuis plus longtemps, qui ne se restaurent plus. Les fichiers sonores ne sont jamais touchés. L'effacement se fait chaque jour à midi sur l'ordinateur de l'antenne ; la fiche d'un élément supprimé donne le jour où il sera effacé. |
+
 **OK** les enregistre ; la barre d'état le dit. **Annuler** ne change rien.
 
 ## Textes saisis

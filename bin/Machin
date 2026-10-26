@@ -12,7 +12,7 @@
 set -euo pipefail
 
 # Binaires connus, dans l'ordre de l'aide. Un test vérifie qu'ils correspondent à [project.scripts] de pyproject.toml.
-BINAIRES=(lecture indexation interface maintenance-db)
+BINAIRES=(lecture indexation interface maintenance-db purge)
 UNITE_LECTURE="machincast.service"
 
 CODE_USAGE=2
@@ -45,6 +45,9 @@ aide_complete() {
 		  maintenance-db
 		               sauvegarde, vérifie et optimise la base de données
 		               (https://github.com/dascritch/machincast/issues/127)
+		  purge        efface de la base ce qui dépasse la durée de péremption : vieux
+		               passages de l'airplay, lignes du log, éléments supprimés ; jamais un
+		               fichier (https://github.com/dascritch/machincast/issues/268)
 
 		  Aide d'un binaire : Machin BINAIRE --help
 
