@@ -184,6 +184,11 @@ def interface(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Conte
 		interface.fenetre.close()
 	if interface.connexion is not None:
 		interface.connexion.close()
+	# pytest-qt a fermé la fenêtre et demandé sa suppression (deleteLater), qui n'est faite que dans une boucle
+	# d'événements : elle se fait ici, avec celle de ce que la fenêtre emporte. Sinon, les fenêtres des scénarios qui
+	# n'attendent rien s'accumulent, et le premier scénario qui attend les supprime toutes, au détriment de son délai
+	# (https://github.com/dascritch/machincast/issues/262).
+	QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 QUESTIONS_DE_MODIFICATION = {"fermer la fiche": "fermeture", "rafraîchir la fiche": "rafraîchissement"}

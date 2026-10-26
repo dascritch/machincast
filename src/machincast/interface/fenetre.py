@@ -259,6 +259,11 @@ class FenetrePrincipale(QMainWindow):
 			self._titres[liste] = titre
 			if titre not in A_LA_DEMANDE:
 				self._ajouter_fixe(liste, titre)
+				continue
+			# Sans onglet jusqu'à ce qu'on la demande, elle appartient à la fenêtre, cachée : elle ne lui survit pas
+			# (https://github.com/dascritch/machincast/issues/262).
+			liste.setParent(self)
+			liste.hide()
 		self.incidents = EcranIncidents(connexion)
 		self.incidents.ouverte.connect(self._ouvrir)
 		self._ajouter_fixe(self.incidents, "Incidents")
