@@ -222,6 +222,61 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et la pré-écoute montre la source « Antenne : sortie factice, signal de test »
 		Et la pré-écoute est bientôt « En lecture »
 
+	Scénario: Pendant l'écoute de l'antenne, l'entrée du menu devient « Arrêter la pré-écoute de l'antenne », qui l'arrête
+		https://github.com/dascritch/machincast/issues/256
+
+		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Pré-écoute de l'antenne » dans le menu « Diffusion »
+		Et la pré-écoute est bientôt « En lecture »
+		Alors l'entrée d'écoute de l'antenne du menu « Diffusion » est « Arrêter la pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Arrêter l'écoute de l'antenne sur la sortie de pré-écoute »
+		Quand je choisis « Arrêter la pré-écoute de l'antenne » dans le menu « Diffusion »
+		Alors la pré-écoute est « À l'arrêt »
+		Et l'entrée d'écoute de l'antenne du menu « Diffusion » est « Pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
+
+	Scénario: Alt+P lance l'écoute de l'antenne, puis l'arrête, même depuis la fiche d'un événement
+		https://github.com/dascritch/machincast/issues/256 : « Nom public », dans les fiches, se saisit par Alt+U, pour
+		laisser Alt+P à l'écoute de l'antenne.
+
+		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
+		Et les événements :
+			| nom      | nom_public  | priorite | debut               | fin                 | jours |
+			| Matinale | La matinale | emission | 2026-10-19 07:00:00 | 2026-10-19 09:00:00 |       |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et j'appuie sur « Alt+P »
+		Alors la fenêtre de pré-écoute est ouverte, titrée « en cours : — »
+		Et la pré-écoute est bientôt « En lecture »
+		Quand j'appuie sur « Alt+P »
+		Alors la pré-écoute est « À l'arrêt »
+		Et l'entrée d'écoute de l'antenne du menu « Diffusion » est « Pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
+		Et le nom public de la fiche se saisit par « Alt+U »
+
+	Scénario: Arrêter l'écoute depuis la fenêtre de pré-écoute, ou la fermer, rend l'entrée « Pré-écoute de l'antenne »
+		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Pré-écoute de l'antenne » dans le menu « Diffusion »
+		Et la pré-écoute est bientôt « En lecture »
+		Et j'arrête la pré-écoute
+		Alors l'entrée d'écoute de l'antenne du menu « Diffusion » est « Pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
+		Quand je choisis « Pré-écoute de l'antenne » dans le menu « Diffusion »
+		Et la pré-écoute est bientôt « En lecture »
+		Et je ferme la fenêtre de pré-écoute
+		Alors l'entrée d'écoute de l'antenne du menu « Diffusion » est « Pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
+
+	Scénario: Un sonore en pré-écoute n'est pas l'antenne : l'entrée reste « Pré-écoute de l'antenne », et passe à l'antenne
+		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
+		Et le sonore « Jingle », pour une copie du fichier de test « sain.flac »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je demande la pré-écoute du sonore « Jingle »
+		Et je lance la pré-écoute
+		Et la pré-écoute est bientôt « En lecture »
+		Alors l'entrée d'écoute de l'antenne du menu « Diffusion » est « Pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
+		Quand j'appuie sur « Alt+P »
+		Alors la fenêtre de pré-écoute est ouverte, titrée « en cours : — »
+		Et la pré-écoute est bientôt « En lecture »
+		Et l'entrée d'écoute de l'antenne du menu « Diffusion » est « Arrêter la pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Arrêter l'écoute de l'antenne sur la sortie de pré-écoute »
+
 	Scénario: Une antenne devenue indisponible ne se pré-écoute pas
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre

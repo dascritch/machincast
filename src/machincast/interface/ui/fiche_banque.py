@@ -323,7 +323,7 @@ class Ui_FicheBanque(object):
     def retranslateUi(self, FicheBanque):
         self.etiquette_nom_interne.setText(QCoreApplication.translate("FicheBanque", u"&Nom interne", None))
         self.nom_interne.setPlaceholderText(QCoreApplication.translate("FicheBanque", u"Obligatoire, et propre \u00e0 cette banque", None))
-        self.etiquette_nom_public.setText(QCoreApplication.translate("FicheBanque", u"Nom &public", None))
+        self.etiquette_nom_public.setText(QCoreApplication.translate("FicheBanque", u"Nom p&ublic", None))
         self.nom_public.setPlaceholderText(QCoreApplication.translate("FicheBanque", u"Affich\u00e9 \u00e0 la place de l'artiste et du titre masqu\u00e9s ; facultatif", None))
         self.etiquette_mode.setText(QCoreApplication.translate("FicheBanque", u"&Mode", None))
         self.etiquette_masquage.setText(QCoreApplication.translate("FicheBanque", u"&Artiste et titre", None))

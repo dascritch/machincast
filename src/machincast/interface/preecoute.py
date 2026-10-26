@@ -39,7 +39,7 @@ from psycopg.rows import TupleRow
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
-from PySide6.QtCore import Qt, QTimer  # noqa: E402
+from PySide6.QtCore import Qt, QTimer, Signal  # noqa: E402
 from PySide6.QtGui import QCloseEvent, QStandardItemModel  # noqa: E402
 from PySide6.QtWidgets import QVBoxLayout, QWidget  # noqa: E402
 
@@ -449,6 +449,10 @@ EN_COURS = "en cours : "
 class FenetrePreecoute(QWidget):
 	"""La fenêtre de pré-écoute : indépendante, elle ne se ferme pas avec la fiche qui l'a ouverte."""
 
+	ecoute_changee = Signal(bool)
+	"""L'écoute de l'antenne commence (vrai) ou cesse (faux) : lecture lancée, arrêtée, fenêtre fermée ou autre
+	sonore (https://github.com/dascritch/machincast/issues/256)."""
+
 	def __init__(
 		self,
 		connexion: psycopg.Connection[TupleRow],
@@ -489,7 +493,16 @@ class FenetrePreecoute(QWidget):
 		self._releve.start()
 		self.a_l_antenne = False
 		"""La fenêtre écoute l'antenne : son titre suit le texte public du sonore en cours."""
+		self._ecoute_annoncee = False
 		self.preecouter(None)
+
+	def ecoute_l_antenne(self) -> bool:
+		"""L'antenne est chargée, et sa lecture lancée, ou en pause."""
+		return (self.a_l_antenne) and (self.lecteur.actif())
+
+	def arreter(self) -> None:
+		"""Arrête la lecture, comme le bouton « ⏹ »."""
+		self._arreter()
 
 	def preecouter(self, sonore: int | None) -> None:
 		"""Le sonore à pré-écouter, à l'arrêt, à la place du précédent ; None : aucun."""
@@ -638,6 +651,9 @@ class FenetrePreecoute(QWidget):
 	def _rafraichir(self) -> None:
 		lecteur = self.lecteur
 		lecteur.relever()
+		if self.ecoute_l_antenne() != self._ecoute_annoncee:
+			self._ecoute_annoncee = self.ecoute_l_antenne()
+			self.ecoute_changee.emit(self._ecoute_annoncee)
 		ui = self.ui
 		source = lecteur.source
 		if lecteur.erreur is not None:

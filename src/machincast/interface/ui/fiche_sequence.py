@@ -197,7 +197,7 @@ class Ui_FicheSequence(object):
     def retranslateUi(self, FicheSequence):
         self.etiquette_nom_interne.setText(QCoreApplication.translate("FicheSequence", u"&Nom interne", None))
         self.nom_interne.setPlaceholderText(QCoreApplication.translate("FicheSequence", u"Obligatoire, et propre \u00e0 cette s\u00e9quence", None))
-        self.etiquette_nom_public.setText(QCoreApplication.translate("FicheSequence", u"Nom &public", None))
+        self.etiquette_nom_public.setText(QCoreApplication.translate("FicheSequence", u"Nom p&ublic", None))
         self.nom_public.setPlaceholderText(QCoreApplication.translate("FicheSequence", u"Affich\u00e9 \u00e0 la place de l'artiste et du titre masqu\u00e9s ; facultatif", None))
         self.etiquette_masquage.setText(QCoreApplication.translate("FicheSequence", u"&Artiste et titre", None))
         self.groupe_elements.setTitle(QCoreApplication.translate("FicheSequence", u"\u00c9l\u00e9ments, dans l'ordre de passage", None))
