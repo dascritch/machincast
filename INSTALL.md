@@ -86,6 +86,8 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 ./install.sh --service      # installe, avec le service de diffusion : ordinateur dédié à l'antenne seulement
 ./install.sh --bureau       # installe, et dépose le raccourci de l'interface sur le bureau sans le demander
 ./install.sh --sans-bureau  # installe, sans raccourci sur le bureau ni question
+./install.sh --arreter-les-programmes  # arrête sans le demander les programmes de MachinCast en cours
+./install.sh --laisser-les-programmes  # les laisse tourner, sans le demander
 ./install.sh --help         # aide
 ```
 
@@ -93,13 +95,14 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 
 **Relançable** : chaque étape déjà faite est laissée telle quelle. En cas d'échec, corriger ce que le message indique, puis relancer le script. À la relance, PostgreSQL signale par des lignes `NOTICE:  role … has already been granted membership …` que le compte était déjà autorisé : ce n'est pas une erreur.
 
-**Ce qu'il demande** : le mot de passe `sudo`, pour apt, pour les commandes passées en tant qu'utilisateur `postgres`, pour l'ajout au groupe `systemd-journal`, pour les liens dans `/opt`, `/usr/local/bin` et `/usr/share`, et, avec `--service`, pour la session du compte, l'unité systemd et la règle polkit. Une seule question, à la première installation : « Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] » ; Entrée répond oui. `--bureau` et `--sans-bureau` y répondent d'avance ; sans terminal, par exemple dans un script, elle n'est pas posée, et le raccourci ne va pas sur le bureau.
+**Ce qu'il demande** : le mot de passe `sudo`, pour apt, pour les commandes passées en tant qu'utilisateur `postgres`, pour l'ajout au groupe `systemd-journal`, pour les liens dans `/opt`, `/usr/local/bin` et `/usr/share`, et, avec `--service`, pour la session du compte, l'unité systemd et la règle polkit. Deux questions au plus. Si des programmes de MachinCast tournent : « Les arrêter pendant l'installation, puis les relancer ? [o/N] » ; Entrée répond non. `--arreter-les-programmes` et `--laisser-les-programmes` y répondent d'avance ; sans terminal, elle n'est pas posée, et ils continuent. À la première installation : « Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] » ; Entrée répond oui. `--bureau` et `--sans-bureau` y répondent d'avance ; sans terminal, par exemple dans un script, elle n'est pas posée, et le raccourci ne va pas sur le bureau.
 
 **Ce qu'il fait**, dans l'ordre :
 
 | Étape | Ce qui se passe | Ce qui est modifié sur le poste |
 | --- | --- | --- |
 | Système | Vérifie qu'il est lancé sans `sudo`, sur une Ubuntu LTS. | Rien. |
+| Programmes de MachinCast en cours | Liste ceux qui tournent, sous tous les comptes du poste : `Machin lecture` (le service de diffusion, une diffusion d'essai, une simulation), `Machin indexation`, `Machin interface`. Une mise à jour, et ses migrations de la base, ne doit pas se faire sous eux : selon la réponse à la question, il les arrête, le service par `systemctl stop`, les autres par un signal, avec `sudo` pour ceux d'un autre compte ([#254](https://github.com/dascritch/machincast/issues/254)). **Arrêtée, la diffusion se tait jusqu'à la fin de l'installation** ; l'interface perd les fiches qui n'étaient pas enregistrées. | Rien, ou programmes arrêtés. |
 | Paquets système | Installe les paquets du [tableau des prérequis](#prérequis). | Paquets apt. |
 | Environnement virtuel Python | Crée `.venv` dans le répertoire de MachinCast, sans accès aux paquets Python du système, et y installe MachinCast et ses dépendances. | `.venv` dans le répertoire de MachinCast. |
 | Configuration | Copie `machincast.exemple.toml` en `machincast.toml` s'il n'existe pas. Un `machincast.toml` existant n'est jamais modifié. | `machincast.toml`. |
@@ -109,6 +112,8 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 | Liens | `/opt/machincast` vers le répertoire de MachinCast ; `/usr/local/bin/Machin` vers le wrapper ; l'autocomplétion bash dans `/usr/share/bash-completion/completions/Machin`. | Trois liens symboliques. |
 | Greffons GStreamer et sortie audio | Vérifie que GStreamer sait décoder MP3, M4A, AAC, Ogg, FLAC, WAV et AIFF, lire les streams HTTP et HTTPS, et créer la sortie audio de `machincast.toml`, sans jouer aucun son. | Rien. |
 | Raccourci de l'interface | Installe le raccourci **MachinCast**, avec son icône, dans le menu des applications du compte, rubrique Multimédia. Selon la réponse à la question, ou `--bureau`, le dépose aussi sur le bureau du compte (le dossier que donne `xdg-user-dir DESKTOP`, « Bureau » en français), exécutable pour que Plasma le lance sans avertissement. Un raccourci déjà sur le bureau est mis à jour sans question ; `--sans-bureau` le laisse tel quel ([#62](https://github.com/dascritch/machincast/issues/62)). | `~/.local/share/applications/machincast.desktop`, et `machincast.desktop` sur le bureau. |
+
+**Relance des programmes de MachinCast** : avant d'afficher `Installation terminée`, et même après un échec, il relance ceux qu'il a arrêtés : le service de diffusion (sauf avec `--retirer-service`), et, pour son compte, la diffusion d'essai dans un terminal et l'interface dans la session graphique, avec leurs arguments. Il dit ce qui reste à rouvrir : une indexation interrompue, la simulation de l'interface, et les programmes des autres comptes, que leur compte relance.
 
 À la fin, il affiche `Installation terminée`. Le service de diffusion n'est installé que sur demande : voir [Service de diffusion](#service-de-diffusion).
 
@@ -243,7 +248,7 @@ git pull
 ./install.sh
 ```
 
-`install.sh` met à jour les dépendances Python et applique les nouvelles migrations du schéma aux deux bases. `machincast.toml` n'est pas modifié : comparer avec `machincast.exemple.toml` pour y ajouter les nouvelles clés, que MachinCast signale sinon comme manquantes.
+`install.sh` met à jour les dépendances Python et applique les nouvelles migrations du schéma aux deux bases. Si des programmes de MachinCast tournent, il propose d'abord de les arrêter, puis les relance à la fin ([Installer avec install.sh](#installer-avec-installsh)) : pour ne pas faire taire l'antenne au mauvais moment, lancer la mise à jour hors d'une émission. `machincast.toml` n'est pas modifié : comparer avec `machincast.exemple.toml` pour y ajouter les nouvelles clés, que MachinCast signale sinon comme manquantes.
 
 À la main, sans relancer `install.sh` :
 
