@@ -650,9 +650,8 @@ def produire(repertoire: Path) -> dict[str, Path]:
 		frises = (fenetre.accueil.frise_en_cours, fenetre.accueil.frise_prochain)
 		attendre(lambda: all((frise.forme is not None) and (frise.forme.finie) for frise in frises))
 		prendre("accueil", fenetre)
-		suggestions = FenetreSuggestions(
-			Manques(True, ("Identifiant station", "Musique rotation lourde", "Musique rotation de nuit")), fenetre
-		)
+		manques = ("Identifiant station", "Musique rotation lourde", "Musique rotation de nuit", "Publicités")
+		suggestions = FenetreSuggestions(Manques(True, manques), fenetre)
 		suggestions.show()
 		prendre("pour-bien-demarrer", suggestions)
 		suggestions.close()

@@ -6,15 +6,19 @@ majuscules) et, sur une vraie sortie, le périphérique de l'antenne. S'il manqu
 (FenetreSuggestions, par machincast.interface.dialogues.suggerer) le propose, chaque élément coché par défaut.
 
 - « Créer » (creer) crée ce qui est coché : le fil musical, permanent, comme le fil musical garanti
-  (machincast.interface.fil_musical) ; les banques, aléatoires et sans répertoire, « Identifiant station » marquée
-  « ne pas répéter ». Un fil musical encore vide, créé ou déjà là, reçoit la rotation type (ROTATION), avec les banques
-  qui existent. Le périphérique d'antenne choisi s'enregistre dans audio.peripherique (enregistrer).
+  (machincast.interface.fil_musical) ; les banques, aléatoires et sans répertoire, chacune avec ses réglages
+  (REGLAGES) : « Identifiant station » marquée « ne pas répéter », les musiques de 15 minutes au plus, l'habillage
+  et les annonces de 2 minutes au plus, ces dernières enchaînées sans crossfade, imposé à 0 seconde à leurs sonores
+  (https://github.com/dascritch/machincast/issues/231). Un fil musical encore vide, créé ou déjà là, reçoit la
+  rotation type (ROTATION), avec les banques qui existent. Le périphérique d'antenne choisi s'enregistre dans
+  audio.peripherique (enregistrer).
 - « Plus tard » ne crée rien : la fenêtre revient au lancement suivant.
 - « Ne plus proposer au lancement » écrit interface.suggestions = false dans le fichier de configuration
   (enregistrer), qui garde ses commentaires.
 """
 
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 
 import psycopg
@@ -31,16 +35,34 @@ from machincast.interface.ui.suggestions import Ui_FenetreSuggestions
 
 FIL_MUSICAL = "Fil musical"
 """La ligne du fil musical dans la fenêtre."""
-BANQUES = (
-	"Identifiant station",
-	"Musique rotation lourde",
-	"Musique rotation normale",
-	"Musique rotation rare",
-	"Musique rotation de nuit",
-)
-"""Les banques suggérées, dans l'ordre où la fenêtre les propose."""
-NE_PAS_REPETER = frozenset({"Identifiant station"})
-"""Les banques créées marquées « ne pas répéter » (https://github.com/dascritch/machincast/issues/63)."""
+
+
+@dataclass(frozen=True)
+class Reglage:
+	"""Ce qu'une banque suggérée reçoit à sa création."""
+
+	ne_pas_repeter: bool = False
+	"""https://github.com/dascritch/machincast/issues/63"""
+	duree_max: timedelta | None = None
+	sans_crossfade: bool = False
+	"""Crossfades de début et de fin imposés à 0 seconde à tous ses sonores : ils s'enchaînent sans se mêler."""
+
+
+MUSIQUE = Reglage(duree_max=timedelta(minutes=15))
+ANNONCE = Reglage(duree_max=timedelta(minutes=2), sans_crossfade=True)
+REGLAGES = {
+	"Identifiant station": Reglage(ne_pas_repeter=True, duree_max=timedelta(minutes=2)),
+	"Musique rotation lourde": MUSIQUE,
+	"Musique rotation normale": MUSIQUE,
+	"Musique rotation rare": MUSIQUE,
+	"Musique rotation de nuit": Reglage(),
+	"Partenariats": ANNONCE,
+	"Publicités": ANNONCE,
+	"Bande-annonce émissions": ANNONCE,
+}
+"""Les banques suggérées, dans l'ordre où la fenêtre les propose, et leurs réglages
+(https://github.com/dascritch/machincast/issues/231)."""
+BANQUES = tuple(REGLAGES)
 ROTATION = (
 	"Identifiant station",
 	"Musique rotation lourde",
@@ -114,9 +136,15 @@ def creer(connexion: psycopg.Connection[TupleRow], reponse: Reponse) -> str | No
 				crees.append(f"le fil musical « {nom} »")
 		nouvelles = []
 		for banque in reponse.banques:
+			reglage = REGLAGES[banque]
+			regle = "sonore"
+			if reglage.sans_crossfade:
+				regle = "impose"
 			connexion.execute(
-				"INSERT INTO banques (nom_interne, mode, ne_pas_repeter) VALUES (%s, 'aleatoire', %s)",
-				(banque, banque in NE_PAS_REPETER),
+				"INSERT INTO banques (nom_interne, mode, ne_pas_repeter, duree_max, crossfade_debut_regle,"
+				" crossfade_debut, crossfade_fin_regle, crossfade_fin)"
+				" VALUES (%s, 'aleatoire', %s, %s, %s, '0 s', %s, '0 s')",
+				(banque, reglage.ne_pas_repeter, reglage.duree_max, regle, regle),
 			)
 			nouvelles.append(f"« {banque} »")
 		if len(nouvelles) == 1:

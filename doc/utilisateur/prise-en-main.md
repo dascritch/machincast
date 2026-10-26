@@ -39,14 +39,14 @@
 Au lancement, l'interface cherche ce qui manque pour que l'antenne puisse tourner :
 
 - un **fil musical**, l'événement qui tient l'antenne quand aucun autre ne la prend ;
-- les banques **Identifiant station**, **Musique rotation lourde**, **Musique rotation normale**, **Musique rotation rare** et **Musique rotation de nuit**, reconnues à leur nom, sans tenir compte des majuscules ;
+- les banques **Identifiant station**, **Musique rotation lourde**, **Musique rotation normale**, **Musique rotation rare**, **Musique rotation de nuit**, **Partenariats**, **Publicités** et **Bande-annonce émissions**, reconnues à leur nom, sans tenir compte des majuscules ;
 - sur une vraie sortie audio, le **périphérique de l'antenne**, sans lequel la diffusion ne démarre pas.
 
 ![La fenêtre « Pour bien démarrer », qui propose de créer le fil musical et les banques qui manquent](../captures/pour-bien-demarrer.png)
 
 S'il en manque, la fenêtre **Pour bien démarrer** les propose, chacun coché :
 
-- **Créer** crée ce qui est coché. Le fil musical est permanent. Les banques sont aléatoires et vides : elles se remplissent depuis leur [fiche](sonores.md#fiche-dune-banque), ou par l'indexation de leurs répertoires. « Identifiant station » est marquée « ne pas répéter ». Un fil musical encore vide reçoit une rotation type : Identifiant station, rotation lourde, normale, lourde, rare. La rotation de nuit reste à placer dans un événement de nuit. La barre d'état dit ce qui a été créé.
+- **Créer** crée ce qui est coché. Le fil musical est permanent. Les banques sont aléatoires et vides : elles se remplissent depuis leur [fiche](sonores.md#fiche-dune-banque), ou par l'indexation de leurs répertoires. « Identifiant station » est marquée « ne pas répéter ». Chacune a sa [durée maximale des sonores](sonores.md#fiche-dune-banque) : 15 minutes pour les rotations lourde, normale et rare, 2 minutes pour l'identifiant station, les partenariats, les publicités et les bandes-annonces ; ces trois dernières s'enchaînent sans crossfade, imposé à 0 seconde à leurs sonores ; la rotation de nuit n'en a pas. Tout cela se change dans leur fiche. Un fil musical encore vide reçoit une rotation type : Identifiant station, rotation lourde, normale, lourde, rare. La rotation de nuit reste à placer dans un événement de nuit. La barre d'état dit ce qui a été créé.
 - Le **périphérique de l'antenne** se choisit parmi ceux du poste, sauf celui de la pré-écoute. La diffusion le prend à son prochain démarrage (**Diffusion → Arrêter la diffusion**, puis **Démarrer la diffusion**).
 - **Plus tard** ne crée rien : la fenêtre revient au lancement suivant.
 - **Ne plus proposer au lancement** éteint la fenêtre ; elle se rallume dans les [préférences](#préférences). Sans elle, l'interface recrée au lancement un fil musical vide s'il n'en existe aucun, et le dit dans la barre d'état.
