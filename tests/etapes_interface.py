@@ -1587,6 +1587,11 @@ def sonores_du_fichier(interface: Contexte, base_vide: Connexion, chemin: str, n
 	assert (len(lignes), sum(1 for (supprime,) in lignes if supprime)) == (nombre, supprimes), lignes
 
 
+@given(parsers.parse("les préférences seront réglées avec la durée de péremption de {jours:d} jours"))
+def peremption_reglee(interface: Contexte, jours: int) -> None:
+	interface.peremption_reglee = jours
+
+
 @given(parsers.parse("la durée de péremption du fichier de configuration de l'interface est de {jours:d} jours"))
 def peremption_du_fichier(interface: Contexte, jours: int) -> None:
 	"""https://github.com/dascritch/machincast/issues/268"""

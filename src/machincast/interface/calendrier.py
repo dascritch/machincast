@@ -2,13 +2,16 @@
 https://github.com/dascritch/machincast/issues/118, spec § 8.2).
 
 Un onglet de la fenêtre, ouvert depuis le menu « Affichage », qui montre à la fois ce qui est prévu et ce qui a été
-diffusé, en vue semaine (du lundi au dimanche) ou en vue jour, de 0 h à 24 h, de 28 jours avant à 28 jours après
-aujourd'hui.
+diffusé, en vue semaine (du lundi au dimanche) ou en vue jour, de 0 h à 24 h, jusqu'à 28 jours après aujourd'hui.
+Il ne remonte pas avant la durée de péremption des préférences (https://github.com/dascritch/machincast/issues/269) :
+Machin purge efface de la base ce qui est plus vieux (https://github.com/dascritch/machincast/issues/268). En vue
+semaine, les jours d'avant sont grisés, vides.
 
 - Prévu : chaque occurrence d'un événement, récurrences comprises, et ce qui en joue
   (machincast.lecture.grille.prevoir). Un bloc qu'un autre événement masque en entier est estompé ; en partie, seuls ses
   moments à l'antenne sont pleins. Une occurrence de 24 heures ou plus, et un fil musical permanent, vont dans la bande
   de la journée entière, entre le nom du jour et les heures. Deux blocs qui se chevauchent se placent côte à côte.
+  Un événement supprimé garde ses occurrences d'avant sa suppression, jusqu'à leur péremption.
 - Diffusé : l'airplay, en bandes étroites à droite de chaque jour. Les passages successifs d'un même événement font
   une seule bande ; un passage sans fin dure jusqu'au passage suivant, ou jusqu'à maintenant pour le dernier.
 - Une case par priorité montre ou cache ses blocs et ses bandes ; ce qui joue ne change pas.
@@ -41,6 +44,7 @@ from PySide6.QtWidgets import (
 
 from machincast.conversion import texte_ou_rien
 from machincast.horloge import Horloge
+from machincast.interface import preferences
 from machincast.interface.affichage import MOIS
 from machincast.lecture.grille import JOURS, RANGS, Evenement, Prevue, Priorite, heure_murale, lire_grille, prevoir
 
@@ -64,7 +68,9 @@ TEXTE = QColor(0x20, 0x20, 0x20)
 ESTOMPE = 70
 """Opacité, sur 255, de ce qu'un autre événement masque."""
 PORTEE = timedelta(days=28)
-"""Le calendrier va de PORTEE avant à PORTEE après aujourd'hui."""
+"""Le calendrier va jusqu'à PORTEE après aujourd'hui ; avant, jusqu'à la durée de péremption."""
+PERIME = QColor(128, 128, 128, 90)
+"""Le voile d'un jour d'avant la durée de péremption, dont la base n'a plus rien."""
 UNE_HEURE = timedelta(hours=1)
 """Un événement créé depuis le calendrier occupe l'heure entière cliquée : 13:37 donne 13:00 – 14:00."""
 UN_JOUR = timedelta(days=1)
@@ -80,6 +86,7 @@ HAUTEUR_LIGNE = 22
 OUVRIR = "Double-clic : ouvrir l'événement"
 EVENEMENT_SUPPRIME = "Événement supprimé"
 MASQUE = "par un autre événement"
+SUITE_SUPPRIMEE = "la suite n'est plus prévue"
 
 
 def numero(jour: date) -> str:
@@ -166,6 +173,9 @@ class Bloc:
 		lignes = [f"{nom} — {NOMS[evenement.priorite]}", self._horaires()]
 		if evenement.jours:
 			lignes.append(f"Revient le {', '.join(JOURS[jour] for jour in sorted(evenement.jours))}")
+		if evenement.supprime_le is not None:
+			supprime = heure_murale(evenement.supprime_le)
+			lignes.append(f"Supprimé le {jour_et_mois(supprime.date())} à {supprime:%H:%M} : {SUITE_SUPPRIMEE}")
 		lignes += [self._ce_qui_joue(), OUVRIR]
 		return "\n".join(lignes)
 
@@ -246,8 +256,12 @@ def decouper(prevues: Iterable[Prevue], jours: list[date], noms_publics: dict[in
 	return sorted(blocs, key=lambda b: (b.jour, b.debut, RANGS[b.evenement.priorite], b.evenement.id))
 
 
-def lire_passages(connexion: Connexion, de: datetime, a: datetime) -> list[Passage]:
-	"""Les passages commencés dans la période, ou la veille : ceux-là peuvent encore la toucher."""
+def lire_passages(connexion: Connexion, de: datetime, a: datetime, premier: datetime | None = None) -> list[Passage]:
+	"""Les passages commencés dans la période, ou la veille : ceux-là peuvent encore la toucher ; jamais avant le
+	premier moment montré, que la purge efface."""
+	depuis = de - UN_JOUR
+	if premier is not None:
+		depuis = max(depuis, premier)
 	lignes = connexion.execute(
 		"SELECT d.horodatage, f.horodatage, d.evenement_id, e.nom_interne, e.priorite::text"
 		" FROM airplay d"
@@ -255,7 +269,7 @@ def lire_passages(connexion: Connexion, de: datetime, a: datetime) -> list[Passa
 		" LEFT JOIN evenements e ON e.id = d.evenement_id"
 		" WHERE (d.type_ligne = 'debut') AND (d.horodatage >= %s) AND (d.horodatage < %s)"
 		" ORDER BY d.horodatage, d.id",
-		((de - UN_JOUR).astimezone(), a.astimezone()),
+		(depuis.astimezone(), a.astimezone()),
 	).fetchall()
 	passages = []
 	for debut, fin, evenement_id, nom, priorite in lignes:
@@ -389,7 +403,7 @@ class Calendrier(QWidget):
 		disposition.addLayout(barre)
 		disposition.addWidget(self.entete)
 		disposition.addWidget(self.defilement, 1)
-		self._presenter()
+		self.actualiser()
 		self.defilement.verticalScrollBar().setValue(7 * HAUTEUR_HEURE)
 
 	def _aujourd_hui(self) -> date:
@@ -408,6 +422,14 @@ class Calendrier(QWidget):
 			nombre = 7
 		return [self._debut + timedelta(days=ecart) for ecart in range(nombre)]
 
+	def premier_jour(self) -> date:
+		"""Le premier jour que montre le calendrier : la base n'a plus rien d'avant la durée de péremption."""
+		return self._aujourd_hui() - timedelta(days=preferences.peremption())
+
+	def jours_perimes(self) -> list[date]:
+		"""Les jours montrés d'avant le premier jour : grisés, vides."""
+		return [jour for jour in self.jours() if jour < self.premier_jour()]
+
 	def blocs(self) -> list[Bloc]:
 		"""Les blocs des heures, des priorités cochées."""
 		return [bloc for bloc in self._blocs if (not bloc.journee) and (self._montree(bloc.evenement.priorite))]
@@ -417,26 +439,34 @@ class Calendrier(QWidget):
 		return [bloc for bloc in self._blocs if (bloc.journee) and (self._montree(bloc.evenement.priorite))]
 
 	def bandes(self) -> list[Bande]:
-		"""L'airplay des priorités cochées ; celui d'un événement supprimé est toujours montré."""
+		"""L'airplay des priorités cochées ; celui d'un événement effacé de la base est toujours montré."""
 		return [bande for bande in self._bandes if (bande.priorite is None) or (self._montree(bande.priorite))]
 
 	def _montree(self, priorite: Priorite) -> bool:
 		return self.cases[priorite].isChecked()
 
 	def actualiser(self) -> None:
-		"""Relit la grille et l'airplay de la période."""
-		jours = self.jours()
+		"""Relit la grille et l'airplay de la période, ramenée au premier jour si la péremption l'a dépassée."""
+		self._borner()
+		self._presenter()
+		perimes = set(self.jours_perimes())
+		jours = [jour for jour in self.jours() if jour not in perimes]
+		self._blocs, self._bandes = [], []
+		if jours != []:
+			self._relire(jours)
+		self._filtrer()
+
+	def _relire(self, jours: list[date]) -> None:
 		de, a = minuit(jours[0]), minuit(jours[-1] + UN_JOUR)
 		with self.connexion.transaction():
-			evenements = lire_grille(self.connexion)
+			evenements = lire_grille(self.connexion, supprimes=True)
 			noms_publics = {
 				int(str(identifiant)): texte_ou_rien(nom_public)
 				for identifiant, nom_public in self.connexion.execute("SELECT id, nom_public FROM evenements")
 			}
-			passages = lire_passages(self.connexion, de, a)
+			passages = lire_passages(self.connexion, de, a, minuit(self.premier_jour()))
 		self._blocs = decouper(prevoir(evenements, de, a), jours, noms_publics)
 		self._bandes = bandes(passages, jours, self.maintenant())
-		self._filtrer()
 
 	def _filtrer(self) -> None:
 		self.entete.relire()
@@ -444,13 +474,13 @@ class Calendrier(QWidget):
 
 	def _avancer(self, sens: int) -> None:
 		self._debut += sens * timedelta(days=len(self.jours()))
-		self._presenter()
+		self.actualiser()
 
 	def _revenir(self) -> None:
 		self._debut = self._aujourd_hui()
 		if self._semaine:
 			self._debut = self._lundi(self._debut)
-		self._presenter()
+		self.actualiser()
 
 	def _changer_de_vue(self, semaine: bool) -> None:
 		"""La vue jour montre aujourd'hui s'il est dans la semaine montrée, sinon son lundi."""
@@ -460,7 +490,17 @@ class Calendrier(QWidget):
 		elif aujourd_hui in self.jours():
 			self._debut = aujourd_hui
 		self._semaine = semaine
-		self._presenter()
+		self.actualiser()
+
+	def _borner(self) -> None:
+		"""Une période tout entière d'avant le premier jour, après une durée de péremption raccourcie, revient à
+		celle du premier jour."""
+		premier = self.premier_jour()
+		if self.jours()[-1] >= premier:
+			return
+		self._debut = premier
+		if self._semaine:
+			self._debut = self._lundi(premier)
 
 	def _presenter(self) -> None:
 		periode = timedelta(days=len(self.jours()))
@@ -472,12 +512,11 @@ class Calendrier(QWidget):
 			self.titre.setText(titre_de_semaine(self._debut))
 			self.precedent.setText("Semaine précédente")
 			self.suivant.setText("Semaine suivante")
-		# Une période se montre tant qu'elle touche les PORTEE jours avant ou après aujourd'hui.
-		self.precedent.setEnabled(self._debut - timedelta(days=1) >= aujourd_hui - PORTEE)
+		# Une période se montre tant qu'elle touche les jours d'après le premier, et les PORTEE jours après aujourd'hui.
+		self.precedent.setEnabled(self._debut - timedelta(days=1) >= self.premier_jour())
 		self.suivant.setEnabled(self._debut + periode <= aujourd_hui + PORTEE)
 		self.vue_jour.setEnabled(self._semaine)
 		self.vue_semaine.setEnabled(not self._semaine)
-		self.actualiser()
 
 
 def _x_des_jours(widget: QWidget, nombre: int) -> list[float]:
@@ -526,8 +565,14 @@ class EnTete(QWidget):
 		jours = self.calendrier.jours()
 		x = _x_des_jours(self, len(jours))
 		peintre.setPen(self.palette().text().color())
+		perimes = self.calendrier.jours_perimes()
 		for indice, jour in enumerate(jours):
 			cadre = QRectF(x[indice], 0, x[indice + 1] - x[indice], HAUTEUR_NOMS)
+			couleur = self.palette().text().color()
+			if jour in perimes:
+				couleur = self.palette().placeholderText().color()
+				peintre.fillRect(QRectF(x[indice], 0, x[indice + 1] - x[indice], self.height()), PERIME)
+			peintre.setPen(couleur)
 			police = peintre.font()
 			police.setBold(jour == self.calendrier.maintenant().date())
 			peintre.setFont(police)
@@ -633,6 +678,9 @@ class Grille(QWidget):
 		for bloc in self.calendrier.blocs():
 			_peindre_bloc(peintre, self.rectangle(bloc), bloc, self._part_des_heures)
 		maintenant = self.calendrier.maintenant()
+		for jour in self.calendrier.jours_perimes():
+			indice = jours.index(jour)
+			peintre.fillRect(QRectF(x[indice], 0, x[indice + 1] - x[indice], 24 * HAUTEUR_HEURE), PERIME)
 		# Le passé de chaque jour, du côté de l'airplay : la place de ce qui a été diffusé.
 		for indice, jour in enumerate(jours):
 			passe = min(max(maintenant, minuit(jour)), minuit(jour + UN_JOUR))
