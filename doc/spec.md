@@ -398,7 +398,7 @@ Boucle de diffusion ([#88](https://github.com/dascritch/machincast/issues/88), `
 
 | Module | Visibilité | Contenu |
 | --- | --- | --- |
-| stdout | privé | Sonores lancés : une ligne d'information `à l'antenne : artiste – titre (événement)` par passage qui commence. Débuts et fins d'événements et de séquences, comme dans le log : `début d'événement : « Journal », émission, de 20:00 à 20:30` ([#153](https://github.com/dascritch/machincast/issues/153)). |
+| stdout | privé | Sonores lancés : une ligne d'information `à l'antenne : artiste – titre (événement)` par passage qui commence, précédée comme toute ligne de son heure ISO 8601 (`machincast.journal`, [#253](https://github.com/dascritch/machincast/issues/253)). Débuts et fins d'événements et de séquences, comme dans le log : `début d'événement : « Journal », émission, de 20:00 à 20:30` ([#153](https://github.com/dascritch/machincast/issues/153)). |
 | stderr | privé | Alertes et incidents du log (`alerte : nature : message`), erreurs du binaire. |
 | CSV | privé | Airplay, un fichier par jour, nommé avec la date du jour au format ISO 8601. Une ligne par passage terminé : `debut;fin;duree;artiste;titre;emplacement;evenement;sequence;banque;sans_incident` (la colonne `sequence`, nom interne de la séquence qui a fait jouer le sonore, depuis [#99](https://github.com/dascritch/machincast/issues/99)), heures `AAAA-MM-JJ HH:MM:SS`, durée `HH:MM:SS`, `oui` ou `non`. Séparateur `;`, UTF-8 avec BOM, en-tête à la création ; jamais réécrit. |
 | .pls | privé | Les 100 derniers fichiers joués, streams compris par leur adresse, du plus ancien au plus récent, avec artiste et titre ; réécrit à chaque passage. |

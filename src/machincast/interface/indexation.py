@@ -21,10 +21,10 @@ from pathlib import Path
 import psycopg
 from PySide6.QtCore import QObject, QProcess, Signal, SignalInstance
 
+from machincast import journal
 from machincast.base import Role, connecter
 from machincast.configuration import SEUIL_DE_BLANC
 from machincast.indexation import audit
-from machincast.indexation.__main__ import EXECUTABLE
 from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
 from machincast.indexation.indexeur import IndexationEnCours, indexer
 from machincast.indexation.verification import texte_bilan
@@ -76,7 +76,7 @@ class _Lignes(logging.Handler):
 
 	def emit(self, enregistrement: logging.LogRecord) -> None:
 		anomalie = enregistrement.levelno >= logging.WARNING
-		self.relayer.emit(f"{EXECUTABLE} : {enregistrement.getMessage()}", anomalie)
+		self.relayer.emit(journal.ligne(enregistrement), anomalie)
 
 
 class Indexation(QObject):

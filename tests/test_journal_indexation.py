@@ -27,6 +27,7 @@ from machincast.interface import dialogues, indexation
 from machincast.interface.journal_indexation import FenetreJournal
 from tests.base_test import chemin_configuration_test, parametres_base_test
 from tests.etapes_interface import ATTENTE, NOM, Connexion, Contexte
+from tests.horodatage import sans_horodatage
 
 scenarios("journal_indexation.feature")
 
@@ -204,7 +205,8 @@ def journal_libre() -> None:
 def lignes_du_journal(suivi: Journal, interface: Contexte, datatable: list[list[str]]) -> None:
 	"""Les lignes, comme dans le terminal ; un chemin qui commence par « …/ » est dans le répertoire du scénario."""
 	_entete, *lignes = datatable
-	assert journal(suivi).lignes() == [interface.chemin_dans(ligne.strip()) for (ligne,) in lignes]
+	montrees = [sans_horodatage(ligne) for ligne in journal(suivi).lignes()]
+	assert montrees == [interface.chemin_dans(ligne.strip()) for (ligne,) in lignes]
 
 
 @then("le journal de l'indexation ne signale aucune anomalie")
@@ -217,7 +219,7 @@ def anomalies(suivi: Journal, interface: Contexte, nombre: str, chemins: str) ->
 	signalees = journal(suivi).anomalies
 	assert len(signalees) == int(nombre), signalees
 	for anomalie, chemin in zip(signalees, NOM.findall(chemins), strict=True):
-		assert anomalie.startswith(f"Machin_indexation : {interface.chemin(chemin)} : "), anomalie
+		assert sans_horodatage(anomalie).startswith(f"[horodatage] {interface.chemin(chemin)} : "), anomalie
 
 
 @then(parsers.parse("les sonores de la banque « {nom} » en base sont :"))

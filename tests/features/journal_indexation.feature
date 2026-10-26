@@ -10,7 +10,8 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 	l'indexation demande s'il faut l'arrêter. Comme dans le terminal, le journal annonce le document d'audit du passage
 	(audit_indexation.feature). Les scénarios ouvrent la fenêtre dans le processus des tests. Les
 	fichiers de test sont ceux de tests/fichiers-sonores ; un chemin qui commence par « …/ » est dans le répertoire
-	temporaire du scénario.
+	temporaire du scénario. « [horodatage] » est l'heure ISO 8601 de la ligne
+	(https://github.com/dascritch/machincast/issues/253).
 
 	Contexte:
 		Étant donné le poste à l'heure de Paris
@@ -28,12 +29,12 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 		Et l'indexation se termine
 		Alors le journal de l'indexation montre :
 			| ligne                                                                                                                     |
-			| Machin_indexation : …/pubs/cafe.flac : nouveau sonore, ajouté à la banque Publicité                                       |
-			| Machin_indexation : …/pubs/jingle.wav : nouveau sonore, ajouté à la banque Publicité                                      |
-			| Machin_indexation : …/pubs/cafe.flac : sain, Les Gaufres Électriques – Café à minuit ; sonore passé actif                 |
-			| Machin_indexation : …/pubs/jingle.wav : sain ; sonore passé actif                                                         |
-			| Machin_indexation : indexation rapide : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu |
-			| Machin_indexation : document d'audit : …/audit/machincast-audit-2026-10-15T08:15:00.csv, …/audit/machincast-audit-2026-10-15T08:15:00.html |
+			| [horodatage] …/pubs/cafe.flac : nouveau sonore, ajouté à la banque Publicité                                       |
+			| [horodatage] …/pubs/jingle.wav : nouveau sonore, ajouté à la banque Publicité                                      |
+			| [horodatage] …/pubs/cafe.flac : sain, Les Gaufres Électriques – Café à minuit ; sonore passé actif                 |
+			| [horodatage] …/pubs/jingle.wav : sain ; sonore passé actif                                                         |
+			| [horodatage] indexation rapide : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu |
+			| [horodatage] document d'audit : …/audit/machincast-audit-2026-10-15T08:15:00.csv, …/audit/machincast-audit-2026-10-15T08:15:00.html |
 		Et le journal « Indexation rapide » de l'indexation conclut « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. »
 		Et le journal de l'indexation ne signale aucune anomalie
 		Et les sonores de la banque « Publicité » en base sont :
@@ -80,9 +81,9 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 		Alors le journal « Indexation rapide » de l'indexation conclut « Indexation impossible : aucun décodeur pour ce format ; les sonores déjà vérifiés le restent. 1 anomalie, dans le journal ci-dessus. »
 		Et le journal de l'indexation montre :
 			| ligne                                                                                  |
-			| Machin_indexation : …/pubs/cafe.flac : nouveau sonore, ajouté à la banque Publicité    |
-			| Machin_indexation : …/pubs/jingle.wav : nouveau sonore, ajouté à la banque Publicité   |
-			| Machin_indexation : indexation impossible : aucun décodeur pour ce format              |
+			| [horodatage] …/pubs/cafe.flac : nouveau sonore, ajouté à la banque Publicité    |
+			| [horodatage] …/pubs/jingle.wav : nouveau sonore, ajouté à la banque Publicité   |
+			| [horodatage] indexation impossible : aucun décodeur pour ce format              |
 
 	Scénario: Une seule indexation à la fois sur la base
 		Étant donné une autre indexation en cours sur la base
