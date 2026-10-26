@@ -33,26 +33,6 @@ DELAI = 5000
 """Millisecondes laissées à GStreamer pour ce qui arrive « bientôt »."""
 
 
-def inserer(base: Connexion, interface: Contexte, titre: str, artiste: str | None, fichier: str) -> None:
-	copie = interface.repertoire / fichier
-	shutil.copyfile(FICHIERS_SONORES / fichier, copie)
-	base.execute(
-		"INSERT INTO sonores (type, emplacement, artiste, titre, etat, duree)"
-		" VALUES ('fichier', %s, %s, %s, 'actif', %s)",
-		(str(copie), artiste, titre, timedelta(seconds=1)),
-	)
-
-
-@given(parsers.parse("le sonore « {titre} » de « {artiste} », pour une copie du fichier de test « {fichier} »"))
-def sonore_avec_artiste(interface: Contexte, base_vide: Connexion, titre: str, artiste: str, fichier: str) -> None:
-	inserer(base_vide, interface, titre, artiste, fichier)
-
-
-@given(parsers.re(r"le sonore « (?P<titre>[^»]+) », pour une copie du fichier de test « (?P<fichier>[^»]+) »"))
-def sonore(interface: Contexte, base_vide: Connexion, titre: str, fichier: str) -> None:
-	inserer(base_vide, interface, titre, None, fichier)
-
-
 @given(
 	parsers.re(
 		r"le sonore « (?P<titre>[^»]+) », pour une copie du fichier de test « (?P<fichier>[^»]+) », de (?P<duree>\d+)"

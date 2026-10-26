@@ -17,6 +17,8 @@ gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 from PySide6.QtCore import QObject, QTimer, Signal  # noqa: E402
 
+from machincast.interface import etats  # noqa: E402
+
 DELAI = timedelta(seconds=10)
 """Au-delà, sans son, le flux ne répond pas."""
 SON_ATTENDU = timedelta(seconds=1)
@@ -56,6 +58,7 @@ class EssaiDeFlux(QObject):
 		super().__init__(parent)
 		Gst.init(None)
 		self._pipeline: Gst.Pipeline | None = None
+		self._pilote: etats.Pilote | None = None
 		self._son = 0
 		"""Son décodé, en nanosecondes."""
 		self._type: str | None = None
@@ -87,16 +90,17 @@ class EssaiDeFlux(QObject):
 		self._son = 0
 		self._type, self._debit = None, None
 		self._pipeline = pipeline
-		pipeline.set_state(Gst.State.PLAYING)
+		self._pilote = etats.Pilote(pipeline)
+		self._pilote.vers(Gst.State.PLAYING)
 		self._releve.start()
 		self._limite.start(_millisecondes(DELAI))
 
 	def arreter(self) -> None:
 		self._releve.stop()
 		self._limite.stop()
-		if self._pipeline is not None:
-			self._pipeline.set_state(Gst.State.NULL)
-			self._pipeline = None
+		if self._pilote is not None:
+			self._pilote.eteindre()
+		self._pipeline, self._pilote = None, None
 
 	def _recu(self, _sortie: Gst.Element, tampon: Gst.Buffer, _pad: Gst.Pad) -> None:
 		"""Appelé dans un fil de GStreamer : il ne fait que compter."""

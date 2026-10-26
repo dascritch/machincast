@@ -15,26 +15,14 @@ from pytestqt.qtbot import QtBot
 
 from machincast.configuration import Audio
 from machincast.interface import liaison, moniteur, preecoute
-from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.moniteur import Moniteur, source_du_moniteur
 from machincast.interface.vumetre import VuMetre
 from tests.etapes_interface import Contexte, fenetre
+from tests.etapes_preecoute import SIGNAUX, accueil
 
 scenarios("vumetre.feature")
 
 DELAI = 5000
-SIGNAUX = {
-	"sinusoïde à -10 dB": "audiotestsrc is-live=true wave=sine volume=0.316",
-	"silence": "audiotestsrc is-live=true wave=silence",
-	"carré à 0 dB": "audiotestsrc is-live=true wave=square volume=1.0",
-	"introuvable": "elementintrouvable",
-	"bref": "audiotestsrc is-live=true num-buffers=10 wave=sine",
-}
-"""Les signaux de test du port de monitoring de la sortie factice."""
-
-
-def accueil(interface: Contexte) -> EcranParDefaut:
-	return fenetre(interface).accueil
 
 
 class Pendule:
@@ -65,11 +53,6 @@ def silence_constate(monkeypatch: pytest.MonkeyPatch, duree: str) -> None:
 	monkeypatch.setattr(moniteur, "DUREE_DU_SILENCE", {"une demi-seconde": 0.5, "5 secondes": 5.0}[duree])
 
 
-@given(parsers.parse("le signal de test « {signal} » sur l'antenne factice"))
-def signal_de_test(monkeypatch: pytest.MonkeyPatch, signal: str) -> None:
-	monkeypatch.setattr(moniteur, "SIGNAL_FACTICE", SIGNAUX[signal])
-
-
 @given("un moniteur de l'antenne, à l'horloge fictive", target_fixture="pendule")
 def moniteur_fictif(qtbot: QtBot) -> tuple[Pendule, Moniteur]:
 	pendule = Pendule()
@@ -82,11 +65,6 @@ def vumetre_fictif(qtbot: QtBot) -> tuple[Pendule, VuMetre]:
 	vumetre = VuMetre(horloge=pendule)
 	qtbot.addWidget(vumetre)
 	return pendule, vumetre
-
-
-@given("un nouvel essai du port de monitoring après une demi-seconde")
-def reessai_court(monkeypatch: pytest.MonkeyPatch) -> None:
-	monkeypatch.setattr(moniteur, "REESSAI", 500)
 
 
 # ─── Quand ─────────────────────────────────────────────────
@@ -233,12 +211,6 @@ def indisponible(interface: Contexte, texte: str) -> None:
 	assert ecran.ui.etat_moniteur.text() == texte
 	assert ecran.ui.etat_moniteur.isVisibleTo(ecran)
 	assert ecran.vumetre.niveaux == []
-
-
-@then(parsers.parse("le VU-mètre de l'antenne est bientôt indisponible, avec une erreur qui commence par « {debut} »"))
-def indisponible_bientot(interface: Contexte, qtbot: QtBot, debut: str) -> None:
-	etiquette = accueil(interface).ui.etat_moniteur
-	qtbot.waitUntil(lambda: etiquette.text().startswith(debut), timeout=DELAI)
 
 
 @then("l'accueil ne capture rien")

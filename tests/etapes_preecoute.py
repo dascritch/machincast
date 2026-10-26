@@ -1,28 +1,88 @@
 """Étapes partagées de la fenêtre de pré-écoute (https://github.com/dascritch/machincast/issues/116).
 
-Chargé comme greffon pytest par tests/conftest.py : la pré-écoute d'un sonore (test_preecoute.py) et l'écoute de
-l'antenne depuis le VU-mètre (test_vumetre.py, https://github.com/dascritch/machincast/issues/24) s'en servent.
+Chargé comme greffon pytest par tests/conftest.py : la pré-écoute d'un sonore (test_preecoute.py), l'écoute de
+l'antenne depuis le VU-mètre (test_vumetre.py, https://github.com/dascritch/machincast/issues/24) et les périphériques
+audio qui ne répondent plus (test_peripheriques_bloques.py, https://github.com/dascritch/machincast/issues/259) s'en
+servent.
 """
 
+import shutil
+from datetime import timedelta
+
 import psycopg
+import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QPushButton
-from pytest_bdd import parsers, then, when
+from pytest_bdd import given, parsers, then, when
 from pytestqt.qtbot import QtBot
 
+from machincast.interface import moniteur
+from machincast.interface.ecran_par_defaut import EcranParDefaut
 from machincast.interface.preecoute import FenetrePreecoute
 from tests.etapes_interface import Contexte, fenetre, identifiant
+from tests.sons import FICHIERS_SONORES
 
 Connexion = psycopg.Connection[tuple[object, ...]]
 
 DELAI = 5000
 """Millisecondes laissées à GStreamer pour ce qui arrive « bientôt »."""
+SIGNAUX = {
+	"sinusoïde à -10 dB": "audiotestsrc is-live=true wave=sine volume=0.316",
+	"silence": "audiotestsrc is-live=true wave=silence",
+	"carré à 0 dB": "audiotestsrc is-live=true wave=square volume=1.0",
+	"introuvable": "elementintrouvable",
+	"bref": "audiotestsrc is-live=true num-buffers=10 wave=sine",
+}
+"""Les signaux de test du port de monitoring de la sortie factice."""
 
 
 def fenetre_de_preecoute(interface: Contexte) -> FenetrePreecoute:
 	ouverte = fenetre(interface).preecoute
 	assert ouverte is not None, "aucune fenêtre de pré-écoute"
 	return ouverte
+
+
+def accueil(interface: Contexte) -> EcranParDefaut:
+	return fenetre(interface).accueil
+
+
+def inserer(base: Connexion, interface: Contexte, titre: str, artiste: str | None, fichier: str) -> None:
+	copie = interface.repertoire / fichier
+	shutil.copyfile(FICHIERS_SONORES / fichier, copie)
+	base.execute(
+		"INSERT INTO sonores (type, emplacement, artiste, titre, etat, duree)"
+		" VALUES ('fichier', %s, %s, %s, 'actif', %s)",
+		(str(copie), artiste, titre, timedelta(seconds=1)),
+	)
+
+
+@given(parsers.parse("le sonore « {titre} » de « {artiste} », pour une copie du fichier de test « {fichier} »"))
+def sonore_avec_artiste(interface: Contexte, base_vide: Connexion, titre: str, artiste: str, fichier: str) -> None:
+	inserer(base_vide, interface, titre, artiste, fichier)
+
+
+@given(parsers.re(r"le sonore « (?P<titre>[^»]+) », pour une copie du fichier de test « (?P<fichier>[^»]+) »"))
+def sonore(interface: Contexte, base_vide: Connexion, titre: str, fichier: str) -> None:
+	inserer(base_vide, interface, titre, None, fichier)
+
+
+# ─── Port de monitoring de l'antenne (https://github.com/dascritch/machincast/issues/24) ───
+
+
+@given(parsers.parse("le signal de test « {signal} » sur l'antenne factice"))
+def signal_de_test(monkeypatch: pytest.MonkeyPatch, signal: str) -> None:
+	monkeypatch.setattr(moniteur, "SIGNAL_FACTICE", SIGNAUX[signal])
+
+
+@given("un nouvel essai du port de monitoring après une demi-seconde")
+def reessai_court(monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.setattr(moniteur, "REESSAI", 500)
+
+
+@then(parsers.parse("le VU-mètre de l'antenne est bientôt indisponible, avec une erreur qui commence par « {debut} »"))
+def indisponible_bientot(interface: Contexte, qtbot: QtBot, debut: str) -> None:
+	etiquette = accueil(interface).ui.etat_moniteur
+	qtbot.waitUntil(lambda: etiquette.text().startswith(debut), timeout=DELAI)
 
 
 @when("je lance la pré-écoute")

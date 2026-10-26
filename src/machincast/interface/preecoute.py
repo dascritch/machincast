@@ -46,7 +46,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget  # noqa: E402
 from machincast import audio as sorties_audio  # noqa: E402
 from machincast.audio import creer_sortie  # noqa: E402
 from machincast.configuration import Audio, Crossfades, SortieAudio  # noqa: E402
-from machincast.interface import affichage, liaison, preferences  # noqa: E402
+from machincast.interface import affichage, etats, liaison, preferences  # noqa: E402
 from machincast.interface.frise import FormeDOnde, Frise, Plan, plan_du_sonore  # noqa: E402
 from machincast.interface.moniteur import Indisponible, nom_du_port, source_du_moniteur  # noqa: E402
 from machincast.interface.ui.preecoute import Ui_FenetrePreecoute  # noqa: E402
@@ -149,6 +149,8 @@ class Lecteur:
 		self.peripherique = peripherique
 		self.source: Source | None = None
 		self._pipeline: Gst.Element | None = None
+		self._pilote: etats.Pilote | None = None
+		"""Les changements d'état du pipeline, hors du fil de l'interface (https://github.com/dascritch/machincast/issues/259)."""
 		self._niveau: Gst.Element | None = None
 		self._liens: list[liaison.Paire] = []
 		"""Les liens de PipeWire qui copient l'antenne sur la pré-écoute, tant qu'elle joue."""
@@ -197,10 +199,12 @@ class Lecteur:
 			except Indisponible as erreur:
 				self.erreur = str(erreur)
 				return
+			self._pilote = etats.Pilote(self._pipeline)
 		plan = self._plan_a_l_antenne()
 		if plan is not None:
 			self._regler_le_volume(plan.volume(plan.repere_de_debut()))
-		self._pipeline.set_state(Gst.State.PLAYING)
+		assert self._pilote is not None
+		self._pilote.vers(Gst.State.PLAYING)
 		self.etat = "lecture"
 		if (plan is not None) and (depuis_le_debut):
 			self.placer_a(plan.repere_de_debut())
@@ -214,16 +218,16 @@ class Lecteur:
 				self.erreur = str(erreur)
 
 	def mettre_en_pause(self) -> None:
-		if self._pipeline is not None:
-			self._pipeline.set_state(Gst.State.PAUSED)
+		if self._pilote is not None:
+			self._pilote.vers(Gst.State.PAUSED)
 			self.etat = "pause"
 		self._delier()
 
 	def arreter(self) -> None:
 		self._delier()
-		if self._pipeline is not None:
-			self._pipeline.set_state(Gst.State.NULL)
-		self._pipeline, self._niveau = None, None
+		if self._pilote is not None:
+			self._pilote.eteindre()
+		self._pipeline, self._pilote, self._niveau = None, None, None
 		self.etat = "arret"
 		self.niveaux = []
 
@@ -249,7 +253,9 @@ class Lecteur:
 			position = max(de, min(a, position))
 		instant = round(max(0.0, min(duree, position)) * Gst.SECOND)
 		# Un déplacement demandé pendant un changement d'état (une pause qui s'installe) serait perdu : il attend sa
-		# fin, une demi-seconde au plus.
+		# fin, une demi-seconde au plus, après que son pilote l'a demandé, une demi-seconde au plus.
+		if self._pilote is not None:
+			self._pilote.attendre(0.5)
 		self._pipeline.get_state(Gst.SECOND // 2)
 		self._pipeline.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE, instant)
 
