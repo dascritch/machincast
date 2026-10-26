@@ -275,9 +275,7 @@ def emission_des_sonores(
 @given(parsers.re(r"l'émission « (?P<nom>[^»]+) » de (?P<debut>[\d:]+) à (?P<fin>[\d:]+), sans élément"))
 def emission_vide(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, debut: str, fin: str) -> None:
 	"""Une émission à compléter plus tard (https://github.com/dascritch/machincast/issues/253)."""
-	evenement(
-		banc, base_vide, tmp_path, nom, "emission", heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}"), []
-	)
+	evenement(banc, base_vide, tmp_path, nom, "emission", heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}"), [])
 
 
 @given(

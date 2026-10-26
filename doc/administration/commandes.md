@@ -96,7 +96,7 @@ Lire ce journal demande d'appartenir au groupe `systemd-journal`, ce que fait `i
 
 ## Messages et codes de sortie
 
-Chaque message commence par le nom du programme, par exemple `Machin_indexation :`. Les informations, comme le bilan d'une indexation, vont sur la sortie standard ; les anomalies et les erreurs, sur la sortie d'erreur. Un script peut ainsi garder les unes et les autres séparément.
+Chaque message commence par son heure, en ISO 8601, à la seconde, avec le décalage horaire du poste, par exemple `2026-10-23T07:55:19+02:00 à l'antenne : Frédéric Galliano – Multiples Un (Fil musical)` ([#253](https://github.com/dascritch/machincast/issues/253)) ; elle remplace le nom du programme, qui le précédait. Le journal du service (`Machin logs`) ajoute sa propre heure devant. Les informations, comme le bilan d'une indexation, vont sur la sortie standard ; les anomalies et les erreurs, sur la sortie d'erreur. Un script peut ainsi garder les unes et les autres séparément.
 
 | Code | Signification |
 | --- | --- |

@@ -81,11 +81,14 @@ Fonctionnalité: Socle de test
 	Scénario: Le code source n'affiche rien par print : les messages passent par logging
 		Alors aucun fichier de src/ n'appelle print
 
-	Scénario: Les messages d'un exécutable vont sur la sortie qui convient, préfixés de son nom
+	Scénario: Les messages d'un exécutable vont sur la sortie qui convient, précédés de leur horodatage
+		https://github.com/dascritch/machincast/issues/253 : « [horodatage] » est l'heure du message, en ISO 8601, à la
+		seconde, avec le décalage horaire du poste, par exemple « 2026-10-23T07:55:19+02:00 ».
+
 		Étant donné les messages configurés pour l'exécutable "Machin_essai"
 		Quand le code émet une information « 3 sonores vérifiés » et une anomalie « fichier endommagé »
-		Alors la sortie standard contient seulement « Machin_essai : 3 sonores vérifiés »
-		Et la sortie d'erreur contient seulement « Machin_essai : fichier endommagé »
+		Alors la sortie standard contient seulement « [horodatage] 3 sonores vérifiés »
+		Et la sortie d'erreur contient seulement « [horodatage] fichier endommagé »
 
 	Scénario: Les chaînes Python ne sont jamais composées avec la notation %
 		Alors aucun fichier Python du dépôt ne compose une chaîne ou un message de journal avec la notation %

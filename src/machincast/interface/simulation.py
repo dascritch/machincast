@@ -40,6 +40,7 @@ from PySide6.QtWidgets import (
 from machincast.horloge import Horloge
 from machincast.interface import dialogues
 from machincast.interface.colonnes import Colonnes
+from machincast.journal import HORODATAGE
 from machincast.lecture.simulation import nom_par_defaut
 from machincast.protection import verifier_ecriture
 
@@ -59,8 +60,6 @@ FORMATS = {
 	"Page HTML (*.html)": ".html",
 }
 """Filtres du sélecteur d'export, et l'extension de la sortie que chacun enregistre."""
-PREFIXE_DU_BINAIRE = "Machin_lecture : "
-"""Début de chaque message de Machin lecture (machincast.journal) ; un message peut tenir sur plusieurs lignes."""
 PREFIXE_DES_ANOMALIES = "simulation : "
 INVITE = "Réglez la période, puis cliquez sur « Simuler »."
 EN_COURS = "Simulation en cours…"
@@ -229,9 +228,9 @@ class EcranSimulation(QWidget):
 		chemin = self.temporaire / f"{NOM}.csv"
 		if (code != 0) or (not chemin.exists()):
 			raison = "Machin lecture s'est arrêté sans rien dire"
-			messages = [
-				ligne.removeprefix(PREFIXE_DU_BINAIRE) for ligne in erreurs if ligne.startswith(PREFIXE_DU_BINAIRE)
-			]
+			# Chaque message de Machin lecture commence par son horodatage (machincast.journal) ; un message peut tenir
+			# sur plusieurs lignes.
+			messages = [HORODATAGE.sub("", ligne) for ligne in erreurs if HORODATAGE.match(ligne)]
 			if messages:
 				raison = messages[-1]
 			self.compte.setText(f"Simulation impossible : {raison}")

@@ -137,26 +137,26 @@ Un fichier peut commencer ou finir par un blanc : un silence, un souffle, une fi
 Une ligne par sonore indexé, au fil de l'indexation ([#120](https://github.com/dascritch/machincast/issues/120)), avec le chemin du fichier et son statut. Sur la sortie standard, les fichiers trouvés dans les répertoires des banques, puis chaque fichier décodé sain, avec le nom du sonore quand ses tags en donnent un, et ce que devient son état, puis les nouveaux fichiers de durée encore inconnue, une fois décodés, dans les seules banques dont ils respectent les durées, ou seuls s'ils n'en respectent aucune ([#210](https://github.com/dascritch/machincast/issues/210)), puis chaque sonore déjà membre d'une banque, retiré parce qu'il sort de ses durées ([#195](https://github.com/dascritch/machincast/issues/195)) :
 
 ```text
-Machin_indexation : /musique/jingles/intro.flac : nouveau sonore, ajouté à la banque Jingles
-Machin_indexation : /musique/titres/cafe.flac : rattaché à la banque Nuit
-Machin_indexation : /musique/jingles/intro.flac : sain, Radio Machin – Générique ; sonore passé actif
-Machin_indexation : /musique/titres/cafe.flac : sain, Les Gaufres – Café à minuit ; état actif conservé
-Machin_indexation : /musique/titres/aube.flac : sain, Aube – Matin clair ; sonore passé actif
-Machin_indexation : /musique/titres/aube.flac : nouveau sonore, ajouté à la banque Nuit
-Machin_indexation : /musique/titres/mix.flac : retiré de la banque Nuit, durée 1:02:05 plus longue que son maximum, 8:00
+2026-10-15T08:15:00+02:00 /musique/jingles/intro.flac : nouveau sonore, ajouté à la banque Jingles
+2026-10-15T08:15:00+02:00 /musique/titres/cafe.flac : rattaché à la banque Nuit
+2026-10-15T08:15:00+02:00 /musique/jingles/intro.flac : sain, Radio Machin – Générique ; sonore passé actif
+2026-10-15T08:15:00+02:00 /musique/titres/cafe.flac : sain, Les Gaufres – Café à minuit ; état actif conservé
+2026-10-15T08:15:00+02:00 /musique/titres/aube.flac : sain, Aube – Matin clair ; sonore passé actif
+2026-10-15T08:15:00+02:00 /musique/titres/aube.flac : nouveau sonore, ajouté à la banque Nuit
+2026-10-15T08:15:00+02:00 /musique/titres/mix.flac : retiré de la banque Nuit, durée 1:02:05 plus longue que son maximum, 8:00
 ```
 
 En indexation rapide, un sonore qui n'est ni nouveau ni en aperçu n'est pas décodé, et n'a donc pas de ligne, sauf si son fichier a disparu. Sur la sortie d'erreur, une ligne par fichier défectueux, avec le problème et sa conséquence :
 
 ```text
-Machin_indexation : /musique/jingles/intro.mp3 : endommagé : 2 rupture(s) de continuité au décodage, des données ont été perdues ; sonore passé erroné
-Machin_indexation : /musique/fond/nappe.flac : introuvable : aucun fichier à cet emplacement ; état désactivé conservé
+2026-10-15T08:15:00+02:00 /musique/jingles/intro.mp3 : endommagé : 2 rupture(s) de continuité au décodage, des données ont été perdues ; sonore passé erroné
+2026-10-15T08:15:00+02:00 /musique/fond/nappe.flac : introuvable : aucun fichier à cet emplacement ; état désactivé conservé
 ```
 
 Puis le bilan, sur la sortie standard :
 
 ```text
-Machin_indexation : indexation rapide : 3 nouveaux sonores, 1 rattachement, 0 retrait ; 3 sonores vérifiés ; 1 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 3 sortis d'aperçu
+2026-10-15T08:15:00+02:00 indexation rapide : 3 nouveaux sonores, 1 rattachement, 0 retrait ; 3 sonores vérifiés ; 1 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 3 sortis d'aperçu
 ```
 
 Les nouveaux sonores sont les fichiers enregistrés pour la première fois ; les rattachements, les sonores déjà connus ajoutés à une banque dont ils n'étaient pas membres ; les retraits, les sonores déjà membres d'une banque, retirés parce qu'ils sortent de ses durées ([Alimenter une banque](#alimenter-une-banque)). Les sonores vérifiés sont ceux qui ont été décodés ; les autres nombres comptent les changements d'état.
@@ -164,7 +164,7 @@ Les nouveaux sonores sont les fichiers enregistrés pour la première fois ; les
 Enfin, le chemin du **document d'audit** du passage ([#11](https://github.com/dascritch/machincast/issues/11)) :
 
 ```text
-Machin_indexation : document d'audit : /tmp/machincast-audit-2026-10-15T08:15:00.csv, /tmp/machincast-audit-2026-10-15T08:15:00.html
+2026-10-15T08:15:00+02:00 document d'audit : /tmp/machincast-audit-2026-10-15T08:15:00.csv, /tmp/machincast-audit-2026-10-15T08:15:00.html
 ```
 
 Chaque indexation, rapide ou complète, lancée d'un terminal ou de l'interface, écrit ce document dans `/tmp`, en deux formats : un `.csv` pour un tableur (séparé par des points-virgules) et un `.html` pour un navigateur. Il est nommé avec la date et l'heure locale de son lancement. Il ne liste que les **anomalies**, une ligne par fichier défectueux : date du passage, chemin du fichier, verdict (`endommagé`, `illisible`, `introuvable`), problème et conséquence pour le sonore. Les opérations normales n'y figurent pas. La dernière ligne du CSV, de verdict `bilan`, porte le bilan du passage ; sans anomalie, c'est la seule. Les répertoires de banque introuvables restent sur la sortie d'erreur. Le document n'est pas écrit quand l'indexation s'interrompt (décodeur manquant, base perdue, autre indexation en cours). S'il ne peut pas être écrit, l'indexation le signale sur la sortie d'erreur et va quand même au bout. `/tmp` se vide au redémarrage de la machine : copier ailleurs les documents à garder.

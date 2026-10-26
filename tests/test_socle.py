@@ -18,6 +18,7 @@ from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe, HorlogeSysteme
 from machincast.journal import configurer as configurer_journal
 from tests.base_test import CONFIGURATION_TEST, chemin_configuration_test, configuration_test, purger_base
+from tests.horodatage import sans_horodatage
 from tests.style import fautes as fautes_de_style
 
 RACINE = Path(__file__).resolve().parents[1]
@@ -298,13 +299,13 @@ def emettre(information: str, anomalie: str) -> None:
 def sortie_standard(capsys: pytest.CaptureFixture[str], contexte: Contexte, texte: str) -> None:
 	capture = capsys.readouterr()
 	contexte.capture = capture
-	assert capture.out == texte + "\n"
+	assert sans_horodatage(capture.out) == texte + "\n", capture.out
 
 
 @then(parsers.parse("la sortie d'erreur contient seulement « {texte} »"))
 def sortie_erreur(contexte: Contexte, texte: str) -> None:
 	assert contexte.capture is not None
-	assert contexte.capture.err == texte + "\n"
+	assert sans_horodatage(contexte.capture.err) == texte + "\n", contexte.capture.err
 
 
 # Notation des chaînes (https://github.com/dascritch/machincast/issues/73). Les %s des requêtes SQL sont des
