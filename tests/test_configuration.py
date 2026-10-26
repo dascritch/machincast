@@ -348,6 +348,13 @@ def defauts(contexte: Contexte, debut: str, fin: str) -> None:
 	assert (crossfades.debut, crossfades.fin) == attendus
 
 
+@then(parsers.parse("la durée de péremption est de {jours:d} jours"))
+def peremption(contexte: Contexte, jours: int) -> None:
+	"""https://github.com/dascritch/machincast/issues/268"""
+	assert contexte.configuration is not None, contexte.erreur
+	assert contexte.configuration.base.peremption == jours
+
+
 @then(parsers.re(r"le seuil de blanc est de (?P<seuil>-?[\d,]+) dB"))
 def seuil_de_blanc(contexte: Contexte, seuil: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/146"""

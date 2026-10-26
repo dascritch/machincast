@@ -49,7 +49,16 @@ from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QTabBar, QWidget
 
 from machincast import raccourci, service
-from machincast.configuration import Audio, Blancs, ConfigurationInvalide, Crossfades, Interface, Metadonnees, charger
+from machincast.configuration import (
+	PEREMPTION,
+	Audio,
+	Blancs,
+	ConfigurationInvalide,
+	Crossfades,
+	Interface,
+	Metadonnees,
+	charger,
+)
 from machincast.horloge import Horloge
 from machincast.interface import (
 	dialogues,
@@ -171,6 +180,7 @@ class FenetrePrincipale(QMainWindow):
 		audio: Audio,
 		blancs: Blancs | None = None,
 		interface: Interface | None = None,
+		peremption: int = PEREMPTION,
 	) -> None:
 		"""commande_indexation : Machin indexation, avec la configuration de l'interface
 		(indexation.commande_indexation). configuration : le fichier où « Préférences… » enregistre les réglages,
@@ -185,6 +195,7 @@ class FenetrePrincipale(QMainWindow):
 		self.preecoute: FenetrePreecoute | None = None
 		"""La fenêtre de pré-écoute, une seule pour toute l'interface, créée à sa première demande."""
 		preferences.definir((crossfades) or (Crossfades()))
+		preferences.definir_peremption(peremption)
 		self.seuil_blancs = ((blancs) or (Blancs())).seuil
 		self.saturation = ((interface) or (Interface())).saturation
 		"""Le voyant « Saturation » de l'accueil est affiché (https://github.com/dascritch/machincast/issues/191)."""
@@ -882,6 +893,7 @@ class FenetrePrincipale(QMainWindow):
 			self.saturation,
 			self.suggestions,
 			self.icone,
+			preferences.peremption(),
 		)
 		reglages = dialogues.regler_preferences(self, montres, audio.sortie)
 		if reglages is None:
@@ -892,6 +904,7 @@ class FenetrePrincipale(QMainWindow):
 			self.statusBar().showMessage(f"Préférences non enregistrées dans {self.configuration} : {erreur}")
 			return
 		preferences.definir(reglages.crossfades)
+		preferences.definir_peremption(reglages.peremption)
 		self.seuil_blancs = reglages.seuil_blancs
 		self.saturation = reglages.saturation
 		self.suggestions = reglages.suggestions

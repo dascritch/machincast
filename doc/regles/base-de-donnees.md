@@ -29,7 +29,7 @@ Le tableau des droits par binaire est dans [spec.md § 3.2](../spec.md#32-rôles
 
 Règles :
 
-- Un binaire ouvre toujours sa connexion avec `machincast.base.connecter(socket, base, Role.…)`, jamais avec `psycopg.connect` directement : sans `SET ROLE`, l'utilisateur n'a aucun droit. Seules exceptions, les opérations de propriétaire de la base : les migrations (`machincast.installation`) et `Machin_maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)), dont `VACUUM` et la vérification des rôles demandent le compte lui-même. Elles ne lisent ni n'écrivent aucune donnée des tables.
+- Un binaire ouvre toujours sa connexion avec `machincast.base.connecter(socket, base, Role.…)`, jamais avec `psycopg.connect` directement : sans `SET ROLE`, l'utilisateur n'a aucun droit. Seules exceptions, les opérations de propriétaire de la base : les migrations (`machincast.installation`) et `Machin_maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)), dont `VACUUM` et la vérification des rôles demandent le compte lui-même, et qui ne lisent ni n'écrivent aucune donnée des tables ; et `Machin_purge` ([#268](https://github.com/dascritch/machincast/issues/268)), seul programme qui efface des lignes de `airplay` et de `log`, ce qu'aucun rôle ne peut faire.
 - Toute opération qui modifie la base hors des binaires de l'antenne (schéma, optimisation) est précédée d'une sauvegarde, et s'arrête si elle échoue ; une sauvegarde n'est jamais effacée par MachinCast.
 - Toute connexion se ferme explicitement, par un `with`, y compris celle d'un backend yoyo : laissée au ramasse-miettes, elle peut épuiser les connexions du serveur ([#78](https://github.com/dascritch/machincast/issues/78)). Deux scénarios de `schema.feature` le vérifient pour les migrations, ramasse-miettes suspendu.
 - Tout changement de droits passe par une nouvelle migration et par la matrice de [`tests/features/roles.feature`](../../tests/features/roles.feature), qui vérifie chaque opération de chaque rôle sur chaque table.
@@ -43,7 +43,7 @@ Points sensibles :
 
 ## Intégrité
 
-- Les lignes `airplay` ne sont jamais supprimées. Elles recopient emplacement, artiste et titre au moment du passage.
+- Les lignes `airplay` ne sont supprimées que par `Machin_purge`, passé la durée de péremption ([#268](https://github.com/dascritch/machincast/issues/268)), et toujours par passage entier (début et fin). Elles recopient emplacement, artiste et titre au moment du passage : un passage récent d'un sonore effacé se lit encore.
 - Les contraintes « exactement un des deux » (stream : URL ou feed ; élément d'événement : banque ou sonore) sont posées en base par des `CHECK`.
 - Une contrainte qui porte sur une autre table passe par un déclencheur qui lève une `check_violation`, comme le secours d'un stream, toujours un événement de priorité `secours` ([#16](https://github.com/dascritch/machincast/issues/16)). La requête du déclencheur est imbriquée sous la condition qui la rend nécessaire, pour qu'un rôle qui n'a pas le droit de lire l'autre table puisse continuer à écrire.
 - Une valeur ajoutée par `ALTER TYPE … ADD VALUE` ne peut pas servir dans la transaction qui l'ajoute, donc pas dans la même migration yoyo : les contraintes qui l'utilisent vont dans la migration suivante.

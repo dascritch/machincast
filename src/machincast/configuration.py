@@ -39,12 +39,19 @@ class ConfigurationInvalide(Exception):
 	"""Le fichier de configuration est absent, mal formé ou incomplet."""
 
 
+PEREMPTION = 60
+"""Durée de péremption par défaut, en jours (https://github.com/dascritch/machincast/issues/268)."""
+
+
 @dataclass(frozen=True)
 class Base:
 	socket: Path
 	"""Répertoire de la socket Unix de PostgreSQL."""
 	production: str
 	test: str
+	peremption: int = PEREMPTION
+	"""Jours au-delà desquels Machin purge efface de la base l'airplay, le log et les éléments supprimés
+	(https://github.com/dascritch/machincast/issues/268)."""
 
 
 @dataclass(frozen=True)
@@ -157,7 +164,7 @@ class Configuration:
 
 # Clés connues, par section. Toute autre clé est refusée, pour détecter les fautes de frappe.
 CLES: dict[str, frozenset[str]] = {
-	"base": frozenset({"socket", "production", "test"}),
+	"base": frozenset({"socket", "production", "test", "peremption"}),
 	"audio": frozenset({"sortie", "peripherique", "preecoute"}),
 	"sorties": frozenset({"csv", "pls", "html"}),
 	"metadonnees": frozenset({"masquer", "texte_public"}),
@@ -247,6 +254,13 @@ class _Lecteur:
 			return defaut
 		if not isinstance(valeur, bool):
 			raise self.erreur(f"clé {section}.{cle} : booléen attendu (true ou false), {_decrire(valeur)} trouvé")
+		return valeur
+
+	def jours(self, section: str, cle: str, defaut: int) -> int:
+		"""Un nombre entier de jours, 1 au moins ; defaut sans la clé."""
+		valeur = self.document.get(section, {}).get(cle, defaut)
+		if (isinstance(valeur, bool)) or (not isinstance(valeur, int)) or (valeur < 1):
+			raise self.erreur(f"clé {section}.{cle} : « {valeur} » n'est pas un nombre entier de jours, 1 au moins")
 		return valeur
 
 	def nombre_facultatif(self, section: str, cle: str) -> float | None:
@@ -348,6 +362,7 @@ def charger(chemin: Path | None = None) -> Configuration:
 		socket=Path(lecteur.texte("base", "socket")),
 		production=lecteur.texte("base", "production"),
 		test=lecteur.texte("base", "test"),
+		peremption=lecteur.jours("base", "peremption", PEREMPTION),
 	)
 	if base.test == base.production:
 		raise lecteur.erreur("clé base.test : la base de test ne peut pas être la base de production")

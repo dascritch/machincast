@@ -50,7 +50,7 @@ from PySide6.QtWidgets import (
 )
 
 from machincast.horloge import Horloge
-from machincast.interface import dialogues, suppression
+from machincast.interface import dialogues, preferences, suppression
 from machincast.interface.dialogues import Fermeture
 from machincast.protection import est_fichier_sonore
 
@@ -221,7 +221,7 @@ class Fiche(QWidget):
 				saisie.setEnabled(False)
 				self._figes.append(saisie)
 		self.bouton_supprimer.setText(RESTAURER)
-		self.message.setText(suppression.marque(self.genre, self.supprime_le))
+		self.message.setText(suppression.marque(self.genre, self.supprime_le, preferences.peremption()))
 
 	def enregistrer(self) -> bool:
 		"""Écrit la fiche en base, puis la relit ; une fiche refusée n'est pas enregistrée, et dit pourquoi."""

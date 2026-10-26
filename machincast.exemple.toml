@@ -14,6 +14,10 @@ socket = "/var/run/postgresql"
 production = "machincast"
 # Base de test, utilisée par les tests automatisés. Doit différer de la base de production : le chargement refuse sinon.
 test = "machincast_test"
+# Durée de péremption, en jours entiers, 1 au moins : Machin purge efface de la base les passages de l'airplay et les
+# lignes du log plus vieux, et les éléments supprimés depuis plus longtemps ; jamais un fichier sonore. 60 par défaut.
+# Elle se règle aussi dans Machin interface, Fichier → Préférences…, page Base, qui l'écrit ici.
+# peremption = 60
 
 [audio]
 # Sortie audio de l'antenne : "alsa", "pulseaudio", "pipewire", ou "factice" pour ne jouer aucun son (essais).

@@ -184,8 +184,11 @@ Les anomalies (fichier endommagé, illisible ou introuvable) s'affichent sur la 
 | Unité systemd | Installe `/etc/systemd/system/machincast.service`, rédigé par `python -m machincast.installation unite`, puis recharge systemd. | Une unité systemd. |
 | Règle polkit | Installe `/etc/polkit-1/rules.d/50-machincast.rules`, rédigée par `python -m machincast.installation regle`. | Une règle polkit. |
 | Activation | Active le service au démarrage du poste, et le démarre ; une unité modifiée redémarre le service. | Service activé. |
+| Purge quotidienne | Installe `/etc/systemd/system/machincast-purge.service` et son minuteur `machincast-purge.timer`, rédigés par `python -m machincast.installation unite-purge` et `minuteur-purge`, et active le minuteur ([#268](https://github.com/dascritch/machincast/issues/268)). | Une unité et un minuteur systemd. |
 
 **Le service** tourne sous le compte qui a installé MachinCast, pas sous un compte système : il en a le rôle PostgreSQL, les fichiers et la session audio. Il lance `bin/Machin lecture`, avec le `machincast.toml` du répertoire de MachinCast, et le relance 5 secondes après un plantage. Son arrêt envoie `SIGTERM`, qui termine proprement le passage en cours. Ses messages vont dans le journal du système : `Machin logs` les suit.
+
+**La purge quotidienne** lance `bin/Machin purge` chaque jour à midi, sous le même compte : elle efface de la base ce qui dépasse la durée de péremption, `base.peremption`, 60 jours par défaut, et jamais un fichier ([Purge de la base](doc/administration/commandes.md#purge-de-la-base--machin-purge)). Une purge manquée, poste éteint à midi, se fait à son démarrage. `systemctl list-timers machincast-purge.timer` donne la prochaine ; `journalctl --unit=machincast-purge.service`, ce que les précédentes ont effacé.
 
 **La règle polkit** n'autorise que trois actions sur `machincast.service`, au seul compte de MachinCast : le démarrer, l'arrêter et le redémarrer, avec le mot de passe, ou l'empreinte, d'un administrateur du poste. Elle n'autorise rien d'autre, ni sur une autre unité. Jamais de `sudo` pour piloter la diffusion :
 
@@ -206,13 +209,15 @@ systemctl status machincast.service
 sudo loginctl enable-linger "$(id -un)"
 .venv/bin/python -m machincast.installation unite --config machincast.toml > machincast.service
 .venv/bin/python -m machincast.installation regle --config machincast.toml > 50-machincast.rules
-sudo install --mode=644 machincast.service /etc/systemd/system/machincast.service
+.venv/bin/python -m machincast.installation unite-purge --config machincast.toml > machincast-purge.service
+.venv/bin/python -m machincast.installation minuteur-purge --config machincast.toml > machincast-purge.timer
+sudo install --mode=644 machincast.service machincast-purge.service machincast-purge.timer /etc/systemd/system/
 sudo install --mode=644 50-machincast.rules /etc/polkit-1/rules.d/50-machincast.rules
 sudo systemctl daemon-reload
-sudo systemctl enable --now machincast.service
+sudo systemctl enable --now machincast.service machincast-purge.timer
 ```
 
-`--retirer-service` arrête et désactive le service, puis retire l'unité et la règle. La session du compte reste active au démarrage ; `sudo loginctl disable-linger "$(id -un)"` la retire.
+`--retirer-service` arrête et désactive le service et le minuteur de la purge, puis retire leurs unités et la règle : la purge se lance ensuite à la main, par `Machin purge`. La session du compte reste active au démarrage ; `sudo loginctl disable-linger "$(id -un)"` la retire.
 
 ## Ajouter un autre compte
 
@@ -265,6 +270,8 @@ git pull
 ```
 
 **Entretenir la base.** `Machin maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)) sauvegarde la base de production avec `pg_dump`, dans le répertoire `sauvegardes` de MachinCast, applique les migrations manquantes, vérifie les rôles, puis l'optimise (`VACUUM ANALYZE`). L'interface la lance aussi, après confirmation, menu **Maintenance → Maintenance de la base de données…**. Détails et restauration : [Maintenance de la base](doc/administration/commandes.md#maintenance-de-la-base--machin-maintenance-db).
+
+**Purger la base.** `Machin purge` ([#268](https://github.com/dascritch/machincast/issues/268)) efface de la base de production l'airplay et le log plus vieux que la durée de péremption (`base.peremption`, 60 jours par défaut), et les éléments supprimés depuis plus longtemps ; jamais un fichier. Le service de diffusion l'installe avec un minuteur, chaque jour à midi : une installation qui a déjà le service le reçoit en relançant `./install.sh --service`. Détails : [Purge de la base](doc/administration/commandes.md#purge-de-la-base--machin-purge).
 
 **Marques-pages devenus feeds.** La migration `0012.feeds` ([#252](https://github.com/dascritch/machincast/issues/252)) renomme la table `marques_pages_streams` en `feeds`, et la colonne `marque_page_id` des sonores en `feed_id`, sans toucher aux données ; les droits des trois rôles suivent. Une requête écrite à la main sur les anciens noms est à corriger. La disposition des colonnes de l'ancien onglet « Marques-pages » n'est pas reprise : celle de l'onglet « Feeds » repart des colonnes par défaut.
 

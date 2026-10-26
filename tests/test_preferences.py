@@ -839,3 +839,44 @@ def positions_reglees(interface: Contexte, entree: str, sortie: str) -> None:
 def positions_du_fichier(interface: Contexte, entree: str, sortie: str) -> None:
 	crossfades = charger(fichier_de_configuration(interface)).crossfades
 	assert (crossfades.entree, crossfades.sortie) == (entree, sortie)
+
+
+# ─── Durée de péremption (https://github.com/dascritch/machincast/issues/268) ───
+
+
+@given(parsers.parse("les préférences seront réglées avec la durée de péremption de {jours:d} jours"))
+def peremption_reglee(interface: Contexte, jours: int) -> None:
+	interface.peremption_reglee = jours
+
+
+@then(parsers.parse("les préférences ont montré la durée de péremption de {jours:d} jours"))
+def peremption_montree(interface: Contexte, jours: int) -> None:
+	assert interface.peremptions_montrees == [jours]
+
+
+@then(parsers.parse("la durée de péremption de l'interface est de {jours:d} jours"))
+def peremption_de_la_session(jours: int) -> None:
+	assert preferences.peremption() == jours
+
+
+@when(parsers.parse("la fenêtre des préférences s'ouvre sur la durée de péremption de {jours:d} jours"))
+def ouvrir_sur_la_peremption(ouverte: Ouverte, parent: QWidget, jours: int) -> None:
+	tous = Reglages(Crossfades(), None, PREECOUTE_DES_TESTS, peremption=jours)
+	ouverte.fenetre = FenetrePreferences(tous, "factice", parent)
+
+
+@then(parsers.parse("elle montre la durée de péremption « {texte} », réglable de {minimum:d} à {maximum:d} jours"))
+def peremption_affichee(ouverte: Ouverte, texte: str, minimum: int, maximum: int) -> None:
+	champ = la_fenetre(ouverte).ui.peremption
+	assert (champ.text(), champ.minimum(), champ.maximum()) == (texte, minimum, maximum)
+
+
+@when(parsers.parse("j'y saisis la durée de péremption de {jours:d} jours"))
+def saisir_la_peremption(ouverte: Ouverte, jours: int) -> None:
+	la_fenetre(ouverte).ui.peremption.setValue(jours)
+
+
+@then(parsers.parse("elle a donné la durée de péremption de {jours:d} jours"))
+def peremption_donnee(ouverte: Ouverte, jours: int) -> None:
+	assert ouverte.donnes is not None
+	assert ouverte.donnes.peremption == jours

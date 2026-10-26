@@ -251,7 +251,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Et je supprime l'élément de la fiche, en répondant « Supprimer »
 		Et j'ouvre depuis l'historique la fiche du sonore « Spot »
 		Alors l'onglet ouvert est « Sonore : Spot »
-		Et la fiche signale « Supprimé le 19/10/2026 à 15:30 : « Restaurer » le remet en service. »
+		Et la fiche signale « Supprimé le 19/10/2026 à 15:30, effacé de la base après le 18/12/2026 : « Restaurer » le remet en service. »
 		Et les champs de la fiche ne se modifient pas
 		Et la fiche propose « Restaurer », pas « Supprimer… »
 		Quand je clique sur « Restaurer »
@@ -268,15 +268,25 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Et j'ouvre la fiche <de> « <nom> »
 		Et je supprime l'élément de la fiche, en répondant « Supprimer »
 		Et j'ouvre depuis l'historique la fiche <de> « <nom> »
-		Alors la fiche signale « <marque> le 19/10/2026 à 15:30 : « Restaurer » <pronom> remet en service. »
+		Alors la fiche signale « <marque> le 19/10/2026 à 15:30, <effacement> de la base après le 18/12/2026 : « Restaurer » <pronom> remet en service. »
 		Quand je clique sur « Restaurer »
 		Alors <genre> « <nom> » est toujours en base
 
 		Exemples:
-			| de             | genre       | nom         | marque    | pronom |
-			| de la banque   | la banque   | Habillage   | Supprimée | la     |
-			| de la séquence | la séquence | Passage pub | Supprimée | la     |
-			| de l'événement | l'événement | Matinale    | Supprimé  | le     |
+			| de             | genre       | nom         | marque    | effacement | pronom |
+			| de la banque   | la banque   | Habillage   | Supprimée | effacée    | la     |
+			| de la séquence | la séquence | Passage pub | Supprimée | effacée    | la     |
+			| de l'événement | l'événement | Matinale    | Supprimé  | effacé     | le     |
+
+	Scénario: La fiche d'un élément supprimé suit la durée de péremption de la configuration
+		https://github.com/dascritch/machincast/issues/268
+
+		Étant donné la durée de péremption du fichier de configuration de l'interface est de 10 jours
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Spot »
+		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et j'ouvre depuis l'historique la fiche du sonore « Spot »
+		Alors la fiche signale « Supprimé le 19/10/2026 à 15:30, effacé de la base après le 29/10/2026 : « Restaurer » le remet en service. »
 
 	Scénario: Un élément qui a perdu son nom au profit d'un autre ne se restaure pas, et la fiche dit pourquoi
 		Quand la fenêtre de l'interface s'ouvre

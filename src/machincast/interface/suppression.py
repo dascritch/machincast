@@ -12,7 +12,7 @@ La question de confirmation dit où l'élément figure, et quelle liste n'aurait
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import psycopg
@@ -277,12 +277,14 @@ def supprime_le(connexion: Connexion, genre: str, identifiant: int) -> datetime 
 	return ligne[0]
 
 
-def marque(genre: str, instant: datetime) -> str:
-	"""Ce que dit la fiche d'un élément supprimé."""
+def marque(genre: str, instant: datetime, peremption: int) -> str:
+	"""Ce que dit la fiche d'un élément supprimé : quand il l'a été, et après quel jour Machin purge l'efface de la
+	base, peremption jours plus tard (https://github.com/dascritch/machincast/issues/268)."""
 	decrit = GENRES[genre]
+	efface = (instant + timedelta(days=peremption)).astimezone()
 	return (
-		f"Supprimé{decrit.accord} le {instant.astimezone():%d/%m/%Y à %H:%M} : « Restaurer » {decrit.objet} remet en"
-		" service."
+		f"Supprimé{decrit.accord} le {instant.astimezone():%d/%m/%Y à %H:%M}, effacé{decrit.accord} de la base après le"
+		f" {efface:%d/%m/%Y} : « Restaurer » {decrit.objet} remet en service."
 	)
 
 

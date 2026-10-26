@@ -128,6 +128,63 @@ Fonctionnalité: Vérifications de l'installation
 	Scénario: L'unité porte le nom que le wrapper suit dans le journal
 		Alors l'unité de machincast.installation est celle de « Machin logs »
 
+	# ─── Purge quotidienne (https://github.com/dascritch/machincast/issues/268) ─────
+	# install.sh --service installe aussi le minuteur de la purge : chaque jour à midi, Machin purge efface de la base
+	# ce qui dépasse la durée de péremption, sous le compte de MachinCast. --retirer-service le retire avec le service.
+
+	Scénario: L'unité de la purge lance Machin purge une fois, sous le compte de MachinCast
+		Quand je lance « python -m machincast.installation unite-purge » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et l'unité a, dans la section « Unit » :
+			| clé         | valeur                                                          |
+			| Description | MachinCast : purge de la base de données (Machin purge)         |
+			| After       | postgresql.service                                              |
+		Et l'unité a, dans la section « Service » :
+			| clé              | valeur                          |
+			| Type             | oneshot                         |
+			| User             | <compte>                        |
+			| Group            | <groupe>                        |
+			| WorkingDirectory | <répertoire>                    |
+			| ExecStart        | <répertoire>/bin/Machin purge   |
+			| SyslogIdentifier | machincast-purge                |
+		Et l'unité n'a pas de section « Install »
+
+	Scénario: Le minuteur de la purge la lance chaque jour à midi, et la rattrape si le poste était éteint
+		Quand je lance « python -m machincast.installation minuteur-purge » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et l'unité a, dans la section « Unit » :
+			| clé         | valeur                                                 |
+			| Description | MachinCast : purge quotidienne de la base, à midi      |
+		Et l'unité a, dans la section « Timer » :
+			| clé        | valeur                   |
+			| OnCalendar | *-*-* 12:00:00           |
+			| Persistent | true                     |
+			| Unit       | machincast-purge.service |
+		Et l'unité a, dans la section « Install » :
+			| clé      | valeur        |
+			| WantedBy | timers.target |
+
+	Scénario: L'unité de la purge suit le compte de MachinCast, quel qu'il soit
+		Quand l'unité de la purge est rédigée pour le compte « radio », du groupe « antenne », dans « /home/radio/machincast »
+		Alors l'unité de la purge a, dans la section « Service », entre autres :
+			| clé              | valeur                                  |
+			| User             | radio                                   |
+			| Group            | antenne                                 |
+			| WorkingDirectory | /home/radio/machincast                  |
+			| ExecStart        | /home/radio/machincast/bin/Machin purge |
+
+	Scénario: systemd accepte l'unité et le minuteur de la purge
+		Étant donné l'outil « systemd-analyze » du poste
+		Quand je lance « python -m machincast.installation unite-purge » avec la configuration de test
+		Et j'enregistre sa sortie en « machincast-purge.service »
+		Et je lance « python -m machincast.installation minuteur-purge » avec la configuration de test
+		Et j'enregistre sa sortie en « machincast-purge.timer »
+		Alors « systemd-analyze verify » accepte « machincast-purge.service »
+		Et « systemd-analyze verify » accepte « machincast-purge.timer »
+
+	Scénario: Les noms de l'unité et du minuteur de la purge sont ceux qu'installe install.sh
+		Alors install.sh installe et retire l'unité et le minuteur de la purge de machincast.installation
+
 	# ─── Raccourci et icône de l'interface (https://github.com/dascritch/machincast/issues/62) ─────
 	# install.sh installe le raccourci que rédige machincast.installation dans le menu des applications du compte, et,
 	# sur demande, sur son bureau. Lancé depuis une icône, le programme démarre dans le répertoire de MachinCast.

@@ -178,6 +178,37 @@ Fonctionnalité: Fichier de configuration
 
 	# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ─────────────────
 
+	# ─── Péremption (https://github.com/dascritch/machincast/issues/268) ───
+
+	Scénario: Sans clé base.peremption, la durée de péremption est de 60 jours
+		Étant donné une configuration valide où la clé "base.peremption" est absente
+		Quand je charge la configuration
+		Alors la durée de péremption est de 60 jours
+
+	Plan du scénario: La clé base.peremption donne la durée de péremption, en jours entiers, d'un jour au moins
+		Étant donné une configuration valide où la clé "base.peremption" vaut <valeur>
+		Quand je charge la configuration
+		Alors la durée de péremption est de <valeur> jours
+
+		Exemples:
+			| valeur |
+			| 1      |
+			| 365    |
+
+	Plan du scénario: Une durée de péremption invalide est refusée
+		Étant donné une configuration valide où la clé "base.peremption" vaut <valeur>
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "base.peremption"
+		Et le message mentionne "nombre entier de jours, 1 au moins"
+
+		Exemples:
+			| valeur |
+			| 0      |
+			| -5     |
+			| 1.5    |
+			| "60"   |
+			| true   |
+
 	Scénario: Sans section [blancs], le seuil de blanc est de -40 dB
 		Étant donné une configuration valide sans section "blancs"
 		Quand je charge la configuration

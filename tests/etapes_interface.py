@@ -22,6 +22,7 @@ from pathlib import Path
 import psycopg
 import pytest
 import shiboken6
+import tomlkit
 from PySide6.QtCore import QCoreApplication, QEvent, QMimeData, QModelIndex, QPoint, QPointF, Qt, QUrl
 from PySide6.QtGui import (
 	QAction,
@@ -49,7 +50,7 @@ from pytestqt.qtbot import QtBot
 from machincast import audio
 from machincast.audio import Peripherique
 from machincast.base import Role, connecter
-from machincast.configuration import Crossfades, Interface, SortieAudio, charger
+from machincast.configuration import PEREMPTION, Crossfades, Interface, SortieAudio, charger
 from machincast.horloge import HorlogeFixe
 from machincast.interface import dialogues
 from machincast.interface.dialogues import Fermeture, Retrait
@@ -142,6 +143,10 @@ class Contexte:
 	None : celui qu'elle a montré."""
 	seuils_montres: list[float] = field(default_factory=list)
 	"""Les seuils de blanc que la fenêtre des préférences a montrés, à chaque ouverture."""
+	peremption_reglee: int | None = None
+	"""La durée de péremption, en jours, que donnera la fenêtre des préférences
+	(https://github.com/dascritch/machincast/issues/268) ; None : celle qu'elle a montrée."""
+	peremptions_montrees: list[int] = field(default_factory=list)
 	suggestions_actives: bool = False
 	"""Les scénarios n'ont pas de suggestions au lancement, sauf ceux qui les activent
 	(https://github.com/dascritch/machincast/issues/119) : sans elles, le fil musical est recréé comme avant."""
@@ -276,12 +281,14 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		interface.preferences_montrees.append(montres.crossfades)
 		interface.audio_montre.append((montres.antenne, montres.preecoute))
 		interface.seuils_montres.append(montres.seuil_blancs)
+		interface.peremptions_montrees.append(montres.peremption)
 		interface.saturations_montrees.append(montres.saturation)
 		interface.icones_montrees.append(montres.icone)
 		if (
 			(interface.preferences_reglees is None)
 			and (interface.reglages_audio is None)
 			and (interface.seuil_regle is None)
+			and (interface.peremption_reglee is None)
 			and (interface.saturation_reglee is None)
 			and (interface.icone_reglee is None)
 		):
@@ -296,6 +303,9 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		icone = montres.icone
 		if interface.icone_reglee is not None:
 			icone = interface.icone_reglee[0]
+		peremption = montres.peremption
+		if interface.peremption_reglee is not None:
+			peremption = interface.peremption_reglee
 		return Reglages(
 			(interface.preferences_reglees) or (montres.crossfades),
 			antenne,
@@ -304,6 +314,7 @@ def remplacer_dialogues(interface: Contexte) -> None:
 			saturation,
 			montres.suggestions,
 			icone,
+			peremption,
 		)
 
 	monkeypatch.setattr(dialogues, "regler_preferences", preferences)
@@ -716,6 +727,7 @@ def ouvrir_la_fenetre(interface: Contexte, qtbot: QtBot, avec_configuration: boo
 	chemin: Path | None = None
 	crossfades = None
 	blancs = None
+	peremption = PEREMPTION
 	reglages_de_l_interface = None
 	audio = configuration_test().audio
 	if avec_configuration:
@@ -723,6 +735,7 @@ def ouvrir_la_fenetre(interface: Contexte, qtbot: QtBot, avec_configuration: boo
 		interface.configuration_initiale = chemin.read_bytes()
 		crossfades = charger(chemin).crossfades
 		blancs = charger(chemin).blancs
+		peremption = charger(chemin).base.peremption
 		reglages_de_l_interface = charger(chemin).interface
 		audio = charger(chemin).audio
 	if not interface.suggestions_actives:
@@ -737,6 +750,7 @@ def ouvrir_la_fenetre(interface: Contexte, qtbot: QtBot, avec_configuration: boo
 		audio=audio,
 		blancs=blancs,
 		interface=reglages_de_l_interface,
+		peremption=peremption,
 	)
 	interface.fenetre.detail_demande.connect(lambda genre, numero: interface.demandes.append((genre, numero)))
 
@@ -1571,3 +1585,14 @@ def sonores_du_fichier(interface: Contexte, base_vide: Connexion, chemin: str, n
 		"SELECT supprime_le IS NOT NULL FROM sonores WHERE emplacement = %s", (interface.chemin(chemin),)
 	).fetchall()
 	assert (len(lignes), sum(1 for (supprime,) in lignes if supprime)) == (nombre, supprimes), lignes
+
+
+@given(parsers.parse("la durée de péremption du fichier de configuration de l'interface est de {jours:d} jours"))
+def peremption_du_fichier(interface: Contexte, jours: int) -> None:
+	"""https://github.com/dascritch/machincast/issues/268"""
+	chemin = fichier_de_configuration(interface)
+	document = tomlkit.parse(chemin.read_text(encoding="utf-8"))
+	base = document["base"]
+	assert isinstance(base, tomlkit.items.Table)
+	base["peremption"] = jours
+	chemin.write_text(tomlkit.dumps(document), encoding="utf-8")

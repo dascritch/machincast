@@ -5,6 +5,7 @@
 - [Lancer les programmes : Machin](#lancer-les-programmes--machin)
 - [Interface graphique : Machin interface](#interface-graphique--machin-interface)
 - [Maintenance de la base : Machin maintenance-db](#maintenance-de-la-base--machin-maintenance-db)
+- [Purge de la base : Machin purge](#purge-de-la-base--machin-purge)
 - [Suivre le journal : Machin logs](#suivre-le-journal--machin-logs)
 - [Messages et codes de sortie](#messages-et-codes-de-sortie)
 
@@ -24,6 +25,7 @@ Machin --help                         # aide complète
 | `Machin indexation` | Enregistrement des fichiers déposés dans les répertoires des banques, vérification des fichiers sonores et mise à jour de la base. |
 | `Machin interface` | Interface graphique de supervision et de programmation. Pour l'instant, son [écran par défaut](#interface-graphique--machin-interface), les [listes](../utilisateur/listes.md#listes), les fiches d'un [événement](../utilisateur/grille.md#fiche-dun-événement), d'une [séquence](../utilisateur/grille.md#fiche-dune-séquence), d'une [banque](../utilisateur/sonores.md#fiche-dune-banque) et d'un [sonore](../utilisateur/sonores.md#fiche-dun-sonore). |
 | `Machin maintenance-db` | [Maintenance de la base de production](#maintenance-de-la-base--machin-maintenance-db) : sauvegarde, vérification du schéma et des rôles, optimisation. |
+| `Machin purge` | [Purge de la base de production](#purge-de-la-base--machin-purge) : efface ce qui dépasse la durée de péremption, jamais un fichier. |
 | `Machin logs` | Suivi en direct du journal du service de diffusion. |
 
 **Options de `Machin`**, placées avant le nom du programme :
@@ -51,7 +53,7 @@ Machin --help                         # aide complète
 
 - **Base** : elle se connecte à la base de production (`base.production`), avec le rôle `machincast_interface` ([Droits de chaque programme dans la base](configuration.md#droits-de-chaque-programme-dans-la-base)). Sans base, elle ouvre une fenêtre d'erreur, « MachinCast : base de données injoignable », qui renvoie à [En cas de problème](../../INSTALL.md#en-cas-de-problème) et donne l'erreur de PostgreSQL dans ses détails ; à sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, dans une session SSH par exemple, seul ce message s'affiche.
 - **Même compte et même configuration que la diffusion** : l'accueil suit la diffusion par sa socket d'état, que seul le compte qui diffuse peut ouvrir ([État de la diffusion pour l'interface](diffusion.md#état-de-la-diffusion-pour-linterface)). Le menu **Diffusion** pilote le service de diffusion, avec l'authentification de la règle polkit du service ([Service de diffusion](../../INSTALL.md#service-de-diffusion)), ou, sans service, une diffusion d'essai lancée dans un terminal.
-- **Réglages** : **Fichier → Préférences…** écrit dans les sections `[crossfades]`, `[audio]`, `[blancs]` et `[interface]` du `machincast.toml`, qui garde ses commentaires et ses autres réglages ; la fenêtre « Pour bien démarrer » écrit `audio.peripherique` et `interface.suggestions`. Un fichier qui ne peut pas être écrit laisse les réglages tels quels, et la barre d'état dit pourquoi. Une nouvelle icône de l'application (`interface.icone`, [#111](https://github.com/dascritch/machincast/issues/111)) réécrit aussi les raccourcis `machincast.desktop` déjà installés, dans `~/.local/share/applications` et sur le bureau, sans en créer ; l'image elle-même n'est ni copiée ni modifiée.
+- **Réglages** : **Fichier → Préférences…** écrit dans les sections `[crossfades]`, `[audio]`, `[blancs]`, `[interface]` et `[base]` (la seule clé `peremption`) du `machincast.toml`, qui garde ses commentaires et ses autres réglages ; la fenêtre « Pour bien démarrer » écrit `audio.peripherique` et `interface.suggestions`. Un fichier qui ne peut pas être écrit laisse les réglages tels quels, et la barre d'état dit pourquoi. Une nouvelle icône de l'application (`interface.icone`, [#111](https://github.com/dascritch/machincast/issues/111)) réécrit aussi les raccourcis `machincast.desktop` déjà installés, dans `~/.local/share/applications` et sur le bureau, sans en créer ; l'image elle-même n'est ni copiée ni modifiée.
 - **Indexation** : le menu **Maintenance** lance `Machin indexation --fenetre`, avec la configuration de l'interface, dans son propre programme ([Indexation : Machin indexation](indexation.md)).
 - **Simulation** : l'onglet Simulation lance `Machin lecture --simulation`, avec la configuration de l'interface, ses fichiers dans un répertoire temporaire (`--repertoire`) effacé à la fermeture de l'onglet ([Simuler la diffusion](diffusion.md#simuler-la-diffusion)).
 
@@ -84,6 +86,31 @@ sudo -u postgres createdb --owner="$(id -un)" machincast_restauree
 pg_restore --dbname=machincast_restauree --no-owner sauvegardes/machincast-2026-10-22T08-30-00.dump
 ```
 
+## Purge de la base : Machin purge
+
+`Machin purge` ([#268](https://github.com/dascritch/machincast/issues/268)) efface de la base de production (`base.production`) ce qui dépasse la **durée de péremption**, `base.peremption`, 60 jours par défaut, comptée depuis l'heure du lancement :
+
+- les passages de l'airplay finis avant cette limite ; un passage commencé avant et fini après reste entier ;
+- les lignes du log d'avant cette limite ;
+- les sonores, banques, séquences et événements [supprimés depuis l'interface](../utilisateur/listes.md#supprimer-un-élément) depuis plus longtemps : ils ne peuvent plus se restaurer ;
+- les sonores dont l'indexation a constaté la disparition du fichier (état `supprimé`) depuis plus longtemps.
+
+Les passages plus récents d'un sonore effacé gardent son emplacement, son artiste et son titre, recopiés lors du passage. **Seules des lignes de la base sont effacées** : aucun fichier sonore, aucun répertoire ([Les fichiers sonores ne sont jamais modifiés](configuration.md#les-fichiers-sonores-ne-sont-jamais-modifiés)). Un fichier toujours présent dans le répertoire d'une banque est de nouveau indexé, comme un nouveau sonore. Tout s'efface en une seule fois, ou rien : une erreur laisse la base telle quelle.
+
+```bash
+Machin purge
+```
+
+Elle dit, et écrit dans le log de la base, ligne `purge`, ce qu'elle a effacé, par exemple :
+
+```text
+2026-12-20T12:00:03+01:00 purge de la base machincast, au-delà de 60 jours (avant le 21/10/2026 12:00) : 412 passages de l'airplay, 37 lignes du log, 2 sonores, 1 banque, 0 séquence, 1 événement effacés
+```
+
+Code 0 quand la purge est faite ; 1 si la base est injoignable, ou sur une erreur de la base : rien n'est alors effacé. Comme la maintenance, elle se lance avec le compte de MachinCast, propriétaire de la base, qui efface sans endosser de rôle.
+
+**La durée** se règle dans `machincast.toml` ([Configuration](configuration.md#durée-de-péremption)), ou dans l'interface, **Fichier → Préférences…**, page **Base**. **Avec le service de diffusion** (`./install.sh --service`), un minuteur systemd la lance chaque jour à midi ([Service de diffusion](../../INSTALL.md#service-de-diffusion)) ; ses messages se lisent par `journalctl --unit=machincast-purge.service`. Sans service, elle se lance à la main.
+
 ## Suivre le journal : Machin logs
 
 `Machin logs` suit en direct le journal du service de diffusion, `machincast.service`. Les options qui suivent sont transmises à `journalctl`, par exemple :
@@ -101,7 +128,7 @@ Chaque message commence par son heure, en ISO 8601, à la seconde, avec le déca
 | Code | Signification |
 | --- | --- |
 | 0 | Le programme est allé au bout. Pour l'indexation, même si des sonores ont changé d'état : ce sont des anomalies, pas des erreurs. |
-| 1 | Base de données injoignable ou perdue (pour `Machin interface`, au lancement), décodeur GStreamer manquant, autre indexation en cours sur la base, `Machin indexation --fenetre` sans affichage graphique, sortie audio indisponible, autre `Machin lecture` déjà en diffusion, maintenance de la base inachevée ou avec un rôle manquant, ou fonction pas encore écrite. |
+| 1 | Base de données injoignable ou perdue (pour `Machin interface`, au lancement), décodeur GStreamer manquant, autre indexation en cours sur la base, `Machin indexation --fenetre` sans affichage graphique, sortie audio indisponible, autre `Machin lecture` déjà en diffusion, maintenance de la base inachevée ou avec un rôle manquant, purge de la base impossible, ou fonction pas encore écrite. |
 | 2 | Configuration invalide, ou appel incorrect (option inconnue, `--config` sans fichier). |
 | 127 | Programme ou `journalctl` introuvable, signalé par `Machin`. |
 

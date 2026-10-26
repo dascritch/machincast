@@ -21,11 +21,14 @@ from machincast.audio import Greffon
 from machincast.configuration import REPERTOIRE_PROJET, SortieAudio
 from machincast.installation import (
 	ICONE,
+	MINUTEUR_PURGE,
 	UNITE,
+	UNITE_PURGE,
 	Compte,
 	Manque,
 	raccourci,
 	regle_polkit,
+	unite_purge,
 	unite_systemd,
 	verifier_decodeurs,
 	verifier_sortie,
@@ -308,6 +311,45 @@ def unite_du_wrapper() -> None:
 def rediger(nom: str, groupe: str, uid: str, repertoire: str) -> tuple[str, str]:
 	compte = Compte(nom, groupe, int(uid))
 	return unite_systemd(compte, Path(repertoire)), regle_polkit(compte)
+
+
+@then(parsers.parse("l'unité n'a pas de section « {nom} »"))
+def sans_section(commande: subprocess.CompletedProcess[str], nom: str) -> None:
+	assert f"[{nom}]" not in commande.stdout, commande.stdout
+
+
+@when(
+	parsers.re(
+		r"l'unité de la purge est rédigée pour le compte « (?P<nom>[^»]+) », du groupe « (?P<groupe>[^»]+) »,"
+		r" dans « (?P<repertoire>[^»]+) »"
+	),
+	target_fixture="purge_redigee",
+)
+def rediger_la_purge(nom: str, groupe: str, repertoire: str) -> str:
+	return unite_purge(Compte(nom, groupe, 1001), Path(repertoire))
+
+
+@then(parsers.parse("l'unité de la purge a, dans la section « {nom} », entre autres :"))
+def section_de_la_purge(purge_redigee: str, nom: str, datatable: list[list[str]]) -> None:
+	_entetes, *rangees = datatable
+	section = _section(purge_redigee, nom)
+	assert {cle.strip(): section.get(cle.strip()) for cle, _valeur in rangees} == {
+		cle.strip(): valeur.strip() for cle, valeur in rangees
+	}
+
+
+@then("install.sh installe et retire l'unité et le minuteur de la purge de machincast.installation")
+def purge_d_install_sh() -> None:
+	install = (REPERTOIRE_PROJET / "install.sh").read_text(encoding="utf-8")
+	assert f'UNITE_PURGE="{UNITE_PURGE}"' in install
+	assert f'MINUTEUR_PURGE="{MINUTEUR_PURGE}"' in install
+	for attendu in (
+		'installer_fichier unite-purge "${FICHIER_UNITE_PURGE}"',
+		'installer_fichier minuteur-purge "${FICHIER_MINUTEUR_PURGE}"',
+		'executer sudo systemctl enable --now "${MINUTEUR_PURGE}"',
+		'executer sudo systemctl disable --now "${MINUTEUR_PURGE}"',
+	):
+		assert attendu in install, attendu
 
 
 @then(parsers.parse("l'unité a, dans la section « {nom} », entre autres :"))

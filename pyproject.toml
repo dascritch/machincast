@@ -38,6 +38,7 @@ Machin_lecture = "machincast.lecture.__main__:main"
 Machin_indexation = "machincast.indexation.__main__:main"
 Machin_interface = "machincast.interface.__main__:main"
 Machin_maintenance-db = "machincast.maintenance:main"
+Machin_purge = "machincast.purge:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
