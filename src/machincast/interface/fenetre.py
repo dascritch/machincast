@@ -22,7 +22,8 @@ La barre de menus a cinq menus (https://github.com/dascritch/machincast/issues/1
 comme la fermeture de la fenêtre) ; « Affichage », pour ouvrir les listes des sonores et des feeds, et le
 calendrier de la grille, « Grille horaire » (machincast.interface.calendrier,
 https://github.com/dascritch/machincast/issues/36), dans des onglets qui se ferment, et pour rafraîchir les onglets (F5,
-https://github.com/dascritch/machincast/issues/148) ; « Diffusion », qui démarre, arrête ou redémarre le service de
+https://github.com/dascritch/machincast/issues/148) ; « Diffusion », qui lance ou arrête l'écoute de l'antenne (Alt+P,
+https://github.com/dascritch/machincast/issues/256), et démarre, arrête ou redémarre le service de
 diffusion (machincast.interface.pilotage, https://github.com/dascritch/machincast/issues/25) selon son état, relu à
 l'ouverture du menu ; sans le service, la barre d'état dit que l'installation n'est pas définitive, et le menu pilote
 une diffusion d'essai ; « Maintenance », qui lance l'indexation rapide ou l'audit complet
@@ -122,6 +123,12 @@ REGLER_L_ANTENNE = (
 	" dans audio.peripherique du fichier de configuration."
 )
 DEJA_EN_MARCHE = "La diffusion d'essai tourne déjà"
+ECOUTE = {
+	False: ("Pré-écoute de l'antenne", "Écouter l'antenne sur la sortie de pré-écoute, aussitôt"),
+	True: ("Arrêter la pré-écoute de l'antenne", "Arrêter l'écoute de l'antenne sur la sortie de pré-écoute"),
+}
+"""L'entrée d'écoute de l'antenne du menu « Diffusion », et son infobulle, selon que l'antenne s'écoute
+(https://github.com/dascritch/machincast/issues/256)."""
 
 RACCOURCIS_DES_ONGLETS = 12
 """Les onglets qui ont un raccourci, Maj+F1 à Maj+F12 (https://github.com/dascritch/machincast/issues/192)."""
@@ -319,10 +326,12 @@ class FenetrePrincipale(QMainWindow):
 		preecoute.triggered.connect(lambda: self._preecouter(None))
 		self.menu_diffusion = self.menuBar().addMenu("&Diffusion")
 		self.menu_diffusion.aboutToShow.connect(self._relire_le_service)
-		# L'écoute de l'antenne, lancée aussitôt, en tête du menu (https://github.com/dascritch/machincast/issues/245).
-		ecouter = self.menu_diffusion.addAction(icones.icone("pré-écoute"), "Pré-écoute de l'antenne")
-		ecouter.setToolTip("Écouter l'antenne sur la sortie de pré-écoute, aussitôt")
-		ecouter.triggered.connect(lambda: self._ecouter_l_antenne(lancer=True))
+		# L'écoute de l'antenne, lancée aussitôt, en tête du menu (https://github.com/dascritch/machincast/issues/245) ;
+		# pendant l'écoute, elle l'arrête, et Alt+P fait l'un ou l'autre (https://github.com/dascritch/machincast/issues/256).
+		self.ecouter = self.menu_diffusion.addAction(icones.icone("pré-écoute"), "")
+		self.ecouter.setShortcut(QKeySequence("Alt+P"))
+		self.ecouter.triggered.connect(self._basculer_l_ecoute)
+		self._montrer_l_ecoute(False)
 		self.menu_diffusion.addSeparator()
 		self.pilotes: dict[str, QAction] = {}
 		for verbe, (entree, _reussite, _echec) in pilotage.VERBES.items():
@@ -551,11 +560,24 @@ class FenetrePrincipale(QMainWindow):
 		garde le sien."""
 		if self.preecoute is None:
 			self.preecoute = FenetrePreecoute(self.connexion, self.audio, self.configuration, self)
+			self.preecoute.ecoute_changee.connect(self._montrer_l_ecoute)
 		if (sonore is not None) or (not self.preecoute.isVisible()):
 			self.preecoute.preecouter(sonore)
 		self.preecoute.show()
 		self.preecoute.raise_()
 		self.preecoute.activateWindow()
+
+	def _basculer_l_ecoute(self) -> None:
+		"""L'entrée d'écoute de l'antenne, ou Alt+P : l'arrête pendant l'écoute, la lance sinon."""
+		if (self.preecoute is not None) and (self.preecoute.ecoute_l_antenne()):
+			self.preecoute.arreter()
+			return
+		self._ecouter_l_antenne(lancer=True)
+
+	def _montrer_l_ecoute(self, en_cours: bool) -> None:
+		texte, infobulle = ECOUTE[en_cours]
+		self.ecouter.setText(texte)
+		self.ecouter.setToolTip(infobulle)
 
 	def _ecouter_l_antenne(self, lancer: bool = False) -> None:
 		"""Clic sur le VU-mètre de l'accueil : l'antenne dans la fenêtre de pré-écoute

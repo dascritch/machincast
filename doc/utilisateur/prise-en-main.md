@@ -80,7 +80,7 @@ Entre les deux sonores, la colonne **Antenne** montre ce qui sort réellement à
 - **Saturation**, au-dessus : ce voyant s'allume, rouge, dès qu'une crête atteint -1 dB, et le reste 3 secondes. Il se cache dans les [préférences](#préférences).
 - **VU-mètre** : une barre par canal, « G » et « D », de -60 dB en bas à 0 dB en haut, séparées par l'échelle. La partie pleine est le niveau moyen ; la partie plus claire au-dessus, la crête du moment ; un trait garde la plus haute crête pendant 2 secondes. Vert, orange au-delà de -12 dB, rouge au-delà de -3 dB.
 - **Silence**, en dessous : ce voyant s'allume, orange, quand le son reste à -50 dB ou moins pendant 5 secondes : un blanc d'antenne. Il s'éteint dès que le son revient.
-- **Écouter l'antenne** : un clic sur le VU-mètre ouvre la [pré-écoute](sonores.md#pré-écoute) sur l'antenne, sans la lancer. **Diffusion → Pré-écoute de l'antenne** l'ouvre de même, et la lance aussitôt ([#245](https://github.com/dascritch/machincast/issues/245)). Le titre de la fenêtre d'écoute est « en cours : » suivi du texte public du sonore à l'antenne, et le suit d'un sonore à l'autre.
+- **Écouter l'antenne** : un clic sur le VU-mètre ouvre la [pré-écoute](sonores.md#pré-écoute) sur l'antenne, sans la lancer. **Diffusion → Pré-écoute de l'antenne**, ou <kbd>Alt</kbd>+<kbd>P</kbd>, l'ouvre de même, et la lance aussitôt ([#245](https://github.com/dascritch/machincast/issues/245)) ; pendant l'écoute, l'entrée devient **Arrêter la pré-écoute de l'antenne**, et <kbd>Alt</kbd>+<kbd>P</kbd> l'arrête aussi ([#256](https://github.com/dascritch/machincast/issues/256)). Le titre de la fenêtre d'écoute est « en cours : » suivi du texte public du sonore à l'antenne, et le suit d'un sonore à l'autre.
 
 Le VU-mètre écoute le périphérique de l'antenne, quel que soit le programme qui y joue. Quand il ne peut pas, un message le dit sous les voyants :
 
@@ -119,7 +119,7 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | Affichage | Ouvrir l'onglet Simulation | Ouvre la simulation ([Simulation](grille.md#simulation)). |
 | Affichage | Ouvrir l'onglet Airplay | Ouvre l'historique de diffusion, réglable et exportable ([Onglet Airplay](#onglet-airplay)). |
 | Affichage | Pré-écoute… | Ouvre la fenêtre de pré-écoute ([Pré-écoute](sonores.md#pré-écoute)). Comme chaque bouton et chaque entrée de pré-écoute, elle porte un casque. |
-| Diffusion | Pré-écoute de l'antenne | En tête du menu : écoute aussitôt l'antenne sur la sortie de pré-écoute ([Pré-écoute](sonores.md#pré-écoute), [#245](https://github.com/dascritch/machincast/issues/245)). |
+| Diffusion | Pré-écoute de l'antenne, Arrêter la pré-écoute de l'antenne | En tête du menu : écoute aussitôt l'antenne sur la sortie de pré-écoute ([Pré-écoute](sonores.md#pré-écoute), [#245](https://github.com/dascritch/machincast/issues/245)), puis, pendant l'écoute, l'arrête ; aussi par <kbd>Alt</kbd>+<kbd>P</kbd> ([#256](https://github.com/dascritch/machincast/issues/256)). |
 | Diffusion | Démarrer, Arrêter la diffusion | Pilotent la diffusion ([Piloter la diffusion](antenne.md#piloter-la-diffusion)). |
 | Diffusion | Sauter au sonore suivant, Sauter après la séquence, Couper l'événement par le fil musical | Corrigent l'antenne sans attendre ([Interrompre l'antenne](antenne.md#interrompre-lantenne)). |
 | Maintenance | Indexation rapide, Audit complet | Vérifient les sonores ([Indexation depuis l'interface](sonores.md#indexation-depuis-linterface)). |

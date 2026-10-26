@@ -281,7 +281,7 @@ class Ui_FicheEvenement(object):
     def retranslateUi(self, FicheEvenement):
         self.etiquette_nom_interne.setText(QCoreApplication.translate("FicheEvenement", u"&Nom interne", None))
         self.nom_interne.setPlaceholderText(QCoreApplication.translate("FicheEvenement", u"Obligatoire, et propre \u00e0 cet \u00e9v\u00e9nement", None))
-        self.etiquette_nom_public.setText(QCoreApplication.translate("FicheEvenement", u"Nom &public", None))
+        self.etiquette_nom_public.setText(QCoreApplication.translate("FicheEvenement", u"Nom p&ublic", None))
         self.nom_public.setPlaceholderText(QCoreApplication.translate("FicheEvenement", u"Affich\u00e9 \u00e0 la place de l'artiste et du titre masqu\u00e9s ; facultatif", None))
         self.etiquette_priorite.setText(QCoreApplication.translate("FicheEvenement", u"P&riorit\u00e9", None))
         self.etiquette_masquage.setText(QCoreApplication.translate("FicheEvenement", u"&Artiste et titre", None))

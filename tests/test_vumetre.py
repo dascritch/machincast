@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QRectF, Qt
+from PySide6.QtGui import QKeySequence
+from PySide6.QtWidgets import QLabel
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -17,7 +19,7 @@ from machincast.configuration import Audio
 from machincast.interface import liaison, moniteur, preecoute
 from machincast.interface.moniteur import Moniteur, source_du_moniteur
 from machincast.interface.vumetre import VuMetre
-from tests.etapes_interface import Contexte, fenetre
+from tests.etapes_interface import Contexte, actions, fenetre
 from tests.etapes_preecoute import SIGNAUX, accueil
 
 scenarios("vumetre.feature")
@@ -464,3 +466,26 @@ def construire_l_ecoute(sortie: str, peripherique: str) -> object:
 def finit_par(ecoute: object, fabrique: str) -> None:
 	puits = [element for element in ecoute.children if not element.srcpads]  # type: ignore[attr-defined]
 	assert [element.get_factory().get_name() for element in puits] == [fabrique]
+
+
+# ─── Entrée d'écoute de l'antenne (https://github.com/dascritch/machincast/issues/256) ───
+
+
+@then(
+	parsers.parse(
+		"l'entrée d'écoute de l'antenne du menu « {menu} » est « {texte} », raccourci « {raccourci} », infobulle"
+		" « {infobulle} »"
+	)
+)
+def entree_d_ecoute(interface: Contexte, menu: str, texte: str, raccourci: str, infobulle: str) -> None:
+	"""L'entrée en tête du menu (https://github.com/dascritch/machincast/issues/245)."""
+	premiere = actions(interface, menu)[0]
+	assert (premiere.text(), premiere.shortcut().toString(), premiere.toolTip()) == (texte, raccourci, infobulle)
+
+
+@then(parsers.parse("le nom public de la fiche se saisit par « {touches} »"))
+def nom_public_au_clavier(interface: Contexte, touches: str) -> None:
+	fiche = fenetre(interface).ui.onglets.currentWidget()
+	etiquettes = [etiquette for etiquette in fiche.findChildren(QLabel) if etiquette.buddy() is fiche.ui.nom_public]
+	assert len(etiquettes) == 1, etiquettes
+	assert QKeySequence.mnemonic(etiquettes[0].text()).toString() == touches
