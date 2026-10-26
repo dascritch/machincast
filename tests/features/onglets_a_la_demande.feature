@@ -76,3 +76,13 @@ Fonctionnalité: Onglets ouverts à la demande
 		Quand je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
 		Et j'appuie sur « Shift+F6 »
 		Alors l'onglet ouvert est « Incidents »
+
+	Scénario: Libérée, la fenêtre emporte ses listes à la demande, qu'elles aient été ouvertes ou non
+		https://github.com/dascritch/machincast/issues/262 : « Sonores » et « Feeds » sont créées dès le lancement,
+		sans onglet ; elles appartiennent à la fenêtre, et ne lui survivent pas.
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
+		Et je ferme l'onglet « Sonores »
+		Et la fenêtre de l'interface se ferme, et se libère
+		Alors aucune liste de la fenêtre ne lui survit
