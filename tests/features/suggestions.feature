@@ -29,6 +29,9 @@ Fonctionnalité: Suggestions au lancement de l'interface
 			| Banque « Musique rotation normale » |
 			| Banque « Musique rotation rare »   |
 			| Banque « Musique rotation de nuit » |
+			| Banque « Partenariats »             |
+			| Banque « Publicités »               |
+			| Banque « Bande-annonce émissions »  |
 		Et les suggestions n'ont pas proposé de périphérique d'antenne
 		Et il n'y a aucun événement en base
 		Et il n'y a aucune banque en base
@@ -46,6 +49,9 @@ Fonctionnalité: Suggestions au lancement de l'interface
 			| Banque « Musique rotation normale » |
 			| Banque « Musique rotation rare »   |
 			| Banque « Musique rotation de nuit » |
+			| Banque « Partenariats »             |
+			| Banque « Publicités »               |
+			| Banque « Bande-annonce émissions »  |
 
 	Scénario: Quand rien ne manque, aucune suggestion n'est faite
 		Étant donné les événements :
@@ -65,17 +71,29 @@ Fonctionnalité: Suggestions au lancement de l'interface
 	# ─── Création ──────────────────────────────────────────────
 
 	Scénario: « Créer » crée ce qui est coché, et remplit le fil musical d'une rotation type
+		https://github.com/dascritch/machincast/issues/231 : les musiques durent 15 minutes au plus ; l'identifiant
+		station, les partenariats, les publicités et les bandes-annonces, 2 minutes, ces trois derniers enchaînés sans
+		crossfade, imposé à 0 seconde à tous leurs sonores.
+
 		Étant donné les suggestions seront acceptées par « Créer », sans « Banque « Musique rotation rare » »
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le fil musical « Fil musical » est en base, permanent
 		Et la liste de l'événement « Fil musical » est en base « Identifiant station », « Musique rotation lourde », « Musique rotation normale », « Musique rotation lourde »
 		Et les banques en base sont :
-			| nom                      | mode      | ne pas répéter |
-			| Identifiant station      | aleatoire | oui            |
-			| Musique rotation de nuit | aleatoire | non            |
-			| Musique rotation lourde  | aleatoire | non            |
-			| Musique rotation normale | aleatoire | non            |
-		Et la barre d'état annonce « Créés : le fil musical « Fil musical », les banques « Identifiant station », « Musique rotation lourde », « Musique rotation normale », « Musique rotation de nuit ». »
+			| nom                      | mode      | ne pas répéter | durée maximale | crossfade de début | crossfade de fin |
+			| Bande-annonce émissions  | aleatoire | non            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
+			| Identifiant station      | aleatoire | oui            | 0:02:00        | des sonores        | des sonores      |
+			| Musique rotation de nuit | aleatoire | non            |                | des sonores        | des sonores      |
+			| Musique rotation lourde  | aleatoire | non            | 0:15:00        | des sonores        | des sonores      |
+			| Musique rotation normale | aleatoire | non            | 0:15:00        | des sonores        | des sonores      |
+			| Partenariats             | aleatoire | non            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
+			| Publicités               | aleatoire | non            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
+		Et la barre d'état annonce « Créés : le fil musical « Fil musical », les banques « Identifiant station », « Musique rotation lourde », « Musique rotation normale », « Musique rotation de nuit », « Partenariats », « Publicités », « Bande-annonce émissions ». »
+
+	Scénario: La rotation rare dure aussi 15 minutes au plus
+		Étant donné les suggestions seront acceptées par « Créer »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors la banque « Musique rotation rare » en base a pour durée maximale « 0:15:00 », sans durée minimale
 
 	Scénario: Un fil musical existant, encore vide, reçoit la rotation type ; un fil déjà rempli est gardé tel quel
 		Étant donné les événements :

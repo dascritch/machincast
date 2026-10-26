@@ -6,6 +6,7 @@ s'ouvre ici, hors de l'écran du poste.
 
 import re
 from collections.abc import Iterator
+from datetime import timedelta
 
 import pytest
 import tomlkit
@@ -141,14 +142,45 @@ def fils(base_vide: Connexion, noms: str) -> None:
 	assert [str(nom) for (nom,) in lignes] == NOM.findall(noms)
 
 
+def _crossfade(regle: str, duree: timedelta) -> str:
+	if regle == "sonore":
+		return "des sonores"
+	return f"{REGLES[regle]}, {duree.total_seconds():g} s"
+
+
+REGLES = {"a_defaut": "à défaut", "impose": "imposé"}
+
+
 @then("les banques en base sont :")
 def banques_en_base(base_vide: Connexion, datatable: list[list[str]]) -> None:
 	_entete, *lignes = datatable
-	lues = base_vide.execute(
-		'SELECT nom_interne, mode::text, ne_pas_repeter FROM banques ORDER BY nom_interne COLLATE "C"'
-	).fetchall()
-	attendues = [(nom.strip(), mode.strip(), repeter.strip() == "oui") for nom, mode, repeter in lignes]
+	lues = []
+	for nom, mode, repeter, maximum, debut_regle, debut, fin_regle, fin in base_vide.execute(
+		"SELECT nom_interne, mode::text, ne_pas_repeter, duree_max, crossfade_debut_regle::text, crossfade_debut,"
+		' crossfade_fin_regle::text, crossfade_fin FROM banques ORDER BY nom_interne COLLATE "C"'
+	).fetchall():
+		repetition = "non"
+		if repeter:
+			repetition = "oui"
+		lues.append(
+			(
+				str(nom),
+				str(mode),
+				repetition,
+				str((maximum) or ("")),
+				_crossfade(str(debut_regle), debut),
+				_crossfade(str(fin_regle), fin),
+			)
+		)
+	attendues = [tuple(valeur.strip() for valeur in ligne) for ligne in lignes]
 	assert lues == attendues, lues
+
+
+@then(parsers.parse("la banque « {nom} » en base a pour durée maximale « {maximum} », sans durée minimale"))
+def duree_maximale(base_vide: Connexion, nom: str, maximum: str) -> None:
+	ligne = base_vide.execute("SELECT duree_min, duree_max FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
+	assert ligne is not None
+	assert (ligne[0], str(ligne[1])) == (None, maximum)
 
 
 @then(parsers.parse("le fichier de configuration contient la ligne « {ligne} »"))
