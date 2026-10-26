@@ -153,7 +153,7 @@ Un sonore situé hors des répertoires d'une banque peut y être ajouté à la m
 | Champ | Description |
 | --- | --- |
 | `id`, `nom_interne`, `nom_public` | Identification. Le nom interne est unique (migration `0002.evenements-nom-unique`, [#32](https://github.com/dascritch/machincast/issues/32)). |
-| `priorite` | `fil_musical` < `emission` < `special`, plus `secours`, hors grille ([#16](https://github.com/dascritch/machincast/issues/16)) : un événement de secours ne passe jamais à l'antenne par la grille, seulement à la place d'un stream tombé ([§ 4.7](#47-streams)). |
+| `priorite` | `secours` < `fil_musical` < `emission` < `special` ; `secours` est hors grille ([#16](https://github.com/dascritch/machincast/issues/16)) : un événement de secours ne passe jamais à l'antenne par la grille, seulement à la place d'un stream tombé ([§ 4.7](#47-streams)). |
 | `debut`, `fin` | Date et heure de début et de fin de la première occurrence. Voir les règles ci-dessous. |
 | `jours_recurrence` | Jours de la semaine où l'événement se répète, nommés de `lundi` à `dimanche` (plusieurs jours possibles). Vide = pas de récurrence. Tous les jours cochés = quotidien. |
 | `masquer_metadonnees` | Masquage au niveau de l'événement. Vide = hérite. |
@@ -231,7 +231,7 @@ Le schéma, les rôles et les droits sont créés par la migration `src/machinca
 
 - Durées (`duree`, crossfades, `duree_diffusee`) : type `interval`. Dates : `timestamptz`.
 - Textes saisis à la main (noms internes et publics, artiste, titre, nature d'une entrée du log) : `varchar(255)`, la même limite que l'interface. Chemins, URL et messages détaillés : `text`, sans limite fixée à l'avance.
-- Valeurs énumérées : types `ENUM` PostgreSQL (`type_sonore`, `mode_banque`, `priorite_evenement`, `jour_semaine`, `type_ligne_airplay`, `niveau_log`, `etat_sonore`, `regle_crossfade`). Ajouter une valeur se fait par `ALTER TYPE … ADD VALUE` dans une nouvelle migration ; en retirer une demande de recréer le type. Leur ordre de déclaration permet les comparaisons : `fil_musical < emission < special`, `lundi < … < dimanche`.
+- Valeurs énumérées : types `ENUM` PostgreSQL (`type_sonore`, `mode_banque`, `priorite_evenement`, `jour_semaine`, `type_ligne_airplay`, `niveau_log`, `etat_sonore`, `regle_crossfade`). Ajouter une valeur se fait par `ALTER TYPE … ADD VALUE` dans une nouvelle migration ; en retirer une demande de recréer le type. Leur ordre de déclaration permet les comparaisons : `secours < fil_musical < emission < special`, `lundi < … < dimanche`.
 - `jours_recurrence` : tableau de `jour_semaine`. La récurrence est calculée en heure locale par le binaire lecture.
 - `metadonnees_musicales` : objet JSON (`jsonb`), jamais un tableau ni une valeur nulle.
 - Un événement ne peut pas avoir de fin sans début.
@@ -715,7 +715,7 @@ Mise en œuvre ([#31](https://github.com/dascritch/machincast/issues/31), `machi
 ### 8.5 Écran de détails d'un événement
 
 - Nom interne et nom public.
-- Priorité : fil musical, émission, spécial.
+- Priorité, choisie de la plus basse à la plus haute, comme `secours` < `fil_musical` < `emission` < `special` ([#253](https://github.com/dascritch/machincast/issues/253)) : secours, fil musical, émission, spécial.
 - Masquage de l'artiste et du titre.
 - Dates et heures de début et de fin, avec les règles du [§ 3.1](#evenements).
 - Récurrence : jours de la semaine à cocher.

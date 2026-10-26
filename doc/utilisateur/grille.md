@@ -19,7 +19,7 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 | --- | --- |
 | Nom interne | Obligatoire, et propre à l'événement : son nom dans les listes, l'historique et le journal. |
 | Nom public | Facultatif. Affiché sur la page publique à la place de l'artiste et du titre masqués ([Page publique et masquage](antenne.md#page-publique-et-masquage)). |
-| Priorité | `Fil musical`, `Émission` ou `Spécial` ([Quel événement est à l'antenne](antenne.md#quel-événement-est-à-lantenne)), ou `Secours`, qui ne joue qu'à la place d'un stream tombé ([Streams](antenne.md#streams)). |
+| Priorité | De la plus basse à la plus haute : `Secours`, qui ne joue qu'à la place d'un stream tombé ([Streams](antenne.md#streams)), puis `Fil musical`, `Émission` et `Spécial` ([Quel événement est à l'antenne](antenne.md#quel-événement-est-à-lantenne)). |
 | Artiste et titre | `Masqués` ou `Affichés` sur la page publique, pour tout ce que l'événement fait jouer ; `Selon la séquence, la banque ou le sonore` laisse décider ceux-ci. |
 
 **Grille** : le **Début** et la **Fin** de la première occurrence, chacun à cocher, puis les **jours** où elle revient chaque semaine, à la même heure. Aucun jour coché : une seule occurrence.
