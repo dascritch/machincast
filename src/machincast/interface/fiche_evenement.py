@@ -222,7 +222,8 @@ class FicheEvenement(Fiche):
 		if nom == "":
 			raise Refus("Le nom interne est obligatoire.")
 		pris = self.connexion.execute(
-			"SELECT 1 FROM evenements WHERE nom_interne = %s AND id IS DISTINCT FROM %s", (nom, self.identifiant)
+			"SELECT 1 FROM evenements WHERE nom_interne = %s AND id IS DISTINCT FROM %s AND supprime_le IS NULL",
+			(nom, self.identifiant),
 		).fetchone()
 		if pris is not None:
 			raise Refus(f"Un autre événement s'appelle déjà « {nom} ».")

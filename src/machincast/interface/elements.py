@@ -70,7 +70,7 @@ LECTURES = {
 }
 """Ce que montre la ligne d'un élément, lu par identifiants."""
 SONORES_PAR_FICHIER = LECTURES["sonore"].replace("s.id = ANY(%s)", "s.emplacement = ANY(%s)")
-STREAM_DU_FEED = "SELECT id FROM sonores WHERE feed_id = %s ORDER BY titre, id LIMIT 1"
+STREAM_DU_FEED = "SELECT id FROM sonores WHERE feed_id = %s AND supprime_le IS NULL ORDER BY titre, id LIMIT 1"
 """Le stream repris pour un feed : le premier par titre qui le suit."""
 SAUTE = "ne passe jamais deux fois de suite : cet appel sera sauté."
 

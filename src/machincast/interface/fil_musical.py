@@ -16,13 +16,17 @@ NOM = "Fil musical"
 def garantir(connexion: psycopg.Connection[TupleRow]) -> str | None:
 	"""Crée un fil musical permanent et vide s'il n'en existe aucun ; son nom, ou None s'il en existait un."""
 	with connexion.transaction():
-		existant = connexion.execute("SELECT 1 FROM evenements WHERE priorite = 'fil_musical' LIMIT 1").fetchone()
+		existant = connexion.execute(
+			"SELECT 1 FROM evenements WHERE priorite = 'fil_musical' AND supprime_le IS NULL LIMIT 1"
+		).fetchone()
 		if existant is not None:
 			return None
 		pris = {
 			str(nom)
 			for (nom,) in connexion.execute(
-				"SELECT nom_interne FROM evenements WHERE nom_interne = %s OR nom_interne LIKE %s || ' %%'", (NOM, NOM)
+				"SELECT nom_interne FROM evenements WHERE (nom_interne = %s OR nom_interne LIKE %s || ' %%')"
+				" AND supprime_le IS NULL",
+				(NOM, NOM),
 			)
 		}
 		nom = NOM

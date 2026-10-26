@@ -152,7 +152,7 @@ Fonctionnalité: Feeds de streams
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Machin soir »
 		Et je supprime l'élément de la fiche, en répondant « Supprimer »
-		Alors le sonore « Machin soir » n'est plus en base
+		Alors le sonore « Machin soir » est marqué « supprimé » en base
 		Et le feed « Radio Machin » est toujours en base
 
 	Scénario: Un feed que suit un stream ne se supprime pas, et la fiche dit pourquoi

@@ -94,9 +94,7 @@ def retrait(dialogue: Dialogue, qtbot: QtBot, texte: str, geste: str) -> None:
 @when(parsers.parse("la question de suppression « {titre} » s'ouvre, et que j'y {geste}"))
 def suppression(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> None:
 	repondre(dialogue, qtbot, geste)
-	dialogue.reponse = dialogues.confirmer_suppression(
-		dialogue.parent, titre, "Supprimer de la base le sonore « Spot » ?"
-	)
+	dialogue.reponse = dialogues.confirmer_suppression(dialogue.parent, titre, "Supprimer le sonore « Spot » ?")
 
 
 @when(

@@ -356,7 +356,8 @@ class FicheSonore(Fiche):
 				relations = self._lire_relations()
 			marques = self.connexion.execute("SELECT id, nom, url FROM feeds ORDER BY nom").fetchall()
 			secours = self.connexion.execute(
-				"SELECT id, nom_interne FROM evenements WHERE priorite = 'secours' ORDER BY nom_interne"
+				"SELECT id, nom_interne FROM evenements WHERE priorite = 'secours' AND supprime_le IS NULL"
+				" ORDER BY nom_interne"
 			).fetchall()
 		assert ligne is not None, f"sonore {self.identifiant} absent"
 		self._montrer(ligne, marques, secours, passages)
@@ -594,11 +595,14 @@ class FicheSonore(Fiche):
 			"SELECT genre, id, nom, minimum, maximum, (SELECT duree FROM sonores WHERE id = %s) FROM ("
 			" SELECT 1 AS ordre, 'séquence' AS genre, q.id, q.nom_interne AS nom, NULL::interval AS minimum,"
 			"  NULL::interval AS maximum FROM sequences q"
-			"  WHERE EXISTS (SELECT 1 FROM sequences_elements x WHERE x.sequence_id = q.id AND x.sonore_id = %s)"
+			"  WHERE q.supprime_le IS NULL"
+			"  AND EXISTS (SELECT 1 FROM sequences_elements x WHERE x.sequence_id = q.id AND x.sonore_id = %s)"
 			" UNION ALL SELECT 2, 'banque', b.id, b.nom_interne, b.duree_min, b.duree_max FROM banques b"
-			"  WHERE EXISTS (SELECT 1 FROM banques_sonores x WHERE x.banque_id = b.id AND x.sonore_id = %s)"
+			"  WHERE b.supprime_le IS NULL"
+			"  AND EXISTS (SELECT 1 FROM banques_sonores x WHERE x.banque_id = b.id AND x.sonore_id = %s)"
 			" UNION ALL SELECT 3, 'événement', e.id, e.nom_interne, NULL, NULL FROM evenements e"
-			"  WHERE EXISTS (SELECT 1 FROM evenements_elements x WHERE x.evenement_id = e.id AND x.sonore_id = %s)"
+			"  WHERE e.supprime_le IS NULL"
+			"  AND EXISTS (SELECT 1 FROM evenements_elements x WHERE x.evenement_id = e.id AND x.sonore_id = %s)"
 			") r ORDER BY ordre, nom, id",
 			(self.identifiant, self.identifiant, self.identifiant, self.identifiant),
 		).fetchall()

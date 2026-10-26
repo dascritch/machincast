@@ -46,7 +46,9 @@ def ajouter_fichiers(connexion: psycopg.Connection[TupleRow], chemins: list[Path
 	ajout = Ajout(ignores=ignores)
 	with connexion.transaction():
 		for fichier in dict.fromkeys(fichiers):
-			existant = connexion.execute("SELECT id FROM sonores WHERE emplacement = %s", (fichier,)).fetchone()
+			existant = connexion.execute(
+				"SELECT id FROM sonores WHERE emplacement = %s AND supprime_le IS NULL", (fichier,)
+			).fetchone()
 			if existant is not None:
 				ajout.deja.append(Path(fichier))
 				continue

@@ -1325,13 +1325,26 @@ def derniere_question(interface: Contexte, datatable: list[list[str]]) -> None:
 @then(
 	parsers.re(
 		r"(?P<genre>le sonore|la banque|la séquence|l'événement|le feed) « (?P<nom>[^»]+) »"
-		r" (?P<etat>n'est plus|est toujours) en base"
+		r" (?P<etat>n'est plus|est toujours|est marquée? « supprimée? ») en base"
 	)
 )
 def en_base(base_vide: Connexion, genre: str, nom: str, etat: str) -> None:
+	"""« Toujours en base » : pas supprimé ; « marqué « supprimé » » : supprimé, en attendant sa péremption
+	(https://github.com/dascritch/machincast/issues/267). Un feed n'est jamais marqué : il quitte la base."""
 	table, colonne = TABLES[genre]
-	lignes = base_vide.execute(f"SELECT id FROM {table} WHERE {colonne} = %s", (nom,)).fetchall()  # noqa: S608
-	assert len(lignes) == {"n'est plus": 0, "est toujours": 1}[etat], lignes
+	marque = "NULL"
+	if genre != "le feed":
+		marque = "supprime_le"
+	lignes = base_vide.execute(
+		f"SELECT {marque} FROM {table} WHERE {colonne} = %s",  # noqa: S608
+		(nom,),
+	).fetchall()
+	if etat == "n'est plus":
+		assert lignes == [], lignes
+	elif etat == "est toujours":
+		assert [ligne[0] for ligne in lignes] == [None], lignes
+	else:
+		assert (len(lignes) == 1) and (lignes[0][0] is not None), lignes
 
 
 @given("les périphériques audio du poste :")
@@ -1534,3 +1547,27 @@ def masquer(base_vide: Connexion) -> None:
 @when(parsers.parse("le passage de « {titre} » commence dans l'airplay à {debut}"))
 def nouveau_passage(base_vide: Connexion, titre: str, debut: str) -> None:
 	inserer_passage(base_vide, a(debut), None, "Radio", titre, "Fil de jour")
+
+
+@given(
+	parsers.re(
+		r"(?P<genre>le sonore|la banque|la séquence|l'événement) « (?P<nom>[^»]+) » est supprimée? depuis l'interface"
+	)
+)
+def supprime_depuis_l_interface(base_vide: Connexion, genre: str, nom: str) -> None:
+	"""Comme « Supprimer… » de sa fiche, sans ses retraits des listes
+	(https://github.com/dascritch/machincast/issues/267)."""
+	table, colonne = TABLES[genre]
+	modifie = base_vide.execute(
+		f"UPDATE {table} SET supprime_le = clock_timestamp() WHERE {colonne} = %s RETURNING id",  # noqa: S608
+		(nom,),
+	).fetchall()
+	assert len(modifie) == 1, modifie
+
+
+@then(parsers.parse("le fichier « {chemin} » a {nombre:d} sonores en base, dont {supprimes:d} supprimé"))
+def sonores_du_fichier(interface: Contexte, base_vide: Connexion, chemin: str, nombre: int, supprimes: int) -> None:
+	lignes = base_vide.execute(
+		"SELECT supprime_le IS NOT NULL FROM sonores WHERE emplacement = %s", (interface.chemin(chemin),)
+	).fetchall()
+	assert (len(lignes), sum(1 for (supprime,) in lignes if supprime)) == (nombre, supprimes), lignes

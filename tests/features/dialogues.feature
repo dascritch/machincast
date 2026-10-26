@@ -63,7 +63,7 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 	Plan du scénario: La confirmation d'une suppression ne supprime que sur « Supprimer »
 		# https://github.com/dascritch/machincast/issues/33
 		Quand la question de suppression « Supprimer le sonore » s'ouvre, et que j'y <geste>
-		Alors la question a dit « Supprimer de la base le sonore « Spot » ? »
+		Alors la question a dit « Supprimer le sonore « Spot » ? »
 		Et la question a proposé « Supprimer », « Annuler »
 		Et la réponse est « <reponse> »
 

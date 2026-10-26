@@ -12,9 +12,11 @@ Une fiche concrète décrit son genre et son titre, lit l'élément en base (_li
 Le rafraîchissement des onglets (https://github.com/dascritch/machincast/issues/148) relit la fiche ; une fiche modifiée
 demande d'abord quoi faire de ses modifications, et la fiche d'un élément effacé de la base est à fermer.
 
-« Supprimer… » supprime l'élément de la base, après une confirmation qui dit où il figure
+« Supprimer… » supprime l'élément, après une confirmation qui dit où il figure
 (machincast.interface.suppression, https://github.com/dascritch/machincast/issues/33) : jamais un fichier ni un
-répertoire. Une fiche qui n'est pas encore enregistrée n'a rien à supprimer.
+répertoire. Une fiche qui n'est pas encore enregistrée n'a rien à supprimer. La fiche d'un élément supprimé, rouverte
+depuis l'historique, dit quand il l'a été ; ses champs ne se modifient pas, et « Restaurer » prend la place de
+« Supprimer… » (https://github.com/dascritch/machincast/issues/267).
 
 « Dupliquer » (https://github.com/dascritch/machincast/issues/130), pour un élément enregistré et une fiche non
 modifiée, demande une copie (duplication_demandee) : une nouvelle fiche, qui lit l'élément copié (modele) au lieu
@@ -26,13 +28,26 @@ module.
 
 import logging
 import os
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
 import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QLabel, QPushButton, QWidget
+from PySide6.QtWidgets import (
+	QAbstractButton,
+	QAbstractItemView,
+	QAbstractSlider,
+	QAbstractSpinBox,
+	QComboBox,
+	QLabel,
+	QLineEdit,
+	QPlainTextEdit,
+	QPushButton,
+	QTextEdit,
+	QWidget,
+)
 
 from machincast.horloge import Horloge
 from machincast.interface import dialogues, suppression
@@ -40,6 +55,20 @@ from machincast.interface.dialogues import Fermeture
 from machincast.protection import est_fichier_sonore
 
 journal = logging.getLogger(__name__)
+
+SAISIES = (
+	QLineEdit,
+	QAbstractSpinBox,
+	QComboBox,
+	QAbstractButton,
+	QAbstractItemView,
+	QAbstractSlider,
+	QTextEdit,
+	QPlainTextEdit,
+)
+"""Ce qui se modifie dans une fiche, et que la fiche d'un élément supprimé fige."""
+SUPPRIMER = "Supprimer…"
+RESTAURER = "Restaurer"
 
 Connexion = psycopg.Connection[TupleRow]
 LONGUEUR_DES_NOMS = 255
@@ -61,7 +90,10 @@ def nom_de_copie(connexion: Connexion, table: str, nom: str) -> str:
 		if numero > 1:
 			suffixe = f" (copie {numero})"
 		candidat = f"{nom[: LONGUEUR_DES_NOMS - len(suffixe)]}{suffixe}"
-		pris = connexion.execute(f"SELECT 1 FROM {table} WHERE nom_interne = %s", (candidat,)).fetchone()  # noqa: S608
+		pris = connexion.execute(
+			f"SELECT 1 FROM {table} WHERE nom_interne = %s AND supprime_le IS NULL",  # noqa: S608
+			(candidat,),
+		).fetchone()
 		if pris is None:
 			return candidat
 		numero += 1
@@ -116,6 +148,10 @@ class Fiche(QWidget):
 		self.modifiee = False
 		self.modele: int | None = None
 		"""L'élément que copie une nouvelle fiche, jusqu'à son enregistrement ; None sinon."""
+		self.supprime_le: datetime | None = None
+		"""L'élément est supprimé, depuis cet instant (https://github.com/dascritch/machincast/issues/267)."""
+		self._figes: list[QWidget] = []
+		"""Ce que la fiche d'un élément supprimé a figé."""
 
 	def brancher(
 		self,
@@ -133,7 +169,7 @@ class Fiche(QWidget):
 		self.bouton_dupliquer = dupliquer
 		enregistrer.clicked.connect(self.enregistrer)
 		annuler.clicked.connect(self.charger)
-		supprimer.clicked.connect(self.supprimer)
+		supprimer.clicked.connect(self._supprimer_ou_restaurer)
 		if dupliquer is not None:
 			dupliquer.clicked.connect(self._dupliquer)
 
@@ -165,7 +201,27 @@ class Fiche(QWidget):
 		self._marquer(self.est_une_copie())
 		self.bouton_supprimer.setEnabled(self.identifiant is not None)
 		self.message.clear()
+		self._montrer_la_suppression()
 		self.titre_change.emit(self.titre())
+
+	def _montrer_la_suppression(self) -> None:
+		"""La fiche d'un élément supprimé le dit, et se fige ; restauré, elle se modifie de nouveau."""
+		self.supprime_le = None
+		if self.identifiant is not None:
+			with self.connexion.transaction():
+				self.supprime_le = suppression.supprime_le(self.connexion, self.genre, self.identifiant)
+		if self.supprime_le is None:
+			for saisie in self._figes:
+				saisie.setEnabled(True)
+			self._figes = []
+			self.bouton_supprimer.setText(SUPPRIMER)
+			return
+		for saisie in self.findChildren(QWidget):
+			if (isinstance(saisie, SAISIES)) and (saisie is not self.bouton_supprimer) and (saisie.isEnabled()):
+				saisie.setEnabled(False)
+				self._figes.append(saisie)
+		self.bouton_supprimer.setText(RESTAURER)
+		self.message.setText(suppression.marque(self.genre, self.supprime_le))
 
 	def enregistrer(self) -> bool:
 		"""Écrit la fiche en base, puis la relit ; une fiche refusée n'est pas enregistrée, et dit pourquoi."""
@@ -185,8 +241,31 @@ class Fiche(QWidget):
 		self.enregistree.emit(identifiant)
 		return True
 
+	def _supprimer_ou_restaurer(self) -> None:
+		if self.supprime_le is None:
+			self.supprimer()
+		else:
+			self.restaurer()
+
+	def restaurer(self) -> None:
+		"""L'élément supprimé est remis en service ; la fiche dit pourquoi elle ne le peut pas."""
+		if self.identifiant is None:
+			return
+		try:
+			with self.connexion.transaction():
+				suppression.restaurer(self.connexion, self.genre, self.identifiant)
+		except suppression.Empechee as empechee:
+			self.message.setText(str(empechee))
+			return
+		except psycopg.Error as erreur:
+			journal.error(f"{self.titre()} : restauration impossible : {erreur}")
+			self.message.setText(f"Restauration impossible : {erreur}")
+			return
+		self.charger()
+		self.enregistree.emit(self.identifiant)
+
 	def supprimer(self) -> None:
-		"""Supprime l'élément de la base, après confirmation ; un élément déjà effacé ferme simplement la fiche."""
+		"""Supprime l'élément, après confirmation ; un élément déjà effacé de la base ferme simplement la fiche."""
 		if self.identifiant is None:
 			return
 		try:
@@ -204,7 +283,7 @@ class Fiche(QWidget):
 				if not dialogues.confirmer_suppression(self, titre, texte):
 					return
 				with self.connexion.transaction():
-					suppression.supprimer(self.connexion, self.genre, self.identifiant)
+					suppression.supprimer(self.connexion, self.genre, self.identifiant, self.horloge.maintenant())
 		except psycopg.Error as erreur:
 			self._signaler_suppression_impossible(erreur)
 			return
@@ -259,7 +338,9 @@ class Fiche(QWidget):
 	def enregistrer_fichier(self, fichier: str) -> int:
 		"""Dans la transaction d'« Enregistrer » : un fichier déposé devient un sonore à l'état aperçu, que Machin
 		indexation décodera ; s'il a été enregistré entre-temps, le sonore est repris."""
-		ligne = self.connexion.execute("SELECT id FROM sonores WHERE emplacement = %s", (fichier,)).fetchone()
+		ligne = self.connexion.execute(
+			"SELECT id FROM sonores WHERE emplacement = %s AND supprime_le IS NULL", (fichier,)
+		).fetchone()
 		if ligne is None:
 			ligne = self.connexion.execute(
 				"INSERT INTO sonores (type, emplacement, etat) VALUES ('fichier', %s, 'apercu') RETURNING id",

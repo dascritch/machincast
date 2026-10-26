@@ -64,7 +64,8 @@ class FicheFeed(Fiche):
 				assert ligne is not None, f"feed {self.identifiant} absent"
 				marque = ligne
 				streams = self.connexion.execute(
-					"SELECT id, COALESCE(titre, %s) FROM sonores WHERE feed_id = %s ORDER BY 2, id",
+					"SELECT id, COALESCE(titre, %s) FROM sonores WHERE feed_id = %s AND supprime_le IS NULL"
+					" ORDER BY 2, id",
 					(str(marque[1]), self.identifiant),
 				).fetchall()
 		nom, url = marque

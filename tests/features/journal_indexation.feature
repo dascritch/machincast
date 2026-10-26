@@ -54,6 +54,25 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 		Alors le journal « Indexation rapide » de l'indexation conclut « Indexation rapide terminée : 3 nouveaux sonores, 0 rattachement, 0 retrait ; 3 sonores vérifiés ; 0 erroné, 1 non supporté, 0 supprimé, 0 rétabli, 3 sortis d'aperçu. 1 anomalie, dans le journal ci-dessus. »
 		Et le journal de l'indexation signale 1 anomalie, sur « …/pubs/faux.mp3 »
 
+	Scénario: Une banque supprimée n'est plus indexée
+		https://github.com/dascritch/machincast/issues/267
+
+		Étant donné la banque « Publicité » est supprimée depuis l'interface
+		Quand le journal « Indexation rapide » de l'indexation s'ouvre
+		Et l'indexation se termine
+		Alors le journal « Indexation rapide » de l'indexation conclut « Indexation rapide terminée : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu. »
+
+	Scénario: Un sonore supprimé, dans un répertoire de banque, revient comme un nouveau sonore
+		https://github.com/dascritch/machincast/issues/267 : le sonore supprimé reste en base, marqué, jusqu'à sa péremption.
+
+		Étant donné les sonores :
+			| artiste | titre | type    | etat  | duree | emplacement     |
+			|         | Café  | fichier | actif | 1     | …/pubs/cafe.flac |
+		Et le sonore « Café » est supprimé depuis l'interface
+		Quand le journal « Indexation rapide » de l'indexation s'ouvre
+		Et l'indexation se termine
+		Alors le fichier « …/pubs/cafe.flac » a 2 sonores en base, dont 1 supprimé
+
 	Scénario: Seul l'audit complet revérifie les sonores actifs
 		Étant donné le fichier « …/vieux.wav », qui n'est pas un son
 		Et le fichier « …/pubs/faux.mp3 », qui n'est pas un son

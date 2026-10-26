@@ -584,3 +584,15 @@ def blancs_du_sonore(base_vide: Connexion, sonore: int, debut: str, fin: str, ma
 @then("en base, le sonore n'a ni début ni fin détectés")
 def sans_blancs_en_base(base_vide: Connexion, sonore: int) -> None:
 	assert blancs_en_base(base_vide, sonore) == (None, None)
+
+
+@given("le sonore est supprimé depuis l'interface")
+def sonore_supprime(base_vide: Connexion, sonore: int) -> None:
+	"""https://github.com/dascritch/machincast/issues/267"""
+	base_vide.execute("UPDATE sonores SET supprime_le = clock_timestamp() WHERE id = %s", (sonore,))
+
+
+@then("la disparition du fichier du sonore est datée")
+def disparition_datee(base_vide: Connexion, sonore: int) -> None:
+	ligne = base_vide.execute("SELECT disparu_le FROM sonores WHERE id = %s", (sonore,)).fetchone()
+	assert (ligne is not None) and (ligne[0] is not None), ligne
