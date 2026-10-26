@@ -72,22 +72,23 @@ Fonctionnalité: Suggestions au lancement de l'interface
 
 	Scénario: « Créer » crée ce qui est coché, et remplit le fil musical d'une rotation type
 		https://github.com/dascritch/machincast/issues/231 : les musiques durent 15 minutes au plus ; l'identifiant
-		station, les partenariats, les publicités et les bandes-annonces, 2 minutes, ces trois derniers enchaînés sans
-		crossfade, imposé à 0 seconde à tous leurs sonores.
+		station, les partenariats, les publicités et les bandes-annonces, 2 minutes, ces trois derniers séquentiels et
+		enchaînés sans crossfade, imposé à 0 seconde à tous leurs sonores ; une bande-annonce ne passe jamais deux fois
+		de suite.
 
 		Étant donné les suggestions seront acceptées par « Créer », sans « Banque « Musique rotation rare » »
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le fil musical « Fil musical » est en base, permanent
 		Et la liste de l'événement « Fil musical » est en base « Identifiant station », « Musique rotation lourde », « Musique rotation normale », « Musique rotation lourde »
 		Et les banques en base sont :
-			| nom                      | mode      | ne pas répéter | durée maximale | crossfade de début | crossfade de fin |
-			| Bande-annonce émissions  | aleatoire | non            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
-			| Identifiant station      | aleatoire | oui            | 0:02:00        | des sonores        | des sonores      |
-			| Musique rotation de nuit | aleatoire | non            |                | des sonores        | des sonores      |
-			| Musique rotation lourde  | aleatoire | non            | 0:15:00        | des sonores        | des sonores      |
-			| Musique rotation normale | aleatoire | non            | 0:15:00        | des sonores        | des sonores      |
-			| Partenariats             | aleatoire | non            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
-			| Publicités               | aleatoire | non            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
+			| nom                      | mode       | ne pas répéter | durée maximale | crossfade de début | crossfade de fin |
+			| Bande-annonce émissions  | sequentiel | oui            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
+			| Identifiant station      | aleatoire  | oui            | 0:02:00        | des sonores        | des sonores      |
+			| Musique rotation de nuit | aleatoire  | non            |                | des sonores        | des sonores      |
+			| Musique rotation lourde  | aleatoire  | non            | 0:15:00        | des sonores        | des sonores      |
+			| Musique rotation normale | aleatoire  | non            | 0:15:00        | des sonores        | des sonores      |
+			| Partenariats             | sequentiel | non            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
+			| Publicités               | sequentiel | non            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
 		Et la barre d'état annonce « Créés : le fil musical « Fil musical », les banques « Identifiant station », « Musique rotation lourde », « Musique rotation normale », « Musique rotation de nuit », « Partenariats », « Publicités », « Bande-annonce émissions ». »
 
 	Scénario: La rotation rare dure aussi 15 minutes au plus
