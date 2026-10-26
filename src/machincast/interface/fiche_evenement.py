@@ -38,12 +38,13 @@ from machincast.interface.ui.fiche_evenement import Ui_FicheEvenement
 from machincast.lecture.grille import JAMAIS, JOURS, Evenement, Priorite, chevauchement, lire_grille
 
 PRIORITES: tuple[tuple[str, str], ...] = (
+	("secours", "Secours"),
 	("fil_musical", "Fil musical"),
 	("emission", "Émission"),
 	("special", "Spécial"),
-	("secours", "Secours"),
 )
-"""Valeurs de evenements.priorite, dans l'ordre du choix de la fiche."""
+"""Valeurs de evenements.priorite, dans l'ordre du choix de la fiche : de la plus basse à la plus haute, comme le type
+priorite_evenement (https://github.com/dascritch/machincast/issues/253)."""
 NOUVELLE = "emission"
 """Priorité d'un nouvel événement."""
 SANS_FIN_NE_BOUCLE_PAS = ("emission", "special")
@@ -167,7 +168,9 @@ class FicheEvenement(Fiche):
 			coches = {str(jour) for jour in jours}
 		for nom_du_jour, jour in zip(JOURS, self.jours, strict=True):
 			jour.setChecked(nom_du_jour in coches)
+		# Une priorité déjà choisie ne change pas l'index : l'avertissement ne suit pas de lui-même.
 		self._grille()
+		self._avertir()
 
 	def prevoir(self, debut: datetime, fin: datetime) -> None:
 		"""Les dates d'un nouvel événement demandé depuis le calendrier

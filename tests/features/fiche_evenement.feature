@@ -79,7 +79,7 @@ Fonctionnalité: Fiche d'un événement
 			| Début            |                                           |
 			| Jours            |                                           |
 		Et la fiche de l'événement montre les éléments aucun
-		Et la priorité se choisit parmi « fil musical », « émission », « spécial », « secours »
+		Et la priorité se choisit parmi « secours », « fil musical », « émission », « spécial », de la plus basse à la plus haute
 		Quand je coche « Début » dans la fiche de l'événement
 		Alors la fiche de l'événement montre :
 			| champ | valeur           |
