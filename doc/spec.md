@@ -278,7 +278,7 @@ L'indexation ne supprime aucun sonore : un fichier disparu fait passer son sonor
 
 ### 4.2 Transitions
 
-- **Début d'un événement** : il coupe **net** le sonore en cours, quel que soit le sonore.
+- **Début d'un événement** : il coupe **net** le sonore en cours, quel que soit le sonore. Un événement sans rien de jouable à son début (liste vide, ou rien de jouable dedans) ne coupe rien : il se termine aussitôt, et l'événement de priorité inférieure garde l'antenne ; si c'est celui du sonore en cours, ce sonore continue, et ni la socket d'état ni l'interface n'annoncent de coupure ([#253](https://github.com/dascritch/machincast/issues/253)).
 - **Fin d'un événement** : si aucun autre événement ne suit, le dernier sonore est joué jusqu'au bout, puis le suivant est choisi selon les règles du fil musical actif. Si un autre événement suit immédiatement, son début coupe net le dernier sonore.
 - **Retour au fil musical** : il reprend à l'élément qui suit le dernier joué, d'après la table `airplay` (`element_id`), d'une occurrence à l'autre.
 - **Séquence** ([#99](https://github.com/dascritch/machincast/issues/99)) : pour les transitions, une séquence est traitée comme un seul sonore. À la fin d'un événement sans successeur immédiat, elle est jouée jusqu'au bout, au nom de son événement. Un événement qui commence coupe net le sonore en cours de la séquence, et la séquence avec lui : ses éléments restants ne sont pas joués. Après une séquence, jouée en entier ou coupée, la liste reprend à l'élément qui suit la séquence. Une séquence ne reprend que si le dernier passage de tout l'airplay vient d'elle, ce qui vaut aussi après un redémarrage. Pendant la suspension d'un stream tombé de la séquence, son secours joue comme ailleurs ([§ 4.7](#47-streams)).

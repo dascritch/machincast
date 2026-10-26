@@ -372,7 +372,11 @@ class Ordonnanceur:
 
 	def coupure(self, en_cours: EnCours, instant: datetime, horizon: datetime) -> Coupure | None:
 		"""Le premier événement qui commencera après l'instant et avant l'horizon, et coupera net le sonore en cours,
-		comme le décidera decider ; None si le sonore va jusqu'à l'horizon. Rien n'est changé."""
+		comme le décidera decider ; None si le sonore va jusqu'à l'horizon. Rien n'est changé.
+
+		Un événement qui commence n'est une coupure que si la décision prise à son début coupe : un événement sans
+		rien de jouable laisse l'antenne à celui de priorité inférieure, qui peut être celui du sonore en cours
+		(https://github.com/dascritch/machincast/issues/253). La coupure nomme l'occurrence qui jouera alors."""
 		with self.connexion.transaction():
 			evenements = lire_grille(self.connexion)
 		terminees = frozenset(self.terminees)
@@ -384,24 +388,49 @@ class Ordonnanceur:
 				and (actif.cle != en_cours.occurrence.cle)
 				and (self._commence_apres(actif, en_cours))
 			):
-				return Coupure(moment, actif)
+				with self._sans_trace():
+					self._reservation = True
+					decision = self.decider(moment, en_cours)
+				if decision.couper:
+					return Coupure(moment, self._occurrence_de(decision, actif))
 			moment = prochain_changement(evenements, moment)
 		return None
+
+	@staticmethod
+	def _occurrence_de(decision: Decision, actif: Occurrence) -> Occurrence:
+		"""L'occurrence qui prend l'antenne à la coupure : celle du sonore qu'elle joue, ou celle qui s'y tait."""
+		if decision.jouer is not None:
+			return decision.jouer.occurrence
+		return (decision.occurrence) or (actif)
 
 	def anticiper(self, instant: datetime) -> Choix | None:
 		"""Le sonore que réserverait la décision à un instant à venir, sans en garder de trace : rien n'est consigné,
 		aucune occurrence n'est terminée, aucune suspension levée, aucun saut noté, aucun sonore écarté n'est oublié,
 		et le hasard n'avance pas : la décision prise à cet instant tirera le même sonore, si rien n'a changé
 		(https://github.com/dascritch/machincast/issues/169)."""
+		with self._sans_trace():
+			return self.reserver(instant)
+
+	@contextmanager
+	def _sans_trace(self) -> Iterator[None]:
+		"""Le temps d'une décision anticipée : rien n'est consigné, et à la sortie, l'état de l'ordonnanceur et le
+		hasard sont rétablis."""
 		# Une décision note les sauts d'un autre passage dans un nouvel ensemble : garder l'ancien suffit.
 		sauts = self._sauts_notes
-		etat = (set(self.terminees), self.en_silence, self.suspension, dict(self.exclus), self.historique)
+		etat = (
+			set(self.terminees),
+			self.en_silence,
+			self.suspension,
+			dict(self.exclus),
+			self.historique,
+			self._reservation,
+		)
 		tirages = self.hasard.getstate()
 		self.historique = HistoriqueEnLecture(self.historique)
 		try:
-			return self.reserver(instant)
+			yield
 		finally:
-			self.terminees, self.en_silence, self.suspension, self.exclus, self.historique = etat
+			self.terminees, self.en_silence, self.suspension, self.exclus, self.historique, self._reservation = etat
 			self.hasard.setstate(tirages)
 			self._sauts_notes = sauts
 
@@ -564,8 +593,11 @@ class Ordonnanceur:
 				return self._silence(instant, couper, eteindre, None, "aucun événement actif")
 			if actif.evenement.priorite is Priorite.FIL_MUSICAL:
 				return self._silence(instant, couper, eteindre, actif, "rien à diffuser dans le fil musical")
-			# Liste épuisée, ou plus rien de jouable : l'occurrence se termine, l'événement inférieur reprend.
+			# Liste épuisée, ou plus rien de jouable : l'occurrence se termine, l'événement inférieur reprend. Le sonore
+			# en cours est jugé de nouveau face à lui : il continue si c'est son événement
+			# (https://github.com/dascritch/machincast/issues/253).
 			self.terminees.add(actif.cle)
+			couper = eteindre = False
 			if (repetition is not None) and (any(saut.evenement == actif.evenement.id for saut in sautes)):
 				self.historique.consigner(
 					self.connexion,

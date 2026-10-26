@@ -225,6 +225,20 @@ Fonctionnalité: Socket d'état du binaire lecture
 			| 20:09:50 |
 			| 20:09:40 |
 
+	Scénario: Une émission vide qui commencera pendant le sonore en cours ne l'annonce pas coupé, ni ne donne le prochain sonore
+		https://github.com/dascritch/machincast/issues/253 : sans rien de jouable, l'émission laisse l'antenne au fil
+		musical ; le sonore en cours va jusqu'au bout, et le fil musical donne le suivant.
+
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et le sonore « f1 » dure 600 secondes en base
+		Et l'émission « Le mating » de 20:00:00 à 20:30:00, sans élément
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne 1 pas de 0,4 seconde
+		Et un client lit la socket d'état
+		Alors le sonore en cours finira au « 2026-10-14 20:09:50 », sans être coupé
+		Et le prochain sonore est « f2 », sain
+		Et le prochain sonore est joué par l'événement « Continue »
+
 	Scénario: Le premier changement de la grille qui ne coupe pas n'empêche pas de trouver le suivant, qui coupe
 		Étant donné le fil musical permanent « Continue », avec les sonores « f2 »
 		Et l'émission « Magazine » de 19:59:50 à 20:00:05, avec le sonore « f1 »
