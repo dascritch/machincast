@@ -117,6 +117,8 @@ La **fenêtre de pré-écoute** fait écouter un sonore, ou l'antenne, sur le ca
 
 Il n'y a qu'une fenêtre de pré-écoute : pré-écouter un autre sonore le met à la place du précédent. La fermer arrête la pré-écoute.
 
+**Casque qui ne répond plus.** Au retour d'un écran verrouillé ou mis en veille, le son du poste peut s'interrompre un moment : la pré-écoute s'arrête alors, et dit pourquoi (« Lecture impossible : … »). L'interface reste utilisable ; relancer la lecture une fois le son revenu ([#259](https://github.com/dascritch/machincast/issues/259)).
+
 ### Frise d'un fichier
 
 Un fichier a une **frise** ([#224](https://github.com/dascritch/machincast/issues/224)), qui s'étend sur toute sa durée. Un stream, ou l'antenne, n'en a pas.

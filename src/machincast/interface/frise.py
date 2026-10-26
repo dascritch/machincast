@@ -45,6 +45,7 @@ from PySide6.QtGui import (  # noqa: E402
 from PySide6.QtWidgets import QSizePolicy, QToolTip, QWidget  # noqa: E402
 
 from machincast.configuration import Crossfades  # noqa: E402
+from machincast.interface import etats  # noqa: E402
 from machincast.lecture.diffusion import crossfade  # noqa: E402
 from machincast.lecture.fondus import (  # noqa: E402
 	ENTREE_PAR_DEFAUT,
@@ -398,6 +399,7 @@ class FormeDOnde:
 		self.erreur: str | None = None
 		self._pipeline: Gst.Element | None = None
 		self._niveau: Gst.Element | None = None
+		self._pilote: etats.Pilote | None = None
 
 	def demarrer(self) -> None:
 		"""Lance le décodage, sans l'attendre."""
@@ -412,7 +414,8 @@ class FormeDOnde:
 		niveau.set_property("interval", round(self.pas * Gst.SECOND))
 		niveau.set_property("post-messages", True)
 		self._pipeline, self._niveau = pipeline, niveau
-		pipeline.set_state(Gst.State.PLAYING)
+		self._pilote = etats.Pilote(pipeline)
+		self._pilote.vers(Gst.State.PLAYING)
 
 	def relever(self) -> bool:
 		"""Les mesures arrivées depuis la dernière relève ; vrai s'il y en a de nouvelles, ou si le calcul vient de
@@ -437,9 +440,9 @@ class FormeDOnde:
 		return nouvelles
 
 	def arreter(self) -> None:
-		if self._pipeline is not None:
-			self._pipeline.set_state(Gst.State.NULL)
-		self._pipeline, self._niveau = None, None
+		if self._pilote is not None:
+			self._pilote.eteindre()
+		self._pipeline, self._pilote, self._niveau = None, None, None
 
 	def couverte(self) -> float:
 		"""Secondes du fichier déjà mesurées."""

@@ -28,6 +28,7 @@ from gi.repository import GLib, Gst  # noqa: E402
 from PySide6.QtCore import QObject, QTimer, Signal  # noqa: E402
 
 from machincast.configuration import Audio  # noqa: E402
+from machincast.interface import etats  # noqa: E402
 
 SIGNAL_FACTICE = "audiotestsrc is-live=true wave=sine volume=0.1"
 """Le port de monitoring de la sortie factice : un signal de test, que les scénarios choisissent."""
@@ -124,6 +125,8 @@ class Moniteur(QObject):
 		self.audio = audio
 		self.horloge = horloge
 		self._pipeline: Gst.Pipeline | None = None
+		self._pilote: etats.Pilote | None = None
+		"""Les changements d'état du port, hors du fil de l'interface (https://github.com/dascritch/machincast/issues/259)."""
 		self._niveau: Gst.Element | None = None
 		self.niveaux: list[float] = []
 		self.cretes: list[float] = []
@@ -173,20 +176,20 @@ class Moniteur(QObject):
 		conversion.link(niveau)
 		niveau.link(puits)
 		self._pipeline, self._niveau = pipeline, niveau
+		self._pilote = etats.Pilote(pipeline)
 		self.indisponible = None
 		self._son_depuis = self.horloge()
-		if pipeline.set_state(Gst.State.PLAYING) == Gst.StateChangeReturn.FAILURE:
-			self._indisponible("Indisponible : le port de monitoring ne s'ouvre pas.")
-			return
+		# Ouvrir le port peut attendre le serveur audio : son pilote l'ouvre, et la relève dit s'il ne s'ouvre pas.
+		self._pilote.vers(Gst.State.PLAYING)
 		self._releve.start()
 		self.change.emit()
 
 	def arreter(self) -> None:
 		self._releve.stop()
 		self._reessai.stop()
-		if self._pipeline is not None:
-			self._pipeline.set_state(Gst.State.NULL)
-		self._pipeline, self._niveau = None, None
+		if self._pilote is not None:
+			self._pilote.eteindre()
+		self._pipeline, self._pilote, self._niveau = None, None, None
 		self.niveaux, self.cretes = [], []
 		self.silence, self.saturation = False, False
 
@@ -200,6 +203,9 @@ class Moniteur(QObject):
 	def _relever(self) -> None:
 		pipeline = self._pipeline
 		if pipeline is None:
+			return
+		if (self._pilote is not None) and (self._pilote.a_echoue()):
+			self._indisponible("Indisponible : le port de monitoring ne s'ouvre pas.")
 			return
 		bus = pipeline.get_bus()
 		assert bus is not None
