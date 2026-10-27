@@ -41,7 +41,9 @@ DELAI_DEMARRAGE = timedelta(seconds=2.5)
 """Délai accordé au premier son décodé. Au-delà, le décodage est repris depuis le début."""
 
 TENTATIVES = 6
-"""Nombre de démarrages tentés. decodebin se bloque au démarrage d'un fichier AIFF, avant le moindre son décodé :
+"""Nombre de démarrages tentés, pour un disque réseau en veille et pour un AIFF déjà en base : l'AIFF n'est plus
+indexé (https://github.com/dascritch/machincast/issues/284). decodebin se bloque au démarrage d'un fichier AIFF, avant
+le moindre son décodé :
 une fois sur cinq à dix avec GStreamer 1.24 (https://github.com/dascritch/machincast/issues/280), encore 44 fois sur
 1 000 avec GStreamer 1.28.2, celui d'Ubuntu 26.04 ; les autres formats ne se bloquent pas (python -m
 tests.mesures_gstreamer, sans le code de MachinCast, https://github.com/dascritch/machincast/issues/284). Un nouveau

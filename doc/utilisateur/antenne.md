@@ -94,7 +94,7 @@ Les sonores s'enchaînent selon leurs **crossfades** :
 
 Un fichier disparu au moment de le jouer n'est pas joué : l'incident `fichier introuvable` est noté, la diffusion passe au sonore suivant, et ne le repropose pas pendant une heure.
 
-Un fichier dont la lecture ne démarre pas, faute de son au bout de 3 secondes, est remplacé par le sonore suivant : l'incident `lecture bloquée` est noté ([#281](https://github.com/dascritch/machincast/issues/281)). C'est rare et fortuit, sur des AIFF : le sonore rejoue normalement à son tour suivant.
+Un fichier dont la lecture ne démarre pas, faute de son au bout de 3 secondes, est remplacé par le sonore suivant : l'incident `lecture bloquée` est noté ([#281](https://github.com/dascritch/machincast/issues/281)). C'est rare et fortuit, et n'a été constaté que sur des AIFF, qui ne sont plus pris en charge : le sonore rejoue normalement à son tour suivant.
 
 ## Blancs au début et à la fin
 

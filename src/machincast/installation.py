@@ -104,7 +104,6 @@ FORMATS: dict[str, FormatSonore] = {
 	),
 	"flac": FormatSonore((Exigence(_DECODEUR, "audio/x-flac"),), "gstreamer1.0-plugins-good"),
 	"wav": FormatSonore((Exigence(_DEMULTIPLEXEUR, "audio/x-wav"),), "gstreamer1.0-plugins-good"),
-	"aiff": FormatSonore((Exigence(_DEMULTIPLEXEUR, "audio/x-aiff"),), "gstreamer1.0-plugins-bad"),
 }
 """Formats de la spec § 6.2, et ce que decodebin doit trouver pour les décoder."""
 
@@ -174,7 +173,7 @@ COMPOSANTS: dict[str, tuple[str | None, str]] = {
 	"GStreamer": (None, "libgstreamer1.0-0"),
 	"le greffon GStreamer playback": ("playback", "gstreamer1.0-plugins-base"),
 	"le greffon GStreamer flac": ("flac", "gstreamer1.0-plugins-good"),
-	"le greffon GStreamer aiff": ("aiff", "gstreamer1.0-plugins-bad"),
+	"le greffon GStreamer faad": ("faad", "gstreamer1.0-plugins-bad"),
 }
 """Le cœur de GStreamer, et un greffon de chaque paquet de greffons : celui qui les fournit, à mettre à jour."""
 

@@ -14,8 +14,12 @@ entrée dans la table sonores. Il ne le renomme, ne le déplace, ne le remplace 
 import re
 from pathlib import Path
 
-EXTENSIONS_SONORES = frozenset({".mp3", ".m4a", ".aac", ".ogg", ".flac", ".wav", ".aiff", ".aif"})
+EXTENSIONS_INDEXEES = frozenset({".mp3", ".m4a", ".aac", ".ogg", ".flac", ".wav"})
 """Extensions des formats de la spec § 6.2, en minuscules : celles des fichiers que l'indexeur enregistre."""
+
+EXTENSIONS_SONORES = EXTENSIONS_INDEXEES | {".aiff", ".aif"}
+"""Extensions des fichiers sonores protégés, en minuscules : les formats de la spec, et l'AIFF, que l'indexeur ignore
+depuis https://github.com/dascritch/machincast/issues/284, mais qui reste un fichier sonore, jamais écrit."""
 
 MARQUE = "fichier de MachinCast :"
 """Justification d'une suppression, d'un renommage ou d'un remplacement de fichier dans le code."""

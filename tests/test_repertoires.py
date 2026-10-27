@@ -31,8 +31,6 @@ FORMATS = {
 	"ogg": "ogg",
 	"flac": "flac",
 	"wav": "wav",
-	"aiff": "aiff",
-	"aif": "aiff",
 }
 
 

@@ -127,11 +127,10 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Et j'attends la fin de ses voies
 		Alors la voie de « sain.<format> » est finie
 
-		# AIFF réactivé avec GStreamer 1.28 (https://github.com/dascritch/machincast/issues/284), après sa mise de côté
-		# pour un défaut de GStreamer 1.24 (https://github.com/dascritch/machincast/issues/236).
+		# L'AIFF n'est plus un format de la spécification : GStreamer en bloque parfois le démarrage
+		# (https://github.com/dascritch/machincast/issues/284).
 		Exemples:
 			| format |
-			| aiff   |
 			| mp3    |
 			| m4a    |
 			| aac    |
