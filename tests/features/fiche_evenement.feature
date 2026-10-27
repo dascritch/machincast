@@ -231,6 +231,17 @@ Fonctionnalité: Fiche d'un événement
 		Alors la fiche ne signale rien
 		Et les éléments de l'événement « Brouillon » sont, dans l'ordre, aucun
 
+	Scénario: Une session sautée ne compte pas dans les chevauchements
+		https://github.com/dascritch/machincast/issues/273 : une émission posée sur une session sautée la remplace, et
+		l'événement récurrent se modifie encore.
+
+		Étant donné la session du 2026-10-21 de l'événement « Matinale » est sautée
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et je saisis la fin « 19/10/2026 09:15 » dans la fiche de l'événement
+		Et j'enregistre la fiche
+		Alors la fiche ne signale rien
+
 	Plan du scénario: Un événement invalide n'est pas enregistré, et dit pourquoi
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »

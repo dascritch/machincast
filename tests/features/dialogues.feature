@@ -191,3 +191,17 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 	Scénario: Ouvrir un dossier le montre dans le navigateur de fichiers du poste
 		Quand j'ouvre le dossier « /srv/jingles/hiver »
 		Alors le poste a ouvert l'adresse « file:///srv/jingles/hiver »
+
+	Plan du scénario: Le choix d'un jour part du premier jour possible ; Entrée donne le jour choisi, Échap aucun
+		# https://github.com/dascritch/machincast/issues/273
+		Quand le choix d'un jour à partir du « 2026-10-22 » s'ouvre, et que j'y <geste>
+		Alors le choix d'un jour a dit « Sauter les sessions de « Matinale » à partir du jeudi 22 octobre, jusqu'au : »
+		Et la réponse est « <reponse> »
+
+		Exemples:
+			| geste                                     | reponse    |
+			| tape Entrée                               | 2026-10-22 |
+			| choisis le « 2026-10-28 », puis tape Entrée | 2026-10-28 |
+			| choisis le « 2026-10-28 », puis clique sur OK | 2026-10-28 |
+			| choisis le « 2026-10-20 », puis tape Entrée | 2026-10-22 |
+			| choisis le « 2026-10-28 », puis tape Échap  | None       |

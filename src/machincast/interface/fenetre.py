@@ -92,7 +92,7 @@ from machincast.interface.recherche import EcranRecherche
 from machincast.interface.simulation import EcranSimulation
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 from machincast.interface.verification import Verificateur, VerificationComplete
-from machincast.lecture.etat import demande_d_interruption
+from machincast.lecture.etat import demande_d_interruption, demande_de_relire_la_grille
 
 journal = logging.getLogger(__name__)
 
@@ -402,6 +402,12 @@ class FenetrePrincipale(QMainWindow):
 			action.setEnabled(proposition.active)
 			action.setToolTip(proposition.infobulle)
 
+	def _grille_modifiee(self) -> None:
+		"""Une session sautée ou rétablie vaut aussitôt à l'antenne
+		(https://github.com/dascritch/machincast/issues/273) : Machin lecture relit la grille, s'il diffuse ; sinon, il
+		la lira à son démarrage."""
+		self.accueil.client.envoyer(demande_de_relire_la_grille())
+
 	def _interrompre(self, element: str) -> None:
 		"""Demande à Machin lecture d'interrompre l'élément, sans question : l'antenne n'attend pas."""
 		annonce = interruption.SANS_LECTURE
@@ -620,6 +626,8 @@ class FenetrePrincipale(QMainWindow):
 		calendrier = Calendrier(self.connexion, self.horloge)
 		calendrier.ouverte.connect(self._ouvrir)
 		calendrier.creation_demandee.connect(self._creer_evenement)
+		calendrier.annonce.connect(self.ui.barre_d_etat.showMessage)
+		calendrier.grille_modifiee.connect(self._grille_modifiee)
 		onglets.setCurrentIndex(self._ajouter_onglet(calendrier, "Calendrier"))
 
 	def _ouvrir_recherche(self) -> None:

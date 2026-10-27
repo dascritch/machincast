@@ -93,7 +93,8 @@ pg_restore --dbname=machincast_restauree --no-owner sauvegardes/machincast-2026-
 - les passages de l'airplay finis avant cette limite ; un passage commencé avant et fini après reste entier ;
 - les lignes du log d'avant cette limite ;
 - les sonores, banques, séquences et événements [supprimés depuis l'interface](../utilisateur/listes.md#supprimer-un-élément) depuis plus longtemps : ils ne peuvent plus se restaurer ;
-- les sonores dont l'indexation a constaté la disparition du fichier (état `supprimé`) depuis plus longtemps.
+- les sonores dont l'indexation a constaté la disparition du fichier (état `supprimé`) depuis plus longtemps ;
+- les [sessions sautées](../utilisateur/grille.md#calendrier) d'avant cette limite ([#273](https://github.com/dascritch/machincast/issues/273)), qui ne servent plus à rien ; le bilan ne les compte pas.
 
 Les passages plus récents d'un sonore effacé gardent son emplacement, son artiste et son titre, recopiés lors du passage. **Seules des lignes de la base sont effacées** : aucun fichier sonore, aucun répertoire ([Les fichiers sonores ne sont jamais modifiés](configuration.md#les-fichiers-sonores-ne-sont-jamais-modifiés)). Un fichier toujours présent dans le répertoire d'une banque est de nouveau indexé, comme un nouveau sonore. Tout s'efface en une seule fois, ou rien : une erreur laisse la base telle quelle.
 

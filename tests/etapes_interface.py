@@ -16,7 +16,7 @@ import shutil
 import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import psycopg
@@ -147,6 +147,11 @@ class Contexte:
 	"""La durée de péremption, en jours, que donnera la fenêtre des préférences
 	(https://github.com/dascritch/machincast/issues/268) ; None : celle qu'elle a montrée."""
 	peremptions_montrees: list[int] = field(default_factory=list)
+	jours_choisis: list[date | None] = field(default_factory=list)
+	"""Ce que donneront les prochains choix d'un jour, None pour un choix abandonné
+	(https://github.com/dascritch/machincast/issues/273)."""
+	choix_de_jour: list[tuple[str, date]] = field(default_factory=list)
+	"""Le texte et le premier jour possible de chaque choix d'un jour."""
 	suggestions_actives: bool = False
 	"""Les scénarios n'ont pas de suggestions au lancement, sauf ceux qui les activent
 	(https://github.com/dascritch/machincast/issues/119) : sans elles, le fil musical est recréé comme avant."""
@@ -275,6 +280,12 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	monkeypatch.setattr(dialogues, "ouvrir_dossier", interface.dossiers_ouverts.append)
 	monkeypatch.setattr(dialogues, "ouvrir_page", interface.pages_ouvertes.append)
 	monkeypatch.setattr(dialogues, "montrer_version", lambda _parent, texte: interface.versions.append(texte))
+
+	def jour(_parent: QWidget, _titre: str, texte: str, minimum: date) -> date | None:
+		interface.choix_de_jour.append((texte, minimum))
+		return interface.jours_choisis.pop(0)
+
+	monkeypatch.setattr(dialogues, "choisir_jour", jour)
 
 	def preferences(_parent: QWidget, montres: Reglages, _sortie: SortieAudio) -> Reglages | None:
 		"""Les crossfades et les périphériques du scénario ; ceux qu'il ne règle pas restent ceux montrés."""
@@ -702,6 +713,17 @@ def evenements(base_vide: Connexion, datatable: list[list[str]]) -> None:
 				[jour.strip() for jour in ligne["jours"].split(",") if jour.strip()],
 			),
 		)
+
+
+@given(parsers.parse("la session du {jour} de l'événement « {nom} » est sautée"))
+@when(parsers.parse("la session du {jour} de l'événement « {nom} » est sautée"))
+def session_sautee(base_vide: Connexion, jour: str, nom: str) -> None:
+	"""Comme depuis le calendrier (https://github.com/dascritch/machincast/issues/273), pour l'interface comme pour la
+	diffusion."""
+	base_vide.execute(
+		"INSERT INTO evenements_sauts (evenement_id, jour) SELECT id, %s FROM evenements WHERE nom_interne = %s",
+		(date.fromisoformat(jour), nom),
+	)
 
 
 # ─── Quand ─────────────────────────────────────────────────

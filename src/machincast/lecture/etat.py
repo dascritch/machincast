@@ -13,7 +13,9 @@ Chaque client a son fil : un client lent ou qui se déconnecte ne bloque jamais 
 
 Dans l'autre sens, un client peut envoyer des demandes, une ligne JSON par demande
 (https://github.com/dascritch/machincast/issues/104) : {"commande": "interrompre", "element": E}, où E est
-« sonore », « sequence » ou « evenement » (INTERRUPTIONS). Un fil par client les lit, et les garde jusqu'au pas suivant
+« sonore », « sequence » ou « evenement » (INTERRUPTIONS) ; {"commande": "relire_la_grille"}, après un changement de la
+grille qui doit valoir aussitôt, comme une session sautée (https://github.com/dascritch/machincast/issues/273). Un fil
+par client les lit, et les garde jusqu'au pas suivant
 de la diffusion (demandes). Une demande illisible, inconnue, ou plus longue que TAILLE_MAXIMALE, est ignorée et
 signalée dans le journal du binaire. Seul le compte qui diffuse peut ouvrir la socket : il n'y a rien d'autre à
 vérifier.
@@ -46,6 +48,7 @@ PUBLICATION_MINIMALE = 1.0
 ATTENTE_DES_CLIENTS = 1.0
 """Délai laissé aux clients pour recevoir le dernier message, à la fermeture."""
 INTERROMPRE = "interrompre"
+RELIRE_LA_GRILLE = "relire_la_grille"
 INTERRUPTIONS = ("sonore", "sequence", "evenement")
 """Ce qu'une demande peut interrompre (https://github.com/dascritch/machincast/issues/104)."""
 TAILLE_MAXIMALE = 4096
@@ -55,15 +58,21 @@ DEMANDE_IGNOREE = "demande ignorée sur la socket d'état"
 
 @dataclass(frozen=True)
 class Demande:
-	"""Une demande d'un client de la socket d'état : interrompre un élément de l'antenne."""
+	"""Une demande d'un client de la socket d'état : interrompre un élément de l'antenne, ou relire la grille."""
 
-	element: str
-	"""« sonore », « sequence » ou « evenement »."""
+	element: str = ""
+	"""Pour une interruption : « sonore », « sequence » ou « evenement »."""
+	commande: str = INTERROMPRE
 
 
 def demande_d_interruption(element: str) -> str:
 	"""La ligne qu'un client envoie pour demander l'interruption de l'élément."""
 	return json.dumps({"commande": INTERROMPRE, "element": element}) + "\n"
+
+
+def demande_de_relire_la_grille() -> str:
+	"""La ligne qu'un client envoie après un changement de la grille qui doit valoir aussitôt."""
+	return json.dumps({"commande": RELIRE_LA_GRILLE}) + "\n"
 
 
 def lire_demande(ligne: bytes) -> Demande:
@@ -76,6 +85,8 @@ def lire_demande(ligne: bytes) -> Demande:
 		raise ValueError("une demande est un objet JSON")
 	commande = message.get("commande")
 	element = message.get("element")
+	if (commande == RELIRE_LA_GRILLE) and (set(message) == {"commande"}):
+		return Demande(commande=RELIRE_LA_GRILLE)
 	if commande != INTERROMPRE:
 		raise ValueError(f"commande inconnue : {commande}")
 	if element not in INTERRUPTIONS:

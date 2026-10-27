@@ -5,14 +5,24 @@ Les vraies fenêtres s'ouvrent, hors de l'écran du poste : un minuteur y clique
 sélecteur de répertoires et le navigateur de fichiers du poste sont remplacés.
 """
 
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import QDate, Qt, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QDialogButtonBox, QFileDialog, QMessageBox, QWidget
+from PySide6.QtWidgets import (
+	QApplication,
+	QCalendarWidget,
+	QDialogButtonBox,
+	QFileDialog,
+	QLabel,
+	QMessageBox,
+	QWidget,
+)
 from pytest_bdd import parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -160,6 +170,40 @@ def creation(dialogue: Dialogue, qtbot: QtBot, geste: str) -> None:
 	dialogue.reponse = dialogues.confirmer_creation(
 		dialogue.parent, "Créer un événement le dimanche 25 octobre 2026 de 13:00 à 14:00 ?"
 	)
+
+
+@when(parsers.parse("le choix d'un jour à partir du « {minimum} » s'ouvre, et que j'y {geste}"))
+def choix_d_un_jour(dialogue: Dialogue, qtbot: QtBot, minimum: str, geste: str) -> None:
+	def faire(modale: QWidget) -> None:
+		(calendrier,) = modale.findChildren(QCalendarWidget)
+		(texte,) = modale.findChildren(QLabel)
+		dialogue.texte = texte.text()
+		choisi = re.search(r"choisis le « ([^»]+) »", geste)
+		if choisi is not None:
+			jour = date.fromisoformat(choisi.group(1))
+			calendrier.setSelectedDate(QDate(jour.year, jour.month, jour.day))
+		if geste.endswith("clique sur OK"):
+			(boutons,) = modale.findChildren(QDialogButtonBox)
+			boutons.button(QDialogButtonBox.StandardButton.Ok).click()
+			return
+		touche = Qt.Key.Key_Return
+		if geste.endswith("tape Échap"):
+			touche = Qt.Key.Key_Escape
+		qtbot.keyClick((QApplication.focusWidget()) or (modale), touche)
+
+	quand_modale(faire)
+	jour = dialogues.choisir_jour(
+		dialogue.parent,
+		"Sauter des sessions",
+		"Sauter les sessions de « Matinale » à partir du jeudi 22 octobre, jusqu'au :",
+		date.fromisoformat(minimum),
+	)
+	dialogue.reponse = str(jour)
+
+
+@then(parsers.parse("le choix d'un jour a dit « {texte} »"))
+def jour_dit(dialogue: Dialogue, texte: str) -> None:
+	assert dialogue.texte == texte
 
 
 @when(parsers.re(r"le sélecteur de répertoires du poste donne « ?(?P<selecteur>[^»]*?) ?»"))

@@ -7,6 +7,7 @@ production égale à la base de test. Les dates des tableaux sont prises à midi
 
 import dataclasses
 import logging
+import re
 import subprocess
 import time
 import tomllib
@@ -273,6 +274,16 @@ def fichier_intact(configuration: Configuration, chemin: str) -> None:
 def feed_libre(base_vide: Connexion, feed: str) -> None:
 	assert base_vide.execute("SELECT count(*) FROM sonores").fetchone() == (0,)
 	base_vide.execute("DELETE FROM feeds WHERE nom = %s", (feed,))
+
+
+@then(parsers.re(r"les sessions sautées de « (?P<nom>[^»]+) » sont (?P<jours>«.+)"))
+def sessions_sautees(base_vide: Connexion, nom: str, jours: str) -> None:
+	lignes = base_vide.execute(
+		"SELECT s.jour FROM evenements_sauts s JOIN evenements e ON e.id = s.evenement_id"
+		" WHERE e.nom_interne = %s ORDER BY s.jour",
+		(nom,),
+	).fetchall()
+	assert [str(jour) for (jour,) in lignes] == re.findall(r"« ([^»]+) »", jours)
 
 
 @then(parsers.parse("« {binaire} » est un binaire du wrapper, déclaré dans pyproject.toml"))

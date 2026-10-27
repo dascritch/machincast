@@ -28,6 +28,7 @@ INSERTIONS: dict[str, str] = {
 	"evenements_elements": (
 		"INSERT INTO evenements_elements (evenement_id, position, sonore_id) VALUES ({evenement}, 1, {sonore})"
 	),
+	"evenements_sauts": "INSERT INTO evenements_sauts (evenement_id, jour) VALUES ({evenement}, '2026-10-21')",
 	"sequences": "INSERT INTO sequences (nom_interne) VALUES ('Essai')",
 	"sequences_elements": (
 		"INSERT INTO sequences_elements (sequence_id, position, sonore_id) VALUES ({sequence}, 1, {sonore})"
@@ -43,6 +44,7 @@ MODIFICATIONS: dict[str, str] = {
 	"banques_sonores": "position = 2",
 	"evenements": "nom_public = NULL",
 	"evenements_elements": "position = 2",
+	"evenements_sauts": "jour = '2026-10-22'",
 	"sequences": "nom_public = NULL",
 	"sequences_elements": "position = 2",
 	"airplay": "titre = NULL",

@@ -23,6 +23,7 @@ TABLES: tuple[str, ...] = (
 	"banques_sonores",
 	"evenements",
 	"evenements_elements",
+	"evenements_sauts",
 	"sequences",
 	"sequences_elements",
 	"airplay",

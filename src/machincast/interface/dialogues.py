@@ -5,14 +5,24 @@ la remplacent par la réponse attendue, et aucune fenêtre modale n'attend un cl
 """
 
 import dataclasses
+from datetime import date
 from enum import StrEnum
 from pathlib import Path
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QDate, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox, QWidget
+from PySide6.QtWidgets import (
+	QCalendarWidget,
+	QDialog,
+	QDialogButtonBox,
+	QFileDialog,
+	QLabel,
+	QMessageBox,
+	QVBoxLayout,
+	QWidget,
+)
 
 from machincast.configuration import EXTENSIONS_D_ICONE, SortieAudio
 from machincast.interface.choix import Choix
@@ -122,6 +132,30 @@ def confirmer_creation(parent: QWidget, texte: str) -> bool:
 	question.setDefaultButton(creer)
 	question.exec()
 	return question.clickedButton() is creer
+
+
+def choisir_jour(parent: QWidget, titre: str, texte: str, minimum: date) -> date | None:
+	"""Un jour, à partir du minimum, proposé d'abord (https://github.com/dascritch/machincast/issues/273) : Entrée
+	valide, Échap abandonne ; None pour un choix abandonné."""
+	fenetre = QDialog(parent)
+	fenetre.setWindowTitle(titre)
+	disposition = QVBoxLayout(fenetre)
+	disposition.addWidget(QLabel(texte))
+	calendrier = QCalendarWidget()
+	depart = QDate(minimum.year, minimum.month, minimum.day)
+	calendrier.setMinimumDate(depart)
+	calendrier.setSelectedDate(depart)
+	calendrier.setGridVisible(True)
+	disposition.addWidget(calendrier)
+	boutons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+	boutons.accepted.connect(fenetre.accept)
+	boutons.rejected.connect(fenetre.reject)
+	disposition.addWidget(boutons)
+	calendrier.setFocus()
+	if fenetre.exec() != QDialog.DialogCode.Accepted:
+		return None
+	choisi = calendrier.selectedDate()
+	return date(choisi.year(), choisi.month(), choisi.day())
 
 
 def confirmer_suppression(parent: QWidget, titre: str, texte: str) -> bool:

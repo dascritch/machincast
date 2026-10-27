@@ -12,13 +12,14 @@ from datetime import date, datetime, time, timedelta
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
 from PySide6.QtGui import QHelpEvent
-from PySide6.QtWidgets import QApplication, QCheckBox, QPushButton, QToolTip, QWidget
+from PySide6.QtWidgets import QApplication, QCheckBox, QMenu, QPushButton, QToolTip, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface.calendrier import Bande, Bloc, Calendrier, libelle_du_jour
 from machincast.interface.fiche_evenement import FicheEvenement
-from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, identifiant
+from machincast.lecture.etat import RELIRE_LA_GRILLE, Demande
+from tests.etapes_interface import NOM, Connexion, Contexte, Lecteur, fenetre, identifiant
 
 scenarios("calendrier.feature")
 
@@ -131,6 +132,16 @@ def evenement_supprime(base_vide: Connexion, nom: str, moment: str) -> None:
 	)
 
 
+@given(parsers.parse("je choisirai le jour « {jour} » jusqu'où sauter"))
+def jour_choisi(interface: Contexte, jour: str) -> None:
+	interface.jours_choisis.append(date.fromisoformat(jour))
+
+
+@given("j'annulerai le choix du jour jusqu'où sauter")
+def jour_abandonne(interface: Contexte) -> None:
+	interface.jours_choisis.append(None)
+
+
 @given(parsers.parse("je répondrai « {reponse} » à la question de création"))
 def reponse_de_creation(interface: Contexte, reponse: str) -> None:
 	interface.creation = reponse == "Créer"
@@ -177,6 +188,27 @@ def cliquer_a(interface: Contexte, qtbot: QtBot, jour: str, heure: str) -> None:
 @when(parsers.parse("l'événement « {nom} » est effacé de la base"))
 def effacer_evenement(base_vide: Connexion, nom: str) -> None:
 	base_vide.execute("DELETE FROM evenements WHERE nom_interne = %s", (nom,))
+
+
+def menu_du_bloc(vue: Calendrier, nom: str, libelle: str, journee: bool) -> QMenu | None:
+	"""Le menu du clic droit au milieu du bloc."""
+	bloc = bloc_nomme(vue, nom, libelle, journee)
+	if journee:
+		return vue.entete.menu_en(vue.entete.rectangle(bloc).center())
+	return vue.grille.menu_en(vue.grille.rectangle(bloc).center())
+
+
+@when(
+	parsers.re(
+		r"je choisis « (?P<entree>[^»]+) » au clic droit sur le bloc « (?P<nom>[^»]+) »"
+		r" (?:du|de la (?P<journee>journée) du) (?P<jour>\w+ \d+(?:er)?)"
+	)
+)
+def choisir_au_clic_droit(interface: Contexte, entree: str, nom: str, journee: str | None, jour: str) -> None:
+	menu = menu_du_bloc(calendrier(interface), nom, jour, journee is not None)
+	assert menu is not None
+	(action,) = [action for action in menu.actions() if action.text() == entree]
+	action.trigger()
 
 
 # ─── Alors ─────────────────────────────────────────────────
@@ -291,6 +323,62 @@ def cases_cochees(interface: Contexte, textes: str) -> None:
 def jours_grises(interface: Contexte, jours: str) -> None:
 	vue = calendrier(interface)
 	assert [libelle_du_jour(jour) for jour in vue.jours_perimes()] == re.findall(r"« ([^»]+) »", jours)
+
+
+@then(
+	parsers.re(
+		r"le clic droit sur le bloc « (?P<nom>[^»]+) » (?:du|de la (?P<journee>journée) du) (?P<jour>\w+ \d+(?:er)?)"
+		r" (?:propose (?P<entrees>«.+)|ne propose rien)"
+	)
+)
+def entrees_du_clic_droit(interface: Contexte, nom: str, journee: str | None, jour: str, entrees: str | None) -> None:
+	menu = menu_du_bloc(calendrier(interface), nom, jour, journee is not None)
+	proposees = []
+	if menu is not None:
+		proposees = [action.text() for action in menu.actions()]
+	assert proposees == re.findall(r"« ([^»]+) »", (entrees) or (""))
+
+
+@then(parsers.parse("le choix du jour a proposé « {texte} », à partir du « {jour} »"))
+def choix_du_jour(interface: Contexte, texte: str, jour: str) -> None:
+	assert interface.choix_de_jour == [(texte, date.fromisoformat(jour))]
+
+
+def sessions_sautees(base: Connexion, nom: str) -> list[str]:
+	lignes = base.execute(
+		"SELECT s.jour FROM evenements_sauts s JOIN evenements e ON e.id = s.evenement_id"
+		" WHERE e.nom_interne = %s ORDER BY s.jour",
+		(nom,),
+	).fetchall()
+	return [str(jour) for (jour,) in lignes]
+
+
+@then(parsers.re(r"les sessions sautées de « (?P<nom>[^»]+) » sont (?P<jours>«.+)"))
+def sautees(base_vide: Connexion, nom: str, jours: str) -> None:
+	assert sessions_sautees(base_vide, nom) == re.findall(r"« ([^»]+) »", jours)
+
+
+@then(parsers.parse("aucune session de « {nom} » n'est sautée"))
+def aucune_sautee(base_vide: Connexion, nom: str) -> None:
+	assert sessions_sautees(base_vide, nom) == []
+
+
+@then("Machin lecture a reçu la demande de relire la grille")
+def relecture_demandee(lecteur: Lecteur, qtbot: QtBot) -> None:
+	socket = lecteur.socket
+	assert socket is not None
+
+	def recue() -> bool:
+		lecteur.recues += socket.demandes()
+		return lecteur.recues != []
+
+	qtbot.waitUntil(recue, timeout=5000)
+	assert lecteur.recues == [Demande(commande=RELIRE_LA_GRILLE)]
+
+
+@then(parsers.parse("le bloc « {nom} » du {jour} est « {etat} »"))
+def etat_du_bloc(interface: Contexte, nom: str, jour: str, etat: str) -> None:
+	assert bloc_nomme(calendrier(interface), nom, jour).etat == etat
 
 
 @then(parsers.parse("le bouton « {texte} » du calendrier est inactif"))

@@ -11,7 +11,8 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
   Sans début, ni fin ni jours : un fil musical sans début est permanent. Un événement de secours n'a ni dates ni
   jours : il ne joue qu'à la place d'un stream tombé. Une émission ou un spécial a un début ; une fin suit le début.
   Une date cochée part de l'heure de l'horloge, à la minute ; une fin, d'une heure après le début.
-- Un événement ne chevauche pas un autre événement de même priorité (machincast.lecture.grille.chevauchement).
+- Un événement ne chevauche pas un autre événement de même priorité (machincast.lecture.grille.chevauchement) ; une
+  session sautée ne chevauche rien (https://github.com/dascritch/machincast/issues/273).
 - Un événement de secours qu'un stream désigne reste de priorité secours : la base le refuserait aussi.
 - La liste de lecture : sonores, banques et séquences (machincast.interface.elements). Un événement vide
   s'enregistre, pour être complété plus tard, avec un avertissement qui dit ce qu'en fait la diffusion selon sa
@@ -23,7 +24,7 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
   début.
 """
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from PySide6.QtCore import QDateTime
 from PySide6.QtWidgets import QDateTimeEdit, QWidget
@@ -108,8 +109,8 @@ class FicheEvenement(Fiche):
 		ui.a_fin.toggled.connect(self._grille)
 		ui.a_fin.toggled.connect(self._modifier)
 		ui.a_fin.toggled.connect(self._avertir)
-		for date in (ui.debut, ui.fin):
-			date.dateTimeChanged.connect(self._modifier)
+		for champ in (ui.debut, ui.fin):
+			champ.dateTimeChanged.connect(self._modifier)
 		for jour in self.jours:
 			jour.toggled.connect(self._modifier)
 		self.charger()
@@ -275,12 +276,22 @@ class FicheEvenement(Fiche):
 			fin=fin,
 			jours=frozenset(JOURS.index(jour) for jour in jours),
 			modifie_le=JAMAIS,
+			sautees=self._sautees(),
 		)
 		autres = [autre for autre in lire_grille(self.connexion) if autre.id != self.identifiant]
 		trouve = chevauchement(place, autres)
 		if trouve is not None:
 			autre, instant = trouve
 			raise Refus(f"Chevauche l'événement « {autre.nom} », de même priorité, le {instant:%d/%m/%Y à %H:%M}.")
+
+	def _sautees(self) -> frozenset[date]:
+		"""Les jours de ses sessions sautées, qui ne chevauchent rien (https://github.com/dascritch/machincast/issues/273)."""
+		if self.identifiant is None:
+			return frozenset()
+		lignes = self.connexion.execute(
+			"SELECT jour FROM evenements_sauts WHERE evenement_id = %s", (self.identifiant,)
+		).fetchall()
+		return frozenset(jour for (jour,) in lignes if isinstance(jour, date))
 
 	def _refuser_secours_designe(self, priorite: str) -> None:
 		"""Un événement de secours qu'un stream désigne garde sa priorité."""

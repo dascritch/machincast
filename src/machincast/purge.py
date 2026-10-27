@@ -8,6 +8,8 @@ par défaut, réglable aussi dans Fichier → Préférences… de l'interface), 
 - les sonores, banques, séquences et événements supprimés depuis l'interface avant la limite
   (https://github.com/dascritch/machincast/issues/267) ;
 - les sonores dont l'indexation a constaté la disparition du fichier avant la limite.
+- les sessions sautées des événements récurrents d'avant la limite (https://github.com/dascritch/machincast/issues/273),
+  sans les compter dans le bilan.
 
 Les passages plus récents d'un sonore effacé gardent l'emplacement, l'artiste et le titre recopiés lors du passage.
 Tout est effacé en une seule transaction ; le bilan va au journal et, ligne « purge », au log de la base. Seules des
@@ -70,6 +72,8 @@ def purger(connexion: psycopg.Connection[tuple[object, ...]], limite: datetime) 
 	for genre, table, date in ELEMENTS:
 		effaces = connexion.execute(f"DELETE FROM {table} WHERE {date} < %s", (limite,)).rowcount  # noqa: S608
 		bilan.append(_nombre(effaces, genre))
+	# Une session sautée d'avant la limite ne compte plus pour rien (https://github.com/dascritch/machincast/issues/273).
+	connexion.execute("DELETE FROM evenements_sauts WHERE jour < %s", (limite.date(),))
 	return bilan
 
 

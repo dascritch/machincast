@@ -198,6 +198,55 @@ Fonctionnalité: Détermination de l'événement actif
 			| 2026-10-25 02:30+01:00 | Nuit  |
 			| 2026-10-25 06:00+01:00 | Jour  |
 
+	# ─── Sessions sautées (https://github.com/dascritch/machincast/issues/273) ───
+
+	Scénario: Une session sautée n'est jamais active : le fil musical, ou ce qui joue sans elle, l'est
+		Étant donné les événements :
+			| nom      | priorité    | début            | fin              | jours            | modifié          |
+			| Continue | fil_musical |                  |                  |                  | 2026-10-01 10:00 |
+			| Magazine | emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | lundi, mercredi  | 2026-10-01 10:00 |
+			| Concert  | special     | 2026-10-14 22:00 | 2026-10-14 23:30 |                  | 2026-10-01 10:00 |
+		Et la session du « 2026-10-14 » de « Magazine » est sautée
+		Alors l'événement actif est :
+			| heure            | actif    |
+			| 2026-10-12 21:30 | Magazine |
+			| 2026-10-14 21:30 | Continue |
+			| 2026-10-14 22:30 | Concert  |
+			| 2026-10-19 21:30 | Magazine |
+
+	Scénario: Même sans récurrence, un événement dont la session est sautée n'est pas actif
+		Étant donné les événements :
+			| nom      | priorité    | début            | fin              | jours | modifié          |
+			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
+			| Concert  | special     | 2026-10-14 22:00 | 2026-10-14 23:30 |       | 2026-10-01 10:00 |
+		Et la session du « 2026-10-14 » de « Concert » est sautée
+		Alors l'événement actif est :
+			| heure            | actif    |
+			| 2026-10-14 22:30 | Continue |
+
+	Scénario: Une session sautée n'est pas un changement de la grille
+		Étant donné les événements :
+			| nom      | priorité    | début            | fin              | jours            | modifié          |
+			| Continue | fil_musical |                  |                  |                  | 2026-10-01 10:00 |
+			| Magazine | emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | lundi, mercredi  | 2026-10-01 10:00 |
+			| Concert  | special     | 2026-10-16 22:00 | 2026-10-16 23:30 |                  | 2026-10-01 10:00 |
+		Et la session du « 2026-10-14 » de « Magazine » est sautée
+		Et la session du « 2026-10-16 » de « Concert » est sautée
+		Alors le prochain changement de la grille après le « 2026-10-13 12:00 » est le « 2026-10-19 21:00 »
+
+	Scénario: Les sessions sautées se lisent en base avec les droits du binaire lecture
+		Étant donné les événements :
+			| nom      | priorité    | début            | fin              | jours            | modifié          |
+			| Continue | fil_musical |                  |                  |                  | 2026-10-01 10:00 |
+			| Magazine | emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | lundi, mercredi  | 2026-10-01 10:00 |
+		Et ces événements enregistrés en base
+		Et la session du 2026-10-14 de l'événement « Magazine » est sautée
+		Quand le binaire lecture lit la grille en base
+		Alors l'événement actif est :
+			| heure            | actif    |
+			| 2026-10-12 21:30 | Magazine |
+			| 2026-10-14 21:30 | Continue |
+
 	# ─── Lecture de la grille en base ──────────────────────────
 
 	Scénario: La grille est lue en base avec les droits du binaire lecture
