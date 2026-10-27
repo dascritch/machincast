@@ -49,7 +49,7 @@ Fonctionnalité: Un fichier sonore n'est jamais supprimé par MachinCast
 		Quand la diffusion démarre au plus vite
 		Et la diffusion tourne 3 pas d'une seconde
 		Et la diffusion s'arrête
-		Et une simulation d'une heure tourne
+		Et une simulation de 5 minutes tourne
 		Alors l'airplay montre 3 passages
 		Et les fichiers sonores de la banque sont intacts
 

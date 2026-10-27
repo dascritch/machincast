@@ -14,7 +14,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from yoyo import get_backend, read_migrations
 
 from machincast.base import REPERTOIRE_MIGRATIONS, TABLES, TYPES, annuler_migrations, appliquer_migrations, url_yoyo
-from tests.base_test import parametres_base_test
+from tests.base_test import ORDRE_DE_PURGE, parametres_base_test, purger_base
 
 scenarios("schema.feature")
 
@@ -569,3 +569,31 @@ def date_de_disparition(contexte: Contexte, emplacement: str, a: str) -> None:
 	).fetchone()
 	assert ligne is not None
 	assert (ligne[0] is not None) == (a == "a"), ligne
+
+
+# ─── Purge entre deux scénarios (https://github.com/dascritch/machincast/issues/280) ───
+
+
+@when("la base est purgée comme entre deux scénarios")
+def purger(contexte: Contexte) -> None:
+	purger_base(contexte.connexion)
+
+
+@then("la purge connaît chaque table de machincast.base.TABLES")
+def purge_complete() -> None:
+	assert sorted(ORDRE_DE_PURGE) == sorted(TABLES)
+
+
+@then("chaque table de la base est vide")
+def tables_vides(contexte: Contexte) -> None:
+	for table in TABLES:
+		ligne = contexte.connexion.execute(sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(table))).fetchone()
+		assert ligne == (0,), table
+
+
+@then("un nouveau sonore reçoit l'identifiant 1")
+def identifiant_un(contexte: Contexte) -> None:
+	ligne = contexte.connexion.execute(
+		"INSERT INTO sonores (type, emplacement) VALUES ('fichier', '/premier.flac') RETURNING id"
+	).fetchone()
+	assert ligne == (1,)

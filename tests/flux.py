@@ -63,7 +63,9 @@ class ServeurDeFlux:
 
 		self._serveur = ThreadingHTTPServer(("127.0.0.1", 0), Gestionnaire)
 		self._serveur.daemon_threads = True
-		self._fil = threading.Thread(target=self._serveur.serve_forever, daemon=True)
+		# Arrêté à chaque fin de scénario : serve_forever ne voit la demande d'arrêt qu'à son prochain tour, toutes les
+		# 0,5 seconde par défaut (https://github.com/dascritch/machincast/issues/280).
+		self._fil = threading.Thread(target=self._serveur.serve_forever, args=(0.02,), daemon=True)
 		self._fil.start()
 
 	def adresse(self, nom: str) -> str:

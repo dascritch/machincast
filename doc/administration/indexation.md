@@ -73,7 +73,7 @@ Chaque fichier examiné reçoit l'un de ces verdicts :
 | `illisible` | Le fichier n'est pas du son, il est vide ou son conteneur est cassé, aucun son n'a pu être décodé, ou le décodage ne progresse plus pendant 30 secondes (disque ou partage réseau bloqué). |
 | `introuvable` | Aucun fichier à l'emplacement enregistré : il a été supprimé ou déplacé. |
 
-Un décodage qui ne produit aucun son en 5 secondes est repris depuis le début, jusqu'à trois fois : un disque réseau en veille a ainsi le temps de répondre.
+Un décodage qui ne produit aucun son en 2,5 secondes est repris depuis le début, jusqu'à six fois : un disque réseau en veille a ainsi 15 secondes pour répondre, et un fichier AIFF, dont GStreamer bloque parfois le démarrage, n'est pas déclaré illisible à tort ([#280](https://github.com/dascritch/machincast/issues/280)).
 
 Jusqu'à la correction de [#149](https://github.com/dascritch/machincast/issues/149), une indexation de plus de quelques centaines de fichiers épuisait les descripteurs de fichier du système : la console répétait des messages `GStreamer-CRITICAL` (`gst_bus_timed_pop_filtered`, `gst_poll_get_read_gpollfd`), et les fichiers suivants, même sains, étaient déclarés `illisible` (« décodage bloqué au démarrage »). Après la mise à jour, un **audit complet** les décode de nouveau : les sonores sains passés `erroné` redeviennent `actif`, et le bilan les compte parmi les rétablis. Ces messages ne doivent plus apparaître ; s'ils reviennent, c'est à signaler dans un ticket.
 

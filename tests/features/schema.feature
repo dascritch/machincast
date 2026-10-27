@@ -23,6 +23,16 @@ Fonctionnalité: Schéma de la base de données
 			| airplay               |
 			| log                   |
 
+	Scénario: La purge entre deux scénarios vide chaque table, et remet les identifiants à 1
+		https://github.com/dascritch/machincast/issues/280 : la purge vide table par table (tests.base_test.ORDRE_DE_PURGE),
+		dans un ordre qui respecte les clés étrangères.
+
+		Étant donné les éléments de référence en base
+		Quand la base est purgée comme entre deux scénarios
+		Alors la purge connaît chaque table de machincast.base.TABLES
+		Et chaque table de la base est vide
+		Et un nouveau sonore reçoit l'identifiant 1
+
 	Scénario: Chaque type énuméré créé par les migrations est connu de MachinCast
 		Alors les types énumérés de la base sont ceux de machincast.base.TYPES
 

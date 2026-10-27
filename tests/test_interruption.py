@@ -15,6 +15,7 @@ import pytest
 from pytest_bdd import parsers, scenarios, then, when
 
 from machincast.lecture.diffusion import INTERRUPTION_MANUELLE
+from machincast.lecture.etat import DEMANDE_IGNOREE
 from tests.etapes_diffusion import Banc
 
 scenarios("interruption.feature")
@@ -40,10 +41,15 @@ def log_des_interruptions(base: Connexion) -> list[str]:
 
 
 @when(parsers.parse("un client de la socket d'état demande « {demande} »"))
-def demander(banc: Banc, demande: str) -> None:
-	"""La demande est envoyée, puis la socket attend qu'elle arrive, ou qu'elle soit ignorée."""
+def demander(banc: Banc, caplog: pytest.LogCaptureFixture, demande: str) -> None:
+	"""La demande est envoyée, puis le scénario attend qu'elle arrive, ou que le journal du binaire dise qu'elle est
+	ignorée : jamais la fin d'un délai (https://github.com/dascritch/machincast/issues/280)."""
 	etat = banc.etat
 	assert etat is not None
+
+	def ignoree() -> bool:
+		return any(DEMANDE_IGNOREE in r.getMessage() for r in caplog.records)
+
 	with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
 		client.connect(str(etat.chemin))
 		client.sendall(f"{demande}\n".encode())
@@ -51,10 +57,8 @@ def demander(banc: Banc, demande: str) -> None:
 		client.settimeout(ATTENTE)
 		client.recv(1)
 		limite = time.monotonic() + ATTENTE
-		while (etat._demandes.empty()) and (time.monotonic() < limite):
+		while (etat._demandes.empty()) and (not ignoree()) and (time.monotonic() < limite):
 			time.sleep(0.01)
-		# Une demande ignorée ne laisse rien à attendre : le temps de la lire suffit.
-		time.sleep(0.1)
 
 
 # ─── Alors ─────────────────────────────────────────────────
