@@ -43,6 +43,7 @@ from machincast.horloge import HorlogeFixe  # noqa: E402
 from machincast.interface import colonnes, depliable  # noqa: E402
 from machincast.interface.calendrier import Calendrier  # noqa: E402
 from machincast.interface.fenetre import FenetrePrincipale  # noqa: E402
+from machincast.interface.fiche_evenement import FicheEvenement  # noqa: E402
 from machincast.interface.fiche_sonore import FicheSonore  # noqa: E402
 from machincast.interface.preecoute import FenetrePreecoute  # noqa: E402
 from machincast.interface.preferences import FenetrePreferences, Reglages  # noqa: E402
@@ -91,6 +92,7 @@ CAPTURES = (
 	"fiche-sequence",
 	"fiche-banque",
 	"fiche-sonore",
+	"fiche-erreur",
 	"calendrier",
 	"simulation",
 	"recherche",
@@ -688,6 +690,15 @@ def produire(repertoire: Path) -> dict[str, Path]:
 				attendre(functools.partial(_forme_finie, fiche))
 			prendre(nom, fenetre)
 			_fermer_l_onglet(fenetre)
+		# Une erreur de fiche, en haut, sur son liseret rouge (https://github.com/dascritch/machincast/issues/270).
+		fenetre._ouvrir("événement", demonstration.evenements["matinale"], "")
+		erronee = fenetre.ui.onglets.currentWidget()
+		assert isinstance(erronee, FicheEvenement)
+		erronee.ui.nom_interne.setText("")
+		erronee.enregistrer()
+		prendre("fiche-erreur", fenetre)
+		erronee.charger()
+		_fermer_l_onglet(fenetre)
 		fenetre._ouvrir_calendrier()
 		attendre(lambda: _ecran(fenetre, Calendrier).isVisible())
 		prendre("calendrier", fenetre)

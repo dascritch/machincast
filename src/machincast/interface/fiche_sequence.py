@@ -111,13 +111,13 @@ class FicheSequence(Fiche):
 	def _ecrire(self) -> int:
 		nom = conformer(self.ui.nom_interne.text())
 		if nom == "":
-			raise Refus("Le nom interne est obligatoire.")
+			raise Refus("Le nom interne est obligatoire.", self.ui.nom_interne)
 		pris = self.connexion.execute(
 			"SELECT 1 FROM sequences WHERE nom_interne = %s AND id IS DISTINCT FROM %s AND supprime_le IS NULL",
 			(nom, self.identifiant),
 		).fetchone()
 		if pris is not None:
-			raise Refus(f"Une autre séquence s'appelle déjà « {nom} ».")
+			raise Refus(f"Une autre séquence s'appelle déjà « {nom} ».", self.ui.nom_interne)
 		valeurs = (
 			nom,
 			(conformer(self.ui.nom_public.text())) or (None),

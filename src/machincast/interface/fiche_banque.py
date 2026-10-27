@@ -267,13 +267,13 @@ class FicheBanque(Fiche):
 	def _ecrire(self) -> int:
 		nom = conformer(self.ui.nom_interne.text())
 		if nom == "":
-			raise Refus("Le nom interne est obligatoire.")
+			raise Refus("Le nom interne est obligatoire.", self.ui.nom_interne)
 		pris = self.connexion.execute(
 			"SELECT 1 FROM banques WHERE nom_interne = %s AND id IS DISTINCT FROM %s AND supprime_le IS NULL",
 			(nom, self.identifiant),
 		).fetchone()
 		if pris is not None:
-			raise Refus(f"Une autre banque s'appelle déjà « {nom} ».")
+			raise Refus(f"Une autre banque s'appelle déjà « {nom} ».", self.ui.nom_interne)
 		valeurs: list[object] = [
 			nom,
 			(conformer(self.ui.nom_public.text())) or (None),
@@ -285,7 +285,9 @@ class FicheBanque(Fiche):
 			valeurs += [regle.currentData(), timedelta(seconds=duree.value())]
 		minimum, maximum = self._bornes()
 		if (minimum is not None) and (maximum is not None) and (minimum > maximum):
-			raise Refus("La durée minimale des sonores dépasse la durée maximale.")
+			raise Refus(
+				"La durée minimale des sonores dépasse la durée maximale.", self.ui.a_duree_min, self.ui.a_duree_max
+			)
 		valeurs += [minimum, maximum, self.ui.detection_blancs.isChecked()]
 		if self.identifiant is None:
 			creee = self.connexion.execute(

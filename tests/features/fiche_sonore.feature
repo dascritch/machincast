@@ -243,6 +243,7 @@ Fonctionnalité: Fiche d'un sonore
 			| Fin détectée  | 14     |
 		Et j'enregistre la fiche
 		Alors la fiche signale « Les blancs détectés doivent laisser du son : ensemble, plus courts que la durée du sonore. »
+		Et les champs signalés par ⚠️ sont « Début détecté », « Fin détectée »
 		Et le sonore « Café à minuit » a en base :
 			| champ         | valeur |
 			| debut_detecte | None   |
@@ -299,6 +300,7 @@ Fonctionnalité: Fiche d'un sonore
 			| Diffusion jusqu'au | <fin>  |
 		Et j'enregistre la fiche
 		Alors la fiche signale « La fin de la diffusion doit suivre son début. »
+		Et les champs signalés par ⚠️ sont « Diffusion à partir du », « Diffusion jusqu'au »
 		Et le sonore « Café à minuit » a en base :
 			| champ         | valeur |
 			| fin_diffusion | None   |
@@ -460,6 +462,7 @@ Fonctionnalité: Fiche d'un sonore
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
 		Quand j'enregistre la fiche
 		Alors la fiche signale « L'adresse du stream est obligatoire. »
+		Et les champs signalés par ⚠️ sont « Adresse directe », « Feed »
 
 	Scénario: Une fiche de stream enregistrée se relit sans rien doubler
 		Étant donné les sonores :

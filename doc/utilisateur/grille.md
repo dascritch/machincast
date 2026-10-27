@@ -30,7 +30,7 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 - Un événement de secours n'a ni début, ni fin, ni jours : choisir `Secours` les décoche.
 - Une émission ou un spécial a un début ; sans fin, il dure jusqu'au bout de sa liste.
 
-**Rien n'est enregistré**, et la fiche dit pourquoi, pour :
+**Rien n'est enregistré**, et la fiche dit pourquoi, en haut, sur un liseret rouge, avec ⚠️ devant chaque champ en cause ([Enregistrer, annuler, fermer](listes.md#enregistrer-annuler-fermer)), pour :
 
 - un nom interne vide, ou celui d'un autre événement ;
 - une émission ou un spécial sans début, ou une fin qui ne suit pas le début ;

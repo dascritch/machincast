@@ -162,5 +162,6 @@ Fonctionnalité: Feeds de streams
 		Et je supprime l'élément de la fiche, en répondant « Supprimer »
 		Alors aucune question n'a été posée
 		Et la fiche signale « Les streams « Machin nuit », « Machin soir » suivent ce feed : choisir pour eux une autre adresse avant de le supprimer. »
+		Et l'erreur est en haut de la fiche, sur un liseret rouge de 4 pixels
 		Et le feed « Radio Machin » est toujours en base
 		Et l'onglet ouvert est « Feed : Radio Machin »

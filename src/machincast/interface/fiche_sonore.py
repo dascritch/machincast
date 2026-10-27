@@ -548,15 +548,19 @@ class FicheSonore(Fiche):
 		saisies = self._saisies()
 		debut, fin = saisies["debut_diffusion"], saisies["fin_diffusion"]
 		if (isinstance(debut, datetime)) and (isinstance(fin, datetime)) and (fin <= debut):
-			raise Refus("La fin de la diffusion doit suivre son début.")
+			raise Refus("La fin de la diffusion doit suivre son début.", self.ui.a_debut, self.ui.a_fin)
 		if ("url_stream" in saisies) and (saisies["url_stream"] is None) and (saisies["feed_id"] is None):
-			raise Refus("L'adresse du stream est obligatoire.")
+			raise Refus("L'adresse du stream est obligatoire.", self.ui.par_adresse, self.ui.par_feed)
 		# Seuls des blancs saisis sont refusés : l'indexeur ne mesure jamais des blancs qui couvrent tout le fichier.
 		cotes = ("debut_detecte", "fin_detectee")
 		saisis = any(saisies.get(cote) != self._initiales.get(cote) for cote in cotes)
 		blancs = [blanc for blanc in (saisies.get(cote) for cote in cotes) if isinstance(blanc, timedelta)]
 		if (saisis) and (self._duree is not None) and (sum(blancs, timedelta(0)) >= self._duree):
-			raise Refus("Les blancs détectés doivent laisser du son : ensemble, plus courts que la durée du sonore.")
+			raise Refus(
+				"Les blancs détectés doivent laisser du son : ensemble, plus courts que la durée du sonore.",
+				self.ui.a_debut_detecte,
+				self.ui.a_fin_detectee,
+			)
 		identifiant = self.identifiant
 		if identifiant is None:
 			# Un nouveau stream entre en base avec son adresse ; ses autres champs s'écrivent comme une modification.

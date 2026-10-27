@@ -221,19 +221,19 @@ class FicheEvenement(Fiche):
 		ui = self.ui
 		nom = conformer(ui.nom_interne.text())
 		if nom == "":
-			raise Refus("Le nom interne est obligatoire.")
+			raise Refus("Le nom interne est obligatoire.", ui.nom_interne)
 		pris = self.connexion.execute(
 			"SELECT 1 FROM evenements WHERE nom_interne = %s AND id IS DISTINCT FROM %s AND supprime_le IS NULL",
 			(nom, self.identifiant),
 		).fetchone()
 		if pris is not None:
-			raise Refus(f"Un autre événement s'appelle déjà « {nom} ».")
+			raise Refus(f"Un autre événement s'appelle déjà « {nom} ».", ui.nom_interne)
 		priorite = self._priorite()
 		debut, fin = affichage.date_cochee(ui.a_debut, ui.debut), affichage.date_cochee(ui.a_fin, ui.fin)
 		if (priorite in SANS_FIN_NE_BOUCLE_PAS) and (debut is None):
-			raise Refus("Une émission ou un spécial a un début.")
+			raise Refus("Une émission ou un spécial a un début.", ui.priorite, ui.a_debut)
 		if (debut is not None) and (fin is not None) and (fin <= debut):
-			raise Refus("La fin doit suivre le début.")
+			raise Refus("La fin doit suivre le début.", ui.a_debut, ui.a_fin)
 		jours = [nom_du_jour for nom_du_jour, jour in zip(JOURS, self.jours, strict=True) if jour.isChecked()]
 		self._refuser_chevauchement(nom, priorite, debut, fin, jours)
 		self._refuser_secours_designe(priorite)
@@ -282,7 +282,12 @@ class FicheEvenement(Fiche):
 		trouve = chevauchement(place, autres, depuis=self.horloge.maintenant())
 		if trouve is not None:
 			autre, instant = trouve
-			raise Refus(f"Chevauche l'événement « {autre.nom} », de même priorité, le {instant:%d/%m/%Y à %H:%M}.")
+			raise Refus(
+				f"Chevauche l'événement « {autre.nom} », de même priorité, le {instant:%d/%m/%Y à %H:%M}.",
+				self.ui.priorite,
+				self.ui.a_debut,
+				self.ui.a_fin,
+			)
 
 	def _sautees(self) -> frozenset[date]:
 		"""Les jours de ses sessions sautées, qui ne chevauchent rien (https://github.com/dascritch/machincast/issues/273)."""
@@ -303,4 +308,7 @@ class FicheEvenement(Fiche):
 		).fetchall()
 		if streams != []:
 			noms = ", ".join(f"« {stream} »" for (stream,) in streams)
-			raise Refus(f"Des streams ont cet événement pour secours : {noms}. Il reste de priorité « Secours ».")
+			raise Refus(
+				f"Des streams ont cet événement pour secours : {noms}. Il reste de priorité « Secours ».",
+				self.ui.priorite,
+			)

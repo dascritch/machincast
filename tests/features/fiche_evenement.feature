@@ -280,12 +280,41 @@ Fonctionnalité: Fiche d'un événement
 		Et j'enregistre la fiche
 		Alors la fiche signale « Chevauche l'événement « Après-midi », de même priorité, le 19/10/2026 à 15:30. »
 
+	Scénario: Une erreur corrigée disparaît de la fiche, et ses champs ne sont plus signalés
+		https://github.com/dascritch/machincast/issues/270 : l'erreur s'affiche en haut de la fiche, sur un liseret rouge
+		de 4 pixels, et chaque champ en cause est précédé de ⚠️, jusqu'au prochain enregistrement ou à « Annuler ».
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et je saisis le nom interne «  »
+		Et j'enregistre la fiche
+		Alors les champs signalés par ⚠️ sont « Nom interne »
+		Quand je saisis le nom interne « Réveil »
+		Et j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et aucun champ n'est signalé par ⚠️
+		Et la fiche de l'événement montre :
+			| champ       | valeur |
+			| Nom interne | Réveil |
+
+	Scénario: « Annuler » efface l'erreur et rend leur libellé aux champs
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et je saisis la fin « 19/10/2026 07:00 » dans la fiche de l'événement
+		Et j'enregistre la fiche
+		Alors les champs signalés par ⚠️ sont « Début », « Fin »
+		Quand j'annule les modifications de la fiche
+		Alors la fiche ne signale rien
+		Et aucun champ n'est signalé par ⚠️
+
 	Plan du scénario: Un événement invalide n'est pas enregistré, et dit pourquoi
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et <action>
 		Et j'enregistre la fiche
 		Alors la fiche signale « <message> »
+		Et l'erreur est en haut de la fiche, sur un liseret rouge de 4 pixels
+		Et les champs signalés par ⚠️ sont <champs>
 		Et l'événement « Matinale » a en base :
 			| champ            | valeur                                                    |
 			| priorite         | emission                                                  |
@@ -293,13 +322,13 @@ Fonctionnalité: Fiche d'un événement
 		Et les éléments de l'événement « Matinale » sont, dans l'ordre, la banque « Habillage », la séquence « Passage pub », le sonore « Spot »
 
 		Exemples:
-			| action                                                                       | message                                                                                    |
-			| je saisis le nom interne «  »                                                | Le nom interne est obligatoire.                                                            |
-			| je saisis le nom interne « Continue »                                        | Un autre événement s'appelle déjà « Continue ».                                            |
-			| je décoche « Début » dans la fiche de l'événement                            | Une émission ou un spécial a un début.                                                     |
-			| je saisis la fin « 19/10/2026 07:00 » dans la fiche de l'événement           | La fin doit suivre le début.                                                               |
-			| je saisis la fin « 19/10/2026 09:15 » dans la fiche de l'événement           | Chevauche l'événement « Journal », de même priorité, le 21/10/2026 à 09:00.                |
-			| je saisis la fin « 21/10/2026 08:00 » dans la fiche de l'événement           | Chevauche l'événement « Journal », de même priorité, le 21/10/2026 à 09:00.                |
+			| action                                                             | message                                                                     | champs                                       |
+			| je saisis le nom interne «  »                                      | Le nom interne est obligatoire.                                             | « Nom interne »                              |
+			| je saisis le nom interne « Continue »                              | Un autre événement s'appelle déjà « Continue ».                             | « Nom interne »                              |
+			| je décoche « Début » dans la fiche de l'événement                  | Une émission ou un spécial a un début.                                      | « Priorité », « Début »                      |
+			| je saisis la fin « 19/10/2026 07:00 » dans la fiche de l'événement | La fin doit suivre le début.                                                | « Début », « Fin »                           |
+			| je saisis la fin « 19/10/2026 09:15 » dans la fiche de l'événement | Chevauche l'événement « Journal », de même priorité, le 21/10/2026 à 09:00. | « Priorité », « Début », « Fin »             |
+			| je saisis la fin « 21/10/2026 08:00 » dans la fiche de l'événement | Chevauche l'événement « Journal », de même priorité, le 21/10/2026 à 09:00. | « Priorité », « Début », « Fin »             |
 
 	Scénario: Un fil musical daté s'enregistre à côté du fil musical permanent, qui sert de fond
 		Quand la fenêtre de l'interface s'ouvre

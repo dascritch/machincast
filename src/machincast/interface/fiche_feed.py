@@ -82,14 +82,14 @@ class FicheFeed(Fiche):
 		nom = conformer(self.ui.nom.text())
 		url = self.ui.url.text().strip()
 		if nom == "":
-			raise Refus("Le nom est obligatoire.")
+			raise Refus("Le nom est obligatoire.", self.ui.nom)
 		pris = self.connexion.execute(
 			"SELECT 1 FROM feeds WHERE nom = %s AND id IS DISTINCT FROM %s", (nom, self.identifiant)
 		).fetchone()
 		if pris is not None:
-			raise Refus(f"Un autre feed s'appelle déjà « {nom} ».")
+			raise Refus(f"Un autre feed s'appelle déjà « {nom} ».", self.ui.nom)
 		if url == "":
-			raise Refus("L'adresse est obligatoire.")
+			raise Refus("L'adresse est obligatoire.", self.ui.url)
 		if self.identifiant is None:
 			cree = self.connexion.execute(
 				"INSERT INTO feeds (nom, url) VALUES (%s, %s) RETURNING id", (nom, url)
