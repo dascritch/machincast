@@ -247,6 +247,72 @@ Fonctionnalité: Détermination de l'événement actif
 			| 2026-10-12 21:30 | Magazine |
 			| 2026-10-14 21:30 | Continue |
 
+	# ─── Événement suivant, avancé (https://github.com/dascritch/machincast/issues/257) ───
+	# L'événement suivant est la première occurrence qui commencera après l'instant et prendra l'antenne, en sept jours
+	# au plus : un fil musical qui reprend, ou une occurrence déjà commencée qui réapparaît, n'en est pas un. Avancée,
+	# cette occurrence est active dès maintenant, au-dessus de tout, jusqu'à son début prévu, où la grille la retrouve.
+
+	Plan du scénario: L'événement suivant est la première occurrence à venir qui prendra l'antenne
+		Étant donné les événements :
+			| nom      | priorité    | début            | fin              | jours | modifié          |
+			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
+			| Journal  | emission    | 2026-10-14 12:00 | 2026-10-14 13:00 |       | 2026-10-01 10:00 |
+			| Flash    | special     | 2026-10-14 11:30 | 2026-10-14 12:30 |       | 2026-10-01 10:00 |
+			| Concert  | emission    | 2026-10-12 20:00 | 2026-10-12 22:00 | lundi | 2026-10-01 10:00 |
+		Alors après le « <instant> », l'événement suivant est <suivant>
+
+		Exemples:
+			| instant          | suivant                             |
+			| 2026-10-14 10:00 | « Flash » du « 2026-10-14 11:30 »   |
+			| 2026-10-14 11:45 | « Journal » du « 2026-10-14 12:00 » |
+			| 2026-10-14 12:15 | « Concert » du « 2026-10-19 20:00 » |
+			| 2026-10-14 12:45 | « Concert » du « 2026-10-19 20:00 » |
+			| 2026-10-19 20:30 | « Concert » du « 2026-10-26 20:00 » |
+
+	Scénario: Au-delà de sept jours, ou sans occurrence à venir, il n'y a pas d'événement suivant
+		Étant donné les événements :
+			| nom      | priorité    | début            | fin              | jours | modifié          |
+			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
+			| Concert  | emission    | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
+			| Gala     | special     | 2026-10-25 20:00 | 2026-10-25 22:00 |       | 2026-10-01 10:00 |
+		Alors après le « 2026-10-14 21:00 », il n'y a pas d'événement suivant
+		Et après le « 2026-10-18 20:00 », l'événement suivant est « Gala » du « 2026-10-25 20:00 »
+
+	Scénario: Une session sautée n'est pas l'événement suivant
+		Étant donné les événements :
+			| nom      | priorité    | début            | fin              | jours           | modifié          |
+			| Continue | fil_musical |                  |                  |                 | 2026-10-01 10:00 |
+			| Concert  | emission    | 2026-10-12 20:00 | 2026-10-12 22:00 | lundi, mercredi | 2026-10-01 10:00 |
+		Et la session du « 2026-10-14 » de « Concert » est sautée
+		Alors après le « 2026-10-13 12:00 », l'événement suivant est « Concert » du « 2026-10-19 20:00 »
+
+	Scénario: Une occurrence avancée est active aussitôt, jusqu'à son début prévu, puis comme prévu
+		Étant donné les événements :
+			| nom      | priorité    | début            | fin              | jours | modifié          |
+			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
+			| Flash    | special     | 2026-10-14 18:00 | 2026-10-14 19:30 |       | 2026-10-01 10:00 |
+			| Concert  | emission    | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
+		Et l'occurrence de « Concert » du « 2026-10-14 20:00 » avancée
+		Alors l'événement actif est :
+			| heure            | actif    |
+			| 2026-10-14 19:00 | Concert  |
+			| 2026-10-14 19:45 | Concert  |
+			| 2026-10-14 20:00 | Concert  |
+			| 2026-10-14 21:59 | Concert  |
+			| 2026-10-14 22:00 | Continue |
+
+	Scénario: Une occurrence avancée puis terminée plus tôt rend l'antenne à la grille
+		Étant donné les événements :
+			| nom      | priorité    | début            | fin              | jours | modifié          |
+			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
+			| Concert  | emission    | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
+		Et l'occurrence de « Concert » du « 2026-10-14 20:00 » avancée
+		Quand l'occurrence de « Concert » commencée le « 2026-10-14 20:00 » se termine, sa liste épuisée
+		Alors l'événement actif est :
+			| heure            | actif    |
+			| 2026-10-14 19:00 | Continue |
+			| 2026-10-14 20:30 | Continue |
+
 	# ─── Lecture de la grille en base ──────────────────────────
 
 	Scénario: La grille est lue en base avec les droits du binaire lecture

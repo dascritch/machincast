@@ -25,12 +25,12 @@ from PySide6.QtWidgets import QAbstractItemView, QLineEdit, QMenu, QSizePolicy, 
 
 from machincast.configuration import Audio
 from machincast.horloge import Horloge
-from machincast.interface import affichage, depliable, icones, preferences
+from machincast.interface import affichage, depliable, icones, interruption, preferences
 from machincast.interface.airplay import DERNIERS, PassageAffiche, lire_airplay
 from machincast.interface.calendrier import date_longue
 from machincast.interface.colonnes import Colonnes
 from machincast.interface.essai_flux import EssaiDeFlux, resultat_de_l_essai
-from machincast.interface.etat import ClientEtat, EtatLecture, SonoreAffiche
+from machincast.interface.etat import ARRET, ClientEtat, EtatLecture, SonoreAffiche
 from machincast.interface.frise import FormeDOnde, Frise, Plan, lire_le_plan
 from machincast.interface.moniteur import Moniteur, nom_du_port
 from machincast.interface.ui.ecran_par_defaut import Ui_EcranParDefaut
@@ -72,6 +72,10 @@ class EcranParDefaut(QWidget):
 	preecoute_demandee = Signal(int)
 	"""« Pré-écoute… » choisi au clic droit sur une ligne de l'airplay : son sonore
 	(https://github.com/dascritch/machincast/issues/226)."""
+	saut_demande = Signal()
+	"""« Sauter à ce sonore », au clic droit sur le prochain sonore (https://github.com/dascritch/machincast/issues/257)."""
+	avance_demandee = Signal(int, str)
+	"""« Avancer … », au clic droit sur le prochain sonore : l'identifiant et le nom de l'événement suivant annoncé."""
 	COLONNES_AIRPLAY = (
 		("debut", "Début"),
 		("fin", "Fin"),
@@ -190,6 +194,11 @@ class EcranParDefaut(QWidget):
 		passages = self.actualiser_airplay()
 		if (len(passages) > 0) and (passages[0].fin is None):
 			self._passage_connu = passages[0].debut
+		self.etat: EtatLecture = ARRET
+		"""Le dernier état reçu de Machin lecture."""
+		# Le clic droit sur le prochain sonore (https://github.com/dascritch/machincast/issues/257).
+		self.ui.cadre_prochain.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+		self.ui.cadre_prochain.customContextMenuRequested.connect(self._menu_du_prochain)
 		self.client = ClientEtat(socket_etat, self)
 		self.client.etat_recu.connect(self.afficher)
 		self.client.connecter()
@@ -256,6 +265,7 @@ class EcranParDefaut(QWidget):
 	# ─── État du binaire lecture ───────────────────────────
 
 	def afficher(self, etat: EtatLecture, relire: bool = True) -> None:
+		self.etat = etat
 		self.ui.etat_lecture.setText(ETATS.get(etat.etat, etat.etat))
 		self._en_cours, self._prochain = etat.en_cours, etat.prochain
 		self._afficher_sonore("en_cours", etat.en_cours)
@@ -447,6 +457,33 @@ class EcranParDefaut(QWidget):
 		menu = QMenu(self)
 		affichage.proposer_la_preecoute(menu, sonore, self.preecoute_demandee.emit)
 		return menu
+
+	def menu_du_prochain(self) -> QMenu:
+		"""Le menu du clic droit sur le prochain sonore : sa pré-écoute, y sauter aussitôt, et avancer l'événement
+		suivant que Machin lecture annonce (https://github.com/dascritch/machincast/issues/257). Une entrée inactive dit
+		pourquoi dans son infobulle."""
+		menu = QMenu(self)
+		menu.setToolTipsVisible(True)
+		entrees = interruption.proposer_au_prochain(self.etat)
+		saut = menu.addAction(entrees["sonore"].texte)
+		saut.triggered.connect(lambda _coche=False: self.saut_demande.emit())
+		suivant = self.etat.evenement_suivant
+		avance = menu.addAction(entrees["avancer"].texte)
+		if suivant is not None:
+			avance.triggered.connect(
+				lambda _coche=False, suivant=suivant: self.avance_demandee.emit(suivant.id, suivant.nom)
+			)
+		for action, entree in ((saut, entrees["sonore"]), (avance, entrees["avancer"])):
+			action.setEnabled(entree.proposition.active)
+			action.setToolTip(entree.proposition.infobulle)
+		if self._prochain is not None:
+			affichage.proposer_la_preecoute(menu, self._prochain.sonore, self.preecoute_demandee.emit)
+		return menu
+
+	def _menu_du_prochain(self, position: QPoint) -> None:
+		menu = self.menu_du_prochain()
+		menu.exec(self.ui.cadre_prochain.mapToGlobal(position))
+		menu.deleteLater()
 
 	def _menu_de_l_airplay(self, position: QPoint) -> None:
 		self._montrer_le_menu(self.ui.table_airplay, self.menu_de_l_airplay, position)

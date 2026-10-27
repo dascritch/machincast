@@ -13,7 +13,7 @@ from pytestqt.qtbot import QtBot
 
 from machincast.interface import interruption
 from machincast.interface.etat import lire_message
-from machincast.lecture.etat import Demande
+from machincast.lecture.etat import AVANCER, Demande
 from tests.etapes_interface import Contexte, Lecteur, fenetre, publier
 
 scenarios("interruption_interface.feature")
@@ -55,6 +55,65 @@ def diffuse(lecteur: Lecteur, titre: str, sequence: str | None, fil: str | None,
 	publier(lecteur, "diffusion", en_cours)
 
 
+EVENEMENT_SUIVANT = 7
+"""L'identifiant de l'événement suivant annoncé."""
+
+
+def sonore_affiche(titre: str, evenement: str, debut: str) -> dict[str, object]:
+	return {
+		"sonore": 12 if debut == "debut" else 13,
+		"type": "fichier",
+		"artiste": None,
+		"titre": titre,
+		"evenement": evenement,
+		"evenement_priorite": "emission",
+		"emplacement": f"/srv/musique/{titre}.flac",
+		debut: "2026-10-21T08:59:00+02:00",
+		"duree": 214.0,
+		"fin_estimee": "2026-10-21T09:02:34+02:00",
+	}
+
+
+def suivant(nom: str | None, debut: str | None, fin: str | None) -> dict[str, object] | None:
+	if nom is None:
+		return None
+	return {"id": EVENEMENT_SUIVANT, "nom": nom, "priorite": "emission", "debut": debut, "fin": fin}
+
+
+ANNONCE = r"(?:, et annonce l'événement suivant « (?P<nom>[^»]+) », du « (?P<debut>[^»]+) » au « (?P<fin>[^»]+) »)?"
+
+
+@given(
+	parsers.re(
+		r"Machin lecture diffuse « (?P<titre>[^»]+) », dans « (?P<evenement>[^»]+) », avant « (?P<prochain>[^»]+) »"
+		+ ANNONCE
+	)
+)
+def diffuse_avant(
+	lecteur: Lecteur,
+	titre: str,
+	evenement: str,
+	prochain: str,
+	nom: str | None,
+	debut: str | None,
+	fin: str | None,
+) -> None:
+	"""https://github.com/dascritch/machincast/issues/257 : le sonore en cours, le prochain, et l'événement suivant."""
+	en_cours = sonore_affiche(titre, evenement, "debut") | {"position": 60.0, "progression": 0.28}
+	publier(
+		lecteur,
+		"diffusion",
+		en_cours,
+		prochain=sonore_affiche(prochain, evenement, "debut_estime"),
+		evenement_suivant=suivant(nom, debut, fin),
+	)
+
+
+@given(parsers.re(r"Machin lecture est en silence" + ANNONCE))
+def en_silence_avant(lecteur: Lecteur, nom: str | None, debut: str | None, fin: str | None) -> None:
+	publier(lecteur, "silence", evenement_suivant=suivant(nom, debut, fin))
+
+
 @given("Machin lecture est en silence")
 @when("Machin lecture passe en silence")
 def en_silence(lecteur: Lecteur) -> None:
@@ -81,6 +140,24 @@ def etat_recu(interface: Contexte, lecteur: Lecteur, qtbot: QtBot) -> None:
 		)
 
 	qtbot.waitUntil(a_jour, timeout=ATTENTE)
+
+
+@when("l'accueil a reçu l'état de Machin lecture")
+def accueil_a_jour(interface: Contexte, lecteur: Lecteur, qtbot: QtBot) -> None:
+	attendu = lire_message(lecteur.publie)
+	qtbot.waitUntil(lambda: fenetre(interface).accueil.etat == attendu, timeout=ATTENTE)
+
+
+def actions_du_prochain(interface: Contexte) -> list[QAction]:
+	menu = fenetre(interface).accueil.menu_du_prochain()
+	assert menu is not None
+	return [action for action in menu.actions() if not action.isSeparator()]
+
+
+@when(parsers.parse("je choisis « {entree} » au clic droit sur le prochain sonore"))
+def choisir_au_prochain(interface: Contexte, entree: str) -> None:
+	(action,) = [action for action in actions_du_prochain(interface) if action.text() == entree]
+	action.trigger()
 
 
 @when(parsers.parse("Machin lecture ferme sa socket d'état, juste avant que je choisisse « {entree} »"))
@@ -110,6 +187,36 @@ def interruptions(interface: Contexte, menu: str, datatable: list[list[str]]) ->
 		if action in entrees(interface).values()
 	]
 	assert obtenues == [[valeur.strip() for valeur in ligne] for ligne in lignes]
+
+
+@then("le clic droit sur le prochain sonore propose :")
+def menu_du_prochain(interface: Contexte, datatable: list[list[str]]) -> None:
+	_, *lignes = datatable
+	obtenues = [
+		[action.text(), "active" if action.isEnabled() else "inactive", action.toolTip()]
+		for action in actions_du_prochain(interface)
+	]
+	# Qt donne à une action sans infobulle son texte pour infobulle : une cellule vide l'accepte.
+	attendues = [[valeur.strip() for valeur in ligne] for ligne in lignes]
+	for obtenue, attendue in zip(obtenues, attendues, strict=False):
+		if attendue[2] == "":
+			obtenue[2] = ""
+	assert obtenues == attendues
+
+
+@then(parsers.parse("Machin lecture a reçu la demande d'avancer l'événement n°{evenement:d}"))
+def avance_recue(lecteur: Lecteur, qtbot: QtBot, evenement: int) -> None:
+	socket = lecteur.socket
+	assert socket is not None
+
+	def recue() -> bool:
+		lecteur.recues += socket.demandes()
+		return lecteur.recues != []
+
+	qtbot.waitUntil(recue, timeout=ATTENTE)
+	time.sleep(0.1)
+	lecteur.recues += socket.demandes()
+	assert lecteur.recues == [Demande(commande=AVANCER, evenement=evenement)]
 
 
 @then("aucune interruption n'est active")
