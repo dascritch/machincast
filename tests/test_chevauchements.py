@@ -40,10 +40,18 @@ def a_comparer(evenements: list[Evenement], datatable: list[list[str]]) -> None:
 		)
 
 
-@then(parsers.re(r"« (?P<nom>[^»]+) » chevauche (?:rien|« (?P<autre>[^»]+) » le « (?P<instant>[^»]+) »)"))
-def chevauche(evenements: list[Evenement], nom: str, autre: str | None, instant: str | None) -> None:
+@then(
+	parsers.re(
+		r"(?:à partir du « (?P<depuis>[^»]+) », )?« (?P<nom>[^»]+) » chevauche"
+		r" (?:rien|« (?P<autre>[^»]+) » le « (?P<instant>[^»]+) »)"
+	)
+)
+def chevauche(
+	evenements: list[Evenement], depuis: str | None, nom: str, autre: str | None, instant: str | None
+) -> None:
 	(place,) = [evenement for evenement in evenements if evenement.nom == nom]
-	trouve = chevauchement(place, [evenement for evenement in evenements if evenement is not place])
+	autres = [evenement for evenement in evenements if evenement is not place]
+	trouve = chevauchement(place, autres, depuis=heure_ou_rien((depuis) or ("")))
 	obtenu = None
 	if trouve is not None:
 		obtenu = (trouve[0].nom, f"{trouve[1]:%Y-%m-%d %H:%M}")

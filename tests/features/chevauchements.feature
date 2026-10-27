@@ -68,3 +68,27 @@ Fonctionnalité: Chevauchement de deux événements de même priorité
 			| Proche   | emission | 2026-10-26 21:00 | 2026-10-26 23:00 |        |
 			| Ailleurs | special  | 2026-10-12 20:00 | 2026-10-12 22:00 |        |
 		Alors « Placé » chevauche « Proche » le « 2026-10-26 21:00 »
+
+	Plan du scénario: Ce qui chevauche avant un instant donné ne compte pas
+		https://github.com/dascritch/machincast/issues/271 : la fiche d'un événement ne compte que les chevauchements à
+		partir de maintenant ; ceux de la grille déjà diffusée ne bloquent pas l'enregistrement. Un chevauchement en
+		cours à cet instant compte, à partir de lui.
+
+		Étant donné les événements à comparer :
+			| nom   | priorité | début   | fin   | jours   |
+			| Placé | emission | <début> | <fin> | <jours> |
+			| Autre | emission | <début autre> | <fin autre> | <jours autre> |
+		Alors à partir du « <depuis> », « Placé » chevauche <verdict>
+
+		Exemples:
+			| début            | fin              | jours  | début autre      | fin autre        | jours autre  | depuis           | verdict                           |
+			| 2026-10-14 20:00 | 2026-10-14 22:00 |        | 2026-10-14 21:00 | 2026-10-14 23:00 |              | 2026-10-14 20:00 | « Autre » le « 2026-10-14 21:00 » |
+			| 2026-10-14 20:00 | 2026-10-14 22:00 |        | 2026-10-14 21:00 | 2026-10-14 23:00 |              | 2026-10-14 21:30 | « Autre » le « 2026-10-14 21:30 » |
+			| 2026-10-14 20:00 | 2026-10-14 22:00 |        | 2026-10-14 21:00 | 2026-10-14 23:00 |              | 2026-10-14 22:00 | rien                              |
+			| 2026-10-14 20:00 | 2026-10-14 22:00 |        | 2026-10-14 21:00 | 2026-10-14 23:00 |              | 2026-10-20 00:00 | rien                              |
+			| 2026-10-12 21:00 | 2026-10-12 23:00 | lundi  | 2026-10-12 22:00 | 2026-10-12 22:30 |              | 2026-10-13 00:00 | rien                              |
+			| 2026-10-12 21:00 | 2026-10-12 23:00 | lundi  | 2026-10-13 22:00 | 2026-10-13 23:00 | lundi, jeudi | 2026-11-01 00:00 | « Autre » le « 2026-11-02 22:00 » |
+			| 2026-10-12 21:00 | 2026-10-12 23:00 | lundi  | 2026-10-30 22:00 | 2026-10-30 22:30 |              | 2026-10-20 00:00 | rien                              |
+			| 2026-10-12 21:00 | 2026-10-12 23:00 | lundi  | 2026-11-09 22:00 | 2026-11-09 22:30 |              | 2026-10-20 00:00 | « Autre » le « 2026-11-09 22:00 » |
+			| 2026-10-14 21:00 |                  |        | 2026-10-14 21:00 |                  |              | 2026-10-14 21:00 | « Autre » le « 2026-10-14 21:00 » |
+			| 2026-10-14 21:00 |                  |        | 2026-10-14 21:00 |                  |              | 2026-10-14 21:01 | rien                              |

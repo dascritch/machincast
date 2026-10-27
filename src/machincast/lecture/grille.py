@@ -222,14 +222,37 @@ def _instant_commun(
 	return None
 
 
-def chevauchement(evenement: Evenement, autres: Iterable[Evenement]) -> tuple[Evenement, datetime] | None:
+def _a_partir_de(
+	occurrences: list[tuple[datetime, datetime | None]], depuis: datetime | None
+) -> list[tuple[datetime, datetime | None]]:
+	"""Les occurrences ramenées à ce qui en reste à partir de l'instant, en heure murale : une occurrence finie avant
+	disparaît, une occurrence en cours commence à l'instant, une occurrence sans fin commencée avant disparaît."""
+	if depuis is None:
+		return occurrences
+	restes: list[tuple[datetime, datetime | None]] = []
+	for debut, fin in occurrences:
+		if fin is None:
+			if debut >= depuis:
+				restes.append((max(debut, depuis), fin))
+		elif fin > depuis:
+			restes.append((max(debut, depuis), fin))
+	return restes
+
+
+def chevauchement(
+	evenement: Evenement, autres: Iterable[Evenement], depuis: datetime | None = None
+) -> tuple[Evenement, datetime] | None:
 	"""Le premier événement de même priorité que l'événement chevauche, avec le premier instant commun, en heure
 	murale ; None s'il n'en chevauche aucun (spec § 4.1, https://github.com/dascritch/machincast/issues/32).
 
 	Un événement sans début ne chevauche rien : un fil musical permanent sert de fond, un événement de secours est
 	hors grille. Une occurrence sans fin ne compte que par son début. Les occurrences se répètent chaque semaine : il
 	suffit de les comparer de part et d'autre du début le plus tardif des deux, sur une semaine et leurs durées.
+
+	Avec un instant, seul compte ce qui chevauche à partir de lui : la grille déjà diffusée ne bloque rien, un
+	chevauchement en cours compte à partir de l'instant (https://github.com/dascritch/machincast/issues/271).
 	"""
+	murale = _heure_murale_ou_rien(depuis)
 	trouves: list[tuple[datetime, int, Evenement]] = []
 	if evenement.debut is None:
 		return None
@@ -237,12 +260,12 @@ def chevauchement(evenement: Evenement, autres: Iterable[Evenement]) -> tuple[Ev
 		if (autre.priorite is not evenement.priorite) or (autre.debut is None):
 			continue
 		duree = _jours_couverts(evenement) + _jours_couverts(autre)
-		pivot = max(heure_murale(evenement.debut), heure_murale(autre.debut)).date()
+		pivot = max(heure_murale(evenement.debut), heure_murale(autre.debut), (murale) or (datetime.min)).date()
 		de, a = pivot - timedelta(days=duree + 1), pivot + timedelta(days=duree + 8)
 		communs = [
 			instant
-			for premiere in _occurrences(evenement, de, a)
-			for seconde in _occurrences(autre, de, a)
+			for premiere in _a_partir_de(_occurrences(evenement, de, a), murale)
+			for seconde in _a_partir_de(_occurrences(autre, de, a), murale)
 			if (instant := _instant_commun(premiere, seconde)) is not None
 		]
 		if communs:
