@@ -6,7 +6,9 @@ qu'une fraction de seconde de son d'avance, et voit vite le flux tomber. Le prem
 (tests/sons.py) : ses tags ne doivent jamais remplacer les métadonnées de la base.
 
 Un flux hors ligne ferme les connexions en cours et répond 503 aux nouvelles. Un flux avare n'envoie qu'une demi-seconde
-de son, puis garde la connexion ouverte sans rien envoyer. Le serveur compte ses connexions ouvertes.
+de son, puis garde la connexion ouverte sans rien envoyer. Un flux gelé n'envoie plus rien sur ses connexions, sans les
+fermer, comme un réseau coupé (https://github.com/dascritch/machincast/issues/278) : une connexion gelée le reste, même
+le flux dégelé ; seules les connexions ouvertes ensuite reçoivent du son. Le serveur compte ses connexions ouvertes.
 """
 
 import contextlib
@@ -31,6 +33,7 @@ class ServeurDeFlux:
 	def __init__(self) -> None:
 		self.en_ligne: dict[str, bool] = {}
 		self.avares: set[str] = set()
+		self.geles: set[str] = set()
 		self.connexions = 0
 		"""Connexions en cours d'envoi."""
 		self._verrou = threading.Lock()
@@ -85,12 +88,18 @@ class ServeurDeFlux:
 				return
 
 	def envoyer(self, nom: str, sortie: BinaryIO) -> None:
+		if nom in self.geles:
+			self._geler(nom)
+			return
 		sortie.write(TAGUE)
 		tranche = max(1, len(SAIN) // TRANCHES_PAR_SECONDE)
 		envoye = float(len(TAGUE)) / len(SAIN)
 		debut = time.monotonic() - AVANCE_INITIALE
 		position = 0
 		while self.en_ligne.get(nom, False):
+			if nom in self.geles:
+				self._geler(nom)
+				return
 			# Pas plus de son que le temps écoulé, avance initiale comprise.
 			if envoye > time.monotonic() - debut:
 				time.sleep(1 / TRANCHES_PAR_SECONDE / 2)
@@ -100,6 +109,11 @@ class ServeurDeFlux:
 			sortie.flush()
 			envoye += len(morceau) / len(SAIN)
 			position = (position + tranche) % len(SAIN)
+
+	def _geler(self, nom: str) -> None:
+		"""Plus rien sur cette connexion, qui reste ouverte tant que le flux est en ligne, même dégelé."""
+		while self.en_ligne.get(nom, False):
+			time.sleep(0.05)
 
 	def fermer(self) -> None:
 		for nom in self.en_ligne:

@@ -85,7 +85,7 @@ from machincast.lecture.fondus import Placement, placer
 from machincast.lecture.grille import Occurrence, Priorite, heure_murale
 from machincast.lecture.historique import EN_BASE, Historique
 from machincast.lecture.moteur import (
-	DELAI_DE_DEMARRAGE,
+	DELAI_DE_GARDE,
 	Moteur,
 	VoieLecture,
 	enchainement,
@@ -135,11 +135,16 @@ VERIFICATION_DES_EXPIRATIONS = timedelta(minutes=1)
 
 FLUX_ARRETE = "le flux s'est arrêté avant la fin de son événement"
 FLUX_TOMBE = "flux tombé"
+FLUX_GELE = (
+	f"plus de son depuis {DELAI_DE_GARDE.total_seconds():g} secondes, sans erreur du lecteur : la connexion reste"
+	" ouverte, mais plus rien n'arrive"
+)
+"""Le message d'un stream gelé (https://github.com/dascritch/machincast/issues/278)."""
 REPRISE_DU_FLUX = "reprise du flux"
 LECTURE_BLOQUEE = "lecture bloquée"
 """Incident d'un sonore dont le lecteur n'a pas démarré (https://github.com/dascritch/machincast/issues/281)."""
 LECTEUR_BLOQUE = (
-	f"aucun son {DELAI_DE_DEMARRAGE.total_seconds():g} secondes après son démarrage, le sonore suivant est joué"
+	f"aucun son {DELAI_DE_GARDE.total_seconds():g} secondes après son démarrage, le sonore suivant est joué"
 ).replace(".", ",")
 INTERRUPTION_MANUELLE = "interruption manuelle"
 IGNOREE = f"{INTERRUPTION_MANUELLE} ignorée"
@@ -391,6 +396,7 @@ class Diffusion:
 		self.moteur.traiter_messages()
 		self._terminer_les_voies_arretees(instant)
 		self._ecarter_une_lecture_bloquee(instant)
+		self._ecarter_un_stream_gele(instant)
 		if self.etat is not None:
 			for demande in self.etat.demandes():
 				if demande.commande == RELIRE_LA_GRILLE:
@@ -632,6 +638,19 @@ class Diffusion:
 			erreur=f"{courant.parametres.emplacement} : {LECTEUR_BLOQUE}",
 			nature=LECTURE_BLOQUEE,
 		)
+		self.courant = None
+
+	def _ecarter_un_stream_gele(self, instant: datetime) -> None:
+		"""Un stream qui ne donne plus de son pendant le délai de garde est tombé, même si le lecteur ne le dit pas
+		(https://github.com/dascritch/machincast/issues/278) : comme pour un flux arrêté, son passage se termine en
+		incident, le secours ou l'événement inférieur prend l'antenne, et la sonde le reconnectera."""
+		courant = self.courant
+		if (courant is None) or (not courant.parametres.stream) or (courant.eteinte) or (not courant.voie.gelee()):
+			return
+		courant.voie.couper()
+		erreur = f"{courant.parametres.adresse} : {FLUX_GELE}"
+		self._terminer(courant.passage, instant, erreur=erreur, nature=FLUX_TOMBE)
+		self._suspendre(courant, instant)
 		self.courant = None
 
 	@staticmethod
@@ -894,7 +913,8 @@ class Diffusion:
 				sonde.voie = self.moteur.jouer(sonde.parametres.adresse, None, muette=True)
 			return
 		sonde.voie.traiter()
-		if sonde.voie.etat != "en cours":
+		# Le même délai de garde : une tentative qui ne donne aucun son est abandonnée, puis reprise.
+		if (sonde.voie.etat != "en cours") or (sonde.voie.gelee()):
 			sonde.voie.fermer()
 			sonde.voie = None
 			sonde.prochaine_tentative = instant + self.delai_reconnexion

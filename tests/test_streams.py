@@ -4,6 +4,9 @@ Les étapes communes aux scénarios de la diffusion, dont le serveur de flux loc
 tests/etapes_diffusion.py.
 """
 
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -92,6 +95,17 @@ def flux_tombe(serveur: ServeurDeFlux, flux: str) -> None:
 	serveur.en_ligne[flux] = False
 
 
+@when(parsers.parse("le flux « {flux} » gèle, sans fermer sa connexion"))
+def flux_gele(serveur: ServeurDeFlux, flux: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/278 : comme un réseau coupé."""
+	serveur.geles.add(flux)
+
+
+@when(parsers.parse("le flux « {flux} » dégèle"))
+def flux_degele(serveur: ServeurDeFlux, flux: str) -> None:
+	serveur.geles.discard(flux)
+
+
 @when(parsers.parse("le flux « {flux} » revient"))
 def flux_revient(serveur: ServeurDeFlux, flux: str) -> None:
 	serveur.en_ligne[flux] = True
@@ -145,6 +159,13 @@ def remplacement_apres(base_vide: Connexion, avant: str, stream: str, evenement:
 	remplacement(base_vide, stream, evenement, stream_fin, noms[1:])
 
 
+@then(parsers.re(r"l'airplay montre « (?P<stream>[^»]+) », puis des sonores de « (?P<evenement>[^»]+) »$"))
+def repli(base_vide: Connexion, stream: str, evenement: str) -> None:
+	noms = [p[0] for p in passages(base_vide)]
+	assert (len(noms) >= 2) and (noms[0] == stream), noms
+	assert set(noms[1:]) <= sonores_de(base_vide, evenement), noms
+
+
 @then(parsers.parse("le premier passage « {nom} » a fini en incident"))
 def premier_en_incident(base_vide: Connexion, nom: str) -> None:
 	premier = next(p for p in passages(base_vide) if p[0] == nom)
@@ -188,6 +209,23 @@ def incident_du_flux(serveur: ServeurDeFlux, base_vide: Connexion, nombre: int, 
 	lignes = lignes_du_log(base_vide, nature)
 	assert len(lignes) == nombre, lignes
 	assert all((niveau == "incident") and (serveur.adresse(flux) in message) for _, niveau, message in lignes), lignes
+
+
+@then(parsers.parse("l'incident « {nature} » dit « {texte} »"))
+def incident_dit(base_vide: Connexion, nature: str, texte: str) -> None:
+	assert all(texte in message for _, _, message in lignes_du_log(base_vide, nature)), lignes_du_log(base_vide, nature)
+
+
+def soup_force_http1(environnement: dict[str, str]) -> str:
+	"""Ce que vaut SOUP_FORCE_HTTP1 dans un programme de MachinCast, une fois le paquet chargé."""
+	commande = [sys.executable, "-c", "import os, machincast; print(os.environ.get('SOUP_FORCE_HTTP1'))"]
+	return subprocess.run(commande, env=environnement, capture_output=True, text=True, check=True).stdout.strip()
+
+
+@then("un programme de MachinCast demande HTTP/1.1 à libsoup")
+def http1() -> None:
+	environnement = {cle: valeur for cle, valeur in os.environ.items() if cle != "SOUP_FORCE_HTTP1"}
+	assert soup_force_http1(environnement) == "1"
 
 
 @then(parsers.parse("l'incident « {suivante} » suit l'incident « {premiere} »"))

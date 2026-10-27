@@ -102,6 +102,36 @@ Fonctionnalité: Diffusion des streams
 		Et l'incident « reprise du flux » suit l'incident « flux tombé »
 		Et le sonore joué avant la reprise a fini au début de la reprise
 
+	Scénario: Un flux qui gèle, sa connexion ouverte, est un flux tombé au bout du délai de garde, puis reprend
+		https://github.com/dascritch/machincast/issues/278 : le flux ne donne plus rien, sans fermer sa connexion, comme un
+		réseau coupé. Un flux en ligne n'est jamais gelé, même passé le délai de garde. Gelé, le stream joue encore le son
+		qu'il a reçu d'avance, puis il est tombé au bout du délai de garde, 3 secondes, le même que pour une lecture
+		bloquée, sans attendre l'erreur du lecteur, qui peut ne jamais venir. Sa sonde, gelée de même, est reprise
+		aussitôt.
+
+		Étant donné le stream « Direct studio » à l'adresse du flux « studio »
+		Et l'émission « Direct » de 19:59:50 à 20:30:00, avec le sonore « Direct studio »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne pendant 4 seconde en temps réel
+		Alors le log contient 0 incident « flux tombé », qui donne l'adresse du flux « studio »
+		Quand le flux « studio » gèle, sans fermer sa connexion
+		Et la diffusion tourne pendant 6 seconde en temps réel
+		Alors l'airplay montre « Direct studio », puis des sonores de « Continue »
+		Et le log contient 1 incident « flux tombé », qui donne l'adresse du flux « studio »
+		Et l'incident « flux tombé » dit « plus de son depuis 3 secondes, sans erreur du lecteur »
+		Quand le flux « studio » dégèle
+		Et la diffusion tourne pendant 4,5 seconde en temps réel
+		Et la diffusion s'arrête
+		Alors l'airplay montre « Direct studio », puis des sonores de « Continue », puis « Direct studio »
+		Et le log contient 1 incident « reprise du flux », qui donne l'adresse du flux « studio »
+
+	Scénario: Les flux se lisent en HTTP/1.1
+		https://github.com/dascritch/machincast/issues/278 : en HTTP/2, libsoup 3 ne signale pas un flux qui ne donne plus
+		rien. libsoup force HTTP/1.1 dès que SOUP_FORCE_HTTP1 existe, quelle que soit sa valeur. Le scénario qui le
+		vérifie sur un vrai serveur HTTP/2 se lance à part, avant une version : voir TROUBLESHOOTING.md.
+
+		Alors un programme de MachinCast demande HTTP/1.1 à libsoup
+
 	Scénario: Un stream secouru joue la liste de son événement de secours en attendant, puis reprend en fondu
 		Étant donné le stream « Direct studio » à l'adresse du flux « studio »
 		Et l'événement de secours « Secours direct », avec les sonores « s1 », « s2 »

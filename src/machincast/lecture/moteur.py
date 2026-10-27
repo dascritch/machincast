@@ -22,11 +22,14 @@ decalage secondes du début du fichier (son début détecté) et s'arrête d'ell
 détectée), par une recherche (seek) qui borne la lecture du fichier. La position de la voie, l'enveloppe et les fondus
 se comptent depuis ce début : le fichier n'est jamais modifié.
 
+Stream gelé (https://github.com/dascritch/machincast/issues/278) : un stream dont la position n'avance plus pendant
+DELAI_DE_GARDE est gelé (gelee) ; la diffusion le tient pour tombé, et sa sonde, pour injoignable.
+
 Lecteur bloqué (https://github.com/dascritch/machincast/issues/281) : playbin se bloquait au démarrage d'un AIFF,
 sans erreur ni son, avec GStreamer 1.24 comme avec 1.28 (36 fois sur 300 en temps réel). playbin3, qui le remplace,
 ne s'est jamais bloqué (https://github.com/dascritch/machincast/issues/284) ; la garde reste, contre tout lecteur
 qui ne démarre pas. Une voie qui n'a pas atteint l'état PLAYING
-DELAI_DE_DEMARRAGE après son démarrage est bloquée (bloquee) : la diffusion la remplace par le sonore suivant.
+DELAI_DE_GARDE après son démarrage est bloquée (bloquee) : la diffusion la remplace par le sonore suivant.
 
 Le volume suit une enveloppe posée à l'avance sur l'élément volume (GstController), d'après la durée connue du
 sonore. Le moteur ne lit l'heure que par la position des voies : il ne décide de rien, l'ordonnanceur
@@ -57,10 +60,11 @@ DELAI_PRELECTURE = timedelta(seconds=2)
 """Délai accordé à la pré-lecture d'un fichier rogné, avant la recherche de son début détecté : au-delà, la voie joue
 le fichier depuis son début."""
 
-DELAI_DE_DEMARRAGE = timedelta(seconds=3)
-"""Délai accordé à une voie pour démarrer, c'est-à-dire atteindre l'état PLAYING : au-delà, elle est bloquée. Un
-fichier local démarre en quelques millisecondes ; une voie rognée a déjà eu sa pré-lecture
-(https://github.com/dascritch/machincast/issues/281)."""
+DELAI_DE_GARDE = timedelta(seconds=3)
+"""Le même délai de garde dans tous les cas : une voie qui n'a pas atteint l'état PLAYING au bout de ce délai est
+bloquée (https://github.com/dascritch/machincast/issues/281) ; un stream qui ne donne plus de son pendant ce délai est
+gelé (https://github.com/dascritch/machincast/issues/278). Un fichier local démarre en quelques millisecondes ; une voie
+rognée a déjà eu sa pré-lecture ; un flux en ligne avance sans cesse."""
 
 DELAI_CONNEXION_SECONDES = 10
 """Délai de connexion et de réponse d'un flux HTTP, au-delà duquel la voie passe en erreur."""
@@ -189,6 +193,9 @@ class Voie:
 		self._demarree_a: float | None = None
 		"""Instant du démarrage, à l'horloge de la voie : pour constater un lecteur bloqué."""
 		self._a_joue = False
+		self._derniere_position = timedelta(0)
+		self._avance_le: float | None = None
+		"""Instant où la position a avancé pour la dernière fois, à l'horloge de la voie ; son démarrage d'abord."""
 		"""La voie a atteint l'état PLAYING : elle n'est plus bloquée au démarrage."""
 		self._volume = volume
 		self._source = source
@@ -243,13 +250,14 @@ class Voie:
 	def demarrer(self) -> None:
 		self.etat = "en cours"
 		self._demarree_a = self._horloge()
+		self._avance_le = self._demarree_a
 		if self._rognee:
 			self._borner()
 		if self._lecteur.set_state(Gst.State.PLAYING) == Gst.StateChangeReturn.FAILURE:
 			self.traiter()
 
 	def bloquee(self) -> bool:
-		"""Le lecteur n'a pas atteint l'état PLAYING DELAI_DE_DEMARRAGE après son démarrage, sans erreur ni fin : il
+		"""Le lecteur n'a pas atteint l'état PLAYING DELAI_DE_GARDE après son démarrage, sans erreur ni fin : il
 		ne jouera rien (https://github.com/dascritch/machincast/issues/281). Jamais bloquée une fois qu'elle a joué."""
 		if (self.etat != "en cours") or (self._demarree_a is None) or (self._a_joue):
 			return False
@@ -257,7 +265,22 @@ class Voie:
 		if actuel == Gst.State.PLAYING:
 			self._a_joue = True
 			return False
-		return self._horloge() - self._demarree_a >= DELAI_DE_DEMARRAGE.total_seconds()
+		return self._horloge() - self._demarree_a >= DELAI_DE_GARDE.total_seconds()
+
+	def gelee(self) -> bool:
+		"""Aucun son depuis DELAI_DE_GARDE : la position n'a pas avancé depuis le démarrage de la voie, ou depuis sa
+		dernière avance, sans erreur ni fin (https://github.com/dascritch/machincast/issues/278). C'est ce que fait un
+		flux qui ne donne plus rien sans fermer sa connexion, quand le lecteur ne le signale pas : en HTTP/2, libsoup 3
+		ne remonte pas l'expiration de son délai. À demander à chaque pas : chaque appel note l'avance de la
+		position."""
+		if (self.etat != "en cours") or (self._avance_le is None):
+			return False
+		maintenant = self._horloge()
+		position = self.position()
+		if position > self._derniere_position:
+			self._derniere_position, self._avance_le = position, maintenant
+			return False
+		return maintenant - self._avance_le >= DELAI_DE_GARDE.total_seconds()
 
 	def _borner(self) -> None:
 		"""Pré-lit le fichier, puis borne sa lecture : du début détecté à la fin détectée
@@ -330,6 +353,8 @@ class VoieLecture(Protocol):
 	def position(self) -> timedelta: ...
 
 	def bloquee(self) -> bool: ...
+
+	def gelee(self) -> bool: ...
 
 	def traiter(self) -> None: ...
 

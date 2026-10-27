@@ -113,7 +113,7 @@ Un **stream** relaie un flux audio par Internet, un direct extérieur par exempl
 
 - **Début d'un événement** de priorité égale ou supérieure : il coupe le stream net, comme un fichier.
 - **Fin de son événement** : le stream s'éteint pendant son crossfade de fin, et le sonore suivant enchaîne.
-- **Flux tombé** : un flux qui ne répond pas, ou qui s'arrête avant la fin de son événement, est tombé. L'incident `flux tombé` est noté, et l'**événement de secours** du stream joue sa liste à sa place, en boucle. Sans événement de secours, l'événement en dessous reprend, le plus souvent le fil musical.
+- **Flux tombé** : un flux qui ne répond pas, qui s'arrête avant la fin de son événement, ou qui ne donne plus de son pendant 3 secondes, est tombé ([#278](https://github.com/dascritch/machincast/issues/278)). L'incident `flux tombé` est noté, et l'**événement de secours** du stream joue sa liste à sa place, en boucle. Sans événement de secours, l'événement en dessous reprend, le plus souvent le fil musical.
 - **Reconnexion** : tant que son événement est à l'antenne, la diffusion retente la connexion toutes les 5 secondes, sans rien faire entendre. Dès que le flux revient, le stream reprend l'antenne, et l'incident `reprise du flux` donne la durée de la panne.
 - **Fin de l'événement pendant la panne** : la reconnexion est abandonnée, et la diffusion continue normalement.
 - **Métadonnées** : l'historique note l'artiste et le titre du stream en base, jamais ceux qu'annonce le flux.
