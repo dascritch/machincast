@@ -126,9 +126,10 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Et j'attends la fin de ses voies
 		Alors la voie de « sain.<format> » est finie
 
-		# AIFF désactivé (https://github.com/dascritch/machincast/issues/236) : sous charge, GStreamer 1.24 (aiffparse)
-		# échoue de temps en temps sur ce fichier, hors du code de MachinCast. À revérifier avec une version ultérieure
-		# de GStreamer, en remettant la ligne « aiff » dans ces exemples.
+		# AIFF désactivé (https://github.com/dascritch/machincast/issues/236) : avec GStreamer 1.24, playbin se bloque au
+		# démarrage d'un AIFF environ une fois sur 150, hors du code de MachinCast ; la diffusion remplace alors le
+		# sonore (https://github.com/dascritch/machincast/issues/281), mais la voie, ici, attendrait sans fin. À
+		# revérifier avec une version ultérieure de GStreamer, en remettant la ligne « aiff » dans ces exemples.
 		Exemples:
 			| format |
 			| mp3    |
@@ -136,6 +137,20 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 			| aac    |
 			| ogg    |
 			| wav    |
+
+	Scénario: Une voie qui ne démarre pas est bloquée passé le délai de démarrage ; une voie qui joue ne l'est jamais
+		https://github.com/dascritch/machincast/issues/281 : avec GStreamer 1.24, playbin se bloque parfois au démarrage
+		d'un AIFF, sans erreur ni son. Le blocage est imité : la sortie de la voie de « sain.flac » ne reçoit jamais de
+		son. L'horloge du moteur est celle du scénario.
+
+		Étant donné un moteur audio sur la sortie de la configuration de test, en temps réel, à l'horloge du scénario
+		Quand il joue le fichier de test « sain.flac », dont la sortie ne reçoit jamais de son
+		Et il joue le fichier de test « sain.mp3 »
+		Et le son de « sain.mp3 » avance
+		Et 2,9 secondes passent à l'horloge du moteur
+		Alors aucune voie n'est bloquée
+		Quand 0,2 seconde passent à l'horloge du moteur
+		Alors seule la voie de « sain.flac » est bloquée
 
 	Scénario: Deux sonores se superposent pendant un crossfade
 		Étant donné un moteur audio sur la sortie de la configuration de test, en temps réel
