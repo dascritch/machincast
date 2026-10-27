@@ -85,6 +85,15 @@ La sortie audio de l'antenne se règle dans la configuration (`audio.sortie` : `
 - **Analyse au dernier moment** ([#181](https://github.com/dascritch/machincast/issues/181)) : pendant chaque sonore, si le **prochain** est un fichier jamais vérifié en entier, ou dont le fichier a changé depuis sa vérification, `Machin lecture` lance `Machin indexation --audit-complet --sonore N` sur lui seul, en arrière-plan, sans fenêtre ; ses lignes s'ajoutent au journal de `Machin lecture`. La diffusion ne l'attend pas : si l'analyse plante, ou n'a pas fini, le sonore est joué à son heure. Elle est notée dans le log, en info `analyse du prochain sonore`. Un même sonore n'est pas redemandé avant une heure ; un stream n'est jamais analysé.
 - **Superposition** : pendant un crossfade, deux sonores jouent en même temps. PipeWire et PulseAudio les mélangent toujours. En `alsa`, il faut un périphérique qui mélange, comme `default` ; un périphérique matériel direct (`hw:…`) ne joue qu'un son à la fois.
 
+## Fichiers AIFF : un défaut connu de GStreamer
+
+GStreamer, qui décode les sonores, bloque de temps en temps le démarrage d'un fichier AIFF, sans erreur ni son. Ce défaut est déjà référencé et suivi par MachinCast : [#236](https://github.com/dascritch/machincast/issues/236), [#280](https://github.com/dascritch/machincast/issues/280), [#281](https://github.com/dascritch/machincast/issues/281) et [#284](https://github.com/dascritch/machincast/issues/284). Il ne vient ni du fichier, ni de MachinCast : il se reproduit sans MachinCast, et touche les AIFF sains.
+
+- **À l'antenne**, le lecteur `playbin3`, utilisé depuis [#284](https://github.com/dascritch/machincast/issues/284), ne s'est jamais bloqué dans les mesures. Un lecteur qui ne démarre pas quand même est remplacé après 3 secondes par le sonore suivant, avec l'incident `lecture bloquée` ([#281](https://github.com/dascritch/machincast/issues/281)).
+- **À l'indexation**, la vérification reprend un décodage bloqué jusqu'à six fois : un AIFF sain n'est pas déclaré illisible ([#280](https://github.com/dascritch/machincast/issues/280), [Machin indexation](indexation.md#verdicts-de-la-vérification-dun-fichier)).
+
+Rien n'est à faire sur les fichiers. Les mesures, et l'état des signalements chez GStreamer et ailleurs, sont dans [le guide du poste de développement](../developpement/poste.md#mesurer-les-blocages-de-gstreamer).
+
 ## Historique de diffusion et log
 
 Chaque passage à l'antenne est noté dans l'historique de diffusion, l'**airplay** ([#17](https://github.com/dascritch/machincast/issues/17)) :
