@@ -22,7 +22,6 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 			| mp3    |
 			| m4a    |
 			| aac    |
-			| aiff   |
 
 	# https://github.com/dascritch/machincast/issues/149 : chaque décodage gardait deux descripteurs ouverts. Passé la
 	# limite du système (1024 par défaut), GStreamer ne pouvait plus attendre ses messages, et tous les fichiers qui
@@ -58,7 +57,6 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 		Exemples:
 			| format | verdict   |
 			| flac   | endommagé |
-			| aiff   | endommagé |
 			| ogg    | illisible |
 			| m4a    | illisible |
 
@@ -98,8 +96,8 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 		Et le décodage a été tenté 6 fois
 
 	Scénario: Un décodeur absent arrête la vérification au lieu de déclarer le fichier illisible
-		Étant donné un fichier aiff sain
-		Et le décodeur GStreamer de l'AIFF désactivé
+		Étant donné un fichier ogg sain
+		Et le décodeur GStreamer du Vorbis désactivé
 		Quand je vérifie ce fichier
 		Alors la vérification s'arrête en signalant un décodeur absent et le paquet à installer
 

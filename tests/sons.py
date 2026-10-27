@@ -1,10 +1,12 @@
 """Fichiers sonores de test (https://github.com/dascritch/machincast/issues/7).
 
 Les fichiers de tests/fichiers-sonores/ sont versionnés : une seconde de sinusoïde en mono, la plus petite
-taille utile, dans chacun des formats de la spec. Les fichiers sain.* n'ont aucun tag ; les fichiers tags.*
-portent TAGS_DE_TEST (https://github.com/dascritch/machincast/issues/8), dans les formats où GStreamer sait les
-écrire (pas l'AIFF). Les scénarios en copient un dans leur répertoire temporaire, puis peuvent le tronquer ou
-le corrompre ; le dépôt n'est jamais modifié.
+taille utile, dans chacun des formats de la spec. sain.aiff ne sert qu'aux mesures de tests.mesures_gstreamer : l'AIFF
+n'est pas pris en charge (https://github.com/dascritch/machincast/issues/284), et la suite de tests ne le décode pas.
+Les fichiers sain.* n'ont aucun tag ; les fichiers tags.* portent TAGS_DE_TEST
+(https://github.com/dascritch/machincast/issues/8), dans les formats où GStreamer sait les écrire (pas l'AIFF). Les
+scénarios en copient un dans leur répertoire temporaire, puis peuvent le tronquer ou le corrompre ; le dépôt n'est
+jamais modifié.
 
 Pour les régénérer (encodeurs GStreamer nécessaires) : python -m tests.sons
 """

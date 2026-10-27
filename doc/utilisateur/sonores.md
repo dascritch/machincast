@@ -24,7 +24,7 @@ La liste des **Sonores** (**Affichage → Ouvrir l'onglet Sonores**) ajoute des 
 
 - Un fichier est **référencé là où il se trouve, sans copie**, et n'est jamais modifié. Il peut donc être synchronisé depuis un autre ordinateur, et changer de contenu sous le même nom : une émission pré-enregistrée, la rediffusion d'un direct. Même avec <kbd>Maj</kbd> enfoncée, un dépôt n'est jamais un déplacement.
 - Il entre à l'état `aperçu`, puis il est **vérifié aussitôt**, en arrière-plan : l'interface reste utilisable. La barre d'état annonce l'ajout, « 2 fichiers ajoutés, en cours de vérification. », puis le résultat, « Vérification terminée : Les Gaufres – Café à minuit, actif ; faux.mp3, erroné. ». Le sonore prend alors sa durée, son artiste et son titre, lus dans ses tags.
-- Un fichier déjà en base n'est pas ajouté une seconde fois. Les dossiers et les fichiers qui ne sont pas sonores sont ignorés ; la barre d'état le dit. Les formats reconnus : `.mp3`, `.m4a`, `.aac`, `.ogg`, `.flac`, `.wav`, `.aiff` et `.aif`.
+- Un fichier déjà en base n'est pas ajouté une seconde fois. Les dossiers et les fichiers qui ne sont pas sonores sont ignorés ; la barre d'état le dit. Les formats reconnus : `.mp3`, `.m4a`, `.aac`, `.ogg`, `.flac`, `.wav`. L'AIFF (`.aiff`, `.aif`) n'est pas pris en charge, à cause d'un défaut de GStreamer qui en bloque parfois la lecture ([#284](https://github.com/dascritch/machincast/issues/284)) : le convertir en FLAC ou en WAV.
 
 Seuls les fichiers ajoutés depuis la liste des sonores sont vérifiés aussitôt : un fichier déposé sur une banque, une séquence ou un événement attend la prochaine [indexation](#indexation-depuis-linterface).
 

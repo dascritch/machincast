@@ -5,7 +5,9 @@ dans sonores s'il ne l'est pas encore, à l'état apercu et sans être décodé
 (https://github.com/dascritch/machincast/issues/69), puis rattaché à la banque en fin de liste. La vérification
 qui suit le décode dans le même passage.
 
-- Formats de la spec : mp3, m4a et aac, ogg, flac, wav, aiff (et .aif), quelle que soit la casse de l'extension.
+- Formats de la spec : mp3, m4a et aac, ogg, flac, wav, quelle que soit la casse de l'extension. L'AIFF (.aiff, .aif)
+  est ignoré, comme une extension inconnue : GStreamer en bloque parfois le démarrage
+  (https://github.com/dascritch/machincast/issues/284).
 - Les fichiers et répertoires cachés (nom commençant par un point) sont ignorés : ce sont des fichiers de
   service, comme les « ._*.mp3 » qu'écrit macOS sur un disque partagé.
 - Les sous-répertoires sont parcourus dans l'ordre de leur nom, sans suivre les liens symboliques vers d'autres
@@ -38,11 +40,11 @@ from psycopg.rows import TupleRow
 
 from machincast.conversion import liste_ou_rien
 from machincast.indexation.verification import Bilan, EtatSonore
-from machincast.protection import EXTENSIONS_SONORES
+from machincast.protection import EXTENSIONS_INDEXEES
 
 journal = logging.getLogger(__name__)
 
-EXTENSIONS = EXTENSIONS_SONORES
+EXTENSIONS = EXTENSIONS_INDEXEES
 """Extensions des formats de la spec § 6.2, en minuscules (machincast.protection)."""
 
 

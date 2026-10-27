@@ -21,7 +21,6 @@ Fonctionnalité: Type de fichier d'un sonore
 			| flac   | audio/flac          |
 			| ogg    | audio/ogg           |
 			| wav    | audio/x-wav         |
-			| aiff   | audio/x-aiff        |
 			| m4a    | video/mp4           |
 			| aac    | audio/x-hx-aac-adts |
 

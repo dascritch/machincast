@@ -86,6 +86,17 @@ Fonctionnalité: Un fichier sonore n'est jamais supprimé par MachinCast
 		Alors l'ouverture est refusée, car c'est un fichier sonore protégé
 		Et les fichiers sonores de la banque sont intacts
 
+	Plan du scénario: Un fichier AIFF, que l'indexeur ignore, reste un fichier sonore protégé
+		https://github.com/dascritch/machincast/issues/284 : l'AIFF n'est plus indexé, mais MachinCast n'y écrit jamais.
+
+		Quand la socket d'état est ouverte sur le fichier sonore « <fichier> »
+		Alors l'ouverture est refusée, car c'est un fichier sonore protégé
+
+		Exemples:
+			| fichier      |
+			| session.aiff |
+			| court.AIF    |
+
 	Scénario: Les sorties de la simulation ne prennent jamais la place d'un fichier sonore
 		Quand une simulation est exportée sous le nom « titre », dans le répertoire de la banque
 		Alors les fichiers sonores de la banque sont intacts

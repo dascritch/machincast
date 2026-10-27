@@ -26,15 +26,19 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Alors la banque « Fond » contient, dans l'ordre, « fond/a/1/vent.mp3 », « fond/a/2/pluie.wav », « fond/b/nappe.ogg »
 
 	Scénario: Seuls les fichiers des formats sonores sont indexés, quelle que soit la casse de leur extension
+		L'AIFF n'est plus indexé, comme une extension inconnue : GStreamer en bloque parfois le démarrage
+		(https://github.com/dascritch/machincast/issues/284).
+
 		Étant donné une banque « Divers » alimentée par le répertoire « divers »
 		Et le fichier « divers/MAJUSCULES.MP3 », sain
-		Et le fichier « divers/court.aif », sain
+		Et le fichier « divers/court.aif », quelconque
+		Et le fichier « divers/session.AIFF », quelconque
 		Et le fichier « divers/note.txt », quelconque
 		Et le fichier « divers/pochette.jpg », quelconque
 		Et le fichier « divers/._intro.mp3 », quelconque
 		Et le fichier « divers/.cache/cache.flac », sain
 		Quand l'indexeur fait une indexation rapide
-		Alors la banque « Divers » contient, dans l'ordre, « divers/MAJUSCULES.MP3 », « divers/court.aif »
+		Alors la banque « Divers » contient, dans l'ordre, « divers/MAJUSCULES.MP3 »
 
 	Plan du scénario: Chaque format de la spécification est indexé
 		Étant donné une banque « Formats » alimentée par le répertoire « formats »
@@ -43,11 +47,8 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Alors la banque « Formats » contient, dans l'ordre, « formats/son.<extension> »
 		Et le sonore de « formats/son.<extension> » est à l'état « actif »
 
-		# AIFF réactivé avec GStreamer 1.28 (https://github.com/dascritch/machincast/issues/284), après sa mise de côté
-		# pour un défaut de GStreamer 1.24 (https://github.com/dascritch/machincast/issues/236).
 		Exemples:
 			| extension |
-			| aiff      |
 			| mp3       |
 			| m4a       |
 			| aac       |

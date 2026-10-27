@@ -29,7 +29,7 @@ from machincast.interface.choix import Choix
 from machincast.interface.listes import BANQUES, FEEDS, SEQUENCES, SONORES
 from machincast.interface.preferences import FenetrePreferences, Reglages
 from machincast.interface.suggestions import FenetreSuggestions, Manques, Reponse
-from machincast.protection import EXTENSIONS_SONORES
+from machincast.protection import EXTENSIONS_INDEXEES
 
 
 class Fermeture(StrEnum):
@@ -212,7 +212,7 @@ def confirmer_maintenance(parent: QWidget, sauvegardes: Path) -> Path | None:
 
 def choisir_fichiers(parent: QWidget) -> list[Path]:
 	"""Les fichiers choisis dans le sélecteur du poste, plusieurs à la fois ; aucun si le choix est abandonné."""
-	motifs = " ".join(f"*{extension}" for extension in sorted(EXTENSIONS_SONORES))
+	motifs = " ".join(f"*{extension}" for extension in sorted(EXTENSIONS_INDEXEES))
 	choisis, _filtre = QFileDialog.getOpenFileNames(
 		parent, "Ajouter des fichiers sonores", "", f"Fichiers sonores ({motifs});;Tous les fichiers (*)"
 	)

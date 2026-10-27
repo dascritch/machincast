@@ -20,7 +20,6 @@ Fonctionnalité: Vérifications de l'installation
 
 		Exemples:
 			| caps                                       | format | paquet                    |
-			| audio/x-aiff                               | aiff   | gstreamer1.0-plugins-bad  |
 			| audio/mpeg, mpegversion=(int)1, layer=(int)3 | mp3    | gstreamer1.0-plugins-good |
 			| audio/x-vorbis                             | ogg    | gstreamer1.0-plugins-base |
 			| audio/mpeg, mpegversion=(int)4             | m4a    | gstreamer1.0-plugins-bad  |
@@ -47,7 +46,7 @@ Fonctionnalité: Vérifications de l'installation
 			| GStreamer                     | 1.24.2  | libgstreamer1.0-0         |
 			| le greffon GStreamer playback | 1.27.90 | gstreamer1.0-plugins-base |
 			| le greffon GStreamer flac     | 1.24.2  | gstreamer1.0-plugins-good |
-			| le greffon GStreamer aiff     | 1.20.1  | gstreamer1.0-plugins-bad  |
+			| le greffon GStreamer faad     | 1.20.1  | gstreamer1.0-plugins-bad  |
 
 	Plan du scénario: Une version égale ou plus récente que la version vérifiée n'est pas signalée
 		Étant donné GStreamer en version « <version> »

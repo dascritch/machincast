@@ -36,7 +36,6 @@ Fonctionnalité: Lecture des tags
 			| ogg    |
 			| mp3    |
 			| m4a    |
-			| aiff   |
 
 	Plan du scénario: L'année de sortie vient d'une date, jamais d'un horodatage de création
 		Étant donné les tags « <tags> »

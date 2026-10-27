@@ -95,8 +95,8 @@ class Tentatives:
 	target_fixture="tentatives",
 )
 def demarrage_bloque(monkeypatch: pytest.MonkeyPatch, echecs: str | None) -> Tentatives:
-	"""Simule un démarrage bloqué : un disque réseau en veille, ou le blocage de decodebin sur un AIFF, avant
-	https://github.com/dascritch/machincast/issues/280."""
+	"""Simule un démarrage bloqué : un disque réseau en veille, ou le blocage de decodebin qui a fait écarter l'AIFF
+	(https://github.com/dascritch/machincast/issues/280, https://github.com/dascritch/machincast/issues/284)."""
 	tentatives = Tentatives()
 	vraie_tentative = decodage._tentative
 
@@ -117,21 +117,21 @@ def tente(tentatives: Tentatives, nombre: int) -> None:
 	assert tentatives.nombre == nombre
 
 
-@given("le décodeur GStreamer de l'AIFF désactivé")
-def aiff_desactive() -> Iterator[None]:
+@given("le décodeur GStreamer du Vorbis désactivé")
+def vorbis_desactive() -> Iterator[None]:
 	"""Simule un paquet absent : decodebin ignore les éléments de rang NONE.
 
-	Plusieurs paquets savent lire l'AIFF (aiffparse de plugins-bad, avdemux_aiff de libav) : tous sont écartés.
+	Plusieurs paquets savent décoder le Vorbis (vorbisdec de plugins-base, avdec_vorbis de libav) : tous sont écartés.
 	"""
 	Gst.init(None)
-	aiff = Gst.Caps.from_string("audio/x-aiff")
-	assert aiff is not None
+	vorbis = Gst.Caps.from_string("audio/x-vorbis")
+	assert vorbis is not None
 	fabriques = [
 		fabrique
-		for fabrique in Gst.ElementFactory.list_get_elements(Gst.ELEMENT_FACTORY_TYPE_DEMUXER, Gst.Rank.MARGINAL)
-		if fabrique.can_sink_any_caps(aiff)
+		for fabrique in Gst.ElementFactory.list_get_elements(Gst.ELEMENT_FACTORY_TYPE_DECODER, Gst.Rank.MARGINAL)
+		if fabrique.can_sink_any_caps(vorbis)
 	]
-	assert fabriques, "aucun lecteur d'AIFF : installer gstreamer1.0-plugins-bad"
+	assert fabriques, "aucun décodeur Vorbis : installer gstreamer1.0-plugins-base"
 	rangs = [(fabrique, fabrique.get_rank()) for fabrique in fabriques]
 	for fabrique in fabriques:
 		fabrique.set_rank(Gst.Rank.NONE)

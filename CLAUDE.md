@@ -12,7 +12,7 @@ Python · PySide6 (Qt 6.10) · PostgreSQL via socket Unix (psycopg 3, auth peer)
 
 ```bash
 # Prérequis système : uniquement ce que pip ne peut pas fournir (https://github.com/dascritch/machincast/issues/51)
-# — compilation de PyGObject, GStreamer et ses plugins (plugins-bad : AIFF, AAC et encodeurs des tests), libmagic (type
+# — compilation de PyGObject, GStreamer et ses plugins (plugins-bad : AAC et encodeurs des tests), libmagic (type
 # des fichiers, https://github.com/dascritch/machincast/issues/121), PostgreSQL, autocomplétion bash
 sudo apt install python3-venv python3-dev build-essential pkg-config libgirepository-2.0-dev libcairo2-dev \
 	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \

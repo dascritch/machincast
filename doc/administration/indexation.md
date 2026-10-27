@@ -27,7 +27,7 @@ Il se lance depuis un terminal, ou depuis le menu **Maintenance** de l'interface
 Alimenter une banque se limite à déposer des fichiers dans l'un de ses répertoires, puis à lancer `Machin indexation` ([#9](https://github.com/dascritch/machincast/issues/9)). Les répertoires d'une banque se choisissent dans [sa fiche](../utilisateur/sonores.md#fiche-dune-banque), dans l'interface ([#31](https://github.com/dascritch/machincast/issues/31)) ; une banque peut en avoir plusieurs, et un même répertoire peut alimenter plusieurs banques.
 
 - **Sous-répertoires** : ils sont tous parcourus, dans l'ordre de leur nom. Un lien symbolique vers un autre répertoire n'est pas suivi, pour éviter les boucles ; le répertoire d'une banque peut, lui, être un lien.
-- **Formats** : `.mp3`, `.m4a`, `.aac`, `.ogg`, `.flac`, `.wav`, `.aiff` et `.aif`, que l'extension soit écrite en minuscules ou en majuscules. Les autres fichiers (pochettes, textes, vidéos `.mp4`…) sont ignorés.
+- **Formats** : `.mp3`, `.m4a`, `.aac`, `.ogg`, `.flac`, `.wav`, que l'extension soit écrite en minuscules ou en majuscules. Les autres fichiers (pochettes, textes, vidéos `.mp4`…) sont ignorés, l'AIFF (`.aiff`, `.aif`) compris : il n'est pas pris en charge, à cause d'un défaut de GStreamer (voir [Fichiers AIFF : non pris en charge](diffusion.md#fichiers-aiff--non-pris-en-charge)).
 - **Fichiers cachés** : un fichier ou un répertoire dont le nom commence par un point est ignoré, comme les fichiers `._*.mp3` qu'écrit macOS sur un disque partagé.
 - **Nouveau fichier** : il devient un sonore à l'état `aperçu`, ajouté **en fin de liste** de la banque, puis décodé dans la même indexation. Les fichiers d'un même passage sont ajoutés dans l'ordre de leur chemin.
 - **Fichier déjà connu** : il n'est jamais enregistré deux fois, même trouvé par plusieurs banques. Il est ajouté en fin de liste de chaque banque dont il n'est pas encore membre.
@@ -73,11 +73,11 @@ Chaque fichier examiné reçoit l'un de ces verdicts :
 | `illisible` | Le fichier n'est pas du son, il est vide ou son conteneur est cassé, aucun son n'a pu être décodé, ou le décodage ne progresse plus pendant 30 secondes (disque ou partage réseau bloqué). |
 | `introuvable` | Aucun fichier à l'emplacement enregistré : il a été supprimé ou déplacé. |
 
-Un décodage qui ne produit aucun son en 2,5 secondes est repris depuis le début, jusqu'à six fois : un disque réseau en veille a ainsi 15 secondes pour répondre, et un fichier AIFF, dont GStreamer bloque parfois le démarrage, n'est pas déclaré illisible à tort ([#280](https://github.com/dascritch/machincast/issues/280)). Ce défaut de GStreamer est connu et suivi : voir [Fichiers AIFF : un défaut connu de GStreamer](diffusion.md#fichiers-aiff--un-défaut-connu-de-gstreamer).
+Un décodage qui ne produit aucun son en 2,5 secondes est repris depuis le début, jusqu'à six fois : un disque réseau en veille a ainsi 15 secondes pour répondre, et un fichier AIFF déjà en base, dont GStreamer bloque parfois le démarrage, n'est pas déclaré illisible à tort ([#280](https://github.com/dascritch/machincast/issues/280)). Ce défaut de GStreamer est connu et suivi : voir [Fichiers AIFF : non pris en charge](diffusion.md#fichiers-aiff--non-pris-en-charge).
 
 Jusqu'à la correction de [#149](https://github.com/dascritch/machincast/issues/149), une indexation de plus de quelques centaines de fichiers épuisait les descripteurs de fichier du système : la console répétait des messages `GStreamer-CRITICAL` (`gst_bus_timed_pop_filtered`, `gst_poll_get_read_gpollfd`), et les fichiers suivants, même sains, étaient déclarés `illisible` (« décodage bloqué au démarrage »). Après la mise à jour, un **audit complet** les décode de nouveau : les sonores sains passés `erroné` redeviennent `actif`, et le bilan les compte parmi les rétablis. Ces messages ne doivent plus apparaître ; s'ils reviennent, c'est à signaler dans un ticket.
 
-Quelques défauts échappent à la vérification : des octets altérés dans un WAV ou un AIFF, qui n'ont ni somme de contrôle ni trames ; un WAV, un Ogg, un MP3 sans durée dans son en-tête ou un AAC brut (`.aac`), tronqué, qui se décode comme un fichier plus court mais sain.
+Quelques défauts échappent à la vérification : des octets altérés dans un WAV, qui n'a ni somme de contrôle ni trames ; un WAV, un Ogg, un MP3 sans durée dans son en-tête ou un AAC brut (`.aac`), tronqué, qui se décode comme un fichier plus court mais sain.
 
 ## États d'un sonore
 
@@ -104,7 +104,7 @@ L'indexeur ne supprime jamais un sonore de la base.
 
 ## Tags et métadonnées
 
-Pour un fichier `sain`, l'indexeur lit les tags du fichier pendant le décodage, et les nettoie comme les textes saisis dans l'interface ([#108](https://github.com/dascritch/machincast/issues/108), [Interface graphique](commandes.md#interface-graphique--machin-interface)) : ID3 (MP3, et AIFF quand il en porte), commentaires Vorbis (Ogg, FLAC), atomes MP4 (M4A) et chunk INFO (WAV, qui ne porte que l'artiste, le titre, l'album, le genre et l'année).
+Pour un fichier `sain`, l'indexeur lit les tags du fichier pendant le décodage, et les nettoie comme les textes saisis dans l'interface ([#108](https://github.com/dascritch/machincast/issues/108), [Interface graphique](commandes.md#interface-graphique--machin-interface)) : ID3 (MP3), commentaires Vorbis (Ogg, FLAC), atomes MP4 (M4A) et chunk INFO (WAV, qui ne porte que l'artiste, le titre, l'album, le genre et l'année).
 
 | Champ du sonore | Tag lu |
 | --- | --- |
