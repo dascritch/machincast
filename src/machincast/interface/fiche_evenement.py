@@ -279,7 +279,7 @@ class FicheEvenement(Fiche):
 			sautees=self._sautees(),
 		)
 		autres = [autre for autre in lire_grille(self.connexion) if autre.id != self.identifiant]
-		trouve = chevauchement(place, autres)
+		trouve = chevauchement(place, autres, depuis=self.horloge.maintenant())
 		if trouve is not None:
 			autre, instant = trouve
 			raise Refus(f"Chevauche l'événement « {autre.nom} », de même priorité, le {instant:%d/%m/%Y à %H:%M}.")

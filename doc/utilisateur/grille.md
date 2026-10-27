@@ -34,7 +34,7 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 
 - un nom interne vide, ou celui d'un autre événement ;
 - une émission ou un spécial sans début, ou une fin qui ne suit pas le début ;
-- un **chevauchement** avec un autre événement de même priorité, occurrences récurrentes comprises : « Chevauche l'événement « Journal », de même priorité, le 21/10/2026 à 09:00. » ;
+- un **chevauchement** avec un autre événement de même priorité, occurrences récurrentes comprises : « Chevauche l'événement « Journal », de même priorité, le 21/10/2026 à 09:00. ». Seul compte ce qui chevauche à partir de maintenant : ce que la grille a déjà diffusé ne bloque rien, et un chevauchement en cours est daté de l'instant présent ;
 - une priorité changée pour un événement de secours qu'un stream désigne.
 
 **Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion : une émission vide laisse l'événement en dessous prendre le relais, sans couper le sonore en cours, et l'accueil n'annonce aucune coupure à son heure ; un fil musical vide laisse l'antenne en silence, avec une alerte. La liste des événements le montre en anomalie.

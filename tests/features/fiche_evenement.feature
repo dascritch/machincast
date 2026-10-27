@@ -242,6 +242,44 @@ Fonctionnalité: Fiche d'un événement
 		Et j'enregistre la fiche
 		Alors la fiche ne signale rien
 
+	Scénario: Un chevauchement dans la grille déjà diffusée ne bloque pas l'enregistrement
+		https://github.com/dascritch/machincast/issues/271 : seuls comptent les chevauchements à partir de maintenant.
+		L'émission « Ancienne » est passée le mercredi 14, que « Matinale », avancée au lundi 12, aurait chevauchée.
+
+		Étant donné les événements :
+			| nom      | nom_public | priorite | debut            | fin              | jours |
+			| Ancienne |            | emission | 2026-10-14 07:30 | 2026-10-14 08:00 |       |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et je saisis dans la fiche de l'événement :
+			| champ | valeur           |
+			| Début | 12/10/2026 07:00 |
+			| Fin   | 12/10/2026 09:00 |
+		Et j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et l'événement « Matinale » a en base :
+			| champ | valeur                    |
+			| debut | 2026-10-12 07:00:00+02:00 |
+
+	Scénario: Un chevauchement en cours compte à partir de maintenant
+		https://github.com/dascritch/machincast/issues/271 : l'émission « Après-midi », commencée à 15:00, chevauche
+		encore celle qu'on pose de 14:00 à 16:00 ; la fiche donne l'instant présent.
+
+		Étant donné les événements :
+			| nom        | nom_public | priorite | debut            | fin              | jours |
+			| Après-midi |            | emission | 2026-10-19 15:00 | 2026-10-19 17:00 |       |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Événements »
+		Et je clique sur « Nouvel événement »
+		Et je saisis le nom interne « Goûter »
+		Et je saisis dans la fiche de l'événement :
+			| champ    | valeur           |
+			| Priorité | émission         |
+			| Début    | 19/10/2026 14:00 |
+			| Fin      | 19/10/2026 16:00 |
+		Et j'enregistre la fiche
+		Alors la fiche signale « Chevauche l'événement « Après-midi », de même priorité, le 19/10/2026 à 15:30. »
+
 	Plan du scénario: Un événement invalide n'est pas enregistré, et dit pourquoi
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »

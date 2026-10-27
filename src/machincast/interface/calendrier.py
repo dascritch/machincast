@@ -591,7 +591,7 @@ class Calendrier(QWidget):
 		)
 		with self.connexion.transaction():
 			autres = [autre for autre in lire_grille(self.connexion) if autre.id != evenement.id]
-		trouve = chevauchement(session, autres)
+		trouve = chevauchement(session, autres, depuis=self.maintenant())
 		if trouve is not None:
 			autre, instant = trouve
 			self.annonce.emit(
