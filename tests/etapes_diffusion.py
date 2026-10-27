@@ -6,6 +6,7 @@ s'en servent. Le banc tient l'horloge, le moteur sur la sortie factice et la dif
 la lecture.
 """
 
+import socket
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -22,7 +23,7 @@ from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe
 from machincast.lecture.analyse import Analyseur
 from machincast.lecture.diffusion import Diffusion
-from machincast.lecture.etat import SocketEtat
+from machincast.lecture.etat import SocketEtat, demande_de_relire_la_grille
 from machincast.lecture.moteur import MoteurAudio, Voie, VoieLecture
 from machincast.lecture.simulation import MoteurSimule
 from machincast.lecture.sorties import Sorties
@@ -286,6 +287,29 @@ def special_sans_fin_des_sonores(
 ) -> None:
 	noms = [n.strip(" «»") for n in liste.split(",")]
 	evenement(banc, base_vide, tmp_path, nom, "special", heure(f"2026-10-14 {debut}"), None, noms)
+
+
+@given("la socket d'état dans un répertoire temporaire")
+def socket_temporaire(banc: Banc, tmp_path: Path) -> None:
+	banc.etat = SocketEtat(tmp_path / "run" / "machincast" / "lecture.sock")
+
+
+@when("l'interface demande à Machin lecture de relire la grille")
+def relire_la_grille(banc: Banc) -> None:
+	"""Comme après une session sautée (https://github.com/dascritch/machincast/issues/273) ou un événement enregistré
+	(https://github.com/dascritch/machincast/issues/266) : la demande est envoyée, puis la socket attend qu'elle
+	arrive."""
+	etat = banc.etat
+	assert etat is not None
+	with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+		client.connect(str(etat.chemin))
+		client.sendall(demande_de_relire_la_grille().encode())
+		client.settimeout(5.0)
+		client.recv(1)
+		limite = time.monotonic() + 5.0
+		while (etat._demandes.empty()) and (time.monotonic() < limite):
+			time.sleep(0.01)
+	assert not etat._demandes.empty()
 
 
 @given(parsers.parse("chaque sonore dure {duree:d} secondes"))

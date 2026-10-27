@@ -16,10 +16,8 @@ from machincast.interface.choix import Choix
 from machincast.interface.listes import SONORES
 from tests.etapes_interface import (
 	NOM,
-	TABLES,
 	Connexion,
 	Contexte,
-	fenetre,
 	fiche_ouverte,
 	identifiant,
 	lignes,
@@ -116,29 +114,6 @@ def sans_secours(base_vide: Connexion, titre: str) -> None:
 
 
 # ─── Suppression différée (https://github.com/dascritch/machincast/issues/267) ───
-
-GENRES = {"du sonore": "le sonore", "de la banque": "la banque", "de la séquence": "la séquence"}
-GENRES["de l'événement"] = "l'événement"
-FICHES = {"le sonore": "sonore", "la banque": "banque", "la séquence": "séquence", "l'événement": "événement"}
-
-
-@when(
-	parsers.re(
-		r"j'ouvre depuis l'historique la fiche (?P<de>du sonore|de la banque|de la séquence|de l'événement)"
-		r" « (?P<nom>[^»]+) »"
-	)
-)
-def ouvrir_depuis_l_historique(interface: Contexte, base_vide: Connexion, qtbot: QtBot, de: str, nom: str) -> None:
-	"""Comme un double-clic sur sa cellule de l'airplay, des incidents ou du calendrier : par son identifiant, l'élément
-	supprimé d'abord, quand un autre a repris son nom."""
-	genre = GENRES[de]
-	table, colonne = TABLES[genre]
-	ligne = base_vide.execute(
-		f"SELECT id FROM {table} WHERE {colonne} = %s ORDER BY supprime_le IS NULL, id",  # noqa: S608
-		(nom,),
-	).fetchone()
-	assert ligne is not None, nom
-	fenetre(interface)._ouvrir(FICHES[genre], int(str(ligne[0])), nom)
 
 
 @when(parsers.parse("une autre banque « {nom} » est créée en base"))

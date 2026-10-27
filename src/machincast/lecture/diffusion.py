@@ -101,13 +101,17 @@ HORIZON_DES_COUPURES = timedelta(hours=12)
 A_VENIR = 5
 """Sonores prévus après le prochain : la playlist immédiate (https://github.com/dascritch/machincast/issues/228)."""
 EMPREINTE_DE_LA_GRILLE = (
-	"SELECT md5(concat_ws('|', (SELECT string_agg(e::text, ',' ORDER BY e.id) FROM evenements e),"
+	"SELECT md5(concat_ws('|',"
+	" (SELECT string_agg(concat_ws(';', e.id, e.priorite, e.debut, e.fin, e.jours_recurrence, e.supprime_le), ','"
+	" ORDER BY e.id) FROM evenements e),"
 	" (SELECT string_agg(x::text, ',' ORDER BY x.id) FROM evenements_elements x),"
 	" (SELECT string_agg(l::text, ',' ORDER BY l.id) FROM sequences_elements l),"
 	" (SELECT string_agg(s::text, ',' ORDER BY s.evenement_id, s.jour) FROM evenements_sauts s)))"
 )
-"""Empreinte des événements, de leurs listes, de leurs sessions sautées et des séquences : changée, elle fait
-recalculer les sonores à venir."""
+"""Empreinte de ce qui règle l'antenne dans la grille : les dates, les jours, la priorité et la suppression des
+événements, leurs listes, leurs sessions sautées et les listes des séquences. Changée, elle fait recalculer les
+sonores à venir ; un nom, un nom public, un masquage ou la date de modification n'y sont pas : les sonores à venir,
+déjà tirés, restent ceux qui passeront (https://github.com/dascritch/machincast/issues/266)."""
 
 DELAI_RECONNEXION = timedelta(seconds=5)
 """Délai entre deux tentatives de reconnexion d'un stream tombé."""
@@ -406,12 +410,14 @@ class Diffusion:
 			self.etat.fermer()
 
 	def relire_la_grille(self) -> None:
-		"""La grille a changé, et le changement doit valoir aussitôt
-		(https://github.com/dascritch/machincast/issues/273) : la coupure du sonore en cours, le prochain sonore et les
-		sonores à venir sont recalculés, comme au début d'un sonore. Rien à recalculer sans sonore à l'antenne, ni quand
-		le suivant est déjà lancé, au crossfade de fin : la grille se relit alors au pas suivant, comme toujours."""
+		"""La grille a pu changer, et le changement doit valoir aussitôt
+		(https://github.com/dascritch/machincast/issues/273, https://github.com/dascritch/machincast/issues/266) : si
+		ce qui règle l'antenne a changé (EMPREINTE_DE_LA_GRILLE), la coupure du sonore en cours, le prochain sonore et
+		les sonores à venir sont recalculés, comme au début d'un sonore ; sinon, rien ne change. Rien à recalculer sans
+		sonore à l'antenne, ni quand le suivant est déjà lancé, au crossfade de fin : la grille se relit alors au pas
+		suivant, comme toujours."""
 		courant = self.courant
-		if (courant is None) or (courant.suivant_demande):
+		if (courant is None) or (courant.suivant_demande) or (self._empreinte_de_la_grille() == self._empreinte):
 			return
 		instant = self.horloge.maintenant()
 		self._attendu = None

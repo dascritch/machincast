@@ -18,8 +18,7 @@ from pytestqt.qtbot import QtBot
 
 from machincast.interface.calendrier import Bande, Bloc, Calendrier, libelle_du_jour
 from machincast.interface.fiche_evenement import FicheEvenement
-from machincast.lecture.etat import RELIRE_LA_GRILLE, Demande
-from tests.etapes_interface import NOM, Connexion, Contexte, Lecteur, fenetre, identifiant
+from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, identifiant
 
 scenarios("calendrier.feature")
 
@@ -361,19 +360,6 @@ def sautees(base_vide: Connexion, nom: str, jours: str) -> None:
 @then(parsers.parse("aucune session de « {nom} » n'est sautée"))
 def aucune_sautee(base_vide: Connexion, nom: str) -> None:
 	assert sessions_sautees(base_vide, nom) == []
-
-
-@then("Machin lecture a reçu la demande de relire la grille")
-def relecture_demandee(lecteur: Lecteur, qtbot: QtBot) -> None:
-	socket = lecteur.socket
-	assert socket is not None
-
-	def recue() -> bool:
-		lecteur.recues += socket.demandes()
-		return lecteur.recues != []
-
-	qtbot.waitUntil(recue, timeout=5000)
-	assert lecteur.recues == [Demande(commande=RELIRE_LA_GRILLE)]
 
 
 @then(parsers.parse("le bloc « {nom} » du {jour} est « {etat} »"))

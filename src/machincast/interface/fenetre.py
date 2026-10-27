@@ -403,9 +403,9 @@ class FenetrePrincipale(QMainWindow):
 			action.setToolTip(proposition.infobulle)
 
 	def _grille_modifiee(self) -> None:
-		"""Une session sautée ou rétablie vaut aussitôt à l'antenne
-		(https://github.com/dascritch/machincast/issues/273) : Machin lecture relit la grille, s'il diffuse ; sinon, il
-		la lira à son démarrage."""
+		"""Une session sautée ou rétablie (https://github.com/dascritch/machincast/issues/273), une fiche enregistrée,
+		supprimée ou restaurée (https://github.com/dascritch/machincast/issues/266) valent aussitôt à l'antenne :
+		Machin lecture relit la grille, s'il diffuse ; sinon, il la lira à son démarrage."""
 		self.accueil.client.envoyer(demande_de_relire_la_grille())
 
 	def _interrompre(self, element: str) -> None:
@@ -551,6 +551,11 @@ class FenetrePrincipale(QMainWindow):
 		if genre == "événement":
 			fiche.supprimee.connect(self._garantir_fil_musical)
 			fiche.enregistree.connect(self._garantir_fil_musical)
+		# Une fiche enregistrée, supprimée ou restaurée vaut aussitôt à l'antenne
+		# (https://github.com/dascritch/machincast/issues/266) : Machin lecture relit la grille, et ne recalcule que si
+		# ce qui règle l'antenne a changé. Un sonore ou une banque supprimé quitte les listes des événements.
+		fiche.enregistree.connect(self._grille_modifiee)
+		fiche.supprimee.connect(self._grille_modifiee)
 		self._ajouter_onglet(fiche, fiche.titre())
 		self.ui.onglets.setCurrentWidget(fiche)
 
