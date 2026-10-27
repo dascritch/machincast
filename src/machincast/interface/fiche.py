@@ -9,6 +9,12 @@ quoi faire de ses modifications (machincast.interface.dialogues).
 Une fiche concrète décrit son genre et son titre, lit l'élément en base (_lire) et l'y écrit (_ecrire). Un refus
 (Refus) laisse la fiche modifiée, avec son message.
 
+Erreurs (https://github.com/dascritch/machincast/issues/270) : un refus, un enregistrement, une suppression ou une
+restauration impossible s'affiche en haut de la fiche, sur un liseret rouge de 4 pixels (erreur, LISERET), et le
+libellé de chaque champ en cause, que nomme le refus, est précédé de ⚠️ (SIGNALE) ; jusqu'au prochain enregistrement,
+à « Annuler », ou à la relecture de la fiche. Le message du bas (message) ne dit plus que ce qui informe : fichiers
+ignorés d'un dépôt, élément supprimé, copie dont l'original a disparu.
+
 Le rafraîchissement des onglets (https://github.com/dascritch/machincast/issues/148) relit la fiche ; une fiche modifiée
 demande d'abord quoi faire de ses modifications, et la fiche d'un élément effacé de la base est à fermer.
 
@@ -40,7 +46,10 @@ from PySide6.QtWidgets import (
 	QAbstractItemView,
 	QAbstractSlider,
 	QAbstractSpinBox,
+	QBoxLayout,
 	QComboBox,
+	QFormLayout,
+	QGroupBox,
 	QLabel,
 	QLineEdit,
 	QPlainTextEdit,
@@ -69,6 +78,11 @@ SAISIES = (
 """Ce qui se modifie dans une fiche, et que la fiche d'un élément supprimé fige."""
 SUPPRIMER = "Supprimer…"
 RESTAURER = "Restaurer"
+SIGNALE = "⚠️ "
+"""Ce qui précède le libellé d'un champ en cause dans l'erreur de la fiche (https://github.com/dascritch/machincast/issues/270)."""
+ROUGE = "#d32f2f"
+"""Rouge du liseret de l'erreur : lisible sur un fond clair comme sur un fond sombre."""
+LISERET = f"QLabel#erreur_de_la_fiche {{ border: 4px solid {ROUGE}; padding: 6px; }}"
 
 Connexion = psycopg.Connection[TupleRow]
 LONGUEUR_DES_NOMS = 255
@@ -110,7 +124,12 @@ class Rafraichie(Enum):
 
 
 class Refus(Exception):
-	"""La fiche n'est pas enregistrée : le message dit pourquoi."""
+	"""La fiche n'est pas enregistrée : le message dit pourquoi, et les champs en cause sont nommés, dans l'ordre de la
+	fiche (https://github.com/dascritch/machincast/issues/270)."""
+
+	def __init__(self, message: str, *champs: QWidget) -> None:
+		super().__init__(message)
+		self.champs = champs
 
 
 class Fiche(QWidget):
@@ -134,7 +153,9 @@ class Fiche(QWidget):
 	bouton_annuler: QPushButton
 	bouton_supprimer: QPushButton
 	message: QLabel
-	"""Ce qui empêche l'enregistrement, ou ce que la fiche a ignoré."""
+	"""Ce que la fiche a ignoré, ou ce qui informe ; une erreur va en haut (erreur)."""
+	erreur: QLabel
+	"""L'erreur, en haut de la fiche, sur un liseret rouge ; cachée sans erreur."""
 	bouton_dupliquer: QPushButton | None = None
 	"""Seules les fiches d'un événement, d'une séquence et d'une banque en ont un."""
 
@@ -152,6 +173,8 @@ class Fiche(QWidget):
 		"""L'élément est supprimé, depuis cet instant (https://github.com/dascritch/machincast/issues/267)."""
 		self._figes: list[QWidget] = []
 		"""Ce que la fiche d'un élément supprimé a figé."""
+		self._signales: list[tuple[QLabel | QAbstractButton | QGroupBox, str]] = []
+		"""Les libellés précédés de ⚠️, avec leur texte d'origine."""
 
 	def brancher(
 		self,
@@ -167,6 +190,15 @@ class Fiche(QWidget):
 		self.bouton_supprimer = supprimer
 		self.message = message
 		self.bouton_dupliquer = dupliquer
+		self.erreur = QLabel(self)
+		self.erreur.setObjectName("erreur_de_la_fiche")
+		self.erreur.setWordWrap(True)
+		self.erreur.setStyleSheet(LISERET)
+		self.erreur.setAccessibleName("Erreur")
+		self.erreur.hide()
+		disposition = self.layout()
+		assert isinstance(disposition, QBoxLayout)
+		disposition.insertWidget(0, self.erreur)
 		enregistrer.clicked.connect(self.enregistrer)
 		annuler.clicked.connect(self.charger)
 		supprimer.clicked.connect(self._supprimer_ou_restaurer)
@@ -201,6 +233,7 @@ class Fiche(QWidget):
 		self._marquer(self.est_une_copie())
 		self.bouton_supprimer.setEnabled(self.identifiant is not None)
 		self.message.clear()
+		self.effacer_l_erreur()
 		self._montrer_la_suppression()
 		self.titre_change.emit(self.titre())
 
@@ -229,11 +262,11 @@ class Fiche(QWidget):
 			with self.connexion.transaction():
 				identifiant = self._ecrire()
 		except Refus as refus:
-			self.message.setText(str(refus))
+			self.signaler_l_erreur(str(refus), refus.champs)
 			return False
 		except psycopg.Error as erreur:
 			journal.error(f"{self.titre()} : enregistrement impossible : {erreur}")
-			self.message.setText(f"Enregistrement impossible : {erreur}")
+			self.signaler_l_erreur(f"Enregistrement impossible : {erreur}")
 			return False
 		self.identifiant = identifiant
 		self.modele = None
@@ -255,11 +288,11 @@ class Fiche(QWidget):
 			with self.connexion.transaction():
 				suppression.restaurer(self.connexion, self.genre, self.identifiant)
 		except suppression.Empechee as empechee:
-			self.message.setText(str(empechee))
+			self.signaler_l_erreur(str(empechee))
 			return
 		except psycopg.Error as erreur:
 			journal.error(f"{self.titre()} : restauration impossible : {erreur}")
-			self.message.setText(f"Restauration impossible : {erreur}")
+			self.signaler_l_erreur(f"Restauration impossible : {erreur}")
 			return
 		self.charger()
 		self.enregistree.emit(self.identifiant)
@@ -272,7 +305,7 @@ class Fiche(QWidget):
 			with self.connexion.transaction():
 				question = suppression.question(self.connexion, self.genre, self.identifiant)
 		except suppression.Empechee as empechee:
-			self.message.setText(str(empechee))
+			self.signaler_l_erreur(str(empechee))
 			return
 		except psycopg.Error as erreur:
 			self._signaler_suppression_impossible(erreur)
@@ -291,7 +324,48 @@ class Fiche(QWidget):
 
 	def _signaler_suppression_impossible(self, erreur: psycopg.Error) -> None:
 		journal.error(f"{self.titre()} : suppression impossible : {erreur}")
-		self.message.setText(f"Suppression impossible : {erreur}")
+		self.signaler_l_erreur(f"Suppression impossible : {erreur}")
+
+	def signaler_l_erreur(self, texte: str, champs: tuple[QWidget, ...] = ()) -> None:
+		"""L'erreur en haut de la fiche, et ⚠️ devant le libellé de chaque champ en cause."""
+		self.effacer_l_erreur()
+		self.erreur.setText(texte)
+		self.erreur.show()
+		for champ in champs:
+			libelle = self._libelle(champ)
+			if (libelle is None) or (any(signale is libelle for signale, _texte in self._signales)):
+				continue
+			if isinstance(libelle, QGroupBox):
+				self._signales.append((libelle, libelle.title()))
+				libelle.setTitle(f"{SIGNALE}{libelle.title()}")
+			else:
+				self._signales.append((libelle, libelle.text()))
+				libelle.setText(f"{SIGNALE}{libelle.text()}")
+
+	def effacer_l_erreur(self) -> None:
+		"""Plus d'erreur : le liseret se cache, et les champs signalés retrouvent leur libellé."""
+		self.erreur.clear()
+		self.erreur.hide()
+		for libelle, texte in self._signales:
+			if isinstance(libelle, QGroupBox):
+				libelle.setTitle(texte)
+			else:
+				libelle.setText(texte)
+		self._signales = []
+
+	def _libelle(self, champ: QWidget) -> QLabel | QAbstractButton | QGroupBox | None:
+		"""Le libellé d'un champ : celui de sa ligne de formulaire, ou l'étiquette dont il est le compagnon ; une case
+		à cocher, un bouton ou un groupe est son propre libellé."""
+		for formulaire in self.findChildren(QFormLayout):
+			etiquette = formulaire.labelForField(champ)
+			if isinstance(etiquette, QLabel):
+				return etiquette
+		for etiquette in self.findChildren(QLabel):
+			if etiquette.buddy() is champ:
+				return etiquette
+		if isinstance(champ, (QAbstractButton, QGroupBox)):
+			return champ
+		return None
 
 	def peut_fermer(self) -> bool:
 		"""Une fiche modifiée demande quoi faire de ses modifications avant de se fermer."""

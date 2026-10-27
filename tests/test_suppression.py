@@ -68,7 +68,10 @@ def passage(base_vide: Connexion, titre: str, evenement: str) -> None:
 
 @then("la fiche signale une suppression impossible")
 def suppression_impossible(interface: Contexte) -> None:
-	assert fiche_ouverte(interface).message.text().startswith("Suppression impossible : ")
+	"""En haut de la fiche, comme toute erreur (https://github.com/dascritch/machincast/issues/270)."""
+	fiche = fiche_ouverte(interface)
+	assert fiche.erreur.isVisibleTo(fiche)
+	assert fiche.erreur.text().startswith("Suppression impossible : ")
 
 
 @then("seule la question de suppression a été posée")

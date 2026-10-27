@@ -35,8 +35,11 @@ from PySide6.QtGui import (
 	QKeySequence,
 )
 from PySide6.QtWidgets import (
+	QAbstractButton,
 	QAbstractItemView,
 	QApplication,
+	QGroupBox,
+	QLabel,
 	QLineEdit,
 	QListView,
 	QMenu,
@@ -55,7 +58,7 @@ from machincast.horloge import HorlogeFixe
 from machincast.interface import dialogues
 from machincast.interface.dialogues import Fermeture, Retrait
 from machincast.interface.fenetre import FenetrePrincipale
-from machincast.interface.fiche import Fiche
+from machincast.interface.fiche import SIGNALE, Fiche
 from machincast.interface.listes import Liste
 from machincast.interface.preferences import Reglages
 from machincast.interface.suggestions import Manques, Reponse
@@ -1105,19 +1108,62 @@ def dossier_ouvert(interface: Contexte, dossier: str) -> None:
 	assert interface.dossiers_ouverts == [Path(chemin) for chemin in NOM.findall(dossier)]
 
 
+def signalement(fiche: Fiche) -> str:
+	"""Ce que la fiche signale : son erreur, en haut, sinon son message d'information, en bas
+	(https://github.com/dascritch/machincast/issues/270)."""
+	if fiche.erreur.isVisibleTo(fiche):
+		return fiche.erreur.text()
+	return fiche.message.text()
+
+
 @then(parsers.parse("la fiche signale « {message} »"))
 def signale(interface: Contexte, message: str) -> None:
-	assert fiche_ouverte(interface).message.text() == message
+	assert signalement(fiche_ouverte(interface)) == message
 
 
 @then("la fiche signale un enregistrement impossible")
 def enregistrement_impossible(interface: Contexte) -> None:
-	assert fiche_ouverte(interface).message.text().startswith("Enregistrement impossible : ")
+	assert signalement(fiche_ouverte(interface)).startswith("Enregistrement impossible : ")
 
 
 @then("la fiche ne signale rien")
 def ne_signale_rien(interface: Contexte) -> None:
-	assert fiche_ouverte(interface).message.text() == ""
+	fiche = fiche_ouverte(interface)
+	assert (not fiche.erreur.isVisibleTo(fiche)) and (fiche.message.text() == "")
+
+
+@then("l'erreur est en haut de la fiche, sur un liseret rouge de 4 pixels")
+def erreur_en_haut(interface: Contexte) -> None:
+	"""https://github.com/dascritch/machincast/issues/270 : la première chose de la fiche."""
+	fiche = fiche_ouverte(interface)
+	disposition = fiche.layout()
+	assert disposition is not None
+	premier = disposition.itemAt(0)
+	assert (premier is not None) and (premier.widget() is fiche.erreur)
+	assert fiche.erreur.isVisibleTo(fiche)
+	assert fiche.erreur.text() != ""
+	assert "border: 4px solid #d32f2f" in fiche.erreur.styleSheet()
+
+
+def champs_signales(fiche: Fiche) -> list[str]:
+	"""Les libellés que précède ⚠️, dans l'ordre de la fiche, sans le signe ni le raccourci clavier."""
+	libelles = []
+	for widget in fiche.findChildren(QWidget):
+		if (isinstance(widget, (QLabel, QAbstractButton))) and (widget is not fiche.erreur):
+			libelles.append(widget.text())
+		elif isinstance(widget, QGroupBox):
+			libelles.append(widget.title())
+	return [texte.removeprefix(SIGNALE).replace("&", "") for texte in libelles if texte.startswith(SIGNALE)]
+
+
+@then(parsers.re(r"les champs signalés par ⚠️ sont (?P<noms>«.+)"))
+def champs_en_cause(interface: Contexte, noms: str) -> None:
+	assert champs_signales(fiche_ouverte(interface)) == NOM.findall(noms)
+
+
+@then("aucun champ n'est signalé par ⚠️")
+def aucun_champ(interface: Contexte) -> None:
+	assert champs_signales(fiche_ouverte(interface)) == []
 
 
 @then(parsers.re(r"les boutons « Enregistrer » et « Annuler » de la fiche sont (?P<etat>actifs|inactifs)"))

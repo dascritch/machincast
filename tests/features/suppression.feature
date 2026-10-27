@@ -296,6 +296,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Et j'ouvre depuis l'historique la fiche de la banque « Publicité »
 		Et je clique sur « Restaurer »
 		Alors la fiche signale « Restauration impossible : une autre banque s'appelle déjà « Publicité ». »
+		Et l'erreur est en haut de la fiche, sur un liseret rouge de 4 pixels
 		Et la fiche propose « Restaurer », pas « Supprimer… »
 
 	Scénario: Un événement supprimé ne secourt plus, et restauré, il ne le fait pas de nouveau

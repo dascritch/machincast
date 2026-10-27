@@ -270,6 +270,8 @@ Fonctionnalité: Fiche d'une banque
 		Et je fixe la durée maximale des sonores à « 0:04:00 »
 		Et j'enregistre la fiche
 		Alors la fiche signale « La durée minimale des sonores dépasse la durée maximale. »
+		Et l'erreur est en haut de la fiche, sur un liseret rouge de 4 pixels
+		Et les champs signalés par ⚠️ sont « Durée minimale des sonores », « Durée maximale des sonores »
 		Et la banque « Jingles » a en base les durées des sonores d'aucune à aucune secondes
 
 	Scénario: Un sonore hors des durées de la banque est signalé dans sa liste, sans être refusé
@@ -365,6 +367,7 @@ Fonctionnalité: Fiche d'une banque
 		Et je saisis le nom interne «    »
 		Et j'enregistre la fiche
 		Alors la fiche signale « Le nom interne est obligatoire. »
+		Et les champs signalés par ⚠️ sont « Nom interne »
 
 	Scénario: Le message d'une fiche invalide s'efface à l'enregistrement suivant
 		Quand la fenêtre de l'interface s'ouvre
