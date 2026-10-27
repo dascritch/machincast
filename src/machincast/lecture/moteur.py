@@ -22,11 +22,17 @@ decalage secondes du début du fichier (son début détecté) et s'arrête d'ell
 détectée), par une recherche (seek) qui borne la lecture du fichier. La position de la voie, l'enveloppe et les fondus
 se comptent depuis ce début : le fichier n'est jamais modifié.
 
+Lecteur bloqué (https://github.com/dascritch/machincast/issues/281) : avec GStreamer 1.24, playbin se bloque au
+démarrage d'un AIFF environ une fois sur 150, sans erreur ni son. Une voie qui n'a pas atteint l'état PLAYING
+DELAI_DE_DEMARRAGE après son démarrage est bloquée (bloquee) : la diffusion la remplace par le sonore suivant.
+
 Le volume suit une enveloppe posée à l'avance sur l'élément volume (GstController), d'après la durée connue du
 sonore. Le moteur ne lit l'heure que par la position des voies : il ne décide de rien, l'ordonnanceur
 (machincast.lecture.deroule) lui dit quoi jouer et quand couper.
 """
 
+import time
+from collections.abc import Callable
 from datetime import timedelta
 from pathlib import Path
 from typing import Literal, Protocol
@@ -48,6 +54,11 @@ LECTURE_AUDIO_SEULE = 0x00000002
 DELAI_PRELECTURE = timedelta(seconds=2)
 """Délai accordé à la pré-lecture d'un fichier rogné, avant la recherche de son début détecté : au-delà, la voie joue
 le fichier depuis son début."""
+
+DELAI_DE_DEMARRAGE = timedelta(seconds=3)
+"""Délai accordé à une voie pour démarrer, c'est-à-dire atteindre l'état PLAYING : au-delà, elle est bloquée. Un
+fichier local démarre en quelques millisecondes ; une voie rognée a déjà eu sa pré-lecture
+(https://github.com/dascritch/machincast/issues/281)."""
 
 DELAI_CONNEXION_SECONDES = 10
 """Délai de connexion et de réponse d'un flux HTTP, au-delà duquel la voie passe en erreur."""
@@ -111,6 +122,7 @@ class Voie:
 		decalage: timedelta | None = None,
 		depart: float = 0.0,
 		arrivee: float = 0.0,
+		horloge: Callable[[], float] = time.monotonic,
 	) -> None:
 		"""chemin : un fichier, ou l'adresse d'un stream. Muette, la voie joue à volume nul jusqu'à un fondu.
 
@@ -171,6 +183,11 @@ class Voie:
 		volume.add_control_binding(GstController.DirectControlBinding.new_absolute(volume, "volume", source))
 
 		self._lecteur = lecteur
+		self._horloge = horloge
+		self._demarree_a: float | None = None
+		"""Instant du démarrage, à l'horloge de la voie : pour constater un lecteur bloqué."""
+		self._a_joue = False
+		"""La voie a atteint l'état PLAYING : elle n'est plus bloquée au démarrage."""
 		self._volume = volume
 		self._source = source
 		self._duree = duree
@@ -223,10 +240,22 @@ class Voie:
 
 	def demarrer(self) -> None:
 		self.etat = "en cours"
+		self._demarree_a = self._horloge()
 		if self._rognee:
 			self._borner()
 		if self._lecteur.set_state(Gst.State.PLAYING) == Gst.StateChangeReturn.FAILURE:
 			self.traiter()
+
+	def bloquee(self) -> bool:
+		"""Le lecteur n'a pas atteint l'état PLAYING DELAI_DE_DEMARRAGE après son démarrage, sans erreur ni fin : il
+		ne jouera rien (https://github.com/dascritch/machincast/issues/281). Jamais bloquée une fois qu'elle a joué."""
+		if (self.etat != "en cours") or (self._demarree_a is None) or (self._a_joue):
+			return False
+		_resultat, actuel, _attendu = self._lecteur.get_state(0)
+		if actuel == Gst.State.PLAYING:
+			self._a_joue = True
+			return False
+		return self._horloge() - self._demarree_a >= DELAI_DE_DEMARRAGE.total_seconds()
 
 	def _borner(self) -> None:
 		"""Pré-lit le fichier, puis borne sa lecture : du début détecté à la fin détectée
@@ -298,6 +327,8 @@ class VoieLecture(Protocol):
 
 	def position(self) -> timedelta: ...
 
+	def bloquee(self) -> bool: ...
+
 	def traiter(self) -> None: ...
 
 	def couper(self) -> None: ...
@@ -338,9 +369,11 @@ class Moteur(Protocol):
 class MoteurAudio:
 	"""Joue les sonores sur la sortie de la configuration, une voie par sonore."""
 
-	def __init__(self, audio: Audio, temps_reel: bool = True) -> None:
+	def __init__(self, audio: Audio, temps_reel: bool = True, horloge: Callable[[], float] = time.monotonic) -> None:
 		self.audio = audio
 		self.temps_reel = temps_reel
+		self.horloge = horloge
+		"""L'horloge des voies, qui constate un lecteur bloqué ; les scénarios la remplacent."""
 		self._voies: list[Voie] = []
 
 	def jouer(
@@ -367,6 +400,7 @@ class MoteurAudio:
 			decalage,
 			depart,
 			arrivee,
+			self.horloge,
 		)
 		voie.demarrer()
 		self._voies.append(voie)

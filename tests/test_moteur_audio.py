@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import gi
 import psycopg
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
@@ -16,6 +17,9 @@ from machincast.lecture.fichiers import verifier_avant_lecture
 from machincast.lecture.moteur import MoteurAudio, Voie, enchainement, fondu_d_entree
 from tests.base_test import configuration_test, parametres_base_test
 from tests.sons import FICHIERS_SONORES, copie_de_test
+
+gi.require_version("Gst", "1.0")
+from gi.repository import Gst  # noqa: E402
 
 scenarios("moteur_audio.feature")
 
@@ -33,6 +37,8 @@ class Contexte:
 	resultat: Path | None = None
 	demarrages: dict[str, float] = field(default_factory=dict)
 	fin_d_attente: float | None = None
+	temps: float = 0.0
+	"""L'horloge du moteur, en secondes, quand c'est celle du scénario (https://github.com/dascritch/machincast/issues/281)."""
 
 
 @pytest.fixture
@@ -41,6 +47,8 @@ def contexte() -> Iterator[Contexte]:
 	yield contexte
 	if contexte.moteur is not None:
 		contexte.moteur.fermer()
+	for voie in contexte.voies.values():
+		voie.fermer()
 
 
 def secondes(texte: str) -> timedelta:
@@ -177,6 +185,50 @@ def sans_fondu_suivant(contexte: Contexte) -> None:
 @given(parsers.re(r"un moteur audio sur la sortie de la configuration de test, (?P<rythme>au plus vite|en temps réel)"))
 def moteur_de_test(contexte: Contexte, rythme: str) -> None:
 	contexte.moteur = MoteurAudio(configuration_test().audio, temps_reel=rythme == "en temps réel")
+
+
+@given("un moteur audio sur la sortie de la configuration de test, en temps réel, à l'horloge du scénario")
+def moteur_a_l_horloge_du_scenario(contexte: Contexte) -> None:
+	contexte.moteur = MoteurAudio(configuration_test().audio, horloge=lambda: contexte.temps)
+
+
+@when(parsers.parse("il joue le fichier de test « {nom} », dont la sortie ne reçoit jamais de son"))
+def jouer_sans_son(contexte: Contexte, nom: str) -> None:
+	"""Un lecteur bloqué au démarrage, comme playbin sur un AIFF : la sortie de la voie bloque tout son entrant, et la
+	voie n'atteint jamais l'état PLAYING."""
+	moteur_ = moteur(contexte)
+	voie = Voie(FICHIERS_SONORES / nom, moteur_.audio, timedelta(seconds=1), horloge=moteur_.horloge)
+	sortie = voie._lecteur.get_property("audio-sink")
+	entree = sortie.get_static_pad("sink")
+	assert entree is not None
+	entree.add_probe(Gst.PadProbeType.BLOCK_DOWNSTREAM, lambda _pad, _info: Gst.PadProbeReturn.OK)
+	voie.demarrer()
+	contexte.voies[nom] = voie
+
+
+@when(parsers.parse("le son de « {nom} » avance"))
+def le_son_avance(contexte: Contexte, nom: str) -> None:
+	limite = time.monotonic() + ATTENTE_MAXIMALE
+	while (contexte.voies[nom].position() <= timedelta(0)) and (time.monotonic() < limite):
+		time.sleep(0.01)
+	assert contexte.voies[nom].position() > timedelta(0)
+
+
+@when(parsers.re(r"(?P<duree>[\d,]+) secondes? passent à l'horloge du moteur"))
+def avancer_l_horloge(contexte: Contexte, duree: str) -> None:
+	contexte.temps += float(duree.replace(",", "."))
+
+
+@then("aucune voie n'est bloquée")
+def aucune_bloquee(contexte: Contexte) -> None:
+	assert {nom: voie.bloquee() for nom, voie in contexte.voies.items()} == dict.fromkeys(contexte.voies, False)
+
+
+@then(parsers.parse("seule la voie de « {nom} » est bloquée"))
+def seule_bloquee(contexte: Contexte, nom: str) -> None:
+	assert {autre: voie.bloquee() for autre, voie in contexte.voies.items()} == {
+		autre: autre == nom for autre in contexte.voies
+	}
 
 
 @when(parsers.parse("il joue le fichier de test « {nom} »"))

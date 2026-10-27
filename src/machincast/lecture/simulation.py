@@ -92,6 +92,10 @@ class VoieSimulee:
 			return ecoule
 		return min(ecoule, self.duree)
 
+	def bloquee(self) -> bool:
+		"""Une voie simulée démarre toujours."""
+		return False
+
 	def fin_prevue(self) -> datetime | None:
 		if self.arret_prevu is not None:
 			return self.debut + self.arret_prevu

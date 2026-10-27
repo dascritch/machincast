@@ -77,7 +77,14 @@ from machincast.lecture.fichiers import verifier_avant_lecture
 from machincast.lecture.fondus import Placement, placer
 from machincast.lecture.grille import Occurrence, Priorite
 from machincast.lecture.historique import EN_BASE, Historique
-from machincast.lecture.moteur import Moteur, VoieLecture, enchainement, fondu_d_entree, superposition
+from machincast.lecture.moteur import (
+	DELAI_DE_DEMARRAGE,
+	Moteur,
+	VoieLecture,
+	enchainement,
+	fondu_d_entree,
+	superposition,
+)
 from machincast.lecture.sorties import Sorties, lire_passages, texte_public
 
 journal = logging.getLogger(__name__)
@@ -122,6 +129,11 @@ VERIFICATION_DES_EXPIRATIONS = timedelta(minutes=1)
 FLUX_ARRETE = "le flux s'est arrêté avant la fin de son événement"
 FLUX_TOMBE = "flux tombé"
 REPRISE_DU_FLUX = "reprise du flux"
+LECTURE_BLOQUEE = "lecture bloquée"
+"""Incident d'un sonore dont le lecteur n'a pas démarré (https://github.com/dascritch/machincast/issues/281)."""
+LECTEUR_BLOQUE = (
+	f"aucun son {DELAI_DE_DEMARRAGE.total_seconds():g} secondes après son démarrage, le sonore suivant est joué"
+).replace(".", ",")
 INTERRUPTION_MANUELLE = "interruption manuelle"
 IGNOREE = f"{INTERRUPTION_MANUELLE} ignorée"
 
@@ -363,6 +375,7 @@ class Diffusion:
 		self._verifier_les_expirations(instant)
 		self.moteur.traiter_messages()
 		self._terminer_les_voies_arretees(instant)
+		self._ecarter_une_lecture_bloquee(instant)
 		if self.etat is not None:
 			for demande in self.etat.demandes():
 				if demande.commande == RELIRE_LA_GRILLE:
@@ -524,6 +537,22 @@ class Diffusion:
 		self.sortants = [s for s in self.sortants if s.voie.etat == "en cours"]
 		if (self.courant is not None) and (self.courant.voie.etat != "en cours"):
 			self.courant = None
+
+	def _ecarter_une_lecture_bloquee(self, instant: datetime) -> None:
+		"""Un sonore dont le lecteur n'a pas démarré ne jouera rien : son passage se termine en incident, et le sonore
+		suivant prend sa place, comme après un sonore fini (https://github.com/dascritch/machincast/issues/281). Un
+		stream a son propre délai de connexion, et sa chute son repli : il n'est pas concerné."""
+		courant = self.courant
+		if (courant is None) or (courant.parametres.stream) or (not courant.voie.bloquee()):
+			return
+		courant.voie.couper()
+		self._terminer(
+			courant.passage,
+			instant,
+			erreur=f"{courant.parametres.emplacement} : {LECTEUR_BLOQUE}",
+			nature=LECTURE_BLOQUEE,
+		)
+		self.courant = None
 
 	@staticmethod
 	def _au_crossfade_de_fin(lecture: Lecture) -> bool:
