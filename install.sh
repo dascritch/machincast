@@ -96,7 +96,7 @@ aide() {
 		     dont il est propriétaire, rôles de MachinCast, schéma ;
 		  5. autorisation de ${UTILISATEUR} aux rôles ${ROLES[*]}, groupe systemd-journal ;
 		  6. liens ${LIEN_INSTALLATION}, ${LIEN_WRAPPER} et l'autocomplétion bash ;
-		  7. vérification des greffons GStreamer et de la sortie audio ;
+		  7. vérification de la version et des greffons GStreamer, et de la sortie audio ;
 		  8. raccourci de l'interface dans le menu des applications de ${UTILISATEUR}, et, s'il le veut,
 		     sur son bureau : la question est posée, sauf avec --bureau ou --sans-bureau.
 		Avec --dev, aussi les outils du poste de développement : ${PAQUETS_DEV[*]} (apt) et les
@@ -436,7 +436,7 @@ installer_liens() {
 }
 
 verifier_greffons() {
-	etape "Greffons GStreamer et sortie audio"
+	etape "Version et greffons GStreamer, sortie audio"
 	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
 		info "[simulation] vérification faite une fois l'environnement virtuel créé"
 		return

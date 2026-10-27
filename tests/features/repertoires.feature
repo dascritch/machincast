@@ -43,11 +43,11 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Alors la banque « Formats » contient, dans l'ordre, « formats/son.<extension> »
 		Et le sonore de « formats/son.<extension> » est à l'état « actif »
 
-		# AIFF désactivé (https://github.com/dascritch/machincast/issues/236) : sous charge, GStreamer 1.24 (aiffparse)
-		# échoue de temps en temps sur ce fichier, hors du code de MachinCast. À revérifier avec une version ultérieure
-		# de GStreamer, en remettant la ligne « aiff » dans ces exemples.
+		# AIFF réactivé avec GStreamer 1.28 (https://github.com/dascritch/machincast/issues/284), après sa mise de côté
+		# pour un défaut de GStreamer 1.24 (https://github.com/dascritch/machincast/issues/236).
 		Exemples:
 			| extension |
+			| aiff      |
 			| mp3       |
 			| m4a       |
 			| aac       |

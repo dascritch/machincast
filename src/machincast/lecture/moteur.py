@@ -1,9 +1,9 @@
 """Moteur audio GStreamer avec crossfade (https://github.com/dascritch/machincast/issues/15, spec § 5.1).
 
-Chaque sonore joue dans sa propre voie : un pipeline playbin qui sort sur l'élément de la sortie configurée
-(machincast.audio), précédé d'un élément volume. Deux voies se superposent pendant un crossfade ; la sortie
-mélange leurs sons (PipeWire et PulseAudio le font toujours ; en ALSA, il faut un périphérique qui le permet,
-comme « default » avec dmix).
+Chaque sonore joue dans sa propre voie : un pipeline playbin3 (machincast.audio.LECTEUR) qui sort sur l'élément de
+la sortie configurée (machincast.audio), précédé d'un élément volume. Deux voies se superposent pendant un crossfade ;
+la sortie mélange leurs sons (PipeWire et PulseAudio le font toujours ; en ALSA, il faut un périphérique qui le
+permet, comme « default » avec dmix).
 
 - Crossfade de début : le sonore monte de 0 à plein volume pendant crossfade_debut.
 - Crossfade de fin : le sonore s'éteint pendant ses crossfade_fin dernières secondes, et le sonore suivant démarre
@@ -22,8 +22,10 @@ decalage secondes du début du fichier (son début détecté) et s'arrête d'ell
 détectée), par une recherche (seek) qui borne la lecture du fichier. La position de la voie, l'enveloppe et les fondus
 se comptent depuis ce début : le fichier n'est jamais modifié.
 
-Lecteur bloqué (https://github.com/dascritch/machincast/issues/281) : avec GStreamer 1.24, playbin se bloque au
-démarrage d'un AIFF environ une fois sur 150, sans erreur ni son. Une voie qui n'a pas atteint l'état PLAYING
+Lecteur bloqué (https://github.com/dascritch/machincast/issues/281) : playbin se bloquait au démarrage d'un AIFF,
+sans erreur ni son, avec GStreamer 1.24 comme avec 1.28 (36 fois sur 300 en temps réel). playbin3, qui le remplace,
+ne s'est jamais bloqué (https://github.com/dascritch/machincast/issues/284) ; la garde reste, contre tout lecteur
+qui ne démarre pas. Une voie qui n'a pas atteint l'état PLAYING
 DELAI_DE_DEMARRAGE après son démarrage est bloquée (bloquee) : la diffusion la remplace par le sonore suivant.
 
 Le volume suit une enveloppe posée à l'avance sur l'élément volume (GstController), d'après la durée connue du
@@ -43,7 +45,7 @@ gi.require_version("Gst", "1.0")
 gi.require_version("GstController", "1.0")
 from gi.repository import Gst, GstController  # type: ignore[attr-defined]  # noqa: E402
 
-from machincast.audio import SortieAudioIndisponible, creer_sortie  # noqa: E402
+from machincast.audio import LECTEUR, SortieAudioIndisponible, creer_sortie  # noqa: E402
 from machincast.configuration import Audio  # noqa: E402
 
 EtatVoie = Literal["prête", "en cours", "finie", "coupée", "en erreur"]
@@ -147,10 +149,10 @@ class Voie:
 		self.arret_prevu: timedelta | None = None
 		"""Position où la voie s'arrête d'elle-même, à la fin d'un fondu de sortie (eteindre)."""
 
-		lecteur = Gst.ElementFactory.make("playbin", None)
+		lecteur = Gst.ElementFactory.make(LECTEUR, None)
 		volume = Gst.ElementFactory.make("volume", None)
 		if (lecteur is None) or (volume is None):
-			raise SortieAudioIndisponible("playbin ou volume introuvable, installer gstreamer1.0-plugins-base")
+			raise SortieAudioIndisponible(f"{LECTEUR} ou volume introuvable, installer gstreamer1.0-plugins-base")
 		sortie = creer_sortie(audio.sortie, audio.peripherique)
 		# Une vraie sortie suit l'horloge ; la sortie factice peut aller au plus vite, pour les tests.
 		sortie.set_property("sync", temps_reel)

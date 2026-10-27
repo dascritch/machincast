@@ -17,13 +17,16 @@ from PySide6.QtGui import QColor, QIcon, QImage
 from PySide6.QtWidgets import QApplication
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from machincast import installation
 from machincast.audio import Greffon
 from machincast.configuration import REPERTOIRE_PROJET, SortieAudio
 from machincast.installation import (
+	COMPOSANTS,
 	ICONE,
 	MINUTEUR_PURGE,
 	UNITE,
 	UNITE_PURGE,
+	Ancienne,
 	Compte,
 	Manque,
 	raccourci,
@@ -33,6 +36,7 @@ from machincast.installation import (
 	verifier_decodeurs,
 	verifier_sortie,
 	verifier_streams,
+	verifier_versions,
 )
 from machincast.interface.application import application
 from tests.base_test import chemin_configuration_test, configuration_test
@@ -78,6 +82,57 @@ def sources_desactivees(protocole: str) -> Iterator[None]:
 	yield
 	for fabrique, rang in rangs:
 		fabrique.set_rank(rang)
+
+
+@given(parsers.parse("{composant} en version « {version} »"))
+def version_installee(monkeypatch: pytest.MonkeyPatch, composant: str, version: str) -> None:
+	"""Simule une autre version installée du composant ; les autres gardent la leur."""
+	greffon, _paquet = COMPOSANTS[composant]
+	vraie_version = installation.lire_version
+
+	def lire(demande: str | None) -> str | None:
+		if demande == greffon:
+			return version
+		return vraie_version(demande)
+
+	monkeypatch.setattr(installation, "lire_version", lire)
+
+
+@when("je vérifie la version de GStreamer", target_fixture="anciennes")
+def versions() -> list[Ancienne]:
+	return verifier_versions()
+
+
+@then("aucune version de GStreamer n'est plus ancienne que la version vérifiée")
+def aucune_ancienne(anciennes: list[Ancienne]) -> None:
+	assert anciennes == [], anciennes
+
+
+@then(parsers.parse("{composant} n'est pas signalé"))
+def composant_non_signale(anciennes: list[Ancienne], composant: str) -> None:
+	assert [ancienne for ancienne in anciennes if ancienne.composant == composant] == [], anciennes
+
+
+@then(parsers.parse("{composant} est signalé en version « {version} », avec le paquet « {paquet} »"))
+def ancienne_signalee(anciennes: list[Ancienne], composant: str, version: str, paquet: str) -> None:
+	assert Ancienne(composant, version, paquet) in anciennes, anciennes
+
+
+@when("je vérifie les greffons comme la ligne de commande", target_fixture="code_de_sortie")
+def verifier_comme_la_ligne_de_commande(caplog: pytest.LogCaptureFixture) -> int:
+	caplog.set_level("INFO", logger="machincast.installation")
+	return installation._verifier(configuration_test())
+
+
+@then("la vérification réussit")
+def verification_reussie(code_de_sortie: int) -> None:
+	assert code_de_sortie == 0
+
+
+@then(parsers.parse("le journal avertit « {message} »"))
+def journal_avertit(caplog: pytest.LogCaptureFixture, message: str) -> None:
+	avertissements = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+	assert message in avertissements, avertissements
 
 
 @when("je vérifie la source des streams", target_fixture="manques")

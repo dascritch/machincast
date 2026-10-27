@@ -9,6 +9,7 @@ son propriétaire, son groupe de contrôle et son répertoire. Les comptes « ra
 import os
 import subprocess
 import sys
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -88,11 +89,14 @@ def disparu(poste: Poste, pid: int) -> None:
 
 
 @given(parsers.parse("le répertoire du processus {pid:d} illisible"))
-def repertoire_illisible(poste: Poste, pid: int) -> None:
-	"""Comme pour un autre compte : le lien cwd ne se lit pas."""
+def repertoire_illisible(poste: Poste, pid: int) -> Iterator[None]:
+	"""Comme pour un autre compte : le lien cwd ne se lit pas. Ses droits reviennent à la fin du scénario : sans eux,
+	pytest ne peut pas effacer le répertoire temporaire d'un compte qui n'est pas root."""
 	lien = poste.proc / str(pid) / "cwd"
 	lien.unlink()
 	lien.mkdir(mode=0)
+	yield
+	lien.chmod(0o700)
 
 
 @given(parsers.parse("une session graphique, avec le terminal « {terminal} »"))

@@ -75,6 +75,7 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Et je clique sur « Pré-écoute… »
 		Et je lance la pré-écoute
 		Alors la pré-écoute est bientôt « En lecture »
+		Et la pré-écoute lit par l'élément GStreamer « playbin3 »
 		Et le VU-mètre de la pré-écoute montre bientôt du son
 		Et la pré-écoute montre bientôt les informations :
 			| information     | valeur           |
