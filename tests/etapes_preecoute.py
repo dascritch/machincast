@@ -109,6 +109,15 @@ def fermer(interface: Contexte) -> None:
 	fenetre_de_preecoute(interface).close()
 
 
+@then(parsers.parse("la pré-écoute lit par l'élément GStreamer « {fabrique} »"))
+def lecteur_de_la_preecoute(interface: Contexte, fabrique: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/284 : playbin3, qui ne se bloque pas au démarrage d'un AIFF."""
+	pipeline = fenetre_de_preecoute(interface).lecteur._pipeline
+	assert pipeline is not None
+	usine = pipeline.get_factory()
+	assert (usine is not None) and (usine.get_name() == fabrique)
+
+
 @then(parsers.parse("la fenêtre de pré-écoute est ouverte, titrée « {titre} »"))
 def ouverte(interface: Contexte, titre: str) -> None:
 	ouverte = fenetre_de_preecoute(interface)

@@ -3,8 +3,8 @@ https://github.com/dascritch/machincast/issues/29, spec § 8.3).
 
 Une fenêtre indépendante, une seule pour toute l'interface (FenetrePrincipale.preecoute) : la fiche d'un sonore
 y envoie son sonore, qui remplace le précédent, à l'arrêt ; le menu « Affichage » l'ouvre sans sonore, pour choisir
-sa sortie. Son lecteur est un pipeline playbin de GStreamer, dont le bus est relevé par un minuteur de Qt : rien ne
-bloque l'interface.
+sa sortie. Son lecteur est un pipeline playbin3 de GStreamer (machincast.audio.LECTEUR), dont le bus est relevé par
+un minuteur de Qt : rien ne bloque l'interface.
 
 - Sortie : le périphérique de pré-écoute de la configuration (audio.preecoute), sur la sortie de l'antenne
   (audio.sortie), jamais le périphérique de l'antenne. Le choix liste les périphériques du poste (peripheriques), celui
@@ -44,7 +44,7 @@ from PySide6.QtGui import QCloseEvent, QStandardItemModel  # noqa: E402
 from PySide6.QtWidgets import QVBoxLayout, QWidget  # noqa: E402
 
 from machincast import audio as sorties_audio  # noqa: E402
-from machincast.audio import creer_sortie  # noqa: E402
+from machincast.audio import LECTEUR, creer_sortie  # noqa: E402
 from machincast.configuration import Audio, Crossfades, SortieAudio  # noqa: E402
 from machincast.interface import affichage, etats, liaison, preferences  # noqa: E402
 from machincast.interface.frise import FormeDOnde, Frise, Plan, plan_du_sonore  # noqa: E402
@@ -357,7 +357,7 @@ class Lecteur:
 	def _construire(self, source: Source) -> Gst.Element:
 		if source.antenne is not None:
 			return self._construire_l_ecoute(source.antenne)
-		lecteur = Gst.ElementFactory.make("playbin", None)
+		lecteur = Gst.ElementFactory.make(LECTEUR, None)
 		niveau = Gst.ElementFactory.make("level", None)
 		assert (lecteur is not None) and (niveau is not None), "installer gstreamer1.0-plugins-base et -good"
 		niveau.set_property("interval", INTERVALLE_DES_NIVEAUX)

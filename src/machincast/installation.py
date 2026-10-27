@@ -2,7 +2,7 @@
 
 	python -m machincast.installation bases     --config machincast.toml   socket, base de production, base de test
 	python -m machincast.installation migrer    --config machincast.toml   schéma appliqué aux deux bases
-	python -m machincast.installation verifier  --config machincast.toml   décodeurs GStreamer et sortie audio
+	python -m machincast.installation verifier  --config machincast.toml   GStreamer : version, greffons ; sortie audio
 	python -m machincast.installation unite     --config machincast.toml   unité systemd du service de lecture
 	python -m machincast.installation regle     --config machincast.toml   règle polkit qui le pilote
 	python -m machincast.installation unite-purge    --config machincast.toml   unité systemd de la purge
@@ -14,11 +14,12 @@ peripheriques n'est pas appelé par install.sh : il aide à trouver les identifi
 et audio.preecoute (https://github.com/dascritch/machincast/issues/116).
 
 install.sh enchaîne les commandes système (apt, sudo, psql, liens) ; ce module porte ce qui se teste : la lecture
-de la configuration, les migrations, la vérification des greffons GStreamer, et le texte de l'unité systemd et de la
-règle polkit du service de lecture (https://github.com/dascritch/machincast/issues/22), et ceux de l'unité et du
-minuteur de la purge quotidienne (https://github.com/dascritch/machincast/issues/268), qu'install.sh --service
-installe, et celui du raccourci de l'interface, qu'install.sh met dans le menu des applications du compte et, sur
-demande, sur son bureau (https://github.com/dascritch/machincast/issues/62).
+de la configuration, les migrations, la vérification de la version et des greffons GStreamer
+(https://github.com/dascritch/machincast/issues/284), et le texte de l'unité systemd et de la règle polkit du service
+de lecture (https://github.com/dascritch/machincast/issues/22), et ceux de l'unité et du minuteur de la purge
+quotidienne (https://github.com/dascritch/machincast/issues/268), qu'install.sh --service installe, et celui du
+raccourci de l'interface, qu'install.sh met dans le menu des applications du compte et, sur demande, sur son bureau
+(https://github.com/dascritch/machincast/issues/62).
 """
 
 import argparse
@@ -164,6 +165,54 @@ def verifier_sortie(configuration: Configuration, greffons: dict[SortieAudio, Gr
 	return []
 
 
+VERSION_VERIFIEE = (1, 28)
+"""Version de GStreamer avec laquelle MachinCast est vérifié, celle d'Ubuntu 26.04 LTS
+(https://github.com/dascritch/machincast/issues/284) : la suite de tests et les mesures de tests.mesures_gstreamer
+y sont faites. Une version plus ancienne fonctionne, sans garantie : ses défauts peuvent être autres."""
+DISTRIBUTION_VERIFIEE = "Ubuntu 26.04 LTS"
+COMPOSANTS: dict[str, tuple[str | None, str]] = {
+	"GStreamer": (None, "libgstreamer1.0-0"),
+	"le greffon GStreamer playback": ("playback", "gstreamer1.0-plugins-base"),
+	"le greffon GStreamer flac": ("flac", "gstreamer1.0-plugins-good"),
+	"le greffon GStreamer aiff": ("aiff", "gstreamer1.0-plugins-bad"),
+}
+"""Le cœur de GStreamer, et un greffon de chaque paquet de greffons : celui qui les fournit, à mettre à jour."""
+
+
+@dataclass(frozen=True)
+class Ancienne:
+	composant: str
+	version: str
+	paquet: str
+
+
+def lire_version(greffon: str | None) -> str | None:
+	"""La version installée du cœur de GStreamer, ou d'un greffon ; None pour un greffon absent."""
+	Gst.init(None)
+	if greffon is None:
+		majeure, mineure, corrective, _nano = Gst.version()
+		return f"{majeure}.{mineure}.{corrective}"
+	trouve = Gst.Registry.get().find_plugin(greffon)
+	if trouve is None:
+		return None
+	return str(trouve.get_version())
+
+
+def _numeros(version: str) -> tuple[int, ...]:
+	return tuple(int(numero) for numero in version.split(".")[:2] if numero.isdigit())
+
+
+def verifier_versions() -> list[Ancienne]:
+	"""Ce qui est plus ancien que la version vérifiée, avec le paquet à mettre à jour. Un greffon absent n'est pas
+	signalé ici : verifier_decodeurs le signale."""
+	anciennes = []
+	for composant, (greffon, paquet) in COMPOSANTS.items():
+		version = lire_version(greffon)
+		if (version is not None) and (_numeros(version) < VERSION_VERIFIEE):
+			anciennes.append(Ancienne(composant, version, paquet))
+	return anciennes
+
+
 def _bases(configuration: Configuration) -> int:
 	# Données lues par install.sh, une valeur par ligne : ce n'est pas un message, d'où l'écriture directe.
 	base = configuration.base
@@ -190,6 +239,12 @@ def _migrer(configuration: Configuration) -> int:
 
 
 def _verifier(configuration: Configuration) -> int:
+	verifiee = ".".join(str(numero) for numero in VERSION_VERIFIEE)
+	for ancienne in verifier_versions():
+		journal.warning(
+			f"{ancienne.composant} {ancienne.version} : MachinCast est vérifié avec la version {verifiee}"
+			f" ({DISTRIBUTION_VERIFIEE}) ; mettre à jour {ancienne.paquet}"
+		)
 	manques = verifier_decodeurs() + verifier_streams() + verifier_sortie(configuration)
 	for manque in manques:
 		journal.error(f"{manque.element} : greffon GStreamer absent, installer {manque.paquet}")

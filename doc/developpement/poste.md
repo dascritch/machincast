@@ -2,6 +2,8 @@
 
 [Guide du développement](README.md) › Poste de développement
 
+**Le poste de développement et de test est en Ubuntu 26.04 LTS**, la cible de MachinCast, avec sa version de GStreamer, la 1.28 ([#284](https://github.com/dascritch/machincast/issues/284)). Les défauts de GStreamer dépendent de sa version : un résultat de test, ou une mesure, obtenu sur une autre version ne vaut pas pour la cible. Un scénario de `installation.feature` échoue sur un poste dont GStreamer est plus ancien. Un compte rendu de test, un ticket ou une PR donne la version d'Ubuntu et celle de GStreamer du poste (`gst-inspect-1.0 --version`).
+
 Un poste installé par `install.sh` suffit pour lancer les tests : le compte n'a besoin d'aucun droit PostgreSQL particulier, puisqu'il est propriétaire de la base de test et endosse déjà les trois rôles. Les tests ne créent jamais de compte PostgreSQL et n'attribuent jamais de rôle.
 
 En plus, installer les outils de développement et les dépendances de test ([#77](https://github.com/dascritch/machincast/issues/77)) :
@@ -56,3 +58,25 @@ Machin dev-captures /tmp/essai        # ailleurs, pour comparer
 - **Reproductible** : mêmes données, même heure, même style Qt (Fusion), même taille de fenêtre (1280 × 800) : seule une modification des écrans change les images.
 - **Liste** : les captures sont nommées dans `CAPTURES`, dans `tests/captures.py`. Une capture ajoutée doit être citée par le guide de l'antenne, et une image de `doc/captures` doit être une capture de la commande : les scénarios de `captures.feature` le vérifient.
 - **Relire** les images avant de les livrer : une capture est un écran tel que l'utilisateur le verra, défauts compris.
+
+## Mesurer les blocages de GStreamer
+
+Certains défauts de GStreamer, sur l'AIFF surtout, ont demandé des contournements : décodage repris au démarrage ([#280](https://github.com/dascritch/machincast/issues/280)), voie bloquée remplacée ([#281](https://github.com/dascritch/machincast/issues/281)), lecteur `playbin3` ([#284](https://github.com/dascritch/machincast/issues/284)). Leur fréquence se mesure hors du code de MachinCast, à refaire à chaque mise à jour de GStreamer, avant d'écrire ou de retirer un contournement :
+
+```bash
+.venv/bin/python -m tests.mesures_gstreamer                  # 1 000 essais par pipeline et par format
+.venv/bin/python -m tests.mesures_gstreamer -n 200 -j 4      # quatre mesures à la fois, sous charge
+.venv/bin/python -m tests.mesures_gstreamer --synchrone --pipelines playbin playbin3 --formats aiff   # en temps réel
+```
+
+Chaque essai décode un fichier de `tests/fichiers-sonores`, par le pipeline de la vérification (`decodebin`), ses variantes (`queue ! decodebin`, `decodebin3`) ou un lecteur (`playbin`, `playbin3`). Le bilan donne le poste et la version de GStreamer, puis un tableau Markdown des essais sains, bloqués au démarrage, bloqués en cours, en erreur, ou qui ne rendent plus la main ; puis, pour chaque pipeline, s'il rend la main sur un fichier dont la lecture se bloque (tube nommé). Le tableau se recopie tel quel dans un ticket.
+
+Mesures d'Ubuntu 26.04 LTS, GStreamer 1.28.2 ([#284](https://github.com/dascritch/machincast/issues/284)), en AIFF, les autres formats ne se bloquant pas au démarrage :
+
+| Pipeline | Bloqués au démarrage | Remarque | Décision |
+| --- | --- | --- | --- |
+| `decodebin` | 44 sur 1 000 | rend la main sur un tube | gardé pour la vérification, avec ses six tentatives |
+| `queue ! decodebin` | 0 sur 1 000 | bloqués en cours : 9 WAV, 1 M4A et 1 AIFF sur 1 000 | écarté |
+| `decodebin3` | 0 sur 1 000 | ne rend pas la main sur un tube | écarté |
+| `playbin` | 62 sur 1 000 ; 36 sur 300 en temps réel | | remplacé |
+| `playbin3` | 0 sur 1 000 ; 0 sur 300 en temps réel | | lecteur de l'antenne et de la pré-écoute |

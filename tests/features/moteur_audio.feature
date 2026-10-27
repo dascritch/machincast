@@ -119,6 +119,7 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Et j'attends la fin de ses voies
 		Alors la voie de « sain.flac » est finie
 		Et elle a joué sur l'élément GStreamer « fakesink »
+		Et elle a été lue par l'élément GStreamer « playbin3 »
 
 	Plan du scénario: Chaque format de la spécification est joué
 		Étant donné un moteur audio sur la sortie de la configuration de test, au plus vite
@@ -126,12 +127,11 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Et j'attends la fin de ses voies
 		Alors la voie de « sain.<format> » est finie
 
-		# AIFF désactivé (https://github.com/dascritch/machincast/issues/236) : avec GStreamer 1.24, playbin se bloque au
-		# démarrage d'un AIFF environ une fois sur 150, hors du code de MachinCast ; la diffusion remplace alors le
-		# sonore (https://github.com/dascritch/machincast/issues/281), mais la voie, ici, attendrait sans fin. À
-		# revérifier avec une version ultérieure de GStreamer, en remettant la ligne « aiff » dans ces exemples.
+		# AIFF réactivé avec GStreamer 1.28 (https://github.com/dascritch/machincast/issues/284), après sa mise de côté
+		# pour un défaut de GStreamer 1.24 (https://github.com/dascritch/machincast/issues/236).
 		Exemples:
 			| format |
+			| aiff   |
 			| mp3    |
 			| m4a    |
 			| aac    |
@@ -139,7 +139,7 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 			| wav    |
 
 	Scénario: Une voie qui ne démarre pas est bloquée passé le délai de démarrage ; une voie qui joue ne l'est jamais
-		https://github.com/dascritch/machincast/issues/281 : avec GStreamer 1.24, playbin se bloque parfois au démarrage
+		https://github.com/dascritch/machincast/issues/281 : playbin se bloquait parfois au démarrage
 		d'un AIFF, sans erreur ni son. Le blocage est imité : la sortie de la voie de « sain.flac » ne reçoit jamais de
 		son. L'horloge du moteur est celle du scénario.
 

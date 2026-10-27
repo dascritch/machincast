@@ -108,7 +108,7 @@ Le **log** note les opérations du binaire lecture, avec leur heure, leur niveau
 | `fichier modifié` | alerte | Le fichier a changé depuis l'indexation ; il est quand même joué. |
 | `fichier introuvable` | incident | Le fichier a disparu ; il n'est pas joué. |
 | `lecture interrompue` | incident | La lecture d'un fichier s'est arrêtée sur une erreur, dont le message est noté. |
-| `lecture bloquée` | incident | Le lecteur d'un fichier n'a rien joué 3 secondes après son démarrage ; le sonore suivant est joué ([#281](https://github.com/dascritch/machincast/issues/281)). Constaté avec GStreamer 1.24 sur des AIFF, environ une fois sur 150 : rare et fortuit, le sonore rejoue normalement ensuite. |
+| `lecture bloquée` | incident | Le lecteur d'un fichier n'a rien joué 3 secondes après son démarrage ; le sonore suivant est joué ([#281](https://github.com/dascritch/machincast/issues/281)). Constaté sur des AIFF avec l'ancien lecteur, `playbin`, de GStreamer 1.24 et 1.28 ; le lecteur actuel, `playbin3`, ne s'est jamais bloqué dans les mesures ([#284](https://github.com/dascritch/machincast/issues/284)). Fortuit : le sonore rejoue normalement ensuite. |
 | `flux tombé` | incident | Le flux d'un stream ne répond pas, ou s'est arrêté avant la fin de son événement ; le message donne l'adresse et l'erreur. |
 | `reprise du flux` | incident | Le flux d'un stream tombé est revenu, et le stream reprend l'antenne ; le message donne l'adresse et la durée de la panne. |
 | `sonore expiré` | info | Un sonore a atteint son maximum de lectures ou la fin de sa période de diffusion ; le message donne la cause. |

@@ -26,6 +26,47 @@ Fonctionnalité: Vérifications de l'installation
 			| audio/mpeg, mpegversion=(int)4             | m4a    | gstreamer1.0-plugins-bad  |
 			| audio/mpeg, mpegversion=(int)4, stream-format=(string)adts | aac | gstreamer1.0-plugins-good |
 
+	# ─── Version de GStreamer (https://github.com/dascritch/machincast/issues/284) ───
+	# MachinCast est vérifié avec GStreamer 1.28, celui d'Ubuntu 26.04 LTS : une version plus ancienne est signalée,
+	# sans bloquer l'installation, avec le paquet à mettre à jour. La suite de tests tourne sur la version vérifiée.
+
+	Scénario: GStreamer et ses greffons sont au moins dans la version vérifiée
+		Le poste qui fait tourner la suite de tests est en Ubuntu 26.04 LTS, ou plus récent : ce scénario échoue sur un
+		poste plus ancien, dont les résultats ne valent pas pour la version cible.
+
+		Quand je vérifie la version de GStreamer
+		Alors aucune version de GStreamer n'est plus ancienne que la version vérifiée
+
+	Plan du scénario: Une version plus ancienne que la version vérifiée est signalée, avec le paquet à mettre à jour
+		Étant donné <composant> en version « <version> »
+		Quand je vérifie la version de GStreamer
+		Alors <composant> est signalé en version « <version> », avec le paquet « <paquet> »
+
+		Exemples:
+			| composant                     | version | paquet                    |
+			| GStreamer                     | 1.24.2  | libgstreamer1.0-0         |
+			| le greffon GStreamer playback | 1.27.90 | gstreamer1.0-plugins-base |
+			| le greffon GStreamer flac     | 1.24.2  | gstreamer1.0-plugins-good |
+			| le greffon GStreamer aiff     | 1.20.1  | gstreamer1.0-plugins-bad  |
+
+	Plan du scénario: Une version égale ou plus récente que la version vérifiée n'est pas signalée
+		Étant donné GStreamer en version « <version> »
+		Quand je vérifie la version de GStreamer
+		Alors GStreamer n'est pas signalé
+
+		Exemples:
+			| version |
+			| 1.28.0  |
+			| 1.28.2  |
+			| 1.30.1  |
+			| 2.0.0   |
+
+	Scénario: La vérification en ligne de commande signale une version plus ancienne, sans échouer
+		Étant donné GStreamer en version « 1.24.2 »
+		Quand je vérifie les greffons comme la ligne de commande
+		Alors la vérification réussit
+		Et le journal avertit « GStreamer 1.24.2 : MachinCast est vérifié avec la version 1.28 (Ubuntu 26.04 LTS) ; mettre à jour libgstreamer1.0-0 »
+
 	# ─── Source des streams (https://github.com/dascritch/machincast/issues/16) ───
 
 	Scénario: Avec les paquets installés, les streams HTTP et HTTPS ont leur source

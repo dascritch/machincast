@@ -25,6 +25,11 @@ class Greffon:
 	"""Paquet Ubuntu qui fournit le greffon."""
 
 
+LECTEUR = "playbin3"
+"""Lecteur des voies de l'antenne et de la pré-écoute. Avec GStreamer 1.28, playbin se bloque encore au démarrage
+d'un AIFF (36 fois sur 300 en temps réel), playbin3 jamais (python -m tests.mesures_gstreamer,
+https://github.com/dascritch/machincast/issues/284)."""
+
 GREFFONS: dict[SortieAudio, Greffon] = {
 	"alsa": Greffon("alsasink", "device", "gstreamer1.0-alsa"),
 	"pulseaudio": Greffon("pulsesink", "device", "gstreamer1.0-pulseaudio"),

@@ -194,8 +194,9 @@ def moteur_a_l_horloge_du_scenario(contexte: Contexte) -> None:
 
 @when(parsers.parse("il joue le fichier de test « {nom} », dont la sortie ne reçoit jamais de son"))
 def jouer_sans_son(contexte: Contexte, nom: str) -> None:
-	"""Un lecteur bloqué au démarrage, comme playbin sur un AIFF : la sortie de la voie bloque tout son entrant, et la
-	voie n'atteint jamais l'état PLAYING."""
+	"""Un lecteur bloqué au démarrage, comme playbin sur un AIFF, avant playbin3
+	(https://github.com/dascritch/machincast/issues/284) : la sortie de la voie bloque tout son entrant, et la voie
+	n'atteint jamais l'état PLAYING."""
 	moteur_ = moteur(contexte)
 	voie = Voie(FICHIERS_SONORES / nom, moteur_.audio, timedelta(seconds=1), horloge=moteur_.horloge)
 	sortie = voie._lecteur.get_property("audio-sink")
@@ -296,6 +297,14 @@ def finie(contexte: Contexte, nom: str) -> None:
 def element_de_sortie(contexte: Contexte, fabrique: str) -> None:
 	voie = next(iter(contexte.voies.values()))
 	assert voie.fabrique_de_sortie == fabrique
+
+
+@then(parsers.parse("elle a été lue par l'élément GStreamer « {fabrique} »"))
+def element_du_lecteur(contexte: Contexte, fabrique: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/284 : playbin3, qui ne se bloque pas au démarrage d'un AIFF."""
+	voie = next(iter(contexte.voies.values()))
+	usine = voie._lecteur.get_factory()
+	assert (usine is not None) and (usine.get_name() == fabrique)
 
 
 @then(parsers.parse("{nombre:d} voies sont en cours"))

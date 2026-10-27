@@ -4,8 +4,10 @@ Fonctionnalité: Un sonore dont la lecture ne démarre pas est remplacé
 	je veux qu'un sonore AIFF qui ne démarre pas soit remplacé,
 	afin de ne jamais laisser l'antenne en silence sur un lecteur bloqué.
 
-	https://github.com/dascritch/machincast/issues/281. Avec GStreamer 1.24, playbin se bloque au démarrage d'un AIFF
-	environ une fois sur 150 : la voie reste « en cours », sans erreur ni son. Passé le délai de démarrage
+	https://github.com/dascritch/machincast/issues/281. playbin se bloquait au démarrage d'un AIFF, avec GStreamer 1.24
+	comme 1.28 : la voie reste « en cours », sans erreur ni son. playbin3, le lecteur des voies depuis
+	https://github.com/dascritch/machincast/issues/284, ne s'est jamais bloqué ; la garde reste contre tout lecteur qui
+	ne démarre pas. Passé le délai de démarrage
 	(moteur.DELAI_DE_DEMARRAGE, 3 secondes), la voie est bloquée : la diffusion termine son passage en incident « lecture
 	bloquée », et joue le sonore suivant, comme après un sonore fini. Un stream n'est jamais déclaré bloqué ainsi : sa
 	connexion a son propre délai, et sa chute son repli (https://github.com/dascritch/machincast/issues/16). Les
