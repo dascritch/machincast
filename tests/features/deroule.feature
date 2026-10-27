@@ -27,6 +27,25 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 			| 20:20 | jingle | Magazine  | entier |
 			| 20:30 | t2     | Magazine  | entier |
 
+	Scénario: Une émission avancée garde sa place dans sa liste, passé son début prévu
+		https://github.com/dascritch/machincast/issues/257 : sa liste se compte depuis l'avance.
+
+		Étant donné les événements :
+			| nom      | priorité    | début | fin   | liste                                    |
+			| Continue | fil_musical |       |       | sonore « f »                             |
+			| Magazine | emission    | 20:30 | 21:30 | sonore « a », sonore « b », sonore « c » |
+		Quand la diffusion se déroule de 20:00 à 20:10
+		Et l'événement suivant est avancé à 20:10
+		Et la diffusion se déroule de 20:10 à 21:00
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | f      | Continue  | entier |
+			| 20:10 | a      | Magazine  | entier |
+			| 20:20 | b      | Magazine  | entier |
+			| 20:30 | c      | Magazine  | entier |
+			| 20:40 | a      | Magazine  | entier |
+			| 20:50 | b      | Magazine  | entier |
+
 	Scénario: Une liste terminée avant la fin de l'événement reprend au début
 		Étant donné les événements :
 			| nom      | priorité | début | fin   | liste                    |

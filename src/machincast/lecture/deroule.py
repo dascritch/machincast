@@ -60,6 +60,7 @@ REESSAI_FICHIER_INTROUVABLE : il est traité comme non jouable, pour ne pas le r
 (https://github.com/dascritch/machincast/issues/88).
 """
 
+import dataclasses
 import uuid
 from collections.abc import Collection, Iterator, Sequence
 from contextlib import contextmanager
@@ -78,6 +79,7 @@ from machincast.lecture.grille import (
 	Occurrence,
 	Priorite,
 	evenement_actif,
+	evenement_suivant,
 	heure_murale,
 	lire_evenement,
 	lire_grille,
@@ -232,8 +234,10 @@ def dernier_element(
 	"""Dernier élément joué de l'événement : dans l'occurrence en cours, ou depuis toujours pour un fil musical."""
 	evenement = occurrence.evenement
 	depuis = None
-	if (evenement.priorite not in (Priorite.FIL_MUSICAL, Priorite.SECOURS)) and (occurrence.debut is not None):
-		depuis = occurrence.debut.astimezone()
+	# Une occurrence avancée a commencé avant son début prévu (https://github.com/dascritch/machincast/issues/257).
+	commencee = (occurrence.commencee) or (occurrence.debut)
+	if (evenement.priorite not in (Priorite.FIL_MUSICAL, Priorite.SECOURS)) and (commencee is not None):
+		depuis = commencee.astimezone()
 	return historique.dernier_element(connexion, evenement.id, depuis)
 
 
@@ -357,6 +361,40 @@ class Ordonnanceur:
 		"""Éléments sautés déjà notés dans le log, pour le dernier passage : une seule ligne par élément."""
 		self.sequence_abandonnee: uuid.UUID | None = None
 		"""Passage dont la séquence a été interrompue : elle ne continue pas après lui."""
+		self.avancee: Occurrence | None = None
+		"""L'occurrence avancée à la demande (https://github.com/dascritch/machincast/issues/257) : active dès la
+		demande, jusqu'à son début prévu, où la grille la retrouve. Retenue en mémoire seulement, comme une occurrence
+		terminée plus tôt."""
+
+	def _actif(
+		self,
+		evenements: list[Evenement],
+		instant: datetime,
+		terminees: Collection[tuple[int, datetime | None]] | None = None,
+	) -> Occurrence | None:
+		"""L'occurrence active, l'occurrence avancée comprise ; terminees, sinon celles de l'ordonnanceur."""
+		if terminees is None:
+			terminees = self.terminees
+		actif = evenement_actif(evenements, instant, frozenset(terminees), self.avancee)
+		# Après son début prévu, la grille la retrouve, sans l'heure où elle a commencé : celle de l'avance.
+		if (actif is not None) and (self.avancee is not None) and (actif.cle == self.avancee.cle):
+			return self.avancee
+		return actif
+
+	def evenement_suivant(self, instant: datetime) -> Occurrence | None:
+		"""L'événement suivant, après l'occurrence en cours, avancée comprise (grille.evenement_suivant)."""
+		with self.connexion.transaction():
+			evenements = lire_grille(self.connexion)
+		return evenement_suivant(evenements, instant, frozenset(self.terminees), self.avancee)
+
+	def avancer(self, instant: datetime) -> Occurrence | None:
+		"""L'événement suivant commence aussitôt (https://github.com/dascritch/machincast/issues/257) ; None sans lui.
+		Une séquence en cours ne continue pas : l'occurrence avancée a commencé après son dernier passage (_suite)."""
+		suivant = self.evenement_suivant(instant)
+		if suivant is None:
+			return None
+		self.avancee = dataclasses.replace(suivant, commencee=heure_murale(instant))
+		return self.avancee
 
 	def reserver(self, instant: datetime) -> Choix | None:
 		"""Prochain sonore, choisi dès le début du sonore en cours (https://github.com/dascritch/machincast/issues/20).
@@ -382,7 +420,7 @@ class Ordonnanceur:
 		terminees = frozenset(self.terminees)
 		moment = prochain_changement(evenements, instant)
 		while (moment is not None) and (moment < horizon):
-			actif = evenement_actif(evenements, moment, terminees)
+			actif = self._actif(evenements, moment, terminees)
 			if (
 				(actif is not None)
 				and (actif.cle != en_cours.occurrence.cle)
@@ -462,8 +500,7 @@ class Ordonnanceur:
 		"""Le sonore réservé peut-il encore être joué : son occurrence est toujours active et il est jouable."""
 		with self.connexion.transaction():
 			evenements = lire_grille(self.connexion)
-			actif = evenement_actif(evenements, instant, frozenset(self.terminees))
-			actif = self._remplacer(evenements, instant, actif)
+			actif = self._remplacer(evenements, instant, self._actif(evenements, instant))
 			if (actif is None) or (actif.cle != choix.occurrence.cle) or (choix.sonore in self._exclus(instant)):
 				return False
 			return sonore_jouable(self.connexion, choix.sonore, instant, self.historique)
@@ -504,9 +541,7 @@ class Ordonnanceur:
 			terminees.append(suspension.occurrence)
 			self._lever_suspension()
 		while True:
-			actif = self._remplacer(
-				evenements, instant, evenement_actif(evenements, instant, frozenset(self.terminees))
-			)
+			actif = self._remplacer(evenements, instant, self._actif(evenements, instant))
 			if (actif is None) or (actif.evenement.priorite in (Priorite.FIL_MUSICAL, Priorite.SECOURS)):
 				return terminees
 			self.terminees.add(actif.cle)
@@ -557,9 +592,7 @@ class Ordonnanceur:
 		evenements = lire_grille(self.connexion)
 		couper = eteindre = False
 		while True:
-			actif = self._remplacer(
-				evenements, instant, evenement_actif(evenements, instant, frozenset(self.terminees))
-			)
+			actif = self._remplacer(evenements, instant, self._actif(evenements, instant))
 			if (en_cours is not None) and (not ((couper) or (eteindre))):
 				if (actif is not None) and (actif.cle == en_cours.occurrence.cle):
 					return Decision()
@@ -673,7 +706,7 @@ class Ordonnanceur:
 			if secours.cle not in self.terminees:
 				return secours
 		# Sans secours, ou secours sans rien de jouable : l'événement de priorité inférieure.
-		return evenement_actif(evenements, instant, frozenset(self.terminees | {suspension.occurrence.cle}))
+		return self._actif(evenements, instant, self.terminees | {suspension.occurrence.cle})
 
 	@staticmethod
 	def _commence_apres(actif: Occurrence, en_cours: EnCours) -> bool:

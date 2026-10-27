@@ -157,6 +157,118 @@ Fonctionnalité: Interruption manuelle de l'antenne
 		Et le log ne note aucune interruption manuelle
 		Et le journal du binaire a signalé « interruption manuelle ignorée : le fil musical est déjà à l'antenne »
 
+	# ─── Avancer l'événement suivant (https://github.com/dascritch/machincast/issues/257) ───
+	# L'événement suivant, la première occurrence à venir qui prendra l'antenne, commence aussitôt, au-dessus de tout,
+	# jusqu'à sa fin prévue : à son début prévu, rien ne change. La demande nomme l'événement attendu, celui que
+	# Machin lecture a annoncé ; un autre événement suivant, depuis, la fait ignorer.
+
+	Scénario: Avancer l'événement suivant le met aussitôt à l'antenne, jusqu'à sa fin prévue
+		Une émission qui a une fin boucle sa liste jusqu'à elle.
+
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 », « f3 »
+		Et l'émission « Journal » de 20:30:00 à 20:45:00, avec les sonores « j1 », « j2 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et j'avance l'événement suivant « Journal »
+		Et la diffusion avance de 130 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre :
+			| sonore | début    | fin      | sans incident |
+			| f1     | 20:00:00 | 20:00:10 | oui           |
+			| j1     | 20:00:10 | 20:01:10 | oui           |
+			| j2     | 20:01:10 | 20:02:10 | oui           |
+			| j1     | 20:02:10 | 20:02:20 | oui           |
+		Et le log note l'avance « de l'événement « Journal », prévu le 14/10/2026 à 20:30 »
+
+	Scénario: À son début prévu, l'événement avancé continue, sans coupure
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'émission « Journal » de 20:01:00 à 20:30:00, avec les sonores « j1 », « j2 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 30 secondes
+		Et j'avance l'événement suivant « Journal »
+		Et la diffusion avance de 100 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre :
+			| sonore | début    | fin      | sans incident |
+			| f1     | 20:00:00 | 20:00:30 | oui           |
+			| j1     | 20:00:30 | 20:01:30 | oui           |
+			| j2     | 20:01:30 | 20:02:10 | oui           |
+
+	Scénario: Un spécial en cours cède aussi la place à l'événement avancé
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
+		Et le spécial « Flash » de 20:00:00 à 20:20:00, avec les sonores « s1 », « s2 »
+		Et l'émission « Journal » de 20:30:00 à 20:45:00, avec le sonore « j »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et j'avance l'événement suivant « Journal »
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « s1 », « j »
+
+	Scénario: Une séquence en cours ne continue pas après l'avance
+		Étant donné la séquence « Pub » des sonores « p1 », « p2 », jouée par le fil musical permanent « Continue », avant le sonore « f »
+		Et l'émission « Journal » de 20:30:00 à 20:45:00, avec le sonore « j »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et j'avance l'événement suivant « Journal »
+		Et la diffusion avance de 70 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « p1 », « j », « j »
+
+	Scénario: Sans événement suivant, avancer ne fait rien
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et j'avance l'événement suivant « Journal »
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 »
+		Et le log ne note aucune avance
+		Et le journal du binaire a signalé « avance ignorée : aucun événement suivant »
+
+	Scénario: Un autre événement suivant que celui demandé fait ignorer l'avance
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'émission « Journal » de 20:30:00 à 20:45:00, avec le sonore « j »
+		Et l'émission « Concert » de 21:00:00 à 22:00:00, avec le sonore « c »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et j'avance l'événement suivant « Concert »
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 »
+		Et le log ne note aucune avance
+		Et le journal du binaire a signalé « avance ignorée : l'événement suivant est « Journal », pas « Concert » »
+
+	Scénario: Machin lecture annonce l'événement suivant, puis le suivant une fois avancé
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'émission « Journal » de 20:30:00 à 20:45:00, avec le sonore « j »
+		Et l'émission « Concert » de 21:00:00 à 22:00:00, avec le sonore « c »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 2 secondes
+		Alors Machin lecture annonce l'événement suivant « Journal », du « 2026-10-14T20:30:00 » au « 2026-10-14T20:45:00 »
+		Quand j'avance l'événement suivant « Journal »
+		Et la diffusion avance de 2 secondes
+		Alors Machin lecture annonce l'événement suivant « Concert », du « 2026-10-14T21:00:00 » au « 2026-10-14T22:00:00 »
+
+	Scénario: Une demande d'avance arrive par la socket d'état
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'émission « Journal » de 20:30:00 à 20:45:00, avec le sonore « j »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et un client de la socket d'état demande d'avancer l'événement « Journal »
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 », « j »
+
 	# ─── Rien à interrompre ────────────────────────────────────
 
 	Scénario: Pendant un silence, une interruption ne fait rien
@@ -205,3 +317,6 @@ Fonctionnalité: Interruption manuelle de l'antenne
 			| {"commande": "interrompre", "element": "banque"} |
 			| [1, 2]                                           |
 			| {"commande": "relire_la_grille", "element": "x"} |
+			| {"commande": "avancer"}                          |
+			| {"commande": "avancer", "evenement": "Journal"}  |
+			| {"commande": "avancer", "evenement": true}       |

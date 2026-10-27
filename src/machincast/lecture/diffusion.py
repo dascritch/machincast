@@ -71,11 +71,18 @@ from machincast.horloge import Horloge
 from machincast.lecture.analyse import Analyseur, a_analyser
 from machincast.lecture.deroule import Choix, Coupure, Decision, EnCours, Ordonnanceur
 from machincast.lecture.enregistrement import Passage
-from machincast.lecture.etat import PUBLICATION_MINIMALE, RELIRE_LA_GRILLE, SocketEtat, SocketEtatOccupee, est_sain
+from machincast.lecture.etat import (
+	AVANCER,
+	PUBLICATION_MINIMALE,
+	RELIRE_LA_GRILLE,
+	SocketEtat,
+	SocketEtatOccupee,
+	est_sain,
+)
 from machincast.lecture.etat import instant as iso
 from machincast.lecture.fichiers import verifier_avant_lecture
 from machincast.lecture.fondus import Placement, placer
-from machincast.lecture.grille import Occurrence, Priorite
+from machincast.lecture.grille import Occurrence, Priorite, heure_murale
 from machincast.lecture.historique import EN_BASE, Historique
 from machincast.lecture.moteur import (
 	DELAI_DE_DEMARRAGE,
@@ -136,6 +143,11 @@ LECTEUR_BLOQUE = (
 ).replace(".", ",")
 INTERRUPTION_MANUELLE = "interruption manuelle"
 IGNOREE = f"{INTERRUPTION_MANUELLE} ignorée"
+EVENEMENT_AVANCE = "événement avancé"
+"""Nature de la ligne du log d'une avance de l'événement suivant (https://github.com/dascritch/machincast/issues/257)."""
+AVANCE_IGNOREE = "avance ignorée"
+RECHERCHE_DE_L_EVENEMENT_SUIVANT = timedelta(minutes=1)
+"""L'événement suivant publié se cherche de nouveau au plus tard après ce délai, même si rien n'a changé."""
 
 
 @dataclass(frozen=True)
@@ -348,6 +360,9 @@ class Diffusion:
 	"""Le prochain sonore, pris pour être joué : s'il démarre, les sonores à venir avancent d'un cran."""
 	_empreinte: str | None = field(default=None, init=False)
 	"""Empreinte de la grille quand les sonores à venir ont été prévus (EMPREINTE_DE_LA_GRILLE)."""
+	_suivant: tuple[datetime, Occurrence | None] | None = field(default=None, init=False)
+	"""L'événement suivant publié, et l'heure où il a été cherché ; None pour le chercher de nouveau
+	(https://github.com/dascritch/machincast/issues/257)."""
 
 	def __post_init__(self) -> None:
 		self.ordonnanceur = Ordonnanceur(self.connexion, self.hasard, self.historique)
@@ -380,6 +395,8 @@ class Diffusion:
 			for demande in self.etat.demandes():
 				if demande.commande == RELIRE_LA_GRILLE:
 					self.relire_la_grille()
+				elif demande.commande == AVANCER:
+					self.avancer(demande.evenement)
 				else:
 					self.interrompre(demande.element)
 		courant = self.courant
@@ -437,6 +454,68 @@ class Diffusion:
 		self._reserver(instant)
 		self._publier(instant)
 
+	def avancer(self, evenement: int | None) -> bool:
+		"""L'événement suivant commence aussitôt (https://github.com/dascritch/machincast/issues/257), s'il est bien
+		celui que la demande attend : l'interface nomme celui que Machin lecture a publié. Le sonore en cours
+		s'éteint comme pour une interruption manuelle, une séquence en cours ne continue pas, et les sonores à venir
+		sont recalculés. False si la demande est ignorée."""
+		instant = self.horloge.maintenant()
+		suivant = self.ordonnanceur.evenement_suivant(instant)
+		if suivant is None:
+			journal.warning(f"{AVANCE_IGNOREE} : aucun événement suivant")
+			return False
+		if suivant.evenement.id != evenement:
+			attendu = self._nom_attendu(evenement)
+			journal.warning(f"{AVANCE_IGNOREE} : l'événement suivant est « {suivant.evenement.nom} », pas {attendu}")
+			return False
+		self.ordonnanceur.avancer(instant)
+		assert suivant.debut is not None
+		message = f"de l'événement « {suivant.evenement.nom} », prévu le {suivant.debut:%d/%m/%Y à %H:%M}"
+		courant = self.courant
+		sonore = None if courant is None else courant.choix.sonore
+		self.historique.consigner(
+			self.connexion, "info", EVENEMENT_AVANCE, message, instant, sonore=sonore, evenement=suivant.evenement.id
+		)
+		if self.sorties is not None:
+			self.sorties.annoncer(EVENEMENT_AVANCE, message)
+		self._suivant = None
+		if courant is not None:
+			# Une séquence en cours ne continue pas : l'occurrence avancée a commencé après son dernier passage.
+			self.a_venir = []
+			self._attendu = None
+			jouer = self.ordonnanceur.decider(instant, None).jouer
+			fondu = (self.crossfades.fin) or (AUCUN_CROSSFADE)
+			self._eteindre(courant, jouer, instant, fondu, (self.crossfades.debut) or (AUCUN_CROSSFADE))
+		self._publier(instant)
+		return True
+
+	def _nom_attendu(self, evenement: int | None) -> str:
+		"""L'événement qu'attendait une demande d'avance, pour le journal."""
+		if evenement is None:
+			return "aucun"
+		with self.connexion.transaction():
+			ligne = self.connexion.execute("SELECT nom_interne FROM evenements WHERE id = %s", (evenement,)).fetchone()
+		if ligne is None:
+			return f"l'événement n°{evenement}, inconnu"
+		return f"« {ligne[0]} »"
+
+	def _l_evenement_suivant(self, instant: datetime) -> Occurrence | None:
+		"""L'événement suivant à publier, cherché de nouveau quand il a pu changer : au début d'un sonore, après une
+		demande, quand il commence, et au moins chaque minute."""
+		suivant = self._suivant
+		if (
+			(suivant is None)
+			or (instant - suivant[0] >= RECHERCHE_DE_L_EVENEMENT_SUIVANT)
+			or (
+				(suivant[1] is not None)
+				and (suivant[1].debut is not None)
+				and (heure_murale(instant) >= suivant[1].debut)
+			)
+		):
+			suivant = (instant, self.ordonnanceur.evenement_suivant(instant))
+			self._suivant = suivant
+		return suivant[1]
+
 	def interrompre(self, element: str) -> bool:
 		"""Interruption manuelle (https://github.com/dascritch/machincast/issues/228) : sauter au sonore suivant
 		(« sonore »), sauter après la séquence (« sequence »), ou couper l'événement par le fil musical
@@ -454,6 +533,7 @@ class Diffusion:
 		if (element == "evenement") and (evenement.priorite is Priorite.FIL_MUSICAL):
 			journal.warning(f"{IGNOREE} : le fil musical est déjà à l'antenne")
 			return False
+		self._suivant = None
 		message = f"du sonore « {self._nom_du_sonore(choix.sonore)} »"
 		if element == "sequence":
 			message = f"de la séquence {self._sequence_a_l_antenne}"
@@ -593,6 +673,7 @@ class Diffusion:
 		(https://github.com/dascritch/machincast/issues/169) ; et les sonores à venir sont recalculés."""
 		courant = self.courant
 		attendu, self._attendu = self._attendu, None
+		self._suivant = None
 		coupure = None
 		if courant is not None:
 			coupure = self.ordonnanceur.coupure(courant.en_cours, instant, _horizon(courant, instant))
@@ -985,7 +1066,16 @@ class Diffusion:
 			]
 			prochain, a_venir = annonces[0], annonces[1:]
 		marche = "arret" if arret else ("diffusion" if (courant is not None) or (self.sortants) else "silence")
-		return {"etat": marche, "en_cours": en_cours, "prochain": prochain, "a_venir": a_venir}
+		suivant = None
+		if not arret:
+			suivant = _annonce_de_l_evenement(self._l_evenement_suivant(instant))
+		return {
+			"etat": marche,
+			"en_cours": en_cours,
+			"prochain": prochain,
+			"a_venir": a_venir,
+			"evenement_suivant": suivant,
+		}
 
 	def _noter_l_antenne(self, choix: Choix | None, instant: datetime) -> None:
 		"""Avant le passage qui commence, ou à l'arrêt (None) : la fin de la séquence et de l'événement qu'il ne
@@ -1281,3 +1371,17 @@ def diffuser(diffusion: Diffusion, arret: threading.Event, pause: float = PAUSE)
 			diffusion.etat.fermer()
 		raise
 	diffusion.arreter()
+
+
+def _annonce_de_l_evenement(occurrence: Occurrence | None) -> dict[str, Any] | None:
+	"""L'événement suivant, tel que la socket d'état le publie (https://github.com/dascritch/machincast/issues/257)."""
+	if occurrence is None:
+		return None
+	evenement = occurrence.evenement
+	return {
+		"id": evenement.id,
+		"nom": evenement.nom,
+		"priorite": evenement.priorite.value,
+		"debut": iso(occurrence.debut),
+		"fin": iso(occurrence.fin),
+	}

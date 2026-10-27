@@ -87,3 +87,60 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 		Et Machin lecture passe en silence
 		Et l'interface a reçu l'état de Machin lecture
 		Alors aucune interruption n'est active
+
+	# ─── Clic droit sur le prochain sonore (https://github.com/dascritch/machincast/issues/257) ───
+	# Le cadre « Prochain sonore » de l'accueil propose, au clic droit, sa pré-écoute, d'y sauter aussitôt, et
+	# d'avancer l'événement suivant que Machin lecture annonce. La demande d'avance nomme cet événement : Machin
+	# lecture l'ignore si un autre est devenu le suivant entre-temps.
+
+	Scénario: Le clic droit sur le prochain sonore propose d'y sauter, et d'avancer l'événement suivant
+		Étant donné Machin lecture diffuse « Café à minuit », dans « Matinale », avant « Spot », et annonce l'événement suivant « Journal », du « 2026-10-21T12:00:00 » au « 2026-10-21T12:30:00 »
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'accueil a reçu l'état de Machin lecture
+		Alors le clic droit sur le prochain sonore propose :
+			| entrée                                                    | état   | infobulle                                                              |
+			| Pré-écoute…                                               | active |                                                                        |
+			| Sauter à ce sonore                                        | active | « Spot », aussitôt : « Café à minuit » s'arrête                        |
+			| Avancer « Journal », prévu le mercredi 21 octobre à 12:00 | active | Il commence aussitôt, au-dessus de la grille, jusqu'à sa fin, à 12:30 |
+
+	Scénario: Sans événement suivant annoncé, l'avance est inactive
+		Étant donné Machin lecture diffuse « Café à minuit », dans « Matinale », avant « Spot »
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'accueil a reçu l'état de Machin lecture
+		Alors le clic droit sur le prochain sonore propose :
+			| entrée                       | état     | infobulle                                 |
+			| Pré-écoute…                  | active   |                                           |
+			| Sauter à ce sonore           | active   | « Spot », aussitôt : « Café à minuit » s'arrête |
+			| Avancer l'événement suivant  | inactive | Aucun événement suivant dans les sept jours |
+
+	Scénario: En silence, l'événement suivant s'avance quand même, mais il n'y a rien à sauter
+		Étant donné Machin lecture est en silence, et annonce l'événement suivant « Journal », du « 2026-10-21T12:00:00 » au « 2026-10-21T12:30:00 »
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'accueil a reçu l'état de Machin lecture
+		Alors le clic droit sur le prochain sonore propose :
+			| entrée                                                    | état     | infobulle                                                              |
+			| Sauter à ce sonore                                        | inactive | Aucun prochain sonore                                                  |
+			| Avancer « Journal », prévu le mercredi 21 octobre à 12:00 | active   | Il commence aussitôt, au-dessus de la grille, jusqu'à sa fin, à 12:30 |
+
+	Scénario: Machin lecture à l'arrêt, rien ne se demande depuis le prochain sonore
+		Étant donné Machin lecture s'est arrêté
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'accueil a reçu l'état de Machin lecture
+		Alors le clic droit sur le prochain sonore propose :
+			| entrée                      | état     | infobulle                     |
+			| Sauter à ce sonore          | inactive | Machin lecture ne diffuse pas |
+			| Avancer l'événement suivant | inactive | Machin lecture ne diffuse pas |
+
+	Plan du scénario: Chaque entrée du clic droit sur le prochain sonore est envoyée à Machin lecture, et annoncée
+		Étant donné Machin lecture diffuse « Café à minuit », dans « Matinale », avant « Spot », et annonce l'événement suivant « Journal », du « 2026-10-21T12:00:00 » au « 2026-10-21T12:30:00 »
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'accueil a reçu l'état de Machin lecture
+		Et je choisis « <entrée> » au clic droit sur le prochain sonore
+		Alors Machin lecture a reçu la demande <demande>
+		Et la barre d'état a annoncé « <annonce> »
+		Et aucune question n'a été posée
+
+		Exemples:
+			| entrée                                                    | demande                                | annonce                                       |
+			| Sauter à ce sonore                                        | d'interrompre « sonore »               | Saut au sonore suivant demandé.               |
+			| Avancer « Journal », prévu le mercredi 21 octobre à 12:00 | d'avancer l'événement n°7              | Avance de l'événement « Journal » demandée.   |

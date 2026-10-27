@@ -70,6 +70,18 @@ class SonoreAffiche:
 
 
 @dataclass(frozen=True)
+class EvenementSuivant:
+	"""L'événement suivant, que Machin lecture avancerait à la demande
+	(https://github.com/dascritch/machincast/issues/257). Début et fin en heure murale du poste."""
+
+	id: int
+	nom: str
+	priorite: str
+	debut: datetime
+	fin: datetime | None
+
+
+@dataclass(frozen=True)
 class EtatLecture:
 	etat: str
 	"""« diffusion », « silence » ou « arret »."""
@@ -77,6 +89,7 @@ class EtatLecture:
 	prochain: SonoreAffiche | None = None
 	a_venir: tuple[SonoreAffiche, ...] = ()
 	"""Les sonores prévus après le prochain, dans l'ordre (https://github.com/dascritch/machincast/issues/228)."""
+	evenement_suivant: EvenementSuivant | None = None
 
 
 ARRET = EtatLecture("arret")
@@ -125,6 +138,21 @@ def _sonore(champs: dict[str, Any] | None, debut: str) -> SonoreAffiche | None:
 	)
 
 
+def _evenement_suivant(champs: dict[str, Any] | None) -> EvenementSuivant | None:
+	if champs is None:
+		return None
+	debut = _instant(champs["debut"])
+	if debut is None:
+		raise ValueError("un événement suivant a un début")
+	return EvenementSuivant(
+		id=int(champs["id"]),
+		nom=str(champs["nom"]),
+		priorite=str(champs["priorite"]),
+		debut=debut,
+		fin=_instant(champs.get("fin")),
+	)
+
+
 def lire_message(ligne: str) -> EtatLecture:
 	"""Un message de la socket d'état ; ValueError s'il est illisible."""
 	try:
@@ -135,6 +163,7 @@ def lire_message(ligne: str) -> EtatLecture:
 			_sonore(message.get("en_cours"), "debut"),
 			_sonore(message.get("prochain"), "debut_estime"),
 			tuple(sonore for sonore in a_venir if sonore is not None),
+			_evenement_suivant(message.get("evenement_suivant")),
 		)
 	except (KeyError, TypeError, AttributeError) as erreur:
 		raise ValueError(f"message incomplet : {erreur}") from erreur

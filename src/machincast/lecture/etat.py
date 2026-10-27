@@ -14,7 +14,9 @@ Chaque client a son fil : un client lent ou qui se déconnecte ne bloque jamais 
 Dans l'autre sens, un client peut envoyer des demandes, une ligne JSON par demande
 (https://github.com/dascritch/machincast/issues/104) : {"commande": "interrompre", "element": E}, où E est
 « sonore », « sequence » ou « evenement » (INTERRUPTIONS) ; {"commande": "relire_la_grille"}, après un changement de la
-grille qui doit valoir aussitôt, comme une session sautée (https://github.com/dascritch/machincast/issues/273). Un fil
+grille qui doit valoir aussitôt, comme une session sautée (https://github.com/dascritch/machincast/issues/273) ;
+{"commande": "avancer", "evenement": N}, pour que l'événement suivant annoncé, d'identifiant N, commence aussitôt
+(https://github.com/dascritch/machincast/issues/257). Un fil
 par client les lit, et les garde jusqu'au pas suivant
 de la diffusion (demandes). Une demande illisible, inconnue, ou plus longue que TAILLE_MAXIMALE, est ignorée et
 signalée dans le journal du binaire. Seul le compte qui diffuse peut ouvrir la socket : il n'y a rien d'autre à
@@ -49,6 +51,8 @@ ATTENTE_DES_CLIENTS = 1.0
 """Délai laissé aux clients pour recevoir le dernier message, à la fermeture."""
 INTERROMPRE = "interrompre"
 RELIRE_LA_GRILLE = "relire_la_grille"
+AVANCER = "avancer"
+"""Avancer l'événement suivant, nommé par son identifiant (https://github.com/dascritch/machincast/issues/257)."""
 INTERRUPTIONS = ("sonore", "sequence", "evenement")
 """Ce qu'une demande peut interrompre (https://github.com/dascritch/machincast/issues/104)."""
 TAILLE_MAXIMALE = 4096
@@ -63,6 +67,8 @@ class Demande:
 	element: str = ""
 	"""Pour une interruption : « sonore », « sequence » ou « evenement »."""
 	commande: str = INTERROMPRE
+	evenement: int | None = None
+	"""Pour une avance : l'identifiant de l'événement suivant attendu."""
 
 
 def demande_d_interruption(element: str) -> str:
@@ -73,6 +79,12 @@ def demande_d_interruption(element: str) -> str:
 def demande_de_relire_la_grille() -> str:
 	"""La ligne qu'un client envoie après un changement de la grille qui doit valoir aussitôt."""
 	return json.dumps({"commande": RELIRE_LA_GRILLE}) + "\n"
+
+
+def demande_d_avance(evenement: int) -> str:
+	"""La ligne qu'un client envoie pour avancer l'événement suivant, qu'il a lu dans l'état publié
+	(https://github.com/dascritch/machincast/issues/257)."""
+	return json.dumps({"commande": AVANCER, "evenement": evenement}) + "\n"
 
 
 def lire_demande(ligne: bytes) -> Demande:
@@ -87,6 +99,16 @@ def lire_demande(ligne: bytes) -> Demande:
 	element = message.get("element")
 	if (commande == RELIRE_LA_GRILLE) and (set(message) == {"commande"}):
 		return Demande(commande=RELIRE_LA_GRILLE)
+	if commande == AVANCER:
+		evenement = message.get("evenement")
+		# Un booléen est un entier pour Python : il n'est pas un identifiant.
+		if (
+			(set(message) != {"commande", "evenement"})
+			or (not isinstance(evenement, int))
+			or (isinstance(evenement, bool))
+		):
+			raise ValueError("une avance nomme l'identifiant de l'événement suivant, et rien d'autre")
+		return Demande(commande=AVANCER, evenement=evenement)
 	if commande != INTERROMPRE:
 		raise ValueError(f"commande inconnue : {commande}")
 	if element not in INTERRUPTIONS:

@@ -92,7 +92,7 @@ from machincast.interface.recherche import EcranRecherche
 from machincast.interface.simulation import EcranSimulation
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 from machincast.interface.verification import Verificateur, VerificationComplete
-from machincast.lecture.etat import demande_d_interruption, demande_de_relire_la_grille
+from machincast.lecture.etat import demande_d_avance, demande_d_interruption, demande_de_relire_la_grille
 
 journal = logging.getLogger(__name__)
 
@@ -216,6 +216,9 @@ class FenetrePrincipale(QMainWindow):
 		self._ajouter_fixe(self.accueil, "Accueil")
 		self.accueil.ouverte.connect(self._ouvrir)
 		self.accueil.preecoute_demandee.connect(self._preecouter)
+		# Le clic droit sur le prochain sonore (https://github.com/dascritch/machincast/issues/257).
+		self.accueil.saut_demande.connect(lambda: self._interrompre("sonore"))
+		self.accueil.avance_demandee.connect(self._avancer)
 		self.verificateur = Verificateur(connexion, self)
 		self.verificateur.termine.connect(self._verification_terminee)
 		self.verification_complete = VerificationComplete(connexion, self)
@@ -413,6 +416,14 @@ class FenetrePrincipale(QMainWindow):
 		annonce = interruption.SANS_LECTURE
 		if self.accueil.client.envoyer(demande_d_interruption(element)):
 			annonce = interruption.ANNONCES[element]
+		self.ui.barre_d_etat.showMessage(annonce)
+
+	def _avancer(self, evenement: int, nom: str) -> None:
+		"""Demande à Machin lecture d'avancer l'événement suivant qu'il a annoncé, sans question
+		(https://github.com/dascritch/machincast/issues/257)."""
+		annonce = interruption.AVANCE_SANS_LECTURE
+		if self.accueil.client.envoyer(demande_d_avance(evenement)):
+			annonce = interruption.annonce_d_avance(nom)
 		self.ui.barre_d_etat.showMessage(annonce)
 
 	def _presenter_la_diffusion(self) -> None:

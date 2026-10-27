@@ -29,7 +29,7 @@ Au changement d'heure, un événement garde donc son heure (spec § 4.1 : aucune
 """
 
 from collections.abc import Iterable, Set
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from enum import StrEnum
 
@@ -81,6 +81,9 @@ class Occurrence:
 	"""Début de l'occurrence, en heure murale du poste ; None pour un fil musical permanent."""
 	fin: datetime | None
 	"""None pour une occurrence sans fin, qui dure jusqu'à l'épuisement de sa liste."""
+	commencee: datetime | None = field(default=None, compare=False)
+	"""Pour une occurrence avancée (https://github.com/dascritch/machincast/issues/257) : l'heure murale où elle a
+	commencé, avant son début prévu. Sa liste se compte depuis là. Elle ne change ni la clé, ni l'égalité."""
 
 	@property
 	def cle(self) -> tuple[int, datetime | None]:
@@ -143,11 +146,21 @@ def evenement_actif(
 	evenements: Iterable[Evenement],
 	instant: datetime,
 	terminees: Set[tuple[int, datetime | None]] = frozenset(),
+	avancee: Occurrence | None = None,
 ) -> Occurrence | None:
 	"""Occurrence de l'événement actif à l'instant, ou None si aucun ne le couvre.
 
-	terminees contient les clés (Occurrence.cle) des occurrences terminées plus tôt, liste épuisée.
+	terminees contient les clés (Occurrence.cle) des occurrences terminées plus tôt, liste épuisée. Une occurrence
+	avancée (https://github.com/dascritch/machincast/issues/257), tant qu'elle n'est pas terminée, est active avant son
+	début prévu, au-dessus de tout ; à son début, la grille la retrouve, avec la même clé.
 	"""
+	if (
+		(avancee is not None)
+		and (avancee.debut is not None)
+		and (avancee.cle not in terminees)
+		and (heure_murale(instant) < avancee.debut)
+	):
+		return avancee
 	candidates = [
 		o
 		for e in evenements
@@ -317,6 +330,40 @@ def prochain_changement(evenements: Iterable[Evenement], instant: datetime) -> d
 	if not apres:
 		return None
 	return min(apres).astimezone()
+
+
+HORIZON_DE_L_EVENEMENT_SUIVANT = timedelta(days=7)
+"""Jusqu'où chercher l'événement suivant (https://github.com/dascritch/machincast/issues/257)."""
+
+
+def evenement_suivant(
+	evenements: Iterable[Evenement],
+	instant: datetime,
+	terminees: Set[tuple[int, datetime | None]] = frozenset(),
+	avancee: Occurrence | None = None,
+	horizon: timedelta = HORIZON_DE_L_EVENEMENT_SUIVANT,
+) -> Occurrence | None:
+	"""La première occurrence qui commencera après l'instant et prendra l'antenne, jusqu'à l'horizon compris ; None
+	sans elle (https://github.com/dascritch/machincast/issues/257). Un fil musical qui reprend, ou une occurrence
+	commencée avant l'instant qui retrouve l'antenne, n'en est pas une : c'est ce que fait couper l'événement. Une
+	occurrence avancée est l'occurrence en cours : le suivant est celui qui viendra après elle."""
+	evenements = list(evenements)
+	actuelle = evenement_actif(evenements, instant, terminees, avancee)
+	# En heure murale : sept jours d'horloge, même au changement d'heure.
+	depart = heure_murale(instant)
+	limite = depart + horizon
+	moment = prochain_changement(evenements, instant)
+	while (moment is not None) and (heure_murale(moment) <= limite):
+		actif = evenement_actif(evenements, moment, terminees, avancee)
+		if (
+			(actif is not None)
+			and (actif.debut is not None)
+			and (actif.debut > depart)
+			and ((actuelle is None) or (actif.cle != actuelle.cle))
+		):
+			return actif
+		moment = prochain_changement(evenements, moment)
+	return None
 
 
 @dataclass(frozen=True)

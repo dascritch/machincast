@@ -12,8 +12,10 @@ from machincast.base import Role, connecter
 from machincast.horloge import HorlogeFixe
 from machincast.lecture.grille import (
 	Evenement,
+	Occurrence,
 	Priorite,
 	evenement_actif,
+	evenement_suivant,
 	heure_murale,
 	lire_grille,
 	occurrence,
@@ -32,6 +34,8 @@ class Contexte:
 	evenements: list[Evenement] = field(default_factory=list)
 	terminees: set[tuple[int, datetime | None]] = field(default_factory=set)
 	horloge: HorlogeFixe | None = None
+	avancee: Occurrence | None = None
+	"""L'occurrence avancée (https://github.com/dascritch/machincast/issues/257)."""
 
 
 @pytest.fixture
@@ -61,7 +65,7 @@ def nomme(contexte: Contexte, nom: str) -> Evenement:
 
 
 def actif(contexte: Contexte, instant: datetime) -> str | None:
-	resultat = evenement_actif(contexte.evenements, instant, frozenset(contexte.terminees))
+	resultat = evenement_actif(contexte.evenements, instant, frozenset(contexte.terminees), contexte.avancee)
 	return None if resultat is None else resultat.evenement.nom
 
 
@@ -124,6 +128,31 @@ def sauter(contexte: Contexte, jour: str, nom: str) -> None:
 			evenement = dataclasses.replace(evenement, sautees=evenement.sautees | {sautee})
 		evenements.append(evenement)
 	contexte.evenements = evenements
+
+
+@given(parsers.parse("l'occurrence de « {nom} » du « {debut} » avancée"))
+def avancer(contexte: Contexte, nom: str, debut: str) -> None:
+	instant = heure(contexte, debut)
+	prevue = occurrence(nomme(contexte, nom), instant)
+	assert (prevue is not None) and (prevue.debut == heure_murale(instant)), prevue
+	contexte.avancee = prevue
+
+
+@then(
+	parsers.re(
+		r"après le « (?P<instant>[^»]+) », (?:il n'y a pas d'événement suivant"
+		r"|l'événement suivant est « (?P<nom>[^»]+) » du « (?P<debut>[^»]+) »)"
+	)
+)
+def suivant(contexte: Contexte, instant: str, nom: str | None, debut: str | None) -> None:
+	trouve = evenement_suivant(contexte.evenements, heure(contexte, instant), frozenset(contexte.terminees))
+	obtenu = None
+	if trouve is not None:
+		obtenu = (trouve.evenement.nom, trouve.debut)
+	attendu = None
+	if (nom is not None) and (debut is not None):
+		attendu = (nom, heure_murale(heure(contexte, debut)))
+	assert obtenu == attendu
 
 
 @then(parsers.parse("le prochain changement de la grille après le « {instant} » est le « {attendu} »"))

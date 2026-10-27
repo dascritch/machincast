@@ -238,6 +238,13 @@ def lendemain(contexte: Contexte, base_vide: Connexion, lecture: Connexion, debu
 	derouler(contexte, base_vide, lecture, a(debut, jour), a(fin, jour))
 
 
+@when(parsers.parse("l'événement suivant est avancé à {heure}"))
+def avance(contexte: Contexte, heure: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/257."""
+	assert contexte.ordonnanceur is not None
+	assert contexte.ordonnanceur.avancer(a(heure)) is not None
+
+
 @when("le binaire redémarre")
 def redemarrage(contexte: Contexte) -> None:
 	"""Un nouvel ordonnanceur, sans rien en mémoire : tout se relit dans l'airplay."""

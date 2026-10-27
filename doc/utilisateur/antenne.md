@@ -169,6 +169,21 @@ Le menu **Diffusion** propose aussi, après un trait, de corriger ce qui passe, 
 - Un événement coupé par le fil musical ne revient pas avant sa prochaine diffusion, sauf si la diffusion redémarre entre-temps.
 - Si le sonore annoncé n'est plus jouable, la diffusion en choisit un autre, et recalcule les sonores à venir.
 
+### Depuis le prochain sonore
+
+Sur l'accueil, le **clic droit sur le cadre du prochain sonore** propose ([#257](https://github.com/dascritch/machincast/issues/257)) :
+
+| Entrée | Effet |
+| --- | --- |
+| Pré-écoute… | Ouvre le prochain sonore dans la [pré-écoute](sonores.md#pré-écoute), au casque. |
+| Sauter à ce sonore | Comme « Sauter au sonore suivant » : le sonore en cours s'arrête, et le prochain sonore passe aussitôt. |
+| Avancer « Journal », prévu le mercredi 21 octobre à 12:00 | L'événement suivant de la grille commence aussitôt, avant son heure, et passe jusqu'à sa fin prévue, comme s'il avait commencé plus tôt : le sonore en cours s'arrête, et sa liste commence. À son heure prévue, rien ne change. |
+
+- L'événement suivant est le prochain qui prendra l'antenne d'après la grille, dans les sept jours : une émission, un spécial, ou un fil musical daté. Il passe au-dessus de tout, même d'un spécial en cours. Une émission qui a une fin reprend sa liste depuis le début quand elle l'a jouée en entier, jusqu'à sa fin.
+- Sans événement suivant dans les sept jours, l'entrée est inactive. En silence, l'événement suivant s'avance quand même ; il n'y a alors rien à sauter.
+- Comme pour les autres interruptions, la demande part aussitôt, sans question, et la barre d'état l'annonce : `Avance de l'événement « Journal » demandée.` Si la grille a changé entre-temps et qu'un autre événement est devenu le suivant, la diffusion ignore la demande : rien ne change à l'antenne.
+- Une avance n'est retenue que par la diffusion en cours : si elle redémarre, la grille reprend telle qu'elle est prévue.
+
 ## Historique et incidents
 
 Chaque passage à l'antenne est noté dans l'**historique**, l'airplay : son début, sa fin, la durée diffusée, l'artiste et le titre **tels qu'ils étaient au moment du passage**, l'événement, la séquence et la banque, et s'il s'est déroulé sans incident. Un sonore coupé net par un événement, ou interrompu à la main, n'est pas un incident. L'accueil en montre les 10 derniers passages, l'[onglet Airplay](prise-en-main.md#onglet-airplay) les dernières heures, réglables et exportables, et la fiche d'un sonore ses 50 derniers passages.
@@ -189,6 +204,7 @@ La diffusion tient aussi un **journal** de ce qu'elle fait. L'onglet **Incidents
 | `début de séquence`, `fin de séquence` | info | De même pour une séquence : « « Pub », dans « Continue » ». |
 | `coupure nette` | info | Un événement commence et coupe le sonore en cours. |
 | `interruption manuelle` | info | Le sonore, la séquence ou l'événement a été interrompu depuis l'interface. |
+| `événement avancé` | info | L'événement suivant a été avancé depuis l'interface : « de l'événement « Journal », prévu le 21/10/2026 à 12:00 ». |
 | `élément sauté` | info | Un élément rappelle la banque « ne pas répéter » qui vient de passer. |
 | `sonore expiré` | info | Un sonore a atteint son maximum de lectures ou la fin de sa période. |
 | `analyse du prochain sonore` | info | Le prochain sonore n'a jamais été vérifié en entier : il l'est en arrière-plan, avant de passer. |

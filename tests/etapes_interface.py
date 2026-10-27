@@ -1481,9 +1481,12 @@ def lecteur() -> Iterator[Lecteur]:
 		lecteur.socket.fermer()
 
 
-def publier(lecteur: Lecteur, etat: str, en_cours: dict[str, object] | None = None) -> None:
+def publier(
+	lecteur: Lecteur, etat: str, en_cours: dict[str, object] | None = None, **autres: dict[str, object] | None
+) -> None:
+	"""Un état de Machin lecture ; autres donne d'autres champs, comme le prochain sonore ou l'événement suivant."""
 	assert lecteur.socket is not None
-	message = {"etat": etat, "en_cours": en_cours, "prochain": None}
+	message = {"etat": etat, "en_cours": en_cours, "prochain": None, **autres}
 	lecteur.publie = json.dumps({"version": 1, **message})
 	lecteur.socket.publier(message)
 
