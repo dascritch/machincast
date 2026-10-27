@@ -15,7 +15,7 @@ Chaque essai décode l'un des fichiers de test tests/fichiers-sonores/sain.* aus
 - decodebin, queue-decodebin, decodebin3 : filesrc ! [queue !] decodebin[3] ! audioconvert ! fakesink, comme la
   vérification de l'indexation. Bloqué au démarrage : aucun son décodé en 2,5 secondes (decodage.DELAI_DEMARRAGE) ;
 - playbin, playbin3 : le lecteur d'une voie de l'antenne, sur un fakesink, au plus vite, ou en temps réel avec
-  --synchrone, comme à l'antenne. Bloqué au démarrage : pas d'état PLAYING en 3 secondes (moteur.DELAI_DE_DEMARRAGE).
+  --synchrone, comme à l'antenne. Bloqué au démarrage : pas d'état PLAYING en 3 secondes (moteur.DELAI_DE_GARDE).
 
 Bloqué en cours : du son décodé, puis plus de fin en 10 secondes, pour un fichier d'une seconde. Chaque pipeline
 est aussi lancé sur un tube nommé dont la lecture se bloque après son début, comme un partage réseau qui ne répond
@@ -43,7 +43,7 @@ PIPELINES = ("decodebin", "queue-decodebin", "decodebin3", "playbin", "playbin3"
 DEMARRAGE_DECODAGE = 2.5
 """Comme decodage.DELAI_DEMARRAGE."""
 DEMARRAGE_LECTURE = 3.0
-"""Comme moteur.DELAI_DE_DEMARRAGE."""
+"""Comme moteur.DELAI_DE_GARDE."""
 FIN = 10.0
 RENDRE_LA_MAIN = 5.0
 DELAI_DU_TRAVAILLEUR = DEMARRAGE_LECTURE + FIN + RENDRE_LA_MAIN + 5

@@ -8,7 +8,7 @@ Fonctionnalité: Un sonore dont la lecture ne démarre pas est remplacé
 	comme 1.28 : la voie reste « en cours », sans erreur ni son. playbin3, le lecteur des voies depuis
 	https://github.com/dascritch/machincast/issues/284, ne s'est jamais bloqué ; la garde reste contre tout lecteur qui
 	ne démarre pas. Passé le délai de démarrage
-	(moteur.DELAI_DE_DEMARRAGE, 3 secondes), la voie est bloquée : la diffusion termine son passage en incident « lecture
+	(moteur.DELAI_DE_GARDE, 3 secondes), la voie est bloquée : la diffusion termine son passage en incident « lecture
 	bloquée », et joue le sonore suivant, comme après un sonore fini. Un stream n'est jamais déclaré bloqué ainsi : sa
 	connexion a son propre délai, et sa chute son repli (https://github.com/dascritch/machincast/issues/16). Les
 	scénarios tournent sur le moteur simulé, qui suit l'horloge du binaire ; le lecteur bloqué est imité.

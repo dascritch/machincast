@@ -16,6 +16,7 @@ Les scénarios Gherkin sont écrits en français (`# language: fr`).
 
 - La suite de tests tourne sur **Ubuntu 26.04 LTS**, la cible, avec sa version de GStreamer, la 1.28 ([#284](https://github.com/dascritch/machincast/issues/284)) : les défauts de GStreamer changent d'une version à l'autre, et un résultat obtenu sur une autre version ne vaut pas pour la cible. Le scénario « GStreamer et ses greffons sont au moins dans la version vérifiée », de `installation.feature`, échoue sur un poste plus ancien.
 - Un compte rendu de test ou de mesure (ticket, PR, commentaire) donne la version d'Ubuntu et celle de GStreamer du poste.
+- Les scénarios marqués `@release` (marqueur pytest `release`) ne tournent pas avec `pytest` ni `bin/Machin dev-test` : lents ou avec un serveur à part, ils se lancent avant chaque version, par `pytest -m release`, et après une mise à jour de GStreamer ou de libsoup ([#278](https://github.com/dascritch/machincast/issues/278), [#208](https://github.com/dascritch/machincast/issues/208), [TROUBLESHOOTING.md](../../TROUBLESHOOTING.md#scénarios-à-lancer-avant-une-version)).
 - Un défaut de GStreamer se mesure hors du code de MachinCast, avec `python -m tests.mesures_gstreamer` ([poste de développement](../developpement/poste.md#mesurer-les-blocages-de-gstreamer)), avant d'écrire ou de retirer un contournement.
 
 ## Base de test

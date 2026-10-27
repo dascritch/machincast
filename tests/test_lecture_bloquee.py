@@ -13,7 +13,7 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then
 
 from machincast.horloge import HorlogeFixe
-from machincast.lecture.moteur import DELAI_DE_DEMARRAGE, VoieLecture
+from machincast.lecture.moteur import DELAI_DE_GARDE, VoieLecture
 from machincast.lecture.simulation import MoteurSimule, VoieSimulee
 from tests.etapes_diffusion import heure, passages
 
@@ -32,7 +32,7 @@ class VoieBloquee(VoieSimulee):
 		pass
 
 	def bloquee(self) -> bool:
-		return (self.etat == "en cours") and (self.horloge.maintenant() - self.debut >= DELAI_DE_DEMARRAGE)
+		return (self.etat == "en cours") and (self.horloge.maintenant() - self.debut >= DELAI_DE_GARDE)
 
 
 @given(parsers.parse("le lecteur du sonore « {nom} » se bloque à son premier démarrage"))

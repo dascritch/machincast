@@ -27,6 +27,8 @@ dev = [
 	"ruff>=0.6",
 	"mypy>=1.11",
 	"pygobject-stubs>=2.11",
+	# Serveur HTTP/2 du scénario « release » des flux (https://github.com/dascritch/machincast/issues/278).
+	"hypercorn>=0.17",
 ]
 
 [project.urls]
@@ -91,4 +93,6 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 bdd_features_base_dir = "tests/features"
-addopts = "--strict-markers"
+# Les scénarios « release » se lancent à part, avant une version : pytest -m release (TROUBLESHOOTING.md).
+addopts = "--strict-markers -m 'not release'"
+markers = ["release: scénario lent ou à dépendances réseau, lancé avant une version seulement (pytest -m release)"]
