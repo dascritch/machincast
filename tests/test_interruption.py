@@ -9,14 +9,12 @@ la diffusion sont dans tests/etapes_diffusion.py.
 import logging
 import socket
 import time
-from pathlib import Path
 
 import psycopg
 import pytest
-from pytest_bdd import given, parsers, scenarios, then, when
+from pytest_bdd import parsers, scenarios, then, when
 
 from machincast.lecture.diffusion import INTERRUPTION_MANUELLE
-from machincast.lecture.etat import SocketEtat
 from tests.etapes_diffusion import Banc
 
 scenarios("interruption.feature")
@@ -36,11 +34,6 @@ def log_des_interruptions(base: Connexion) -> list[str]:
 
 
 # ─── Étant donné ───────────────────────────────────────────
-
-
-@given("la socket d'état dans un répertoire temporaire")
-def socket_temporaire(banc: Banc, tmp_path: Path) -> None:
-	banc.etat = SocketEtat(tmp_path / "run" / "machincast" / "lecture.sock")
 
 
 # ─── Quand ─────────────────────────────────────────────────

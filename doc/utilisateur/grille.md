@@ -39,6 +39,8 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 
 **Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion : une émission vide laisse l'événement en dessous prendre le relais, sans couper le sonore en cours, et l'accueil n'annonce aucune coupure à son heure ; un fil musical vide laisse l'antenne en silence, avec une alerte. La liste des événements le montre en anomalie.
 
+**À l'antenne, aussitôt** ([#266](https://github.com/dascritch/machincast/issues/266)) : un événement enregistré, supprimé ou restauré vaut tout de suite, si la diffusion tourne. Une émission avancée coupe le sonore en cours à sa nouvelle heure ; une émission déplacée, raccourcie ou retirée change les sonores à venir de l'accueil. Un nom, un nom public ou un masquage changés ne retirent pas les sonores déjà annoncés : ils passeront comme prévu.
+
 **Liste de lecture** : les sonores, les banques et les séquences que l'événement joue, dans l'ordre.
 
 - **Ordre** : un élément se déplace par glisser-déposer, ou avec **Monter** et **Descendre**. Un même élément peut revenir.

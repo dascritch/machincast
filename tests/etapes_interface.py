@@ -59,7 +59,7 @@ from machincast.interface.fiche import Fiche
 from machincast.interface.listes import Liste
 from machincast.interface.preferences import Reglages
 from machincast.interface.suggestions import Manques, Reponse
-from machincast.lecture.etat import Demande, SocketEtat
+from machincast.lecture.etat import RELIRE_LA_GRILLE, Demande, SocketEtat
 from tests.base_test import configuration_test, parametres_base_test
 from tests.sons import FICHIERS_SONORES
 
@@ -713,6 +713,39 @@ def evenements(base_vide: Connexion, datatable: list[list[str]]) -> None:
 				[jour.strip() for jour in ligne["jours"].split(",") if jour.strip()],
 			),
 		)
+
+
+GENRES_DE_L_HISTORIQUE = {
+	"du sonore": "le sonore",
+	"de la banque": "la banque",
+	"de la séquence": "la séquence",
+	"de l'événement": "l'événement",
+}
+FICHES_DE_L_HISTORIQUE = {
+	"le sonore": "sonore",
+	"la banque": "banque",
+	"la séquence": "séquence",
+	"l'événement": "événement",
+}
+
+
+@when(
+	parsers.re(
+		r"j'ouvre depuis l'historique la fiche (?P<de>du sonore|de la banque|de la séquence|de l'événement)"
+		r" « (?P<nom>[^»]+) »"
+	)
+)
+def ouvrir_depuis_l_historique(interface: Contexte, base_vide: Connexion, qtbot: QtBot, de: str, nom: str) -> None:
+	"""Comme un double-clic sur sa cellule de l'airplay, des incidents ou du calendrier : par son identifiant, l'élément
+	supprimé d'abord, quand un autre a repris son nom."""
+	genre = GENRES_DE_L_HISTORIQUE[de]
+	table, colonne = TABLES[genre]
+	ligne = base_vide.execute(
+		f"SELECT id FROM {table} WHERE {colonne} = %s ORDER BY supprime_le IS NULL, id",  # noqa: S608
+		(nom,),
+	).fetchone()
+	assert ligne is not None, nom
+	fenetre(interface)._ouvrir(FICHES_DE_L_HISTORIQUE[genre], int(str(ligne[0])), nom)
 
 
 @given(parsers.parse("la session du {jour} de l'événement « {nom} » est sautée"))
@@ -1455,6 +1488,24 @@ def publier(lecteur: Lecteur, etat: str, en_cours: dict[str, object] | None = No
 	lecteur.socket.publier(message)
 
 
+@then("Machin lecture a reçu la demande de relire la grille")
+def relecture_demandee(lecteur: Lecteur, qtbot: QtBot) -> None:
+	"""Après une session sautée (https://github.com/dascritch/machincast/issues/273), ou une fiche enregistrée,
+	supprimée ou restaurée (https://github.com/dascritch/machincast/issues/266) : une seule demande."""
+	socket = lecteur.socket
+	assert socket is not None
+
+	def recue() -> bool:
+		lecteur.recues += socket.demandes()
+		return lecteur.recues != []
+
+	qtbot.waitUntil(recue, timeout=5000)
+	# Une seconde demande, envoyée juste après, aurait le temps d'arriver.
+	qtbot.wait(100)
+	lecteur.recues += socket.demandes()
+	assert lecteur.recues == [Demande(commande=RELIRE_LA_GRILLE)]
+
+
 @given("la socket d'état de Machin lecture ouverte pour l'interface")
 def socket_ouverte(interface: Contexte, lecteur: Lecteur) -> None:
 	lecteur.socket = SocketEtat(interface.repertoire / "lecture.sock")
@@ -1586,6 +1637,11 @@ def nouveau_passage(base_vide: Connexion, titre: str, debut: str) -> None:
 
 
 @given(
+	parsers.re(
+		r"(?P<genre>le sonore|la banque|la séquence|l'événement) « (?P<nom>[^»]+) » est supprimée? depuis l'interface"
+	)
+)
+@when(
 	parsers.re(
 		r"(?P<genre>le sonore|la banque|la séquence|l'événement) « (?P<nom>[^»]+) » est supprimée? depuis l'interface"
 	)

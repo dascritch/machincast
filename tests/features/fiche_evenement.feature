@@ -301,6 +301,53 @@ Fonctionnalité: Fiche d'un événement
 		Alors la fiche ne signale rien
 		Et l'onglet ouvert est « Événement : Panne du direct »
 
+	# ─── À l'antenne (https://github.com/dascritch/machincast/issues/266) ───
+	# Un événement enregistré, supprimé ou restauré vaut aussitôt à l'antenne : la fenêtre demande à Machin lecture de
+	# relire la grille, qui recalcule le sonore en cours et les sonores à venir si ce qui règle l'antenne a changé.
+
+	Scénario: Enregistrer un événement demande à Machin lecture de relire la grille
+		Étant donné la socket d'état de Machin lecture ouverte pour l'interface
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et je saisis la fin « 19/10/2026 08:30 » dans la fiche de l'événement
+		Et j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et Machin lecture a reçu la demande de relire la grille
+
+	Scénario: Supprimer un événement demande à Machin lecture de relire la grille
+		Étant donné la socket d'état de Machin lecture ouverte pour l'interface
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Alors Machin lecture a reçu la demande de relire la grille
+
+	Scénario: Restaurer un événement demande à Machin lecture de relire la grille
+		Étant donné la socket d'état de Machin lecture ouverte pour l'interface
+		Et l'événement « Journal » est supprimé depuis l'interface
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre depuis l'historique la fiche de l'événement « Journal »
+		Et je clique sur « Restaurer »
+		Alors Machin lecture a reçu la demande de relire la grille
+
+	Scénario: Un nom public changé n'est pas un changement de ce qui règle l'antenne
+		Quand la fenêtre de l'interface s'ouvre
+		Et je note l'empreinte de la grille
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et je saisis le nom public « Le grand réveil »
+		Et j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et l'empreinte de la grille n'a pas changé
+		Quand je saisis la fin « 19/10/2026 08:30 » dans la fiche de l'événement
+		Et j'enregistre la fiche
+		Alors l'empreinte de la grille a changé
+
+	Scénario: Sans Machin lecture, un événement s'enregistre comme toujours
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et je saisis la fin « 19/10/2026 08:30 » dans la fiche de l'événement
+		Et j'enregistre la fiche
+		Alors la fiche ne signale rien
+
 	# ─── Liste de lecture ──────────────────────────────────────
 
 	Scénario: Les éléments se réordonnent, se retirent, et un même élément peut revenir

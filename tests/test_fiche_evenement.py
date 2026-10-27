@@ -8,12 +8,14 @@ import re
 from collections.abc import Callable
 from datetime import datetime
 
+import pytest
 from PySide6.QtCore import QDateTime, Qt
 from PySide6.QtWidgets import QAbstractButton, QComboBox, QTreeWidgetItem
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface.fiche_evenement import FicheEvenement
+from machincast.lecture.diffusion import EMPREINTE_DE_LA_GRILLE
 from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, glisser, identifiant, ouvrir_dans
 
 scenarios("fiche_evenement.feature")
@@ -279,3 +281,27 @@ def historique(base_vide: Connexion, nom: str, numero: str) -> None:
 		(nom,),
 	).fetchall()
 	assert positions == [(int(numero),), (None,)]
+
+
+# ─── Empreinte de la grille (https://github.com/dascritch/machincast/issues/266) ───
+
+
+def empreinte(base: Connexion) -> str:
+	ligne = base.execute(EMPREINTE_DE_LA_GRILLE).fetchone()
+	assert ligne is not None
+	return str(ligne[0])
+
+
+@pytest.fixture
+def empreintes() -> list[str]:
+	return []
+
+
+@when("je note l'empreinte de la grille")
+def noter_l_empreinte(base_vide: Connexion, empreintes: list[str]) -> None:
+	empreintes.append(empreinte(base_vide))
+
+
+@then(parsers.re(r"l'empreinte de la grille (?P<verdict>n'a pas changé|a changé)"))
+def empreinte_comparee(base_vide: Connexion, empreintes: list[str], verdict: str) -> None:
+	assert (empreinte(base_vide) == empreintes[0]) == (verdict == "n'a pas changé")
