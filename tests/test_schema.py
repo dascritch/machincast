@@ -305,6 +305,16 @@ def airplay_sans_sequence(contexte: Contexte) -> None:
 	assert lignes == [(None, None, contexte.references["sonore"])]
 
 
+@when("je supprime l'événement de référence")
+def supprimer_evenement(contexte: Contexte) -> None:
+	contexte.connexion.execute("DELETE FROM evenements WHERE id = %s", (contexte.references["evenement"],))
+
+
+@then("aucune session n'est sautée en base")
+def aucune_session_sautee(contexte: Contexte) -> None:
+	assert contexte.connexion.execute("SELECT count(*) FROM evenements_sauts").fetchone() == (0,)
+
+
 @then("l'événement de référence n'a plus d'élément")
 def evenement_sans_element(contexte: Contexte) -> None:
 	ligne = contexte.connexion.execute(

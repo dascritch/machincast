@@ -17,6 +17,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| banques_sonores       | oui  | non     | non      | non       |
 			| evenements            | oui  | non     | non      | non       |
 			| evenements_elements   | oui  | non     | non      | non       |
+			| evenements_sauts      | oui  | non     | non      | non       |
 			| sequences             | oui  | non     | non      | non       |
 			| sequences_elements    | oui  | non     | non      | non       |
 			| airplay               | oui  | oui     | non      | non       |
@@ -34,6 +35,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| banques_sonores       | oui  | oui     | non      | oui       |
 			| evenements            | non  | non     | non      | non       |
 			| evenements_elements   | non  | non     | non      | non       |
+			| evenements_sauts      | non  | non     | non      | non       |
 			| sequences             | non  | non     | non      | non       |
 			| sequences_elements    | non  | non     | non      | non       |
 			| airplay               | non  | non     | non      | non       |
@@ -49,6 +51,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| banques_sonores       | oui  | oui     | oui      | oui       |
 			| evenements            | oui  | oui     | oui      | oui       |
 			| evenements_elements   | oui  | oui     | oui      | oui       |
+			| evenements_sauts      | oui  | oui     | non      | oui       |
 			| sequences             | oui  | oui     | oui      | oui       |
 			| sequences_elements    | oui  | oui     | oui      | oui       |
 			| airplay               | oui  | non     | non      | non       |

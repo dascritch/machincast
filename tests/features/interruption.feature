@@ -204,3 +204,4 @@ Fonctionnalité: Interruption manuelle de l'antenne
 			| {"commande": "arreter", "element": "sonore"}     |
 			| {"commande": "interrompre", "element": "banque"} |
 			| [1, 2]                                           |
+			| {"commande": "relire_la_grille", "element": "x"} |

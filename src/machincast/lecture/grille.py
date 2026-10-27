@@ -17,6 +17,10 @@ Dates d'un événement (spec § 3.1) : debut et fin sont ceux de sa première oc
 - Sans fin, une occurrence couvre l'instant à partir de son début, jusqu'à ce que sa liste soit épuisée : le
   binaire la déclare alors terminée (Occurrence.cle).
 
+Une session sautée (https://github.com/dascritch/machincast/issues/273), désignée par le jour où elle commence
+(Evenement.sautees), n'existe pas pour la grille : elle ne joue pas, ne coupe rien, ne chevauche rien. Seul le
+calendrier la montre (prevoir, Prevue.sautee).
+
 Un événement de secours (https://github.com/dascritch/machincast/issues/16) n'est jamais actif par la grille :
 sans date ni jour, sa liste ne joue qu'à la place d'un stream tombé (machincast.lecture.deroule).
 
@@ -62,6 +66,8 @@ class Evenement:
 	jours: frozenset[int]
 	"""Jours de récurrence, 0 pour lundi ; vide si l'événement n'a qu'une occurrence."""
 	modifie_le: datetime
+	sautees: frozenset[date] = frozenset()
+	"""Les jours où commencent ses sessions sautées (https://github.com/dascritch/machincast/issues/273)."""
 	supprime_le: datetime | None = None
 	"""Supprimé depuis l'interface (https://github.com/dascritch/machincast/issues/267) : il ne joue plus après ;
 	seul le calendrier lit un événement supprimé, pour ses occurrences d'avant
@@ -107,7 +113,7 @@ def occurrence(evenement: Evenement, instant: datetime) -> Occurrence | None:
 	fin = _heure_murale_ou_rien(evenement.fin)
 	moment = heure_murale(instant)
 	if not evenement.jours:
-		if not _couvre(debut, fin, moment):
+		if (not _couvre(debut, fin, moment)) or (debut.date() in evenement.sautees):
 			return None
 		return Occurrence(evenement, debut, fin)
 
@@ -121,6 +127,8 @@ def occurrence(evenement: Evenement, instant: datetime) -> Occurrence | None:
 	for ecart in range(recul + 1):
 		jour = moment.date() - timedelta(days=ecart)
 		if (jour < premier_jour) or ((jour != premier_jour) and (jour.weekday() not in evenement.jours)):
+			continue
+		if jour in evenement.sautees:
 			continue
 		depart = datetime.combine(jour, debut.time())
 		arrivee = None
@@ -159,9 +167,18 @@ def _cede(ouverte: Occurrence, autres: Iterable[Occurrence]) -> bool:
 	)
 
 
-def _occurrences(evenement: Evenement, de: date, a: date) -> list[tuple[datetime, datetime | None]]:
-	"""Début et fin, en heure murale, des occurrences qui commencent du premier jour, inclus, au second, exclu. Rien
-	pour un événement sans début."""
+def sessions(evenement: Evenement, de: date, a: date) -> list[tuple[datetime, datetime | None]]:
+	"""Début et fin, en heure murale, des sessions d'un événement qui commencent du premier jour, inclus, au second,
+	exclu, sautées comprises : celles que l'interface peut sauter ou rétablir
+	(https://github.com/dascritch/machincast/issues/273)."""
+	return _occurrences(evenement, de, a, avec_les_sautees=True)
+
+
+def _occurrences(
+	evenement: Evenement, de: date, a: date, avec_les_sautees: bool = False
+) -> list[tuple[datetime, datetime | None]]:
+	"""Début et fin, en heure murale, des occurrences qui commencent du premier jour, inclus, au second, exclu ; sans
+	les sessions sautées, sauf demande. Rien pour un événement sans début."""
 	if evenement.debut is None:
 		return []
 	debut = heure_murale(evenement.debut)
@@ -173,6 +190,8 @@ def _occurrences(evenement: Evenement, de: date, a: date) -> list[tuple[datetime
 	for ecart in range((a - de).days):
 		jour = de + timedelta(days=ecart)
 		if (jour < debut.date()) or ((jour != debut.date()) and (jour.weekday() not in evenement.jours)):
+			continue
+		if (jour in evenement.sautees) and (not avec_les_sautees):
 			continue
 		arrivee = None
 		if (fin is not None) and (duree_en_jours is not None):
@@ -254,7 +273,8 @@ def prochain_changement(evenements: Iterable[Evenement], instant: datetime) -> d
 		debut = heure_murale(evenement.debut)
 		fin = _heure_murale_ou_rien(evenement.fin)
 		if not evenement.jours:
-			candidats += [c for c in (debut, fin) if c is not None]
+			if debut.date() not in evenement.sautees:
+				candidats += [c for c in (debut, fin) if c is not None]
 			continue
 		duree_en_jours: int | None = None
 		if fin is not None:
@@ -264,6 +284,8 @@ def prochain_changement(evenements: Iterable[Evenement], instant: datetime) -> d
 		for ecart in range(-8 - ((duree_en_jours) or (0)), 8):
 			jour = moment.date() + timedelta(days=ecart)
 			if (jour < debut.date()) or ((jour != debut.date()) and (jour.weekday() not in evenement.jours)):
+				continue
+			if jour in evenement.sautees:
 				continue
 			candidats.append(datetime.combine(jour, debut.time()))
 			if (fin is not None) and (duree_en_jours is not None):
@@ -286,6 +308,8 @@ class Prevue:
 	plus haute, au plus tard minuit ; pour un fil musical permanent, la fin de la période."""
 	joue: tuple[tuple[datetime, datetime], ...]
 	"""Les moments de la période où l'occurrence serait à l'antenne, dans l'ordre."""
+	sautee: bool = False
+	"""Une session sautée (https://github.com/dascritch/machincast/issues/273) : elle ne joue rien, ne cache rien."""
 
 
 def prevoir(evenements: Iterable[Evenement], de: datetime, a: datetime) -> list[Prevue]:
@@ -294,11 +318,14 @@ def prevoir(evenements: Iterable[Evenement], de: datetime, a: datetime) -> list[
 	Ce qui joue suit evenement_actif, avec la fin dessinée d'une occurrence sans fin : la durée réelle de sa liste
 	n'est connue qu'à la diffusion. Les événements de secours, hors grille, n'y sont pas. Un événement supprimé
 	n'a que ses occurrences commencées avant sa suppression, arrêtées à elle
-	(https://github.com/dascritch/machincast/issues/269).
+	(https://github.com/dascritch/machincast/issues/269). Une session sautée est montrée à part (Prevue.sautee) : elle
+	ne joue rien, et ne compte ni pour ce qui joue, ni pour la fin dessinée d'une autre
+	(https://github.com/dascritch/machincast/issues/273).
 	"""
 	de, a = heure_murale(de), heure_murale(a)
 	grille = [evenement for evenement in evenements if evenement.priorite is not Priorite.SECOURS]
 	occurrences: list[Occurrence] = []
+	sautees: list[Occurrence] = []
 	for evenement in grille:
 		supprime = _heure_murale_ou_rien(evenement.supprime_le)
 		if evenement.debut is None:
@@ -307,8 +334,12 @@ def prevoir(evenements: Iterable[Evenement], de: datetime, a: datetime) -> list[
 			continue
 		# Une occurrence commencée avant la période peut encore la toucher : autant de jours qu'elle en couvre.
 		depuis = de.date() - timedelta(days=_jours_couverts(evenement) + 1)
-		for debut, fin in _occurrences(evenement, depuis, a.date() + timedelta(days=1)):
-			if (supprime is None) or (debut < supprime):
+		for debut, fin in _occurrences(evenement, depuis, a.date() + timedelta(days=1), avec_les_sautees=True):
+			if (supprime is not None) and (debut >= supprime):
+				continue
+			if debut.date() in evenement.sautees:
+				sautees.append(Occurrence(evenement, debut, fin))
+			else:
 				occurrences.append(Occurrence(evenement, debut, fin))
 	fins = {o.cle: _fin_dessinee(o, occurrences, a) for o in occurrences}
 	for o in occurrences:
@@ -333,10 +364,9 @@ def prevoir(evenements: Iterable[Evenement], de: datetime, a: datetime) -> list[
 			moments[-1] = (moments[-1][0], arrivee)
 			continue
 		moments.append((depart, arrivee))
-	return [
-		Prevue(o, (o.debut) or (de), fins[o.cle], tuple(joue[o.cle]))
-		for o in sorted(gardees, key=lambda o: ((o.debut) or (de), RANGS[o.evenement.priorite], o.evenement.id))
-	]
+	prevues = [Prevue(o, (o.debut) or (de), fins[o.cle], tuple(joue[o.cle])) for o in gardees]
+	prevues += [Prevue(o, (o.debut) or (de), _fin_dessinee(o, occurrences, a), (), sautee=True) for o in sautees]
+	return sorted(prevues, key=lambda p: (p.debut, RANGS[p.occurrence.evenement.priorite], p.occurrence.evenement.id))
 
 
 def _fin_dessinee(occurrence: Occurrence, toutes: list[Occurrence], a: datetime) -> datetime:
@@ -364,7 +394,10 @@ def _gagnante(couvrantes: list[Occurrence]) -> Occurrence | None:
 	return max(gardees, key=lambda o: (o.evenement.modifie_le, o.evenement.id))
 
 
-COLONNES = "id, nom_interne, priorite::text, debut, fin, jours_recurrence::text[], modifie_le, supprime_le"
+COLONNES = (
+	"id, nom_interne, priorite::text, debut, fin, jours_recurrence::text[], modifie_le, supprime_le,"
+	" ARRAY(SELECT s.jour FROM evenements_sauts s WHERE s.evenement_id = evenements.id)"
+)
 
 
 def lire_grille(connexion: psycopg.Connection[TupleRow], supprimes: bool = False) -> list[Evenement]:
@@ -400,7 +433,10 @@ def _evenements(lignes: list[TupleRow]) -> list[Evenement]:
 			fin=fin if isinstance(fin, datetime) else None,
 			jours=frozenset(JOURS.index(str(jour)) for jour in (jours if isinstance(jours, list) else [])),
 			modifie_le=modifie_le if isinstance(modifie_le, datetime) else JAMAIS,
+			sautees=frozenset(
+				jour for jour in (sautees if isinstance(sautees, list) else []) if isinstance(jour, date)
+			),
 			supprime_le=supprime_le if isinstance(supprime_le, datetime) else None,
 		)
-		for identifiant, nom, priorite, debut, fin, jours, modifie_le, supprime_le in lignes
+		for identifiant, nom, priorite, debut, fin, jours, modifie_le, supprime_le, sautees in lignes
 	]

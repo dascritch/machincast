@@ -387,6 +387,125 @@ Fonctionnalité: Calendrier de la grille
 			| samedi 24   | 17:30 | 19:00 | Rediff    | joue           |
 			| dimanche 25 | 23:00 | 24:00 | Nuit      | joue           |
 
+	# ─── Sessions sautées (https://github.com/dascritch/machincast/issues/273) ───
+	# Une session à venir d'un événement récurrent se saute au clic droit sur son bloc, seule ou jusqu'à un jour choisi ;
+	# sautée, elle reste dessinée, hachurée, et se rétablit au clic droit. Le créneau revient à ce qui joue sans elle :
+	# on y crée l'émission de remplacement d'un clic, comme sur une heure libre. Machin lecture est prévenu aussitôt.
+
+	Scénario: Le clic droit propose de sauter une session à venir d'un événement récurrent, et rien d'autre
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Alors le clic droit sur le bloc « Matinale » du mercredi 21 propose « Sauter cette session », « Sauter les sessions jusqu'au… »
+		Et le clic droit sur le bloc « Matinale » du mardi 20 ne propose rien
+		Et le clic droit sur le bloc « Concert » du mercredi 21 ne propose rien
+		Et le clic droit sur le bloc « Continue » de la journée du mercredi 21 ne propose rien
+
+	Scénario: Une session sautée reste hachurée, et le créneau revient à ce qui joue sans elle
+		Étant donné la socket d'état de Machin lecture ouverte pour l'interface
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Et je choisis « Sauter cette session » au clic droit sur le bloc « Matinale » du mercredi 21
+		Alors la barre d'état annonce « Session de « Matinale » du mercredi 21 octobre à 07:00 sautée. »
+		Et les sessions sautées de « Matinale » sont « 2026-10-21 »
+		Et Machin lecture a reçu la demande de relire la grille
+		Et le calendrier montre les blocs :
+			| jour        | début | fin   | événement | état           |
+			| lundi 19    | 00:00 | 01:00 | Nuit      | joue           |
+			| lundi 19    | 07:00 | 09:00 | Matinale  | joue           |
+			| mardi 20    | 07:00 | 09:00 | Matinale  | joue           |
+			| mercredi 21 | 07:00 | 09:00 | Matinale  | sauté          |
+			| mercredi 21 | 08:00 | 10:00 | Concert   | joue           |
+			| mercredi 21 | 12:00 | 13:00 | Midi      | joue           |
+			| jeudi 22    | 07:00 | 09:00 | Matinale  | joue           |
+			| jeudi 22    | 14:00 | 20:00 | Direct    | joue           |
+			| jeudi 22    | 20:00 | 21:00 | Soirée    | joue           |
+			| vendredi 23 | 07:00 | 09:00 | Matinale  | estompé        |
+			| samedi 24   | 10:00 | 18:00 | Week-end  | joue en partie |
+			| samedi 24   | 12:00 | 13:00 | Flash     | joue           |
+			| samedi 24   | 17:30 | 19:00 | Rediff    | joue           |
+			| dimanche 25 | 23:00 | 24:00 | Nuit      | joue           |
+		Et le bloc « Matinale » du mercredi 21 a l'infobulle :
+			"""
+			Matinale (Le réveil) — Émission
+			mercredi 21 octobre, 07:00 – 09:00
+			Revient le lundi, mardi, mercredi, jeudi, vendredi
+			Session sautée : « Rétablir cette session » au clic droit
+			Double-clic : ouvrir l'événement
+			"""
+		Et le bloc « Continue » de la journée du mercredi 21 a l'infobulle :
+			"""
+			Continue — Fil musical
+			Fil musical permanent
+			Joue de 00:00 à 08:00 et de 10:00 à 12:00 et de 13:00 à 24:00 ; masqué le reste du temps par un autre événement
+			Double-clic : ouvrir l'événement
+			"""
+
+	Scénario: Les sessions se sautent jusqu'au jour choisi, celles déjà sautées comprises
+		Étant donné la session du 2026-10-23 de l'événement « Matinale » est sautée
+		Et je choisirai le jour « 2026-10-28 » jusqu'où sauter
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Et je choisis « Sauter les sessions jusqu'au… » au clic droit sur le bloc « Matinale » du jeudi 22
+		Alors le choix du jour a proposé « Sauter les sessions de « Matinale » à partir du jeudi 22 octobre, jusqu'au : », à partir du « 2026-10-22 »
+		Et la barre d'état annonce « 4 sessions de « Matinale » sautées, du jeudi 22 octobre au mercredi 28 octobre. »
+		Et les sessions sautées de « Matinale » sont « 2026-10-22 », « 2026-10-23 », « 2026-10-26 », « 2026-10-27 », « 2026-10-28 »
+
+	Scénario: Renoncer au choix du jour ne saute rien
+		Étant donné que j'annulerai le choix du jour jusqu'où sauter
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Et je choisis « Sauter les sessions jusqu'au… » au clic droit sur le bloc « Matinale » du jeudi 22
+		Alors aucune session de « Matinale » n'est sautée
+		Et la barre d'état n'a rien annoncé
+
+	Scénario: Une session sautée se rétablit au clic droit
+		Étant donné la socket d'état de Machin lecture ouverte pour l'interface
+		Et la session du 2026-10-21 de l'événement « Matinale » est sautée
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Alors le clic droit sur le bloc « Matinale » du mercredi 21 propose « Rétablir cette session »
+		Quand je choisis « Rétablir cette session » au clic droit sur le bloc « Matinale » du mercredi 21
+		Alors la barre d'état annonce « Session de « Matinale » du mercredi 21 octobre à 07:00 rétablie. »
+		Et aucune session de « Matinale » n'est sautée
+		Et Machin lecture a reçu la demande de relire la grille
+		Et le bloc « Matinale » du mercredi 21 est « joue en partie »
+
+	Scénario: Une session passée, même sautée, ne se rétablit plus
+		Étant donné la session du 2026-10-20 de l'événement « Matinale » est sautée
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Alors le clic droit sur le bloc « Matinale » du mardi 20 ne propose rien
+		Et le bloc « Matinale » du mardi 20 a l'infobulle :
+			"""
+			Matinale (Le réveil) — Émission
+			mardi 20 octobre, 07:00 – 09:00
+			Revient le lundi, mardi, mercredi, jeudi, vendredi
+			Session sautée
+			Double-clic : ouvrir l'événement
+			"""
+
+	Scénario: Le créneau d'une session sautée se clique comme une heure libre, et la remplaçante s'enregistre
+		Étant donné la session du 2026-10-22 de l'événement « Matinale » est sautée
+		Et que je répondrai « Créer » à la question de création
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Et je clique dans le calendrier le jeudi 22 à 07:20
+		Alors la question de création a dit « Créer un événement le jeudi 22 octobre 2026 de 07:00 à 08:00 ? »
+		Quand je saisis le nom interne « Vacances »
+		Et j'enregistre la fiche
+		Alors la base a toujours 12 événements
+
+	Scénario: Une session ne se rétablit pas sur une émission qui a pris sa place
+		Étant donné la session du 2026-10-22 de l'événement « Matinale » est sautée
+		Et les événements :
+			| nom      | nom_public | priorite | debut            | fin              | jours |
+			| Vacances |            | emission | 2026-10-22 07:30 | 2026-10-22 08:30 |       |
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Et je choisis « Rétablir cette session » au clic droit sur le bloc « Matinale » du jeudi 22
+		Alors la barre d'état annonce « Session de « Matinale » du jeudi 22 octobre non rétablie : elle chevaucherait « Vacances » à 07:30. »
+		Et les sessions sautées de « Matinale » sont « 2026-10-22 »
+
 	# ─── Ouvrir, créer ─────────────────────────────────────────
 
 	Scénario: Un double-clic sur un bloc ouvre la fiche de son événement

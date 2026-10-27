@@ -71,7 +71,7 @@ from machincast.horloge import Horloge
 from machincast.lecture.analyse import Analyseur, a_analyser
 from machincast.lecture.deroule import Choix, Coupure, Decision, EnCours, Ordonnanceur
 from machincast.lecture.enregistrement import Passage
-from machincast.lecture.etat import PUBLICATION_MINIMALE, SocketEtat, SocketEtatOccupee, est_sain
+from machincast.lecture.etat import PUBLICATION_MINIMALE, RELIRE_LA_GRILLE, SocketEtat, SocketEtatOccupee, est_sain
 from machincast.lecture.etat import instant as iso
 from machincast.lecture.fichiers import verifier_avant_lecture
 from machincast.lecture.fondus import Placement, placer
@@ -103,9 +103,11 @@ A_VENIR = 5
 EMPREINTE_DE_LA_GRILLE = (
 	"SELECT md5(concat_ws('|', (SELECT string_agg(e::text, ',' ORDER BY e.id) FROM evenements e),"
 	" (SELECT string_agg(x::text, ',' ORDER BY x.id) FROM evenements_elements x),"
-	" (SELECT string_agg(l::text, ',' ORDER BY l.id) FROM sequences_elements l)))"
+	" (SELECT string_agg(l::text, ',' ORDER BY l.id) FROM sequences_elements l),"
+	" (SELECT string_agg(s::text, ',' ORDER BY s.evenement_id, s.jour) FROM evenements_sauts s)))"
 )
-"""Empreinte des événements, de leurs listes et des séquences : changée, elle fait recalculer les sonores à venir."""
+"""Empreinte des événements, de leurs listes, de leurs sessions sautées et des séquences : changée, elle fait
+recalculer les sonores à venir."""
 
 DELAI_RECONNEXION = timedelta(seconds=5)
 """Délai entre deux tentatives de reconnexion d'un stream tombé."""
@@ -359,7 +361,10 @@ class Diffusion:
 		self._terminer_les_voies_arretees(instant)
 		if self.etat is not None:
 			for demande in self.etat.demandes():
-				self.interrompre(demande.element)
+				if demande.commande == RELIRE_LA_GRILLE:
+					self.relire_la_grille()
+				else:
+					self.interrompre(demande.element)
 		courant = self.courant
 		if courant is not None:
 			decision = self.ordonnanceur.decider(instant, courant.en_cours)
@@ -399,6 +404,19 @@ class Diffusion:
 		self._publier(instant, arret=True)
 		if self.etat is not None:
 			self.etat.fermer()
+
+	def relire_la_grille(self) -> None:
+		"""La grille a changé, et le changement doit valoir aussitôt
+		(https://github.com/dascritch/machincast/issues/273) : la coupure du sonore en cours, le prochain sonore et les
+		sonores à venir sont recalculés, comme au début d'un sonore. Rien à recalculer sans sonore à l'antenne, ni quand
+		le suivant est déjà lancé, au crossfade de fin : la grille se relit alors au pas suivant, comme toujours."""
+		courant = self.courant
+		if (courant is None) or (courant.suivant_demande):
+			return
+		instant = self.horloge.maintenant()
+		self._attendu = None
+		self._reserver(instant)
+		self._publier(instant)
 
 	def interrompre(self, element: str) -> bool:
 		"""Interruption manuelle (https://github.com/dascritch/machincast/issues/228) : sauter au sonore suivant

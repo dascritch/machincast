@@ -84,5 +84,17 @@ Fonctionnalité: Désherbage de la base : Machin purge
 		Alors la purge se termine avec le code 1
 		Et la purge a signalé une base de données injoignable
 
+	Scénario: Les sessions sautées d'avant la limite sont effacées
+		https://github.com/dascritch/machincast/issues/273
+
+		Étant donné les éléments en base :
+			| genre     | nom      | supprimé le | fichier disparu le |
+			| événement | Matinale |             |                    |
+		Et la session du 2026-10-20 de l'événement « Matinale » est sautée
+		Et la session du 2026-10-21 de l'événement « Matinale » est sautée
+		Et la session du 2026-12-24 de l'événement « Matinale » est sautée
+		Quand je lance « Machin purge »
+		Alors les sessions sautées de « Matinale » sont « 2026-10-21 », « 2026-12-24 »
+
 	Scénario: Machin purge est un binaire du wrapper
 		Alors « purge » est un binaire du wrapper, déclaré dans pyproject.toml

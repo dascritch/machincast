@@ -1,7 +1,8 @@
 """Étapes de la détermination de l'événement actif (https://github.com/dascritch/machincast/issues/12)."""
 
+import dataclasses
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 
 import psycopg
 import pytest
@@ -9,7 +10,15 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.base import Role, connecter
 from machincast.horloge import HorlogeFixe
-from machincast.lecture.grille import Evenement, Priorite, evenement_actif, heure_murale, lire_grille, occurrence
+from machincast.lecture.grille import (
+	Evenement,
+	Priorite,
+	evenement_actif,
+	heure_murale,
+	lire_grille,
+	occurrence,
+	prochain_changement,
+)
 from tests.base_test import parametres_base_test
 
 scenarios("evenement_actif.feature")
@@ -104,6 +113,24 @@ def terminer(contexte: Contexte, nom: str, debut: str) -> None:
 	en_cours = occurrence(nomme(contexte, nom), instant)
 	assert (en_cours is not None) and (en_cours.debut == heure_murale(instant)), en_cours
 	contexte.terminees.add(en_cours.cle)
+
+
+@given(parsers.parse("la session du « {jour} » de « {nom} » est sautée"))
+def sauter(contexte: Contexte, jour: str, nom: str) -> None:
+	sautee = date.fromisoformat(jour)
+	evenements = []
+	for evenement in contexte.evenements:
+		if evenement.nom == nom:
+			evenement = dataclasses.replace(evenement, sautees=evenement.sautees | {sautee})
+		evenements.append(evenement)
+	contexte.evenements = evenements
+
+
+@then(parsers.parse("le prochain changement de la grille après le « {instant} » est le « {attendu} »"))
+def changement(contexte: Contexte, instant: str, attendu: str) -> None:
+	trouve = prochain_changement(contexte.evenements, heure(contexte, instant))
+	assert trouve is not None
+	assert trouve == heure(contexte, attendu), trouve
 
 
 @then("aucun événement n'est actif")

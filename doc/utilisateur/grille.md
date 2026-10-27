@@ -5,6 +5,7 @@
 - [Fiche d'un événement](#fiche-dun-événement)
 - [Fiche d'une séquence](#fiche-dune-séquence)
 - [Calendrier](#calendrier)
+	- [Sauter une session](#sauter-une-session)
 - [Simulation](#simulation)
 
 Les fiches s'ouvrent dans leur onglet, depuis les listes ([Listes et actions](listes.md)), l'accueil, le calendrier ou la recherche. Elles se comportent toutes de la même façon : voir [Enregistrer, annuler, fermer](listes.md#enregistrer-annuler-fermer).
@@ -70,7 +71,7 @@ La fiche d'une [séquence](antenne.md#séquences) s'ouvre dans un onglet nommé 
 
 **Affichage → Ouvrir l'onglet Grille horaire** ouvre le **Calendrier** : ce qui est prévu, et ce qui a été diffusé. Il s'ouvre sur la semaine du jour, du lundi au dimanche ; une ligne rouge marque l'heure qu'il est.
 
-![Le calendrier de la semaine : la Matinale et le Journal du lundi au vendredi, un spécial le samedi, et à droite de chaque jour passé ce qui a réellement été diffusé](../captures/calendrier.png)
+![Le calendrier de la semaine : la Matinale et le Journal du lundi au vendredi, la Matinale du vendredi sautée et hachurée, un spécial le samedi, et à droite de chaque jour passé ce qui a réellement été diffusé](../captures/calendrier.png)
 
 - **Naviguer** : « Semaine précédente », « Aujourd'hui », « Semaine suivante », jusqu'à 28 jours après aujourd'hui. Vers le passé, le calendrier s'arrête à la durée de péremption, 60 jours par défaut, réglable dans les [préférences](prise-en-main.md#préférences), page **Base** : la base n'a plus rien d'avant ([#269](https://github.com/dascritch/machincast/issues/269)). Dans la semaine de cette limite, les jours d'avant sont grisés et vides. « Jour » montre un seul jour ; « Semaine » revient à la semaine.
 - **Ce qui est prévu** : chaque occurrence d'un événement est un bloc, à la couleur de sa priorité. Le bloc est **plein** là où l'événement passerait à l'antenne, **estompé** là où un autre, plus prioritaire, le masque. Les fils musicaux permanents et les occurrences de 24 heures ou plus sont dans la **bande de la journée entière**, sous le nom du jour. Une émission sans fin se dessine jusqu'au prochain événement de même priorité, au plus tard jusqu'à minuit. Les événements de secours n'y sont pas. Un événement [supprimé](listes.md#supprimer-un-élément) garde ses blocs d'avant sa suppression, jusqu'à ce qu'il soit effacé de la base ; son infobulle dit quand il a été supprimé.
@@ -79,6 +80,17 @@ La fiche d'une [séquence](antenne.md#séquences) s'ouvre dans un onglet nommé 
 - **Survoler** un bloc donne l'événement, ses heures, sa récurrence et ce qui en joue ; une bande, ses heures et son nombre de passages.
 - **Double-cliquer** sur un bloc ou une bande ouvre la fiche de l'événement.
 - **Cliquer sur une heure libre**, pas encore passée, propose de créer un événement sur l'heure entière : « Créer un événement le dimanche 25 octobre 2026 de 13:00 à 14:00 ? ». **Créer** ouvre la fiche d'un nouvel événement réglé sur cette heure ; rien n'est en base avant **Enregistrer**.
+
+### Sauter une session
+
+Pour des vacances, un jour férié ou une émission exceptionnelle, une session d'un événement récurrent se saute, sans toucher à l'événement ([#273](https://github.com/dascritch/machincast/issues/273)). **Clic droit** sur le bloc d'une session à venir :
+
+- **Sauter cette session** : elle ne passe pas à l'antenne ;
+- **Sauter les sessions jusqu'au…** : un calendrier fait choisir le dernier jour, et toutes les sessions de l'événement jusqu'à ce jour, compris, sont sautées. **OK** ou <kbd>Entrée</kbd> valide, **Annuler** ou <kbd>Échap</kbd> ne saute rien.
+
+Une session sautée reste dans le calendrier, **hachurée** : à sa place, l'antenne joue ce qui jouerait sans elle, en général le fil musical. Pour la remplacer par une autre émission, **cliquer** sur son créneau, comme sur une heure libre : la nouvelle émission peut l'occuper. La diffusion en tient compte aussitôt, et l'accueil montre les nouveaux sonores à venir. La barre d'état dit ce qui a été sauté.
+
+**Clic droit** sur une session sautée, tant qu'elle est à venir : **Rétablir cette session**. Si une émission a pris sa place entre-temps, elle n'est pas rétablie, et la barre d'état dit laquelle la chevaucherait. Seules les sessions à venir d'un événement qui revient chaque semaine se sautent ; un événement unique se supprime, ou se déplace dans sa fiche.
 
 ## Simulation
 

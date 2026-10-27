@@ -24,7 +24,7 @@
 - **Fils musicaux selon l'heure** : plusieurs fils musicaux peuvent se relayer, par exemple un fil de nuit de 00:00 à 06:00, tous les jours, sur un fil de jour permanent.
 - **Toujours un fil musical** : s'il n'en existe aucun, l'interface en crée un, « Fil musical », permanent et vide ([Pour bien démarrer](prise-en-main.md#pour-bien-démarrer)). Vide, il laisse l'antenne en silence, avec une alerte.
 - **Heures** : un événement est à l'antenne de son début, inclus, à sa fin, exclue : une émission de 20:00 à 22:00 laisse la place à 22:00 pile. Toutes les heures sont celles de Paris, l'heure locale du poste.
-- **Récurrence** : un événement qui se répète revient chacun des jours cochés, à la même heure, à partir de sa première diffusion, sans date de fin ni exception pour les jours fériés.
+- **Récurrence** : un événement qui se répète revient chacun des jours cochés, à la même heure, à partir de sa première diffusion, sans date de fin. Pour des vacances ou un jour férié, ses sessions se sautent depuis le calendrier ([Sauter une session](grille.md#sauter-une-session)).
 - **Passage de minuit** : un événement peut finir le lendemain, par exemple de 23:00 à 01:00 ; pour un événement récurrent, c'est le jour du début qui compte.
 - **Émission ou spécial sans fin** : il reste à l'antenne jusqu'au bout de sa liste, qui ne boucle pas ; l'événement en dessous reprend alors. Un événement de même priorité qui commence après lui prend l'antenne ; il reprend ensuite là où il en était, si sa liste n'est pas épuisée.
 - **Chevauchement** : deux événements de même priorité ne se chevauchent pas : la [fiche d'un événement](grille.md#fiche-dun-événement) le refuse.

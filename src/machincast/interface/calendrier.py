@@ -17,6 +17,11 @@ semaine, les jours d'avant sont grisés, vides.
 - Une case par priorité montre ou cache ses blocs et ses bandes ; ce qui joue ne change pas.
 - Survoler un bloc ou une bande donne son infobulle ; un double-clic ouvre son événement (signal ouverte). Un clic
   sur une heure libre, pas encore passée, demande la création d'un événement sur son heure entière (creation_demandee).
+- Sessions sautées (https://github.com/dascritch/machincast/issues/273) : le clic droit sur une session à venir d'un
+  événement récurrent la saute, seule ou avec les suivantes jusqu'à un jour choisi (dialogues.choisir_jour) ; sautée,
+  elle reste dessinée, hachurée, ne cache rien, se clique comme une heure libre, et se rétablit au clic droit, sauf si
+  un événement de même priorité a pris sa place. Chaque saut s'annonce (annonce), et demande à Machin lecture de
+  relire la grille (grille_modifiee).
 
 Le calendrier se relit à l'ouverture de son onglet, à chaque changement de période et par « Rafraîchir les onglets » ;
 jamais en boucle.
@@ -29,11 +34,12 @@ from datetime import date, datetime, time, timedelta
 import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QHelpEvent, QMouseEvent, QPainter, QPaintEvent, QPen
+from PySide6.QtGui import QBrush, QColor, QContextMenuEvent, QHelpEvent, QMouseEvent, QPainter, QPaintEvent, QPen
 from PySide6.QtWidgets import (
 	QCheckBox,
 	QHBoxLayout,
 	QLabel,
+	QMenu,
 	QPushButton,
 	QScrollArea,
 	QStyle,
@@ -44,9 +50,21 @@ from PySide6.QtWidgets import (
 
 from machincast.conversion import texte_ou_rien
 from machincast.horloge import Horloge
-from machincast.interface import preferences
+from machincast.interface import dialogues, preferences
 from machincast.interface.affichage import MOIS
-from machincast.lecture.grille import JOURS, RANGS, Evenement, Prevue, Priorite, heure_murale, lire_grille, prevoir
+from machincast.lecture.grille import (
+	JAMAIS,
+	JOURS,
+	RANGS,
+	Evenement,
+	Prevue,
+	Priorite,
+	chevauchement,
+	heure_murale,
+	lire_grille,
+	prevoir,
+	sessions,
+)
 
 Connexion = psycopg.Connection[TupleRow]
 
@@ -87,6 +105,10 @@ OUVRIR = "Double-clic : ouvrir l'événement"
 EVENEMENT_SUPPRIME = "Événement supprimé"
 MASQUE = "par un autre événement"
 SUITE_SUPPRIMEE = "la suite n'est plus prévue"
+SAUTER = "Sauter cette session"
+SAUTER_JUSQU_AU = "Sauter les sessions jusqu'au…"
+RETABLIR = "Rétablir cette session"
+SAUTEE = "Session sautée"
 
 
 def numero(jour: date) -> str:
@@ -158,7 +180,13 @@ class Bloc:
 		return self.prevue.occurrence.evenement
 
 	@property
+	def sautee(self) -> bool:
+		return self.prevue.sautee
+
+	@property
 	def etat(self) -> str:
+		if self.sautee:
+			return "sauté"
 		if not self.joue:
 			return "estompé"
 		if self.joue == ((self.debut, self.fin),):
@@ -179,6 +207,13 @@ class Bloc:
 		lignes += [self._ce_qui_joue(), OUVRIR]
 		return "\n".join(lignes)
 
+	def infobulle_a(self, maintenant: datetime) -> str:
+		"""L'infobulle ; celle d'une session sautée à venir dit comment la rétablir."""
+		texte = self.infobulle()
+		if (self.sautee) and (_a_venir(self, maintenant)):
+			return texte.replace(f"\n{SAUTEE}\n", f"\n{SAUTEE} : « {RETABLIR} » au clic droit\n")
+		return texte
+
 	def _horaires(self) -> str:
 		occurrence = self.prevue.occurrence
 		if occurrence.debut is None:
@@ -192,6 +227,8 @@ class Bloc:
 
 	def _ce_qui_joue(self) -> str:
 		etat = self.etat
+		if etat == "sauté":
+			return SAUTEE
 		if etat == "joue":
 			return "Joue en entier"
 		if etat == "estompé":
@@ -354,6 +391,10 @@ class Calendrier(QWidget):
 	"""Double-clic sur un bloc ou une bande : genre, identifiant et nom de son événement."""
 	creation_demandee = Signal(object)
 	"""Clic sur une heure libre : le début, en heure murale, de l'événement à créer."""
+	annonce = Signal(str)
+	"""Ce qu'a fait un clic droit, pour la barre d'état."""
+	grille_modifiee = Signal()
+	"""Une session sautée ou rétablie : Machin lecture doit relire la grille."""
 
 	def __init__(self, connexion: Connexion, horloge: Horloge, parent: QWidget | None = None) -> None:
 		super().__init__(parent)
@@ -492,6 +533,85 @@ class Calendrier(QWidget):
 		self._semaine = semaine
 		self.actualiser()
 
+	# ─── Sessions sautées (https://github.com/dascritch/machincast/issues/273) ───
+
+	def sauter(self, bloc: Bloc) -> None:
+		"""Saute la session du bloc."""
+		debut = bloc.prevue.occurrence.debut
+		assert debut is not None
+		self._sauter(bloc.evenement, [debut])
+
+	def sauter_jusqu_au(self, bloc: Bloc) -> None:
+		"""Saute la session du bloc, et les suivantes jusqu'au jour choisi, compris."""
+		debut = bloc.prevue.occurrence.debut
+		assert debut is not None
+		nom = bloc.evenement.nom
+		texte = f"Sauter les sessions de « {nom} » à partir du {jour_et_mois(debut.date())}, jusqu'au :"
+		dernier = dialogues.choisir_jour(self, "Sauter des sessions", texte, debut.date())
+		if dernier is None:
+			return
+		# Les sessions déjà sautées le restent, sans compter de nouveau.
+		a_sauter = [
+			depart
+			for depart, _fin in sessions(bloc.evenement, debut.date(), dernier + UN_JOUR)
+			if depart.date() not in bloc.evenement.sautees
+		]
+		self._sauter(bloc.evenement, a_sauter)
+
+	def _sauter(self, evenement: Evenement, debuts: list[datetime]) -> None:
+		with self.connexion.transaction():
+			for debut in debuts:
+				self.connexion.execute(
+					"INSERT INTO evenements_sauts (evenement_id, jour) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+					(evenement.id, debut.date()),
+				)
+		premier, dernier = debuts[0], debuts[-1]
+		texte = f"Session de « {evenement.nom} » du {jour_et_mois(premier.date())} à {premier:%H:%M} sautée."
+		if len(debuts) > 1:
+			texte = (
+				f"{len(debuts)} sessions de « {evenement.nom} » sautées, du {jour_et_mois(premier.date())}"
+				f" au {jour_et_mois(dernier.date())}."
+			)
+		self._grille_changee(texte)
+
+	def retablir(self, bloc: Bloc) -> None:
+		"""Rétablit la session sautée du bloc, sauf si un événement de même priorité a pris sa place."""
+		occurrence = bloc.prevue.occurrence
+		evenement = occurrence.evenement
+		assert occurrence.debut is not None
+		jour = occurrence.debut.date()
+		session = Evenement(
+			id=evenement.id,
+			nom=evenement.nom,
+			priorite=evenement.priorite,
+			debut=occurrence.debut,
+			fin=occurrence.fin,
+			jours=frozenset(),
+			modifie_le=JAMAIS,
+		)
+		with self.connexion.transaction():
+			autres = [autre for autre in lire_grille(self.connexion) if autre.id != evenement.id]
+		trouve = chevauchement(session, autres)
+		if trouve is not None:
+			autre, instant = trouve
+			self.annonce.emit(
+				f"Session de « {evenement.nom} » du {jour_et_mois(jour)} non rétablie : elle chevaucherait"
+				f" « {autre.nom} » à {instant:%H:%M}."
+			)
+			return
+		with self.connexion.transaction():
+			self.connexion.execute(
+				"DELETE FROM evenements_sauts WHERE evenement_id = %s AND jour = %s", (evenement.id, jour)
+			)
+		self._grille_changee(
+			f"Session de « {evenement.nom} » du {jour_et_mois(jour)} à {occurrence.debut:%H:%M} rétablie."
+		)
+
+	def _grille_changee(self, texte: str) -> None:
+		self.actualiser()
+		self.annonce.emit(texte)
+		self.grille_modifiee.emit()
+
 	def _borner(self) -> None:
 		"""Une période tout entière d'avant le premier jour, après une durée de péremption raccourcie, revient à
 		celle du premier jour."""
@@ -553,12 +673,20 @@ class EnTete(QWidget):
 
 	def event(self, evenement: QEvent) -> bool:
 		if (isinstance(evenement, QHelpEvent)) and (evenement.type() == QEvent.Type.ToolTip):
-			_infobulle(self, evenement, self._bloc_en(QPointF(evenement.pos())))
+			_infobulle(self, evenement, self._bloc_en(QPointF(evenement.pos())), self.calendrier.maintenant())
 			return True
 		return super().event(evenement)
 
 	def mouseDoubleClickEvent(self, evenement: QMouseEvent) -> None:
 		_ouvrir(self.calendrier, self._bloc_en(evenement.position()))
+
+	def menu_en(self, point: QPointF) -> QMenu | None:
+		return _menu(self.calendrier, self._bloc_en(point), self)
+
+	def contextMenuEvent(self, evenement: QContextMenuEvent) -> None:
+		menu = self.menu_en(QPointF(evenement.pos()))
+		if menu is not None:
+			menu.exec(evenement.globalPos())
 
 	def paintEvent(self, _evenement: QPaintEvent) -> None:
 		peintre = QPainter(self)
@@ -641,16 +769,30 @@ class Grille(QWidget):
 
 	def event(self, evenement: QEvent) -> bool:
 		if (isinstance(evenement, QHelpEvent)) and (evenement.type() == QEvent.Type.ToolTip):
-			_infobulle(self, evenement, self.element_en(QPointF(evenement.pos())))
+			_infobulle(self, evenement, self.element_en(QPointF(evenement.pos())), self.calendrier.maintenant())
 			return True
 		return super().event(evenement)
 
 	def mouseDoubleClickEvent(self, evenement: QMouseEvent) -> None:
 		_ouvrir(self.calendrier, self.element_en(evenement.position()))
 
+	def menu_en(self, point: QPointF) -> QMenu | None:
+		element = self.element_en(point)
+		if not isinstance(element, Bloc):
+			return None
+		return _menu(self.calendrier, element, self)
+
+	def contextMenuEvent(self, evenement: QContextMenuEvent) -> None:
+		menu = self.menu_en(QPointF(evenement.pos()))
+		if menu is not None:
+			menu.exec(evenement.globalPos())
+
 	def mousePressEvent(self, evenement: QMouseEvent) -> None:
-		"""Une heure libre, pas encore passée, propose un événement sur l'heure entière : 13:00 – 14:00 pour 13:37."""
-		if (evenement.button() != Qt.MouseButton.LeftButton) or (self.element_en(evenement.position()) is not None):
+		"""Une heure libre, pas encore passée, propose un événement sur l'heure entière : 13:00 – 14:00 pour 13:37. Le
+		créneau d'une session sautée est libre."""
+		element = self.element_en(evenement.position())
+		libre = (element is None) or ((isinstance(element, Bloc)) and (element.sautee))
+		if (evenement.button() != Qt.MouseButton.LeftButton) or (not libre):
 			return
 		moment = self._moment_en(evenement.position())
 		if moment is None:
@@ -712,11 +854,13 @@ Partie = Callable[[QRectF, Bloc, datetime, datetime], QRectF]
 
 
 def _peindre_bloc(peintre: QPainter, cadre: QRectF, bloc: Bloc, part: Partie) -> None:
-	"""Estompé là où il ne joue pas, plein là où il joue, avec son nom."""
+	"""Estompé là où il ne joue pas, plein là où il joue, avec son nom ; hachuré pour une session sautée."""
 	couleur = COULEURS[bloc.evenement.priorite]
 	estompee = QColor(couleur)
 	estompee.setAlpha(ESTOMPE)
 	peintre.fillRect(cadre, estompee)
+	if bloc.sautee:
+		peintre.fillRect(cadre, QBrush(couleur.darker(140), Qt.BrushStyle.BDiagPattern))
 	for debut, fin in bloc.joue:
 		peintre.fillRect(part(cadre, bloc, debut, fin), couleur)
 	peintre.setPen(QPen(couleur.darker(140)))
@@ -728,12 +872,41 @@ def _peindre_bloc(peintre: QPainter, cadre: QRectF, bloc: Bloc, part: Partie) ->
 	)
 
 
-def _infobulle(widget: QWidget, evenement: QHelpEvent, element: Bloc | Bande | None) -> None:
+def _infobulle(widget: QWidget, evenement: QHelpEvent, element: Bloc | Bande | None, maintenant: datetime) -> None:
 	if element is None:
 		QToolTip.hideText()
 		evenement.ignore()
 		return
-	QToolTip.showText(evenement.globalPos(), element.infobulle(), widget)
+	texte = element.infobulle()
+	if isinstance(element, Bloc):
+		texte = element.infobulle_a(maintenant)
+	QToolTip.showText(evenement.globalPos(), texte, widget)
+
+
+def _a_venir(bloc: Bloc, maintenant: datetime) -> bool:
+	"""Une session pas encore commencée, d'un événement récurrent qui n'est pas supprimé : elle se saute, ou se
+	rétablit."""
+	occurrence = bloc.prevue.occurrence
+	evenement = occurrence.evenement
+	return (
+		(occurrence.debut is not None)
+		and (occurrence.debut > maintenant)
+		and (evenement.jours != frozenset())
+		and (evenement.supprime_le is None)
+	)
+
+
+def _menu(calendrier: "Calendrier", bloc: Bloc | None, parent: QWidget) -> QMenu | None:
+	"""Le menu du clic droit sur un bloc : sauter une session à venir, ou la rétablir ; aucun pour un autre bloc."""
+	if (bloc is None) or (not _a_venir(bloc, calendrier.maintenant())):
+		return None
+	menu = QMenu(parent)
+	if bloc.sautee:
+		menu.addAction(RETABLIR).triggered.connect(lambda: calendrier.retablir(bloc))
+		return menu
+	menu.addAction(SAUTER).triggered.connect(lambda: calendrier.sauter(bloc))
+	menu.addAction(SAUTER_JUSQU_AU).triggered.connect(lambda: calendrier.sauter_jusqu_au(bloc))
+	return menu
 
 
 def _ouvrir(calendrier: Calendrier, element: Bloc | Bande | None) -> None:

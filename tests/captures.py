@@ -333,6 +333,10 @@ def _evenements(
 		"journal": creer("Le Journal", None, "emission", timedelta(hours=12), timedelta(hours=12, minutes=15), OUVRES),
 		"secours": creer("Secours studio", None, "secours", None, None, ()),
 	}
+	# La Matinale fait relâche le vendredi : une session sautée (https://github.com/dascritch/machincast/issues/273).
+	connexion.execute(
+		"INSERT INTO evenements_sauts (evenement_id, jour) VALUES (%s, '2026-10-23')", (evenements["matinale"],)
+	)
 	samedi = datetime.fromisoformat("2026-10-24T10:00").astimezone()
 	evenements["marche"] = _un(
 		connexion,

@@ -17,6 +17,7 @@ Fonctionnalité: Schéma de la base de données
 			| banques_sonores       |
 			| evenements            |
 			| evenements_elements   |
+			| evenements_sauts      |
 			| sequences             |
 			| sequences_elements    |
 			| airplay               |
@@ -340,6 +341,20 @@ Fonctionnalité: Schéma de la base de données
 		Et un stream secouru par cet événement
 		Quand je supprime l'événement de secours
 		Alors le stream n'a plus d'événement de secours
+
+	# ─── Sessions sautées (https://github.com/dascritch/machincast/issues/273) ───
+
+	Scénario: Une session ne se saute qu'une fois
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "evenements_sauts" : evenement_id = {evenement}, jour = '2026-10-21'
+		Et j'enregistre dans "evenements_sauts" : evenement_id = {evenement}, jour = '2026-10-21'
+		Alors la base refuse l'enregistrement
+
+	Scénario: Les sessions sautées partent avec leur événement
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "evenements_sauts" : evenement_id = {evenement}, jour = '2026-10-21'
+		Et je supprime l'événement de référence
+		Alors aucune session n'est sautée en base
 
 	Scénario: Les jours de la semaine sont ordonnés du lundi au dimanche
 		Alors le jour "lundi" vient avant "dimanche"
