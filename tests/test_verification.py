@@ -5,7 +5,6 @@ import resource
 import shutil
 import subprocess
 import threading
-import time
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import timedelta
@@ -54,22 +53,35 @@ def fichier_corrompu(fichier: Path, octets: int) -> None:
 
 
 @given("un fichier WAV dont la lecture se bloque après son début", target_fixture="fichier")
-def fichier_bloque(tmp_path: Path) -> Iterator[Path]:
-	"""Tube nommé : un écrivain y verse la première moitié d'un WAV, puis attend 3 secondes avant de le fermer."""
+def fichier_bloque(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
+	"""Tube nommé : un écrivain y verse la première moitié d'un WAV, puis le garde ouvert, sans rien y écrire, jusqu'à
+	ce que la vérification abandonne le décodage. Fermé après un délai fixe, la fin du fichier pourrait arriver avant
+	que le blocage ne soit constaté, sur un poste chargé (https://github.com/dascritch/machincast/issues/280). Le
+	décodage abandonné arrête son pipeline, dont la lecture du tube attend : le tube se ferme juste avant."""
 	donnees = copie_de_test("wav", tmp_path).read_bytes()
 	debut = donnees[: len(donnees) // 2]
 	tube = tmp_path / "bloque.wav"
 	os.mkfifo(tube)
+	abandonne = threading.Event()
+	vraie_liberation = decodage._Decodage.liberer
+
+	def liberer(decodage_en_cours: decodage._Decodage) -> None:
+		abandonne.set()
+		ecrivain.join(timeout=10)
+		vraie_liberation(decodage_en_cours)
+
+	monkeypatch.setattr(decodage._Decodage, "liberer", liberer)
 
 	def alimenter() -> None:
-		with tube.open("wb") as ecrivain:  # attend que le décodeur ouvre le tube
-			ecrivain.write(debut)
-			ecrivain.flush()
-			time.sleep(3)
+		with tube.open("wb") as tube_ouvert:  # attend que le décodeur ouvre le tube
+			tube_ouvert.write(debut)
+			tube_ouvert.flush()
+			abandonne.wait(timeout=60)
 
 	ecrivain = threading.Thread(target=alimenter, daemon=True)
 	ecrivain.start()
 	yield tube
+	abandonne.set()
 	ecrivain.join(timeout=10)
 
 
@@ -83,7 +95,8 @@ class Tentatives:
 	target_fixture="tentatives",
 )
 def demarrage_bloque(monkeypatch: pytest.MonkeyPatch, echecs: str | None) -> Tentatives:
-	"""Simule le blocage de GStreamer au démarrage du pipeline, constaté sur environ 1 % des décodages."""
+	"""Simule un démarrage bloqué : un disque réseau en veille, ou le blocage de decodebin sur un AIFF, avant
+	https://github.com/dascritch/machincast/issues/280."""
 	tentatives = Tentatives()
 	vraie_tentative = decodage._tentative
 

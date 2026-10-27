@@ -11,8 +11,9 @@ from pathlib import Path
 import psycopg
 import pytest
 from psycopg import sql
+from yoyo import read_migrations
 
-from machincast.base import TABLES, Role, appliquer_migrations, url_yoyo
+from machincast.base import REPERTOIRE_MIGRATIONS, Role, appliquer_migrations, url_yoyo
 from machincast.configuration import Configuration, charger
 
 CONFIGURATION_TEST = Path(__file__).parent / "configuration-test.toml"
@@ -55,12 +56,45 @@ def reinitialiser_base(connexion: psycopg.Connection[tuple[object, ...]]) -> Non
 	appliquer_migrations(url_yoyo(*parametres_base_test()))
 
 
+ORDRE_DE_PURGE: tuple[str, ...] = (
+	"log",
+	"airplay",
+	"sequences_elements",
+	"evenements_elements",
+	"evenements_sauts",
+	"banques_sonores",
+	"banques_repertoires",
+	"sonores",
+	"feeds",
+	"sequences",
+	"evenements",
+	"banques",
+)
+"""Les tables de machincast.base.TABLES, chacune vidée avant celles qu'elle désigne : un DELETE ne cascade pas."""
+
+
+@cache
+def nombre_de_migrations() -> int:
+	return len(read_migrations(str(REPERTOIRE_MIGRATIONS)))
+
+
 def purger_base(connexion: psycopg.Connection[tuple[object, ...]]) -> None:
-	"""Applique les migrations manquantes, puis vide toutes les tables et remet les identifiants à 1."""
-	appliquer_migrations(url_yoyo(*parametres_base_test()))
-	connexion.execute(
-		sql.SQL("TRUNCATE {} RESTART IDENTITY CASCADE").format(sql.SQL(", ").join(sql.Identifier(t) for t in TABLES))
-	)
+	"""Applique les migrations manquantes, puis vide toutes les tables et remet les identifiants à 1.
+
+	Entre deux scénarios (https://github.com/dascritch/machincast/issues/280), yoyo ne repasse que si une migration
+	manque, après un scénario qui en a annulé : compter celles qu'il a appliquées suffit sinon. Les tables, presque
+	vides, se vident par DELETE : dix fois plus vite qu'un TRUNCATE, qui recrée leurs fichiers."""
+	appliquees = connexion.execute("SELECT count(*) FROM _yoyo_migration").fetchone()
+	if appliquees != (nombre_de_migrations(),):
+		appliquer_migrations(url_yoyo(*parametres_base_test()))
+	sequences = connexion.execute(
+		"SELECT sequencename FROM pg_sequences WHERE schemaname = 'public' ORDER BY 1"
+	).fetchall()
+	with connexion.transaction():
+		for table in ORDRE_DE_PURGE:
+			connexion.execute(sql.SQL("DELETE FROM {}").format(sql.Identifier(table)))
+		for (sequence,) in sequences:
+			connexion.execute(sql.SQL("ALTER SEQUENCE {} RESTART").format(sql.Identifier(str(sequence))))
 
 
 def commande_d_autorisation(nom: str) -> str:

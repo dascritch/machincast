@@ -37,13 +37,17 @@ DELAI_SANS_PROGRESSION = timedelta(seconds=30)
 """Un décodage qui ne produit plus aucun son pendant ce délai est abandonné (disque bloqué, fichier sur un
 partage réseau qui ne répond plus)."""
 
-DELAI_DEMARRAGE = timedelta(seconds=5)
+DELAI_DEMARRAGE = timedelta(seconds=2.5)
 """Délai accordé au premier son décodé. Au-delà, le décodage est repris depuis le début."""
 
-TENTATIVES = 3
-"""Nombre de démarrages tentés. GStreamer se bloque parfois au démarrage d'un pipeline, avant le moindre son
-décodé (environ un décodage sur cent, sur des fichiers sains comme défectueux) : un nouveau démarrage suffit.
-Trois tentatives laissent aussi à un disque réseau en veille le temps de répondre."""
+TENTATIVES = 6
+"""Nombre de démarrages tentés. Avec GStreamer 1.24, decodebin se bloque au démarrage d'un fichier AIFF, avant le
+moindre son décodé, une fois sur cinq à dix ; les autres formats ne se bloquent pas (filesrc ! decodebin ! fakesink,
+sans aucun code Python : https://github.com/dascritch/machincast/issues/280). Un nouveau démarrage suffit : six
+tentatives de 2,5 secondes rendent improbable un AIFF sain déclaré illisible (moins d'une fois sur dix mille, contre
+une fois sur cent avec trois tentatives), et laissent à un disque réseau en veille les mêmes 15 secondes qu'avant.
+Ni une file (queue), qui fait lire le fichier en flux, ni decodebin3 ne conviennent : le premier bloque encore un
+AIFF en cours de décodage, le second ne rend plus la main sur un fichier qui ne se lit plus."""
 
 TOLERANCE_DUREE = timedelta(milliseconds=75)
 """Écart toléré entre la durée annoncée et la durée décodée : les encodeurs MP3 et AAC ajoutent ou retirent

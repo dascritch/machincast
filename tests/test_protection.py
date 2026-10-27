@@ -157,10 +157,12 @@ def indexations() -> None:
 	indexer_la_base(audit_complet=True)
 
 
-@when("une simulation d'une heure tourne")
-def simulation(tmp_path: Path) -> None:
+@when(parsers.parse("une simulation de {minutes:d} minutes tourne"))
+def simulation(tmp_path: Path, minutes: int) -> None:
+	"""Quelques minutes suffisent : des centaines de passages de sonores d'une seconde
+	(https://github.com/dascritch/machincast/issues/280)."""
 	with connecter(*parametres_base_test(), Role.LECTURE) as connexion:
-		simuler(connexion, tmp_path / "simulation", INSTANT, INSTANT.replace(hour=21))
+		simuler(connexion, tmp_path / "simulation", INSTANT, INSTANT + timedelta(minutes=minutes))
 
 
 @when(parsers.parse("un passage de « {nom} » est publié sur les sorties"))

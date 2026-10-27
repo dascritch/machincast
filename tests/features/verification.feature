@@ -84,18 +84,18 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 
 	Scénario: Un décodage qui ne démarre pas est repris avant d'être déclaré bloqué
 		Étant donné un fichier wav sain
-		Et un décodage qui ne démarre pas aux 2 premières tentatives
+		Et un décodage qui ne démarre pas aux 5 premières tentatives
 		Quand je vérifie ce fichier
 		Alors le fichier est sain
-		Et le décodage a été tenté 3 fois
+		Et le décodage a été tenté 6 fois
 
-	Scénario: Un décodage qui ne démarre jamais est déclaré bloqué après trois tentatives
+	Scénario: Un décodage qui ne démarre jamais est déclaré bloqué après six tentatives
 		Étant donné un fichier wav sain
 		Et un décodage qui ne démarre jamais
 		Quand je vérifie ce fichier
 		Alors le fichier est déclaré illisible
 		Et le problème signalé mentionne « bloqué au démarrage »
-		Et le décodage a été tenté 3 fois
+		Et le décodage a été tenté 6 fois
 
 	Scénario: Un décodeur absent arrête la vérification au lieu de déclarer le fichier illisible
 		Étant donné un fichier aiff sain
