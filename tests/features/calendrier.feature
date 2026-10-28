@@ -211,6 +211,21 @@ Fonctionnalité: Calendrier de la grille
 		Quand je coche la case « Émission » du calendrier
 		Alors le calendrier montre 11 blocs
 
+	Plan du scénario: Chaque case de priorité montre la couleur de ses blocs
+		https://github.com/dascritch/machincast/issues/293 : un carré de la couleur de la priorité, devant son nom ; son
+		infobulle la nomme.
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Alors la case « <case> » du calendrier porte un carré de la couleur du bloc « <événement> » du <jour>
+		Et la case « <case> » du calendrier a l'infobulle « <infobulle> »
+
+		Exemples:
+			| case        | événement | jour        | infobulle                                           |
+			| Spécial     | Concert   | mercredi 21 | Montrer ou cacher les spéciaux, en rouge            |
+			| Émission    | Midi      | mercredi 21 | Montrer ou cacher les émissions, en bleu            |
+			| Fil musical | Week-end  | samedi 24   | Montrer ou cacher les fils musicaux, en vert        |
+
 	# ─── Navigation ────────────────────────────────────────────
 
 	Scénario: Le calendrier se pagine par semaine, jusqu'à 28 jours après aujourd'hui, et jusqu'à la péremption avant

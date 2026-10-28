@@ -34,7 +34,18 @@ from datetime import date, datetime, time, timedelta
 import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QContextMenuEvent, QHelpEvent, QMouseEvent, QPainter, QPaintEvent, QPen
+from PySide6.QtGui import (
+	QBrush,
+	QColor,
+	QContextMenuEvent,
+	QHelpEvent,
+	QIcon,
+	QMouseEvent,
+	QPainter,
+	QPaintEvent,
+	QPen,
+	QPixmap,
+)
 from PySide6.QtWidgets import (
 	QCheckBox,
 	QHBoxLayout,
@@ -79,6 +90,11 @@ COULEURS = {
 	Priorite.EMISSION: QColor("#8cb4f0"),
 	Priorite.FIL_MUSICAL: QColor("#8fd19e"),
 }
+TEINTES = {Priorite.SPECIAL: "rouge", Priorite.EMISSION: "bleu", Priorite.FIL_MUSICAL: "vert"}
+"""Le nom de la couleur de chaque priorité, pour l'infobulle de sa case (https://github.com/dascritch/machincast/issues/293)."""
+PLURIELS = {Priorite.SPECIAL: "spéciaux", Priorite.EMISSION: "émissions", Priorite.FIL_MUSICAL: "fils musicaux"}
+TAILLE_DU_CARRE = 14
+"""Côté, en pixels, du carré de couleur devant le nom de la case d'une priorité."""
 SUPPRIME = QColor("#b0b0b0")
 """La couleur de l'airplay d'un événement supprimé."""
 TEXTE = QColor(0x20, 0x20, 0x20)
@@ -385,6 +401,18 @@ def _placer(groupe: list[tuple[Bloc, int]], places: dict[Bloc, tuple[int, int]])
 		places[bloc] = (colonne, nombre)
 
 
+def carre_de_couleur(couleur: QColor) -> QIcon:
+	"""Un carré plein de la couleur, bordé comme un bloc du calendrier."""
+	image = QPixmap(TAILLE_DU_CARRE, TAILLE_DU_CARRE)
+	image.fill(Qt.GlobalColor.transparent)
+	peintre = QPainter(image)
+	peintre.fillRect(0, 0, TAILLE_DU_CARRE, TAILLE_DU_CARRE, couleur)
+	peintre.setPen(QPen(couleur.darker(140)))
+	peintre.drawRect(0, 0, TAILLE_DU_CARRE - 1, TAILLE_DU_CARRE - 1)
+	peintre.end()
+	return QIcon(image)
+
+
 class Calendrier(QWidget):
 	ouverte = Signal(str, int, str)
 	"""Double-clic sur un bloc ou une bande : genre, identifiant et nom de son événement."""
@@ -419,6 +447,9 @@ class Calendrier(QWidget):
 		barre.addWidget(self.titre, 1)
 		for priorite, nom in PRIORITES:
 			coche = QCheckBox(nom)
+			# La couleur de ses blocs, devant son nom (https://github.com/dascritch/machincast/issues/293).
+			coche.setIcon(carre_de_couleur(COULEURS[priorite]))
+			coche.setToolTip(f"Montrer ou cacher les {PLURIELS[priorite]}, en {TEINTES[priorite]}")
 			coche.setChecked(True)
 			coche.toggled.connect(self._filtrer)
 			self.cases[priorite] = coche

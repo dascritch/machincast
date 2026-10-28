@@ -318,6 +318,25 @@ def cases_cochees(interface: Contexte, textes: str) -> None:
 	assert [c.text() for c in vue.findChildren(QCheckBox) if c.isChecked()] == NOM.findall(textes)
 
 
+@then(parsers.parse("la case « {case} » du calendrier porte un carré de la couleur du bloc « {nom} » du {jour}"))
+def case_coloree(interface: Contexte, case: str, nom: str, jour: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/293 : la couleur de l'icône de la case, au milieu, est celle du
+	bloc dessiné, au milieu, là où il joue."""
+	vue = calendrier(interface)
+	(coche,) = [c for c in vue.findChildren(QCheckBox) if c.text() == case]
+	icone = coche.icon().pixmap(16, 16).toImage()
+	assert not icone.isNull()
+	milieu = vue.grille.rectangle(bloc_nomme(vue, nom, jour)).center().toPoint()
+	dessin = vue.grille.grab().toImage()
+	assert icone.pixelColor(8, 8).name() == dessin.pixelColor(milieu).name()
+
+
+@then(parsers.parse("la case « {case} » du calendrier a l'infobulle « {infobulle} »"))
+def infobulle_de_la_case(interface: Contexte, case: str, infobulle: str) -> None:
+	(coche,) = [c for c in calendrier(interface).findChildren(QCheckBox) if c.text() == case]
+	assert coche.toolTip() == infobulle
+
+
 @then(parsers.re(r"le calendrier grise les jours (?P<jours>«.+)"))
 def jours_grises(interface: Contexte, jours: str) -> None:
 	vue = calendrier(interface)
