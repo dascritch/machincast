@@ -131,14 +131,63 @@ def peripheriques(sortie: SortieAudio) -> list[Peripherique]:
 	return trouves
 
 
+ICONE = "machincast"
+"""L'icône que les sorties annoncent au serveur audio : celle de MachinCast, qu'install.sh installe dans le thème
+d'icônes du compte (icons/hicolor/512x512/apps/machincast.png). Le réglage du son de Plasma ne montre qu'une icône
+du thème."""
+CLES_D_ICONE = ("application.icon-name", "application.icon_name")
+"""Le nom de l'icône chez PipeWire, puis chez PulseAudio."""
+
+
+@dataclass(frozen=True)
+class Presentation:
+	"""Ce qu'une sortie dit d'elle au serveur audio, PipeWire ou PulseAudio
+	(https://github.com/dascritch/machincast/issues/296) : sans elle, elle s'y présente sous le nom de l'interpréteur,
+	« Python 3.14 »."""
+
+	programme: str
+	"""Le nom du programme : client-name, application.name."""
+	flux: str
+	"""Le nom de son flux : media.name."""
+
+
+ANTENNE = Presentation("MachinCast lecteur", "Antenne")
+PREECOUTE = Presentation("MachinCast interface", "Pré-écoute")
+ESSAI = Presentation("MachinCast installation", "Son de test")
+
+
+def _a_la_propriete(element: Gst.Element, nom: str) -> bool:
+	return nom.replace("-", "_") in dir(element.props)
+
+
+def presenter(sortie: Gst.Element, presentation: Presentation) -> None:
+	"""Le nom du programme, celui du flux et l'icône de MachinCast, pour une sortie PipeWire ou PulseAudio ; rien pour
+	une sortie qui n'en a pas l'usage (ALSA, factice)."""
+	if not _a_la_propriete(sortie, "client-name"):
+		return
+	sortie.set_property("client-name", presentation.programme)
+	proprietes = Gst.Structure.new_empty("proprietes")
+	proprietes.set_value("application.name", presentation.programme)
+	for cle in CLES_D_ICONE:
+		proprietes.set_value(cle, ICONE)
+	if _a_la_propriete(sortie, "client-properties"):
+		sortie.set_property("client-properties", proprietes.copy())
+	proprietes.set_value("media.name", presentation.flux)
+	sortie.set_property("stream-properties", proprietes)
+
+
 class SortieAudioIndisponible(Exception):
 	"""Le greffon GStreamer de la sortie choisie n'est pas installé."""
 
 
 def creer_sortie(
-	sortie: SortieAudio, peripherique: str | None, greffons: dict[SortieAudio, Greffon] = GREFFONS
+	sortie: SortieAudio,
+	peripherique: str | None,
+	greffons: dict[SortieAudio, Greffon] = GREFFONS,
+	presentation: Presentation | None = None,
 ) -> Gst.Element:
-	"""Crée l'élément GStreamer de la sortie, réglé sur le périphérique s'il est donné."""
+	"""Crée l'élément GStreamer de la sortie, réglé sur le périphérique s'il est donné, et présenté au serveur audio
+	(presenter)."""
 	Gst.init(None)
 	greffon = greffons[sortie]
 	element = Gst.ElementFactory.make(greffon.fabrique, None)
@@ -149,6 +198,8 @@ def creer_sortie(
 		)
 	if (peripherique is not None) and (greffon.propriete is not None):
 		element.set_property(greffon.propriete, peripherique)
+	if presentation is not None:
+		presenter(element, presentation)
 	return element
 
 
