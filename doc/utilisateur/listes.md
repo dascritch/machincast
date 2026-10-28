@@ -25,7 +25,7 @@ Les onglets **Événements**, **Séquences**, **Banques**, **Sonores** et **Feed
 
 - **Filtre** : le champ « Filtrer… » garde les lignes dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : `cafe` trouve « Café à minuit », `stream` tous les streams. Le compte dit combien de lignes restent, « 2 sonores sur 340 ».
 - **Anomalies** : une séquence ou un événement vide a l'icône d'avertissement, et son infobulle dit pourquoi. Taper `vide` dans le filtre ne garde que les éléments vides. Un sonore hors des durées d'une banque n'est signalé que dans la [fiche de cette banque](sonores.md#fiche-dune-banque) et dans les relations de la [fiche du sonore](sonores.md#fiche-dun-sonore).
-- **Tri** : un clic sur le titre d'une colonne trie la liste ; un second inverse l'ordre.
+- **Tri** : un clic sur le titre d'une colonne trie la liste ; un second inverse l'ordre. La colonne **Priorité** des événements se trie par importance, pas par ordre alphabétique : spécial, émission, fil musical, secours ([#272](https://github.com/dascritch/machincast/issues/272)).
 - **Mise à jour** : une liste se relit chaque fois que son onglet s'ouvre, et par <kbd>F5</kbd>.
 - **Ouvrir** : un double-clic sur une ligne, ou <kbd>Entrée</kbd>, ouvre la fiche de l'élément.
 - **Créer** : **Nouvel événement**, **Nouvelle séquence**, **Nouvelle banque**, **Nouveau stream** et **Nouveau feed** ouvrent une fiche vide. La liste des sonores a aussi **➕ Ajouter des fichiers…** ([Ajouter un sonore](sonores.md#ajouter-un-sonore)).

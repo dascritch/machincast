@@ -1204,6 +1204,11 @@ def liste_attendue(interface: Contexte, datatable: list[list[str]]) -> None:
 	assert lignes(interface) == attendues, lignes(interface)
 
 
+@then(parsers.re(r"la colonne « (?P<colonne>[^»]+) » de la liste montre (?P<valeurs>«.+)"))
+def colonne_affichee(interface: Contexte, colonne: str, valeurs: str) -> None:
+	assert [ligne[colonne] for ligne in lignes(interface)] == NOM.findall(valeurs), lignes(interface)
+
+
 @then(parsers.re(r"la liste montre les titres (?P<titres>.+)"))
 def titres_affiches(interface: Contexte, titres: str) -> None:
 	assert [ligne["Titre"] for ligne in lignes(interface)] == NOM.findall(titres), lignes(interface)
