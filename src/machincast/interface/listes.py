@@ -31,6 +31,7 @@ from machincast.interface.colonnes import Colonnes
 from machincast.interface.depot import DepotDeFichiers
 from machincast.interface.intentions import AJOUTER, libelle
 from machincast.interface.ui.liste import Ui_Liste
+from machincast.lecture.grille import JOURS
 
 journal = logging.getLogger(__name__)
 
@@ -51,6 +52,12 @@ ETATS = {
 }
 PRIORITES = {"special": "spécial", "emission": "émission", "fil_musical": "fil musical", "secours": "secours"}
 IMPORTANCE = {priorite: rang for rang, priorite in enumerate(PRIORITES)}
+APRES_TOUT = float("inf")
+"""Clé de tri d'une durée ou d'une date inconnue : après les autres (https://github.com/dascritch/machincast/issues/302)."""
+SANS_DUREE = 1e12
+"""Clé de tri d'un fichier dont la durée n'est pas encore mesurée : après les durées connues, avant les streams."""
+SANS_JOUR = "~"
+"""Clé de tri d'un événement sans récurrence : après les jours, que leurs chiffres classent."""
 """Le tri de la colonne « Priorité » : du plus important au moins important, jamais par ordre alphabétique
 (https://github.com/dascritch/machincast/issues/272)."""
 MODES = {"sequentiel": "séquentielle", "aleatoire": "aléatoire"}
@@ -76,7 +83,7 @@ class Ligne:
 	cellules: list[str]
 	anomalie: str = ""
 	"""Ce qui ne va pas, en une phrase, pour l'infobulle de la ligne ; rien pour une ligne saine."""
-	tris: dict[int, int] = field(default_factory=dict)
+	tris: dict[int, int | float | str] = field(default_factory=dict)
 	"""Par colonne, la clé de tri d'une cellule qui ne se trie pas par son texte (TRI)."""
 
 
@@ -110,6 +117,10 @@ def _date(valeur: object) -> str:
 	return f"{valeur.astimezone():%Y-%m-%d %H:%M}"
 
 
+COLONNES_DES_SONORES = ("Artiste", "Titre", "Type", "État", "Durée", "Emplacement")
+POSITION_DE_LA_DUREE = COLONNES_DES_SONORES.index("Durée")
+
+
 def lire_sonores(connexion: Connexion) -> list[Ligne]:
 	with connexion.transaction():
 		rangees = connexion.execute(
@@ -132,7 +143,15 @@ def lire_sonores(connexion: Connexion) -> list[Ligne]:
 		# Les durées d'une banque ne se signalent que dans sa fiche, et parmi les relations du sonore, jamais ici
 		# (https://github.com/dascritch/machincast/issues/210).
 		cellules = [_texte(artiste), _texte(titre), str(type_sonore), texte_etat, texte_duree, _texte(emplacement)]
-		lignes.append(Ligne(int(str(identifiant)), (_texte(titre)) or (_texte(emplacement)), cellules))
+		# https://github.com/dascritch/machincast/issues/302 : par les secondes ; sans durée mesurée, après les durées
+		# connues ; un stream, sans fin, en dernier.
+		tri_duree: float = SANS_DUREE
+		if type_sonore == "stream":
+			tri_duree = APRES_TOUT
+		elif isinstance(duree, timedelta):
+			tri_duree = duree.total_seconds()
+		nom_du_sonore = (_texte(titre)) or (_texte(emplacement))
+		lignes.append(Ligne(int(str(identifiant)), nom_du_sonore, cellules, tris={POSITION_DE_LA_DUREE: tri_duree}))
 	return lignes
 
 
@@ -185,6 +204,24 @@ def lire_feeds(connexion: Connexion) -> list[Ligne]:
 
 COLONNES_DES_EVENEMENTS = ("Nom", "Nom public", "Priorité", "Début", "Fin", "Récurrence", "Anomalie")
 POSITION_DE_LA_PRIORITE = COLONNES_DES_EVENEMENTS.index("Priorité")
+POSITION_DU_DEBUT = COLONNES_DES_EVENEMENTS.index("Début")
+POSITION_DE_LA_FIN = COLONNES_DES_EVENEMENTS.index("Fin")
+POSITION_DE_LA_RECURRENCE = COLONNES_DES_EVENEMENTS.index("Récurrence")
+
+
+def _instant(valeur: object) -> float:
+	"""Clé de tri d'une date : son instant ; sans date, après les autres."""
+	if not isinstance(valeur, datetime):
+		return APRES_TOUT
+	return valeur.timestamp()
+
+
+def _jours(valeur: object) -> str:
+	"""Clé de tri d'une récurrence : le rang de ses jours, du lundi au dimanche, « 01 » pour lundi et mardi ; sans
+	jour, après les autres."""
+	if (not isinstance(valeur, list)) or (valeur == []):
+		return SANS_JOUR
+	return "".join(sorted(str(JOURS.index(str(jour))) for jour in valeur))
 
 
 def lire_evenements(connexion: Connexion) -> list[Ligne]:
@@ -207,14 +244,19 @@ def lire_evenements(connexion: Connexion) -> list[Ligne]:
 		if vide:
 			cellules[-1] = "événement vide"
 			anomalie = EVENEMENT_VIDE[str(priorite)]
-		tris = {POSITION_DE_LA_PRIORITE: IMPORTANCE.get(str(priorite), len(IMPORTANCE))}
+		tris: dict[int, int | float | str] = {
+			POSITION_DE_LA_PRIORITE: IMPORTANCE.get(str(priorite), len(IMPORTANCE)),
+			POSITION_DU_DEBUT: _instant(debut),
+			POSITION_DE_LA_FIN: _instant(fin),
+			POSITION_DE_LA_RECURRENCE: _jours(jours),
+		}
 		lignes.append(Ligne(int(str(identifiant)), str(nom), cellules, anomalie, tris))
 	return lignes
 
 
 SONORES = Source(
 	"sonore",
-	("Artiste", "Titre", "Type", "État", "Durée", "Emplacement"),
+	COLONNES_DES_SONORES,
 	lire_sonores,
 	"sonore",
 	"sonores",
