@@ -64,31 +64,40 @@ class Peripherique:
 	"""Ce que le poste en montre."""
 
 
+_moniteur: Gst.DeviceMonitor | None = None
+"""Le moniteur de périphériques du processus, démarré à la première liste et jamais arrêté
+(https://github.com/dascritch/machincast/issues/305)."""
+
+
 def appareils() -> list[Gst.Device]:
 	"""Les périphériques de sortie audio que voit GStreamer, toutes sorties confondues, comme gst-device-monitor-1.0
-	Audio/Sink : un moniteur de périphériques attend que chaque fournisseur ait donné les siens.
+	Audio/Sink, lus sur le moniteur de périphériques du processus.
 
-	Depuis GStreamer 1.28, start() démarre les fournisseurs dans un fil, qui l'annonce sur le bus du moniteur. Avec
-	GStreamer 1.28.2, celui d'Ubuntu 26.04, get_devices() n'attend pas ce fil : la liste serait incomplète, et stop()
-	pendant le démarrage corrompt une liste de GLib, ce qui tue le processus
+	Le moniteur n'est jamais arrêté. Avec GStreamer 1.28.2 et PipeWire 1.6.2, ceux d'Ubuntu 26.04, arrêter un moniteur
+	pendant que des sorties apparaissent ou disparaissent (une sortie HDMI à la mise en veille d'un écran, une sortie
+	qui change par défaut) tue le processus dans un fil de PipeWire (https://github.com/dascritch/machincast/issues/305,
+	python -m tests.mesures_peripheriques --bascule) ; arrêter un moniteur qui démarre encore aussi
 	(https://github.com/dascritch/machincast/issues/289, corrigé par GStreamer 1.28.3 :
-	https://gitlab.freedesktop.org/gstreamer/gstreamer/-/merge_requests/11554). La liste attend donc l'annonce ; sans
-	elle, le moniteur n'est pas arrêté : mieux vaut un fil qui finit seul qu'une interface qui tombe."""
+	https://gitlab.freedesktop.org/gstreamer/gstreamer/-/merge_requests/11554). Un moniteur gardé ouvert suit les
+	sorties qui vont et viennent.
+
+	Depuis GStreamer 1.28, start() démarre les fournisseurs dans un fil, qui l'annonce sur le bus du moniteur : la
+	première liste l'attend, et le journal dit si elle peut être incomplète. Un moniteur qui ne démarre aucun
+	fournisseur est oublié : la liste suivante en démarre un autre."""
+	global _moniteur
 	Gst.init(None)
-	moniteur = Gst.DeviceMonitor.new()
-	moniteur.add_filter(CLASSE_DES_SORTIES, None)
-	if not moniteur.start():
-		return []
-	demarre = _attendre_le_demarrage(moniteur)
-	trouves = list(moniteur.get_devices())
-	if demarre:
-		moniteur.stop()
-	else:
-		journal.warning(
-			f"le moniteur de périphériques n'a pas fini de démarrer en {DEMARRAGE_DU_MONITEUR:g} secondes :"
-			" la liste des périphériques peut être incomplète"
-		)
-	return trouves
+	if _moniteur is None:
+		moniteur = Gst.DeviceMonitor.new()
+		moniteur.add_filter(CLASSE_DES_SORTIES, None)
+		if not moniteur.start():
+			return []
+		if not _attendre_le_demarrage(moniteur):
+			journal.warning(
+				f"le moniteur de périphériques n'a pas fini de démarrer en {DEMARRAGE_DU_MONITEUR:g} secondes :"
+				" la liste des périphériques peut être incomplète"
+			)
+		_moniteur = moniteur
+	return list(_moniteur.get_devices())
 
 
 def _attendre_le_demarrage(moniteur: Gst.DeviceMonitor) -> bool:

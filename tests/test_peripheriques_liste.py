@@ -65,7 +65,14 @@ class GstImite:
 	SECOND = 1_000_000_000
 
 	def __init__(self, moniteur: MoniteurImite, avec_message: bool) -> None:
-		self.DeviceMonitor = SimpleNamespace(new=lambda: moniteur)
+		self.crees = 0
+		"""Les moniteurs créés : chacun est le même moniteur imité, qui note tous les appels."""
+
+		def nouveau() -> MoniteurImite:
+			self.crees += 1
+			return moniteur
+
+		self.DeviceMonitor = SimpleNamespace(new=nouveau)
 		self.MessageType = SimpleNamespace()
 		if avec_message:
 			self.MessageType = SimpleNamespace(DEVICE_MONITOR_STARTED=DEMARRE)
@@ -76,7 +83,7 @@ class GstImite:
 
 @pytest.fixture
 def contexte() -> SimpleNamespace:
-	return SimpleNamespace(moniteur=None, appareils=None, chutes=[])
+	return SimpleNamespace(moniteur=None, gst=None, appareils=None, chutes=[])
 
 
 @given(
@@ -88,9 +95,10 @@ def contexte() -> SimpleNamespace:
 def moniteur_imite(contexte: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, cas: str) -> None:
 	moniteur = MoniteurImite(demarre=cas != "qui ne démarre pas", annonce=cas == "qui annonce son démarrage")
 	contexte.moniteur = moniteur
-	monkeypatch.setattr(
-		audio, "Gst", GstImite(moniteur, avec_message=cas != "d'un GStreamer sans message de démarrage")
-	)
+	contexte.gst = GstImite(moniteur, avec_message=cas != "d'un GStreamer sans message de démarrage")
+	monkeypatch.setattr(audio, "Gst", contexte.gst)
+	# Le moniteur du processus, s'il y en a déjà un, n'est pas celui du scénario.
+	monkeypatch.setattr(audio, "_moniteur", None)
 
 
 @when("je liste les appareils du poste")
@@ -119,6 +127,11 @@ def appels_recus(contexte: SimpleNamespace, appels: str) -> None:
 @then("la liste des appareils est celle du moniteur imité")
 def liste_du_moniteur(contexte: SimpleNamespace) -> None:
 	assert contexte.appareils == contexte.moniteur.appareils
+
+
+@then(parsers.re(r"(?:un seul moniteur imité a été créé|(?P<nombre>\d+) moniteurs imités ont été créés)"))
+def moniteurs_crees(contexte: SimpleNamespace, nombre: str | None) -> None:
+	assert contexte.gst.crees == int((nombre) or ("1"))
 
 
 @then("la liste des appareils est vide")

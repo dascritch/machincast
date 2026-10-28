@@ -263,6 +263,8 @@ class FenetrePrincipale(QMainWindow):
 		self.accueil.client.etat_recu.connect(self._proposer_les_interruptions)
 		self._proposer_les_interruptions(ARRET)
 		self._relire_le_service()
+		self._juste_lue: Fiche | None = None
+		"""La fiche qui vient de s'ouvrir, et de se lire : son passage au premier plan ne la relit pas."""
 		self.listes: list[Liste] = []
 		self._titres: dict[QWidget, str] = {}
 		"""Le titre de l'onglet de chaque liste, ouverte ou non."""
@@ -581,7 +583,10 @@ class FenetrePrincipale(QMainWindow):
 		fiche.enregistree.connect(self._grille_modifiee)
 		fiche.supprimee.connect(self._grille_modifiee)
 		self._ajouter_onglet(fiche, fiche.titre())
+		# Elle vient de se lire : passer au premier plan ne la relit pas (https://github.com/dascritch/machincast/issues/305).
+		self._juste_lue = fiche
 		self.ui.onglets.setCurrentWidget(fiche)
+		self._juste_lue = None
 
 	def _dupliquer(self, genre: str, identifiant: int) -> None:
 		"""Une nouvelle fiche, copie de l'élément (https://github.com/dascritch/machincast/issues/130) : rien n'est
@@ -903,7 +908,7 @@ class FenetrePrincipale(QMainWindow):
 			ouvert.actualiser()
 		if ouvert is self.accueil:
 			self.accueil.actualiser_airplay()
-		if (not isinstance(ouvert, Fiche)) or (ouvert.modifiee):
+		if (not isinstance(ouvert, Fiche)) or (ouvert.modifiee) or (ouvert is self._juste_lue):
 			return
 		titre = ouvert.titre()
 		if ouvert.rafraichir() is Rafraichie.EFFACEE:
