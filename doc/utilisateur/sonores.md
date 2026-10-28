@@ -20,7 +20,7 @@ La liste des **Sonores** (**Affichage → Ouvrir l'onglet Sonores**) ajoute des 
 
 ![La liste des sonores : artiste, titre, type, état, durée et emplacement de chacun](../captures/liste-sonores.png)
 
-**Fichiers** : **Ajouter des fichiers…** ouvre le sélecteur de fichiers du poste, où plusieurs fichiers se choisissent à la fois ; on peut aussi **déposer des fichiers** sur la liste, glissés depuis le navigateur de fichiers.
+**Fichiers** : **➕ Ajouter des fichiers…** ouvre le sélecteur de fichiers du poste, où plusieurs fichiers se choisissent à la fois ; on peut aussi **déposer des fichiers** sur la liste, glissés depuis le navigateur de fichiers.
 
 - Un fichier est **référencé là où il se trouve, sans copie**, et n'est jamais modifié. Il peut donc être synchronisé depuis un autre ordinateur, et changer de contenu sous le même nom : une émission pré-enregistrée, la rediffusion d'un direct. Même avec <kbd>Maj</kbd> enfoncée, un dépôt n'est jamais un déplacement.
 - Il entre à l'état `aperçu`, puis il est **vérifié aussitôt**, en arrière-plan : l'interface reste utilisable. La barre d'état annonce l'ajout, « 2 fichiers ajoutés, en cours de vérification. », puis le résultat, « Vérification terminée : Les Gaufres – Café à minuit, actif ; faux.mp3, erroné. ». Le sonore prend alors sa durée, son artiste et son titre, lus dans ses tags.
@@ -155,13 +155,13 @@ La fiche d'une banque s'ouvre dans un onglet nommé « Banque : » suivi de son 
 | Durée minimale, durée maximale des sonores | Facultatives : pour ne pas confondre un mix, une chanson et une publicité. Un sonore qui en sort est marqué dans cette fiche seulement, avec une infobulle (« 3:20 : plus court que le minimum de la banque, 3:30. »), et la prochaine indexation l'en retire, même ajouté à la main. Un nouveau fichier qui en sort n'y entre jamais. |
 | Crossfade de début, crossfade de fin | Pour les sonores joués par la banque : `Garder ceux des sonores` ; `Appliquer si le sonore n'en a pas` ; `Imposer à tous les sonores`. |
 
-**Répertoires indexés** : les fichiers de ces répertoires, et de leurs sous-répertoires, rejoignent la banque à chaque indexation ([Alimenter une banque par ses répertoires](#alimenter-une-banque-par-ses-répertoires)). **Ajouter un répertoire…** ouvre le sélecteur de répertoires ; on peut aussi y déposer des dossiers. **Retirer le répertoire** retire celui qui est choisi. Rien n'est indexé à l'enregistrement : les fichiers d'un nouveau répertoire arrivent à la prochaine indexation.
+**Répertoires indexés** : les fichiers de ces répertoires, et de leurs sous-répertoires, rejoignent la banque à chaque indexation ([Alimenter une banque par ses répertoires](#alimenter-une-banque-par-ses-répertoires)). **➕ Ajouter un répertoire…** ouvre le sélecteur de répertoires ; on peut aussi y déposer des dossiers. **➖ Retirer le répertoire** retire celui qui est choisi. Rien n'est indexé à l'enregistrement : les fichiers d'un nouveau répertoire arrivent à la prochaine indexation.
 
 **Sonores** : chaque sonore, avec sa durée, son état et son emplacement.
 
 - **Ordre** : en mode séquentiel, un sonore se déplace par glisser-déposer, ou avec **Monter** et **Descendre**. En mode aléatoire, l'ordre ne compte pas.
-- **Ajouter des sonores…** ouvre la liste des sonores en base ; **déposer des fichiers** les ajoute en fin de liste, comme nouveaux sonores `aperçu` s'ils ne sont pas encore en base.
-- **Retirer le sonore** retire le sonore choisi de la banque. Si son fichier est dans l'un des répertoires de la banque, un avertissement rappelle que **la prochaine indexation l'y remettra** : **Retirer quand même**, **Ouvrir le dossier** du fichier pour l'en déplacer, ou **Annuler**. Le sonore reste en base.
+- **➕ Ajouter des sonores…** ouvre la liste des sonores en base ; **déposer des fichiers** les ajoute en fin de liste, comme nouveaux sonores `aperçu` s'ils ne sont pas encore en base.
+- **➖ Retirer le sonore** retire le sonore choisi de la banque. Si son fichier est dans l'un des répertoires de la banque, un avertissement rappelle que **la prochaine indexation l'y remettra** : **➖ Retirer quand même**, **Ouvrir le dossier** du fichier pour l'en déplacer, ou **Annuler**. Le sonore reste en base.
 - **Plusieurs sonores** se choisissent avec <kbd>Ctrl</kbd> ou <kbd>Maj</kbd> ; le clic droit propose **Pré-écoute…** du sonore cliqué, puis **Activer** et **Désactiver**, enregistrés avec le reste de la fiche.
 - **Ouvrir un sonore** : un double-clic ouvre sa fiche dans un autre onglet.
 
@@ -194,4 +194,4 @@ Un **feed** est une adresse de flux réutilisable, souvent en ligne par intermit
 - **Nom** et **Adresse** : obligatoires. Une nouvelle adresse vaut aussitôt pour tous les streams qui suivent le feed.
 - **Tester le flux** : comme dans la fiche d'un sonore, dit si du son arrive à l'adresse saisie, de quel type et à quel débit.
 - **Streams qui le suivent** : un double-clic ouvre leur fiche.
-- **Supprimer…** : un feed qu'un stream suit ne se supprime pas ; la fiche nomme ces streams, qui doivent d'abord choisir une autre adresse.
+- **❌ Supprimer…** : un feed qu'un stream suit ne se supprime pas ; la fiche nomme ces streams, qui doivent d'abord choisir une autre adresse.

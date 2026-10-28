@@ -10,6 +10,7 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QWidget
 
+from machincast.interface.intentions import AJOUTER, libelle
 from machincast.interface.listes import IDENTIFIANT, Liste, Source, nom_de_vue
 from machincast.interface.ui.choix import Ui_Choix
 
@@ -32,7 +33,7 @@ class Choix(QDialog):
 		self.liste = Liste(source, connexion, self, actions=False, vue=f"choix-{nom_de_vue(source.pluriel)}")
 		self.liste.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 		self.ui.disposition.insertWidget(1, self.liste)
-		self.ui.boutons.button(QDialogButtonBox.StandardButton.Ok).setText("Ajouter")
+		self.ui.boutons.button(QDialogButtonBox.StandardButton.Ok).setText(libelle(AJOUTER, "Ajouter"))
 		self.ui.boutons.accepted.connect(self.accept)
 		self.ui.boutons.rejected.connect(self.reject)
 		self.liste.ouverte.connect(self.accept)

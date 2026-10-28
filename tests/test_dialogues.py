@@ -150,12 +150,19 @@ def ouvert_sur(dialogue: Dialogue, depart: str) -> None:
 	assert dialogue.titre == "Emplacement de la sauvegarde de la base", dialogue.titre
 
 
-@when(parsers.parse("la confirmation de l'action « {titre} » s'ouvre, et que j'y {geste}"))
+@when(parsers.re(r"la confirmation de l'action « (?P<titre>[^»]+) » s'ouvre, et que j'y (?P<geste>.+)"))
 def action(dialogue: Dialogue, qtbot: QtBot, titre: str, geste: str) -> None:
 	repondre(dialogue, qtbot, geste)
 	dialogue.reponse = dialogues.confirmer_action(
 		dialogue.parent, titre, "Désactiver 2 sonores ? Un sonore en aperçu reste en aperçu."
 	)
+
+
+@when(parsers.parse("la confirmation de l'action « {titre} », au bouton « {bouton} », s'ouvre, et que j'y {geste}"))
+def action_au_bouton(dialogue: Dialogue, qtbot: QtBot, titre: str, bouton: str, geste: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/294"""
+	repondre(dialogue, qtbot, geste)
+	dialogue.reponse = dialogues.confirmer_action(dialogue.parent, titre, "Ajouter 2 sonores ?", bouton)
 
 
 @when(parsers.parse("la question après la vérification s'ouvre, et que j'y {geste}"))
@@ -234,8 +241,9 @@ def choix(dialogue: Dialogue, base_vide: Connexion, genre: str, remarque: str, b
 		modale.liste.table.selectAll()
 		# « Annuler » est la traduction de Qt (qtbase_fr), que les tests ne chargent pas : le bouton se trouve par son
 		# rôle.
-		standards = {"Ajouter": QDialogButtonBox.StandardButton.Ok, "Annuler": QDialogButtonBox.StandardButton.Cancel}
-		assert modale.ui.boutons.button(QDialogButtonBox.StandardButton.Ok).text() == "Ajouter"
+		ok, annuler = QDialogButtonBox.StandardButton.Ok, QDialogButtonBox.StandardButton.Cancel
+		standards = {"➕ Ajouter": ok, "Annuler": annuler}
+		assert modale.ui.boutons.button(QDialogButtonBox.StandardButton.Ok).text() == "➕ Ajouter"
 		modale.ui.boutons.button(standards[bouton]).click()
 
 	quand_modale(faire)
@@ -254,7 +262,8 @@ def choix(dialogue: Dialogue, base_vide: Connexion, genre: str, remarque: str, b
 
 @when(
 	parsers.re(
-		r"le choix des banques s'ouvre, parmi (?P<noms>«.+), et que j'y sélectionne tout, puis clique sur « Ajouter »"
+		r"le choix des banques s'ouvre, parmi (?P<noms>«.+), et que j'y sélectionne tout,"
+		r" puis clique sur « ➕ Ajouter »"
 	)
 )
 def choix_parmi(dialogue: Dialogue, base_vide: Connexion, noms: str) -> None:

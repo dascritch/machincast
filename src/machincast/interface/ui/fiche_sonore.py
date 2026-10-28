@@ -689,7 +689,7 @@ class Ui_FicheSonore(object):
         ___qtablewidgetitem7.setText(QCoreApplication.translate("FicheSonore", u"Banque", None))
         ___qtablewidgetitem8 = self.passages.horizontalHeaderItem(6)
         ___qtablewidgetitem8.setText(QCoreApplication.translate("FicheSonore", u"Incidents", None))
-        self.supprimer.setText(QCoreApplication.translate("FicheSonore", u"Supprimer\u2026", None))
+        self.supprimer.setText(QCoreApplication.translate("FicheSonore", u"\u274c Supprimer\u2026", None))
 #if QT_CONFIG(tooltip)
         self.supprimer.setToolTip(QCoreApplication.translate("FicheSonore", u"Supprime l'\u00e9l\u00e9ment de la base, apr\u00e8s confirmation ; aucun fichier n'est touch\u00e9.", None))
 #endif // QT_CONFIG(tooltip)

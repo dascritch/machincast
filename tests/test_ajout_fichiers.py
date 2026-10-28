@@ -135,7 +135,7 @@ def en_base(interface: Contexte, base_vide: Connexion, datatable: list[list[str]
 	assert trouves == sorted(attendus, key=lambda ligne: ligne["emplacement"])
 
 
-@then(parsers.parse("seule la liste « {titre} » propose « Ajouter des fichiers… » et accepte les dépôts"))
+@then(parsers.parse("seule la liste « {titre} » propose « ➕ Ajouter des fichiers… » et accepte les dépôts"))
 def seule_liste(interface: Contexte, titre: str) -> None:
 	onglets = fenetre(interface).ui.onglets
 	avec = []
@@ -144,6 +144,6 @@ def seule_liste(interface: Contexte, titre: str) -> None:
 		if isinstance(ouverte, Liste):
 			bouton = ouverte.ui.ajouter_fichiers
 			if (not bouton.isHidden()) or (ouverte.table.acceptDrops()):
-				assert (bouton.text(), ouverte.table.acceptDrops()) == ("Ajouter des fichiers…", True)
+				assert (bouton.text(), ouverte.table.acceptDrops()) == ("➕ Ajouter des fichiers…", True)
 				avec.append(onglets.tabText(indice))
 	assert avec == [titre]

@@ -61,7 +61,7 @@ Fonctionnalité: Un fil musical existe toujours
 		Et l'événement « Continue » joue le sonore « Jingle »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Continue »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors l'événement « Continue » est marqué « supprimé » en base
 		Et la barre d'état annonce « Aucun fil musical : « Fil musical » est créé, permanent et sans élément ; sa liste se remplit dans sa fiche. »
 		Et le fil musical « Fil musical » est en base, permanent et sans élément
@@ -74,7 +74,7 @@ Fonctionnalité: Un fil musical existe toujours
 		Et l'événement « Nuit » joue le sonore « Jingle »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Nuit »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors la barre d'état n'a rien annoncé
 		Et les fils musicaux en base sont « Jour »
 
@@ -85,7 +85,7 @@ Fonctionnalité: Un fil musical existe toujours
 		Quand la fenêtre de l'interface s'ouvre
 		Et la base perd son dernier fil musical
 		Et j'ouvre la fiche du sonore « Jingle »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors la barre d'état n'a rien annoncé
 		Et les fils musicaux en base sont aucun
 

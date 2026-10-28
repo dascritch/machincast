@@ -752,7 +752,7 @@
      <item>
       <widget class="QPushButton" name="supprimer">
        <property name="text">
-        <string>Supprimer…</string>
+        <string>❌ Supprimer…</string>
        </property>
        <property name="toolTip">
         <string>Supprime l'élément de la base, après confirmation ; aucun fichier n'est touché.</string>

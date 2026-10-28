@@ -137,7 +137,7 @@ class Ui_FicheFeed(object):
         self.tester.setText(QCoreApplication.translate("FicheFeed", u"Tester le flux", None))
         self.groupe_streams.setTitle(QCoreApplication.translate("FicheFeed", u"Streams qui le suivent", None))
         self.explication_streams.setText(QCoreApplication.translate("FicheFeed", u"Ces streams jouent l'adresse du feed : une nouvelle adresse vaut pour tous. Un stream choisit son feed dans sa fiche.", None))
-        self.supprimer.setText(QCoreApplication.translate("FicheFeed", u"Supprimer\u2026", None))
+        self.supprimer.setText(QCoreApplication.translate("FicheFeed", u"\u274c Supprimer\u2026", None))
 #if QT_CONFIG(tooltip)
         self.supprimer.setToolTip(QCoreApplication.translate("FicheFeed", u"Supprime l'\u00e9l\u00e9ment de la base, apr\u00e8s confirmation ; aucun fichier n'est touch\u00e9.", None))
 #endif // QT_CONFIG(tooltip)

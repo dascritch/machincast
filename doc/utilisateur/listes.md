@@ -28,7 +28,7 @@ Les onglets **Événements**, **Séquences**, **Banques**, **Sonores** et **Feed
 - **Tri** : un clic sur le titre d'une colonne trie la liste ; un second inverse l'ordre.
 - **Mise à jour** : une liste se relit chaque fois que son onglet s'ouvre, et par <kbd>F5</kbd>.
 - **Ouvrir** : un double-clic sur une ligne, ou <kbd>Entrée</kbd>, ouvre la fiche de l'élément.
-- **Créer** : **Nouvel événement**, **Nouvelle séquence**, **Nouvelle banque**, **Nouveau stream** et **Nouveau feed** ouvrent une fiche vide. La liste des sonores a aussi **Ajouter des fichiers…** ([Ajouter un sonore](sonores.md#ajouter-un-sonore)).
+- **Créer** : **Nouvel événement**, **Nouvelle séquence**, **Nouvelle banque**, **Nouveau stream** et **Nouveau feed** ouvrent une fiche vide. La liste des sonores a aussi **➕ Ajouter des fichiers…** ([Ajouter un sonore](sonores.md#ajouter-un-sonore)).
 - **Clic droit** : **Dupliquer**, dans les listes Événements, Séquences et Banques ; des actions sur plusieurs éléments, dans les listes Sonores et Banques.
 
 ## Colonnes des tableaux
@@ -47,6 +47,8 @@ Tous les tableaux de l'interface se règlent de la même façon : les listes, la
 
 Toutes les fiches, d'un événement, d'une séquence, d'une banque, d'un sonore ou d'un feed, se comportent de la même façon :
 
+- **Un emoji dit ce que fait un bouton** ([#294](https://github.com/dascritch/machincast/issues/294)), dans les fiches comme dans les menus et les questions : ➕ ajoute des lignes à un tableau, ➖ en retire, ❌ supprime la fiche.
+
 - **Un onglet par élément** : une fiche déjà ouverte revient au premier plan.
 - **Enregistrer** écrit toutes les modifications à la fois ; **Annuler** remet la fiche telle qu'elle est en base. Les deux boutons ne servent que quand la fiche est modifiée.
 - **Refus** : un nom interne vide, ou déjà pris par un élément du même type, n'est pas enregistré ; la fiche dit pourquoi, et garde ses modifications. De même si la base ne répond pas : « Enregistrement impossible : … ».
@@ -63,8 +65,8 @@ Dans les listes **Sonores** et **Banques**, plusieurs lignes se sélectionnent �
 | Liste | Action | Effet |
 | --- | --- | --- |
 | Sonores | **Activer**, **Désactiver** | L'état des sonores choisis. Un sonore en aperçu le reste, jusqu'à sa vérification. |
-| Sonores | **Ajouter à des banques…** | Chaque sonore s'ajoute à la fin de chaque banque choisie, s'il n'y est pas déjà. |
-| Sonores | **Retirer de banques…** | Les sonores sont retirés des banques choisies. Un sonore dont le fichier est dans un répertoire de la banque y reviendra à la prochaine indexation. |
+| Sonores | **➕ Ajouter à des banques…** | Chaque sonore s'ajoute à la fin de chaque banque choisie, s'il n'y est pas déjà. |
+| Sonores | **➖ Retirer de banques…** | Les sonores sont retirés des banques choisies. Un sonore dont le fichier est dans un répertoire de la banque y reviendra à la prochaine indexation. |
 | Sonores | **Demander un audit complet** | La prochaine indexation, même rapide, vérifie ces fichiers en entier et mesure leurs silences, sauf ceux déjà vérifiés ainsi et inchangés depuis. La colonne État dit « actif, audit demandé » en attendant. |
 | Banques | **Demander l'audit complet de leurs sonores** | La même demande, pour tous les sonores des banques choisies. |
 | Banques | **Masquer l'artiste et le titre**, **Afficher l'artiste et le titre**, **Artiste et titre hérités du sonore** | Le réglage « Artiste et titre » de chaque banque choisie. |
@@ -85,7 +87,7 @@ L'original n'est jamais modifié.
 
 ## Supprimer un élément
 
-Chaque fiche a un bouton **Supprimer…**. Il demande toujours confirmation : **Supprimer**, ou **Annuler** (<kbd>Entrée</kbd> et <kbd>Échap</kbd> annulent). La question dit où l'élément figure, et ce qui n'aurait plus rien après son retrait.
+Chaque fiche a un bouton **❌ Supprimer…**. Il demande toujours confirmation : **❌ Supprimer**, ou **Annuler** (<kbd>Entrée</kbd> et <kbd>Échap</kbd> annulent). La question dit où l'élément figure, et ce qui n'aurait plus rien après son retrait.
 
 **Seule l'entrée en base change.** Les fichiers sonores et les répertoires des banques restent à leur place, intacts. L'historique de diffusion garde ses passages.
 

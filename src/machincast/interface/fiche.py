@@ -59,7 +59,7 @@ from PySide6.QtWidgets import (
 )
 
 from machincast.horloge import Horloge
-from machincast.interface import dialogues, preferences, suppression
+from machincast.interface import dialogues, intentions, preferences, suppression
 from machincast.interface.dialogues import Fermeture
 from machincast.protection import est_fichier_sonore
 
@@ -76,7 +76,7 @@ SAISIES = (
 	QPlainTextEdit,
 )
 """Ce qui se modifie dans une fiche, et que la fiche d'un élément supprimé fige."""
-SUPPRIMER = "Supprimer…"
+SUPPRIMER = intentions.libelle(intentions.SUPPRIMER, "Supprimer…")
 RESTAURER = "Restaurer"
 SIGNALE = "⚠️ "
 """Ce qui précède le libellé d'un champ en cause dans l'erreur de la fiche (https://github.com/dascritch/machincast/issues/270)."""

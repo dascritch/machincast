@@ -531,7 +531,7 @@ Fonctionnalité: Fiche d'un sonore
 			| Événement de secours | aucun : le fil musical |
 		Et la fiche du sonore n'a pas d'emplacement
 		Et l'état de la fiche du sonore se choisit parmi « actif », « désactivé »
-		Et le bouton « Supprimer… » de la fiche est inactif
+		Et le bouton « ❌ Supprimer… » de la fiche est inactif
 		Quand je saisis dans la fiche du sonore :
 			| champ                | valeur                      |
 			| Titre                | Le direct                   |
@@ -545,7 +545,7 @@ Fonctionnalité: Fiche d'un sonore
 			| champ | valeur |
 			| type  | stream |
 			| etat  | actif  |
-		Et le bouton « Supprimer… » de la fiche est actif
+		Et le bouton « ❌ Supprimer… » de la fiche est actif
 
 	Scénario: Un nouveau stream peut suivre un feed, et n'a pas besoin de titre
 		Étant donné les feeds « Radio Machin » à « https://machin.exemple/live »

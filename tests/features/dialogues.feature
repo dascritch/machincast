@@ -49,30 +49,30 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 	Plan du scénario: L'avertissement de réintégration d'un sonore retiré propose trois réponses
 		Quand l'avertissement de réintégration « Café à minuit reviendra » s'ouvre, et que j'y <geste>
 		Alors la question a dit « Café à minuit reviendra »
-		Et la question a proposé « Retirer quand même », « Ouvrir le dossier », « Annuler »
+		Et la question a proposé « ➖ Retirer quand même », « Ouvrir le dossier », « Annuler »
 		Et la réponse est « <reponse> »
 
 		Exemples:
-			| geste                             | reponse            |
-			| clique sur « Retirer quand même » | Retirer quand même |
-			| clique sur « Ouvrir le dossier »  | Ouvrir le dossier  |
-			| clique sur « Annuler »            | Annuler            |
-			| tape Échap                        | Annuler            |
-			| tape Entrée                       | Annuler            |
+			| geste                                | reponse               |
+			| clique sur « ➖ Retirer quand même » | ➖ Retirer quand même |
+			| clique sur « Ouvrir le dossier »     | Ouvrir le dossier     |
+			| clique sur « Annuler »               | Annuler               |
+			| tape Échap                           | Annuler               |
+			| tape Entrée                          | Annuler               |
 
-	Plan du scénario: La confirmation d'une suppression ne supprime que sur « Supprimer »
+	Plan du scénario: La confirmation d'une suppression ne supprime que sur « ❌ Supprimer »
 		# https://github.com/dascritch/machincast/issues/33
 		Quand la question de suppression « Supprimer le sonore » s'ouvre, et que j'y <geste>
 		Alors la question a dit « Supprimer le sonore « Spot » ? »
-		Et la question a proposé « Supprimer », « Annuler »
+		Et la question a proposé « ❌ Supprimer », « Annuler »
 		Et la réponse est « <reponse> »
 
 		Exemples:
-			| geste                    | reponse |
-			| clique sur « Supprimer » | True    |
-			| clique sur « Annuler »   | False   |
-			| tape Échap               | False   |
-			| tape Entrée              | False   |
+			| geste                       | reponse |
+			| clique sur « ❌ Supprimer » | True    |
+			| clique sur « Annuler »      | False   |
+			| tape Échap                  | False   |
+			| tape Entrée                 | False   |
 
 	Plan du scénario: La maintenance de la base demande confirmation, en donnant l'emplacement de la sauvegarde
 		# https://github.com/dascritch/machincast/issues/127
@@ -114,6 +114,12 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 			| clique sur « Annuler »    | False   |
 			| tape Échap                | False   |
 			| tape Entrée               | True    |
+
+	Scénario: Le bouton qui confirme une action peut porter son emoji, que son titre n'a pas
+		# https://github.com/dascritch/machincast/issues/294
+		Quand la confirmation de l'action « Ajouter à des banques », au bouton « ➕ Ajouter à des banques », s'ouvre, et que j'y clique sur « ➕ Ajouter à des banques »
+		Alors la question a proposé « ➕ Ajouter à des banques », « Annuler »
+		Et la réponse est « True »
 
 	Plan du scénario: Après la vérification complète d'un sonore, rafraîchir sa fiche se propose
 		# https://github.com/dascritch/machincast/issues/190
@@ -169,13 +175,13 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 		Et les <genre> choisis sont <choisis>
 
 		Exemples:
-			| genre   | remarque                   | bouton  | explication                                                                                          | choisis                     |
-			| sonores |                            | Ajouter | Choisir parmi les sonores déjà en base (Ctrl ou Maj pour en prendre plusieurs).                       | « Café à minuit », « Spot » |
-			| sonores |                            | Annuler | Choisir parmi les sonores déjà en base (Ctrl ou Maj pour en prendre plusieurs).                       | aucun                       |
-			| banques | Une banque peut revenir.   | Ajouter | Choisir parmi les banques déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une banque peut revenir. | « Habillage », « Publicité » |
-			| banques | Une banque peut revenir.   | Annuler | Choisir parmi les banques déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une banque peut revenir. | aucun                       |
-			| séquences | Une séquence peut revenir. | Ajouter | Choisir parmi les séquences déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une séquence peut revenir. | « Passage pub » |
-			| feeds | Un élément peut revenir. | Ajouter | Choisir parmi les feeds déjà en base (Ctrl ou Maj pour en prendre plusieurs). Un élément peut revenir. | « Relais » |
+			| genre     | remarque                   | bouton    | explication                                                                                                  | choisis                      |
+			| sonores   |                            | ➕ Ajouter | Choisir parmi les sonores déjà en base (Ctrl ou Maj pour en prendre plusieurs).                              | « Café à minuit », « Spot »  |
+			| sonores   |                            | Annuler   | Choisir parmi les sonores déjà en base (Ctrl ou Maj pour en prendre plusieurs).                              | aucun                        |
+			| banques   | Une banque peut revenir.   | ➕ Ajouter | Choisir parmi les banques déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une banque peut revenir.     | « Habillage », « Publicité » |
+			| banques   | Une banque peut revenir.   | Annuler   | Choisir parmi les banques déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une banque peut revenir.     | aucun                        |
+			| séquences | Une séquence peut revenir. | ➕ Ajouter | Choisir parmi les séquences déjà en base (Ctrl ou Maj pour en prendre plusieurs). Une séquence peut revenir. | « Passage pub »              |
+			| feeds     | Un élément peut revenir.   | ➕ Ajouter | Choisir parmi les feeds déjà en base (Ctrl ou Maj pour en prendre plusieurs). Un élément peut revenir.       | « Relais »                   |
 
 	Scénario: Le choix des banques peut ne proposer que certaines d'entre elles
 		# https://github.com/dascritch/machincast/issues/114
@@ -185,7 +191,7 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 		Et la banque « Publicité », aléatoire, sans nom public, avec « Spot »
 		Et la banque « Habillage », séquentielle, sans nom public, avec « Spot »
 		Et la banque « Nuit », aléatoire, sans nom public, avec « Spot »
-		Quand le choix des banques s'ouvre, parmi « Publicité », « Nuit », et que j'y sélectionne tout, puis clique sur « Ajouter »
+		Quand le choix des banques s'ouvre, parmi « Publicité », « Nuit », et que j'y sélectionne tout, puis clique sur « ➕ Ajouter »
 		Alors les banques choisies sont « Nuit », « Publicité »
 
 	Scénario: Ouvrir un dossier le montre dans le navigateur de fichiers du poste

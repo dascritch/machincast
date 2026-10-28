@@ -113,7 +113,7 @@ Fonctionnalité: Fiche d'une séquence
 		Et j'ajoute les sonores « Jingle début »
 		Et j'ajoute les banques « Habillage », « Publicité »
 		Et je choisis l'élément n° 5
-		Et je clique sur « Retirer l'élément »
+		Et je clique sur « ➖ Retirer l'élément »
 		Alors les choix ont précisé « Un sonore ou une banque peut revenir plusieurs fois dans une séquence. »
 		Et la fiche de la séquence montre les éléments « Jingle début », « Jingle fin », « Publicité », « Jingle début », « Publicité »
 		Quand j'enregistre la fiche
@@ -138,11 +138,11 @@ Fonctionnalité: Fiche d'une séquence
 		Et j'ouvre la fiche de la séquence « Passage pub »
 		Alors les boutons de ligne actifs de la séquence sont aucun
 		Quand je choisis l'élément « Jingle début »
-		Alors les boutons de ligne actifs de la séquence sont « Retirer l'élément », « Descendre »
+		Alors les boutons de ligne actifs de la séquence sont « ➖ Retirer l'élément », « Descendre »
 		Quand je choisis l'élément « Publicité »
-		Alors les boutons de ligne actifs de la séquence sont « Retirer l'élément », « Monter », « Descendre »
+		Alors les boutons de ligne actifs de la séquence sont « ➖ Retirer l'élément », « Monter », « Descendre »
 		Quand je clique sur « Descendre »
-		Alors les boutons de ligne actifs de la séquence sont « Retirer l'élément », « Monter »
+		Alors les boutons de ligne actifs de la séquence sont « ➖ Retirer l'élément », « Monter »
 		Et la fiche de la séquence montre les éléments « Jingle début », « Jingle fin », « Publicité »
 		Quand je clique sur « Monter »
 		Alors la fiche de la séquence montre les éléments « Jingle début », « Publicité », « Jingle fin »
