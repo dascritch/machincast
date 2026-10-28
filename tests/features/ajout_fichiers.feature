@@ -156,7 +156,7 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
 		Et je choisis « Ouvrir l'onglet Feeds » dans le menu « Affichage »
-		Alors seule la liste « Sonores » propose « Ajouter des fichiers… » et accepte les dépôts
+		Alors seule la liste « Sonores » propose « ➕ Ajouter des fichiers… » et accepte les dépôts
 
 	# ─── Vérification ──────────────────────────────────────────
 

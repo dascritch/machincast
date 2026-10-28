@@ -23,6 +23,8 @@ from dataclasses import dataclass
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.interface.intentions import AJOUTER, RETIRER, libelle, sans_intention
+
 Connexion = psycopg.Connection[TupleRow]
 REVERIFIER = "La prochaine indexation, même rapide, les revérifiera en entier."
 
@@ -76,7 +78,13 @@ class Action:
 
 	@property
 	def titre(self) -> str:
-		"""Le titre de la confirmation : l'entrée du menu, sans « … »."""
+		"""Le titre de la confirmation : l'entrée du menu, sans son emoji ni « … »
+		(https://github.com/dascritch/machincast/issues/294)."""
+		return sans_intention(self.texte).removesuffix("…")
+
+	@property
+	def bouton(self) -> str:
+		"""Le bouton qui confirme : l'entrée du menu, avec son emoji, sans « … »."""
 		return self.texte.removesuffix("…")
 
 
@@ -181,7 +189,7 @@ SONORES: tuple[Action, ...] = (
 	),
 	Action(
 		"ajouter",
-		"Ajouter à des banques…",
+		libelle(AJOUTER, "Ajouter à des banques…"),
 		lambda quantite, noms: (
 			f"Ajouter {_sonores(quantite)} {_aux_banques(noms)} ?"
 			" Un sonore déjà dans une banque n'y est pas ajouté une seconde fois."
@@ -191,7 +199,7 @@ SONORES: tuple[Action, ...] = (
 	),
 	Action(
 		"retirer",
-		"Retirer de banques…",
+		libelle(RETIRER, "Retirer de banques…"),
 		lambda quantite, noms: (
 			f"Retirer {_sonores(quantite)} {_des_banques(noms)} ?"
 			" Un sonore dont le fichier est dans un répertoire d'une banque y reviendra à la prochaine indexation."

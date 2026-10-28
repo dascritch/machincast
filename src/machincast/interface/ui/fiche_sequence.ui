@@ -119,21 +119,21 @@
           <item>
            <widget class="QPushButton" name="ajouter_sonores">
             <property name="text">
-             <string>Ajouter des sonores…</string>
+             <string>➕ Ajouter des sonores…</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="ajouter_banques">
             <property name="text">
-             <string>Ajouter des banques…</string>
+             <string>➕ Ajouter des banques…</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="retirer_element">
             <property name="text">
-             <string>Retirer l'élément</string>
+             <string>➖ Retirer l'élément</string>
             </property>
            </widget>
           </item>
@@ -196,7 +196,7 @@
      <item>
       <widget class="QPushButton" name="supprimer">
        <property name="text">
-        <string>Supprimer…</string>
+        <string>❌ Supprimer…</string>
        </property>
        <property name="toolTip">
         <string>Supprime l'élément de la base, après confirmation ; aucun fichier n'est touché.</string>

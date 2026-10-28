@@ -122,6 +122,12 @@ def derniere_question(interface: Contexte, titre: str, texte: str) -> None:
 	assert interface.questions[-1] == f"action : {titre}\n{texte}", interface.questions
 
 
+@then(parsers.parse("son bouton était « {bouton} »"))
+def bouton_de_la_question(interface: Contexte, bouton: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/294"""
+	assert interface.boutons_d_action[-1] == bouton, interface.boutons_d_action
+
+
 @then(parsers.re(r"les sonores (?P<titres>«.+) sont à l'état « (?P<etat>[^»]+) » en base"))
 @then(parsers.re(r"le sonore (?P<titres>« [^»]+ ») est à l'état « (?P<etat>[^»]+) » en base"))
 def etats_en_base(base_vide: Connexion, titres: str, etat: str) -> None:
@@ -247,7 +253,7 @@ def etats_de_la_fiche(interface: Contexte, sonores: str) -> None:
 	assert montres == ETAT_DE_SONORE.findall(sonores)
 
 
-@then("seul « Retirer le sonore » sert aux sonores choisis de la fiche")
+@then("seul « ➖ Retirer le sonore » sert aux sonores choisis de la fiche")
 def seul_retirer(interface: Contexte) -> None:
 	ui = fiche_de_banque(interface).ui
 	assert [ui.retirer_sonore.isEnabled(), ui.monter.isEnabled(), ui.descendre.isEnabled()] == [True, False, False]

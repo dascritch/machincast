@@ -766,7 +766,7 @@ class FenetrePrincipale(QMainWindow):
 				return
 			with self.connexion.transaction():
 				noms = groupes.noms_des_banques(self.connexion, banques)
-			if not dialogues.confirmer_action(self, action.titre, action.question(len(elements), noms)):
+			if not dialogues.confirmer_action(self, action.titre, action.question(len(elements), noms), action.bouton):
 				return
 			with self.connexion.transaction():
 				annonce = action.executer(self.connexion, elements, banques)

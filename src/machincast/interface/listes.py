@@ -29,6 +29,7 @@ from PySide6.QtWidgets import QAbstractItemView, QLabel, QLineEdit, QMenu, QTabl
 from machincast.interface import affichage, groupes
 from machincast.interface.colonnes import Colonnes
 from machincast.interface.depot import DepotDeFichiers
+from machincast.interface.intentions import AJOUTER, libelle
 from machincast.interface.ui.liste import Ui_Liste
 
 journal = logging.getLogger(__name__)
@@ -206,7 +207,7 @@ SONORES = Source(
 	"sonores",
 	"aucun sonore",
 	"Nouveau stream",
-	"Ajouter des fichiers…",
+	libelle(AJOUTER, "Ajouter des fichiers…"),
 )
 BANQUES = Source(
 	"banque",

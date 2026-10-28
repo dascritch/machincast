@@ -408,7 +408,7 @@ Fonctionnalité: Fiche d'une banque
 	Plan du scénario: Toute modification de la fiche rend « Enregistrer » et « Annuler » actifs
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
-		Et je réponds « Retirer quand même » à l'avertissement de réintégration
+		Et je réponds « ➖ Retirer quand même » à l'avertissement de réintégration
 		Et <modification>
 		Alors les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
 
@@ -525,20 +525,20 @@ Fonctionnalité: Fiche d'une banque
 		Alors les boutons de ligne actifs de la fiche sont aucun
 		Quand je choisis le répertoire « /srv/habillage »
 		Et je choisis le sonore « Café à minuit »
-		Alors les boutons de ligne actifs de la fiche sont « Retirer le répertoire », « Retirer le sonore », « Descendre »
+		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le répertoire », « ➖ Retirer le sonore », « Descendre »
 		Quand je choisis le sonore « Matin clair »
-		Alors les boutons de ligne actifs de la fiche sont « Retirer le répertoire », « Retirer le sonore », « Monter », « Descendre »
+		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le répertoire », « ➖ Retirer le sonore », « Monter », « Descendre »
 		Quand je clique sur « Descendre »
-		Alors les boutons de ligne actifs de la fiche sont « Retirer le répertoire », « Retirer le sonore », « Monter »
-		Quand je clique sur « Retirer le répertoire »
-		Et je clique sur « Retirer le répertoire »
-		Et je réponds « Retirer quand même » à l'avertissement de réintégration
-		Et je clique sur « Retirer le sonore »
+		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le répertoire », « ➖ Retirer le sonore », « Monter »
+		Quand je clique sur « ➖ Retirer le répertoire »
+		Et je clique sur « ➖ Retirer le répertoire »
+		Et je réponds « ➖ Retirer quand même » à l'avertissement de réintégration
+		Et je clique sur « ➖ Retirer le sonore »
 		Alors la fiche montre les répertoires aucun
 		Et la fiche montre les sonores « Les Gaufres – Café à minuit », « Jingle »
-		Et les boutons de ligne actifs de la fiche sont « Retirer le sonore », « Monter »
+		Et les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « Monter »
 		Quand j'ajoute les sonores « Spot »
-		Alors les boutons de ligne actifs de la fiche sont « Retirer le sonore », « Monter », « Descendre »
+		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « Monter », « Descendre »
 
 	Scénario: Une ligne de sonore ne se dépose pas dans une autre
 		Quand la fenêtre de l'interface s'ouvre
@@ -609,10 +609,10 @@ Fonctionnalité: Fiche d'une banque
 		Et le navigateur de fichiers a ouvert <dossier>
 
 		Exemples:
-			| reponse            | sonores                                                    | dossier                |
-			| Retirer quand même | « Aube – Matin clair »                                     | aucun dossier          |
-			| Ouvrir le dossier  | « Les Gaufres – Café à minuit », « Aube – Matin clair »    | « /srv/jingles/hiver » |
-			| Annuler            | « Les Gaufres – Café à minuit », « Aube – Matin clair »    | aucun dossier          |
+			| reponse              | sonores                                                 | dossier                |
+			| ➖ Retirer quand même | « Aube – Matin clair »                                  | aucun dossier          |
+			| Ouvrir le dossier    | « Les Gaufres – Café à minuit », « Aube – Matin clair » | « /srv/jingles/hiver » |
+			| Annuler              | « Les Gaufres – Café à minuit », « Aube – Matin clair » | aucun dossier          |
 
 	Scénario: L'avertissement vaut aussi pour un sonore d'un sous-répertoire, et pour un répertoire pas encore enregistré
 		Étant donné les sonores :
@@ -630,7 +630,7 @@ Fonctionnalité: Fiche d'une banque
 	Scénario: Le retrait d'un sonore part en base à l'enregistrement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
-		Et je réponds « Retirer quand même » à l'avertissement de réintégration
+		Et je réponds « ➖ Retirer quand même » à l'avertissement de réintégration
 		Et je retire le sonore « Café à minuit »
 		Et j'enregistre la fiche
 		Alors les sonores de la banque « Jingles » sont, dans l'ordre, « Matin clair »
@@ -717,9 +717,9 @@ Fonctionnalité: Fiche d'une banque
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et je choisis le sonore « Matin clair »
-		Alors les boutons de ligne actifs de la fiche sont « Retirer le sonore », « Monter »
+		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « Monter »
 		Quand je dépose sur les sonores de la fiche « …/nouveau.ogg »
-		Alors les boutons de ligne actifs de la fiche sont « Retirer le sonore », « Monter », « Descendre »
+		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « Monter », « Descendre »
 
 	Scénario: Un glisser abandonné avant le dépôt ne change rien
 		Étant donné les dossiers « …/jingles/automne » du scénario

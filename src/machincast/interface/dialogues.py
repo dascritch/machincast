@@ -25,7 +25,9 @@ from PySide6.QtWidgets import (
 )
 
 from machincast.configuration import EXTENSIONS_D_ICONE, SortieAudio
+from machincast.interface import intentions
 from machincast.interface.choix import Choix
+from machincast.interface.intentions import libelle
 from machincast.interface.listes import BANQUES, FEEDS, SEQUENCES, SONORES
 from machincast.interface.preferences import FenetrePreferences, Reglages
 from machincast.interface.suggestions import FenetreSuggestions, Manques, Reponse
@@ -43,7 +45,7 @@ class Fermeture(StrEnum):
 class Retrait(StrEnum):
 	"""Ce que devient un sonore retiré d'une banque, quand la prochaine indexation l'y remettra."""
 
-	RETIRER = "Retirer quand même"
+	RETIRER = f"{intentions.RETIRER} Retirer quand même"
 	OUVRIR_DOSSIER = "Ouvrir le dossier"
 	ANNULER = "Annuler"
 
@@ -164,21 +166,21 @@ def confirmer_suppression(parent: QWidget, titre: str, texte: str) -> bool:
 	question.setIcon(QMessageBox.Icon.Warning)
 	question.setWindowTitle(titre)
 	question.setText(texte)
-	supprimer = question.addButton("Supprimer", QMessageBox.ButtonRole.DestructiveRole)
+	supprimer = question.addButton(libelle(intentions.SUPPRIMER, "Supprimer"), QMessageBox.ButtonRole.DestructiveRole)
 	annuler = question.addButton("Annuler", QMessageBox.ButtonRole.RejectRole)
 	question.setDefaultButton(annuler)
 	question.exec()
 	return question.clickedButton() is supprimer
 
 
-def confirmer_action(parent: QWidget, titre: str, texte: str) -> bool:
+def confirmer_action(parent: QWidget, titre: str, texte: str, bouton: str | None = None) -> bool:
 	"""Une action sur plusieurs éléments à la fois (https://github.com/dascritch/machincast/issues/114) : Entrée la
 	fait, Échap l'annule."""
 	question = QMessageBox(parent)
 	question.setIcon(QMessageBox.Icon.Question)
 	question.setWindowTitle(titre)
 	question.setText(texte)
-	faire = question.addButton(titre, QMessageBox.ButtonRole.AcceptRole)
+	faire = question.addButton((bouton) or (titre), QMessageBox.ButtonRole.AcceptRole)
 	question.addButton("Annuler", QMessageBox.ButtonRole.RejectRole)
 	question.setDefaultButton(faire)
 	question.exec()

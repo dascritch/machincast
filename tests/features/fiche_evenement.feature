@@ -385,7 +385,7 @@ Fonctionnalité: Fiche d'un événement
 		Étant donné la socket d'état de Machin lecture ouverte pour l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Journal »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors Machin lecture a reçu la demande de relire la grille
 
 	Scénario: Restaurer un événement demande à Machin lecture de relire la grille
@@ -425,7 +425,7 @@ Fonctionnalité: Fiche d'un événement
 		Et j'ajoute les séquences « Passage pub »
 		Et j'ajoute les sonores « Jingle fin »
 		Et je choisis l'élément n° 1 de l'événement
-		Et je clique sur « Retirer l'élément »
+		Et je clique sur « ➖ Retirer l'élément »
 		Alors les choix ont précisé « Un sonore, une banque ou une séquence peut revenir plusieurs fois dans un événement. »
 		Et la fiche de l'événement montre les éléments « Les Gaufres – Spot », « Passage pub », « Passage pub », « Jingle fin »
 		Quand j'enregistre la fiche
@@ -442,7 +442,7 @@ Fonctionnalité: Fiche d'un événement
 		Et je clique sur « Monter »
 		Et je clique sur « Monter »
 		Et je choisis l'élément « Habillage » de l'événement
-		Et je clique sur « Retirer l'élément »
+		Et je clique sur « ➖ Retirer l'élément »
 		Et j'ajoute les banques « Habillage »
 		Et j'enregistre la fiche
 		Alors l'historique de diffusion désigne, dans l'événement « Matinale », la ligne n° 1 et aucune ligne
@@ -501,10 +501,10 @@ Fonctionnalité: Fiche d'un événement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et je choisis l'élément n° 3 de l'événement
-		Alors les boutons de ligne actifs de l'événement sont « Retirer l'élément », « Monter »
+		Alors les boutons de ligne actifs de l'événement sont « ➖ Retirer l'élément », « Monter »
 		Quand j'ajoute les feeds « Ancien », « Relais », en effaçant « Ancien » de la base pendant le choix
 		Alors la fiche de l'événement montre les éléments « Habillage », « Passage pub », « Les Gaufres – Spot », « Relais »
-		Et les boutons de ligne actifs de l'événement sont « Retirer l'élément », « Monter », « Descendre »
+		Et les boutons de ligne actifs de l'événement sont « ➖ Retirer l'élément », « Monter », « Descendre »
 
 	Scénario: Renoncer au choix des feeds ne change rien
 		Quand la fenêtre de l'interface s'ouvre

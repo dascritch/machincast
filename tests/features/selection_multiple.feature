@@ -33,7 +33,7 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et je sélectionne les lignes « Café à minuit », « Gaufre royale » de la liste
-		Alors le clic droit sur la sélection propose « Pré-écoute… », « Activer », « Désactiver », « Ajouter à des banques… », « Retirer de banques… », « Demander un audit complet »
+		Alors le clic droit sur la sélection propose « Pré-écoute… », « Activer », « Désactiver », « ➕ Ajouter à des banques… », « ➖ Retirer de banques… », « Demander un audit complet »
 
 	Scénario: Désactiver plusieurs sonores, après confirmation
 		Quand la fenêtre de l'interface s'ouvre
@@ -77,8 +77,9 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et je sélectionne les lignes « Gaufre royale », « Jingle » de la liste
-		Et je choisis « Ajouter à des banques… » au clic droit sur la sélection
+		Et je choisis « ➕ Ajouter à des banques… » au clic droit sur la sélection
 		Alors la dernière question, intitulée « Ajouter à des banques », a dit « Ajouter 2 sonores aux banques « Titres », « Habillage » ? Un sonore déjà dans une banque n'y est pas ajouté une seconde fois. »
+		Et son bouton était « ➕ Ajouter à des banques »
 		Et les sonores de la banque « Titres » sont, dans l'ordre, « Café à minuit », « Gaufre royale », « Jingle »
 		Et les sonores de la banque « Habillage » sont, dans l'ordre, « Jingle », « Gaufre royale »
 		Et la barre d'état annonce « 2 sonores ajoutés à 2 banques. »
@@ -88,9 +89,10 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et je sélectionne les lignes « Café à minuit », « Gaufre royale » de la liste
-		Et je choisis « Retirer de banques… » au clic droit sur la sélection
+		Et je choisis « ➖ Retirer de banques… » au clic droit sur la sélection
 		Alors le choix des banques a proposé « Nuit », « Titres »
 		Et la dernière question, intitulée « Retirer de banques », a dit « Retirer 2 sonores des banques « Titres », « Nuit » ? Un sonore dont le fichier est dans un répertoire d'une banque y reviendra à la prochaine indexation. »
+		Et son bouton était « ➖ Retirer de banques »
 		Et les sonores de la banque « Titres » sont, dans l'ordre, aucun
 		Et les sonores de la banque « Nuit » sont, dans l'ordre, aucun
 		Et les sonores de la banque « Habillage » sont, dans l'ordre, « Jingle »
@@ -101,7 +103,7 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et je sélectionne les lignes « Café à minuit » de la liste
-		Et je choisis « Ajouter à des banques… » au clic droit sur la sélection
+		Et je choisis « ➕ Ajouter à des banques… » au clic droit sur la sélection
 		Alors aucune question n'a été posée
 		Et la barre d'état n'a rien annoncé
 
@@ -131,10 +133,10 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Et la barre d'état annonce « <annonce> »
 
 		Exemples:
-			| banques                  | action                 | titre                | question                                                                                                                            | annonce                          |
-			| « Titres », « Habillage » | Ajouter à des banques… | Ajouter à des banques | Ajouter 1 sonore aux banques « Titres », « Habillage » ? Un sonore déjà dans une banque n'y est pas ajouté une seconde fois.        | 1 sonore ajouté à 1 banque.      |
-			| « Nuit »                 | Ajouter à des banques… | Ajouter à des banques | Ajouter 1 sonore à la banque « Nuit » ? Un sonore déjà dans une banque n'y est pas ajouté une seconde fois.                         | 1 sonore ajouté à 1 banque.      |
-			| « Titres »               | Retirer de banques…    | Retirer de banques    | Retirer 1 sonore de la banque « Titres » ? Un sonore dont le fichier est dans un répertoire d'une banque y reviendra à la prochaine indexation. | 1 sonore retiré de 1 banque. |
+			| banques                   | action                   | titre                 | question                                                                                                                                        | annonce                      |
+			| « Titres », « Habillage » | ➕ Ajouter à des banques… | Ajouter à des banques | Ajouter 1 sonore aux banques « Titres », « Habillage » ? Un sonore déjà dans une banque n'y est pas ajouté une seconde fois.                    | 1 sonore ajouté à 1 banque.  |
+			| « Nuit »                  | ➕ Ajouter à des banques… | Ajouter à des banques | Ajouter 1 sonore à la banque « Nuit » ? Un sonore déjà dans une banque n'y est pas ajouté une seconde fois.                                     | 1 sonore ajouté à 1 banque.  |
+			| « Titres »                | ➖ Retirer de banques…    | Retirer de banques    | Retirer 1 sonore de la banque « Titres » ? Un sonore dont le fichier est dans un répertoire d'une banque y reviendra à la prochaine indexation. | 1 sonore retiré de 1 banque. |
 
 	# ─── Banques ───────────────────────────────────────────────
 
@@ -219,8 +221,8 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Matin »
 		Et je sélectionne les sonores « Les Gaufres – Café à minuit », « Jingle » de la fiche
-		Alors seul « Retirer le sonore » sert aux sonores choisis de la fiche
-		Quand je clique sur « Retirer le sonore »
+		Alors seul « ➖ Retirer le sonore » sert aux sonores choisis de la fiche
+		Quand je clique sur « ➖ Retirer le sonore »
 		Alors les sonores de la fiche sont, avec leur état, « Les Gaufres – Gaufre royale » désactivé
 		Et aucune question n'a été posée
 		Quand j'enregistre la fiche
@@ -233,16 +235,16 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Et j'ouvre la fiche de la banque « Matin »
 		Et je réponds « <reponse> » à l'avertissement de réintégration
 		Et je sélectionne les sonores « Les Gaufres – Café à minuit », « Les Gaufres – Gaufre royale », « Jingle » de la fiche
-		Et je clique sur « Retirer le sonore »
+		Et je clique sur « ➖ Retirer le sonore »
 		Alors l'avertissement de réintégration a dit « « Les Gaufres – Café à minuit », « Les Gaufres – Gaufre royale » sont des fichiers du répertoire /srv/musique, indexé par cette banque : la prochaine indexation les y remettra. Pour les écarter pour de bon, déplacez leurs fichiers hors de ces répertoires, en dehors de MachinCast. »
 		Et les sonores de la fiche sont, avec leur état, <sonores>
 		Et le navigateur de fichiers a ouvert <dossier>
 
 		Exemples:
-			| reponse            | sonores                                                                                     | dossier            |
-			| Retirer quand même | aucun                                                                                       | aucun dossier      |
-			| Annuler            | « Les Gaufres – Café à minuit » actif, « Les Gaufres – Gaufre royale » désactivé, « Jingle » actif | aucun dossier      |
-			| Ouvrir le dossier  | « Les Gaufres – Café à minuit » actif, « Les Gaufres – Gaufre royale » désactivé, « Jingle » actif | « /srv/musique »   |
+			| reponse              | sonores                                                                                            | dossier          |
+			| ➖ Retirer quand même | aucun                                                                                              | aucun dossier    |
+			| Annuler              | « Les Gaufres – Café à minuit » actif, « Les Gaufres – Gaufre royale » désactivé, « Jingle » actif | aucun dossier    |
+			| Ouvrir le dossier    | « Les Gaufres – Café à minuit » actif, « Les Gaufres – Gaufre royale » désactivé, « Jingle » actif | « /srv/musique » |
 
 	Scénario: Retirer un seul sonore d'un répertoire de la banque garde l'avertissement d'un sonore
 		Étant donné la banque « Matin », séquentielle, sans nom public, avec « Café à minuit », « Jingle »
@@ -251,7 +253,7 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Et j'ouvre la fiche de la banque « Matin »
 		Et je réponds « Annuler » à l'avertissement de réintégration
 		Et je sélectionne les sonores « Les Gaufres – Café à minuit » de la fiche
-		Et je clique sur « Retirer le sonore »
+		Et je clique sur « ➖ Retirer le sonore »
 		Alors l'avertissement de réintégration a dit « « Les Gaufres – Café à minuit » est un fichier du répertoire /srv/musique, indexé par cette banque : la prochaine indexation l'y remettra. Pour l'écarter pour de bon, déplacez son fichier hors de ce répertoire, en dehors de MachinCast. »
 
 	Scénario: Des sonores de plusieurs répertoires de la banque les nomment tous ; « Ouvrir le dossier » ouvre celui du premier
@@ -261,7 +263,7 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Et j'ouvre la fiche de la banque « Matin »
 		Et je réponds « Ouvrir le dossier » à l'avertissement de réintégration
 		Et je sélectionne les sonores « Jingle », « Les Gaufres – Café à minuit » de la fiche
-		Et je clique sur « Retirer le sonore »
+		Et je clique sur « ➖ Retirer le sonore »
 		Alors l'avertissement de réintégration a dit « « Jingle », « Les Gaufres – Café à minuit » sont des fichiers des répertoires /srv/habillage, /srv/musique, indexés par cette banque : la prochaine indexation les y remettra. Pour les écarter pour de bon, déplacez leurs fichiers hors de ces répertoires, en dehors de MachinCast. »
 		Et le navigateur de fichiers a ouvert « /srv/habillage »
 

@@ -4,7 +4,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 	je veux que la suppression d'un élément utilisé ailleurs me demande confirmation en listant où il figure,
 	afin que je ne casse pas la grille par inadvertance.
 
-	https://github.com/dascritch/machincast/issues/33, spec § 8.9. Chaque fiche a un bouton « Supprimer… », qui demande
+	https://github.com/dascritch/machincast/issues/33, spec § 8.9. Chaque fiche a un bouton « ❌ Supprimer… », qui demande
 	toujours confirmation. Supprimer un élément le retire des listes où il figure : jamais un fichier sonore ni un
 	répertoire, qui restent à leur place, intacts (https://github.com/dascritch/machincast/issues/96). L'historique de
 	diffusion garde ses passages. Un sonore, une banque, une séquence ou un événement supprimé reste en base, marqué
@@ -52,7 +52,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 	Scénario: Un sonore supprimé quitte la base et les listes, mais son fichier reste en place, intact
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Spot »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors la question de suppression, intitulée « Supprimer le sonore », a dit :
 			| texte                                                                                                                                                                                       |
 			| Supprimer le sonore « Les Gaufres – Spot » ?                                                                                                                                                |
@@ -77,7 +77,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 			| <artiste> | <titre> | fichier | actif | 3     | <emplacement> |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « <ouvert> »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors la question de suppression, intitulée « Supprimer le sonore », a dit :
 			| texte                                                                |
 			| Supprimer le sonore « <nom> » ?                                      |
@@ -137,7 +137,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 	Scénario: Une banque supprimée quitte la base et les listes, mais ses répertoires, leurs fichiers et ses sonores restent
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Publicité »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors la question de suppression, intitulée « Supprimer la banque », a dit :
 			| texte                                                                                                     |
 			| Supprimer la banque « Publicité » ?                                                                       |
@@ -160,7 +160,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Étant donné la banque « Vide », séquentielle, sans nom public, avec « Isolé »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Vide »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors la question de suppression, intitulée « Supprimer la banque », a dit :
 			| texte                                                    |
 			| Supprimer la banque « Vide » ?                           |
@@ -176,7 +176,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 	Scénario: Une séquence supprimée quitte la base et les événements, mais ses éléments restent en base
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Passage pub »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors la question de suppression, intitulée « Supprimer la séquence », a dit :
 			| texte                                                    |
 			| Supprimer la séquence « Passage pub » ?                  |
@@ -194,7 +194,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 	Scénario: Un événement supprimé quitte la base, sa liste avec lui, et les streams qu'il secourait n'ont plus de secours
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Panne »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors la question de suppression, intitulée « Supprimer l'événement », a dit :
 			| texte                                                                                                    |
 			| Supprimer l'événement « Panne » ?                                                                        |
@@ -219,7 +219,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 	Scénario: Un événement de la grille supprimé laisse l'historique de diffusion intact
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors la question de suppression, intitulée « Supprimer l'événement », a dit :
 			| texte                                                                                                    |
 			| Supprimer l'événement « Matinale » ?                                                                     |
@@ -234,9 +234,9 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 	Scénario: Un élément supprimé n'est plus proposé : ni dans les listes, ni dans la recherche, ni dans le choix des sonores
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Isolé »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Et j'ouvre la fiche de la banque « Publicité »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Et j'ouvre l'onglet « Sonores »
 		Alors la liste montre les titres « Spot », « Jingle début », « Radio Machin », « Radio Ondes », « Radio Thune »
 		Quand j'ouvre l'onglet « Banques »
@@ -248,17 +248,17 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 	Scénario: La fiche d'un sonore supprimé se rouvre depuis l'historique, marquée « Supprimé », sans se modifier, puis se restaure
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Spot »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Et j'ouvre depuis l'historique la fiche du sonore « Spot »
 		Alors l'onglet ouvert est « Sonore : Spot »
 		Et la fiche signale « Supprimé le 19/10/2026 à 15:30, effacé de la base après le 18/12/2026 : « Restaurer » le remet en service. »
 		Et les champs de la fiche ne se modifient pas
-		Et la fiche propose « Restaurer », pas « Supprimer… »
+		Et la fiche propose « Restaurer », pas « ❌ Supprimer… »
 		Quand je clique sur « Restaurer »
 		Alors le sonore « Spot » est toujours en base
 		Et la fiche ne signale rien
 		Et les champs de la fiche se modifient
-		Et la fiche propose « Supprimer… », pas « Restaurer »
+		Et la fiche propose « ❌ Supprimer… », pas « Restaurer »
 		Et la liste en base de la banque « Publicité » est rien
 		Quand j'ouvre l'onglet « Sonores »
 		Alors la liste montre les titres « Spot », « Isolé », « Jingle début », « Radio Machin », « Radio Ondes », « Radio Thune »
@@ -266,7 +266,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 	Plan du scénario: Une banque, une séquence ou un événement supprimé se restaure aussi, marqué au féminin ou au masculin
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche <de> « <nom> »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Et j'ouvre depuis l'historique la fiche <de> « <nom> »
 		Alors la fiche signale « <marque> le 19/10/2026 à 15:30, <effacement> de la base après le 18/12/2026 : « Restaurer » <pronom> remet en service. »
 		Quand je clique sur « Restaurer »
@@ -284,25 +284,25 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Étant donné la durée de péremption du fichier de configuration de l'interface est de 10 jours
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Spot »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Et j'ouvre depuis l'historique la fiche du sonore « Spot »
 		Alors la fiche signale « Supprimé le 19/10/2026 à 15:30, effacé de la base après le 29/10/2026 : « Restaurer » le remet en service. »
 
 	Scénario: Un élément qui a perdu son nom au profit d'un autre ne se restaure pas, et la fiche dit pourquoi
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Publicité »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Et une autre banque « Publicité » est créée en base
 		Et j'ouvre depuis l'historique la fiche de la banque « Publicité »
 		Et je clique sur « Restaurer »
 		Alors la fiche signale « Restauration impossible : une autre banque s'appelle déjà « Publicité ». »
 		Et l'erreur est en haut de la fiche, sur un liseret rouge de 4 pixels
-		Et la fiche propose « Restaurer », pas « Supprimer… »
+		Et la fiche propose « Restaurer », pas « ❌ Supprimer… »
 
 	Scénario: Un événement supprimé ne secourt plus, et restauré, il ne le fait pas de nouveau
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Panne »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Et j'ouvre depuis l'historique la fiche de l'événement « Panne »
 		Et je clique sur « Restaurer »
 		Alors le stream « Radio Thune » n'a plus d'événement de secours
@@ -314,7 +314,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Habillage »
 		Et je saisis le nom public « Autre »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors seule la question de suppression a été posée
 		Et la banque « Habillage » est marquée « supprimée » en base
 		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents »
@@ -323,11 +323,11 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Pub seule »
 		Et la séquence « Pub seule » est effacée de la base
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents »
 		Quand j'ouvre la fiche du sonore « Isolé »
 		Et le sonore « Isolé » est effacé de la base
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Incidents »
 		Et aucune question n'a été posée
 
@@ -335,7 +335,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Habillage »
 		Et la base devient injoignable pour l'interface
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors la fiche signale une suppression impossible
 		Et l'onglet ouvert est « Banque : Habillage »
 
@@ -343,7 +343,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « <onglet> »
 		Et je clique sur « <bouton> »
-		Alors le bouton « Supprimer… » de la fiche est inactif
+		Alors le bouton « ❌ Supprimer… » de la fiche est inactif
 
 		Exemples:
 			| onglet     | bouton            |
@@ -358,4 +358,4 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Et je saisis le nom interne « Brève »
 		Et j'ajoute les sonores « Isolé »
 		Et j'enregistre la fiche
-		Alors le bouton « Supprimer… » de la fiche est actif
+		Alors le bouton « ❌ Supprimer… » de la fiche est actif

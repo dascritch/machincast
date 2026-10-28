@@ -43,7 +43,7 @@ Fonctionnalité: Dupliquer un événement, une séquence ou une banque
 		Et la fiche ne montre aucun événement où figure la séquence
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
 		Et le bouton « Dupliquer » de la fiche est inactif
-		Et le bouton « Supprimer… » de la fiche est inactif
+		Et le bouton « ❌ Supprimer… » de la fiche est inactif
 		Et la séquence « Passage pub (copie) » n'est pas en base
 		Quand j'enregistre la fiche
 		Alors l'onglet ouvert est « Séquence : Passage pub (copie) »

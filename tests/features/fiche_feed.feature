@@ -54,7 +54,7 @@ Fonctionnalité: Feeds de streams
 		Alors l'onglet ouvert est « Nouveau feed »
 		Et la fiche du feed montre le nom «  » et l'adresse «  »
 		Et la fiche du feed montre les streams aucun
-		Et le bouton « Supprimer… » de la fiche est inactif
+		Et le bouton « ❌ Supprimer… » de la fiche est inactif
 		Quand je saisis le nom du feed «  Radio Truc  »
 		Et je saisis l'adresse du feed «  https://truc.exemple/live  »
 		Et j'enregistre la fiche
@@ -140,7 +140,7 @@ Fonctionnalité: Feeds de streams
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Feeds »
 		Et j'ouvre la ligne « Radio Bidule »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors la question de suppression, intitulée « Supprimer le feed », a dit :
 			| texte                                                  |
 			| Supprimer de la base le feed « Radio Bidule » ? |
@@ -151,7 +151,7 @@ Fonctionnalité: Feeds de streams
 	Scénario: Un stream qui suit un feed se supprime, lui
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Machin soir »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors le sonore « Machin soir » est marqué « supprimé » en base
 		Et le feed « Radio Machin » est toujours en base
 
@@ -159,7 +159,7 @@ Fonctionnalité: Feeds de streams
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Feeds »
 		Et j'ouvre la ligne « Radio Machin »
-		Et je supprime l'élément de la fiche, en répondant « Supprimer »
+		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
 		Alors aucune question n'a été posée
 		Et la fiche signale « Les streams « Machin nuit », « Machin soir » suivent ce feed : choisir pour eux une autre adresse avant de le supprimer. »
 		Et l'erreur est en haut de la fiche, sur un liseret rouge de 4 pixels

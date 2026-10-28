@@ -58,7 +58,7 @@ from machincast.horloge import HorlogeFixe
 from machincast.interface import dialogues
 from machincast.interface.dialogues import Fermeture, Retrait
 from machincast.interface.fenetre import FenetrePrincipale
-from machincast.interface.fiche import SIGNALE, Fiche
+from machincast.interface.fiche import SIGNALE, SUPPRIMER, Fiche
 from machincast.interface.listes import Liste
 from machincast.interface.preferences import Reglages
 from machincast.interface.suggestions import Manques, Reponse
@@ -81,6 +81,8 @@ class Contexte:
 	demandes: list[tuple[str, int]] = field(default_factory=list)
 	"""Écrans de détail demandés : genre et identifiant."""
 	questions: list[str] = field(default_factory=list)
+	boutons_d_action: list[str | None] = field(default_factory=list)
+	"""Le bouton qui confirme chaque action groupée, s'il n'est pas son titre (https://github.com/dascritch/machincast/issues/294)."""
 	"""Questions posées par les fenêtres de dialogue, dans l'ordre."""
 	fermeture: Fermeture = Fermeture.ABANDONNER
 	"""Réponse à la question de fermeture d'une fiche modifiée."""
@@ -242,8 +244,9 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		interface.banques_proposees.append(parmi)
 		return interface.banques_choisies
 
-	def action(_parent: QWidget, titre: str, texte: str) -> bool:
+	def action(_parent: QWidget, titre: str, texte: str, bouton: str | None = None) -> bool:
 		interface.questions.append(f"action : {titre}\n{texte}")
+		interface.boutons_d_action.append(bouton)
 		return interface.action
 
 	monkeypatch.setattr(dialogues, "confirmer_fermeture", fermeture)
@@ -477,9 +480,7 @@ def identifiant(base: Connexion, table: str, colonne: str, valeur: str) -> int:
 
 
 def bouton_de_suppression(interface: Contexte) -> QPushButton:
-	(bouton,) = [
-		bouton for bouton in fiche_ouverte(interface).findChildren(QPushButton) if bouton.text() == "Supprimer…"
-	]
+	(bouton,) = [bouton for bouton in fiche_ouverte(interface).findChildren(QPushButton) if bouton.text() == SUPPRIMER]
 	return bouton
 
 
@@ -1288,7 +1289,7 @@ def intacts(interface: Contexte) -> None:
 	assert {fichier: fichier.read_bytes() for fichier in interface.fichiers} == interface.fichiers
 
 
-@then(parsers.re(r"le bouton « Supprimer… » de la fiche est (?P<etat>actif|inactif)"))
+@then(parsers.re(r"le bouton « ❌ Supprimer… » de la fiche est (?P<etat>actif|inactif)"))
 def bouton_supprimer(interface: Contexte, etat: str) -> None:
 	assert fiche_ouverte(interface).bouton_supprimer.isEnabled() == (etat == "actif")
 
@@ -1417,9 +1418,9 @@ def rien_annonce(interface: Contexte) -> None:
 	assert interface.annonces == []
 
 
-@when(parsers.re(r"je supprime l'élément de la fiche, en répondant « (?P<reponse>Supprimer|Annuler) »"))
+@when(parsers.re(r"je supprime l'élément de la fiche, en répondant « (?P<reponse>❌ Supprimer|Annuler) »"))
 def supprimer(interface: Contexte, qtbot: QtBot, reponse: str) -> None:
-	interface.suppression = reponse == "Supprimer"
+	interface.suppression = reponse == "❌ Supprimer"
 	qtbot.mouseClick(bouton_de_suppression(interface), Qt.MouseButton.LeftButton)
 
 

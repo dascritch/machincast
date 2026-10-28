@@ -50,10 +50,10 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 **Liste de lecture** : les sonores, les banques et les séquences que l'événement joue, dans l'ordre.
 
 - **Ordre** : un élément se déplace par glisser-déposer, ou avec **Monter** et **Descendre**. Un même élément peut revenir.
-- **Ajouter des sonores…**, **Ajouter des banques…**, **Ajouter des séquences…** ouvrent la liste de ceux déjà en base, avec son filtre ; plusieurs se choisissent avec <kbd>Ctrl</kbd> ou <kbd>Maj</kbd>, puis **Ajouter**.
-- **Ajouter des feeds…** ajoute un stream depuis un [feed](sonores.md#feeds), pour retransmettre une émission en extérieur : le stream qui suit déjà ce feed, sinon un nouveau stream, créé à l'enregistrement (la ligne le dit : « nouveau stream »).
+- **➕ Ajouter des sonores…**, **➕ Ajouter des banques…**, **➕ Ajouter des séquences…** ouvrent la liste de ceux déjà en base, avec son filtre ; plusieurs se choisissent avec <kbd>Ctrl</kbd> ou <kbd>Maj</kbd>, puis **➕ Ajouter**.
+- **➕ Ajouter des feeds…** ajoute un stream depuis un [feed](sonores.md#feeds), pour retransmettre une émission en extérieur : le stream qui suit déjà ce feed, sinon un nouveau stream, créé à l'enregistrement (la ligne le dit : « nouveau stream »).
 - **Déposer des fichiers** glissés depuis le navigateur de fichiers les ajoute en fin de liste ([Ajouter un sonore](sonores.md#ajouter-un-sonore)).
-- **Retirer l'élément** retire la ligne choisie, sans rien demander : le sonore, la banque ou la séquence reste en base.
+- **➖ Retirer l'élément** retire la ligne choisie, sans rien demander : le sonore, la banque ou la séquence reste en base.
 - **Banque « ne pas répéter »** : la fiche signale chaque appel d'une banque marquée juste après elle-même, qui sera toujours sauté. Ce n'est qu'un avertissement.
 - **Ouvrir un élément** : un double-clic, ou <kbd>Entrée</kbd>, ouvre sa fiche dans un autre onglet.
 
@@ -69,7 +69,7 @@ La fiche d'une [séquence](antenne.md#séquences) s'ouvre dans un onglet nommé 
 | Nom public | Facultatif. Affiché sur la page publique à la place de l'artiste et du titre masqués, si l'événement n'en a pas. |
 | Artiste et titre | `Masqués` ou `Affichés` sur la page publique, pour les sonores que joue la séquence, sauf si l'événement en décide ; `Selon la banque ou le sonore` laisse décider ceux-ci. |
 
-**Éléments** : la liste ordonnée des sonores et des banques que joue la séquence, avec un détail : l'emplacement d'un sonore, le mode d'une banque et « ne pas répéter » si elle l'est. Elle se gère comme la liste de lecture d'un événement : glisser-déposer, **Monter** et **Descendre**, **Ajouter des sonores…**, **Ajouter des banques…**, dépôt de fichiers, **Retirer l'élément**. Un même sonore ou une même banque peut revenir ; une séquence ne contient jamais une autre séquence. La fiche signale les appels qui seront sautés à cause d'une banque « ne pas répéter ».
+**Éléments** : la liste ordonnée des sonores et des banques que joue la séquence, avec un détail : l'emplacement d'un sonore, le mode d'une banque et « ne pas répéter » si elle l'est. Elle se gère comme la liste de lecture d'un événement : glisser-déposer, **Monter** et **Descendre**, **➕ Ajouter des sonores…**, **➕ Ajouter des banques…**, dépôt de fichiers, **➖ Retirer l'élément**. Un même sonore ou une même banque peut revenir ; une séquence ne contient jamais une autre séquence. La fiche signale les appels qui seront sautés à cause d'une banque « ne pas répéter ».
 
 **Séquence vide** : elle s'enregistre, pour être complétée plus tard ; la fiche avertit qu'elle ne joue rien, et la diffusion la saute.
 

@@ -4,6 +4,7 @@
 
 - PySide6, version alignée sur Qt 6.10 (Kubuntu 26.04 LTS).
 - Vocabulaire à l'écran : « banque », jamais « playlist ».
+- Un bouton, une entrée de menu ou la réponse d'une question qui ajoute des lignes à un tableau commence par ➕, qui en retire par ➖, qui supprime une fiche ou le confirme par ❌, suivis d'une espace ([#294](https://github.com/dascritch/machincast/issues/294)) : dans un `.ui`, l'emoji s'écrit dans le texte ; dans le code, par `machincast.interface.intentions.libelle`. Jamais dans un titre de fenêtre ou de question. Un nouveau bouton de ce genre s'ajoute aux exemples de `tests/features/intentions.feature`.
 - Tout est en français, y compris les textes propres à Qt (boutons des fenêtres de dialogue) : l'application se crée par `machincast.interface.application.application`, qui charge la traduction `qtbase_fr` livrée avec PySide6.
 - Les champs de texte courts (noms, artiste, titre) sont limités à `LONGUEUR_TEXTE_COURT` (255 caractères), comme en base.
 - L'état du binaire lecture se lit par sa socket Unix, jamais en interrogeant `airplay` en boucle : `machincast.interface.etat.ClientEtat` émet chaque état reçu (`etat_recu`), et `ARRET` quand la socket manque ou se ferme ([#23](https://github.com/dascritch/machincast/issues/23)). Un écran ne relit l'airplay qu'à un changement de sonore annoncé par la socket.

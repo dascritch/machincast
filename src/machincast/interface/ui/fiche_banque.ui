@@ -278,14 +278,14 @@
           <item>
            <widget class="QPushButton" name="ajouter_repertoire">
             <property name="text">
-             <string>Ajouter un répertoire…</string>
+             <string>➕ Ajouter un répertoire…</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="retirer_repertoire">
             <property name="text">
-             <string>Retirer le répertoire</string>
+             <string>➖ Retirer le répertoire</string>
             </property>
            </widget>
           </item>
@@ -341,14 +341,14 @@
           <item>
            <widget class="QPushButton" name="ajouter_sonores">
             <property name="text">
-             <string>Ajouter des sonores…</string>
+             <string>➕ Ajouter des sonores…</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="retirer_sonore">
             <property name="text">
-             <string>Retirer le sonore</string>
+             <string>➖ Retirer le sonore</string>
             </property>
            </widget>
           </item>
@@ -385,7 +385,7 @@
      <item>
       <widget class="QPushButton" name="supprimer">
        <property name="text">
-        <string>Supprimer…</string>
+        <string>❌ Supprimer…</string>
        </property>
        <property name="toolTip">
         <string>Supprime l'élément de la base, après confirmation ; aucun fichier n'est touché.</string>
