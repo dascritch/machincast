@@ -4,6 +4,7 @@ La sortie choisie dans la configuration (audio.sortie) correspond à un élémen
 « factice » ne joue aucun son : elle sert aux tests et aux essais.
 """
 
+import logging
 from dataclasses import dataclass
 from datetime import timedelta
 
@@ -13,6 +14,8 @@ gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
 from machincast.configuration import SortieAudio  # noqa: E402
+
+journal = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -45,6 +48,9 @@ TYPES_D_APPAREILS: dict[SortieAudio, tuple[str, ...]] = {
 }
 """Le type GStreamer des périphériques de chaque sortie ; la sortie factice n'en a pas."""
 CLASSE_DES_SORTIES = "Audio/Sink"
+DEMARRAGE_DU_MONITEUR = 5.0
+"""Secondes laissées au moniteur de périphériques pour démarrer ses fournisseurs
+(https://github.com/dascritch/machincast/issues/289)."""
 
 
 @dataclass(frozen=True)
@@ -60,16 +66,39 @@ class Peripherique:
 
 def appareils() -> list[Gst.Device]:
 	"""Les périphériques de sortie audio que voit GStreamer, toutes sorties confondues, comme gst-device-monitor-1.0
-	Audio/Sink : un moniteur de périphériques attend que chaque fournisseur ait donné les siens."""
+	Audio/Sink : un moniteur de périphériques attend que chaque fournisseur ait donné les siens.
+
+	Depuis GStreamer 1.28, start() démarre les fournisseurs dans un fil, qui l'annonce sur le bus du moniteur. Avec
+	GStreamer 1.28.2, celui d'Ubuntu 26.04, get_devices() n'attend pas ce fil : la liste serait incomplète, et stop()
+	pendant le démarrage corrompt une liste de GLib, ce qui tue le processus
+	(https://github.com/dascritch/machincast/issues/289, corrigé par GStreamer 1.28.3 :
+	https://gitlab.freedesktop.org/gstreamer/gstreamer/-/merge_requests/11554). La liste attend donc l'annonce ; sans
+	elle, le moniteur n'est pas arrêté : mieux vaut un fil qui finit seul qu'une interface qui tombe."""
 	Gst.init(None)
 	moniteur = Gst.DeviceMonitor.new()
 	moniteur.add_filter(CLASSE_DES_SORTIES, None)
 	if not moniteur.start():
 		return []
-	try:
-		return list(moniteur.get_devices())
-	finally:
+	demarre = _attendre_le_demarrage(moniteur)
+	trouves = list(moniteur.get_devices())
+	if demarre:
 		moniteur.stop()
+	else:
+		journal.warning(
+			f"le moniteur de périphériques n'a pas fini de démarrer en {DEMARRAGE_DU_MONITEUR:g} secondes :"
+			" la liste des périphériques peut être incomplète"
+		)
+	return trouves
+
+
+def _attendre_le_demarrage(moniteur: Gst.DeviceMonitor) -> bool:
+	"""Vrai quand le moniteur a démarré ses fournisseurs ; avant GStreamer 1.28, sans message de démarrage, start() ne
+	rend la main qu'une fois ses fournisseurs démarrés."""
+	demarre = getattr(Gst.MessageType, "DEVICE_MONITOR_STARTED", None)
+	if demarre is None:
+		return True
+	message = moniteur.get_bus().timed_pop_filtered(int(DEMARRAGE_DU_MONITEUR * Gst.SECOND), demarre)
+	return message is not None
 
 
 def type_d_appareil(appareil: Gst.Device) -> str:

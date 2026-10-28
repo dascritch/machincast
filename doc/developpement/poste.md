@@ -94,3 +94,29 @@ Au 27 octobre 2026, le défaut est référencé dans le suivi de MachinCast : [#
 - **Notes de version de GStreamer 1.28.3 à 1.28.8** : aucune ne corrige `aiffparse`, ni un blocage au démarrage de `decodebin` ou `playbin`.
 
 Le défaut reste à signaler chez GStreamer, avec `tests/mesures_gstreamer.py` pour le reproduire. Un signalement ouvert depuis, chez GStreamer ou ailleurs, s'ajoute à cette liste.
+
+## Mesurer la liste des périphériques audio
+
+Avec GStreamer 1.28.2, celui d'Ubuntu 26.04, lister les périphériques audio tuait parfois le processus ([#289](https://github.com/dascritch/machincast/issues/289)) : l'interface se fermait d'un coup à l'ouverture de la pré-écoute ou des préférences audio. La cause est chez GStreamer :
+
+- depuis 1.28.0, `gst_device_monitor_start()` démarre les fournisseurs de périphériques dans un fil, qui annonce la fin par un message `DEVICE_MONITOR_STARTED` sur le bus du moniteur ;
+- en 1.28.2, `gst_device_monitor_get_devices()` n'attend pas ce fil. La liste lue aussitôt est incomplète, et `gst_device_monitor_stop()` appelé pendant le démarrage corrompt une liste chaînée de GLib quand un fournisseur n'a pas pu démarrer. Le processus meurt alors dans `g_slist_delete_link`, sur un `abort()` ou une erreur de segmentation, ou ne rend plus la main ;
+- GStreamer 1.28.3 fait attendre `gst_device_monitor_get_devices()` ([commit 85b37b18](https://gitlab.freedesktop.org/gstreamer/gstreamer/-/commit/85b37b18ba4d8a215d9bf5220110401c134128f4), [MR !11554](https://gitlab.freedesktop.org/gstreamer/gstreamer/-/merge_requests/11554), « devicemonitor: Wait for start thread to finish when listing devices »). Le fil de démarrage interrompu par `stop()` garde son défaut, même dans la 1.28.8 ; il n'est plus atteint quand on attend le démarrage.
+
+`machincast.audio.appareils` attend donc le message de démarrage, au plus 5 secondes (`DEMARRAGE_DU_MONITEUR`), avant de lire et d'arrêter le moniteur. Sans message à temps, il rend ce qu'il a, n'arrête pas le moniteur, et le journal le signale. Avant GStreamer 1.28, sans ce message, il n'y a rien à attendre. La mesure, hors du code de MachinCast, compare les façons de lister :
+
+```bash
+.venv/bin/python -m tests.mesures_peripheriques                    # 20 processus de 50 listes, chaque façon
+.venv/bin/python -m tests.mesures_peripheriques -n 40 --facons moniteur moniteur-attendu
+```
+
+Mesures du 28 octobre 2026, sans serveur audio sur le poste de mesure :
+
+| Poste | Façon | Processus tués |
+| --- | --- | --- |
+| Ubuntu 26.04 LTS, GStreamer 1.28.2 | `moniteur` : démarré, lu, arrêté, comme avant [#289](https://github.com/dascritch/machincast/issues/289) | 8 sur 20, puis 8 sur 40 |
+| Ubuntu 26.04 LTS, GStreamer 1.28.2 | `moniteur-attendu` : attend le démarrage, comme depuis [#289](https://github.com/dascritch/machincast/issues/289) | 0 sur 40 |
+| Ubuntu 26.04 LTS, GStreamer 1.28.2 | `moniteur-sans-arret`, `moniteur-unique`, `sondage` | 0 sur 20 chacune |
+| Ubuntu 24.04 LTS, GStreamer 1.24.2 | `moniteur`, `moniteur-attendu` | 0 sur 20 chacune |
+
+Avec PipeWire actif, comme sur un poste d'antenne, la mesure reste à faire : un fournisseur qui démarre toujours rend la course plus rare, sans l'écarter. Le scénario « La liste des périphériques du poste, en boucle, ne fait jamais tomber son processus » (`tests/features/peripheriques_liste.feature`) la rejoue à chaque passage des tests.
