@@ -52,14 +52,13 @@ from machincast.conversion import texte_ou_rien
 from machincast.horloge import Horloge
 from machincast.interface import dialogues, preferences
 from machincast.interface.affichage import MOIS
+from machincast.interface.sessions import Session, chevauchee, retablir
 from machincast.lecture.grille import (
-	JAMAIS,
 	JOURS,
 	RANGS,
 	Evenement,
 	Prevue,
 	Priorite,
-	chevauchement,
 	heure_murale,
 	lire_grille,
 	prevoir,
@@ -575,37 +574,24 @@ class Calendrier(QWidget):
 		self._grille_changee(texte)
 
 	def retablir(self, bloc: Bloc) -> None:
-		"""Rétablit la session sautée du bloc, sauf si un événement de même priorité a pris sa place."""
+		"""Rétablit la session sautée du bloc, sauf si un événement de même priorité a pris sa place
+		(machincast.interface.sessions)."""
 		occurrence = bloc.prevue.occurrence
-		evenement = occurrence.evenement
 		assert occurrence.debut is not None
-		jour = occurrence.debut.date()
-		session = Evenement(
-			id=evenement.id,
-			nom=evenement.nom,
-			priorite=evenement.priorite,
-			debut=occurrence.debut,
-			fin=occurrence.fin,
-			jours=frozenset(),
-			modifie_le=JAMAIS,
-		)
+		session = Session(occurrence.evenement, occurrence.debut, occurrence.fin)
+		nom, jour = session.evenement.nom, session.debut.date()
 		with self.connexion.transaction():
-			autres = [autre for autre in lire_grille(self.connexion) if autre.id != evenement.id]
-		trouve = chevauchement(session, autres, depuis=self.maintenant())
+			trouve = chevauchee(self.connexion, session, self.maintenant())
+			if trouve is None:
+				retablir(self.connexion, session)
 		if trouve is not None:
 			autre, instant = trouve
 			self.annonce.emit(
-				f"Session de « {evenement.nom} » du {jour_et_mois(jour)} non rétablie : elle chevaucherait"
+				f"Session de « {nom} » du {jour_et_mois(jour)} non rétablie : elle chevaucherait"
 				f" « {autre.nom} » à {instant:%H:%M}."
 			)
 			return
-		with self.connexion.transaction():
-			self.connexion.execute(
-				"DELETE FROM evenements_sauts WHERE evenement_id = %s AND jour = %s", (evenement.id, jour)
-			)
-		self._grille_changee(
-			f"Session de « {evenement.nom} » du {jour_et_mois(jour)} à {occurrence.debut:%H:%M} rétablie."
-		)
+		self._grille_changee(f"Session de « {nom} » du {jour_et_mois(jour)} à {session.debut:%H:%M} rétablie.")
 
 	def _grille_changee(self, texte: str) -> None:
 		self.actualiser()

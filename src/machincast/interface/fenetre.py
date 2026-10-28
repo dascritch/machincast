@@ -562,6 +562,11 @@ class FenetrePrincipale(QMainWindow):
 		if genre == "événement":
 			fiche.supprimee.connect(self._garantir_fil_musical)
 			fiche.enregistree.connect(self._garantir_fil_musical)
+		if isinstance(fiche, FicheEvenement):
+			# Une session rétablie depuis la fiche (https://github.com/dascritch/machincast/issues/295), comme depuis le
+			# calendrier : la barre d'état l'annonce, et Machin lecture relit la grille.
+			fiche.session_retablie.connect(self.ui.barre_d_etat.showMessage)
+			fiche.session_retablie.connect(self._grille_modifiee)
 		# Une fiche enregistrée, supprimée ou restaurée vaut aussitôt à l'antenne
 		# (https://github.com/dascritch/machincast/issues/266) : Machin lecture relit la grille, et ne recalcule que si
 		# ce qui règle l'antenne a changé. Un sonore ou une banque supprimé quitte les listes des événements.
