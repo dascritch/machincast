@@ -20,9 +20,9 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 
 	Scénario: L'onglet Airplay est fermé au lancement, et s'ouvre depuis le menu « Affichage »
 		Quand la fenêtre de l'interface s'ouvre
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents »
+		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Quand je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents », « Airplay »
+		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Airplay »
 		Et l'onglet ouvert est « Airplay »
 
 	Scénario: L'onglet montre les passages des 12 dernières heures, du plus récent au plus ancien, avec les colonnes de l'accueil
@@ -53,10 +53,10 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
 		Et j'ouvre l'onglet « Accueil »
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents », « Airplay »
+		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Airplay »
 		Et l'onglet ouvert est « Airplay »
 		Quand je ferme l'onglet « Airplay »
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents »
+		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 
 	Scénario: Un double-clic ouvre la fiche, et le clic droit propose la pré-écoute du sonore
 		Quand la fenêtre de l'interface s'ouvre
