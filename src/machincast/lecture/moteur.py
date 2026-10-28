@@ -60,14 +60,14 @@ DELAI_PRELECTURE = timedelta(seconds=2)
 """Délai accordé à la pré-lecture d'un fichier rogné, avant la recherche de son début détecté : au-delà, la voie joue
 le fichier depuis son début."""
 
-DELAI_DE_GARDE = timedelta(seconds=3)
-"""Le même délai de garde dans tous les cas : une voie qui n'a pas atteint l'état PLAYING au bout de ce délai est
-bloquée (https://github.com/dascritch/machincast/issues/281) ; un stream qui ne donne plus de son pendant ce délai est
-gelé (https://github.com/dascritch/machincast/issues/278). Un fichier local démarre en quelques millisecondes ; une voie
-rognée a déjà eu sa pré-lecture ; un flux en ligne avance sans cesse."""
+DELAI_DE_GARDE = timedelta(seconds=10)
+"""Le même délai de garde dans tous les cas, celui d'un flux HTTP/1.1 qui ne répond plus (DELAI_CONNEXION_SECONDES) :
+une voie qui n'a pas atteint l'état PLAYING au bout de ce délai est bloquée
+(https://github.com/dascritch/machincast/issues/281) ; un stream qui ne donne plus de son pendant ce délai est gelé
+(https://github.com/dascritch/machincast/issues/278)."""
 
-DELAI_CONNEXION_SECONDES = 10
-"""Délai de connexion et de réponse d'un flux HTTP, au-delà duquel la voie passe en erreur."""
+DELAI_CONNEXION_SECONDES = round(DELAI_DE_GARDE.total_seconds())
+"""Délai de connexion et de réponse d'un flux HTTP, au-delà duquel la voie passe en erreur : le délai de garde."""
 
 
 def superposition(crossfade_fin_sortant: timedelta, crossfade_debut_entrant: timedelta) -> bool:

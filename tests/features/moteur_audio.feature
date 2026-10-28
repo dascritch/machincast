@@ -146,7 +146,7 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Quand il joue le fichier de test « sain.flac », dont la sortie ne reçoit jamais de son
 		Et il joue le fichier de test « sain.mp3 »
 		Et le son de « sain.mp3 » avance
-		Et 2,9 secondes passent à l'horloge du moteur
+		Et 9,9 secondes passent à l'horloge du moteur
 		Alors aucune voie n'est bloquée
 		Quand 0,2 seconde passent à l'horloge du moteur
 		Alors seule la voie de « sain.flac » est bloquée
