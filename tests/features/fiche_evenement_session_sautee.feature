@@ -18,6 +18,7 @@ Fonctionnalité: La fiche d'un événement annonce sa prochaine session sautée,
 			| nom      | nom_public | priorite    | debut            | fin              | jours                                   |
 			| Continue |            | fil_musical |                  |                  |                                         |
 			| Matinale | Le réveil  | emission    | 2026-10-05 07:00 | 2026-10-05 09:00 | lundi, mardi, mercredi, jeudi, vendredi |
+			| Direct   |            | special     | 2026-10-05 20:00 |                  | lundi, mardi, mercredi, jeudi, vendredi |
 
 	Scénario: La prochaine session sautée s'annonce en haut de la fiche, sur un liseret orange
 		Étant donné l'horloge de l'interface au « 2026-10-20 16:40:00 »
@@ -29,14 +30,30 @@ Fonctionnalité: La fiche d'un événement annonce sa prochaine session sautée,
 		Et le bouton « Rétablir » de l'annonce est actif
 		Et la fiche ne signale rien
 
-	Scénario: Une session sautée déjà passée ne s'annonce pas ; la suivante, si
+	Scénario: Les sessions sautées déjà passées ne s'annoncent pas ; la plus proche des suivantes, si
 		Étant donné l'horloge de l'interface au « 2026-10-20 16:40:00 »
 		Et la session du 2026-10-19 de l'événement « Matinale » est sautée
 		Et la session du 2026-10-20 de l'événement « Matinale » est sautée
 		Et la session du 2026-10-23 de l'événement « Matinale » est sautée
+		Et la session du 2026-10-22 de l'événement « Matinale » est sautée
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
-		Alors la fiche annonce « La session du vendredi 23 octobre 2026 à 07:00 est sautée : elle ne jouera pas. »
+		Alors la fiche annonce « La session du jeudi 22 octobre 2026 à 07:00 est sautée : elle ne jouera pas. »
+
+	Scénario: Une session sautée qui vient de finir ne s'annonce plus
+		Étant donné l'horloge de l'interface au « 2026-10-21 09:00:00 »
+		Et la session du 2026-10-21 de l'événement « Matinale » est sautée
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Alors la fiche n'annonce aucune session sautée
+
+	Scénario: Une session sans fin compte jusqu'au soir de son jour ; celle de la veille est passée
+		Étant donné l'horloge de l'interface au « 2026-10-21 23:30:00 »
+		Et la session du 2026-10-20 de l'événement « Direct » est sautée
+		Et la session du 2026-10-21 de l'événement « Direct » est sautée
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Direct »
+		Alors la fiche annonce « La session du mercredi 21 octobre 2026 à 20:00 est sautée : elle ne joue pas. »
 
 	Scénario: Sans session sautée à venir, la fiche n'annonce rien
 		Étant donné l'horloge de l'interface au « 2026-10-20 16:40:00 »
