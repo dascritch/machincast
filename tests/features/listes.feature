@@ -227,6 +227,46 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand je clique sur le titre de la colonne « Priorité »
 		Alors la colonne « Priorité » de la liste montre « secours », « fil musical », « émission », « spécial »
 
+	Scénario: Un clic sur le titre « Durée » classe les sonores du plus court au plus long, ceux sans durée à la fin
+		https://github.com/dascritch/machincast/issues/302 : par les secondes, pas par le texte ; un fichier pas encore
+		mesuré vient après les durées connues, et un stream, qui n'a pas de fin, en dernier.
+
+		Étant donné les sonores :
+			| artiste | titre    | type    | etat  | duree | emplacement                 |
+			| A       | Dix      | fichier | actif | 600   | /srv/musique/dix.flac       |
+			| B       | Heure    | fichier | actif | 3725  | /srv/musique/heure.flac     |
+			| C       | Deux     | fichier | actif | 120   | /srv/musique/deux.flac      |
+			| D       | Direct   | stream  | actif |       | https://flux.exemple/direct |
+			| E       | Inconnu  | fichier | actif |       | /srv/musique/inconnu.flac   |
+			| F       | Trois    | fichier | actif | 214   | /srv/musique/trois.flac     |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Et je clique sur le titre de la colonne « Durée »
+		Alors la colonne « Titre » de la liste montre « Deux », « Trois », « Dix », « Heure », « Inconnu », « Direct »
+		Quand je clique sur le titre de la colonne « Durée »
+		Alors la colonne « Titre » de la liste montre « Direct », « Inconnu », « Heure », « Dix », « Trois », « Deux »
+
+	Plan du scénario: Les dates et les jours des événements se trient dans l'ordre du temps, ceux qui n'en ont pas à la fin
+		https://github.com/dascritch/machincast/issues/302
+
+		Étant donné les événements :
+			| nom      | nom_public | priorite    | debut            | fin              | jours           |
+			| Continue |            | fil_musical |                  |                  |                 |
+			| Soirée   |            | emission    | 2026-10-20 20:00 | 2026-10-20 23:00 | jeudi           |
+			| Matinale |            | emission    | 2026-10-19 07:00 | 2026-10-19 09:00 | lundi, mardi    |
+			| Midi     |            | emission    | 2026-10-21 12:00 | 2026-10-21 13:00 | mercredi        |
+			| Hebdo    |            | emission    | 2026-10-23 08:00 | 2026-10-23 09:00 | vendredi, lundi |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Événements »
+		Et je clique sur le titre de la colonne « <colonne> »
+		Alors la colonne « Nom » de la liste montre <noms>
+
+		Exemples:
+			| colonne    | noms                                                          |
+			| Début      | « Matinale », « Soirée », « Midi », « Hebdo », « Continue »   |
+			| Fin        | « Matinale », « Soirée », « Midi », « Hebdo », « Continue »   |
+			| Récurrence | « Matinale », « Hebdo », « Midi », « Soirée », « Continue »   |
+
 	Scénario: Le filtre se garde quand la liste se relit
 		Étant donné les sonores :
 			| artiste     | titre         | type    | etat  | duree | emplacement            |
