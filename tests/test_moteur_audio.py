@@ -106,7 +106,7 @@ def voie_debordante(contexte: Contexte, duree: str, debut: str, depart: str, fin
 	)
 )
 def voie_rognee(contexte: Contexte, duree: str, decalage: str, debut: str, fin: str) -> None:
-	"""Un sonore rogné par la détection de blanc (https://github.com/dascritch/machincast/issues/146)."""
+	"""Un sonore rogné par la détection de silence (https://github.com/dascritch/machincast/issues/146)."""
 	contexte.voie = Voie(
 		FICHIERS_SONORES / "sain.flac",
 		configuration_test().audio,

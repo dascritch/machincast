@@ -2,7 +2,7 @@
 Fonctionnalité: Un sonore dont la lecture ne démarre pas est remplacé
 	En tant que responsable d'antenne,
 	je veux qu'un sonore qui ne démarre pas soit remplacé,
-	afin de ne jamais laisser l'antenne en silence sur un lecteur bloqué.
+	afin de ne jamais laisser de blanc à l'antenne sur un lecteur bloqué.
 
 	https://github.com/dascritch/machincast/issues/281. playbin se bloquait au démarrage d'un AIFF, avec GStreamer 1.24
 	comme 1.28 : la voie reste « en cours », sans erreur ni son. playbin3, le lecteur des voies depuis

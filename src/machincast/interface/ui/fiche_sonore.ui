@@ -415,18 +415,18 @@
           </widget>
          </item>
          <item>
-          <widget class="QGroupBox" name="groupe_blancs">
+          <widget class="QGroupBox" name="groupe_silences">
            <property name="title">
             <string>Enchainement</string>
            </property>
-           <layout class="QFormLayout" name="formulaire_blancs">
+           <layout class="QFormLayout" name="formulaire_silences">
             <item row="0" column="0" colspan="2">
-             <widget class="QCheckBox" name="detection_blancs">
+             <widget class="QCheckBox" name="detection_silences">
               <property name="text">
-               <string>Jouer sans les blancs détectés</string>
+               <string>Jouer sans les silences détectés</string>
               </property>
               <property name="toolTip">
-               <string>Coché, le sonore est joué de son début détecté à sa fin détectée, même hors d'une banque qui retire les blancs.</string>
+               <string>Coché, le sonore est joué de son début détecté à sa fin détectée, même hors d'une banque qui retire les silences.</string>
               </property>
              </widget>
             </item>
@@ -436,7 +436,7 @@
                <string>Début détecté</string>
               </property>
               <property name="toolTip">
-               <string>Blanc au début du fichier, mesuré par l'audit complet. Décoché, aucun blanc n'est détecté : le début n'est pas rogné.</string>
+               <string>Silence au début du fichier, mesuré par l'audit complet. Décoché, aucun silence n'est détecté : le début n'est pas rogné.</string>
               </property>
              </widget>
             </item>
@@ -465,7 +465,7 @@
                <string>Fin détectée</string>
               </property>
               <property name="toolTip">
-               <string>Blanc à la fin du fichier, compté depuis sa fin, mesuré par l'audit complet. Décoché, aucun blanc n'est détecté : la fin n'est pas rognée.</string>
+               <string>Silence à la fin du fichier, compté depuis sa fin, mesuré par l'audit complet. Décoché, aucun silence n'est détecté : la fin n'est pas rognée.</string>
               </property>
              </widget>
             </item>
@@ -772,7 +772,7 @@
      <item>
       <widget class="QPushButton" name="verifier">
        <property name="toolTip">
-        <string>Décoder le fichier en entier et mesurer ses blancs, comme l'audit complet de Machin indexation, pour ce seul sonore</string>
+        <string>Décoder le fichier en entier et mesurer ses silences, comme l'audit complet de Machin indexation, pour ce seul sonore</string>
        </property>
        <property name="text">
         <string>Vérification complète</string>

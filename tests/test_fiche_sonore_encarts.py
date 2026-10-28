@@ -61,9 +61,9 @@ def retenue() -> threading.Event:
 def retenir(monkeypatch: pytest.MonkeyPatch, retenue: threading.Event) -> None:
 	vraie = verification._verifier_fichier_complet
 
-	def attendre(chemin: Path, *, seuil_blancs: float | None = None) -> Verification:
+	def attendre(chemin: Path, *, seuil_silences: float | None = None) -> Verification:
 		assert retenue.wait(timeout=DELAI / 1000), "vérification jamais laissée finir"
-		return vraie(chemin, seuil_blancs=seuil_blancs)
+		return vraie(chemin, seuil_silences=seuil_silences)
 
 	monkeypatch.setattr(verification, "_verifier_fichier_complet", attendre)
 
@@ -141,9 +141,9 @@ def debut_detecte(interface: Contexte, secondes: str) -> None:
 	ui.debut_detecte.setValue(float(secondes.replace(",", ".")))
 
 
-@when(parsers.re(r"je (?P<geste>coche|décoche) « Jouer sans les blancs détectés » dans la fiche"))
-def jouer_sans_blancs(interface: Contexte, geste: str) -> None:
-	fiche(interface).ui.detection_blancs.setChecked(geste == "coche")
+@when(parsers.re(r"je (?P<geste>coche|décoche) « Jouer sans les silences détectés » dans la fiche"))
+def jouer_sans_silences(interface: Contexte, geste: str) -> None:
+	fiche(interface).ui.detection_silences.setChecked(geste == "coche")
 
 
 # ─── Alors ─────────────────────────────────────────────────
@@ -176,7 +176,7 @@ def question(interface: Contexte, texte: str) -> None:
 	assert interface.questions == [f"après vérification : {texte}"]
 
 
-@then(parsers.parse("le sonore du fichier « {chemin} » a été vérifié en entier, ses blancs mesurés"))
+@then(parsers.parse("le sonore du fichier « {chemin} » a été vérifié en entier, ses silences mesurés"))
 def verifie_en_entier(interface: Contexte, base_vide: Connexion, qtbot: QtBot, chemin: str) -> None:
 	def lu() -> tuple[object, ...] | None:
 		return base_vide.execute(
@@ -300,24 +300,24 @@ def forme_de_la_fiche(interface: Contexte, qtbot: QtBot) -> None:
 
 @then(
 	parsers.parse(
-		"la frise de la fiche montre un crossfade de fin de {fin} seconde, un blanc de {blanc} seconde au début,"
+		"la frise de la fiche montre un crossfade de fin de {fin} seconde, un silence de {silence} seconde au début,"
 		" retiré à l'antenne"
 	)
 )
-def plan_de_la_fiche(interface: Contexte, fin: str, blanc: str) -> None:
+def plan_de_la_fiche(interface: Contexte, fin: str, silence: str) -> None:
 	plan = fiche(interface).frise.plan
 	assert plan is not None
-	assert (plan.crossfade_fin, plan.blanc_debut, plan.blancs_retires) == (
+	assert (plan.crossfade_fin, plan.silence_debut, plan.silences_retires) == (
 		float(fin.replace(",", ".")),
-		float(blanc.replace(",", ".")),
+		float(silence.replace(",", ".")),
 		True,
 	), plan
 
 
-@then("la frise de la fiche montre les blancs joués")
-def blancs_joues(interface: Contexte) -> None:
+@then("la frise de la fiche montre les silences joués")
+def silences_joues(interface: Contexte) -> None:
 	plan = fiche(interface).frise.plan
-	assert (plan is not None) and (not plan.blancs_retires), plan
+	assert (plan is not None) and (not plan.silences_retires), plan
 
 
 @then("la fiche n'a pas de frise")

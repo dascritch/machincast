@@ -23,7 +23,7 @@ from PySide6.QtCore import QObject, QProcess, Signal, SignalInstance
 
 from machincast import journal
 from machincast.base import Role, connecter
-from machincast.configuration import SEUIL_DE_BLANC
+from machincast.configuration import SEUIL_DE_SILENCE
 from machincast.indexation import audit
 from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
 from machincast.indexation.indexeur import IndexationEnCours, indexer
@@ -88,13 +88,13 @@ class Indexation(QObject):
 	_finie = Signal(str)
 
 	def __init__(
-		self, socket: Path, base: str, parent: QObject | None = None, seuil_blancs: float = SEUIL_DE_BLANC
+		self, socket: Path, base: str, parent: QObject | None = None, seuil_silences: float = SEUIL_DE_SILENCE
 	) -> None:
 		super().__init__(parent)
 		self.socket = socket
 		self.base = base
-		self.seuil_blancs = seuil_blancs
-		"""Seuil de blanc de l'audit complet (https://github.com/dascritch/machincast/issues/146)."""
+		self.seuil_silences = seuil_silences
+		"""Seuil de silence de l'audit complet (https://github.com/dascritch/machincast/issues/146)."""
 		self.forcer = False
 		"""L'audit complet décode aussi les sonores déjà audités et inchangés : Machin indexation --forcer
 		(https://github.com/dascritch/machincast/issues/206) ; jamais depuis le menu de l'interface."""
@@ -132,7 +132,7 @@ class Indexation(QObject):
 		try:
 			with connecter(self.socket, self.base, Role.INDEXATION) as connexion:
 				bilan = indexer(
-					connexion, audit_complet, _verifier_fichier, self._arret, self.seuil_blancs, forcer=self.forcer
+					connexion, audit_complet, _verifier_fichier, self._arret, self.seuil_silences, forcer=self.forcer
 				)
 			# Le bilan, puis le document d'audit, comme Machin indexation les écrit à la fin.
 			indexeur.info(texte_bilan(bilan))
@@ -147,8 +147,8 @@ class Indexation(QObject):
 		self._finie.emit(texte)
 
 
-def _verifier_fichier(chemin: Path, *, seuil_blancs: float | None = None) -> Verification:
+def _verifier_fichier(chemin: Path, *, seuil_silences: float | None = None) -> Verification:
 	"""Le décodage de l'indexeur, appelé par son nom : les scénarios le remplacent."""
-	if seuil_blancs is None:
+	if seuil_silences is None:
 		return verifier_fichier(chemin)
-	return verifier_fichier(chemin, seuil_blancs=seuil_blancs)
+	return verifier_fichier(chemin, seuil_silences=seuil_silences)

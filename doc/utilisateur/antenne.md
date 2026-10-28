@@ -8,7 +8,7 @@
 - [Quel sonore une banque fournit](#quel-sonore-une-banque-fournit)
 - [Expiration des sonores](#expiration-des-sonores)
 - [Enchaînements](#enchaînements)
-- [Blancs au début et à la fin](#blancs-au-début-et-à-la-fin)
+- [Silences au début et à la fin](#silences-au-début-et-à-la-fin)
 - [Streams](#streams)
 - [Page publique et masquage](#page-publique-et-masquage)
 - [Piloter la diffusion](#piloter-la-diffusion)
@@ -22,7 +22,7 @@
 - **Priorité** : un `spécial` l'emporte sur une `émission`, qui l'emporte sur un `fil musical`. Quand l'événement prioritaire se termine, celui qui est en dessous reprend.
 - **Fil musical permanent** : un fil musical sans date de début ni de fin sert de fond ; il couvre tout le temps où rien d'autre n'est programmé, pas même un autre fil musical.
 - **Fils musicaux selon l'heure** : plusieurs fils musicaux peuvent se relayer, par exemple un fil de nuit de 00:00 à 06:00, tous les jours, sur un fil de jour permanent.
-- **Toujours un fil musical** : s'il n'en existe aucun, l'interface en crée un, « Fil musical », permanent et vide ([Pour bien démarrer](prise-en-main.md#pour-bien-démarrer)). Vide, il laisse l'antenne en silence, avec une alerte.
+- **Toujours un fil musical** : s'il n'en existe aucun, l'interface en crée un, « Fil musical », permanent et vide ([Pour bien démarrer](prise-en-main.md#pour-bien-démarrer)). Vide, il laisse un blanc à l'antenne, avec une alerte.
 - **Heures** : un événement est à l'antenne de son début, inclus, à sa fin, exclue : une émission de 20:00 à 22:00 laisse la place à 22:00 pile. Toutes les heures sont celles de Paris, l'heure locale du poste.
 - **Récurrence** : un événement qui se répète revient chacun des jours cochés, à la même heure, à partir de sa première diffusion, sans date de fin. Pour des vacances ou un jour férié, ses sessions se sautent depuis le calendrier ([Sauter une session](grille.md#sauter-une-session)).
 - **Passage de minuit** : un événement peut finir le lendemain, par exemple de 23:00 à 01:00 ; pour un événement récurrent, c'est le jour du début qui compte.
@@ -41,7 +41,7 @@ Le [calendrier](grille.md#calendrier) montre la grille qui en résulte, semaine 
 - **Fin d'un événement** : si aucun autre ne commence, le dernier sonore est joué jusqu'au bout, puis le fil musical reprend. Si un autre commence juste après, il coupe ce dernier sonore.
 - **Retour au fil musical** : il reprend à l'élément qui suit le dernier qu'il a joué, pas au début de sa liste.
 - **Chaque occurrence** d'une émission récurrente reprend sa liste au début.
-- **Rien à diffuser** : silence à l'antenne, et une alerte `silence`. Le silence cesse dès qu'un sonore redevient jouable ou qu'une émission commence.
+- **Rien à diffuser** : un blanc à l'antenne, et une alerte `blanc`. Le blanc cesse dès qu'un sonore redevient jouable ou qu'une émission commence.
 
 La diffusion lit sa position dans son historique : après un redémarrage, elle reprend là où elle en était.
 
@@ -70,7 +70,7 @@ Une banque appelée par une liste fait jouer **un seul** de ses sonores, selon s
 
 - si le dernier sonore diffusé vient d'elle, l'élément suivant qui l'appelle est sauté : une liste « jingle, jingle, titre » donne un jingle puis le titre ;
 - la règle tient d'un événement à l'autre, après une coupure nette et après un redémarrage ;
-- si, la banque sautée, une émission ou un spécial n'a plus rien de jouable, il se termine (alerte `événement terminé plus tôt`) et l'événement en dessous reprend ; un fil musical, lui, se tait (alerte `silence`) ;
+- si, la banque sautée, une émission ou un spécial n'a plus rien de jouable, il se termine (alerte `événement terminé plus tôt`) et l'événement en dessous reprend ; un fil musical, lui, se tait (alerte `blanc`) ;
 - les fiches d'une [séquence](grille.md#fiche-dune-séquence) et d'un [événement](grille.md#fiche-dun-événement) préviennent quand une banque marquée est appelée juste après elle-même : ce deuxième appel sera toujours sauté.
 
 ## Expiration des sonores
@@ -96,15 +96,15 @@ Un fichier disparu au moment de le jouer n'est pas joué : l'incident `fichier i
 
 Un fichier dont la lecture ne démarre pas, faute de son au bout de 10 secondes, est remplacé par le sonore suivant : l'incident `lecture bloquée` est noté ([#281](https://github.com/dascritch/machincast/issues/281)). C'est rare et fortuit, et n'a été constaté que sur des AIFF, qui ne sont plus pris en charge : le sonore rejoue normalement à son tour suivant.
 
-## Blancs au début et à la fin
+## Silences au début et à la fin
 
-Un fichier peut commencer ou finir par un blanc : un silence, un souffle, une fin de réverbération. Pour ne pas les entendre, la diffusion peut jouer un sonore **sans ses blancs**. Le fichier n'est pas modifié : seule la durée de ses blancs est notée.
+Un fichier peut commencer ou finir par un silence : un passage sous le seuil, un souffle, une fin de réverbération. Pour ne pas les entendre, la diffusion peut jouer un sonore **sans ses silences**. Le fichier n'est pas modifié : seule la durée de ses silences est notée.
 
-- **Mesure** : l'**audit complet** mesure les blancs de chaque fichier ([Indexation depuis l'interface](sonores.md#indexation-depuis-linterface)), sous le seuil des [préférences](prise-en-main.md#préférences), -40 dB par défaut. L'indexation rapide ne les mesure pas.
-- **Quand** : jamais par défaut. Un sonore est joué sans ses blancs si sa [fiche](sonores.md#fiche-dun-sonore) le demande, ou si la [banque](sonores.md#fiche-dune-banque) qui l'a fourni le demande.
-- **Jeu** : ses fondus se placent autour de son début et de sa fin détectés ([#234](https://github.com/dascritch/machincast/issues/234)). Par défaut, le **fade-in se termine** au début détecté : le son arrive à plein volume ; le **fade-out commence** à la fin détectée : le son va à plein volume jusqu'à sa fin, et s'éteint sur le blanc qui suit. Chacun peut aussi « commencer » ou « être en cours » à sa borne. La lecture s'étend dans les blancs d'autant que les fondus y débordent, sans jamais sortir du fichier : un fondu plus long que le blanc commence, ou finit, en cours de route.
+- **Mesure** : l'**audit complet** mesure les silences de chaque fichier ([Indexation depuis l'interface](sonores.md#indexation-depuis-linterface)), sous le seuil des [préférences](prise-en-main.md#préférences), -40 dB par défaut. L'indexation rapide ne les mesure pas.
+- **Quand** : jamais par défaut. Un sonore est joué sans ses silences si sa [fiche](sonores.md#fiche-dun-sonore) le demande, ou si la [banque](sonores.md#fiche-dune-banque) qui l'a fourni le demande.
+- **Jeu** : ses fondus se placent autour de son début et de sa fin détectés ([#234](https://github.com/dascritch/machincast/issues/234)). Par défaut, le **fade-in se termine** au début détecté : le son arrive à plein volume ; le **fade-out commence** à la fin détectée : le son va à plein volume jusqu'à sa fin, et s'éteint sur le silence qui suit. Chacun peut aussi « commencer » ou « être en cours » à sa borne. La lecture s'étend dans les silences d'autant que les fondus y débordent, sans jamais sortir du fichier : un fondu plus long que le silence commence, ou finit, en cours de route.
 - **Réglage** : dans les [préférences](prise-en-main.md#préférences), page **Crossfades**, pour tous les sonores ; une [banque](sonores.md#fiche-dune-banque) ne règle que la présence et la durée de leurs crossfades. La [frise](sonores.md#frise-dun-fichier) de la pré-écoute et de l'accueil les montre.
-- **Jamais audité** : un sonore dont les blancs n'ont pas été mesurés est joué en entier. Après avoir ajouté des sonores ou activé la détection, demander un audit complet.
+- **Jamais audité** : un sonore dont les silences n'ont pas été mesurés est joué en entier. Après avoir ajouté des sonores ou activé la détection, demander un audit complet.
 - **Correction** : le début et la fin détectés se corrigent à la main dans la fiche du sonore ; l'audit ne les modifie plus ensuite.
 
 ## Streams
@@ -180,7 +180,7 @@ Sur l'accueil, le **clic droit sur le cadre du prochain sonore** propose ([#257]
 | Avancer « Journal », prévu le mercredi 21 octobre à 12:00 | L'événement suivant de la grille commence aussitôt, avant son heure, et passe jusqu'à sa fin prévue, comme s'il avait commencé plus tôt : le sonore en cours s'arrête, et sa liste commence. À son heure prévue, rien ne change. |
 
 - L'événement suivant est le prochain qui prendra l'antenne d'après la grille, dans les sept jours : une émission, un spécial, ou un fil musical daté. Il passe au-dessus de tout, même d'un spécial en cours. Une émission qui a une fin reprend sa liste depuis le début quand elle l'a jouée en entier, jusqu'à sa fin.
-- Sans événement suivant dans les sept jours, l'entrée est inactive. En silence, l'événement suivant s'avance quand même ; il n'y a alors rien à sauter.
+- Sans événement suivant dans les sept jours, l'entrée est inactive. Pendant un blanc, l'événement suivant s'avance quand même ; il n'y a alors rien à sauter.
 - Comme pour les autres interruptions, la demande part aussitôt, sans question, et la barre d'état l'annonce : `Avance de l'événement « Journal » demandée.` Si la grille a changé entre-temps et qu'un autre événement est devenu le suivant, la diffusion ignore la demande : rien ne change à l'antenne.
 - Une avance n'est retenue que par la diffusion en cours : si elle redémarre, la grille reprend telle qu'elle est prévue.
 
@@ -190,7 +190,7 @@ Chaque passage à l'antenne est noté dans l'**historique**, l'airplay : son dé
 
 La diffusion tient aussi un **journal** de ce qu'elle fait. L'onglet **Incidents** en montre les alertes et les incidents, du plus récent au plus ancien : horaire, niveau, nature, message, et le sonore, la banque et l'événement concernés.
 
-![L'onglet Incidents : un fichier introuvable, un fichier modifié, un silence](../captures/incidents.png)
+![L'onglet Incidents : un fichier introuvable, un fichier modifié, un blanc](../captures/incidents.png)
 
 - **Montrer aussi les informations** ajoute les opérations normales : démarrages, débuts et fins d'événements, interruptions manuelles…
 - **Filtre** : comme dans les listes, sans tenir compte des majuscules ni des accents.
@@ -209,7 +209,7 @@ La diffusion tient aussi un **journal** de ce qu'elle fait. L'onglet **Incidents
 | `sonore expiré` | info | Un sonore a atteint son maximum de lectures ou la fin de sa période. |
 | `analyse du prochain sonore` | info | Le prochain sonore n'a jamais été vérifié en entier : il l'est en arrière-plan, avant de passer. |
 | `reconnexion abandonnée` | info | L'événement d'un stream tombé n'est plus à l'antenne. |
-| `silence` | alerte | Rien à diffuser. |
+| `blanc` | alerte | Rien à diffuser : un blanc à l'antenne ; les alertes plus anciennes, notées `silence`, sont renommées ([#291](https://github.com/dascritch/machincast/issues/291)). |
 | `événement terminé plus tôt` | alerte | Une émission n'a plus rien de jouable une fois la banque « ne pas répéter » sautée. |
 | `fichier modifié` | alerte | Le fichier a changé depuis sa dernière vérification ; il est quand même joué, et sera revérifié. |
 | `analyse impossible` | alerte | La vérification du prochain sonore n'a pas pu être lancée ; il est joué quand même. |

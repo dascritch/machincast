@@ -34,7 +34,7 @@ Transitions (§ 4.2) :
 - le début d'un événement coupe net le sonore en cours, quel qu'il soit ;
 - à la fin d'un événement, si aucun autre ne commence, le dernier sonore est joué jusqu'au bout, puis l'événement
   actif (le fil musical) reprend ;
-- rien à diffuser : silence, et une alerte dans le log, une seule fois par silence.
+- rien à diffuser : un blanc, et une alerte dans le log, une seule fois par blanc.
 
 Streams (§ 4.7, https://github.com/dascritch/machincast/issues/16) :
 
@@ -171,14 +171,14 @@ class Decision:
 	eteindre: bool = False
 	"""Éteindre le stream en cours pendant son crossfade de fin : son événement est fini."""
 	jouer: Choix | None = None
-	silence: bool = False
+	blanc: bool = False
 	"""Rien à diffuser : se taire."""
 	occurrence: Occurrence | None = None
-	"""Événement actif pendant un silence, pour le signaler."""
+	"""Événement actif pendant un blanc, pour le signaler."""
 
 	@property
 	def continuer(self) -> bool:
-		return not ((self.couper) or (self.eteindre) or (self.jouer) or (self.silence))
+		return not ((self.couper) or (self.eteindre) or (self.jouer) or (self.blanc))
 
 
 def elements_a_essayer(elements: list[Element], dernier: int | None, boucle: bool) -> list[Element]:
@@ -339,7 +339,7 @@ class Ordonnanceur:
 	"""Décide, à chaque instant, ce que la sortie audio doit faire.
 
 	La connexion a endossé le rôle de la lecture (machincast.base.connecter) : la grille, les listes et l'airplay
-	sont lus ; seule une alerte de silence est écrite, dans le log.
+	sont lus ; seule une alerte de blanc est écrite, dans le log.
 	"""
 
 	def __init__(
@@ -350,13 +350,13 @@ class Ordonnanceur:
 		self.historique = historique
 		self.terminees: set[tuple[int, datetime | None]] = set()
 		"""Occurrences terminées plus tôt : liste épuisée, ou plus rien de jouable."""
-		self.en_silence = False
+		self.en_blanc = False
 		self.exclus: dict[int, datetime] = {}
 		"""Sonores écartés, avec l'instant où ils l'ont été."""
 		self.suspension: Suspension | None = None
 		"""Stream tombé en attente de reconnexion."""
 		self._reservation = False
-		"""Décision prise pour réserver le prochain sonore : un silence n'y est pas encore signalé."""
+		"""Décision prise pour réserver le prochain sonore : un blanc n'y est pas encore signalé."""
 		self._sauts_notes: tuple[uuid.UUID | None, set[tuple[str, int]]] = (None, set())
 		"""Éléments sautés déjà notés dans le log, pour le dernier passage : une seule ligne par élément."""
 		self.sequence_abandonnee: uuid.UUID | None = None
@@ -399,7 +399,7 @@ class Ordonnanceur:
 	def reserver(self, instant: datetime) -> Choix | None:
 		"""Prochain sonore, choisi dès le début du sonore en cours (https://github.com/dascritch/machincast/issues/20).
 
-		Comme une décision sans sonore en cours, mais sans alerte de silence : le silence ne viendra qu'à la fin du
+		Comme une décision sans sonore en cours, mais sans alerte de blanc : le blanc ne viendra qu'à la fin du
 		sonore en cours, et sera signalé alors.
 		"""
 		self._reservation = True
@@ -457,7 +457,7 @@ class Ordonnanceur:
 		sauts = self._sauts_notes
 		etat = (
 			set(self.terminees),
-			self.en_silence,
+			self.en_blanc,
 			self.suspension,
 			dict(self.exclus),
 			self.historique,
@@ -468,7 +468,7 @@ class Ordonnanceur:
 		try:
 			yield
 		finally:
-			self.terminees, self.en_silence, self.suspension, self.exclus, self.historique, self._reservation = etat
+			self.terminees, self.en_blanc, self.suspension, self.exclus, self.historique, self._reservation = etat
 			self.hasard.setstate(tirages)
 			self._sauts_notes = sauts
 
@@ -482,14 +482,14 @@ class Ordonnanceur:
 		tirages des sonores prévus sont engagés. La liste des passages prévus peut s'allonger dans la prévision. Le
 		contexte donne l'historique de la prévision, qui garde ce que les décisions consigneraient."""
 		sauts = self._sauts_notes
-		etat = (set(self.terminees), self.en_silence, self.suspension, dict(self.exclus), self.historique)
+		etat = (set(self.terminees), self.en_blanc, self.suspension, dict(self.exclus), self.historique)
 		self.terminees |= set(terminees)
 		historique = HistoriquePrevu(self.historique, prevus)
 		self.historique = historique
 		try:
 			yield historique
 		finally:
-			self.terminees, self.en_silence, self.suspension, self.exclus, self.historique = etat
+			self.terminees, self.en_blanc, self.suspension, self.exclus, self.historique = etat
 			self._sauts_notes = sauts
 
 	def engager(self, terminees: Collection[tuple[int, datetime | None]]) -> None:
@@ -620,12 +620,12 @@ class Ordonnanceur:
 			if repetition is not None:
 				self._noter_les_sauts(repetition, sautes, instant)
 			if choix is not None:
-				self.en_silence = False
+				self.en_blanc = False
 				return Decision(couper=couper, eteindre=eteindre, jouer=choix)
 			if actif is None:
-				return self._silence(instant, couper, eteindre, None, "aucun événement actif")
+				return self._blanc(instant, couper, eteindre, None, "aucun événement actif")
 			if actif.evenement.priorite is Priorite.FIL_MUSICAL:
-				return self._silence(instant, couper, eteindre, actif, "rien à diffuser dans le fil musical")
+				return self._blanc(instant, couper, eteindre, actif, "rien à diffuser dans le fil musical")
 			# Liste épuisée, ou plus rien de jouable : l'occurrence se termine, l'événement inférieur reprend. Le sonore
 			# en cours est jugé de nouveau face à lui : il continue si c'est son événement
 			# (https://github.com/dascritch/machincast/issues/253).
@@ -717,16 +717,16 @@ class Ordonnanceur:
 		"""L'occurrence a-t-elle commencé après cet instant ?"""
 		return (actif.debut is not None) and (actif.debut > heure_murale(depuis))
 
-	def _silence(
+	def _blanc(
 		self, instant: datetime, couper: bool, eteindre: bool, actif: Occurrence | None, message: str
 	) -> Decision:
 		if self._reservation:
-			return Decision(couper=couper, eteindre=eteindre, silence=True, occurrence=actif)
-		if not self.en_silence:
-			self.en_silence = True
+			return Decision(couper=couper, eteindre=eteindre, blanc=True, occurrence=actif)
+		if not self.en_blanc:
+			self.en_blanc = True
 			evenement = None if actif is None else actif.evenement.id
-			self.historique.consigner(self.connexion, "alerte", "silence", message, instant, evenement=evenement)
-		return Decision(couper=couper, eteindre=eteindre, silence=True, occurrence=actif)
+			self.historique.consigner(self.connexion, "alerte", "blanc", message, instant, evenement=evenement)
+		return Decision(couper=couper, eteindre=eteindre, blanc=True, occurrence=actif)
 
 
 def _occurrence_de_secours(evenement: Evenement) -> Occurrence:

@@ -2,9 +2,9 @@
 
 Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les scénarios qui les surveillent. Les messages du journal se lisent par `Machin logs` (la diffusion), ou dans l'onglet **Incidents** de l'interface.
 
-## Un stream tombe, mais l'antenne reste en silence
+## Un stream tombe, mais l'antenne reste sur un blanc
 
-**Symptôme** : un stream tombe, par exemple quand le réseau est coupé. L'antenne reste en silence, sans repli sur l'événement de secours ni sur le fil musical, et le journal ne note aucun `flux tombé`. Quand le réseau revient, le stream ne reprend pas : il faut relancer la diffusion.
+**Symptôme** : un stream tombe, par exemple quand le réseau est coupé. L'antenne reste sur un blanc, sans repli sur l'événement de secours ni sur le fil musical, et le journal ne note aucun `flux tombé`. Quand le réseau revient, le stream ne reprend pas : il faut relancer la diffusion.
 
 **Cause** ([#278](https://github.com/dascritch/machincast/issues/278)) : le flux est servi en **HTTP/2**, souvent derrière un serveur nginx, comme celui de France Inter. En HTTP/2, libsoup 3, la bibliothèque par laquelle GStreamer lit les streams, ne signale pas qu'une connexion ne donne plus rien ([ticket 256 de libsoup](https://gitlab.gnome.org/GNOME/libsoup/-/issues/256), [ticket 367 de libsoup](https://gitlab.gnome.org/GNOME/libsoup/-/issues/367), [ticket 296 de libsoup](https://gitlab.gnome.org/GNOME/libsoup/-/issues/296)) : le lecteur attend sans fin, sans erreur. Un flux servi en HTTP/1.1, comme un Icecast direct, n'est pas touché. Le type du flux (MP3, AAC) n'y est pour rien. Un autre lecteur bâti sur GStreamer a contourné le même défaut de la même façon ([ticket 252 de sone](https://github.com/lullabyX/sone/issues/252)).
 
@@ -18,7 +18,7 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 
 - La version de HTTP d'un flux : `curl -I <adresse>`. La première ligne dit `HTTP/2 200` ou `HTTP/1.1 200`.
 - Le journal pendant la panne : `Machin logs`. Un `flux tombé` doit apparaître une dizaine de secondes après la coupure, un peu plus si le lecteur avait du son d'avance, puis `reprise du flux` après son retour.
-- Si l'antenne reste encore en silence sans `flux tombé`, ouvrir un ticket avec le journal, l'adresse du flux et la réponse de `curl -I`.
+- Si l'antenne reste encore sur un blanc sans `flux tombé`, ouvrir un ticket avec le journal, l'adresse du flux et la réponse de `curl -I`.
 
 ## Scénarios à lancer avant une version
 

@@ -22,7 +22,7 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Et la diffusion tourne 1 pas de 0,4 seconde
 		Et la diffusion tourne 1 pas de 0,1 seconde
 		Et un client lit la socket d'état
-		Alors le message est en version 1, à l'état « diffusion »
+		Alors le message est en version 2, à l'état « diffusion »
 		Et le sonore en cours est « f1 », un fichier de l'événement « Continue »
 		Et il a commencé au « 2026-10-14 19:59:50 », dure 1 seconde et finira au « 2026-10-14 19:59:51 »
 		Et sa progression est entre 0 et 1
@@ -39,13 +39,13 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Et sa durée et sa progression sont inconnues, et il finira au « 2026-10-14 20:30:00 », avec son événement
 		Et l'emplacement du sonore en cours est l'adresse du flux « studio »
 
-	Scénario: Rien à diffuser : la socket annonce le silence
+	Scénario: Rien à diffuser : la socket annonce le blanc
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
 		Et le sonore « f1 » est à l'état « desactive »
 		Quand la diffusion démarre au plus vite
 		Et la diffusion tourne 1 pas d'une seconde
 		Et un client lit la socket d'état
-		Alors le message est en version 1, à l'état « silence »
+		Alors le message est en version 2, à l'état « blanc »
 		Et il n'y a ni sonore en cours ni prochain sonore
 
 	# ─── Contexte du sonore (https://github.com/dascritch/machincast/issues/144) ─────

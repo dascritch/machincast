@@ -2,23 +2,23 @@
 Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 	En tant que technicien d'antenne,
 	je veux qu'un VU-mètre montre le niveau de la sortie antenne,
-	afin que je voie immédiatement un silence ou une saturation.
+	afin que je voie immédiatement un blanc ou une saturation.
 
 	https://github.com/dascritch/machincast/issues/24, spec § 8.1. L'accueil a, entre le sonore en cours et le prochain,
 	une colonne verticale : par canal, le VU (niveau moyen, RMS) et, par-dessus, le bargraph de crête, dont un repère
 	garde le maximum 2 secondes. Les niveaux se lisent sur le port de monitoring du périphérique de l'antenne :
 	pipewiresrc qui capture la sortie (stream.capture.sink) avec PipeWire, pulsesrc sur son « .monitor » avec
 	PulseAudio. ALSA n'en a pas : le VU-mètre se dit indisponible, sans erreur. Au-dessus du VU-mètre, un voyant
-	« Saturation » s'allume dès qu'une crête atteint -1 dBFS, et reste allumé 3 secondes ; dessous, un voyant « Silence »
+	« Saturation » s'allume dès qu'une crête atteint -1 dBFS, et reste allumé 3 secondes ; dessous, un voyant « Blanc »
 	s'allume après 5 secondes à -50 dBFS ou moins. Un clic sur le VU-mètre écoute l'antenne dans la fenêtre de pré-écoute (https://github.com/dascritch/machincast/issues/116).
 
 	Sur la sortie factice des tests, le port de monitoring est un signal de test en stéréo, que le scénario choisit ;
-	le silence s'y constate après une demi-seconde.
+	le blanc s'y constate après une demi-seconde.
 
 	Contexte:
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-20 20:45:00 »
-		Et le silence de l'antenne constaté après une demi-seconde
+		Et le blanc de l'antenne constaté après une demi-seconde
 
 	# ─── Niveaux ───────────────────────────────────────────────
 
@@ -30,30 +30,30 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et la crête de chaque canal est au moins au niveau du VU
 		Et le VU-mètre de l'antenne est disponible
 		Et les voyants de l'antenne sont éteints
-		Et le voyant « Silence » de l'antenne reste éteint une seconde
+		Et le voyant « Blanc » de l'antenne reste éteint une seconde
 
-	Scénario: La colonne de l'antenne montre la saturation au-dessus du VU-mètre, et le silence dessous, en petit
+	Scénario: La colonne de l'antenne montre la saturation au-dessus du VU-mètre, et le blanc dessous, en petit
 		Quand la fenêtre de l'interface s'ouvre
-		Alors la colonne de l'antenne montre, de haut en bas : « Saturation », le VU-mètre, « Silence »
+		Alors la colonne de l'antenne montre, de haut en bas : « Saturation », le VU-mètre, « Blanc »
 		Et ses voyants sont écrits plus petit que le titre de la colonne
 
-	Scénario: Un silence prolongé allume le voyant « Silence »
-		Étant donné le signal de test « silence » sur l'antenne factice
+	Scénario: Un blanc prolongé allume le voyant « Blanc »
+		Étant donné le signal de test « blanc » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
-		Alors le voyant « Silence » de l'antenne s'allume bientôt
+		Alors le voyant « Blanc » de l'antenne s'allume bientôt
 		Et le voyant « Saturation » de l'antenne est éteint
 
 	Scénario: Une crête à pleine échelle allume le voyant « Saturation »
 		Étant donné le signal de test « carré à 0 dB » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le voyant « Saturation » de l'antenne s'allume bientôt
-		Et le voyant « Silence » de l'antenne est éteint
+		Et le voyant « Blanc » de l'antenne est éteint
 
 	Scénario: Les voyants suivent les relevés de l'antenne : 5 secondes sous -50 dB, une crête à -1 dB gardée 3 secondes
-		Étant donné le silence de l'antenne constaté après 5 secondes
+		Étant donné le blanc de l'antenne constaté après 5 secondes
 		Et un moniteur de l'antenne, à l'horloge fictive
 		Alors ses voyants suivent ses relevés du VU et de la crête de chaque canal :
-			| instant | vu       | crete     | silence | saturation |
+			| instant | vu       | crete     | blanc   | saturation |
 			| 0       | -20, -20 | -10, -10  | non     | non        |
 			| 1       | -60, -50 | -55, -50  | non     | non        |
 			| 4,9     | -60, -60 | -55, -55  | non     | non        |

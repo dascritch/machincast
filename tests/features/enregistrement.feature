@@ -65,7 +65,7 @@ Fonctionnalité: Enregistrement de l'airplay et du log
 		Exemples:
 			| niveau   | nature              | message                    |
 			| info     | démarrage           | Machin_lecture 0.1.0       |
-			| alerte   | silence             | rien à diffuser            |
+			| alerte   | blanc               | rien à diffuser            |
 			| incident | fichier introuvable | /musique/disparu.flac      |
 
 	Scénario: Les écritures existantes du binaire lecture passent par le même journal

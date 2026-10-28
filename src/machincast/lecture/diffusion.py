@@ -10,7 +10,7 @@ avance par pas, à l'heure de son horloge ; à chaque pas :
 3. quand le sonore atteint le début de son crossfade de fin (enchainement), l'ordonnanceur donne le suivant. Si les
    deux sonores se superposent (chacun son crossfade), le suivant démarre aussitôt avec sa montée ; sinon, le
    sonore en cours joue jusqu'au bout à plein volume, et le suivant attend sa fin ;
-4. sans rien sur la sortie, le sonore en attente démarre, ou celui que l'ordonnanceur donne ; sinon, silence.
+4. sans rien sur la sortie, le sonore en attente démarre, ou celui que l'ordonnanceur donne ; sinon, un blanc.
 
 Avant de jouer un sonore, son fichier est vérifié : introuvable, il est écarté par l'ordonnanceur, et le suivant
 est demandé. L'arrêt termine les passages en cours, sans incident, puis consigne l'arrêt.
@@ -173,7 +173,7 @@ class Parametres:
 	artiste: str | None = None
 	titre: str | None = None
 	decalage: timedelta | None = None
-	"""Sonore rogné par la détection de blanc (https://github.com/dascritch/machincast/issues/146) : d'où part la
+	"""Sonore rogné par la détection de silence (https://github.com/dascritch/machincast/issues/146) : d'où part la
 	lecture du fichier, selon la position de son fade-in (https://github.com/dascritch/machincast/issues/234) ; sa durée
 	est alors celle de la partie jouée. None : joué en entier."""
 	volume_de_depart: float = 0.0
@@ -255,13 +255,13 @@ def lire_parametres(
 	"""Ce qu'il faut pour jouer le sonore choisi. Ses crossfades suivent les règles de la banque qui l'a fourni
 	(https://github.com/dascritch/machincast/issues/143), puis, s'il n'en a pas de paramétré, les crossfades par défaut
 	de la configuration (https://github.com/dascritch/machincast/issues/145). Un fichier qui active la détection de
-	blanc, ou fourni par une banque qui l'active, est joué sans ses blancs détectés
+	silence, ou fourni par une banque qui l'active, est joué sans ses silences détectés
 	(https://github.com/dascritch/machincast/issues/146, machincast.lecture.fondus.placer)."""
 	with connexion.transaction():
 		ligne = connexion.execute(
 			"SELECT s.duree, s.crossfade_debut, s.crossfade_fin, s.type::text, COALESCE(s.url_stream, m.url),"
 			" s.secours_evenement_id, s.artiste, s.titre, COALESCE(s.emplacement, s.url_stream, m.url),"
-			" s.detection_blancs OR COALESCE(b.detection_blancs, false), s.debut_detecte, s.fin_detectee,"
+			" s.detection_silences OR COALESCE(b.detection_silences, false), s.debut_detecte, s.fin_detectee,"
 			" b.crossfade_debut_regle::text, b.crossfade_debut, b.crossfade_fin_regle::text, b.crossfade_fin"
 			" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id"
 			" LEFT JOIN banques b ON b.id = %s"
@@ -753,7 +753,7 @@ class Diffusion:
 
 	def _prolonger(self, instant: datetime) -> None:
 		"""Prévoit les sonores à venir jusqu'à A_VENIR, au bout de la liste : chacun est choisi à l'heure où le
-		précédent appellera son suivant, ou à celle de l'événement qui le coupera. La liste s'arrête sur un silence, ou
+		précédent appellera son suivant, ou à celle de l'événement qui le coupera. La liste s'arrête sur un blanc, ou
 		après un sonore dont la fin est inconnue."""
 		courant, reserve = self.courant, self.reserve
 		if (courant is None) or (reserve is None):
@@ -1085,7 +1085,7 @@ class Diffusion:
 				for (choix, parametres, sain, details), debut, coupure in zip(suite, debuts, coupures, strict=False)
 			]
 			prochain, a_venir = annonces[0], annonces[1:]
-		marche = "arret" if arret else ("diffusion" if (courant is not None) or (self.sortants) else "silence")
+		marche = "arret" if arret else ("diffusion" if (courant is not None) or (self.sortants) else "blanc")
 		suivant = None
 		if not arret:
 			suivant = _annonce_de_l_evenement(self._l_evenement_suivant(instant))

@@ -70,7 +70,7 @@ Fonctionnalité: Encarts dépliables et vérification complète dans la fiche d'
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Neige »
 		Alors l'encart « Diffusion » a les champs « Artiste et titre », « Diffusion à partir du », « Diffusion jusqu'au », « Maximum de lectures »
-		Et l'encart « Enchainement » a les champs « Jouer sans les blancs détectés », « Début détecté », « Fin détectée », « Crossfade de début », « Crossfade de fin »
+		Et l'encart « Enchainement » a les champs « Jouer sans les silences détectés », « Début détecté », « Fin détectée », « Crossfade de début », « Crossfade de fin »
 
 	Scénario: Un crossfade se règle d'un curseur, de 0 à la durée maximale des préférences, à leur pas
 		Étant donné les crossfades des préférences au dixième de seconde, jusqu'à 10 secondes
@@ -110,16 +110,16 @@ Fonctionnalité: Encarts dépliables et vérification complète dans la fiche d'
 		Alors la frise de la fiche est sur toute sa largeur, au-dessus des encarts
 		Et la frise de la fiche dessine bientôt la forme d'onde de son fichier
 
-	Scénario: La frise suit aussitôt les crossfades, les blancs détectés et leur retrait, avant tout enregistrement
+	Scénario: La frise suit aussitôt les crossfades, les silences détectés et leur retrait, avant tout enregistrement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Neige »
 		Et je coche le crossfade de fin de la fiche, et pousse son curseur de 12 crans
 		Alors la frise de la fiche montre un crossfade de fin de 1,2 seconde
 		Quand je coche le début détecté de la fiche, à 0,3 seconde
-		Et je coche « Jouer sans les blancs détectés » dans la fiche
-		Alors la frise de la fiche montre un crossfade de fin de 1,2 seconde, un blanc de 0,3 seconde au début, retiré à l'antenne
-		Quand je décoche « Jouer sans les blancs détectés » dans la fiche
-		Alors la frise de la fiche montre les blancs joués
+		Et je coche « Jouer sans les silences détectés » dans la fiche
+		Alors la frise de la fiche montre un crossfade de fin de 1,2 seconde, un silence de 0,3 seconde au début, retiré à l'antenne
+		Quand je décoche « Jouer sans les silences détectés » dans la fiche
+		Alors la frise de la fiche montre les silences joués
 
 	Scénario: La fiche d'un stream n'a pas de frise
 		Quand la fenêtre de l'interface s'ouvre
@@ -141,7 +141,7 @@ Fonctionnalité: Encarts dépliables et vérification complète dans la fiche d'
 		Et le bouton « Vérification complète » de la fiche est actif
 		Et la fiche ne signale rien
 		Et la fiche montre une dernière vérification complète datée
-		Et le sonore du fichier « …/jingles/neige.flac » a été vérifié en entier, ses blancs mesurés
+		Et le sonore du fichier « …/jingles/neige.flac » a été vérifié en entier, ses silences mesurés
 
 	Scénario: Un sonore déjà audité au même seuil, au fichier inchangé, n'est pas redécodé, et la question le dit
 		https://github.com/dascritch/machincast/issues/206 : le titre « Neige » reste, puisque le fichier n'est pas relu.
@@ -164,7 +164,7 @@ Fonctionnalité: Encarts dépliables et vérification complète dans la fiche d'
 		Et la fiche montre la dernière vérification complète « jamais »
 		Et la fiche ne signale rien
 		Et le bouton « Vérification complète » de la fiche est actif
-		Et le sonore du fichier « …/jingles/neige.flac » a été vérifié en entier, ses blancs mesurés
+		Et le sonore du fichier « …/jingles/neige.flac » a été vérifié en entier, ses silences mesurés
 
 	Scénario: Seule la fiche du sonore vérifié propose de se rafraîchir
 		Étant donné la vérification complète retenue par le scénario
@@ -184,7 +184,7 @@ Fonctionnalité: Encarts dépliables et vérification complète dans la fiche d'
 		Et je ferme l'onglet « Sonore : Neige »
 		Et la vérification complète se termine
 		Alors aucune question n'a été posée
-		Et le sonore du fichier « …/jingles/neige.flac » a été vérifié en entier, ses blancs mesurés
+		Et le sonore du fichier « …/jingles/neige.flac » a été vérifié en entier, ses silences mesurés
 
 	Scénario: Un stream ne se vérifie pas
 		Quand la fenêtre de l'interface s'ouvre

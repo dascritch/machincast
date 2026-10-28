@@ -42,7 +42,7 @@ SECONDE = 1000
 """Rafraîchissement de l'heure, en millisecondes."""
 RELEVE_DES_FORMES = 100
 """Millisecondes entre deux relèves des formes d'onde en cours de calcul (https://github.com/dascritch/machincast/issues/230)."""
-ETATS = {"diffusion": "En diffusion", "silence": "En silence", "arret": "À l'arrêt"}
+ETATS = {"diffusion": "En diffusion", "blanc": "Blanc à l'antenne", "arret": "À l'arrêt"}
 A_VENIR = 5
 """Lignes que montre la table des sonores à venir, autant que Machin lecture en prévoit."""
 ENCARTS_REPLIES = "accueil/encarts-replies"
@@ -58,7 +58,7 @@ VOYANT_ALLUME = (
 	"QLabel {{ background: {teinte}; color: white; border-radius: 3px; font-weight: bold; font-size: 7pt; }}"
 )
 VOYANT_ETEINT = "QLabel { color: palette(mid); font-size: 7pt; }"
-"""Les voyants « Silence » et « Saturation » de l'antenne, allumés de leur teinte, ou éteints, grisés."""
+"""Les voyants « Blanc » et « Saturation » de l'antenne, allumés de leur teinte, ou éteints, grisés."""
 
 
 class EcranParDefaut(QWidget):
@@ -235,7 +235,7 @@ class EcranParDefaut(QWidget):
 		ui.etat_moniteur.setText((moniteur.indisponible) or (""))
 		ui.etat_moniteur.setVisible(moniteur.indisponible is not None)
 		for voyant, allume, teinte in (
-			(ui.voyant_silence, moniteur.silence, "#e0a020"),
+			(ui.voyant_blanc, moniteur.blanc, "#e0a020"),
 			(ui.voyant_saturation, moniteur.saturation, "#d03030"),
 		):
 			if voyant.property("allume") != allume:
@@ -350,7 +350,7 @@ class EcranParDefaut(QWidget):
 		if frise is not self.frise_en_cours:
 			return
 		tete = sonore.position
-		# La position se compte depuis le début de la lecture, qui suit les blancs et la position du fade-in.
+		# La position se compte depuis le début de la lecture, qui suit les silences et la position du fade-in.
 		if (tete is not None) and (plan is not None):
 			tete += plan.partie()[0]
 		frise.placer_la_tete(tete)

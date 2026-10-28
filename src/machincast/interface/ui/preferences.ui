@@ -105,10 +105,10 @@
        <item>
         <widget class="QGroupBox" name="groupe_positions">
          <property name="title">
-          <string>Position des fondus, pour un sonore joué sans ses blancs</string>
+          <string>Position des fondus, pour un sonore joué sans ses silences</string>
          </property>
          <property name="toolTip">
-          <string>Où tombent les fondus par rapport au début et à la fin détectés d'un sonore joué sans ses blancs, quelle que soit sa banque</string>
+          <string>Où tombent les fondus par rapport au début et à la fin détectés d'un sonore joué sans ses silences, quelle que soit sa banque</string>
          </property>
          <layout class="QFormLayout" name="formulaire_positions">
           <item row="0" column="0">
@@ -140,7 +140,7 @@
           <item row="2" column="0" colspan="2">
            <widget class="QWidget" name="place_demonstration" native="true">
             <property name="toolTip">
-             <string>Démonstration : un sonore de 30 s, aux blancs de 3 s au début et 4 s à la fin, retirés à l'antenne, avec les crossfades par défaut saisis</string>
+             <string>Démonstration : un sonore de 30 s, aux silences de 3 s au début et 4 s à la fin, retirés à l'antenne, avec les crossfades par défaut saisis</string>
             </property>
             <property name="minimumSize">
              <size>
@@ -339,25 +339,25 @@
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="groupe_blancs">
+        <widget class="QGroupBox" name="groupe_silences">
          <property name="title">
-          <string>Détection de blanc</string>
+          <string>Détection de silence</string>
          </property>
-         <layout class="QFormLayout" name="formulaire_blancs">
+         <layout class="QFormLayout" name="formulaire_silences">
           <item row="0" column="0">
-           <widget class="QLabel" name="etiquette_seuil_blancs">
+           <widget class="QLabel" name="etiquette_seuil_silences">
             <property name="text">
-             <string>&amp;Seuil de blanc</string>
+             <string>&amp;Seuil de silence</string>
             </property>
             <property name="buddy">
-             <cstring>seuil_blancs</cstring>
+             <cstring>seuil_silences</cstring>
             </property>
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QDoubleSpinBox" name="seuil_blancs">
+           <widget class="QDoubleSpinBox" name="seuil_silences">
             <property name="toolTip">
-             <string>Niveau crête sous lequel le début et la fin d'un sonore sont un blanc ; 0 dB est la pleine échelle</string>
+             <string>Niveau crête sous lequel le début et la fin d'un sonore sont un silence ; 0 dB est la pleine échelle</string>
             </property>
             <property name="suffix">
              <string> dB</string>
@@ -383,9 +383,9 @@
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="explication_blancs">
+        <widget class="QLabel" name="explication_silences">
          <property name="text">
-          <string>L'audit complet mesure les blancs au début et à la fin de chaque fichier à ce seuil ; un nouveau seuil vaut pour les audits suivants. Une banque, ou un sonore, choisit d'être joué sans ses blancs.</string>
+          <string>L'audit complet mesure les silences au début et à la fin de chaque fichier à ce seuil ; un nouveau seuil vaut pour les audits suivants. Une banque, ou un sonore, choisit d'être joué sans ses silences.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>

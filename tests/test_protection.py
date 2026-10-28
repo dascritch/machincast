@@ -264,7 +264,7 @@ def garde_fou(contexte: Contexte, verdict: str) -> None:
 
 
 @then(parsers.parse("le sonore de « {nom} » a un début et une fin détectés"))
-def blancs_detectes(contexte: Contexte, base_vide: Connexion, nom: str) -> None:
+def silences_detectes(contexte: Contexte, base_vide: Connexion, nom: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/146"""
 	ligne = base_vide.execute(
 		"SELECT debut_detecte, fin_detectee FROM sonores WHERE id = %s", (sonore_de(base_vide, contexte, nom),)

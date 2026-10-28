@@ -84,7 +84,7 @@ class EvenementSuivant:
 @dataclass(frozen=True)
 class EtatLecture:
 	etat: str
-	"""« diffusion », « silence » ou « arret »."""
+	"""« diffusion », « blanc » ou « arret »."""
 	en_cours: SonoreAffiche | None = None
 	prochain: SonoreAffiche | None = None
 	a_venir: tuple[SonoreAffiche, ...] = ()

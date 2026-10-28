@@ -50,9 +50,9 @@ def lignes(datatable: list[list[str]]) -> list[dict[str, str]]:
 # ─── Étant donné ───────────────────────────────────────────
 
 
-@given(parsers.re(r"le silence de l'antenne constaté après (?P<duree>une demi-seconde|5 secondes)"))
-def silence_constate(monkeypatch: pytest.MonkeyPatch, duree: str) -> None:
-	monkeypatch.setattr(moniteur, "DUREE_DU_SILENCE", {"une demi-seconde": 0.5, "5 secondes": 5.0}[duree])
+@given(parsers.re(r"le blanc de l'antenne constaté après (?P<duree>une demi-seconde|5 secondes)"))
+def blanc_constate(monkeypatch: pytest.MonkeyPatch, duree: str) -> None:
+	monkeypatch.setattr(moniteur, "DUREE_DU_BLANC", {"une demi-seconde": 0.5, "5 secondes": 5.0}[duree])
 
 
 @given("un moniteur de l'antenne, à l'horloge fictive", target_fixture="pendule")
@@ -142,19 +142,19 @@ def pas_rouvert(interface: Contexte) -> None:
 	assert not accueil(interface).moniteur.reessai_prevu()
 
 
-@then("la colonne de l'antenne montre, de haut en bas : « Saturation », le VU-mètre, « Silence »")
+@then("la colonne de l'antenne montre, de haut en bas : « Saturation », le VU-mètre, « Blanc »")
 def ordre_de_la_colonne(interface: Contexte) -> None:
 	ui = accueil(interface).ui
 	disposition = ui.disposition_antenne
 	ordre = [disposition.itemAt(indice).widget() for indice in range(disposition.count())]
-	assert ordre[:3] == [ui.voyant_saturation, ui.place_vumetre, ui.voyant_silence]
+	assert ordre[:3] == [ui.voyant_saturation, ui.place_vumetre, ui.voyant_blanc]
 
 
 @then("ses voyants sont écrits plus petit que le titre de la colonne")
 def voyants_petits(interface: Contexte) -> None:
 	ui = accueil(interface).ui
 	titre = ui.colonne_antenne.font().pointSizeF()
-	assert all(lampe.font().pointSizeF() < titre for lampe in (ui.voyant_silence, ui.voyant_saturation))
+	assert all(lampe.font().pointSizeF() < titre for lampe in (ui.voyant_blanc, ui.voyant_saturation))
 
 
 @then(parsers.parse("le voyant « {nom} » de l'antenne reste éteint une seconde"))
@@ -171,8 +171,8 @@ def voyants_des_releves(pendule: tuple[Pendule, Moniteur], datatable: list[list[
 	for ligne in lignes(datatable):
 		horloge.instant = decibels(ligne["instant"])[0]
 		moniteur.noter(decibels(ligne["vu"]), decibels(ligne["crete"]))
-		attendu = (ligne["silence"] == "oui", ligne["saturation"] == "oui")
-		assert (moniteur.silence, moniteur.saturation) == attendu, ligne
+		attendu = (ligne["blanc"] == "oui", ligne["saturation"] == "oui")
+		assert (moniteur.blanc, moniteur.saturation) == attendu, ligne
 
 
 @then("son repère suit le VU et la crête de chaque canal qu'il montre :")
@@ -188,12 +188,12 @@ def repere(pendule: tuple[Pendule, VuMetre], datatable: list[list[str]]) -> None
 @then("les voyants de l'antenne sont éteints")
 def eteints(interface: Contexte) -> None:
 	ui = accueil(interface).ui
-	assert [bool(ui.voyant_silence.property("allume")), bool(ui.voyant_saturation.property("allume"))] == [False] * 2
+	assert [bool(ui.voyant_blanc.property("allume")), bool(ui.voyant_saturation.property("allume"))] == [False] * 2
 
 
 def voyant(interface: Contexte, nom: str) -> object:
 	ui = accueil(interface).ui
-	return {"Silence": ui.voyant_silence, "Saturation": ui.voyant_saturation}[nom]
+	return {"Blanc": ui.voyant_blanc, "Saturation": ui.voyant_saturation}[nom]
 
 
 @then(parsers.parse("le voyant « {nom} » de l'antenne s'allume bientôt"))

@@ -146,8 +146,8 @@ def envoyer_trop(robustesse: Robustesse, qtbot: QtBot, caplog: pytest.LogCapture
 	robustesse.connexion.sendall(b"x" * nombre)
 	# L'interface lit d'abord les octets sans fin de ligne, puis la suite.
 	qtbot.waitUntil(lambda: any("trop long" in enregistrement.getMessage() for enregistrement in caplog.records))
-	robustesse.connexion.sendall(b'\n{"etat": "silence", "en_cours": null, "prochain": null}\n')
-	qtbot.waitUntil(lambda: any(etat.etat == "silence" for etat in robustesse.recus), timeout=5000)
+	robustesse.connexion.sendall(b'\n{"etat": "blanc", "en_cours": null, "prochain": null}\n')
+	qtbot.waitUntil(lambda: any(etat.etat == "blanc" for etat in robustesse.recus), timeout=5000)
 
 
 @then("l'interface a ignoré les octets en trop, en le signalant")
@@ -159,7 +159,7 @@ def octets_ignores(robustesse: Robustesse, caplog: pytest.LogCaptureFixture) -> 
 
 @then("elle a reçu le message complet")
 def message_recu(robustesse: Robustesse) -> None:
-	assert [etat.etat for etat in robustesse.recus if etat.etat == "silence"] == ["silence"]
+	assert [etat.etat for etat in robustesse.recus if etat.etat == "blanc"] == ["blanc"]
 
 
 # ─── Commandes système de l'interface ─────────────────────

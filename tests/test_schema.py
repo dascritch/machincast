@@ -484,11 +484,11 @@ def crossfades_des_sonores(contexte: Contexte, datatable: list[list[str]]) -> No
 	assert lues == attendues, lues
 
 
-# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
+# ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───
 
 
 def _detection(contexte: Contexte, table: str, colonne: str, valeur: object) -> object:
-	requete = sql.SQL("SELECT detection_blancs FROM {} WHERE {} = %s").format(
+	requete = sql.SQL("SELECT detection_silences FROM {} WHERE {} = %s").format(
 		sql.Identifier(table), sql.Identifier(colonne)
 	)
 	ligne = contexte.connexion.execute(requete, (valeur,)).fetchone()
@@ -496,32 +496,39 @@ def _detection(contexte: Contexte, table: str, colonne: str, valeur: object) -> 
 	return ligne[0]
 
 
-@then("la banque de référence n'active pas la détection de blanc")
+@then("la banque de référence n'active pas la détection de silence")
 def banque_de_reference_sans_detection(contexte: Contexte) -> None:
 	assert _detection(contexte, "banques", "id", contexte.references["banque"]) is False
 
 
-@then("le sonore de référence n'active pas la détection de blanc")
+@then("le sonore de référence n'active pas la détection de silence")
 def sonore_de_reference_sans_detection(contexte: Contexte) -> None:
 	assert _detection(contexte, "sonores", "id", contexte.references["sonore"]) is False
 
 
 @then("le sonore de référence n'a ni début ni fin détectés")
-def sonore_de_reference_sans_blancs(contexte: Contexte) -> None:
+def sonore_de_reference_sans_silences(contexte: Contexte) -> None:
 	ligne = contexte.connexion.execute(
 		"SELECT debut_detecte, fin_detectee FROM sonores WHERE id = %s", (contexte.references["sonore"],)
 	).fetchone()
 	assert ligne == (None, None)
 
 
-@then(parsers.parse("la banque « {nom} » n'active pas la détection de blanc"))
-def banque_sans_detection(contexte: Contexte, nom: str) -> None:
-	assert _detection(contexte, "banques", "nom_interne", nom) is False
+@then(parsers.re(r"la banque « (?P<nom>[^»]+) » (?P<active>active|n'active pas) la détection de silence"))
+def banque_detection(contexte: Contexte, nom: str, active: str) -> None:
+	assert _detection(contexte, "banques", "nom_interne", nom) is (active == "active")
 
 
-@then(parsers.parse("le sonore « {emplacement} » n'active pas la détection de blanc"))
-def sonore_sans_detection(contexte: Contexte, emplacement: str) -> None:
-	assert _detection(contexte, "sonores", "emplacement", emplacement) is False
+@then(parsers.re(r"le sonore « (?P<emplacement>[^»]+) » (?P<active>active|n'active pas) la détection de silence"))
+def sonore_detection(contexte: Contexte, emplacement: str, active: str) -> None:
+	assert _detection(contexte, "sonores", "emplacement", emplacement) is (active == "active")
+
+
+@then(parsers.parse("les natures du log sont « {natures} »"))
+def natures_du_log(contexte: Contexte, natures: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/291"""
+	lignes = contexte.connexion.execute("SELECT nature FROM log ORDER BY id").fetchall()
+	assert [ligne[0] for ligne in lignes] == natures.split(" », « "), lignes
 
 
 # ─── Audit demandé (https://github.com/dascritch/machincast/issues/114) ───

@@ -59,7 +59,7 @@ from tests.base_test import (  # noqa: E402
 	purger_base,
 	reinitialiser_base,  # noqa: E402
 )
-from tests.sons import FICHIERS_SONORES, generer_blancs  # noqa: E402
+from tests.sons import FICHIERS_SONORES, generer_silences  # noqa: E402
 
 journal = logging.getLogger("machincast.captures")
 
@@ -179,7 +179,7 @@ def _emplacement(cle: str) -> Path:
 
 RESPIRATION = Sonore("Brume", "Respiration", 40, "nuit")
 """Le sonore de la capture de la frise de la pré-écoute (https://github.com/dascritch/machincast/issues/224) : un
-fichier généré, avec ses blancs, hors de toute banque."""
+fichier généré, avec ses silences, hors de toute banque."""
 
 
 def morceaux_de_respiration(duree: float = 40.0, graine: float = 0.0) -> tuple[tuple[float, float], ...]:
@@ -226,12 +226,12 @@ def remplir(connexion: Connexion) -> Demonstration:
 			),
 		)
 	respiration = DEMONSTRATION / RESPIRATION.dossier / f"{RESPIRATION.artiste} - {RESPIRATION.titre}.flac"
-	generer_blancs(respiration, morceaux_de_respiration())
-	# Ses blancs, retirés à l'antenne, et ses crossfades, tels qu'un audit complet et sa fiche les auraient posés.
+	generer_silences(respiration, morceaux_de_respiration())
+	# Ses silences, retirés à l'antenne, et ses crossfades, tels qu'un audit complet et sa fiche les auraient posés.
 	sonores["respiration"] = _un(
 		connexion,
 		"INSERT INTO sonores (type, emplacement, artiste, titre, etat, duree, type_mime, verifie_le, debut_detecte,"
-		" fin_detectee, detection_blancs, crossfade_debut, crossfade_fin, audite_le, audit_seuil)"
+		" fin_detectee, detection_silences, crossfade_debut, crossfade_fin, audite_le, audit_seuil)"
 		" VALUES ('fichier', %s, %s, %s, 'actif', %s, 'audio/flac', %s, %s, %s, true, %s, %s, %s, -40) RETURNING id",
 		(
 			str(respiration),
@@ -464,7 +464,7 @@ def _incidents(connexion: Connexion, sonores: dict[str, int], evenements: dict[s
 			"nuit",
 			"jour",
 		),
-		("2026-10-21T03:10:00", "alerte", "silence", "rien à diffuser dans le fil musical", None, "nuit"),
+		("2026-10-21T03:10:00", "alerte", "blanc", "rien à diffuser dans le fil musical", None, "nuit"),
 		(
 			"2026-10-21T07:00:00",
 			"info",
@@ -529,13 +529,13 @@ def _forme_finie(fiche: FicheSonore) -> bool:
 
 def donner_du_relief(connexion: Connexion, demonstration: Demonstration) -> None:
 	"""Les frises de l'accueil (https://github.com/dascritch/machincast/issues/230) : le sonore en cours et le
-	prochain ont un fichier généré à leur durée, à basse fréquence pour l'écrire vite, et leurs blancs et
+	prochain ont un fichier généré à leur durée, à basse fréquence pour l'écrire vite, et leurs silences et
 	crossfades, tels qu'un audit complet et leur fiche les auraient posés. De même pour « Café à minuit », dont la
 	fiche montre la frise (https://github.com/dascritch/machincast/issues/223)."""
 	for cle, graine in ((demonstration.passages[-1][2], 0.0), (demonstration.passages[-6][2], 2.0), ("cafe", 4.0)):
-		generer_blancs(_emplacement(cle), morceaux_de_respiration(SONORES[cle].duree, graine), frequence=4000)
+		generer_silences(_emplacement(cle), morceaux_de_respiration(SONORES[cle].duree, graine), frequence=4000)
 		connexion.execute(
-			"UPDATE sonores SET debut_detecte = '1 s', fin_detectee = '1.5 s', detection_blancs = true,"
+			"UPDATE sonores SET debut_detecte = '1 s', fin_detectee = '1.5 s', detection_silences = true,"
 			" crossfade_debut = '2 s', crossfade_fin = '4 s', audite_le = %s, audit_seuil = -40 WHERE id = %s",
 			(MAINTENANT - timedelta(days=2), demonstration.sonores[cle]),
 		)

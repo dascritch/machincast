@@ -144,18 +144,18 @@ Fonctionnalité: Pré-écoute d'un sonore
 
 	# ─── Frise (https://github.com/dascritch/machincast/issues/224) ───
 
-	Scénario: La frise d'un fichier montre ses blancs et ses crossfades enregistrés, et dessine sa forme d'onde en tâche de fond
-		Étant donné le sonore « Respiration », pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
+	Scénario: La frise d'un fichier montre ses silences et ses crossfades enregistrés, et dessine sa forme d'onde en tâche de fond
+		Étant donné le sonore « Respiration », pour une copie du fichier de test « silences.flac », de 2 secondes, aux silences de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Respiration »
 		Et je clique sur « Pré-écoute… »
 		Alors la pré-écoute a une frise
-		Et la frise de la pré-écoute montre les zones « blanc de début », « fondu d'entrée », « fondu de sortie », « blanc de fin »
+		Et la frise de la pré-écoute montre les zones « silence de début », « fondu d'entrée », « fondu de sortie », « silence de fin »
 		Et la frise de la pré-écoute résume « Joué à l'antenne : 0:00,30 → 0:01,80 (0:01,50) »
 		Et la forme d'onde de la pré-écoute est bientôt complète, silencieuse au début et sonore au milieu
 
 	Scénario: Un crossfade non paramétré montre celui de la configuration, marqué « (défaut) »
-		Étant donné le sonore « Respiration », pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades non paramétrés
+		Étant donné le sonore « Respiration », pour une copie du fichier de test « silences.flac », de 2 secondes, aux silences de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades non paramétrés
 		Et le crossfade de début par défaut de 0,4 seconde dans la configuration
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Respiration »
@@ -163,7 +163,7 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Alors l'infobulle « fondu d'entrée » de la frise de la pré-écoute est « Crossfade de début : 0,40 s (défaut), se termine au début détecté, montée si le sonore précédent a un crossfade de fin »
 
 	Scénario: Écoutée comme à l'antenne, la pré-écoute ne joue que la partie jouée, en montant depuis le silence
-		Étant donné le sonore « Respiration », pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
+		Étant donné le sonore « Respiration », pour une copie du fichier de test « silences.flac », de 2 secondes, aux silences de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Respiration »
 		Et je clique sur « Pré-écoute… »
@@ -176,7 +176,7 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Et la pré-écoute s'est arrêtée avant 1,9 seconde, à la fin de la partie jouée
 
 	Scénario: Décocher l'écoute comme à l'antenne rend aussitôt le plein volume
-		Étant donné le sonore « Respiration », pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
+		Étant donné le sonore « Respiration », pour une copie du fichier de test « silences.flac », de 2 secondes, aux silences de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Respiration »
 		Et je clique sur « Pré-écoute… »
@@ -186,7 +186,7 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Alors le volume de la pré-écoute est de 100 %
 
 	Scénario: Sans l'écoute comme à l'antenne, la pré-écoute joue tout le fichier, à plein volume
-		Étant donné le sonore « Respiration », pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
+		Étant donné le sonore « Respiration », pour une copie du fichier de test « silences.flac », de 2 secondes, aux silences de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Respiration »
 		Et je clique sur « Pré-écoute… »
@@ -197,7 +197,7 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Et la pré-écoute s'est arrêtée après 1,8 seconde
 
 	Scénario: « Début joué » lance la lecture au début de la partie jouée
-		Étant donné le sonore « Respiration », pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
+		Étant donné le sonore « Respiration », pour une copie du fichier de test « silences.flac », de 2 secondes, aux silences de 0,5 s au début et 0,5 s à la fin, retirés à l'antenne, aux crossfades de 0,2 s au début et 0,3 s à la fin
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Respiration »
 		Et je clique sur « Pré-écoute… »

@@ -1,5 +1,6 @@
 """Étapes des scénarios du fichier de configuration."""
 
+import logging
 import os
 import shutil
 import subprocess
@@ -355,11 +356,18 @@ def peremption(contexte: Contexte, jours: int) -> None:
 	assert contexte.configuration.base.peremption == jours
 
 
-@then(parsers.re(r"le seuil de blanc est de (?P<seuil>-?[\d,]+) dB"))
-def seuil_de_blanc(contexte: Contexte, seuil: str) -> None:
+@then(parsers.re(r"le seuil de silence est de (?P<seuil>-?[\d,]+) dB"))
+def seuil_de_silence(contexte: Contexte, seuil: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/146"""
 	assert contexte.configuration is not None, contexte.erreur
-	assert contexte.configuration.blancs.seuil == float(seuil.replace(",", "."))
+	assert contexte.configuration.silences.seuil == float(seuil.replace(",", "."))
+
+
+@then("le journal avertit que la section [blancs] s'appelle désormais [silences]")
+def avertit_blancs(caplog: pytest.LogCaptureFixture) -> None:
+	"""https://github.com/dascritch/machincast/issues/291"""
+	avertissements = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+	assert any("la section [blancs] s'appelle désormais [silences]" in m for m in avertissements), avertissements
 
 
 @then(parsers.re(r"le voyant « Saturation » de l'accueil est (?P<etat>affiché|caché)"))

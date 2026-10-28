@@ -137,8 +137,26 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Alors sa fenêtre a la sortie « pipewire », l'antenne « carte-1 » et la pré-écoute « casque-usb »
 		Et ses préférences montrent l'antenne « carte-1 » et la pré-écoute « casque-usb », sur la sortie « pipewire »
 
-	Scénario: Le seuil de blanc enregistré va dans la section [blancs] du fichier de configuration
+	Scénario: Le seuil de silence enregistré va dans la section [silences] du fichier de configuration
 		https://github.com/dascritch/machincast/issues/146 : le seuil vaut pour les audits complets suivants.
+
+		Étant donné le fichier de configuration de l'interface, avec :
+			"""
+			[silences]
+			# Seuil de l'antenne du matin.
+			seuil = -50
+			"""
+		Et les préférences seront réglées avec le seuil de silence -55,5 dB
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors les préférences ont montré le seuil de silence -50 dB
+		Et le fichier de configuration contient la ligne « seuil = -55.5 »
+		Et le fichier de configuration contient encore « # Seuil de l'antenne du matin. »
+		Et le fichier de configuration contient encore les autres sections
+
+	Scénario: L'ancienne section [blancs] devient [silences] quand les préférences sont enregistrées
+		https://github.com/dascritch/machincast/issues/291 : la section s'appelait [blancs]. Lue sous son nouveau nom,
+		elle est renommée dans le fichier, ses commentaires compris.
 
 		Étant donné le fichier de configuration de l'interface, avec :
 			"""
@@ -146,13 +164,14 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			# Seuil de l'antenne du matin.
 			seuil = -50
 			"""
-		Et les préférences seront réglées avec le seuil de blanc -55,5 dB
+		Et les préférences seront réglées avec le seuil de silence -55,5 dB
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
-		Alors les préférences ont montré le seuil de blanc -50 dB
+		Alors les préférences ont montré le seuil de silence -50 dB
+		Et le fichier de configuration contient la ligne « [silences] »
 		Et le fichier de configuration contient la ligne « seuil = -55.5 »
 		Et le fichier de configuration contient encore « # Seuil de l'antenne du matin. »
-		Et le fichier de configuration contient encore les autres sections
+		Et le fichier de configuration n'a plus de section [blancs]
 
 	Scénario: La durée de péremption réglée dans les préférences va dans la section [base], et les fiches la suivent
 		https://github.com/dascritch/machincast/issues/268 : Machin purge la prend à son prochain passage.
@@ -185,7 +204,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			"""
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le voyant « Saturation » de l'antenne est caché à l'accueil
-		Et le voyant « Silence » de l'antenne est affiché à l'accueil
+		Et le voyant « Blanc » de l'antenne est affiché à l'accueil
 
 	# ─── Fenêtre des préférences ───────────────────────────────
 
@@ -214,7 +233,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Alors elle a donné les positions : fade-in « en_cours », fade-out « termine »
 
 	Scénario: La frise de démonstration montre où tombent les fondus, et suit les réglages
-		Un sonore de démonstration de 30 secondes, aux blancs détectés de 3 s au début et 4 s à la fin, retirés à
+		Un sonore de démonstration de 30 secondes, aux silences détectés de 3 s au début et 4 s à la fin, retirés à
 		l'antenne : son début détecté est à 3 s, sa fin détectée à 26 s. Ses crossfades sont les durées par défaut
 		saisies, même décochées.
 
@@ -267,12 +286,12 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et j'y clique sur « OK »
 		Alors elle a donné les suggestions au lancement éteintes
 
-	Scénario: La page « Audio » montre le seuil de blanc, et donne celui qui est saisi
-		Quand la fenêtre des préférences s'ouvre sur le seuil de blanc -40 dB
-		Alors elle montre le seuil de blanc « -40,0 dB », réglable de -100,0 à -0,1 dB
-		Quand j'y saisis le seuil de blanc -55,5
+	Scénario: La page « Audio » montre le seuil de silence, et donne celui qui est saisi
+		Quand la fenêtre des préférences s'ouvre sur le seuil de silence -40 dB
+		Alors elle montre le seuil de silence « -40,0 dB », réglable de -100,0 à -0,1 dB
+		Quand j'y saisis le seuil de silence -55,5
 		Et j'y clique sur « OK »
-		Alors elle a donné le seuil de blanc -55,5 dB
+		Alors elle a donné le seuil de silence -55,5 dB
 
 	Scénario: La page « Base » montre la durée de péremption, et donne celle qui est saisie
 		Quand la fenêtre des préférences s'ouvre sur la durée de péremption de 60 jours

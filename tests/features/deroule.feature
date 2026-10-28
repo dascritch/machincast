@@ -167,9 +167,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 			| 20:00 | f      | Continue  | entier |
 			| 20:10 | f      | Continue  | entier |
 
-	# ─── Silence ───────────────────────────────────────────────
+	# ─── Blanc ───────────────────────────────────────────────────
 
-	Scénario: Rien à lire dans le fil musical : silence, et une seule alerte dans le log
+	Scénario: Rien à lire dans le fil musical : un blanc, et une seule alerte dans le log
 		Étant donné le sonore « x » est à l'état « desactive »
 		Et les événements :
 			| nom      | priorité    | début | fin | liste        |
@@ -177,10 +177,10 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Quand la diffusion se déroule de 20:00 à 20:30
 		Alors la diffusion a été :
 			| heure | sonore  | événement | issue |
-			| 20:00 | silence | Continue  |       |
-		Et le log contient 1 alerte « silence » pour l'événement « Continue »
+			| 20:00 | blanc   | Continue  |       |
+		Et le log contient 1 alerte « blanc » pour l'événement « Continue »
 
-	Scénario: Le silence prend fin dès qu'un sonore redevient jouable
+	Scénario: Le blanc prend fin dès qu'un sonore redevient jouable
 		Étant donné le sonore « x » est à l'état « desactive »
 		Et les événements :
 			| nom      | priorité    | début | fin   | liste        |
@@ -189,7 +189,7 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Quand la diffusion se déroule de 20:00 à 20:20
 		Alors la diffusion a été :
 			| heure | sonore  | événement | issue |
-			| 20:00 | silence | Continue  |       |
+			| 20:00 | blanc   | Continue  |       |
 			| 20:10 | m       | Magazine  | entier |
 
 	# ─── Banque « ne pas répéter » (https://github.com/dascritch/machincast/issues/63) ───
@@ -337,8 +337,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Alors la diffusion a été :
 			| heure | sonore  | événement | issue  |
 			| 20:00 | j1      | Continue  | entier |
-			| 20:10 | silence | Continue  |        |
-		Et le log contient 1 alerte « silence » pour l'événement « Continue »
+			| 20:10 | blanc   | Continue  |        |
+		Et le log contient 1 alerte « blanc » pour l'événement « Continue »
 		Et le log contient 1 info « élément sauté » pour l'événement « Continue » et la banque « Jingles »
 		Et le log ne contient aucune alerte « événement terminé plus tôt »
 

@@ -493,17 +493,17 @@ def crossfade_de_fin(base_vide: Connexion, duree: str) -> None:
 	base_vide.execute("UPDATE sonores SET crossfade_fin = %s", (timedelta(seconds=secondes(duree)),))
 
 
-# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
+# ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───
 
 
 @given(
 	parsers.re(
-		r"chaque sonore a (?:aucun blanc détecté|(?P<debut>[\d,]+) secondes? de blanc détecté au début"
+		r"chaque sonore a (?:aucun silence détecté|(?P<debut>[\d,]+) secondes? de silence détecté au début"
 		r"(?:, et aucun à la fin| et (?P<fin>[\d,]+) à la fin))"
 	)
 )
-def blancs_detectes(base_vide: Connexion, debut: str | None, fin: str | None) -> None:
-	"""La fin détectée se compte depuis la fin du fichier ; aucun blanc détecté : NULL."""
+def silences_detectes(base_vide: Connexion, debut: str | None, fin: str | None) -> None:
+	"""La fin détectée se compte depuis la fin du fichier ; aucun silence détecté : NULL."""
 	durees: list[timedelta | None] = []
 	for valeur in (debut, fin):
 		duree = None
@@ -515,25 +515,25 @@ def blancs_detectes(base_vide: Connexion, debut: str | None, fin: str | None) ->
 	)
 
 
-@given(parsers.parse("la banque « {nom} » active la détection de blanc"))
-def banque_detecte_les_blancs(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE banques SET detection_blancs = true WHERE nom_interne = %s", (nom,))
+@given(parsers.parse("la banque « {nom} » active la détection de silence"))
+def banque_detecte_les_silences(base_vide: Connexion, nom: str) -> None:
+	base_vide.execute("UPDATE banques SET detection_silences = true WHERE nom_interne = %s", (nom,))
 
 
-@given(parsers.re(r"le sonore « (?P<nom>[^»]+) » active la détection de blanc$"))
-def sonore_detecte_les_blancs(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE sonores SET detection_blancs = true WHERE id = %s", (sonore(base_vide, nom),))
+@given(parsers.re(r"le sonore « (?P<nom>[^»]+) » active la détection de silence$"))
+def sonore_detecte_les_silences(base_vide: Connexion, nom: str) -> None:
+	base_vide.execute("UPDATE sonores SET detection_silences = true WHERE id = %s", (sonore(base_vide, nom),))
 
 
 @given(
 	parsers.re(
-		r"le sonore « (?P<nom>[^»]+) » active la détection de blanc, avec (?P<debut>[\d,]+) secondes? de blanc"
+		r"le sonore « (?P<nom>[^»]+) » active la détection de silence, avec (?P<debut>[\d,]+) secondes? de silence"
 		r" détecté au début et (?P<fin>[\d,]+) à la fin"
 	)
 )
 def sonore_rogne(base_vide: Connexion, nom: str, debut: str, fin: str) -> None:
 	base_vide.execute(
-		"UPDATE sonores SET detection_blancs = true, debut_detecte = %s, fin_detectee = %s WHERE id = %s",
+		"UPDATE sonores SET detection_silences = true, debut_detecte = %s, fin_detectee = %s WHERE id = %s",
 		(timedelta(seconds=secondes(debut)), timedelta(seconds=secondes(fin)), sonore(base_vide, nom)),
 	)
 

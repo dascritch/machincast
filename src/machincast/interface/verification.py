@@ -10,7 +10,7 @@ Fermer la fenêtre attend la fin de la vérification en cours (arreter).
 
 La vérification complète d'un sonore, demandée depuis sa fiche (VerificationComplete,
 https://github.com/dascritch/machincast/issues/190), est l'audit complet de son seul fichier, comme
-Machin indexation --audit-complet --sonore N : décodé en entier, ses blancs mesurés au seuil de la configuration.
+Machin indexation --audit-complet --sonore N : décodé en entier, ses silences mesurés au seuil de la configuration.
 """
 
 import logging
@@ -133,10 +133,10 @@ class VerificationComplete(QObject):
 		"""Vérifications lancées dont la fin n'est pas encore annoncée ; tenu dans le fil de l'interface."""
 		self._finie.connect(self._annoncer)
 
-	def lancer(self, sonore: int, seuil_blancs: float) -> None:
+	def lancer(self, sonore: int, seuil_silences: float) -> None:
 		self._restantes += 1
 		fil = threading.Thread(
-			target=lambda: self._finie.emit(sonore, self._verifier(sonore, seuil_blancs)),
+			target=lambda: self._finie.emit(sonore, self._verifier(sonore, seuil_silences)),
 			name="vérification complète",
 			daemon=True,
 		)
@@ -156,15 +156,15 @@ class VerificationComplete(QObject):
 		self._restantes -= 1
 		self.terminee.emit(sonore, texte)
 
-	def _verifier(self, sonore: int, seuil_blancs: float) -> str:
-		def verifier(chemin: Path, *, seuil_blancs: float | None = None) -> Verification:
+	def _verifier(self, sonore: int, seuil_silences: float) -> str:
+		def verifier(chemin: Path, *, seuil_silences: float | None = None) -> Verification:
 			# Appelé par son nom au moment du décodage : les scénarios le remplacent.
-			return _verifier_fichier_complet(chemin, seuil_blancs=seuil_blancs)
+			return _verifier_fichier_complet(chemin, seuil_silences=seuil_silences)
 
 		try:
 			with connecter(self.socket, self.base, Role.INDEXATION) as connexion:
 				bilan = verifier_sonores(
-					connexion, verifier, audit_complet=True, identifiants=[sonore], seuil_blancs=seuil_blancs
+					connexion, verifier, audit_complet=True, identifiants=[sonore], seuil_silences=seuil_silences
 				)
 				etats = etats_des_sonores(connexion, [sonore])
 		except (DecodeurIndisponible, psycopg.Error) as erreur:
@@ -172,16 +172,16 @@ class VerificationComplete(QObject):
 			return f"Vérification impossible : {erreur}."
 		if bilan.deja_audites:
 			# https://github.com/dascritch/machincast/issues/206
-			return f"Déjà audité au seuil de {texte_du_seuil(seuil_blancs)} dB, fichier inchangé : {etats}."
+			return f"Déjà audité au seuil de {texte_du_seuil(seuil_silences)} dB, fichier inchangé : {etats}."
 		return f"Vérification terminée : {etats}."
 
 
-def _verifier_fichier_complet(chemin: Path, *, seuil_blancs: float | None = None) -> Verification:
-	"""Le décodage de l'audit complet, blancs compris."""
-	return verifier_fichier(chemin, seuil_blancs=seuil_blancs)
+def _verifier_fichier_complet(chemin: Path, *, seuil_silences: float | None = None) -> Verification:
+	"""Le décodage de l'audit complet, silences compris."""
+	return verifier_fichier(chemin, seuil_silences=seuil_silences)
 
 
-def _verifier_fichier(chemin: Path, *, seuil_blancs: float | None = None) -> Verification:
+def _verifier_fichier(chemin: Path, *, seuil_silences: float | None = None) -> Verification:
 	"""Le décodage de l'indexeur, appelé par son nom : les scénarios le remplacent. La vérification des fichiers
-	ajoutés n'est pas un audit complet : elle ne mesure pas les blancs (seuil_blancs n'est jamais donné)."""
+	ajoutés n'est pas un audit complet : elle ne mesure pas les silences (seuil_silences n'est jamais donné)."""
 	return verifier_fichier(chemin)
