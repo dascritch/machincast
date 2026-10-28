@@ -19,6 +19,13 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
   priorité ; la liste des événements le montre en anomalie (https://github.com/dascritch/machincast/issues/140).
   L'avertissement d'une banque « ne pas répéter » appelée juste après elle-même suit la boucle de la
   liste : elle boucle, sauf pour une émission ou un spécial sans fin.
+- Session sautée (https://github.com/dascritch/machincast/issues/295) : la prochaine session sautée de l'événement,
+  en cours ou à venir (machincast.interface.sessions.prochaine_sautee), s'annonce en haut de la fiche, sous l'erreur,
+  sur un liseret orange (session_sautee, LISERET_SESSION) : un avertissement, qui ne refuse rien. Le saut tient au
+  jour : il suit l'heure de l'événement quand elle change. Son bouton « Rétablir » la rétablit, comme le clic droit du
+  calendrier, sans toucher aux champs de la fiche ; il est inactif, avec une infobulle qui dit pourquoi, pour une
+  session commencée, ou dont un événement de même priorité a pris la place. Rétablie, la session s'annonce
+  (session_retablie) et Machin lecture relit la grille.
 - Sa copie (https://github.com/dascritch/machincast/issues/130) garde sa priorité, ses noms, son masquage et sa liste
   de lecture, sans dates ni jours : son créneau est à choisir, une émission ou un spécial ne s'enregistrant pas sans
   début.
@@ -26,15 +33,17 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
 
 from datetime import date, datetime, timedelta
 
-from PySide6.QtCore import QDateTime
-from PySide6.QtWidgets import QDateTimeEdit, QWidget
+from PySide6.QtCore import QDateTime, Signal
+from PySide6.QtWidgets import QBoxLayout, QDateTimeEdit, QFrame, QHBoxLayout, QLabel, QPushButton, QWidget
 
 from machincast.conformation import conformer
 from machincast.horloge import Horloge
 from machincast.interface import affichage
+from machincast.interface.calendrier import date_longue, jour_et_mois
 from machincast.interface.elements import Boutons, ListeElements
 from machincast.interface.fiche import Connexion, Fiche, Refus
 from machincast.interface.listes import EVENEMENT_VIDE
+from machincast.interface.sessions import Session, chevauchee, commencee, prochaine_sautee, retablir
 from machincast.interface.ui.fiche_evenement import Ui_FicheEvenement
 from machincast.lecture.grille import JAMAIS, JOURS, Evenement, Priorite, chevauchement, lire_grille
 
@@ -60,6 +69,11 @@ REPETITION = "Un sonore, une banque ou une séquence peut revenir plusieurs fois
 """Remarque des choix d'éléments."""
 DUREE_PAR_DEFAUT = timedelta(hours=1)
 """Écart entre le début et une fin qui se coche."""
+ORANGE = "#ef6c00"
+"""Orange du liseret d'une session sautée : un avertissement, lisible sur un fond clair comme sur un fond sombre."""
+LISERET_SESSION = f"QFrame#session_sautee {{ border: 4px solid {ORANGE}; }}"
+RETABLIR = "Rétablir"
+COMMENCEE = "Elle a déjà commencé : elle ne se rétablit plus."
 
 
 def _montrer(date: QDateTimeEdit, instant: datetime) -> None:
@@ -68,6 +82,9 @@ def _montrer(date: QDateTimeEdit, instant: datetime) -> None:
 
 class FicheEvenement(Fiche):
 	genre = "événement"
+	session_retablie = Signal(str)
+	"""Une session sautée a été rétablie depuis la fiche : ce que la barre d'état en annonce. Machin lecture doit
+	relire la grille (https://github.com/dascritch/machincast/issues/295)."""
 
 	def __init__(
 		self, connexion: Connexion, identifiant: int | None, horloge: Horloge, parent: QWidget | None = None
@@ -77,6 +94,7 @@ class FicheEvenement(Fiche):
 		self.ui.setupUi(self)
 		ui = self.ui
 		self.brancher(ui.enregistrer, ui.annuler, ui.supprimer, ui.message, ui.dupliquer)
+		self._construire_l_annonce_de_session()
 		for _valeur, texte in PRIORITES:
 			ui.priorite.addItem(texte)
 		for _masque, texte in MASQUAGES:
@@ -172,6 +190,93 @@ class FicheEvenement(Fiche):
 		# Une priorité déjà choisie ne change pas l'index : l'avertissement ne suit pas de lui-même.
 		self._grille()
 		self._avertir()
+		self._annoncer_la_session()
+
+	# ─── Session sautée (https://github.com/dascritch/machincast/issues/295) ───
+
+	def _construire_l_annonce_de_session(self) -> None:
+		"""L'annonce, sous l'erreur de la fiche, cachée sans session sautée."""
+		self.session_sautee = QFrame(self)
+		self.session_sautee.setObjectName("session_sautee")
+		self.session_sautee.setStyleSheet(LISERET_SESSION)
+		self.session_sautee.setAccessibleName("Session sautée")
+		self.texte_de_session = QLabel(self.session_sautee)
+		self.texte_de_session.setWordWrap(True)
+		self.retablir_la_session = QPushButton(RETABLIR, self.session_sautee)
+		self.retablir_la_session.clicked.connect(self._retablir_la_session)
+		ligne = QHBoxLayout(self.session_sautee)
+		ligne.setContentsMargins(10, 6, 6, 6)
+		ligne.addWidget(self.texte_de_session, 1)
+		ligne.addWidget(self.retablir_la_session)
+		self.session_sautee.hide()
+		disposition = self.layout()
+		assert isinstance(disposition, QBoxLayout)
+		disposition.insertWidget(disposition.indexOf(self.erreur) + 1, self.session_sautee)
+		self._session: Session | None = None
+
+	def _prochaine_sautee(self) -> Session | None:
+		"""Celle de l'événement en base ; aucune pour une fiche nouvelle, une copie ou un événement supprimé."""
+		if (self.identifiant is None) or (self.est_une_copie()):
+			return None
+		evenement = next((lu for lu in lire_grille(self.connexion) if lu.id == self.identifiant), None)
+		if evenement is None:
+			return None
+		return prochaine_sautee(evenement, self.horloge.maintenant())
+
+	def _annoncer_la_session(self) -> None:
+		"""Montre la prochaine session sautée, et si elle se rétablit ; cache l'annonce sans session sautée."""
+		maintenant = self.horloge.maintenant()
+		empechement = None
+		with self.connexion.transaction():
+			self._session = self._prochaine_sautee()
+			if self._session is not None:
+				empechement = self._empechement(self._session, maintenant)
+		session = self._session
+		if session is None:
+			self.session_sautee.hide()
+			return
+		jouera = "ne joue pas" if commencee(session, maintenant) else "ne jouera pas"
+		self.texte_de_session.setText(
+			f"La session du {date_longue(session.debut.date())} à {session.debut:%H:%M} est sautée : elle {jouera}."
+		)
+		self.retablir_la_session.setEnabled(empechement is None)
+		self.retablir_la_session.setToolTip(
+			(empechement) or ("Rétablir la session : elle jouera de nouveau, sans toucher aux champs de la fiche.")
+		)
+		self.session_sautee.show()
+
+	def _empechement(self, session: Session, maintenant: datetime) -> str | None:
+		"""Pourquoi la session ne se rétablit pas, comme au calendrier ; None si elle le peut. Dans une transaction."""
+		if commencee(session, maintenant):
+			return COMMENCEE
+		trouve = chevauchee(self.connexion, session, maintenant)
+		if trouve is None:
+			return None
+		autre, instant = trouve
+		return (
+			f"« {autre.nom} », de même priorité, a pris sa place le {jour_et_mois(instant.date())} à {instant:%H:%M}."
+		)
+
+	def _retablir_la_session(self) -> None:
+		"""Rétablit la session annoncée, relue en base, sans toucher aux champs de la fiche ; ce qui l'empêche, apparu
+		depuis l'annonce, s'affiche en erreur."""
+		maintenant = self.horloge.maintenant()
+		with self.connexion.transaction():
+			session = self._prochaine_sautee()
+			if session is None:
+				empechement = None
+			else:
+				empechement = self._empechement(session, maintenant)
+				if empechement is None:
+					retablir(self.connexion, session)
+		self._annoncer_la_session()
+		if session is None:
+			return
+		if empechement is not None:
+			self.signaler_l_erreur(f"Session non rétablie : {empechement}")
+			return
+		nom, jour = session.evenement.nom, session.debut.date()
+		self.session_retablie.emit(f"Session de « {nom} » du {jour_et_mois(jour)} à {session.debut:%H:%M} rétablie.")
 
 	def prevoir(self, debut: datetime, fin: datetime) -> None:
 		"""Les dates d'un nouvel événement demandé depuis le calendrier

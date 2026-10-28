@@ -37,6 +37,12 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 - un **chevauchement** avec un autre événement de même priorité, occurrences récurrentes comprises : « Chevauche l'événement « Journal », de même priorité, le 21/10/2026 à 09:00. ». Seul compte ce qui chevauche à partir de maintenant : ce que la grille a déjà diffusé ne bloque rien, et un chevauchement en cours est daté de l'instant présent ;
 - une priorité changée pour un événement de secours qu'un stream désigne.
 
+**Session sautée** ([#295](https://github.com/dascritch/machincast/issues/295)) : quand la prochaine session de l'événement est [sautée](#sauter-une-session), en cours ou à venir, la fiche le dit en haut, sur un liseret orange : « La session du jeudi 22 octobre 2026 à 07:00 est sautée : elle ne jouera pas. ». Ce n'est qu'un avertissement : la fiche s'enregistre.
+
+- Le saut tient au **jour** de la session, pas à son heure : changer l'heure de l'événement ne le rétablit pas, et la fiche annonce la session à sa nouvelle heure.
+- **Rétablir** rétablit la session, comme le clic droit du calendrier, sans enregistrer la fiche ni toucher à ses champs. La barre d'état l'annonce, et la diffusion en tient compte aussitôt.
+- Le bouton est grisé, et son infobulle dit pourquoi, pour une session qui a déjà commencé, ou dont une émission de même priorité a pris la place.
+
 **Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion : une émission vide laisse l'événement en dessous prendre le relais, sans couper le sonore en cours, et l'accueil n'annonce aucune coupure à son heure ; un fil musical vide laisse un blanc à l'antenne, avec une alerte. La liste des événements le montre en anomalie.
 
 **À l'antenne, aussitôt** ([#266](https://github.com/dascritch/machincast/issues/266)) : un événement enregistré, supprimé ou restauré vaut tout de suite, si la diffusion tourne. Une émission avancée coupe le sonore en cours à sa nouvelle heure ; une émission déplacée, raccourcie ou retirée change les sonores à venir de l'accueil. Un nom, un nom public ou un masquage changés ne retirent pas les sonores déjà annoncés : ils passeront comme prévu.
@@ -92,7 +98,7 @@ Pour des vacances, un jour férié ou une émission exceptionnelle, une session 
 
 Une session sautée reste dans le calendrier, **hachurée** : à sa place, l'antenne joue ce qui jouerait sans elle, en général le fil musical. Pour la remplacer par une autre émission, **cliquer** sur son créneau, comme sur une heure libre : la nouvelle émission peut l'occuper. La diffusion en tient compte aussitôt, et l'accueil montre les nouveaux sonores à venir. La barre d'état dit ce qui a été sauté.
 
-**Clic droit** sur une session sautée, tant qu'elle est à venir : **Rétablir cette session**. Si une émission a pris sa place entre-temps, elle n'est pas rétablie, et la barre d'état dit laquelle la chevaucherait. Seules les sessions à venir d'un événement qui revient chaque semaine se sautent ; un événement unique se supprime, ou se déplace dans sa fiche.
+**Clic droit** sur une session sautée, tant qu'elle est à venir : **Rétablir cette session**. Si une émission a pris sa place entre-temps, elle n'est pas rétablie, et la barre d'état dit laquelle la chevaucherait. Seules les sessions à venir d'un événement qui revient chaque semaine se sautent ; un événement unique se supprime, ou se déplace dans sa fiche. La [fiche de l'événement](#fiche-dun-événement) annonce aussi sa prochaine session sautée, et la rétablit ([#295](https://github.com/dascritch/machincast/issues/295)).
 
 ## Simulation
 
