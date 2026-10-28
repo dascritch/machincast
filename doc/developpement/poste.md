@@ -110,13 +110,14 @@ Avec GStreamer 1.28.2, celui d'Ubuntu 26.04, lister les périphériques audio tu
 .venv/bin/python -m tests.mesures_peripheriques -n 40 --facons moniteur moniteur-attendu
 ```
 
-Mesures du 28 octobre 2026, sans serveur audio sur le poste de mesure :
+Mesures du 28 octobre 2026 :
 
 | Poste | Façon | Processus tués |
 | --- | --- | --- |
-| Ubuntu 26.04 LTS, GStreamer 1.28.2 | `moniteur` : démarré, lu, arrêté, comme avant [#289](https://github.com/dascritch/machincast/issues/289) | 8 sur 20, puis 8 sur 40 |
-| Ubuntu 26.04 LTS, GStreamer 1.28.2 | `moniteur-attendu` : attend le démarrage, comme depuis [#289](https://github.com/dascritch/machincast/issues/289) | 0 sur 40 |
-| Ubuntu 26.04 LTS, GStreamer 1.28.2 | `moniteur-sans-arret`, `moniteur-unique`, `sondage` | 0 sur 20 chacune |
-| Ubuntu 24.04 LTS, GStreamer 1.24.2 | `moniteur`, `moniteur-attendu` | 0 sur 20 chacune |
+| Ubuntu 26.04 LTS, GStreamer 1.28.2, sans serveur audio | `moniteur` : démarré, lu, arrêté, comme avant [#289](https://github.com/dascritch/machincast/issues/289) | 8 sur 20, puis 8 sur 40 |
+| Ubuntu 26.04 LTS, GStreamer 1.28.2, sans serveur audio | `moniteur-attendu` : attend le démarrage, comme depuis [#289](https://github.com/dascritch/machincast/issues/289) | 0 sur 40 |
+| Ubuntu 26.04 LTS, GStreamer 1.28.2, sans serveur audio | `moniteur-sans-arret`, `moniteur-unique`, `sondage` | 0 sur 20 chacune |
+| Ubuntu 26.04.1 LTS, GStreamer 1.28.2, PipeWire actif (poste d'antenne) | `moniteur`, `moniteur-attendu` | 0 sur 40 chacune |
+| Ubuntu 24.04 LTS, GStreamer 1.24.2, sans serveur audio | `moniteur`, `moniteur-attendu` | 0 sur 20 chacune |
 
-Avec PipeWire actif, comme sur un poste d'antenne, la mesure reste à faire : un fournisseur qui démarre toujours rend la course plus rare, sans l'écarter. Le scénario « La liste des périphériques du poste, en boucle, ne fait jamais tomber son processus » (`tests/features/peripheriques_liste.feature`) la rejoue à chaque passage des tests.
+Avec PipeWire actif, sur le poste d'antenne, aucun processus n'est tombé, même avant la correction : la corruption demande qu'un fournisseur échoue à démarrer pendant l'arrêt, ce qui arrive sans serveur audio. Un serveur audio arrêté, ou qui redémarre, ramène ce cas ; l'attente le rend inoffensif, et la liste est complète dans tous les cas. Le scénario « La liste des périphériques du poste, en boucle, ne fait jamais tomber son processus » (`tests/features/peripheriques_liste.feature`) la rejoue à chaque passage des tests.
