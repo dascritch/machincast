@@ -77,7 +77,7 @@ La fiche d'une [séquence](antenne.md#séquences) s'ouvre dans un onglet nommé 
 
 ## Calendrier
 
-**Affichage → Ouvrir l'onglet Grille horaire** ouvre le **Calendrier** : ce qui est prévu, et ce qui a été diffusé. Il s'ouvre sur la semaine du jour, du lundi au dimanche ; une ligne rouge marque l'heure qu'il est.
+Le **Calendrier**, deuxième onglet, toujours ouvert juste après l'accueil, sans croix pour le fermer ([#307](https://github.com/dascritch/machincast/issues/307)), montre ce qui est prévu, et ce qui a été diffusé ; **Affichage → Ouvrir l'onglet Grille horaire**, ou <kbd>Maj</kbd>+<kbd>F2</kbd>, le ramène au premier plan : ce qui est prévu, et ce qui a été diffusé. Il s'ouvre sur la semaine du jour, du lundi au dimanche ; une ligne rouge marque l'heure qu'il est.
 
 ![Le calendrier de la semaine : la Matinale et le Journal du lundi au vendredi, la Matinale du vendredi sautée et hachurée, un spécial le samedi, et à droite de chaque jour passé ce qui a réellement été diffusé](../captures/calendrier.png)
 

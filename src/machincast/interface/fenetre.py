@@ -1,6 +1,7 @@
 """Fenêtre de Machin_interface (https://github.com/dascritch/machincast/issues/26).
 
-Un onglet par écran : l'accueil (écran par défaut, ouvert au lancement), puis une liste par type d'élément, dans
+Un onglet par écran : l'accueil (écran par défaut, ouvert au lancement), le calendrier de la grille, onglet fixe
+(https://github.com/dascritch/machincast/issues/307), puis une liste par type d'élément, dans
 l'ordre de la recherche (spec § 8.2) : événements, séquences, banques, sonores, feeds. Les listes des sonores
 et des feeds ne s'ouvrent qu'à la demande, par le menu « Affichage », à leur place parmi les autres, et se
 ferment (https://github.com/dascritch/machincast/issues/180) ; les autres onglets fixes ne se ferment pas. Une liste
@@ -19,9 +20,9 @@ Le dernier onglet fixe est l'écran des incidents du log (machincast.interface.i
 https://github.com/dascritch/machincast/issues/35), qui se relit aussi à l'ouverture de son onglet.
 
 La barre de menus a cinq menus (https://github.com/dascritch/machincast/issues/117) : « Fichier », pour quitter (Alt+Q,
-comme la fermeture de la fenêtre) ; « Affichage », pour ouvrir les listes des sonores et des feeds, et le
-calendrier de la grille, « Grille horaire » (machincast.interface.calendrier,
-https://github.com/dascritch/machincast/issues/36), dans des onglets qui se ferment, et pour rafraîchir les onglets (F5,
+comme la fermeture de la fenêtre) ; « Affichage », pour ouvrir les listes des sonores et des feeds, dans des onglets
+qui se ferment, ramener au premier plan le calendrier de la grille, « Grille horaire » (machincast.interface.calendrier,
+https://github.com/dascritch/machincast/issues/36), et pour rafraîchir les onglets (F5,
 https://github.com/dascritch/machincast/issues/148) ; « Diffusion », qui lance ou arrête l'écoute de l'antenne (Alt+P,
 https://github.com/dascritch/machincast/issues/256), et démarre, arrête ou redémarre le service de
 diffusion (machincast.interface.pilotage, https://github.com/dascritch/machincast/issues/25) selon son état, relu à
@@ -214,6 +215,13 @@ class FenetrePrincipale(QMainWindow):
 		self.accueil.montrer_la_saturation(self.saturation)
 		self.accueil.ecoute_demandee.connect(self._ecouter_l_antenne)
 		self._ajouter_fixe(self.accueil, "Accueil")
+		# La grille d'antenne, onglet fixe juste après l'accueil (https://github.com/dascritch/machincast/issues/307).
+		self.calendrier = Calendrier(connexion, horloge)
+		self.calendrier.ouverte.connect(self._ouvrir)
+		self.calendrier.creation_demandee.connect(self._creer_evenement)
+		self.calendrier.annonce.connect(self.ui.barre_d_etat.showMessage)
+		self.calendrier.grille_modifiee.connect(self._grille_modifiee)
+		self._ajouter_fixe(self.calendrier, "Calendrier")
 		self.accueil.ouverte.connect(self._ouvrir)
 		self.accueil.preecoute_demandee.connect(self._preecouter)
 		# Le clic droit sur le prochain sonore (https://github.com/dascritch/machincast/issues/257).
@@ -638,18 +646,8 @@ class FenetrePrincipale(QMainWindow):
 			self.preecoute.suivre_l_antenne(self._texte_public)
 
 	def _ouvrir_calendrier(self) -> None:
-		"""Un seul calendrier : celui qui est ouvert revient au premier plan."""
-		onglets = self.ui.onglets
-		for indice in range(onglets.count()):
-			if isinstance(onglets.widget(indice), Calendrier):
-				onglets.setCurrentIndex(indice)
-				return
-		calendrier = Calendrier(self.connexion, self.horloge)
-		calendrier.ouverte.connect(self._ouvrir)
-		calendrier.creation_demandee.connect(self._creer_evenement)
-		calendrier.annonce.connect(self.ui.barre_d_etat.showMessage)
-		calendrier.grille_modifiee.connect(self._grille_modifiee)
-		onglets.setCurrentIndex(self._ajouter_onglet(calendrier, "Calendrier"))
+		"""Le calendrier, onglet fixe, revient au premier plan (https://github.com/dascritch/machincast/issues/307)."""
+		self.ui.onglets.setCurrentWidget(self.calendrier)
 
 	def _ouvrir_recherche(self) -> None:
 		"""Un seul onglet de recherche (https://github.com/dascritch/machincast/issues/27) : celui qui est ouvert
@@ -671,7 +669,7 @@ class FenetrePrincipale(QMainWindow):
 		(liste,) = (liste for liste in self.listes if self._titres[liste] == titre)
 		indice = onglets.indexOf(liste)
 		if indice < 0:
-			ordre: list[QWidget] = [self.accueil, *self.listes]
+			ordre: list[QWidget] = [self.accueil, self.calendrier, *self.listes]
 			rang = ordre.index(liste)
 			place = sum(1 for ecran in ordre[:rang] if onglets.indexOf(ecran) >= 0)
 			indice = onglets.insertTab(place, liste, icones.icone_de(genre_de_l_ecran(liste)), titre)
@@ -727,7 +725,10 @@ class FenetrePrincipale(QMainWindow):
 
 	def _fermer(self, indice: int) -> None:
 		fiche = self.ui.onglets.widget(indice)
-		if isinstance(fiche, (Calendrier, EcranRecherche, EcranSimulation, EcranAirplay)):
+		if isinstance(fiche, Calendrier):
+			# Onglet fixe (https://github.com/dascritch/machincast/issues/307) : il ne se ferme pas.
+			return
+		if isinstance(fiche, (EcranRecherche, EcranSimulation, EcranAirplay)):
 			if isinstance(fiche, EcranAirplay):
 				self.accueil.airplay_relu.disconnect(fiche.actualiser)
 			if isinstance(fiche, EcranSimulation):

@@ -39,9 +39,9 @@ Fonctionnalité: Recherche globale
 		Quand j'ouvre l'onglet « Sonores »
 		Et je choisis « Rechercher… » dans le menu « Affichage »
 		Alors l'onglet ouvert est « Recherche »
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Incidents », « Recherche »
+		Et la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Incidents », « Recherche »
 		Quand je ferme l'onglet « Recherche »
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Incidents »
+		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Incidents »
 
 	Scénario: Ctrl+F ouvre la recherche, ou y revient en sélectionnant le texte cherché
 		Quand la fenêtre de l'interface s'ouvre

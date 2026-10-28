@@ -37,7 +37,7 @@ Fonctionnalité: Dupliquer un événement, une séquence ou une banque
 		Alors le bouton « Dupliquer » de la fiche est actif
 		Quand je clique sur « Dupliquer »
 		Alors l'onglet ouvert est « Nouvelle séquence, copie de Passage pub »
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents », « Séquence : Passage pub », « Nouvelle séquence, copie de Passage pub »
+		Et la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Séquence : Passage pub », « Nouvelle séquence, copie de Passage pub »
 		Et la fiche montre le nom interne « Passage pub (copie) » et le nom public « Vous écoutez Radio Thune »
 		Et la fiche montre les éléments « Jingle début », « Publicité », « Jingle fin »
 		Et la fiche ne montre aucun événement où figure la séquence
@@ -99,7 +99,7 @@ Fonctionnalité: Dupliquer un événement, une séquence ou une banque
 		Et je ferme l'onglet « Nouvelle séquence, copie de Passage pub »
 		Et je réponds « Abandonner » à la question de fermeture
 		Alors la question de fermeture a nommé « Nouvelle séquence, copie de Passage pub »
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents », « Séquence : Passage pub »
+		Et la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Séquence : Passage pub »
 		Et la séquence « Passage pub (copie) » n'est pas en base
 
 	Scénario: Une fiche modifiée, ou pas encore enregistrée, ne se duplique pas

@@ -146,7 +146,7 @@ Fonctionnalité: Feeds de streams
 			| Supprimer de la base le feed « Radio Bidule » ? |
 			| Aucun stream ne le suit.                               |
 		Et le feed « Radio Bidule » n'est plus en base
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Feeds », « Incidents »
+		Et la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Feeds », « Incidents »
 
 	Scénario: Un stream qui suit un feed se supprime, lui
 		Quand la fenêtre de l'interface s'ouvre

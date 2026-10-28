@@ -36,9 +36,9 @@ Fonctionnalité: Écran de simulation
 		Quand j'ouvre l'onglet « Sonores »
 		Et je choisis « Ouvrir l'onglet Simulation » dans le menu « Affichage »
 		Alors l'onglet ouvert est « Simulation »
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Incidents », « Simulation »
+		Et la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Incidents », « Simulation »
 		Quand je ferme l'onglet « Simulation »
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Incidents »
+		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Incidents »
 
 	Scénario: La période proposée commence à l'heure qu'il est, à la minute, et dure un jour
 		Quand la fenêtre de l'interface s'ouvre

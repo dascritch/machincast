@@ -50,16 +50,16 @@ Fonctionnalité: Calendrier de la grille
 		Et le calendrier montre « Semaine du lundi 19 au dimanche 25 octobre 2026 »
 		Et le calendrier a les jours « lundi 19 », « mardi 20 », « mercredi 21 », « jeudi 22 », « vendredi 23 », « samedi 24 », « dimanche 25 »
 
-	Scénario: Le calendrier n'a qu'un onglet, qui se ferme
+	Scénario: Le calendrier est un onglet fixe, juste après l'accueil, que le menu ramène au premier plan
+		https://github.com/dascritch/machincast/issues/307 : ouvert au lancement, il ne se ferme pas.
+
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
-		Et j'ouvre l'onglet « Accueil »
-		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents », « Calendrier »
-		Et l'onglet ouvert est « Calendrier »
-		Et seul l'onglet « Calendrier » a un bouton de fermeture
-		Quand je ferme l'onglet « Calendrier »
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents »
+		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+		Et l'onglet ouvert est « Accueil »
+		Et aucun onglet n'a de bouton de fermeture
+		Quand je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Alors l'onglet ouvert est « Calendrier »
+		Et la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 
 	# ─── Prévu ─────────────────────────────────────────────────
 

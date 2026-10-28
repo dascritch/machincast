@@ -1,12 +1,13 @@
 # language: fr
 Fonctionnalité: Onglets ouverts à la demande
 	En tant que programmateur de l'antenne,
-	je veux que les onglets « Sonores », « Feeds » et le calendrier ne s'ouvrent que quand je les demande,
+	je veux que les onglets « Sonores » et « Feeds » ne s'ouvrent que quand je les demande,
 	afin que la fenêtre ne montre au lancement que ce dont j'ai besoin chaque jour.
 
 	https://github.com/dascritch/machincast/issues/180. Le menu « Affichage » ouvre chacun de ces onglets, ou le ramène
 	au premier plan. « Sonores » et « Feeds » se rouvrent à leur place habituelle, après « Banques » et avant
-	« Incidents » ; le calendrier, nommé « Grille horaire » dans le menu, s'ajoute après les autres onglets.
+	« Incidents ». Le calendrier, nommé « Grille horaire » dans le menu, est un onglet fixe depuis
+	https://github.com/dascritch/machincast/issues/307 : le menu le ramène au premier plan.
 
 	Contexte:
 		Étant donné le poste à l'heure de Paris
@@ -19,9 +20,9 @@ Fonctionnalité: Onglets ouverts à la demande
 			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/jingles/hiver/cafe.flac |
 			| Aube        | Matin clair   | fichier | actif | 200   | /srv/jingles/hiver/matin.flac |
 
-	Scénario: Au lancement, ni les sonores, ni les feeds, ni le calendrier ne sont ouverts
+	Scénario: Au lancement, ni les sonores ni les feeds ne sont ouverts
 		Quand la fenêtre de l'interface s'ouvre
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents »
+		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Et aucun onglet n'a de bouton de fermeture
 		Et le menu « Affichage » a les entrées :
 			| entrée                          | état   | raccourci | infobulle |
@@ -42,11 +43,11 @@ Fonctionnalité: Onglets ouverts à la demande
 		Alors l'onglet ouvert est « Calendrier »
 		Quand je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
 		Alors l'onglet ouvert est « Sonores »
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Feeds », « Incidents », « Calendrier »
-		Et seuls les onglets « Sonores », « Feeds », « Calendrier » ont un bouton de fermeture
+		Et la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Feeds », « Incidents »
+		Et seuls les onglets « Sonores », « Feeds » ont un bouton de fermeture
 		Quand je ferme l'onglet « Sonores »
 		Et je ferme l'onglet « Feeds »
-		Alors la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Incidents », « Calendrier »
+		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 
 	Scénario: Un onglet déjà ouvert revient au premier plan, sans second onglet
 		Quand la fenêtre de l'interface s'ouvre
@@ -54,7 +55,7 @@ Fonctionnalité: Onglets ouverts à la demande
 		Et j'ouvre l'onglet « Accueil »
 		Et je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
 		Alors l'onglet ouvert est « Sonores »
-		Et la fenêtre a les onglets « Accueil », « Événements », « Séquences », « Banques », « Sonores », « Incidents »
+		Et la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Incidents »
 
 	Scénario: Une liste fermée puis rouverte garde son filtre et se relit
 		Quand la fenêtre de l'interface s'ouvre
@@ -71,10 +72,10 @@ Fonctionnalité: Onglets ouverts à la demande
 		https://github.com/dascritch/machincast/issues/192
 
 		Quand la fenêtre de l'interface s'ouvre
-		Et j'appuie sur « Shift+F5 »
+		Et j'appuie sur « Shift+F6 »
 		Alors l'onglet ouvert est « Incidents »
 		Quand je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
-		Et j'appuie sur « Shift+F6 »
+		Et j'appuie sur « Shift+F7 »
 		Alors l'onglet ouvert est « Incidents »
 
 	Scénario: Libérée, la fenêtre emporte ses listes à la demande, qu'elles aient été ouvertes ou non

@@ -60,6 +60,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 		Alors les onglets portent les icônes :
 			| onglet                   | icône      |
 			| Accueil                  | aucune     |
+			| Calendrier               | grille     |
 			| Événements               | événement  |
 			| Séquences                | séquence   |
 			| Banques                  | banque     |
@@ -70,7 +71,6 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| Séquence : Passage pub   | séquence   |
 			| Événement : Fil de jour  | événement  |
 			| Sonore : Café à minuit   | sonore     |
-			| Calendrier               | grille     |
 			| Simulation               | simulation |
 			| Airplay                  | airplay    |
 			| Recherche                | aucune     |
