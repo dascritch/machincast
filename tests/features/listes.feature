@@ -207,6 +207,26 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand je clique sur le titre de la colonne « Titre »
 		Alors la liste montre les titres « Avril », « Café à minuit », « Matin clair »
 
+	Scénario: Un clic sur le titre « Priorité » classe les événements par importance, pas par ordre alphabétique
+		https://github.com/dascritch/machincast/issues/272 : spécial, émission, fil musical, secours ; un second clic
+		inverse l'ordre.
+
+		Étant donné les événements :
+			| nom      | nom_public | priorite    | debut            | fin              | jours |
+			| Aide     |            | secours     |                  |                  |       |
+			| Concert  |            | special     | 2026-10-17 20:00 | 2026-10-17 22:00 |       |
+			| Continue |            | fil_musical |                  |                  |       |
+			| Journal  |            | emission    | 2026-10-17 12:00 | 2026-10-17 12:30 |       |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Événements »
+		Et je clique sur le titre de la colonne « Nom »
+		Alors la colonne « Priorité » de la liste montre « secours », « spécial », « fil musical », « émission »
+		Quand je clique sur le titre de la colonne « Priorité »
+		Alors la colonne « Priorité » de la liste montre « spécial », « émission », « fil musical », « secours »
+		Et la colonne « Nom » de la liste montre « Concert », « Journal », « Continue », « Aide »
+		Quand je clique sur le titre de la colonne « Priorité »
+		Alors la colonne « Priorité » de la liste montre « secours », « fil musical », « émission », « spécial »
+
 	Scénario: Le filtre se garde quand la liste se relit
 		Étant donné les sonores :
 			| artiste     | titre         | type    | etat  | duree | emplacement            |

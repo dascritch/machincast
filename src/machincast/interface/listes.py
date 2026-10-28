@@ -17,7 +17,7 @@ sélection (signal action_demandee, machincast.interface.groupes, https://github
 import logging
 import unicodedata
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 import psycopg
@@ -37,6 +37,9 @@ journal = logging.getLogger(__name__)
 Connexion = psycopg.Connection[TupleRow]
 IDENTIFIANT = Qt.ItemDataRole.UserRole
 """Rôle qui porte, sur la première cellule d'une ligne, l'identifiant de l'élément en base."""
+TRI = IDENTIFIANT + 2
+"""Rôle de chaque cellule par lequel la liste se trie : son texte, sauf quand la ligne en donne un autre
+(Ligne.tris)."""
 ETATS = {
 	"apercu": "aperçu",
 	"actif": "actif",
@@ -47,6 +50,9 @@ ETATS = {
 	"supprime": "supprimé",
 }
 PRIORITES = {"special": "spécial", "emission": "émission", "fil_musical": "fil musical", "secours": "secours"}
+IMPORTANCE = {priorite: rang for rang, priorite in enumerate(PRIORITES)}
+"""Le tri de la colonne « Priorité » : du plus important au moins important, jamais par ordre alphabétique
+(https://github.com/dascritch/machincast/issues/272)."""
 MODES = {"sequentiel": "séquentielle", "aleatoire": "aléatoire"}
 SEQUENCE_VIDE = "Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant."
 _RELAIS = "Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage."
@@ -70,6 +76,8 @@ class Ligne:
 	cellules: list[str]
 	anomalie: str = ""
 	"""Ce qui ne va pas, en une phrase, pour l'infobulle de la ligne ; rien pour une ligne saine."""
+	tris: dict[int, int] = field(default_factory=dict)
+	"""Par colonne, la clé de tri d'une cellule qui ne se trie pas par son texte (TRI)."""
 
 
 @dataclass(frozen=True)
@@ -175,6 +183,10 @@ def lire_feeds(connexion: Connexion) -> list[Ligne]:
 	]
 
 
+COLONNES_DES_EVENEMENTS = ("Nom", "Nom public", "Priorité", "Début", "Fin", "Récurrence", "Anomalie")
+POSITION_DE_LA_PRIORITE = COLONNES_DES_EVENEMENTS.index("Priorité")
+
+
 def lire_evenements(connexion: Connexion) -> list[Ligne]:
 	"""Du plus prioritaire au moins prioritaire, puis par nom."""
 	with connexion.transaction():
@@ -195,7 +207,8 @@ def lire_evenements(connexion: Connexion) -> list[Ligne]:
 		if vide:
 			cellules[-1] = "événement vide"
 			anomalie = EVENEMENT_VIDE[str(priorite)]
-		lignes.append(Ligne(int(str(identifiant)), str(nom), cellules, anomalie))
+		tris = {POSITION_DE_LA_PRIORITE: IMPORTANCE.get(str(priorite), len(IMPORTANCE))}
+		lignes.append(Ligne(int(str(identifiant)), str(nom), cellules, anomalie, tris))
 	return lignes
 
 
@@ -231,7 +244,7 @@ SEQUENCES = Source(
 )
 EVENEMENTS = Source(
 	"événement",
-	("Nom", "Nom public", "Priorité", "Début", "Fin", "Récurrence", "Anomalie"),
+	COLONNES_DES_EVENEMENTS,
 	lire_evenements,
 	"événement",
 	"événements",
@@ -320,6 +333,7 @@ class Liste(QWidget):
 		self.proxy = FiltreSansAccents(self)
 		self.proxy.setSourceModel(self.modele)
 		self.proxy.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+		self.proxy.setSortRole(TRI)
 		self.table.setModel(self.proxy)
 		entete = self.table.horizontalHeader()
 		if vue is None:
@@ -375,6 +389,8 @@ class Liste(QWidget):
 		self.modele.setRowCount(0)
 		for ligne in lignes:
 			cellules = [QStandardItem(texte) for texte in ligne.cellules]
+			for colonne, cellule in enumerate(cellules):
+				cellule.setData(ligne.tris.get(colonne, cellule.text()), TRI)
 			cellules[0].setData(ligne.identifiant, IDENTIFIANT)
 			cellules[0].setData(ligne.nom, IDENTIFIANT + 1)
 			if ligne.anomalie:
