@@ -128,7 +128,9 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
 | Aide | Documentation | Ouvre ce guide dans le navigateur web. |
 | Aide | Signaler un problème… | Ouvre les tickets de MachinCast dans le navigateur web. |
-| Aide | Version | Donne la version de MachinCast, et la date de sa dernière modification. |
+| Aide | Version | Donne la version de MachinCast, sa date de publication ou de sa dernière modification, et les nouveautés de la version ([#208](https://github.com/dascritch/machincast/issues/208)). |
+
+**Nouveautés.** Au premier lancement d'une nouvelle version de MachinCast, une fenêtre en donne les nouveautés ([#208](https://github.com/dascritch/machincast/issues/208)). Elle ne revient pas aux lancements suivants ; **Aide → Version** les redonne quand on veut.
 
 ## Rafraîchir les onglets
 

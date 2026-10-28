@@ -63,6 +63,7 @@ from machincast.configuration import (
 )
 from machincast.horloge import Horloge
 from machincast.interface import (
+	colonnes,
 	dialogues,
 	groupes,
 	icones,
@@ -114,9 +115,6 @@ FICHES: dict[str, type[Fiche]] = {
 """Écrans de détail : les fiches, par genre."""
 SUIVI_INDEXATION = 1000
 """Millisecondes entre deux regards sur le processus de l'indexation lancée depuis le menu."""
-DOCUMENTATION = "https://github.com/dascritch/machincast/blob/main/doc/utilisateur/README.md"
-"""Le guide de l'antenne, pour l'équipe qui se sert de l'interface (https://github.com/dascritch/machincast/issues/128)."""
-"""Le guide d'utilisation, qu'ouvre « Documentation »."""
 TICKETS = "https://github.com/dascritch/machincast/issues"
 """Les tickets de MachinCast, qu'ouvre « Signaler un problème… » ; comme dans pyproject.toml."""
 SANS_SERVICE = "Installation non définitive : diffusion sans service"
@@ -396,11 +394,22 @@ class FenetrePrincipale(QMainWindow):
 		base.triggered.connect(self._maintenir_la_base)
 		self.indexations.append(base)
 		aide = self.menuBar().addMenu("&Aide")
-		aide.addAction("Documentation").triggered.connect(lambda: dialogues.ouvrir_page(DOCUMENTATION))
+		aide.addAction("Documentation").triggered.connect(lambda: dialogues.ouvrir_page(version.documentation()))
 		aide.addAction("Signaler un problème…").triggered.connect(lambda: dialogues.ouvrir_page(TICKETS))
-		aide.addAction("Version").triggered.connect(lambda: dialogues.montrer_version(self, version.texte()))
+		aide.addAction("Version").triggered.connect(
+			lambda: dialogues.montrer_version(self, version.texte(), version.de_la_version())
+		)
 		for menu in (fichier, affichage, self.menu_diffusion, maintenance, aide):
 			menu.setToolTipsVisible(True)
+
+	def _montrer_les_nouveautes(self) -> None:
+		"""Une seule fois par version, et par compte : la version vue est retenue dans les réglages des vues."""
+		nouveautes = version.de_la_version()
+		reglages = colonnes.reglages()
+		if (nouveautes is None) or (reglages.value(version.CLE_DES_NOUVEAUTES) == nouveautes.version):
+			return
+		dialogues.montrer_nouveautes(self, nouveautes)
+		reglages.setValue(version.CLE_DES_NOUVEAUTES, nouveautes.version)
 
 	def _relire_le_service(self) -> None:
 		self.service = service.lire_l_etat()
@@ -803,9 +812,11 @@ class FenetrePrincipale(QMainWindow):
 		self.verificateur.verifier(ajout.ajoutes)
 
 	def proposer_au_lancement(self) -> None:
-		"""Une fois la fenêtre montrée : la fenêtre des suggestions, s'il manque de quoi démarrer
-		(https://github.com/dascritch/machincast/issues/119) ; sans les suggestions, le fil musical garanti, comme avant
-		(spec § 8.10)."""
+		"""Une fois la fenêtre montrée : les nouveautés d'une version publiée, si elles n'ont pas encore été montrées
+		(https://github.com/dascritch/machincast/issues/208), puis la fenêtre des suggestions, s'il manque de quoi
+		démarrer (https://github.com/dascritch/machincast/issues/119) ; sans les suggestions, le fil musical garanti,
+		comme avant (spec § 8.10)."""
+		self._montrer_les_nouveautes()
 		if not self.suggestions:
 			self._garantir_fil_musical()
 			return

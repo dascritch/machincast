@@ -3,6 +3,7 @@
 Ce guide s'adresse aux développeurs de MachinCast. L'usage de l'interface est décrit dans le [guide de l'antenne](../utilisateur/README.md), l'installation et l'exploitation du poste dans le [guide d'administration](../administration/README.md).
 
 - [Poste de développement](poste.md) : installer les outils, lancer les tests, refaire les captures d'écran du guide de l'antenne.
+- [Publier une version](release.md) : préparer, vérifier et publier une release, ses nouveautés et son archive.
 - [Spécification fonctionnelle](../spec.md) : le comportement visé, et sa mise en œuvre, ticket par ticket.
 - **Règles du projet**, à lire avant de modifier le code concerné :
   - [Développement](../regles/developpement.md) : tickets, commits, style, definition of done, et où va la documentation ;

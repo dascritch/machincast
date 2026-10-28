@@ -54,6 +54,18 @@ def reglages_des_vues(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 @pytest.fixture(autouse=True)
+def nouveautes_du_test(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+	"""Les nouveautés des versions publiées, dans le répertoire du test, absentes tant que le scénario ne les écrit
+	pas : jamais celles du dépôt, qui ouvriraient leur fenêtre au lancement
+	(https://github.com/dascritch/machincast/issues/208)."""
+	from machincast.interface import version
+
+	chemin = tmp_path / "nouveautes.md"
+	monkeypatch.setattr(version, "NOUVEAUTES", chemin)
+	return chemin
+
+
+@pytest.fixture(autouse=True)
 def raccourcis_du_test(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 	"""Le menu des applications et le bureau, dans le répertoire du test : jamais les raccourcis du compte qui lance
 	les tests (https://github.com/dascritch/machincast/issues/111)."""

@@ -40,6 +40,7 @@ Fonctionnalité: Menu général de l'interface
 			| Version               | active |           |           |
 
 	Scénario: « Documentation » ouvre le guide de l'antenne dans le navigateur web
+		Étant donné MachinCast installé hors d'un dépôt git
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Documentation » dans le menu « Aide »
 		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/main/doc/utilisateur/README.md »
@@ -75,6 +76,69 @@ Fonctionnalité: Menu général de l'interface
 			| dans un dossier d'un autre dépôt |
 			| depuis un dépôt git illisible    |
 			| depuis un dépôt git, sans git    |
+
+	# ─── Releases (https://github.com/dascritch/machincast/issues/208) ───
+	# Une version publiée a son tag v<version> et sa section dans les nouveautés. Dans les textes attendus, « <commit> »
+	# est le dernier commit du dépôt du scénario, abrégé.
+
+	Scénario: Au commit de sa release, « Version » donne sa date de publication, son commit et ses nouveautés, et « Documentation » le guide de la release
+		Étant donné MachinCast installé depuis un dépôt git dont le dernier commit date du « 2026-10-28 15:00:00+00:00 »
+		Et ce commit porte le tag de la version de MachinCast
+		Et les nouveautés de la version de MachinCast, publiée le 2026-10-28 : « - Un blanc dans un sonore est noté. »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Version » dans le menu « Aide »
+		Alors la fenêtre de version a dit « MachinCast <version>, publiée le 2026-10-28, commit <commit>. »
+		Et la fenêtre de version a montré les nouveautés de la version de MachinCast : « - Un blanc dans un sonore est noté. »
+		Quand je choisis « Documentation » dans le menu « Aide »
+		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/v<version>/doc/utilisateur/README.md »
+
+	Plan du scénario: Après sa release, « Version » compte les modifications qui ont suivi, et « Documentation » ouvre le guide de main
+		Étant donné MachinCast installé depuis un dépôt git dont le dernier commit date du « 2026-10-28 15:00:00+00:00 »
+		Et ce commit porte le tag de la version de MachinCast
+		Et <nombre> commits le suivent, le dernier daté du « 2026-10-30 14:00:00+00:00 »
+		Et les nouveautés de la version de MachinCast, publiée le 2026-10-28 : « - Un blanc dans un sonore est noté. »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Version » dans le menu « Aide »
+		# À l'heure du poste : Paris est alors à UTC+1.
+		Alors la fenêtre de version a dit « MachinCast <version>, publiée le 2026-10-28, plus <modifications>, la dernière le 2026-10-30 à 15:00, commit <commit>. »
+		Quand je choisis « Documentation » dans le menu « Aide »
+		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/main/doc/utilisateur/README.md »
+
+		Exemples:
+			| nombre | modifications   |
+			| 1      | 1 modification  |
+			| 2      | 2 modifications |
+
+	Scénario: Installée depuis l'archive de sa release, hors d'un dépôt git, une version publiée donne sa date, et le guide de la release
+		Étant donné MachinCast installé hors d'un dépôt git
+		Et les nouveautés de la version de MachinCast, publiée le 2026-10-28 : « - Un blanc dans un sonore est noté. »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Version » dans le menu « Aide »
+		Alors la fenêtre de version a dit « MachinCast <version>, publiée le 2026-10-28. »
+		Quand je choisis « Documentation » dans le menu « Aide »
+		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/v<version>/doc/utilisateur/README.md »
+
+	Scénario: Sans nouveautés de sa version, « Version » n'en montre aucune
+		Étant donné MachinCast installé hors d'un dépôt git
+		Et les nouveautés d'une autre version, publiée le 2026-01-15 : « - Rien. »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Version » dans le menu « Aide »
+		Alors la fenêtre de version n'a montré aucune nouveauté
+		Et aucune nouveauté n'a été montrée au lancement
+
+	Scénario: Les nouveautés d'une version publiée s'ouvrent au premier lancement qui la découvre, et pas aux suivants
+		Étant donné les nouveautés de la version de MachinCast, publiée le 2026-10-28 : « - Un blanc dans un sonore est noté. »
+		Et les nouveautés de la version précédente, publiée le 2026-09-01 : « - Le calendrier. »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors les nouveautés de la version de MachinCast ont été montrées au lancement : « - Un blanc dans un sonore est noté. »
+		Quand la fenêtre de l'interface se ferme, puis s'ouvre de nouveau
+		Alors les nouveautés n'ont été montrées qu'une fois au lancement
+
+	Scénario: Les nouveautés d'une nouvelle version s'ouvrent, même si celles de la précédente ont été vues
+		Étant donné les nouveautés de la version de MachinCast, publiée le 2026-10-28 : « - Un blanc dans un sonore est noté. »
+		Et les nouveautés de la version précédente déjà vues
+		Quand la fenêtre de l'interface s'ouvre
+		Alors les nouveautés de la version de MachinCast ont été montrées au lancement : « - Un blanc dans un sonore est noté. »
 
 	Scénario: « Quitter » ferme la fenêtre de l'interface
 		Quand la fenêtre de l'interface s'ouvre

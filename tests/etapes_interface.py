@@ -50,12 +50,12 @@ from PySide6.QtWidgets import (
 from pytest_bdd import given, parsers, then, when
 from pytestqt.qtbot import QtBot
 
-from machincast import audio
+from machincast import __version__, audio
 from machincast.audio import Peripherique
 from machincast.base import Role, connecter
 from machincast.configuration import PEREMPTION, BlancAntenne, Crossfades, Interface, SortieAudio, charger
 from machincast.horloge import HorlogeFixe
-from machincast.interface import dialogues
+from machincast.interface import dialogues, version
 from machincast.interface.dialogues import Fermeture, Retrait
 from machincast.interface.fenetre import FenetrePrincipale
 from machincast.interface.fiche import SIGNALE, SUPPRIMER, Fiche
@@ -137,6 +137,10 @@ class Contexte:
 	"""Adresses ouvertes dans le navigateur web du poste."""
 	versions: list[str] = field(default_factory=list)
 	"""Textes montrés par la fenêtre de version."""
+	nouveautes_de_la_version: list[object] = field(default_factory=list)
+	"""Les nouveautés montrées par la fenêtre de version, None sans elles (https://github.com/dascritch/machincast/issues/208)."""
+	nouveautes_montrees: list[object] = field(default_factory=list)
+	"""Les nouveautés montrées au lancement."""
 	configuration: Path | None = None
 	"""Fichier de configuration de la fenêtre : une copie de celui des tests, dans le répertoire du scénario."""
 	preferences_reglees: Crossfades | None = None
@@ -290,7 +294,15 @@ def remplacer_dialogues(interface: Contexte) -> None:
 	monkeypatch.setattr(dialogues, "choisir_feeds", feeds)
 	monkeypatch.setattr(dialogues, "ouvrir_dossier", interface.dossiers_ouverts.append)
 	monkeypatch.setattr(dialogues, "ouvrir_page", interface.pages_ouvertes.append)
-	monkeypatch.setattr(dialogues, "montrer_version", lambda _parent, texte: interface.versions.append(texte))
+
+	def montrer_version(_parent: QWidget, texte: str, nouveautes: version.Nouveautes | None) -> None:
+		interface.versions.append(texte)
+		interface.nouveautes_de_la_version.append(nouveautes)
+
+	monkeypatch.setattr(dialogues, "montrer_version", montrer_version)
+	monkeypatch.setattr(
+		dialogues, "montrer_nouveautes", lambda _parent, nouveautes: interface.nouveautes_montrees.append(nouveautes)
+	)
 
 	def jour(_parent: QWidget, _titre: str, texte: str, minimum: date) -> date | None:
 		interface.choix_de_jour.append((texte, minimum))
@@ -1400,7 +1412,8 @@ def menu_inactif(interface: Contexte, menu: str) -> None:
 
 @then(parsers.parse("le navigateur web a ouvert « {adresse} »"))
 def page_ouverte(interface: Contexte, adresse: str) -> None:
-	assert interface.pages_ouvertes == [adresse]
+	"""« <version> » : le numéro de version de MachinCast (https://github.com/dascritch/machincast/issues/208)."""
+	assert interface.pages_ouvertes == [adresse.replace("<version>", __version__)]
 
 
 ATTENTE = 20_000

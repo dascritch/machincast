@@ -46,7 +46,7 @@ Machin_purge = "machincast.purge:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-machincast = ["py.typed", "migrations/*.sql", "interface/*.png", "interface/icones/*.svg"]
+machincast = ["py.typed", "migrations/*.sql", "interface/*.png", "interface/nouveautes.md", "interface/icones/*.svg"]
 
 # ─── Qualité ───────────────────────────────────────────────
 
