@@ -103,11 +103,12 @@ Avec GStreamer 1.28.2, celui d'Ubuntu 26.04, lister les périphériques audio tu
 - en 1.28.2, `gst_device_monitor_get_devices()` n'attend pas ce fil. La liste lue aussitôt est incomplète, et `gst_device_monitor_stop()` appelé pendant le démarrage corrompt une liste chaînée de GLib quand un fournisseur n'a pas pu démarrer. Le processus meurt alors dans `g_slist_delete_link`, sur un `abort()` ou une erreur de segmentation, ou ne rend plus la main ;
 - GStreamer 1.28.3 fait attendre `gst_device_monitor_get_devices()` ([commit 85b37b18](https://gitlab.freedesktop.org/gstreamer/gstreamer/-/commit/85b37b18ba4d8a215d9bf5220110401c134128f4), [MR !11554](https://gitlab.freedesktop.org/gstreamer/gstreamer/-/merge_requests/11554), « devicemonitor: Wait for start thread to finish when listing devices »). Le fil de démarrage interrompu par `stop()` garde son défaut, même dans la 1.28.8 ; il n'est plus atteint quand on attend le démarrage.
 
-`machincast.audio.appareils` attend donc le message de démarrage, au plus 5 secondes (`DEMARRAGE_DU_MONITEUR`), avant de lire et d'arrêter le moniteur. Sans message à temps, il rend ce qu'il a, n'arrête pas le moniteur, et le journal le signale. Avant GStreamer 1.28, sans ce message, il n'y a rien à attendre. La mesure, hors du code de MachinCast, compare les façons de lister :
+`machincast.audio.appareils` attendait donc le message de démarrage, au plus 5 secondes (`DEMARRAGE_DU_MONITEUR`), avant de lire et d'arrêter le moniteur. Cela ne suffisait pas : avec PipeWire 1.6.2, arrêter un moniteur pendant que des sorties apparaissent ou disparaissent tue aussi le processus, dans un fil de PipeWire ([#305](https://github.com/dascritch/machincast/issues/305)), comme au verrouillage de la session ou à la mise en veille d'un écran qui porte une sortie HDMI. Depuis [#305](https://github.com/dascritch/machincast/issues/305), le processus garde **un seul moniteur, jamais arrêté** : la première liste le démarre et attend le message de démarrage ; les suivantes le lisent. Avant GStreamer 1.28, sans ce message, il n'y a rien à attendre. La mesure, hors du code de MachinCast, compare les façons de lister ; `--bascule` fait apparaître et disparaître une sortie pendant la mesure, par `pactl` :
 
 ```bash
 .venv/bin/python -m tests.mesures_peripheriques                    # 20 processus de 50 listes, chaque façon
 .venv/bin/python -m tests.mesures_peripheriques -n 40 --facons moniteur moniteur-attendu
+.venv/bin/python -m tests.mesures_peripheriques -n 20 -r 300 --bascule   # des sorties vont et viennent
 ```
 
 Mesures du 28 octobre 2026 :
@@ -119,5 +120,12 @@ Mesures du 28 octobre 2026 :
 | Ubuntu 26.04 LTS, GStreamer 1.28.2, sans serveur audio | `moniteur-sans-arret`, `moniteur-unique`, `sondage` | 0 sur 20 chacune |
 | Ubuntu 26.04.1 LTS, GStreamer 1.28.2, PipeWire actif (poste d'antenne) | `moniteur`, `moniteur-attendu` | 0 sur 40 chacune |
 | Ubuntu 24.04 LTS, GStreamer 1.24.2, sans serveur audio | `moniteur`, `moniteur-attendu` | 0 sur 20 chacune |
+| Ubuntu 26.04 LTS, GStreamer 1.28.2, PipeWire 1.6.2 et WirePlumber, 300 listes par processus, `--bascule` | `moniteur` | 6 sur 20 |
+| idem | `moniteur-attendu`, comme de [#289](https://github.com/dascritch/machincast/issues/289) à [#305](https://github.com/dascritch/machincast/issues/305) | 5 sur 20 |
+| idem | `moniteur-unique` : un seul moniteur, jamais arrêté, comme depuis [#305](https://github.com/dascritch/machincast/issues/305) | 0 sur 20 |
+| idem | `sondage` | 1 sur 20 |
+| idem, sans `--bascule` | `moniteur-attendu`, `moniteur-unique` | 0 sur 20 chacune |
 
-Avec PipeWire actif, sur le poste d'antenne, aucun processus n'est tombé, même avant la correction : la corruption demande qu'un fournisseur échoue à démarrer pendant l'arrêt, ce qui arrive sans serveur audio. Un serveur audio arrêté, ou qui redémarre, ramène ce cas ; l'attente le rend inoffensif, et la liste est complète dans tous les cas. Le scénario « La liste des périphériques du poste, en boucle, ne fait jamais tomber son processus » (`tests/features/peripheriques_liste.feature`) la rejoue à chaque passage des tests.
+Avec PipeWire actif, sur le poste d'antenne, aucun processus n'est tombé tant que les sorties ne changent pas. Quand elles vont et viennent, l'arrêt du moniteur tombe dans un fil de PipeWire (`libgstpipewire.so`, `libpipewire-module-protocol-native.so`, `libpipewire-module-metadata.so`), comme le plantage de l'interface du 26 octobre 2026 relevé dans [#305](https://github.com/dascritch/machincast/issues/305). Le moniteur gardé ouvert suit ces changements, et sa liste est à jour.
+
+**Reproduire sur un poste sans session audio**, comme la racine Ubuntu 26.04 de développement : installer `pipewire`, `wireplumber`, `pipewire-pulse` et `pulseaudio-utils`, puis, dans `dbus-run-session`, lancer `pipewire`, `wireplumber` et `pipewire-pulse` avec un `XDG_RUNTIME_DIR` à soi, et créer une sortie nulle (`pactl load-module module-null-sink sink_name=antenne`). Le scénario « La liste des périphériques du poste, en boucle, ne fait jamais tomber son processus » (`tests/features/peripheriques_liste.feature`) la rejoue à chaque passage des tests.
