@@ -156,7 +156,12 @@ Le poste qui diffuse est aussi un ordinateur de bureau : tout ce qu'il joue sur 
 **2. Les sons de notification sont coupés.** Une notification, un message reçu, une clé USB branchée, le volume réglé au clavier font un son, sur la sortie par défaut, ou sur l'antenne si elle l'est encore :
 
 - dans **Couleurs et thèmes → Thème global → Sons du système**, décocher, en haut à droite, **Activer les sons de notification** ;
-- dans **Son**, sur la ligne **Notifications système** des flux, couper le son.
+
+  ![Sons du système de KDE Plasma : la case « Activer les sons de notification », en haut à droite, décochée](doc/administration/images/kde-sons-du-systeme.png)
+
+- dans **Son**, partie **Flux de lecture**, sur la ligne **Sons de notification**, couper le son par son bouton, à gauche de la réglette, qui passe à 0 %.
+
+  ![Page Son de KDE Plasma : la ligne « Sons de notification » des flux de lecture, son coupé, à 0 %](doc/administration/images/kde-sons-de-notification.png)
 
 **3. Pas de veille de l'écran.** Au retour d'un écran éteint, le serveur audio du poste peut interrompre un moment la pré-écoute, et le [VU-mètre](doc/utilisateur/prise-en-main.md#vu-mètre-de-lantenne) de l'antenne se rouvre ([#259](https://github.com/dascritch/machincast/issues/259), [#311](https://github.com/dascritch/machincast/issues/311)). La diffusion, elle, continue. Dans **Configuration du système → Gestion de l'énergie**, sur secteur, régler l'extinction de l'écran (**Éteindre l'écran**) sur **Jamais**. La mise en veille du poste (**Suspendre la session**) ne doit pas non plus être programmée : en veille, le poste ne diffuse plus.
 
