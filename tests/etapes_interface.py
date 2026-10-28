@@ -53,7 +53,7 @@ from pytestqt.qtbot import QtBot
 from machincast import audio
 from machincast.audio import Peripherique
 from machincast.base import Role, connecter
-from machincast.configuration import PEREMPTION, Crossfades, Interface, SortieAudio, charger
+from machincast.configuration import PEREMPTION, BlancAntenne, Crossfades, Interface, SortieAudio, charger
 from machincast.horloge import HorlogeFixe
 from machincast.interface import dialogues
 from machincast.interface.dialogues import Fermeture, Retrait
@@ -148,6 +148,11 @@ class Contexte:
 	None : celui qu'elle a montré."""
 	seuils_montres: list[float] = field(default_factory=list)
 	"""Les seuils de silence que la fenêtre des préférences a montrés, à chaque ouverture."""
+	blanc_regle: BlancAntenne | None = None
+	"""Le blanc dans un sonore que donnera la fenêtre des préférences
+	(https://github.com/dascritch/machincast/issues/122) ; None : celui qu'elle a montré."""
+	blancs_montres: list[BlancAntenne] = field(default_factory=list)
+	"""Les blancs dans un sonore que la fenêtre des préférences a montrés, à chaque ouverture."""
 	peremption_reglee: int | None = None
 	"""La durée de péremption, en jours, que donnera la fenêtre des préférences
 	(https://github.com/dascritch/machincast/issues/268) ; None : celle qu'elle a montrée."""
@@ -298,6 +303,7 @@ def remplacer_dialogues(interface: Contexte) -> None:
 		interface.preferences_montrees.append(montres.crossfades)
 		interface.audio_montre.append((montres.antenne, montres.preecoute))
 		interface.seuils_montres.append(montres.seuil_silences)
+		interface.blancs_montres.append(montres.blanc_antenne)
 		interface.peremptions_montrees.append(montres.peremption)
 		interface.saturations_montrees.append(montres.saturation)
 		interface.icones_montrees.append(montres.icone)
@@ -305,6 +311,7 @@ def remplacer_dialogues(interface: Contexte) -> None:
 			(interface.preferences_reglees is None)
 			and (interface.reglages_audio is None)
 			and (interface.seuil_regle is None)
+			and (interface.blanc_regle is None)
 			and (interface.peremption_reglee is None)
 			and (interface.saturation_reglee is None)
 			and (interface.icone_reglee is None)
@@ -332,6 +339,7 @@ def remplacer_dialogues(interface: Contexte) -> None:
 			montres.suggestions,
 			icone,
 			peremption,
+			(interface.blanc_regle) or (montres.blanc_antenne),
 		)
 
 	monkeypatch.setattr(dialogues, "regler_preferences", preferences)
@@ -786,6 +794,7 @@ def ouvrir_la_fenetre(interface: Contexte, qtbot: QtBot, avec_configuration: boo
 	chemin: Path | None = None
 	crossfades = None
 	silences = None
+	blanc_antenne = None
 	peremption = PEREMPTION
 	reglages_de_l_interface = None
 	audio = configuration_test().audio
@@ -794,6 +803,7 @@ def ouvrir_la_fenetre(interface: Contexte, qtbot: QtBot, avec_configuration: boo
 		interface.configuration_initiale = chemin.read_bytes()
 		crossfades = charger(chemin).crossfades
 		silences = charger(chemin).silences
+		blanc_antenne = charger(chemin).blanc_antenne
 		peremption = charger(chemin).base.peremption
 		reglages_de_l_interface = charger(chemin).interface
 		audio = charger(chemin).audio
@@ -810,6 +820,7 @@ def ouvrir_la_fenetre(interface: Contexte, qtbot: QtBot, avec_configuration: boo
 		silences=silences,
 		interface=reglages_de_l_interface,
 		peremption=peremption,
+		blanc_antenne=blanc_antenne,
 	)
 	interface.fenetre.detail_demande.connect(lambda genre, numero: interface.demandes.append((genre, numero)))
 

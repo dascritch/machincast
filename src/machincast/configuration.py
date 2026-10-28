@@ -134,6 +134,27 @@ class Silences:
 	silences à ce seuil."""
 
 
+DUREE_DU_BLANC = timedelta(seconds=10)
+"""Durée d'un blanc dans un sonore, par défaut (https://github.com/dascritch/machincast/issues/122)."""
+DUREES_DU_BLANC = (timedelta(seconds=1), timedelta(seconds=300))
+"""Durées d'un blanc acceptées, bornes comprises."""
+SEUIL_DU_BLANC = -90.0
+"""Niveau crête d'un blanc dans un sonore, par défaut, en dB."""
+
+
+@dataclass(frozen=True)
+class BlancAntenne:
+	"""Blanc dans un sonore, à l'antenne (https://github.com/dascritch/machincast/issues/122), section [blanc_antenne].
+	À ne pas confondre avec un silence, qui borne un fichier (Silences, https://github.com/dascritch/machincast/issues/291)."""
+
+	duree: timedelta = DUREE_DU_BLANC
+	"""Le sonore qui joue reste au moins cette durée sous le seuil : c'est un blanc."""
+	seuil: float = SEUIL_DU_BLANC
+	"""Niveau crête, en dB, sous lequel le sonore ne donne plus de son."""
+	secours: bool = False
+	"""Un blanc fait passer au sonore suivant, ou au secours d'un stream ; sinon, il est seulement noté."""
+
+
 @dataclass(frozen=True)
 class Interface:
 	"""Réglages de l'interface graphique (https://github.com/dascritch/machincast/issues/191), section [interface]."""
@@ -162,6 +183,7 @@ class Configuration:
 	lecture: Lecture
 	crossfades: Crossfades = field(default_factory=Crossfades)
 	silences: Silences = field(default_factory=Silences)
+	blanc_antenne: BlancAntenne = field(default_factory=BlancAntenne)
 	interface: Interface = field(default_factory=Interface)
 
 
@@ -174,6 +196,7 @@ CLES: dict[str, frozenset[str]] = {
 	"lecture": frozenset({"socket_etat"}),
 	"crossfades": frozenset({"granularite", "maximum", "debut", "fin", "position_entree", "position_sortie"}),
 	"silences": frozenset({"seuil"}),
+	"blanc_antenne": frozenset({"duree", "seuil", "secours"}),
 	"interface": frozenset({"saturation", "suggestions", "icone"}),
 }
 
@@ -343,6 +366,28 @@ class _Lecteur:
 			)
 		return Silences(seuil)
 
+	def blanc_antenne(self) -> BlancAntenne:
+		"""La section [blanc_antenne], facultative, comme ses clés (https://github.com/dascritch/machincast/issues/122)."""
+		duree = DUREE_DU_BLANC
+		secondes = self.nombre_facultatif("blanc_antenne", "duree")
+		if secondes is not None:
+			minimum, maximum = (borne.total_seconds() for borne in DUREES_DU_BLANC)
+			if not (minimum <= secondes <= maximum):
+				raise self.erreur(
+					f"clé blanc_antenne.duree : un nombre de secondes, de {minimum:g} à {maximum:g} secondes comprises,"
+					f" est attendu, {secondes:g} trouvé"
+				)
+			duree = timedelta(seconds=secondes)
+		seuil = self.nombre_facultatif("blanc_antenne", "seuil")
+		if seuil is None:
+			seuil = SEUIL_DU_BLANC
+		elif not (SEUIL_DE_SILENCE_MINIMUM <= seuil < 0):
+			raise self.erreur(
+				f"clé blanc_antenne.seuil : un nombre de dB de {SEUIL_DE_SILENCE_MINIMUM:g} dB compris à 0 dB exclu"
+				f" est attendu, {seuil:g} trouvé"
+			)
+		return BlancAntenne(duree, seuil, self.booleen_facultatif("blanc_antenne", "secours", False))
+
 	def chemin_fichier(self, section: str, cle: str) -> Path:
 		"""Chemin absolu tel quel ; chemin relatif résolu depuis le répertoire du fichier de configuration."""
 		chemin = Path(self.texte(section, cle)).expanduser()
@@ -434,6 +479,7 @@ def charger(chemin: Path | None = None) -> Configuration:
 		lecture=lecture,
 		crossfades=lecteur.crossfades(),
 		silences=lecteur.silences(),
+		blanc_antenne=lecteur.blanc_antenne(),
 		interface=Interface(
 			saturation=lecteur.booleen_facultatif("interface", "saturation", True),
 			suggestions=lecteur.booleen_facultatif("interface", "suggestions", True),

@@ -363,6 +363,21 @@ def seuil_de_silence(contexte: Contexte, seuil: str) -> None:
 	assert contexte.configuration.silences.seuil == float(seuil.replace(",", "."))
 
 
+@then(
+	parsers.re(
+		r"un blanc dans un sonore dure au moins (?P<duree>[\d,]+) secondes sous (?P<seuil>-?[\d,]+) dB, et il"
+		r" (?P<suite>est noté seulement|fait passer au secours)"
+	)
+)
+def blanc_antenne(contexte: Contexte, duree: str, seuil: str, suite: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/122"""
+	assert contexte.configuration is not None, contexte.erreur
+	blanc = contexte.configuration.blanc_antenne
+	attendu = (timedelta(seconds=float(duree.replace(",", "."))), float(seuil.replace(",", ".")))
+	assert (blanc.duree, blanc.seuil) == attendu
+	assert blanc.secours is (suite == "fait passer au secours")
+
+
 @then("le journal avertit que la section [blancs] s'appelle désormais [silences]")
 def avertit_blancs(caplog: pytest.LogCaptureFixture) -> None:
 	"""https://github.com/dascritch/machincast/issues/291"""

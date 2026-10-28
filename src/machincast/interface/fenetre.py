@@ -53,6 +53,7 @@ from machincast import raccourci, service
 from machincast.configuration import (
 	PEREMPTION,
 	Audio,
+	BlancAntenne,
 	ConfigurationInvalide,
 	Crossfades,
 	Interface,
@@ -182,13 +183,15 @@ class FenetrePrincipale(QMainWindow):
 		silences: Silences | None = None,
 		interface: Interface | None = None,
 		peremption: int = PEREMPTION,
+		blanc_antenne: BlancAntenne | None = None,
 	) -> None:
 		"""commande_indexation : Machin indexation, avec la configuration de l'interface
 		(indexation.commande_indexation). configuration : le fichier où « Préférences… » enregistre les réglages,
 		crossfades ceux qu'il donne (https://github.com/dascritch/machincast/issues/145) ; sans fichier, les
 		préférences ne s'enregistrent pas. silences : la détection de silence qu'il donne
 		(https://github.com/dascritch/machincast/issues/146). interface : ses réglages de l'interface, le voyant
-		« Saturation » de l'accueil (https://github.com/dascritch/machincast/issues/191)."""
+		« Saturation » de l'accueil (https://github.com/dascritch/machincast/issues/191). blanc_antenne : le blanc dans
+		un sonore qu'il donne, pour Machin lecture (https://github.com/dascritch/machincast/issues/122)."""
 		super().__init__(parent)
 		self.configuration = configuration
 		self.audio = audio
@@ -198,6 +201,8 @@ class FenetrePrincipale(QMainWindow):
 		preferences.definir((crossfades) or (Crossfades()))
 		preferences.definir_peremption(peremption)
 		self.seuil_silences = ((silences) or (Silences())).seuil
+		self.blanc_antenne = (blanc_antenne) or (BlancAntenne())
+		"""Blanc dans un sonore, que montrent les préférences (https://github.com/dascritch/machincast/issues/122)."""
 		self.saturation = ((interface) or (Interface())).saturation
 		"""Le voyant « Saturation » de l'accueil est affiché (https://github.com/dascritch/machincast/issues/191)."""
 		self.suggestions = ((interface) or (Interface())).suggestions
@@ -929,6 +934,7 @@ class FenetrePrincipale(QMainWindow):
 			self.suggestions,
 			self.icone,
 			preferences.peremption(),
+			self.blanc_antenne,
 		)
 		reglages = dialogues.regler_preferences(self, montres, audio.sortie)
 		if reglages is None:
@@ -941,6 +947,7 @@ class FenetrePrincipale(QMainWindow):
 		preferences.definir(reglages.crossfades)
 		preferences.definir_peremption(reglages.peremption)
 		self.seuil_silences = reglages.seuil_silences
+		self.blanc_antenne = reglages.blanc_antenne
 		self.saturation = reglages.saturation
 		self.suggestions = reglages.suggestions
 		self.accueil.montrer_la_saturation(self.saturation)

@@ -31,16 +31,24 @@ ne s'est jamais bloqué (https://github.com/dascritch/machincast/issues/284) ; l
 qui ne démarre pas. Une voie qui n'a pas atteint l'état PLAYING
 DELAI_DE_GARDE après son démarrage est bloquée (bloquee) : la diffusion la remplace par le sonore suivant.
 
+Blanc dans un sonore (https://github.com/dascritch/machincast/issues/122) : un élément level, avant l'élément volume,
+mesure le niveau du sonore lui-même, sans ses fondus, toutes les MESURE_DU_NIVEAU. Le sonore qui reste
+BlancAntenne.duree sous BlancAntenne.seuil, en crête sur tous ses canaux, présente un blanc (blanc) : sa position dans
+le fichier, sa durée et son niveau moyen. Un blanc n'est signalé qu'une fois, même s'il dure ; le suivant viendra après
+du son. Une voie muette, comme la sonde d'un stream, mesure son son de même (entendue).
+
 Le volume suit une enveloppe posée à l'avance sur l'élément volume (GstController), d'après la durée connue du
 sonore. Le moteur ne lit l'heure que par la position des voies : il ne décide de rien, l'ordonnanceur
 (machincast.lecture.deroule) lui dit quoi jouer et quand couper.
 """
 
+import math
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import Literal, Protocol, cast
 
 import gi
 
@@ -49,7 +57,7 @@ gi.require_version("GstController", "1.0")
 from gi.repository import Gst, GstController  # type: ignore[attr-defined]  # noqa: E402
 
 from machincast.audio import ANTENNE, LECTEUR, SortieAudioIndisponible, creer_sortie  # noqa: E402
-from machincast.configuration import Audio  # noqa: E402
+from machincast.configuration import Audio, BlancAntenne  # noqa: E402
 
 EtatVoie = Literal["prête", "en cours", "finie", "coupée", "en erreur"]
 
@@ -68,6 +76,35 @@ une voie qui n'a pas atteint l'état PLAYING au bout de ce délai est bloquée
 
 DELAI_CONNEXION_SECONDES = round(DELAI_DE_GARDE.total_seconds())
 """Délai de connexion et de réponse d'un flux HTTP, au-delà duquel la voie passe en erreur : le délai de garde."""
+
+MESURE_DU_NIVEAU = timedelta(milliseconds=100)
+"""Intervalle entre deux mesures du niveau d'une voie (https://github.com/dascritch/machincast/issues/122)."""
+SILENCE_NUMERIQUE = -200.0
+"""Niveau moyen, en dB, sous lequel un blanc est un silence numérique : level donne -700 dB pour des zéros."""
+
+
+@dataclass(frozen=True)
+class Blanc:
+	"""Un blanc dans un sonore (https://github.com/dascritch/machincast/issues/122)."""
+
+	position: timedelta
+	"""Position de son début dans le fichier ; depuis le début de la voie pour un stream."""
+	duree: timedelta
+	"""Durée mesurée quand il a été constaté : la durée d'un blanc, au moins."""
+	niveau: float | None
+	"""Niveau moyen (RMS), en dB ; None pour un silence numérique."""
+
+
+def niveau_moyen(mesures: list[tuple[float, float]]) -> float | None:
+	"""Niveau moyen de mesures (RMS en dB, durée en secondes), en énergie ; None pour un silence numérique."""
+	duree = sum(secondes for _rms, secondes in mesures)
+	energie = sum((10 ** (rms / 10)) * secondes for rms, secondes in mesures)
+	if (duree <= 0) or (energie <= 0):
+		return None
+	niveau = 10 * math.log10(energie / duree)
+	if niveau < SILENCE_NUMERIQUE:
+		return None
+	return niveau
 
 
 def superposition(crossfade_fin_sortant: timedelta, crossfade_debut_entrant: timedelta) -> bool:
@@ -129,6 +166,7 @@ class Voie:
 		depart: float = 0.0,
 		arrivee: float = 0.0,
 		horloge: Callable[[], float] = time.monotonic,
+		blanc: BlancAntenne | None = None,
 	) -> None:
 		"""chemin : un fichier, ou l'adresse d'un stream. Muette, la voie joue à volume nul jusqu'à un fondu.
 
@@ -137,7 +175,10 @@ class Voie:
 
 		decalage : pour un sonore rogné par la détection de silence, la voie commence à cette position du fichier, et
 		s'arrête après duree (https://github.com/dascritch/machincast/issues/146) ; None : le fichier est joué en
-		entier."""
+		entier.
+
+		blanc : la durée et le seuil d'un blanc dans le sonore (https://github.com/dascritch/machincast/issues/122) ;
+		ceux de la configuration par défaut, sans lui."""
 		Gst.init(None)
 		self.chemin = chemin
 		self.etat: EtatVoie = "prête"
@@ -155,8 +196,14 @@ class Voie:
 
 		lecteur = Gst.ElementFactory.make(LECTEUR, None)
 		volume = Gst.ElementFactory.make("volume", None)
-		if (lecteur is None) or (volume is None):
-			raise SortieAudioIndisponible(f"{LECTEUR} ou volume introuvable, installer gstreamer1.0-plugins-base")
+		niveau = Gst.ElementFactory.make("level", None)
+		if (lecteur is None) or (volume is None) or (niveau is None):
+			raise SortieAudioIndisponible(
+				f"{LECTEUR}, volume ou level introuvable, installer gstreamer1.0-plugins-base et"
+				" gstreamer1.0-plugins-good"
+			)
+		niveau.set_property("interval", _nanosecondes(MESURE_DU_NIVEAU))
+		niveau.set_property("post-messages", True)
 		sortie = creer_sortie(audio.sortie, audio.peripherique, presentation=ANTENNE)
 		# Une vraie sortie suit l'horloge ; la sortie factice peut aller au plus vite, pour les tests.
 		sortie.set_property("sync", temps_reel)
@@ -165,11 +212,14 @@ class Voie:
 		if fabrique is not None:
 			self.fabrique_de_sortie = fabrique.get_name()
 
+		# Le niveau se mesure avant le volume : les fondus ne sont pas des blancs.
 		branche = Gst.Bin.new(None)
+		branche.add(niveau)
 		branche.add(volume)
 		branche.add(sortie)
+		niveau.link(volume)
 		volume.link(sortie)
-		entree = volume.get_static_pad("sink")
+		entree = niveau.get_static_pad("sink")
 		assert entree is not None
 		branche.add_pad(Gst.GhostPad.new("sink", entree))
 
@@ -197,6 +247,15 @@ class Voie:
 		self._avance_le: float | None = None
 		"""Instant où la position a avancé pour la dernière fois, à l'horloge de la voie ; son démarrage d'abord."""
 		"""La voie a atteint l'état PLAYING : elle n'est plus bloquée au démarrage."""
+		self._blanc = (blanc) or (BlancAntenne())
+		self._sous_le_seuil: list[tuple[float, float]] = []
+		"""Mesures du blanc en cours (RMS en dB, durée en secondes), depuis la dernière mesure au-dessus du seuil."""
+		self._debut_du_blanc: timedelta | None = None
+		self._signale = False
+		"""Le blanc en cours a été signalé."""
+		self._blancs: list[Blanc] = []
+		"""Blancs constatés, pas encore demandés (blanc)."""
+		self._entendue = False
 		self._volume = volume
 		self._source = source
 		self._duree = duree
@@ -282,6 +341,40 @@ class Voie:
 			return False
 		return maintenant - self._avance_le >= DELAI_DE_GARDE.total_seconds()
 
+	def blanc(self) -> Blanc | None:
+		"""Le premier blanc constaté dans le sonore depuis la dernière demande, une seule fois chacun
+		(https://github.com/dascritch/machincast/issues/122) ; les mesures se lisent à traiter."""
+		if self._blancs == []:
+			return None
+		return self._blancs.pop(0)
+
+	def entendue(self) -> bool:
+		"""La dernière mesure du niveau est au-dessus du seuil d'un blanc : le sonore donne du son, même voie
+		muette."""
+		return self._entendue
+
+	def _mesurer(self, structure: Gst.Structure) -> None:
+		"""Une mesure de l'élément level : la crête la plus haute de ses canaux dit si le sonore donne du son. La mesure
+		vide que level donne à la fin du fichier ne compte pas : elle dit -350 dB."""
+		nanosecondes = cast(int, structure.get_value("duration"))
+		if nanosecondes <= 0:
+			return
+		duree = nanosecondes / Gst.SECOND
+		crete = max(cast(list[float], structure.get_value("peak")))
+		rms = max(cast(list[float], structure.get_value("rms")))
+		position = timedelta(microseconds=cast(int, structure.get_value("stream-time")) / 1000)
+		self._entendue = crete >= self._blanc.seuil
+		if self._entendue:
+			self._sous_le_seuil, self._debut_du_blanc, self._signale = [], None, False
+			return
+		if self._debut_du_blanc is None:
+			self._debut_du_blanc = position
+		self._sous_le_seuil.append((rms, duree))
+		mesure = timedelta(seconds=sum(secondes for _rms, secondes in self._sous_le_seuil))
+		if (not self._signale) and (mesure >= self._blanc.duree):
+			self._signale = True
+			self._blancs.append(Blanc(self._debut_du_blanc, mesure, niveau_moyen(self._sous_le_seuil)))
+
 	def _borner(self) -> None:
 		"""Pré-lit le fichier, puis borne sa lecture : du début détecté à la fin détectée
 		(https://github.com/dascritch/machincast/issues/146). Un fichier qui ne se pré-lit pas est joué en entier ;
@@ -321,9 +414,14 @@ class Voie:
 			return
 		bus = self._lecteur.get_bus()
 		while (self.etat == "en cours") and (bus is not None):
-			message = bus.pop_filtered(Gst.MessageType.EOS | Gst.MessageType.ERROR)
+			message = bus.pop_filtered(Gst.MessageType.EOS | Gst.MessageType.ERROR | Gst.MessageType.ELEMENT)
 			if message is None:
 				return
+			structure = message.get_structure()
+			if message.type == Gst.MessageType.ELEMENT:
+				if (structure is not None) and (structure.get_name() == "level"):
+					self._mesurer(structure)
+				continue
 			if message.type == Gst.MessageType.ERROR:
 				erreur, _ = message.parse_error()
 				self.etat, self.erreur = "en erreur", erreur.message
@@ -355,6 +453,10 @@ class VoieLecture(Protocol):
 	def bloquee(self) -> bool: ...
 
 	def gelee(self) -> bool: ...
+
+	def blanc(self) -> Blanc | None: ...
+
+	def entendue(self) -> bool: ...
 
 	def traiter(self) -> None: ...
 
@@ -396,10 +498,18 @@ class Moteur(Protocol):
 class MoteurAudio:
 	"""Joue les sonores sur la sortie de la configuration, une voie par sonore."""
 
-	def __init__(self, audio: Audio, temps_reel: bool = True, horloge: Callable[[], float] = time.monotonic) -> None:
+	def __init__(
+		self,
+		audio: Audio,
+		temps_reel: bool = True,
+		horloge: Callable[[], float] = time.monotonic,
+		blanc: BlancAntenne | None = None,
+	) -> None:
 		self.audio = audio
 		self.temps_reel = temps_reel
 		self.horloge = horloge
+		self.blanc = (blanc) or (BlancAntenne())
+		"""La durée et le seuil d'un blanc dans un sonore (https://github.com/dascritch/machincast/issues/122)."""
 		"""L'horloge des voies, qui constate un lecteur bloqué ; les scénarios la remplacent."""
 		self._voies: list[Voie] = []
 
@@ -428,6 +538,7 @@ class MoteurAudio:
 			depart,
 			arrivee,
 			self.horloge,
+			self.blanc,
 		)
 		voie.demarrer()
 		self._voies.append(voie)

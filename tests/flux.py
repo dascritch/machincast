@@ -8,7 +8,10 @@ qu'une fraction de seconde de son d'avance, et voit vite le flux tomber. Le prem
 Un flux hors ligne ferme les connexions en cours et répond 503 aux nouvelles. Un flux avare n'envoie qu'une demi-seconde
 de son, puis garde la connexion ouverte sans rien envoyer. Un flux gelé n'envoie plus rien sur ses connexions, sans les
 fermer, comme un réseau coupé (https://github.com/dascritch/machincast/issues/278) : une connexion gelée le reste, même
-le flux dégelé ; seules les connexions ouvertes ensuite reçoivent du son. Le serveur compte ses connexions ouvertes.
+le flux dégelé ; seules les connexions ouvertes ensuite reçoivent du son. Un flux muet envoie du silence numérique
+(muet.mp3) au même rythme, sur les mêmes connexions, comme un studio qui ne transmet plus rien
+(https://github.com/dascritch/machincast/issues/122) ; il retrouve son son sans nouvelle connexion. Le serveur compte
+ses connexions en cours, et toutes celles qu'il a reçues.
 """
 
 import contextlib
@@ -24,6 +27,8 @@ from tests.sons import FICHIERS_SONORES
 TAGUE = (FICHIERS_SONORES / "tags.mp3").read_bytes()
 SAIN = (FICHIERS_SONORES / "sain.mp3").read_bytes()
 """Une seconde de son : envoyé en boucle, à raison d'une copie par seconde."""
+MUET = (FICHIERS_SONORES / "muet.mp3").read_bytes()
+"""Une seconde de silence numérique, envoyée de même par un flux muet."""
 TRANCHES_PAR_SECONDE = 10
 AVANCE_INITIALE = 1.5
 """Secondes de son envoyées d'un coup à la connexion."""
@@ -34,8 +39,11 @@ class ServeurDeFlux:
 		self.en_ligne: dict[str, bool] = {}
 		self.avares: set[str] = set()
 		self.geles: set[str] = set()
+		self.muets: set[str] = set()
 		self.connexions = 0
 		"""Connexions en cours d'envoi."""
+		self.recues = 0
+		"""Connexions reçues depuis le démarrage du serveur."""
 		self._verrou = threading.Lock()
 		serveur = self
 
@@ -77,6 +85,7 @@ class ServeurDeFlux:
 	def compter(self, ecart: int) -> None:
 		with self._verrou:
 			self.connexions += ecart
+			self.recues += max(ecart, 0)
 
 	def envoyer_peu(self, nom: str, connexion: socket.socket, sortie: BinaryIO) -> None:
 		"""Une demi-seconde de son, puis rien, jusqu'à ce que le lecteur ferme la connexion."""
@@ -92,10 +101,10 @@ class ServeurDeFlux:
 			self._geler(nom)
 			return
 		sortie.write(TAGUE)
-		tranche = max(1, len(SAIN) // TRANCHES_PAR_SECONDE)
 		envoye = float(len(TAGUE)) / len(SAIN)
 		debut = time.monotonic() - AVANCE_INITIALE
 		position = 0
+		donnees = SAIN
 		while self.en_ligne.get(nom, False):
 			if nom in self.geles:
 				self._geler(nom)
@@ -104,11 +113,16 @@ class ServeurDeFlux:
 			if envoye > time.monotonic() - debut:
 				time.sleep(1 / TRANCHES_PAR_SECONDE / 2)
 				continue
-			morceau = SAIN[position : position + tranche]
+			# Muet ou de nouveau sonore, le flux repart du début d'un fichier : d'une trame MP3 entière.
+			suivantes = MUET if nom in self.muets else SAIN
+			if suivantes is not donnees:
+				donnees, position = suivantes, 0
+			tranche = max(1, len(donnees) // TRANCHES_PAR_SECONDE)
+			morceau = donnees[position : position + tranche]
 			sortie.write(morceau)
 			sortie.flush()
-			envoye += len(morceau) / len(SAIN)
-			position = (position + tranche) % len(SAIN)
+			envoye += len(morceau) / len(donnees)
+			position = (position + tranche) % len(donnees)
 
 	def _geler(self, nom: str) -> None:
 		"""Plus rien sur cette connexion, qui reste ouverte tant que le flux est en ligne, même dégelé."""

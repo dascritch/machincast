@@ -89,6 +89,7 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 			silences=configuration.silences,
 			interface=configuration.interface,
 			peremption=configuration.base.peremption,
+			blanc_antenne=configuration.blanc_antenne,
 		)
 		fenetre.show()
 		fenetre.proposer_au_lancement()

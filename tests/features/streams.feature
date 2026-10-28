@@ -127,6 +127,35 @@ Fonctionnalité: Diffusion des streams
 		Alors l'airplay montre « Direct studio », puis des sonores de « Continue », puis « Direct studio »
 		Et le log contient 1 incident « reprise du flux », qui donne l'adresse du flux « studio »
 
+	Scénario: Un flux qui ne donne plus qu'un blanc laisse l'antenne à son secours, et la reprend quand son son revient
+		https://github.com/dascritch/machincast/issues/122 : le flux envoie du silence numérique, sa connexion ouverte,
+		comme un studio qui ne transmet plus rien. Avec le passage au secours d'un blanc, le stream laisse l'antenne au
+		secours, mais sa voie reste ouverte, muette : sans nouvelle connexion, il reprend l'antenne en fondu dès que son
+		son revient. La durée d'un blanc, de 10 secondes, est réduite à 2 secondes pour le scénario.
+
+		Étant donné un blanc dans un sonore réglé à 2 secondes sous -90 dB, qui fait passer au secours
+		Et le stream « Direct studio » à l'adresse du flux « studio »
+		Et l'événement de secours « Secours direct », avec les sonores « s1 », « s2 »
+		Et le stream « Direct studio » est secouru par « Secours direct »
+		Et le sonore « Direct studio » a 0,5 seconde de crossfade de début
+		Et l'émission « Direct » de 19:59:50 à 20:30:00, avec le sonore « Direct studio »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne pendant 1 seconde en temps réel
+		Et le flux « studio » devient muet, sa connexion ouverte
+		Et la diffusion tourne pendant 6 seconde en temps réel
+		Alors l'airplay montre « Direct studio », puis des sonores de « Secours direct »
+		Et le log contient 1 incident « blanc dans un sonore », qui donne l'adresse du flux « studio »
+		Et le log contient 0 incident « reprise du flux », qui donne l'adresse du flux « studio »
+		Et la voie du flux « studio » est muette
+		Quand le flux « studio » retrouve son son
+		Et la diffusion tourne pendant 4 seconde en temps réel
+		Alors le stream repris joue à plein volume
+		Quand la diffusion s'arrête
+		Alors l'airplay montre « Direct studio », puis des sonores de « Secours direct », puis « Direct studio »
+		Et le log contient 1 incident « reprise du flux », qui donne l'adresse du flux « studio »
+		Et le log contient 0 incident « flux tombé », qui donne l'adresse du flux « studio »
+		Et le serveur de flux n'a reçu qu'une connexion
+
 	Scénario: Les flux se lisent en HTTP/1.1
 		https://github.com/dascritch/machincast/issues/278 : en HTTP/2, libsoup 3 ne signale pas un flux qui ne donne plus
 		rien. libsoup force HTTP/1.1 dès que SOUP_FORCE_HTTP1 existe, quelle que soit sa valeur. Le scénario qui le

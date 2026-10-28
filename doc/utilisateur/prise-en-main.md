@@ -181,6 +181,7 @@ Page **Audio** :
 | Antenne | Le périphérique de la diffusion. Tant qu'il n'est pas choisi, la barre d'état affiche `Périphérique de l'antenne à renseigner`, et la diffusion refuse de démarrer. Le nouveau périphérique vaut au prochain démarrage de la diffusion. |
 | Pré-écoute | Le périphérique de la [pré-écoute](sonores.md#pré-écoute), le casque de la régie par exemple. L'antenne et la pré-écoute n'utilisent jamais le même : celui de l'une est grisé dans l'autre. |
 | Seuil de silence | De -100 à -0,1 dB, -40 dB par défaut : le niveau sous lequel le début et la fin d'un sonore sont un silence ([Silences au début et à la fin](antenne.md#silences-au-début-et-à-la-fin)). |
+| Blanc dans un sonore, à l'antenne | Un sonore qui reste la **durée d'un blanc** (de 1 à 300 s, 10 s par défaut) sous le **niveau d'un blanc** (de -100 à -0,1 dB, -90 dB par défaut), pendant qu'il joue, est noté ([Blanc dans un sonore](antenne.md#blanc-dans-un-sonore)). **Passer au sonore suivant, ou au secours d'un stream**, décochée par défaut, le remplace aussitôt. La diffusion prend ces réglages à son prochain démarrage. |
 
 Page **Base** ([#268](https://github.com/dascritch/machincast/issues/268)) :
 

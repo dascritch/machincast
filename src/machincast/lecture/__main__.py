@@ -140,7 +140,7 @@ def executer_diffusion(configuration: Configuration) -> int:
 	arret = installer_arret()
 	try:
 		with connecter(base.socket, base.production, Role.LECTURE) as connexion:
-			moteur = MoteurAudio(configuration.audio)
+			moteur = MoteurAudio(configuration.audio, blanc=configuration.blanc_antenne)
 			try:
 				peripherique = ""
 				if audio.peripherique is not None:
@@ -158,6 +158,7 @@ def executer_diffusion(configuration: Configuration) -> int:
 					etat=SocketEtat(configuration.lecture.socket_etat),
 					crossfades=configuration.crossfades,
 					analyseur=Analyseur(commande_d_analyse(configuration.chemin)),
+					blanc_antenne=configuration.blanc_antenne,
 				)
 				diffuser(diffusion, arret)
 			finally:
