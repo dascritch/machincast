@@ -215,8 +215,9 @@ class FicheEvenement(Fiche):
 		self._session: Session | None = None
 
 	def _prochaine_sautee(self) -> Session | None:
-		"""Celle de l'événement en base ; aucune pour une fiche nouvelle, une copie ou un événement supprimé."""
-		if (self.identifiant is None) or (self.est_une_copie()):
+		"""Celle de l'événement en base ; aucune pour une fiche nouvelle, une copie, qui n'est pas en base, ou un
+		événement supprimé."""
+		if self.identifiant is None:
 			return None
 		evenement = next((lu for lu in lire_grille(self.connexion) if lu.id == self.identifiant), None)
 		if evenement is None:
