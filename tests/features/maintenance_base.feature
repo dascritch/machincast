@@ -34,6 +34,23 @@ Fonctionnalité: Maintenance de la base de données
 		Et la maintenance a annoncé « schéma de la base machincast_test : 1 migration appliquée »
 		Et la base de test a toutes ses migrations
 
+	Scénario: Une base qui a reçu les quinze anciennes migrations est reconnue à jour, sans rien perdre
+		https://github.com/dascritch/machincast/issues/314 : ces migrations sont fondues dans le schéma unique.
+
+		Étant donné la base de test marquée comme ayant reçu les quinze anciennes migrations
+		Quand je lance « Machin maintenance-db »
+		Alors la maintenance se termine avec le code 0
+		Et la maintenance a annoncé « base machincast_test : les migrations 0002.evenements-nom-unique à 0015.vocabulaire-silences-blancs, fondues dans 0001.schema-initial, sont oubliées ; ses données ne changent pas »
+		Et la maintenance a annoncé « schéma de la base machincast_test à jour »
+
+	Scénario: Une base restée à une ancienne migration intermédiaire est sauvegardée, puis laissée telle quelle
+		Étant donné la base de test marquée comme ayant reçu les anciennes migrations jusqu'à « 0009.sonores-audit-demande »
+		Quand je lance « Machin maintenance-db »
+		Alors la maintenance se termine avec le code 1
+		Et une sauvegarde datée de la base est dans le répertoire « sauvegardes » de la configuration, lisible par pg_restore
+		Et la maintenance a signalé « schéma impossible à mettre à jour : base machincast_test : ancien schéma, sans la migration 0010.indexation-retire-des-banques ; la mettre à jour avec MachinCast cd2e564 (git checkout cd2e564, puis ./install.sh), puis revenir à la version actuelle, ou la recréer si elle ne contient rien d'utile ; la sauvegarde est faite, rien d'autre »
+		Et la maintenance n'a annoncé ni le schéma ni l'optimisation
+
 	Scénario: Les sauvegardes vont dans le répertoire demandé
 		Quand je lance « Machin maintenance-db --sauvegardes …/ailleurs »
 		Alors une sauvegarde datée de la base est dans le répertoire « ailleurs » de la configuration, lisible par pg_restore

@@ -11,10 +11,23 @@ import psycopg
 import pytest
 from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
-from yoyo import get_backend, read_migrations
 
-from machincast.base import REPERTOIRE_MIGRATIONS, TABLES, TYPES, annuler_migrations, appliquer_migrations, url_yoyo
-from tests.base_test import ORDRE_DE_PURGE, parametres_base_test, purger_base
+from machincast.base import (
+	CONTRAINTES_RENOMMEES,
+	TABLES,
+	TYPES,
+	SchemaPerime,
+	annuler_migrations,
+	appliquer_migrations,
+	url_yoyo,
+)
+from tests.base_test import (
+	ORDRE_DE_PURGE,
+	marquer_les_anciennes_migrations,
+	parametres_base_test,
+	purger_base,
+	rendre_les_migrations,
+)
 
 scenarios("schema.feature")
 
@@ -34,6 +47,10 @@ class Contexte:
 	"""Table et référence dont la date de modification est suivie."""
 	connexions_avant: int = 0
 	connexions_apres: int = 0
+	appliquees: int | None = None
+	"""Migrations appliquées par la dernière application (https://github.com/dascritch/machincast/issues/314)."""
+	refus: str | None = None
+	avant: list[str] = field(default_factory=list)
 
 
 @pytest.fixture
@@ -427,12 +444,6 @@ def types_connus(contexte: Contexte) -> None:
 	assert {str(nom) for (nom,) in lignes} == set(TYPES)
 
 
-def _secondes(texte: str) -> timedelta | None:
-	if texte == "":
-		return None
-	return timedelta(seconds=float(texte.removesuffix(" s")))
-
-
 @then(parsers.re(r"le sonore « (?P<emplacement>[^»]+) » a ses crossfades (?P<valeur>non paramétrés|de 0 seconde)"))
 def crossfades_du_sonore(contexte: Contexte, emplacement: str, valeur: str) -> None:
 	ligne = contexte.connexion.execute(
@@ -444,44 +455,70 @@ def crossfades_du_sonore(contexte: Contexte, emplacement: str, valeur: str) -> N
 	assert ligne == (attendu, attendu), ligne
 
 
-@when(parsers.parse("j'annule les migrations depuis « {nom} »"))
-def annuler_depuis(nom: str) -> None:
-	"""Annule cette migration et celles qui la suivent, qui peuvent en dépendre."""
-	migrations = read_migrations(str(REPERTOIRE_MIGRATIONS))
-	identifiants = [migration.id for migration in migrations]
-	assert nom in identifiants, identifiants
-	a_annuler = migrations.filter(lambda migration: migration.id >= nom)
-	with get_backend(url_yoyo(*parametres_base_test())) as backend, backend.lock():
-		backend.rollback_migrations(backend.to_rollback(a_annuler))
-
-
 @when("j'applique les migrations")
 def appliquer(contexte: Contexte) -> None:
-	appliquer_migrations(url_yoyo(*parametres_base_test()))
+	contexte.connexion.commit()
+	try:
+		contexte.appliquees = appliquer_migrations(url_yoyo(*parametres_base_test()), parametres_base_test()[1])
+	except SchemaPerime as erreur:
+		contexte.refus = str(erreur)
 
 
-@when("j'enregistre les sonores aux crossfades :")
-def sonores_aux_crossfades(contexte: Contexte, datatable: list[list[str]]) -> None:
-	_entetes, *rangees = datatable
-	for emplacement, debut, fin, edites in ([valeur.strip() for valeur in rangee] for rangee in rangees):
-		champs = [champ.strip() for champ in edites.split(",") if champ.strip()]
-		contexte.connexion.execute(
-			"INSERT INTO sonores (type, emplacement, crossfade_debut, crossfade_fin, champs_edites)"
-			" VALUES ('fichier', %s, %s, %s, %s)",
-			(emplacement, _secondes(debut), _secondes(fin), champs),
-		)
+# ─── Schéma unique (https://github.com/dascritch/machincast/issues/314) ───
 
 
-@then("les crossfades des sonores sont :")
-def crossfades_des_sonores(contexte: Contexte, datatable: list[list[str]]) -> None:
-	_entetes, *rangees = datatable
-	lues = contexte.connexion.execute(
-		"SELECT emplacement, crossfade_debut, crossfade_fin FROM sonores ORDER BY emplacement"
-	).fetchall()
-	attendues = [
-		(emplacement.strip(), _secondes(debut.strip()), _secondes(fin.strip())) for emplacement, debut, fin in rangees
-	]
-	assert lues == attendues, lues
+def migrations_de_la_base(contexte: Contexte) -> list[str]:
+	lignes = contexte.connexion.execute("SELECT migration_id FROM _yoyo_migration ORDER BY migration_id").fetchall()
+	return [str(ligne[0]) for ligne in lignes]
+
+
+@given(
+	parsers.re(
+		r"la base de test marquée comme ayant reçu les (?:quinze anciennes migrations, avec leurs anciens noms de"
+		r" contraintes|anciennes migrations jusqu'à « (?P<derniere>[^»]+) »)"
+	)
+)
+def anciennes_migrations(request: pytest.FixtureRequest, contexte: Contexte, derniere: str | None) -> None:
+	"""Comme une base d'avant le schéma unique : yoyo y note les migrations d'alors, par l'empreinte de leur nom. La
+	base est rendue telle quelle à la fin du scénario."""
+	marquer_les_anciennes_migrations(contexte.connexion, derniere)
+	contexte.avant = migrations_de_la_base(contexte)
+	request.addfinalizer(rendre_les_migrations)
+
+
+@then(parsers.re(r"(?P<nombre>aucune|\d+) migrations? (?:n')?a été appliquée"))
+def nombre_appliquees(contexte: Contexte, nombre: str) -> None:
+	assert contexte.refus is None, contexte.refus
+	assert contexte.appliquees == (0 if nombre == "aucune" else int(nombre))
+
+
+@then(parsers.parse("les migrations appliquées à la base de test sont « {migration} »"))
+def migrations_appliquees(contexte: Contexte, migration: str) -> None:
+	assert migrations_de_la_base(contexte) == [migration]
+
+
+@then("les migrations appliquées à la base de test sont celles d'avant")
+def migrations_d_avant(contexte: Contexte) -> None:
+	assert migrations_de_la_base(contexte) == contexte.avant
+
+
+@then("les contraintes NOT NULL ont les noms du schéma unique")
+def noms_du_schema_unique(contexte: Contexte) -> None:
+	anciens = [ancien for _table, ancien, _nouveau in CONTRAINTES_RENOMMEES]
+	requete = "SELECT count(*) FROM pg_constraint WHERE conname = ANY(%s)"
+	ligne = contexte.connexion.execute(requete, (anciens,)).fetchone()
+	assert ligne == (0,)
+
+
+@then(parsers.parse("l'application des migrations est refusée : « {texte} »"))
+def refusee(contexte: Contexte, texte: str) -> None:
+	assert (contexte.refus is not None) and (texte in contexte.refus), contexte.refus
+
+
+@then(parsers.parse("le message dit de passer par MachinCast {version}, ou de recréer la base"))
+def que_faire(contexte: Contexte, version: str) -> None:
+	assert contexte.refus is not None
+	assert (f"git checkout {version}" in contexte.refus) and ("la recréer" in contexte.refus), contexte.refus
 
 
 # ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───
@@ -514,23 +551,6 @@ def sonore_de_reference_sans_silences(contexte: Contexte) -> None:
 	assert ligne == (None, None)
 
 
-@then(parsers.re(r"la banque « (?P<nom>[^»]+) » (?P<active>active|n'active pas) la détection de silence"))
-def banque_detection(contexte: Contexte, nom: str, active: str) -> None:
-	assert _detection(contexte, "banques", "nom_interne", nom) is (active == "active")
-
-
-@then(parsers.re(r"le sonore « (?P<emplacement>[^»]+) » (?P<active>active|n'active pas) la détection de silence"))
-def sonore_detection(contexte: Contexte, emplacement: str, active: str) -> None:
-	assert _detection(contexte, "sonores", "emplacement", emplacement) is (active == "active")
-
-
-@then(parsers.parse("les natures du log sont « {natures} »"))
-def natures_du_log(contexte: Contexte, natures: str) -> None:
-	"""https://github.com/dascritch/machincast/issues/291"""
-	lignes = contexte.connexion.execute("SELECT nature FROM log ORDER BY id").fetchall()
-	assert [ligne[0] for ligne in lignes] == natures.split(" », « "), lignes
-
-
 # ─── Audit demandé (https://github.com/dascritch/machincast/issues/114) ───
 
 
@@ -548,34 +568,12 @@ def sonore_de_reference_sans_audit(contexte: Contexte) -> None:
 	assert _audit_demande(contexte, "id", contexte.references["sonore"]) is False
 
 
-@then(parsers.parse("le sonore « {emplacement} » n'a pas d'audit complet demandé"))
-def sonore_sans_audit(contexte: Contexte, emplacement: str) -> None:
-	assert _audit_demande(contexte, "emplacement", emplacement) is False
-
-
-@then(parsers.parse("le sonore « {titre} » suit le feed « {nom} »"))
-def sonore_du_feed(contexte: Contexte, titre: str, nom: str) -> None:
-	ligne = contexte.connexion.execute(
-		"SELECT f.nom FROM sonores s JOIN feeds f ON f.id = s.feed_id WHERE s.titre = %s", (titre,)
-	).fetchone()
-	assert ligne == (nom,), ligne
-
-
 @then(parsers.parse("la table « {table} » a {nombre:d} ligne"))
 @then(parsers.parse("la table « {table} » a {nombre:d} lignes"))
 def lignes_de_la_table(contexte: Contexte, table: str, nombre: int) -> None:
 	assert table in TABLES, table
 	ligne = contexte.connexion.execute(f"SELECT count(*) FROM {table}").fetchone()  # noqa: S608 : table connue
 	assert ligne == (nombre,), ligne
-
-
-@then(parsers.re(r"le sonore « (?P<emplacement>[^»]+) » (?P<a>a|n'a pas de) (?:une )?date de disparition"))
-def date_de_disparition(contexte: Contexte, emplacement: str, a: str) -> None:
-	ligne = contexte.connexion.execute(
-		"SELECT disparu_le FROM sonores WHERE emplacement = %s", (emplacement,)
-	).fetchone()
-	assert ligne is not None
-	assert (ligne[0] is not None) == (a == "a"), ligne
 
 
 # ─── Purge entre deux scénarios (https://github.com/dascritch/machincast/issues/280) ───

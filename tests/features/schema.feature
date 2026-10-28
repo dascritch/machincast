@@ -4,6 +4,10 @@ Fonctionnalité: Schéma de la base de données
 	je veux que les migrations yoyo créent toutes les tables de la spécification,
 	afin que la base de production et la base de test aient un schéma strictement identique.
 
+	Un seul schéma, 0001.schema-initial, fond les quinze migrations d'avant
+	https://github.com/dascritch/machincast/issues/314, et donne exactement le même schéma. Une base qui les a toutes
+	reçues garde ses données ; une base restée à une migration intermédiaire est refusée.
+
 	Contexte:
 		Étant donné une base de test vide où les migrations sont appliquées
 
@@ -44,35 +48,38 @@ Fonctionnalité: Schéma de la base de données
 		Quand j'enregistre dans "sonores" : type = 'fichier', emplacement = '/b.flac', crossfade_debut = '0 s', crossfade_fin = '0 s'
 		Alors le sonore « /b.flac » a ses crossfades de 0 seconde
 
-	Scénario: La migration des crossfades facultatifs ne garde que les crossfades saisis à la main
-		https://github.com/dascritch/machincast/issues/145 : un crossfade de 0 seconde que personne n'a saisi n'était qu'une valeur par défaut ;
-		saisi à la main (champs_edites), 0 seconde compris, il est gardé.
-
-		Quand j'annule les migrations depuis « 0007.sonores-crossfades-facultatifs »
-		Et j'enregistre les sonores aux crossfades :
-			| emplacement | crossfade_debut | crossfade_fin | champs_edites                     |
-			| /a.flac     | 0 s             | 0 s           |                                   |
-			| /b.flac     | 0 s             | 2 s           | crossfade_debut                   |
-			| /c.flac     | 1 s             | 0 s           | crossfade_debut, crossfade_fin    |
-			| /d.flac     | 3 s             | 0 s           |                                   |
-		Et j'applique les migrations
-		Alors les crossfades des sonores sont :
-			| emplacement | crossfade_debut | crossfade_fin |
-			| /a.flac     |                 |               |
-			| /b.flac     | 0 s             |               |
-			| /c.flac     | 1 s             | 0 s           |
-			| /d.flac     |                 |               |
-		Quand j'annule les migrations depuis « 0007.sonores-crossfades-facultatifs »
-		Alors les crossfades des sonores sont :
-			| emplacement | crossfade_debut | crossfade_fin |
-			| /a.flac     | 0 s             | 0 s           |
-			| /b.flac     | 0 s             | 0 s           |
-			| /c.flac     | 1 s             | 0 s           |
-			| /d.flac     | 0 s             | 0 s           |
-
 	Scénario: Les migrations s'annulent proprement
 		Quand j'annule toutes les migrations
 		Alors la base ne contient plus aucune table ni aucun type de MachinCast
+
+	# ─── Schéma unique (https://github.com/dascritch/machincast/issues/314) ───
+
+	Scénario: Une base qui a reçu les quinze anciennes migrations garde ses données, et son schéma est reconnu à jour
+		Ses contraintes NOT NULL, que PostgreSQL 18 nomme, et qu'un renommage de table ou de colonne gardait, prennent
+		leur nom du schéma unique.
+
+		Étant donné les éléments de référence en base
+		Et la base de test marquée comme ayant reçu les quinze anciennes migrations, avec leurs anciens noms de contraintes
+		Quand j'applique les migrations
+		Alors aucune migration n'a été appliquée
+		Et les migrations appliquées à la base de test sont « 0001.schema-initial »
+		Et la table « sonores » a 1 ligne
+		Et les contraintes NOT NULL ont les noms du schéma unique
+
+	Scénario: Une base restée à une ancienne migration intermédiaire est refusée, sans rien modifier
+		Étant donné les éléments de référence en base
+		Et la base de test marquée comme ayant reçu les anciennes migrations jusqu'à « 0009.sonores-audit-demande »
+		Quand j'applique les migrations
+		Alors l'application des migrations est refusée : « ancien schéma, sans la migration 0010.indexation-retire-des-banques »
+		Et le message dit de passer par MachinCast cd2e564, ou de recréer la base
+		Et les migrations appliquées à la base de test sont celles d'avant
+		Et la table « sonores » a 1 ligne
+
+	Scénario: Une base neuve reçoit le schéma unique, sans rien à oublier
+		Quand j'annule toutes les migrations
+		Et j'applique les migrations
+		Alors 1 migration a été appliquée
+		Et les migrations appliquées à la base de test sont « 0001.schema-initial »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
 	# Le ramasse-miettes est suspendu : une connexion qui n'est pas fermée explicitement reste ouverte.
@@ -154,22 +161,6 @@ Fonctionnalité: Schéma de la base de données
 			| sequences  | nom_interne = 'Ouverture'                          |
 			| evenements | nom_interne = 'Matinale', priorite = 'fil_musical' |
 
-	Scénario: Annuler la migration de la suppression différée efface les éléments supprimés
-		Quand j'enregistre dans "banques" : nom_interne = 'Jingles', mode = 'aleatoire', supprime_le = now()
-		Et j'enregistre dans "banques" : nom_interne = 'Jingles', mode = 'aleatoire'
-		Et j'annule les migrations depuis « 0013.suppression-differee »
-		Alors la table « banques » a 1 ligne
-		Quand j'applique les migrations
-		Alors aucune connexion supplémentaire à la base de test ne reste ouverte
-
-	Scénario: La migration date la disparition des sonores déjà à l'état supprimé
-		Quand j'annule les migrations depuis « 0013.suppression-differee »
-		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/a.flac', etat = 'supprime'
-		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/b.flac', etat = 'actif'
-		Et j'applique les migrations
-		Alors le sonore « /a.flac » a une date de disparition
-		Et le sonore « /b.flac » n'a pas de date de disparition
-
 	Scénario: La date de modification est tenue à jour
 		Étant donné les éléments de référence en base
 		Quand je modifie le titre du sonore de référence
@@ -210,62 +201,11 @@ Fonctionnalité: Schéma de la base de données
 		Et le sonore de référence n'active pas la détection de silence
 		Et le sonore de référence n'a ni début ni fin détectés
 
-	Scénario: La migration de la détection de silence ne l'active pour aucune banque ni aucun sonore existants
-		Quand j'annule les migrations depuis « 0008.detection-blancs »
-		Et j'enregistre dans "banques" : nom_interne = 'Titres', mode = 'aleatoire'
-		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/a.flac'
-		Et j'applique les migrations
-		Alors la banque « Titres » n'active pas la détection de silence
-		Et le sonore « /a.flac » n'active pas la détection de silence
-		Quand j'annule les migrations depuis « 0008.detection-blancs »
-		Alors aucune connexion supplémentaire à la base de test ne reste ouverte
-
-	Scénario: La migration du vocabulaire garde la détection de silence, et les alertes de silence deviennent des blancs
-		https://github.com/dascritch/machincast/issues/291 : la colonne detection_blancs devient detection_silences, et
-		l'alerte « silence », rien à diffuser, devient « blanc » ; les autres natures ne changent pas.
-
-		Quand j'annule les migrations depuis « 0015.vocabulaire-silences-blancs »
-		Et j'enregistre dans "banques" : nom_interne = 'Titres', mode = 'aleatoire', detection_blancs = true
-		Et j'enregistre dans "banques" : nom_interne = 'Jingles', mode = 'aleatoire'
-		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/a.flac', detection_blancs = true
-		Et j'enregistre dans "log" : niveau = 'alerte', nature = 'silence', message = 'rien à diffuser'
-		Et j'enregistre dans "log" : niveau = 'info', nature = 'démarrage'
-		Et j'applique les migrations
-		Alors la banque « Titres » active la détection de silence
-		Et la banque « Jingles » n'active pas la détection de silence
-		Et le sonore « /a.flac » active la détection de silence
-		Et les natures du log sont « blanc », « démarrage »
-		Quand j'annule les migrations depuis « 0015.vocabulaire-silences-blancs »
-		Alors les natures du log sont « silence », « démarrage »
-		Et aucune connexion supplémentaire à la base de test ne reste ouverte
-
 	# https://github.com/dascritch/machincast/issues/114
 
 	Scénario: Un sonore n'a pas d'audit complet demandé par défaut
 		Étant donné les éléments de référence en base
 		Alors le sonore de référence n'a pas d'audit complet demandé
-
-	Scénario: La migration de l'audit demandé n'en demande pour aucun sonore existant
-		Quand j'annule les migrations depuis « 0009.sonores-audit-demande »
-		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/a.flac'
-		Et j'applique les migrations
-		Alors le sonore « /a.flac » n'a pas d'audit complet demandé
-		Quand j'annule les migrations depuis « 0009.sonores-audit-demande »
-		Alors aucune connexion supplémentaire à la base de test ne reste ouverte
-
-	Scénario: La migration des feeds renomme les marques-pages de streams sans toucher à leurs données
-		https://github.com/dascritch/machincast/issues/252 : la table marques_pages_streams devient feeds, et la colonne
-		marque_page_id des sonores devient feed_id ; un nouveau feed prend l'identifiant suivant.
-
-		Quand j'annule les migrations depuis « 0012.feeds »
-		Et j'enregistre dans "marques_pages_streams" : nom = 'Studio mobile', url = 'https://flux.exemple'
-		Et j'enregistre dans "sonores" : type = 'stream', titre = 'Le direct', marque_page_id = (SELECT max(id) FROM marques_pages_streams)
-		Et j'applique les migrations
-		Alors le sonore « Le direct » suit le feed « Studio mobile »
-		Quand j'enregistre dans "feeds" : nom = 'Radio FMR', url = 'https://fmr.exemple'
-		Alors la base accepte l'enregistrement
-		Quand j'annule les migrations depuis « 0012.feeds »
-		Alors aucune connexion supplémentaire à la base de test ne reste ouverte
 
 	Scénario: Une banque peut avoir plusieurs répertoires
 		Étant donné les éléments de référence en base
@@ -332,7 +272,7 @@ Fonctionnalité: Schéma de la base de données
 			| nom_interne = 'X', priorite = 'secours', jours_recurrence = '{lundi}'                            |
 
 	Scénario: Deux événements n'ont pas le même nom interne
-		# https://github.com/dascritch/machincast/issues/32, migration 0002.evenements-nom-unique.
+		# https://github.com/dascritch/machincast/issues/32
 		Quand j'enregistre dans "evenements" : nom_interne = 'Continue', priorite = 'fil_musical'
 		Et j'enregistre dans "evenements" : nom_interne = 'Continue', priorite = 'secours'
 		Alors la base refuse l'enregistrement

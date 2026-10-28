@@ -62,7 +62,7 @@ Machin --help                         # aide complète
 `Machin maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)) entretient la base de production (`base.production`), en trois étapes, dans l'ordre :
 
 1. **Sauvegarde** : `pg_dump` copie la base dans un nouveau fichier daté, `<base>-<AAAA-MM-JJTHH-MM-SS>.dump`, au format personnalisé de PostgreSQL. Il s'écrit dans le répertoire `sauvegardes`, à côté du fichier de configuration, ou dans celui de `--sauvegardes`, créé au besoin. Aucune sauvegarde n'est effacée : les anciennes se suppriment à la main. **Une sauvegarde qui échoue arrête la maintenance**, sans rien modifier.
-2. **Schéma** : les migrations manquantes sont appliquées, comme le fait `install.sh`, puis chacun des trois rôles de MachinCast doit pouvoir être endossé par le compte. Un rôle absent ou non autorisé est signalé, avec les deux commandes qu'un administrateur lance pour l'autoriser.
+2. **Schéma** : les migrations manquantes sont appliquées, comme le fait `install.sh`. Une base qui avait reçu les quinze anciennes migrations, fondues depuis dans le schéma unique, garde ses données, et la maintenance l'annonce ; une base restée à une ancienne migration intermédiaire est laissée telle quelle, avec `schéma impossible à mettre à jour : …`, après sa sauvegarde ([#314](https://github.com/dascritch/machincast/issues/314), [Mettre à jour](../../INSTALL.md#mettre-à-jour)). Puis chacun des trois rôles de MachinCast doit pouvoir être endossé par le compte. Un rôle absent ou non autorisé est signalé, avec les deux commandes qu'un administrateur lance pour l'autoriser.
 3. **Optimisation** : `VACUUM (ANALYZE)` récupère la place des lignes effacées et met à jour les statistiques qui guident PostgreSQL. La diffusion peut continuer pendant ce temps.
 
 Le compte qui la lance doit être celui de MachinCast, propriétaire de la base : il n'a besoin d'aucun droit particulier sur le serveur. Elle se lance aussi depuis l'interface, menu **Maintenance → Maintenance de la base de données…**. L'interface demande d'abord confirmation, en donnant le répertoire où la sauvegarde sera enregistrée (`sauvegardes`, à côté de sa configuration), que le bouton « Choisir l'emplacement… » permet de changer. Elle l'ouvre ensuite dans une fenêtre de terminal, avec la configuration de l'interface et ce répertoire (`--sauvegardes`) ; la fenêtre reste ouverte à la fin, jusqu'à ce qu'on la ferme.
@@ -77,7 +77,7 @@ Machin maintenance-db --sauvegardes /srv/sauvegardes/machincast
 | `--sauvegardes REPERTOIRE` | Répertoire des sauvegardes, au lieu de `sauvegardes` à côté du fichier de configuration. |
 | `--garder-ouvert` | Une fois la maintenance finie, garde le terminal ouvert jusqu'à sa fermeture (ou `Ctrl-D`, `Ctrl-C`) ; Entrée n'y fait rien. L'interface s'en sert, pour que le compte rendu reste lisible. |
 
-Elle se termine par `maintenance terminée` (code 0), ou par `maintenance terminée, avec des anomalies` (code 1) quand un rôle manque. Une base injoignable ou une sauvegarde impossible donnent aussi le code 1.
+Elle se termine par `maintenance terminée` (code 0), ou par `maintenance terminée, avec des anomalies` (code 1) quand un rôle manque. Une base injoignable, une sauvegarde impossible ou un schéma impossible à mettre à jour donnent aussi le code 1.
 
 **Restaurer une sauvegarde.** Elle se relit avec `pg_restore`, de préférence dans une base neuve, pour comparer avant de remplacer quoi que ce soit :
 

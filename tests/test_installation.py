@@ -1,6 +1,8 @@
 """Étapes des scénarios de vérification de l'installation (https://github.com/dascritch/machincast/issues/40)."""
 
+import dataclasses
 import grp
+import logging
 import os
 import pwd
 import re
@@ -39,7 +41,13 @@ from machincast.installation import (
 	verifier_versions,
 )
 from machincast.interface.application import application
-from tests.base_test import chemin_configuration_test, configuration_test
+from tests.base_test import (
+	chemin_configuration_test,
+	configuration_test,
+	connexion_test,
+	marquer_les_anciennes_migrations,
+	rendre_les_migrations,
+)
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
@@ -240,6 +248,36 @@ def sortie_annonce(commande: subprocess.CompletedProcess[str], texte: str) -> No
 @then(parsers.parse("sa sortie d'erreur mentionne « {texte} »"))
 def erreur_mentionne(commande: subprocess.CompletedProcess[str], texte: str) -> None:
 	assert texte in commande.stderr, commande.stderr
+
+
+# ─── Schéma unique (https://github.com/dascritch/machincast/issues/314) ─────
+
+
+@given(parsers.parse("la base de test marquée comme ayant reçu les anciennes migrations jusqu'à « {derniere} »"))
+def anciennes_migrations(request: pytest.FixtureRequest, base_vide: object, derniere: str) -> None:
+	with connexion_test() as connexion:
+		marquer_les_anciennes_migrations(connexion, derniere)
+	request.addfinalizer(rendre_les_migrations)
+
+
+@when("install.sh applique le schéma de la base de test", target_fixture="application")
+def appliquer_le_schema(caplog: pytest.LogCaptureFixture) -> tuple[int, list[str]]:
+	"""La commande migrer d'install.sh, sur une configuration dont les deux bases sont la base de test."""
+	lue = configuration_test()
+	configuration = dataclasses.replace(lue, base=dataclasses.replace(lue.base, production=lue.base.test))
+	with caplog.at_level(logging.ERROR):
+		code = installation._migrer(configuration)
+	return code, [enregistrement.getMessage() for enregistrement in caplog.records]
+
+
+@then(parsers.parse("l'application du schéma se termine avec le code {code:d}"))
+def code_du_schema(application: tuple[int, list[str]], code: int) -> None:
+	assert application[0] == code, application
+
+
+@then(parsers.parse("elle a signalé « {texte} »"))
+def schema_signale(application: tuple[int, list[str]], texte: str) -> None:
+	assert any(texte in message for message in application[1]), application
 
 
 @pytest.fixture(autouse=True)
