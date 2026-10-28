@@ -20,6 +20,20 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 - Le journal pendant la panne : `Machin logs`. Un `flux tombé` doit apparaître une dizaine de secondes après la coupure, un peu plus si le lecteur avait du son d'avance, puis `reprise du flux` après son retour.
 - Si l'antenne reste encore sur un blanc sans `flux tombé`, ouvrir un ticket avec le journal, l'adresse du flux et la réponse de `curl -I`.
 
+## L'interface se ferme d'un coup à l'ouverture de la pré-écoute ou des préférences audio
+
+**Symptôme** : l'interface se ferme sans message, en ouvrant la pré-écoute, en changeant sa sortie, ou en ouvrant la page « Audio » des préférences. Le terminal, s'il y en a un, montre `Fatal Python error: Aborted`, ou `double free or corruption`, dans `gst_device_monitor_stop` ou `g_slist_delete_link`.
+
+**Cause** : un défaut de GStreamer 1.28.0 à 1.28.2, celui d'Ubuntu 26.04 ([#289](https://github.com/dascritch/machincast/issues/289)). La liste des périphériques audio arrêtait le moniteur de périphériques avant qu'il ait fini de démarrer. Depuis [#289](https://github.com/dascritch/machincast/issues/289), MachinCast attend ce démarrage, et la liste est aussi complète. GStreamer 1.28.3 corrige le défaut de son côté.
+
+**À vérifier** :
+
+- La version de MachinCast : une installation d'avant [#289](https://github.com/dascritch/machincast/issues/289) se met à jour par `git pull`, puis `./install.sh`.
+- Le journal de l'interface : « le moniteur de périphériques n'a pas fini de démarrer en 5 secondes » dit qu'un fournisseur de périphériques, PipeWire, PulseAudio ou ALSA, met trop longtemps à répondre. La liste peut alors être incomplète ; l'interface ne se ferme pas. Vérifier que le serveur audio tourne : `systemctl --user status pipewire`.
+- `python -m tests.mesures_peripheriques`, depuis le dépôt, mesure le défaut sur le poste ([Mesurer la liste des périphériques audio](doc/developpement/poste.md#mesurer-la-liste-des-périphériques-audio)).
+
+**Scénario qui le surveille** : « La liste des périphériques du poste, en boucle, ne fait jamais tomber son processus », dans `tests/features/peripheriques_liste.feature`, à chaque passage des tests.
+
 ## Scénarios à lancer avant une version
 
 Certains scénarios ne tournent ni avec `pytest`, ni avec `bin/Machin dev-test` : ils sont lents, ou ont besoin d'un serveur à part. Ils sont marqués `@release`, et se lancent avant chaque version ([#208](https://github.com/dascritch/machincast/issues/208)), et après toute mise à jour de GStreamer ou de libsoup :
