@@ -162,6 +162,22 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le VU-mètre de l'antenne est bientôt indisponible, avec une erreur qui commence par « Indisponible : le port de monitoring s'est fermé. »
 
+	Scénario: Un port de monitoring qui ne donne plus rien, sans erreur ni fin, est rouvert
+		https://github.com/dascritch/machincast/issues/311 : au retour d'une session verrouillée et d'un écran éteint, le
+		port de PipeWire peut cesser de donner du son sans le dire. Sans relevé pendant 3 secondes, le port est tenu pour
+		gelé : le VU-mètre ne garde pas ses derniers niveaux, il le dit, et le port est rouvert.
+
+		Étant donné le signal de test « coupable » sur l'antenne factice
+		Et un nouvel essai du port de monitoring après une demi-seconde
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
+		Et le VU-mètre de l'antenne reste disponible pendant 4 secondes
+		Quand le port de monitoring de l'antenne cesse de donner du son, sans erreur ni fin
+		Alors le VU-mètre de l'antenne est bientôt indisponible, avec une erreur qui commence par « Indisponible : le port de monitoring ne donne plus rien depuis 3 secondes. »
+		Et le VU-mètre de l'antenne ne montre aucun canal
+		Et le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
+		Et le VU-mètre de l'antenne est disponible
+
 	Plan du scénario: Le port de monitoring de PipeWire et de PulseAudio est celui du périphérique de l'antenne, capté en stéréo
 		Quand je construis le port de monitoring de la sortie « <sortie> », périphérique « <peripherique> »
 		Alors c'est l'élément « <element> », avec <proprietes>

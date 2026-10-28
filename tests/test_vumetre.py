@@ -6,6 +6,7 @@ scénario choisit (moniteur.SIGNAL_FACTICE).
 """
 
 import re
+import time
 from pathlib import Path
 
 import pytest
@@ -117,6 +118,33 @@ def canaux(interface: Contexte, qtbot: QtBot, nombre: str, bas: str, haut: str) 
 		return (len(niveaux) == int(nombre)) and (all(int(bas) <= niveau <= int(haut) for niveau in niveaux))
 
 	qtbot.waitUntil(montres, timeout=DELAI)
+
+
+@when("le port de monitoring de l'antenne cesse de donner du son, sans erreur ni fin")
+def couper_le_port(interface: Contexte) -> None:
+	"""Le signal « coupable » passe par une valve : fermée, plus rien n'en sort, comme d'un flux PipeWire mis en pause
+	(https://github.com/dascritch/machincast/issues/311)."""
+	pipeline = accueil(interface).moniteur._pipeline
+	assert pipeline is not None
+	robinet = pipeline.get_by_name("robinet")
+	assert robinet is not None
+	robinet.set_property("drop", True)
+
+
+@then(parsers.parse("le VU-mètre de l'antenne reste disponible pendant {secondes:d} secondes"))
+def reste_disponible(interface: Contexte, qtbot: QtBot, secondes: int) -> None:
+	"""Un port qui donne du son n'est jamais gelé, même passé le délai du gel."""
+	moniteur_ = accueil(interface).moniteur
+	limite = time.monotonic() + secondes
+	while time.monotonic() < limite:
+		qtbot.wait(100)
+		assert moniteur_.indisponible is None, moniteur_.indisponible
+
+
+@then("le VU-mètre de l'antenne ne montre aucun canal")
+def aucun_canal(interface: Contexte) -> None:
+	ecran = accueil(interface)
+	assert (ecran.moniteur.niveaux, ecran.vumetre.niveaux) == ([], [])
 
 
 @then("la crête de chaque canal est au moins au niveau du VU")

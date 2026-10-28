@@ -32,6 +32,7 @@ SIGNAUX = {
 	"carré à 0 dB": "audiotestsrc is-live=true wave=square volume=1.0",
 	"introuvable": "elementintrouvable",
 	"bref": "audiotestsrc is-live=true num-buffers=10 wave=sine",
+	"coupable": "audiotestsrc is-live=true wave=sine volume=0.316 ! valve name=robinet",
 }
 """Les signaux de test du port de monitoring de la sortie factice."""
 

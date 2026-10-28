@@ -16,6 +16,11 @@ moniteur donne le VU (RMS) et la crête de chaque canal, et deux voyants : le bl
 sous SEUIL_DU_BLANC, et la saturation, dès qu'une crête atteint SEUIL_DE_SATURATION, gardée MAINTIEN_DE_SATURATION
 secondes. Un port qui ne s'ouvre pas est réessayé toutes les REESSAI millisecondes. La pré-écoute écoute le même port
 (machincast.interface.preecoute).
+
+Un port qui ne donne plus aucun relevé pendant DELAI_DU_GEL secondes, depuis son ouverture ou son dernier relevé,
+est gelé (https://github.com/dascritch/machincast/issues/311) : au retour d'une session verrouillée et d'un écran
+éteint, un flux PipeWire peut cesser de donner du son, sans erreur ni fin. Le moniteur l'arrête, ce qui efface ses
+niveaux : le VU-mètre ne reste pas figé sur les derniers. Il le dit, et le rouvre comme un port qui ne s'ouvre pas.
 """
 
 import time
@@ -41,6 +46,10 @@ RELEVE = 50
 REESSAI = 5000
 """Millisecondes avant de rouvrir un port de monitoring qui ne s'est pas ouvert, ou qui s'est fermé."""
 INTERVALLE_DES_NIVEAUX = 50 * Gst.MSECOND
+DELAI_DU_GEL = 3.0
+"""Secondes sans relevé au-delà desquelles le port de monitoring est gelé
+(https://github.com/dascritch/machincast/issues/311)."""
+GELE = f"Indisponible : le port de monitoring ne donne plus rien depuis {DELAI_DU_GEL:g} secondes."
 CANAUX = "audio/x-raw,channels=2"
 """Ce que donne le port de monitoring : les deux canaux de l'antenne."""
 SANS_ALSA = "Indisponible avec la sortie ALSA, qui n'a pas de port de monitoring."
@@ -136,6 +145,8 @@ class Moniteur(QObject):
 		self._son_depuis: float | None = None
 		"""Dernier instant où un canal dépassait le seuil du blanc."""
 		self._saturation_depuis: float | None = None
+		self._releve_le: float | None = None
+		"""Instant de l'ouverture du port, puis de son dernier relevé : pour constater un port gelé."""
 		self._releve = QTimer(self)
 		self._releve.setInterval(RELEVE)
 		self._releve.timeout.connect(self._relever)
@@ -178,7 +189,7 @@ class Moniteur(QObject):
 		self._pipeline, self._niveau = pipeline, niveau
 		self._pilote = etats.Pilote(pipeline)
 		self.indisponible = None
-		self._son_depuis = self.horloge()
+		self._son_depuis = self._releve_le = self.horloge()
 		# Ouvrir le port peut attendre le serveur audio : son pilote l'ouvre, et la relève dit s'il ne s'ouvre pas.
 		self._pilote.vers(Gst.State.PLAYING)
 		self._releve.start()
@@ -219,7 +230,11 @@ class Moniteur(QObject):
 				return
 			structure = message.get_structure()
 			if (message.src == self._niveau) and (structure is not None) and (structure.get_name() == "level"):
+				self._releve_le = self.horloge()
 				self.noter(list((structure.get_value("rms")) or ([])), list((structure.get_value("peak")) or ([])))
+		if (self._releve_le is not None) and (self.horloge() - self._releve_le >= DELAI_DU_GEL):
+			self._indisponible(GELE)
+			return
 		self.change.emit()
 
 	def noter(self, niveaux: list[float], cretes: list[float]) -> None:
