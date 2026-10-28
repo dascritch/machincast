@@ -64,7 +64,7 @@ Fonctionnalité: Boucle de diffusion de Machin lecture
 		Alors l'airplay montre les passages « f1 », « f1 », « f1 »
 		Et le log contient 1 incident « fichier introuvable »
 
-	Scénario: Rien à diffuser : silence et alerte, puis la diffusion reprend dès qu'un sonore est jouable
+	Scénario: Rien à diffuser : un blanc et une alerte, puis la diffusion reprend dès qu'un sonore est jouable
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
 		Et le sonore « f1 » est à l'état « desactive »
 		Quand la diffusion démarre au plus vite
@@ -73,7 +73,7 @@ Fonctionnalité: Boucle de diffusion de Machin lecture
 		Et la diffusion tourne 1 pas d'une seconde
 		Et la diffusion s'arrête
 		Alors l'airplay montre les passages « f1 »
-		Et le log contient 1 alerte « silence »
+		Et le log contient 1 alerte « blanc »
 
 	# ─── Enchaînements en temps réel ───────────────────────────
 
@@ -97,11 +97,11 @@ Fonctionnalité: Boucle de diffusion de Machin lecture
 		Et la diffusion s'arrête
 		Alors le passage « f2 » a commencé avant la fin du passage « f1 »
 
-	Scénario: Un sonore qui active la détection de blanc passe à l'antenne entre son début et sa fin détectés
+	Scénario: Un sonore qui active la détection de silence passe à l'antenne entre son début et sa fin détectés
 		https://github.com/dascritch/machincast/issues/146 : le fichier d'une seconde est joué de 0,25 à 0,75 seconde.
 
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
-		Et le sonore « f1 » active la détection de blanc, avec 0,25 seconde de blanc détecté au début et 0,25 à la fin
+		Et le sonore « f1 » active la détection de silence, avec 0,25 seconde de silence détecté au début et 0,25 à la fin
 		Quand la diffusion démarre en temps réel
 		Et la diffusion tourne pendant 1,2 seconde en temps réel
 		Et la diffusion s'arrête

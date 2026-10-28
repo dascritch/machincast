@@ -109,15 +109,15 @@ def diffuse_avant(
 	)
 
 
-@given(parsers.re(r"Machin lecture est en silence" + ANNONCE))
-def en_silence_avant(lecteur: Lecteur, nom: str | None, debut: str | None, fin: str | None) -> None:
-	publier(lecteur, "silence", evenement_suivant=suivant(nom, debut, fin))
+@given(parsers.re(r"Machin lecture laisse un blanc" + ANNONCE))
+def en_blanc_avant(lecteur: Lecteur, nom: str | None, debut: str | None, fin: str | None) -> None:
+	publier(lecteur, "blanc", evenement_suivant=suivant(nom, debut, fin))
 
 
-@given("Machin lecture est en silence")
-@when("Machin lecture passe en silence")
-def en_silence(lecteur: Lecteur) -> None:
-	publier(lecteur, "silence")
+@given("Machin lecture laisse un blanc")
+@when("Machin lecture passe à un blanc")
+def en_blanc(lecteur: Lecteur) -> None:
+	publier(lecteur, "blanc")
 
 
 @given("Machin lecture s'est arrêté")

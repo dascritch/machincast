@@ -42,7 +42,7 @@ def options_propres(analyseur: argparse.ArgumentParser) -> None:
 	analyseur.add_argument(
 		"--forcer",
 		action="store_true",
-		help="avec --audit-complet, décode aussi les sonores déjà audités au même seuil de blanc, dont le fichier n'a"
+		help="avec --audit-complet, décode aussi les sonores déjà audités au même seuil de silence, dont le fichier n'a"
 		" pas changé depuis ; sans lui, l'audit complet les saute",
 	)
 	analyseur.add_argument(
@@ -79,7 +79,7 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 		from machincast.interface.journal_indexation import lancer_fenetre
 
 		return lancer_fenetre(
-			base.socket, base.production, options.audit_complet, configuration.blancs.seuil, options.forcer
+			base.socket, base.production, options.audit_complet, configuration.silences.seuil, options.forcer
 		)
 	debut = audit.HORLOGE.maintenant()
 	try:
@@ -87,7 +87,7 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 			bilan = indexer(
 				connexion,
 				audit_complet=options.audit_complet,
-				seuil_blancs=configuration.blancs.seuil,
+				seuil_silences=configuration.silences.seuil,
 				forcer=options.forcer,
 			)
 	except psycopg.OperationalError as erreur:
@@ -120,7 +120,7 @@ def verifier_un_sonore(configuration: Configuration, sonore: int, audit_complet:
 			if fichier is None:
 				journal.error(f"sonore {sonore} : inconnu, ou pas un fichier")
 				return CODE_ECHEC
-			bilan = indexer_un_sonore(connexion, sonore, audit_complet, configuration.blancs.seuil, forcer)
+			bilan = indexer_un_sonore(connexion, sonore, audit_complet, configuration.silences.seuil, forcer)
 	except psycopg.OperationalError as erreur:
 		journal.error(f"base de données injoignable ({base.production} par {base.socket}) : {erreur}")
 		return CODE_ECHEC

@@ -99,7 +99,7 @@
       <item>
        <widget class="QLabel" name="plage">
         <property name="toolTip">
-         <string>Partie du fichier jouée à l'antenne, sans ses blancs s'ils y sont retirés</string>
+         <string>Partie du fichier jouée à l'antenne, sans ses silences s'ils y sont retirés</string>
         </property>
         <property name="text">
          <string/>

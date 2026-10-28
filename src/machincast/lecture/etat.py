@@ -43,7 +43,7 @@ from machincast.protection import verifier_ecriture
 
 journal = logging.getLogger(__name__)
 
-VERSION = 1
+VERSION = 2
 """Version du format des messages : elle change quand un champ change de sens ou disparaît."""
 PUBLICATION_MINIMALE = 1.0
 """Intervalle maximal entre deux messages, en secondes, pour suivre la progression."""

@@ -1,6 +1,7 @@
-"""Position des fondus par rapport aux blancs détectés (https://github.com/dascritch/machincast/issues/234, spec § 5.1).
+"""Position des fondus par rapport aux silences détectés (https://github.com/dascritch/machincast/issues/234,
+spec § 5.1).
 
-Un sonore joué sans ses blancs détectés (https://github.com/dascritch/machincast/issues/146) ne commence plus
+Un sonore joué sans ses silences détectés (https://github.com/dascritch/machincast/issues/146) ne commence plus
 forcément à son début détecté, ni ne s'arrête à sa fin détectée : ses fondus se placent par rapport à eux.
 
 - Le fade-in « commence », « est en cours » ou « se termine » au début détecté : il part du début détecté, de la
@@ -8,13 +9,13 @@ forcément à son début détecté, ni ne s'arrête à sa fin détectée : ses f
   arrive à plein volume.
 - Le fade-out « commence », « est en cours » ou « se termine » à la fin détectée : il part de la fin détectée, de la
   moitié de sa durée avant elle, ou de toute sa durée avant elle. Par défaut, il commence à la fin détectée : le son va
-  à plein volume jusqu'à sa fin, et s'éteint sur le blanc qui suit.
+  à plein volume jusqu'à sa fin, et s'éteint sur le silence qui suit.
 
-La lecture va du début du fade-in à la fin du fade-out : elle s'étend dans les blancs d'autant que les fondus y
+La lecture va du début du fade-in à la fin du fade-out : elle s'étend dans les silences d'autant que les fondus y
 débordent. Un fondu qui sortirait du fichier n'est pas joué hors du fichier : la lecture commence, ou s'arrête, au
 bord du fichier, au volume qu'aurait le fondu à cet instant, comme s'il avait déjà commencé. Le fondu qui reste dans
-le fichier garde sa pente. Un sonore joué avec ses blancs l'est en entier, ses fondus aux bouts du fichier ; des
-blancs qui ne laissent rien du sonore sont ignorés, comme pour le rognage.
+le fichier garde sa pente. Un sonore joué avec ses silences l'est en entier, ses fondus aux bouts du fichier ; des
+silences qui ne laissent rien du sonore sont ignorés, comme pour le rognage.
 """
 
 from dataclasses import dataclass
@@ -30,7 +31,7 @@ LIBELLES: dict[Position, str] = {"commence": "commence", "en_cours": "est en cou
 ENTREE_PAR_DEFAUT: Position = "termine"
 SORTIE_PAR_DEFAUT: Position = "commence"
 AVANCE: dict[Position, float] = {"commence": 0.0, "en_cours": 0.5, "termine": 1.0}
-"""La part du fondu qui précède le blanc détecté : rien s'il y commence, la moitié s'il y est en cours, tout s'il s'y
+"""La part du fondu qui précède le silence détecté : rien s'il y commence, la moitié s'il y est en cours, tout s'il s'y
 termine."""
 
 
@@ -59,18 +60,19 @@ def placer(
 	duree: timedelta,
 	debut_detecte: timedelta | None,
 	fin_detectee: timedelta | None,
-	sans_blancs: bool,
+	sans_silences: bool,
 	crossfade_debut: timedelta,
 	crossfade_fin: timedelta,
 	entree: Position = ENTREE_PAR_DEFAUT,
 	sortie: Position = SORTIE_PAR_DEFAUT,
 ) -> Placement:
-	"""La lecture d'un fichier de cette durée, et ses fondus. sans_blancs : le sonore est joué sans ses blancs
-	détectés ; un côté sans blanc détecté (None) a son blanc nul. La fin détectée se compte depuis la fin du fichier."""
+	"""La lecture d'un fichier de cette durée, et ses fondus. sans_silences : le sonore est joué sans ses silences
+	détectés ; un côté sans silence détecté (None) a son silence nul. La fin détectée se compte depuis la fin du
+	fichier."""
 	entier = Placement(duree, None, crossfade_debut, 0.0, crossfade_fin, 0.0)
 	debut = (debut_detecte) or (timedelta(0))
 	fin = duree - ((fin_detectee) or (timedelta(0)))
-	if (not sans_blancs) or (fin <= debut):
+	if (not sans_silences) or (fin <= debut):
 		return entier
 	depart_du_fondu = debut - crossfade_debut * AVANCE[entree]
 	lecture = max(timedelta(0), depart_du_fondu)

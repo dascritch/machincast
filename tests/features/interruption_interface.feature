@@ -55,7 +55,7 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 
 		Exemples:
 			| situation      |
-			| est en silence |
+			| laisse un blanc |
 			| s'est arrêté   |
 
 	Plan du scénario: Chaque interruption est envoyée à Machin lecture, et annoncée
@@ -84,7 +84,7 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 		Étant donné Machin lecture diffuse « Café à minuit », dans « Matinale »
 		Quand la fenêtre de l'interface s'ouvre
 		Et l'interface a reçu l'état de Machin lecture
-		Et Machin lecture passe en silence
+		Et Machin lecture passe à un blanc
 		Et l'interface a reçu l'état de Machin lecture
 		Alors aucune interruption n'est active
 
@@ -113,8 +113,8 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 			| Sauter à ce sonore           | active   | « Spot », aussitôt : « Café à minuit » s'arrête |
 			| Avancer l'événement suivant  | inactive | Aucun événement suivant dans les sept jours |
 
-	Scénario: En silence, l'événement suivant s'avance quand même, mais il n'y a rien à sauter
-		Étant donné Machin lecture est en silence, et annonce l'événement suivant « Journal », du « 2026-10-21T12:00:00 » au « 2026-10-21T12:30:00 »
+	Scénario: Pendant un blanc, l'événement suivant s'avance quand même, mais il n'y a rien à sauter
+		Étant donné Machin lecture laisse un blanc, et annonce l'événement suivant « Journal », du « 2026-10-21T12:00:00 » au « 2026-10-21T12:30:00 »
 		Quand la fenêtre de l'interface s'ouvre
 		Et l'accueil a reçu l'état de Machin lecture
 		Alors le clic droit sur le prochain sonore propose :

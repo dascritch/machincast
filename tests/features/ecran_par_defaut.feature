@@ -138,30 +138,30 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le prochain sonore n'a pas de frise
 
 	Scénario: La frise du sonore en cours montre ce que la diffusion en fait, règles de sa banque comprises
-		Étant donné le sonore « Respiration » en base, pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, sans détection de blanc, aux crossfades de 0,2 s au début et 0,3 s à la fin
-		Et la banque « Nuit » en base, qui retire les blancs et impose un crossfade de fin de 0,4 s, avec « Respiration »
+		Étant donné le sonore « Respiration » en base, pour une copie du fichier de test « silences.flac », de 2 secondes, aux silences de 0,5 s au début et 0,5 s à la fin, sans détection de silence, aux crossfades de 0,2 s au début et 0,3 s à la fin
+		Et la banque « Nuit » en base, qui retire les silences et impose un crossfade de fin de 0,4 s, avec « Respiration »
 		Et la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Respiration », de la banque « Nuit », commencé à 20:00:00, joué depuis 0,4 seconde
 		Quand l'écran par défaut s'ouvre
 		Alors la frise du sonore en cours montre bientôt les zones :
 			| zone            | de   | à    | hachures | infobulle                                                                                               |
-			| blanc de début  | 0,00 | 0,50 | pleines  | Blanc de début : 0,50 s, retiré à l'antenne                                                             |
+			| silence de début  | 0,00 | 0,50 | pleines  | Silence de début : 0,50 s, retiré à l'antenne                                                             |
 			| fondu d'entrée  | 0,30 | 0,50 | aucune   | Crossfade de début : 0,20 s, se termine au début détecté, montée si le sonore précédent a un crossfade de fin |
 			| fondu de sortie | 1,50 | 1,90 | aucune   | Crossfade de fin : 0,40 s (imposé par la banque), commence à la fin détectée                            |
-			| blanc de fin    | 1,50 | 2,00 | pleines  | Blanc de fin : 0,50 s, retiré à l'antenne                                                               |
+			| silence de fin    | 1,50 | 2,00 | pleines  | Silence de fin : 0,50 s, retiré à l'antenne                                                               |
 		Et la tête de lecture de la frise du sonore en cours est à 0,7 seconde, la position jouée comptée depuis le début de la lecture
 		Et la forme d'onde de la frise du sonore en cours est bientôt complète
 
 	Scénario: La frise du prochain sonore, sans banque, montre ses propres réglages
-		Étant donné le sonore « Respiration » en base, pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, sans détection de blanc, aux crossfades de 0,2 s au début et 0,3 s à la fin
+		Étant donné le sonore « Respiration » en base, pour une copie du fichier de test « silences.flac », de 2 secondes, aux silences de 0,5 s au début et 0,5 s à la fin, sans détection de silence, aux crossfades de 0,2 s au début et 0,3 s à la fin
 		Et la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Et le prochain sonore est « Respiration » en base, sans banque
 		Quand l'écran par défaut s'ouvre
-		Alors la frise du prochain sonore montre bientôt les zones « blanc de début », « fondu d'entrée », « fondu de sortie », « blanc de fin », ses blancs joués à l'antenne
+		Alors la frise du prochain sonore montre bientôt les zones « silence de début », « fondu d'entrée », « fondu de sortie », « silence de fin », ses silences joués à l'antenne
 
 	Scénario: La forme d'onde du prochain sonore sert encore quand il passe à l'antenne, sans être recalculée
-		Étant donné le sonore « Respiration » en base, pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, sans détection de blanc, aux crossfades de 0,2 s au début et 0,3 s à la fin
+		Étant donné le sonore « Respiration » en base, pour une copie du fichier de test « silences.flac », de 2 secondes, aux silences de 0,5 s au début et 0,5 s à la fin, sans détection de silence, aux crossfades de 0,2 s au début et 0,3 s à la fin
 		Et la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Et le prochain sonore est « Respiration » en base, sans banque
@@ -171,7 +171,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Alors la frise du sonore en cours dessine bientôt la forme d'onde qu'avait le prochain sonore
 
 	Scénario: Le plan d'un sonore se lit une fois en base, pas à chaque état publié
-		Étant donné le sonore « Respiration » en base, pour une copie du fichier de test « blancs.flac », de 2 secondes, aux blancs de 0,5 s au début et 0,5 s à la fin, sans détection de blanc, aux crossfades de 0,2 s au début et 0,3 s à la fin
+		Étant donné le sonore « Respiration » en base, pour une copie du fichier de test « silences.flac », de 2 secondes, aux silences de 0,5 s au début et 0,5 s à la fin, sans détection de silence, aux crossfades de 0,2 s au début et 0,3 s à la fin
 		Et la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Respiration », sans banque, commencé à 20:00:00, joué depuis 0,2 seconde
 		Quand l'écran par défaut s'ouvre
@@ -224,11 +224,11 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le prochain sonore a pour emplacement « https://flux.exemple/Relais »
 		Et le prochain sonore est sain : « non testé »
 
-	Scénario: En silence, l'écran le dit, sans sonore en cours
+	Scénario: Pendant un blanc, l'écran le dit, sans sonore en cours
 		Étant donné la socket d'état du binaire lecture ouverte
-		Et le binaire lecture est en silence
+		Et le binaire lecture laisse un blanc
 		Quand l'écran par défaut s'ouvre
-		Alors l'état du binaire lecture est bientôt « En silence »
+		Alors l'état du binaire lecture est bientôt « Blanc à l'antenne »
 		Et le sonore en cours est « — »
 		Et le sonore en cours a pour emplacement « — »
 		Et le prochain sonore a pour emplacement « — »
@@ -286,14 +286,14 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Quand l'écran par défaut s'ouvre
 		Et l'état du binaire lecture est bientôt « En diffusion »
-		Et un message illisible arrive sur la socket d'état, suivi dans le même envoi d'un état de silence
-		Alors l'état du binaire lecture est bientôt « En silence »
+		Et un message illisible arrive sur la socket d'état, suivi dans le même envoi d'un état de blanc
+		Alors l'état du binaire lecture est bientôt « Blanc à l'antenne »
 
 	Scénario: Un état coupé en deux envois sur la socket est lu en entier
 		Étant donné la socket d'état du binaire lecture ouverte
 		Quand l'écran par défaut s'ouvre
-		Et un état de silence arrive sur la socket d'état en deux envois
-		Alors l'état du binaire lecture est bientôt « En silence »
+		Et un état de blanc arrive sur la socket d'état en deux envois
+		Alors l'état du binaire lecture est bientôt « Blanc à l'antenne »
 
 	Scénario: Un sonore sans artiste ni titre est affiché comme tel
 		Étant donné la socket d'état du binaire lecture ouverte
@@ -444,9 +444,9 @@ Fonctionnalité: Écran par défaut de l'interface
 
 	Scénario: Sans sonore, les boutons de fiche de l'accueil sont inactifs
 		Étant donné la socket d'état du binaire lecture ouverte
-		Et le binaire lecture est en silence
+		Et le binaire lecture laisse un blanc
 		Quand l'écran par défaut s'ouvre
-		Alors l'état du binaire lecture est bientôt « En silence »
+		Alors l'état du binaire lecture est bientôt « Blanc à l'antenne »
 		Et les boutons de fiche de l'accueil sont inactifs
 
 	# ─── Écouter le prochain sonore (https://github.com/dascritch/machincast/issues/223) ─────

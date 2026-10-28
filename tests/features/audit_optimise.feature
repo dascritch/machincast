@@ -5,12 +5,12 @@ Fonctionnalité: Audit complet optimisé, qui ne redécode pas un sonore déjà 
 	afin qu'il reste court sur une grosse discothèque.
 
 	https://github.com/dascritch/machincast/issues/206. Un sonore garde la date de son dernier audit complet
-	(sonores.audite_le) et le seuil de blanc auquel il a eu lieu (sonores.audit_seuil). L'audit complet ne décode un
+	(sonores.audite_le) et le seuil de silence auquel il a eu lieu (sonores.audit_seuil). L'audit complet ne décode un
 	sonore que s'il n'a jamais été audité, si son fichier a été modifié depuis (date de modification plus récente que
-	l'audit, ou date et taille différentes de celles enregistrées), ou si le seuil de blanc a changé. La règle vaut
+	l'audit, ou date et taille différentes de celles enregistrées), ou si le seuil de silence a changé. La règle vaut
 	pour tous les audits : général, d'un seul sonore (--sonore, bouton « Vérification complète »), ou demandé depuis
 	l'interface. Machin indexation --audit-complet --forcer décode tout, comme avant. Un fichier disparu est toujours
-	repéré. L'indexation rapide n'est pas un audit complet : elle ne mesure pas les blancs et n'enregistre pas d'audit.
+	repéré. L'indexation rapide n'est pas un audit complet : elle ne mesure pas les silences et n'enregistre pas d'audit.
 
 	Scénario: Un sonore jamais audité est décodé, et retient la date et le seuil de son audit
 		Étant donné un fichier flac sain
@@ -42,11 +42,11 @@ Fonctionnalité: Audit complet optimisé, qui ne redécode pas un sonore déjà 
 			| ce fichier touché, sans changer son contenu                                                   |
 			| ce fichier remplacé, sous le même nom, par un fichier flac tagué, en gardant sa date de modification |
 
-	Scénario: Un autre seuil de blanc fait auditer de nouveau
-		Étant donné un fichier flac avec des blancs
+	Scénario: Un autre seuil de silence fait auditer de nouveau
+		Étant donné un fichier flac avec des silences
 		Et un sonore à l'état « actif » pour ce fichier
 		Et l'indexeur a fait un audit complet
-		Et un seuil de blanc de -60 dB dans la configuration
+		Et un seuil de silence de -60 dB dans la configuration
 		Quand l'indexeur fait un audit complet
 		Alors le bilan indique « audit complet : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 		Et le sonore a été audité au seuil de -60 dB, pendant cette indexation

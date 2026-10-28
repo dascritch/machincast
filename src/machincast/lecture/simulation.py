@@ -46,8 +46,8 @@ journal = logging.getLogger(__name__)
 
 Connexion = psycopg.Connection[TupleRow]
 
-ATTENTE_EN_SILENCE = timedelta(minutes=1)
-"""Pendant un silence, la simulation réessaie à cet intervalle : un sonore peut redevenir jouable."""
+ATTENTE_EN_BLANC = timedelta(minutes=1)
+"""Pendant un blanc, la simulation réessaie à cet intervalle : un sonore peut redevenir jouable."""
 
 
 class PeriodeInvalide(ValueError):
@@ -149,7 +149,7 @@ class MoteurSimule:
 		depart: float = 0.0,
 		arrivee: float = 0.0,
 	) -> VoieLecture:
-		"""La durée d'un sonore rogné est déjà sans ses blancs : le décalage ne change rien à la voie simulée."""
+		"""La durée d'un sonore rogné est déjà sans ses silences : le décalage ne change rien à la voie simulée."""
 		voie = VoieSimulee(self.horloge, duree)
 		self._voies.append(voie)
 		return voie
@@ -392,7 +392,7 @@ class Resultat:
 def _prochaine_echeance(
 	connexion: Connexion, diffusion: Diffusion, moteur: MoteurSimule, instant: datetime, fin: datetime
 ) -> datetime:
-	"""Le prochain instant où la diffusion peut changer : fin de voie, début de crossfade de fin, grille, silence."""
+	"""Le prochain instant où la diffusion peut changer : fin de voie, début de crossfade de fin, grille, blanc."""
 	candidats = [fin, *moteur.echeances()]
 	courant = diffusion.courant
 	if (courant is not None) and (not courant.suivant_demande) and (courant.parametres.duree is not None):
@@ -401,7 +401,7 @@ def _prochaine_echeance(
 	if changement is not None:
 		candidats.append(changement)
 	if (courant is None) and (not diffusion.sortants):
-		candidats.append(instant + ATTENTE_EN_SILENCE)
+		candidats.append(instant + ATTENTE_EN_BLANC)
 	apres = [candidat for candidat in candidats if candidat > instant]
 	if not apres:
 		return fin
@@ -441,7 +441,7 @@ def simuler(
 			instant = horloge.maintenant()
 			diffusion.pas()
 			if (diffusion.courant is None) and (not diffusion.sortants) and (diffusion.en_attente is not None):
-				# Le sonore en attente démarre au même instant, sans laisser de silence.
+				# Le sonore en attente démarre au même instant, sans laisser de blanc.
 				diffusion.pas()
 			horloge.avancer(_prochaine_echeance(connexion, diffusion, moteur, instant, fin) - instant)
 		diffusion.arreter()

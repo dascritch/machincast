@@ -204,10 +204,10 @@ Fonctionnalité: Fiche d'un sonore
 			| crossfade_fin   | 0:00:00 |
 		Et les champs saisis à la main de « Café à minuit » sont « titre », « crossfade_debut », « crossfade_fin »
 
-	# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
+	# ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───
 
-	Scénario: La détection de blanc et les blancs détectés se règlent dans la fiche, et sont marqués
-		La détection de blanc d'un sonore n'est pas activée par défaut. Un blanc décoché n'est pas détecté (NULL) : ce côté
+	Scénario: La détection de silence et les silences détectés se règlent dans la fiche, et sont marqués
+		La détection de silence d'un sonore n'est pas activée par défaut. Un silence décoché n'est pas détecté (NULL) : ce côté
 		du sonore n'est pas rogné. La fin détectée se compte depuis la fin du fichier.
 
 		Étant donné le sonore « Café à minuit » a en base :
@@ -218,23 +218,23 @@ Fonctionnalité: Fiche d'un sonore
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors la fiche du sonore montre :
 			| champ              | valeur |
-			| Détection de blanc | non    |
+			| Détection de silence | non    |
 			| Début détecté      | 0,50 s |
 			| Fin détectée       | 1,25 s |
 		Quand je saisis dans la fiche du sonore :
 			| champ              | valeur |
-			| Détection de blanc | oui    |
+			| Détection de silence | oui    |
 			| Début détecté      | 0,3    |
 			| Fin détectée       |        |
 		Et j'enregistre la fiche
 		Alors le sonore « Café à minuit » a en base :
 			| champ            | valeur         |
-			| detection_blancs | True           |
+			| detection_silences | True           |
 			| debut_detecte    | 0:00:00.300000 |
 			| fin_detectee     | None           |
-		Et les champs saisis à la main de « Café à minuit » sont « titre », « detection_blancs », « debut_detecte », « fin_detectee »
+		Et les champs saisis à la main de « Café à minuit » sont « titre », « detection_silences », « debut_detecte », « fin_detectee »
 
-	Scénario: Des blancs qui couvrent toute la durée du sonore ne sont pas enregistrés
+	Scénario: Des silences qui couvrent toute la durée du sonore ne sont pas enregistrés
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Et je saisis dans la fiche du sonore :
@@ -242,7 +242,7 @@ Fonctionnalité: Fiche d'un sonore
 			| Début détecté | 200    |
 			| Fin détectée  | 14     |
 		Et j'enregistre la fiche
-		Alors la fiche signale « Les blancs détectés doivent laisser du son : ensemble, plus courts que la durée du sonore. »
+		Alors la fiche signale « Les silences détectés doivent laisser du son : ensemble, plus courts que la durée du sonore. »
 		Et les champs signalés par ⚠️ sont « Début détecté », « Fin détectée »
 		Et le sonore « Café à minuit » a en base :
 			| champ         | valeur |
@@ -414,7 +414,7 @@ Fonctionnalité: Fiche d'un sonore
 			| Feed          |                             |
 			| Événement de secours | aucun : le fil musical      |
 		Et la fiche du sonore n'a pas d'emplacement
-		Et la fiche du sonore n'a pas de détection de blanc
+		Et la fiche du sonore n'a pas de détection de silence
 
 	Scénario: Un stream passe d'une adresse directe à un feed, et choisit son événement de secours
 		Étant donné les sonores :

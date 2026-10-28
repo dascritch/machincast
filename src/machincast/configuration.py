@@ -3,6 +3,7 @@
 Le modèle documenté clé par clé est `machincast.exemple.toml`, à la racine du dépôt.
 """
 
+import logging
 import os
 import tomllib
 from dataclasses import dataclass, field
@@ -13,6 +14,8 @@ from typing import Any, Literal, cast
 from machincast.base import LONGUEUR_TEXTE_COURT
 from machincast.lecture.fondus import ENTREE_PAR_DEFAUT, POSITIONS, SORTIE_PAR_DEFAUT, Position
 from machincast.protection import est_fichier_sonore
+
+journal = logging.getLogger(__name__)
 
 NOM_FICHIER = "machincast.toml"
 
@@ -110,25 +113,25 @@ class Crossfades:
 	granularite: Granularite = "dixieme"
 	"""Pas des crossfades dans l'interface : à la seconde ou au dixième de seconde."""
 	entree: Position = ENTREE_PAR_DEFAUT
-	"""Où le fade-in se place par rapport au début détecté d'un sonore joué sans ses blancs
+	"""Où le fade-in se place par rapport au début détecté d'un sonore joué sans ses silences
 	(https://github.com/dascritch/machincast/issues/234)."""
 	sortie: Position = SORTIE_PAR_DEFAUT
 	"""Où le fade-out se place par rapport à sa fin détectée, de même."""
 
 
-SEUIL_DE_BLANC = -40.0
-"""Seuil de blanc par défaut, en dB crête : 0 dB est la pleine échelle (https://github.com/dascritch/machincast/issues/146)."""
-SEUIL_DE_BLANC_MINIMUM = -100.0
-"""Seuil de blanc le plus bas accepté, compris ; le plus haut est 0 dB, exclu."""
+SEUIL_DE_SILENCE = -40.0
+"""Seuil de silence par défaut, en dB crête : 0 dB est la pleine échelle (https://github.com/dascritch/machincast/issues/146)."""
+SEUIL_DE_SILENCE_MINIMUM = -100.0
+"""Seuil de silence le plus bas accepté, compris ; le plus haut est 0 dB, exclu."""
 
 
 @dataclass(frozen=True)
-class Blancs:
-	"""Détection de blanc (https://github.com/dascritch/machincast/issues/146), section [blancs]."""
+class Silences:
+	"""Détection de silence (https://github.com/dascritch/machincast/issues/146), section [silences]."""
 
-	seuil: float = SEUIL_DE_BLANC
-	"""Niveau crête, en dB, sous lequel le début et la fin d'un sonore sont un blanc : l'audit complet mesure les
-	blancs à ce seuil."""
+	seuil: float = SEUIL_DE_SILENCE
+	"""Niveau crête, en dB, sous lequel le début et la fin d'un sonore sont un silence : l'audit complet mesure les
+	silences à ce seuil."""
 
 
 @dataclass(frozen=True)
@@ -158,7 +161,7 @@ class Configuration:
 	metadonnees: Metadonnees
 	lecture: Lecture
 	crossfades: Crossfades = field(default_factory=Crossfades)
-	blancs: Blancs = field(default_factory=Blancs)
+	silences: Silences = field(default_factory=Silences)
 	interface: Interface = field(default_factory=Interface)
 
 
@@ -170,9 +173,14 @@ CLES: dict[str, frozenset[str]] = {
 	"metadonnees": frozenset({"masquer", "texte_public"}),
 	"lecture": frozenset({"socket_etat"}),
 	"crossfades": frozenset({"granularite", "maximum", "debut", "fin", "position_entree", "position_sortie"}),
-	"blancs": frozenset({"seuil"}),
+	"silences": frozenset({"seuil"}),
 	"interface": frozenset({"saturation", "suggestions", "icone"}),
 }
+
+
+ANCIENNES_SECTIONS = {"blancs": "silences"}
+"""Sections renommées, encore lues sous leur ancien nom, avec un avertissement : [blancs] est devenue [silences]
+(https://github.com/dascritch/machincast/issues/291)."""
 
 
 class _Lecteur:
@@ -184,6 +192,26 @@ class _Lecteur:
 
 	def erreur(self, message: str) -> ConfigurationInvalide:
 		return ConfigurationInvalide(f"{self.chemin} : {message}")
+
+	def lire_les_anciennes_sections(self) -> None:
+		"""Une section sous son ancien nom est lue sous le nouveau, avec un avertissement ; les deux à la fois sont
+		refusées, pour ne jamais choisir entre deux valeurs."""
+		for ancienne, nouvelle in ANCIENNES_SECTIONS.items():
+			if ancienne not in self.document:
+				continue
+			if nouvelle in self.document:
+				raise self.erreur(
+					f"sections [{ancienne}] et [{nouvelle}] : [{ancienne}] est l'ancien nom de [{nouvelle}],"
+					" n'en garder qu'une"
+				)
+			self.document[nouvelle] = self.document.pop(ancienne)
+			journal.warning(
+				"%s : la section [%s] s'appelle désormais [%s], la renommer"
+				" (https://github.com/dascritch/machincast/issues/291)",
+				self.chemin,
+				ancienne,
+				nouvelle,
+			)
 
 	def verifier_cles(self) -> None:
 		for section, contenu in self.document.items():
@@ -306,17 +334,17 @@ class _Lecteur:
 			positions.append(lue)
 		return Crossfades(durees[0], durees[1], maximum, granularite, positions[0], positions[1])
 
-	def blancs(self) -> Blancs:
-		"""La section [blancs], facultative, comme sa clé."""
-		seuil = self.nombre_facultatif("blancs", "seuil")
+	def silences(self) -> Silences:
+		"""La section [silences], facultative, comme sa clé."""
+		seuil = self.nombre_facultatif("silences", "seuil")
 		if seuil is None:
-			return Blancs()
-		if not (SEUIL_DE_BLANC_MINIMUM <= seuil < 0):
+			return Silences()
+		if not (SEUIL_DE_SILENCE_MINIMUM <= seuil < 0):
 			raise self.erreur(
-				f"clé blancs.seuil : un nombre de dB de {SEUIL_DE_BLANC_MINIMUM:g} dB compris à 0 dB exclu est attendu,"
-				f" {seuil:g} trouvé"
+				f"clé silences.seuil : un nombre de dB de {SEUIL_DE_SILENCE_MINIMUM:g} dB compris à 0 dB exclu"
+				f" est attendu, {seuil:g} trouvé"
 			)
-		return Blancs(seuil)
+		return Silences(seuil)
 
 	def chemin_fichier(self, section: str, cle: str) -> Path:
 		"""Chemin absolu tel quel ; chemin relatif résolu depuis le répertoire du fichier de configuration."""
@@ -356,6 +384,7 @@ def charger(chemin: Path | None = None) -> Configuration:
 		raise ConfigurationInvalide(f"{chemin} : syntaxe TOML invalide ({erreur})") from None
 
 	lecteur = _Lecteur(chemin, document)
+	lecteur.lire_les_anciennes_sections()
 	lecteur.verifier_cles()
 
 	base = Base(
@@ -407,7 +436,7 @@ def charger(chemin: Path | None = None) -> Configuration:
 		),
 		lecture=lecture,
 		crossfades=lecteur.crossfades(),
-		blancs=lecteur.blancs(),
+		silences=lecteur.silences(),
 		interface=Interface(
 			saturation=lecteur.booleen_facultatif("interface", "saturation", True),
 			suggestions=lecteur.booleen_facultatif("interface", "suggestions", True),

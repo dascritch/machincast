@@ -86,7 +86,7 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 			configuration=configuration.chemin,
 			crossfades=configuration.crossfades,
 			audio=configuration.audio,
-			blancs=configuration.blancs,
+			silences=configuration.silences,
 			interface=configuration.interface,
 			peremption=configuration.base.peremption,
 		)

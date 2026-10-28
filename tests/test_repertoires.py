@@ -222,9 +222,9 @@ def arretee_pendant_la_verification(base_vide: Connexion, caplog: pytest.LogCapt
 	"""L'arrêt est demandé pendant le décodage du premier sonore : la vérification s'arrête avant le suivant."""
 	arret = threading.Event()
 
-	def verifier(chemin: Path, *, seuil_blancs: float | None = None) -> Verification:
+	def verifier(chemin: Path, *, seuil_silences: float | None = None) -> Verification:
 		arret.set()
-		return verifier_fichier(chemin, seuil_blancs=seuil_blancs)
+		return verifier_fichier(chemin, seuil_silences=seuil_silences)
 
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:

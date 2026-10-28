@@ -101,7 +101,7 @@ def demarrage_bloque(monkeypatch: pytest.MonkeyPatch, echecs: str | None) -> Ten
 	vraie_tentative = decodage._tentative
 
 	def tentative(
-		chemin: Path, delai_demarrage: timedelta, delai_sans_progression: timedelta, seuil_blancs: float | None = None
+		chemin: Path, delai_demarrage: timedelta, delai_sans_progression: timedelta, seuil_silences: float | None = None
 	) -> Verification | None:
 		tentatives.nombre += 1
 		if (echecs is None) or (tentatives.nombre <= int(echecs)):

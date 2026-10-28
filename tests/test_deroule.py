@@ -190,7 +190,7 @@ def derouler(contexte: Contexte, base: Connexion, lecture: Connexion, debut: dat
 	if contexte.ordonnanceur is None:
 		contexte.ordonnanceur = Ordonnanceur(lecture, creer_hasard(0))
 	en_cours: EnCours | None = None
-	en_silence = False
+	en_blanc = False
 	instant = debut
 	while instant < fin:
 		if (en_cours is not None) and (instant >= en_cours.fin_prevue):
@@ -219,11 +219,11 @@ def derouler(contexte: Contexte, base: Connexion, lecture: Connexion, debut: dat
 			en_cours = EnCours(choix.occurrence, instant, instant + contexte.durees.get(nom, contexte.duree))
 			issue = "entier" if en_cours.fin_prevue <= fin else "en cours"
 			contexte.journal.append(Ligne(f"{instant:%H:%M}", nom, choix.occurrence.evenement.nom, issue))
-			en_silence = False
-		elif (decision.silence) and (not en_silence):
+			en_blanc = False
+		elif (decision.blanc) and (not en_blanc):
 			evenement = "" if decision.occurrence is None else decision.occurrence.evenement.nom
-			contexte.journal.append(Ligne(f"{instant:%H:%M}", "silence", evenement, ""))
-			en_silence = True
+			contexte.journal.append(Ligne(f"{instant:%H:%M}", "blanc", evenement, ""))
+			en_blanc = True
 		instant += timedelta(minutes=1)
 
 

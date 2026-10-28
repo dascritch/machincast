@@ -144,15 +144,15 @@ Fonctionnalité: Mode simulation de Machin lecture
 			| 2026-10-20 20:00:50 | 2026-10-20 20:01:50 | f2    |
 			| 2026-10-20 20:01:40 | 2026-10-20 20:02:00 | f1    |
 
-	# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
-	# Un sonore est joué entre son début et sa fin détectés s'il active la détection de blanc, ou si la banque qui
+	# ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───
+	# Un sonore est joué entre son début et sa fin détectés s'il active la détection de silence, ou si la banque qui
 	# l'a fourni l'active. La fin détectée se compte depuis la fin du fichier.
 
-	Scénario: Une banque qui active la détection de blanc joue ses sonores sans leurs blancs
+	Scénario: Une banque qui active la détection de silence joue ses sonores sans leurs silences
 		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
 		Et chaque sonore dure 1 minute
-		Et chaque sonore a 5 secondes de blanc détecté au début et 10 à la fin
-		Et la banque « Titres » active la détection de blanc
+		Et chaque sonore a 5 secondes de silence détecté au début et 10 à la fin
+		Et la banque « Titres » active la détection de silence
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
 		Alors la simulation donne les passages :
 			| debut               | fin                 | titre |
@@ -160,21 +160,21 @@ Fonctionnalité: Mode simulation de Machin lecture
 			| 2026-10-20 20:00:45 | 2026-10-20 20:01:30 | f2    |
 			| 2026-10-20 20:01:30 | 2026-10-20 20:02:00 | f1    |
 
-	Scénario: Sans détection de blanc, ni par la banque ni par le sonore, les sonores sont joués en entier
+	Scénario: Sans détection de silence, ni par la banque ni par le sonore, les sonores sont joués en entier
 		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
 		Et chaque sonore dure 1 minute
-		Et chaque sonore a 5 secondes de blanc détecté au début et 10 à la fin
+		Et chaque sonore a 5 secondes de silence détecté au début et 10 à la fin
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
 		Alors la simulation donne les passages :
 			| debut               | fin                 | titre |
 			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1    |
 			| 2026-10-20 20:01:00 | 2026-10-20 20:02:00 | f2    |
 
-	Scénario: Un sonore qui active la détection de blanc est joué sans ses blancs, avec ou sans banque
+	Scénario: Un sonore qui active la détection de silence est joué sans ses silences, avec ou sans banque
 		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
 		Et chaque sonore dure 1 minute
-		Et chaque sonore a 5 secondes de blanc détecté au début et 10 à la fin
-		Et le sonore « f2 » active la détection de blanc
+		Et chaque sonore a 5 secondes de silence détecté au début et 10 à la fin
+		Et le sonore « f2 » active la détection de silence
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:03 »
 		Alors la simulation donne les passages :
 			| debut               | fin                 | titre |
@@ -183,11 +183,11 @@ Fonctionnalité: Mode simulation de Machin lecture
 			| 2026-10-20 20:01:45 | 2026-10-20 20:02:45 | f1    |
 			| 2026-10-20 20:02:45 | 2026-10-20 20:03:00 | f2    |
 
-	Scénario: Un sonore placé directement dans un événement suit son propre réglage de détection de blanc
+	Scénario: Un sonore placé directement dans un événement suit son propre réglage de détection de silence
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
 		Et chaque sonore dure 1 minute
-		Et chaque sonore a 5 secondes de blanc détecté au début et 10 à la fin
-		Et le sonore « f1 » active la détection de blanc
+		Et chaque sonore a 5 secondes de silence détecté au début et 10 à la fin
+		Et le sonore « f1 » active la détection de silence
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
 		Alors la simulation donne les passages :
 			| debut               | fin                 | titre |
@@ -195,17 +195,17 @@ Fonctionnalité: Mode simulation de Machin lecture
 			| 2026-10-20 20:00:45 | 2026-10-20 20:01:45 | f2    |
 			| 2026-10-20 20:01:45 | 2026-10-20 20:02:00 | f1    |
 
-	Scénario: Les crossfades se placent autour des blancs détectés, selon les positions par défaut
+	Scénario: Les crossfades se placent autour des silences détectés, selon les positions par défaut
 		Par défaut, le fade-in se termine au début détecté et le fade-out commence à la fin détectée
-		(https://github.com/dascritch/machincast/issues/234) : les fondus de 10 secondes débordent des blancs de 5 et 10
+		(https://github.com/dascritch/machincast/issues/234) : les fondus de 10 secondes débordent des silences de 5 et 10
 		secondes, et la lecture va d'un bout à l'autre du fichier. Les positions elles-mêmes sont essayées dans
 		position_des_fondus.feature.
 
 		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
 		Et chaque sonore dure 1 minute
-		Et chaque sonore a 5 secondes de blanc détecté au début et 10 à la fin
+		Et chaque sonore a 5 secondes de silence détecté au début et 10 à la fin
 		Et chaque sonore a 10 seconde de crossfade de début et de fin
-		Et la banque « Titres » active la détection de blanc
+		Et la banque « Titres » active la détection de silence
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
 		Alors la simulation donne les passages :
 			| debut               | fin                 | titre |
@@ -213,11 +213,11 @@ Fonctionnalité: Mode simulation de Machin lecture
 			| 2026-10-20 20:00:50 | 2026-10-20 20:01:50 | f2    |
 			| 2026-10-20 20:01:40 | 2026-10-20 20:02:00 | f1    |
 
-	Plan du scénario: Un côté sans blanc détecté n'est pas rogné, et des blancs qui couvrent tout le sonore sont ignorés
+	Plan du scénario: Un côté sans silence détecté n'est pas rogné, et des silences qui couvrent tout le sonore sont ignorés
 		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
 		Et chaque sonore dure 1 minute
-		Et chaque sonore a <blancs>
-		Et la banque « Titres » active la détection de blanc
+		Et chaque sonore a <silences>
+		Et la banque « Titres » active la détection de silence
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02:30 »
 		Alors la simulation donne les passages :
 			| debut               | fin                 | titre |
@@ -226,11 +226,11 @@ Fonctionnalité: Mode simulation de Machin lecture
 			| <fin_f2>            | 2026-10-20 20:02:30 | f1    |
 
 		Exemples:
-			| blancs                                                  | fin_f1              | fin_f2              |
-			| aucun blanc détecté                                     | 2026-10-20 20:01:00 | 2026-10-20 20:02:00 |
-			| 5 secondes de blanc détecté au début, et aucun à la fin | 2026-10-20 20:00:55 | 2026-10-20 20:01:50 |
-			| 30 secondes de blanc détecté au début et 30 à la fin    | 2026-10-20 20:01:00 | 2026-10-20 20:02:00 |
-			| 40 secondes de blanc détecté au début et 30 à la fin    | 2026-10-20 20:01:00 | 2026-10-20 20:02:00 |
+			| silences                                                  | fin_f1              | fin_f2              |
+			| aucun silence détecté                                     | 2026-10-20 20:01:00 | 2026-10-20 20:02:00 |
+			| 5 secondes de silence détecté au début, et aucun à la fin | 2026-10-20 20:00:55 | 2026-10-20 20:01:50 |
+			| 30 secondes de silence détecté au début et 30 à la fin    | 2026-10-20 20:01:00 | 2026-10-20 20:02:00 |
+			| 40 secondes de silence détecté au début et 30 à la fin    | 2026-10-20 20:01:00 | 2026-10-20 20:02:00 |
 
 	Scénario: Un stream simulé dure jusqu'à la fin de son événement, sans contacter le flux
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
@@ -274,8 +274,8 @@ Fonctionnalité: Mode simulation de Machin lecture
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
 		Et le sonore « f1 » est à l'état « desactive »
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:01 »
-		Alors la page de la simulation signale l'alerte « silence »
-		Et le journal du binaire a signalé « simulation : 2026-10-20 20:00:00 : alerte : silence »
+		Alors la page de la simulation signale l'alerte « blanc »
+		Et le journal du binaire a signalé « simulation : 2026-10-20 20:00:00 : alerte : blanc »
 
 	# ─── Ligne de commande ─────────────────────────────────────
 

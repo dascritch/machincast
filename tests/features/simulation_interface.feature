@@ -73,7 +73,7 @@ Fonctionnalité: Écran de simulation
 		Et je lance la simulation
 		Alors la simulation montre aucun passage
 		Et le compte de la simulation est « Aucun passage, 1 alerte ou incident. Rien n'a été écrit en base. »
-		Et la simulation signale « 2026-10-21 09:00:00 : alerte : silence : rien à diffuser dans le fil musical »
+		Et la simulation signale « 2026-10-21 09:00:00 : alerte : blanc : rien à diffuser dans le fil musical »
 
 	Scénario: Une fin qui ne suit pas le début ne lance rien
 		Quand la fenêtre de l'interface s'ouvre

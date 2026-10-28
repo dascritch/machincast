@@ -15,7 +15,7 @@ import threading
 import psycopg
 from psycopg.rows import TupleRow
 
-from machincast.configuration import SEUIL_DE_BLANC
+from machincast.configuration import SEUIL_DE_SILENCE
 from machincast.indexation.decodage import Verificateur, verifier_fichier
 from machincast.indexation.repertoires import indexer_repertoires, rattacher_en_attente, retirer_hors_durees
 from machincast.indexation.verification import Bilan, verifier_sonores
@@ -33,7 +33,7 @@ def indexer(
 	audit_complet: bool = False,
 	verifier: Verificateur = verifier_fichier,
 	arret: threading.Event | None = None,
-	seuil_blancs: float = SEUIL_DE_BLANC,
+	seuil_silences: float = SEUIL_DE_SILENCE,
 	forcer: bool = False,
 ) -> Bilan:
 	"""Parcourt les répertoires des banques, puis vérifie les sonores ; renvoie le bilan des deux étapes.
@@ -42,7 +42,7 @@ def indexer(
 	(https://github.com/dascritch/machincast/issues/206).
 
 	arret : une fois posé, l'indexation s'arrête après le fichier en cours ; le travail fait est gardé.
-	seuil_blancs : seuil de blanc de l'audit complet, en dB crête (https://github.com/dascritch/machincast/issues/146).
+	seuil_silences : seuil de silence de l'audit complet, en dB crête (https://github.com/dascritch/machincast/issues/146).
 	Lève IndexationEnCours si une autre indexation tourne sur la base, DecodeurIndisponible si GStreamer ne sait
 	pas décoder un format.
 	"""
@@ -55,7 +55,7 @@ def indexer(
 		bilan = Bilan(audit_complet=audit_complet)
 		parcours = indexer_repertoires(connexion, bilan, arret)
 		verifier_sonores(
-			connexion, verifier, audit_complet, bilan, arret=arret, seuil_blancs=seuil_blancs, forcer=forcer
+			connexion, verifier, audit_complet, bilan, arret=arret, seuil_silences=seuil_silences, forcer=forcer
 		)
 		# Les durées vérifiées, les sonores en attente n'entrent que dans les banques dont ils sont dans les durées,
 		# même après un arrêt (https://github.com/dascritch/machincast/issues/210) ; puis chaque banque ne garde que les
@@ -73,14 +73,14 @@ def indexer_un_sonore(
 	connexion: psycopg.Connection[TupleRow],
 	sonore: int,
 	audit_complet: bool = False,
-	seuil_blancs: float = SEUIL_DE_BLANC,
+	seuil_silences: float = SEUIL_DE_SILENCE,
 	forcer: bool = False,
 ) -> Bilan:
 	"""Machin_indexation --sonore N (https://github.com/dascritch/machincast/issues/181) : vérifie ce seul sonore, sans
 	parcours ni verrou, puis le retire des banques dont il sort des durées
 	(https://github.com/dascritch/machincast/issues/195)."""
 	bilan = verifier_sonores(
-		connexion, audit_complet=audit_complet, identifiants=[sonore], seuil_blancs=seuil_blancs, forcer=forcer
+		connexion, audit_complet=audit_complet, identifiants=[sonore], seuil_silences=seuil_silences, forcer=forcer
 	)
 	retirer_hors_durees(connexion, bilan, [sonore])
 	return bilan

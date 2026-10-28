@@ -194,25 +194,25 @@ Fonctionnalité: Fiche d'une banque
 			| maximale | 3002    |
 			| minimale | 0       |
 
-	# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ─────────────────
+	# ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ─────────────────
 
-	Scénario: Une nouvelle banque n'active pas la détection de blanc
+	Scénario: Une nouvelle banque n'active pas la détection de silence
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Banques »
 		Et je clique sur « Nouvelle banque »
-		Alors la case « détection de blanc » de la fiche est décochée
+		Alors la case « détection de silence » de la fiche est décochée
 
-	Scénario: La détection de blanc d'une banque part en base à l'enregistrement
+	Scénario: La détection de silence d'une banque part en base à l'enregistrement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
-		Alors la case « détection de blanc » de la fiche est décochée
-		Quand je coche « détection de blanc »
-		Alors la banque « Jingles » n'active pas la détection de blanc
+		Alors la case « détection de silence » de la fiche est décochée
+		Quand je coche « détection de silence »
+		Alors la banque « Jingles » n'active pas la détection de silence
 		Quand j'enregistre la fiche
-		Alors la banque « Jingles » active la détection de blanc
-		Quand je décoche « détection de blanc »
+		Alors la banque « Jingles » active la détection de silence
+		Quand je décoche « détection de silence »
 		Et j'enregistre la fiche
-		Alors la banque « Jingles » n'active pas la détection de blanc
+		Alors la banque « Jingles » n'active pas la détection de silence
 
 	# ─── Crossfades (https://github.com/dascritch/machincast/issues/143) ─────────────────────────
 

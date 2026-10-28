@@ -30,7 +30,7 @@ def secondes(texte: str) -> float:
 
 
 def facultative(texte: str) -> timedelta | None:
-	"""« 0,5 s », ou « aucun » : pas de blanc détecté de ce côté, NULL en base."""
+	"""« 0,5 s », ou « aucun » : pas de silence détecté de ce côté, NULL en base."""
 	if texte == "aucun":
 		return None
 	return timedelta(seconds=secondes(texte))
@@ -70,7 +70,7 @@ def essai(qtbot: QtBot) -> Essai:
 
 @given(
 	parsers.re(
-		r"un fichier de (?P<duree>[\d,]+) s, aux blancs de (?P<debut>[\d,]+ s|aucun) au début"
+		r"un fichier de (?P<duree>[\d,]+) s, aux silences de (?P<debut>[\d,]+ s|aucun) au début"
 		r" et (?P<fin>[\d,]+ s|aucun) à la fin, (?P<retires>retirés|joués) à l'antenne, (?P<crossfades>.+)"
 	)
 )
@@ -361,7 +361,7 @@ def sans_trou(essai: Essai, largeur: int, de: str, a: str) -> None:
 
 @then("la frise de cette forme d'onde se dessine pareil, active ou inactive")
 def pareil(essai: Essai) -> None:
-	"""Inactive, à l'arrêt, la frise ne se grise pas : sa forme d'onde, ses blancs et ses fondus gardent leurs
+	"""Inactive, à l'arrêt, la frise ne se grise pas : sa forme d'onde, ses silences et ses fondus gardent leurs
 	couleurs."""
 	assert essai.forme is not None
 	frise = Frise(essai.parent)

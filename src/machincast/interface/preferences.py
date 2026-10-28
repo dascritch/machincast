@@ -3,18 +3,18 @@
 « Préférences… », dans le menu « Fichier », ouvre FenetrePreferences. Sa page « Crossfades », la première
 (https://github.com/dascritch/machincast/issues/234), règle les crossfades : leur granularité (à la seconde ou au
 dixième de seconde), leur durée maximale, leurs durées par défaut, celles d'un sonore sans crossfade paramétré que sa
-banque ne règle pas (machincast.lecture.diffusion.crossfade), et la position des fondus par rapport aux blancs détectés
-d'un sonore joué sans eux (crossfades.position_entree et position_sortie, machincast.lecture.fondus). Une frise de
-démonstration (machincast.interface.frise) montre où tombent les fondus, sur un sonore inventé, et suit les réglages. Sa
-page « Audio » règle les périphériques de l'antenne (audio.peripherique), que Machin lecture prend à son prochain
+banque ne règle pas (machincast.lecture.diffusion.crossfade), et la position des fondus par rapport aux silences
+détectés d'un sonore joué sans eux (crossfades.position_entree et position_sortie, machincast.lecture.fondus). Une frise
+de démonstration (machincast.interface.frise) montre où tombent les fondus, sur un sonore inventé, et suit les réglages.
+Sa page « Audio » règle les périphériques de l'antenne (audio.peripherique), que Machin lecture prend à son prochain
 démarrage, et de la pré-écoute (audio.preecoute, https://github.com/dascritch/machincast/issues/116) : chacun est grisé
-dans l'autre choix ; elle règle aussi le seuil de blanc (blancs.seuil,
-https://github.com/dascritch/machincast/issues/146), que l'audit complet prend à son prochain passage. La page
-« Base » règle la durée de péremption (base.peremption, https://github.com/dascritch/machincast/issues/268), que
-Machin purge prend à son prochain passage, et que suit la fiche d'un élément supprimé. La page
-« Interface » règle l'accueil, et choisit l'icône de l'application (interface.icone,
-https://github.com/dascritch/machincast/issues/111) : une image lisible, ou celle de MachinCast ; la fenêtre principale
-la donne aussitôt à ses fenêtres et aux raccourcis déjà installés (machincast.raccourci.reecrire).
+dans l'autre choix ; elle règle aussi le seuil de silence (silences.seuil,
+https://github.com/dascritch/machincast/issues/146), que l'audit complet prend à son prochain passage. La page « Base »
+règle la durée de péremption (base.peremption, https://github.com/dascritch/machincast/issues/268), que Machin purge
+prend à son prochain passage, et que suit la fiche d'un élément supprimé. La page « Interface » règle l'accueil, et
+choisit l'icône de l'application (interface.icone, https://github.com/dascritch/machincast/issues/111) : une image
+lisible, ou celle de MachinCast ; la fenêtre principale la donne aussitôt à ses fenêtres et aux raccourcis déjà
+installés (machincast.raccourci.reecrire).
 
 - Les préférences s'enregistrent dans la section [crossfades] du fichier de configuration (ecrire), qui garde ses
   commentaires et ses autres sections : tomlkit le réécrit tel qu'il l'a lu, sauf les clés réglées. Une durée par
@@ -35,7 +35,7 @@ from PySide6.QtGui import QIcon, QStandardItemModel
 from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QVBoxLayout, QWidget
 
 from machincast import audio as sorties_audio
-from machincast.configuration import PEREMPTION, SEUIL_DE_BLANC, Crossfades, Granularite, SortieAudio
+from machincast.configuration import PEREMPTION, SEUIL_DE_SILENCE, Crossfades, Granularite, SortieAudio
 from machincast.conversion import texte_ou_rien
 from machincast.interface.application import ICONE, lisible
 from machincast.interface.frise import Frise, Plan, forme_de_demonstration
@@ -67,8 +67,8 @@ class Reglages:
 	"""audio.peripherique ; None tant qu'il n'est pas renseigné."""
 	preecoute: str
 	"""audio.preecoute."""
-	seuil_blancs: float = SEUIL_DE_BLANC
-	"""blancs.seuil, en dB crête (https://github.com/dascritch/machincast/issues/146)."""
+	seuil_silences: float = SEUIL_DE_SILENCE
+	"""silences.seuil, en dB crête (https://github.com/dascritch/machincast/issues/146)."""
 	saturation: bool = True
 	"""interface.saturation : le voyant « Saturation » de l'accueil est affiché
 	(https://github.com/dascritch/machincast/issues/191)."""
@@ -89,7 +89,7 @@ _peremption = PEREMPTION
 
 DEMONSTRATION = (30.0, 3.0, 4.0)
 """Le sonore de la frise de démonstration (https://github.com/dascritch/machincast/issues/234) : sa durée, et ses
-blancs détectés au début et à la fin, en secondes ; il est joué sans eux."""
+silences détectés au début et à la fin, en secondes ; il est joué sans eux."""
 
 
 def crossfades() -> Crossfades:
@@ -141,8 +141,9 @@ def _secondes(duree: timedelta) -> int | float:
 
 
 def ecrire(chemin: Path, reglages: Reglages) -> None:
-	"""Écrit les réglages dans les sections [crossfades], [audio], [blancs], [interface] et [base] du fichier de
-	configuration, qui garde le reste tel quel, commentaires compris."""
+	"""Écrit les réglages dans les sections [crossfades], [audio], [silences], [interface] et [base] du fichier de
+	configuration, qui garde le reste tel quel, commentaires compris. Une section [blancs], l'ancien nom de [silences],
+	est renommée."""
 	document = tomlkit.parse(chemin.read_text(encoding="utf-8"))
 	base = document["base"]
 	assert isinstance(base, tomlkit.items.Table)
@@ -169,14 +170,18 @@ def ecrire(chemin: Path, reglages: Reglages) -> None:
 				del section[cle]
 			continue
 		section[cle] = _secondes(duree)
-	if "blancs" not in document:
-		document.add("blancs", tomlkit.table())
-	blancs = document["blancs"]
-	assert isinstance(blancs, tomlkit.items.Table)
-	seuil: int | float = reglages.seuil_blancs
+	# L'ancienne section [blancs] devient [silences], commentaires compris
+	# (https://github.com/dascritch/machincast/issues/291).
+	if ("blancs" in document) and ("silences" not in document):
+		document.add("silences", document.pop("blancs"))
+	if "silences" not in document:
+		document.add("silences", tomlkit.table())
+	silences = document["silences"]
+	assert isinstance(silences, tomlkit.items.Table)
+	seuil: int | float = reglages.seuil_silences
 	if seuil == int(seuil):
 		seuil = int(seuil)
-	blancs["seuil"] = seuil
+	silences["seuil"] = seuil
 	if "interface" not in document:
 		document.add("interface", tomlkit.table())
 	section_interface = document["interface"]
@@ -217,8 +222,8 @@ class FenetrePreferences(QDialog):
 			case.setChecked(duree is not None)
 			if duree is not None:
 				champ.setValue(duree.total_seconds())
-		ui.seuil_blancs.setLocale(FRANCAIS)
-		ui.seuil_blancs.setValue(tous.seuil_blancs)
+		ui.seuil_silences.setLocale(FRANCAIS)
+		ui.seuil_silences.setValue(tous.seuil_silences)
 		ui.peremption.setValue(tous.peremption)
 		ui.saturation.setChecked(tous.saturation)
 		ui.suggestions.setChecked(tous.suggestions)
@@ -239,8 +244,8 @@ class FenetrePreferences(QDialog):
 		disposition = QVBoxLayout(ui.place_demonstration)
 		disposition.setContentsMargins(0, 0, 0, 0)
 		disposition.addWidget(self.demonstration)
-		longueur, blanc_debut, blanc_fin = DEMONSTRATION
-		self.demonstration.montrer_la_forme(forme_de_demonstration(longueur, blanc_debut, blanc_fin))
+		longueur, silence_debut, silence_fin = DEMONSTRATION
+		self.demonstration.montrer_la_forme(forme_de_demonstration(longueur, silence_debut, silence_fin))
 		for champ in (ui.debut, ui.fin):
 			champ.valueChanged.connect(self._demontrer)
 		self._demontrer()
@@ -312,13 +317,13 @@ class FenetrePreferences(QDialog):
 	def _demontrer(self) -> None:
 		"""La frise de démonstration : le sonore inventé, avec les durées par défaut saisies, même décochées, et les
 		positions choisies."""
-		duree, blanc_debut, blanc_fin = DEMONSTRATION
+		duree, silence_debut, silence_fin = DEMONSTRATION
 		entree, sortie = self._positions()
 		plan = Plan(
 			duree,
-			blanc_debut,
-			blanc_fin,
-			blancs_retires=True,
+			silence_debut,
+			silence_fin,
+			silences_retires=True,
 			crossfade_debut=self.ui.debut.value(),
 			crossfade_fin=self.ui.fin.value(),
 			position_entree=entree,
@@ -326,7 +331,7 @@ class FenetrePreferences(QDialog):
 		)
 		self.demonstration.montrer(plan, duree)
 		self.ui.legende_demonstration.setText(
-			f"Démonstration : un sonore de 30 s, aux blancs de 3 s et 4 s. {plan.resume()}"
+			f"Démonstration : un sonore de 30 s, aux silences de 3 s et 4 s. {plan.resume()}"
 		)
 
 	def _exclure(self) -> None:
@@ -354,7 +359,7 @@ class FenetrePreferences(QDialog):
 			crossfades,
 			texte_ou_rien(antenne),
 			str(ui.preecoute.currentData()),
-			round(ui.seuil_blancs.value(), 1),
+			round(ui.seuil_silences.value(), 1),
 			ui.saturation.isChecked(),
 			ui.suggestions.isChecked(),
 			self.icone,

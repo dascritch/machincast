@@ -30,9 +30,9 @@ def audit_prealable(
 	base_vide: Connexion,
 	caplog: pytest.LogCaptureFixture,
 	indexations: list[tuple[datetime, datetime]],
-	seuil_blancs: list[float],
+	seuil_silences: list[float],
 ) -> None:
-	indexer(base_vide, caplog, audit_complet=True, indexations=indexations, seuil_blancs=seuil_blancs)
+	indexer(base_vide, caplog, audit_complet=True, indexations=indexations, seuil_silences=seuil_silences)
 
 
 @when("l'indexeur fait un audit complet forcé", target_fixture="execution")
@@ -40,10 +40,10 @@ def audit_force(
 	base_vide: Connexion,
 	caplog: pytest.LogCaptureFixture,
 	indexations: list[tuple[datetime, datetime]],
-	seuil_blancs: list[float],
+	seuil_silences: list[float],
 ) -> Execution:
 	return indexer(
-		base_vide, caplog, audit_complet=True, indexations=indexations, seuil_blancs=seuil_blancs, forcer=True
+		base_vide, caplog, audit_complet=True, indexations=indexations, seuil_silences=seuil_silences, forcer=True
 	)
 
 
