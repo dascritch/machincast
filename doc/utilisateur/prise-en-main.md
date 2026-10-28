@@ -88,6 +88,7 @@ Le VU-mètre écoute le périphérique de l'antenne, quel que soit le programme 
 | --- | --- |
 | `Indisponible avec la sortie ALSA, qui n'a pas de port de monitoring.` | Rien : le poste utilise une sortie qui ne permet pas d'écouter l'antenne. L'administrateur peut passer à PipeWire ou PulseAudio. |
 | `Indisponible : périphérique de l'antenne à renseigner.` | Choisir le périphérique de l'antenne dans **Fichier → Préférences…**, page **Audio**. |
+| `Indisponible : le port de monitoring ne donne plus rien depuis 3 secondes.` | Rien : le son du poste ne donne plus l'antenne au VU-mètre, souvent au retour d'une session verrouillée ou d'un écran éteint ([#311](https://github.com/dascritch/machincast/issues/311)). Le VU-mètre ne garde pas ses derniers niveaux : il se vide, puis réessaie toutes les 5 secondes, et reprend tout seul. |
 | `Indisponible :` suivi d'une erreur | Le périphérique est débranché, ou le son du poste ne répond pas. Le VU-mètre réessaie toutes les 5 secondes. |
 
 ## Onglet Airplay
