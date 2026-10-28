@@ -16,6 +16,4 @@ Ce guide s'adresse à l'administrateur du poste de diffusion : il décrit les pr
 
 | Manque | Ticket |
 | --- | --- |
-| Archives `.tar.gz` publiées en releases | [#41](https://github.com/dascritch/machincast/issues/41) |
-| Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |

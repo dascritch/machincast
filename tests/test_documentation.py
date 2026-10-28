@@ -4,10 +4,11 @@ import re
 import shlex
 import subprocess
 import sys
+import tarfile
 import tomllib
 from pathlib import Path
 
-from pytest_bdd import scenarios, then
+from pytest_bdd import parsers, scenarios, then, when
 
 from machincast.installation import ACTIONS
 from machincast.interface import version
@@ -225,3 +226,49 @@ def version_du_projet() -> None:
 		return
 	projet = tomllib.loads(texte(RACINE / "pyproject.toml"))["project"]["version"]
 	assert numero(projet) >= numero(sections[0].version), projet
+
+
+# ─── Archive d'une release (https://github.com/dascritch/machincast/issues/41) ───
+
+
+@when("je fais l'archive de la version de pyproject.toml", target_fixture="archive")
+def faire_l_archive(tmp_path: Path) -> dict[str, tarfile.TarInfo]:
+	numero_du_projet = tomllib.loads(texte(RACINE / "pyproject.toml"))["project"]["version"]
+	chemin = tmp_path / f"machincast-{numero_du_projet}.tar.gz"
+	subprocess.run(
+		[
+			"git",
+			"-C",
+			str(RACINE),
+			"archive",
+			"--format=tar.gz",
+			f"--prefix=machincast-{numero_du_projet}/",
+			f"--output={chemin}",
+			"HEAD",
+		],
+		check=True,
+	)
+	with tarfile.open(chemin) as archive:
+		return {membre.name: membre for membre in archive.getmembers()}
+
+
+def projet() -> str:
+	return str(tomllib.loads(texte(RACINE / "pyproject.toml"))["project"]["version"])
+
+
+@then(parsers.parse("l'archive a pour répertoire « {repertoire} »"))
+def repertoire_de_l_archive(archive: dict[str, tarfile.TarInfo], repertoire: str) -> None:
+	attendu = repertoire.replace("<version>", projet())
+	assert all((nom == attendu) or (nom.startswith(f"{attendu}/")) for nom in archive), sorted(archive)[:5]
+
+
+@then(parsers.parse("l'archive contient « {nom} », exécutable"))
+def executable(archive: dict[str, tarfile.TarInfo], nom: str) -> None:
+	membre = archive[f"machincast-{projet()}/{nom}"]
+	assert membre.mode & 0o111, oct(membre.mode)
+
+
+@then(parsers.re(r"l'archive contient (?P<noms>«.+»)$"))
+def contient(archive: dict[str, tarfile.TarInfo], noms: str) -> None:
+	manquants = [nom for nom in re.findall(r"« ([^»]+) »", noms) if f"machincast-{projet()}/{nom}" not in archive]
+	assert manquants == [], manquants
