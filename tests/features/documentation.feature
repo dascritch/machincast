@@ -48,3 +48,12 @@ Fonctionnalité: Documentation d'installation et definition of done
 		Et RELEASE.md a les mêmes versions, aux mêmes dates, dans le même ordre
 		Et README.md donne la dernière version publiée et sa date
 		Et la version de pyproject.toml n'est pas plus ancienne que la dernière publiée
+
+	Scénario: L'archive d'une release contient de quoi installer MachinCast, sous un répertoire au numéro de la version
+		https://github.com/dascritch/machincast/issues/41 : l'archive se fait par git archive, comme le décrit
+		doc/developpement/release.md ; elle est faite ici du commit en cours.
+		Quand je fais l'archive de la version de pyproject.toml
+		Alors l'archive a pour répertoire « machincast-<version> »
+		Et l'archive contient « install.sh », exécutable
+		Et l'archive contient « pyproject.toml », « bin/Machin », « src/machincast/migrations/0001.schema-initial.sql », « src/machincast/interface/nouveautes.md », « machincast.exemple.toml »
+		Et l'archive contient « README.md », « INSTALL.md », « RELEASE.md », « TROUBLESHOOTING.md », « LICENSE », « doc/utilisateur/README.md », « doc/administration/README.md »

@@ -21,7 +21,7 @@ Machin --help                         # aide complète
 
 | Commande | Rôle |
 | --- | --- |
-| `Machin lecture` | Diffusion de l'antenne, normalement lancée comme service ([à venir](README.md#ce-qui-nexiste-pas-encore)). |
+| `Machin lecture` | Diffusion de l'antenne, normalement lancée comme service ([Service de diffusion](../../INSTALL.md#service-de-diffusion)). |
 | `Machin indexation` | Enregistrement des fichiers déposés dans les répertoires des banques, vérification des fichiers sonores et mise à jour de la base. |
 | `Machin interface` | Interface graphique de supervision et de programmation. Pour l'instant, son [écran par défaut](#interface-graphique--machin-interface), les [listes](../utilisateur/listes.md#listes), les fiches d'un [événement](../utilisateur/grille.md#fiche-dun-événement), d'une [séquence](../utilisateur/grille.md#fiche-dune-séquence), d'une [banque](../utilisateur/sonores.md#fiche-dune-banque) et d'un [sonore](../utilisateur/sonores.md#fiche-dun-sonore). |
 | `Machin maintenance-db` | [Maintenance de la base de production](#maintenance-de-la-base--machin-maintenance-db) : sauvegarde, vérification du schéma et des rôles, optimisation. |

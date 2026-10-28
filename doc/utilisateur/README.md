@@ -37,11 +37,11 @@ Supprimer ou déplacer un fichier reste une décision humaine, prise hors de Mac
 
 ## Ce qui n'existe pas encore
 
-MachinCast est en cours de développement. Ce qui manque encore pour l'antenne :
+Ce guide est celui de MachinCast 0.9.0, sa première version publiée, avant la 1.0 ; **Aide → Version** en donne les nouveautés. Ce qui manque encore pour l'antenne :
 
 | Manque | Ticket |
 | --- | --- |
 | Prolonger un stream dont le direct déborde | [#47](https://github.com/dascritch/machincast/issues/47) |
-| Raccourci de bureau et icône de l'interface | [#62](https://github.com/dascritch/machincast/issues/62) |
+| Écran d'analyse de la sortie audio, « Moniteur de la sortie… » du menu Maintenance | [#85](https://github.com/dascritch/machincast/issues/85) |
 
 Une idée, un problème ? **Aide → Signaler un problème…** ouvre les tickets de MachinCast.

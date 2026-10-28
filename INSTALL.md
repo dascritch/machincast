@@ -4,7 +4,7 @@ Ce document décrit l'installation de MachinCast sur un poste de diffusion, sa v
 
 Le script `install.sh` fait tout le travail. La section [Installer à la main](#installer-à-la-main) détaille chacune de ses étapes, pour qui veut les faire soi-même ou comprendre ce qu'il fait.
 
-> **État du projet** : MachinCast est en cours de développement. L'indexation vérifie les sonores, et `Machin lecture` diffuse la grille, depuis un terminal ou comme service, et l'interface graphique (`Machin interface`) n'a pas encore tous ses écrans. La section [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore) donne le ticket de chaque manque.
+> **État du projet** : MachinCast 0.9.0 est sa première version publiée, avant la 1.0 ([RELEASE.md](RELEASE.md)). L'indexation vérifie les sonores, `Machin lecture` diffuse la grille, depuis un terminal ou comme service, et l'interface graphique (`Machin interface`) la programme et la suit. Ce qui manque encore est dans les [tickets ouverts](https://github.com/dascritch/machincast/issues).
 
 ## Sommaire
 
@@ -21,7 +21,6 @@ Le script `install.sh` fait tout le travail. La section [Installer à la main](#
 - [Installer à la main](#installer-à-la-main)
 - [Désinstaller](#désinstaller)
 - [En cas de problème](#en-cas-de-problème)
-- [Ce qui n'existe pas encore](#ce-qui-nexiste-pas-encore)
 
 ## En bref
 
@@ -74,7 +73,15 @@ git clone https://github.com/dascritch/machincast.git ~/machincast
 cd ~/machincast
 ```
 
-Les archives `.tar.gz` publiées en releases sur GitHub ne sont pas encore disponibles ([#41](https://github.com/dascritch/machincast/issues/41)). Une fois publiées, elles s'utiliseront de la même façon : décompresser l'archive dans le répertoire choisi, puis lancer `./install.sh` depuis ce répertoire.
+Chaque version publiée a aussi son archive, `machincast-<version>.tar.gz`, dans les [releases du dépôt](https://github.com/dascritch/machincast/releases) ([#41](https://github.com/dascritch/machincast/issues/41)). Elle s'utilise de la même façon : la décompresser dans le répertoire choisi, puis lancer `./install.sh` depuis ce répertoire. Ses notes sont dans [RELEASE.md](RELEASE.md).
+
+```bash
+tar -xzf machincast-0.9.0.tar.gz -C ~
+mv ~/machincast-0.9.0 ~/machincast
+cd ~/machincast
+```
+
+Hors d'un dépôt git, **Aide → Version** donne la version et sa date de publication ; une mise à jour se fait alors en décompressant l'archive suivante à la place, `machincast.toml` gardé.
 
 ## Installer avec install.sh
 
@@ -444,9 +451,3 @@ Les noms de bases sont ceux du modèle : reprendre ceux de `base.production` et 
 | `Machin logs` réclame le groupe `adm` ou `systemd-journal`, ou n'affiche que des messages de son propre compte | Le groupe n'est pas encore pris en compte par la session. Si `id -nG "$(id -un)"` cite `systemd-journal` mais pas `id -nG`, l'ajout est fait : redémarrer le poste. Sinon, relancer `install.sh`. |
 
 Les messages d'information s'affichent sur la sortie standard ; les anomalies et les erreurs sur la sortie d'erreur. Chaque ligne commence par son heure, en ISO 8601, avec le décalage horaire du poste, par exemple `2026-10-23T07:55:19+02:00 sortie audio indisponible : …` ([#253](https://github.com/dascritch/machincast/issues/253)) ; le tableau ci-dessus la laisse de côté. Celles de `install.sh` commencent par `install.sh :`.
-
-## Ce qui n'existe pas encore
-
-| Manque | Ticket |
-| --- | --- |
-| Archives `.tar.gz` publiées en releases | [#41](https://github.com/dascritch/machincast/issues/41) |
