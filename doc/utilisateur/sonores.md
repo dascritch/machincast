@@ -117,7 +117,7 @@ La **fenêtre de pré-écoute** fait écouter un sonore, ou l'antenne, sur le ca
 
 Il n'y a qu'une fenêtre de pré-écoute : pré-écouter un autre sonore le met à la place du précédent. La fermer arrête la pré-écoute.
 
-**Casque qui ne répond plus.** Au retour d'un écran verrouillé ou mis en veille, le son du poste peut s'interrompre un moment : la pré-écoute s'arrête alors, et dit pourquoi (« Lecture impossible : … »). L'interface reste utilisable ; relancer la lecture une fois le son revenu ([#259](https://github.com/dascritch/machincast/issues/259)).
+**Casque qui ne répond plus.** Au retour d'un écran verrouillé ou mis en veille, le son du poste peut s'interrompre un moment : la pré-écoute s'arrête alors, et dit pourquoi (« Lecture impossible : … »). L'interface reste utilisable ; relancer la lecture une fois le son revenu ([#259](https://github.com/dascritch/machincast/issues/259)). Pour l'éviter, l'écran du poste d'antenne ne se met pas en veille ([#250](https://github.com/dascritch/machincast/issues/250), [Préparer le poste d'antenne](../../INSTALL.md#préparer-le-poste-dantenne)).
 
 ### Frise d'un fichier
 

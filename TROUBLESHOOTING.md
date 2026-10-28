@@ -34,6 +34,28 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 
 **Scénario qui le surveille** : « La liste des périphériques du poste, en boucle, ne fait jamais tomber son processus », dans `tests/features/peripheriques_liste.feature`, à chaque passage des tests.
 
+## Des sons du bureau passent à l'antenne
+
+**Symptôme** : une notification, le son d'une vidéo, d'une visioconférence ou du navigateur s'entend à l'antenne, par-dessus la diffusion.
+
+**Cause** ([#250](https://github.com/dascritch/machincast/issues/250)) : le périphérique de l'antenne est la sortie par défaut du bureau, celle de tous les programmes qui n'en choisissent pas. MachinCast n'y est pour rien : `Machin lecture` joue sur `audio.peripherique`, quelle que soit la sortie par défaut.
+
+**À vérifier** :
+
+- `pactl get-default-sink` ne doit pas donner l'identifiant de `audio.peripherique`. Sinon, choisir une autre sortie par défaut, et couper les sons de notification : voir [Préparer le poste d'antenne](INSTALL.md#préparer-le-poste-dantenne).
+- `wpctl status`, sous PipeWire, liste dans « Streams » les programmes qui jouent, et sur quelle sortie.
+
+## La pré-écoute s'arrête, ou le VU-mètre se rouvre, au retour d'un écran éteint
+
+**Symptôme** : au retour d'une session verrouillée ou d'un écran en veille, la pré-écoute s'est arrêtée (« Lecture impossible : … »), ou le VU-mètre de l'antenne dit un moment « Indisponible : le port de monitoring ne donne plus rien depuis 3 secondes. ».
+
+**Cause** : à la mise en veille de l'écran, des sorties audio disparaissent, comme celle de l'écran HDMI, et le serveur audio du poste peut interrompre les flux en cours. La pré-écoute s'arrête alors, et le dit ([#259](https://github.com/dascritch/machincast/issues/259)) ; le VU-mètre ne garde pas ses derniers niveaux, et rouvre son port toutes les 5 secondes, jusqu'à ce que le son revienne ([#311](https://github.com/dascritch/machincast/issues/311)). La diffusion n'est pas touchée.
+
+**À vérifier** :
+
+- Que l'écran du poste d'antenne ne se met pas en veille : voir [Préparer le poste d'antenne](INSTALL.md#préparer-le-poste-dantenne) ([#250](https://github.com/dascritch/machincast/issues/250)).
+- Relancer la pré-écoute une fois le son revenu. Si le VU-mètre reste indisponible plus de 10 secondes, vérifier que le serveur audio tourne (`systemctl --user status pipewire`), puis ouvrir un ticket avec la sortie console de `Machin interface`.
+
 ## Scénarios à lancer avant une version
 
 Certains scénarios ne tournent ni avec `pytest`, ni avec `bin/Machin dev-test` : ils sont lents, ou ont besoin d'un serveur à part. Ils sont marqués `@release`, et se lancent avant chaque version ([#208](https://github.com/dascritch/machincast/issues/208)), et après toute mise à jour de GStreamer ou de libsoup :

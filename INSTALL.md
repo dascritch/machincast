@@ -13,6 +13,7 @@ Le script `install.sh` fait tout le travail. La section [Installer à la main](#
 - [Récupérer MachinCast](#récupérer-machincast)
 - [Installer avec install.sh](#installer-avec-installsh)
 - [Adapter la configuration](#adapter-la-configuration)
+- [Préparer le poste d'antenne](#préparer-le-poste-dantenne)
 - [Vérifier l'installation](#vérifier-linstallation)
 - [Service de diffusion](#service-de-diffusion)
 - [Ajouter un autre compte](#ajouter-un-autre-compte)
@@ -142,6 +143,22 @@ Sans l'option `--config`, les programmes lisent toujours le `machincast.toml` du
 Machin indexation                                         # lit ~/machincast/machincast.toml
 Machin indexation --config ~/machincast/essai.toml        # lit essai.toml
 ```
+
+## Préparer le poste d'antenne
+
+Le poste qui diffuse est aussi un ordinateur de bureau : tout ce qu'il joue sur le périphérique de l'antenne part à l'antenne. Trois réglages du bureau l'évitent ([#250](https://github.com/dascritch/machincast/issues/250)). Les chemins ci-dessous sont ceux de la configuration du système de KDE Plasma, le bureau d'Ubuntu 26.04 LTS utilisé à l'antenne ; leurs noms peuvent varier d'une version ou d'un bureau à l'autre.
+
+**1. L'antenne n'est pas la sortie par défaut du bureau.** La sortie par défaut est celle de tous les programmes qui n'en choisissent pas : le navigateur, une visioconférence, un lecteur de vidéos, les sons du système. Sur l'antenne, ils passeraient à l'air. MachinCast n'en a pas besoin : `Machin lecture` joue toujours sur `audio.peripherique`, et la pré-écoute sur `audio.preecoute`, qu'ils soient ou non la sortie par défaut.
+
+- Dans **Configuration du système → Son**, page des périphériques de lecture, choisir comme sortie par défaut un autre périphérique que celui de l'antenne : le casque de la régie, ou les haut-parleurs du poste.
+- Pour vérifier, en ligne de commande : `wpctl status`, sous PipeWire, marque d'une `*` la sortie par défaut parmi les « Sinks » ; `pactl get-default-sink` donne son identifiant, à comparer à `audio.peripherique`. `wpctl set-default <numéro>` en choisit une autre, d'après les numéros de `wpctl status`.
+
+**2. Les sons de notification sont coupés.** Une notification, un message reçu, une clé USB branchée, le volume réglé au clavier font un son, sur la sortie par défaut, ou sur l'antenne si elle l'est encore :
+
+- dans **Couleurs et thèmes → Thème global → Sons du système**, décocher, en haut à droite, **Activer les sons de notification** ;
+- dans **Son**, sur la ligne **Notifications système** des flux, couper le son.
+
+**3. Pas de veille de l'écran.** Au retour d'un écran éteint, le serveur audio du poste peut interrompre un moment la pré-écoute, et le [VU-mètre](doc/utilisateur/prise-en-main.md#vu-mètre-de-lantenne) de l'antenne se rouvre ([#259](https://github.com/dascritch/machincast/issues/259), [#311](https://github.com/dascritch/machincast/issues/311)). La diffusion, elle, continue. Dans **Configuration du système → Gestion de l'énergie**, sur secteur, régler l'extinction de l'écran (**Éteindre l'écran**) sur **Jamais**. La mise en veille du poste (**Suspendre la session**) ne doit pas non plus être programmée : en veille, le poste ne diffuse plus.
 
 ## Vérifier l'installation
 
