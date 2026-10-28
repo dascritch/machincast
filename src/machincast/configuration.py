@@ -206,11 +206,8 @@ class _Lecteur:
 				)
 			self.document[nouvelle] = self.document.pop(ancienne)
 			journal.warning(
-				"%s : la section [%s] s'appelle désormais [%s], la renommer"
-				" (https://github.com/dascritch/machincast/issues/291)",
-				self.chemin,
-				ancienne,
-				nouvelle,
+				f"{self.chemin} : la section [{ancienne}] s'appelle désormais [{nouvelle}], la renommer"
+				" (https://github.com/dascritch/machincast/issues/291)"
 			)
 
 	def verifier_cles(self) -> None:
