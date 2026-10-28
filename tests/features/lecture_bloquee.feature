@@ -8,7 +8,7 @@ Fonctionnalité: Un sonore dont la lecture ne démarre pas est remplacé
 	comme 1.28 : la voie reste « en cours », sans erreur ni son. playbin3, le lecteur des voies depuis
 	https://github.com/dascritch/machincast/issues/284, ne s'est jamais bloqué ; la garde reste contre tout lecteur qui
 	ne démarre pas. Passé le délai de démarrage
-	(moteur.DELAI_DE_GARDE, 3 secondes), la voie est bloquée : la diffusion termine son passage en incident « lecture
+	(moteur.DELAI_DE_GARDE, 10 secondes), la voie est bloquée : la diffusion termine son passage en incident « lecture
 	bloquée », et joue le sonore suivant, comme après un sonore fini. Un stream n'est jamais déclaré bloqué ainsi : sa
 	connexion a son propre délai, et sa chute son repli (https://github.com/dascritch/machincast/issues/16). Les
 	scénarios tournent sur le moteur simulé, qui suit l'horloge du binaire ; le lecteur bloqué est imité.
@@ -24,9 +24,9 @@ Fonctionnalité: Un sonore dont la lecture ne démarre pas est remplacé
 		Quand la diffusion démarre sur un moteur simulé
 		Et la diffusion avance de 62 secondes
 		Alors l'airplay montre les passages « f1 », « f2 »
-		Quand la diffusion avance de 2 secondes
+		Quand la diffusion avance de 9 secondes
 		Alors l'airplay montre les passages « f1 », « f2 », « f3 »
-		Et le passage « f2 » a fini en incident « lecture bloquée » au « 2026-10-14 20:01:03 »
+		Et le passage « f2 » a fini en incident « lecture bloquée » au « 2026-10-14 20:01:10 »
 		Et le log contient 1 incident « lecture bloquée »
 
 	Scénario: Le sonore bloqué une fois rejoue normalement à son tour suivant
@@ -44,6 +44,6 @@ Fonctionnalité: Un sonore dont la lecture ne démarre pas est remplacé
 		Et l'émission « Direct » de 20:00:00 à 20:30:00, avec le sonore « Direct studio »
 		Et le lecteur du sonore « Direct studio » se bloque à son premier démarrage
 		Quand la diffusion démarre sur un moteur simulé
-		Et la diffusion avance de 10 secondes
+		Et la diffusion avance de 12 secondes
 		Alors l'airplay montre les passages « Direct studio »
 		Et le log contient 0 incident « lecture bloquée »

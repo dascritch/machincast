@@ -105,11 +105,13 @@ Fonctionnalité: Diffusion des streams
 	Scénario: Un flux qui gèle, sa connexion ouverte, est un flux tombé au bout du délai de garde, puis reprend
 		https://github.com/dascritch/machincast/issues/278 : le flux ne donne plus rien, sans fermer sa connexion, comme un
 		réseau coupé. Un flux en ligne n'est jamais gelé, même passé le délai de garde. Gelé, le stream joue encore le son
-		qu'il a reçu d'avance, puis il est tombé au bout du délai de garde, 3 secondes, le même que pour une lecture
-		bloquée, sans attendre l'erreur du lecteur, qui peut ne jamais venir. Sa sonde, gelée de même, est reprise
-		aussitôt.
+		qu'il a reçu d'avance, puis il est tombé au bout du délai de garde, le même que pour une lecture bloquée, sans
+		attendre l'erreur du lecteur, qui peut ne jamais venir. Sa sonde, gelée de même, est reprise aussitôt. Le délai de
+		garde, de 10 secondes, est réduit à 2 secondes pour le scénario ; le lecteur, lui, ne signale jamais le gel,
+		comme libsoup en HTTP/2.
 
-		Étant donné le stream « Direct studio » à l'adresse du flux « studio »
+		Étant donné un délai de garde de 2 secondes, et un lecteur qui ne signale pas un flux muet
+		Et le stream « Direct studio » à l'adresse du flux « studio »
 		Et l'émission « Direct » de 19:59:50 à 20:30:00, avec le sonore « Direct studio »
 		Quand la diffusion démarre en temps réel
 		Et la diffusion tourne pendant 4 seconde en temps réel
@@ -118,7 +120,7 @@ Fonctionnalité: Diffusion des streams
 		Et la diffusion tourne pendant 6 seconde en temps réel
 		Alors l'airplay montre « Direct studio », puis des sonores de « Continue »
 		Et le log contient 1 incident « flux tombé », qui donne l'adresse du flux « studio »
-		Et l'incident « flux tombé » dit « plus de son depuis 3 secondes, sans erreur du lecteur »
+		Et l'incident « flux tombé » dit « sans erreur du lecteur »
 		Quand le flux « studio » dégèle
 		Et la diffusion tourne pendant 4,5 seconde en temps réel
 		Et la diffusion s'arrête

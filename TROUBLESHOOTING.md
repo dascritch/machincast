@@ -11,13 +11,13 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 **Ce que fait MachinCast** :
 
 - Il lit tous ses flux en HTTP/1.1 : la variable `SOUP_FORCE_HTTP1` est posée au lancement de chacun de ses programmes. Le délai de 10 secondes de la connexion s'applique alors, et le lecteur signale le flux tombé.
-- Il tient aussi pour tombé un stream dont la lecture n'avance plus pendant **3 secondes**, le même délai de garde que pour une lecture bloquée, même si le lecteur ne signale rien. Le journal note alors `flux tombé` : « plus de son depuis 3 secondes, sans erreur du lecteur ».
+- Il tient aussi pour tombé un stream dont la lecture n'avance plus pendant **10 secondes**, le même délai de garde que pour une lecture bloquée et pour la connexion d'un flux en HTTP/1.1, même si le lecteur ne signale rien. Le journal note alors `flux tombé` : « plus de son depuis 10 secondes, sans erreur du lecteur ».
 - La reconnexion reprend le stream dès que du son revient.
 
 **À vérifier** :
 
 - La version de HTTP d'un flux : `curl -I <adresse>`. La première ligne dit `HTTP/2 200` ou `HTTP/1.1 200`.
-- Le journal pendant la panne : `Machin logs`. Un `flux tombé` doit apparaître au plus 3 à 13 secondes après la coupure, puis `reprise du flux` après son retour.
+- Le journal pendant la panne : `Machin logs`. Un `flux tombé` doit apparaître une dizaine de secondes après la coupure, un peu plus si le lecteur avait du son d'avance, puis `reprise du flux` après son retour.
 - Si l'antenne reste encore en silence sans `flux tombé`, ouvrir un ticket avec le journal, l'adresse du flux et la réponse de `curl -I`.
 
 ## Scénarios à lancer avant une version

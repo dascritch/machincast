@@ -7,11 +7,13 @@ tests/etapes_diffusion.py.
 import os
 import subprocess
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from machincast.lecture import moteur
 from tests.etapes_diffusion import Banc, Connexion, creer_sonore, heure, passages, sonore, sonores_de
 from tests.flux import ServeurDeFlux
 from tests.sons import TAGS_DE_TEST
@@ -93,6 +95,14 @@ def stream_secouru(base_vide: Connexion, nom: str, secours: str) -> None:
 @when(parsers.parse("le flux « {flux} » tombe"))
 def flux_tombe(serveur: ServeurDeFlux, flux: str) -> None:
 	serveur.en_ligne[flux] = False
+
+
+@given("un délai de garde de 2 secondes, et un lecteur qui ne signale pas un flux muet")
+def garde_courte(monkeypatch: pytest.MonkeyPatch) -> None:
+	"""Le délai de connexion de la source HTTP, d'ordinaire le délai de garde, n'expire plus : comme libsoup en HTTP/2
+	(https://github.com/dascritch/machincast/issues/278), seule la garde voit le flux gelé."""
+	monkeypatch.setattr(moteur, "DELAI_DE_GARDE", timedelta(seconds=2))
+	monkeypatch.setattr(moteur, "DELAI_CONNEXION_SECONDES", 3600)
 
 
 @when(parsers.parse("le flux « {flux} » gèle, sans fermer sa connexion"))
