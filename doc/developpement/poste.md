@@ -47,7 +47,7 @@ Sans `install.sh`, préparer la base de test à la main avec les étapes 2, 4 et
 
 ## Captures d'écran du guide de l'antenne
 
-Le [guide de l'antenne](../utilisateur/README.md) montre les écrans de l'interface ([#128](https://github.com/dascritch/machincast/issues/128)). Ses captures, dans `doc/captures`, se refont d'une commande, après un changement d'écran :
+Le [guide de l'antenne](../utilisateur/README.md) montre les écrans de l'interface ([#128](https://github.com/dascritch/machincast/issues/128)). Ses captures, dans `doc/captures`, se refont d'une commande, à la préparation d'une release seulement, sauf si le responsable du projet le demande expressément ([#208](https://github.com/dascritch/machincast/issues/208), [Publier une version](release.md)) :
 
 ```bash
 Machin dev-captures                   # dans doc/captures

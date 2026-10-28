@@ -38,3 +38,13 @@ Fonctionnalité: Documentation d'installation et definition of done
 		Alors les règles de développement ont une section « Definition of done » qui exige la documentation humaine
 		Et les impératifs de CLAUDE.md renvoient à la definition of done
 		Et le modèle de description de PR comporte la case « documentation humaine à jour »
+
+	Scénario: Les informations des versions publiées concordent : nouveautés, RELEASE.md, README.md et pyproject.toml
+		https://github.com/dascritch/machincast/issues/208 : chaque version publiée a sa section, « ## <version> — <date> »,
+		la plus récente d'abord, dans les nouveautés de l'interface et dans RELEASE.md, aux mêmes dates ; README.md donne la
+		dernière, « **Version <version>**, publiée le <date> », et pyproject.toml n'a pas de version plus ancienne. Tant
+		qu'aucune version n'est publiée, il n'y a rien à faire concorder.
+		Alors les nouveautés de l'interface ont une section par version, de la plus récente à la plus ancienne
+		Et RELEASE.md a les mêmes versions, aux mêmes dates, dans le même ordre
+		Et README.md donne la dernière version publiée et sa date
+		Et la version de pyproject.toml n'est pas plus ancienne que la dernière publiée

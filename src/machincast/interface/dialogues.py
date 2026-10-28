@@ -11,7 +11,7 @@ from pathlib import Path
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QDate, QUrl
+from PySide6.QtCore import QDate, Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
 	QCalendarWidget,
@@ -31,6 +31,7 @@ from machincast.interface.intentions import libelle
 from machincast.interface.listes import BANQUES, FEEDS, SEQUENCES, SONORES
 from machincast.interface.preferences import FenetrePreferences, Reglages
 from machincast.interface.suggestions import FenetreSuggestions, Manques, Reponse
+from machincast.interface.version import Nouveautes
 from machincast.protection import EXTENSIONS_INDEXEES
 
 
@@ -302,9 +303,27 @@ def suggerer(parent: QWidget, manques: Manques) -> Reponse:
 	return fenetre.reponse()
 
 
-def montrer_version(parent: QWidget, texte: str) -> None:
-	"""La version de MachinCast, et la date de sa dernière modification."""
-	QMessageBox.information(parent, "Version de MachinCast", texte)
+def montrer_version(parent: QWidget, texte: str, nouveautes: Nouveautes | None) -> None:
+	"""La version de MachinCast, la date de sa publication ou de sa dernière modification, et les nouveautés de la
+	version installée, si elle est publiée (https://github.com/dascritch/machincast/issues/208)."""
+	fenetre = QMessageBox(QMessageBox.Icon.Information, "Version de MachinCast", texte, parent=parent)
+	if nouveautes is not None:
+		fenetre.setTextFormat(Qt.TextFormat.MarkdownText)
+		fenetre.setText(f"{texte}\n\n### Nouveautés de la version {nouveautes.version}\n\n{nouveautes.texte}")
+	fenetre.exec()
+
+
+def montrer_nouveautes(parent: QWidget, nouveautes: Nouveautes) -> None:
+	"""Les nouveautés de la version, au premier lancement qui la découvre
+	(https://github.com/dascritch/machincast/issues/208)."""
+	fenetre = QMessageBox(
+		QMessageBox.Icon.Information,
+		f"Nouveautés de MachinCast {nouveautes.version}",
+		f"### MachinCast {nouveautes.version}, publiée le {nouveautes.publiee_le:%d/%m/%Y}\n\n{nouveautes.texte}",
+		parent=parent,
+	)
+	fenetre.setTextFormat(Qt.TextFormat.MarkdownText)
+	fenetre.exec()
 
 
 def ouvrir_page(adresse: str) -> None:

@@ -10,6 +10,7 @@ from pathlib import Path
 from pytest_bdd import scenarios, then
 
 from machincast.installation import ACTIONS
+from machincast.interface import version
 from tests.markdown import ancres_cassees, liens_casses
 
 scenarios("documentation.feature")
@@ -172,3 +173,55 @@ def modele_pr() -> None:
 	modele = RACINE / ".github" / "pull_request_template.md"
 	assert modele.exists(), "modèle de PR absent"
 	assert "- [ ] documentation humaine à jour" in texte(modele)
+
+
+# ─── Releases (https://github.com/dascritch/machincast/issues/208) ───
+
+RELEASE = RACINE / "RELEASE.md"
+README = RACINE / "README.md"
+
+
+def publiees() -> list[version.Nouveautes]:
+	return version.nouveautes(RACINE / "src" / "machincast" / "interface" / "nouveautes.md")
+
+
+def numero(texte: str) -> tuple[int, ...]:
+	"""« 0.9.0 » → (0, 9, 0) ; les suffixes (« 1.0.0rc1 ») ne comptent pas."""
+	return tuple(int(nombre) for nombre in re.findall(r"\d+", texte)[:3])
+
+
+@then("les nouveautés de l'interface ont une section par version, de la plus récente à la plus ancienne")
+def sections_ordonnees() -> None:
+	sections = publiees()
+	versions = [numero(section.version) for section in sections]
+	assert versions == sorted(set(versions), reverse=True), versions
+	jours = [section.publiee_le for section in sections]
+	assert jours == sorted(jours, reverse=True), jours
+	assert all(section.texte != "" for section in sections)
+
+
+@then("RELEASE.md a les mêmes versions, aux mêmes dates, dans le même ordre")
+def release_md() -> None:
+	attendues = [(section.version, section.publiee_le) for section in publiees()]
+	if attendues == []:
+		return
+	lues = [(section.version, section.publiee_le) for section in version.nouveautes(RELEASE)]
+	assert lues == attendues, lues
+
+
+@then("README.md donne la dernière version publiée et sa date")
+def readme_version() -> None:
+	sections = publiees()
+	if sections == []:
+		return
+	derniere = sections[0]
+	assert f"**Version {derniere.version}**, publiée le {derniere.publiee_le:%Y-%m-%d}" in texte(README)
+
+
+@then("la version de pyproject.toml n'est pas plus ancienne que la dernière publiée")
+def version_du_projet() -> None:
+	sections = publiees()
+	if sections == []:
+		return
+	projet = tomllib.loads(texte(RACINE / "pyproject.toml"))["project"]["version"]
+	assert numero(projet) >= numero(sections[0].version), projet
