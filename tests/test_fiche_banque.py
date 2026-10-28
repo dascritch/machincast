@@ -533,22 +533,22 @@ def marques(interface: Contexte, datatable: list[list[str]]) -> None:
 	assert _marques(interface) == [[sonore.strip(), infobulle.strip()] for sonore, infobulle in rangees]
 
 
-# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
+# ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───
 
 
-@when(parsers.re(r"je (?P<action>coche|décoche) « détection de blanc »"))
+@when(parsers.re(r"je (?P<action>coche|décoche) « détection de silence »"))
 def cocher_la_detection(interface: Contexte, action: str) -> None:
-	fiche(interface).ui.detection_blancs.setChecked(action == "coche")
+	fiche(interface).ui.detection_silences.setChecked(action == "coche")
 
 
-@then("la case « détection de blanc » de la fiche est décochée")
+@then("la case « détection de silence » de la fiche est décochée")
 def detection_decochee(interface: Contexte) -> None:
-	assert not fiche(interface).ui.detection_blancs.isChecked()
+	assert not fiche(interface).ui.detection_silences.isChecked()
 
 
-@then(parsers.re(r"la banque « (?P<nom>[^»]+) » (?P<verdict>active|n'active pas) la détection de blanc"))
+@then(parsers.re(r"la banque « (?P<nom>[^»]+) » (?P<verdict>active|n'active pas) la détection de silence"))
 def detection_en_base(base_vide: Connexion, nom: str, verdict: str) -> None:
-	ligne = base_vide.execute("SELECT detection_blancs FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
+	ligne = base_vide.execute("SELECT detection_silences FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
 	assert ligne == (verdict == "active",), ligne
 
 

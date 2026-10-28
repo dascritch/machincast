@@ -37,7 +37,7 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 - un **chevauchement** avec un autre événement de même priorité, occurrences récurrentes comprises : « Chevauche l'événement « Journal », de même priorité, le 21/10/2026 à 09:00. ». Seul compte ce qui chevauche à partir de maintenant : ce que la grille a déjà diffusé ne bloque rien, et un chevauchement en cours est daté de l'instant présent ;
 - une priorité changée pour un événement de secours qu'un stream désigne.
 
-**Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion : une émission vide laisse l'événement en dessous prendre le relais, sans couper le sonore en cours, et l'accueil n'annonce aucune coupure à son heure ; un fil musical vide laisse l'antenne en silence, avec une alerte. La liste des événements le montre en anomalie.
+**Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion : une émission vide laisse l'événement en dessous prendre le relais, sans couper le sonore en cours, et l'accueil n'annonce aucune coupure à son heure ; un fil musical vide laisse un blanc à l'antenne, avec une alerte. La liste des événements le montre en anomalie.
 
 **À l'antenne, aussitôt** ([#266](https://github.com/dascritch/machincast/issues/266)) : un événement enregistré, supprimé ou restauré vaut tout de suite, si la diffusion tourne. Une émission avancée coupe le sonore en cours à sa nouvelle heure ; une émission déplacée, raccourcie ou retirée change les sonores à venir de l'accueil. Un nom, un nom public ou un masquage changés ne retirent pas les sonores déjà annoncés : ils passeront comme prévu.
 
@@ -102,7 +102,7 @@ Une session sautée reste dans le calendrier, **hachurée** : à sa place, l'ant
 
 - **Période** : du début à la fin, à la minute. À l'ouverture, de l'heure qu'il est à la même heure le lendemain.
 - **Simuler** : la diffusion rejoue la période selon ses règles, à partir de l'historique réel : position dans chaque liste, cycle de chaque banque, nombre de lectures de chaque sonore. Rien n'est écrit en base, aucun son n'est joué, et l'interface reste utilisable pendant ce temps. Chaque simulation tire au hasard.
-- **Résultat** : chaque passage simulé, avec son début, sa fin, son artiste, son titre, l'emplacement de son fichier, son événement, sa séquence et sa banque ; l'artiste et le titre y sont masqués comme sur la page publique. Au-dessus, le bilan, par exemple « 68 passages, aucune alerte ni incident. Rien n'a été écrit en base. » ; en dessous, les alertes et incidents simulés, comme un silence.
+- **Résultat** : chaque passage simulé, avec son début, sa fin, son artiste, son titre, l'emplacement de son fichier, son événement, sa séquence et sa banque ; l'artiste et le titre y sont masqués comme sur la page publique. Au-dessus, le bilan, par exemple « 68 passages, aucune alerte ni incident. Rien n'a été écrit en base. » ; en dessous, les alertes et incidents simulés, comme un blanc.
 - **Exporter…** enregistre le résultat au format choisi dans le sélecteur de fichier : **Tableur CSV**, **Playlist PLS** ou **Page HTML**. Le fichier reçoit l'extension du format s'il ne l'a pas déjà : un export ne remplace jamais un fichier sonore.
 - **Échec** : une base injoignable s'affiche à la place du bilan, après « Simulation impossible : ».
 - Une nouvelle simulation remplace la précédente. Fermer l'onglet pendant une simulation l'arrête.

@@ -82,7 +82,7 @@ La fiche d'un sonore s'ouvre dans un onglet nommé « Sonore : » suivi de son t
 
 ![La fiche du sonore « Café à minuit » : son état, ses métadonnées dépliées, et ses derniers passages à l'antenne](../captures/fiche-sonore.png)
 
-**Frise** ([#223](https://github.com/dascritch/machincast/issues/223)) : en haut de la fiche d'un fichier, sur toute sa largeur, la [frise](#frise-dun-fichier) montre le fichier tel que l'antenne le jouera. Elle suit aussitôt ce qu'on change dans la fiche, avant même d'enregistrer : crossfades, blancs détectés et **Jouer sans les blancs détectés**.
+**Frise** ([#223](https://github.com/dascritch/machincast/issues/223)) : en haut de la fiche d'un fichier, sur toute sa largeur, la [frise](#frise-dun-fichier) montre le fichier tel que l'antenne le jouera. Elle suit aussitôt ce qu'on change dans la fiche, avant même d'enregistrer : crossfades, silences détectés et **Jouer sans les silences détectés**.
 
 **Encarts** : pour garder l'essentiel en vue, **Métadonnées**, **Diffusion**, **Enchainement**, **Relations** et **Fichier** s'ouvrent repliés, leur titre précédé de « ▸ ». Un clic sur le titre les déplie (« ▾ »). Les encarts dépliés sont retenus : la fiche de sonore suivante les montre dépliés de même, même après avoir relancé l'interface.
 
@@ -93,7 +93,7 @@ La fiche d'un sonore s'ouvre dans un onglet nommé « Sonore : » suivi de son t
   - **Diffusion à partir du**, **Diffusion jusqu'au** : la période de diffusion, chacune à cocher ;
   - **Maximum de lectures** : `illimité` à 0 ([Expiration des sonores](antenne.md#expiration-des-sonores)).
 - **Enchainement** :
-  - pour un fichier, **Jouer sans les blancs détectés**, et le **début** et la **fin détectés**, en secondes, mesurés par l'audit complet et corrigibles à la main ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)) ;
+  - pour un fichier, **Jouer sans les silences détectés**, et le **début** et la **fin détectés**, en secondes, mesurés par l'audit complet et corrigibles à la main ([Silences au début et à la fin](antenne.md#silences-au-début-et-à-la-fin)) ;
   - **Crossfade de début** et **Crossfade de fin**, à cocher, chacun réglé d'un curseur de 0 à la durée maximale des [préférences](prise-en-main.md#préférences), 10 secondes par défaut, sa valeur écrite à droite : décochés, ils viennent de la banque ou des préférences ([Enchaînements](antenne.md#enchaînements)) ; 0 seconde est un crossfade paramétré.
 - **Stream** : l'**adresse directe** ou un **feed**, et l'**événement de secours** ([Streams](antenne.md#streams)). **Tester le flux** se connecte à l'adresse saisie et dit, par exemple, `Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 128 kbit/s.` : le type du flux et son débit ([#223](https://github.com/dascritch/machincast/issues/223)), ou pourquoi il ne répond pas. Rien n'est joué à l'antenne.
 - **Relations** : les séquences, banques et événements qui citent le sonore ; un double-clic ouvre leur fiche. Une banque dont le sonore sort des durées y a l'icône d'avertissement, avec une infobulle qui dit pourquoi.
@@ -102,7 +102,7 @@ La fiche d'un sonore s'ouvre dans un onglet nommé « Sonore : » suivi de son t
 
 **Saisi à la main** : chaque champ modifié est noté comme saisi à la main, et la fiche en donne la liste : les tags ne l'écraseront plus.
 
-**Boutons** : **Pré-écoute…** fait écouter le sonore ([Pré-écoute](#pré-écoute)). **Vérification complète** vérifie le fichier en entier et mesure ses blancs, sans attendre la prochaine indexation, puis propose de **Rafraîchir** la fiche pour voir le résultat. Un fichier déjà vérifié ainsi, qui n'a pas changé depuis, n'est pas relu : la barre d'état dit `Déjà audité au seuil de -40 dB, fichier inchangé`.
+**Boutons** : **Pré-écoute…** fait écouter le sonore ([Pré-écoute](#pré-écoute)). **Vérification complète** vérifie le fichier en entier et mesure ses silences, sans attendre la prochaine indexation, puis propose de **Rafraîchir** la fiche pour voir le résultat. Un fichier déjà vérifié ainsi, qui n'a pas changé depuis, n'est pas relu : la barre d'état dit `Déjà audité au seuil de -40 dB, fichier inchangé`.
 
 ## Pré-écoute
 
@@ -123,11 +123,11 @@ Il n'y a qu'une fenêtre de pré-écoute : pré-écouter un autre sonore le met 
 
 Un fichier a une **frise** ([#224](https://github.com/dascritch/machincast/issues/224)), qui s'étend sur toute sa durée. Un stream, ou l'antenne, n'en a pas.
 
-![La pré-écoute d'un fichier, en pause : sa forme d'onde, ses blancs hachurés aux deux bouts, ses fondus d'entrée et de sortie, et la partie jouée à l'antenne](../captures/preecoute-fichier.png)
+![La pré-écoute d'un fichier, en pause : sa forme d'onde, ses silences hachurés aux deux bouts, ses fondus d'entrée et de sortie, et la partie jouée à l'antenne](../captures/preecoute-fichier.png)
 
 - **Forme d'onde** : elle se dessine dès l'ouverture, au fil du décodage du fichier, sans faire attendre la fenêtre. En clair, les **crêtes** du signal ; par-dessus, plus foncé, son **niveau moyen** ([#223](https://github.com/dascritch/machincast/issues/223)) : un passage fort mais peu dense a des crêtes hautes et un niveau moyen bas.
-- **Blancs** au début et à la fin, tels que la dernière vérification complète les a mesurés ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)) : **hachures serrées** s'ils sont retirés à l'antenne, **hachures pâles** s'ils y sont joués. Un fichier jamais vérifié le dit, sous la frise : « blancs jamais mesurés ».
-- **Fondus** : le crossfade de début monte, celui de fin descend, placés autour des blancs retirés selon les [positions des fondus](antenne.md#blancs-au-début-et-à-la-fin) ([#234](https://github.com/dascritch/machincast/issues/234)) ; l'infobulle dit la position (« se termine au début détecté »). Un fondu qui déborde du fichier part, ou s'arrête, en cours de route. Un crossfade non renseigné dans la fiche est celui des préférences, marqué « (défaut) » dans l'infobulle.
+- **Silences** au début et à la fin, tels que la dernière vérification complète les a mesurés ([Silences au début et à la fin](antenne.md#silences-au-début-et-à-la-fin)) : **hachures serrées** s'ils sont retirés à l'antenne, **hachures pâles** s'ils y sont joués. Un fichier jamais vérifié le dit, sous la frise : « silences jamais mesurés ».
+- **Fondus** : le crossfade de début monte, celui de fin descend, placés autour des silences retirés selon les [positions des fondus](antenne.md#silences-au-début-et-à-la-fin) ([#234](https://github.com/dascritch/machincast/issues/234)) ; l'infobulle dit la position (« se termine au début détecté »). Un fondu qui déborde du fichier part, ou s'arrête, en cours de route. Un crossfade non renseigné dans la fiche est celui des préférences, marqué « (défaut) » dans l'infobulle.
 - **Tête de lecture** : un clic sur la frise y place la lecture, comme un glissement une fois relâché. Les flèches du clavier la déplacent d'une seconde. L'infobulle nomme ce qui est sous la souris.
 
 Sous la frise :
@@ -136,7 +136,7 @@ Sous la frise :
 - **Début joué** lance la lecture au début de cette partie ; **Fin jouée**, 5 secondes avant le fondu de sortie, pour entendre arriver l'enchaînement ;
 - **Écouter comme à l'antenne** ne joue que cette partie, avec ses fondus.
 
-La frise montre ce qui est enregistré : enregistrer la fiche avant de pré-écouter un réglage. Elle ne connaît pas la banque par laquelle passera le sonore : une banque qui impose ses crossfades, ou retire les blancs, n'y apparaît pas. Sur l'accueil, la même frise montre le sonore en cours et le prochain, tels que l'antenne les joue, règles de leur banque comprises ([Accueil](prise-en-main.md#accueil)).
+La frise montre ce qui est enregistré : enregistrer la fiche avant de pré-écouter un réglage. Elle ne connaît pas la banque par laquelle passera le sonore : une banque qui impose ses crossfades, ou retire les silences, n'y apparaît pas. Sur l'accueil, la même frise montre le sonore en cours et le prochain, tels que l'antenne les joue, règles de leur banque comprises ([Accueil](prise-en-main.md#accueil)).
 
 ## Fiche d'une banque
 
@@ -151,7 +151,7 @@ La fiche d'une banque s'ouvre dans un onglet nommé « Banque : » suivi de son 
 | Mode | `Séquentielle` : les sonores passent dans l'ordre de la liste. `Aléatoire` : au hasard ([Quel sonore une banque fournit](antenne.md#quel-sonore-une-banque-fournit)). |
 | Artiste et titre | `Masqués` ou `Affichés` sur la page publique, sauf si l'événement ou la séquence en décide ; `Hérité du sonore` laisse décider le sonore. |
 | Ne pas répéter | La banque ne passe jamais deux fois de suite. |
-| Détection de blanc | Cochée, les sonores joués par la banque le sont sans leurs blancs ([Blancs au début et à la fin](antenne.md#blancs-au-début-et-à-la-fin)). |
+| Détection de silence | Cochée, les sonores joués par la banque le sont sans leurs silences ([Silences au début et à la fin](antenne.md#silences-au-début-et-à-la-fin)). |
 | Durée minimale, durée maximale des sonores | Facultatives : pour ne pas confondre un mix, une chanson et une publicité. Un sonore qui en sort est marqué dans cette fiche seulement, avec une infobulle (« 3:20 : plus court que le minimum de la banque, 3:30. »), et la prochaine indexation l'en retire, même ajouté à la main. Un nouveau fichier qui en sort n'y entre jamais. |
 | Crossfade de début, crossfade de fin | Pour les sonores joués par la banque : `Garder ceux des sonores` ; `Appliquer si le sonore n'en a pas` ; `Imposer à tous les sonores`. |
 
@@ -181,7 +181,7 @@ Alimenter une banque se limite à déposer des fichiers dans l'un de ses répert
 L'**indexation** enregistre les fichiers déposés dans les répertoires des banques, et vérifie les sonores. Le menu **Maintenance** la lance :
 
 - **Indexation rapide** : les nouveaux fichiers des banques sont enregistrés et vérifiés, ceux qui ont changé sont revérifiés, et la présence des autres est contrôlée. À lancer après avoir déposé des fichiers.
-- **Audit complet** : tous les fichiers sont vérifiés en entier, et leurs blancs mesurés. Plus long, il repère aussi un fichier abîmé sans que sa date ni sa taille aient changé. À lancer après la première indexation, après avoir changé le seuil de blanc, puis de temps en temps.
+- **Audit complet** : tous les fichiers sont vérifiés en entier, et leurs silences mesurés. Plus long, il repère aussi un fichier abîmé sans que sa date ni sa taille aient changé. À lancer après la première indexation, après avoir changé le seuil de silence, puis de temps en temps.
 
 Pour ne vérifier que quelques sonores en entier, sans tout auditer, le clic droit dans les listes Sonores ou Banques propose **Demander un audit complet** : la prochaine indexation, même rapide, s'en charge ([Agir sur plusieurs sonores ou banques](listes.md#agir-sur-plusieurs-sonores-ou-banques)).
 

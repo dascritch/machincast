@@ -1,4 +1,4 @@
-"""Scénarios de la position des fondus par rapport aux blancs détectés
+"""Scénarios de la position des fondus par rapport aux silences détectés
 (https://github.com/dascritch/machincast/issues/234).
 
 Le placement s'essaie seul (machincast.lecture.fondus.placer) ; la diffusion, par les paramètres de lecture qu'elle lit
@@ -33,7 +33,7 @@ class Essai:
 	duree: timedelta = timedelta(0)
 	debut: timedelta | None = None
 	fin: timedelta | None = None
-	sans_blancs: bool = True
+	sans_silences: bool = True
 	crossfades: tuple[timedelta, timedelta] = (timedelta(0), timedelta(0))
 	placement: Placement | None = None
 	sonores: dict[str, int] = field(default_factory=dict)
@@ -51,7 +51,7 @@ def secondes(texte: str) -> float:
 	return float(texte.replace(",", ".").removesuffix(" s"))
 
 
-def blanc(texte: str) -> timedelta | None:
+def silence(texte: str) -> timedelta | None:
 	if texte == "aucun":
 		return None
 	return timedelta(seconds=secondes(texte))
@@ -62,14 +62,14 @@ def blanc(texte: str) -> timedelta | None:
 
 @given(
 	parsers.re(
-		r"un fichier de (?P<duree>\d+) secondes, aux blancs détectés de (?P<debut>[\d,]+ s|aucun) au début et"
-		r" (?P<fin>[\d,]+ s|aucun) à la fin, (?P<joue>sans|avec) ses blancs"
+		r"un fichier de (?P<duree>\d+) secondes, aux silences détectés de (?P<debut>[\d,]+ s|aucun) au début et"
+		r" (?P<fin>[\d,]+ s|aucun) à la fin, (?P<joue>sans|avec) ses silences"
 	)
 )
 def fichier(essai: Essai, duree: str, debut: str, fin: str, joue: str) -> None:
 	essai.duree = timedelta(seconds=int(duree))
-	essai.debut, essai.fin = blanc(debut), blanc(fin)
-	essai.sans_blancs = joue == "sans"
+	essai.debut, essai.fin = silence(debut), silence(fin)
+	essai.sans_silences = joue == "sans"
 
 
 @given(parsers.parse("des crossfades de {debut:d} secondes au début et {fin:d} à la fin"))
@@ -85,7 +85,7 @@ def crossfades(essai: Essai, debut: int, fin: int) -> None:
 )
 def placer_les_fondus(essai: Essai, entree: str, sortie: str) -> None:
 	essai.placement = placer(
-		essai.duree, essai.debut, essai.fin, essai.sans_blancs, *essai.crossfades, POSITION[entree], POSITION[sortie]
+		essai.duree, essai.debut, essai.fin, essai.sans_silences, *essai.crossfades, POSITION[entree], POSITION[sortie]
 	)
 
 
@@ -129,14 +129,14 @@ def cle_de_configuration(libelle: str, cle: str) -> None:
 
 @given(
 	parsers.re(
-		r"le sonore « (?P<titre>[^»]+) », de (?P<duree>\d+) secondes, aux blancs détectés de (?P<debut>[\d,]+) s au"
-		r" début et (?P<fin>[\d,]+) s à la fin, qui active la détection de blanc, avec des crossfades de"
+		r"le sonore « (?P<titre>[^»]+) », de (?P<duree>\d+) secondes, aux silences détectés de (?P<debut>[\d,]+) s au"
+		r" début et (?P<fin>[\d,]+) s à la fin, qui active la détection de silence, avec des crossfades de"
 		r" (?P<cd>\d+) secondes au début et (?P<cf>\d+) à la fin"
 	)
 )
 def sonore(essai: Essai, base_vide: Connexion, titre: str, duree: str, debut: str, fin: str, cd: str, cf: str) -> None:
 	ligne = base_vide.execute(
-		"INSERT INTO sonores (type, emplacement, titre, etat, duree, debut_detecte, fin_detectee, detection_blancs,"
+		"INSERT INTO sonores (type, emplacement, titre, etat, duree, debut_detecte, fin_detectee, detection_silences,"
 		" crossfade_debut, crossfade_fin) VALUES ('fichier', %s, %s, 'actif', %s, %s, %s, true, %s, %s) RETURNING id",
 		(
 			f"/srv/musique/{titre}.flac",

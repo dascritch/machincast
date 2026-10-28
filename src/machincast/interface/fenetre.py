@@ -52,11 +52,11 @@ from machincast import raccourci, service
 from machincast.configuration import (
 	PEREMPTION,
 	Audio,
-	Blancs,
 	ConfigurationInvalide,
 	Crossfades,
 	Interface,
 	Metadonnees,
+	Silences,
 	charger,
 )
 from machincast.horloge import Horloge
@@ -178,14 +178,14 @@ class FenetrePrincipale(QMainWindow):
 		crossfades: Crossfades | None = None,
 		*,
 		audio: Audio,
-		blancs: Blancs | None = None,
+		silences: Silences | None = None,
 		interface: Interface | None = None,
 		peremption: int = PEREMPTION,
 	) -> None:
 		"""commande_indexation : Machin indexation, avec la configuration de l'interface
 		(indexation.commande_indexation). configuration : le fichier où « Préférences… » enregistre les réglages,
 		crossfades ceux qu'il donne (https://github.com/dascritch/machincast/issues/145) ; sans fichier, les
-		préférences ne s'enregistrent pas. blancs : la détection de blanc qu'il donne
+		préférences ne s'enregistrent pas. silences : la détection de silence qu'il donne
 		(https://github.com/dascritch/machincast/issues/146). interface : ses réglages de l'interface, le voyant
 		« Saturation » de l'accueil (https://github.com/dascritch/machincast/issues/191)."""
 		super().__init__(parent)
@@ -196,7 +196,7 @@ class FenetrePrincipale(QMainWindow):
 		"""La fenêtre de pré-écoute, une seule pour toute l'interface, créée à sa première demande."""
 		preferences.definir((crossfades) or (Crossfades()))
 		preferences.definir_peremption(peremption)
-		self.seuil_blancs = ((blancs) or (Blancs())).seuil
+		self.seuil_silences = ((silences) or (Silences())).seuil
 		self.saturation = ((interface) or (Interface())).saturation
 		"""Le voyant « Saturation » de l'accueil est affiché (https://github.com/dascritch/machincast/issues/191)."""
 		self.suggestions = ((interface) or (Interface())).suggestions
@@ -204,7 +204,7 @@ class FenetrePrincipale(QMainWindow):
 		"""L'icône choisie pour l'application ; None : celle de MachinCast
 		(https://github.com/dascritch/machincast/issues/111)."""
 		"""Au lancement, proposer ce qui manque pour démarrer (https://github.com/dascritch/machincast/issues/119)."""
-		"""Seuil de blanc du fichier de configuration, que montrent les préférences."""
+		"""Seuil de silence du fichier de configuration, que montrent les préférences."""
 		self.connexion = connexion
 		self.horloge = horloge
 		self.ui = Ui_FenetrePrincipale()
@@ -579,9 +579,9 @@ class FenetrePrincipale(QMainWindow):
 		fiche.copier(identifiant)
 
 	def _verifier_completement(self, fiche: FicheSonore, sonore: int) -> None:
-		"""L'audit complet du sonore, au seuil de blanc de la configuration ; sa fiche attend."""
+		"""L'audit complet du sonore, au seuil de silence de la configuration ; sa fiche attend."""
 		fiche.attendre_la_verification()
-		self.verification_complete.lancer(sonore, self.seuil_blancs)
+		self.verification_complete.lancer(sonore, self.seuil_silences)
 
 	def _verification_complete_terminee(self, sonore: int, texte: str) -> None:
 		"""La barre d'état le dit ; la fiche du sonore, encore ouverte, propose de se rafraîchir."""
@@ -913,7 +913,7 @@ class FenetrePrincipale(QMainWindow):
 			preferences.crossfades(),
 			audio.peripherique,
 			audio.preecoute,
-			self.seuil_blancs,
+			self.seuil_silences,
 			self.saturation,
 			self.suggestions,
 			self.icone,
@@ -929,7 +929,7 @@ class FenetrePrincipale(QMainWindow):
 			return
 		preferences.definir(reglages.crossfades)
 		preferences.definir_peremption(reglages.peremption)
-		self.seuil_blancs = reglages.seuil_blancs
+		self.seuil_silences = reglages.seuil_silences
 		self.saturation = reglages.saturation
 		self.suggestions = reglages.suggestions
 		self.accueil.montrer_la_saturation(self.saturation)

@@ -17,7 +17,7 @@ permet, comme « default » avec dmix).
   et s'arrête d'elle-même à la fin du fondu (eteindre). La source ne retente pas seule une connexion perdue : la
   diffusion s'en charge.
 
-Sonore rogné par la détection de blanc (https://github.com/dascritch/machincast/issues/146) : la voie commence à
+Sonore rogné par la détection de silence (https://github.com/dascritch/machincast/issues/146) : la voie commence à
 decalage secondes du début du fichier (son début détecté) et s'arrête d'elle-même après duree secondes (à sa fin
 détectée), par une recherche (seek) qui borne la lecture du fichier. La position de la voie, l'enveloppe et les fondus
 se comptent depuis ce début : le fichier n'est jamais modifié.
@@ -135,7 +135,7 @@ class Voie:
 		depart, arrivee : volumes au début et à la fin de la voie, quand ses fondus débordent du fichier
 		(https://github.com/dascritch/machincast/issues/234, machincast.lecture.fondus).
 
-		decalage : pour un sonore rogné par la détection de blanc, la voie commence à cette position du fichier, et
+		decalage : pour un sonore rogné par la détection de silence, la voie commence à cette position du fichier, et
 		s'arrête après duree (https://github.com/dascritch/machincast/issues/146) ; None : le fichier est joué en
 		entier."""
 		Gst.init(None)

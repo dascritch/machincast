@@ -4,8 +4,8 @@ Deux modes (https://github.com/dascritch/machincast/issues/69) :
 
 - indexation rapide, par défaut : seuls les sonores en aperçu (fichiers nouveaux, jamais vérifiés) sont décodés ;
   pour les autres, seule la présence du fichier est contrôlée, sans décodage ;
-- audit complet : chaque sonore de type fichier est décodé en entier, blancs mesurés, sauf s'il a déjà été audité au
-  même seuil de blanc et que son fichier n'a pas changé depuis (https://github.com/dascritch/machincast/issues/206) :
+- audit complet : chaque sonore de type fichier est décodé en entier, silences mesurés, sauf s'il a déjà été audité au
+  même seuil de silence et que son fichier n'a pas changé depuis (https://github.com/dascritch/machincast/issues/206) :
   sonores.audite_le et sonores.audit_seuil gardent son dernier audit ; forcer décode tout.
 
 Les streams ne sont jamais vérifiés. Un fichier sain enregistre sa durée, la date de modification et la taille
@@ -37,7 +37,7 @@ import psycopg
 from psycopg.rows import TupleRow
 from psycopg.types.json import Jsonb
 
-from machincast.configuration import SEUIL_DE_BLANC
+from machincast.configuration import SEUIL_DE_SILENCE
 from machincast.conversion import duree_ou_rien, liste_ou_rien
 from machincast.empreinte import etat_du_fichier, modifie
 from machincast.indexation.audit import Anomalie
@@ -152,7 +152,7 @@ def verifier_sonores(
 	bilan: Bilan | None = None,
 	identifiants: Collection[int] | None = None,
 	arret: threading.Event | None = None,
-	seuil_blancs: float = SEUIL_DE_BLANC,
+	seuil_silences: float = SEUIL_DE_SILENCE,
 	forcer: bool = False,
 ) -> Bilan:
 	"""Vérifie les sonores de type fichier ; chaque sonore est enregistré dans sa propre transaction.
@@ -163,7 +163,7 @@ def verifier_sonores(
 	En indexation rapide, seuls les sonores en aperçu, et ceux dont le fichier a changé depuis sa dernière
 	vérification (date de modification ou taille), sont décodés ; pour les autres, un fichier disparu est quand même
 	repéré. En audit complet, tous sont décodés. Un sonore dont l'interface a demandé l'audit complet
-	(sonores.audit_demande, https://github.com/dascritch/machincast/issues/114) est audité en entier, blancs compris,
+	(sonores.audit_demande, https://github.com/dascritch/machincast/issues/114) est audité en entier, silences compris,
 	même en indexation rapide ; sa marque s'efface dès que son fichier est trouvé et vérifié.
 
 	identifiants : seuls ces sonores, pour la vérification immédiate des fichiers que l'interface ajoute
@@ -171,7 +171,7 @@ def verifier_sonores(
 
 	arret : une fois posé, la vérification s'arrête avant le sonore suivant.
 
-	seuil_blancs : en audit complet, le décodage d'un fichier sain mesure ses blancs à ce seuil, en dB crête, et les
+	seuil_silences : en audit complet, le décodage d'un fichier sain mesure ses silences à ce seuil, en dB crête, et les
 	enregistre, sauf ceux saisis à la main (https://github.com/dascritch/machincast/issues/146). L'indexation rapide ne
 	les mesure que pour les sonores dont l'audit complet est demandé.
 
@@ -218,7 +218,7 @@ def verifier_sonores(
 		if (
 			(audite)
 			and (not forcer)
-			and (deja_audite(chemin, modifie_avant, taille_avant, audite_le, audit_seuil, seuil_blancs))
+			and (deja_audite(chemin, modifie_avant, taille_avant, audite_le, audit_seuil, seuil_silences))
 		):
 			audite = False
 			bilan.deja_audites.append(int(str(identifiant)))
@@ -237,7 +237,7 @@ def verifier_sonores(
 				EtatFichier.NON_SUPPORTE, f"de type {type_du_fichier}, ce n'est pas un fichier sonore"
 			)
 		elif audite:
-			resultat = verifier(chemin, seuil_blancs=seuil_blancs)
+			resultat = verifier(chemin, seuil_silences=seuil_silences)
 		else:
 			resultat = verifier(chemin)
 		apres = nouvel_etat(avant, resultat.etat)
@@ -251,12 +251,12 @@ def verifier_sonores(
 			artiste = artiste if "artiste" in champs_edites else resultat.tags.artiste
 			titre = titre if "titre" in champs_edites else resultat.tags.titre
 			metadonnees = fusionner(dict(metadonnees), resultat.tags.metadonnees, list(champs_edites))
-		# Les blancs mesurés remplacent ceux en base, sauf ceux saisis à la main ; sans mesure, rien ne change.
-		if (sain) and (resultat.blancs is not None):
+		# Les silences mesurés remplacent ceux en base, sauf ceux saisis à la main ; sans mesure, rien ne change.
+		if (sain) and (resultat.silences is not None):
 			if "debut_detecte" not in champs_edites:
-				debut_detecte = resultat.blancs.debut
+				debut_detecte = resultat.silences.debut
 			if "fin_detectee" not in champs_edites:
-				fin_detectee = resultat.blancs.fin
+				fin_detectee = resultat.silences.fin
 		with connexion.transaction():
 			# Un fichier introuvable garde la date et la taille de son dernier passage.
 			connexion.execute(
@@ -290,7 +290,7 @@ def verifier_sonores(
 					# Un audit complet d'un fichier trouvé est retenu, avec son seuil, quel que soit le verdict.
 					(audite) and (fichier is not None),
 					(audite) and (fichier is not None),
-					seuil_blancs,
+					seuil_silences,
 					apres is EtatSonore.SUPPRIME,
 					identifiant,
 				),
@@ -316,7 +316,7 @@ def verifier_sonores(
 		else:
 			journal.info(f"{emplacement} : {_sain(artiste, titre)} ; {_consequence(avant, apres)}")
 	if bilan.deja_audites:
-		journal.info(_deja_audites(len(bilan.deja_audites), seuil_blancs))
+		journal.info(_deja_audites(len(bilan.deja_audites), seuil_silences))
 	return bilan
 
 
@@ -333,7 +333,7 @@ def deja_audite(
 
 
 def texte_du_seuil(seuil: float) -> str:
-	"""« -40 », « -55,5 » : un seuil de blanc, en dB, à la française."""
+	"""« -40 », « -55,5 » : un seuil de silence, en dB, à la française."""
 	return f"{seuil:g}".replace(".", ",")
 
 

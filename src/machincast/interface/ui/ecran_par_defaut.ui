@@ -112,7 +112,7 @@
         <item>
          <widget class="QWidget" name="place_frise_en_cours" native="true">
           <property name="toolTip">
-           <string>Forme d'onde, blancs et fondus du sonore en cours, tels que la diffusion le joue</string>
+           <string>Forme d'onde, silences et fondus du sonore en cours, tels que la diffusion le joue</string>
           </property>
           <property name="minimumSize">
            <size>
@@ -388,7 +388,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QLabel" name="voyant_silence">
+         <widget class="QLabel" name="voyant_blanc">
           <property name="font">
            <font>
             <pointsize>7</pointsize>
@@ -398,7 +398,7 @@
            <string>Plus de 5 secondes sous -50 dBFS</string>
           </property>
           <property name="text">
-           <string>Silence</string>
+           <string>Blanc</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -427,7 +427,7 @@
         <item>
          <widget class="QWidget" name="place_frise_prochain" native="true">
           <property name="toolTip">
-           <string>Forme d'onde, blancs et fondus du prochain sonore, tels que la diffusion le jouera</string>
+           <string>Forme d'onde, silences et fondus du prochain sonore, tels que la diffusion le jouera</string>
           </property>
           <property name="minimumSize">
            <size>

@@ -217,7 +217,7 @@ class Ui_FenetrePreecoute(object):
         self.arret.setText(QCoreApplication.translate("FenetrePreecoute", u"\u23f9", None))
         self.temps.setText(QCoreApplication.translate("FenetrePreecoute", u"\u2014", None))
 #if QT_CONFIG(tooltip)
-        self.plage.setToolTip(QCoreApplication.translate("FenetrePreecoute", u"Partie du fichier jou\u00e9e \u00e0 l'antenne, sans ses blancs s'ils y sont retir\u00e9s", None))
+        self.plage.setToolTip(QCoreApplication.translate("FenetrePreecoute", u"Partie du fichier jou\u00e9e \u00e0 l'antenne, sans ses silences s'ils y sont retir\u00e9s", None))
 #endif // QT_CONFIG(tooltip)
         self.plage.setText("")
 #if QT_CONFIG(tooltip)

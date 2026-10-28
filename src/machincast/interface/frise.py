@@ -2,9 +2,9 @@
 
 La frise remplace la barre de position de la pré-écoute d'un fichier. Elle s'étend sur toute la durée du fichier :
 
-- Plan : ce que l'antenne fera du fichier, d'après la base. Ses blancs détectés (debut_detecte, fin_detectee,
+- Plan : ce que l'antenne fera du fichier, d'après la base. Ses silences détectés (debut_detecte, fin_detectee,
   https://github.com/dascritch/machincast/issues/146), retirés s'il active la détection ; la partie jouée et ses
-  fondus, placés autour des blancs comme la diffusion les place (machincast.lecture.fondus.placer, selon les positions
+  fondus, placés autour des silences comme la diffusion les place (machincast.lecture.fondus.placer, selon les positions
   des fondus, https://github.com/dascritch/machincast/issues/234) ; ses crossfades, ceux des préférences pour un
   crossfade non paramétré (machincast.lecture.diffusion.crossfade), et le volume de l'écoute comme à l'antenne, le
   long de l'enveloppe de la diffusion (machincast.lecture.moteur.enveloppe). Ouverte depuis une fiche, la pré-écoute
@@ -12,8 +12,8 @@ La frise remplace la barre de position de la pré-écoute d'un fichier. Elle s'�
 - FormeDOnde : la forme d'onde, calculée en tâche de fond par un pipeline GStreamer à part (uridecodebin, level,
   fakesink sans synchronisation : aussi vite que le décodage). Le minuteur de la pré-écoute relève son bus : rien ne
   bloque l'interface, et la forme apparaît au fil du décodage. Le fichier n'est que lu.
-- Frise : le dessin. La forme d'onde, les blancs hachurés (hachures pleines s'ils sont retirés à l'antenne, pâles s'ils
-  y sont joués), les fondus en rampes, la tête de lecture. Un clic, ou un glissement relâché, demande une position
+- Frise : le dessin. La forme d'onde, les silences hachurés (hachures pleines s'ils sont retirés à l'antenne, pâles
+  s'ils y sont joués), les fondus en rampes, la tête de lecture. Un clic, ou un glissement relâché, demande une position
   (placee) ; au clavier, les flèches déplacent d'une seconde. L'infobulle nomme la zone sous la souris, ou l'instant.
 """
 
@@ -102,15 +102,15 @@ class Zone:
 
 @dataclass(frozen=True)
 class Plan:
-	"""Ce que l'antenne fera du fichier : ses blancs, sa partie jouée, ses crossfades. Durées en secondes."""
+	"""Ce que l'antenne fera du fichier : ses silences, sa partie jouée, ses crossfades. Durées en secondes."""
 
 	duree: float
-	blanc_debut: float | None = None
-	"""Blanc détecté au début ; None : aucun de ce côté."""
-	blanc_fin: float | None = None
-	"""Blanc détecté à la fin, compté depuis la fin du fichier ; None : aucun de ce côté."""
-	blancs_retires: bool = False
-	"""Le sonore active la détection de blanc : ses blancs ne sont pas joués."""
+	silence_debut: float | None = None
+	"""Silence détecté au début ; None : aucun de ce côté."""
+	silence_fin: float | None = None
+	"""Silence détecté à la fin, compté depuis la fin du fichier ; None : aucun de ce côté."""
+	silences_retires: bool = False
+	"""Le sonore active la détection de silence : ses silences ne sont pas joués."""
 	crossfade_debut: float = 0.0
 	crossfade_fin: float = 0.0
 	origine_debut: str | None = None
@@ -118,22 +118,22 @@ class Plan:
 	(« imposé par la banque », « de la banque »). None : celui du sonore, ou aucun."""
 	origine_fin: str | None = None
 	audite: bool = True
-	"""Un audit complet a mesuré ses blancs (audite_le)."""
+	"""Un audit complet a mesuré ses silences (audite_le)."""
 	position_entree: Position = ENTREE_PAR_DEFAUT
-	"""Où le fade-in se place par rapport au début détecté, pour un sonore joué sans ses blancs
+	"""Où le fade-in se place par rapport au début détecté, pour un sonore joué sans ses silences
 	(https://github.com/dascritch/machincast/issues/234)."""
 	position_sortie: Position = SORTIE_PAR_DEFAUT
 	"""Où le fade-out se place par rapport à la fin détectée, de même."""
 
 	def placement(self) -> Placement:
 		"""La lecture et ses fondus, comme la diffusion les place (machincast.lecture.fondus.placer) : autour des
-		blancs détectés d'un sonore joué sans eux, selon les positions des fondus
+		silences détectés d'un sonore joué sans eux, selon les positions des fondus
 		(https://github.com/dascritch/machincast/issues/234)."""
 		return placer(
 			timedelta(seconds=self.duree),
-			_duree(self.blanc_debut),
-			_duree(self.blanc_fin),
-			self.blancs_retires,
+			_duree(self.silence_debut),
+			_duree(self.silence_fin),
+			self.silences_retires,
 			timedelta(seconds=self.crossfade_debut),
 			timedelta(seconds=self.crossfade_fin),
 			self.position_entree,
@@ -141,10 +141,10 @@ class Plan:
 		)
 
 	def rogne(self) -> bool:
-		"""Les blancs sont retirés à l'antenne : le sonore les active, et ils laissent quelque chose du fichier."""
-		debut = (self.blanc_debut) or (0.0)
-		fin = self.duree - ((self.blanc_fin) or (0.0))
-		return (self.blancs_retires) and (fin > debut)
+		"""Les silences sont retirés à l'antenne : le sonore les active, et ils laissent quelque chose du fichier."""
+		debut = (self.silence_debut) or (0.0)
+		fin = self.duree - ((self.silence_fin) or (0.0))
+		return (self.silences_retires) and (fin > debut)
 
 	def partie(self) -> tuple[float, float]:
 		"""Début et fin de la partie jouée à l'antenne, en secondes du fichier."""
@@ -178,15 +178,15 @@ class Plan:
 		return placement.depart, placement.arrivee
 
 	def zones(self) -> list[Zone]:
-		"""Les blancs et les fondus, dans l'ordre du fichier : blanc de début, fondus, blanc de fin."""
+		"""Les silences et les fondus, dans l'ordre du fichier : silence de début, fondus, silence de fin."""
 		hachures: Hachures = "pâles"
 		sort = "joué à l'antenne"
 		if self.rogne():
 			hachures, sort = "pleines", "retiré à l'antenne"
 		zones: list[Zone] = []
-		if (self.blanc_debut is not None) and (self.blanc_debut > 0):
-			texte = f"Blanc de début : {secondes(self.blanc_debut)}, {sort}"
-			zones.append(Zone("blanc de début", 0.0, self.blanc_debut, hachures, texte))
+		if (self.silence_debut is not None) and (self.silence_debut > 0):
+			texte = f"Silence de début : {secondes(self.silence_debut)}, {sort}"
+			zones.append(Zone("silence de début", 0.0, self.silence_debut, hachures, texte))
 		entree, sortie = self.fondus()
 		if entree is not None:
 			texte = (
@@ -201,23 +201,23 @@ class Plan:
 			if position != "":
 				texte = f"{texte},{position.rstrip(',')}"
 			zones.append(Zone("fondu de sortie", sortie[0], sortie[1], "aucune", texte))
-		if (self.blanc_fin is not None) and (self.blanc_fin > 0):
-			texte = f"Blanc de fin : {secondes(self.blanc_fin)}, {sort}"
-			zones.append(Zone("blanc de fin", self.duree - self.blanc_fin, self.duree, hachures, texte))
+		if (self.silence_fin is not None) and (self.silence_fin > 0):
+			texte = f"Silence de fin : {secondes(self.silence_fin)}, {sort}"
+			zones.append(Zone("silence de fin", self.duree - self.silence_fin, self.duree, hachures, texte))
 		return zones
 
 	def _position(self, position: Position, ou: str) -> str:
-		"""« se termine au début détecté, » : où le fondu tombe, pour un sonore joué sans ses blancs ; rien sinon."""
+		"""« se termine au début détecté, » : où le fondu tombe, pour un sonore joué sans ses silences ; rien sinon."""
 		if not self.rogne():
 			return ""
 		return f" {LIBELLES[position]} {ou},"
 
 	def resume(self) -> str:
-		"""« Joué à l'antenne : 0:00,50 → 0:01,50 (0:01,00) », et si ses blancs n'ont jamais été mesurés, le dire."""
+		"""« Joué à l'antenne : 0:00,50 → 0:01,50 (0:01,00) », et si ses silences n'ont jamais été mesurés, le dire."""
 		de, a = self.partie()
 		texte = f"Joué à l'antenne : {instant(de)} → {instant(a)} ({instant(a - de)})"
 		if not self.audite:
-			texte = f"{texte} · blancs jamais mesurés"
+			texte = f"{texte} · silences jamais mesurés"
 		return texte
 
 	def repere_de_debut(self) -> float:
@@ -290,7 +290,7 @@ def plan_du_sonore(
 	duree: timedelta,
 	debut_detecte: timedelta | None,
 	fin_detectee: timedelta | None,
-	detection_blancs: bool,
+	detection_silences: bool,
 	crossfade_debut: timedelta | None,
 	crossfade_fin: timedelta | None,
 	defauts: Crossfades,
@@ -299,7 +299,7 @@ def plan_du_sonore(
 ) -> Plan:
 	"""Le plan d'un sonore d'après ses colonnes en base. Sans banque, un crossfade non paramétré (None) est celui des
 	préférences ; avec, les règles de crossfade de début et de fin de la banque s'appliquent avant, comme à la
-	diffusion (https://github.com/dascritch/machincast/issues/230). detection_blancs : celle du sonore, ou de sa
+	diffusion (https://github.com/dascritch/machincast/issues/230). detection_silences : celle du sonore, ou de sa
 	banque. Les fondus se placent selon les positions des préférences
 	(https://github.com/dascritch/machincast/issues/234)."""
 
@@ -311,9 +311,9 @@ def plan_du_sonore(
 	debut, fin = banque
 	return Plan(
 		duree=duree.total_seconds(),
-		blanc_debut=facultative(debut_detecte),
-		blanc_fin=facultative(fin_detectee),
-		blancs_retires=detection_blancs,
+		silence_debut=facultative(debut_detecte),
+		silence_fin=facultative(fin_detectee),
+		silences_retires=detection_silences,
 		crossfade_debut=crossfade(crossfade_debut, debut.regle, debut.duree, defauts.debut).total_seconds(),
 		crossfade_fin=crossfade(crossfade_fin, fin.regle, fin.duree, defauts.fin).total_seconds(),
 		origine_debut=origine_du_crossfade(crossfade_debut, debut, defauts.debut),
@@ -327,13 +327,13 @@ def plan_du_sonore(
 def lire_le_plan(
 	connexion: psycopg.Connection[TupleRow], sonore: int, banque: int | None, defauts: Crossfades
 ) -> Plan | None:
-	"""Le plan d'un fichier tel que la diffusion le joue, fourni par cette banque ou sans banque (None) : ses blancs
+	"""Le plan d'un fichier tel que la diffusion le joue, fourni par cette banque ou sans banque (None) : ses silences
 	retirés si le sonore ou la banque active la détection, ses crossfades selon les règles de la banque ; None pour un
 	stream, un fichier sans durée, ou un sonore qui n'est plus en base (https://github.com/dascritch/machincast/issues/230)."""
 	with connexion.transaction():
 		ligne = connexion.execute(
 			"SELECT s.type::text, s.duree, s.debut_detecte, s.fin_detectee,"
-			" s.detection_blancs OR coalesce(b.detection_blancs, false), s.crossfade_debut, s.crossfade_fin,"
+			" s.detection_silences OR coalesce(b.detection_silences, false), s.crossfade_debut, s.crossfade_fin,"
 			" s.audite_le IS NOT NULL, b.crossfade_debut_regle::text, b.crossfade_debut, b.crossfade_fin_regle::text,"
 			" b.crossfade_fin"
 			" FROM sonores s LEFT JOIN banques b ON b.id = %s WHERE s.id = %s",
@@ -487,15 +487,15 @@ def _amplitude(niveaux: object) -> float:
 	return min(1.0, max(0.0, 10 ** (decibels / 20)))
 
 
-def forme_de_demonstration(duree: float, blanc_debut: float, blanc_fin: float) -> FormeDOnde:
+def forme_de_demonstration(duree: float, silence_debut: float, silence_fin: float) -> FormeDOnde:
 	"""Une forme d'onde déjà calculée, sans fichier, pour montrer une frise
-	(https://github.com/dascritch/machincast/issues/234) : un son qui respire, silencieux pendant ses blancs."""
+	(https://github.com/dascritch/machincast/issues/234) : un son qui respire, silencieux pendant ses silences."""
 	forme = FormeDOnde(Path("demonstration"), duree)
 	mesures = round(duree / forme.pas)
 	for indice in range(mesures):
 		instant = indice * forme.pas
 		amplitude = 0.0
-		if blanc_debut <= instant < duree - blanc_fin:
+		if silence_debut <= instant < duree - silence_fin:
 			amplitude = 0.5 + 0.25 * math.sin(instant * 1.7) + 0.15 * math.sin(instant * 6.3)
 		forme.pics.append(amplitude)
 		forme.moyens.append(amplitude * RAPPORT_DE_DEMONSTRATION)
@@ -504,7 +504,7 @@ def forme_de_demonstration(duree: float, blanc_debut: float, blanc_fin: float) -
 
 
 class Frise(QWidget):
-	"""La frise d'un fichier : forme d'onde, blancs, fondus et tête de lecture."""
+	"""La frise d'un fichier : forme d'onde, silences, fondus et tête de lecture."""
 
 	placee = Signal(float)
 	"""Une position demandée, en secondes du fichier."""
@@ -742,7 +742,7 @@ class Frise(QWidget):
 			peintre.drawPolygon(QPolygonF(haut + bas))
 
 	def _dessiner_les_zones(self, peintre: QPainter, couleur: QColor) -> None:
-		"""Les blancs : hachures pleines et voile s'ils sont retirés à l'antenne, hachures pâles sans voile s'ils y
+		"""Les silences : hachures pleines et voile s'ils sont retirés à l'antenne, hachures pâles sans voile s'ils y
 		sont joués. La différence tient au motif, pas qu'à la couleur."""
 		assert self.plan is not None
 		for zone in self.plan.zones():

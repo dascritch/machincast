@@ -60,7 +60,7 @@ socket.publier({"horodatage": "2026-10-20T16:40:00+02:00", "etat": "diffusion", 
 
 def arreter(_numero, _cadre):
 	# Comme Machin lecture : un dernier état pendant que le passage en cours se termine, puis la socket se ferme.
-	socket.publier({"horodatage": "2026-10-20T16:40:01+02:00", "etat": "silence", "en_cours": None, "prochain": None})
+	socket.publier({"horodatage": "2026-10-20T16:40:01+02:00", "etat": "blanc", "en_cours": None, "prochain": None})
 	time.sleep(0.5)
 	Path(sys.argv[2]).write_text("SIGTERM", encoding="utf-8")
 	socket.fermer()

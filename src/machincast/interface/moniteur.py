@@ -12,8 +12,8 @@ Le port est capté en stéréo (CANAUX) : sans contrainte, pipewiresrc et pulses
 VU-mètre n'en montrerait qu'un.
 
 Le pipeline (port ! audioconvert ! level ! fakesink) ne joue rien ; son bus est relevé par un minuteur de Qt. Le
-moniteur donne le VU (RMS) et la crête de chaque canal, et deux voyants : le silence, après DUREE_DU_SILENCE secondes
-sous SEUIL_DU_SILENCE, et la saturation, dès qu'une crête atteint SEUIL_DE_SATURATION, gardée MAINTIEN_DE_SATURATION
+moniteur donne le VU (RMS) et la crête de chaque canal, et deux voyants : le blanc, après DUREE_DU_BLANC secondes
+sous SEUIL_DU_BLANC, et la saturation, dès qu'une crête atteint SEUIL_DE_SATURATION, gardée MAINTIEN_DE_SATURATION
 secondes. Un port qui ne s'ouvre pas est réessayé toutes les REESSAI millisecondes. La pré-écoute écoute le même port
 (machincast.interface.preecoute).
 """
@@ -32,8 +32,8 @@ from machincast.interface import etats  # noqa: E402
 
 SIGNAL_FACTICE = "audiotestsrc is-live=true wave=sine volume=0.1"
 """Le port de monitoring de la sortie factice : un signal de test, que les scénarios choisissent."""
-SEUIL_DU_SILENCE = -50.0
-DUREE_DU_SILENCE = 5.0
+SEUIL_DU_BLANC = -50.0
+DUREE_DU_BLANC = 5.0
 SEUIL_DE_SATURATION = -1.0
 MAINTIEN_DE_SATURATION = 3.0
 RELEVE = 50
@@ -131,10 +131,10 @@ class Moniteur(QObject):
 		self.niveaux: list[float] = []
 		self.cretes: list[float] = []
 		self.indisponible: str | None = None
-		self.silence = False
+		self.blanc = False
 		self.saturation = False
 		self._son_depuis: float | None = None
-		"""Dernier instant où un canal dépassait le seuil du silence."""
+		"""Dernier instant où un canal dépassait le seuil du blanc."""
 		self._saturation_depuis: float | None = None
 		self._releve = QTimer(self)
 		self._releve.setInterval(RELEVE)
@@ -191,7 +191,7 @@ class Moniteur(QObject):
 			self._pilote.eteindre()
 		self._pipeline, self._pilote, self._niveau = None, None, None
 		self.niveaux, self.cretes = [], []
-		self.silence, self.saturation = False, False
+		self.blanc, self.saturation = False, False
 
 	def _indisponible(self, message: str) -> None:
 		self.arreter()
@@ -226,9 +226,9 @@ class Moniteur(QObject):
 		"""Un relevé de level : le VU (RMS) et la crête de chaque canal, en décibels ; met à jour les voyants."""
 		maintenant = self.horloge()
 		self.niveaux, self.cretes = [float(n) for n in niveaux], [float(c) for c in cretes]
-		if any(niveau > SEUIL_DU_SILENCE for niveau in self.niveaux):
+		if any(niveau > SEUIL_DU_BLANC for niveau in self.niveaux):
 			self._son_depuis = maintenant
-		self.silence = (self._son_depuis is not None) and (maintenant - self._son_depuis >= DUREE_DU_SILENCE)
+		self.blanc = (self._son_depuis is not None) and (maintenant - self._son_depuis >= DUREE_DU_BLANC)
 		if any(crete >= SEUIL_DE_SATURATION for crete in self.cretes):
 			self._saturation_depuis = maintenant
 		self.saturation = (self._saturation_depuis is not None) and (

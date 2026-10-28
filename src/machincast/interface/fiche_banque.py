@@ -154,7 +154,7 @@ class FicheBanque(Fiche):
 		self.ui.mode.currentIndexChanged.connect(self._actualiser_boutons)
 		self.ui.masquage.currentIndexChanged.connect(self._modifier)
 		self.ui.ne_pas_repeter.toggled.connect(self._modifier)
-		self.ui.detection_blancs.toggled.connect(self._modifier)
+		self.ui.detection_silences.toggled.connect(self._modifier)
 		for regle, duree in self._crossfades():
 			for valeur, texte in REGLES_DE_CROSSFADE:
 				regle.addItem(texte, valeur)
@@ -197,7 +197,7 @@ class FicheBanque(Fiche):
 
 	def _lire(self) -> None:
 		"""Lit la banque en base, ou celle qu'elle copie, sans ses sonores ; une nouvelle banque est vide, séquentielle,
-		au masquage hérité du sonore, sans détection de blanc (https://github.com/dascritch/machincast/issues/146)."""
+		au masquage hérité du sonore, sans détection de silence (https://github.com/dascritch/machincast/issues/146)."""
 		banque: tuple[object, ...] = (
 			"",
 			None,
@@ -220,7 +220,7 @@ class FicheBanque(Fiche):
 				ligne = self.connexion.execute(
 					"SELECT nom_interne, nom_public, mode::text, masquer_metadonnees, ne_pas_repeter,"
 					" crossfade_debut_regle::text, crossfade_debut, crossfade_fin_regle::text, crossfade_fin,"
-					" duree_min, duree_max, detection_blancs FROM banques WHERE id = %s",
+					" duree_min, duree_max, detection_silences FROM banques WHERE id = %s",
 					(lu,),
 				).fetchone()
 				assert ligne is not None, f"banque {lu} absente"
@@ -246,7 +246,7 @@ class FicheBanque(Fiche):
 		self.ui.mode.setCurrentIndex(self.ui.mode.findData(mode))
 		self.ui.masquage.setCurrentIndex(next(i for i, (valeur, _texte) in enumerate(MASQUAGES) if valeur is masquage))
 		self.ui.ne_pas_repeter.setChecked(bool(ne_pas_repeter))
-		self.ui.detection_blancs.setChecked(detection is True)
+		self.ui.detection_silences.setChecked(detection is True)
 		for (regle, duree), (valeur, secondes) in zip(
 			self._crossfades(), (crossfades[:2], crossfades[2:]), strict=True
 		):
@@ -288,12 +288,12 @@ class FicheBanque(Fiche):
 			raise Refus(
 				"La durée minimale des sonores dépasse la durée maximale.", self.ui.a_duree_min, self.ui.a_duree_max
 			)
-		valeurs += [minimum, maximum, self.ui.detection_blancs.isChecked()]
+		valeurs += [minimum, maximum, self.ui.detection_silences.isChecked()]
 		if self.identifiant is None:
 			creee = self.connexion.execute(
 				"INSERT INTO banques (nom_interne, nom_public, mode, masquer_metadonnees, ne_pas_repeter,"
 				" crossfade_debut_regle, crossfade_debut, crossfade_fin_regle, crossfade_fin, duree_min, duree_max,"
-				" detection_blancs) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+				" detection_silences) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
 				valeurs,
 			).fetchone()
 			assert creee is not None
@@ -303,7 +303,7 @@ class FicheBanque(Fiche):
 			self.connexion.execute(
 				"UPDATE banques SET nom_interne = %s, nom_public = %s, mode = %s, masquer_metadonnees = %s,"
 				" ne_pas_repeter = %s, crossfade_debut_regle = %s, crossfade_debut = %s, crossfade_fin_regle = %s,"
-				" crossfade_fin = %s, duree_min = %s, duree_max = %s, detection_blancs = %s WHERE id = %s",
+				" crossfade_fin = %s, duree_min = %s, duree_max = %s, detection_silences = %s WHERE id = %s",
 				(*valeurs, identifiant),
 			)
 		self.connexion.execute("DELETE FROM banques_repertoires WHERE banque_id = %s", (identifiant,))

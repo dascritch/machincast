@@ -369,12 +369,12 @@ def diffuse_sans_titre(contexte: Contexte, evenement: str, debut: str, duree: in
 	publier(contexte)
 
 
-@given("le binaire lecture est en silence")
-@when("le binaire lecture est en silence")
-def en_silence(contexte: Contexte) -> None:
+@given("le binaire lecture laisse un blanc")
+@when("le binaire lecture laisse un blanc")
+def en_blanc(contexte: Contexte) -> None:
 	contexte.en_cours = None
 	contexte.prochain = None
-	publier(contexte, "silence")
+	publier(contexte, "blanc")
 
 
 # ─── Quand ─────────────────────────────────────────────────
@@ -454,18 +454,18 @@ def envoyer_brut(contexte: Contexte, texte: str) -> None:
 		serveur._condition.notify_all()
 
 
-def ligne_de_silence() -> str:
-	return json.dumps({"version": 1, "etat": "silence", "en_cours": None, "prochain": None}) + "\n"
+def ligne_de_blanc() -> str:
+	return json.dumps({"version": 2, "etat": "blanc", "en_cours": None, "prochain": None}) + "\n"
 
 
-@when("un message illisible arrive sur la socket d'état, suivi dans le même envoi d'un état de silence")
+@when("un message illisible arrive sur la socket d'état, suivi dans le même envoi d'un état de blanc")
 def illisible(contexte: Contexte) -> None:
-	envoyer_brut(contexte, "{ pas du JSON\n" + ligne_de_silence())
+	envoyer_brut(contexte, "{ pas du JSON\n" + ligne_de_blanc())
 
 
-@when("un état de silence arrive sur la socket d'état en deux envois")
+@when("un état de blanc arrive sur la socket d'état en deux envois")
 def en_deux_envois(contexte: Contexte, qtbot: QtBot) -> None:
-	ligne = ligne_de_silence()
+	ligne = ligne_de_blanc()
 	moitie = len(ligne) // 2
 	envoyer_brut(contexte, ligne[:moitie])
 	qtbot.wait(300)
@@ -1060,8 +1060,8 @@ def infobulle_de_l_heure(contexte: Contexte, texte: str) -> None:
 @given(
 	parsers.re(
 		r"le sonore « (?P<titre>[^»]+) » en base, pour une copie du fichier de test « (?P<fichier>[^»]+) », de"
-		r" (?P<duree>\d+) secondes, aux blancs de (?P<debut>[\d,]+) s au début et (?P<fin>[\d,]+) s à la fin,"
-		r" sans détection de blanc, aux crossfades de (?P<cd>[\d,]+) s au début et (?P<cf>[\d,]+) s à la fin"
+		r" (?P<duree>\d+) secondes, aux silences de (?P<debut>[\d,]+) s au début et (?P<fin>[\d,]+) s à la fin,"
+		r" sans détection de silence, aux crossfades de (?P<cd>[\d,]+) s au début et (?P<cf>[\d,]+) s à la fin"
 	)
 )
 def sonore_en_base(
@@ -1097,13 +1097,13 @@ def sonore_en_base(
 
 @given(
 	parsers.re(
-		r"la banque « (?P<nom>[^»]+) » en base, qui retire les blancs et impose un crossfade de fin de"
+		r"la banque « (?P<nom>[^»]+) » en base, qui retire les silences et impose un crossfade de fin de"
 		r" (?P<cf>[\d,]+) s, avec « (?P<titre>[^»]+) »"
 	)
 )
 def banque_en_base(contexte: Contexte, base_vide: Connexion, nom: str, cf: str, titre: str) -> None:
 	ligne = base_vide.execute(
-		"INSERT INTO banques (nom_interne, mode, detection_blancs, crossfade_fin_regle, crossfade_fin)"
+		"INSERT INTO banques (nom_interne, mode, detection_silences, crossfade_fin_regle, crossfade_fin)"
 		" VALUES (%s, 'aleatoire', true, 'impose', %s) RETURNING id",
 		(nom, timedelta(seconds=secondes(cf))),
 	).fetchone()
@@ -1128,7 +1128,7 @@ def banque_en_base(contexte: Contexte, base_vide: Connexion, nom: str, cf: str, 
 	)
 )
 def diffuse_en_base(contexte: Contexte, titre: str, banque: str | None, debut: str, position: str) -> None:
-	"""Un sonore en base ; la durée annoncée par la socket est celle de la partie jouée, sans les blancs retirés."""
+	"""Un sonore en base ; la durée annoncée par la socket est celle de la partie jouée, sans les silences retirés."""
 	identifiant, chemin = contexte.en_base[titre]
 	commence = a(debut)
 	contexte.en_cours = {
@@ -1218,14 +1218,16 @@ def zones_en_cours(contexte: Contexte, qtbot: QtBot, datatable: list[list[str]])
 	assert lues == [[cellule.strip() for cellule in rangee] for rangee in datatable[1:]]
 
 
-@then(parsers.re(r"la frise du prochain sonore montre bientôt les zones (?P<noms>«.+»), ses blancs joués à l'antenne"))
+@then(
+	parsers.re(r"la frise du prochain sonore montre bientôt les zones (?P<noms>«.+»), ses silences joués à l'antenne")
+)
 def zones_du_prochain(contexte: Contexte, qtbot: QtBot, noms: str) -> None:
 	frise = _frise(contexte, "prochain sonore")
 	attendre(qtbot, lambda: frise.plan is not None)
 	assert frise.plan is not None
 	zones = frise.plan.zones()
 	assert [zone.nom for zone in zones] == re.findall(r"« ([^»]+) »", noms)
-	assert {zone.hachures for zone in zones if zone.nom.startswith("blanc")} == {"pâles"}
+	assert {zone.hachures for zone in zones if zone.nom.startswith("silence")} == {"pâles"}
 
 
 @then(
@@ -1321,7 +1323,7 @@ def colonne_haute(contexte: Contexte, qtbot: QtBot) -> None:
 @then("le VU-mètre de l'antenne occupe sa colonne : ses voyants gardent leur hauteur, il prend le reste")
 def vumetre_dans_sa_colonne(contexte: Contexte) -> None:
 	ui = ecran(contexte).ui
-	for voyant in (ui.voyant_saturation, ui.voyant_silence, ui.etat_moniteur):
+	for voyant in (ui.voyant_saturation, ui.voyant_blanc, ui.etat_moniteur):
 		# Un texte qui passe à la ligne a la hauteur de ses lignes, à sa largeur.
 		attendue = voyant.sizeHint().height()
 		if voyant.hasHeightForWidth():

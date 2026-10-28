@@ -101,7 +101,7 @@ Fonctionnalité: Schéma de la base de données
 			| type = 'stream', feed_id = {feed}                           |
 			| type = 'fichier', emplacement = '/c.mp3', debut_diffusion = '2026-11-01', fin_diffusion = '2026-11-30' |
 			| type = 'fichier', emplacement = '/d.ogg', metadonnees_musicales = '{"annee": 1987, "label": "Disques Exemple"}' |
-			| type = 'fichier', emplacement = '/e.flac', debut_detecte = '0 s', fin_detectee = '2.5 s', detection_blancs = true |
+			| type = 'fichier', emplacement = '/e.flac', debut_detecte = '0 s', fin_detectee = '2.5 s', detection_silences = true |
 
 	Plan du scénario: Un sonore incohérent est refusé
 		Étant donné les éléments de référence en base
@@ -125,7 +125,7 @@ Fonctionnalité: Schéma de la base de données
 			| type = 'fichier', emplacement = '/a.flac', metadonnees_musicales = 'null'                       |
 			| type = 'fichier', emplacement = '/a.flac', debut_detecte = '-0.1 s'                             |
 			| type = 'fichier', emplacement = '/a.flac', fin_detectee = '-1 s'                                |
-			| type = 'fichier', emplacement = '/a.flac', detection_blancs = NULL                              |
+			| type = 'fichier', emplacement = '/a.flac', detection_silences = NULL                              |
 			| type = 'fichier', emplacement = '/a.flac', audit_demande = NULL                                 |
 			| type = 'fichier', emplacement = '/a.flac', audite_le = now()                                     |
 			| type = 'fichier', emplacement = '/a.flac', audit_seuil = -40                                    |
@@ -194,7 +194,7 @@ Fonctionnalité: Schéma de la base de données
 			| nom_interne = 'Jingles', mode = 'aleatoire', duree_min = '0 s' |
 			| nom_interne = 'Jingles', mode = 'aleatoire', duree_max = '-1 s' |
 			| nom_interne = 'Jingles', mode = 'aleatoire', duree_min = '2 min', duree_max = '1 min' |
-			| nom_interne = 'Jingles', mode = 'aleatoire', detection_blancs = NULL |
+			| nom_interne = 'Jingles', mode = 'aleatoire', detection_silences = NULL |
 
 	# https://github.com/dascritch/machincast/issues/63
 
@@ -204,21 +204,40 @@ Fonctionnalité: Schéma de la base de données
 
 	# https://github.com/dascritch/machincast/issues/146
 
-	Scénario: La détection de blanc n'est activée par défaut ni pour une banque, ni pour un sonore, qui n'ont aucun blanc détecté
+	Scénario: La détection de silence n'est activée par défaut ni pour une banque, ni pour un sonore, qui n'ont aucun silence détecté
 		Étant donné les éléments de référence en base
-		Alors la banque de référence n'active pas la détection de blanc
-		Et le sonore de référence n'active pas la détection de blanc
+		Alors la banque de référence n'active pas la détection de silence
+		Et le sonore de référence n'active pas la détection de silence
 		Et le sonore de référence n'a ni début ni fin détectés
 
-	Scénario: La migration de la détection de blanc ne l'active pour aucune banque ni aucun sonore existants
+	Scénario: La migration de la détection de silence ne l'active pour aucune banque ni aucun sonore existants
 		Quand j'annule les migrations depuis « 0008.detection-blancs »
 		Et j'enregistre dans "banques" : nom_interne = 'Titres', mode = 'aleatoire'
 		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/a.flac'
 		Et j'applique les migrations
-		Alors la banque « Titres » n'active pas la détection de blanc
-		Et le sonore « /a.flac » n'active pas la détection de blanc
+		Alors la banque « Titres » n'active pas la détection de silence
+		Et le sonore « /a.flac » n'active pas la détection de silence
 		Quand j'annule les migrations depuis « 0008.detection-blancs »
 		Alors aucune connexion supplémentaire à la base de test ne reste ouverte
+
+	Scénario: La migration du vocabulaire garde la détection de silence, et les alertes de silence deviennent des blancs
+		https://github.com/dascritch/machincast/issues/291 : la colonne detection_blancs devient detection_silences, et
+		l'alerte « silence », rien à diffuser, devient « blanc » ; les autres natures ne changent pas.
+
+		Quand j'annule les migrations depuis « 0015.vocabulaire-silences-blancs »
+		Et j'enregistre dans "banques" : nom_interne = 'Titres', mode = 'aleatoire', detection_blancs = true
+		Et j'enregistre dans "banques" : nom_interne = 'Jingles', mode = 'aleatoire'
+		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/a.flac', detection_blancs = true
+		Et j'enregistre dans "log" : niveau = 'alerte', nature = 'silence', message = 'rien à diffuser'
+		Et j'enregistre dans "log" : niveau = 'info', nature = 'démarrage'
+		Et j'applique les migrations
+		Alors la banque « Titres » active la détection de silence
+		Et la banque « Jingles » n'active pas la détection de silence
+		Et le sonore « /a.flac » active la détection de silence
+		Et les natures du log sont « blanc », « démarrage »
+		Quand j'annule les migrations depuis « 0015.vocabulaire-silences-blancs »
+		Alors les natures du log sont « silence », « démarrage »
+		Et aucune connexion supplémentaire à la base de test ne reste ouverte
 
 	# https://github.com/dascritch/machincast/issues/114
 

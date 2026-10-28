@@ -52,7 +52,7 @@ def _nomme(nom: str | None) -> Proposition:
 def proposer(etat: EtatLecture) -> dict[str, Proposition]:
 	"""Pour chaque élément, l'entrée de son interruption, selon l'état de Machin lecture."""
 	en_cours = etat.en_cours
-	# Machin lecture ne publie un sonore en cours qu'en diffusion : ni en silence, ni à l'arrêt.
+	# Machin lecture ne publie un sonore en cours qu'en diffusion : ni pendant un blanc, ni à l'arrêt.
 	if en_cours is None:
 		return {element: Proposition(False, RIEN_A_L_ANTENNE) for element in ENTREES}
 	sequence = Proposition(False, AUCUNE_SEQUENCE)

@@ -207,4 +207,4 @@ Fonctionnalité: Diffusion des streams
 		Et la diffusion tourne 2 pas d'une seconde
 		Et la diffusion s'arrête
 		Alors l'airplay ne montre aucun passage
-		Et le log contient 1 alerte « silence »
+		Et le log contient 1 alerte « blanc »

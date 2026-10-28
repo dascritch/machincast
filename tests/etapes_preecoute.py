@@ -28,7 +28,7 @@ DELAI = 5000
 """Millisecondes laissées à GStreamer pour ce qui arrive « bientôt »."""
 SIGNAUX = {
 	"sinusoïde à -10 dB": "audiotestsrc is-live=true wave=sine volume=0.316",
-	"silence": "audiotestsrc is-live=true wave=silence",
+	"blanc": "audiotestsrc is-live=true wave=silence",
 	"carré à 0 dB": "audiotestsrc is-live=true wave=square volume=1.0",
 	"introuvable": "elementintrouvable",
 	"bref": "audiotestsrc is-live=true num-buffers=10 wave=sine",

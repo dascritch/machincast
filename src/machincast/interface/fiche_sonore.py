@@ -7,7 +7,7 @@ machincast.interface.fiche.
 
 - Champs : artiste, titre, les métadonnées musicales que tient l'indexeur (année, album, artiste de l'album, genre,
   compositeur, label, piste), crossfades, maximum de lectures, masquage, période de diffusion, état, et pour un fichier
-  la détection de blanc, avec le début et la fin détectés (https://github.com/dascritch/machincast/issues/146). Les
+  la détection de silence, avec le début et la fin détectés (https://github.com/dascritch/machincast/issues/146). Les
   autres clés des métadonnées musicales sont montrées, jamais modifiées. L'emplacement et la durée ne se modifient pas.
 - Seuls les champs modifiés depuis la lecture de la fiche sont écrits : ce que l'indexation ou la diffusion change
   entre-temps est gardé. Chacun est ajouté à champs_edites, sauf l'état, que l'indexeur peut encore changer
@@ -25,7 +25,7 @@ machincast.interface.fiche.
   et date de sa dernière vérification complète par l'indexeur. Le bouton du dossier ouvre le dossier du fichier dans
   le navigateur de fichiers du poste.
 - Encarts (https://github.com/dascritch/machincast/issues/190) : « Métadonnées », « Diffusion », « Détection de
-  blanc », « Relations » et « Fichier » sont repliés à l'ouverture de la fiche, et se déplient d'un clic sur leur
+  silence », « Relations » et « Fichier » sont repliés à l'ouverture de la fiche, et se déplient d'un clic sur leur
   titre (machincast.interface.depliable).
 - « Vérification complète », pour un fichier enregistré, demande l'audit complet de ce seul sonore
   (verification_demandee) ; le bouton attend sa fin (attendre_la_verification), puis une question propose de
@@ -87,7 +87,7 @@ LIBELLES: dict[str, str] = {
 	"url_stream": "adresse directe",
 	"feed_id": "feed",
 	"secours_evenement_id": "événement de secours",
-	"detection_blancs": "détection de blanc",
+	"detection_silences": "détection de silence",
 	"debut_detecte": "début détecté",
 	"fin_detectee": "fin détectée",
 	"duree": "durée",
@@ -201,7 +201,7 @@ class FicheSonore(Fiche):
 		for groupe in (
 			self.ui.groupe_metadonnees,
 			self.ui.groupe_diffusion,
-			self.ui.groupe_blancs,
+			self.ui.groupe_silences,
 			self.ui.groupe_relations,
 			self.ui.groupe_fichier,
 		):
@@ -224,9 +224,10 @@ class FicheSonore(Fiche):
 			case.toggled.connect(curseur.setEnabled)
 			case.toggled.connect(self._modifier)
 			case.toggled.connect(self._actualiser_la_frise)
-		# Détection de blanc (https://github.com/dascritch/machincast/issues/146) : un blanc décoché n'est pas détecté.
-		self.ui.detection_blancs.toggled.connect(self._modifier)
-		self.ui.detection_blancs.toggled.connect(self._actualiser_la_frise)
+		# Détection de silence (https://github.com/dascritch/machincast/issues/146) : un silence décoché n'est pas
+		# détecté.
+		self.ui.detection_silences.toggled.connect(self._modifier)
+		self.ui.detection_silences.toggled.connect(self._actualiser_la_frise)
 		for case, nombre in (
 			(self.ui.a_debut_detecte, self.ui.debut_detecte),
 			(self.ui.a_fin_detectee, self.ui.fin_detectee),
@@ -238,7 +239,7 @@ class FicheSonore(Fiche):
 			case.toggled.connect(self._modifier)
 			case.toggled.connect(self._actualiser_la_frise)
 		self._duree: timedelta | None = None
-		"""Durée du fichier en base, que les blancs détectés ne peuvent pas couvrir à eux deux."""
+		"""Durée du fichier en base, que les silences détectés ne peuvent pas couvrir à eux deux."""
 		for case, date in ((self.ui.a_debut, self.ui.debut_diffusion), (self.ui.a_fin, self.ui.fin_diffusion)):
 			case.toggled.connect(date.setEnabled)
 			case.toggled.connect(self._modifier)
@@ -260,8 +261,8 @@ class FicheSonore(Fiche):
 		return f"Sonore : {self._nom}"
 
 	def _actualiser_la_frise(self) -> None:
-		"""Le plan du fichier selon les champs de la fiche, même pas encore enregistrés : crossfades, blancs détectés et
-		leur retrait, avec les crossfades par défaut et les positions des fondus des préférences."""
+		"""Le plan du fichier selon les champs de la fiche, même pas encore enregistrés : crossfades, silences détectés
+		et leur retrait, avec les crossfades par défaut et les positions des fondus des préférences."""
 		duree = self._duree
 		if (not self._fichier) or (duree is None):
 			self.frise.montrer(None, None)
@@ -271,7 +272,7 @@ class FicheSonore(Fiche):
 			duree,
 			_crossfade(ui.a_debut_detecte, ui.debut_detecte),
 			_crossfade(ui.a_fin_detectee, ui.fin_detectee),
-			ui.detection_blancs.isChecked(),
+			ui.detection_silences.isChecked(),
 			_crossfade(ui.a_crossfade_debut, ui.crossfade_debut),
 			_crossfade(ui.a_crossfade_fin, ui.crossfade_fin),
 			preferences.crossfades(),
@@ -368,7 +369,7 @@ class FicheSonore(Fiche):
 			"SELECT s.type::text, s.emplacement, s.url_stream, s.feed_id, m.url, s.secours_evenement_id,"
 			" s.artiste, s.titre, s.metadonnees_musicales, s.crossfade_debut, s.crossfade_fin, s.max_lectures,"
 			" s.etat::text, s.masquer_metadonnees, s.duree, s.debut_diffusion, s.fin_diffusion, s.champs_edites,"
-			" s.type_mime, s.verifie_le, s.detection_blancs, s.debut_detecte, s.fin_detectee, s.audite_le IS NOT NULL"
+			" s.type_mime, s.verifie_le, s.detection_silences, s.debut_detecte, s.fin_detectee, s.audite_le IS NOT NULL"
 			" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 			(self.identifiant,),
 		).fetchone()
@@ -401,7 +402,7 @@ class FicheSonore(Fiche):
 			champs_edites,
 			type_mime,
 			verifie_le,
-			detection_blancs,
+			detection_silences,
 			debut_detecte,
 			fin_detectee,
 			audite,
@@ -420,15 +421,15 @@ class FicheSonore(Fiche):
 		self._fichier = type_sonore == "fichier"
 		self._actualiser_la_verification()
 		self.ui.groupe_stream.setVisible(stream)
-		# Un stream n'a pas de blancs détectés : seul un fichier est audité.
-		self.ui.groupe_blancs.setVisible(not stream)
-		self.ui.detection_blancs.setChecked(detection_blancs is True)
-		for case, nombre, blanc in (
+		# Un stream n'a pas de silences détectés : seul un fichier est audité.
+		self.ui.groupe_silences.setVisible(not stream)
+		self.ui.detection_silences.setChecked(detection_silences is True)
+		for case, nombre, silence in (
 			(self.ui.a_debut_detecte, self.ui.debut_detecte, debut_detecte),
 			(self.ui.a_fin_detectee, self.ui.fin_detectee, fin_detectee),
 		):
-			nombre.setValue(_secondes(blanc))
-			case.setChecked(isinstance(blanc, timedelta))
+			nombre.setValue(_secondes(silence))
+			case.setChecked(isinstance(silence, timedelta))
 		self._duree = None
 		if isinstance(duree, timedelta):
 			self._duree = duree
@@ -529,8 +530,8 @@ class FicheSonore(Fiche):
 		saisies["masquer_metadonnees"] = MASQUAGES[self.ui.masquage.currentIndex()][0]
 		saisies["debut_diffusion"] = affichage.date_cochee(self.ui.a_debut, self.ui.debut_diffusion)
 		saisies["fin_diffusion"] = affichage.date_cochee(self.ui.a_fin, self.ui.fin_diffusion)
-		if self.ui.groupe_blancs.isVisibleTo(self):
-			saisies["detection_blancs"] = self.ui.detection_blancs.isChecked()
+		if self.ui.groupe_silences.isVisibleTo(self):
+			saisies["detection_silences"] = self.ui.detection_silences.isChecked()
 			saisies["debut_detecte"] = _crossfade(self.ui.a_debut_detecte, self.ui.debut_detecte)
 			saisies["fin_detectee"] = _crossfade(self.ui.a_fin_detectee, self.ui.fin_detectee)
 		if self.ui.groupe_stream.isVisibleTo(self):
@@ -551,13 +552,14 @@ class FicheSonore(Fiche):
 			raise Refus("La fin de la diffusion doit suivre son début.", self.ui.a_debut, self.ui.a_fin)
 		if ("url_stream" in saisies) and (saisies["url_stream"] is None) and (saisies["feed_id"] is None):
 			raise Refus("L'adresse du stream est obligatoire.", self.ui.par_adresse, self.ui.par_feed)
-		# Seuls des blancs saisis sont refusés : l'indexeur ne mesure jamais des blancs qui couvrent tout le fichier.
+		# Seuls des silences saisis sont refusés : l'indexeur ne mesure jamais des silences qui couvrent tout le
+		# fichier.
 		cotes = ("debut_detecte", "fin_detectee")
 		saisis = any(saisies.get(cote) != self._initiales.get(cote) for cote in cotes)
-		blancs = [blanc for blanc in (saisies.get(cote) for cote in cotes) if isinstance(blanc, timedelta)]
-		if (saisis) and (self._duree is not None) and (sum(blancs, timedelta(0)) >= self._duree):
+		silences = [silence for silence in (saisies.get(cote) for cote in cotes) if isinstance(silence, timedelta)]
+		if (saisis) and (self._duree is not None) and (sum(silences, timedelta(0)) >= self._duree):
 			raise Refus(
-				"Les blancs détectés doivent laisser du son : ensemble, plus courts que la durée du sonore.",
+				"Les silences détectés doivent laisser du son : ensemble, plus courts que la durée du sonore.",
 				self.ui.a_debut_detecte,
 				self.ui.a_fin_detectee,
 			)
@@ -721,7 +723,7 @@ class FicheSonore(Fiche):
 
 
 def _crossfade(case: QCheckBox, nombre: QDoubleSpinBox | CurseurDeDuree) -> timedelta | None:
-	"""Le crossfade, ou le blanc détecté, saisi ; None s'il n'est pas paramétré, ou pas détecté."""
+	"""Le crossfade, ou le silence détecté, saisi ; None s'il n'est pas paramétré, ou pas détecté."""
 	if not case.isChecked():
 		return None
 	return timedelta(seconds=nombre.value())

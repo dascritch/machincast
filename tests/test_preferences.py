@@ -115,9 +115,9 @@ def contient_encore(interface: Contexte, ligne: str) -> None:
 def autres_sections(interface: Contexte, hors_audio: str | None) -> None:
 	avant = tomllib.loads(interface.configuration_initiale.decode("utf-8"))
 	apres = tomllib.loads(fichier_de_configuration(interface).read_text(encoding="utf-8"))
-	# Les préférences tiennent toujours [crossfades], [blancs] (https://github.com/dascritch/machincast/issues/146) et
+	# Les préférences tiennent toujours [crossfades], [silences] (https://github.com/dascritch/machincast/issues/146) et
 	# [interface] (https://github.com/dascritch/machincast/issues/191).
-	retirees = ["crossfades", "blancs", "interface"]
+	retirees = ["crossfades", "silences", "interface"]
 	if hors_audio is not None:
 		retirees.append("audio")
 	for section in retirees:
@@ -314,6 +314,12 @@ def contient_la_ligne(interface: Contexte, ligne: str) -> None:
 	assert ligne in fichier_de_configuration(interface).read_text(encoding="utf-8").splitlines()
 
 
+@then("le fichier de configuration n'a plus de section [blancs]")
+def plus_de_blancs(interface: Contexte) -> None:
+	"""https://github.com/dascritch/machincast/issues/291"""
+	assert "blancs" not in tomllib.loads(fichier_de_configuration(interface).read_text(encoding="utf-8"))
+
+
 @when("la fenêtre de l'interface s'ouvre, sans fichier de configuration")
 def ouvrir_sans_configuration(interface: Contexte, base_vide: Connexion, qtbot: QtBot) -> None:
 	ouvrir_la_fenetre(interface, qtbot, avec_configuration=False)
@@ -490,24 +496,24 @@ def preferences_de_la_fenetre(
 	assert (montres.antenne, montres.preecoute, sortie_montree) == (antenne, preecoute, sortie)
 
 
-# ─── Seuil de blanc (https://github.com/dascritch/machincast/issues/146) ───
+# ─── Seuil de silence (https://github.com/dascritch/machincast/issues/146) ───
 
 
 def _decibels(texte: str) -> float:
 	return float(texte.replace(",", "."))
 
 
-@given(parsers.re(r"les préférences seront réglées avec le seuil de blanc (?P<seuil>-?[\d,]+) dB"))
+@given(parsers.re(r"les préférences seront réglées avec le seuil de silence (?P<seuil>-?[\d,]+) dB"))
 def seuil_regle(interface: Contexte, seuil: str) -> None:
 	interface.seuil_regle = _decibels(seuil)
 
 
-@then(parsers.re(r"les préférences ont montré le seuil de blanc (?P<seuil>-?[\d,]+) dB"))
+@then(parsers.re(r"les préférences ont montré le seuil de silence (?P<seuil>-?[\d,]+) dB"))
 def seuil_montre(interface: Contexte, seuil: str) -> None:
 	assert interface.seuils_montres == [_decibels(seuil)]
 
 
-@when(parsers.re(r"la fenêtre des préférences s'ouvre sur le seuil de blanc (?P<seuil>-?[\d,]+) dB"))
+@when(parsers.re(r"la fenêtre des préférences s'ouvre sur le seuil de silence (?P<seuil>-?[\d,]+) dB"))
 def ouvrir_sur_le_seuil(ouverte: Ouverte, parent: QWidget, seuil: str) -> None:
 	tous = Reglages(Crossfades(), None, PREECOUTE_DES_TESTS, _decibels(seuil))
 	ouverte.fenetre = FenetrePreferences(tous, "factice", parent)
@@ -515,24 +521,24 @@ def ouvrir_sur_le_seuil(ouverte: Ouverte, parent: QWidget, seuil: str) -> None:
 
 @then(
 	parsers.re(
-		r"elle montre le seuil de blanc « (?P<texte>[^»]+) », réglable de (?P<minimum>-?[\d,]+)"
+		r"elle montre le seuil de silence « (?P<texte>[^»]+) », réglable de (?P<minimum>-?[\d,]+)"
 		r" à (?P<maximum>-?[\d,]+) dB"
 	)
 )
 def seuil_affiche(ouverte: Ouverte, texte: str, minimum: str, maximum: str) -> None:
-	champ = la_fenetre(ouverte).ui.seuil_blancs
+	champ = la_fenetre(ouverte).ui.seuil_silences
 	assert (champ.text(), champ.minimum(), champ.maximum()) == (texte, _decibels(minimum), _decibels(maximum))
 
 
-@when(parsers.re(r"j'y saisis le seuil de blanc (?P<seuil>-?[\d,]+)"))
+@when(parsers.re(r"j'y saisis le seuil de silence (?P<seuil>-?[\d,]+)"))
 def saisir_le_seuil(ouverte: Ouverte, seuil: str) -> None:
-	la_fenetre(ouverte).ui.seuil_blancs.setValue(_decibels(seuil))
+	la_fenetre(ouverte).ui.seuil_silences.setValue(_decibels(seuil))
 
 
-@then(parsers.re(r"elle a donné le seuil de blanc (?P<seuil>-?[\d,]+) dB"))
+@then(parsers.re(r"elle a donné le seuil de silence (?P<seuil>-?[\d,]+) dB"))
 def seuil_donne(ouverte: Ouverte, seuil: str) -> None:
 	assert ouverte.donnes is not None
-	assert ouverte.donnes.seuil_blancs == _decibels(seuil)
+	assert ouverte.donnes.seuil_silences == _decibels(seuil)
 
 
 # ─── Voyant « Saturation » (https://github.com/dascritch/machincast/issues/191) ───
@@ -548,10 +554,10 @@ def saturation_montree(interface: Contexte, etat: str) -> None:
 	assert interface.saturations_montrees == [etat == "affiché"]
 
 
-@then(parsers.re(r"le voyant « (?P<nom>Saturation|Silence) » de l'antenne est (?P<etat>affiché|caché) à l'accueil"))
+@then(parsers.re(r"le voyant « (?P<nom>Saturation|Blanc) » de l'antenne est (?P<etat>affiché|caché) à l'accueil"))
 def voyant_a_l_accueil(interface: Contexte, nom: str, etat: str) -> None:
 	ui = fenetre(interface).accueil.ui
-	voyant = {"Saturation": ui.voyant_saturation, "Silence": ui.voyant_silence}[nom]
+	voyant = {"Saturation": ui.voyant_saturation, "Blanc": ui.voyant_blanc}[nom]
 	assert voyant.isHidden() is (etat == "caché")
 
 

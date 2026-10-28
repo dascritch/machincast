@@ -75,7 +75,7 @@ Fonctionnalité: Playlist immédiate
 		Quand la diffusion avance de 240 secondes
 		Alors l'airplay montre les passages « n1 », « n2 », « f1 », « f2 », « f3 »
 
-	Scénario: La liste ne va pas au-delà d'un silence
+	Scénario: La liste ne va pas au-delà d'un blanc
 		Étant donné l'émission « Flash » de 20:00:00 à 20:02:30, avec les sonores « m1 », « m2 », « m3 »
 		Et chaque sonore dure 60 secondes
 		Quand la diffusion démarre sur un moteur simulé

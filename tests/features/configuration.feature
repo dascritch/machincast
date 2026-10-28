@@ -151,7 +151,7 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors les crossfades durent par défaut 0 seconde au début et 5 secondes à la fin
 
-	Scénario: La section [crossfades] donne la position des fondus par rapport aux blancs détectés
+	Scénario: La section [crossfades] donne la position des fondus par rapport aux silences détectés
 		https://github.com/dascritch/machincast/issues/234
 
 		Étant donné une configuration valide où la clé "crossfades.position_entree" vaut "en_cours"
@@ -176,7 +176,7 @@ Fonctionnalité: Fichier de configuration
 			| crossfades.position_entree | "avant" | commence, en_cours, termine |
 			| crossfades.position_sortie | 2       | texte                       |
 
-	# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ─────────────────
+	# ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ─────────────────
 
 	# ─── Péremption (https://github.com/dascritch/machincast/issues/268) ───
 
@@ -209,15 +209,15 @@ Fonctionnalité: Fichier de configuration
 			| "60"   |
 			| true   |
 
-	Scénario: Sans section [blancs], le seuil de blanc est de -40 dB
-		Étant donné une configuration valide sans section "blancs"
+	Scénario: Sans section [silences], le seuil de silence est de -40 dB
+		Étant donné une configuration valide sans section "silences"
 		Quand je charge la configuration
-		Alors le seuil de blanc est de -40 dB
+		Alors le seuil de silence est de -40 dB
 
-	Plan du scénario: La clé blancs.seuil donne le seuil de blanc, de -100 dB compris à 0 dB exclu
-		Étant donné une configuration valide où la clé "blancs.seuil" vaut <valeur>
+	Plan du scénario: La clé silences.seuil donne le seuil de silence, de -100 dB compris à 0 dB exclu
+		Étant donné une configuration valide où la clé "silences.seuil" vaut <valeur>
 		Quand je charge la configuration
-		Alors le seuil de blanc est de <seuil> dB
+		Alors le seuil de silence est de <seuil> dB
 
 		Exemples:
 			| valeur | seuil |
@@ -226,10 +226,10 @@ Fonctionnalité: Fichier de configuration
 			| -100   | -100  |
 			| -0.1   | -0,1  |
 
-	Plan du scénario: Un seuil de blanc invalide est refusé
-		Étant donné une configuration valide où la clé "blancs.seuil" vaut <valeur>
+	Plan du scénario: Un seuil de silence invalide est refusé
+		Étant donné une configuration valide où la clé "silences.seuil" vaut <valeur>
 		Quand je charge la configuration
-		Alors le chargement échoue avec un message qui mentionne "blancs.seuil"
+		Alors le chargement échoue avec un message qui mentionne "silences.seuil"
 		Et le message mentionne "<attendu>"
 
 		Exemples:
@@ -240,10 +240,30 @@ Fonctionnalité: Fichier de configuration
 			| "-40"  | nombre                           |
 			| true   | nombre                           |
 
-	Scénario: Une clé inconnue de la section [blancs] est refusée
+	Scénario: Une clé inconnue de la section [silences] est refusée
+		Étant donné une configuration valide où la clé "silences.duree" vaut 1
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "silences.duree"
+
+	Scénario: L'ancienne section [blancs] est lue comme [silences], et le journal demande de la renommer
+		https://github.com/dascritch/machincast/issues/291 : la section s'appelait [blancs], avant que le son faible au
+		début et à la fin d'un fichier ne s'appelle un silence. Une configuration qui la garde reste valide.
+
+		Étant donné une configuration valide où la clé "blancs.seuil" vaut -55
+		Quand je charge la configuration
+		Alors le seuil de silence est de -55 dB
+		Et le journal avertit que la section [blancs] s'appelle désormais [silences]
+
+	Scénario: Une configuration qui a les sections [blancs] et [silences] à la fois est refusée
+		Étant donné une configuration valide où la clé "blancs.seuil" vaut -55
+		Et la clé "silences.seuil" vaut -60
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "[blancs] est l'ancien nom de [silences]"
+
+	Scénario: Une clé inconnue de l'ancienne section [blancs] est refusée sous le nouveau nom
 		Étant donné une configuration valide où la clé "blancs.duree" vaut 1
 		Quand je charge la configuration
-		Alors le chargement échoue avec un message qui mentionne "blancs.duree"
+		Alors le chargement échoue avec un message qui mentionne "silences.duree"
 
 	Scénario: Une clé inconnue est refusée
 		Étant donné une configuration valide où la clé "audio.volume" vaut 80
@@ -338,7 +358,7 @@ Fonctionnalité: Fichier de configuration
 			| interface.saturation | "oui"  |
 			| interface.saturation | 1      |
 			| interface.suggestions | "non" |
-			| interface.silence    | true   |
+			| interface.blanc      | true   |
 
 	Plan du scénario: La clé interface.suggestions active ou éteint les suggestions au lancement, actives par défaut
 		https://github.com/dascritch/machincast/issues/119

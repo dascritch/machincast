@@ -271,7 +271,7 @@ Fonctionnalité: Interruption manuelle de l'antenne
 
 	# ─── Rien à interrompre ────────────────────────────────────
 
-	Scénario: Pendant un silence, une interruption ne fait rien
+	Scénario: Pendant un blanc, une interruption ne fait rien
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
 		Et le sonore « f1 » est à l'état « desactive »
 		Quand la diffusion démarre sur un moteur simulé

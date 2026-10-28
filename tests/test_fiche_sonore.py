@@ -97,7 +97,7 @@ def montre(sonore: FicheSonore) -> dict[str, Callable[[], str]]:
 		"Crossfade de début": si_coche(ui.a_crossfade_debut, ui.crossfade_debut.text),
 		"Crossfade de fin": si_coche(ui.a_crossfade_fin, ui.crossfade_fin.text),
 		"Maximum de lectures": ui.max_lectures.text,
-		"Détection de blanc": lambda: "oui" if ui.detection_blancs.isChecked() else "non",
+		"Détection de silence": lambda: "oui" if ui.detection_silences.isChecked() else "non",
 		"Début détecté": si_coche(ui.a_debut_detecte, ui.debut_detecte.text),
 		"Fin détectée": si_coche(ui.a_fin_detectee, ui.fin_detectee.text),
 		"Artiste et titre": lambda: ui.masquage.currentText().casefold(),
@@ -278,10 +278,10 @@ def saisir(interface: Contexte, qtbot: QtBot, datatable: list[list[str]]) -> Non
 				nombre.setValue(float(brut.replace(",", ".")))
 		elif champ == "Maximum de lectures":
 			ui.max_lectures.setValue(int(brut))
-		elif champ == "Détection de blanc":
-			ui.detection_blancs.setChecked(brut == "oui")
+		elif champ == "Détection de silence":
+			ui.detection_silences.setChecked(brut == "oui")
 		elif champ in ("Début détecté", "Fin détectée"):
-			# Un blanc vide n'est pas détecté (https://github.com/dascritch/machincast/issues/146).
+			# Un silence vide n'est pas détecté (https://github.com/dascritch/machincast/issues/146).
 			case, nombre = {
 				"Début détecté": (ui.a_debut_detecte, ui.debut_detecte),
 				"Fin détectée": (ui.a_fin_detectee, ui.fin_detectee),
@@ -391,10 +391,10 @@ def sans_stream(interface: Contexte) -> None:
 	assert (ui.groupe_stream.isHidden(), ui.emplacement.isHidden()) == (True, False)
 
 
-@then("la fiche du sonore n'a pas de détection de blanc")
+@then("la fiche du sonore n'a pas de détection de silence")
 def sans_detection(interface: Contexte) -> None:
-	"""Un stream n'a pas de blancs détectés (https://github.com/dascritch/machincast/issues/146)."""
-	assert fiche(interface).ui.groupe_blancs.isHidden()
+	"""Un stream n'a pas de silences détectés (https://github.com/dascritch/machincast/issues/146)."""
+	assert fiche(interface).ui.groupe_silences.isHidden()
 
 
 @then("la fiche du sonore n'a pas d'emplacement")

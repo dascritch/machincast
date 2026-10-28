@@ -20,9 +20,9 @@ import pytest
 from pytest_bdd import given, parsers, then, when
 
 from machincast.base import Role, connecter
-from machincast.configuration import SEUIL_DE_BLANC
+from machincast.configuration import SEUIL_DE_SILENCE
 from machincast.indexation.__main__ import executer
-from machincast.indexation.decodage import Blancs, DecodeurIndisponible, Verification, verifier_fichier
+from machincast.indexation.decodage import DecodeurIndisponible, Silences, Verification, verifier_fichier
 from machincast.indexation.indexeur import VERROU, indexer_un_sonore
 from machincast.indexation.indexeur import indexer as indexer_complet
 from machincast.indexation.verification import Bilan, texte_bilan
@@ -278,17 +278,17 @@ def indexer(
 	audit_complet: bool,
 	arret: threading.Event | None = None,
 	indexations: list[tuple[datetime, datetime]] | None = None,
-	seuil_blancs: list[float] | None = None,
+	seuil_silences: list[float] | None = None,
 	forcer: bool = False,
 ) -> Execution:
 	# Le compte qui lance les tests endosse déjà le rôle de l'indexation (vérifié par base_vide).
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:
 		debut = maintenant_en_base(base_vide)
-		seuil = SEUIL_DE_BLANC
-		if seuil_blancs:
-			seuil = seuil_blancs[-1]
-		bilan = indexer_complet(c, audit_complet=audit_complet, arret=arret, seuil_blancs=seuil, forcer=forcer)
+		seuil = SEUIL_DE_SILENCE
+		if seuil_silences:
+			seuil = seuil_silences[-1]
+		bilan = indexer_complet(c, audit_complet=audit_complet, arret=arret, seuil_silences=seuil, forcer=forcer)
 		if indexations is not None:
 			indexations.append((debut, maintenant_en_base(base_vide)))
 		verrou_rendu = verrou_libre()
@@ -303,9 +303,9 @@ def audit_complet(
 	base_vide: Connexion,
 	caplog: pytest.LogCaptureFixture,
 	indexations: list[tuple[datetime, datetime]],
-	seuil_blancs: list[float],
+	seuil_silences: list[float],
 ) -> Execution:
-	return indexer(base_vide, caplog, audit_complet=True, indexations=indexations, seuil_blancs=seuil_blancs)
+	return indexer(base_vide, caplog, audit_complet=True, indexations=indexations, seuil_silences=seuil_silences)
 
 
 @when("l'indexeur fait une indexation rapide, dont l'arrêt est déjà demandé", target_fixture="execution")
@@ -320,11 +320,11 @@ def indexation_rapide(
 	base_vide: Connexion,
 	caplog: pytest.LogCaptureFixture,
 	indexations: list[tuple[datetime, datetime]],
-	seuil_blancs: list[float],
+	seuil_silences: list[float],
 ) -> Execution:
-	"""Le seuil de blanc sert aux sonores dont l'audit complet est demandé
+	"""Le seuil de silence sert aux sonores dont l'audit complet est demandé
 	(https://github.com/dascritch/machincast/issues/114)."""
-	return indexer(base_vide, caplog, audit_complet=False, indexations=indexations, seuil_blancs=seuil_blancs)
+	return indexer(base_vide, caplog, audit_complet=False, indexations=indexations, seuil_silences=seuil_silences)
 
 
 def lire_sonore(base: Connexion, sonore: int) -> tuple[object, ...]:
@@ -469,20 +469,20 @@ def sans_date_de_verification(base_vide: Connexion, sonore: int) -> None:
 	assert verifie_le(base_vide, sonore) is None
 
 
-# ─── Détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
+# ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───
 
 
-@given(parsers.re(r"un fichier (?P<format_sonore>\w+) avec des blancs"), target_fixture="fichier")
-def fichier_avec_blancs(tmp_path: Path, format_sonore: str) -> Path:
-	return copie_de_test(format_sonore, tmp_path, "blancs")
+@given(parsers.re(r"un fichier (?P<format_sonore>\w+) avec des silences"), target_fixture="fichier")
+def fichier_avec_silences(tmp_path: Path, format_sonore: str) -> Path:
+	return copie_de_test(format_sonore, tmp_path, "silences")
 
 
 @when(
-	parsers.re(rf"je vérifie ce fichier en détectant les blancs au seuil de (?P<seuil>-?{DECIMAL}) dB"),
+	parsers.re(rf"je vérifie ce fichier en détectant les silences au seuil de (?P<seuil>-?{DECIMAL}) dB"),
 	target_fixture="resultat",
 )
-def verifier_les_blancs(fichier: Path, seuil: str) -> Verification:
-	return verifier_fichier(fichier, seuil_blancs=nombre(seuil))
+def verifier_les_silences(fichier: Path, seuil: str) -> Verification:
+	return verifier_fichier(fichier, seuil_silences=nombre(seuil))
 
 
 def _proche(valeur: timedelta | None, attendue: str, marge: str) -> bool:
@@ -491,35 +491,35 @@ def _proche(valeur: timedelta | None, attendue: str, marge: str) -> bool:
 
 @then(parsers.re(rf"son début détecté est de (?P<attendu>{DECIMAL}) secondes? à (?P<marge>{DECIMAL}) seconde près"))
 def debut_detecte(resultat: Verification, attendu: str, marge: str) -> None:
-	assert resultat.blancs is not None
-	assert _proche(resultat.blancs.debut, attendu, marge), resultat.blancs
+	assert resultat.silences is not None
+	assert _proche(resultat.silences.debut, attendu, marge), resultat.silences
 
 
 @then(parsers.re(rf"sa fin détectée est de (?P<attendue>{DECIMAL}) secondes? à (?P<marge>{DECIMAL}) seconde près"))
 def fin_detectee(resultat: Verification, attendue: str, marge: str) -> None:
-	assert resultat.blancs is not None
-	assert _proche(resultat.blancs.fin, attendue, marge), resultat.blancs
+	assert resultat.silences is not None
+	assert _proche(resultat.silences.fin, attendue, marge), resultat.silences
 
 
-@then("aucun blanc n'est détecté")
-def aucun_blanc(resultat: Verification) -> None:
-	assert resultat.blancs == Blancs(None, None), resultat.blancs
+@then("aucun silence n'est détecté")
+def aucun_silence(resultat: Verification) -> None:
+	assert resultat.silences == Silences(None, None), resultat.silences
 
 
-@then("les blancs n'ont pas été mesurés")
-def blancs_non_mesures(resultat: Verification) -> None:
-	assert resultat.blancs is None, resultat.blancs
+@then("les silences n'ont pas été mesurés")
+def silences_non_mesures(resultat: Verification) -> None:
+	assert resultat.silences is None, resultat.silences
 
 
 @pytest.fixture
-def seuil_blancs() -> list[float]:
-	"""Le seuil de blanc de la configuration, s'il est donné par le scénario ; celui par défaut sinon."""
+def seuil_silences() -> list[float]:
+	"""Le seuil de silence de la configuration, s'il est donné par le scénario ; celui par défaut sinon."""
 	return []
 
 
-@given(parsers.re(rf"un seuil de blanc de (?P<seuil>-?{DECIMAL}) dB dans la configuration"))
-def seuil_configure(seuil_blancs: list[float], seuil: str) -> None:
-	seuil_blancs.append(nombre(seuil))
+@given(parsers.re(rf"un seuil de silence de (?P<seuil>-?{DECIMAL}) dB dans la configuration"))
+def seuil_configure(seuil_silences: list[float], seuil: str) -> None:
+	seuil_silences.append(nombre(seuil))
 
 
 @given(
@@ -529,7 +529,7 @@ def seuil_configure(seuil_blancs: list[float], seuil: str) -> None:
 	),
 	target_fixture="sonore",
 )
-def sonore_avec_blancs(base_vide: Connexion, fichier: Path, secondes: str) -> int:
+def sonore_avec_silences(base_vide: Connexion, fichier: Path, secondes: str) -> int:
 	sonore = inserer_sonore(base_vide, str(fichier), "actif")
 	duree = timedelta(seconds=nombre(secondes))
 	base_vide.execute("UPDATE sonores SET debut_detecte = %s, fin_detectee = %s WHERE id = %s", (duree, duree, sonore))
@@ -543,7 +543,7 @@ def sonore_avec_blancs(base_vide: Connexion, fichier: Path, secondes: str) -> in
 	),
 	target_fixture="sonore",
 )
-def sonore_blancs_edites(base_vide: Connexion, fichier: Path, secondes: str) -> int:
+def sonore_silences_edites(base_vide: Connexion, fichier: Path, secondes: str) -> int:
 	sonore = inserer_sonore(base_vide, str(fichier), "actif", ["debut_detecte", "fin_detectee"])
 	duree = timedelta(seconds=nombre(secondes))
 	base_vide.execute("UPDATE sonores SET debut_detecte = %s, fin_detectee = %s WHERE id = %s", (duree, duree, sonore))
@@ -561,7 +561,7 @@ def audit_d_un_sonore(base_vide: Connexion, caplog: pytest.LogCaptureFixture, so
 	return Execution(bilan, "\n".join(anomalies), informations)
 
 
-def blancs_en_base(base: Connexion, sonore: int) -> tuple[object, object]:
+def silences_en_base(base: Connexion, sonore: int) -> tuple[object, object]:
 	ligne = base.execute("SELECT debut_detecte, fin_detectee FROM sonores WHERE id = %s", (sonore,)).fetchone()
 	assert ligne is not None
 	return ligne[0], ligne[1]
@@ -573,8 +573,8 @@ def blancs_en_base(base: Connexion, sonore: int) -> tuple[object, object]:
 		rf" de (?P<fin>{DECIMAL}) secondes?, à (?P<marge>{DECIMAL}) seconde près"
 	)
 )
-def blancs_du_sonore(base_vide: Connexion, sonore: int, debut: str, fin: str, marge: str) -> None:
-	en_base = blancs_en_base(base_vide, sonore)
+def silences_du_sonore(base_vide: Connexion, sonore: int, debut: str, fin: str, marge: str) -> None:
+	en_base = silences_en_base(base_vide, sonore)
 	assert all(isinstance(valeur, timedelta) for valeur in en_base), en_base
 	valeur_debut, valeur_fin = (valeur for valeur in en_base if isinstance(valeur, timedelta))
 	assert _proche(valeur_debut, debut, marge), en_base
@@ -582,8 +582,8 @@ def blancs_du_sonore(base_vide: Connexion, sonore: int, debut: str, fin: str, ma
 
 
 @then("en base, le sonore n'a ni début ni fin détectés")
-def sans_blancs_en_base(base_vide: Connexion, sonore: int) -> None:
-	assert blancs_en_base(base_vide, sonore) == (None, None)
+def sans_silences_en_base(base_vide: Connexion, sonore: int) -> None:
+	assert silences_en_base(base_vide, sonore) == (None, None)
 
 
 @given("le sonore est supprimé depuis l'interface")

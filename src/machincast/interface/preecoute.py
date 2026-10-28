@@ -14,7 +14,7 @@ un minuteur de Qt : rien ne bloque l'interface.
   elle est signalée.
 - Frise d'un fichier (machincast.interface.frise, https://github.com/dascritch/machincast/issues/224) : elle tient
   lieu de barre de position, pendant la lecture ou sa pause, et montre sa forme d'onde, calculée en tâche de fond à
-  l'ouverture, ses blancs et ses crossfades enregistrés, et la partie jouée à l'antenne. « Début joué » et « Fin
+  l'ouverture, ses silences et ses crossfades enregistrés, et la partie jouée à l'antenne. « Début joué » et « Fin
   jouée » y placent la lecture, en la lançant au besoin. Écouté comme à l'antenne, le fichier n'est joué que de sa
   partie jouée, au volume de l'enveloppe de la diffusion, réglé à chaque relève : il commence au début de la partie
   jouée, et s'arrête à sa fin. Un stream n'a ni frise ni barre de position.
@@ -102,7 +102,7 @@ def lire_source(
 	with connexion.transaction():
 		ligne = connexion.execute(
 			"SELECT s.type::text, s.emplacement, coalesce(s.url_stream, m.url), s.artiste, s.titre,"
-			" extract(epoch FROM s.duree), s.duree, s.debut_detecte, s.fin_detectee, s.detection_blancs,"
+			" extract(epoch FROM s.duree), s.duree, s.debut_detecte, s.fin_detectee, s.detection_silences,"
 			" s.crossfade_debut, s.crossfade_fin, s.audite_le IS NOT NULL"
 			" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 			(sonore,),

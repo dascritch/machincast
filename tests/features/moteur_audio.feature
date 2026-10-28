@@ -48,7 +48,7 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Alors à 58 secondes, son volume est de 1
 		Et à 60 secondes, son volume est de 1
 
-	# ─── Sonore rogné par la détection de blanc (https://github.com/dascritch/machincast/issues/146) ───
+	# ─── Sonore rogné par la détection de silence (https://github.com/dascritch/machincast/issues/146) ───
 	# Les instants et la position d'une voie se comptent depuis son début détecté, pas depuis le début du fichier.
 
 	Plan du scénario: Le volume d'un sonore rogné suit ses crossfades à partir de son début détecté
@@ -65,13 +65,13 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 
 	Scénario: Un sonore rogné joue de son début détecté à sa fin détectée
 		Étant donné un moteur audio sur la sortie de la configuration de test, au plus vite
-		Quand il joue le fichier de test « blancs.flac » de 0,5 à 1,5 seconde du fichier
+		Quand il joue le fichier de test « silences.flac » de 0,5 à 1,5 seconde du fichier
 		Et j'attends la fin de ses voies
-		Alors la voie de « blancs.flac » est finie
+		Alors la voie de « silences.flac » est finie
 		Et elle s'est arrêtée à 1,5 seconde du fichier, à 0,05 seconde près, après avoir joué 1 seconde
 
 	# ─── Fondus qui débordent du fichier (https://github.com/dascritch/machincast/issues/234) ───
-	# Un fondu placé par rapport aux blancs détectés peut commencer avant le début du fichier, ou finir après sa fin :
+	# Un fondu placé par rapport aux silences détectés peut commencer avant le début du fichier, ou finir après sa fin :
 	# la voie part du volume où en est le fade-in, et s'arrête au volume où en est le fade-out.
 
 	Plan du scénario: Un fondu qui déborde du fichier part, ou s'arrête, au volume où il en est

@@ -36,7 +36,7 @@ DELAI = 5000
 @given(
 	parsers.re(
 		r"le sonore « (?P<titre>[^»]+) », pour une copie du fichier de test « (?P<fichier>[^»]+) », de (?P<duree>\d+)"
-		r" secondes, aux blancs de (?P<debut>[\d,]+) s au début et (?P<fin>[\d,]+) s à la fin, retirés à l'antenne,"
+		r" secondes, aux silences de (?P<debut>[\d,]+) s au début et (?P<fin>[\d,]+) s à la fin, retirés à l'antenne,"
 		r" aux crossfades (?:de (?P<cd>[\d,]+) s au début et (?P<cf>[\d,]+) s à la fin|non paramétrés)"
 	)
 )
@@ -51,14 +51,14 @@ def sonore_audite(
 	cd: str | None,
 	cf: str | None,
 ) -> None:
-	"""Un fichier audité, ses blancs retirés à l'antenne ; ses crossfades, ou aucun de paramétré (NULL)."""
+	"""Un fichier audité, ses silences retirés à l'antenne ; ses crossfades, ou aucun de paramétré (NULL)."""
 	copie = interface.repertoire / fichier
 	shutil.copyfile(FICHIERS_SONORES / fichier, copie)
 	crossfades = [None, None]
 	if (cd is not None) and (cf is not None):
 		crossfades = [timedelta(seconds=_secondes(cd)), timedelta(seconds=_secondes(cf))]
 	base_vide.execute(
-		"INSERT INTO sonores (type, emplacement, titre, etat, duree, debut_detecte, fin_detectee, detection_blancs,"
+		"INSERT INTO sonores (type, emplacement, titre, etat, duree, debut_detecte, fin_detectee, detection_silences,"
 		" crossfade_debut, crossfade_fin, audite_le, audit_seuil)"
 		" VALUES ('fichier', %s, %s, 'actif', %s, %s, %s, true, %s, %s, now(), -40)",
 		(
