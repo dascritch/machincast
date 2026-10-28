@@ -45,6 +45,9 @@ FICHIER_MINUTEUR_PURGE="/etc/systemd/system/${MINUTEUR_PURGE}"
 # compte, et sur son bureau s'il le veut. Le même nom que RACCOURCI de machincast.interface.application.
 RACCOURCI="machincast.desktop"
 DOSSIER_APPLICATIONS="${XDG_DATA_HOME:-${HOME}/.local/share}/applications"
+# L'icône de MachinCast dans le thème d'icônes du compte, sous le nom qu'annoncent les sorties audio à PipeWire et à
+# PulseAudio (machincast.audio.ICONE, https://github.com/dascritch/machincast/issues/296).
+ICONE_DU_THEME="${XDG_DATA_HOME:-${HOME}/.local/share}/icons/hicolor/512x512/apps/machincast.png"
 CONFIGURATION="${RACINE}/machincast.toml"
 VENV="${RACINE}/.venv"
 ROLES=(lecture indexation interface)
@@ -98,7 +101,8 @@ aide() {
 		  6. liens ${LIEN_INSTALLATION}, ${LIEN_WRAPPER} et l'autocomplétion bash ;
 		  7. vérification de la version et des greffons GStreamer, et de la sortie audio ;
 		  8. raccourci de l'interface dans le menu des applications de ${UTILISATEUR}, et, s'il le veut,
-		     sur son bureau : la question est posée, sauf avec --bureau ou --sans-bureau.
+		     sur son bureau : la question est posée, sauf avec --bureau ou --sans-bureau ; icône de
+		     MachinCast dans son thème d'icônes, pour le réglage du son du poste.
 		Avec --dev, aussi les outils du poste de développement : ${PAQUETS_DEV[*]} (apt) et les
 		dépendances de test (pip, extra [dev]), pour Machin dev et Machin dev-test.
 		Avec --service, aussi le service de diffusion ${UNITE}, seulement pour un ordinateur dédié à
@@ -516,9 +520,20 @@ vouloir_le_bureau() {
 	[[ ! "${reponse}" =~ ^[nN] ]]
 }
 
+# Installe pour le compte, sans sudo, l'icône de MachinCast dans son thème d'icônes, si elle diffère de celle en place.
+installer_icone() {
+	local destination="$1" source="${RACINE}/src/machincast/interface/machincast.png"
+	if [[ -r "${destination}" ]] && cmp --silent "${source}" "${destination}"; then
+		info "${destination} est à jour"
+		return
+	fi
+	executer install -D --mode=644 "${source}" "${destination}"
+}
+
 installer_raccourci() {
 	etape "Raccourci de l'interface"
 	installer_raccourci_en "${DOSSIER_APPLICATIONS}/${RACCOURCI}" 644 || true
+	installer_icone "${ICONE_DU_THEME}"
 	local bureau
 	bureau="$(dossier_du_bureau)"
 	if [[ -z "${bureau}" ]]; then

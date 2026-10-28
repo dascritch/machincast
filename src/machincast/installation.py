@@ -40,7 +40,7 @@ from gi.repository import Gst  # noqa: E402
 
 from machincast import audio as sorties_audio  # noqa: E402
 from machincast import raccourci as rediger_le_raccourci  # noqa: E402
-from machincast.audio import GREFFONS, Greffon, SortieAudioIndisponible, creer_sortie  # noqa: E402
+from machincast.audio import ESSAI, GREFFONS, Greffon, SortieAudioIndisponible, creer_sortie  # noqa: E402
 from machincast.base import appliquer_migrations, url_yoyo  # noqa: E402
 from machincast.cli import lancer  # noqa: E402
 from machincast.configuration import REPERTOIRE_PROJET, Configuration, SortieAudio  # noqa: E402
@@ -158,7 +158,7 @@ def verifier_sortie(configuration: Configuration, greffons: dict[SortieAudio, Gr
 	"""Crée l'élément de la sortie audio configurée, sans jouer de son : aucun son ne part à l'antenne."""
 	audio = configuration.audio
 	try:
-		creer_sortie(audio.sortie, audio.peripherique, greffons)
+		creer_sortie(audio.sortie, audio.peripherique, greffons, presentation=ESSAI)
 	except SortieAudioIndisponible:
 		return [Manque(f"sortie audio {audio.sortie}", greffons[audio.sortie].paquet)]
 	return []

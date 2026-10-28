@@ -48,7 +48,7 @@ gi.require_version("Gst", "1.0")
 gi.require_version("GstController", "1.0")
 from gi.repository import Gst, GstController  # type: ignore[attr-defined]  # noqa: E402
 
-from machincast.audio import LECTEUR, SortieAudioIndisponible, creer_sortie  # noqa: E402
+from machincast.audio import ANTENNE, LECTEUR, SortieAudioIndisponible, creer_sortie  # noqa: E402
 from machincast.configuration import Audio  # noqa: E402
 
 EtatVoie = Literal["prête", "en cours", "finie", "coupée", "en erreur"]
@@ -157,7 +157,7 @@ class Voie:
 		volume = Gst.ElementFactory.make("volume", None)
 		if (lecteur is None) or (volume is None):
 			raise SortieAudioIndisponible(f"{LECTEUR} ou volume introuvable, installer gstreamer1.0-plugins-base")
-		sortie = creer_sortie(audio.sortie, audio.peripherique)
+		sortie = creer_sortie(audio.sortie, audio.peripherique, presentation=ANTENNE)
 		# Une vraie sortie suit l'horloge ; la sortie factice peut aller au plus vite, pour les tests.
 		sortie.set_property("sync", temps_reel)
 		fabrique = sortie.get_factory()
