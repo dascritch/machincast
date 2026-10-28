@@ -27,9 +27,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import psycopg
-from yoyo import get_backend, read_migrations
 
-from machincast.base import REPERTOIRE_MIGRATIONS, Role, url_yoyo
+from machincast.base import Role, SchemaPerime, appliquer_migrations, url_yoyo
 from machincast.cli import lancer
 from machincast.configuration import Configuration
 from machincast.horloge import Horloge, HorlogeSysteme
@@ -99,10 +98,7 @@ def sauvegarder(configuration: Configuration, repertoire: Path) -> Path:
 def mettre_a_jour_le_schema(configuration: Configuration) -> None:
 	"""Les migrations manquantes ; aucune si le schéma est à jour."""
 	base = configuration.base
-	with get_backend(url_yoyo(base.socket, base.production)) as backend, backend.lock():
-		manquantes = backend.to_apply(read_migrations(str(REPERTOIRE_MIGRATIONS)))
-		backend.apply_migrations(manquantes)
-	nombre = len(manquantes)
+	nombre = appliquer_migrations(url_yoyo(base.socket, base.production), base.production)
 	if nombre == 0:
 		journal.info(f"schéma de la base {base.production} à jour")
 		return
@@ -185,6 +181,8 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 			journal.info("maintenance terminée, avec des anomalies")
 	except EchecDeSauvegarde as erreur:
 		journal.error(f"sauvegarde impossible : {erreur} ; maintenance arrêtée, rien n'a été modifié")
+	except SchemaPerime as erreur:
+		journal.error(f"schéma impossible à mettre à jour : {erreur} ; la sauvegarde est faite, rien d'autre")
 	except psycopg.OperationalError as erreur:
 		journal.error(f"base de données injoignable ({configuration.base.production}) : {erreur}")
 	except psycopg.Error as erreur:

@@ -10,6 +10,11 @@
 -- Puis, encore avant la mise en production, des deux suivantes (https://github.com/dascritch/machincast/pull/100) :
 -- banque « ne pas répéter » (https://github.com/dascritch/machincast/issues/63), séquences et nom public des banques
 -- (https://github.com/dascritch/machincast/issues/99).
+-- Enfin, avant que le projet serve réellement, des quatorze suivantes
+-- (https://github.com/dascritch/machincast/issues/314), de 0002.evenements-nom-unique à
+-- 0015.vocabulaire-silences-blancs : leurs colonnes sont ajoutées à la fin de leur table, dans l'ordre où elles sont
+-- arrivées, pour que ce schéma soit exactement celui d'une base qui les a toutes reçues. Une telle base garde ses
+-- données : machincast.base.oublier_les_migrations_fusionnees retire leurs traces de _yoyo_migration.
 --
 -- Textes saisis à la main (noms, artiste, titre, nature) : varchar(255), même limite que l'interface.
 -- Chemins, URL et messages détaillés : text, leur longueur n'est pas bornée à l'avance.
@@ -33,7 +38,13 @@ CREATE TYPE niveau_log AS ENUM ('info', 'alerte', 'incident');
 --   errone     fichier illisible ou endommagé, posé par l'indexeur, qui le rétablit si le fichier redevient sain ;
 --   supprime   fichier introuvable, posé par l'indexeur.
 -- Les valeurs sont sans accents, comme celles des autres types énumérés ; l'interface les affiche accentuées.
-CREATE TYPE etat_sonore AS ENUM ('apercu', 'actif', 'desactive', 'expire', 'errone', 'supprime');
+--   non_supporte  fichier qui n'est pas du son, d'après son type lu par libmagic
+--                 (https://github.com/dascritch/machincast/issues/121).
+CREATE TYPE etat_sonore AS ENUM ('apercu', 'actif', 'desactive', 'expire', 'errone', 'non_supporte', 'supprime');
+-- Crossfades d'une banque, pour les sonores qu'elle fait jouer (https://github.com/dascritch/machincast/issues/143) :
+-- « sonore » garde le crossfade du sonore, « a_defaut » donne celui de la banque à un sonore qui n'en a pas de
+-- paramétré, « impose » donne celui de la banque à tout sonore.
+CREATE TYPE regle_crossfade AS ENUM ('sonore', 'a_defaut', 'impose');
 
 -- Mise à jour automatique de la colonne modifie_le.
 CREATE FUNCTION machincast_maj_modifie_le() RETURNS trigger
@@ -44,22 +55,26 @@ BEGIN
 END;
 $$;
 
--- ─── Marques-pages de streams ──────────────────────────────
+-- ─── Feeds ─────────────────────────────────────────────────
+-- Adresses de streams nommées, qu'un sonore stream peut suivre (https://github.com/dascritch/machincast/issues/252).
 
-CREATE TABLE marques_pages_streams (
+CREATE TABLE feeds (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	nom varchar(255) NOT NULL UNIQUE,
 	url text NOT NULL
 );
+
+COMMENT ON TABLE feeds IS 'Feeds : adresses de streams nommées, qu''un sonore stream peut suivre (feed_id).';
 
 -- ─── Sonores ───────────────────────────────────────────────
 
 CREATE TABLE sonores (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	type type_sonore NOT NULL,
-	emplacement text UNIQUE,
+	-- Unique parmi les sonores qui ne sont pas supprimés : voir sonores_emplacement_key.
+	emplacement text,
 	url_stream text,
-	marque_page_id bigint REFERENCES marques_pages_streams (id) ON DELETE RESTRICT,
+	feed_id bigint REFERENCES feeds (id) ON DELETE RESTRICT,
 	-- Stream seulement : événement de secours joué quand le flux tombe ; vide, l'événement de priorité inférieure.
 	-- Sa clé étrangère est posée après la table evenements.
 	secours_evenement_id bigint,
@@ -69,8 +84,10 @@ CREATE TABLE sonores (
 	-- Métadonnées non critiques (année, label, genre…), libres et extensibles sans migration.
 	metadonnees_musicales jsonb NOT NULL DEFAULT '{}'
 		CHECK (jsonb_typeof(metadonnees_musicales) = 'object'),
-	crossfade_debut interval NOT NULL DEFAULT '0 s' CHECK (crossfade_debut >= '0 s'),
-	crossfade_fin interval NOT NULL DEFAULT '0 s' CHECK (crossfade_fin >= '0 s'),
+	-- NULL : pas paramétré, celui de la banque ou de la configuration ; 0 seconde en est un
+	-- (https://github.com/dascritch/machincast/issues/145).
+	crossfade_debut interval CHECK (crossfade_debut >= '0 s'),
+	crossfade_fin interval CHECK (crossfade_fin >= '0 s'),
 	max_lectures integer CHECK (max_lectures > 0),
 	etat etat_sonore NOT NULL DEFAULT 'actif',
 	masquer_metadonnees boolean,
@@ -82,13 +99,51 @@ CREATE TABLE sonores (
 	champs_edites text[] NOT NULL DEFAULT '{}',
 	indexe_le timestamptz,
 	modifie_le timestamptz NOT NULL DEFAULT clock_timestamp(),
+	-- Type réel du fichier, lu par libmagic (https://github.com/dascritch/machincast/issues/121).
+	type_mime text,
+	-- Dernière vérification complète du fichier : son type lu, puis son décodage
+	-- (https://github.com/dascritch/machincast/issues/125).
+	verifie_le timestamptz,
+	-- Silences au début et à la fin du fichier, mesurés par l'audit complet ; la fin détectée se compte depuis la fin
+	-- du fichier. Le fichier n'est jamais touché (https://github.com/dascritch/machincast/issues/146).
+	debut_detecte interval CHECK (debut_detecte >= '0 s'),
+	fin_detectee interval CHECK (fin_detectee >= '0 s'),
+	detection_silences boolean NOT NULL DEFAULT false,
+	-- La prochaine indexation, même rapide, fait l'audit complet du sonore
+	-- (https://github.com/dascritch/machincast/issues/114).
+	audit_demande boolean NOT NULL DEFAULT false,
+	-- Dernier audit complet, et son seuil de silence (https://github.com/dascritch/machincast/issues/206).
+	audite_le timestamptz,
+	audit_seuil double precision CHECK (audit_seuil >= -100 AND audit_seuil < 0),
+	-- Suppression différée (https://github.com/dascritch/machincast/issues/267) : demandée depuis l'interface, ou
+	-- disparition du fichier constatée par l'indexation (état supprime).
+	supprime_le timestamptz,
+	disparu_le timestamptz,
 	CONSTRAINT sonores_fichier_ou_stream CHECK (
-		(type = 'fichier' AND emplacement IS NOT NULL AND url_stream IS NULL AND marque_page_id IS NULL)
-		OR (type = 'stream' AND emplacement IS NULL AND num_nonnulls(url_stream, marque_page_id) = 1)
+		(type = 'fichier' AND emplacement IS NOT NULL AND url_stream IS NULL AND feed_id IS NULL)
+		OR (type = 'stream' AND emplacement IS NULL AND num_nonnulls(url_stream, feed_id) = 1)
 	),
 	CONSTRAINT sonores_duree_fichier CHECK (type = 'fichier' OR duree IS NULL),
-	CONSTRAINT sonores_periode CHECK (fin_diffusion > debut_diffusion)
+	CONSTRAINT sonores_periode CHECK (fin_diffusion > debut_diffusion),
+	CONSTRAINT sonores_audit CHECK ((audite_le IS NULL) = (audit_seuil IS NULL))
 );
+
+-- Un élément supprimé ne garde ni son nom ni son emplacement : l'unicité ne vaut que pour ceux qui ne le sont pas
+-- (https://github.com/dascritch/machincast/issues/267).
+CREATE UNIQUE INDEX sonores_emplacement_key ON sonores (emplacement) WHERE supprime_le IS NULL;
+
+COMMENT ON COLUMN sonores.crossfade_debut IS 'Crossfade de début ; NULL s''il n''est pas paramétré, 0 seconde en est un.';
+COMMENT ON COLUMN sonores.crossfade_fin IS 'Crossfade de fin ; NULL s''il n''est pas paramétré, 0 seconde en est un.';
+COMMENT ON COLUMN sonores.type_mime IS 'Type MIME du fichier lu par libmagic au dernier examen de l''indexeur ; NULL avant.';
+COMMENT ON COLUMN sonores.verifie_le IS 'Dernière vérification complète du fichier par l''indexeur ; NULL avant.';
+COMMENT ON COLUMN sonores.debut_detecte IS 'Silence au début du fichier, mesuré par l''audit complet ; NULL sans silence détecté.';
+COMMENT ON COLUMN sonores.fin_detectee IS 'Silence à la fin du fichier, compté depuis sa fin ; NULL sans silence détecté.';
+COMMENT ON COLUMN sonores.detection_silences IS 'Le sonore est joué sans ses silences détectés, même hors d''une banque qui les retire.';
+COMMENT ON COLUMN sonores.audit_demande IS 'La prochaine indexation, même rapide, fait l''audit complet du sonore.';
+COMMENT ON COLUMN sonores.audite_le IS 'Date du dernier audit complet du fichier, silences mesurés ; NULL jamais audité.';
+COMMENT ON COLUMN sonores.audit_seuil IS 'Seuil de silence, en dB crête, du dernier audit complet ; NULL jamais audité.';
+COMMENT ON COLUMN sonores.supprime_le IS 'Demande de suppression depuis l''interface ; NULL : pas supprimé.';
+COMMENT ON COLUMN sonores.disparu_le IS 'Disparition du fichier, constatée par l''indexation (état supprime).';
 
 CREATE TRIGGER sonores_modifie_le BEFORE UPDATE ON sonores
 	FOR EACH ROW EXECUTE FUNCTION machincast_maj_modifie_le();
@@ -97,15 +152,38 @@ CREATE TRIGGER sonores_modifie_le BEFORE UPDATE ON sonores
 
 CREATE TABLE banques (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-	nom_interne varchar(255) NOT NULL UNIQUE,
+	-- Unique parmi les banques qui ne sont pas supprimées : voir banques_nom_interne_key.
+	nom_interne varchar(255) NOT NULL,
 	-- Affiché à la place de l'artiste et du titre masqués, après les noms publics de l'événement et de la séquence.
 	nom_public varchar(255),
 	mode mode_banque NOT NULL,
 	masquer_metadonnees boolean,
 	-- Une banque marquée ne passe jamais deux fois de suite, même d'un événement à l'autre (doc/spec.md § 4.4).
 	ne_pas_repeter boolean NOT NULL DEFAULT false,
-	modifie_le timestamptz NOT NULL DEFAULT clock_timestamp()
+	modifie_le timestamptz NOT NULL DEFAULT clock_timestamp(),
+	crossfade_debut_regle regle_crossfade NOT NULL DEFAULT 'sonore',
+	crossfade_debut interval NOT NULL DEFAULT '0 s' CHECK (crossfade_debut >= '0 s'),
+	crossfade_fin_regle regle_crossfade NOT NULL DEFAULT 'sonore',
+	crossfade_fin interval NOT NULL DEFAULT '0 s' CHECK (crossfade_fin >= '0 s'),
+	-- Durées hors desquelles un sonore de la banque est signalé, ou retiré par l'indexation
+	-- (https://github.com/dascritch/machincast/issues/147, https://github.com/dascritch/machincast/issues/195).
+	duree_min interval CHECK (duree_min > '0 s'),
+	duree_max interval CHECK (duree_max > '0 s'),
+	detection_silences boolean NOT NULL DEFAULT false,
+	supprime_le timestamptz,
+	CONSTRAINT banques_durees CHECK (duree_min <= duree_max)
 );
+
+CREATE UNIQUE INDEX banques_nom_interne_key ON banques (nom_interne) WHERE supprime_le IS NULL;
+
+COMMENT ON COLUMN banques.crossfade_debut_regle IS 'Règle du crossfade de début des sonores joués via la banque.';
+COMMENT ON COLUMN banques.crossfade_debut IS 'Crossfade de début de la banque, selon sa règle.';
+COMMENT ON COLUMN banques.crossfade_fin_regle IS 'Règle du crossfade de fin des sonores joués via la banque.';
+COMMENT ON COLUMN banques.crossfade_fin IS 'Crossfade de fin de la banque, selon sa règle.';
+COMMENT ON COLUMN banques.duree_min IS 'Durée en deçà de laquelle un sonore de la banque est signalé ; NULL sans minimum.';
+COMMENT ON COLUMN banques.duree_max IS 'Durée au-delà de laquelle un sonore de la banque est signalé ; NULL sans maximum.';
+COMMENT ON COLUMN banques.detection_silences IS 'Les sonores joués via la banque le sont sans leurs silences détectés.';
+COMMENT ON COLUMN banques.supprime_le IS 'Demande de suppression depuis l''interface ; NULL : pas supprimée.';
 
 CREATE TRIGGER banques_modifie_le BEFORE UPDATE ON banques
 	FOR EACH ROW EXECUTE FUNCTION machincast_maj_modifie_le();
@@ -136,6 +214,8 @@ CREATE INDEX banques_sonores_sonore ON banques_sonores (sonore_id);
 
 CREATE TABLE evenements (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	-- Unique parmi les événements qui ne sont pas supprimés, comme les banques et les séquences : c'est leur nom dans
+	-- les listes, le log et l'airplay (https://github.com/dascritch/machincast/issues/32).
 	nom_interne varchar(255) NOT NULL,
 	nom_public varchar(255),
 	priorite priorite_evenement NOT NULL,
@@ -152,8 +232,13 @@ CREATE TABLE evenements (
 		CHECK (priorite <> 'secours' OR (debut IS NULL AND fin IS NULL AND jours_recurrence = '{}')),
 	-- Pas de fin sans début.
 	CONSTRAINT evenements_fin_sans_debut CHECK (fin IS NULL OR debut IS NOT NULL),
-	CONSTRAINT evenements_ordre CHECK (fin > debut)
+	CONSTRAINT evenements_ordre CHECK (fin > debut),
+	supprime_le timestamptz
 );
+
+CREATE UNIQUE INDEX evenements_nom_interne_key ON evenements (nom_interne) WHERE supprime_le IS NULL;
+
+COMMENT ON COLUMN evenements.supprime_le IS 'Demande de suppression depuis l''interface ; NULL : pas supprimé.';
 
 CREATE TRIGGER evenements_modifie_le BEFORE UPDATE ON evenements
 	FOR EACH ROW EXECUTE FUNCTION machincast_maj_modifie_le();
@@ -207,11 +292,17 @@ CREATE TRIGGER evenements_secours BEFORE UPDATE OF priorite ON evenements
 -- Suites de sonores et de banques réutilisables dans les événements (doc/spec.md § 4.3).
 CREATE TABLE sequences (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-	nom_interne varchar(255) NOT NULL UNIQUE,
+	-- Unique parmi les séquences qui ne sont pas supprimées : voir sequences_nom_interne_key.
+	nom_interne varchar(255) NOT NULL,
 	nom_public varchar(255),
 	masquer_metadonnees boolean,
-	modifie_le timestamptz NOT NULL DEFAULT clock_timestamp()
+	modifie_le timestamptz NOT NULL DEFAULT clock_timestamp(),
+	supprime_le timestamptz
 );
+
+CREATE UNIQUE INDEX sequences_nom_interne_key ON sequences (nom_interne) WHERE supprime_le IS NULL;
+
+COMMENT ON COLUMN sequences.supprime_le IS 'Demande de suppression depuis l''interface ; NULL : pas supprimée.';
 
 CREATE TRIGGER sequences_modifie_le BEFORE UPDATE ON sequences
 	FOR EACH ROW EXECUTE FUNCTION machincast_maj_modifie_le();
@@ -249,6 +340,20 @@ CREATE TABLE evenements_elements (
 CREATE INDEX evenements_elements_banque ON evenements_elements (banque_id);
 CREATE INDEX evenements_elements_sonore ON evenements_elements (sonore_id);
 CREATE INDEX evenements_elements_sequence ON evenements_elements (sequence_id);
+
+-- ─── Sessions sautées ──────────────────────────────────────
+-- Une session d'un événement récurrent, à venir, peut être sautée depuis le calendrier de l'interface
+-- (https://github.com/dascritch/machincast/issues/273). Elle se désigne par le jour où elle commence : un événement
+-- récurrent n'en commence qu'une par jour, et le saut tient même si l'heure de l'événement change. Les sauts partent
+-- avec leur événement, et la purge efface ceux d'avant la durée de péremption.
+
+CREATE TABLE evenements_sauts (
+	evenement_id bigint NOT NULL REFERENCES evenements (id) ON DELETE CASCADE,
+	jour date NOT NULL,
+	PRIMARY KEY (evenement_id, jour)
+);
+
+COMMENT ON TABLE evenements_sauts IS 'Sessions sautées d''un événement récurrent : le jour où chacune commence.';
 
 -- ─── Airplay ───────────────────────────────────────────────
 
@@ -329,7 +434,7 @@ GRANT USAGE ON SCHEMA public TO machincast_lecture, machincast_indexation, machi
 -- Lit la programmation, passe les sonores à l'état expire (colonne etat seule), écrit l'airplay et le log.
 -- Pas de lecture du log : une insertion dans log ne doit pas utiliser RETURNING.
 
-GRANT SELECT ON sonores, marques_pages_streams, banques, banques_sonores, evenements, evenements_elements, sequences,
+GRANT SELECT ON sonores, feeds, banques, banques_sonores, evenements, evenements_elements, evenements_sauts, sequences,
 	sequences_elements TO machincast_lecture;
 GRANT UPDATE (etat) ON sonores TO machincast_lecture;
 GRANT SELECT, INSERT ON airplay TO machincast_lecture;
@@ -337,17 +442,19 @@ GRANT INSERT ON log TO machincast_lecture;
 
 -- ─── Machin_indexation ─────────────────────────────────────
 -- Lit les banques et leurs répertoires, crée et met à jour les sonores, les rattache à leur banque.
--- Ne supprime rien : un fichier disparu fait passer son sonore à l'état supprime.
+-- Ne supprime aucun sonore : un fichier disparu fait passer son sonore à l'état supprime. Retire seulement d'une banque
+-- les sonores dont la durée sort de ses limites (https://github.com/dascritch/machincast/issues/195).
 
 GRANT SELECT, INSERT, UPDATE ON sonores TO machincast_indexation;
 GRANT SELECT ON banques, banques_repertoires TO machincast_indexation;
-GRANT SELECT, INSERT ON banques_sonores TO machincast_indexation;
+GRANT SELECT, INSERT, DELETE ON banques_sonores TO machincast_indexation;
 
 -- ─── Machin_interface ──────────────────────────────────────
 -- Gère toute la programmation ; consulte l'airplay et le log sans pouvoir les modifier.
 
 GRANT SELECT, INSERT, UPDATE, DELETE
-	ON sonores, marques_pages_streams, banques, banques_repertoires, banques_sonores, evenements, evenements_elements,
-	sequences, sequences_elements
+	ON sonores, feeds, banques, banques_repertoires, banques_sonores, evenements, evenements_elements, sequences,
+	sequences_elements
 	TO machincast_interface;
+GRANT SELECT, INSERT, DELETE ON evenements_sauts TO machincast_interface;
 GRANT SELECT ON airplay, log TO machincast_interface;

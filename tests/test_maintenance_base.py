@@ -25,7 +25,7 @@ from machincast.base import REPERTOIRE_MIGRATIONS, appliquer_migrations, url_yoy
 from machincast.cli import creer_analyseur
 from machincast.configuration import REPERTOIRE_PROJET, Configuration
 from machincast.horloge import HorlogeFixe
-from tests.base_test import configuration_test
+from tests.base_test import configuration_test, connexion_test, marquer_les_anciennes_migrations, rendre_les_migrations
 
 scenarios("maintenance_base.feature")
 
@@ -67,6 +67,19 @@ def retirer_la_derniere(configuration: Configuration, request: pytest.FixtureReq
 	request.addfinalizer(lambda: appliquer_migrations(url))
 	with get_backend(url) as backend, backend.lock():
 		backend.rollback_migrations(backend.to_rollback(read_migrations(str(REPERTOIRE_MIGRATIONS)))[:1])
+
+
+@given(
+	parsers.re(
+		r"la base de test marquée comme ayant reçu les (?:quinze anciennes migrations|anciennes migrations jusqu'à"
+		r" « (?P<derniere>[^»]+) »)$"
+	)
+)
+def anciennes_migrations(request: pytest.FixtureRequest, derniere: str | None) -> None:
+	"""https://github.com/dascritch/machincast/issues/314"""
+	with connexion_test() as connexion:
+		marquer_les_anciennes_migrations(connexion, derniere)
+	request.addfinalizer(rendre_les_migrations)
 
 
 @given("pg_dump absent du poste")

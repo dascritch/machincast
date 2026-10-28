@@ -41,7 +41,7 @@ from gi.repository import Gst  # noqa: E402
 from machincast import audio as sorties_audio  # noqa: E402
 from machincast import raccourci as rediger_le_raccourci  # noqa: E402
 from machincast.audio import ESSAI, GREFFONS, Greffon, SortieAudioIndisponible, creer_sortie  # noqa: E402
-from machincast.base import appliquer_migrations, url_yoyo  # noqa: E402
+from machincast.base import SchemaPerime, appliquer_migrations, url_yoyo  # noqa: E402
 from machincast.cli import lancer  # noqa: E402
 from machincast.configuration import REPERTOIRE_PROJET, Configuration, SortieAudio  # noqa: E402
 from machincast.service import UNITE  # noqa: E402
@@ -223,7 +223,10 @@ def _migrer(configuration: Configuration) -> int:
 	base = configuration.base
 	for nom in (base.production, base.test):
 		try:
-			appliquer_migrations(url_yoyo(base.socket, nom))
+			appliquer_migrations(url_yoyo(base.socket, nom), nom)
+		except SchemaPerime as erreur:
+			journal.error(f"schéma impossible à mettre à jour : {erreur}")
+			return CODE_ECHEC
 		except psycopg.OperationalError as erreur:
 			journal.error(f"base de données injoignable ({nom} par {base.socket}) : {erreur}")
 			return CODE_ECHEC

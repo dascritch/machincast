@@ -57,7 +57,7 @@ class EtatSonore(StrEnum):
 	EXPIRE = "expire"
 	ERRONE = "errone"
 	NON_SUPPORTE = "non_supporte"
-	"""Le fichier n'est pas du son (https://github.com/dascritch/machincast/issues/121, migration 0003)."""
+	"""Le fichier n'est pas du son (https://github.com/dascritch/machincast/issues/121, état non_supporte)."""
 	SUPPRIME = "supprime"
 
 
