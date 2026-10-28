@@ -259,6 +259,54 @@ class Ui_FenetrePreferences(object):
 
         self.disposition_audio.addWidget(self.explication_silences)
 
+        self.groupe_blanc_antenne = QGroupBox(self.page_audio)
+        self.groupe_blanc_antenne.setObjectName(u"groupe_blanc_antenne")
+        self.formulaire_blanc_antenne = QFormLayout(self.groupe_blanc_antenne)
+        self.formulaire_blanc_antenne.setObjectName(u"formulaire_blanc_antenne")
+        self.secours_blanc = QCheckBox(self.groupe_blanc_antenne)
+        self.secours_blanc.setObjectName(u"secours_blanc")
+
+        self.formulaire_blanc_antenne.setWidget(0, QFormLayout.ItemRole.SpanningRole, self.secours_blanc)
+
+        self.etiquette_duree_blanc = QLabel(self.groupe_blanc_antenne)
+        self.etiquette_duree_blanc.setObjectName(u"etiquette_duree_blanc")
+
+        self.formulaire_blanc_antenne.setWidget(1, QFormLayout.ItemRole.LabelRole, self.etiquette_duree_blanc)
+
+        self.duree_blanc = QDoubleSpinBox(self.groupe_blanc_antenne)
+        self.duree_blanc.setObjectName(u"duree_blanc")
+        self.duree_blanc.setDecimals(1)
+        self.duree_blanc.setMinimum(1.000000000000000)
+        self.duree_blanc.setMaximum(300.000000000000000)
+        self.duree_blanc.setSingleStep(1.000000000000000)
+        self.duree_blanc.setValue(10.000000000000000)
+
+        self.formulaire_blanc_antenne.setWidget(1, QFormLayout.ItemRole.FieldRole, self.duree_blanc)
+
+        self.etiquette_seuil_blanc = QLabel(self.groupe_blanc_antenne)
+        self.etiquette_seuil_blanc.setObjectName(u"etiquette_seuil_blanc")
+
+        self.formulaire_blanc_antenne.setWidget(2, QFormLayout.ItemRole.LabelRole, self.etiquette_seuil_blanc)
+
+        self.seuil_blanc = QDoubleSpinBox(self.groupe_blanc_antenne)
+        self.seuil_blanc.setObjectName(u"seuil_blanc")
+        self.seuil_blanc.setDecimals(1)
+        self.seuil_blanc.setMinimum(-100.000000000000000)
+        self.seuil_blanc.setMaximum(-0.100000000000000)
+        self.seuil_blanc.setSingleStep(1.000000000000000)
+        self.seuil_blanc.setValue(-90.000000000000000)
+
+        self.formulaire_blanc_antenne.setWidget(2, QFormLayout.ItemRole.FieldRole, self.seuil_blanc)
+
+
+        self.disposition_audio.addWidget(self.groupe_blanc_antenne)
+
+        self.explication_blanc_antenne = QLabel(self.page_audio)
+        self.explication_blanc_antenne.setObjectName(u"explication_blanc_antenne")
+        self.explication_blanc_antenne.setWordWrap(True)
+
+        self.disposition_audio.addWidget(self.explication_blanc_antenne)
+
         self.espace_audio = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.disposition_audio.addItem(self.espace_audio)
@@ -314,6 +362,8 @@ class Ui_FenetrePreferences(object):
         self.etiquette_antenne.setBuddy(self.antenne)
         self.etiquette_preecoute.setBuddy(self.preecoute)
         self.etiquette_seuil_silences.setBuddy(self.seuil_silences)
+        self.etiquette_duree_blanc.setBuddy(self.duree_blanc)
+        self.etiquette_seuil_blanc.setBuddy(self.seuil_blanc)
         self.etiquette_peremption.setBuddy(self.peremption)
 #endif // QT_CONFIG(shortcut)
 
@@ -395,6 +445,22 @@ class Ui_FenetrePreferences(object):
 #endif // QT_CONFIG(tooltip)
         self.seuil_silences.setSuffix(QCoreApplication.translate("FenetrePreferences", u" dB", None))
         self.explication_silences.setText(QCoreApplication.translate("FenetrePreferences", u"L'audit complet mesure les silences au d\u00e9but et \u00e0 la fin de chaque fichier \u00e0 ce seuil ; un nouveau seuil vaut pour les audits suivants. Une banque, ou un sonore, choisit d'\u00eatre jou\u00e9 sans ses silences.", None))
+        self.groupe_blanc_antenne.setTitle(QCoreApplication.translate("FenetrePreferences", u"Blanc dans un sonore, \u00e0 l'antenne", None))
+#if QT_CONFIG(tooltip)
+        self.secours_blanc.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Coch\u00e9, un blanc fait passer au sonore suivant, ou au secours d'un stream ; sinon, il est seulement not\u00e9 dans le log", None))
+#endif // QT_CONFIG(tooltip)
+        self.secours_blanc.setText(QCoreApplication.translate("FenetrePreferences", u"Passer au sonore suivant, ou au secours d'un s&tream", None))
+        self.etiquette_duree_blanc.setText(QCoreApplication.translate("FenetrePreferences", u"D&ur\u00e9e d'un blanc", None))
+#if QT_CONFIG(tooltip)
+        self.duree_blanc.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Dur\u00e9e pendant laquelle un sonore qui joue doit rester sous le niveau d'un blanc", None))
+#endif // QT_CONFIG(tooltip)
+        self.duree_blanc.setSuffix(QCoreApplication.translate("FenetrePreferences", u" s", None))
+        self.etiquette_seuil_blanc.setText(QCoreApplication.translate("FenetrePreferences", u"&Niveau d'un blanc", None))
+#if QT_CONFIG(tooltip)
+        self.seuil_blanc.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Niveau cr\u00eate sous lequel un sonore qui joue ne donne plus de son ; 0 dB est la pleine \u00e9chelle", None))
+#endif // QT_CONFIG(tooltip)
+        self.seuil_blanc.setSuffix(QCoreApplication.translate("FenetrePreferences", u" dB", None))
+        self.explication_blanc_antenne.setText(QCoreApplication.translate("FenetrePreferences", u"Un sonore qui reste cette dur\u00e9e sous ce niveau, pendant qu'il joue, est not\u00e9 dans le log. Coch\u00e9, un fichier laisse aussit\u00f4t l'antenne au sonore suivant, et un stream \u00e0 son secours, jusqu'au retour de son son. Ce n'est pas un silence, au d\u00e9but ou \u00e0 la fin d'un fichier. Machin lecture prend ces r\u00e9glages \u00e0 son prochain d\u00e9marrage.", None))
         self.pages.setTabText(self.pages.indexOf(self.page_audio), QCoreApplication.translate("FenetrePreferences", u"Audio", None))
         self.etiquette_peremption.setText(QCoreApplication.translate("FenetrePreferences", u"&Dur\u00e9e de p\u00e9remption", None))
         self.peremption.setSuffix(QCoreApplication.translate("FenetrePreferences", u" jours", None))

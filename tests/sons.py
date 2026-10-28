@@ -3,7 +3,9 @@
 Les fichiers de tests/fichiers-sonores/ sont versionnés : une seconde de sinusoïde en mono, la plus petite
 taille utile, dans chacun des formats de la spec. sain.aiff ne sert qu'aux mesures de tests.mesures_gstreamer : l'AIFF
 n'est pas pris en charge (https://github.com/dascritch/machincast/issues/284), et la suite de tests ne le décode pas.
-Les fichiers sain.* n'ont aucun tag ; les fichiers tags.* portent TAGS_DE_TEST
+muet.mp3 est une seconde de silence numérique, que le serveur de flux envoie pour un flux muet
+(https://github.com/dascritch/machincast/issues/122). Les fichiers sain.* n'ont aucun tag ; les fichiers tags.* portent
+TAGS_DE_TEST
 (https://github.com/dascritch/machincast/issues/8), dans les formats où GStreamer sait les écrire (pas l'AIFF). Les
 scénarios en copient un dans leur répertoire temporaire, puis peuvent le tronquer ou le corrompre ; le dépôt n'est
 jamais modifié.
@@ -84,8 +86,11 @@ def corrompre(chemin: Path, octets: int, position: float = 1 / 3) -> None:
 	chemin.write_bytes(bytes(donnees))
 
 
-def generer_son(format_sonore: str, chemin: Path, secondes: float = DUREE_SECONDES, tags: str | None = None) -> Path:
-	"""Écrit une sinusoïde mono de la durée donnée (à un tampon près) dans le format demandé, avec les tags donnés."""
+def generer_son(
+	format_sonore: str, chemin: Path, secondes: float = DUREE_SECONDES, tags: str | None = None, onde: str = "sine"
+) -> Path:
+	"""Écrit une sinusoïde mono de la durée donnée (à un tampon près) dans le format demandé, avec les tags donnés ;
+	onde : « silence » pour un silence numérique (muet.mp3, https://github.com/dascritch/machincast/issues/122)."""
 	Gst.init(None)
 	encodeur, paquet = ENCODEURS[format_sonore]
 	if tags is not None:
@@ -93,7 +98,7 @@ def generer_son(format_sonore: str, chemin: Path, secondes: float = DUREE_SECOND
 	tampons = max(1, round(secondes * FREQUENCE / ECHANTILLONS_PAR_TAMPON))
 	try:
 		pipeline = Gst.parse_launch(
-			f"audiotestsrc wave=sine num-buffers={tampons} samplesperbuffer={ECHANTILLONS_PAR_TAMPON}"
+			f"audiotestsrc wave={onde} num-buffers={tampons} samplesperbuffer={ECHANTILLONS_PAR_TAMPON}"
 			f" ! audio/x-raw,rate={FREQUENCE},channels=1 ! audioconvert ! {encodeur} ! filesink name=fichier"
 		)
 	except gi.repository.GLib.Error as erreur:
@@ -172,4 +177,6 @@ if __name__ == "__main__":
 		chemin = generer_son(format_sonore, FICHIERS_SONORES / f"tags.{format_sonore}", tags=TAGS_DE_TEST)
 		logging.info(f"{chemin.name} : {chemin.stat().st_size} octets")
 	chemin = generer_silences(FICHIERS_SONORES / "silences.flac")
+	logging.info(f"{chemin.name} : {chemin.stat().st_size} octets")
+	chemin = generer_son("mp3", FICHIERS_SONORES / "muet.mp3", onde="silence")
 	logging.info(f"{chemin.name} : {chemin.stat().st_size} octets")

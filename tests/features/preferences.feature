@@ -173,6 +173,42 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et le fichier de configuration contient encore « # Seuil de l'antenne du matin. »
 		Et le fichier de configuration n'a plus de section [blancs]
 
+	Scénario: Le blanc dans un sonore réglé dans les préférences va dans la section [blanc_antenne] du fichier de configuration
+		https://github.com/dascritch/machincast/issues/122 : Machin lecture le prend à son prochain démarrage. Les
+		préférences suivantes montrent le blanc enregistré.
+
+		Étant donné le fichier de configuration de l'interface, avec :
+			"""
+			[blanc_antenne]
+			# Blanc de l'antenne de nuit.
+			duree = 12
+			"""
+		Et les préférences seront réglées avec un blanc de 4,5 secondes sous -70 dB, qui fait passer au secours
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors les préférences ont montré un blanc de 12 secondes sous -90 dB, qui est noté seulement
+		Et le fichier de configuration contient la ligne « duree = 4.5 »
+		Et le fichier de configuration contient la ligne « seuil = -70 »
+		Et le fichier de configuration contient la ligne « secours = true »
+		Et le fichier de configuration contient encore « # Blanc de l'antenne de nuit. »
+		Et le fichier de configuration donne un blanc de 4,5 secondes sous -70 dB, qui fait passer au secours
+		Et le fichier de configuration contient encore les autres sections
+		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Alors les préférences suivantes ont montré un blanc de 4,5 secondes sous -70 dB, qui fait passer au secours
+
+	Scénario: Régler d'autres préférences garde le blanc dans un sonore du fichier de configuration
+		Étant donné le fichier de configuration de l'interface, avec :
+			"""
+			[blanc_antenne]
+			duree = 12
+			seuil = -80
+			secours = true
+			"""
+		Et les préférences seront réglées avec le seuil de silence -55,5 dB
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors le fichier de configuration donne un blanc de 12 secondes sous -80 dB, qui fait passer au secours
+
 	Scénario: La durée de péremption réglée dans les préférences va dans la section [base], et les fiches la suivent
 		https://github.com/dascritch/machincast/issues/268 : Machin purge la prend à son prochain passage.
 
@@ -292,6 +328,18 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Quand j'y saisis le seuil de silence -55,5
 		Et j'y clique sur « OK »
 		Alors elle a donné le seuil de silence -55,5 dB
+
+	Plan du scénario: La page « Audio » montre le blanc dans un sonore, et donne celui qui est saisi
+		Quand la fenêtre des préférences s'ouvre sur un blanc de <duree> secondes sous <seuil> dB, qui <suite>
+		Alors elle montre un blanc de « <duree_montree> », réglable de 1,0 à 300,0 s, sous « <seuil_montre> », réglable de -100,0 à -0,1 dB, et le passage au secours <case>
+		Quand j'y saisis un blanc de 4,5 secondes sous -70,5 dB, et <action> le passage au secours
+		Et j'y clique sur « OK »
+		Alors elle a donné un blanc de 4,5 secondes sous -70,5 dB, qui <donne>
+
+		Exemples:
+			| duree | seuil | suite                   | duree_montree | seuil_montre | case    | action  | donne                   |
+			| 10    | -90   | est noté seulement      | 10,0 s        | -90,0 dB     | décoché | coche   | fait passer au secours  |
+			| 12    | -80   | fait passer au secours  | 12,0 s        | -80,0 dB     | coché   | décoche | est noté seulement      |
 
 	Scénario: La page « Base » montre la durée de péremption, et donne celle qui est saisie
 		Quand la fenêtre des préférences s'ouvre sur la durée de péremption de 60 jours

@@ -96,6 +96,17 @@ Un fichier disparu au moment de le jouer n'est pas joué : l'incident `fichier i
 
 Un fichier dont la lecture ne démarre pas, faute de son au bout de 10 secondes, est remplacé par le sonore suivant : l'incident `lecture bloquée` est noté ([#281](https://github.com/dascritch/machincast/issues/281)). C'est rare et fortuit, et n'a été constaté que sur des AIFF, qui ne sont plus pris en charge : le sonore rejoue normalement à son tour suivant.
 
+## Blanc dans un sonore
+
+Un sonore qui ne donne plus de son pendant qu'il joue, 10 secondes sous -90 dB, présente un **blanc** ([#122](https://github.com/dascritch/machincast/issues/122)) : un fichier mal monté, ou un stream dont le studio ne transmet plus que du vide. L'incident `blanc dans un sonore` est noté dans le [journal](#historique-et-incidents), avec l'endroit du fichier où commence le blanc et son niveau moyen, pour retrouver le défaut dans un éditeur audio. Les fondus d'un sonore ne sont pas des blancs.
+
+Par défaut, le blanc est seulement noté, et le sonore continue. Avec **Passer au sonore suivant, ou au secours d'un stream**, dans les [préférences](prise-en-main.md#préférences), page « Audio » :
+
+- un fichier laisse aussitôt l'antenne au sonore suivant ;
+- un stream la laisse à son événement de secours, ou à l'événement en dessous, comme un flux tombé ; il reste à l'écoute, et reprend l'antenne en fondu dès que son son revient.
+
+La durée et le niveau d'un blanc se règlent sur la même page. Ce n'est pas un [silence au début ou à la fin](#silences-au-début-et-à-la-fin) d'un fichier, que la diffusion peut retirer.
+
 ## Silences au début et à la fin
 
 Un fichier peut commencer ou finir par un silence : un passage sous le seuil, un souffle, une fin de réverbération. Pour ne pas les entendre, la diffusion peut jouer un sonore **sans ses silences**. Le fichier n'est pas modifié : seule la durée de ses silences est notée.
@@ -217,7 +228,8 @@ La diffusion tient aussi un **journal** de ce qu'elle fait. L'onglet **Incidents
 | `socket d'état indisponible` | alerte | L'accueil ne peut pas suivre la diffusion, qui continue sans lui. |
 | `fichier introuvable` | incident | Le fichier a disparu ; il n'est pas joué. |
 | `lecture interrompue` | incident | La lecture d'un fichier s'est arrêtée sur une erreur. |
+| `blanc dans un sonore` | incident | Le sonore en cours ne donne plus de son ([Blanc dans un sonore](#blanc-dans-un-sonore)) ; le message dit où, dans le fichier, et à quel niveau. |
 | `flux tombé` | incident | Le flux d'un stream ne répond plus. |
-| `reprise du flux` | incident | Le flux est revenu ; le message donne la durée de la panne. |
+| `reprise du flux` | incident | Le flux, tombé ou en blanc, est revenu ; le message donne la durée de la panne. |
 
 L'historique et le journal ne sont jamais modifiés ni effacés : la diffusion ne peut qu'y ajouter des lignes.

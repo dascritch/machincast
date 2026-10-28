@@ -245,6 +245,49 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors le chargement échoue avec un message qui mentionne "silences.duree"
 
+	Scénario: Sans section [blanc_antenne], un blanc de 10 secondes sous -90 dB dans un sonore est noté seulement
+		https://github.com/dascritch/machincast/issues/122 : un blanc dans un sonore, à l'antenne, n'est pas un silence,
+		qui borne un fichier (https://github.com/dascritch/machincast/issues/291).
+
+		Étant donné une configuration valide sans section "blanc_antenne"
+		Quand je charge la configuration
+		Alors un blanc dans un sonore dure au moins 10 secondes sous -90 dB, et il est noté seulement
+
+	Scénario: La section [blanc_antenne] donne la durée et le niveau d'un blanc, et le passage au secours
+		Étant donné une configuration valide où la clé "blanc_antenne.duree" vaut 4.5
+		Et la clé "blanc_antenne.seuil" vaut -70
+		Et la clé "blanc_antenne.secours" vaut true
+		Quand je charge la configuration
+		Alors un blanc dans un sonore dure au moins 4,5 secondes sous -70 dB, et il fait passer au secours
+
+	Plan du scénario: La durée d'un blanc va de 1 à 300 secondes comprises, son niveau de -100 dB compris à 0 dB exclu
+		Étant donné une configuration valide où la clé "blanc_antenne.duree" vaut <duree>
+		Et la clé "blanc_antenne.seuil" vaut <seuil>
+		Quand je charge la configuration
+		Alors un blanc dans un sonore dure au moins <secondes> secondes sous <db> dB, et il est noté seulement
+
+		Exemples:
+			| duree | seuil | secondes | db    |
+			| 1     | -100  | 1        | -100  |
+			| 300   | -0.1  | 300      | -0,1  |
+
+	Plan du scénario: Une clé de la section [blanc_antenne] invalide est refusée
+		Étant donné une configuration valide où la clé "blanc_antenne.<cle>" vaut <valeur>
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "blanc_antenne.<cle>"
+		Et le message mentionne "<attendu>"
+
+		Exemples:
+			| cle     | valeur | attendu                          |
+			| duree   | 0.5    | de 1 à 300 secondes comprises    |
+			| duree   | 301    | de 1 à 300 secondes comprises    |
+			| duree   | "10"   | nombre                           |
+			| seuil   | 0      | de -100 dB compris à 0 dB exclu  |
+			| seuil   | -101   | de -100 dB compris à 0 dB exclu  |
+			| seuil   | true   | nombre                           |
+			| secours | 1      | booléen                          |
+			| volume  | 1      | blanc_antenne.volume             |
+
 	Scénario: L'ancienne section [blancs] est lue comme [silences], et le journal demande de la renommer
 		https://github.com/dascritch/machincast/issues/291 : la section s'appelait [blancs], avant que le son faible au
 		début et à la fin d'un fichier ne s'appelle un silence. Une configuration qui la garde reste valide.

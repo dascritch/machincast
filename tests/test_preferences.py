@@ -21,7 +21,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast import raccourci
-from machincast.configuration import Crossfades, charger
+from machincast.configuration import BlancAntenne, Crossfades, charger
 from machincast.interface import __main__ as module_interface
 from machincast.interface import application as module_application
 from machincast.interface import dialogues, preferences
@@ -116,8 +116,9 @@ def autres_sections(interface: Contexte, hors_audio: str | None) -> None:
 	avant = tomllib.loads(interface.configuration_initiale.decode("utf-8"))
 	apres = tomllib.loads(fichier_de_configuration(interface).read_text(encoding="utf-8"))
 	# Les préférences tiennent toujours [crossfades], [silences] (https://github.com/dascritch/machincast/issues/146) et
-	# [interface] (https://github.com/dascritch/machincast/issues/191).
-	retirees = ["crossfades", "silences", "interface"]
+	# [interface] (https://github.com/dascritch/machincast/issues/191), et [blanc_antenne]
+	# (https://github.com/dascritch/machincast/issues/122).
+	retirees = ["crossfades", "silences", "blanc_antenne", "interface"]
 	if hors_audio is not None:
 		retirees.append("audio")
 	for section in retirees:
@@ -539,6 +540,91 @@ def saisir_le_seuil(ouverte: Ouverte, seuil: str) -> None:
 def seuil_donne(ouverte: Ouverte, seuil: str) -> None:
 	assert ouverte.donnes is not None
 	assert ouverte.donnes.seuil_silences == _decibels(seuil)
+
+
+# ─── Blanc dans un sonore (https://github.com/dascritch/machincast/issues/122) ───
+
+BLANC = (
+	r"un blanc de (?P<duree>[\d,]+) secondes sous (?P<seuil>-[\d,]+) dB, qui"
+	r" (?P<suite>est noté seulement|fait passer au secours)"
+)
+"""Un blanc dans un sonore, tel que l'écrit un scénario."""
+
+
+def blanc(duree: str, seuil: str, suite: str) -> BlancAntenne:
+	return BlancAntenne(timedelta(seconds=_decibels(duree)), _decibels(seuil), suite == "fait passer au secours")
+
+
+@given(parsers.re(rf"les préférences seront réglées avec {BLANC}"))
+def blanc_regle(interface: Contexte, duree: str, seuil: str, suite: str) -> None:
+	interface.blanc_regle = blanc(duree, seuil, suite)
+
+
+@then(parsers.re(rf"les préférences (?P<quand>ont|suivantes ont) montré {BLANC}"))
+def blanc_montre(interface: Contexte, quand: str, duree: str, seuil: str, suite: str) -> None:
+	rang = 0 if quand == "ont" else -1
+	assert interface.blancs_montres[rang] == blanc(duree, seuil, suite), interface.blancs_montres
+
+
+@then(parsers.re(rf"le fichier de configuration donne {BLANC}"))
+def blanc_du_fichier(interface: Contexte, duree: str, seuil: str, suite: str) -> None:
+	assert charger(fichier_de_configuration(interface)).blanc_antenne == blanc(duree, seuil, suite)
+
+
+@when(parsers.re(rf"la fenêtre des préférences s'ouvre sur {BLANC}"))
+def ouvrir_sur_le_blanc(ouverte: Ouverte, parent: QWidget, duree: str, seuil: str, suite: str) -> None:
+	tous = Reglages(Crossfades(), None, PREECOUTE_DES_TESTS, blanc_antenne=blanc(duree, seuil, suite))
+	ouverte.fenetre = FenetrePreferences(tous, "factice", parent)
+
+
+@then(
+	parsers.re(
+		r"elle montre un blanc de « (?P<duree>[^»]+) », réglable de (?P<minimum>[\d,]+) à (?P<maximum>[\d,]+) s, sous"
+		r" « (?P<seuil>[^»]+) », réglable de (?P<plus_bas>-[\d,]+) à (?P<plus_haut>-[\d,]+) dB, et le passage au"
+		r" secours (?P<case>coché|décoché)"
+	)
+)
+def blanc_affiche(
+	ouverte: Ouverte,
+	duree: str,
+	minimum: str,
+	maximum: str,
+	seuil: str,
+	plus_bas: str,
+	plus_haut: str,
+	case: str,
+) -> None:
+	ui = la_fenetre(ouverte).ui
+	assert (ui.duree_blanc.text(), ui.duree_blanc.minimum(), ui.duree_blanc.maximum()) == (
+		duree,
+		_decibels(minimum),
+		_decibels(maximum),
+	)
+	assert (ui.seuil_blanc.text(), ui.seuil_blanc.minimum(), ui.seuil_blanc.maximum()) == (
+		seuil,
+		_decibels(plus_bas),
+		_decibels(plus_haut),
+	)
+	assert ui.secours_blanc.isChecked() is (case == "coché")
+
+
+@when(
+	parsers.re(
+		r"j'y saisis un blanc de (?P<duree>[\d,]+) secondes sous (?P<seuil>-[\d,]+) dB, et (?P<action>coche|décoche) le"
+		r" passage au secours"
+	)
+)
+def saisir_le_blanc(ouverte: Ouverte, duree: str, seuil: str, action: str) -> None:
+	ui = la_fenetre(ouverte).ui
+	ui.duree_blanc.setValue(_decibels(duree))
+	ui.seuil_blanc.setValue(_decibels(seuil))
+	ui.secours_blanc.setChecked(action == "coche")
+
+
+@then(parsers.re(rf"elle a donné {BLANC}"))
+def blanc_donne(ouverte: Ouverte, duree: str, seuil: str, suite: str) -> None:
+	assert ouverte.donnes is not None
+	assert ouverte.donnes.blanc_antenne == blanc(duree, seuil, suite)
 
 
 # ─── Voyant « Saturation » (https://github.com/dascritch/machincast/issues/191) ───

@@ -18,7 +18,7 @@ import pytest
 from pytest_bdd import given, parsers, then, when
 
 from machincast.base import Role, connecter
-from machincast.configuration import Audio, Crossfades
+from machincast.configuration import Audio, BlancAntenne, Crossfades
 from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe
 from machincast.lecture.analyse import Analyseur
@@ -40,8 +40,8 @@ DELAI_RECONNEXION_TEST = timedelta(seconds=0.2)
 class MoteurNote(MoteurAudio):
 	"""Le moteur audio de la diffusion, qui garde chaque voie jouée, par fichier, même finie."""
 
-	def __init__(self, audio: Audio, temps_reel: bool = True) -> None:
-		super().__init__(audio, temps_reel)
+	def __init__(self, audio: Audio, temps_reel: bool = True, blanc: BlancAntenne | None = None) -> None:
+		super().__init__(audio, temps_reel, blanc=blanc)
 		self.jouees: dict[str, Voie] = {}
 
 	def jouer(
@@ -108,6 +108,9 @@ class Banc:
 	"""Analyse du prochain sonore (https://github.com/dascritch/machincast/issues/181) : aucune par défaut."""
 	simule: MoteurSimuleNote | None = None
 	"""Moteur simulé, qui suit l'horloge du binaire, quand la diffusion démarre sur lui."""
+	blanc: BlancAntenne = field(default_factory=BlancAntenne)
+	"""Blanc dans un sonore (https://github.com/dascritch/machincast/issues/122) : celui de la configuration par
+	défaut, sauf si le scénario en règle un."""
 
 
 @pytest.fixture
@@ -287,6 +290,17 @@ def special_sans_fin_des_sonores(
 ) -> None:
 	noms = [n.strip(" «»") for n in liste.split(",")]
 	evenement(banc, base_vide, tmp_path, nom, "special", heure(f"2026-10-14 {debut}"), None, noms)
+
+
+@given(
+	parsers.re(
+		r"un blanc dans un sonore réglé à (?P<duree>[\d,]+) secondes? sous (?P<seuil>-[\d,]+) dB, qui (?P<suite>est"
+		r" noté seulement|fait passer au secours)"
+	)
+)
+def blanc_regle(banc: Banc, duree: str, seuil: str, suite: str) -> None:
+	"""La section [blanc_antenne] de la configuration (https://github.com/dascritch/machincast/issues/122)."""
+	banc.blanc = BlancAntenne(timedelta(seconds=secondes(duree)), secondes(seuil), suite == "fait passer au secours")
 
 
 @given("la socket d'état dans un répertoire temporaire")
@@ -544,7 +558,7 @@ def sonore_rogne(base_vide: Connexion, nom: str, debut: str, fin: str) -> None:
 @when(parsers.re(r"la diffusion démarre (?P<rythme>au plus vite|en temps réel)"))
 def demarrer(banc: Banc, base_vide: Connexion, rythme: str) -> None:
 	banc.connexion = connecter(*parametres_base_test(), Role.LECTURE)
-	banc.moteur = MoteurNote(configuration_test().audio, temps_reel=rythme == "en temps réel")
+	banc.moteur = MoteurNote(configuration_test().audio, temps_reel=rythme == "en temps réel", blanc=banc.blanc)
 	banc.diffusion = Diffusion(
 		banc.connexion,
 		banc.moteur,
@@ -557,6 +571,7 @@ def demarrer(banc: Banc, base_vide: Connexion, rythme: str) -> None:
 		publication_minimale=0.0,
 		crossfades=banc.crossfades,
 		analyseur=banc.analyseur,
+		blanc_antenne=banc.blanc,
 	)
 	banc.diffusion.demarrer()
 
@@ -573,6 +588,7 @@ def demarrer_sur_un_moteur_simule(banc: Banc, base_vide: Connexion) -> None:
 		creer_hasard(0),
 		etat=banc.etat,
 		crossfades=banc.crossfades,
+		blanc_antenne=banc.blanc,
 	)
 	banc.diffusion.demarrer()
 
@@ -888,3 +904,31 @@ def voie_jouee(banc: Banc, nom: str, debut: str, fin: str, marge: str) -> None:
 	ecart = secondes(marge)
 	assert abs(voie.decalage.total_seconds() - secondes(debut)) <= ecart, voie.decalage
 	assert abs((voie.decalage + voie.position_finale).total_seconds() - secondes(fin)) <= ecart, voie.position_finale
+
+
+@given(parsers.parse("le stream « {nom} » est secouru par « {secours} »"))
+def stream_secouru(base_vide: Connexion, nom: str, secours: str) -> None:
+	base_vide.execute(
+		"UPDATE sonores SET secours_evenement_id = (SELECT id FROM evenements WHERE nom_interne = %s) WHERE id = %s",
+		(secours, sonore(base_vide, nom)),
+	)
+
+
+@given(parsers.parse("le stream « {nom} » à une adresse factice"))
+def stream_factice(base_vide: Connexion, nom: str) -> None:
+	"""Le moteur simulé ne se connecte à rien ; l'adresse finit par le nom du stream."""
+	base_vide.execute(
+		"INSERT INTO sonores (type, url_stream, titre) VALUES ('stream', %s, %s)", (f"http://flux.invalid/{nom}", nom)
+	)
+
+
+@then(parsers.parse("le passage « {nom} » a fini en incident « {nature} » au « {instant} »"))
+def fini_en_incident(base_vide: Connexion, nom: str, nature: str, instant: str) -> None:
+	trouves = [(fin, sain) for titre, _debut, fin, sain in passages(base_vide) if titre == nom]
+	assert trouves, nom
+	fin, sain = trouves[0]
+	assert (isinstance(fin, datetime)) and (fin == heure(instant)) and (sain is False), trouves
+	ligne = base_vide.execute(
+		"SELECT message FROM log WHERE niveau = 'incident' AND nature = %s AND horodatage = %s", (nature, fin)
+	).fetchone()
+	assert ligne is not None, nature

@@ -9,7 +9,9 @@ de démonstration (machincast.interface.frise) montre où tombent les fondus, su
 Sa page « Audio » règle les périphériques de l'antenne (audio.peripherique), que Machin lecture prend à son prochain
 démarrage, et de la pré-écoute (audio.preecoute, https://github.com/dascritch/machincast/issues/116) : chacun est grisé
 dans l'autre choix ; elle règle aussi le seuil de silence (silences.seuil,
-https://github.com/dascritch/machincast/issues/146), que l'audit complet prend à son prochain passage. La page « Base »
+https://github.com/dascritch/machincast/issues/146), que l'audit complet prend à son prochain passage, et le blanc dans
+un sonore (section [blanc_antenne], https://github.com/dascritch/machincast/issues/122) : sa durée, son niveau, et le
+passage au secours, que Machin lecture prend à son prochain démarrage. La page « Base »
 règle la durée de péremption (base.peremption, https://github.com/dascritch/machincast/issues/268), que Machin purge
 prend à son prochain passage, et que suit la fiche d'un élément supprimé. La page « Interface » règle l'accueil, et
 choisit l'icône de l'application (interface.icone, https://github.com/dascritch/machincast/issues/111) : une image
@@ -35,7 +37,14 @@ from PySide6.QtGui import QIcon, QStandardItemModel
 from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QVBoxLayout, QWidget
 
 from machincast import audio as sorties_audio
-from machincast.configuration import PEREMPTION, SEUIL_DE_SILENCE, Crossfades, Granularite, SortieAudio
+from machincast.configuration import (
+	PEREMPTION,
+	SEUIL_DE_SILENCE,
+	BlancAntenne,
+	Crossfades,
+	Granularite,
+	SortieAudio,
+)
 from machincast.conversion import texte_ou_rien
 from machincast.interface.application import ICONE, lisible
 from machincast.interface.frise import Frise, Plan, forme_de_demonstration
@@ -81,6 +90,9 @@ class Reglages:
 	peremption: int = PEREMPTION
 	"""base.peremption, en jours : au-delà, Machin purge efface de la base
 	(https://github.com/dascritch/machincast/issues/268)."""
+	blanc_antenne: BlancAntenne = BlancAntenne()
+	"""La section [blanc_antenne] : blanc dans un sonore, à l'antenne
+	(https://github.com/dascritch/machincast/issues/122)."""
 
 
 _courantes = Crossfades()
@@ -134,16 +146,20 @@ def montrer(champ: QDoubleSpinBox, secondes: float) -> None:
 
 def _secondes(duree: timedelta) -> int | float:
 	"""Un nombre entier de secondes s'écrit sans décimale dans le fichier."""
-	secondes = duree.total_seconds()
-	if secondes == int(secondes):
-		return int(secondes)
-	return secondes
+	return _nombre(duree.total_seconds())
+
+
+def _nombre(valeur: float) -> int | float:
+	"""Un nombre entier s'écrit sans décimale dans le fichier."""
+	if valeur == int(valeur):
+		return int(valeur)
+	return valeur
 
 
 def ecrire(chemin: Path, reglages: Reglages) -> None:
-	"""Écrit les réglages dans les sections [crossfades], [audio], [silences], [interface] et [base] du fichier de
-	configuration, qui garde le reste tel quel, commentaires compris. Une section [blancs], l'ancien nom de [silences],
-	est renommée."""
+	"""Écrit les réglages dans les sections [crossfades], [audio], [silences], [blanc_antenne], [interface] et [base] du
+	fichier de configuration, qui garde le reste tel quel, commentaires compris. Une section [blancs], l'ancien nom de
+	[silences], est renommée."""
 	document = tomlkit.parse(chemin.read_text(encoding="utf-8"))
 	base = document["base"]
 	assert isinstance(base, tomlkit.items.Table)
@@ -178,10 +194,14 @@ def ecrire(chemin: Path, reglages: Reglages) -> None:
 		document.add("silences", tomlkit.table())
 	silences = document["silences"]
 	assert isinstance(silences, tomlkit.items.Table)
-	seuil: int | float = reglages.seuil_silences
-	if seuil == int(seuil):
-		seuil = int(seuil)
-	silences["seuil"] = seuil
+	silences["seuil"] = _nombre(reglages.seuil_silences)
+	if "blanc_antenne" not in document:
+		document.add("blanc_antenne", tomlkit.table())
+	blanc_antenne = document["blanc_antenne"]
+	assert isinstance(blanc_antenne, tomlkit.items.Table)
+	blanc_antenne["duree"] = _secondes(reglages.blanc_antenne.duree)
+	blanc_antenne["seuil"] = _nombre(reglages.blanc_antenne.seuil)
+	blanc_antenne["secours"] = reglages.blanc_antenne.secours
 	if "interface" not in document:
 		document.add("interface", tomlkit.table())
 	section_interface = document["interface"]
@@ -224,6 +244,11 @@ class FenetrePreferences(QDialog):
 				champ.setValue(duree.total_seconds())
 		ui.seuil_silences.setLocale(FRANCAIS)
 		ui.seuil_silences.setValue(tous.seuil_silences)
+		ui.secours_blanc.setChecked(tous.blanc_antenne.secours)
+		ui.duree_blanc.setLocale(FRANCAIS)
+		ui.duree_blanc.setValue(tous.blanc_antenne.duree.total_seconds())
+		ui.seuil_blanc.setLocale(FRANCAIS)
+		ui.seuil_blanc.setValue(tous.blanc_antenne.seuil)
 		ui.peremption.setValue(tous.peremption)
 		ui.saturation.setChecked(tous.saturation)
 		ui.suggestions.setChecked(tous.suggestions)
@@ -364,6 +389,11 @@ class FenetrePreferences(QDialog):
 			ui.suggestions.isChecked(),
 			self.icone,
 			ui.peremption.value(),
+			BlancAntenne(
+				timedelta(seconds=round(ui.duree_blanc.value(), 1)),
+				round(ui.seuil_blanc.value(), 1),
+				ui.secours_blanc.isChecked(),
+			),
 		)
 
 

@@ -39,7 +39,7 @@ from machincast.lecture.expiration import NATURE as SONORE_EXPIRE
 from machincast.lecture.expiration import Expiration, _cause
 from machincast.lecture.grille import lire_grille, prochain_changement
 from machincast.lecture.historique import EN_BASE, DernierPassage
-from machincast.lecture.moteur import EtatVoie, VoieLecture
+from machincast.lecture.moteur import Blanc, EtatVoie, VoieLecture
 from machincast.lecture.sorties import COLONNES_CSV, Ligne, ligne_csv, masque, playlist, premier_nom_public
 
 journal = logging.getLogger(__name__)
@@ -99,6 +99,13 @@ class VoieSimulee:
 	def gelee(self) -> bool:
 		"""Une voie simulée avance toujours."""
 		return False
+
+	def blanc(self) -> Blanc | None:
+		"""Une voie simulée n'a pas de son, ni donc de blanc (https://github.com/dascritch/machincast/issues/122)."""
+		return None
+
+	def entendue(self) -> bool:
+		return True
 
 	def fin_prevue(self) -> datetime | None:
 		if self.arret_prevu is not None:

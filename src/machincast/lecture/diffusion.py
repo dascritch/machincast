@@ -26,6 +26,14 @@ Streams (https://github.com/dascritch/machincast/issues/16, spec § 4.7) :
   début), et l'incident « reprise du flux » donne la durée de la panne ;
 - si l'événement du stream n'est plus actif, la reconnexion est abandonnée.
 
+Blanc dans un sonore (https://github.com/dascritch/machincast/issues/122, moteur.Voie.blanc) : le sonore en cours qui
+reste BlancAntenne.duree sous BlancAntenne.seuil est noté en incident « blanc dans un sonore », avec sa position et son
+niveau moyen. Avec BlancAntenne.secours, un fichier laisse aussitôt l'antenne au sonore suivant, son passage terminé en
+incident ; un stream la laisse à son secours, comme un flux tombé, mais sa voie reste ouverte, muette, comme sonde : il
+reprend l'antenne, en fondu, dès que son son revient (Voie.entendue). Sans BlancAntenne.secours, le blanc est seulement
+noté. À ne pas confondre avec l'alerte « blanc », rien à diffuser, ni avec un silence, qui borne un fichier
+(https://github.com/dascritch/machincast/issues/291).
+
 Playlist immédiate (https://github.com/dascritch/machincast/issues/228) : après le prochain sonore, réservé au début
 du sonore en cours, la diffusion prévoit les A_VENIR sonores suivants (a_venir), chacun à l'heure où il serait choisi,
 en tenant compte des coupures par les événements qui commencent. Ils sont engagés : à chaque changement de sonore, si
@@ -64,7 +72,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast import __version__
-from machincast.configuration import Crossfades, Metadonnees
+from machincast.configuration import BlancAntenne, Crossfades, Metadonnees
 from machincast.conversion import entier_ou_rien, texte_ou_rien
 from machincast.hasard import Hasard
 from machincast.horloge import Horloge
@@ -86,6 +94,7 @@ from machincast.lecture.grille import Occurrence, Priorite, heure_murale
 from machincast.lecture.historique import EN_BASE, Historique
 from machincast.lecture.moteur import (
 	DELAI_DE_GARDE,
+	Blanc,
 	Moteur,
 	VoieLecture,
 	enchainement,
@@ -141,6 +150,8 @@ FLUX_GELE = (
 )
 """Le message d'un stream gelé (https://github.com/dascritch/machincast/issues/278)."""
 REPRISE_DU_FLUX = "reprise du flux"
+BLANC_DANS_UN_SONORE = "blanc dans un sonore"
+"""Incident d'un sonore qui ne donne plus de son à l'antenne (https://github.com/dascritch/machincast/issues/122)."""
 LECTURE_BLOQUEE = "lecture bloquée"
 """Incident d'un sonore dont le lecteur n'a pas démarré (https://github.com/dascritch/machincast/issues/281)."""
 LECTEUR_BLOQUE = (
@@ -247,6 +258,9 @@ class Sonde:
 	depuis: datetime
 	"""Heure de la panne."""
 	voie: VoieLecture | None = None
+	blanc: bool = False
+	"""Le stream a laissé l'antenne sur un blanc (https://github.com/dascritch/machincast/issues/122) : sa voie,
+	gardée ouverte, ne reprend qu'avec du son."""
 
 
 def lire_parametres(
@@ -339,6 +353,9 @@ class Diffusion:
 	analyseur: Analyseur | None = None
 	"""Analyse du prochain sonore qui n'a pas été vérifié en entier
 	(https://github.com/dascritch/machincast/issues/181) ; aucune en simulation."""
+	blanc_antenne: BlancAntenne = field(default_factory=BlancAntenne)
+	"""Ce que fait un blanc dans un sonore (https://github.com/dascritch/machincast/issues/122) : le moteur le mesure,
+	la diffusion le note, et passe au secours si BlancAntenne.secours."""
 	ordonnanceur: Ordonnanceur = field(init=False)
 	courant: Lecture | None = field(default=None, init=False)
 	sortants: list[Lecture] = field(default_factory=list, init=False)
@@ -397,6 +414,7 @@ class Diffusion:
 		self._terminer_les_voies_arretees(instant)
 		self._ecarter_une_lecture_bloquee(instant)
 		self._ecarter_un_stream_gele(instant)
+		self._traiter_un_blanc(instant)
 		if self.etat is not None:
 			for demande in self.etat.demandes():
 				if demande.commande == RELIRE_LA_GRILLE:
@@ -651,6 +669,47 @@ class Diffusion:
 		erreur = f"{courant.parametres.adresse} : {FLUX_GELE}"
 		self._terminer(courant.passage, instant, erreur=erreur, nature=FLUX_TOMBE)
 		self._suspendre(courant, instant)
+		self.courant = None
+
+	def _traiter_un_blanc(self, instant: datetime) -> None:
+		"""Un blanc dans le sonore en cours est noté (https://github.com/dascritch/machincast/issues/122) ; avec
+		BlancAntenne.secours, le fichier laisse l'antenne au sonore suivant, et le stream à son secours, sa voie gardée
+		pour reprendre l'antenne quand son son revient. Un sonore sortant, comme un stream qui s'éteint à la fin de son
+		événement, n'est pas concerné : il laisse déjà l'antenne."""
+		courant = self.courant
+		if courant is None:
+			return
+		blanc = courant.voie.blanc()
+		if blanc is None:
+			return
+		parametres = courant.parametres
+		message = _message_du_blanc(blanc, parametres)
+		if not self.blanc_antenne.secours:
+			self.historique.consigner(
+				self.connexion,
+				"incident",
+				BLANC_DANS_UN_SONORE,
+				message,
+				instant,
+				sonore=courant.choix.sonore,
+				evenement=courant.choix.occurrence.evenement.id,
+			)
+			return
+		if not parametres.stream:
+			courant.voie.couper()
+			self._terminer(
+				courant.passage, instant, erreur=f"{message}, le sonore suivant est joué", nature=BLANC_DANS_UN_SONORE
+			)
+			self.courant = None
+			return
+		# La voie se tait, mais reste ouverte : elle sert de sonde, et reprendra l'antenne avec son son.
+		courant.voie.fondu(0.0, AUCUN_CROSSFADE)
+		erreur = f"{message}, le stream laisse l'antenne jusqu'au retour de son son"
+		self._terminer(courant.passage, instant, erreur=erreur, nature=BLANC_DANS_UN_SONORE)
+		self._suspendre(courant, instant)
+		sonde = self.sonde
+		assert sonde is not None
+		sonde.voie, sonde.blanc = courant.voie, True
 		self.courant = None
 
 	@staticmethod
@@ -918,7 +977,7 @@ class Diffusion:
 			sonde.voie.fermer()
 			sonde.voie = None
 			sonde.prochaine_tentative = instant + self.delai_reconnexion
-		elif sonde.voie.position() > timedelta(0):
+		elif (sonde.voie.position() > timedelta(0)) and ((not sonde.blanc) or (sonde.voie.entendue())):
 			self._reprendre(sonde, sonde.voie, instant)
 
 	def _reprendre(self, sonde: Sonde, voie: VoieLecture, instant: datetime) -> None:
@@ -1211,6 +1270,31 @@ def _annonce(
 		"fin_estimee": iso(fin),
 		"sain": sain,
 	}
+
+
+def _message_du_blanc(blanc: Blanc, parametres: Parametres) -> str:
+	"""« <fichier> : blanc de 10 s à 1:23,4 du sonore, niveau moyen -95,2 dB » ; un stream compte depuis le début de
+	sa lecture (https://github.com/dascritch/machincast/issues/122)."""
+	niveau = "silence numérique"
+	if blanc.niveau is not None:
+		niveau = f"niveau moyen {blanc.niveau:.1f} dB".replace(".", ",")
+	duree = f"{blanc.duree.total_seconds():.1f}".replace(".", ",").removesuffix(",0")
+	ou = "du sonore"
+	if parametres.stream:
+		ou = "de sa lecture"
+	sonore = (parametres.emplacement) or (parametres.adresse)
+	return f"{sonore} : blanc de {duree} s à {_timecode(blanc.position)} {ou}, {niveau}"
+
+
+def _timecode(position: timedelta) -> str:
+	"""« 1:23,4 », ou « 1:02:03,4 » au-delà d'une heure : minutes, secondes et dixièmes."""
+	dixiemes = round(position.total_seconds() * 10)
+	heures, reste = divmod(dixiemes, 36000)
+	minutes, reste = divmod(reste, 600)
+	secondes = f"{reste // 10:02d},{reste % 10}"
+	if heures > 0:
+		return f"{heures}:{minutes:02d}:{secondes}"
+	return f"{minutes}:{secondes}"
 
 
 def _passage_prevu(choix: Choix, debut: datetime) -> Passage:

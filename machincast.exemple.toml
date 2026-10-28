@@ -79,6 +79,19 @@ position_sortie = "commence"
 # [blancs] : l'ancien nom est encore lu, avec un avertissement (https://github.com/dascritch/machincast/issues/291).
 seuil = -40
 
+[blanc_antenne]
+# Blanc dans un sonore, à l'antenne (https://github.com/dascritch/machincast/issues/122), modifiable dans les
+# préférences de l'interface, page « Audio ». Section facultative, comme ses clés ; Machin lecture la prend à son
+# prochain démarrage. À ne pas confondre avec un silence, au début ou à la fin d'un fichier ([silences]) : un blanc est
+# un sonore qui ne donne plus de son pendant qu'il joue. Il est noté dans le log, en incident « blanc dans un sonore ».
+# Durée d'un blanc, en secondes : de 1 à 300 comprises ; 10 par défaut.
+duree = 10
+# Niveau crête d'un blanc, en dB : de -100 compris à 0 exclu ; -90 par défaut.
+seuil = -90
+# true : un blanc fait passer au sonore suivant ; un stream laisse l'antenne à son événement de secours, ou à
+# l'événement inférieur, et la reprend dès que son son revient. false, par défaut : le blanc est seulement noté.
+secours = false
+
 [interface]
 # Réglages de l'interface graphique (https://github.com/dascritch/machincast/issues/191), modifiables dans ses
 # préférences, page « Interface ». Section facultative, comme sa clé.

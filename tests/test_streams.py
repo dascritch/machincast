@@ -81,14 +81,6 @@ def emission_avec_sequence(
 	)
 
 
-@given(parsers.parse("le stream « {nom} » est secouru par « {secours} »"))
-def stream_secouru(base_vide: Connexion, nom: str, secours: str) -> None:
-	base_vide.execute(
-		"UPDATE sonores SET secours_evenement_id = (SELECT id FROM evenements WHERE nom_interne = %s) WHERE id = %s",
-		(secours, sonore(base_vide, nom)),
-	)
-
-
 # ─── Quand ─────────────────────────────────────────────────
 
 
@@ -114,6 +106,31 @@ def flux_gele(serveur: ServeurDeFlux, flux: str) -> None:
 @when(parsers.parse("le flux « {flux} » dégèle"))
 def flux_degele(serveur: ServeurDeFlux, flux: str) -> None:
 	serveur.geles.discard(flux)
+
+
+@when(parsers.re(r"le flux « (?P<flux>[^»]+) » (?P<quoi>devient muet, sa connexion ouverte|retrouve son son)"))
+def flux_muet(serveur: ServeurDeFlux, flux: str, quoi: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/122"""
+	if quoi == "retrouve son son":
+		serveur.muets.discard(flux)
+	else:
+		serveur.muets.add(flux)
+
+
+@then(parsers.parse("la voie du flux « {flux} » est muette"))
+def voie_muette(banc: Banc, serveur: ServeurDeFlux, flux: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/122 : la voie gardée pour la reprise ne s'entend pas."""
+	assert banc.moteur is not None
+	voie = banc.moteur.jouees[serveur.adresse(flux)]
+	assert (voie.etat == "en cours") and (voie.volume_a(voie.position()) == 0.0), (
+		voie.etat,
+		voie.volume_a(voie.position()),
+	)
+
+
+@then(parsers.parse("le serveur de flux n'a reçu qu'une connexion"))
+def une_connexion(serveur: ServeurDeFlux) -> None:
+	assert serveur.recues == 1, serveur.recues
 
 
 @when(parsers.parse("le flux « {flux} » revient"))
