@@ -542,6 +542,16 @@ def seuil_donne(ouverte: Ouverte, seuil: str) -> None:
 	assert ouverte.donnes.seuil_silences == _decibels(seuil)
 
 
+@then(parsers.parse("le champ « {nom} » est à la page « {page} »"))
+def page_du_champ(ouverte: Ouverte, nom: str, page: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/324"""
+	fenetre = la_fenetre(ouverte)
+	champ = getattr(fenetre.ui, nom)
+	pages = fenetre.ui.pages
+	(trouvee,) = [indice for indice in range(pages.count()) if pages.widget(indice).isAncestorOf(champ)]
+	assert pages.tabText(trouvee) == page
+
+
 # ─── Blanc dans un sonore (https://github.com/dascritch/machincast/issues/122) ───
 
 BLANC = (

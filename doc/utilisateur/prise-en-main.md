@@ -175,6 +175,7 @@ Page **Crossfades** ([#234](https://github.com/dascritch/machincast/issues/234))
 | Début par défaut, fin par défaut | Le crossfade d'un sonore qui n'en a pas, et que sa banque ne règle pas ([Enchaînements](antenne.md#enchaînements)). |
 | Le fade-in, au début détecté | Pour un sonore joué sans ses silences : le fade-in `commence`, `est en cours` ou `se termine` (par défaut) au début détecté ([Silences au début et à la fin](antenne.md#silences-au-début-et-à-la-fin)). |
 | Le fade-out, à la fin détectée | De même, à la fin détectée : `commence` (par défaut), `est en cours` ou `se termine`. |
+| Seuil de silence | De -100 à -0,1 dB, -40 dB par défaut : le niveau sous lequel le début et la fin d'un sonore sont un silence, mesuré par l'audit complet, et autour duquel se placent les fondus ([#324](https://github.com/dascritch/machincast/issues/324), [Silences au début et à la fin](antenne.md#silences-au-début-et-à-la-fin)). |
 
 Sous ces réglages, une **frise de démonstration** montre un sonore inventé de 30 secondes, aux silences de 3 et 4 secondes : ses fondus s'y placent selon les durées par défaut saisies et les positions choisies, à chaque changement.
 
@@ -192,7 +193,6 @@ Page **Audio** :
 | --- | --- |
 | Antenne | Le périphérique de la diffusion. Tant qu'il n'est pas choisi, la barre d'état affiche `Périphérique de l'antenne à renseigner`, et la diffusion refuse de démarrer. Le nouveau périphérique vaut au prochain démarrage de la diffusion. |
 | Pré-écoute | Le périphérique de la [pré-écoute](sonores.md#pré-écoute), le casque de la régie par exemple. L'antenne et la pré-écoute n'utilisent jamais le même : celui de l'une est grisé dans l'autre. |
-| Seuil de silence | De -100 à -0,1 dB, -40 dB par défaut : le niveau sous lequel le début et la fin d'un sonore sont un silence ([Silences au début et à la fin](antenne.md#silences-au-début-et-à-la-fin)). |
 | Blanc dans un sonore, à l'antenne | Un sonore qui reste la **durée d'un blanc** (de 1 à 300 s, 10 s par défaut) sous le **niveau d'un blanc** (de -100 à -0,1 dB, -90 dB par défaut), pendant qu'il joue, est noté ([Blanc dans un sonore](antenne.md#blanc-dans-un-sonore)). **Passer au sonore suivant, ou au secours d'un stream**, décochée par défaut, le remplace aussitôt. La diffusion prend ces réglages à son prochain démarrage. |
 
 Page **Base** ([#268](https://github.com/dascritch/machincast/issues/268)) :

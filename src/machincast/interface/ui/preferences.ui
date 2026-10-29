@@ -164,6 +164,60 @@
         </widget>
        </item>
        <item>
+        <widget class="QGroupBox" name="groupe_silences">
+         <property name="title">
+          <string>Détection de silence</string>
+         </property>
+         <layout class="QFormLayout" name="formulaire_silences">
+          <item row="0" column="0">
+           <widget class="QLabel" name="etiquette_seuil_silences">
+            <property name="text">
+             <string>&amp;Seuil de silence</string>
+            </property>
+            <property name="buddy">
+             <cstring>seuil_silences</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QDoubleSpinBox" name="seuil_silences">
+            <property name="toolTip">
+             <string>Niveau crête sous lequel le début et la fin d'un sonore sont un silence ; 0 dB est la pleine échelle</string>
+            </property>
+            <property name="suffix">
+             <string> dB</string>
+            </property>
+            <property name="decimals">
+             <number>1</number>
+            </property>
+            <property name="minimum">
+             <double>-100.0</double>
+            </property>
+            <property name="maximum">
+             <double>-0.1</double>
+            </property>
+            <property name="singleStep">
+             <double>1.0</double>
+            </property>
+            <property name="value">
+             <double>-40.0</double>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="explication_silences">
+         <property name="text">
+          <string>L'audit complet mesure les silences au début et à la fin de chaque fichier à ce seuil ; un nouveau seuil vaut pour les audits suivants. Une banque, ou un sonore, choisit d'être joué sans ses silences.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="explication">
          <property name="text">
           <string>Les fiches ouvertes ensuite suivent ces réglages. Machin lecture prend les durées par défaut à son prochain démarrage.</string>
@@ -332,60 +386,6 @@
         <widget class="QLabel" name="explication_audio">
          <property name="text">
           <string>Machin lecture prend le périphérique de l'antenne à son prochain démarrage ; sans lui, il refuse de diffuser. La pré-écoute ne peut jamais utiliser le périphérique de l'antenne : chacun est grisé dans l'autre choix.</string>
-         </property>
-         <property name="wordWrap">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QGroupBox" name="groupe_silences">
-         <property name="title">
-          <string>Détection de silence</string>
-         </property>
-         <layout class="QFormLayout" name="formulaire_silences">
-          <item row="0" column="0">
-           <widget class="QLabel" name="etiquette_seuil_silences">
-            <property name="text">
-             <string>&amp;Seuil de silence</string>
-            </property>
-            <property name="buddy">
-             <cstring>seuil_silences</cstring>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QDoubleSpinBox" name="seuil_silences">
-            <property name="toolTip">
-             <string>Niveau crête sous lequel le début et la fin d'un sonore sont un silence ; 0 dB est la pleine échelle</string>
-            </property>
-            <property name="suffix">
-             <string> dB</string>
-            </property>
-            <property name="decimals">
-             <number>1</number>
-            </property>
-            <property name="minimum">
-             <double>-100.0</double>
-            </property>
-            <property name="maximum">
-             <double>-0.1</double>
-            </property>
-            <property name="singleStep">
-             <double>1.0</double>
-            </property>
-            <property name="value">
-             <double>-40.0</double>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="explication_silences">
-         <property name="text">
-          <string>L'audit complet mesure les silences au début et à la fin de chaque fichier à ce seuil ; un nouveau seuil vaut pour les audits suivants. Une banque, ou un sonore, choisit d'être joué sans ses silences.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>

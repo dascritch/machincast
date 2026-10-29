@@ -122,6 +122,34 @@ class Ui_FenetrePreferences(object):
 
         self.disposition_crossfades.addWidget(self.groupe_positions)
 
+        self.groupe_silences = QGroupBox(self.page_crossfades)
+        self.groupe_silences.setObjectName(u"groupe_silences")
+        self.formulaire_silences = QFormLayout(self.groupe_silences)
+        self.formulaire_silences.setObjectName(u"formulaire_silences")
+        self.etiquette_seuil_silences = QLabel(self.groupe_silences)
+        self.etiquette_seuil_silences.setObjectName(u"etiquette_seuil_silences")
+
+        self.formulaire_silences.setWidget(0, QFormLayout.ItemRole.LabelRole, self.etiquette_seuil_silences)
+
+        self.seuil_silences = QDoubleSpinBox(self.groupe_silences)
+        self.seuil_silences.setObjectName(u"seuil_silences")
+        self.seuil_silences.setDecimals(1)
+        self.seuil_silences.setMinimum(-100.000000000000000)
+        self.seuil_silences.setMaximum(-0.100000000000000)
+        self.seuil_silences.setSingleStep(1.000000000000000)
+        self.seuil_silences.setValue(-40.000000000000000)
+
+        self.formulaire_silences.setWidget(0, QFormLayout.ItemRole.FieldRole, self.seuil_silences)
+
+
+        self.disposition_crossfades.addWidget(self.groupe_silences)
+
+        self.explication_silences = QLabel(self.page_crossfades)
+        self.explication_silences.setObjectName(u"explication_silences")
+        self.explication_silences.setWordWrap(True)
+
+        self.disposition_crossfades.addWidget(self.explication_silences)
+
         self.explication = QLabel(self.page_crossfades)
         self.explication.setObjectName(u"explication")
         self.explication.setWordWrap(True)
@@ -231,34 +259,6 @@ class Ui_FenetrePreferences(object):
 
         self.disposition_audio.addWidget(self.explication_audio)
 
-        self.groupe_silences = QGroupBox(self.page_audio)
-        self.groupe_silences.setObjectName(u"groupe_silences")
-        self.formulaire_silences = QFormLayout(self.groupe_silences)
-        self.formulaire_silences.setObjectName(u"formulaire_silences")
-        self.etiquette_seuil_silences = QLabel(self.groupe_silences)
-        self.etiquette_seuil_silences.setObjectName(u"etiquette_seuil_silences")
-
-        self.formulaire_silences.setWidget(0, QFormLayout.ItemRole.LabelRole, self.etiquette_seuil_silences)
-
-        self.seuil_silences = QDoubleSpinBox(self.groupe_silences)
-        self.seuil_silences.setObjectName(u"seuil_silences")
-        self.seuil_silences.setDecimals(1)
-        self.seuil_silences.setMinimum(-100.000000000000000)
-        self.seuil_silences.setMaximum(-0.100000000000000)
-        self.seuil_silences.setSingleStep(1.000000000000000)
-        self.seuil_silences.setValue(-40.000000000000000)
-
-        self.formulaire_silences.setWidget(0, QFormLayout.ItemRole.FieldRole, self.seuil_silences)
-
-
-        self.disposition_audio.addWidget(self.groupe_silences)
-
-        self.explication_silences = QLabel(self.page_audio)
-        self.explication_silences.setObjectName(u"explication_silences")
-        self.explication_silences.setWordWrap(True)
-
-        self.disposition_audio.addWidget(self.explication_silences)
-
         self.groupe_blanc_antenne = QGroupBox(self.page_audio)
         self.groupe_blanc_antenne.setObjectName(u"groupe_blanc_antenne")
         self.formulaire_blanc_antenne = QFormLayout(self.groupe_blanc_antenne)
@@ -359,9 +359,9 @@ class Ui_FenetrePreferences(object):
         self.etiquette_maximum.setBuddy(self.maximum)
         self.etiquette_position_entree.setBuddy(self.position_entree)
         self.etiquette_position_sortie.setBuddy(self.position_sortie)
+        self.etiquette_seuil_silences.setBuddy(self.seuil_silences)
         self.etiquette_antenne.setBuddy(self.antenne)
         self.etiquette_preecoute.setBuddy(self.preecoute)
-        self.etiquette_seuil_silences.setBuddy(self.seuil_silences)
         self.etiquette_duree_blanc.setBuddy(self.duree_blanc)
         self.etiquette_seuil_blanc.setBuddy(self.seuil_blanc)
         self.etiquette_peremption.setBuddy(self.peremption)
@@ -404,6 +404,13 @@ class Ui_FenetrePreferences(object):
         self.place_demonstration.setToolTip(QCoreApplication.translate("FenetrePreferences", u"D\u00e9monstration : un sonore de 30 s, aux silences de 3 s au d\u00e9but et 4 s \u00e0 la fin, retir\u00e9s \u00e0 l'antenne, avec les crossfades par d\u00e9faut saisis", None))
 #endif // QT_CONFIG(tooltip)
         self.legende_demonstration.setText("")
+        self.groupe_silences.setTitle(QCoreApplication.translate("FenetrePreferences", u"D\u00e9tection de silence", None))
+        self.etiquette_seuil_silences.setText(QCoreApplication.translate("FenetrePreferences", u"&Seuil de silence", None))
+#if QT_CONFIG(tooltip)
+        self.seuil_silences.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Niveau cr\u00eate sous lequel le d\u00e9but et la fin d'un sonore sont un silence ; 0 dB est la pleine \u00e9chelle", None))
+#endif // QT_CONFIG(tooltip)
+        self.seuil_silences.setSuffix(QCoreApplication.translate("FenetrePreferences", u" dB", None))
+        self.explication_silences.setText(QCoreApplication.translate("FenetrePreferences", u"L'audit complet mesure les silences au d\u00e9but et \u00e0 la fin de chaque fichier \u00e0 ce seuil ; un nouveau seuil vaut pour les audits suivants. Une banque, ou un sonore, choisit d'\u00eatre jou\u00e9 sans ses silences.", None))
         self.explication.setText(QCoreApplication.translate("FenetrePreferences", u"Les fiches ouvertes ensuite suivent ces r\u00e9glages. Machin lecture prend les dur\u00e9es par d\u00e9faut \u00e0 son prochain d\u00e9marrage.", None))
         self.pages.setTabText(self.pages.indexOf(self.page_crossfades), QCoreApplication.translate("FenetrePreferences", u"Crossfades", None))
         self.groupe_accueil.setTitle(QCoreApplication.translate("FenetrePreferences", u"Accueil", None))
@@ -438,13 +445,6 @@ class Ui_FenetrePreferences(object):
         self.preecoute.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Le p\u00e9riph\u00e9rique de la pr\u00e9-\u00e9coute de l'interface, jamais celui de l'antenne", None))
 #endif // QT_CONFIG(tooltip)
         self.explication_audio.setText(QCoreApplication.translate("FenetrePreferences", u"Machin lecture prend le p\u00e9riph\u00e9rique de l'antenne \u00e0 son prochain d\u00e9marrage ; sans lui, il refuse de diffuser. La pr\u00e9-\u00e9coute ne peut jamais utiliser le p\u00e9riph\u00e9rique de l'antenne : chacun est gris\u00e9 dans l'autre choix.", None))
-        self.groupe_silences.setTitle(QCoreApplication.translate("FenetrePreferences", u"D\u00e9tection de silence", None))
-        self.etiquette_seuil_silences.setText(QCoreApplication.translate("FenetrePreferences", u"&Seuil de silence", None))
-#if QT_CONFIG(tooltip)
-        self.seuil_silences.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Niveau cr\u00eate sous lequel le d\u00e9but et la fin d'un sonore sont un silence ; 0 dB est la pleine \u00e9chelle", None))
-#endif // QT_CONFIG(tooltip)
-        self.seuil_silences.setSuffix(QCoreApplication.translate("FenetrePreferences", u" dB", None))
-        self.explication_silences.setText(QCoreApplication.translate("FenetrePreferences", u"L'audit complet mesure les silences au d\u00e9but et \u00e0 la fin de chaque fichier \u00e0 ce seuil ; un nouveau seuil vaut pour les audits suivants. Une banque, ou un sonore, choisit d'\u00eatre jou\u00e9 sans ses silences.", None))
         self.groupe_blanc_antenne.setTitle(QCoreApplication.translate("FenetrePreferences", u"Blanc dans un sonore, \u00e0 l'antenne", None))
 #if QT_CONFIG(tooltip)
         self.secours_blanc.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Coch\u00e9, un blanc fait passer au sonore suivant, ou au secours d'un stream ; sinon, il est seulement not\u00e9 dans le log", None))
