@@ -45,8 +45,8 @@ from pathlib import Path
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QTimer, Signal
-from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QShortcut
+from PySide6.QtCore import QEvent, QObject, QTimer, Signal
+from PySide6.QtGui import QAction, QCloseEvent, QKeyEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QTabBar, QWidget
 
 from machincast import raccourci, service
@@ -161,6 +161,27 @@ def genre_de_l_ecran(ecran: QWidget) -> str:
 	if isinstance(ecran, EcranAirplay):
 		return "airplay"
 	return ""
+
+
+ONGLET_DE_GAUCHE, ONGLET_DE_DROITE, PREMIER_ONGLET, DERNIER_ONGLET = "Ctrl+PgUp", "Ctrl+PgDown", "Ctrl+Home", "Ctrl+End"
+"""Les raccourcis de l'onglet de gauche, de droite, du premier et du dernier
+(https://github.com/dascritch/machincast/issues/318)."""
+TOUCHES_DES_ONGLETS = frozenset(
+	QKeySequence(touches).toString() for touches in (ONGLET_DE_GAUCHE, ONGLET_DE_DROITE, PREMIER_ONGLET, DERNIER_ONGLET)
+)
+
+
+class ToucheDesOnglets(QObject):
+	"""Les raccourcis des onglets l'emportent sur le widget de la fenêtre qui a le focus : un champ d'une ligne réclame
+	Ctrl+Home et Ctrl+End sans rien en faire, un tableau irait à sa première ou à sa dernière ligne, et la barre
+	d'onglets de Qt boucle d'un bout à l'autre (https://github.com/dascritch/machincast/issues/318). Le widget ne reçoit
+	pas la demande de la touche, qui va au raccourci ; dans une autre fenêtre, sans ces raccourcis, la touche lui
+	arrive quand même, comme une touche ordinaire. La fenêtre principale n'a pas de texte multiligne."""
+
+	def eventFilter(self, objet: QObject, evenement: QEvent) -> bool:  # noqa: N802 : nom imposé par Qt
+		if (evenement.type() != QEvent.Type.ShortcutOverride) or (not isinstance(evenement, QKeyEvent)):
+			return False
+		return QKeySequence(evenement.keyCombination()).toString() in TOUCHES_DES_ONGLETS
 
 
 class FenetrePrincipale(QMainWindow):
@@ -551,10 +572,32 @@ class FenetrePrincipale(QMainWindow):
 
 	def _creer_les_raccourcis(self) -> None:
 		"""Maj+F1 à Maj+F12 : les 12 premiers onglets, selon leur rang
-		(https://github.com/dascritch/machincast/issues/192)."""
+		(https://github.com/dascritch/machincast/issues/192) ; Ctrl+PageUp, Ctrl+PageDown, Ctrl+Home et Ctrl+End :
+		l'onglet de gauche, de droite, le premier et le dernier (https://github.com/dascritch/machincast/issues/318)."""
 		for rang in range(RACCOURCIS_DES_ONGLETS):
 			raccourci = QShortcut(QKeySequence(f"Shift+F{rang + 1}"), self)
 			raccourci.activated.connect(lambda rang=rang: self._aller_a_l_onglet(rang))
+		# Ctrl+PageUp et Ctrl+PageDown à gauche et à droite, sans boucler, comme le ferait Qt ; Ctrl+Home et Ctrl+End au
+		# premier et au dernier onglet (https://github.com/dascritch/machincast/issues/318). Raccourcis de la fenêtre,
+		# ils valent quel que soit le widget qui a le focus, sauf celui qui se sert de la touche.
+		for touches, deplacement in (
+			(ONGLET_DE_GAUCHE, self._onglet_de_gauche),
+			(ONGLET_DE_DROITE, self._onglet_de_droite),
+			(PREMIER_ONGLET, lambda: self._aller_a_l_onglet(0)),
+			(DERNIER_ONGLET, lambda: self._aller_a_l_onglet(self.ui.onglets.count() - 1)),
+		):
+			QShortcut(QKeySequence(touches), self).activated.connect(deplacement)
+		application = QApplication.instance()
+		if application is not None:
+			application.installEventFilter(ToucheDesOnglets(self))
+
+	def _onglet_de_gauche(self) -> None:
+		"""Sur le premier onglet, rien : il n'y a pas d'onglet -1."""
+		self._aller_a_l_onglet(self.ui.onglets.currentIndex() - 1)
+
+	def _onglet_de_droite(self) -> None:
+		"""Sur le dernier onglet, rien : il n'y a pas d'onglet après lui."""
+		self._aller_a_l_onglet(self.ui.onglets.currentIndex() + 1)
 
 	def _aller_a_l_onglet(self, rang: int) -> None:
 		"""Un rang sans onglet ne change rien : Qt ignore l'indice."""

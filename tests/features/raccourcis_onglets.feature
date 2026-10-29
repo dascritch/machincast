@@ -6,7 +6,11 @@ Fonctionnalité: Raccourcis des onglets
 
 	https://github.com/dascritch/machincast/issues/192. Les 12 premiers onglets ont les raccourcis Maj+F1 à Maj+F12,
 	selon leur rang : Maj+F1 est toujours l'accueil, et ouvrir ou fermer un onglet décale les suivants. L'infobulle de
-	chaque onglet donne son raccourci. Les touches s'écrivent ici en anglais, comme les lit Qt (Shift).
+	chaque onglet donne son raccourci. Les touches s'écrivent ici en anglais, comme les lit Qt (Shift, Ctrl, PgUp, PgDown).
+
+	https://github.com/dascritch/machincast/issues/318 : Ctrl+PageUp et Ctrl+PageDown vont à l'onglet de gauche et de
+	droite, sans boucler, Ctrl+Home au premier, l'accueil, et Ctrl+End au dernier, quel que soit le widget qui a le
+	focus, champ de texte et tableau compris.
 
 	Contexte:
 		Étant donné le poste à l'heure de Paris
@@ -64,3 +68,54 @@ Fonctionnalité: Raccourcis des onglets
 		Alors l'onglet ouvert est « Séquence : Deux »
 		Quand j'appuie sur « Shift+F8 »
 		Alors l'onglet ouvert est « Séquence : Deux »
+
+	# ─── Onglet précédent, suivant, premier et dernier (https://github.com/dascritch/machincast/issues/318) ───
+
+	Scénario: Ctrl+PageUp et Ctrl+PageDown vont à l'onglet de gauche et de droite, sans boucler, même depuis un tableau
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Banques »
+		Et je donne le focus au tableau de l'onglet « Banques »
+		Et j'appuie sur « Ctrl+PgDown »
+		Alors l'onglet ouvert est « Incidents »
+		Quand j'appuie sur « Ctrl+PgDown »
+		Alors l'onglet ouvert est « Incidents »
+		Quand j'appuie sur « Ctrl+PgUp »
+		Alors l'onglet ouvert est « Banques »
+		Quand j'appuie sur « Shift+F1 »
+		Et j'appuie sur « Ctrl+PgUp »
+		Alors l'onglet ouvert est « Accueil »
+		Quand j'appuie sur « Ctrl+PgDown »
+		Alors l'onglet ouvert est « Calendrier »
+
+	Scénario: Ctrl+End va au dernier onglet, Ctrl+Home à l'accueil, même depuis l'horloge de l'accueil ou un tableau
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Un »
+		Et j'appuie sur « Shift+F1 »
+		Et je clique sur l'horloge de l'accueil
+		Et j'appuie sur « Ctrl+End »
+		Alors l'onglet ouvert est « Séquence : Un »
+		Quand j'ouvre l'onglet « Banques »
+		Et je donne le focus au tableau de l'onglet « Banques »
+		Et j'appuie sur « Ctrl+Home »
+		Alors l'onglet ouvert est « Accueil »
+
+	Scénario: Dans un champ de texte, les quatre raccourcis changent aussi d'onglet
+		Un champ d'une ligne réclame Ctrl+Home et Ctrl+End, sans rien en faire : le raccourci de la fenêtre les prend.
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Banques »
+		Et je saisis « jingles » dans le filtre de l'onglet « Banques », le curseur à la fin
+		Et j'appuie sur « Ctrl+PgUp »
+		Alors l'onglet ouvert est « Séquences »
+		Quand j'ouvre l'onglet « Banques »
+		Et je saisis « jingles » dans le filtre de l'onglet « Banques », le curseur à la fin
+		Et j'appuie sur « Ctrl+PgDown »
+		Alors l'onglet ouvert est « Incidents »
+		Quand j'ouvre l'onglet « Banques »
+		Et je saisis « jingles » dans le filtre de l'onglet « Banques », le curseur à la fin
+		Et j'appuie sur « Ctrl+Home »
+		Alors l'onglet ouvert est « Accueil »
+		Quand j'ouvre l'onglet « Banques »
+		Et je saisis « jingles » dans le filtre de l'onglet « Banques », le curseur à la fin
+		Et j'appuie sur « Ctrl+End »
+		Alors l'onglet ouvert est « Incidents »

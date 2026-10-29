@@ -103,7 +103,16 @@ Le VU-mètre écoute le périphérique de l'antenne, quel que soit le programme 
 
 ## Passer d'un onglet à l'autre
 
-Les 12 premiers onglets s'ouvrent au clavier, par <kbd>Maj</kbd>+<kbd>F1</kbd> à <kbd>Maj</kbd>+<kbd>F12</kbd>, selon leur rang : <kbd>Maj</kbd>+<kbd>F1</kbd> est toujours l'Accueil ; au lancement, <kbd>Maj</kbd>+<kbd>F2</kbd> à <kbd>Maj</kbd>+<kbd>F4</kbd> mènent aux Événements, Séquences et Banques, <kbd>Maj</kbd>+<kbd>F5</kbd> aux Incidents, puis aux fiches et aux autres onglets, dans l'ordre où ils sont ouverts. Ouvrir ou fermer un onglet décale ceux qui le suivent. L'infobulle de chaque onglet donne son raccourci.
+Les 12 premiers onglets s'ouvrent au clavier, par <kbd>Maj</kbd>+<kbd>F1</kbd> à <kbd>Maj</kbd>+<kbd>F12</kbd>, selon leur rang : <kbd>Maj</kbd>+<kbd>F1</kbd> est toujours l'Accueil ; au lancement, <kbd>Maj</kbd>+<kbd>F2</kbd> mène au Calendrier, <kbd>Maj</kbd>+<kbd>F3</kbd> à <kbd>Maj</kbd>+<kbd>F5</kbd> aux Événements, Séquences et Banques, <kbd>Maj</kbd>+<kbd>F6</kbd> aux Incidents, puis aux fiches et aux autres onglets, dans l'ordre où ils sont ouverts. Ouvrir ou fermer un onglet décale ceux qui le suivent. L'infobulle de chaque onglet donne son raccourci.
+
+De proche en proche ([#318](https://github.com/dascritch/machincast/issues/318)), où que soit le curseur, dans un tableau ou un champ de texte compris :
+
+| Raccourci | Onglet |
+| --- | --- |
+| <kbd>Ctrl</kbd>+<kbd>PageUp</kbd> | Celui de gauche ; sur l'Accueil, rien. |
+| <kbd>Ctrl</kbd>+<kbd>PageDown</kbd> | Celui de droite ; sur le dernier, rien. |
+| <kbd>Ctrl</kbd>+<kbd>Home</kbd> | Le premier, l'Accueil. |
+| <kbd>Ctrl</kbd>+<kbd>End</kbd> | Le dernier. |
 
 ## Menus
 
