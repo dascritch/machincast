@@ -303,14 +303,35 @@ def suggerer(parent: QWidget, manques: Manques) -> Reponse:
 	return fenetre.reponse()
 
 
-def montrer_version(parent: QWidget, texte: str, nouveautes: Nouveautes | None) -> None:
-	"""La version de MachinCast, la date de sa publication ou de sa dernière modification, et les nouveautés de la
-	version installée, si elle est publiée (https://github.com/dascritch/machincast/issues/208)."""
-	fenetre = QMessageBox(QMessageBox.Icon.Information, "Version de MachinCast", texte, parent=parent)
+LIENS_DE_LA_VERSION = (
+	("Code", "https://github.com/dascritch/machincast/"),
+	("Auteur : DaScritch", "https://dascritch.com"),
+	("Pour : \\<FMR\\>", "https://radio-fmr.net"),
+)
+"""Les liens de la fenêtre de version, en Markdown (https://github.com/dascritch/machincast/issues/332)."""
+
+
+def fenetre_de_version(parent: QWidget | None, texte: str, nouveautes: Nouveautes | None) -> QMessageBox:
+	"""La version de MachinCast, la date de sa publication ou de sa dernière modification, les liens vers le code,
+	l'auteur et la radio (https://github.com/dascritch/machincast/issues/332), et les nouveautés de la version
+	installée, si elle est publiée (https://github.com/dascritch/machincast/issues/208). Les liens s'ouvrent dans le
+	navigateur web."""
+	liens = " · ".join(f"[{libelle}]({adresse})" for libelle, adresse in LIENS_DE_LA_VERSION)
+	contenu = f"{texte}\n\n{liens}"
 	if nouveautes is not None:
-		fenetre.setTextFormat(Qt.TextFormat.MarkdownText)
-		fenetre.setText(f"{texte}\n\n### Nouveautés de la version {nouveautes.version}\n\n{nouveautes.texte}")
-	fenetre.exec()
+		contenu = f"{contenu}\n\n### Nouveautés de la version {nouveautes.version}\n\n{nouveautes.texte}"
+	fenetre = QMessageBox(QMessageBox.Icon.Information, "Version de MachinCast", "", parent=parent)
+	fenetre.setTextFormat(Qt.TextFormat.MarkdownText)
+	fenetre.setText(contenu)
+	etiquette = fenetre.findChild(QLabel, "qt_msgbox_label")
+	if etiquette is not None:
+		etiquette.setOpenExternalLinks(True)
+		etiquette.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+	return fenetre
+
+
+def montrer_version(parent: QWidget, texte: str, nouveautes: Nouveautes | None) -> None:
+	fenetre_de_version(parent, texte, nouveautes).exec()
 
 
 def montrer_nouveautes(parent: QWidget, nouveautes: Nouveautes) -> None:

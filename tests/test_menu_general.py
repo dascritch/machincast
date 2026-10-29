@@ -5,14 +5,18 @@ date de la dernière modification se lit dans un vrai dépôt git, créé dans l
 """
 
 import os
+import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from pytest_bdd import given, parsers, scenarios, then
+from PySide6.QtGui import QTextDocument
+from PySide6.QtWidgets import QLabel, QMessageBox
+from pytest_bdd import given, parsers, scenarios, then, when
+from pytestqt.qtbot import QtBot
 
 from machincast import __version__
-from machincast.interface import colonnes, version
+from machincast.interface import colonnes, dialogues, version
 from tests.etapes_interface import Contexte
 
 scenarios("menu_general.feature")
@@ -172,3 +176,36 @@ def date_du_depot(interface: Contexte) -> None:
 @then(parsers.parse("la fenêtre de version a dit « {texte} »"))
 def fenetre_de_version(interface: Contexte, texte: str) -> None:
 	assert interface.versions == [avec_le_commit(interface, texte)]
+
+
+# ─── Liens de la fenêtre de version (https://github.com/dascritch/machincast/issues/332) ───
+
+
+@when(parsers.parse("je construis la fenêtre de version de « {texte} »"), target_fixture="fenetre_de_version")
+def construire_la_fenetre_de_version(qtbot: QtBot, texte: str) -> QMessageBox:
+	fenetre = dialogues.fenetre_de_version(None, texte, None)
+	qtbot.addWidget(fenetre)
+	return fenetre
+
+
+def etiquette_de(fenetre: QMessageBox) -> QLabel:
+	etiquette = fenetre.findChild(QLabel, "qt_msgbox_label")
+	assert isinstance(etiquette, QLabel)
+	return etiquette
+
+
+@then("elle a les liens :")
+def liens(fenetre_de_version: QMessageBox, datatable: list[list[str]]) -> None:
+	"""Le Markdown est rendu en HTML par la fenêtre : les liens s'y lisent, texte et adresse."""
+	_entetes, *rangees = datatable
+	document = QTextDocument()
+	document.setMarkdown(etiquette_de(fenetre_de_version).text())
+	html = document.toHtml()
+	for texte, adresse in rangees:
+		echappe = texte.replace("<", "&lt;").replace(">", "&gt;")
+		assert re.search(rf'<a href="{re.escape(adresse)}">(<span[^>]*>)?{re.escape(echappe)}', html), (texte, html)
+
+
+@then("ses liens s'ouvrent dans le navigateur web")
+def liens_ouverts(fenetre_de_version: QMessageBox) -> None:
+	assert etiquette_de(fenetre_de_version).openExternalLinks()

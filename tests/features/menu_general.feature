@@ -77,6 +77,16 @@ Fonctionnalité: Menu général de l'interface
 			| depuis un dépôt git illisible    |
 			| depuis un dépôt git, sans git    |
 
+	Scénario: La fenêtre de version a les liens du code, de l'auteur et de la radio, qui s'ouvrent dans le navigateur
+		https://github.com/dascritch/machincast/issues/332
+		Quand je construis la fenêtre de version de « MachinCast 0.9.0, publiée le 2026-10-28. »
+		Alors elle a les liens :
+			| texte              | adresse                                  |
+			| Code               | https://github.com/dascritch/machincast/ |
+			| Auteur : DaScritch | https://dascritch.com                    |
+			| Pour : <FMR>       | https://radio-fmr.net                    |
+		Et ses liens s'ouvrent dans le navigateur web
+
 	# ─── Releases (https://github.com/dascritch/machincast/issues/208) ───
 	# Une version publiée a son tag v<version> et sa section dans les nouveautés. Dans les textes attendus, « <commit> »
 	# est le dernier commit du dépôt du scénario, abrégé.
