@@ -18,9 +18,9 @@ Système Linux graphique, avec le moteur audio PipeWire, idéalement Debian ou U
 ## Contexte
 
 Je suis animateur bénévole sur [Radio &lt;FMR&gt;](https://radio-fmr.net), radio associative de Toulouse, France. \
-J'ai été chargé une époque de la maintenance technique et de la formation des bénévoles. Je produit [l'émission CPU Carré Petit Utile sur les technologies](https://cpu.pm), en plus d'être [architecte en solutions logicielles](https://dascritch.com). J'ai récemment été chargé de revoir la chaîne de production de la radio, qui tourne avec des moyens financiers très contraints.
+J'ai été chargé une époque de la maintenance technique et de la formation des bénévoles de cette radio. Je produis actuellement [l'émission CPU Carré Petit Utile sur les technologies](https://cpu.pm), en plus d'être [architecte en solutions logicielles](https://dascritch.com). J'ai récemment été chargé de revoir la chaîne de production de la radio, qui tourne avec des moyens financiers très contraints.
 
-Cette radio utilise un logiciel d'automatisation d'antenne minimal pour gérer son fil musical continu et les émissions en extérieur. Mais ce logiciel est vieux, n'est plus maintenu, est sous licence propriétaire, est bourré de bugs et manque cruellement de certaines fonctions.
+Notre radio utilise un logiciel d'automatisation d'antenne minimal pour gérer son fil musical continu et les émissions en extérieur. Mais ce logiciel est vieux, n'est plus maintenu, est sous licence propriétaire, est bourré de bugs, n'est pas ergonomique et manque cruellement de certaines fonctions.
 
 Cela fait plus de 15 années que nous avons successivement tenté de migrer vers différents outils. Soit ils étaient trop compliqués, soit les outils supposés libres se sont refermés et sont devenus des solutions en SaaS.
 
