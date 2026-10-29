@@ -6,17 +6,17 @@ dixième de seconde), leur durée maximale, leurs durées par défaut, celles d'
 banque ne règle pas (machincast.lecture.diffusion.crossfade), et la position des fondus par rapport aux silences
 détectés d'un sonore joué sans eux (crossfades.position_entree et position_sortie, machincast.lecture.fondus). Une frise
 de démonstration (machincast.interface.frise) montre où tombent les fondus, sur un sonore inventé, et suit les réglages.
-Sa page « Audio » règle les périphériques de l'antenne (audio.peripherique), que Machin lecture prend à son prochain
-démarrage, et de la pré-écoute (audio.preecoute, https://github.com/dascritch/machincast/issues/116) : chacun est grisé
-dans l'autre choix ; elle règle aussi le seuil de silence (silences.seuil,
-https://github.com/dascritch/machincast/issues/146), que l'audit complet prend à son prochain passage, et le blanc dans
-un sonore (section [blanc_antenne], https://github.com/dascritch/machincast/issues/122) : sa durée, son niveau, et le
-passage au secours, que Machin lecture prend à son prochain démarrage. La page « Base »
-règle la durée de péremption (base.peremption, https://github.com/dascritch/machincast/issues/268), que Machin purge
-prend à son prochain passage, et que suit la fiche d'un élément supprimé. La page « Interface » règle l'accueil, et
-choisit l'icône de l'application (interface.icone, https://github.com/dascritch/machincast/issues/111) : une image
-lisible, ou celle de MachinCast ; la fenêtre principale la donne aussitôt à ses fenêtres et aux raccourcis déjà
-installés (machincast.raccourci.reecrire).
+Elle règle aussi le seuil de silence (silences.seuil, https://github.com/dascritch/machincast/issues/146), que l'audit
+complet prend à son prochain passage, à côté des fondus qu'il place
+(https://github.com/dascritch/machincast/issues/324). Sa page « Audio » règle les périphériques de l'antenne
+(audio.peripherique), que Machin lecture prend à son prochain démarrage, et de la pré-écoute (audio.preecoute,
+https://github.com/dascritch/machincast/issues/116) : chacun est grisé dans l'autre choix ; elle règle aussi le blanc
+dans un sonore (section [blanc_antenne], https://github.com/dascritch/machincast/issues/122) : sa durée, son niveau, et
+le passage au secours, que Machin lecture prend à son prochain démarrage. La page « Base » règle la durée de péremption
+(base.peremption, https://github.com/dascritch/machincast/issues/268), que Machin purge prend à son prochain passage, et
+que suit la fiche d'un élément supprimé. La page « Interface » règle l'accueil, et choisit l'icône de l'application
+(interface.icone, https://github.com/dascritch/machincast/issues/111) : une image lisible, ou celle de MachinCast ; la
+fenêtre principale la donne aussitôt à ses fenêtres et aux raccourcis déjà installés (machincast.raccourci.reecrire).
 
 - Les préférences s'enregistrent dans la section [crossfades] du fichier de configuration (ecrire), qui garde ses
   commentaires et ses autres sections : tomlkit le réécrit tel qu'il l'a lu, sauf les clés réglées. Une durée par

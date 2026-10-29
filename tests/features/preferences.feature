@@ -322,7 +322,14 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et j'y clique sur « OK »
 		Alors elle a donné les suggestions au lancement éteintes
 
-	Scénario: La page « Audio » montre le seuil de silence, et donne celui qui est saisi
+	Scénario: Le seuil de silence est à la page « Crossfades », avec les fondus qu'il place ; le blanc reste à la page « Audio »
+		https://github.com/dascritch/machincast/issues/324
+		Quand la fenêtre des préférences s'ouvre sur le seuil de silence -40 dB
+		Alors le champ « seuil_silences » est à la page « Crossfades »
+		Et le champ « duree_blanc » est à la page « Audio »
+		Et le champ « seuil_blanc » est à la page « Audio »
+
+	Scénario: La page « Crossfades » montre le seuil de silence, et donne celui qui est saisi
 		Quand la fenêtre des préférences s'ouvre sur le seuil de silence -40 dB
 		Alors elle montre le seuil de silence « -40,0 dB », réglable de -100,0 à -0,1 dB
 		Quand j'y saisis le seuil de silence -55,5
