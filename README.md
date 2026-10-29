@@ -33,7 +33,7 @@ Si en tant que radio, autre organisation ou particulier, vous avez décidé d'in
 - [Xavier Mouton-Dubosc aka `dascritch`](https://dascritch.com)
 - Claude.AI
 
-La construction de code avec et par une IA est [dans le cadre d'une future émission de CPU et sera documenté en tant que tellle](https://cpu.pm). Il a été écrit avec des contraintes fortes de qualité de code (TDD, BDD, E2E, tolérances d'échecs, reprise d'incidents).
+La construction de code avec et par une IA est [dans le cadre d'une future émission de CPU et sera documenté en tant que tel](https://cpu.pm). Il a été écrit avec des contraintes fortes de qualité de code (TDD, BDD, E2E, tolérances d'échecs, reprise d'incidents).
 
 ## Licence
 
