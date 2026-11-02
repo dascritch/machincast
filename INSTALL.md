@@ -209,6 +209,7 @@ Les anomalies (fichier endommagé, illisible ou introuvable) s'affichent sur la 
 
 | Étape | Ce qui se passe | Ce qui est modifié sur le poste |
 | --- | --- | --- |
+| Antenne | Vérifie, par `python -m machincast.installation antenne`, que l'antenne joue sur une carte son ([#339](https://github.com/dascritch/machincast/issues/339)) : sur la sortie factice (`audio.sortie = "factice"`, ou l'entrée « Sortie factice », `audio.peripherique = "factice"`), install.sh s'arrête, sans rien installer du service, et recommande une autre carte son. Une antenne à renseigner est seulement signalée : le service refusera de démarrer sans elle. | Rien. |
 | Session du compte | Garde active, dès le démarrage du poste, la session du compte qui installe (`loginctl enable-linger`) : c'est là que tournent PipeWire ou PulseAudio, et la socket d'état que lit l'interface. | Session du compte. |
 | Unité systemd | Installe `/etc/systemd/system/machincast.service`, rédigé par `python -m machincast.installation unite`, puis recharge systemd. | Une unité systemd. |
 | Règle polkit | Installe `/etc/polkit-1/rules.d/50-machincast.rules`, rédigée par `python -m machincast.installation regle`. | Une règle polkit. |
@@ -431,6 +432,7 @@ Les noms de bases sont ceux du modèle : reprendre ceux de `base.production` et 
 | `install.sh : lancer install.sh avec son propre compte, sans sudo` | Le script a été lancé avec `sudo` ou en `root`. Le relancer avec son compte. |
 | `install.sh : Ubuntu LTS requis (cible : 26.04 LTS)` | Le système n'est pas une Ubuntu LTS. `./install.sh --simulation` montre tout de même les commandes. |
 | `install.sh : configuration … à corriger, puis relancer install.sh` | `machincast.toml` est invalide : le message précédent nomme la clé en cause. |
+| `antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; …`, puis `install.sh : service de diffusion non installé : l'antenne est sur la sortie factice` | `./install.sh --service` sur une configuration dont l'antenne ne joue aucun son ([#339](https://github.com/dascritch/machincast/issues/339)). Choisir la carte son de l'antenne dans l'interface, **Fichier → Préférences…**, page **Audio** (la sortie factice y est alors grisée si le service est déjà installé), ou dans `audio.sortie` et `audio.peripherique` de `machincast.toml`, puis relancer `./install.sh --service`. |
 | `périphérique de l'antenne non renseigné : …` | `audio.peripherique` manque : le donner dans `machincast.toml`, ou dans l'interface, **Fichier → Préférences…**, page **Audio**. Puis relancer la diffusion. |
 | `sortie audio indisponible : …` | La sortie de `audio.sortie` ne peut pas être créée : installer le greffon nommé, ou vérifier `audio.peripherique`. Relancer `install.sh` vérifie la sortie. |
 | `indexation refusée : une autre indexation est en cours sur cette base` | Une indexation tourne déjà sur la base, lancée d'un terminal, de l'interface ou d'un autre poste. Attendre sa fin, puis relancer. Sa fenêtre, si elle vient de l'interface, peut l'arrêter. |

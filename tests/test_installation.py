@@ -224,6 +224,42 @@ def lancer_sans_base(tmp_path: Path, action: str) -> subprocess.CompletedProcess
 	return lancer(action, configuration)
 
 
+@when(
+	parsers.re(
+		r"je lance « python -m machincast.installation (?P<action>[a-z-]+) » avec une configuration sur la sortie"
+		r" « (?P<sortie>[^»]+) », l'antenne (?:« (?P<antenne>[^»]+) »|non renseignée)"
+	),
+	target_fixture="commande",
+)
+def lancer_sur_l_antenne(
+	tmp_path: Path, action: str, sortie: str, antenne: str | None
+) -> subprocess.CompletedProcess[str]:
+	"""https://github.com/dascritch/machincast/issues/339"""
+	document = tomlkit.parse(chemin_configuration_test().read_text(encoding="utf-8"))
+	audio = document["audio"]
+	assert isinstance(audio, tomlkit.items.Table)
+	audio["sortie"] = sortie
+	if antenne is not None:
+		audio["peripherique"] = antenne
+	configuration = tmp_path / "antenne.toml"
+	configuration.write_text(tomlkit.dumps(document), encoding="utf-8")
+	return lancer(action, configuration)
+
+
+@then(
+	parsers.parse(
+		"install.sh vérifie l'antenne par « installation antenne » avant la première étape du service, et s'arrête si"
+		" elle échoue"
+	)
+)
+def install_verifie_l_antenne() -> None:
+	texte = (REPERTOIRE_PROJET / "install.sh").read_text(encoding="utf-8")
+	debut = texte.index("installer_service() {")
+	corps = texte[debut : texte.index("\n}\n", debut)]
+	verification = corps.index("installation antenne || echec ")
+	assert verification < corps.index("loginctl"), corps
+
+
 @then("la commande se termine sans erreur")
 def sans_erreur(commande: subprocess.CompletedProcess[str]) -> None:
 	assert commande.returncode == 0, commande.stderr

@@ -117,6 +117,24 @@ Fonctionnalité: Vérifications de l'installation
 	# Facultatif, pour un ordinateur dédié à l'antenne : install.sh --service installe l'unité et la règle polkit que
 	# rédige machincast.installation. Le service tourne sous le compte de MachinCast, dont la session garde PipeWire.
 
+	Plan du scénario: install.sh --service refuse une antenne sur la sortie factice, et recommande une autre carte son
+		https://github.com/dascritch/machincast/issues/339 : l'antenne d'un poste dédié joue toujours sur une carte son.
+		install.sh --service lance cette vérification avant d'installer le service, et s'arrête si elle échoue.
+
+		Quand je lance « python -m machincast.installation antenne » avec une configuration sur la sortie « <sortie> », l'antenne <antenne>
+		Alors la commande se termine avec le code <code>
+		Et sa sortie <flux> « <message> »
+
+		Exemples:
+			| sortie   | antenne        | code | flux               | message                                                                                                                                                                                                     |
+			| pipewire | « carte-1 »    | 0    | annonce            | antenne sur la sortie pipewire, périphérique carte-1 : le service de diffusion peut l'utiliser                                                                                                              |
+			| pipewire | non renseignée | 0    | d'erreur mentionne | antenne sur la sortie pipewire, à renseigner : le service de diffusion refusera de démarrer tant que audio.peripherique ne la donne pas                                                                     |
+			| pipewire | « factice »    | 1    | d'erreur mentionne | antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service |
+			| factice  | « carte-1 »    | 1    | d'erreur mentionne | antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service |
+
+	Scénario: install.sh vérifie l'antenne avant d'installer le service
+		Alors install.sh vérifie l'antenne par « installation antenne » avant la première étape du service, et s'arrête si elle échoue
+
 	Scénario: L'unité du service lance Machin lecture sous le compte de MachinCast, et la relance après un plantage
 		Quand je lance « python -m machincast.installation unite » avec la configuration de test
 		Alors la commande se termine sans erreur
