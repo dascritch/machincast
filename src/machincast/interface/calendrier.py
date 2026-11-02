@@ -23,6 +23,11 @@ semaine, les jours d'avant sont grisés, vides.
   un événement de même priorité a pris sa place. Chaque saut s'annonce (annonce), et demande à Machin lecture de
   relire la grille (grille_modifiee).
 
+Navigation (https://github.com/dascritch/machincast/issues/326) : en tête de ligne, « Aujourd'hui », puis « ◀ Avant »
+et « Après ▶ », d'une semaine ou d'un jour selon la vue, que choisit une liste déroulante, « Jour » ou « Semaine ».
+Zoom des heures : la liste « 🔍 » montre 4, 8, 12 ou 24 heures dans la hauteur de la grille (ZOOMS, 12 par défaut) ;
+Maj + molette, dans la grille, passe au zoom voisin. Le zoom garde l'heure du haut de la grille.
+
 Le calendrier se relit à l'ouverture de son onglet, à chaque changement de période et par « Rafraîchir les onglets » ;
 jamais en boucle.
 """
@@ -33,7 +38,7 @@ from datetime import date, datetime, time, timedelta
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, Signal
+from PySide6.QtCore import QEvent, QObject, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import (
 	QBrush,
 	QColor,
@@ -45,9 +50,11 @@ from PySide6.QtGui import (
 	QPaintEvent,
 	QPen,
 	QPixmap,
+	QWheelEvent,
 )
 from PySide6.QtWidgets import (
 	QCheckBox,
+	QComboBox,
 	QHBoxLayout,
 	QLabel,
 	QMenu,
@@ -107,7 +114,19 @@ PERIME = QColor(128, 128, 128, 90)
 UNE_HEURE = timedelta(hours=1)
 """Un événement créé depuis le calendrier occupe l'heure entière cliquée : 13:37 donne 13:00 – 14:00."""
 UN_JOUR = timedelta(days=1)
-HAUTEUR_HEURE = 48
+HAUTEUR_MINIMALE = 16
+"""Pixels d'une heure au moins, quel que soit le zoom : la place de son libellé."""
+ZOOMS = (4, 8, 12, 24)
+"""Les heures que montre la hauteur de la grille, au choix du zoom (https://github.com/dascritch/machincast/issues/326)."""
+ZOOM_PAR_DEFAUT = 12
+LOUPE = "🔍"
+INFOBULLE_DU_ZOOM = "Heures montrées dans la hauteur de la grille ; aussi Maj + molette dans la grille"
+VUES = (("Jour", False), ("Semaine", True))
+"""La liste déroulante des vues : son texte, et s'il s'agit de la vue semaine."""
+AVANT = "◀ Avant"
+APRES = "Après ▶"
+PREMIERE_HEURE = 7
+"""L'heure en haut de la grille à l'ouverture du calendrier."""
 MARGE = 52
 """Largeur de la colonne des heures, à gauche."""
 PART_PREVUE = 0.72
@@ -431,18 +450,33 @@ class Calendrier(QWidget):
 		self._debut = self._lundi(self._aujourd_hui())
 		self._blocs: list[Bloc] = []
 		self._bandes: list[Bande] = []
-		self.precedent = QPushButton()
+		self.heures_visibles = ZOOM_PAR_DEFAUT
+		self.heure_du_haut: float = PREMIERE_HEURE
+		"""L'heure au bord haut de la grille, que gardent un zoom et un changement de taille."""
+		self._ajustement = False
+		"""La hauteur de la grille change : la barre de défilement bouge, sans que l'heure du haut change."""
 		self.aujourd_hui = QPushButton("Aujourd'hui")
-		self.suivant = QPushButton()
+		self.precedent = QPushButton(AVANT)
+		self.suivant = QPushButton(APRES)
 		self.titre = QLabel()
 		police = self.titre.font()
 		police.setBold(True)
 		self.titre.setFont(police)
-		self.vue_jour = QPushButton("Jour")
-		self.vue_semaine = QPushButton("Semaine")
+		self.vue = QComboBox()
+		for texte, semaine in VUES:
+			self.vue.addItem(texte, semaine)
+		self.vue.setToolTip("Vue d'un jour ou d'une semaine")
+		self.loupe = QLabel(LOUPE)
+		self.zoom = QComboBox()
+		for heures in ZOOMS:
+			self.zoom.addItem(f"vue {heures}h", heures)
+		self.zoom.setCurrentIndex(ZOOMS.index(ZOOM_PAR_DEFAUT))
+		self.loupe.setBuddy(self.zoom)
+		self.loupe.setToolTip(INFOBULLE_DU_ZOOM)
+		self.zoom.setToolTip(INFOBULLE_DU_ZOOM)
 		self.cases: dict[Priorite, QCheckBox] = {}
 		barre = QHBoxLayout()
-		for widget in (self.precedent, self.aujourd_hui, self.suivant):
+		for widget in (self.aujourd_hui, self.precedent, self.suivant):
 			barre.addWidget(widget)
 		barre.addWidget(self.titre, 1)
 		for priorite, nom in PRIORITES:
@@ -454,13 +488,14 @@ class Calendrier(QWidget):
 			coche.toggled.connect(self._filtrer)
 			self.cases[priorite] = coche
 			barre.addWidget(coche)
-		barre.addWidget(self.vue_jour)
-		barre.addWidget(self.vue_semaine)
+		barre.addWidget(self.vue)
+		barre.addWidget(self.loupe)
+		barre.addWidget(self.zoom)
 		self.precedent.clicked.connect(lambda: self._avancer(-1))
 		self.suivant.clicked.connect(lambda: self._avancer(1))
 		self.aujourd_hui.clicked.connect(self._revenir)
-		self.vue_jour.clicked.connect(lambda: self._changer_de_vue(False))
-		self.vue_semaine.clicked.connect(lambda: self._changer_de_vue(True))
+		self.vue.activated.connect(lambda indice: self._changer_de_vue(VUES[indice][1]))
+		self.zoom.activated.connect(lambda indice: self.zoomer(ZOOMS[indice]))
 		self.entete = EnTete(self)
 		self.grille = Grille(self)
 		self.defilement = QScrollArea()
@@ -474,8 +509,52 @@ class Calendrier(QWidget):
 		disposition.addLayout(barre)
 		disposition.addWidget(self.entete)
 		disposition.addWidget(self.defilement, 1)
+		# La hauteur d'une heure suit celle de la grille visible : elle change avec la fenêtre.
+		self.defilement.viewport().installEventFilter(self)
+		self.defilement.verticalScrollBar().valueChanged.connect(self._suivre_le_defilement)
 		self.actualiser()
-		self.defilement.verticalScrollBar().setValue(7 * HAUTEUR_HEURE)
+		self._ajuster_la_hauteur()
+
+	def hauteur_heure(self) -> float:
+		"""Les pixels d'une heure : la hauteur visible de la grille, moins le trait de minuit en bas, partagée entre
+		les heures du zoom."""
+		return max(HAUTEUR_MINIMALE, (self.defilement.viewport().height() - 1) / self.heures_visibles)
+
+	def zoomer(self, heures: int) -> None:
+		"""Montre ces heures dans la hauteur de la grille, en gardant l'heure du haut."""
+		self.heures_visibles = heures
+		self.zoom.setCurrentIndex(ZOOMS.index(heures))
+		self._ajuster_la_hauteur()
+
+	def zoomer_d_un_cran(self, plus_pres: bool) -> None:
+		"""Le zoom voisin : moins d'heures, plus près, ou plus d'heures ; rien au-delà des bouts."""
+		rang = ZOOMS.index(self.heures_visibles) + (-1 if plus_pres else 1)
+		if 0 <= rang < len(ZOOMS):
+			self.zoomer(ZOOMS[rang])
+
+	def _ajuster_la_hauteur(self) -> None:
+		"""La hauteur de la grille selon le zoom et la place visible, puis l'heure du haut à sa place, si la grille
+		descend jusque-là ; sinon, le bas de la grille au bas de la place."""
+		self._ajustement = True
+		try:
+			self.grille.setFixedHeight(int(24 * self.hauteur_heure()) + 1)
+			# La barre de défilement prend aussitôt la nouvelle hauteur : la position suivante n'est pas
+			# bornée par l'ancienne.
+			self.defilement.setWidgetResizable(True)
+			self.defilement.verticalScrollBar().setValue(round(self.heure_du_haut * self.hauteur_heure()))
+		finally:
+			self._ajustement = False
+		self.grille.update()
+
+	def _suivre_le_defilement(self, valeur: int) -> None:
+		"""Défilée à la main ou à la molette, la grille a une autre heure en haut."""
+		if not self._ajustement:
+			self.heure_du_haut = valeur / self.hauteur_heure()
+
+	def eventFilter(self, objet: QObject, evenement: QEvent) -> bool:
+		if (objet is self.defilement.viewport()) and (evenement.type() == QEvent.Type.Resize):
+			self._ajuster_la_hauteur()
+		return False
 
 	def _aujourd_hui(self) -> date:
 		return heure_murale(self.horloge.maintenant()).date()
@@ -643,17 +722,16 @@ class Calendrier(QWidget):
 		periode = timedelta(days=len(self.jours()))
 		aujourd_hui = self._aujourd_hui()
 		self.titre.setText(date_longue(self._debut))
-		self.precedent.setText("Jour précédent")
-		self.suivant.setText("Jour suivant")
+		self.precedent.setToolTip("Jour précédent")
+		self.suivant.setToolTip("Jour suivant")
 		if self._semaine:
 			self.titre.setText(titre_de_semaine(self._debut))
-			self.precedent.setText("Semaine précédente")
-			self.suivant.setText("Semaine suivante")
+			self.precedent.setToolTip("Semaine précédente")
+			self.suivant.setToolTip("Semaine suivante")
 		# Une période se montre tant qu'elle touche les jours d'après le premier, et les PORTEE jours après aujourd'hui.
 		self.precedent.setEnabled(self._debut - timedelta(days=1) >= self.premier_jour())
 		self.suivant.setEnabled(self._debut + periode <= aujourd_hui + PORTEE)
-		self.vue_jour.setEnabled(self._semaine)
-		self.vue_semaine.setEnabled(not self._semaine)
+		self.vue.setCurrentIndex([semaine for _texte, semaine in VUES].index(self._semaine))
 
 
 def _x_des_jours(widget: QWidget, nombre: int) -> list[float]:
@@ -744,15 +822,13 @@ class Grille(QWidget):
 	def __init__(self, calendrier: Calendrier) -> None:
 		super().__init__(calendrier)
 		self.calendrier = calendrier
-		self.setMinimumHeight(24 * HAUTEUR_HEURE + 1)
 		self.setMouseTracking(True)
 
 	def _x(self) -> list[float]:
 		return _x_des_jours(self, len(self.calendrier.jours()))
 
-	@staticmethod
-	def _y(jour: date, moment: datetime) -> float:
-		return (moment - minuit(jour)) / timedelta(hours=1) * HAUTEUR_HEURE
+	def _y(self, jour: date, moment: datetime) -> float:
+		return (moment - minuit(jour)) / timedelta(hours=1) * self.calendrier.hauteur_heure()
 
 	def rectangle(self, element: Bloc | Bande) -> QRectF:
 		jours = self.calendrier.jours()
@@ -781,7 +857,7 @@ class Grille(QWidget):
 		x = self._x()
 		for indice, jour in enumerate(self.calendrier.jours()):
 			if x[indice] <= point.x() < x[indice + 1]:
-				return minuit(jour) + timedelta(hours=point.y() / HAUTEUR_HEURE)
+				return minuit(jour) + timedelta(hours=point.y() / self.calendrier.hauteur_heure())
 		return None
 
 	def event(self, evenement: QEvent) -> bool:
@@ -804,6 +880,18 @@ class Grille(QWidget):
 		if menu is not None:
 			menu.exec(evenement.globalPos())
 
+	def wheelEvent(self, evenement: QWheelEvent) -> None:
+		"""Maj + molette passe au zoom voisin : vers le haut, plus près ; sans Maj, la grille défile."""
+		if not evenement.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+			super().wheelEvent(evenement)
+			return
+		# Avec Maj, certains bureaux donnent la molette à l'horizontale.
+		angle = evenement.angleDelta()
+		cran = (angle.y()) or (angle.x())
+		if cran != 0:
+			self.calendrier.zoomer_d_un_cran(cran > 0)
+		evenement.accept()
+
 	def mousePressEvent(self, evenement: QMouseEvent) -> None:
 		"""Une heure libre, pas encore passée, propose un événement sur l'heure entière : 13:00 – 14:00 pour 13:37. Le
 		créneau d'une session sautée est libre."""
@@ -825,21 +913,22 @@ class Grille(QWidget):
 		x = self._x()
 		ligne = QPen(self.palette().mid().color())
 		peintre.setPen(ligne)
+		hauteur_heure = self.calendrier.hauteur_heure()
 		for heure in range(25):
-			y = heure * HAUTEUR_HEURE
+			y = heure * hauteur_heure
 			peintre.drawLine(QPointF(MARGE, y), QPointF(x[-1], y))
 			if heure < 24:
 				peintre.setPen(self.palette().text().color())
 				peintre.drawText(QRectF(0, y, MARGE - ECART, 16), Qt.AlignmentFlag.AlignRight, f"{heure:02d}:00")
 				peintre.setPen(ligne)
 		for bord in x:
-			peintre.drawLine(QPointF(bord, 0), QPointF(bord, 24 * HAUTEUR_HEURE))
+			peintre.drawLine(QPointF(bord, 0), QPointF(bord, 24 * hauteur_heure))
 		for bloc in self.calendrier.blocs():
 			_peindre_bloc(peintre, self.rectangle(bloc), bloc, self._part_des_heures)
 		maintenant = self.calendrier.maintenant()
 		for jour in self.calendrier.jours_perimes():
 			indice = jours.index(jour)
-			peintre.fillRect(QRectF(x[indice], 0, x[indice + 1] - x[indice], 24 * HAUTEUR_HEURE), PERIME)
+			peintre.fillRect(QRectF(x[indice], 0, x[indice + 1] - x[indice], 24 * hauteur_heure), PERIME)
 		# Le passé de chaque jour, du côté de l'airplay : la place de ce qui a été diffusé.
 		for indice, jour in enumerate(jours):
 			passe = min(max(maintenant, minuit(jour)), minuit(jour + UN_JOUR))
