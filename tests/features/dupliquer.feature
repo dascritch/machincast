@@ -121,7 +121,7 @@ Fonctionnalité: Dupliquer un événement, une séquence ou une banque
 		Et je clique sur « Dupliquer »
 		Alors l'onglet ouvert est « Nouvel événement, copie de Matinale »
 		Et la fiche montre le nom interne « Matinale (copie) » et le nom public « La matinale »
-		Et la fiche de l'événement copié montre la priorité « Émission », le masquage « Masqués », ni début, ni fin, ni jours
+		Et la fiche de l'événement copié montre la priorité « Émission », le masquage « Masqué par le nom public de l'événement », ni début, ni fin, ni jours
 		Et la fiche montre les éléments « Passage pub », « Publicité », « Les Gaufres – Spot »
 		Quand j'enregistre la fiche
 		Alors la fiche signale « Une émission ou un spécial a un début. »

@@ -37,6 +37,42 @@ Fonctionnalité: Fiche d'une banque
 			| Aube – Matin clair          | 3:20  | actif | /srv/jingles/hiver/matin.flac |
 		Et l'écran de détail de banque « Jingles » est demandé
 
+	Scénario: Le masquage dit ce qui remplace l'artiste et le titre
+		https://github.com/dascritch/machincast/issues/328
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Alors le choix du masquage de la fiche propose « Hérité du sonore », « Masqué par le nom public de la banque », « Affichés »
+
+	# ─── Avertissement en haut de la fiche (https://github.com/dascritch/machincast/issues/328) ─────
+
+	Scénario: Une banque sans sonore actif le dit en haut de sa fiche, et s'enregistre quand même
+		Étant donné la banque « Pubs », aléatoire, sans nom public, avec « Spot »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Pubs »
+		Alors la fiche n'avertit pas en haut
+		Quand je retire le sonore « Spot »
+		Alors la fiche avertit en haut « Banque sans sonore actif : elle ne fournit rien, et l'élément qui l'appelle passe à son élément suivant. »
+		Quand j'enregistre la fiche
+		Alors les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
+		Et la fiche avertit en haut « Banque sans sonore actif : elle ne fournit rien, et l'élément qui l'appelle passe à son élément suivant. »
+
+	Scénario: Une banque dont un sonore est erroné ou non supporté le dit en haut de sa fiche
+		Étant donné les sonores :
+			| artiste | titre | type    | etat         | duree | emplacement     |
+			|         | Abîmé | fichier | errone       | 8     | /srv/abime.flac |
+			|         | Image | fichier | non_supporte | 8     | /srv/image.png  |
+		Et la banque « Pubs », aléatoire, sans nom public, avec « Spot », « Abîmé », « Image »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Pubs »
+		Alors la fiche avertit en haut « Banque avec 2 sonores erronés ou non supportés : la diffusion ne les joue pas. »
+		Quand je retire le sonore « Image »
+		Alors la fiche avertit en haut « Banque avec 1 sonore erroné ou non supporté : la diffusion ne le joue pas. »
+		Quand je retire le sonore « Spot »
+		Alors la fiche avertit en haut « Banque sans sonore actif : elle ne fournit rien, et l'élément qui l'appelle passe à son élément suivant. »
+		Quand je retire le sonore « Abîmé »
+		Alors la fiche avertit en haut « Banque sans sonore actif : elle ne fournit rien, et l'élément qui l'appelle passe à son élément suivant. »
+
 	# ─── Ouvrir un sonore (https://github.com/dascritch/machincast/issues/115) ─────
 
 	Scénario: Un double-clic sur un sonore de la banque ouvre sa fiche
@@ -157,7 +193,7 @@ Fonctionnalité: Fiche d'une banque
 		Et je saisis le nom interne « Jingles d'été »
 		Et je saisis le nom public « Radio Thune, l'été »
 		Et je choisis le mode « aléatoire »
-		Et je choisis le masquage « masqués »
+		Et je choisis le masquage « masqué par le nom public de la banque »
 		Et je décoche « ne pas répéter »
 		Alors la banque « Jingles » est en base : nom public « Radio Thune », séquentielle, masquage « hérité du sonore », avec « ne pas répéter »
 		Quand j'enregistre la fiche
@@ -167,17 +203,17 @@ Fonctionnalité: Fiche d'une banque
 	Plan du scénario: Le masquage a trois valeurs, dont « hérité du sonore », qui laisse décider le sonore
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
-		Et je choisis le masquage « masqués »
+		Et je choisis le masquage « masqué par le nom public de la banque »
 		Et j'enregistre la fiche
-		Et je choisis le masquage « <masquage> »
+		Et je choisis le masquage « <choix> »
 		Et j'enregistre la fiche
 		Alors la banque « Jingles » est en base : nom public « Radio Thune », séquentielle, masquage « <masquage> », avec « ne pas répéter »
 
 		Exemples:
-			| masquage         |
-			| hérité du sonore |
-			| masqués          |
-			| affichés         |
+			| choix                                 | masquage         |
+			| hérité du sonore                      | hérité du sonore |
+			| masqué par le nom public de la banque | masqués          |
+			| affichés                              | affichés         |
 
 	Plan du scénario: Cocher une durée des sonores d'une grande banque ne gèle pas la fiche
 		https://github.com/dascritch/machincast/issues/194 : chaque marque posée ou effacée faisait recalculer la largeur de
@@ -417,7 +453,7 @@ Fonctionnalité: Fiche d'une banque
 			| je saisis le nom interne « Jingles du soir »                                                  |
 			| je saisis le nom public « Radio Thune, le soir »                                              |
 			| je choisis le mode « aléatoire »                                                              |
-			| je choisis le masquage « masqués »                                                            |
+			| je choisis le masquage « masqué par le nom public de la banque »                                                            |
 			| je décoche « ne pas répéter »                                                                 |
 			| je choisis pour le crossfade de début la règle « Imposer à tous les sonores »                 |
 			| je choisis pour le crossfade de fin la règle « Garder ceux des sonores »                      |

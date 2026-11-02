@@ -21,7 +21,7 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 | Nom interne | Obligatoire, et propre à l'événement : son nom dans les listes, l'historique et le journal. |
 | Nom public | Facultatif. Affiché sur la page publique à la place de l'artiste et du titre masqués ([Page publique et masquage](antenne.md#page-publique-et-masquage)). |
 | Priorité | De la plus basse à la plus haute : `Secours`, qui ne joue qu'à la place d'un stream tombé ([Streams](antenne.md#streams)), puis `Fil musical`, `Émission` et `Spécial` ([Quel événement est à l'antenne](antenne.md#quel-événement-est-à-lantenne)). |
-| Artiste et titre | `Masqués` ou `Affichés` sur la page publique, pour tout ce que l'événement fait jouer ; `Selon la séquence, la banque ou le sonore` laisse décider ceux-ci. |
+| Artiste et titre | `Masqué par le nom public de l'événement` ou `Affichés` sur la page publique, pour tout ce que l'événement fait jouer ; `Selon la séquence, la banque ou le sonore` laisse décider ceux-ci. |
 
 **Grille** : le **Début** et la **Fin** de la première occurrence, chacun à cocher, puis les **jours** où elle revient chaque semaine, à la même heure. Aucun jour coché : une seule occurrence.
 
@@ -43,7 +43,7 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 - **Rétablir** rétablit la session, comme le clic droit du calendrier, sans enregistrer la fiche ni toucher à ses champs. La barre d'état l'annonce, et la diffusion en tient compte aussitôt.
 - Le bouton est grisé, et son infobulle dit pourquoi, pour une session qui a déjà commencé, ou dont une émission de même priorité a pris la place.
 
-**Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion : une émission vide laisse l'événement en dessous prendre le relais, sans couper le sonore en cours, et l'onglet Antenne n'annonce aucune coupure à son heure ; un fil musical vide laisse un blanc à l'antenne, avec une alerte. La liste des événements le montre en anomalie.
+**Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion, en haut, sur un liseret orange ([#328](https://github.com/dascritch/machincast/issues/328)) : une émission vide laisse l'événement en dessous prendre le relais, sans couper le sonore en cours, et l'onglet Antenne n'annonce aucune coupure à son heure ; un fil musical vide laisse un blanc à l'antenne, avec une alerte. La liste des événements le montre en anomalie.
 
 **À l'antenne, aussitôt** ([#266](https://github.com/dascritch/machincast/issues/266)) : un événement enregistré, supprimé ou restauré vaut tout de suite, si la diffusion tourne. Une émission avancée coupe le sonore en cours à sa nouvelle heure ; une émission déplacée, raccourcie ou retirée change les sonores à venir de l'onglet Antenne. Un nom, un nom public ou un masquage changés ne retirent pas les sonores déjà annoncés : ils passeront comme prévu.
 
@@ -67,11 +67,11 @@ La fiche d'une [séquence](antenne.md#séquences) s'ouvre dans un onglet nommé 
 | --- | --- |
 | Nom interne | Obligatoire, et propre à la séquence. |
 | Nom public | Facultatif. Affiché sur la page publique à la place de l'artiste et du titre masqués, si l'événement n'en a pas. |
-| Artiste et titre | `Masqués` ou `Affichés` sur la page publique, pour les sonores que joue la séquence, sauf si l'événement en décide ; `Selon la banque ou le sonore` laisse décider ceux-ci. |
+| Artiste et titre | `Masqué par le nom public de la séquence` ou `Affichés` sur la page publique, pour les sonores que joue la séquence, sauf si l'événement en décide ; `Selon la banque ou le sonore` laisse décider ceux-ci. |
 
 **Éléments** : la liste ordonnée des sonores et des banques que joue la séquence, avec un détail : l'emplacement d'un sonore, le mode d'une banque et « ne pas répéter » si elle l'est. Elle se gère comme la liste de lecture d'un événement : glisser-déposer, **Monter** et **Descendre**, **➕ Ajouter des sonores…**, **➕ Ajouter des banques…**, dépôt de fichiers, **➖ Retirer l'élément**. Un même sonore ou une même banque peut revenir ; une séquence ne contient jamais une autre séquence. La fiche signale les appels qui seront sautés à cause d'une banque « ne pas répéter ».
 
-**Séquence vide** : elle s'enregistre, pour être complétée plus tard ; la fiche avertit qu'elle ne joue rien, et la diffusion la saute.
+**Séquence vide** : elle s'enregistre, pour être complétée plus tard ; la fiche avertit en haut, sur un liseret orange, qu'elle ne joue rien, et la diffusion la saute ([#328](https://github.com/dascritch/machincast/issues/328)).
 
 **Événements** : la liste des événements où figure la séquence ; un double-clic ouvre leur fiche.
 

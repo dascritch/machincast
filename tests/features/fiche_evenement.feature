@@ -119,6 +119,13 @@ Fonctionnalité: Fiche d'un événement
 
 	# ─── Champs ────────────────────────────────────────────────
 
+	Scénario: Le masquage dit ce qui remplace l'artiste et le titre
+		https://github.com/dascritch/machincast/issues/328
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Alors le choix du masquage de la fiche propose « Selon la séquence, la banque ou le sonore », « Masqué par le nom public de l'événement », « Affichés »
+
 	Scénario: Les champs modifiés partent en base à l'enregistrement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
@@ -127,7 +134,7 @@ Fonctionnalité: Fiche d'un événement
 		Et je saisis dans la fiche de l'événement :
 			| champ            | valeur           |
 			| Priorité         | spécial          |
-			| Artiste et titre | masqués          |
+			| Artiste et titre | masqué par le nom public de l'événement |
 			| Début            | 24/10/2026 08:00 |
 			| Fin              | 24/10/2026 10:30 |
 			| Jours            | samedi, dimanche |
@@ -203,28 +210,28 @@ Fonctionnalité: Fiche d'un événement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et je retire les éléments « Habillage », « Passage pub », « Les Gaufres – Spot »
-		Alors la fiche de l'événement avertit « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
+		Alors la fiche avertit en haut « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
 		Quand j'enregistre la fiche
 		Alors la fiche ne signale rien
 		Et les éléments de l'événement « Matinale » sont, dans l'ordre, aucun
-		Et la fiche de l'événement avertit « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
+		Et la fiche avertit en haut « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
 		Quand j'ajoute les sonores « Spot »
 		Alors la fiche de l'événement n'avertit de rien
 
 	Scénario: L'avertissement d'un événement vide dit ce que fait la diffusion, selon sa priorité
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Panne »
-		Alors la fiche de l'événement avertit « Événement vide : il ne joue rien, et l'événement de priorité inférieure remplace le stream tombé. »
+		Alors la fiche avertit en haut « Événement vide : il ne joue rien, et l'événement de priorité inférieure remplace le stream tombé. »
 		Quand je choisis la priorité « fil musical »
-		Alors la fiche de l'événement avertit « Événement vide : il ne joue rien, et la diffusion se tait, avec une alerte, quand il est à l'antenne. »
+		Alors la fiche avertit en haut « Événement vide : il ne joue rien, et la diffusion se tait, avec une alerte, quand il est à l'antenne. »
 		Quand je choisis la priorité « spécial »
-		Alors la fiche de l'événement avertit « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
+		Alors la fiche avertit en haut « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
 
 	Scénario: Un nouvel événement, vide, s'enregistre sans élément
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Événements »
 		Et je clique sur « Nouvel événement »
-		Alors la fiche de l'événement avertit « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
+		Alors la fiche avertit en haut « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
 		Quand je saisis le nom interne « Brouillon »
 		Et je coche « Début » dans la fiche de l'événement
 		Et j'enregistre la fiche
@@ -523,7 +530,7 @@ Fonctionnalité: Fiche d'un événement
 			| modification                                                |
 			| je saisis le nom interne « Autre »                          |
 			| je saisis le nom public « Autre »                           |
-			| je choisis le masquage « masqués »                          |
+			| je choisis le masquage « masqué par le nom public de l'événement » |
 			| je choisis la priorité « spécial »                          |
 			| je saisis la fin « 19/10/2026 10:00 » dans la fiche de l'événement |
 			| je décoche « Fin » dans la fiche de l'événement             |

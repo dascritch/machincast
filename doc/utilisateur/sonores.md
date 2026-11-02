@@ -149,7 +149,7 @@ La fiche d'une banque s'ouvre dans un onglet nommé « Banque : » suivi de son 
 | Nom interne | Obligatoire, et propre à la banque. |
 | Nom public | Facultatif. Affiché sur la page publique à la place de l'artiste et du titre masqués, si l'événement et la séquence n'en ont pas. |
 | Mode | `Séquentielle` : les sonores passent dans l'ordre de la liste. `Aléatoire` : au hasard ([Quel sonore une banque fournit](antenne.md#quel-sonore-une-banque-fournit)). |
-| Artiste et titre | `Masqués` ou `Affichés` sur la page publique, sauf si l'événement ou la séquence en décide ; `Hérité du sonore` laisse décider le sonore. |
+| Artiste et titre | `Masqué par le nom public de la banque` ou `Affichés` sur la page publique, sauf si l'événement ou la séquence en décide ; `Hérité du sonore` laisse décider le sonore. |
 | Ne pas répéter | La banque ne passe jamais deux fois de suite. |
 | Détection de silence | Cochée, les sonores joués par la banque le sont sans leurs silences ([Silences au début et à la fin](antenne.md#silences-au-début-et-à-la-fin)). |
 | Durée minimale, durée maximale des sonores | Facultatives : pour ne pas confondre un mix, une chanson et une publicité. Un sonore qui en sort est marqué dans cette fiche seulement, avec une infobulle (« 3:20 : plus court que le minimum de la banque, 3:30. »), et la prochaine indexation l'en retire, même ajouté à la main. Un nouveau fichier qui en sort n'y entre jamais. |
@@ -158,6 +158,8 @@ La fiche d'une banque s'ouvre dans un onglet nommé « Banque : » suivi de son 
 **Répertoires indexés** : les fichiers de ces répertoires, et de leurs sous-répertoires, rejoignent la banque à chaque indexation ([Alimenter une banque par ses répertoires](#alimenter-une-banque-par-ses-répertoires)). **➕ Ajouter un répertoire…** ouvre le sélecteur de répertoires ; on peut aussi y déposer des dossiers. **➖ Retirer le répertoire** retire celui qui est choisi. Rien n'est indexé à l'enregistrement : les fichiers d'un nouveau répertoire arrivent à la prochaine indexation.
 
 **Sonores** : chaque sonore, avec sa durée, son état et son emplacement.
+
+**Banque sans sonore actif** ([#328](https://github.com/dascritch/machincast/issues/328)) : la fiche le dit en haut, sur un liseret orange : la banque ne fournit rien, et l'élément qui l'appelle passe à son élément suivant. De même pour une banque qui a des sonores erronés ou non supportés, que la diffusion ne joue pas. Ce n'est qu'un avertissement : la banque s'enregistre. L'avertissement suit les sonores ajoutés, retirés, activés ou désactivés, avant même l'enregistrement.
 
 - **Ordre** : en mode séquentiel, un sonore se déplace par glisser-déposer, ou avec **Monter** et **Descendre**. En mode aléatoire, l'ordre ne compte pas.
 - **➕ Ajouter des sonores…** ouvre la liste des sonores en base ; **déposer des fichiers** les ajoute en fin de liste, comme nouveaux sonores `aperçu` s'ils ne sont pas encore en base.

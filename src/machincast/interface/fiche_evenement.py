@@ -41,7 +41,7 @@ from machincast.horloge import Horloge
 from machincast.interface import affichage
 from machincast.interface.calendrier import date_longue, jour_et_mois
 from machincast.interface.elements import Boutons, ListeElements
-from machincast.interface.fiche import Connexion, Fiche, Refus
+from machincast.interface.fiche import ORANGE, Connexion, Fiche, Refus
 from machincast.interface.listes import EVENEMENT_VIDE
 from machincast.interface.sessions import Session, chevauchee, commencee, prochaine_sautee, retablir
 from machincast.interface.ui.fiche_evenement import Ui_FicheEvenement
@@ -61,7 +61,7 @@ SANS_FIN_NE_BOUCLE_PAS = ("emission", "special")
 """Priorités dont la liste ne boucle pas, sans fin : l'occurrence se termine au bout de sa liste."""
 MASQUAGES: tuple[tuple[bool | None, str], ...] = (
 	(None, "Selon la séquence, la banque ou le sonore"),
-	(True, "Masqués"),
+	(True, "Masqué par le nom public de l'événement"),
 	(False, "Affichés"),
 )
 """Valeurs de evenements.masquer_metadonnees, dans l'ordre du choix de la fiche."""
@@ -69,9 +69,8 @@ REPETITION = "Un sonore, une banque ou une séquence peut revenir plusieurs fois
 """Remarque des choix d'éléments."""
 DUREE_PAR_DEFAUT = timedelta(hours=1)
 """Écart entre le début et une fin qui se coche."""
-ORANGE = "#ef6c00"
-"""Orange du liseret d'une session sautée : un avertissement, lisible sur un fond clair comme sur un fond sombre."""
 LISERET_SESSION = f"QFrame#session_sautee {{ border: 4px solid {ORANGE}; }}"
+"""Le liseret d'une session sautée : un avertissement, de l'orange de ceux de la fiche."""
 RETABLIR = "Rétablir"
 COMMENCEE = "Elle a déjà commencé : elle ne se rétablit plus."
 
@@ -318,10 +317,11 @@ class FicheEvenement(Fiche):
 		"""Un événement vide, selon sa priorité, ou une banque « ne pas répéter » appelée juste après elle-même : cet
 		appel sera sauté. La liste boucle, sauf pour une émission ou un spécial sans fin."""
 		boucle = (self._priorite() not in SANS_FIN_NE_BOUCLE_PAS) or (self.ui.a_fin.isChecked())
-		avertissements = self.elements.avertissements(boucle)
+		self.ui.avertissement.setText("\n".join(self.elements.avertissements(boucle)))
+		vide = ""
 		if self.elements.lignes() == []:
-			avertissements = [EVENEMENT_VIDE[self._priorite()]]
-		self.ui.avertissement.setText("\n".join(avertissements))
+			vide = EVENEMENT_VIDE[self._priorite()]
+		self.avertir(vide)
 
 	def _ecrire(self) -> int:
 		ui = self.ui

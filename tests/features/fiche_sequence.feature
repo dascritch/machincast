@@ -72,6 +72,13 @@ Fonctionnalité: Fiche d'une séquence
 
 	# ─── Champs ────────────────────────────────────────────────
 
+	Scénario: Le masquage dit ce qui remplace l'artiste et le titre
+		https://github.com/dascritch/machincast/issues/328
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Passage pub »
+		Alors le choix du masquage de la fiche propose « Selon la banque ou le sonore », « Masqué par le nom public de la séquence », « Affichés »
+
 	Plan du scénario: Les champs modifiés partent en base à l'enregistrement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Passage pub »
@@ -84,7 +91,7 @@ Fonctionnalité: Fiche d'une séquence
 
 		Exemples:
 			| nom public    | masquage                     | en base                                                         |
-			| Pub du soir   | masqués                      | nom public « Pub du soir », masquage « masqués »                |
+			| Pub du soir   | masqué par le nom public de la séquence | nom public « Pub du soir », masquage « masqués »     |
 			|               | affichés                     | sans nom public, masquage « affichés »                          |
 			| Radio Thune   | selon la banque ou le sonore | nom public « Radio Thune », masquage « selon la banque ou le sonore » |
 
@@ -166,7 +173,7 @@ Fonctionnalité: Fiche d'une séquence
 			| je choisis l'élément « Publicité », puis je descends |
 			| je saisis le nom interne « Autre »                   |
 			| je saisis le nom public « Autre »                    |
-			| je choisis le masquage « masqués »                   |
+			| je choisis le masquage « masqué par le nom public de la séquence » |
 
 	Scénario: Renoncer au choix de sonores ou de banques ne change rien
 		Quand la fenêtre de l'interface s'ouvre
@@ -240,11 +247,11 @@ Fonctionnalité: Fiche d'une séquence
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Passage pub »
 		Et je retire les éléments « Jingle début », « Publicité », « Jingle fin »
-		Alors la fiche de la séquence avertit « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
+		Alors la fiche avertit en haut « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
 		Quand j'enregistre la fiche
 		Alors la fiche ne signale rien
 		Et les éléments de la séquence « Passage pub » sont, dans l'ordre, aucun
-		Et la fiche de la séquence avertit « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
+		Et la fiche avertit en haut « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
 		Quand j'ajoute les sonores « Spot »
 		Alors la fiche de la séquence n'avertit de rien
 
@@ -252,7 +259,7 @@ Fonctionnalité: Fiche d'une séquence
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Séquences »
 		Et je clique sur « Nouvelle séquence »
-		Alors la fiche de la séquence avertit « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
+		Alors la fiche avertit en haut « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
 		Quand je saisis le nom interne « À compléter »
 		Et j'enregistre la fiche
 		Alors la fiche ne signale rien

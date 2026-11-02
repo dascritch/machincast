@@ -66,7 +66,12 @@ from machincast.interface.colonnes import Colonnes
 from machincast.interface.depot import DepotDeFichiers
 from machincast.interface.dialogues import Retrait
 from machincast.interface.fiche import Connexion, Fiche, Refus, fichiers_sonores
-from machincast.interface.listes import ETATS
+from machincast.interface.listes import (
+	BANQUE_SANS_SONORE_ACTIF,
+	ETATS,
+	SONORE_EN_ANOMALIE,
+	banque_aux_sonores_en_anomalie,
+)
 from machincast.interface.ui.fiche_banque import Ui_FicheBanque
 
 MODES = (("sequentiel", "Séquentielle"), ("aleatoire", "Aléatoire"))
@@ -75,7 +80,11 @@ REGLES_DE_CROSSFADE = (
 	("a_defaut", "Appliquer si le sonore n'en a pas"),
 	("impose", "Imposer à tous les sonores"),
 )
-MASQUAGES: tuple[tuple[bool | None, str], ...] = ((None, "Hérité du sonore"), (True, "Masqués"), (False, "Affichés"))
+MASQUAGES: tuple[tuple[bool | None, str], ...] = (
+	(None, "Hérité du sonore"),
+	(True, "Masqué par le nom public de la banque"),
+	(False, "Affichés"),
+)
 """Valeurs de banques.masquer_metadonnees, dans l'ordre du choix de la fiche."""
 SONORE = Qt.ItemDataRole.UserRole
 """Rôle qui porte, sur la première colonne d'une ligne de sonore, son identifiant en base."""
@@ -174,6 +183,8 @@ class FicheBanque(Fiche):
 		modele.rowsInserted.connect(self._modifier)
 		modele.rowsInserted.connect(self._marquer_hors_durees)
 		modele.rowsRemoved.connect(self._modifier)
+		modele.rowsInserted.connect(self._avertir)
+		modele.rowsRemoved.connect(self._avertir)
 		self.ui.repertoires.currentItemChanged.connect(self._actualiser_boutons)
 		self.ui.sonores.currentItemChanged.connect(self._actualiser_boutons)
 		self.ui.sonores.itemSelectionChanged.connect(self._actualiser_boutons)
@@ -262,6 +273,7 @@ class FicheBanque(Fiche):
 		self.ui.sonores.clear()
 		self.ui.sonores.addTopLevelItems([self._ligne(sonore) for sonore in sonores])
 		self._charges = set(self._sonores())
+		self._avertir()
 		self._actualiser_boutons()
 
 	def _ecrire(self) -> int:
@@ -357,6 +369,7 @@ class FicheBanque(Fiche):
 				continue
 			ligne.setData(0, ETAT_CHOISI, etat)
 			ligne.setText(COLONNE_ETAT, ETATS[etat])
+		self._avertir()
 		self._modifier()
 
 	def _crossfades(self) -> tuple[tuple[QComboBox, QDoubleSpinBox], tuple[QComboBox, QDoubleSpinBox]]:
@@ -378,6 +391,18 @@ class FicheBanque(Fiche):
 				borne = timedelta(seconds=QTime(0, 0).secsTo(champ.time()))
 			bornes.append(borne)
 		return bornes[0], bornes[1]
+
+	def _avertir(self) -> None:
+		"""Une banque sans sonore actif ne fournit rien ; ses sonores erronés ou non supportés ne passent pas : en haut
+		de la fiche, d'après les états qu'elle montre, choisis compris (https://github.com/dascritch/machincast/issues/328),
+		comme la liste des banques (machincast.interface.listes)."""
+		etats = [(ligne.data(0, ETAT_CHOISI)) or (ligne.data(0, ETAT)) for ligne in self._lignes()]
+		texte = ""
+		if "actif" not in etats:
+			texte = BANQUE_SANS_SONORE_ACTIF
+		elif any(etat in SONORE_EN_ANOMALIE for etat in etats):
+			texte = banque_aux_sonores_en_anomalie(sum(1 for etat in etats if etat in SONORE_EN_ANOMALIE))
+		self.avertir(texte)
 
 	def _marquer_hors_durees(self) -> None:
 		"""Les sonores hors des durées de la fiche ont l'icône d'anomalie et une infobulle qui dit pourquoi ; un sonore
