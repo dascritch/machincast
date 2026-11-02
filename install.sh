@@ -106,11 +106,12 @@ aide() {
 		Avec --dev, aussi les outils du poste de développement : ${PAQUETS_DEV[*]} (apt) et les
 		dépendances de test (pip, extra [dev]), pour Machin dev et Machin dev-test.
 		Avec --service, aussi le service de diffusion ${UNITE}, seulement pour un ordinateur dédié à
-		l'antenne : Machin lecture démarre avec le poste, sous le compte ${UTILISATEUR}, et redémarre après un
-		plantage ; une règle polkit le laisse démarrer, arrêter et redémarrer avec le mot de passe d'un
-		administrateur ; un minuteur systemd, ${MINUTEUR_PURGE}, lance chaque jour à midi Machin purge, qui
-		efface de la base ce qui dépasse la durée de péremption. Sans --service, rien de cela n'est installé :
-		la diffusion et la purge se lancent à la main.
+		l'antenne, dont l'antenne n'est pas sur la sortie factice (sinon install.sh s'arrête et recommande
+		une autre carte son) : Machin lecture démarre avec le poste, sous le compte ${UTILISATEUR}, et
+		redémarre après un plantage ; une règle polkit le laisse démarrer, arrêter et redémarrer avec le mot
+		de passe d'un administrateur ; un minuteur systemd, ${MINUTEUR_PURGE}, lance chaque jour à midi
+		Machin purge, qui efface de la base ce qui dépasse la durée de péremption. Sans --service, rien de
+		cela n'est installé : la diffusion et la purge se lancent à la main.
 
 		Relançable : chaque étape déjà faite est laissée telle quelle.
 		À lancer avec son propre compte, pas avec sudo : le script demande sudo quand il le faut.
@@ -556,6 +557,12 @@ installer_service() {
 		info "non installé : la diffusion se lance à la main, par Machin lecture"
 		info "sur un ordinateur dédié à l'antenne : ./install.sh --service"
 		return
+	fi
+	# L'antenne d'un poste dédié joue toujours sur une carte son (https://github.com/dascritch/machincast/issues/339).
+	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
+		info "[simulation] antenne vérifiée par machincast.installation antenne une fois l'environnement virtuel créé"
+	else
+		installation antenne || echec "service de diffusion non installé : l'antenne est sur la sortie factice"
 	fi
 	info "pour un ordinateur dédié à l'antenne : Machin lecture démarre avec le poste, sous ${UTILISATEUR}"
 	# La session du compte reste active sans connexion : PipeWire ou PulseAudio y tournent, comme la socket d'état.

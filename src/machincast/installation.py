@@ -9,9 +9,11 @@
 	python -m machincast.installation minuteur-purge --config machincast.toml   son minuteur, chaque jour à midi
 	python -m machincast.installation raccourci --config machincast.toml   raccourci de l'interface (.desktop)
 	python -m machincast.installation peripheriques --config machincast.toml   périphériques de sortie du poste
+	python -m machincast.installation antenne   --config machincast.toml   antenne utilisable par le service
 
 peripheriques n'est pas appelé par install.sh : il aide à trouver les identifiants à recopier dans audio.peripherique
-et audio.preecoute (https://github.com/dascritch/machincast/issues/116).
+et audio.preecoute (https://github.com/dascritch/machincast/issues/116). antenne l'est par install.sh --service, avant
+d'installer le service : il refuse une antenne sur la sortie factice (https://github.com/dascritch/machincast/issues/339).
 
 install.sh enchaîne les commandes système (apt, sudo, psql, liens) ; ce module porte ce qui se teste : la lecture
 de la configuration, les migrations, la vérification de la version et des greffons GStreamer
@@ -257,6 +259,32 @@ def _verifier(configuration: Configuration) -> int:
 	return 0
 
 
+ANTENNE_FACTICE = (
+	"antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans"
+	" Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service"
+)
+
+
+def _antenne(configuration: Configuration) -> int:
+	"""Le service de diffusion d'un poste dédié joue toujours sur une carte son : jamais sur la sortie factice, ni sur
+	l'entrée « Sortie factice » de l'antenne (https://github.com/dascritch/machincast/issues/339)."""
+	audio = configuration.audio
+	if audio.antenne_factice():
+		journal.error(ANTENNE_FACTICE)
+		return CODE_ECHEC
+	sortie, peripherique = audio.antenne()
+	if peripherique is None:
+		journal.warning(
+			f"antenne sur la sortie {sortie}, à renseigner : le service de diffusion refusera de démarrer tant que"
+			" audio.peripherique ne la donne pas"
+		)
+		return 0
+	journal.info(
+		f"antenne sur la sortie {sortie}, périphérique {peripherique} : le service de diffusion peut l'utiliser"
+	)
+	return 0
+
+
 @dataclass(frozen=True)
 class Compte:
 	"""Le compte de MachinCast, celui qui l'installe : le service tourne sous lui, avec sa session audio."""
@@ -415,6 +443,7 @@ def _peripheriques(configuration: Configuration) -> int:
 
 
 ACTIONS = {
+	"antenne": _antenne,
 	"bases": _bases,
 	"migrer": _migrer,
 	"minuteur-purge": _minuteur_purge,
