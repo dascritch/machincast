@@ -33,6 +33,7 @@ from machincast.interface.preferences import FenetrePreferences, Reglages
 from machincast.interface.suggestions import FenetreSuggestions, Manques, Reponse
 from machincast.interface.version import Nouveautes
 from machincast.protection import EXTENSIONS_INDEXEES
+from machincast.service import ABSENT, EtatDuService
 
 
 class Fermeture(StrEnum):
@@ -286,10 +287,13 @@ def _choisir(choix: Choix) -> list[int]:
 	return choix.selection()
 
 
-def regler_preferences(parent: QWidget, reglages: Reglages, sortie: SortieAudio) -> Reglages | None:
+def regler_preferences(
+	parent: QWidget, reglages: Reglages, sortie: SortieAudio, service: EtatDuService = ABSENT
+) -> Reglages | None:
 	"""Les préférences réglées dans leur fenêtre ; None si elle est abandonnée
-	(https://github.com/dascritch/machincast/issues/145)."""
-	fenetre = FenetrePreferences(reglages, sortie, parent)
+	(https://github.com/dascritch/machincast/issues/145). Le service de diffusion en marche verrouille la carte de
+	l'antenne (https://github.com/dascritch/machincast/issues/339)."""
+	fenetre = FenetrePreferences(reglages, sortie, parent, service)
 	if fenetre.exec() != QDialog.DialogCode.Accepted:
 		return None
 	return fenetre.reglages()

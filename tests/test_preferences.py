@@ -306,7 +306,7 @@ def reglages_donnes(
 ) -> None:
 	attendus = None
 	if (granularite is not None) and (maximum is not None):
-		attendus = Reglages(reglages(granularite, maximum, debut, fin), None, PREECOUTE_DES_TESTS)
+		attendus = Reglages(reglages(granularite, maximum, debut, fin), None, PREECOUTE_DES_TESTS, sortie="factice")
 	assert ouverte.donnes == attendus
 
 
@@ -347,7 +347,8 @@ def ouvrir_sur_l_audio(ouverte: Ouverte, parent: QWidget, antenne: str | None, p
 
 
 def choix_audio(ouverte: Ouverte, nom: str) -> QComboBox:
-	ui = la_fenetre(ouverte).ui
+	"""Les choix du bloc des cartes son (https://github.com/dascritch/machincast/issues/339)."""
+	ui = la_fenetre(ouverte).cartes.ui
 	return {"antenne": ui.antenne, "pré-écoute": ui.preecoute}[nom]
 
 
@@ -399,10 +400,17 @@ def audio_montre(interface: Contexte, antenne: str | None, preecoute: str) -> No
 	assert interface.audio_montre[-1] == (antenne, preecoute)
 
 
-@then(parsers.parse("le fichier de configuration donne l'antenne « {antenne} » et la pré-écoute « {preecoute} »"))
-def audio_du_fichier(interface: Contexte, antenne: str, preecoute: str) -> None:
+@then(
+	parsers.re(
+		r"le fichier de configuration donne (?:la sortie « (?P<sortie>[^»]+) », )?l'antenne « (?P<antenne>[^»]+) »"
+		r" et la pré-écoute « (?P<preecoute>[^»]+) »"
+	)
+)
+def audio_du_fichier(interface: Contexte, sortie: str | None, antenne: str, preecoute: str) -> None:
 	audio = charger(fichier_de_configuration(interface)).audio
 	assert (audio.peripherique, audio.preecoute) == (antenne, preecoute)
+	if sortie is not None:
+		assert audio.sortie == sortie
 
 
 @then(parsers.re(r"la barre d'état (?P<signale>signale|ne signale pas) « Périphérique de l'antenne à renseigner »"))
@@ -486,7 +494,7 @@ def audio_de_la_fenetre(lancement: Lancement, sortie: str, antenne: str, preecou
 def preferences_de_la_fenetre(
 	lancement: Lancement, monkeypatch: pytest.MonkeyPatch, antenne: str, preecoute: str, sortie: str
 ) -> None:
-	def regler(_parent: QWidget, montres: Reglages, sortie_montree: str) -> None:
+	def regler(_parent: QWidget, montres: Reglages, sortie_montree: str, _service: object = None) -> None:
 		lancement.montres = (montres, sortie_montree)
 
 	monkeypatch.setattr(dialogues, "regler_preferences", regler)
