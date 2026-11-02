@@ -13,7 +13,6 @@ est dessinée dans ui/ecran_par_defaut.ui (CONTRIBUTION.md).
 
 import logging
 import math
-from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
@@ -21,7 +20,7 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QModelIndex, QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QAbstractItemView, QLineEdit, QMenu, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLineEdit, QMenu, QSizePolicy, QVBoxLayout, QWidget
 
 from machincast.configuration import Audio
 from machincast.horloge import Horloge
@@ -108,8 +107,9 @@ class EcranParDefaut(QWidget):
 		self.ui.table_airplay.setModel(self.modele_airplay)
 		self.colonnes_airplay = Colonnes(self.ui.table_airplay, "accueil-airplay")
 		self.ui.table_airplay.activated.connect(self._ouvrir_cellule)
-		self.ui.table_airplay.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-		self.ui.table_airplay.customContextMenuRequested.connect(self._menu_de_l_airplay)
+		self.colonnes_airplay.menu_des_lignes = lambda position: self.menu_de_l_airplay(
+			self.ui.table_airplay.indexAt(position)
+		)
 		# Les sonores à venir, avec les colonnes de l'airplay (https://github.com/dascritch/machincast/issues/228).
 		self.modele_a_venir = QStandardItemModel(0, len(self.COLONNES_AIRPLAY), self)
 		self.modele_a_venir.setHorizontalHeaderLabels([titre for _, titre in self.COLONNES_AIRPLAY])
@@ -117,8 +117,9 @@ class EcranParDefaut(QWidget):
 		table_a_venir.setModel(self.modele_a_venir)
 		self.colonnes_a_venir = Colonnes(table_a_venir, "accueil-a-venir")
 		table_a_venir.activated.connect(self._ouvrir_cellule)
-		table_a_venir.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-		table_a_venir.customContextMenuRequested.connect(self._menu_des_sonores_a_venir)
+		self.colonnes_a_venir.menu_des_lignes = lambda position: self.menu_des_sonores_a_venir(
+			self.ui.table_a_venir.indexAt(position)
+		)
 		# Les 5 sonores à venir quand la place le permet ; sur un petit écran, la table se tasse jusqu'à 2 lignes, et
 		# l'airplay jusqu'à une : la fenêtre garde une hauteur raisonnable.
 		ligne = table_a_venir.verticalHeader().defaultSectionSize()
@@ -484,21 +485,6 @@ class EcranParDefaut(QWidget):
 		menu = self.menu_du_prochain()
 		menu.exec(self.ui.cadre_prochain.mapToGlobal(position))
 		menu.deleteLater()
-
-	def _menu_de_l_airplay(self, position: QPoint) -> None:
-		self._montrer_le_menu(self.ui.table_airplay, self.menu_de_l_airplay, position)
-
-	def _menu_des_sonores_a_venir(self, position: QPoint) -> None:
-		self._montrer_le_menu(self.ui.table_a_venir, self.menu_des_sonores_a_venir, position)
-
-	@staticmethod
-	def _montrer_le_menu(
-		table: QAbstractItemView, menu_de: Callable[[QModelIndex], QMenu | None], position: QPoint
-	) -> None:
-		menu = menu_de(table.indexAt(position))
-		if menu is not None:
-			menu.exec(table.viewport().mapToGlobal(position))
-			menu.deleteLater()
 
 	# ─── Écouter le prochain sonore ────────────────────────
 

@@ -25,7 +25,7 @@ from datetime import datetime, timedelta
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QPoint, QSortFilterProxyModel, Qt, Signal
+from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSortFilterProxyModel, Qt, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QAbstractItemView, QLabel, QLineEdit, QMenu, QTableView, QWidget
 
@@ -450,9 +450,7 @@ class Liste(QWidget):
 			self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 		self.preecoutable = (actions) and (source.genre == "sonore")
 		"""La liste des sonores, hors d'un choix : le clic droit sur une ligne en propose la pré-écoute."""
-		if (self.duplicable) or (self.actions_groupees != ()) or (self.preecoutable):
-			self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-			self.table.customContextMenuRequested.connect(self._menu)
+		self.colonnes.menu_des_lignes = lambda position: self.menu_de_la_ligne(self.table.indexAt(position))
 		self._compter()
 
 	@property
@@ -550,12 +548,6 @@ class Liste(QWidget):
 		if self.preecoutable:
 			affichage.proposer_la_preecoute(menu, cliquee, self.preecoute_demandee.emit)
 		return menu
-
-	def _menu(self, position: QPoint) -> None:
-		menu = self.menu_de_la_ligne(self.table.indexAt(position))
-		if menu is not None:
-			menu.exec(self.table.viewport().mapToGlobal(position))
-			menu.deleteLater()
 
 	def _ouvrir(self, index: QModelIndex) -> None:
 		premiere = self.modele.index(self.proxy.mapToSource(index).row(), 0)

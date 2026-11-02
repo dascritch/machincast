@@ -4,14 +4,18 @@ Chaque test a son propre fichier de réglages des vues (tests/conftest.py, regla
 Les étapes de la fenêtre, des onglets et des éléments en base sont dans tests/etapes_interface.py.
 """
 
+import codecs
+from pathlib import Path
+
 import psycopg
-from PySide6.QtCore import QEvent, QPointF, QSettings, Qt
+from PySide6.QtCore import QEvent, QPoint, QPointF, QSettings, Qt
 from PySide6.QtGui import QAction, QMouseEvent, QStandardItemModel
 from PySide6.QtWidgets import (
 	QAbstractItemView,
 	QApplication,
 	QCalendarWidget,
 	QGroupBox,
+	QMenu,
 	QTableView,
 	QTreeView,
 	QWidget,
@@ -20,7 +24,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface import colonnes as module_colonnes
-from machincast.interface.colonnes import RETABLIR, Colonnes
+from machincast.interface.colonnes import EXPORTER, RETABLIR, Colonnes
 from machincast.interface.recherche import EcranRecherche
 from tests.etapes_interface import NOM, Contexte, choisir_dans_le_menu, fenetre, onglet
 
@@ -317,3 +321,111 @@ def _dans_un_calendrier(vue: QWidget) -> bool:
 			return True
 		parent = parent.parentWidget()
 	return False
+
+
+# ─── Exporter un tableau (https://github.com/dascritch/machincast/issues/329) ───
+
+
+def _textes(menu: QMenu) -> list[str]:
+	return [("—" if action.isSeparator() else action.text()) for action in menu.actions()]
+
+
+def _exporter(interface: Contexte, onglet_: str, fichier: str | None) -> None:
+	"""Le sélecteur de fichier est remplacé : il note le nom proposé, puis rend un fichier du test, ou rien."""
+
+	def choisir(_parent: QWidget, propose: str) -> Path | None:
+		interface.proposes.append(propose)
+		if fichier is None:
+			return None
+		return interface.repertoire / fichier
+
+	interface.proposes = []
+	interface.monkeypatch.setattr(module_colonnes, "choisir_le_fichier", choisir)
+	colonnes = de_l_onglet(interface, onglet_)
+	menu = colonnes.menu_du_tableau(QPoint(-1, -1))
+	(action,) = [action for action in menu.actions() if action.text() == EXPORTER]
+	action.trigger()
+
+
+@when(
+	parsers.re(
+		r"je choisis « Exporter ce tableau… » au clic droit dans le tableau de l'onglet « (?P<onglet_>[^»]+) »,"
+		r" vers « (?P<fichier>[^»]+) »"
+	)
+)
+def exporter(interface: Contexte, onglet_: str, fichier: str) -> None:
+	_exporter(interface, onglet_, fichier)
+
+
+@when(parsers.parse("j'abandonne « Exporter ce tableau… » au clic droit dans le tableau de l'onglet « {onglet_} »"))
+def abandonner(interface: Contexte, onglet_: str) -> None:
+	_exporter(interface, onglet_, None)
+
+
+@then("le clic droit hors des lignes de chaque tableau de l'interface ne propose que « Exporter ce tableau… »")
+def exporter_partout(interface: Contexte) -> None:
+	vues = [
+		vue
+		for vue in fenetre(interface).findChildren(QAbstractItemView)
+		if (isinstance(vue, (QTableView, QTreeView))) and (not _dans_un_calendrier(vue))
+	]
+	for vue in vues:
+		(colonnes,) = vue.findChildren(Colonnes)
+		assert vue.contextMenuPolicy() == Qt.ContextMenuPolicy.CustomContextMenu, colonnes.nom
+		assert _textes(colonnes.menu_du_tableau(QPoint(-1, -1))) == [EXPORTER], colonnes.nom
+
+
+@then(parsers.parse("le sélecteur de fichier a proposé « {nom} »"))
+def propose(interface: Contexte, nom: str) -> None:
+	assert interface.proposes == [nom]
+
+
+@then(parsers.parse("le fichier « {fichier} » contient, en UTF-8 avec BOM :"))
+def contenu(interface: Contexte, fichier: str, docstring: str) -> None:
+	octets = (interface.repertoire / fichier).read_bytes()
+	assert octets.startswith(codecs.BOM_UTF8)
+	assert octets.decode("utf-8-sig") == f"{docstring}\n"
+
+
+@then(parsers.parse("le fichier « {fichier} » contient la ligne « {ligne} »"))
+def contient_la_ligne(interface: Contexte, fichier: str, ligne: str) -> None:
+	assert ligne in (interface.repertoire / fichier).read_text(encoding="utf-8-sig").splitlines()
+
+
+@then(parsers.parse("le fichier « {fichier} » n'existe pas"))
+def absent(interface: Contexte, fichier: str) -> None:
+	assert not (interface.repertoire / fichier).exists()
+
+
+@then("aucun fichier n'est exporté")
+def rien(interface: Contexte) -> None:
+	assert interface.proposes == ["liste-banques.csv"]
+	assert list(interface.repertoire.glob("*.csv")) == []
+
+
+@then(parsers.parse("la barre d'état annonce que le tableau est exporté dans « {fichier} »"))
+def annonce(interface: Contexte, fichier: str) -> None:
+	attendu = f"Tableau exporté dans {interface.repertoire / fichier}."
+	assert fenetre(interface).statusBar().currentMessage() == attendu
+
+
+@then(parsers.parse("la barre d'état commence par « {debut} »"))
+def commence(interface: Contexte, debut: str) -> None:
+	assert fenetre(interface).statusBar().currentMessage().startswith(debut)
+
+
+@then(
+	parsers.re(
+		r"le clic droit sur la ligne « (?P<nom>[^»]+) » de l'onglet « (?P<onglet_>[^»]+) » propose d'abord"
+		r" « (?P<premiere>[^»]+) », et finit par (?P<dernieres>«.+)"
+	)
+)
+def menu_d_une_ligne(interface: Contexte, nom: str, onglet_: str, premiere: str, dernieres: str) -> None:
+	colonnes = de_l_onglet(interface, onglet_)
+	vue = colonnes.vue
+	modele = vue.model()
+	(rangee,) = [rangee for rangee in range(modele.rowCount()) if nom in str(modele.index(rangee, 1).data())]
+	position = vue.visualRect(modele.index(rangee, 1)).center()
+	textes = _textes(colonnes.menu_du_tableau(position))
+	fin = NOM.findall(dernieres)
+	assert (textes[0], textes[-len(fin) :]) == (premiere, fin), textes
