@@ -26,14 +26,14 @@ Cela fait plus de 15 années que nous avons successivement tenté de migrer vers
 
 J'ai estimé qu'il était plus simple de recoder de zéro un tel outil, en connaissant parfaitement nos usages, nos équipements, les fonctions manquantes et les erreurs de manipulation les plus classiques de ceux qui le gèrent. L'outil ne sert pas à produire une diffusion en stream directement, la sortie sonore d'une carte son professionnelle (XLR analogique symétrique, SPDIF ou AES3) est envoyée vers une régie finale, et des outils techniques pour les affichages DAB+ et RDS.
 
-Si en tant que radio, autre organisation ou particulier, vous avez décidé d'installer ce logiciel, n'hésitez absolument pas à prendre contact pour parler de votre expérience, ccas d'usage et dans quelle installation vous l'avez inséré.
+Si en tant que radio, autre organisation ou particulier, vous avez décidé d'installer ce logiciel, n'hésitez absolument pas à prendre contact pour parler de votre expérience, parler de votre cas d'usage et dans quelle installation vous l'avez inséré.
 
 ## Auteurs
 
 - [Xavier Mouton-Dubosc aka `dascritch`](https://dascritch.com)
 - Claude.AI
 
-La construction de code avec et par une IA est [dans le cadre d'une future émission de CPU et sera documenté en tant que tel](https://cpu.pm). Il a été écrit avec des contraintes fortes de qualité de code (TDD, BDD, E2E, tolérances d'échecs, reprise d'incidents).
+La construction de code avec et par une IA est [dans le cadre d'une future émission de CPU et sera documenté en tant que tel](https://cpu.pm). Le code a été écrit par Claude.AI avec des contraintes fortes de qualité de code (TDD, BDD, E2E, tolérances d'échecs, reprise d'incidents, formatage).
 
 ## Licence
 
@@ -50,3 +50,5 @@ La construction de code avec et par une IA est [dans le cadre d'une future émis
  - Fabrice Serin "DJ Tro"
 
 Aux animateurs, bénévoles, soutients et aux artistes passés et à venir qui ont fait vivre l'antenne de Radio &lt;FMR&gt;
+
+Cultivé avec ♡ depuis Toulouse, France.
