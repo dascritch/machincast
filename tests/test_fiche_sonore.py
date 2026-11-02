@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QDateTime, QPoint, Qt
-from PySide6.QtWidgets import QAbstractButton, QComboBox, QRadioButton
+from PySide6.QtWidgets import QAbstractButton, QComboBox, QMenu, QRadioButton
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -707,3 +707,68 @@ def banques_hors_durees(interface: Contexte, datatable: list[list[str]]) -> None
 def champs_de_crossfade(interface: Contexte) -> None:
 	ui = fiche(interface).ui
 	assert (ui.crossfade_debut.isEnabled(), ui.crossfade_fin.isEnabled()) == (False, True)
+
+
+# ─── Retirer une relation (https://github.com/dascritch/machincast/issues/331) ───
+
+LISTES = {
+	"la séquence": ("sequences", "sequences_elements", "sequence_id"),
+	"la banque": ("banques", "banques_sonores", "banque_id"),
+	"l'événement": ("evenements", "evenements_elements", "evenement_id"),
+}
+ELEMENT_DE = r"(?P<element>la séquence|la banque|l'événement) « (?P<nom>[^»]+) »"
+
+
+def _rangee_de_la_relation(interface: Contexte, nom: str) -> int:
+	table = fiche(interface).ui.relations
+	(rangee,) = [rangee for rangee in range(table.rowCount()) if table.item(rangee, 1).text() == nom]
+	return rangee
+
+
+def _menu_de_la_relation(interface: Contexte, nom: str) -> QMenu:
+	table = fiche(interface).ui.relations
+	rangee = _rangee_de_la_relation(interface, nom)
+	position = table.visualItemRect(table.item(rangee, 1)).center()
+	return fiche(interface).colonnes_relations.menu_du_tableau(position)
+
+
+@when(parsers.re(r"je choisis « (?P<entree>.+) » au clic droit sur la relation « (?P<nom>[^»]+) » du sonore$"))
+def retirer_la_relation(interface: Contexte, entree: str, nom: str) -> None:
+	(action,) = [action for action in _menu_de_la_relation(interface, nom).actions() if action.text() == entree]
+	action.trigger()
+
+
+@then(parsers.re(r"le clic droit sur la relation « (?P<nom>[^»]+) » du sonore propose (?P<entrees>«.+)$"))
+def menu_de_la_relation(interface: Contexte, nom: str, entrees: str) -> None:
+	textes = [
+		("—" if action.isSeparator() else action.text()) for action in _menu_de_la_relation(interface, nom).actions()
+	]
+	attendues = [entree.strip() for entree in entrees.strip("« »").split(" », « ")]
+	assert textes == attendues, textes
+
+
+def _citations(base: Connexion, element: str, nom: str, sonore: str) -> tuple[int, int]:
+	"""Les places du sonore dans la liste de l'élément, et le nombre d'éléments de cette liste."""
+	table, liste, colonne = LISTES[element]
+	parent = identifiant(base, table, "nom_interne", nom)
+	cite = identifiant(base, "sonores", "titre", sonore)
+	ligne = base.execute(
+		f"SELECT count(*) FILTER (WHERE sonore_id = %s), count(*) FROM {liste} WHERE {colonne} = %s",  # noqa: S608
+		(cite, parent),
+	).fetchone()
+	assert ligne is not None
+	return int(ligne[0]), int(ligne[1])
+
+
+@then(parsers.re(rf"en base, {ELEMENT_DE} cite encore le sonore « (?P<sonore>[^»]+) »"))
+def cite_encore(base_vide: Connexion, element: str, nom: str, sonore: str) -> None:
+	assert _citations(base_vide, element, nom, sonore)[0] > 0
+
+
+@then(
+	parsers.re(
+		rf"en base, {ELEMENT_DE} ne cite plus le sonore « (?P<sonore>[^»]+) », mais garde (?P<nombre>\d+) éléments?"
+	)
+)
+def ne_cite_plus(base_vide: Connexion, element: str, nom: str, sonore: str, nombre: str) -> None:
+	assert _citations(base_vide, element, nom, sonore) == (0, int(nombre))

@@ -749,6 +749,84 @@ Fonctionnalité: Fiche d'un sonore
 			| Jingles | 3:34 : plus long que le maximum de la banque « Jingles », 1:00. |
 			| Pubs    | 3:34 : plus court que le minimum de la banque « Pubs », 5:00.   |
 
+	# ─── Retirer une relation (https://github.com/dascritch/machincast/issues/331) ───
+
+	Scénario: Le clic droit sur une relation propose d'en retirer le sonore, puis d'exporter le tableau
+		Étant donné la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
+		Et la séquence « Passage pub », sans nom public, avec le sonore « Café à minuit »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Alors le clic droit sur la relation « Passage pub » du sonore propose « ➖ Retirer de la séquence « Passage pub » », « — », « Exporter ce tableau… »
+		Et le clic droit sur la relation « Jingles » du sonore propose « ➖ Retirer de la banque « Jingles » », « — », « Exporter ce tableau… »
+
+	Scénario: Retirer des relations les retire de la fiche, puis de leur liste en base à l'enregistrement, toutes places comprises
+		Étant donné les événements :
+			| nom      | nom_public | priorite    | debut | fin | jours |
+			| Continue |            | fil_musical |       |     |       |
+		Et la banque « Tubes », aléatoire, sans nom public, avec aucun
+		Et la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
+		Et la séquence « Passage pub », sans nom public, avec le sonore « Café à minuit », la banque « Tubes »
+		Et l'événement « Continue » joue le sonore « Café à minuit », la banque « Tubes », le sonore « Café à minuit »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Et je choisis « ➖ Retirer de la séquence « Passage pub » » au clic droit sur la relation « Passage pub » du sonore
+		Et je choisis « ➖ Retirer de l'événement « Continue » » au clic droit sur la relation « Continue » du sonore
+		Alors les relations du sonore sont :
+			| Genre  | Nom     |
+			| banque | Jingles |
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
+		Et en base, la séquence « Passage pub » cite encore le sonore « Café à minuit »
+		Quand j'enregistre la fiche
+		Alors les relations du sonore sont :
+			| Genre  | Nom     |
+			| banque | Jingles |
+		Et en base, la séquence « Passage pub » ne cite plus le sonore « Café à minuit », mais garde 1 élément
+		Et en base, l'événement « Continue » ne cite plus le sonore « Café à minuit », mais garde 1 élément
+		Et en base, la banque « Jingles » cite encore le sonore « Café à minuit »
+
+	Scénario: « Annuler » rétablit une relation retirée, sans rien changer en base
+		Étant donné la séquence « Passage pub », sans nom public, avec le sonore « Café à minuit »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Et je choisis « ➖ Retirer de la séquence « Passage pub » » au clic droit sur la relation « Passage pub » du sonore
+		Alors la fiche du sonore dit « Aucune séquence, banque ni événement ne cite ce sonore. »
+		Quand j'annule les modifications de la fiche
+		Alors les relations du sonore sont :
+			| Genre    | Nom         |
+			| séquence | Passage pub |
+		Et en base, la séquence « Passage pub » cite encore le sonore « Café à minuit »
+
+	Scénario: Retirer le sonore d'une banque qui indexe son fichier prévient que l'indexation l'y remettra
+		Étant donné la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
+		Et les répertoires « /srv/jingles » de la banque « Jingles »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Et je réponds « ➖ Retirer quand même » à l'avertissement de réintégration
+		Et je choisis « ➖ Retirer de la banque « Jingles » » au clic droit sur la relation « Jingles » du sonore
+		Alors l'avertissement de réintégration nomme « Café à minuit », le répertoire « /srv/jingles » et la prochaine indexation
+		Et la fiche du sonore dit « Aucune séquence, banque ni événement ne cite ce sonore. »
+
+	Scénario: Garder le sonore dans une banque qui indexe son fichier laisse la relation
+		Étant donné la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
+		Et les répertoires « /srv/jingles » de la banque « Jingles »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Et je réponds « Annuler » à l'avertissement de réintégration
+		Et je choisis « ➖ Retirer de la banque « Jingles » » au clic droit sur la relation « Jingles » du sonore
+		Alors les relations du sonore sont :
+			| Genre  | Nom     |
+			| banque | Jingles |
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
+
+	Scénario: Une banque qui n'indexe pas le fichier ne prévient de rien
+		Étant donné la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
+		Et les répertoires « /srv/habillage » de la banque « Jingles »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Et je choisis « ➖ Retirer de la banque « Jingles » » au clic droit sur la relation « Jingles » du sonore
+		Alors aucune question n'a été posée
+		Et la fiche du sonore dit « Aucune séquence, banque ni événement ne cite ce sonore. »
+
 	Scénario: Un sonore cité nulle part le dit
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
