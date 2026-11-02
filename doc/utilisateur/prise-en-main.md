@@ -40,15 +40,15 @@ Au lancement, l'interface cherche ce qui manque pour que l'antenne puisse tourne
 
 - un **fil musical**, l'événement qui tient l'antenne quand aucun autre ne la prend ;
 - les banques **Identifiant station**, **Musique rotation lourde**, **Musique rotation normale**, **Musique rotation rare**, **Musique rotation de nuit**, **Partenariats**, **Publicités** et **Bande-annonce émissions**, reconnues à leur nom, sans tenir compte des majuscules ;
-- sur une vraie sortie audio, le **périphérique de l'antenne**, sans lequel la diffusion ne démarre pas.
+- sur une vraie sortie audio, la **carte son de l'antenne**, sans laquelle la diffusion ne démarre pas.
 
-![La fenêtre « Pour bien démarrer », qui propose de créer le fil musical et les banques qui manquent](../captures/pour-bien-demarrer.png)
+![La fenêtre « Pour bien démarrer », qui propose les cartes son, puis de créer le fil musical et les banques qui manquent](../captures/pour-bien-demarrer.png)
 
 S'il en manque, la fenêtre **Pour bien démarrer** les propose, chacun coché :
 
 - **Créer** crée ce qui est coché. Le fil musical est permanent. Les banques sont vides : elles se remplissent depuis leur [fiche](sonores.md#fiche-dune-banque), ou par l'indexation de leurs répertoires. L'identifiant station et les rotations musicales sont aléatoires ; les partenariats, les publicités et les bandes-annonces sont séquentiels, dans l'ordre de leurs sonores. « Identifiant station » et « Bande-annonce émissions » sont marquées « ne pas répéter ». Chacune a sa [durée maximale des sonores](sonores.md#fiche-dune-banque) : 15 minutes pour les rotations lourde, normale et rare, 2 minutes pour l'identifiant station, les partenariats, les publicités et les bandes-annonces ; ces trois dernières s'enchaînent sans crossfade, imposé à 0 seconde à leurs sonores ; la rotation de nuit n'en a pas. Tout cela se change dans leur fiche. Un fil musical encore vide reçoit une rotation type : Identifiant station, rotation lourde, normale, lourde, rare. La rotation de nuit reste à placer dans un événement de nuit. La barre d'état dit ce qui a été créé.
-- Le **périphérique de l'antenne** se choisit parmi ceux du poste, sauf celui de la pré-écoute. La diffusion le prend à son prochain démarrage (**Diffusion → ⏹ Arrêter la diffusion**, puis **⏵ Démarrer la diffusion**).
-- **Plus tard** ne crée rien : la fenêtre revient au lancement suivant.
+- Tant que la carte son de l'antenne manque, la fenêtre commence par les **cartes son**, comme dans les [préférences](#préférences), page **Audio** : le type de sortie, puis la carte de l'antenne et celle de la pré-écoute, chacune avec son bouton **Tester**. Une même carte ne sert jamais aux deux. S'il n'y a rien d'autre à créer, le bouton s'appelle **Enregistrer**. La diffusion prend la carte de l'antenne à son prochain démarrage (**Diffusion → ⏹ Arrêter la diffusion**, puis **⏵ Démarrer la diffusion**).
+- **Plus tard** ne crée et n'enregistre rien : la fenêtre revient au lancement suivant.
 - **Ne plus proposer au lancement** éteint la fenêtre ; elle se rallume dans les [préférences](#préférences). Sans elle, l'interface recrée au lancement un fil musical vide s'il n'en existe aucun, et le dit dans la barre d'état.
 
 Après la suppression ou l'enregistrement d'un événement, l'interface recrée toujours un fil musical s'il n'en reste aucun.
@@ -191,6 +191,8 @@ Page **Interface** :
 | Icône de l'application | L'icône des fenêtres de MachinCast, de son raccourci dans le menu des applications et sur le bureau, et de la barre des tâches. **Choisir une image…** en prend une autre, SVG, PNG ou JPEG, de préférence carrée, le logo de la radio par exemple ; **Icône de MachinCast** revient à celle d'origine. Une image illisible n'est pas prise : `Image illisible : …`. La nouvelle icône vaut dès **OK**. |
 
 Page **Audio** :
+
+![Les préférences, page « Audio » : le type de sortie, les cartes son de l'antenne et de la pré-écoute avec leur bouton « Tester », et le blanc dans un sonore](../captures/preferences-audio.png)
 
 | Réglage | Rôle |
 | --- | --- |

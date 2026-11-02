@@ -10,6 +10,25 @@
   </property>
   <layout class="QVBoxLayout" name="disposition">
    <item>
+    <widget class="QGroupBox" name="groupe_cartes_son">
+     <property name="title">
+      <string>Cartes son</string>
+     </property>
+     <layout class="QVBoxLayout" name="disposition_cartes_son">
+      <item>
+       <widget class="QLabel" name="explication_cartes_son">
+        <property name="text">
+         <string>Choisissez d'abord la carte son de l'antenne, puis celle de la pré-écoute. « Tester » joue 2 secondes de son de test sur la carte de sa ligne : sur celle de l'antenne, il part à l'antenne.</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QLabel" name="explication">
      <property name="text">
       <string>Il manque de quoi démarrer l'antenne. Cochez ce que MachinCast doit créer : les banques restent à remplir, depuis leur fiche ou par l'indexation de leurs répertoires.</string>
@@ -24,32 +43,6 @@
      <property name="selectionMode">
       <enum>QAbstractItemView::SelectionMode::NoSelection</enum>
      </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupe_antenne">
-     <property name="title">
-      <string>Sortie audio de la diffusion</string>
-     </property>
-     <layout class="QFormLayout" name="formulaire_antenne">
-      <item row="0" column="0">
-       <widget class="QLabel" name="etiquette_antenne">
-        <property name="text">
-         <string>&amp;Antenne</string>
-        </property>
-        <property name="buddy">
-         <cstring>antenne</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QComboBox" name="antenne">
-        <property name="toolTip">
-         <string>Le périphérique sur lequel Machin lecture diffuse l'antenne : sans lui, il refuse de diffuser</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
     </widget>
    </item>
    <item>

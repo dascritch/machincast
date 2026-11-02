@@ -5,9 +5,10 @@ Fonctionnalité: Suggestions au lancement de l'interface
 	afin d'accélérer la mise en place de l'outil pour démarrer.
 
 	https://github.com/dascritch/machincast/issues/119. Au lancement, si les suggestions sont actives
-	(interface.suggestions) et qu'il manque un fil musical, l'une des banques suggérées, ou le périphérique de l'antenne
+	(interface.suggestions) et qu'il manque un fil musical, l'une des banques suggérées, ou la carte son de l'antenne
 	sur une vraie sortie, une fenêtre modale propose de les créer : chaque élément manquant est une ligne à cocher,
-	cochée par défaut. Elle remplace la création automatique du fil musical au lancement
+	cochée par défaut. Tant que l'antenne n'a pas de carte son, la fenêtre propose d'abord, en tête, le bloc des cartes
+	son des préférences (https://github.com/dascritch/machincast/issues/339). Elle remplace la création automatique du fil musical au lancement
 	(https://github.com/dascritch/machincast/issues/39), qui reste quand les suggestions sont éteintes. Ici, la fenêtre
 	des suggestions est remplacée par les réponses du scénario ; la vraie fenêtre s'ouvre à la fin, hors de l'écran.
 
@@ -32,7 +33,7 @@ Fonctionnalité: Suggestions au lancement de l'interface
 			| Banque « Partenariats »             |
 			| Banque « Publicités »               |
 			| Banque « Bande-annonce émissions »  |
-		Et les suggestions n'ont pas proposé de périphérique d'antenne
+		Et les suggestions n'ont pas proposé les cartes son
 		Et il n'y a aucun événement en base
 		Et il n'y a aucune banque en base
 
@@ -120,39 +121,75 @@ Fonctionnalité: Suggestions au lancement de l'interface
 		Alors le fichier de configuration contient la ligne « suggestions = false »
 		Et le fichier de configuration contient encore « # Configuration utilisée par les tests »
 
-	# ─── Périphérique de l'antenne ─────────────────────────────
+	# ─── Cartes son (https://github.com/dascritch/machincast/issues/339) ───
 
-	Scénario: Sans périphérique d'antenne sur une vraie sortie, son choix est proposé, et s'enregistre
-		Étant donné les périphériques audio du poste :
-			| identifiant       | nom           |
-			| carte-1           | Carte 1       |
-			| preecoute-factice | Haut-parleurs |
-		Et la configuration audio sortie « pipewire », sans périphérique d'antenne
+	Scénario: Sans carte son d'antenne sur une vraie sortie, les cartes son sont proposées, et s'enregistrent
+		Étant donné la configuration audio sortie « pipewire », sans périphérique d'antenne
 		Et les banques suggérées existent déjà
 		Et les événements :
 			| nom  | nom_public | priorite    | debut | fin | jours |
 			| Fond |            | fil_musical |       |     |       |
-		Et les suggestions seront acceptées par « Créer », avec l'antenne « carte-1 »
+		Et les suggestions seront acceptées par « Créer », avec la sortie « pulseaudio », l'antenne « carte-1 » et la pré-écoute « casque-usb »
 		Quand la fenêtre de l'interface s'ouvre
-		Alors les suggestions ont proposé les périphériques d'antenne « carte-1 »
+		Alors les suggestions ont proposé les cartes son de la sortie « pipewire », l'antenne non renseignée et la pré-écoute « preecoute-factice »
+		Et le fichier de configuration contient la ligne « sortie = "pulseaudio" »
 		Et le fichier de configuration contient la ligne « peripherique = "carte-1" »
-		Et la barre d'état annonce « Périphérique de l'antenne : carte-1 ; Machin lecture le prendra à son prochain démarrage. »
+		Et le fichier de configuration contient la ligne « preecoute = "casque-usb" »
+		Et la barre d'état annonce « Cartes son : antenne carte-1, pré-écoute casque-usb ; Machin lecture prendra l'antenne à son prochain démarrage. »
 		Et la barre d'état ne signale pas « Périphérique de l'antenne à renseigner »
+
+	Scénario: Sur l'entrée « sortie factice », l'antenne n'est plus à renseigner : les cartes son ne sont pas proposées
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « factice »
+		Et les suggestions seront refermées par « Plus tard »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors les suggestions n'ont pas proposé les cartes son
+
+	Scénario: « Plus tard » n'enregistre pas les cartes son, qui reviennent au lancement suivant
+		Étant donné la configuration audio sortie « pipewire », sans périphérique d'antenne
+		Et les suggestions seront refermées par « Plus tard »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le fichier de configuration n'a pas changé
+		Et la barre d'état signale « Périphérique de l'antenne à renseigner »
 
 	# ─── Vraie fenêtre ─────────────────────────────────────────
 
-	Scénario: La fenêtre des suggestions coche tout, propose l'antenne, et donne ce qui est coché
+	Scénario: La fenêtre des suggestions met les cartes son en tête, coche tout, et donne ce qui est choisi
 		Étant donné les périphériques audio du poste :
 			| identifiant       | nom           |
 			| carte-1           | Carte 1       |
 			| casque-usb        | Casque USB    |
 			| preecoute-factice | Haut-parleurs |
-		Quand la fenêtre des suggestions s'ouvre sur le fil musical et la banque « Identifiant station », avec l'antenne à choisir sur « pipewire »
+		Quand la fenêtre des suggestions s'ouvre sur le fil musical et la banque « Identifiant station », avec les cartes son de la sortie « pipewire », sans service de diffusion
 		Alors elle s'intitule « Pour bien démarrer »
+		Et elle montre les cartes son en tête, avant ce qui est à créer
 		Et elle propose, cochés, « Fil musical », « Banque « Identifiant station » »
-		Et son choix de l'antenne propose « Carte 1 », « Casque USB », sans la pré-écoute
+		Et son choix de l'antenne propose « (à renseigner) », « Carte 1 », « Casque USB », « Haut-parleurs », « Sortie factice »
+		Et son bouton « Créer » est actif
 		Quand j'y décoche « Fil musical »
-		Et j'y choisis l'antenne « Casque USB »
+		Et j'y choisis pour l'antenne « Casque USB »
 		Et j'y coche « Ne plus proposer au lancement »
 		Et j'y clique sur « Créer »
-		Alors elle a donné : la banque « Identifiant station », l'antenne « casque-usb », ne plus proposer
+		Alors elle a donné : la banque « Identifiant station », la sortie « pipewire », l'antenne « casque-usb », la pré-écoute « preecoute-factice », ne plus proposer
+
+	Scénario: Avec les seules cartes son à choisir, la fenêtre ne propose rien à créer, et les enregistre
+		Étant donné les périphériques audio du poste :
+			| identifiant       | nom           |
+			| carte-1           | Carte 1       |
+			| preecoute-factice | Haut-parleurs |
+		Quand la fenêtre des suggestions s'ouvre sur les seules cartes son de la sortie « pipewire », sans service de diffusion
+		Alors elle ne propose rien à créer
+		Et son bouton « Enregistrer » est actif
+		Quand j'y choisis pour la pré-écoute « Haut-parleurs »
+		Et j'y choisis pour l'antenne « Haut-parleurs »
+		Alors son bouton « Enregistrer » est inactif
+		Quand j'y choisis pour l'antenne « Carte 1 »
+		Et j'y clique sur « Enregistrer »
+		Alors elle a donné : la sortie « pipewire », l'antenne « carte-1 », la pré-écoute « preecoute-factice »
+
+	Scénario: La fenêtre des suggestions suit le service de diffusion : installé, l'antenne ne prend pas la sortie factice
+		Étant donné les périphériques audio du poste :
+			| identifiant       | nom           |
+			| carte-1           | Carte 1       |
+			| preecoute-factice | Haut-parleurs |
+		Quand la fenêtre des suggestions s'ouvre sur les seules cartes son de la sortie « pipewire », service de diffusion à l'arrêt
+		Alors dans son choix de l'antenne, « Sortie factice » est inactive

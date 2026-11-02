@@ -16,9 +16,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractButton, QAbstractItemView, QApplication, QCheckBox,
-    QComboBox, QDialog, QDialogButtonBox, QFormLayout,
-    QGroupBox, QLabel, QListWidget, QListWidgetItem,
-    QSizePolicy, QVBoxLayout, QWidget)
+    QDialog, QDialogButtonBox, QGroupBox, QLabel,
+    QListWidget, QListWidgetItem, QSizePolicy, QVBoxLayout,
+    QWidget)
 
 class Ui_FenetreSuggestions(object):
     def setupUi(self, FenetreSuggestions):
@@ -27,6 +27,19 @@ class Ui_FenetreSuggestions(object):
         FenetreSuggestions.setModal(True)
         self.disposition = QVBoxLayout(FenetreSuggestions)
         self.disposition.setObjectName(u"disposition")
+        self.groupe_cartes_son = QGroupBox(FenetreSuggestions)
+        self.groupe_cartes_son.setObjectName(u"groupe_cartes_son")
+        self.disposition_cartes_son = QVBoxLayout(self.groupe_cartes_son)
+        self.disposition_cartes_son.setObjectName(u"disposition_cartes_son")
+        self.explication_cartes_son = QLabel(self.groupe_cartes_son)
+        self.explication_cartes_son.setObjectName(u"explication_cartes_son")
+        self.explication_cartes_son.setWordWrap(True)
+
+        self.disposition_cartes_son.addWidget(self.explication_cartes_son)
+
+
+        self.disposition.addWidget(self.groupe_cartes_son)
+
         self.explication = QLabel(FenetreSuggestions)
         self.explication.setObjectName(u"explication")
         self.explication.setWordWrap(True)
@@ -39,23 +52,6 @@ class Ui_FenetreSuggestions(object):
 
         self.disposition.addWidget(self.elements)
 
-        self.groupe_antenne = QGroupBox(FenetreSuggestions)
-        self.groupe_antenne.setObjectName(u"groupe_antenne")
-        self.formulaire_antenne = QFormLayout(self.groupe_antenne)
-        self.formulaire_antenne.setObjectName(u"formulaire_antenne")
-        self.etiquette_antenne = QLabel(self.groupe_antenne)
-        self.etiquette_antenne.setObjectName(u"etiquette_antenne")
-
-        self.formulaire_antenne.setWidget(0, QFormLayout.ItemRole.LabelRole, self.etiquette_antenne)
-
-        self.antenne = QComboBox(self.groupe_antenne)
-        self.antenne.setObjectName(u"antenne")
-
-        self.formulaire_antenne.setWidget(0, QFormLayout.ItemRole.FieldRole, self.antenne)
-
-
-        self.disposition.addWidget(self.groupe_antenne)
-
         self.ne_plus_proposer = QCheckBox(FenetreSuggestions)
         self.ne_plus_proposer.setObjectName(u"ne_plus_proposer")
 
@@ -67,9 +63,6 @@ class Ui_FenetreSuggestions(object):
 
         self.disposition.addWidget(self.boutons)
 
-#if QT_CONFIG(shortcut)
-        self.etiquette_antenne.setBuddy(self.antenne)
-#endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(FenetreSuggestions)
 
@@ -78,12 +71,9 @@ class Ui_FenetreSuggestions(object):
 
     def retranslateUi(self, FenetreSuggestions):
         FenetreSuggestions.setWindowTitle(QCoreApplication.translate("FenetreSuggestions", u"Pour bien d\u00e9marrer", None))
+        self.groupe_cartes_son.setTitle(QCoreApplication.translate("FenetreSuggestions", u"Cartes son", None))
+        self.explication_cartes_son.setText(QCoreApplication.translate("FenetreSuggestions", u"Choisissez d'abord la carte son de l'antenne, puis celle de la pr\u00e9-\u00e9coute. \u00ab Tester \u00bb joue 2 secondes de son de test sur la carte de sa ligne : sur celle de l'antenne, il part \u00e0 l'antenne.", None))
         self.explication.setText(QCoreApplication.translate("FenetreSuggestions", u"Il manque de quoi d\u00e9marrer l'antenne. Cochez ce que MachinCast doit cr\u00e9er : les banques restent \u00e0 remplir, depuis leur fiche ou par l'indexation de leurs r\u00e9pertoires.", None))
-        self.groupe_antenne.setTitle(QCoreApplication.translate("FenetreSuggestions", u"Sortie audio de la diffusion", None))
-        self.etiquette_antenne.setText(QCoreApplication.translate("FenetreSuggestions", u"&Antenne", None))
-#if QT_CONFIG(tooltip)
-        self.antenne.setToolTip(QCoreApplication.translate("FenetreSuggestions", u"Le p\u00e9riph\u00e9rique sur lequel Machin lecture diffuse l'antenne : sans lui, il refuse de diffuser", None))
-#endif // QT_CONFIG(tooltip)
         self.ne_plus_proposer.setText(QCoreApplication.translate("FenetreSuggestions", u"&Ne plus proposer au lancement", None))
     # retranslateUi
 

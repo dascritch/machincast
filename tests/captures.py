@@ -99,6 +99,7 @@ CAPTURES = (
 	"onglet-airplay",
 	"incidents",
 	"preferences",
+	"preferences-audio",
 	"preecoute",
 	"preecoute-fichier",
 )
@@ -657,7 +658,10 @@ def produire(repertoire: Path) -> dict[str, Path]:
 		attendre(lambda: all((frise.forme is not None) and (frise.forme.finie) for frise in frises))
 		prendre("accueil", fenetre)
 		manques = ("Identifiant station", "Musique rotation lourde", "Musique rotation de nuit", "Publicités")
-		suggestions = FenetreSuggestions(Manques(True, manques), fenetre)
+		# Les cartes son en tête, sur PipeWire, tant que l'antenne est à renseigner
+		# (https://github.com/dascritch/machincast/issues/339).
+		a_choisir = dataclasses.replace(audio, sortie="pipewire", peripherique=None)
+		suggestions = FenetreSuggestions(Manques(True, manques, a_choisir), fenetre)
 		suggestions.show()
 		prendre("pour-bien-demarrer", suggestions)
 		suggestions.close()
@@ -718,11 +722,12 @@ def produire(repertoire: Path) -> dict[str, Path]:
 		# Des crossfades par défaut, pour que la frise de démonstration montre ses fondus
 		# (https://github.com/dascritch/machincast/issues/234).
 		crossfades = Crossfades(debut=timedelta(seconds=2), fin=timedelta(seconds=4))
-		preferences = FenetrePreferences(
-			Reglages(crossfades, audio.peripherique, audio.preecoute), audio.sortie, fenetre
-		)
+		preferences = FenetrePreferences(Reglages(crossfades, audio.peripherique, audio.preecoute), "pipewire", fenetre)
 		preferences.show()
 		prendre("preferences", preferences)
+		# La page « Audio », et son bloc des cartes son (https://github.com/dascritch/machincast/issues/339).
+		preferences.ui.pages.setCurrentWidget(preferences.ui.page_audio)
+		prendre("preferences-audio", preferences)
 		preferences.close()
 		preecoute = FenetrePreecoute(connexion, audio, configuration)
 		preecoute.ecouter_l_antenne("Café Noir – Nuit blanche")

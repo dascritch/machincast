@@ -118,11 +118,14 @@ class CartesSon(QWidget):
 		preecoute: str | None,
 		service: EtatDuService = ABSENT,
 		parent: QWidget | None = None,
+		horloge: Callable[[], float] = time.monotonic,
 	) -> None:
 		super().__init__(parent)
 		self.ui = Ui_CartesSon()
 		self.ui.setupUi(self)
 		self.service = service
+		self.horloge = horloge
+		"""L'horloge monotone du poste : un son de test qui ne finit pas est abandonné."""
 		self._pipeline: Gst.Pipeline | None = None
 		self._pilote: etats.Pilote | None = None
 		self._carte = ""
@@ -200,7 +203,7 @@ class CartesSon(QWidget):
 		antenne, preecoute = self.antenne_choisie(), self.preecoute_choisie()
 		_griser(ui.antenne, preecoute, refuser_factice=self.service.installe)
 		_griser(ui.preecoute, antenne, refuser_factice=False)
-		verrouillee = self.service.installe and self.service.en_marche
+		verrouillee = (self.service.installe) and (self.service.en_marche)
 		for element in (ui.sortie, ui.antenne):
 			element.setEnabled(not verrouillee)
 		ui.sortie.setToolTip("Le serveur audio par lequel passent l'antenne et la pré-écoute")
@@ -227,7 +230,7 @@ class CartesSon(QWidget):
 			return
 		self._pipeline = pipeline
 		self._pilote = etats.Pilote(pipeline)
-		self._fin = time.monotonic() + DUREE_DU_SON_DE_TEST + MARGE
+		self._fin = self.horloge() + DUREE_DU_SON_DE_TEST + MARGE
 		self._dire(f"Son de test sur « {self._carte} »…")
 		self._pilote.vers(Gst.State.PLAYING)
 		self._releve.start()
@@ -250,7 +253,7 @@ class CartesSon(QWidget):
 				erreur, _detail = message.parse_error()
 				self._finir(f"Son de test impossible sur « {self._carte} » : {erreur.message}")
 				return
-		if time.monotonic() > self._fin:
+		if self.horloge() > self._fin:
 			self._finir(f"Son de test impossible sur « {self._carte} » : la carte ne répond pas.")
 
 	def _finir(self, texte: str) -> None:
