@@ -2,6 +2,11 @@
 
 La sortie choisie dans la configuration (audio.sortie) correspond à un élément GStreamer. La sortie
 « factice » ne joue aucun son : elle sert aux tests et aux essais.
+
+Une sortie PipeWire sur un périphérique y est verrouillée (VERROU, https://github.com/dascritch/machincast/issues/345) :
+sans verrou, WirePlumber relie au périphérique par défaut du poste, souvent celui de la pré-écoute, un flux dont le
+périphérique manque ou disparaît, par exemple quand la carte son change de profil à la mise en veille des écrans.
+Verrouillé, le flux attend son périphérique, sans son, et WirePlumber le relie à lui dès qu'il revient.
 """
 
 import logging
@@ -169,6 +174,32 @@ def _a_la_propriete(element: Gst.Element, nom: str) -> bool:
 	return nom.replace("-", "_") in dir(element.props)
 
 
+VERROU = ("node.dont-fallback", "node.linger", "node.dont-move")
+"""Les propriétés du flux qui le gardent sur son périphérique (https://github.com/dascritch/machincast/issues/345),
+lues par WirePlumber (scripts linking/find-defined-target.lua et prepare-link.lua) : jamais de repli sur le périphérique
+par défaut ; attendre le périphérique qui manque, au lieu d'envoyer l'erreur « defined target not found » ; aucun
+déplacement par les réglages du son du poste (métadonnée target.object)."""
+FABRIQUES_VERROUILLABLES = frozenset({"pipewiresink", "pipewiresrc"})
+
+
+def verrouiller(element: Gst.Element) -> None:
+	"""Verrouille sur son périphérique (target-object) un élément PipeWire, en gardant ses autres propriétés de flux ;
+	un élément sans périphérique, ou d'une autre sortie, n'en a pas l'usage."""
+	fabrique = element.get_factory()
+	if (fabrique is None) or (fabrique.get_name() not in FABRIQUES_VERROUILLABLES):
+		return
+	if not element.get_property("target-object"):
+		return
+	proprietes = element.get_property("stream-properties")
+	if proprietes is None:
+		proprietes = Gst.Structure.new_empty("proprietes")
+	else:
+		proprietes = proprietes.copy()
+	for cle in VERROU:
+		proprietes.set_value(cle, True)
+	element.set_property("stream-properties", proprietes)
+
+
 def presenter(sortie: Gst.Element, presentation: Presentation) -> None:
 	"""Le nom du programme, celui du flux et l'icône de MachinCast, pour une sortie PipeWire ou PulseAudio ; rien pour
 	une sortie qui n'en a pas l'usage (ALSA, factice)."""
@@ -195,8 +226,8 @@ def creer_sortie(
 	greffons: dict[SortieAudio, Greffon] = GREFFONS,
 	presentation: Presentation | None = None,
 ) -> Gst.Element:
-	"""Crée l'élément GStreamer de la sortie, réglé sur le périphérique s'il est donné, et présenté au serveur audio
-	(presenter)."""
+	"""Crée l'élément GStreamer de la sortie, réglé sur le périphérique s'il est donné, présenté au serveur audio
+	(presenter), et, pour PipeWire, verrouillé sur son périphérique (verrouiller)."""
 	Gst.init(None)
 	greffon = greffons[sortie]
 	element = Gst.ElementFactory.make(greffon.fabrique, None)
@@ -209,6 +240,7 @@ def creer_sortie(
 		element.set_property(greffon.propriete, peripherique)
 	if presentation is not None:
 		presenter(element, presentation)
+	verrouiller(element)
 	return element
 
 

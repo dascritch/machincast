@@ -56,6 +56,24 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 - Que l'écran du poste d'antenne ne se met pas en veille : voir [Préparer le poste d'antenne](INSTALL.md#préparer-le-poste-dantenne) ([#250](https://github.com/dascritch/machincast/issues/250)).
 - Relancer la pré-écoute une fois le son revenu. Si le VU-mètre reste indisponible plus de 10 secondes, vérifier que le serveur audio tourne (`systemctl --user status pipewire`), puis ouvrir un ticket avec la sortie console de `Machin interface`.
 
+## L'antenne passe sur la pré-écoute, ou se tait, quand la session se verrouille
+
+**Symptôme** : quand la session se verrouille ou que l'écran s'éteint, l'antenne ne sort plus par son périphérique. Elle passait sur la sortie par défaut du poste, souvent la pré-écoute ; depuis [#345](https://github.com/dascritch/machincast/issues/345), elle se tait, puis reprend au retour de la session.
+
+**Cause** ([#345](https://github.com/dascritch/machincast/issues/345)) : sur certains portables, la carte son intégrée lit sa prise casque comme débranchée au verrouillage de la session, alors que le câble de l'antenne y est toujours branché. WirePlumber, qui gère les sorties de PipeWire, passe alors la carte sur un profil sans casque : la sortie de l'antenne disparaît, puis revient quand la prise se lit de nouveau comme branchée. Sans verrou, PipeWire envoyait l'antenne sur la sortie par défaut pendant ce temps.
+
+**Ce que fait MachinCast** : sous PipeWire, l'antenne est verrouillée sur `audio.peripherique`. Elle ne passe jamais sur une autre sortie, et le réglage du son du poste ne peut pas l'y déplacer. Tant que son périphérique manque, le sonore en cours se met en pause, sans erreur ; il reprend où il en était dès que le périphérique revient. Le VU-mètre écoute de même toujours ce périphérique.
+
+Ce n'est pas encore un son continu : tant que la carte lit la prise comme débranchée, l'antenne n'a pas de sortie. Le réglage du poste qui empêche cette lecture dépend de la carte ; il est suivi dans [#345](https://github.com/dascritch/machincast/issues/345).
+
+**À vérifier**, pendant le verrouillage :
+
+- `pw-top`, depuis une autre machine par SSH : la ligne **MachinCast lecteur** n'est plus sous la sortie de l'antenne quand celle-ci a disparu.
+- `pw-mon`, lancé avant le verrouillage : la route `[Out] Headphones` passe à `ParamAvailability:no`, puis le profil de la carte change.
+- `amixer -c N cget name='Headphone Jack'`, `N` étant le numéro de la carte dans `/proc/asound/cards` : `values=off` dit que la carte lit la prise comme débranchée.
+
+**Scénarios qui le surveillent** : `tests/features/sortie_verrouillee.feature`, sur un PipeWire et un WirePlumber à part, à chaque passage des tests ; ignorés si `pipewire` et `wireplumber` ne sont pas installés.
+
 ## Scénarios à lancer avant une version
 
 Certains scénarios ne tournent ni avec `pytest`, ni avec `bin/Machin dev-test` : ils sont lents, ou ont besoin d'un serveur à part. Ils sont marqués `@release`, et se lancent avant chaque version ([#208](https://github.com/dascritch/machincast/issues/208)), et après toute mise à jour de GStreamer ou de libsoup :
