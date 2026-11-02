@@ -15,6 +15,9 @@ La frise remplace la barre de position de la pré-écoute d'un fichier. Elle s'�
 - Frise : le dessin. La forme d'onde, les silences hachurés (hachures pleines s'ils sont retirés à l'antenne, pâles
   s'ils y sont joués), les fondus en rampes, la tête de lecture. Un clic, ou un glissement relâché, demande une position
   (placee) ; au clavier, les flèches déplacent d'une seconde. L'infobulle nomme la zone sous la souris, ou l'instant.
+  Des curseurs, « Début » et « Fin » (montrer_les_curseurs), se glissent à la souris, même sur une frise qui n'est pas
+  interactive : la fiche d'un sonore y règle ses silences détectés (https://github.com/dascritch/machincast/issues/330).
+  Le début ne passe jamais après la fin, ni la fin avant le début (curseur_deplace).
 """
 
 import math
@@ -69,6 +72,10 @@ HAUTEUR = 72
 """Points de la frise en hauteur."""
 INDISPONIBLE = "Forme d'onde indisponible :"
 MARGE_DE_LA_LEGENDE = 6
+"""Points autour du texte de la légende, sur son fond."""
+PRISE_DU_CURSEUR = 6
+"""Points de part et d'autre d'un curseur où la souris le prend."""
+NOMS_DES_CURSEURS = {"debut": "Début", "fin": "Fin"}
 """Points autour du texte de la légende, sur son fond."""
 Hachures = Literal["pleines", "pâles", "aucune"]
 
@@ -511,6 +518,8 @@ class Frise(QWidget):
 	cliquee = Signal()
 	"""Un clic sur une frise qui n'est pas interactive : sur l'onglet Antenne, il demande la pré-écoute du sonore
 	(https://github.com/dascritch/machincast/issues/223)."""
+	curseur_deplace = Signal(str, float)
+	"""Un curseur glissé, « debut » ou « fin », et sa position en secondes du fichier, bornée par l'autre curseur."""
 
 	def __init__(self, parent: QWidget | None = None, interactive: bool = True) -> None:
 		"""interactive : un clic, un glissement ou les flèches demandent une position ; sur l'onglet Antenne, la frise
@@ -526,6 +535,9 @@ class Frise(QWidget):
 		"""Un texte écrit au milieu de la frise, sur un fond qui le garde lisible : le temps qui reste au sonore en
 		cours, sur l'onglet Antenne (https://github.com/dascritch/machincast/issues/230) ; vide : aucun."""
 		self._glisse = False
+		self.curseurs: dict[str, float] = {}
+		"""Les curseurs montrés, « debut » et « fin », en secondes du fichier."""
+		self._curseur_pris: str | None = None
 		self.setMinimumHeight(HAUTEUR)
 		self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 		self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -534,6 +546,8 @@ class Frise(QWidget):
 			self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 			self.setAccessibleName("Position dans le fichier")
 		self.setAttribute(Qt.WidgetAttribute.WA_Hover)
+		# La souris change d'allure au-dessus d'un curseur, même sans bouton enfoncé.
+		self.setMouseTracking(True)
 
 	def montrer(self, plan: Plan | None, duree: float | None) -> None:
 		"""Le plan du fichier, et sa durée ; sans plan, la frise ne montre que la forme d'onde et la tête."""
@@ -559,6 +573,38 @@ class Frise(QWidget):
 		if position != self.tete:
 			self.tete = position
 			self.update()
+
+	def montrer_les_curseurs(self, curseurs: dict[str, float]) -> None:
+		"""Les curseurs à montrer, et leur position ; aucun : la frise n'en a pas. Un curseur pris par la souris garde
+		la sienne."""
+		pris = self._curseur_pris
+		if (pris is not None) and (pris not in curseurs):
+			self._curseur_pris = None
+		elif pris is not None:
+			curseurs = {**curseurs, pris: self.curseurs.get(pris, curseurs[pris])}
+		if curseurs != self.curseurs:
+			self.curseurs = dict(curseurs)
+			self.update()
+
+	def curseur_en(self, x: float) -> str | None:
+		"""Le curseur sous ce point, à PRISE_DU_CURSEUR près ; le plus proche, si les deux y sont."""
+		proches = [
+			(abs(self.secondes_vers_x(position) - x), nom)
+			for nom, position in self.curseurs.items()
+			if abs(self.secondes_vers_x(position) - x) <= PRISE_DU_CURSEUR
+		]
+		if proches == []:
+			return None
+		return min(proches)[1]
+
+	def borner(self, nom: str, position: float) -> float:
+		"""La position d'un curseur dans le fichier, le début jamais après la fin, ni la fin avant le début."""
+		bas, haut = 0.0, self.etendue()
+		if nom == "debut":
+			haut = min(haut, self.curseurs.get("fin", haut))
+		else:
+			bas = max(bas, self.curseurs.get("debut", bas))
+		return max(bas, min(haut, position))
 
 	def montrer_la_legende(self, texte: str) -> None:
 		if texte != self.legende:
@@ -615,6 +661,11 @@ class Frise(QWidget):
 		return super().event(evenement)
 
 	def mousePressEvent(self, evenement: QMouseEvent) -> None:
+		if evenement.button() == Qt.MouseButton.LeftButton:
+			self._curseur_pris = self.curseur_en(evenement.position().x())
+			if self._curseur_pris is not None:
+				self._glisser_le_curseur(evenement.position().x())
+				return
 		if not self.interactive:
 			if evenement.button() == Qt.MouseButton.LeftButton:
 				self.cliquee.emit()
@@ -627,6 +678,13 @@ class Frise(QWidget):
 		self._suivre(evenement.position().x())
 
 	def mouseMoveEvent(self, evenement: QMouseEvent) -> None:
+		if self._curseur_pris is not None:
+			self._glisser_le_curseur(evenement.position().x())
+			return
+		if self.curseur_en(evenement.position().x()) is not None:
+			self.setCursor(Qt.CursorShape.SizeHorCursor)
+		else:
+			self.unsetCursor()
 		if not self.interactive:
 			super().mouseMoveEvent(evenement)
 			return
@@ -634,6 +692,10 @@ class Frise(QWidget):
 			self._suivre(evenement.position().x())
 
 	def mouseReleaseEvent(self, evenement: QMouseEvent) -> None:
+		if (self._curseur_pris is not None) and (evenement.button() == Qt.MouseButton.LeftButton):
+			self._glisser_le_curseur(evenement.position().x())
+			self._curseur_pris = None
+			return
 		if not self.interactive:
 			super().mouseReleaseEvent(evenement)
 			return
@@ -658,6 +720,15 @@ class Frise(QWidget):
 		self.update()
 		self.placee.emit(position)
 
+	def _glisser_le_curseur(self, x: float) -> None:
+		nom = self._curseur_pris
+		assert nom is not None
+		position = self.borner(nom, self.x_vers_secondes(x))
+		if position != self.curseurs.get(nom):
+			self.curseurs[nom] = position
+			self.update()
+			self.curseur_deplace.emit(nom, position)
+
 	def _suivre(self, x: float) -> None:
 		self.tete = self.x_vers_secondes(x)
 		self.update()
@@ -677,6 +748,7 @@ class Frise(QWidget):
 			self._dessiner_les_zones(peintre, palette.color(groupe, QPalette.ColorRole.Text))
 			self._dessiner_les_fondus(peintre, palette.color(groupe, QPalette.ColorRole.Highlight))
 		self._dessiner_la_tete(peintre, palette.color(groupe, QPalette.ColorRole.Highlight))
+		self._dessiner_les_curseurs(peintre, palette.color(groupe, QPalette.ColorRole.Link))
 		remarque = self.remarque()
 		fond = self.fond_de_la_legende()
 		if remarque != "":
@@ -788,6 +860,24 @@ class Frise(QWidget):
 			peintre.drawPolygon(QPolygonF([origine, fin, coin]))
 			peintre.setPen(QPen(couleur, 2))
 			peintre.drawLine(origine, fin)
+
+	def _dessiner_les_curseurs(self, peintre: QPainter, couleur: QColor) -> None:
+		"""Chaque curseur : un trait pointillé, une poignée en bas, et son nom, vers l'intérieur de la partie jouée."""
+		for nom, position in self.curseurs.items():
+			x = self.secondes_vers_x(position)
+			peintre.setPen(QPen(couleur, 2, Qt.PenStyle.DashLine))
+			peintre.drawLine(QPointF(x, 0), QPointF(x, self.height()))
+			peintre.setPen(Qt.PenStyle.NoPen)
+			peintre.setBrush(couleur)
+			bas = float(self.height())
+			peintre.drawRect(QRectF(x - PRISE_DU_CURSEUR / 2, bas - 10, PRISE_DU_CURSEUR, 10))
+			texte = NOMS_DES_CURSEURS[nom]
+			largeur = self.fontMetrics().horizontalAdvance(texte)
+			gauche = x + 4
+			if nom == "fin":
+				gauche = x - 4 - largeur
+			peintre.setPen(couleur)
+			peintre.drawText(QPointF(gauche, bas - 14), texte)
 
 	def _dessiner_la_tete(self, peintre: QPainter, couleur: QColor) -> None:
 		if self.tete is None:

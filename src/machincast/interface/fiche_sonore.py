@@ -18,6 +18,11 @@ machincast.interface.fiche.
   flux à la demande (machincast.interface.essai_flux), sur l'adresse saisie, même pas encore enregistrée.
 - Derniers passages : les 50 derniers, du plus récent au plus ancien, avec les alertes et incidents du log pendant
   chaque passage.
+- Début et fin (https://github.com/dascritch/machincast/issues/330) : les silences détectés se nomment « Début
+  détecté » et « Fin détectée » tant qu'ils sont ceux de l'indexeur, « Début » et « Fin » dès qu'ils sont saisis à la
+  main, dans la fiche ou avant (champs_edites). Cochés, ils ont chacun un curseur sur la frise, qui se glisse à la
+  souris et règle sa case. Le début ne passe jamais après la fin : chaque case est bornée par l'autre, comme chaque
+  curseur, et l'enregistrement refuse des silences qui ne laissent pas de son.
 - Relations (https://github.com/dascritch/machincast/issues/125) : les séquences, banques et événements qui citent le
   sonore dans leur liste ; un double-clic ouvre leur fiche. Le clic droit sur une relation propose de l'en retirer
   (https://github.com/dascritch/machincast/issues/331) : la relation disparaît de la fiche, modifiée, et
@@ -145,6 +150,14 @@ NOUVEAU_STREAM: tuple[object, ...] = (
 )
 """Ce que montre la fiche d'un nouveau stream, dans l'ordre des colonnes lues."""
 RELATION = Qt.ItemDataRole.UserRole
+SILENCE_MAXIMAL = 86400.0
+"""Secondes d'un silence détecté au plus, sans durée connue : celles du champ de la fiche."""
+REPERES = {
+	"debut_detecte": ("Début détecté", "Début"),
+	"fin_detectee": ("Fin détectée", "Fin"),
+}
+"""Le nom de chaque silence détecté : mesuré par l'indexeur, ou saisi à la main
+(https://github.com/dascritch/machincast/issues/330)."""
 ARTICLES = {"séquence": "la séquence", "banque": "la banque", "événement": "l'événement"}
 LISTES_DES_RELATIONS = {
 	"séquence": ("sequences_elements", "sequence_id"),
@@ -194,6 +207,9 @@ class FicheSonore(Fiche):
 			crossfade.regler_selon_les_preferences()
 		# La frise, sur toute la largeur de la fiche (https://github.com/dascritch/machincast/issues/223).
 		self.frise = Frise(self.ui.place_frise, interactive=False)
+		self.frise.curseur_deplace.connect(self._placer_un_repere)
+		self._champs_edites: set[str] = set()
+		"""Les champs saisis à la main avant l'ouverture de la fiche, d'après la base."""
 		disposition_de_la_frise = QVBoxLayout(self.ui.place_frise)
 		disposition_de_la_frise.setContentsMargins(0, 0, 0, 0)
 		disposition_de_la_frise.addWidget(self.frise)
@@ -249,9 +265,11 @@ class FicheSonore(Fiche):
 		):
 			nombre.setLocale(preferences.FRANCAIS)
 			nombre.valueChanged.connect(self._modifier)
+			nombre.valueChanged.connect(self._borner_les_silences)
 			nombre.valueChanged.connect(self._actualiser_la_frise)
 			case.toggled.connect(nombre.setEnabled)
 			case.toggled.connect(self._modifier)
+			case.toggled.connect(self._borner_les_silences)
 			case.toggled.connect(self._actualiser_la_frise)
 		self._duree: timedelta | None = None
 		"""Durée du fichier en base, que les silences détectés ne peuvent pas couvrir à eux deux."""
@@ -300,6 +318,51 @@ class FicheSonore(Fiche):
 		)
 		self.frise.montrer(plan, duree.total_seconds())
 		self.ui.place_frise.setToolTip(f"{plan.resume()}\n{TITRE_DE_LA_FRISE}")
+		curseurs = {}
+		if ui.a_debut_detecte.isChecked():
+			curseurs["debut"] = ui.debut_detecte.value()
+		if ui.a_fin_detectee.isChecked():
+			curseurs["fin"] = duree.total_seconds() - ui.fin_detectee.value()
+		self.frise.montrer_les_curseurs(curseurs)
+		self._nommer_les_reperes()
+
+	def _placer_un_repere(self, nom: str, position: float) -> None:
+		"""Un curseur glissé sur la frise règle sa case : le début depuis le début du fichier, la fin depuis sa fin."""
+		if self._duree is None:
+			return
+		if nom == "debut":
+			self.ui.debut_detecte.setValue(position)
+		else:
+			self.ui.fin_detectee.setValue(self._duree.total_seconds() - position)
+
+	def _borner_les_silences(self) -> None:
+		"""Le début ne passe pas après la fin : chaque silence coché laisse au plus à l'autre le reste du fichier."""
+		ui = self.ui
+		if self._duree is None:
+			return
+		duree = self._duree.total_seconds()
+		for case, nombre, autre_case, autre in (
+			(ui.a_debut_detecte, ui.debut_detecte, ui.a_fin_detectee, ui.fin_detectee),
+			(ui.a_fin_detectee, ui.fin_detectee, ui.a_debut_detecte, ui.debut_detecte),
+		):
+			reste = duree
+			if autre_case.isChecked():
+				reste = max(0.0, duree - autre.value())
+			if case.isChecked():
+				nombre.setMaximum(reste)
+
+	def _nommer_les_reperes(self) -> None:
+		"""« Début détecté » et « Fin détectée » tant qu'ils sont ceux de l'indexeur ; « Début » et « Fin », saisis à
+		la main : dans la fiche, ou avant."""
+		saisies = {
+			"debut_detecte": _crossfade(self.ui.a_debut_detecte, self.ui.debut_detecte),
+			"fin_detectee": _crossfade(self.ui.a_fin_detectee, self.ui.fin_detectee),
+		}
+		initiales = getattr(self, "_initiales", {})
+		for champ, case in (("debut_detecte", self.ui.a_debut_detecte), ("fin_detectee", self.ui.a_fin_detectee)):
+			detecte, manuel = REPERES[champ]
+			saisi = (champ in self._champs_edites) or ((champ in initiales) and (saisies[champ] != initiales[champ]))
+			case.setText(manuel if saisi else detecte)
 
 	def _montrer_la_forme(self, chemin: Path | None) -> None:
 		"""La forme d'onde du fichier, calculée en tâche de fond, une fois par fichier."""
@@ -449,6 +512,8 @@ class FicheSonore(Fiche):
 			(self.ui.a_debut_detecte, self.ui.debut_detecte, debut_detecte),
 			(self.ui.a_fin_detectee, self.ui.fin_detectee, fin_detectee),
 		):
+			# Le maximum de la fiche précédente ne borne pas les silences de celle-ci : _borner_les_silences le règle.
+			nombre.setMaximum(SILENCE_MAXIMAL)
 			nombre.setValue(_secondes(silence))
 			case.setChecked(isinstance(silence, timedelta))
 		self._duree = None
@@ -507,6 +572,7 @@ class FicheSonore(Fiche):
 		for identifiant, nom in secours:
 			self.ui.secours.addItem(str(nom), int(str(identifiant)))
 		self.ui.secours.setCurrentIndex(self.ui.secours.findData(evenement_secours))
+		self._champs_edites = {str(champ) for champ in _liste(champs_edites)}
 		edites = [LIBELLES.get(str(champ), str(champ)) for champ in _liste(champs_edites)]
 		texte_edites = ""
 		if edites != []:
@@ -518,8 +584,10 @@ class FicheSonore(Fiche):
 		if self._fichier:
 			fichier = Path(str(emplacement))
 		self._montrer_la_forme(fichier)
+		self._borner_les_silences()
 		self._actualiser_la_frise()
 		self._initiales = self._saisies()
+		self._nommer_les_reperes()
 
 	def _montrer_date(self, case: QCheckBox, date: QDateTimeEdit, valeur: object) -> None:
 		"""Une période sans date part de l'heure de l'horloge, à la minute, quand sa case se coche."""
