@@ -46,7 +46,7 @@ ETATS = {"diffusion": "En diffusion", "blanc": "Blanc à l'antenne", "arret": "�
 A_VENIR = 5
 """Lignes que montre la table des sonores à venir, autant que Machin lecture en prévoit."""
 ENCARTS_REPLIES = "accueil/encarts-replies"
-"""Dans les réglages des vues du compte : les encarts de l'accueil repliés, dépliés sinon."""
+"""Dans les réglages des vues du compte : les encarts de l'onglet Antenne repliés, dépliés sinon."""
 LIGNES_A_VENIR_AU_MOINS = 2
 """Lignes de la table des sonores à venir sur un écran trop petit pour les 5."""
 ESSAI_EN_COURS = "Test du flux en cours…"
@@ -66,7 +66,7 @@ class EcranParDefaut(QWidget):
 	"""Clic sur le VU-mètre de l'antenne, disponible : l'écouter en pré-écoute
 	(https://github.com/dascritch/machincast/issues/24)."""
 	airplay_relu = Signal()
-	"""L'airplay de l'accueil a été relu : un nouveau sonore, ou un rafraîchissement."""
+	"""L'airplay de l'onglet Antenne a été relu : un nouveau sonore, ou un rafraîchissement."""
 	ouverte = Signal(str, int, str)
 	"""Fiche demandée : genre, identifiant et nom de l'élément."""
 	preecoute_demandee = Signal(int)

@@ -1,7 +1,7 @@
 # language: fr
 Fonctionnalité: Écran par défaut de l'interface
 	En tant que technicien d'antenne,
-	je veux que l'écran d'accueil montre en un coup d'œil ce qui passe et ce qui va passer,
+	je veux que l'onglet Antenne montre en un coup d'œil ce qui passe et ce qui va passer,
 	afin que je surveille l'antenne sans effort.
 
 	https://github.com/dascritch/machincast/issues/23, spec § 8.1. L'écran s'affiche hors de l'écran du poste (Qt
@@ -179,7 +179,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Alors la tête de lecture de la frise du sonore en cours est à 0,6 seconde, la position jouée comptée depuis le début de la lecture
 		Et le plan du sonore « Respiration » n'a été lu qu'une fois en base
 
-	Scénario: Sur l'accueil, la frise ne déplace aucune lecture
+	Scénario: Sur l'onglet Antenne, la frise ne déplace aucune lecture
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Quand l'écran par défaut s'ouvre
@@ -264,7 +264,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et l'avancement du sonore en cours est à « — », à 0 %
 		Et le bandeau montre le texte public « — »
 		Et l'événement à l'antenne est « — »
-		Et les boutons de fiche de l'accueil sont inactifs
+		Et les boutons de fiche de l'onglet Antenne sont inactifs
 
 	Scénario: Un binaire lecture arrêté brutalement, sans dernier état, met aussi l'écran à l'arrêt
 		Étant donné la socket d'état du binaire lecture ouverte
@@ -360,7 +360,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le prochain sonore a pour séquence « — » et pour banque « Jingles »
 		Et le bandeau montre le texte public « — »
 
-	Scénario: Les boutons de l'accueil ouvrent la fiche du sonore et celle de l'événement
+	Scénario: Les boutons de l'onglet Antenne ouvrent la fiche du sonore et celle de l'événement
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Et le sonore en cours a pour contexte :
@@ -372,18 +372,18 @@ Fonctionnalité: Écran par défaut de l'interface
 			| evenement_id | 8      |
 		Quand l'écran par défaut s'ouvre
 		Et le sonore en cours est bientôt « Les Gaufres – Café à minuit »
-		Et je clique sur le bouton « ouvrir_sonore_en_cours » de l'accueil
-		Et je clique sur le bouton « ouvrir_evenement_en_cours » de l'accueil
-		Et je clique sur le bouton « ouvrir_sonore_prochain » de l'accueil
-		Et je clique sur le bouton « ouvrir_evenement_prochain » de l'accueil
-		Alors l'accueil a demandé les fiches :
+		Et je clique sur le bouton « ouvrir_sonore_en_cours » de l'onglet Antenne
+		Et je clique sur le bouton « ouvrir_evenement_en_cours » de l'onglet Antenne
+		Et je clique sur le bouton « ouvrir_sonore_prochain » de l'onglet Antenne
+		Et je clique sur le bouton « ouvrir_evenement_prochain » de l'onglet Antenne
+		Alors l'onglet Antenne a demandé les fiches :
 			| genre     | identifiant | nom                         |
 			| sonore    | 12          | Les Gaufres – Café à minuit |
 			| événement | 3           | Fil de jour                 |
 			| sonore    | 31          | Jingle                      |
 			| événement | 8           | Fil de jour                 |
 
-	Scénario: Les boutons de l'accueil ouvrent la fiche de la séquence et celle de la banque
+	Scénario: Les boutons de l'onglet Antenne ouvrent la fiche de la séquence et celle de la banque
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Et le sonore en cours a pour contexte :
@@ -401,18 +401,18 @@ Fonctionnalité: Écran par défaut de l'interface
 			| banque_id   | 9        |
 		Quand l'écran par défaut s'ouvre
 		Et le sonore en cours est bientôt « Les Gaufres – Café à minuit »
-		Et je clique sur le bouton « ouvrir_sequence_en_cours » de l'accueil
-		Et je clique sur le bouton « ouvrir_banque_en_cours » de l'accueil
-		Et je clique sur le bouton « ouvrir_sequence_prochain » de l'accueil
-		Et je clique sur le bouton « ouvrir_banque_prochain » de l'accueil
-		Alors l'accueil a demandé les fiches :
+		Et je clique sur le bouton « ouvrir_sequence_en_cours » de l'onglet Antenne
+		Et je clique sur le bouton « ouvrir_banque_en_cours » de l'onglet Antenne
+		Et je clique sur le bouton « ouvrir_sequence_prochain » de l'onglet Antenne
+		Et je clique sur le bouton « ouvrir_banque_prochain » de l'onglet Antenne
+		Alors l'onglet Antenne a demandé les fiches :
 			| genre    | identifiant | nom      |
 			| séquence | 5           | Pub      |
 			| banque   | 7           | Jingles  |
 			| séquence | 6           | Météo    |
 			| banque   | 9           | Rotation |
 
-	Scénario: Sans séquence ni banque, l'accueil ne propose pas leur fiche
+	Scénario: Sans séquence ni banque, l'onglet Antenne ne propose pas leur fiche
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Et le sonore en cours a pour contexte :
@@ -423,9 +423,9 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
 		Quand l'écran par défaut s'ouvre
 		Alors le prochain sonore est bientôt « Jingle »
-		Et les boutons de séquence et de banque de l'accueil sont, pour le sonore en cours puis le prochain : inactif, actif, inactif, inactif
+		Et les boutons de séquence et de banque de l'onglet Antenne sont, pour le sonore en cours puis le prochain : inactif, actif, inactif, inactif
 
-	Scénario: Sans événement connu, l'accueil ne propose pas sa fiche
+	Scénario: Sans événement connu, l'onglet Antenne ne propose pas sa fiche
 		https://github.com/dascritch/machincast/issues/144 : un binaire lecture d'avant ce ticket ne dit pas
 		l'identifiant de l'événement ; un état peut ne pas dire l'événement du tout.
 
@@ -440,14 +440,14 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le sonore en cours a pour événement « — » et pour horaire « 20:00:00 – 20:03:34 (3:34) »
 		Et l'événement à l'antenne est « — »
 		Et le prochain sonore a pour événement « Fil de jour » et pour horaire « 20:03:30 – 20:03:38 (0:08) »
-		Et les boutons de fiche de l'accueil sont, dans l'ordre sonore en cours, son événement, prochain sonore, son événement : actif, inactif, actif, inactif
+		Et les boutons de fiche de l'onglet Antenne sont, dans l'ordre sonore en cours, son événement, prochain sonore, son événement : actif, inactif, actif, inactif
 
-	Scénario: Sans sonore, les boutons de fiche de l'accueil sont inactifs
+	Scénario: Sans sonore, les boutons de fiche de l'onglet Antenne sont inactifs
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture laisse un blanc
 		Quand l'écran par défaut s'ouvre
 		Alors l'état du binaire lecture est bientôt « Blanc à l'antenne »
-		Et les boutons de fiche de l'accueil sont inactifs
+		Et les boutons de fiche de l'onglet Antenne sont inactifs
 
 	# ─── Écouter le prochain sonore (https://github.com/dascritch/machincast/issues/223) ─────
 
@@ -457,8 +457,8 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
 		Quand l'écran par défaut s'ouvre
 		Et le prochain sonore est bientôt « Jingle »
-		Alors l'accueil propose pour le prochain sonore : pré-écoute active, test du flux caché
-		Quand je clique sur le bouton « preecouter_prochain » de l'accueil
+		Alors l'onglet Antenne propose pour le prochain sonore : pré-écoute active, test du flux caché
+		Quand je clique sur le bouton « preecouter_prochain » de l'onglet Antenne
 		Alors la pré-écoute du sonore 31 a été demandée
 
 	Scénario: Un clic sur la frise du prochain sonore ouvre aussi sa pré-écoute
@@ -470,22 +470,22 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et je clique sur la frise du prochain sonore
 		Alors la pré-écoute du sonore 31 a été demandée
 
-	Scénario: Sans prochain sonore, l'accueil ne propose ni pré-écoute ni test du flux
+	Scénario: Sans prochain sonore, l'onglet Antenne ne propose ni pré-écoute ni test du flux
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Quand l'écran par défaut s'ouvre
 		Et le sonore en cours est bientôt « Les Gaufres – Café à minuit »
-		Alors l'accueil propose pour le prochain sonore : pré-écoute inactive, test du flux caché
+		Alors l'onglet Antenne propose pour le prochain sonore : pré-écoute inactive, test du flux caché
 
-	Scénario: Pour un stream, l'accueil propose de tester la connexion de son flux, qui dit son type et son débit
+	Scénario: Pour un stream, l'onglet Antenne propose de tester la connexion de son flux, qui dit son type et son débit
 		Étant donné un serveur de flux local, avec le flux « studio » en ligne
 		Et la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Et le prochain sonore est le stream du flux « studio » dans « Direct »
 		Quand l'écran par défaut s'ouvre
 		Et le prochain sonore est bientôt « Direct studio »
-		Alors l'accueil propose pour le prochain sonore : pré-écoute active, test du flux actif
-		Quand je clique sur le bouton « tester_le_flux_prochain » de l'accueil
+		Alors l'onglet Antenne propose pour le prochain sonore : pré-écoute active, test du flux actif
+		Quand je clique sur le bouton « tester_le_flux_prochain » de l'onglet Antenne
 		Alors le test du flux du prochain sonore dit bientôt « Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 224 kbit/s. »
 
 	# ─── Sonores à venir (https://github.com/dascritch/machincast/issues/228) ─────
@@ -533,7 +533,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et j'ouvre dans les sonores à venir la cellule « Pub »
 		Et j'ouvre dans les sonores à venir la cellule « Spots »
 		Et j'ouvre dans les sonores à venir la cellule « 20:06:38 »
-		Alors l'accueil a demandé les fiches :
+		Alors l'onglet Antenne a demandé les fiches :
 			| genre     | identifiant | nom         |
 			| sonore    | 41          | Spot        |
 			| événement | 51          | Fil de jour |
@@ -553,7 +553,7 @@ Fonctionnalité: Écran par défaut de l'interface
 
 	# ─── Airplay des derniers sonores (https://github.com/dascritch/machincast/issues/244) ───
 
-	Scénario: L'airplay de l'accueil montre les derniers passages, du plus récent au plus ancien, même anciens
+	Scénario: L'airplay de l'onglet Antenne montre les derniers passages, du plus récent au plus ancien, même anciens
 		Étant donné les passages dans l'airplay :
 			| debut               | fin                 | artiste     | titre         | evenement   | sequence | banque  | sans_incident |
 			| 2026-10-14 08:00:00 | 2026-10-14 08:03:00 | Ancien      | Avant-hier    | Fil de nuit |          |         | oui           |
@@ -562,7 +562,7 @@ Fonctionnalité: Écran par défaut de l'interface
 			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 |             | Spot          | Fil de jour | Pub      | Spots   | non           |
 			| 2026-10-16 20:00:00 |                     | Les Gaufres | Café à minuit | Fil de jour |          | Titres  |               |
 		Quand l'écran par défaut s'ouvre
-		Alors l'encart de l'airplay de l'accueil s'intitule « Airplay : les 10 derniers sonores »
+		Alors l'encart de l'airplay de l'onglet Antenne s'intitule « Airplay : les 10 derniers sonores »
 		Et la table de l'airplay montre :
 			| debut    | fin      | duree | artiste     | titre         | evenement   | sequence | banque | incident |
 			| 20:00:00 | en cours |       | Les Gaufres | Café à minuit | Fil de jour |          | Titres |  |
@@ -571,20 +571,20 @@ Fonctionnalité: Écran par défaut de l'interface
 			| 08:01:00 | 08:04:00 | 3:00  | Les Gaufres | Le matin      | Fil de jour |          | Titres |  |
 			| 08:00:00 | 08:03:00 | 3:00  | Ancien      | Avant-hier    | Fil de nuit |          |        |  |
 
-	Scénario: L'airplay de l'accueil s'arrête aux 10 derniers sonores
+	Scénario: L'airplay de l'onglet Antenne s'arrête aux 10 derniers sonores
 		Étant donné 12 passages d'une minute dans l'airplay, « Passage 1 » à 19:48:00, le dernier en cours
 		Quand l'écran par défaut s'ouvre
 		Alors la table de l'airplay a 10 lignes, de « Passage 12 » à « Passage 3 »
 
-	Scénario: Les sonores à venir et l'airplay de l'accueil se replient, et leur repli est retenu pour le compte
+	Scénario: Les sonores à venir et l'airplay de l'onglet Antenne se replient, et leur repli est retenu pour le compte
 		Étant donné la socket d'état du binaire lecture ouverte
 		Quand l'écran par défaut s'ouvre
-		Alors les encarts « À venir après le prochain sonore » et « Airplay : les 10 derniers sonores » de l'accueil sont dépliés
-		Quand je clique sur le titre de l'encart « Airplay : les 10 derniers sonores » de l'accueil
-		Alors l'encart « Airplay : les 10 derniers sonores » de l'accueil est replié
+		Alors les encarts « À venir après le prochain sonore » et « Airplay : les 10 derniers sonores » de l'onglet Antenne sont dépliés
+		Quand je clique sur le titre de l'encart « Airplay : les 10 derniers sonores » de l'onglet Antenne
+		Alors l'encart « Airplay : les 10 derniers sonores » de l'onglet Antenne est replié
 		Quand l'écran par défaut se ferme, puis s'ouvre de nouveau
-		Alors l'encart « Airplay : les 10 derniers sonores » de l'accueil est replié
-		Et l'encart « À venir après le prochain sonore » de l'accueil est déplié
+		Alors l'encart « Airplay : les 10 derniers sonores » de l'onglet Antenne est replié
+		Et l'encart « À venir après le prochain sonore » de l'onglet Antenne est déplié
 
 	Scénario: L'interface est privée : l'airplay montre l'artiste et le titre, même masqués
 		Étant donné les passages dans l'airplay :
@@ -674,7 +674,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et j'ouvre dans l'airplay la cellule « Spot »
 		Et j'ouvre dans l'airplay la cellule de la colonne « Séquence »
 		Et j'ouvre dans l'airplay la cellule de la colonne « Banque »
-		Alors l'accueil n'a demandé aucune fiche
+		Alors l'onglet Antenne n'a demandé aucune fiche
 
 	Scénario: Un double-clic sur l'airplay ouvre la fiche du sonore, de l'événement, de la séquence ou de la banque
 		Étant donné les passages dans l'airplay :
@@ -688,7 +688,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et j'ouvre dans l'airplay la cellule « Spots »
 		Et j'ouvre dans l'airplay la cellule « 19:50:00 »
 		Et j'ouvre dans l'airplay la cellule « oui »
-		Alors l'accueil a demandé les fiches de l'airplay :
+		Alors l'onglet Antenne a demandé les fiches de l'airplay :
 			| genre     | nom         |
 			| sonore    | Spot        |
 			| sonore    | Spot        |

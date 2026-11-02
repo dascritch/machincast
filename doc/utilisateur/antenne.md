@@ -114,7 +114,7 @@ Un fichier peut commencer ou finir par un silence : un passage sous le seuil, un
 - **Mesure** : l'**audit complet** mesure les silences de chaque fichier ([Indexation depuis l'interface](sonores.md#indexation-depuis-linterface)), sous le seuil des [préférences](prise-en-main.md#préférences), -40 dB par défaut. L'indexation rapide ne les mesure pas.
 - **Quand** : jamais par défaut. Un sonore est joué sans ses silences si sa [fiche](sonores.md#fiche-dun-sonore) le demande, ou si la [banque](sonores.md#fiche-dune-banque) qui l'a fourni le demande.
 - **Jeu** : ses fondus se placent autour de son début et de sa fin détectés ([#234](https://github.com/dascritch/machincast/issues/234)). Par défaut, le **fade-in se termine** au début détecté : le son arrive à plein volume ; le **fade-out commence** à la fin détectée : le son va à plein volume jusqu'à sa fin, et s'éteint sur le silence qui suit. Chacun peut aussi « commencer » ou « être en cours » à sa borne. La lecture s'étend dans les silences d'autant que les fondus y débordent, sans jamais sortir du fichier : un fondu plus long que le silence commence, ou finit, en cours de route.
-- **Réglage** : dans les [préférences](prise-en-main.md#préférences), page **Crossfades**, pour tous les sonores ; une [banque](sonores.md#fiche-dune-banque) ne règle que la présence et la durée de leurs crossfades. La [frise](sonores.md#frise-dun-fichier) de la pré-écoute et de l'accueil les montre.
+- **Réglage** : dans les [préférences](prise-en-main.md#préférences), page **Crossfades**, pour tous les sonores ; une [banque](sonores.md#fiche-dune-banque) ne règle que la présence et la durée de leurs crossfades. La [frise](sonores.md#frise-dun-fichier) de la pré-écoute et de l'onglet Antenne les montre.
 - **Jamais audité** : un sonore dont les silences n'ont pas été mesurés est joué en entier. Après avoir ajouté des sonores ou activé la détection, demander un audit complet.
 - **Correction** : le début et la fin détectés se corrigent à la main dans la fiche du sonore ; l'audit ne les modifie plus ensuite.
 
@@ -139,11 +139,11 @@ La diffusion publie une **page publique**, pour le site de la radio : le sonore 
 - masqués, l'artiste et le titre laissent la place au premier **nom public** renseigné : celui de l'événement, puis de la séquence, puis de la banque ; s'il n'y en a aucun, au texte public de la radio ;
 - l'interface, réservée à l'équipe, affiche toujours tout.
 
-L'accueil montre le texte public du sonore en cours, tel que la page publique l'affiche.
+L'onglet Antenne montre le texte public du sonore en cours, tel que la page publique l'affiche.
 
 ## Piloter la diffusion
 
-Le menu **Diffusion** démarre et arrête la diffusion, sans terminal. Pour la redémarrer, l'arrêter puis la démarrer ([#223](https://github.com/dascritch/machincast/issues/223)). Ses entrées suivent l'état de la diffusion, relu à chaque ouverture du menu.
+Le menu **Diffusion** démarre et arrête la diffusion, sans terminal. Pour la redémarrer, l'arrêter puis la démarrer ([#223](https://github.com/dascritch/machincast/issues/223)). Ses entrées suivent l'état de la diffusion, relu à chaque ouverture du menu. Dans ce menu comme dans les clics droits de l'onglet Antenne, ⏵ marque ce qui démarre la diffusion, ⏹ ce qui l'arrête, et ⏭ ce qui saute le sonore ou l'événement en cours ([#322](https://github.com/dascritch/machincast/issues/322)). Tant que la diffusion ne tourne pas, la dernière ligne de la fenêtre affiche **🔇 Diffusion arrêtée**.
 
 ![Le menu Diffusion : démarrer, arrêter, puis les trois interruptions](../captures/menu-diffusion.png)
 
@@ -151,18 +151,18 @@ Le menu **Diffusion** démarre et arrête la diffusion, sans terminal. Pour la r
 
 | État de la diffusion | Entrées actives |
 | --- | --- |
-| Arrêtée | Démarrer la diffusion |
-| En marche | Arrêter la diffusion |
-| En échec (elle a planté trop souvent) | Démarrer la diffusion |
+| Arrêtée | ⏵ Démarrer la diffusion |
+| En marche | ⏹ Arrêter la diffusion |
+| En échec (elle a planté trop souvent) | ⏵ Démarrer la diffusion |
 
 Chaque entrée demande le mot de passe d'un administrateur du poste. La barre d'état dit ensuite ce qu'il en est : `Diffusion démarrée.`, `Diffusion arrêtée.`, ou l'échec et sa raison, par exemple quand le mot de passe est refusé.
 
-**Sur un poste d'essai**, sans ce service, la barre d'état affiche en permanence `Installation non définitive : diffusion sans service`, et le menu pilote une **diffusion d'essai**, qui joue bel et bien à l'antenne :
+**Sur un poste d'essai**, sans ce service, la barre d'état affiche en permanence `Installation non définitive : diffusion sans service`, l'onglet s'appelle **🟩 Antenne** au lieu de **🟥 Antenne**, et le menu pilote une **diffusion d'essai**, qui joue bel et bien à l'antenne :
 
 | Entrée | Ce qu'elle fait |
 | --- | --- |
-| Démarrer la diffusion d'essai | Ouvre la diffusion dans une fenêtre de terminal, qui en montre le journal. Fermer l'interface ne l'arrête pas. |
-| Arrêter la diffusion d'essai | L'arrête proprement : le passage en cours se termine. La barre d'état annonce `Diffusion d'essai arrêtée.` |
+| ⏵ Démarrer la diffusion d'essai | Ouvre la diffusion dans une fenêtre de terminal, qui en montre le journal. Fermer l'interface ne l'arrête pas. |
+| ⏹ Arrêter la diffusion d'essai | L'arrête proprement : le passage en cours se termine. La barre d'état annonce `Diffusion d'essai arrêtée.` |
 
 ## Interrompre l'antenne
 
@@ -170,9 +170,9 @@ Le menu **Diffusion** propose aussi, après un trait, de corriger ce qui passe, 
 
 | Entrée | Effet |
 | --- | --- |
-| Sauter au sonore suivant | Le sonore en cours est coupé, et le prochain sonore annoncé sur l'accueil passe aussitôt ; les sonores à venir avancent d'un cran. |
-| Sauter après la séquence | Le sonore en cours est coupé, et le reste de sa séquence n'est pas joué : le sonore prévu après la séquence passe aussitôt, et les sonores à venir qui le suivent sont gardés. |
-| Couper l'événement par le fil musical | Le sonore en cours est coupé, et le fil musical prend aussitôt l'antenne, jusqu'à la fin prévue de l'événement coupé : un spécial et l'émission qu'il recouvre laissent tous les deux la place. Inactive dans le fil musical. |
+| ⏭ Sauter au sonore suivant | Le sonore en cours est coupé, et le prochain sonore annoncé sur l'onglet Antenne passe aussitôt ; les sonores à venir avancent d'un cran. |
+| ⏭ Sauter après la séquence | Le sonore en cours est coupé, et le reste de sa séquence n'est pas joué : le sonore prévu après la séquence passe aussitôt, et les sonores à venir qui le suivent sont gardés. |
+| ⏭ Couper l'événement par le fil musical | Le sonore en cours est coupé, et le fil musical prend aussitôt l'antenne, jusqu'à la fin prévue de l'événement coupé : un spécial et l'émission qu'il recouvre laissent tous les deux la place. Inactive dans le fil musical. |
 
 - Chaque entrée n'est active que si son élément est à l'antenne ; son infobulle le nomme, ou dit pourquoi elle est inactive (« Rien à l'antenne », « Aucune séquence à l'antenne », « Le fil musical est déjà à l'antenne »).
 - La demande part **aussitôt, sans question** : l'antenne n'attend pas. La barre d'état l'annonce, par exemple `Saut au sonore suivant demandé.`
@@ -182,13 +182,13 @@ Le menu **Diffusion** propose aussi, après un trait, de corriger ce qui passe, 
 
 ### Depuis le prochain sonore
 
-Sur l'accueil, le **clic droit sur le cadre du prochain sonore** propose ([#257](https://github.com/dascritch/machincast/issues/257)) :
+Sur l'onglet Antenne, le **clic droit sur le cadre du prochain sonore** propose ([#257](https://github.com/dascritch/machincast/issues/257)) :
 
 | Entrée | Effet |
 | --- | --- |
 | Pré-écoute… | Ouvre le prochain sonore dans la [pré-écoute](sonores.md#pré-écoute), au casque. |
-| Sauter à ce sonore | Comme « Sauter au sonore suivant » : le sonore en cours s'arrête, et le prochain sonore passe aussitôt. |
-| Avancer « Journal », prévu le mercredi 21 octobre à 12:00 | L'événement suivant de la grille commence aussitôt, avant son heure, et passe jusqu'à sa fin prévue, comme s'il avait commencé plus tôt : le sonore en cours s'arrête, et sa liste commence. À son heure prévue, rien ne change. |
+| ⏭ Sauter à ce sonore | Comme « ⏭ Sauter au sonore suivant » : le sonore en cours s'arrête, et le prochain sonore passe aussitôt. |
+| ⏭ Avancer « Journal », prévu le mercredi 21 octobre à 12:00 | L'événement suivant de la grille commence aussitôt, avant son heure, et passe jusqu'à sa fin prévue, comme s'il avait commencé plus tôt : le sonore en cours s'arrête, et sa liste commence. À son heure prévue, rien ne change. |
 
 - L'événement suivant est le prochain qui prendra l'antenne d'après la grille, dans les sept jours : une émission, un spécial, ou un fil musical daté. Il passe au-dessus de tout, même d'un spécial en cours. Une émission qui a une fin reprend sa liste depuis le début quand elle l'a jouée en entier, jusqu'à sa fin.
 - Sans événement suivant dans les sept jours, l'entrée est inactive. Pendant un blanc, l'événement suivant s'avance quand même ; il n'y a alors rien à sauter.
@@ -197,7 +197,7 @@ Sur l'accueil, le **clic droit sur le cadre du prochain sonore** propose ([#257]
 
 ## Historique et incidents
 
-Chaque passage à l'antenne est noté dans l'**historique**, l'airplay : son début, sa fin, la durée diffusée, l'artiste et le titre **tels qu'ils étaient au moment du passage**, l'événement, la séquence et la banque, et s'il s'est déroulé sans incident. Un sonore coupé net par un événement, ou interrompu à la main, n'est pas un incident. L'accueil en montre les 10 derniers passages, l'[onglet Airplay](prise-en-main.md#onglet-airplay) les dernières heures, réglables et exportables, et la fiche d'un sonore ses 50 derniers passages.
+Chaque passage à l'antenne est noté dans l'**historique**, l'airplay : son début, sa fin, la durée diffusée, l'artiste et le titre **tels qu'ils étaient au moment du passage**, l'événement, la séquence et la banque, et s'il s'est déroulé sans incident. Un sonore coupé net par un événement, ou interrompu à la main, n'est pas un incident. L'onglet Antenne en montre les 10 derniers passages, l'[onglet Airplay](prise-en-main.md#onglet-airplay) les dernières heures, réglables et exportables, et la fiche d'un sonore ses 50 derniers passages.
 
 La diffusion tient aussi un **journal** de ce qu'elle fait. L'onglet **Incidents** en montre les alertes et les incidents, du plus récent au plus ancien : horaire, niveau, nature, message, et le sonore, la banque et l'événement concernés.
 
@@ -225,7 +225,7 @@ La diffusion tient aussi un **journal** de ce qu'elle fait. L'onglet **Incidents
 | `fichier modifié` | alerte | Le fichier a changé depuis sa dernière vérification ; il est quand même joué, et sera revérifié. |
 | `analyse impossible` | alerte | La vérification du prochain sonore n'a pas pu être lancée ; il est joué quand même. |
 | `sortie inaccessible` | alerte | La page publique, la playlist ou le fichier de l'historique ne peut pas être écrit. |
-| `socket d'état indisponible` | alerte | L'accueil ne peut pas suivre la diffusion, qui continue sans lui. |
+| `socket d'état indisponible` | alerte | L'onglet Antenne ne peut pas suivre la diffusion, qui continue sans lui. |
 | `fichier introuvable` | incident | Le fichier a disparu ; il n'est pas joué. |
 | `lecture interrompue` | incident | La lecture d'un fichier s'est arrêtée sur une erreur. |
 | `blanc dans un sonore` | incident | Le sonore en cours ne donne plus de son ([Blanc dans un sonore](#blanc-dans-un-sonore)) ; le message dit où, dans le fichier, et à quel niveau. |

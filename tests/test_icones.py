@@ -17,7 +17,7 @@ from pytestqt.qtbot import QtBot
 from machincast.interface import icones
 from machincast.interface.fiche_sonore import FicheSonore
 from machincast.interface.recherche import EcranRecherche
-from tests.etapes_interface import NOM, Contexte, actions, fenetre
+from tests.etapes_interface import NOM, Contexte, actions, fenetre, titre_d_onglet
 
 scenarios("icones.feature")
 
@@ -95,7 +95,7 @@ def suit_le_theme(qapp: QApplication, genre: str, couleur: str) -> None:
 
 def _onglets(interface: Contexte) -> dict[str, QIcon]:
 	onglets = fenetre(interface).ui.onglets
-	return {onglets.tabText(indice): onglets.tabIcon(indice) for indice in range(onglets.count())}
+	return {titre_d_onglet(onglets, indice): onglets.tabIcon(indice) for indice in range(onglets.count())}
 
 
 @then("les onglets portent les icônes :")
@@ -152,7 +152,7 @@ def taper(interface: Contexte, texte: str) -> None:
 	recherche.champ.setText(texte)
 
 
-@then("les boutons de l'accueil portent les icônes :")
+@then("les boutons de l'onglet Antenne portent les icônes :")
 def icones_de_l_accueil(interface: Contexte, datatable: list[list[str]]) -> None:
 	_entetes, *rangees = datatable
 	ui = fenetre(interface).accueil.ui
@@ -163,14 +163,14 @@ def icones_de_l_accueil(interface: Contexte, datatable: list[list[str]]) -> None
 
 @then(
 	parsers.re(
-		r"le bouton « (?P<nom>[^»]+) » de (?P<ou>la fiche ouverte|l'accueil|la fenêtre)"
+		r"le bouton « (?P<nom>[^»]+) » de (?P<ou>la fiche ouverte|l'onglet Antenne|la fenêtre)"
 		r" porte l'icône « (?P<icone>[^»]+) »"
 	)
 )
 def icone_du_bouton(interface: Contexte, nom: str, ou: str, icone: str) -> None:
 	ouverte = fenetre(interface)
 	porteur: object = ouverte.ui
-	if ou == "l'accueil":
+	if ou == "l'onglet Antenne":
 		porteur = ouverte.accueil.ui
 	if ou == "la fiche ouverte":
 		porteur = ouverte.ui.onglets.currentWidget().ui

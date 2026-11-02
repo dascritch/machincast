@@ -3,8 +3,8 @@ https://github.com/dascritch/machincast/issues/116).
 
 Une barre par canal, du plancher (-60 dB) à 0 dB : le VU, niveau moyen (RMS), plein ; par-dessus, le bargraph de
 crête, plus clair, et un repère qui garde la plus haute crête MAINTIEN_DE_CRETE secondes. Vert, orange au-delà de
--12 dB, rouge au-delà de -3 dB. Horizontal dans la pré-écoute, vertical dans la colonne de l'accueil. Un clic émet
-clique : l'accueil s'en sert pour écouter l'antenne.
+-12 dB, rouge au-delà de -3 dB. Horizontal dans la pré-écoute, vertical dans la colonne de l'onglet Antenne. Un clic
+émet clique : l'onglet Antenne s'en sert pour écouter l'antenne.
 
 Une échelle en dB (GRADUATIONS) l'accompagne : couché, sous les canaux ; vertical, entre les canaux gauche et droit
 d'un son stéréo, qu'elle sépare, nommés « G » et « D » dessous, ou à droite des canaux sinon. Un nombre qui chevauche

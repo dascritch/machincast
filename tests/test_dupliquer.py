@@ -16,7 +16,7 @@ from machincast.interface.fiche import Fiche
 from machincast.interface.fiche_banque import FicheBanque
 from machincast.interface.fiche_evenement import FicheEvenement
 from machincast.interface.listes import Liste
-from tests.etapes_interface import ELEMENT, NOM, Contexte, fenetre, identifiant
+from tests.etapes_interface import ELEMENT, NOM, Contexte, fenetre, identifiant, titre_d_onglet
 
 scenarios("dupliquer.feature")
 
@@ -261,10 +261,10 @@ def listes_qui_dupliquent(interface: Contexte, onglets: str) -> None:
 		if not isinstance(liste, Liste):
 			continue
 		liste.actualiser()
-		assert liste.proxy.rowCount() > 0, ui.onglets.tabText(rangee)
+		assert liste.proxy.rowCount() > 0, titre_d_onglet(ui.onglets, rangee)
 		menu = liste.menu_de_la_ligne(liste.proxy.index(0, 0))
 		if (menu is not None) and (any(action.text() == "Dupliquer" for action in menu.actions())):
-			trouvees.append(ui.onglets.tabText(rangee))
+			trouvees.append(titre_d_onglet(ui.onglets, rangee))
 	assert trouvees == NOM.findall(onglets)
 
 

@@ -14,9 +14,10 @@ https://github.com/dascritch/machincast/issues/116) : chacun est grisé dans l'a
 dans un sonore (section [blanc_antenne], https://github.com/dascritch/machincast/issues/122) : sa durée, son niveau, et
 le passage au secours, que Machin lecture prend à son prochain démarrage. La page « Base » règle la durée de péremption
 (base.peremption, https://github.com/dascritch/machincast/issues/268), que Machin purge prend à son prochain passage, et
-que suit la fiche d'un élément supprimé. La page « Interface » règle l'accueil, et choisit l'icône de l'application
-(interface.icone, https://github.com/dascritch/machincast/issues/111) : une image lisible, ou celle de MachinCast ; la
-fenêtre principale la donne aussitôt à ses fenêtres et aux raccourcis déjà installés (machincast.raccourci.reecrire).
+que suit la fiche d'un élément supprimé. La page « Interface » règle l'onglet Antenne, et choisit l'icône de
+l'application (interface.icone, https://github.com/dascritch/machincast/issues/111) : une image lisible, ou celle de
+MachinCast ; la fenêtre principale la donne aussitôt à ses fenêtres et aux raccourcis déjà installés
+(machincast.raccourci.reecrire).
 
 - Les préférences s'enregistrent dans la section [crossfades] du fichier de configuration (ecrire), qui garde ses
   commentaires et ses autres sections : tomlkit le réécrit tel qu'il l'a lu, sauf les clés réglées. Une durée par
@@ -79,7 +80,7 @@ class Reglages:
 	seuil_silences: float = SEUIL_DE_SILENCE
 	"""silences.seuil, en dB crête (https://github.com/dascritch/machincast/issues/146)."""
 	saturation: bool = True
-	"""interface.saturation : le voyant « Saturation » de l'accueil est affiché
+	"""interface.saturation : le voyant « Saturation » de l'onglet Antenne est affiché
 	(https://github.com/dascritch/machincast/issues/191)."""
 	suggestions: bool = True
 	"""interface.suggestions : au lancement, l'interface propose ce qui manque pour démarrer

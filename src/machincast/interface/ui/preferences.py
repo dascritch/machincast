@@ -414,7 +414,7 @@ class Ui_FenetrePreferences(object):
         self.explication.setText(QCoreApplication.translate("FenetrePreferences", u"Les fiches ouvertes ensuite suivent ces r\u00e9glages. Machin lecture prend les dur\u00e9es par d\u00e9faut \u00e0 son prochain d\u00e9marrage.", None))
         self.pages.setTabText(self.pages.indexOf(self.page_crossfades), QCoreApplication.translate("FenetrePreferences", u"Crossfades", None))
         self.groupe_accueil.setTitle(QCoreApplication.translate("FenetrePreferences", u"Accueil", None))
-        self.saturation.setText(QCoreApplication.translate("FenetrePreferences", u"Afficher le voyant de saturation de l'accueil", None))
+        self.saturation.setText(QCoreApplication.translate("FenetrePreferences", u"Afficher le voyant de saturation de l'onglet Antenne", None))
 #if QT_CONFIG(tooltip)
         self.saturation.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Le voyant \u00ab Saturation \u00bb de la colonne Antenne, au-dessus du VU-m\u00e8tre ; le VU-m\u00e8tre montre toujours les cr\u00eates.", None))
 #endif // QT_CONFIG(tooltip)

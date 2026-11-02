@@ -2,7 +2,7 @@
 Fonctionnalité: Onglet Airplay, réglable et exportable
 	En tant que responsable d'antenne,
 	je veux l'historique de diffusion dans un onglet à part, sur la durée de mon choix, et pouvoir l'exporter,
-	afin de garder l'accueil compact, et de transmettre ce qui est passé à l'antenne.
+	afin de garder l'onglet Antenne compact, et de transmettre ce qui est passé à l'antenne.
 
 	https://github.com/dascritch/machincast/issues/244, spec § 8.1. L'onglet est fermé au lancement, et s'ouvre depuis
 	le menu « Affichage ». Il montre les passages des dernières heures, 12 par défaut ; le nombre d'heures se règle en
@@ -20,12 +20,12 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 
 	Scénario: L'onglet Airplay est fermé au lancement, et s'ouvre depuis le menu « Affichage »
 		Quand la fenêtre de l'interface s'ouvre
-		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Quand je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
-		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Airplay »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Airplay »
 		Et l'onglet ouvert est « Airplay »
 
-	Scénario: L'onglet montre les passages des 12 dernières heures, du plus récent au plus ancien, avec les colonnes de l'accueil
+	Scénario: L'onglet montre les passages des 12 dernières heures, du plus récent au plus ancien, avec les colonnes de l'onglet Antenne
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
 		Alors l'onglet Airplay montre les 12 dernières heures
@@ -51,12 +51,12 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 	Scénario: Un seul onglet Airplay, qui se ferme par sa croix
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
-		Et j'ouvre l'onglet « Accueil »
+		Et j'ouvre l'onglet « Antenne »
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
-		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Airplay »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Airplay »
 		Et l'onglet ouvert est « Airplay »
 		Quand je ferme l'onglet « Airplay »
-		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 
 	Scénario: Un double-clic ouvre la fiche, et le clic droit propose la pré-écoute du sonore
 		Quand la fenêtre de l'interface s'ouvre
@@ -73,11 +73,11 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 		Et je choisis « Rafraîchir les onglets » dans le menu « Affichage »
 		Alors la table de l'onglet Airplay a 4 lignes
 
-	Scénario: L'onglet Airplay se relit quand l'accueil voit un nouveau sonore
+	Scénario: L'onglet Airplay se relit quand l'onglet Antenne voit un nouveau sonore
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
 		Et le passage de « Jingle » commence dans l'airplay à 20:00:30
-		Et l'accueil relit son airplay, pour un nouveau sonore
+		Et l'onglet Antenne relit son airplay, pour un nouveau sonore
 		Alors la table de l'onglet Airplay a 4 lignes
 
 	# ─── Export ────────────────────────────────────────────────

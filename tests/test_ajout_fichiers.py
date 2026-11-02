@@ -19,7 +19,16 @@ from pytestqt.qtbot import QtBot
 from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
 from machincast.interface import verification
 from machincast.interface.listes import Liste
-from tests.etapes_interface import ATTENTE, Connexion, Contexte, attendre_la_verification, fenetre, glisser, liste
+from tests.etapes_interface import (
+	ATTENTE,
+	Connexion,
+	Contexte,
+	attendre_la_verification,
+	fenetre,
+	glisser,
+	liste,
+	titre_d_onglet,
+)
 
 scenarios("ajout_fichiers.feature")
 
@@ -145,5 +154,5 @@ def seule_liste(interface: Contexte, titre: str) -> None:
 			bouton = ouverte.ui.ajouter_fichiers
 			if (not bouton.isHidden()) or (ouverte.table.acceptDrops()):
 				assert (bouton.text(), ouverte.table.acceptDrops()) == ("➕ Ajouter des fichiers…", True)
-				avec.append(onglets.tabText(indice))
+				avec.append(titre_d_onglet(onglets, indice))
 	assert avec == [titre]

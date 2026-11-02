@@ -243,7 +243,7 @@ def indisponible(interface: Contexte, texte: str) -> None:
 	assert ecran.vumetre.niveaux == []
 
 
-@then("l'accueil ne capture rien")
+@then("l'onglet Antenne ne capture rien")
 def ne_capture_rien(interface: Contexte) -> None:
 	moniteur = accueil(interface).moniteur
 	assert (moniteur.actif(), moniteur.niveaux, moniteur.cretes) == (False, [], [])
@@ -279,7 +279,7 @@ def sans_preecoute(interface: Contexte) -> None:
 	assert fenetre(interface).preecoute is None
 
 
-@when("l'accueil rouvre le port de monitoring de la même antenne", target_fixture="capture_precedente")
+@when("l'onglet Antenne rouvre le port de monitoring de la même antenne", target_fixture="capture_precedente")
 def rouvrir(interface: Contexte) -> object:
 	ecran = accueil(interface)
 	precedente = ecran.moniteur._pipeline

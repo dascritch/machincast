@@ -8,7 +8,7 @@
 	- [Sauter une session](#sauter-une-session)
 - [Simulation](#simulation)
 
-Les fiches s'ouvrent dans leur onglet, depuis les listes ([Listes et actions](listes.md)), l'accueil, le calendrier ou la recherche. Elles se comportent toutes de la même façon : voir [Enregistrer, annuler, fermer](listes.md#enregistrer-annuler-fermer).
+Les fiches s'ouvrent dans leur onglet, depuis les listes ([Listes et actions](listes.md)), l'onglet Antenne, le calendrier ou la recherche. Elles se comportent toutes de la même façon : voir [Enregistrer, annuler, fermer](listes.md#enregistrer-annuler-fermer).
 
 ## Fiche d'un événement
 
@@ -43,9 +43,9 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 - **Rétablir** rétablit la session, comme le clic droit du calendrier, sans enregistrer la fiche ni toucher à ses champs. La barre d'état l'annonce, et la diffusion en tient compte aussitôt.
 - Le bouton est grisé, et son infobulle dit pourquoi, pour une session qui a déjà commencé, ou dont une émission de même priorité a pris la place.
 
-**Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion : une émission vide laisse l'événement en dessous prendre le relais, sans couper le sonore en cours, et l'accueil n'annonce aucune coupure à son heure ; un fil musical vide laisse un blanc à l'antenne, avec une alerte. La liste des événements le montre en anomalie.
+**Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion : une émission vide laisse l'événement en dessous prendre le relais, sans couper le sonore en cours, et l'onglet Antenne n'annonce aucune coupure à son heure ; un fil musical vide laisse un blanc à l'antenne, avec une alerte. La liste des événements le montre en anomalie.
 
-**À l'antenne, aussitôt** ([#266](https://github.com/dascritch/machincast/issues/266)) : un événement enregistré, supprimé ou restauré vaut tout de suite, si la diffusion tourne. Une émission avancée coupe le sonore en cours à sa nouvelle heure ; une émission déplacée, raccourcie ou retirée change les sonores à venir de l'accueil. Un nom, un nom public ou un masquage changés ne retirent pas les sonores déjà annoncés : ils passeront comme prévu.
+**À l'antenne, aussitôt** ([#266](https://github.com/dascritch/machincast/issues/266)) : un événement enregistré, supprimé ou restauré vaut tout de suite, si la diffusion tourne. Une émission avancée coupe le sonore en cours à sa nouvelle heure ; une émission déplacée, raccourcie ou retirée change les sonores à venir de l'onglet Antenne. Un nom, un nom public ou un masquage changés ne retirent pas les sonores déjà annoncés : ils passeront comme prévu.
 
 **Liste de lecture** : les sonores, les banques et les séquences que l'événement joue, dans l'ordre.
 
@@ -77,7 +77,7 @@ La fiche d'une [séquence](antenne.md#séquences) s'ouvre dans un onglet nommé 
 
 ## Calendrier
 
-Le **Calendrier**, deuxième onglet, toujours ouvert juste après l'accueil, sans croix pour le fermer ([#307](https://github.com/dascritch/machincast/issues/307)), montre ce qui est prévu, et ce qui a été diffusé ; **Affichage → Ouvrir l'onglet Grille horaire**, ou <kbd>Maj</kbd>+<kbd>F2</kbd>, le ramène au premier plan : ce qui est prévu, et ce qui a été diffusé. Il s'ouvre sur la semaine du jour, du lundi au dimanche ; une ligne rouge marque l'heure qu'il est.
+Le **Calendrier**, deuxième onglet, toujours ouvert juste après l'onglet Antenne, sans croix pour le fermer ([#307](https://github.com/dascritch/machincast/issues/307)), montre ce qui est prévu, et ce qui a été diffusé ; **Affichage → Ouvrir l'onglet Grille horaire**, ou <kbd>Maj</kbd>+<kbd>F2</kbd>, le ramène au premier plan : ce qui est prévu, et ce qui a été diffusé. Il s'ouvre sur la semaine du jour, du lundi au dimanche ; une ligne rouge marque l'heure qu'il est.
 
 ![Le calendrier de la semaine : la Matinale et le Journal du lundi au vendredi, la Matinale du vendredi sautée et hachurée, un spécial le samedi, et à droite de chaque jour passé ce qui a réellement été diffusé](../captures/calendrier.png)
 
@@ -96,7 +96,7 @@ Pour des vacances, un jour férié ou une émission exceptionnelle, une session 
 - **Sauter cette session** : elle ne passe pas à l'antenne ;
 - **Sauter les sessions jusqu'au…** : un calendrier fait choisir le dernier jour, et toutes les sessions de l'événement jusqu'à ce jour, compris, sont sautées. **OK** ou <kbd>Entrée</kbd> valide, **Annuler** ou <kbd>Échap</kbd> ne saute rien.
 
-Une session sautée reste dans le calendrier, **hachurée** : à sa place, l'antenne joue ce qui jouerait sans elle, en général le fil musical. Pour la remplacer par une autre émission, **cliquer** sur son créneau, comme sur une heure libre : la nouvelle émission peut l'occuper. La diffusion en tient compte aussitôt, et l'accueil montre les nouveaux sonores à venir. La barre d'état dit ce qui a été sauté.
+Une session sautée reste dans le calendrier, **hachurée** : à sa place, l'antenne joue ce qui jouerait sans elle, en général le fil musical. Pour la remplacer par une autre émission, **cliquer** sur son créneau, comme sur une heure libre : la nouvelle émission peut l'occuper. La diffusion en tient compte aussitôt, et l'onglet Antenne montre les nouveaux sonores à venir. La barre d'état dit ce qui a été sauté.
 
 **Clic droit** sur une session sautée, tant qu'elle est à venir : **Rétablir cette session**. Si une émission a pris sa place entre-temps, elle n'est pas rétablie, et la barre d'état dit laquelle la chevaucherait. Seules les sessions à venir d'un événement qui revient chaque semaine se sautent ; un événement unique se supprime, ou se déplace dans sa fiche. La [fiche de l'événement](#fiche-dun-événement) annonce aussi sa prochaine session sautée, et la rétablit ([#295](https://github.com/dascritch/machincast/issues/295)).
 

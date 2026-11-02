@@ -81,7 +81,7 @@ def abandonner(interface: Contexte) -> None:
 	ecran(interface).exporter.click()
 
 
-@when("l'accueil relit son airplay, pour un nouveau sonore")
+@when("l'onglet Antenne relit son airplay, pour un nouveau sonore")
 def accueil_relu(interface: Contexte) -> None:
 	fenetre(interface).accueil.actualiser_airplay()
 

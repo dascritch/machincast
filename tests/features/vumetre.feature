@@ -4,7 +4,7 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 	je veux qu'un VU-mètre montre le niveau de la sortie antenne,
 	afin que je voie immédiatement un blanc ou une saturation.
 
-	https://github.com/dascritch/machincast/issues/24, spec § 8.1. L'accueil a, entre le sonore en cours et le prochain,
+	https://github.com/dascritch/machincast/issues/24, spec § 8.1. L'onglet Antenne a, entre le sonore en cours et le prochain,
 	une colonne verticale : par canal, le VU (niveau moyen, RMS) et, par-dessus, le bargraph de crête, dont un repère
 	garde le maximum 2 secondes. Les niveaux se lisent sur le port de monitoring du périphérique de l'antenne :
 	pipewiresrc qui capture la sortie (stream.capture.sink) avec PipeWire, pulsesrc sur son « .monitor » avec
@@ -22,7 +22,7 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 
 	# ─── Niveaux ───────────────────────────────────────────────
 
-	Scénario: Le VU-mètre de l'accueil montre le niveau de chaque canal de l'antenne
+	Scénario: Le VU-mètre de l'onglet Antenne montre le niveau de chaque canal de l'antenne
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le VU-mètre de l'antenne est intitulé « Antenne », avec l'infobulle « Port de monitoring : sortie factice, signal de test. Clic : écouter l'antenne en pré-écoute. »
@@ -129,14 +129,14 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et un nouvel essai du port de monitoring après une demi-seconde
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le VU-mètre de l'antenne est indisponible : « Indisponible avec la sortie ALSA, qui n'a pas de port de monitoring. »
-		Et l'accueil ne capture rien
+		Et l'onglet Antenne ne capture rien
 		Et le port de monitoring ne sera pas rouvert
 
 	Scénario: Sans périphérique d'antenne, le VU-mètre est indisponible
 		Étant donné la configuration audio sortie « pipewire », sans périphérique d'antenne
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le VU-mètre de l'antenne est indisponible : « Indisponible : périphérique de l'antenne à renseigner. »
-		Et l'accueil ne capture rien
+		Et l'onglet Antenne ne capture rien
 		Et le port de monitoring ne sera pas rouvert
 
 	Scénario: Les préférences qui règlent l'antenne changent aussitôt le port du VU-mètre
@@ -398,12 +398,12 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Quand la fenêtre de l'interface s'ouvre
 		Et le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
 		Et je ferme la fenêtre de l'interface
-		Alors l'accueil ne capture rien
+		Alors l'onglet Antenne ne capture rien
 
 	Scénario: Rouvrir le port de monitoring, après les préférences, arrête la capture précédente
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
 		Et le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
-		Et l'accueil rouvre le port de monitoring de la même antenne
+		Et l'onglet Antenne rouvre le port de monitoring de la même antenne
 		Alors la capture précédente de l'antenne est arrêtée
 		Et le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB

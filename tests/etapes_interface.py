@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (
 	QMenu,
 	QPushButton,
 	QTabBar,
+	QTabWidget,
 	QWidget,
 )
 from pytest_bdd import given, parsers, then, when
@@ -69,6 +70,15 @@ from tests.sons import FICHIERS_SONORES
 Connexion = psycopg.Connection[tuple[object, ...]]
 NOM = re.compile(r"« ([^»]+) »")
 MODES = {"séquentielle": "sequentiel", "aléatoire": "aleatoire"}
+
+
+TEMOIN_DE_L_ANTENNE = re.compile(r"^(?:🟩|🟥) ")
+"""Le témoin du service devant le titre de l'onglet Antenne (https://github.com/dascritch/machincast/issues/322)."""
+
+
+def titre_d_onglet(onglets: QTabWidget, indice: int) -> str:
+	"""Le titre d'un onglet, sans le témoin du service devant celui de l'onglet Antenne."""
+	return TEMOIN_DE_L_ANTENNE.sub("", onglets.tabText(indice))
 
 
 @dataclass
@@ -403,7 +413,7 @@ def fiche_ouverte(interface: Contexte) -> Fiche:
 
 def onglet(interface: Contexte, titre: str) -> int:
 	onglets = fenetre(interface).ui.onglets
-	titres = [onglets.tabText(indice) for indice in range(onglets.count())]
+	titres = [titre_d_onglet(onglets, indice) for indice in range(onglets.count())]
 	assert titre in titres, titres
 	return titres.index(titre)
 
@@ -872,7 +882,7 @@ def ouvrir_onglet(interface: Contexte, titre: str) -> None:
 	"""Une liste ouverte à la demande, pas encore ouverte, s'ouvre par le menu « Affichage », comme le ferait
 	l'utilisateur (https://github.com/dascritch/machincast/issues/180)."""
 	onglets = fenetre(interface).ui.onglets
-	titres = [onglets.tabText(indice) for indice in range(onglets.count())]
+	titres = [titre_d_onglet(onglets, indice) for indice in range(onglets.count())]
 	if (titre in A_LA_DEMANDE) and (titre not in titres):
 		choisir_dans_le_menu(interface, A_LA_DEMANDE[titre], "Affichage")
 		return
@@ -1062,19 +1072,19 @@ def ouvrir_ligne(interface: Contexte, qtbot: QtBot, nom: str) -> None:
 @then(parsers.re(r"la fenêtre a les onglets (?P<titres>.+)"))
 def onglets(interface: Contexte, titres: str) -> None:
 	onglets = fenetre(interface).ui.onglets
-	assert [onglets.tabText(indice) for indice in range(onglets.count())] == NOM.findall(titres)
+	assert [titre_d_onglet(onglets, indice) for indice in range(onglets.count())] == NOM.findall(titres)
 
 
 @then(parsers.parse("l'onglet ouvert est « {titre} »"))
 def onglet_ouvert(interface: Contexte, titre: str) -> None:
 	onglets = fenetre(interface).ui.onglets
-	assert onglets.tabText(onglets.currentIndex()) == titre
+	assert titre_d_onglet(onglets, onglets.currentIndex()) == titre
 
 
 def fermables(interface: Contexte) -> list[str]:
 	onglets = fenetre(interface).ui.onglets
 	return [
-		onglets.tabText(indice)
+		titre_d_onglet(onglets, indice)
 		for indice in range(onglets.count())
 		if bouton_de_fermeture(onglets.tabBar(), indice) is not None
 	]
@@ -1099,7 +1109,7 @@ def effacer_le_filtre(interface: Contexte) -> None:
 def seul_fermable(interface: Contexte, titre: str) -> None:
 	onglets = fenetre(interface).ui.onglets
 	fermables = [
-		onglets.tabText(indice)
+		titre_d_onglet(onglets, indice)
 		for indice in range(onglets.count())
 		if bouton_de_fermeture(onglets.tabBar(), indice) is not None
 	]
@@ -1211,11 +1221,11 @@ def boutons_nouveau(interface: Contexte, boutons: str) -> None:
 	for indice in range(onglets.count()):
 		ouverte = onglets.widget(indice)
 		if (isinstance(ouverte, Liste)) and (not ouverte.ui.nouveau.isHidden()):
-			avec.append(f"{onglets.tabText(indice)} : {ouverte.ui.nouveau.text()}")
+			avec.append(f"{titre_d_onglet(onglets, indice)} : {ouverte.ui.nouveau.text()}")
 	assert avec == NOM.findall(boutons)
 
 
-@then("l'onglet « Accueil » montre l'écran par défaut")
+@then("l'onglet « Antenne » montre l'écran par défaut")
 def accueil(interface: Contexte) -> None:
 	assert fenetre(interface).ui.onglets.widget(0) is fenetre(interface).accueil
 

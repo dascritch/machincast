@@ -21,7 +21,7 @@ Fonctionnalité: L'interface reste réactive et libère ce qu'elle ferme
 		Et j'ouvre la fiche de la banque « Grosse »
 		Alors la fiche de la banque a été lue 1 fois
 		Et la fiche montre 3000 sonores
-		Quand j'ouvre l'onglet « Accueil »
+		Quand j'ouvre l'onglet « Antenne »
 		Et j'ouvre l'onglet « Banque : Grosse »
 		Alors la fiche de la banque a été lue 2 fois
 

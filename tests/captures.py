@@ -528,7 +528,7 @@ def _forme_finie(fiche: FicheSonore) -> bool:
 
 
 def donner_du_relief(connexion: Connexion, demonstration: Demonstration) -> None:
-	"""Les frises de l'accueil (https://github.com/dascritch/machincast/issues/230) : le sonore en cours et le
+	"""Les frises de l'onglet Antenne (https://github.com/dascritch/machincast/issues/230) : le sonore en cours et le
 	prochain ont un fichier généré à leur durée, à basse fréquence pour l'écrire vite, et leurs silences et
 	crossfades, tels qu'un audit complet et leur fiche les auraient posés. De même pour « Café à minuit », dont la
 	fiche montre la frise (https://github.com/dascritch/machincast/issues/223)."""

@@ -5,7 +5,7 @@ Fonctionnalité: Colonnes des tableaux, ajustées, réordonnables, masquables et
 	afin de lire ce qui m'importe, et de retrouver ma disposition d'une session à l'autre.
 
 	https://github.com/dascritch/machincast/issues/207. Chaque tableau de l'interface est une vue : chaque liste, la
-	recherche, les incidents, l'airplay de l'accueil, la simulation, et les tableaux des fiches. Ses colonnes s'ajustent
+	recherche, les incidents, l'airplay de l'onglet Antenne, la simulation, et les tableaux des fiches. Ses colonnes s'ajustent
 	à leur contenu à chaque lecture, tant qu'aucune n'a été élargie à la main. Un titre se glisse pour déplacer sa
 	colonne ; un clic droit sur les titres coche les colonnes montrées, ou rétablit la disposition d'origine. L'ordre,
 	les colonnes cachées et les largeurs sont gardés par vue, pour le compte de l'utilisateur, dans ses réglages, et
@@ -133,7 +133,7 @@ Fonctionnalité: Colonnes des tableaux, ajustées, réordonnables, masquables et
 	Scénario: Le tableau d'une fiche relue en arrière-plan s'ajuste quand on y revient
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Rotation »
-		Et j'ouvre l'onglet « Accueil »
+		Et j'ouvre l'onglet « Antenne »
 		Et le sonore « Un titre bien plus long que tous les autres titres » est ajouté à la banque « Rotation » en base
 		Et j'appuie sur « F5 »
 		Et j'ouvre l'onglet « Banque : Rotation »

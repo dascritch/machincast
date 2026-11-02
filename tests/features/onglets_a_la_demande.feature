@@ -22,18 +22,19 @@ Fonctionnalité: Onglets ouverts à la demande
 
 	Scénario: Au lancement, ni les sonores ni les feeds ne sont ouverts
 		Quand la fenêtre de l'interface s'ouvre
-		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Et aucun onglet n'a de bouton de fermeture
 		Et le menu « Affichage » a les entrées :
 			| entrée                          | état   | raccourci | infobulle |
-			| Rafraîchir les onglets          | active | F5        |           |
 			| Rechercher…                     | active | Ctrl+F    |           |
 			| Ouvrir l'onglet Sonores         | active |           |           |
-			| Ouvrir l'onglet Feeds   | active |           |           |
+			| Ouvrir l'onglet Feeds           | active |           |           |
 			| Ouvrir l'onglet Grille horaire  | active |           |           |
 			| Ouvrir l'onglet Simulation      | active |           |           |
 			| Ouvrir l'onglet Airplay         | active |           |           |
 			| Pré-écoute…                     | active |           |           |
+			| —                               |        |           |           |
+			| Rafraîchir les onglets          | active | F5        |           |
 
 	Scénario: Les onglets demandés s'ouvrent à leur place, et se ferment
 		Quand la fenêtre de l'interface s'ouvre
@@ -43,19 +44,19 @@ Fonctionnalité: Onglets ouverts à la demande
 		Alors l'onglet ouvert est « Calendrier »
 		Quand je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
 		Alors l'onglet ouvert est « Sonores »
-		Et la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Feeds », « Incidents »
+		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Feeds », « Incidents »
 		Et seuls les onglets « Sonores », « Feeds » ont un bouton de fermeture
 		Quand je ferme l'onglet « Sonores »
 		Et je ferme l'onglet « Feeds »
-		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 
 	Scénario: Un onglet déjà ouvert revient au premier plan, sans second onglet
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
-		Et j'ouvre l'onglet « Accueil »
+		Et j'ouvre l'onglet « Antenne »
 		Et je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
 		Alors l'onglet ouvert est « Sonores »
-		Et la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Incidents »
+		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Incidents »
 
 	Scénario: Une liste fermée puis rouverte garde son filtre et se relit
 		Quand la fenêtre de l'interface s'ouvre

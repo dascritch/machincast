@@ -4,7 +4,7 @@
 
 - [La fenêtre](#la-fenêtre)
 - [Pour bien démarrer](#pour-bien-démarrer)
-- [Accueil](#accueil)
+- [Antenne](#antenne)
 - [Onglet Airplay](#onglet-airplay)
 - [Passer d'un onglet à l'autre](#passer-dun-onglet-à-lautre)
 - [Menus](#menus)
@@ -19,9 +19,9 @@
 
 <img src="../../src/machincast/interface/machincast.png" width="64" height="64" alt="Icône de MachinCast : un panneau de chantier orange en losange, avec un casque audio noir et les lettres AMR">
 
-**Machin interface** s'ouvre sur une fenêtre à onglets, un par écran. Au lancement : **Accueil**, **Calendrier** (la grille d'antenne, [#307](https://github.com/dascritch/machincast/issues/307)), **Événements**, **Séquences**, **Banques** et **Incidents**. Les listes des **Sonores** et des **Feeds** s'ouvrent à la demande, par le menu **Affichage** : « Ouvrir l'onglet Sonores » et « Ouvrir l'onglet Feeds » ; « Ouvrir l'onglet Grille horaire » ramène le calendrier au premier plan. Les Sonores et les Feeds se placent après les Banques ; un onglet déjà ouvert revient au premier plan. Les onglets ouverts à la demande, et ceux des fiches, se ferment par leur croix ; une liste fermée puis rouverte retrouve son filtre et son tri.
+**Machin interface** s'ouvre sur une fenêtre à onglets, un par écran. Au lancement : **Antenne**, **Calendrier** (la grille d'antenne, [#307](https://github.com/dascritch/machincast/issues/307)), **Événements**, **Séquences**, **Banques** et **Incidents**. Les listes des **Sonores** et des **Feeds** s'ouvrent à la demande, par le menu **Affichage** : « Ouvrir l'onglet Sonores » et « Ouvrir l'onglet Feeds » ; « Ouvrir l'onglet Grille horaire » ramène le calendrier au premier plan. Les Sonores et les Feeds se placent après les Banques ; un onglet déjà ouvert revient au premier plan. Les onglets ouverts à la demande, et ceux des fiches, se ferment par leur croix ; une liste fermée puis rouverte retrouve son filtre et son tri.
 
-**Icônes** : une même icône désigne partout un même genre, dans les onglets, le menu **Affichage**, la recherche, les relations d'un sonore et les boutons **Fiche…** de l'accueil ([#215](https://github.com/dascritch/machincast/issues/215)). Elles prennent la couleur du texte, en thème clair comme en thème sombre.
+**Icônes** : une même icône désigne partout un même genre, dans les onglets, le menu **Affichage**, la recherche, les relations d'un sonore et les boutons **Fiche…** de l'onglet Antenne ([#215](https://github.com/dascritch/machincast/issues/215)). Elles prennent la couleur du texte, en thème clair comme en thème sombre.
 
 | Icône | Genre |
 | --- | --- |
@@ -47,17 +47,20 @@ Au lancement, l'interface cherche ce qui manque pour que l'antenne puisse tourne
 S'il en manque, la fenêtre **Pour bien démarrer** les propose, chacun coché :
 
 - **Créer** crée ce qui est coché. Le fil musical est permanent. Les banques sont vides : elles se remplissent depuis leur [fiche](sonores.md#fiche-dune-banque), ou par l'indexation de leurs répertoires. L'identifiant station et les rotations musicales sont aléatoires ; les partenariats, les publicités et les bandes-annonces sont séquentiels, dans l'ordre de leurs sonores. « Identifiant station » et « Bande-annonce émissions » sont marquées « ne pas répéter ». Chacune a sa [durée maximale des sonores](sonores.md#fiche-dune-banque) : 15 minutes pour les rotations lourde, normale et rare, 2 minutes pour l'identifiant station, les partenariats, les publicités et les bandes-annonces ; ces trois dernières s'enchaînent sans crossfade, imposé à 0 seconde à leurs sonores ; la rotation de nuit n'en a pas. Tout cela se change dans leur fiche. Un fil musical encore vide reçoit une rotation type : Identifiant station, rotation lourde, normale, lourde, rare. La rotation de nuit reste à placer dans un événement de nuit. La barre d'état dit ce qui a été créé.
-- Le **périphérique de l'antenne** se choisit parmi ceux du poste, sauf celui de la pré-écoute. La diffusion le prend à son prochain démarrage (**Diffusion → Arrêter la diffusion**, puis **Démarrer la diffusion**).
+- Le **périphérique de l'antenne** se choisit parmi ceux du poste, sauf celui de la pré-écoute. La diffusion le prend à son prochain démarrage (**Diffusion → ⏹ Arrêter la diffusion**, puis **⏵ Démarrer la diffusion**).
 - **Plus tard** ne crée rien : la fenêtre revient au lancement suivant.
 - **Ne plus proposer au lancement** éteint la fenêtre ; elle se rallume dans les [préférences](#préférences). Sans elle, l'interface recrée au lancement un fil musical vide s'il n'en existe aucun, et le dit dans la barre d'état.
 
 Après la suppression ou l'enregistrement d'un événement, l'interface recrée toujours un fil musical s'il n'en reste aucun.
 
-## Accueil
+## Antenne
 
-L'onglet **Accueil** montre en un coup d'œil ce qui passe et ce qui va passer.
+L'onglet **Antenne** montre en un coup d'œil ce qui passe et ce qui va passer ([#322](https://github.com/dascritch/machincast/issues/322)).
 
-![L'accueil : l'heure, le texte public, l'état de la diffusion, l'événement à l'antenne, le sonore en cours et le prochain, le VU-mètre, les sonores à venir et l'historique](../captures/accueil.png)
+- **Le témoin de son titre** dit si la diffusion est installée pour de bon : **🟩 Antenne** tant que le service de diffusion n'est pas installé (un [poste d'essai](antenne.md#piloter-la-diffusion)), **🟥 Antenne** dès qu'il l'est, que la diffusion tourne ou non.
+- **🔇 Diffusion arrêtée**, en permanence à droite de la dernière ligne de la fenêtre, tant que la diffusion ne tourne pas : rien ne part à l'antenne. Il disparaît dès qu'elle reprend.
+
+![L'onglet Antenne : l'heure, le texte public, l'état de la diffusion, l'événement à l'antenne, le sonore en cours et le prochain, le VU-mètre, les sonores à venir et l'historique](../captures/accueil.png)
 
 - **En haut** : l'heure du poste, à la seconde (la date est dans son infobulle) ; le **texte public** du sonore en cours, tel que l'affiche la page publique de la radio (`—` sans texte, par exemple pour un sonore masqué) ; et l'état de la diffusion : `En diffusion`, `Blanc à l'antenne` (rien à diffuser) ou `À l'arrêt`.
 - **Événement à l'antenne** : son nom et ses heures, « de 20:00 à 22:00 », « depuis 19:00 » pour une occurrence sans fin, ou « permanent » pour un fil musical.
@@ -71,7 +74,7 @@ L'onglet **Accueil** montre en un coup d'œil ce qui passe et ce qui va passer.
 - **Airplay : les 10 derniers sonores** ([#244](https://github.com/dascritch/machincast/issues/244)) : les 10 derniers passages, du plus récent au plus ancien, avec le début, la fin (`en cours` pour le sonore à l'antenne), la durée, l'artiste, le titre, l'événement, la séquence, la banque, et `oui` dans la colonne « Incident » pour un passage qui en a eu un. Un double-clic sur une ligne ouvre la fiche du sonore, de l'événement, de la séquence ou de la banque cliqué ; un clic droit propose la [pré-écoute](sonores.md#pré-écoute) du sonore. L'interface est réservée à l'équipe : l'artiste et le titre y sont toujours affichés, même masqués sur la page publique. Pour remonter plus loin, l'[onglet Airplay](#onglet-airplay).
 - **Encarts repliables** : un clic sur le titre « À venir après le prochain sonore » ou « Airplay : les 10 derniers sonores » replie l'encart (« ▸ »), ou le déplie (« ▾ »). Un encart replié le reste aux prochaines ouvertures de l'interface.
 
-L'accueil suit la diffusion en direct. Quand elle s'arrête, il affiche `À l'arrêt`, et la retrouve tout seul dès qu'elle reprend. Il doit tourner sur le poste de la diffusion, avec le même compte : sinon il ne la voit pas.
+L'onglet Antenne suit la diffusion en direct. Quand elle s'arrête, il affiche `À l'arrêt`, et la retrouve tout seul dès qu'elle reprend. Il doit tourner sur le poste de la diffusion, avec le même compte : sinon il ne la voit pas.
 
 ### VU-mètre de l'antenne
 
@@ -98,20 +101,20 @@ Le VU-mètre écoute le périphérique de l'antenne, quel que soit le programme 
 ![L'onglet Airplay : le réglage des dernières heures et le bouton d'export en haut, puis les passages, du plus récent au plus ancien](../captures/onglet-airplay.png)
 
 - **Dernières heures**, en haut : combien d'heures remonter, 12 par défaut, jusqu'à un mois. Le réglage est retenu pour les prochaines ouvertures.
-- **La table** a les mêmes colonnes que l'airplay de l'accueil, et s'utilise de même : double-clic vers les fiches, clic droit pour la [pré-écoute](sonores.md#pré-écoute). Elle se met à jour à chaque nouveau sonore à l'antenne.
+- **La table** a les mêmes colonnes que l'airplay de l'onglet Antenne, et s'utilise de même : double-clic vers les fiches, clic droit pour la [pré-écoute](sonores.md#pré-écoute). Elle se met à jour à chaque nouveau sonore à l'antenne.
 - **Exporter…** enregistre ce que montre l'onglet, au format choisi dans la fenêtre d'enregistrement : **Tableur CSV**, **Page HTML** ou **Liste de lecture M3U**. Chaque export donne à la fois l'artiste, le titre et l'emplacement du fichier, et le **texte public**, tel que la page publique de la radio l'affiche, masquage compris. La liste M3U va du plus ancien au plus récent, et se lit dans un lecteur ; le texte public y est en commentaire. Le nom reçoit l'extension du format : un export ne remplace jamais un fichier sonore. La barre d'état dit où il est enregistré.
 
 ## Passer d'un onglet à l'autre
 
-Les 12 premiers onglets s'ouvrent au clavier, par <kbd>Maj</kbd>+<kbd>F1</kbd> à <kbd>Maj</kbd>+<kbd>F12</kbd>, selon leur rang : <kbd>Maj</kbd>+<kbd>F1</kbd> est toujours l'Accueil ; au lancement, <kbd>Maj</kbd>+<kbd>F2</kbd> mène au Calendrier, <kbd>Maj</kbd>+<kbd>F3</kbd> à <kbd>Maj</kbd>+<kbd>F5</kbd> aux Événements, Séquences et Banques, <kbd>Maj</kbd>+<kbd>F6</kbd> aux Incidents, puis aux fiches et aux autres onglets, dans l'ordre où ils sont ouverts. Ouvrir ou fermer un onglet décale ceux qui le suivent. L'infobulle de chaque onglet donne son raccourci.
+Les 12 premiers onglets s'ouvrent au clavier, par <kbd>Maj</kbd>+<kbd>F1</kbd> à <kbd>Maj</kbd>+<kbd>F12</kbd>, selon leur rang : <kbd>Maj</kbd>+<kbd>F1</kbd> est toujours l'onglet Antenne ; au lancement, <kbd>Maj</kbd>+<kbd>F2</kbd> mène au Calendrier, <kbd>Maj</kbd>+<kbd>F3</kbd> à <kbd>Maj</kbd>+<kbd>F5</kbd> aux Événements, Séquences et Banques, <kbd>Maj</kbd>+<kbd>F6</kbd> aux Incidents, puis aux fiches et aux autres onglets, dans l'ordre où ils sont ouverts. Ouvrir ou fermer un onglet décale ceux qui le suivent. L'infobulle de chaque onglet donne son raccourci.
 
 De proche en proche ([#318](https://github.com/dascritch/machincast/issues/318)), où que soit le curseur, dans un tableau ou un champ de texte compris :
 
 | Raccourci | Onglet |
 | --- | --- |
-| <kbd>Ctrl</kbd>+<kbd>PageUp</kbd> | Celui de gauche ; sur l'Accueil, rien. |
+| <kbd>Ctrl</kbd>+<kbd>PageUp</kbd> | Celui de gauche ; sur l'onglet Antenne, rien. |
 | <kbd>Ctrl</kbd>+<kbd>PageDown</kbd> | Celui de droite ; sur le dernier, rien. |
-| <kbd>Ctrl</kbd>+<kbd>Home</kbd> | Le premier, l'Accueil. |
+| <kbd>Ctrl</kbd>+<kbd>Home</kbd> | Le premier, l'onglet Antenne. |
 | <kbd>Ctrl</kbd>+<kbd>End</kbd> | Le dernier. |
 
 ## Menus
@@ -122,16 +125,16 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | --- | --- | --- |
 | Fichier | Préférences… | Les réglages de l'interface et de l'audio ([Préférences](#préférences)). |
 | Fichier | Quitter | Ferme l'interface, aussi par <kbd>Alt</kbd>+<kbd>Q</kbd>. Demande d'abord quoi faire des fiches modifiées. La diffusion, elle, continue. |
-| Affichage | Rafraîchir les onglets | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
 | Affichage | Rechercher… | Ouvre la recherche, aussi par <kbd>Ctrl</kbd>+<kbd>F</kbd> ([Rechercher](#rechercher)). |
 | Affichage | Ouvrir l'onglet Sonores, Ouvrir l'onglet Feeds | Ouvrent ces listes, ou les ramènent au premier plan ([Listes](listes.md#listes)). |
-| Affichage | Ouvrir l'onglet Grille horaire | Ramène au premier plan le calendrier, toujours ouvert après l'accueil ([Calendrier](grille.md#calendrier)). |
+| Affichage | Ouvrir l'onglet Grille horaire | Ramène au premier plan le calendrier, toujours ouvert après l'onglet Antenne ([Calendrier](grille.md#calendrier)). |
 | Affichage | Ouvrir l'onglet Simulation | Ouvre la simulation ([Simulation](grille.md#simulation)). |
 | Affichage | Ouvrir l'onglet Airplay | Ouvre l'historique de diffusion, réglable et exportable ([Onglet Airplay](#onglet-airplay)). |
 | Affichage | Pré-écoute… | Ouvre la fenêtre de pré-écoute ([Pré-écoute](sonores.md#pré-écoute)). Comme chaque bouton et chaque entrée de pré-écoute, elle porte un casque. |
+| Affichage | Rafraîchir les onglets, en bas du menu | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
 | Diffusion | Pré-écoute de l'antenne, Arrêter la pré-écoute de l'antenne | En tête du menu : écoute aussitôt l'antenne sur la sortie de pré-écoute ([Pré-écoute](sonores.md#pré-écoute), [#245](https://github.com/dascritch/machincast/issues/245)), puis, pendant l'écoute, l'arrête ; aussi par <kbd>Alt</kbd>+<kbd>P</kbd> ([#256](https://github.com/dascritch/machincast/issues/256)). |
-| Diffusion | Démarrer, Arrêter la diffusion | Pilotent la diffusion ([Piloter la diffusion](antenne.md#piloter-la-diffusion)). |
-| Diffusion | Sauter au sonore suivant, Sauter après la séquence, Couper l'événement par le fil musical | Corrigent l'antenne sans attendre ([Interrompre l'antenne](antenne.md#interrompre-lantenne)). |
+| Diffusion | ⏵ Démarrer, ⏹ Arrêter la diffusion | Pilotent la diffusion ([Piloter la diffusion](antenne.md#piloter-la-diffusion)). |
+| Diffusion | ⏭ Sauter au sonore suivant, ⏭ Sauter après la séquence, ⏭ Couper l'événement par le fil musical | Corrigent l'antenne sans attendre ([Interrompre l'antenne](antenne.md#interrompre-lantenne)). |
 | Maintenance | Indexation rapide, Audit complet | Vérifient les sonores ([Indexation depuis l'interface](sonores.md#indexation-depuis-linterface)). |
 | Maintenance | Maintenance de la base de données… | Après confirmation, sauvegarde, vérifie et optimise la base, dans une fenêtre de terminal, qui reste ouverte à la fin : la fermer une fois le compte rendu lu. La question donne le répertoire où la sauvegarde sera enregistrée, et « Choisir l'emplacement… » en propose un autre ; Entrée ou Échap l'annulent. Inactive pendant une indexation. Voir le [guide d'administration](../administration/commandes.md#maintenance-de-la-base--machin-maintenance-db). |
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
@@ -143,10 +146,10 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 
 ## Rafraîchir les onglets
 
-Chaque onglet relit la base quand on y passe ([#241](https://github.com/dascritch/machincast/issues/241)) : une liste, les incidents, le calendrier, la recherche, l'airplay, l'accueil, et une fiche, sauf si on est en train de la modifier. Une fiche modifiée reste telle quelle, sans question ; une fiche dont l'élément a été effacé depuis un autre poste se ferme, et la barre d'état le dit. Pendant qu'un onglet reste affiché, ce qu'un autre poste, l'indexation ou la diffusion changent n'apparaît pas tout seul. **Affichage → Rafraîchir les onglets**, ou <kbd>F5</kbd>, relit tout d'un coup :
+Chaque onglet relit la base quand on y passe ([#241](https://github.com/dascritch/machincast/issues/241)) : une liste, les incidents, le calendrier, la recherche, l'airplay, l'onglet Antenne, et une fiche, sauf si on est en train de la modifier. Une fiche modifiée reste telle quelle, sans question ; une fiche dont l'élément a été effacé depuis un autre poste se ferme, et la barre d'état le dit. Pendant qu'un onglet reste affiché, ce qu'un autre poste, l'indexation ou la diffusion changent n'apparaît pas tout seul. **Affichage → Rafraîchir les onglets**, ou <kbd>F5</kbd>, relit tout d'un coup :
 
 - l'onglet ouvert : une liste, les incidents, le calendrier, la recherche ou l'airplay ;
-- l'airplay de l'accueil ;
+- l'airplay de l'onglet Antenne ;
 - toutes les fiches ouvertes. Une fiche modifiée demande d'abord quoi faire de ses modifications : **Enregistrer** les écrit puis relit la fiche, **Abandonner** les perd et relit la fiche, **Annuler** la laisse telle quelle.
 - La fiche d'un élément effacé depuis un autre poste se ferme, sans question.
 
@@ -183,7 +186,7 @@ Page **Interface** :
 
 | Réglage | Rôle |
 | --- | --- |
-| Afficher le voyant de saturation de l'accueil | Cochée par défaut ; décochée, le voyant « Saturation » disparaît du [VU-mètre](#vu-mètre-de-lantenne). |
+| Afficher le voyant de saturation de l'onglet Antenne | Cochée par défaut ; décochée, le voyant « Saturation » disparaît du [VU-mètre](#vu-mètre-de-lantenne). |
 | Proposer au lancement ce qui manque pour démarrer | Cochée par défaut : la fenêtre [Pour bien démarrer](#pour-bien-démarrer). |
 | Icône de l'application | L'icône des fenêtres de MachinCast, de son raccourci dans le menu des applications et sur le bureau, et de la barre des tâches. **Choisir une image…** en prend une autre, SVG, PNG ou JPEG, de préférence carrée, le logo de la radio par exemple ; **Icône de MachinCast** revient à celle d'origine. Une image illisible n'est pas prise : `Image illisible : …`. La nouvelle icône vaut dès **OK**. |
 
