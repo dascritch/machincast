@@ -1,5 +1,6 @@
 """Étapes du moteur audio GStreamer (https://github.com/dascritch/machincast/issues/15)."""
 
+import dataclasses
 import os
 import time
 from collections.abc import Iterator
@@ -185,6 +186,13 @@ def sans_fondu_suivant(contexte: Contexte) -> None:
 @given(parsers.re(r"un moteur audio sur la sortie de la configuration de test, (?P<rythme>au plus vite|en temps réel)"))
 def moteur_de_test(contexte: Contexte, rythme: str) -> None:
 	contexte.moteur = MoteurAudio(configuration_test().audio, temps_reel=rythme == "en temps réel")
+
+
+@given(parsers.parse("un moteur audio sur la sortie « {sortie} », antenne « {antenne} », au plus vite"))
+def moteur_sur_l_antenne(contexte: Contexte, sortie: str, antenne: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/339"""
+	audio = dataclasses.replace(configuration_test().audio, sortie=sortie, peripherique=antenne)  # type: ignore[arg-type]
+	contexte.moteur = MoteurAudio(audio, temps_reel=False)
 
 
 @given("un moteur audio sur la sortie de la configuration de test, en temps réel, à l'horloge du scénario")

@@ -130,7 +130,7 @@ def executer_simulation(configuration: Configuration, options: argparse.Namespac
 def executer_diffusion(configuration: Configuration) -> int:
 	base = configuration.base
 	audio = configuration.audio
-	if (audio.sortie != "factice") and (audio.peripherique is None):
+	if audio.antenne_a_renseigner():
 		# Le périphérique par défaut pourrait être celui de la pré-écoute, ou changer avec un branchement.
 		journal.error(
 			f"périphérique de l'antenne non renseigné : le donner dans audio.peripherique de {configuration.chemin},"
@@ -142,12 +142,13 @@ def executer_diffusion(configuration: Configuration) -> int:
 		with connecter(base.socket, base.production, Role.LECTURE) as connexion:
 			moteur = MoteurAudio(configuration.audio, blanc=configuration.blanc_antenne)
 			try:
+				sortie_de_l_antenne, peripherique_de_l_antenne = audio.antenne()
 				peripherique = ""
-				if audio.peripherique is not None:
-					peripherique = f", périphérique {audio.peripherique}"
+				if peripherique_de_l_antenne is not None:
+					peripherique = f", périphérique {peripherique_de_l_antenne}"
 				journal.info(
-					f"diffusion sur la sortie {audio.sortie}{peripherique}, configuration {configuration.chemin},"
-					" arrêt par Ctrl-C ou SIGTERM"
+					f"diffusion sur la sortie {sortie_de_l_antenne}{peripherique},"
+					f" configuration {configuration.chemin}, arrêt par Ctrl-C ou SIGTERM"
 				)
 				diffusion = Diffusion(
 					connexion,

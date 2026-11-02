@@ -121,6 +121,15 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Et elle a joué sur l'élément GStreamer « fakesink »
 		Et elle a été lue par l'élément GStreamer « playbin3 »
 
+	Scénario: Sur l'entrée « sortie factice », l'antenne joue sur la sortie factice, quelle que soit la sortie audio
+		https://github.com/dascritch/machincast/issues/339 : audio.peripherique = "factice".
+
+		Étant donné un moteur audio sur la sortie « pipewire », antenne « factice », au plus vite
+		Quand il joue le fichier de test « sain.flac »
+		Et j'attends la fin de ses voies
+		Alors la voie de « sain.flac » est finie
+		Et elle a joué sur l'élément GStreamer « fakesink »
+
 	Plan du scénario: Chaque format de la spécification est joué
 		Étant donné un moteur audio sur la sortie de la configuration de test, au plus vite
 		Quand il joue le fichier de test « sain.<format> »

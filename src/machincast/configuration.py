@@ -57,12 +57,37 @@ class Base:
 	(https://github.com/dascritch/machincast/issues/268)."""
 
 
+FACTICE = "factice"
+"""L'entrée « sortie factice », que prennent audio.peripherique et audio.preecoute
+(https://github.com/dascritch/machincast/issues/339) : l'antenne ne joue aucun son, la pré-écoute est désactivée."""
+
+
 @dataclass(frozen=True)
 class Audio:
 	sortie: SortieAudio
 	peripherique: str | None
-	"""Périphérique d'antenne ; None pour le périphérique par défaut de la sortie."""
+	"""Périphérique d'antenne ; None tant qu'il n'est pas renseigné ; FACTICE pour l'entrée « sortie factice »."""
 	preecoute: str
+	"""Périphérique de pré-écoute ; FACTICE pour l'entrée « sortie factice », qui désactive la pré-écoute."""
+
+	def antenne(self) -> tuple[SortieAudio, str | None]:
+		"""La sortie et le périphérique où joue l'antenne : la sortie factice, sans périphérique, sur l'entrée « sortie
+		factice »."""
+		if self.peripherique == FACTICE:
+			return "factice", None
+		return self.sortie, self.peripherique
+
+	def antenne_factice(self) -> bool:
+		"""L'antenne ne joue aucun son : sortie factice, ou entrée « sortie factice »."""
+		return self.antenne()[0] == "factice"
+
+	def antenne_a_renseigner(self) -> bool:
+		"""Sur une vraie sortie, sans périphérique d'antenne, Machin lecture refuse de diffuser."""
+		return (not self.antenne_factice()) and (self.peripherique is None)
+
+	def preecoute_desactivee(self) -> bool:
+		"""Pré-écoute sur l'entrée « sortie factice » : ses boutons et ses menus sont grisés dans l'interface."""
+		return self.preecoute == FACTICE
 
 
 @dataclass(frozen=True)

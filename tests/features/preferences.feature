@@ -131,6 +131,11 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la barre d'état ne signale pas « Périphérique de l'antenne à renseigner »
 
+	Scénario: Sur l'entrée « sortie factice » d'une vraie sortie, l'antenne n'a pas à être renseignée
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « factice »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors la barre d'état ne signale pas « Périphérique de l'antenne à renseigner »
+
 	Scénario: Machin interface ouvre sa fenêtre sur la sortie et les périphériques de sa configuration
 		Étant donné un fichier de configuration sur la base de test, la sortie « pipewire », l'antenne « carte-1 » et la pré-écoute « casque-usb »
 		Quand Machin interface est lancé avec ce fichier

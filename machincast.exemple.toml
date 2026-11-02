@@ -29,7 +29,10 @@ sortie = "pipewire"
 # de démarrer, car le périphérique par défaut pourrait être celui de la pré-écoute. Il se choisit aussi dans
 # Machin interface, Fichier → Préférences…, page Audio, qui l'écrit ici.
 # peripherique = "alsa_output.pci-0000_00_1f.3.analog-stereo"
-# Périphérique de pré-écoute de l'interface. Obligatoire, et différent du périphérique de l'antenne.
+# "factice", l'entrée « sortie factice », fait jouer l'antenne sans aucun son, quelle que soit la sortie : seulement sans
+# service de diffusion installé (install.sh sans --service).
+# Périphérique de pré-écoute de l'interface. Obligatoire, et différent du périphérique de l'antenne. "factice", l'entrée
+# « sortie factice », désactive la pré-écoute.
 preecoute = "alsa_output.usb-casque.analog-stereo"
 
 [sorties]

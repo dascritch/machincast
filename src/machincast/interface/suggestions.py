@@ -125,7 +125,7 @@ def manquants(connexion: psycopg.Connection[TupleRow], audio: Audio) -> Manques:
 		}
 	banques = tuple(banque for banque in BANQUES if banque.casefold() not in existantes)
 	antennes = None
-	if (audio.sortie != "factice") and (audio.peripherique is None):
+	if audio.antenne_a_renseigner():
 		antennes = tuple(
 			peripherique
 			for peripherique in sorties_audio.peripheriques(audio.sortie)

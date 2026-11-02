@@ -6,7 +6,8 @@ rien demander à Machin lecture :
 - PipeWire : pipewiresrc sur le nœud de l'antenne, qui en capture la sortie (stream.capture.sink) ;
 - PulseAudio : pulsesrc sur son « .monitor » ;
 - ALSA n'a pas de port de monitoring : le moniteur est indisponible, sans erreur ;
-- la sortie factice des tests et des essais : un signal de test en stéréo (SIGNAL_FACTICE).
+- la sortie factice des tests et des essais, et l'entrée « sortie factice » de l'antenne
+  (https://github.com/dascritch/machincast/issues/339) : un signal de test en stéréo (SIGNAL_FACTICE).
 
 Le port est capté en stéréo (CANAUX) : sans contrainte, pipewiresrc et pulsesrc se contentent d'un canal, et le
 VU-mètre n'en montrerait qu'un.
@@ -63,39 +64,42 @@ class Indisponible(Exception):
 
 def nom_du_port(audio: Audio) -> str:
 	"""Ce que le port de monitoring écoute, pour l'infobulle du VU-mètre et la source de la pré-écoute."""
-	peripherique = (audio.peripherique) or ("périphérique à renseigner")
-	if audio.sortie == "factice":
+	sortie, peripherique = audio.antenne()
+	nom = (peripherique) or ("périphérique à renseigner")
+	if sortie == "factice":
 		return "sortie factice, signal de test"
-	if audio.sortie == "pulseaudio":
-		return f"PulseAudio, {peripherique}.monitor"
-	if audio.sortie == "pipewire":
-		return f"PipeWire, {peripherique}"
-	return f"ALSA, {peripherique}"
+	if sortie == "pulseaudio":
+		return f"PulseAudio, {nom}.monitor"
+	if sortie == "pipewire":
+		return f"PipeWire, {nom}"
+	return f"ALSA, {nom}"
 
 
 def verifier(audio: Audio) -> None:
 	"""Lève Indisponible si l'antenne n'a pas de port de monitoring."""
-	if audio.sortie == "alsa":
+	if audio.antenne()[0] == "alsa":
 		raise Indisponible(SANS_ALSA)
-	if (audio.sortie != "factice") and (audio.peripherique is None):
+	if audio.antenne_a_renseigner():
 		raise Indisponible(SANS_ANTENNE)
 
 
 def source_du_moniteur(audio: Audio) -> Gst.Element:
-	"""L'élément qui donne le son de l'antenne ; lève Indisponible s'il n'y en a pas."""
+	"""L'élément qui donne le son de l'antenne ; lève Indisponible s'il n'y en a pas. Sur l'entrée « sortie factice »
+	(https://github.com/dascritch/machincast/issues/339), le signal de test, comme sur la sortie factice."""
 	Gst.init(None)
 	verifier(audio)
-	if audio.sortie == "factice":
+	sortie, peripherique = audio.antenne()
+	if sortie == "factice":
 		try:
 			return Gst.parse_bin_from_description(f"{SIGNAL_FACTICE} ! capsfilter caps={CANAUX}", True)
 		except GLib.Error as erreur:
 			raise Indisponible(f"Indisponible : {erreur.message}") from None
-	if audio.sortie == "pulseaudio":
+	if sortie == "pulseaudio":
 		source = _element("pulsesrc")
-		source.set_property("device", f"{audio.peripherique}.monitor")
+		source.set_property("device", f"{peripherique}.monitor")
 		return _en_stereo(source)
 	source = _element("pipewiresrc")
-	source.set_property("target-object", audio.peripherique)
+	source.set_property("target-object", peripherique)
 	proprietes, _fin = Gst.Structure.from_string("props, stream.capture.sink=(boolean)true")
 	source.set_property("stream-properties", proprietes)
 	# Jamais l'écoute d'un autre périphérique que l'antenne (https://github.com/dascritch/machincast/issues/345).

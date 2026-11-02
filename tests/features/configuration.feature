@@ -127,6 +127,25 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors le chargement échoue avec un message qui mentionne "audio.preecoute"
 
+	Plan du scénario: L'entrée « sortie factice » vaut pour l'antenne comme pour la pré-écoute (https://github.com/dascritch/machincast/issues/339)
+		Étant donné une configuration valide où la clé "audio.sortie" vaut "pipewire"
+		Et la clé "<cle>" vaut "factice"
+		Quand je charge la configuration
+		Alors la configuration est chargée sans erreur
+		Et l'antenne joue sur la sortie « <sortie> », <peripherique>
+		Et la pré-écoute est <preecoute>
+
+		Exemples:
+			| cle               | sortie   | peripherique                   | preecoute  |
+			| audio.peripherique | factice  | sans périphérique              | active     |
+			| audio.preecoute    | pipewire | sur le périphérique « antenne » | désactivée |
+
+	Scénario: L'antenne et la pré-écoute ne sont pas toutes deux sur la sortie factice
+		Étant donné une configuration valide où la clé "audio.peripherique" vaut "factice"
+		Et la clé "audio.preecoute" vaut "factice"
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "audio.preecoute"
+
 	# ─── Crossfades (https://github.com/dascritch/machincast/issues/145) ─────────────────────────
 
 	Scénario: Sans section [crossfades], les crossfades se règlent au dixième de seconde, jusqu'à 10 secondes, sans défaut

@@ -1205,7 +1205,7 @@ class FenetrePrincipale(QMainWindow):
 	def _signaler_l_antenne(self) -> None:
 		"""Sans périphérique d'antenne, sur une vraie sortie, Machin lecture refuse de diffuser : la barre d'état le
 		dit."""
-		self.antenne_a_renseigner.setVisible((self.audio.sortie != "factice") and (self.audio.peripherique is None))
+		self.antenne_a_renseigner.setVisible(self.audio.antenne_a_renseigner())
 
 	def _ouvrir(self, genre: str, identifiant: int, _nom: str) -> None:
 		self.detail_demande.emit(genre, identifiant)

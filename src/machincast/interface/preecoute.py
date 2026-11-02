@@ -238,9 +238,9 @@ class Lecteur:
 	def _antenne_par_pipewire(self, antenne: Audio | None) -> str | None:
 		"""Le périphérique de l'antenne, quand elle s'écoute par un lien de PipeWire : sur la sortie pipewire, qui est
 		aussi celle de la pré-écoute."""
-		if (antenne is None) or (antenne.sortie != "pipewire"):
+		if (antenne is None) or (antenne.antenne()[0] != "pipewire"):
 			return None
-		return antenne.peripherique
+		return antenne.antenne()[1]
 
 	def placer_a(self, position: float) -> None:
 		"""Va à cette position du fichier, en secondes ; écouté comme à l'antenne, dans sa partie jouée."""
