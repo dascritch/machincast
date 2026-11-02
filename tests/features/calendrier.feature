@@ -232,50 +232,97 @@ Fonctionnalité: Calendrier de la grille
 		Étant donné la durée de péremption du fichier de configuration de l'interface est de 28 jours
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
-		Et je clique 4 fois sur « Semaine suivante » du calendrier
+		Et je clique 4 fois sur « Après ▶ » du calendrier
 		Alors le calendrier montre « Semaine du lundi 16 au dimanche 22 novembre 2026 »
-		Et le bouton « Semaine suivante » du calendrier est inactif
+		Et le bouton « Après ▶ » du calendrier est inactif
 		Quand je clique sur « Aujourd'hui » du calendrier
-		Et je clique 4 fois sur « Semaine précédente » du calendrier
+		Et je clique 4 fois sur « ◀ Avant » du calendrier
 		Alors le calendrier montre « Semaine du lundi 21 au dimanche 27 septembre 2026 »
-		Et le bouton « Semaine précédente » du calendrier est inactif
+		Et le bouton « ◀ Avant » du calendrier est inactif
 		Quand je clique sur « Aujourd'hui » du calendrier
 		Alors le calendrier montre « Semaine du lundi 19 au dimanche 25 octobre 2026 »
 
 	Scénario: La vue jour montre un seul jour, et se pagine par jour
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
-		Et je clique sur « Jour » du calendrier
+		Et je choisis la vue « Jour » du calendrier
 		Alors le calendrier montre « mardi 20 octobre 2026 »
 		Et le calendrier a les jours « mardi 20 »
-		Quand je clique sur « Jour suivant » du calendrier
+		Quand je clique sur « Après ▶ » du calendrier
 		Alors le calendrier montre « mercredi 21 octobre 2026 »
 		Et le calendrier montre les blocs :
 			| jour        | début | fin   | événement | état           |
 			| mercredi 21 | 07:00 | 09:00 | Matinale  | joue en partie |
 			| mercredi 21 | 08:00 | 10:00 | Concert   | joue           |
 			| mercredi 21 | 12:00 | 13:00 | Midi      | joue           |
-		Quand je clique sur « Semaine » du calendrier
+		Quand je choisis la vue « Semaine » du calendrier
 		Alors le calendrier montre « Semaine du lundi 19 au dimanche 25 octobre 2026 »
+
+	Scénario: La première ligne du calendrier commence par « Aujourd'hui », puis « ◀ Avant » et « Après ▶ », et finit par la vue et le zoom
+		https://github.com/dascritch/machincast/issues/326
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Alors la première ligne du calendrier commence par « Aujourd'hui », « ◀ Avant », « Après ▶ »
+		Et elle finit par la liste « Jour », « Semaine », sur « Semaine », puis « 🔍 » et la liste « vue 4h », « vue 8h », « vue 12h », « vue 24h », sur « vue 12h »
+		Et le bouton « ◀ Avant » du calendrier a l'infobulle « Semaine précédente »
+		Et le bouton « Après ▶ » du calendrier a l'infobulle « Semaine suivante »
+		Quand je choisis la vue « Jour » du calendrier
+		Alors le bouton « ◀ Avant » du calendrier a l'infobulle « Jour précédent »
+		Et le bouton « Après ▶ » du calendrier a l'infobulle « Jour suivant »
+
+	Plan du scénario: Le zoom montre 4, 8, 12 ou 24 heures dans la hauteur de la grille, en gardant l'heure du haut
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Alors la grille du calendrier montre 12 heures, à partir de 07:00
+		Quand je choisis le zoom « <zoom> » du calendrier
+		Alors la grille du calendrier montre <heures> heures, à partir de <haut>
+
+		Exemples:
+			| zoom     | heures | haut  |
+			| vue 4h   | 4      | 07:00 |
+			| vue 8h   | 8      | 07:00 |
+			| vue 24h  | 24     | 00:00 |
+
+	Scénario: Maj + molette passe au zoom voisin ; la molette seule fait défiler la grille
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Et je tourne la molette vers le haut, avec Maj, dans la grille du calendrier
+		Alors la grille du calendrier montre 8 heures, à partir de 07:00
+		Et le zoom du calendrier est sur « vue 8h »
+		Quand je tourne la molette vers le haut, avec Maj, dans la grille du calendrier
+		Et je tourne la molette vers le haut, avec Maj, dans la grille du calendrier
+		Alors la grille du calendrier montre 4 heures, à partir de 07:00
+		Quand je tourne 3 fois la molette vers le bas, avec Maj, dans la grille du calendrier
+		Alors la grille du calendrier montre 24 heures, à partir de 00:00
+		Et le zoom du calendrier est sur « vue 24h »
+
+	Scénario: Au zoom, un clic désigne toujours l'heure sous la souris
+		Étant donné que je répondrai « Annuler » à la question de création
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Et je choisis le zoom « vue 4h » du calendrier
+		Et je clique dans le calendrier le dimanche 25 à 08:37
+		Alors la question de création a dit « Créer un événement le dimanche 25 octobre 2026 de 08:00 à 09:00 ? »
 
 	Scénario: La vue jour va aussi de la péremption à 28 jours après aujourd'hui
 		Étant donné la durée de péremption du fichier de configuration de l'interface est de 28 jours
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
-		Et je clique sur « Jour » du calendrier
-		Et je clique 28 fois sur « Jour suivant » du calendrier
+		Et je choisis la vue « Jour » du calendrier
+		Et je clique 28 fois sur « Après ▶ » du calendrier
 		Alors le calendrier montre « mardi 17 novembre 2026 »
-		Et le bouton « Jour suivant » du calendrier est inactif
-		Quand je clique 56 fois sur « Jour précédent » du calendrier
+		Et le bouton « Après ▶ » du calendrier est inactif
+		Quand je clique 56 fois sur « ◀ Avant » du calendrier
 		Alors le calendrier montre « mardi 22 septembre 2026 »
-		Et le bouton « Jour précédent » du calendrier est inactif
+		Et le bouton « ◀ Avant » du calendrier est inactif
 
 	Scénario: Le calendrier ne remonte pas avant la péremption, 60 jours par défaut, et grise les jours d'avant
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
-		Et je clique 9 fois sur « Semaine précédente » du calendrier
+		Et je clique 9 fois sur « ◀ Avant » du calendrier
 		Alors le calendrier montre « Semaine du lundi 17 au dimanche 23 août 2026 »
-		Et le bouton « Semaine précédente » du calendrier est inactif
+		Et le bouton « ◀ Avant » du calendrier est inactif
 		Et le calendrier grise les jours « lundi 17 », « mardi 18 », « mercredi 19 », « jeudi 20 »
 
 	Scénario: Un jour grisé ne montre ni ce qui était prévu, ni ce qui a été diffusé
@@ -285,7 +332,7 @@ Fonctionnalité: Calendrier de la grille
 			| Continue  | 2026-08-21 10:00:00 | 2026-08-21 11:00:00 |
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
-		Et je clique 9 fois sur « Semaine précédente » du calendrier
+		Et je clique 9 fois sur « ◀ Avant » du calendrier
 		Alors la bande de la journée entière montre :
 			| jour        | événement | état |
 			| vendredi 21 | Continue  | joue |
@@ -300,14 +347,14 @@ Fonctionnalité: Calendrier de la grille
 		Et les préférences seront réglées avec la durée de péremption de 10 jours
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
-		Et je clique sur « Jour » du calendrier
-		Et je clique 30 fois sur « Jour précédent » du calendrier
+		Et je choisis la vue « Jour » du calendrier
+		Et je clique 30 fois sur « ◀ Avant » du calendrier
 		Alors le calendrier montre « dimanche 20 septembre 2026 »
-		Et le bouton « Jour précédent » du calendrier est inactif
+		Et le bouton « ◀ Avant » du calendrier est inactif
 		Quand je choisis « Préférences… » dans le menu « Fichier »
 		Et j'appuie sur « F5 »
 		Alors le calendrier montre « samedi 10 octobre 2026 »
-		Et le bouton « Jour précédent » du calendrier est inactif
+		Et le bouton « ◀ Avant » du calendrier est inactif
 
 	Scénario: Un événement supprimé garde ses occurrences d'avant sa suppression, et l'infobulle le dit
 		Étant donné l'événement « Matinale » supprimé le « 2026-10-20 08:00 »
@@ -380,9 +427,9 @@ Fonctionnalité: Calendrier de la grille
 	Scénario: Une semaine à cheval sur deux mois les nomme tous les deux
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
-		Et je clique 2 fois sur « Semaine suivante » du calendrier
+		Et je clique 2 fois sur « Après ▶ » du calendrier
 		Alors le calendrier montre « Semaine du lundi 2 au dimanche 8 novembre 2026 »
-		Quand je clique sur « Semaine précédente » du calendrier
+		Quand je clique sur « ◀ Avant » du calendrier
 		Alors le calendrier montre « Semaine du lundi 26 octobre au dimanche 1er novembre 2026 »
 
 	Scénario: Le calendrier se relit à l'ouverture de son onglet et par « Rafraîchir les onglets »

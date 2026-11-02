@@ -11,8 +11,8 @@ import uuid
 from datetime import date, datetime, time, timedelta
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
-from PySide6.QtGui import QHelpEvent
-from PySide6.QtWidgets import QApplication, QCheckBox, QMenu, QPushButton, QToolTip, QWidget
+from PySide6.QtGui import QHelpEvent, QWheelEvent
+from PySide6.QtWidgets import QApplication, QCheckBox, QComboBox, QMenu, QPushButton, QToolTip, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -411,3 +411,96 @@ def evenements_en_base(base_vide: Connexion, nombre: int) -> None:
 	ligne = base_vide.execute("SELECT count(*) FROM evenements").fetchone()
 	assert ligne is not None
 	assert ligne[0] == nombre
+
+
+# ─── Navigation et zoom (https://github.com/dascritch/machincast/issues/326) ───
+
+
+def _textes_de(liste: QComboBox) -> list[str]:
+	return [liste.itemText(rang) for rang in range(liste.count())]
+
+
+@when(parsers.parse("je choisis la vue « {texte} » du calendrier"))
+def choisir_la_vue(interface: Contexte, texte: str) -> None:
+	vue = calendrier(interface)
+	rang = _textes_de(vue.vue).index(texte)
+	vue.vue.setCurrentIndex(rang)
+	vue.vue.activated.emit(rang)
+
+
+@when(parsers.parse("je choisis le zoom « {texte} » du calendrier"))
+def choisir_le_zoom(interface: Contexte, texte: str) -> None:
+	vue = calendrier(interface)
+	rang = _textes_de(vue.zoom).index(texte)
+	vue.zoom.setCurrentIndex(rang)
+	vue.zoom.activated.emit(rang)
+
+
+@when(
+	parsers.re(
+		r"je tourne (?:(?P<fois>\d+) fois )?la molette vers le (?P<sens>haut|bas), avec Maj,"
+		r" dans la grille du calendrier"
+	)
+)
+def molette(interface: Contexte, fois: str | None, sens: str) -> None:
+	grille = calendrier(interface).grille
+	cran = 120 if sens == "haut" else -120
+	for _ in range(int((fois) or ("1"))):
+		centre = QPointF(grille.width() / 2, grille.height() / 2)
+		evenement = QWheelEvent(
+			centre,
+			grille.mapToGlobal(centre),
+			QPoint(0, 0),
+			QPoint(0, cran),
+			Qt.MouseButton.NoButton,
+			Qt.KeyboardModifier.ShiftModifier,
+			Qt.ScrollPhase.NoScrollPhase,
+			False,
+		)
+		QApplication.sendEvent(grille, evenement)
+
+
+@then(parsers.re(r"la première ligne du calendrier commence par (?P<boutons>«.+)"))
+def premiers_boutons(interface: Contexte, boutons: str) -> None:
+	vue = calendrier(interface)
+	barre = vue.layout().itemAt(0).layout()
+	widgets = [barre.itemAt(rang).widget() for rang in range(barre.count())]
+	textes = [widget.text() for widget in widgets[:3] if isinstance(widget, QPushButton)]
+	assert textes == NOM.findall(boutons)
+
+
+@then(
+	parsers.re(
+		r"elle finit par la liste (?P<vues>«.+), sur « (?P<vue>[^»]+) », puis « (?P<loupe>[^»]+) » et la liste"
+		r" (?P<zooms>«.+), sur « (?P<zoom>[^»]+) »"
+	)
+)
+def fin_de_ligne(interface: Contexte, vues: str, vue: str, loupe: str, zooms: str, zoom: str) -> None:
+	ecran = calendrier(interface)
+	barre = ecran.layout().itemAt(0).layout()
+	derniers = [barre.itemAt(rang).widget() for rang in range(barre.count() - 3, barre.count())]
+	assert derniers == [ecran.vue, ecran.loupe, ecran.zoom]
+	assert (_textes_de(ecran.vue), ecran.vue.currentText()) == (NOM.findall(vues), vue)
+	assert ecran.loupe.text() == loupe
+	assert (_textes_de(ecran.zoom), ecran.zoom.currentText()) == (NOM.findall(zooms), zoom)
+
+
+@then(parsers.parse("le bouton « {texte} » du calendrier a l'infobulle « {infobulle} »"))
+def infobulle_du_bouton(interface: Contexte, texte: str, infobulle: str) -> None:
+	assert bouton(calendrier(interface), texte).toolTip() == infobulle
+
+
+@then(parsers.parse("la grille du calendrier montre {heures:d} heures, à partir de {haut}"))
+def heures_montrees(interface: Contexte, heures: int, haut: str) -> None:
+	"""Les heures montrées dans la hauteur visible de la grille, et l'heure de son bord haut, à la minute."""
+	vue = calendrier(interface)
+	visible = vue.defilement.viewport().height()
+	assert abs(vue.hauteur_heure() * heures - visible) <= 1, (vue.hauteur_heure(), visible)
+	assert vue.grille.height() == int(24 * vue.hauteur_heure()) + 1
+	minutes = round(vue.defilement.verticalScrollBar().value() / vue.hauteur_heure() * 60)
+	assert f"{minutes // 60:02d}:{minutes % 60:02d}" == haut
+
+
+@then(parsers.parse("le zoom du calendrier est sur « {texte} »"))
+def zoom_choisi(interface: Contexte, texte: str) -> None:
+	assert calendrier(interface).zoom.currentText() == texte
