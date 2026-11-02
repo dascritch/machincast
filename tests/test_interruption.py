@@ -15,7 +15,7 @@ import pytest
 from pytest_bdd import parsers, scenarios, then, when
 
 from machincast.lecture.diffusion import EVENEMENT_AVANCE, INTERRUPTION_MANUELLE
-from machincast.lecture.etat import DEMANDE_IGNOREE, demande_d_avance
+from machincast.lecture.etat import DEMANDE_IGNOREE, demande_d_avance, demande_de_coupure_par_le_secours
 from tests.etapes_diffusion import Banc, diffusion, horloge
 
 scenarios("interruption.feature")
@@ -66,6 +66,12 @@ def avancer_l_evenement(banc: Banc, base_vide: Connexion, nom: str) -> None:
 @when(parsers.parse("un client de la socket d'état demande d'avancer l'événement « {nom} »"))
 def demander_l_avance(banc: Banc, base_vide: Connexion, caplog: pytest.LogCaptureFixture, nom: str) -> None:
 	demander(banc, caplog, demande_d_avance(identifiant(base_vide, nom)).strip())
+
+
+@when(parsers.parse("un client de la socket d'état demande de couper l'antenne par le secours « {nom} »"))
+def demander_le_secours(banc: Banc, base_vide: Connexion, caplog: pytest.LogCaptureFixture, nom: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/323"""
+	demander(banc, caplog, demande_de_coupure_par_le_secours(identifiant(base_vide, nom)).strip())
 
 
 @when(parsers.parse("un client de la socket d'état demande « {demande} »"))

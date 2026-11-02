@@ -157,6 +157,118 @@ Fonctionnalité: Interruption manuelle de l'antenne
 		Et le log ne note aucune interruption manuelle
 		Et le journal du binaire a signalé « interruption manuelle ignorée : le fil musical est déjà à l'antenne »
 
+	# ─── Couper par le secours ou par un feed (https://github.com/dascritch/machincast/issues/323) ───
+	# Comme pour le fil musical, chaque événement au-dessus du fil musical est terminé ; le secours, ou le stream qui
+	# suit le feed, tient l'antenne jusqu'à la fin prévue de l'événement coupé, ou, sous le fil musical, jusqu'au
+	# début de l'événement suivant. Le log note l'interruption manuelle, avec ce qui est coupé et par quoi.
+
+	Scénario: Couper une émission par le secours le fait jouer jusqu'à la fin prévue de l'émission
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'émission « Flash » de 20:00:00 à 20:02:00, avec le sonore « m »
+		Et l'événement de secours « Secours », avec les sonores « s1 », « s2 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et je coupe l'antenne par le secours « Secours »
+		Et la diffusion avance de 150 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre :
+			| sonore | début    | fin      | sans incident |
+			| m      | 20:00:00 | 20:00:10 | oui           |
+			| s1     | 20:00:10 | 20:01:10 | oui           |
+			| s2     | 20:01:10 | 20:02:10 | oui           |
+			| f1     | 20:02:10 | 20:02:40 | oui           |
+		Et le log note l'interruption manuelle « de l'événement « Flash » par le secours « Secours » »
+
+	Scénario: Sous le fil musical, le secours tient l'antenne jusqu'à l'événement suivant
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'émission « Journal » de 20:01:30 à 20:30:00, avec le sonore « j »
+		Et l'événement de secours « Secours », avec les sonores « s1 », « s2 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et je coupe l'antenne par le secours « Secours »
+		Et la diffusion avance de 120 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre :
+			| sonore | début    | fin      | sans incident |
+			| f1     | 20:00:00 | 20:00:10 | oui           |
+			| s1     | 20:00:10 | 20:01:10 | oui           |
+			| s2     | 20:01:10 | 20:01:30 | oui           |
+			| j      | 20:01:30 | 20:02:10 | oui           |
+		Et le log note l'interruption manuelle « du fil musical « Continue » par le secours « Secours » »
+
+	Scénario: Un secours sans rien de jouable rend l'antenne à la grille : le fil musical, l'émission coupée ne revient pas
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'émission « Flash » de 20:00:00 à 20:30:00, avec le sonore « m »
+		Et l'événement de secours « Secours », avec les sonores « s1 »
+		Et le sonore « s1 » est à l'état « desactive »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et je coupe l'antenne par le secours « Secours »
+		Et la diffusion avance de 20 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « m », « f1 »
+
+	Scénario: Un événement qui n'est pas un secours ne coupe rien
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'émission « Flash » de 20:00:00 à 20:30:00, avec le sonore « m »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et je coupe l'antenne par le secours « Flash »
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « m »
+		Et le log ne note aucune interruption manuelle
+		Et le journal du binaire a signalé « n'est pas un secours »
+
+	Scénario: Couper une émission par un feed fait passer le stream qui le suit, jusqu'à la fin prévue de l'émission
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'émission « Flash » de 20:00:00 à 20:02:00, avec le sonore « m »
+		Et chaque sonore dure 60 secondes
+		Et le stream « Relais » sur le feed « Studio mobile », à une adresse factice
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et je coupe l'antenne par le feed « Studio mobile »
+		Et la diffusion avance de 130 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre :
+			| sonore | début    | fin      | sans incident |
+			| m      | 20:00:00 | 20:00:10 | oui           |
+			| Relais | 20:00:10 | 20:02:00 | oui           |
+			| f1     | 20:02:01 | 20:02:20 | oui           |
+		Et le passage « Relais » est au nom de l'événement « Flash », sans élément de liste
+		Et le log note l'interruption manuelle « de l'événement « Flash » par le feed « Studio mobile » »
+
+	Scénario: Un feed qu'aucun stream actif ne suit ne coupe rien
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 60 secondes
+		Et le stream « Relais » sur le feed « Studio mobile », à une adresse factice
+		Et le sonore « Relais » est à l'état « desactive »
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et je coupe l'antenne par le feed « Studio mobile »
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 »
+		Et le log ne note aucune interruption manuelle
+		Et le journal du binaire a signalé « aucun stream actif ne suit le feed « Studio mobile » »
+
+	Scénario: Une demande de coupure par le secours arrive par la socket d'état
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'événement de secours « Secours », avec les sonores « s1 »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et un client de la socket d'état demande de couper l'antenne par le secours « Secours »
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 », « s1 »
+		Et le log note l'interruption manuelle « du fil musical « Continue » par le secours « Secours » »
+
 	# ─── Avancer l'événement suivant (https://github.com/dascritch/machincast/issues/257) ───
 	# L'événement suivant, la première occurrence à venir qui prendra l'antenne, commence aussitôt, au-dessus de tout,
 	# jusqu'à sa fin prévue : à son début prévu, rien ne change. La demande nomme l'événement attendu, celui que

@@ -16,7 +16,9 @@ Dans l'autre sens, un client peut envoyer des demandes, une ligne JSON par deman
 « sonore », « sequence » ou « evenement » (INTERRUPTIONS) ; {"commande": "relire_la_grille"}, après un changement de la
 grille qui doit valoir aussitôt, comme une session sautée (https://github.com/dascritch/machincast/issues/273) ;
 {"commande": "avancer", "evenement": N}, pour que l'événement suivant annoncé, d'identifiant N, commence aussitôt
-(https://github.com/dascritch/machincast/issues/257). Un fil
+(https://github.com/dascritch/machincast/issues/257) ; {"commande": "couper_par_le_secours", "evenement": N}, pour
+couper l'antenne par l'événement de secours N, et {"commande": "couper_par_le_feed", "feed": N}, par le stream qui
+suit le feed N (https://github.com/dascritch/machincast/issues/323). Un fil
 par client les lit, et les garde jusqu'au pas suivant
 de la diffusion (demandes). Une demande illisible, inconnue, ou plus longue que TAILLE_MAXIMALE, est ignorée et
 signalée dans le journal du binaire. Seul le compte qui diffuse peut ouvrir la socket : il n'y a rien d'autre à
@@ -53,6 +55,9 @@ INTERROMPRE = "interrompre"
 RELIRE_LA_GRILLE = "relire_la_grille"
 AVANCER = "avancer"
 """Avancer l'événement suivant, nommé par son identifiant (https://github.com/dascritch/machincast/issues/257)."""
+COUPER_PAR_LE_SECOURS = "couper_par_le_secours"
+COUPER_PAR_LE_FEED = "couper_par_le_feed"
+"""Couper l'antenne par un événement de secours, ou par un feed (https://github.com/dascritch/machincast/issues/323)."""
 INTERRUPTIONS = ("sonore", "sequence", "evenement")
 """Ce qu'une demande peut interrompre (https://github.com/dascritch/machincast/issues/104)."""
 TAILLE_MAXIMALE = 4096
@@ -68,7 +73,10 @@ class Demande:
 	"""Pour une interruption : « sonore », « sequence » ou « evenement »."""
 	commande: str = INTERROMPRE
 	evenement: int | None = None
-	"""Pour une avance : l'identifiant de l'événement suivant attendu."""
+	"""Pour une avance : l'identifiant de l'événement suivant attendu ; pour une coupure par le secours, celui du
+	secours."""
+	feed: int | None = None
+	"""Pour une coupure par un feed : son identifiant."""
 
 
 def demande_d_interruption(element: str) -> str:
@@ -85,6 +93,26 @@ def demande_d_avance(evenement: int) -> str:
 	"""La ligne qu'un client envoie pour avancer l'événement suivant, qu'il a lu dans l'état publié
 	(https://github.com/dascritch/machincast/issues/257)."""
 	return json.dumps({"commande": AVANCER, "evenement": evenement}) + "\n"
+
+
+def demande_de_coupure_par_le_secours(evenement: int) -> str:
+	"""La ligne qu'un client envoie pour couper l'antenne par cet événement de secours
+	(https://github.com/dascritch/machincast/issues/323)."""
+	return json.dumps({"commande": COUPER_PAR_LE_SECOURS, "evenement": evenement}) + "\n"
+
+
+def demande_de_coupure_par_le_feed(feed: int) -> str:
+	"""La ligne qu'un client envoie pour couper l'antenne par le stream qui suit ce feed."""
+	return json.dumps({"commande": COUPER_PAR_LE_FEED, "feed": feed}) + "\n"
+
+
+def _identifiant(message: dict[str, Any], cle: str) -> int:
+	"""L'identifiant que nomme la demande, et rien d'autre que sa commande ; ValueError sinon."""
+	valeur = message.get(cle)
+	# Un booléen est un entier pour Python : il n'est pas un identifiant.
+	if (set(message) != {"commande", cle}) or (not isinstance(valeur, int)) or (isinstance(valeur, bool)):
+		raise ValueError(f"la demande « {message.get('commande')} » nomme un identifiant, « {cle} », et rien d'autre")
+	return valeur
 
 
 def lire_demande(ligne: bytes) -> Demande:
@@ -109,6 +137,10 @@ def lire_demande(ligne: bytes) -> Demande:
 		):
 			raise ValueError("une avance nomme l'identifiant de l'événement suivant, et rien d'autre")
 		return Demande(commande=AVANCER, evenement=evenement)
+	if commande == COUPER_PAR_LE_SECOURS:
+		return Demande(commande=COUPER_PAR_LE_SECOURS, evenement=_identifiant(message, "evenement"))
+	if commande == COUPER_PAR_LE_FEED:
+		return Demande(commande=COUPER_PAR_LE_FEED, feed=_identifiant(message, "feed"))
 	if commande != INTERROMPRE:
 		raise ValueError(f"commande inconnue : {commande}")
 	if element not in INTERRUPTIONS:

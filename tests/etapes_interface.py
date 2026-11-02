@@ -1418,6 +1418,12 @@ def actions(interface: Contexte, menu: str) -> list[QAction]:
 	return list(menu_nomme(interface, menu).actions())
 
 
+@when(parsers.parse("j'ouvre le menu « {menu} »"))
+def ouvrir_le_menu(interface: Contexte, menu: str) -> None:
+	"""L'ouverture du menu, qui relit ce qu'il montre (aboutToShow)."""
+	menu_nomme(interface, menu).aboutToShow.emit()
+
+
 @when(parsers.parse("je choisis « {titre} » dans le menu « {menu} »"))
 def choisir_dans_le_menu(interface: Contexte, titre: str, menu: str) -> None:
 	"""Le menu s'ouvre d'abord, comme sous la souris : il peut relire ce qu'il propose (aboutToShow)."""

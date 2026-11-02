@@ -52,6 +52,14 @@ pour une séquence (les sonores à venir qui le suivent sont gardés), le fil mu
 rien à l'antenne, hors d'une séquence pour une séquence, ou dans le fil musical pour un événement, la demande est
 ignorée et signalée dans le journal du binaire.
 
+Coupure par le secours ou par un feed (https://github.com/dascritch/machincast/issues/323, couper_par_le_secours,
+couper_par_le_feed) : demandée de même, et traitée comme une interruption de l'événement : le sonore en cours s'éteint,
+une séquence en cours ne continue pas, et le remplacement de l'ordonnanceur (Ordonnanceur.couper_par) tient l'antenne
+jusqu'à la fin prévue de l'événement coupé, ou, sous le fil musical, jusqu'à l'événement suivant. Le log note
+l'« interruption manuelle », avec ce qui est coupé et par quoi. Sans rien à l'antenne, avec un secours inconnu,
+supprimé ou qui n'est pas de priorité secours, ou un feed qu'aucun stream actif ne suit, la demande est ignorée et
+signalée dans le journal du binaire. Un feed qui tombe rend l'antenne à la grille, sans reconnexion.
+
 Expiration (https://github.com/dascritch/machincast/issues/18, machincast.lecture.expiration) : chaque passage qui
 commence vérifie si son sonore a atteint son maximum de lectures ; tous les sonores sont vérifiés au démarrage, puis
 toutes les VERIFICATION_DES_EXPIRATIONS, pour les périodes de diffusion terminées.
@@ -77,10 +85,12 @@ from machincast.conversion import entier_ou_rien, texte_ou_rien
 from machincast.hasard import Hasard
 from machincast.horloge import Horloge
 from machincast.lecture.analyse import Analyseur, a_analyser
-from machincast.lecture.deroule import Choix, Coupure, Decision, EnCours, Ordonnanceur
+from machincast.lecture.deroule import HORS_LISTE, Choix, Coupure, Decision, EnCours, Ordonnanceur
 from machincast.lecture.enregistrement import Passage
 from machincast.lecture.etat import (
 	AVANCER,
+	COUPER_PAR_LE_FEED,
+	COUPER_PAR_LE_SECOURS,
 	PUBLICATION_MINIMALE,
 	RELIRE_LA_GRILLE,
 	SocketEtat,
@@ -90,7 +100,7 @@ from machincast.lecture.etat import (
 from machincast.lecture.etat import instant as iso
 from machincast.lecture.fichiers import verifier_avant_lecture
 from machincast.lecture.fondus import Placement, placer
-from machincast.lecture.grille import Occurrence, Priorite, heure_murale
+from machincast.lecture.grille import Evenement, Occurrence, Priorite, heure_murale, lire_evenement
 from machincast.lecture.historique import EN_BASE, Historique
 from machincast.lecture.moteur import (
 	DELAI_DE_GARDE,
@@ -421,6 +431,10 @@ class Diffusion:
 					self.relire_la_grille()
 				elif demande.commande == AVANCER:
 					self.avancer(demande.evenement)
+				elif demande.commande == COUPER_PAR_LE_SECOURS:
+					self.couper_par_le_secours(demande.evenement)
+				elif demande.commande == COUPER_PAR_LE_FEED:
+					self.couper_par_le_feed(demande.feed)
 				else:
 					self.interrompre(demande.element)
 		courant = self.courant
@@ -584,6 +598,71 @@ class Diffusion:
 			suivant = self._sauter(courant, element == "sequence", instant)
 		if suivant is None:
 			suivant = self.ordonnanceur.decider(instant, None).jouer
+		fondu = (self.crossfades.fin) or (AUCUN_CROSSFADE)
+		self._eteindre(courant, suivant, instant, fondu, (self.crossfades.debut) or (AUCUN_CROSSFADE))
+		self._publier(instant)
+		return True
+
+	def couper_par_le_secours(self, evenement: int | None) -> bool:
+		"""Coupe l'antenne par cet événement de secours (https://github.com/dascritch/machincast/issues/323) ; False si
+		la demande est ignorée : rien à l'antenne, ou pas un secours en base."""
+		secours = None
+		if evenement is not None:
+			with self.connexion.transaction():
+				secours = lire_evenement(self.connexion, evenement)
+		if (secours is None) or (secours.priorite is not Priorite.SECOURS) or (secours.supprime_le is not None):
+			journal.warning(f"{IGNOREE} : l'événement n°{evenement} n'est pas un secours")
+			return False
+		return self._couper_par(secours, None, f"par le secours « {secours.nom} »")
+
+	def couper_par_le_feed(self, feed: int | None) -> bool:
+		"""Coupe l'antenne par le stream actif qui suit ce feed, le plus ancien
+		(https://github.com/dascritch/machincast/issues/323) ; False si la demande est ignorée."""
+		with self.connexion.transaction():
+			ligne = self.connexion.execute(
+				"SELECT m.nom, (SELECT s.id FROM sonores s WHERE s.feed_id = m.id AND s.type = 'stream'"
+				" AND s.etat = 'actif' AND s.supprime_le IS NULL ORDER BY s.id LIMIT 1) FROM feeds m WHERE m.id = %s",
+				(feed,),
+			).fetchone()
+		if ligne is None:
+			journal.warning(f"{IGNOREE} : le feed n°{feed} n'existe pas")
+			return False
+		nom, stream = ligne
+		if stream is None:
+			journal.warning(f"{IGNOREE} : aucun stream actif ne suit le feed « {nom} »")
+			return False
+		return self._couper_par(None, int(str(stream)), f"par le feed « {nom} »")
+
+	def _couper_par(self, secours: Evenement | None, stream: int | None, par: str) -> bool:
+		"""Comme une interruption de l'événement, mais le secours ou le stream remplace la grille jusqu'à la fin de
+		l'événement coupé."""
+		instant = self.horloge.maintenant()
+		courant = self.courant
+		if courant is None:
+			journal.warning(f"{IGNOREE} : rien à l'antenne")
+			return False
+		evenement = courant.choix.occurrence.evenement
+		coupe = f"de l'événement « {evenement.nom} »"
+		if evenement.priorite is Priorite.FIL_MUSICAL:
+			coupe = f"du fil musical « {evenement.nom} »"
+		message = f"{coupe} {par}"
+		self.historique.consigner(
+			self.connexion,
+			"info",
+			INTERRUPTION_MANUELLE,
+			message,
+			instant,
+			sonore=courant.choix.sonore,
+			evenement=evenement.id,
+		)
+		if self.sorties is not None:
+			self.sorties.annoncer(INTERRUPTION_MANUELLE, message)
+		self._suivant = None
+		self.ordonnanceur.abandonner_la_sequence(courant.passage.id)
+		self.ordonnanceur.couper_par(instant, secours, stream)
+		self.a_venir = []
+		self._attendu = None
+		suivant = self.ordonnanceur.decider(instant, None).jouer
 		fondu = (self.crossfades.fin) or (AUCUN_CROSSFADE)
 		self._eteindre(courant, suivant, instant, fondu, (self.crossfades.debut) or (AUCUN_CROSSFADE))
 		self._publier(instant)
@@ -1068,7 +1147,7 @@ class Diffusion:
 			choix.sonore,
 			choix.banque,
 			choix.occurrence.evenement.id,
-			choix.element.id,
+			_element_du_passage(choix),
 			instant,
 			None if ligne is None else ligne.sequence,
 			None if ligne is None else ligne.id,
@@ -1297,6 +1376,13 @@ def _timecode(position: timedelta) -> str:
 	return f"{minutes}:{secondes}"
 
 
+def _element_du_passage(choix: Choix) -> int | None:
+	"""L'élément de liste qui a fait jouer le sonore ; aucun pour le stream d'un feed qui coupe l'antenne."""
+	if choix.element.id == HORS_LISTE:
+		return None
+	return choix.element.id
+
+
 def _passage_prevu(choix: Choix, debut: datetime) -> Passage:
 	ligne = choix.ligne
 	return Passage(
@@ -1304,7 +1390,7 @@ def _passage_prevu(choix: Choix, debut: datetime) -> Passage:
 		choix.sonore,
 		choix.banque,
 		choix.occurrence.evenement.id,
-		choix.element.id,
+		_element_du_passage(choix),
 		debut,
 		None if ligne is None else ligne.sequence,
 		None if ligne is None else ligne.id,

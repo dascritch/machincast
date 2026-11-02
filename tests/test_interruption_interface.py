@@ -8,13 +8,14 @@ import time
 
 from PySide6.QtGui import QAction
 from PySide6.QtNetwork import QLocalSocket
+from PySide6.QtWidgets import QMenu
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface import interruption
 from machincast.interface.etat import lire_message
-from machincast.lecture.etat import AVANCER, Demande
-from tests.etapes_interface import Contexte, Lecteur, fenetre, publier
+from machincast.lecture.etat import AVANCER, COUPER_PAR_LE_FEED, COUPER_PAR_LE_SECOURS, Demande
+from tests.etapes_interface import Connexion, Contexte, Lecteur, fenetre, identifiant, liste, publier
 
 scenarios("interruption_interface.feature")
 
@@ -237,3 +238,116 @@ def demande_recue(lecteur: Lecteur, qtbot: QtBot, element: str) -> None:
 	time.sleep(0.1)
 	lecteur.recues += socket.demandes()
 	assert lecteur.recues == [Demande(element)]
+
+
+# ─── Coupures par le secours et par un feed (https://github.com/dascritch/machincast/issues/323) ───
+
+
+def _entrees(texte: str) -> list[str]:
+	"""« « A » », « « B » » : les entrées, qui peuvent porter elles-mêmes des guillemets."""
+	return texte.removeprefix("« ").removesuffix(" »").split(" », « ")
+
+
+def _recevoir(lecteur: Lecteur, qtbot: QtBot) -> list[Demande]:
+	"""Les demandes reçues jusqu'ici, après en avoir attendu au moins une de plus."""
+	socket = lecteur.socket
+	assert socket is not None
+	deja = len(lecteur.recues)
+
+	def recue() -> bool:
+		lecteur.recues += socket.demandes()
+		return len(lecteur.recues) > deja
+
+	qtbot.waitUntil(recue, timeout=ATTENTE)
+	time.sleep(0.1)
+	lecteur.recues += socket.demandes()
+	return lecteur.recues
+
+
+def _menu_du_feed(interface: Contexte, nom: str) -> QMenu:
+	ouverte = liste(interface)
+	modele = ouverte.table.model()
+	(rangee,) = [rangee for rangee in range(modele.rowCount()) if modele.index(rangee, 0).data() == nom]
+	menu = ouverte.menu_de_la_ligne(modele.index(rangee, 0))
+	assert menu is not None
+	return menu
+
+
+@when(parsers.parse("je choisis « {entree} » dans le sous-menu de la coupure par le secours"))
+def choisir_un_secours(interface: Contexte, entree: str) -> None:
+	sous_menu = fenetre(interface).coupure_par_le_secours.menu()
+	assert sous_menu is not None
+	(action,) = [action for action in sous_menu.actions() if action.text() == entree]
+	action.trigger()
+
+
+@when(parsers.parse("je choisis « {entree} » au clic droit sur le feed « {nom} »"))
+def choisir_au_feed(interface: Contexte, entree: str, nom: str) -> None:
+	(action,) = [action for action in _menu_du_feed(interface, nom).actions() if action.text() == entree]
+	action.trigger()
+
+
+@then(
+	parsers.parse(
+		"la coupure par le secours du menu « Diffusion » est active, sans sous-menu, avec l'infobulle « {infobulle} »"
+	)
+)
+def secours_actif(interface: Contexte, infobulle: str) -> None:
+	action = fenetre(interface).coupure_par_le_secours
+	assert action in fenetre(interface).menu_diffusion.actions()
+	assert (action.text(), action.isEnabled(), action.menu(), action.toolTip()) == (
+		interruption.COUPER_PAR_LE_SECOURS,
+		True,
+		None,
+		infobulle,
+	)
+
+
+@then(parsers.parse("la coupure par le secours du menu « Diffusion » est inactive, avec l'infobulle « {infobulle} »"))
+def secours_inactif(interface: Contexte, infobulle: str) -> None:
+	action = fenetre(interface).coupure_par_le_secours
+	assert (action.isEnabled(), action.toolTip()) == (False, infobulle)
+
+
+@then(parsers.parse("la coupure par le secours du menu « Diffusion » a le sous-menu {entrees}"))
+def sous_menu_des_secours(interface: Contexte, entrees: str) -> None:
+	action = fenetre(interface).coupure_par_le_secours
+	sous_menu = action.menu()
+	assert (action.isEnabled()) and (sous_menu is not None)
+	assert [entree.text() for entree in sous_menu.actions()] == _entrees(entrees)
+
+
+@then(parsers.parse("Machin lecture a reçu la demande de couper l'antenne par le secours « {nom} »"))
+def coupure_par_le_secours_recue(base_vide: Connexion, lecteur: Lecteur, qtbot: QtBot, nom: str) -> None:
+	secours = identifiant(base_vide, "evenements", "nom_interne", nom)
+	assert _recevoir(lecteur, qtbot) == [Demande(commande=COUPER_PAR_LE_SECOURS, evenement=secours)]
+
+
+@then(parsers.parse("Machin lecture a reçu la demande de couper l'antenne par le feed « {nom} »"))
+def coupure_par_le_feed_recue(base_vide: Connexion, lecteur: Lecteur, qtbot: QtBot, nom: str) -> None:
+	feed = identifiant(base_vide, "feeds", "nom", nom)
+	assert _recevoir(lecteur, qtbot) == [Demande(commande=COUPER_PAR_LE_FEED, feed=feed)]
+
+
+@then(parsers.parse("Machin lecture a reçu aussi la demande d'interrompre « {element} »"))
+def aussi_recue(lecteur: Lecteur, qtbot: QtBot, element: str) -> None:
+	assert _recevoir(lecteur, qtbot)[-1] == Demande(element)
+
+
+@then(parsers.parse("le clic droit sur le feed « {nom} » propose :"))
+def menu_du_feed(interface: Contexte, nom: str, datatable: list[list[str]]) -> None:
+	_, *lignes = datatable
+	obtenues = []
+	for action in _menu_du_feed(interface, nom).actions():
+		if action.isSeparator():
+			continue
+		etat = "inactive"
+		if action.isEnabled():
+			etat = "active"
+		obtenues.append([action.text(), etat, action.toolTip()])
+	attendues = [[valeur.strip() for valeur in ligne] for ligne in lignes]
+	# Qt donne à une action sans infobulle son texte pour infobulle : une cellule vide l'accepte.
+	for obtenue, attendue in zip(obtenues, attendues, strict=False):
+		if attendue[2] == "":
+			obtenue[2] = ""
+	assert obtenues == attendues

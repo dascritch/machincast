@@ -173,11 +173,14 @@ Le menu **Diffusion** propose aussi, après un trait, de corriger ce qui passe, 
 | ⏭ Sauter au sonore suivant | Le sonore en cours est coupé, et le prochain sonore annoncé sur l'onglet Antenne passe aussitôt ; les sonores à venir avancent d'un cran. |
 | ⏭ Sauter après la séquence | Le sonore en cours est coupé, et le reste de sa séquence n'est pas joué : le sonore prévu après la séquence passe aussitôt, et les sonores à venir qui le suivent sont gardés. |
 | ⏭ Couper l'événement par le fil musical | Le sonore en cours est coupé, et le fil musical prend aussitôt l'antenne, jusqu'à la fin prévue de l'événement coupé : un spécial et l'émission qu'il recouvre laissent tous les deux la place. Inactive dans le fil musical. |
+| ⏭ Couper par le secours | Comme la coupure par le fil musical, mais c'est un **événement de secours** qui joue sa liste, jusqu'à la fin prévue de l'événement coupé ; dans le fil musical, jusqu'au début de l'événement suivant ([#323](https://github.com/dascritch/machincast/issues/323)). Inactive sans événement de secours. Avec plusieurs secours, un sous-menu les nomme. Si le secours n'a plus rien à jouer, le fil musical reprend. |
 
 - Chaque entrée n'est active que si son élément est à l'antenne ; son infobulle le nomme, ou dit pourquoi elle est inactive (« Rien à l'antenne », « Aucune séquence à l'antenne », « Le fil musical est déjà à l'antenne »).
 - La demande part **aussitôt, sans question** : l'antenne n'attend pas. La barre d'état l'annonce, par exemple `Saut au sonore suivant demandé.`
 - Le sonore coupé s'éteint pendant le crossfade de fin par défaut des [préférences](prise-en-main.md#préférences), et le suivant monte pendant le crossfade de début par défaut ; sans crossfade par défaut, la coupure est nette, quels que soient les crossfades du sonore. Son passage se termine sans incident, et le journal note `interruption manuelle`.
-- Un événement coupé par le fil musical ne revient pas avant sa prochaine diffusion, sauf si la diffusion redémarre entre-temps.
+- Un événement coupé par le fil musical, par le secours ou par un feed ne revient pas avant sa prochaine diffusion, sauf si la diffusion redémarre entre-temps.
+- **Couper par un feed** : dans l'onglet **Feeds**, le clic droit sur un feed propose **Pré-écoute…** de son stream, et **⏭ Couper l'événement par ce feed**, ou, dans le fil musical, **⏭ Couper le fil musical par ce feed** ([#323](https://github.com/dascritch/machincast/issues/323)). Le stream qui suit le feed passe aussitôt, jusqu'à la fin prévue de l'événement coupé, ou jusqu'au début de l'événement suivant ; s'il tombe, le fil musical prend le relais, sans retenter le feed. L'entrée est inactive sans stream actif qui suive le feed. La barre d'état l'annonce : `Coupure par le feed « Studio mobile » demandée.`
+- Chaque coupure est notée dans le journal, comme les autres interruptions : `interruption manuelle`, `de l'événement « Matinale » par le secours « Attente »`.
 - Si le sonore annoncé n'est plus jouable, la diffusion en choisit un autre, et recalcule les sonores à venir.
 
 ### Depuis le prochain sonore
@@ -188,6 +191,7 @@ Sur l'onglet Antenne, le **clic droit sur le cadre du prochain sonore** propose 
 | --- | --- |
 | Pré-écoute… | Ouvre le prochain sonore dans la [pré-écoute](sonores.md#pré-écoute), au casque. |
 | ⏭ Sauter à ce sonore | Comme « ⏭ Sauter au sonore suivant » : le sonore en cours s'arrête, et le prochain sonore passe aussitôt. |
+| ⏭ Sauter après la séquence, ⏭ Couper l'événement par le fil musical, ⏭ Couper par le secours | Les mêmes coupures que dans le menu **Diffusion**, actives selon ce qui est à l'antenne ([#323](https://github.com/dascritch/machincast/issues/323)). |
 | ⏭ Avancer « Journal », prévu le mercredi 21 octobre à 12:00 | L'événement suivant de la grille commence aussitôt, avant son heure, et passe jusqu'à sa fin prévue, comme s'il avait commencé plus tôt : le sonore en cours s'arrête, et sa liste commence. À son heure prévue, rien ne change. |
 
 - L'événement suivant est le prochain qui prendra l'antenne d'après la grille, dans les sept jours : une émission, un spécial, ou un fil musical daté. Il passe au-dessus de tout, même d'un spécial en cours. Une émission qui a une fin reprend sa liste depuis le début quand elle l'a jouée en entier, jusqu'à sa fin.

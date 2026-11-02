@@ -450,6 +450,9 @@ class Liste(QWidget):
 			self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 		self.preecoutable = (actions) and (source.genre == "sonore")
 		"""La liste des sonores, hors d'un choix : le clic droit sur une ligne en propose la pré-écoute."""
+		self.menu_de_l_element: Callable[[QMenu, int, str], None] | None = None
+		"""Des entrées que la fenêtre ajoute au clic droit sur une ligne : le menu, l'élément et son nom. Celles
+		d'un feed, sa pré-écoute et la coupure de l'antenne par lui (https://github.com/dascritch/machincast/issues/323)."""
 		self.colonnes.menu_des_lignes = lambda position: self.menu_de_la_ligne(self.table.indexAt(position))
 		self._compter()
 
@@ -531,7 +534,12 @@ class Liste(QWidget):
 		"""Le menu du clic droit sur cette ligne de la table : sur la sélection si elle en fait partie, sur elle seule
 		sinon ; aucun hors d'une ligne, ou pour une liste sans actions. « Dupliquer » ne vaut que pour un élément.
 		« Pré-écoute… », en tête, vaut pour la ligne cliquée seule, même dans une sélection."""
-		sans_actions = (not self.duplicable) and (self.actions_groupees == ()) and (not self.preecoutable)
+		sans_actions = (
+			(not self.duplicable)
+			and (self.actions_groupees == ())
+			and (not self.preecoutable)
+			and (self.menu_de_l_element is None)
+		)
 		if (not index.isValid()) or (sans_actions):
 			return None
 		cliquee = self._element(index)
@@ -547,6 +555,9 @@ class Liste(QWidget):
 			entree.triggered.connect(lambda _coche=False, cle=action.cle: self.action_demandee.emit(cle, elements))
 		if self.preecoutable:
 			affichage.proposer_la_preecoute(menu, cliquee, self.preecoute_demandee.emit)
+		if self.menu_de_l_element is not None:
+			premiere = self.modele.index(self.proxy.mapToSource(index).row(), 0)
+			self.menu_de_l_element(menu, cliquee, str(premiere.data(IDENTIFIANT + 1)))
 		return menu
 
 	def _ouvrir(self, index: QModelIndex) -> None:

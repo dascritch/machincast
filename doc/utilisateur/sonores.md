@@ -196,4 +196,5 @@ Un **feed** est une adresse de flux réutilisable, souvent en ligne par intermit
 - **Nom** et **Adresse** : obligatoires. Une nouvelle adresse vaut aussitôt pour tous les streams qui suivent le feed.
 - **Tester le flux** : comme dans la fiche d'un sonore, dit si du son arrive à l'adresse saisie, de quel type et à quel débit.
 - **Streams qui le suivent** : un double-clic ouvre leur fiche.
+- **Clic droit sur un feed**, dans la liste : **Pré-écoute…** de son stream, et la coupure de l'antenne par lui ([Interrompre l'antenne](antenne.md#interrompre-lantenne), [#323](https://github.com/dascritch/machincast/issues/323)).
 - **❌ Supprimer…** : un feed qu'un stream suit ne se supprime pas ; la fiche nomme ces streams, qui doivent d'abord choisir une autre adresse.

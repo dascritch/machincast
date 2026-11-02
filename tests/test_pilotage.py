@@ -19,7 +19,7 @@ from machincast.configuration import REPERTOIRE_PROJET
 from machincast.installation import Compte, unite_systemd
 from machincast.interface import pilotage
 from machincast.interface.pilotage import configuration_du_service
-from tests.etapes_interface import Contexte, fenetre, fichier_de_configuration, menu_nomme
+from tests.etapes_interface import Contexte, fenetre, fichier_de_configuration
 
 scenarios("pilotage.feature")
 
@@ -164,11 +164,6 @@ def en_marche(poste: Poste) -> None:
 def installation_du_service(poste: Poste) -> None:
 	"""./install.sh --service, lancé pendant que l'interface est ouverte."""
 	poste.regler("loaded", "inactive")
-
-
-@when(parsers.parse("j'ouvre le menu « {menu} »"))
-def ouvrir_le_menu(interface: Contexte, menu: str) -> None:
-	menu_nomme(interface, menu).aboutToShow.emit()
 
 
 @when("l'état du binaire lecture est bientôt « En diffusion » sur l'onglet Antenne")
