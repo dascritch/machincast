@@ -104,12 +104,12 @@ Fonctionnalité: Fiche d'un événement
 		Et l'onglet ouvert est « Événement : Midi »
 		Quand j'ouvre l'onglet « Événements »
 		Alors la liste montre :
-			| Nom      | Nom public | Priorité    | Début            | Fin              | Récurrence                              | Anomalie       |
-			| Journal  |            | émission    | 2026-10-21 09:00 | 2026-10-21 09:30 |                                         | événement vide |
-			| Matinale | Le réveil  | émission    | 2026-10-19 07:00 | 2026-10-19 09:00 | lundi, mardi, mercredi, jeudi, vendredi |                |
-			| Midi     |            | émission    | 2026-10-19 15:30 | 2026-10-19 16:30 | lundi, jeudi                            |                |
-			| Continue |            | fil musical |                  |                  |                                         |                |
-			| Panne    |            | secours     |                  |                  |                                         | événement vide |
+			| ⚠️ | Nom      | Nom public | Priorité    | Début            | Fin              | Récurrence                              | Anomalie       |
+			| ⚠️ | Journal  |            | émission    | 2026-10-21 09:00 | 2026-10-21 09:30 |                                         | événement vide |
+			|    | Matinale | Le réveil  | émission    | 2026-10-19 07:00 | 2026-10-19 09:00 | lundi, mardi, mercredi, jeudi, vendredi |                |
+			|    | Midi     |            | émission    | 2026-10-19 15:30 | 2026-10-19 16:30 | lundi, jeudi                            |                |
+			|    | Continue |            | fil musical |                  |                  |                                         |                |
+			| ⚠️ | Panne    |            | secours     |                  |                  |                                         | événement vide |
 
 	Scénario: Chaque liste propose de créer un élément
 		Quand la fenêtre de l'interface s'ouvre

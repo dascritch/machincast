@@ -26,7 +26,7 @@ from pytestqt.qtbot import QtBot
 from machincast.base import Role, connecter
 from machincast.interface.choix import Choix
 from machincast.interface.fiche_banque import SONORE, FicheBanque
-from machincast.interface.listes import SONORES
+from machincast.interface.listes import IDENTIFIANT, SONORES
 from tests.base_test import parametres_base_test
 from tests.etapes_interface import (
 	NOM,
@@ -223,7 +223,9 @@ def selectionner(choix: list[Choix], titres: str) -> None:
 	table = choix[0].liste.table
 	modele = table.model()
 	for titre in NOM.findall(titres):
-		rangees = [rangee for rangee in range(modele.rowCount()) if modele.index(rangee, 1).data() == titre]
+		rangees = [
+			rangee for rangee in range(modele.rowCount()) if modele.index(rangee, 0).data(IDENTIFIANT + 1) == titre
+		]
 		assert len(rangees) == 1, titre
 		table.selectionModel().select(
 			modele.index(rangees[0], 0),

@@ -6,8 +6,11 @@ l'interface, chaque fois que son onglet s'ouvre : jamais en boucle. Le filtre ga
 le texte tapé, sans tenir compte des majuscules ni des accents. Ouvrir une ligne (double-clic ou Entrée) demande
 l'écran de détail de l'élément (signal ouverte). Une liste peut avoir un bouton qui crée un élément
 (signal creation_demandee) : « Nouvelle banque » (https://github.com/dascritch/machincast/issues/31). Une ligne en
-anomalie, une séquence ou un événement vide, a l'icône d'avertissement, une infobulle qui l'explique, et le compte les
-dénombre (https://github.com/dascritch/machincast/issues/138, https://github.com/dascritch/machincast/issues/140).
+anomalie a une infobulle qui l'explique, et le compte les dénombre (https://github.com/dascritch/machincast/issues/138,
+https://github.com/dascritch/machincast/issues/140) : une séquence ou un événement vide, une banque sans sonore actif,
+une banque qui contient un sonore erroné ou non supporté, et ce sonore. Les listes des événements, des séquences, des
+banques et des sonores la marquent de ⚠️ dans leur première colonne, COLONNE_D_ANOMALIE
+(https://github.com/dascritch/machincast/issues/327).
 Le clic droit sur une ligne d'événement, de séquence ou de banque propose « Dupliquer » (signal duplication_demandee,
 https://github.com/dascritch/machincast/issues/130). Les listes des sonores et des banques sélectionnent plusieurs
 lignes (Ctrl, Maj) ; leur clic droit propose les actions sur la sélection, ou sur la seule ligne cliquée hors de la
@@ -73,6 +76,27 @@ EVENEMENT_VIDE = {
 }
 """Ce que fait la diffusion d'un événement vide, selon sa priorité (spec § 4.2,
 https://github.com/dascritch/machincast/issues/140)."""
+BANQUE_SANS_SONORE_ACTIF = (
+	"Banque sans sonore actif : elle ne fournit rien, et l'élément qui l'appelle passe à son élément suivant."
+)
+
+
+def banque_aux_sonores_en_anomalie(nombre: int) -> str:
+	"""Une banque qui a des sonores actifs, mais aussi des sonores erronés ou non supportés : ceux-là ne passent pas."""
+	if nombre == 1:
+		return "Banque avec 1 sonore erroné ou non supporté : la diffusion ne le joue pas."
+	return f"Banque avec {nombre} sonores erronés ou non supportés : la diffusion ne les joue pas."
+
+
+SONORE_EN_ANOMALIE = {
+	"errone": "Sonore erroné : son fichier est illisible ou endommagé, et la diffusion ne le joue pas.",
+	"non_supporte": "Sonore non supporté : son fichier n'est pas un son lisible, et la diffusion ne le joue pas.",
+}
+"""Les états d'un sonore que la diffusion ne joue pas sans que personne l'ait voulu (spec § 3.1, § 4.5)."""
+COLONNE_D_ANOMALIE = "⚠️"
+"""Titre de la première colonne des listes en anomalie, et ce qu'elle montre sur une ligne en anomalie
+(https://github.com/dascritch/machincast/issues/327)."""
+INFOBULLE_D_ANOMALIE = "Anomalie : la ligne a un problème, que dit son infobulle"
 
 
 @dataclass(frozen=True)
@@ -103,6 +127,8 @@ class Source:
 	"""Texte du bouton qui ajoute des fichiers, qui se déposent aussi sur la liste ; ni bouton ni dépôt sans texte."""
 	duplicable: bool = False
 	"""Le clic droit sur une ligne propose « Dupliquer »."""
+	anomalies: bool = False
+	"""Une première colonne, COLONNE_D_ANOMALIE, marque les lignes en anomalie."""
 
 
 def _texte(valeur: object) -> str:
@@ -151,7 +177,9 @@ def lire_sonores(connexion: Connexion) -> list[Ligne]:
 		elif isinstance(duree, timedelta):
 			tri_duree = duree.total_seconds()
 		nom_du_sonore = (_texte(titre)) or (_texte(emplacement))
-		lignes.append(Ligne(int(str(identifiant)), nom_du_sonore, cellules, tris={POSITION_DE_LA_DUREE: tri_duree}))
+		anomalie = SONORE_EN_ANOMALIE.get(str(etat), "")
+		tris: dict[int, int | float | str] = {POSITION_DE_LA_DUREE: tri_duree}
+		lignes.append(Ligne(int(str(identifiant)), nom_du_sonore, cellules, anomalie, tris))
 	return lignes
 
 
@@ -159,14 +187,23 @@ def lire_banques(connexion: Connexion) -> list[Ligne]:
 	with connexion.transaction():
 		rangees = connexion.execute(
 			"SELECT b.id, b.nom_interne, b.nom_public, b.mode::text, b.ne_pas_repeter,"
-			" (SELECT min(r.repertoire) FROM banques_repertoires r WHERE r.banque_id = b.id)"
+			" (SELECT min(r.repertoire) FROM banques_repertoires r WHERE r.banque_id = b.id),"
+			" NOT EXISTS (SELECT 1 FROM banques_sonores x JOIN sonores s ON s.id = x.sonore_id"
+			" WHERE x.banque_id = b.id AND s.etat = 'actif' AND s.supprime_le IS NULL),"
+			" (SELECT count(*) FROM banques_sonores x JOIN sonores s ON s.id = x.sonore_id"
+			" WHERE x.banque_id = b.id AND s.etat IN ('errone', 'non_supporte') AND s.supprime_le IS NULL)"
 			" FROM banques b WHERE b.supprime_le IS NULL ORDER BY b.nom_interne, b.id"
 		).fetchall()
 	lignes = []
-	for identifiant, nom, nom_public, mode, marquee, repertoire in rangees:
+	for identifiant, nom, nom_public, mode, marquee, repertoire, sans_sonore_actif, en_anomalie in rangees:
 		cellules = [str(nom), _texte(nom_public), MODES.get(str(mode), str(mode))]
 		cellules += [affichage.oui_non(bool(marquee)), _texte(repertoire)]
-		lignes.append(Ligne(int(str(identifiant)), str(nom), cellules))
+		anomalie = ""
+		if sans_sonore_actif:
+			anomalie = BANQUE_SANS_SONORE_ACTIF
+		elif int(str(en_anomalie)) > 0:
+			anomalie = banque_aux_sonores_en_anomalie(int(str(en_anomalie)))
+		lignes.append(Ligne(int(str(identifiant)), str(nom), cellules, anomalie))
 	return lignes
 
 
@@ -263,6 +300,7 @@ SONORES = Source(
 	"aucun sonore",
 	"Nouveau stream",
 	libelle(AJOUTER, "Ajouter des fichiers…"),
+	anomalies=True,
 )
 BANQUES = Source(
 	"banque",
@@ -273,6 +311,7 @@ BANQUES = Source(
 	"aucune banque",
 	"Nouvelle banque",
 	duplicable=True,
+	anomalies=True,
 )
 SEQUENCES = Source(
 	"séquence",
@@ -283,6 +322,7 @@ SEQUENCES = Source(
 	"aucune séquence",
 	"Nouvelle séquence",
 	duplicable=True,
+	anomalies=True,
 )
 EVENEMENTS = Source(
 	"événement",
@@ -293,6 +333,7 @@ EVENEMENTS = Source(
 	"aucun événement",
 	"Nouvel événement",
 	duplicable=True,
+	anomalies=True,
 )
 FEEDS = Source(
 	"feed",
@@ -370,8 +411,13 @@ class Liste(QWidget):
 		self.connexion = connexion
 		self.ui = Ui_Liste()
 		self.ui.setupUi(self)
-		self.modele = QStandardItemModel(0, len(source.colonnes), self)
-		self.modele.setHorizontalHeaderLabels(list(source.colonnes))
+		titres = list(source.colonnes)
+		if source.anomalies:
+			titres.insert(0, COLONNE_D_ANOMALIE)
+		self.modele = QStandardItemModel(0, len(titres), self)
+		self.modele.setHorizontalHeaderLabels(titres)
+		if source.anomalies:
+			self.modele.setHeaderData(0, Qt.Orientation.Horizontal, INFOBULLE_D_ANOMALIE, Qt.ItemDataRole.ToolTipRole)
 		self.proxy = FiltreSansAccents(self)
 		self.proxy.setSourceModel(self.modele)
 		self.proxy.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
@@ -433,10 +479,16 @@ class Liste(QWidget):
 			cellules = [QStandardItem(texte) for texte in ligne.cellules]
 			for colonne, cellule in enumerate(cellules):
 				cellule.setData(ligne.tris.get(colonne, cellule.text()), TRI)
+			if self.source.anomalies:
+				marque = ""
+				if ligne.anomalie:
+					marque = COLONNE_D_ANOMALIE
+				cellules.insert(0, QStandardItem(marque))
+				cellules[0].setData(marque, TRI)
+				cellules[0].setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 			cellules[0].setData(ligne.identifiant, IDENTIFIANT)
 			cellules[0].setData(ligne.nom, IDENTIFIANT + 1)
 			if ligne.anomalie:
-				cellules[0].setIcon(affichage.icone_d_anomalie(self))
 				for cellule in cellules:
 					cellule.setToolTip(ligne.anomalie)
 			self.modele.appendRow(cellules)

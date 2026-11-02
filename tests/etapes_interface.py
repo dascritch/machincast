@@ -60,7 +60,7 @@ from machincast.interface import dialogues, version
 from machincast.interface.dialogues import Fermeture, Retrait
 from machincast.interface.fenetre import FenetrePrincipale
 from machincast.interface.fiche import SIGNALE, SUPPRIMER, Fiche
-from machincast.interface.listes import Liste
+from machincast.interface.listes import COLONNE_D_ANOMALIE, IDENTIFIANT, Liste
 from machincast.interface.preferences import Reglages
 from machincast.interface.suggestions import Manques, Reponse
 from machincast.lecture.etat import RELIRE_LA_GRILLE, Demande, SocketEtat
@@ -1247,36 +1247,53 @@ def titres_affiches(interface: Contexte, titres: str) -> None:
 	assert [ligne["Titre"] for ligne in lignes(interface)] == NOM.findall(titres), lignes(interface)
 
 
+def marquees(interface: Contexte) -> list[list[str]]:
+	"""Les lignes en anomalie de la liste ouverte, son nom et son infobulle : ⚠️ dans la première colonne, l'infobulle
+	sur toutes ses cellules, et aucune icône, ni sur le nom ni ailleurs. Les autres n'ont ni ⚠️ ni infobulle
+	(https://github.com/dascritch/machincast/issues/138, https://github.com/dascritch/machincast/issues/327)."""
+	modele = liste(interface).table.model()
+	assert modele.headerData(0, Qt.Orientation.Horizontal) == COLONNE_D_ANOMALIE
+	trouvees = []
+	for rangee in range(modele.rowCount()):
+		cellules = [modele.index(rangee, colonne) for colonne in range(modele.columnCount())]
+		assert {cellule.data(Qt.ItemDataRole.DecorationRole) for cellule in cellules} == {None}
+		bulles = {cellule.data(Qt.ItemDataRole.ToolTipRole) for cellule in cellules}
+		if cellules[0].data() == COLONNE_D_ANOMALIE:
+			assert len(bulles) == 1, bulles
+			trouvees.append([str(cellules[0].data(IDENTIFIANT + 1)), str(bulles.pop())])
+		else:
+			assert (cellules[0].data(), bulles) == ("", {None}), bulles
+	return trouvees
+
+
 @then(parsers.re(r"la liste marque en anomalie les lignes (?P<noms>.+), avec l'infobulle « (?P<infobulle>[^»]+) »"))
 def anomalies(interface: Contexte, noms: str, infobulle: str) -> None:
-	"""Une ligne en anomalie a l'icône d'avertissement sur sa première cellule, et l'infobulle sur toutes ; les autres
-	n'ont ni l'une ni l'autre (https://github.com/dascritch/machincast/issues/138)."""
-	modele = liste(interface).table.model()
-	marquees = []
-	for rangee in range(modele.rowCount()):
-		icone = modele.index(rangee, 0).data(Qt.ItemDataRole.DecorationRole)
-		bulles = {
-			modele.index(rangee, colonne).data(Qt.ItemDataRole.ToolTipRole) for colonne in range(modele.columnCount())
-		}
-		if icone is not None:
-			assert bulles == {infobulle}, bulles
-			marquees.append(str(modele.index(rangee, 0).data()))
-		else:
-			assert bulles == {None}, bulles
-	assert marquees == NOM.findall(noms)
+	assert marquees(interface) == [[nom, infobulle] for nom in NOM.findall(noms)]
 
 
 @then("la liste marque en anomalie les lignes et infobulles :")
 def anomalies_et_infobulles(interface: Contexte, datatable: list[list[str]]) -> None:
 	"""Chaque ligne en anomalie a son infobulle, propre à la ligne (https://github.com/dascritch/machincast/issues/140)."""
-	modele = liste(interface).table.model()
-	marquees = []
-	for rangee in range(modele.rowCount()):
-		if modele.index(rangee, 0).data(Qt.ItemDataRole.DecorationRole) is not None:
-			infobulle = modele.index(rangee, 0).data(Qt.ItemDataRole.ToolTipRole)
-			marquees.append([str(modele.index(rangee, 0).data()), str(infobulle)])
 	_entetes, *rangees = datatable
-	assert marquees == [[ligne.strip(), infobulle.strip()] for ligne, infobulle in rangees]
+	assert marquees(interface) == [[ligne.strip(), infobulle.strip()] for ligne, infobulle in rangees]
+
+
+@then(parsers.parse("la première colonne de la liste est « {titre} », avec l'infobulle « {infobulle} »"))
+def colonne_d_anomalie(interface: Contexte, titre: str, infobulle: str) -> None:
+	modele = liste(interface).table.model()
+	entete = (
+		modele.headerData(0, Qt.Orientation.Horizontal),
+		modele.headerData(0, Qt.Orientation.Horizontal, Qt.ItemDataRole.ToolTipRole),
+	)
+	assert entete == (titre, infobulle)
+	assert liste(interface).table.horizontalHeader().visualIndex(0) == 0
+
+
+@then(parsers.parse("la liste n'a pas de colonne « {titre} »"))
+def sans_colonne(interface: Contexte, titre: str) -> None:
+	modele = liste(interface).table.model()
+	titres = [modele.headerData(colonne, Qt.Orientation.Horizontal) for colonne in range(modele.columnCount())]
+	assert titre not in titres
 
 
 @then(parsers.parse("le compte de la liste est « {texte} »"))

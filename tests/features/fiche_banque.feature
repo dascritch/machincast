@@ -457,9 +457,9 @@ Fonctionnalité: Fiche d'une banque
 		Et l'onglet ouvert est « Banque : Habillage »
 		Quand j'ouvre l'onglet « Banques »
 		Alors la liste montre :
-			| Nom       | Nom public  | Mode         | Ne pas répéter | Répertoire         |
-			| Habillage |             | séquentielle | non            | /srv/habillage     |
-			| Jingles   | Radio Thune | séquentielle | oui            | /srv/jingles/hiver |
+			| ⚠️ | Nom       | Nom public  | Mode         | Ne pas répéter | Répertoire         |
+			| ⚠️ | Habillage |             | séquentielle | non            | /srv/habillage     |
+			|    | Jingles   | Radio Thune | séquentielle | oui            | /srv/jingles/hiver |
 		Quand j'ouvre la ligne « Habillage »
 		Alors l'onglet ouvert est « Banque : Habillage »
 		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Banque : Habillage »

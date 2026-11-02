@@ -8,7 +8,7 @@ dialogue y sont remplacées par les réponses du scénario.
 import re
 
 import psycopg
-from PySide6.QtCore import QItemSelection, QItemSelectionModel, QModelIndex
+from PySide6.QtCore import QItemSelection, QItemSelectionModel, QModelIndex, Qt
 from PySide6.QtWidgets import QTreeWidgetItem
 from pytest_bdd import given, parsers, scenarios, then, when
 
@@ -139,7 +139,8 @@ def etats_en_base(base_vide: Connexion, titres: str, etat: str) -> None:
 def etats_montres(interface: Contexte, etat: str, titres: str) -> None:
 	ouverte = liste(interface)
 	modele = ouverte.table.model()
-	colonne = list(ouverte.source.colonnes).index("État")
+	titres_des_colonnes = [modele.headerData(rang, Qt.Orientation.Horizontal) for rang in range(modele.columnCount())]
+	colonne = titres_des_colonnes.index("État")
 	for titre in NOM.findall(titres):
 		assert modele.index(index_de(ouverte, titre).row(), colonne).data() == etat, titre
 
