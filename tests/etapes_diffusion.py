@@ -606,6 +606,39 @@ def interrompre(banc: Banc, quoi: str) -> None:
 	diffusion(banc).interrompre(ELEMENTS[quoi])
 
 
+@when(parsers.parse("je coupe l'antenne par le secours « {nom} »"))
+def couper_par_le_secours(banc: Banc, base_vide: Connexion, nom: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/323 ; un secours absent a l'identifiant 0, qu'aucun n'a."""
+	ligne = base_vide.execute("SELECT id FROM evenements WHERE nom_interne = %s", (nom,)).fetchone()
+	diffusion(banc).couper_par_le_secours(0 if ligne is None else int(str(ligne[0])))
+
+
+@when(parsers.parse("je coupe l'antenne par le feed « {nom} »"))
+def couper_par_le_feed(banc: Banc, base_vide: Connexion, nom: str) -> None:
+	ligne = base_vide.execute("SELECT id FROM feeds WHERE nom = %s", (nom,)).fetchone()
+	diffusion(banc).couper_par_le_feed(0 if ligne is None else int(str(ligne[0])))
+
+
+@given(parsers.parse("le stream « {nom} » sur le feed « {feed} », à une adresse factice"))
+def stream_factice_sur_un_feed(base_vide: Connexion, nom: str, feed: str) -> None:
+	"""Comme un stream à une adresse factice, mais l'adresse est celle du feed (https://github.com/dascritch/machincast/issues/323)."""
+	cree = base_vide.execute(
+		"INSERT INTO feeds (nom, url) VALUES (%s, %s) RETURNING id", (feed, f"http://flux.invalid/{nom}")
+	).fetchone()
+	assert cree is not None
+	base_vide.execute("INSERT INTO sonores (type, feed_id, titre) VALUES ('stream', %s, %s)", (cree[0], nom))
+
+
+@then(parsers.parse("le passage « {nom} » est au nom de l'événement « {evenement} », sans élément de liste"))
+def passage_hors_liste(base_vide: Connexion, nom: str, evenement: str) -> None:
+	ligne = base_vide.execute(
+		"SELECT e.nom_interne, a.element_id FROM airplay a JOIN evenements e ON e.id = a.evenement_id"
+		" WHERE a.type_ligne = 'debut' AND a.titre = %s ORDER BY a.id LIMIT 1",
+		(nom,),
+	).fetchone()
+	assert ligne == (evenement, None), ligne
+
+
 @when(parsers.re(r"la diffusion tourne (?P<nombre>\d+) pas d(?:'une|e (?P<duree>[\d,]+)) seconde"))
 def tourner(banc: Banc, nombre: str, duree: str | None) -> None:
 	ecart = 1.0

@@ -53,7 +53,7 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QEvent, QObject, QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QKeyEvent, QKeySequence, QShortcut
-from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QTabBar, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QMenu, QTabBar, QWidget
 
 from machincast import raccourci, service
 from machincast.configuration import (
@@ -101,7 +101,13 @@ from machincast.interface.recherche import EcranRecherche
 from machincast.interface.simulation import EcranSimulation
 from machincast.interface.ui.fenetre_principale import Ui_FenetrePrincipale
 from machincast.interface.verification import Verificateur, VerificationComplete
-from machincast.lecture.etat import demande_d_avance, demande_d_interruption, demande_de_relire_la_grille
+from machincast.lecture.etat import (
+	demande_d_avance,
+	demande_d_interruption,
+	demande_de_coupure_par_le_feed,
+	demande_de_coupure_par_le_secours,
+	demande_de_relire_la_grille,
+)
 
 journal = logging.getLogger(__name__)
 
@@ -275,6 +281,13 @@ class FenetrePrincipale(QMainWindow):
 		# Le clic droit sur le prochain sonore (https://github.com/dascritch/machincast/issues/257).
 		self.accueil.saut_demande.connect(lambda: self._interrompre("sonore"))
 		self.accueil.avance_demandee.connect(self._avancer)
+		# Les coupures, depuis le prochain sonore (https://github.com/dascritch/machincast/issues/323).
+		self.accueil.interruption_demandee.connect(self._interrompre)
+		self.accueil.secours_demande.connect(self._couper_par_le_secours)
+		self._antenne: EtatLecture = ARRET
+		"""Le dernier état de Machin lecture, pour les coupures proposées."""
+		self._secours: list[interruption.Secours] = []
+		"""Les événements de secours, relus à l'ouverture du menu « Diffusion » et quand la grille change."""
 		self.verificateur = Verificateur(connexion, self)
 		self.verificateur.termine.connect(self._verification_terminee)
 		self.verification_complete = VerificationComplete(connexion, self)
@@ -315,6 +328,7 @@ class FenetrePrincipale(QMainWindow):
 		"""Le texte public du sonore en cours, titre de l'écoute de l'antenne."""
 		self.accueil.client.etat_recu.connect(self._proposer_les_interruptions)
 		self._proposer_les_interruptions(ARRET)
+		self._relire_les_secours()
 		self._relire_le_service()
 		self._juste_lue: Fiche | None = None
 		"""La fiche qui vient de s'ouvrir, et de se lire : son passage au premier plan ne la relit pas."""
@@ -327,6 +341,9 @@ class FenetrePrincipale(QMainWindow):
 			liste.creation_demandee.connect(lambda genre: self._ouvrir_fiche(genre, None))
 			liste.duplication_demandee.connect(self._dupliquer)
 			liste.preecoute_demandee.connect(self._preecouter)
+			if source.genre == "feed":
+				# https://github.com/dascritch/machincast/issues/323
+				liste.menu_de_l_element = self._menu_du_feed
 			liste.action_demandee.connect(lambda cle, elements, liste=liste: self._agir(liste, cle, elements))
 			liste.ajout_demande.connect(
 				lambda liste=liste: self._ajouter_fichiers(liste, dialogues.choisir_fichiers(self))
@@ -430,6 +447,13 @@ class FenetrePrincipale(QMainWindow):
 			action = self.menu_diffusion.addAction(entree)
 			action.triggered.connect(lambda _coche=False, element=element: self._interrompre(element))
 			self.interruptions[element] = action
+		# https://github.com/dascritch/machincast/issues/323 : relu à l'ouverture du menu, et quand la grille change.
+		self.coupure_par_le_secours = self.menu_diffusion.addAction(interruption.COUPER_PAR_LE_SECOURS)
+		secours = self.coupure_par_le_secours
+		secours.triggered.connect(
+			lambda _coche=False: interruption.demander_le_secours(secours, self._couper_par_le_secours)
+		)
+		self.menu_diffusion.aboutToShow.connect(self._relire_les_secours)
 		maintenance = self.menuBar().addMenu("&Maintenance")
 		_a_venir(
 			maintenance.addAction("Moniteur de la sortie…"), "ticket 85"
@@ -476,17 +500,50 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.barre_d_etat.showMessage(pilotage.ARRETEE)
 
 	def _proposer_les_interruptions(self, etat: EtatLecture) -> None:
-		"""Les interruptions du menu « Diffusion » suivent ce qui est à l'antenne."""
+		"""Les interruptions du menu « Diffusion » suivent ce qui est à l'antenne, comme la coupure par le secours, et
+		le clic droit sur un feed (https://github.com/dascritch/machincast/issues/323)."""
 		for element, proposition in interruption.proposer(etat).items():
 			action = self.interruptions[element]
 			action.setEnabled(proposition.active)
 			action.setToolTip(proposition.infobulle)
+		self._antenne = etat
+		self._garnir_le_secours()
+
+	def _relire_les_secours(self) -> None:
+		self._secours = interruption.lire_les_secours(self.connexion)
+		self._garnir_le_secours()
+
+	def _garnir_le_secours(self) -> None:
+		interruption.garnir_le_secours(
+			self.coupure_par_le_secours, self._antenne, self._secours, self._couper_par_le_secours
+		)
+
+	def _couper_par_le_secours(self, secours: interruption.Secours) -> None:
+		"""Demande à Machin lecture de couper l'antenne par ce secours, sans question."""
+		annonce = interruption.COUPURE_SANS_LECTURE
+		if self.accueil.client.envoyer(demande_de_coupure_par_le_secours(secours.identifiant)):
+			annonce = interruption.annonce_du_secours(secours.nom)
+		self.ui.barre_d_etat.showMessage(annonce)
+
+	def _couper_par_le_feed(self, feed: int, nom: str) -> None:
+		"""Demande à Machin lecture de couper l'antenne par le stream de ce feed, sans question."""
+		annonce = interruption.COUPURE_SANS_LECTURE
+		if self.accueil.client.envoyer(demande_de_coupure_par_le_feed(feed)):
+			annonce = interruption.annonce_du_feed(nom)
+		self.ui.barre_d_etat.showMessage(annonce)
+
+	def _menu_du_feed(self, menu: QMenu, feed: int, nom: str) -> None:
+		interruption.garnir_le_feed(
+			menu, self._antenne, self.connexion, feed, nom, self._preecouter, self._couper_par_le_feed
+		)
 
 	def _grille_modifiee(self) -> None:
 		"""Une session sautée ou rétablie (https://github.com/dascritch/machincast/issues/273), une fiche enregistrée,
 		supprimée ou restaurée (https://github.com/dascritch/machincast/issues/266) valent aussitôt à l'antenne :
-		Machin lecture relit la grille, s'il diffuse ; sinon, il la lira à son démarrage."""
+		Machin lecture relit la grille, s'il diffuse ; sinon, il la lira à son démarrage. Les événements de secours
+		ont pu changer."""
 		self.accueil.client.envoyer(demande_de_relire_la_grille())
+		self._relire_les_secours()
 
 	def _interrompre(self, element: str) -> None:
 		"""Demande à Machin lecture d'interrompre l'élément, sans question : l'antenne n'attend pas."""

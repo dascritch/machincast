@@ -37,6 +37,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| ⏭ Sauter au sonore suivant              | inactive   |           | Rien à l'antenne                                        |
 			| ⏭ Sauter après la séquence              | inactive   |           | Rien à l'antenne                                        |
 			| ⏭ Couper l'événement par le fil musical | inactive   |           | Rien à l'antenne                                        |
+			| ⏭ Couper par le secours | inactive | | Aucun événement de secours |
 		Et la barre d'état ne signale pas d'installation à terminer
 
 		Exemples:
@@ -79,6 +80,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
 			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
 			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
+			| ⏭ Couper par le secours | inactive | | Aucun événement de secours |
 
 	Scénario: Après une commande, le menu suit le nouvel état du service
 		Étant donné le service de diffusion installé, arrêté
@@ -95,6 +97,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
 			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
 			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
+			| ⏭ Couper par le secours | inactive | | Aucun événement de secours |
 
 	Scénario: Le service installé pendant que l'interface est ouverte se pilote dès l'ouverture du menu
 		Étant donné le service de diffusion non installé
@@ -111,6 +114,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
 			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
 			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
+			| ⏭ Couper par le secours | inactive | | Aucun événement de secours |
 		Et la barre d'état ne signale pas d'installation à terminer
 
 	# ─── Sans le service ───────────────────────────────────────
@@ -130,6 +134,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                           |
 			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                           |
 			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                           |
+			| ⏭ Couper par le secours | inactive | | Aucun événement de secours |
 
 	Scénario: Sans service, « ⏵ Démarrer la diffusion d'essai » lance Machin lecture comme le service, dans une fenêtre de terminal
 		Étant donné le service de diffusion non installé
@@ -165,6 +170,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                                      |
 			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                                      |
 			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                                      |
+			| ⏭ Couper par le secours | inactive | | Aucun événement de secours |
 
 	Scénario: Sans service, « ⏹ Arrêter la diffusion d'essai » arrête Machin lecture comme Ctrl-C
 		Étant donné le service de diffusion non installé

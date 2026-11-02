@@ -75,6 +75,11 @@ class EcranParDefaut(QWidget):
 	"""« Sauter à ce sonore », au clic droit sur le prochain sonore (https://github.com/dascritch/machincast/issues/257)."""
 	avance_demandee = Signal(int, str)
 	"""« Avancer … », au clic droit sur le prochain sonore : l'identifiant et le nom de l'événement suivant annoncé."""
+	interruption_demandee = Signal(str)
+	"""Une interruption du menu « Diffusion », au clic droit sur le prochain sonore : « sequence » ou « evenement »
+	(https://github.com/dascritch/machincast/issues/323)."""
+	secours_demande = Signal(object)
+	"""« ⏭ Couper par le secours », au clic droit sur le prochain sonore : le secours choisi (interruption.Secours)."""
 	COLONNES_AIRPLAY = (
 		("debut", "Début"),
 		("fin", "Fin"),
@@ -474,6 +479,21 @@ class EcranParDefaut(QWidget):
 			avance.triggered.connect(
 				lambda _coche=False, suivant=suivant: self.avance_demandee.emit(suivant.id, suivant.nom)
 			)
+		# Les coupures du menu « Diffusion » (https://github.com/dascritch/machincast/issues/323), avant l'avance.
+		propositions = interruption.proposer(self.etat)
+		for element in ("sequence", "evenement"):
+			coupure = menu.addAction(interruption.ENTREES[element])
+			coupure.setEnabled(propositions[element].active)
+			coupure.setToolTip(propositions[element].infobulle)
+			coupure.triggered.connect(lambda _coche=False, element=element: self.interruption_demandee.emit(element))
+		secours = menu.addAction(interruption.COUPER_PAR_LE_SECOURS)
+		interruption.garnir_le_secours(
+			secours, self.etat, interruption.lire_les_secours(self.connexion), self.secours_demande.emit
+		)
+		secours.triggered.connect(
+			lambda _coche=False: interruption.demander_le_secours(secours, self.secours_demande.emit)
+		)
+		menu.addAction(avance)
 		for action, entree in ((saut, entrees["sonore"]), (avance, entrees["avancer"])):
 			action.setEnabled(entree.proposition.active)
 			action.setToolTip(entree.proposition.infobulle)

@@ -237,3 +237,20 @@ Fonctionnalité: Diffusion des streams
 		Et la diffusion s'arrête
 		Alors l'airplay ne montre aucun passage
 		Et le log contient 1 alerte « blanc »
+
+	# ─── Coupure par un feed (https://github.com/dascritch/machincast/issues/323) ───
+
+	Scénario: Un feed qui coupe l'antenne et tombe la rend à la grille, sans reconnexion
+		Étant donné le stream « Direct mobile » sur le feed « Studio mobile » du flux « studio »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne pendant 1 seconde en temps réel
+		Et je coupe l'antenne par le feed « Studio mobile »
+		Et la diffusion tourne pendant 1,5 seconde en temps réel
+		Et le flux « studio » tombe
+		Et la diffusion tourne pendant 2 seconde en temps réel
+		Et le flux « studio » revient
+		Et la diffusion tourne pendant 1,5 seconde en temps réel
+		Et la diffusion s'arrête
+		Alors l'airplay montre des sonores de « Continue », puis « Direct mobile », puis des sonores de « Continue »
+		Et le log contient 1 incident « flux tombé », qui donne l'adresse du flux « studio »
+		Et le log contient 0 incident « reprise du flux »

@@ -50,6 +50,14 @@ et la liste reprend à l'élément qui la suit ; couper l'événement par le fil
 chaque occurrence active au-dessus du fil musical (rendre_au_fil_musical), comme une liste épuisée, jusqu'à sa fin
 prévue.
 
+Coupure par le secours ou par un feed (https://github.com/dascritch/machincast/issues/323, couper_par) : comme pour le
+fil musical, chaque occurrence active au-dessus du fil musical est terminée ; puis un remplacement (Remplacement) tient
+l'antenne, au-dessus de la grille, jusqu'à la fin prévue de l'événement coupé, ou, sans fin connue ou sous le fil
+musical, jusqu'au début de l'événement suivant. Le secours y joue sa liste ; un feed, le stream qui le suit, au nom de
+l'événement coupé (ELEMENT_HORS_LISTE : le passage ne vient d'aucun élément de liste). Un secours qui n'a plus rien de
+jouable, un feed dont le stream ne l'est plus ou qui tombe (suspendre), rendent l'antenne à la grille : sous elle, le
+fil musical. Une coupure par le fil musical, ou une avance, met fin au remplacement.
+
 Playlist immédiate (https://github.com/dascritch/machincast/issues/228) : les sonores à venir se prévoient dans une
 prévision (prevision), où les décisions voient les passages prévus comme joués et ne laissent aucune trace, sauf leurs
 tirages au hasard, qui sont engagés : ces sonores seront joués. Quand l'un d'eux devient le prochain sonore, les
@@ -90,6 +98,8 @@ from machincast.lecture.sequences import ElementDeSequence, elements_apres, lire
 
 REESSAI_FICHIER_INTROUVABLE = timedelta(hours=1)
 """Durée pendant laquelle un sonore au fichier introuvable n'est plus proposé."""
+HORS_LISTE = 0
+"""Identifiant de l'élément d'un passage qui ne vient d'aucune liste : le stream d'un feed qui coupe l'antenne."""
 
 
 @dataclass(frozen=True)
@@ -143,6 +153,19 @@ class Suspension:
 	occurrence: Occurrence
 	secours: Evenement | None
 	"""Événement de secours du stream ; None : l'événement de priorité inférieure."""
+
+
+@dataclass(frozen=True)
+class Remplacement:
+	"""Ce qui tient l'antenne à la place de la grille après une coupure par le secours ou par un feed
+	(https://github.com/dascritch/machincast/issues/323)."""
+
+	occurrence: Occurrence
+	"""Pour le secours, son occurrence ; pour un feed, l'occurrence coupée, au nom de qui le stream passe."""
+	jusqu_a: datetime | None
+	"""En heure murale ; None, sans événement suivant : jusqu'à une autre coupure."""
+	stream: int | None = None
+	"""Pour un feed : le stream qui le suit."""
 
 
 @dataclass(frozen=True)
@@ -361,6 +384,9 @@ class Ordonnanceur:
 		"""Éléments sautés déjà notés dans le log, pour le dernier passage : une seule ligne par élément."""
 		self.sequence_abandonnee: uuid.UUID | None = None
 		"""Passage dont la séquence a été interrompue : elle ne continue pas après lui."""
+		self.remplacement: Remplacement | None = None
+		"""La coupure par le secours ou par un feed en cours (https://github.com/dascritch/machincast/issues/323) ;
+		retenue en mémoire seulement, comme une occurrence terminée plus tôt."""
 		self.avancee: Occurrence | None = None
 		"""L'occurrence avancée à la demande (https://github.com/dascritch/machincast/issues/257) : active dès la
 		demande, jusqu'à son début prévu, où la grille la retrouve. Retenue en mémoire seulement, comme une occurrence
@@ -393,6 +419,7 @@ class Ordonnanceur:
 		suivant = self.evenement_suivant(instant)
 		if suivant is None:
 			return None
+		self.remplacement = None
 		self.avancee = dataclasses.replace(suivant, commencee=heure_murale(instant))
 		return self.avancee
 
@@ -500,8 +527,11 @@ class Ordonnanceur:
 		"""Le sonore réservé peut-il encore être joué : son occurrence est toujours active et il est jouable."""
 		with self.connexion.transaction():
 			evenements = lire_grille(self.connexion)
-			actif = self._remplacer(evenements, instant, self._actif(evenements, instant))
+			actif = self._couvrir(instant, self._remplacer(evenements, instant, self._actif(evenements, instant)))
 			if (actif is None) or (actif.cle != choix.occurrence.cle) or (choix.sonore in self._exclus(instant)):
+				return False
+			if (choix.element.id == HORS_LISTE) and (self._par_le_feed(instant, actif) is None):
+				# Le stream d'un feed ne passe que tant que le feed coupe l'antenne.
 				return False
 			return sonore_jouable(self.connexion, choix.sonore, instant, self.historique)
 
@@ -512,6 +542,13 @@ class Ordonnanceur:
 		if secours is not None:
 			with self.connexion.transaction():
 				evenement = lire_evenement(self.connexion, secours)
+		remplacement = self.remplacement
+		if (remplacement is not None) and (remplacement.stream is not None) and (remplacement.occurrence == occurrence):
+			# Le feed qui coupait l'antenne est tombé : la grille reprend, sans secours ; sans suspension, la diffusion
+			# abandonne la reconnexion.
+			self.remplacement = None
+			self.suspension = None
+			return
 		self.suspension = Suspension(occurrence, evenement)
 
 	def reprendre(self) -> None:
@@ -532,6 +569,7 @@ class Ordonnanceur:
 		occurrence active au-dessus du fil musical est terminée, comme une liste épuisée, jusqu'à sa fin prévue, et
 		un stream tombé n'est plus reconnecté. Renvoie les occurrences terminées, de la plus prioritaire à la moins
 		prioritaire."""
+		self.remplacement = None
 		with self.connexion.transaction():
 			evenements = lire_grille(self.connexion)
 		terminees = []
@@ -546,6 +584,64 @@ class Ordonnanceur:
 				return terminees
 			self.terminees.add(actif.cle)
 			terminees.append(actif)
+
+	def couper_par(self, instant: datetime, secours: Evenement | None, stream: int | None) -> Remplacement:
+		"""Coupe l'antenne par le secours, ou par le stream d'un feed (https://github.com/dascritch/machincast/issues/323)
+		: chaque occurrence active au-dessus du fil musical est terminée, et le remplacement tient l'antenne jusqu'à la
+		fin prévue des occurrences coupées, ou, sans fin connue ou sous le fil musical, jusqu'au début de l'événement
+		suivant."""
+		with self.connexion.transaction():
+			evenements = lire_grille(self.connexion)
+			sous = self._remplacer(evenements, instant, self._actif(evenements, instant))
+		coupees = self.rendre_au_fil_musical(instant)
+		fins = [occurrence.fin for occurrence in coupees]
+		jusqu_a: datetime | None = None
+		if (fins != []) and (None not in fins):
+			jusqu_a = max(fin for fin in fins if fin is not None)
+		else:
+			suivant = self.evenement_suivant(instant)
+			if suivant is not None:
+				jusqu_a = suivant.debut
+		occurrence = (next(iter(coupees), None)) or (sous)
+		if secours is not None:
+			occurrence = _occurrence_de_secours(secours)
+			# Un secours épuisé par une coupure précédente retrouve toute sa liste.
+			self.terminees.discard(occurrence.cle)
+		assert occurrence is not None, "rien à couper : la diffusion vérifie qu'un sonore est à l'antenne"
+		self.remplacement = Remplacement(occurrence, jusqu_a, stream)
+		return self.remplacement
+
+	def _couvrir(self, instant: datetime, actif: Occurrence | None) -> Occurrence | None:
+		"""Le remplacement en cours, au-dessus de la grille, jusqu'à sa fin ; le secours, tant qu'il lui reste de quoi
+		jouer ; un feed, tant que son stream est jouable. Ailleurs, l'occurrence active de la grille."""
+		remplacement = self.remplacement
+		if remplacement is None:
+			return actif
+		if (remplacement.jusqu_a is not None) and (heure_murale(instant) >= remplacement.jusqu_a):
+			return actif
+		if remplacement.stream is None:
+			if remplacement.occurrence.cle in self.terminees:
+				return actif
+			return remplacement.occurrence
+		if (remplacement.stream in self._exclus(instant)) or (
+			not sonore_jouable(self.connexion, remplacement.stream, instant, self.historique)
+		):
+			return actif
+		return remplacement.occurrence
+
+	def _par_le_feed(self, instant: datetime, actif: Occurrence | None) -> Choix | None:
+		"""Le stream du feed qui coupe l'antenne, s'il la tient : au nom de l'occurrence coupée, hors de toute liste."""
+		remplacement = self.remplacement
+		if (
+			(remplacement is None)
+			or (remplacement.stream is None)
+			or (actif is None)
+			or (actif != remplacement.occurrence)
+			or (self._couvrir(instant, None) is None)
+		):
+			return None
+		element = Element(HORS_LISTE, 0, remplacement.stream, None)
+		return Choix(remplacement.stream, element, None, actif)
 
 	def exclure(self, sonore: int, instant: datetime) -> None:
 		"""Écarte un sonore pendant REESSAI_FICHIER_INTROUVABLE, par exemple quand son fichier est introuvable."""
@@ -592,7 +688,7 @@ class Ordonnanceur:
 		evenements = lire_grille(self.connexion)
 		couper = eteindre = False
 		while True:
-			actif = self._remplacer(evenements, instant, self._actif(evenements, instant))
+			actif = self._couvrir(instant, self._remplacer(evenements, instant, self._actif(evenements, instant)))
 			if (en_cours is not None) and (not ((couper) or (eteindre))):
 				if (actif is not None) and (actif.cle == en_cours.occurrence.cle):
 					return Decision()
@@ -610,8 +706,11 @@ class Ordonnanceur:
 			repetition = self._repetition(dernier)
 			interdite = None if repetition is None else repetition.banque
 			sautes: list[Saut] = []
-			# D'abord la suite de la séquence en cours, s'il en reste ; sinon, l'élément suivant de l'événement actif.
-			choix = self._suite(instant, actif, dernier, interdite, sautes)
+			# Le stream d'un feed qui coupe l'antenne (https://github.com/dascritch/machincast/issues/323) ; sinon,
+			# d'abord la suite de la séquence en cours, s'il en reste ; sinon, l'élément suivant de l'événement actif.
+			choix = self._par_le_feed(instant, actif)
+			if choix is None:
+				choix = self._suite(instant, actif, dernier, interdite, sautes)
 			if (choix is None) and (actif is not None):
 				exclus = self._exclus(instant)
 				choix = prochain(

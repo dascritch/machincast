@@ -258,3 +258,14 @@ def http1() -> None:
 @then(parsers.parse("l'incident « {suivante} » suit l'incident « {premiere} »"))
 def ordre_des_incidents(base_vide: Connexion, suivante: str, premiere: str) -> None:
 	assert lignes_du_log(base_vide, premiere)[0][0] < lignes_du_log(base_vide, suivante)[0][0]
+
+
+@then(parsers.parse("l'airplay montre des sonores de « {avant} », puis « {stream} », puis des sonores de « {apres} »"))
+def coupure_par_le_feed(base_vide: Connexion, avant: str, stream: str, apres: str) -> None:
+	"""Le stream passe une seule fois, entre des sonores des événements (https://github.com/dascritch/machincast/issues/323)."""
+	noms = [p[0] for p in passages(base_vide)]
+	assert noms.count(stream) == 1, noms
+	rang = noms.index(stream)
+	assert 0 < rang < len(noms) - 1, noms
+	assert set(noms[:rang]) <= sonores_de(base_vide, avant), noms
+	assert set(noms[rang + 1 :]) <= sonores_de(base_vide, apres), noms
