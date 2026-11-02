@@ -19,6 +19,12 @@ quoi faire de ses modifications avant de se fermer, avec son onglet ou avec la f
 Le dernier onglet fixe est l'écran des incidents du log (machincast.interface.incidents,
 https://github.com/dascritch/machincast/issues/35), qui se relit aussi à l'ouverture de son onglet.
 
+Les onglets ouverts sont retenus d'un lancement à l'autre (https://github.com/dascritch/machincast/issues/321) : à la
+fermeture, les réglages des vues du compte (machincast.interface.colonnes) gardent les onglets ouverts dans leur ordre,
+fiches comprises, et l'onglet actif, chacun par sa clé (cle_de_l_onglet) ; au lancement, la fenêtre les rouvre
+(rouvrir_les_onglets). Une fiche dont l'élément n'est plus en base, ou est supprimé, est oubliée, sans question ; une
+fiche pas encore enregistrée, ou celle d'un élément supprimé, n'est pas retenue.
+
 La barre de menus a cinq menus (https://github.com/dascritch/machincast/issues/117) : « Fichier », pour quitter (Alt+Q,
 comme la fermeture de la fenêtre) ; « Affichage », pour ouvrir les listes des sonores et des feeds, dans des onglets
 qui se ferment, ramener au premier plan le calendrier de la grille, « Grille horaire » (machincast.interface.calendrier,
@@ -118,6 +124,19 @@ SUIVI_INDEXATION = 1000
 TICKETS = "https://github.com/dascritch/machincast/issues"
 """Les tickets de MachinCast, qu'ouvre « Signaler un problème… » ; comme dans pyproject.toml."""
 ANTENNE = "Antenne"
+CLE_DES_ONGLETS = "onglets/ouverts"
+CLE_DE_L_ONGLET_ACTIF = "onglets/actif"
+"""Les onglets ouverts, et l'onglet actif, dans les réglages des vues du compte
+(https://github.com/dascritch/machincast/issues/321)."""
+TABLES_DES_FICHES = {
+	"sonore": "sonores",
+	"banque": "banques",
+	"séquence": "sequences",
+	"événement": "evenements",
+	"feed": "feeds",
+}
+SUPPRIMABLES = frozenset({"sonores", "banques", "sequences", "evenements"})
+"""Les tables dont un élément peut être supprimé sans être effacé de la base (supprime_le)."""
 """L'onglet de l'écran par défaut, l'onglet Antenne, qui suit l'antenne (https://github.com/dascritch/machincast/issues/322)."""
 SERVICE_INCOMPLET, SERVICE_INSTALLE = "🟩", "🟥"
 """Le témoin du service de diffusion, devant le titre de l'onglet Antenne : pas complètement installé, ou installé."""
@@ -329,6 +348,7 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.onglets.currentChanged.connect(self._onglet_ouvert)
 		self.ui.onglets.tabCloseRequested.connect(self._fermer)
 		self._creer_les_raccourcis()
+		self.rouvrir_les_onglets()
 		if not identifier(self._application(), self.icone):
 			self.statusBar().showMessage(
 				f"Icône {self.icone} illisible ou introuvable : icône de MachinCast à la place."
@@ -559,6 +579,7 @@ class FenetrePrincipale(QMainWindow):
 			if not fiche.peut_fermer():
 				evenement.ignore()
 				return
+		self.retenir_les_onglets()
 		for fiche in self.fiches():
 			fiche.fermer()
 		onglets = self.ui.onglets
@@ -572,6 +593,84 @@ class FenetrePrincipale(QMainWindow):
 		if self.preecoute is not None:
 			self.preecoute.close()
 		super().closeEvent(evenement)
+
+	def cle_de_l_onglet(self, ecran: QWidget | None) -> str | None:
+		"""Ce qui désigne un onglet d'un lancement à l'autre : « antenne », « liste:Feeds », « fiche:banque:12 »… ;
+		None pour une fiche pas encore enregistrée, ou celle d'un élément supprimé, et sans onglet."""
+		if ecran is None:
+			return None
+		if isinstance(ecran, Fiche):
+			if (ecran.identifiant is None) or (ecran.supprime_le is not None):
+				return None
+			return f"fiche:{ecran.genre}:{ecran.identifiant}"
+		if isinstance(ecran, Liste):
+			return f"liste:{self._titres[ecran]}"
+		for fixe, cle in ((self.accueil, "antenne"), (self.calendrier, "calendrier"), (self.incidents, "incidents")):
+			if ecran is fixe:
+				return cle
+		for genre, cle in ((EcranRecherche, "recherche"), (EcranSimulation, "simulation"), (EcranAirplay, "airplay")):
+			if isinstance(ecran, genre):
+				return cle
+		return None
+
+	def retenir_les_onglets(self) -> None:
+		"""Les onglets ouverts, dans leur ordre, et l'onglet actif, dans les réglages des vues du compte."""
+		onglets = self.ui.onglets
+		cles = [self.cle_de_l_onglet(onglets.widget(indice)) for indice in range(onglets.count())]
+		reglages = colonnes.reglages()
+		reglages.setValue(CLE_DES_ONGLETS, [cle for cle in cles if cle is not None])
+		reglages.setValue(CLE_DE_L_ONGLET_ACTIF, (self.cle_de_l_onglet(onglets.currentWidget())) or ("antenne"))
+
+	def rouvrir_les_onglets(self) -> None:
+		"""Les onglets retenus à la dernière fermeture, dans leur ordre, puis l'onglet actif ; une fiche dont l'élément
+		n'est plus en base, ou est supprimé, est oubliée."""
+		reglages = colonnes.reglages()
+		retenus = reglages.value(CLE_DES_ONGLETS)
+		if retenus is None:
+			return
+		if not isinstance(retenus, list):
+			retenus = [retenus]
+		for cle in retenus:
+			try:
+				self._rouvrir(str(cle))
+			except psycopg.Error as erreur:
+				journal.error(f"onglet « {cle} » non rouvert : {erreur}")
+		actif = str(reglages.value(CLE_DE_L_ONGLET_ACTIF, "antenne"))
+		onglets = self.ui.onglets
+		trouves = [indice for indice in range(onglets.count()) if self.cle_de_l_onglet(onglets.widget(indice)) == actif]
+		onglets.setCurrentIndex(next(iter(trouves), 0))
+
+	def _rouvrir(self, cle: str) -> None:
+		"""Rouvre un onglet retenu ; un onglet fixe l'est déjà, une clé inconnue est ignorée."""
+		genre, _, reste = cle.partition(":")
+		if (genre == "liste") and (reste in A_LA_DEMANDE):
+			self.ouvrir_liste(reste)
+		elif genre == "recherche":
+			self._ouvrir_recherche()
+		elif genre == "simulation":
+			self._ouvrir_simulation()
+		elif genre == "airplay":
+			self._ouvrir_airplay()
+		elif genre == "fiche":
+			type_de_fiche, _, identifiant = reste.partition(":")
+			if (type_de_fiche in TABLES_DES_FICHES) and (identifiant.isdigit()):
+				if self._en_base(type_de_fiche, int(identifiant)):
+					self._ouvrir_fiche(type_de_fiche, int(identifiant))
+				else:
+					journal.info(f"fiche {type_de_fiche} {identifiant} oubliée : l'élément n'est plus en base")
+
+	def _en_base(self, genre: str, identifiant: int) -> bool:
+		"""L'élément est en base, et n'est pas supprimé."""
+		table = TABLES_DES_FICHES[genre]
+		condition = ""
+		if table in SUPPRIMABLES:
+			condition = " AND supprime_le IS NULL"
+		with self.connexion.transaction():
+			ligne = self.connexion.execute(
+				f"SELECT 1 FROM {table} WHERE id = %s{condition}",  # noqa: S608 : table et condition sont des constantes
+				(identifiant,),
+			).fetchone()
+		return ligne is not None
 
 	def _ajouter_fixe(self, ecran: QWidget, titre: str) -> None:
 		"""Un onglet sans bouton de fermeture."""
