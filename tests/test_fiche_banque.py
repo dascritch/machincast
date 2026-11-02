@@ -313,21 +313,6 @@ def reordonnable(interface: Contexte, verdict: str) -> None:
 
 @then(
 	parsers.re(
-		r"l'avertissement de réintégration nomme « (?P<sonore>[^»]+) », le répertoire « (?P<repertoire>[^»]+) »"
-		r" et la prochaine indexation"
-	)
-)
-def avertissement(interface: Contexte, sonore: str, repertoire: str) -> None:
-	assert len(interface.questions) == 1, interface.questions
-	question = interface.questions[0]
-	assert question.startswith("retrait : "), question
-	assert f"« {sonore} »" in question, question
-	assert repertoire in question, question
-	assert "prochaine indexation" in question, question
-
-
-@then(
-	parsers.re(
 		r"la banque « (?P<nom>[^»]+) » est en base : (?:nom public « (?P<nom_public>[^»]+) »|sans nom public),"
 		r" (?P<mode>séquentielle|aléatoire), masquage « (?P<masquage>[^»]+) »,"
 		r" (?P<repeter>avec|sans) « ne pas répéter »"

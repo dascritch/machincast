@@ -19,7 +19,11 @@ machincast.interface.fiche.
 - Derniers passages : les 50 derniers, du plus récent au plus ancien, avec les alertes et incidents du log pendant
   chaque passage.
 - Relations (https://github.com/dascritch/machincast/issues/125) : les séquences, banques et événements qui citent le
-  sonore dans leur liste ; un double-clic ouvre leur fiche.
+  sonore dans leur liste ; un double-clic ouvre leur fiche. Le clic droit sur une relation propose de l'en retirer
+  (https://github.com/dascritch/machincast/issues/331) : la relation disparaît de la fiche, modifiée, et
+  « Enregistrer » retire le sonore de la liste de la séquence, de la banque ou de l'événement, toutes ses places
+  comprises ; « Annuler » la rétablit. Une banque dont un répertoire contient le fichier prévient d'abord que la
+  prochaine indexation l'y remettra, comme sa fiche. Le fichier n'est jamais touché.
 - Fichier : type lu par l'indexeur (https://github.com/dascritch/machincast/issues/121), encodage moyen (taille sur
   durée, pochette et tags compris), taille, dates de création et de modification lues sur le fichier, qui n'est que lu,
   et date de sa dernière vérification complète par l'indexeur. Le bouton du dossier ouvre le dossier du fichier dans
@@ -45,6 +49,7 @@ from PySide6.QtWidgets import (
 	QDateTimeEdit,
 	QDoubleSpinBox,
 	QLineEdit,
+	QMenu,
 	QTableWidgetItem,
 	QVBoxLayout,
 	QWidget,
@@ -56,9 +61,12 @@ from machincast.horloge import Horloge
 from machincast.interface import affichage, depliable, dialogues, icones, preferences
 from machincast.interface.colonnes import Colonnes
 from machincast.interface.curseur import CurseurDeDuree
+from machincast.interface.dialogues import Retrait
 from machincast.interface.essai_flux import EssaiDeFlux, resultat_de_l_essai
 from machincast.interface.fiche import Connexion, Fiche, Refus
+from machincast.interface.fiche_banque import avertissement_retrait
 from machincast.interface.frise import FormeDOnde, Frise, plan_du_sonore
+from machincast.interface.intentions import RETIRER, libelle
 from machincast.interface.listes import ETATS
 from machincast.interface.ui.fiche_sonore import Ui_FicheSonore
 
@@ -137,6 +145,13 @@ NOUVEAU_STREAM: tuple[object, ...] = (
 )
 """Ce que montre la fiche d'un nouveau stream, dans l'ordre des colonnes lues."""
 RELATION = Qt.ItemDataRole.UserRole
+ARTICLES = {"séquence": "la séquence", "banque": "la banque", "événement": "l'événement"}
+LISTES_DES_RELATIONS = {
+	"séquence": ("sequences_elements", "sequence_id"),
+	"banque": ("banques_sonores", "banque_id"),
+	"événement": ("evenements_elements", "evenement_id"),
+}
+"""La table de la liste de chaque genre de relation, et sa colonne qui désigne l'élément."""
 """Rôle qui porte, sur la cellule du nom d'une relation, son genre et son identifiant."""
 PASSAGES = 50
 """Nombre de derniers passages montrés."""
@@ -252,6 +267,11 @@ class FicheSonore(Fiche):
 		)
 		self.ui.relations.itemActivated.connect(self._ouvrir_relation)
 		self.colonnes_relations = Colonnes(self.ui.relations, "fiche-sonore-relations")
+		self.colonnes_relations.menu_des_lignes = lambda position: self.menu_de_la_relation(
+			self.ui.relations.rowAt(position.y())
+		)
+		self._retirees: list[tuple[str, int]] = []
+		"""Les relations retirées dans la fiche, que « Enregistrer » retire en base : genre et identifiant."""
 		self.colonnes_passages = Colonnes(self.ui.passages, "fiche-sonore-passages")
 		self.charger()
 
@@ -362,6 +382,7 @@ class FicheSonore(Fiche):
 			).fetchall()
 		assert ligne is not None, f"sonore {self.identifiant} absent"
 		self._montrer(ligne, marques, secours, passages)
+		self._retirees = []
 		self._montrer_relations(relations)
 
 	def _lire_sonore(self) -> tuple[object, ...] | None:
@@ -593,6 +614,14 @@ class FicheSonore(Fiche):
 		valeurs.append(edites)
 		requete = sql.SQL("UPDATE sonores SET {} WHERE id = %s").format(sql.SQL(", ").join(affectations))
 		self.connexion.execute(requete, [*valeurs, identifiant])
+		for genre, element in self._retirees:
+			table, colonne = LISTES_DES_RELATIONS[genre]
+			self.connexion.execute(
+				sql.SQL("DELETE FROM {} WHERE {} = %s AND sonore_id = %s").format(
+					sql.Identifier(table), sql.Identifier(colonne)
+				),
+				(element, identifiant),
+			)
 		return identifiant
 
 	def _lire_relations(self) -> list[tuple[object, ...]]:
@@ -632,6 +661,53 @@ class FicheSonore(Fiche):
 				cellule.setToolTip(ecart)
 			table.setItem(rangee, 1, cellule)
 		self.ui.aucune_relation.setVisible(relations == [])
+
+	def menu_de_la_relation(self, rangee: int) -> QMenu | None:
+		"""Le menu du clic droit sur cette ligne des relations : « ➖ Retirer de la banque « Jingles » » ; aucun hors
+		d'une ligne, ou pour un sonore supprimé, dont la fiche ne se modifie pas."""
+		nom = self.ui.relations.item(rangee, 1)
+		if (nom is None) or (self.supprime_le is not None):
+			return None
+		genre, _identifiant = nom.data(RELATION)
+		menu = QMenu(self)
+		retirer = menu.addAction(libelle(RETIRER, f"Retirer de {ARTICLES[genre]} « {nom.text()} »"))
+		retirer.triggered.connect(lambda _coche=False: self.retirer_la_relation(rangee))
+		return menu
+
+	def retirer_la_relation(self, rangee: int) -> None:
+		"""La relation quitte la fiche, jusqu'à « Enregistrer » ; d'une banque qui indexe le fichier, seulement après
+		l'avertissement que la prochaine indexation l'y remettra."""
+		nom = self.ui.relations.item(rangee, 1)
+		assert nom is not None
+		genre, identifiant = nom.data(RELATION)
+		repertoire = None
+		if genre == "banque":
+			repertoire = self._repertoire_de_la_banque(identifiant)
+		if repertoire is not None:
+			reponse = dialogues.confirmer_retrait(self, avertissement_retrait(self._nom, repertoire))
+			if reponse is Retrait.OUVRIR_DOSSIER:
+				dialogues.ouvrir_dossier(Path(self.ui.emplacement.text()).parent)
+			if reponse is not Retrait.RETIRER:
+				return
+		self._retirees.append((str(genre), int(identifiant)))
+		self.ui.relations.removeRow(rangee)
+		self.ui.aucune_relation.setVisible(self.ui.relations.rowCount() == 0)
+		self._modifier()
+
+	def _repertoire_de_la_banque(self, banque: int) -> str | None:
+		"""Le répertoire de la banque où se trouve le fichier du sonore, même dans un sous-répertoire ; None hors de
+		tous, ou pour un stream."""
+		if not self._fichier:
+			return None
+		chemin = Path(self.ui.emplacement.text())
+		with self.connexion.transaction():
+			repertoires = self.connexion.execute(
+				"SELECT repertoire FROM banques_repertoires WHERE banque_id = %s ORDER BY repertoire", (banque,)
+			).fetchall()
+		for (repertoire,) in repertoires:
+			if chemin.is_relative_to(str(repertoire)):
+				return str(repertoire)
+		return None
 
 	def _ouvrir_relation(self, cellule: QTableWidgetItem) -> None:
 		nom = self.ui.relations.item(cellule.row(), 1)

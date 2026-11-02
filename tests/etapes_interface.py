@@ -1129,6 +1129,21 @@ def liberee(interface: Contexte) -> None:
 	assert [shiboken6.isValid(ferme) for ferme in interface.fermes] == [False]
 
 
+@then(
+	parsers.re(
+		r"l'avertissement de réintégration nomme « (?P<sonore>[^»]+) », le répertoire « (?P<repertoire>[^»]+) »"
+		r" et la prochaine indexation"
+	)
+)
+def avertissement(interface: Contexte, sonore: str, repertoire: str) -> None:
+	assert len(interface.questions) == 1, interface.questions
+	question = interface.questions[0]
+	assert question.startswith("retrait : "), question
+	assert f"« {sonore} »" in question, question
+	assert repertoire in question, question
+	assert "prochaine indexation" in question, question
+
+
 @then("aucune question n'a été posée")
 def aucune_question(interface: Contexte) -> None:
 	assert interface.questions == []
