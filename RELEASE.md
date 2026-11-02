@@ -73,4 +73,4 @@ Première version publiée, avant la 1.0 : tout ce que fait MachinCast, fonction
 
 ### Merci
 
-À Xavier Mouton-Dubosc ([dascritch](https://github.com/dascritch)), animateur de [Radio &lt;FMR&gt;](https://radio-fmr.net), qui a demandé chacune de ces fonctionnalités, signalé chaque problème et relu chaque changement.
+À Xavier Mouton-Dubosc ([dascritch](https://github.com/dascritch)), *broadcasting manager* de [Radio &lt;FMR&gt; 89.1 Toulouse](https://radio-fmr.net), qui a demandé chacune de ces fonctionnalités, signalé chaque problème et relu chaque changement.
