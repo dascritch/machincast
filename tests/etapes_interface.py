@@ -90,6 +90,8 @@ class Contexte:
 	connexion: Connexion | None = None
 	demandes: list[tuple[str, int]] = field(default_factory=list)
 	"""Écrans de détail demandés : genre et identifiant."""
+	proposes: list[str] = field(default_factory=list)
+	"""Les noms de fichier proposés par le sélecteur d'export d'un tableau (https://github.com/dascritch/machincast/issues/329)."""
 	questions: list[str] = field(default_factory=list)
 	boutons_d_action: list[str | None] = field(default_factory=list)
 	"""Le bouton qui confirme chaque action groupée, s'il n'est pas son titre (https://github.com/dascritch/machincast/issues/294)."""

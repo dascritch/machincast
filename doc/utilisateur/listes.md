@@ -41,6 +41,7 @@ Tous les tableaux de l'interface se règlent de la même façon : les listes, la
 - **Ordre** : glisser le titre d'une colonne la déplace.
 - **Colonnes montrées** : un clic droit sur les titres ouvre le menu des colonnes. Chaque case montre ou cache sa colonne ; la dernière colonne montrée ne se cache pas.
 - **Rétablir les colonnes**, en bas de ce menu, revient à l'ordre et aux colonnes d'origine, ajustées au contenu.
+- **Exporter ce tableau…** ([#329](https://github.com/dascritch/machincast/issues/329)) : un clic droit dans le tableau, sur une ligne ou à côté, propose en dernier d'enregistrer le tableau en CSV, pour un tableur. Le fichier se choisit dans le sélecteur ; il reçoit l'extension `.csv` s'il ne l'a pas. Il contient le tableau tel qu'il est affiché : les colonnes montrées, dans leur ordre, et les lignes que garde le filtre, dans l'ordre du tri. La barre d'état dit où il est enregistré.
 - **Gardé d'une session à l'autre** : chaque tableau garde sa disposition pour toutes les fois où il s'ouvre, par exemple le tableau des sonores de toutes les fiches de banque. Elle est gardée pour votre compte : un autre compte du poste a la sienne.
 
 ## Enregistrer, annuler, fermer

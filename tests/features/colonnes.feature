@@ -153,3 +153,59 @@ Fonctionnalité: Colonnes des tableaux, ajustées, réordonnables, masquables et
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre chaque onglet et la fiche de chaque genre
 		Alors chaque tableau de l'interface a des colonnes déplaçables, de largeur libre, avec le menu des colonnes de sa vue
+		Et le clic droit hors des lignes de chaque tableau de l'interface ne propose que « Exporter ce tableau… »
+
+	# ─── Exporter un tableau (https://github.com/dascritch/machincast/issues/329) ───
+
+	Scénario: « Exporter ce tableau… » enregistre le tableau tel qu'il est affiché, en CSV
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Et je glisse la colonne « Titre » de l'onglet « Sonores » en première place
+		Et je décoche « Emplacement » dans le menu des colonnes de l'onglet « Sonores »
+		Et je décoche « ⚠️ » dans le menu des colonnes de l'onglet « Sonores »
+		Et je clique sur le titre de la colonne « Titre »
+		Et je clique sur le titre de la colonne « Titre »
+		Et je choisis « Exporter ce tableau… » au clic droit dans le tableau de l'onglet « Sonores », vers « sonores.csv »
+		Alors le sélecteur de fichier a proposé « liste-sonores.csv »
+		Et le fichier « sonores.csv » contient, en UTF-8 avec BOM :
+			"""
+			Titre;Artiste;Type;État;Durée
+			Nuit blanche;Café Noir;fichier;désactivé;3:00
+			Café à minuit;Les Gaufres;fichier;actif;3:34
+			"""
+		Et la barre d'état annonce que le tableau est exporté dans « sonores.csv »
+
+	Scénario: Seules les lignes que garde le filtre sont exportées
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Banques »
+		Et je tape « nuit » dans le filtre de la liste
+		Et je choisis « Exporter ce tableau… » au clic droit dans le tableau de l'onglet « Banques », vers « banques.csv »
+		Alors le fichier « banques.csv » contient, en UTF-8 avec BOM :
+			"""
+			⚠️;Nom;Nom public;Mode;Ne pas répéter;Répertoire
+			⚠️;Nuit;;séquentielle;non;
+			"""
+
+	Scénario: Le clic droit sur une ligne propose ses entrées, puis « Exporter ce tableau… »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Banques »
+		Alors le clic droit sur la ligne « Nuit » de l'onglet « Banques » propose d'abord « Dupliquer », et finit par « — », « Exporter ce tableau… »
+
+	Scénario: Un fichier choisi sans l'extension .csv la reçoit ; jamais un fichier sonore n'est écrit
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Banques »
+		Et je choisis « Exporter ce tableau… » au clic droit dans le tableau de l'onglet « Banques », vers « Nuit blanche.flac »
+		Alors le fichier « Nuit blanche.flac.csv » contient la ligne « ⚠️;Nom;Nom public;Mode;Ne pas répéter;Répertoire »
+		Et le fichier « Nuit blanche.flac » n'existe pas
+
+	Scénario: Un export impossible le dit dans la barre d'état
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Banques »
+		Et je choisis « Exporter ce tableau… » au clic droit dans le tableau de l'onglet « Banques », vers « absent/banques.csv »
+		Alors la barre d'état commence par « Export impossible : »
+
+	Scénario: Abandonner le choix du fichier n'exporte rien
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Banques »
+		Et j'abandonne « Exporter ce tableau… » au clic droit dans le tableau de l'onglet « Banques »
+		Alors aucun fichier n'est exporté

@@ -23,7 +23,7 @@ Commune aux fiches d'une séquence (machincast.interface.fiche_sequence) et d'un
 from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QPoint, Qt, Signal
+from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import QAbstractItemView, QMenu, QPushButton, QTreeWidget, QTreeWidgetItem
 
 from machincast.conversion import entier_ou_rien, texte_ou_rien
@@ -116,8 +116,7 @@ class ListeElements(QObject):
 			signal.connect(self.changee)
 		liste.currentItemChanged.connect(self._actualiser_boutons)
 		liste.itemActivated.connect(self._ouvrir)
-		liste.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-		liste.customContextMenuRequested.connect(self._menu)
+		self.colonnes.menu_des_lignes = lambda position: self.menu_de_la_ligne(self.liste.itemAt(position))
 		for genre, bouton in boutons.ajouter.items():
 			bouton.clicked.connect(lambda _coche=False, genre=genre: self._ajouter(genre))
 		boutons.retirer.clicked.connect(self._retirer)
@@ -374,12 +373,6 @@ class ListeElements(QObject):
 		menu = QMenu(self.liste)
 		affichage.proposer_la_preecoute(menu, int(ligne.data(0, ELEMENT)), self.fiche.preecoute_demandee.emit)
 		return menu
-
-	def _menu(self, position: QPoint) -> None:
-		menu = self.menu_de_la_ligne(self.liste.itemAt(position))
-		if menu is not None:
-			menu.exec(self.liste.viewport().mapToGlobal(position))
-			menu.deleteLater()
 
 	def _ouvrir(self, ligne: QTreeWidgetItem) -> None:
 		"""Ouvrir un élément demande sa fiche ; un fichier déposé n'en a pas avant l'enregistrement."""

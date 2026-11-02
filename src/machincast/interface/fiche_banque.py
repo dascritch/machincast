@@ -45,7 +45,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from PySide6.QtCore import QPoint, Qt, QTime
+from PySide6.QtCore import Qt, QTime
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
 	QAbstractItemView,
@@ -188,8 +188,7 @@ class FicheBanque(Fiche):
 		self.ui.repertoires.currentItemChanged.connect(self._actualiser_boutons)
 		self.ui.sonores.currentItemChanged.connect(self._actualiser_boutons)
 		self.ui.sonores.itemSelectionChanged.connect(self._actualiser_boutons)
-		self.ui.sonores.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-		self.ui.sonores.customContextMenuRequested.connect(self._menu_des_sonores)
+		self.colonnes.menu_des_lignes = lambda position: self.menu_des_sonores(self.ui.sonores.itemAt(position))
 		self.ui.sonores.itemActivated.connect(self._ouvrir_sonore)
 		self.ui.ajouter_repertoire.clicked.connect(self._ajouter_repertoire)
 		self.ui.retirer_repertoire.clicked.connect(self._retirer_repertoire)
@@ -355,12 +354,6 @@ class FicheBanque(Fiche):
 		if sonore is not None:
 			affichage.proposer_la_preecoute(menu, int(sonore), self.preecoute_demandee.emit)
 		return menu
-
-	def _menu_des_sonores(self, position: QPoint) -> None:
-		menu = self.menu_des_sonores(self.ui.sonores.itemAt(position))
-		if menu is not None:
-			menu.exec(self.ui.sonores.viewport().mapToGlobal(position))
-			menu.deleteLater()
 
 	def _choisir_l_etat(self, lignes: list[QTreeWidgetItem], etat: str) -> None:
 		"""L'état choisi se montre aussitôt ; un sonore en aperçu, ou pas encore en base, garde le sien."""

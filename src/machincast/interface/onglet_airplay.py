@@ -23,7 +23,7 @@ from datetime import timedelta
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QModelIndex, QPoint, Qt, Signal
+from PySide6.QtCore import QModelIndex, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
 	QAbstractItemView,
@@ -122,8 +122,7 @@ class EcranAirplay(QWidget):
 		self.heures.valueChanged.connect(self._regler)
 		self.exporter.clicked.connect(self._exporter)
 		self.table.activated.connect(self._ouvrir_cellule)
-		self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-		self.table.customContextMenuRequested.connect(self._menu)
+		self.colonnes.menu_des_lignes = lambda position: self.menu_de_la_ligne(self.table.indexAt(position))
 		self.actualiser()
 
 	def actualiser(self) -> None:
@@ -164,12 +163,6 @@ class EcranAirplay(QWidget):
 		menu = QMenu(self)
 		affichage.proposer_la_preecoute(menu, sonore, self.preecoute_demandee.emit)
 		return menu
-
-	def _menu(self, position: QPoint) -> None:
-		menu = self.menu_de_la_ligne(self.table.indexAt(position))
-		if menu is not None:
-			menu.exec(self.table.viewport().mapToGlobal(position))
-			menu.deleteLater()
 
 	def _exporter(self) -> None:
 		maintenant = self.horloge.maintenant()
