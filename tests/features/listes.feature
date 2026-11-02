@@ -32,11 +32,11 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Alors la liste montre :
-			| Artiste     | Titre         | Type    | État      | Durée    | Emplacement                 |
-			| Aube        | Matin clair   | fichier | désactivé | 1:02:05  | /srv/musique/matin.flac     |
-			| Les Gaufres | Café à minuit | fichier | actif     | 3:34     | /srv/musique/cafe.flac      |
-			|             | Direct studio | stream  | actif     | inconnue | https://flux.exemple/direct |
-			|             | Jingle        | fichier | aperçu    |          | /srv/habillage/jingle.flac  |
+			| ⚠️ | Artiste     | Titre         | Type    | État      | Durée    | Emplacement                 |
+			|    | Aube        | Matin clair   | fichier | désactivé | 1:02:05  | /srv/musique/matin.flac     |
+			|    | Les Gaufres | Café à minuit | fichier | actif     | 3:34     | /srv/musique/cafe.flac      |
+			|    |             | Direct studio | stream  | actif     | inconnue | https://flux.exemple/direct |
+			|    |             | Jingle        | fichier | aperçu    |          | /srv/habillage/jingle.flac  |
 		Et le compte de la liste est « 4 sonores »
 
 	Scénario: Un sonore hors des durées d'une banque n'est pas signalé dans la liste des sonores
@@ -52,9 +52,9 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Alors la liste montre :
-			| Artiste     | Titre         | Type    | État  | Durée | Emplacement            |
-			| Les Gaufres | Café à minuit | fichier | actif | 3:34  | /srv/musique/cafe.flac |
-			|             | Spot          | fichier | actif | 0:30  | /srv/pubs/spot.flac    |
+			| ⚠️ | Artiste     | Titre         | Type    | État  | Durée | Emplacement            |
+			|    | Les Gaufres | Café à minuit | fichier | actif | 3:34  | /srv/musique/cafe.flac |
+			|    |             | Spot          | fichier | actif | 0:30  | /srv/pubs/spot.flac    |
 		Et le compte de la liste est « 2 sonores »
 		Et la liste marque en anomalie les lignes et infobulles :
 			| ligne | infobulle |
@@ -70,9 +70,9 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Banques »
 		Alors la liste montre :
-			| Nom     | Nom public  | Mode         | Ne pas répéter | Répertoire           |
-			| Jingles | Radio Thune | séquentielle | oui            | /srv/jingles/automne |
-			| Tubes   |             | aléatoire    | non            |                      |
+			| ⚠️ | Nom     | Nom public  | Mode         | Ne pas répéter | Répertoire           |
+			|    | Jingles | Radio Thune | séquentielle | oui            | /srv/jingles/automne |
+			|    | Tubes   |             | aléatoire    | non            |                      |
 		Et le compte de la liste est « 2 banques »
 
 	Scénario: La liste des séquences
@@ -84,8 +84,8 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Séquences »
 		Alors la liste montre :
-			| Nom         | Nom public               | Anomalie |
-			| Passage pub | Vous écoutez Radio Thune |          |
+			| ⚠️ | Nom         | Nom public               | Anomalie |
+			|    | Passage pub | Vous écoutez Radio Thune |          |
 		Et le compte de la liste est « 1 séquence »
 
 	Scénario: Une séquence vide est signalée en anomalie dans la liste
@@ -100,10 +100,10 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Séquences »
 		Alors la liste montre :
-			| Nom         | Nom public | Anomalie      |
-			| Brouillon   |            | séquence vide |
-			| Habillage   |            | séquence vide |
-			| Passage pub |            |               |
+			| ⚠️ | Nom         | Nom public | Anomalie      |
+			| ⚠️ | Brouillon   |            | séquence vide |
+			| ⚠️ | Habillage   |            | séquence vide |
+			|    | Passage pub |            |               |
 		Et le compte de la liste est « 3 séquences, dont 2 en anomalie »
 		Et la liste marque en anomalie les lignes « Brouillon », « Habillage », avec l'infobulle « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
 		Quand je tape « vide » dans le filtre de la liste
@@ -123,11 +123,11 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Événements »
 		Alors la liste montre :
-			| Nom       | Nom public      | Priorité    | Début            | Fin              | Récurrence                | Anomalie       |
-			| Élections | Soirée élection | spécial     | 2026-10-18 20:00 |                  |                           | événement vide |
-			| Magazine  | Le magazine     | émission    | 2026-10-12 20:00 | 2026-10-12 21:00 | lundi, mercredi, vendredi | événement vide |
-			| Continue  |                 | fil musical |                  |                  |                           | événement vide |
-			| Secours   |                 | secours     |                  |                  |                           | événement vide |
+			| ⚠️ | Nom       | Nom public      | Priorité    | Début            | Fin              | Récurrence                | Anomalie       |
+			| ⚠️ | Élections | Soirée élection | spécial     | 2026-10-18 20:00 |                  |                           | événement vide |
+			| ⚠️ | Magazine  | Le magazine     | émission    | 2026-10-12 20:00 | 2026-10-12 21:00 | lundi, mercredi, vendredi | événement vide |
+			| ⚠️ | Continue  |                 | fil musical |                  |                  |                           | événement vide |
+			| ⚠️ | Secours   |                 | secours     |                  |                  |                           | événement vide |
 		Et le compte de la liste est « 4 événements, dont 4 en anomalie »
 
 	Scénario: Un événement vide est signalé en anomalie dans la liste, avec ce que fait la diffusion selon sa priorité
@@ -153,6 +153,81 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 			| Magazine  | Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. |
 			| Nuit      | Événement vide : il ne joue rien, et la diffusion se tait, avec une alerte, quand il est à l'antenne. |
 			| Secours   | Événement vide : il ne joue rien, et l'événement de priorité inférieure remplace le stream tombé. |
+
+	# ─── Colonne d'anomalie (https://github.com/dascritch/machincast/issues/327) ───
+
+	Plan du scénario: La liste des <onglet> a, tout à gauche, la colonne d'anomalie
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « <onglet> »
+		Alors la première colonne de la liste est « ⚠️ », avec l'infobulle « Anomalie : la ligne a un problème, que dit son infobulle »
+
+		Exemples:
+			| onglet     |
+			| Événements |
+			| Séquences  |
+			| Banques    |
+			| Sonores    |
+
+	Scénario: La liste des feeds n'a pas de colonne d'anomalie
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Feeds »
+		Alors la liste n'a pas de colonne « ⚠️ »
+
+	Scénario: Une banque sans sonore actif, ou avec un sonore erroné ou non supporté, est signalée en anomalie dans la liste
+		Étant donné les sonores :
+			| artiste | titre | type    | etat         | duree | emplacement   |
+			|         | j1    | fichier | actif        | 8     | /srv/j1.flac  |
+			|         | j2    | fichier | desactive    | 8     | /srv/j2.flac  |
+			|         | j3    | fichier | apercu       | 8     | /srv/j3.flac  |
+			|         | j4    | fichier | errone       | 8     | /srv/j4.flac  |
+			|         | j5    | fichier | non_supporte | 8     | /srv/j5.png   |
+		Et la banque « Jingles », séquentielle, sans nom public, avec « j1 », « j2 »
+		Et la banque « Archives », séquentielle, sans nom public, avec « j2 », « j3 »
+		Et la banque « Nouveautés », aléatoire, sans nom public, avec rien
+		Et la banque « Pubs », aléatoire, sans nom public, avec « j1 », « j4 »
+		Et la banque « Spots », aléatoire, sans nom public, avec « j1 », « j4 », « j5 »
+		Et la banque « Trous », aléatoire, sans nom public, avec « j4 »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Banques »
+		Alors le compte de la liste est « 6 banques, dont 5 en anomalie »
+		Et la liste marque en anomalie les lignes et infobulles :
+			| ligne      | infobulle |
+			| Archives   | Banque sans sonore actif : elle ne fournit rien, et l'élément qui l'appelle passe à son élément suivant. |
+			| Nouveautés | Banque sans sonore actif : elle ne fournit rien, et l'élément qui l'appelle passe à son élément suivant. |
+			| Pubs       | Banque avec 1 sonore erroné ou non supporté : la diffusion ne le joue pas. |
+			| Spots      | Banque avec 2 sonores erronés ou non supportés : la diffusion ne les joue pas. |
+			| Trous      | Banque sans sonore actif : elle ne fournit rien, et l'élément qui l'appelle passe à son élément suivant. |
+
+	Scénario: Un sonore erroné ou non supporté est signalé en anomalie dans la liste ; désactivé, expiré ou en aperçu, non
+		Étant donné les sonores :
+			| artiste | titre     | type    | etat         | duree | emplacement         |
+			|         | Abîmé     | fichier | errone       | 8     | /srv/abime.flac     |
+			|         | Actif     | fichier | actif        | 8     | /srv/actif.flac     |
+			|         | Aperçu    | fichier | apercu       | 8     | /srv/apercu.flac    |
+			|         | Désactivé | fichier | desactive    | 8     | /srv/desactive.flac |
+			|         | Expiré    | fichier | expire       | 8     | /srv/expire.flac    |
+			|         | Image     | fichier | non_supporte | 8     | /srv/image.png      |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Alors le compte de la liste est « 6 sonores, dont 2 en anomalie »
+		Et la liste marque en anomalie les lignes et infobulles :
+			| ligne | infobulle |
+			| Abîmé | Sonore erroné : son fichier est illisible ou endommagé, et la diffusion ne le joue pas. |
+			| Image | Sonore non supporté : son fichier n'est pas un son lisible, et la diffusion ne le joue pas. |
+
+	Scénario: La colonne d'anomalie trie les lignes en anomalie ensemble
+		Étant donné les sonores :
+			| artiste | titre | type    | etat  | duree | emplacement  |
+			|         | j1    | fichier | actif | 8     | /srv/j1.flac |
+		Et la séquence « Passage pub », sans nom public, avec le sonore « j1 »
+		Et la séquence « Brouillon », sans nom public, avec rien
+		Et la séquence « Zapping », sans nom public, avec rien
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Séquences »
+		Et je clique sur le titre de la colonne « ⚠️ »
+		Alors la colonne « Nom » de la liste montre « Passage pub », « Brouillon », « Zapping »
+		Quand je clique sur le titre de la colonne « ⚠️ »
+		Alors la colonne « Nom » de la liste montre « Brouillon », « Zapping », « Passage pub »
 
 	Scénario: Une liste se relit chaque fois que son onglet s'ouvre
 		Étant donné les sonores :

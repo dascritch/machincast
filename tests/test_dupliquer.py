@@ -15,7 +15,7 @@ from pytestqt.qtbot import QtBot
 from machincast.interface.fiche import Fiche
 from machincast.interface.fiche_banque import FicheBanque
 from machincast.interface.fiche_evenement import FicheEvenement
-from machincast.interface.listes import Liste
+from machincast.interface.listes import IDENTIFIANT, Liste
 from tests.etapes_interface import ELEMENT, NOM, Contexte, fenetre, identifiant, titre_d_onglet
 
 scenarios("dupliquer.feature")
@@ -93,9 +93,7 @@ def dupliquer_le_long_nom(interface: Contexte, longueur: int, lettre: str) -> No
 def dupliquer_au_clic_droit(interface: Contexte, nom: str) -> None:
 	liste = fenetre(interface).ui.onglets.currentWidget()
 	assert isinstance(liste, Liste)
-	trouvees = liste.proxy.match(
-		liste.proxy.index(0, 0), Qt.ItemDataRole.DisplayRole, nom, -1, Qt.MatchFlag.MatchExactly
-	)
+	trouvees = liste.proxy.match(liste.proxy.index(0, 0), IDENTIFIANT + 1, nom, -1, Qt.MatchFlag.MatchExactly)
 	assert len(trouvees) == 1, nom
 	menu = liste.menu_de_la_ligne(trouvees[0])
 	assert menu is not None

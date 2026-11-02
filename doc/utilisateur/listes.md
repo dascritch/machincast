@@ -17,14 +17,14 @@ Les onglets **Événements**, **Séquences**, **Banques**, **Sonores** et **Feed
 
 | Onglet | Colonnes | Ordre |
 | --- | --- | --- |
-| Événements | nom, nom public, priorité, début, fin, jours, anomalie (`événement vide`) | du plus prioritaire au moins prioritaire, puis par nom |
-| Séquences | nom, nom public, anomalie (`séquence vide`) | par nom |
-| Banques | nom, nom public, mode, « ne pas répéter », premier répertoire | par nom |
-| Sonores | artiste, titre, type, état, durée, emplacement | par artiste, puis par titre |
+| Événements | ⚠️, nom, nom public, priorité, début, fin, jours, anomalie (`événement vide`) | du plus prioritaire au moins prioritaire, puis par nom |
+| Séquences | ⚠️, nom, nom public, anomalie (`séquence vide`) | par nom |
+| Banques | ⚠️, nom, nom public, mode, « ne pas répéter », premier répertoire | par nom |
+| Sonores | ⚠️, artiste, titre, type, état, durée, emplacement | par artiste, puis par titre |
 | Feeds | nom, adresse, nombre de streams qui le suivent | par nom |
 
 - **Filtre** : le champ « Filtrer… » garde les lignes dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : `cafe` trouve « Café à minuit », `stream` tous les streams. Le compte dit combien de lignes restent, « 2 sonores sur 340 ».
-- **Anomalies** : une séquence ou un événement vide a l'icône d'avertissement, et son infobulle dit pourquoi. Taper `vide` dans le filtre ne garde que les éléments vides. Un sonore hors des durées d'une banque n'est signalé que dans la [fiche de cette banque](sonores.md#fiche-dune-banque) et dans les relations de la [fiche du sonore](sonores.md#fiche-dun-sonore).
+- **Anomalies** ([#327](https://github.com/dascritch/machincast/issues/327)) : dans les listes des événements, des séquences, des banques et des sonores, la première colonne, **⚠️**, marque d'un ⚠️ chaque ligne qui a un problème, et l'infobulle de la ligne dit lequel. Un clic sur son titre regroupe les lignes en anomalie. Sont en anomalie : une séquence ou un événement vide, qui ne joue rien ; une banque sans sonore actif, qui ne fournit rien, ou qui contient un sonore erroné ou non supporté ; un sonore erroné (fichier illisible ou endommagé) ou non supporté (fichier qui n'est pas un son lisible), que la diffusion ne joue pas. Un sonore désactivé, expiré ou en aperçu ne l'est pas : c'est voulu, ou en attente de l'indexation. Taper `vide` dans le filtre ne garde que les séquences et les événements vides. Un sonore hors des durées d'une banque n'est signalé que dans la [fiche de cette banque](sonores.md#fiche-dune-banque) et dans les relations de la [fiche du sonore](sonores.md#fiche-dun-sonore).
 - **Tri** : un clic sur le titre d'une colonne trie la liste ; un second inverse l'ordre. La colonne **Priorité** des événements se trie par importance, pas par ordre alphabétique : spécial, émission, fil musical, secours ([#272](https://github.com/dascritch/machincast/issues/272)). Les colonnes de temps suivent le temps ([#302](https://github.com/dascritch/machincast/issues/302)) : la **Durée** des sonores, du plus court au plus long, puis les fichiers pas encore mesurés, puis les streams ; le **Début** et la **Fin** des événements, du plus tôt au plus tard, puis ceux sans date ; la **Récurrence**, du lundi au dimanche, puis les événements qui ne reviennent pas.
 - **Mise à jour** : une liste se relit chaque fois que son onglet s'ouvre, et par <kbd>F5</kbd>.
 - **Ouvrir** : un double-clic sur une ligne, ou <kbd>Entrée</kbd>, ouvre la fiche de l'élément.

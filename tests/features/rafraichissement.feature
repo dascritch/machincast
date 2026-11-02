@@ -43,7 +43,7 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 		Et un autre poste ajoute la banque « Publicité »
 		Alors le compte de la liste est « 1 banque »
 		Quand j'appuie sur « F5 »
-		Alors le compte de la liste est « 2 banques »
+		Alors le compte de la liste est « 2 banques, dont 1 en anomalie »
 		Et la barre d'état annonce « Onglets rafraîchis. »
 
 	Scénario: L'airplay de l'onglet Antenne se relit

@@ -66,9 +66,9 @@ Fonctionnalité: Fiche d'une séquence
 		Et l'onglet ouvert est « Séquence : Ouverture »
 		Quand j'ouvre l'onglet « Séquences »
 		Alors la liste montre :
-			| Nom         | Nom public               | Anomalie |
-			| Ouverture   |                          |          |
-			| Passage pub | Vous écoutez Radio Thune |          |
+			| ⚠️ | Nom         | Nom public               | Anomalie |
+			|    | Ouverture   |                          |          |
+			|    | Passage pub | Vous écoutez Radio Thune |          |
 
 	# ─── Champs ────────────────────────────────────────────────
 
