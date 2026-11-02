@@ -155,10 +155,11 @@ def verifier_streams() -> list[Manque]:
 
 
 def verifier_sortie(configuration: Configuration, greffons: dict[SortieAudio, Greffon] = GREFFONS) -> list[Manque]:
-	"""Crée l'élément de la sortie audio configurée, sans jouer de son : aucun son ne part à l'antenne."""
+	"""Crée l'élément de la sortie audio configurée, sans jouer de son : aucun son ne part à l'antenne. Sur l'entrée
+	« sortie factice » de l'antenne, la sortie reste à vérifier, pour la pré-écoute."""
 	audio = configuration.audio
 	try:
-		creer_sortie(audio.sortie, audio.peripherique, greffons, presentation=ESSAI)
+		creer_sortie(audio.sortie, audio.antenne()[1], greffons, presentation=ESSAI)
 	except SortieAudioIndisponible:
 		return [Manque(f"sortie audio {audio.sortie}", greffons[audio.sortie].paquet)]
 	return []

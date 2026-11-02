@@ -204,7 +204,7 @@ class Voie:
 			)
 		niveau.set_property("interval", _nanosecondes(MESURE_DU_NIVEAU))
 		niveau.set_property("post-messages", True)
-		sortie = creer_sortie(audio.sortie, audio.peripherique, presentation=ANTENNE)
+		sortie = creer_sortie(*audio.antenne(), presentation=ANTENNE)
 		# Une vraie sortie suit l'horloge ; la sortie factice peut aller au plus vite, pour les tests.
 		sortie.set_property("sync", temps_reel)
 		fabrique = sortie.get_factory()

@@ -426,3 +426,21 @@ def positions_des_fondus(contexte: Contexte, entree: str, sortie: str) -> None:
 	assert contexte.configuration is not None, contexte.erreur
 	crossfades = contexte.configuration.crossfades
 	assert (LIBELLES[crossfades.entree], LIBELLES[crossfades.sortie]) == (entree, sortie)
+
+
+@then(
+	parsers.re(
+		r"l'antenne joue sur la sortie « (?P<sortie>[^»]+) »,"
+		r" (?:sans périphérique|sur le périphérique « (?P<peripherique>[^»]+) »)"
+	)
+)
+def sortie_de_l_antenne(contexte: Contexte, sortie: str, peripherique: str | None) -> None:
+	"""L'entrée « sortie factice » (https://github.com/dascritch/machincast/issues/339)."""
+	assert contexte.configuration is not None, contexte.erreur
+	assert contexte.configuration.audio.antenne() == (sortie, peripherique)
+
+
+@then(parsers.re(r"la pré-écoute est (?P<etat>active|désactivée)"))
+def preecoute_active(contexte: Contexte, etat: str) -> None:
+	assert contexte.configuration is not None, contexte.erreur
+	assert contexte.configuration.audio.preecoute_desactivee() == (etat == "désactivée")

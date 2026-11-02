@@ -139,6 +139,14 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et l'onglet Antenne ne capture rien
 		Et le port de monitoring ne sera pas rouvert
 
+	Scénario: Sur l'entrée « sortie factice », le VU-mètre de l'antenne écoute le signal de test
+		https://github.com/dascritch/machincast/issues/339 : audio.peripherique = "factice", sur une vraie sortie.
+
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « factice »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le VU-mètre de l'antenne est intitulé « Antenne », avec l'infobulle « Port de monitoring : sortie factice, signal de test. Clic : écouter l'antenne en pré-écoute. »
+		Et le VU-mètre de l'antenne montre bientôt 2 canaux, entre -25 et -15 dB
+
 	Scénario: Les préférences qui règlent l'antenne changent aussitôt le port du VU-mètre
 		Étant donné la configuration audio sortie « pipewire », sans périphérique d'antenne
 		Et les préférences régleront l'antenne « carte-2 » et la pré-écoute « casque-usb »
