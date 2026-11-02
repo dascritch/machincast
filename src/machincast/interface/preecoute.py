@@ -447,7 +447,8 @@ EN_COURS = "en cours : "
 
 
 class FenetrePreecoute(QWidget):
-	"""La fenêtre de pré-écoute : indépendante, elle ne se ferme pas avec la fiche qui l'a ouverte."""
+	"""La fenêtre de pré-écoute : indépendante, elle ne se ferme pas avec la fiche qui l'a ouverte. L'interface l'ouvre
+	sans fenêtre parente, comme une fenêtre à part (https://github.com/dascritch/machincast/issues/325)."""
 
 	ecoute_changee = Signal(bool)
 	"""L'écoute de l'antenne commence (vrai) ou cesse (faux) : lecture lancée, arrêtée, fenêtre fermée ou autre

@@ -689,10 +689,13 @@ class FenetrePrincipale(QMainWindow):
 
 	def _preecouter(self, sonore: int | None) -> None:
 		"""La fenêtre de pré-écoute, au premier plan : le sonore demandé y remplace le précédent ; sans sonore, elle
-		garde le sien."""
+		garde le sien. Elle n'a pas de fenêtre parente (https://github.com/dascritch/machincast/issues/325) : le bureau
+		lui donne sa propre entrée dans le gestionnaire des tâches, et ne la garde pas au-dessus de l'interface. Elle se
+		ferme avec l'interface (closeEvent), et disparaît avec elle."""
 		if self.preecoute is None:
-			self.preecoute = FenetrePreecoute(self.connexion, self.audio, self.configuration, self)
+			self.preecoute = FenetrePreecoute(self.connexion, self.audio, self.configuration)
 			self.preecoute.ecoute_changee.connect(self._montrer_l_ecoute)
+			self.destroyed.connect(self.preecoute.deleteLater)
 		if (sonore is not None) or (not self.preecoute.isVisible()):
 			self.preecoute.preecouter(sonore)
 		self.preecoute.show()

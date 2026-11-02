@@ -115,7 +115,7 @@ La **fenêtre de pré-écoute** fait écouter un sonore, ou l'antenne, sur le ca
 - **Informations** : le format, le débit, l'échantillonnage, les canaux, et pour un stream le son déjà reçu d'avance : un flux qui en a peu risque de couper.
 - **Sortie** : le périphérique de pré-écoute ; celui de l'antenne est grisé, et ne peut pas être choisi.
 
-Il n'y a qu'une fenêtre de pré-écoute : pré-écouter un autre sonore le met à la place du précédent. La fermer arrête la pré-écoute.
+Il n'y a qu'une fenêtre de pré-écoute : pré-écouter un autre sonore le met à la place du précédent. La fermer arrête la pré-écoute. C'est une fenêtre à part ([#325](https://github.com/dascritch/machincast/issues/325)) : elle a sa propre entrée dans la barre des tâches du bureau, et ne reste pas au-dessus de l'interface quand on revient à celle-ci. Elle se ferme avec l'interface.
 
 **Casque qui ne répond plus.** Au retour d'un écran verrouillé ou mis en veille, le son du poste peut s'interrompre un moment : la pré-écoute s'arrête alors, et dit pourquoi (« Lecture impossible : … »). L'interface reste utilisable ; relancer la lecture une fois le son revenu ([#259](https://github.com/dascritch/machincast/issues/259)). Pour l'éviter, l'écran du poste d'antenne ne se met pas en veille ([#250](https://github.com/dascritch/machincast/issues/250), [Préparer le poste d'antenne](../../INSTALL.md#préparer-le-poste-dantenne)).
 

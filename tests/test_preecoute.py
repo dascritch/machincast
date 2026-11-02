@@ -356,3 +356,24 @@ def d_emblee(interface: Contexte, qtbot: QtBot, debut: str) -> None:
 @then("la pré-écoute ne calcule plus de forme d'onde")
 def plus_de_forme(interface: Contexte) -> None:
 	assert fenetre_de_preecoute(interface).forme is None
+
+
+@then("la fenêtre de pré-écoute est une fenêtre à part, sans fenêtre parente ni premier plan imposé")
+def a_part(interface: Contexte) -> None:
+	"""https://github.com/dascritch/machincast/issues/325 : une fenêtre de premier niveau, que le bureau ne rattache pas
+	à l'interface (transientParent), et que rien ne garde au-dessus des autres."""
+	preecoute = fenetre_de_preecoute(interface)
+	assert preecoute.isWindow()
+	assert preecoute.parentWidget() is None
+	assert preecoute in QApplication.topLevelWidgets()
+	drapeaux = preecoute.windowFlags()
+	assert drapeaux & Qt.WindowType.WindowType_Mask == Qt.WindowType.Window
+	assert not drapeaux & Qt.WindowType.WindowStaysOnTopHint
+	poignee = preecoute.windowHandle()
+	assert poignee is not None
+	assert poignee.transientParent() is None
+
+
+@then("la fenêtre de pré-écoute est fermée avec elle")
+def fermee_avec(interface: Contexte) -> None:
+	assert not fenetre_de_preecoute(interface).isVisible()

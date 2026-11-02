@@ -61,6 +61,16 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Et je choisis « Pré-écoute… » dans le menu « Affichage »
 		Alors la fenêtre de pré-écoute est ouverte, titrée « Pré-écoute : Les Gaufres – Café à minuit »
 
+	Scénario: La fenêtre de pré-écoute est une fenêtre à part, qui n'est pas toujours au premier plan
+		https://github.com/dascritch/machincast/issues/325 : sans fenêtre parente, le bureau lui donne sa propre entrée
+		dans le gestionnaire des tâches, et la range derrière l'interface quand on revient à celle-ci.
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Pré-écoute… » dans le menu « Affichage »
+		Alors la fenêtre de pré-écoute est une fenêtre à part, sans fenêtre parente ni premier plan imposé
+		Quand je ferme la fenêtre de l'interface
+		Alors la fenêtre de pré-écoute est fermée avec elle
+
 	Scénario: Un nouveau stream, pas encore enregistré, ne se pré-écoute pas
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
