@@ -29,7 +29,7 @@ from machincast.interface.ui.fiche_sequence import Ui_FicheSequence
 
 MASQUAGES: tuple[tuple[bool | None, str], ...] = (
 	(None, "Selon la banque ou le sonore"),
-	(True, "Masqués"),
+	(True, "Masqué par le nom public de la séquence"),
 	(False, "Affichés"),
 )
 """Valeurs de sequences.masquer_metadonnees, dans l'ordre du choix de la fiche."""
@@ -141,10 +141,11 @@ class FicheSequence(Fiche):
 
 	def _avertir(self) -> None:
 		"""Une séquence vide, ou une banque « ne pas répéter » appelée juste après elle-même : cet appel sera sauté."""
-		avertissements = self.elements.avertissements(False)
+		self.ui.avertissement.setText("\n".join(self.elements.avertissements(False)))
+		vide = ""
 		if self.elements.lignes() == []:
-			avertissements = [SEQUENCE_VIDE]
-		self.ui.avertissement.setText("\n".join(avertissements))
+			vide = SEQUENCE_VIDE
+		self.avertir(vide)
 
 	def _ouvrir_evenement(self, item: QListWidgetItem) -> None:
 		self.ouverture_demandee.emit("événement", int(item.data(EVENEMENT)), item.text())

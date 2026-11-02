@@ -9,6 +9,10 @@ quoi faire de ses modifications (machincast.interface.dialogues).
 Une fiche concrète décrit son genre et son titre, lit l'élément en base (_lire) et l'y écrit (_ecrire). Un refus
 (Refus) laisse la fiche modifiée, avec son message.
 
+Avertissement (https://github.com/dascritch/machincast/issues/328) : ce qui ne refuse rien, mais que la diffusion ne
+jouera pas comme prévu, une liste vide par exemple, s'affiche en haut de la fiche, sous l'erreur, sur un liseret orange
+(avertir, LISERET_D_AVERTISSEMENT).
+
 Erreurs (https://github.com/dascritch/machincast/issues/270) : un refus, un enregistrement, une suppression ou une
 restauration impossible s'affiche en haut de la fiche, sur un liseret rouge de 4 pixels (erreur, LISERET), et le
 libellé de chaque champ en cause, que nomme le refus, est précédé de ⚠️ (SIGNALE) ; jusqu'au prochain enregistrement,
@@ -83,6 +87,11 @@ SIGNALE = "⚠️ "
 ROUGE = "#d32f2f"
 """Rouge du liseret de l'erreur : lisible sur un fond clair comme sur un fond sombre."""
 LISERET = f"QLabel#erreur_de_la_fiche {{ border: 4px solid {ROUGE}; padding: 6px; }}"
+ORANGE = "#ef6c00"
+"""Orange d'un avertissement, qui ne refuse rien : lisible sur un fond clair comme sur un fond sombre."""
+LISERET_D_AVERTISSEMENT = f"QLabel#avertissement_de_la_fiche {{ border: 4px solid {ORANGE}; padding: 6px; }}"
+AVERTI = "⚠️ "
+"""Ce qui précède l'avertissement en haut de la fiche (https://github.com/dascritch/machincast/issues/328)."""
 
 Connexion = psycopg.Connection[TupleRow]
 LONGUEUR_DES_NOMS = 255
@@ -199,6 +208,13 @@ class Fiche(QWidget):
 		disposition = self.layout()
 		assert isinstance(disposition, QBoxLayout)
 		disposition.insertWidget(0, self.erreur)
+		self.alerte = QLabel(self)
+		self.alerte.setObjectName("avertissement_de_la_fiche")
+		self.alerte.setWordWrap(True)
+		self.alerte.setStyleSheet(LISERET_D_AVERTISSEMENT)
+		self.alerte.setAccessibleName("Avertissement")
+		self.alerte.hide()
+		disposition.insertWidget(1, self.alerte)
 		enregistrer.clicked.connect(self.enregistrer)
 		annuler.clicked.connect(self.charger)
 		supprimer.clicked.connect(self._supprimer_ou_restaurer)
@@ -341,6 +357,14 @@ class Fiche(QWidget):
 			else:
 				self._signales.append((libelle, libelle.text()))
 				libelle.setText(f"{SIGNALE}{libelle.text()}")
+
+	def avertir(self, texte: str) -> None:
+		"""L'avertissement en haut de la fiche, sous l'erreur, sur un liseret orange : il ne refuse rien, et la fiche
+		s'enregistre (https://github.com/dascritch/machincast/issues/328). Un texte vide le cache."""
+		self.alerte.setText("")
+		if texte != "":
+			self.alerte.setText(f"{AVERTI}{texte}")
+		self.alerte.setVisible(texte != "")
 
 	def effacer_l_erreur(self) -> None:
 		"""Plus d'erreur : le liseret se cache, et les champs signalés retrouvent leur libellé."""

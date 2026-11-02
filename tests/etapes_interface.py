@@ -1200,6 +1200,32 @@ def aucun_champ(interface: Contexte) -> None:
 	assert champs_signales(fiche_ouverte(interface)) == []
 
 
+@then(parsers.parse("la fiche avertit en haut « {texte} »"))
+def avertit_en_haut(interface: Contexte, texte: str) -> None:
+	"""Sous l'erreur, sur un liseret orange, précédé de ⚠️ (https://github.com/dascritch/machincast/issues/328)."""
+	ouverte = fiche_ouverte(interface)
+	assert ouverte.alerte.isVisibleTo(ouverte)
+	assert ouverte.alerte.text() == f"⚠️ {texte}"
+	assert "#ef6c00" in ouverte.alerte.styleSheet()
+	# En haut : après l'erreur, et avant les champs de la fiche, dont la première disposition est le formulaire.
+	disposition = ouverte.layout()
+	assert disposition is not None
+	champs = next(rang for rang in range(disposition.count()) if disposition.itemAt(rang).layout() is not None)
+	assert disposition.indexOf(ouverte.erreur) < disposition.indexOf(ouverte.alerte) < champs
+
+
+@then(parsers.re(r"le choix du masquage de la fiche propose (?P<textes>«.+)"))
+def masquages_proposes(interface: Contexte, textes: str) -> None:
+	choix = fiche_ouverte(interface).ui.masquage  # type: ignore[attr-defined]
+	assert [choix.itemText(rang) for rang in range(choix.count())] == NOM.findall(textes)
+
+
+@then("la fiche n'avertit pas en haut")
+def n_avertit_pas_en_haut(interface: Contexte) -> None:
+	ouverte = fiche_ouverte(interface)
+	assert not ouverte.alerte.isVisibleTo(ouverte)
+
+
 @then(parsers.re(r"les boutons « Enregistrer » et « Annuler » de la fiche sont (?P<etat>actifs|inactifs)"))
 def boutons(interface: Contexte, etat: str) -> None:
 	ouverte = fiche_ouverte(interface)

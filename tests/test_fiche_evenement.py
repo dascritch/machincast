@@ -212,7 +212,10 @@ def elements_montres(interface: Contexte, noms: str) -> None:
 
 @then(parsers.re(r"la fiche de l'événement (?:n')?avertit (?:de rien|« (?P<texte>.+) »)"))
 def avertit(interface: Contexte, texte: str | None) -> None:
+	"""Sous la liste : ce que la diffusion sautera. « De rien » : ni là, ni en haut de la fiche."""
 	assert fiche(interface).ui.avertissement.text() == ((texte) or (""))
+	if texte is None:
+		assert not fiche(interface).alerte.isVisibleTo(fiche(interface))
 
 
 @then(parsers.re(r"la grille de la fiche de l'événement se saisit par (?P<quoi>.+)"))
