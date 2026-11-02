@@ -171,8 +171,8 @@ def ouvrir_le_menu(interface: Contexte, menu: str) -> None:
 	menu_nomme(interface, menu).aboutToShow.emit()
 
 
-@when("l'état du binaire lecture est bientôt « En diffusion » sur l'accueil")
-def diffusion_sur_l_accueil(interface: Contexte, qtbot: QtBot) -> None:
+@when("l'état du binaire lecture est bientôt « En diffusion » sur l'onglet Antenne")
+def diffusion_sur_l_antenne(interface: Contexte, qtbot: QtBot) -> None:
 	etiquette = fenetre(interface).accueil.ui.etat_lecture
 	qtbot.waitUntil(lambda: etiquette.text() == "En diffusion", timeout=5000)
 
@@ -204,6 +204,29 @@ def signal(interface: Contexte, texte: str, infobulle: str) -> None:
 	etiquette = fenetre(interface).sans_service
 	assert etiquette.isVisibleTo(fenetre(interface))
 	assert (etiquette.text(), etiquette.toolTip()) == (texte, infobulle)
+
+
+@then(parsers.parse("le titre de l'onglet Antenne est « {titre} »"))
+def titre_de_l_antenne(interface: Contexte, titre: str) -> None:
+	"""Le titre brut, témoin compris : les autres scénarios le lisent sans lui (titre_d_onglet)."""
+	onglets = fenetre(interface).ui.onglets
+	assert onglets.tabText(onglets.indexOf(fenetre(interface).accueil)) == titre
+
+
+@then(parsers.parse("la dernière ligne de la fenêtre ne dit pas « {texte} »"))
+def ne_dit_pas(interface: Contexte, texte: str) -> None:
+	etiquette = fenetre(interface).diffusion_arretee
+	assert etiquette.text() == texte
+	assert not etiquette.isVisibleTo(fenetre(interface))
+
+
+@then(parsers.parse("la dernière ligne de la fenêtre dit bientôt « {texte} »"))
+def dit_bientot(interface: Contexte, qtbot: QtBot, texte: str) -> None:
+	"""Un élément permanent de la barre d'état : aucun message ne le recouvre."""
+	etiquette = fenetre(interface).diffusion_arretee
+	assert etiquette.text() == texte
+	qtbot.waitUntil(lambda: etiquette.isVisibleTo(fenetre(interface)), timeout=5000)
+	assert etiquette.parent() is fenetre(interface).statusBar()
 
 
 @then("le terminal a lancé bientôt Machin lecture, comme le service")

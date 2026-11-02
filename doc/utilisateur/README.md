@@ -4,7 +4,7 @@ Ce guide s'adresse à l'équipe de l'antenne : programmateurs, animateurs, respo
 
 L'installation du poste, les commandes et la configuration sont dans le [guide d'administration](../administration/README.md).
 
-![L'accueil de MachinCast : l'heure, le sonore en cours, le prochain, le VU-mètre de l'antenne et l'historique des dernières heures](../captures/accueil.png)
+![L'onglet Antenne de MachinCast : l'heure, le sonore en cours, le prochain, le VU-mètre de l'antenne et l'historique des dernières heures](../captures/accueil.png)
 
 ## L'antenne en quelques mots
 
@@ -19,7 +19,7 @@ MachinCast fait tourner l'antenne tout seul, en dehors des émissions en direct,
 
 ## Sommaire
 
-1. [Prendre en main l'interface](prise-en-main.md) : la fenêtre, l'accueil, les onglets, les menus, les préférences, la recherche.
+1. [Prendre en main l'interface](prise-en-main.md) : la fenêtre, l'onglet Antenne, les onglets, les menus, les préférences, la recherche.
 2. [Ce qui passe à l'antenne](antenne.md) : quel événement, quel sonore, les enchaînements, les streams, piloter et interrompre la diffusion, l'historique et les incidents.
 3. [Programmer la grille](grille.md) : les événements, les séquences, le calendrier et la simulation.
 4. [Sonores, banques et feeds](sonores.md) : ajouter des sonores, leurs états, leurs fiches, la pré-écoute, les banques et leur indexation.

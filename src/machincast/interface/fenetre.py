@@ -1,6 +1,6 @@
 """Fenêtre de Machin_interface (https://github.com/dascritch/machincast/issues/26).
 
-Un onglet par écran : l'accueil (écran par défaut, ouvert au lancement), le calendrier de la grille, onglet fixe
+Un onglet par écran : l'onglet Antenne (écran par défaut, ouvert au lancement), le calendrier de la grille, onglet fixe
 (https://github.com/dascritch/machincast/issues/307), puis une liste par type d'élément, dans
 l'ordre de la recherche (spec § 8.2) : événements, séquences, banques, sonores, feeds. Les listes des sonores
 et des feeds ne s'ouvrent qu'à la demande, par le menu « Affichage », à leur place parmi les autres, et se
@@ -117,6 +117,11 @@ SUIVI_INDEXATION = 1000
 """Millisecondes entre deux regards sur le processus de l'indexation lancée depuis le menu."""
 TICKETS = "https://github.com/dascritch/machincast/issues"
 """Les tickets de MachinCast, qu'ouvre « Signaler un problème… » ; comme dans pyproject.toml."""
+ANTENNE = "Antenne"
+"""L'onglet de l'écran par défaut, l'onglet Antenne, qui suit l'antenne (https://github.com/dascritch/machincast/issues/322)."""
+SERVICE_INCOMPLET, SERVICE_INSTALLE = "🟩", "🟥"
+"""Le témoin du service de diffusion, devant le titre de l'onglet Antenne : pas complètement installé, ou installé."""
+DIFFUSION_ARRETEE = "🔇 Diffusion arrêtée"
 SANS_SERVICE = "Installation non définitive : diffusion sans service"
 """Ce que montre la barre d'état tant que le service n'est pas installé (https://github.com/dascritch/machincast/issues/25)."""
 INSTALLER_LE_SERVICE = (
@@ -149,7 +154,7 @@ RETRAIT_DE_BANQUES = "Seules les banques où figure l'un des sonores choisis son
 
 def genre_de_l_ecran(ecran: QWidget) -> str:
 	"""Le genre que montre un onglet, pour son icône (https://github.com/dascritch/machincast/issues/215) ; rien pour
-	l'accueil, les incidents et la recherche."""
+	l'onglet Antenne, les incidents et la recherche."""
 	if isinstance(ecran, Liste):
 		return ecran.source.genre
 	if isinstance(ecran, Fiche):
@@ -209,8 +214,8 @@ class FenetrePrincipale(QMainWindow):
 		crossfades ceux qu'il donne (https://github.com/dascritch/machincast/issues/145) ; sans fichier, les
 		préférences ne s'enregistrent pas. silences : la détection de silence qu'il donne
 		(https://github.com/dascritch/machincast/issues/146). interface : ses réglages de l'interface, le voyant
-		« Saturation » de l'accueil (https://github.com/dascritch/machincast/issues/191). blanc_antenne : le blanc dans
-		un sonore qu'il donne, pour Machin lecture (https://github.com/dascritch/machincast/issues/122)."""
+		« Saturation » de l'onglet Antenne (https://github.com/dascritch/machincast/issues/191). blanc_antenne : le
+		blanc dans un sonore qu'il donne, pour Machin lecture (https://github.com/dascritch/machincast/issues/122)."""
 		super().__init__(parent)
 		self.configuration = configuration
 		self.audio = audio
@@ -223,7 +228,7 @@ class FenetrePrincipale(QMainWindow):
 		self.blanc_antenne = (blanc_antenne) or (BlancAntenne())
 		"""Blanc dans un sonore, que montrent les préférences (https://github.com/dascritch/machincast/issues/122)."""
 		self.saturation = ((interface) or (Interface())).saturation
-		"""Le voyant « Saturation » de l'accueil est affiché (https://github.com/dascritch/machincast/issues/191)."""
+		"""Le voyant « Saturation » de l'onglet Antenne est affiché (https://github.com/dascritch/machincast/issues/191)."""
 		self.suggestions = ((interface) or (Interface())).suggestions
 		self.icone = ((interface) or (Interface())).icone
 		"""L'icône choisie pour l'application ; None : celle de MachinCast
@@ -238,8 +243,8 @@ class FenetrePrincipale(QMainWindow):
 		self.accueil = EcranParDefaut(connexion, socket_etat, horloge, audio=audio)
 		self.accueil.montrer_la_saturation(self.saturation)
 		self.accueil.ecoute_demandee.connect(self._ecouter_l_antenne)
-		self._ajouter_fixe(self.accueil, "Accueil")
-		# La grille d'antenne, onglet fixe juste après l'accueil (https://github.com/dascritch/machincast/issues/307).
+		self._ajouter_fixe(self.accueil, ANTENNE)
+		# La grille d'antenne, onglet fixe juste après l'onglet Antenne (https://github.com/dascritch/machincast/issues/307).
 		self.calendrier = Calendrier(connexion, horloge)
 		self.calendrier.ouverte.connect(self._ouvrir)
 		self.calendrier.creation_demandee.connect(self._creer_evenement)
@@ -278,9 +283,14 @@ class FenetrePrincipale(QMainWindow):
 		self.antenne_a_renseigner = QLabel(ANTENNE_A_RENSEIGNER)
 		self.antenne_a_renseigner.setToolTip(REGLER_L_ANTENNE)
 		self.ui.barre_d_etat.addPermanentWidget(self.antenne_a_renseigner)
+		self.diffusion_arretee = QLabel(DIFFUSION_ARRETEE)
+		"""Tant que la diffusion ne tourne pas, la dernière ligne de la fenêtre le dit
+		(https://github.com/dascritch/machincast/issues/322)."""
+		self.ui.barre_d_etat.addPermanentWidget(self.diffusion_arretee)
 		self._signaler_l_antenne()
 		self._garnir_menus()
 		self.accueil.client.etat_recu.connect(self._etat_de_la_lecture)
+		self.accueil.client.etat_recu.connect(lambda etat: self.diffusion_arretee.setVisible(etat.etat == "arret"))
 		self.accueil.client.etat_recu.connect(self._suivre_le_texte_public)
 		self._texte_public: str | None = None
 		"""Le texte public du sonore en cours, titre de l'écoute de l'antenne."""
@@ -358,9 +368,6 @@ class FenetrePrincipale(QMainWindow):
 		quitter.setShortcut(QKeySequence("Alt+Q"))
 		quitter.triggered.connect(self.close)
 		affichage = self.menuBar().addMenu("A&ffichage")
-		rafraichir = affichage.addAction("Rafraîchir les onglets")
-		rafraichir.setShortcut(QKeySequence("F5"))
-		rafraichir.triggered.connect(self.rafraichir)
 		rechercher = affichage.addAction("Rechercher…")
 		rechercher.setShortcut(QKeySequence("Ctrl+F"))
 		rechercher.triggered.connect(self._ouvrir_recherche)
@@ -377,6 +384,11 @@ class FenetrePrincipale(QMainWindow):
 		airplay.triggered.connect(self._ouvrir_airplay)
 		preecoute = affichage.addAction(icones.icone("pré-écoute"), "Pré-écoute…")
 		preecoute.triggered.connect(lambda: self._preecouter(None))
+		# En bas du menu (https://github.com/dascritch/machincast/issues/322).
+		affichage.addSeparator()
+		rafraichir = affichage.addAction("Rafraîchir les onglets")
+		rafraichir.setShortcut(QKeySequence("F5"))
+		rafraichir.triggered.connect(self.rafraichir)
 		self.menu_diffusion = self.menuBar().addMenu("&Diffusion")
 		self.menu_diffusion.aboutToShow.connect(self._relire_le_service)
 		# L'écoute de l'antenne, lancée aussitôt, en tête du menu (https://github.com/dascritch/machincast/issues/245) ;
@@ -472,8 +484,14 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.barre_d_etat.showMessage(annonce)
 
 	def _presenter_la_diffusion(self) -> None:
-		"""Les entrées du menu « Diffusion » selon l'état du service ; sans lui, le signal d'installation à terminer."""
+		"""Les entrées du menu « Diffusion » selon l'état du service ; sans lui, le signal d'installation à terminer. Le
+		titre de l'onglet Antenne en porte le témoin (https://github.com/dascritch/machincast/issues/322)."""
 		self.sans_service.setVisible(not self.service.installe)
+		temoin = SERVICE_INCOMPLET
+		if self.service.installe:
+			temoin = SERVICE_INSTALLE
+		indice = self.ui.onglets.indexOf(self.accueil)
+		self.ui.onglets.setTabText(indice, f"{temoin} {ANTENNE}")
 		if self.service.installe:
 			# En marche : arrêter ; arrêté ou en échec : démarrer.
 			permis = {"start": not self.service.en_marche, "stop": self.service.en_marche}
@@ -511,7 +529,8 @@ class FenetrePrincipale(QMainWindow):
 		self._relire_le_service()
 
 	def rafraichir(self) -> None:
-		"""Relit l'onglet ouvert, l'airplay de l'accueil et les fiches ; une liste se relit déjà à son ouverture."""
+		"""Relit l'onglet ouvert, l'airplay de l'onglet Antenne et les fiches ; une liste se relit déjà à son
+		ouverture."""
 		self._onglet_ouvert(self.ui.onglets.currentIndex())
 		self.accueil.actualiser_airplay()
 		laissees: list[str] = []
@@ -693,7 +712,7 @@ class FenetrePrincipale(QMainWindow):
 		self.ecouter.setToolTip(infobulle)
 
 	def _ecouter_l_antenne(self, lancer: bool = False) -> None:
-		"""Clic sur le VU-mètre de l'accueil : l'antenne dans la fenêtre de pré-écoute
+		"""Clic sur le VU-mètre de l'onglet Antenne : l'antenne dans la fenêtre de pré-écoute
 		(https://github.com/dascritch/machincast/issues/24) ; par le bouton « Pré-écoute » de la fenêtre, lancée
 		aussitôt (https://github.com/dascritch/machincast/issues/223)."""
 		self._preecouter(None)
@@ -751,7 +770,7 @@ class FenetrePrincipale(QMainWindow):
 
 	def _ouvrir_airplay(self) -> None:
 		"""Un seul onglet Airplay (https://github.com/dascritch/machincast/issues/244) : celui qui est ouvert revient au
-		premier plan. Il se relit quand l'accueil voit un nouveau sonore."""
+		premier plan. Il se relit quand l'onglet Antenne voit un nouveau sonore."""
 		onglets = self.ui.onglets
 		ouverts = [onglets.widget(indice) for indice in range(onglets.count())]
 		airplay = next((ecran for ecran in ouverts if isinstance(ecran, EcranAirplay)), None)
@@ -960,8 +979,8 @@ class FenetrePrincipale(QMainWindow):
 	def _onglet_ouvert(self, indice: int) -> None:
 		"""L'onglet qui passe au premier plan se relit, s'il n'est pas en cours d'édition
 		(https://github.com/dascritch/machincast/issues/241) : une liste, les incidents, le calendrier, la recherche,
-		l'airplay, l'airplay de l'accueil, et une fiche qui n'est pas modifiée, sans rien demander. Une fiche modifiée
-		reste telle quelle ; celle d'un élément effacé de la base se ferme."""
+		l'airplay, l'airplay de l'onglet Antenne, et une fiche qui n'est pas modifiée, sans rien demander. Une fiche
+		modifiée reste telle quelle ; celle d'un élément effacé de la base se ferme."""
 		ouvert = self.ui.onglets.widget(indice)
 		if isinstance(ouvert, (Liste, EcranIncidents, Calendrier, EcranRecherche, EcranAirplay)):
 			ouvert.actualiser()

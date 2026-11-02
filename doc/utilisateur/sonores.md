@@ -106,12 +106,12 @@ La fiche d'un sonore s'ouvre dans un onglet nommé « Sonore : » suivi de son t
 
 ## Pré-écoute
 
-La **fenêtre de pré-écoute** fait écouter un sonore, ou l'antenne, sur le casque de la régie, **jamais sur l'antenne**. Le bouton **Pré-écoute…** d'une fiche de sonore, ou **Affichage → Pré-écoute…**, l'ouvre. Le **clic droit** sur la ligne d'un sonore propose aussi **Pré-écoute…**, en tête du menu ([#226](https://github.com/dascritch/machincast/issues/226)) : dans l'airplay de l'accueil, la liste des sonores, les éléments d'une séquence ou d'un événement, et les sonores d'une banque. Il pré-écoute le sonore de la ligne cliquée, même au milieu d'une sélection ; une ligne qui ne désigne pas de sonore enregistré (une banque, un fichier déposé pas encore enregistré, un sonore supprimé depuis son passage) ne le propose pas. Un clic sur le [VU-mètre de l'accueil](prise-en-main.md#vu-mètre-de-lantenne) y charge l'antenne ; **Diffusion → Pré-écoute de l'antenne** la charge et la lance aussitôt ([#245](https://github.com/dascritch/machincast/issues/245)).
+La **fenêtre de pré-écoute** fait écouter un sonore, ou l'antenne, sur le casque de la régie, **jamais sur l'antenne**. Le bouton **Pré-écoute…** d'une fiche de sonore, ou **Affichage → Pré-écoute…**, l'ouvre. Le **clic droit** sur la ligne d'un sonore propose aussi **Pré-écoute…**, en tête du menu ([#226](https://github.com/dascritch/machincast/issues/226)) : dans l'airplay de l'onglet Antenne, la liste des sonores, les éléments d'une séquence ou d'un événement, et les sonores d'une banque. Il pré-écoute le sonore de la ligne cliquée, même au milieu d'une sélection ; une ligne qui ne désigne pas de sonore enregistré (une banque, un fichier déposé pas encore enregistré, un sonore supprimé depuis son passage) ne le propose pas. Un clic sur le [VU-mètre de l'onglet Antenne](prise-en-main.md#vu-mètre-de-lantenne) y charge l'antenne ; **Diffusion → Pré-écoute de l'antenne** la charge et la lance aussitôt ([#245](https://github.com/dascritch/machincast/issues/245)).
 
 ![La fenêtre de pré-écoute, à l'arrêt, chargée sur l'antenne, avec sa sortie : le casque de la régie](../captures/preecoute.png)
 
 - **Lecteur** : **⏵** lance la lecture, **⏸** la met en pause, **⏹** l'arrête.
-- **VU-mètre** : comme celui de l'accueil, couché.
+- **VU-mètre** : comme celui de l'onglet Antenne, couché.
 - **Informations** : le format, le débit, l'échantillonnage, les canaux, et pour un stream le son déjà reçu d'avance : un flux qui en a peu risque de couper.
 - **Sortie** : le périphérique de pré-écoute ; celui de l'antenne est grisé, et ne peut pas être choisi.
 
@@ -136,7 +136,7 @@ Sous la frise :
 - **Début joué** lance la lecture au début de cette partie ; **Fin jouée**, 5 secondes avant le fondu de sortie, pour entendre arriver l'enchaînement ;
 - **Écouter comme à l'antenne** ne joue que cette partie, avec ses fondus.
 
-La frise montre ce qui est enregistré : enregistrer la fiche avant de pré-écouter un réglage. Elle ne connaît pas la banque par laquelle passera le sonore : une banque qui impose ses crossfades, ou retire les silences, n'y apparaît pas. Sur l'accueil, la même frise montre le sonore en cours et le prochain, tels que l'antenne les joue, règles de leur banque comprises ([Accueil](prise-en-main.md#accueil)).
+La frise montre ce qui est enregistré : enregistrer la fiche avant de pré-écouter un réglage. Elle ne connaît pas la banque par laquelle passera le sonore : une banque qui impose ses crossfades, ou retire les silences, n'y apparaît pas. Sur l'onglet Antenne, la même frise montre le sonore en cours et le prochain, tels que l'antenne les joue, règles de leur banque comprises ([Antenne](prise-en-main.md#antenne)).
 
 ## Fiche d'une banque
 

@@ -16,7 +16,7 @@ from tests.etapes_interface import Connexion, Contexte, fenetre, identifiant, ou
 scenarios("rafraichissement.feature")
 
 TITRE = 4
-"""Colonne du titre, dans la table de l'airplay de l'accueil."""
+"""Colonne du titre, dans la table de l'airplay de l'onglet Antenne."""
 
 
 @when(parsers.parse("un autre poste ajoute la banque « {nom} »"))
@@ -51,18 +51,18 @@ def noter_passage(interface: Contexte, base_vide: Connexion, titre: str, heure: 
 	)
 
 
-@then("l'airplay de l'accueil ne montre rien")
+@then("l'airplay de l'onglet Antenne ne montre rien")
 def airplay_vide(interface: Contexte) -> None:
 	assert fenetre(interface).accueil.modele_airplay.rowCount() == 0
 
 
-@then(parsers.parse("l'airplay de l'accueil montre « {titre} »"))
+@then(parsers.parse("l'airplay de l'onglet Antenne montre « {titre} »"))
 def airplay(interface: Contexte, titre: str) -> None:
 	modele = fenetre(interface).accueil.modele_airplay
 	assert [modele.item(ligne, TITRE).text() for ligne in range(modele.rowCount())] == [titre]
 
 
-@when(parsers.parse("je double-clique sur « {titre} » dans l'airplay de l'accueil"))
+@when(parsers.parse("je double-clique sur « {titre} » dans l'airplay de l'onglet Antenne"))
 def ouvrir_depuis_l_airplay(interface: Contexte, qtbot: QtBot, titre: str) -> None:
 	ouvrir_dans(qtbot, fenetre(interface).accueil.ui.table_airplay, titre)
 

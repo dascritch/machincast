@@ -19,17 +19,18 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QProcess, Signal
 
 from machincast.configuration import REPERTOIRE_PROJET, fichier_par_defaut
+from machincast.interface.intentions import ARRETER, DEMARRER, libelle
 from machincast.maintenance import sauvegardes_par_defaut
 from machincast.service import UNITE
 
 VERBES = {
-	"start": ("Démarrer la diffusion", "Diffusion démarrée.", "Diffusion non démarrée"),
-	"stop": ("Arrêter la diffusion", "Diffusion arrêtée.", "Diffusion non arrêtée"),
+	"start": (libelle(DEMARRER, "Démarrer la diffusion"), "Diffusion démarrée.", "Diffusion non démarrée"),
+	"stop": (libelle(ARRETER, "Arrêter la diffusion"), "Diffusion arrêtée.", "Diffusion non arrêtée"),
 }
 """Pour chaque verbe de systemctl : l'entrée du menu, ce qu'annonce sa réussite, et son échec."""
 ESSAI = {
-	"start": "Démarrer la diffusion d'essai",
-	"stop": "Arrêter la diffusion d'essai",
+	"start": libelle(DEMARRER, "Démarrer la diffusion d'essai"),
+	"stop": libelle(ARRETER, "Arrêter la diffusion d'essai"),
 }
 """Les entrées du menu sans le service."""
 TERMINAUX = ("konsole", "x-terminal-emulator")

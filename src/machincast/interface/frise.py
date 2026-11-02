@@ -8,7 +8,7 @@ La frise remplace la barre de position de la pré-écoute d'un fichier. Elle s'�
   des fondus, https://github.com/dascritch/machincast/issues/234) ; ses crossfades, ceux des préférences pour un
   crossfade non paramétré (machincast.lecture.diffusion.crossfade), et le volume de l'écoute comme à l'antenne, le
   long de l'enveloppe de la diffusion (machincast.lecture.moteur.enveloppe). Ouverte depuis une fiche, la pré-écoute
-  ne connaît pas la banque par laquelle passera le sonore : ses règles n'y figurent pas ; l'accueil les connaît.
+  ne connaît pas la banque par laquelle passera le sonore : ses règles n'y figurent pas ; l'onglet Antenne les connaît.
 - FormeDOnde : la forme d'onde, calculée en tâche de fond par un pipeline GStreamer à part (uridecodebin, level,
   fakesink sans synchronisation : aussi vite que le décodage). Le minuteur de la pré-écoute relève son bus : rien ne
   bloque l'interface, et la forme apparaît au fil du décodage. Le fichier n'est que lu.
@@ -509,12 +509,12 @@ class Frise(QWidget):
 	placee = Signal(float)
 	"""Une position demandée, en secondes du fichier."""
 	cliquee = Signal()
-	"""Un clic sur une frise qui n'est pas interactive : sur l'accueil, il demande la pré-écoute du sonore
+	"""Un clic sur une frise qui n'est pas interactive : sur l'onglet Antenne, il demande la pré-écoute du sonore
 	(https://github.com/dascritch/machincast/issues/223)."""
 
 	def __init__(self, parent: QWidget | None = None, interactive: bool = True) -> None:
-		"""interactive : un clic, un glissement ou les flèches demandent une position ; sur l'accueil, la frise ne fait
-		que se regarder (https://github.com/dascritch/machincast/issues/230)."""
+		"""interactive : un clic, un glissement ou les flèches demandent une position ; sur l'onglet Antenne, la frise
+		ne fait que se regarder (https://github.com/dascritch/machincast/issues/230)."""
 		super().__init__(parent)
 		self.interactive = interactive
 		self.plan: Plan | None = None
@@ -524,7 +524,7 @@ class Frise(QWidget):
 		"""La tête de lecture, en secondes du fichier ; None : pas de lecture."""
 		self.legende = ""
 		"""Un texte écrit au milieu de la frise, sur un fond qui le garde lisible : le temps qui reste au sonore en
-		cours, sur l'accueil (https://github.com/dascritch/machincast/issues/230) ; vide : aucun."""
+		cours, sur l'onglet Antenne (https://github.com/dascritch/machincast/issues/230) ; vide : aucun."""
 		self._glisse = False
 		self.setMinimumHeight(HAUTEUR)
 		self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)

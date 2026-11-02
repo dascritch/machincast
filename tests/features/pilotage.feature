@@ -31,12 +31,12 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| entrée                                | état       | raccourci | infobulle                                               |
 			| Pré-écoute de l'antenne               | active     | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
 			| —                                     |            |           |                                                         |
-			| Démarrer la diffusion                 | <demarrer> |           |                                                         |
-			| Arrêter la diffusion                  | <arreter>  |           |                                                         |
+			| ⏵ Démarrer la diffusion                 | <demarrer> |           |                                                         |
+			| ⏹ Arrêter la diffusion                  | <arreter>  |           |                                                         |
 			| —                                     |            |           |                                                         |
-			| Sauter au sonore suivant              | inactive   |           | Rien à l'antenne                                        |
-			| Sauter après la séquence              | inactive   |           | Rien à l'antenne                                        |
-			| Couper l'événement par le fil musical | inactive   |           | Rien à l'antenne                                        |
+			| ⏭ Sauter au sonore suivant              | inactive   |           | Rien à l'antenne                                        |
+			| ⏭ Sauter après la séquence              | inactive   |           | Rien à l'antenne                                        |
+			| ⏭ Couper l'événement par le fil musical | inactive   |           | Rien à l'antenne                                        |
 		Et la barre d'état ne signale pas d'installation à terminer
 
 		Exemples:
@@ -54,14 +54,14 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 
 		Exemples:
 			| etat      | entree                  | verbe   | annonce               |
-			| arrêté    | Démarrer la diffusion   | start   | Diffusion démarrée.   |
-			| en marche | Arrêter la diffusion    | stop    | Diffusion arrêtée.    |
+			| arrêté    | ⏵ Démarrer la diffusion   | start   | Diffusion démarrée.   |
+			| en marche | ⏹ Arrêter la diffusion    | stop    | Diffusion arrêtée.    |
 
 	Scénario: Une authentification refusée laisse la diffusion telle quelle, et la barre d'état le dit
 		Étant donné le service de diffusion installé, arrêté
 		Et systemctl refuse en disant « Access denied »
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Démarrer la diffusion » dans le menu « Diffusion »
+		Et je choisis « ⏵ Démarrer la diffusion » dans le menu « Diffusion »
 		Alors la barre d'état annonce bientôt « Diffusion non démarrée : Access denied »
 
 	Scénario: Le menu suit l'état du service quand il s'ouvre
@@ -73,28 +73,28 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| entrée                                | état     | raccourci | infobulle                                               |
 			| Pré-écoute de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
 			| —                                     |          |           |                                                         |
-			| Démarrer la diffusion                 | inactive |           |                                                         |
-			| Arrêter la diffusion                  | active   |           |                                                         |
+			| ⏵ Démarrer la diffusion                 | inactive |           |                                                         |
+			| ⏹ Arrêter la diffusion                  | active   |           |                                                         |
 			| —                                     |          |           |                                                         |
-			| Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
-			| Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
-			| Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
+			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
+			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
+			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
 
 	Scénario: Après une commande, le menu suit le nouvel état du service
 		Étant donné le service de diffusion installé, arrêté
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Démarrer la diffusion » dans le menu « Diffusion »
+		Et je choisis « ⏵ Démarrer la diffusion » dans le menu « Diffusion »
 		Alors la barre d'état annonce bientôt « Diffusion démarrée. »
 		Et le menu « Diffusion » a les entrées :
 			| entrée                                | état     | raccourci | infobulle                                               |
 			| Pré-écoute de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
 			| —                                     |          |           |                                                         |
-			| Démarrer la diffusion                 | inactive |           |                                                         |
-			| Arrêter la diffusion                  | active   |           |                                                         |
+			| ⏵ Démarrer la diffusion                 | inactive |           |                                                         |
+			| ⏹ Arrêter la diffusion                  | active   |           |                                                         |
 			| —                                     |          |           |                                                         |
-			| Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
-			| Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
-			| Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
+			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
+			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
+			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
 
 	Scénario: Le service installé pendant que l'interface est ouverte se pilote dès l'ouverture du menu
 		Étant donné le service de diffusion non installé
@@ -105,12 +105,12 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| entrée                                | état     | raccourci | infobulle                                               |
 			| Pré-écoute de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
 			| —                                     |          |           |                                                         |
-			| Démarrer la diffusion                 | active   |           |                                                         |
-			| Arrêter la diffusion                  | inactive |           |                                                         |
+			| ⏵ Démarrer la diffusion                 | active   |           |                                                         |
+			| ⏹ Arrêter la diffusion                  | inactive |           |                                                         |
 			| —                                     |          |           |                                                         |
-			| Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
-			| Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
-			| Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
+			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
+			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
+			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
 		Et la barre d'état ne signale pas d'installation à terminer
 
 	# ─── Sans le service ───────────────────────────────────────
@@ -124,19 +124,19 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| entrée                                | état     | raccourci | infobulle                                                  |
 			| Pré-écoute de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt    |
 			| —                                     |          |           |                                                            |
-			| Démarrer la diffusion d'essai         | active   |           | Sans service : Machin lecture dans une fenêtre de terminal |
-			| Arrêter la diffusion d'essai          | inactive |           | Aucune diffusion d'essai en cours                          |
+			| ⏵ Démarrer la diffusion d'essai         | active   |           | Sans service : Machin lecture dans une fenêtre de terminal |
+			| ⏹ Arrêter la diffusion d'essai          | inactive |           | Aucune diffusion d'essai en cours                          |
 			| —                                     |          |           |                                                            |
-			| Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                           |
-			| Sauter après la séquence              | inactive |           | Rien à l'antenne                                           |
-			| Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                           |
+			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                           |
+			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                           |
+			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                           |
 
-	Scénario: Sans service, « Démarrer la diffusion d'essai » lance Machin lecture comme le service, dans une fenêtre de terminal
+	Scénario: Sans service, « ⏵ Démarrer la diffusion d'essai » lance Machin lecture comme le service, dans une fenêtre de terminal
 		Étant donné le service de diffusion non installé
 		Et le terminal « konsole » du poste
 		Et l'interface lancée sur la configuration du service
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Démarrer la diffusion d'essai » dans le menu « Diffusion »
+		Et je choisis « ⏵ Démarrer la diffusion d'essai » dans le menu « Diffusion »
 		Alors le terminal a lancé bientôt Machin lecture, comme le service
 		Et la barre d'état annonce « Diffusion d'essai lancée dans un terminal : Ctrl-C l'y arrête. »
 		Et systemctl n'a reçu que des demandes d'état
@@ -145,7 +145,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Étant donné le service de diffusion non installé
 		Et le terminal « konsole » du poste
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Démarrer la diffusion d'essai » dans le menu « Diffusion »
+		Et je choisis « ⏵ Démarrer la diffusion d'essai » dans le menu « Diffusion »
 		Alors le terminal a lancé bientôt Machin lecture, comme le service
 		Et la barre d'état annonce que la diffusion d'essai lit la configuration du service, et non celle de l'interface
 
@@ -153,25 +153,25 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Étant donné le service de diffusion non installé
 		Et une diffusion d'essai qui tourne, lancée à la main
 		Quand la fenêtre de l'interface s'ouvre
-		Et l'état du binaire lecture est bientôt « En diffusion » sur l'accueil
+		Et l'état du binaire lecture est bientôt « En diffusion » sur l'onglet Antenne
 		Et j'ouvre le menu « Diffusion »
 		Alors le menu « Diffusion » a les entrées :
 			| entrée                                | état     | raccourci | infobulle                                                             |
 			| Pré-écoute de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt               |
 			| —                                     |          |           |                                                                       |
-			| Démarrer la diffusion d'essai         | inactive |           | La diffusion d'essai tourne déjà                                      |
-			| Arrêter la diffusion d'essai          | active   |           | Sans service : arrête le Machin lecture lancé à la main, comme Ctrl-C |
+			| ⏵ Démarrer la diffusion d'essai         | inactive |           | La diffusion d'essai tourne déjà                                      |
+			| ⏹ Arrêter la diffusion d'essai          | active   |           | Sans service : arrête le Machin lecture lancé à la main, comme Ctrl-C |
 			| —                                     |          |           |                                                                       |
-			| Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                                      |
-			| Sauter après la séquence              | inactive |           | Rien à l'antenne                                                      |
-			| Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                                      |
+			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                                      |
+			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                                      |
+			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                                      |
 
-	Scénario: Sans service, « Arrêter la diffusion d'essai » arrête Machin lecture comme Ctrl-C
+	Scénario: Sans service, « ⏹ Arrêter la diffusion d'essai » arrête Machin lecture comme Ctrl-C
 		Étant donné le service de diffusion non installé
 		Et une diffusion d'essai qui tourne, lancée à la main
 		Quand la fenêtre de l'interface s'ouvre
-		Et l'état du binaire lecture est bientôt « En diffusion » sur l'accueil
-		Et je choisis « Arrêter la diffusion d'essai » dans le menu « Diffusion »
+		Et l'état du binaire lecture est bientôt « En diffusion » sur l'onglet Antenne
+		Et je choisis « ⏹ Arrêter la diffusion d'essai » dans le menu « Diffusion »
 		Alors la barre d'état annonce « Arrêt de la diffusion d'essai demandé… »
 		Et la barre d'état annonce bientôt « Diffusion d'essai arrêtée. »
 		Et la diffusion d'essai s'est arrêtée par SIGTERM
@@ -181,8 +181,43 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Étant donné le service de diffusion non installé
 		Et aucun terminal sur le poste
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Démarrer la diffusion d'essai » dans le menu « Diffusion »
+		Et je choisis « ⏵ Démarrer la diffusion d'essai » dans le menu « Diffusion »
 		Alors la barre d'état annonce « Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin lecture à la main. »
+
+	# ─── Témoins de la diffusion (https://github.com/dascritch/machincast/issues/322) ───
+
+	Scénario: Le titre de l'onglet Antenne porte 🟩 tant que le service n'est pas installé, 🟥 dès qu'il l'est
+		Étant donné le service de diffusion non installé
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le titre de l'onglet Antenne est « 🟩 Antenne »
+		Quand le service de diffusion s'installe, arrêté
+		Et j'ouvre le menu « Diffusion »
+		Alors le titre de l'onglet Antenne est « 🟥 Antenne »
+
+	Plan du scénario: Avec le service installé, le titre de l'onglet Antenne porte 🟥, que la diffusion tourne ou non
+		Étant donné le service de diffusion installé, <etat>
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le titre de l'onglet Antenne est « 🟥 Antenne »
+
+		Exemples:
+			| etat      |
+			| arrêté    |
+			| en marche |
+			| en échec  |
+
+	Scénario: La dernière ligne de la fenêtre dit « 🔇 Diffusion arrêtée » tant que la diffusion ne tourne pas
+		Étant donné le service de diffusion non installé
+		Et une diffusion d'essai qui tourne, lancée à la main
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'état du binaire lecture est bientôt « En diffusion » sur l'onglet Antenne
+		Alors la dernière ligne de la fenêtre ne dit pas « 🔇 Diffusion arrêtée »
+		Quand je choisis « ⏹ Arrêter la diffusion d'essai » dans le menu « Diffusion »
+		Alors la dernière ligne de la fenêtre dit bientôt « 🔇 Diffusion arrêtée »
+
+	Scénario: Sans diffusion, la dernière ligne de la fenêtre dit « 🔇 Diffusion arrêtée » dès l'ouverture
+		Étant donné le service de diffusion installé, arrêté
+		Quand la fenêtre de l'interface s'ouvre
+		Alors la dernière ligne de la fenêtre dit bientôt « 🔇 Diffusion arrêtée »
 
 	# ─── Maintenance de la base de données (https://github.com/dascritch/machincast/issues/127) ───
 

@@ -14,7 +14,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.interface.fiche_banque import COLONNE_ETAT, FicheBanque
 from machincast.interface.listes import Liste
-from tests.etapes_interface import NOM, Contexte, fenetre, identifiant, liste
+from tests.etapes_interface import NOM, Contexte, fenetre, identifiant, liste, titre_d_onglet
 
 scenarios("selection_multiple.feature")
 
@@ -189,7 +189,7 @@ def masquages_en_base(base_vide: Connexion, noms: str, masquage: str, autre: str
 def listes_multiples(interface: Contexte, onglets: str) -> None:
 	ui = fenetre(interface).ui
 	multiples = sorted(
-		ui.onglets.tabText(rangee)
+		titre_d_onglet(ui.onglets, rangee)
 		for rangee in range(ui.onglets.count())
 		if (isinstance(ecran := ui.onglets.widget(rangee), Liste))
 		and (ecran.table.selectionMode() == ecran.table.SelectionMode.ExtendedSelection)

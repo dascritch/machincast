@@ -1,6 +1,7 @@
 """Interruption manuelle de l'antenne depuis l'interface (https://github.com/dascritch/machincast/issues/104,
-https://github.com/dascritch/machincast/issues/228, spec § 8.11), et clic droit sur le prochain sonore de l'accueil
-(https://github.com/dascritch/machincast/issues/257) : y sauter, ou avancer l'événement suivant (proposer_au_prochain).
+https://github.com/dascritch/machincast/issues/228, spec § 8.11), et clic droit sur le prochain sonore de l'onglet
+Antenne (https://github.com/dascritch/machincast/issues/257) : y sauter, ou avancer l'événement suivant
+(proposer_au_prochain).
 
 Le menu « Diffusion » propose de sauter au sonore suivant, de sauter après la séquence en cours, ou de couper
 l'événement par le fil musical (ENTREES). Chaque entrée suit l'état que Machin lecture publie sur sa socket d'état
@@ -14,11 +15,12 @@ from dataclasses import dataclass
 
 from machincast.interface.calendrier import jour_et_mois
 from machincast.interface.etat import EtatLecture, EvenementSuivant
+from machincast.interface.intentions import SAUTER, libelle
 
 ENTREES = {
-	"sonore": "Sauter au sonore suivant",
-	"sequence": "Sauter après la séquence",
-	"evenement": "Couper l'événement par le fil musical",
+	"sonore": libelle(SAUTER, "Sauter au sonore suivant"),
+	"sequence": libelle(SAUTER, "Sauter après la séquence"),
+	"evenement": libelle(SAUTER, "Couper l'événement par le fil musical"),
 }
 """Entrée du menu « Diffusion » de chaque élément qui s'interrompt, dans l'ordre du menu."""
 ANNONCES = {
@@ -30,8 +32,8 @@ RIEN_A_L_ANTENNE = "Rien à l'antenne"
 AUCUNE_SEQUENCE = "Aucune séquence à l'antenne"
 DEJA_LE_FIL_MUSICAL = "Le fil musical est déjà à l'antenne"
 SANS_LECTURE = "Interruption impossible : Machin lecture ne répond pas sur sa socket d'état."
-SAUTER_A_CE_SONORE = "Sauter à ce sonore"
-AVANCER_L_EVENEMENT_SUIVANT = "Avancer l'événement suivant"
+SAUTER_A_CE_SONORE = libelle(SAUTER, "Sauter à ce sonore")
+AVANCER_L_EVENEMENT_SUIVANT = libelle(SAUTER, "Avancer l'événement suivant")
 AUCUN_PROCHAIN_SONORE = "Aucun prochain sonore"
 AUCUN_EVENEMENT_SUIVANT = "Aucun événement suivant dans les sept jours"
 SANS_DIFFUSION = "Machin lecture ne diffuse pas"
@@ -79,8 +81,8 @@ class EntreeDuProchain:
 
 
 def avance(suivant: EvenementSuivant) -> str:
-	"""« Avancer « Journal », prévu le mercredi 21 octobre à 12:00 »."""
-	return f"Avancer « {suivant.nom} », prévu le {jour_et_mois(suivant.debut.date())} à {suivant.debut:%H:%M}"
+	"""« ⏭ Avancer « Journal », prévu le mercredi 21 octobre à 12:00 »."""
+	return f"{SAUTER} Avancer « {suivant.nom} », prévu le {jour_et_mois(suivant.debut.date())} à {suivant.debut:%H:%M}"
 
 
 def annonce_d_avance(nom: str) -> str:

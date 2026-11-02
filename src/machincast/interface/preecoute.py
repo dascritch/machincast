@@ -22,8 +22,8 @@ un minuteur de Qt : rien ne bloque l'interface.
 - Informations : format (codec), débit (celui des tags, sinon la taille du fichier sur sa durée), échantillonnage,
   canaux, et pour un stream, les secondes pré-décodées : le son reçu d'avance, que GStreamer garde en mémoire.
 
-L'écoute de l'antenne (https://github.com/dascritch/machincast/issues/24), par le VU-mètre de l'accueil ou le bouton
-« Pré-écoute » de la fenêtre, a pour titre « en cours : » et le texte public du sonore en cours
+L'écoute de l'antenne (https://github.com/dascritch/machincast/issues/24), par le VU-mètre de l'onglet Antenne ou le
+bouton « Pré-écoute » de la fenêtre, a pour titre « en cours : » et le texte public du sonore en cours
 (https://github.com/dascritch/machincast/issues/223).
 """
 

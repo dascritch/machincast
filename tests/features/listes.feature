@@ -5,7 +5,7 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 	afin que j'accède rapidement à l'écran de détail voulu.
 
 	https://github.com/dascritch/machincast/issues/26, spec § 8.2. La fenêtre de l'interface a un onglet par écran :
-	l'écran d'accueil, ouvert par défaut, puis une liste par type d'élément. Les listes se lisent dans la base de test,
+	l'onglet Antenne, ouvert par défaut, puis une liste par type d'élément. Les listes se lisent dans la base de test,
 	avec le rôle de l'interface ; la fenêtre s'affiche hors de l'écran du poste.
 
 	Contexte:
@@ -14,11 +14,11 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	# ─── Onglets ───────────────────────────────────────────────
 
-	Scénario: La fenêtre s'ouvre sur l'accueil, suivi d'un onglet par liste
+	Scénario: La fenêtre s'ouvre sur l'onglet Antenne, suivi d'un onglet par liste
 		Quand la fenêtre de l'interface s'ouvre
-		Alors la fenêtre a les onglets « Accueil », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
-		Et l'onglet ouvert est « Accueil »
-		Et l'onglet « Accueil » montre l'écran par défaut
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+		Et l'onglet ouvert est « Antenne »
+		Et l'onglet « Antenne » montre l'écran par défaut
 
 	# ─── Contenu des listes ────────────────────────────────────
 
@@ -161,7 +161,7 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et le sonore « j2 » est ajouté en base
-		Et j'ouvre l'onglet « Accueil »
+		Et j'ouvre l'onglet « Antenne »
 		Et j'ouvre l'onglet « Sonores »
 		Alors le compte de la liste est « 2 sonores »
 
@@ -275,7 +275,7 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et je tape « café » dans le filtre de la liste
-		Et j'ouvre l'onglet « Accueil »
+		Et j'ouvre l'onglet « Antenne »
 		Et j'ouvre l'onglet « Sonores »
 		Alors la liste montre les titres « Café à minuit »
 

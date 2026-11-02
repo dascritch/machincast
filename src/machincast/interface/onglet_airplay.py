@@ -2,10 +2,10 @@
 
 L'historique de diffusion, dans un onglet à part, fermé au lancement, que le menu « Affichage » ouvre
 (FenetrePrincipale._ouvrir_airplay). Il montre les passages des dernières heures, du plus récent au plus ancien, avec
-les colonnes de l'airplay de l'accueil (EcranParDefaut.COLONNES_AIRPLAY). Le nombre d'heures se règle en haut de
+les colonnes de l'airplay de l'onglet Antenne (EcranParDefaut.COLONNES_AIRPLAY). Le nombre d'heures se règle en haut de
 l'onglet, de 1 à HEURES_AU_PLUS ; il est retenu pour le compte, dans les réglages des vues
-(machincast.interface.colonnes). Comme dans l'accueil, un double-clic demande la fiche du sonore, de l'événement, de
-la séquence ou de la banque (ouverte), et le clic droit sur une ligne propose « Pré-écoute… » de son sonore
+(machincast.interface.colonnes). Comme dans l'onglet Antenne, un double-clic demande la fiche du sonore, de l'événement,
+de la séquence ou de la banque (ouverte), et le clic droit sur une ligne propose « Pré-écoute… » de son sonore
 (preecoute_demandee).
 
 « Exporter… » enregistre ce que l'onglet montre, relu en base, en CSV, en HTML ou en M3U
@@ -14,8 +14,8 @@ Le nom reçoit l'extension du format s'il ne l'a pas déjà : un export ne rempl
 (https://github.com/dascritch/machincast/issues/96, machincast.protection). La barre d'état de la fenêtre dit où
 l'export est enregistré (annonce).
 
-L'onglet se relit à son ouverture, à chaque réglage, et quand l'accueil voit un nouveau sonore (actualiser) : jamais en
-boucle.
+L'onglet se relit à son ouverture, à chaque réglage, et quand l'onglet Antenne voit un nouveau sonore (actualiser) :
+jamais en boucle.
 """
 
 import logging

@@ -376,15 +376,15 @@ Fonctionnalité: Fichier de configuration
 
 	# ─── Interface (https://github.com/dascritch/machincast/issues/191) ─────────────────
 
-	Scénario: Sans section [interface], le voyant « Saturation » de l'accueil est affiché
+	Scénario: Sans section [interface], le voyant « Saturation » de l'onglet Antenne est affiché
 		Étant donné une configuration valide sans section "interface"
 		Quand je charge la configuration
-		Alors le voyant « Saturation » de l'accueil est affiché
+		Alors le voyant « Saturation » de l'onglet Antenne est affiché
 
-	Plan du scénario: La clé interface.saturation affiche ou cache le voyant « Saturation » de l'accueil
+	Plan du scénario: La clé interface.saturation affiche ou cache le voyant « Saturation » de l'onglet Antenne
 		Étant donné une configuration valide où la clé "interface.saturation" vaut <valeur>
 		Quand je charge la configuration
-		Alors le voyant « Saturation » de l'accueil est <etat>
+		Alors le voyant « Saturation » de l'onglet Antenne est <etat>
 
 		Exemples:
 			| valeur | etat    |

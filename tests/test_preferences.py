@@ -650,8 +650,8 @@ def saturation_montree(interface: Contexte, etat: str) -> None:
 	assert interface.saturations_montrees == [etat == "affiché"]
 
 
-@then(parsers.re(r"le voyant « (?P<nom>Saturation|Blanc) » de l'antenne est (?P<etat>affiché|caché) à l'accueil"))
-def voyant_a_l_accueil(interface: Contexte, nom: str, etat: str) -> None:
+@then(parsers.re(r"le voyant « (?P<nom>Saturation|Blanc) » de l'antenne est (?P<etat>affiché|caché) dans l'onglet"))
+def voyant_de_l_antenne(interface: Contexte, nom: str, etat: str) -> None:
 	ui = fenetre(interface).accueil.ui
 	voyant = {"Saturation": ui.voyant_saturation, "Blanc": ui.voyant_blanc}[nom]
 	assert voyant.isHidden() is (etat == "caché")

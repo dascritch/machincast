@@ -2,14 +2,14 @@
 Fonctionnalité: Raccourcis des onglets
 	En tant que technicien d'antenne,
 	je veux passer d'un onglet à l'autre au clavier,
-	afin de revenir vite à l'accueil ou à une fiche ouverte.
+	afin de revenir vite à l'onglet Antenne ou à une fiche ouverte.
 
 	https://github.com/dascritch/machincast/issues/192. Les 12 premiers onglets ont les raccourcis Maj+F1 à Maj+F12,
-	selon leur rang : Maj+F1 est toujours l'accueil, et ouvrir ou fermer un onglet décale les suivants. L'infobulle de
+	selon leur rang : Maj+F1 est toujours l'onglet Antenne, et ouvrir ou fermer un onglet décale les suivants. L'infobulle de
 	chaque onglet donne son raccourci. Les touches s'écrivent ici en anglais, comme les lit Qt (Shift, Ctrl, PgUp, PgDown).
 
 	https://github.com/dascritch/machincast/issues/318 : Ctrl+PageUp et Ctrl+PageDown vont à l'onglet de gauche et de
-	droite, sans boucler, Ctrl+Home au premier, l'accueil, et Ctrl+End au dernier, quel que soit le widget qui a le
+	droite, sans boucler, Ctrl+Home au premier, l'onglet Antenne, et Ctrl+End au dernier, quel que soit le widget qui a le
 	focus, champ de texte et tableau compris.
 
 	Contexte:
@@ -25,15 +25,15 @@ Fonctionnalité: Raccourcis des onglets
 		Et la séquence « Cinq », sans nom public, avec rien
 		Et la séquence « Six », sans nom public, avec rien
 
-	Scénario: Maj+F1 ramène à l'accueil, Maj+F2 au calendrier, Maj+F6 aux incidents
+	Scénario: Maj+F1 ramène à l'onglet Antenne, Maj+F2 au calendrier, Maj+F6 aux incidents
 		Les onglets « Sonores » et « Feeds » ne s'ouvrent qu'à la demande
-		(https://github.com/dascritch/machincast/issues/180), et le calendrier suit l'accueil
+		(https://github.com/dascritch/machincast/issues/180), et le calendrier suit l'onglet Antenne
 		(https://github.com/dascritch/machincast/issues/307) : au lancement, les incidents sont le sixième onglet.
 
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Banques »
 		Et j'appuie sur « Shift+F1 »
-		Alors l'onglet ouvert est « Accueil »
+		Alors l'onglet ouvert est « Antenne »
 		Quand j'appuie sur « Shift+F2 »
 		Alors l'onglet ouvert est « Calendrier »
 		Quand j'appuie sur « Shift+F6 »
@@ -83,21 +83,21 @@ Fonctionnalité: Raccourcis des onglets
 		Alors l'onglet ouvert est « Banques »
 		Quand j'appuie sur « Shift+F1 »
 		Et j'appuie sur « Ctrl+PgUp »
-		Alors l'onglet ouvert est « Accueil »
+		Alors l'onglet ouvert est « Antenne »
 		Quand j'appuie sur « Ctrl+PgDown »
 		Alors l'onglet ouvert est « Calendrier »
 
-	Scénario: Ctrl+End va au dernier onglet, Ctrl+Home à l'accueil, même depuis l'horloge de l'accueil ou un tableau
+	Scénario: Ctrl+End va au dernier onglet, Ctrl+Home à l'onglet Antenne, même depuis l'horloge de l'onglet Antenne ou un tableau
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Un »
 		Et j'appuie sur « Shift+F1 »
-		Et je clique sur l'horloge de l'accueil
+		Et je clique sur l'horloge de l'onglet Antenne
 		Et j'appuie sur « Ctrl+End »
 		Alors l'onglet ouvert est « Séquence : Un »
 		Quand j'ouvre l'onglet « Banques »
 		Et je donne le focus au tableau de l'onglet « Banques »
 		Et j'appuie sur « Ctrl+Home »
-		Alors l'onglet ouvert est « Accueil »
+		Alors l'onglet ouvert est « Antenne »
 
 	Scénario: Dans un champ de texte, les quatre raccourcis changent aussi d'onglet
 		Un champ d'une ligne réclame Ctrl+Home et Ctrl+End, sans rien en faire : le raccourci de la fenêtre les prend.
@@ -114,7 +114,7 @@ Fonctionnalité: Raccourcis des onglets
 		Quand j'ouvre l'onglet « Banques »
 		Et je saisis « jingles » dans le filtre de l'onglet « Banques », le curseur à la fin
 		Et j'appuie sur « Ctrl+Home »
-		Alors l'onglet ouvert est « Accueil »
+		Alors l'onglet ouvert est « Antenne »
 		Quand j'ouvre l'onglet « Banques »
 		Et je saisis « jingles » dans le filtre de l'onglet « Banques », le curseur à la fin
 		Et j'appuie sur « Ctrl+End »

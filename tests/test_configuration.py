@@ -385,7 +385,7 @@ def avertit_blancs(caplog: pytest.LogCaptureFixture) -> None:
 	assert any("la section [blancs] s'appelle désormais [silences]" in m for m in avertissements), avertissements
 
 
-@then(parsers.re(r"le voyant « Saturation » de l'accueil est (?P<etat>affiché|caché)"))
+@then(parsers.re(r"le voyant « Saturation » de l'onglet Antenne est (?P<etat>affiché|caché)"))
 def voyant_de_saturation(contexte: Contexte, etat: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/191"""
 	assert contexte.configuration is not None, contexte.erreur

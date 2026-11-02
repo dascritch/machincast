@@ -85,7 +85,7 @@ Fonctionnalité: Écran des incidents
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Incidents »
 		Et Machin lecture note l'incident « flux tombé » à « 2026-10-19 20:50:00 »
-		Et j'ouvre l'onglet « Accueil »
+		Et j'ouvre l'onglet « Antenne »
 		Et j'ouvre l'onglet « Incidents »
 		Alors la liste des incidents montre les natures « flux tombé », « blanc », « fichier introuvable », « fichier modifié »
 

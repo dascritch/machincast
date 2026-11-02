@@ -9,14 +9,14 @@ from pytest_bdd import parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface.listes import Liste
-from tests.etapes_interface import NOM, Contexte, fenetre
+from tests.etapes_interface import NOM, Contexte, fenetre, titre_d_onglet
 
 scenarios("raccourcis_onglets.feature")
 
 
 def infobulles(interface: Contexte) -> dict[str, str]:
 	onglets = fenetre(interface).ui.onglets
-	return {onglets.tabText(indice): onglets.tabToolTip(indice) for indice in range(onglets.count())}
+	return {titre_d_onglet(onglets, indice): onglets.tabToolTip(indice) for indice in range(onglets.count())}
 
 
 @then(parsers.re(r"les onglets ont pour infobulles (?P<textes>«.+)"))
@@ -39,7 +39,8 @@ def sans_infobulle(interface: Contexte, titre: str) -> None:
 
 def ecran(interface: Contexte, titre: str) -> Liste:
 	onglets = fenetre(interface).ui.onglets
-	(trouve,) = [onglets.widget(indice) for indice in range(onglets.count()) if onglets.tabText(indice) == titre]
+	indices = range(onglets.count())
+	(trouve,) = [onglets.widget(indice) for indice in indices if titre_d_onglet(onglets, indice) == titre]
 	assert isinstance(trouve, Liste), trouve
 	return trouve
 
@@ -51,7 +52,7 @@ def focus_au_tableau(interface: Contexte, qtbot: QtBot, titre: str) -> None:
 	qtbot.waitUntil(table.hasFocus)
 
 
-@when("je clique sur l'horloge de l'accueil")
+@when("je clique sur l'horloge de l'onglet Antenne")
 def cliquer_l_horloge(interface: Contexte, qtbot: QtBot) -> None:
 	qtbot.mouseClick(fenetre(interface).accueil.ui.heure, Qt.MouseButton.LeftButton)
 

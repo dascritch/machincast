@@ -142,7 +142,7 @@ def etat_recu(interface: Contexte, lecteur: Lecteur, qtbot: QtBot) -> None:
 	qtbot.waitUntil(a_jour, timeout=ATTENTE)
 
 
-@when("l'accueil a reçu l'état de Machin lecture")
+@when("l'onglet Antenne a reçu l'état de Machin lecture")
 def accueil_a_jour(interface: Contexte, lecteur: Lecteur, qtbot: QtBot) -> None:
 	attendu = lire_message(lecteur.publie)
 	qtbot.waitUntil(lambda: fenetre(interface).accueil.etat == attendu, timeout=ATTENTE)

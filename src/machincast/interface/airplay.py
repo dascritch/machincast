@@ -17,7 +17,7 @@ from machincast.conversion import booleen_ou_rien, entier_ou_rien, texte_ou_rien
 HEURES = 12
 """Heures de l'airplay que montre l'onglet Airplay, sans réglage du compte."""
 DERNIERS = 10
-"""Passages de l'airplay que montre l'accueil."""
+"""Passages de l'airplay que montre l'onglet Antenne."""
 
 
 @dataclass(frozen=True)

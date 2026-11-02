@@ -5,7 +5,7 @@ Fonctionnalité: Pré-écoute d'un sonore depuis le menu contextuel de sa ligne
 	afin de l'écouter sans ouvrir sa fiche.
 
 	https://github.com/dascritch/machincast/issues/226. Un clic droit sur la ligne d'un sonore propose « Pré-écoute… »,
-	en tête du menu : dans l'airplay de l'accueil, dans la liste des sonores, dans les éléments d'une séquence (et d'un
+	en tête du menu : dans l'airplay de l'onglet Antenne, dans la liste des sonores, dans les éléments d'une séquence (et d'un
 	événement, qui partagent la même liste) et dans les sonores d'une banque. L'entrée charge le sonore dans la fenêtre
 	de pré-écoute, comme le bouton de sa fiche : la même fenêtre, à l'arrêt. Une ligne qui ne désigne pas de sonore en
 	base n'a pas cette entrée.

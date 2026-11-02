@@ -160,7 +160,7 @@ class Interface:
 	"""Réglages de l'interface graphique (https://github.com/dascritch/machincast/issues/191), section [interface]."""
 
 	saturation: bool = True
-	"""Le voyant « Saturation » de la colonne Antenne de l'accueil est affiché."""
+	"""Le voyant « Saturation » de la colonne Antenne, dans l'onglet du même nom est affiché."""
 	suggestions: bool = True
 	"""Au lancement, l'interface propose de créer ce qui manque pour démarrer
 	(https://github.com/dascritch/machincast/issues/119)."""

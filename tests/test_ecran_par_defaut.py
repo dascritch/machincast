@@ -643,21 +643,21 @@ def evenement_antenne(contexte: Contexte, qtbot: QtBot, bientot: str | None, tex
 	assert etiquette.text() == texte
 
 
-@when(parsers.parse("je clique sur le bouton « {nom} » de l'accueil"))
+@when(parsers.parse("je clique sur le bouton « {nom} » de l'onglet Antenne"))
 def cliquer_bouton(contexte: Contexte, qtbot: QtBot, nom: str) -> None:
 	bouton = getattr(ecran(contexte).ui, nom)
 	assert bouton.isEnabled(), nom
 	qtbot.mouseClick(bouton, Qt.MouseButton.LeftButton)
 
 
-@then("l'accueil a demandé les fiches :")
+@then("l'onglet Antenne a demandé les fiches :")
 def fiches_demandees(contexte: Contexte, datatable: list[list[str]]) -> None:
 	_entetes, *rangees = datatable
 	attendues = [(genre.strip(), int(numero), nom.strip()) for genre, numero, nom in rangees]
 	assert contexte.fiches == attendues
 
 
-@then("les boutons de fiche de l'accueil sont inactifs")
+@then("les boutons de fiche de l'onglet Antenne sont inactifs")
 def boutons_inactifs(contexte: Contexte) -> None:
 	ui = ecran(contexte).ui
 	boutons = [
@@ -670,7 +670,7 @@ def boutons_inactifs(contexte: Contexte) -> None:
 
 @then(
 	parsers.re(
-		r"les boutons de séquence et de banque de l'accueil sont, pour le sonore en cours puis le prochain :"
+		r"les boutons de séquence et de banque de l'onglet Antenne sont, pour le sonore en cours puis le prochain :"
 		r" (?P<etats>.+)"
 	)
 )
@@ -685,7 +685,7 @@ def etats_sequence_banque(contexte: Contexte, etats: str) -> None:
 
 @then(
 	parsers.re(
-		r"les boutons de fiche de l'accueil sont, dans l'ordre sonore en cours, son événement, prochain sonore,"
+		r"les boutons de fiche de l'onglet Antenne sont, dans l'ordre sonore en cours, son événement, prochain sonore,"
 		r" son événement : (?P<etats>.+)"
 	)
 )
@@ -713,7 +713,7 @@ def ouvrir_colonne(contexte: Contexte, qtbot: QtBot, colonne: str) -> None:
 	qtbot.mouseDClick(table_airplay.viewport(), Qt.MouseButton.LeftButton, pos=position)
 
 
-@then("l'accueil n'a demandé aucune fiche")
+@then("l'onglet Antenne n'a demandé aucune fiche")
 def aucune_fiche(contexte: Contexte) -> None:
 	assert contexte.fiches == []
 
@@ -723,7 +723,7 @@ def ouvrir_cellule(contexte: Contexte, qtbot: QtBot, texte: str) -> None:
 	ouvrir_dans(qtbot, ecran(contexte).ui.table_airplay, texte)
 
 
-@then("l'accueil a demandé les fiches de l'airplay :")
+@then("l'onglet Antenne a demandé les fiches de l'airplay :")
 def fiches_de_l_airplay(contexte: Contexte, base_vide: Connexion, datatable: list[list[str]]) -> None:
 	"""Chaque fiche par son identifiant en base : le sonore par son titre, les autres par leur nom interne."""
 	tables = {"sonore": ("sonores", "titre"), "événement": ("evenements", "nom_interne")}
@@ -871,7 +871,7 @@ def preecoute_demandee(contexte: Contexte, sonore: int) -> None:
 
 @then(
 	parsers.re(
-		r"l'accueil propose pour le prochain sonore : pré-écoute (?P<preecoute>active|inactive),"
+		r"l'onglet Antenne propose pour le prochain sonore : pré-écoute (?P<preecoute>active|inactive),"
 		r" test du flux (?P<flux>actif|inactif|caché)"
 	)
 )
@@ -928,23 +928,23 @@ def encart(contexte: Contexte, titre: str) -> QGroupBox:
 	return groupe
 
 
-@then(parsers.parse("l'encart de l'airplay de l'accueil s'intitule « {titre} »"))
+@then(parsers.parse("l'encart de l'airplay de l'onglet Antenne s'intitule « {titre} »"))
 def titre_de_l_airplay(contexte: Contexte, titre: str) -> None:
 	assert ecran(contexte).ui.cadre_airplay.property(depliable.TITRE) == titre
 
 
-@then(parsers.parse("les encarts « {premier} » et « {second} » de l'accueil sont dépliés"))
+@then(parsers.parse("les encarts « {premier} » et « {second} » de l'onglet Antenne sont dépliés"))
 def deux_encarts_deplies(contexte: Contexte, premier: str, second: str) -> None:
 	assert not depliable.est_replie(encart(contexte, premier))
 	assert not depliable.est_replie(encart(contexte, second))
 
 
-@then(parsers.re(r"l'encart « (?P<titre>[^»]+) » de l'accueil est (?P<etat>déplié|replié)"))
+@then(parsers.re(r"l'encart « (?P<titre>[^»]+) » de l'onglet Antenne est (?P<etat>déplié|replié)"))
 def encart_de_l_accueil(contexte: Contexte, titre: str, etat: str) -> None:
 	assert depliable.est_replie(encart(contexte, titre)) is (etat == "replié")
 
 
-@when(parsers.parse("je clique sur le titre de l'encart « {titre} » de l'accueil"))
+@when(parsers.parse("je clique sur le titre de l'encart « {titre} » de l'onglet Antenne"))
 def cliquer_le_titre(contexte: Contexte, qtbot: QtBot, titre: str) -> None:
 	qtbot.mouseClick(encart(contexte, titre), Qt.MouseButton.LeftButton, pos=QPoint(20, 5))
 

@@ -9,7 +9,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 	dossier pour une banque, une montre pour un événement, un calendrier pour la grille, une boule de divination pour la
 	simulation. Elle prend la couleur du texte du thème, clair ou sombre. Elle désigne le genre dans les onglets (listes,
 	fiches, grille, simulation), le menu « Affichage », la colonne « Type » de la recherche et les relations de la fiche
-	d'un sonore, et les boutons « Fiche… » de l'accueil. Les onglets Accueil, Incidents, Recherche et Feeds n'en ont pas.
+	d'un sonore, et les boutons « Fiche… » de l'onglet Antenne. Les onglets Antenne, Incidents, Recherche et Feeds n'en ont pas.
 
 	Contexte:
 		Étant donné l'horloge de l'interface au « 2026-10-21 09:00:00 »
@@ -59,7 +59,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 		Et j'appuie sur « Ctrl+F »
 		Alors les onglets portent les icônes :
 			| onglet                   | icône      |
-			| Accueil                  | aucune     |
+			| Antenne                  | aucune     |
 			| Calendrier               | grille     |
 			| Événements               | événement  |
 			| Séquences                | séquence   |
@@ -75,12 +75,12 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| Airplay                  | airplay    |
 			| Recherche                | aucune     |
 
-	Scénario: Les boutons de l'accueil qui ouvrent une fiche portent l'icône de son genre
+	Scénario: Les boutons de l'onglet Antenne qui ouvrent une fiche portent l'icône de son genre
 		Pour le sonore en cours de diffusion comme pour le suivant, chaque bouton « Fiche… » ouvre la fiche d'un sonore,
 		d'un événement, d'une séquence ou d'une banque : il en porte l'icône, et non une icône du thème du poste.
 
 		Quand la fenêtre de l'interface s'ouvre
-		Alors les boutons de l'accueil portent les icônes :
+		Alors les boutons de l'onglet Antenne portent les icônes :
 			| bouton                    | icône     |
 			| ouvrir_sonore_en_cours    | sonore    |
 			| ouvrir_evenement_en_cours | événement |
@@ -101,7 +101,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors le bouton « preecouter » de la fiche ouverte porte l'icône « pré-écoute »
-		Et le bouton « preecouter_prochain » de l'accueil porte l'icône « pré-écoute »
+		Et le bouton « preecouter_prochain » de l'onglet Antenne porte l'icône « pré-écoute »
 		Et les entrées du menu « Diffusion » portent les icônes :
 			| entrée                  | icône      |
 			| Pré-écoute de l'antenne | pré-écoute |
