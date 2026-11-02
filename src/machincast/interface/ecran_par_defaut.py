@@ -60,6 +60,10 @@ VOYANT_ETEINT = "QLabel { color: palette(mid); font-size: 7pt; }"
 """Les voyants « Blanc » et « Saturation » de l'antenne, allumés de leur teinte, ou éteints, grisés."""
 
 
+PREECOUTER_LE_PROCHAIN = "Écouter le prochain sonore sur la sortie de pré-écoute, jamais sur l'antenne"
+"""L'infobulle du bouton « Pré-écoute » du prochain sonore, celle de ecran_par_defaut.ui."""
+
+
 class EcranParDefaut(QWidget):
 	ecoute_demandee = Signal()
 	"""Clic sur le VU-mètre de l'antenne, disponible : l'écouter en pré-écoute
@@ -512,7 +516,7 @@ class EcranParDefaut(QWidget):
 		"""La pré-écoute, s'il y a un prochain sonore ; le test du flux, pour un stream. Un autre prochain sonore
 		efface le résultat du test précédent."""
 		ui = self.ui
-		ui.preecouter_prochain.setEnabled(prochain is not None)
+		affichage.regler_la_preecoute(ui.preecouter_prochain, prochain is not None, PREECOUTER_LE_PROCHAIN)
 		stream = (prochain is not None) and (prochain.stream)
 		ui.tester_le_flux_prochain.setVisible(stream)
 		ui.tester_le_flux_prochain.setEnabled((stream) and (not self.essai_du_flux.en_cours()))
@@ -522,8 +526,13 @@ class EcranParDefaut(QWidget):
 			ui.prochain_flux.clear()
 		ui.prochain_flux.setVisible(ui.prochain_flux.text() != "")
 
+	def suivre_la_preecoute(self) -> None:
+		"""Le bouton « Pré-écoute » du prochain sonore suit la pré-écoute, désactivée sur la sortie factice
+		(https://github.com/dascritch/machincast/issues/339)."""
+		self._proposer_les_ecoutes(self._prochain)
+
 	def _preecouter_le_prochain(self) -> None:
-		if self._prochain is not None:
+		if (self._prochain is not None) and (not affichage.preecoute_desactivee()):
 			self.preecoute_demandee.emit(self._prochain.sonore)
 
 	def _tester_le_flux_du_prochain(self) -> None:

@@ -184,6 +184,10 @@ DELAI_DE_STAT = 5
 """Secondes laissées à stat pour lire la date de création d'un fichier, sur un partage réseau par exemple."""
 
 
+PREECOUTER = "Écouter le sonore sur la sortie de pré-écoute, jamais sur l'antenne"
+"""L'infobulle de « Pré-écoute… », celle de fiche_sonore.ui."""
+
+
 class FicheSonore(Fiche):
 	# « Pré-écoute… » émet preecoute_demandee, de la Fiche (https://github.com/dascritch/machincast/issues/116).
 	verification_demandee = Signal(int)
@@ -398,8 +402,13 @@ class FicheSonore(Fiche):
 		self.essai.arreter()
 
 	def _preecouter(self) -> None:
-		if self.identifiant is not None:
+		if (self.identifiant is not None) and (not affichage.preecoute_desactivee()):
 			self.preecoute_demandee.emit(self.identifiant)
+
+	def suivre_la_preecoute(self) -> None:
+		"""« Pré-écoute… » sert à un sonore en base, sauf sur l'entrée « Sortie factice » de la pré-écoute
+		(https://github.com/dascritch/machincast/issues/339)."""
+		affichage.regler_la_preecoute(self.ui.preecouter, self.identifiant is not None, PREECOUTER)
 
 	def _verifier(self) -> None:
 		if self.identifiant is not None:
@@ -429,7 +438,7 @@ class FicheSonore(Fiche):
 	def _lire(self) -> None:
 		"""Lit le sonore en base ; un nouveau stream est actif, sans adresse ni réglage."""
 		# Un nouveau stream n'est pas encore en base : rien à pré-écouter avant son enregistrement.
-		self.ui.preecouter.setEnabled(self.identifiant is not None)
+		self.suivre_la_preecoute()
 		ligne: tuple[object, ...] | None = NOUVEAU_STREAM
 		passages: list[tuple[object, ...]] = []
 		relations: list[tuple[object, ...]] = []

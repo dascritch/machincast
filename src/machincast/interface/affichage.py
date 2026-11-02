@@ -7,8 +7,8 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QCheckBox, QDateTimeEdit, QMenu, QStyle, QWidget
+from PySide6.QtGui import QAction, QIcon
+from PySide6.QtWidgets import QAbstractButton, QCheckBox, QDateTimeEdit, QMenu, QStyle, QWidget
 
 from machincast.conversion import texte_ou_rien
 from machincast.interface import icones
@@ -132,14 +132,46 @@ PREECOUTE = "Pré-écoute…"
 (https://github.com/dascritch/machincast/issues/226)."""
 
 
+PREECOUTE_DESACTIVEE = (
+	"Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences…, page Audio)."
+)
+"""L'infobulle des boutons et des entrées de menu de la pré-écoute, sur l'entrée « Sortie factice »
+(https://github.com/dascritch/machincast/issues/339)."""
+_preecoute_desactivee = False
+
+
+def desactiver_la_preecoute(desactivee: bool) -> None:
+	"""La pré-écoute de la session, désactivée sur l'entrée « Sortie factice » (audio.preecoute) : la fenêtre
+	principale la règle à son ouverture, et après les préférences ou les suggestions."""
+	global _preecoute_desactivee  # noqa: PLW0603 : la pré-écoute de la session, une seule par interface
+	_preecoute_desactivee = desactivee
+
+
+def preecoute_desactivee() -> bool:
+	return _preecoute_desactivee
+
+
+def regler_la_preecoute(element: QAction | QAbstractButton, actif: bool, infobulle: str) -> None:
+	"""Un bouton ou une entrée de menu qui lance une pré-écoute : grisé, avec l'infobulle qui dit pourquoi, quand la
+	pré-écoute est désactivée ; sinon actif selon ce qu'il pré-écoute, avec son infobulle."""
+	if _preecoute_desactivee:
+		element.setEnabled(False)
+		element.setToolTip(PREECOUTE_DESACTIVEE)
+		return
+	element.setEnabled(actif)
+	element.setToolTip(infobulle)
+
+
 def proposer_la_preecoute(menu: QMenu, sonore: int, demander: Callable[[int], None]) -> None:
 	"""« Pré-écoute… » en tête du menu d'une ligne de sonore, avec l'icône du bouton de la fiche, séparée des entrées
-	qui suivent."""
+	qui suivent ; grisée, avec son infobulle, quand la pré-écoute est désactivée."""
 	premiere = None
 	if menu.actions():
 		premiere = menu.actions()[0]
 	entree = menu.addAction(icones.icone("pré-écoute"), PREECOUTE)
 	entree.triggered.connect(lambda _coche=False: demander(sonore))
+	regler_la_preecoute(entree, True, PREECOUTE)
+	menu.setToolTipsVisible(True)
 	if premiere is not None:
 		menu.removeAction(entree)
 		menu.insertAction(premiere, entree)

@@ -103,3 +103,37 @@ Fonctionnalité: Pré-écoute d'un sonore depuis le menu contextuel de sa ligne
 		Et je dépose « …/nouveau.ogg » sur les sonores de la banque
 		Et j'ouvre le menu contextuel de la ligne « nouveau.ogg » des sonores de la banque
 		Alors le menu contextuel ne propose pas « Pré-écoute… »
+
+	# ─── Pré-écoute sur la sortie factice (https://github.com/dascritch/machincast/issues/339) ───
+
+	Scénario: Pré-écoute sur la sortie factice, l'entrée « Pré-écoute… » des menus contextuels est grisée
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « carte-1 » et de pré-écoute « factice »
+		Et « Café à minuit » passé à l'antenne à 19:02
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre le menu contextuel de la ligne « Café à minuit » de l'airplay
+		Alors l'entrée « Pré-écoute… » du menu contextuel est inactive, avec l'infobulle « Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences…, page Audio). »
+		Quand j'ouvre l'onglet « Sonores »
+		Et j'ouvre le menu contextuel de la ligne « Café à minuit » de la liste
+		Alors l'entrée « Pré-écoute… » du menu contextuel est inactive, avec l'infobulle « Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences…, page Audio). »
+
+	Scénario: Pré-écoute sur la sortie factice, ses boutons et les entrées des menus de la fenêtre sont grisés, et rien ne l'ouvre
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « carte-1 » et de pré-écoute « factice »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors l'entrée « Pré-écoute… » du menu « Affichage » est inactive, avec l'infobulle « Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences…, page Audio). »
+		Et l'entrée « Pré-écoute de l'antenne » du menu « Diffusion » est inactive, avec l'infobulle « Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences…, page Audio). »
+		Et le bouton « Pré-écoute » du prochain sonore est inactif, avec l'infobulle « Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences…, page Audio). »
+		Quand j'appuie sur « Alt+P »
+		Et je clique sur le VU-mètre de l'antenne
+		Et l'onglet Antenne demande la pré-écoute de « Café à minuit »
+		Alors il n'y a pas de fenêtre de pré-écoute
+		Quand j'ouvre la fiche du sonore « Café à minuit »
+		Alors le bouton « Pré-écoute… » de la fiche est inactif, avec l'infobulle « Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences…, page Audio). »
+
+	Scénario: Les préférences qui mettent la pré-écoute sur la sortie factice grisent aussitôt ses boutons
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « carte-1 » et de pré-écoute « casque-usb »
+		Et les préférences régleront l'antenne « carte-1 » et la pré-écoute « factice »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors le bouton « Pré-écoute… » de la fiche est inactif, avec l'infobulle « Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences…, page Audio). »
+		Et l'entrée « Pré-écoute… » du menu « Affichage » est inactive, avec l'infobulle « Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences…, page Audio). »

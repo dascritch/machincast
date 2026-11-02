@@ -11,17 +11,19 @@ from datetime import datetime
 
 import psycopg
 import pytest
-from PySide6.QtCore import QItemSelectionModel, QModelIndex
+from PySide6.QtCore import QItemSelectionModel, QModelIndex, Qt
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMenu, QTreeWidget, QTreeWidgetItem
+from PySide6.QtWidgets import QAbstractButton, QMenu, QTreeWidget, QTreeWidgetItem
 from pytest_bdd import given, parsers, scenarios, then, when
+from pytestqt.qtbot import QtBot
 
 from machincast.interface import affichage, icones
 from machincast.interface.fiche_banque import FicheBanque
 from machincast.interface.fiche_evenement import FicheEvenement
 from machincast.interface.fiche_sequence import FicheSequence
+from machincast.interface.fiche_sonore import FicheSonore
 from machincast.interface.listes import Liste
-from tests.etapes_interface import Contexte, fenetre, glisser, identifiant, liste, meme_icone
+from tests.etapes_interface import Contexte, actions, fenetre, glisser, identifiant, liste, meme_icone
 
 scenarios("menu_preecoute.feature")
 
@@ -184,3 +186,52 @@ def ne_propose_pas(menu: Menu, entree: str) -> None:
 def sans_menu(menu: Menu) -> None:
 	assert menu.demande
 	assert menu.ouvert is None, menu.entrees
+
+
+# ─── Pré-écoute désactivée (https://github.com/dascritch/machincast/issues/339) ───
+
+
+def _inactive(element: QAction | QAbstractButton, infobulle: str) -> None:
+	assert (element.isEnabled(), element.toolTip()) == (False, infobulle)
+
+
+@then(parsers.parse("l'entrée « {entree} » du menu contextuel est inactive, avec l'infobulle « {infobulle} »"))
+def entree_contextuelle_inactive(menu: Menu, entree: str, infobulle: str) -> None:
+	assert menu.ouvert is not None, "aucun menu contextuel"
+	(action,) = [action for action in menu.ouvert.actions() if action.text() == entree]
+	_inactive(action, infobulle)
+	assert menu.ouvert.toolTipsVisible()
+
+
+@then(parsers.parse("l'entrée « {entree} » du menu « {titre} » est inactive, avec l'infobulle « {infobulle} »"))
+def entree_inactive(interface: Contexte, entree: str, titre: str, infobulle: str) -> None:
+	(action,) = [action for action in actions(interface, titre) if action.text() == entree]
+	_inactive(action, infobulle)
+
+
+@then(parsers.parse("le bouton « Pré-écoute » du prochain sonore est inactif, avec l'infobulle « {infobulle} »"))
+def bouton_du_prochain(interface: Contexte, infobulle: str) -> None:
+	_inactive(fenetre(interface).accueil.ui.preecouter_prochain, infobulle)
+
+
+@then(parsers.parse("le bouton « Pré-écoute… » de la fiche est inactif, avec l'infobulle « {infobulle} »"))
+def bouton_de_la_fiche(interface: Contexte, infobulle: str) -> None:
+	fiche = fenetre(interface).ui.onglets.currentWidget()
+	assert isinstance(fiche, FicheSonore), fiche
+	_inactive(fiche.ui.preecouter, infobulle)
+
+
+@when("je clique sur le VU-mètre de l'antenne")
+def cliquer_sur_le_vumetre(interface: Contexte, qtbot: QtBot) -> None:
+	qtbot.mouseClick(fenetre(interface).accueil.vumetre, Qt.MouseButton.LeftButton)
+
+
+@when(parsers.parse("l'onglet Antenne demande la pré-écoute de « {titre} »"))
+def demander_la_preecoute(interface: Contexte, base_vide: Connexion, titre: str) -> None:
+	"""Comme un clic sur la frise du prochain sonore : la fenêtre refuse elle-même une pré-écoute désactivée."""
+	fenetre(interface).accueil.preecoute_demandee.emit(identifiant(base_vide, "sonores", "titre", titre))
+
+
+@then("il n'y a pas de fenêtre de pré-écoute")
+def sans_preecoute(interface: Contexte) -> None:
+	assert fenetre(interface).preecoute is None
