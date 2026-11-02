@@ -108,6 +108,8 @@ La fiche d'un sonore s'ouvre dans un onglet nommé « Sonore : » suivi de son t
 
 La **fenêtre de pré-écoute** fait écouter un sonore, ou l'antenne, sur le casque de la régie, **jamais sur l'antenne**. Le bouton **Pré-écoute…** d'une fiche de sonore, ou **Affichage → Pré-écoute…**, l'ouvre. Le **clic droit** sur la ligne d'un sonore propose aussi **Pré-écoute…**, en tête du menu ([#226](https://github.com/dascritch/machincast/issues/226)) : dans l'airplay de l'onglet Antenne, la liste des sonores, les éléments d'une séquence ou d'un événement, et les sonores d'une banque. Il pré-écoute le sonore de la ligne cliquée, même au milieu d'une sélection ; une ligne qui ne désigne pas de sonore enregistré (une banque, un fichier déposé pas encore enregistré, un sonore supprimé depuis son passage) ne le propose pas. Un clic sur le [VU-mètre de l'onglet Antenne](prise-en-main.md#vu-mètre-de-lantenne) y charge l'antenne ; **Diffusion → Pré-écoute de l'antenne** la charge et la lance aussitôt ([#245](https://github.com/dascritch/machincast/issues/245)).
 
+Si la carte son de la pré-écoute est **Sortie factice**, dans les [préférences](prise-en-main.md#préférences), page **Audio**, la pré-écoute est désactivée : ses boutons et ses entrées de menu sont grisés, et leur infobulle le rappelle ([#339](https://github.com/dascritch/machincast/issues/339)).
+
 ![La fenêtre de pré-écoute, à l'arrêt, chargée sur l'antenne, avec sa sortie : le casque de la régie](../captures/preecoute.png)
 
 - **Lecteur** : **⏵** lance la lecture, **⏸** la met en pause, **⏹** l'arrête.

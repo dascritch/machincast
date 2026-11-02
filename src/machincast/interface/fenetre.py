@@ -69,6 +69,7 @@ from machincast.configuration import (
 )
 from machincast.horloge import Horloge
 from machincast.interface import (
+	affichage,
 	colonnes,
 	dialogues,
 	groupes,
@@ -321,6 +322,7 @@ class FenetrePrincipale(QMainWindow):
 		self.ui.barre_d_etat.addPermanentWidget(self.diffusion_arretee)
 		self._signaler_l_antenne()
 		self._garnir_menus()
+		self._suivre_la_preecoute()
 		self.accueil.client.etat_recu.connect(self._etat_de_la_lecture)
 		self.accueil.client.etat_recu.connect(lambda etat: self.diffusion_arretee.setVisible(etat.etat == "arret"))
 		self.accueil.client.etat_recu.connect(self._suivre_le_texte_public)
@@ -404,26 +406,26 @@ class FenetrePrincipale(QMainWindow):
 		quitter = fichier.addAction("Quitter")
 		quitter.setShortcut(QKeySequence("Alt+Q"))
 		quitter.triggered.connect(self.close)
-		affichage = self.menuBar().addMenu("A&ffichage")
-		rechercher = affichage.addAction("Rechercher…")
+		menu_affichage = self.menuBar().addMenu("A&ffichage")
+		rechercher = menu_affichage.addAction("Rechercher…")
 		rechercher.setShortcut(QKeySequence("Ctrl+F"))
 		rechercher.triggered.connect(self._ouvrir_recherche)
 		for titre, source in ONGLETS:
 			if titre not in A_LA_DEMANDE:
 				continue
-			ouvrir = affichage.addAction(icones.icone_de(source.genre), f"Ouvrir l'onglet {titre}")
+			ouvrir = menu_affichage.addAction(icones.icone_de(source.genre), f"Ouvrir l'onglet {titre}")
 			ouvrir.triggered.connect(lambda _coche=False, titre=titre: self.ouvrir_liste(titre))
-		grille = affichage.addAction(icones.icone("grille"), "Ouvrir l'onglet Grille horaire")
+		grille = menu_affichage.addAction(icones.icone("grille"), "Ouvrir l'onglet Grille horaire")
 		grille.triggered.connect(self._ouvrir_calendrier)
-		simulation = affichage.addAction(icones.icone("simulation"), "Ouvrir l'onglet Simulation")
+		simulation = menu_affichage.addAction(icones.icone("simulation"), "Ouvrir l'onglet Simulation")
 		simulation.triggered.connect(self._ouvrir_simulation)
-		airplay = affichage.addAction(icones.icone("airplay"), "Ouvrir l'onglet Airplay")
+		airplay = menu_affichage.addAction(icones.icone("airplay"), "Ouvrir l'onglet Airplay")
 		airplay.triggered.connect(self._ouvrir_airplay)
-		preecoute = affichage.addAction(icones.icone("pré-écoute"), "Pré-écoute…")
-		preecoute.triggered.connect(lambda: self._preecouter(None))
+		self.action_preecoute = menu_affichage.addAction(icones.icone("pré-écoute"), "Pré-écoute…")
+		self.action_preecoute.triggered.connect(lambda: self._preecouter(None))
 		# En bas du menu (https://github.com/dascritch/machincast/issues/322).
-		affichage.addSeparator()
-		rafraichir = affichage.addAction("Rafraîchir les onglets")
+		menu_affichage.addSeparator()
+		rafraichir = menu_affichage.addAction("Rafraîchir les onglets")
 		rafraichir.setShortcut(QKeySequence("F5"))
 		rafraichir.triggered.connect(self.rafraichir)
 		self.menu_diffusion = self.menuBar().addMenu("&Diffusion")
@@ -476,7 +478,7 @@ class FenetrePrincipale(QMainWindow):
 		aide.addAction("Version").triggered.connect(
 			lambda: dialogues.montrer_version(self, version.texte(), version.de_la_version())
 		)
-		for menu in (fichier, affichage, self.menu_diffusion, maintenance, aide):
+		for menu in (fichier, menu_affichage, self.menu_diffusion, maintenance, aide):
 			menu.setToolTipsVisible(True)
 
 	def _montrer_les_nouveautes(self) -> None:
@@ -847,7 +849,10 @@ class FenetrePrincipale(QMainWindow):
 		"""La fenêtre de pré-écoute, au premier plan : le sonore demandé y remplace le précédent ; sans sonore, elle
 		garde le sien. Elle n'a pas de fenêtre parente (https://github.com/dascritch/machincast/issues/325) : le bureau
 		lui donne sa propre entrée dans le gestionnaire des tâches, et ne la garde pas au-dessus de l'interface. Elle se
-		ferme avec l'interface (closeEvent), et disparaît avec elle."""
+		ferme avec l'interface (closeEvent), et disparaît avec elle. Désactivée, sur l'entrée « Sortie factice », elle
+		ne s'ouvre jamais (https://github.com/dascritch/machincast/issues/339)."""
+		if affichage.preecoute_desactivee():
+			return
 		if self.preecoute is None:
 			self.preecoute = FenetrePreecoute(self.connexion, self.audio, self.configuration)
 			self.preecoute.ecoute_changee.connect(self._montrer_l_ecoute)
@@ -868,14 +873,31 @@ class FenetrePrincipale(QMainWindow):
 	def _montrer_l_ecoute(self, en_cours: bool) -> None:
 		texte, infobulle = ECOUTE[en_cours]
 		self.ecouter.setText(texte)
-		self.ecouter.setToolTip(infobulle)
+		affichage.regler_la_preecoute(self.ecouter, True, infobulle)
+
+	def _suivre_la_preecoute(self) -> None:
+		"""Sur l'entrée « Sortie factice » de la pré-écoute, ses boutons et ses entrées de menu sont grisés, partout
+		(https://github.com/dascritch/machincast/issues/339) : ceux de la fenêtre, de l'onglet Antenne et des fiches de
+		sonores ouvertes ; les menus contextuels le sont à leur ouverture."""
+		affichage.desactiver_la_preecoute(self.audio.preecoute_desactivee())
+		affichage.regler_la_preecoute(self.action_preecoute, True, self.action_preecoute.text())
+		en_cours = (self.preecoute is not None) and (self.preecoute.ecoute_l_antenne())
+		self._montrer_l_ecoute(en_cours)
+		self.accueil.suivre_la_preecoute()
+		onglets = self.ui.onglets
+		for indice in range(onglets.count()):
+			ecran = onglets.widget(indice)
+			if isinstance(ecran, FicheSonore):
+				ecran.suivre_la_preecoute()
 
 	def _ecouter_l_antenne(self, lancer: bool = False) -> None:
 		"""Clic sur le VU-mètre de l'onglet Antenne : l'antenne dans la fenêtre de pré-écoute
 		(https://github.com/dascritch/machincast/issues/24) ; par le bouton « Pré-écoute » de la fenêtre, lancée
 		aussitôt (https://github.com/dascritch/machincast/issues/223)."""
 		self._preecouter(None)
-		assert self.preecoute is not None
+		# Désactivée, la pré-écoute ne s'ouvre pas (https://github.com/dascritch/machincast/issues/339).
+		if self.preecoute is None:
+			return
 		self.preecoute.ecouter_l_antenne(self._texte_public, lancer)
 
 	def _suivre_le_texte_public(self, etat: EtatLecture) -> None:
@@ -1071,6 +1093,7 @@ class FenetrePrincipale(QMainWindow):
 				self.audio, sortie=reponse.sortie, peripherique=reponse.antenne, preecoute=reponse.preecoute
 			)
 			self._signaler_l_antenne()
+			self._suivre_la_preecoute()
 			self.accueil.changer_d_antenne(self.audio)
 			antenne = (reponse.antenne) or ("à renseigner")
 			self.statusBar().showMessage(
@@ -1206,6 +1229,7 @@ class FenetrePrincipale(QMainWindow):
 			self.preecoute.deleteLater()
 			self.preecoute = None
 		self._signaler_l_antenne()
+		self._suivre_la_preecoute()
 		self.accueil.changer_d_antenne(self.audio)
 		self.statusBar().showMessage(
 			f"Préférences enregistrées dans {self.configuration} ;"
