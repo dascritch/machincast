@@ -95,4 +95,7 @@ testpaths = ["tests"]
 bdd_features_base_dir = "tests/features"
 # Les scénarios « release » se lancent à part, avant une version : pytest -m release (TROUBLESHOOTING.md).
 addopts = "--strict-markers -m 'not release'"
-markers = ["release: scénario lent ou à dépendances réseau, lancé avant une version seulement (pytest -m release)"]
+markers = [
+	"release: scénario lent ou à dépendances réseau, lancé avant une version seulement (pytest -m release)",
+	"pipewire: scénario sur un PipeWire et un WirePlumber à part, ignoré sans eux",
+]

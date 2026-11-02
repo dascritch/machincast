@@ -12,10 +12,10 @@ En plus, installer les outils de développement et les dépendances de test ([#7
 ./install.sh --dev
 ```
 
-`--dev` fait tout ce que fait l'installation, puis ajoute les paquets apt `bats`, `shellcheck` et `desktop-file-utils` (pour `desktop-file-validate`, qui vérifie le raccourci de l'interface) et installe dans le venv les dépendances de test (`pip install --editable ".[dev]"` : pytest, pytest-bdd, pytest-qt, ruff, mypy). Il est relançable, et `./install.sh --dev --simulation` montre ce qu'il fera. À la main, c'est l'équivalent de :
+`--dev` fait tout ce que fait l'installation, puis ajoute les paquets apt `bats`, `shellcheck`, `desktop-file-utils` (pour `desktop-file-validate`, qui vérifie le raccourci de l'interface), `pipewire` et `wireplumber` (pour les scénarios du verrou des sorties, sur un PipeWire à part, [#345](https://github.com/dascritch/machincast/issues/345) ; déjà présents sur une Ubuntu de bureau) et installe dans le venv les dépendances de test (`pip install --editable ".[dev]"` : pytest, pytest-bdd, pytest-qt, ruff, mypy). Il est relançable, et `./install.sh --dev --simulation` montre ce qu'il fera. À la main, c'est l'équivalent de :
 
 ```bash
-sudo apt install bats shellcheck desktop-file-utils
+sudo apt install bats shellcheck desktop-file-utils pipewire wireplumber
 .venv/bin/pip install --editable ".[dev]"
 ```
 

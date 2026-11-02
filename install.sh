@@ -60,7 +60,7 @@ PAQUETS=(
 	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire pipewire-bin libmagic1t64 postgresql bash-completion
 )
 # Outils du poste de développement, installés par --dev : ceux de CLAUDE.md.
-PAQUETS_DEV=(bats shellcheck desktop-file-utils)
+PAQUETS_DEV=(bats shellcheck desktop-file-utils pipewire wireplumber)
 
 SIMULATION=false
 DEV=false

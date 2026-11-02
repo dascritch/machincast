@@ -32,6 +32,7 @@ gi.require_version("Gst", "1.0")
 from gi.repository import GLib, Gst  # noqa: E402
 from PySide6.QtCore import QObject, QTimer, Signal  # noqa: E402
 
+from machincast import audio as sorties  # noqa: E402
 from machincast.configuration import Audio  # noqa: E402
 from machincast.interface import etats  # noqa: E402
 
@@ -97,6 +98,8 @@ def source_du_moniteur(audio: Audio) -> Gst.Element:
 	source.set_property("target-object", audio.peripherique)
 	proprietes, _fin = Gst.Structure.from_string("props, stream.capture.sink=(boolean)true")
 	source.set_property("stream-properties", proprietes)
+	# Jamais l'écoute d'un autre périphérique que l'antenne (https://github.com/dascritch/machincast/issues/345).
+	sorties.verrouiller(source)
 	return _en_stereo(source)
 
 
