@@ -70,7 +70,7 @@ Ce n'est pas encore un son continu : tant que la carte lit la prise comme débra
 
 - `pw-top`, depuis une autre machine par SSH : la ligne **MachinCast lecteur** n'est plus sous la sortie de l'antenne quand celle-ci a disparu.
 - `pw-mon`, lancé avant le verrouillage : la route `[Out] Headphones` passe à `ParamAvailability:no`, puis le profil de la carte change.
-- `amixer -c N cget name='Headphone Jack'`, `N` étant le numéro de la carte dans `/proc/asound/cards` : `values=off` dit que la carte lit la prise comme débranchée.
+- `amixer -c N cget iface=CARD,name='Headphone Jack'`, `N` étant le numéro de la carte dans `/proc/asound/cards` (le contrôle de la prise est un contrôle de la carte, `iface=CARD`, pas de mixage) : `values=off` dit que la carte lit la prise comme débranchée.
 
 **Scénarios qui le surveillent** : `tests/features/sortie_verrouillee.feature`, sur un PipeWire et un WirePlumber à part, à chaque passage des tests ; ignorés si `pipewire` et `wireplumber` ne sont pas installés.
 
