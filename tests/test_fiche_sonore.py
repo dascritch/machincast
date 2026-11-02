@@ -6,6 +6,7 @@ tests/etapes_diffusion.py. Celles-ci manipulent la fiche d'un sonore et lisent l
 
 import json
 import os
+import re
 import socket
 import subprocess
 import uuid
@@ -14,8 +15,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QDateTime, QPoint, Qt
-from PySide6.QtWidgets import QAbstractButton, QComboBox, QMenu, QRadioButton
+from PySide6.QtCore import QDateTime, QEvent, QPoint, QPointF, Qt
+from PySide6.QtGui import QMouseEvent
+from PySide6.QtWidgets import QAbstractButton, QApplication, QComboBox, QMenu, QRadioButton
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -100,6 +102,9 @@ def montre(sonore: FicheSonore) -> dict[str, Callable[[], str]]:
 		"Détection de silence": lambda: "oui" if ui.detection_silences.isChecked() else "non",
 		"Début détecté": si_coche(ui.a_debut_detecte, ui.debut_detecte.text),
 		"Fin détectée": si_coche(ui.a_fin_detectee, ui.fin_detectee.text),
+		# Saisis à la main, ils s'appellent « Début » et « Fin » (https://github.com/dascritch/machincast/issues/330).
+		"Début": si_coche(ui.a_debut_detecte, ui.debut_detecte.text),
+		"Fin": si_coche(ui.a_fin_detectee, ui.fin_detectee.text),
 		"Artiste et titre": lambda: ui.masquage.currentText().casefold(),
 		"Diffusion à partir du": si_coche(ui.a_debut, ui.debut_diffusion.text),
 		"Diffusion jusqu'au": si_coche(ui.a_fin, ui.fin_diffusion.text),
@@ -775,3 +780,56 @@ def cite_encore(base_vide: Connexion, element: str, nom: str, sonore: str) -> No
 )
 def ne_cite_plus(base_vide: Connexion, element: str, nom: str, sonore: str, nombre: str) -> None:
 	assert _citations(base_vide, element, nom, sonore) == (0, int(nombre))
+
+
+# ─── Début et fin sur la frise (https://github.com/dascritch/machincast/issues/330) ───
+
+
+def _secondes_lues(texte: str) -> float:
+	return float(texte.replace(",", "."))
+
+
+@when("je décoche le début détecté de la fiche")
+def decocher_le_debut(interface: Contexte) -> None:
+	fiche(interface).ui.a_debut_detecte.setChecked(False)
+
+
+@when(parsers.parse("je glisse le curseur « {nom} » de la frise de la fiche à {secondes} s"))
+def glisser_le_curseur(interface: Contexte, nom: str, secondes: str) -> None:
+	"""Prise sur le curseur, glissement, puis relâche à l'instant voulu, en points non arrondis."""
+	frise = fiche(interface).frise
+	cle = {"Début": "debut", "Fin": "fin"}[nom]
+	depart = QPointF(frise.secondes_vers_x(frise.curseurs[cle]), frise.height() / 2)
+	arrivee = QPointF(frise.secondes_vers_x(_secondes_lues(secondes)), frise.height() / 2)
+	gauche = Qt.MouseButton.LeftButton
+	aucun = Qt.KeyboardModifier.NoModifier
+	for genre, point, boutons in (
+		(QEvent.Type.MouseButtonPress, depart, gauche),
+		(QEvent.Type.MouseMove, arrivee, gauche),
+		(QEvent.Type.MouseButtonRelease, arrivee, Qt.MouseButton.NoButton),
+	):
+		evenement = QMouseEvent(genre, point, frise.mapToGlobal(point), gauche, boutons, aucun)
+		QApplication.sendEvent(frise, evenement)
+
+
+@then(parsers.parse("les silences détectés de la fiche s'appellent « {debut} » et « {fin} »"))
+def noms_des_silences(interface: Contexte, debut: str, fin: str) -> None:
+	ui = fiche(interface).ui
+	assert (ui.a_debut_detecte.text(), ui.a_fin_detectee.text()) == (debut, fin)
+
+
+@then(parsers.parse("le début détecté de la fiche va au plus à {debut} s, et la fin détectée à {fin} s"))
+def bornes_des_silences(interface: Contexte, debut: str, fin: str) -> None:
+	ui = fiche(interface).ui
+	bornes = (round(ui.debut_detecte.maximum(), 2), round(ui.fin_detectee.maximum(), 2))
+	assert bornes == (_secondes_lues(debut), _secondes_lues(fin)), bornes
+
+
+@then(parsers.re(r"la frise de la fiche a (?:les curseurs|le seul curseur) (?P<curseurs>«.+)"))
+def curseurs_de_la_frise(interface: Contexte, curseurs: str) -> None:
+	attendus = {
+		{"Début": "debut", "Fin": "fin"}[nom]: _secondes_lues(valeur)
+		for nom, valeur in re.findall(r"« ([^»]+) » à ([\d,]+) s", curseurs)
+	}
+	lus = {nom: round(position, 2) for nom, position in fiche(interface).frise.curseurs.items()}
+	assert lus == attendus, lus

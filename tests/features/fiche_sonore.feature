@@ -234,6 +234,61 @@ Fonctionnalité: Fiche d'un sonore
 			| fin_detectee     | None           |
 		Et les champs saisis à la main de « Café à minuit » sont « titre », « detection_silences », « debut_detecte », « fin_detectee »
 
+	# ─── Début et fin sur la frise (https://github.com/dascritch/machincast/issues/330) ───
+
+	Scénario: Les silences détectés s'appellent « Début » et « Fin » dès qu'ils sont saisis à la main
+		Étant donné le sonore « Café à minuit » a en base :
+			| champ         | valeur                       |
+			| debut_detecte | 0.5 s                        |
+			| fin_detectee  | 1.25 s                       |
+			| champs_edites | {titre,fin_detectee}         |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Alors les silences détectés de la fiche s'appellent « Début détecté » et « Fin »
+		Quand je saisis dans la fiche du sonore :
+			| champ         | valeur |
+			| Début détecté | 0,3    |
+		Alors les silences détectés de la fiche s'appellent « Début » et « Fin »
+		Quand j'annule les modifications de la fiche
+		Alors les silences détectés de la fiche s'appellent « Début détecté » et « Fin »
+
+	Scénario: Le début ne passe pas après la fin à la saisie : chaque silence est borné par l'autre
+		Étant donné le sonore « Café à minuit » a en base :
+			| champ         | valeur |
+			| debut_detecte | 0.5 s  |
+			| fin_detectee  | 1.25 s |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Alors le début détecté de la fiche va au plus à 212,75 s, et la fin détectée à 213,50 s
+		Quand je saisis dans la fiche du sonore :
+			| champ         | valeur |
+			| Début détecté | 300    |
+		Alors la fiche du sonore montre :
+			| champ | valeur   |
+			| Début | 212,75 s |
+		Et le début détecté de la fiche va au plus à 212,75 s, et la fin détectée à 1,25 s
+
+	Scénario: Les silences cochés ont des curseurs sur la frise, qui se glissent et règlent la fiche
+		Étant donné le sonore « Café à minuit » a en base :
+			| champ         | valeur |
+			| debut_detecte | 0.5 s  |
+			| fin_detectee  | 1.25 s |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Alors la frise de la fiche a les curseurs « Début » à 0,50 s et « Fin » à 212,75 s
+		Quand je glisse le curseur « Début » de la frise de la fiche à 10 s
+		Alors la fiche du sonore montre :
+			| champ | valeur  |
+			| Début | 10,00 s |
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
+		Quand je glisse le curseur « Fin » de la frise de la fiche à 4 s
+		Alors la frise de la fiche a les curseurs « Début » à 10,00 s et « Fin » à 10,00 s
+		Et la fiche du sonore montre :
+			| champ | valeur   |
+			| Fin   | 204,00 s |
+		Quand je décoche le début détecté de la fiche
+		Alors la frise de la fiche a le seul curseur « Fin » à 10,00 s
+
 	Scénario: Des silences qui couvrent toute la durée du sonore ne sont pas enregistrés
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
@@ -243,7 +298,7 @@ Fonctionnalité: Fiche d'un sonore
 			| Fin détectée  | 14     |
 		Et j'enregistre la fiche
 		Alors la fiche signale « Les silences détectés doivent laisser du son : ensemble, plus courts que la durée du sonore. »
-		Et les champs signalés par ⚠️ sont « Début détecté », « Fin détectée »
+		Et les champs signalés par ⚠️ sont « Début », « Fin »
 		Et le sonore « Café à minuit » a en base :
 			| champ         | valeur |
 			| debut_detecte | None   |
