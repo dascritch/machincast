@@ -136,6 +136,14 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la barre d'état ne signale pas « Périphérique de l'antenne à renseigner »
 
+	Scénario: Le type de sortie réglé va aussi dans la section [audio] (https://github.com/dascritch/machincast/issues/339)
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « carte-1 »
+		Et les préférences régleront la sortie « pulseaudio », l'antenne « factice » et la pré-écoute « casque-usb »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors le fichier de configuration donne la sortie « pulseaudio », l'antenne « factice » et la pré-écoute « casque-usb »
+		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin lecture prendra les crossfades par défaut et le périphérique de l'antenne à son prochain démarrage. »
+
 	Scénario: Machin interface ouvre sa fenêtre sur la sortie et les périphériques de sa configuration
 		Étant donné un fichier de configuration sur la base de test, la sortie « pipewire », l'antenne « carte-1 » et la pré-écoute « casque-usb »
 		Quand Machin interface est lancé avec ce fichier
@@ -360,7 +368,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et j'y clique sur « OK »
 		Alors elle a donné la durée de péremption de 90 jours
 
-	Scénario: La page « Audio » montre les périphériques, chacun grisé dans l'autre choix
+	Scénario: La page « Audio » montre les cartes son, chacune grisée dans l'autre choix, et la sortie factice
 		Étant donné les périphériques audio du poste :
 			| identifiant       | nom           |
 			| carte-1           | Carte 1       |
@@ -369,21 +377,24 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Quand la fenêtre des préférences s'ouvre sur l'antenne « carte-1 » et la pré-écoute « preecoute-factice »
 		Alors elle s'intitule « Préférences », avec les pages « Crossfades », « Interface », « Audio », « Base »
 		Et le choix de l'antenne propose :
-			| sortie        | état     |
-			| Carte 1       | active   |
-			| Casque USB    | active   |
-			| Haut-parleurs | inactive |
+			| sortie         | état     |
+			| Carte 1        | active   |
+			| Casque USB     | active   |
+			| Haut-parleurs  | inactive |
+			| Sortie factice | active   |
 		Et le choix de la pré-écoute propose :
-			| sortie        | état     |
-			| Haut-parleurs | active   |
-			| Carte 1       | inactive |
-			| Casque USB    | active   |
+			| sortie         | état     |
+			| Haut-parleurs  | active   |
+			| Carte 1        | inactive |
+			| Casque USB     | active   |
+			| Sortie factice | active   |
 		Quand j'y choisis pour l'antenne « Casque USB »
 		Alors le choix de la pré-écoute propose :
-			| sortie        | état     |
-			| Haut-parleurs | active   |
-			| Carte 1       | active   |
-			| Casque USB    | inactive |
+			| sortie         | état     |
+			| Haut-parleurs  | active   |
+			| Carte 1        | active   |
+			| Casque USB     | inactive |
+			| Sortie factice | active   |
 		Quand j'y clique sur « OK »
 		Alors elle a donné l'antenne « casque-usb » et la pré-écoute « preecoute-factice »
 
@@ -393,13 +404,15 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| casque-usb  | Casque USB |
 		Quand la fenêtre des préférences s'ouvre sur l'antenne non renseignée et la pré-écoute « debranche »
 		Alors le choix de l'antenne propose :
-			| sortie          | état   |
-			| (à renseigner)  | active |
-			| Casque USB      | active |
+			| sortie         | état   |
+			| (à renseigner) | active |
+			| Casque USB     | active |
+			| Sortie factice | active |
 		Et le choix de la pré-écoute propose :
-			| sortie                   | état   |
-			| debranche (introuvable)  | active |
-			| Casque USB               | active |
+			| sortie                  | état   |
+			| debranche (introuvable) | active |
+			| Casque USB              | active |
+			| Sortie factice          | active |
 		Quand j'y clique sur « OK »
 		Alors elle a donné l'antenne non renseignée et la pré-écoute « debranche »
 

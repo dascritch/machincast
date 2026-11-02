@@ -8,9 +8,11 @@ détectés d'un sonore joué sans eux (crossfades.position_entree et position_so
 de démonstration (machincast.interface.frise) montre où tombent les fondus, sur un sonore inventé, et suit les réglages.
 Elle règle aussi le seuil de silence (silences.seuil, https://github.com/dascritch/machincast/issues/146), que l'audit
 complet prend à son prochain passage, à côté des fondus qu'il place
-(https://github.com/dascritch/machincast/issues/324). Sa page « Audio » règle les périphériques de l'antenne
-(audio.peripherique), que Machin lecture prend à son prochain démarrage, et de la pré-écoute (audio.preecoute,
-https://github.com/dascritch/machincast/issues/116) : chacun est grisé dans l'autre choix ; elle règle aussi le blanc
+(https://github.com/dascritch/machincast/issues/324). Sa page « Audio » règle, par le bloc des cartes son
+(machincast.interface.cartes_son, https://github.com/dascritch/machincast/issues/339), le type de sortie (audio.sortie)
+et les cartes son de l'antenne (audio.peripherique), que Machin lecture prend à son prochain démarrage, et de la
+pré-écoute (audio.preecoute, https://github.com/dascritch/machincast/issues/116) : chacune est grisée dans l'autre
+choix, et se teste ; service de diffusion en marche, celle de l'antenne ne se choisit pas ; elle règle aussi le blanc
 dans un sonore (section [blanc_antenne], https://github.com/dascritch/machincast/issues/122) : sa durée, son niveau, et
 le passage au secours, que Machin lecture prend à son prochain démarrage. La page « Base » règle la durée de péremption
 (base.peremption, https://github.com/dascritch/machincast/issues/268), que Machin purge prend à son prochain passage, et
@@ -34,10 +36,9 @@ from pathlib import Path
 
 import tomlkit
 from PySide6.QtCore import QLocale
-from PySide6.QtGui import QIcon, QStandardItemModel
-from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QVBoxLayout, QWidget
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QDialog, QDialogButtonBox, QDoubleSpinBox, QVBoxLayout, QWidget
 
-from machincast import audio as sorties_audio
 from machincast.configuration import (
 	PEREMPTION,
 	SEUIL_DE_SILENCE,
@@ -46,11 +47,12 @@ from machincast.configuration import (
 	Granularite,
 	SortieAudio,
 )
-from machincast.conversion import texte_ou_rien
 from machincast.interface.application import ICONE, lisible
+from machincast.interface.cartes_son import CartesSon
 from machincast.interface.frise import Frise, Plan, forme_de_demonstration
 from machincast.interface.ui.preferences import Ui_FenetrePreferences
 from machincast.lecture.fondus import LIBELLES, POSITIONS, Position
+from machincast.service import ABSENT, EtatDuService
 
 FRANCAIS = QLocale(QLocale.Language.French, QLocale.Country.France)
 """Les durées s'écrivent avec une virgule."""
@@ -64,8 +66,6 @@ PAS: dict[Granularite, tuple[int, float]] = {"dixieme": (1, 0.1), "seconde": (0,
 ICONE_PAR_DEFAUT = "Icône de MachinCast"
 """Ce que montre la page « Interface » quand aucune image n'est choisie."""
 TAILLE_DE_L_APERCU = 48
-A_RENSEIGNER = "(à renseigner)"
-"""Le périphérique de l'antenne, quand la configuration ne le donne pas : Machin lecture refuse alors de diffuser."""
 
 
 @dataclass(frozen=True)
@@ -94,6 +94,8 @@ class Reglages:
 	blanc_antenne: BlancAntenne = BlancAntenne()
 	"""La section [blanc_antenne] : blanc dans un sonore, à l'antenne
 	(https://github.com/dascritch/machincast/issues/122)."""
+	sortie: SortieAudio | None = None
+	"""audio.sortie, le type de sortie choisi (https://github.com/dascritch/machincast/issues/339) ; None : inchangé."""
 
 
 _courantes = Crossfades()
@@ -178,6 +180,8 @@ def ecrire(chemin: Path, reglages: Reglages) -> None:
 	section["position_sortie"] = crossfades.sortie
 	audio = document["audio"]
 	assert isinstance(audio, tomlkit.items.Table)
+	if reglages.sortie is not None:
+		audio["sortie"] = reglages.sortie
 	if reglages.antenne is not None:
 		audio["peripherique"] = reglages.antenne
 	audio["preecoute"] = reglages.preecoute
@@ -220,17 +224,17 @@ class FenetrePreferences(QDialog):
 	"""La fenêtre des préférences : une page « Interface », avec les crossfades, et une page « Audio », avec les
 	périphériques."""
 
-	def __init__(self, tous: Reglages, sortie: SortieAudio, parent: QWidget | None = None) -> None:
+	def __init__(
+		self, tous: Reglages, sortie: SortieAudio, parent: QWidget | None = None, service: EtatDuService = ABSENT
+	) -> None:
 		super().__init__(parent)
 		self.ui = Ui_FenetrePreferences()
 		self.ui.setupUi(self)
 		ui = self.ui
 		reglages = tous.crossfades
-		trouves = sorties_audio.peripheriques(sortie)
-		_garnir(ui.antenne, tous.antenne, trouves)
-		_garnir(ui.preecoute, tous.preecoute, trouves)
-		ui.antenne.currentIndexChanged.connect(self._exclure)
-		ui.preecoute.currentIndexChanged.connect(self._exclure)
+		self.cartes = CartesSon(sortie, tous.antenne, tous.preecoute, service, ui.groupe_peripheriques)
+		ui.disposition_peripheriques.addWidget(self.cartes)
+		self.cartes.change.connect(self._exclure)
 		self._exclure()
 		for valeur, texte in GRANULARITES:
 			ui.granularite.addItem(texte, valeur)
@@ -361,12 +365,9 @@ class FenetrePreferences(QDialog):
 		)
 
 	def _exclure(self) -> None:
-		"""Le périphérique choisi pour l'un est grisé dans l'autre ; « OK » ne donne jamais le même aux deux."""
-		ui = self.ui
-		antenne, preecoute_choisie = ui.antenne.currentData(), ui.preecoute.currentData()
-		_griser(ui.antenne, preecoute_choisie)
-		_griser(ui.preecoute, antenne)
-		ui.boutons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(antenne != preecoute_choisie)
+		"""« OK » ne donne jamais la même carte à l'antenne et à la pré-écoute (CartesSon grise chacune dans l'autre
+		choix)."""
+		self.ui.boutons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(self.cartes.valide())
 
 	def reglages(self) -> Reglages:
 		ui = self.ui
@@ -380,11 +381,10 @@ class FenetrePreferences(QDialog):
 		crossfades = Crossfades(
 			durees[0], durees[1], timedelta(seconds=ui.maximum.value()), self._choisie(), entree, sortie
 		)
-		antenne = ui.antenne.currentData()
 		return Reglages(
 			crossfades,
-			texte_ou_rien(antenne),
-			str(ui.preecoute.currentData()),
+			self.cartes.antenne_choisie(),
+			str(self.cartes.preecoute_choisie()),
 			round(ui.seuil_silences.value(), 1),
 			ui.saturation.isChecked(),
 			ui.suggestions.isChecked(),
@@ -395,23 +395,5 @@ class FenetrePreferences(QDialog):
 				round(ui.seuil_blanc.value(), 1),
 				ui.secours_blanc.isChecked(),
 			),
+			self.cartes.sortie_choisie(),
 		)
-
-
-def _garnir(choix: QComboBox, actuel: str | None, trouves: list[sorties_audio.Peripherique]) -> None:
-	"""Le périphérique configuré d'abord, « (introuvable) » s'il n'est pas sur le poste, puis les autres."""
-	if actuel is None:
-		choix.addItem(A_RENSEIGNER, None)
-	else:
-		nom = next((p.nom for p in trouves if p.identifiant == actuel), f"{actuel} (introuvable)")
-		choix.addItem(nom, actuel)
-	for peripherique in trouves:
-		if peripherique.identifiant != actuel:
-			choix.addItem(peripherique.nom, peripherique.identifiant)
-
-
-def _griser(choix: QComboBox, exclu: object) -> None:
-	modele = choix.model()
-	assert isinstance(modele, QStandardItemModel)
-	for indice in range(choix.count()):
-		modele.item(indice).setEnabled(choix.itemData(indice) != exclu)

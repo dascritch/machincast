@@ -194,8 +194,10 @@ Page **Audio** :
 
 | Réglage | Rôle |
 | --- | --- |
-| Antenne | Le périphérique de la diffusion. Tant qu'il n'est pas choisi, la barre d'état affiche `Périphérique de l'antenne à renseigner`, et la diffusion refuse de démarrer. Le nouveau périphérique vaut au prochain démarrage de la diffusion. |
-| Pré-écoute | Le périphérique de la [pré-écoute](sonores.md#pré-écoute), le casque de la régie par exemple. L'antenne et la pré-écoute n'utilisent jamais le même : celui de l'une est grisé dans l'autre. |
+| Type de sortie | Le système de son de l'ordinateur : PipeWire, celui d'Ubuntu, sauf avis contraire de l'administrateur. En changer refait la liste des cartes son : la carte de l'antenne est alors à choisir de nouveau. |
+| Antenne | La carte son de la diffusion. Tant qu'elle n'est pas choisie, la barre d'état affiche `Périphérique de l'antenne à renseigner`, et la diffusion refuse de démarrer. La nouvelle carte vaut au prochain démarrage de la diffusion. **Sortie factice** ne joue aucun son : pour essayer MachinCast sur un ordinateur qui n'est pas encore celui de l'antenne ; elle est grisée sur l'ordinateur de l'antenne. Pendant la diffusion de l'ordinateur de l'antenne, la carte de l'antenne ne se change pas : son choix est grisé, et son infobulle dit d'arrêter d'abord la diffusion, par le menu **Diffusion**. |
+| Pré-écoute | La carte son de la [pré-écoute](sonores.md#pré-écoute), le casque de la régie par exemple. L'antenne et la pré-écoute n'utilisent jamais la même : celle de l'une est grisée dans l'autre. **Sortie factice** désactive la pré-écoute : ses boutons et ses menus sont alors grisés partout. |
+| Tester | À côté de chaque carte : 2 secondes d'un son continu, aigu, sur cette carte, pour vérifier qu'elle est la bonne. **Attention** : sur la carte de l'antenne, le son de test part à l'antenne. Sous les cartes, une ligne dit si le son a été joué. |
 | Blanc dans un sonore, à l'antenne | Un sonore qui reste la **durée d'un blanc** (de 1 à 300 s, 10 s par défaut) sous le **niveau d'un blanc** (de -100 à -0,1 dB, -90 dB par défaut), pendant qu'il joue, est noté ([Blanc dans un sonore](antenne.md#blanc-dans-un-sonore)). **Passer au sonore suivant, ou au secours d'un stream**, décochée par défaut, le remplace aussitôt. La diffusion prend ces réglages à son prochain démarrage. |
 
 Page **Base** ([#268](https://github.com/dascritch/machincast/issues/268)) :

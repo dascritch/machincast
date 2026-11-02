@@ -64,6 +64,7 @@ from machincast.interface.listes import COLONNE_D_ANOMALIE, IDENTIFIANT, Liste
 from machincast.interface.preferences import Reglages
 from machincast.interface.suggestions import Manques, Reponse
 from machincast.lecture.etat import RELIRE_LA_GRILLE, Demande, SocketEtat
+from machincast.service import ABSENT, EtatDuService
 from tests.base_test import configuration_test, parametres_base_test
 from tests.sons import FICHIERS_SONORES
 
@@ -118,7 +119,7 @@ class Contexte:
 	"""Banques que chaque choix de banques a proposées ; None : toutes."""
 	audio: dict[str, object] = field(default_factory=dict)
 	"""Ce qui remplace la section [audio] de la configuration des tests : sortie, périphériques."""
-	reglages_audio: tuple[str, str] | None = None
+	reglages_audio: tuple[str, str, SortieAudio | None] | None = None
 	"""Périphériques de l'antenne et de la pré-écoute que donnera la fenêtre des préférences ; None : inchangés."""
 	audio_montre: list[tuple[str | None, str]] = field(default_factory=list)
 	"""Périphériques de l'antenne et de la pré-écoute montrés par la fenêtre des préférences."""
@@ -322,7 +323,9 @@ def remplacer_dialogues(interface: Contexte) -> None:
 
 	monkeypatch.setattr(dialogues, "choisir_jour", jour)
 
-	def preferences(_parent: QWidget, montres: Reglages, _sortie: SortieAudio) -> Reglages | None:
+	def preferences(
+		_parent: QWidget, montres: Reglages, _sortie: SortieAudio, _service: EtatDuService = ABSENT
+	) -> Reglages | None:
 		"""Les crossfades et les périphériques du scénario ; ceux qu'il ne règle pas restent ceux montrés."""
 		interface.preferences_montrees.append(montres.crossfades)
 		interface.audio_montre.append((montres.antenne, montres.preecoute))
@@ -341,7 +344,7 @@ def remplacer_dialogues(interface: Contexte) -> None:
 			and (interface.icone_reglee is None)
 		):
 			return None
-		antenne, preecoute = (interface.reglages_audio) or ((montres.antenne, montres.preecoute))
+		antenne, preecoute, sortie = (interface.reglages_audio) or ((montres.antenne, montres.preecoute, None))
 		seuil = montres.seuil_silences
 		if interface.seuil_regle is not None:
 			seuil = interface.seuil_regle
@@ -364,6 +367,7 @@ def remplacer_dialogues(interface: Contexte) -> None:
 			icone,
 			peremption,
 			(interface.blanc_regle) or (montres.blanc_antenne),
+			sortie,
 		)
 
 	monkeypatch.setattr(dialogues, "regler_preferences", preferences)
@@ -1599,9 +1603,15 @@ def configuration_audio(interface: Contexte, reglages: str) -> None:
 		interface.audio["preecoute"] = trouvee["preecoute"]
 
 
-@given(parsers.parse("les préférences régleront l'antenne « {antenne} » et la pré-écoute « {preecoute} »"))
-def audio_regle(interface: Contexte, antenne: str, preecoute: str) -> None:
-	interface.reglages_audio = (antenne, preecoute)
+@given(
+	parsers.re(
+		r"les préférences régleront (?:la sortie « (?P<sortie>[^»]+) », )?l'antenne « (?P<antenne>[^»]+) »"
+		r" et la pré-écoute « (?P<preecoute>[^»]+) »"
+	)
+)
+def audio_regle(interface: Contexte, sortie: str | None, antenne: str, preecoute: str) -> None:
+	"""Avec la sortie, le type de sortie du bloc des cartes son (https://github.com/dascritch/machincast/issues/339)."""
+	interface.reglages_audio = (antenne, preecoute, sortie)  # type: ignore[assignment]
 
 
 def meme_icone(une: QIcon, autre: QIcon, taille: int = 24) -> bool:

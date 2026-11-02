@@ -1168,7 +1168,10 @@ class FenetrePrincipale(QMainWindow):
 			preferences.peremption(),
 			self.blanc_antenne,
 		)
-		reglages = dialogues.regler_preferences(self, montres, audio.sortie)
+		# L'état du service, lu à l'ouverture : en marche, la carte de l'antenne ne se choisit pas
+		# (https://github.com/dascritch/machincast/issues/339).
+		self._relire_le_service()
+		reglages = dialogues.regler_preferences(self, montres, audio.sortie, self.service)
 		if reglages is None:
 			return
 		try:
@@ -1187,9 +1190,12 @@ class FenetrePrincipale(QMainWindow):
 		if reglages.icone != self.icone:
 			icone = self._changer_d_icone(reglages.icone)
 		texte = "les crossfades par défaut"
-		if reglages.antenne != audio.peripherique:
+		sortie = (reglages.sortie) or (audio.sortie)
+		if (reglages.antenne != audio.peripherique) or (sortie != audio.sortie):
 			texte = "les crossfades par défaut et le périphérique de l'antenne"
-		self.audio = dataclasses.replace(audio, peripherique=reglages.antenne, preecoute=reglages.preecoute)
+		self.audio = dataclasses.replace(
+			audio, sortie=sortie, peripherique=reglages.antenne, preecoute=reglages.preecoute
+		)
 		if self.preecoute is not None:
 			# La pré-écoute repart des nouveaux périphériques à sa prochaine ouverture.
 			self.preecoute.close()

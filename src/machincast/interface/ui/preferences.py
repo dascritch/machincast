@@ -228,28 +228,8 @@ class Ui_FenetrePreferences(object):
         self.disposition_audio.setObjectName(u"disposition_audio")
         self.groupe_peripheriques = QGroupBox(self.page_audio)
         self.groupe_peripheriques.setObjectName(u"groupe_peripheriques")
-        self.formulaire_peripheriques = QFormLayout(self.groupe_peripheriques)
-        self.formulaire_peripheriques.setObjectName(u"formulaire_peripheriques")
-        self.etiquette_antenne = QLabel(self.groupe_peripheriques)
-        self.etiquette_antenne.setObjectName(u"etiquette_antenne")
-
-        self.formulaire_peripheriques.setWidget(0, QFormLayout.ItemRole.LabelRole, self.etiquette_antenne)
-
-        self.antenne = QComboBox(self.groupe_peripheriques)
-        self.antenne.setObjectName(u"antenne")
-
-        self.formulaire_peripheriques.setWidget(0, QFormLayout.ItemRole.FieldRole, self.antenne)
-
-        self.etiquette_preecoute = QLabel(self.groupe_peripheriques)
-        self.etiquette_preecoute.setObjectName(u"etiquette_preecoute")
-
-        self.formulaire_peripheriques.setWidget(1, QFormLayout.ItemRole.LabelRole, self.etiquette_preecoute)
-
-        self.preecoute = QComboBox(self.groupe_peripheriques)
-        self.preecoute.setObjectName(u"preecoute")
-
-        self.formulaire_peripheriques.setWidget(1, QFormLayout.ItemRole.FieldRole, self.preecoute)
-
+        self.disposition_peripheriques = QVBoxLayout(self.groupe_peripheriques)
+        self.disposition_peripheriques.setObjectName(u"disposition_peripheriques")
 
         self.disposition_audio.addWidget(self.groupe_peripheriques)
 
@@ -360,8 +340,6 @@ class Ui_FenetrePreferences(object):
         self.etiquette_position_entree.setBuddy(self.position_entree)
         self.etiquette_position_sortie.setBuddy(self.position_sortie)
         self.etiquette_seuil_silences.setBuddy(self.seuil_silences)
-        self.etiquette_antenne.setBuddy(self.antenne)
-        self.etiquette_preecoute.setBuddy(self.preecoute)
         self.etiquette_duree_blanc.setBuddy(self.duree_blanc)
         self.etiquette_seuil_blanc.setBuddy(self.seuil_blanc)
         self.etiquette_peremption.setBuddy(self.peremption)
@@ -435,16 +413,8 @@ class Ui_FenetrePreferences(object):
         self.icone_par_defaut.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Revenir \u00e0 l'ic\u00f4ne de MachinCast", None))
 #endif // QT_CONFIG(tooltip)
         self.pages.setTabText(self.pages.indexOf(self.page_interface), QCoreApplication.translate("FenetrePreferences", u"Interface", None))
-        self.groupe_peripheriques.setTitle(QCoreApplication.translate("FenetrePreferences", u"P\u00e9riph\u00e9riques", None))
-        self.etiquette_antenne.setText(QCoreApplication.translate("FenetrePreferences", u"&Antenne", None))
-#if QT_CONFIG(tooltip)
-        self.antenne.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Le p\u00e9riph\u00e9rique sur lequel Machin lecture diffuse l'antenne", None))
-#endif // QT_CONFIG(tooltip)
-        self.etiquette_preecoute.setText(QCoreApplication.translate("FenetrePreferences", u"&Pr\u00e9-\u00e9coute", None))
-#if QT_CONFIG(tooltip)
-        self.preecoute.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Le p\u00e9riph\u00e9rique de la pr\u00e9-\u00e9coute de l'interface, jamais celui de l'antenne", None))
-#endif // QT_CONFIG(tooltip)
-        self.explication_audio.setText(QCoreApplication.translate("FenetrePreferences", u"Machin lecture prend le p\u00e9riph\u00e9rique de l'antenne \u00e0 son prochain d\u00e9marrage ; sans lui, il refuse de diffuser. La pr\u00e9-\u00e9coute ne peut jamais utiliser le p\u00e9riph\u00e9rique de l'antenne : chacun est gris\u00e9 dans l'autre choix.", None))
+        self.groupe_peripheriques.setTitle(QCoreApplication.translate("FenetrePreferences", u"Cartes son", None))
+        self.explication_audio.setText(QCoreApplication.translate("FenetrePreferences", u"Machin lecture prend le type de sortie et la carte de l'antenne \u00e0 son prochain d\u00e9marrage ; sans carte d'antenne, il refuse de diffuser. La pr\u00e9-\u00e9coute ne peut jamais utiliser la carte de l'antenne : chacune est gris\u00e9e dans l'autre choix. \u00ab Tester \u00bb joue 2 secondes de son de test sur la carte de sa ligne.", None))
         self.groupe_blanc_antenne.setTitle(QCoreApplication.translate("FenetrePreferences", u"Blanc dans un sonore, \u00e0 l'antenne", None))
 #if QT_CONFIG(tooltip)
         self.secours_blanc.setToolTip(QCoreApplication.translate("FenetrePreferences", u"Coch\u00e9, un blanc fait passer au sonore suivant, ou au secours d'un stream ; sinon, il est seulement not\u00e9 dans le log", None))
