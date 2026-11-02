@@ -740,9 +740,12 @@ def retirer_la_relation(interface: Contexte, entree: str, nom: str) -> None:
 
 @then(parsers.re(r"le clic droit sur la relation « (?P<nom>[^»]+) » du sonore propose (?P<entrees>«.+)$"))
 def menu_de_la_relation(interface: Contexte, nom: str, entrees: str) -> None:
-	textes = [
-		("—" if action.isSeparator() else action.text()) for action in _menu_de_la_relation(interface, nom).actions()
-	]
+	textes = []
+	for action in _menu_de_la_relation(interface, nom).actions():
+		texte = action.text()
+		if action.isSeparator():
+			texte = "—"
+		textes.append(texte)
 	attendues = [entree.strip() for entree in entrees.strip("« »").split(" », « ")]
 	assert textes == attendues, textes
 

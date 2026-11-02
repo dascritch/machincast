@@ -327,7 +327,14 @@ def _dans_un_calendrier(vue: QWidget) -> bool:
 
 
 def _textes(menu: QMenu) -> list[str]:
-	return [("—" if action.isSeparator() else action.text()) for action in menu.actions()]
+	"""Les entrées du menu, dans l'ordre ; un séparateur s'écrit « — »."""
+	textes = []
+	for action in menu.actions():
+		texte = action.text()
+		if action.isSeparator():
+			texte = "—"
+		textes.append(texte)
+	return textes
 
 
 def _exporter(interface: Contexte, onglet_: str, fichier: str | None) -> None:
