@@ -475,7 +475,7 @@ def lancer_l_interface(
 	monkeypatch.setattr(FenetrePrincipale, "show", montrer)
 	# La fenêtre des suggestions au lancement est refermée par « Plus tard »
 	# (https://github.com/dascritch/machincast/issues/119).
-	monkeypatch.setattr(dialogues, "suggerer", lambda _parent, _manques: Reponse(creer=False))
+	monkeypatch.setattr(dialogues, "suggerer", lambda _parent, _manques, _service=None: Reponse(creer=False))
 	assert module_interface.main(["--config", str(configuration_lancee)]) == 0
 
 

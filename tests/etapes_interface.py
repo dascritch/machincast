@@ -372,7 +372,7 @@ def remplacer_dialogues(interface: Contexte) -> None:
 
 	monkeypatch.setattr(dialogues, "regler_preferences", preferences)
 
-	def suggerer(_parent: QWidget, manques: Manques) -> Reponse:
+	def suggerer(_parent: QWidget, manques: Manques, _service: EtatDuService = ABSENT) -> Reponse:
 		interface.suggestions_faites.append(manques)
 		return interface.reponse_aux_suggestions(manques)
 

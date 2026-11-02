@@ -11,11 +11,15 @@ from datetime import timedelta
 import pytest
 import tomlkit
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QDialogButtonBox, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
+from machincast.configuration import Audio
+from machincast.interface.cartes_son import CartesSon
 from machincast.interface.suggestions import BANQUES, FIL_MUSICAL, FenetreSuggestions, Manques, Reponse, libelle
+from machincast.service import ABSENT, EtatDuService
 from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, fichier_de_configuration
 
 scenarios("suggestions.feature")
@@ -57,17 +61,22 @@ def plus_tard(interface: Contexte, case: str | None) -> None:
 @given(
 	parsers.re(
 		r"les suggestions seront acceptées par « Créer »(?:, sans « (?P<sans>.+) »)?"
-		r"(?:, avec l'antenne « (?P<antenne>[^»]+) »)?$"
+		r"(?:, avec la sortie « (?P<sortie>[^»]+) », l'antenne « (?P<antenne>[^»]+) »"
+		r" et la pré-écoute « (?P<preecoute>[^»]+) »)?$"
 	)
 )
-def creer(interface: Contexte, sans: str | None, antenne: str | None) -> None:
+def creer(
+	interface: Contexte, sans: str | None, sortie: str | None, antenne: str | None, preecoute: str | None
+) -> None:
 	def repondre(manques: Manques) -> Reponse:
 		banques = tuple(banque for banque in manques.banques if libelle(banque) != sans)
 		return Reponse(
 			creer=True,
 			fil_musical=(manques.fil_musical) and (sans != FIL_MUSICAL),
 			banques=banques,
+			sortie=sortie,  # type: ignore[arg-type]
 			antenne=antenne,
+			preecoute=preecoute,
 		)
 
 	interface.reponse_aux_suggestions = repondre
@@ -87,16 +96,19 @@ def proposees(interface: Contexte, datatable: list[list[str]]) -> None:
 	assert premieres(interface).elements() == [ligne.strip() for (ligne,) in lignes]
 
 
-@then("les suggestions n'ont pas proposé de périphérique d'antenne")
-def sans_antenne(interface: Contexte) -> None:
-	assert premieres(interface).antennes is None
+@then("les suggestions n'ont pas proposé les cartes son")
+def sans_cartes(interface: Contexte) -> None:
+	assert premieres(interface).audio is None
 
 
-@then(parsers.re(r"les suggestions ont proposé les périphériques d'antenne (?P<liste>«.+)"))
-def antennes_proposees(interface: Contexte, liste: str) -> None:
-	antennes = premieres(interface).antennes
-	assert antennes is not None
-	assert [peripherique.identifiant for peripherique in antennes] == NOM.findall(liste)
+@then(
+	parsers.re(
+		r"les suggestions ont proposé les cartes son de la sortie « (?P<sortie>[^»]+) », l'antenne non renseignée"
+		r" et la pré-écoute « (?P<preecoute>[^»]+) »"
+	)
+)
+def cartes_proposees(interface: Contexte, sortie: str, preecoute: str) -> None:
+	assert premieres(interface).audio == Audio(sortie, None, preecoute)  # type: ignore[arg-type]
 
 
 @then("aucune suggestion n'a été faite")
@@ -219,18 +231,28 @@ def la_fenetre(ouverte: dict[str, object]) -> FenetreSuggestions:
 	return fenetre
 
 
+SERVICES = {
+	"sans service de diffusion": ABSENT,
+	"service de diffusion à l'arrêt": EtatDuService(installe=True, actif="inactive"),
+}
+
+
 @when(
 	parsers.re(
-		r"la fenêtre des suggestions s'ouvre sur le fil musical et la banque « (?P<banque>[^»]+) »,"
-		r" avec l'antenne à choisir sur « (?P<sortie>[^»]+) »"
+		r"la fenêtre des suggestions s'ouvre sur (?:le fil musical et la banque « (?P<banque>[^»]+) », avec les"
+		r"|(?P<seules>les seules)) cartes son de la sortie « (?P<sortie>[^»]+) », (?P<service>.+)"
 	)
 )
-def ouvrir(ouverte: dict[str, object], parent: QWidget, banque: str, sortie: str) -> None:
-	from machincast import audio
-
-	antennes = tuple(p for p in audio.peripheriques("pipewire") if p.identifiant != "preecoute-factice")
-	assert sortie == "pipewire"
-	ouverte["fenetre"] = FenetreSuggestions(Manques(True, (banque,), antennes), parent)
+def ouvrir(
+	ouverte: dict[str, object], parent: QWidget, banque: str | None, seules: str | None, sortie: str, service: str
+) -> None:
+	"""La pré-écoute de la configuration des tests ; l'antenne à renseigner."""
+	audio = Audio(sortie, None, "preecoute-factice")  # type: ignore[arg-type]
+	manques = Manques(False, (), audio)
+	if seules is None:
+		assert banque is not None
+		manques = Manques(True, (banque,), audio)
+	ouverte["fenetre"] = FenetreSuggestions(manques, parent, SERVICES[service])
 
 
 @then(parsers.parse("elle s'intitule « {titre} »"))
@@ -246,11 +268,47 @@ def coches(ouverte: dict[str, object], elements: str) -> None:
 	assert all(ligne.checkState() == Qt.CheckState.Checked for ligne in lignes)
 
 
-@then(parsers.re(r"son choix de l'antenne propose (?P<noms>«.+), sans la pré-écoute"))
+@then("elle montre les cartes son en tête, avant ce qui est à créer")
+def cartes_en_tete(ouverte: dict[str, object]) -> None:
+	fenetre = la_fenetre(ouverte)
+	disposition = fenetre.layout()
+	assert disposition is not None
+	assert disposition.indexOf(fenetre.ui.groupe_cartes_son) == 0
+	assert disposition.indexOf(fenetre.ui.groupe_cartes_son) < disposition.indexOf(fenetre.ui.elements)
+	assert fenetre.ui.groupe_cartes_son.isVisibleTo(fenetre)
+
+
+@then("elle ne propose rien à créer")
+def rien_a_creer(ouverte: dict[str, object]) -> None:
+	fenetre = la_fenetre(ouverte)
+	assert not fenetre.ui.elements.isVisibleTo(fenetre)
+	assert not fenetre.ui.explication.isVisibleTo(fenetre)
+
+
+def _cartes(ouverte: dict[str, object]) -> CartesSon:
+	cartes = la_fenetre(ouverte).cartes
+	assert cartes is not None
+	return cartes
+
+
+@then(parsers.re(r"son choix de l'antenne propose (?P<noms>«.+)"))
 def choix_antenne(ouverte: dict[str, object], noms: str) -> None:
-	choix = la_fenetre(ouverte).ui.antenne
-	assert la_fenetre(ouverte).ui.groupe_antenne.isVisibleTo(la_fenetre(ouverte))
+	choix = _cartes(ouverte).ui.antenne
 	assert [choix.itemText(rang) for rang in range(choix.count())] == NOM.findall(noms)
+
+
+@then(parsers.parse("dans son choix de l'antenne, « {texte} » est inactive"))
+def ligne_inactive(ouverte: dict[str, object], texte: str) -> None:
+	choix = _cartes(ouverte).ui.antenne
+	modele = choix.model()
+	assert isinstance(modele, QStandardItemModel)
+	assert not modele.item(choix.findText(texte)).isEnabled()
+
+
+@then(parsers.re(r"son bouton « (?P<texte>Créer|Enregistrer) » est (?P<etat>actif|inactif)"))
+def bouton_ok(ouverte: dict[str, object], texte: str, etat: str) -> None:
+	bouton = la_fenetre(ouverte).ui.boutons.button(QDialogButtonBox.StandardButton.Ok)
+	assert (bouton.text(), bouton.isEnabled()) == (texte, etat == "actif")
 
 
 @when(parsers.parse("j'y décoche « {texte} »"))
@@ -260,10 +318,13 @@ def decocher(ouverte: dict[str, object], texte: str) -> None:
 	ligne.setCheckState(Qt.CheckState.Unchecked)
 
 
-@when(parsers.parse("j'y choisis l'antenne « {nom} »"))
-def choisir_antenne(ouverte: dict[str, object], nom: str) -> None:
-	choix = la_fenetre(ouverte).ui.antenne
-	choix.setCurrentIndex(choix.findText(nom))
+@when(parsers.re(r"j'y choisis pour (?P<role>l'antenne|la pré-écoute) « (?P<nom>[^»]+) »"))
+def choisir_carte(ouverte: dict[str, object], role: str, nom: str) -> None:
+	ui = _cartes(ouverte).ui
+	choix = {"l'antenne": ui.antenne, "la pré-écoute": ui.preecoute}[role]
+	indice = choix.findText(nom)
+	assert indice >= 0, nom
+	choix.setCurrentIndex(indice)
 
 
 @when("j'y coche « Ne plus proposer au lancement »")
@@ -271,18 +332,39 @@ def cocher_ne_plus(ouverte: dict[str, object]) -> None:
 	la_fenetre(ouverte).ui.ne_plus_proposer.setChecked(True)
 
 
-@when("j'y clique sur « Créer »")
+@when(parsers.re(r"j'y clique sur « (?:Créer|Enregistrer) »"))
 def cliquer_creer(ouverte: dict[str, object]) -> None:
 	fenetre = la_fenetre(ouverte)
 	fenetre.ui.boutons.button(QDialogButtonBox.StandardButton.Ok).click()
 	ouverte["reponse"] = fenetre.reponse()
 
 
-@then(parsers.re(r"elle a donné : la banque « (?P<banque>[^»]+) », l'antenne « (?P<antenne>[^»]+) », ne plus proposer"))
-def donne(ouverte: dict[str, object], banque: str, antenne: str) -> None:
+@then(
+	parsers.re(
+		r"elle a donné : (?:la banque « (?P<banque>[^»]+) », )?la sortie « (?P<sortie>[^»]+) »,"
+		r" l'antenne « (?P<antenne>[^»]+) », la pré-écoute « (?P<preecoute>[^»]+) »(?P<ne_plus>, ne plus proposer)?"
+	)
+)
+def donne(
+	ouverte: dict[str, object],
+	banque: str | None,
+	sortie: str,
+	antenne: str,
+	preecoute: str,
+	ne_plus: str | None,
+) -> None:
 	assert la_fenetre(ouverte).result() == FenetreSuggestions.DialogCode.Accepted
+	banques: tuple[str, ...] = ()
+	if banque is not None:
+		banques = (banque,)
 	assert ouverte["reponse"] == Reponse(
-		creer=True, fil_musical=False, banques=(banque,), antenne=antenne, ne_plus_proposer=True
+		creer=True,
+		fil_musical=False,
+		banques=banques,
+		sortie=sortie,  # type: ignore[arg-type]
+		antenne=antenne,
+		preecoute=preecoute,
+		ne_plus_proposer=ne_plus is not None,
 	)
 
 

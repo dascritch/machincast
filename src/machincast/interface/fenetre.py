@@ -1048,10 +1048,10 @@ class FenetrePrincipale(QMainWindow):
 			return
 		if manques.vide():
 			return
-		reponse = dialogues.suggerer(self, manques)
+		reponse = dialogues.suggerer(self, manques, self.service)
 		if self.configuration is not None:
 			try:
-				suggestions.enregistrer(self.configuration, reponse.antenne, reponse.ne_plus_proposer)
+				suggestions.enregistrer(self.configuration, reponse)
 			except OSError as erreur:
 				self.statusBar().showMessage(f"Réglages non enregistrés dans {self.configuration} : {erreur}")
 				return
@@ -1066,12 +1066,16 @@ class FenetrePrincipale(QMainWindow):
 			return
 		if texte is not None:
 			self.statusBar().showMessage(texte)
-		if (reponse.antenne is not None) and (self.configuration is not None):
-			self.audio = dataclasses.replace(self.audio, peripherique=reponse.antenne)
+		if (reponse.sortie is not None) and (reponse.preecoute is not None) and (self.configuration is not None):
+			self.audio = dataclasses.replace(
+				self.audio, sortie=reponse.sortie, peripherique=reponse.antenne, preecoute=reponse.preecoute
+			)
 			self._signaler_l_antenne()
 			self.accueil.changer_d_antenne(self.audio)
+			antenne = (reponse.antenne) or ("à renseigner")
 			self.statusBar().showMessage(
-				f"Périphérique de l'antenne : {reponse.antenne} ; Machin lecture le prendra à son prochain démarrage."
+				f"Cartes son : antenne {antenne}, pré-écoute {reponse.preecoute} ;"
+				" Machin lecture prendra l'antenne à son prochain démarrage."
 			)
 
 	def _garantir_fil_musical(self) -> None:

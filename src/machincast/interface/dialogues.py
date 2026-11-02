@@ -299,10 +299,11 @@ def regler_preferences(
 	return fenetre.reglages()
 
 
-def suggerer(parent: QWidget, manques: Manques) -> Reponse:
+def suggerer(parent: QWidget, manques: Manques, service: EtatDuService = ABSENT) -> Reponse:
 	"""La fenêtre modale des suggestions au lancement (https://github.com/dascritch/machincast/issues/119) : ce qu'il
-	faut créer, ou rien sur « Plus tard »."""
-	fenetre = FenetreSuggestions(manques, parent)
+	faut créer, et les cartes son choisies (https://github.com/dascritch/machincast/issues/339), ou rien sur « Plus
+	tard »."""
+	fenetre = FenetreSuggestions(manques, parent, service)
 	fenetre.exec()
 	return fenetre.reponse()
 
