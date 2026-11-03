@@ -4,11 +4,11 @@ Avec le service (install.sh --service, https://github.com/dascritch/machincast/i
 appellent systemctl sur machincast.service, dans un processus à part : la règle polkit du service les
 autorise avec l'authentification d'un administrateur, que demande l'agent polkit de la session. Jamais sudo.
 
-Sans le service, l'installation n'est pas définitive, et le menu pilote une diffusion d'essai : Machin lecture lancé
+Sans le service, l'installation n'est pas définitive, et le menu pilote une diffusion d'essai : Machin player lancé
 dans une fenêtre de terminal (konsole, sinon x-terminal-emulator), par la commande du service, sur sa configuration :
 la diffusion d'essai sort sur le même périphérique que sortirait le service. L'arrêter
 lui envoie SIGTERM, comme Ctrl-C dans ce terminal ; son processus est celui qui répond sur la socket d'état
-(ClientEtat.pid_du_lecteur). Ce n'est pas « Machin lecture --simulation », qui ne joue rien.
+(ClientEtat.pid_du_lecteur). Ce n'est pas « Machin player --simulation », qui ne joue rien.
 """
 
 import os
@@ -35,8 +35,8 @@ ESSAI = {
 """Les entrées du menu sans le service."""
 TERMINAUX = ("konsole", "x-terminal-emulator")
 """Les terminaux essayés, dans l'ordre : celui de Kubuntu, puis celui que choisit le poste."""
-SANS_TERMINAL = "Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin lecture à la main."
-COMMANDE_DU_SERVICE = [str(REPERTOIRE_PROJET / "bin" / "Machin"), "lecture"]
+SANS_TERMINAL = "Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin player à la main."
+COMMANDE_DU_SERVICE = [str(REPERTOIRE_PROJET / "bin" / "Machin"), "player"]
 """Comme l'ExecStart de machincast.service : la diffusion d'essai sort là où sortirait le service."""
 LANCE = "Diffusion d'essai lancée dans un terminal : Ctrl-C l'y arrête."
 MAINTENANCE = "Maintenance de la base de données…"
@@ -88,7 +88,7 @@ def ouvrir_un_terminal(commande: list[str]) -> bool:
 
 
 def lancer_dans_un_terminal(configuration: Path | None, lance: str = LANCE) -> str:
-	"""Machin lecture, détaché, dans le premier terminal trouvé, par la commande même du service : il lit la
+	"""Machin player, détaché, dans le premier terminal trouvé, par la commande même du service : il lit la
 	configuration du service, le machincast.toml du répertoire de MachinCast, et diffuse donc sur le même périphérique
 	que lui. Ce que la barre d'état en dit : lance, et l'écart avec la configuration de l'interface s'il y en a un."""
 	if ouvrir_un_terminal(COMMANDE_DU_SERVICE):
@@ -111,7 +111,7 @@ def lancer_la_maintenance(configuration: Path | None, sauvegardes: Path) -> str:
 	commande = [str(REPERTOIRE_PROJET / "bin" / "Machin")]
 	if configuration is not None:
 		commande += ["--config", str(configuration)]
-	if ouvrir_un_terminal([*commande, "maintenance-db", "--sauvegardes", str(sauvegardes), "--garder-ouvert"]):
+	if ouvrir_un_terminal([*commande, "maintenance-db", "--backups", str(sauvegardes), "--keep-open"]):
 		return MAINTENANCE_LANCEE
 	return SANS_TERMINAL_POUR_LA_MAINTENANCE
 
@@ -129,7 +129,7 @@ def configuration_du_service() -> Path:
 
 
 def arreter_le_lecteur(pid: int) -> str:
-	"""SIGTERM, comme Ctrl-C : Machin lecture termine proprement le passage en cours, puis ferme sa socket d'état."""
+	"""SIGTERM, comme Ctrl-C : Machin player termine proprement le passage en cours, puis ferme sa socket d'état."""
 	try:
 		os.kill(pid, signal.SIGTERM)
 	except OSError as erreur:

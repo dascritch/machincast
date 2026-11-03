@@ -4,7 +4,7 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 	je veux suivre l'indexation ligne par ligne dans une fenêtre à part de l'interface,
 	afin de voir chaque sonore indexé, et de pouvoir fermer l'interface sans attendre la fin d'un audit complet.
 
-	https://github.com/dascritch/machincast/issues/120, spec § 6.3 et § 8.11. Machin indexation --fenetre, que
+	https://github.com/dascritch/machincast/issues/120, spec § 6.3 et § 8.11. Machin indexer --window, que
 	l'interface lance dans un processus à part (indexation_interface.feature), montre dans sa fenêtre ce qu'il écrirait
 	dans le terminal ; à la fin, il conclut par le bilan et le nombre d'anomalies. Fermer la fenêtre pendant
 	l'indexation demande s'il faut l'arrêter. Comme dans le terminal, le journal annonce le document d'audit du passage
@@ -142,7 +142,7 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 			| …/pubs/jingle.wav | apercu | None          |
 		Et le journal de l'indexeur n'est plus écouté
 
-	Scénario: Machin indexation --fenetre demande un affichage graphique
-		Quand je lance Machin indexation --fenetre sans affichage graphique
+	Scénario: Machin indexer --window demande un affichage graphique
+		Quand je lance Machin indexer --window sans affichage graphique
 		Alors la commande se termine avec le code 1
-		Et la sortie d'erreur de la commande mentionne « --fenetre demande un affichage graphique »
+		Et la sortie d'erreur de la commande mentionne « --window demande un affichage graphique »

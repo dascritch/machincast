@@ -50,8 +50,8 @@ Sans `install.sh`, préparer la base de test à la main avec les étapes 2, 4 et
 Le [guide de l'antenne](../utilisateur/README.md) montre les écrans de l'interface ([#128](https://github.com/dascritch/machincast/issues/128)). Ses captures, dans `doc/fr/captures`, se refont d'une commande, à la préparation d'une release seulement, sauf si le responsable du projet le demande expressément ([#208](https://github.com/dascritch/machincast/issues/208), [Publier une version](release.md)) :
 
 ```bash
-Machin dev-captures                   # dans doc/fr/captures
-Machin dev-captures /tmp/essai        # ailleurs, pour comparer
+Machin dev-screenshots                   # dans doc/fr/captures
+Machin dev-screenshots /tmp/essai        # ailleurs, pour comparer
 ```
 
 - **Base de démonstration** : la commande vide la **base de test** de la configuration des tests, la remplit d'une radio de démonstration, « Radio Exemple », puis ouvre l'interface hors de l'écran, sans fenêtre visible, le mercredi 21 octobre 2026 à 09:41:30. Elle n'ouvre jamais la base de production, et ses fichiers sonores sont des copies d'un fichier de test, dans le répertoire temporaire `machincast-demonstration`.

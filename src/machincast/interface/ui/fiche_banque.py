@@ -353,7 +353,7 @@ class Ui_FicheBanque(object):
 #endif // QT_CONFIG(tooltip)
         self.duree_max.setDisplayFormat(QCoreApplication.translate("FicheBanque", u"H:mm:ss", None))
         self.groupe_repertoires.setTitle(QCoreApplication.translate("FicheBanque", u"R\u00e9pertoires index\u00e9s", None))
-        self.explication_repertoires.setText(QCoreApplication.translate("FicheBanque", u"Machin indexation rattache \u00e0 la banque les fichiers sonores de ces r\u00e9pertoires et de leurs sous-r\u00e9pertoires.", None))
+        self.explication_repertoires.setText(QCoreApplication.translate("FicheBanque", u"Machin indexer rattache \u00e0 la banque les fichiers sonores de ces r\u00e9pertoires et de leurs sous-r\u00e9pertoires.", None))
         self.ajouter_repertoire.setText(QCoreApplication.translate("FicheBanque", u"\u2795 Ajouter un r\u00e9pertoire\u2026", None))
         self.retirer_repertoire.setText(QCoreApplication.translate("FicheBanque", u"\u2796 Retirer le r\u00e9pertoire", None))
         self.groupe_sonores.setTitle(QCoreApplication.translate("FicheBanque", u"Sonores", None))

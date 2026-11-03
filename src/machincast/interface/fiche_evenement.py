@@ -25,7 +25,7 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
   jour : il suit l'heure de l'événement quand elle change. Son bouton « Rétablir » la rétablit, comme le clic droit du
   calendrier, sans toucher aux champs de la fiche ; il est inactif, avec une infobulle qui dit pourquoi, pour une
   session commencée, ou dont un événement de même priorité a pris la place. Rétablie, la session s'annonce
-  (session_retablie) et Machin lecture relit la grille.
+  (session_retablie) et Machin player relit la grille.
 - Sa copie (https://github.com/dascritch/machincast/issues/130) garde sa priorité, ses noms, son masquage et sa liste
   de lecture, sans dates ni jours : son créneau est à choisir, une émission ou un spécial ne s'enregistrant pas sans
   début.
@@ -82,7 +82,7 @@ def _montrer(date: QDateTimeEdit, instant: datetime) -> None:
 class FicheEvenement(Fiche):
 	genre = "événement"
 	session_retablie = Signal(str)
-	"""Une session sautée a été rétablie depuis la fiche : ce que la barre d'état en annonce. Machin lecture doit
+	"""Une session sautée a été rétablie depuis la fiche : ce que la barre d'état en annonce. Machin player doit
 	relire la grille (https://github.com/dascritch/machincast/issues/295)."""
 
 	def __init__(

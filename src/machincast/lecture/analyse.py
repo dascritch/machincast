@@ -1,10 +1,10 @@
 """Analyse du prochain sonore au dernier moment (https://github.com/dascritch/machincast/issues/181).
 
-Au début de chaque sonore, Machin lecture réserve le suivant (machincast.lecture.diffusion). Si ce prochain sonore
+Au début de chaque sonore, Machin player réserve le suivant (machincast.lecture.diffusion). Si ce prochain sonore
 est un fichier jamais vérifié en entier (sonores.verifie_le vide), ou dont le fichier a changé depuis sa dernière
-vérification (machincast.empreinte.modifie), la diffusion lance « Machin indexation --audit-complet --sonore N »
+vérification (machincast.empreinte.modifie), la diffusion lance « Machin indexer --full-audit --sound N »
 dans un processus à part, sans fenêtre, et ne l'attend jamais : que l'indexeur plante ou n'ait pas fini, le sonore
-est joué à son heure. Ses lignes vont dans le journal de Machin lecture. Un même sonore n'est pas redemandé avant
+est joué à son heure. Ses lignes vont dans le journal de Machin player. Un même sonore n'est pas redemandé avant
 RELANCE. Un stream n'est jamais analysé, comme l'indexeur ne vérifie jamais les streams.
 """
 
@@ -23,7 +23,7 @@ RELANCE = timedelta(hours=1)
 
 
 def commande_d_analyse(configuration: Path) -> list[str]:
-	"""Machin indexation, lancé par le Python de la lecture, avec sa configuration, en audit complet d'un seul
+	"""Machin indexer, lancé par le Python de la lecture, avec sa configuration, en audit complet d'un seul
 	sonore : le numéro du sonore s'ajoute à la fin."""
 	return [
 		sys.executable,
@@ -31,8 +31,8 @@ def commande_d_analyse(configuration: Path) -> list[str]:
 		"machincast.indexation",
 		"--config",
 		str(configuration.expanduser().absolute()),
-		"--audit-complet",
-		"--sonore",
+		"--full-audit",
+		"--sound",
 	]
 
 

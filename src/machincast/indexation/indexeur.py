@@ -76,7 +76,7 @@ def indexer_un_sonore(
 	seuil_silences: float = SEUIL_DE_SILENCE,
 	forcer: bool = False,
 ) -> Bilan:
-	"""Machin_indexation --sonore N (https://github.com/dascritch/machincast/issues/181) : vérifie ce seul sonore, sans
+	"""Machin_indexer --sound N (https://github.com/dascritch/machincast/issues/181) : vérifie ce seul sonore, sans
 	parcours ni verrou, puis le retire des banques dont il sort des durées
 	(https://github.com/dascritch/machincast/issues/195)."""
 	bilan = verifier_sonores(

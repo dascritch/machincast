@@ -698,7 +698,7 @@ class Ui_FicheSonore(object):
 #endif // QT_CONFIG(tooltip)
         self.preecouter.setText(QCoreApplication.translate("FicheSonore", u"Pr\u00e9-\u00e9coute\u2026", None))
 #if QT_CONFIG(tooltip)
-        self.verifier.setToolTip(QCoreApplication.translate("FicheSonore", u"D\u00e9coder le fichier en entier et mesurer ses silences, comme l'audit complet de Machin indexation, pour ce seul sonore", None))
+        self.verifier.setToolTip(QCoreApplication.translate("FicheSonore", u"D\u00e9coder le fichier en entier et mesurer ses silences, comme l'audit complet de Machin indexer, pour ce seul sonore", None))
 #endif // QT_CONFIG(tooltip)
         self.verifier.setText(QCoreApplication.translate("FicheSonore", u"V\u00e9rification compl\u00e8te", None))
         self.annuler.setText(QCoreApplication.translate("FicheSonore", u"Annuler", None))

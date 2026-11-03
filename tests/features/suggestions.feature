@@ -135,7 +135,7 @@ Fonctionnalité: Suggestions au lancement de l'interface
 		Et le fichier de configuration contient la ligne « sortie = "pulseaudio" »
 		Et le fichier de configuration contient la ligne « peripherique = "carte-1" »
 		Et le fichier de configuration contient la ligne « preecoute = "casque-usb" »
-		Et la barre d'état annonce « Cartes son : antenne carte-1, pré-écoute casque-usb ; Machin lecture prendra l'antenne à son prochain démarrage. »
+		Et la barre d'état annonce « Cartes son : antenne carte-1, pré-écoute casque-usb ; Machin player prendra l'antenne à son prochain démarrage. »
 		Et la barre d'état ne signale pas « Périphérique de l'antenne à renseigner »
 
 	Scénario: Sur l'entrée « sortie factice », l'antenne n'est plus à renseigner : les cartes son ne sont pas proposées

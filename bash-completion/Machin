@@ -4,7 +4,7 @@
 # Installée dans /usr/share/bash-completion/completions/Machin, ou chargée à la main :
 #   source bash-completion/Machin
 #
-# Les binaires viennent de « Machin --binaires », les options d'un binaire de son aide (« Machin BINAIRE --help ») :
+# Les binaires viennent de « Machin --binaries », les options d'un binaire de son aide (« Machin BINAIRE --help ») :
 # la complétion suit le code sans liste à tenir à jour.
 
 # Options courantes de journalctl, proposées après « Machin logs ».
@@ -43,19 +43,19 @@ _Machin() {
 
 	if [[ -z "${binaire}" ]]; then
 		if [[ "${courant}" == -* ]]; then
-			mapfile -t COMPREPLY < <(compgen -W "-h --help --config --binaires" -- "${courant}")
+			mapfile -t COMPREPLY < <(compgen -W "-h --help --config --binaries" -- "${courant}")
 		else
-			mapfile -t COMPREPLY < <(compgen -W "$("${commande}" --binaires 2>/dev/null) logs dev dev-test dev-captures" \
+			mapfile -t COMPREPLY < <(compgen -W "$("${commande}" --binaries 2>/dev/null) logs dev dev-test dev-screenshots" \
 				-- "${courant}")
 		fi
 		return 0
 	fi
 
-	# dev et dev-test ne prennent aucun argument ; dev-captures, un répertoire.
+	# dev et dev-test ne prennent aucun argument ; dev-screenshots, un répertoire.
 	if [[ "${binaire}" == dev || "${binaire}" == dev-test ]]; then
 		return 0
 	fi
-	if [[ "${binaire}" == dev-captures ]]; then
+	if [[ "${binaire}" == dev-screenshots ]]; then
 		compopt -o filenames 2>/dev/null
 		mapfile -t COMPREPLY < <(compgen -d -- "${courant}")
 		return 0

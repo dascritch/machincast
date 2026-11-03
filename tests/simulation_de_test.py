@@ -1,8 +1,8 @@
-"""Machin lecture --simulation sur la base de test, pour l'écran de simulation de l'interface
+"""Machin player --simulation sur la base de test, pour l'écran de simulation de l'interface
 (https://github.com/dascritch/machincast/issues/37, tests/test_simulation_interface.py).
 
-Machin lecture simule sur la base de production de sa configuration ; celle des tests est volontairement
-inexistante (tests/configuration-test.toml). Ce programme analyse les mêmes arguments que Machin lecture, et exécute
+Machin player simule sur la base de production de sa configuration ; celle des tests est volontairement
+inexistante (tests/configuration-test.toml). Ce programme analyse les mêmes arguments que Machin player, et exécute
 la même simulation, mais sur la base de test : jamais sur une base de production. Avec --sans-base en premier
 argument, la socket de PostgreSQL est inexistante : la base est injoignable. Avec --attend FICHIER, le programme
 attend que le fichier existe avant de simuler : la simulation est en cours tant qu'il n'existe pas. Avec --echoue, il

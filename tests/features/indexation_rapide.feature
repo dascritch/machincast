@@ -71,9 +71,9 @@ Fonctionnalité: Indexation rapide
 		Quand l'indexeur fait une indexation rapide
 		Alors le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 1 sorti d'aperçu »
 
-	Scénario: Machin_indexation propose l'audit complet en option
-		Quand je lance "Machin_indexation" avec l'option "--help"
-		Alors la sortie mentionne "--audit-complet"
+	Scénario: Machin_indexer propose l'audit complet en option
+		Quand je lance "Machin_indexer" avec l'option "--help"
+		Alors la sortie mentionne "--full-audit"
 
 	# ─── Fichiers modifiés (https://github.com/dascritch/machincast/issues/10) ─────
 

@@ -10,7 +10,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 	l'installation n'est pas définitive, et comment la terminer ; le menu pilote alors une diffusion d'essai : Machin
 	lecture lancé dans une fenêtre de terminal, qu'arrêter arrête par SIGTERM, comme Ctrl-C. Son processus
 	est celui qui répond sur la socket d'état. Redémarrer n'est plus proposé (https://github.com/dascritch/machincast/issues/223) :
-	arrêter puis démarrer fait de même. Ce n'est pas « Machin lecture --simulation », qui ne joue rien. Les commandes systemctl et konsole du scénario sont des imitations, en tête du PATH :
+	arrêter puis démarrer fait de même. Ce n'est pas « Machin player --simulation », qui ne joue rien. Les commandes systemctl et konsole du scénario sont des imitations, en tête du PATH :
 	elles notent leurs arguments, et répondent ce que dit le scénario ; systemctl
 	change l'état du service qu'il imite.
 
@@ -128,7 +128,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| entrée                                | état     | raccourci | infobulle                                                  |
 			| Pré-écoute de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt    |
 			| —                                     |          |           |                                                            |
-			| ⏵ Démarrer la diffusion d'essai         | active   |           | Sans service : Machin lecture dans une fenêtre de terminal |
+			| ⏵ Démarrer la diffusion d'essai         | active   |           | Sans service : Machin player dans une fenêtre de terminal |
 			| ⏹ Arrêter la diffusion d'essai          | inactive |           | Aucune diffusion d'essai en cours                          |
 			| —                                     |          |           |                                                            |
 			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                           |
@@ -136,13 +136,13 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                           |
 			| ⏭ Couper par le secours | inactive | | Aucun événement de secours |
 
-	Scénario: Sans service, « ⏵ Démarrer la diffusion d'essai » lance Machin lecture comme le service, dans une fenêtre de terminal
+	Scénario: Sans service, « ⏵ Démarrer la diffusion d'essai » lance Machin player comme le service, dans une fenêtre de terminal
 		Étant donné le service de diffusion non installé
 		Et le terminal « konsole » du poste
 		Et l'interface lancée sur la configuration du service
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « ⏵ Démarrer la diffusion d'essai » dans le menu « Diffusion »
-		Alors le terminal a lancé bientôt Machin lecture, comme le service
+		Alors le terminal a lancé bientôt Machin player, comme le service
 		Et la barre d'état annonce « Diffusion d'essai lancée dans un terminal : Ctrl-C l'y arrête. »
 		Et systemctl n'a reçu que des demandes d'état
 
@@ -151,7 +151,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et le terminal « konsole » du poste
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « ⏵ Démarrer la diffusion d'essai » dans le menu « Diffusion »
-		Alors le terminal a lancé bientôt Machin lecture, comme le service
+		Alors le terminal a lancé bientôt Machin player, comme le service
 		Et la barre d'état annonce que la diffusion d'essai lit la configuration du service, et non celle de l'interface
 
 	Scénario: Sans service, une diffusion d'essai qui tourne s'arrête, mais ne se relance pas
@@ -165,14 +165,14 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| Pré-écoute de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt               |
 			| —                                     |          |           |                                                                       |
 			| ⏵ Démarrer la diffusion d'essai         | inactive |           | La diffusion d'essai tourne déjà                                      |
-			| ⏹ Arrêter la diffusion d'essai          | active   |           | Sans service : arrête le Machin lecture lancé à la main, comme Ctrl-C |
+			| ⏹ Arrêter la diffusion d'essai          | active   |           | Sans service : arrête le Machin player lancé à la main, comme Ctrl-C |
 			| —                                     |          |           |                                                                       |
 			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                                      |
 			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                                      |
 			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                                      |
 			| ⏭ Couper par le secours | inactive | | Aucun événement de secours |
 
-	Scénario: Sans service, « ⏹ Arrêter la diffusion d'essai » arrête Machin lecture comme Ctrl-C
+	Scénario: Sans service, « ⏹ Arrêter la diffusion d'essai » arrête Machin player comme Ctrl-C
 		Étant donné le service de diffusion non installé
 		Et une diffusion d'essai qui tourne, lancée à la main
 		Quand la fenêtre de l'interface s'ouvre
@@ -188,7 +188,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et aucun terminal sur le poste
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « ⏵ Démarrer la diffusion d'essai » dans le menu « Diffusion »
-		Alors la barre d'état annonce « Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin lecture à la main. »
+		Alors la barre d'état annonce « Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin player à la main. »
 
 	# ─── Témoins de la diffusion (https://github.com/dascritch/machincast/issues/322) ───
 

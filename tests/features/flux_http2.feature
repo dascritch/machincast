@@ -19,7 +19,7 @@ Fonctionnalité: Un flux servi en HTTP/2 qui gèle est vu tomber
 		Étant donné un serveur de flux HTTP/2 local, chiffré, dont le flux AAC gèle au bout de 3 secondes
 
 	Scénario: Lu comme le lit MachinCast, en HTTP/1.1, le flux gelé est signalé par le lecteur
-		Quand une voie de Machin lecture lit ce flux, en HTTP/1.1, jusqu'à 15 secondes après le gel
+		Quand une voie de Machin player lit ce flux, en HTTP/1.1, jusqu'à 15 secondes après le gel
 		Alors le serveur a servi le flux en HTTP/1.1
 		Et la voie est en erreur au plus 15 secondes après le gel
 
@@ -27,7 +27,7 @@ Fonctionnalité: Un flux servi en HTTP/2 qui gèle est vu tomber
 		Si ce scénario échoue sur « la voie est toujours en cours », libsoup signale désormais le gel en HTTP/2 :
 		SOUP_FORCE_HTTP1 peut alors être reconsidéré.
 
-		Quand une voie de Machin lecture lit ce flux, en HTTP/2, jusqu'à 15 secondes après le gel
+		Quand une voie de Machin player lit ce flux, en HTTP/2, jusqu'à 15 secondes après le gel
 		Alors le serveur a servi le flux en HTTP/2
 		Et la voie est toujours en cours, sans erreur
 		Et la voie est gelée

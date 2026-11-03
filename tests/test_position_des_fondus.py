@@ -2,7 +2,7 @@
 (https://github.com/dascritch/machincast/issues/234).
 
 Le placement s'essaie seul (machincast.lecture.fondus.placer) ; la diffusion, par les paramètres de lecture qu'elle lit
-en base de test (machincast.lecture.diffusion.lire_parametres), avec le rôle de Machin lecture.
+en base de test (machincast.lecture.diffusion.lire_parametres), avec le rôle de Machin player.
 """
 
 from dataclasses import dataclass, field

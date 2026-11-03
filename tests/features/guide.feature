@@ -48,8 +48,8 @@ Fonctionnalité: Documentation par public
 
 		Exemples:
 			| executable        |
-			| Machin_lecture    |
-			| Machin_indexation |
+			| Machin_player    |
+			| Machin_indexer |
 			| Machin_interface  |
 
 	Scénario: Les états des sonores et les verdicts de la vérification sont documentés dans le guide utilisateur

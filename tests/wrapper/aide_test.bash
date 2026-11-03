@@ -45,7 +45,7 @@ preparer_projet() {
 	mkdir -p "${PROJET}/bin" "${VENV}" "${BOUCHONS}"
 	cp "${MACHIN_DU_DEPOT}" "${MACHIN}"
 	local nom
-	for nom in Machin_lecture Machin_indexation Machin_interface; do
+	for nom in Machin_player Machin_indexer Machin_interface; do
 		ecrire_bouchon "${VENV}" "${nom}"
 	done
 	ecrire_bouchon "${BOUCHONS}" journalctl

@@ -5,7 +5,7 @@ Fonctionnalité: Écran des incidents
 	afin de diagnostiquer rapidement un problème d'antenne.
 
 	https://github.com/dascritch/machincast/issues/35, spec § 8.6. L'onglet « Incidents » montre les alertes et les
-	incidents que Machin lecture a notés dans le log, du plus récent au plus ancien ; les informations, sur demande.
+	incidents que Machin player a notés dans le log, du plus récent au plus ancien ; les informations, sur demande.
 	Un double-clic sur le sonore, la banque ou l'événement d'une entrée ouvre sa fiche. Les heures sont celles du poste.
 
 	Contexte:
@@ -20,7 +20,7 @@ Fonctionnalité: Écran des incidents
 			| Continue |            | fil_musical |       |     |       |
 		Et le log :
 			| horodatage          | niveau   | nature              | message                           | sonore | banque    | evenement |
-			| 2026-10-19 20:10:00 | info     | démarrage           | Machin lecture démarre            |        |           |           |
+			| 2026-10-19 20:10:00 | info     | démarrage           | Machin player démarre            |        |           |           |
 			| 2026-10-19 20:20:00 | alerte   | fichier modifié     | taille changée depuis l'indexation | Spot   | Publicité | Continue  |
 			| 2026-10-19 20:30:00 | incident | fichier introuvable | /srv/pubs/spot.flac               | Spot   |           | Continue  |
 			| 2026-10-19 20:40:00 | alerte   | blanc               | rien à diffuser                   |        |           | Continue  |
@@ -84,7 +84,7 @@ Fonctionnalité: Écran des incidents
 	Scénario: La liste se relit à chaque ouverture de son onglet
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Incidents »
-		Et Machin lecture note l'incident « flux tombé » à « 2026-10-19 20:50:00 »
+		Et Machin player note l'incident « flux tombé » à « 2026-10-19 20:50:00 »
 		Et j'ouvre l'onglet « Antenne »
 		Et j'ouvre l'onglet « Incidents »
 		Alors la liste des incidents montre les natures « flux tombé », « blanc », « fichier introuvable », « fichier modifié »

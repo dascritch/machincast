@@ -5,7 +5,7 @@ Fonctionnalité: Un événement modifié vaut aussitôt à l'antenne
 	afin de corriger la diffusion qui est en cours.
 
 	https://github.com/dascritch/machincast/issues/266. Après l'enregistrement, la suppression ou la restauration d'une
-	fiche, l'interface demande à Machin lecture, sur la socket d'état, de relire la grille, comme après une session
+	fiche, l'interface demande à Machin player, sur la socket d'état, de relire la grille, comme après une session
 	sautée (https://github.com/dascritch/machincast/issues/273). Si ce qui règle l'antenne a changé (dates, jours,
 	priorité, suppression, listes des événements et des séquences, sessions sautées : EMPREINTE_DE_LA_GRILLE), la durée
 	de lecture du sonore en cours, le prochain sonore et les sonores à venir sont recalculés aussitôt. Sinon, rien ne
@@ -25,7 +25,7 @@ Fonctionnalité: Un événement modifié vaut aussitôt à l'antenne
 		Et la diffusion avance de 1 seconde
 		Alors les sonores à venir sont « f3 », « m1 », « m2 », « m1 », « m2 »
 		Quand l'émission « Flash » est déplacée de 20:04:30 à 20:30:00
-		Et l'interface demande à Machin lecture de relire la grille
+		Et l'interface demande à Machin player de relire la grille
 		Et la diffusion avance de 1 seconde
 		Alors le prochain sonore réservé est « f2 »
 		Et les sonores à venir sont « f3 », « f4 », « f5 », « m1 », « m2 »
@@ -37,7 +37,7 @@ Fonctionnalité: Un événement modifié vaut aussitôt à l'antenne
 		Quand la diffusion démarre sur un moteur simulé
 		Et la diffusion avance de 1 seconde
 		Et l'émission « Flash » est déplacée de 20:00:40 à 20:30:00
-		Et l'interface demande à Machin lecture de relire la grille
+		Et l'interface demande à Machin player de relire la grille
 		Et la diffusion avance de 1 seconde
 		Alors le prochain sonore réservé est « m1 »
 		Et les sonores à venir sont « m2 », « m1 », « m2 », « m1 », « m2 »
@@ -52,7 +52,7 @@ Fonctionnalité: Un événement modifié vaut aussitôt à l'antenne
 		Quand la diffusion démarre sur un moteur simulé
 		Et la diffusion avance de 1 seconde
 		Et l'événement « Flash » est supprimé depuis l'interface
-		Et l'interface demande à Machin lecture de relire la grille
+		Et l'interface demande à Machin player de relire la grille
 		Et la diffusion avance de 1 seconde
 		Alors les sonores à venir sont « f3 », « f4 », « f5 », « f6 », « f1 »
 
@@ -63,7 +63,7 @@ Fonctionnalité: Un événement modifié vaut aussitôt à l'antenne
 		Et la diffusion avance de 1 seconde
 		Et je note les sonores annoncés
 		Et l'événement « Continue » est renommé « Rotation de jour », avec un nom public et un masquage
-		Et l'interface demande à Machin lecture de relire la grille
+		Et l'interface demande à Machin player de relire la grille
 		Et la diffusion avance de 61 secondes
 		Alors le prochain sonore et les sonores à venir reprennent les sonores notés à partir du n°2
 
@@ -74,7 +74,7 @@ Fonctionnalité: Un événement modifié vaut aussitôt à l'antenne
 		Quand la diffusion démarre sur un moteur simulé
 		Et la diffusion avance de 1 seconde
 		Et l'émission « Flash » finit à 20:02:40
-		Et l'interface demande à Machin lecture de relire la grille
+		Et l'interface demande à Machin player de relire la grille
 		Et la diffusion avance de 1 seconde
 		Alors les sonores à venir sont « f3 », « m1 », « f4 », « f5 », « f6 »
 
@@ -87,7 +87,7 @@ Fonctionnalité: Un événement modifié vaut aussitôt à l'antenne
 		Et la diffusion avance de 1 seconde
 		Alors les sonores à venir sont « n1 », « m1 », « m2 », « m1 », « m2 »
 		Quand l'événement « Flash » passe en fil musical
-		Et l'interface demande à Machin lecture de relire la grille
+		Et l'interface demande à Machin player de relire la grille
 		Et la diffusion avance de 1 seconde
 		Alors les sonores à venir sont « n1 », « n2 », « n1 », « n2 », « n1 »
 
@@ -100,6 +100,6 @@ Fonctionnalité: Un événement modifié vaut aussitôt à l'antenne
 		Et la diffusion avance de 1 seconde
 		Alors les sonores à venir sont « f3 », « f4 », « f5 », « f6 », « f1 »
 		Quand l'événement « Flash » revient aussi le mercredi
-		Et l'interface demande à Machin lecture de relire la grille
+		Et l'interface demande à Machin player de relire la grille
 		Et la diffusion avance de 1 seconde
 		Alors les sonores à venir sont « f3 », « m1 », « m2 », « m1 », « m2 »

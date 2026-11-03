@@ -17,14 +17,14 @@ Fonctionnalité: Chaque programme de MachinCast se présente au serveur audio so
 
 		Exemples:
 			| sortie     | programme              | nom                     | flux        |
-			| pipewire   | Machin lecture         | MachinCast lecteur      | Antenne     |
-			| pulseaudio | Machin lecture         | MachinCast lecteur      | Antenne     |
+			| pipewire   | Machin player         | MachinCast lecteur      | Antenne     |
+			| pulseaudio | Machin player         | MachinCast lecteur      | Antenne     |
 			| pipewire   | la pré-écoute          | MachinCast interface    | Pré-écoute  |
 			| pulseaudio | la pré-écoute          | MachinCast interface    | Pré-écoute  |
 			| pipewire   | l'essai de la sortie   | MachinCast installation | Son de test |
 
 	Plan du scénario: Une sortie ALSA ou factice n'a rien à présenter
-		Quand je crée la sortie « <sortie> » de Machin lecture
+		Quand je crée la sortie « <sortie> » de Machin player
 		Alors la sortie est créée, sans présentation
 
 		Exemples:
@@ -33,10 +33,10 @@ Fonctionnalité: Chaque programme de MachinCast se présente au serveur audio so
 			| factice |
 
 	Scénario: PipeWire reçoit aussi le nom et l'icône pour le programme, pas seulement pour son flux
-		Quand je crée la sortie « pipewire » de Machin lecture
+		Quand je crée la sortie « pipewire » de Machin player
 		Alors les propriétés du client PipeWire de la sortie nomment « MachinCast lecteur », avec l'icône « machincast »
 
-	Scénario: Machin lecture, la pré-écoute et l'essai de la sortie présentent leurs sorties
+	Scénario: Machin player, la pré-écoute et l'essai de la sortie présentent leurs sorties
 		Alors chaque appel à creer_sortie, hors des tests, passe une présentation
 
 	Scénario: install.sh installe l'icône de MachinCast dans le thème d'icônes du compte, sous le nom qu'annoncent les sorties

@@ -151,5 +151,5 @@ Fonctionnalité: Masquage des métadonnées et modules de sortie
 		Alors l'airplay montre les passages « f1 », « f1 », « f1 »
 		Et le log contient 1 alerte « sortie inaccessible »
 
-	Scénario: Machin lecture écrit ses sorties aux chemins de la configuration
-		Alors les sorties de Machin lecture sont celles de la configuration de test
+	Scénario: Machin player écrit ses sorties aux chemins de la configuration
+		Alors les sorties de Machin player sont celles de la configuration de test

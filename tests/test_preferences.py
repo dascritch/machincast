@@ -418,7 +418,7 @@ def antenne_signalee(interface: Contexte, signale: str) -> None:
 	etiquette = fenetre(interface).antenne_a_renseigner
 	assert etiquette.isVisibleTo(fenetre(interface)) == (signale == "signale")
 	assert etiquette.text() == "Périphérique de l'antenne à renseigner"
-	assert etiquette.toolTip().startswith("Machin lecture refuse de diffuser sans lui")
+	assert etiquette.toolTip().startswith("Machin player refuse de diffuser sans lui")
 
 
 # ─── Machin interface ──────────────────────────────────────

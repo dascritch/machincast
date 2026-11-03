@@ -167,10 +167,10 @@ Fonctionnalité: Un blanc dans un sonore à l'antenne est noté, et peut faire p
 			| 3599,96  | 1:00:00,0 |
 			| 3723,4   | 1:02:03,4 |
 
-	Scénario: Machin lecture prend le blanc dans un sonore de sa configuration
+	Scénario: Machin player prend le blanc dans un sonore de sa configuration
 		Le moteur le mesure, la diffusion décide du passage au secours. Ni la base ni la sortie audio ne sont jointes :
 		le scénario remplace la connexion, le moteur et la boucle de diffusion.
 
 		Étant donné la configuration des tests, avec un blanc dans un sonore de 4,5 secondes sous -70 dB, qui fait passer au secours
-		Quand Machin lecture diffuse avec cette configuration, sans base ni sortie audio
+		Quand Machin player diffuse avec cette configuration, sans base ni sortie audio
 		Alors son moteur mesure un blanc de 4,5 secondes sous -70 dB, et sa diffusion fait passer au secours

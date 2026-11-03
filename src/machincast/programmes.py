@@ -1,12 +1,12 @@
 """Programmes de MachinCast en cours, pour install.sh (https://github.com/dascritch/machincast/issues/254).
 
-	python3 -m machincast.programmes lister   --etat FICHIER   une ligne par programme en cours ; leur état, enregistré
-	python3 -m machincast.programmes relancer --etat FICHIER   relance ceux du compte, dit ce qui reste à rouvrir
+	python3 -m machincast.programmes list   --state FICHIER   une ligne par programme en cours ; leur état, enregistré
+	python3 -m machincast.programmes restart --state FICHIER   relance ceux du compte, dit ce qui reste à rouvrir
 
 Une mise à jour, et surtout ses migrations de la base, ne doit pas se faire sous un programme qui s'en sert.
 install.sh liste donc, avant de toucher au venv, les programmes de MachinCast qui tournent, sous tous les comptes du
-poste : Machin lecture (le service de diffusion, une diffusion d'essai, une simulation), Machin indexation et
-Machin interface, lancés par bin/Machin, par leur exécutable du venv (Machin_lecture…) ou par python -m. Il les arrête
+poste : Machin player (le service de diffusion, une diffusion d'essai, une simulation), Machin indexer et
+Machin interface, lancés par bin/Machin, par leur exécutable du venv (Machin_player…) ou par python -m. Il les arrête
 si l'administrateur l'accepte, puis, à la fin, relance le service lui-même et demande ici de relancer les autres.
 
 Ce module n'emploie que la bibliothèque standard : install.sh le lance avec le python3 du système, le venv pouvant
@@ -40,9 +40,12 @@ from machincast.service import UNITE
 PROC = Path("/proc")
 MACHIN = Path(__file__).resolve().parents[2] / "bin" / "Machin"
 """Le wrapper du répertoire de MachinCast, qui relance chaque programme."""
-NOMS = ("lecture", "indexation", "interface")
-EXECUTABLE = re.compile(r"Machin_(lecture|indexation|interface)")
+NOMS = ("player", "indexer", "interface")
+"""Les programmes, sous leur nom de commande du wrapper (https://github.com/dascritch/machincast/issues/356)."""
+EXECUTABLE = re.compile(r"Machin_(player|indexer|interface)")
 MODULE = re.compile(r"machincast\.(lecture|indexation|interface)")
+PROGRAMME_DU_MODULE = {"lecture": "player", "indexation": "indexer", "interface": "interface"}
+"""Le programme que lance python -m sur chaque module."""
 TERMINAUX = ("konsole", "x-terminal-emulator")
 SESSION_GRAPHIQUE = ("WAYLAND_DISPLAY", "DISPLAY")
 
@@ -52,16 +55,18 @@ class Programme:
 	pid: int
 	compte: str
 	nom: str
-	"""lecture, indexation ou interface."""
+	"""player, indexer ou interface."""
 	arguments: tuple[str, ...]
 	service: bool
-	"""Machin lecture, lancé par l'unité du service de diffusion."""
+	"""Machin player, lancé par l'unité du service de diffusion."""
 	repertoire: str
 	"""Répertoire où il a été lancé : ses chemins relatifs s'y lisent ; vide pour un autre compte."""
 
 	@property
 	def nature(self) -> str:
-		if self.nom != "lecture":
+		if self.nom == "indexer":
+			return "indexation"
+		if self.nom != "player":
 			return self.nom
 		if self.service:
 			return "service de diffusion"
@@ -96,7 +101,7 @@ def reconnaitre(ligne: Sequence[str]) -> tuple[str, tuple[str, ...]] | None:
 				trouve = MODULE.fullmatch(ligne[rang + 1])
 				if trouve is None:
 					return None
-				return trouve.group(1), tuple(ligne[rang + 2 :])
+				return PROGRAMME_DU_MODULE[trouve.group(1)], tuple(ligne[rang + 2 :])
 	return None
 
 
@@ -221,7 +226,7 @@ def relancer(
 			reste.append(f"à rouvrir par le compte {programme.compte} : {programme.commande}")
 		elif programme.nature == "simulation":
 			reste.append("simulation interrompue : la relancer depuis l'onglet Simulation de l'interface")
-		elif programme.nom == "indexation":
+		elif programme.nom == "indexer":
 			reste.append(f"indexation interrompue : relancer {programme.commande}")
 		elif not graphique:
 			ou = "un terminal"
@@ -243,13 +248,15 @@ def relancer(
 
 def main(arguments: Sequence[str] | None = None) -> int:
 	analyseur = argparse.ArgumentParser(prog="machincast.programmes", description=__doc__.splitlines()[0])
-	analyseur.add_argument("action", choices=("lister", "relancer"))
-	analyseur.add_argument("--etat", type=Path, required=True, help="état des programmes en cours, en JSON")
+	analyseur.add_argument("action", choices=("list", "restart"))
+	analyseur.add_argument(
+		"--state", dest="etat", type=Path, required=True, help="état des programmes en cours, en JSON"
+	)
 	analyseur.add_argument("--proc", type=Path, default=PROC, help=argparse.SUPPRESS)
 	analyseur.add_argument("--simulation", action="store_true", help="dit ce qui serait relancé, sans rien lancer")
 	options = analyseur.parse_args(arguments)
 	compte_courant = _compte(os.getuid())
-	if options.action == "lister":
+	if options.action == "list":
 		programmes = en_cours(options.proc)
 		enregistrer(programmes, options.etat)
 		sys.stdout.write(lister(programmes, compte_courant))

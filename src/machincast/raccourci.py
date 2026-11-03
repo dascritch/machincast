@@ -4,7 +4,7 @@ rediger donne son texte (Desktop Entry Specification 1.5) : Machin interface, la
 (clé Path), avec l'icône de la configuration (interface.icone, https://github.com/dascritch/machincast/issues/111), ou
 celle de MachinCast, ICONE, si aucune n'est choisie ou si l'image choisie n'existe plus. install.sh l'installe dans le
 menu des applications du compte (dossier_du_menu) et, sur demande, sur son bureau (dossier_du_bureau), par
-machincast.installation raccourci.
+machincast.installation shortcut.
 
 reecrire est appelé par les préférences de l'interface quand l'icône change : sous Wayland, la barre des tâches et le
 menu prennent l'icône du raccourci, et non celle de la fenêtre. Il ne réécrit que les raccourcis déjà installés, en

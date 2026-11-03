@@ -1,7 +1,7 @@
 """Scénarios de l'écran des incidents (https://github.com/dascritch/machincast/issues/35).
 
 Les étapes de la fenêtre, des listes et des fiches sont dans tests/etapes_interface.py ; celles-ci écrivent le log de
-la base de test, comme Machin lecture, et lisent l'écran.
+la base de test, comme Machin player, et lisent l'écran.
 """
 
 from datetime import datetime, timedelta
@@ -32,7 +32,7 @@ def lignes(interface: Contexte) -> list[dict[str, str]]:
 
 
 def noter(base: Connexion, horodatage: str, niveau: str, nature: str, message: str, references: dict[str, str]) -> None:
-	"""Une entrée du log, comme l'écrit Machin lecture ; chaque référence par le nom de l'élément."""
+	"""Une entrée du log, comme l'écrit Machin player ; chaque référence par le nom de l'élément."""
 	ids = {
 		"sonore": ("sonores", "titre"),
 		"banque": ("banques", "nom_interne"),
@@ -83,7 +83,7 @@ def alertes(base_vide: Connexion, nombre: int, nature: str, debut: str) -> None:
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when(parsers.parse("Machin lecture note l'incident « {nature} » à « {horodatage} »"))
+@when(parsers.parse("Machin player note l'incident « {nature} » à « {horodatage} »"))
 def incident(base_vide: Connexion, nature: str, horodatage: str) -> None:
 	noter(base_vide, horodatage, "incident", nature, "", {})
 

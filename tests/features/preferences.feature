@@ -8,9 +8,9 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 	une fenêtre dont la page « Interface » règle les crossfades : leur granularité (à la seconde ou au dixième de
 	seconde), leur durée maximale, et leurs durées par défaut, pour un sonore sans crossfade paramétré que sa banque ne
 	règle pas. Les préférences s'enregistrent dans la section [crossfades] du fichier de configuration, qui garde ses
-	commentaires ; les fiches ouvertes ensuite les suivent, et Machin lecture les prend à son prochain démarrage.
+	commentaires ; les fiches ouvertes ensuite les suivent, et Machin player les prend à son prochain démarrage.
 	Sa page « Audio » règle les périphériques de l'antenne (audio.peripherique) et de la pré-écoute (audio.preecoute,
-	https://github.com/dascritch/machincast/issues/116) : chacun est grisé dans l'autre choix, et Machin lecture refuse
+	https://github.com/dascritch/machincast/issues/116) : chacun est grisé dans l'autre choix, et Machin player refuse
 	de diffuser sans périphérique d'antenne. La fenêtre de l'interface s'ouvre sur une copie du fichier de configuration
 	des tests, dans le répertoire du scénario ; sa sortie est factice, et sans périphérique d'antenne.
 
@@ -54,7 +54,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et le fichier de configuration contient la ligne « maximum = 6 »
 		Et le fichier de configuration contient la ligne « debut = 1.5 »
 		Et le fichier de configuration contient encore les autres sections
-		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin lecture prendra les crossfades par défaut à son prochain démarrage. »
+		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin player prendra les crossfades par défaut à son prochain démarrage. »
 
 	Scénario: Une durée par défaut retirée disparaît du fichier de configuration
 		Étant donné le fichier de configuration de l'interface, avec :
@@ -117,7 +117,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Alors les préférences ont montré l'antenne non renseignée et la pré-écoute « preecoute-factice »
 		Et le fichier de configuration donne l'antenne « carte-2 » et la pré-écoute « casque-usb »
 		Et le fichier de configuration contient encore les autres sections, hors [audio]
-		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin lecture prendra les crossfades par défaut et le périphérique de l'antenne à son prochain démarrage. »
+		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin player prendra les crossfades par défaut et le périphérique de l'antenne à son prochain démarrage. »
 
 	Scénario: Sur une vraie sortie, la barre d'état signale l'antenne à renseigner, jusqu'à ce qu'elle le soit
 		Étant donné la configuration audio sortie « pipewire », sans périphérique d'antenne
@@ -142,7 +142,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
 		Alors le fichier de configuration donne la sortie « pulseaudio », l'antenne « factice » et la pré-écoute « casque-usb »
-		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin lecture prendra les crossfades par défaut et le périphérique de l'antenne à son prochain démarrage. »
+		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin player prendra les crossfades par défaut et le périphérique de l'antenne à son prochain démarrage. »
 
 	Scénario: Machin interface ouvre sa fenêtre sur la sortie et les périphériques de sa configuration
 		Étant donné un fichier de configuration sur la base de test, la sortie « pipewire », l'antenne « carte-1 » et la pré-écoute « casque-usb »
@@ -187,7 +187,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et le fichier de configuration n'a plus de section [blancs]
 
 	Scénario: Le blanc dans un sonore réglé dans les préférences va dans la section [blanc_antenne] du fichier de configuration
-		https://github.com/dascritch/machincast/issues/122 : Machin lecture le prend à son prochain démarrage. Les
+		https://github.com/dascritch/machincast/issues/122 : Machin player le prend à son prochain démarrage. Les
 		préférences suivantes montrent le blanc enregistré.
 
 		Étant donné le fichier de configuration de l'interface, avec :

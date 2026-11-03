@@ -16,7 +16,7 @@ from machincast.configuration import REPERTOIRE_PROJET, SortieAudio
 scenarios("presentation_audio.feature")
 
 PROGRAMMES = {
-	"Machin lecture": audio.ANTENNE,
+	"Machin player": audio.ANTENNE,
 	"la pré-écoute": audio.PREECOUTE,
 	"l'essai de la sortie": audio.ESSAI,
 }

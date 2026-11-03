@@ -40,7 +40,7 @@ The known failures of MachinCast, their causes, what to check, and the scenarios
 
 **Symptom**: a notification, the sound of a video, a video call or the browser can be heard on air, over the playout.
 
-**Cause** ([#250](https://github.com/dascritch/machincast/issues/250)): the on-air device is the desktop's default output, the one used by every program that does not choose one. MachinCast plays no part: `Machin lecture` plays on `audio.peripherique`, whatever the default output.
+**Cause** ([#250](https://github.com/dascritch/machincast/issues/250)): the on-air device is the desktop's default output, the one used by every program that does not choose one. MachinCast plays no part: `Machin player` plays on `audio.peripherique`, whatever the default output.
 
 **To check**:
 

@@ -59,7 +59,7 @@ socket.publier({"horodatage": "2026-10-20T16:40:00+02:00", "etat": "diffusion", 
 
 
 def arreter(_numero, _cadre):
-	# Comme Machin lecture : un dernier état pendant que le passage en cours se termine, puis la socket se ferme.
+	# Comme Machin player : un dernier état pendant que le passage en cours se termine, puis la socket se ferme.
 	socket.publier({"horodatage": "2026-10-20T16:40:01+02:00", "etat": "blanc", "en_cours": None, "prochain": None})
 	time.sleep(0.5)
 	Path(sys.argv[2]).write_text("SIGTERM", encoding="utf-8")
@@ -71,7 +71,7 @@ signal.signal(signal.SIGTERM, arreter)
 while True:
 	time.sleep(1)
 """
-"""Un Machin lecture lancé à la main : il annonce la diffusion sur sa socket d'état, s'arrête proprement à SIGTERM."""
+"""Un Machin player lancé à la main : il annonce la diffusion sur sa socket d'état, s'arrête proprement à SIGTERM."""
 ETATS = {"arrêté": "inactive", "en marche": "active", "en échec": "failed"}
 
 
@@ -224,15 +224,15 @@ def dit_bientot(interface: Contexte, qtbot: QtBot, texte: str) -> None:
 	assert etiquette.parent() is fenetre(interface).statusBar()
 
 
-@then("le terminal a lancé bientôt Machin lecture, comme le service")
+@then("le terminal a lancé bientôt Machin player, comme le service")
 def lance_dans_le_terminal(poste: Poste, qtbot: QtBot) -> None:
 	"""La commande de l'ExecStart de machincast.service, sans --config : la configuration du service."""
 	qtbot.waitUntil(poste.terminal.exists, timeout=5000)
 	arguments = poste.terminal.read_text(encoding="utf-8").splitlines()
-	assert arguments == ["-e", str(REPERTOIRE_PROJET / "bin" / "Machin"), "lecture"], arguments
+	assert arguments == ["-e", str(REPERTOIRE_PROJET / "bin" / "Machin"), "player"], arguments
 	assert (
 		unite_systemd(Compte("radio", "antenne", 1001), REPERTOIRE_PROJET).count(
-			f"ExecStart={REPERTOIRE_PROJET}/bin/Machin lecture\n"
+			f"ExecStart={REPERTOIRE_PROJET}/bin/Machin player\n"
 		)
 		== 1
 	)
@@ -292,9 +292,9 @@ def maintenance_dans_le_terminal(
 		"--config",
 		str(fichier_de_configuration(interface)),
 		"maintenance-db",
-		"--sauvegardes",
+		"--backups",
 		str(repertoire),
-		"--garder-ouvert",
+		"--keep-open",
 	], arguments
 
 

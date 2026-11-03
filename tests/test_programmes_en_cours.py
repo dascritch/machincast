@@ -201,7 +201,7 @@ def relance_dit(poste: Poste, datatable: list[list[str]]) -> None:
 def sans_venv(tmp_path: Path) -> None:
 	"""-S : sans site-packages, ni ceux du venv ; seules les sources de MachinCast sont sur le chemin."""
 	resultat = subprocess.run(
-		[sys.executable, "-S", "-m", "machincast.programmes", "lister", "--etat", str(tmp_path / "etat.json")],
+		[sys.executable, "-S", "-m", "machincast.programmes", "list", "--state", str(tmp_path / "etat.json")],
 		env={**os.environ, "PYTHONPATH": str(SRC)},
 		capture_output=True,
 		text=True,

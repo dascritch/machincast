@@ -10,7 +10,7 @@ Fermer la fenêtre attend la fin de la vérification en cours (arreter).
 
 La vérification complète d'un sonore, demandée depuis sa fiche (VerificationComplete,
 https://github.com/dascritch/machincast/issues/190), est l'audit complet de son seul fichier, comme
-Machin indexation --audit-complet --sonore N : décodé en entier, ses silences mesurés au seuil de la configuration.
+Machin indexer --full-audit --sound N : décodé en entier, ses silences mesurés au seuil de la configuration.
 """
 
 import logging

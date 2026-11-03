@@ -1,5 +1,5 @@
 # language: fr
-Fonctionnalité: Mode simulation de Machin lecture
+Fonctionnalité: Mode simulation de Machin player
 	En tant que programmateur de l'antenne,
 	je veux que le binaire simule ce qu'il diffuserait entre deux dates,
 	afin que je vérifie une grille avant sa mise à l'antenne.
@@ -279,8 +279,8 @@ Fonctionnalité: Mode simulation de Machin lecture
 
 	# ─── Ligne de commande ─────────────────────────────────────
 
-	Plan du scénario: Machin lecture refuse une période de simulation invalide
-		Quand je lance Machin_lecture avec « --simulation <debut> <fin> »
+	Plan du scénario: Machin player refuse une période de simulation invalide
+		Quand je lance Machin_player avec « --simulation <debut> <fin> »
 		Alors il s'arrête avec le code 2, en signalant « <motif> »
 
 		Exemples:
@@ -290,15 +290,15 @@ Fonctionnalité: Mode simulation de Machin lecture
 			| "2026-10-20 20:00"  | "2026-10-20 20:00"  | la fin doit suivre le début   |
 
 	Plan du scénario: Les options de la simulation ne s'emploient qu'avec --simulation
-		Quand je lance Machin_lecture avec « <option> »
-		Alors il s'arrête avec le code 2, en signalant « --graine, --nom et --repertoire ne s'emploient qu'avec --simulation »
+		Quand je lance Machin_player avec « <option> »
+		Alors il s'arrête avec le code 2, en signalant « --seed, --name et --directory ne s'emploient qu'avec --simulation »
 
 		Exemples:
 			| option                       |
-			| --graine 3                   |
-			| --nom essai                  |
-			| --repertoire /tmp/simulation |
+			| --seed 3                   |
+			| --name essai                  |
+			| --directory /tmp/simulation |
 
 	Scénario: Sans base de données joignable, la simulation s'arrête avec le code 1
-		Quand je lance Machin_lecture avec « --simulation "2026-10-20 20:00" "2026-10-20 21:00" » et une socket inexistante
+		Quand je lance Machin_player avec « --simulation "2026-10-20 20:00" "2026-10-20 21:00" » et une socket inexistante
 		Alors il s'arrête avec le code 1, en signalant « base de données injoignable »

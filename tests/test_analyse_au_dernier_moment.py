@@ -1,6 +1,6 @@
 """Scénarios de l'analyse du prochain sonore au dernier moment (https://github.com/dascritch/machincast/issues/181).
 
-Les étapes de la diffusion sont dans tests/etapes_diffusion.py. Machin indexation y est remplacé par un script, qui
+Les étapes de la diffusion sont dans tests/etapes_diffusion.py. Machin indexer y est remplacé par un script, qui
 note ses arguments un par ligne, ou plante ; le dernier scénario lance le vrai, sur la base de test.
 """
 
@@ -21,7 +21,7 @@ scenarios("analyse_au_dernier_moment.feature")
 
 Connexion = psycopg.Connection[tuple[object, ...]]
 DELAI = 20.0
-"""Secondes laissées à une analyse lancée pour se faire : le vrai Machin indexation charge GStreamer."""
+"""Secondes laissées à une analyse lancée pour se faire : le vrai Machin indexer charge GStreamer."""
 IMITATION = """#!/bin/sh
 cut -d ' ' -f 6 /proc/$$/stat > "{journal}.session"
 for argument in "$@"; do
@@ -29,7 +29,7 @@ for argument in "$@"; do
 done >> "{journal}"
 echo -- >> "{journal}"
 """
-"""Machin indexation imité : chaque appel note ses arguments, un par ligne, puis « -- », et sa session."""
+"""Machin indexer imité : chaque appel note ses arguments, un par ligne, puis « -- », et sa session."""
 
 
 def attendre(condition: object, delai: float = DELAI) -> bool:
@@ -67,30 +67,30 @@ def fichier_change(base_vide: Connexion, nom: str) -> None:
 @given("une commande d'analyse imitée", target_fixture="journal_d_analyse")
 def imitee(banc: Banc, tmp_path: Path) -> Path:
 	journal = tmp_path / "analyses.txt"
-	script = tmp_path / "Machin_indexation"
+	script = tmp_path / "Machin_indexer"
 	script.write_text(IMITATION.replace("{journal}", str(journal)), encoding="utf-8")
 	script.chmod(0o755)
-	banc.analyseur = Analyseur([str(script), "--audit-complet", "--sonore"])
+	banc.analyseur = Analyseur([str(script), "--full-audit", "--sound"])
 	return journal
 
 
 @given("une commande d'analyse introuvable")
 def introuvable(banc: Banc, tmp_path: Path) -> None:
-	banc.analyseur = Analyseur([str(tmp_path / "absent" / "Machin_indexation"), "--sonore"])
+	banc.analyseur = Analyseur([str(tmp_path / "absent" / "Machin_indexer"), "--sound"])
 
 
 @given("une commande d'analyse qui plante")
 def plante(banc: Banc, tmp_path: Path) -> None:
-	script = tmp_path / "Machin_indexation"
+	script = tmp_path / "Machin_indexer"
 	script.write_text("#!/bin/sh\necho 'plantage imité' >&2\nexit 1\n", encoding="utf-8")
 	script.chmod(0o755)
-	banc.analyseur = Analyseur([str(script), "--sonore"])
+	banc.analyseur = Analyseur([str(script), "--sound"])
 
 
-@given("Machin indexation comme commande d'analyse, sur la base de test")
+@given("Machin indexer comme commande d'analyse, sur la base de test")
 def vrai_machin_indexation(banc: Banc, tmp_path: Path) -> None:
 	"""La configuration des tests, recopiée avec la base de test comme base de production : sa base de test, qui doit
-	en différer, en devient une autre, que Machin indexation n'ouvre pas."""
+	en différer, en devient une autre, que Machin indexer n'ouvre pas."""
 	source = configuration_test()
 	texte = (
 		source.chemin.read_text(encoding="utf-8")
@@ -110,7 +110,7 @@ def vrai_machin_indexation(banc: Banc, tmp_path: Path) -> None:
 
 @then(parsers.parse("l'analyse est demandée bientôt pour le sonore « {nom} », en audit complet"))
 def demandee(base_vide: Connexion, journal_d_analyse: Path, nom: str) -> None:
-	attendu = ["--audit-complet", "--sonore", str(sonore(base_vide, nom))]
+	attendu = ["--full-audit", "--sound", str(sonore(base_vide, nom))]
 	assert attendre(lambda: appels(journal_d_analyse) != []), "aucune analyse lancée"
 	assert appels(journal_d_analyse) == [attendu]
 

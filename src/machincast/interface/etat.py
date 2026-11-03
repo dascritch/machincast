@@ -71,7 +71,7 @@ class SonoreAffiche:
 
 @dataclass(frozen=True)
 class EvenementSuivant:
-	"""L'événement suivant, que Machin lecture avancerait à la demande
+	"""L'événement suivant, que Machin player avancerait à la demande
 	(https://github.com/dascritch/machincast/issues/257). Début et fin en heure murale du poste."""
 
 	id: int
@@ -194,7 +194,7 @@ class ClientEtat(QObject):
 		self._socket.connectToServer(str(self.chemin))
 
 	def pid_du_lecteur(self) -> int | None:
-		"""Le processus du Machin lecture qui répond sur la socket, lu par SO_PEERCRED ; None sans connexion."""
+		"""Le processus du Machin player qui répond sur la socket, lu par SO_PEERCRED ; None sans connexion."""
 		if self._socket.state() != QLocalSocket.LocalSocketState.ConnectedState:
 			return None
 		# fromfd travaille sur une copie du descripteur : la fermer laisse la connexion de Qt ouverte.

@@ -32,7 +32,7 @@ def entrees(interface: Contexte) -> dict[str, QAction]:
 
 @given(
 	parsers.re(
-		r"Machin lecture diffuse « (?P<titre>[^»]+) »(?:, de la séquence « (?P<sequence>[^»]+) »)?,"
+		r"Machin player diffuse « (?P<titre>[^»]+) »(?:, de la séquence « (?P<sequence>[^»]+) »)?,"
 		r" dans (?P<fil>le fil musical )?« (?P<evenement>[^»]+) »"
 	)
 )
@@ -86,7 +86,7 @@ ANNONCE = r"(?:, et annonce l'événement suivant « (?P<nom>[^»]+) », du « (
 
 @given(
 	parsers.re(
-		r"Machin lecture diffuse « (?P<titre>[^»]+) », dans « (?P<evenement>[^»]+) », avant « (?P<prochain>[^»]+) »"
+		r"Machin player diffuse « (?P<titre>[^»]+) », dans « (?P<evenement>[^»]+) », avant « (?P<prochain>[^»]+) »"
 		+ ANNONCE
 	)
 )
@@ -110,18 +110,18 @@ def diffuse_avant(
 	)
 
 
-@given(parsers.re(r"Machin lecture laisse un blanc" + ANNONCE))
+@given(parsers.re(r"Machin player laisse un blanc" + ANNONCE))
 def en_blanc_avant(lecteur: Lecteur, nom: str | None, debut: str | None, fin: str | None) -> None:
 	publier(lecteur, "blanc", evenement_suivant=suivant(nom, debut, fin))
 
 
-@given("Machin lecture laisse un blanc")
-@when("Machin lecture passe à un blanc")
+@given("Machin player laisse un blanc")
+@when("Machin player passe à un blanc")
 def en_blanc(lecteur: Lecteur) -> None:
 	publier(lecteur, "blanc")
 
 
-@given("Machin lecture s'est arrêté")
+@given("Machin player s'est arrêté")
 def arrete(lecteur: Lecteur) -> None:
 	publier(lecteur, "arret")
 
@@ -129,7 +129,7 @@ def arrete(lecteur: Lecteur) -> None:
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when("l'interface a reçu l'état de Machin lecture")
+@when("l'interface a reçu l'état de Machin player")
 def etat_recu(interface: Contexte, lecteur: Lecteur, qtbot: QtBot) -> None:
 	"""Les entrées montrent ce que propose le dernier état publié."""
 	attendues = interruption.proposer(lire_message(lecteur.publie))
@@ -143,7 +143,7 @@ def etat_recu(interface: Contexte, lecteur: Lecteur, qtbot: QtBot) -> None:
 	qtbot.waitUntil(a_jour, timeout=ATTENTE)
 
 
-@when("l'onglet Antenne a reçu l'état de Machin lecture")
+@when("l'onglet Antenne a reçu l'état de Machin player")
 def accueil_a_jour(interface: Contexte, lecteur: Lecteur, qtbot: QtBot) -> None:
 	attendu = lire_message(lecteur.publie)
 	qtbot.waitUntil(lambda: fenetre(interface).accueil.etat == attendu, timeout=ATTENTE)
@@ -161,7 +161,7 @@ def choisir_au_prochain(interface: Contexte, entree: str) -> None:
 	action.trigger()
 
 
-@when(parsers.parse("Machin lecture ferme sa socket d'état, juste avant que je choisisse « {entree} »"))
+@when(parsers.parse("Machin player ferme sa socket d'état, juste avant que je choisisse « {entree} »"))
 def socket_fermee_avant_le_choix(interface: Contexte, lecteur: Lecteur, qtbot: QtBot, entree: str) -> None:
 	"""Le choix arrive avant que l'interface ait vu la socket se fermer : l'entrée est encore active."""
 	assert lecteur.socket is not None
@@ -205,7 +205,7 @@ def menu_du_prochain(interface: Contexte, datatable: list[list[str]]) -> None:
 	assert obtenues == attendues
 
 
-@then(parsers.parse("Machin lecture a reçu la demande d'avancer l'événement n°{evenement:d}"))
+@then(parsers.parse("Machin player a reçu la demande d'avancer l'événement n°{evenement:d}"))
 def avance_recue(lecteur: Lecteur, qtbot: QtBot, evenement: int) -> None:
 	socket = lecteur.socket
 	assert socket is not None
@@ -225,7 +225,7 @@ def aucune_active(interface: Contexte) -> None:
 	assert not any(action.isEnabled() for action in entrees(interface).values())
 
 
-@then(parsers.parse("Machin lecture a reçu la demande d'interrompre « {element} »"))
+@then(parsers.parse("Machin player a reçu la demande d'interrompre « {element} »"))
 def demande_recue(lecteur: Lecteur, qtbot: QtBot, element: str) -> None:
 	socket = lecteur.socket
 	assert socket is not None
@@ -317,19 +317,19 @@ def sous_menu_des_secours(interface: Contexte, entrees: str) -> None:
 	assert [entree.text() for entree in sous_menu.actions()] == _entrees(entrees)
 
 
-@then(parsers.parse("Machin lecture a reçu la demande de couper l'antenne par le secours « {nom} »"))
+@then(parsers.parse("Machin player a reçu la demande de couper l'antenne par le secours « {nom} »"))
 def coupure_par_le_secours_recue(base_vide: Connexion, lecteur: Lecteur, qtbot: QtBot, nom: str) -> None:
 	secours = identifiant(base_vide, "evenements", "nom_interne", nom)
 	assert _recevoir(lecteur, qtbot) == [Demande(commande=COUPER_PAR_LE_SECOURS, evenement=secours)]
 
 
-@then(parsers.parse("Machin lecture a reçu la demande de couper l'antenne par le feed « {nom} »"))
+@then(parsers.parse("Machin player a reçu la demande de couper l'antenne par le feed « {nom} »"))
 def coupure_par_le_feed_recue(base_vide: Connexion, lecteur: Lecteur, qtbot: QtBot, nom: str) -> None:
 	feed = identifiant(base_vide, "feeds", "nom", nom)
 	assert _recevoir(lecteur, qtbot) == [Demande(commande=COUPER_PAR_LE_FEED, feed=feed)]
 
 
-@then(parsers.parse("Machin lecture a reçu aussi la demande d'interrompre « {element} »"))
+@then(parsers.parse("Machin player a reçu aussi la demande d'interrompre « {element} »"))
 def aussi_recue(lecteur: Lecteur, qtbot: QtBot, element: str) -> None:
 	assert _recevoir(lecteur, qtbot)[-1] == Demande(element)
 

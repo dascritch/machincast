@@ -5,14 +5,14 @@
 #   Machin logs [OPTIONS DE journalctl…]           suit en direct le journal du service de lecture
 #   Machin dev                                      sous-shell de développement, venv activé
 #   Machin dev-test                                 lance tous les outils de vérification, avec un bilan
-#   Machin dev-captures [REPERTOIRE]                refait les captures d'écran du guide de l'antenne
+#   Machin dev-screenshots [REPERTOIRE]                refait les captures d'écran du guide de l'antenne
 #
 # Règles : doc/fr/regles/wrapper.md. Tests : bats tests/wrapper.
 
 set -euo pipefail
 
 # Binaires connus, dans l'ordre de l'aide. Un test vérifie qu'ils correspondent à [project.scripts] de pyproject.toml.
-BINAIRES=(lecture indexation interface maintenance-db purge)
+BINAIRES=(player indexer interface maintenance-db purge)
 UNITE_LECTURE="machincast.service"
 
 CODE_USAGE=2
@@ -22,7 +22,7 @@ aide_minimale() {
 	local liste
 	liste="$(printf '%s, ' "${BINAIRES[@]}")"
 	cat <<-FIN
-		Usage : Machin [--config FICHIER] BINAIRE [OPTIONS…]  ou  Machin logs|dev|dev-test|dev-captures
+		Usage : Machin [--config FICHIER] BINAIRE [OPTIONS…]  ou  Machin logs|dev|dev-test|dev-screenshots
 		Binaires : ${liste%, }. Aide complète : Machin --help
 	FIN
 }
@@ -34,13 +34,13 @@ aide_complete() {
 		Usage :
 		  Machin [--config FICHIER] BINAIRE [OPTIONS…]
 		  Machin logs [OPTIONS DE journalctl…]
-		  Machin dev | dev-test | dev-captures [REPERTOIRE]
-		  Machin -h | --help | --binaires
+		  Machin dev | dev-test | dev-screenshots [REPERTOIRE]
+		  Machin -h | --help | --binaries
 
 		Binaires (Machin BINAIRE appelle Machin_BINAIRE avec les options qui suivent,
 		pris dans le venv .venv du projet, sans qu'il soit activé, ou à défaut dans le PATH) :
-		  lecture      diffusion de l'antenne, normalement lancée comme service systemd
-		  indexation   vérification des fichiers sonores et mise à jour de la base
+		  player       diffusion de l'antenne, normalement lancée comme service systemd
+		  indexer      vérification des fichiers sonores et mise à jour de la base
 		  interface    interface graphique de programmation
 		  maintenance-db
 		               sauvegarde, vérifie et optimise la base de données
@@ -65,7 +65,7 @@ aide_complete() {
 		               puis bats, tous même après un échec, avec les outils du venv sans qu'il
 		               soit activé ; affiche un bilan par outil et se termine en échec si l'un
 		               d'eux échoue. Un outil absent se signale : ./install.sh --dev l'installe.
-		  dev-captures refait les captures d'écran du guide de l'antenne, dans doc/fr/captures
+		  dev-screenshots refait les captures d'écran du guide de l'antenne, dans doc/fr/captures
 		               ou dans REPERTOIRE : l'interface hors de l'écran, sur une démonstration
 		               écrite dans la base de test, jamais dans celle de production.
 
@@ -76,11 +76,11 @@ aide_complete() {
 		               $(projet)/machincast.toml)
 		  -h           aide minimale
 		  --help       cette aide complète
-		  --binaires   liste des binaires, un par ligne (utilisée par l'autocomplétion)
+		  --binaries   liste des binaires, un par ligne (utilisée par l'autocomplétion)
 
 		Exemples :
-		  Machin lecture --config essai.toml
-		  Machin indexation --help
+		  Machin player --config essai.toml
+		  Machin indexer --help
 		  Machin logs
 		  Machin dev-test
 
@@ -90,7 +90,7 @@ aide_complete() {
 		  ${CODE_USAGE}            appel incorrect du wrapper (binaire ou option inconnus) ;
 		  ${CODE_INTROUVABLE}          binaire, journalctl ou venv introuvable.
 
-		Documentation : https://github.com/dascritch/machincast/blob/main/doc/spec.md#7-wrapper-machin
+		Documentation : https://github.com/dascritch/machincast/blob/main/doc/fr/spec.md#7-wrapper-machin
 	FIN
 }
 
@@ -262,7 +262,7 @@ principal() {
 				aide_complete
 				exit 0
 				;;
-			--binaires)
+			--binaries)
 				printf '%s\n' "${BINAIRES[@]}"
 				exit 0
 				;;
@@ -302,9 +302,9 @@ principal() {
 		lancer_dev_test
 	fi
 
-	if [[ "${binaire}" == dev-captures ]]; then
-		((${#configuration[@]} == 0)) || erreur_usage "--config ne s'applique pas à dev-captures"
-		(($# <= 1)) || erreur_usage "dev-captures prend au plus un répertoire"
+	if [[ "${binaire}" == dev-screenshots ]]; then
+		((${#configuration[@]} == 0)) || erreur_usage "--config ne s'applique pas à dev-screenshots"
+		(($# <= 1)) || erreur_usage "dev-screenshots prend au plus un répertoire"
 		lancer_dev_captures "$@"
 	fi
 

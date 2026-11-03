@@ -1,17 +1,17 @@
 # language: fr
 Fonctionnalité: Analyse du prochain sonore au dernier moment
 	En tant que technicien d'antenne,
-	je veux que Machin lecture fasse analyser le prochain sonore qu'il va jouer, s'il n'a pas été vérifié en entier,
+	je veux que Machin player fasse analyser le prochain sonore qu'il va jouer, s'il n'a pas été vérifié en entier,
 	afin qu'un fichier jamais décodé, ou changé depuis, soit vérifié avant de passer à l'antenne.
 
-	https://github.com/dascritch/machincast/issues/181. Au début de chaque sonore, Machin lecture réserve le suivant.
+	https://github.com/dascritch/machincast/issues/181. Au début de chaque sonore, Machin player réserve le suivant.
 	Si ce prochain sonore est un fichier jamais vérifié en entier (sans date de vérification complète), ou dont le
-	fichier a changé depuis (date de modification ou taille), il lance « Machin indexation --audit-complet --sonore N »
+	fichier a changé depuis (date de modification ou taille), il lance « Machin indexer --full-audit --sound N »
 	dans un processus à part, sans fenêtre, et ne l'attend pas : que l'indexeur plante ou n'ait pas fini, le sonore
 	est joué à son heure. Un même sonore n'est pas redemandé avant une heure. Un stream n'est jamais analysé.
 
-	Les scénarios remplacent Machin indexation par une commande imitée, qui note ses arguments, sauf le dernier,
-	qui lance le vrai Machin indexation sur la base de test.
+	Les scénarios remplacent Machin indexer par une commande imitée, qui note ses arguments, sauf le dernier,
+	qui lance le vrai Machin indexer sur la base de test.
 
 	Contexte:
 		Étant donné le poste à l'heure de Paris
@@ -92,10 +92,10 @@ Fonctionnalité: Analyse du prochain sonore au dernier moment
 		Alors l'airplay montre les passages « f1 », « f2 », « f1 »
 		Et chaque passage a sa ligne de fin, sans incident
 
-	Scénario: Le vrai Machin indexation vérifie le prochain sonore en entier
+	Scénario: Le vrai Machin indexer vérifie le prochain sonore en entier
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
 		Et le sonore « f1 » a été vérifié en entier
-		Et Machin indexation comme commande d'analyse, sur la base de test
+		Et Machin indexer comme commande d'analyse, sur la base de test
 		Quand la diffusion démarre au plus vite
 		Et la diffusion tourne 1 pas d'une seconde
 		Alors le sonore « f2 » a bientôt sa date de vérification complète

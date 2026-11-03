@@ -8,7 +8,7 @@ Fonctionnalité: Périphériques de sortie du poste
 	périphériques de sortie audio du poste, comme gst-device-monitor-1.0 Audio/Sink, et ne garde que ceux de la sortie
 	configurée : nœuds PipeWire, périphériques PulseAudio ou ALSA. L'identifiant est celui qu'écrivent
 	audio.peripherique et audio.preecoute : le nom du nœud PipeWire (node.name), sinon le nom interne du périphérique.
-	« python -m machincast.installation peripheriques » les liste ; sans aucun, il dit tout ce que voit GStreamer.
+	« python -m machincast.installation devices » les liste ; sans aucun, il dit tout ce que voit GStreamer.
 	Les scénarios remplacent les périphériques que voit GStreamer ; « (vide) » est un nom interne vide.
 
 	Contexte:

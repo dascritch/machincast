@@ -214,25 +214,25 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		https://github.com/dascritch/machincast/issues/223 : le texte public est ce que la page publique affiche.
 
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
-		Et la socket d'état de Machin lecture ouverte pour l'interface
-		Et Machin lecture diffuse un sonore au texte public « Les Gaufres – Café à minuit »
+		Et la socket d'état de Machin player ouverte pour l'interface
+		Et Machin player diffuse un sonore au texte public « Les Gaufres – Café à minuit »
 		Quand la fenêtre de l'interface s'ouvre
 		Et je clique sur le VU-mètre de l'antenne
 		Alors la fenêtre de pré-écoute est bientôt titrée « en cours : Les Gaufres – Café à minuit »
-		Quand Machin lecture diffuse un sonore au texte public « Radio Thune, la radio »
+		Quand Machin player diffuse un sonore au texte public « Radio Thune, la radio »
 		Alors la fenêtre de pré-écoute est bientôt titrée « en cours : Radio Thune, la radio »
 
 	Scénario: Un sonore pré-écouté ne prend pas le titre de l'antenne
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
-		Et la socket d'état de Machin lecture ouverte pour l'interface
-		Et Machin lecture diffuse un sonore au texte public « Les Gaufres – Café à minuit »
+		Et la socket d'état de Machin player ouverte pour l'interface
+		Et Machin player diffuse un sonore au texte public « Les Gaufres – Café à minuit »
 		Et les sonores :
 			| artiste | titre  | type    | etat  | duree | emplacement      |
 			|         | Jingle | fichier | actif | 8     | /srv/jingle.flac |
 		Quand la fenêtre de l'interface s'ouvre
 		Et je clique sur le VU-mètre de l'antenne
 		Et je demande la pré-écoute du sonore « Jingle »
-		Et Machin lecture diffuse un sonore au texte public « Radio Thune, la radio »
+		Et Machin player diffuse un sonore au texte public « Radio Thune, la radio »
 		Alors la fenêtre de pré-écoute reste titrée « Pré-écoute : Jingle »
 
 	Scénario: « Pré-écoute de l'antenne », en tête du menu « Diffusion », écoute l'antenne aussitôt

@@ -26,12 +26,12 @@ Fonctionnalité: La sortie de l'antenne ne joue jamais ailleurs que sur son pér
 
 		Exemples:
 			| programme            | nom                     |
-			| Machin lecture       | MachinCast lecteur      |
+			| Machin player       | MachinCast lecteur      |
 			| la pré-écoute        | MachinCast interface    |
 			| l'essai de la sortie | MachinCast installation |
 
 	Plan du scénario: Une sortie sans périphérique, ou d'une autre sortie que PipeWire, n'a pas de verrou
-		Quand je crée la sortie « <sortie> » de Machin lecture, sur le périphérique « <peripherique> »
+		Quand je crée la sortie « <sortie> » de Machin player, sur le périphérique « <peripherique> »
 		Alors la sortie n'a pas de verrou
 
 		Exemples:

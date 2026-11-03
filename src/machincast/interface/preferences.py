@@ -10,11 +10,11 @@ Elle règle aussi le seuil de silence (silences.seuil, https://github.com/dascri
 complet prend à son prochain passage, à côté des fondus qu'il place
 (https://github.com/dascritch/machincast/issues/324). Sa page « Audio » règle, par le bloc des cartes son
 (machincast.interface.cartes_son, https://github.com/dascritch/machincast/issues/339), le type de sortie (audio.sortie)
-et les cartes son de l'antenne (audio.peripherique), que Machin lecture prend à son prochain démarrage, et de la
+et les cartes son de l'antenne (audio.peripherique), que Machin player prend à son prochain démarrage, et de la
 pré-écoute (audio.preecoute, https://github.com/dascritch/machincast/issues/116) : chacune est grisée dans l'autre
 choix, et se teste ; service de diffusion en marche, celle de l'antenne ne se choisit pas ; elle règle aussi le blanc
 dans un sonore (section [blanc_antenne], https://github.com/dascritch/machincast/issues/122) : sa durée, son niveau, et
-le passage au secours, que Machin lecture prend à son prochain démarrage. La page « Base » règle la durée de péremption
+le passage au secours, que Machin player prend à son prochain démarrage. La page « Base » règle la durée de péremption
 (base.peremption, https://github.com/dascritch/machincast/issues/268), que Machin purge prend à son prochain passage, et
 que suit la fiche d'un élément supprimé. La page « Interface » règle l'onglet Antenne, et choisit l'icône de
 l'application (interface.icone, https://github.com/dascritch/machincast/issues/111) : une image lisible, ou celle de
@@ -24,7 +24,7 @@ MachinCast ; la fenêtre principale la donne aussitôt à ses fenêtres et aux r
 - Les préférences s'enregistrent dans la section [crossfades] du fichier de configuration (ecrire), qui garde ses
   commentaires et ses autres sections : tomlkit le réécrit tel qu'il l'a lu, sauf les clés réglées. Une durée par
   défaut retirée en disparaît.
-- Les préférences de la session (crossfades, definir) valent pour les fiches ouvertes ensuite ; Machin lecture prend
+- Les préférences de la session (crossfades, definir) valent pour les fiches ouvertes ensuite ; Machin player prend
   les durées par défaut à son prochain démarrage.
 - Les champs de crossfade des fiches les suivent (regler) : un pas d'une seconde ou d'un dixième, et la durée
   maximale, sauf pour une valeur déjà plus longue, qui reste telle quelle.

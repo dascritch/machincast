@@ -1,7 +1,7 @@
 """Journal d'une indexation lancée depuis l'interface (https://github.com/dascritch/machincast/issues/120).
 
-La fenêtre de Machin indexation --fenetre, dans un processus à part de l'interface (machincast.interface.indexation) :
-elle montre ligne par ligne ce que Machin indexation écrirait dans le terminal, au fil de l'indexation, chaque sonore
+La fenêtre de Machin indexer --window, dans un processus à part de l'interface (machincast.interface.indexation) :
+elle montre ligne par ligne ce que Machin indexer écrirait dans le terminal, au fil de l'indexation, chaque sonore
 indexé avec son statut, les anomalies, puis le bilan. À la fin, elle conclut par le bilan et le nombre d'anomalies.
 
 La fermer pendant l'indexation demande s'il faut l'arrêter : elle s'arrête alors après le fichier en cours, et le
@@ -81,7 +81,7 @@ class FenetreJournal(QWidget):
 def lancer_fenetre(
 	socket: Path, base: str, audit_complet: bool, seuil_silences: float = SEUIL_DE_SILENCE, forcer: bool = False
 ) -> int:
-	"""Machin indexation --fenetre : la fenêtre du journal, jusqu'à sa fermeture ; forcer, avec --forcer."""
+	"""Machin indexer --window : la fenêtre du journal, jusqu'à sa fermeture ; forcer, avec --force."""
 	qt = application(EXECUTABLE)
 	fenetre = FenetreJournal(socket, base, audit_complet, seuil_silences=seuil_silences)
 	fenetre.indexation.forcer = forcer

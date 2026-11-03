@@ -48,7 +48,7 @@ TYPE_FACTICE: tuple[SortieAudio, str] = ("factice", "Factice, aucun son")
 """La sortie factice des essais : proposée seulement si elle est déjà configurée."""
 SORTIE_FACTICE = "Sortie factice"
 A_RENSEIGNER = "(à renseigner)"
-"""L'antenne, tant qu'elle n'a pas de carte : Machin lecture refuse alors de diffuser."""
+"""L'antenne, tant qu'elle n'a pas de carte : Machin player refuse alors de diffuser."""
 FACTICE_REFUSEE = (
 	"Seulement sans service de diffusion installé : l'antenne d'un poste dédié joue toujours sur une carte son."
 )
@@ -207,7 +207,7 @@ class CartesSon(QWidget):
 		for element in (ui.sortie, ui.antenne):
 			element.setEnabled(not verrouillee)
 		ui.sortie.setToolTip("Le serveur audio par lequel passent l'antenne et la pré-écoute")
-		ui.antenne.setToolTip("La carte son sur laquelle Machin lecture diffuse l'antenne")
+		ui.antenne.setToolTip("La carte son sur laquelle Machin player diffuse l'antenne")
 		if verrouillee:
 			for element in (ui.sortie, ui.antenne):
 				element.setToolTip(DIFFUSION_EN_MARCHE)

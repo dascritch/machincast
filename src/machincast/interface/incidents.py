@@ -1,6 +1,6 @@
 """Écran des incidents (https://github.com/dascritch/machincast/issues/35, spec § 8.6).
 
-Les entrées du log que Machin lecture a notées, du plus récent au plus ancien : par défaut les alertes et les
+Les entrées du log que Machin player a notées, du plus récent au plus ancien : par défaut les alertes et les
 incidents, les informations sur demande ; seules les LIMITE plus récentes sont lues. Chaque entrée donne son horaire,
 son niveau, sa nature, son message, et ce qu'elle concerne : sonore, banque, événement, quand c'est renseigné. Un
 double-clic sur l'un d'eux demande sa fiche (ouverte) ; un élément supprimé depuis laisse sa cellule vide, l'entrée

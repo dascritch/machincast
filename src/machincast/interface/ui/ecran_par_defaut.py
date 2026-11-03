@@ -505,7 +505,7 @@ class Ui_EcranParDefaut(object):
 #endif // QT_CONFIG(tooltip)
         self.texte_public.setText(QCoreApplication.translate("EcranParDefaut", u"\u2014", None))
 #if QT_CONFIG(tooltip)
-        self.etat_lecture.setToolTip(QCoreApplication.translate("EcranParDefaut", u"\u00c9tat de Machin lecture", None))
+        self.etat_lecture.setToolTip(QCoreApplication.translate("EcranParDefaut", u"\u00c9tat de Machin player", None))
 #endif // QT_CONFIG(tooltip)
         self.etat_lecture.setText(QCoreApplication.translate("EcranParDefaut", u"\u00c0 l'arr\u00eat", None))
 #if QT_CONFIG(tooltip)

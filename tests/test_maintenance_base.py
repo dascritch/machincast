@@ -244,6 +244,6 @@ def binaire_du_wrapper(binaire: str) -> None:
 	scripts = tomllib.loads((REPERTOIRE_PROJET / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
 	assert scripts[f"Machin_{binaire}"] == "machincast.maintenance:main"
 	sortie = subprocess.run(
-		[str(REPERTOIRE_PROJET / "bin" / "Machin"), "--binaires"], capture_output=True, text=True, timeout=30
+		[str(REPERTOIRE_PROJET / "bin" / "Machin"), "--binaries"], capture_output=True, text=True, timeout=30
 	)
 	assert binaire in sortie.stdout.split(), sortie.stdout

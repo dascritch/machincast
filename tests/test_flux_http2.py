@@ -1,7 +1,7 @@
 """Scénarios « release » d'un flux HTTP/2 qui gèle (https://github.com/dascritch/machincast/issues/278).
 
 Lancés à part : pytest -m release. Un serveur hypercorn sert, en TLS, un flux AAC au rythme du temps réel, puis plus
-rien, sa connexion ouverte. La voie de Machin lecture (machincast.lecture.moteur.Voie) le lit sur la sortie de la
+rien, sa connexion ouverte. La voie de Machin player (machincast.lecture.moteur.Voie) le lit sur la sortie de la
 configuration de test, dans un processus à part : libsoup ne choisit HTTP/2 que dans un processus où SOUP_FORCE_HTTP1
 n'a jamais existé avant sa première session. Le certificat, fait pour le scénario, est accepté (ssl-strict).
 """
@@ -143,7 +143,7 @@ def serveur_http2(tmp_path: Path) -> Iterator[Serveur]:
 
 @when(
 	parsers.re(
-		r"une voie de Machin lecture lit ce flux, en (?P<version>HTTP/1\.1|HTTP/2),"
+		r"une voie de Machin player lit ce flux, en (?P<version>HTTP/1\.1|HTTP/2),"
 		r" jusqu'à (?P<secondes>\d+) secondes après le gel"
 	)
 )

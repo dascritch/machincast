@@ -393,11 +393,11 @@ def artiste_et_titre_en_base(base_vide: Connexion, sonore: int, artiste: str, ti
 	assert lire_tags_en_base(base_vide, sonore)[:2] == (artiste, titre)
 
 
-# ─── Machin indexation ─────────────────────────────────────
+# ─── Machin indexer ─────────────────────────────────────
 
 
 @when(
-	parsers.re(r"Machin indexation est lancé sur la base de test(?P<audit>, en audit complet)?"),
+	parsers.re(r"Machin indexer est lancé sur la base de test(?P<audit>, en audit complet)?"),
 	target_fixture="lancement",
 )
 def lancer_sur_la_base_de_test(
@@ -417,7 +417,7 @@ def lancer_sur_la_base_de_test(
 	return code, [enregistrement.getMessage() for enregistrement in caplog.records]
 
 
-@then(parsers.parse("Machin indexation se termine avec le code {code:d}, en signalant « {texte} »"))
+@then(parsers.parse("Machin indexer se termine avec le code {code:d}, en signalant « {texte} »"))
 def lancement_termine(lancement: tuple[int, list[str]], tmp_path: Path, code: int, texte: str) -> None:
 	"""Un « …/ » désigne le répertoire du scénario."""
 	obtenu, messages = lancement
@@ -552,7 +552,7 @@ def sonore_silences_edites(base_vide: Connexion, fichier: Path, secondes: str) -
 
 @when("l'indexeur fait l'audit complet de ce seul sonore", target_fixture="execution")
 def audit_d_un_sonore(base_vide: Connexion, caplog: pytest.LogCaptureFixture, sonore: int) -> Execution:
-	"""Comme Machin_indexation --audit-complet --sonore N, avec le seuil par défaut."""
+	"""Comme Machin_indexer --full-audit --sound N, avec le seuil par défaut."""
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:
 		bilan = indexer_un_sonore(c, sonore, audit_complet=True)

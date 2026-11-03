@@ -328,7 +328,7 @@ Fonctionnalité: Écran par défaut de l'interface
 
 		Quand l'écran par défaut s'ouvre
 		Alors l'écran n'a aucun intitulé « Binaire lecture : » ni « Événement à l'antenne : »
-		Et l'état du binaire lecture a pour infobulle « État de Machin lecture »
+		Et l'état du binaire lecture a pour infobulle « État de Machin player »
 		Et l'événement à l'antenne a pour infobulle « Événement à l'antenne »
 
 	Plan du scénario: L'événement à l'antenne dit s'il est permanent, ou sans fin prévue

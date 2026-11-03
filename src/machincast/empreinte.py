@@ -1,7 +1,7 @@
 """Date de modification et taille d'un fichier sonore : ce qui dit qu'il a changé depuis sa dernière vérification
 (https://github.com/dascritch/machincast/issues/10).
 
-L'indexeur s'en sert pour décider de redécoder un fichier en indexation rapide, et Machin lecture pour savoir si le
+L'indexeur s'en sert pour décider de redécoder un fichier en indexation rapide, et Machin player pour savoir si le
 prochain sonore doit être analysé avant d'être joué (https://github.com/dascritch/machincast/issues/181). Ce module
 ne fait que lire l'état du fichier sur le disque, jamais le fichier lui-même.
 """

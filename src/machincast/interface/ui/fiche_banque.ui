@@ -259,7 +259,7 @@
         <item>
          <widget class="QLabel" name="explication_repertoires">
           <property name="text">
-           <string>Machin indexation rattache à la banque les fichiers sonores de ces répertoires et de leurs sous-répertoires.</string>
+           <string>Machin indexer rattache à la banque les fichiers sonores de ces répertoires et de leurs sous-répertoires.</string>
           </property>
           <property name="wordWrap">
            <bool>true</bool>

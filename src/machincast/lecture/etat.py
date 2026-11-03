@@ -6,7 +6,7 @@ dernier état, puis chaque nouvel état : une ligne JSON par état, en UTF-8, av
 progression. Le format est décrit champ par champ dans la spécification, § 5.4.
 
 La socket est réservée au compte qui diffuse : son répertoire est en 0700, la socket en 0600. Une socket déjà
-ouverte par un autre Machin lecture refuse la seconde diffusion (SocketEtatOccupee) ; une socket laissée par un
+ouverte par un autre Machin player refuse la seconde diffusion (SocketEtatOccupee) ; une socket laissée par un
 binaire arrêté brutalement est remplacée.
 
 Chaque client a son fil : un client lent ou qui se déconnecte ne bloque jamais la diffusion.
@@ -149,7 +149,7 @@ def lire_demande(ligne: bytes) -> Demande:
 
 
 class SocketEtatOccupee(Exception):
-	"""Un autre Machin lecture diffuse déjà sur cette socket."""
+	"""Un autre Machin player diffuse déjà sur cette socket."""
 
 
 def est_sain(connexion: psycopg.Connection[TupleRow], sonore: int) -> bool | None:
@@ -207,14 +207,14 @@ class SocketEtat:
 				return recues
 
 	def ouvrir(self) -> None:
-		"""Crée la socket ; lève SocketEtatOccupee si un autre Machin lecture l'a déjà ouverte."""
+		"""Crée la socket ; lève SocketEtatOccupee si un autre Machin player l'a déjà ouverte."""
 		verifier_ecriture(self.chemin)
 		repertoire = self.chemin.parent
 		repertoire.mkdir(mode=0o700, parents=True, exist_ok=True)
 		os.chmod(repertoire, 0o700)
 		if (self.chemin.exists()) or (self.chemin.is_symlink()):
 			if self._occupee():
-				raise SocketEtatOccupee(f"{self.chemin} : un autre Machin lecture diffuse déjà")
+				raise SocketEtatOccupee(f"{self.chemin} : un autre Machin player diffuse déjà")
 			if not stat.S_ISSOCK(self.chemin.lstat().st_mode):
 				raise OSError(f"{self.chemin} existe et n'est pas une socket")
 			self.chemin.unlink()  # fichier de MachinCast : socket d'état laissée par un arrêt brutal

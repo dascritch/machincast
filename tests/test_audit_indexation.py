@@ -1,6 +1,6 @@
 """Scénarios du document d'audit de l'indexation (https://github.com/dascritch/machincast/issues/11).
 
-Les étapes des fichiers, des sonores et du lancement de Machin indexation sont dans tests/etapes_indexation.py ; le
+Les étapes des fichiers, des sonores et du lancement de Machin indexer sont dans tests/etapes_indexation.py ; le
 répertoire et l'heure des documents sont fixés par tests/conftest.py (repertoire_d_audit).
 """
 
@@ -60,7 +60,7 @@ def annonce_apres_bilan(lancement: tuple[int, list[str]]) -> None:
 	assert messages[-1].startswith("document d'audit : "), messages
 
 
-@then(parsers.parse("la sortie d'erreur de Machin indexation mentionne « {texte} »"))
+@then(parsers.parse("la sortie d'erreur de Machin indexer mentionne « {texte} »"))
 def erreur(caplog: pytest.LogCaptureFixture, texte: str) -> None:
 	assert any((r.levelno >= logging.WARNING) and (texte in r.getMessage()) for r in caplog.records), caplog.text
 

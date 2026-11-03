@@ -49,7 +49,7 @@ Fonctionnalité: Sauter une session d'un événement récurrent, à la diffusion
 		Et la diffusion avance de 1 seconde
 		Alors les sonores à venir sont « f3 », « m1 », « m2 », « m1 », « m2 »
 		Quand la session du 2026-10-14 de l'événement « Flash » est sautée
-		Et l'interface demande à Machin lecture de relire la grille
+		Et l'interface demande à Machin player de relire la grille
 		Et la diffusion avance de 1 seconde
 		Alors le prochain sonore réservé est « f2 »
 		Et les sonores à venir sont « f3 », « f4 », « f5 », « f1 », « f2 »

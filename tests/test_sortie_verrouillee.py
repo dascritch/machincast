@@ -27,7 +27,7 @@ ATTENTE = 5.0
 CALME = 1.5
 """Secondes au bout desquelles un flux qui n'est pas relié ne le sera pas."""
 PROGRAMMES = {
-	"Machin lecture": audio.ANTENNE,
+	"Machin player": audio.ANTENNE,
 	"la pré-écoute": audio.PREECOUTE,
 	"l'essai de la sortie": audio.ESSAI,
 }

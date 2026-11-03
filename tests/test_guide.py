@@ -109,7 +109,9 @@ def machin_logs(guide: str) -> None:
 
 @then(parsers.parse("chaque option de l'aide de « {executable} » est documentée dans le guide {guide}"))
 def options_binaire(executable: str, guide: str) -> None:
-	module = f"machincast.{executable.removeprefix('Machin_')}"
+	# Le module du point d'entrée : Machin_player lance machincast.lecture (https://github.com/dascritch/machincast/issues/356).
+	scripts = tomllib.loads((RACINE / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
+	module = scripts[executable].split(":")[0].removesuffix(".__main__")
 	aide = subprocess.run([sys.executable, "-m", module, "--help"], capture_output=True, text=True, check=True)
 	manquants = absents(guide, options(aide.stdout.split("options:", 1)[1]))
 	assert not manquants, f"{executable} : {manquants}"

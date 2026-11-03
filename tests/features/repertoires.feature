@@ -223,7 +223,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Quand l'indexeur fait une indexation rapide, dont l'arrêt est déjà demandé
 		Alors la banque « Jingles » contient, dans l'ordre, « jingles/a.flac »
 
-	Scénario: Machin indexation --sonore retire ce seul sonore des banques dont il sort des durées
+	Scénario: Machin indexer --sound retire ce seul sonore des banques dont il sort des durées
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
 		Et le fichier « jingles/a.flac », sain
 		Et le fichier « jingles/b.flac », sain
@@ -249,16 +249,16 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 
 	# ─── Une indexation à la fois ──────────────────────────────
 
-	Scénario: Machin indexation refuse de commencer pendant une autre indexation sur la même base
+	Scénario: Machin indexer refuse de commencer pendant une autre indexation sur la même base
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
 		Et le fichier « jingles/intro.flac », sain
 		Et une autre indexation en cours sur la base
-		Quand Machin indexation est lancé sur la base de test
-		Alors Machin indexation se termine avec le code 1, en signalant « indexation refusée : une autre indexation est en cours sur cette base »
+		Quand Machin indexer est lancé sur la base de test
+		Alors Machin indexer se termine avec le code 1, en signalant « indexation refusée : une autre indexation est en cours sur cette base »
 		Et la base contient 0 sonore
 		Quand l'autre indexation se termine
-		Et Machin indexation est lancé sur la base de test
-		Alors Machin indexation se termine avec le code 0, en signalant « indexation rapide : 1 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
+		Et Machin indexer est lancé sur la base de test
+		Alors Machin indexer se termine avec le code 0, en signalant « indexation rapide : 1 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
 		Et la base contient 1 sonore
 
 	Scénario: Une indexation arrêtée avant son début n'enregistre ni ne vérifie rien

@@ -1,6 +1,6 @@
 """Le service de diffusion, machincast.service (https://github.com/dascritch/machincast/issues/22).
 
-Installé sur demande par install.sh --service, il fait tourner Machin lecture sous le compte de MachinCast. Ce module
+Installé sur demande par install.sh --service, il fait tourner Machin player sous le compte de MachinCast. Ce module
 dit seulement son nom et son état, que lit systemctl sans aucun droit particulier ; l'interface le pilote
 (machincast.interface.pilotage, https://github.com/dascritch/machincast/issues/25), et machincast.installation rédige
 son unité et sa règle polkit.

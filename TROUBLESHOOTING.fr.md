@@ -40,7 +40,7 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 
 **Symptôme** : une notification, le son d'une vidéo, d'une visioconférence ou du navigateur s'entend à l'antenne, par-dessus la diffusion.
 
-**Cause** ([#250](https://github.com/dascritch/machincast/issues/250)) : le périphérique de l'antenne est la sortie par défaut du bureau, celle de tous les programmes qui n'en choisissent pas. MachinCast n'y est pour rien : `Machin lecture` joue sur `audio.peripherique`, quelle que soit la sortie par défaut.
+**Cause** ([#250](https://github.com/dascritch/machincast/issues/250)) : le périphérique de l'antenne est la sortie par défaut du bureau, celle de tous les programmes qui n'en choisissent pas. MachinCast n'y est pour rien : `Machin player` joue sur `audio.peripherique`, quelle que soit la sortie par défaut.
 
 **À vérifier** :
 

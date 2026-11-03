@@ -344,7 +344,7 @@ def _deja_audites(nombre: int, seuil: float) -> str:
 		debut = f"{nombre} sonores déjà audités au seuil de {texte_seuil} dB, aux fichiers inchangés : non décodés"
 	else:
 		debut = f"{nombre} sonore déjà audité au seuil de {texte_seuil} dB, au fichier inchangé : non décodé"
-	return f"{debut} ; --forcer décode tous les sonores"
+	return f"{debut} ; --force décode tous les sonores"
 
 
 def _sain(artiste: object, titre: object) -> str:
