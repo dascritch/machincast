@@ -1,4 +1,4 @@
-# Indentation par tabulations, pour des raisons d'accessibilité (doc/regles/developpement.md).
+# Indentation par tabulations, pour des raisons d'accessibilité (doc/fr/regles/developpement.md).
 root = true
 
 [*]

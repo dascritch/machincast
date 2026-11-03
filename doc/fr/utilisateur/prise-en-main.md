@@ -32,7 +32,7 @@
 | un calendrier | Grille horaire (onglet « Calendrier ») |
 | une boule de divination | Simulation |
 
-**Sans base de données**, l'interface ne peut rien montrer : une fenêtre d'erreur, « MachinCast : base de données injoignable », l'explique, et son bouton « Ouvrir INSTALL.md » mène à la section [En cas de problème](../../INSTALL.md#en-cas-de-problème), pour l'administrateur du poste.
+**Sans base de données**, l'interface ne peut rien montrer : une fenêtre d'erreur, « MachinCast : base de données injoignable », l'explique, et son bouton « Ouvrir INSTALL.md » mène à la section [En cas de problème](../../../INSTALL.fr.md#en-cas-de-problème), pour l'administrateur du poste.
 
 ## Pour bien démarrer
 

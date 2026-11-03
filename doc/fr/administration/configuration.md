@@ -79,4 +79,4 @@ Chaque programme agit dans la base avec ses propres droits : le compte qui le la
 
 `Machin maintenance-db` et `Machin purge` n'endossent aucun rôle : ils agissent en propriétaire de la base, ce qu'est le compte de MachinCast. Seule la purge efface des lignes de l'airplay et du log.
 
-Le détail, table par table, est dans la [spécification, § 3.2](../spec.md#32-rôles-et-droits). Ajouter un autre compte est décrit dans [INSTALL.md](../../INSTALL.md#ajouter-un-autre-compte).
+Le détail, table par table, est dans la [spécification, § 3.2](../spec.md#32-rôles-et-droits). Ajouter un autre compte est décrit dans [INSTALL.md](../../../INSTALL.fr.md#ajouter-un-autre-compte).

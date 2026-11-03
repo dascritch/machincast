@@ -1,54 +1,58 @@
 # MachinCast
 
-**Version 0.9.0**, publiée le 2026-10-28, première version publiée, avant la 1.0 : [ce qu'elle apporte](RELEASE.md), et [son archive](https://github.com/dascritch/machincast/releases/tag/v0.9.0).
+*[Version française](README.fr.md)*
 
-Système automatisé de diffusion sonore pour continuité d'antenne radio, sous Linux : il fournit un fil antenne en dehors des émissions en direct, à partir de banques de sonores, de *feeds* externes et d'événements horaires. Le service a des tolérance de sources, des scénarios de secours et sépare les services métiers.
+**Version 0.9.0**, released on 2026-10-28, first published version, ahead of 1.0: [what it brings](RELEASE.md), and [its archive](https://github.com/dascritch/machincast/releases/tag/v0.9.0).
 
-- **Équipe de l'antenne** : le [guide de l'antenne](doc/utilisateur/README.md), pour programmer et suivre l'antenne depuis l'interface graphique
-- **Administrateur du poste** : [INSTALL.md](INSTALL.md) pour l'installation, puis le [guide d'administration](doc/administration/README.md)
-- **Développeur** : le [guide du développement](doc/developpement/README.md), avec la [spécification fonctionnelle](doc/spec.md) et les [règles du projet](doc/regles/developpement.md)
-- **En cas de panne** : [TROUBLESHOOTING.md](TROUBLESHOOTING.md), les pannes connues, leurs causes et ce qu'il faut vérifier
+Automated audio playout system for radio continuity, on Linux: it keeps the station on air outside live shows, from banks of sounds, external *feeds* and scheduled events. The service tolerates failing sources, has fallback scenarios, and keeps its business services apart.
 
-![Capture de l'interface de pilotage de MachinCast](https://github.com/dascritch/machincast/raw/main/doc/captures/accueil.png)
+The user interface and the detailed guides are in French for now; their English translation comes with the next releases.
 
-## Configuration recommandée
+- **On-air team**: the [on-air guide](doc/fr/utilisateur/README.md) (French), to schedule and follow the station from the graphical interface
+- **Station administrator**: [INSTALL.md](INSTALL.md) for the installation, then the [administration guide](doc/fr/administration/README.md) (French)
+- **Developer**: the [development guide](doc/fr/developpement/README.md) (French), with the [functional specification](doc/fr/spec.md) and the [project rules](doc/fr/regles/developpement.md); [CONTRIBUTION.md](CONTRIBUTION.md) for the screens
+- **When something fails**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md), the known failures, their causes and what to check
 
-Système Linux graphique, avec le moteur audio PipeWire, idéalement Debian ou Ubuntu LTS, et deux sorties sons distinctes, dont une <q>de qualité</q> pour la sortie vers la régie finale de la station ou son nodal.
+![Screenshot of the MachinCast control interface](https://github.com/dascritch/machincast/raw/main/doc/fr/captures/accueil.png)
 
-## Contexte
+## Recommended setup
 
-Je suis animateur bénévole sur [Radio &lt;FMR&gt;](https://radio-fmr.net), radio associative de Toulouse, France. \
-J'ai été chargé une époque de la maintenance technique et de la formation des bénévoles de cette radio. Je produis actuellement [l'émission CPU Carré Petit Utile sur les technologies](https://cpu.pm), en plus d'être [architecte en solutions logicielles](https://dascritch.com). J'ai récemment été chargé de revoir la chaîne de production de la radio, qui tourne avec des moyens financiers très contraints.
+A graphical Linux system, with the PipeWire sound server, ideally Debian or Ubuntu LTS, and two separate sound outputs, one of them a <q>good quality</q> one, for the feed to the station's final control room or its master control.
 
-Notre radio utilise un logiciel d'automatisation d'antenne minimal pour gérer son fil musical continu et les émissions en extérieur. Mais ce logiciel est vieux, n'est plus maintenu, est sous licence propriétaire, est bourré de bugs, n'est pas ergonomique et manque cruellement de certaines fonctions.
+## Background
 
-Cela fait plus de 15 années que nous avons successivement tenté de migrer vers différents outils. Soit ils étaient trop compliqués, soit les outils supposés libres se sont refermés et sont devenus des solutions en SaaS.
+I am a volunteer host at [Radio &lt;FMR&gt;](https://radio-fmr.net), a community radio station in Toulouse, France. \
+At one time I was in charge of the station's technical maintenance and of training its volunteers. I currently produce [CPU Carré Petit Utile, a show about technology](https://cpu.pm), besides being a [software solutions architect](https://dascritch.com). I was recently asked to review the station's production chain, which runs on a very tight budget.
 
-J'ai estimé qu'il était plus simple de recoder de zéro un tel outil, en connaissant parfaitement nos usages, nos équipements, les fonctions manquantes et les erreurs de manipulation les plus classiques de ceux qui le gèrent. L'outil ne sert pas à produire une diffusion en stream directement, la sortie sonore d'une carte son professionnelle (XLR analogique symétrique, SPDIF ou AES3) est envoyée vers une régie finale, et des outils techniques pour les affichages DAB+ et RDS.
+Our station uses minimal radio automation software to run its continuous music feed and its outside broadcasts. But this software is old, no longer maintained, proprietary, riddled with bugs, unergonomic, and badly lacks some features.
 
-Si en tant que radio, autre organisation ou particulier, vous avez décidé d'installer ce logiciel, n'hésitez absolument pas à prendre contact pour parler de votre expérience, parler de votre cas d'usage et dans quelle installation vous l'avez inséré.
+For more than 15 years we have tried to move to one tool after another. Either they were too complicated, or the supposedly free tools closed up and became SaaS offerings.
 
-## Auteurs
+I thought it simpler to write such a tool from scratch, knowing our practices, our equipment, the missing features and the most common handling mistakes of the people who run it perfectly well. The tool does not produce a stream directly: the audio output of a professional sound card (balanced analog XLR, SPDIF or AES3) goes to a final control room, and to technical tools for the DAB+ and RDS displays.
+
+If, as a radio station, another organization or an individual, you have decided to install this software, please do get in touch to talk about your experience, your use case, and the setup you fitted it into.
+
+## Authors
 
 - [Xavier Mouton-Dubosc aka `dascritch`](https://dascritch.com)
 - Claude.AI
 
-La construction de code avec et par une IA est [dans le cadre d'une future émission de CPU et sera documenté en tant que tel](https://cpu.pm). Le code a été écrit par Claude.AI avec des contraintes fortes de qualité de code (TDD, BDD, E2E, tolérances d'échecs, reprise d'incidents, formatage).
+Building code with and by an AI is [part of a future episode of CPU, and will be documented as such](https://cpu.pm). The code was written by Claude.AI under strong code quality constraints (TDD, BDD, E2E, failure tolerance, incident recovery, formatting).
 
-## Licence
+## License
 
 [GPLv3](LICENSE)
 
-© [Xavier Mouton-Dubosc aka DaScritch](https://dascritch.com) pour [Radio &lt;FMR&gt;](https://radio-fmr.net)
+© [Xavier Mouton-Dubosc aka DaScritch](https://dascritch.com) for [Radio &lt;FMR&gt;](https://radio-fmr.net)
 
-## Hommage
+## Tribute
 
-À ceux qui ont définitivement raccroché le micro et ont participé à la création de notre couleur d'antenne :
+To those who have hung up the microphone for good, and who helped create our station's sound:
 
  - Patrick Chabouté "Docteur rock"
  - Pascal Bouche "Raskal"
  - Fabrice Serin "DJ Tro"
 
-Aux animateurs, bénévoles, soutients et aux artistes passés et à venir qui ont fait vivre l'antenne de Radio &lt;FMR&gt;
+To the hosts, volunteers, supporters, and to the artists past and future who have kept Radio &lt;FMR&gt; on air.
 
-Cultivé avec ♡ depuis Toulouse, France.
+Grown with ♡ in Toulouse, France.

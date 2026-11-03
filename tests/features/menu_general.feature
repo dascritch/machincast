@@ -43,7 +43,7 @@ Fonctionnalité: Menu général de l'interface
 		Étant donné MachinCast installé hors d'un dépôt git
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Documentation » dans le menu « Aide »
-		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/main/doc/utilisateur/README.md »
+		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/main/doc/fr/utilisateur/README.md »
 		Et la fenêtre de l'interface est ouverte
 
 	Scénario: « Signaler un problème… » ouvre les tickets de MachinCast dans le navigateur web
@@ -100,7 +100,7 @@ Fonctionnalité: Menu général de l'interface
 		Alors la fenêtre de version a dit « MachinCast <version>, publiée le 2026-10-28, commit <commit>. »
 		Et la fenêtre de version a montré les nouveautés de la version de MachinCast : « - Un blanc dans un sonore est noté. »
 		Quand je choisis « Documentation » dans le menu « Aide »
-		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/v<version>/doc/utilisateur/README.md »
+		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/v<version>/doc/fr/utilisateur/README.md »
 
 	Plan du scénario: Après sa release, « Version » compte les modifications qui ont suivi, et « Documentation » ouvre le guide de main
 		Étant donné MachinCast installé depuis un dépôt git dont le dernier commit date du « 2026-10-28 15:00:00+00:00 »
@@ -112,7 +112,7 @@ Fonctionnalité: Menu général de l'interface
 		# À l'heure du poste : Paris est alors à UTC+1.
 		Alors la fenêtre de version a dit « MachinCast <version>, publiée le 2026-10-28, plus <modifications>, la dernière le 2026-10-30 à 15:00, commit <commit>. »
 		Quand je choisis « Documentation » dans le menu « Aide »
-		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/main/doc/utilisateur/README.md »
+		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/main/doc/fr/utilisateur/README.md »
 
 		Exemples:
 			| nombre | modifications   |
@@ -126,7 +126,7 @@ Fonctionnalité: Menu général de l'interface
 		Et je choisis « Version » dans le menu « Aide »
 		Alors la fenêtre de version a dit « MachinCast <version>, publiée le 2026-10-28. »
 		Quand je choisis « Documentation » dans le menu « Aide »
-		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/v<version>/doc/utilisateur/README.md »
+		Alors le navigateur web a ouvert « https://github.com/dascritch/machincast/blob/v<version>/doc/fr/utilisateur/README.md »
 
 	Scénario: Sans nouveautés de sa version, « Version » n'en montre aucune
 		Étant donné MachinCast installé hors d'un dépôt git

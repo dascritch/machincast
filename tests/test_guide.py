@@ -1,8 +1,8 @@
 """Étapes de la documentation par public (https://github.com/dascritch/machincast/issues/74,
 https://github.com/dascritch/machincast/issues/128).
 
-Le guide utilisateur est doc/utilisateur, le guide d'administration doc/administration, celui du développement
-doc/developpement ; chacun a son sommaire, README.md. doc/utilisation.md n'est plus qu'un index.
+Le guide utilisateur est doc/fr/utilisateur, le guide d'administration doc/fr/administration, celui du développement
+doc/fr/developpement ; chacun a son sommaire, README.md. doc/fr/utilisation.md n'est plus qu'un index.
 """
 
 import re
@@ -21,7 +21,7 @@ from tests.markdown import ancres_cassees, liens_casses
 scenarios("guide.feature")
 
 RACINE = Path(__file__).resolve().parents[1]
-DOC = RACINE / "doc"
+DOC = RACINE / "doc" / "fr"
 GUIDES = {"utilisateur": DOC / "utilisateur", "d'administration": DOC / "administration"}
 OPTION = re.compile(r"(?<![\w-])(--?[a-z][a-z-]*)")
 LIEN = re.compile(r"\]\(([^)#\s]+)(?:#[^)]*)?\)")

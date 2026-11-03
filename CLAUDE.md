@@ -2,7 +2,7 @@
 
 Système automatisé de diffusion sonore pour radio, sous Linux : il fournit un fil antenne en dehors des émissions en direct, à partir de banques de sonores et d'événements horaires.
 
-Spécification fonctionnelle : [doc/spec.md](doc/spec.md).
+Spécification fonctionnelle : [doc/fr/spec.md](doc/fr/spec.md).
 
 ## Stack
 
@@ -38,7 +38,7 @@ sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machi
 
 # Toutes les vérifications ci-dessous d'un coup, avec un bilan par outil (venv non activé) : bin/Machin dev-test
 # Sous-shell dans le dépôt, venv activé : bin/Machin dev
-# Captures d'écran du guide de l'antenne, sur la base de test : bin/Machin dev-captures (doc/developpement/poste.md)
+# Captures d'écran du guide de l'antenne, sur la base de test : bin/Machin dev-captures (doc/fr/developpement/poste.md)
 
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/
@@ -72,20 +72,20 @@ Lire le bloc correspondant **avant** de modifier le code concerné :
 
 | Contexte | Règles |
 | --- | --- |
-| Toute modification (tickets, commits, style, tabulations) | [doc/regles/developpement.md](doc/regles/developpement.md) |
-| Écrire ou lancer des tests | [doc/regles/tests.md](doc/regles/tests.md) |
-| Schéma, requêtes, droits | [doc/regles/base-de-donnees.md](doc/regles/base-de-donnees.md) |
-| `Machin_lecture` | [doc/regles/binaire-lecture.md](doc/regles/binaire-lecture.md) |
-| `Machin_indexation` | [doc/regles/indexation.md](doc/regles/indexation.md) |
-| `Machin_interface` | [doc/regles/interface.md](doc/regles/interface.md) |
-| Wrapper `Machin`, configuration, `install.sh` | [doc/regles/wrapper.md](doc/regles/wrapper.md) |
+| Toute modification (tickets, commits, style, tabulations) | [doc/fr/regles/developpement.md](doc/fr/regles/developpement.md) |
+| Écrire ou lancer des tests | [doc/fr/regles/tests.md](doc/fr/regles/tests.md) |
+| Schéma, requêtes, droits | [doc/fr/regles/base-de-donnees.md](doc/fr/regles/base-de-donnees.md) |
+| `Machin_lecture` | [doc/fr/regles/binaire-lecture.md](doc/fr/regles/binaire-lecture.md) |
+| `Machin_indexation` | [doc/fr/regles/indexation.md](doc/fr/regles/indexation.md) |
+| `Machin_interface` | [doc/fr/regles/interface.md](doc/fr/regles/interface.md) |
+| Wrapper `Machin`, configuration, `install.sh` | [doc/fr/regles/wrapper.md](doc/fr/regles/wrapper.md) |
 
 ## Impératifs
 
 - TDD avec scénarios BDD : pas de fonctionnalité sans test.
 - Un commit par fonctionnalité, lié à un ticket GitHub Issues. Sans ticket, proposer une user story et attendre.
-- Une correction d'une PR ouverte est un nouveau commit, jamais un amend ([#131](https://github.com/dascritch/machincast/issues/131)). Une branche se remet à jour avec `main` par `git rebase`, jamais par un commit de fusion, puis `git push --force-with-lease` ; voir [doc/regles/developpement.md](doc/regles/developpement.md#corrections-dune-pr-ouverte).
+- Une correction d'une PR ouverte est un nouveau commit, jamais un amend ([#131](https://github.com/dascritch/machincast/issues/131)). Une branche se remet à jour avec `main` par `git rebase`, jamais par un commit de fusion, puis `git push --force-with-lease` ; voir [doc/fr/regles/developpement.md](doc/fr/regles/developpement.md#corrections-dune-pr-ouverte).
 - Indentation par **tabulations**.
 - Ne jamais toucher à la base de production pendant les tests.
-- **Un fichier sonore n'est jamais supprimé, renommé, déplacé, remplacé ni écrit par MachinCast**, quels que soient les changements de son entrée dans `sonores` ([#96](https://github.com/dascritch/machincast/issues/96)). Un répertoire de banque non plus : supprimer un sonore ou une banque ne supprime que son entrée en base ([#33](https://github.com/dascritch/machincast/issues/33)). Voir [doc/regles/developpement.md](doc/regles/developpement.md#fichiers-sonores).
-- Un ticket n'est terminé que si ses fonctions et actions externes sont documentées pour les humains : voir la [definition of done](doc/regles/developpement.md#definition-of-done).
+- **Un fichier sonore n'est jamais supprimé, renommé, déplacé, remplacé ni écrit par MachinCast**, quels que soient les changements de son entrée dans `sonores` ([#96](https://github.com/dascritch/machincast/issues/96)). Un répertoire de banque non plus : supprimer un sonore ou une banque ne supprime que son entrée en base ([#33](https://github.com/dascritch/machincast/issues/33)). Voir [doc/fr/regles/developpement.md](doc/fr/regles/developpement.md#fichiers-sonores).
+- Un ticket n'est terminé que si ses fonctions et actions externes sont documentées pour les humains : voir la [definition of done](doc/fr/regles/developpement.md#definition-of-done).

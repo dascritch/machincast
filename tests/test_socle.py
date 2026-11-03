@@ -369,7 +369,7 @@ def style_des_conditions() -> None:
 		for chemin in fichiers
 		for faute in fautes_de_style(chemin.read_text(encoding="utf-8"))
 	]
-	assert not fautes, "doc/regles/developpement.md, Style de code :\n" + "\n".join(fautes[:40])
+	assert not fautes, "doc/fr/regles/developpement.md, Style de code :\n" + "\n".join(fautes[:40])
 
 
 @then("aucun script bash du dépôt n'écrit une variable sans accolades")

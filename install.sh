@@ -22,7 +22,7 @@
 # est un lien vers ce répertoire. Le service systemd ne l'est que sur demande, avec --service
 # (https://github.com/dascritch/machincast/issues/22).
 #
-# Règles : doc/regles/wrapper.md. Documentation : INSTALL.md (https://github.com/dascritch/machincast/issues/71).
+# Règles : doc/fr/regles/wrapper.md. Documentation : INSTALL.md (https://github.com/dascritch/machincast/issues/71).
 
 set -euo pipefail
 
@@ -315,7 +315,7 @@ preparer_configuration() {
 		info "${CONFIGURATION} existe déjà : conservé"
 	else
 		executer cp "${RACINE}/machincast.exemple.toml" "${CONFIGURATION}"
-		info "à adapter : sortie audio, périphériques, sorties (voir doc/spec.md § 9)"
+		info "à adapter : sortie audio, périphériques, sorties (voir doc/fr/spec.md § 9)"
 	fi
 }
 
@@ -354,7 +354,7 @@ preparer_postgresql() {
 
 	# Le compte courant n'a aucun droit particulier sur le serveur (ni CREATEDB ni CREATEROLE) : tout ce qui en
 	# demande est fait par l'utilisateur postgres. Le compte reçoit seulement la propriété des deux bases, qui lui
-	# permet d'y appliquer le schéma (doc/spec.md § 3.2).
+	# permet d'y appliquer le schéma (doc/fr/spec.md § 3.2).
 	if existe_en_base "SELECT 1 FROM pg_roles WHERE rolname = :'nom'" "${UTILISATEUR}"; then
 		info "rôle PostgreSQL ${UTILISATEUR} existant"
 	else
@@ -392,7 +392,7 @@ preparer_postgresql() {
 	etape "Rôles"
 	# Les rôles appartiennent au serveur : une seule autorisation vaut pour les deux bases. Elle est donnée par
 	# l'utilisateur postgres, qui peut attribuer les rôles quel que soit le compte qui les a créés. Sans héritage
-	# des droits : chaque binaire endosse son rôle par SET ROLE (doc/spec.md § 3.2).
+	# des droits : chaque binaire endosse son rôle par SET ROLE (doc/fr/spec.md § 3.2).
 	if "${SIMULATION}"; then
 		info "[simulation] sudo -u postgres psql : GRANT machincast_lecture, machincast_indexation, machincast_interface TO ${UTILISATEUR} WITH INHERIT FALSE, SET TRUE"
 	else
@@ -402,7 +402,7 @@ preparer_postgresql() {
 		info "${UTILISATEUR} peut endosser les rôles ${ROLES[*]}"
 	fi
 	# Un superutilisateur endosse tous les rôles sans autorisation, et peut tout faire sur le serveur : l'installation
-	# voulue ne donne au compte aucun droit particulier (doc/spec.md § 3.2). install.sh ne retire pas ce droit, qui peut
+	# voulue ne donne au compte aucun droit particulier (doc/fr/spec.md § 3.2). install.sh ne retire pas ce droit, qui peut
 	# servir à autre chose sur le poste : il le signale.
 	if existe_en_base "SELECT 1 FROM pg_roles WHERE rolname = :'nom' AND rolsuper" "${UTILISATEUR}"; then
 		info "attention : ${UTILISATEUR} est superutilisateur de PostgreSQL, ce que MachinCast ne demande pas ; pour le"

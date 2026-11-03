@@ -1,6 +1,7 @@
 """Vérification de deux règles de style du code Python (https://github.com/dascritch/machincast/issues/103).
 
-Décidées en relecture de https://github.com/dascritch/machincast/pull/100 (doc/regles/developpement.md, Style de code) :
+Décidées en relecture de https://github.com/dascritch/machincast/pull/100 (doc/fr/regles/developpement.md, Style de
+code) :
 
 1. dans une condition qui enchaîne `and` ou `or` (un nœud BoolOp), chaque opérande est entre parenthèses dans le
    source : `(a) and (f(b))`, jamais `a and f(b)` ;

@@ -1,88 +1,90 @@
-# Dépannage
+# Troubleshooting
 
-Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les scénarios qui les surveillent. Les messages du journal se lisent par `Machin logs` (la diffusion), ou dans l'onglet **Incidents** de l'interface.
+*[Version française](TROUBLESHOOTING.fr.md)*
 
-## Un stream tombe, mais l'antenne reste sur un blanc
+The known failures of MachinCast, their causes, what to check, and the scenarios that watch for them. The log messages are read with `Machin logs` (playout), or in the **Incidents** tab of the interface. MachinCast's messages are in French for now: they are quoted here as they appear, followed by their meaning.
 
-**Symptôme** : un stream tombe, par exemple quand le réseau est coupé. L'antenne reste sur un blanc, sans repli sur l'événement de secours ni sur le fil musical, et le journal ne note aucun `flux tombé`. Quand le réseau revient, le stream ne reprend pas : il faut relancer la diffusion.
+## A stream drops, but the station stays on dead air
 
-**Cause** ([#278](https://github.com/dascritch/machincast/issues/278)) : le flux est servi en **HTTP/2**, souvent derrière un serveur nginx, comme celui de France Inter. En HTTP/2, libsoup 3, la bibliothèque par laquelle GStreamer lit les streams, ne signale pas qu'une connexion ne donne plus rien ([ticket 256 de libsoup](https://gitlab.gnome.org/GNOME/libsoup/-/issues/256), [ticket 367 de libsoup](https://gitlab.gnome.org/GNOME/libsoup/-/issues/367), [ticket 296 de libsoup](https://gitlab.gnome.org/GNOME/libsoup/-/issues/296)) : le lecteur attend sans fin, sans erreur. Un flux servi en HTTP/1.1, comme un Icecast direct, n'est pas touché. Le type du flux (MP3, AAC) n'y est pour rien. Un autre lecteur bâti sur GStreamer a contourné le même défaut de la même façon ([ticket 252 de sone](https://github.com/lullabyX/sone/issues/252)).
+**Symptom**: a stream drops, for instance when the network is cut. The station stays on dead air, without falling back to the fallback event or to the music feed, and the log records no `flux tombé` (stream dropped). When the network comes back, the stream does not resume: playout has to be restarted.
 
-**Ce que fait MachinCast** :
+**Cause** ([#278](https://github.com/dascritch/machincast/issues/278)): the stream is served over **HTTP/2**, often behind an nginx server, like France Inter's. Over HTTP/2, libsoup 3, the library through which GStreamer reads streams, does not report that a connection no longer delivers anything ([libsoup issue 256](https://gitlab.gnome.org/GNOME/libsoup/-/issues/256), [libsoup issue 367](https://gitlab.gnome.org/GNOME/libsoup/-/issues/367), [libsoup issue 296](https://gitlab.gnome.org/GNOME/libsoup/-/issues/296)): the player waits forever, without an error. A stream served over HTTP/1.1, such as a direct Icecast, is not affected. The stream type (MP3, AAC) plays no part. Another player built on GStreamer worked around the same defect in the same way ([sone issue 252](https://github.com/lullabyX/sone/issues/252)).
 
-- Il lit tous ses flux en HTTP/1.1 : la variable `SOUP_FORCE_HTTP1` est posée au lancement de chacun de ses programmes. Le délai de 10 secondes de la connexion s'applique alors, et le lecteur signale le flux tombé.
-- Il tient aussi pour tombé un stream dont la lecture n'avance plus pendant **10 secondes**, le même délai de garde que pour une lecture bloquée et pour la connexion d'un flux en HTTP/1.1, même si le lecteur ne signale rien. Le journal note alors `flux tombé` : « plus de son depuis 10 secondes, sans erreur du lecteur ».
-- La reconnexion reprend le stream dès que du son revient.
+**What MachinCast does**:
 
-**À vérifier** :
+- It reads all its streams over HTTP/1.1: the `SOUP_FORCE_HTTP1` variable is set when each of its programs starts. The 10-second connection timeout then applies, and the player reports the dropped stream.
+- It also considers dropped a stream whose playback no longer moves for **10 seconds**, the same watchdog delay as for stalled playback and for the connection of an HTTP/1.1 stream, even if the player reports nothing. The log then records `flux tombé`: « plus de son depuis 10 secondes, sans erreur du lecteur » (no sound for 10 seconds, without a player error).
+- Reconnection resumes the stream as soon as sound comes back.
 
-- La version de HTTP d'un flux : `curl -I <adresse>`. La première ligne dit `HTTP/2 200` ou `HTTP/1.1 200`.
-- Le journal pendant la panne : `Machin logs`. Un `flux tombé` doit apparaître une dizaine de secondes après la coupure, un peu plus si le lecteur avait du son d'avance, puis `reprise du flux` après son retour.
-- Si l'antenne reste encore sur un blanc sans `flux tombé`, ouvrir un ticket avec le journal, l'adresse du flux et la réponse de `curl -I`.
+**To check**:
 
-## L'interface se ferme d'un coup : pré-écoute, préférences audio, session verrouillée, écrans en veille
+- A stream's HTTP version: `curl -I <address>`. The first line says `HTTP/2 200` or `HTTP/1.1 200`.
+- The log during the failure: `Machin logs`. A `flux tombé` must appear about ten seconds after the cut, a little later if the player had sound buffered, then `reprise du flux` (stream resumed) once it is back.
+- If the station still stays on dead air without `flux tombé`, open an issue with the log, the stream address and the response of `curl -I`.
 
-**Symptôme** : l'interface se ferme sans message, en ouvrant la pré-écoute, en changeant sa sortie, en ouvrant la page « Audio » des préférences, ou au retour d'une session verrouillée ou d'écrans en veille. Le terminal, s'il y en a un, montre `Fatal Python error: Aborted`, `Segmentation fault` ou `double free or corruption`, dans `gst_device_monitor_stop`, `g_slist_delete_link`, ou un fil de PipeWire (`libgstpipewire.so`, `libpipewire-module-metadata.so`) ; `coredumpctl list` en garde la trace.
+## The interface closes suddenly: preview, audio preferences, locked session, screens asleep
 
-**Cause** : un défaut de GStreamer 1.28.0 à 1.28.2, celui d'Ubuntu 26.04 ([#289](https://github.com/dascritch/machincast/issues/289)). La liste des périphériques audio arrêtait le moniteur de périphériques avant qu'il ait fini de démarrer. Depuis [#289](https://github.com/dascritch/machincast/issues/289), MachinCast attend ce démarrage, et la liste est aussi complète. GStreamer 1.28.3 corrige le défaut de son côté. Avec PipeWire 1.6.2, arrêter le moniteur pendant que des sorties apparaissent ou disparaissent, comme une sortie HDMI quand l'écran se met en veille, tuait aussi l'interface ([#305](https://github.com/dascritch/machincast/issues/305)) : depuis, l'interface garde un seul moniteur, ouvert jusqu'à sa fermeture.
+**Symptom**: the interface closes without a message, when opening the preview, changing its output, opening the « Audio » page of the preferences, or when coming back from a locked session or sleeping screens. The terminal, if there is one, shows `Fatal Python error: Aborted`, `Segmentation fault` or `double free or corruption`, in `gst_device_monitor_stop`, `g_slist_delete_link`, or a PipeWire thread (`libgstpipewire.so`, `libpipewire-module-metadata.so`); `coredumpctl list` keeps a trace of it.
 
-**À vérifier** :
+**Cause**: a defect of GStreamer 1.28.0 to 1.28.2, the one in Ubuntu 26.04 ([#289](https://github.com/dascritch/machincast/issues/289)). Listing the audio devices stopped the device monitor before it had finished starting. Since [#289](https://github.com/dascritch/machincast/issues/289), MachinCast waits for that start, and the list is also complete. GStreamer 1.28.3 fixes the defect on its side. With PipeWire 1.6.2, stopping the monitor while outputs appear or disappear, like an HDMI output when the screen goes to sleep, also killed the interface ([#305](https://github.com/dascritch/machincast/issues/305)): since then, the interface keeps a single monitor, open until it closes.
 
-- La version de MachinCast : une installation d'avant [#305](https://github.com/dascritch/machincast/issues/305) se met à jour par `git pull`, puis `./install.sh`.
-- Le journal de l'interface : « le moniteur de périphériques n'a pas fini de démarrer en 5 secondes » dit qu'un fournisseur de périphériques, PipeWire, PulseAudio ou ALSA, met trop longtemps à répondre. La liste peut alors être incomplète ; l'interface ne se ferme pas. Vérifier que le serveur audio tourne : `systemctl --user status pipewire`.
-- `python -m tests.mesures_peripheriques --bascule`, depuis le dépôt, mesure le défaut sur le poste, pendant qu'une sortie apparaît et disparaît ([Mesurer la liste des périphériques audio](doc/developpement/poste.md#mesurer-la-liste-des-périphériques-audio)).
+**To check**:
 
-**Scénario qui le surveille** : « La liste des périphériques du poste, en boucle, ne fait jamais tomber son processus », dans `tests/features/peripheriques_liste.feature`, à chaque passage des tests.
+- The MachinCast version: an installation from before [#305](https://github.com/dascritch/machincast/issues/305) is updated with `git pull`, then `./install.sh`.
+- The interface log: « le moniteur de périphériques n'a pas fini de démarrer en 5 secondes » (the device monitor did not finish starting within 5 seconds) means that a device provider, PipeWire, PulseAudio or ALSA, takes too long to answer. The list may then be incomplete; the interface does not close. Check that the sound server is running: `systemctl --user status pipewire`.
+- `python -m tests.mesures_peripheriques --bascule`, from the repository, measures the defect on the machine, while an output appears and disappears ([Mesurer la liste des périphériques audio](doc/fr/developpement/poste.md#mesurer-la-liste-des-périphériques-audio), French).
 
-## Des sons du bureau passent à l'antenne
+**Scenario that watches for it**: « La liste des périphériques du poste, en boucle, ne fait jamais tomber son processus », in `tests/features/peripheriques_liste.feature`, on every test run.
 
-**Symptôme** : une notification, le son d'une vidéo, d'une visioconférence ou du navigateur s'entend à l'antenne, par-dessus la diffusion.
+## Desktop sounds go on air
 
-**Cause** ([#250](https://github.com/dascritch/machincast/issues/250)) : le périphérique de l'antenne est la sortie par défaut du bureau, celle de tous les programmes qui n'en choisissent pas. MachinCast n'y est pour rien : `Machin lecture` joue sur `audio.peripherique`, quelle que soit la sortie par défaut.
+**Symptom**: a notification, the sound of a video, a video call or the browser can be heard on air, over the playout.
 
-**À vérifier** :
+**Cause** ([#250](https://github.com/dascritch/machincast/issues/250)): the on-air device is the desktop's default output, the one used by every program that does not choose one. MachinCast plays no part: `Machin lecture` plays on `audio.peripherique`, whatever the default output.
 
-- `pactl get-default-sink` ne doit pas donner l'identifiant de `audio.peripherique`. Sinon, choisir une autre sortie par défaut, et couper les sons de notification : voir [Préparer le poste d'antenne](INSTALL.md#préparer-le-poste-dantenne).
-- `wpctl status`, sous PipeWire, liste dans « Streams » les programmes qui jouent, et sur quelle sortie.
+**To check**:
 
-## La pré-écoute s'arrête, ou le VU-mètre se rouvre, au retour d'un écran éteint
+- `pactl get-default-sink` must not give the identifier of `audio.peripherique`. Otherwise, choose another default output, and mute notification sounds: see [Preparing the on-air machine](INSTALL.md#preparing-the-on-air-machine).
+- `wpctl status`, under PipeWire, lists in « Streams » the programs that are playing, and on which output.
 
-**Symptôme** : au retour d'une session verrouillée ou d'un écran en veille, la pré-écoute s'est arrêtée (« Lecture impossible : … »), ou le VU-mètre de l'antenne dit un moment « Indisponible : le port de monitoring ne donne plus rien depuis 3 secondes. ».
+## The preview stops, or the VU meter reopens, when a screen wakes up
 
-**Cause** : à la mise en veille de l'écran, des sorties audio disparaissent, comme celle de l'écran HDMI, et le serveur audio du poste peut interrompre les flux en cours. La pré-écoute s'arrête alors, et le dit ([#259](https://github.com/dascritch/machincast/issues/259)) ; le VU-mètre ne garde pas ses derniers niveaux, et rouvre son port toutes les 5 secondes, jusqu'à ce que le son revienne ([#311](https://github.com/dascritch/machincast/issues/311)). La diffusion n'est pas touchée.
+**Symptom**: when coming back from a locked session or a sleeping screen, the preview has stopped (« Lecture impossible : … », playback impossible), or the on-air VU meter says for a while « Indisponible : le port de monitoring ne donne plus rien depuis 3 secondes. » (unavailable: the monitoring port has given nothing for 3 seconds).
 
-**À vérifier** :
+**Cause**: when the screen goes to sleep, audio outputs disappear, like the HDMI screen's, and the machine's sound server can interrupt the running streams. The preview then stops, and says so ([#259](https://github.com/dascritch/machincast/issues/259)); the VU meter does not keep its last levels, and reopens its port every 5 seconds, until sound comes back ([#311](https://github.com/dascritch/machincast/issues/311)). Playout is not affected.
 
-- Que l'écran du poste d'antenne ne se met pas en veille : voir [Préparer le poste d'antenne](INSTALL.md#préparer-le-poste-dantenne) ([#250](https://github.com/dascritch/machincast/issues/250)).
-- Relancer la pré-écoute une fois le son revenu. Si le VU-mètre reste indisponible plus de 10 secondes, vérifier que le serveur audio tourne (`systemctl --user status pipewire`), puis ouvrir un ticket avec la sortie console de `Machin interface`.
+**To check**:
 
-## L'antenne passe sur la pré-écoute quand la session se verrouille
+- That the screen of the on-air machine does not go to sleep: see [Preparing the on-air machine](INSTALL.md#preparing-the-on-air-machine) ([#250](https://github.com/dascritch/machincast/issues/250)).
+- Restart the preview once the sound is back. If the VU meter stays unavailable for more than 10 seconds, check that the sound server is running (`systemctl --user status pipewire`), then open an issue with the console output of `Machin interface`.
 
-**Symptôme** : quand la session se verrouille ou que l'écran s'éteint, l'antenne quitte son périphérique et passe sur la sortie par défaut du poste, souvent la pré-écoute.
+## The station switches to the preview output when the session locks
 
-**Cause** ([#345](https://github.com/dascritch/machincast/issues/345)) : à la mise en veille, WirePlumber, qui gère les sorties de PipeWire, peut changer le profil d'une carte son, par exemple pour préférer une sortie qu'il juge disponible. Le changement de profil retire un moment la sortie de l'antenne. PipeWire envoyait alors l'antenne sur la sortie par défaut.
+**Symptom**: when the session locks or the screen turns off, the station leaves its device and goes to the machine's default output, often the preview.
 
-**Ce que fait MachinCast** : sous PipeWire, l'antenne est verrouillée sur `audio.peripherique` (`node.dont-fallback`, `node.linger`, `node.dont-move`). Elle ne passe jamais sur une autre sortie, et le réglage du son du poste ne peut pas l'y déplacer. Tant que son périphérique manque, le sonore en cours se met en pause, sans erreur ; il reprend où il en était dès que le périphérique revient. Le VU-mètre écoute de même toujours ce périphérique.
+**Cause** ([#345](https://github.com/dascritch/machincast/issues/345)): on sleep, WirePlumber, which manages PipeWire's outputs, can change a sound card's profile, for instance to prefer an output it considers available. The profile change removes the on-air output for a while. PipeWire then sent the station to the default output.
 
-**À vérifier** :
+**What MachinCast does**: under PipeWire, the station is locked to `audio.peripherique` (`node.dont-fallback`, `node.linger`, `node.dont-move`). It never goes to another output, and the machine's sound settings cannot move it there. While its device is missing, the current sound pauses, without an error; it resumes where it was as soon as the device comes back. The VU meter likewise always listens to that device.
 
-- La version de MachinCast : une installation d'avant [#345](https://github.com/dascritch/machincast/issues/345) se met à jour par `git pull`, puis `./install.sh`.
-- Le verrou du flux de l'antenne, pendant la diffusion : `pw-dump` doit montrer, sur le nœud dont `application.name` vaut « MachinCast lecteur » et qui a un `target.object`, le périphérique de l'antenne et `true` pour `node.dont-fallback`, `node.linger` et `node.dont-move`.
-- Pendant le verrouillage, `pw-top`, depuis une autre machine par SSH : la ligne **MachinCast lecteur** ne doit jamais apparaître sous une autre sortie que celle de l'antenne.
-- `pw-mon`, lancé avant le verrouillage, montre si le profil de la carte change : dans ce cas, la sortie de l'antenne disparaît puis revient, et l'antenne se tait pendant ce temps.
+**To check**:
 
-**Scénarios qui le surveillent** : `tests/features/sortie_verrouillee.feature`, sur un PipeWire et un WirePlumber à part, à chaque passage des tests ; ignorés si `pipewire` et `wireplumber` ne sont pas installés.
+- The MachinCast version: an installation from before [#345](https://github.com/dascritch/machincast/issues/345) is updated with `git pull`, then `./install.sh`.
+- The lock of the on-air stream, during playout: `pw-dump` must show, on the node whose `application.name` is « MachinCast lecteur » and which has a `target.object`, the on-air device and `true` for `node.dont-fallback`, `node.linger` and `node.dont-move`.
+- While locked, `pw-top`, from another machine over SSH: the **MachinCast lecteur** line must never appear under another output than the on-air one.
+- `pw-mon`, started before locking, shows whether the card's profile changes: in that case, the on-air output disappears then comes back, and the station is silent meanwhile.
 
-## Scénarios à lancer avant une version
+**Scenarios that watch for it**: `tests/features/sortie_verrouillee.feature`, on a separate PipeWire and WirePlumber, on every test run; skipped if `pipewire` and `wireplumber` are not installed.
 
-Certains scénarios ne tournent ni avec `pytest`, ni avec `bin/Machin dev-test` : ils sont lents, ou ont besoin d'un serveur à part. Ils sont marqués `@release`, et se lancent avant chaque version ([#208](https://github.com/dascritch/machincast/issues/208)), et après toute mise à jour de GStreamer ou de libsoup :
+## Scenarios to run before a release
+
+Some scenarios run neither with `pytest` nor with `bin/Machin dev-test`: they are slow, or need a separate server. They are marked `@release`, and are run before each release ([#208](https://github.com/dascritch/machincast/issues/208)), and after any update of GStreamer or libsoup:
 
 ```bash
 .venv/bin/pytest -m release
 ```
 
-Ils demandent les dépendances de test (`./install.sh --dev`, ou `pip install --editable ".[dev]"`, qui installe hypercorn) et `openssl`.
+They need the test dependencies (`./install.sh --dev`, or `pip install --editable ".[dev]"`, which installs hypercorn) and `openssl`.
 
-| Fonctionnalité | Ce qu'elle vérifie | Si elle échoue |
+| Feature | What it checks | If it fails |
 | --- | --- | --- |
-| `tests/features/flux_http2.feature` ([#278](https://github.com/dascritch/machincast/issues/278)) | Un serveur local sert un flux AAC en HTTP/2, chiffré, qui gèle au bout de 3 secondes. Lu comme le lit MachinCast, il est servi en HTTP/1.1, et le lecteur le signale en erreur au plus 15 secondes après le gel. Lu en HTTP/2, le lecteur ne signale rien, mais la garde de MachinCast voit la voie gelée. | Sur « servi en HTTP/1.1 » ou « en erreur » : `SOUP_FORCE_HTTP1` n'a plus d'effet, la panne ci-dessus peut revenir. Sur « toujours en cours » en HTTP/2 : libsoup signale désormais le gel en HTTP/2, et le passage forcé en HTTP/1.1 peut être reconsidéré, dans un ticket. |
+| `tests/features/flux_http2.feature` ([#278](https://github.com/dascritch/machincast/issues/278)) | A local server serves an AAC stream over HTTP/2, encrypted, which freezes after 3 seconds. Read the way MachinCast reads it, it is served over HTTP/1.1, and the player reports it as an error at most 15 seconds after the freeze. Read over HTTP/2, the player reports nothing, but MachinCast's watchdog sees the frozen voice. | On « servi en HTTP/1.1 » (served over HTTP/1.1) or « en erreur » (in error): `SOUP_FORCE_HTTP1` no longer has an effect, the failure above may come back. On « toujours en cours » (still running) over HTTP/2: libsoup now reports the freeze over HTTP/2, and forcing HTTP/1.1 can be reconsidered, in an issue. |

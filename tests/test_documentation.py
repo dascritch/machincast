@@ -17,7 +17,8 @@ from tests.markdown import ancres_cassees, liens_casses
 scenarios("documentation.feature")
 
 RACINE = Path(__file__).resolve().parents[1]
-INSTALL = RACINE / "INSTALL.md"
+INSTALLS = {"INSTALL.md": RACINE / "INSTALL.md", "INSTALL.fr.md": RACINE / "INSTALL.fr.md"}
+"""INSTALL.md, en anglais, et sa source française (https://github.com/dascritch/machincast/issues/355)."""
 SCRIPT = RACINE / "install.sh"
 CLAUDE = RACINE / "CLAUDE.md"
 
@@ -63,58 +64,53 @@ def paquets_script() -> set[str]:
 	return set(tableau.group(1).split())
 
 
-@then("README.md contient un lien vers INSTALL.md")
-def lien_readme() -> None:
-	assert "](INSTALL.md)" in texte(RACINE / "README.md")
+@then(parsers.parse("{readme} contient un lien vers {install}"))
+def lien_readme(readme: str, install: str) -> None:
+	assert f"]({install})" in texte(RACINE / readme)
 
 
-@then("la première commande apt d'INSTALL.md installe les paquets d'install.sh")
-def apt_install() -> None:
-	assert paquets_apt(INSTALL) == paquets_script()
+@then(parsers.parse("la première commande apt de {document} installe les paquets d'install.sh"))
+def apt_install(document: str) -> None:
+	assert paquets_apt(RACINE / document) == paquets_script()
 
 
-@then("la première commande apt de CLAUDE.md installe les paquets d'install.sh")
-def apt_claude() -> None:
-	assert paquets_apt(CLAUDE) == paquets_script()
-
-
-@then("chaque paquet apt d'install.sh figure dans un tableau d'INSTALL.md")
-def paquets_expliques() -> None:
-	tableaux = "\n".join(ligne for ligne in texte(INSTALL).splitlines() if ligne.startswith("|"))
+@then(parsers.parse("chaque paquet apt d'install.sh figure dans un tableau de {document}"))
+def paquets_expliques(document: str) -> None:
+	tableaux = "\n".join(ligne for ligne in texte(INSTALLS[document]).splitlines() if ligne.startswith("|"))
 	absents = sorted(paquet for paquet in paquets_script() if f"`{paquet}`" not in tableaux)
 	assert not absents, absents
 
 
-@then("INSTALL.md, install.sh et CLAUDE.md accordent les trois rôles par le même GRANT")
-def meme_grant() -> None:
-	absents = [chemin.name for chemin in (INSTALL, SCRIPT, CLAUDE) if not GRANT.search(texte(chemin))]
+@then(parsers.parse("{document}, install.sh et CLAUDE.md accordent les trois rôles par le même GRANT"))
+def meme_grant(document: str) -> None:
+	absents = [chemin.name for chemin in (INSTALLS[document], SCRIPT, CLAUDE) if not GRANT.search(texte(chemin))]
 	assert not absents, absents
 
 
-@then("aucune commande createuser d'INSTALL.md ne donne de droit particulier")
-def createuser_sans_droit() -> None:
-	createuser = [mots for mots in commandes(INSTALL) if "createuser" in mots]
-	assert createuser, "INSTALL.md ne cite pas createuser"
+@then(parsers.parse("aucune commande createuser de {document} ne donne de droit particulier"))
+def createuser_sans_droit(document: str) -> None:
+	createuser = [mots for mots in commandes(INSTALLS[document]) if "createuser" in mots]
+	assert createuser, f"{document} ne cite pas createuser"
 	for mots in createuser:
 		assert not DROITS_PARTICULIERS & set(mots), mots
 
 
-@then("chaque option d'install.sh citée dans INSTALL.md figure dans son aide")
-def options_install() -> None:
+@then(parsers.parse("chaque option d'install.sh citée dans {document} figure dans son aide"))
+def options_install(document: str) -> None:
 	aide = subprocess.run([str(SCRIPT), "--help"], capture_output=True, text=True, check=True).stdout
-	citees = {mot for mots in commandes(INSTALL) if mots[:1] == ["./install.sh"] for mot in mots[1:]}
-	assert citees, "INSTALL.md ne cite pas ./install.sh avec ses options"
+	citees = {mot for mots in commandes(INSTALLS[document]) if mots[:1] == ["./install.sh"] for mot in mots[1:]}
+	assert citees, f"{document} ne cite pas ./install.sh avec ses options"
 	inconnues = sorted(option for option in citees if option not in aide)
 	assert not inconnues, inconnues
 
 
-@then("chaque commande Machin citée dans INSTALL.md appelle un binaire et des options qui existent")
-def commandes_machin() -> None:
+@then(parsers.parse("chaque commande Machin citée dans {document} appelle un binaire et des options qui existent"))
+def commandes_machin(document: str) -> None:
 	pyproject = tomllib.loads(texte(RACINE / "pyproject.toml"))
 	binaires = {nom.removeprefix("Machin_") for nom in pyproject["project"]["scripts"]}
 	options_wrapper = {"--config", "-h", "--help", "--binaires"}
-	citees = [mots[1:] for mots in commandes(INSTALL) if (mots[:1]) and (mots[0] in WRAPPERS)]
-	assert citees, "INSTALL.md ne cite aucune commande Machin"
+	citees = [mots[1:] for mots in commandes(INSTALLS[document]) if (mots[:1]) and (mots[0] in WRAPPERS)]
+	assert citees, f"{document} ne cite aucune commande Machin"
 	for arguments in citees:
 		# Options du wrapper avant le binaire : --config FICHIER ou --config=FICHIER.
 		while (arguments) and (arguments[0].startswith("-")):
@@ -131,33 +127,33 @@ def commandes_machin() -> None:
 		assert not inconnues, f"Machin {binaire} : {inconnues}"
 
 
-@then("chaque étape de machincast.installation citée dans INSTALL.md existe")
-def etapes_installation() -> None:
+@then(parsers.parse("chaque étape de machincast.installation citée dans {document} existe"))
+def etapes_installation(document: str) -> None:
 	citees = [
 		mots[mots.index("machincast.installation") + 1]
-		for mots in commandes(INSTALL)
+		for mots in commandes(INSTALLS[document])
 		if "machincast.installation" in mots[:-1]
 	]
-	assert citees, "INSTALL.md ne cite aucune étape de machincast.installation"
+	assert citees, f"{document} ne cite aucune étape de machincast.installation"
 	inconnues = sorted(set(citees) - set(ACTIONS))
 	assert not inconnues, inconnues
 
 
-@then("chaque lien relatif d'INSTALL.md mène à un fichier du dépôt")
-def liens_relatifs() -> None:
-	casses = liens_casses(INSTALL)
+@then(parsers.parse("chaque lien relatif de {document} mène à un fichier du dépôt"))
+def liens_relatifs(document: str) -> None:
+	casses = liens_casses(RACINE / document)
 	assert not casses, casses
 
 
-@then("chaque ancre citée par INSTALL.md mène à un titre du fichier visé")
-def ancres_valides() -> None:
-	cassees = ancres_cassees(INSTALL)
+@then(parsers.parse("chaque ancre citée par {document} mène à un titre du fichier visé"))
+def ancres_valides(document: str) -> None:
+	cassees = ancres_cassees(RACINE / document)
 	assert not cassees, cassees
 
 
 @then("les règles de développement ont une section « Definition of done » qui exige la documentation humaine")
 def section_definition_of_done() -> None:
-	regles = texte(RACINE / "doc" / "regles" / "developpement.md")
+	regles = texte(RACINE / "doc" / "fr" / "regles" / "developpement.md")
 	section = re.search(r"^## Definition of done\n(.*?)(?=^## |\Z)", regles, flags=re.MULTILINE | re.DOTALL)
 	assert section, "section « Definition of done » absente"
 	assert "documentées pour les humains" in section.group(1)
@@ -166,7 +162,7 @@ def section_definition_of_done() -> None:
 @then("les impératifs de CLAUDE.md renvoient à la definition of done")
 def imperatifs() -> None:
 	imperatifs = texte(CLAUDE).split("## Impératifs", 1)[1]
-	assert "doc/regles/developpement.md#definition-of-done" in imperatifs
+	assert "doc/fr/regles/developpement.md#definition-of-done" in imperatifs
 
 
 @then("le modèle de description de PR comporte la case « documentation humaine à jour »")
@@ -178,8 +174,11 @@ def modele_pr() -> None:
 
 # ─── Releases (https://github.com/dascritch/machincast/issues/208) ───
 
-RELEASE = RACINE / "RELEASE.md"
-README = RACINE / "README.md"
+VERSION_DU_README = {
+	"README.md": "**Version {version}**, released on {date}",
+	"README.fr.md": "**Version {version}**, publiée le {date}",
+}
+"""La phrase qui donne la dernière version publiée, dans chaque langue (https://github.com/dascritch/machincast/issues/355)."""
 
 
 def publiees() -> list[version.Nouveautes]:
@@ -201,22 +200,23 @@ def sections_ordonnees() -> None:
 	assert all(section.texte != "" for section in sections)
 
 
-@then("RELEASE.md a les mêmes versions, aux mêmes dates, dans le même ordre")
-def release_md() -> None:
+@then(parsers.parse("{release} a les mêmes versions, aux mêmes dates, dans le même ordre"))
+def release_md(release: str) -> None:
 	attendues = [(section.version, section.publiee_le) for section in publiees()]
 	if attendues == []:
 		return
-	lues = [(section.version, section.publiee_le) for section in version.nouveautes(RELEASE)]
+	lues = [(section.version, section.publiee_le) for section in version.nouveautes(RACINE / release)]
 	assert lues == attendues, lues
 
 
-@then("README.md donne la dernière version publiée et sa date")
-def readme_version() -> None:
+@then(parsers.parse("{readme} donne la dernière version publiée et sa date"))
+def readme_version(readme: str) -> None:
 	sections = publiees()
 	if sections == []:
 		return
 	derniere = sections[0]
-	assert f"**Version {derniere.version}**, publiée le {derniere.publiee_le:%Y-%m-%d}" in texte(README)
+	phrase = VERSION_DU_README[readme].format(version=derniere.version, date=f"{derniere.publiee_le:%Y-%m-%d}")
+	assert phrase in texte(RACINE / readme)
 
 
 @then("la version de pyproject.toml n'est pas plus ancienne que la dernière publiée")
@@ -272,3 +272,33 @@ def executable(archive: dict[str, tarfile.TarInfo], nom: str) -> None:
 def contient(archive: dict[str, tarfile.TarInfo], noms: str) -> None:
 	manquants = [nom for nom in re.findall(r"« ([^»]+) »", noms) if f"machincast-{projet()}/{nom}" not in archive]
 	assert manquants == [], manquants
+
+
+# ─── Documentation par langue (https://github.com/dascritch/machincast/issues/355) ───
+
+PREMIER_NIVEAU = ("README", "INSTALL", "TROUBLESHOOTING", "CONTRIBUTION", "RELEASE")
+
+
+@then("chaque document de premier niveau est en anglais, avec sa source française, et chacun mène à l'autre")
+def premier_niveau() -> None:
+	for nom in PREMIER_NIVEAU:
+		anglais, francais = texte(RACINE / f"{nom}.md"), texte(RACINE / f"{nom}.fr.md")
+		assert f"*[Version française]({nom}.fr.md)*" in anglais, nom
+		assert f"*[English version]({nom}.md)*" in francais, nom
+
+
+@then("doc ne contient que des répertoires de langue, dont la source française doc/fr")
+def doc_par_langue() -> None:
+	contenu = sorted(chemin.name for chemin in (RACINE / "doc").iterdir())
+	assert "fr" in contenu, contenu
+	assert set(contenu) <= {"fr", "en"}, contenu
+
+
+@then(
+	parsers.parse("chaque lien relatif des documents de premier niveau et de doc/{langue} mène à un fichier du dépôt")
+)
+def liens_de_la_documentation(langue: str) -> None:
+	documents = [RACINE / f"{nom}{suffixe}.md" for nom in PREMIER_NIVEAU for suffixe in ("", ".fr")]
+	documents += sorted((RACINE / "doc" / langue).rglob("*.md"))
+	casses = [lien for document in documents for lien in liens_casses(document)]
+	assert not casses, casses
