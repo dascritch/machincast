@@ -140,7 +140,7 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et le port de monitoring ne sera pas rouvert
 
 	Scénario: Sur l'entrée « sortie factice », le VU-mètre de l'antenne écoute le signal de test
-		https://github.com/dascritch/machincast/issues/339 : audio.peripherique = "factice", sur une vraie sortie.
+		https://github.com/dascritch/machincast/issues/339 : audio.device = "factice", sur une vraie sortie.
 
 		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « factice »
 		Quand la fenêtre de l'interface s'ouvre

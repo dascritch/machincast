@@ -132,9 +132,9 @@ Fonctionnalité: Suggestions au lancement de l'interface
 		Et les suggestions seront acceptées par « Créer », avec la sortie « pulseaudio », l'antenne « carte-1 » et la pré-écoute « casque-usb »
 		Quand la fenêtre de l'interface s'ouvre
 		Alors les suggestions ont proposé les cartes son de la sortie « pipewire », l'antenne non renseignée et la pré-écoute « preecoute-factice »
-		Et le fichier de configuration contient la ligne « sortie = "pulseaudio" »
-		Et le fichier de configuration contient la ligne « peripherique = "carte-1" »
-		Et le fichier de configuration contient la ligne « preecoute = "casque-usb" »
+		Et le fichier de configuration contient la ligne « output = "pulseaudio" »
+		Et le fichier de configuration contient la ligne « device = "carte-1" »
+		Et le fichier de configuration contient la ligne « preview = "casque-usb" »
 		Et la barre d'état annonce « Cartes son : antenne carte-1, pré-écoute casque-usb ; Machin player prendra l'antenne à son prochain démarrage. »
 		Et la barre d'état ne signale pas « Périphérique de l'antenne à renseigner »
 

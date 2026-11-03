@@ -299,7 +299,7 @@ def special_sans_fin_des_sonores(
 	)
 )
 def blanc_regle(banc: Banc, duree: str, seuil: str, suite: str) -> None:
-	"""La section [blanc_antenne] de la configuration (https://github.com/dascritch/machincast/issues/122)."""
+	"""La section [dead_air] de la configuration (https://github.com/dascritch/machincast/issues/122)."""
 	banc.blanc = BlancAntenne(timedelta(seconds=secondes(duree)), secondes(seuil), suite == "fait passer au secours")
 
 

@@ -58,7 +58,7 @@ class Base:
 
 
 FACTICE = "factice"
-"""L'entrée « sortie factice », que prennent audio.peripherique et audio.preecoute
+"""L'entrée « sortie factice », que prennent audio.device et audio.preview
 (https://github.com/dascritch/machincast/issues/339) : l'antenne ne joue aucun son, la pré-écoute est désactivée."""
 
 
@@ -169,7 +169,7 @@ SEUIL_DU_BLANC = -90.0
 
 @dataclass(frozen=True)
 class BlancAntenne:
-	"""Blanc dans un sonore, à l'antenne (https://github.com/dascritch/machincast/issues/122), section [blanc_antenne].
+	"""Blanc dans un sonore, à l'antenne (https://github.com/dascritch/machincast/issues/122), section [dead_air].
 	À ne pas confondre avec un silence, qui borne un fichier (Silences, https://github.com/dascritch/machincast/issues/291)."""
 
 	duree: timedelta = DUREE_DU_BLANC
@@ -212,23 +212,52 @@ class Configuration:
 	interface: Interface = field(default_factory=Interface)
 
 
-# Clés connues, par section. Toute autre clé est refusée, pour détecter les fautes de frappe.
+# Clés connues, par section, en anglais (https://github.com/dascritch/machincast/issues/357). Toute autre clé est
+# refusée, pour détecter les fautes de frappe.
 CLES: dict[str, frozenset[str]] = {
-	"base": frozenset({"socket", "production", "test", "peremption"}),
-	"audio": frozenset({"sortie", "peripherique", "preecoute"}),
-	"sorties": frozenset({"csv", "pls", "html"}),
-	"metadonnees": frozenset({"masquer", "texte_public"}),
-	"lecture": frozenset({"socket_etat"}),
-	"crossfades": frozenset({"granularite", "maximum", "debut", "fin", "position_entree", "position_sortie"}),
-	"silences": frozenset({"seuil"}),
-	"blanc_antenne": frozenset({"duree", "seuil", "secours"}),
-	"interface": frozenset({"saturation", "suggestions", "icone"}),
+	"database": frozenset({"socket", "production", "test", "retention"}),
+	"audio": frozenset({"output", "device", "preview"}),
+	"outputs": frozenset({"csv", "pls", "html"}),
+	"metadata": frozenset({"hide", "public_text"}),
+	"player": frozenset({"state_socket"}),
+	"crossfades": frozenset({"granularity", "maximum", "start", "end", "fade_in_position", "fade_out_position"}),
+	"silences": frozenset({"threshold"}),
+	"dead_air": frozenset({"duration", "threshold", "fallback"}),
+	"interface": frozenset({"clipping", "suggestions", "icon"}),
 }
 
 
-ANCIENNES_SECTIONS = {"blancs": "silences"}
-"""Sections renommées, encore lues sous leur ancien nom, avec un avertissement : [blancs] est devenue [silences]
-(https://github.com/dascritch/machincast/issues/291)."""
+ANCIENNES_SECTIONS = {
+	"base": "database",
+	"sorties": "outputs",
+	"metadonnees": "metadata",
+	"lecture": "player",
+	"blanc_antenne": "dead_air",
+	"blancs": "silences",
+}
+"""Les anciens noms français des sections, refusés en nommant leur nom anglais : pas de compatibilité, les
+installations se refont de zéro (https://github.com/dascritch/machincast/issues/357)."""
+
+VALEURS: dict[str, dict[str, str]] = {
+	"sortie": {"alsa": "alsa", "pulseaudio": "pulseaudio", "pipewire": "pipewire", "dummy": "factice"},
+	"granularite": {"second": "seconde", "tenth": "dixieme"},
+	"position": {"starts": "commence", "ongoing": "en_cours", "ends": "termine"},
+	"peripherique": {"dummy": FACTICE},
+}
+"""Les valeurs du fichier, en anglais, et celles du code, encore en français jusqu'aux noms du code
+(https://github.com/dascritch/machincast/issues/359). Un périphérique qui n'est pas « dummy » est un nom de nœud ou de
+carte, lu tel quel."""
+
+
+def valeur_du_fichier(genre: str, valeur: str) -> str:
+	"""La valeur que le code donne à cette valeur du fichier ; une valeur inconnue reste telle quelle."""
+	return VALEURS[genre].get(valeur, valeur)
+
+
+def valeur_pour_le_fichier(genre: str, valeur: str) -> str:
+	"""La valeur du fichier qui correspond à cette valeur du code : ce qu'écrivent les préférences et les
+	suggestions."""
+	return next((du_fichier for du_fichier, du_code in VALEURS[genre].items() if du_code == valeur), valeur)
 
 
 class _Lecteur:
@@ -241,25 +270,13 @@ class _Lecteur:
 	def erreur(self, message: str) -> ConfigurationInvalide:
 		return ConfigurationInvalide(f"{self.chemin} : {message}")
 
-	def lire_les_anciennes_sections(self) -> None:
-		"""Une section sous son ancien nom est lue sous le nouveau, avec un avertissement ; les deux à la fois sont
-		refusées, pour ne jamais choisir entre deux valeurs."""
-		for ancienne, nouvelle in ANCIENNES_SECTIONS.items():
-			if ancienne not in self.document:
-				continue
-			if nouvelle in self.document:
-				raise self.erreur(
-					f"sections [{ancienne}] et [{nouvelle}] : [{ancienne}] est l'ancien nom de [{nouvelle}],"
-					" n'en garder qu'une"
-				)
-			self.document[nouvelle] = self.document.pop(ancienne)
-			journal.warning(
-				f"{self.chemin} : la section [{ancienne}] s'appelle désormais [{nouvelle}], la renommer"
-				" (https://github.com/dascritch/machincast/issues/291)"
-			)
-
 	def verifier_cles(self) -> None:
 		for section, contenu in self.document.items():
+			if section in ANCIENNES_SECTIONS:
+				raise self.erreur(
+					f"section [{section}] inconnue : son nom est désormais [{ANCIENNES_SECTIONS[section]}], et ses clés"
+					" sont en anglais, comme dans machincast.exemple.toml (https://github.com/dascritch/machincast/issues/357)"
+				)
 			if section not in CLES:
 				raise self.erreur(f"section [{section}] inconnue")
 			if not isinstance(contenu, dict):
@@ -308,11 +325,11 @@ class _Lecteur:
 		return self.chemin_fichier(section, cle)
 
 	def icone(self) -> Path | None:
-		"""interface.icone : une image SVG, PNG ou JPEG ; elle peut manquer sur le poste, l'interface prend alors
+		"""interface.icon : une image SVG, PNG ou JPEG ; elle peut manquer sur le poste, l'interface prend alors
 		l'icône de MachinCast."""
-		chemin = self.chemin_facultatif("interface", "icone")
+		chemin = self.chemin_facultatif("interface", "icon")
 		if (chemin is not None) and (chemin.suffix.lower() not in EXTENSIONS_D_ICONE):
-			raise self.erreur(f"clé interface.icone : image SVG, PNG ou JPEG attendue, « {chemin.name} » trouvé")
+			raise self.erreur(f"clé interface.icon : image SVG, PNG ou JPEG attendue, « {chemin.name} » trouvé")
 		return chemin
 
 	def booleen(self, section: str, cle: str) -> bool:
@@ -346,11 +363,12 @@ class _Lecteur:
 
 	def crossfades(self) -> Crossfades:
 		"""La section [crossfades], facultative, comme toutes ses clés."""
-		granularite = (self.texte_facultatif("crossfades", "granularite")) or ("dixieme")
+		lue = (self.texte_facultatif("crossfades", "granularity")) or ("tenth")
+		granularite = valeur_du_fichier("granularite", lue)
 		if granularite not in GRANULARITES:
 			raise self.erreur(
-				f"clé crossfades.granularite : « {granularite} » inconnue,"
-				f" valeurs possibles : {', '.join(GRANULARITES)}"
+				f"clé crossfades.granularity : « {lue} » inconnue,"
+				f" valeurs possibles : {', '.join(VALEURS['granularite'])}"
 			)
 		maximum = MAXIMUM_DES_CROSSFADES
 		secondes = self.nombre_facultatif("crossfades", "maximum")
@@ -359,7 +377,7 @@ class _Lecteur:
 				raise self.erreur("clé crossfades.maximum : un nombre de secondes strictement positif est attendu")
 			maximum = timedelta(seconds=secondes)
 		durees: list[timedelta | None] = []
-		for cle in ("debut", "fin"):
+		for cle in ("start", "end"):
 			duree = self.nombre_facultatif("crossfades", cle)
 			if duree is None:
 				durees.append(None)
@@ -370,48 +388,49 @@ class _Lecteur:
 				raise self.erreur(f"clé crossfades.{cle} : au plus crossfades.maximum, {maximum.total_seconds():g} s")
 			durees.append(timedelta(seconds=duree))
 		positions: list[Position] = []
-		for cle, defaut in (("position_entree", ENTREE_PAR_DEFAUT), ("position_sortie", SORTIE_PAR_DEFAUT)):
-			lue = (self.texte_facultatif("crossfades", cle)) or (defaut)
-			if lue not in POSITIONS:
+		for cle, defaut in (("fade_in_position", ENTREE_PAR_DEFAUT), ("fade_out_position", SORTIE_PAR_DEFAUT)):
+			lue = (self.texte_facultatif("crossfades", cle)) or (valeur_pour_le_fichier("position", defaut))
+			position = valeur_du_fichier("position", lue)
+			if position not in POSITIONS:
 				raise self.erreur(
-					f"clé crossfades.{cle} : « {lue} » inconnue, valeurs possibles : {', '.join(POSITIONS)}"
+					f"clé crossfades.{cle} : « {lue} » inconnue, valeurs possibles : {', '.join(VALEURS['position'])}"
 				)
-			positions.append(lue)
+			positions.append(position)
 		return Crossfades(durees[0], durees[1], maximum, granularite, positions[0], positions[1])
 
 	def silences(self) -> Silences:
 		"""La section [silences], facultative, comme sa clé."""
-		seuil = self.nombre_facultatif("silences", "seuil")
+		seuil = self.nombre_facultatif("silences", "threshold")
 		if seuil is None:
 			return Silences()
 		if not (SEUIL_DE_SILENCE_MINIMUM <= seuil < 0):
 			raise self.erreur(
-				f"clé silences.seuil : un nombre de dB de {SEUIL_DE_SILENCE_MINIMUM:g} dB compris à 0 dB exclu"
+				f"clé silences.threshold : un nombre de dB de {SEUIL_DE_SILENCE_MINIMUM:g} dB compris à 0 dB exclu"
 				f" est attendu, {seuil:g} trouvé"
 			)
 		return Silences(seuil)
 
 	def blanc_antenne(self) -> BlancAntenne:
-		"""La section [blanc_antenne], facultative, comme ses clés (https://github.com/dascritch/machincast/issues/122)."""
+		"""La section [dead_air], facultative, comme ses clés (https://github.com/dascritch/machincast/issues/122)."""
 		duree = DUREE_DU_BLANC
-		secondes = self.nombre_facultatif("blanc_antenne", "duree")
+		secondes = self.nombre_facultatif("dead_air", "duration")
 		if secondes is not None:
 			minimum, maximum = (borne.total_seconds() for borne in DUREES_DU_BLANC)
 			if not (minimum <= secondes <= maximum):
 				raise self.erreur(
-					f"clé blanc_antenne.duree : un nombre de secondes, de {minimum:g} à {maximum:g} secondes comprises,"
+					f"clé dead_air.duration : un nombre de secondes, de {minimum:g} à {maximum:g} secondes comprises,"
 					f" est attendu, {secondes:g} trouvé"
 				)
 			duree = timedelta(seconds=secondes)
-		seuil = self.nombre_facultatif("blanc_antenne", "seuil")
+		seuil = self.nombre_facultatif("dead_air", "threshold")
 		if seuil is None:
 			seuil = SEUIL_DU_BLANC
 		elif not (SEUIL_DE_SILENCE_MINIMUM <= seuil < 0):
 			raise self.erreur(
-				f"clé blanc_antenne.seuil : un nombre de dB de {SEUIL_DE_SILENCE_MINIMUM:g} dB compris à 0 dB exclu"
+				f"clé dead_air.threshold : un nombre de dB de {SEUIL_DE_SILENCE_MINIMUM:g} dB compris à 0 dB exclu"
 				f" est attendu, {seuil:g} trouvé"
 			)
-		return BlancAntenne(duree, seuil, self.booleen_facultatif("blanc_antenne", "secours", False))
+		return BlancAntenne(duree, seuil, self.booleen_facultatif("dead_air", "fallback", False))
 
 	def chemin_fichier(self, section: str, cle: str) -> Path:
 		"""Chemin absolu tel quel ; chemin relatif résolu depuis le répertoire du fichier de configuration."""
@@ -451,40 +470,42 @@ def charger(chemin: Path | None = None) -> Configuration:
 		raise ConfigurationInvalide(f"{chemin} : syntaxe TOML invalide ({erreur})") from None
 
 	lecteur = _Lecteur(chemin, document)
-	lecteur.lire_les_anciennes_sections()
 	lecteur.verifier_cles()
 
 	base = Base(
-		socket=Path(lecteur.texte("base", "socket")),
-		production=lecteur.texte("base", "production"),
-		test=lecteur.texte("base", "test"),
-		peremption=lecteur.jours("base", "peremption", PEREMPTION),
+		socket=Path(lecteur.texte("database", "socket")),
+		production=lecteur.texte("database", "production"),
+		test=lecteur.texte("database", "test"),
+		peremption=lecteur.jours("database", "retention", PEREMPTION),
 	)
 	if base.test == base.production:
-		raise lecteur.erreur("clé base.test : la base de test ne peut pas être la base de production")
+		raise lecteur.erreur("clé database.test : la base de test ne peut pas être la base de production")
 
-	sortie = lecteur.texte("audio", "sortie")
+	lue = lecteur.texte("audio", "output")
+	sortie = valeur_du_fichier("sortie", lue)
 	if sortie not in SORTIES_AUDIO:
 		raise lecteur.erreur(
-			f"clé audio.sortie : « {sortie} » inconnue, valeurs possibles : {', '.join(SORTIES_AUDIO)}"
+			f"clé audio.output : « {lue} » inconnue, valeurs possibles : {', '.join(VALEURS['sortie'])}"
 		)
-	peripherique = lecteur.texte_facultatif("audio", "peripherique")
-	preecoute = lecteur.texte("audio", "preecoute")
+	peripherique = lecteur.texte_facultatif("audio", "device")
+	if peripherique is not None:
+		peripherique = valeur_du_fichier("peripherique", peripherique)
+	preecoute = valeur_du_fichier("peripherique", lecteur.texte("audio", "preview"))
 	if preecoute == peripherique:
-		raise lecteur.erreur("clé audio.preecoute : la pré-écoute doit utiliser un autre périphérique que l'antenne")
+		raise lecteur.erreur("clé audio.preview : la pré-écoute doit utiliser un autre périphérique que l'antenne")
 
 	sorties = Sorties(
-		csv=lecteur.chemin_fichier("sorties", "csv"),
-		pls=lecteur.chemin_fichier("sorties", "pls"),
-		html=lecteur.chemin_fichier("sorties", "html"),
+		csv=lecteur.chemin_fichier("outputs", "csv"),
+		pls=lecteur.chemin_fichier("outputs", "pls"),
+		html=lecteur.chemin_fichier("outputs", "html"),
 	)
-	lecture = Lecture(socket_etat=(lecteur.chemin_facultatif("lecture", "socket_etat")) or (socket_etat_par_defaut()))
+	lecture = Lecture(socket_etat=(lecteur.chemin_facultatif("player", "state_socket")) or (socket_etat_par_defaut()))
 	# Un fichier sonore n'est jamais écrit ni remplacé (https://github.com/dascritch/machincast/issues/96).
 	for cle, valeur in (
-		("sorties.csv", sorties.csv),
-		("sorties.pls", sorties.pls),
-		("sorties.html", sorties.html),
-		("lecture.socket_etat", lecture.socket_etat),
+		("outputs.csv", sorties.csv),
+		("outputs.pls", sorties.pls),
+		("outputs.html", sorties.html),
+		("player.state_socket", lecture.socket_etat),
 	):
 		if est_fichier_sonore(valeur):
 			raise lecteur.erreur(
@@ -498,15 +519,15 @@ def charger(chemin: Path | None = None) -> Configuration:
 		audio=Audio(sortie=sortie, peripherique=peripherique, preecoute=preecoute),
 		sorties=sorties,
 		metadonnees=Metadonnees(
-			masquer=lecteur.booleen("metadonnees", "masquer"),
-			texte_public=lecteur.texte_court("metadonnees", "texte_public"),
+			masquer=lecteur.booleen("metadata", "hide"),
+			texte_public=lecteur.texte_court("metadata", "public_text"),
 		),
 		lecture=lecture,
 		crossfades=lecteur.crossfades(),
 		silences=lecteur.silences(),
 		blanc_antenne=lecteur.blanc_antenne(),
 		interface=Interface(
-			saturation=lecteur.booleen_facultatif("interface", "saturation", True),
+			saturation=lecteur.booleen_facultatif("interface", "clipping", True),
 			suggestions=lecteur.booleen_facultatif("interface", "suggestions", True),
 			icone=lecteur.icone(),
 		),

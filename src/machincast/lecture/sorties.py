@@ -4,7 +4,7 @@ Sorties privées, qui disent tout :
 
 - journal du binaire : chaque passage qui commence, en information sur la sortie standard ; les alertes et incidents
   du log vont sur la sortie d'erreur (machincast.lecture.enregistrement.consigner) ;
-- CSV : un fichier par jour, nommé avec la date du jour (sorties.csv « airplay.csv » donne « airplay-2026-10-15.csv »),
+- CSV : un fichier par jour, nommé avec la date du jour (outputs.csv « airplay.csv » donne « airplay-2026-10-15.csv »),
   une ligne par passage terminé, séparateur « ; », UTF-8 avec BOM ; jamais réécrit ;
 - .pls : les PLAYLIST derniers fichiers joués, streams compris, du plus ancien au plus récent ; réécrit à chaque
   passage.
@@ -15,7 +15,7 @@ Sortie publique, avec le masquage :
   sans JavaScript, rafraîchie toutes les RAFRAICHISSEMENT secondes. L'emplacement d'un fichier n'y paraît jamais.
 
 Masquage : la valeur retenue est celle du premier niveau renseigné, événement, séquence, banque, sonore, puis la
-configuration (metadonnees.masquer). Masqués, l'artiste et le titre laissent la place au premier nom public renseigné,
+configuration (metadata.hide). Masqués, l'artiste et le titre laissent la place au premier nom public renseigné,
 celui de l'événement, de la séquence puis de la banque (https://github.com/dascritch/machincast/issues/99), sinon au
 texte public de la configuration. Les indicateurs sont lus en base au moment d'écrire la page.
 

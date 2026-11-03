@@ -17,7 +17,7 @@ pré-écoute ont la même carte.
   « Bande-annonce émissions » marquées « ne pas répéter » ; les musiques de 15 minutes au plus, l'identifiant station
   et les annonces de 2 minutes au plus (https://github.com/dascritch/machincast/issues/231). Un fil musical encore
   vide, créé ou déjà là, reçoit la rotation type (ROTATION), avec les banques qui existent. Les cartes son choisies
-  s'enregistrent dans audio.sortie, audio.peripherique et audio.preecoute (enregistrer).
+  s'enregistrent dans audio.output, audio.device et audio.preview (enregistrer).
 - « Plus tard » ne crée ni n'enregistre rien : la fenêtre revient au lancement suivant.
 - « Ne plus proposer au lancement » écrit interface.suggestions = false dans le fichier de configuration
   (enregistrer), qui garde ses commentaires.
@@ -36,6 +36,7 @@ from PySide6.QtWidgets import QDialog, QDialogButtonBox, QListWidgetItem, QWidge
 from machincast.configuration import Audio, SortieAudio
 from machincast.interface import fil_musical
 from machincast.interface.cartes_son import CartesSon
+from machincast.interface.preferences import ecrire_l_audio
 from machincast.interface.ui.suggestions import Ui_FenetreSuggestions
 from machincast.service import ABSENT, EtatDuService
 
@@ -206,13 +207,7 @@ def enregistrer(chemin: Path, reponse: Reponse) -> None:
 		return
 	document = tomlkit.parse(chemin.read_text(encoding="utf-8"))
 	if cartes:
-		section_audio = document["audio"]
-		assert isinstance(section_audio, tomlkit.items.Table)
-		section_audio["sortie"] = reponse.sortie
-		if reponse.antenne is not None:
-			section_audio["peripherique"] = reponse.antenne
-		if reponse.preecoute is not None:
-			section_audio["preecoute"] = reponse.preecoute
+		ecrire_l_audio(document, reponse.sortie, reponse.antenne, reponse.preecoute)
 	if reponse.ne_plus_proposer:
 		if "interface" not in document:
 			document.add("interface", tomlkit.table())

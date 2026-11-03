@@ -21,7 +21,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast import installation
 from machincast.audio import Greffon
-from machincast.configuration import REPERTOIRE_PROJET, SortieAudio
+from machincast.configuration import REPERTOIRE_PROJET, SortieAudio, valeur_pour_le_fichier
 from machincast.installation import (
 	COMPOSANTS,
 	ICONE,
@@ -238,9 +238,9 @@ def lancer_sur_l_antenne(
 	document = tomlkit.parse(chemin_configuration_test().read_text(encoding="utf-8"))
 	audio = document["audio"]
 	assert isinstance(audio, tomlkit.items.Table)
-	audio["sortie"] = sortie
+	audio["output"] = valeur_pour_le_fichier("sortie", sortie)
 	if antenne is not None:
-		audio["peripherique"] = antenne
+		audio["device"] = valeur_pour_le_fichier("peripherique", antenne)
 	configuration = tmp_path / "antenne.toml"
 	configuration.write_text(tomlkit.dumps(document), encoding="utf-8")
 	return lancer(action, configuration)
@@ -606,7 +606,7 @@ def lancer_avec_une_icone(tmp_path: Path, image: Path, action: str) -> subproces
 		document.add("interface", tomlkit.table())
 	section = document["interface"]
 	assert isinstance(section, tomlkit.items.Table)
-	section["icone"] = str(image)
+	section["icon"] = str(image)
 	configuration.write_text(tomlkit.dumps(document), encoding="utf-8")
 	return lancer(action, configuration)
 

@@ -6,7 +6,7 @@ Fonctionnalité: Choix des cartes son de l'antenne et de la pré-écoute
 
 	https://github.com/dascritch/machincast/issues/339 : un même bloc « Cartes son » (machincast.interface.cartes_son)
 	sert à la page « Audio » des préférences et à la fenêtre « Pour bien démarrer ». Il choisit le type de sortie
-	(audio.sortie), puis la carte son de l'antenne (audio.peripherique) et celle de la pré-écoute (audio.preecoute),
+	(audio.output), puis la carte son de l'antenne (audio.device) et celle de la pré-écoute (audio.preview),
 	parmi les périphériques du poste et l'entrée « Sortie factice » (configuration.FACTICE). La carte choisie pour l'une
 	est grisée dans l'autre. L'antenne ne prend la sortie factice que sans service de diffusion installé : c'est une
 	installation provisoire. Service en marche, la carte de l'antenne ne se choisit ni ne se teste. « Tester » joue

@@ -11,8 +11,8 @@
 	python -m machincast.installation devices     --config machincast.toml   périphériques de sortie du poste
 	python -m machincast.installation on-air      --config machincast.toml   antenne utilisable par le service
 
-devices n'est pas appelé par install.sh : il aide à trouver les identifiants à recopier dans audio.peripherique
-et audio.preecoute (https://github.com/dascritch/machincast/issues/116). on-air l'est par install.sh --service, avant
+devices n'est pas appelé par install.sh : il aide à trouver les identifiants à recopier dans audio.device
+et audio.preview (https://github.com/dascritch/machincast/issues/116). on-air l'est par install.sh --service, avant
 d'installer le service : il refuse une antenne sur la sortie factice (https://github.com/dascritch/machincast/issues/339).
 
 install.sh enchaîne les commandes système (apt, sudo, psql, liens) ; ce module porte ce qui se teste : la lecture
@@ -276,7 +276,7 @@ def _antenne(configuration: Configuration) -> int:
 	if peripherique is None:
 		journal.warning(
 			f"antenne sur la sortie {sortie}, à renseigner : le service de diffusion refusera de démarrer tant que"
-			" audio.peripherique ne la donne pas"
+			" audio.device ne la donne pas"
 		)
 		return 0
 	journal.info(
@@ -437,7 +437,7 @@ def lister_peripheriques(configuration: Configuration) -> str:
 
 
 def _peripheriques(configuration: Configuration) -> int:
-	# Une liste à lire, ou à recopier dans audio.peripherique et audio.preecoute : écrite telle quelle.
+	# Une liste à lire, ou à recopier dans audio.device et audio.preview : écrite telle quelle.
 	sys.stdout.write(lister_peripheriques(configuration))
 	return 0
 

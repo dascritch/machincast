@@ -129,7 +129,7 @@ Fonctionnalité: Socket d'état du binaire lecture
 			| de 0 seconde    | impose 0,25                             | laisse ses sonores décider, malgré 0,25 | 2026-10-14 19:59:51     | 2026-10-14 19:59:52     |
 
 	Plan du scénario: Un sonore sans crossfade paramétré, que sa banque ne règle pas, prend celui de la configuration
-		https://github.com/dascritch/machincast/issues/145 : « crossfades.debut » et « crossfades.fin » valent pour un sonore sans
+		https://github.com/dascritch/machincast/issues/145 : « crossfades.start » et « crossfades.end » valent pour un sonore sans
 		crossfade paramétré, qu'aucune banque n'impose ni n'applique à défaut.
 
 		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »

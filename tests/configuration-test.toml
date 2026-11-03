@@ -2,7 +2,7 @@
 # Une autre configuration de test peut être désignée par la variable d'environnement MACHINCAST_CONFIG_TEST.
 # La base de test doit toujours différer de la base de production : le chargement refuse sinon.
 
-[base]
+[database]
 socket = "/var/run/postgresql"
 # Base de production volontairement inexistante : un binaire lancé avec cette configuration ne peut pas
 # atteindre la vraie base de production (https://github.com/dascritch/machincast/issues/7).
@@ -11,14 +11,14 @@ test = "machincast_test"
 
 [audio]
 # Aucun son : les tests n'utilisent jamais une sortie réelle.
-sortie = "factice"
-preecoute = "preecoute-factice"
+output = "dummy"
+preview = "preecoute-factice"
 
-[sorties]
+[outputs]
 csv = "sorties-test/airplay.csv"
 pls = "sorties-test/playlist.pls"
 html = "sorties-test/airplay.html"
 
-[metadonnees]
-masquer = false
-texte_public = "Radio de test"
+[metadata]
+hide = false
+public_text = "Radio de test"

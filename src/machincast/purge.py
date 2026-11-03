@@ -1,6 +1,6 @@
 """Purge de la base de données : Machin purge (https://github.com/dascritch/machincast/issues/268).
 
-Efface de la base de production ce qui dépasse la durée de péremption (base.peremption de la configuration, 60 jours
+Efface de la base de production ce qui dépasse la durée de péremption (database.retention de la configuration, 60 jours
 par défaut, réglable aussi dans Fichier → Préférences… de l'interface), comptée depuis l'heure du lancement :
 
 - les passages de l'airplay finis avant la limite : un passage commencé avant et fini après reste entier ;

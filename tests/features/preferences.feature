@@ -9,7 +9,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 	seconde), leur durée maximale, et leurs durées par défaut, pour un sonore sans crossfade paramétré que sa banque ne
 	règle pas. Les préférences s'enregistrent dans la section [crossfades] du fichier de configuration, qui garde ses
 	commentaires ; les fiches ouvertes ensuite les suivent, et Machin player les prend à son prochain démarrage.
-	Sa page « Audio » règle les périphériques de l'antenne (audio.peripherique) et de la pré-écoute (audio.preecoute,
+	Sa page « Audio » règle les périphériques de l'antenne (audio.device) et de la pré-écoute (audio.preview,
 	https://github.com/dascritch/machincast/issues/116) : chacun est grisé dans l'autre choix, et Machin player refuse
 	de diffuser sans périphérique d'antenne. La fenêtre de l'interface s'ouvre sur une copie du fichier de configuration
 	des tests, dans le répertoire du scénario ; sa sortie est factice, et sans périphérique d'antenne.
@@ -31,9 +31,9 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Étant donné le fichier de configuration de l'interface, avec :
 			"""
 			[crossfades]
-			granularite = "seconde"
+			granularity = "second"
 			maximum = 8
-			debut = 2
+			start = 2
 			"""
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
@@ -52,7 +52,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Alors le fichier de configuration donne les crossfades : granularité « dixieme », maximum 6 s, début par défaut 1,5 s, fin par défaut 2 s
 		Et le fichier de configuration contient encore « # Réglages de l'antenne du matin. »
 		Et le fichier de configuration contient la ligne « maximum = 6 »
-		Et le fichier de configuration contient la ligne « debut = 1.5 »
+		Et le fichier de configuration contient la ligne « start = 1.5 »
 		Et le fichier de configuration contient encore les autres sections
 		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin player prendra les crossfades par défaut à son prochain démarrage. »
 
@@ -60,8 +60,8 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Étant donné le fichier de configuration de l'interface, avec :
 			"""
 			[crossfades]
-			debut = 2
-			fin = 3
+			start = 2
+			end = 3
 			"""
 		Et les préférences seront réglées : granularité « dixieme », maximum 5 s, début par défaut aucune, fin par défaut 3 s
 		Quand la fenêtre de l'interface s'ouvre
@@ -157,52 +157,33 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			"""
 			[silences]
 			# Seuil de l'antenne du matin.
-			seuil = -50
+			threshold = -50
 			"""
 		Et les préférences seront réglées avec le seuil de silence -55,5 dB
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
 		Alors les préférences ont montré le seuil de silence -50 dB
-		Et le fichier de configuration contient la ligne « seuil = -55.5 »
+		Et le fichier de configuration contient la ligne « threshold = -55.5 »
 		Et le fichier de configuration contient encore « # Seuil de l'antenne du matin. »
 		Et le fichier de configuration contient encore les autres sections
 
-	Scénario: L'ancienne section [blancs] devient [silences] quand les préférences sont enregistrées
-		https://github.com/dascritch/machincast/issues/291 : la section s'appelait [blancs]. Lue sous son nouveau nom,
-		elle est renommée dans le fichier, ses commentaires compris.
-
-		Étant donné le fichier de configuration de l'interface, avec :
-			"""
-			[blancs]
-			# Seuil de l'antenne du matin.
-			seuil = -50
-			"""
-		Et les préférences seront réglées avec le seuil de silence -55,5 dB
-		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
-		Alors les préférences ont montré le seuil de silence -50 dB
-		Et le fichier de configuration contient la ligne « [silences] »
-		Et le fichier de configuration contient la ligne « seuil = -55.5 »
-		Et le fichier de configuration contient encore « # Seuil de l'antenne du matin. »
-		Et le fichier de configuration n'a plus de section [blancs]
-
-	Scénario: Le blanc dans un sonore réglé dans les préférences va dans la section [blanc_antenne] du fichier de configuration
+	Scénario: Le blanc dans un sonore réglé dans les préférences va dans la section [dead_air] du fichier de configuration
 		https://github.com/dascritch/machincast/issues/122 : Machin player le prend à son prochain démarrage. Les
 		préférences suivantes montrent le blanc enregistré.
 
 		Étant donné le fichier de configuration de l'interface, avec :
 			"""
-			[blanc_antenne]
+			[dead_air]
 			# Blanc de l'antenne de nuit.
-			duree = 12
+			duration = 12
 			"""
 		Et les préférences seront réglées avec un blanc de 4,5 secondes sous -70 dB, qui fait passer au secours
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
 		Alors les préférences ont montré un blanc de 12 secondes sous -90 dB, qui est noté seulement
-		Et le fichier de configuration contient la ligne « duree = 4.5 »
-		Et le fichier de configuration contient la ligne « seuil = -70 »
-		Et le fichier de configuration contient la ligne « secours = true »
+		Et le fichier de configuration contient la ligne « duration = 4.5 »
+		Et le fichier de configuration contient la ligne « threshold = -70 »
+		Et le fichier de configuration contient la ligne « fallback = true »
 		Et le fichier de configuration contient encore « # Blanc de l'antenne de nuit. »
 		Et le fichier de configuration donne un blanc de 4,5 secondes sous -70 dB, qui fait passer au secours
 		Et le fichier de configuration contient encore les autres sections
@@ -212,17 +193,17 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 	Scénario: Régler d'autres préférences garde le blanc dans un sonore du fichier de configuration
 		Étant donné le fichier de configuration de l'interface, avec :
 			"""
-			[blanc_antenne]
-			duree = 12
-			seuil = -80
-			secours = true
+			[dead_air]
+			duration = 12
+			threshold = -80
+			fallback = true
 			"""
 		Et les préférences seront réglées avec le seuil de silence -55,5 dB
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
 		Alors le fichier de configuration donne un blanc de 12 secondes sous -80 dB, qui fait passer au secours
 
-	Scénario: La durée de péremption réglée dans les préférences va dans la section [base], et les fiches la suivent
+	Scénario: La durée de péremption réglée dans les préférences va dans la section [database], et les fiches la suivent
 		https://github.com/dascritch/machincast/issues/268 : Machin purge la prend à son prochain passage.
 
 		Étant donné la durée de péremption du fichier de configuration de l'interface est de 30 jours
@@ -230,7 +211,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
 		Alors les préférences ont montré la durée de péremption de 30 jours
-		Et le fichier de configuration contient la ligne « peremption = 90 »
+		Et le fichier de configuration contient la ligne « retention = 90 »
 		Et la durée de péremption de l'interface est de 90 jours
 
 	Scénario: Le voyant « Saturation » réglé dans les préférences va dans la section [interface], et l'onglet Antenne le suit aussitôt
@@ -241,7 +222,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Alors le voyant « Saturation » de l'antenne est affiché dans l'onglet
 		Quand je choisis « Préférences… » dans le menu « Fichier »
 		Alors les préférences ont montré le voyant « Saturation » affiché
-		Et le fichier de configuration contient la ligne « saturation = false »
+		Et le fichier de configuration contient la ligne « clipping = false »
 		Et le fichier de configuration contient encore les autres sections
 		Et le voyant « Saturation » de l'antenne est caché dans l'onglet
 
@@ -249,7 +230,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Étant donné le fichier de configuration de l'interface, avec :
 			"""
 			[interface]
-			saturation = false
+			clipping = false
 			"""
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le voyant « Saturation » de l'antenne est caché dans l'onglet
@@ -301,8 +282,8 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Étant donné les positions des fondus seront réglées : fade-in « en_cours », fade-out « termine »
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
-		Alors le fichier de configuration contient la ligne « position_entree = "en_cours" »
-		Et le fichier de configuration contient la ligne « position_sortie = "termine" »
+		Alors le fichier de configuration contient la ligne « fade_in_position = "ongoing" »
+		Et le fichier de configuration contient la ligne « fade_out_position = "ends" »
 		Et le fichier de configuration donne les positions des fondus : fade-in « en_cours », fade-out « termine »
 
 	Scénario: Une durée par défaut ne dépasse pas le maximum

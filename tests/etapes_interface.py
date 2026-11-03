@@ -1840,7 +1840,7 @@ def peremption_du_fichier(interface: Contexte, jours: int) -> None:
 	"""https://github.com/dascritch/machincast/issues/268"""
 	chemin = fichier_de_configuration(interface)
 	document = tomlkit.parse(chemin.read_text(encoding="utf-8"))
-	base = document["base"]
+	base = document["database"]
 	assert isinstance(base, tomlkit.items.Table)
-	base["peremption"] = jours
+	base["retention"] = jours
 	chemin.write_text(tomlkit.dumps(document), encoding="utf-8")

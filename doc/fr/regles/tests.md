@@ -22,7 +22,7 @@ Les scénarios Gherkin sont écrits en français (`# language: fr`).
 ## Base de test
 
 - Les tests lisent `tests/configuration-test.toml`, ou le fichier désigné par la variable d'environnement `MACHINCAST_CONFIG_TEST` ([#5](https://github.com/dascritch/machincast/issues/5)).
-- Les tests n'utilisent **jamais** la base de production, uniquement la base de test. Une configuration dont `base.test` vaut `base.production` est refusée au chargement, et `tests/base_test.py` arrête la session s'il rencontre ce cas.
+- Les tests n'utilisent **jamais** la base de production, uniquement la base de test. Une configuration dont `database.test` vaut `database.production` est refusée au chargement, et `tests/base_test.py` arrête la session s'il rencontre ce cas.
 - Un scénario qui a besoin de la base demande la fixture `base_vide` (`tests/conftest.py`) : base migrée, tables vides, identifiants remis à 1. Le schéma est recréé une fois par session, puis seulement purgé ([#280](https://github.com/dascritch/machincast/issues/280)) : yoyo ne repasse que s'il manque une migration, après un scénario qui en a annulé, et les tables se vident par `DELETE`, dans l'ordre de `tests.base_test.ORDRE_DE_PURGE`, dix fois plus vite qu'un `TRUNCATE`. Une table ajoutée à `machincast.base.TABLES` s'y ajoute aussi : un scénario de `schema.feature` le vérifie.
 - Le schéma de la base de test est appliqué par les mêmes migrations yoyo que la production (voir [base-de-donnees.md](base-de-donnees.md)).
 - Les tests ne créent jamais de compte PostgreSQL et n'attribuent jamais de rôle ([PR #72](https://github.com/dascritch/machincast/pull/72)). Le compte qui les lance doit déjà endosser les trois rôles de MachinCast (`WITH INHERIT FALSE, SET TRUE`), comme après `install.sh`, sans aucun droit particulier sur le serveur. Sinon, `base_vide` ignore les scénarios de base en indiquant la commande `postgres` à lancer (`CLAUDE.md`). Un compte superutilisateur endosse les rôles sans autorisation : les scénarios de base passent, mais celui de `roles.feature` qui vérifie les autorisations du compte échoue, en expliquant pourquoi et en donnant les commandes à lancer.
@@ -74,4 +74,4 @@ Les tests utilisent leur propre fichier de configuration, passé par le paramèt
 
 ## Audio
 
-Les tests du binaire lecture n'utilisent pas de sortie sonore réelle : la configuration de test choisit la sortie `factice` (élément GStreamer `fakesink`), ou le mode simulation, qui n'ouvre aucune sortie ([#21](https://github.com/dascritch/machincast/issues/21)). `machincast.audio.jouer_son_de_test` vérifie qu'un son traverse une sortie jusqu'au bout.
+Les tests du binaire lecture n'utilisent pas de sortie sonore réelle : la configuration de test choisit la sortie factice, `dummy` (élément GStreamer `fakesink`), ou le mode simulation, qui n'ouvre aucune sortie ([#21](https://github.com/dascritch/machincast/issues/21)). `machincast.audio.jouer_son_de_test` vérifie qu'un son traverse une sortie jusqu'au bout.

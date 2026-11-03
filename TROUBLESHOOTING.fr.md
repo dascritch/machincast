@@ -40,11 +40,11 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 
 **Symptôme** : une notification, le son d'une vidéo, d'une visioconférence ou du navigateur s'entend à l'antenne, par-dessus la diffusion.
 
-**Cause** ([#250](https://github.com/dascritch/machincast/issues/250)) : le périphérique de l'antenne est la sortie par défaut du bureau, celle de tous les programmes qui n'en choisissent pas. MachinCast n'y est pour rien : `Machin player` joue sur `audio.peripherique`, quelle que soit la sortie par défaut.
+**Cause** ([#250](https://github.com/dascritch/machincast/issues/250)) : le périphérique de l'antenne est la sortie par défaut du bureau, celle de tous les programmes qui n'en choisissent pas. MachinCast n'y est pour rien : `Machin player` joue sur `audio.device`, quelle que soit la sortie par défaut.
 
 **À vérifier** :
 
-- `pactl get-default-sink` ne doit pas donner l'identifiant de `audio.peripherique`. Sinon, choisir une autre sortie par défaut, et couper les sons de notification : voir [Préparer le poste d'antenne](INSTALL.fr.md#préparer-le-poste-dantenne).
+- `pactl get-default-sink` ne doit pas donner l'identifiant de `audio.device`. Sinon, choisir une autre sortie par défaut, et couper les sons de notification : voir [Préparer le poste d'antenne](INSTALL.fr.md#préparer-le-poste-dantenne).
 - `wpctl status`, sous PipeWire, liste dans « Streams » les programmes qui jouent, et sur quelle sortie.
 
 ## La pré-écoute s'arrête, ou le VU-mètre se rouvre, au retour d'un écran éteint
@@ -64,7 +64,7 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 
 **Cause** ([#345](https://github.com/dascritch/machincast/issues/345)) : à la mise en veille, WirePlumber, qui gère les sorties de PipeWire, peut changer le profil d'une carte son, par exemple pour préférer une sortie qu'il juge disponible. Le changement de profil retire un moment la sortie de l'antenne. PipeWire envoyait alors l'antenne sur la sortie par défaut.
 
-**Ce que fait MachinCast** : sous PipeWire, l'antenne est verrouillée sur `audio.peripherique` (`node.dont-fallback`, `node.linger`, `node.dont-move`). Elle ne passe jamais sur une autre sortie, et le réglage du son du poste ne peut pas l'y déplacer. Tant que son périphérique manque, le sonore en cours se met en pause, sans erreur ; il reprend où il en était dès que le périphérique revient. Le VU-mètre écoute de même toujours ce périphérique.
+**Ce que fait MachinCast** : sous PipeWire, l'antenne est verrouillée sur `audio.device` (`node.dont-fallback`, `node.linger`, `node.dont-move`). Elle ne passe jamais sur une autre sortie, et le réglage du son du poste ne peut pas l'y déplacer. Tant que son périphérique manque, le sonore en cours se met en pause, sans erreur ; il reprend où il en était dès que le périphérique revient. Le VU-mètre écoute de même toujours ce périphérique.
 
 **À vérifier** :
 

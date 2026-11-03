@@ -4,20 +4,20 @@
 (https://github.com/dascritch/machincast/issues/234), règle les crossfades : leur granularité (à la seconde ou au
 dixième de seconde), leur durée maximale, leurs durées par défaut, celles d'un sonore sans crossfade paramétré que sa
 banque ne règle pas (machincast.lecture.diffusion.crossfade), et la position des fondus par rapport aux silences
-détectés d'un sonore joué sans eux (crossfades.position_entree et position_sortie, machincast.lecture.fondus). Une frise
-de démonstration (machincast.interface.frise) montre où tombent les fondus, sur un sonore inventé, et suit les réglages.
-Elle règle aussi le seuil de silence (silences.seuil, https://github.com/dascritch/machincast/issues/146), que l'audit
-complet prend à son prochain passage, à côté des fondus qu'il place
+détectés d'un sonore joué sans eux (crossfades.fade_in_position et fade_out_position, machincast.lecture.fondus). Une
+frise de démonstration (machincast.interface.frise) montre où tombent les fondus, sur un sonore inventé, et suit les
+réglages. Elle règle aussi le seuil de silence (silences.threshold, https://github.com/dascritch/machincast/issues/146),
+que l'audit complet prend à son prochain passage, à côté des fondus qu'il place
 (https://github.com/dascritch/machincast/issues/324). Sa page « Audio » règle, par le bloc des cartes son
-(machincast.interface.cartes_son, https://github.com/dascritch/machincast/issues/339), le type de sortie (audio.sortie)
-et les cartes son de l'antenne (audio.peripherique), que Machin player prend à son prochain démarrage, et de la
-pré-écoute (audio.preecoute, https://github.com/dascritch/machincast/issues/116) : chacune est grisée dans l'autre
-choix, et se teste ; service de diffusion en marche, celle de l'antenne ne se choisit pas ; elle règle aussi le blanc
-dans un sonore (section [blanc_antenne], https://github.com/dascritch/machincast/issues/122) : sa durée, son niveau, et
-le passage au secours, que Machin player prend à son prochain démarrage. La page « Base » règle la durée de péremption
-(base.peremption, https://github.com/dascritch/machincast/issues/268), que Machin purge prend à son prochain passage, et
-que suit la fiche d'un élément supprimé. La page « Interface » règle l'onglet Antenne, et choisit l'icône de
-l'application (interface.icone, https://github.com/dascritch/machincast/issues/111) : une image lisible, ou celle de
+(machincast.interface.cartes_son, https://github.com/dascritch/machincast/issues/339), le type de sortie (audio.output)
+et les cartes son de l'antenne (audio.device), que Machin player prend à son prochain démarrage, et de la pré-écoute
+(audio.preview, https://github.com/dascritch/machincast/issues/116) : chacune est grisée dans l'autre choix, et se teste
+; service de diffusion en marche, celle de l'antenne ne se choisit pas ; elle règle aussi le blanc dans un sonore
+(section [dead_air], https://github.com/dascritch/machincast/issues/122) : sa durée, son niveau, et le passage au
+secours, que Machin player prend à son prochain démarrage. La page « Base » règle la durée de péremption
+(database.retention, https://github.com/dascritch/machincast/issues/268), que Machin purge prend à son prochain passage,
+et que suit la fiche d'un élément supprimé. La page « Interface » règle l'onglet Antenne, et choisit l'icône de
+l'application (interface.icon, https://github.com/dascritch/machincast/issues/111) : une image lisible, ou celle de
 MachinCast ; la fenêtre principale la donne aussitôt à ses fenêtres et aux raccourcis déjà installés
 (machincast.raccourci.reecrire).
 
@@ -46,6 +46,7 @@ from machincast.configuration import (
 	Crossfades,
 	Granularite,
 	SortieAudio,
+	valeur_pour_le_fichier,
 )
 from machincast.interface.application import ICONE, lisible
 from machincast.interface.cartes_son import CartesSon
@@ -74,28 +75,28 @@ class Reglages:
 
 	crossfades: Crossfades
 	antenne: str | None
-	"""audio.peripherique ; None tant qu'il n'est pas renseigné."""
+	"""audio.device ; None tant qu'il n'est pas renseigné."""
 	preecoute: str
-	"""audio.preecoute."""
+	"""audio.preview."""
 	seuil_silences: float = SEUIL_DE_SILENCE
-	"""silences.seuil, en dB crête (https://github.com/dascritch/machincast/issues/146)."""
+	"""silences.threshold, en dB crête (https://github.com/dascritch/machincast/issues/146)."""
 	saturation: bool = True
-	"""interface.saturation : le voyant « Saturation » de l'onglet Antenne est affiché
+	"""interface.clipping : le voyant « Saturation » de l'onglet Antenne est affiché
 	(https://github.com/dascritch/machincast/issues/191)."""
 	suggestions: bool = True
 	"""interface.suggestions : au lancement, l'interface propose ce qui manque pour démarrer
 	(https://github.com/dascritch/machincast/issues/119)."""
 	icone: Path | None = None
-	"""interface.icone : l'image choisie pour icône de l'application ; None : celle de MachinCast
+	"""interface.icon : l'image choisie pour icône de l'application ; None : celle de MachinCast
 	(https://github.com/dascritch/machincast/issues/111)."""
 	peremption: int = PEREMPTION
-	"""base.peremption, en jours : au-delà, Machin purge efface de la base
+	"""database.retention, en jours : au-delà, Machin purge efface de la base
 	(https://github.com/dascritch/machincast/issues/268)."""
 	blanc_antenne: BlancAntenne = BlancAntenne()
-	"""La section [blanc_antenne] : blanc dans un sonore, à l'antenne
+	"""La section [dead_air] : blanc dans un sonore, à l'antenne
 	(https://github.com/dascritch/machincast/issues/122)."""
 	sortie: SortieAudio | None = None
-	"""audio.sortie, le type de sortie choisi (https://github.com/dascritch/machincast/issues/339) ; None : inchangé."""
+	"""audio.output, le type de sortie choisi (https://github.com/dascritch/machincast/issues/339) ; None : inchangé."""
 
 
 _courantes = Crossfades()
@@ -160,64 +161,69 @@ def _nombre(valeur: float) -> int | float:
 
 
 def ecrire(chemin: Path, reglages: Reglages) -> None:
-	"""Écrit les réglages dans les sections [crossfades], [audio], [silences], [blanc_antenne], [interface] et [base] du
-	fichier de configuration, qui garde le reste tel quel, commentaires compris. Une section [blancs], l'ancien nom de
-	[silences], est renommée."""
+	"""Écrit les réglages dans les sections [crossfades], [audio], [silences], [dead_air], [interface] et [database] du
+	fichier de configuration, sous leurs noms anglais (https://github.com/dascritch/machincast/issues/357) ; le reste du
+	fichier reste tel quel, commentaires compris."""
 	document = tomlkit.parse(chemin.read_text(encoding="utf-8"))
-	base = document["base"]
+	base = document["database"]
 	assert isinstance(base, tomlkit.items.Table)
-	# La durée par défaut ne s'écrit pas dans une section qui ne la donne pas : [base] reste telle quelle.
-	if ("peremption" in base) or (reglages.peremption != PEREMPTION):
-		base["peremption"] = reglages.peremption
+	# La durée par défaut ne s'écrit pas dans une section qui ne la donne pas : [database] reste telle quelle.
+	if ("retention" in base) or (reglages.peremption != PEREMPTION):
+		base["retention"] = reglages.peremption
 	if "crossfades" not in document:
 		document.add("crossfades", tomlkit.table())
 	section = document["crossfades"]
 	assert isinstance(section, tomlkit.items.Table)
 	crossfades = reglages.crossfades
-	section["granularite"] = crossfades.granularite
+	section["granularity"] = valeur_pour_le_fichier("granularite", crossfades.granularite)
 	section["maximum"] = _secondes(crossfades.maximum)
-	section["position_entree"] = crossfades.entree
-	section["position_sortie"] = crossfades.sortie
-	audio = document["audio"]
-	assert isinstance(audio, tomlkit.items.Table)
-	if reglages.sortie is not None:
-		audio["sortie"] = reglages.sortie
-	if reglages.antenne is not None:
-		audio["peripherique"] = reglages.antenne
-	audio["preecoute"] = reglages.preecoute
-	for cle, duree in (("debut", crossfades.debut), ("fin", crossfades.fin)):
+	section["fade_in_position"] = valeur_pour_le_fichier("position", crossfades.entree)
+	section["fade_out_position"] = valeur_pour_le_fichier("position", crossfades.sortie)
+	ecrire_l_audio(document, reglages.sortie, reglages.antenne, reglages.preecoute)
+	for cle, duree in (("start", crossfades.debut), ("end", crossfades.fin)):
 		if duree is None:
 			if cle in section:
 				del section[cle]
 			continue
 		section[cle] = _secondes(duree)
-	# L'ancienne section [blancs] devient [silences], commentaires compris
-	# (https://github.com/dascritch/machincast/issues/291).
-	if ("blancs" in document) and ("silences" not in document):
-		document.add("silences", document.pop("blancs"))
 	if "silences" not in document:
 		document.add("silences", tomlkit.table())
 	silences = document["silences"]
 	assert isinstance(silences, tomlkit.items.Table)
-	silences["seuil"] = _nombre(reglages.seuil_silences)
-	if "blanc_antenne" not in document:
-		document.add("blanc_antenne", tomlkit.table())
-	blanc_antenne = document["blanc_antenne"]
+	silences["threshold"] = _nombre(reglages.seuil_silences)
+	if "dead_air" not in document:
+		document.add("dead_air", tomlkit.table())
+	blanc_antenne = document["dead_air"]
 	assert isinstance(blanc_antenne, tomlkit.items.Table)
-	blanc_antenne["duree"] = _secondes(reglages.blanc_antenne.duree)
-	blanc_antenne["seuil"] = _nombre(reglages.blanc_antenne.seuil)
-	blanc_antenne["secours"] = reglages.blanc_antenne.secours
+	blanc_antenne["duration"] = _secondes(reglages.blanc_antenne.duree)
+	blanc_antenne["threshold"] = _nombre(reglages.blanc_antenne.seuil)
+	blanc_antenne["fallback"] = reglages.blanc_antenne.secours
 	if "interface" not in document:
 		document.add("interface", tomlkit.table())
 	section_interface = document["interface"]
 	assert isinstance(section_interface, tomlkit.items.Table)
-	section_interface["saturation"] = reglages.saturation
+	section_interface["clipping"] = reglages.saturation
 	section_interface["suggestions"] = reglages.suggestions
 	if reglages.icone is not None:
-		section_interface["icone"] = str(reglages.icone)
-	elif "icone" in section_interface:
-		del section_interface["icone"]
+		section_interface["icon"] = str(reglages.icone)
+	elif "icon" in section_interface:
+		del section_interface["icon"]
 	chemin.write_text(tomlkit.dumps(document), encoding="utf-8")
+
+
+def ecrire_l_audio(
+	document: tomlkit.TOMLDocument, sortie: SortieAudio | None, antenne: str | None, preecoute: str | None
+) -> None:
+	"""La section [audio] : audio.output, audio.device et audio.preview, chacun s'il est donné, en valeurs du fichier
+	(« dummy » pour la sortie factice) ; partagée par les préférences, les suggestions et la pré-écoute."""
+	audio = document["audio"]
+	assert isinstance(audio, tomlkit.items.Table)
+	if sortie is not None:
+		audio["output"] = valeur_pour_le_fichier("sortie", sortie)
+	if antenne is not None:
+		audio["device"] = valeur_pour_le_fichier("peripherique", antenne)
+	if preecoute is not None:
+		audio["preview"] = valeur_pour_le_fichier("peripherique", preecoute)
 
 
 class FenetrePreferences(QDialog):

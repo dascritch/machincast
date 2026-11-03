@@ -40,11 +40,11 @@ The known failures of MachinCast, their causes, what to check, and the scenarios
 
 **Symptom**: a notification, the sound of a video, a video call or the browser can be heard on air, over the playout.
 
-**Cause** ([#250](https://github.com/dascritch/machincast/issues/250)): the on-air device is the desktop's default output, the one used by every program that does not choose one. MachinCast plays no part: `Machin player` plays on `audio.peripherique`, whatever the default output.
+**Cause** ([#250](https://github.com/dascritch/machincast/issues/250)): the on-air device is the desktop's default output, the one used by every program that does not choose one. MachinCast plays no part: `Machin player` plays on `audio.device`, whatever the default output.
 
 **To check**:
 
-- `pactl get-default-sink` must not give the identifier of `audio.peripherique`. Otherwise, choose another default output, and mute notification sounds: see [Preparing the on-air machine](INSTALL.md#preparing-the-on-air-machine).
+- `pactl get-default-sink` must not give the identifier of `audio.device`. Otherwise, choose another default output, and mute notification sounds: see [Preparing the on-air machine](INSTALL.md#preparing-the-on-air-machine).
 - `wpctl status`, under PipeWire, lists in « Streams » the programs that are playing, and on which output.
 
 ## The preview stops, or the VU meter reopens, when a screen wakes up
@@ -64,7 +64,7 @@ The known failures of MachinCast, their causes, what to check, and the scenarios
 
 **Cause** ([#345](https://github.com/dascritch/machincast/issues/345)): on sleep, WirePlumber, which manages PipeWire's outputs, can change a sound card's profile, for instance to prefer an output it considers available. The profile change removes the on-air output for a while. PipeWire then sent the station to the default output.
 
-**What MachinCast does**: under PipeWire, the station is locked to `audio.peripherique` (`node.dont-fallback`, `node.linger`, `node.dont-move`). It never goes to another output, and the machine's sound settings cannot move it there. While its device is missing, the current sound pauses, without an error; it resumes where it was as soon as the device comes back. The VU meter likewise always listens to that device.
+**What MachinCast does**: under PipeWire, the station is locked to `audio.device` (`node.dont-fallback`, `node.linger`, `node.dont-move`). It never goes to another output, and the machine's sound settings cannot move it there. While its device is missing, the current sound pauses, without an error; it resumes where it was as soon as the device comes back. The VU meter likewise always listens to that device.
 
 **To check**:
 

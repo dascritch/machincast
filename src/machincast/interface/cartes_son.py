@@ -4,10 +4,10 @@ spec § 8.10 et § 8.11).
 Le bloc CartesSon sert à la page « Audio » des préférences (machincast.interface.preferences) et à la fenêtre « Pour
 bien démarrer » (machincast.interface.suggestions). Il choisit :
 
-- le type de sortie (audio.sortie) : PipeWire, PulseAudio ou ALSA ; la sortie factice des essais n'est proposée que si
+- le type de sortie (audio.output) : PipeWire, PulseAudio ou ALSA ; la sortie factice des essais n'est proposée que si
   elle est déjà configurée. Un autre type relit les cartes du poste : l'antenne reste à renseigner, sauf sur la sortie
   factice ; la pré-écoute garde sa carte si elle y est ;
-- la carte son de l'antenne (audio.peripherique) et celle de la pré-écoute (audio.preecoute), chacune parmi les
+- la carte son de l'antenne (audio.device) et celle de la pré-écoute (audio.preview), chacune parmi les
   périphériques du poste (machincast.audio.peripheriques), la carte configurée en tête, et l'entrée « Sortie factice »
   (configuration.FACTICE). La carte choisie pour l'une est grisée dans l'autre, sortie factice comprise.
 

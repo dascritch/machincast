@@ -1,6 +1,6 @@
 """Sorties audio GStreamer (https://github.com/dascritch/machincast/issues/5).
 
-La sortie choisie dans la configuration (audio.sortie) correspond à un élément GStreamer. La sortie
+La sortie choisie dans la configuration (audio.output) correspond à un élément GStreamer. La sortie
 « factice » ne joue aucun son : elle sert aux tests et aux essais.
 
 Une sortie PipeWire sur un périphérique y est verrouillée (VERROU, https://github.com/dascritch/machincast/issues/345) :
@@ -63,7 +63,7 @@ class Peripherique:
 	"""Un périphérique de sortie du poste (https://github.com/dascritch/machincast/issues/116)."""
 
 	identifiant: str
-	"""Ce qu'écrivent audio.peripherique et audio.preecoute : le nom du nœud PipeWire, le nom interne du périphérique
+	"""Ce qu'écrivent audio.device et audio.preview : le nom du nœud PipeWire, le nom interne du périphérique
 	PulseAudio ou ALSA."""
 	nom: str
 	"""Ce que le poste en montre."""
