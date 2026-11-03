@@ -13,4 +13,4 @@ scenarios("onglets_retenus.feature")
 
 @when(parsers.parse("le sonore « {titre} » est supprimé en base, depuis un autre poste"))
 def supprime(base_vide: Connexion, titre: str) -> None:
-	base_vide.execute("UPDATE sonores SET supprime_le = now() WHERE titre = %s", (titre,))
+	base_vide.execute("UPDATE sounds SET deleted_at = now() WHERE title = %s", (titre,))

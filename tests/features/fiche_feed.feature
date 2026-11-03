@@ -14,10 +14,10 @@ Fonctionnalité: Feeds de streams
 		Et l'horloge de l'interface au « 2026-10-19 20:00:00 »
 		Et les feeds « Radio Machin » à « https://machin.exemple/live », « Radio Bidule » à « https://bidule.exemple/live »
 		Et les sonores :
-			| artiste | titre       | type   | etat  | duree | emplacement             |
-			|         | Machin nuit | stream | actif |       | https://flux.exemple/b  |
-			|         | Machin soir | stream | actif |       | https://flux.exemple/a  |
-			|         | Machin aube | stream | actif |       | https://flux.exemple/c  |
+			| artist | title       | type   | state  | duration | location               |
+			|        | Machin nuit | stream | active |          | https://flux.exemple/b |
+			|        | Machin soir | stream | active |          | https://flux.exemple/a |
+			|        | Machin aube | stream | active |          | https://flux.exemple/c |
 		Et les streams « Machin soir », « Machin nuit » suivent le feed « Radio Machin »
 		Et le stream « Machin aube » suit le feed « Radio Bidule »
 

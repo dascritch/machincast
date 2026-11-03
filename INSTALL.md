@@ -129,7 +129,7 @@ From the MachinCast directory, with your own account:
 
 At the end, it shows `Installation terminée`. The playout service is only installed on request: see [Playout service](#playout-service).
 
-**PostgreSQL roles.** Each MachinCast program acts with its own rights: `machincast_lecture` for playout, `machincast_indexation` for indexing, `machincast_interface` for the graphical interface. A station account connects with its own PostgreSQL role, which gives access to nothing by itself: each program takes on its role as soon as it connects. The details are in the [specification, § 3.2](doc/fr/spec.md#32-rôles-et-droits) (French).
+**PostgreSQL roles.** Each MachinCast program acts with its own rights: `machincast_player` for playout, `machincast_indexer` for indexing, `machincast_interface` for the graphical interface. A station account connects with its own PostgreSQL role, which gives access to nothing by itself: each program takes on its role as soon as it connects. The details are in the [specification, § 3.2](doc/fr/spec.md#32-rôles-et-droits) (French).
 
 ## Adapting the configuration
 
@@ -262,12 +262,12 @@ COMPTE=programmation
 # PostgreSQL role of the account, without any particular right on the server
 sudo -u postgres createuser "${COMPTE}"
 # Permission to take on MachinCast's three roles, without inheriting their rights
-sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machincast_interface TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
 # Reading the service log, effective after the machine restarts
 sudo usermod --append --groups systemd-journal "${COMPTE}"
 ```
 
-To give it only part of the rights, name only the wanted roles in the `GRANT`: for instance `machincast_indexation` alone for an account that only indexes.
+To give it only part of the rights, name only the wanted roles in the `GRANT`: for instance `machincast_indexer` alone for an account that only indexes.
 
 The account must also be able to read the MachinCast directory. Under Ubuntu, a home directory is only readable by its owner: an installation in `~/machincast` therefore stays inaccessible to other accounts until those rights are changed.
 
@@ -275,7 +275,7 @@ To remove an account's access:
 
 ```bash
 COMPTE=programmation
-sudo -u postgres psql -c "REVOKE machincast_lecture, machincast_indexation, machincast_interface FROM \"${COMPTE}\""
+sudo -u postgres psql -c "REVOKE machincast_player, machincast_indexer, machincast_interface FROM \"${COMPTE}\""
 ```
 
 ## Updating
@@ -311,30 +311,15 @@ git pull
 
 **English command names** ([#356](https://github.com/dascritch/machincast/issues/356)). `Machin lecture` is now `Machin player`, `Machin indexation` `Machin indexer`, `Machin dev-captures` `Machin dev-screenshots`, and their options are in English (`--full-audit`, `--sound`, `--window`, `--force`, `--seed`, `--name`, `--directory`, `--backups`, `--keep-open`), like those of `install.sh` (`--desktop`, `--no-desktop`, `--stop-programs`, `--leave-programs`, `--remove-service`) and the steps of `python -m machincast.installation`. The old names are no longer recognised: an existing installation is redone from scratch, including `./install.sh --service` to rewrite the service unit, which runs `bin/Machin player`.
 
-**Bookmarks turned into feeds.** Since [#252](https://github.com/dascritch/machincast/issues/252), the schema renames the `marques_pages_streams` table to `feeds`, and the `marque_page_id` column of sounds to `feed_id`, without touching the data; the rights of the three roles follow. A hand-written query using the old names must be fixed. The column layout of the former « Marques-pages » tab is not kept: that of the « Feeds » tab starts again from the default columns.
-
-**Single schema.** Before the project was really in use, all migrations were merged into a single one, `0001.schema-initial` ([#314](https://github.com/dascritch/machincast/issues/314)). A database that had received the fifteen old ones, from `0001.schema-initial` to `0015.vocabulaire-silences-blancs`, keeps its data: `install.sh` or `Machin maintenance-db` recognise it, announce it (`base … : les migrations 0002.evenements-nom-unique à 0015.vocabulaire-silences-blancs, fondues dans 0001.schema-initial, sont oubliées ; ses données ne changent pas`), and from then on consider it up to date. A database left at an intermediate migration is refused, without changing anything: `schéma impossible à mettre à jour : base … : ancien schéma, sans la migration …` (schema cannot be updated: old schema, without the migration …). First update it with version `cd2e564` of MachinCast (`git checkout cd2e564`, then `./install.sh`), then come back to the current version (`git checkout main`, then `./install.sh`); or recreate it, as below.
-
-**Database created before an older merge.** Before any production use, the migrations had already been merged three times ([PR #70](https://github.com/dascritch/machincast/pull/70), then [PR #90](https://github.com/dascritch/machincast/pull/90), which adds the `secours` (fallback) priority of events, then [PR #100](https://github.com/dascritch/machincast/pull/100), which adds sequences and the "do not repeat" bank). A database created before one of these merges cannot be updated. To recognise it, list the migrations it received, and check that it knows sequences:
-
-```bash
-psql --dbname=machincast -c "SELECT migration_id FROM _yoyo_migration"
-psql --dbname=machincast -c "SELECT to_regclass('sequences')"
-```
-
-If the first list holds anything else than `0001.schema-initial`, and the migrations `0002.evenements-nom-unique` to `0015.vocabulaire-silences-blancs` from before the single schema, or if the second answers an empty value instead of `sequences`, recreate the database. **This deletes its content**: it is only possible as long as MachinCast is not in production. The commands of this document use the template's database name, `machincast`: replace it with that of `database.production` (or `database.test`) in `machincast.toml`.
+**English schema** ([#358](https://github.com/dascritch/machincast/issues/358)). The tables, columns, types, values and roles of the database are in English: `sounds`, `banks`, `events`, `event_items`, `airplay`, `log`…, roles `machincast_player`, `machincast_indexer` and `machincast_interface`. A database created with the old schema, with French names (migration `0001.schema-initial`, or one of the migrations before it), cannot be updated: `install.sh` and `Machin maintenance-db` refuse it without changing anything, `schéma impossible à mettre à jour : base … : ancien schéma, aux noms français (migration …) ; la recréer` (schema cannot be updated: old schema, with French names; recreate it). Back it up if it holds anything useful, then recreate it, test database included. **This deletes its content**: it is only possible as long as MachinCast is not in production. The commands of this document use the template's database names, `machincast` and `machincast_test`: replace them with those of `database.production` and `database.test` in `machincast.toml`.
 
 ```bash
 sudo -u postgres dropdb machincast
+sudo -u postgres dropdb machincast_test
 ./install.sh
 ```
 
-**Two events with the same name.** Since [#32](https://github.com/dascritch/machincast/issues/32), two events that are not deleted do not have the same internal name. An older database, left at an old migration, where this is the case, stops when going through version `cd2e564` on the error `could not create unique index "evenements_nom_interne_key"`, which names the duplicated name. List the duplicated names, rename one of the events, then run `./install.sh` again:
-
-```bash
-psql --dbname=machincast -c "SELECT nom_interne, array_agg(id) FROM evenements GROUP BY nom_interne HAVING count(*) > 1"
-psql --dbname=machincast -c "UPDATE evenements SET nom_interne = 'Matinale du samedi' WHERE id = 42"
-```
+`install.sh` creates the new roles. The old ones, `machincast_lecture` and `machincast_indexation`, are no longer used: once both databases are recreated, they can be removed with `sudo -u postgres psql -c "DROP ROLE machincast_lecture, machincast_indexation"`. A hand-written query using the old names must be rewritten.
 
 ## Installing by hand
 
@@ -370,7 +355,7 @@ Then adapt it (see [Adapting the configuration](#adapting-the-configuration)).
 sudo -u postgres createuser "$(id -un)"
 sudo -u postgres createdb --owner="$(id -un)" machincast
 sudo -u postgres createdb --owner="$(id -un)" machincast_test
-sudo -u postgres psql -c "CREATE ROLE machincast_lecture NOLOGIN" -c "CREATE ROLE machincast_indexation NOLOGIN" \
+sudo -u postgres psql -c "CREATE ROLE machincast_player NOLOGIN" -c "CREATE ROLE machincast_indexer NOLOGIN" \
 	-c "CREATE ROLE machincast_interface NOLOGIN"
 .venv/bin/python -m machincast.installation migrate --config machincast.toml
 ```
@@ -380,7 +365,7 @@ The three group roles belong to the server, not to a database: they serve both d
 **5. The account's roles.**
 
 ```bash
-sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machincast_interface TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
 ```
 
 **6. System log.**
@@ -456,7 +441,7 @@ The database names are those of the template: use those of `database.production`
 | « MachinCast : base de données injoignable » window (database unreachable), when starting `Machin interface` | The interface cannot reach the `database.production` database. The « Ouvrir INSTALL.md » button opens this document, and the window's details give PostgreSQL's error. `connection … failed` or `No such file or directory`: PostgreSQL is not started (`sudo systemctl start postgresql`), or `database.socket` does not point to its socket. `database … does not exist`: run `install.sh` again, which creates the database. `permission denied to set role`: see [Adding another account](#adding-another-account). |
 | `sauvegarde impossible : pg_dump introuvable, installer postgresql-client` | `pg_dump` is missing: `sudo apt install postgresql-client`, then run it again. Nothing was changed. |
 | `sauvegarde impossible : … ; maintenance arrêtée, rien n'a été modifié` | The backup directory cannot be written, the disk is full, or `pg_dump` failed: its error follows. Fix it, or give another directory with `--backups`. |
-| `schéma impossible à mettre à jour : base … : ancien schéma, sans la migration …` | The database stayed at a migration from before the single schema ([#314](https://github.com/dascritch/machincast/issues/314)): nothing was changed. See **Single schema**, in [Updating](#updating). |
+| `schéma impossible à mettre à jour : base … : ancien schéma, aux noms français (migration …) ; la recréer` | The database was created before the English schema ([#358](https://github.com/dascritch/machincast/issues/358)): nothing was changed. See **English schema**, in [Updating](#updating). |
 | `rôle … : absent du serveur, ou non endossable par le compte` | Run, with an administrator account, the two commands given by the message, then run the maintenance again. See also [Adding another account](#adding-another-account). |
 | `Machin logs` asks for the `adm` or `systemd-journal` group, or only shows messages from its own account | The group is not yet taken into account by the session. If `id -nG "$(id -un)"` lists `systemd-journal` but `id -nG` does not, it has been added: restart the machine. Otherwise, run `install.sh` again. |
 

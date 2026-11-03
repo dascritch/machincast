@@ -32,8 +32,7 @@ def regler_le_debut(interface: Contexte, debut: str) -> None:
 def retablie_en_base(base_vide: Connexion, jour: str, nom: str) -> None:
 	"""Comme depuis le calendrier, ou depuis une autre fiche."""
 	base_vide.execute(
-		"DELETE FROM evenements_sauts"
-		" WHERE jour = %s AND evenement_id = (SELECT id FROM evenements WHERE nom_interne = %s)",
+		"DELETE FROM event_skips WHERE day = %s AND event_id = (SELECT id FROM events WHERE internal_name = %s)",
 		(date.fromisoformat(jour), nom),
 	)
 
@@ -75,8 +74,7 @@ def bouton_retablir(interface: Contexte, etat: str, bulle: str | None) -> None:
 @then(parsers.re(r"les sessions sautées de « (?P<nom>[^»]+) » en base sont (?P<jours>aucune|«.+)"))
 def sautees_en_base(base_vide: Connexion, nom: str, jours: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT s.jour FROM evenements_sauts s JOIN evenements e ON e.id = s.evenement_id"
-		" WHERE e.nom_interne = %s ORDER BY s.jour",
+		"SELECT s.day FROM event_skips s JOIN events e ON e.id = s.event_id WHERE e.internal_name = %s ORDER BY s.day",
 		(nom,),
 	).fetchall()
 	attendus: list[date] = []

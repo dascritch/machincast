@@ -15,18 +15,18 @@ Fonctionnalité: Recherche globale
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-21 09:00:00 »
 		Et les sonores :
-			| artiste     | titre         | type    | etat      | duree | emplacement             |
-			| Les Gaufres | Café à minuit | fichier | actif     | 214   | /srv/musique/minuit.flac |
-			| Café Noir   | Nuit blanche  | fichier | desactive | 180   | /srv/musique/nuit.flac   |
-			|             | Jingle        | fichier | actif     | 5     | /srv/cafe/jingle.flac    |
+			| artist      | title         | type | state    | duration | location                 |
+			| Les Gaufres | Café à minuit | file | active   | 214      | /srv/musique/minuit.flac |
+			| Café Noir   | Nuit blanche  | file | disabled | 180      | /srv/musique/nuit.flac   |
+			|             | Jingle        | file | active   | 5        | /srv/cafe/jingle.flac    |
 		Et la banque « Cafés chantants », aléatoire, sans nom public, avec « Café à minuit »
 		Et la banque « Habillage », séquentielle, de nom public « Le café des ondes », avec « Jingle »
 		Et la séquence « Café-croissant », sans nom public, avec le sonore « Jingle »
 		Et les événements :
-			| nom           | nom_public   | priorite    | debut               | fin                 | jours |
-			| Fil de jour   |              | fil_musical |                     |                     |       |
-			| Café du matin |              | emission    | 2026-10-21 07:00:00 | 2026-10-21 09:00:00 |       |
-			| Matinale      | Le petit CAFÉ | emission   | 2026-10-21 10:00:00 | 2026-10-21 11:00:00 |       |
+			| name          | public_name   | priority               | starts_at           | ends_at             | days |
+			| Fil de jour   |               | background_programming |                     |                     |      |
+			| Café du matin |               | show                   | 2026-10-21 07:00:00 | 2026-10-21 09:00:00 |      |
+			| Matinale      | Le petit CAFÉ | show                   | 2026-10-21 10:00:00 | 2026-10-21 11:00:00 |      |
 
 	# ─── Ouverture ─────────────────────────────────────────────
 
@@ -94,11 +94,11 @@ Fonctionnalité: Recherche globale
 
 	Scénario: Les caractères spéciaux de SQL sont cherchés tels quels
 		Étant donné les sonores :
-			| artiste | titre         | type    | etat  | duree | emplacement           |
-			|         | 100% Gaufres  | fichier | actif | 60    | /srv/pubs/cent.flac   |
-			|         | 1000 Gaufres  | fichier | actif | 60    | /srv/pubs/mille.flac  |
-			|         | Gaufre_royale | fichier | actif | 60    | /srv/pubs/royale.flac |
-			|         | Gaufre royale | fichier | actif | 60    | /srv/pubs/autre.flac  |
+			| artist | title         | type | state  | duration | location              |
+			|        | 100% Gaufres  | file | active | 60       | /srv/pubs/cent.flac   |
+			|        | 1000 Gaufres  | file | active | 60       | /srv/pubs/mille.flac  |
+			|        | Gaufre_royale | file | active | 60       | /srv/pubs/royale.flac |
+			|        | Gaufre royale | file | active | 60       | /srv/pubs/autre.flac  |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'appuie sur « Ctrl+F »
 		Et je tape « 0% » dans le champ de recherche

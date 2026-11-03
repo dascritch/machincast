@@ -17,12 +17,12 @@ Fonctionnalité: Encarts dépliables et vérification complète dans la fiche d'
 		Et l'horloge de l'interface au « 2026-10-21 09:00:00 »
 		Et le fichier de test « sain.flac » copié en « …/jingles/neige.flac »
 		Et les sonores :
-			| artiste | titre  | type    | etat  | duree | emplacement                 |
-			|         | Neige  | fichier | actif | 10    | …/jingles/neige.flac        |
-			|         | Direct | stream  | actif |       | https://flux.exemple/direct |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Neige  | file   | active | 10       | …/jingles/neige.flac        |
+			|        | Direct | stream | active |          | https://flux.exemple/direct |
 		Et les événements :
-			| nom         | nom_public | priorite    | debut | fin | jours |
-			| Fil de jour |            | fil_musical |       |     |       |
+			| name        | public_name | priority               | starts_at | ends_at | days |
+			| Fil de jour |             | background_programming |           |         |      |
 
 	# ─── Encarts ───────────────────────────────────────────────
 

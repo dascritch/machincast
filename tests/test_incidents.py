@@ -34,25 +34,25 @@ def lignes(interface: Contexte) -> list[dict[str, str]]:
 def noter(base: Connexion, horodatage: str, niveau: str, nature: str, message: str, references: dict[str, str]) -> None:
 	"""Une entrée du log, comme l'écrit Machin player ; chaque référence par le nom de l'élément."""
 	ids = {
-		"sonore": ("sonores", "titre"),
-		"banque": ("banques", "nom_interne"),
-		"evenement": ("evenements", "nom_interne"),
+		"sound": ("sounds", "title"),
+		"bank": ("banks", "internal_name"),
+		"event": ("events", "internal_name"),
 	}
 	valeurs = {cle: None for cle in ids}
 	for cle, (table, colonne) in ids.items():
 		if references.get(cle, "") != "":
 			valeurs[cle] = identifiant(base, table, colonne, references[cle])
 	base.execute(
-		"INSERT INTO log (horodatage, niveau, nature, message, sonore_id, banque_id, evenement_id)"
+		"INSERT INTO log (logged_at, level, kind, message, sound_id, bank_id, event_id)"
 		" VALUES (%s, %s, %s, %s, %s, %s, %s)",
 		(
 			datetime.fromisoformat(horodatage).astimezone(),
 			niveau,
 			nature,
 			message,
-			valeurs["sonore"],
-			valeurs["banque"],
-			valeurs["evenement"],
+			valeurs["sound"],
+			valeurs["bank"],
+			valeurs["event"],
 		),
 	)
 
@@ -65,7 +65,7 @@ def log(base_vide: Connexion, datatable: list[list[str]]) -> None:
 	entetes, *rangees = datatable
 	for valeurs in rangees:
 		ligne = dict(zip((entete.strip() for entete in entetes), (v.strip() for v in valeurs), strict=True))
-		noter(base_vide, ligne["horodatage"], ligne["niveau"], ligne["nature"], ligne["message"], ligne)
+		noter(base_vide, ligne["logged_at"], ligne["level"], ligne["kind"], ligne["message"], ligne)
 
 
 @given("le log est vide")
@@ -77,7 +77,7 @@ def log_vide(base_vide: Connexion) -> None:
 def alertes(base_vide: Connexion, nombre: int, nature: str, debut: str) -> None:
 	depart = datetime.fromisoformat(debut)
 	for rang in range(nombre):
-		noter(base_vide, (depart + timedelta(minutes=rang)).isoformat(), "alerte", nature, f"n° {rang}", {})
+		noter(base_vide, (depart + timedelta(minutes=rang)).isoformat(), "warning", nature, f"n° {rang}", {})
 
 
 # ─── Quand ─────────────────────────────────────────────────

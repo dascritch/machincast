@@ -14,9 +14,9 @@ Fonctionnalité: Pré-écoute d'un sonore depuis le menu contextuel de sa ligne
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-20 19:10:00 »
 		Et les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement                  |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/musique/cafe.flac       |
-			|             | Jingle        | fichier | actif | 5     | /srv/habillage/jingle.flac   |
+			| artist      | title         | type | state  | duration | location                   |
+			| Les Gaufres | Café à minuit | file | active | 214      | /srv/musique/cafe.flac     |
+			|             | Jingle        | file | active | 5        | /srv/habillage/jingle.flac |
 		Et la banque « Habillage », séquentielle, sans nom public, avec « Jingle », « Café à minuit »
 
 	# ─── Liste des sonores ─────────────────────────────────────
@@ -76,8 +76,8 @@ Fonctionnalité: Pré-écoute d'un sonore depuis le menu contextuel de sa ligne
 
 	Scénario: Dans un événement, la ligne d'un sonore propose aussi sa pré-écoute
 		Étant donné les événements :
-			| nom      | nom_public  | priorite | debut               | fin                 | jours        |
-			| Matinale | La matinale | emission | 2026-10-19 07:00:00 | 2026-10-19 09:00:00 | lundi, mardi |
+			| name     | public_name | priority | starts_at           | ends_at             | days            |
+			| Matinale | La matinale | show     | 2026-10-19 07:00:00 | 2026-10-19 09:00:00 | monday, tuesday |
 		Et l'événement « Matinale » joue le sonore « Jingle »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »

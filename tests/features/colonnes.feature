@@ -14,9 +14,9 @@ Fonctionnalité: Colonnes des tableaux, ajustées, réordonnables, masquables et
 	Contexte:
 		Étant donné l'horloge de l'interface au « 2026-10-21 09:00:00 »
 		Et les sonores :
-			| artiste     | titre         | type    | etat      | duree | emplacement                              |
-			| Les Gaufres | Café à minuit | fichier | actif     | 214   | /srv/musique/Les Gaufres/Café à minuit.flac |
-			| Café Noir   | Nuit blanche  | fichier | desactive | 180   | /srv/musique/Café Noir/Nuit blanche.flac    |
+			| artist      | title         | type | state    | duration | location                                    |
+			| Les Gaufres | Café à minuit | file | active   | 214      | /srv/musique/Les Gaufres/Café à minuit.flac |
+			| Café Noir   | Nuit blanche  | file | disabled | 180      | /srv/musique/Café Noir/Nuit blanche.flac    |
 		Et la banque « Rotation », aléatoire, sans nom public, avec « Café à minuit », « Nuit blanche »
 		Et la banque « Nuit », séquentielle, sans nom public, avec « Nuit blanche »
 

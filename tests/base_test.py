@@ -14,8 +14,7 @@ from psycopg import sql
 from yoyo import read_migrations
 
 from machincast.base import (
-	CONTRAINTES_RENOMMEES,
-	MIGRATIONS_FUSIONNEES,
+	ANCIENNES_MIGRATIONS,
 	REPERTOIRE_MIGRATIONS,
 	Role,
 	appliquer_migrations,
@@ -66,16 +65,16 @@ def reinitialiser_base(connexion: psycopg.Connection[tuple[object, ...]]) -> Non
 ORDRE_DE_PURGE: tuple[str, ...] = (
 	"log",
 	"airplay",
-	"sequences_elements",
-	"evenements_elements",
-	"evenements_sauts",
-	"banques_sonores",
-	"banques_repertoires",
-	"sonores",
+	"sequence_items",
+	"event_items",
+	"event_skips",
+	"bank_sounds",
+	"bank_directories",
+	"sounds",
 	"feeds",
 	"sequences",
-	"evenements",
-	"banques",
+	"events",
+	"banks",
 )
 """Les tables de machincast.base.TABLES, chacune vidée avant celles qu'elle désigne : un DELETE ne cascade pas."""
 
@@ -130,47 +129,22 @@ def verifier_autorisations(connexion: psycopg.Connection[tuple[object, ...]]) ->
 		)
 
 
-# ─── Bases d'avant le schéma unique (https://github.com/dascritch/machincast/issues/314) ───
+# ─── Bases à l'ancien schéma, aux noms français (https://github.com/dascritch/machincast/issues/358) ───
 
 
-def renommer_les_contraintes(connexion: psycopg.Connection[tuple[object, ...]], vers_les_anciens: bool) -> None:
-	"""Les contraintes NOT NULL que PostgreSQL 18 nomme, et qu'un renommage gardait ; aucune avant lui."""
-	for table, ancien, nouveau in CONTRAINTES_RENOMMEES:
-		depuis, vers = (nouveau, ancien) if vers_les_anciens else (ancien, nouveau)
-		existe = connexion.execute(
-			"SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = %s AND conrelid = %s::regclass)",
-			(depuis, table),
-		).fetchone()
-		if existe == (True,):
-			connexion.execute(
-				sql.SQL("ALTER TABLE {} RENAME CONSTRAINT {} TO {}").format(
-					sql.Identifier(table), sql.Identifier(depuis), sql.Identifier(vers)
-				)
-			)
-
-
-def marquer_les_anciennes_migrations(connexion: psycopg.Connection[tuple[object, ...]], derniere: str | None) -> None:
-	"""Comme une base d'avant le schéma unique : yoyo y note les migrations d'alors, par l'empreinte de leur nom,
-	jusqu'à la dernière donnée ; toutes, et avec les anciens noms de contraintes, sans elle. À défaire par
-	rendre_les_migrations, à la fin du scénario."""
-	fusionnees = list(MIGRATIONS_FUSIONNEES)
-	if derniere is not None:
-		fusionnees = fusionnees[: fusionnees.index(derniere) + 1]
-	for migration in fusionnees:
-		connexion.execute(
-			"INSERT INTO _yoyo_migration (migration_hash, migration_id, applied_at_utc)"
-			" VALUES (encode(sha256(convert_to(%s, 'UTF8')), 'hex'), %s, now() AT TIME ZONE 'UTC')",
-			(migration, migration),
-		)
-	if derniere is None:
-		renommer_les_contraintes(connexion, vers_les_anciens=True)
+def marquer_les_anciennes_migrations(connexion: psycopg.Connection[tuple[object, ...]], migration: str) -> None:
+	"""Comme une base créée avec l'ancien schéma : yoyo y note cette migration d'alors, par l'empreinte de son nom. À
+	défaire par rendre_les_migrations, à la fin du scénario."""
+	connexion.execute(
+		"INSERT INTO _yoyo_migration (migration_hash, migration_id, applied_at_utc)"
+		" VALUES (encode(sha256(convert_to(%s, 'UTF8')), 'hex'), %s, now() AT TIME ZONE 'UTC')",
+		(migration, migration),
+	)
 	connexion.commit()
 
 
 def rendre_les_migrations() -> None:
-	"""La base de test sert aux autres scénarios : les traces des anciennes migrations en sont retirées, et ses
-	contraintes reprennent leur nom."""
+	"""La base de test sert aux autres scénarios : les traces des anciennes migrations en sont retirées."""
 	socket, nom = parametres_base_test()
 	with psycopg.connect(host=str(socket), dbname=nom) as remise:
-		remise.execute("DELETE FROM _yoyo_migration WHERE migration_id = ANY(%s)", (list(MIGRATIONS_FUSIONNEES),))
-		renommer_les_contraintes(remise, vers_les_anciens=False)
+		remise.execute("DELETE FROM _yoyo_migration WHERE migration_id = ANY(%s)", (list(ANCIENNES_MIGRATIONS),))

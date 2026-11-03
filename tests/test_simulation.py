@@ -26,6 +26,7 @@ import machincast.lecture.moteur
 from machincast.audio import SortieAudioIndisponible
 from machincast.base import Role, connecter
 from machincast.configuration import Crossfades, Metadonnees
+from machincast.lecture.enregistrement import NIVEAUX
 from machincast.lecture.simulation import Resultat, lecture_seule, simuler
 from tests.base_test import CONFIGURATION_TEST, parametres_base_test
 from tests.etapes_diffusion import Banc, Connexion, creer_sonore, evenement, heure, sonore
@@ -57,7 +58,7 @@ def etat_de_la_base(base: Connexion) -> tuple[object, ...]:
 	"""Tout ce que la simulation pourrait changer : airplay, log, et chaque sonore."""
 	ligne = base.execute(
 		"SELECT (SELECT count(*) FROM airplay), (SELECT count(*) FROM log),"
-		" (SELECT COALESCE(jsonb_agg(to_jsonb(s) ORDER BY s.id), '[]') FROM sonores s)"
+		" (SELECT COALESCE(jsonb_agg(to_jsonb(s) ORDER BY s.id), '[]') FROM sounds s)"
 	).fetchone()
 	assert ligne is not None
 	return tuple(ligne)
@@ -105,32 +106,32 @@ def sorties_temporaires(contexte: Contexte, tmp_path: Path, caplog: pytest.LogCa
 
 @given(parsers.parse("chaque sonore dure {minutes:d} minute"))
 def duree_des_sonores(base_vide: Connexion, minutes: int) -> None:
-	base_vide.execute("UPDATE sonores SET duree = %s WHERE type = 'fichier'", (timedelta(minutes=minutes),))
+	base_vide.execute("UPDATE sounds SET duration = %s WHERE type = 'file'", (timedelta(minutes=minutes),))
 
 
 @given(parsers.parse("l'émission « {nom} » du « {debut} » au « {fin} », avec le sonore « {nom_sonore} »"))
 def emission_datee(
 	banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, debut: str, fin: str, nom_sonore: str
 ) -> None:
-	evenement(banc, base_vide, tmp_path, nom, "emission", heure(debut), heure(fin), [nom_sonore])
+	evenement(banc, base_vide, tmp_path, nom, "show", heure(debut), heure(fin), [nom_sonore])
 
 
 @given(parsers.parse("le stream « {nom} » à l'adresse « {adresse} »"))
 def stream(base_vide: Connexion, nom: str, adresse: str) -> None:
-	base_vide.execute("INSERT INTO sonores (type, url_stream, titre) VALUES ('stream', %s, %s)", (adresse, nom))
+	base_vide.execute("INSERT INTO sounds (type, stream_url, title) VALUES ('stream', %s, %s)", (adresse, nom))
 
 
 @given(parsers.parse("« {nom} » a été joué dans le fil « {fil} » le « {instant} »"))
 def joue_dans_le_fil(base_vide: Connexion, nom: str, fil: str, instant: str) -> None:
 	ligne = base_vide.execute(
-		"SELECT e.id, ee.id FROM evenements e JOIN evenements_elements ee ON ee.evenement_id = e.id"
-		" WHERE e.nom_interne = %s AND ee.sonore_id = %s",
+		"SELECT e.id, ee.id FROM events e JOIN event_items ee ON ee.event_id = e.id"
+		" WHERE e.internal_name = %s AND ee.sound_id = %s",
 		(fil, sonore(base_vide, nom)),
 	).fetchone()
 	assert ligne is not None
 	base_vide.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, evenement_id, element_id, titre)"
-		" VALUES (%s, 'debut', %s, %s, %s, %s, %s)",
+		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, event_id, event_item_id, title)"
+		" VALUES (%s, 'start', %s, %s, %s, %s, %s)",
 		(uuid.uuid4(), heure(instant), sonore(base_vide, nom), ligne[0], ligne[1], nom),
 	)
 
@@ -138,12 +139,12 @@ def joue_dans_le_fil(base_vide: Connexion, nom: str, fil: str, instant: str) -> 
 @given(parsers.re(r"la banque séquentielle « (?P<nom>[^»]+) » des sonores (?P<liste>.+), marquée « ne pas répéter »"))
 def banque_a_ne_pas_repeter(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str) -> None:
 	creee = base_vide.execute(
-		"INSERT INTO banques (nom_interne, mode, ne_pas_repeter) VALUES (%s, 'sequentiel', true) RETURNING id", (nom,)
+		"INSERT INTO banks (internal_name, mode, no_repeat) VALUES (%s, 'sequential', true) RETURNING id", (nom,)
 	).fetchone()
 	assert creee is not None
 	for position, nom_sonore in enumerate(re.findall(r"« ([^»]+) »", liste), start=1):
 		base_vide.execute(
-			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(creee[0], creer_sonore(banc, base_vide, tmp_path, nom_sonore), position),
 		)
 
@@ -151,13 +152,13 @@ def banque_a_ne_pas_repeter(banc: Banc, base_vide: Connexion, tmp_path: Path, no
 @given(parsers.re(r"la banque « (?P<nom>[^»]+) » des sonores (?P<liste>.+), de nom public « (?P<nom_public>[^»]+) »"))
 def banque_nommee(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str, nom_public: str) -> None:
 	creee = base_vide.execute(
-		"INSERT INTO banques (nom_interne, nom_public, mode) VALUES (%s, %s, 'sequentiel') RETURNING id",
+		"INSERT INTO banks (internal_name, public_name, mode) VALUES (%s, %s, 'sequential') RETURNING id",
 		(nom, nom_public),
 	).fetchone()
 	assert creee is not None
 	for position, nom_sonore in enumerate(re.findall(r"« ([^»]+) »", liste), start=1):
 		base_vide.execute(
-			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(creee[0], creer_sonore(banc, base_vide, tmp_path, nom_sonore), position),
 		)
 
@@ -170,14 +171,14 @@ def banque_nommee(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, li
 )
 def sequence_masquee(base_vide: Connexion, nom: str, banque: str, nom_public: str) -> None:
 	creee = base_vide.execute(
-		"INSERT INTO sequences (nom_interne, nom_public, masquer_metadonnees) VALUES (%s, %s, true) RETURNING id",
+		"INSERT INTO sequences (internal_name, public_name, hide_metadata) VALUES (%s, %s, true) RETURNING id",
 		(nom, nom_public),
 	).fetchone()
-	ligne = base_vide.execute("SELECT id FROM banques WHERE nom_interne = %s", (banque,)).fetchone()
+	ligne = base_vide.execute("SELECT id FROM banks WHERE internal_name = %s", (banque,)).fetchone()
 	assert (creee is not None) and (ligne is not None)
 	for position in (1, 2):
 		base_vide.execute(
-			"INSERT INTO sequences_elements (sequence_id, position, banque_id) VALUES (%s, %s, %s)",
+			"INSERT INTO sequence_items (sequence_id, position, bank_id) VALUES (%s, %s, %s)",
 			(creee[0], position, ligne[0]),
 		)
 
@@ -187,43 +188,43 @@ def sequence_masquee(base_vide: Connexion, nom: str, banque: str, nom_public: st
 )
 def fil_avec_elements(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str) -> None:
 	cree = base_vide.execute(
-		"INSERT INTO evenements (nom_interne, priorite) VALUES (%s, 'fil_musical') RETURNING id", (nom,)
+		"INSERT INTO events (internal_name, priority) VALUES (%s, 'background_programming') RETURNING id", (nom,)
 	).fetchone()
 	assert cree is not None
 	for position, (genre, nom_element) in enumerate(
 		re.findall(r"(banque|séquence|sonore) « ([^»]+) »", liste), start=1
 	):
-		table = {"banque": "banques", "séquence": "sequences"}.get(genre)
+		table = {"banque": "banks", "séquence": "sequences"}.get(genre)
 		if table is not None:
 			ligne = base_vide.execute(
-				f"SELECT id FROM {table} WHERE nom_interne = %s",  # noqa: S608
+				f"SELECT id FROM {table} WHERE internal_name = %s",  # noqa: S608
 				(nom_element,),
 			).fetchone()
 			assert ligne is not None
 			reference = int(str(ligne[0]))
 		else:
 			reference = creer_sonore(banc, base_vide, tmp_path, nom_element)
-		colonne = {"banque": "banque_id", "séquence": "sequence_id"}.get(genre, "sonore_id")
+		colonne = {"banque": "bank_id", "séquence": "sequence_id"}.get(genre, "sound_id")
 		base_vide.execute(
-			f"INSERT INTO evenements_elements (evenement_id, position, {colonne}) VALUES (%s, %s, %s)",  # noqa: S608
+			f"INSERT INTO event_items (event_id, position, {colonne}) VALUES (%s, %s, %s)",  # noqa: S608
 			(cree[0], position, reference),
 		)
 
 
 @given(parsers.parse("« {nom} » a été joué via la banque « {banque} » le « {instant} »"))
 def joue_via_la_banque(base_vide: Connexion, nom: str, banque: str, instant: str) -> None:
-	ligne = base_vide.execute("SELECT id FROM banques WHERE nom_interne = %s", (banque,)).fetchone()
+	ligne = base_vide.execute("SELECT id FROM banks WHERE internal_name = %s", (banque,)).fetchone()
 	assert ligne is not None
 	base_vide.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, banque_id, titre)"
-		" VALUES (%s, 'debut', %s, %s, %s, %s)",
+		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, bank_id, title)"
+		" VALUES (%s, 'start', %s, %s, %s, %s)",
 		(uuid.uuid4(), heure(instant), sonore(base_vide, nom), ligne[0], nom),
 	)
 
 
 @given("le masquage de tous les sonores")
 def masquer_tous(base_vide: Connexion) -> None:
-	base_vide.execute("UPDATE sonores SET masquer_metadonnees = true")
+	base_vide.execute("UPDATE sounds SET hide_metadata = true")
 
 
 @given("aucune sortie audio ne peut être créée")
@@ -237,7 +238,7 @@ def sans_sortie_audio(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @given(parsers.re(r"le sonore « (?P<nom>[^»]+) » a un maximum de (?P<maximum>\d+) lectures?"))
 def maximum_du_sonore(base_vide: Connexion, nom: str, maximum: str) -> None:
-	base_vide.execute("UPDATE sonores SET max_lectures = %s WHERE id = %s", (int(maximum), sonore(base_vide, nom)))
+	base_vide.execute("UPDATE sounds SET max_plays = %s WHERE id = %s", (int(maximum), sonore(base_vide, nom)))
 
 
 # ─── Quand ─────────────────────────────────────────────────
@@ -266,7 +267,7 @@ def ecrire_pendant_la_simulation(contexte: Contexte, base_vide: Connexion) -> No
 	with connecter(*parametres_base_test(), Role.LECTURE) as connexion:
 		try:
 			with lecture_seule(connexion):
-				connexion.execute("INSERT INTO log (niveau, nature, message) VALUES ('info', 'essai', 'interdit')")
+				connexion.execute("INSERT INTO log (level, kind, message) VALUES ('info', 'essai', 'interdit')")
 		except psycopg.Error as erreur:
 			contexte.erreur = erreur
 
@@ -330,7 +331,7 @@ def base_intacte(contexte: Contexte, base_vide: Connexion) -> None:
 @then("PostgreSQL la refuse, la transaction étant en lecture seule")
 def refus(contexte: Contexte, base_vide: Connexion) -> None:
 	assert isinstance(contexte.erreur, psycopg.errors.ReadOnlySqlTransaction), repr(contexte.erreur)
-	assert base_vide.execute("SELECT count(*) FROM log WHERE nature = 'essai'").fetchone() == (0,)
+	assert base_vide.execute("SELECT count(*) FROM log WHERE kind = 'essai'").fetchone() == (0,)
 
 
 @then(parsers.parse("chaque tranche de 3 passages joue « a », « b » et « c », chacun une fois"))
@@ -349,12 +350,13 @@ def memes_passages(contexte: Contexte) -> None:
 @then(parsers.re(r"la simulation a consigné (?P<nombre>\d+) (?P<niveau>info|alerte|incident) « (?P<nature>[^»]+) »"))
 def consigne(contexte: Contexte, nombre: str, niveau: str, nature: str) -> None:
 	lignes = Counter((n, t) for n, t, _ in resultat(contexte).log)
-	assert lignes[(niveau, nature)] == int(nombre), resultat(contexte).log
+	en_base = {libelle: valeur for valeur, libelle in NIVEAUX.items()}[niveau]
+	assert lignes[(en_base, nature)] == int(nombre), resultat(contexte).log
 
 
 @then(parsers.parse("le sonore « {nom} » est toujours à l'état « {etat} » en base"))
 def etat_en_base(base_vide: Connexion, nom: str, etat: str) -> None:
-	ligne = base_vide.execute("SELECT etat::text FROM sonores WHERE id = %s", (sonore(base_vide, nom),)).fetchone()
+	ligne = base_vide.execute("SELECT state::text FROM sounds WHERE id = %s", (sonore(base_vide, nom),)).fetchone()
 	assert ligne == (etat,)
 
 
@@ -393,7 +395,7 @@ def page_avec_emplacements(contexte: Contexte) -> None:
 
 @given(parsers.parse("le masquage du sonore « {nom} »"))
 def masquer_un_sonore(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE sonores SET masquer_metadonnees = true WHERE id = %s", (sonore(base_vide, nom),))
+	base_vide.execute("UPDATE sounds SET hide_metadata = true WHERE id = %s", (sonore(base_vide, nom),))
 
 
 def sorties_lues(contexte: Contexte) -> dict[str, str]:
@@ -426,7 +428,7 @@ def sequence_dans_le_csv(contexte: Contexte, nom: str, nombre: int) -> None:
 )
 def sorties_avec_emplacements(contexte: Contexte, base_vide: Connexion, premier: str, second: str) -> None:
 	for nom in (premier, second):
-		ligne = base_vide.execute("SELECT emplacement FROM sonores WHERE id = %s", (sonore(base_vide, nom),)).fetchone()
+		ligne = base_vide.execute("SELECT location FROM sounds WHERE id = %s", (sonore(base_vide, nom),)).fetchone()
 		assert ligne is not None
 		for extension, contenu in sorties_lues(contexte).items():
 			assert str(ligne[0]) in contenu, (extension, nom)

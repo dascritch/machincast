@@ -5,7 +5,7 @@ Fonctionnalité: Sauter une session d'un événement récurrent, à la diffusion
 	afin de marquer une période de vacances et de remplacer par une autre émission pendant une certaine période.
 
 	https://github.com/dascritch/machincast/issues/273. Une session sautée se note en base par le jour où elle commence
-	(evenements_sauts) ; la grille (machincast.lecture.grille) ne la joue pas, et l'antenne revient à ce qui joue sans
+	(event_skips) ; la grille (machincast.lecture.grille) ne la joue pas, et l'antenne revient à ce qui joue sans
 	elle : le fil musical, ou un autre événement. L'interface la saute depuis le calendrier, puis demande à Machin
 	lecture, sur la socket d'état, de relire la grille : le prochain sonore et les sonores à venir sont recalculés
 	aussitôt, sans attendre le changement de sonore. Les sonores des scénarios durent une minute, sur un moteur simulé

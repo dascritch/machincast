@@ -12,11 +12,11 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 	Contexte:
 		Étant donné l'horloge de l'interface au « 2026-10-16 20:01:00 »
 		Et les passages dans l'airplay :
-			| debut               | fin                 | artiste     | titre         | evenement   | sequence | banque | sans_incident |
-			| 2026-10-15 20:00:00 | 2026-10-15 20:03:00 | Ancien      | Hier          | Fil de jour |          |        | oui           |
-			| 2026-10-16 18:00:00 | 2026-10-16 19:02:05 |             | Le journal    | Journal     |          |        | oui           |
-			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 |             | Spot          | Fil de jour | Pub      | Spots  | non           |
-			| 2026-10-16 20:00:00 |                     | Les Gaufres | Café à minuit | Fil de jour |          | Titres |               |
+			| starts_at           | ends_at             | artist      | title         | event       | sequence | bank   | without_incident |
+			| 2026-10-15 20:00:00 | 2026-10-15 20:03:00 | Ancien      | Hier          | Fil de jour |          |        | oui              |
+			| 2026-10-16 18:00:00 | 2026-10-16 19:02:05 |             | Le journal    | Journal     |          |        | oui              |
+			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 |             | Spot          | Fil de jour | Pub      | Spots  | non              |
+			| 2026-10-16 20:00:00 |                     | Les Gaufres | Café à minuit | Fil de jour |          | Titres |                  |
 
 	Scénario: L'onglet Airplay est fermé au lancement, et s'ouvre depuis le menu « Affichage »
 		Quand la fenêtre de l'interface s'ouvre

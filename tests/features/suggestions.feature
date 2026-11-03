@@ -39,8 +39,8 @@ Fonctionnalité: Suggestions au lancement de l'interface
 
 	Scénario: Ce qui existe déjà n'est pas proposé, sans tenir compte des majuscules
 		Étant donné les événements :
-			| nom  | nom_public | priorite    | debut | fin | jours |
-			| Fond |            | fil_musical |       |     |       |
+			| name | public_name | priority               | starts_at | ends_at | days |
+			| Fond |             | background_programming |           |         |      |
 		Et la banque « identifiant STATION », séquentielle, sans nom public, avec rien
 		Et la banque « Musique rotation lourde », séquentielle, sans nom public, avec rien
 		Et les suggestions seront refermées par « Plus tard »
@@ -56,8 +56,8 @@ Fonctionnalité: Suggestions au lancement de l'interface
 
 	Scénario: Quand rien ne manque, aucune suggestion n'est faite
 		Étant donné les événements :
-			| nom  | nom_public | priorite    | debut | fin | jours |
-			| Fond |            | fil_musical |       |     |       |
+			| name | public_name | priority               | starts_at | ends_at | days |
+			| Fond |             | background_programming |           |         |      |
 		Et les banques suggérées existent déjà
 		Quand la fenêtre de l'interface s'ouvre
 		Alors aucune suggestion n'a été faite
@@ -83,13 +83,13 @@ Fonctionnalité: Suggestions au lancement de l'interface
 		Et la liste de l'événement « Fil musical » est en base « Identifiant station », « Musique rotation lourde », « Musique rotation normale », « Musique rotation lourde »
 		Et les banques en base sont :
 			| nom                      | mode       | ne pas répéter | durée maximale | crossfade de début | crossfade de fin |
-			| Bande-annonce émissions  | sequentiel | oui            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
-			| Identifiant station      | aleatoire  | oui            | 0:02:00        | des sonores        | des sonores      |
-			| Musique rotation de nuit | aleatoire  | non            |                | des sonores        | des sonores      |
-			| Musique rotation lourde  | aleatoire  | non            | 0:15:00        | des sonores        | des sonores      |
-			| Musique rotation normale | aleatoire  | non            | 0:15:00        | des sonores        | des sonores      |
-			| Partenariats             | sequentiel | non            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
-			| Publicités               | sequentiel | non            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
+			| Bande-annonce émissions  | sequential | oui            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
+			| Identifiant station      | random     | oui            | 0:02:00        | des sonores        | des sonores      |
+			| Musique rotation de nuit | random     | non            |                | des sonores        | des sonores      |
+			| Musique rotation lourde  | random     | non            | 0:15:00        | des sonores        | des sonores      |
+			| Musique rotation normale | random     | non            | 0:15:00        | des sonores        | des sonores      |
+			| Partenariats             | sequential | non            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
+			| Publicités               | sequential | non            | 0:02:00        | imposé, 0 s        | imposé, 0 s      |
 		Et la barre d'état annonce « Créés : le fil musical « Fil musical », les banques « Identifiant station », « Musique rotation lourde », « Musique rotation normale », « Musique rotation de nuit », « Partenariats », « Publicités », « Bande-annonce émissions ». »
 
 	Scénario: La rotation rare dure aussi 15 minutes au plus
@@ -99,8 +99,8 @@ Fonctionnalité: Suggestions au lancement de l'interface
 
 	Scénario: Un fil musical existant, encore vide, reçoit la rotation type ; un fil déjà rempli est gardé tel quel
 		Étant donné les événements :
-			| nom  | nom_public | priorite    | debut | fin | jours |
-			| Fond |            | fil_musical |       |     |       |
+			| name | public_name | priority               | starts_at | ends_at | days |
+			| Fond |             | background_programming |           |         |      |
 		Et les suggestions seront acceptées par « Créer »
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la liste de l'événement « Fond » est en base « Identifiant station », « Musique rotation lourde », « Musique rotation normale », « Musique rotation lourde », « Musique rotation rare »
@@ -127,8 +127,8 @@ Fonctionnalité: Suggestions au lancement de l'interface
 		Étant donné la configuration audio sortie « pipewire », sans périphérique d'antenne
 		Et les banques suggérées existent déjà
 		Et les événements :
-			| nom  | nom_public | priorite    | debut | fin | jours |
-			| Fond |            | fil_musical |       |     |       |
+			| name | public_name | priority               | starts_at | ends_at | days |
+			| Fond |             | background_programming |           |         |      |
 		Et les suggestions seront acceptées par « Créer », avec la sortie « pulseaudio », l'antenne « carte-1 » et la pré-écoute « casque-usb »
 		Quand la fenêtre de l'interface s'ouvre
 		Alors les suggestions ont proposé les cartes son de la sortie « pipewire », l'antenne non renseignée et la pré-écoute « preecoute-factice »

@@ -136,8 +136,8 @@ def cle_de_configuration(libelle: str, cle: str) -> None:
 )
 def sonore(essai: Essai, base_vide: Connexion, titre: str, duree: str, debut: str, fin: str, cd: str, cf: str) -> None:
 	ligne = base_vide.execute(
-		"INSERT INTO sonores (type, emplacement, titre, etat, duree, debut_detecte, fin_detectee, detection_silences,"
-		" crossfade_debut, crossfade_fin) VALUES ('fichier', %s, %s, 'actif', %s, %s, %s, true, %s, %s) RETURNING id",
+		"INSERT INTO sounds (type, location, title, state, duration, detected_start, detected_end, silence_detection,"
+		" crossfade_start, crossfade_end) VALUES ('file', %s, %s, 'active', %s, %s, %s, true, %s, %s) RETURNING id",
 		(
 			f"/srv/musique/{titre}.flac",
 			titre,
@@ -169,14 +169,14 @@ def positions_de_la_configuration(essai: Essai, entree: str, sortie: str) -> Non
 )
 def banque(essai: Essai, base_vide: Connexion, nom: str, titre: str, duree: str) -> None:
 	ligne = base_vide.execute(
-		"INSERT INTO banques (nom_interne, mode, crossfade_fin_regle, crossfade_fin)"
-		" VALUES (%s, 'aleatoire', 'impose', %s) RETURNING id",
+		"INSERT INTO banks (internal_name, mode, crossfade_end_rule, crossfade_end)"
+		" VALUES (%s, 'random', 'forced', %s) RETURNING id",
 		(nom, timedelta(seconds=secondes(duree))),
 	).fetchone()
 	assert ligne is not None
 	essai.banques[nom] = int(str(ligne[0]))
 	base_vide.execute(
-		"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, 1)",
+		"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, 1)",
 		(ligne[0], essai.sonores[titre]),
 	)
 

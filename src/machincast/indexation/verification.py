@@ -6,7 +6,7 @@ Deux modes (https://github.com/dascritch/machincast/issues/69) :
   pour les autres, seule la présence du fichier est contrôlée, sans décodage ;
 - audit complet : chaque sonore de type fichier est décodé en entier, silences mesurés, sauf s'il a déjà été audité au
   même seuil de silence et que son fichier n'a pas changé depuis (https://github.com/dascritch/machincast/issues/206) :
-  sonores.audite_le et sonores.audit_seuil gardent son dernier audit ; forcer décode tout.
+  sounds.audited_at et sounds.audit_threshold gardent son dernier audit ; forcer décode tout.
 
 Les streams ne sont jamais vérifiés. Un fichier sain enregistre sa durée, la date de modification et la taille
 du fichier. L'état du sonore suit le verdict (https://github.com/dascritch/machincast/issues/66) :
@@ -17,12 +17,12 @@ du fichier. L'état du sonore suit le verdict (https://github.com/dascritch/mach
 	errone    + introuvable  →  supprime
 	desactive, expire, supprime : jamais modifiés par l'indexeur, qui signale quand même le fichier défectueux
 
-Un fichier sain met aussi à jour l'artiste, le titre et les clés de metadonnees_musicales tenues par l'indexeur,
+Un fichier sain met aussi à jour l'artiste, le titre et les clés de music_metadata tenues par l'indexeur,
 depuis ses tags (https://github.com/dascritch/machincast/issues/8) ; un tag absent vide le champ correspondant.
 
 Chaque fichier défectueux est signalé par son chemin, en anomalie (logging, niveau WARNING, sur la sortie
-d'erreur). L'indexeur n'écrit jamais dans le log, et ne modifie jamais un champ listé dans champs_edites
-(« metadonnees_musicales.<clé> » pour une clé des métadonnées musicales).
+d'erreur). L'indexeur n'écrit jamais dans le log, et ne modifie jamais un champ listé dans edited_fields
+(« music_metadata.<clé> » pour une clé des métadonnées musicales).
 """
 
 import logging
@@ -49,16 +49,16 @@ journal = logging.getLogger(__name__)
 
 
 class EtatSonore(StrEnum):
-	"""Valeurs du type etat_sonore (migration 0001.schema-initial)."""
+	"""Valeurs du type sound_state (migration 0001.initial-schema)."""
 
-	APERCU = "apercu"
-	ACTIF = "actif"
-	DESACTIVE = "desactive"
-	EXPIRE = "expire"
-	ERRONE = "errone"
-	NON_SUPPORTE = "non_supporte"
+	APERCU = "preview"
+	ACTIF = "active"
+	DESACTIVE = "disabled"
+	EXPIRE = "expired"
+	ERRONE = "corrupt"
+	NON_SUPPORTE = "unsupported"
 	"""Le fichier n'est pas du son (https://github.com/dascritch/machincast/issues/121, état non_supporte)."""
-	SUPPRIME = "supprime"
+	SUPPRIME = "missing"
 
 
 LIBELLES = {
@@ -163,7 +163,7 @@ def verifier_sonores(
 	En indexation rapide, seuls les sonores en aperçu, et ceux dont le fichier a changé depuis sa dernière
 	vérification (date de modification ou taille), sont décodés ; pour les autres, un fichier disparu est quand même
 	repéré. En audit complet, tous sont décodés. Un sonore dont l'interface a demandé l'audit complet
-	(sonores.audit_demande, https://github.com/dascritch/machincast/issues/114) est audité en entier, silences compris,
+	(sounds.audit_requested, https://github.com/dascritch/machincast/issues/114) est audité en entier, silences compris,
 	même en indexation rapide ; sa marque s'efface dès que son fichier est trouvé et vérifié.
 
 	identifiants : seuls ces sonores, pour la vérification immédiate des fichiers que l'interface ajoute
@@ -184,9 +184,9 @@ def verifier_sonores(
 	"""
 	with connexion.transaction():
 		sonores = connexion.execute(
-			"SELECT id, emplacement, etat::text, champs_edites, artiste, titre, metadonnees_musicales,"
-			" fichier_modifie_le, fichier_taille, debut_detecte, fin_detectee, audit_demande, audite_le, audit_seuil"
-			" FROM sonores WHERE type = 'fichier' AND supprime_le IS NULL AND (%s::bigint[] IS NULL OR id = ANY(%s))"
+			"SELECT id, location, state::text, edited_fields, artist, title, music_metadata,"
+			" file_modified_at, file_size, detected_start, detected_end, audit_requested, audited_at, audit_threshold"
+			" FROM sounds WHERE type = 'file' AND deleted_at IS NULL AND (%s::bigint[] IS NULL OR id = ANY(%s))"
 			" ORDER BY id",
 			(liste_ou_rien(identifiants), liste_ou_rien(identifiants)),
 		).fetchall()
@@ -227,7 +227,7 @@ def verifier_sonores(
 			if demande is True:
 				# La demande est faite : le dernier audit vaut toujours.
 				with connexion.transaction():
-					connexion.execute("UPDATE sonores SET audit_demande = false WHERE id = %s", (identifiant,))
+					connexion.execute("UPDATE sounds SET audit_requested = false WHERE id = %s", (identifiant,))
 			continue
 		# Un fichier introuvable est déclaré tel sans décodage : l'indexation rapide repère donc les disparus.
 		# Un fichier dont le type n'est pas sonore n'est pas décodé non plus.
@@ -245,31 +245,31 @@ def verifier_sonores(
 		modifie_le, taille = fichier if fichier is not None else (None, None)
 		# La durée n'est enregistrée que pour un fichier sain, et jamais à la place d'une durée saisie à la main.
 		sain = resultat.etat is EtatFichier.SAIN
-		duree = resultat.duree if (sain) and ("duree" not in champs_edites) else None
+		duree = resultat.duree if (sain) and ("duration" not in champs_edites) else None
 		# Les tags d'un fichier défectueux ne sont pas lus : artiste, titre et métadonnées restent tels quels.
 		if sain:
-			artiste = artiste if "artiste" in champs_edites else resultat.tags.artiste
-			titre = titre if "titre" in champs_edites else resultat.tags.titre
+			artiste = artiste if "artist" in champs_edites else resultat.tags.artiste
+			titre = titre if "title" in champs_edites else resultat.tags.titre
 			metadonnees = fusionner(dict(metadonnees), resultat.tags.metadonnees, list(champs_edites))
 		# Les silences mesurés remplacent ceux en base, sauf ceux saisis à la main ; sans mesure, rien ne change.
 		if (sain) and (resultat.silences is not None):
-			if "debut_detecte" not in champs_edites:
+			if "detected_start" not in champs_edites:
 				debut_detecte = resultat.silences.debut
-			if "fin_detectee" not in champs_edites:
+			if "detected_end" not in champs_edites:
 				fin_detectee = resultat.silences.fin
 		with connexion.transaction():
 			# Un fichier introuvable garde la date et la taille de son dernier passage.
 			connexion.execute(
-				"UPDATE sonores SET etat = %s, duree = COALESCE(%s, duree),"
-				" fichier_modifie_le = COALESCE(%s, fichier_modifie_le), fichier_taille = COALESCE(%s, fichier_taille),"
-				" artiste = %s, titre = %s, metadonnees_musicales = %s, type_mime = COALESCE(%s, type_mime),"
-				" verifie_le = CASE WHEN %s THEN clock_timestamp() ELSE verifie_le END,"
-				" debut_detecte = %s, fin_detectee = %s, audit_demande = audit_demande AND NOT %s,"
-				" audite_le = CASE WHEN %s THEN clock_timestamp() ELSE audite_le END,"
-				" audit_seuil = CASE WHEN %s THEN %s ELSE audit_seuil END,"
+				"UPDATE sounds SET state = %s, duration = COALESCE(%s, duration),"
+				" file_modified_at = COALESCE(%s, file_modified_at), file_size = COALESCE(%s, file_size),"
+				" artist = %s, title = %s, music_metadata = %s, mime_type = COALESCE(%s, mime_type),"
+				" checked_at = CASE WHEN %s THEN clock_timestamp() ELSE checked_at END,"
+				" detected_start = %s, detected_end = %s, audit_requested = audit_requested AND NOT %s,"
+				" audited_at = CASE WHEN %s THEN clock_timestamp() ELSE audited_at END,"
+				" audit_threshold = CASE WHEN %s THEN %s ELSE audit_threshold END,"
 				# La disparition du fichier est datée une fois ; un fichier revenu ne l'est plus
 				# (https://github.com/dascritch/machincast/issues/267).
-				" disparu_le = CASE WHEN %s THEN COALESCE(disparu_le, clock_timestamp()) END"
+				" missing_at = CASE WHEN %s THEN COALESCE(missing_at, clock_timestamp()) END"
 				" WHERE id = %s",
 				(
 					apres.value,

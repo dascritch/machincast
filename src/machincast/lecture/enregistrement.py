@@ -3,12 +3,12 @@
 Le binaire lecture n'écrit que par ce module, et seulement des insertions : ses droits PostgreSQL ne lui
 permettent ni de modifier ni de supprimer une ligne d'airplay ou de log, ni de lire le log (pas de RETURNING).
 
-- Airplay : deux lignes par passage, reliées par passage_id. Chacune recopie l'emplacement (pour un stream, son
+- Airplay : deux lignes par passage, reliées par play_id. Chacune recopie l'emplacement (pour un stream, son
   adresse directe ou celle de son feed), l'artiste et le titre du sonore au moment du passage, et référence
   le sonore, la banque qui l'a fourni (aucune pour un sonore placé directement dans l'événement), l'événement et
   l'élément de sa liste, et, pour un sonore joué par une séquence, la séquence et son élément
   (https://github.com/dascritch/machincast/issues/99). La ligne de fin donne la durée effectivement diffusée et
-  l'indicateur sans_incident.
+  l'indicateur without_incident.
 - Log : chaque opération, normale (info) ou non (alerte, incident), avec sa nature, un message et ses références.
   Une coupure nette est une opération normale ; une lecture interrompue par une erreur est un incident, que
   l'appelant peut nommer plus précisément (flux tombé d'un stream).
@@ -29,7 +29,10 @@ from typing import Literal
 import psycopg
 from psycopg.rows import TupleRow
 
-Niveau = Literal["info", "alerte", "incident"]
+Niveau = Literal["info", "warning", "incident"]
+NIVEAUX = {"info": "info", "warning": "alerte", "incident": "incident"}
+"""Les niveaux du log à l'écran et dans les messages, par leur valeur en base
+(https://github.com/dascritch/machincast/issues/358)."""
 
 journal = logging.getLogger(__name__)
 
@@ -62,10 +65,10 @@ def consigner(
 	n'a pas le droit de lire le log."""
 	if niveau != "info":
 		# Sortie privée stderr (https://github.com/dascritch/machincast/issues/19) : alertes et incidents.
-		journal.warning(f"{niveau} : {nature} : {message}")
+		journal.warning(f"{NIVEAUX.get(niveau, niveau)} : {nature} : {message}")
 	with connexion.transaction():
 		connexion.execute(
-			"INSERT INTO log (horodatage, niveau, nature, message, sonore_id, banque_id, evenement_id)"
+			"INSERT INTO log (logged_at, level, kind, message, sound_id, bank_id, event_id)"
 			" VALUES (COALESCE(%s, clock_timestamp()), %s, %s, %s, %s, %s, %s)",
 			(instant, niveau, nature, message, sonore, banque, evenement),
 		)
@@ -73,10 +76,10 @@ def consigner(
 
 def _debut(connexion: psycopg.Connection[TupleRow], passage: Passage) -> None:
 	connexion.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, banque_id, evenement_id, element_id,"
-		" sequence_id, sequence_element_id, emplacement, artiste, titre)"
-		" SELECT %s, 'debut', %s, s.id, %s, %s, %s, %s, %s, COALESCE(s.emplacement, s.url_stream, m.url), s.artiste,"
-		" s.titre FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
+		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, bank_id, event_id, event_item_id,"
+		" sequence_id, sequence_item_id, location, artist, title)"
+		" SELECT %s, 'start', %s, s.id, %s, %s, %s, %s, %s, COALESCE(s.location, s.stream_url, m.url), s.artist,"
+		" s.title FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 		(
 			passage.id,
 			passage.debut,
@@ -93,11 +96,11 @@ def _debut(connexion: psycopg.Connection[TupleRow], passage: Passage) -> None:
 def _fin(connexion: psycopg.Connection[TupleRow], passage: Passage, instant: datetime, sans_incident: bool) -> None:
 	# La ligne de fin recopie la ligne de début : l'artiste et le titre restent ceux du moment du passage.
 	connexion.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, banque_id, evenement_id, element_id,"
-		" sequence_id, sequence_element_id, emplacement, artiste, titre, duree_diffusee, sans_incident)"
-		" SELECT passage_id, 'fin', %s, sonore_id, banque_id, evenement_id, element_id, sequence_id,"
-		" sequence_element_id, emplacement, artiste, titre, %s, %s FROM airplay"
-		" WHERE passage_id = %s AND type_ligne = 'debut'",
+		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, bank_id, event_id, event_item_id,"
+		" sequence_id, sequence_item_id, location, artist, title, played_duration, without_incident)"
+		" SELECT play_id, 'end', %s, sound_id, bank_id, event_id, event_item_id, sequence_id,"
+		" sequence_item_id, location, artist, title, %s, %s FROM airplay"
+		" WHERE play_id = %s AND line_type = 'start'",
 		(instant, instant - passage.debut, sans_incident, passage.id),
 	)
 

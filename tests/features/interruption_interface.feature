@@ -165,8 +165,8 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 
 	Scénario: Avec un seul secours, l'entrée du menu « Diffusion » coupe par lui, et l'annonce
 		Étant donné les événements :
-			| nom            | nom_public | priorite | debut | fin | jours |
-			| Coupure studio |            | secours  |       |     |       |
+			| name           | public_name | priority | starts_at | ends_at | days |
+			| Coupure studio |             | fallback |           |         |      |
 		Et Machin player diffuse « Café à minuit », dans « Matinale »
 		Quand la fenêtre de l'interface s'ouvre
 		Et l'interface a reçu l'état de Machin player
@@ -179,9 +179,9 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 
 	Scénario: Avec plusieurs secours, un sous-menu les nomme
 		Étant donné les événements :
-			| nom            | nom_public | priorite | debut | fin | jours |
-			| Coupure studio |            | secours  |       |     |       |
-			| Attente        |            | secours  |       |     |       |
+			| name           | public_name | priority | starts_at | ends_at | days |
+			| Coupure studio |             | fallback |           |         |      |
+			| Attente        |             | fallback |           |         |      |
 		Et Machin player diffuse « Café à minuit », dans le fil musical « Continue »
 		Quand la fenêtre de l'interface s'ouvre
 		Et l'interface a reçu l'état de Machin player
@@ -192,8 +192,8 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 
 	Scénario: Sans rien à l'antenne, la coupure par le secours est inactive
 		Étant donné les événements :
-			| nom            | nom_public | priorite | debut | fin | jours |
-			| Coupure studio |            | secours  |       |     |       |
+			| name           | public_name | priority | starts_at | ends_at | days |
+			| Coupure studio |             | fallback |           |         |      |
 		Et Machin player laisse un blanc
 		Quand la fenêtre de l'interface s'ouvre
 		Et l'interface a reçu l'état de Machin player
@@ -202,8 +202,8 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 
 	Scénario: Le clic droit sur le prochain sonore coupe aussi par le secours, ou par le fil musical
 		Étant donné les événements :
-			| nom            | nom_public | priorite | debut | fin | jours |
-			| Coupure studio |            | secours  |       |     |       |
+			| name           | public_name | priority | starts_at | ends_at | days |
+			| Coupure studio |             | fallback |           |         |      |
 		Et Machin player diffuse « Café à minuit », dans « Matinale », avant « Spot »
 		Quand la fenêtre de l'interface s'ouvre
 		Et l'onglet Antenne a reçu l'état de Machin player
@@ -216,8 +216,8 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 	Plan du scénario: Le clic droit sur un feed propose sa pré-écoute, et de couper l'antenne par lui
 		Étant donné les feeds « Studio mobile », « https://flux.exemple/mobile »
 		Et les sonores :
-			| artiste | titre  | type   | etat   | duree | emplacement                 |
-			|         | Relais | stream | <etat> |       | https://flux.exemple/mobile |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Relais | stream | <etat> |          | https://flux.exemple/mobile |
 		Et le stream « Relais » suit le feed « Studio mobile »
 		Et Machin player <antenne>
 		Quand la fenêtre de l'interface s'ouvre
@@ -230,16 +230,16 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 
 		Exemples:
 			| etat      | antenne                                                  | coupure                              | état     | infobulle                          |
-			| actif     | diffuse « Café à minuit », dans « Matinale »             | ⏭ Couper l'événement par ce feed     | active   | Le stream du feed passe jusqu'à la fin prévue de l'événement coupé ; sous le fil musical, jusqu'à l'événement suivant. S'il tombe, le fil musical prend le relais |
-			| actif     | diffuse « Café à minuit », dans le fil musical « Continue » | ⏭ Couper le fil musical par ce feed | active   | Le stream du feed passe jusqu'à la fin prévue de l'événement coupé ; sous le fil musical, jusqu'à l'événement suivant. S'il tombe, le fil musical prend le relais |
-			| desactive | diffuse « Café à minuit », dans « Matinale »             | ⏭ Couper l'événement par ce feed     | inactive | Aucun stream actif ne suit ce feed |
-			| actif     | laisse un blanc                                          | ⏭ Couper l'événement par ce feed     | inactive | Rien à l'antenne                   |
+			| active     | diffuse « Café à minuit », dans « Matinale »             | ⏭ Couper l'événement par ce feed     | active   | Le stream du feed passe jusqu'à la fin prévue de l'événement coupé ; sous le fil musical, jusqu'à l'événement suivant. S'il tombe, le fil musical prend le relais |
+			| active     | diffuse « Café à minuit », dans le fil musical « Continue » | ⏭ Couper le fil musical par ce feed | active   | Le stream du feed passe jusqu'à la fin prévue de l'événement coupé ; sous le fil musical, jusqu'à l'événement suivant. S'il tombe, le fil musical prend le relais |
+			| disabled | diffuse « Café à minuit », dans « Matinale »             | ⏭ Couper l'événement par ce feed     | inactive | Aucun stream actif ne suit ce feed |
+			| active     | laisse un blanc                                          | ⏭ Couper l'événement par ce feed     | inactive | Rien à l'antenne                   |
 
 	Scénario: Couper l'antenne par un feed est envoyé à Machin player, et annoncé
 		Étant donné les feeds « Studio mobile », « https://flux.exemple/mobile »
 		Et les sonores :
-			| artiste | titre  | type   | etat  | duree | emplacement                 |
-			|         | Relais | stream | actif |       | https://flux.exemple/mobile |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Relais | stream | active |          | https://flux.exemple/mobile |
 		Et le stream « Relais » suit le feed « Studio mobile »
 		Et Machin player diffuse « Café à minuit », dans « Matinale »
 		Quand la fenêtre de l'interface s'ouvre

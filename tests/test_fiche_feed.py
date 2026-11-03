@@ -84,14 +84,14 @@ def streams(interface: Contexte, titres: str) -> None:
 
 @then(parsers.parse("le feed « {nom} » est en base, à l'adresse « {url} »"))
 def en_base(base_vide: Connexion, nom: str, url: str) -> None:
-	lignes = base_vide.execute("SELECT url FROM feeds WHERE nom = %s", (nom,)).fetchall()
+	lignes = base_vide.execute("SELECT url FROM feeds WHERE name = %s", (nom,)).fetchall()
 	assert lignes == [(url,)]
 
 
 @then(parsers.parse("le stream « {titre} » joue l'adresse « {url} »"))
 def adresse_jouee(base_vide: Connexion, titre: str, url: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT COALESCE(s.url_stream, m.url) FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.titre = %s",
+		"SELECT COALESCE(s.stream_url, m.url) FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.title = %s",
 		(titre,),
 	).fetchall()
 	assert lignes == [(url,)]

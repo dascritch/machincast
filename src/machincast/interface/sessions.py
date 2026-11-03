@@ -1,7 +1,7 @@
 """Sessions sautées d'un événement (https://github.com/dascritch/machincast/issues/273), communes au calendrier et à la
 fiche d'un événement (https://github.com/dascritch/machincast/issues/295).
 
-Une session sautée se note en base par le jour où elle commence (evenements_sauts). Elle se rétablit tant qu'elle n'a
+Une session sautée se note en base par le jour où elle commence (event_skips). Elle se rétablit tant qu'elle n'a
 pas commencé, et qu'aucun événement de même priorité n'a pris sa place (chevauchee). Le jour seul compte : une session
 sautée le reste quand l'heure de l'événement change, et la fiche de l'événement l'annonce (prochaine_sautee).
 """
@@ -69,6 +69,6 @@ def chevauchee(connexion: Connexion, session: Session, maintenant: datetime) -> 
 def retablir(connexion: Connexion, session: Session) -> None:
 	"""La session joue de nouveau. À appeler dans une transaction."""
 	connexion.execute(
-		"DELETE FROM evenements_sauts WHERE evenement_id = %s AND jour = %s",
+		"DELETE FROM event_skips WHERE event_id = %s AND day = %s",
 		(session.evenement.id, session.debut.date()),
 	)

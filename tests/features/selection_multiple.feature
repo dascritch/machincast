@@ -7,24 +7,24 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 	https://github.com/dascritch/machincast/issues/114, spec § 8.2. Ctrl et Maj sélectionnent plusieurs lignes des listes
 	Sonores et Banques ; le clic droit propose les actions sur la sélection. Chaque action demande confirmation, écrit
 	en base, relit la liste et l'annonce dans la barre d'état. Un sonore en aperçu garde son état. Un audit complet
-	demandé est fait par la prochaine indexation, même rapide (audit_demande.feature).
+	demandé est fait par la prochaine indexation, même rapide (audit_requested.feature).
 
 	Contexte:
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-21 09:00:00 »
 		Et les sonores :
-			| artiste     | titre         | type    | etat      | duree | emplacement                  |
-			| Les Gaufres | Café à minuit | fichier | actif     | 214   | /srv/musique/cafe.flac       |
-			| Les Gaufres | Gaufre royale | fichier | desactive | 180   | /srv/musique/royale.flac     |
-			| Les Gaufres | Nouveauté     | fichier | apercu    |       | /srv/musique/nouveaute.flac  |
-			|             | Jingle        | fichier | actif     | 5     | /srv/habillage/jingle.flac   |
-			|             | Direct        | stream  | actif     |       | https://flux.exemple/direct  |
+			| artist      | title         | type   | state    | duration | location                    |
+			| Les Gaufres | Café à minuit | file   | active   | 214      | /srv/musique/cafe.flac      |
+			| Les Gaufres | Gaufre royale | file   | disabled | 180      | /srv/musique/royale.flac    |
+			| Les Gaufres | Nouveauté     | file   | preview  |          | /srv/musique/nouveaute.flac |
+			|             | Jingle        | file   | active   | 5        | /srv/habillage/jingle.flac  |
+			|             | Direct        | stream | active   |          | https://flux.exemple/direct |
 		Et la banque « Titres », aléatoire, sans nom public, avec « Café à minuit », « Gaufre royale »
 		Et la banque « Habillage », séquentielle, sans nom public, avec « Jingle »
 		Et la banque « Nuit », aléatoire, sans nom public, avec « Gaufre royale »
 		Et les événements :
-			| nom         | nom_public | priorite    | debut | fin | jours |
-			| Fil de jour |            | fil_musical |       |     |       |
+			| name        | public_name | priority               | starts_at | ends_at | days |
+			| Fil de jour |             | background_programming |           |         |      |
 
 	# ─── Sonores ───────────────────────────────────────────────
 
@@ -41,8 +41,8 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Et je sélectionne les lignes « Café à minuit », « Jingle », « Nouveauté » de la liste
 		Et je choisis « Désactiver » au clic droit sur la sélection
 		Alors la dernière question, intitulée « Désactiver », a dit « Désactiver 3 sonores ? Un sonore en aperçu reste en aperçu. »
-		Et les sonores « Café à minuit », « Jingle » sont à l'état « desactive » en base
-		Et le sonore « Nouveauté » est à l'état « apercu » en base
+		Et les sonores « Café à minuit », « Jingle » sont à l'état « disabled » en base
+		Et le sonore « Nouveauté » est à l'état « preview » en base
 		Et la barre d'état annonce « 2 sonores désactivés. »
 		Et la liste montre les titres « Café à minuit », « Gaufre royale », « Nouveauté », « Direct », « Jingle »
 		Et la liste montre l'état « désactivé » pour « Café à minuit » et « Jingle »
@@ -52,7 +52,7 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Et j'ouvre l'onglet « Sonores »
 		Et je sélectionne les lignes « Café à minuit », « Gaufre royale » de la liste
 		Et je choisis « Activer » au clic droit sur la sélection
-		Alors les sonores « Café à minuit », « Gaufre royale » sont à l'état « actif » en base
+		Alors les sonores « Café à minuit », « Gaufre royale » sont à l'état « active » en base
 		Et la barre d'état annonce « 1 sonore activé. »
 
 	Scénario: Une confirmation refusée ne change rien
@@ -61,7 +61,7 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Et j'ouvre l'onglet « Sonores »
 		Et je sélectionne les lignes « Café à minuit », « Jingle » de la liste
 		Et je choisis « Désactiver » au clic droit sur la sélection
-		Alors les sonores « Café à minuit », « Jingle » sont à l'état « actif » en base
+		Alors les sonores « Café à minuit », « Jingle » sont à l'état « active » en base
 		Et la barre d'état n'a rien annoncé
 
 	Scénario: Le clic droit hors de la sélection agit sur la seule ligne cliquée
@@ -70,7 +70,7 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Et je sélectionne les lignes « Café à minuit », « Jingle » de la liste
 		Et je choisis « Désactiver » au clic droit sur la ligne « Gaufre royale »
 		Alors la dernière question, intitulée « Désactiver », a dit « Désactiver 1 sonore ? Un sonore en aperçu reste en aperçu. »
-		Et les sonores « Café à minuit », « Jingle » sont à l'état « actif » en base
+		Et les sonores « Café à minuit », « Jingle » sont à l'état « active » en base
 
 	Scénario: Ajouter plusieurs sonores à des banques, à la fin de leur liste, sans doublon
 		Étant donné les banques choisies « Titres », « Habillage »
@@ -184,10 +184,10 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Et je choisis « Désactiver » au clic droit sur les sonores choisis de la fiche
 		Alors les sonores de la fiche sont, avec leur état, « Les Gaufres – Café à minuit » désactivé, « Les Gaufres – Nouveauté » aperçu, « Les Gaufres – Gaufre royale » désactivé
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
-		Et le sonore « Café à minuit » est à l'état « actif » en base
+		Et le sonore « Café à minuit » est à l'état « active » en base
 		Quand j'enregistre la fiche
-		Alors le sonore « Café à minuit » est à l'état « desactive » en base
-		Et le sonore « Nouveauté » est à l'état « apercu » en base
+		Alors le sonore « Café à minuit » est à l'état « disabled » en base
+		Et le sonore « Nouveauté » est à l'état « preview » en base
 		Et les sonores de la fiche sont, avec leur état, « Les Gaufres – Café à minuit » désactivé, « Les Gaufres – Nouveauté » aperçu, « Les Gaufres – Gaufre royale » désactivé
 
 	Scénario: Annuler oublie l'état choisi pour des sonores de la fiche
@@ -198,7 +198,7 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Alors les sonores de la fiche sont, avec leur état, « Les Gaufres – Café à minuit » actif, « Les Gaufres – Gaufre royale » actif
 		Quand j'annule les modifications de la fiche
 		Alors les sonores de la fiche sont, avec leur état, « Les Gaufres – Café à minuit » actif, « Les Gaufres – Gaufre royale » désactivé
-		Et le sonore « Gaufre royale » est à l'état « desactive » en base
+		Et le sonore « Gaufre royale » est à l'état « disabled » en base
 
 	Scénario: Un sonore repassé en aperçu entre-temps y reste, malgré l'état choisi dans la fiche
 		Quand la fenêtre de l'interface s'ouvre
@@ -206,7 +206,7 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Et je choisis « Désactiver » au clic droit sur le sonore « Les Gaufres – Café à minuit » de la fiche
 		Et le sonore « Café à minuit » repasse en aperçu en base
 		Et j'enregistre la fiche
-		Alors le sonore « Café à minuit » est à l'état « apercu » en base
+		Alors le sonore « Café à minuit » est à l'état « preview » en base
 
 	Scénario: Le clic droit hors des sonores choisis de la fiche n'agit que sur la ligne cliquée
 		Quand la fenêtre de l'interface s'ouvre

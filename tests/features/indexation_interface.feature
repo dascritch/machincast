@@ -13,8 +13,8 @@ Fonctionnalité: Lancer l'indexation depuis l'interface
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-20 09:00:00 »
 		Et les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et un Machin indexer factice, qui attend
 
 	Scénario: Le menu « Maintenance » lance l'indexation rapide ou l'audit complet

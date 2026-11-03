@@ -16,13 +16,13 @@ Fonctionnalité: Écran de simulation
 		Et le fichier de test « sain.flac » copié en « …/musique/minuit.flac »
 		Et le fichier de test « sain.flac » copié en « …/cafe/jingle.flac »
 		Et les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement           |
-			| Les Gaufres | Café à minuit | fichier | actif | 60    | …/musique/minuit.flac |
-			|             | Jingle        | fichier | actif | 60    | …/cafe/jingle.flac    |
+			| artist      | title         | type | state  | duration | location              |
+			| Les Gaufres | Café à minuit | file | active | 60       | …/musique/minuit.flac |
+			|             | Jingle        | file | active | 60       | …/cafe/jingle.flac    |
 		Et la banque « Habillage », séquentielle, sans nom public, avec « Café à minuit », « Jingle »
 		Et les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et l'événement « Continue » joue la banque « Habillage »
 		Et un Machin player qui simule sur la base de test
 
@@ -65,8 +65,8 @@ Fonctionnalité: Écran de simulation
 		Et le bouton « Exporter… » de la simulation est actif
 
 	Scénario: La simulation signale ses alertes et incidents
-		Étant donné le sonore « Café à minuit » est à l'état « desactive » en base
-		Et le sonore « Jingle » est à l'état « desactive » en base
+		Étant donné le sonore « Café à minuit » est à l'état « disabled » en base
+		Et le sonore « Jingle » est à l'état « disabled » en base
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Simulation » dans le menu « Affichage »
 		Et je règle la simulation du « 2026-10-21 09:00 » au « 2026-10-21 09:01 »
@@ -104,13 +104,13 @@ Fonctionnalité: Écran de simulation
 		Et 2 simulations ont été lancées
 
 	Scénario: Une nouvelle simulation efface les alertes de la précédente
-		Étant donné le sonore « Café à minuit » est à l'état « desactive » en base
-		Et le sonore « Jingle » est à l'état « desactive » en base
+		Étant donné le sonore « Café à minuit » est à l'état « disabled » en base
+		Et le sonore « Jingle » est à l'état « disabled » en base
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Simulation » dans le menu « Affichage »
 		Et je règle la simulation du « 2026-10-21 09:00 » au « 2026-10-21 09:01 »
 		Et je lance la simulation
-		Et le sonore « Café à minuit » est à l'état « actif » en base
+		Et le sonore « Café à minuit » est à l'état « active » en base
 		Et je lance la simulation
 		Alors la simulation ne signale rien
 

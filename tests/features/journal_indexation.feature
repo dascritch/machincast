@@ -18,8 +18,8 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 		Et le fichier de test « tags.flac » copié en « …/pubs/cafe.flac »
 		Et le fichier de test « sain.wav » copié en « …/pubs/jingle.wav »
 		Et les sonores :
-			| artiste | titre  | type    | etat  | duree | emplacement |
-			|         | Ancien | fichier | actif | 1     | …/vieux.wav |
+			| artist | title  | type | state  | duration | location    |
+			|        | Ancien | file | active | 1        | …/vieux.wav |
 		Et le fichier de test « sain.wav » copié en « …/vieux.wav »
 		Et la banque « Publicité », aléatoire, sans nom public, avec « Ancien »
 		Et les répertoires « …/pubs » de la banque « Publicité »
@@ -38,10 +38,10 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 		Et le journal « Indexation rapide » de l'indexation conclut « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. »
 		Et le journal de l'indexation ne signale aucune anomalie
 		Et les sonores de la banque « Publicité » en base sont :
-			| emplacement       | etat  | titre         |
-			| …/vieux.wav       | actif | Ancien        |
-			| …/pubs/cafe.flac  | actif | Café à minuit |
-			| …/pubs/jingle.wav | actif | None          |
+			| location          | state  | title         |
+			| …/vieux.wav       | active | Ancien        |
+			| …/pubs/cafe.flac  | active | Café à minuit |
+			| …/pubs/jingle.wav | active | None          |
 		Et les fichiers déposés sont intacts
 		Quand je ferme le journal de l'indexation
 		Alors aucune question n'a été posée
@@ -66,8 +66,8 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 		https://github.com/dascritch/machincast/issues/267 : le sonore supprimé reste en base, marqué, jusqu'à sa péremption.
 
 		Étant donné les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement     |
-			|         | Café  | fichier | actif | 1     | …/pubs/cafe.flac |
+			| artist | title | type | state  | duration | location         |
+			|        | Café  | file | active | 1        | …/pubs/cafe.flac |
 		Et le sonore « Café » est supprimé depuis l'interface
 		Quand le journal « Indexation rapide » de l'indexation s'ouvre
 		Et l'indexation se termine
@@ -77,12 +77,12 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 		Étant donné le fichier « …/vieux.wav », qui n'est pas un son
 		Et le fichier « …/pubs/faux.mp3 », qui n'est pas un son
 		Et l'indexeur a fait une indexation rapide
-		Alors le sonore « Ancien » est à l'état « actif »
+		Alors le sonore « Ancien » est à l'état « active »
 		Quand le journal « Audit complet » de l'indexation s'ouvre
 		Et l'indexation se termine
 		Alors le journal « Audit complet » de l'indexation conclut « Audit complet terminé : 0 nouveau sonore, 0 rattachement, 0 retrait ; 4 sonores vérifiés ; 0 erroné, 1 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu. 2 anomalies, dans le journal ci-dessus. »
 		Et le journal de l'indexation signale 2 anomalies, sur « …/vieux.wav », « …/pubs/faux.mp3 »
-		Et le sonore « Ancien » est à l'état « non supporté »
+		Et le sonore « Ancien » est à l'état « unsupported »
 		Et le journal de l'indexeur n'est plus écouté
 
 	Scénario: Pendant l'indexation, le journal dit qu'elle est en cours
@@ -110,8 +110,8 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 		Et l'indexation se termine
 		Alors le journal « Indexation rapide » de l'indexation conclut « Indexation impossible : une autre indexation est en cours sur cette base ; les sonores déjà vérifiés le restent. 1 anomalie, dans le journal ci-dessus. »
 		Et les sonores de la banque « Publicité » en base sont :
-			| emplacement | etat  | titre  |
-			| …/vieux.wav | actif | Ancien |
+			| location    | state  | title  |
+			| …/vieux.wav | active | Ancien |
 
 	Scénario: Fermer le journal pendant l'indexation, en la laissant continuer, garde la fenêtre ouverte
 		Étant donné une indexation qui attend
@@ -122,10 +122,10 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 		Et le journal « Indexation rapide » de l'indexation est ouvert
 		Quand l'indexation attendue reprend, et se termine
 		Alors les sonores de la banque « Publicité » en base sont :
-			| emplacement       | etat  | titre         |
-			| …/vieux.wav       | actif | Ancien        |
-			| …/pubs/cafe.flac  | actif | Café à minuit |
-			| …/pubs/jingle.wav | actif | None          |
+			| location          | state  | title         |
+			| …/vieux.wav       | active | Ancien        |
+			| …/pubs/cafe.flac  | active | Café à minuit |
+			| …/pubs/jingle.wav | active | None          |
 
 	Scénario: Fermer le journal pendant l'indexation, en l'arrêtant, l'arrête après le fichier en cours
 		Étant donné une indexation qui attend
@@ -136,10 +136,10 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 		Et le journal de l'indexation est fermé
 		Et l'indexation est arrêtée
 		Et les sonores de la banque « Publicité » en base sont :
-			| emplacement       | etat   | titre         |
-			| …/vieux.wav       | actif  | Ancien        |
-			| …/pubs/cafe.flac  | actif  | Café à minuit |
-			| …/pubs/jingle.wav | apercu | None          |
+			| location          | state   | title         |
+			| …/vieux.wav       | active  | Ancien        |
+			| …/pubs/cafe.flac  | active  | Café à minuit |
+			| …/pubs/jingle.wav | preview | None          |
 		Et le journal de l'indexeur n'est plus écouté
 
 	Scénario: Machin indexer --window demande un affichage graphique

@@ -59,9 +59,9 @@ def sonore_audite(
 	if (cd is not None) and (cf is not None):
 		crossfades = [timedelta(seconds=_secondes(cd)), timedelta(seconds=_secondes(cf))]
 	base_vide.execute(
-		"INSERT INTO sonores (type, emplacement, titre, etat, duree, debut_detecte, fin_detectee, detection_silences,"
-		" crossfade_debut, crossfade_fin, audite_le, audit_seuil)"
-		" VALUES ('fichier', %s, %s, 'actif', %s, %s, %s, true, %s, %s, now(), -40)",
+		"INSERT INTO sounds (type, location, title, state, duration, detected_start, detected_end, silence_detection,"
+		" crossfade_start, crossfade_end, audited_at, audit_threshold)"
+		" VALUES ('file', %s, %s, 'active', %s, %s, %s, true, %s, %s, now(), -40)",
 		(
 			str(copie),
 			titre,
@@ -86,7 +86,7 @@ def crossfade_par_defaut(interface: Contexte, duree: str) -> None:
 
 @given(parsers.parse("le fichier du sonore « {titre} » supprimé"))
 def fichier_supprime(base_vide: Connexion, titre: str) -> None:
-	ligne = base_vide.execute("SELECT emplacement FROM sonores WHERE titre = %s", (titre,)).fetchone()
+	ligne = base_vide.execute("SELECT location FROM sounds WHERE title = %s", (titre,)).fetchone()
 	assert ligne is not None
 	# Une copie de test, dans le répertoire temporaire du scénario.
 	Path(str(ligne[0])).unlink()

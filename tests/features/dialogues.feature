@@ -160,9 +160,9 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 
 	Plan du scénario: Le choix des sonores, des banques, des séquences ou des feeds donne ceux sélectionnés, ou aucun s'il est abandonné
 		Étant donné les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement                  |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/jingles/hiver/cafe.flac |
-			|             | Spot          | fichier | actif | 30    | /srv/pubs/spot.flac          |
+			| artist      | title         | type | state  | duration | location                     |
+			| Les Gaufres | Café à minuit | file | active | 214      | /srv/jingles/hiver/cafe.flac |
+			|             | Spot          | file | active | 30       | /srv/pubs/spot.flac          |
 		Et la banque « Publicité », aléatoire, sans nom public, avec « Spot »
 		Et la banque « Habillage », séquentielle, sans nom public, avec « Café à minuit »
 		Et la séquence « Passage pub », sans nom public, avec le sonore « Spot »
@@ -186,8 +186,8 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 	Scénario: Le choix des banques peut ne proposer que certaines d'entre elles
 		# https://github.com/dascritch/machincast/issues/114
 		Étant donné les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement                  |
-			|             | Spot          | fichier | actif | 30    | /srv/pubs/spot.flac          |
+			| artist | title | type | state  | duration | location            |
+			|        | Spot  | file | active | 30       | /srv/pubs/spot.flac |
 		Et la banque « Publicité », aléatoire, sans nom public, avec « Spot »
 		Et la banque « Habillage », séquentielle, sans nom public, avec « Spot »
 		Et la banque « Nuit », aléatoire, sans nom public, avec « Spot »

@@ -193,13 +193,12 @@ def taper(interface: Contexte, texte: str) -> None:
 @when(parsers.parse("le sonore « {titre} » est ajouté à la banque « {banque} » en base"))
 def ajouter_a_la_banque(base_vide: Connexion, titre: str, banque: str) -> None:
 	ligne = base_vide.execute(
-		"INSERT INTO sonores (type, emplacement, titre) VALUES ('fichier', %s, %s) RETURNING id",
+		"INSERT INTO sounds (type, location, title) VALUES ('file', %s, %s) RETURNING id",
 		(f"/srv/{titre}.flac", titre),
 	).fetchone()
 	assert ligne is not None
 	base_vide.execute(
-		"INSERT INTO banques_sonores (banque_id, sonore_id, position)"
-		" SELECT id, %s, 99 FROM banques WHERE nom_interne = %s",
+		"INSERT INTO bank_sounds (bank_id, sound_id, position) SELECT id, %s, 99 FROM banks WHERE internal_name = %s",
 		(ligne[0], banque),
 	)
 

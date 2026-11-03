@@ -26,7 +26,7 @@ from tests.base_test import parametres_base_test
 scenarios("evenement_actif.feature")
 
 Connexion = psycopg.Connection[tuple[object, ...]]
-JOURS = ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")
+JOURS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 
 
 @dataclass
@@ -99,8 +99,8 @@ def evenements(contexte: Contexte, datatable: list[list[str]]) -> None:
 def en_base(contexte: Contexte, base_vide: Connexion) -> None:
 	for e in contexte.evenements:
 		base_vide.execute(
-			"INSERT INTO evenements (nom_interne, priorite, debut, fin, jours_recurrence, modifie_le)"
-			" VALUES (%s, %s, %s, %s, %s::jour_semaine[], %s)",
+			"INSERT INTO events (internal_name, priority, starts_at, ends_at, recurrence_days, modified_at)"
+			" VALUES (%s, %s, %s, %s, %s::weekday[], %s)",
 			(e.nom, e.priorite.value, e.debut, e.fin, [JOURS[j] for j in sorted(e.jours)], e.modifie_le),
 		)
 

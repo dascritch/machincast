@@ -20,7 +20,7 @@ scenarios("choix_sonore.feature")
 
 Connexion = psycopg.Connection[tuple[object, ...]]
 ELEMENT = re.compile(r"« ([^»]+) »")
-MODES = {"séquentielle": "sequentiel", "aléatoire": "aleatoire"}
+MODES = {"séquentielle": "sequential", "aléatoire": "random"}
 
 
 @dataclass
@@ -44,10 +44,10 @@ def heure(texte: str) -> datetime:
 
 
 def sonore(base: Connexion, nom: str) -> int:
-	ligne = base.execute("SELECT id FROM sonores WHERE emplacement = %s", (f"/sons/{nom}.flac",)).fetchone()
+	ligne = base.execute("SELECT id FROM sounds WHERE location = %s", (f"/sons/{nom}.flac",)).fetchone()
 	if ligne is None:
 		ligne = base.execute(
-			"INSERT INTO sonores (type, emplacement, etat) VALUES ('fichier', %s, 'actif') RETURNING id",
+			"INSERT INTO sounds (type, location, state) VALUES ('file', %s, 'active') RETURNING id",
 			(f"/sons/{nom}.flac",),
 		).fetchone()
 	assert ligne is not None
@@ -55,21 +55,21 @@ def sonore(base: Connexion, nom: str) -> int:
 
 
 def nom_du_sonore(base: Connexion, identifiant: int) -> str:
-	ligne = base.execute("SELECT emplacement FROM sonores WHERE id = %s", (identifiant,)).fetchone()
+	ligne = base.execute("SELECT location FROM sounds WHERE id = %s", (identifiant,)).fetchone()
 	assert ligne is not None
 	return str(ligne[0]).removeprefix("/sons/").removesuffix(".flac")
 
 
 def banque(base: Connexion, nom: str) -> int:
-	ligne = base.execute("SELECT id FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
+	ligne = base.execute("SELECT id FROM banks WHERE internal_name = %s", (nom,)).fetchone()
 	assert ligne is not None, f"banque {nom} inconnue"
 	return int(str(ligne[0]))
 
 
 def ajouter(base: Connexion, nom_banque: str, nom_sonore: str) -> None:
 	base.execute(
-		"INSERT INTO banques_sonores (banque_id, sonore_id, position)"
-		" SELECT %s, %s, COALESCE(MAX(position), 0) + 1 FROM banques_sonores WHERE banque_id = %s",
+		"INSERT INTO bank_sounds (bank_id, sound_id, position)"
+		" SELECT %s, %s, COALESCE(MAX(position), 0) + 1 FROM bank_sounds WHERE bank_id = %s",
 		(banque(base, nom_banque), sonore(base, nom_sonore), banque(base, nom_banque)),
 	)
 
@@ -80,7 +80,7 @@ def passage(base: Connexion, nom_sonore: str, nom_banque: str | None) -> None:
 	if nom_banque is not None:
 		fournie_par = banque(base, nom_banque)
 	base.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, sonore_id, banque_id) VALUES (%s, 'debut', %s, %s)",
+		"INSERT INTO airplay (play_id, line_type, sound_id, bank_id) VALUES (%s, 'start', %s, %s)",
 		(uuid.uuid4(), sonore(base, nom_sonore), fournie_par),
 	)
 
@@ -94,7 +94,7 @@ def choisir(contexte: Contexte, nom_banque: str) -> int | None:
 
 
 def banque_lecture(connexion: psycopg.Connection[tuple[object, ...]], nom: str) -> int:
-	ligne = connexion.execute("SELECT id FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
+	ligne = connexion.execute("SELECT id FROM banks WHERE internal_name = %s", (nom,)).fetchone()
 	assert ligne is not None
 	return int(str(ligne[0]))
 
@@ -120,7 +120,7 @@ def horloge(contexte: Contexte, texte: str) -> None:
 
 @given(parsers.re(r"une banque (?P<mode>séquentielle|aléatoire) « (?P<nom>[^»]+) » contenant (?P<liste>.+)"))
 def banque_contenant(base_vide: Connexion, mode: str, nom: str, liste: str) -> None:
-	base_vide.execute("INSERT INTO banques (nom_interne, mode) VALUES (%s, %s)", (nom, MODES[mode]))
+	base_vide.execute("INSERT INTO banks (internal_name, mode) VALUES (%s, %s)", (nom, MODES[mode]))
 	for nom_sonore in noms(liste):
 		ajouter(base_vide, nom, nom_sonore)
 
@@ -147,23 +147,23 @@ def hasard(contexte: Contexte, graine: int) -> None:
 
 @given(parsers.parse("le sonore « {nom} » est à l'état « {etat} »"))
 def etat(base_vide: Connexion, nom: str, etat: str) -> None:
-	base_vide.execute("UPDATE sonores SET etat = %s WHERE id = %s", (etat, sonore(base_vide, nom)))
+	base_vide.execute("UPDATE sounds SET state = %s WHERE id = %s", (etat, sonore(base_vide, nom)))
 
 
 @given(parsers.parse("le sonore « {nom} » n'est diffusable qu'à partir du « {debut} »"))
 def diffusable_a_partir(base_vide: Connexion, nom: str, debut: str) -> None:
-	base_vide.execute("UPDATE sonores SET debut_diffusion = %s WHERE id = %s", (heure(debut), sonore(base_vide, nom)))
+	base_vide.execute("UPDATE sounds SET broadcast_start = %s WHERE id = %s", (heure(debut), sonore(base_vide, nom)))
 
 
 @given(parsers.parse("le sonore « {nom} » n'est plus diffusable depuis le « {fin} »"))
 def plus_diffusable(base_vide: Connexion, nom: str, fin: str) -> None:
-	base_vide.execute("UPDATE sonores SET fin_diffusion = %s WHERE id = %s", (heure(fin), sonore(base_vide, nom)))
+	base_vide.execute("UPDATE sounds SET broadcast_end = %s WHERE id = %s", (heure(fin), sonore(base_vide, nom)))
 
 
 @given(parsers.parse("le sonore « {nom} » est diffusable du « {debut} » au « {fin} »"))
 def diffusable(base_vide: Connexion, nom: str, debut: str, fin: str) -> None:
 	base_vide.execute(
-		"UPDATE sonores SET debut_diffusion = %s, fin_diffusion = %s WHERE id = %s",
+		"UPDATE sounds SET broadcast_start = %s, broadcast_end = %s WHERE id = %s",
 		(heure(debut), heure(fin), sonore(base_vide, nom)),
 	)
 
@@ -175,7 +175,7 @@ def maximum_atteint(base_vide: Connexion, nom: str, maximum: int) -> None:
 
 @given(parsers.parse("le sonore « {nom} » a été lu {nombre:d} fois sur un maximum de {maximum:d} lectures"))
 def lectures(base_vide: Connexion, nom: str, nombre: int, maximum: int) -> None:
-	base_vide.execute("UPDATE sonores SET max_lectures = %s WHERE id = %s", (maximum, sonore(base_vide, nom)))
+	base_vide.execute("UPDATE sounds SET max_plays = %s WHERE id = %s", (maximum, sonore(base_vide, nom)))
 	for _ in range(nombre):
 		passage(base_vide, nom, None)
 

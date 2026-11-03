@@ -202,7 +202,7 @@ Fonctionnalité: Interruption manuelle de l'antenne
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
 		Et l'émission « Flash » de 20:00:00 à 20:30:00, avec le sonore « m »
 		Et l'événement de secours « Secours », avec les sonores « s1 »
-		Et le sonore « s1 » est à l'état « desactive »
+		Et le sonore « s1 » est à l'état « disabled »
 		Et chaque sonore dure 60 secondes
 		Quand la diffusion démarre sur un moteur simulé
 		Et la diffusion avance de 10 secondes
@@ -246,7 +246,7 @@ Fonctionnalité: Interruption manuelle de l'antenne
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
 		Et chaque sonore dure 60 secondes
 		Et le stream « Relais » sur le feed « Studio mobile », à une adresse factice
-		Et le sonore « Relais » est à l'état « desactive »
+		Et le sonore « Relais » est à l'état « disabled »
 		Quand la diffusion démarre sur un moteur simulé
 		Et la diffusion avance de 10 secondes
 		Et je coupe l'antenne par le feed « Studio mobile »
@@ -385,7 +385,7 @@ Fonctionnalité: Interruption manuelle de l'antenne
 
 	Scénario: Pendant un blanc, une interruption ne fait rien
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
-		Et le sonore « f1 » est à l'état « desactive »
+		Et le sonore « f1 » est à l'état « disabled »
 		Quand la diffusion démarre sur un moteur simulé
 		Et la diffusion avance de 5 secondes
 		Et je saute au sonore suivant

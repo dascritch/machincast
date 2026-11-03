@@ -99,7 +99,7 @@ def base(contexte: Contexte, base_vide: psycopg.Connection[tuple[object, ...]]) 
 def enregistrer_banque(contexte: Contexte, nom: str) -> int:
 	assert contexte.connexion is not None
 	ligne = contexte.connexion.execute(
-		"INSERT INTO banques (nom_interne, mode) VALUES (%s, 'aleatoire') RETURNING id", (nom,)
+		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'random') RETURNING id", (nom,)
 	).fetchone()
 	assert ligne is not None
 	return int(str(ligne[0]))
@@ -120,7 +120,7 @@ def purger(contexte: Contexte) -> None:
 @then("la base ne contient plus aucune banque")
 def plus_de_banque(contexte: Contexte) -> None:
 	assert contexte.connexion is not None
-	assert contexte.connexion.execute("SELECT count(*) FROM banques").fetchone() == (0,)
+	assert contexte.connexion.execute("SELECT count(*) FROM banks").fetchone() == (0,)
 
 
 @then(parsers.parse("la prochaine banque enregistrée reçoit l'identifiant {identifiant:d}"))

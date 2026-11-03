@@ -43,7 +43,7 @@ def exports(interface: Contexte) -> Path:
 
 
 def emplacement(base: Connexion, titre: str) -> str:
-	ligne = base.execute("SELECT emplacement FROM sonores WHERE titre = %s", (titre,)).fetchone()
+	ligne = base.execute("SELECT location FROM sounds WHERE title = %s", (titre,)).fetchone()
 	assert ligne is not None
 	return str(ligne[0])
 

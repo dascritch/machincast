@@ -39,13 +39,13 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 
 	Scénario: Les onglets portent l'icône de leur genre
 		Étant donné les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement            |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/musique/cafe.flac |
+			| artist      | title         | type | state  | duration | location               |
+			| Les Gaufres | Café à minuit | file | active | 214      | /srv/musique/cafe.flac |
 		Et la banque « Rotation », aléatoire, sans nom public, avec « Café à minuit »
 		Et la séquence « Passage pub », sans nom public, avec le sonore « Café à minuit »
 		Et les événements :
-			| nom         | nom_public | priorite    | debut | fin | jours |
-			| Fil de jour |            | fil_musical |       |     |       |
+			| name        | public_name | priority               | starts_at | ends_at | days |
+			| Fil de jour |             | background_programming |           |         |      |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et j'ouvre l'onglet « Feeds »
@@ -96,8 +96,8 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 		qui peut manquer.
 
 		Étant donné les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement            |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/musique/cafe.flac |
+			| artist      | title         | type | state  | duration | location               |
+			| Les Gaufres | Café à minuit | file | active | 214      | /srv/musique/cafe.flac |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors le bouton « preecouter » de la fiche ouverte porte l'icône « pré-écoute »
@@ -136,13 +136,13 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 
 	Scénario: La colonne « Type » de la recherche porte l'icône de chaque genre
 		Étant donné les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement     |
-			|         | Matin | fichier | actif | 214   | /srv/matin.flac |
+			| artist | title | type | state  | duration | location        |
+			|        | Matin | file | active | 214      | /srv/matin.flac |
 		Et la banque « Matin calme », aléatoire, sans nom public, avec « Matin »
 		Et la séquence « Matin pub », sans nom public, avec le sonore « Matin »
 		Et les événements :
-			| nom         | nom_public | priorite    | debut | fin | jours |
-			| Matinale    |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Matinale |             | background_programming |           |         |      |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'appuie sur « Ctrl+F »
 		Et je tape « matin » dans le champ de recherche
@@ -155,8 +155,8 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 
 	Scénario: Les relations de la fiche d'un sonore portent l'icône de chaque genre
 		Étant donné les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement     |
-			|         | Matin | fichier | actif | 214   | /srv/matin.flac |
+			| artist | title | type | state  | duration | location        |
+			|        | Matin | file | active | 214      | /srv/matin.flac |
 		Et la banque « Matin calme », aléatoire, sans nom public, avec « Matin »
 		Et la séquence « Matin pub », sans nom public, avec le sonore « Matin »
 		Quand la fenêtre de l'interface s'ouvre

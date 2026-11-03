@@ -99,10 +99,10 @@ def lire_source(
 	paramétrés pris dans defauts ; None s'il n'est plus en base."""
 	with connexion.transaction():
 		ligne = connexion.execute(
-			"SELECT s.type::text, s.emplacement, coalesce(s.url_stream, m.url), s.artiste, s.titre,"
-			" extract(epoch FROM s.duree), s.duree, s.debut_detecte, s.fin_detectee, s.detection_silences,"
-			" s.crossfade_debut, s.crossfade_fin, s.audite_le IS NOT NULL"
-			" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
+			"SELECT s.type::text, s.location, coalesce(s.stream_url, m.url), s.artist, s.title,"
+			" extract(epoch FROM s.duration), s.duration, s.detected_start, s.detected_end, s.silence_detection,"
+			" s.crossfade_start, s.crossfade_end, s.audited_at IS NOT NULL"
+			" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 			(sonore,),
 		).fetchone()
 	if ligne is None:

@@ -63,24 +63,21 @@ def passage(
 	emplacement = f"/musique/{numero}.flac"
 	sonore = inserer(
 		base,
-		"INSERT INTO sonores (type, emplacement, artiste, titre, masquer_metadonnees)"
-		" VALUES ('fichier', %s, %s, %s, %s) RETURNING id",
+		"INSERT INTO sounds (type, location, artist, title, hide_metadata)"
+		" VALUES ('file', %s, %s, %s, %s) RETURNING id",
 		(emplacement, artiste, titre, sonore_masque),
 	)
 	identifiant = uuid.uuid4()
 	debut = DEBUT + timedelta(minutes=numero)
-	colonnes = (
-		"passage_id, type_ligne, horodatage, sonore_id, banque_id, evenement_id, sequence_id, emplacement, artiste,"
-		" titre"
-	)
+	colonnes = "play_id, line_type, logged_at, sound_id, bank_id, event_id, sequence_id, location, artist, title"
 	base.execute(
-		f"INSERT INTO airplay ({colonnes}) VALUES (%s, 'debut', %s, %s, %s, %s, %s, %s, %s, %s)",
+		f"INSERT INTO airplay ({colonnes}) VALUES (%s, 'start', %s, %s, %s, %s, %s, %s, %s, %s)",
 		(identifiant, debut, sonore, banque, evenement, sequence, emplacement, artiste, titre),
 	)
 	if termine:
 		base.execute(
-			f"INSERT INTO airplay ({colonnes}, duree_diffusee, sans_incident)"
-			" VALUES (%s, 'fin', %s, %s, %s, %s, %s, %s, %s, %s, '1 min', true)",
+			f"INSERT INTO airplay ({colonnes}, played_duration, without_incident)"
+			" VALUES (%s, 'end', %s, %s, %s, %s, %s, %s, %s, %s, '1 min', true)",
 			(identifiant, debut + timedelta(minutes=1), sonore, banque, evenement, sequence)
 			+ (emplacement, artiste, titre),
 		)
@@ -89,8 +86,8 @@ def passage(
 def emission(base: Connexion, nom: str, nom_public: str | None, masquer: bool | None) -> int:
 	return inserer(
 		base,
-		"INSERT INTO evenements (nom_interne, nom_public, priorite, debut, masquer_metadonnees)"
-		" VALUES (%s, %s, 'emission', '2026-10-14 19:00', %s) RETURNING id",
+		"INSERT INTO events (internal_name, public_name, priority, starts_at, hide_metadata)"
+		" VALUES (%s, %s, 'show', '2026-10-14 19:00', %s) RETURNING id",
 		(nom, nom_public, masquer),
 	)
 
@@ -127,12 +124,12 @@ def masquages(
 	preparer_sorties(banc, tmp_path, configuration == "oui", "Radio Exemple")
 	identifiant_sequence = inserer(
 		base_vide,
-		"INSERT INTO sequences (nom_interne, masquer_metadonnees) VALUES ('Séquence', %s) RETURNING id",
+		"INSERT INTO sequences (internal_name, hide_metadata) VALUES ('Séquence', %s) RETURNING id",
 		(VALEURS[sequence],),
 	)
 	identifiant_banque = inserer(
 		base_vide,
-		"INSERT INTO banques (nom_interne, mode, masquer_metadonnees) VALUES ('Banque', 'sequentiel', %s) RETURNING id",
+		"INSERT INTO banks (internal_name, mode, hide_metadata) VALUES ('Banque', 'sequential', %s) RETURNING id",
 		(VALEURS[banque],),
 	)
 	identifiant_evenement = emission(base_vide, "Émission", None, VALEURS[evenement])
@@ -164,13 +161,12 @@ def nom_public(texte: str) -> str | None:
 def passage_masque_noms_publics(base_vide: Connexion, evenement: str, sequence: str, banque: str) -> None:
 	identifiant_banque = inserer(
 		base_vide,
-		"INSERT INTO banques (nom_interne, nom_public, mode) VALUES ('Banque', %s, 'sequentiel') RETURNING id",
+		"INSERT INTO banks (internal_name, public_name, mode) VALUES ('Banque', %s, 'sequential') RETURNING id",
 		(nom_public(banque),),
 	)
 	identifiant_sequence = inserer(
 		base_vide,
-		"INSERT INTO sequences (nom_interne, nom_public, masquer_metadonnees) VALUES ('Séquence', %s, true)"
-		" RETURNING id",
+		"INSERT INTO sequences (internal_name, public_name, hide_metadata) VALUES ('Séquence', %s, true) RETURNING id",
 		(nom_public(sequence),),
 	)
 	passage(
@@ -224,7 +220,7 @@ def passages_masques(base_vide: Connexion, nombre: int) -> None:
 
 @given("le masquage de tous les sonores")
 def masquer_tous(base_vide: Connexion) -> None:
-	base_vide.execute("UPDATE sonores SET masquer_metadonnees = true")
+	base_vide.execute("UPDATE sounds SET hide_metadata = true")
 
 
 @given("la page publique ne peut pas être écrite")

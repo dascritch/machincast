@@ -16,8 +16,8 @@ Fonctionnalité: Raccourcis des onglets
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-21 09:00:00 »
 		Et les événements :
-			| nom         | nom_public | priorite    | debut | fin | jours |
-			| Fil de jour |            | fil_musical |       |     |       |
+			| name        | public_name | priority               | starts_at | ends_at | days |
+			| Fil de jour |             | background_programming |           |         |      |
 		Et la séquence « Un », sans nom public, avec rien
 		Et la séquence « Deux », sans nom public, avec rien
 		Et la séquence « Trois », sans nom public, avec rien

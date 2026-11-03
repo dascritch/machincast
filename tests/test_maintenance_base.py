@@ -69,16 +69,11 @@ def retirer_la_derniere(configuration: Configuration, request: pytest.FixtureReq
 		backend.rollback_migrations(backend.to_rollback(read_migrations(str(REPERTOIRE_MIGRATIONS)))[:1])
 
 
-@given(
-	parsers.re(
-		r"la base de test marquée comme ayant reçu les (?:quinze anciennes migrations|anciennes migrations jusqu'à"
-		r" « (?P<derniere>[^»]+) »)$"
-	)
-)
-def anciennes_migrations(request: pytest.FixtureRequest, derniere: str | None) -> None:
-	"""https://github.com/dascritch/machincast/issues/314"""
+@given(parsers.parse("la base de test marquée comme ayant reçu l'ancienne migration « {migration} »"))
+def ancienne_migration(request: pytest.FixtureRequest, migration: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/358"""
 	with connexion_test() as connexion:
-		marquer_les_anciennes_migrations(connexion, derniere)
+		marquer_les_anciennes_migrations(connexion, migration)
 	request.addfinalizer(rendre_les_migrations)
 
 
@@ -177,7 +172,7 @@ def sauvegarde(configuration: Configuration, repertoire: str) -> None:
 	(fichier,) = _sauvegardes(configuration, repertoire)
 	assert fichier.name == f"{configuration.base.test}-2026-10-22T08-30-00.dump"
 	liste = subprocess.run(["pg_restore", "--list", str(fichier)], capture_output=True, text=True, timeout=60)
-	assert (liste.returncode == 0) and ("TABLE public sonores" in liste.stdout), liste.stderr
+	assert (liste.returncode == 0) and ("TABLE public sounds" in liste.stdout), liste.stderr
 
 
 @then("la maintenance a annoncé, dans l'ordre :")
@@ -203,7 +198,9 @@ def signale(execution: Execution, texte: str) -> None:
 
 @then("la maintenance n'a annoncé ni le schéma ni l'optimisation")
 def rien_d_autre(execution: Execution) -> None:
-	assert not any(("schéma" in ligne) or ("optimisée" in ligne) for ligne in execution.informations)
+	# Le chemin de la sauvegarde porte le nom du scénario, qui peut contenir « schéma ».
+	annonces = [ligne for ligne in execution.informations if not ligne.startswith("sauvegarde")]
+	assert not any(("schéma" in ligne) or ("optimisée" in ligne) for ligne in annonces), annonces
 
 
 @then(parsers.parse("la maintenance a dit « {texte} »"))

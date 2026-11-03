@@ -12,14 +12,14 @@ Connexion = psycopg.Connection[tuple[object, ...]]
 
 
 def audit_demande(base: Connexion, sonore: int) -> object:
-	ligne = base.execute("SELECT audit_demande FROM sonores WHERE id = %s", (sonore,)).fetchone()
+	ligne = base.execute("SELECT audit_requested FROM sounds WHERE id = %s", (sonore,)).fetchone()
 	assert ligne is not None
 	return ligne[0]
 
 
 @given("un audit complet demandé pour ce sonore")
 def demander(base_vide: Connexion, sonore: int) -> None:
-	base_vide.execute("UPDATE sonores SET audit_demande = true WHERE id = %s", (sonore,))
+	base_vide.execute("UPDATE sounds SET audit_requested = true WHERE id = %s", (sonore,))
 
 
 @then("ce sonore n'a plus d'audit complet demandé")

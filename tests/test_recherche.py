@@ -44,7 +44,7 @@ def sonores_numerotes(base_vide: Connexion, nombre: int, premier: str, dernier: 
 	assert dernier == f"{prefixe} {nombre:02d}"
 	for numero in range(1, nombre + 1):
 		base_vide.execute(
-			"INSERT INTO sonores (type, emplacement, titre, etat) VALUES ('fichier', %s, %s, 'actif')",
+			"INSERT INTO sounds (type, location, title, state) VALUES ('file', %s, %s, 'active')",
 			(f"/srv/spots/{numero:02d}.flac", f"{prefixe} {numero:02d}"),
 		)
 
@@ -71,7 +71,7 @@ def ouvrir_le_resultat(interface: Contexte, nom: str) -> None:
 
 @when(parsers.parse("la banque « {nom} » est ajoutée en base"))
 def banque_ajoutee(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("INSERT INTO banques (nom_interne, mode) VALUES (%s, 'aleatoire')", (nom,))
+	base_vide.execute("INSERT INTO banks (internal_name, mode) VALUES (%s, 'random')", (nom,))
 
 
 # ─── Alors ─────────────────────────────────────────────────

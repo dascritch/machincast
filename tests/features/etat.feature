@@ -41,7 +41,7 @@ Fonctionnalité: Socket d'état du binaire lecture
 
 	Scénario: Rien à diffuser : la socket annonce le blanc
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
-		Et le sonore « f1 » est à l'état « desactive »
+		Et le sonore « f1 » est à l'état « disabled »
 		Quand la diffusion démarre au plus vite
 		Et la diffusion tourne 1 pas d'une seconde
 		Et un client lit la socket d'état
@@ -370,7 +370,7 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Quand la diffusion démarre en temps réel
 		Et la diffusion tourne 1 pas de 0,4 seconde
 		Et un client lit la socket d'état
-		Alors le sonore en cours est joué par un événement de priorité « fil_musical »
+		Alors le sonore en cours est joué par un événement de priorité « background_programming »
 
 	# ─── Réservation ───────────────────────────────────────────
 

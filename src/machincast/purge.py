@@ -42,17 +42,17 @@ HORLOGE: Horloge = HorlogeSysteme()
 journal = logging.getLogger("machincast.purge")
 
 PASSAGES = """
-	DELETE FROM airplay WHERE passage_id IN (
-		SELECT passage_id FROM airplay GROUP BY passage_id HAVING max(horodatage) < %s
-	) RETURNING passage_id
+	DELETE FROM airplay WHERE play_id IN (
+		SELECT play_id FROM airplay GROUP BY play_id HAVING max(logged_at) < %s
+	) RETURNING play_id
 """
 ELEMENTS = (
 	# LEAST ignore les valeurs vides : la suppression, ou la disparition du fichier, que l'indexation ne date que pour
 	# un sonore à l'état supprime, et efface quand le fichier revient.
-	("sonore", "sonores", "LEAST(supprime_le, disparu_le)"),
-	("banque", "banques", "supprime_le"),
-	("séquence", "sequences", "supprime_le"),
-	("événement", "evenements", "supprime_le"),
+	("sonore", "sounds", "LEAST(deleted_at, missing_at)"),
+	("banque", "banks", "deleted_at"),
+	("séquence", "sequences", "deleted_at"),
+	("événement", "events", "deleted_at"),
 )
 """Le genre, sa table, et la date d'où se compte la péremption d'une ligne."""
 
@@ -67,13 +67,13 @@ def _nombre(nombre: int, nom: str, complement: str = "") -> str:
 def purger(connexion: psycopg.Connection[tuple[object, ...]], limite: datetime) -> list[str]:
 	"""Efface ce qui est d'avant la limite, dans la transaction de la connexion ; le bilan, genre par genre."""
 	passages = {passage for (passage,) in connexion.execute(PASSAGES, (limite,)).fetchall()}
-	lignes = connexion.execute("DELETE FROM log WHERE horodatage < %s", (limite,)).rowcount
+	lignes = connexion.execute("DELETE FROM log WHERE logged_at < %s", (limite,)).rowcount
 	bilan = [_nombre(len(passages), "passage", " de l'airplay"), _nombre(lignes, "ligne", " du log")]
 	for genre, table, date in ELEMENTS:
 		effaces = connexion.execute(f"DELETE FROM {table} WHERE {date} < %s", (limite,)).rowcount  # noqa: S608
 		bilan.append(_nombre(effaces, genre))
 	# Une session sautée d'avant la limite ne compte plus pour rien (https://github.com/dascritch/machincast/issues/273).
-	connexion.execute("DELETE FROM evenements_sauts WHERE jour < %s", (limite.date(),))
+	connexion.execute("DELETE FROM event_skips WHERE day < %s", (limite.date(),))
 	return bilan
 
 
@@ -90,7 +90,7 @@ def executer(configuration: Configuration, _options: argparse.Namespace) -> int:
 				f"purge de la base {base.production}, au-delà de {base.peremption} jours"
 				f" (avant le {limite:%d/%m/%Y %H:%M}) : {', '.join(bilan)} effacés"
 			)
-			connexion.execute("INSERT INTO log (niveau, nature, message) VALUES ('info', 'purge', %s)", (annonce,))
+			connexion.execute("INSERT INTO log (level, kind, message) VALUES ('info', 'purge', %s)", (annonce,))
 	except psycopg.OperationalError as erreur:
 		journal.error(f"base de données injoignable ({base.production}) : {erreur} ; rien n'a été effacé")
 		return CODE_ECHEC

@@ -1,6 +1,6 @@
 """Parcours récursif des répertoires des banques (https://github.com/dascritch/machincast/issues/9, spec § 6.2).
 
-Chaque fichier sonore trouvé dans l'un des répertoires d'une banque (table banques_repertoires) est enregistré
+Chaque fichier sonore trouvé dans l'un des répertoires d'une banque (table bank_directories) est enregistré
 dans sonores s'il ne l'est pas encore, à l'état apercu et sans être décodé
 (https://github.com/dascritch/machincast/issues/69), puis rattaché à la banque en fin de liste. La vérification
 qui suit le décode dans le même passage.
@@ -53,8 +53,8 @@ def _cache(nom: str) -> bool:
 
 
 HORS_DUREES = (
-	"s.duree IS NOT NULL AND ((b.duree_min IS NOT NULL AND s.duree < b.duree_min)"
-	" OR (b.duree_max IS NOT NULL AND s.duree > b.duree_max))"
+	"s.duration IS NOT NULL AND ((b.min_duration IS NOT NULL AND s.duration < b.min_duration)"
+	" OR (b.max_duration IS NOT NULL AND s.duration > b.max_duration))"
 )
 """Condition SQL : le sonore s, de durée connue, sort des durées de la banque b, bornes comprises dans les durées
 (https://github.com/dascritch/machincast/issues/147, https://github.com/dascritch/machincast/issues/195)."""
@@ -98,10 +98,10 @@ def _rattacher(connexion: psycopg.Connection[TupleRow], banque: int, sonore: int
 	"""Rattache le sonore à la fin de la banque, s'il n'y est pas et qu'il ne sort pas de ses durées."""
 	return (
 		connexion.execute(
-			"INSERT INTO banques_sonores (banque_id, sonore_id, position)"
-			" SELECT %s, %s, (SELECT COALESCE(MAX(position), 0) + 1 FROM banques_sonores WHERE banque_id = %s)"
-			f" WHERE NOT EXISTS (SELECT 1 FROM sonores s, banques b WHERE s.id = %s AND b.id = %s AND {HORS_DUREES})"
-			" ON CONFLICT (banque_id, sonore_id) DO NOTHING",
+			"INSERT INTO bank_sounds (bank_id, sound_id, position)"
+			" SELECT %s, %s, (SELECT COALESCE(MAX(position), 0) + 1 FROM bank_sounds WHERE bank_id = %s)"
+			f" WHERE NOT EXISTS (SELECT 1 FROM sounds s, banks b WHERE s.id = %s AND b.id = %s AND {HORS_DUREES})"
+			" ON CONFLICT (bank_id, sound_id) DO NOTHING",
 			(banque, sonore, banque, sonore, banque),
 		).rowcount
 		> 0
@@ -125,16 +125,16 @@ def _enregistrer(
 	de sa vérification ; une ligne dit chaque rattachement."""
 	with connexion.transaction():
 		ligne = connexion.execute(
-			"SELECT s.id, s.duree IS NULL AND (b.duree_min IS NOT NULL OR b.duree_max IS NOT NULL)"
-			" FROM sonores s, banques b WHERE s.emplacement = %s AND s.supprime_le IS NULL AND b.id = %s",
+			"SELECT s.id, s.duration IS NULL AND (b.min_duration IS NOT NULL OR b.max_duration IS NOT NULL)"
+			" FROM sounds s, banks b WHERE s.location = %s AND s.deleted_at IS NULL AND b.id = %s",
 			(emplacement, banque),
 		).fetchone()
 		if ligne is None:
 			ligne = connexion.execute(
-				"INSERT INTO sonores (type, emplacement, etat, indexe_le)"
-				" VALUES ('fichier', %s, %s, clock_timestamp())"
-				" RETURNING id, EXISTS (SELECT 1 FROM banques WHERE id = %s"
-				" AND (duree_min IS NOT NULL OR duree_max IS NOT NULL))",
+				"INSERT INTO sounds (type, location, state, indexed_at)"
+				" VALUES ('file', %s, %s, clock_timestamp())"
+				" RETURNING id, EXISTS (SELECT 1 FROM banks WHERE id = %s"
+				" AND (min_duration IS NOT NULL OR max_duration IS NOT NULL))",
 				(emplacement, EtatSonore.APERCU.value, banque),
 			).fetchone()
 			assert ligne is not None
@@ -179,8 +179,8 @@ def indexer_repertoires(
 	parcours = Parcours()
 	with connexion.transaction():
 		repertoires = connexion.execute(
-			"SELECT b.id, b.nom_interne, r.repertoire FROM banques_repertoires r JOIN banques b ON b.id = r.banque_id"
-			" WHERE b.supprime_le IS NULL ORDER BY b.id, r.repertoire"
+			"SELECT b.id, b.internal_name, r.directory FROM bank_directories r JOIN banks b ON b.id = r.bank_id"
+			" WHERE b.deleted_at IS NULL ORDER BY b.id, r.directory"
 		).fetchall()
 	for banque, nom, repertoire in repertoires:
 		chemin = Path(os.path.normpath(str(repertoire)))
@@ -203,20 +203,20 @@ def retirer_hors_durees(
 	"""Retire de chaque banque les sonores dont la durée en base est connue et sort de ses durées ; complète le bilan
 	(https://github.com/dascritch/machincast/issues/195).
 
-	Seule la ligne de banques_sonores disparaît : le sonore reste en base, dans ses autres banques, séquences et
+	Seule la ligne de bank_sounds disparaît : le sonore reste en base, dans ses autres banques, séquences et
 	événements, et son fichier n'est jamais touché. La durée comparée est la durée complète, même saisie à la main.
 	identifiants : seuls ces sonores ; tous sans eux. Chaque retrait a sa ligne, désignée par le chemin du fichier.
 	"""
 	with connexion.transaction():
 		hors = connexion.execute(
-			"SELECT bs.banque_id, bs.sonore_id, b.nom_interne, s.emplacement, s.duree, b.duree_min, b.duree_max"
-			" FROM banques_sonores bs JOIN banques b ON b.id = bs.banque_id JOIN sonores s ON s.id = bs.sonore_id"
-			f" WHERE (%s::bigint[] IS NULL OR s.id = ANY(%s)) AND b.supprime_le IS NULL AND {HORS_DUREES}"
+			"SELECT bs.bank_id, bs.sound_id, b.internal_name, s.location, s.duration, b.min_duration, b.max_duration"
+			" FROM bank_sounds bs JOIN banks b ON b.id = bs.bank_id JOIN sounds s ON s.id = bs.sound_id"
+			f" WHERE (%s::bigint[] IS NULL OR s.id = ANY(%s)) AND b.deleted_at IS NULL AND {HORS_DUREES}"
 			" ORDER BY b.id, bs.position",
 			(liste_ou_rien(identifiants), liste_ou_rien(identifiants)),
 		).fetchall()
 		for banque, sonore, nom, emplacement, duree, minimum, maximum in hors:
-			connexion.execute("DELETE FROM banques_sonores WHERE banque_id = %s AND sonore_id = %s", (banque, sonore))
+			connexion.execute("DELETE FROM bank_sounds WHERE bank_id = %s AND sound_id = %s", (banque, sonore))
 			bilan.retraits += 1
 			journal.info(f"{emplacement} : retiré de la banque {nom}, {_hors_durees(duree, minimum, maximum)}")
 

@@ -35,7 +35,7 @@ Fonctionnalité: Choix d'un sonore dans une banque
 
 	Scénario: Une banque séquentielle saute les sonores qui ne sont pas jouables
 		Étant donné une banque séquentielle « Jingles » contenant « a », « b », « c »
-		Et le sonore « b » est à l'état « desactive »
+		Et le sonore « b » est à l'état « disabled »
 		Quand je joue 3 sonores de la banque « Jingles »
 		Alors les sonores joués sont « a », « c », « a »
 
@@ -89,11 +89,11 @@ Fonctionnalité: Choix d'un sonore dans une banque
 
 		Exemples:
 			| mode        | condition                                         |
-			| séquentielle | est à l'état « apercu »                          |
-			| séquentielle | est à l'état « expire »                          |
-			| séquentielle | est à l'état « errone »                          |
-			| séquentielle | est à l'état « supprime »                        |
-			| aléatoire   | est à l'état « desactive »                        |
+			| séquentielle | est à l'état « preview »                          |
+			| séquentielle | est à l'état « expired »                          |
+			| séquentielle | est à l'état « corrupt »                          |
+			| séquentielle | est à l'état « missing »                        |
+			| aléatoire   | est à l'état « disabled »                        |
 			| séquentielle | n'est diffusable qu'à partir du « 2026-10-16 00:00 » |
 			| aléatoire   | n'est plus diffusable depuis le « 2026-10-15 12:00 » |
 			| séquentielle | a atteint son maximum de 2 lectures              |
@@ -113,8 +113,8 @@ Fonctionnalité: Choix d'un sonore dans une banque
 
 	Plan du scénario: Une banque sans sonore jouable est traitée comme vide
 		Étant donné une banque <mode> « Jingles » contenant « a », « b »
-		Et le sonore « a » est à l'état « desactive »
-		Et le sonore « b » est à l'état « errone »
+		Et le sonore « a » est à l'état « disabled »
+		Et le sonore « b » est à l'état « corrupt »
 		Alors la banque « Jingles » ne fournit aucun sonore
 
 		Exemples:

@@ -4,28 +4,28 @@ Fonctionnalité: Schéma de la base de données
 	je veux que les migrations yoyo créent toutes les tables de la spécification,
 	afin que la base de production et la base de test aient un schéma strictement identique.
 
-	Un seul schéma, 0001.schema-initial, fond les quinze migrations d'avant
-	https://github.com/dascritch/machincast/issues/314, et donne exactement le même schéma. Une base qui les a toutes
-	reçues garde ses données ; une base restée à une migration intermédiaire est refusée.
+	Un seul schéma, 0001.initial-schema, aux noms anglais (https://github.com/dascritch/machincast/issues/358). Une base
+	créée avec l'ancien schéma, aux noms français, celui de 0001.schema-initial ou des migrations d'avant
+	https://github.com/dascritch/machincast/issues/314, est refusée, sans rien modifier : elle se recrée.
 
 	Contexte:
 		Étant donné une base de test vide où les migrations sont appliquées
 
 	Scénario: Les migrations créent toutes les tables
 		Alors la base contient les tables :
-			| table                 |
-			| sonores               |
-			| feeds                 |
-			| banques               |
-			| banques_repertoires   |
-			| banques_sonores       |
-			| evenements            |
-			| evenements_elements   |
-			| evenements_sauts      |
-			| sequences             |
-			| sequences_elements    |
-			| airplay               |
-			| log                   |
+			| table            |
+			| sounds           |
+			| feeds            |
+			| banks            |
+			| bank_directories |
+			| bank_sounds      |
+			| events           |
+			| event_items      |
+			| event_skips      |
+			| sequences        |
+			| sequence_items   |
+			| airplay          |
+			| log              |
 
 	Scénario: La purge entre deux scénarios vide chaque table, et remet les identifiants à 1
 		https://github.com/dascritch/machincast/issues/280 : la purge vide table par table (tests.base_test.ORDRE_DE_PURGE),
@@ -43,43 +43,35 @@ Fonctionnalité: Schéma de la base de données
 	Scénario: Un sonore peut ne pas avoir de crossfade paramétré, et 0 seconde en est un
 		https://github.com/dascritch/machincast/issues/145
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "sonores" : type = 'fichier', emplacement = '/a.flac'
+		Quand j'enregistre dans "sounds" : type = 'file', location = '/a.flac'
 		Alors le sonore « /a.flac » a ses crossfades non paramétrés
-		Quand j'enregistre dans "sonores" : type = 'fichier', emplacement = '/b.flac', crossfade_debut = '0 s', crossfade_fin = '0 s'
+		Quand j'enregistre dans "sounds" : type = 'file', location = '/b.flac', crossfade_start = '0 s', crossfade_end = '0 s'
 		Alors le sonore « /b.flac » a ses crossfades de 0 seconde
 
 	Scénario: Les migrations s'annulent proprement
 		Quand j'annule toutes les migrations
 		Alors la base ne contient plus aucune table ni aucun type de MachinCast
 
-	# ─── Schéma unique (https://github.com/dascritch/machincast/issues/314) ───
+	# ─── Ancien schéma, aux noms français (https://github.com/dascritch/machincast/issues/358) ───
 
-	Scénario: Une base qui a reçu les quinze anciennes migrations garde ses données, et son schéma est reconnu à jour
-		Ses contraintes NOT NULL, que PostgreSQL 18 nomme, et qu'un renommage de table ou de colonne gardait, prennent
-		leur nom du schéma unique.
-
+	Plan du scénario: Une base créée avec l'ancien schéma, aux noms français, est refusée, sans rien modifier
 		Étant donné les éléments de référence en base
-		Et la base de test marquée comme ayant reçu les quinze anciennes migrations, avec leurs anciens noms de contraintes
+		Et la base de test marquée comme ayant reçu l'ancienne migration « <migration> »
 		Quand j'applique les migrations
-		Alors aucune migration n'a été appliquée
-		Et les migrations appliquées à la base de test sont « 0001.schema-initial »
-		Et la table « sonores » a 1 ligne
-		Et les contraintes NOT NULL ont les noms du schéma unique
-
-	Scénario: Une base restée à une ancienne migration intermédiaire est refusée, sans rien modifier
-		Étant donné les éléments de référence en base
-		Et la base de test marquée comme ayant reçu les anciennes migrations jusqu'à « 0009.sonores-audit-demande »
-		Quand j'applique les migrations
-		Alors l'application des migrations est refusée : « ancien schéma, sans la migration 0010.indexation-retire-des-banques »
-		Et le message dit de passer par MachinCast cd2e564, ou de recréer la base
+		Alors l'application des migrations est refusée : « base machincast_test : ancien schéma, aux noms français (migration <migration>) ; la recréer, après l'avoir sauvegardée si elle contient quelque chose d'utile : sudo -u postgres dropdb machincast_test, puis ./install.sh »
 		Et les migrations appliquées à la base de test sont celles d'avant
-		Et la table « sonores » a 1 ligne
+		Et la table « sounds » a 1 ligne
 
-	Scénario: Une base neuve reçoit le schéma unique, sans rien à oublier
+		Exemples:
+			| migration                        |
+			| 0001.schema-initial              |
+			| 0015.vocabulaire-silences-blancs |
+
+	Scénario: Une base neuve reçoit le schéma unique
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
 		Alors 1 migration a été appliquée
-		Et les migrations appliquées à la base de test sont « 0001.schema-initial »
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
 	# Le ramasse-miettes est suspendu : une connexion qui n'est pas fermée explicitement reste ouverte.
@@ -96,70 +88,70 @@ Fonctionnalité: Schéma de la base de données
 
 	Plan du scénario: Un sonore cohérent est accepté
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "sonores" : <valeurs>
+		Quand j'enregistre dans "sounds" : <valeurs>
 		Alors la base accepte l'enregistrement
 
 		Exemples:
-			| valeurs                                                                   |
-			| type = 'fichier', emplacement = '/musique/a.flac'                         |
-			| type = 'fichier', emplacement = '/musique/e.flac', etat = 'expire'        |
-			| type = 'fichier', emplacement = '/musique/b.flac', duree = '3 min 12 s'   |
-			| type = 'stream', url_stream = 'https://flux.exemple/direct?SESSIONID=42'  |
-			| type = 'stream', feed_id = {feed}                           |
-			| type = 'fichier', emplacement = '/c.mp3', debut_diffusion = '2026-11-01', fin_diffusion = '2026-11-30' |
-			| type = 'fichier', emplacement = '/d.ogg', metadonnees_musicales = '{"annee": 1987, "label": "Disques Exemple"}' |
-			| type = 'fichier', emplacement = '/e.flac', debut_detecte = '0 s', fin_detectee = '2.5 s', detection_silences = true |
+			| valeurs                                                                                                       |
+			| type = 'file', location = '/musique/a.flac'                                                                   |
+			| type = 'file', location = '/musique/e.flac', state = 'expired'                                                |
+			| type = 'file', location = '/musique/b.flac', duration = '3 min 12 s'                                          |
+			| type = 'stream', stream_url = 'https://flux.exemple/direct?SESSIONID=42'                                      |
+			| type = 'stream', feed_id = {feed}                                                                             |
+			| type = 'file', location = '/c.mp3', broadcast_start = '2026-11-01', broadcast_end = '2026-11-30'              |
+			| type = 'file', location = '/d.ogg', music_metadata = '{"annee": 1987, "label": "Disques Exemple"}'            |
+			| type = 'file', location = '/e.flac', detected_start = '0 s', detected_end = '2.5 s', silence_detection = true |
 
 	Plan du scénario: Un sonore incohérent est refusé
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "sonores" : <valeurs>
+		Quand j'enregistre dans "sounds" : <valeurs>
 		Alors la base refuse l'enregistrement
 
 		Exemples:
-			| valeurs                                                                         |
-			| type = 'disque', emplacement = '/musique/a.flac'                                |
-			| type = 'fichier', emplacement = '/musique/a.flac', etat = 'inactif'             |
-			| type = 'fichier'                                                                |
-			| type = 'fichier', emplacement = '/a.flac', url_stream = 'https://flux.exemple'  |
-			| type = 'stream'                                                                 |
-			| type = 'stream', url_stream = 'https://flux.exemple', feed_id = {feed} |
-			| type = 'stream', url_stream = 'https://flux.exemple', emplacement = '/a.flac'   |
-			| type = 'stream', url_stream = 'https://flux.exemple', duree = '1 min'           |
-			| type = 'fichier', emplacement = '/a.flac', crossfade_debut = '-2 s'             |
-			| type = 'fichier', emplacement = '/a.flac', max_lectures = 0                     |
-			| type = 'fichier', emplacement = '/a.flac', debut_diffusion = '2026-11-30', fin_diffusion = '2026-11-01' |
-			| type = 'fichier', emplacement = '/a.flac', metadonnees_musicales = '[1987]'                     |
-			| type = 'fichier', emplacement = '/a.flac', metadonnees_musicales = 'null'                       |
-			| type = 'fichier', emplacement = '/a.flac', debut_detecte = '-0.1 s'                             |
-			| type = 'fichier', emplacement = '/a.flac', fin_detectee = '-1 s'                                |
-			| type = 'fichier', emplacement = '/a.flac', detection_silences = NULL                              |
-			| type = 'fichier', emplacement = '/a.flac', audit_demande = NULL                                 |
-			| type = 'fichier', emplacement = '/a.flac', audite_le = now()                                     |
-			| type = 'fichier', emplacement = '/a.flac', audit_seuil = -40                                    |
-			| type = 'fichier', emplacement = '/a.flac', audite_le = now(), audit_seuil = 0                   |
-			| type = 'fichier', emplacement = '/a.flac', audite_le = now(), audit_seuil = -100.5              |
+			| valeurs                                                                                           |
+			| type = 'disque', location = '/musique/a.flac'                                                     |
+			| type = 'file', location = '/musique/a.flac', state = 'inactif'                                    |
+			| type = 'file'                                                                                     |
+			| type = 'file', location = '/a.flac', stream_url = 'https://flux.exemple'                          |
+			| type = 'stream'                                                                                   |
+			| type = 'stream', stream_url = 'https://flux.exemple', feed_id = {feed}                            |
+			| type = 'stream', stream_url = 'https://flux.exemple', location = '/a.flac'                        |
+			| type = 'stream', stream_url = 'https://flux.exemple', duration = '1 min'                          |
+			| type = 'file', location = '/a.flac', crossfade_start = '-2 s'                                     |
+			| type = 'file', location = '/a.flac', max_plays = 0                                                |
+			| type = 'file', location = '/a.flac', broadcast_start = '2026-11-30', broadcast_end = '2026-11-01' |
+			| type = 'file', location = '/a.flac', music_metadata = '[1987]'                                    |
+			| type = 'file', location = '/a.flac', music_metadata = 'null'                                      |
+			| type = 'file', location = '/a.flac', detected_start = '-0.1 s'                                    |
+			| type = 'file', location = '/a.flac', detected_end = '-1 s'                                        |
+			| type = 'file', location = '/a.flac', silence_detection = NULL                                     |
+			| type = 'file', location = '/a.flac', audit_requested = NULL                                       |
+			| type = 'file', location = '/a.flac', audited_at = now()                                           |
+			| type = 'file', location = '/a.flac', audit_threshold = -40                                        |
+			| type = 'file', location = '/a.flac', audited_at = now(), audit_threshold = 0                      |
+			| type = 'file', location = '/a.flac', audited_at = now(), audit_threshold = -100.5                 |
 
 	Scénario: Deux sonores ne peuvent pas avoir le même emplacement
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "sonores" : type = 'fichier', emplacement = '/musique/a.flac'
-		Et j'enregistre dans "sonores" : type = 'fichier', emplacement = '/musique/a.flac'
+		Quand j'enregistre dans "sounds" : type = 'file', location = '/musique/a.flac'
+		Et j'enregistre dans "sounds" : type = 'file', location = '/musique/a.flac'
 		Alors la base refuse l'enregistrement
 
 	# ─── Suppression différée (https://github.com/dascritch/machincast/issues/267) ───
 
 	Plan du scénario: Un élément supprimé libère son nom, ou son emplacement, pour un nouvel élément
-		Quand j'enregistre dans "<table>" : <valeurs>, supprime_le = now()
+		Quand j'enregistre dans "<table>" : <valeurs>, deleted_at = now()
 		Et j'enregistre dans "<table>" : <valeurs>
 		Alors la base accepte l'enregistrement
 		Quand j'enregistre dans "<table>" : <valeurs>
 		Alors la base refuse l'enregistrement
 
 		Exemples:
-			| table      | valeurs                                            |
-			| sonores    | type = 'fichier', emplacement = '/musique/a.flac'  |
-			| banques    | nom_interne = 'Jingles', mode = 'aleatoire'        |
-			| sequences  | nom_interne = 'Ouverture'                          |
-			| evenements | nom_interne = 'Matinale', priorite = 'fil_musical' |
+			| table      | valeurs                                                         |
+			| sounds    | type = 'file', location = '/musique/a.flac'                     |
+			| banks    | internal_name = 'Jingles', mode = 'random'                      |
+			| sequences  | internal_name = 'Ouverture'                                     |
+			| events | internal_name = 'Matinale', priority = 'background_programming' |
 
 	Scénario: La date de modification est tenue à jour
 		Étant donné les éléments de référence en base
@@ -169,23 +161,23 @@ Fonctionnalité: Schéma de la base de données
 	# ─── Banques ───────────────────────────────────────────
 
 	Plan du scénario: Une banque incohérente est refusée
-		Quand j'enregistre dans "banques" : <valeurs>
+		Quand j'enregistre dans "banks" : <valeurs>
 		Alors la base refuse l'enregistrement
 
 		Exemples:
-			| valeurs                                        |
-			| nom_interne = 'Jingles', mode = 'melange'      |
-			| mode = 'aleatoire'                             |
-			| nom_interne = 'Jingles', mode = 'aleatoire', ne_pas_repeter = NULL |
-			| nom_interne = 'Jingles', mode = 'aleatoire', crossfade_debut = '-1 s' |
-			| nom_interne = 'Jingles', mode = 'aleatoire', crossfade_fin = '-1 s' |
-			| nom_interne = 'Jingles', mode = 'aleatoire', crossfade_debut = NULL |
-			| nom_interne = 'Jingles', mode = 'aleatoire', crossfade_fin_regle = 'toujours' |
-			| nom_interne = 'Jingles', mode = 'aleatoire', crossfade_debut_regle = NULL |
-			| nom_interne = 'Jingles', mode = 'aleatoire', duree_min = '0 s' |
-			| nom_interne = 'Jingles', mode = 'aleatoire', duree_max = '-1 s' |
-			| nom_interne = 'Jingles', mode = 'aleatoire', duree_min = '2 min', duree_max = '1 min' |
-			| nom_interne = 'Jingles', mode = 'aleatoire', detection_silences = NULL |
+			| valeurs                                                                                    |
+			| internal_name = 'Jingles', mode = 'melange'                                                |
+			| mode = 'random'                                                                            |
+			| internal_name = 'Jingles', mode = 'random', no_repeat = NULL                               |
+			| internal_name = 'Jingles', mode = 'random', crossfade_start = '-1 s'                       |
+			| internal_name = 'Jingles', mode = 'random', crossfade_end = '-1 s'                         |
+			| internal_name = 'Jingles', mode = 'random', crossfade_start = NULL                         |
+			| internal_name = 'Jingles', mode = 'random', crossfade_end_rule = 'toujours'                |
+			| internal_name = 'Jingles', mode = 'random', crossfade_start_rule = NULL                    |
+			| internal_name = 'Jingles', mode = 'random', min_duration = '0 s'                           |
+			| internal_name = 'Jingles', mode = 'random', max_duration = '-1 s'                          |
+			| internal_name = 'Jingles', mode = 'random', min_duration = '2 min', max_duration = '1 min' |
+			| internal_name = 'Jingles', mode = 'random', silence_detection = NULL                       |
 
 	# https://github.com/dascritch/machincast/issues/63
 
@@ -209,93 +201,93 @@ Fonctionnalité: Schéma de la base de données
 
 	Scénario: Une banque peut avoir plusieurs répertoires
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "banques_repertoires" : banque_id = {banque}, repertoire = '/habillages/hors-saison'
-		Et j'enregistre dans "banques_repertoires" : banque_id = {banque}, repertoire = '/habillages/hiver'
-		Et j'enregistre dans "banques_repertoires" : banque_id = {banque}, repertoire = '/habillages/noel'
+		Quand j'enregistre dans "bank_directories" : bank_id = {banque}, directory = '/habillages/hors-saison'
+		Et j'enregistre dans "bank_directories" : bank_id = {banque}, directory = '/habillages/hiver'
+		Et j'enregistre dans "bank_directories" : bank_id = {banque}, directory = '/habillages/noel'
 		Alors la base accepte l'enregistrement
 
 	Scénario: Un même répertoire peut servir à plusieurs banques
 		Étant donné les éléments de référence en base
 		Et une deuxième banque en base
-		Quand j'enregistre dans "banques_repertoires" : banque_id = {banque}, repertoire = '/habillages/hors-saison'
-		Et j'enregistre dans "banques_repertoires" : banque_id = {banque2}, repertoire = '/habillages/hors-saison'
+		Quand j'enregistre dans "bank_directories" : bank_id = {banque}, directory = '/habillages/hors-saison'
+		Et j'enregistre dans "bank_directories" : bank_id = {banque2}, directory = '/habillages/hors-saison'
 		Alors la base accepte l'enregistrement
 
 	Scénario: Un répertoire ne figure qu'une fois dans une banque
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "banques_repertoires" : banque_id = {banque}, repertoire = '/habillages/noel'
-		Et j'enregistre dans "banques_repertoires" : banque_id = {banque}, repertoire = '/habillages/noel'
+		Quand j'enregistre dans "bank_directories" : bank_id = {banque}, directory = '/habillages/noel'
+		Et j'enregistre dans "bank_directories" : bank_id = {banque}, directory = '/habillages/noel'
 		Alors la base refuse l'enregistrement
 
 	Scénario: Un sonore ne figure qu'une fois dans une banque
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "banques_sonores" : banque_id = {banque}, sonore_id = {sonore}, position = 1
-		Et j'enregistre dans "banques_sonores" : banque_id = {banque}, sonore_id = {sonore}, position = 2
+		Quand j'enregistre dans "bank_sounds" : bank_id = {banque}, sound_id = {sonore}, position = 1
+		Et j'enregistre dans "bank_sounds" : bank_id = {banque}, sound_id = {sonore}, position = 2
 		Alors la base refuse l'enregistrement
 
 	Scénario: Deux sonores ne partagent pas la même position dans une banque
 		Étant donné les éléments de référence en base
 		Et un deuxième sonore en base
-		Quand j'enregistre dans "banques_sonores" : banque_id = {banque}, sonore_id = {sonore}, position = 1
-		Et j'enregistre dans "banques_sonores" : banque_id = {banque}, sonore_id = {sonore2}, position = 1
+		Quand j'enregistre dans "bank_sounds" : bank_id = {banque}, sound_id = {sonore}, position = 1
+		Et j'enregistre dans "bank_sounds" : bank_id = {banque}, sound_id = {sonore2}, position = 1
 		Alors la base refuse l'enregistrement
 
 	# ─── Événements ────────────────────────────────────────
 
 	Plan du scénario: Un événement cohérent est accepté
-		Quand j'enregistre dans "evenements" : <valeurs>
+		Quand j'enregistre dans "events" : <valeurs>
 		Alors la base accepte l'enregistrement
 
 		Exemples:
-			| valeurs                                                                                                        |
-			| nom_interne = 'Fil permanent', priorite = 'fil_musical'                                                        |
-			| nom_interne = 'Nuit', priorite = 'fil_musical', debut = '2026-10-14 22:00', fin = '2026-10-15 06:00', jours_recurrence = '{lundi,mardi,mercredi,jeudi,vendredi,samedi,dimanche}' |
-			| nom_interne = 'Magazine', priorite = 'emission', debut = '2026-10-19 18:00', fin = '2026-10-19 19:00', jours_recurrence = '{lundi,mardi,mercredi,jeudi,vendredi}' |
-			| nom_interne = 'Rediffusion', priorite = 'special', debut = '2026-10-20 14:00'                                   |
-			| nom_interne = 'Secours direct', priorite = 'secours'                                                            |
+			| valeurs                                                                                                                                                                                                   |
+			| internal_name = 'Fil permanent', priority = 'background_programming'                                                                                                                                      |
+			| internal_name = 'Nuit', priority = 'background_programming', starts_at = '2026-10-14 22:00', ends_at = '2026-10-15 06:00', recurrence_days = '{monday,tuesday,wednesday,thursday,friday,saturday,sunday}' |
+			| internal_name = 'Magazine', priority = 'show', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', recurrence_days = '{monday,tuesday,wednesday,thursday,friday}'                               |
+			| internal_name = 'Rediffusion', priority = 'special', starts_at = '2026-10-20 14:00'                                                                                                                       |
+			| internal_name = 'Secours direct', priority = 'fallback'                                                                                                                                                   |
 
 	Plan du scénario: Un événement incohérent est refusé
-		Quand j'enregistre dans "evenements" : <valeurs>
+		Quand j'enregistre dans "events" : <valeurs>
 		Alors la base refuse l'enregistrement
 
 		Exemples:
-			| valeurs                                                                                          |
-			| nom_interne = 'X', priorite = 'urgence', debut = '2026-10-19 18:00'                              |
-			| nom_interne = 'X', priorite = 'emission'                                                         |
-			| nom_interne = 'X', priorite = 'special', fin = '2026-10-19 19:00'                                |
-			| nom_interne = 'X', priorite = 'fil_musical', fin = '2026-10-19 19:00'                            |
-			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 19:00', fin = '2026-10-19 18:00'   |
-			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 18:00', jours_recurrence = '{lundy}' |
-			| nom_interne = 'X', priorite = 'emission', debut = '2026-10-19 18:00', jours_recurrence = '{1}'    |
-			| nom_interne = 'X', priorite = 'secours', debut = '2026-10-19 18:00'                              |
-			| nom_interne = 'X', priorite = 'secours', debut = '2026-10-19 18:00', fin = '2026-10-19 19:00'    |
-			| nom_interne = 'X', priorite = 'secours', jours_recurrence = '{lundi}'                            |
+			| valeurs                                                                                                  |
+			| internal_name = 'X', priority = 'urgence', starts_at = '2026-10-19 18:00'                                |
+			| internal_name = 'X', priority = 'show'                                                                   |
+			| internal_name = 'X', priority = 'special', ends_at = '2026-10-19 19:00'                                  |
+			| internal_name = 'X', priority = 'background_programming', ends_at = '2026-10-19 19:00'                   |
+			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 19:00', ends_at = '2026-10-19 18:00'     |
+			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', recurrence_days = '{lundy}'      |
+			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', recurrence_days = '{1}'          |
+			| internal_name = 'X', priority = 'fallback', starts_at = '2026-10-19 18:00'                               |
+			| internal_name = 'X', priority = 'fallback', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00' |
+			| internal_name = 'X', priority = 'fallback', recurrence_days = '{monday}'                                  |
 
 	Scénario: Deux événements n'ont pas le même nom interne
 		# https://github.com/dascritch/machincast/issues/32
-		Quand j'enregistre dans "evenements" : nom_interne = 'Continue', priorite = 'fil_musical'
-		Et j'enregistre dans "evenements" : nom_interne = 'Continue', priorite = 'secours'
+		Quand j'enregistre dans "events" : internal_name = 'Continue', priority = 'background_programming'
+		Et j'enregistre dans "events" : internal_name = 'Continue', priority = 'fallback'
 		Alors la base refuse l'enregistrement
 
 	Scénario: Les priorités sont ordonnées
-		Alors la priorité "secours" est inférieure à "fil_musical"
-		Et la priorité "fil_musical" est inférieure à "emission"
-		Et la priorité "emission" est inférieure à "special"
+		Alors la priorité "fallback" est inférieure à "background_programming"
+		Et la priorité "background_programming" est inférieure à "show"
+		Et la priorité "show" est inférieure à "special"
 
 	# ─── Secours d'un stream (https://github.com/dascritch/machincast/issues/16) ───
 
 	Plan du scénario: Seul un stream désigne un événement de secours, et seulement de priorité secours
 		Étant donné les éléments de référence en base
 		Et un événement de secours en base
-		Quand j'enregistre dans "sonores" : <valeurs>
+		Quand j'enregistre dans "sounds" : <valeurs>
 		Alors la base <verdict> l'enregistrement
 
 		Exemples:
-			| valeurs                                                                               | verdict |
-			| type = 'stream', url_stream = 'https://flux.exemple/a', secours_evenement_id = {secours}   | accepte |
-			| type = 'stream', url_stream = 'https://flux.exemple/b'                                     | accepte |
-			| type = 'fichier', emplacement = '/a.flac', secours_evenement_id = {secours}                | refuse  |
-			| type = 'stream', url_stream = 'https://flux.exemple/c', secours_evenement_id = {evenement} | refuse  |
+			| valeurs                                                                                 | verdict |
+			| type = 'stream', stream_url = 'https://flux.exemple/a', fallback_event_id = {secours}   | accepte |
+			| type = 'stream', stream_url = 'https://flux.exemple/b'                                  | accepte |
+			| type = 'file', location = '/a.flac', fallback_event_id = {secours}                      | refuse  |
+			| type = 'stream', stream_url = 'https://flux.exemple/c', fallback_event_id = {evenement} | refuse  |
 
 	Scénario: Un événement de secours désigné par un stream garde sa priorité
 		Étant donné les éléments de référence en base
@@ -315,33 +307,33 @@ Fonctionnalité: Schéma de la base de données
 
 	Scénario: Une session ne se saute qu'une fois
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "evenements_sauts" : evenement_id = {evenement}, jour = '2026-10-21'
-		Et j'enregistre dans "evenements_sauts" : evenement_id = {evenement}, jour = '2026-10-21'
+		Quand j'enregistre dans "event_skips" : event_id = {evenement}, day = '2026-10-21'
+		Et j'enregistre dans "event_skips" : event_id = {evenement}, day = '2026-10-21'
 		Alors la base refuse l'enregistrement
 
 	Scénario: Les sessions sautées partent avec leur événement
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "evenements_sauts" : evenement_id = {evenement}, jour = '2026-10-21'
+		Quand j'enregistre dans "event_skips" : event_id = {evenement}, day = '2026-10-21'
 		Et je supprime l'événement de référence
 		Alors aucune session n'est sautée en base
 
 	Scénario: Les jours de la semaine sont ordonnés du lundi au dimanche
-		Alors le jour "lundi" vient avant "dimanche"
+		Alors le jour "monday" vient avant "sunday"
 
 	Plan du scénario: Un élément de liste de lecture est une banque ou un sonore
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "evenements_elements" : evenement_id = {evenement}, position = 1<complement>
+		Quand j'enregistre dans "event_items" : event_id = {evenement}, position = 1<complement>
 		Alors la base <verdict> l'enregistrement
 
 		Exemples:
-			| complement                                  | verdict |
-			| , banque_id = {banque}                      | accepte |
-			| , sonore_id = {sonore}                      | accepte |
-			|                                             | refuse  |
-			| , banque_id = {banque}, sonore_id = {sonore} | refuse  |
-			| , sequence_id = {sequence}                  | accepte |
-			| , sequence_id = {sequence}, sonore_id = {sonore} | refuse  |
-			| , sequence_id = {sequence}, banque_id = {banque} | refuse  |
+			| complement                                      | verdict |
+			| , bank_id = {banque}                            | accepte |
+			| , sound_id = {sonore}                           | accepte |
+			|                                                 | refuse  |
+			| , bank_id = {banque}, sound_id = {sonore}       | refuse  |
+			| , sequence_id = {sequence}                      | accepte |
+			| , sequence_id = {sequence}, sound_id = {sonore} | refuse  |
+			| , sequence_id = {sequence}, bank_id = {banque}  | refuse  |
 
 	# ─── Séquences (https://github.com/dascritch/machincast/issues/99) ───
 
@@ -350,39 +342,39 @@ Fonctionnalité: Schéma de la base de données
 		Alors la base refuse l'enregistrement
 
 		Exemples:
-			| valeurs                                       |
-			| nom_public = 'Vous écoutez Radio Thune'       |
-			| nom_interne = 'Pub', masquer_metadonnees = 'peut-être' |
+			| valeurs                                            |
+			| public_name = 'Vous écoutez Radio Thune'           |
+			| internal_name = 'Pub', hide_metadata = 'peut-être' |
 
 	Scénario: Deux séquences n'ont pas le même nom interne
-		Quand j'enregistre dans "sequences" : nom_interne = 'Pub'
-		Et j'enregistre dans "sequences" : nom_interne = 'Pub'
+		Quand j'enregistre dans "sequences" : internal_name = 'Pub'
+		Et j'enregistre dans "sequences" : internal_name = 'Pub'
 		Alors la base refuse l'enregistrement
 
 	Plan du scénario: Un élément de séquence est une banque ou un sonore, jamais une autre séquence
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "sequences_elements" : sequence_id = {sequence}, position = 1<complement>
+		Quand j'enregistre dans "sequence_items" : sequence_id = {sequence}, position = 1<complement>
 		Alors la base <verdict> l'enregistrement
 
 		Exemples:
-			| complement                                   | verdict |
-			| , banque_id = {banque}                       | accepte |
-			| , sonore_id = {sonore}                       | accepte |
-			|                                              | refuse  |
-			| , banque_id = {banque}, sonore_id = {sonore} | refuse  |
-			| , position = 0, sonore_id = {sonore}         | refuse  |
+			| complement                                | verdict |
+			| , bank_id = {banque}                      | accepte |
+			| , sound_id = {sonore}                     | accepte |
+			|                                           | refuse  |
+			| , bank_id = {banque}, sound_id = {sonore} | refuse  |
+			| , position = 0, sound_id = {sonore}       | refuse  |
 
 	Scénario: Une séquence fait revenir un même élément, chacun à sa position
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "sequences_elements" : sequence_id = {sequence}, position = 1, sonore_id = {sonore}
-		Et j'enregistre dans "sequences_elements" : sequence_id = {sequence}, position = 2, banque_id = {banque}
-		Et j'enregistre dans "sequences_elements" : sequence_id = {sequence}, position = 3, banque_id = {banque}
+		Quand j'enregistre dans "sequence_items" : sequence_id = {sequence}, position = 1, sound_id = {sonore}
+		Et j'enregistre dans "sequence_items" : sequence_id = {sequence}, position = 2, bank_id = {banque}
+		Et j'enregistre dans "sequence_items" : sequence_id = {sequence}, position = 3, bank_id = {banque}
 		Alors la base accepte l'enregistrement
 
 	Scénario: Deux éléments d'une séquence ne partagent pas la même position
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "sequences_elements" : sequence_id = {sequence}, position = 1, sonore_id = {sonore}
-		Et j'enregistre dans "sequences_elements" : sequence_id = {sequence}, position = 1, banque_id = {banque}
+		Quand j'enregistre dans "sequence_items" : sequence_id = {sequence}, position = 1, sound_id = {sonore}
+		Et j'enregistre dans "sequence_items" : sequence_id = {sequence}, position = 1, bank_id = {banque}
 		Alors la base refuse l'enregistrement
 
 	Scénario: La date de modification d'une séquence est tenue à jour
@@ -398,36 +390,36 @@ Fonctionnalité: Schéma de la base de données
 
 	Scénario: Supprimer une séquence la retire des événements qui l'utilisaient
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "evenements_elements" : evenement_id = {evenement}, position = 1, sequence_id = {sequence}
+		Quand j'enregistre dans "event_items" : event_id = {evenement}, position = 1, sequence_id = {sequence}
 		Et je supprime la séquence de référence
 		Alors l'événement de référence n'a plus d'élément
 
 	Scénario: Un même jingle peut revenir plusieurs fois dans une liste
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "evenements_elements" : evenement_id = {evenement}, position = 1, sonore_id = {sonore}
-		Et j'enregistre dans "evenements_elements" : evenement_id = {evenement}, position = 2, banque_id = {banque}
-		Et j'enregistre dans "evenements_elements" : evenement_id = {evenement}, position = 3, sonore_id = {sonore}
+		Quand j'enregistre dans "event_items" : event_id = {evenement}, position = 1, sound_id = {sonore}
+		Et j'enregistre dans "event_items" : event_id = {evenement}, position = 2, bank_id = {banque}
+		Et j'enregistre dans "event_items" : event_id = {evenement}, position = 3, sound_id = {sonore}
 		Alors la base accepte l'enregistrement
 
 	# ─── Airplay et log ────────────────────────────────────
 
 	Plan du scénario: Les lignes d'airplay respectent leur type
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "airplay" : passage_id = '7f0c1c2e-5d39-4a87-9a52-0c3c8c1f9a01', <valeurs>
+		Quand j'enregistre dans "airplay" : play_id = '7f0c1c2e-5d39-4a87-9a52-0c3c8c1f9a01', <valeurs>
 		Alors la base <verdict> l'enregistrement
 
 		Exemples:
-			| valeurs                                                                      | verdict |
-			| type_ligne = 'debut', sonore_id = {sonore}, banque_id = {banque}             | accepte |
-			| type_ligne = 'fin', duree_diffusee = '3 min', sans_incident = true           | accepte |
-			| type_ligne = 'debut', duree_diffusee = '3 min'                               | refuse  |
-			| type_ligne = 'fin', sans_incident = true                                     | refuse  |
-			| type_ligne = 'milieu'                                                        | refuse  |
+			| valeurs                                                               | verdict |
+			| line_type = 'start', sound_id = {sonore}, bank_id = {banque}          | accepte |
+			| line_type = 'end', played_duration = '3 min', without_incident = true | accepte |
+			| line_type = 'start', played_duration = '3 min'                        | refuse  |
+			| line_type = 'end', without_incident = true                            | refuse  |
+			| line_type = 'milieu'                                                  | refuse  |
 
 	Scénario: Un passage n'a qu'une ligne de début
 		Étant donné les éléments de référence en base
-		Quand j'enregistre dans "airplay" : passage_id = '7f0c1c2e-5d39-4a87-9a52-0c3c8c1f9a01', type_ligne = 'debut'
-		Et j'enregistre dans "airplay" : passage_id = '7f0c1c2e-5d39-4a87-9a52-0c3c8c1f9a01', type_ligne = 'debut'
+		Quand j'enregistre dans "airplay" : play_id = '7f0c1c2e-5d39-4a87-9a52-0c3c8c1f9a01', line_type = 'start'
+		Et j'enregistre dans "airplay" : play_id = '7f0c1c2e-5d39-4a87-9a52-0c3c8c1f9a01', line_type = 'start'
 		Alors la base refuse l'enregistrement
 
 	Scénario: L'airplay survit à la suppression du sonore
@@ -443,13 +435,13 @@ Fonctionnalité: Schéma de la base de données
 		Alors la ligne d'airplay existe toujours, sans référence à l'élément
 
 	Plan du scénario: Le log n'accepte que les niveaux connus
-		Quand j'enregistre dans "log" : niveau = '<niveau>', nature = 'demarrage'
+		Quand j'enregistre dans "log" : level = '<niveau>', kind = 'demarrage'
 		Alors la base <verdict> l'enregistrement
 
 		Exemples:
 			| niveau   | verdict |
 			| info     | accepte |
-			| alerte   | accepte |
+			| warning   | accepte |
 			| incident | accepte |
 			| debug    | refuse  |
 
@@ -461,26 +453,26 @@ Fonctionnalité: Schéma de la base de données
 		Alors la base <verdict> l'enregistrement
 
 		Exemples:
-			| table                 | autres                                                  | colonne     | longueur | verdict |
-			| feeds | url = 'https://flux.exemple'                            | nom         | 255      | accepte |
-			| feeds | url = 'https://flux.exemple'                            | nom         | 256      | refuse  |
-			| sonores               | type = 'fichier', emplacement = '/long/artiste.flac'    | artiste     | 255      | accepte |
-			| sonores               | type = 'fichier', emplacement = '/long/artiste.flac'    | artiste     | 256      | refuse  |
-			| sonores               | type = 'fichier', emplacement = '/long/titre.flac'      | titre       | 256      | refuse  |
-			| banques               | mode = 'aleatoire'                                      | nom_interne | 255      | accepte |
-			| banques               | mode = 'aleatoire'                                      | nom_interne | 256      | refuse  |
-			| banques               | mode = 'aleatoire', nom_interne = 'X'                   | nom_public  | 255      | accepte |
-			| banques               | mode = 'aleatoire', nom_interne = 'X'                   | nom_public  | 256      | refuse  |
-			| sequences             | nom_public = 'Pub'                                      | nom_interne | 255      | accepte |
-			| sequences             | nom_public = 'Pub'                                      | nom_interne | 256      | refuse  |
-			| sequences             | nom_interne = 'X'                                       | nom_public  | 256      | refuse  |
-			| evenements            | priorite = 'fil_musical'                                | nom_interne | 255      | accepte |
-			| evenements            | priorite = 'fil_musical'                                | nom_interne | 256      | refuse  |
-			| evenements            | priorite = 'fil_musical', nom_interne = 'X'             | nom_public  | 256      | refuse  |
-			| airplay               | passage_id = gen_random_uuid(), type_ligne = 'debut'    | artiste     | 256      | refuse  |
-			| airplay               | passage_id = gen_random_uuid(), type_ligne = 'debut'    | titre       | 256      | refuse  |
-			| log                   | niveau = 'info'                                         | nature      | 255      | accepte |
-			| log                   | niveau = 'info'                                         | nature      | 256      | refuse  |
+			| table      | autres                                                   | colonne     | longueur | verdict |
+			| feeds      | url = 'https://flux.exemple'                             | name         | 255      | accepte |
+			| feeds      | url = 'https://flux.exemple'                             | name         | 256      | refuse  |
+			| sounds    | type = 'file', location = '/long/artiste.flac'           | artist     | 255      | accepte |
+			| sounds    | type = 'file', location = '/long/artiste.flac'           | artist     | 256      | refuse  |
+			| sounds    | type = 'file', location = '/long/titre.flac'             | title       | 256      | refuse  |
+			| banks    | mode = 'random'                                          | internal_name | 255      | accepte |
+			| banks    | mode = 'random'                                          | internal_name | 256      | refuse  |
+			| banks    | mode = 'random', internal_name = 'X'                     | public_name  | 255      | accepte |
+			| banks    | mode = 'random', internal_name = 'X'                     | public_name  | 256      | refuse  |
+			| sequences  | public_name = 'Pub'                                      | internal_name | 255      | accepte |
+			| sequences  | public_name = 'Pub'                                      | internal_name | 256      | refuse  |
+			| sequences  | internal_name = 'X'                                      | public_name  | 256      | refuse  |
+			| events | priority = 'background_programming'                      | internal_name | 255      | accepte |
+			| events | priority = 'background_programming'                      | internal_name | 256      | refuse  |
+			| events | priority = 'background_programming', internal_name = 'X' | public_name  | 256      | refuse  |
+			| airplay    | play_id = gen_random_uuid(), line_type = 'start'         | artist     | 256      | refuse  |
+			| airplay    | play_id = gen_random_uuid(), line_type = 'start'         | title       | 256      | refuse  |
+			| log        | level = 'info'                                           | kind      | 255      | accepte |
+			| log        | level = 'info'                                           | kind      | 256      | refuse  |
 
 	Plan du scénario: Les chemins, URL et messages ne sont pas limités à 255 caractères
 		Étant donné les éléments de référence en base
@@ -488,9 +480,9 @@ Fonctionnalité: Schéma de la base de données
 		Alors la base accepte l'enregistrement
 
 		Exemples:
-			| table                 | autres                                       | colonne     | prefixe                     |
-			| sonores               | type = 'fichier'                             | emplacement | /musique/                   |
-			| sonores               | type = 'stream'                              | url_stream  | https://flux.exemple/?SESSIONID= |
-			| feeds | nom = 'Long'                                 | url         | https://flux.exemple/       |
-			| banques_repertoires   | banque_id = {banque}                         | repertoire  | /habillages/                |
-			| log                   | niveau = 'incident', nature = 'flux'         | message     | Détail :                    |
+			| table               | autres                            | colonne     | prefixe                          |
+			| sounds             | type = 'file'                     | location | /musique/                        |
+			| sounds             | type = 'stream'                   | stream_url  | https://flux.exemple/?SESSIONID= |
+			| feeds               | name = 'Long'                     | url         | https://flux.exemple/            |
+			| bank_directories | bank_id = {banque}                | directory  | /habillages/                     |
+			| log                 | level = 'incident', kind = 'flux' | message     | Détail :                         |

@@ -64,8 +64,8 @@ Quand un fichier est sain, ses tags remplissent sa fiche :
 
 | Champ de la fiche | Nom technique | Tag lu |
 | --- | --- | --- |
-| Artiste | `artiste` | artiste |
-| Titre | `titre` | titre |
+| Artiste | `artist` | artiste |
+| Titre | `title` | titre |
 | Année | `annee` | année de sortie |
 | Album | `album` | album |
 | Artiste de l'album | `artiste_album` | artiste de l'album |

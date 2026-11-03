@@ -159,10 +159,10 @@ def est_sain(connexion: psycopg.Connection[TupleRow], sonore: int) -> bool | Non
 	"""
 	with connexion.transaction():
 		ligne = connexion.execute(
-			"SELECT s.type::text, s.etat::text, s.emplacement,"
-			" (SELECT f.sans_incident FROM airplay f WHERE f.sonore_id = s.id AND f.type_ligne = 'fin'"
-			" ORDER BY f.horodatage DESC, f.id DESC LIMIT 1)"
-			" FROM sonores s WHERE s.id = %s",
+			"SELECT s.type::text, s.state::text, s.location,"
+			" (SELECT f.without_incident FROM airplay f WHERE f.sound_id = s.id AND f.line_type = 'end'"
+			" ORDER BY f.logged_at DESC, f.id DESC LIMIT 1)"
+			" FROM sounds s WHERE s.id = %s",
 			(sonore,),
 		).fetchone()
 	if ligne is None:
@@ -170,7 +170,7 @@ def est_sain(connexion: psycopg.Connection[TupleRow], sonore: int) -> bool | Non
 	type_sonore, etat, emplacement, derniere = ligne
 	if type_sonore == "stream":
 		return None
-	if (etat != "actif") or (emplacement is None) or (derniere is False):
+	if (etat != "active") or (emplacement is None) or (derniere is False):
 		return False
 	chemin = Path(str(emplacement))
 	return (chemin.is_file()) and (os.access(chemin, os.R_OK))

@@ -23,7 +23,7 @@ Liste de lecture d'un événement (§ 4.3) :
   un seul sonore ; un élément non jouable est sauté, et une séquence dont rien n'est jouable est sautée comme une
   banque vide. Pour les transitions, elle se comporte comme un seul sonore : à la fin de son événement, elle va
   jusqu'au bout (suite de la séquence du dernier passage, _suite), sauf si un événement commence, qui la coupe net
-  avec son sonore en cours. Sa position se lit dans l'airplay (sequence_element_id) ; elle ne reprend que si le
+  avec son sonore en cours. Sa position se lit dans l'airplay (sequence_item_id) ; elle ne reprend que si le
   dernier passage de tout l'airplay vient d'elle. Ensuite, la liste reprend à l'élément qui suit la séquence ;
 - l'élément suivant se lit dans l'airplay : celui qui suit le dernier élément joué. Pour une émission ou un
   spécial, seuls comptent les passages de l'occurrence en cours, qui commence donc au début de sa liste ; un fil
@@ -235,7 +235,7 @@ def _elements(lignes: list[TupleRow]) -> list[Element]:
 def lire_elements(connexion: psycopg.Connection[TupleRow], evenement: int) -> list[Element]:
 	return _elements(
 		connexion.execute(
-			"SELECT id, position, sonore_id, banque_id, sequence_id FROM evenements_elements WHERE evenement_id = %s"
+			"SELECT id, position, sound_id, bank_id, sequence_id FROM event_items WHERE event_id = %s"
 			" ORDER BY position",
 			(evenement,),
 		).fetchall()
@@ -245,7 +245,7 @@ def lire_elements(connexion: psycopg.Connection[TupleRow], evenement: int) -> li
 def lire_element(connexion: psycopg.Connection[TupleRow], element: int) -> Element | None:
 	elements = _elements(
 		connexion.execute(
-			"SELECT id, position, sonore_id, banque_id, sequence_id FROM evenements_elements WHERE id = %s", (element,)
+			"SELECT id, position, sound_id, bank_id, sequence_id FROM event_items WHERE id = %s", (element,)
 		).fetchall()
 	)
 	return elements[0] if elements else None
@@ -299,7 +299,7 @@ def prochain(
 		elif (element.banque is not None) and (element.banque == interdite):
 			if sautes is not None:
 				description = f"l'élément {element.position} de « {occurrence.evenement.nom} »"
-				sautes.append(Saut(("evenements_elements", element.id), description, occurrence.evenement.id))
+				sautes.append(Saut(("event_items", element.id), description, occurrence.evenement.id))
 		else:
 			sonore = _fournir(connexion, element.sonore, element.banque, instant, hasard, exclus, historique)
 			if sonore is not None:
@@ -332,7 +332,7 @@ def dans_la_sequence(
 				description = (
 					f"l'élément {ligne.position} de la séquence « {sequence.nom} », dans « {occurrence.evenement.nom} »"
 				)
-				sautes.append(Saut(("sequences_elements", ligne.id), description, occurrence.evenement.id))
+				sautes.append(Saut(("sequence_items", ligne.id), description, occurrence.evenement.id))
 			continue
 		sonore = _fournir(connexion, ligne.sonore, ligne.banque, instant, hasard, exclus, historique)
 		if sonore is not None:
@@ -733,7 +733,7 @@ class Ordonnanceur:
 			if (repetition is not None) and (any(saut.evenement == actif.evenement.id for saut in sautes)):
 				self.historique.consigner(
 					self.connexion,
-					"alerte",
+					"warning",
 					"événement terminé plus tôt",
 					f"« {actif.evenement.nom} » : plus rien de jouable une fois la banque « {repetition.nom} » sautée",
 					instant,
@@ -824,7 +824,7 @@ class Ordonnanceur:
 		if not self.en_blanc:
 			self.en_blanc = True
 			evenement = None if actif is None else actif.evenement.id
-			self.historique.consigner(self.connexion, "alerte", "blanc", message, instant, evenement=evenement)
+			self.historique.consigner(self.connexion, "warning", "blanc", message, instant, evenement=evenement)
 		return Decision(couper=couper, eteindre=eteindre, blanc=True, occurrence=actif)
 
 

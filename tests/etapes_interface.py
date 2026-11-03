@@ -70,7 +70,7 @@ from tests.sons import FICHIERS_SONORES
 
 Connexion = psycopg.Connection[tuple[object, ...]]
 NOM = re.compile(r"« ([^»]+) »")
-MODES = {"séquentielle": "sequentiel", "aléatoire": "aleatoire"}
+MODES = {"séquentielle": "sequential", "aléatoire": "random"}
 
 
 TEMOIN_DE_L_ANTENNE = re.compile(r"^(?:🟩|🟥) ")
@@ -530,11 +530,11 @@ def lignes_attendues(interface: Contexte, datatable: list[list[str]]) -> str:
 
 
 TABLES = {
-	"le sonore": ("sonores", "titre"),
-	"la banque": ("banques", "nom_interne"),
-	"la séquence": ("sequences", "nom_interne"),
-	"l'événement": ("evenements", "nom_interne"),
-	"le feed": ("feeds", "nom"),
+	"le sonore": ("sounds", "title"),
+	"la banque": ("banks", "internal_name"),
+	"la séquence": ("sequences", "internal_name"),
+	"l'événement": ("events", "internal_name"),
+	"le feed": ("feeds", "name"),
 }
 """Table et colonne du nom de chaque genre d'élément, pour le retrouver en base."""
 
@@ -552,19 +552,19 @@ def sonores(interface: Contexte, base_vide: Connexion, datatable: list[list[str]
 	entetes, *rangees = datatable
 	for valeurs in rangees:
 		ligne = dict(zip(entetes, (v.strip() for v in valeurs), strict=True))
-		ligne["emplacement"] = interface.chemin(ligne["emplacement"])
+		ligne["location"] = interface.chemin(ligne["location"])
 		stream = ligne["type"] == "stream"
 		base_vide.execute(
-			"INSERT INTO sonores (type, emplacement, url_stream, artiste, titre, etat, duree)"
+			"INSERT INTO sounds (type, location, stream_url, artist, title, state, duration)"
 			" VALUES (%s, %s, %s, %s, %s, %s, %s)",
 			(
 				ligne["type"],
-				None if stream else ligne["emplacement"],
-				ligne["emplacement"] if stream else None,
-				(ligne["artiste"]) or (None),
-				(ligne["titre"]) or (None),
-				ligne["etat"],
-				duree_ou_rien(ligne["duree"]),
+				None if stream else ligne["location"],
+				ligne["location"] if stream else None,
+				(ligne["artist"]) or (None),
+				(ligne["title"]) or (None),
+				ligne["state"],
+				duree_ou_rien(ligne["duration"]),
 			),
 		)
 
@@ -593,23 +593,23 @@ def fichiers_du_scenario(interface: Contexte, chemins: str) -> None:
 )
 def banque(base_vide: Connexion, nom: str, mode: str, nom_public: str | None, marquee: str | None, liste: str) -> None:
 	creee = base_vide.execute(
-		"INSERT INTO banques (nom_interne, nom_public, mode, ne_pas_repeter) VALUES (%s, %s, %s, %s) RETURNING id",
+		"INSERT INTO banks (internal_name, public_name, mode, no_repeat) VALUES (%s, %s, %s, %s) RETURNING id",
 		(nom, nom_public, MODES[mode], marquee is not None),
 	).fetchone()
 	assert creee is not None
 	for position, titre in enumerate(NOM.findall(liste), start=1):
 		base_vide.execute(
-			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
-			(creee[0], identifiant(base_vide, "sonores", "titre", titre), position),
+			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
+			(creee[0], identifiant(base_vide, "sounds", "title", titre), position),
 		)
 
 
 @given(parsers.re(r"les répertoires (?P<liste>.+) de la banque « (?P<nom>[^»]+) »"))
 def repertoires(interface: Contexte, base_vide: Connexion, liste: str, nom: str) -> None:
-	banque = identifiant(base_vide, "banques", "nom_interne", nom)
+	banque = identifiant(base_vide, "banks", "internal_name", nom)
 	for repertoire in NOM.findall(liste):
 		base_vide.execute(
-			"INSERT INTO banques_repertoires (banque_id, repertoire) VALUES (%s, %s)",
+			"INSERT INTO bank_directories (bank_id, directory) VALUES (%s, %s)",
 			(banque, interface.chemin(repertoire)),
 		)
 
@@ -618,9 +618,9 @@ ELEMENT = re.compile(r"(le sonore|la banque|la séquence) « ([^»]+) »")
 ELEMENTS = r"(?:le sonore|la banque|la séquence) « [^»]+ »(?:, (?:le sonore|la banque|la séquence) « [^»]+ »)*"
 """Une liste d'éléments : « le sonore « Jingle », la banque « Publicité », la séquence « Passage pub » »."""
 REFERENCES = {
-	"le sonore": ("sonores", "titre", "sonore_id"),
-	"la banque": ("banques", "nom_interne", "banque_id"),
-	"la séquence": ("sequences", "nom_interne", "sequence_id"),
+	"le sonore": ("sounds", "title", "sound_id"),
+	"la banque": ("banks", "internal_name", "bank_id"),
+	"la séquence": ("sequences", "internal_name", "sequence_id"),
 }
 """Table, colonne du nom et colonne de la liste de chaque genre d'élément."""
 
@@ -634,13 +634,13 @@ REFERENCES = {
 def sequence(base_vide: Connexion, nom: str, nom_public: str | None, elements: str) -> None:
 	"""Chaque sonore par son titre, chaque banque par son nom, dans l'ordre."""
 	creee = base_vide.execute(
-		"INSERT INTO sequences (nom_interne, nom_public) VALUES (%s, %s) RETURNING id", (nom, nom_public)
+		"INSERT INTO sequences (internal_name, public_name) VALUES (%s, %s) RETURNING id", (nom, nom_public)
 	).fetchone()
 	assert creee is not None
 	for position, (genre, element) in enumerate(ELEMENT.findall(elements), start=1):
 		table, colonne, reference = REFERENCES[genre]
 		base_vide.execute(
-			f"INSERT INTO sequences_elements (sequence_id, position, {reference}) VALUES (%s, %s, %s)",  # noqa: S608
+			f"INSERT INTO sequence_items (sequence_id, position, {reference}) VALUES (%s, %s, %s)",  # noqa: S608
 			(creee[0], position, identifiant(base_vide, table, colonne, element)),
 		)
 
@@ -648,12 +648,12 @@ def sequence(base_vide: Connexion, nom: str, nom_public: str | None, elements: s
 @given(parsers.re(rf"l'événement « (?P<evenement>[^»]+) » joue (?P<elements>{ELEMENTS})"))
 def evenement_jouant(base_vide: Connexion, evenement: str, elements: str) -> None:
 	"""Les éléments s'ajoutent en fin de la liste de l'événement, dans l'ordre."""
-	numero = identifiant(base_vide, "evenements", "nom_interne", evenement)
+	numero = identifiant(base_vide, "events", "internal_name", evenement)
 	for genre, element in ELEMENT.findall(elements):
 		table, colonne, reference = REFERENCES[genre]
 		base_vide.execute(
-			f"INSERT INTO evenements_elements (evenement_id, position, {reference})"  # noqa: S608
-			" SELECT %s, COALESCE(MAX(position), 0) + 1, %s FROM evenements_elements WHERE evenement_id = %s",
+			f"INSERT INTO event_items (event_id, position, {reference})"  # noqa: S608
+			" SELECT %s, COALESCE(MAX(position), 0) + 1, %s FROM event_items WHERE event_id = %s",
 			(numero, identifiant(base_vide, table, colonne, element), numero),
 		)
 
@@ -661,8 +661,8 @@ def evenement_jouant(base_vide: Connexion, evenement: str, elements: str) -> Non
 @given(parsers.parse("le stream « {titre} » a pour événement de secours « {secours} »"))
 def stream_secouru(base_vide: Connexion, titre: str, secours: str) -> None:
 	base_vide.execute(
-		"UPDATE sonores SET secours_evenement_id = %s WHERE titre = %s",
-		(identifiant(base_vide, "evenements", "nom_interne", secours), titre),
+		"UPDATE sounds SET fallback_event_id = %s WHERE title = %s",
+		(identifiant(base_vide, "events", "internal_name", secours), titre),
 	)
 
 
@@ -670,15 +670,15 @@ def stream_secouru(base_vide: Connexion, titre: str, secours: str) -> None:
 def feeds(base_vide: Connexion, marques: str) -> None:
 	noms = NOM.findall(marques)
 	for nom, url in zip(noms[::2], noms[1::2], strict=True):
-		base_vide.execute("INSERT INTO feeds (nom, url) VALUES (%s, %s)", (nom, url))
+		base_vide.execute("INSERT INTO feeds (name, url) VALUES (%s, %s)", (nom, url))
 
 
 @given(parsers.re(r"(?:les streams|le stream) (?P<titres>.+) (?:suivent|suit) le feed « (?P<marque>[^»]+) »"))
 def suivent(base_vide: Connexion, titres: str, marque: str) -> None:
 	for titre in NOM.findall(titres):
 		base_vide.execute(
-			"UPDATE sonores SET url_stream = NULL, feed_id = %s WHERE titre = %s",
-			(identifiant(base_vide, "feeds", "nom", marque), titre),
+			"UPDATE sounds SET stream_url = NULL, feed_id = %s WHERE title = %s",
+			(identifiant(base_vide, "feeds", "name", marque), titre),
 		)
 
 
@@ -711,13 +711,13 @@ def durees_de_banque(
 	minimum = _minutes((de) or (au_moins))
 	maximum = _minutes((a) or (puis_au_plus) or (au_plus))
 	base_vide.execute(
-		"UPDATE banques SET duree_min = %s, duree_max = %s WHERE nom_interne = %s", (minimum, maximum, nom)
+		"UPDATE banks SET min_duration = %s, max_duration = %s WHERE internal_name = %s", (minimum, maximum, nom)
 	)
 
 
 @when(parsers.parse("le feed « {nom} » est effacé de la base"))
 def effacer_feed(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("DELETE FROM feeds WHERE nom = %s", (nom,))
+	base_vide.execute("DELETE FROM feeds WHERE name = %s", (nom,))
 
 
 @given(parsers.parse("le fichier de test « {source} » copié en « {chemin} »"))
@@ -742,15 +742,15 @@ def evenements(base_vide: Connexion, datatable: list[list[str]]) -> None:
 	for valeurs in rangees:
 		ligne = dict(zip(entetes, (v.strip() for v in valeurs), strict=True))
 		base_vide.execute(
-			"INSERT INTO evenements (nom_interne, nom_public, priorite, debut, fin, jours_recurrence)"
-			" VALUES (%s, %s, %s, %s, %s, %s::jour_semaine[])",
+			"INSERT INTO events (internal_name, public_name, priority, starts_at, ends_at, recurrence_days)"
+			" VALUES (%s, %s, %s, %s, %s, %s::weekday[])",
 			(
-				ligne["nom"],
-				(ligne["nom_public"]) or (None),
-				ligne["priorite"],
-				date_ou_rien(ligne["debut"]),
-				date_ou_rien(ligne["fin"]),
-				[jour.strip() for jour in ligne["jours"].split(",") if jour.strip()],
+				ligne["name"],
+				(ligne["public_name"]) or (None),
+				ligne["priority"],
+				date_ou_rien(ligne["starts_at"]),
+				date_ou_rien(ligne["ends_at"]),
+				[jour.strip() for jour in ligne["days"].split(",") if jour.strip()],
 			),
 		)
 
@@ -781,7 +781,7 @@ def ouvrir_depuis_l_historique(interface: Contexte, base_vide: Connexion, qtbot:
 	genre = GENRES_DE_L_HISTORIQUE[de]
 	table, colonne = TABLES[genre]
 	ligne = base_vide.execute(
-		f"SELECT id FROM {table} WHERE {colonne} = %s ORDER BY supprime_le IS NULL, id",  # noqa: S608
+		f"SELECT id FROM {table} WHERE {colonne} = %s ORDER BY deleted_at IS NULL, id",  # noqa: S608
 		(nom,),
 	).fetchone()
 	assert ligne is not None, nom
@@ -794,7 +794,7 @@ def session_sautee(base_vide: Connexion, jour: str, nom: str) -> None:
 	"""Comme depuis le calendrier (https://github.com/dascritch/machincast/issues/273), pour l'interface comme pour la
 	diffusion."""
 	base_vide.execute(
-		"INSERT INTO evenements_sauts (evenement_id, jour) SELECT id, %s FROM evenements WHERE nom_interne = %s",
+		"INSERT INTO event_skips (event_id, day) SELECT id, %s FROM events WHERE internal_name = %s",
 		(date.fromisoformat(jour), nom),
 	)
 
@@ -957,18 +957,18 @@ def annuler(interface: Contexte, qtbot: QtBot) -> None:
 @given(parsers.parse("le sonore « {titre} » est effacé de la base"))
 @when(parsers.parse("le sonore « {titre} » est effacé de la base"))
 def effacer(base_vide: Connexion, titre: str) -> None:
-	base_vide.execute("DELETE FROM sonores WHERE titre = %s", (titre,))
+	base_vide.execute("DELETE FROM sounds WHERE title = %s", (titre,))
 
 
 @when(parsers.re(r"la banque « (?P<nom>[^»]+) » (?P<etat>est|n'est plus) marquée « ne pas répéter » en base"))
 def marquer(base_vide: Connexion, nom: str, etat: str) -> None:
-	base_vide.execute("UPDATE banques SET ne_pas_repeter = %s WHERE nom_interne = %s", (etat == "est", nom))
+	base_vide.execute("UPDATE banks SET no_repeat = %s WHERE internal_name = %s", (etat == "est", nom))
 
 
 @when(parsers.re(r"la (?P<genre>banque|séquence) « (?P<nom>[^»]+) » est effacée de la base"))
 def effacer_banque(base_vide: Connexion, genre: str, nom: str) -> None:
-	table = {"banque": "banques", "séquence": "sequences"}[genre]
-	base_vide.execute(f"DELETE FROM {table} WHERE nom_interne = %s", (nom,))  # noqa: S608
+	table = {"banque": "banks", "séquence": "sequences"}[genre]
+	base_vide.execute(f"DELETE FROM {table} WHERE internal_name = %s", (nom,))  # noqa: S608
 
 
 @when(parsers.re(r"j'ajoute les feeds (?P<noms>aucun|« [^»]+ »(?:, « [^»]+ »)*)"))
@@ -976,24 +976,24 @@ def ajouter_feeds(interface: Contexte, qtbot: QtBot, base_vide: Connexion, noms:
 	"""Le choix donnera ces feeds, par leur nom ; « aucun » : le choix est abandonné
 	(https://github.com/dascritch/machincast/issues/167)."""
 	ui = fiche_ouverte(interface).ui  # type: ignore[attr-defined]
-	interface.feeds_choisis = [identifiant(base_vide, "feeds", "nom", nom) for nom in NOM.findall(noms)]
+	interface.feeds_choisis = [identifiant(base_vide, "feeds", "name", nom) for nom in NOM.findall(noms)]
 	qtbot.mouseClick(ui.ajouter_feeds, Qt.MouseButton.LeftButton)
 
 
 @then(parsers.parse("le stream « {titre} » est en base, actif, et suit le feed « {marque} »"))
 def stream_du_feed(base_vide: Connexion, titre: str, marque: str) -> None:
 	ligne = base_vide.execute(
-		"SELECT s.type::text, s.etat::text, s.url_stream, m.nom FROM sonores s"
-		" JOIN feeds m ON m.id = s.feed_id WHERE s.titre = %s",
+		"SELECT s.type::text, s.state::text, s.stream_url, m.name FROM sounds s"
+		" JOIN feeds m ON m.id = s.feed_id WHERE s.title = %s",
 		(titre,),
 	).fetchall()
-	assert ligne == [("stream", "actif", None, marque)], ligne
+	assert ligne == [("stream", "active", None, marque)], ligne
 
 
 @then(parsers.re(r"(?P<nombre>\d+) streams? (?:suit|suivent) le feed « (?P<marque>[^»]+) »"))
 def nombre_de_streams(base_vide: Connexion, nombre: str, marque: str) -> None:
 	ligne = base_vide.execute(
-		"SELECT count(*) FROM sonores s JOIN feeds m ON m.id = s.feed_id WHERE m.nom = %s",
+		"SELECT count(*) FROM sounds s JOIN feeds m ON m.id = s.feed_id WHERE m.name = %s",
 		(marque,),
 	).fetchone()
 	assert ligne is not None
@@ -1006,14 +1006,14 @@ def ajouter_elements(interface: Contexte, qtbot: QtBot, base_vide: Connexion, ge
 	choix est abandonné."""
 	ui = fiche_ouverte(interface).ui  # type: ignore[attr-defined]
 	if genre == "sonores":
-		interface.sonores_choisis = [identifiant(base_vide, "sonores", "titre", nom) for nom in NOM.findall(noms)]
+		interface.sonores_choisis = [identifiant(base_vide, "sounds", "title", nom) for nom in NOM.findall(noms)]
 	elif genre == "banques":
 		interface.banques_choisies = [
-			identifiant(base_vide, "banques", "nom_interne", nom) for nom in NOM.findall(noms)
+			identifiant(base_vide, "banks", "internal_name", nom) for nom in NOM.findall(noms)
 		]
 	else:
 		interface.sequences_choisies = [
-			identifiant(base_vide, "sequences", "nom_interne", nom) for nom in NOM.findall(noms)
+			identifiant(base_vide, "sequences", "internal_name", nom) for nom in NOM.findall(noms)
 		]
 	bouton = {"sonores": "ajouter_sonores", "banques": "ajouter_banques", "séquences": "ajouter_sequences"}[genre]
 	qtbot.mouseClick(getattr(ui, bouton), Qt.MouseButton.LeftButton)
@@ -1047,7 +1047,7 @@ def repondre_retrait(interface: Contexte, reponse: str) -> None:
 @when(parsers.parse("le sonore « {titre} » est ajouté en base"))
 def ajouter(base_vide: Connexion, titre: str) -> None:
 	base_vide.execute(
-		"INSERT INTO sonores (type, emplacement, titre) VALUES ('fichier', %s, %s)", (f"/srv/{titre}.flac", titre)
+		"INSERT INTO sounds (type, location, title) VALUES ('file', %s, %s)", (f"/srv/{titre}.flac", titre)
 	)
 
 
@@ -1351,11 +1351,11 @@ def compte(interface: Contexte, texte: str) -> None:
 @then(parsers.parse("l'écran de détail de {genre} « {nom} » est demandé"))
 def detail(interface: Contexte, base_vide: Connexion, genre: str, nom: str) -> None:
 	tables = {
-		"sonore": ("sonores", "titre"),
-		"banque": ("banques", "nom_interne"),
-		"séquence": ("sequences", "nom_interne"),
-		"événement": ("evenements", "nom_interne"),
-		"feed": ("feeds", "nom"),
+		"sonore": ("sounds", "title"),
+		"banque": ("banks", "internal_name"),
+		"séquence": ("sequences", "internal_name"),
+		"événement": ("events", "internal_name"),
+		"feed": ("feeds", "name"),
 	}
 	table, colonne = tables[genre]
 	assert interface.demandes == [(genre, identifiant(base_vide, table, colonne, nom))], interface.demandes
@@ -1381,9 +1381,9 @@ def depot_refuse(interface: Contexte) -> None:
 @then(parsers.parse("le fichier « {chemin} » est en base, à l'état aperçu, sans artiste ni titre"))
 def fichier_en_apercu(interface: Contexte, base_vide: Connexion, chemin: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT type::text, etat::text, artiste, titre FROM sonores WHERE emplacement = %s", (interface.chemin(chemin),)
+		"SELECT type::text, state::text, artist, title FROM sounds WHERE location = %s", (interface.chemin(chemin),)
 	).fetchall()
-	assert lignes == [("fichier", "apercu", None, None)]
+	assert lignes == [("file", "preview", None, None)]
 
 
 @then("les fichiers déposés sont intacts")
@@ -1559,7 +1559,7 @@ def en_base(base_vide: Connexion, genre: str, nom: str, etat: str) -> None:
 	table, colonne = TABLES[genre]
 	marque = "NULL"
 	if genre != "le feed":
-		marque = "supprime_le"
+		marque = "deleted_at"
 	lignes = base_vide.execute(
 		f"SELECT {marque} FROM {table} WHERE {colonne} = %s",  # noqa: S608
 		(nom,),
@@ -1723,11 +1723,14 @@ def reference(base: Connexion, table: str, nom: str) -> int | None:
 	"""Identifiant de l'entrée de ce nom interne, créée au besoin ; None pour un nom vide."""
 	if not nom:
 		return None
-	valeurs = {"evenements": ", priorite) VALUES (%s, 'fil_musical')", "banques": ", mode) VALUES (%s, 'sequentiel')"}
-	ligne = base.execute(f"SELECT id FROM {table} WHERE nom_interne = %s", (nom,)).fetchone()  # noqa: S608
+	valeurs = {
+		"events": ", priority) VALUES (%s, 'background_programming')",
+		"banks": ", mode) VALUES (%s, 'sequential')",
+	}
+	ligne = base.execute(f"SELECT id FROM {table} WHERE internal_name = %s", (nom,)).fetchone()  # noqa: S608
 	if ligne is None:
 		suite = valeurs.get(table, ") VALUES (%s)")
-		ligne = base.execute(f"INSERT INTO {table} (nom_interne{suite} RETURNING id", (nom,)).fetchone()  # noqa: S608
+		ligne = base.execute(f"INSERT INTO {table} (internal_name{suite} RETURNING id", (nom,)).fetchone()  # noqa: S608
 	assert ligne is not None
 	return int(str(ligne[0]))
 
@@ -1745,29 +1748,26 @@ def inserer_passage(
 ) -> None:
 	emplacement = f"/musique/{uuid.uuid4()}.flac"
 	ligne = base.execute(
-		"INSERT INTO sonores (type, emplacement, artiste, titre) VALUES ('fichier', %s, %s, %s) RETURNING id",
+		"INSERT INTO sounds (type, location, artist, title) VALUES ('file', %s, %s, %s) RETURNING id",
 		(emplacement, (artiste) or (None), titre),
 	).fetchone()
 	assert ligne is not None
 	references = (
 		ligne[0],
-		reference(base, "evenements", evenement),
+		reference(base, "events", evenement),
 		reference(base, "sequences", sequence),
-		reference(base, "banques", banque),
+		reference(base, "banks", banque),
 	)
 	passage = uuid.uuid4()
-	colonnes = (
-		"passage_id, type_ligne, horodatage, sonore_id, evenement_id, sequence_id, banque_id, artiste, titre,"
-		" emplacement"
-	)
+	colonnes = "play_id, line_type, logged_at, sound_id, event_id, sequence_id, bank_id, artist, title, location"
 	base.execute(
-		f"INSERT INTO airplay ({colonnes}) VALUES (%s, 'debut', %s, %s, %s, %s, %s, %s, %s, %s)",
+		f"INSERT INTO airplay ({colonnes}) VALUES (%s, 'start', %s, %s, %s, %s, %s, %s, %s, %s)",
 		(passage, debut, *references, (artiste) or (None), titre, emplacement),
 	)
 	if fin is not None:
 		base.execute(
-			f"INSERT INTO airplay ({colonnes}, duree_diffusee, sans_incident)"
-			" VALUES (%s, 'fin', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+			f"INSERT INTO airplay ({colonnes}, played_duration, without_incident)"
+			" VALUES (%s, 'end', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
 			(passage, fin, *references, (artiste) or (None), titre, emplacement, fin - debut, sans_incident == "oui"),
 		)
 
@@ -1779,21 +1779,21 @@ def passages(base_vide: Connexion, datatable: list[list[str]]) -> None:
 		ligne = dict(zip(entetes, (v.strip() for v in valeurs), strict=True))
 		inserer_passage(
 			base_vide,
-			heure(ligne["debut"]),
-			heure_ou_rien(ligne["fin"]),
-			ligne["artiste"],
-			ligne["titre"],
-			ligne["evenement"],
+			heure(ligne["starts_at"]),
+			heure_ou_rien(ligne["ends_at"]),
+			ligne["artist"],
+			ligne["title"],
+			ligne["event"],
 			ligne["sequence"],
-			ligne["banque"],
-			ligne["sans_incident"],
+			ligne["bank"],
+			ligne["without_incident"],
 		)
 
 
 @given("le masquage de tous les sonores et de tous les événements")
 def masquer(base_vide: Connexion) -> None:
-	base_vide.execute("UPDATE sonores SET masquer_metadonnees = true")
-	base_vide.execute("UPDATE evenements SET masquer_metadonnees = true")
+	base_vide.execute("UPDATE sounds SET hide_metadata = true")
+	base_vide.execute("UPDATE events SET hide_metadata = true")
 
 
 @when(parsers.parse("le passage de « {titre} » commence dans l'airplay à {debut}"))
@@ -1816,7 +1816,7 @@ def supprime_depuis_l_interface(base_vide: Connexion, genre: str, nom: str) -> N
 	(https://github.com/dascritch/machincast/issues/267)."""
 	table, colonne = TABLES[genre]
 	modifie = base_vide.execute(
-		f"UPDATE {table} SET supprime_le = clock_timestamp() WHERE {colonne} = %s RETURNING id",  # noqa: S608
+		f"UPDATE {table} SET deleted_at = clock_timestamp() WHERE {colonne} = %s RETURNING id",  # noqa: S608
 		(nom,),
 	).fetchall()
 	assert len(modifie) == 1, modifie
@@ -1825,7 +1825,7 @@ def supprime_depuis_l_interface(base_vide: Connexion, genre: str, nom: str) -> N
 @then(parsers.parse("le fichier « {chemin} » a {nombre:d} sonores en base, dont {supprimes:d} supprimé"))
 def sonores_du_fichier(interface: Contexte, base_vide: Connexion, chemin: str, nombre: int, supprimes: int) -> None:
 	lignes = base_vide.execute(
-		"SELECT supprime_le IS NOT NULL FROM sonores WHERE emplacement = %s", (interface.chemin(chemin),)
+		"SELECT deleted_at IS NOT NULL FROM sounds WHERE location = %s", (interface.chemin(chemin),)
 	).fetchall()
 	assert (len(lignes), sum(1 for (supprime,) in lignes if supprime)) == (nombre, supprimes), lignes
 

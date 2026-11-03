@@ -135,11 +135,11 @@ A_VENIR = 5
 """Sonores prévus après le prochain : la playlist immédiate (https://github.com/dascritch/machincast/issues/228)."""
 EMPREINTE_DE_LA_GRILLE = (
 	"SELECT md5(concat_ws('|',"
-	" (SELECT string_agg(concat_ws(';', e.id, e.priorite, e.debut, e.fin, e.jours_recurrence, e.supprime_le), ','"
-	" ORDER BY e.id) FROM evenements e),"
-	" (SELECT string_agg(x::text, ',' ORDER BY x.id) FROM evenements_elements x),"
-	" (SELECT string_agg(l::text, ',' ORDER BY l.id) FROM sequences_elements l),"
-	" (SELECT string_agg(s::text, ',' ORDER BY s.evenement_id, s.jour) FROM evenements_sauts s)))"
+	" (SELECT string_agg(concat_ws(';', e.id, e.priority, e.starts_at, e.ends_at, e.recurrence_days, e.deleted_at), ','"
+	" ORDER BY e.id) FROM events e),"
+	" (SELECT string_agg(x::text, ',' ORDER BY x.id) FROM event_items x),"
+	" (SELECT string_agg(l::text, ',' ORDER BY l.id) FROM sequence_items l),"
+	" (SELECT string_agg(s::text, ',' ORDER BY s.event_id, s.day) FROM event_skips s)))"
 )
 """Empreinte de ce qui règle l'antenne dans la grille : les dates, les jours, la priorité et la suppression des
 événements, leurs listes, leurs sessions sautées et les listes des séquences. Changée, elle fait recalculer les
@@ -283,12 +283,12 @@ def lire_parametres(
 	(https://github.com/dascritch/machincast/issues/146, machincast.lecture.fondus.placer)."""
 	with connexion.transaction():
 		ligne = connexion.execute(
-			"SELECT s.duree, s.crossfade_debut, s.crossfade_fin, s.type::text, COALESCE(s.url_stream, m.url),"
-			" s.secours_evenement_id, s.artiste, s.titre, COALESCE(s.emplacement, s.url_stream, m.url),"
-			" s.detection_silences OR COALESCE(b.detection_silences, false), s.debut_detecte, s.fin_detectee,"
-			" b.crossfade_debut_regle::text, b.crossfade_debut, b.crossfade_fin_regle::text, b.crossfade_fin"
-			" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id"
-			" LEFT JOIN banques b ON b.id = %s"
+			"SELECT s.duration, s.crossfade_start, s.crossfade_end, s.type::text, COALESCE(s.stream_url, m.url),"
+			" s.fallback_event_id, s.artist, s.title, COALESCE(s.location, s.stream_url, m.url),"
+			" s.silence_detection OR COALESCE(b.silence_detection, false), s.detected_start, s.detected_end,"
+			" b.crossfade_start_rule::text, b.crossfade_start, b.crossfade_end_rule::text, b.crossfade_end"
+			" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id"
+			" LEFT JOIN banks b ON b.id = %s"
 			" WHERE s.id = %s",
 			(choix.banque, choix.sonore),
 		).fetchone()
@@ -306,7 +306,7 @@ def lire_parametres(
 			duree,
 			_intervalle(debut_detecte),
 			_intervalle(fin_detectee),
-			(detection is True) and (type_sonore == "fichier"),
+			(detection is True) and (type_sonore == "file"),
 			crossfade_debut,
 			crossfade_fin,
 			defauts.entree,
@@ -410,7 +410,7 @@ class Diffusion:
 				raise
 			except OSError as erreur:
 				self.historique.consigner(
-					self.connexion, "alerte", "socket d'état indisponible", f"{self.etat.chemin} : {erreur}", instant
+					self.connexion, "warning", "socket d'état indisponible", f"{self.etat.chemin} : {erreur}", instant
 				)
 				self.etat = None
 		self.historique.consigner(self.connexion, "info", "démarrage", f"Machin_player {__version__}", instant)
@@ -532,7 +532,7 @@ class Diffusion:
 		if evenement is None:
 			return "aucun"
 		with self.connexion.transaction():
-			ligne = self.connexion.execute("SELECT nom_interne FROM evenements WHERE id = %s", (evenement,)).fetchone()
+			ligne = self.connexion.execute("SELECT internal_name FROM events WHERE id = %s", (evenement,)).fetchone()
 		if ligne is None:
 			return f"l'événement n°{evenement}, inconnu"
 		return f"« {ligne[0]} »"
@@ -620,8 +620,8 @@ class Diffusion:
 		(https://github.com/dascritch/machincast/issues/323) ; False si la demande est ignorée."""
 		with self.connexion.transaction():
 			ligne = self.connexion.execute(
-				"SELECT m.nom, (SELECT s.id FROM sonores s WHERE s.feed_id = m.id AND s.type = 'stream'"
-				" AND s.etat = 'actif' AND s.supprime_le IS NULL ORDER BY s.id LIMIT 1) FROM feeds m WHERE m.id = %s",
+				"SELECT m.name, (SELECT s.id FROM sounds s WHERE s.feed_id = m.id AND s.type = 'stream'"
+				" AND s.state = 'active' AND s.deleted_at IS NULL ORDER BY s.id LIMIT 1) FROM feeds m WHERE m.id = %s",
 				(feed,),
 			).fetchone()
 		if ligne is None:
@@ -695,7 +695,7 @@ class Diffusion:
 	def _nom_du_sonore(self, sonore: int) -> str:
 		with self.connexion.transaction():
 			ligne = self.connexion.execute(
-				"SELECT COALESCE(titre, emplacement, url_stream) FROM sonores WHERE id = %s", (sonore,)
+				"SELECT COALESCE(title, location, stream_url) FROM sounds WHERE id = %s", (sonore,)
 			).fetchone()
 		if (ligne is None) or (ligne[0] is None):
 			return str(sonore)
@@ -968,7 +968,7 @@ class Diffusion:
 			analyseur.lancer(sonore, instant)
 		except OSError as erreur:
 			self.historique.consigner(
-				self.connexion, "alerte", "analyse impossible", f"{emplacement} : {erreur}", instant, sonore=sonore
+				self.connexion, "warning", "analyse impossible", f"{emplacement} : {erreur}", instant, sonore=sonore
 			)
 			return
 		self.historique.consigner(
@@ -1256,7 +1256,7 @@ class Diffusion:
 			# Dans sa propre transaction : la connexion n'en laisse jamais une ouverte, qui retiendrait l'airplay.
 			with self.connexion.transaction():
 				ligne = self.connexion.execute(
-					"SELECT nom_interne FROM sequences WHERE id = %s", (choix.ligne.sequence,)
+					"SELECT internal_name FROM sequences WHERE id = %s", (choix.ligne.sequence,)
 				).fetchone()
 			nom = str(choix.ligne.sequence)
 			if ligne is not None:
@@ -1279,8 +1279,8 @@ class Diffusion:
 		sequence = choix.element.sequence
 		with self.connexion.transaction():
 			noms = self.connexion.execute(
-				"SELECT (SELECT nom_interne FROM sequences WHERE id = %s),"
-				" (SELECT nom_interne FROM banques WHERE id = %s)",
+				"SELECT (SELECT internal_name FROM sequences WHERE id = %s),"
+				" (SELECT internal_name FROM banks WHERE id = %s)",
 				(sequence, choix.banque),
 			).fetchone()
 		assert noms is not None
@@ -1473,11 +1473,11 @@ def crossfade(du_sonore: object, regle: object, de_la_banque: object, defaut: ti
 	banque = AUCUN_CROSSFADE
 	if isinstance(de_la_banque, timedelta):
 		banque = de_la_banque
-	if regle == "impose":
+	if regle == "forced":
 		return banque
 	if isinstance(du_sonore, timedelta):
 		return du_sonore
-	if regle == "a_defaut":
+	if regle == "default":
 		return banque
 	return (defaut) or (AUCUN_CROSSFADE)
 

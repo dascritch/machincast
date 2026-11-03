@@ -23,6 +23,7 @@ from machincast.interface import affichage
 from machincast.interface.colonnes import Colonnes
 from machincast.interface.listes import FiltreSansAccents
 from machincast.interface.ui.incidents import Ui_EcranIncidents
+from machincast.lecture.enregistrement import NIVEAUX
 
 journal = logging.getLogger(__name__)
 
@@ -62,18 +63,18 @@ class EcranIncidents(QWidget):
 
 	def actualiser(self) -> None:
 		"""Relit le log ; une base injoignable laisse l'écran tel qu'il était."""
-		niveaux = ["alerte", "incident"]
+		niveaux = ["warning", "incident"]
 		if self.ui.informations.isChecked():
 			niveaux.append("info")
 		try:
 			with self.connexion.transaction():
 				rangees = self.connexion.execute(
-					"SELECT l.horodatage, l.niveau::text, l.nature, l.message, s.id, s.artiste, s.titre, s.emplacement,"
-					" COALESCE(s.url_stream, m.url), b.id, b.nom_interne, e.id, e.nom_interne FROM log l"
-					" LEFT JOIN sonores s ON s.id = l.sonore_id"
+					"SELECT l.logged_at, l.level::text, l.kind, l.message, s.id, s.artist, s.title, s.location,"
+					" COALESCE(s.stream_url, m.url), b.id, b.internal_name, e.id, e.internal_name FROM log l"
+					" LEFT JOIN sounds s ON s.id = l.sound_id"
 					" LEFT JOIN feeds m ON m.id = s.feed_id"
-					" LEFT JOIN banques b ON b.id = l.banque_id LEFT JOIN evenements e ON e.id = l.evenement_id"
-					" WHERE l.niveau::text = ANY(%s) ORDER BY l.horodatage DESC, l.id DESC LIMIT %s",
+					" LEFT JOIN banks b ON b.id = l.bank_id LEFT JOIN events e ON e.id = l.event_id"
+					" WHERE l.level::text = ANY(%s) ORDER BY l.logged_at DESC, l.id DESC LIMIT %s",
 					(niveaux, LIMITE),
 				).fetchall()
 		except psycopg.Error as erreur:
@@ -85,7 +86,7 @@ class EcranIncidents(QWidget):
 			assert isinstance(horodatage, datetime)
 			cellules = [
 				QStandardItem(f"{horodatage.astimezone():%Y-%m-%d %H:%M:%S}"),
-				QStandardItem(str(niveau)),
+				QStandardItem(NIVEAUX.get(str(niveau), str(niveau))),
 				QStandardItem(str(nature)),
 				QStandardItem(str(message)),
 				_lien(sonore, affichage.nom_du_sonore(artiste, titre, emplacement, adresse)),

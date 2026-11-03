@@ -32,7 +32,7 @@ MASQUAGES: tuple[tuple[bool | None, str], ...] = (
 	(True, "Masqué par le nom public de la séquence"),
 	(False, "Affichés"),
 )
-"""Valeurs de sequences.masquer_metadonnees, dans l'ordre du choix de la fiche."""
+"""Valeurs de sequences.hide_metadata, dans l'ordre du choix de la fiche."""
 EVENEMENT = Qt.ItemDataRole.UserRole
 """Rôle qui porte l'identifiant d'un événement, dans la liste des événements."""
 REPETITION = "Un sonore ou une banque peut revenir plusieurs fois dans une séquence."
@@ -56,7 +56,7 @@ class FicheSequence(Fiche):
 		boutons = Boutons(
 			{"sonore": ui.ajouter_sonores, "banque": ui.ajouter_banques}, ui.retirer_element, ui.monter, ui.descendre
 		)
-		self.elements = ListeElements(self, ui.elements, boutons, "sequences_elements", "sequence_id", REPETITION)
+		self.elements = ListeElements(self, ui.elements, boutons, "sequence_items", "sequence_id", REPETITION)
 		self.elements.changee.connect(self._modifier)
 		self.elements.changee.connect(self._avertir)
 		ui.nom_interne.textChanged.connect(self._modifier)
@@ -81,15 +81,15 @@ class FicheSequence(Fiche):
 		with self.connexion.transaction():
 			if lu is not None:
 				ligne = self.connexion.execute(
-					"SELECT nom_interne, nom_public, masquer_metadonnees FROM sequences WHERE id = %s", (lu,)
+					"SELECT internal_name, public_name, hide_metadata FROM sequences WHERE id = %s", (lu,)
 				).fetchone()
 				assert ligne is not None, f"séquence {lu} absente"
 				sequence = ligne
 			if self.identifiant is not None:
 				evenements = self.connexion.execute(
-					"SELECT DISTINCT ev.id, ev.nom_interne FROM evenements ev"
-					" JOIN evenements_elements ee ON ee.evenement_id = ev.id"
-					" WHERE ee.sequence_id = %s AND ev.supprime_le IS NULL ORDER BY ev.nom_interne, ev.id",
+					"SELECT DISTINCT ev.id, ev.internal_name FROM events ev"
+					" JOIN event_items ee ON ee.event_id = ev.id"
+					" WHERE ee.sequence_id = %s AND ev.deleted_at IS NULL ORDER BY ev.internal_name, ev.id",
 					(self.identifiant,),
 				).fetchall()
 			self.elements.charger(lu, self.est_une_copie())
@@ -113,7 +113,7 @@ class FicheSequence(Fiche):
 		if nom == "":
 			raise Refus("Le nom interne est obligatoire.", self.ui.nom_interne)
 		pris = self.connexion.execute(
-			"SELECT 1 FROM sequences WHERE nom_interne = %s AND id IS DISTINCT FROM %s AND supprime_le IS NULL",
+			"SELECT 1 FROM sequences WHERE internal_name = %s AND id IS DISTINCT FROM %s AND deleted_at IS NULL",
 			(nom, self.identifiant),
 		).fetchone()
 		if pris is not None:
@@ -125,7 +125,7 @@ class FicheSequence(Fiche):
 		)
 		if self.identifiant is None:
 			creee = self.connexion.execute(
-				"INSERT INTO sequences (nom_interne, nom_public, masquer_metadonnees) VALUES (%s, %s, %s) RETURNING id",
+				"INSERT INTO sequences (internal_name, public_name, hide_metadata) VALUES (%s, %s, %s) RETURNING id",
 				valeurs,
 			).fetchone()
 			assert creee is not None
@@ -133,7 +133,7 @@ class FicheSequence(Fiche):
 		else:
 			identifiant = self.identifiant
 			self.connexion.execute(
-				"UPDATE sequences SET nom_interne = %s, nom_public = %s, masquer_metadonnees = %s WHERE id = %s",
+				"UPDATE sequences SET internal_name = %s, public_name = %s, hide_metadata = %s WHERE id = %s",
 				(*valeurs, identifiant),
 			)
 		self.elements.ecrire(identifiant)

@@ -41,10 +41,10 @@ def processus() -> Processus:
 )
 def passages_de_la_sequence(base_vide: Connexion, premier: str, second: str, nom: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT a.titre, a.type_ligne::text, q.nom_interne, e.position FROM airplay a"
+		"SELECT a.title, a.line_type::text, q.internal_name, e.position FROM airplay a"
 		" LEFT JOIN sequences q ON q.id = a.sequence_id"
-		" LEFT JOIN sequences_elements e ON e.id = a.sequence_element_id AND e.sequence_id = a.sequence_id"
-		" WHERE a.titre IN (%s, %s) ORDER BY a.id",
+		" LEFT JOIN sequence_items e ON e.id = a.sequence_item_id AND e.sequence_id = a.sequence_id"
+		" WHERE a.title IN (%s, %s) ORDER BY a.id",
 		(premier, second),
 	).fetchall()
 	positions = {premier: 1, second: 2}
@@ -52,7 +52,7 @@ def passages_de_la_sequence(base_vide: Connexion, premier: str, second: str, nom
 	assert all((sequence == nom) and (position == positions[str(titre)]) for titre, _, sequence, position in lignes), (
 		lignes
 	)
-	assert {type_ligne for _, type_ligne, _, _ in lignes} == {"debut", "fin"}, lignes
+	assert {type_ligne for _, type_ligne, _, _ in lignes} == {"start", "end"}, lignes
 
 
 @given("l'arrêt de la diffusion branché sur les signaux")

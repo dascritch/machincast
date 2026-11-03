@@ -347,8 +347,8 @@ def sonore_indexe(contexte: Contexte, base_vide: Connexion, tmp_path: Path, nom:
 	fichier = copie_de_test(nom.split(".")[-1], tmp_path)
 	etat = fichier.stat()
 	ligne = base_vide.execute(
-		"INSERT INTO sonores (type, emplacement, etat, fichier_modifie_le, fichier_taille)"
-		" VALUES ('fichier', %s, 'actif', %s, %s) RETURNING id",
+		"INSERT INTO sounds (type, location, state, file_modified_at, file_size)"
+		" VALUES ('file', %s, 'active', %s, %s) RETURNING id",
 		(str(fichier), datetime.fromtimestamp(etat.st_mtime, tz=UTC), etat.st_size),
 	).fetchone()
 	assert ligne is not None
@@ -395,7 +395,7 @@ def pas_joue(contexte: Contexte) -> None:
 
 
 def log(base: Connexion) -> list[tuple[object, ...]]:
-	return base.execute("SELECT niveau::text, nature, message, sonore_id FROM log ORDER BY id").fetchall()
+	return base.execute("SELECT level::text, kind, message, sound_id FROM log ORDER BY id").fetchall()
 
 
 @then("le log ne contient rien")
@@ -408,7 +408,7 @@ def alerte(contexte: Contexte, base_vide: Connexion, nature: str, mention: str) 
 	lignes = log(base_vide)
 	assert len(lignes) == 1, lignes
 	niveau, trouvee, message, sonore = lignes[0]
-	assert (niveau, trouvee, sonore) == ("alerte", nature, contexte.sonore)
+	assert (niveau, trouvee, sonore) == ("warning", nature, contexte.sonore)
 	assert mention in str(message), message
 
 

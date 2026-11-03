@@ -20,7 +20,7 @@ scenarios("selection_multiple.feature")
 
 Connexion = psycopg.Connection[tuple[object, ...]]
 MASQUAGES = {"masqués": True, "affichés": False, "hérité": None}
-"""Valeurs de banques.masquer_metadonnees, par leur nom dans les scénarios."""
+"""Valeurs de banks.hide_metadata, par leur nom dans les scénarios."""
 
 
 def index_de(ouverte: Liste, nom: str) -> QModelIndex:
@@ -50,7 +50,7 @@ def declencher(ouverte: Liste, index: QModelIndex, texte: str) -> None:
 
 
 def sonores_par_titre(base: Connexion, titres: str) -> list[int]:
-	return [identifiant(base, "sonores", "titre", titre) for titre in NOM.findall(titres)]
+	return [identifiant(base, "sounds", "title", titre) for titre in NOM.findall(titres)]
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -58,7 +58,7 @@ def sonores_par_titre(base: Connexion, titres: str) -> list[int]:
 
 @given(parsers.re(r"les banques choisies (?P<noms>aucune|«.+)"))
 def banques_choisies(interface: Contexte, base_vide: Connexion, noms: str) -> None:
-	interface.banques_choisies = [identifiant(base_vide, "banques", "nom_interne", nom) for nom in NOM.findall(noms)]
+	interface.banques_choisies = [identifiant(base_vide, "banks", "internal_name", nom) for nom in NOM.findall(noms)]
 
 
 @given("les confirmations d'action refusées")
@@ -74,9 +74,7 @@ def confirmations_refusees(interface: Contexte) -> None:
 )
 def masquages(base_vide: Connexion, premier: str, banque: str, second: str, autre: str) -> None:
 	for valeur, nom in ((premier, banque), (second, autre)):
-		base_vide.execute(
-			"UPDATE banques SET masquer_metadonnees = %s WHERE nom_interne = %s", (MASQUAGES[valeur], nom)
-		)
+		base_vide.execute("UPDATE banks SET hide_metadata = %s WHERE internal_name = %s", (MASQUAGES[valeur], nom))
 
 
 # ─── Quand ─────────────────────────────────────────────────
@@ -132,7 +130,7 @@ def bouton_de_la_question(interface: Contexte, bouton: str) -> None:
 @then(parsers.re(r"le sonore (?P<titres>« [^»]+ ») est à l'état « (?P<etat>[^»]+) » en base"))
 def etats_en_base(base_vide: Connexion, titres: str, etat: str) -> None:
 	for sonore in sonores_par_titre(base_vide, titres):
-		assert base_vide.execute("SELECT etat::text FROM sonores WHERE id = %s", (sonore,)).fetchone() == (etat,)
+		assert base_vide.execute("SELECT state::text FROM sounds WHERE id = %s", (sonore,)).fetchone() == (etat,)
 
 
 @then(parsers.re(r"la liste montre l'état « (?P<etat>[^»]+) » pour (?P<titres>«.+)"))
@@ -148,8 +146,8 @@ def etats_montres(interface: Contexte, etat: str, titres: str) -> None:
 @then(parsers.re(r"les sonores de la banque « (?P<nom>[^»]+) » sont, dans l'ordre, (?P<titres>aucun|«.+)"))
 def sonores_de_la_banque(base_vide: Connexion, nom: str, titres: str) -> None:
 	lus = base_vide.execute(
-		"SELECT s.titre, bs.position FROM banques_sonores bs JOIN sonores s ON s.id = bs.sonore_id"
-		" JOIN banques b ON b.id = bs.banque_id WHERE b.nom_interne = %s ORDER BY bs.position",
+		"SELECT s.title, bs.position FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
+		" JOIN banks b ON b.id = bs.bank_id WHERE b.internal_name = %s ORDER BY bs.position",
 		(nom,),
 	).fetchall()
 	assert [str(titre) for titre, _position in lus] == NOM.findall(titres)
@@ -161,14 +159,14 @@ def sonores_de_la_banque(base_vide: Connexion, nom: str, titres: str) -> None:
 def banques_proposees(interface: Contexte, base_vide: Connexion, noms: str) -> None:
 	(proposees,) = interface.banques_proposees
 	assert proposees is not None
-	assert proposees == [identifiant(base_vide, "banques", "nom_interne", nom) for nom in NOM.findall(noms)]
+	assert proposees == [identifiant(base_vide, "banks", "internal_name", nom) for nom in NOM.findall(noms)]
 
 
 @then(parsers.re(r"l'audit complet est demandé pour les sonores (?P<titres>«.+), et pas pour « (?P<autre>[^»]+) »"))
 def audits_demandes(base_vide: Connexion, titres: str, autre: str) -> None:
 	marques = [
 		str(titre)
-		for (titre,) in base_vide.execute('SELECT titre FROM sonores WHERE audit_demande ORDER BY titre COLLATE "C"')
+		for (titre,) in base_vide.execute('SELECT title FROM sounds WHERE audit_requested ORDER BY title COLLATE "C"')
 	]
 	assert marques == sorted(NOM.findall(titres))
 	assert autre not in marques
@@ -182,7 +180,7 @@ def audits_demandes(base_vide: Connexion, titres: str, autre: str) -> None:
 )
 def masquages_en_base(base_vide: Connexion, noms: str, masquage: str, autre: str, masquage_autre: str) -> None:
 	for nom, attendu in [(nom, masquage) for nom in NOM.findall(noms)] + [(autre, masquage_autre)]:
-		lu = base_vide.execute("SELECT masquer_metadonnees FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
+		lu = base_vide.execute("SELECT hide_metadata FROM banks WHERE internal_name = %s", (nom,)).fetchone()
 		assert lu == (MASQUAGES[attendu],), nom
 
 
@@ -267,4 +265,4 @@ def avertissement(interface: Contexte, texte: str) -> None:
 
 @when(parsers.parse("le sonore « {titre} » repasse en aperçu en base"))
 def repasse_en_apercu(base_vide: Connexion, titre: str) -> None:
-	base_vide.execute("UPDATE sonores SET etat = 'apercu' WHERE titre = %s", (titre,))
+	base_vide.execute("UPDATE sounds SET state = 'preview' WHERE title = %s", (titre,))

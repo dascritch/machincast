@@ -10,9 +10,9 @@ Fonctionnalité: Type de fichier d'un sonore
 
 	Plan du scénario: Chaque format sonore est reconnu, et son type est enregistré
 		Étant donné un fichier <format> sain
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Quand l'indexeur fait une indexation rapide
-		Alors le sonore est à l'état « actif »
+		Alors le sonore est à l'état « active »
 		Et le type du fichier en base est « <type> »
 
 		Exemples:
@@ -26,9 +26,9 @@ Fonctionnalité: Type de fichier d'un sonore
 
 	Plan du scénario: Un fichier qui n'est pas du son, quelle que soit son extension, n'est pas supporté
 		Étant donné <fichier>
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Quand l'indexeur fait une indexation rapide
-		Alors le sonore est à l'état « non_supporte »
+		Alors le sonore est à l'état « unsupported »
 		Et le type du fichier en base est « <type> »
 		Et la sortie d'erreur signale ce fichier comme « non supporté », avec « sonore passé non supporté »
 		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 1 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
@@ -40,15 +40,15 @@ Fonctionnalité: Type de fichier d'un sonore
 
 	Scénario: Le problème d'un fichier non supporté donne son type
 		Étant donné un fichier « faux.mp3 » qui contient du texte
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Quand l'indexeur fait une indexation rapide
 		Alors la sortie d'erreur mentionne « non supporté : de type text/plain, ce n'est pas un fichier sonore »
 
 	Plan du scénario: Un type indéterminé, ou un son abîmé, laisse décider le décodage
 		Étant donné <fichier>
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Quand l'indexeur fait une indexation rapide
-		Alors le sonore est à l'état « errone »
+		Alors le sonore est à l'état « corrupt »
 		Et le type du fichier en base est « <type> »
 
 		Exemples:
@@ -65,25 +65,25 @@ Fonctionnalité: Type de fichier d'un sonore
 
 		Exemples:
 			| avant        | apres        | consequence                  |
-			| actif        | non_supporte | sonore passé non supporté    |
-			| errone       | non_supporte | sonore passé non supporté    |
-			| non_supporte | non_supporte | sonore toujours non supporté |
-			| desactive    | desactive    | état désactivé conservé      |
-			| expire       | expire       | état expiré conservé         |
+			| active        | unsupported | sonore passé non supporté    |
+			| corrupt       | unsupported | sonore passé non supporté    |
+			| unsupported | unsupported | sonore toujours non supporté |
+			| disabled    | disabled    | état désactivé conservé      |
+			| expired       | expired       | état expiré conservé         |
 
 	Scénario: Un fichier non supporté remplacé par un vrai son redevient actif
 		Étant donné un fichier « faux.mp3 » qui contient du texte
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Et l'indexeur a fait une indexation rapide
 		Et ce fichier remplacé, sous le même nom, par un fichier mp3 tagué
 		Quand l'indexeur fait une indexation rapide
-		Alors le sonore est à l'état « actif »
+		Alors le sonore est à l'état « active »
 		Et le type du fichier en base est « audio/mpeg »
 		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 1 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Le document d'audit donne le verdict « non supporté »
 		Étant donné le poste à l'heure de Paris
 		Et un fichier « faux.mp3 » qui contient du texte
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Quand Machin indexer est lancé sur la base de test
 		Alors le document d'audit « machincast-audit-2026-10-15T08:15:00.csv » signale ce fichier, « non supporté », avec « sonore passé non supporté »

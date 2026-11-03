@@ -75,15 +75,15 @@ def retenir(monkeypatch: pytest.MonkeyPatch, retenue: threading.Event) -> None:
 )
 def deja_audite(interface: Contexte, base_vide: Connexion, titre: str, seuil: str) -> None:
 	"""Sa date et sa taille sont celles du fichier, audité après sa dernière modification."""
-	ligne = base_vide.execute("SELECT emplacement FROM sonores WHERE titre = %s", (titre,)).fetchone()
+	ligne = base_vide.execute("SELECT location FROM sounds WHERE title = %s", (titre,)).fetchone()
 	assert ligne is not None
 	emplacement = ligne[0]
 	etat = etat_du_fichier(Path(str(emplacement)))
 	assert etat is not None
 	modifie_le, taille = etat
 	base_vide.execute(
-		"UPDATE sonores SET fichier_modifie_le = %s, fichier_taille = %s, verifie_le = clock_timestamp(),"
-		" audite_le = clock_timestamp(), audit_seuil = %s WHERE titre = %s",
+		"UPDATE sounds SET file_modified_at = %s, file_size = %s, checked_at = clock_timestamp(),"
+		" audited_at = clock_timestamp(), audit_threshold = %s WHERE title = %s",
 		(modifie_le, taille, float(seuil), titre),
 	)
 
@@ -180,8 +180,8 @@ def question(interface: Contexte, texte: str) -> None:
 def verifie_en_entier(interface: Contexte, base_vide: Connexion, qtbot: QtBot, chemin: str) -> None:
 	def lu() -> tuple[object, ...] | None:
 		return base_vide.execute(
-			"SELECT verifie_le IS NOT NULL, duree IS NOT NULL, fin_detectee IS NOT NULL FROM sonores"
-			" WHERE emplacement = %s",
+			"SELECT checked_at IS NOT NULL, duration IS NOT NULL, detected_end IS NOT NULL FROM sounds"
+			" WHERE location = %s",
 			(interface.chemin(chemin),),
 		).fetchone()
 
@@ -247,7 +247,7 @@ def curseur_du_crossfade(interface: Contexte, maximum: str, pas: str) -> None:
 
 @given(parsers.parse("le sonore « {nom} » a {secondes:d} secondes de crossfade de début en base"))
 def crossfade_en_base(base_vide: Connexion, nom: str, secondes: int) -> None:
-	base_vide.execute("UPDATE sonores SET crossfade_debut = %s WHERE titre = %s", (timedelta(seconds=secondes), nom))
+	base_vide.execute("UPDATE sounds SET crossfade_start = %s WHERE title = %s", (timedelta(seconds=secondes), nom))
 
 
 @then(parsers.parse("la frise de la fiche montre un crossfade de fin de {fin} seconde"))

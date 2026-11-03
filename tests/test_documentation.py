@@ -23,7 +23,7 @@ SCRIPT = RACINE / "install.sh"
 CLAUDE = RACINE / "CLAUDE.md"
 
 GRANT = re.compile(
-	r"GRANT machincast_lecture, machincast_indexation, machincast_interface TO .+? WITH INHERIT FALSE, SET TRUE"
+	r"GRANT machincast_player, machincast_indexer, machincast_interface TO .+? WITH INHERIT FALSE, SET TRUE"
 )
 # Options de createuser qui donneraient au compte des droits sur le serveur.
 DROITS_PARTICULIERS = {"-d", "--createdb", "-r", "--createrole", "-s", "--superuser"}

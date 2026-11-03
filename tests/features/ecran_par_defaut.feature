@@ -555,12 +555,12 @@ Fonctionnalité: Écran par défaut de l'interface
 
 	Scénario: L'airplay de l'onglet Antenne montre les derniers passages, du plus récent au plus ancien, même anciens
 		Étant donné les passages dans l'airplay :
-			| debut               | fin                 | artiste     | titre         | evenement   | sequence | banque  | sans_incident |
-			| 2026-10-14 08:00:00 | 2026-10-14 08:03:00 | Ancien      | Avant-hier    | Fil de nuit |          |         | oui           |
-			| 2026-10-16 08:01:00 | 2026-10-16 08:04:00 | Les Gaufres | Le matin      | Fil de jour |          | Titres  | oui           |
-			| 2026-10-16 18:00:00 | 2026-10-16 19:02:05 |             | Le journal    | Journal     |          |         | oui           |
-			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 |             | Spot          | Fil de jour | Pub      | Spots   | non           |
-			| 2026-10-16 20:00:00 |                     | Les Gaufres | Café à minuit | Fil de jour |          | Titres  |               |
+			| starts_at           | ends_at             | artist      | title         | event       | sequence | bank   | without_incident |
+			| 2026-10-14 08:00:00 | 2026-10-14 08:03:00 | Ancien      | Avant-hier    | Fil de nuit |          |        | oui              |
+			| 2026-10-16 08:01:00 | 2026-10-16 08:04:00 | Les Gaufres | Le matin      | Fil de jour |          | Titres | oui              |
+			| 2026-10-16 18:00:00 | 2026-10-16 19:02:05 |             | Le journal    | Journal     |          |        | oui              |
+			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 |             | Spot          | Fil de jour | Pub      | Spots  | non              |
+			| 2026-10-16 20:00:00 |                     | Les Gaufres | Café à minuit | Fil de jour |          | Titres |                  |
 		Quand l'écran par défaut s'ouvre
 		Alors l'encart de l'airplay de l'onglet Antenne s'intitule « Airplay : les 10 derniers sonores »
 		Et la table de l'airplay montre :
@@ -588,8 +588,8 @@ Fonctionnalité: Écran par défaut de l'interface
 
 	Scénario: L'interface est privée : l'airplay montre l'artiste et le titre, même masqués
 		Étant donné les passages dans l'airplay :
-			| debut               | fin                 | artiste     | titre         | evenement   | sequence | banque | sans_incident |
-			| 2026-10-16 19:50:00 | 2026-10-16 19:53:00 | Les Gaufres | Café à minuit | Fil de jour |          |        | oui           |
+			| starts_at           | ends_at             | artist      | title         | event       | sequence | bank | without_incident |
+			| 2026-10-16 19:50:00 | 2026-10-16 19:53:00 | Les Gaufres | Café à minuit | Fil de jour |          |      | oui              |
 		Et le masquage de tous les sonores et de tous les événements
 		Quand l'écran par défaut s'ouvre
 		Alors la table de l'airplay montre :
@@ -598,8 +598,8 @@ Fonctionnalité: Écran par défaut de l'interface
 
 	Scénario: L'airplay se relit à chaque nouveau sonore, jamais en boucle
 		Étant donné les passages dans l'airplay :
-			| debut               | fin | artiste     | titre         | evenement   | sequence | banque | sans_incident |
-			| 2026-10-16 20:00:00 |     | Les Gaufres | Café à minuit | Fil de jour |          |        |               |
+			| starts_at           | ends_at | artist      | title         | event       | sequence | bank | without_incident |
+			| 2026-10-16 20:00:00 |         | Les Gaufres | Café à minuit | Fil de jour |          |      |                  |
 		Et la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Quand l'écran par défaut s'ouvre
@@ -667,8 +667,8 @@ Fonctionnalité: Écran par défaut de l'interface
 
 	Scénario: Un double-clic sur un élément absent, ou effacé de la base depuis, ne demande aucune fiche
 		Étant donné les passages dans l'airplay :
-			| debut               | fin                 | artiste | titre | evenement   | sequence | banque | sans_incident |
-			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 | Radio   | Spot  | Fil de jour |          |        | non           |
+			| starts_at           | ends_at             | artist | title | event       | sequence | bank | without_incident |
+			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 | Radio  | Spot  | Fil de jour |          |      | non              |
 		Et le sonore « Spot » est effacé de la base
 		Quand l'écran par défaut s'ouvre
 		Et j'ouvre dans l'airplay la cellule « Spot »
@@ -678,8 +678,8 @@ Fonctionnalité: Écran par défaut de l'interface
 
 	Scénario: Un double-clic sur l'airplay ouvre la fiche du sonore, de l'événement, de la séquence ou de la banque
 		Étant donné les passages dans l'airplay :
-			| debut               | fin                 | artiste | titre | evenement   | sequence | banque | sans_incident |
-			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 | Radio   | Spot  | Fil de jour | Pub      | Spots  | non           |
+			| starts_at           | ends_at             | artist | title | event       | sequence | bank  | without_incident |
+			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 | Radio  | Spot  | Fil de jour | Pub      | Spots | non              |
 		Quand l'écran par défaut s'ouvre
 		Et j'ouvre dans l'airplay la cellule « Radio »
 		Et j'ouvre dans l'airplay la cellule « Spot »

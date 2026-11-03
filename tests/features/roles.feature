@@ -8,66 +8,66 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 		Étant donné une base de test migrée avec les éléments de référence
 
 	Scénario: Droits du binaire lecture
-		Alors le rôle "machincast_lecture" a exactement ces droits :
-			| table                 | lire | inserer | modifier | supprimer |
-			| sonores               | oui  | non     | non      | non       |
-			| feeds | oui  | non     | non      | non       |
-			| banques               | oui  | non     | non      | non       |
-			| banques_repertoires   | non  | non     | non      | non       |
-			| banques_sonores       | oui  | non     | non      | non       |
-			| evenements            | oui  | non     | non      | non       |
-			| evenements_elements   | oui  | non     | non      | non       |
-			| evenements_sauts      | oui  | non     | non      | non       |
-			| sequences             | oui  | non     | non      | non       |
-			| sequences_elements    | oui  | non     | non      | non       |
-			| airplay               | oui  | oui     | non      | non       |
-			| log                   | non  | oui     | non      | non       |
+		Alors le rôle "machincast_player" a exactement ces droits :
+			| table            | lire | inserer | modifier | supprimer |
+			| sounds           | oui  | non     | non      | non       |
+			| feeds            | oui  | non     | non      | non       |
+			| banks            | oui  | non     | non      | non       |
+			| bank_directories | non  | non     | non      | non       |
+			| bank_sounds      | oui  | non     | non      | non       |
+			| events           | oui  | non     | non      | non       |
+			| event_items      | oui  | non     | non      | non       |
+			| event_skips      | oui  | non     | non      | non       |
+			| sequences        | oui  | non     | non      | non       |
+			| sequence_items   | oui  | non     | non      | non       |
+			| airplay          | oui  | oui     | non      | non       |
+			| log              | non  | oui     | non      | non       |
 
 	Scénario: Droits du binaire indexation
 		https://github.com/dascritch/machincast/issues/195 : l'indexation retire d'une banque les sonores hors de ses durées.
 
-		Alors le rôle "machincast_indexation" a exactement ces droits :
-			| table                 | lire | inserer | modifier | supprimer |
-			| sonores               | oui  | oui     | oui      | non       |
-			| feeds | non  | non     | non      | non       |
-			| banques               | oui  | non     | non      | non       |
-			| banques_repertoires   | oui  | non     | non      | non       |
-			| banques_sonores       | oui  | oui     | non      | oui       |
-			| evenements            | non  | non     | non      | non       |
-			| evenements_elements   | non  | non     | non      | non       |
-			| evenements_sauts      | non  | non     | non      | non       |
-			| sequences             | non  | non     | non      | non       |
-			| sequences_elements    | non  | non     | non      | non       |
-			| airplay               | non  | non     | non      | non       |
-			| log                   | non  | non     | non      | non       |
+		Alors le rôle "machincast_indexer" a exactement ces droits :
+			| table            | lire | inserer | modifier | supprimer |
+			| sounds           | oui  | oui     | oui      | non       |
+			| feeds            | non  | non     | non      | non       |
+			| banks            | oui  | non     | non      | non       |
+			| bank_directories | oui  | non     | non      | non       |
+			| bank_sounds      | oui  | oui     | non      | oui       |
+			| events           | non  | non     | non      | non       |
+			| event_items      | non  | non     | non      | non       |
+			| event_skips      | non  | non     | non      | non       |
+			| sequences        | non  | non     | non      | non       |
+			| sequence_items   | non  | non     | non      | non       |
+			| airplay          | non  | non     | non      | non       |
+			| log              | non  | non     | non      | non       |
 
 	Scénario: Droits de l'interface
 		Alors le rôle "machincast_interface" a exactement ces droits :
-			| table                 | lire | inserer | modifier | supprimer |
-			| sonores               | oui  | oui     | oui      | oui       |
-			| feeds | oui  | oui     | oui      | oui       |
-			| banques               | oui  | oui     | oui      | oui       |
-			| banques_repertoires   | oui  | oui     | oui      | oui       |
-			| banques_sonores       | oui  | oui     | oui      | oui       |
-			| evenements            | oui  | oui     | oui      | oui       |
-			| evenements_elements   | oui  | oui     | oui      | oui       |
-			| evenements_sauts      | oui  | oui     | non      | oui       |
-			| sequences             | oui  | oui     | oui      | oui       |
-			| sequences_elements    | oui  | oui     | oui      | oui       |
-			| airplay               | oui  | non     | non      | non       |
-			| log                   | oui  | non     | non      | non       |
+			| table            | lire | inserer | modifier | supprimer |
+			| sounds           | oui  | oui     | oui      | oui       |
+			| feeds            | oui  | oui     | oui      | oui       |
+			| banks            | oui  | oui     | oui      | oui       |
+			| bank_directories | oui  | oui     | oui      | oui       |
+			| bank_sounds      | oui  | oui     | oui      | oui       |
+			| events           | oui  | oui     | oui      | oui       |
+			| event_items      | oui  | oui     | oui      | oui       |
+			| event_skips      | oui  | oui     | non      | oui       |
+			| sequences        | oui  | oui     | oui      | oui       |
+			| sequence_items   | oui  | oui     | oui      | oui       |
+			| airplay          | oui  | non     | non      | non       |
+			| log              | oui  | non     | non      | non       |
 
 	Plan du scénario: Le binaire lecture ne modifie que le champ « etat » des sonores
-		Alors le rôle "machincast_lecture" <verdict> modifier la colonne "<colonne>" des sonores
+		Alors le rôle "machincast_player" <verdict> modifier la colonne "<colonne>" des sonores
 
 		Exemples:
 			| colonne | verdict  |
-			| etat    | peut     |
-			| titre   | ne peut pas |
-			| duree   | ne peut pas |
+			| state    | peut     |
+			| title   | ne peut pas |
+			| duration   | ne peut pas |
 
 	Scénario: Le binaire lecture enregistre un passage complet
-		Quand le rôle "machincast_lecture" enregistre le début et la fin d'un passage, puis une entrée de log
+		Quand le rôle "machincast_player" enregistre le début et la fin d'un passage, puis une entrée de log
 		Alors les deux lignes d'airplay et l'entrée de log sont en base
 
 	Scénario: Supprimer un sonore depuis l'interface conserve l'airplay
@@ -84,8 +84,8 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 
 		Exemples:
 			| role                  |
-			| machincast_lecture    |
-			| machincast_indexation |
+			| machincast_player    |
+			| machincast_indexer |
 			| machincast_interface  |
 
 	Scénario: L'annulation des migrations ne supprime pas les rôles

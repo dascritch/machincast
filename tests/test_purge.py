@@ -87,13 +87,13 @@ def _passage(
 ) -> None:
 	passage = uuid.uuid4()
 	connexion.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, emplacement, titre)"
-		" VALUES (%s, 'debut', %s, %s, %s, %s)",
+		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, location, title)"
+		" VALUES (%s, 'start', %s, %s, %s, %s)",
 		(passage, debut, sonore_id, emplacement, titre),
 	)
 	connexion.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, emplacement, titre, duree_diffusee,"
-		" sans_incident) VALUES (%s, 'fin', %s, %s, %s, %s, %s, true)",
+		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, location, title, played_duration,"
+		" without_incident) VALUES (%s, 'end', %s, %s, %s, %s, %s, true)",
 		(passage, fin, sonore_id, emplacement, titre, fin - debut),
 	)
 
@@ -105,14 +105,14 @@ def passages_et_log(base_vide: Connexion, datatable: list[list[str]]) -> None:
 		moment = _jour(date)
 		_passage(base_vide, titre, moment.replace(minute=0), moment.replace(minute=3))
 		base_vide.execute(
-			"INSERT INTO log (horodatage, niveau, nature, message) VALUES (%s, 'alerte', 'essai', %s)",
+			"INSERT INTO log (logged_at, level, kind, message) VALUES (%s, 'warning', 'essai', %s)",
 			(moment, titre),
 		)
 
 
 def _sonore(connexion: Connexion, nom: str, emplacement: str) -> object:
 	ligne = connexion.execute(
-		"INSERT INTO sonores (type, emplacement, titre) VALUES ('fichier', %s, %s) RETURNING id", (emplacement, nom)
+		"INSERT INTO sounds (type, location, title) VALUES ('file', %s, %s) RETURNING id", (emplacement, nom)
 	).fetchone()
 	assert ligne is not None
 	return ligne[0]
@@ -127,28 +127,28 @@ def elements(base_vide: Connexion, datatable: list[list[str]]) -> None:
 			supprime_le = _jour(supprime)
 		if genre == "sonore":
 			identifiant = _sonore(base_vide, nom, f"/srv/{nom}.flac")
-			base_vide.execute("UPDATE sonores SET supprime_le = %s WHERE id = %s", (supprime_le, identifiant))
+			base_vide.execute("UPDATE sounds SET deleted_at = %s WHERE id = %s", (supprime_le, identifiant))
 			if disparu:
 				base_vide.execute(
-					"UPDATE sonores SET etat = 'supprime', disparu_le = %s WHERE id = %s", (_jour(disparu), identifiant)
+					"UPDATE sounds SET state = 'missing', missing_at = %s WHERE id = %s", (_jour(disparu), identifiant)
 				)
 		elif genre == "banque":
 			base_vide.execute(
-				"INSERT INTO banques (nom_interne, mode, supprime_le) VALUES (%s, 'sequentiel', %s)", (nom, supprime_le)
+				"INSERT INTO banks (internal_name, mode, deleted_at) VALUES (%s, 'sequential', %s)", (nom, supprime_le)
 			)
 		elif genre == "séquence":
-			base_vide.execute("INSERT INTO sequences (nom_interne, supprime_le) VALUES (%s, %s)", (nom, supprime_le))
+			base_vide.execute("INSERT INTO sequences (internal_name, deleted_at) VALUES (%s, %s)", (nom, supprime_le))
 		else:
 			assert genre == "événement", genre
 			base_vide.execute(
-				"INSERT INTO evenements (nom_interne, priorite, debut, supprime_le) VALUES (%s, 'emission', %s, %s)",
+				"INSERT INTO events (internal_name, priority, starts_at, deleted_at) VALUES (%s, 'show', %s, %s)",
 				(nom, _jour("2026-09-01"), supprime_le),
 			)
 
 
 @given(parsers.parse("un passage du sonore « {titre} » le {date}"))
 def passage_du_sonore(base_vide: Connexion, titre: str, date: str) -> None:
-	ligne = base_vide.execute("SELECT id, emplacement FROM sonores WHERE titre = %s", (titre,)).fetchone()
+	ligne = base_vide.execute("SELECT id, location FROM sounds WHERE title = %s", (titre,)).fetchone()
 	assert ligne is not None
 	moment = _jour(date)
 	_passage(base_vide, titre, moment, moment.replace(minute=3), ligne[0], str(ligne[1]))
@@ -165,14 +165,14 @@ def fichier_supprime(base_vide: Connexion, configuration: Configuration, chemin:
 	fichier.parent.mkdir(parents=True, exist_ok=True)
 	fichier.write_bytes(b"fLaC un vieux sonore")
 	identifiant = _sonore(base_vide, titre, str(fichier))
-	base_vide.execute("UPDATE sonores SET supprime_le = %s WHERE id = %s", (_jour(date), identifiant))
+	base_vide.execute("UPDATE sounds SET deleted_at = %s WHERE id = %s", (_jour(date), identifiant))
 
 
 @given(parsers.parse("le feed « {feed} », suivi par le stream « {stream} », supprimé le {date}"))
 def feed_et_stream(base_vide: Connexion, feed: str, stream: str, date: str) -> None:
-	base_vide.execute("INSERT INTO feeds (nom, url) VALUES (%s, 'http://localhost:8000/direct')", (feed,))
+	base_vide.execute("INSERT INTO feeds (name, url) VALUES (%s, 'http://localhost:8000/direct')", (feed,))
 	base_vide.execute(
-		"INSERT INTO sonores (type, feed_id, titre, supprime_le) SELECT 'stream', id, %s, %s FROM feeds WHERE nom = %s",
+		"INSERT INTO sounds (type, feed_id, title, deleted_at) SELECT 'stream', id, %s, %s FROM feeds WHERE name = %s",
 		(stream, _jour(date), feed),
 	)
 
@@ -215,35 +215,37 @@ def _liste(texte: str) -> list[str]:
 
 @then(parsers.parse("l'airplay garde les passages « {titres} »"))
 def airplay_garde(base_vide: Connexion, titres: str) -> None:
-	lignes = base_vide.execute("SELECT DISTINCT titre FROM airplay ORDER BY titre").fetchall()
+	lignes = base_vide.execute("SELECT DISTINCT title FROM airplay ORDER BY title").fetchall()
 	assert [titre for (titre,) in lignes] == _liste(titres)
 
 
 @then(parsers.parse("l'airplay garde le début et la fin du passage « {titre} »"))
 def airplay_entier(base_vide: Connexion, titre: str) -> None:
-	lignes = base_vide.execute("SELECT type_ligne::text FROM airplay WHERE titre = %s ORDER BY 1", (titre,)).fetchall()
-	assert lignes == [("debut",), ("fin",)]
+	lignes = base_vide.execute(
+		"SELECT line_type::text AS genre FROM airplay WHERE title = %s ORDER BY line_type", (titre,)
+	).fetchall()
+	assert lignes == [("start",), ("end",)]
 
 
 @then(parsers.parse("l'airplay garde le passage « {titre} », à l'emplacement « {emplacement} », sans sonore en base"))
 def airplay_sans_sonore(base_vide: Connexion, titre: str, emplacement: str) -> None:
-	lignes = base_vide.execute("SELECT titre, emplacement, sonore_id FROM airplay").fetchall()
+	lignes = base_vide.execute("SELECT title, location, sound_id FROM airplay").fetchall()
 	assert lignes == [(titre, emplacement, None), (titre, emplacement, None)]
-	assert base_vide.execute("SELECT count(*) FROM sonores").fetchone() == (0,)
+	assert base_vide.execute("SELECT count(*) FROM sounds").fetchone() == (0,)
 
 
 @then(parsers.parse("le log garde ses lignes du {date}, et une ligne « purge » qui reprend l'annonce"))
 def log_garde(base_vide: Connexion, execution: Execution, date: str) -> None:
-	lignes = base_vide.execute("SELECT horodatage, niveau::text, nature, message FROM log ORDER BY id").fetchall()
+	lignes = base_vide.execute("SELECT logged_at, level::text, kind, message FROM log ORDER BY id").fetchall()
 	gardee, purgee = lignes
 	assert gardee[0] == _jour(date)
 	assert purgee[1:] == ("info", "purge", execution.informations[-1])
 
 
 TABLES = {
-	"sonores": ("sonores", "titre"),
-	"banques": ("banques", "nom_interne"),
-	"événements": ("evenements", "nom_interne"),
+	"sonores": ("sounds", "title"),
+	"banques": ("banks", "internal_name"),
+	"événements": ("events", "internal_name"),
 }
 
 
@@ -261,7 +263,7 @@ def aucune_sequence(base_vide: Connexion) -> None:
 
 @then("en base ne reste aucun sonore")
 def aucun_sonore(base_vide: Connexion) -> None:
-	assert base_vide.execute("SELECT count(*) FROM sonores").fetchone() == (0,)
+	assert base_vide.execute("SELECT count(*) FROM sounds").fetchone() == (0,)
 
 
 @then(parsers.parse("le fichier « {chemin} » est toujours là, intact"))
@@ -272,15 +274,14 @@ def fichier_intact(configuration: Configuration, chemin: str) -> None:
 
 @then(parsers.parse("aucun stream ne suit plus le feed « {feed} », qui peut se supprimer"))
 def feed_libre(base_vide: Connexion, feed: str) -> None:
-	assert base_vide.execute("SELECT count(*) FROM sonores").fetchone() == (0,)
-	base_vide.execute("DELETE FROM feeds WHERE nom = %s", (feed,))
+	assert base_vide.execute("SELECT count(*) FROM sounds").fetchone() == (0,)
+	base_vide.execute("DELETE FROM feeds WHERE name = %s", (feed,))
 
 
 @then(parsers.re(r"les sessions sautées de « (?P<nom>[^»]+) » sont (?P<jours>«.+)"))
 def sessions_sautees(base_vide: Connexion, nom: str, jours: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT s.jour FROM evenements_sauts s JOIN evenements e ON e.id = s.evenement_id"
-		" WHERE e.nom_interne = %s ORDER BY s.jour",
+		"SELECT s.day FROM event_skips s JOIN events e ON e.id = s.event_id WHERE e.internal_name = %s ORDER BY s.day",
 		(nom,),
 	).fetchall()
 	assert [str(jour) for (jour,) in lignes] == re.findall(r"« ([^»]+) »", jours)

@@ -16,14 +16,14 @@ Fonctionnalité: Expiration automatique des sonores
 		Étant donné le sonore actif « Annonce concert » avec un maximum de 2 lectures
 		Et « Annonce concert » a été joué 2 fois
 		Quand le binaire lecture vérifie les expirations au « 2026-10-14 20:00:00 »
-		Alors le sonore « Annonce concert » est à l'état « expire »
+		Alors le sonore « Annonce concert » est à l'état « expired »
 		Et le log contient 1 info « sonore expiré », pour ce sonore, qui mentionne « maximum de 2 lectures atteint »
 
 	Scénario: Un sonore sous son maximum de lectures reste actif
 		Étant donné le sonore actif « Annonce concert » avec un maximum de 2 lectures
 		Et « Annonce concert » a été joué 1 fois
 		Quand le binaire lecture vérifie les expirations au « 2026-10-14 20:00:00 »
-		Alors le sonore « Annonce concert » est à l'état « actif »
+		Alors le sonore « Annonce concert » est à l'état « active »
 		Et le log est vide
 
 	Scénario: Le maximum se compte sur tout l'historique, quels que soient l'événement et la banque
@@ -32,7 +32,7 @@ Fonctionnalité: Expiration automatique des sonores
 		Et « Annonce concert » a été joué 1 fois via la banque « Annonces »
 		Et « Annonce concert » a été joué 1 fois sans événement ni banque
 		Quand le binaire lecture vérifie les expirations au « 2026-10-14 20:00:00 »
-		Alors le sonore « Annonce concert » est à l'état « expire »
+		Alors le sonore « Annonce concert » est à l'état « expired »
 
 	# ─── Période de diffusion ──────────────────────────────────
 
@@ -43,9 +43,9 @@ Fonctionnalité: Expiration automatique des sonores
 
 		Exemples:
 			| instant             | etat   |
-			| 2026-10-14 19:59:59 | actif  |
-			| 2026-10-14 20:00:00 | expire |
-			| 2026-10-15 08:00:00 | expire |
+			| 2026-10-14 19:59:59 | active  |
+			| 2026-10-14 20:00:00 | expired |
+			| 2026-10-15 08:00:00 | expired |
 
 	Scénario: La fin de la période de diffusion est consignée avec sa date
 		Étant donné le sonore actif « Promo salon » diffusable jusqu'au « 2026-10-14 20:00:00 »
@@ -63,16 +63,16 @@ Fonctionnalité: Expiration automatique des sonores
 
 		Exemples:
 			| etat      |
-			| apercu    |
-			| desactive |
-			| errone    |
-			| supprime  |
-			| expire    |
+			| preview    |
+			| disabled |
+			| corrupt    |
+			| missing  |
+			| expired    |
 
 	Scénario: L'expiration ne change que l'état du sonore
 		Étant donné le sonore actif « Promo salon » diffusable jusqu'au « 2026-10-14 20:00:00 »
 		Quand le binaire lecture vérifie les expirations au « 2026-10-15 08:00:00 »
-		Alors seules les colonnes etat et modifie_le du sonore « Promo salon » ont changé
+		Alors seules les colonnes state et modified_at du sonore « Promo salon » ont changé
 
 	Scénario: Un sonore expiré ne l'est qu'une fois dans le log
 		Étant donné le sonore actif « Promo salon » diffusable jusqu'au « 2026-10-14 20:00:00 »
@@ -90,7 +90,7 @@ Fonctionnalité: Expiration automatique des sonores
 		Et la diffusion tourne 3 pas d'une seconde
 		Et la diffusion s'arrête
 		Alors l'airplay montre les passages « annonce », « f1 », « f1 »
-		Et le sonore « annonce » est à l'état « expire »
+		Et le sonore « annonce » est à l'état « expired »
 		Et le log contient 1 info « sonore expiré »
 
 	Scénario: Pendant la diffusion, la fin d'une période de diffusion est vérifiée chaque minute
@@ -99,10 +99,10 @@ Fonctionnalité: Expiration automatique des sonores
 		Et le sonore actif « Promo salon » diffusable jusqu'au « 2026-10-14 20:00:00 »
 		Quand la diffusion démarre au plus vite
 		Et la diffusion tourne 1 pas d'une seconde
-		Alors le sonore « Promo salon » est à l'état « actif »
+		Alors le sonore « Promo salon » est à l'état « active »
 		Quand l'horloge du binaire passe au « 2026-10-14 20:00:30 »
 		Et la diffusion tourne 1 pas d'une seconde
-		Alors le sonore « Promo salon » est à l'état « actif »
+		Alors le sonore « Promo salon » est à l'état « active »
 		Quand l'horloge du binaire passe au « 2026-10-14 20:00:52 »
 		Et la diffusion tourne 1 pas d'une seconde
-		Alors le sonore « Promo salon » est à l'état « expire »
+		Alors le sonore « Promo salon » est à l'état « expired »

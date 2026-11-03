@@ -13,14 +13,14 @@ Fonctionnalité: Un emoji annonce l'intention des boutons et des menus qui ajout
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-19 15:30:42 »
 		Et les sonores :
-			| artiste     | titre        | type    | etat  | duree | emplacement               |
-			|             | Jingle début | fichier | actif | 5     | /srv/habillage/debut.flac |
-			| Les Gaufres | Spot         | fichier | actif | 30    | /srv/pubs/spot.flac       |
+			| artist      | title        | type | state  | duration | location                  |
+			|             | Jingle début | file | active | 5        | /srv/habillage/debut.flac |
+			| Les Gaufres | Spot         | file | active | 30       | /srv/pubs/spot.flac       |
 		Et la banque « Publicité », aléatoire, sans nom public, avec « Spot »
 		Et la séquence « Passage pub », sans nom public, avec le sonore « Jingle début », la banque « Publicité »
 		Et les événements :
-			| nom      | nom_public | priorite    | debut            | fin              | jours |
-			| Continue |            | fil_musical |                  |                  |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et les feeds « Studio mobile » « https://flux.exemple/direct »
 
 	Plan du scénario: Les boutons d'une fiche qui ajoutent, retirent ou suppriment portent leur emoji

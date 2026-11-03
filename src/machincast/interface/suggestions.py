@@ -48,7 +48,7 @@ FIL_MUSICAL = "Fil musical"
 class Reglage:
 	"""Ce qu'une banque suggérée reçoit à sa création."""
 
-	mode: str = "aleatoire"
+	mode: str = "random"
 	ne_pas_repeter: bool = False
 	"""https://github.com/dascritch/machincast/issues/63"""
 	duree_max: timedelta | None = None
@@ -57,7 +57,7 @@ class Reglage:
 
 
 MUSIQUE = Reglage(duree_max=timedelta(minutes=15))
-ANNONCE = Reglage(mode="sequentiel", duree_max=timedelta(minutes=2), sans_crossfade=True)
+ANNONCE = Reglage(mode="sequential", duree_max=timedelta(minutes=2), sans_crossfade=True)
 REGLAGES = {
 	"Identifiant station": Reglage(ne_pas_repeter=True, duree_max=timedelta(minutes=2)),
 	"Musique rotation lourde": MUSIQUE,
@@ -67,7 +67,7 @@ REGLAGES = {
 	"Partenariats": ANNONCE,
 	"Publicités": ANNONCE,
 	"Bande-annonce émissions": Reglage(
-		mode="sequentiel", ne_pas_repeter=True, duree_max=timedelta(minutes=2), sans_crossfade=True
+		mode="sequential", ne_pas_repeter=True, duree_max=timedelta(minutes=2), sans_crossfade=True
 	),
 }
 """Les banques suggérées, dans l'ordre où la fenêtre les propose, et leurs réglages
@@ -127,11 +127,11 @@ def manquants(connexion: psycopg.Connection[TupleRow], audio: Audio) -> Manques:
 	"""Ce qui manque : fil musical, banques suggérées, carte son d'antenne sur une vraie sortie."""
 	with connexion.transaction():
 		fil = connexion.execute(
-			"SELECT 1 FROM evenements WHERE priorite = 'fil_musical' AND supprime_le IS NULL LIMIT 1"
+			"SELECT 1 FROM events WHERE priority = 'background_programming' AND deleted_at IS NULL LIMIT 1"
 		).fetchone()
 		existantes = {
 			str(nom).casefold()
-			for (nom,) in connexion.execute("SELECT nom_interne FROM banques WHERE supprime_le IS NULL")
+			for (nom,) in connexion.execute("SELECT internal_name FROM banks WHERE deleted_at IS NULL")
 		}
 	banques = tuple(banque for banque in BANQUES if banque.casefold() not in existantes)
 	a_choisir = None
@@ -152,12 +152,12 @@ def creer(connexion: psycopg.Connection[TupleRow], reponse: Reponse) -> str | No
 		nouvelles = []
 		for banque in reponse.banques:
 			reglage = REGLAGES[banque]
-			regle = "sonore"
+			regle = "sound"
 			if reglage.sans_crossfade:
-				regle = "impose"
+				regle = "forced"
 			connexion.execute(
-				"INSERT INTO banques (nom_interne, mode, ne_pas_repeter, duree_max, crossfade_debut_regle,"
-				" crossfade_debut, crossfade_fin_regle, crossfade_fin)"
+				"INSERT INTO banks (internal_name, mode, no_repeat, max_duration, crossfade_start_rule,"
+				" crossfade_start, crossfade_end_rule, crossfade_end)"
 				" VALUES (%s, %s, %s, %s, %s, '0 s', %s, '0 s')",
 				(banque, reglage.mode, reglage.ne_pas_repeter, reglage.duree_max, regle, regle),
 			)
@@ -175,16 +175,16 @@ def creer(connexion: psycopg.Connection[TupleRow], reponse: Reponse) -> str | No
 def _remplir_un_fil_vide(connexion: psycopg.Connection[TupleRow]) -> None:
 	"""Le premier fil musical sans élément, par nom, reçoit la rotation type, avec les banques qui existent."""
 	vide = connexion.execute(
-		"SELECT e.id FROM evenements e WHERE e.priorite = 'fil_musical' AND e.supprime_le IS NULL"
-		" AND NOT EXISTS (SELECT 1 FROM evenements_elements x WHERE x.evenement_id = e.id)"
-		" ORDER BY e.nom_interne LIMIT 1"
+		"SELECT e.id FROM events e WHERE e.priority = 'background_programming' AND e.deleted_at IS NULL"
+		" AND NOT EXISTS (SELECT 1 FROM event_items x WHERE x.event_id = e.id)"
+		" ORDER BY e.internal_name LIMIT 1"
 	).fetchone()
 	if vide is None:
 		return
 	banques = {
 		str(nom).casefold(): int(str(identifiant))
 		for identifiant, nom in connexion.execute(
-			"SELECT id, nom_interne FROM banques WHERE supprime_le IS NULL ORDER BY id"
+			"SELECT id, internal_name FROM banks WHERE deleted_at IS NULL ORDER BY id"
 		)
 	}
 	position = 0
@@ -194,7 +194,7 @@ def _remplir_un_fil_vide(connexion: psycopg.Connection[TupleRow]) -> None:
 			continue
 		position += 1
 		connexion.execute(
-			"INSERT INTO evenements_elements (evenement_id, position, banque_id) VALUES (%s, %s, %s)",
+			"INSERT INTO event_items (event_id, position, bank_id) VALUES (%s, %s, %s)",
 			(vide[0], position, identifiant),
 		)
 

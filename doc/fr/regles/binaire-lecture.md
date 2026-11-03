@@ -13,7 +13,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 - Une banque jouée fait jouer **un seul** sonore.
 - Le mode aléatoire est contrôlé : pas de répétition dans une banque avant d'avoir joué tous ses sonores. Le cycle est propre à chaque banque.
 - Une banque marquée « ne pas répéter » ne passe jamais deux fois de suite, même d'un événement à l'autre : l'élément est sauté, et l'événement se termine s'il ne reste rien d'autre de jouable ([#63](https://github.com/dascritch/machincast/issues/63)).
-- Seuls les sonores jouables sont candidats : à l'état `actif`, dans leur période de diffusion, sous leur maximum de lectures.
+- Seuls les sonores jouables sont candidats : à l'état `active`, dans leur période de diffusion, sous leur maximum de lectures.
 - Artiste et titre sont masqués selon la priorité Événement > Séquence > Banque > Sonore > configuration ; masqués, ils laissent la place au premier nom public renseigné, Événement > Séquence > Banque (`sorties.premier_nom_public`), sinon au texte public. Les sorties privées affichent tout, les sorties publiques appliquent le masquage.
 - Jamais de diffusion sur un périphérique implicite : sans `audio.device`, `Machin_player` refuse de diffuser (code 2), sauf sur la sortie `factice` ([#116](https://github.com/dascritch/machincast/issues/116)).
 - Jamais de blanc non signalé : si rien n'est jouable, laisser un blanc et lever une alerte dans le log.
@@ -26,15 +26,15 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 
 ## Choix d'un sonore dans une banque
 
-- `machincast.lecture.banques.choisir_sonore(connexion, banque, instant, hasard)` ([#13](https://github.com/dascritch/machincast/issues/13)) : aucun état en mémoire, tout se déduit de l'airplay. Chaque passage doit donc noter dans `airplay.banque_id` la banque qui l'a fourni, et rien d'autre : un sonore placé directement dans un événement n'a pas de banque.
+- `machincast.lecture.banques.choisir_sonore(connexion, banque, instant, hasard)` ([#13](https://github.com/dascritch/machincast/issues/13)) : aucun état en mémoire, tout se déduit de l'airplay. Chaque passage doit donc noter dans `airplay.bank_id` la banque qui l'a fourni, et rien d'autre : un sonore placé directement dans un événement n'a pas de banque.
 - Le tirage passe par le `Hasard` reçu, créé par `machincast.hasard.creer_hasard` : jamais d'`import random` hors de `machincast.hasard`.
 - Les règles de jouabilité (§ 4.5) sont dans `banques.jouable` ; le maximum de lectures se compte sur tout l'airplay.
 
 ## Déroulé et transitions
 
 - `machincast.lecture.deroule.Ordonnanceur.decider(instant, en_cours)` ([#14](https://github.com/dascritch/machincast/issues/14)) dit à la sortie audio de continuer, couper net, jouer un sonore ou se taire. Il ne garde en mémoire que les occurrences terminées plus tôt, l'occurrence avancée (`Ordonnanceur.avancee`, [#257](https://github.com/dascritch/machincast/issues/257)) et l'état de blanc : la position dans chaque liste se lit dans l'airplay. L'occurrence active se demande toujours à `Ordonnanceur._actif`, jamais à `grille.evenement_actif` directement : il y ajoute l'occurrence avancée, avec l'heure où elle a commencé (`Occurrence.commencee`), d'où se compte sa liste.
-- Chaque passage doit donc noter dans l'airplay son événement (`evenement_id`) et son élément (`element_id`), en plus de sa banque.
-- Séquences ([#99](https://github.com/dascritch/machincast/issues/99)) : `deroule.prochain` joue un élément séquence par `dans_la_sequence`, depuis son premier élément jouable ; chaque passage note `airplay.sequence_id` et `sequence_element_id` (`Choix.ligne`). À chaque décision, `Ordonnanceur._suite` continue d'abord la séquence du dernier passage de tout l'historique, même son événement fini (au nom de cet événement), sauf si un événement a commencé depuis ce passage ou pendant la suspension d'un stream. Une séquence ne contient jamais une autre séquence. Ses lignes se lisent par `machincast.lecture.sequences`.
+- Chaque passage doit donc noter dans l'airplay son événement (`event_id`) et son élément (`event_item_id`), en plus de sa banque.
+- Séquences ([#99](https://github.com/dascritch/machincast/issues/99)) : `deroule.prochain` joue un élément séquence par `dans_la_sequence`, depuis son premier élément jouable ; chaque passage note `airplay.sequence_id` et `sequence_item_id` (`Choix.ligne`). À chaque décision, `Ordonnanceur._suite` continue d'abord la séquence du dernier passage de tout l'historique, même son événement fini (au nom de cet événement), sauf si un événement a commencé depuis ce passage ou pendant la suspension d'un stream. Une séquence ne contient jamais une autre séquence. Ses lignes se lisent par `machincast.lecture.sequences`.
 - Banque « ne pas répéter » ([#63](https://github.com/dascritch/machincast/issues/63)) : à chaque décision, l'ordonnanceur lit le dernier passage de tout l'historique (`Historique.dernier_passage`) ; si sa banque est marquée (`banques.a_ne_pas_repeter`), `prochain` saute les éléments qui la rappellent. Chaque élément sauté est noté une seule fois par passage (`élément sauté`, info), même si la décision est reprise ; une émission ou un spécial terminé à cause du saut donne l'alerte `événement terminé plus tôt`, pas un événement terminé pour une autre raison. `deroule.appels_ignores` donne à l'interface les lignes d'une liste qui seront toujours sautées.
 - Une seule alerte `blanc` par blanc, pas une par seconde.
 - Interruption manuelle ([#104](https://github.com/dascritch/machincast/issues/104)) : les seules entrées de l'interface vers `Machin_player` sont la demande d'interruption et la demande de relire la grille ([#273](https://github.com/dascritch/machincast/issues/273), `Diffusion.relire_la_grille`), sur la socket d'état (`etat.lire_demande`, `SocketEtat.demandes`) ; aucune autre commande n'y passe sans ticket. `Diffusion.interrompre` éteint le sonore avec les crossfades par défaut de la configuration (`_eteindre`, `fondu` et `montee`) ; l'ordonnanceur garde en mémoire la séquence abandonnée (`sequence_abandonnee`) et les occurrences terminées (`terminees`, `rendre_au_fil_musical`), que `anticiper` et `prevision` restaurent.
@@ -42,7 +42,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 
 ## Moteur audio
 
-- `machincast.lecture.moteur.MoteurAudio` ([#15](https://github.com/dascritch/machincast/issues/15)) : une voie (pipeline `playbin3`, `machincast.audio.LECTEUR`, [#284](https://github.com/dascritch/machincast/issues/284)) par sonore, sur l'élément de la sortie configurée (`machincast.audio.creer_sortie`). Le volume suit une enveloppe posée d'avance (GstController) d'après la durée en base. Le sonore suivant démarre à `enchainement(duree, crossfade_fin, crossfade_debut_suivant)`, avec la montée `fondu_d_entree(…)` ; sans superposition (l'un des deux crossfades à 0), la voie sortante perd son fondu (`supprimer_fondu_de_sortie`) et joue jusqu'au bout.
+- `machincast.lecture.moteur.MoteurAudio` ([#15](https://github.com/dascritch/machincast/issues/15)) : une voie (pipeline `playbin3`, `machincast.audio.LECTEUR`, [#284](https://github.com/dascritch/machincast/issues/284)) par sonore, sur l'élément de la sortie configurée (`machincast.audio.creer_sortie`). Le volume suit une enveloppe posée d'avance (GstController) d'après la durée en base. Le sonore suivant démarre à `enchainement(duree, crossfade_end, crossfade_debut_suivant)`, avec la montée `fondu_d_entree(…)` ; sans superposition (l'un des deux crossfades à 0), la voie sortante perd son fondu (`supprimer_fondu_de_sortie`) et joue jusqu'au bout.
 - Le moteur ne décide de rien : l'ordonnanceur lui dit quoi jouer et quand couper.
 - `machincast.lecture.fichiers.verifier_avant_lecture` avant chaque fichier : écart consigné, fichier introuvable non joué.
 - Une voie qui n'atteint pas l'état PLAYING dans `DELAI_DE_GARDE` est bloquée (`Voie.bloquee`, [#281](https://github.com/dascritch/machincast/issues/281)) : la diffusion la coupe, termine son passage en incident `lecture bloquée` et joue le suivant. L'horloge des voies est `time.monotonic`, injectée (`MoteurAudio(horloge=…)`) : les scénarios la remplacent ; toute voie (`VoieLecture`) répond à `bloquee`, la voie simulée jamais.
@@ -54,7 +54,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 ## Boucle de diffusion
 
 - `machincast.lecture.diffusion.Diffusion` ([#88](https://github.com/dascritch/machincast/issues/88)) assemble l'ordonnanceur, le moteur, la vérification des fichiers et l'enregistrement. Elle avance par `pas()`, à l'heure de l'`Horloge` reçue : les tests la font tourner pas à pas avec une `HorlogeFixe`, sur la sortie factice, au plus vite ou en temps réel.
-- Le moment d'enchaîner vient de la position de la voie (`duree - crossfade_fin`) ; les heures de l'airplay et du log viennent de l'horloge.
+- Le moment d'enchaîner vient de la position de la voie (`duree - crossfade_end`) ; les heures de l'airplay et du log viennent de l'horloge.
 - Détection de silence ([#146](https://github.com/dascritch/machincast/issues/146), [#234](https://github.com/dascritch/machincast/issues/234)) : `lire_parametres` décide seul de la partie jouée et de ses fondus (`machincast.lecture.fondus.placer`, avec les positions des fondus des préférences), et donne au moteur sa durée, son début dans le fichier (`Parametres.decalage`) et les volumes aux bords d'un fondu qui déborde du fichier (`volume_de_depart`, `volume_d_arrivee`) ; le reste de la diffusion ne voit que cette durée. Une voie dont la lecture ne commence pas au début du fichier, ou n'y finit pas (`decalage` non `None`), pré-lit son fichier puis le borne par une recherche, et compte sa position, son enveloppe et ses fondus depuis le début de sa lecture ; une voie sans décalage joue le fichier en entier, sans recherche. Les règles du placement ne s'écrivent qu'une fois, dans `fondus` : l'interface s'en sert aussi. Le fichier n'est jamais modifié.
 - Un fichier introuvable est écarté par `Ordonnanceur.exclure` pendant `REESSAI_FICHIER_INTROUVABLE` ; `prochain` et `choisir_sonore` reçoivent ces sonores écartés et les traitent comme non jouables.
 - Les signaux ne font que lever un `threading.Event` (`installer_arret`) : l'arrêt se fait entre deux pas, jamais au milieu d'une écriture.
@@ -69,7 +69,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 
 ## Expiration
 
-- `machincast.lecture.expiration.expirer(connexion, instant, sonore=None)` ([#18](https://github.com/dascritch/machincast/issues/18)) : une seule requête `UPDATE … RETURNING` passe à `expire` les sonores `actif` arrivés au bout, puis consigne chacun. Le `RETURNING` est permis sur `sonores`, que la lecture peut lire, jamais sur `log`.
+- `machincast.lecture.expiration.expirer(connexion, instant, sonore=None)` ([#18](https://github.com/dascritch/machincast/issues/18)) : une seule requête `UPDATE … RETURNING` passe à `expired` les sonores `active` arrivés au bout, puis consigne chacun. Le `RETURNING` est permis sur `sounds`, que la lecture peut lire, jamais sur `log`.
 - La diffusion vérifie le sonore de chaque passage qui commence, et tous les sonores au démarrage puis toutes les `VERIFICATION_DES_EXPIRATIONS`.
 
 ## Sorties
@@ -86,7 +86,7 @@ Connexion par `machincast.base.connecter(…, Role.LECTURE)`. Ces écritures son
 
 - `airplay` : une ligne de début et une ligne de fin par passage.
 - `log` : toutes les opérations, normales et incidents. Le rôle ne peut pas lire cette table : pas de `RETURNING` sur une insertion dans `log`.
-- `sonores.etat` : passage à `expire` au maximum de lectures ou à la fin de la période de diffusion, toujours consigné dans le log ; jamais un autre état ([#66](https://github.com/dascritch/machincast/issues/66)).
+- `sounds.state` : passage à `expired` au maximum de lectures ou à la fin de la période de diffusion, toujours consigné dans le log ; jamais un autre état ([#66](https://github.com/dascritch/machincast/issues/66)).
 
 ## Mode simulation
 

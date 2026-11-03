@@ -9,21 +9,21 @@ Fonctionnalité: Indexation rapide
 
 	Plan du scénario: L'indexation rapide décode les sonores en aperçu et les fait sortir de l'aperçu
 		Étant donné un fichier <fichier>
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Quand l'indexeur fait une indexation rapide
 		Alors le sonore est à l'état « <apres> »
 
 		Exemples:
 			| fichier       | apres    |
-			| mp3 sain      | actif    |
-			| mp3 endommagé | errone   |
-			| introuvable   | supprime |
+			| mp3 sain      | active    |
+			| mp3 endommagé | corrupt   |
+			| introuvable   | missing |
 
 	Scénario: Un sonore en aperçu reçoit sa durée et ses tags à l'indexation rapide
 		Étant donné un fichier flac tagué
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Quand l'indexeur fait une indexation rapide
-		Alors le sonore est à l'état « actif »
+		Alors le sonore est à l'état « active »
 		Et sa durée en base est de 1 seconde à 0,05 seconde près
 		Et en base, l'artiste est « Les Gaufres Électriques » et le titre « Café à minuit »
 
@@ -37,10 +37,10 @@ Fonctionnalité: Indexation rapide
 
 		Exemples:
 			| fichier       | avant     |
-			| mp3 sain      | actif     |
-			| mp3 endommagé | actif     |
-			| mp3 sain      | errone    |
-			| mp3 endommagé | desactive |
+			| mp3 sain      | active     |
+			| mp3 endommagé | active     |
+			| mp3 sain      | corrupt    |
+			| mp3 endommagé | disabled |
 
 	Plan du scénario: L'indexation rapide repère quand même les fichiers disparus
 		Étant donné un fichier introuvable
@@ -51,22 +51,22 @@ Fonctionnalité: Indexation rapide
 
 		Exemples:
 			| avant     | apres     | consequence             |
-			| actif     | supprime  | sonore passé supprimé   |
-			| errone    | supprime  | sonore passé supprimé   |
-			| desactive | desactive | état désactivé conservé |
-			| expire    | expire    | état expiré conservé    |
+			| active     | missing  | sonore passé supprimé   |
+			| corrupt    | missing  | sonore passé supprimé   |
+			| disabled | disabled | état désactivé conservé |
+			| expired    | expired    | état expiré conservé    |
 
 	Scénario: L'audit complet fait aussi sortir les sonores de l'aperçu
 		Étant donné un fichier mp3 sain
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Quand l'indexeur fait un audit complet
-		Alors le sonore est à l'état « actif »
+		Alors le sonore est à l'état « active »
 		Et le bilan indique « audit complet : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
 
 	Scénario: Le bilan de l'indexation rapide compte les sonores sortis de l'aperçu et les fichiers disparus
 		Étant donné un fichier mp3 sain
-		Et un sonore à l'état « apercu » pour ce fichier
-		Et un deuxième fichier wav sain, dont le sonore est à l'état « actif »
+		Et un sonore à l'état « preview » pour ce fichier
+		Et un deuxième fichier wav sain, dont le sonore est à l'état « active »
 		Et un troisième sonore, actif, dont le fichier a disparu
 		Quand l'indexeur fait une indexation rapide
 		Alors le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 1 sorti d'aperçu »
@@ -79,18 +79,18 @@ Fonctionnalité: Indexation rapide
 
 	Scénario: L'indexation rapide revérifie un fichier remplacé sous le même nom
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Et l'indexeur a fait une indexation rapide
 		Et ce fichier remplacé, sous le même nom, par un fichier flac tagué
 		Quand l'indexeur fait une indexation rapide
-		Alors le sonore est à l'état « actif »
+		Alors le sonore est à l'état « active »
 		Et en base, l'artiste est « Les Gaufres Électriques » et le titre « Café à minuit »
 		Et la date de modification et la taille du fichier sont enregistrées
 		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Un fichier dont seule la date de modification a changé est aussi revérifié
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Et l'indexeur a fait une indexation rapide
 		Et ce fichier touché, sans changer son contenu
 		Quand l'indexeur fait une indexation rapide
@@ -99,7 +99,7 @@ Fonctionnalité: Indexation rapide
 
 	Scénario: Un fichier remplacé en gardant sa date de modification est revérifié, sa taille ayant changé
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Et l'indexeur a fait une indexation rapide
 		Et ce fichier remplacé, sous le même nom, par un fichier flac tagué, en gardant sa date de modification
 		Quand l'indexeur fait une indexation rapide
@@ -107,11 +107,11 @@ Fonctionnalité: Indexation rapide
 
 	Scénario: Un fichier déjà vérifié qui disparaît passe supprimé, sans compter comme vérifié
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Et l'indexeur a fait une indexation rapide
 		Et ce fichier supprimé
 		Quand l'indexeur fait une indexation rapide
-		Alors le sonore est à l'état « supprime »
+		Alors le sonore est à l'état « missing »
 		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 0 sorti d'aperçu »
 		Et la disparition du fichier du sonore est datée
 
@@ -119,31 +119,31 @@ Fonctionnalité: Indexation rapide
 		https://github.com/dascritch/machincast/issues/267
 
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Et le sonore est supprimé depuis l'interface
 		Quand l'indexeur fait une indexation rapide
-		Alors le sonore est à l'état « apercu »
+		Alors le sonore est à l'état « preview »
 		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Un fichier inchangé depuis sa dernière vérification n'est pas redécodé
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Et l'indexeur a fait une indexation rapide
 		Quand l'indexeur fait une indexation rapide
 		Alors le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Un fichier remplacé par un fichier endommagé est signalé, et son sonore passe erroné
 		Étant donné un fichier mp3 sain
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Et l'indexeur a fait une indexation rapide
 		Et ce fichier remplacé, sous le même nom, par un fichier mp3 endommagé
 		Quand l'indexeur fait une indexation rapide
-		Alors le sonore est à l'état « errone »
+		Alors le sonore est à l'état « corrupt »
 		Et la sortie d'erreur signale ce fichier comme « endommagé », avec « sonore passé erroné »
 
 	Plan du scénario: Un fichier remplacé garde les champs saisis à la main, et l'état que l'indexeur ne change pas
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « apercu » pour ce fichier, dont le titre a été saisi à la main « Rediffusion du matin »
+		Et un sonore à l'état « preview » pour ce fichier, dont le titre a été saisi à la main « Rediffusion du matin »
 		Et l'indexeur a fait une indexation rapide
 		Et le sonore est passé à l'état « <etat> »
 		Et ce fichier remplacé, sous le même nom, par un fichier flac tagué
@@ -153,30 +153,30 @@ Fonctionnalité: Indexation rapide
 
 		Exemples:
 			| etat      |
-			| actif     |
-			| desactive |
-			| expire    |
+			| active     |
+			| disabled |
+			| expired    |
 
 	# ─── Date de vérification (https://github.com/dascritch/machincast/issues/125) ─────
 
 	Scénario: Un sonore vérifié en entier reçoit la date de sa vérification
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Quand l'indexeur fait une indexation rapide
 		Alors la date de vérification complète du sonore est celle de l'indexation
 
 	Scénario: Un sonore dont seule la présence est contrôlée garde sa date de vérification
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « actif » pour ce fichier
+		Et un sonore à l'état « active » pour ce fichier
 		Quand l'indexeur fait une indexation rapide
 		Alors le sonore n'a pas de date de vérification complète
 
 	Scénario: Un fichier disparu garde la date de sa dernière vérification
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Et l'indexeur a fait une indexation rapide
 		Et ce fichier supprimé
 		Quand l'indexeur fait un audit complet
-		Alors le sonore est à l'état « supprime »
+		Alors le sonore est à l'état « missing »
 		Et la date de vérification complète du sonore est celle de l'indexation précédente
 

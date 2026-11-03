@@ -14,19 +14,19 @@ Fonctionnalité: Fiche d'un événement
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-19 15:30:42 »
 		Et les sonores :
-			| artiste     | titre        | type    | etat  | duree | emplacement               |
-			|             | Jingle début | fichier | actif | 5     | /srv/habillage/debut.flac |
-			|             | Jingle fin   | fichier | actif | 4     | /srv/habillage/fin.flac   |
-			| Les Gaufres | Spot         | fichier | actif | 30    | /srv/pubs/spot.flac       |
+			| artist      | title        | type | state  | duration | location                  |
+			|             | Jingle début | file | active | 5        | /srv/habillage/debut.flac |
+			|             | Jingle fin   | file | active | 4        | /srv/habillage/fin.flac   |
+			| Les Gaufres | Spot         | file | active | 30       | /srv/pubs/spot.flac       |
 		Et la banque « Publicité », aléatoire, sans nom public, marquée « ne pas répéter », avec « Spot »
 		Et la banque « Habillage », séquentielle, sans nom public, avec « Jingle début »
 		Et la séquence « Passage pub », sans nom public, avec le sonore « Jingle début », la banque « Publicité », le sonore « Jingle fin »
 		Et les événements :
-			| nom      | nom_public  | priorite    | debut            | fin              | jours                                     |
-			| Continue |             | fil_musical |                  |                  |                                           |
-			| Matinale | Le réveil   | emission    | 2026-10-19 07:00 | 2026-10-19 09:00 | lundi, mardi, mercredi, jeudi, vendredi   |
-			| Journal  |             | emission    | 2026-10-21 09:00 | 2026-10-21 09:30 |                                           |
-			| Panne    |             | secours     |                  |                  |                                           |
+			| name     | public_name | priority               | starts_at        | ends_at          | days                                         |
+			| Continue |             | background_programming |                  |                  |                                              |
+			| Matinale | Le réveil   | show                   | 2026-10-19 07:00 | 2026-10-19 09:00 | monday, tuesday, wednesday, thursday, friday |
+			| Journal  |             | show                   | 2026-10-21 09:00 | 2026-10-21 09:30 |                                              |
+			| Panne    |             | fallback               |                  |                  |                                              |
 		Et l'événement « Matinale » joue la banque « Habillage », la séquence « Passage pub », le sonore « Spot »
 		Et l'événement « Continue » joue la banque « Habillage »
 
@@ -93,13 +93,13 @@ Fonctionnalité: Fiche d'un événement
 		Et j'ajoute les banques « Habillage »
 		Et j'enregistre la fiche
 		Alors l'événement « Midi » a en base :
-			| champ               | valeur                    |
-			| nom_public          | None                      |
-			| priorite            | emission                  |
-			| masquer_metadonnees | None                      |
-			| debut               | 2026-10-19 15:30:00+02:00 |
-			| fin                 | 2026-10-19 16:30:00+02:00 |
-			| jours_recurrence    | ['lundi', 'jeudi']        |
+			| champ           | valeur                    |
+			| public_name     | None                      |
+			| priority        | show                      |
+			| hide_metadata   | None                      |
+			| starts_at       | 2026-10-19 15:30:00+02:00 |
+			| ends_at         | 2026-10-19 16:30:00+02:00 |
+			| recurrence_days | ['monday', 'thursday']        |
 		Et les éléments de l'événement « Midi » sont, dans l'ordre, la banque « Habillage »
 		Et l'onglet ouvert est « Événement : Midi »
 		Quand j'ouvre l'onglet « Événements »
@@ -141,13 +141,13 @@ Fonctionnalité: Fiche d'un événement
 		Et j'enregistre la fiche
 		Alors la fiche ne signale rien
 		Et l'événement « Matinale du week-end » a en base :
-			| champ               | valeur                    |
-			| nom_public          | Bonjour                   |
-			| priorite            | special                   |
-			| masquer_metadonnees | True                      |
-			| debut               | 2026-10-24 08:00:00+02:00 |
-			| fin                 | 2026-10-24 10:30:00+02:00 |
-			| jours_recurrence    | ['samedi', 'dimanche']    |
+			| champ           | valeur                    |
+			| public_name     | Bonjour                   |
+			| priority        | special                   |
+			| hide_metadata   | True                      |
+			| starts_at       | 2026-10-24 08:00:00+02:00 |
+			| ends_at         | 2026-10-24 10:30:00+02:00 |
+			| recurrence_days | ['saturday', 'sunday']    |
 		Et l'onglet ouvert est « Événement : Matinale du week-end »
 
 	Scénario: Un événement de secours n'a ni dates ni jours : il ne joue qu'à la place d'un stream tombé
@@ -164,11 +164,11 @@ Fonctionnalité: Fiche d'un événement
 		Et la grille de la fiche de l'événement se saisit par rien
 		Quand j'enregistre la fiche
 		Alors l'événement « Matinale » a en base :
-			| champ            | valeur  |
-			| priorite         | secours |
-			| debut            | None    |
-			| fin              | None    |
-			| jours_recurrence | []      |
+			| champ           | valeur   |
+			| priority        | fallback |
+			| starts_at       | None     |
+			| ends_at         | None     |
+			| recurrence_days | []       |
 
 	Scénario: Sans début, un événement n'a ni fin ni jours
 		Quand la fenêtre de l'interface s'ouvre
@@ -184,11 +184,11 @@ Fonctionnalité: Fiche d'un événement
 		Et la grille de la fiche de l'événement se saisit par « Début »
 		Quand j'enregistre la fiche
 		Alors l'événement « Matinale » a en base :
-			| champ            | valeur      |
-			| priorite         | fil_musical |
-			| debut            | None        |
-			| fin              | None        |
-			| jours_recurrence | []          |
+			| champ           | valeur                 |
+			| priority        | background_programming |
+			| starts_at       | None                   |
+			| ends_at         | None                   |
+			| recurrence_days | []                     |
 
 	Scénario: Une fin cochée part d'une heure après le début
 		Quand la fenêtre de l'interface s'ouvre
@@ -254,8 +254,8 @@ Fonctionnalité: Fiche d'un événement
 		L'émission « Ancienne » est passée le mercredi 14, que « Matinale », avancée au lundi 12, aurait chevauchée.
 
 		Étant donné les événements :
-			| nom      | nom_public | priorite | debut            | fin              | jours |
-			| Ancienne |            | emission | 2026-10-14 07:30 | 2026-10-14 08:00 |       |
+			| name     | public_name | priority | starts_at        | ends_at          | days |
+			| Ancienne |             | show     | 2026-10-14 07:30 | 2026-10-14 08:00 |      |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et je saisis dans la fiche de l'événement :
@@ -265,16 +265,16 @@ Fonctionnalité: Fiche d'un événement
 		Et j'enregistre la fiche
 		Alors la fiche ne signale rien
 		Et l'événement « Matinale » a en base :
-			| champ | valeur                    |
-			| debut | 2026-10-12 07:00:00+02:00 |
+			| champ     | valeur                    |
+			| starts_at | 2026-10-12 07:00:00+02:00 |
 
 	Scénario: Un chevauchement en cours compte à partir de maintenant
 		https://github.com/dascritch/machincast/issues/271 : l'émission « Après-midi », commencée à 15:00, chevauche
 		encore celle qu'on pose de 14:00 à 16:00 ; la fiche donne l'instant présent.
 
 		Étant donné les événements :
-			| nom        | nom_public | priorite | debut            | fin              | jours |
-			| Après-midi |            | emission | 2026-10-19 15:00 | 2026-10-19 17:00 |       |
+			| name       | public_name | priority | starts_at        | ends_at          | days |
+			| Après-midi |             | show     | 2026-10-19 15:00 | 2026-10-19 17:00 |      |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Événements »
 		Et je clique sur « Nouvel événement »
@@ -323,9 +323,9 @@ Fonctionnalité: Fiche d'un événement
 		Et l'erreur est en haut de la fiche, sur un liseret rouge de 4 pixels
 		Et les champs signalés par ⚠️ sont <champs>
 		Et l'événement « Matinale » a en base :
-			| champ            | valeur                                                    |
-			| priorite         | emission                                                  |
-			| fin              | 2026-10-19 09:00:00+02:00                                 |
+			| champ    | valeur                    |
+			| priority | show                      |
+			| ends_at  | 2026-10-19 09:00:00+02:00 |
 		Et les éléments de l'événement « Matinale » sont, dans l'ordre, la banque « Habillage », la séquence « Passage pub », le sonore « Spot »
 
 		Exemples:
@@ -355,8 +355,8 @@ Fonctionnalité: Fiche d'un événement
 
 	Scénario: Un événement de secours qu'un stream désigne garde sa priorité
 		Étant donné les sonores :
-			| artiste | titre       | type   | etat  | duree | emplacement                 |
-			|         | Radio Thune | stream | actif |       | https://flux.exemple/direct |
+			| artist | title       | type   | state  | duration | location                    |
+			|        | Radio Thune | stream | active |          | https://flux.exemple/direct |
 		Et le stream « Radio Thune » a pour événement de secours « Panne »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Panne »
@@ -367,8 +367,8 @@ Fonctionnalité: Fiche d'un événement
 		Et j'enregistre la fiche
 		Alors la fiche signale « Des streams ont cet événement pour secours : « Radio Thune ». Il reste de priorité « Secours ». »
 		Et l'événement « Panne » a en base :
-			| champ    | valeur  |
-			| priorite | secours |
+			| champ    | valeur   |
+			| priority | fallback |
 		Quand je choisis la priorité « secours »
 		Et je saisis le nom interne « Panne du direct »
 		Et j'enregistre la fiche
@@ -474,9 +474,9 @@ Fonctionnalité: Fiche d'un événement
 
 		Étant donné les feeds « Studio B », « https://flux.exemple/studio-b », « Relais », « https://flux.exemple/relais »
 		Et les sonores :
-			| artiste | titre        | type   | etat  | duree | emplacement                   |
-			|         | Studio B bis | stream | actif |       | https://flux.exemple/studio-b |
-			|         | Direct B     | stream | actif |       | https://flux.exemple/studio-b |
+			| artist | title        | type   | state  | duration | location                      |
+			|        | Studio B bis | stream | active |          | https://flux.exemple/studio-b |
+			|        | Direct B     | stream | active |          | https://flux.exemple/studio-b |
 		Et les streams « Studio B bis », « Direct B » suivent le feed « Studio B »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Journal »
@@ -571,8 +571,8 @@ Fonctionnalité: Fiche d'un événement
 		Étant donné la séquence « Pub d'abord », sans nom public, avec la banque « Publicité », le sonore « Jingle fin »
 		Et la séquence « Pub ensuite », sans nom public, avec le sonore « Jingle début », la banque « Publicité »
 		Et les événements :
-			| nom   | nom_public | priorite | debut            | fin   | jours |
-			| Essai |            | special  | 2026-11-02 10:00 | <fin> |       |
+			| name  | public_name | priority | starts_at        | ends_at | days |
+			| Essai |             | special  | 2026-11-02 10:00 | <fin>   |      |
 		Et l'événement « Essai » joue <éléments>
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Essai »
@@ -591,8 +591,8 @@ Fonctionnalité: Fiche d'un événement
 
 	Scénario: L'avertissement suit la priorité et la fin, qui décident de la boucle, et n'empêche pas d'enregistrer
 		Étant donné les événements :
-			| nom   | nom_public | priorite | debut            | fin              | jours |
-			| Essai |            | special  | 2026-11-02 10:00 | 2026-11-02 11:00 |       |
+			| name  | public_name | priority | starts_at        | ends_at          | days |
+			| Essai |             | special  | 2026-11-02 10:00 | 2026-11-02 11:00 |      |
 		Et l'événement « Essai » joue la banque « Publicité », le sonore « Spot », la banque « Publicité »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Essai »
@@ -605,9 +605,9 @@ Fonctionnalité: Fiche d'un événement
 		Quand j'enregistre la fiche
 		Alors la fiche ne signale rien
 		Et l'événement « Essai » a en base :
-			| champ    | valeur      |
-			| priorite | fil_musical |
-			| fin      | None        |
+			| champ    | valeur                 |
+			| priority | background_programming |
+			| ends_at  | None                   |
 
 	Scénario: Une banque marquée « ne pas répéter » pendant la modification est signalée dès son ajout
 		Quand la fenêtre de l'interface s'ouvre

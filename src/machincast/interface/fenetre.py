@@ -136,14 +136,14 @@ CLE_DE_L_ONGLET_ACTIF = "onglets/actif"
 """Les onglets ouverts, et l'onglet actif, dans les réglages des vues du compte
 (https://github.com/dascritch/machincast/issues/321)."""
 TABLES_DES_FICHES = {
-	"sonore": "sonores",
-	"banque": "banques",
+	"sonore": "sounds",
+	"banque": "banks",
 	"séquence": "sequences",
-	"événement": "evenements",
+	"événement": "events",
 	"feed": "feeds",
 }
-SUPPRIMABLES = frozenset({"sonores", "banques", "sequences", "evenements"})
-"""Les tables dont un élément peut être supprimé sans être effacé de la base (supprime_le)."""
+SUPPRIMABLES = frozenset({"sounds", "banks", "sequences", "events"})
+"""Les tables dont un élément peut être supprimé sans être effacé de la base (deleted_at)."""
 """L'onglet de l'écran par défaut, l'onglet Antenne, qui suit l'antenne (https://github.com/dascritch/machincast/issues/322)."""
 SERVICE_INCOMPLET, SERVICE_INSTALLE = "🟩", "🟥"
 """Le témoin du service de diffusion, devant le titre de l'onglet Antenne : pas complètement installé, ou installé."""
@@ -723,7 +723,7 @@ class FenetrePrincipale(QMainWindow):
 		table = TABLES_DES_FICHES[genre]
 		condition = ""
 		if table in SUPPRIMABLES:
-			condition = " AND supprime_le IS NULL"
+			condition = " AND deleted_at IS NULL"
 		with self.connexion.transaction():
 			ligne = self.connexion.execute(
 				f"SELECT 1 FROM {table} WHERE id = %s{condition}",  # noqa: S608 : table et condition sont des constantes

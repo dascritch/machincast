@@ -46,10 +46,10 @@ def choisir(interface: Contexte, nom: str) -> None:
 def passage(base_vide: Connexion, titre: str, nom: str) -> None:
 	"""Le début d'un passage dans l'historique de diffusion, joué par la ligne du sonore dans la séquence."""
 	base_vide.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, sonore_id, sequence_id, sequence_element_id, emplacement, titre)"
-		" SELECT gen_random_uuid(), 'debut', s.id, q.id, e.id, s.emplacement, s.titre FROM sequences_elements e"
-		" JOIN sequences q ON q.id = e.sequence_id JOIN sonores s ON s.id = e.sonore_id"
-		" WHERE q.nom_interne = %s AND s.titre = %s",
+		"INSERT INTO airplay (play_id, line_type, sound_id, sequence_id, sequence_item_id, location, title)"
+		" SELECT gen_random_uuid(), 'start', s.id, q.id, e.id, s.location, s.title FROM sequence_items e"
+		" JOIN sequences q ON q.id = e.sequence_id JOIN sounds s ON s.id = e.sound_id"
+		" WHERE q.internal_name = %s AND s.title = %s",
 		(nom, titre),
 	)
 
@@ -168,7 +168,7 @@ def reordonnable(interface: Contexte) -> None:
 )
 def sequence_en_base(base_vide: Connexion, nom: str, nom_public: str | None, masquage: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT nom_public, masquer_metadonnees FROM sequences WHERE nom_interne = %s", (nom,)
+		"SELECT public_name, hide_metadata FROM sequences WHERE internal_name = %s", (nom,)
 	).fetchall()
 	assert lignes == [(nom_public, MASQUAGES[masquage])]
 
@@ -183,7 +183,7 @@ def historique(base_vide: Connexion, nom: str, numero: str) -> None:
 	"""Les passages, dans leur ordre : la position de la ligne qui les a joués, aucune pour une ligne retirée."""
 	positions = base_vide.execute(
 		"SELECT e.position FROM airplay a JOIN sequences q ON q.id = a.sequence_id"
-		" LEFT JOIN sequences_elements e ON e.id = a.sequence_element_id WHERE q.nom_interne = %s ORDER BY a.id",
+		" LEFT JOIN sequence_items e ON e.id = a.sequence_item_id WHERE q.internal_name = %s ORDER BY a.id",
 		(nom,),
 	).fetchall()
 	assert positions == [(int(numero),), (None,)]
@@ -193,11 +193,11 @@ def historique(base_vide: Connexion, nom: str, numero: str) -> None:
 def elements_en_base(interface: Contexte, base_vide: Connexion, nom: str, elements: str) -> None:
 	"""Un sonore par son titre, une banque par son nom, un sonore sans titre par son fichier."""
 	lignes = base_vide.execute(
-		"SELECT e.position, CASE WHEN e.banque_id IS NOT NULL THEN 'la banque' WHEN s.titre IS NOT NULL"
-		" THEN 'le sonore' ELSE 'le fichier' END, COALESCE(b.nom_interne, s.titre, s.emplacement)"
-		" FROM sequences_elements e JOIN sequences q ON q.id = e.sequence_id"
-		" LEFT JOIN banques b ON b.id = e.banque_id LEFT JOIN sonores s ON s.id = e.sonore_id"
-		" WHERE q.nom_interne = %s ORDER BY e.position",
+		"SELECT e.position, CASE WHEN e.bank_id IS NOT NULL THEN 'la banque' WHEN s.title IS NOT NULL"
+		" THEN 'le sonore' ELSE 'le fichier' END, COALESCE(b.internal_name, s.title, s.location)"
+		" FROM sequence_items e JOIN sequences q ON q.id = e.sequence_id"
+		" LEFT JOIN banks b ON b.id = e.bank_id LEFT JOIN sounds s ON s.id = e.sound_id"
+		" WHERE q.internal_name = %s ORDER BY e.position",
 		(nom,),
 	).fetchall()
 	attendus = [(genre, interface.chemin(element)) for genre, element in EN_BASE.findall(elements)]

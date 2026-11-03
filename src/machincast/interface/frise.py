@@ -2,7 +2,7 @@
 
 La frise remplace la barre de position de la pré-écoute d'un fichier. Elle s'étend sur toute la durée du fichier :
 
-- Plan : ce que l'antenne fera du fichier, d'après la base. Ses silences détectés (debut_detecte, fin_detectee,
+- Plan : ce que l'antenne fera du fichier, d'après la base. Ses silences détectés (detected_start, detected_end,
   https://github.com/dascritch/machincast/issues/146), retirés s'il active la détection ; la partie jouée et ses
   fondus, placés autour des silences comme la diffusion les place (machincast.lecture.fondus.placer, selon les positions
   des fondus, https://github.com/dascritch/machincast/issues/234) ; ses crossfades, ceux des préférences pour un
@@ -125,7 +125,7 @@ class Plan:
 	(« imposé par la banque », « de la banque »). None : celui du sonore, ou aucun."""
 	origine_fin: str | None = None
 	audite: bool = True
-	"""Un audit complet a mesuré ses silences (audite_le)."""
+	"""Un audit complet a mesuré ses silences (audited_at)."""
 	position_entree: Position = ENTREE_PAR_DEFAUT
 	"""Où le fade-in se place par rapport au début détecté, pour un sonore joué sans ses silences
 	(https://github.com/dascritch/machincast/issues/234)."""
@@ -271,7 +271,7 @@ def _origine(origine: str | None) -> str:
 
 @dataclass(frozen=True)
 class RegleDeBanque:
-	"""La règle d'un côté des crossfades de la banque qui fournit le sonore (regle_crossfade), et sa durée."""
+	"""La règle d'un côté des crossfades de la banque qui fournit le sonore (crossfade_rule), et sa durée."""
 
 	regle: str | None = None
 	duree: timedelta | None = None
@@ -282,11 +282,11 @@ SANS_BANQUE = RegleDeBanque()
 
 def origine_du_crossfade(du_sonore: timedelta | None, banque: RegleDeBanque, defaut: timedelta | None) -> str | None:
 	"""D'où vient le crossfade que retient machincast.lecture.diffusion.crossfade, dans le même ordre."""
-	if banque.regle == "impose":
+	if banque.regle == "forced":
 		return "imposé par la banque"
 	if du_sonore is not None:
 		return None
-	if banque.regle == "a_defaut":
+	if banque.regle == "default":
 		return "de la banque"
 	if defaut is not None:
 		return "défaut"
@@ -306,7 +306,7 @@ def plan_du_sonore(
 ) -> Plan:
 	"""Le plan d'un sonore d'après ses colonnes en base. Sans banque, un crossfade non paramétré (None) est celui des
 	préférences ; avec, les règles de crossfade de début et de fin de la banque s'appliquent avant, comme à la
-	diffusion (https://github.com/dascritch/machincast/issues/230). detection_silences : celle du sonore, ou de sa
+	diffusion (https://github.com/dascritch/machincast/issues/230). silence_detection : celle du sonore, ou de sa
 	banque. Les fondus se placent selon les positions des préférences
 	(https://github.com/dascritch/machincast/issues/234)."""
 
@@ -339,18 +339,18 @@ def lire_le_plan(
 	stream, un fichier sans durée, ou un sonore qui n'est plus en base (https://github.com/dascritch/machincast/issues/230)."""
 	with connexion.transaction():
 		ligne = connexion.execute(
-			"SELECT s.type::text, s.duree, s.debut_detecte, s.fin_detectee,"
-			" s.detection_silences OR coalesce(b.detection_silences, false), s.crossfade_debut, s.crossfade_fin,"
-			" s.audite_le IS NOT NULL, b.crossfade_debut_regle::text, b.crossfade_debut, b.crossfade_fin_regle::text,"
-			" b.crossfade_fin"
-			" FROM sonores s LEFT JOIN banques b ON b.id = %s WHERE s.id = %s",
+			"SELECT s.type::text, s.duration, s.detected_start, s.detected_end,"
+			" s.silence_detection OR coalesce(b.silence_detection, false), s.crossfade_start, s.crossfade_end,"
+			" s.audited_at IS NOT NULL, b.crossfade_start_rule::text, b.crossfade_start, b.crossfade_end_rule::text,"
+			" b.crossfade_end"
+			" FROM sounds s LEFT JOIN banks b ON b.id = %s WHERE s.id = %s",
 			(banque, sonore),
 		).fetchone()
 	if ligne is None:
 		return None
 	genre, duree, debut, fin, detection, cd, cf, audite, *regles = ligne
 	regle_debut, banque_debut, regle_fin, banque_fin = regles
-	if (genre != "fichier") or (not isinstance(duree, timedelta)):
+	if (genre != "file") or (not isinstance(duree, timedelta)):
 		return None
 	return plan_du_sonore(
 		duree,

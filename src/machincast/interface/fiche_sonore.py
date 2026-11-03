@@ -10,7 +10,7 @@ machincast.interface.fiche.
   la détection de silence, avec le début et la fin détectés (https://github.com/dascritch/machincast/issues/146). Les
   autres clés des métadonnées musicales sont montrées, jamais modifiées. L'emplacement et la durée ne se modifient pas.
 - Seuls les champs modifiés depuis la lecture de la fiche sont écrits : ce que l'indexation ou la diffusion change
-  entre-temps est gardé. Chacun est ajouté à champs_edites, sauf l'état, que l'indexeur peut encore changer
+  entre-temps est gardé. Chacun est ajouté à edited_fields, sauf l'état, que l'indexeur peut encore changer
   (fichier défectueux, puis de nouveau sain) : l'indexeur ne modifie plus un champ édité.
 - État : l'interface pose « actif » ou « désactivé » ; un sonore expiré, erroné ou supprimé peut y revenir. Un sonore
   en aperçu attend sa première indexation.
@@ -20,7 +20,7 @@ machincast.interface.fiche.
   chaque passage.
 - Début et fin (https://github.com/dascritch/machincast/issues/330) : les silences détectés se nomment « Début
   détecté » et « Fin détectée » tant qu'ils sont ceux de l'indexeur, « Début » et « Fin » dès qu'ils sont saisis à la
-  main, dans la fiche ou avant (champs_edites). Cochés, ils ont chacun un curseur sur la frise, qui se glisse à la
+  main, dans la fiche ou avant (edited_fields). Cochés, ils ont chacun un curseur sur la frise, qui se glisse à la
   souris et règle sa case. Le début ne passe jamais après la fin : chaque case est bornée par l'autre, comme chaque
   curseur, et l'enregistrement refuse des silences qui ne laissent pas de son.
 - Relations (https://github.com/dascritch/machincast/issues/125) : les séquences, banques et événements qui citent le
@@ -72,7 +72,7 @@ from machincast.interface.fiche import Connexion, Fiche, Refus
 from machincast.interface.fiche_banque import avertissement_retrait
 from machincast.interface.frise import FormeDOnde, Frise, plan_du_sonore
 from machincast.interface.intentions import RETIRER, libelle
-from machincast.interface.listes import ETATS
+from machincast.interface.listes import ETATS, TYPES
 from machincast.interface.ui.fiche_sonore import Ui_FicheSonore
 
 METADONNEES: tuple[tuple[str, str], ...] = (
@@ -84,36 +84,36 @@ METADONNEES: tuple[tuple[str, str], ...] = (
 	("label", "label"),
 	("piste", "piste"),
 )
-"""Clés de metadonnees_musicales tenues par l'indexeur (machincast.indexation.tags.CLES), et leur nom à l'écran."""
+"""Clés de music_metadata tenues par l'indexeur (machincast.indexation.tags.CLES), et leur nom à l'écran."""
 ENTIERS = frozenset({"annee", "piste"})
 """Clés dont la valeur est un nombre entier."""
 LIBELLES: dict[str, str] = {
-	"artiste": "artiste",
-	"titre": "titre",
-	**{f"metadonnees_musicales.{cle}": nom for cle, nom in METADONNEES},
-	"crossfade_debut": "crossfade de début",
-	"crossfade_fin": "crossfade de fin",
-	"max_lectures": "maximum de lectures",
-	"masquer_metadonnees": "artiste et titre",
-	"debut_diffusion": "début de diffusion",
-	"fin_diffusion": "fin de diffusion",
-	"url_stream": "adresse directe",
+	"artist": "artiste",
+	"title": "titre",
+	**{f"music_metadata.{cle}": nom for cle, nom in METADONNEES},
+	"crossfade_start": "crossfade de début",
+	"crossfade_end": "crossfade de fin",
+	"max_plays": "maximum de lectures",
+	"hide_metadata": "artiste et titre",
+	"broadcast_start": "début de diffusion",
+	"broadcast_end": "fin de diffusion",
+	"stream_url": "adresse directe",
 	"feed_id": "feed",
-	"secours_evenement_id": "événement de secours",
-	"detection_silences": "détection de silence",
-	"debut_detecte": "début détecté",
-	"fin_detectee": "fin détectée",
-	"duree": "durée",
+	"fallback_event_id": "événement de secours",
+	"silence_detection": "détection de silence",
+	"detected_start": "début détecté",
+	"detected_end": "fin détectée",
+	"duration": "durée",
 }
-"""Nom à l'écran d'un champ de champs_edites."""
+"""Nom à l'écran d'un champ de edited_fields."""
 CHOIX_ETATS: dict[str, tuple[str, ...]] = {
-	"apercu": ("apercu",),
-	"actif": ("actif", "desactive"),
-	"desactive": ("desactive", "actif"),
-	"expire": ("expire", "actif", "desactive"),
-	"errone": ("errone", "actif", "desactive"),
-	"non_supporte": ("non_supporte", "actif", "desactive"),
-	"supprime": ("supprime", "actif", "desactive"),
+	"preview": ("preview",),
+	"active": ("active", "disabled"),
+	"disabled": ("disabled", "active"),
+	"expired": ("expired", "active", "disabled"),
+	"corrupt": ("corrupt", "active", "disabled"),
+	"unsupported": ("unsupported", "active", "disabled"),
+	"missing": ("missing", "active", "disabled"),
 }
 """L'état du sonore, puis ceux que l'interface peut poser."""
 MASQUAGES: tuple[tuple[bool | None, str], ...] = (
@@ -121,7 +121,7 @@ MASQUAGES: tuple[tuple[bool | None, str], ...] = (
 	(True, "Masqués"),
 	(False, "Affichés"),
 )
-"""Valeurs de sonores.masquer_metadonnees, dans l'ordre du choix de la fiche."""
+"""Valeurs de sounds.hide_metadata, dans l'ordre du choix de la fiche."""
 NOUVEAU_STREAM: tuple[object, ...] = (
 	"stream",
 	None,
@@ -135,7 +135,7 @@ NOUVEAU_STREAM: tuple[object, ...] = (
 	timedelta(0),
 	timedelta(0),
 	None,
-	"actif",
+	"active",
 	None,
 	None,
 	None,
@@ -153,16 +153,16 @@ RELATION = Qt.ItemDataRole.UserRole
 SILENCE_MAXIMAL = 86400.0
 """Secondes d'un silence détecté au plus, sans durée connue : celles du champ de la fiche."""
 REPERES = {
-	"debut_detecte": ("Début détecté", "Début"),
-	"fin_detectee": ("Fin détectée", "Fin"),
+	"detected_start": ("Début détecté", "Début"),
+	"detected_end": ("Fin détectée", "Fin"),
 }
 """Le nom de chaque silence détecté : mesuré par l'indexeur, ou saisi à la main
 (https://github.com/dascritch/machincast/issues/330)."""
 ARTICLES = {"séquence": "la séquence", "banque": "la banque", "événement": "l'événement"}
 LISTES_DES_RELATIONS = {
-	"séquence": ("sequences_elements", "sequence_id"),
-	"banque": ("banques_sonores", "banque_id"),
-	"événement": ("evenements_elements", "evenement_id"),
+	"séquence": ("sequence_items", "sequence_id"),
+	"banque": ("bank_sounds", "bank_id"),
+	"événement": ("event_items", "event_id"),
 }
 """La table de la liste de chaque genre de relation, et sa colonne qui désigne l'élément."""
 """Rôle qui porte, sur la cellule du nom d'une relation, son genre et son identifiant."""
@@ -359,11 +359,11 @@ class FicheSonore(Fiche):
 		"""« Début détecté » et « Fin détectée » tant qu'ils sont ceux de l'indexeur ; « Début » et « Fin », saisis à
 		la main : dans la fiche, ou avant."""
 		saisies = {
-			"debut_detecte": _crossfade(self.ui.a_debut_detecte, self.ui.debut_detecte),
-			"fin_detectee": _crossfade(self.ui.a_fin_detectee, self.ui.fin_detectee),
+			"detected_start": _crossfade(self.ui.a_debut_detecte, self.ui.debut_detecte),
+			"detected_end": _crossfade(self.ui.a_fin_detectee, self.ui.fin_detectee),
 		}
 		initiales = getattr(self, "_initiales", {})
-		for champ, case in (("debut_detecte", self.ui.a_debut_detecte), ("fin_detectee", self.ui.a_fin_detectee)):
+		for champ, case in (("detected_start", self.ui.a_debut_detecte), ("detected_end", self.ui.a_fin_detectee)):
 			detecte, manuel = REPERES[champ]
 			saisi = (champ in self._champs_edites) or ((champ in initiales) and (saisies[champ] != initiales[champ]))
 			case.setText(manuel if saisi else detecte)
@@ -447,10 +447,10 @@ class FicheSonore(Fiche):
 				ligne = self._lire_sonore()
 				passages = self._lire_passages()
 				relations = self._lire_relations()
-			marques = self.connexion.execute("SELECT id, nom, url FROM feeds ORDER BY nom").fetchall()
+			marques = self.connexion.execute("SELECT id, name, url FROM feeds ORDER BY name").fetchall()
 			secours = self.connexion.execute(
-				"SELECT id, nom_interne FROM evenements WHERE priorite = 'secours' AND supprime_le IS NULL"
-				" ORDER BY nom_interne"
+				"SELECT id, internal_name FROM events WHERE priority = 'fallback' AND deleted_at IS NULL"
+				" ORDER BY internal_name"
 			).fetchall()
 		assert ligne is not None, f"sonore {self.identifiant} absent"
 		self._montrer(ligne, marques, secours, passages)
@@ -459,11 +459,12 @@ class FicheSonore(Fiche):
 
 	def _lire_sonore(self) -> tuple[object, ...] | None:
 		return self.connexion.execute(
-			"SELECT s.type::text, s.emplacement, s.url_stream, s.feed_id, m.url, s.secours_evenement_id,"
-			" s.artiste, s.titre, s.metadonnees_musicales, s.crossfade_debut, s.crossfade_fin, s.max_lectures,"
-			" s.etat::text, s.masquer_metadonnees, s.duree, s.debut_diffusion, s.fin_diffusion, s.champs_edites,"
-			" s.type_mime, s.verifie_le, s.detection_silences, s.debut_detecte, s.fin_detectee, s.audite_le IS NOT NULL"
-			" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
+			"SELECT s.type::text, s.location, s.stream_url, s.feed_id, m.url, s.fallback_event_id,"
+			" s.artist, s.title, s.music_metadata, s.crossfade_start, s.crossfade_end, s.max_plays,"
+			" s.state::text, s.hide_metadata, s.duration, s.broadcast_start, s.broadcast_end, s.edited_fields,"
+			" s.mime_type, s.checked_at, s.silence_detection, s.detected_start, s.detected_end,"
+			" s.audited_at IS NOT NULL"
+			" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 			(self.identifiant,),
 		).fetchone()
 
@@ -505,13 +506,13 @@ class FicheSonore(Fiche):
 		self._nom = (texte_ou_rien(titre)) or (Path(str(emplacement)).name)
 		if stream:
 			self._nom = (texte_ou_rien(titre)) or (str((url_stream) or (url_feed)))
-		self.ui.type_sonore.setText(str(type_sonore))
+		self.ui.type_sonore.setText(TYPES.get(str(type_sonore), str(type_sonore)))
 		self.ui.emplacement.setText(str((emplacement) or ("")))
 		self.ui.formulaire_sonore.setRowVisible(self.ui.etiquette_emplacement, not stream)
 		self.ui.groupe_fichier.setVisible(not stream)
 		if not stream:
 			self._montrer_fichier(Path(str(emplacement)), type_mime, duree, verifie_le)
-		self._fichier = type_sonore == "fichier"
+		self._fichier = type_sonore == "file"
 		self._actualiser_la_verification()
 		self.ui.groupe_stream.setVisible(stream)
 		# Un stream n'a pas de silences détectés : seul un fichier est audité.
@@ -612,47 +613,47 @@ class FicheSonore(Fiche):
 		self.ui.feed.setEnabled(self.ui.par_feed.isChecked())
 
 	def _saisies(self) -> dict[str, object]:
-		"""Les champs modifiables, tels que la fiche les montre : colonne de sonores, ou metadonnees_musicales.<clé>."""
+		"""Les champs modifiables, tels que la fiche les montre : colonne de sonores, ou music_metadata.<clé>."""
 		saisies: dict[str, object] = {
-			"artiste": (conformer(self.ui.artiste.text())) or (None),
-			"titre": (conformer(self.ui.titre.text())) or (None),
+			"artist": (conformer(self.ui.artiste.text())) or (None),
+			"title": (conformer(self.ui.titre.text())) or (None),
 		}
 		for cle, champ in self.metadonnees.items():
 			valeur: str | int | None = (conformer(champ.text())) or (None)
 			if (cle in ENTIERS) and (valeur is not None):
 				valeur = int(valeur)
-			saisies[f"metadonnees_musicales.{cle}"] = valeur
-		saisies["crossfade_debut"] = _crossfade(self.ui.a_crossfade_debut, self.ui.crossfade_debut)
-		saisies["crossfade_fin"] = _crossfade(self.ui.a_crossfade_fin, self.ui.crossfade_fin)
-		saisies["max_lectures"] = (self.ui.max_lectures.value()) or (None)
-		saisies["masquer_metadonnees"] = MASQUAGES[self.ui.masquage.currentIndex()][0]
-		saisies["debut_diffusion"] = affichage.date_cochee(self.ui.a_debut, self.ui.debut_diffusion)
-		saisies["fin_diffusion"] = affichage.date_cochee(self.ui.a_fin, self.ui.fin_diffusion)
+			saisies[f"music_metadata.{cle}"] = valeur
+		saisies["crossfade_start"] = _crossfade(self.ui.a_crossfade_debut, self.ui.crossfade_debut)
+		saisies["crossfade_end"] = _crossfade(self.ui.a_crossfade_fin, self.ui.crossfade_fin)
+		saisies["max_plays"] = (self.ui.max_lectures.value()) or (None)
+		saisies["hide_metadata"] = MASQUAGES[self.ui.masquage.currentIndex()][0]
+		saisies["broadcast_start"] = affichage.date_cochee(self.ui.a_debut, self.ui.debut_diffusion)
+		saisies["broadcast_end"] = affichage.date_cochee(self.ui.a_fin, self.ui.fin_diffusion)
 		if self.ui.groupe_silences.isVisibleTo(self):
-			saisies["detection_silences"] = self.ui.detection_silences.isChecked()
-			saisies["debut_detecte"] = _crossfade(self.ui.a_debut_detecte, self.ui.debut_detecte)
-			saisies["fin_detectee"] = _crossfade(self.ui.a_fin_detectee, self.ui.fin_detectee)
+			saisies["silence_detection"] = self.ui.detection_silences.isChecked()
+			saisies["detected_start"] = _crossfade(self.ui.a_debut_detecte, self.ui.debut_detecte)
+			saisies["detected_end"] = _crossfade(self.ui.a_fin_detectee, self.ui.fin_detectee)
 		if self.ui.groupe_stream.isVisibleTo(self):
-			saisies["url_stream"] = None
+			saisies["stream_url"] = None
 			saisies["feed_id"] = None
 			if self.ui.par_adresse.isChecked():
-				saisies["url_stream"] = (self.ui.url_stream.text().strip()) or (None)
+				saisies["stream_url"] = (self.ui.url_stream.text().strip()) or (None)
 			else:
 				saisies["feed_id"] = self.ui.feed.currentData()
-			saisies["secours_evenement_id"] = self.ui.secours.currentData()
-		saisies["etat"] = self.ui.etat.currentData()
+			saisies["fallback_event_id"] = self.ui.secours.currentData()
+		saisies["state"] = self.ui.etat.currentData()
 		return saisies
 
 	def _ecrire(self) -> int:
 		saisies = self._saisies()
-		debut, fin = saisies["debut_diffusion"], saisies["fin_diffusion"]
+		debut, fin = saisies["broadcast_start"], saisies["broadcast_end"]
 		if (isinstance(debut, datetime)) and (isinstance(fin, datetime)) and (fin <= debut):
 			raise Refus("La fin de la diffusion doit suivre son début.", self.ui.a_debut, self.ui.a_fin)
-		if ("url_stream" in saisies) and (saisies["url_stream"] is None) and (saisies["feed_id"] is None):
+		if ("stream_url" in saisies) and (saisies["stream_url"] is None) and (saisies["feed_id"] is None):
 			raise Refus("L'adresse du stream est obligatoire.", self.ui.par_adresse, self.ui.par_feed)
 		# Seuls des silences saisis sont refusés : l'indexeur ne mesure jamais des silences qui couvrent tout le
 		# fichier.
-		cotes = ("debut_detecte", "fin_detectee")
+		cotes = ("detected_start", "detected_end")
 		saisis = any(saisies.get(cote) != self._initiales.get(cote) for cote in cotes)
 		silences = [silence for silence in (saisies.get(cote) for cote in cotes) if isinstance(silence, timedelta)]
 		if (saisis) and (self._duree is not None) and (sum(silences, timedelta(0)) >= self._duree):
@@ -665,36 +666,37 @@ class FicheSonore(Fiche):
 		if identifiant is None:
 			# Un nouveau stream entre en base avec son adresse ; ses autres champs s'écrivent comme une modification.
 			cree = self.connexion.execute(
-				"INSERT INTO sonores (type, url_stream, feed_id, etat) VALUES ('stream', %s, %s, 'actif') RETURNING id",
-				(saisies["url_stream"], saisies["feed_id"]),
+				"INSERT INTO sounds (type, stream_url, feed_id, state)"
+				" VALUES ('stream', %s, %s, 'active') RETURNING id",
+				(saisies["stream_url"], saisies["feed_id"]),
 			).fetchone()
 			assert cree is not None
 			identifiant = int(str(cree[0]))
 		modifies = [champ for champ, valeur in saisies.items() if valeur != self._initiales[champ]]
 		ligne = self.connexion.execute(
-			"SELECT champs_edites FROM sonores WHERE id = %s FOR UPDATE", (identifiant,)
+			"SELECT edited_fields FROM sounds WHERE id = %s FOR UPDATE", (identifiant,)
 		).fetchone()
 		if ligne is None:
 			raise Refus("Ce sonore n'est plus en base.")
 		edites = list((ligne[0]) or ([]))
-		edites += [champ for champ in modifies if (champ != "etat") and (champ not in edites)]
-		colonnes = [champ for champ in modifies if not champ.startswith("metadonnees_musicales.")]
+		edites += [champ for champ in modifies if (champ != "state") and (champ not in edites)]
+		colonnes = [champ for champ in modifies if not champ.startswith("music_metadata.")]
 		affectations: list[sql.Composable] = [
 			sql.SQL("{} = %s").format(sql.Identifier(colonne)) for colonne in colonnes
 		]
 		valeurs: list[object] = [saisies[colonne] for colonne in colonnes]
-		prefixe = "metadonnees_musicales."
+		prefixe = "music_metadata."
 		musicales = {champ.removeprefix(prefixe): saisies[champ] for champ in modifies if champ.startswith(prefixe)}
-		affectations.append(sql.SQL("metadonnees_musicales = (metadonnees_musicales - %s::text[]) || %s::jsonb"))
+		affectations.append(sql.SQL("music_metadata = (music_metadata - %s::text[]) || %s::jsonb"))
 		valeurs += [list(musicales), Jsonb({cle: valeur for cle, valeur in musicales.items() if valeur is not None})]
-		affectations.append(sql.SQL("champs_edites = %s"))
+		affectations.append(sql.SQL("edited_fields = %s"))
 		valeurs.append(edites)
-		requete = sql.SQL("UPDATE sonores SET {} WHERE id = %s").format(sql.SQL(", ").join(affectations))
+		requete = sql.SQL("UPDATE sounds SET {} WHERE id = %s").format(sql.SQL(", ").join(affectations))
 		self.connexion.execute(requete, [*valeurs, identifiant])
 		for genre, element in self._retirees:
 			table, colonne = LISTES_DES_RELATIONS[genre]
 			self.connexion.execute(
-				sql.SQL("DELETE FROM {} WHERE {} = %s AND sonore_id = %s").format(
+				sql.SQL("DELETE FROM {} WHERE {} = %s AND sound_id = %s").format(
 					sql.Identifier(table), sql.Identifier(colonne)
 				),
 				(element, identifiant),
@@ -704,18 +706,18 @@ class FicheSonore(Fiche):
 	def _lire_relations(self) -> list[tuple[object, ...]]:
 		"""Les séquences, banques et événements dont la liste cite le sonore ; dans une transaction."""
 		return self.connexion.execute(
-			"SELECT genre, id, nom, minimum, maximum, (SELECT duree FROM sonores WHERE id = %s) FROM ("
-			" SELECT 1 AS ordre, 'séquence' AS genre, q.id, q.nom_interne AS nom, NULL::interval AS minimum,"
+			"SELECT genre, id, name, minimum, maximum, (SELECT duration FROM sounds WHERE id = %s) FROM ("
+			" SELECT 1 AS ordre, 'séquence' AS genre, q.id, q.internal_name AS name, NULL::interval AS minimum,"
 			"  NULL::interval AS maximum FROM sequences q"
-			"  WHERE q.supprime_le IS NULL"
-			"  AND EXISTS (SELECT 1 FROM sequences_elements x WHERE x.sequence_id = q.id AND x.sonore_id = %s)"
-			" UNION ALL SELECT 2, 'banque', b.id, b.nom_interne, b.duree_min, b.duree_max FROM banques b"
-			"  WHERE b.supprime_le IS NULL"
-			"  AND EXISTS (SELECT 1 FROM banques_sonores x WHERE x.banque_id = b.id AND x.sonore_id = %s)"
-			" UNION ALL SELECT 3, 'événement', e.id, e.nom_interne, NULL, NULL FROM evenements e"
-			"  WHERE e.supprime_le IS NULL"
-			"  AND EXISTS (SELECT 1 FROM evenements_elements x WHERE x.evenement_id = e.id AND x.sonore_id = %s)"
-			") r ORDER BY ordre, nom, id",
+			"  WHERE q.deleted_at IS NULL"
+			"  AND EXISTS (SELECT 1 FROM sequence_items x WHERE x.sequence_id = q.id AND x.sound_id = %s)"
+			" UNION ALL SELECT 2, 'banque', b.id, b.internal_name, b.min_duration, b.max_duration FROM banks b"
+			"  WHERE b.deleted_at IS NULL"
+			"  AND EXISTS (SELECT 1 FROM bank_sounds x WHERE x.bank_id = b.id AND x.sound_id = %s)"
+			" UNION ALL SELECT 3, 'événement', e.id, e.internal_name, NULL, NULL FROM events e"
+			"  WHERE e.deleted_at IS NULL"
+			"  AND EXISTS (SELECT 1 FROM event_items x WHERE x.event_id = e.id AND x.sound_id = %s)"
+			") r ORDER BY ordre, name, id",
 			(self.identifiant, self.identifiant, self.identifiant, self.identifiant),
 		).fetchall()
 
@@ -779,7 +781,7 @@ class FicheSonore(Fiche):
 		chemin = Path(self.ui.emplacement.text())
 		with self.connexion.transaction():
 			repertoires = self.connexion.execute(
-				"SELECT repertoire FROM banques_repertoires WHERE banque_id = %s ORDER BY repertoire", (banque,)
+				"SELECT directory FROM bank_directories WHERE bank_id = %s ORDER BY directory", (banque,)
 			).fetchall()
 		for (repertoire,) in repertoires:
 			if chemin.is_relative_to(str(repertoire)):
@@ -819,22 +821,22 @@ class FicheSonore(Fiche):
 	def _lire_passages(self) -> list[tuple[object, ...]]:
 		"""Les derniers passages, avec les alertes et incidents du log pendant chacun ; dans une transaction."""
 		return self.connexion.execute(
-			"SELECT d.horodatage, f.horodatage, f.duree_diffusee, e.nom_interne, q.nom_interne,"
-			" b.nom_interne, i.horodatages, i.natures, i.messages"
+			"SELECT d.logged_at, f.logged_at, f.played_duration, e.internal_name, q.internal_name,"
+			" b.internal_name, i.horodatages, i.natures, i.messages"
 			" FROM airplay d"
-			" LEFT JOIN airplay f ON f.passage_id = d.passage_id AND f.type_ligne = 'fin'"
-			" LEFT JOIN evenements e ON e.id = d.evenement_id"
+			" LEFT JOIN airplay f ON f.play_id = d.play_id AND f.line_type = 'end'"
+			" LEFT JOIN events e ON e.id = d.event_id"
 			" LEFT JOIN sequences q ON q.id = d.sequence_id"
-			" LEFT JOIN banques b ON b.id = d.banque_id"
+			" LEFT JOIN banks b ON b.id = d.bank_id"
 			" LEFT JOIN LATERAL ("
-			"  SELECT array_agg(l.horodatage ORDER BY l.horodatage, l.id) AS horodatages,"
-			"   array_agg(l.nature::text ORDER BY l.horodatage, l.id) AS natures,"
-			"   array_agg(l.message ORDER BY l.horodatage, l.id) AS messages"
-			"  FROM log l WHERE l.sonore_id = d.sonore_id AND l.niveau <> 'info' AND l.horodatage >= d.horodatage"
-			"   AND (f.horodatage IS NULL OR l.horodatage <= f.horodatage)"
+			"  SELECT array_agg(l.logged_at ORDER BY l.logged_at, l.id) AS horodatages,"
+			"   array_agg(l.kind::text ORDER BY l.logged_at, l.id) AS natures,"
+			"   array_agg(l.message ORDER BY l.logged_at, l.id) AS messages"
+			"  FROM log l WHERE l.sound_id = d.sound_id AND l.level <> 'info' AND l.logged_at >= d.logged_at"
+			"   AND (f.logged_at IS NULL OR l.logged_at <= f.logged_at)"
 			" ) i ON true"
-			" WHERE d.type_ligne = 'debut' AND d.sonore_id = %s"
-			" ORDER BY d.horodatage DESC, d.id DESC LIMIT %s",
+			" WHERE d.line_type = 'start' AND d.sound_id = %s"
+			" ORDER BY d.logged_at DESC, d.id DESC LIMIT %s",
 			(self.identifiant, PASSAGES),
 		).fetchall()
 

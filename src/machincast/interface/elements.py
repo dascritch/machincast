@@ -52,25 +52,25 @@ FEED = Qt.ItemDataRole.UserRole + 6
 LIGNE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsDragEnabled
 """Une ligne se glisse, mais rien ne se dépose dedans : la liste reste à plat."""
 
-COLONNES = {"sonore": "sonore_id", "banque": "banque_id", "séquence": "sequence_id"}
-"""Colonne de chaque genre d'élément, dans sequences_elements et evenements_elements."""
-TABLES = {"sonore": "sonores", "banque": "banques", "séquence": "sequences"}
+COLONNES = {"sonore": "sound_id", "banque": "bank_id", "séquence": "sequence_id"}
+"""Colonne de chaque genre d'élément, dans sequence_items et event_items."""
+TABLES = {"sonore": "sounds", "banque": "banks", "séquence": "sequences"}
 LECTURES = {
 	"sonore": (
-		"SELECT s.id, s.artiste, s.titre, s.emplacement, COALESCE(s.emplacement, s.url_stream, m.url)"
-		" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = ANY(%s)"
+		"SELECT s.id, s.artist, s.title, s.location, COALESCE(s.location, s.stream_url, m.url)"
+		" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = ANY(%s)"
 	),
-	"banque": "SELECT b.id, b.nom_interne, b.mode::text, b.ne_pas_repeter FROM banques b WHERE b.id = ANY(%s)",
+	"banque": "SELECT b.id, b.internal_name, b.mode::text, b.no_repeat FROM banks b WHERE b.id = ANY(%s)",
 	"séquence": (
-		"SELECT q.id, q.nom_interne, (SELECT count(*) FROM sequences_elements e WHERE e.sequence_id = q.id),"
-		" (SELECT e.banque_id FROM sequences_elements e WHERE e.sequence_id = q.id ORDER BY e.position LIMIT 1),"
-		" (SELECT e.banque_id FROM sequences_elements e WHERE e.sequence_id = q.id ORDER BY e.position DESC LIMIT 1)"
+		"SELECT q.id, q.internal_name, (SELECT count(*) FROM sequence_items e WHERE e.sequence_id = q.id),"
+		" (SELECT e.bank_id FROM sequence_items e WHERE e.sequence_id = q.id ORDER BY e.position LIMIT 1),"
+		" (SELECT e.bank_id FROM sequence_items e WHERE e.sequence_id = q.id ORDER BY e.position DESC LIMIT 1)"
 		" FROM sequences q WHERE q.id = ANY(%s)"
 	),
 }
 """Ce que montre la ligne d'un élément, lu par identifiants."""
-SONORES_PAR_FICHIER = LECTURES["sonore"].replace("s.id = ANY(%s)", "s.emplacement = ANY(%s)")
-STREAM_DU_FEED = "SELECT id FROM sonores WHERE feed_id = %s AND supprime_le IS NULL ORDER BY titre, id LIMIT 1"
+SONORES_PAR_FICHIER = LECTURES["sonore"].replace("s.id = ANY(%s)", "s.location = ANY(%s)")
+STREAM_DU_FEED = "SELECT id FROM sounds WHERE feed_id = %s AND deleted_at IS NULL ORDER BY title, id LIMIT 1"
 """Le stream repris pour un feed : le premier par titre qui le suit."""
 SAUTE = "ne passe jamais deux fois de suite : cet appel sera sauté."
 
@@ -85,7 +85,7 @@ class Boutons:
 	descendre: QPushButton
 
 
-VUES = {"sequences_elements": "fiche-sequence-elements", "evenements_elements": "fiche-evenement-elements"}
+VUES = {"sequence_items": "fiche-sequence-elements", "event_items": "fiche-evenement-elements"}
 """Le nom de la vue des éléments, selon la table de la fiche (https://github.com/dascritch/machincast/issues/207)."""
 
 
@@ -225,7 +225,7 @@ class ListeElements(QObject):
 		ligne = connexion.execute(STREAM_DU_FEED, (feed,)).fetchone()
 		if ligne is None:
 			ligne = connexion.execute(
-				"INSERT INTO sonores (type, feed_id, titre, etat) VALUES ('stream', %s, %s, 'actif') RETURNING id",
+				"INSERT INTO sounds (type, feed_id, title, state) VALUES ('stream', %s, %s, 'active') RETURNING id",
 				(feed, nom),
 			).fetchone()
 			assert ligne is not None
@@ -236,7 +236,7 @@ class ListeElements(QObject):
 		return {genre: colonne for genre, colonne in COLONNES.items() if colonne != self.parent_colonne}
 
 	def _lire_marquees(self) -> None:
-		lues = self.fiche.connexion.execute("SELECT id, nom_interne FROM banques WHERE ne_pas_repeter").fetchall()
+		lues = self.fiche.connexion.execute("SELECT id, internal_name FROM banks WHERE no_repeat").fetchall()
 		self.marquees = {int(str(identifiant)): str(nom) for identifiant, nom in lues}
 
 	def _lire(self, identifiants: dict[str, list[int]]) -> dict[str, dict[int, QTreeWidgetItem]]:
@@ -326,7 +326,7 @@ class ListeElements(QObject):
 		lignes: list[QTreeWidgetItem] = []
 		with connexion.transaction():
 			for feed in choisis:
-				marque = connexion.execute("SELECT nom, url FROM feeds WHERE id = %s", (feed,)).fetchone()
+				marque = connexion.execute("SELECT name, url FROM feeds WHERE id = %s", (feed,)).fetchone()
 				if marque is None:
 					continue
 				stream = connexion.execute(STREAM_DU_FEED, (feed,)).fetchone()

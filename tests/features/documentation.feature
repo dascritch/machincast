@@ -70,6 +70,6 @@ Fonctionnalité: Documentation d'installation et definition of done
 		Quand je fais l'archive de la version de pyproject.toml
 		Alors l'archive a pour répertoire « machincast-<version> »
 		Et l'archive contient « install.sh », exécutable
-		Et l'archive contient « pyproject.toml », « bin/Machin », « src/machincast/migrations/0001.schema-initial.sql », « src/machincast/interface/nouveautes.md », « machincast.exemple.toml »
+		Et l'archive contient « pyproject.toml », « bin/Machin », « src/machincast/migrations/0001.initial-schema.sql », « src/machincast/interface/nouveautes.md », « machincast.exemple.toml »
 		Et l'archive contient « README.md », « INSTALL.md », « RELEASE.md », « TROUBLESHOOTING.md », « LICENSE », « doc/fr/utilisateur/README.md », « doc/fr/administration/README.md »
 		Et l'archive contient « README.fr.md », « INSTALL.fr.md », « RELEASE.fr.md », « TROUBLESHOOTING.fr.md », « CONTRIBUTION.md », « CONTRIBUTION.fr.md »

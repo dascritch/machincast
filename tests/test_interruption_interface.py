@@ -44,7 +44,7 @@ def diffuse(lecteur: Lecteur, titre: str, sequence: str | None, fil: str | None,
 		"artiste": None,
 		"titre": titre,
 		"evenement": evenement,
-		"evenement_priorite": "emission" if fil is None else "fil_musical",
+		"evenement_priorite": "show" if fil is None else "background_programming",
 		"sequence": sequence,
 		"emplacement": "/srv/musique/minuit.flac",
 		"debut": "2026-10-21T08:59:00+02:00",
@@ -67,7 +67,7 @@ def sonore_affiche(titre: str, evenement: str, debut: str) -> dict[str, object]:
 		"artiste": None,
 		"titre": titre,
 		"evenement": evenement,
-		"evenement_priorite": "emission",
+		"evenement_priorite": "show",
 		"emplacement": f"/srv/musique/{titre}.flac",
 		debut: "2026-10-21T08:59:00+02:00",
 		"duree": 214.0,
@@ -78,7 +78,7 @@ def sonore_affiche(titre: str, evenement: str, debut: str) -> dict[str, object]:
 def suivant(nom: str | None, debut: str | None, fin: str | None) -> dict[str, object] | None:
 	if nom is None:
 		return None
-	return {"id": EVENEMENT_SUIVANT, "nom": nom, "priorite": "emission", "debut": debut, "fin": fin}
+	return {"id": EVENEMENT_SUIVANT, "nom": nom, "priorite": "show", "debut": debut, "fin": fin}
 
 
 ANNONCE = r"(?:, et annonce l'événement suivant « (?P<nom>[^»]+) », du « (?P<debut>[^»]+) » au « (?P<fin>[^»]+) »)?"
@@ -319,13 +319,13 @@ def sous_menu_des_secours(interface: Contexte, entrees: str) -> None:
 
 @then(parsers.parse("Machin player a reçu la demande de couper l'antenne par le secours « {nom} »"))
 def coupure_par_le_secours_recue(base_vide: Connexion, lecteur: Lecteur, qtbot: QtBot, nom: str) -> None:
-	secours = identifiant(base_vide, "evenements", "nom_interne", nom)
+	secours = identifiant(base_vide, "events", "internal_name", nom)
 	assert _recevoir(lecteur, qtbot) == [Demande(commande=COUPER_PAR_LE_SECOURS, evenement=secours)]
 
 
 @then(parsers.parse("Machin player a reçu la demande de couper l'antenne par le feed « {nom} »"))
 def coupure_par_le_feed_recue(base_vide: Connexion, lecteur: Lecteur, qtbot: QtBot, nom: str) -> None:
-	feed = identifiant(base_vide, "feeds", "nom", nom)
+	feed = identifiant(base_vide, "feeds", "name", nom)
 	assert _recevoir(lecteur, qtbot) == [Demande(commande=COUPER_PAR_LE_FEED, feed=feed)]
 
 

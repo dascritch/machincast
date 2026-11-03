@@ -72,7 +72,7 @@ from machincast.interface import dialogues, preferences
 from machincast.interface.affichage import MOIS
 from machincast.interface.sessions import Session, chevauchee, retablir
 from machincast.lecture.grille import (
-	JOURS,
+	NOMS_DES_JOURS,
 	RANGS,
 	Evenement,
 	Prevue,
@@ -153,7 +153,7 @@ def numero(jour: date) -> str:
 
 def libelle_du_jour(jour: date) -> str:
 	"""« mardi 20 », « dimanche 1er »."""
-	return f"{JOURS[jour.weekday()]} {numero(jour)}"
+	return f"{NOMS_DES_JOURS[jour.weekday()]} {numero(jour)}"
 
 
 def jour_et_mois(jour: date) -> str:
@@ -234,7 +234,7 @@ class Bloc:
 			nom = f"{nom} ({self.nom_public})"
 		lignes = [f"{nom} — {NOMS[evenement.priorite]}", self._horaires()]
 		if evenement.jours:
-			lignes.append(f"Revient le {', '.join(JOURS[jour] for jour in sorted(evenement.jours))}")
+			lignes.append(f"Revient le {', '.join(NOMS_DES_JOURS[jour] for jour in sorted(evenement.jours))}")
 		if evenement.supprime_le is not None:
 			supprime = heure_murale(evenement.supprime_le)
 			lignes.append(f"Supprimé le {jour_et_mois(supprime.date())} à {supprime:%H:%M} : {SUITE_SUPPRIMEE}")
@@ -334,12 +334,12 @@ def lire_passages(connexion: Connexion, de: datetime, a: datetime, premier: date
 	if premier is not None:
 		depuis = max(depuis, premier)
 	lignes = connexion.execute(
-		"SELECT d.horodatage, f.horodatage, d.evenement_id, e.nom_interne, e.priorite::text"
+		"SELECT d.logged_at, f.logged_at, d.event_id, e.internal_name, e.priority::text"
 		" FROM airplay d"
-		" LEFT JOIN airplay f ON (f.passage_id = d.passage_id) AND (f.type_ligne = 'fin')"
-		" LEFT JOIN evenements e ON e.id = d.evenement_id"
-		" WHERE (d.type_ligne = 'debut') AND (d.horodatage >= %s) AND (d.horodatage < %s)"
-		" ORDER BY d.horodatage, d.id",
+		" LEFT JOIN airplay f ON (f.play_id = d.play_id) AND (f.line_type = 'end')"
+		" LEFT JOIN events e ON e.id = d.event_id"
+		" WHERE (d.line_type = 'start') AND (d.logged_at >= %s) AND (d.logged_at < %s)"
+		" ORDER BY d.logged_at, d.id",
 		(depuis.astimezone(), a.astimezone()),
 	).fetchall()
 	passages = []
@@ -612,7 +612,7 @@ class Calendrier(QWidget):
 			evenements = lire_grille(self.connexion, supprimes=True)
 			noms_publics = {
 				int(str(identifiant)): texte_ou_rien(nom_public)
-				for identifiant, nom_public in self.connexion.execute("SELECT id, nom_public FROM evenements")
+				for identifiant, nom_public in self.connexion.execute("SELECT id, public_name FROM events")
 			}
 			passages = lire_passages(self.connexion, de, a, minuit(self.premier_jour()))
 		self._blocs = decouper(prevoir(evenements, de, a), jours, noms_publics)
@@ -671,7 +671,7 @@ class Calendrier(QWidget):
 		with self.connexion.transaction():
 			for debut in debuts:
 				self.connexion.execute(
-					"INSERT INTO evenements_sauts (evenement_id, jour) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+					"INSERT INTO event_skips (event_id, day) VALUES (%s, %s) ON CONFLICT DO NOTHING",
 					(evenement.id, debut.date()),
 				)
 		premier, dernier = debuts[0], debuts[-1]

@@ -286,13 +286,13 @@ def erreur_mentionne(commande: subprocess.CompletedProcess[str], texte: str) -> 
 	assert texte in commande.stderr, commande.stderr
 
 
-# ─── Schéma unique (https://github.com/dascritch/machincast/issues/314) ─────
+# ─── Ancien schéma, aux noms français (https://github.com/dascritch/machincast/issues/358) ─────
 
 
-@given(parsers.parse("la base de test marquée comme ayant reçu les anciennes migrations jusqu'à « {derniere} »"))
-def anciennes_migrations(request: pytest.FixtureRequest, base_vide: object, derniere: str) -> None:
+@given(parsers.parse("la base de test marquée comme ayant reçu l'ancienne migration « {migration} »"))
+def ancienne_migration(request: pytest.FixtureRequest, base_vide: object, migration: str) -> None:
 	with connexion_test() as connexion:
-		marquer_les_anciennes_migrations(connexion, derniere)
+		marquer_les_anciennes_migrations(connexion, migration)
 	request.addfinalizer(rendre_les_migrations)
 
 

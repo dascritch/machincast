@@ -15,10 +15,10 @@ Fonctionnalité: Fiche d'une séquence
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-19 15:30:00 »
 		Et les sonores :
-			| artiste     | titre        | type    | etat  | duree | emplacement                 |
-			|             | Jingle début | fichier | actif | 5     | /srv/habillage/debut.flac   |
-			|             | Jingle fin   | fichier | actif | 4     | /srv/habillage/fin.flac     |
-			| Les Gaufres | Spot         | fichier | actif | 30    | /srv/pubs/spot.flac         |
+			| artist      | title        | type | state  | duration | location                  |
+			|             | Jingle début | file | active | 5        | /srv/habillage/debut.flac |
+			|             | Jingle fin   | file | active | 4        | /srv/habillage/fin.flac   |
+			| Les Gaufres | Spot         | file | active | 30       | /srv/pubs/spot.flac       |
 		Et la banque « Publicité », aléatoire, sans nom public, marquée « ne pas répéter », avec « Spot »
 		Et la banque « Habillage », séquentielle, sans nom public, avec « Jingle début »
 		Et la séquence « Passage pub », de nom public « Vous écoutez Radio Thune », avec le sonore « Jingle début », la banque « Publicité », le sonore « Jingle fin »
@@ -27,9 +27,9 @@ Fonctionnalité: Fiche d'une séquence
 
 	Scénario: La fiche d'une séquence s'ouvre dans un onglet, depuis la liste des séquences
 		Étant donné les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
-			| Matinale |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
+			| Matinale |             | background_programming |           |         |      |
 		Et l'événement « Continue » joue la séquence « Passage pub »
 		Et l'événement « Matinale » joue la séquence « Passage pub »
 		Et l'événement « Continue » joue la séquence « Passage pub »
@@ -200,8 +200,8 @@ Fonctionnalité: Fiche d'une séquence
 		Étant donné les dossiers « …/nouveaux » du scénario
 		Et les fichiers « …/nouveaux/Annonce.ogg », « …/notes.txt » du scénario
 		Et les sonores :
-			| artiste | titre  | type    | etat  | duree | emplacement             |
-			|         | Neige  | fichier | actif | 12    | …/neige.ogg             |
+			| artist | title | type | state  | duration | location    |
+			|        | Neige | file | active | 12       | …/neige.ogg |
 		Et les fichiers « …/neige.ogg » du scénario
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Passage pub »
@@ -298,8 +298,8 @@ Fonctionnalité: Fiche d'une séquence
 
 	Scénario: Ouvrir un élément ou un événement ouvre sa fiche
 		Étant donné les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et l'événement « Continue » joue la séquence « Passage pub »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Passage pub »

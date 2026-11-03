@@ -18,13 +18,13 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Et les dossiers « …/pubs », « …/habillage » du scénario
 		Et les fichiers « …/pubs/spot.flac », « …/habillage/debut.flac », « …/ailleurs/isole.flac » du scénario
 		Et les sonores :
-			| artiste     | titre        | type    | etat  | duree | emplacement             |
-			|             | Jingle début | fichier | actif | 5     | …/habillage/debut.flac  |
-			| Les Gaufres | Spot         | fichier | actif | 30    | …/pubs/spot.flac        |
-			|             | Isolé        | fichier | actif | 12    | …/ailleurs/isole.flac   |
-			|             | Radio Thune  | stream  | actif |       | https://flux.exemple/rt |
-			|             | Radio Machin | stream  | actif |       | https://flux.exemple/rm |
-			|             | Radio Ondes  | stream  | actif |       | https://flux.exemple/ro |
+			| artist      | title        | type   | state  | duration | location                |
+			|             | Jingle début | file   | active | 5        | …/habillage/debut.flac  |
+			| Les Gaufres | Spot         | file   | active | 30       | …/pubs/spot.flac        |
+			|             | Isolé        | file   | active | 12       | …/ailleurs/isole.flac   |
+			|             | Radio Thune  | stream | active |          | https://flux.exemple/rt |
+			|             | Radio Machin | stream | active |          | https://flux.exemple/rm |
+			|             | Radio Ondes  | stream | active |          | https://flux.exemple/ro |
 		Et la banque « Publicité », aléatoire, sans nom public, avec « Spot »
 		Et les répertoires « …/pubs » de la banque « Publicité »
 		Et la banque « Habillage », séquentielle, sans nom public, avec « Jingle début »
@@ -32,12 +32,12 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Et la séquence « Passage pub », sans nom public, avec le sonore « Jingle début », la banque « Publicité »
 		Et la séquence « Pub seule », sans nom public, avec la banque « Publicité »
 		Et les événements :
-			| nom      | nom_public | priorite    | debut            | fin              | jours |
-			| Continue |            | fil_musical |                  |                  |       |
-			| Matinale |            | emission    | 2026-10-19 07:00 | 2026-10-19 09:00 | lundi |
-			| Midi     |            | emission    | 2026-10-19 12:00 | 2026-10-19 13:00 | lundi |
-			| Panne    |            | secours     |                  |                  |       |
-			| Coupure  |            | secours     |                  |                  |       |
+			| name     | public_name | priority               | starts_at        | ends_at          | days   |
+			| Continue |             | background_programming |                  |                  |        |
+			| Matinale |             | show                   | 2026-10-19 07:00 | 2026-10-19 09:00 | monday |
+			| Midi     |             | show                   | 2026-10-19 12:00 | 2026-10-19 13:00 | monday |
+			| Panne    |             | fallback               |                  |                  |        |
+			| Coupure  |             | fallback               |                  |                  |        |
 		Et l'événement « Matinale » joue la banque « Habillage », la séquence « Passage pub », le sonore « Spot »
 		Et l'événement « Continue » joue la banque « Habillage »
 		Et l'événement « Midi » joue la banque « Publicité »
@@ -73,8 +73,8 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 
 	Plan du scénario: Un sonore qui ne figure nulle part est supprimé après confirmation aussi, et se nomme comme il peut
 		Étant donné les sonores :
-			| artiste   | titre   | type    | etat  | duree | emplacement   |
-			| <artiste> | <titre> | fichier | actif | 3     | <emplacement> |
+			| artist    | title   | type | state  | duration | location      |
+			| <artiste> | <titre> | file | active | 3        | <emplacement> |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « <ouvert> »
 		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
