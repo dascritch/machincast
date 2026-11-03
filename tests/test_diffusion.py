@@ -1,4 +1,4 @@
-"""Étapes de la boucle de diffusion de Machin lecture (https://github.com/dascritch/machincast/issues/88).
+"""Étapes de la boucle de diffusion de Machin player (https://github.com/dascritch/machincast/issues/88).
 
 Les étapes communes aux scénarios de la diffusion sont dans tests/etapes_diffusion.py.
 """
@@ -71,14 +71,14 @@ def sigterm() -> None:
 	signal.raise_signal(signal.SIGTERM)
 
 
-@when("je lance Machin_lecture avec une configuration dont la socket n'existe pas")
+@when("je lance Machin_player avec une configuration dont la socket n'existe pas")
 def lancer_sans_base(processus: Processus, tmp_path: Path) -> None:
 	configuration = tmp_path / "sans-base.toml"
 	texte = CONFIGURATION_TEST.read_text(encoding="utf-8")
 	configuration.write_text(
 		texte.replace('socket = "/var/run/postgresql"', f'socket = "{tmp_path / "aucune-socket"}"'), encoding="utf-8"
 	)
-	chemin = (shutil.which("Machin_lecture")) or (str(Path(sys.executable).parent / "Machin_lecture"))
+	chemin = (shutil.which("Machin_player")) or (str(Path(sys.executable).parent / "Machin_player"))
 	processus.resultat = subprocess.run(
 		[chemin, "--config", str(configuration)], capture_output=True, text=True, timeout=60
 	)
@@ -96,14 +96,14 @@ def code_un(processus: Processus) -> None:
 	assert "base de données injoignable" in processus.resultat.stderr
 
 
-@when(parsers.parse("je lance Machin_lecture sur la sortie « {sortie} », sans périphérique d'antenne"))
+@when(parsers.parse("je lance Machin_player sur la sortie « {sortie} », sans périphérique d'antenne"))
 def lancer_sans_antenne(processus: Processus, tmp_path: Path, sortie: str) -> None:
 	"""La configuration des tests n'a pas de périphérique d'antenne : sa sortie factice n'en demande pas."""
 	configuration = tmp_path / "sans-antenne.toml"
 	texte = CONFIGURATION_TEST.read_text(encoding="utf-8")
 	assert "peripherique =" not in texte
 	configuration.write_text(texte.replace('sortie = "factice"', f'sortie = "{sortie}"'), encoding="utf-8")
-	chemin = (shutil.which("Machin_lecture")) or (str(Path(sys.executable).parent / "Machin_lecture"))
+	chemin = (shutil.which("Machin_player")) or (str(Path(sys.executable).parent / "Machin_player"))
 	processus.resultat = subprocess.run(
 		[chemin, "--config", str(configuration)], capture_output=True, text=True, timeout=60
 	)

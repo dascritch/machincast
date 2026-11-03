@@ -308,7 +308,7 @@ def socket_temporaire(banc: Banc, tmp_path: Path) -> None:
 	banc.etat = SocketEtat(tmp_path / "run" / "machincast" / "lecture.sock")
 
 
-@when("l'interface demande à Machin lecture de relire la grille")
+@when("l'interface demande à Machin player de relire la grille")
 def relire_la_grille(banc: Banc) -> None:
 	"""Comme après une session sautée (https://github.com/dascritch/machincast/issues/273) ou un événement enregistré
 	(https://github.com/dascritch/machincast/issues/266) : la demande est envoyée, puis la socket attend qu'elle

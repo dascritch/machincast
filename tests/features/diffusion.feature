@@ -1,7 +1,7 @@
 # language: fr
-Fonctionnalité: Boucle de diffusion de Machin lecture
+Fonctionnalité: Boucle de diffusion de Machin player
 	En tant que technicien d'antenne,
-	je veux que Machin lecture diffuse la grille en continu, en assemblant l'ordonnanceur, le moteur audio et l'enregistrement,
+	je veux que Machin player diffuse la grille en continu, en assemblant l'ordonnanceur, le moteur audio et l'enregistrement,
 	afin que l'antenne tourne sans intervention.
 
 	https://github.com/dascritch/machincast/issues/88. La diffusion avance pas à pas : à chaque pas, l'horloge du
@@ -234,10 +234,10 @@ Fonctionnalité: Boucle de diffusion de Machin lecture
 		Quand le processus reçoit SIGTERM
 		Alors l'arrêt de la diffusion est demandé
 
-	Scénario: Sans périphérique d'antenne, Machin lecture refuse de diffuser sur une vraie sortie
-		Quand je lance Machin_lecture sur la sortie « pipewire », sans périphérique d'antenne
+	Scénario: Sans périphérique d'antenne, Machin player refuse de diffuser sur une vraie sortie
+		Quand je lance Machin_player sur la sortie « pipewire », sans périphérique d'antenne
 		Alors il s'arrête avec le code 2, en signalant « périphérique de l'antenne non renseigné »
 
-	Scénario: Sans base de données joignable, Machin lecture s'arrête avec le code 1
-		Quand je lance Machin_lecture avec une configuration dont la socket n'existe pas
+	Scénario: Sans base de données joignable, Machin player s'arrête avec le code 1
+		Quand je lance Machin_player avec une configuration dont la socket n'existe pas
 		Alors il s'arrête avec le code 1, en signalant la base de données injoignable

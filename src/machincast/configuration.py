@@ -82,7 +82,7 @@ class Audio:
 		return self.antenne()[0] == "factice"
 
 	def antenne_a_renseigner(self) -> bool:
-		"""Sur une vraie sortie, sans périphérique d'antenne, Machin lecture refuse de diffuser."""
+		"""Sur une vraie sortie, sans périphérique d'antenne, Machin player refuse de diffuser."""
 		return (not self.antenne_factice()) and (self.peripherique is None)
 
 	def preecoute_desactivee(self) -> bool:

@@ -1624,7 +1624,7 @@ def meme_icone(une: QIcon, autre: QIcon, taille: int = 24) -> bool:
 	)
 
 
-# ─── Machin lecture imaginaire, sur la socket d'état (https://github.com/dascritch/machincast/issues/104) ─────
+# ─── Machin player imaginaire, sur la socket d'état (https://github.com/dascritch/machincast/issues/104) ─────
 
 
 @dataclass
@@ -1646,14 +1646,14 @@ def lecteur() -> Iterator[Lecteur]:
 def publier(
 	lecteur: Lecteur, etat: str, en_cours: dict[str, object] | None = None, **autres: dict[str, object] | None
 ) -> None:
-	"""Un état de Machin lecture ; autres donne d'autres champs, comme le prochain sonore ou l'événement suivant."""
+	"""Un état de Machin player ; autres donne d'autres champs, comme le prochain sonore ou l'événement suivant."""
 	assert lecteur.socket is not None
 	message = {"etat": etat, "en_cours": en_cours, "prochain": None, **autres}
 	lecteur.publie = json.dumps({"version": 2, **message})
 	lecteur.socket.publier(message)
 
 
-@then("Machin lecture a reçu la demande de relire la grille")
+@then("Machin player a reçu la demande de relire la grille")
 def relecture_demandee(lecteur: Lecteur, qtbot: QtBot) -> None:
 	"""Après une session sautée (https://github.com/dascritch/machincast/issues/273), ou une fiche enregistrée,
 	supprimée ou restaurée (https://github.com/dascritch/machincast/issues/266) : une seule demande."""
@@ -1671,14 +1671,14 @@ def relecture_demandee(lecteur: Lecteur, qtbot: QtBot) -> None:
 	assert lecteur.recues == [Demande(commande=RELIRE_LA_GRILLE)]
 
 
-@given("la socket d'état de Machin lecture ouverte pour l'interface")
+@given("la socket d'état de Machin player ouverte pour l'interface")
 def socket_ouverte(interface: Contexte, lecteur: Lecteur) -> None:
 	lecteur.socket = SocketEtat(interface.repertoire / "lecture.sock")
 	lecteur.socket.ouvrir()
 
 
-@given(parsers.parse("Machin lecture diffuse un sonore au texte public « {texte} »"))
-@when(parsers.parse("Machin lecture diffuse un sonore au texte public « {texte} »"))
+@given(parsers.parse("Machin player diffuse un sonore au texte public « {texte} »"))
+@when(parsers.parse("Machin player diffuse un sonore au texte public « {texte} »"))
 def diffuse_au_texte_public(lecteur: Lecteur, texte: str) -> None:
 	"""Le texte public du sonore en cours, ce que la page publique en affiche
 	(https://github.com/dascritch/machincast/issues/223)."""

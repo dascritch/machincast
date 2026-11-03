@@ -1,12 +1,12 @@
 """Captures d'écran du guide utilisateur (https://github.com/dascritch/machincast/issues/128).
 
-« bin/Machin dev-captures [REPERTOIRE] » lance ce module, depuis le répertoire de MachinCast, avec le Python du venv :
-il remplit la base de TEST d'une démonstration, « Radio Exemple », ouvre l'interface hors de l'écran
+« bin/Machin dev-screenshots [REPERTOIRE] » lance ce module, depuis le répertoire de MachinCast, avec le Python du
+venv : il remplit la base de TEST d'une démonstration, « Radio Exemple », ouvre l'interface hors de l'écran
 (QT_QPA_PLATFORM=offscreen), à une heure fixe, le mercredi 21 octobre 2026 à 09:41:30, et enregistre chaque écran de
 CAPTURES en PNG, dans doc/fr/captures par défaut. La base de production n'est jamais ouverte : la connexion est celle
 des tests (tests.base_test), sur la base de test de la configuration des tests. Ses fichiers sonores sont des copies
 d'un fichier de test, dans DEMONSTRATION, un répertoire temporaire propre à ce module. L'état de la diffusion vient
-d'une socket d'état publiée ici même ; aucun Machin lecture ne tourne.
+d'une socket d'état publiée ici même ; aucun Machin player ne tourne.
 
 Les captures sont reproductibles : même heure, mêmes données, même style de Qt (Fusion). Refaire les captures après
 un changement d'écran, puis les relire avant de les livrer avec le ticket.
@@ -400,7 +400,7 @@ ROTATIONS = {
 def _historique(
 	connexion: Connexion, sonores: dict[str, int], banques: dict[str, int], evenements: dict[str, int]
 ) -> list[tuple[datetime, datetime, str, str | None, str]]:
-	"""Les passages, du lundi 19 octobre à maintenant, comme les aurait notés Machin lecture : le dernier est en
+	"""Les passages, du lundi 19 octobre à maintenant, comme les aurait notés Machin player : le dernier est en
 	cours."""
 	tours = dict.fromkeys(BANQUES, 0)
 	positions = dict.fromkeys(ROTATIONS, 0)
@@ -543,7 +543,7 @@ def donner_du_relief(connexion: Connexion, demonstration: Demonstration) -> None
 
 
 def publier(socket: SocketEtat, demonstration: Demonstration) -> None:
-	"""L'état qu'aurait publié Machin lecture à MAINTENANT : le dernier passage en cours, le suivant réservé."""
+	"""L'état qu'aurait publié Machin player à MAINTENANT : le dernier passage en cours, le suivant réservé."""
 	en_cours = _affiche(demonstration, -1, "debut")
 	debut = demonstration.passages[-1][0]
 	position = (MAINTENANT - debut).total_seconds()
@@ -753,7 +753,7 @@ def produire(repertoire: Path) -> dict[str, Path]:
 
 
 def _simuler(fenetre: FenetrePrincipale) -> None:
-	"""La simulation de la fin de la matinée, faite ici sur la base de test, comme l'aurait faite Machin lecture."""
+	"""La simulation de la fin de la matinée, faite ici sur la base de test, comme l'aurait faite Machin player."""
 	fenetre._ouvrir_simulation()
 	ecran = _ecran(fenetre, EcranSimulation)
 	debut, fin = MAINTENANT.replace(minute=0, second=0), MAINTENANT.replace(hour=12, minute=30, second=0)

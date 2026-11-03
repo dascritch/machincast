@@ -248,7 +248,7 @@ def lancer_sur_l_antenne(
 
 @then(
 	parsers.parse(
-		"install.sh vérifie l'antenne par « installation antenne » avant la première étape du service, et s'arrête si"
+		"install.sh vérifie l'antenne par « installation on-air » avant la première étape du service, et s'arrête si"
 		" elle échoue"
 	)
 )
@@ -256,7 +256,7 @@ def install_verifie_l_antenne() -> None:
 	texte = (REPERTOIRE_PROJET / "install.sh").read_text(encoding="utf-8")
 	debut = texte.index("installer_service() {")
 	corps = texte[debut : texte.index("\n}\n", debut)]
-	verification = corps.index("installation antenne || echec ")
+	verification = corps.index("installation on-air || echec ")
 	assert verification < corps.index("loginctl"), corps
 
 
@@ -473,8 +473,8 @@ def purge_d_install_sh() -> None:
 	assert f'UNITE_PURGE="{UNITE_PURGE}"' in install
 	assert f'MINUTEUR_PURGE="{MINUTEUR_PURGE}"' in install
 	for attendu in (
-		'installer_fichier unite-purge "${FICHIER_UNITE_PURGE}"',
-		'installer_fichier minuteur-purge "${FICHIER_MINUTEUR_PURGE}"',
+		'installer_fichier purge-unit "${FICHIER_UNITE_PURGE}"',
+		'installer_fichier purge-timer "${FICHIER_MINUTEUR_PURGE}"',
 		'executer sudo systemctl enable --now "${MINUTEUR_PURGE}"',
 		'executer sudo systemctl disable --now "${MINUTEUR_PURGE}"',
 	):

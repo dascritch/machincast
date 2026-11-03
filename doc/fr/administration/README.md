@@ -9,8 +9,8 @@ Ce guide s'adresse à l'administrateur du poste de diffusion : il décrit les pr
 
 1. [Commandes et messages](commandes.md) : la commande `Machin`, l'interface, le journal du service, les codes de sortie.
 2. [Configuration et droits](configuration.md) : le fichier `machincast.toml`, les sorties de la diffusion, la protection des fichiers sonores, les droits dans la base.
-3. [Indexation : Machin indexation](indexation.md) : enregistrer et vérifier les fichiers sonores, en ligne de commande.
-4. [Diffusion : Machin lecture](diffusion.md) : diffuser et simuler en ligne de commande, la socket d'état, la sortie audio, l'historique et le log.
+3. [Indexation : Machin indexer](indexation.md) : enregistrer et vérifier les fichiers sonores, en ligne de commande.
+4. [Diffusion : Machin player](diffusion.md) : diffuser et simuler en ligne de commande, la socket d'état, la sortie audio, l'historique et le log.
 
 ## Ce qui n'existe pas encore
 

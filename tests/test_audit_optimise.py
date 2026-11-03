@@ -84,7 +84,7 @@ def annonce(execution: Execution, texte: str) -> None:
 	assert texte in execution.informations, execution.informations
 
 
-@when(parsers.parse("je lance Machin indexation avec les options « {options} »"), target_fixture="lancement")
+@when(parsers.parse("je lance Machin indexer avec les options « {options} »"), target_fixture="lancement")
 def lancer(caplog: pytest.LogCaptureFixture, options: str) -> tuple[int, list[str]]:
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"):

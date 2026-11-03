@@ -2,7 +2,7 @@
 https://github.com/dascritch/machincast/issues/120).
 
 Les étapes de la fenêtre, de sa barre de menus et des fenêtres de dialogue sont dans tests/etapes_interface.py.
-Machin indexation est remplacé par un programme factice, lancé pour de vrai dans un processus détaché : il note ses
+Machin indexer est remplacé par un programme factice, lancé pour de vrai dans un processus détaché : il note ses
 options dans un fichier, puis attend qu'un autre fichier apparaisse.
 """
 
@@ -40,39 +40,39 @@ def factice(interface: Contexte) -> Iterator[tuple[Path, Path]]:
 	fin.touch()
 
 
-@given("un Machin indexation factice, qui attend")
+@given("un Machin indexer factice, qui attend")
 def machin_factice(interface: Contexte, factice: tuple[Path, Path]) -> None:
 	options, fin = factice
 	commande = [sys.executable, "-c", FACTICE, str(options), str(fin)]
 	interface.monkeypatch.setattr(indexation, "commande_indexation", lambda _configuration: commande)
 
 
-@given("un Machin indexation introuvable")
+@given("un Machin indexer introuvable")
 def machin_introuvable(interface: Contexte) -> None:
-	commande = [str(interface.repertoire / "aucun" / "Machin_indexation")]
+	commande = [str(interface.repertoire / "aucun" / "Machin_indexer")]
 	interface.monkeypatch.setattr(indexation, "commande_indexation", lambda _configuration: commande)
 
 
-@when("l'interface a regardé plusieurs fois si le Machin indexation factice tourne")
+@when("l'interface a regardé plusieurs fois si le Machin indexer factice tourne")
 def plusieurs_regards(qtbot: QtBot) -> None:
 	qtbot.wait(SUIVI_INDEXATION * 2 + 500)
 
 
-@when("le Machin indexation factice se termine")
+@when("le Machin indexer factice se termine")
 def terminer(interface: Contexte, qtbot: QtBot, factice: tuple[Path, Path]) -> None:
 	_options, fin = factice
 	fin.touch()
 	qtbot.waitUntil(lambda: fenetre(interface).indexation_lancee is None, timeout=ATTENTE)
 
 
-@then(parsers.re(r"Machin indexation a été lancé avec (?P<options>«.+)"))
+@then(parsers.re(r"Machin indexer a été lancé avec (?P<options>«.+)"))
 def lance_avec(qtbot: QtBot, factice: tuple[Path, Path], options: str) -> None:
 	fichier, _fin = factice
 	qtbot.waitUntil(fichier.exists, timeout=ATTENTE)
 	assert fichier.read_text().splitlines() == NOM.findall(options)
 
 
-@then("le Machin indexation factice tourne toujours")
+@then("le Machin indexer factice tourne toujours")
 def tourne_toujours(interface: Contexte, factice: tuple[Path, Path]) -> None:
 	numero = fenetre(interface).indexation_lancee
 	assert numero is not None

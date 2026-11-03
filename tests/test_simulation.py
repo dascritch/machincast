@@ -1,4 +1,4 @@
-"""Étapes du mode simulation de Machin lecture (https://github.com/dascritch/machincast/issues/21).
+"""Étapes du mode simulation de Machin player (https://github.com/dascritch/machincast/issues/21).
 
 Les étapes de la diffusion viennent de tests/etapes_diffusion.py. Les sorties de la simulation sont écrites dans le
 répertoire temporaire du scénario.
@@ -272,10 +272,10 @@ def ecrire_pendant_la_simulation(contexte: Contexte, base_vide: Connexion) -> No
 
 
 def machin_lecture() -> str:
-	return (shutil.which("Machin_lecture")) or (str(Path(sys.executable).parent / "Machin_lecture"))
+	return (shutil.which("Machin_player")) or (str(Path(sys.executable).parent / "Machin_player"))
 
 
-@when(parsers.re(r"je lance Machin_lecture avec « (?P<arguments>.+) »(?P<sans_base> et une socket inexistante)?$"))
+@when(parsers.re(r"je lance Machin_player avec « (?P<arguments>.+) »(?P<sans_base> et une socket inexistante)?$"))
 def lancer(contexte: Contexte, tmp_path: Path, arguments: str, sans_base: str | None) -> None:
 	configuration = CONFIGURATION_TEST
 	if sans_base:

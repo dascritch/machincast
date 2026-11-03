@@ -6,7 +6,7 @@ Fonctionnalité: Écran de simulation
 
 	https://github.com/dascritch/machincast/issues/37, spec § 8.7.
 	L'onglet « Simulation », qui se ferme, s'ouvre par « Affichage → Ouvrir l'onglet Simulation ». On y règle le début et la fin ;
-	« Simuler » lance Machin lecture --simulation dans un processus à part, ses sorties dans un répertoire temporaire,
+	« Simuler » lance Machin player --simulation dans un processus à part, ses sorties dans un répertoire temporaire,
 	puis la table montre les passages de son CSV, et la liste, ses alertes et incidents. « Exporter… » enregistre
 	le résultat en .csv, .pls ou .html, au choix du filtre du sélecteur de fichier.
 
@@ -24,7 +24,7 @@ Fonctionnalité: Écran de simulation
 			| nom      | nom_public | priorite    | debut | fin | jours |
 			| Continue |            | fil_musical |       |     |       |
 		Et l'événement « Continue » joue la banque « Habillage »
-		Et un Machin lecture qui simule sur la base de test
+		Et un Machin player qui simule sur la base de test
 
 	# ─── Ouverture ─────────────────────────────────────────────
 
@@ -83,8 +83,8 @@ Fonctionnalité: Écran de simulation
 		Alors le compte de la simulation est « La fin doit suivre le début. »
 		Et aucune simulation n'a été lancée
 
-	Scénario: Une simulation impossible le dit, avec le message de Machin lecture
-		Étant donné un Machin lecture qui simule sans base joignable
+	Scénario: Une simulation impossible le dit, avec le message de Machin player
+		Étant donné un Machin player qui simule sans base joignable
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Simulation » dans le menu « Affichage »
 		Et je règle la simulation du « 2026-10-21 09:00 » au « 2026-10-21 09:03 »
@@ -119,17 +119,17 @@ Fonctionnalité: Écran de simulation
 		Et je choisis « Ouvrir l'onglet Simulation » dans le menu « Affichage »
 		Et je règle la simulation du « 2026-10-21 09:00 » au « 2026-10-21 09:03 »
 		Et je lance la simulation
-		Et Machin lecture attend avant de simuler
+		Et Machin player attend avant de simuler
 		Et je lance la simulation, sans attendre sa fin
 		Alors le compte de la simulation est « Simulation en cours… »
 		Et le bouton « Simuler » de la simulation est inactif
 		Et le bouton « Exporter… » de la simulation est inactif
 		Quand je ferme l'onglet « Simulation »
-		Alors le Machin lecture de la simulation est arrêté
+		Alors le Machin player de la simulation est arrêté
 		Et le répertoire temporaire de la simulation n'existe plus
 
-	Scénario: Un Machin lecture qui échoue après avoir écrit ses sorties ne donne aucun résultat
-		Étant donné un Machin lecture qui échoue après avoir simulé
+	Scénario: Un Machin player qui échoue après avoir écrit ses sorties ne donne aucun résultat
+		Étant donné un Machin player qui échoue après avoir simulé
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Simulation » dans le menu « Affichage »
 		Et je règle la simulation du « 2026-10-21 09:00 » au « 2026-10-21 09:03 »
@@ -139,8 +139,8 @@ Fonctionnalité: Écran de simulation
 		Et le bouton « Exporter… » de la simulation est inactif
 		Et le bouton « Simuler » de la simulation est actif
 
-	Scénario: La simulation est celle de Machin lecture, par le Python de l'interface, avec sa configuration
-		Alors la commande de simulation pour « /etc/machincast.toml » est Machin lecture --config « /etc/machincast.toml »
+	Scénario: La simulation est celle de Machin player, par le Python de l'interface, avec sa configuration
+		Alors la commande de simulation pour « /etc/machincast.toml » est Machin player --config « /etc/machincast.toml »
 
 	# ─── Export ────────────────────────────────────────────────
 

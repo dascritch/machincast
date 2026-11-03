@@ -1,7 +1,7 @@
 """Indexation lancée depuis l'interface (https://github.com/dascritch/machincast/issues/38, spec § 6 et § 8.11).
 
 Le menu « Maintenance » de la fenêtre lance l'indexation rapide ou l'audit complet dans un processus à part,
-détaché de l'interface : Machin indexation avec --fenetre, qui montre son journal dans sa propre fenêtre
+détaché de l'interface : Machin indexer avec --window, qui montre son journal dans sa propre fenêtre
 (machincast.interface.journal_indexation, https://github.com/dascritch/machincast/issues/120). Fermer l'interface
 ne l'arrête pas, et ne l'attend pas. L'interface suit seulement si le processus tourne encore (processus_actif).
 
@@ -39,7 +39,7 @@ LANCE = {False: "lancée", True: "lancé"}
 
 
 def commande_indexation(configuration: Path | None) -> list[str]:
-	"""Machin indexation, lancé par le Python de l'interface, avec la même configuration qu'elle."""
+	"""Machin indexer, lancé par le Python de l'interface, avec la même configuration qu'elle."""
 	commande = [sys.executable, "-m", "machincast.indexation"]
 	if configuration is not None:
 		commande += ["--config", str(configuration.expanduser().absolute())]
@@ -96,7 +96,7 @@ class Indexation(QObject):
 		self.seuil_silences = seuil_silences
 		"""Seuil de silence de l'audit complet (https://github.com/dascritch/machincast/issues/146)."""
 		self.forcer = False
-		"""L'audit complet décode aussi les sonores déjà audités et inchangés : Machin indexation --forcer
+		"""L'audit complet décode aussi les sonores déjà audités et inchangés : Machin indexer --force
 		(https://github.com/dascritch/machincast/issues/206) ; jamais depuis le menu de l'interface."""
 		self._fil: threading.Thread | None = None
 		self._arret = threading.Event()
@@ -134,7 +134,7 @@ class Indexation(QObject):
 				bilan = indexer(
 					connexion, audit_complet, _verifier_fichier, self._arret, self.seuil_silences, forcer=self.forcer
 				)
-			# Le bilan, puis le document d'audit, comme Machin indexation les écrit à la fin.
+			# Le bilan, puis le document d'audit, comme Machin indexer les écrit à la fin.
 			indexeur.info(texte_bilan(bilan))
 			audit.produire(bilan.anomalies, texte_bilan(bilan), debut)
 			mode, _deux_points, detail = texte_bilan(bilan).partition(" : ")

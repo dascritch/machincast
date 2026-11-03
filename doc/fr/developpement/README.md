@@ -9,8 +9,8 @@ Ce guide s'adresse aux développeurs de MachinCast. L'usage de l'interface est d
   - [Développement](../regles/developpement.md) : tickets, commits, style, definition of done, et où va la documentation ;
   - [Tests](../regles/tests.md) ;
   - [Base de données](../regles/base-de-donnees.md) ;
-  - [Machin lecture](../regles/binaire-lecture.md) ;
-  - [Machin indexation](../regles/indexation.md) ;
+  - [Machin player](../regles/binaire-lecture.md) ;
+  - [Machin indexer](../regles/indexation.md) ;
   - [Machin interface](../regles/interface.md) ;
   - [Wrapper Machin, configuration, install.sh](../regles/wrapper.md).
 - [CLAUDE.md](../../../CLAUDE.md) : les commandes du dépôt, en résumé.

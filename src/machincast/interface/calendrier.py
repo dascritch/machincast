@@ -20,7 +20,7 @@ semaine, les jours d'avant sont grisés, vides.
 - Sessions sautées (https://github.com/dascritch/machincast/issues/273) : le clic droit sur une session à venir d'un
   événement récurrent la saute, seule ou avec les suivantes jusqu'à un jour choisi (dialogues.choisir_jour) ; sautée,
   elle reste dessinée, hachurée, ne cache rien, se clique comme une heure libre, et se rétablit au clic droit, sauf si
-  un événement de même priorité a pris sa place. Chaque saut s'annonce (annonce), et demande à Machin lecture de
+  un événement de même priorité a pris sa place. Chaque saut s'annonce (annonce), et demande à Machin player de
   relire la grille (grille_modifiee).
 
 Navigation (https://github.com/dascritch/machincast/issues/326) : en tête de ligne, « Aujourd'hui », puis « ◀ Avant »
@@ -440,7 +440,7 @@ class Calendrier(QWidget):
 	annonce = Signal(str)
 	"""Ce qu'a fait un clic droit, pour la barre d'état."""
 	grille_modifiee = Signal()
-	"""Une session sautée ou rétablie : Machin lecture doit relire la grille."""
+	"""Une session sautée ou rétablie : Machin player doit relire la grille."""
 
 	def __init__(self, connexion: Connexion, horloge: Horloge, parent: QWidget | None = None) -> None:
 		super().__init__(parent)

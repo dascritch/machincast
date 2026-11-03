@@ -1,1 +1,1 @@
-"""Binaire Machin_lecture."""
+"""Binaire Machin_player."""

@@ -8,7 +8,7 @@ Les versions publiées, la plus récente d'abord. Procédure : [doc/fr/developpe
 
 Première version publiée, avant la 1.0 : tout ce que fait MachinCast, fonctionnalité par fonctionnalité.
 
-### Diffusion à l'antenne : Machin lecture
+### Diffusion à l'antenne : Machin player
 
 - L'événement actif, selon les priorités et les horaires de la grille ([#12](https://github.com/dascritch/machincast/issues/12)), et le choix d'un sonore dans une banque, séquentielle ou aléatoire ([#13](https://github.com/dascritch/machincast/issues/13)).
 - Le déroulé de la liste de lecture d'un événement, et les transitions d'un événement à l'autre ([#14](https://github.com/dascritch/machincast/issues/14)), par la boucle de diffusion ([#88](https://github.com/dascritch/machincast/issues/88)).

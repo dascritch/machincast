@@ -1,18 +1,18 @@
 """Étapes d'installation appelées par install.sh (https://github.com/dascritch/machincast/issues/40).
 
-	python -m machincast.installation bases     --config machincast.toml   socket, base de production, base de test
-	python -m machincast.installation migrer    --config machincast.toml   schéma appliqué aux deux bases
-	python -m machincast.installation verifier  --config machincast.toml   GStreamer : version, greffons ; sortie audio
-	python -m machincast.installation unite     --config machincast.toml   unité systemd du service de lecture
-	python -m machincast.installation regle     --config machincast.toml   règle polkit qui le pilote
-	python -m machincast.installation unite-purge    --config machincast.toml   unité systemd de la purge
-	python -m machincast.installation minuteur-purge --config machincast.toml   son minuteur, chaque jour à midi
-	python -m machincast.installation raccourci --config machincast.toml   raccourci de l'interface (.desktop)
-	python -m machincast.installation peripheriques --config machincast.toml   périphériques de sortie du poste
-	python -m machincast.installation antenne   --config machincast.toml   antenne utilisable par le service
+	python -m machincast.installation databases   --config machincast.toml   socket, base de production, base de test
+	python -m machincast.installation migrate     --config machincast.toml   schéma appliqué aux deux bases
+	python -m machincast.installation check       --config machincast.toml   GStreamer, greffons, sortie audio
+	python -m machincast.installation unit        --config machincast.toml   unité systemd du service de lecture
+	python -m machincast.installation rule        --config machincast.toml   règle polkit qui le pilote
+	python -m machincast.installation purge-unit  --config machincast.toml   unité systemd de la purge
+	python -m machincast.installation purge-timer --config machincast.toml   son minuteur, chaque jour à midi
+	python -m machincast.installation shortcut    --config machincast.toml   raccourci de l'interface (.desktop)
+	python -m machincast.installation devices     --config machincast.toml   périphériques de sortie du poste
+	python -m machincast.installation on-air      --config machincast.toml   antenne utilisable par le service
 
-peripheriques n'est pas appelé par install.sh : il aide à trouver les identifiants à recopier dans audio.peripherique
-et audio.preecoute (https://github.com/dascritch/machincast/issues/116). antenne l'est par install.sh --service, avant
+devices n'est pas appelé par install.sh : il aide à trouver les identifiants à recopier dans audio.peripherique
+et audio.preecoute (https://github.com/dascritch/machincast/issues/116). on-air l'est par install.sh --service, avant
 d'installer le service : il refuse une antenne sur la sortie factice (https://github.com/dascritch/machincast/issues/339).
 
 install.sh enchaîne les commandes système (apt, sudo, psql, liens) ; ce module porte ce qui se teste : la lecture
@@ -300,14 +300,14 @@ class Compte:
 
 
 def unite_systemd(compte: Compte, repertoire: Path = REPERTOIRE_PROJET) -> str:
-	"""L'unité du service de lecture : Machin lecture, sous le compte de MachinCast, relancé après un plantage. Son
+	"""L'unité du service de lecture : Machin player, sous le compte de MachinCast, relancé après un plantage. Son
 	répertoire d'exécution est celui de la session du compte, gardée active au démarrage (loginctl enable-linger) :
 	PipeWire ou PulseAudio, et la socket d'état que lit l'interface. Ses messages vont dans journald."""
 	return f"""# Service de diffusion de MachinCast (https://github.com/dascritch/machincast/issues/22).
 # Installé par install.sh --service ; ne pas modifier ici, relancer install.sh --service.
 
 [Unit]
-Description=MachinCast : diffusion de l'antenne (Machin lecture)
+Description=MachinCast : diffusion de l'antenne (Machin player)
 Wants=network-online.target
 After=network-online.target postgresql.service sound.target
 
@@ -317,7 +317,7 @@ User={compte.nom}
 Group={compte.groupe}
 WorkingDirectory={repertoire}
 Environment=XDG_RUNTIME_DIR=/run/user/{compte.uid}
-ExecStart={repertoire}/bin/Machin lecture
+ExecStart={repertoire}/bin/Machin player
 Restart=on-failure
 RestartSec=5
 KillSignal=SIGTERM
@@ -443,16 +443,16 @@ def _peripheriques(configuration: Configuration) -> int:
 
 
 ACTIONS = {
-	"antenne": _antenne,
-	"bases": _bases,
-	"migrer": _migrer,
-	"minuteur-purge": _minuteur_purge,
-	"peripheriques": _peripheriques,
-	"raccourci": _raccourci,
-	"regle": _regle,
-	"unite": _unite,
-	"unite-purge": _unite_purge,
-	"verifier": _verifier,
+	"check": _verifier,
+	"databases": _bases,
+	"devices": _peripheriques,
+	"migrate": _migrer,
+	"on-air": _antenne,
+	"purge-timer": _minuteur_purge,
+	"purge-unit": _unite_purge,
+	"rule": _regle,
+	"shortcut": _raccourci,
+	"unit": _unite,
 }
 
 

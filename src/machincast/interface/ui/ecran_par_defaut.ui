@@ -59,7 +59,7 @@
      <item>
       <widget class="QLabel" name="etat_lecture">
        <property name="toolTip">
-        <string>État de Machin lecture</string>
+        <string>État de Machin player</string>
        </property>
        <property name="font">
         <font>

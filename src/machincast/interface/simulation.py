@@ -2,7 +2,7 @@
 
 L'onglet « Simulation » (EcranSimulation), qui se ferme, s'ouvre par « Affichage → Ouvrir l'onglet Simulation »
 (machincast.interface.fenetre). On y règle le début et la fin de la période, d'abord de l'heure qu'il est, à la
-minute, à un jour plus tard. « Simuler » lance Machin lecture --simulation (commande_simulation), par le Python de
+minute, à un jour plus tard. « Simuler » lance Machin player --simulation (commande_simulation), par le Python de
 l'interface et avec sa configuration, dans un processus à part (QProcess) : l'interface reste utilisable, et la
 simulation garde le rôle de la lecture en base, où elle n'écrit rien (spec § 5.5). Ses sorties vont dans un répertoire
 temporaire, propre à l'onglet et effacé à sa fermeture : jamais dans les sorties de la configuration.
@@ -67,7 +67,7 @@ PERIODE_INVALIDE = "La fin doit suivre le début."
 
 
 def commande_simulation(configuration: Path | None) -> list[str]:
-	"""Machin lecture, lancé par le Python de l'interface, avec la même configuration qu'elle."""
+	"""Machin player, lancé par le Python de l'interface, avec la même configuration qu'elle."""
 	commande = [sys.executable, "-m", "machincast.lecture"]
 	if configuration is not None:
 		commande += ["--config", str(configuration.expanduser().absolute())]
@@ -130,7 +130,7 @@ class EcranSimulation(QWidget):
 		reglage.addWidget(QLabel("au", self))
 		reglage.addWidget(self.fin)
 		self.simuler = QPushButton("Simuler", self)
-		self.simuler.setToolTip("Machin lecture simule la diffusion de la période, sans son et sans écrire en base")
+		self.simuler.setToolTip("Machin player simule la diffusion de la période, sans son et sans écrire en base")
 		self.simuler.clicked.connect(self.lancer)
 		reglage.addWidget(self.simuler)
 		self.exporter = QPushButton("Exporter…", self)
@@ -184,9 +184,9 @@ class EcranSimulation(QWidget):
 			"--simulation",
 			debut.isoformat(timespec="minutes"),
 			fin.isoformat(timespec="minutes"),
-			"--repertoire",
+			"--directory",
 			str(self.temporaire),
-			"--nom",
+			"--name",
 			NOM,
 		]
 		processus = QProcess(self)
@@ -227,8 +227,8 @@ class EcranSimulation(QWidget):
 		anomalies = [ligne.split(PREFIXE_DES_ANOMALIES, 1)[1] for ligne in erreurs if PREFIXE_DES_ANOMALIES in ligne]
 		chemin = self.temporaire / f"{NOM}.csv"
 		if (code != 0) or (not chemin.exists()):
-			raison = "Machin lecture s'est arrêté sans rien dire"
-			# Chaque message de Machin lecture commence par son horodatage (machincast.journal) ; un message peut tenir
+			raison = "Machin player s'est arrêté sans rien dire"
+			# Chaque message de Machin player commence par son horodatage (machincast.journal) ; un message peut tenir
 			# sur plusieurs lignes.
 			messages = [HORODATAGE.sub("", ligne) for ligne in erreurs if HORODATAGE.match(ligne)]
 			if messages:

@@ -4,10 +4,10 @@ Antenne (https://github.com/dascritch/machincast/issues/257) : y sauter, ou avan
 (proposer_au_prochain).
 
 Le menu « Diffusion » propose de sauter au sonore suivant, de sauter après la séquence en cours, ou de couper
-l'événement par le fil musical (ENTREES). Chaque entrée suit l'état que Machin lecture publie sur sa socket d'état
+l'événement par le fil musical (ENTREES). Chaque entrée suit l'état que Machin player publie sur sa socket d'état
 (proposer) : elle n'est active que si son élément est à l'antenne, et, pour l'événement, hors du fil musical ; son
 infobulle le nomme, ou dit pourquoi elle est inactive. Choisie, elle envoie la demande sur la
-socket (ClientEtat.envoyer), aussitôt, sans question : Machin lecture la traite à son pas suivant
+socket (ClientEtat.envoyer), aussitôt, sans question : Machin player la traite à son pas suivant
 (machincast.lecture.diffusion.Diffusion.interrompre). La barre d'état l'annonce (ANNONCES).
 
 Coupures (https://github.com/dascritch/machincast/issues/323) : « ⏭ Couper par le secours », dans le menu « Diffusion »
@@ -48,13 +48,13 @@ ANNONCES = {
 RIEN_A_L_ANTENNE = "Rien à l'antenne"
 AUCUNE_SEQUENCE = "Aucune séquence à l'antenne"
 DEJA_LE_FIL_MUSICAL = "Le fil musical est déjà à l'antenne"
-SANS_LECTURE = "Interruption impossible : Machin lecture ne répond pas sur sa socket d'état."
+SANS_LECTURE = "Interruption impossible : Machin player ne répond pas sur sa socket d'état."
 SAUTER_A_CE_SONORE = libelle(SAUTER, "Sauter à ce sonore")
 AVANCER_L_EVENEMENT_SUIVANT = libelle(SAUTER, "Avancer l'événement suivant")
 AUCUN_PROCHAIN_SONORE = "Aucun prochain sonore"
 AUCUN_EVENEMENT_SUIVANT = "Aucun événement suivant dans les sept jours"
-SANS_DIFFUSION = "Machin lecture ne diffuse pas"
-AVANCE_SANS_LECTURE = "Avance impossible : Machin lecture ne répond pas sur sa socket d'état."
+SANS_DIFFUSION = "Machin player ne diffuse pas"
+AVANCE_SANS_LECTURE = "Avance impossible : Machin player ne répond pas sur sa socket d'état."
 
 
 @dataclass(frozen=True)
@@ -69,9 +69,9 @@ def _nomme(nom: str | None) -> Proposition:
 
 
 def proposer(etat: EtatLecture) -> dict[str, Proposition]:
-	"""Pour chaque élément, l'entrée de son interruption, selon l'état de Machin lecture."""
+	"""Pour chaque élément, l'entrée de son interruption, selon l'état de Machin player."""
 	en_cours = etat.en_cours
-	# Machin lecture ne publie un sonore en cours qu'en diffusion : ni pendant un blanc, ni à l'arrêt.
+	# Machin player ne publie un sonore en cours qu'en diffusion : ni pendant un blanc, ni à l'arrêt.
 	if en_cours is None:
 		return {element: Proposition(False, RIEN_A_L_ANTENNE) for element in ENTREES}
 	sequence = Proposition(False, AUCUNE_SEQUENCE)
@@ -152,7 +152,7 @@ FEED_JUSQU_A_LA_FIN = (
 	"Le stream du feed passe jusqu'à la fin prévue de l'événement coupé ; sous le fil musical, jusqu'à l'événement"
 	" suivant. S'il tombe, le fil musical prend le relais"
 )
-COUPURE_SANS_LECTURE = "Coupure impossible : Machin lecture ne répond pas sur sa socket d'état."
+COUPURE_SANS_LECTURE = "Coupure impossible : Machin player ne répond pas sur sa socket d'état."
 
 
 @dataclass(frozen=True)

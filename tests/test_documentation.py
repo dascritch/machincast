@@ -107,8 +107,14 @@ def options_install(document: str) -> None:
 @then(parsers.parse("chaque commande Machin citée dans {document} appelle un binaire et des options qui existent"))
 def commandes_machin(document: str) -> None:
 	pyproject = tomllib.loads(texte(RACINE / "pyproject.toml"))
-	binaires = {nom.removeprefix("Machin_") for nom in pyproject["project"]["scripts"]}
-	options_wrapper = {"--config", "-h", "--help", "--binaires"}
+	# Le module de chaque binaire, d'après son point d'entrée : Machin_player lance machincast.lecture
+	# (https://github.com/dascritch/machincast/issues/356).
+	modules = {
+		nom.removeprefix("Machin_"): cible.split(":")[0].removesuffix(".__main__")
+		for nom, cible in pyproject["project"]["scripts"].items()
+	}
+	binaires = set(modules)
+	options_wrapper = {"--config", "-h", "--help", "--binaries"}
 	citees = [mots[1:] for mots in commandes(INSTALLS[document]) if (mots[:1]) and (mots[0] in WRAPPERS)]
 	assert citees, f"{document} ne cite aucune commande Machin"
 	for arguments in citees:
@@ -121,7 +127,7 @@ def commandes_machin(document: str) -> None:
 		binaire, *options = arguments
 		assert binaire in binaires, f"binaire inconnu : {binaire}"
 		aide = subprocess.run(
-			[sys.executable, "-m", f"machincast.{binaire}", "--help"], capture_output=True, text=True, check=True
+			[sys.executable, "-m", modules[binaire], "--help"], capture_output=True, text=True, check=True
 		).stdout
 		inconnues = [option for option in options if (option.startswith("-")) and (option.split("=")[0] not in aide)]
 		assert not inconnues, f"Machin {binaire} : {inconnues}"

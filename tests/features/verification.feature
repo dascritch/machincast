@@ -241,7 +241,7 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 
 	# ─── Exécutable ────────────────────────────────────────────
 
-	Scénario: Machin_indexation signale une base injoignable
-		Quand je lance "Machin_indexation" avec une configuration dont la socket PostgreSQL n'existe pas
+	Scénario: Machin_indexer signale une base injoignable
+		Quand je lance "Machin_indexer" avec une configuration dont la socket PostgreSQL n'existe pas
 		Alors la commande se termine avec le code 1
 		Et la sortie d'erreur de la commande mentionne « base de données injoignable »

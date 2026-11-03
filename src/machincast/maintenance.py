@@ -3,7 +3,7 @@
 Sur la base de production de la configuration, trois étapes, dans l'ordre :
 
 1. sauvegarde : pg_dump, au format personnalisé de PostgreSQL, dans un fichier daté du répertoire des sauvegardes
-   (--sauvegardes, par défaut « sauvegardes » à côté du fichier de configuration), lisible par pg_restore. Une
+   (--backups, par défaut « sauvegardes » à côté du fichier de configuration), lisible par pg_restore. Une
    sauvegarde qui échoue arrête tout : rien n'est modifié sans sauvegarde ;
 2. schéma : les migrations manquantes sont appliquées, puis chaque rôle de MachinCast doit être endossable par le
    compte ; un rôle qui ne l'est pas est signalé avec les commandes, à lancer par un administrateur, qui l'autorisent ;
@@ -11,7 +11,7 @@ Sur la base de production de la configuration, trois étapes, dans l'ordre :
    la diffusion peut continuer pendant ce temps.
 
 Le compte de MachinCast est propriétaire de la base et de ses tables : il fait tout cela sans endosser de rôle, et
-sans droit particulier sur le serveur. Avec --garder-ouvert, la maintenance finie ne rend la main qu'à la fermeture
+sans droit particulier sur le serveur. Avec --keep-open, la maintenance finie ne rend la main qu'à la fermeture
 de son terminal (fin de l'entrée standard, ou Ctrl-C) : la fenêtre ouverte par l'interface reste lisible, Entrée n'y
 fait rien. Le code de sortie est 0 si tout s'est bien passé,
 1 sinon.
@@ -38,7 +38,7 @@ EXECUTABLE = "Machin_maintenance-db"
 DESCRIPTION = "Sauvegarde, vérifie et optimise la base de données de MachinCast."
 CODE_ECHEC = 1
 SAUVEGARDES = "sauvegardes"
-"""Répertoire des sauvegardes, à côté du fichier de configuration, sauf --sauvegardes."""
+"""Répertoire des sauvegardes, à côté du fichier de configuration, sauf --backups."""
 DELAI_DE_SAUVEGARDE = 3600
 """Secondes laissées à pg_dump : une grosse base, sur un disque lent, prend du temps."""
 ROLES: tuple[str, ...] = tuple(role.value for role in Role)
@@ -56,7 +56,7 @@ class EchecDeSauvegarde(Exception):
 
 
 def sauvegardes_par_defaut(fichier_de_configuration: Path) -> Path:
-	"""Le répertoire des sauvegardes sans --sauvegardes : « sauvegardes », à côté du fichier de configuration."""
+	"""Le répertoire des sauvegardes sans --backups : « sauvegardes », à côté du fichier de configuration."""
 	return fichier_de_configuration.parent / SAUVEGARDES
 
 
@@ -147,13 +147,15 @@ def maintenir(configuration: Configuration, repertoire: Path) -> bool:
 
 def options_propres(analyseur: argparse.ArgumentParser) -> None:
 	analyseur.add_argument(
-		"--sauvegardes",
+		"--backups",
+		dest="sauvegardes",
 		type=Path,
 		metavar="REPERTOIRE",
 		help=f"répertoire des sauvegardes ; par défaut « {SAUVEGARDES} », à côté du fichier de configuration",
 	)
 	analyseur.add_argument(
-		"--garder-ouvert",
+		"--keep-open",
+		dest="garder_ouvert",
 		action="store_true",
 		help="garde le terminal ouvert à la fin, jusqu'à sa fermeture : pour la fenêtre qu'ouvre l'interface",
 	)

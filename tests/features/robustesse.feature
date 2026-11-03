@@ -8,11 +8,11 @@ Fonctionnalité: Robustesse du code, relevée au tour du code source
 	socket ou un descripteur qui reste ouvert après une erreur, une mémoire qui grossit sans limite, une commande
 	système qui peut ne jamais répondre, une réponse inattendue qui ferait planter un écran.
 
-	# ─── Socket d'état de Machin lecture ──────────────────────
+	# ─── Socket d'état de Machin player ──────────────────────
 
 	Scénario: Une socket d'état qui ne peut pas être ouverte ne laisse aucun descripteur ouvert
 		Étant donné une socket d'état dont le chemin est trop long pour le système
-		Quand Machin lecture tente de l'ouvrir
+		Quand Machin player tente de l'ouvrir
 		Alors l'ouverture échoue
 		Et aucun descripteur de fichier n'est resté ouvert
 
@@ -23,7 +23,7 @@ Fonctionnalité: Robustesse du code, relevée au tour du code source
 		Et le fil musical permanent « Continue », avec les sonores « f1 »
 		Quand la diffusion démarre au plus vite
 		Et une erreur interrompt la boucle de diffusion
-		Alors l'erreur remonte jusqu'à Machin lecture
+		Alors l'erreur remonte jusqu'à Machin player
 		Et la socket d'état est effacée, et plus rien n'y répond
 
 	# ─── Client de la socket d'état, dans l'interface ─────────

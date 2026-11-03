@@ -106,7 +106,7 @@ class Ui_CartesSon(object):
 #endif // QT_CONFIG(tooltip)
         self.etiquette_antenne.setText(QCoreApplication.translate("CartesSon", u"&Antenne", None))
 #if QT_CONFIG(tooltip)
-        self.antenne.setToolTip(QCoreApplication.translate("CartesSon", u"La carte son sur laquelle Machin lecture diffuse l'antenne", None))
+        self.antenne.setToolTip(QCoreApplication.translate("CartesSon", u"La carte son sur laquelle Machin player diffuse l'antenne", None))
 #endif // QT_CONFIG(tooltip)
         self.tester_antenne.setText(QCoreApplication.translate("CartesSon", u"Tester", None))
         self.etiquette_preecoute.setText(QCoreApplication.translate("CartesSon", u"&Pr\u00e9-\u00e9coute", None))

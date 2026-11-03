@@ -53,7 +53,7 @@
         </sizepolicy>
        </property>
        <property name="toolTip">
-        <string>La carte son sur laquelle Machin lecture diffuse l'antenne</string>
+        <string>La carte son sur laquelle Machin player diffuse l'antenne</string>
        </property>
       </widget>
      </item>

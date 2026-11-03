@@ -154,12 +154,12 @@ INSTALLER_LE_SERVICE = (
 	"La diffusion ne démarre pas avec le poste, et ne redémarre pas seule après un plantage. Sur un ordinateur dédié à "
 	"l'antenne, installer le service : ./install.sh --service (INSTALL.md, Service de diffusion)."
 )
-SANS_SERVICE_DEMARRER = "Sans service : Machin lecture dans une fenêtre de terminal"
+SANS_SERVICE_DEMARRER = "Sans service : Machin player dans une fenêtre de terminal"
 SANS_ESSAI = "Aucune diffusion d'essai en cours"
-ESSAI_ARRETER = "Sans service : arrête le Machin lecture lancé à la main, comme Ctrl-C"
+ESSAI_ARRETER = "Sans service : arrête le Machin player lancé à la main, comme Ctrl-C"
 ANTENNE_A_RENSEIGNER = "Périphérique de l'antenne à renseigner"
 REGLER_L_ANTENNE = (
-	"Machin lecture refuse de diffuser sans lui : le choisir dans Fichier → Préférences…, page Audio, ou le donner"
+	"Machin player refuse de diffuser sans lui : le choisir dans Fichier → Préférences…, page Audio, ou le donner"
 	" dans audio.peripherique du fichier de configuration."
 )
 DEJA_EN_MARCHE = "La diffusion d'essai tourne déjà"
@@ -235,13 +235,13 @@ class FenetrePrincipale(QMainWindow):
 		peremption: int = PEREMPTION,
 		blanc_antenne: BlancAntenne | None = None,
 	) -> None:
-		"""commande_indexation : Machin indexation, avec la configuration de l'interface
+		"""commande_indexation : Machin indexer, avec la configuration de l'interface
 		(indexation.commande_indexation). configuration : le fichier où « Préférences… » enregistre les réglages,
 		crossfades ceux qu'il donne (https://github.com/dascritch/machincast/issues/145) ; sans fichier, les
 		préférences ne s'enregistrent pas. silences : la détection de silence qu'il donne
 		(https://github.com/dascritch/machincast/issues/146). interface : ses réglages de l'interface, le voyant
 		« Saturation » de l'onglet Antenne (https://github.com/dascritch/machincast/issues/191). blanc_antenne : le
-		blanc dans un sonore qu'il donne, pour Machin lecture (https://github.com/dascritch/machincast/issues/122)."""
+		blanc dans un sonore qu'il donne, pour Machin player (https://github.com/dascritch/machincast/issues/122)."""
 		super().__init__(parent)
 		self.configuration = configuration
 		self.audio = audio
@@ -286,7 +286,7 @@ class FenetrePrincipale(QMainWindow):
 		self.accueil.interruption_demandee.connect(self._interrompre)
 		self.accueil.secours_demande.connect(self._couper_par_le_secours)
 		self._antenne: EtatLecture = ARRET
-		"""Le dernier état de Machin lecture, pour les coupures proposées."""
+		"""Le dernier état de Machin player, pour les coupures proposées."""
 		self._secours: list[interruption.Secours] = []
 		"""Les événements de secours, relus à l'ouverture du menu « Diffusion » et quand la grille change."""
 		self.verificateur = Verificateur(connexion, self)
@@ -521,14 +521,14 @@ class FenetrePrincipale(QMainWindow):
 		)
 
 	def _couper_par_le_secours(self, secours: interruption.Secours) -> None:
-		"""Demande à Machin lecture de couper l'antenne par ce secours, sans question."""
+		"""Demande à Machin player de couper l'antenne par ce secours, sans question."""
 		annonce = interruption.COUPURE_SANS_LECTURE
 		if self.accueil.client.envoyer(demande_de_coupure_par_le_secours(secours.identifiant)):
 			annonce = interruption.annonce_du_secours(secours.nom)
 		self.ui.barre_d_etat.showMessage(annonce)
 
 	def _couper_par_le_feed(self, feed: int, nom: str) -> None:
-		"""Demande à Machin lecture de couper l'antenne par le stream de ce feed, sans question."""
+		"""Demande à Machin player de couper l'antenne par le stream de ce feed, sans question."""
 		annonce = interruption.COUPURE_SANS_LECTURE
 		if self.accueil.client.envoyer(demande_de_coupure_par_le_feed(feed)):
 			annonce = interruption.annonce_du_feed(nom)
@@ -542,20 +542,20 @@ class FenetrePrincipale(QMainWindow):
 	def _grille_modifiee(self) -> None:
 		"""Une session sautée ou rétablie (https://github.com/dascritch/machincast/issues/273), une fiche enregistrée,
 		supprimée ou restaurée (https://github.com/dascritch/machincast/issues/266) valent aussitôt à l'antenne :
-		Machin lecture relit la grille, s'il diffuse ; sinon, il la lira à son démarrage. Les événements de secours
+		Machin player relit la grille, s'il diffuse ; sinon, il la lira à son démarrage. Les événements de secours
 		ont pu changer."""
 		self.accueil.client.envoyer(demande_de_relire_la_grille())
 		self._relire_les_secours()
 
 	def _interrompre(self, element: str) -> None:
-		"""Demande à Machin lecture d'interrompre l'élément, sans question : l'antenne n'attend pas."""
+		"""Demande à Machin player d'interrompre l'élément, sans question : l'antenne n'attend pas."""
 		annonce = interruption.SANS_LECTURE
 		if self.accueil.client.envoyer(demande_d_interruption(element)):
 			annonce = interruption.ANNONCES[element]
 		self.ui.barre_d_etat.showMessage(annonce)
 
 	def _avancer(self, evenement: int, nom: str) -> None:
-		"""Demande à Machin lecture d'avancer l'événement suivant qu'il a annoncé, sans question
+		"""Demande à Machin player d'avancer l'événement suivant qu'il a annoncé, sans question
 		(https://github.com/dascritch/machincast/issues/257)."""
 		annonce = interruption.AVANCE_SANS_LECTURE
 		if self.accueil.client.envoyer(demande_d_avance(evenement)):
@@ -808,11 +808,11 @@ class FenetrePrincipale(QMainWindow):
 			fiche.enregistree.connect(self._garantir_fil_musical)
 		if isinstance(fiche, FicheEvenement):
 			# Une session rétablie depuis la fiche (https://github.com/dascritch/machincast/issues/295), comme depuis le
-			# calendrier : la barre d'état l'annonce, et Machin lecture relit la grille.
+			# calendrier : la barre d'état l'annonce, et Machin player relit la grille.
 			fiche.session_retablie.connect(self.ui.barre_d_etat.showMessage)
 			fiche.session_retablie.connect(self._grille_modifiee)
 		# Une fiche enregistrée, supprimée ou restaurée vaut aussitôt à l'antenne
-		# (https://github.com/dascritch/machincast/issues/266) : Machin lecture relit la grille, et ne recalcule que si
+		# (https://github.com/dascritch/machincast/issues/266) : Machin player relit la grille, et ne recalcule que si
 		# ce qui règle l'antenne a changé. Un sonore ou une banque supprimé quitte les listes des événements.
 		fiche.enregistree.connect(self._grille_modifiee)
 		fiche.supprimee.connect(self._grille_modifiee)
@@ -1098,7 +1098,7 @@ class FenetrePrincipale(QMainWindow):
 			antenne = (reponse.antenne) or ("à renseigner")
 			self.statusBar().showMessage(
 				f"Cartes son : antenne {antenne}, pré-écoute {reponse.preecoute} ;"
-				" Machin lecture prendra l'antenne à son prochain démarrage."
+				" Machin player prendra l'antenne à son prochain démarrage."
 			)
 
 	def _garantir_fil_musical(self) -> None:
@@ -1126,16 +1126,16 @@ class FenetrePrincipale(QMainWindow):
 		self.statusBar().showMessage(pilotage.lancer_la_maintenance(self.configuration, sauvegardes))
 
 	def _indexer(self, audit_complet: bool) -> None:
-		"""Lance Machin indexation dans son propre processus, avec sa fenêtre ; le menu ne la propose plus tant qu'il
+		"""Lance Machin indexer dans son propre processus, avec sa fenêtre ; le menu ne la propose plus tant qu'il
 		tourne."""
-		commande = [*self.commande_indexation, "--fenetre"]
+		commande = [*self.commande_indexation, "--window"]
 		if audit_complet:
-			commande.append("--audit-complet")
+			commande.append("--full-audit")
 		self._mode_lance = audit_complet
 		self.indexation_lancee = indexation.lancer_detachee(commande)
 		if self.indexation_lancee is None:
 			journal.error(f"indexation impossible à lancer : {' '.join(commande)}")
-			self.ui.barre_d_etat.showMessage("Indexation impossible : Machin indexation n'a pas pu être lancé.")
+			self.ui.barre_d_etat.showMessage("Indexation impossible : Machin indexer n'a pas pu être lancé.")
 			return
 		for action in self.indexations:
 			action.setEnabled(False)
@@ -1233,11 +1233,11 @@ class FenetrePrincipale(QMainWindow):
 		self.accueil.changer_d_antenne(self.audio)
 		self.statusBar().showMessage(
 			f"Préférences enregistrées dans {self.configuration} ;"
-			f" Machin lecture prendra {texte} à son prochain démarrage.{icone}"
+			f" Machin player prendra {texte} à son prochain démarrage.{icone}"
 		)
 
 	def _signaler_l_antenne(self) -> None:
-		"""Sans périphérique d'antenne, sur une vraie sortie, Machin lecture refuse de diffuser : la barre d'état le
+		"""Sans périphérique d'antenne, sur une vraie sortie, Machin player refuse de diffuser : la barre d'état le
 		dit."""
 		self.antenne_a_renseigner.setVisible(self.audio.antenne_a_renseigner())
 

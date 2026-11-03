@@ -30,9 +30,9 @@ completer() {
 	[[ "${output}" == *"-F _Machin"* ]]
 }
 
-@test "Machin <TAB> propose les binaires, maintenance-db et purge compris, logs, dev, dev-test et dev-captures" {
+@test "Machin <TAB> propose les binaires, maintenance-db et purge compris, logs, dev, dev-test et dev-screenshots" {
 	run completer Machin ""
-	[ "${output}" = "$(printf '%s\n' dev dev-captures dev-test indexation interface lecture logs maintenance-db purge)" ]
+	[ "${output}" = "$(printf '%s\n' dev dev-screenshots dev-test indexer interface logs maintenance-db player purge)" ]
 }
 
 @test "Machin dev-test <TAB> ne propose rien de plus" {
@@ -42,19 +42,19 @@ completer() {
 
 @test "Machin in<TAB> propose les binaires qui commencent par in" {
 	run completer Machin in
-	[ "${output}" = "$(printf '%s\n' indexation interface)" ]
+	[ "${output}" = "$(printf '%s\n' indexer interface)" ]
 }
 
 @test "Machin -<TAB> propose les options du wrapper" {
 	run completer Machin -
-	[ "${output}" = "$(printf '%s\n' --binaires --config --help -h)" ]
+	[ "${output}" = "$(printf '%s\n' --binaries --config --help -h)" ]
 }
 
-@test "Machin dev-captures <TAB> propose des répertoires, pas des fichiers" {
+@test "Machin dev-screenshots <TAB> propose des répertoires, pas des fichiers" {
 	cd "${BATS_TEST_TMPDIR}"
 	mkdir captures-essai
 	touch captures.txt
-	run completer Machin dev-captures cap
+	run completer Machin dev-screenshots cap
 	[ "${output}" = "captures-essai" ]
 }
 
@@ -72,20 +72,20 @@ completer() {
 	[ "${output}" = "essai.toml" ]
 }
 
-@test "après --config FICHIER, Machin l<TAB> propose encore les binaires" {
-	run completer Machin --config essai.toml l
-	[ "${output}" = "$(printf '%s\n' lecture logs)" ]
+@test "après --config FICHIER, Machin p<TAB> propose encore les binaires" {
+	run completer Machin --config essai.toml p
+	[ "${output}" = "$(printf '%s\n' player purge)" ]
 }
 
-@test "Machin lecture -<TAB> propose les options lues dans l'aide du binaire" {
-	run completer Machin lecture -
+@test "Machin player -<TAB> propose les options lues dans l'aide du binaire" {
+	run completer Machin player -
 	[ "${output}" = "$(printf '%s\n' --config --help --version -h)" ]
 }
 
-@test "Machin lecture --config <TAB> propose des fichiers" {
+@test "Machin player --config <TAB> propose des fichiers" {
 	cd "${BATS_TEST_TMPDIR}"
 	touch essai.toml
-	run completer Machin lecture --config es
+	run completer Machin player --config es
 	[ "${output}" = "essai.toml" ]
 }
 
@@ -96,10 +96,10 @@ completer() {
 	[[ "${output}" != *"--config"* ]]
 }
 
-@test "avec le venv du dépôt, Machin indexation --<TAB> propose les vraies options du binaire" {
-	[ -x "${RACINE}/.venv/bin/Machin_indexation" ] || skip "venv du dépôt absent"
+@test "avec le venv du dépôt, Machin indexer --<TAB> propose les vraies options du binaire" {
+	[ -x "${RACINE}/.venv/bin/Machin_indexer" ] || skip "venv du dépôt absent"
 	PATH="${RACINE}/bin:/usr/bin:/bin"
-	run completer Machin indexation --
+	run completer Machin indexer --
 	[[ "${output}" == *"--config"* ]]
 	[[ "${output}" == *"--version"* ]]
 }

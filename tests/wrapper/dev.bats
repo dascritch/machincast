@@ -153,31 +153,31 @@ machin_dev() {
 	[[ "${output}" == *"Développement"*"dev "*"dev-test"*"./install.sh --dev"* ]]
 }
 
-# ─── Machin dev-captures ───────────────────────────────────
+# ─── Machin dev-screenshots ───────────────────────────────────
 
-@test "Machin dev-captures produit les captures du guide avec le Python du venv, depuis le répertoire de MachinCast" {
+@test "Machin dev-screenshots produit les captures du guide avec le Python du venv, depuis le répertoire de MachinCast" {
 	ecrire_outil "${VENV}" python
 	cd "${BATS_TEST_TMPDIR}"
-	run "${MACHIN}" dev-captures
+	run "${MACHIN}" dev-screenshots
 	[ "${status}" -eq 0 ]
 	grep -qF "python [-m] [tests.captures] dans ${PROJET}, venv ${PROJET}/.venv" "${APPELS}"
 }
 
-@test "Machin dev-captures transmet le répertoire où écrire les captures" {
+@test "Machin dev-screenshots transmet le répertoire où écrire les captures" {
 	ecrire_outil "${VENV}" python
-	run "${MACHIN}" dev-captures /tmp/essai
+	run "${MACHIN}" dev-screenshots /tmp/essai
 	[ "${status}" -eq 0 ]
 	grep -qF "python [-m] [tests.captures] [/tmp/essai] dans ${PROJET}" "${APPELS}"
 }
 
-@test "Machin dev-captures refuse --config : il n'écrit que dans la base de test" {
-	run --separate-stderr "${MACHIN}" --config autre.toml dev-captures
+@test "Machin dev-screenshots refuse --config : il n'écrit que dans la base de test" {
+	run --separate-stderr "${MACHIN}" --config autre.toml dev-screenshots
 	[ "${status}" -eq 2 ]
-	[[ "${stderr}" == *"--config ne s'applique pas à dev-captures"* ]]
+	[[ "${stderr}" == *"--config ne s'applique pas à dev-screenshots"* ]]
 }
 
-@test "Machin dev-captures refuse plus d'un répertoire" {
-	run --separate-stderr "${MACHIN}" dev-captures un deux
+@test "Machin dev-screenshots refuse plus d'un répertoire" {
+	run --separate-stderr "${MACHIN}" dev-screenshots un deux
 	[ "${status}" -eq 2 ]
-	[[ "${stderr}" == *"dev-captures prend au plus un répertoire"* ]]
+	[[ "${stderr}" == *"dev-screenshots prend au plus un répertoire"* ]]
 }

@@ -43,7 +43,7 @@ RELEVE_DES_FORMES = 100
 """Millisecondes entre deux relèves des formes d'onde en cours de calcul (https://github.com/dascritch/machincast/issues/230)."""
 ETATS = {"diffusion": "En diffusion", "blanc": "Blanc à l'antenne", "arret": "À l'arrêt"}
 A_VENIR = 5
-"""Lignes que montre la table des sonores à venir, autant que Machin lecture en prévoit."""
+"""Lignes que montre la table des sonores à venir, autant que Machin player en prévoit."""
 ENCARTS_REPLIES = "accueil/encarts-replies"
 """Dans les réglages des vues du compte : les encarts de l'onglet Antenne repliés, dépliés sinon."""
 LIGNES_A_VENIR_AU_MOINS = 2
@@ -205,7 +205,7 @@ class EcranParDefaut(QWidget):
 		if (len(passages) > 0) and (passages[0].fin is None):
 			self._passage_connu = passages[0].debut
 		self.etat: EtatLecture = ARRET
-		"""Le dernier état reçu de Machin lecture."""
+		"""Le dernier état reçu de Machin player."""
 		# Le clic droit sur le prochain sonore (https://github.com/dascritch/machincast/issues/257).
 		self.ui.cadre_prochain.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 		self.ui.cadre_prochain.customContextMenuRequested.connect(self._menu_du_prochain)
@@ -470,7 +470,7 @@ class EcranParDefaut(QWidget):
 
 	def menu_du_prochain(self) -> QMenu:
 		"""Le menu du clic droit sur le prochain sonore : sa pré-écoute, y sauter aussitôt, et avancer l'événement
-		suivant que Machin lecture annonce (https://github.com/dascritch/machincast/issues/257). Une entrée inactive dit
+		suivant que Machin player annonce (https://github.com/dascritch/machincast/issues/257). Une entrée inactive dit
 		pourquoi dans son infobulle."""
 		menu = QMenu(self)
 		menu.setToolTipsVisible(True)

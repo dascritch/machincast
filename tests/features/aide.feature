@@ -11,8 +11,8 @@ Fonctionnalité: Aide des exécutables
 
 		Exemples:
 			| executable        |
-			| Machin_lecture    |
-			| Machin_indexation |
+			| Machin_player    |
+			| Machin_indexer |
 			| Machin_interface  |
 			| Machin_purge      |
 
@@ -23,7 +23,7 @@ Fonctionnalité: Aide des exécutables
 
 		Exemples:
 			| executable        |
-			| Machin_lecture    |
-			| Machin_indexation |
+			| Machin_player    |
+			| Machin_indexer |
 			| Machin_interface  |
 			| Machin_purge      |

@@ -1,4 +1,4 @@
-"""Boucle de diffusion de Machin lecture (https://github.com/dascritch/machincast/issues/88, spec § 5).
+"""Boucle de diffusion de Machin player (https://github.com/dascritch/machincast/issues/88, spec § 5).
 
 Assemble l'ordonnanceur (machincast.lecture.deroule), le moteur audio (machincast.lecture.moteur), la vérification
 des fichiers (machincast.lecture.fichiers) et l'enregistrement (machincast.lecture.enregistrement). La diffusion
@@ -400,7 +400,7 @@ class Diffusion:
 		self.ordonnanceur = Ordonnanceur(self.connexion, self.hasard, self.historique)
 
 	def demarrer(self) -> None:
-		"""Ouvre la socket d'état, puis consigne le démarrage ; lève SocketEtatOccupee si un autre Machin lecture
+		"""Ouvre la socket d'état, puis consigne le démarrage ; lève SocketEtatOccupee si un autre Machin player
 		diffuse déjà."""
 		instant = self.horloge.maintenant()
 		if self.etat is not None:
@@ -413,7 +413,7 @@ class Diffusion:
 					self.connexion, "alerte", "socket d'état indisponible", f"{self.etat.chemin} : {erreur}", instant
 				)
 				self.etat = None
-		self.historique.consigner(self.connexion, "info", "démarrage", f"Machin_lecture {__version__}", instant)
+		self.historique.consigner(self.connexion, "info", "démarrage", f"Machin_player {__version__}", instant)
 		self._verifier_les_expirations(instant)
 		self._publier(instant)
 
@@ -494,7 +494,7 @@ class Diffusion:
 
 	def avancer(self, evenement: int | None) -> bool:
 		"""L'événement suivant commence aussitôt (https://github.com/dascritch/machincast/issues/257), s'il est bien
-		celui que la demande attend : l'interface nomme celui que Machin lecture a publié. Le sonore en cours
+		celui que la demande attend : l'interface nomme celui que Machin player a publié. Le sonore en cours
 		s'éteint comme pour une interruption manuelle, une séquence en cours ne continue pas, et les sonores à venir
 		sont recalculés. False si la demande est ignorée."""
 		instant = self.horloge.maintenant()
@@ -975,7 +975,7 @@ class Diffusion:
 			self.connexion,
 			"info",
 			"analyse du prochain sonore",
-			f"{emplacement} : audit complet par Machin indexation, avant sa lecture",
+			f"{emplacement} : audit complet par Machin indexer, avant sa lecture",
 			instant,
 			sonore=sonore,
 		)

@@ -46,7 +46,7 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors la sortie audio utilise le périphérique par défaut
 
-	Scénario: La socket d'état de Machin lecture est par défaut dans le répertoire d'exécution du compte
+	Scénario: La socket d'état de Machin player est par défaut dans le répertoire d'exécution du compte
 		Étant donné le répertoire d'exécution du compte « /run/user/1000 »
 		Et une configuration valide où la clé "lecture.socket_etat" est absente
 		Quand je charge la configuration
@@ -353,8 +353,8 @@ Fonctionnalité: Fichier de configuration
 
 		Exemples:
 			| executable        |
-			| Machin_lecture    |
-			| Machin_indexation |
+			| Machin_player    |
+			| Machin_indexer |
 			| Machin_interface  |
 
 	# ─── Fichier par défaut (https://github.com/dascritch/machincast/issues/76) ───
@@ -383,13 +383,13 @@ Fonctionnalité: Fichier de configuration
 
 		Exemples:
 			| executable        |
-			| Machin_lecture    |
-			| Machin_indexation |
+			| Machin_player    |
+			| Machin_indexer |
 			| Machin_interface  |
 
 	Scénario: Un binaire refuse une configuration invalide
 		Étant donné un chemin de configuration qui n'existe pas
-		Quand je lance "Machin_lecture" avec ce chemin de configuration
+		Quand je lance "Machin_player" avec ce chemin de configuration
 		Alors le binaire s'arrête avec le code 2
 		Et l'erreur affichée mentionne le chemin du fichier
 

@@ -772,7 +772,7 @@
      <item>
       <widget class="QPushButton" name="verifier">
        <property name="toolTip">
-        <string>Décoder le fichier en entier et mesurer ses silences, comme l'audit complet de Machin indexation, pour ce seul sonore</string>
+        <string>Décoder le fichier en entier et mesurer ses silences, comme l'audit complet de Machin indexer, pour ce seul sonore</string>
        </property>
        <property name="text">
         <string>Vérification complète</string>

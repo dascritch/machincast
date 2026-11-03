@@ -90,17 +90,17 @@ Fonctionnalité: Vérifications de l'installation
 	# ─── En ligne de commande ──────────────────────────────────
 
 	Scénario: Les paramètres des bases sont lus dans la configuration, une valeur par ligne
-		Quand je lance « python -m machincast.installation bases » avec la configuration de test
+		Quand je lance « python -m machincast.installation databases » avec la configuration de test
 		Alors la commande se termine sans erreur
 		Et elle affiche la socket, la base de production puis la base de test de cette configuration
 
 	Scénario: La vérification en ligne de commande réussit quand rien ne manque
-		Quand je lance « python -m machincast.installation verifier » avec la configuration de test
+		Quand je lance « python -m machincast.installation check » avec la configuration de test
 		Alors la commande se termine sans erreur
 		Et sa sortie annonce « décodeurs, source des streams et sortie audio disponibles »
 
 	Scénario: L'application du schéma signale une base injoignable
-		Quand je lance « python -m machincast.installation migrer » avec une configuration dont la socket n'existe pas
+		Quand je lance « python -m machincast.installation migrate » avec une configuration dont la socket n'existe pas
 		Alors la commande se termine avec le code 1
 		Et sa sortie d'erreur mentionne « base de données injoignable »
 
@@ -121,7 +121,7 @@ Fonctionnalité: Vérifications de l'installation
 		https://github.com/dascritch/machincast/issues/339 : l'antenne d'un poste dédié joue toujours sur une carte son.
 		install.sh --service lance cette vérification avant d'installer le service, et s'arrête si elle échoue.
 
-		Quand je lance « python -m machincast.installation antenne » avec une configuration sur la sortie « <sortie> », l'antenne <antenne>
+		Quand je lance « python -m machincast.installation on-air » avec une configuration sur la sortie « <sortie> », l'antenne <antenne>
 		Alors la commande se termine avec le code <code>
 		Et sa sortie <flux> « <message> »
 
@@ -133,14 +133,14 @@ Fonctionnalité: Vérifications de l'installation
 			| factice  | « carte-1 »    | 1    | d'erreur mentionne | antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service |
 
 	Scénario: install.sh vérifie l'antenne avant d'installer le service
-		Alors install.sh vérifie l'antenne par « installation antenne » avant la première étape du service, et s'arrête si elle échoue
+		Alors install.sh vérifie l'antenne par « installation on-air » avant la première étape du service, et s'arrête si elle échoue
 
-	Scénario: L'unité du service lance Machin lecture sous le compte de MachinCast, et la relance après un plantage
-		Quand je lance « python -m machincast.installation unite » avec la configuration de test
+	Scénario: L'unité du service lance Machin player sous le compte de MachinCast, et la relance après un plantage
+		Quand je lance « python -m machincast.installation unit » avec la configuration de test
 		Alors la commande se termine sans erreur
 		Et l'unité a, dans la section « Unit » :
 			| clé         | valeur                                                     |
-			| Description | MachinCast : diffusion de l'antenne (Machin lecture)       |
+			| Description | MachinCast : diffusion de l'antenne (Machin player)       |
 			| Wants       | network-online.target                                      |
 			| After       | network-online.target postgresql.service sound.target      |
 		Et l'unité a, dans la section « Service » :
@@ -150,7 +150,7 @@ Fonctionnalité: Vérifications de l'installation
 			| Group            | <groupe>                                        |
 			| WorkingDirectory | <répertoire>                                    |
 			| Environment      | XDG_RUNTIME_DIR=/run/user/<uid>                 |
-			| ExecStart        | <répertoire>/bin/Machin lecture                 |
+			| ExecStart        | <répertoire>/bin/Machin player                 |
 			| Restart          | on-failure                                      |
 			| RestartSec       | 5                                               |
 			| KillSignal       | SIGTERM                                         |
@@ -168,18 +168,18 @@ Fonctionnalité: Vérifications de l'installation
 			| Group            | antenne                               |
 			| WorkingDirectory | /home/radio/machincast                |
 			| Environment      | XDG_RUNTIME_DIR=/run/user/1001        |
-			| ExecStart        | /home/radio/machincast/bin/Machin lecture |
+			| ExecStart        | /home/radio/machincast/bin/Machin player |
 		Et la règle ne concerne que le compte « radio »
 
 	Scénario: systemd accepte l'unité du service
 		Étant donné l'outil « systemd-analyze » du poste
-		Quand je lance « python -m machincast.installation unite » avec la configuration de test
+		Quand je lance « python -m machincast.installation unit » avec la configuration de test
 		Et j'enregistre sa sortie en « machincast.service »
 		Alors « systemd-analyze verify » accepte « machincast.service »
 
 	Plan du scénario: La règle polkit n'autorise que démarrer, arrêter et redémarrer le service, par un administrateur, au compte de MachinCast
 		Étant donné l'outil « node » du poste
-		Quand je lance « python -m machincast.installation regle » avec la configuration de test
+		Quand je lance « python -m machincast.installation rule » avec la configuration de test
 		Alors la règle polkit répond <reponse> à l'action « <action> » sur « <unite> », verbe « <verbe> », pour <qui>
 
 		Exemples:
@@ -197,10 +197,10 @@ Fonctionnalité: Vérifications de l'installation
 
 	# ─── Purge quotidienne (https://github.com/dascritch/machincast/issues/268) ─────
 	# install.sh --service installe aussi le minuteur de la purge : chaque jour à midi, Machin purge efface de la base
-	# ce qui dépasse la durée de péremption, sous le compte de MachinCast. --retirer-service le retire avec le service.
+	# ce qui dépasse la durée de péremption, sous le compte de MachinCast. --remove-service le retire avec le service.
 
 	Scénario: L'unité de la purge lance Machin purge une fois, sous le compte de MachinCast
-		Quand je lance « python -m machincast.installation unite-purge » avec la configuration de test
+		Quand je lance « python -m machincast.installation purge-unit » avec la configuration de test
 		Alors la commande se termine sans erreur
 		Et l'unité a, dans la section « Unit » :
 			| clé         | valeur                                                          |
@@ -217,7 +217,7 @@ Fonctionnalité: Vérifications de l'installation
 		Et l'unité n'a pas de section « Install »
 
 	Scénario: Le minuteur de la purge la lance chaque jour à midi, et la rattrape si le poste était éteint
-		Quand je lance « python -m machincast.installation minuteur-purge » avec la configuration de test
+		Quand je lance « python -m machincast.installation purge-timer » avec la configuration de test
 		Alors la commande se termine sans erreur
 		Et l'unité a, dans la section « Unit » :
 			| clé         | valeur                                                 |
@@ -242,9 +242,9 @@ Fonctionnalité: Vérifications de l'installation
 
 	Scénario: systemd accepte l'unité et le minuteur de la purge
 		Étant donné l'outil « systemd-analyze » du poste
-		Quand je lance « python -m machincast.installation unite-purge » avec la configuration de test
+		Quand je lance « python -m machincast.installation purge-unit » avec la configuration de test
 		Et j'enregistre sa sortie en « machincast-purge.service »
-		Et je lance « python -m machincast.installation minuteur-purge » avec la configuration de test
+		Et je lance « python -m machincast.installation purge-timer » avec la configuration de test
 		Et j'enregistre sa sortie en « machincast-purge.timer »
 		Alors « systemd-analyze verify » accepte « machincast-purge.service »
 		Et « systemd-analyze verify » accepte « machincast-purge.timer »
@@ -257,7 +257,7 @@ Fonctionnalité: Vérifications de l'installation
 	# sur demande, sur son bureau. Lancé depuis une icône, le programme démarre dans le répertoire de MachinCast.
 
 	Scénario: Le raccourci lance Machin interface depuis le répertoire de MachinCast, avec son icône
-		Quand je lance « python -m machincast.installation raccourci » avec la configuration de test
+		Quand je lance « python -m machincast.installation shortcut » avec la configuration de test
 		Alors la commande se termine sans erreur
 		Et le raccourci a, dans la section « Desktop Entry » :
 			| clé            | valeur                                                 |
@@ -293,7 +293,7 @@ Fonctionnalité: Vérifications de l'installation
 
 	Scénario: desktop-file-validate accepte le raccourci
 		Étant donné l'outil « desktop-file-validate » du poste
-		Quand je lance « python -m machincast.installation raccourci » avec la configuration de test
+		Quand je lance « python -m machincast.installation shortcut » avec la configuration de test
 		Et j'enregistre sa sortie en « machincast.desktop »
 		Alors « desktop-file-validate » accepte « machincast.desktop »
 
@@ -312,7 +312,7 @@ Fonctionnalité: Vérifications de l'installation
 
 	Scénario: Le raccourci prend l'icône choisie dans la configuration
 		Étant donné une image PNG « logo.png »
-		Quand je lance « python -m machincast.installation raccourci » avec une configuration dont l'icône est cette image
+		Quand je lance « python -m machincast.installation shortcut » avec une configuration dont l'icône est cette image
 		Alors la commande se termine sans erreur
 		Et le raccourci a l'icône de cette image
 

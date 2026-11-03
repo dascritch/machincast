@@ -6,7 +6,7 @@ une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interf
 - Les noms sont enregistrés conformés (machincast.conformation, https://github.com/dascritch/machincast/issues/108) ; un
   nom public vide n'en est pas un (NULL).
 - Le masquage « hérité du sonore » (NULL) laisse décider le sonore ; « masqués » et « affichés » l'imposent.
-- Les répertoires sont enregistrés sous leur forme normale, comme les lit Machin indexation.
+- Les répertoires sont enregistrés sous leur forme normale, comme les lit Machin indexer.
 - Crossfades (https://github.com/dascritch/machincast/issues/143) : pour le début comme pour la fin, une règle et une
   durée. « Garder ceux des sonores » laisse le crossfade de chaque sonore, et la durée de la banque, gardée pour
   plus tard, ne se modifie pas ; « Appliquer si le sonore n'en a pas » la donne aux sonores sans crossfade

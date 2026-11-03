@@ -1,4 +1,4 @@
-"""Scénarios du journal de l'indexation, la fenêtre de Machin indexation --fenetre
+"""Scénarios du journal de l'indexation, la fenêtre de Machin indexer --window
 (https://github.com/dascritch/machincast/issues/120).
 
 La fenêtre s'ouvre ici dans le processus des tests, sur la base de test. Les étapes des fichiers, des sonores et des
@@ -144,17 +144,17 @@ def fermer_pendant(suivi: Journal, qtbot: QtBot, reprise: threading.Event, repon
 	fermer_en_repondant(suivi, qtbot, reponse)
 
 
-@when("je lance Machin indexation --fenetre sans affichage graphique", target_fixture="commande")
+@when("je lance Machin indexer --window sans affichage graphique", target_fixture="commande")
 def sans_affichage() -> subprocess.CompletedProcess[str]:
-	chemin = shutil.which("Machin_indexation")
-	assert chemin is not None, 'Machin_indexation n\'est pas installé : lancer pip install -e ".[dev]"'
+	chemin = shutil.which("Machin_indexer")
+	assert chemin is not None, 'Machin_indexer n\'est pas installé : lancer pip install -e ".[dev]"'
 	environnement = {
 		cle: valeur
 		for cle, valeur in os.environ.items()
 		if cle not in ("DISPLAY", "WAYLAND_DISPLAY", "QT_QPA_PLATFORM")
 	}
 	return subprocess.run(
-		[chemin, "--fenetre", "--config", str(chemin_configuration_test())],
+		[chemin, "--window", "--config", str(chemin_configuration_test())],
 		capture_output=True,
 		text=True,
 		timeout=60,

@@ -251,9 +251,9 @@ def socket_privee(banc: Banc) -> None:
 	assert stat.S_IMODE(socket_du_banc(banc).chemin.stat().st_mode) == 0o600
 
 
-@then("une seconde diffusion sur la même socket d'état est refusée, car un autre Machin lecture diffuse déjà")
+@then("une seconde diffusion sur la même socket d'état est refusée, car un autre Machin player diffuse déjà")
 def seconde_diffusion(banc: Banc) -> None:
-	with pytest.raises(SocketEtatOccupee, match="un autre Machin lecture diffuse déjà"):
+	with pytest.raises(SocketEtatOccupee, match="un autre Machin player diffuse déjà"):
 		SocketEtat(socket_du_banc(banc).chemin).ouvrir()
 	assert socket_du_banc(banc).chemin.exists()
 

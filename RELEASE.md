@@ -8,7 +8,7 @@ Published versions, most recent first. Procedure: [doc/fr/developpement/release.
 
 First published version, ahead of 1.0: everything MachinCast does, feature by feature.
 
-### On-air playout: Machin lecture
+### On-air playout: Machin player
 
 - The active event, by the priorities and times of the schedule ([#12](https://github.com/dascritch/machincast/issues/12)), and the choice of a sound in a bank, sequential or random ([#13](https://github.com/dascritch/machincast/issues/13)).
 - The running order of an event's playlist, and the transitions from one event to the next ([#14](https://github.com/dascritch/machincast/issues/14)), through the playout loop ([#88](https://github.com/dascritch/machincast/issues/88)).

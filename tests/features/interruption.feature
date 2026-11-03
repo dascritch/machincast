@@ -5,7 +5,7 @@ Fonctionnalité: Interruption manuelle de l'antenne
 	afin de corriger l'antenne sans attendre.
 
 	https://github.com/dascritch/machincast/issues/104 et https://github.com/dascritch/machincast/issues/228,
-	spec § 4.9. L'interface envoie la demande sur la socket d'état ; Machin lecture la traite à son pas suivant. Le
+	spec § 4.9. L'interface envoie la demande sur la socket d'état ; Machin player la traite à son pas suivant. Le
 	sonore en cours s'éteint aussitôt pendant le crossfade de fin par défaut de la configuration, ou s'arrête net
 	sans lui, et le suivant monte pendant le crossfade de début par défaut ; son passage se termine sans incident :
 	c'est une opération normale. Le log note « interruption manuelle », avec ce qui est interrompu. Les sonores des
@@ -272,7 +272,7 @@ Fonctionnalité: Interruption manuelle de l'antenne
 	# ─── Avancer l'événement suivant (https://github.com/dascritch/machincast/issues/257) ───
 	# L'événement suivant, la première occurrence à venir qui prendra l'antenne, commence aussitôt, au-dessus de tout,
 	# jusqu'à sa fin prévue : à son début prévu, rien ne change. La demande nomme l'événement attendu, celui que
-	# Machin lecture a annoncé ; un autre événement suivant, depuis, la fait ignorer.
+	# Machin player a annoncé ; un autre événement suivant, depuis, la fait ignorer.
 
 	Scénario: Avancer l'événement suivant le met aussitôt à l'antenne, jusqu'à sa fin prévue
 		Une émission qui a une fin boucle sa liste jusqu'à elle.
@@ -357,17 +357,17 @@ Fonctionnalité: Interruption manuelle de l'antenne
 		Et le log ne note aucune avance
 		Et le journal du binaire a signalé « avance ignorée : l'événement suivant est « Journal », pas « Concert » »
 
-	Scénario: Machin lecture annonce l'événement suivant, puis le suivant une fois avancé
+	Scénario: Machin player annonce l'événement suivant, puis le suivant une fois avancé
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
 		Et l'émission « Journal » de 20:30:00 à 20:45:00, avec le sonore « j »
 		Et l'émission « Concert » de 21:00:00 à 22:00:00, avec le sonore « c »
 		Et chaque sonore dure 60 secondes
 		Quand la diffusion démarre sur un moteur simulé
 		Et la diffusion avance de 2 secondes
-		Alors Machin lecture annonce l'événement suivant « Journal », du « 2026-10-14T20:30:00 » au « 2026-10-14T20:45:00 »
+		Alors Machin player annonce l'événement suivant « Journal », du « 2026-10-14T20:30:00 » au « 2026-10-14T20:45:00 »
 		Quand j'avance l'événement suivant « Journal »
 		Et la diffusion avance de 2 secondes
-		Alors Machin lecture annonce l'événement suivant « Concert », du « 2026-10-14T21:00:00 » au « 2026-10-14T22:00:00 »
+		Alors Machin player annonce l'événement suivant « Concert », du « 2026-10-14T21:00:00 » au « 2026-10-14T22:00:00 »
 
 	Scénario: Une demande d'avance arrive par la socket d'état
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »

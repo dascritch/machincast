@@ -239,7 +239,7 @@ def arretee_pendant_la_verification(base_vide: Connexion, caplog: pytest.LogCapt
 	target_fixture="execution",
 )
 def un_seul_sonore(base_vide: Connexion, racine: Path, caplog: pytest.LogCaptureFixture, relatif: str) -> Execution:
-	"""Comme Machin_indexation --audit-complet --sonore N."""
+	"""Comme Machin_indexer --full-audit --sound N."""
 	caplog.clear()
 	sonore = sonore_de(base_vide, racine, relatif)
 	with caplog.at_level(logging.INFO, logger="machincast"), connecter(*parametres_base_test(), Role.INDEXATION) as c:

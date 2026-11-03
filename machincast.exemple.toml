@@ -25,7 +25,7 @@ test = "machincast_test"
 # Avec "alsa", le VU-mètre de l'interface n'est pas disponible, et le périphérique doit mélanger deux sons
 # (crossfade) : "default" convient, un périphérique matériel direct ("hw:…") non.
 sortie = "pipewire"
-# Périphérique de l'antenne. Obligatoire pour diffuser, sauf sur la sortie "factice" : sans lui, Machin lecture refuse
+# Périphérique de l'antenne. Obligatoire pour diffuser, sauf sur la sortie "factice" : sans lui, Machin player refuse
 # de démarrer, car le périphérique par défaut pourrait être celui de la pré-écoute. Il se choisit aussi dans
 # Machin interface, Fichier → Préférences…, page Audio, qui l'écrit ici.
 # peripherique = "alsa_output.pci-0000_00_1f.3.analog-stereo"
@@ -53,7 +53,7 @@ masquer = false
 texte_public = "Radio FMR"
 
 [lecture]
-# Socket d'état de Machin lecture, lue par l'interface. Facultative : par défaut
+# Socket d'état de Machin player, lue par l'interface. Facultative : par défaut
 # $XDG_RUNTIME_DIR/machincast/lecture.sock, privée au compte et effacée au redémarrage du poste.
 # socket_etat = "/run/user/1000/machincast/lecture.sock"
 
@@ -84,7 +84,7 @@ seuil = -40
 
 [blanc_antenne]
 # Blanc dans un sonore, à l'antenne (https://github.com/dascritch/machincast/issues/122), modifiable dans les
-# préférences de l'interface, page « Audio ». Section facultative, comme ses clés ; Machin lecture la prend à son
+# préférences de l'interface, page « Audio ». Section facultative, comme ses clés ; Machin player la prend à son
 # prochain démarrage. À ne pas confondre avec un silence, au début ou à la fin d'un fichier ([silences]) : un blanc est
 # un sonore qui ne donne plus de son pendant qu'il joue. Il est noté dans le log, en incident « blanc dans un sonore ».
 # Durée d'un blanc, en secondes : de 1 à 300 comprises ; 10 par défaut.

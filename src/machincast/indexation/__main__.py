@@ -1,11 +1,11 @@
-"""Point d'entrée de Machin_indexation.
+"""Point d'entrée de Machin_indexer.
 
 Parcours des répertoires des banques (https://github.com/dascritch/machincast/issues/9), puis vérification
 des sonores (https://github.com/dascritch/machincast/issues/7), en indexation rapide par défaut ou en audit
-complet (https://github.com/dascritch/machincast/issues/69). Avec --fenetre, l'indexation montre son journal dans une
+complet (https://github.com/dascritch/machincast/issues/69). Avec --window, l'indexation montre son journal dans une
 fenêtre, ligne par ligne : c'est ainsi que l'interface la lance, dans un processus à part
-(https://github.com/dascritch/machincast/issues/120). Avec --sonore, seul ce sonore est vérifié, sans parcours des
-répertoires, sans verrou et sans document d'audit : c'est ainsi que Machin lecture fait analyser le prochain sonore
+(https://github.com/dascritch/machincast/issues/120). Avec --sound, seul ce sonore est vérifié, sans parcours des
+répertoires, sans verrou et sans document d'audit : c'est ainsi que Machin player fait analyser le prochain sonore
 qu'il va jouer (https://github.com/dascritch/machincast/issues/181).
 """
 
@@ -24,7 +24,7 @@ from machincast.indexation.indexeur import IndexationEnCours, indexer, indexer_u
 from machincast.indexation.verification import texte_bilan
 from machincast.interface.__main__ import affichage_disponible
 
-EXECUTABLE = "Machin_indexation"
+EXECUTABLE = "Machin_indexer"
 DESCRIPTION = "Vérifie les sonores et indexe les répertoires des banques."
 
 CODE_ECHEC = 1
@@ -35,47 +35,49 @@ journal = logging.getLogger("machincast.indexation")
 
 def options_propres(analyseur: argparse.ArgumentParser) -> None:
 	analyseur.add_argument(
-		"--audit-complet",
+		"--full-audit",
+		dest="audit_complet",
 		action="store_true",
 		help="décode tous les sonores ; par défaut, l'indexation rapide ne décode que les sonores en aperçu",
 	)
 	analyseur.add_argument(
-		"--forcer",
+		"--force",
+		dest="forcer",
 		action="store_true",
-		help="avec --audit-complet, décode aussi les sonores déjà audités au même seuil de silence, dont le fichier n'a"
+		help="avec --full-audit, décode aussi les sonores déjà audités au même seuil de silence, dont le fichier n'a"
 		" pas changé depuis ; sans lui, l'audit complet les saute",
 	)
 	analyseur.add_argument(
-		"--fenetre",
+		"--window",
+		dest="fenetre",
 		action="store_true",
 		help="montre le journal de l'indexation dans une fenêtre, ligne par ligne, comme le lance l'interface",
 	)
 	analyseur.add_argument(
-		"--sonore",
+		"--sound",
+		dest="sonore",
 		type=int,
 		metavar="N",
 		help="ne vérifie que le sonore N, sans parcourir les répertoires ni écrire de document d'audit ;"
-		" avec --audit-complet, son fichier est décodé s'il n'a pas déjà été audité, inchangé, au même seuil",
+		" avec --full-audit, son fichier est décodé s'il n'a pas déjà été audité, inchangé, au même seuil",
 	)
 
 
 def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 	base = configuration.base
 	if (options.sonore is not None) and (options.fenetre):
-		journal.error("--sonore ne s'emploie pas avec --fenetre")
+		journal.error("--sound ne s'emploie pas avec --window")
 		return CODE_CONFIGURATION_INVALIDE
 	if (options.forcer) and (not options.audit_complet):
-		journal.error("--forcer ne s'emploie qu'avec --audit-complet")
+		journal.error("--force ne s'emploie qu'avec --full-audit")
 		return CODE_CONFIGURATION_INVALIDE
 	if options.sonore is not None:
 		return verifier_un_sonore(configuration, options.sonore, options.audit_complet, options.forcer)
 	if options.fenetre:
 		if not affichage_disponible():
-			journal.error(
-				"--fenetre demande un affichage graphique : sans lui, lancer Machin indexation sans --fenetre"
-			)
+			journal.error("--window demande un affichage graphique : sans lui, lancer Machin indexer sans --window")
 			return CODE_ECHEC
-		# PySide6 n'est importé qu'ici : sans --fenetre, l'indexation ne demande aucun affichage graphique.
+		# PySide6 n'est importé qu'ici : sans --window, l'indexation ne demande aucun affichage graphique.
 		from machincast.interface.journal_indexation import lancer_fenetre
 
 		return lancer_fenetre(

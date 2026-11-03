@@ -422,10 +422,10 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Alors le répertoire de la socket d'état n'est accessible qu'à son propriétaire
 		Et la socket d'état n'est lisible et modifiable que par son propriétaire
 
-	Scénario: Un second Machin lecture est refusé tant que la socket d'état est occupée
+	Scénario: Un second Machin player est refusé tant que la socket d'état est occupée
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
 		Quand la diffusion démarre au plus vite
-		Alors une seconde diffusion sur la même socket d'état est refusée, car un autre Machin lecture diffuse déjà
+		Alors une seconde diffusion sur la même socket d'état est refusée, car un autre Machin player diffuse déjà
 
 	Scénario: Chaque champ du message est décrit dans la spécification
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »

@@ -8,8 +8,8 @@ Fonctionnalité: Audit complet optimisé, qui ne redécode pas un sonore déjà 
 	(sonores.audite_le) et le seuil de silence auquel il a eu lieu (sonores.audit_seuil). L'audit complet ne décode un
 	sonore que s'il n'a jamais été audité, si son fichier a été modifié depuis (date de modification plus récente que
 	l'audit, ou date et taille différentes de celles enregistrées), ou si le seuil de silence a changé. La règle vaut
-	pour tous les audits : général, d'un seul sonore (--sonore, bouton « Vérification complète »), ou demandé depuis
-	l'interface. Machin indexation --audit-complet --forcer décode tout, comme avant. Un fichier disparu est toujours
+	pour tous les audits : général, d'un seul sonore (--sound, bouton « Vérification complète »), ou demandé depuis
+	l'interface. Machin indexer --full-audit --force décode tout, comme avant. Un fichier disparu est toujours
 	repéré. L'indexation rapide n'est pas un audit complet : elle ne mesure pas les silences et n'enregistre pas d'audit.
 
 	Scénario: Un sonore jamais audité est décodé, et retient la date et le seuil de son audit
@@ -25,7 +25,7 @@ Fonctionnalité: Audit complet optimisé, qui ne redécode pas un sonore déjà 
 		Et l'indexeur a fait un audit complet
 		Quand l'indexeur fait un audit complet
 		Alors le bilan indique « audit complet : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
-		Et la sortie standard annonce « 1 sonore déjà audité au seuil de -40 dB, au fichier inchangé : non décodé ; --forcer décode tous les sonores »
+		Et la sortie standard annonce « 1 sonore déjà audité au seuil de -40 dB, au fichier inchangé : non décodé ; --force décode tous les sonores »
 		Et le sonore a été audité au seuil de -40 dB, pendant l'indexation précédente
 
 	Plan du scénario: Un fichier modifié depuis son audit est audité de nouveau
@@ -52,7 +52,7 @@ Fonctionnalité: Audit complet optimisé, qui ne redécode pas un sonore déjà 
 		Et le sonore a été audité au seuil de -60 dB, pendant cette indexation
 		Et en base, le début détecté du sonore est de 0,5 seconde et sa fin détectée de 0,25 seconde, à 0,01 seconde près
 
-	Scénario: --forcer décode tous les sonores, même déjà audités et inchangés
+	Scénario: --force décode tous les sonores, même déjà audités et inchangés
 		Étant donné un fichier flac sain
 		Et un sonore à l'état « actif » pour ce fichier
 		Et l'indexeur a fait un audit complet
@@ -74,7 +74,7 @@ Fonctionnalité: Audit complet optimisé, qui ne redécode pas un sonore déjà 
 		Et l'indexeur a fait un audit complet
 		Quand l'indexeur fait l'audit complet de ce seul sonore
 		Alors le bilan indique « audit complet : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
-		Et la sortie standard annonce « 1 sonore déjà audité au seuil de -40 dB, au fichier inchangé : non décodé ; --forcer décode tous les sonores »
+		Et la sortie standard annonce « 1 sonore déjà audité au seuil de -40 dB, au fichier inchangé : non décodé ; --force décode tous les sonores »
 
 	Scénario: Un audit demandé pour un sonore déjà audité et inchangé n'est pas refait, et la demande tombe
 		Étant donné un fichier flac sain
@@ -92,6 +92,6 @@ Fonctionnalité: Audit complet optimisé, qui ne redécode pas un sonore déjà 
 		Alors le sonore est à l'état « actif »
 		Et le sonore n'a jamais été audité
 
-	Scénario: --forcer ne va qu'avec --audit-complet
-		Quand je lance Machin indexation avec les options « --forcer »
-		Alors Machin indexation se termine avec le code 2, en signalant « --forcer ne s'emploie qu'avec --audit-complet »
+	Scénario: --force ne va qu'avec --full-audit
+		Quand je lance Machin indexer avec les options « --force »
+		Alors Machin indexer se termine avec le code 2, en signalant « --force ne s'emploie qu'avec --full-audit »

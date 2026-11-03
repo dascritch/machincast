@@ -38,7 +38,7 @@ sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machi
 
 # Toutes les vérifications ci-dessous d'un coup, avec un bilan par outil (venv non activé) : bin/Machin dev-test
 # Sous-shell dans le dépôt, venv activé : bin/Machin dev
-# Captures d'écran du guide de l'antenne, sur la base de test : bin/Machin dev-captures (doc/fr/developpement/poste.md)
+# Captures d'écran du guide de l'antenne, sur la base de test : bin/Machin dev-screenshots (doc/fr/developpement/poste.md)
 
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/
@@ -54,11 +54,11 @@ yoyo apply --batch --database "postgresql+psycopg:///machincast_test?host=/var/r
 
 # Wrapper : prend les binaires dans .venv, sans qu'il soit activé
 bin/Machin --help
-bin/Machin lecture --help
+bin/Machin player --help
 
 # Lancement avec une configuration précise, suivi des logs du service
-bin/Machin lecture --config <fichier>
-bin/Machin indexation --audit-complet   # par défaut : indexation rapide, seuls les sonores en aperçu sont décodés
+bin/Machin player --config <fichier>
+bin/Machin indexer --full-audit   # par défaut : indexation rapide, seuls les sonores en aperçu sont décodés
 bin/Machin logs
 bin/Machin maintenance-db   # sauvegarde (pg_dump), schéma et rôles, VACUUM ANALYZE de la base de production
 
@@ -75,8 +75,8 @@ Lire le bloc correspondant **avant** de modifier le code concerné :
 | Toute modification (tickets, commits, style, tabulations) | [doc/fr/regles/developpement.md](doc/fr/regles/developpement.md) |
 | Écrire ou lancer des tests | [doc/fr/regles/tests.md](doc/fr/regles/tests.md) |
 | Schéma, requêtes, droits | [doc/fr/regles/base-de-donnees.md](doc/fr/regles/base-de-donnees.md) |
-| `Machin_lecture` | [doc/fr/regles/binaire-lecture.md](doc/fr/regles/binaire-lecture.md) |
-| `Machin_indexation` | [doc/fr/regles/indexation.md](doc/fr/regles/indexation.md) |
+| `Machin_player` | [doc/fr/regles/binaire-lecture.md](doc/fr/regles/binaire-lecture.md) |
+| `Machin_indexer` | [doc/fr/regles/indexation.md](doc/fr/regles/indexation.md) |
 | `Machin_interface` | [doc/fr/regles/interface.md](doc/fr/regles/interface.md) |
 | Wrapper `Machin`, configuration, `install.sh` | [doc/fr/regles/wrapper.md](doc/fr/regles/wrapper.md) |
 

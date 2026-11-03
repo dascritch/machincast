@@ -53,7 +53,7 @@ def _descripteurs() -> set[str]:
 	return set(os.listdir("/proc/self/fd"))
 
 
-# ─── Socket d'état de Machin lecture ──────────────────────
+# ─── Socket d'état de Machin player ──────────────────────
 
 
 @given("une socket d'état dont le chemin est trop long pour le système")
@@ -62,7 +62,7 @@ def socket_trop_longue(robustesse: Robustesse, tmp_path: Path) -> None:
 	robustesse.socket_etat = SocketEtat(tmp_path / ("s" * 120) / "lecture.sock")
 
 
-@when("Machin lecture tente de l'ouvrir")
+@when("Machin player tente de l'ouvrir")
 def ouvrir(robustesse: Robustesse) -> None:
 	assert robustesse.socket_etat is not None
 	robustesse.descripteurs = _descripteurs()
@@ -89,7 +89,7 @@ def socket_de_la_diffusion(banc: Banc, tmp_path: Path) -> None:
 
 @when("une erreur interrompt la boucle de diffusion")
 def erreur_dans_la_boucle(banc: Banc, robustesse: Robustesse) -> None:
-	"""La diffusion a déjà démarré : la boucle de Machin lecture reprend au premier pas, qui échoue."""
+	"""La diffusion a déjà démarré : la boucle de Machin player reprend au premier pas, qui échoue."""
 	lancee = diffusion(banc)
 
 	def echouer() -> None:
@@ -103,7 +103,7 @@ def erreur_dans_la_boucle(banc: Banc, robustesse: Robustesse) -> None:
 		robustesse.erreur = erreur
 
 
-@then("l'erreur remonte jusqu'à Machin lecture")
+@then("l'erreur remonte jusqu'à Machin player")
 def erreur_remontee(robustesse: Robustesse) -> None:
 	assert isinstance(robustesse.erreur, RuntimeError), robustesse.erreur
 

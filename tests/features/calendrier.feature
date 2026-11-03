@@ -452,7 +452,7 @@ Fonctionnalité: Calendrier de la grille
 	# ─── Sessions sautées (https://github.com/dascritch/machincast/issues/273) ───
 	# Une session à venir d'un événement récurrent se saute au clic droit sur son bloc, seule ou jusqu'à un jour choisi ;
 	# sautée, elle reste dessinée, hachurée, et se rétablit au clic droit. Le créneau revient à ce qui joue sans elle :
-	# on y crée l'émission de remplacement d'un clic, comme sur une heure libre. Machin lecture est prévenu aussitôt.
+	# on y crée l'émission de remplacement d'un clic, comme sur une heure libre. Machin player est prévenu aussitôt.
 
 	Scénario: Le clic droit propose de sauter une session à venir d'un événement récurrent, et rien d'autre
 		Quand la fenêtre de l'interface s'ouvre
@@ -463,13 +463,13 @@ Fonctionnalité: Calendrier de la grille
 		Et le clic droit sur le bloc « Continue » de la journée du mercredi 21 ne propose rien
 
 	Scénario: Une session sautée reste hachurée, et le créneau revient à ce qui joue sans elle
-		Étant donné la socket d'état de Machin lecture ouverte pour l'interface
+		Étant donné la socket d'état de Machin player ouverte pour l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je choisis « Sauter cette session » au clic droit sur le bloc « Matinale » du mercredi 21
 		Alors la barre d'état annonce « Session de « Matinale » du mercredi 21 octobre à 07:00 sautée. »
 		Et les sessions sautées de « Matinale » sont « 2026-10-21 »
-		Et Machin lecture a reçu la demande de relire la grille
+		Et Machin player a reçu la demande de relire la grille
 		Et le calendrier montre les blocs :
 			| jour        | début | fin   | événement | état           |
 			| lundi 19    | 00:00 | 01:00 | Nuit      | joue           |
@@ -521,7 +521,7 @@ Fonctionnalité: Calendrier de la grille
 		Et la barre d'état n'a rien annoncé
 
 	Scénario: Une session sautée se rétablit au clic droit
-		Étant donné la socket d'état de Machin lecture ouverte pour l'interface
+		Étant donné la socket d'état de Machin player ouverte pour l'interface
 		Et la session du 2026-10-21 de l'événement « Matinale » est sautée
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
@@ -529,7 +529,7 @@ Fonctionnalité: Calendrier de la grille
 		Quand je choisis « Rétablir cette session » au clic droit sur le bloc « Matinale » du mercredi 21
 		Alors la barre d'état annonce « Session de « Matinale » du mercredi 21 octobre à 07:00 rétablie. »
 		Et aucune session de « Matinale » n'est sautée
-		Et Machin lecture a reçu la demande de relire la grille
+		Et Machin player a reçu la demande de relire la grille
 		Et le bloc « Matinale » du mercredi 21 est « joue en partie »
 
 	Scénario: Une session passée, même sautée, ne se rétablit plus

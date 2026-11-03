@@ -1,6 +1,6 @@
 """Scénarios de l'écran de simulation (https://github.com/dascritch/machincast/issues/37).
 
-Machin lecture simule ici sur la base de test, par tests/simulation_de_test.py : la base de production de la
+Machin player simule ici sur la base de test, par tests/simulation_de_test.py : la base de production de la
 configuration des tests est volontairement inexistante. Les étapes de la fenêtre, des onglets et des éléments en base
 sont dans tests/etapes_interface.py.
 """
@@ -69,17 +69,17 @@ def simulateur(interface: Contexte, *options: str) -> None:
 # ─── Étant donné ───────────────────────────────────────────
 
 
-@given("un Machin lecture qui simule sur la base de test")
+@given("un Machin player qui simule sur la base de test")
 def sur_la_base_de_test(interface: Contexte) -> None:
 	simulateur(interface)
 
 
-@given("un Machin lecture qui simule sans base joignable")
+@given("un Machin player qui simule sans base joignable")
 def sans_base(interface: Contexte) -> None:
 	simulateur(interface, "--sans-base")
 
 
-@given("un Machin lecture qui échoue après avoir simulé")
+@given("un Machin player qui échoue après avoir simulé")
 def qui_echoue(interface: Contexte) -> None:
 	simulateur(interface, "--echoue")
 
@@ -100,14 +100,14 @@ def regler(interface: Contexte, debut: str, fin: str) -> None:
 	ouvert.fin.setDateTime(regle(fin))
 
 
-@when("Machin lecture attend avant de simuler")
+@when("Machin player attend avant de simuler")
 def attend(interface: Contexte, fin_de_l_attente: Path) -> None:
 	simulateur(interface, "--attend", str(fin_de_l_attente))
 
 
 @pytest.fixture
 def fin_de_l_attente(interface: Contexte) -> Iterator[Path]:
-	"""Le fichier qui termine l'attente du Machin lecture factice ; il est créé en fin de scénario."""
+	"""Le fichier qui termine l'attente du Machin player factice ; il est créé en fin de scénario."""
 	fin = interface.repertoire / "fin-de-l-attente"
 	yield fin
 	fin.touch()
@@ -234,7 +234,7 @@ def lancees(interface: Contexte, nombre: int) -> None:
 	assert ecran(interface).lancees == nombre
 
 
-@then("le Machin lecture de la simulation est arrêté")
+@then("le Machin player de la simulation est arrêté")
 def arrete(suivi: dict[str, object]) -> None:
 	pid = suivi["pid"]
 	assert isinstance(pid, int)
@@ -242,7 +242,7 @@ def arrete(suivi: dict[str, object]) -> None:
 		os.kill(pid, 0)
 
 
-@then(parsers.parse("la commande de simulation pour « {chemin} » est Machin lecture --config « {attendu} »"))
+@then(parsers.parse("la commande de simulation pour « {chemin} » est Machin player --config « {attendu} »"))
 def commande(chemin: str, attendu: str) -> None:
 	assert COMMANDE_SIMULATION(Path(chemin)) == [sys.executable, "-m", "machincast.lecture", "--config", attendu]
 	assert COMMANDE_SIMULATION(None) == [sys.executable, "-m", "machincast.lecture"]

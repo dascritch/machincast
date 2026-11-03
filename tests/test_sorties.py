@@ -349,7 +349,7 @@ def anomalie(caplog: pytest.LogCaptureFixture, texte: str) -> None:
 	assert any((r.levelno == logging.WARNING) and (texte in r.getMessage()) for r in caplog.records), caplog.text
 
 
-@then("les sorties de Machin lecture sont celles de la configuration de test")
+@then("les sorties de Machin player sont celles de la configuration de test")
 def sorties_de_la_configuration() -> None:
 	configuration = configuration_test()
 	sorties = Sorties.depuis(configuration)

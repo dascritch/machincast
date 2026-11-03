@@ -430,7 +430,7 @@ $$;
 
 GRANT USAGE ON SCHEMA public TO machincast_lecture, machincast_indexation, machincast_interface;
 
--- ─── Machin_lecture ────────────────────────────────────────
+-- ─── Machin_player ────────────────────────────────────────
 -- Lit la programmation, passe les sonores à l'état expire (colonne etat seule), écrit l'airplay et le log.
 -- Pas de lecture du log : une insertion dans log ne doit pas utiliser RETURNING.
 
@@ -440,7 +440,7 @@ GRANT UPDATE (etat) ON sonores TO machincast_lecture;
 GRANT SELECT, INSERT ON airplay TO machincast_lecture;
 GRANT INSERT ON log TO machincast_lecture;
 
--- ─── Machin_indexation ─────────────────────────────────────
+-- ─── Machin_indexer ─────────────────────────────────────
 -- Lit les banques et leurs répertoires, crée et met à jour les sonores, les rattache à leur banque.
 -- Ne supprime aucun sonore : un fichier disparu fait passer son sonore à l'état supprime. Retire seulement d'une banque
 -- les sonores dont la durée sort de ses limites (https://github.com/dascritch/machincast/issues/195).

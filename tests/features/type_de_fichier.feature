@@ -85,5 +85,5 @@ Fonctionnalité: Type de fichier d'un sonore
 		Étant donné le poste à l'heure de Paris
 		Et un fichier « faux.mp3 » qui contient du texte
 		Et un sonore à l'état « apercu » pour ce fichier
-		Quand Machin indexation est lancé sur la base de test
+		Quand Machin indexer est lancé sur la base de test
 		Alors le document d'audit « machincast-audit-2026-10-15T08:15:00.csv » signale ce fichier, « non supporté », avec « sonore passé non supporté »

@@ -33,7 +33,7 @@ class Lancement:
 def lancer(
 	base: Connexion, caplog: pytest.LogCaptureFixture, sonore: int, audit_complet: bool = True, fenetre: bool = False
 ) -> Lancement:
-	"""L'action de Machin indexation, avec une configuration dont la base de production est la base de test."""
+	"""L'action de Machin indexer, avec une configuration dont la base de production est la base de test."""
 	configuration = configuration_test()
 	sur_la_base_de_test = dataclasses.replace(
 		configuration, base=dataclasses.replace(configuration.base, production=configuration.base.test)
@@ -48,7 +48,7 @@ def lancer(
 
 
 @when(
-	"Machin indexation est lancé sur la base de test, en audit complet, pour ce sonore seulement",
+	"Machin indexer est lancé sur la base de test, en audit complet, pour ce sonore seulement",
 	target_fixture="lancement",
 )
 def pour_ce_sonore(base_vide: Connexion, caplog: pytest.LogCaptureFixture, sonore: int) -> Lancement:
@@ -56,34 +56,34 @@ def pour_ce_sonore(base_vide: Connexion, caplog: pytest.LogCaptureFixture, sonor
 
 
 @when(
-	parsers.parse("Machin indexation est lancé sur la base de test, en audit complet, pour le sonore {numero:d}"),
+	parsers.parse("Machin indexer est lancé sur la base de test, en audit complet, pour le sonore {numero:d}"),
 	target_fixture="lancement",
 )
 def pour_le_sonore(base_vide: Connexion, caplog: pytest.LogCaptureFixture, numero: int) -> Lancement:
 	return lancer(base_vide, caplog, numero)
 
 
-@when("Machin indexation est lancé sur la base de test, en audit complet, pour ce stream", target_fixture="lancement")
+@when("Machin indexer est lancé sur la base de test, en audit complet, pour ce stream", target_fixture="lancement")
 def pour_ce_stream(base_vide: Connexion, caplog: pytest.LogCaptureFixture, stream: tuple[int, object]) -> Lancement:
 	return lancer(base_vide, caplog, stream[0])
 
 
-@when("Machin indexation est lancé avec --fenetre et --sonore 1", target_fixture="lancement")
+@when("Machin indexer est lancé avec --window et --sound 1", target_fixture="lancement")
 def avec_la_fenetre(base_vide: Connexion, caplog: pytest.LogCaptureFixture) -> Lancement:
 	return lancer(base_vide, caplog, 1, audit_complet=False, fenetre=True)
 
 
-@then(parsers.parse("Machin indexation se termine avec le code {code:d}"))
+@then(parsers.parse("Machin indexer se termine avec le code {code:d}"))
 def termine(lancement: Lancement, code: int) -> None:
 	assert lancement.code == code, lancement.messages
 
 
-@then(parsers.parse("Machin indexation se termine avec le code {code:d}, en signalant « {texte} »"))
+@then(parsers.parse("Machin indexer se termine avec le code {code:d}, en signalant « {texte} »"))
 def termine_en_signalant(lancement: Lancement, code: int, texte: str) -> None:
 	assert (lancement.code, texte in lancement.messages) == (code, True), lancement.messages
 
 
-@then("Machin indexation refuse ce stream, qui n'est pas un fichier")
+@then("Machin indexer refuse ce stream, qui n'est pas un fichier")
 def refuse_le_stream(lancement: Lancement, stream: tuple[int, object]) -> None:
 	assert lancement.code == 1
 	assert f"sonore {stream[0]} : inconnu, ou pas un fichier" in lancement.messages, lancement.messages

@@ -52,7 +52,7 @@ Fonctionnalité: Maintenance de la base de données
 		Et la maintenance n'a annoncé ni le schéma ni l'optimisation
 
 	Scénario: Les sauvegardes vont dans le répertoire demandé
-		Quand je lance « Machin maintenance-db --sauvegardes …/ailleurs »
+		Quand je lance « Machin maintenance-db --backups …/ailleurs »
 		Alors une sauvegarde datée de la base est dans le répertoire « ailleurs » de la configuration, lisible par pg_restore
 
 	Scénario: Sans pg_dump, rien n'est fait, ni migration ni optimisation
@@ -71,13 +71,13 @@ Fonctionnalité: Maintenance de la base de données
 		Et la maintenance a annoncé « maintenance terminée, avec des anomalies »
 
 	Scénario: Dans un terminal, la maintenance le garde ouvert jusqu'à sa fermeture, même après Entrée
-		Quand je lance « Machin maintenance-db --garder-ouvert », j'appuie deux fois sur Entrée, puis je ferme le terminal
+		Quand je lance « Machin maintenance-db --keep-open », j'appuie deux fois sur Entrée, puis je ferme le terminal
 		Alors la maintenance se termine avec le code 0
 		Et la maintenance a dit « Maintenance finie : cette fenêtre reste ouverte, la fermer quand vous voulez. »
 		Et la maintenance n'a rendu la main qu'à la fermeture du terminal
 
 	Scénario: Ctrl-C dans le terminal gardé ouvert rend la main sans erreur
-		Quand je lance « Machin maintenance-db --garder-ouvert », puis je tape Ctrl-C
+		Quand je lance « Machin maintenance-db --keep-open », puis je tape Ctrl-C
 		Alors la maintenance se termine avec le code 0
 
 	Scénario: Le wrapper connaît maintenance-db

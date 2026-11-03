@@ -80,9 +80,9 @@ Fonctionnalité: La fiche d'un événement annonce sa prochaine session sautée,
 		Alors la fiche annonce « La session du jeudi 22 octobre 2026 à 08:42 est sautée : elle ne jouera pas. »
 		Et les sessions sautées de « Matinale » en base sont « 2026-10-22 »
 
-	Scénario: « Rétablir » rétablit la session : l'annonce disparaît, et Machin lecture relit la grille
+	Scénario: « Rétablir » rétablit la session : l'annonce disparaît, et Machin player relit la grille
 		Étant donné l'horloge de l'interface au « 2026-10-20 16:40:00 »
-		Et la socket d'état de Machin lecture ouverte pour l'interface
+		Et la socket d'état de Machin player ouverte pour l'interface
 		Et la session du 2026-10-22 de l'événement « Matinale » est sautée
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
@@ -90,7 +90,7 @@ Fonctionnalité: La fiche d'un événement annonce sa prochaine session sautée,
 		Alors la fiche n'annonce aucune session sautée
 		Et les sessions sautées de « Matinale » en base sont aucune
 		Et la barre d'état annonce « Session de « Matinale » du jeudi 22 octobre à 07:00 rétablie. »
-		Et Machin lecture a reçu la demande de relire la grille
+		Et Machin player a reçu la demande de relire la grille
 
 	Scénario: « Rétablir » garde les champs modifiés et pas encore enregistrés
 		Étant donné l'horloge de l'interface au « 2026-10-20 16:40:00 »

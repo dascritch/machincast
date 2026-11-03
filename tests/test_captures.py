@@ -53,19 +53,19 @@ def produire(base_vide: Connexion, qtbot: QtBot, tmp_path: Path, produits: dict[
 # ─── Alors ─────────────────────────────────────────────────
 
 
-@then("chaque capture de Machin dev-captures est une image de doc/fr/captures")
+@then("chaque capture de Machin dev-screenshots est une image de doc/fr/captures")
 def capture_presente() -> None:
 	manquantes = sorted(produites() - {image.name for image in CAPTURES.glob("*")})
-	assert not manquantes, f"lancer bin/Machin dev-captures : {manquantes}"
+	assert not manquantes, f"lancer bin/Machin dev-screenshots : {manquantes}"
 
 
-@then("chaque image de doc/fr/captures est une capture de Machin dev-captures")
+@then("chaque image de doc/fr/captures est une capture de Machin dev-screenshots")
 def image_produite() -> None:
 	orphelines = sorted({image.name for image in CAPTURES.glob("*")} - produites())
 	assert not orphelines, orphelines
 
 
-@then("chaque capture de Machin dev-captures est citée par le guide utilisateur")
+@then("chaque capture de Machin dev-screenshots est citée par le guide utilisateur")
 def capture_citee() -> None:
 	absentes = sorted(nom for nom in produites() if (CAPTURES / nom).resolve() not in citees())
 	assert not absentes, absentes

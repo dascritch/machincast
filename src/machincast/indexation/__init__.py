@@ -1,1 +1,1 @@
-"""Binaire Machin_indexation."""
+"""Binaire Machin_indexer."""

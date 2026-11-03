@@ -1,4 +1,4 @@
-"""Mode simulation de Machin lecture (https://github.com/dascritch/machincast/issues/21, spec § 5.5).
+"""Mode simulation de Machin player (https://github.com/dascritch/machincast/issues/21, spec § 5.5).
 
 La simulation rejoue la diffusion entre deux instants, avec la même logique que la diffusion réelle
 (machincast.lecture.diffusion), pour vérifier une grille avant sa mise à l'antenne :

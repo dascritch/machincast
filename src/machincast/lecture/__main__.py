@@ -1,8 +1,8 @@
-"""Point d'entrée de Machin_lecture (https://github.com/dascritch/machincast/issues/88).
+"""Point d'entrée de Machin_player (https://github.com/dascritch/machincast/issues/88).
 
 Diffuse la grille sur la sortie audio de la configuration, jusqu'à SIGTERM (arrêt du service) ou Ctrl-C. Avec
 --simulation DEBUT FIN, simule la diffusion entre ces deux instants, sans son ni écriture en base
-(https://github.com/dascritch/machincast/issues/21) ; --repertoire place ses sorties ailleurs que dans le répertoire
+(https://github.com/dascritch/machincast/issues/21) ; --directory place ses sorties ailleurs que dans le répertoire
 des sorties de la configuration, comme le fait l'écran de simulation de l'interface
 (https://github.com/dascritch/machincast/issues/37).
 """
@@ -28,7 +28,7 @@ from machincast.lecture.moteur import MoteurAudio
 from machincast.lecture.simulation import nom_par_defaut, simuler
 from machincast.lecture.sorties import Sorties
 
-EXECUTABLE = "Machin_lecture"
+EXECUTABLE = "Machin_player"
 DESCRIPTION = "Lit les événements programmés et les diffuse sur la sortie audio configurée."
 
 CODE_ECHEC = 1
@@ -62,15 +62,19 @@ def options_propres(analyseur: argparse.ArgumentParser) -> None:
 		metavar=("DEBUT", "FIN"),
 		help="simule la diffusion entre ces deux dates et heures, sans son et sans écrire en base",
 	)
-	simulation.add_argument("--graine", type=int, metavar="N", help="graine du hasard, pour un résultat reproductible")
 	simulation.add_argument(
-		"--nom",
+		"--seed", dest="graine", type=int, metavar="N", help="graine du hasard, pour un résultat reproductible"
+	)
+	simulation.add_argument(
+		"--name",
+		dest="nom",
 		type=nom_de_sortie,
 		metavar="NOM",
 		help="nom des sorties .csv, .pls et .html de la simulation (par défaut : simulation-DEBUT-FIN)",
 	)
 	simulation.add_argument(
-		"--repertoire",
+		"--directory",
+		dest="repertoire",
 		type=Path,
 		metavar="REPERTOIRE",
 		help="répertoire des sorties de la simulation (par défaut : celui de sorties.csv de la configuration)",
@@ -81,7 +85,7 @@ def executer(configuration: Configuration, options: argparse.Namespace) -> int:
 	if options.simulation is not None:
 		return executer_simulation(configuration, options)
 	if (options.graine is not None) or (options.nom is not None) or (options.repertoire is not None):
-		journal.error("--graine, --nom et --repertoire ne s'emploient qu'avec --simulation")
+		journal.error("--seed, --name et --directory ne s'emploient qu'avec --simulation")
 		return CODE_CONFIGURATION_INVALIDE
 	return executer_diffusion(configuration)
 

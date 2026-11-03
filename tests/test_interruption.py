@@ -113,7 +113,7 @@ def aucune_avance(base_vide: Connexion) -> None:
 	assert log_des_avances(base_vide) == []
 
 
-@then(parsers.parse("Machin lecture annonce l'événement suivant « {nom} », du « {debut} » au « {fin} »"))
+@then(parsers.parse("Machin player annonce l'événement suivant « {nom} », du « {debut} » au « {fin} »"))
 def annonce_du_suivant(banc: Banc, base_vide: Connexion, nom: str, debut: str, fin: str) -> None:
 	annonce = diffusion(banc)._etat(horloge(banc).maintenant(), False)["evenement_suivant"]
 	attendue = {"id": identifiant(base_vide, nom), "nom": nom, "priorite": "emission", "debut": debut, "fin": fin}

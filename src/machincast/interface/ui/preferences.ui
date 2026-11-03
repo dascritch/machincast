@@ -220,7 +220,7 @@
        <item>
         <widget class="QLabel" name="explication">
          <property name="text">
-          <string>Les fiches ouvertes ensuite suivent ces réglages. Machin lecture prend les durées par défaut à son prochain démarrage.</string>
+          <string>Les fiches ouvertes ensuite suivent ces réglages. Machin player prend les durées par défaut à son prochain démarrage.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -350,7 +350,7 @@
        <item>
         <widget class="QLabel" name="explication_audio">
          <property name="text">
-          <string>Machin lecture prend le type de sortie et la carte de l'antenne à son prochain démarrage ; sans carte d'antenne, il refuse de diffuser. La pré-écoute ne peut jamais utiliser la carte de l'antenne : chacune est grisée dans l'autre choix. « Tester » joue 2 secondes de son de test sur la carte de sa ligne.</string>
+          <string>Machin player prend le type de sortie et la carte de l'antenne à son prochain démarrage ; sans carte d'antenne, il refuse de diffuser. La pré-écoute ne peut jamais utiliser la carte de l'antenne : chacune est grisée dans l'autre choix. « Tester » joue 2 secondes de son de test sur la carte de sa ligne.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -449,7 +449,7 @@
        <item>
         <widget class="QLabel" name="explication_blanc_antenne">
          <property name="text">
-          <string>Un sonore qui reste cette durée sous ce niveau, pendant qu'il joue, est noté dans le log. Coché, un fichier laisse aussitôt l'antenne au sonore suivant, et un stream à son secours, jusqu'au retour de son son. Ce n'est pas un silence, au début ou à la fin d'un fichier. Machin lecture prend ces réglages à son prochain démarrage.</string>
+          <string>Un sonore qui reste cette durée sous ce niveau, pendant qu'il joue, est noté dans le log. Coché, un fichier laisse aussitôt l'antenne au sonore suivant, et un stream à son secours, jusqu'au retour de son son. Ce n'est pas un silence, au début ou à la fin d'un fichier. Machin player prend ces réglages à son prochain démarrage.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>

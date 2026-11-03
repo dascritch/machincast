@@ -253,12 +253,12 @@ def fini_sans_incident(base_vide: Connexion, nom: str) -> None:
 	assert (trouves) and (all((fin is not None) and (sain is True) for fin, sain in trouves)), trouves
 
 
-# ─── Machin lecture ────────────────────────────────────────
+# ─── Machin player ────────────────────────────────────────
 
 
 @pytest.fixture
 def lancement() -> dict[str, object]:
-	"""La configuration de Machin lecture, et ce que son moteur et sa diffusion ont reçu."""
+	"""La configuration de Machin player, et ce que son moteur et sa diffusion ont reçu."""
 	return {}
 
 
@@ -273,7 +273,7 @@ def configuration_avec_blanc(lancement: dict[str, object], duree: str, seuil: st
 	lancement["configuration"] = dataclasses.replace(configuration_test(), blanc_antenne=blanc)
 
 
-@when("Machin lecture diffuse avec cette configuration, sans base ni sortie audio")
+@when("Machin player diffuse avec cette configuration, sans base ni sortie audio")
 def diffuser(monkeypatch: pytest.MonkeyPatch, lancement: dict[str, object]) -> None:
 	"""La base de production n'est jamais jointe : la connexion est remplacée."""
 
