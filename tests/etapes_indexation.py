@@ -119,8 +119,8 @@ def inserer_sonore(
 	if duree is not None:
 		en_base = timedelta(seconds=duree)
 	ligne = base.execute(
-		"INSERT INTO sonores (type, emplacement, etat, champs_edites, duree)"
-		" VALUES ('fichier', %s, %s, %s, %s) RETURNING id",
+		"INSERT INTO sounds (type, location, state, edited_fields, duration)"
+		" VALUES ('file', %s, %s, %s, %s) RETURNING id",
 		(emplacement, etat, (champs_edites) or ([]), en_base),
 	).fetchone()
 	assert ligne is not None
@@ -164,13 +164,13 @@ def sonore_dans_etat(base_vide: Connexion, fichier: Path, etat: str) -> int:
 
 @given(
 	parsers.re(
-		r"un sonore à l'état « actif » pour ce fichier, dont la durée a été saisie à la main"
+		r"un sonore à l'état « active » pour ce fichier, dont la durée a été saisie à la main"
 		rf" à (?P<secondes>{DECIMAL}) secondes"
 	),
 	target_fixture="sonore",
 )
 def sonore_duree_editee(base_vide: Connexion, fichier: Path, secondes: str) -> int:
-	return inserer_sonore(base_vide, str(fichier), "actif", ["duree"], nombre(secondes))
+	return inserer_sonore(base_vide, str(fichier), "active", ["duration"], nombre(secondes))
 
 
 @given(
@@ -181,8 +181,8 @@ def sonore_duree_editee(base_vide: Connexion, fichier: Path, secondes: str) -> i
 	target_fixture="sonore",
 )
 def sonore_titre_edite(base_vide: Connexion, fichier: Path, etat: str, titre: str) -> int:
-	sonore = inserer_sonore(base_vide, str(fichier), etat, ["titre"])
-	base_vide.execute("UPDATE sonores SET titre = %s WHERE id = %s", (titre, sonore))
+	sonore = inserer_sonore(base_vide, str(fichier), etat, ["title"])
+	base_vide.execute("UPDATE sounds SET title = %s WHERE id = %s", (titre, sonore))
 	return sonore
 
 
@@ -219,7 +219,7 @@ def fichier_remplace(fichier: Path, tmp_path: Path, format_sonore: str, etat: st
 
 @given(parsers.parse("le sonore est passé à l'état « {etat} »"))
 def changer_etat(base_vide: Connexion, sonore: int, etat: str) -> None:
-	base_vide.execute("UPDATE sonores SET etat = %s WHERE id = %s", (etat, sonore))
+	base_vide.execute("UPDATE sounds SET state = %s WHERE id = %s", (etat, sonore))
 
 
 @given("ce fichier remplacé, sous le même nom, par un fichier flac tagué, en gardant sa date de modification")
@@ -259,8 +259,8 @@ def fichier_introuvable(tmp_path: Path) -> Path:
 @given("un stream enregistré", target_fixture="stream")
 def stream(base_vide: Connexion) -> tuple[int, object]:
 	ligne = base_vide.execute(
-		"INSERT INTO sonores (type, url_stream) VALUES ('stream', 'https://flux.exemple/direct')"
-		" RETURNING id, modifie_le"
+		"INSERT INTO sounds (type, stream_url) VALUES ('stream', 'https://flux.exemple/direct')"
+		" RETURNING id, modified_at"
 	).fetchone()
 	assert ligne is not None
 	return int(str(ligne[0])), ligne[1]
@@ -329,7 +329,7 @@ def indexation_rapide(
 
 def lire_sonore(base: Connexion, sonore: int) -> tuple[object, ...]:
 	ligne = base.execute(
-		"SELECT etat::text, duree, fichier_modifie_le, fichier_taille, modifie_le FROM sonores WHERE id = %s",
+		"SELECT state::text, duration, file_modified_at, file_size, modified_at FROM sounds WHERE id = %s",
 		(sonore,),
 	).fetchone()
 	assert ligne is not None
@@ -376,14 +376,12 @@ def bilan_indique(execution: Execution, texte: str) -> None:
 @then("le stream n'a pas été modifié")
 def stream_intact(base_vide: Connexion, stream: tuple[int, object]) -> None:
 	etat, duree, modifie_le_fichier, taille, modifie_le = lire_sonore(base_vide, stream[0])
-	assert (etat, duree, modifie_le_fichier, taille) == ("actif", None, None, None)
+	assert (etat, duree, modifie_le_fichier, taille) == ("active", None, None, None)
 	assert modifie_le == stream[1]
 
 
 def lire_tags_en_base(base: Connexion, sonore: int) -> tuple[object, object, object]:
-	ligne = base.execute(
-		"SELECT artiste, titre, metadonnees_musicales FROM sonores WHERE id = %s", (sonore,)
-	).fetchone()
+	ligne = base.execute("SELECT artist, title, music_metadata FROM sounds WHERE id = %s", (sonore,)).fetchone()
 	assert ligne is not None
 	return ligne[0], ligne[1], ligne[2]
 
@@ -427,7 +425,7 @@ def lancement_termine(lancement: tuple[int, list[str]], tmp_path: Path, code: in
 
 @then(parsers.parse("le type du fichier en base est « {type_mime} »"))
 def type_en_base(base_vide: Connexion, sonore: int, type_mime: str) -> None:
-	assert base_vide.execute("SELECT type_mime FROM sonores WHERE id = %s", (sonore,)).fetchone() == (type_mime,)
+	assert base_vide.execute("SELECT mime_type FROM sounds WHERE id = %s", (sonore,)).fetchone() == (type_mime,)
 
 
 @then(parsers.parse("la sortie d'erreur mentionne « {texte} »"))
@@ -449,7 +447,7 @@ def anomalie_csv(repertoire_d_audit: Path, fichier: Path, nom: str, verdict: str
 
 
 def verifie_le(base: Connexion, sonore: int) -> object:
-	ligne = base.execute("SELECT verifie_le FROM sonores WHERE id = %s", (sonore,)).fetchone()
+	ligne = base.execute("SELECT checked_at FROM sounds WHERE id = %s", (sonore,)).fetchone()
 	assert ligne is not None
 	return ligne[0]
 
@@ -524,29 +522,29 @@ def seuil_configure(seuil_silences: list[float], seuil: str) -> None:
 
 @given(
 	parsers.re(
-		rf"un sonore à l'état « actif » pour ce fichier, avec (?P<secondes>{DECIMAL}) secondes? de début et de fin"
+		rf"un sonore à l'état « active » pour ce fichier, avec (?P<secondes>{DECIMAL}) secondes? de début et de fin"
 		r" détectés"
 	),
 	target_fixture="sonore",
 )
 def sonore_avec_silences(base_vide: Connexion, fichier: Path, secondes: str) -> int:
-	sonore = inserer_sonore(base_vide, str(fichier), "actif")
+	sonore = inserer_sonore(base_vide, str(fichier), "active")
 	duree = timedelta(seconds=nombre(secondes))
-	base_vide.execute("UPDATE sonores SET debut_detecte = %s, fin_detectee = %s WHERE id = %s", (duree, duree, sonore))
+	base_vide.execute("UPDATE sounds SET detected_start = %s, detected_end = %s WHERE id = %s", (duree, duree, sonore))
 	return sonore
 
 
 @given(
 	parsers.re(
-		r"un sonore à l'état « actif » pour ce fichier, dont le début et la fin détectés ont été saisis à la main"
+		r"un sonore à l'état « active » pour ce fichier, dont le début et la fin détectés ont été saisis à la main"
 		rf" à (?P<secondes>{DECIMAL}) secondes?"
 	),
 	target_fixture="sonore",
 )
 def sonore_silences_edites(base_vide: Connexion, fichier: Path, secondes: str) -> int:
-	sonore = inserer_sonore(base_vide, str(fichier), "actif", ["debut_detecte", "fin_detectee"])
+	sonore = inserer_sonore(base_vide, str(fichier), "active", ["detected_start", "detected_end"])
 	duree = timedelta(seconds=nombre(secondes))
-	base_vide.execute("UPDATE sonores SET debut_detecte = %s, fin_detectee = %s WHERE id = %s", (duree, duree, sonore))
+	base_vide.execute("UPDATE sounds SET detected_start = %s, detected_end = %s WHERE id = %s", (duree, duree, sonore))
 	return sonore
 
 
@@ -562,7 +560,7 @@ def audit_d_un_sonore(base_vide: Connexion, caplog: pytest.LogCaptureFixture, so
 
 
 def silences_en_base(base: Connexion, sonore: int) -> tuple[object, object]:
-	ligne = base.execute("SELECT debut_detecte, fin_detectee FROM sonores WHERE id = %s", (sonore,)).fetchone()
+	ligne = base.execute("SELECT detected_start, detected_end FROM sounds WHERE id = %s", (sonore,)).fetchone()
 	assert ligne is not None
 	return ligne[0], ligne[1]
 
@@ -589,10 +587,10 @@ def sans_silences_en_base(base_vide: Connexion, sonore: int) -> None:
 @given("le sonore est supprimé depuis l'interface")
 def sonore_supprime(base_vide: Connexion, sonore: int) -> None:
 	"""https://github.com/dascritch/machincast/issues/267"""
-	base_vide.execute("UPDATE sonores SET supprime_le = clock_timestamp() WHERE id = %s", (sonore,))
+	base_vide.execute("UPDATE sounds SET deleted_at = clock_timestamp() WHERE id = %s", (sonore,))
 
 
 @then("la disparition du fichier du sonore est datée")
 def disparition_datee(base_vide: Connexion, sonore: int) -> None:
-	ligne = base_vide.execute("SELECT disparu_le FROM sonores WHERE id = %s", (sonore,)).fetchone()
+	ligne = base_vide.execute("SELECT missing_at FROM sounds WHERE id = %s", (sonore,)).fetchone()
 	assert (ligne is not None) and (ligne[0] is not None), ligne

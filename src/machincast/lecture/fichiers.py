@@ -24,7 +24,7 @@ def verifier_avant_lecture(
 	"""
 	with connexion.transaction():
 		ligne = connexion.execute(
-			"SELECT emplacement, fichier_modifie_le, fichier_taille FROM sonores WHERE id = %s", (sonore,)
+			"SELECT location, file_modified_at, file_size FROM sounds WHERE id = %s", (sonore,)
 		).fetchone()
 		if (ligne is None) or (ligne[0] is None):
 			return None
@@ -54,7 +54,7 @@ def verifier_avant_lecture(
 		if ecarts:
 			historique.consigner(
 				connexion,
-				"alerte",
+				"warning",
 				"fichier modifié",
 				f"{chemin} : {' ; '.join(ecarts)} ; l'indexeur mettra la base à jour",
 				sonore=sonore,

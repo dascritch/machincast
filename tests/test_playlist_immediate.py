@@ -18,7 +18,7 @@ scenarios("playlist_immediate.feature")
 
 @when(parsers.parse("le sonore « {nom} » est désactivé"))
 def desactiver(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE sonores SET etat = 'desactive' WHERE titre = %s", (nom,))
+	base_vide.execute("UPDATE sounds SET state = 'disabled' WHERE title = %s", (nom,))
 
 
 @when(parsers.parse("le fichier de test du sonore « {nom} » disparaît"))

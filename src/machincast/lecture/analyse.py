@@ -1,7 +1,7 @@
 """Analyse du prochain sonore au dernier moment (https://github.com/dascritch/machincast/issues/181).
 
 Au début de chaque sonore, Machin player réserve le suivant (machincast.lecture.diffusion). Si ce prochain sonore
-est un fichier jamais vérifié en entier (sonores.verifie_le vide), ou dont le fichier a changé depuis sa dernière
+est un fichier jamais vérifié en entier (sounds.checked_at vide), ou dont le fichier a changé depuis sa dernière
 vérification (machincast.empreinte.modifie), la diffusion lance « Machin indexer --full-audit --sound N »
 dans un processus à part, sans fenêtre, et ne l'attend jamais : que l'indexeur plante ou n'ait pas fini, le sonore
 est joué à son heure. Ses lignes vont dans le journal de Machin player. Un même sonore n'est pas redemandé avant
@@ -39,9 +39,9 @@ def commande_d_analyse(configuration: Path) -> list[str]:
 def a_analyser(connexion: psycopg.Connection[TupleRow], sonore: int) -> bool:
 	"""Un fichier jamais vérifié en entier, ou changé depuis ; la connexion a le rôle de la lecture."""
 	ligne = connexion.execute(
-		"SELECT emplacement, verifie_le, fichier_modifie_le, fichier_taille FROM sonores WHERE id = %s", (sonore,)
+		"SELECT location, checked_at, file_modified_at, file_size FROM sounds WHERE id = %s", (sonore,)
 	).fetchone()
-	# Seul un fichier a un emplacement : la base le garantit (contrainte sonores_fichier_ou_stream).
+	# Seul un fichier a un emplacement : la base le garantit (contrainte sounds_file_or_stream).
 	if (ligne is None) or (ligne[0] is None):
 		return False
 	emplacement, verifie_le, modifie_le, taille = ligne

@@ -18,11 +18,11 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-19 15:30:00 »
 		Et les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement                  |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/jingles/hiver/cafe.flac |
+			| artist      | title         | type | state  | duration | location                     |
+			| Les Gaufres | Café à minuit | file | active | 214      | /srv/jingles/hiver/cafe.flac |
 		Et la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
 
 	# ─── Fenêtre de l'interface ────────────────────────────────

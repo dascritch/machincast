@@ -12,23 +12,24 @@ scenarios("fil_musical.feature")
 
 @when("la base perd son dernier fil musical")
 def perdre(base_vide: Connexion) -> None:
-	base_vide.execute("DELETE FROM evenements WHERE priorite = 'fil_musical'")
+	base_vide.execute("DELETE FROM events WHERE priority = 'background_programming'")
 
 
 @then(parsers.parse("le fil musical « {nom} » est en base, permanent et sans élément"))
 def permanent(base_vide: Connexion, nom: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT e.priorite::text, e.debut, e.fin, e.jours_recurrence::text[], e.nom_public, e.masquer_metadonnees,"
-		" (SELECT count(*) FROM evenements_elements x WHERE x.evenement_id = e.id) FROM evenements e"
-		" WHERE e.nom_interne = %s",
+		"SELECT e.priority::text, e.starts_at, e.ends_at, e.recurrence_days::text[], e.public_name, e.hide_metadata,"
+		" (SELECT count(*) FROM event_items x WHERE x.event_id = e.id) FROM events e"
+		" WHERE e.internal_name = %s",
 		(nom,),
 	).fetchall()
-	assert lignes == [("fil_musical", None, None, [], None, None, 0)]
+	assert lignes == [("background_programming", None, None, [], None, None, 0)]
 
 
 @then(parsers.re(r"les fils musicaux en base sont (?P<noms>aucun|«.+)"))
 def fils(base_vide: Connexion, noms: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT nom_interne FROM evenements WHERE priorite = 'fil_musical' AND supprime_le IS NULL ORDER BY nom_interne"
+		"SELECT internal_name FROM events WHERE priority = 'background_programming' AND deleted_at IS NULL"
+		" ORDER BY internal_name"
 	).fetchall()
 	assert [str(nom) for (nom,) in lignes] == NOM.findall(noms)

@@ -18,7 +18,7 @@ Fonctionnalité: Désherbage de la base : Machin purge
 
 	Scénario: La purge efface ce qui dépasse 60 jours, et garde le reste
 		Étant donné les passages de l'airplay, et autant de lignes du log :
-			| date       | titre  |
+			| date       | title  |
 			| 2026-10-01 | Vieux  |
 			| 2026-11-01 | Récent |
 		Et les éléments en base :
@@ -60,7 +60,7 @@ Fonctionnalité: Désherbage de la base : Machin purge
 	Scénario: La purge suit la durée de péremption de la configuration
 		Étant donné la durée de péremption de 30 jours dans la configuration
 		Et les passages de l'airplay, et autant de lignes du log :
-			| date       | titre  |
+			| date       | title  |
 			| 2026-11-01 | Récent |
 			| 2026-12-01 | Proche |
 		Quand je lance « Machin purge »

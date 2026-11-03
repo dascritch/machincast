@@ -23,6 +23,7 @@ from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe
 from machincast.lecture.analyse import Analyseur
 from machincast.lecture.diffusion import Diffusion
+from machincast.lecture.enregistrement import NIVEAUX
 from machincast.lecture.etat import SocketEtat, demande_de_relire_la_grille
 from machincast.lecture.moteur import MoteurAudio, Voie, VoieLecture
 from machincast.lecture.simulation import MoteurSimule
@@ -144,7 +145,7 @@ def diffusion(banc: Banc) -> Diffusion:
 
 
 def sonore(base: Connexion, nom: str) -> int:
-	ligne = base.execute("SELECT id FROM sonores WHERE titre = %s", (nom,)).fetchone()
+	ligne = base.execute("SELECT id FROM sounds WHERE title = %s", (nom,)).fetchone()
 	assert ligne is not None, f"sonore {nom} inconnu"
 	return int(str(ligne[0]))
 
@@ -156,8 +157,8 @@ def creer_sonore(banc: Banc, base: Connexion, repertoire: Path, nom: str) -> int
 	banc.fichiers[nom] = fichier
 	etat = fichier.stat()
 	ligne = base.execute(
-		"INSERT INTO sonores (type, emplacement, etat, titre, duree, fichier_modifie_le, fichier_taille)"
-		" VALUES ('fichier', %s, 'actif', %s, '1 s', %s, %s) RETURNING id",
+		"INSERT INTO sounds (type, location, state, title, duration, file_modified_at, file_size)"
+		" VALUES ('file', %s, 'active', %s, '1 s', %s, %s) RETURNING id",
 		(str(fichier), nom, datetime.fromtimestamp(etat.st_mtime, tz=UTC), etat.st_size),
 	).fetchone()
 	assert ligne is not None
@@ -175,18 +176,18 @@ def evenement(
 	sonores: list[str],
 ) -> None:
 	cree = base.execute(
-		"INSERT INTO evenements (nom_interne, priorite, debut, fin) VALUES (%s, %s, %s, %s) RETURNING id",
+		"INSERT INTO events (internal_name, priority, starts_at, ends_at) VALUES (%s, %s, %s, %s) RETURNING id",
 		(nom, priorite, debut, fin),
 	).fetchone()
 	assert cree is not None
 	for position, nom_sonore in enumerate(sonores, start=1):
-		existant = base.execute("SELECT id FROM sonores WHERE titre = %s", (nom_sonore,)).fetchone()
+		existant = base.execute("SELECT id FROM sounds WHERE title = %s", (nom_sonore,)).fetchone()
 		if existant is None:
 			identifiant = creer_sonore(banc, base, repertoire, nom_sonore)
 		else:
 			identifiant = int(str(existant[0]))
 		base.execute(
-			"INSERT INTO evenements_elements (evenement_id, position, sonore_id) VALUES (%s, %s, %s)",
+			"INSERT INTO event_items (event_id, position, sound_id) VALUES (%s, %s, %s)",
 			(cree[0], position, identifiant),
 		)
 
@@ -202,7 +203,7 @@ def horloge_au(banc: Banc, instant: str) -> None:
 @given(parsers.re(r"le fil musical permanent « (?P<nom>[^»]+) », avec les sonores (?P<liste>.+)"))
 def fil(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str) -> None:
 	noms = [n.strip(" «»") for n in liste.split(",")]
-	evenement(banc, base_vide, tmp_path, nom, "fil_musical", None, None, noms)
+	evenement(banc, base_vide, tmp_path, nom, "background_programming", None, None, noms)
 
 
 @given(
@@ -215,21 +216,21 @@ def fil_avec_banque(
 	banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, mode: str, banque: str, liste: str
 ) -> None:
 	creee = base_vide.execute(
-		"INSERT INTO banques (nom_interne, mode) VALUES (%s, %s) RETURNING id",
-		(banque, "sequentiel" if mode == "séquentielle" else "aleatoire"),
+		"INSERT INTO banks (internal_name, mode) VALUES (%s, %s) RETURNING id",
+		(banque, "sequential" if mode == "séquentielle" else "random"),
 	).fetchone()
 	assert creee is not None
 	for position, nom_sonore in enumerate((n.strip(" «»") for n in liste.split(",")), start=1):
 		base_vide.execute(
-			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(creee[0], creer_sonore(banc, base_vide, tmp_path, nom_sonore), position),
 		)
 	evenement_cree = base_vide.execute(
-		"INSERT INTO evenements (nom_interne, priorite) VALUES (%s, 'fil_musical') RETURNING id", (nom,)
+		"INSERT INTO events (internal_name, priority) VALUES (%s, 'background_programming') RETURNING id", (nom,)
 	).fetchone()
 	assert evenement_cree is not None
 	base_vide.execute(
-		"INSERT INTO evenements_elements (evenement_id, position, banque_id) VALUES (%s, 1, %s)",
+		"INSERT INTO event_items (event_id, position, bank_id) VALUES (%s, 1, %s)",
 		(evenement_cree[0], creee[0]),
 	)
 
@@ -248,7 +249,7 @@ def emission(
 		base_vide,
 		tmp_path,
 		nom,
-		"emission" if genre == "l'émission" else "special",
+		"show" if genre == "l'émission" else "special",
 		heure(f"2026-10-14 {debut}"),
 		heure(f"2026-10-14 {fin}"),
 		[nom_sonore],
@@ -269,7 +270,7 @@ def emission_des_sonores(
 		base_vide,
 		tmp_path,
 		nom,
-		"emission" if genre == "l'émission" else "special",
+		"show" if genre == "l'émission" else "special",
 		heure(f"2026-10-14 {debut}"),
 		heure(f"2026-10-14 {fin}"),
 		[n.strip(" «»") for n in liste.split(",")],
@@ -279,7 +280,7 @@ def emission_des_sonores(
 @given(parsers.re(r"l'émission « (?P<nom>[^»]+) » de (?P<debut>[\d:]+) à (?P<fin>[\d:]+), sans élément"))
 def emission_vide(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, debut: str, fin: str) -> None:
 	"""Une émission à compléter plus tard (https://github.com/dascritch/machincast/issues/253)."""
-	evenement(banc, base_vide, tmp_path, nom, "emission", heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}"), [])
+	evenement(banc, base_vide, tmp_path, nom, "show", heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}"), [])
 
 
 @given(
@@ -328,7 +329,7 @@ def relire_la_grille(banc: Banc) -> None:
 
 @given(parsers.parse("chaque sonore dure {duree:d} secondes"))
 def duree_des_sonores(base_vide: Connexion, duree: int) -> None:
-	base_vide.execute("UPDATE sonores SET duree = %s", (timedelta(seconds=duree),))
+	base_vide.execute("UPDATE sounds SET duration = %s", (timedelta(seconds=duree),))
 
 
 @given(
@@ -340,22 +341,22 @@ def duree_des_sonores(base_vide: Connexion, duree: int) -> None:
 def sequence_du_fil(
 	banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, premier: str, second: str, fil: str, apres: str
 ) -> None:
-	sequence = base_vide.execute("INSERT INTO sequences (nom_interne) VALUES (%s) RETURNING id", (nom,)).fetchone()
+	sequence = base_vide.execute("INSERT INTO sequences (internal_name) VALUES (%s) RETURNING id", (nom,)).fetchone()
 	evenement = base_vide.execute(
-		"INSERT INTO evenements (nom_interne, priorite) VALUES (%s, 'fil_musical') RETURNING id", (fil,)
+		"INSERT INTO events (internal_name, priority) VALUES (%s, 'background_programming') RETURNING id", (fil,)
 	).fetchone()
 	assert (sequence is not None) and (evenement is not None)
 	for position, nom_sonore in enumerate((premier, second), start=1):
 		base_vide.execute(
-			"INSERT INTO sequences_elements (sequence_id, position, sonore_id) VALUES (%s, %s, %s)",
+			"INSERT INTO sequence_items (sequence_id, position, sound_id) VALUES (%s, %s, %s)",
 			(sequence[0], position, creer_sonore(banc, base_vide, tmp_path, nom_sonore)),
 		)
 	base_vide.execute(
-		"INSERT INTO evenements_elements (evenement_id, position, sequence_id) VALUES (%s, 1, %s)",
+		"INSERT INTO event_items (event_id, position, sequence_id) VALUES (%s, 1, %s)",
 		(evenement[0], sequence[0]),
 	)
 	base_vide.execute(
-		"INSERT INTO evenements_elements (evenement_id, position, sonore_id) VALUES (%s, 2, %s)",
+		"INSERT INTO event_items (event_id, position, sound_id) VALUES (%s, 2, %s)",
 		(evenement[0], creer_sonore(banc, base_vide, tmp_path, apres)),
 	)
 
@@ -364,22 +365,22 @@ def sequence_du_fil(
 def fil_des_sequences(banc: Banc, base_vide: Connexion, tmp_path: Path, fil: str, liste: str) -> None:
 	"""« A » des sonores « a1 », « a2 », puis « B » des sonores « b1 » : chaque séquence est un élément du fil."""
 	evenement_cree = base_vide.execute(
-		"INSERT INTO evenements (nom_interne, priorite) VALUES (%s, 'fil_musical') RETURNING id", (fil,)
+		"INSERT INTO events (internal_name, priority) VALUES (%s, 'background_programming') RETURNING id", (fil,)
 	).fetchone()
 	assert evenement_cree is not None
 	for rang, partie in enumerate(liste.split(", puis "), start=1):
 		nom, sonores = partie.split(" des sonores ")
 		sequence = base_vide.execute(
-			"INSERT INTO sequences (nom_interne) VALUES (%s) RETURNING id", (nom.strip(" «»"),)
+			"INSERT INTO sequences (internal_name) VALUES (%s) RETURNING id", (nom.strip(" «»"),)
 		).fetchone()
 		assert sequence is not None
 		for position, nom_sonore in enumerate((n.strip(" «»") for n in sonores.split(",")), start=1):
 			base_vide.execute(
-				"INSERT INTO sequences_elements (sequence_id, position, sonore_id) VALUES (%s, %s, %s)",
+				"INSERT INTO sequence_items (sequence_id, position, sound_id) VALUES (%s, %s, %s)",
 				(sequence[0], position, creer_sonore(banc, base_vide, tmp_path, nom_sonore)),
 			)
 		base_vide.execute(
-			"INSERT INTO evenements_elements (evenement_id, position, sequence_id) VALUES (%s, %s, %s)",
+			"INSERT INTO event_items (event_id, position, sequence_id) VALUES (%s, %s, %s)",
 			(evenement_cree[0], rang, sequence[0]),
 		)
 
@@ -402,17 +403,16 @@ def fil_sequence_puis_banque(
 ) -> None:
 	fil_des_sequences(banc, base_vide, tmp_path, fil, f"« {sequence} » des sonores {de_la_sequence}")
 	creee = base_vide.execute(
-		"INSERT INTO banques (nom_interne, mode) VALUES (%s, 'aleatoire') RETURNING id", (banque,)
+		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'random') RETURNING id", (banque,)
 	).fetchone()
 	assert creee is not None
 	for position, nom_sonore in enumerate((n.strip(" «»") for n in de_la_banque.split(",")), start=1):
 		base_vide.execute(
-			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(creee[0], creer_sonore(banc, base_vide, tmp_path, nom_sonore), position),
 		)
 	base_vide.execute(
-		"INSERT INTO evenements_elements (evenement_id, position, banque_id)"
-		" SELECT id, 2, %s FROM evenements WHERE nom_interne = %s",
+		"INSERT INTO event_items (event_id, position, bank_id) SELECT id, 2, %s FROM events WHERE internal_name = %s",
 		(creee[0], fil),
 	)
 
@@ -430,14 +430,14 @@ def special_sans_fin(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str,
 @given(parsers.parse("l'événement « {nom} » a pour nom public « {nom_public} », et masque ses sonores"))
 def evenement_masque(base_vide: Connexion, nom: str, nom_public: str) -> None:
 	base_vide.execute(
-		"UPDATE evenements SET nom_public = %s, masquer_metadonnees = true WHERE nom_interne = %s", (nom_public, nom)
+		"UPDATE events SET public_name = %s, hide_metadata = true WHERE internal_name = %s", (nom_public, nom)
 	)
 
 
 @given(parsers.parse("chaque sonore a {duree} seconde de crossfade de début et de fin"))
 def crossfades(base_vide: Connexion, duree: str) -> None:
 	valeur = timedelta(seconds=secondes(duree))
-	base_vide.execute("UPDATE sonores SET crossfade_debut = %s, crossfade_fin = %s", (valeur, valeur))
+	base_vide.execute("UPDATE sounds SET crossfade_start = %s, crossfade_end = %s", (valeur, valeur))
 
 
 @given(parsers.re(r"les crossfades de chaque sonore sont (?:de (?P<duree>[\d,]+) seconde|non paramétrés)"))
@@ -446,7 +446,7 @@ def crossfades_des_sonores(base_vide: Connexion, duree: str | None) -> None:
 	valeur = None
 	if duree is not None:
 		valeur = timedelta(seconds=secondes(duree))
-	base_vide.execute("UPDATE sonores SET crossfade_debut = %s, crossfade_fin = %s", (valeur, valeur))
+	base_vide.execute("UPDATE sounds SET crossfade_start = %s, crossfade_end = %s", (valeur, valeur))
 
 
 @given(
@@ -467,9 +467,9 @@ def crossfades_par_defaut(banc: Banc, debut: str | None, fin: str | None, fin_se
 
 
 REGLES_DE_CROSSFADE = {
-	"laisse ses sonores décider, malgré": "sonore",
-	"applique à défaut": "a_defaut",
-	"impose": "impose",
+	"laisse ses sonores décider, malgré": "sound",
+	"applique à défaut": "default",
+	"impose": "forced",
 }
 """La règle de crossfade d'une banque, telle que la disent les scénarios (https://github.com/dascritch/machincast/issues/143)."""
 
@@ -481,9 +481,9 @@ REGLES_DE_CROSSFADE = {
 	)
 )
 def crossfade_de_banque(base_vide: Connexion, nom: str, regle: str, duree: str, cote: str) -> None:
-	colonne = {"début": "crossfade_debut", "fin": "crossfade_fin"}[cote]
+	colonne = {"début": "crossfade_start", "fin": "crossfade_end"}[cote]
 	base_vide.execute(
-		f"UPDATE banques SET {colonne}_regle = %s, {colonne} = %s WHERE nom_interne = %s",  # noqa: S608
+		f"UPDATE banks SET {colonne}_rule = %s, {colonne} = %s WHERE internal_name = %s",  # noqa: S608
 		(REGLES_DE_CROSSFADE[regle], timedelta(seconds=secondes(duree)), nom),
 	)
 
@@ -492,19 +492,19 @@ def crossfade_de_banque(base_vide: Connexion, nom: str, regle: str, duree: str, 
 def banque_des_sonores(base_vide: Connexion, nom: str, liste: str) -> None:
 	"""Une banque des sonores déjà en base, sans qu'un événement l'appelle."""
 	creee = base_vide.execute(
-		"INSERT INTO banques (nom_interne, mode) VALUES (%s, 'sequentiel') RETURNING id", (nom,)
+		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'sequential') RETURNING id", (nom,)
 	).fetchone()
 	assert creee is not None
 	for position, nom_sonore in enumerate((n.strip(" «»") for n in liste.split(",")), start=1):
 		base_vide.execute(
-			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(creee[0], sonore(base_vide, nom_sonore), position),
 		)
 
 
 @given(parsers.parse("chaque sonore a {duree} seconde de crossfade de fin, et aucun de début"))
 def crossfade_de_fin(base_vide: Connexion, duree: str) -> None:
-	base_vide.execute("UPDATE sonores SET crossfade_fin = %s", (timedelta(seconds=secondes(duree)),))
+	base_vide.execute("UPDATE sounds SET crossfade_end = %s", (timedelta(seconds=secondes(duree)),))
 
 
 # ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───
@@ -525,18 +525,18 @@ def silences_detectes(base_vide: Connexion, debut: str | None, fin: str | None) 
 			duree = timedelta(seconds=secondes(valeur))
 		durees.append(duree)
 	base_vide.execute(
-		"UPDATE sonores SET debut_detecte = %s, fin_detectee = %s WHERE type = 'fichier'", (durees[0], durees[1])
+		"UPDATE sounds SET detected_start = %s, detected_end = %s WHERE type = 'file'", (durees[0], durees[1])
 	)
 
 
 @given(parsers.parse("la banque « {nom} » active la détection de silence"))
 def banque_detecte_les_silences(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE banques SET detection_silences = true WHERE nom_interne = %s", (nom,))
+	base_vide.execute("UPDATE banks SET silence_detection = true WHERE internal_name = %s", (nom,))
 
 
 @given(parsers.re(r"le sonore « (?P<nom>[^»]+) » active la détection de silence$"))
 def sonore_detecte_les_silences(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE sonores SET detection_silences = true WHERE id = %s", (sonore(base_vide, nom),))
+	base_vide.execute("UPDATE sounds SET silence_detection = true WHERE id = %s", (sonore(base_vide, nom),))
 
 
 @given(
@@ -547,7 +547,7 @@ def sonore_detecte_les_silences(base_vide: Connexion, nom: str) -> None:
 )
 def sonore_rogne(base_vide: Connexion, nom: str, debut: str, fin: str) -> None:
 	base_vide.execute(
-		"UPDATE sonores SET detection_silences = true, debut_detecte = %s, fin_detectee = %s WHERE id = %s",
+		"UPDATE sounds SET silence_detection = true, detected_start = %s, detected_end = %s WHERE id = %s",
 		(timedelta(seconds=secondes(debut)), timedelta(seconds=secondes(fin)), sonore(base_vide, nom)),
 	)
 
@@ -609,13 +609,13 @@ def interrompre(banc: Banc, quoi: str) -> None:
 @when(parsers.parse("je coupe l'antenne par le secours « {nom} »"))
 def couper_par_le_secours(banc: Banc, base_vide: Connexion, nom: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/323 ; un secours absent a l'identifiant 0, qu'aucun n'a."""
-	ligne = base_vide.execute("SELECT id FROM evenements WHERE nom_interne = %s", (nom,)).fetchone()
+	ligne = base_vide.execute("SELECT id FROM events WHERE internal_name = %s", (nom,)).fetchone()
 	diffusion(banc).couper_par_le_secours(0 if ligne is None else int(str(ligne[0])))
 
 
 @when(parsers.parse("je coupe l'antenne par le feed « {nom} »"))
 def couper_par_le_feed(banc: Banc, base_vide: Connexion, nom: str) -> None:
-	ligne = base_vide.execute("SELECT id FROM feeds WHERE nom = %s", (nom,)).fetchone()
+	ligne = base_vide.execute("SELECT id FROM feeds WHERE name = %s", (nom,)).fetchone()
 	diffusion(banc).couper_par_le_feed(0 if ligne is None else int(str(ligne[0])))
 
 
@@ -623,17 +623,17 @@ def couper_par_le_feed(banc: Banc, base_vide: Connexion, nom: str) -> None:
 def stream_factice_sur_un_feed(base_vide: Connexion, nom: str, feed: str) -> None:
 	"""Comme un stream à une adresse factice, mais l'adresse est celle du feed (https://github.com/dascritch/machincast/issues/323)."""
 	cree = base_vide.execute(
-		"INSERT INTO feeds (nom, url) VALUES (%s, %s) RETURNING id", (feed, f"http://flux.invalid/{nom}")
+		"INSERT INTO feeds (name, url) VALUES (%s, %s) RETURNING id", (feed, f"http://flux.invalid/{nom}")
 	).fetchone()
 	assert cree is not None
-	base_vide.execute("INSERT INTO sonores (type, feed_id, titre) VALUES ('stream', %s, %s)", (cree[0], nom))
+	base_vide.execute("INSERT INTO sounds (type, feed_id, title) VALUES ('stream', %s, %s)", (cree[0], nom))
 
 
 @then(parsers.parse("le passage « {nom} » est au nom de l'événement « {evenement} », sans élément de liste"))
 def passage_hors_liste(base_vide: Connexion, nom: str, evenement: str) -> None:
 	ligne = base_vide.execute(
-		"SELECT e.nom_interne, a.element_id FROM airplay a JOIN evenements e ON e.id = a.evenement_id"
-		" WHERE a.type_ligne = 'debut' AND a.titre = %s ORDER BY a.id LIMIT 1",
+		"SELECT e.internal_name, a.event_item_id FROM airplay a JOIN events e ON e.id = a.event_id"
+		" WHERE a.line_type = 'start' AND a.title = %s ORDER BY a.id LIMIT 1",
 		(nom,),
 	).fetchone()
 	assert ligne == (evenement, None), ligne
@@ -683,7 +683,7 @@ def horloge_passe(banc: Banc, instant: str) -> None:
 
 @when(parsers.parse("le sonore « {nom} » redevient actif"))
 def redevient_actif(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE sonores SET etat = 'actif' WHERE id = %s", (sonore(base_vide, nom),))
+	base_vide.execute("UPDATE sounds SET state = 'active' WHERE id = %s", (sonore(base_vide, nom),))
 
 
 @when("la diffusion s'arrête")
@@ -696,9 +696,9 @@ def arreter(banc: Banc) -> None:
 
 def passages(base: Connexion) -> list[tuple[str, datetime, datetime | None, bool | None]]:
 	lignes = base.execute(
-		"SELECT d.titre, d.horodatage, f.horodatage, f.sans_incident FROM airplay d"
-		" LEFT JOIN airplay f ON f.passage_id = d.passage_id AND f.type_ligne = 'fin'"
-		" WHERE d.type_ligne = 'debut' ORDER BY d.horodatage, d.id"
+		"SELECT d.title, d.logged_at, f.logged_at, f.without_incident FROM airplay d"
+		" LEFT JOIN airplay f ON f.play_id = d.play_id AND f.line_type = 'end'"
+		" WHERE d.line_type = 'start' ORDER BY d.logged_at, d.id"
 	).fetchall()
 	return [(str(t), d, f, s) for t, d, f, s in lignes]  # type: ignore[misc]
 
@@ -708,7 +708,7 @@ def passage(base: Connexion, nom: str) -> tuple[str, datetime, datetime | None, 
 
 
 def log(base: Connexion) -> list[tuple[str, str]]:
-	return [(str(n), str(t)) for n, t in base.execute("SELECT niveau::text, nature FROM log ORDER BY id").fetchall()]
+	return [(str(n), str(t)) for n, t in base.execute("SELECT level::text, kind FROM log ORDER BY id").fetchall()]
 
 
 @then(parsers.re(r"l'airplay montre les passages (?P<liste>.+)"))
@@ -717,7 +717,7 @@ def airplay(base_vide: Connexion, liste: str) -> None:
 
 
 def titre(base: Connexion, sonore: int) -> str:
-	ligne = base.execute("SELECT titre FROM sonores WHERE id = %s", (sonore,)).fetchone()
+	ligne = base.execute("SELECT title FROM sounds WHERE id = %s", (sonore,)).fetchone()
 	assert ligne is not None
 	return str(ligne[0])
 
@@ -813,9 +813,13 @@ def fin_du_log(base_vide: Connexion, niveau: str, nature: str) -> None:
 	assert log(base_vide)[-1] == (niveau, nature)
 
 
+NIVEAU_EN_BASE = {libelle: niveau for niveau, libelle in NIVEAUX.items()}
+"""Le niveau du log en base, par le mot des scénarios."""
+
+
 @then(parsers.re(r"le log contient (?P<nombre>\d+) (?P<niveau>info|alerte|incident) « (?P<nature>[^»]+) »"))
 def lignes_du_log(base_vide: Connexion, nombre: str, niveau: str, nature: str) -> None:
-	assert log(base_vide).count((niveau, nature)) == int(nombre), log(base_vide)
+	assert log(base_vide).count((NIVEAU_EN_BASE[niveau], nature)) == int(nombre), log(base_vide)
 
 
 NATURES_DE_L_ANTENNE = ("début d'événement", "fin d'événement", "début de séquence", "fin de séquence")
@@ -826,8 +830,8 @@ NATURES_DE_L_ANTENNE = ("début d'événement", "fin d'événement", "début de 
 def log_de_l_antenne(base_vide: Connexion, datatable: list[list[str]]) -> None:
 	_entetes, *rangees = datatable
 	lues = base_vide.execute(
-		"SELECT l.horodatage, l.niveau::text, l.nature, l.message, e.nom_interne FROM log l"
-		" LEFT JOIN evenements e ON e.id = l.evenement_id WHERE l.nature = ANY(%s) ORDER BY l.id",
+		"SELECT l.logged_at, l.level::text, l.kind, l.message, e.internal_name FROM log l"
+		" LEFT JOIN events e ON e.id = l.event_id WHERE l.kind = ANY(%s) ORDER BY l.id",
 		(list(NATURES_DE_L_ANTENNE),),
 	).fetchall()
 	attendues = [
@@ -856,16 +860,16 @@ def chevauchement(base_vide: Connexion, suivant: str, quand: str, nom: str) -> N
 
 @given(parsers.re(r"le sonore « (?P<nom>[^»]+) » a (?P<duree>[\d,]+) seconde de crossfade de (?P<cote>début|fin)"))
 def crossfade_du_sonore(base_vide: Connexion, nom: str, duree: str, cote: str) -> None:
-	colonne = "crossfade_debut" if cote == "début" else "crossfade_fin"
+	colonne = "crossfade_start" if cote == "début" else "crossfade_end"
 	base_vide.execute(
-		f"UPDATE sonores SET {colonne} = %s WHERE id = %s",
+		f"UPDATE sounds SET {colonne} = %s WHERE id = %s",
 		(timedelta(seconds=secondes(duree)), sonore(base_vide, nom)),
 	)
 
 
 @given(parsers.re(r"l'événement de secours « (?P<nom>[^»]+) », avec les sonores (?P<liste>.+)"))
 def evenement_de_secours(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str) -> None:
-	evenement(banc, base_vide, tmp_path, nom, "secours", None, None, [n.strip(" «»") for n in liste.split(",")])
+	evenement(banc, base_vide, tmp_path, nom, "fallback", None, None, [n.strip(" «»") for n in liste.split(",")])
 
 
 @given(parsers.parse("le fichier du sonore « {nom} » a été supprimé"))
@@ -875,18 +879,18 @@ def fichier_supprime(banc: Banc, nom: str) -> None:
 
 @given(parsers.parse("le sonore « {nom} » est à l'état « {etat} »"))
 def etat(base_vide: Connexion, nom: str, etat: str) -> None:
-	base_vide.execute("UPDATE sonores SET etat = %s WHERE id = %s", (etat, sonore(base_vide, nom)))
+	base_vide.execute("UPDATE sounds SET state = %s WHERE id = %s", (etat, sonore(base_vide, nom)))
 
 
 @given(parsers.parse("le fil musical « {nom} » est supprimé"))
 def fil_supprime(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("DELETE FROM evenements WHERE nom_interne = %s", (nom,))
+	base_vide.execute("DELETE FROM events WHERE internal_name = %s", (nom,))
 
 
 def sonores_de(base: Connexion, evenement: str) -> set[str]:
 	lignes = base.execute(
-		"SELECT s.titre FROM evenements e JOIN evenements_elements ee ON ee.evenement_id = e.id"
-		" JOIN sonores s ON s.id = ee.sonore_id WHERE e.nom_interne = %s",
+		"SELECT s.title FROM events e JOIN event_items ee ON ee.event_id = e.id"
+		" JOIN sounds s ON s.id = ee.sound_id WHERE e.internal_name = %s",
 		(evenement,),
 	).fetchall()
 	return {str(ligne[0]) for ligne in lignes}
@@ -915,7 +919,7 @@ def flux_en_ligne(serveur: ServeurDeFlux, flux: str) -> None:
 @given(parsers.parse("le stream « {nom} » à l'adresse du flux « {flux} »"))
 def stream_direct(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, flux: str) -> None:
 	base_vide.execute(
-		"INSERT INTO sonores (type, url_stream, titre) VALUES ('stream', %s, %s)", (serveur.adresse(flux), nom)
+		"INSERT INTO sounds (type, stream_url, title) VALUES ('stream', %s, %s)", (serveur.adresse(flux), nom)
 	)
 
 
@@ -942,7 +946,7 @@ def voie_jouee(banc: Banc, nom: str, debut: str, fin: str, marge: str) -> None:
 @given(parsers.parse("le stream « {nom} » est secouru par « {secours} »"))
 def stream_secouru(base_vide: Connexion, nom: str, secours: str) -> None:
 	base_vide.execute(
-		"UPDATE sonores SET secours_evenement_id = (SELECT id FROM evenements WHERE nom_interne = %s) WHERE id = %s",
+		"UPDATE sounds SET fallback_event_id = (SELECT id FROM events WHERE internal_name = %s) WHERE id = %s",
 		(secours, sonore(base_vide, nom)),
 	)
 
@@ -951,7 +955,7 @@ def stream_secouru(base_vide: Connexion, nom: str, secours: str) -> None:
 def stream_factice(base_vide: Connexion, nom: str) -> None:
 	"""Le moteur simulé ne se connecte à rien ; l'adresse finit par le nom du stream."""
 	base_vide.execute(
-		"INSERT INTO sonores (type, url_stream, titre) VALUES ('stream', %s, %s)", (f"http://flux.invalid/{nom}", nom)
+		"INSERT INTO sounds (type, stream_url, title) VALUES ('stream', %s, %s)", (f"http://flux.invalid/{nom}", nom)
 	)
 
 
@@ -962,6 +966,6 @@ def fini_en_incident(base_vide: Connexion, nom: str, nature: str, instant: str) 
 	fin, sain = trouves[0]
 	assert (isinstance(fin, datetime)) and (fin == heure(instant)) and (sain is False), trouves
 	ligne = base_vide.execute(
-		"SELECT message FROM log WHERE niveau = 'incident' AND nature = %s AND horodatage = %s", (nature, fin)
+		"SELECT message FROM log WHERE level = 'incident' AND kind = %s AND logged_at = %s", (nature, fin)
 	).fetchone()
 	assert ligne is not None, nature

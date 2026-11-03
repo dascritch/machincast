@@ -2,7 +2,7 @@
 
 Les tags sont lus par GStreamer pendant le décodage complet de la vérification : ID3 (MP3, et AIFF quand le
 fichier en porte), Vorbis comments (Ogg, FLAC), atomes MP4 (M4A) et INFO (WAV). Ils sont convertis en
-artiste, titre (colonnes de sonores) et en clés de l'objet JSON metadonnees_musicales.
+artiste, titre (colonnes de sonores) et en clés de l'objet JSON music_metadata.
 """
 
 from dataclasses import dataclass, field
@@ -17,7 +17,7 @@ from machincast.conformation import conformer  # noqa: E402
 
 Valeur = str | int
 
-# Clé de metadonnees_musicales ← tags GStreamer, par ordre de préférence. L'année est traitée à part.
+# Clé de music_metadata ← tags GStreamer, par ordre de préférence. L'année est traitée à part.
 TEXTES: dict[str, tuple[str, ...]] = {
 	"album": (Gst.TAG_ALBUM,),
 	"artiste_album": (Gst.TAG_ALBUM_ARTIST,),
@@ -28,7 +28,7 @@ TEXTES: dict[str, tuple[str, ...]] = {
 }
 
 CLES: tuple[str, ...] = ("annee", *TEXTES, "piste")
-"""Clés de metadonnees_musicales tenues par l'indexeur ; les autres clés ne sont jamais modifiées."""
+"""Clés de music_metadata tenues par l'indexeur ; les autres clés ne sont jamais modifiées."""
 
 
 @dataclass(frozen=True)
@@ -91,11 +91,11 @@ def fusionner(actuelles: dict[str, object], lues: dict[str, Valeur], champs_edit
 	"""Métadonnées musicales après lecture des tags.
 
 	Chaque clé de CLES prend la valeur de son tag, ou disparaît si le tag est absent, sauf si elle a été
-	éditée à la main (« metadonnees_musicales.<clé> » dans champs_edites). Les autres clés sont conservées.
+	éditée à la main (« music_metadata.<clé> » dans edited_fields). Les autres clés sont conservées.
 	"""
 	resultat = dict(actuelles)
 	for cle in CLES:
-		if f"metadonnees_musicales.{cle}" in champs_edites:
+		if f"music_metadata.{cle}" in champs_edites:
 			continue
 		if cle in lues:
 			resultat[cle] = lues[cle]

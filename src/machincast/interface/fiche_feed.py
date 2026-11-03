@@ -59,12 +59,12 @@ class FicheFeed(Fiche):
 		with self.connexion.transaction():
 			if self.identifiant is not None:
 				ligne = self.connexion.execute(
-					"SELECT nom, url FROM feeds WHERE id = %s", (self.identifiant,)
+					"SELECT name, url FROM feeds WHERE id = %s", (self.identifiant,)
 				).fetchone()
 				assert ligne is not None, f"feed {self.identifiant} absent"
 				marque = ligne
 				streams = self.connexion.execute(
-					"SELECT id, COALESCE(titre, %s) FROM sonores WHERE feed_id = %s AND supprime_le IS NULL"
+					"SELECT id, COALESCE(title, %s) FROM sounds WHERE feed_id = %s AND deleted_at IS NULL"
 					" ORDER BY 2, id",
 					(str(marque[1]), self.identifiant),
 				).fetchall()
@@ -84,7 +84,7 @@ class FicheFeed(Fiche):
 		if nom == "":
 			raise Refus("Le nom est obligatoire.", self.ui.nom)
 		pris = self.connexion.execute(
-			"SELECT 1 FROM feeds WHERE nom = %s AND id IS DISTINCT FROM %s", (nom, self.identifiant)
+			"SELECT 1 FROM feeds WHERE name = %s AND id IS DISTINCT FROM %s", (nom, self.identifiant)
 		).fetchone()
 		if pris is not None:
 			raise Refus(f"Un autre feed s'appelle déjà « {nom} ».", self.ui.nom)
@@ -92,11 +92,11 @@ class FicheFeed(Fiche):
 			raise Refus("L'adresse est obligatoire.", self.ui.url)
 		if self.identifiant is None:
 			cree = self.connexion.execute(
-				"INSERT INTO feeds (nom, url) VALUES (%s, %s) RETURNING id", (nom, url)
+				"INSERT INTO feeds (name, url) VALUES (%s, %s) RETURNING id", (nom, url)
 			).fetchone()
 			assert cree is not None
 			return int(str(cree[0]))
-		self.connexion.execute("UPDATE feeds SET nom = %s, url = %s WHERE id = %s", (nom, url, self.identifiant))
+		self.connexion.execute("UPDATE feeds SET name = %s, url = %s WHERE id = %s", (nom, url, self.identifiant))
 		return self.identifiant
 
 	def _tester(self) -> None:

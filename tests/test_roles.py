@@ -19,35 +19,31 @@ Connexion = psycopg.Connection[tuple[object, ...]]
 # Une requête par table et par opération. Les clauses WHERE false suffisent : PostgreSQL vérifie
 # les droits avant d'exécuter, même quand aucune ligne n'est concernée.
 INSERTIONS: dict[str, str] = {
-	"sonores": "INSERT INTO sonores (type, emplacement) VALUES ('fichier', '/essai/insertion.flac')",
-	"feeds": "INSERT INTO feeds (nom, url) VALUES ('Essai', 'https://flux.exemple/essai')",
-	"banques": "INSERT INTO banques (nom_interne, mode) VALUES ('Essai', 'aleatoire')",
-	"banques_repertoires": "INSERT INTO banques_repertoires (banque_id, repertoire) VALUES ({banque}, '/essai')",
-	"banques_sonores": "INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES ({banque}, {sonore}, 1)",
-	"evenements": "INSERT INTO evenements (nom_interne, priorite) VALUES ('Essai', 'fil_musical')",
-	"evenements_elements": (
-		"INSERT INTO evenements_elements (evenement_id, position, sonore_id) VALUES ({evenement}, 1, {sonore})"
-	),
-	"evenements_sauts": "INSERT INTO evenements_sauts (evenement_id, jour) VALUES ({evenement}, '2026-10-21')",
-	"sequences": "INSERT INTO sequences (nom_interne) VALUES ('Essai')",
-	"sequences_elements": (
-		"INSERT INTO sequences_elements (sequence_id, position, sonore_id) VALUES ({sequence}, 1, {sonore})"
-	),
-	"airplay": "INSERT INTO airplay (passage_id, type_ligne) VALUES (gen_random_uuid(), 'debut')",
-	"log": "INSERT INTO log (niveau, nature) VALUES ('info', 'essai')",
+	"sounds": "INSERT INTO sounds (type, location) VALUES ('file', '/essai/insertion.flac')",
+	"feeds": "INSERT INTO feeds (name, url) VALUES ('Essai', 'https://flux.exemple/essai')",
+	"banks": "INSERT INTO banks (internal_name, mode) VALUES ('Essai', 'random')",
+	"bank_directories": "INSERT INTO bank_directories (bank_id, directory) VALUES ({banque}, '/essai')",
+	"bank_sounds": "INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES ({banque}, {sonore}, 1)",
+	"events": "INSERT INTO events (internal_name, priority) VALUES ('Essai', 'background_programming')",
+	"event_items": ("INSERT INTO event_items (event_id, position, sound_id) VALUES ({evenement}, 1, {sonore})"),
+	"event_skips": "INSERT INTO event_skips (event_id, day) VALUES ({evenement}, '2026-10-21')",
+	"sequences": "INSERT INTO sequences (internal_name) VALUES ('Essai')",
+	"sequence_items": ("INSERT INTO sequence_items (sequence_id, position, sound_id) VALUES ({sequence}, 1, {sonore})"),
+	"airplay": "INSERT INTO airplay (play_id, line_type) VALUES (gen_random_uuid(), 'start')",
+	"log": "INSERT INTO log (level, kind) VALUES ('info', 'essai')",
 }
 MODIFICATIONS: dict[str, str] = {
-	"sonores": "titre = NULL",
+	"sounds": "title = NULL",
 	"feeds": "url = 'https://flux.exemple/autre'",
-	"banques": "masquer_metadonnees = NULL",
-	"banques_repertoires": "repertoire = '/autre'",
-	"banques_sonores": "position = 2",
-	"evenements": "nom_public = NULL",
-	"evenements_elements": "position = 2",
-	"evenements_sauts": "jour = '2026-10-22'",
-	"sequences": "nom_public = NULL",
-	"sequences_elements": "position = 2",
-	"airplay": "titre = NULL",
+	"banks": "hide_metadata = NULL",
+	"bank_directories": "directory = '/autre'",
+	"bank_sounds": "position = 2",
+	"events": "public_name = NULL",
+	"event_items": "position = 2",
+	"event_skips": "day = '2026-10-22'",
+	"sequences": "public_name = NULL",
+	"sequence_items": "position = 2",
+	"airplay": "title = NULL",
 	"log": "message = ''",
 }
 
@@ -94,19 +90,21 @@ def inserer(contexte: Contexte, requete: str) -> int:
 def base(contexte: Contexte) -> None:
 	"""La fixture base_vide fournit déjà une base migrée et purgée."""
 	r = contexte.references
-	r["banque"] = inserer(contexte, "INSERT INTO banques (nom_interne, mode) VALUES ('Jingles', 'aleatoire')")
+	r["banque"] = inserer(contexte, "INSERT INTO banks (internal_name, mode) VALUES ('Jingles', 'random')")
 	r["sonore"] = inserer(
-		contexte, "INSERT INTO sonores (type, emplacement, titre) VALUES ('fichier', '/reference.flac', 'Référence')"
+		contexte, "INSERT INTO sounds (type, location, title) VALUES ('file', '/reference.flac', 'Référence')"
 	)
-	r["evenement"] = inserer(contexte, "INSERT INTO evenements (nom_interne, priorite) VALUES ('Fil', 'fil_musical')")
-	r["sequence"] = inserer(contexte, "INSERT INTO sequences (nom_interne) VALUES ('Passage publicitaire')")
+	r["evenement"] = inserer(
+		contexte, "INSERT INTO events (internal_name, priority) VALUES ('Fil', 'background_programming')"
+	)
+	r["sequence"] = inserer(contexte, "INSERT INTO sequences (internal_name) VALUES ('Passage publicitaire')")
 
 
 @given("un passage du sonore de référence dans l'airplay")
 def passage(contexte: Contexte) -> None:
 	contexte.connexion.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, sonore_id, titre) "
-		"VALUES (gen_random_uuid(), 'debut', %s, 'Référence')",
+		"INSERT INTO airplay (play_id, line_type, sound_id, title) "
+		"VALUES (gen_random_uuid(), 'start', %s, 'Référence')",
 		(contexte.references["sonore"],),
 	)
 
@@ -119,22 +117,22 @@ def passage_complet(contexte: Contexte, role: str) -> None:
 	with en_tant_que(contexte.connexion, role, valider=True):
 		c = contexte.connexion
 		c.execute(
-			"INSERT INTO airplay (passage_id, type_ligne, sonore_id, titre) "
-			"VALUES ('7f0c1c2e-5d39-4a87-9a52-0c3c8c1f9a01', 'debut', %s, 'Référence')",
+			"INSERT INTO airplay (play_id, line_type, sound_id, title) "
+			"VALUES ('7f0c1c2e-5d39-4a87-9a52-0c3c8c1f9a01', 'start', %s, 'Référence')",
 			(contexte.references["sonore"],),
 		)
 		c.execute(
-			"INSERT INTO airplay (passage_id, type_ligne, sonore_id, duree_diffusee, sans_incident) "
-			"VALUES ('7f0c1c2e-5d39-4a87-9a52-0c3c8c1f9a01', 'fin', %s, '3 min', true)",
+			"INSERT INTO airplay (play_id, line_type, sound_id, played_duration, without_incident) "
+			"VALUES ('7f0c1c2e-5d39-4a87-9a52-0c3c8c1f9a01', 'end', %s, '3 min', true)",
 			(contexte.references["sonore"],),
 		)
-		c.execute("INSERT INTO log (niveau, nature, message) VALUES ('info', 'passage', 'Référence')")
+		c.execute("INSERT INTO log (level, kind, message) VALUES ('info', 'passage', 'Référence')")
 
 
 @when(parsers.parse('le rôle "{role}" supprime le sonore de référence'))
 def supprimer(contexte: Contexte, role: str) -> None:
 	with en_tant_que(contexte.connexion, role, valider=True):
-		contexte.connexion.execute("DELETE FROM sonores WHERE id = %s", (contexte.references["sonore"],))
+		contexte.connexion.execute("DELETE FROM sounds WHERE id = %s", (contexte.references["sonore"],))
 
 
 @when(parsers.parse('je me connecte à la base de test avec le rôle "{role}"'), target_fixture="role_courant")
@@ -175,21 +173,21 @@ def droits(contexte: Contexte, role: str, datatable: list[list[str]]) -> None:
 
 @then(parsers.parse('le rôle "{role}" {verdict} modifier la colonne "{colonne}" des sonores'))
 def colonne(contexte: Contexte, role: str, verdict: str, colonne: str) -> None:
-	requete = f"UPDATE sonores SET {colonne} = {colonne} WHERE false"
+	requete = f"UPDATE sounds SET {colonne} = {colonne} WHERE false"
 	assert autorise(contexte, role, requete) is (verdict == "peut")
 
 
 @then("les deux lignes d'airplay et l'entrée de log sont en base")
 def passage_enregistre(contexte: Contexte) -> None:
-	lignes = contexte.connexion.execute("SELECT type_ligne::text FROM airplay ORDER BY id").fetchall()
-	assert [ligne[0] for ligne in lignes] == ["debut", "fin"]
-	log = contexte.connexion.execute("SELECT nature FROM log").fetchall()
+	lignes = contexte.connexion.execute("SELECT line_type::text FROM airplay ORDER BY id").fetchall()
+	assert [ligne[0] for ligne in lignes] == ["start", "end"]
+	log = contexte.connexion.execute("SELECT kind FROM log").fetchall()
 	assert log == [("passage",)]
 
 
 @then("la ligne d'airplay existe toujours, sans référence au sonore")
 def airplay_conserve(contexte: Contexte) -> None:
-	lignes = contexte.connexion.execute("SELECT sonore_id, titre FROM airplay").fetchall()
+	lignes = contexte.connexion.execute("SELECT sound_id, title FROM airplay").fetchall()
 	assert lignes == [(None, "Référence")]
 
 

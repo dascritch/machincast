@@ -47,13 +47,13 @@ def ajouter_fichiers(connexion: psycopg.Connection[TupleRow], chemins: list[Path
 	with connexion.transaction():
 		for fichier in dict.fromkeys(fichiers):
 			existant = connexion.execute(
-				"SELECT id FROM sonores WHERE emplacement = %s AND supprime_le IS NULL", (fichier,)
+				"SELECT id FROM sounds WHERE location = %s AND deleted_at IS NULL", (fichier,)
 			).fetchone()
 			if existant is not None:
 				ajout.deja.append(Path(fichier))
 				continue
 			cree = connexion.execute(
-				"INSERT INTO sonores (type, emplacement, etat) VALUES ('fichier', %s, 'apercu') RETURNING id",
+				"INSERT INTO sounds (type, location, state) VALUES ('file', %s, 'preview') RETURNING id",
 				(fichier,),
 			).fetchone()
 			assert cree is not None

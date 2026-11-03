@@ -1,7 +1,7 @@
 """Suppression d'un élément depuis sa fiche (https://github.com/dascritch/machincast/issues/33, spec § 8.9).
 
 Supprimer un sonore, une banque, une séquence ou un événement le retire des listes où il figure, et le marque
-« supprimé », avec l'instant de la demande (supprime_le) : il reste en base jusqu'à sa péremption, hors des listes, de
+« supprimé », avec l'instant de la demande (deleted_at) : il reste en base jusqu'à sa péremption, hors des listes, de
 la recherche et de la grille, et se restaure depuis sa fiche (restaurer,
 https://github.com/dascritch/machincast/issues/267). Restauré, il ne revient pas dans les listes d'où il avait été
 retiré. Un événement supprimé ne secourt plus aucun stream. Un feed quitte la base. Jamais un fichier sonore ni un
@@ -38,7 +38,7 @@ class Genre:
 	"""Genres des listes qui peuvent le contenir."""
 	aucun: str
 	"""Phrase pour un élément qui ne figure nulle part."""
-	nom: str = "nom_interne"
+	nom: str = "internal_name"
 	"""Colonne de son nom."""
 	historique: bool = True
 	"""L'historique de diffusion le cite : la question rappelle qu'il garde ses passages."""
@@ -55,36 +55,36 @@ class Genre:
 
 GENRES = {
 	"sonore": Genre(
-		"sonores",
+		"sounds",
 		"le sonore",
 		"Il",
 		"",
-		"sonore_id",
+		"sound_id",
 		("banque", "séquence", "événement"),
 		"Il ne figure dans aucune banque, aucune séquence ni aucun événement.",
 	),
 	"banque": Genre(
-		"banques",
+		"banks",
 		"la banque",
 		"Elle",
 		"e",
-		"banque_id",
+		"bank_id",
 		("séquence", "événement"),
 		"Elle ne figure dans aucune séquence ni aucun événement.",
 	),
 	"séquence": Genre(
 		"sequences", "la séquence", "Elle", "e", "sequence_id", ("événement",), "Elle ne figure dans aucun événement."
 	),
-	"événement": Genre("evenements", "l'événement", "Il", "", "", (), ""),
-	"feed": Genre("feeds", "le feed", "Il", "", "", (), "Aucun stream ne le suit.", "nom", False, False),
+	"événement": Genre("events", "l'événement", "Il", "", "", (), ""),
+	"feed": Genre("feeds", "le feed", "Il", "", "", (), "Aucun stream ne le suit.", "name", False, False),
 }
 CONTENANTS = {
-	"banque": ("banques", "banques_sonores", "banque_id", "de la banque", "qui n'aura plus aucun sonore"),
-	"séquence": ("sequences", "sequences_elements", "sequence_id", "de la séquence", "qui n'aura plus aucun élément"),
+	"banque": ("banks", "bank_sounds", "bank_id", "de la banque", "qui n'aura plus aucun sonore"),
+	"séquence": ("sequences", "sequence_items", "sequence_id", "de la séquence", "qui n'aura plus aucun élément"),
 	"événement": (
-		"evenements",
-		"evenements_elements",
-		"evenement_id",
+		"events",
+		"event_items",
+		"event_id",
 		"de l'événement",
 		"qui n'aura plus rien à jouer",
 	),
@@ -110,7 +110,7 @@ def _nom(connexion: Connexion, genre: str, identifiant: int) -> str | None:
 			return None
 		return str(ligne[0])
 	sonore = connexion.execute(
-		"SELECT artiste, titre, emplacement, url_stream FROM sonores WHERE id = %s", (identifiant,)
+		"SELECT artist, title, location, stream_url FROM sounds WHERE id = %s", (identifiant,)
 	).fetchone()
 	if sonore is None:
 		return None
@@ -124,9 +124,9 @@ def _retraits(connexion: Connexion, genre: str, identifiant: int) -> list[str]:
 	for contenant in GENRES[genre].contenants:
 		table, elements, parent, nommer, vide = CONTENANTS[contenant]
 		trouves = connexion.execute(
-			f"SELECT c.nom_interne, NOT EXISTS (SELECT 1 FROM {elements} x WHERE x.{parent} = c.id"  # noqa: S608
+			f"SELECT c.internal_name, NOT EXISTS (SELECT 1 FROM {elements} x WHERE x.{parent} = c.id"  # noqa: S608
 			f" AND x.{colonne} IS DISTINCT FROM %s) FROM {table} c WHERE EXISTS (SELECT 1 FROM {elements} x"
-			f" WHERE x.{parent} = c.id AND x.{colonne} = %s) ORDER BY c.nom_interne, c.id",
+			f" WHERE x.{parent} = c.id AND x.{colonne} = %s) ORDER BY c.internal_name, c.id",
 			(identifiant, identifiant),
 		).fetchall()
 		for nom, videe in trouves:
@@ -140,14 +140,14 @@ def _retraits(connexion: Connexion, genre: str, identifiant: int) -> list[str]:
 def _fichier(connexion: Connexion, identifiant: int) -> list[str]:
 	"""Ce que devient le fichier d'un sonore : rien, il reste à sa place ; l'indexation le reprendra s'il est sous
 	un répertoire de banque."""
-	ligne = connexion.execute("SELECT emplacement FROM sonores WHERE id = %s", (identifiant,)).fetchone()
+	ligne = connexion.execute("SELECT location FROM sounds WHERE id = %s", (identifiant,)).fetchone()
 	if (ligne is None) or (ligne[0] is None):
 		return []
 	fichier = Path(str(ligne[0]))
 	texte = f"Son fichier reste à sa place, intact : {fichier}."
 	repertoires = connexion.execute(
-		"SELECT b.nom_interne, r.repertoire FROM banques_repertoires r JOIN banques b ON b.id = r.banque_id"
-		" ORDER BY b.nom_interne, r.repertoire"
+		"SELECT b.internal_name, r.directory FROM bank_directories r JOIN banks b ON b.id = r.bank_id"
+		" ORDER BY b.internal_name, r.directory"
 	).fetchall()
 	banques = list(
 		dict.fromkeys(str(nom) for nom, repertoire in repertoires if fichier.is_relative_to(str(repertoire)))
@@ -169,7 +169,7 @@ def _suites(connexion: Connexion, genre: str, identifiant: int) -> list[str]:
 		return _fichier(connexion, identifiant)
 	if genre == "banque":
 		repertoires = connexion.execute(
-			"SELECT repertoire FROM banques_repertoires WHERE banque_id = %s ORDER BY repertoire", (identifiant,)
+			"SELECT directory FROM bank_directories WHERE bank_id = %s ORDER BY directory", (identifiant,)
 		).fetchall()
 		if repertoires == []:
 			return ["Ses sonores restent en base."]
@@ -183,7 +183,7 @@ def _suites(connexion: Connexion, genre: str, identifiant: int) -> list[str]:
 	if genre == "feed":
 		return []
 	streams = connexion.execute(
-		"SELECT COALESCE(titre, url_stream) FROM sonores WHERE secours_evenement_id = %s ORDER BY 1", (identifiant,)
+		"SELECT COALESCE(title, stream_url) FROM sounds WHERE fallback_event_id = %s ORDER BY 1", (identifiant,)
 	).fetchall()
 	lignes = []
 	if len(streams) == 1:
@@ -205,7 +205,7 @@ def _empecher(connexion: Connexion, genre: str, identifiant: int) -> None:
 	if genre != "feed":
 		return
 	streams = connexion.execute(
-		"SELECT COALESCE(s.titre, m.url) FROM sonores s JOIN feeds m ON m.id = s.feed_id WHERE m.id = %s ORDER BY 1",
+		"SELECT COALESCE(s.title, m.url) FROM sounds s JOIN feeds m ON m.id = s.feed_id WHERE m.id = %s ORDER BY 1",
 		(identifiant,),
 	).fetchall()
 	if streams != []:
@@ -253,11 +253,9 @@ def supprimer(connexion: Connexion, genre: str, identifiant: int, instant: datet
 		_table, elements, _parent, _nommer, _vide = CONTENANTS[contenant]
 		connexion.execute(f"DELETE FROM {elements} WHERE {decrit.colonne} = %s", (identifiant,))  # noqa: S608
 	if genre == "événement":
-		connexion.execute(
-			"UPDATE sonores SET secours_evenement_id = NULL WHERE secours_evenement_id = %s", (identifiant,)
-		)
+		connexion.execute("UPDATE sounds SET fallback_event_id = NULL WHERE fallback_event_id = %s", (identifiant,))
 	connexion.execute(
-		f"UPDATE {decrit.table} SET supprime_le = %s WHERE id = %s",  # noqa: S608
+		f"UPDATE {decrit.table} SET deleted_at = %s WHERE id = %s",  # noqa: S608
 		(instant, identifiant),
 	)
 
@@ -269,7 +267,7 @@ def supprime_le(connexion: Connexion, genre: str, identifiant: int) -> datetime 
 	if not decrit.differee:
 		return None
 	ligne = connexion.execute(
-		f"SELECT supprime_le FROM {decrit.table} WHERE id = %s",  # noqa: S608
+		f"SELECT deleted_at FROM {decrit.table} WHERE id = %s",  # noqa: S608
 		(identifiant,),
 	).fetchone()
 	if (ligne is None) or (not isinstance(ligne[0], datetime)):
@@ -292,12 +290,12 @@ def restaurer(connexion: Connexion, genre: str, identifiant: int) -> None:
 	"""Dans la transaction en cours : l'élément n'est plus supprimé, sans revenir dans les listes d'où il avait été
 	retiré. Lève Empechee si un autre élément a repris son nom, ou son emplacement."""
 	decrit = GENRES[genre]
-	colonne = "emplacement"
+	colonne = "location"
 	if genre != "sonore":
 		colonne = decrit.nom
 	pris = connexion.execute(
 		f"SELECT o.{colonne} FROM {decrit.table} s JOIN {decrit.table} o ON o.{colonne} = s.{colonne}"  # noqa: S608
-		" AND o.id <> s.id AND o.supprime_le IS NULL WHERE s.id = %s",
+		" AND o.id <> s.id AND o.deleted_at IS NULL WHERE s.id = %s",
 		(identifiant,),
 	).fetchone()
 	if pris is not None:
@@ -305,7 +303,7 @@ def restaurer(connexion: Connexion, genre: str, identifiant: int) -> None:
 		if genre == "sonore":
 			qui = f"un autre sonore a déjà ce fichier, {pris[0]}"
 		raise Empechee(f"Restauration impossible : {qui}.")
-	connexion.execute(f"UPDATE {decrit.table} SET supprime_le = NULL WHERE id = %s", (identifiant,))  # noqa: S608
+	connexion.execute(f"UPDATE {decrit.table} SET deleted_at = NULL WHERE id = %s", (identifiant,))  # noqa: S608
 
 
 def _un_autre(decrit: Genre) -> str:

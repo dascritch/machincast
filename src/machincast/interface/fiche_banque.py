@@ -74,18 +74,18 @@ from machincast.interface.listes import (
 )
 from machincast.interface.ui.fiche_banque import Ui_FicheBanque
 
-MODES = (("sequentiel", "Séquentielle"), ("aleatoire", "Aléatoire"))
+MODES = (("sequential", "Séquentielle"), ("random", "Aléatoire"))
 REGLES_DE_CROSSFADE = (
-	("sonore", "Garder ceux des sonores"),
-	("a_defaut", "Appliquer si le sonore n'en a pas"),
-	("impose", "Imposer à tous les sonores"),
+	("sound", "Garder ceux des sonores"),
+	("default", "Appliquer si le sonore n'en a pas"),
+	("forced", "Imposer à tous les sonores"),
 )
 MASQUAGES: tuple[tuple[bool | None, str], ...] = (
 	(None, "Hérité du sonore"),
 	(True, "Masqué par le nom public de la banque"),
 	(False, "Affichés"),
 )
-"""Valeurs de banques.masquer_metadonnees, dans l'ordre du choix de la fiche."""
+"""Valeurs de banks.hide_metadata, dans l'ordre du choix de la fiche."""
 SONORE = Qt.ItemDataRole.UserRole
 """Rôle qui porte, sur la première colonne d'une ligne de sonore, son identifiant en base."""
 FICHIER = Qt.ItemDataRole.UserRole + 1
@@ -97,14 +97,14 @@ ETAT = Qt.ItemDataRole.UserRole + 3
 ETAT_CHOISI = Qt.ItemDataRole.UserRole + 4
 """Rôle qui porte l'état choisi au clic droit, écrit à l'enregistrement ; absent sans choix."""
 COLONNE_ETAT = 2
-ETATS_CHOISIS = (("actif", "Activer"), ("desactive", "Désactiver"))
+ETATS_CHOISIS = (("active", "Activer"), ("disabled", "Désactiver"))
 """Les états qui se choisissent au clic droit sur les sonores, et leur entrée de menu."""
 LIGNE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsDragEnabled
 """Une ligne de sonore se glisse, mais rien ne se dépose dedans : la liste reste à plat."""
 SONORES_LUS = (
-	"SELECT s.id, s.artiste, s.titre, s.duree, s.emplacement, COALESCE(s.emplacement, s.url_stream, m.url),"
-	" s.etat::text"
-	" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id"
+	"SELECT s.id, s.artist, s.title, s.duration, s.location, COALESCE(s.location, s.stream_url, m.url),"
+	" s.state::text"
+	" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id"
 )
 
 
@@ -214,9 +214,9 @@ class FicheBanque(Fiche):
 			MODES[0][0],
 			None,
 			False,
-			"sonore",
+			"sound",
 			timedelta(0),
-			"sonore",
+			"sound",
 			timedelta(0),
 			None,
 			None,
@@ -228,9 +228,9 @@ class FicheBanque(Fiche):
 		with self.connexion.transaction():
 			if lu is not None:
 				ligne = self.connexion.execute(
-					"SELECT nom_interne, nom_public, mode::text, masquer_metadonnees, ne_pas_repeter,"
-					" crossfade_debut_regle::text, crossfade_debut, crossfade_fin_regle::text, crossfade_fin,"
-					" duree_min, duree_max, detection_silences FROM banques WHERE id = %s",
+					"SELECT internal_name, public_name, mode::text, hide_metadata, no_repeat,"
+					" crossfade_start_rule::text, crossfade_start, crossfade_end_rule::text, crossfade_end,"
+					" min_duration, max_duration, silence_detection FROM banks WHERE id = %s",
 					(lu,),
 				).fetchone()
 				assert ligne is not None, f"banque {lu} absente"
@@ -238,13 +238,13 @@ class FicheBanque(Fiche):
 				repertoires = [
 					str(repertoire)
 					for (repertoire,) in self.connexion.execute(
-						"SELECT repertoire FROM banques_repertoires WHERE banque_id = %s", (lu,)
+						"SELECT directory FROM bank_directories WHERE bank_id = %s", (lu,)
 					)
 				]
 			if self.identifiant is not None:
 				sonores = self.connexion.execute(
-					f"{SONORES_LUS} JOIN banques_sonores bs ON bs.sonore_id = s.id"
-					" WHERE bs.banque_id = %s ORDER BY bs.position",
+					f"{SONORES_LUS} JOIN bank_sounds bs ON bs.sound_id = s.id"
+					" WHERE bs.bank_id = %s ORDER BY bs.position",
 					(self.identifiant,),
 				).fetchall()
 		nom, nom_public, mode, masquage, ne_pas_repeter, *crossfades, duree_min, duree_max, detection = banque
@@ -280,7 +280,7 @@ class FicheBanque(Fiche):
 		if nom == "":
 			raise Refus("Le nom interne est obligatoire.", self.ui.nom_interne)
 		pris = self.connexion.execute(
-			"SELECT 1 FROM banques WHERE nom_interne = %s AND id IS DISTINCT FROM %s AND supprime_le IS NULL",
+			"SELECT 1 FROM banks WHERE internal_name = %s AND id IS DISTINCT FROM %s AND deleted_at IS NULL",
 			(nom, self.identifiant),
 		).fetchone()
 		if pris is not None:
@@ -302,9 +302,9 @@ class FicheBanque(Fiche):
 		valeurs += [minimum, maximum, self.ui.detection_silences.isChecked()]
 		if self.identifiant is None:
 			creee = self.connexion.execute(
-				"INSERT INTO banques (nom_interne, nom_public, mode, masquer_metadonnees, ne_pas_repeter,"
-				" crossfade_debut_regle, crossfade_debut, crossfade_fin_regle, crossfade_fin, duree_min, duree_max,"
-				" detection_silences) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+				"INSERT INTO banks (internal_name, public_name, mode, hide_metadata, no_repeat,"
+				" crossfade_start_rule, crossfade_start, crossfade_end_rule, crossfade_end, min_duration, max_duration,"
+				" silence_detection) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
 				valeurs,
 			).fetchone()
 			assert creee is not None
@@ -312,14 +312,14 @@ class FicheBanque(Fiche):
 		else:
 			identifiant = self.identifiant
 			self.connexion.execute(
-				"UPDATE banques SET nom_interne = %s, nom_public = %s, mode = %s, masquer_metadonnees = %s,"
-				" ne_pas_repeter = %s, crossfade_debut_regle = %s, crossfade_debut = %s, crossfade_fin_regle = %s,"
-				" crossfade_fin = %s, duree_min = %s, duree_max = %s, detection_silences = %s WHERE id = %s",
+				"UPDATE banks SET internal_name = %s, public_name = %s, mode = %s, hide_metadata = %s,"
+				" no_repeat = %s, crossfade_start_rule = %s, crossfade_start = %s, crossfade_end_rule = %s,"
+				" crossfade_end = %s, min_duration = %s, max_duration = %s, silence_detection = %s WHERE id = %s",
 				(*valeurs, identifiant),
 			)
-		self.connexion.execute("DELETE FROM banques_repertoires WHERE banque_id = %s", (identifiant,))
+		self.connexion.execute("DELETE FROM bank_directories WHERE bank_id = %s", (identifiant,))
 		self.connexion.execute(
-			"INSERT INTO banques_repertoires (banque_id, repertoire) SELECT %s, unnest(%s::text[])",
+			"INSERT INTO bank_directories (bank_id, directory) SELECT %s, unnest(%s::text[])",
 			(identifiant, self._repertoires()),
 		)
 		self._ecrire_sonores(identifiant)
@@ -333,7 +333,7 @@ class FicheBanque(Fiche):
 			sonore = ligne.data(0, SONORE)
 			if (choisi is not None) and (sonore is not None):
 				self.connexion.execute(
-					"UPDATE sonores SET etat = %s WHERE id = %s AND etat <> 'apercu'", (choisi, int(sonore))
+					"UPDATE sounds SET state = %s WHERE id = %s AND state <> 'preview'", (choisi, int(sonore))
 				)
 
 	def menu_des_sonores(self, ligne: QTreeWidgetItem | None) -> QMenu | None:
@@ -358,7 +358,7 @@ class FicheBanque(Fiche):
 	def _choisir_l_etat(self, lignes: list[QTreeWidgetItem], etat: str) -> None:
 		"""L'état choisi se montre aussitôt ; un sonore en aperçu, ou pas encore en base, garde le sien."""
 		for ligne in lignes:
-			if ligne.data(0, ETAT) == "apercu":
+			if ligne.data(0, ETAT) == "preview":
 				continue
 			ligne.setData(0, ETAT_CHOISI, etat)
 			ligne.setText(COLONNE_ETAT, ETATS[etat])
@@ -391,7 +391,7 @@ class FicheBanque(Fiche):
 		comme la liste des banques (machincast.interface.listes)."""
 		etats = [(ligne.data(0, ETAT_CHOISI)) or (ligne.data(0, ETAT)) for ligne in self._lignes()]
 		texte = ""
-		if "actif" not in etats:
+		if "active" not in etats:
 			texte = BANQUE_SANS_SONORE_ACTIF
 		elif any(etat in SONORE_EN_ANOMALIE for etat in etats):
 			texte = banque_aux_sonores_en_anomalie(sum(1 for etat in etats if etat in SONORE_EN_ANOMALIE))
@@ -427,7 +427,7 @@ class FicheBanque(Fiche):
 	def _actualiser_crossfades(self) -> None:
 		"""La durée d'une banque qui garde les crossfades de ses sonores ne sert pas : elle ne se modifie pas."""
 		for regle, duree in self._crossfades():
-			duree.setEnabled(regle.currentData() != "sonore")
+			duree.setEnabled(regle.currentData() != "sound")
 
 	def _ecrire_sonores(self, banque: int) -> None:
 		voulus = []
@@ -439,7 +439,7 @@ class FicheBanque(Fiche):
 		en_base = [
 			int(str(sonore))
 			for (sonore,) in self.connexion.execute(
-				"SELECT sonore_id FROM banques_sonores WHERE banque_id = %s ORDER BY position FOR UPDATE", (banque,)
+				"SELECT sound_id FROM bank_sounds WHERE bank_id = %s ORDER BY position FOR UPDATE", (banque,)
 			)
 		]
 		# Rattachés par une indexation depuis la lecture de la fiche : gardés, en fin de liste. Un ensemble, et non la
@@ -449,13 +449,13 @@ class FicheBanque(Fiche):
 		rattaches = [sonore for sonore in en_base if (sonore not in self._charges) and (sonore not in gardes)]
 		existants = {
 			int(str(sonore))
-			for (sonore,) in self.connexion.execute("SELECT id FROM sonores WHERE id = ANY(%s)", (voulus,))
+			for (sonore,) in self.connexion.execute("SELECT id FROM sounds WHERE id = ANY(%s)", (voulus,))
 		}
 		ordre = [sonore for sonore in voulus if sonore in existants] + rattaches
-		self.connexion.execute("DELETE FROM banques_sonores WHERE banque_id = %s", (banque,))
+		self.connexion.execute("DELETE FROM bank_sounds WHERE bank_id = %s", (banque,))
 		with self.connexion.cursor() as curseur:
 			curseur.executemany(
-				"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+				"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 				[(banque, sonore, position) for position, sonore in enumerate(ordre, start=1)],
 			)
 
@@ -505,7 +505,7 @@ class FicheBanque(Fiche):
 		"""Les boutons d'une ligne ne servent qu'à une ligne choisie. L'ordre des sonores ne compte, et ne se change,
 		qu'en mode séquentiel : « Monter » et « Descendre » ne servent pas en tête et en fin de liste."""
 		self.ui.retirer_repertoire.setEnabled(self.ui.repertoires.currentItem() is not None)
-		sequentiel = self.ui.mode.currentData() == "sequentiel"
+		sequentiel = self.ui.mode.currentData() == "sequential"
 		mode = QAbstractItemView.DragDropMode.NoDragDrop
 		if sequentiel:
 			mode = QAbstractItemView.DragDropMode.InternalMove
@@ -545,13 +545,13 @@ class FicheBanque(Fiche):
 		montré par son nom, et deviendra un sonore à l'état aperçu à l'enregistrement."""
 		fichiers, ignores = fichiers_sonores(chemins)
 		with self.connexion.transaction():
-			lus = self.connexion.execute(f"{SONORES_LUS} WHERE s.emplacement = ANY(%s)", (fichiers,)).fetchall()
+			lus = self.connexion.execute(f"{SONORES_LUS} WHERE s.location = ANY(%s)", (fichiers,)).fetchall()
 		par_fichier = {str(sonore[4]): sonore for sonore in lus}
 		presents: set[object] = set(self._sonores())
 		presents |= {ligne.data(0, FICHIER) for ligne in self._lignes()}
 		lignes = []
 		for fichier in fichiers:
-			sonore = par_fichier.get(fichier, (None, None, None, None, fichier, fichier, "apercu"))
+			sonore = par_fichier.get(fichier, (None, None, None, None, fichier, fichier, "preview"))
 			cle = sonore[0]
 			if cle is None:
 				cle = fichier

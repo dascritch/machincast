@@ -142,18 +142,18 @@ def lire_passages(
 	(https://github.com/dascritch/machincast/issues/244)."""
 	with connexion.transaction():
 		lignes = connexion.execute(
-			"SELECT d.horodatage, f.horodatage, f.duree_diffusee, f.sans_incident, d.artiste, d.titre, d.emplacement,"
-			" e.nom_interne, e.nom_public, q.nom_public, b.nom_public, q.nom_interne, b.nom_interne,"
-			" e.masquer_metadonnees, q.masquer_metadonnees, b.masquer_metadonnees, s.masquer_metadonnees"
+			"SELECT d.logged_at, f.logged_at, f.played_duration, f.without_incident, d.artist, d.title, d.location,"
+			" e.internal_name, e.public_name, q.public_name, b.public_name, q.internal_name, b.internal_name,"
+			" e.hide_metadata, q.hide_metadata, b.hide_metadata, s.hide_metadata"
 			" FROM airplay d"
-			" LEFT JOIN airplay f ON f.passage_id = d.passage_id AND f.type_ligne = 'fin'"
-			" LEFT JOIN evenements e ON e.id = d.evenement_id"
+			" LEFT JOIN airplay f ON f.play_id = d.play_id AND f.line_type = 'end'"
+			" LEFT JOIN events e ON e.id = d.event_id"
 			" LEFT JOIN sequences q ON q.id = d.sequence_id"
-			" LEFT JOIN banques b ON b.id = d.banque_id"
-			" LEFT JOIN sonores s ON s.id = d.sonore_id"
-			" WHERE d.type_ligne = 'debut' AND (%s::uuid IS NULL OR d.passage_id = %s::uuid)"
-			" AND (%s::timestamptz IS NULL OR d.horodatage >= %s::timestamptz)"
-			" ORDER BY d.horodatage DESC, d.id DESC LIMIT %s",
+			" LEFT JOIN banks b ON b.id = d.bank_id"
+			" LEFT JOIN sounds s ON s.id = d.sound_id"
+			" WHERE d.line_type = 'start' AND (%s::uuid IS NULL OR d.play_id = %s::uuid)"
+			" AND (%s::timestamptz IS NULL OR d.logged_at >= %s::timestamptz)"
+			" ORDER BY d.logged_at DESC, d.id DESC LIMIT %s",
 			(passage, passage, depuis, depuis, nombre),
 		).fetchall()
 	return [
@@ -350,6 +350,6 @@ class Sorties:
 		except OSError as erreur:
 			if chemin not in self._inaccessibles:
 				self._inaccessibles.add(chemin)
-				consigner(connexion, "alerte", SORTIE_INACCESSIBLE, f"{chemin} : {erreur}", instant)
+				consigner(connexion, "warning", SORTIE_INACCESSIBLE, f"{chemin} : {erreur}", instant)
 		else:
 			self._inaccessibles.discard(chemin)

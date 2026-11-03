@@ -70,7 +70,7 @@ Fonctionnalité: Lecture des tags
 
 	Scénario: Un sonore sain reçoit l'artiste, le titre et les métadonnées musicales de ses tags
 		Étant donné un fichier flac tagué
-		Et un sonore à l'état « actif » pour ce fichier
+		Et un sonore à l'état « active » pour ce fichier
 		Quand l'indexeur fait un audit complet
 		Alors en base, l'artiste est « Les Gaufres Électriques » et le titre « Café à minuit »
 		Et en base, les métadonnées musicales sont {"annee": 1987, "album": "Été indien", "artiste_album": "Collectif Exemple", "genre": "Chanson", "compositeur": "Jeanne Exemple", "label": "Disques Exemple", "piste": 7}
@@ -78,7 +78,7 @@ Fonctionnalité: Lecture des tags
 	Scénario: Les champs édités à la main ne sont jamais remplacés par les tags
 		Étant donné un fichier flac tagué
 		Et pour ce fichier, un sonore d'artiste « Saisi à la main » et de métadonnées {"annee": 1990, "commentaire": "Face B"}
-		Et les champs « artiste » et « metadonnees_musicales.annee » de ce sonore édités à la main
+		Et les champs « artist » et « music_metadata.annee » de ce sonore édités à la main
 		Quand l'indexeur fait un audit complet
 		Alors en base, l'artiste est « Saisi à la main » et le titre « Café à minuit »
 		Et en base, les métadonnées musicales sont {"annee": 1990, "commentaire": "Face B", "album": "Été indien", "artiste_album": "Collectif Exemple", "genre": "Chanson", "compositeur": "Jeanne Exemple", "label": "Disques Exemple", "piste": 7}

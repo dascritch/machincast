@@ -19,7 +19,7 @@ Connexion = psycopg.Connection[tuple[object, ...]]
 
 @given("un troisième sonore, actif, dont le fichier a disparu")
 def sonore_disparu(base_vide: Connexion, tmp_path: Path) -> None:
-	inserer_sonore(base_vide, str(tmp_path / "disparu.ogg"), "actif")
+	inserer_sonore(base_vide, str(tmp_path / "disparu.ogg"), "active")
 
 
 @then("le sonore n'a pas de durée en base")

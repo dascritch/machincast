@@ -21,10 +21,10 @@ from tests.etapes_interface import ELEMENT, NOM, Contexte, fenetre, identifiant,
 scenarios("dupliquer.feature")
 
 Connexion = psycopg.Connection[tuple[object, ...]]
-TABLES = {"séquence": "sequences", "événement": "evenements", "banque": "banques"}
+TABLES = {"séquence": "sequences", "événement": "events", "banque": "banks"}
 ELEMENTS = {
-	"séquence": ("sequences_elements", "sequence_id"),
-	"événement": ("evenements_elements", "evenement_id"),
+	"séquence": ("sequence_items", "sequence_id"),
+	"événement": ("event_items", "event_id"),
 }
 """La liste d'éléments de chaque genre : sa table et sa colonne du parent."""
 
@@ -55,12 +55,12 @@ def instant(texte: str) -> datetime:
 
 @given(parsers.parse("l'événement « {nom} » masque les métadonnées"))
 def masque(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE evenements SET masquer_metadonnees = true WHERE nom_interne = %s", (nom,))
+	base_vide.execute("UPDATE events SET hide_metadata = true WHERE internal_name = %s", (nom,))
 
 
 @given(parsers.parse("la séquence au nom interne de {longueur:d} caractères « {lettre} »"))
 def sequence_au_long_nom(base_vide: Connexion, longueur: int, lettre: str) -> None:
-	base_vide.execute("INSERT INTO sequences (nom_interne) VALUES (%s)", (lettre * longueur,))
+	base_vide.execute("INSERT INTO sequences (internal_name) VALUES (%s)", (lettre * longueur,))
 
 
 # ─── Quand ─────────────────────────────────────────────────
@@ -157,22 +157,22 @@ def banque_copiee(interface: Contexte, mode: str, repertoires: str) -> None:
 @then(parsers.re(r"(?:la |l')(?P<genre>séquence|événement|banque) « (?P<nom>[^»]+) » n'est pas en base"))
 def absent(base_vide: Connexion, genre: str, nom: str) -> None:
 	table = TABLES[genre]
-	assert base_vide.execute(f"SELECT 1 FROM {table} WHERE nom_interne = %s", (nom,)).fetchone() is None  # noqa: S608
+	assert base_vide.execute(f"SELECT 1 FROM {table} WHERE internal_name = %s", (nom,)).fetchone() is None  # noqa: S608
 
 
 def elements_en_base(base: Connexion, genre: str, nom: str) -> list[tuple[str, str]]:
 	"""Chaque élément de la liste, dans l'ordre : « le sonore » et son titre, « la banque » ou « la séquence » et son
 	nom. Dans une séquence, sequence_id désigne la séquence elle-même : ses éléments n'en sont jamais une."""
 	table, parent = ELEMENTS[genre]
-	numero = identifiant(base, TABLES[genre], "nom_interne", nom)
+	numero = identifiant(base, TABLES[genre], "internal_name", nom)
 	sequence_citee = "e.sequence_id"
 	if genre == "séquence":
 		sequence_citee = "NULL"
 	rangees = base.execute(
-		"SELECT CASE WHEN e.sonore_id IS NOT NULL THEN 'le sonore' WHEN e.banque_id IS NOT NULL THEN 'la banque'"
-		" ELSE 'la séquence' END, COALESCE(s.titre, b.nom_interne, q.nom_interne)"
-		f" FROM {table} e LEFT JOIN sonores s ON s.id = e.sonore_id"  # noqa: S608
-		" LEFT JOIN banques b ON b.id = e.banque_id"
+		"SELECT CASE WHEN e.sound_id IS NOT NULL THEN 'le sonore' WHEN e.bank_id IS NOT NULL THEN 'la banque'"
+		" ELSE 'la séquence' END, COALESCE(s.title, b.internal_name, q.internal_name)"
+		f" FROM {table} e LEFT JOIN sounds s ON s.id = e.sound_id"  # noqa: S608
+		" LEFT JOIN banks b ON b.id = e.bank_id"
 		f" LEFT JOIN sequences q ON q.id = {sequence_citee}"
 		f" WHERE e.{parent} = %s ORDER BY e.position",
 		(numero,),
@@ -187,7 +187,7 @@ def elements_en_base(base: Connexion, genre: str, nom: str) -> list[tuple[str, s
 	)
 )
 def sequence_en_base(base_vide: Connexion, nom: str, nom_public: str, elements: str) -> None:
-	ligne = base_vide.execute("SELECT nom_public FROM sequences WHERE nom_interne = %s", (nom,)).fetchone()
+	ligne = base_vide.execute("SELECT public_name FROM sequences WHERE internal_name = %s", (nom,)).fetchone()
 	assert ligne == (nom_public,)
 	assert elements_en_base(base_vide, "séquence", nom) == ELEMENT.findall(elements)
 
@@ -208,8 +208,8 @@ def evenement_en_base(
 	base_vide: Connexion, nom: str, priorite: str, nom_public: str, debut: str, fin: str | None, jours: str | None
 ) -> None:
 	ligne = base_vide.execute(
-		"SELECT priorite::text, nom_public, masquer_metadonnees, debut, fin, jours_recurrence::text[]"
-		" FROM evenements WHERE nom_interne = %s",
+		"SELECT priority::text, public_name, hide_metadata, starts_at, ends_at, recurrence_days::text[]"
+		" FROM events WHERE internal_name = %s",
 		(nom,),
 	).fetchone()
 	fin_attendue = None
@@ -232,18 +232,18 @@ def banque_en_base(
 	interface: Contexte, base_vide: Connexion, nom: str, nom_public: str, mode: str, repertoires: str, sonores: str
 ) -> None:
 	ligne = base_vide.execute(
-		"SELECT id, nom_public, mode::text, ne_pas_repeter FROM banques WHERE nom_interne = %s", (nom,)
+		"SELECT id, public_name, mode::text, no_repeat FROM banks WHERE internal_name = %s", (nom,)
 	).fetchone()
 	assert ligne is not None
 	numero, *reglages = ligne
 	assert reglages == [nom_public, mode, True]
 	lus = base_vide.execute(
-		'SELECT repertoire FROM banques_repertoires WHERE banque_id = %s ORDER BY repertoire COLLATE "C"', (numero,)
+		'SELECT directory FROM bank_directories WHERE bank_id = %s ORDER BY directory COLLATE "C"', (numero,)
 	).fetchall()
 	assert [str(repertoire) for (repertoire,) in lus] == [interface.chemin(r) for r in NOM.findall(repertoires)]
 	titres = base_vide.execute(
-		"SELECT s.titre FROM banques_sonores bs JOIN sonores s ON s.id = bs.sonore_id"
-		" WHERE bs.banque_id = %s ORDER BY bs.position",
+		"SELECT s.title FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
+		" WHERE bs.bank_id = %s ORDER BY bs.position",
 		(numero,),
 	).fetchall()
 	assert [str(titre) for (titre,) in titres] == NOM.findall(sonores)

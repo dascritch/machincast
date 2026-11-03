@@ -34,11 +34,11 @@ class Sequence:
 
 
 def lire_sequence(connexion: psycopg.Connection[TupleRow], identifiant: int) -> Sequence | None:
-	ligne = connexion.execute("SELECT nom_interne FROM sequences WHERE id = %s", (identifiant,)).fetchone()
+	ligne = connexion.execute("SELECT internal_name FROM sequences WHERE id = %s", (identifiant,)).fetchone()
 	if ligne is None:
 		return None
 	lignes = connexion.execute(
-		"SELECT id, position, sonore_id, banque_id FROM sequences_elements WHERE sequence_id = %s ORDER BY position",
+		"SELECT id, position, sound_id, bank_id FROM sequence_items WHERE sequence_id = %s ORDER BY position",
 		(identifiant,),
 	).fetchall()
 	elements = [

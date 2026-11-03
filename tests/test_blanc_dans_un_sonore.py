@@ -218,7 +218,7 @@ def sonore_a_blanc(
 
 def lignes_du_log(base: Connexion, nature: str) -> list[tuple[str, object, object, object]]:
 	lignes = base.execute(
-		"SELECT message, horodatage, sonore_id, evenement_id FROM log WHERE nature = %s ORDER BY id", (nature,)
+		"SELECT message, logged_at, sound_id, event_id FROM log WHERE kind = %s ORDER BY id", (nature,)
 	).fetchall()
 	return [
 		(str(message), horodatage, sonore_id, evenement_id) for message, horodatage, sonore_id, evenement_id in lignes
@@ -233,7 +233,7 @@ def incident_dit(base_vide: Connexion, nature: str, texte: str) -> None:
 
 @then(parsers.parse("l'incident « {nature} » a été noté au « {instant} », pour le sonore « {nom} » de « {evenement} »"))
 def incident_note(base_vide: Connexion, nature: str, instant: str, nom: str, evenement: str) -> None:
-	ligne = base_vide.execute("SELECT id FROM evenements WHERE nom_interne = %s", (evenement,)).fetchone()
+	ligne = base_vide.execute("SELECT id FROM events WHERE internal_name = %s", (evenement,)).fetchone()
 	assert ligne is not None, evenement
 	lignes = [
 		(horodatage, sonore_id, evenement_id)

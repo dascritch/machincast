@@ -698,7 +698,7 @@ def etats_des_boutons(contexte: Contexte, etats: str) -> None:
 
 @given(parsers.parse("le sonore « {titre} » est effacé de la base"))
 def effacer_sonore(base_vide: Connexion, titre: str) -> None:
-	base_vide.execute("DELETE FROM sonores WHERE titre = %s", (titre,))
+	base_vide.execute("DELETE FROM sounds WHERE title = %s", (titre,))
 
 
 @when(parsers.parse("j'ouvre dans l'airplay la cellule de la colonne « {colonne} »"))
@@ -726,8 +726,8 @@ def ouvrir_cellule(contexte: Contexte, qtbot: QtBot, texte: str) -> None:
 @then("l'onglet Antenne a demandé les fiches de l'airplay :")
 def fiches_de_l_airplay(contexte: Contexte, base_vide: Connexion, datatable: list[list[str]]) -> None:
 	"""Chaque fiche par son identifiant en base : le sonore par son titre, les autres par leur nom interne."""
-	tables = {"sonore": ("sonores", "titre"), "événement": ("evenements", "nom_interne")}
-	tables |= {"séquence": ("sequences", "nom_interne"), "banque": ("banques", "nom_interne")}
+	tables = {"sonore": ("sounds", "title"), "événement": ("events", "internal_name")}
+	tables |= {"séquence": ("sequences", "internal_name"), "banque": ("banks", "internal_name")}
 	_entetes, *rangees = datatable
 	attendues = []
 	for genre, nom in ((genre.strip(), nom.strip()) for genre, nom in rangees):
@@ -1078,8 +1078,8 @@ def sonore_en_base(
 	copie = contexte.repertoire / fichier
 	shutil.copyfile(FICHIERS_SONORES / fichier, copie)
 	ligne = base_vide.execute(
-		"INSERT INTO sonores (type, emplacement, titre, etat, duree, debut_detecte, fin_detectee, crossfade_debut,"
-		" crossfade_fin, audite_le, audit_seuil) VALUES ('fichier', %s, %s, 'actif', %s, %s, %s, %s, %s, now(), -40)"
+		"INSERT INTO sounds (type, location, title, state, duration, detected_start, detected_end, crossfade_start,"
+		" crossfade_end, audited_at, audit_threshold) VALUES ('file', %s, %s, 'active', %s, %s, %s, %s, %s, now(), -40)"
 		" RETURNING id",
 		(
 			str(copie),
@@ -1103,14 +1103,14 @@ def sonore_en_base(
 )
 def banque_en_base(contexte: Contexte, base_vide: Connexion, nom: str, cf: str, titre: str) -> None:
 	ligne = base_vide.execute(
-		"INSERT INTO banques (nom_interne, mode, detection_silences, crossfade_fin_regle, crossfade_fin)"
-		" VALUES (%s, 'aleatoire', true, 'impose', %s) RETURNING id",
+		"INSERT INTO banks (internal_name, mode, silence_detection, crossfade_end_rule, crossfade_end)"
+		" VALUES (%s, 'random', true, 'forced', %s) RETURNING id",
 		(nom, timedelta(seconds=secondes(cf))),
 	).fetchone()
 	assert ligne is not None
 	contexte.banques[nom] = int(str(ligne[0]))
 	base_vide.execute(
-		"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, 1)",
+		"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, 1)",
 		(ligne[0], contexte.en_base[titre][0]),
 	)
 

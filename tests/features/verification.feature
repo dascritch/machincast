@@ -105,9 +105,9 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 
 	Scénario: Un sonore sain reçoit sa durée, la date et la taille de son fichier
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « actif » pour ce fichier
+		Et un sonore à l'état « active » pour ce fichier
 		Quand l'indexeur fait un audit complet
-		Alors le sonore est à l'état « actif »
+		Alors le sonore est à l'état « active »
 		Et sa durée en base est de 1 seconde à 0,05 seconde près
 		Et la date de modification et la taille du fichier sont enregistrées
 		Et rien n'est signalé sur la sortie d'erreur
@@ -121,21 +121,21 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 
 		Exemples:
 			| fichier       | avant     | apres     |
-			| mp3 sain      | apercu    | actif     |
-			| mp3 endommagé | apercu    | errone    |
-			| introuvable   | apercu    | supprime  |
-			| mp3 sain      | actif     | actif     |
-			| mp3 endommagé | actif     | errone    |
-			| introuvable   | actif     | supprime  |
-			| mp3 sain      | errone    | actif     |
-			| mp3 endommagé | errone    | errone    |
-			| introuvable   | errone    | supprime  |
-			| mp3 sain      | supprime  | supprime  |
-			| mp3 sain      | desactive | desactive |
-			| mp3 endommagé | desactive | desactive |
-			| introuvable   | desactive | desactive |
-			| mp3 sain      | expire    | expire    |
-			| mp3 endommagé | expire    | expire    |
+			| mp3 sain      | preview    | active     |
+			| mp3 endommagé | preview    | corrupt    |
+			| introuvable   | preview    | missing  |
+			| mp3 sain      | active     | active     |
+			| mp3 endommagé | active     | corrupt    |
+			| introuvable   | active     | missing  |
+			| mp3 sain      | corrupt    | active     |
+			| mp3 endommagé | corrupt    | corrupt    |
+			| introuvable   | corrupt    | missing  |
+			| mp3 sain      | missing  | missing  |
+			| mp3 sain      | disabled | disabled |
+			| mp3 endommagé | disabled | disabled |
+			| introuvable   | disabled | disabled |
+			| mp3 sain      | expired    | expired    |
+			| mp3 endommagé | expired    | expired    |
 
 	Plan du scénario: Un fichier défectueux est signalé par son chemin, avec la conséquence pour son sonore
 		Étant donné un fichier <fichier>
@@ -145,22 +145,22 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 
 		Exemples:
 			| fichier       | avant     | verdict     | consequence             |
-			| mp3 endommagé | actif     | endommagé   | sonore passé erroné     |
-			| introuvable   | actif     | introuvable | sonore passé supprimé   |
-			| mp3 endommagé | errone    | endommagé   | sonore toujours erroné  |
-			| mp3 endommagé | desactive | endommagé   | état désactivé conservé |
-			| mp3 endommagé | expire    | endommagé   | état expiré conservé    |
+			| mp3 endommagé | active     | endommagé   | sonore passé erroné     |
+			| introuvable   | active     | introuvable | sonore passé supprimé   |
+			| mp3 endommagé | corrupt    | endommagé   | sonore toujours erroné  |
+			| mp3 endommagé | disabled | endommagé   | état désactivé conservé |
+			| mp3 endommagé | expired    | endommagé   | état expiré conservé    |
 
 	Scénario: Le bilan compte les sonores passés erronés, supprimés et rétablis
 		Étant donné un fichier mp3 endommagé
-		Et un sonore à l'état « actif » pour ce fichier
-		Et un deuxième fichier wav sain, dont le sonore est à l'état « errone »
+		Et un sonore à l'état « active » pour ce fichier
+		Et un deuxième fichier wav sain, dont le sonore est à l'état « corrupt »
 		Quand l'indexeur fait un audit complet
 		Alors le bilan indique « audit complet : 0 nouveau sonore, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 1 erroné, 0 non supporté, 0 supprimé, 1 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Une durée saisie à la main n'est pas remplacée
 		Étant donné un fichier wav sain
-		Et un sonore à l'état « actif » pour ce fichier, dont la durée a été saisie à la main à 99 secondes
+		Et un sonore à l'état « active » pour ce fichier, dont la durée a été saisie à la main à 99 secondes
 		Quand l'indexeur fait un audit complet
 		Alors sa durée en base est de 99 secondes à 0,1 seconde près
 		Et la date de modification et la taille du fichier sont enregistrées
@@ -196,40 +196,40 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 
 	Scénario: L'audit complet enregistre les silences détectés au seuil de la configuration
 		Étant donné un fichier flac avec des silences
-		Et un sonore à l'état « actif » pour ce fichier
+		Et un sonore à l'état « active » pour ce fichier
 		Et un seuil de silence de -60 dB dans la configuration
 		Quand l'indexeur fait un audit complet
 		Alors en base, le début détecté du sonore est de 0,5 seconde et sa fin détectée de 0,25 seconde, à 0,01 seconde près
 
 	Scénario: L'audit complet d'un seul sonore enregistre ses silences, au seuil de -40 dB par défaut
 		Étant donné un fichier flac avec des silences
-		Et un sonore à l'état « actif » pour ce fichier
+		Et un sonore à l'état « active » pour ce fichier
 		Quand l'indexeur fait l'audit complet de ce seul sonore
 		Alors en base, le début détecté du sonore est de 0,5 seconde et sa fin détectée de 0,5 seconde, à 0,01 seconde près
 
 	Scénario: L'indexation rapide ne détecte pas les silences
 		Étant donné un fichier flac avec des silences
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Quand l'indexeur fait une indexation rapide
-		Alors le sonore est à l'état « actif »
+		Alors le sonore est à l'état « active »
 		Et en base, le sonore n'a ni début ni fin détectés
 
 	Scénario: Un audit complet efface les silences d'un fichier qui n'atteint plus le seuil
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « actif » pour ce fichier, avec 1 seconde de début et de fin détectés
+		Et un sonore à l'état « active » pour ce fichier, avec 1 seconde de début et de fin détectés
 		Et un seuil de silence de -1 dB dans la configuration
 		Quand l'indexeur fait un audit complet
 		Alors en base, le sonore n'a ni début ni fin détectés
 
 	Scénario: Un début et une fin détectés saisis à la main ne sont pas remplacés
 		Étant donné un fichier flac avec des silences
-		Et un sonore à l'état « actif » pour ce fichier, dont le début et la fin détectés ont été saisis à la main à 0,1 seconde
+		Et un sonore à l'état « active » pour ce fichier, dont le début et la fin détectés ont été saisis à la main à 0,1 seconde
 		Quand l'indexeur fait un audit complet
 		Alors en base, le début détecté du sonore est de 0,1 seconde et sa fin détectée de 0,1 seconde, à 0,01 seconde près
 
 	Scénario: Les silences d'un fichier défectueux ne sont pas touchés
 		Étant donné un fichier mp3 endommagé
-		Et un sonore à l'état « actif » pour ce fichier, avec 1 seconde de début et de fin détectés
+		Et un sonore à l'état « active » pour ce fichier, avec 1 seconde de début et de fin détectés
 		Quand l'indexeur fait un audit complet
 		Alors en base, le début détecté du sonore est de 1 seconde et sa fin détectée de 1 seconde, à 0,01 seconde près
 

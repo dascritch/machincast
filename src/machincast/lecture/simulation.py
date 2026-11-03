@@ -34,7 +34,7 @@ from machincast.conversion import booleen_ou_rien, entier_ou_rien, texte_ou_rien
 from machincast.hasard import creer_hasard
 from machincast.horloge import HorlogeFixe
 from machincast.lecture.diffusion import Diffusion
-from machincast.lecture.enregistrement import Passage
+from machincast.lecture.enregistrement import NIVEAUX, Passage
 from machincast.lecture.expiration import NATURE as SONORE_EXPIRE
 from machincast.lecture.expiration import Expiration, _cause
 from machincast.lecture.grille import lire_grille, prochain_changement
@@ -241,7 +241,7 @@ class HistoriqueSimule:
 		sequence_element: int | None = None,
 	) -> Passage:
 		ligne = connexion.execute(
-			"SELECT s.artiste, s.titre, COALESCE(s.emplacement, s.url_stream, m.url) FROM sonores s"
+			"SELECT s.artist, s.title, COALESCE(s.location, s.stream_url, m.url) FROM sounds s"
 			" LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 			(sonore,),
 		).fetchone()
@@ -290,14 +290,14 @@ class HistoriqueSimule:
 			moment = ""
 			if instant is not None:
 				moment = f"{instant.astimezone():%Y-%m-%d %H:%M:%S} : "
-			journal.warning(f"simulation : {moment}{niveau} : {nature} : {message}")
+			journal.warning(f"simulation : {moment}{NIVEAUX.get(niveau, niveau)} : {nature} : {message}")
 		self.log.append((niveau, nature, message))
 
 	def expirer(self, connexion: Connexion, instant: datetime, sonore: int | None = None) -> list[Expiration]:
 		lignes = connexion.execute(
-			"SELECT id, max_lectures, fin_diffusion, COALESCE(titre, emplacement, url_stream) FROM sonores"
-			" WHERE etat = 'actif' AND (%s::bigint IS NULL OR id = %s::bigint)"
-			" AND (fin_diffusion <= %s OR max_lectures IS NOT NULL)",
+			"SELECT id, max_plays, broadcast_end, COALESCE(title, location, stream_url) FROM sounds"
+			" WHERE state = 'active' AND (%s::bigint IS NULL OR id = %s::bigint)"
+			" AND (broadcast_end <= %s OR max_plays IS NOT NULL)",
 			(sonore, sonore, instant),
 		).fetchall()
 		candidats = {int(str(i)): (m, f, n) for i, m, f, n in lignes if int(str(i)) not in self.expires}
@@ -321,27 +321,27 @@ class HistoriqueSimule:
 		evenements = {
 			identifiant: (nom, nom_public, masque)
 			for identifiant, nom, nom_public, masque in connexion.execute(
-				"SELECT id, nom_interne, nom_public, masquer_metadonnees FROM evenements WHERE id = ANY(%s)",
+				"SELECT id, internal_name, public_name, hide_metadata FROM events WHERE id = ANY(%s)",
 				([s.passage.evenement for s in self.passages],),
 			).fetchall()
 		}
 		sequences = {
 			identifiant: (nom, nom_public, masque)
 			for identifiant, nom, nom_public, masque in connexion.execute(
-				"SELECT id, nom_interne, nom_public, masquer_metadonnees FROM sequences WHERE id = ANY(%s)",
+				"SELECT id, internal_name, public_name, hide_metadata FROM sequences WHERE id = ANY(%s)",
 				([s.passage.sequence for s in self.passages],),
 			).fetchall()
 		}
 		banques = {
 			identifiant: (nom, nom_public, masque)
 			for identifiant, nom, nom_public, masque in connexion.execute(
-				"SELECT id, nom_interne, nom_public, masquer_metadonnees FROM banques WHERE id = ANY(%s)",
+				"SELECT id, internal_name, public_name, hide_metadata FROM banks WHERE id = ANY(%s)",
 				([s.passage.banque for s in self.passages],),
 			).fetchall()
 		}
 		sonores: dict[object, object] = dict(
 			connexion.execute(
-				"SELECT id, masquer_metadonnees FROM sonores WHERE id = ANY(%s)",
+				"SELECT id, hide_metadata FROM sounds WHERE id = ANY(%s)",
 				([s.passage.sonore for s in self.passages],),
 			).fetchall()
 		)
@@ -488,7 +488,7 @@ def page_de_simulation(lignes: list[Ligne], log: list[tuple[str, str, str]], deb
 	)
 	anomalies = "\n".join(
 		f'\t\t<li class="{html.escape(niveau)}">'
-		f"{html.escape(niveau)} : {html.escape(nature)} : {html.escape(message)}</li>"
+		f"{html.escape(NIVEAUX.get(niveau, niveau))} : {html.escape(nature)} : {html.escape(message)}</li>"
 		for niveau, nature, message in log
 		if niveau != "info"
 	)

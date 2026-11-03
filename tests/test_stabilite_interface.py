@@ -27,16 +27,16 @@ def lectures() -> SimpleNamespace:
 
 @given(parsers.parse("la banque « {nom} », de {nombre:d} sonores"))
 def grosse_banque(base_vide: Connexion, nom: str, nombre: int) -> None:
-	base_vide.execute("INSERT INTO banques (nom_interne, mode) VALUES (%s, 'aleatoire')", (nom,))
-	banque = identifiant(base_vide, "banques", "nom_interne", nom)
+	base_vide.execute("INSERT INTO banks (internal_name, mode) VALUES (%s, 'random')", (nom,))
+	banque = identifiant(base_vide, "banks", "internal_name", nom)
 	base_vide.execute(
-		"INSERT INTO sonores (type, emplacement, titre, artiste, duree) SELECT 'fichier', '/srv/m/' || i || '.flac',"
+		"INSERT INTO sounds (type, location, title, artist, duration) SELECT 'file', '/srv/m/' || i || '.flac',"
 		" 'Titre ' || i, 'Artiste ' || i, '200 s' FROM generate_series(1, %s) i",
 		(nombre,),
 	)
 	base_vide.execute(
-		"INSERT INTO banques_sonores (banque_id, sonore_id, position)"
-		" SELECT %s, id, row_number() OVER (ORDER BY id) FROM sonores",
+		"INSERT INTO bank_sounds (bank_id, sound_id, position)"
+		" SELECT %s, id, row_number() OVER (ORDER BY id) FROM sounds",
 		(banque,),
 	)
 
@@ -55,7 +55,7 @@ def compter(lectures: SimpleNamespace, monkeypatch: pytest.MonkeyPatch) -> None:
 @when(parsers.parse("j'ouvre puis ferme {fois:d} fois la fiche de la banque « {nom} »"))
 def ouvrir_fermer(interface: Contexte, base_vide: Connexion, lectures: SimpleNamespace, fois: int, nom: str) -> None:
 	principale = fenetre(interface)
-	banque = identifiant(base_vide, "banques", "nom_interne", nom)
+	banque = identifiant(base_vide, "banks", "internal_name", nom)
 	for _ in range(fois):
 		principale._ouvrir("banque", banque, nom)
 		ouverte = fiche_ouverte(interface)

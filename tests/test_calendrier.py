@@ -25,7 +25,7 @@ scenarios("calendrier.feature")
 TAILLE = (1400, 900)
 """Taille de la fenêtre pendant les scénarios du calendrier."""
 SUPPRIME = "(supprimé)"
-"""Un passage dont l'événement a été supprimé : son evenement_id est vide."""
+"""Un passage dont l'événement a été supprimé : son event_id est vide."""
 
 
 def calendrier(interface: Contexte) -> Calendrier:
@@ -106,19 +106,19 @@ def passages(base_vide: Connexion, datatable: list[list[str]]) -> None:
 	for nom, debut, fin in tableau(datatable):
 		evenement = None
 		if nom != SUPPRIME:
-			evenement = identifiant(base_vide, "evenements", "nom_interne", nom)
+			evenement = identifiant(base_vide, "events", "internal_name", nom)
 		passage = uuid.uuid4()
 		depart = datetime.fromisoformat(debut).astimezone()
 		base_vide.execute(
-			"INSERT INTO airplay (passage_id, type_ligne, horodatage, evenement_id) VALUES (%s, 'debut', %s, %s)",
+			"INSERT INTO airplay (play_id, line_type, logged_at, event_id) VALUES (%s, 'start', %s, %s)",
 			(passage, depart, evenement),
 		)
 		if fin == "":
 			continue
 		arrivee = datetime.fromisoformat(fin).astimezone()
 		base_vide.execute(
-			"INSERT INTO airplay (passage_id, type_ligne, horodatage, evenement_id, duree_diffusee, sans_incident)"
-			" VALUES (%s, 'fin', %s, %s, %s, true)",
+			"INSERT INTO airplay (play_id, line_type, logged_at, event_id, played_duration, without_incident)"
+			" VALUES (%s, 'end', %s, %s, %s, true)",
 			(passage, arrivee, evenement, arrivee - depart),
 		)
 
@@ -126,7 +126,7 @@ def passages(base_vide: Connexion, datatable: list[list[str]]) -> None:
 @given(parsers.parse("l'événement « {nom} » supprimé le « {moment} »"))
 def evenement_supprime(base_vide: Connexion, nom: str, moment: str) -> None:
 	base_vide.execute(
-		"UPDATE evenements SET supprime_le = %s WHERE nom_interne = %s",
+		"UPDATE events SET deleted_at = %s WHERE internal_name = %s",
 		(datetime.fromisoformat(moment).astimezone(), nom),
 	)
 
@@ -186,7 +186,7 @@ def cliquer_a(interface: Contexte, qtbot: QtBot, jour: str, heure: str) -> None:
 
 @when(parsers.parse("l'événement « {nom} » est effacé de la base"))
 def effacer_evenement(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("DELETE FROM evenements WHERE nom_interne = %s", (nom,))
+	base_vide.execute("DELETE FROM events WHERE internal_name = %s", (nom,))
 
 
 def menu_du_bloc(vue: Calendrier, nom: str, libelle: str, journee: bool) -> QMenu | None:
@@ -364,8 +364,7 @@ def choix_du_jour(interface: Contexte, texte: str, jour: str) -> None:
 
 def sessions_sautees(base: Connexion, nom: str) -> list[str]:
 	lignes = base.execute(
-		"SELECT s.jour FROM evenements_sauts s JOIN evenements e ON e.id = s.evenement_id"
-		" WHERE e.nom_interne = %s ORDER BY s.jour",
+		"SELECT s.day FROM event_skips s JOIN events e ON e.id = s.event_id WHERE e.internal_name = %s ORDER BY s.day",
 		(nom,),
 	).fetchall()
 	return [str(jour) for (jour,) in lignes]
@@ -408,7 +407,7 @@ def dates_de_la_fiche(interface: Contexte, debut: str, fin: str) -> None:
 
 @then(parsers.parse("la base a toujours {nombre:d} événements"))
 def evenements_en_base(base_vide: Connexion, nombre: int) -> None:
-	ligne = base_vide.execute("SELECT count(*) FROM evenements").fetchone()
+	ligne = base_vide.execute("SELECT count(*) FROM events").fetchone()
 	assert ligne is not None
 	assert ligne[0] == nombre
 

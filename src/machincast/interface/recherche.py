@@ -78,17 +78,17 @@ def _trouve(*colonnes: str) -> str:
 
 TROUVES = f"""
 	WITH recherche AS (SELECT %s::text AS motif)
-	SELECT 1 AS rang, 'événement' AS genre, id, nom_interne AS nom, nom_public, NULL AS etat FROM evenements, recherche
-		WHERE (supprime_le IS NULL) AND ({_trouve("nom_interne", "nom_public")})
+	SELECT 1 AS rang, 'événement' AS genre, id, internal_name AS name, public_name, NULL AS state FROM events, recherche
+		WHERE (deleted_at IS NULL) AND ({_trouve("internal_name", "public_name")})
 	UNION ALL
-	SELECT 2, 'séquence', id, nom_interne, nom_public, NULL FROM sequences, recherche
-		WHERE (supprime_le IS NULL) AND ({_trouve("nom_interne", "nom_public")})
+	SELECT 2, 'séquence', id, internal_name, public_name, NULL FROM sequences, recherche
+		WHERE (deleted_at IS NULL) AND ({_trouve("internal_name", "public_name")})
 	UNION ALL
-	SELECT 3, 'banque', id, nom_interne, nom_public, NULL FROM banques, recherche
-		WHERE (supprime_le IS NULL) AND ({_trouve("nom_interne", "nom_public")})
+	SELECT 3, 'banque', id, internal_name, public_name, NULL FROM banks, recherche
+		WHERE (deleted_at IS NULL) AND ({_trouve("internal_name", "public_name")})
 	UNION ALL
-	SELECT 4, 'sonore', id, concat_ws(' – ', artiste, titre), NULL, etat::text FROM sonores, recherche
-		WHERE (supprime_le IS NULL) AND ({_trouve("artiste", "titre")})
+	SELECT 4, 'sonore', id, concat_ws(' – ', artist, title), NULL, state::text FROM sounds, recherche
+		WHERE (deleted_at IS NULL) AND ({_trouve("artist", "title")})
 """
 """Les éléments où se trouve le motif, lié une seule fois (recherche.motif), avec le rang de leur type ; jamais un
 élément supprimé (https://github.com/dascritch/machincast/issues/267)."""
@@ -108,7 +108,7 @@ def chercher(connexion: Connexion, texte: str, limite: int) -> tuple[list[Result
 	motif = _motif(texte.strip())
 	with connexion.transaction():
 		lignes = connexion.execute(
-			f"SELECT genre, id, nom, nom_public, etat FROM ({TROUVES}) t ORDER BY rang, lower(nom), id"  # noqa: S608
+			f"SELECT genre, id, name, public_name, state FROM ({TROUVES}) t ORDER BY rang, lower(name), id"  # noqa: S608
 			" LIMIT %s",
 			(motif, limite),
 		).fetchall()

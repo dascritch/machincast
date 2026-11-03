@@ -108,8 +108,8 @@ Pour un fichier `sain`, l'indexeur lit les tags du fichier pendant le décodage,
 
 | Champ du sonore | Tag lu |
 | --- | --- |
-| `artiste` | artiste, tronqué à 255 caractères |
-| `titre` | titre, tronqué à 255 caractères |
+| `artist` | artiste, tronqué à 255 caractères |
+| `title` | titre, tronqué à 255 caractères |
 | `annee` | année de la date de sortie. Un horodatage avec une heure, comme la date de création qu'annoncent certains M4A, n'est jamais pris pour l'année du morceau. |
 | `album` | album |
 | `artiste_album` | artiste de l'album |

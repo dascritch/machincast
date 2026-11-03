@@ -22,10 +22,10 @@ Fonctionnalité: Un fichier sonore n'est jamais supprimé par MachinCast
 
 		Exemples:
 			| changement                              |
-			| passe à l'état « supprime »             |
-			| passe à l'état « desactive »            |
-			| passe à l'état « expire »               |
-			| passe à l'état « errone »               |
+			| passe à l'état « missing »             |
+			| passe à l'état « disabled »            |
+			| passe à l'état « expired »               |
+			| passe à l'état « corrupt »               |
 			| change d'emplacement                    |
 			| change d'artiste et de titre            |
 			| est supprimée de la base                |
@@ -33,12 +33,12 @@ Fonctionnalité: Un fichier sonore n'est jamais supprimé par MachinCast
 	Scénario: Un fichier dont l'entrée a été supprimée est réindexé comme nouveau sonore
 		Quand l'entrée du sonore « titre.flac » est supprimée de la base
 		Et l'indexeur fait une indexation rapide, puis un audit complet
-		Alors le fichier « titre.flac » a de nouveau un sonore, à l'état « actif »
+		Alors le fichier « titre.flac » a de nouveau un sonore, à l'état « active »
 		Et les fichiers sonores de la banque sont intacts
 
 	Scénario: Un fichier endommagé est déclaré erroné, et reste intact
 		Quand l'indexeur fait une indexation rapide, puis un audit complet
-		Alors le sonore de « abime.mp3 » est à l'état « errone »
+		Alors le sonore de « abime.mp3 » est à l'état « corrupt »
 		Et les fichiers sonores de la banque sont intacts
 
 	# ─── Diffusion et simulation ───────────────────────────────

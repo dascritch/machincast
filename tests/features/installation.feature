@@ -104,14 +104,14 @@ Fonctionnalité: Vérifications de l'installation
 		Alors la commande se termine avec le code 1
 		Et sa sortie d'erreur mentionne « base de données injoignable »
 
-	Scénario: L'application du schéma refuse une base restée à une ancienne migration intermédiaire, sans la modifier
-		https://github.com/dascritch/machincast/issues/314 : les migrations 0002 à 0015 sont fondues dans le schéma unique.
+	Scénario: L'application du schéma refuse une base à l'ancien schéma, aux noms français, sans la modifier
+		https://github.com/dascritch/machincast/issues/358 : elle se recrée.
 		La configuration du scénario désigne la base de test comme base de production : aucune autre base n'est touchée.
 
-		Étant donné la base de test marquée comme ayant reçu les anciennes migrations jusqu'à « 0009.sonores-audit-demande »
+		Étant donné la base de test marquée comme ayant reçu l'ancienne migration « 0001.schema-initial »
 		Quand install.sh applique le schéma de la base de test
 		Alors l'application du schéma se termine avec le code 1
-		Et elle a signalé « schéma impossible à mettre à jour : base machincast_test : ancien schéma, sans la migration 0010.indexation-retire-des-banques »
+		Et elle a signalé « schéma impossible à mettre à jour : base machincast_test : ancien schéma, aux noms français (migration 0001.schema-initial) ; la recréer »
 
 	# ─── Service systemd (https://github.com/dascritch/machincast/issues/22) ─────
 	# Facultatif, pour un ordinateur dédié à l'antenne : install.sh --service installe l'unité et la règle polkit que

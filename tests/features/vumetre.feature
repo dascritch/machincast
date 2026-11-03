@@ -227,8 +227,8 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et la socket d'état de Machin player ouverte pour l'interface
 		Et Machin player diffuse un sonore au texte public « Les Gaufres – Café à minuit »
 		Et les sonores :
-			| artiste | titre  | type    | etat  | duree | emplacement      |
-			|         | Jingle | fichier | actif | 8     | /srv/jingle.flac |
+			| artist | title  | type | state  | duration | location         |
+			|        | Jingle | file | active | 8        | /srv/jingle.flac |
 		Quand la fenêtre de l'interface s'ouvre
 		Et je clique sur le VU-mètre de l'antenne
 		Et je demande la pré-écoute du sonore « Jingle »
@@ -264,8 +264,8 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Et les événements :
-			| nom      | nom_public  | priorite | debut               | fin                 | jours |
-			| Matinale | La matinale | emission | 2026-10-19 07:00:00 | 2026-10-19 09:00:00 |       |
+			| name     | public_name | priority | starts_at           | ends_at             | days |
+			| Matinale | La matinale | show     | 2026-10-19 07:00:00 | 2026-10-19 09:00:00 |      |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et j'appuie sur « Alt+P »

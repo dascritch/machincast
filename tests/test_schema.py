@@ -13,7 +13,6 @@ from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.base import (
-	CONTRAINTES_RENOMMEES,
 	TABLES,
 	TYPES,
 	SchemaPerime,
@@ -43,7 +42,7 @@ class Contexte:
 	references: dict[str, int] = field(default_factory=dict)
 	erreur: psycopg.Error | None = None
 	modifie_le: datetime | None = None
-	modifiee: tuple[str, str] = ("sonores", "sonore")
+	modifiee: tuple[str, str] = ("sounds", "sonore")
 	"""Table et référence dont la date de modification est suivie."""
 	connexions_avant: int = 0
 	connexions_apres: int = 0
@@ -95,21 +94,21 @@ def base_migree(contexte: Contexte) -> None:
 @given("les éléments de référence en base")
 def references(contexte: Contexte) -> None:
 	r = contexte.references
-	r["feed"] = inserer(contexte, "feeds", {"nom": "'Studio mobile'", "url": "'https://flux.exemple'"})
-	r["banque"] = inserer(contexte, "banques", {"nom_interne": "'Jingles'", "mode": "'aleatoire'"})
+	r["feed"] = inserer(contexte, "feeds", {"name": "'Studio mobile'", "url": "'https://flux.exemple'"})
+	r["banque"] = inserer(contexte, "banks", {"internal_name": "'Jingles'", "mode": "'random'"})
 	r["sonore"] = inserer(
 		contexte,
-		"sonores",
-		{"type": "'fichier'", "emplacement": "'/jingles/reference.flac'", "titre": "'Titre de référence'"},
+		"sounds",
+		{"type": "'file'", "location": "'/jingles/reference.flac'", "title": "'Titre de référence'"},
 	)
-	r["evenement"] = inserer(contexte, "evenements", {"nom_interne": "'Fil'", "priorite": "'fil_musical'"})
-	r["sequence"] = inserer(contexte, "sequences", {"nom_interne": "'Passage publicitaire'"})
+	r["evenement"] = inserer(contexte, "events", {"internal_name": "'Fil'", "priority": "'background_programming'"})
+	r["sequence"] = inserer(contexte, "sequences", {"internal_name": "'Passage publicitaire'"})
 
 
 @then("la banque de référence n'est pas marquée « ne pas répéter »")
 def reference_sans_marque(contexte: Contexte) -> None:
 	ligne = contexte.connexion.execute(
-		"SELECT ne_pas_repeter FROM banques WHERE id = %s", (contexte.references["banque"],)
+		"SELECT no_repeat FROM banks WHERE id = %s", (contexte.references["banque"],)
 	).fetchone()
 	assert ligne == (False,)
 
@@ -117,14 +116,14 @@ def reference_sans_marque(contexte: Contexte) -> None:
 @given("un deuxième sonore en base")
 def deuxieme_sonore(contexte: Contexte) -> None:
 	contexte.references["sonore2"] = inserer(
-		contexte, "sonores", {"type": "'fichier'", "emplacement": "'/jingles/deuxieme.flac'"}
+		contexte, "sounds", {"type": "'file'", "location": "'/jingles/deuxieme.flac'"}
 	)
 
 
 @given("un événement de secours en base")
 def evenement_de_secours(contexte: Contexte) -> None:
 	contexte.references["secours"] = inserer(
-		contexte, "evenements", {"nom_interne": "'Secours du direct'", "priorite": "'secours'"}
+		contexte, "events", {"internal_name": "'Secours du direct'", "priority": "'fallback'"}
 	)
 
 
@@ -132,11 +131,11 @@ def evenement_de_secours(contexte: Contexte) -> None:
 def stream_secouru(contexte: Contexte) -> None:
 	contexte.references["stream"] = inserer(
 		contexte,
-		"sonores",
+		"sounds",
 		{
 			"type": "'stream'",
-			"url_stream": "'https://flux.exemple/direct'",
-			"secours_evenement_id": str(contexte.references["secours"]),
+			"stream_url": "'https://flux.exemple/direct'",
+			"fallback_event_id": str(contexte.references["secours"]),
 		},
 	)
 
@@ -145,7 +144,7 @@ def stream_secouru(contexte: Contexte) -> None:
 def secours_en_emission(contexte: Contexte) -> None:
 	try:
 		contexte.connexion.execute(
-			"UPDATE evenements SET priorite = 'emission', debut = '2026-10-19 18:00' WHERE id = %s",
+			"UPDATE events SET priority = 'show', starts_at = '2026-10-19 18:00' WHERE id = %s",
 			(contexte.references["secours"],),
 		)
 	except psycopg.Error as erreur:
@@ -154,13 +153,13 @@ def secours_en_emission(contexte: Contexte) -> None:
 
 @when("je supprime l'événement de secours")
 def supprimer_secours(contexte: Contexte) -> None:
-	contexte.connexion.execute("DELETE FROM evenements WHERE id = %s", (contexte.references["secours"],))
+	contexte.connexion.execute("DELETE FROM events WHERE id = %s", (contexte.references["secours"],))
 
 
 @then("le stream n'a plus d'événement de secours")
 def stream_sans_secours(contexte: Contexte) -> None:
 	ligne = contexte.connexion.execute(
-		"SELECT secours_evenement_id FROM sonores WHERE id = %s", (contexte.references["stream"],)
+		"SELECT fallback_event_id FROM sounds WHERE id = %s", (contexte.references["stream"],)
 	).fetchone()
 	assert ligne == (None,)
 
@@ -168,7 +167,7 @@ def stream_sans_secours(contexte: Contexte) -> None:
 @given("une deuxième banque en base")
 def deuxieme_banque(contexte: Contexte) -> None:
 	contexte.references["banque2"] = inserer(
-		contexte, "banques", {"nom_interne": "'Habillages hors saison'", "mode": "'sequentiel'"}
+		contexte, "banks", {"internal_name": "'Habillages hors saison'", "mode": "'sequential'"}
 	)
 
 
@@ -178,11 +177,11 @@ def passage(contexte: Contexte) -> None:
 		contexte,
 		"airplay",
 		{
-			"passage_id": "gen_random_uuid()",
-			"type_ligne": "'debut'",
-			"sonore_id": str(contexte.references["sonore"]),
-			"emplacement": "'/jingles/reference.flac'",
-			"titre": "'Titre de référence'",
+			"play_id": "gen_random_uuid()",
+			"line_type": "'start'",
+			"sound_id": str(contexte.references["sonore"]),
+			"location": "'/jingles/reference.flac'",
+			"title": "'Titre de référence'",
 		},
 	)
 
@@ -253,10 +252,10 @@ def aucune_connexion_restante(contexte: Contexte) -> None:
 @when("je modifie le titre du sonore de référence")
 def modifier_titre(contexte: Contexte) -> None:
 	identifiant = contexte.references["sonore"]
-	ligne = contexte.connexion.execute("SELECT modifie_le FROM sonores WHERE id = %s", (identifiant,)).fetchone()
+	ligne = contexte.connexion.execute("SELECT modified_at FROM sounds WHERE id = %s", (identifiant,)).fetchone()
 	assert (ligne is not None) and (isinstance(ligne[0], datetime))
 	contexte.modifie_le = ligne[0]
-	contexte.connexion.execute("UPDATE sonores SET titre = 'Nouveau titre' WHERE id = %s", (identifiant,))
+	contexte.connexion.execute("UPDATE sounds SET title = 'Nouveau titre' WHERE id = %s", (identifiant,))
 
 
 @given("un élément de l'événement de référence, joué dans l'airplay")
@@ -264,18 +263,18 @@ def element_joue(contexte: Contexte) -> None:
 	r = contexte.references
 	r["element"] = inserer(
 		contexte,
-		"evenements_elements",
-		{"evenement_id": str(r["evenement"]), "position": "1", "sonore_id": str(r["sonore"])},
+		"event_items",
+		{"event_id": str(r["evenement"]), "position": "1", "sound_id": str(r["sonore"])},
 	)
 	inserer(
 		contexte,
 		"airplay",
 		{
-			"passage_id": "gen_random_uuid()",
-			"type_ligne": "'debut'",
-			"sonore_id": str(r["sonore"]),
-			"evenement_id": str(r["evenement"]),
-			"element_id": str(r["element"]),
+			"play_id": "gen_random_uuid()",
+			"line_type": "'start'",
+			"sound_id": str(r["sonore"]),
+			"event_id": str(r["evenement"]),
+			"event_item_id": str(r["element"]),
 		},
 	)
 
@@ -285,18 +284,18 @@ def element_de_sequence_joue(contexte: Contexte) -> None:
 	r = contexte.references
 	r["element_de_sequence"] = inserer(
 		contexte,
-		"sequences_elements",
-		{"sequence_id": str(r["sequence"]), "position": "1", "sonore_id": str(r["sonore"])},
+		"sequence_items",
+		{"sequence_id": str(r["sequence"]), "position": "1", "sound_id": str(r["sonore"])},
 	)
 	executer_insertion(
 		contexte,
 		"airplay",
 		{
-			"passage_id": "gen_random_uuid()",
-			"type_ligne": "'debut'",
-			"sonore_id": str(r["sonore"]),
+			"play_id": "gen_random_uuid()",
+			"line_type": "'start'",
+			"sound_id": str(r["sonore"]),
 			"sequence_id": str(r["sequence"]),
-			"sequence_element_id": str(r["element_de_sequence"]),
+			"sequence_item_id": str(r["element_de_sequence"]),
 		},
 	)
 
@@ -304,11 +303,11 @@ def element_de_sequence_joue(contexte: Contexte) -> None:
 @when("je modifie le nom public de la séquence de référence")
 def modifier_sequence(contexte: Contexte) -> None:
 	identifiant = contexte.references["sequence"]
-	ligne = contexte.connexion.execute("SELECT modifie_le FROM sequences WHERE id = %s", (identifiant,)).fetchone()
+	ligne = contexte.connexion.execute("SELECT modified_at FROM sequences WHERE id = %s", (identifiant,)).fetchone()
 	assert (ligne is not None) and (isinstance(ligne[0], datetime))
 	contexte.modifie_le = ligne[0]
 	contexte.modifiee = ("sequences", "sequence")
-	contexte.connexion.execute("UPDATE sequences SET nom_public = 'Vous écoutez' WHERE id = %s", (identifiant,))
+	contexte.connexion.execute("UPDATE sequences SET public_name = 'Vous écoutez' WHERE id = %s", (identifiant,))
 
 
 @when("je supprime la séquence de référence")
@@ -318,36 +317,36 @@ def supprimer_sequence(contexte: Contexte) -> None:
 
 @then("la ligne d'airplay existe toujours, sans référence à la séquence ni à son élément")
 def airplay_sans_sequence(contexte: Contexte) -> None:
-	lignes = contexte.connexion.execute("SELECT sequence_id, sequence_element_id, sonore_id FROM airplay").fetchall()
+	lignes = contexte.connexion.execute("SELECT sequence_id, sequence_item_id, sound_id FROM airplay").fetchall()
 	assert lignes == [(None, None, contexte.references["sonore"])]
 
 
 @when("je supprime l'événement de référence")
 def supprimer_evenement(contexte: Contexte) -> None:
-	contexte.connexion.execute("DELETE FROM evenements WHERE id = %s", (contexte.references["evenement"],))
+	contexte.connexion.execute("DELETE FROM events WHERE id = %s", (contexte.references["evenement"],))
 
 
 @then("aucune session n'est sautée en base")
 def aucune_session_sautee(contexte: Contexte) -> None:
-	assert contexte.connexion.execute("SELECT count(*) FROM evenements_sauts").fetchone() == (0,)
+	assert contexte.connexion.execute("SELECT count(*) FROM event_skips").fetchone() == (0,)
 
 
 @then("l'événement de référence n'a plus d'élément")
 def evenement_sans_element(contexte: Contexte) -> None:
 	ligne = contexte.connexion.execute(
-		"SELECT count(*) FROM evenements_elements WHERE evenement_id = %s", (contexte.references["evenement"],)
+		"SELECT count(*) FROM event_items WHERE event_id = %s", (contexte.references["evenement"],)
 	).fetchone()
 	assert ligne == (0,)
 
 
 @when("je supprime cet élément de l'événement")
 def supprimer_element(contexte: Contexte) -> None:
-	contexte.connexion.execute("DELETE FROM evenements_elements WHERE id = %s", (contexte.references["element"],))
+	contexte.connexion.execute("DELETE FROM event_items WHERE id = %s", (contexte.references["element"],))
 
 
 @when("je supprime le sonore de référence")
 def supprimer_sonore(contexte: Contexte) -> None:
-	contexte.connexion.execute("DELETE FROM sonores WHERE id = %s", (contexte.references["sonore"],))
+	contexte.connexion.execute("DELETE FROM sounds WHERE id = %s", (contexte.references["sonore"],))
 
 
 # ─── Alors ─────────────────────────────────────────────────
@@ -401,19 +400,19 @@ def comparer(contexte: Contexte, type_enum: str, premier: str, second: str) -> b
 
 @then(parsers.parse('la priorité "{premiere}" est inférieure à "{seconde}"'))
 def priorite_inferieure(contexte: Contexte, premiere: str, seconde: str) -> None:
-	assert comparer(contexte, "priorite_evenement", premiere, seconde)
+	assert comparer(contexte, "event_priority", premiere, seconde)
 
 
 @then(parsers.parse('le jour "{premier}" vient avant "{second}"'))
 def jour_avant(contexte: Contexte, premier: str, second: str) -> None:
-	assert comparer(contexte, "jour_semaine", premier, second)
+	assert comparer(contexte, "weekday", premier, second)
 
 
 @then("sa date de modification a avancé")
 def date_avancee(contexte: Contexte) -> None:
 	table, reference = contexte.modifiee
 	ligne = contexte.connexion.execute(
-		sql.SQL("SELECT modifie_le FROM {} WHERE id = %s").format(sql.Identifier(table)),
+		sql.SQL("SELECT modified_at FROM {} WHERE id = %s").format(sql.Identifier(table)),
 		(contexte.references[reference],),
 	).fetchone()
 	assert (ligne is not None) and (isinstance(ligne[0], datetime))
@@ -422,13 +421,13 @@ def date_avancee(contexte: Contexte) -> None:
 
 @then("la ligne d'airplay existe toujours, sans référence à l'élément")
 def airplay_sans_element(contexte: Contexte) -> None:
-	lignes = contexte.connexion.execute("SELECT element_id, evenement_id FROM airplay").fetchall()
+	lignes = contexte.connexion.execute("SELECT event_item_id, event_id FROM airplay").fetchall()
 	assert lignes == [(None, contexte.references["evenement"])]
 
 
 @then("la ligne d'airplay existe toujours, avec son titre recopié et sans référence au sonore")
 def airplay_conserve(contexte: Contexte) -> None:
-	lignes = contexte.connexion.execute("SELECT sonore_id, titre FROM airplay").fetchall()
+	lignes = contexte.connexion.execute("SELECT sound_id, title FROM airplay").fetchall()
 	assert lignes == [(None, "Titre de référence")]
 
 
@@ -447,7 +446,7 @@ def types_connus(contexte: Contexte) -> None:
 @then(parsers.re(r"le sonore « (?P<emplacement>[^»]+) » a ses crossfades (?P<valeur>non paramétrés|de 0 seconde)"))
 def crossfades_du_sonore(contexte: Contexte, emplacement: str, valeur: str) -> None:
 	ligne = contexte.connexion.execute(
-		"SELECT crossfade_debut, crossfade_fin FROM sonores WHERE emplacement = %s", (emplacement,)
+		"SELECT crossfade_start, crossfade_end FROM sounds WHERE location = %s", (emplacement,)
 	).fetchone()
 	attendu = None
 	if valeur == "de 0 seconde":
@@ -464,7 +463,7 @@ def appliquer(contexte: Contexte) -> None:
 		contexte.refus = str(erreur)
 
 
-# ─── Schéma unique (https://github.com/dascritch/machincast/issues/314) ───
+# ─── Ancien schéma, aux noms français (https://github.com/dascritch/machincast/issues/358) ───
 
 
 def migrations_de_la_base(contexte: Contexte) -> list[str]:
@@ -472,16 +471,11 @@ def migrations_de_la_base(contexte: Contexte) -> list[str]:
 	return [str(ligne[0]) for ligne in lignes]
 
 
-@given(
-	parsers.re(
-		r"la base de test marquée comme ayant reçu les (?:quinze anciennes migrations, avec leurs anciens noms de"
-		r" contraintes|anciennes migrations jusqu'à « (?P<derniere>[^»]+) »)"
-	)
-)
-def anciennes_migrations(request: pytest.FixtureRequest, contexte: Contexte, derniere: str | None) -> None:
-	"""Comme une base d'avant le schéma unique : yoyo y note les migrations d'alors, par l'empreinte de leur nom. La
+@given(parsers.parse("la base de test marquée comme ayant reçu l'ancienne migration « {migration} »"))
+def ancienne_migration(request: pytest.FixtureRequest, contexte: Contexte, migration: str) -> None:
+	"""Comme une base créée avec l'ancien schéma : yoyo y note cette migration d'alors, par l'empreinte de son nom. La
 	base est rendue telle quelle à la fin du scénario."""
-	marquer_les_anciennes_migrations(contexte.connexion, derniere)
+	marquer_les_anciennes_migrations(contexte.connexion, migration)
 	contexte.avant = migrations_de_la_base(contexte)
 	request.addfinalizer(rendre_les_migrations)
 
@@ -502,30 +496,16 @@ def migrations_d_avant(contexte: Contexte) -> None:
 	assert migrations_de_la_base(contexte) == contexte.avant
 
 
-@then("les contraintes NOT NULL ont les noms du schéma unique")
-def noms_du_schema_unique(contexte: Contexte) -> None:
-	anciens = [ancien for _table, ancien, _nouveau in CONTRAINTES_RENOMMEES]
-	requete = "SELECT count(*) FROM pg_constraint WHERE conname = ANY(%s)"
-	ligne = contexte.connexion.execute(requete, (anciens,)).fetchone()
-	assert ligne == (0,)
-
-
 @then(parsers.parse("l'application des migrations est refusée : « {texte} »"))
 def refusee(contexte: Contexte, texte: str) -> None:
 	assert (contexte.refus is not None) and (texte in contexte.refus), contexte.refus
-
-
-@then(parsers.parse("le message dit de passer par MachinCast {version}, ou de recréer la base"))
-def que_faire(contexte: Contexte, version: str) -> None:
-	assert contexte.refus is not None
-	assert (f"git checkout {version}" in contexte.refus) and ("la recréer" in contexte.refus), contexte.refus
 
 
 # ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───
 
 
 def _detection(contexte: Contexte, table: str, colonne: str, valeur: object) -> object:
-	requete = sql.SQL("SELECT detection_silences FROM {} WHERE {} = %s").format(
+	requete = sql.SQL("SELECT silence_detection FROM {} WHERE {} = %s").format(
 		sql.Identifier(table), sql.Identifier(colonne)
 	)
 	ligne = contexte.connexion.execute(requete, (valeur,)).fetchone()
@@ -535,18 +515,18 @@ def _detection(contexte: Contexte, table: str, colonne: str, valeur: object) -> 
 
 @then("la banque de référence n'active pas la détection de silence")
 def banque_de_reference_sans_detection(contexte: Contexte) -> None:
-	assert _detection(contexte, "banques", "id", contexte.references["banque"]) is False
+	assert _detection(contexte, "banks", "id", contexte.references["banque"]) is False
 
 
 @then("le sonore de référence n'active pas la détection de silence")
 def sonore_de_reference_sans_detection(contexte: Contexte) -> None:
-	assert _detection(contexte, "sonores", "id", contexte.references["sonore"]) is False
+	assert _detection(contexte, "sounds", "id", contexte.references["sonore"]) is False
 
 
 @then("le sonore de référence n'a ni début ni fin détectés")
 def sonore_de_reference_sans_silences(contexte: Contexte) -> None:
 	ligne = contexte.connexion.execute(
-		"SELECT debut_detecte, fin_detectee FROM sonores WHERE id = %s", (contexte.references["sonore"],)
+		"SELECT detected_start, detected_end FROM sounds WHERE id = %s", (contexte.references["sonore"],)
 	).fetchone()
 	assert ligne == (None, None)
 
@@ -556,7 +536,7 @@ def sonore_de_reference_sans_silences(contexte: Contexte) -> None:
 
 def _audit_demande(contexte: Contexte, colonne: str, valeur: object) -> object:
 	ligne = contexte.connexion.execute(
-		f"SELECT audit_demande FROM sonores WHERE {colonne} = %s",  # noqa: S608
+		f"SELECT audit_requested FROM sounds WHERE {colonne} = %s",  # noqa: S608
 		(valeur,),
 	).fetchone()
 	assert ligne is not None
@@ -599,6 +579,6 @@ def tables_vides(contexte: Contexte) -> None:
 @then("un nouveau sonore reçoit l'identifiant 1")
 def identifiant_un(contexte: Contexte) -> None:
 	ligne = contexte.connexion.execute(
-		"INSERT INTO sonores (type, emplacement) VALUES ('fichier', '/premier.flac') RETURNING id"
+		"INSERT INTO sounds (type, location) VALUES ('file', '/premier.flac') RETURNING id"
 	).fetchone()
 	assert ligne == (1,)

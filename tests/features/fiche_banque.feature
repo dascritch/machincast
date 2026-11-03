@@ -13,11 +13,11 @@ Fonctionnalité: Fiche d'une banque
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-16 20:00:30 »
 		Et les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement                   |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/jingles/hiver/cafe.flac  |
-			| Aube        | Matin clair   | fichier | actif | 200   | /srv/jingles/hiver/matin.flac |
-			|             | Jingle        | fichier | actif | 8     | /srv/habillage/jingle.flac    |
-			|             | Spot          | fichier | actif | 30    | /srv/pubs/spot.flac           |
+			| artist      | title         | type | state  | duration | location                      |
+			| Les Gaufres | Café à minuit | file | active | 214      | /srv/jingles/hiver/cafe.flac  |
+			| Aube        | Matin clair   | file | active | 200      | /srv/jingles/hiver/matin.flac |
+			|             | Jingle        | file | active | 8        | /srv/habillage/jingle.flac    |
+			|             | Spot          | file | active | 30       | /srv/pubs/spot.flac           |
 		Et la banque « Jingles », séquentielle, de nom public « Radio Thune », marquée « ne pas répéter », avec « Café à minuit », « Matin clair »
 		Et les répertoires « /srv/jingles/hiver » de la banque « Jingles »
 		Et la banque « Jingles » applique à défaut 1 seconde de crossfade de fin
@@ -59,9 +59,9 @@ Fonctionnalité: Fiche d'une banque
 
 	Scénario: Une banque dont un sonore est erroné ou non supporté le dit en haut de sa fiche
 		Étant donné les sonores :
-			| artiste | titre | type    | etat         | duree | emplacement     |
-			|         | Abîmé | fichier | errone       | 8     | /srv/abime.flac |
-			|         | Image | fichier | non_supporte | 8     | /srv/image.png  |
+			| artist | title | type | state       | duration | location        |
+			|        | Abîmé | file | corrupt     | 8        | /srv/abime.flac |
+			|        | Image | file | unsupported | 8        | /srv/image.png  |
 		Et la banque « Pubs », aléatoire, sans nom public, avec « Spot », « Abîmé », « Image »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Pubs »
@@ -107,12 +107,12 @@ Fonctionnalité: Fiche d'une banque
 
 	Scénario: Un sonore sans durée ou sans titre le montre, un fichier pas encore décodé par son nom
 		Étant donné les sonores :
-			| artiste | titre         | type    | etat   | duree | emplacement                 |
-			|         | Direct studio | stream  | actif  |       | https://flux.exemple/direct |
-			|         | Nouveau       | fichier | apercu |       | /srv/jingles/nouveau.flac   |
-			|         |               | stream  | actif  |       | https://flux.exemple/autre  |
-			| Aube    |               | fichier | actif  | 60    | /srv/jingles/aube.flac      |
-			|         |               | fichier | apercu |       | /srv/jingles/brut.flac      |
+			| artist | title         | type   | state   | duration | location                    |
+			|        | Direct studio | stream | active  |          | https://flux.exemple/direct |
+			|        | Nouveau       | file   | preview |          | /srv/jingles/nouveau.flac   |
+			|        |               | stream | active  |          | https://flux.exemple/autre  |
+			| Aube   |               | file   | active  | 60       | /srv/jingles/aube.flac      |
+			|        |               | file   | preview |          | /srv/jingles/brut.flac      |
 		Et la banque « Tubes », aléatoire, sans nom public, avec « Direct studio », « Nouveau »
 		Et les sonores sans titre « https://flux.exemple/autre », « /srv/jingles/aube.flac », « /srv/jingles/brut.flac » sont dans la banque « Tubes »
 		Quand la fenêtre de l'interface s'ouvre
@@ -274,10 +274,10 @@ Fonctionnalité: Fiche d'une banque
 			| début | Imposer à tous les sonores        | 1,5 s  | oui              |
 			| fin   | Appliquer si le sonore n'en a pas | 2,2 s  | oui              |
 		Quand j'enregistre la fiche
-		Alors la banque « Jingles » a en base les crossfades « impose » 1,5 seconde au début, et « a_defaut » 2,2 secondes à la fin
+		Alors la banque « Jingles » a en base les crossfades « forced » 1,5 seconde au début, et « default » 2,2 secondes à la fin
 		Quand je choisis pour le crossfade de début la règle « Garder ceux des sonores »
 		Et j'enregistre la fiche
-		Alors la banque « Jingles » a en base les crossfades « sonore » 1,5 seconde au début, et « a_defaut » 2,2 secondes à la fin
+		Alors la banque « Jingles » a en base les crossfades « sound » 1,5 seconde au début, et « default » 2,2 secondes à la fin
 		Et la fiche montre les crossfades :
 			| côté  | règle                             | durée  | durée modifiable |
 			| début | Garder ceux des sonores           | 1,5 s  | non              |
@@ -315,8 +315,8 @@ Fonctionnalité: Fiche d'une banque
 		l'enregistrement. Un sonore de durée inconnue n'est pas signalé.
 
 		Étant donné les sonores :
-			| artiste | titre    | type    | etat   | duree | emplacement                 |
-			|         | Inconnu  | fichier | apercu |       | /srv/jingles/hiver/inconnu.flac |
+			| artist | title   | type | state   | duration | location                        |
+			|        | Inconnu | file | preview |          | /srv/jingles/hiver/inconnu.flac |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et j'ajoute les sonores « Inconnu »
@@ -623,8 +623,8 @@ Fonctionnalité: Fiche d'une banque
 
 	Scénario: Retirer un sonore placé hors des répertoires de la banque ne demande rien
 		Étant donné les sonores :
-			| artiste | titre         | type   | etat  | duree | emplacement                 |
-			|         | Direct studio | stream | actif |       | https://flux.exemple/direct |
+			| artist | title         | type   | state  | duration | location                    |
+			|        | Direct studio | stream | active |          | https://flux.exemple/direct |
 		Et la banque « Tubes », aléatoire, sans nom public, avec « Spot », « Café à minuit », « Direct studio »
 		Et les répertoires « /srv/jingles/hiver », « /srv/pub » de la banque « Tubes »
 		Quand la fenêtre de l'interface s'ouvre
@@ -652,8 +652,8 @@ Fonctionnalité: Fiche d'une banque
 
 	Scénario: L'avertissement vaut aussi pour un sonore d'un sous-répertoire, et pour un répertoire pas encore enregistré
 		Étant donné les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement                         |
-			|         | Neige | fichier | actif | 12    | /srv/jingles/automne/neige/neige.ogg |
+			| artist | title | type | state  | duration | location                             |
+			|        | Neige | file | active | 12       | /srv/jingles/automne/neige/neige.ogg |
 		Et la banque « Tubes », aléatoire, sans nom public, avec « Neige »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Tubes »
@@ -711,8 +711,8 @@ Fonctionnalité: Fiche d'une banque
 		Étant donné les dossiers « …/nouveaux », « …/album.flac » du scénario
 		Et les fichiers « …/jingles/neige.flac », « …/nouveaux/Gros titre.MP3 », « …/notes.txt » du scénario
 		Et les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement           |
-			|         | Neige | fichier | actif | 12    | …/jingles/neige.flac  |
+			| artist | title | type | state  | duration | location             |
+			|        | Neige | file | active | 12       | …/jingles/neige.flac |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et je dépose sur les sonores de la fiche « …/nouveaux/Gros titre.MP3 », « …/nouveaux/../jingles/neige.flac », « …/notes.txt », « …/nouveaux », « …/album.flac », « …/nouveaux/Gros titre.MP3 »
@@ -734,8 +734,8 @@ Fonctionnalité: Fiche d'une banque
 	Scénario: Un fichier sonore déjà dans la fiche, déposé de nouveau, n'y est qu'une fois
 		Étant donné les fichiers « …/jingles/neige.flac », « …/a.ogg », « …/b.ogg » du scénario
 		Et les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement          |
-			|         | Neige | fichier | actif | 12    | …/jingles/neige.flac |
+			| artist | title | type | state  | duration | location             |
+			|        | Neige | file | active | 12       | …/jingles/neige.flac |
 		Et la banque « Tubes », aléatoire, sans nom public, avec « Neige »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Tubes »

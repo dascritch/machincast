@@ -12,18 +12,18 @@ Fonctionnalité: Écran des incidents
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-19 21:00:00 »
 		Et les sonores :
-			| artiste     | titre | type    | etat  | duree | emplacement         |
-			| Les Gaufres | Spot  | fichier | actif | 30    | /srv/pubs/spot.flac |
+			| artist      | title | type | state  | duration | location            |
+			| Les Gaufres | Spot  | file | active | 30       | /srv/pubs/spot.flac |
 		Et la banque « Publicité », aléatoire, sans nom public, avec « Spot »
 		Et les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et le log :
-			| horodatage          | niveau   | nature              | message                           | sonore | banque    | evenement |
-			| 2026-10-19 20:10:00 | info     | démarrage           | Machin player démarre            |        |           |           |
-			| 2026-10-19 20:20:00 | alerte   | fichier modifié     | taille changée depuis l'indexation | Spot   | Publicité | Continue  |
-			| 2026-10-19 20:30:00 | incident | fichier introuvable | /srv/pubs/spot.flac               | Spot   |           | Continue  |
-			| 2026-10-19 20:40:00 | alerte   | blanc               | rien à diffuser                   |        |           | Continue  |
+			| logged_at           | level    | kind                | message                            | sound | bank      | event    |
+			| 2026-10-19 20:10:00 | info     | démarrage           | Machin player démarre              |       |           |          |
+			| 2026-10-19 20:20:00 | warning  | fichier modifié     | taille changée depuis l'indexation | Spot  | Publicité | Continue |
+			| 2026-10-19 20:30:00 | incident | fichier introuvable | /srv/pubs/spot.flac                | Spot  |           | Continue |
+			| 2026-10-19 20:40:00 | warning  | blanc               | rien à diffuser                    |       |           | Continue |
 
 	Scénario: Les alertes et les incidents, du plus récent au plus ancien, avec ce qu'ils concernent
 		Quand la fenêtre de l'interface s'ouvre

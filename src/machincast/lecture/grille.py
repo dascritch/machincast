@@ -38,12 +38,12 @@ from psycopg.rows import TupleRow
 
 
 class Priorite(StrEnum):
-	"""Valeurs du type priorite_evenement, de la plus basse à la plus haute."""
+	"""Valeurs du type event_priority, de la plus basse à la plus haute."""
 
-	SECOURS = "secours"
+	SECOURS = "fallback"
 	"""Hors grille : remplace un stream tombé, jamais actif à une heure donnée."""
-	FIL_MUSICAL = "fil_musical"
-	EMISSION = "emission"
+	FIL_MUSICAL = "background_programming"
+	EMISSION = "show"
 	SPECIAL = "special"
 
 
@@ -51,8 +51,10 @@ RANGS = {priorite: rang for rang, priorite in enumerate(Priorite)}
 
 JAMAIS = datetime.min.replace(tzinfo=UTC)
 """Date de modification d'un événement qui n'en a pas."""
-JOURS = ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")
-"""Valeurs du type jour_semaine, dans l'ordre de datetime.weekday()."""
+JOURS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+"""Valeurs du type weekday, dans l'ordre de datetime.weekday()."""
+NOMS_DES_JOURS = ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")
+"""Leurs noms à l'écran, dans le même ordre : ceux aussi des cases de la fiche d'un événement."""
 
 
 @dataclass(frozen=True)
@@ -465,8 +467,8 @@ def _gagnante(couvrantes: list[Occurrence]) -> Occurrence | None:
 
 
 COLONNES = (
-	"id, nom_interne, priorite::text, debut, fin, jours_recurrence::text[], modifie_le, supprime_le,"
-	" ARRAY(SELECT s.jour FROM evenements_sauts s WHERE s.evenement_id = evenements.id)"
+	"id, internal_name, priority::text, starts_at, ends_at, recurrence_days::text[], modified_at, deleted_at,"
+	" ARRAY(SELECT s.day FROM event_skips s WHERE s.event_id = events.id)"
 )
 
 
@@ -475,11 +477,11 @@ def lire_grille(connexion: psycopg.Connection[TupleRow], supprimes: bool = False
 	(machincast.base.connecter). Un événement supprimé ne joue plus
 	(https://github.com/dascritch/machincast/issues/267) : seul le calendrier les demande (supprimes), pour leurs
 	occurrences d'avant leur suppression."""
-	condition = "supprime_le IS NULL"
+	condition = "deleted_at IS NULL"
 	if supprimes:
 		condition = "TRUE"
 	lignes = connexion.execute(
-		f"SELECT {COLONNES} FROM evenements WHERE priorite <> 'secours' AND {condition} ORDER BY id"  # noqa: S608
+		f"SELECT {COLONNES} FROM events WHERE priority <> 'fallback' AND {condition} ORDER BY id"  # noqa: S608
 	).fetchall()
 	return _evenements(lignes)
 
@@ -487,7 +489,7 @@ def lire_grille(connexion: psycopg.Connection[TupleRow], supprimes: bool = False
 def lire_evenement(connexion: psycopg.Connection[TupleRow], identifiant: int) -> Evenement | None:
 	"""Un événement, quelle que soit sa priorité : par exemple l'événement de secours d'un stream."""
 	lignes = connexion.execute(
-		f"SELECT {COLONNES} FROM evenements WHERE id = %s",
+		f"SELECT {COLONNES} FROM events WHERE id = %s",
 		(identifiant,),
 	).fetchall()
 	return next(iter(_evenements(lignes)), None)

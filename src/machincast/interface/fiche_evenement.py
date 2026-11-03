@@ -45,26 +45,26 @@ from machincast.interface.fiche import ORANGE, Connexion, Fiche, Refus
 from machincast.interface.listes import EVENEMENT_VIDE
 from machincast.interface.sessions import Session, chevauchee, commencee, prochaine_sautee, retablir
 from machincast.interface.ui.fiche_evenement import Ui_FicheEvenement
-from machincast.lecture.grille import JAMAIS, JOURS, Evenement, Priorite, chevauchement, lire_grille
+from machincast.lecture.grille import JAMAIS, JOURS, NOMS_DES_JOURS, Evenement, Priorite, chevauchement, lire_grille
 
 PRIORITES: tuple[tuple[str, str], ...] = (
-	("secours", "Secours"),
-	("fil_musical", "Fil musical"),
-	("emission", "Émission"),
+	("fallback", "Secours"),
+	("background_programming", "Fil musical"),
+	("show", "Émission"),
 	("special", "Spécial"),
 )
-"""Valeurs de evenements.priorite, dans l'ordre du choix de la fiche : de la plus basse à la plus haute, comme le type
-priorite_evenement (https://github.com/dascritch/machincast/issues/253)."""
-NOUVELLE = "emission"
+"""Valeurs de events.priority, dans l'ordre du choix de la fiche : de la plus basse à la plus haute, comme le type
+event_priority (https://github.com/dascritch/machincast/issues/253)."""
+NOUVELLE = "show"
 """Priorité d'un nouvel événement."""
-SANS_FIN_NE_BOUCLE_PAS = ("emission", "special")
+SANS_FIN_NE_BOUCLE_PAS = ("show", "special")
 """Priorités dont la liste ne boucle pas, sans fin : l'occurrence se termine au bout de sa liste."""
 MASQUAGES: tuple[tuple[bool | None, str], ...] = (
 	(None, "Selon la séquence, la banque ou le sonore"),
 	(True, "Masqué par le nom public de l'événement"),
 	(False, "Affichés"),
 )
-"""Valeurs de evenements.masquer_metadonnees, dans l'ordre du choix de la fiche."""
+"""Valeurs de events.hide_metadata, dans l'ordre du choix de la fiche."""
 REPETITION = "Un sonore, une banque ou une séquence peut revenir plusieurs fois dans un événement."
 """Remarque des choix d'éléments."""
 DUREE_PAR_DEFAUT = timedelta(hours=1)
@@ -98,7 +98,7 @@ class FicheEvenement(Fiche):
 			ui.priorite.addItem(texte)
 		for _masque, texte in MASQUAGES:
 			ui.masquage.addItem(texte)
-		self.jours = [getattr(ui, jour) for jour in JOURS]
+		self.jours = [getattr(ui, jour) for jour in NOMS_DES_JOURS]
 		self._nom = ""
 		boutons = Boutons(
 			{
@@ -111,7 +111,7 @@ class FicheEvenement(Fiche):
 			ui.monter,
 			ui.descendre,
 		)
-		self.elements = ListeElements(self, ui.elements, boutons, "evenements_elements", "evenement_id", REPETITION)
+		self.elements = ListeElements(self, ui.elements, boutons, "event_items", "event_id", REPETITION)
 		self.elements.changee.connect(self._modifier)
 		self.elements.changee.connect(self._avertir)
 		ui.nom_interne.textChanged.connect(self._modifier)
@@ -150,8 +150,8 @@ class FicheEvenement(Fiche):
 		with self.connexion.transaction():
 			if lu is not None:
 				ligne = self.connexion.execute(
-					"SELECT nom_interne, nom_public, priorite::text, debut, fin, jours_recurrence::text[],"
-					" masquer_metadonnees FROM evenements WHERE id = %s",
+					"SELECT internal_name, public_name, priority::text, starts_at, ends_at, recurrence_days::text[],"
+					" hide_metadata FROM events WHERE id = %s",
 					(lu,),
 				).fetchone()
 				assert ligne is not None, f"événement {lu} absent"
@@ -292,7 +292,7 @@ class FicheEvenement(Fiche):
 	def _grille(self) -> None:
 		"""Ce qui se saisit de la grille : rien pour un événement de secours ; ni fin ni jours sans début."""
 		ui = self.ui
-		secours = self._priorite() == "secours"
+		secours = self._priorite() == "fallback"
 		if secours:
 			ui.a_debut.setChecked(False)
 		avec_debut = ui.a_debut.isChecked()
@@ -329,7 +329,7 @@ class FicheEvenement(Fiche):
 		if nom == "":
 			raise Refus("Le nom interne est obligatoire.", ui.nom_interne)
 		pris = self.connexion.execute(
-			"SELECT 1 FROM evenements WHERE nom_interne = %s AND id IS DISTINCT FROM %s AND supprime_le IS NULL",
+			"SELECT 1 FROM events WHERE internal_name = %s AND id IS DISTINCT FROM %s AND deleted_at IS NULL",
 			(nom, self.identifiant),
 		).fetchone()
 		if pris is not None:
@@ -354,9 +354,9 @@ class FicheEvenement(Fiche):
 		)
 		if self.identifiant is None:
 			creee = self.connexion.execute(
-				"INSERT INTO evenements"
-				" (nom_interne, nom_public, priorite, debut, fin, jours_recurrence, masquer_metadonnees)"
-				" VALUES (%s, %s, %s, %s, %s, %s::jour_semaine[], %s) RETURNING id",
+				"INSERT INTO events"
+				" (internal_name, public_name, priority, starts_at, ends_at, recurrence_days, hide_metadata)"
+				" VALUES (%s, %s, %s, %s, %s, %s::weekday[], %s) RETURNING id",
 				valeurs,
 			).fetchone()
 			assert creee is not None
@@ -364,8 +364,8 @@ class FicheEvenement(Fiche):
 		else:
 			identifiant = self.identifiant
 			self.connexion.execute(
-				"UPDATE evenements SET nom_interne = %s, nom_public = %s, priorite = %s, debut = %s, fin = %s,"
-				" jours_recurrence = %s::jour_semaine[], masquer_metadonnees = %s WHERE id = %s",
+				"UPDATE events SET internal_name = %s, public_name = %s, priority = %s, starts_at = %s, ends_at = %s,"
+				" recurrence_days = %s::weekday[], hide_metadata = %s WHERE id = %s",
 				(*valeurs, identifiant),
 			)
 		self.elements.ecrire(identifiant)
@@ -400,16 +400,16 @@ class FicheEvenement(Fiche):
 		if self.identifiant is None:
 			return frozenset()
 		lignes = self.connexion.execute(
-			"SELECT jour FROM evenements_sauts WHERE evenement_id = %s", (self.identifiant,)
+			"SELECT day FROM event_skips WHERE event_id = %s", (self.identifiant,)
 		).fetchall()
 		return frozenset(jour for (jour,) in lignes if isinstance(jour, date))
 
 	def _refuser_secours_designe(self, priorite: str) -> None:
 		"""Un événement de secours qu'un stream désigne garde sa priorité."""
-		if (self.identifiant is None) or (priorite == "secours"):
+		if (self.identifiant is None) or (priorite == "fallback"):
 			return
 		streams = self.connexion.execute(
-			"SELECT COALESCE(titre, url_stream) FROM sonores WHERE secours_evenement_id = %s ORDER BY 1",
+			"SELECT COALESCE(title, stream_url) FROM sounds WHERE fallback_event_id = %s ORDER BY 1",
 			(self.identifiant,),
 		).fetchall()
 		if streams != []:

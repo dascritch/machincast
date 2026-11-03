@@ -24,7 +24,7 @@ scenarios("conformation.feature")
 
 Connexion = psycopg.Connection[tuple[object, ...]]
 ECHAPPEMENT = re.compile(r"\\u\{([0-9a-fA-F]+)\}")
-TABLES = {"banques", "sequences", "evenements", "feeds", "sonores"}
+TABLES = {"banks", "sequences", "events", "feeds", "sounds"}
 """Les tables dont un scénario lit une colonne : chacune n'a qu'une ligne."""
 
 

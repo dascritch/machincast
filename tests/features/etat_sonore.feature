@@ -6,12 +6,12 @@ Fonctionnalité: État d'un sonore
 
 	Scénario: Un sonore a sept états possibles, dans un ordre fixe
 		Étant donné une base de test vide où les migrations sont appliquées
-		Alors le type "etat_sonore" a pour valeurs, dans l'ordre : apercu, actif, desactive, expire, errone, non_supporte, supprime
+		Alors le type "sound_state" a pour valeurs, dans l'ordre : preview, active, disabled, expired, corrupt, unsupported, missing
 
 	Scénario: Un nouveau sonore est actif
 		Étant donné une base de test vide où les migrations sont appliquées
 		Quand j'enregistre un sonore sans préciser son état
-		Alors son état est « actif »
+		Alors son état est « active »
 
 	Scénario: Un état inconnu est refusé
 		Étant donné une base de test vide où les migrations sont appliquées

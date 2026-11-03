@@ -127,7 +127,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 
 À la fin, il affiche `Installation terminée`. Le service de diffusion n'est installé que sur demande : voir [Service de diffusion](#service-de-diffusion).
 
-**Rôles PostgreSQL.** Chaque programme de MachinCast agit avec ses propres droits : `machincast_lecture` pour la diffusion, `machincast_indexation` pour l'indexation, `machincast_interface` pour l'interface graphique. Un compte de la radio se connecte avec son propre rôle PostgreSQL, qui ne donne accès à rien en lui-même : chaque programme endosse son rôle dès la connexion. Le détail est dans la [spécification, § 3.2](doc/fr/spec.md#32-rôles-et-droits).
+**Rôles PostgreSQL.** Chaque programme de MachinCast agit avec ses propres droits : `machincast_player` pour la diffusion, `machincast_indexer` pour l'indexation, `machincast_interface` pour l'interface graphique. Un compte de la radio se connecte avec son propre rôle PostgreSQL, qui ne donne accès à rien en lui-même : chaque programme endosse son rôle dès la connexion. Le détail est dans la [spécification, § 3.2](doc/fr/spec.md#32-rôles-et-droits).
 
 ## Adapter la configuration
 
@@ -260,12 +260,12 @@ COMPTE=programmation
 # Rôle PostgreSQL du compte, sans aucun droit particulier sur le serveur
 sudo -u postgres createuser "${COMPTE}"
 # Autorisation à endosser les trois rôles de MachinCast, sans en hériter les droits
-sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machincast_interface TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
 # Lecture du journal du service, effective après le redémarrage du poste
 sudo usermod --append --groups systemd-journal "${COMPTE}"
 ```
 
-Pour ne lui donner qu'une partie des droits, ne nommer que les rôles voulus dans le `GRANT` : par exemple `machincast_indexation` seul pour un compte qui ne fait qu'indexer.
+Pour ne lui donner qu'une partie des droits, ne nommer que les rôles voulus dans le `GRANT` : par exemple `machincast_indexer` seul pour un compte qui ne fait qu'indexer.
 
 Le compte doit aussi pouvoir lire le répertoire de MachinCast. Sous Ubuntu, un répertoire personnel n'est lisible que par son propriétaire : une installation dans `~/machincast` reste donc inaccessible aux autres comptes tant que ces droits ne sont pas changés.
 
@@ -273,7 +273,7 @@ Pour retirer l'accès d'un compte :
 
 ```bash
 COMPTE=programmation
-sudo -u postgres psql -c "REVOKE machincast_lecture, machincast_indexation, machincast_interface FROM \"${COMPTE}\""
+sudo -u postgres psql -c "REVOKE machincast_player, machincast_indexer, machincast_interface FROM \"${COMPTE}\""
 ```
 
 ## Mettre à jour
@@ -309,30 +309,15 @@ git pull
 
 **Noms anglais des commandes** ([#356](https://github.com/dascritch/machincast/issues/356)). `Machin lecture` s'appelle désormais `Machin player`, `Machin indexation` `Machin indexer`, `Machin dev-captures` `Machin dev-screenshots`, et leurs options sont en anglais (`--full-audit`, `--sound`, `--window`, `--force`, `--seed`, `--name`, `--directory`, `--backups`, `--keep-open`), comme celles d'`install.sh` (`--desktop`, `--no-desktop`, `--stop-programs`, `--leave-programs`, `--remove-service`) et les étapes de `python -m machincast.installation`. Les anciens noms ne sont plus reconnus : une installation existante se refait de zéro, `./install.sh --service` compris pour réécrire l'unité du service, qui lance `bin/Machin player`.
 
-**Marques-pages devenus feeds.** Depuis [#252](https://github.com/dascritch/machincast/issues/252), le schéma renomme la table `marques_pages_streams` en `feeds`, et la colonne `marque_page_id` des sonores en `feed_id`, sans toucher aux données ; les droits des trois rôles suivent. Une requête écrite à la main sur les anciens noms est à corriger. La disposition des colonnes de l'ancien onglet « Marques-pages » n'est pas reprise : celle de l'onglet « Feeds » repart des colonnes par défaut.
-
-**Schéma unique.** Avant que le projet serve réellement, toutes les migrations ont été fondues en une seule, `0001.schema-initial` ([#314](https://github.com/dascritch/machincast/issues/314)). Une base qui avait reçu les quinze anciennes, de `0001.schema-initial` à `0015.vocabulaire-silences-blancs`, garde ses données : `install.sh` ou `Machin maintenance-db` le reconnaissent, l'annoncent (`base … : les migrations 0002.evenements-nom-unique à 0015.vocabulaire-silences-blancs, fondues dans 0001.schema-initial, sont oubliées ; ses données ne changent pas`), et la tiennent ensuite pour à jour. Une base restée à une migration intermédiaire est refusée, sans rien modifier : `schéma impossible à mettre à jour : base … : ancien schéma, sans la migration …`. La mettre d'abord à jour avec la version `cd2e564` de MachinCast (`git checkout cd2e564`, puis `./install.sh`), puis revenir à la version actuelle (`git checkout main`, puis `./install.sh`) ; ou la recréer, comme ci-dessous.
-
-**Base créée avant une fusion plus ancienne.** Avant toute mise en production, les migrations avaient déjà été fusionnées trois fois ([PR #70](https://github.com/dascritch/machincast/pull/70), puis [PR #90](https://github.com/dascritch/machincast/pull/90), qui ajoute la priorité `secours` des événements, puis [PR #100](https://github.com/dascritch/machincast/pull/100), qui ajoute les séquences et la banque « ne pas répéter »). Une base créée avant l'une de ces fusions ne peut pas être mise à jour. Pour la reconnaître, lister les migrations qu'elle a reçues, et vérifier qu'elle connaît les séquences :
-
-```bash
-psql --dbname=machincast -c "SELECT migration_id FROM _yoyo_migration"
-psql --dbname=machincast -c "SELECT to_regclass('sequences')"
-```
-
-Si la première liste contient autre chose que `0001.schema-initial`, et les migrations `0002.evenements-nom-unique` à `0015.vocabulaire-silences-blancs` d'avant le schéma unique, ou si la seconde répond une valeur vide au lieu de `sequences`, recréer la base. **Cela efface son contenu** : ce n'est possible que tant que MachinCast n'est pas en production. Les commandes de ce document utilisent le nom de base du modèle, `machincast` : le remplacer par celui de `database.production` (ou `database.test`) dans `machincast.toml`.
+**Schéma en anglais** ([#358](https://github.com/dascritch/machincast/issues/358)). Les tables, colonnes, types, valeurs et rôles de la base sont en anglais : `sounds`, `banks`, `events`, `event_items`, `airplay`, `log`…, rôles `machincast_player`, `machincast_indexer` et `machincast_interface`. Une base créée avec l'ancien schéma, aux noms français (migration `0001.schema-initial`, ou l'une des migrations d'avant), ne se met pas à jour : `install.sh` et `Machin maintenance-db` la refusent sans rien modifier, `schéma impossible à mettre à jour : base … : ancien schéma, aux noms français (migration …) ; la recréer`. La sauvegarder si elle contient quelque chose d'utile, puis la recréer, base de test comprise. **Cela efface son contenu** : ce n'est possible que tant que MachinCast n'est pas en production. Les commandes de ce document utilisent les noms de bases du modèle, `machincast` et `machincast_test` : les remplacer par ceux de `database.production` et `database.test` dans `machincast.toml`.
 
 ```bash
 sudo -u postgres dropdb machincast
+sudo -u postgres dropdb machincast_test
 ./install.sh
 ```
 
-**Deux événements du même nom.** Depuis [#32](https://github.com/dascritch/machincast/issues/32), deux événements qui ne sont pas supprimés n'ont pas le même nom interne. Une base d'avant, restée à une ancienne migration, où c'est le cas, s'arrête en passant par la version `cd2e564` sur l'erreur `could not create unique index "evenements_nom_interne_key"`, qui nomme le nom en double. Lister les noms en double, renommer l'un des événements, puis relancer `./install.sh` :
-
-```bash
-psql --dbname=machincast -c "SELECT nom_interne, array_agg(id) FROM evenements GROUP BY nom_interne HAVING count(*) > 1"
-psql --dbname=machincast -c "UPDATE evenements SET nom_interne = 'Matinale du samedi' WHERE id = 42"
-```
+`install.sh` crée les nouveaux rôles. Les anciens, `machincast_lecture` et `machincast_indexation`, ne servent plus : une fois les deux bases recréées, ils se suppriment par `sudo -u postgres psql -c "DROP ROLE machincast_lecture, machincast_indexation"`. Une requête écrite à la main sur les anciens noms est à réécrire.
 
 ## Installer à la main
 
@@ -368,7 +353,7 @@ Puis l'adapter (voir [Adapter la configuration](#adapter-la-configuration)).
 sudo -u postgres createuser "$(id -un)"
 sudo -u postgres createdb --owner="$(id -un)" machincast
 sudo -u postgres createdb --owner="$(id -un)" machincast_test
-sudo -u postgres psql -c "CREATE ROLE machincast_lecture NOLOGIN" -c "CREATE ROLE machincast_indexation NOLOGIN" \
+sudo -u postgres psql -c "CREATE ROLE machincast_player NOLOGIN" -c "CREATE ROLE machincast_indexer NOLOGIN" \
 	-c "CREATE ROLE machincast_interface NOLOGIN"
 .venv/bin/python -m machincast.installation migrate --config machincast.toml
 ```
@@ -378,7 +363,7 @@ Les trois rôles de groupe appartiennent au serveur, pas à une base : ils serve
 **5. Rôles du compte.**
 
 ```bash
-sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machincast_interface TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
 ```
 
 **6. Journal système.**
@@ -454,7 +439,7 @@ Les noms de bases sont ceux du modèle : reprendre ceux de `database.production`
 | Fenêtre « MachinCast : base de données injoignable », au lancement de `Machin interface` | L'interface n'accède pas à la base de `database.production`. Le bouton « Ouvrir INSTALL.md » ouvre ce document, et les détails de la fenêtre donnent l'erreur de PostgreSQL. `connection … failed` ou `No such file or directory` : PostgreSQL n'est pas démarré (`sudo systemctl start postgresql`), ou `database.socket` ne désigne pas sa socket. `database … does not exist` : relancer `install.sh`, qui crée la base. `permission denied to set role` : voir [Ajouter un autre compte](#ajouter-un-autre-compte). |
 | `sauvegarde impossible : pg_dump introuvable, installer postgresql-client` | `pg_dump` manque : `sudo apt install postgresql-client`, puis relancer. Rien n'a été modifié. |
 | `sauvegarde impossible : … ; maintenance arrêtée, rien n'a été modifié` | Le répertoire des sauvegardes ne peut pas être écrit, le disque est plein, ou `pg_dump` a échoué : son erreur suit. Corriger, ou donner un autre répertoire avec `--backups`. |
-| `schéma impossible à mettre à jour : base … : ancien schéma, sans la migration …` | La base est restée à une migration d'avant le schéma unique ([#314](https://github.com/dascritch/machincast/issues/314)) : rien n'a été modifié. Voir **Schéma unique**, dans [Mettre à jour](#mettre-à-jour). |
+| `schéma impossible à mettre à jour : base … : ancien schéma, aux noms français (migration …) ; la recréer` | La base a été créée avant le schéma en anglais ([#358](https://github.com/dascritch/machincast/issues/358)) : rien n'a été modifié. Voir **Schéma en anglais**, dans [Mettre à jour](#mettre-à-jour). |
 | `rôle … : absent du serveur, ou non endossable par le compte` | Lancer, avec un compte administrateur, les deux commandes données par le message, puis relancer la maintenance. Voir aussi [Ajouter un autre compte](#ajouter-un-autre-compte). |
 | `Machin logs` réclame le groupe `adm` ou `systemd-journal`, ou n'affiche que des messages de son propre compte | Le groupe n'est pas encore pris en compte par la session. Si `id -nG "$(id -un)"` cite `systemd-journal` mais pas `id -nG`, l'ajout est fait : redémarrer le poste. Sinon, relancer `install.sh`. |
 

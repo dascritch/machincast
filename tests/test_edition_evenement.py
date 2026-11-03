@@ -8,6 +8,7 @@ base, comme les écrirait la fiche de l'événement.
 import psycopg
 from pytest_bdd import given, parsers, scenarios, when
 
+from machincast.lecture.grille import JOURS, NOMS_DES_JOURS
 from tests.etapes_diffusion import heure
 
 scenarios("edition_evenement.feature")
@@ -18,7 +19,7 @@ Connexion = psycopg.Connection[tuple[object, ...]]
 @when(parsers.parse("l'émission « {nom} » est déplacée de {debut} à {fin}"))
 def deplacer(base_vide: Connexion, nom: str, debut: str, fin: str) -> None:
 	modifiees = base_vide.execute(
-		"UPDATE evenements SET debut = %s, fin = %s WHERE nom_interne = %s",
+		"UPDATE events SET starts_at = %s, ends_at = %s WHERE internal_name = %s",
 		(heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}"), nom),
 	).rowcount
 	assert modifiees == 1
@@ -28,8 +29,7 @@ def deplacer(base_vide: Connexion, nom: str, debut: str, fin: str) -> None:
 def renommer(base_vide: Connexion, nom: str, nouveau: str) -> None:
 	"""Ce qui ne règle pas l'antenne ; sa date de modification avance, comme à chaque enregistrement."""
 	modifiees = base_vide.execute(
-		"UPDATE evenements SET nom_interne = %s, nom_public = 'Le jour', masquer_metadonnees = true"
-		" WHERE nom_interne = %s",
+		"UPDATE events SET internal_name = %s, public_name = 'Le jour', hide_metadata = true WHERE internal_name = %s",
 		(nouveau, nom),
 	).rowcount
 	assert modifiees == 1
@@ -38,7 +38,7 @@ def renommer(base_vide: Connexion, nom: str, nouveau: str) -> None:
 @when(parsers.parse("l'émission « {nom} » finit à {fin}"))
 def finir(base_vide: Connexion, nom: str, fin: str) -> None:
 	modifiees = base_vide.execute(
-		"UPDATE evenements SET fin = %s WHERE nom_interne = %s", (heure(f"2026-10-14 {fin}"), nom)
+		"UPDATE events SET ends_at = %s WHERE internal_name = %s", (heure(f"2026-10-14 {fin}"), nom)
 	).rowcount
 	assert modifiees == 1
 
@@ -46,7 +46,7 @@ def finir(base_vide: Connexion, nom: str, fin: str) -> None:
 @when(parsers.parse("l'événement « {nom} » passe en fil musical"))
 def en_fil_musical(base_vide: Connexion, nom: str) -> None:
 	modifiees = base_vide.execute(
-		"UPDATE evenements SET priorite = 'fil_musical' WHERE nom_interne = %s", (nom,)
+		"UPDATE events SET priority = 'background_programming' WHERE internal_name = %s", (nom,)
 	).rowcount
 	assert modifiees == 1
 
@@ -54,7 +54,8 @@ def en_fil_musical(base_vide: Connexion, nom: str) -> None:
 @given(parsers.parse("l'émission « {nom} » a eu lieu la veille"))
 def la_veille(base_vide: Connexion, nom: str) -> None:
 	modifiees = base_vide.execute(
-		"UPDATE evenements SET debut = debut - interval '1 day', fin = fin - interval '1 day' WHERE nom_interne = %s",
+		"UPDATE events SET starts_at = starts_at - interval '1 day', ends_at = ends_at - interval '1 day'"
+		" WHERE internal_name = %s",
 		(nom,),
 	).rowcount
 	assert modifiees == 1
@@ -63,8 +64,7 @@ def la_veille(base_vide: Connexion, nom: str) -> None:
 @when(parsers.parse("l'événement « {nom} » revient aussi le {jour}"))
 def revenir(base_vide: Connexion, nom: str, jour: str) -> None:
 	modifiees = base_vide.execute(
-		"UPDATE evenements SET jours_recurrence = array_append(jours_recurrence, %s::jour_semaine)"
-		" WHERE nom_interne = %s",
-		(jour, nom),
+		"UPDATE events SET recurrence_days = array_append(recurrence_days, %s::weekday) WHERE internal_name = %s",
+		(JOURS[NOMS_DES_JOURS.index(jour)], nom),
 	).rowcount
 	assert modifiees == 1

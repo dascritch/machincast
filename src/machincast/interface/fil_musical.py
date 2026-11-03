@@ -17,15 +17,15 @@ def garantir(connexion: psycopg.Connection[TupleRow]) -> str | None:
 	"""Crée un fil musical permanent et vide s'il n'en existe aucun ; son nom, ou None s'il en existait un."""
 	with connexion.transaction():
 		existant = connexion.execute(
-			"SELECT 1 FROM evenements WHERE priorite = 'fil_musical' AND supprime_le IS NULL LIMIT 1"
+			"SELECT 1 FROM events WHERE priority = 'background_programming' AND deleted_at IS NULL LIMIT 1"
 		).fetchone()
 		if existant is not None:
 			return None
 		pris = {
 			str(nom)
 			for (nom,) in connexion.execute(
-				"SELECT nom_interne FROM evenements WHERE (nom_interne = %s OR nom_interne LIKE %s || ' %%')"
-				" AND supprime_le IS NULL",
+				"SELECT internal_name FROM events WHERE (internal_name = %s OR internal_name LIKE %s || ' %%')"
+				" AND deleted_at IS NULL",
 				(NOM, NOM),
 			)
 		}
@@ -34,5 +34,5 @@ def garantir(connexion: psycopg.Connection[TupleRow]) -> str | None:
 		while nom in pris:
 			numero += 1
 			nom = f"{NOM} {numero}"
-		connexion.execute("INSERT INTO evenements (nom_interne, priorite) VALUES (%s, 'fil_musical')", (nom,))
+		connexion.execute("INSERT INTO events (internal_name, priority) VALUES (%s, 'background_programming')", (nom,))
 	return nom

@@ -34,7 +34,7 @@ from machincast.interface.colonnes import Colonnes
 from machincast.interface.depot import DepotDeFichiers
 from machincast.interface.intentions import AJOUTER, libelle
 from machincast.interface.ui.liste import Ui_Liste
-from machincast.lecture.grille import JOURS
+from machincast.lecture.grille import JOURS, NOMS_DES_JOURS
 
 journal = logging.getLogger(__name__)
 
@@ -45,15 +45,17 @@ TRI = IDENTIFIANT + 2
 """Rôle de chaque cellule par lequel la liste se trie : son texte, sauf quand la ligne en donne un autre
 (Ligne.tris)."""
 ETATS = {
-	"apercu": "aperçu",
-	"actif": "actif",
-	"desactive": "désactivé",
-	"expire": "expiré",
-	"errone": "erroné",
-	"non_supporte": "non supporté",
-	"supprime": "supprimé",
+	"preview": "aperçu",
+	"active": "actif",
+	"disabled": "désactivé",
+	"expired": "expiré",
+	"corrupt": "erroné",
+	"unsupported": "non supporté",
+	"missing": "supprimé",
 }
-PRIORITES = {"special": "spécial", "emission": "émission", "fil_musical": "fil musical", "secours": "secours"}
+TYPES = {"file": "fichier", "stream": "stream"}
+"""Le type d'un sonore à l'écran, par sa valeur en base (https://github.com/dascritch/machincast/issues/358)."""
+PRIORITES = {"special": "spécial", "show": "émission", "background_programming": "fil musical", "fallback": "secours"}
 IMPORTANCE = {priorite: rang for rang, priorite in enumerate(PRIORITES)}
 APRES_TOUT = float("inf")
 """Clé de tri d'une durée ou d'une date inconnue : après les autres (https://github.com/dascritch/machincast/issues/302)."""
@@ -63,16 +65,16 @@ SANS_JOUR = "~"
 """Clé de tri d'un événement sans récurrence : après les jours, que leurs chiffres classent."""
 """Le tri de la colonne « Priorité » : du plus important au moins important, jamais par ordre alphabétique
 (https://github.com/dascritch/machincast/issues/272)."""
-MODES = {"sequentiel": "séquentielle", "aleatoire": "aléatoire"}
+MODES = {"sequential": "séquentielle", "random": "aléatoire"}
 SEQUENCE_VIDE = "Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant."
 _RELAIS = "Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage."
 EVENEMENT_VIDE = {
 	"special": _RELAIS,
-	"emission": _RELAIS,
-	"fil_musical": (
+	"show": _RELAIS,
+	"background_programming": (
 		"Événement vide : il ne joue rien, et la diffusion se tait, avec une alerte, quand il est à l'antenne."
 	),
-	"secours": "Événement vide : il ne joue rien, et l'événement de priorité inférieure remplace le stream tombé.",
+	"fallback": "Événement vide : il ne joue rien, et l'événement de priorité inférieure remplace le stream tombé.",
 }
 """Ce que fait la diffusion d'un événement vide, selon sa priorité (spec § 4.2,
 https://github.com/dascritch/machincast/issues/140)."""
@@ -89,8 +91,8 @@ def banque_aux_sonores_en_anomalie(nombre: int) -> str:
 
 
 SONORE_EN_ANOMALIE = {
-	"errone": "Sonore erroné : son fichier est illisible ou endommagé, et la diffusion ne le joue pas.",
-	"non_supporte": "Sonore non supporté : son fichier n'est pas un son lisible, et la diffusion ne le joue pas.",
+	"corrupt": "Sonore erroné : son fichier est illisible ou endommagé, et la diffusion ne le joue pas.",
+	"unsupported": "Sonore non supporté : son fichier n'est pas un son lisible, et la diffusion ne le joue pas.",
 }
 """Les états d'un sonore que la diffusion ne joue pas sans que personne l'ait voulu (spec § 3.1, § 4.5)."""
 COLONNE_D_ANOMALIE = "⚠️"
@@ -150,10 +152,10 @@ POSITION_DE_LA_DUREE = COLONNES_DES_SONORES.index("Durée")
 def lire_sonores(connexion: Connexion) -> list[Ligne]:
 	with connexion.transaction():
 		rangees = connexion.execute(
-			"SELECT s.id, s.artiste, s.titre, s.type::text, s.etat::text, s.audit_demande, s.duree,"
-			" COALESCE(s.emplacement, s.url_stream, m.url)"
-			" FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.supprime_le IS NULL"
-			" ORDER BY s.artiste NULLS LAST, s.titre, s.id"
+			"SELECT s.id, s.artist, s.title, s.type::text, s.state::text, s.audit_requested, s.duration,"
+			" COALESCE(s.location, s.stream_url, m.url)"
+			" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.deleted_at IS NULL"
+			" ORDER BY s.artist NULLS LAST, s.title, s.id"
 		).fetchall()
 	lignes = []
 	for identifiant, artiste, titre, type_sonore, etat, audit_demande, duree, emplacement in rangees:
@@ -168,7 +170,14 @@ def lire_sonores(connexion: Connexion) -> list[Ligne]:
 			texte_etat = f"{texte_etat}, audit demandé"
 		# Les durées d'une banque ne se signalent que dans sa fiche, et parmi les relations du sonore, jamais ici
 		# (https://github.com/dascritch/machincast/issues/210).
-		cellules = [_texte(artiste), _texte(titre), str(type_sonore), texte_etat, texte_duree, _texte(emplacement)]
+		cellules = [
+			_texte(artiste),
+			_texte(titre),
+			TYPES.get(str(type_sonore), str(type_sonore)),
+			texte_etat,
+			texte_duree,
+		]
+		cellules.append(_texte(emplacement))
 		# https://github.com/dascritch/machincast/issues/302 : par les secondes ; sans durée mesurée, après les durées
 		# connues ; un stream, sans fin, en dernier.
 		tri_duree: float = SANS_DUREE
@@ -186,13 +195,13 @@ def lire_sonores(connexion: Connexion) -> list[Ligne]:
 def lire_banques(connexion: Connexion) -> list[Ligne]:
 	with connexion.transaction():
 		rangees = connexion.execute(
-			"SELECT b.id, b.nom_interne, b.nom_public, b.mode::text, b.ne_pas_repeter,"
-			" (SELECT min(r.repertoire) FROM banques_repertoires r WHERE r.banque_id = b.id),"
-			" NOT EXISTS (SELECT 1 FROM banques_sonores x JOIN sonores s ON s.id = x.sonore_id"
-			" WHERE x.banque_id = b.id AND s.etat = 'actif' AND s.supprime_le IS NULL),"
-			" (SELECT count(*) FROM banques_sonores x JOIN sonores s ON s.id = x.sonore_id"
-			" WHERE x.banque_id = b.id AND s.etat IN ('errone', 'non_supporte') AND s.supprime_le IS NULL)"
-			" FROM banques b WHERE b.supprime_le IS NULL ORDER BY b.nom_interne, b.id"
+			"SELECT b.id, b.internal_name, b.public_name, b.mode::text, b.no_repeat,"
+			" (SELECT min(r.directory) FROM bank_directories r WHERE r.bank_id = b.id),"
+			" NOT EXISTS (SELECT 1 FROM bank_sounds x JOIN sounds s ON s.id = x.sound_id"
+			" WHERE x.bank_id = b.id AND s.state = 'active' AND s.deleted_at IS NULL),"
+			" (SELECT count(*) FROM bank_sounds x JOIN sounds s ON s.id = x.sound_id"
+			" WHERE x.bank_id = b.id AND s.state IN ('corrupt', 'unsupported') AND s.deleted_at IS NULL)"
+			" FROM banks b WHERE b.deleted_at IS NULL ORDER BY b.internal_name, b.id"
 		).fetchall()
 	lignes = []
 	for identifiant, nom, nom_public, mode, marquee, repertoire, sans_sonore_actif, en_anomalie in rangees:
@@ -210,9 +219,9 @@ def lire_banques(connexion: Connexion) -> list[Ligne]:
 def lire_sequences(connexion: Connexion) -> list[Ligne]:
 	with connexion.transaction():
 		rangees = connexion.execute(
-			"SELECT q.id, q.nom_interne, q.nom_public,"
-			" NOT EXISTS (SELECT 1 FROM sequences_elements e WHERE e.sequence_id = q.id)"
-			" FROM sequences q WHERE q.supprime_le IS NULL ORDER BY q.nom_interne, q.id"
+			"SELECT q.id, q.internal_name, q.public_name,"
+			" NOT EXISTS (SELECT 1 FROM sequence_items e WHERE e.sequence_id = q.id)"
+			" FROM sequences q WHERE q.deleted_at IS NULL ORDER BY q.internal_name, q.id"
 		).fetchall()
 	lignes = []
 	for identifiant, nom, nom_public, vide in rangees:
@@ -229,9 +238,9 @@ def lire_feeds(connexion: Connexion) -> list[Ligne]:
 	"""Par nom, avec le nombre de streams qui suivent chacun (https://github.com/dascritch/machincast/issues/34)."""
 	with connexion.transaction():
 		rangees = connexion.execute(
-			"SELECT m.id, m.nom, m.url,"
-			" (SELECT count(*) FROM sonores s WHERE s.feed_id = m.id AND s.supprime_le IS NULL)"
-			" FROM feeds m ORDER BY m.nom, m.id"
+			"SELECT m.id, m.name, m.url,"
+			" (SELECT count(*) FROM sounds s WHERE s.feed_id = m.id AND s.deleted_at IS NULL)"
+			" FROM feeds m ORDER BY m.name, m.id"
 		).fetchall()
 	return [
 		Ligne(int(str(identifiant)), str(nom), [str(nom), str(url), str(streams)])
@@ -265,16 +274,17 @@ def lire_evenements(connexion: Connexion) -> list[Ligne]:
 	"""Du plus prioritaire au moins prioritaire, puis par nom."""
 	with connexion.transaction():
 		rangees = connexion.execute(
-			"SELECT e.id, e.nom_interne, e.nom_public, e.priorite::text, e.debut, e.fin, e.jours_recurrence::text[],"
-			" NOT EXISTS (SELECT 1 FROM evenements_elements x WHERE x.evenement_id = e.id)"
+			"SELECT e.id, e.internal_name, e.public_name, e.priority::text, e.starts_at, e.ends_at,"
+			" e.recurrence_days::text[],"
+			" NOT EXISTS (SELECT 1 FROM event_items x WHERE x.event_id = e.id)"
 			# e.priorite : l'ordre du type énuméré, pas celui du texte de la colonne affichée.
-			" FROM evenements e WHERE e.supprime_le IS NULL ORDER BY e.priorite DESC, e.nom_interne, e.id"
+			" FROM events e WHERE e.deleted_at IS NULL ORDER BY e.priority DESC, e.internal_name, e.id"
 		).fetchall()
 	lignes = []
 	for identifiant, nom, nom_public, priorite, debut, fin, jours, vide in rangees:
 		recurrence = ""
 		if isinstance(jours, list):
-			recurrence = ", ".join(str(jour) for jour in jours)
+			recurrence = ", ".join(NOMS_DES_JOURS[JOURS.index(str(jour))] for jour in jours)
 		cellules = [str(nom), _texte(nom_public), PRIORITES.get(str(priorite), str(priorite)), _date(debut), _date(fin)]
 		cellules += [recurrence, ""]
 		anomalie = ""

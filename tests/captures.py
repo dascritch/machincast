@@ -78,7 +78,7 @@ PERIPHERIQUES = (
 	sorties_audio.Peripherique("casque", "Casque de la régie"),
 )
 """Les périphériques de sortie que montre la démonstration, à la place de ceux du poste."""
-SEMAINE = ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")
+SEMAINE = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 OUVRES = SEMAINE[:5]
 
 CAPTURES = (
@@ -113,7 +113,7 @@ class Sonore:
 	duree: int
 	"""En secondes."""
 	dossier: str
-	etat: str = "actif"
+	etat: str = "active"
 	metadonnees: str = "{}"
 
 
@@ -138,16 +138,16 @@ SONORES = {
 	"pub-debut": Sonore("Radio Exemple", "Début de publicité", 5, "habillage"),
 	"boulangerie": Sonore(None, "Spot de la boulangerie du port", 30, "publicite"),
 	"librairie": Sonore(None, "Spot de la librairie des Carmes", 30, "publicite"),
-	"abime": Sonore("Les Gaufres", "Démo abîmée", 180, "normale", "errone"),
-	"nouveau": Sonore(None, "nouvel-arrivage", 190, "lourde", "apercu"),
+	"abime": Sonore("Les Gaufres", "Démo abîmée", 180, "normale", "corrupt"),
+	"nouveau": Sonore(None, "nouvel-arrivage", 190, "lourde", "preview"),
 }
 BANQUES = {
-	"identifiant": ("Identifiant station", None, "aleatoire", True, ["identifiant"], None),
-	"lourde": ("Musique rotation lourde", None, "aleatoire", False, ["cafe", "toulouse", "brique"], "lourde"),
-	"normale": ("Musique rotation normale", None, "aleatoire", False, ["nuit", "garonne", "abime"], "normale"),
-	"rare": ("Musique rotation rare", None, "aleatoire", False, ["vinyles"], "rare"),
-	"nuit": ("Musique rotation de nuit", "La nuit de Radio Exemple", "aleatoire", False, ["nocturne"], "nuit"),
-	"publicite": ("Publicité", None, "sequentiel", True, ["boulangerie", "librairie"], None),
+	"identifiant": ("Identifiant station", None, "random", True, ["identifiant"], None),
+	"lourde": ("Musique rotation lourde", None, "random", False, ["cafe", "toulouse", "brique"], "lourde"),
+	"normale": ("Musique rotation normale", None, "random", False, ["nuit", "garonne", "abime"], "normale"),
+	"rare": ("Musique rotation rare", None, "random", False, ["vinyles"], "rare"),
+	"nuit": ("Musique rotation de nuit", "La nuit de Radio Exemple", "random", False, ["nocturne"], "nuit"),
+	"publicite": ("Publicité", None, "sequential", True, ["boulangerie", "librairie"], None),
 }
 """Nom interne, nom public, mode, « ne pas répéter », sonores et dossier indexé de chaque banque."""
 
@@ -210,12 +210,12 @@ def remplir(connexion: Connexion) -> Demonstration:
 		chemin.parent.mkdir(parents=True, exist_ok=True)
 		shutil.copyfile(FICHIERS_SONORES / "sain.flac", chemin)
 		verifie = None
-		if sonore.etat == "actif":
+		if sonore.etat == "active":
 			verifie = MAINTENANT - timedelta(days=2)
 		sonores[cle] = _un(
 			connexion,
-			"INSERT INTO sonores (type, emplacement, artiste, titre, etat, duree, metadonnees_musicales, type_mime,"
-			" verifie_le) VALUES ('fichier', %s, %s, %s, %s, %s, %s, 'audio/flac', %s) RETURNING id",
+			"INSERT INTO sounds (type, location, artist, title, state, duration, music_metadata, mime_type,"
+			" checked_at) VALUES ('file', %s, %s, %s, %s, %s, %s, 'audio/flac', %s) RETURNING id",
 			(
 				str(chemin),
 				sonore.artiste,
@@ -231,9 +231,9 @@ def remplir(connexion: Connexion) -> Demonstration:
 	# Ses silences, retirés à l'antenne, et ses crossfades, tels qu'un audit complet et sa fiche les auraient posés.
 	sonores["respiration"] = _un(
 		connexion,
-		"INSERT INTO sonores (type, emplacement, artiste, titre, etat, duree, type_mime, verifie_le, debut_detecte,"
-		" fin_detectee, detection_silences, crossfade_debut, crossfade_fin, audite_le, audit_seuil)"
-		" VALUES ('fichier', %s, %s, %s, 'actif', %s, 'audio/flac', %s, %s, %s, true, %s, %s, %s, -40) RETURNING id",
+		"INSERT INTO sounds (type, location, artist, title, state, duration, mime_type, checked_at, detected_start,"
+		" detected_end, silence_detection, crossfade_start, crossfade_end, audited_at, audit_threshold)"
+		" VALUES ('file', %s, %s, %s, 'active', %s, 'audio/flac', %s, %s, %s, true, %s, %s, %s, -40) RETURNING id",
 		(
 			str(respiration),
 			RESPIRATION.artiste,
@@ -249,55 +249,55 @@ def remplir(connexion: Connexion) -> Demonstration:
 	)
 	marque = _un(
 		connexion,
-		"INSERT INTO feeds (nom, url) VALUES ('Studio mobile', 'https://flux.radio-exemple.test/mobile') RETURNING id",
+		"INSERT INTO feeds (name, url) VALUES ('Studio mobile', 'https://flux.radio-exemple.test/mobile') RETURNING id",
 		(),
 	)
 	banques = {}
 	for cle, (nom, nom_public, mode, ne_pas_repeter, membres, dossier) in BANQUES.items():
 		banques[cle] = _un(
 			connexion,
-			"INSERT INTO banques (nom_interne, nom_public, mode, ne_pas_repeter, crossfade_fin_regle, crossfade_fin)"
-			" VALUES (%s, %s, %s, %s, 'a_defaut', '2 s') RETURNING id",
+			"INSERT INTO banks (internal_name, public_name, mode, no_repeat, crossfade_end_rule, crossfade_end)"
+			" VALUES (%s, %s, %s, %s, 'default', '2 s') RETURNING id",
 			(nom, nom_public, mode, ne_pas_repeter),
 		)
 		for position, membre in enumerate(membres, start=1):
 			connexion.execute(
-				"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+				"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 				(banques[cle], sonores[membre], position),
 			)
 		if dossier is not None:
 			connexion.execute(
-				"INSERT INTO banques_repertoires (banque_id, repertoire) VALUES (%s, %s)",
+				"INSERT INTO bank_directories (bank_id, directory) VALUES (%s, %s)",
 				(banques[cle], str(DEMONSTRATION / dossier)),
 			)
 	sequence = _un(
 		connexion,
-		"INSERT INTO sequences (nom_interne, nom_public) VALUES ('Passage pub', 'Les partenaires de Radio Exemple')"
+		"INSERT INTO sequences (internal_name, public_name) VALUES ('Passage pub', 'Les partenaires de Radio Exemple')"
 		" RETURNING id",
 		(),
 	)
 	for position, (colonne, valeur) in enumerate(
 		(
-			("sonore_id", sonores["pub-debut"]),
-			("banque_id", banques["publicite"]),
-			("banque_id", banques["publicite"]),
-			("banque_id", banques["identifiant"]),
+			("sound_id", sonores["pub-debut"]),
+			("bank_id", banques["publicite"]),
+			("bank_id", banques["publicite"]),
+			("bank_id", banques["identifiant"]),
 		),
 		start=1,
 	):
 		connexion.execute(
-			f"INSERT INTO sequences_elements (sequence_id, position, {colonne}) VALUES (%s, %s, %s)",  # noqa: S608
+			f"INSERT INTO sequence_items (sequence_id, position, {colonne}) VALUES (%s, %s, %s)",  # noqa: S608
 			(sequence, position, valeur),
 		)
 	evenements = _evenements(connexion, sonores, banques, sequence)
 	stream = _un(
 		connexion,
-		"INSERT INTO sonores (type, feed_id, titre, etat, secours_evenement_id)"
-		" VALUES ('stream', %s, 'Studio mobile', 'actif', %s) RETURNING id",
+		"INSERT INTO sounds (type, feed_id, title, state, fallback_event_id)"
+		" VALUES ('stream', %s, 'Studio mobile', 'active', %s) RETURNING id",
 		(marque, evenements["secours"]),
 	)
 	connexion.execute(
-		"INSERT INTO evenements_elements (evenement_id, position, sonore_id) VALUES (%s, 1, %s)",
+		"INSERT INTO event_items (event_id, position, sound_id) VALUES (%s, 1, %s)",
 		(evenements["marche"], stream),
 	)
 	passages = _historique(connexion, sonores, banques, evenements)
@@ -315,8 +315,8 @@ def _evenements(
 	) -> int:
 		return _un(
 			connexion,
-			"INSERT INTO evenements (nom_interne, nom_public, priorite, debut, fin, jours_recurrence)"
-			" VALUES (%s, %s, %s, %s, %s, %s::jour_semaine[]) RETURNING id",
+			"INSERT INTO events (internal_name, public_name, priority, starts_at, ends_at, recurrence_days)"
+			" VALUES (%s, %s, %s, %s, %s, %s::weekday[]) RETURNING id",
 			(
 				nom,
 				nom_public,
@@ -328,22 +328,20 @@ def _evenements(
 		)
 
 	evenements = {
-		"jour": creer("Fil de jour", None, "fil_musical", None, None, ()),
-		"nuit": creer("Fil de nuit", None, "fil_musical", timedelta(hours=0), timedelta(hours=6), SEMAINE),
+		"jour": creer("Fil de jour", None, "background_programming", None, None, ()),
+		"nuit": creer("Fil de nuit", None, "background_programming", timedelta(hours=0), timedelta(hours=6), SEMAINE),
 		"matinale": creer(
-			"Matinale", "La Matinale de Radio Exemple", "emission", timedelta(hours=7), timedelta(hours=9), OUVRES
+			"Matinale", "La Matinale de Radio Exemple", "show", timedelta(hours=7), timedelta(hours=9), OUVRES
 		),
-		"journal": creer("Le Journal", None, "emission", timedelta(hours=12), timedelta(hours=12, minutes=15), OUVRES),
-		"secours": creer("Secours studio", None, "secours", None, None, ()),
+		"journal": creer("Le Journal", None, "show", timedelta(hours=12), timedelta(hours=12, minutes=15), OUVRES),
+		"secours": creer("Secours studio", None, "fallback", None, None, ()),
 	}
 	# La Matinale fait relâche le vendredi : une session sautée (https://github.com/dascritch/machincast/issues/273).
-	connexion.execute(
-		"INSERT INTO evenements_sauts (evenement_id, jour) VALUES (%s, '2026-10-23')", (evenements["matinale"],)
-	)
+	connexion.execute("INSERT INTO event_skips (event_id, day) VALUES (%s, '2026-10-23')", (evenements["matinale"],))
 	samedi = datetime.fromisoformat("2026-10-24T10:00").astimezone()
 	evenements["marche"] = _un(
 		connexion,
-		"INSERT INTO evenements (nom_interne, nom_public, priorite, debut, fin)"
+		"INSERT INTO events (internal_name, public_name, priority, starts_at, ends_at)"
 		" VALUES ('Direct du marché', 'En direct du marché', 'special', %s, %s) RETURNING id",
 		(samedi, samedi + timedelta(hours=2)),
 	)
@@ -364,12 +362,12 @@ def _evenements(
 	for cle, elements in listes.items():
 		for position, (genre, valeur) in enumerate(elements + ajoutes.get(cle, []), start=1):
 			colonne, identifiant = {
-				"banque": ("banque_id", banques.get(valeur)),
-				"sonore": ("sonore_id", sonores.get(valeur)),
+				"banque": ("bank_id", banques.get(valeur)),
+				"sonore": ("sound_id", sonores.get(valeur)),
 				"sequence": ("sequence_id", sequence),
 			}[genre]
 			connexion.execute(
-				f"INSERT INTO evenements_elements (evenement_id, position, {colonne}) VALUES (%s, %s, %s)",  # noqa: S608
+				f"INSERT INTO event_items (event_id, position, {colonne}) VALUES (%s, %s, %s)",  # noqa: S608
 				(evenements[cle], position, identifiant),
 			)
 	return evenements
@@ -404,7 +402,7 @@ def _historique(
 	cours."""
 	tours = dict.fromkeys(BANQUES, 0)
 	positions = dict.fromkeys(ROTATIONS, 0)
-	jouables = {cle: [m for m in membres if SONORES[m].etat == "actif"] for cle, (*_, membres, _d) in BANQUES.items()}
+	jouables = {cle: [m for m in membres if SONORES[m].etat == "active"] for cle, (*_, membres, _d) in BANQUES.items()}
 	passages: list[tuple[datetime, datetime, str, str | None, str]] = []
 	instant = DEBUT_DE_L_HISTORIQUE
 	while instant <= MAINTENANT:
@@ -434,13 +432,13 @@ def _historique(
 			SONORES[sonore].artiste,
 			SONORES[sonore].titre,
 		)
-		lignes.append((*commun, "debut", debut, None, None))
+		lignes.append((*commun, "start", debut, None, None))
 		if fin <= MAINTENANT:
-			lignes.append((*commun, "fin", fin, fin - debut, True))
+			lignes.append((*commun, "end", fin, fin - debut, True))
 	with connexion.cursor() as curseur:
 		curseur.executemany(
-			"INSERT INTO airplay (passage_id, sonore_id, banque_id, evenement_id, emplacement, artiste, titre,"
-			" type_ligne, horodatage, duree_diffusee, sans_incident)"
+			"INSERT INTO airplay (play_id, sound_id, bank_id, event_id, location, artist, title,"
+			" line_type, logged_at, played_duration, without_incident)"
 			" VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
 			lignes,
 		)
@@ -459,13 +457,13 @@ def _incidents(connexion: Connexion, sonores: dict[str, int], evenements: dict[s
 		),
 		(
 			"2026-10-20T16:40:12",
-			"alerte",
+			"warning",
 			"fichier modifié",
 			f"{_emplacement('nuit')} : taille changée",
 			"nuit",
 			"jour",
 		),
-		("2026-10-21T03:10:00", "alerte", "blanc", "rien à diffuser dans le fil musical", None, "nuit"),
+		("2026-10-21T03:10:00", "warning", "blanc", "rien à diffuser dans le fil musical", None, "nuit"),
 		(
 			"2026-10-21T07:00:00",
 			"info",
@@ -479,8 +477,7 @@ def _incidents(connexion: Connexion, sonores: dict[str, int], evenements: dict[s
 	]
 	for horodatage, niveau, nature, message, sonore, evenement in entrees:
 		connexion.execute(
-			"INSERT INTO log (horodatage, niveau, nature, message, sonore_id, evenement_id)"
-			" VALUES (%s, %s, %s, %s, %s, %s)",
+			"INSERT INTO log (logged_at, level, kind, message, sound_id, event_id) VALUES (%s, %s, %s, %s, %s, %s)",
 			(
 				datetime.fromisoformat(horodatage).astimezone(),
 				niveau,
@@ -536,8 +533,8 @@ def donner_du_relief(connexion: Connexion, demonstration: Demonstration) -> None
 	for cle, graine in ((demonstration.passages[-1][2], 0.0), (demonstration.passages[-6][2], 2.0), ("cafe", 4.0)):
 		generer_silences(_emplacement(cle), morceaux_de_respiration(SONORES[cle].duree, graine), frequence=4000)
 		connexion.execute(
-			"UPDATE sonores SET debut_detecte = '1 s', fin_detectee = '1.5 s', detection_silences = true,"
-			" crossfade_debut = '2 s', crossfade_fin = '4 s', audite_le = %s, audit_seuil = -40 WHERE id = %s",
+			"UPDATE sounds SET detected_start = '1 s', detected_end = '1.5 s', silence_detection = true,"
+			" crossfade_start = '2 s', crossfade_end = '4 s', audited_at = %s, audit_threshold = -40 WHERE id = %s",
 			(MAINTENANT - timedelta(days=2), demonstration.sonores[cle]),
 		)
 

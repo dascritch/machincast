@@ -14,7 +14,7 @@ Fonctionnalité: Document d'audit de l'indexation, en CSV et en HTML
 
 	Scénario: Le document liste les fichiers défectueux, par leur chemin, puis le bilan
 		Étant donné un fichier introuvable
-		Et un sonore à l'état « actif » pour ce fichier
+		Et un sonore à l'état « active » pour ce fichier
 		Quand Machin indexer est lancé sur la base de test
 		Alors le document d'audit « machincast-audit-2026-10-15T08:15:00.csv » contient :
 			| date                | chemin           | verdict     | problème                                                                                             | conséquence           |
@@ -26,13 +26,13 @@ Fonctionnalité: Document d'audit de l'indexation, en CSV et en HTML
 
 	Scénario: Le problème d'un fichier endommagé est donné sans répéter son verdict
 		Étant donné un fichier mp3 endommagé
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Quand Machin indexer est lancé sur la base de test
 		Alors le document d'audit « machincast-audit-2026-10-15T08:15:00.csv » signale ce fichier, « endommagé », avec « sonore passé erroné »
 
 	Scénario: Sans anomalie, le document ne porte que le bilan, et ne liste pas les opérations normales
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « apercu » pour ce fichier
+		Et un sonore à l'état « preview » pour ce fichier
 		Quand Machin indexer est lancé sur la base de test, en audit complet
 		Alors le document d'audit « machincast-audit-2026-10-15T08:15:00.csv » contient :
 			| date                | chemin | verdict | problème                                                                                                 | conséquence |
@@ -52,6 +52,6 @@ Fonctionnalité: Document d'audit de l'indexation, en CSV et en HTML
 
 	Scénario: Rien n'est écrit dans le log
 		Étant donné un fichier introuvable
-		Et un sonore à l'état « actif » pour ce fichier
+		Et un sonore à l'état « active » pour ce fichier
 		Quand Machin indexer est lancé sur la base de test
 		Alors le log de la base est vide

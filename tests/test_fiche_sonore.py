@@ -45,8 +45,8 @@ def sonore_id(base: Connexion, nom: str) -> int:
 	"""Un sonore par son titre ; sans titre, par le nom de son fichier, ou l'adresse de son stream ou de son
 	feed."""
 	lignes = base.execute(
-		"SELECT s.id FROM sonores s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.titre = %s"
-		" OR (s.titre IS NULL AND (s.emplacement LIKE '%%/' || %s OR s.url_stream = %s OR m.url = %s))",
+		"SELECT s.id FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.title = %s"
+		" OR (s.title IS NULL AND (s.location LIKE '%%/' || %s OR s.stream_url = %s OR m.url = %s))",
 		(nom, nom, nom, nom),
 	).fetchall()
 	assert len(lignes) == 1, f"« {nom} » : {lignes}"
@@ -133,22 +133,22 @@ def sonore_en_base(base_vide: Connexion, nom: str, datatable: list[list[str]]) -
 	identifiant_sonore = sonore_id(base_vide, nom)
 	for champ, texte in ((champ.strip(), texte.strip()) for champ, texte in rangees):
 		valeur: object = texte
-		if champ in ("debut_diffusion", "fin_diffusion", "verifie_le"):
+		if champ in ("broadcast_start", "broadcast_end", "checked_at"):
 			valeur = heure_de_paris(texte)
-		requete = f"UPDATE sonores SET {champ} = %s WHERE id = %s"
+		requete = f"UPDATE sounds SET {champ} = %s WHERE id = %s"
 		base_vide.execute(requete, (valeur, identifiant_sonore))
 
 
 @given(parsers.parse("le feed « {nom} » à l'adresse du flux « {flux} » du serveur local"))
 def feed_local(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, flux: str) -> None:
-	base_vide.execute("INSERT INTO feeds (nom, url) VALUES (%s, %s)", (nom, serveur.adresse(flux)))
+	base_vide.execute("INSERT INTO feeds (name, url) VALUES (%s, %s)", (nom, serveur.adresse(flux)))
 
 
 @given(parsers.parse("le stream « {nom} » est sur le feed « {marque} »"))
 def sur_feed(base_vide: Connexion, nom: str, marque: str) -> None:
 	base_vide.execute(
-		"UPDATE sonores SET url_stream = NULL, feed_id = %s WHERE id = %s",
-		(identifiant(base_vide, "feeds", "nom", marque), sonore_id(base_vide, nom)),
+		"UPDATE sounds SET stream_url = NULL, feed_id = %s WHERE id = %s",
+		(identifiant(base_vide, "feeds", "name", marque), sonore_id(base_vide, nom)),
 	)
 
 
@@ -172,15 +172,15 @@ def passage(
 ) -> None:
 	evenement, sequence, banque = references
 	numero = uuid.uuid4()
-	colonnes = "passage_id, type_ligne, horodatage, sonore_id, evenement_id, sequence_id, banque_id"
+	colonnes = "play_id, line_type, logged_at, sound_id, event_id, sequence_id, bank_id"
 	base.execute(
-		f"INSERT INTO airplay ({colonnes}) VALUES (%s, 'debut', %s, %s, %s, %s, %s)",  # noqa: S608
+		f"INSERT INTO airplay ({colonnes}) VALUES (%s, 'start', %s, %s, %s, %s, %s)",  # noqa: S608
 		(numero, debut, sonore, evenement, sequence, banque),
 	)
 	if fin is not None:
 		base.execute(
-			f"INSERT INTO airplay ({colonnes}, duree_diffusee, sans_incident)"  # noqa: S608
-			" VALUES (%s, 'fin', %s, %s, %s, %s, %s, %s, %s)",
+			f"INSERT INTO airplay ({colonnes}, played_duration, without_incident)"  # noqa: S608
+			" VALUES (%s, 'end', %s, %s, %s, %s, %s, %s, %s)",
 			(numero, fin, sonore, evenement, sequence, banque, fin - debut, sans_incident),
 		)
 
@@ -188,7 +188,7 @@ def passage(
 def reference(base: Connexion, table: str, nom: str) -> int | None:
 	if nom == "":
 		return None
-	return identifiant(base, table, "nom_interne", nom)
+	return identifiant(base, table, "internal_name", nom)
 
 
 @given("les passages de sonores :")
@@ -197,16 +197,16 @@ def passages(base_vide: Connexion, datatable: list[list[str]]) -> None:
 	for valeurs in rangees:
 		ligne = dict(zip(entetes, (valeur.strip() for valeur in valeurs), strict=True))
 		fin = None
-		if ligne["fin"] != "":
-			fin = heure_de_paris(ligne["fin"])
-		sans_incident = {"oui": True, "non": False, "": None}[ligne["sans_incident"]]
+		if ligne["ends_at"] != "":
+			fin = heure_de_paris(ligne["ends_at"])
+		sans_incident = {"oui": True, "non": False, "": None}[ligne["without_incident"]]
 		references = (
-			reference(base_vide, "evenements", ligne["evenement"]),
+			reference(base_vide, "events", ligne["event"]),
 			reference(base_vide, "sequences", ligne["sequence"]),
-			reference(base_vide, "banques", ligne["banque"]),
+			reference(base_vide, "banks", ligne["bank"]),
 		)
-		debut = heure_de_paris(ligne["debut"])
-		passage(base_vide, sonore_id(base_vide, ligne["sonore"]), debut, fin, references, sans_incident)
+		debut = heure_de_paris(ligne["starts_at"])
+		passage(base_vide, sonore_id(base_vide, ligne["sound"]), debut, fin, references, sans_incident)
 
 
 @given("le log :")
@@ -215,13 +215,13 @@ def log(base_vide: Connexion, datatable: list[list[str]]) -> None:
 	for valeurs in rangees:
 		ligne = dict(zip(entetes, (valeur.strip() for valeur in valeurs), strict=True))
 		base_vide.execute(
-			"INSERT INTO log (horodatage, niveau, nature, message, sonore_id) VALUES (%s, %s, %s, %s, %s)",
+			"INSERT INTO log (logged_at, level, kind, message, sound_id) VALUES (%s, %s, %s, %s, %s)",
 			(
-				heure_de_paris(ligne["horodatage"]),
-				ligne["niveau"],
-				ligne["nature"],
+				heure_de_paris(ligne["logged_at"]),
+				ligne["level"],
+				ligne["kind"],
 				ligne["message"],
-				sonore_id(base_vide, ligne["sonore"]),
+				sonore_id(base_vide, ligne["sound"]),
 			),
 		)
 
@@ -313,14 +313,14 @@ def cocher(interface: Contexte, qtbot: QtBot, case: str) -> None:
 @when(parsers.parse("l'indexation change le titre de « {nom} » en « {titre} », et son album en « {album} »"))
 def indexation(base_vide: Connexion, nom: str, titre: str, album: str) -> None:
 	base_vide.execute(
-		"UPDATE sonores SET titre = %s, metadonnees_musicales = metadonnees_musicales || %s::jsonb WHERE id = %s",
+		"UPDATE sounds SET title = %s, music_metadata = music_metadata || %s::jsonb WHERE id = %s",
 		(titre, json.dumps({"album": album}), sonore_id(base_vide, nom)),
 	)
 
 
 @when(parsers.parse("la diffusion passe « {nom} » à l'état « {etat} »"))
 def diffusion(base_vide: Connexion, nom: str, etat: str) -> None:
-	base_vide.execute("UPDATE sonores SET etat = %s WHERE id = %s", (etat, sonore_id(base_vide, nom)))
+	base_vide.execute("UPDATE sounds SET state = %s WHERE id = %s", (etat, sonore_id(base_vide, nom)))
 
 
 @when(parsers.parse("je saisis l'adresse du flux « {flux} » du serveur local dans la fiche du sonore"))
@@ -414,9 +414,7 @@ def sans_emplacement(interface: Contexte) -> None:
 	)
 )
 def artiste_en_base(base_vide: Connexion, nom: str, quoi: str) -> None:
-	ligne = base_vide.execute(
-		"SELECT artiste, titre FROM sonores WHERE id = %s", (sonore_id(base_vide, nom),)
-	).fetchone()
+	ligne = base_vide.execute("SELECT artist, title FROM sounds WHERE id = %s", (sonore_id(base_vide, nom),)).fetchone()
 	assert ligne is not None
 	artiste, titre = ligne
 	attendu = (None, nom)
@@ -430,7 +428,7 @@ def artiste_en_base(base_vide: Connexion, nom: str, quoi: str) -> None:
 @then(parsers.re(r"les métadonnées musicales de « (?P<nom>[^»]+) » sont (?P<texte>\{.*\})"))
 def metadonnees(base_vide: Connexion, nom: str, texte: str) -> None:
 	ligne = base_vide.execute(
-		"SELECT metadonnees_musicales FROM sonores WHERE id = %s", (sonore_id(base_vide, nom),)
+		"SELECT music_metadata FROM sounds WHERE id = %s", (sonore_id(base_vide, nom),)
 	).fetchone()
 	assert ligne is not None
 	assert ligne[0] == json.loads(texte)
@@ -438,9 +436,7 @@ def metadonnees(base_vide: Connexion, nom: str, texte: str) -> None:
 
 @then(parsers.re(r"les champs saisis à la main de « (?P<nom>[^»]+) » sont (?P<champs>.+)"))
 def champs_en_base(base_vide: Connexion, nom: str, champs: str) -> None:
-	ligne = base_vide.execute(
-		"SELECT champs_edites FROM sonores WHERE id = %s", (sonore_id(base_vide, nom),)
-	).fetchone()
+	ligne = base_vide.execute("SELECT edited_fields FROM sounds WHERE id = %s", (sonore_id(base_vide, nom),)).fetchone()
 	assert ligne is not None
 	assert ligne[0] == NOM.findall(champs)
 
@@ -452,7 +448,7 @@ def colonnes_en_base(base_vide: Connexion, nom: str, datatable: list[list[str]])
 	identifiant_sonore = sonore_id(base_vide, nom)
 	lus = []
 	for champ, _valeur in attendus:
-		ligne = base_vide.execute(f"SELECT {champ} FROM sonores WHERE id = %s", (identifiant_sonore,)).fetchone()
+		ligne = base_vide.execute(f"SELECT {champ} FROM sounds WHERE id = %s", (identifiant_sonore,)).fetchone()
 		assert ligne is not None
 		valeur = ligne[0]
 		if isinstance(valeur, datetime):
@@ -497,9 +493,9 @@ def secours_proposes(interface: Contexte, noms: str) -> None:
 )
 def stream_en_base(base_vide: Connexion, nom: str, marque: str | None, url: str | None, secours: str | None) -> None:
 	ligne = base_vide.execute(
-		"SELECT s.url_stream, m.nom, e.nom_interne FROM sonores s"
+		"SELECT s.stream_url, m.name, e.internal_name FROM sounds s"
 		" LEFT JOIN feeds m ON m.id = s.feed_id"
-		" LEFT JOIN evenements e ON e.id = s.secours_evenement_id WHERE s.id = %s",
+		" LEFT JOIN events e ON e.id = s.fallback_event_id WHERE s.id = %s",
 		(sonore_id(base_vide, nom),),
 	).fetchone()
 	assert ligne == (url, marque, secours)
@@ -717,9 +713,9 @@ def champs_de_crossfade(interface: Contexte) -> None:
 # ─── Retirer une relation (https://github.com/dascritch/machincast/issues/331) ───
 
 LISTES = {
-	"la séquence": ("sequences", "sequences_elements", "sequence_id"),
-	"la banque": ("banques", "banques_sonores", "banque_id"),
-	"l'événement": ("evenements", "evenements_elements", "evenement_id"),
+	"la séquence": ("sequences", "sequence_items", "sequence_id"),
+	"la banque": ("banks", "bank_sounds", "bank_id"),
+	"l'événement": ("events", "event_items", "event_id"),
 }
 ELEMENT_DE = r"(?P<element>la séquence|la banque|l'événement) « (?P<nom>[^»]+) »"
 
@@ -758,10 +754,10 @@ def menu_de_la_relation(interface: Contexte, nom: str, entrees: str) -> None:
 def _citations(base: Connexion, element: str, nom: str, sonore: str) -> tuple[int, int]:
 	"""Les places du sonore dans la liste de l'élément, et le nombre d'éléments de cette liste."""
 	table, liste, colonne = LISTES[element]
-	parent = identifiant(base, table, "nom_interne", nom)
-	cite = identifiant(base, "sonores", "titre", sonore)
+	parent = identifiant(base, table, "internal_name", nom)
+	cite = identifiant(base, "sounds", "title", sonore)
 	ligne = base.execute(
-		f"SELECT count(*) FILTER (WHERE sonore_id = %s), count(*) FROM {liste} WHERE {colonne} = %s",  # noqa: S608
+		f"SELECT count(*) FILTER (WHERE sound_id = %s), count(*) FROM {liste} WHERE {colonne} = %s",  # noqa: S608
 		(cite, parent),
 	).fetchone()
 	assert ligne is not None

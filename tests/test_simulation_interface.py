@@ -87,7 +87,7 @@ def qui_echoue(interface: Contexte) -> None:
 @given(parsers.parse("le sonore « {titre} » est à l'état « {etat} » en base"))
 @when(parsers.parse("le sonore « {titre} » est à l'état « {etat} » en base"))
 def etat_du_sonore(base_vide: Connexion, titre: str, etat: str) -> None:
-	base_vide.execute("UPDATE sonores SET etat = %s WHERE titre = %s", (etat, titre))
+	base_vide.execute("UPDATE sounds SET state = %s WHERE title = %s", (etat, titre))
 
 
 # ─── Quand ─────────────────────────────────────────────────

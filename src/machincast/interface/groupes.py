@@ -10,7 +10,7 @@ sélection ; la fenêtre (machincast.interface.fenetre) fait choisir des banques
 - Ajouter à des banques : chaque sonore à la fin de chaque banque choisie, sauf s'il y est déjà.
 - Retirer de banques : parmi les banques où figure l'un des sonores ; les positions restantes se resserrent. Un
   sonore dont le fichier est dans un répertoire de la banque y reviendra à la prochaine indexation.
-- Audit complet demandé (sonores.audit_demande) : la prochaine indexation, même rapide, revérifie en entier les
+- Audit complet demandé (sounds.audit_requested) : la prochaine indexation, même rapide, revérifie en entier les
   fichiers marqués (machincast.indexation.verification) ; un stream n'est jamais vérifié.
 - Masquage de l'artiste et du titre des banques choisies : masqués, affichés, ou hérités du sonore.
 
@@ -94,7 +94,7 @@ class Action:
 def _changer_d_etat(etat: str, fait: str, faits: str) -> Callable[[Connexion, list[int], list[int]], str]:
 	def executer(connexion: Connexion, sonores: list[int], _banques: list[int]) -> str:
 		changes = connexion.execute(
-			"UPDATE sonores SET etat = %s WHERE id = ANY(%s) AND etat NOT IN ('apercu', %s) RETURNING id",
+			"UPDATE sounds SET state = %s WHERE id = ANY(%s) AND state NOT IN ('preview', %s) RETURNING id",
 			(etat, sonores, etat),
 		).fetchall()
 		return f"{nombre(len(changes), fait, faits)}."
@@ -114,21 +114,19 @@ def _ajouter(connexion: Connexion, sonores: list[int], banques: list[int]) -> st
 	touchees: set[int] = set()
 	for banque in banques:
 		presents = _identifiants(
-			connexion.execute(
-				"SELECT sonore_id FROM banques_sonores WHERE banque_id = %s FOR UPDATE", (banque,)
-			).fetchall()
+			connexion.execute("SELECT sound_id FROM bank_sounds WHERE bank_id = %s FOR UPDATE", (banque,)).fetchall()
 		)
 		nouveaux = [sonore for sonore in sonores if sonore not in presents]
 		if nouveaux == []:
 			continue
 		ligne = connexion.execute(
-			"SELECT COALESCE(MAX(position), 0) FROM banques_sonores WHERE banque_id = %s", (banque,)
+			"SELECT COALESCE(MAX(position), 0) FROM bank_sounds WHERE bank_id = %s", (banque,)
 		).fetchone()
 		assert ligne is not None
 		fin = int(str(ligne[0]))
 		with connexion.cursor() as curseur:
 			curseur.executemany(
-				"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+				"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 				[(banque, sonore, fin + rang) for rang, sonore in enumerate(nouveaux, start=1)],
 			)
 		ajoutes |= set(nouveaux)
@@ -142,16 +140,16 @@ def _a(banques: int) -> str:
 
 def _retirer(connexion: Connexion, sonores: list[int], banques: list[int]) -> str:
 	retires = connexion.execute(
-		"DELETE FROM banques_sonores WHERE sonore_id = ANY(%s) AND banque_id = ANY(%s) RETURNING sonore_id, banque_id",
+		"DELETE FROM bank_sounds WHERE sound_id = ANY(%s) AND bank_id = ANY(%s) RETURNING sound_id, bank_id",
 		(sonores, banques),
 	).fetchall()
 	touchees = sorted({int(str(banque)) for _sonore, banque in retires})
 	# Les positions restantes se resserrent ; leur unicité n'est vérifiée qu'en fin de transaction.
 	connexion.execute(
-		"UPDATE banques_sonores bs SET position = r.rang FROM ("
-		" SELECT banque_id, sonore_id, row_number() OVER (PARTITION BY banque_id ORDER BY position) AS rang"
-		" FROM banques_sonores WHERE banque_id = ANY(%s)) r"
-		" WHERE bs.banque_id = r.banque_id AND bs.sonore_id = r.sonore_id",
+		"UPDATE bank_sounds bs SET position = r.rang FROM ("
+		" SELECT bank_id, sound_id, row_number() OVER (PARTITION BY bank_id ORDER BY position) AS rang"
+		" FROM bank_sounds WHERE bank_id = ANY(%s)) r"
+		" WHERE bs.bank_id = r.bank_id AND bs.sound_id = r.sound_id",
 		(touchees,),
 	)
 	nombre_de_sonores = len(_identifiants(retires))
@@ -165,7 +163,7 @@ def _annonce_d_audit(marques: int) -> str:
 
 def _demander_l_audit(connexion: Connexion, sonores: list[int], _banques: list[int]) -> str:
 	marques = connexion.execute(
-		"UPDATE sonores SET audit_demande = true WHERE id = ANY(%s) AND type = 'fichier' RETURNING id", (sonores,)
+		"UPDATE sounds SET audit_requested = true WHERE id = ANY(%s) AND type = 'file' RETURNING id", (sonores,)
 	).fetchall()
 	return _annonce_d_audit(len(marques))
 
@@ -179,13 +177,13 @@ def _question_d_audit(quantite: int, _noms_des_banques: list[str]) -> str:
 
 SONORES: tuple[Action, ...] = (
 	Action(
-		"activer", "Activer", _question_d_etat("Activer"), _changer_d_etat("actif", "sonore activé", "sonores activés")
+		"activer", "Activer", _question_d_etat("Activer"), _changer_d_etat("active", "sonore activé", "sonores activés")
 	),
 	Action(
 		"desactiver",
 		"Désactiver",
 		_question_d_etat("Désactiver"),
-		_changer_d_etat("desactive", "sonore désactivé", "sonores désactivés"),
+		_changer_d_etat("disabled", "sonore désactivé", "sonores désactivés"),
 	),
 	Action(
 		"ajouter",
@@ -216,8 +214,8 @@ SONORES: tuple[Action, ...] = (
 
 def _demander_l_audit_des_banques(connexion: Connexion, banques: list[int], _choisies: list[int]) -> str:
 	marques = connexion.execute(
-		"UPDATE sonores SET audit_demande = true WHERE type = 'fichier'"
-		" AND id IN (SELECT sonore_id FROM banques_sonores WHERE banque_id = ANY(%s)) RETURNING id",
+		"UPDATE sounds SET audit_requested = true WHERE type = 'file'"
+		" AND id IN (SELECT sound_id FROM bank_sounds WHERE bank_id = ANY(%s)) RETURNING id",
 		(banques,),
 	).fetchall()
 	return _annonce_d_audit(len(marques))
@@ -226,7 +224,7 @@ def _demander_l_audit_des_banques(connexion: Connexion, banques: list[int], _cho
 def _masquer(valeur: bool | None, etat: str) -> Callable[[Connexion, list[int], list[int]], str]:
 	def executer(connexion: Connexion, banques: list[int], _choisies: list[int]) -> str:
 		changees = connexion.execute(
-			"UPDATE banques SET masquer_metadonnees = %s WHERE id = ANY(%s) RETURNING id", (valeur, banques)
+			"UPDATE banks SET hide_metadata = %s WHERE id = ANY(%s) RETURNING id", (valeur, banques)
 		).fetchall()
 		return f"Artiste et titre {etat} pour {nombre(len(changees), 'banque', 'banques')}."
 
@@ -274,8 +272,8 @@ def banques_des_sonores(connexion: Connexion, sonores: list[int]) -> list[int]:
 	return [
 		int(str(banque))
 		for (banque,) in connexion.execute(
-			"SELECT b.id FROM banques b WHERE b.id IN (SELECT banque_id FROM banques_sonores WHERE sonore_id = ANY(%s))"
-			" ORDER BY b.nom_interne, b.id",
+			"SELECT b.id FROM banks b WHERE b.id IN (SELECT bank_id FROM bank_sounds WHERE sound_id = ANY(%s))"
+			" ORDER BY b.internal_name, b.id",
 			(sonores,),
 		)
 	]
@@ -285,6 +283,6 @@ def noms_des_banques(connexion: Connexion, banques: list[int]) -> list[str]:
 	"""Les noms des banques, dans l'ordre donné. À appeler dans une transaction."""
 	noms = {
 		int(str(banque)): str(nom)
-		for banque, nom in connexion.execute("SELECT id, nom_interne FROM banques WHERE id = ANY(%s)", (banques,))
+		for banque, nom in connexion.execute("SELECT id, internal_name FROM banks WHERE id = ANY(%s)", (banques,))
 	}
 	return [noms[banque] for banque in banques if banque in noms]

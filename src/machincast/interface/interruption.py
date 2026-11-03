@@ -80,7 +80,7 @@ def proposer(etat: EtatLecture) -> dict[str, Proposition]:
 	evenement = Proposition(False, RIEN_A_L_ANTENNE)
 	if en_cours.evenement is not None:
 		evenement = _nomme(en_cours.evenement)
-	if en_cours.evenement_priorite == "fil_musical":
+	if en_cours.evenement_priorite == "background_programming":
 		evenement = Proposition(False, DEJA_LE_FIL_MUSICAL)
 	return {
 		"sonore": _nomme((en_cours.titre) or (en_cours.emplacement)),
@@ -168,8 +168,8 @@ def lire_les_secours(connexion: psycopg.Connection[TupleRow]) -> list[Secours]:
 	try:
 		with connexion.transaction():
 			lignes = connexion.execute(
-				"SELECT id, nom_interne FROM evenements WHERE priorite = 'secours' AND supprime_le IS NULL"
-				" ORDER BY nom_interne, id"
+				"SELECT id, internal_name FROM events WHERE priority = 'fallback' AND deleted_at IS NULL"
+				" ORDER BY internal_name, id"
 			).fetchall()
 	except psycopg.Error as erreur:
 		journal.error(f"événements de secours illisibles : {erreur}")
@@ -231,7 +231,7 @@ def proposer_le_feed(etat: EtatLecture, stream_actif: bool) -> EntreeDuProchain:
 	l'antenne, et un stream actif qui suive le feed."""
 	en_cours = etat.en_cours
 	texte = COUPER_L_EVENEMENT_PAR_CE_FEED
-	if (en_cours is not None) and (en_cours.evenement_priorite == "fil_musical"):
+	if (en_cours is not None) and (en_cours.evenement_priorite == "background_programming"):
 		texte = COUPER_LE_FIL_MUSICAL_PAR_CE_FEED
 	if en_cours is None:
 		return EntreeDuProchain(texte, Proposition(False, RIEN_A_L_ANTENNE))
@@ -250,8 +250,8 @@ def stream_du_feed(connexion: psycopg.Connection[TupleRow], feed: int) -> tuple[
 	try:
 		with connexion.transaction():
 			ligne = connexion.execute(
-				"SELECT id, etat = 'actif' FROM sonores WHERE feed_id = %s AND type = 'stream' AND supprime_le IS NULL"
-				" ORDER BY etat = 'actif' DESC, id LIMIT 1",
+				"SELECT id, state = 'active' FROM sounds WHERE feed_id = %s AND type = 'stream' AND deleted_at IS NULL"
+				" ORDER BY state = 'active' DESC, id LIMIT 1",
 				(feed,),
 			).fetchone()
 	except psycopg.Error as erreur:

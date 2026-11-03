@@ -276,7 +276,7 @@ def choix_parmi(dialogue: Dialogue, base_vide: Connexion, noms: str) -> None:
 	parmi = [
 		int(str(ligne[0]))
 		for nom in NOM.findall(noms)
-		if (ligne := base_vide.execute("SELECT id FROM banques WHERE nom_interne = %s", (nom,)).fetchone())
+		if (ligne := base_vide.execute("SELECT id FROM banks WHERE internal_name = %s", (nom,)).fetchone())
 	]
 	connexion = connecter(*parametres_base_test(), Role.INTERFACE)
 	try:
@@ -341,10 +341,10 @@ def explique(dialogue: Dialogue, texte: str) -> None:
 @then(parsers.re(r"les (?P<genre>sonores|banques|séquences|feeds) choisi(?:e)?s sont (?P<noms>.+)"))
 def choisis(dialogue: Dialogue, base_vide: Connexion, genre: str, noms: str) -> None:
 	table, colonne = {
-		"sonores": ("sonores", "titre"),
-		"banques": ("banques", "nom_interne"),
-		"séquences": ("sequences", "nom_interne"),
-		"feeds": ("feeds", "nom"),
+		"sonores": ("sounds", "title"),
+		"banques": ("banks", "internal_name"),
+		"séquences": ("sequences", "internal_name"),
+		"feeds": ("feeds", "name"),
 	}[genre]
 	assert dialogue.reponse == [identifiant(base_vide, table, colonne, nom) for nom in NOM.findall(noms)]
 

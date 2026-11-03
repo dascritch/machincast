@@ -13,12 +13,12 @@ Fonctionnalité: Onglets ouverts retenus d'un lancement à l'autre
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-21 09:00:00 »
 		Et les événements :
-			| nom         | nom_public | priorite    | debut | fin | jours |
-			| Fil de jour |            | fil_musical |       |     |       |
+			| name        | public_name | priority               | starts_at | ends_at | days |
+			| Fil de jour |             | background_programming |           |         |      |
 		Et les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement                  |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/jingles/hiver/cafe.flac |
-			| Aube        | Matin clair   | fichier | actif | 200   | /srv/jingles/hiver/matin.flac |
+			| artist      | title         | type | state  | duration | location                      |
+			| Les Gaufres | Café à minuit | file | active | 214      | /srv/jingles/hiver/cafe.flac  |
+			| Aube        | Matin clair   | file | active | 200      | /srv/jingles/hiver/matin.flac |
 		Et la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
 
 	Scénario: Les onglets ouverts, fiches comprises, se rouvrent dans leur ordre, avec l'onglet actif

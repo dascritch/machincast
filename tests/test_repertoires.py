@@ -43,10 +43,10 @@ def racine(tmp_path: Path) -> Path:
 
 
 def banque(base: Connexion, nom: str) -> int:
-	ligne = base.execute("SELECT id FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
+	ligne = base.execute("SELECT id FROM banks WHERE internal_name = %s", (nom,)).fetchone()
 	if ligne is None:
 		ligne = base.execute(
-			"INSERT INTO banques (nom_interne, mode) VALUES (%s, 'sequentiel') RETURNING id", (nom,)
+			"INSERT INTO banks (internal_name, mode) VALUES (%s, 'sequential') RETURNING id", (nom,)
 		).fetchone()
 	assert ligne is not None
 	return int(str(ligne[0]))
@@ -55,7 +55,7 @@ def banque(base: Connexion, nom: str) -> int:
 @given(parsers.parse("une banque « {nom} » alimentée par le répertoire « {repertoire} »"))
 def banque_alimentee(base_vide: Connexion, racine: Path, nom: str, repertoire: str) -> None:
 	base_vide.execute(
-		"INSERT INTO banques_repertoires (banque_id, repertoire) VALUES (%s, %s)",
+		"INSERT INTO bank_directories (bank_id, directory) VALUES (%s, %s)",
 		(banque(base_vide, nom), str(racine / repertoire)),
 	)
 
@@ -77,8 +77,7 @@ def fichier(tmp_path: Path, racine: Path, relatif: str, etat: str) -> None:
 @given(parsers.parse("« {relatif} » a été retiré à la main de la banque « {nom} »"))
 def retire(base_vide: Connexion, racine: Path, relatif: str, nom: str) -> None:
 	base_vide.execute(
-		"DELETE FROM banques_sonores WHERE banque_id = %s"
-		" AND sonore_id = (SELECT id FROM sonores WHERE emplacement = %s)",
+		"DELETE FROM bank_sounds WHERE bank_id = %s AND sound_id = (SELECT id FROM sounds WHERE location = %s)",
 		(banque(base_vide, nom), str(racine / relatif)),
 	)
 
@@ -86,8 +85,8 @@ def retire(base_vide: Connexion, racine: Path, relatif: str, nom: str) -> None:
 @then(parsers.re(r"la banque « (?P<nom>[^»]+) » contient, dans l'ordre, (?P<liste>.+)"))
 def contenu(base_vide: Connexion, racine: Path, nom: str, liste: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT s.emplacement FROM banques_sonores bs JOIN sonores s ON s.id = bs.sonore_id"
-		" WHERE bs.banque_id = %s ORDER BY bs.position",
+		"SELECT s.location FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
+		" WHERE bs.bank_id = %s ORDER BY bs.position",
 		(banque(base_vide, nom),),
 	).fetchall()
 	assert [str(ligne[0]) for ligne in lignes] == [str(racine / relatif) for relatif in ELEMENT.findall(liste)]
@@ -95,16 +94,14 @@ def contenu(base_vide: Connexion, racine: Path, nom: str, liste: str) -> None:
 
 @then(parsers.parse("le sonore de « {relatif} » est à l'état « {etat} »"))
 def etat_du_sonore(base_vide: Connexion, racine: Path, relatif: str, etat: str) -> None:
-	ligne = base_vide.execute(
-		"SELECT etat::text FROM sonores WHERE emplacement = %s", (str(racine / relatif),)
-	).fetchone()
+	ligne = base_vide.execute("SELECT state::text FROM sounds WHERE location = %s", (str(racine / relatif),)).fetchone()
 	assert ligne is not None, f"aucun sonore pour {relatif}"
 	assert ligne[0] == etat
 
 
 @then(parsers.re(r"la base contient (?P<nombre>\d+) sonores?"))
 def nombre_de_sonores(base_vide: Connexion, nombre: str) -> None:
-	ligne = base_vide.execute("SELECT count(*) FROM sonores").fetchone()
+	ligne = base_vide.execute("SELECT count(*) FROM sounds").fetchone()
 	assert (ligne is not None) and (ligne[0] == int(nombre))
 
 
@@ -165,21 +162,21 @@ def durees_de_la_banque(
 			borne = timedelta(seconds=nombre(valeur))
 		bornes.append(borne)
 	base_vide.execute(
-		"UPDATE banques SET duree_min = %s, duree_max = %s WHERE id = %s", (*bornes, banque(base_vide, nom))
+		"UPDATE banks SET min_duration = %s, max_duration = %s WHERE id = %s", (*bornes, banque(base_vide, nom))
 	)
 
 
 def _ajouter(base: Connexion, nom: str, sonore: object) -> None:
 	identifiant = banque(base, nom)
 	base.execute(
-		"INSERT INTO banques_sonores (banque_id, sonore_id, position)"
-		" SELECT %s, %s, COALESCE(MAX(position), 0) + 1 FROM banques_sonores WHERE banque_id = %s",
+		"INSERT INTO bank_sounds (bank_id, sound_id, position)"
+		" SELECT %s, %s, COALESCE(MAX(position), 0) + 1 FROM bank_sounds WHERE bank_id = %s",
 		(identifiant, sonore, identifiant),
 	)
 
 
 def sonore_de(base: Connexion, racine: Path, relatif: str) -> int:
-	ligne = base.execute("SELECT id FROM sonores WHERE emplacement = %s", (str(racine / relatif),)).fetchone()
+	ligne = base.execute("SELECT id FROM sounds WHERE location = %s", (str(racine / relatif),)).fetchone()
 	assert ligne is not None, f"aucun sonore pour {relatif}"
 	return int(str(ligne[0]))
 
@@ -192,7 +189,7 @@ def ajoute_a_la_main(base_vide: Connexion, racine: Path, relatif: str, nom: str)
 @given(parsers.parse("le stream « {titre} » est ajouté à la main à la banque « {nom} »"))
 def stream_ajoute(base_vide: Connexion, titre: str, nom: str) -> None:
 	ligne = base_vide.execute(
-		"INSERT INTO sonores (type, url_stream, titre, etat) VALUES ('stream', 'https://flux.exemple', %s, 'actif')"
+		"INSERT INTO sounds (type, stream_url, title, state) VALUES ('stream', 'https://flux.exemple', %s, 'active')"
 		" RETURNING id",
 		(titre,),
 	).fetchone()
@@ -203,7 +200,7 @@ def stream_ajoute(base_vide: Connexion, titre: str, nom: str) -> None:
 @given(parsers.re(r"la durée en base du sonore de « (?P<relatif>[^»]+) » est de (?P<secondes>[\d,]+) secondes"))
 def duree_en_base(base_vide: Connexion, racine: Path, relatif: str, secondes: str) -> None:
 	base_vide.execute(
-		"UPDATE sonores SET duree = %s WHERE id = %s",
+		"UPDATE sounds SET duration = %s WHERE id = %s",
 		(timedelta(seconds=nombre(secondes)), sonore_de(base_vide, racine, relatif)),
 	)
 
@@ -252,7 +249,7 @@ def un_seul_sonore(base_vide: Connexion, racine: Path, caplog: pytest.LogCapture
 @then(parsers.parse("la banque « {nom} » ne contient aucun sonore"))
 def banque_vide(base_vide: Connexion, nom: str) -> None:
 	ligne = base_vide.execute(
-		"SELECT count(*) FROM banques_sonores WHERE banque_id = %s", (banque(base_vide, nom),)
+		"SELECT count(*) FROM bank_sounds WHERE bank_id = %s", (banque(base_vide, nom),)
 	).fetchone()
 	assert ligne == (0,), ligne
 
@@ -260,8 +257,8 @@ def banque_vide(base_vide: Connexion, nom: str) -> None:
 @then(parsers.parse("la banque « {nom} » contient le stream « {titre} »"))
 def contient_le_stream(base_vide: Connexion, nom: str, titre: str) -> None:
 	ligne = base_vide.execute(
-		"SELECT count(*) FROM banques_sonores bs JOIN sonores s ON s.id = bs.sonore_id"
-		" WHERE bs.banque_id = %s AND s.titre = %s",
+		"SELECT count(*) FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
+		" WHERE bs.bank_id = %s AND s.title = %s",
 		(banque(base_vide, nom), titre),
 	).fetchone()
 	assert ligne == (1,), ligne

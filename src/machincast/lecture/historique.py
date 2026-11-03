@@ -224,8 +224,7 @@ class HistoriqueEnBase:
 
 	def lectures(self, connexion: Connexion, sonores: Collection[int]) -> dict[int, int]:
 		lignes = connexion.execute(
-			"SELECT sonore_id, count(*) FROM airplay WHERE type_ligne = 'debut' AND sonore_id = ANY(%s)"
-			" GROUP BY sonore_id",
+			"SELECT sound_id, count(*) FROM airplay WHERE line_type = 'start' AND sound_id = ANY(%s) GROUP BY sound_id",
 			(list(sonores),),
 		).fetchall()
 		comptes = {int(str(sonore)): int(str(nombre)) for sonore, nombre in lignes}
@@ -233,25 +232,25 @@ class HistoriqueEnBase:
 
 	def joues_via_banque(self, connexion: Connexion, banque: int) -> list[int]:
 		lignes = connexion.execute(
-			"SELECT sonore_id FROM airplay WHERE banque_id = %s AND type_ligne = 'debut' AND sonore_id IS NOT NULL"
-			" ORDER BY horodatage DESC, id DESC",
+			"SELECT sound_id FROM airplay WHERE bank_id = %s AND line_type = 'start' AND sound_id IS NOT NULL"
+			" ORDER BY logged_at DESC, id DESC",
 			(banque,),
 		).fetchall()
 		return [int(str(ligne[0])) for ligne in lignes]
 
 	def dernier_element(self, connexion: Connexion, evenement: int, depuis: datetime | None) -> int | None:
 		ligne = connexion.execute(
-			"SELECT element_id FROM airplay WHERE evenement_id = %s AND type_ligne = 'debut'"
-			" AND (%s::timestamptz IS NULL OR horodatage >= %s::timestamptz)"
-			" ORDER BY horodatage DESC, id DESC LIMIT 1",
+			"SELECT event_item_id FROM airplay WHERE event_id = %s AND line_type = 'start'"
+			" AND (%s::timestamptz IS NULL OR logged_at >= %s::timestamptz)"
+			" ORDER BY logged_at DESC, id DESC LIMIT 1",
 			(evenement, depuis, depuis),
 		).fetchone()
 		return None if (ligne is None) or (ligne[0] is None) else int(str(ligne[0]))
 
 	def dernier_passage(self, connexion: Connexion) -> DernierPassage | None:
 		ligne = connexion.execute(
-			"SELECT passage_id, banque_id, horodatage, evenement_id, element_id, sequence_element_id FROM airplay"
-			" WHERE type_ligne = 'debut' ORDER BY horodatage DESC, id DESC LIMIT 1"
+			"SELECT play_id, bank_id, logged_at, event_id, event_item_id, sequence_item_id FROM airplay"
+			" WHERE line_type = 'start' ORDER BY logged_at DESC, id DESC LIMIT 1"
 		).fetchone()
 		if ligne is None:
 			return None

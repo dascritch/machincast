@@ -51,8 +51,7 @@ def inserer(base: Connexion, interface: Contexte, titre: str, artiste: str | Non
 	copie = interface.repertoire / fichier
 	shutil.copyfile(FICHIERS_SONORES / fichier, copie)
 	base.execute(
-		"INSERT INTO sonores (type, emplacement, artiste, titre, etat, duree)"
-		" VALUES ('fichier', %s, %s, %s, 'actif', %s)",
+		"INSERT INTO sounds (type, location, artist, title, state, duration) VALUES ('file', %s, %s, %s, 'active', %s)",
 		(str(copie), artiste, titre, timedelta(seconds=1)),
 	)
 
@@ -198,7 +197,7 @@ def reste_titree(interface: Contexte, qtbot: QtBot, titre: str) -> None:
 
 @when(parsers.parse("je demande la pré-écoute du sonore « {titre} »"))
 def demander(interface: Contexte, base_vide: Connexion, titre: str) -> None:
-	fenetre(interface)._preecouter(identifiant(base_vide, "sonores", "titre", titre))
+	fenetre(interface)._preecouter(identifiant(base_vide, "sounds", "title", titre))
 
 
 @then("la fenêtre n'a pas de bouton « Pré-écoute » sous ses onglets")

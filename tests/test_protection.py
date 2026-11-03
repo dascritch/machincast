@@ -69,7 +69,7 @@ def indexer_la_base(audit_complet: bool) -> None:
 
 
 def sonore_de(base: Connexion, contexte: Contexte, nom: str) -> int:
-	ligne = base.execute("SELECT id FROM sonores WHERE emplacement = %s", (str(repertoire(contexte) / nom),)).fetchone()
+	ligne = base.execute("SELECT id FROM sounds WHERE location = %s", (str(repertoire(contexte) / nom),)).fetchone()
 	assert ligne is not None, f"aucun sonore pour {nom}"
 	return int(str(ligne[0]))
 
@@ -86,10 +86,10 @@ def banque(contexte: Contexte, base_vide: Connexion, tmp_path: Path, nom: str, s
 	corrompre(endommage, 1000, 1 / 3)
 	endommage.rename(dossier / abime)
 	ligne = base_vide.execute(
-		"INSERT INTO banques (nom_interne, mode) VALUES (%s, 'sequentiel') RETURNING id", (nom,)
+		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'sequential') RETURNING id", (nom,)
 	).fetchone()
 	assert ligne is not None
-	base_vide.execute("INSERT INTO banques_repertoires VALUES (%s, %s)", (ligne[0], str(dossier)))
+	base_vide.execute("INSERT INTO bank_directories VALUES (%s, %s)", (ligne[0], str(dossier)))
 	contexte.repertoire, contexte.banque = dossier, int(str(ligne[0]))
 
 
@@ -102,11 +102,11 @@ def indexee(contexte: Contexte, nom: str) -> None:
 @given(parsers.parse("le fil musical permanent « {nom} », avec la banque « {banque} »"))
 def fil_de_la_banque(contexte: Contexte, base_vide: Connexion, nom: str, banque: str) -> None:
 	ligne = base_vide.execute(
-		"INSERT INTO evenements (nom_interne, priorite) VALUES (%s, 'fil_musical') RETURNING id", (nom,)
+		"INSERT INTO events (internal_name, priority) VALUES (%s, 'background_programming') RETURNING id", (nom,)
 	).fetchone()
 	assert ligne is not None
 	base_vide.execute(
-		"INSERT INTO evenements_elements (evenement_id, position, banque_id) VALUES (%s, 1, %s)",
+		"INSERT INTO event_items (event_id, position, bank_id) VALUES (%s, 1, %s)",
 		(ligne[0], contexte.banque),
 	)
 
@@ -137,16 +137,16 @@ def changer_l_entree(contexte: Contexte, base_vide: Connexion, nom: str, changem
 	identifiant = sonore_de(base_vide, contexte, nom)
 	etat = re.fullmatch(r"passe à l'état « (\w+) »", changement)
 	if etat:
-		base_vide.execute("UPDATE sonores SET etat = %s WHERE id = %s", (etat.group(1), identifiant))
+		base_vide.execute("UPDATE sounds SET state = %s WHERE id = %s", (etat.group(1), identifiant))
 	elif changement == "change d'emplacement":
 		base_vide.execute(
-			"UPDATE sonores SET emplacement = %s WHERE id = %s",
+			"UPDATE sounds SET location = %s WHERE id = %s",
 			(str(repertoire(contexte) / "ailleurs.flac"), identifiant),
 		)
 	elif changement == "change d'artiste et de titre":
-		base_vide.execute("UPDATE sonores SET artiste = 'Autre', titre = 'Autre' WHERE id = %s", (identifiant,))
+		base_vide.execute("UPDATE sounds SET artist = 'Autre', title = 'Autre' WHERE id = %s", (identifiant,))
 	elif changement == "est supprimée de la base":
-		base_vide.execute("DELETE FROM sonores WHERE id = %s", (identifiant,))
+		base_vide.execute("DELETE FROM sounds WHERE id = %s", (identifiant,))
 	else:
 		raise AssertionError(f"changement inconnu : {changement}")
 
@@ -171,13 +171,13 @@ def publier(contexte: Contexte, base_vide: Connexion, nom: str) -> None:
 	identifiant = sonore_de(base_vide, contexte, nom)
 	passage = Passage(uuid.uuid4(), identifiant, None, None, None, INSTANT)
 	base_vide.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, emplacement, titre)"
-		" VALUES (%s, 'debut', %s, %s, %s, %s)",
+		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, location, title)"
+		" VALUES (%s, 'start', %s, %s, %s, %s)",
 		(passage.id, INSTANT, identifiant, str(repertoire(contexte) / nom), nom),
 	)
 	base_vide.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, emplacement, titre, duree_diffusee,"
-		" sans_incident) VALUES (%s, 'fin', %s, %s, %s, %s, '1 s', true)",
+		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, location, title, played_duration,"
+		" without_incident) VALUES (%s, 'end', %s, %s, %s, %s, '1 s', true)",
 		(passage.id, INSTANT, identifiant, str(repertoire(contexte) / nom), nom),
 	)
 	with connecter(*parametres_base_test(), Role.LECTURE) as connexion:
@@ -211,7 +211,7 @@ def intacts(contexte: Contexte) -> None:
 @then(parsers.parse("le fichier « {nom} » a de nouveau un sonore, à l'état « {etat} »"))
 def reindexe(contexte: Contexte, base_vide: Connexion, nom: str, etat: str) -> None:
 	ligne = base_vide.execute(
-		"SELECT etat::text FROM sonores WHERE id = %s", (sonore_de(base_vide, contexte, nom),)
+		"SELECT state::text FROM sounds WHERE id = %s", (sonore_de(base_vide, contexte, nom),)
 	).fetchone()
 	assert ligne == (etat,)
 
@@ -219,20 +219,20 @@ def reindexe(contexte: Contexte, base_vide: Connexion, nom: str, etat: str) -> N
 @then(parsers.parse("le sonore de « {nom} » est à l'état « {etat} »"))
 def etat_du_sonore(contexte: Contexte, base_vide: Connexion, nom: str, etat: str) -> None:
 	ligne = base_vide.execute(
-		"SELECT etat::text FROM sonores WHERE id = %s", (sonore_de(base_vide, contexte, nom),)
+		"SELECT state::text FROM sounds WHERE id = %s", (sonore_de(base_vide, contexte, nom),)
 	).fetchone()
 	assert ligne == (etat,)
 
 
 @then(parsers.parse("l'airplay montre {nombre:d} passages"))
 def nombre_de_passages(base_vide: Connexion, nombre: int) -> None:
-	assert base_vide.execute("SELECT count(*) FROM airplay WHERE type_ligne = 'debut'").fetchone() == (nombre,)
+	assert base_vide.execute("SELECT count(*) FROM airplay WHERE line_type = 'start'").fetchone() == (nombre,)
 
 
 @then(parsers.parse("le log contient 1 alerte « {nature} », qui mentionne « {mention} »"))
 def alerte(base_vide: Connexion, nature: str, mention: str) -> None:
-	lignes = base_vide.execute("SELECT niveau::text, message FROM log WHERE nature = %s", (nature,)).fetchall()
-	assert (len(lignes) >= 1) and (all((n == "alerte") and (mention in str(m)) for n, m in lignes)), lignes
+	lignes = base_vide.execute("SELECT level::text, message FROM log WHERE kind = %s", (nature,)).fetchall()
+	assert (len(lignes) >= 1) and (all((n == "warning") and (mention in str(m)) for n, m in lignes)), lignes
 
 
 @then("l'ouverture est refusée, car c'est un fichier sonore protégé")
@@ -267,6 +267,6 @@ def garde_fou(contexte: Contexte, verdict: str) -> None:
 def silences_detectes(contexte: Contexte, base_vide: Connexion, nom: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/146"""
 	ligne = base_vide.execute(
-		"SELECT debut_detecte, fin_detectee FROM sonores WHERE id = %s", (sonore_de(base_vide, contexte, nom),)
+		"SELECT detected_start, detected_end FROM sounds WHERE id = %s", (sonore_de(base_vide, contexte, nom),)
 	).fetchone()
 	assert (ligne is not None) and (all(isinstance(valeur, timedelta) for valeur in ligne)), ligne

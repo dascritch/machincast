@@ -53,12 +53,12 @@ Fonctionnalité: Conformation des textes
 		Et la banque « Jingles », séquentielle, sans nom public, avec aucun
 		Et la séquence « Pub », sans nom public, avec rien
 		Et les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et les feeds « Radio » « https://flux.exemple/radio »
 		Et les sonores :
-			| artiste | titre  | type    | etat  | duree | emplacement        |
-			| Gaufres | Minuit | fichier | actif | 180   | /musique/minuit.ogg |
+			| artist  | title  | type | state  | duration | location            |
+			| Gaufres | Minuit | file | active | 180      | /musique/minuit.ogg |
 		Quand la fenêtre de l'interface s'ouvre
 		Et <ouverture>
 		Et je saisis « <saisie> » dans le champ « <champ> » de la fiche
@@ -67,13 +67,13 @@ Fonctionnalité: Conformation des textes
 
 		Exemples:
 			| ouverture                                  | champ       | saisie                        | table         | colonne                            | enregistre       |
-			| j'ouvre la fiche de la banque « Jingles »  | nom_interne | \u{20}Jingles\u{a0}\u{a0}soir | banques       | nom_interne                        | Jingles soir     |
-			| j'ouvre la fiche de la banque « Jingles »  | nom_public  | Les\u{2003}jingles\u{fe0f}    | banques       | nom_public                         | Les jingles      |
-			| j'ouvre la fiche de la séquence « Pub »    | nom_interne | Pub\u{9}du\u{e000} soir       | sequences     | nom_interne                        | Pub du soir      |
-			| j'ouvre la fiche de la séquence « Pub »    | nom_public  | \u{a0}                        | sequences     | nom_public                         |                  |
-			| j'ouvre la fiche de l'événement « Continue » | nom_interne | Continue\u{200b}  nuit      | evenements    | nom_interne                        | Continue nuit    |
-			| j'ouvre la fiche de l'événement « Continue » | nom_public  | La\u{202f}nuit\u{7}         | evenements    | nom_public                         | La nuit          |
-			| j'ouvre la fiche du feed « Radio »  | nom         | Radio\u{a0}\u{a0}locale\u{feff} | feeds | nom                       | Radio locale     |
-			| j'ouvre la fiche du sonore « Minuit »      | artiste     | Les\u{a0}Gaufres\u{20}        | sonores       | artiste                            | Les Gaufres      |
-			| j'ouvre la fiche du sonore « Minuit »      | titre       | Café\u{2028}à minuit          | sonores       | titre                              | Café à minuit    |
-			| j'ouvre la fiche du sonore « Minuit »      | album       | Nuit\u{fffd} blanche          | sonores       | metadonnees_musicales.album        | Nuit blanche     |
+			| j'ouvre la fiche de la banque « Jingles »  | nom_interne | \u{20}Jingles\u{a0}\u{a0}soir | banks       | internal_name                        | Jingles soir     |
+			| j'ouvre la fiche de la banque « Jingles »  | nom_public  | Les\u{2003}jingles\u{fe0f}    | banks       | public_name                         | Les jingles      |
+			| j'ouvre la fiche de la séquence « Pub »    | nom_interne | Pub\u{9}du\u{e000} soir       | sequences     | internal_name                        | Pub du soir      |
+			| j'ouvre la fiche de la séquence « Pub »    | nom_public  | \u{a0}                        | sequences     | public_name                         |                  |
+			| j'ouvre la fiche de l'événement « Continue » | nom_interne | Continue\u{200b}  nuit      | events    | internal_name                        | Continue nuit    |
+			| j'ouvre la fiche de l'événement « Continue » | nom_public  | La\u{202f}nuit\u{7}         | events    | public_name                         | La nuit          |
+			| j'ouvre la fiche du feed « Radio »  | nom         | Radio\u{a0}\u{a0}locale\u{feff} | feeds | name                       | Radio locale     |
+			| j'ouvre la fiche du sonore « Minuit »      | artiste     | Les\u{a0}Gaufres\u{20}        | sounds       | artist                            | Les Gaufres      |
+			| j'ouvre la fiche du sonore « Minuit »      | titre       | Café\u{2028}à minuit          | sounds       | title                              | Café à minuit    |
+			| j'ouvre la fiche du sonore « Minuit »      | album       | Nuit\u{fffd} blanche          | sounds       | music_metadata.album               | Nuit blanche     |

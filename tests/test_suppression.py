@@ -26,24 +26,24 @@ from tests.etapes_interface import (
 
 scenarios("suppression.feature")
 
-NOMS = "COALESCE(s.titre, b.nom_interne, q.nom_interne)"
+NOMS = "COALESCE(s.title, b.internal_name, q.internal_name)"
 LISTES = {
 	"la banque": (
-		"banques",
-		f"SELECT {NOMS} FROM banques_sonores e JOIN sonores s ON s.id = e.sonore_id"
-		" LEFT JOIN banques b ON false LEFT JOIN sequences q ON false WHERE e.banque_id = %s ORDER BY e.position",
+		"banks",
+		f"SELECT {NOMS} FROM bank_sounds e JOIN sounds s ON s.id = e.sound_id"
+		" LEFT JOIN banks b ON false LEFT JOIN sequences q ON false WHERE e.bank_id = %s ORDER BY e.position",
 	),
 	"la séquence": (
 		"sequences",
-		f"SELECT {NOMS} FROM sequences_elements e LEFT JOIN sonores s ON s.id = e.sonore_id"
-		" LEFT JOIN banques b ON b.id = e.banque_id LEFT JOIN sequences q ON false"
+		f"SELECT {NOMS} FROM sequence_items e LEFT JOIN sounds s ON s.id = e.sound_id"
+		" LEFT JOIN banks b ON b.id = e.bank_id LEFT JOIN sequences q ON false"
 		" WHERE e.sequence_id = %s ORDER BY e.position",
 	),
 	"l'événement": (
-		"evenements",
-		f"SELECT {NOMS} FROM evenements_elements e LEFT JOIN sonores s ON s.id = e.sonore_id"
-		" LEFT JOIN banques b ON b.id = e.banque_id LEFT JOIN sequences q ON q.id = e.sequence_id"
-		" WHERE e.evenement_id = %s ORDER BY e.position",
+		"events",
+		f"SELECT {NOMS} FROM event_items e LEFT JOIN sounds s ON s.id = e.sound_id"
+		" LEFT JOIN banks b ON b.id = e.bank_id LEFT JOIN sequences q ON q.id = e.sequence_id"
+		" WHERE e.event_id = %s ORDER BY e.position",
 	),
 }
 """La table de la banque, de la séquence ou de l'événement, et la requête des noms de ses éléments, dans l'ordre."""
@@ -56,10 +56,10 @@ LISTES = {
 def passage(base_vide: Connexion, titre: str, evenement: str) -> None:
 	"""Le début d'un passage dans l'historique de diffusion, qui recopie l'emplacement, l'artiste et le titre."""
 	base_vide.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, sonore_id, evenement_id, emplacement, artiste, titre)"
-		" SELECT gen_random_uuid(), 'debut', s.id, %s, s.emplacement, s.artiste, s.titre FROM sonores s"
-		" WHERE s.titre = %s",
-		(identifiant(base_vide, "evenements", "nom_interne", evenement), titre),
+		"INSERT INTO airplay (play_id, line_type, sound_id, event_id, location, artist, title)"
+		" SELECT gen_random_uuid(), 'start', s.id, %s, s.location, s.artist, s.title FROM sounds s"
+		" WHERE s.title = %s",
+		(identifiant(base_vide, "events", "internal_name", evenement), titre),
 	)
 
 
@@ -88,13 +88,13 @@ def seule_question(interface: Contexte) -> None:
 def liste_en_base(base_vide: Connexion, genre: str, nom: str, noms: str) -> None:
 	"""Les éléments, dans l'ordre : un sonore par son titre, une banque ou une séquence par son nom."""
 	table, requete = LISTES[genre]
-	lignes = base_vide.execute(requete, (identifiant(base_vide, table, "nom_interne", nom),)).fetchall()
+	lignes = base_vide.execute(requete, (identifiant(base_vide, table, "internal_name", nom),)).fetchall()
 	assert [str(ligne[0]) for ligne in lignes] == NOM.findall(noms)
 
 
 @then(parsers.parse("l'historique de diffusion garde le passage de « {sonore} », à l'emplacement « {emplacement} »"))
 def passage_garde(interface: Contexte, base_vide: Connexion, sonore: str, emplacement: str) -> None:
-	lignes = base_vide.execute("SELECT artiste, titre, emplacement FROM airplay").fetchall()
+	lignes = base_vide.execute("SELECT artist, title, location FROM airplay").fetchall()
 	artiste, titre = sonore.split(" – ")
 	assert lignes == [(artiste, titre, interface.chemin(emplacement))]
 
@@ -112,7 +112,7 @@ def dossier_la(interface: Contexte, dossier: str) -> None:
 
 @then(parsers.parse("le stream « {titre} » n'a plus d'événement de secours"))
 def sans_secours(base_vide: Connexion, titre: str) -> None:
-	lignes = base_vide.execute("SELECT secours_evenement_id FROM sonores WHERE titre = %s", (titre,)).fetchall()
+	lignes = base_vide.execute("SELECT fallback_event_id FROM sounds WHERE title = %s", (titre,)).fetchall()
 	assert lignes == [(None,)]
 
 
@@ -121,7 +121,7 @@ def sans_secours(base_vide: Connexion, titre: str) -> None:
 
 @when(parsers.parse("une autre banque « {nom} » est créée en base"))
 def autre_banque(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("INSERT INTO banques (nom_interne, mode) VALUES (%s, 'aleatoire')", (nom,))
+	base_vide.execute("INSERT INTO banks (internal_name, mode) VALUES (%s, 'random')", (nom,))
 
 
 @then(parsers.re(r"les champs de la fiche (?P<non>ne )?se modifient(?: pas)?"))

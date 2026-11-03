@@ -6,22 +6,22 @@ Fonctionnalité: Fiche d'un sonore
 
 	https://github.com/dascritch/machincast/issues/28, spec § 8.3. La fiche s'ouvre dans un onglet qui se ferme, depuis
 	la liste des sonores, comme celle d'une banque (fiche_banque.feature, qui vérifie aussi l'enregistrement, l'annulation
-	et la fermeture, communs aux fiches). Un champ modifié à l'enregistrement est ajouté à champs_edites, sauf l'état :
+	et la fermeture, communs aux fiches). Un champ modifié à l'enregistrement est ajouté à edited_fields, sauf l'état :
 	l'indexeur ne le modifie plus. Les champs non modifiés ne sont pas réécrits.
 
 	Contexte:
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-16 20:00:30 »
 		Et les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement                  |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/jingles/hiver/cafe.flac |
+			| artist      | title         | type | state  | duration | location                     |
+			| Les Gaufres | Café à minuit | file | active | 214      | /srv/jingles/hiver/cafe.flac |
 		Et le sonore « Café à minuit » a en base :
-			| champ                 | valeur                                                       |
-			| metadonnees_musicales | {"annee": 1998, "album": "Nuit blanche", "isrc": "FR-Z03"}   |
-			| crossfade_debut       | 1.5 s                                                        |
-			| max_lectures          | 12                                                           |
-			| debut_diffusion       | 2026-10-01 00:00                                             |
-			| champs_edites         | {titre}                                                      |
+			| champ           | valeur                                                     |
+			| music_metadata  | {"annee": 1998, "album": "Nuit blanche", "isrc": "FR-Z03"} |
+			| crossfade_start | 1.5 s                                                      |
+			| max_plays       | 12                                                         |
+			| broadcast_start | 2026-10-01 00:00                                           |
+			| edited_fields   | {title}                                                    |
 
 	# ─── Ouverture ─────────────────────────────────────────────
 
@@ -59,17 +59,17 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Les autres métadonnées sont rangées par clé
 		Étant donné le sonore « Café à minuit » a en base :
-			| champ                 | valeur                                  |
-			| metadonnees_musicales | {"zz": 1, "isrc": "FR-Z03", "bpm": 120} |
+			| champ          | valeur                                  |
+			| music_metadata | {"zz": 1, "isrc": "FR-Z03", "bpm": 120} |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors la fiche du sonore montre les autres métadonnées « bpm : 120, isrc : FR-Z03, zz : 1 »
 
 	Plan du scénario: Un sonore sans titre est nommé par son fichier, ou par son adresse
 		Étant donné les sonores :
-			| artiste | titre | type    | etat   | duree | emplacement                 |
-			|         |       | fichier | apercu |       | /srv/jingles/brut.flac      |
-			|         |       | stream  | actif  |       | https://flux.exemple/direct |
+			| artist | title | type   | state   | duration | location                    |
+			|        |       | file   | preview |          | /srv/jingles/brut.flac      |
+			|        |       | stream | active  |          | https://flux.exemple/direct |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « <emplacement> »
 		Alors l'onglet ouvert est « Sonore : <nom> »
@@ -104,7 +104,7 @@ Fonctionnalité: Fiche d'un sonore
 		Et j'enregistre la fiche
 		Alors le sonore « Café du matin » est en base, d'artiste « Les Gaufrettes »
 		Et les métadonnées musicales de « Café du matin » sont {"annee": 1999, "album": "Nuit blanche", "genre": "Jazz", "isrc": "FR-Z03", "piste": 4}
-		Et les champs saisis à la main de « Café du matin » sont « titre », « artiste », « metadonnees_musicales.annee », « metadonnees_musicales.genre », « metadonnees_musicales.piste »
+		Et les champs saisis à la main de « Café du matin » sont « title », « artist », « music_metadata.annee », « music_metadata.genre », « music_metadata.piste »
 		Et l'onglet ouvert est « Sonore : Café du matin »
 		Et la fiche du sonore montre les champs saisis à la main « titre », « artiste », « année », « genre », « piste »
 
@@ -119,7 +119,7 @@ Fonctionnalité: Fiche d'un sonore
 		Et j'enregistre la fiche
 		Alors le sonore « Café à minuit » est en base, sans artiste
 		Et les métadonnées musicales de « Café à minuit » sont {"isrc": "FR-Z03"}
-		Et les champs saisis à la main de « Café à minuit » sont « titre », « artiste », « metadonnees_musicales.annee », « metadonnees_musicales.album »
+		Et les champs saisis à la main de « Café à minuit » sont « title », « artist », « music_metadata.annee », « music_metadata.album »
 
 	Scénario: Un champ remis à sa valeur n'est pas marqué
 		Quand la fenêtre de l'interface s'ouvre
@@ -130,7 +130,7 @@ Fonctionnalité: Fiche d'un sonore
 			| Genre   | Jazz        |
 			| Artiste | Les Gaufres |
 		Et j'enregistre la fiche
-		Alors les champs saisis à la main de « Café à minuit » sont « titre », « metadonnees_musicales.genre »
+		Alors les champs saisis à la main de « Café à minuit » sont « title », « music_metadata.genre »
 
 	Scénario: Un sonore peut n'avoir ni artiste ni titre, et ses noms sont enregistrés sans les espaces qui les entourent
 		Quand la fenêtre de l'interface s'ouvre
@@ -173,14 +173,14 @@ Fonctionnalité: Fiche d'un sonore
 			| Diffusion jusqu'au    | 31/12/2026 23:30 |
 		Et j'enregistre la fiche
 		Alors le sonore « Café à minuit » a en base :
-			| champ               | valeur                    |
-			| crossfade_debut     | 0:00:00.500000            |
-			| crossfade_fin       | 0:00:02.200000            |
-			| max_lectures        | 3                         |
-			| masquer_metadonnees | True                      |
-			| debut_diffusion     | 2026-10-02 08:00:00+02:00 |
-			| fin_diffusion       | 2026-12-31 23:30:00+01:00 |
-		Et les champs saisis à la main de « Café à minuit » sont « titre », « crossfade_debut », « crossfade_fin », « max_lectures », « masquer_metadonnees », « debut_diffusion », « fin_diffusion »
+			| champ           | valeur                    |
+			| crossfade_start | 0:00:00.500000            |
+			| crossfade_end   | 0:00:02.200000            |
+			| max_plays       | 3                         |
+			| hide_metadata   | True                      |
+			| broadcast_start | 2026-10-02 08:00:00+02:00 |
+			| broadcast_end   | 2026-12-31 23:30:00+01:00 |
+		Et les champs saisis à la main de « Café à minuit » sont « title », « crossfade_start », « crossfade_end », « max_plays », « hide_metadata », « broadcast_start », « broadcast_end »
 
 	Scénario: Un crossfade se paramètre en le cochant, et 0 seconde en est un
 		https://github.com/dascritch/machincast/issues/145 : décoché, le crossfade n'est pas paramétré ; il vient alors de la banque ou de la
@@ -200,9 +200,9 @@ Fonctionnalité: Fiche d'un sonore
 		Quand j'enregistre la fiche
 		Alors le sonore « Café à minuit » a en base :
 			| champ           | valeur  |
-			| crossfade_debut | None    |
-			| crossfade_fin   | 0:00:00 |
-		Et les champs saisis à la main de « Café à minuit » sont « titre », « crossfade_debut », « crossfade_fin »
+			| crossfade_start | None    |
+			| crossfade_end   | 0:00:00 |
+		Et les champs saisis à la main de « Café à minuit » sont « title », « crossfade_start », « crossfade_end »
 
 	# ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───
 
@@ -211,9 +211,9 @@ Fonctionnalité: Fiche d'un sonore
 		du sonore n'est pas rogné. La fin détectée se compte depuis la fin du fichier.
 
 		Étant donné le sonore « Café à minuit » a en base :
-			| champ         | valeur |
-			| debut_detecte | 0.5 s  |
-			| fin_detectee  | 1.25 s |
+			| champ          | valeur |
+			| detected_start | 0.5 s  |
+			| detected_end   | 1.25 s |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors la fiche du sonore montre :
@@ -228,20 +228,20 @@ Fonctionnalité: Fiche d'un sonore
 			| Fin détectée       |        |
 		Et j'enregistre la fiche
 		Alors le sonore « Café à minuit » a en base :
-			| champ            | valeur         |
-			| detection_silences | True           |
-			| debut_detecte    | 0:00:00.300000 |
-			| fin_detectee     | None           |
-		Et les champs saisis à la main de « Café à minuit » sont « titre », « detection_silences », « debut_detecte », « fin_detectee »
+			| champ             | valeur         |
+			| silence_detection | True           |
+			| detected_start    | 0:00:00.300000 |
+			| detected_end      | None           |
+		Et les champs saisis à la main de « Café à minuit » sont « title », « silence_detection », « detected_start », « detected_end »
 
 	# ─── Début et fin sur la frise (https://github.com/dascritch/machincast/issues/330) ───
 
 	Scénario: Les silences détectés s'appellent « Début » et « Fin » dès qu'ils sont saisis à la main
 		Étant donné le sonore « Café à minuit » a en base :
-			| champ         | valeur                       |
-			| debut_detecte | 0.5 s                        |
-			| fin_detectee  | 1.25 s                       |
-			| champs_edites | {titre,fin_detectee}         |
+			| champ          | valeur               |
+			| detected_start | 0.5 s                |
+			| detected_end   | 1.25 s               |
+			| edited_fields  | {title,detected_end} |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors les silences détectés de la fiche s'appellent « Début détecté » et « Fin »
@@ -254,9 +254,9 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Le début ne passe pas après la fin à la saisie : chaque silence est borné par l'autre
 		Étant donné le sonore « Café à minuit » a en base :
-			| champ         | valeur |
-			| debut_detecte | 0.5 s  |
-			| fin_detectee  | 1.25 s |
+			| champ          | valeur |
+			| detected_start | 0.5 s  |
+			| detected_end   | 1.25 s |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors le début détecté de la fiche va au plus à 212,75 s, et la fin détectée à 213,50 s
@@ -270,9 +270,9 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Les silences cochés ont des curseurs sur la frise, qui se glissent et règlent la fiche
 		Étant donné le sonore « Café à minuit » a en base :
-			| champ         | valeur |
-			| debut_detecte | 0.5 s  |
-			| fin_detectee  | 1.25 s |
+			| champ          | valeur |
+			| detected_start | 0.5 s  |
+			| detected_end   | 1.25 s |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors la frise de la fiche a les curseurs « Début » à 0,50 s et « Fin » à 212,75 s
@@ -300,16 +300,16 @@ Fonctionnalité: Fiche d'un sonore
 		Alors la fiche signale « Les silences détectés doivent laisser du son : ensemble, plus courts que la durée du sonore. »
 		Et les champs signalés par ⚠️ sont « Début », « Fin »
 		Et le sonore « Café à minuit » a en base :
-			| champ         | valeur |
-			| debut_detecte | None   |
-			| fin_detectee  | None   |
+			| champ          | valeur |
+			| detected_start | None   |
+			| detected_end   | None   |
 
 	Scénario: Un crossfade plus long que la durée maximale des préférences reste tel quel
 		https://github.com/dascritch/machincast/issues/145 : 5 secondes au plus, par défaut.
 
 		Étant donné le sonore « Café à minuit » a en base :
 			| champ         | valeur |
-			| crossfade_fin | 8 s    |
+			| crossfade_end | 8 s    |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors la fiche du sonore montre :
@@ -331,8 +331,8 @@ Fonctionnalité: Fiche d'un sonore
 		Quand j'enregistre la fiche
 		Alors le sonore « Café à minuit » a en base :
 			| champ           | valeur |
-			| max_lectures    | None   |
-			| debut_diffusion | None   |
+			| max_plays       | None   |
+			| broadcast_start | None   |
 
 	Scénario: Une période cochée part de l'heure de l'horloge, à la minute
 		Quand la fenêtre de l'interface s'ouvre
@@ -345,7 +345,7 @@ Fonctionnalité: Fiche d'un sonore
 		Quand j'enregistre la fiche
 		Alors le sonore « Café à minuit » a en base :
 			| champ         | valeur                    |
-			| fin_diffusion | 2026-10-16 20:00:00+02:00 |
+			| broadcast_end | 2026-10-16 20:00:00+02:00 |
 
 	Plan du scénario: Une période dont la fin ne suit pas le début n'est pas enregistrée
 		Quand la fenêtre de l'interface s'ouvre
@@ -358,7 +358,7 @@ Fonctionnalité: Fiche d'un sonore
 		Et les champs signalés par ⚠️ sont « Diffusion à partir du », « Diffusion jusqu'au »
 		Et le sonore « Café à minuit » a en base :
 			| champ         | valeur |
-			| fin_diffusion | None   |
+			| broadcast_end | None   |
 
 		Exemples:
 			| fin              |
@@ -398,25 +398,25 @@ Fonctionnalité: Fiche d'un sonore
 	Plan du scénario: L'état se choisit parmi ceux que l'interface peut poser
 		Étant donné le sonore « Café à minuit » a en base :
 			| champ | valeur |
-			| etat  | <etat> |
+			| state | <etat> |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors l'état de la fiche du sonore se choisit parmi <choix>
 
 		Exemples:
 			| etat      | choix                                  |
-			| actif     | « actif », « désactivé »               |
-			| desactive | « désactivé », « actif »               |
-			| expire    | « expiré », « actif », « désactivé »   |
-			| errone    | « erroné », « actif », « désactivé »   |
-			| non_supporte | « non supporté », « actif », « désactivé » |
-			| supprime  | « supprimé », « actif », « désactivé » |
-			| apercu    | « aperçu »                             |
+			| active     | « actif », « désactivé »               |
+			| disabled | « désactivé », « actif »               |
+			| expired    | « expiré », « actif », « désactivé »   |
+			| corrupt    | « erroné », « actif », « désactivé »   |
+			| unsupported | « non supporté », « actif », « désactivé » |
+			| missing  | « supprimé », « actif », « désactivé » |
+			| preview    | « aperçu »                             |
 
 	Scénario: L'état modifié part en base, sans être marqué : l'indexeur peut encore le changer
 		Étant donné le sonore « Café à minuit » a en base :
-			| champ | valeur |
-			| etat  | expire |
+			| champ | valeur  |
+			| state | expired |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Et je saisis dans la fiche du sonore :
@@ -425,20 +425,20 @@ Fonctionnalité: Fiche d'un sonore
 		Et j'enregistre la fiche
 		Alors le sonore « Café à minuit » a en base :
 			| champ | valeur |
-			| etat  | actif  |
-		Et les champs saisis à la main de « Café à minuit » sont « titre »
+			| state | active |
+		Et les champs saisis à la main de « Café à minuit » sont « title »
 
 	Scénario: L'état que la diffusion pose entre-temps n'est pas écrasé par une fiche qui ne l'a pas changé
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
-		Et la diffusion passe « Café à minuit » à l'état « expire »
+		Et la diffusion passe « Café à minuit » à l'état « expired »
 		Et je saisis dans la fiche du sonore :
 			| champ | valeur |
 			| Genre | Jazz   |
 		Et j'enregistre la fiche
 		Alors le sonore « Café à minuit » a en base :
-			| champ | valeur |
-			| etat  | expire |
+			| champ | valeur  |
+			| state | expired |
 
 	# ─── Stream ────────────────────────────────────────────────
 
@@ -455,8 +455,8 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Un fichier n'a pas de réglages de stream, un stream pas d'emplacement ni de durée
 		Étant donné les sonores :
-			| artiste | titre  | type   | etat  | duree | emplacement                 |
-			|         | Direct | stream | actif |       | https://flux.exemple/direct |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Direct | stream | active |          | https://flux.exemple/direct |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors la fiche du sonore n'a pas de réglages de stream
@@ -473,14 +473,14 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Un stream passe d'une adresse directe à un feed, et choisit son événement de secours
 		Étant donné les sonores :
-			| artiste | titre  | type   | etat  | duree | emplacement                 |
-			|         | Direct | stream | actif |       | https://flux.exemple/direct |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Direct | stream | active |          | https://flux.exemple/direct |
 		Et les feeds « Radio Machin » à « https://machin.exemple/live », « Radio Bidule » à « https://bidule.exemple/live »
 		Et les événements :
-			| nom          | nom_public | priorite    | debut | fin | jours |
-			| Continue     |            | fil_musical |       |     |       |
-			| Secours nuit |            | secours     |       |     |       |
-			| Secours jour |            | secours     |       |     |       |
+			| name         | public_name | priority               | starts_at | ends_at | days |
+			| Continue     |             | background_programming |           |         |      |
+			| Secours nuit |             | fallback               |           |         |      |
+			| Secours jour |             | fallback               |           |         |      |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
 		Alors les feeds proposés sont « Radio Bidule », « Radio Machin »
@@ -491,7 +491,7 @@ Fonctionnalité: Fiche d'un sonore
 			| Événement de secours | Secours nuit |
 		Et j'enregistre la fiche
 		Alors le stream « Direct » est en base, sur le feed « Radio Machin », sans adresse directe, secouru par « Secours nuit »
-		Et les champs saisis à la main de « Direct » sont « url_stream », « feed_id », « secours_evenement_id »
+		Et les champs saisis à la main de « Direct » sont « stream_url », « feed_id », « fallback_event_id »
 		Quand je saisis dans la fiche du sonore :
 			| champ                | valeur                       |
 			| Adresse directe      | https://flux.exemple/nouveau |
@@ -501,8 +501,8 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Le mode d'un stream décide du champ qui se saisit, et en changer modifie la fiche
 		Étant donné les sonores :
-			| artiste | titre  | type   | etat  | duree | emplacement                 |
-			|         | Direct | stream | actif |       | https://flux.exemple/direct |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Direct | stream | active |          | https://flux.exemple/direct |
 		Et les feeds « Radio Machin » à « https://machin.exemple/live »
 		Et le stream « Direct » est sur le feed « Radio Machin »
 		Quand la fenêtre de l'interface s'ouvre
@@ -521,12 +521,12 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Une fiche de stream enregistrée se relit sans rien doubler
 		Étant donné les sonores :
-			| artiste | titre  | type   | etat  | duree | emplacement                 |
-			|         | Direct | stream | actif |       | https://flux.exemple/direct |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Direct | stream | active |          | https://flux.exemple/direct |
 		Et les feeds « Radio Machin » à « https://machin.exemple/live »
 		Et les événements :
-			| nom          | nom_public | priorite | debut | fin | jours |
-			| Secours nuit |            | secours  |       |     |       |
+			| name         | public_name | priority | starts_at | ends_at | days |
+			| Secours nuit |             | fallback |           |         |      |
 		Et le sonore « Direct » est passé 2 fois, toutes les 5 minutes depuis « 2026-10-16 10:00:00 »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
@@ -548,16 +548,16 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Sans feed en base, un stream ne peut pas en choisir
 		Étant donné les sonores :
-			| artiste | titre  | type   | etat  | duree | emplacement                 |
-			|         | Direct | stream | actif |       | https://flux.exemple/direct |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Direct | stream | active |          | https://flux.exemple/direct |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
 		Alors le choix d'un feed est inactif
 
 	Scénario: Un stream sans adresse n'est pas enregistré
 		Étant donné les sonores :
-			| artiste | titre  | type   | etat  | duree | emplacement                 |
-			|         | Direct | stream | actif |       | https://flux.exemple/direct |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Direct | stream | active |          | https://flux.exemple/direct |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
 		Et je saisis dans la fiche du sonore :
@@ -571,8 +571,8 @@ Fonctionnalité: Fiche d'un sonore
 	Scénario: Un nouveau stream se crée depuis la liste des sonores, à l'état actif
 		Étant donné les feeds « Radio Machin » à « https://machin.exemple/live »
 		Et les événements :
-			| nom          | nom_public | priorite | debut | fin | jours |
-			| Secours nuit |            | secours  |       |     |       |
+			| name         | public_name | priority | starts_at | ends_at | days |
+			| Secours nuit |             | fallback |           |         |      |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et je clique sur « Nouveau stream »
@@ -599,7 +599,7 @@ Fonctionnalité: Fiche d'un sonore
 		Et le sonore « Le direct » a en base :
 			| champ | valeur |
 			| type  | stream |
-			| etat  | actif  |
+			| state | active |
 		Et le bouton « ❌ Supprimer… » de la fiche est actif
 
 	Scénario: Un nouveau stream peut suivre un feed, et n'a pas besoin de titre
@@ -628,8 +628,8 @@ Fonctionnalité: Fiche d'un sonore
 	Plan du scénario: Le test d'un flux dit s'il répond, sans attendre son enregistrement
 		Étant donné un serveur de flux local, avec le flux « direct » en ligne
 		Et les sonores :
-			| artiste | titre  | type   | etat  | duree | emplacement                 |
-			|         | Direct | stream | actif |       | https://flux.exemple/direct |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Direct | stream | active |          | https://flux.exemple/direct |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
 		Et je saisis l'adresse du flux « <flux> » du serveur local dans la fiche du sonore
@@ -646,8 +646,8 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Une adresse qui n'en est pas une n'est pas testée
 		Étant donné les sonores :
-			| artiste | titre  | type   | etat  | duree | emplacement                 |
-			|         | Direct | stream | actif |       | https://flux.exemple/direct |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Direct | stream | active |          | https://flux.exemple/direct |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
 		Et je saisis dans la fiche du sonore :
@@ -660,8 +660,8 @@ Fonctionnalité: Fiche d'un sonore
 	Scénario: Un second test repart de zéro, et le test terminé ferme sa connexion
 		Étant donné un serveur de flux local, avec le flux « direct » en ligne
 		Et les sonores :
-			| artiste | titre  | type   | etat  | duree | emplacement                 |
-			|         | Direct | stream | actif |       | https://flux.exemple/direct |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Direct | stream | active |          | https://flux.exemple/direct |
 		Et un test de flux limité à 1 seconde
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
@@ -679,8 +679,8 @@ Fonctionnalité: Fiche d'un sonore
 	Plan du scénario: Fermer la fiche, ou la fenêtre, arrête le test en cours
 		Étant donné un serveur de flux local, avec le flux « avare » en ligne
 		Et les sonores :
-			| artiste | titre  | type   | etat  | duree | emplacement                 |
-			|         | Direct | stream | actif |       | https://flux.exemple/direct |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Direct | stream | active |          | https://flux.exemple/direct |
 		Quand le flux « avare » du serveur local est avare
 		Et la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
@@ -699,8 +699,8 @@ Fonctionnalité: Fiche d'un sonore
 	Scénario: Le test d'un flux sur feed prend l'adresse du feed
 		Étant donné un serveur de flux local, avec le flux « direct » en ligne
 		Et les sonores :
-			| artiste | titre  | type   | etat  | duree | emplacement                 |
-			|         | Direct | stream | actif |       | https://flux.exemple/direct |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Direct | stream | active |          | https://flux.exemple/direct |
 		Et le feed « Local » à l'adresse du flux « direct » du serveur local
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
@@ -713,8 +713,8 @@ Fonctionnalité: Fiche d'un sonore
 	Scénario: Un test sans réponse s'arrête de lui-même
 		Étant donné un serveur qui accepte les connexions sans jamais répondre
 		Et les sonores :
-			| artiste | titre  | type   | etat  | duree | emplacement                 |
-			|         | Direct | stream | actif |       | https://flux.exemple/direct |
+			| artist | title  | type   | state  | duration | location                    |
+			|        | Direct | stream | active |          | https://flux.exemple/direct |
 		Et un test de flux limité à 1 seconde
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
@@ -726,24 +726,24 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Les derniers passages du sonore, avec leurs incidents
 		Étant donné les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement        |
-			|         | Autre | fichier | actif | 60    | /srv/pubs/autre.mp3 |
+			| artist | title | type | state  | duration | location            |
+			|        | Autre | file | active | 60       | /srv/pubs/autre.mp3 |
 		Et les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
 		Et les passages de sonores :
-			| sonore        | debut               | fin                 | evenement | sequence | banque  | sans_incident |
-			| Café à minuit | 2026-10-15 09:00:00 | 2026-10-15 09:03:34 | Continue  |          | Jingles | oui           |
-			| Autre         | 2026-10-15 10:00:00 | 2026-10-15 10:01:00 | Continue  |          |         | oui           |
-			| Café à minuit | 2026-10-16 19:00:00 | 2026-10-16 19:02:00 | Continue  |          | Jingles | non           |
-			| Café à minuit | 2026-10-16 20:00:00 |                     | Continue  |          |         |               |
+			| sound         | starts_at           | ends_at             | event    | sequence | bank    | without_incident |
+			| Café à minuit | 2026-10-15 09:00:00 | 2026-10-15 09:03:34 | Continue |          | Jingles | oui              |
+			| Autre         | 2026-10-15 10:00:00 | 2026-10-15 10:01:00 | Continue |          |         | oui              |
+			| Café à minuit | 2026-10-16 19:00:00 | 2026-10-16 19:02:00 | Continue |          | Jingles | non              |
+			| Café à minuit | 2026-10-16 20:00:00 |                     | Continue |          |         |                  |
 		Et le log :
-			| sonore        | horodatage          | niveau   | nature             | message           |
-			| Café à minuit | 2026-10-16 19:01:00 | incident | coupure            | décodeur perdu    |
-			| Café à minuit | 2026-10-16 19:01:30 | alerte   | reprise            | après 30 s        |
-			| Café à minuit | 2026-10-16 19:01:40 | info     | volume             | normal            |
-			| Autre         | 2026-10-16 19:01:10 | incident | coupure autre      | autre sonore      |
+			| sound         | logged_at           | level    | kind                | message              |
+			| Café à minuit | 2026-10-16 19:01:00 | incident | coupure             | décodeur perdu       |
+			| Café à minuit | 2026-10-16 19:01:30 | warning  | reprise             | après 30 s           |
+			| Café à minuit | 2026-10-16 19:01:40 | info     | volume              | normal               |
+			| Autre         | 2026-10-16 19:01:10 | incident | coupure autre       | autre sonore         |
 			| Café à minuit | 2026-10-15 12:00:00 | incident | fichier introuvable | hors de tout passage |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
@@ -770,8 +770,8 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Les relations montrent les séquences, banques et événements qui citent le sonore, et s'ouvrent
 		Étant donné les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
 		Et la banque « Tubes », aléatoire, sans nom public, avec aucun
 		Et la séquence « Passage pub », sans nom public, avec le sonore « Café à minuit », la banque « Tubes »
@@ -816,8 +816,8 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Retirer des relations les retire de la fiche, puis de leur liste en base à l'enregistrement, toutes places comprises
 		Étant donné les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et la banque « Tubes », aléatoire, sans nom public, avec aucun
 		Et la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
 		Et la séquence « Passage pub », sans nom public, avec le sonore « Café à minuit », la banque « Tubes »
@@ -893,12 +893,12 @@ Fonctionnalité: Fiche d'un sonore
 	Plan du scénario: L'encart « Fichier » donne le type, l'encodage moyen, la taille et les dates du fichier
 		Étant donné le fichier « …/emissions/matin.flac », de <octets> octets, modifié le « 2026-10-14 07:30:00 »
 		Et les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement            |
-			|         | Matin | fichier | actif | 100   | …/emissions/matin.flac |
+			| artist | title | type | state  | duration | location               |
+			|        | Matin | file | active | 100      | …/emissions/matin.flac |
 		Et le sonore « Matin » a en base :
-			| champ          | valeur              |
-			| type_mime      | audio/flac          |
-			| verifie_le     | 2026-10-15 08:15:00 |
+			| champ      | valeur              |
+			| mime_type  | audio/flac          |
+			| checked_at | 2026-10-15 08:15:00 |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Matin »
 		Alors l'encart « Fichier » de la fiche du sonore montre :
@@ -918,8 +918,8 @@ Fonctionnalité: Fiche d'un sonore
 	Scénario: Sur un système de fichiers qui ne garde pas la date de création, elle est inconnue
 		Étant donné le fichier « …/emissions/matin.flac », de 512 octets, modifié le « 2026-10-14 07:30:00 »
 		Et les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement            |
-			|         | Matin | fichier | actif | 100   | …/emissions/matin.flac |
+			| artist | title | type | state  | duration | location               |
+			|        | Matin | file | active | 100      | …/emissions/matin.flac |
 		Et un système de fichiers qui ne garde pas la date de création
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Matin »
@@ -929,8 +929,8 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Un fichier jamais vérifié, ou disparu, le dit dans l'encart « Fichier »
 		Étant donné les sonores :
-			| artiste | titre   | type    | etat   | duree | emplacement        |
-			|         | Disparu | fichier | apercu |       | …/disparu.flac     |
+			| artist | title   | type | state   | duration | location       |
+			|        | Disparu | file | preview |          | …/disparu.flac |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Disparu »
 		Alors l'encart « Fichier » de la fiche du sonore montre :
@@ -944,8 +944,8 @@ Fonctionnalité: Fiche d'un sonore
 
 	Scénario: Un stream n'a ni encart « Fichier », ni bouton du dossier
 		Étant donné les sonores :
-			| artiste | titre       | type   | etat  | duree | emplacement             |
-			|         | Machin soir | stream | actif |       | https://flux.exemple/a  |
+			| artist | title       | type   | state  | duration | location               |
+			|        | Machin soir | stream | active |          | https://flux.exemple/a |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Machin soir »
 		Alors la fiche du sonore n'a ni encart « Fichier », ni bouton du dossier

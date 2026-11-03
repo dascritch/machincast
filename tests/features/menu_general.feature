@@ -13,8 +13,8 @@ Fonctionnalité: Menu général de l'interface
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-19 21:30:00 »
 		Et les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et la banque « Jingles », séquentielle, sans nom public, avec aucun
 
 	Scénario: La barre de menus a les menus « Fichier », « Affichage », « Diffusion », « Maintenance » et « Aide »

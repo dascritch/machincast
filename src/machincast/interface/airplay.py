@@ -46,15 +46,15 @@ def lire_airplay(
 	"""Passages commencés depuis cet instant, ou les derniers, du plus récent au plus ancien ; nombre au plus."""
 	with connexion.transaction():
 		lignes = connexion.execute(
-			"SELECT d.horodatage, f.horodatage, f.duree_diffusee, f.sans_incident, d.artiste, d.titre,"
-			" e.nom_interne, q.nom_interne, b.nom_interne, d.sonore_id, e.id, q.id, b.id"
+			"SELECT d.logged_at, f.logged_at, f.played_duration, f.without_incident, d.artist, d.title,"
+			" e.internal_name, q.internal_name, b.internal_name, d.sound_id, e.id, q.id, b.id"
 			" FROM airplay d"
-			" LEFT JOIN airplay f ON f.passage_id = d.passage_id AND f.type_ligne = 'fin'"
-			" LEFT JOIN evenements e ON e.id = d.evenement_id"
+			" LEFT JOIN airplay f ON f.play_id = d.play_id AND f.line_type = 'end'"
+			" LEFT JOIN events e ON e.id = d.event_id"
 			" LEFT JOIN sequences q ON q.id = d.sequence_id"
-			" LEFT JOIN banques b ON b.id = d.banque_id"
-			" WHERE d.type_ligne = 'debut' AND (%s::timestamptz IS NULL OR d.horodatage >= %s::timestamptz)"
-			" ORDER BY d.horodatage DESC, d.id DESC LIMIT %s",
+			" LEFT JOIN banks b ON b.id = d.bank_id"
+			" WHERE d.line_type = 'start' AND (%s::timestamptz IS NULL OR d.logged_at >= %s::timestamptz)"
+			" ORDER BY d.logged_at DESC, d.id DESC LIMIT %s",
 			(depuis, depuis, nombre),
 		).fetchall()
 	passages = []

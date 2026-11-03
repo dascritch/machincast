@@ -131,8 +131,8 @@ def en_base(interface: Contexte, base_vide: Connexion, datatable: list[list[str]
 	entetes, *rangees = datatable
 	attendus = [dict(zip(entetes, (interface.chemin(v.strip()) for v in valeurs), strict=True)) for valeurs in rangees]
 	lus = base_vide.execute(
-		"SELECT emplacement, type::text, etat::text, artiste, titre, duree FROM sonores"
-		" WHERE emplacement LIKE %s || '/%%' ORDER BY emplacement",
+		"SELECT location, type::text, state::text, artist, title, duration FROM sounds"
+		" WHERE location LIKE %s || '/%%' ORDER BY location",
 		(str(interface.repertoire),),
 	).fetchall()
 	trouves = []
@@ -141,7 +141,7 @@ def en_base(interface: Contexte, base_vide: Connexion, datatable: list[list[str]
 			duree = timedelta(seconds=round(duree.total_seconds()))
 		valeurs = (emplacement, type_sonore, etat, artiste, titre, duree)
 		trouves.append(dict(zip([entete.strip() for entete in entetes], (str(v) for v in valeurs), strict=True)))
-	assert trouves == sorted(attendus, key=lambda ligne: ligne["emplacement"])
+	assert trouves == sorted(attendus, key=lambda ligne: ligne["location"])
 
 
 @then(parsers.parse("seule la liste « {titre} » propose « ➕ Ajouter des fichiers… » et accepte les dépôts"))

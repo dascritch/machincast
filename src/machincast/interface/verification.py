@@ -91,7 +91,7 @@ class Verificateur(QObject):
 				verifier_sonores(connexion, _verifier_fichier, identifiants=identifiants)
 				with connexion.transaction():
 					lignes = connexion.execute(
-						"SELECT artiste, titre, emplacement, etat::text FROM sonores WHERE id = ANY(%s) ORDER BY id",
+						"SELECT artist, title, location, state::text FROM sounds WHERE id = ANY(%s) ORDER BY id",
 						(identifiants,),
 					).fetchall()
 		except (DecodeurIndisponible, psycopg.Error) as erreur:
@@ -108,7 +108,7 @@ def etats_des_sonores(connexion: psycopg.Connection[TupleRow], identifiants: lis
 	"""« Neige, actif ; Café à minuit, erroné » : chaque sonore et son état, après sa vérification."""
 	with connexion.transaction():
 		lignes = connexion.execute(
-			"SELECT artiste, titre, emplacement, etat::text FROM sonores WHERE id = ANY(%s) ORDER BY id",
+			"SELECT artist, title, location, state::text FROM sounds WHERE id = ANY(%s) ORDER BY id",
 			(identifiants,),
 		).fetchall()
 	return " ; ".join(

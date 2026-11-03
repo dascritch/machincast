@@ -90,8 +90,7 @@ def ni_artiste_ni_titre(tags: Tags) -> None:
 
 def inserer(base: Connexion, fichier: Path, colonne: str, valeur: str, metadonnees: str) -> int:
 	ligne = base.execute(
-		f"INSERT INTO sonores (type, emplacement, {colonne}, metadonnees_musicales) VALUES ('fichier', %s, %s, %s)"
-		" RETURNING id",
+		f"INSERT INTO sounds (type, location, {colonne}, music_metadata) VALUES ('file', %s, %s, %s) RETURNING id",
 		(str(fichier), valeur, metadonnees),
 	).fetchone()
 	assert ligne is not None
@@ -103,7 +102,7 @@ def inserer(base: Connexion, fichier: Path, colonne: str, valeur: str, metadonne
 	target_fixture="sonore",
 )
 def sonore_avec_artiste(base_vide: Connexion, fichier: Path, artiste: str, objet: str) -> int:
-	return inserer(base_vide, fichier, "artiste", artiste, objet)
+	return inserer(base_vide, fichier, "artist", artiste, objet)
 
 
 @given(
@@ -111,12 +110,12 @@ def sonore_avec_artiste(base_vide: Connexion, fichier: Path, artiste: str, objet
 	target_fixture="sonore",
 )
 def sonore_avec_titre(base_vide: Connexion, fichier: Path, titre: str, objet: str) -> int:
-	return inserer(base_vide, fichier, "titre", titre, objet)
+	return inserer(base_vide, fichier, "title", titre, objet)
 
 
 @given(parsers.parse("les champs « {premier} » et « {second} » de ce sonore édités à la main"))
 def champs_edites(base_vide: Connexion, sonore: int, premier: str, second: str) -> None:
-	base_vide.execute("UPDATE sonores SET champs_edites = %s WHERE id = %s", ([premier, second], sonore))
+	base_vide.execute("UPDATE sounds SET edited_fields = %s WHERE id = %s", ([premier, second], sonore))
 
 
 @then(parsers.re(rf"en base, les métadonnées musicales sont {JSON}"))

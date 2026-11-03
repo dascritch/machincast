@@ -14,7 +14,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Et le fichier « jingles/intro.flac », sain
 		Quand l'indexeur fait une indexation rapide
 		Alors la banque « Jingles » contient, dans l'ordre, « jingles/intro.flac »
-		Et le sonore de « jingles/intro.flac » est à l'état « actif »
+		Et le sonore de « jingles/intro.flac » est à l'état « active »
 		Et le bilan indique « indexation rapide : 1 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
 
 	Scénario: Les sous-répertoires sont parcourus, les fichiers ajoutés dans l'ordre de leur chemin
@@ -45,7 +45,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Et le fichier « formats/son.<extension> », sain
 		Quand l'indexeur fait une indexation rapide
 		Alors la banque « Formats » contient, dans l'ordre, « formats/son.<extension> »
-		Et le sonore de « formats/son.<extension> » est à l'état « actif »
+		Et le sonore de « formats/son.<extension> » est à l'état « active »
 
 		Exemples:
 			| extension |
@@ -103,7 +103,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Et le fichier « longs/court.flac », sain
 		Quand l'indexeur fait une indexation rapide
 		Alors la banque « Longs » ne contient aucun sonore
-		Et le sonore de « longs/court.flac » est à l'état « actif »
+		Et le sonore de « longs/court.flac » est à l'état « active »
 		Et le bilan indique « indexation rapide : 1 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
 		Et la sortie standard montre, ligne par ligne :
 			| ligne                                              |
@@ -143,7 +143,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Étant donné une banque « Longs » alimentée par le répertoire « longs »
 		Et la banque « Longs » n'accepte que les sonores d'au moins 2 secondes
 		Et le fichier « longs/court.flac », sain
-		Et un sonore à l'état « apercu », de durée inconnue, pour « longs/court.flac »
+		Et un sonore à l'état « preview », de durée inconnue, pour « longs/court.flac »
 		Quand l'indexeur fait une indexation rapide
 		Alors la banque « Longs » ne contient aucun sonore
 		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
@@ -308,7 +308,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Et le fichier « jingles/abime.mp3 », endommagé
 		Quand l'indexeur fait une indexation rapide
 		Alors la banque « Jingles » contient, dans l'ordre, « jingles/abime.mp3 »
-		Et le sonore de « jingles/abime.mp3 » est à l'état « errone »
+		Et le sonore de « jingles/abime.mp3 » est à l'état « corrupt »
 
 	# ─── Fichier déplacé (https://github.com/dascritch/machincast/issues/10) ─────
 
@@ -318,5 +318,5 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Et l'indexeur a fait une indexation rapide
 		Et « jingles/intro.flac » déplacé en « jingles/archives/intro.flac »
 		Quand l'indexeur fait une indexation rapide
-		Alors le sonore de « jingles/intro.flac » est à l'état « supprime »
-		Et le sonore de « jingles/archives/intro.flac » est à l'état « actif »
+		Alors le sonore de « jingles/intro.flac » est à l'état « missing »
+		Et le sonore de « jingles/archives/intro.flac » est à l'état « active »

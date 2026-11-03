@@ -12,8 +12,8 @@ Fonctionnalité: Indexation d'un seul sonore
 
 	Scénario: Un audit complet d'un seul sonore ne vérifie que lui
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « actif » pour ce fichier
-		Et un deuxième fichier flac sain, dont le sonore est à l'état « actif »
+		Et un sonore à l'état « active » pour ce fichier
+		Et un deuxième fichier flac sain, dont le sonore est à l'état « active »
 		Quand Machin indexer est lancé sur la base de test, en audit complet, pour ce sonore seulement
 		Alors Machin indexer se termine avec le code 0
 		Et la date de vérification complète du sonore est celle de ce lancement
@@ -22,7 +22,7 @@ Fonctionnalité: Indexation d'un seul sonore
 
 	Scénario: Un audit complet d'un seul sonore se fait même pendant une autre indexation
 		Étant donné un fichier flac sain
-		Et un sonore à l'état « actif » pour ce fichier
+		Et un sonore à l'état « active » pour ce fichier
 		Et une autre indexation en cours sur la base
 		Quand Machin indexer est lancé sur la base de test, en audit complet, pour ce sonore seulement
 		Alors Machin indexer se termine avec le code 0

@@ -42,7 +42,7 @@ from tests.etapes_interface import (
 scenarios("fiche_banque.feature")
 
 MASQUAGES = {"hérité du sonore": None, "masqués": True, "affichés": False}
-MODES = {"séquentielle": "sequentiel", "aléatoire": "aleatoire"}
+MODES = {"séquentielle": "sequential", "aléatoire": "random"}
 
 
 @pytest.fixture
@@ -62,7 +62,7 @@ def fiche(interface: Contexte) -> FicheBanque:
 
 def sonore(interface: Contexte, base: Connexion, titre: str) -> QTreeWidgetItem:
 	"""La ligne du sonore dans la liste de la fiche, sélectionnée."""
-	numero = identifiant(base, "sonores", "titre", titre)
+	numero = identifiant(base, "sounds", "title", titre)
 	liste = fiche(interface).ui.sonores
 	for rangee in range(liste.topLevelItemCount()):
 		ligne = liste.topLevelItem(rangee)
@@ -82,12 +82,12 @@ def cliquer(qtbot: QtBot, bouton: QWidget) -> None:
 @given(parsers.re(r"les sonores sans titre (?P<emplacements>.+) sont dans la banque « (?P<nom>[^»]+) »"))
 def sans_titre(base_vide: Connexion, emplacements: str, nom: str) -> None:
 	"""Rangés en fin de liste, par leur emplacement : chemin du fichier ou adresse du stream."""
-	banque = identifiant(base_vide, "banques", "nom_interne", nom)
+	banque = identifiant(base_vide, "banks", "internal_name", nom)
 	for emplacement in NOM.findall(emplacements):
 		base_vide.execute(
-			"INSERT INTO banques_sonores (banque_id, sonore_id, position)"
-			" SELECT %s, s.id, (SELECT COALESCE(MAX(position), 0) + 1 FROM banques_sonores WHERE banque_id = %s)"
-			" FROM sonores s WHERE %s IN (s.emplacement, s.url_stream)",
+			"INSERT INTO bank_sounds (bank_id, sound_id, position)"
+			" SELECT %s, s.id, (SELECT COALESCE(MAX(position), 0) + 1 FROM bank_sounds WHERE bank_id = %s)"
+			" FROM sounds s WHERE %s IN (s.location, s.stream_url)",
 			(banque, banque, emplacement),
 		)
 
@@ -123,8 +123,8 @@ def retirer_repertoire(interface: Contexte, qtbot: QtBot, repertoire: str) -> No
 
 @when(parsers.re(r"j'ajoute les sonores (?P<titres>.+), en effaçant « (?P<efface>[^»]+) » de la base pendant le choix"))
 def ajouter_sonores_effaces(interface: Contexte, qtbot: QtBot, base_vide: Connexion, titres: str, efface: str) -> None:
-	interface.sonores_choisis = [identifiant(base_vide, "sonores", "titre", titre) for titre in NOM.findall(titres)]
-	base_vide.execute("DELETE FROM sonores WHERE titre = %s", (efface,))
+	interface.sonores_choisis = [identifiant(base_vide, "sounds", "title", titre) for titre in NOM.findall(titres)]
+	base_vide.execute("DELETE FROM sounds WHERE title = %s", (efface,))
 	cliquer(qtbot, fiche(interface).ui.ajouter_sonores)
 
 
@@ -157,11 +157,11 @@ def retirer_sonore(interface: Contexte, qtbot: QtBot, base_vide: Connexion, titr
 @when(parsers.parse("l'indexation rattache le sonore « {titre} » à la banque « {nom} »"))
 def rattacher(base_vide: Connexion, titre: str, nom: str) -> None:
 	# La requête de machincast.indexation.repertoires : en fin de liste.
-	banque = identifiant(base_vide, "banques", "nom_interne", nom)
+	banque = identifiant(base_vide, "banks", "internal_name", nom)
 	base_vide.execute(
-		"INSERT INTO banques_sonores (banque_id, sonore_id, position)"
-		" SELECT %s, %s, COALESCE(MAX(position), 0) + 1 FROM banques_sonores WHERE banque_id = %s",
-		(banque, identifiant(base_vide, "sonores", "titre", titre), banque),
+		"INSERT INTO bank_sounds (bank_id, sound_id, position)"
+		" SELECT %s, %s, COALESCE(MAX(position), 0) + 1 FROM bank_sounds WHERE bank_id = %s",
+		(banque, identifiant(base_vide, "sounds", "title", titre), banque),
 	)
 
 
@@ -194,7 +194,7 @@ def ouvrir_sonore_au_clavier(interface: Contexte, qtbot: QtBot, nom: str) -> Non
 @when(parsers.parse("l'indexation enregistre le fichier « {chemin} »"))
 def indexer_fichier(interface: Contexte, base_vide: Connexion, chemin: str) -> None:
 	base_vide.execute(
-		"INSERT INTO sonores (type, emplacement, etat, indexe_le) VALUES ('fichier', %s, 'apercu', clock_timestamp())",
+		"INSERT INTO sounds (type, location, state, indexed_at) VALUES ('file', %s, 'preview', clock_timestamp())",
 		(interface.chemin(chemin),),
 	)
 
@@ -322,7 +322,7 @@ def banque_en_base(
 	base_vide: Connexion, nom: str, nom_public: str | None, mode: str, masquage: str, repeter: str
 ) -> None:
 	lignes = base_vide.execute(
-		"SELECT nom_public, mode::text, masquer_metadonnees, ne_pas_repeter FROM banques WHERE nom_interne = %s",
+		"SELECT public_name, mode::text, hide_metadata, no_repeat FROM banks WHERE internal_name = %s",
 		(nom,),
 	).fetchall()
 	assert lignes == [(nom_public, MODES[mode], MASQUAGES[masquage], repeter == "avec")]
@@ -331,8 +331,8 @@ def banque_en_base(
 @then(parsers.re(r"les répertoires de la banque « (?P<nom>[^»]+) » sont (?P<repertoires>.+) en base"))
 def repertoires_en_base(interface: Contexte, base_vide: Connexion, nom: str, repertoires: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT r.repertoire FROM banques_repertoires r JOIN banques b ON b.id = r.banque_id"
-		" WHERE b.nom_interne = %s ORDER BY r.repertoire",
+		"SELECT r.directory FROM bank_directories r JOIN banks b ON b.id = r.bank_id"
+		" WHERE b.internal_name = %s ORDER BY r.directory",
 		(nom,),
 	).fetchall()
 	assert [str(ligne[0]) for ligne in lignes] == [
@@ -344,9 +344,9 @@ def repertoires_en_base(interface: Contexte, base_vide: Connexion, nom: str, rep
 def sonores_en_base(interface: Contexte, base_vide: Connexion, nom: str, titres: str) -> None:
 	"""Chaque sonore par son titre, ou « le fichier « …/chemin » » pour un sonore sans titre."""
 	lignes = base_vide.execute(
-		"SELECT bs.position, COALESCE(s.titre, s.emplacement) FROM banques_sonores bs"
-		" JOIN banques b ON b.id = bs.banque_id JOIN sonores s ON s.id = bs.sonore_id"
-		" WHERE b.nom_interne = %s ORDER BY bs.position",
+		"SELECT bs.position, COALESCE(s.title, s.location) FROM bank_sounds bs"
+		" JOIN banks b ON b.id = bs.bank_id JOIN sounds s ON s.id = bs.sound_id"
+		" WHERE b.internal_name = %s ORDER BY bs.position",
 		(nom,),
 	).fetchall()
 	attendus = [interface.chemin(titre) for titre in NOM.findall(titres)]
@@ -355,12 +355,12 @@ def sonores_en_base(interface: Contexte, base_vide: Connexion, nom: str, titres:
 
 @then(parsers.parse("le sonore « {titre} » est toujours en base"))
 def toujours_en_base(base_vide: Connexion, titre: str) -> None:
-	identifiant(base_vide, "sonores", "titre", titre)
+	identifiant(base_vide, "sounds", "title", titre)
 
 
 @then(parsers.re(r"le choix des sonores donne (?P<titres>.+)"))
 def choisis(choix: list[Choix], base_vide: Connexion, titres: str) -> None:
-	attendus = [identifiant(base_vide, "sonores", "titre", titre) for titre in NOM.findall(titres)]
+	attendus = [identifiant(base_vide, "sounds", "title", titre) for titre in NOM.findall(titres)]
 	assert choix[0].selection() == attendus
 
 
@@ -373,7 +373,7 @@ def acceptent(interface: Contexte) -> None:
 
 @then(parsers.parse("le fichier « {chemin} » n'est pas en base"))
 def fichier_absent(interface: Contexte, base_vide: Connexion, chemin: str) -> None:
-	lignes = base_vide.execute("SELECT id FROM sonores WHERE emplacement = %s", (interface.chemin(chemin),)).fetchall()
+	lignes = base_vide.execute("SELECT id FROM sounds WHERE location = %s", (interface.chemin(chemin),)).fetchall()
 	assert lignes == []
 
 
@@ -431,8 +431,8 @@ def regles_proposees(interface: Contexte, regles: str) -> None:
 )
 def crossfades_en_base(base_vide: Connexion, nom: str, regle_debut: str, debut: str, regle_fin: str, fin: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT crossfade_debut_regle::text, crossfade_debut, crossfade_fin_regle::text, crossfade_fin"
-		" FROM banques WHERE nom_interne = %s",
+		"SELECT crossfade_start_rule::text, crossfade_start, crossfade_end_rule::text, crossfade_end"
+		" FROM banks WHERE internal_name = %s",
 		(nom,),
 	).fetchall()
 	secondes = [timedelta(seconds=float(valeur.replace(",", "."))) for valeur in (debut, fin)]
@@ -486,7 +486,9 @@ def durees_montrees(interface: Contexte, minimale: str | None, maximale: str | N
 	)
 )
 def durees_en_base(base_vide: Connexion, nom: str, minimum: str | None, maximum: str | None) -> None:
-	lignes = base_vide.execute("SELECT duree_min, duree_max FROM banques WHERE nom_interne = %s", (nom,)).fetchall()
+	lignes = base_vide.execute(
+		"SELECT min_duration, max_duration FROM banks WHERE internal_name = %s", (nom,)
+	).fetchall()
 	attendues: list[timedelta | None] = []
 	for valeur in (minimum, maximum):
 		attendue = None
@@ -535,7 +537,7 @@ def detection_decochee(interface: Contexte) -> None:
 
 @then(parsers.re(r"la banque « (?P<nom>[^»]+) » (?P<verdict>active|n'active pas) la détection de silence"))
 def detection_en_base(base_vide: Connexion, nom: str, verdict: str) -> None:
-	ligne = base_vide.execute("SELECT detection_silences FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
+	ligne = base_vide.execute("SELECT silence_detection FROM banks WHERE internal_name = %s", (nom,)).fetchone()
 	assert ligne == (verdict == "active",), ligne
 
 
@@ -545,11 +547,11 @@ def detection_en_base(base_vide: Connexion, nom: str, verdict: str) -> None:
 @given(parsers.parse("{nombre:d} sonores de 3:00 de plus dans la banque « {nom} »"))
 def grande_banque(base_vide: Connexion, nombre: int, nom: str) -> None:
 	base_vide.execute(
-		"WITH nouveaux AS (INSERT INTO sonores (type, emplacement, etat, duree)"
-		" SELECT 'fichier', '/srv/grande/' || n || '.flac', 'actif', '3 min' FROM generate_series(1, %s) n"
+		"WITH nouveaux AS (INSERT INTO sounds (type, location, state, duration)"
+		" SELECT 'file', '/srv/grande/' || n || '.flac', 'active', '3 min' FROM generate_series(1, %s) n"
 		" RETURNING id)"
-		" INSERT INTO banques_sonores (banque_id, sonore_id, position)"
-		" SELECT b.id, nouveaux.id, 1000 + nouveaux.id FROM nouveaux, banques b WHERE b.nom_interne = %s",
+		" INSERT INTO bank_sounds (bank_id, sound_id, position)"
+		" SELECT b.id, nouveaux.id, 1000 + nouveaux.id FROM nouveaux, banks b WHERE b.internal_name = %s",
 		(nombre, nom),
 	)
 

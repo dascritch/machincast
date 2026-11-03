@@ -15,10 +15,10 @@ Fonctionnalité: La fiche d'un événement annonce sa prochaine session sautée,
 	Contexte:
 		Étant donné le poste à l'heure de Paris
 		Et les événements :
-			| nom      | nom_public | priorite    | debut            | fin              | jours                                   |
-			| Continue |            | fil_musical |                  |                  |                                         |
-			| Matinale | Le réveil  | emission    | 2026-10-05 07:00 | 2026-10-05 09:00 | lundi, mardi, mercredi, jeudi, vendredi |
-			| Direct   |            | special     | 2026-10-05 20:00 |                  | lundi, mardi, mercredi, jeudi, vendredi |
+			| name     | public_name | priority               | starts_at        | ends_at          | days                                         |
+			| Continue |             | background_programming |                  |                  |                                              |
+			| Matinale | Le réveil   | show                   | 2026-10-05 07:00 | 2026-10-05 09:00 | monday, tuesday, wednesday, thursday, friday |
+			| Direct   |             | special                | 2026-10-05 20:00 |                  | monday, tuesday, wednesday, thursday, friday |
 
 	Scénario: La prochaine session sautée s'annonce en haut de la fiche, sur un liseret orange
 		Étant donné l'horloge de l'interface au « 2026-10-20 16:40:00 »
@@ -107,8 +107,8 @@ Fonctionnalité: La fiche d'un événement annonce sa prochaine session sautée,
 		Étant donné l'horloge de l'interface au « 2026-10-20 16:40:00 »
 		Et la session du 2026-10-22 de l'événement « Matinale » est sautée
 		Et les événements :
-			| nom      | nom_public | priorite | debut            | fin              | jours |
-			| Vacances |            | emission | 2026-10-22 07:30 | 2026-10-22 08:30 |       |
+			| name     | public_name | priority | starts_at        | ends_at          | days |
+			| Vacances |             | show     | 2026-10-22 07:30 | 2026-10-22 08:30 |      |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Alors le bouton « Rétablir » de l'annonce est inactif, avec l'infobulle « « Vacances », de même priorité, a pris sa place le jeudi 22 octobre à 07:30. »

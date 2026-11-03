@@ -46,7 +46,7 @@ def eteintes(interface: Contexte) -> None:
 @given("les banques suggérées existent déjà")
 def banques_existantes(base_vide: Connexion) -> None:
 	for nom in BANQUES:
-		base_vide.execute("INSERT INTO banques (nom_interne, mode) VALUES (%s, 'aleatoire')", (nom,))
+		base_vide.execute("INSERT INTO banks (internal_name, mode) VALUES (%s, 'random')", (nom,))
 
 
 @given(
@@ -123,7 +123,7 @@ def nombre_de_fois(interface: Contexte, nombre: int) -> None:
 
 @then(parsers.re(r"il n'y a aucun(?:e)? (?P<genre>événement|banque) en base"))
 def rien_en_base(base_vide: Connexion, genre: str) -> None:
-	table = {"événement": "evenements", "banque": "banques"}[genre]
+	table = {"événement": "events", "banque": "banks"}[genre]
 	ligne = base_vide.execute(f"SELECT count(*) FROM {table}").fetchone()  # noqa: S608
 	assert ligne == (0,), ligne
 
@@ -131,16 +131,17 @@ def rien_en_base(base_vide: Connexion, genre: str) -> None:
 @then(parsers.parse("le fil musical « {nom} » est en base, permanent"))
 def fil_permanent(base_vide: Connexion, nom: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT priorite::text, debut, fin, jours_recurrence::text[] FROM evenements WHERE nom_interne = %s", (nom,)
+		"SELECT priority::text, starts_at, ends_at, recurrence_days::text[] FROM events WHERE internal_name = %s",
+		(nom,),
 	).fetchall()
-	assert lignes == [("fil_musical", None, None, [])], lignes
+	assert lignes == [("background_programming", None, None, [])], lignes
 
 
 @then(parsers.re(r"la liste de l'événement « (?P<nom>[^»]+) » est en base (?P<banques>«.+)"))
 def liste_du_fil(base_vide: Connexion, nom: str, banques: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT b.nom_interne FROM evenements_elements x JOIN evenements e ON e.id = x.evenement_id"
-		" JOIN banques b ON b.id = x.banque_id WHERE e.nom_interne = %s ORDER BY x.position",
+		"SELECT b.internal_name FROM event_items x JOIN events e ON e.id = x.event_id"
+		" JOIN banks b ON b.id = x.bank_id WHERE e.internal_name = %s ORDER BY x.position",
 		(nom,),
 	).fetchall()
 	assert [str(banque) for (banque,) in lignes] == NOM.findall(banques)
@@ -149,18 +150,19 @@ def liste_du_fil(base_vide: Connexion, nom: str, banques: str) -> None:
 @then(parsers.re(r"les fils musicaux en base sont (?P<noms>«.+)"))
 def fils(base_vide: Connexion, noms: str) -> None:
 	lignes = base_vide.execute(
-		"SELECT nom_interne FROM evenements WHERE priorite = 'fil_musical' AND supprime_le IS NULL ORDER BY nom_interne"
+		"SELECT internal_name FROM events WHERE priority = 'background_programming' AND deleted_at IS NULL"
+		" ORDER BY internal_name"
 	).fetchall()
 	assert [str(nom) for (nom,) in lignes] == NOM.findall(noms)
 
 
 def _crossfade(regle: str, duree: timedelta) -> str:
-	if regle == "sonore":
+	if regle == "sound":
 		return "des sonores"
 	return f"{REGLES[regle]}, {duree.total_seconds():g} s"
 
 
-REGLES = {"a_defaut": "à défaut", "impose": "imposé"}
+REGLES = {"default": "à défaut", "forced": "imposé"}
 
 
 @then("les banques en base sont :")
@@ -168,8 +170,8 @@ def banques_en_base(base_vide: Connexion, datatable: list[list[str]]) -> None:
 	_entete, *lignes = datatable
 	lues = []
 	for nom, mode, repeter, maximum, debut_regle, debut, fin_regle, fin in base_vide.execute(
-		"SELECT nom_interne, mode::text, ne_pas_repeter, duree_max, crossfade_debut_regle::text, crossfade_debut,"
-		' crossfade_fin_regle::text, crossfade_fin FROM banques ORDER BY nom_interne COLLATE "C"'
+		"SELECT internal_name, mode::text, no_repeat, max_duration, crossfade_start_rule::text, crossfade_start,"
+		' crossfade_end_rule::text, crossfade_end FROM banks ORDER BY internal_name COLLATE "C"'
 	).fetchall():
 		repetition = "non"
 		if repeter:
@@ -190,7 +192,9 @@ def banques_en_base(base_vide: Connexion, datatable: list[list[str]]) -> None:
 
 @then(parsers.parse("la banque « {nom} » en base a pour durée maximale « {maximum} », sans durée minimale"))
 def duree_maximale(base_vide: Connexion, nom: str, maximum: str) -> None:
-	ligne = base_vide.execute("SELECT duree_min, duree_max FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
+	ligne = base_vide.execute(
+		"SELECT min_duration, max_duration FROM banks WHERE internal_name = %s", (nom,)
+	).fetchone()
 	assert ligne is not None
 	assert (ligne[0], str(ligne[1])) == (None, maximum)
 

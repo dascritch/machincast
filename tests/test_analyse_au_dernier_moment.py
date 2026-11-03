@@ -55,13 +55,13 @@ def appels(journal: Path) -> list[list[str]]:
 
 @given(parsers.parse("le sonore « {nom} » a été vérifié en entier"))
 def verifie(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE sonores SET verifie_le = %s WHERE id = %s", (datetime.now(UTC), sonore(base_vide, nom)))
+	base_vide.execute("UPDATE sounds SET checked_at = %s WHERE id = %s", (datetime.now(UTC), sonore(base_vide, nom)))
 
 
 @given(parsers.parse("le fichier du sonore « {nom} » a changé depuis sa vérification"))
 def fichier_change(base_vide: Connexion, nom: str) -> None:
 	"""La taille enregistrée n'est plus celle du fichier : il a été remplacé depuis sa vérification."""
-	base_vide.execute("UPDATE sonores SET fichier_taille = fichier_taille + 1 WHERE id = %s", (sonore(base_vide, nom),))
+	base_vide.execute("UPDATE sounds SET file_size = file_size + 1 WHERE id = %s", (sonore(base_vide, nom),))
 
 
 @given("une commande d'analyse imitée", target_fixture="journal_d_analyse")
@@ -125,7 +125,7 @@ def verifie_bientot(base_vide: Connexion, nom: str) -> None:
 	identifiant = sonore(base_vide, nom)
 
 	def verifie_le() -> object:
-		ligne = base_vide.execute("SELECT verifie_le FROM sonores WHERE id = %s", (identifiant,)).fetchone()
+		ligne = base_vide.execute("SELECT checked_at FROM sounds WHERE id = %s", (identifiant,)).fetchone()
 		assert ligne is not None
 		return ligne[0]
 

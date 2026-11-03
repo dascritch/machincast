@@ -98,7 +98,7 @@ def verifie_pendant_le_lancement(base_vide: Connexion, sonore: int, lancement: L
 
 @then("le deuxième sonore n'a pas de date de vérification complète")
 def deuxieme_pas_verifie(base_vide: Connexion, sonore: int) -> None:
-	ligne = base_vide.execute("SELECT verifie_le FROM sonores WHERE id <> %s", (sonore,)).fetchone()
+	ligne = base_vide.execute("SELECT checked_at FROM sounds WHERE id <> %s", (sonore,)).fetchone()
 	assert ligne == (None,)
 
 

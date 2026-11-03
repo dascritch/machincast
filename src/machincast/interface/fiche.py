@@ -114,7 +114,7 @@ def nom_de_copie(connexion: Connexion, table: str, nom: str) -> str:
 			suffixe = f" (copie {numero})"
 		candidat = f"{nom[: LONGUEUR_DES_NOMS - len(suffixe)]}{suffixe}"
 		pris = connexion.execute(
-			f"SELECT 1 FROM {table} WHERE nom_interne = %s AND supprime_le IS NULL",  # noqa: S608
+			f"SELECT 1 FROM {table} WHERE internal_name = %s AND deleted_at IS NULL",  # noqa: S608
 			(candidat,),
 		).fetchone()
 		if pris is None:
@@ -437,11 +437,11 @@ class Fiche(QWidget):
 		"""Dans la transaction d'« Enregistrer » : un fichier déposé devient un sonore à l'état aperçu, que Machin
 		indexation décodera ; s'il a été enregistré entre-temps, le sonore est repris."""
 		ligne = self.connexion.execute(
-			"SELECT id FROM sonores WHERE emplacement = %s AND supprime_le IS NULL", (fichier,)
+			"SELECT id FROM sounds WHERE location = %s AND deleted_at IS NULL", (fichier,)
 		).fetchone()
 		if ligne is None:
 			ligne = self.connexion.execute(
-				"INSERT INTO sonores (type, emplacement, etat) VALUES ('fichier', %s, 'apercu') RETURNING id",
+				"INSERT INTO sounds (type, location, state) VALUES ('file', %s, 'preview') RETURNING id",
 				(fichier,),
 			).fetchone()
 			assert ligne is not None

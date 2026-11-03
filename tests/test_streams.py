@@ -32,11 +32,11 @@ def flux_hors_ligne(serveur: ServeurDeFlux, flux: str) -> None:
 @given(parsers.parse("le stream « {nom} » sur le feed « {feed} » du flux « {flux} »"))
 def stream_feed(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, feed: str, flux: str) -> None:
 	cree = base_vide.execute(
-		"INSERT INTO feeds (nom, url) VALUES (%s, %s) RETURNING id",
+		"INSERT INTO feeds (name, url) VALUES (%s, %s) RETURNING id",
 		(feed, serveur.adresse(flux)),
 	).fetchone()
 	assert cree is not None
-	base_vide.execute("INSERT INTO sonores (type, feed_id, titre) VALUES ('stream', %s, %s)", (cree[0], nom))
+	base_vide.execute("INSERT INTO sounds (type, feed_id, title) VALUES ('stream', %s, %s)", (cree[0], nom))
 
 
 @given(
@@ -58,10 +58,10 @@ def emission_avec_sequence(
 ) -> None:
 	"""Le stream existe déjà ; les deux autres sonores sont créés."""
 	sequence = base_vide.execute(
-		"INSERT INTO sequences (nom_interne) VALUES (%s) RETURNING id", (f"Séquence de {nom}",)
+		"INSERT INTO sequences (internal_name) VALUES (%s) RETURNING id", (f"Séquence de {nom}",)
 	).fetchone()
 	evenement = base_vide.execute(
-		"INSERT INTO evenements (nom_interne, priorite, debut, fin) VALUES (%s, 'emission', %s, %s) RETURNING id",
+		"INSERT INTO events (internal_name, priority, starts_at, ends_at) VALUES (%s, 'show', %s, %s) RETURNING id",
 		(nom, heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}")),
 	).fetchone()
 	assert (sequence is not None) and (evenement is not None)
@@ -72,11 +72,11 @@ def emission_avec_sequence(
 	)
 	for position, identifiant in enumerate(identifiants, start=1):
 		base_vide.execute(
-			"INSERT INTO sequences_elements (sequence_id, position, sonore_id) VALUES (%s, %s, %s)",
+			"INSERT INTO sequence_items (sequence_id, position, sound_id) VALUES (%s, %s, %s)",
 			(sequence[0], position, identifiant),
 		)
 	base_vide.execute(
-		"INSERT INTO evenements_elements (evenement_id, position, sequence_id) VALUES (%s, 1, %s)",
+		"INSERT INTO event_items (event_id, position, sequence_id) VALUES (%s, 1, %s)",
 		(evenement[0], sequence[0]),
 	)
 
@@ -142,7 +142,7 @@ def flux_revient(serveur: ServeurDeFlux, flux: str) -> None:
 
 
 def emplacements(base: Connexion, nom: str) -> list[str]:
-	lignes = base.execute("SELECT DISTINCT emplacement FROM airplay WHERE titre = %s", (nom,)).fetchall()
+	lignes = base.execute("SELECT DISTINCT location FROM airplay WHERE title = %s", (nom,)).fetchall()
 	return [str(ligne[0]) for ligne in lignes]
 
 
@@ -153,7 +153,7 @@ def emplacement_du_flux(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, 
 
 @then("aucun passage ne porte l'artiste ou le titre des tags du flux")
 def sans_tags_du_flux(base_vide: Connexion) -> None:
-	lignes = base_vide.execute("SELECT artiste, titre FROM airplay").fetchall()
+	lignes = base_vide.execute("SELECT artist, title FROM airplay").fetchall()
 	assert lignes
 	for artiste, titre in lignes:
 		assert artiste is None, artiste
@@ -225,9 +225,7 @@ def stream_a_plein_volume(banc: Banc) -> None:
 
 
 def lignes_du_log(base: Connexion, nature: str) -> list[tuple[int, str, str]]:
-	lignes = base.execute(
-		"SELECT id, niveau::text, message FROM log WHERE nature = %s ORDER BY id", (nature,)
-	).fetchall()
+	lignes = base.execute("SELECT id, level::text, message FROM log WHERE kind = %s ORDER BY id", (nature,)).fetchall()
 	return [(int(str(i)), str(n), str(m)) for i, n, m in lignes]
 
 

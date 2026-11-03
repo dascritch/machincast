@@ -60,14 +60,14 @@ def _passage(base: Connexion, interface: Contexte, sonore: int | None, titre: st
 	jour = interface.horloge.maintenant().date()
 	debut = datetime.fromisoformat(f"{jour.isoformat()}T{heure}:00").astimezone()
 	base.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, titre) VALUES (%s, 'debut', %s, %s, %s)",
+		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, title) VALUES (%s, 'start', %s, %s, %s)",
 		(uuid.uuid4(), debut, sonore, titre),
 	)
 
 
 @given(parsers.re(r"« (?P<titre>[^»]+) » passé à l'antenne à (?P<heure>\d\d:\d\d)$"))
 def passe(interface: Contexte, base_vide: Connexion, titre: str, heure: str) -> None:
-	_passage(base_vide, interface, identifiant(base_vide, "sonores", "titre", titre), titre, heure)
+	_passage(base_vide, interface, identifiant(base_vide, "sounds", "title", titre), titre, heure)
 
 
 @given(parsers.parse("« {titre} » passé à l'antenne à {heure}, son sonore supprimé depuis"))
@@ -229,7 +229,7 @@ def cliquer_sur_le_vumetre(interface: Contexte, qtbot: QtBot) -> None:
 @when(parsers.parse("l'onglet Antenne demande la pré-écoute de « {titre} »"))
 def demander_la_preecoute(interface: Contexte, base_vide: Connexion, titre: str) -> None:
 	"""Comme un clic sur la frise du prochain sonore : la fenêtre refuse elle-même une pré-écoute désactivée."""
-	fenetre(interface).accueil.preecoute_demandee.emit(identifiant(base_vide, "sonores", "titre", titre))
+	fenetre(interface).accueil.preecoute_demandee.emit(identifiant(base_vide, "sounds", "title", titre))
 
 
 @then("il n'y a pas de fenêtre de pré-écoute")

@@ -20,7 +20,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Et chaque sonore dure 1 minute
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:05 »
 		Alors la simulation donne les passages :
-			| debut               | fin                 | titre |
+			| starts_at           | ends_at             | title |
 			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1    |
 			| 2026-10-20 20:01:00 | 2026-10-20 20:02:00 | f2    |
 			| 2026-10-20 20:02:00 | 2026-10-20 20:03:00 | f1    |
@@ -67,7 +67,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:06 »
 		Alors la simulation donne les titres « annonce », « f1 », « annonce », « f1 », « f1 », « f1 »
 		Et la simulation a consigné 1 info « sonore expiré »
-		Et le sonore « annonce » est toujours à l'état « actif » en base
+		Et le sonore « annonce » est toujours à l'état « active » en base
 
 	Scénario: Une banque « ne pas répéter » ne passe pas deux fois de suite, d'après l'airplay puis les passages simulés
 		Étant donné la banque séquentielle « Jingles » des sonores « j1 », « j2 », marquée « ne pas répéter »
@@ -97,7 +97,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Et chaque sonore dure 1 minute
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:06 »
 		Alors la simulation donne les passages :
-			| debut               | fin                 | titre |
+			| starts_at           | ends_at             | title |
 			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1    |
 			| 2026-10-20 20:01:00 | 2026-10-20 20:02:00 | f1    |
 			| 2026-10-20 20:02:00 | 2026-10-20 20:02:30 | f1    |
@@ -112,7 +112,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Et chaque sonore a 10 seconde de crossfade de début et de fin
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
 		Alors la simulation donne les passages :
-			| debut               | fin                 | titre |
+			| starts_at           | ends_at             | title |
 			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1    |
 			| 2026-10-20 20:00:50 | 2026-10-20 20:01:50 | f2    |
 			| 2026-10-20 20:01:40 | 2026-10-20 20:02:00 | f1    |
@@ -126,7 +126,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Et la banque « Titres » applique à défaut 20 seconde de crossfade de fin
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
 		Alors la simulation donne les passages :
-			| debut               | fin                 | titre |
+			| starts_at           | ends_at             | title |
 			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1    |
 			| 2026-10-20 20:00:40 | 2026-10-20 20:01:40 | f2    |
 			| 2026-10-20 20:01:20 | 2026-10-20 20:02:00 | f1    |
@@ -139,7 +139,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Et les crossfades par défaut de la configuration sont de 10 seconde au début et de 10 à la fin
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
 		Alors la simulation donne les passages :
-			| debut               | fin                 | titre |
+			| starts_at           | ends_at             | title |
 			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1    |
 			| 2026-10-20 20:00:50 | 2026-10-20 20:01:50 | f2    |
 			| 2026-10-20 20:01:40 | 2026-10-20 20:02:00 | f1    |
@@ -155,7 +155,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Et la banque « Titres » active la détection de silence
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
 		Alors la simulation donne les passages :
-			| debut               | fin                 | titre |
+			| starts_at           | ends_at             | title |
 			| 2026-10-20 20:00:00 | 2026-10-20 20:00:45 | f1    |
 			| 2026-10-20 20:00:45 | 2026-10-20 20:01:30 | f2    |
 			| 2026-10-20 20:01:30 | 2026-10-20 20:02:00 | f1    |
@@ -166,7 +166,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Et chaque sonore a 5 secondes de silence détecté au début et 10 à la fin
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
 		Alors la simulation donne les passages :
-			| debut               | fin                 | titre |
+			| starts_at           | ends_at             | title |
 			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1    |
 			| 2026-10-20 20:01:00 | 2026-10-20 20:02:00 | f2    |
 
@@ -177,7 +177,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Et le sonore « f2 » active la détection de silence
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:03 »
 		Alors la simulation donne les passages :
-			| debut               | fin                 | titre |
+			| starts_at           | ends_at             | title |
 			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1    |
 			| 2026-10-20 20:01:00 | 2026-10-20 20:01:45 | f2    |
 			| 2026-10-20 20:01:45 | 2026-10-20 20:02:45 | f1    |
@@ -190,7 +190,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Et le sonore « f1 » active la détection de silence
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
 		Alors la simulation donne les passages :
-			| debut               | fin                 | titre |
+			| starts_at           | ends_at             | title |
 			| 2026-10-20 20:00:00 | 2026-10-20 20:00:45 | f1    |
 			| 2026-10-20 20:00:45 | 2026-10-20 20:01:45 | f2    |
 			| 2026-10-20 20:01:45 | 2026-10-20 20:02:00 | f1    |
@@ -208,7 +208,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Et la banque « Titres » active la détection de silence
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02 »
 		Alors la simulation donne les passages :
-			| debut               | fin                 | titre |
+			| starts_at           | ends_at             | title |
 			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1    |
 			| 2026-10-20 20:00:50 | 2026-10-20 20:01:50 | f2    |
 			| 2026-10-20 20:01:40 | 2026-10-20 20:02:00 | f1    |
@@ -220,7 +220,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Et la banque « Titres » active la détection de silence
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:02:30 »
 		Alors la simulation donne les passages :
-			| debut               | fin                 | titre |
+			| starts_at           | ends_at             | title |
 			| 2026-10-20 20:00:00 | <fin_f1>            | f1    |
 			| <fin_f1>            | <fin_f2>            | f2    |
 			| <fin_f2>            | 2026-10-20 20:02:30 | f1    |
@@ -239,7 +239,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Et chaque sonore dure 1 minute
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:04 »
 		Alors la simulation donne les passages :
-			| debut               | fin                 | titre  |
+			| starts_at           | ends_at             | title  |
 			| 2026-10-20 20:00:00 | 2026-10-20 20:01:00 | f1     |
 			| 2026-10-20 20:01:00 | 2026-10-20 20:03:00 | Direct |
 			| 2026-10-20 20:03:00 | 2026-10-20 20:04:00 | f1     |
@@ -272,7 +272,7 @@ Fonctionnalité: Mode simulation de Machin player
 
 	Scénario: La page de la simulation signale les alertes et incidents simulés
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
-		Et le sonore « f1 » est à l'état « desactive »
+		Et le sonore « f1 » est à l'état « disabled »
 		Quand je simule la diffusion du « 2026-10-20 20:00 » au « 2026-10-20 20:01 »
 		Alors la page de la simulation signale l'alerte « blanc »
 		Et le journal du binaire a signalé « simulation : 2026-10-20 20:00:00 : alerte : blanc »

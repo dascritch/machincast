@@ -66,7 +66,7 @@ Fonctionnalité: Boucle de diffusion de Machin player
 
 	Scénario: Rien à diffuser : un blanc et une alerte, puis la diffusion reprend dès qu'un sonore est jouable
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
-		Et le sonore « f1 » est à l'état « desactive »
+		Et le sonore « f1 » est à l'état « disabled »
 		Quand la diffusion démarre au plus vite
 		Et la diffusion tourne 2 pas d'une seconde
 		Et le sonore « f1 » redevient actif
@@ -172,7 +172,7 @@ Fonctionnalité: Boucle de diffusion de Machin player
 	Scénario: Une séquence qui revient aussitôt, et une autre qui commence à son deuxième élément, commencent chacune
 		Étant donné l'horloge du binaire au « 2026-10-14 19:59:50 »
 		Et le fil musical permanent « Continue » joue les séquences « A » des sonores « a1 », puis « B » des sonores « b1 », « b2 »
-		Et le sonore « b1 » est à l'état « desactive »
+		Et le sonore « b1 » est à l'état « disabled »
 		Quand la diffusion démarre au plus vite
 		Et la diffusion tourne 3 pas d'une seconde
 		Et la diffusion s'arrête

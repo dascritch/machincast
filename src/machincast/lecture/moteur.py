@@ -5,8 +5,8 @@ la sortie configurée (machincast.audio), précédé d'un élément volume. Deux
 la sortie mélange leurs sons (PipeWire et PulseAudio le font toujours ; en ALSA, il faut un périphérique qui le
 permet, comme « default » avec dmix).
 
-- Crossfade de début : le sonore monte de 0 à plein volume pendant crossfade_debut.
-- Crossfade de fin : le sonore s'éteint pendant ses crossfade_fin dernières secondes, et le sonore suivant démarre
+- Crossfade de début : le sonore monte de 0 à plein volume pendant crossfade_start.
+- Crossfade de fin : le sonore s'éteint pendant ses crossfade_end dernières secondes, et le sonore suivant démarre
   à ce moment-là (enchainement).
 - Les deux sonores ne se superposent que si le sortant a un crossfade de fin et l'entrant un crossfade de début.
   Sinon, le sortant joue jusqu'au bout à plein volume (supprimer_fondu_de_sortie), et l'entrant démarre ensuite,

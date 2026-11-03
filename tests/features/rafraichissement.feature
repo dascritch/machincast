@@ -15,11 +15,11 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-19 21:45:00 »
 		Et les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement         |
-			| Les Gaufres | Café à minuit | fichier | actif | 180   | /musique/cafe.flac  |
+			| artist      | title         | type | state  | duration | location           |
+			| Les Gaufres | Café à minuit | file | active | 180      | /musique/cafe.flac |
 		Et la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
 
 	Scénario: « Rafraîchir les onglets » est en bas du menu « Affichage », avec le raccourci F5

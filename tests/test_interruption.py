@@ -29,7 +29,7 @@ def log_des_interruptions(base: Connexion) -> list[str]:
 	return [
 		str(message)
 		for (message,) in base.execute(
-			"SELECT message FROM log WHERE niveau = 'info' AND nature = %s ORDER BY id", (INTERRUPTION_MANUELLE,)
+			"SELECT message FROM log WHERE level = 'info' AND kind = %s ORDER BY id", (INTERRUPTION_MANUELLE,)
 		).fetchall()
 	]
 
@@ -38,14 +38,14 @@ def log_des_avances(base: Connexion) -> list[str]:
 	return [
 		str(message)
 		for (message,) in base.execute(
-			"SELECT message FROM log WHERE niveau = 'info' AND nature = %s ORDER BY id", (EVENEMENT_AVANCE,)
+			"SELECT message FROM log WHERE level = 'info' AND kind = %s ORDER BY id", (EVENEMENT_AVANCE,)
 		).fetchall()
 	]
 
 
 def identifiant(base: Connexion, nom: str) -> int:
 	"""L'identifiant de l'événement ; 0, qu'aucun n'a, pour un événement absent."""
-	ligne = base.execute("SELECT id FROM evenements WHERE nom_interne = %s", (nom,)).fetchone()
+	ligne = base.execute("SELECT id FROM events WHERE internal_name = %s", (nom,)).fetchone()
 	if ligne is None:
 		return 0
 	return int(str(ligne[0]))
@@ -116,7 +116,7 @@ def aucune_avance(base_vide: Connexion) -> None:
 @then(parsers.parse("Machin player annonce l'événement suivant « {nom} », du « {debut} » au « {fin} »"))
 def annonce_du_suivant(banc: Banc, base_vide: Connexion, nom: str, debut: str, fin: str) -> None:
 	annonce = diffusion(banc)._etat(horloge(banc).maintenant(), False)["evenement_suivant"]
-	attendue = {"id": identifiant(base_vide, nom), "nom": nom, "priorite": "emission", "debut": debut, "fin": fin}
+	attendue = {"id": identifiant(base_vide, nom), "nom": nom, "priorite": "show", "debut": debut, "fin": fin}
 	assert annonce == attendue
 
 

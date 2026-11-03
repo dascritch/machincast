@@ -21,17 +21,17 @@ TITRE = 4
 
 @when(parsers.parse("un autre poste ajoute la banque « {nom} »"))
 def ajouter_banque(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("INSERT INTO banques (nom_interne, mode) VALUES (%s, 'sequentiel')", (nom,))
+	base_vide.execute("INSERT INTO banks (internal_name, mode) VALUES (%s, 'sequential')", (nom,))
 
 
 @when(parsers.parse("un autre poste renomme la banque « {nom} » en « {nouveau} »"))
 def renommer_banque(base_vide: Connexion, nom: str, nouveau: str) -> None:
-	base_vide.execute("UPDATE banques SET nom_interne = %s WHERE nom_interne = %s", (nouveau, nom))
+	base_vide.execute("UPDATE banks SET internal_name = %s WHERE internal_name = %s", (nouveau, nom))
 
 
 @when(parsers.parse("un autre poste efface la banque « {nom} »"))
 def effacer_banque(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("DELETE FROM banques WHERE nom_interne = %s", (nom,))
+	base_vide.execute("DELETE FROM banks WHERE internal_name = %s", (nom,))
 
 
 @when(parsers.parse("la diffusion note dans l'airplay le passage de « {titre} » à {heure}"))
@@ -39,13 +39,13 @@ def noter_passage(interface: Contexte, base_vide: Connexion, titre: str, heure: 
 	assert interface.horloge is not None
 	debut = datetime.combine(interface.horloge.maintenant().date(), time.fromisoformat(heure))
 	base_vide.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, evenement_id, titre)"
-		" VALUES (%s, 'debut', %s, %s, %s, %s)",
+		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, event_id, title)"
+		" VALUES (%s, 'start', %s, %s, %s, %s)",
 		(
 			uuid.uuid4(),
 			debut.astimezone(),
-			identifiant(base_vide, "sonores", "titre", titre),
-			identifiant(base_vide, "evenements", "nom_interne", "Continue"),
+			identifiant(base_vide, "sounds", "title", titre),
+			identifiant(base_vide, "events", "internal_name", "Continue"),
 			titre,
 		),
 	)

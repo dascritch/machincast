@@ -31,7 +31,7 @@ from machincast.conversion import entier_ou_rien
 from machincast.hasard import Hasard
 from machincast.lecture.historique import EN_BASE, Historique
 
-ETAT_JOUABLE = "actif"
+ETAT_JOUABLE = "active"
 
 
 @dataclass(frozen=True)
@@ -111,9 +111,9 @@ def _lire_candidats(
 def _candidats(connexion: psycopg.Connection[TupleRow], banque: int, historique: Historique) -> list[Candidat]:
 	return _lire_candidats(
 		connexion,
-		"SELECT s.id, s.etat::text, s.debut_diffusion, s.fin_diffusion, s.max_lectures"
-		" FROM banques_sonores bs JOIN sonores s ON s.id = bs.sonore_id"
-		" WHERE bs.banque_id = %s ORDER BY bs.position",
+		"SELECT s.id, s.state::text, s.broadcast_start, s.broadcast_end, s.max_plays"
+		" FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
+		" WHERE bs.bank_id = %s ORDER BY bs.position",
 		banque,
 		historique,
 	)
@@ -125,7 +125,7 @@ def sonore_jouable(
 	"""Le sonore est-il jouable à l'instant (§ 4.5) : pour un sonore placé directement dans un événement."""
 	candidats = _lire_candidats(
 		connexion,
-		"SELECT s.id, s.etat::text, s.debut_diffusion, s.fin_diffusion, s.max_lectures FROM sonores s WHERE s.id = %s",
+		"SELECT s.id, s.state::text, s.broadcast_start, s.broadcast_end, s.max_plays FROM sounds s WHERE s.id = %s",
 		sonore,
 		historique,
 	)
@@ -149,7 +149,7 @@ def restants(
 
 def a_ne_pas_repeter(connexion: psycopg.Connection[TupleRow], banque: int) -> str | None:
 	"""Nom de la banque si elle est marquée « ne pas répéter », sinon None."""
-	ligne = connexion.execute("SELECT nom_interne FROM banques WHERE id = %s AND ne_pas_repeter", (banque,)).fetchone()
+	ligne = connexion.execute("SELECT internal_name FROM banks WHERE id = %s AND no_repeat", (banque,)).fetchone()
 	return None if ligne is None else str(ligne[0])
 
 
@@ -166,13 +166,13 @@ def choisir_sonore(
 	exclus : sonores écartés par le binaire lecture, comme un fichier introuvable, traités comme non jouables.
 	La connexion a endossé le rôle de la lecture (machincast.base.connecter) : tout est lu, rien n'est écrit.
 	"""
-	ligne = connexion.execute("SELECT mode::text FROM banques WHERE id = %s", (banque,)).fetchone()
+	ligne = connexion.execute("SELECT mode::text FROM banks WHERE id = %s", (banque,)).fetchone()
 	if ligne is None:
 		return None
 	ordre, jouables = _jouables(connexion, banque, instant, historique)
 	jouables -= exclus
 	joues = historique.joues_via_banque(connexion, banque)
-	if ligne[0] == "sequentiel":
+	if ligne[0] == "sequential":
 		return suivant_sequentiel(ordre, jouables, joues[0] if joues else None)
 	reste = reste_du_cycle(jouables, joues)
 	if not reste:

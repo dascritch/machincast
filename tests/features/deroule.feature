@@ -17,8 +17,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 	Scénario: Les éléments sont joués dans l'ordre, un même élément peut revenir, une banque fait jouer un seul sonore
 		Étant donné une banque séquentielle « Titres » contenant « t1 », « t2 »
 		Et les événements :
-			| nom      | priorité | début | fin   | liste                                                       |
-			| Magazine | emission | 20:00 | 20:40 | sonore « jingle », banque « Titres », sonore « jingle », banque « Titres » |
+			| nom      | priorité | début | fin   | liste                                                                      |
+			| Magazine | show     | 20:00 | 20:40 | sonore « jingle », banque « Titres », sonore « jingle », banque « Titres » |
 		Quand la diffusion se déroule de 20:00 à 20:40
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -31,9 +31,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		https://github.com/dascritch/machincast/issues/257 : sa liste se compte depuis l'avance.
 
 		Étant donné les événements :
-			| nom      | priorité    | début | fin   | liste                                    |
-			| Continue | fil_musical |       |       | sonore « f »                             |
-			| Magazine | emission    | 20:30 | 21:30 | sonore « a », sonore « b », sonore « c » |
+			| nom      | priorité               | début | fin   | liste                                    |
+			| Continue | background_programming |       |       | sonore « f »                             |
+			| Magazine | show                   | 20:30 | 21:30 | sonore « a », sonore « b », sonore « c » |
 		Quand la diffusion se déroule de 20:00 à 20:10
 		Et l'événement suivant est avancé à 20:10
 		Et la diffusion se déroule de 20:10 à 21:00
@@ -48,8 +48,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 
 	Scénario: Une liste terminée avant la fin de l'événement reprend au début
 		Étant donné les événements :
-			| nom      | priorité | début | fin   | liste                    |
-			| Magazine | emission | 20:00 | 20:40 | sonore « a », sonore « b » |
+			| nom      | priorité | début | fin   | liste                      |
+			| Magazine | show     | 20:00 | 20:40 | sonore « a », sonore « b » |
 		Quand la diffusion se déroule de 20:00 à 20:40
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -60,9 +60,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 
 	Scénario: Une émission sans fin ne boucle pas : à la fin de sa liste, le fil musical reprend
 		Étant donné les événements :
-			| nom      | priorité    | début | fin | liste                      |
-			| Continue | fil_musical |       |     | sonore « f »               |
-			| Direct   | emission    | 20:00 |     | sonore « d1 », sonore « d2 » |
+			| nom      | priorité               | début | fin | liste                        |
+			| Continue | background_programming |       |     | sonore « f »                 |
+			| Direct   | show                   | 20:00 |     | sonore « d1 », sonore « d2 » |
 		Quand la diffusion se déroule de 20:00 à 20:40
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -73,11 +73,11 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 
 	Scénario: Une banque sans sonore jouable est sautée, comme un sonore qui n'est pas jouable
 		Étant donné une banque séquentielle « Vide » contenant « x »
-		Et le sonore « x » est à l'état « desactive »
-		Et le sonore « y » est à l'état « expire »
+		Et le sonore « x » est à l'état « disabled »
+		Et le sonore « y » est à l'état « expired »
 		Et les événements :
-			| nom      | priorité | début | fin   | liste                                                      |
-			| Magazine | emission | 20:00 | 20:30 | banque « Vide », sonore « a », sonore « y », sonore « b » |
+			| nom      | priorité | début | fin   | liste                                                     |
+			| Magazine | show     | 20:00 | 20:30 | banque « Vide », sonore « a », sonore « y », sonore « b » |
 		Quand la diffusion se déroule de 20:00 à 20:30
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -87,8 +87,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 
 	Scénario: Chaque occurrence d'un événement récurrent reprend sa liste au début
 		Étant donné les événements :
-			| nom      | priorité | début | fin   | jours     | liste                                   |
-			| Matinale | emission | 07:00 | 07:20 | mercredi, jeudi | sonore « a », sonore « b », sonore « c » |
+			| nom      | priorité | début | fin   | jours               | liste                                    |
+			| Matinale | show     | 07:00 | 07:20 | wednesday, thursday | sonore « a », sonore « b », sonore « c » |
 		Quand la diffusion se déroule de 07:00 à 07:20
 		Et la diffusion se déroule le lendemain de 07:00 à 07:20
 		Alors la diffusion a été :
@@ -103,9 +103,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 	Scénario: Le début d'un événement coupe net le sonore en cours
 		Étant donné le sonore « long » dure 25 minutes
 		Et les événements :
-			| nom      | priorité    | début | fin   | liste           |
-			| Continue | fil_musical |       |       | sonore « long » |
-			| Magazine | emission    | 20:00 | 20:20 | sonore « a »    |
+			| nom      | priorité               | début | fin   | liste           |
+			| Continue | background_programming |       |       | sonore « long » |
+			| Magazine | show                   | 20:00 | 20:20 | sonore « a »    |
 		Quand la diffusion se déroule de 19:50 à 20:20
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue         |
@@ -116,9 +116,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 	Scénario: À la fin d'un événement sans successeur, le dernier sonore est joué jusqu'au bout
 		Étant donné le sonore « long » dure 25 minutes
 		Et les événements :
-			| nom      | priorité    | début | fin   | liste           |
-			| Continue | fil_musical |       |       | sonore « f »    |
-			| Magazine | emission    | 20:00 | 20:30 | sonore « long » |
+			| nom      | priorité               | début | fin   | liste           |
+			| Continue | background_programming |       |       | sonore « f »    |
+			| Magazine | show                   | 20:00 | 20:30 | sonore « long » |
 		Quand la diffusion se déroule de 20:00 à 21:00
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -130,8 +130,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Étant donné le sonore « long » dure 25 minutes
 		Et les événements :
 			| nom      | priorité | début | fin   | liste           |
-			| Magazine | emission | 20:00 | 20:30 | sonore « long » |
-			| Journal  | emission | 20:30 | 20:50 | sonore « j »    |
+			| Magazine | show     | 20:00 | 20:30 | sonore « long » |
+			| Journal  | show     | 20:30 | 20:50 | sonore « j »    |
 		Quand la diffusion se déroule de 20:00 à 20:50
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue         |
@@ -142,9 +142,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 
 	Scénario: Le fil musical reprend à l'élément qui suit le dernier qu'il a joué
 		Étant donné les événements :
-			| nom      | priorité    | début | fin   | liste                                    |
-			| Continue | fil_musical |       |       | sonore « f1 », sonore « f2 », sonore « f3 » |
-			| Magazine | emission    | 20:00 | 20:20 | sonore « m »                             |
+			| nom      | priorité               | début | fin   | liste                                       |
+			| Continue | background_programming |       |       | sonore « f1 », sonore « f2 », sonore « f3 » |
+			| Magazine | show                   | 20:00 | 20:20 | sonore « m »                                |
 		Quand la diffusion se déroule de 19:40 à 20:40
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -156,11 +156,11 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 			| 20:30 | f1     | Continue  | entier |
 
 	Scénario: Une émission dont rien n'est jouable laisse la place au fil musical
-		Étant donné le sonore « x » est à l'état « desactive »
+		Étant donné le sonore « x » est à l'état « disabled »
 		Et les événements :
-			| nom      | priorité    | début | fin   | liste        |
-			| Continue | fil_musical |       |       | sonore « f » |
-			| Magazine | emission    | 20:00 | 20:20 | sonore « x » |
+			| nom      | priorité               | début | fin   | liste        |
+			| Continue | background_programming |       |       | sonore « f » |
+			| Magazine | show                   | 20:00 | 20:20 | sonore « x » |
 		Quand la diffusion se déroule de 20:00 à 20:20
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -170,10 +170,10 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 	# ─── Blanc ───────────────────────────────────────────────────
 
 	Scénario: Rien à lire dans le fil musical : un blanc, et une seule alerte dans le log
-		Étant donné le sonore « x » est à l'état « desactive »
+		Étant donné le sonore « x » est à l'état « disabled »
 		Et les événements :
-			| nom      | priorité    | début | fin | liste        |
-			| Continue | fil_musical |       |     | sonore « x » |
+			| nom      | priorité               | début | fin | liste        |
+			| Continue | background_programming |       |     | sonore « x » |
 		Quand la diffusion se déroule de 20:00 à 20:30
 		Alors la diffusion a été :
 			| heure | sonore  | événement | issue |
@@ -181,11 +181,11 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Et le log contient 1 alerte « blanc » pour l'événement « Continue »
 
 	Scénario: Le blanc prend fin dès qu'un sonore redevient jouable
-		Étant donné le sonore « x » est à l'état « desactive »
+		Étant donné le sonore « x » est à l'état « disabled »
 		Et les événements :
-			| nom      | priorité    | début | fin   | liste        |
-			| Continue | fil_musical |       |       | sonore « x » |
-			| Magazine | emission    | 20:10 | 20:20 | sonore « m » |
+			| nom      | priorité               | début | fin   | liste        |
+			| Continue | background_programming |       |       | sonore « x » |
+			| Magazine | show                   | 20:10 | 20:20 | sonore « m » |
 		Quand la diffusion se déroule de 20:00 à 20:20
 		Alors la diffusion a été :
 			| heure | sonore  | événement | issue |
@@ -199,8 +199,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
 		Et la banque « Jingles » est marquée « ne pas répéter »
 		Et les événements :
-			| nom      | priorité | début | fin   | liste                                                  |
-			| Magazine | emission | 20:00 | 20:30 | banque « Jingles », banque « Jingles », sonore « a » |
+			| nom      | priorité | début | fin   | liste                                                |
+			| Magazine | show     | 20:00 | 20:30 | banque « Jingles », banque « Jingles », sonore « a » |
 		Quand la diffusion se déroule de 20:00 à 20:30
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -212,8 +212,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 	Scénario: Sans la marque, la même liste fait passer la banque deux fois de suite
 		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
 		Et les événements :
-			| nom      | priorité | début | fin   | liste                                                  |
-			| Magazine | emission | 20:00 | 20:30 | banque « Jingles », banque « Jingles », sonore « a » |
+			| nom      | priorité | début | fin   | liste                                                |
+			| Magazine | show     | 20:00 | 20:30 | banque « Jingles », banque « Jingles », sonore « a » |
 		Quand la diffusion se déroule de 20:00 à 20:30
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -226,8 +226,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
 		Et la banque « Jingles » est marquée « ne pas répéter »
 		Et les événements :
-			| nom      | priorité | début | fin   | liste                                                  |
-			| Magazine | emission | 20:00 | 20:40 | banque « Jingles », sonore « a », banque « Jingles » |
+			| nom      | priorité | début | fin   | liste                                                |
+			| Magazine | show     | 20:00 | 20:40 | banque « Jingles », sonore « a », banque « Jingles » |
 		Quand la diffusion se déroule de 20:00 à 20:40
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -240,9 +240,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
 		Et la banque « Jingles » est marquée « ne pas répéter »
 		Et les événements :
-			| nom      | priorité    | début | fin   | liste                                  |
-			| Continue | fil_musical |       |       | sonore « f », banque « Jingles »       |
-			| Magazine | emission    | 20:20 | 20:40 | banque « Jingles », sonore « m »       |
+			| nom      | priorité               | début | fin   | liste                            |
+			| Continue | background_programming |       |       | sonore « f », banque « Jingles » |
+			| Magazine | show                   | 20:20 | 20:40 | banque « Jingles », sonore « m » |
 		Quand la diffusion se déroule de 20:00 à 20:40
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -256,8 +256,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
 		Et la banque « Jingles » est marquée « ne pas répéter »
 		Et les événements :
-			| nom      | priorité | début | fin   | liste                              |
-			| Magazine | emission | 20:00 | 20:20 | sonore « j2 », banque « Jingles » |
+			| nom      | priorité | début | fin   | liste                             |
+			| Magazine | show     | 20:00 | 20:20 | sonore « j2 », banque « Jingles » |
 		Quand la diffusion se déroule de 20:00 à 20:20
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -269,9 +269,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
 		Et la banque « Jingles » est marquée « ne pas répéter »
 		Et les événements :
-			| nom      | priorité    | début | fin   | liste                              |
-			| Continue | fil_musical |       |       | banque « Jingles », sonore « f »   |
-			| Magazine | emission    | 20:05 | 20:35 | banque « Jingles », sonore « m »   |
+			| nom      | priorité               | début | fin   | liste                            |
+			| Continue | background_programming |       |       | banque « Jingles », sonore « f » |
+			| Magazine | show                   | 20:05 | 20:35 | banque « Jingles », sonore « m » |
 		Quand la diffusion se déroule de 20:00 à 20:35
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue         |
@@ -284,8 +284,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
 		Et la banque « Jingles » est marquée « ne pas répéter »
 		Et les événements :
-			| nom      | priorité    | début | fin | liste                                                  |
-			| Continue | fil_musical |       |     | banque « Jingles », banque « Jingles », sonore « f » |
+			| nom      | priorité               | début | fin | liste                                                |
+			| Continue | background_programming |       |     | banque « Jingles », banque « Jingles », sonore « f » |
 		Quand la diffusion se déroule de 20:00 à 20:10
 		Et le binaire redémarre
 		Et la diffusion se déroule de 20:10 à 20:30
@@ -299,9 +299,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
 		Et la banque « Jingles » est marquée « ne pas répéter »
 		Et les événements :
-			| nom      | priorité    | début | fin   | liste                            |
-			| Continue | fil_musical |       |       | banque « Jingles », sonore « f » |
-			| Magazine | emission    | 20:10 | 20:40 | banque « Jingles »               |
+			| nom      | priorité               | début | fin   | liste                            |
+			| Continue | background_programming |       |       | banque « Jingles », sonore « f » |
+			| Magazine | show                   | 20:10 | 20:40 | banque « Jingles »               |
 		Quand la diffusion se déroule de 20:00 à 20:40
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -315,11 +315,11 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 	Scénario: Une émission terminée pour une autre raison ne donne pas l'alerte de la banque sautée
 		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
 		Et la banque « Jingles » est marquée « ne pas répéter »
-		Et le sonore « x » est à l'état « desactive »
+		Et le sonore « x » est à l'état « disabled »
 		Et les événements :
-			| nom      | priorité    | début | fin   | liste                            |
-			| Continue | fil_musical |       |       | banque « Jingles », sonore « f » |
-			| Magazine | emission    | 20:10 | 20:30 | sonore « x »                     |
+			| nom      | priorité               | début | fin   | liste                            |
+			| Continue | background_programming |       |       | banque « Jingles », sonore « f » |
+			| Magazine | show                   | 20:10 | 20:30 | sonore « x »                     |
 		Quand la diffusion se déroule de 20:00 à 20:20
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -331,8 +331,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Étant donné une banque séquentielle « Jingles » contenant « j1 », « j2 »
 		Et la banque « Jingles » est marquée « ne pas répéter »
 		Et les événements :
-			| nom      | priorité    | début | fin | liste              |
-			| Continue | fil_musical |       |     | banque « Jingles » |
+			| nom      | priorité               | début | fin | liste              |
+			| Continue | background_programming |       |     | banque « Jingles » |
 		Quand la diffusion se déroule de 20:00 à 20:30
 		Alors la diffusion a été :
 			| heure | sonore  | événement | issue  |
@@ -368,8 +368,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Et une banque séquentielle « Station » contenant « s1 »
 		Et une séquence « Passage pub » jouant sonore « debut-pub », banque « Pubs », banque « Pubs », sonore « fin-pub », banque « Station »
 		Et les événements :
-			| nom      | priorité | début | fin   | liste                                               |
-			| Magazine | emission | 20:00 | 21:10 | sonore « m », séquence « Passage pub », sonore « m » |
+			| nom      | priorité | début | fin   | liste                                                |
+			| Magazine | show     | 20:00 | 21:10 | sonore « m », séquence « Passage pub », sonore « m » |
 		Quand la diffusion se déroule de 20:00 à 21:10
 		Alors la diffusion a été :
 			| heure | sonore    | événement | issue  |
@@ -386,8 +386,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Et la banque « Pubs » est marquée « ne pas répéter »
 		Et une séquence « Passage pub » jouant sonore « debut-pub », banque « Pubs », banque « Pubs », sonore « fin-pub »
 		Et les événements :
-			| nom      | priorité | début | fin   | liste                                 |
-			| Magazine | emission | 20:00 | 20:40 | séquence « Passage pub », sonore « m » |
+			| nom      | priorité | début | fin   | liste                                  |
+			| Magazine | show     | 20:00 | 20:40 | séquence « Passage pub », sonore « m » |
 		Quand la diffusion se déroule de 20:00 à 20:40
 		Alors la diffusion a été :
 			| heure | sonore    | événement | issue  |
@@ -402,8 +402,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		Et la banque « Station » est marquée « ne pas répéter »
 		Et une séquence « Habillage » jouant banque « Station », sonore « h »
 		Et les événements :
-			| nom      | priorité | début | fin   | liste                                       |
-			| Magazine | emission | 20:00 | 20:30 | banque « Station », séquence « Habillage » |
+			| nom      | priorité | début | fin   | liste                                      |
+			| Magazine | show     | 20:00 | 20:30 | banque « Station », séquence « Habillage » |
 		Quand la diffusion se déroule de 20:00 à 20:30
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -413,12 +413,12 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 
 	Scénario: Un élément non jouable de la séquence est ignoré
 		Étant donné une banque séquentielle « Vide » contenant « x »
-		Et le sonore « x » est à l'état « desactive »
-		Et le sonore « y » est à l'état « expire »
+		Et le sonore « x » est à l'état « disabled »
+		Et le sonore « y » est à l'état « expired »
 		Et une séquence « Trio » jouant sonore « a », banque « Vide », sonore « y », sonore « b »
 		Et les événements :
 			| nom      | priorité | début | fin   | liste                           |
-			| Magazine | emission | 20:00 | 20:30 | séquence « Trio », sonore « m » |
+			| Magazine | show     | 20:00 | 20:30 | séquence « Trio », sonore « m » |
 		Quand la diffusion se déroule de 20:00 à 20:30
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -428,12 +428,12 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 
 	Scénario: Une séquence dont rien n'est jouable est sautée, comme une banque vide
 		Étant donné une banque séquentielle « Vide » contenant « x »
-		Et le sonore « x » est à l'état « desactive »
-		Et le sonore « y » est à l'état « expire »
+		Et le sonore « x » est à l'état « disabled »
+		Et le sonore « y » est à l'état « expired »
 		Et une séquence « Muette » jouant banque « Vide », sonore « y »
 		Et les événements :
-			| nom      | priorité | début | fin   | liste                              |
-			| Magazine | emission | 20:00 | 20:20 | séquence « Muette », sonore « m » |
+			| nom      | priorité | début | fin   | liste                             |
+			| Magazine | show     | 20:00 | 20:20 | séquence « Muette », sonore « m » |
 		Quand la diffusion se déroule de 20:00 à 20:20
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -445,8 +445,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 
 		Étant donné une séquence vide « À compléter »
 		Et les événements :
-			| nom      | priorité | début | fin   | liste                                   |
-			| Magazine | emission | 20:00 | 20:20 | séquence « À compléter », sonore « m » |
+			| nom      | priorité | début | fin   | liste                                  |
+			| Magazine | show     | 20:00 | 20:20 | séquence « À compléter », sonore « m » |
 		Quand la diffusion se déroule de 20:00 à 20:20
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -457,9 +457,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		https://github.com/dascritch/machincast/issues/267
 
 		Étant donné les événements :
-			| nom      | priorité    | début | fin   | liste        |
-			| Continue | fil_musical |       |       | sonore « f » |
-			| Magazine | emission    | 20:00 | 20:20 | sonore « m » |
+			| nom      | priorité               | début | fin   | liste        |
+			| Continue | background_programming |       |       | sonore « f » |
+			| Magazine | show                   | 20:00 | 20:20 | sonore « m » |
 		Et l'événement « Magazine » est supprimé depuis l'interface
 		Quand la diffusion se déroule de 20:00 à 20:20
 		Alors la diffusion a été :
@@ -471,9 +471,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		https://github.com/dascritch/machincast/issues/140
 
 		Étant donné les événements :
-			| nom      | priorité    | début | fin   | liste       |
-			| Continue | fil_musical |       |       | sonore « m » |
-			| Magazine | emission    | 20:00 | 20:20 |             |
+			| nom      | priorité               | début | fin   | liste        |
+			| Continue | background_programming |       |       | sonore « m » |
+			| Magazine | show                   | 20:00 | 20:20 |              |
 		Quand la diffusion se déroule de 20:00 à 20:20
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -485,9 +485,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 		son sonore en cours pour en relancer un autre.
 
 		Étant donné les événements :
-			| nom      | priorité    | début | fin   | liste        |
-			| Continue | fil_musical |       |       | sonore « m » |
-			| Magazine | emission    | 20:05 | 20:20 |              |
+			| nom      | priorité               | début | fin   | liste        |
+			| Continue | background_programming |       |       | sonore « m » |
+			| Magazine | show                   | 20:05 | 20:20 |              |
 		Quand la diffusion se déroule de 20:00 à 20:20
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -497,9 +497,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 	Scénario: À la fin d'un événement sans successeur, la séquence est jouée jusqu'au bout
 		Étant donné une séquence « Trio » jouant sonore « t1 », sonore « t2 », sonore « t3 »
 		Et les événements :
-			| nom      | priorité    | début | fin   | liste               |
-			| Continue | fil_musical |       |       | sonore « f »        |
-			| Magazine | emission    | 20:00 | 20:15 | séquence « Trio »   |
+			| nom      | priorité               | début | fin   | liste             |
+			| Continue | background_programming |       |       | sonore « f »      |
+			| Magazine | show                   | 20:00 | 20:15 | séquence « Trio » |
 		Quand la diffusion se déroule de 20:00 à 20:40
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -511,9 +511,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 	Scénario: Un événement qui commence coupe net la séquence : ses éléments restants ne sont pas joués
 		Étant donné une séquence « Trio » jouant sonore « t1 », sonore « t2 », sonore « t3 »
 		Et les événements :
-			| nom      | priorité    | début | fin   | liste                             |
-			| Continue | fil_musical |       |       | séquence « Trio », sonore « f »   |
-			| Magazine | emission    | 20:15 | 20:25 | sonore « m »                      |
+			| nom      | priorité               | début | fin   | liste                           |
+			| Continue | background_programming |       |       | séquence « Trio », sonore « f » |
+			| Magazine | show                   | 20:15 | 20:25 | sonore « m »                    |
 		Quand la diffusion se déroule de 20:00 à 20:45
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue         |
@@ -526,8 +526,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 	Scénario: Après une séquence jouée en entier, le fil musical reprend à l'élément qui la suit
 		Étant donné une séquence « Duo » jouant sonore « d1 », sonore « d2 »
 		Et les événements :
-			| nom      | priorité    | début | fin | liste                          |
-			| Continue | fil_musical |       |     | séquence « Duo », sonore « f » |
+			| nom      | priorité               | début | fin | liste                          |
+			| Continue | background_programming |       |     | séquence « Duo », sonore « f » |
 		Quand la diffusion se déroule de 20:00 à 20:40
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |
@@ -539,8 +539,8 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 	Scénario: Après un redémarrage du binaire, la séquence reprend là où elle en était
 		Étant donné une séquence « Trio » jouant sonore « t1 », sonore « t2 », sonore « t3 »
 		Et les événements :
-			| nom      | priorité    | début | fin | liste                           |
-			| Continue | fil_musical |       |     | séquence « Trio », sonore « f » |
+			| nom      | priorité               | début | fin | liste                           |
+			| Continue | background_programming |       |     | séquence « Trio », sonore « f » |
 		Quand la diffusion se déroule de 20:00 à 20:10
 		Et le binaire redémarre
 		Et la diffusion se déroule de 20:10 à 20:40
@@ -554,9 +554,9 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 	Scénario: Une même séquence sert dans plusieurs événements, et l'événement qui commence l'emporte sur celle du fil
 		Étant donné une séquence « Duo » jouant sonore « d1 », sonore « d2 »
 		Et les événements :
-			| nom      | priorité    | début | fin   | liste                          |
-			| Continue | fil_musical |       |       | sonore « f », séquence « Duo » |
-			| Magazine | emission    | 20:20 | 20:40 | séquence « Duo », sonore « m » |
+			| nom      | priorité               | début | fin   | liste                          |
+			| Continue | background_programming |       |       | sonore « f », séquence « Duo » |
+			| Magazine | show                   | 20:20 | 20:40 | séquence « Duo », sonore « m » |
 		Quand la diffusion se déroule de 20:00 à 20:50
 		Alors la diffusion a été :
 			| heure | sonore | événement | issue  |

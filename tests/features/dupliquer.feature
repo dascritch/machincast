@@ -16,16 +16,16 @@ Fonctionnalité: Dupliquer un événement, une séquence ou une banque
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-21 08:00:00 »
 		Et les sonores :
-			| artiste     | titre        | type    | etat  | duree | emplacement                 |
-			|             | Jingle début | fichier | actif | 5     | /srv/habillage/debut.flac   |
-			|             | Jingle fin   | fichier | actif | 4     | /srv/habillage/fin.flac     |
-			| Les Gaufres | Spot         | fichier | actif | 30    | /srv/pubs/spot.flac         |
+			| artist      | title        | type | state  | duration | location                  |
+			|             | Jingle début | file | active | 5        | /srv/habillage/debut.flac |
+			|             | Jingle fin   | file | active | 4        | /srv/habillage/fin.flac   |
+			| Les Gaufres | Spot         | file | active | 30       | /srv/pubs/spot.flac       |
 		Et la banque « Publicité », aléatoire, de nom public « Pub », marquée « ne pas répéter », avec « Spot »
 		Et les répertoires « …/pubs », « …/annonces » de la banque « Publicité »
 		Et la séquence « Passage pub », de nom public « Vous écoutez Radio Thune », avec le sonore « Jingle début », la banque « Publicité », le sonore « Jingle fin »
 		Et les événements :
-			| nom      | nom_public     | priorite | debut               | fin                 | jours        |
-			| Matinale | La matinale    | emission | 2026-10-19 07:00:00 | 2026-10-19 09:00:00 | lundi, mardi |
+			| name     | public_name | priority | starts_at           | ends_at             | days            |
+			| Matinale | La matinale | show     | 2026-10-19 07:00:00 | 2026-10-19 09:00:00 | monday, tuesday |
 		Et l'événement « Matinale » masque les métadonnées
 		Et l'événement « Matinale » joue la séquence « Passage pub », la banque « Publicité », le sonore « Spot »
 
@@ -129,9 +129,9 @@ Fonctionnalité: Dupliquer un événement, une séquence ou une banque
 		Quand je donne à l'événement copié le début « 2026-10-21 20:00 »
 		Et j'enregistre la fiche
 		Alors l'onglet ouvert est « Événement : Matinale (copie) »
-		Et l'événement « Matinale (copie) » a en base la priorité « emission », le nom public « La matinale », masqué, le début « 2026-10-21 20:00 », sans fin ni jours
+		Et l'événement « Matinale (copie) » a en base la priorité « show », le nom public « La matinale », masqué, le début « 2026-10-21 20:00 », sans fin ni jours
 		Et l'événement « Matinale (copie) » a en base les éléments la séquence « Passage pub », la banque « Publicité », le sonore « Spot »
-		Et l'événement « Matinale » a en base la priorité « emission », le nom public « La matinale », masqué, le début « 2026-10-19 07:00 », la fin « 2026-10-19 09:00 », les jours « lundi, mardi »
+		Et l'événement « Matinale » a en base la priorité « show », le nom public « La matinale », masqué, le début « 2026-10-19 07:00 », la fin « 2026-10-19 09:00 », les jours « monday, tuesday »
 		Et l'événement « Matinale » a en base les éléments la séquence « Passage pub », la banque « Publicité », le sonore « Spot »
 
 	# ─── Banque ────────────────────────────────────────────────
@@ -145,8 +145,8 @@ Fonctionnalité: Dupliquer un événement, une séquence ou une banque
 		Et la fiche de la banque copiée montre le mode « Aléatoire », « ne pas répéter » coché, les répertoires « …/annonces », « …/pubs », et aucun sonore
 		Quand j'enregistre la fiche
 		Alors l'onglet ouvert est « Banque : Publicité (copie) »
-		Et la banque « Publicité (copie) » a en base le nom public « Pub », le mode « aleatoire », « ne pas répéter », les répertoires « …/annonces », « …/pubs » et les sonores aucun
-		Et la banque « Publicité » a en base le nom public « Pub », le mode « aleatoire », « ne pas répéter », les répertoires « …/annonces », « …/pubs » et les sonores « Spot »
+		Et la banque « Publicité (copie) » a en base le nom public « Pub », le mode « random », « ne pas répéter », les répertoires « …/annonces », « …/pubs » et les sonores aucun
+		Et la banque « Publicité » a en base le nom public « Pub », le mode « random », « ne pas répéter », les répertoires « …/annonces », « …/pubs » et les sonores « Spot »
 
 	# ─── Listes ────────────────────────────────────────────────
 

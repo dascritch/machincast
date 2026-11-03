@@ -17,16 +17,17 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from machincast.base import Role, connecter
 from machincast.hasard import creer_hasard
 from machincast.lecture.deroule import EnCours, Ordonnanceur, appels_ignores
+from machincast.lecture.enregistrement import NIVEAUX
 from tests.base_test import parametres_base_test
 
 scenarios("deroule.feature")
 
 Connexion = psycopg.Connection[tuple[object, ...]]
 ELEMENT = re.compile(r"(sonore|banque|séquence) « ([^»]+) »")
-COLONNES = {"sonore": "sonore_id", "banque": "banque_id", "séquence": "sequence_id"}
+COLONNES = {"sonore": "sound_id", "banque": "bank_id", "séquence": "sequence_id"}
 NOM = re.compile(r"« ([^»]+) »")
 JOUR = date(2026, 10, 14)
-MODES = {"séquentielle": "sequentiel", "aléatoire": "aleatoire"}
+MODES = {"séquentielle": "sequential", "aléatoire": "random"}
 
 
 @dataclass
@@ -72,10 +73,10 @@ def a_ou_rien(heure: str) -> datetime | None:
 
 def sonore(base: Connexion, nom: str) -> int:
 	emplacement = f"/sons/{nom}.flac"
-	ligne = base.execute("SELECT id FROM sonores WHERE emplacement = %s", (emplacement,)).fetchone()
+	ligne = base.execute("SELECT id FROM sounds WHERE location = %s", (emplacement,)).fetchone()
 	if ligne is None:
 		ligne = base.execute(
-			"INSERT INTO sonores (type, emplacement, etat) VALUES ('fichier', %s, 'actif') RETURNING id", (emplacement,)
+			"INSERT INTO sounds (type, location, state) VALUES ('file', %s, 'active') RETURNING id", (emplacement,)
 		).fetchone()
 	assert ligne is not None
 	return int(str(ligne[0]))
@@ -88,13 +89,13 @@ def nom_de(base: Connexion, table: str, colonne: str, identifiant: int) -> str:
 
 
 def banque(base: Connexion, nom: str) -> int:
-	ligne = base.execute("SELECT id FROM banques WHERE nom_interne = %s", (nom,)).fetchone()
+	ligne = base.execute("SELECT id FROM banks WHERE internal_name = %s", (nom,)).fetchone()
 	assert ligne is not None, f"banque {nom} inconnue"
 	return int(str(ligne[0]))
 
 
 def sequence(base: Connexion, nom: str) -> int:
-	ligne = base.execute("SELECT id FROM sequences WHERE nom_interne = %s", (nom,)).fetchone()
+	ligne = base.execute("SELECT id FROM sequences WHERE internal_name = %s", (nom,)).fetchone()
 	assert ligne is not None, f"séquence {nom} inconnue"
 	return int(str(ligne[0]))
 
@@ -122,26 +123,26 @@ def duree_propre(contexte: Contexte, nom: str, minutes: int) -> None:
 
 @given(parsers.re(r"une banque (?P<mode>séquentielle|aléatoire) « (?P<nom>[^»]+) » contenant (?P<liste>.+)"))
 def banque_contenant(base_vide: Connexion, mode: str, nom: str, liste: str) -> None:
-	base_vide.execute("INSERT INTO banques (nom_interne, mode) VALUES (%s, %s)", (nom, MODES[mode]))
+	base_vide.execute("INSERT INTO banks (internal_name, mode) VALUES (%s, %s)", (nom, MODES[mode]))
 	for position, nom_sonore in enumerate(NOM.findall(liste), start=1):
 		base_vide.execute(
-			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(banque(base_vide, nom), sonore(base_vide, nom_sonore), position),
 		)
 
 
 @given(parsers.re(r"une séquence vide « (?P<nom>[^»]+) »"))
 def sequence_vide(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("INSERT INTO sequences (nom_interne) VALUES (%s)", (nom,))
+	base_vide.execute("INSERT INTO sequences (internal_name) VALUES (%s)", (nom,))
 
 
 @given(parsers.re(r"une séquence « (?P<nom>[^»]+) » jouant (?P<liste>.+)"))
 def sequence_jouant(base_vide: Connexion, nom: str, liste: str) -> None:
-	creee = base_vide.execute("INSERT INTO sequences (nom_interne) VALUES (%s) RETURNING id", (nom,)).fetchone()
+	creee = base_vide.execute("INSERT INTO sequences (internal_name) VALUES (%s) RETURNING id", (nom,)).fetchone()
 	assert creee is not None
 	for position, (genre, nom_element) in enumerate(ELEMENT.findall(liste), start=1):
 		base_vide.execute(
-			f"INSERT INTO sequences_elements (sequence_id, position, {COLONNES[genre]})"  # noqa: S608
+			f"INSERT INTO sequence_items (sequence_id, position, {COLONNES[genre]})"  # noqa: S608
 			" VALUES (%s, %s, %s)",
 			(creee[0], position, reference(base_vide, genre, nom_element)),
 		)
@@ -149,12 +150,12 @@ def sequence_jouant(base_vide: Connexion, nom: str, liste: str) -> None:
 
 @given(parsers.parse("la banque « {nom} » est marquée « ne pas répéter »"))
 def ne_pas_repeter(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE banques SET ne_pas_repeter = true WHERE id = %s", (banque(base_vide, nom),))
+	base_vide.execute("UPDATE banks SET no_repeat = true WHERE id = %s", (banque(base_vide, nom),))
 
 
 @given(parsers.parse("le sonore « {nom} » est à l'état « {etat} »"))
 def etat(base_vide: Connexion, nom: str, etat: str) -> None:
-	base_vide.execute("UPDATE sonores SET etat = %s WHERE id = %s", (etat, sonore(base_vide, nom)))
+	base_vide.execute("UPDATE sounds SET state = %s WHERE id = %s", (etat, sonore(base_vide, nom)))
 
 
 @given("les événements :")
@@ -164,8 +165,8 @@ def evenements(base_vide: Connexion, datatable: list[list[str]]) -> None:
 		ligne = dict(zip(entetes, (v.strip() for v in valeurs), strict=True))
 		jours = [j.strip() for j in ligne.get("jours", "").split(",") if j.strip()]
 		cree = base_vide.execute(
-			"INSERT INTO evenements (nom_interne, priorite, debut, fin, jours_recurrence)"
-			" VALUES (%s, %s, %s, %s, %s::jour_semaine[]) RETURNING id",
+			"INSERT INTO events (internal_name, priority, starts_at, ends_at, recurrence_days)"
+			" VALUES (%s, %s, %s, %s, %s::weekday[]) RETURNING id",
 			(
 				ligne["nom"],
 				ligne["priorité"],
@@ -177,7 +178,7 @@ def evenements(base_vide: Connexion, datatable: list[list[str]]) -> None:
 		assert cree is not None
 		for position, (genre, nom) in enumerate(ELEMENT.findall(ligne["liste"]), start=1):
 			base_vide.execute(
-				f"INSERT INTO evenements_elements (evenement_id, position, {COLONNES[genre]})"  # noqa: S608
+				f"INSERT INTO event_items (event_id, position, {COLONNES[genre]})"  # noqa: S608
 				" VALUES (%s, %s, %s)",
 				(cree[0], position, reference(base_vide, genre, nom)),
 			)
@@ -202,8 +203,8 @@ def derouler(contexte: Contexte, base: Connexion, lecture: Connexion, debut: dat
 		if decision.jouer is not None:
 			choix = decision.jouer
 			base.execute(
-				"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id, banque_id, evenement_id,"
-				" element_id, sequence_id, sequence_element_id) VALUES (%s, 'debut', %s, %s, %s, %s, %s, %s, %s)",
+				"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, bank_id, event_id,"
+				" event_item_id, sequence_id, sequence_item_id) VALUES (%s, 'start', %s, %s, %s, %s, %s, %s, %s)",
 				(
 					uuid.uuid4(),
 					instant,
@@ -215,7 +216,7 @@ def derouler(contexte: Contexte, base: Connexion, lecture: Connexion, debut: dat
 					None if choix.ligne is None else choix.ligne.id,
 				),
 			)
-			nom = nom_de(base, "sonores", "emplacement", choix.sonore)
+			nom = nom_de(base, "sounds", "location", choix.sonore)
 			en_cours = EnCours(choix.occurrence, instant, instant + contexte.durees.get(nom, contexte.duree))
 			issue = "entier" if en_cours.fin_prevue <= fin else "en cours"
 			contexte.journal.append(Ligne(f"{instant:%H:%M}", nom, choix.occurrence.evenement.nom, issue))
@@ -259,7 +260,7 @@ def verifier_la_liste(contexte: Contexte, base_vide: Connexion, liste: str, bouc
 		banques.append(None)
 		if nom != "sonore":
 			banques[-1] = banque(base_vide, nom)
-	marquees = {int(str(ligne[0])) for ligne in base_vide.execute("SELECT id FROM banques WHERE ne_pas_repeter")}
+	marquees = {int(str(ligne[0])) for ligne in base_vide.execute("SELECT id FROM banks WHERE no_repeat")}
 	contexte.signalees = appels_ignores(banques, marquees, boucle == "boucle")
 
 
@@ -273,6 +274,10 @@ def diffusion(contexte: Contexte, datatable: list[list[str]]) -> None:
 	assert contexte.journal == attendu, "\n".join(str(ligne) for ligne in contexte.journal)
 
 
+NIVEAU_EN_BASE = {libelle: niveau for niveau, libelle in NIVEAUX.items()}
+"""Le niveau du log en base, par le mot des scénarios."""
+
+
 @then(
 	parsers.re(
 		r"le log contient (?P<nombre>\d+) (?P<niveau>alerte|info) « (?P<nature>[^»]+) » pour l'événement"
@@ -283,19 +288,20 @@ def alertes(
 	base_vide: Connexion, nombre: str, niveau: str, nature: str, evenement: str, nom_banque: str | None
 ) -> None:
 	lignes = base_vide.execute(
-		"SELECT l.niveau::text, e.nom_interne, b.nom_interne FROM log l"
-		" LEFT JOIN evenements e ON e.id = l.evenement_id LEFT JOIN banques b ON b.id = l.banque_id"
-		" WHERE l.nature = %s",
+		"SELECT l.level::text, e.internal_name, b.internal_name FROM log l"
+		" LEFT JOIN events e ON e.id = l.event_id LEFT JOIN banks b ON b.id = l.bank_id"
+		" WHERE l.kind = %s",
 		(nature,),
 	).fetchall()
 	obtenues = [(n, e) + ((b,) if nom_banque else ()) for n, e, b in lignes]
-	attendue = (niveau, evenement) + ((nom_banque,) if nom_banque else ())
+	attendue = (NIVEAU_EN_BASE[niveau], evenement) + ((nom_banque,) if nom_banque else ())
 	assert obtenues == [attendue] * int(nombre), lignes
 
 
 @then(parsers.re(r"le log ne contient aucune (?P<niveau>alerte|info) « (?P<nature>[^»]+) »"))
 def aucune_ligne(base_vide: Connexion, niveau: str, nature: str) -> None:
-	lignes = base_vide.execute("SELECT message FROM log WHERE niveau = %s AND nature = %s", (niveau, nature)).fetchall()
+	requete = "SELECT message FROM log WHERE level = %s AND kind = %s"
+	lignes = base_vide.execute(requete, (NIVEAU_EN_BASE[niveau], nature)).fetchall()
 	assert lignes == [], lignes
 
 

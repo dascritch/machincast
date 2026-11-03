@@ -21,51 +21,51 @@ Fonctionnalité: Chevauchement de deux événements de même priorité
 
 		Exemples: ponctuels
 			| priorité | début            | fin              | jours | autre    | début autre      | fin autre        | jours autre | verdict                                 |
-			| emission | 2026-10-14 20:00 | 2026-10-14 22:00 |       | emission | 2026-10-14 21:00 | 2026-10-14 23:00 |             | « Autre » le « 2026-10-14 21:00 »       |
-			| emission | 2026-10-14 21:00 | 2026-10-14 23:00 |       | emission | 2026-10-14 20:00 | 2026-10-14 22:00 |             | « Autre » le « 2026-10-14 21:00 »       |
-			| emission | 2026-10-14 20:00 | 2026-10-14 22:00 |       | emission | 2026-10-14 20:30 | 2026-10-14 21:00 |             | « Autre » le « 2026-10-14 20:30 »       |
-			| emission | 2026-10-14 20:00 | 2026-10-14 22:00 |       | emission | 2026-10-14 22:00 | 2026-10-14 23:00 |             | rien                                    |
-			| emission | 2026-10-14 22:00 | 2026-10-14 23:00 |       | emission | 2026-10-14 20:00 | 2026-10-14 22:00 |             | rien                                    |
-			| emission | 2026-10-14 20:00 | 2026-10-14 22:00 |       | special  | 2026-10-14 21:00 | 2026-10-14 23:00 |             | rien                                    |
+			| show | 2026-10-14 20:00 | 2026-10-14 22:00 |       | show | 2026-10-14 21:00 | 2026-10-14 23:00 |             | « Autre » le « 2026-10-14 21:00 »       |
+			| show | 2026-10-14 21:00 | 2026-10-14 23:00 |       | show | 2026-10-14 20:00 | 2026-10-14 22:00 |             | « Autre » le « 2026-10-14 21:00 »       |
+			| show | 2026-10-14 20:00 | 2026-10-14 22:00 |       | show | 2026-10-14 20:30 | 2026-10-14 21:00 |             | « Autre » le « 2026-10-14 20:30 »       |
+			| show | 2026-10-14 20:00 | 2026-10-14 22:00 |       | show | 2026-10-14 22:00 | 2026-10-14 23:00 |             | rien                                    |
+			| show | 2026-10-14 22:00 | 2026-10-14 23:00 |       | show | 2026-10-14 20:00 | 2026-10-14 22:00 |             | rien                                    |
+			| show | 2026-10-14 20:00 | 2026-10-14 22:00 |       | special  | 2026-10-14 21:00 | 2026-10-14 23:00 |             | rien                                    |
 			| special  | 2026-10-14 20:00 | 2026-10-14 22:00 |       | special  | 2026-10-14 21:00 | 2026-10-14 23:00 |             | « Autre » le « 2026-10-14 21:00 »       |
 
 		Exemples: récurrents
 			| priorité    | début            | fin              | jours            | autre       | début autre      | fin autre        | jours autre                                               | verdict                            |
-			| emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | lundi, mercredi  | emission    | 2026-10-16 22:00 | 2026-10-16 22:30 |                                                           | rien                               |
-			| emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | lundi, mercredi  | emission    | 2026-11-04 22:00 | 2026-11-04 22:30 |                                                           | « Autre » le « 2026-11-04 22:00 »  |
-			| emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | lundi            | emission    | 2026-10-05 21:30 | 2026-10-05 22:00 |                                                           | rien                               |
-			| emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | mardi            | emission    | 2026-10-12 22:00 | 2026-10-12 22:30 |                                                           | « Autre » le « 2026-10-12 22:00 »  |
-			| emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | lundi            | emission    | 2026-10-13 22:00 | 2026-10-13 23:00 | mardi, jeudi                                              | rien                               |
-			| emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | lundi            | emission    | 2026-10-13 22:00 | 2026-10-13 23:00 | lundi, jeudi                                              | « Autre » le « 2026-10-19 22:00 »  |
-			| emission    | 2026-10-12 23:00 | 2026-10-13 01:00 | lundi            | emission    | 2026-10-13 00:30 | 2026-10-13 02:00 | mardi                                                     | « Autre » le « 2026-10-13 00:30 »  |
-			| emission    | 2026-10-12 10:00 | 2026-10-15 10:00 | lundi            | emission    | 2026-10-21 12:00 | 2026-10-21 13:00 |                                                           | « Autre » le « 2026-10-21 12:00 »  |
-			| fil_musical | 2026-10-12 00:00 | 2026-10-12 06:00 | lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche | fil_musical | 2026-10-12 06:00 | 2026-10-13 00:00 | lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche | rien |
-			| fil_musical | 2026-10-12 00:00 | 2026-10-12 07:00 | lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche | fil_musical | 2026-10-17 06:00 | 2026-10-18 00:00 | samedi                                                    | « Autre » le « 2026-10-17 06:00 »  |
+			| show    | 2026-10-12 21:00 | 2026-10-12 23:00 | monday, wednesday  | show    | 2026-10-16 22:00 | 2026-10-16 22:30 |                                                           | rien                               |
+			| show    | 2026-10-12 21:00 | 2026-10-12 23:00 | monday, wednesday  | show    | 2026-11-04 22:00 | 2026-11-04 22:30 |                                                           | « Autre » le « 2026-11-04 22:00 »  |
+			| show    | 2026-10-12 21:00 | 2026-10-12 23:00 | monday            | show    | 2026-10-05 21:30 | 2026-10-05 22:00 |                                                           | rien                               |
+			| show    | 2026-10-12 21:00 | 2026-10-12 23:00 | tuesday            | show    | 2026-10-12 22:00 | 2026-10-12 22:30 |                                                           | « Autre » le « 2026-10-12 22:00 »  |
+			| show    | 2026-10-12 21:00 | 2026-10-12 23:00 | monday            | show    | 2026-10-13 22:00 | 2026-10-13 23:00 | tuesday, thursday                                              | rien                               |
+			| show    | 2026-10-12 21:00 | 2026-10-12 23:00 | monday            | show    | 2026-10-13 22:00 | 2026-10-13 23:00 | monday, thursday                                              | « Autre » le « 2026-10-19 22:00 »  |
+			| show    | 2026-10-12 23:00 | 2026-10-13 01:00 | monday            | show    | 2026-10-13 00:30 | 2026-10-13 02:00 | tuesday                                                     | « Autre » le « 2026-10-13 00:30 »  |
+			| show    | 2026-10-12 10:00 | 2026-10-15 10:00 | monday            | show    | 2026-10-21 12:00 | 2026-10-21 13:00 |                                                           | « Autre » le « 2026-10-21 12:00 »  |
+			| background_programming | 2026-10-12 00:00 | 2026-10-12 06:00 | monday, tuesday, wednesday, thursday, friday, saturday, sunday | background_programming | 2026-10-12 06:00 | 2026-10-13 00:00 | monday, tuesday, wednesday, thursday, friday, saturday, sunday | rien |
+			| background_programming | 2026-10-12 00:00 | 2026-10-12 07:00 | monday, tuesday, wednesday, thursday, friday, saturday, sunday | background_programming | 2026-10-17 06:00 | 2026-10-18 00:00 | saturday                                                    | « Autre » le « 2026-10-17 06:00 »  |
 
 		Exemples: sans fin
 			| priorité    | début            | fin              | jours | autre       | début autre      | fin autre        | jours autre | verdict                            |
-			| emission    | 2026-10-14 20:00 |                  |       | emission    | 2026-10-14 21:00 | 2026-10-14 22:00 |             | rien                               |
-			| emission    | 2026-10-14 21:30 |                  |       | emission    | 2026-10-14 21:00 | 2026-10-14 22:00 |             | « Autre » le « 2026-10-14 21:30 »  |
-			| emission    | 2026-10-14 21:00 | 2026-10-14 22:00 |       | emission    | 2026-10-14 21:30 |                  |             | « Autre » le « 2026-10-14 21:30 »  |
-			| emission    | 2026-10-14 20:00 | 2026-10-14 21:00 |       | emission    | 2026-10-14 21:30 |                  |             | rien                               |
-			| emission    | 2026-10-14 22:00 |                  |       | emission    | 2026-10-14 21:00 | 2026-10-14 22:00 |             | rien                               |
-			| emission    | 2026-10-14 21:00 |                  |       | emission    | 2026-10-14 21:00 |                  |             | « Autre » le « 2026-10-14 21:00 »  |
-			| emission    | 2026-10-14 21:00 |                  |       | emission    | 2026-10-14 21:01 |                  |             | rien                               |
-			| emission    | 2026-10-12 07:00 |                  | lundi | emission    | 2026-10-19 06:30 | 2026-10-19 08:00 |             | « Autre » le « 2026-10-19 07:00 »  |
-			| fil_musical | 2026-10-12 06:00 |                  |       | fil_musical | 2026-10-14 05:00 | 2026-10-14 07:00 | mercredi    | rien                               |
+			| show    | 2026-10-14 20:00 |                  |       | show    | 2026-10-14 21:00 | 2026-10-14 22:00 |             | rien                               |
+			| show    | 2026-10-14 21:30 |                  |       | show    | 2026-10-14 21:00 | 2026-10-14 22:00 |             | « Autre » le « 2026-10-14 21:30 »  |
+			| show    | 2026-10-14 21:00 | 2026-10-14 22:00 |       | show    | 2026-10-14 21:30 |                  |             | « Autre » le « 2026-10-14 21:30 »  |
+			| show    | 2026-10-14 20:00 | 2026-10-14 21:00 |       | show    | 2026-10-14 21:30 |                  |             | rien                               |
+			| show    | 2026-10-14 22:00 |                  |       | show    | 2026-10-14 21:00 | 2026-10-14 22:00 |             | rien                               |
+			| show    | 2026-10-14 21:00 |                  |       | show    | 2026-10-14 21:00 |                  |             | « Autre » le « 2026-10-14 21:00 »  |
+			| show    | 2026-10-14 21:00 |                  |       | show    | 2026-10-14 21:01 |                  |             | rien                               |
+			| show    | 2026-10-12 07:00 |                  | monday | show    | 2026-10-19 06:30 | 2026-10-19 08:00 |             | « Autre » le « 2026-10-19 07:00 »  |
+			| background_programming | 2026-10-12 06:00 |                  |       | background_programming | 2026-10-14 05:00 | 2026-10-14 07:00 | wednesday    | rien                               |
 
 		Exemples: fil permanent
 			| priorité    | début            | fin              | jours | autre       | début autre      | fin autre        | jours autre | verdict |
-			| fil_musical |                  |                  |       | fil_musical | 2026-10-12 00:00 | 2026-10-12 06:00 | lundi       | rien    |
-			| fil_musical | 2026-10-12 00:00 | 2026-10-12 06:00 | lundi | fil_musical |                  |                  |             | rien    |
-			| fil_musical |                  |                  |       | fil_musical |                  |                  |             | rien    |
+			| background_programming |                  |                  |       | background_programming | 2026-10-12 00:00 | 2026-10-12 06:00 | monday       | rien    |
+			| background_programming | 2026-10-12 00:00 | 2026-10-12 06:00 | monday | background_programming |                  |                  |             | rien    |
+			| background_programming |                  |                  |       | background_programming |                  |                  |             | rien    |
 
 	Scénario: Le premier événement chevauché est donné, au plus tôt
 		Étant donné les événements à comparer :
 			| nom      | priorité | début            | fin              | jours  |
-			| Placé    | emission | 2026-10-12 20:00 | 2026-10-12 22:00 | lundi  |
-			| Lointain | emission | 2026-12-07 21:00 | 2026-12-07 21:30 |        |
-			| Proche   | emission | 2026-10-26 21:00 | 2026-10-26 23:00 |        |
+			| Placé    | show     | 2026-10-12 20:00 | 2026-10-12 22:00 | monday |
+			| Lointain | show     | 2026-12-07 21:00 | 2026-12-07 21:30 |        |
+			| Proche   | show     | 2026-10-26 21:00 | 2026-10-26 23:00 |        |
 			| Ailleurs | special  | 2026-10-12 20:00 | 2026-10-12 22:00 |        |
 		Alors « Placé » chevauche « Proche » le « 2026-10-26 21:00 »
 
@@ -75,9 +75,9 @@ Fonctionnalité: Chevauchement de deux événements de même priorité
 		cours à cet instant compte, à partir de lui.
 
 		Étant donné les événements à comparer :
-			| nom   | priorité | début   | fin   | jours   |
-			| Placé | emission | <début> | <fin> | <jours> |
-			| Autre | emission | <début autre> | <fin autre> | <jours autre> |
+			| nom   | priorité | début         | fin         | jours         |
+			| Placé | show     | <début>       | <fin>       | <jours>       |
+			| Autre | show     | <début autre> | <fin autre> | <jours autre> |
 		Alors à partir du « <depuis> », « Placé » chevauche <verdict>
 
 		Exemples:
@@ -86,9 +86,9 @@ Fonctionnalité: Chevauchement de deux événements de même priorité
 			| 2026-10-14 20:00 | 2026-10-14 22:00 |        | 2026-10-14 21:00 | 2026-10-14 23:00 |              | 2026-10-14 21:30 | « Autre » le « 2026-10-14 21:30 » |
 			| 2026-10-14 20:00 | 2026-10-14 22:00 |        | 2026-10-14 21:00 | 2026-10-14 23:00 |              | 2026-10-14 22:00 | rien                              |
 			| 2026-10-14 20:00 | 2026-10-14 22:00 |        | 2026-10-14 21:00 | 2026-10-14 23:00 |              | 2026-10-20 00:00 | rien                              |
-			| 2026-10-12 21:00 | 2026-10-12 23:00 | lundi  | 2026-10-12 22:00 | 2026-10-12 22:30 |              | 2026-10-13 00:00 | rien                              |
-			| 2026-10-12 21:00 | 2026-10-12 23:00 | lundi  | 2026-10-13 22:00 | 2026-10-13 23:00 | lundi, jeudi | 2026-11-01 00:00 | « Autre » le « 2026-11-02 22:00 » |
-			| 2026-10-12 21:00 | 2026-10-12 23:00 | lundi  | 2026-10-30 22:00 | 2026-10-30 22:30 |              | 2026-10-20 00:00 | rien                              |
-			| 2026-10-12 21:00 | 2026-10-12 23:00 | lundi  | 2026-11-09 22:00 | 2026-11-09 22:30 |              | 2026-10-20 00:00 | « Autre » le « 2026-11-09 22:00 » |
+			| 2026-10-12 21:00 | 2026-10-12 23:00 | monday  | 2026-10-12 22:00 | 2026-10-12 22:30 |              | 2026-10-13 00:00 | rien                              |
+			| 2026-10-12 21:00 | 2026-10-12 23:00 | monday  | 2026-10-13 22:00 | 2026-10-13 23:00 | monday, thursday | 2026-11-01 00:00 | « Autre » le « 2026-11-02 22:00 » |
+			| 2026-10-12 21:00 | 2026-10-12 23:00 | monday  | 2026-10-30 22:00 | 2026-10-30 22:30 |              | 2026-10-20 00:00 | rien                              |
+			| 2026-10-12 21:00 | 2026-10-12 23:00 | monday  | 2026-11-09 22:00 | 2026-11-09 22:30 |              | 2026-10-20 00:00 | « Autre » le « 2026-11-09 22:00 » |
 			| 2026-10-14 21:00 |                  |        | 2026-10-14 21:00 |                  |              | 2026-10-14 21:00 | « Autre » le « 2026-10-14 21:00 » |
 			| 2026-10-14 21:00 |                  |        | 2026-10-14 21:00 |                  |              | 2026-10-14 21:01 | rien                              |

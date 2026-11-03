@@ -79,10 +79,10 @@ def socket_temporaire(banc: Banc, tmp_path: Path) -> None:
 @given(parsers.parse("la dernière lecture du sonore « {nom} » a fini en incident"))
 def derniere_lecture_en_incident(base_vide: Connexion, nom: str) -> None:
 	identifiant = uuid.uuid4()
-	for type_ligne, fin in (("debut", ""), ("fin", ", duree_diffusee, sans_incident")):
+	for type_ligne, fin in (("start", ""), ("end", ", played_duration, without_incident")):
 		valeurs = ", '1 s', false" if fin else ""
 		base_vide.execute(
-			f"INSERT INTO airplay (passage_id, type_ligne, horodatage, sonore_id{fin})"
+			f"INSERT INTO airplay (play_id, line_type, logged_at, sound_id{fin})"
 			f" VALUES (%s, %s, '2026-10-13 12:00', %s{valeurs})",
 			(identifiant, type_ligne, sonore(base_vide, nom)),
 		)
@@ -118,7 +118,7 @@ def connexion_breve(banc: Banc) -> None:
 
 @when(parsers.parse("le sonore « {nom} » est désactivé"))
 def desactiver(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE sonores SET etat = 'desactive' WHERE id = %s", (sonore(base_vide, nom),))
+	base_vide.execute("UPDATE sounds SET state = 'disabled' WHERE id = %s", (sonore(base_vide, nom),))
 
 
 # ─── Alors ─────────────────────────────────────────────────
@@ -327,7 +327,7 @@ def priorite_en_cours(client: Client, priorite: str) -> None:
 def identifiant_de(base: Connexion, table: str, nom: str | None) -> int | None:
 	if nom is None:
 		return None
-	ligne = base.execute(f"SELECT id FROM {table} WHERE nom_interne = %s", (nom,)).fetchone()  # noqa: S608
+	ligne = base.execute(f"SELECT id FROM {table} WHERE internal_name = %s", (nom,)).fetchone()  # noqa: S608
 	assert ligne is not None, nom
 	return int(str(ligne[0]))
 
@@ -351,11 +351,11 @@ def contexte_du_sonore(
 		sonore_lu = en_cours(client)
 	attendu = {
 		"banque": banque,
-		"banque_id": identifiant_de(base_vide, "banques", banque),
+		"banque_id": identifiant_de(base_vide, "banks", banque),
 		"sequence": sequence,
 		"sequence_id": identifiant_de(base_vide, "sequences", sequence),
 		"evenement": evenement,
-		"evenement_id": identifiant_de(base_vide, "evenements", evenement),
+		"evenement_id": identifiant_de(base_vide, "events", evenement),
 		"evenement_debut": None,
 		"evenement_fin": None,
 	}
@@ -387,12 +387,14 @@ def sans_texte_public(client: Client) -> None:
 @given(parsers.parse("le sonore « {nom} » dure {duree:d} secondes en base"))
 def duree_en_base(base_vide: Connexion, nom: str, duree: int) -> None:
 	"""La durée en base décide des heures annoncées ; le fichier joué reste le court fichier de test."""
-	base_vide.execute("UPDATE sonores SET duree = %s WHERE id = %s", (timedelta(seconds=duree), sonore(base_vide, nom)))
+	base_vide.execute(
+		"UPDATE sounds SET duration = %s WHERE id = %s", (timedelta(seconds=duree), sonore(base_vide, nom))
+	)
 
 
 @given(parsers.parse("la banque « {nom} » est marquée « ne pas répéter »"))
 def ne_pas_repeter(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE banques SET ne_pas_repeter = true WHERE nom_interne = %s", (nom,))
+	base_vide.execute("UPDATE banks SET no_repeat = true WHERE internal_name = %s", (nom,))
 
 
 @given(
@@ -404,15 +406,14 @@ def ne_pas_repeter(base_vide: Connexion, nom: str) -> None:
 def emission_banque_puis_sonore(
 	banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, debut: str, fin: str, banque: str, nom_sonore: str
 ) -> None:
-	evenement(banc, base_vide, tmp_path, nom, "emission", heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}"), [])
+	evenement(banc, base_vide, tmp_path, nom, "show", heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}"), [])
 	base_vide.execute(
-		"INSERT INTO evenements_elements (evenement_id, position, banque_id)"
-		" SELECT e.id, 1, b.id FROM evenements e, banques b WHERE e.nom_interne = %s AND b.nom_interne = %s",
+		"INSERT INTO event_items (event_id, position, bank_id)"
+		" SELECT e.id, 1, b.id FROM events e, banks b WHERE e.internal_name = %s AND b.internal_name = %s",
 		(nom, banque),
 	)
 	base_vide.execute(
-		"INSERT INTO evenements_elements (evenement_id, position, sonore_id)"
-		" SELECT id, 2, %s FROM evenements WHERE nom_interne = %s",
+		"INSERT INTO event_items (event_id, position, sound_id) SELECT id, 2, %s FROM events WHERE internal_name = %s",
 		(creer_sonore(banc, base_vide, tmp_path, nom_sonore), nom),
 	)
 
@@ -428,7 +429,7 @@ def fin_du_sonore_en_cours(client: Client, base_vide: Connexion, fin: str, evene
 	assert heure(courant["fin_estimee"]) == heure(fin), courant
 	attendu = None
 	if evenement is not None:
-		attendu = identifiant_de(base_vide, "evenements", evenement)
+		attendu = identifiant_de(base_vide, "events", evenement)
 	assert (courant["coupe_par"], courant["coupe_par_id"]) == (evenement, attendu), courant
 
 
@@ -446,19 +447,18 @@ def evenement_du_prochain(client: Client, evenement: str) -> None:
 def emission_banque_aleatoire(
 	banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, debut: str, fin: str, banque: str, liste: str
 ) -> None:
-	evenement(banc, base_vide, tmp_path, nom, "emission", heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}"), [])
+	evenement(banc, base_vide, tmp_path, nom, "show", heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}"), [])
 	creee = base_vide.execute(
-		"INSERT INTO banques (nom_interne, mode) VALUES (%s, 'aleatoire') RETURNING id", (banque,)
+		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'random') RETURNING id", (banque,)
 	).fetchone()
 	assert creee is not None
 	for position, nom_sonore in enumerate((n.strip(" «»") for n in liste.split(",")), start=1):
 		base_vide.execute(
-			"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, %s)",
+			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(creee[0], creer_sonore(banc, base_vide, tmp_path, nom_sonore), position),
 		)
 	base_vide.execute(
-		"INSERT INTO evenements_elements (evenement_id, position, banque_id)"
-		" SELECT id, 1, %s FROM evenements WHERE nom_interne = %s",
+		"INSERT INTO event_items (event_id, position, bank_id) SELECT id, 1, %s FROM events WHERE internal_name = %s",
 		(creee[0], nom),
 	)
 

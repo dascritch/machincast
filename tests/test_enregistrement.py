@@ -49,7 +49,7 @@ def creer(base: Connexion, requete: str, valeurs: tuple[object, ...]) -> int:
 def evenement(base: Connexion, nom: str) -> int:
 	return creer(
 		base,
-		"INSERT INTO evenements (nom_interne, priorite, debut) VALUES (%s, 'emission', %s)",
+		"INSERT INTO events (internal_name, priority, starts_at) VALUES (%s, 'show', %s)",
 		(nom, heure("2026-10-15 20:00:00")),
 	)
 
@@ -61,16 +61,16 @@ def evenement(base: Connexion, nom: str) -> int:
 def sonore(contexte: Contexte, base_vide: Connexion, emplacement: str, artiste: str, titre: str) -> None:
 	contexte.ids["sonore"] = creer(
 		base_vide,
-		"INSERT INTO sonores (type, emplacement, etat, artiste, titre) VALUES ('fichier', %s, 'actif', %s, %s)",
+		"INSERT INTO sounds (type, location, state, artist, title) VALUES ('file', %s, 'active', %s, %s)",
 		(emplacement, artiste, titre),
 	)
 
 
 @given(parsers.parse("la banque « {nom} » qui le contient"))
 def banque(contexte: Contexte, base_vide: Connexion, nom: str) -> None:
-	contexte.ids[nom] = creer(base_vide, "INSERT INTO banques (nom_interne, mode) VALUES (%s, 'sequentiel')", (nom,))
+	contexte.ids[nom] = creer(base_vide, "INSERT INTO banks (internal_name, mode) VALUES (%s, 'sequential')", (nom,))
 	base_vide.execute(
-		"INSERT INTO banques_sonores (banque_id, sonore_id, position) VALUES (%s, %s, 1)",
+		"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, 1)",
 		(contexte.ids[nom], contexte.ids["sonore"]),
 	)
 
@@ -80,12 +80,12 @@ def emission(contexte: Contexte, base_vide: Connexion, nom: str, banque_nom: str
 	contexte.ids[nom] = evenement(base_vide, nom)
 	creer(
 		base_vide,
-		"INSERT INTO evenements_elements (evenement_id, position, sonore_id) VALUES (%s, 1, %s)",
+		"INSERT INTO event_items (event_id, position, sound_id) VALUES (%s, 1, %s)",
 		(contexte.ids[nom], contexte.ids["sonore"]),
 	)
 	contexte.ids["element"] = creer(
 		base_vide,
-		"INSERT INTO evenements_elements (evenement_id, position, banque_id) VALUES (%s, 2, %s)",
+		"INSERT INTO event_items (event_id, position, bank_id) VALUES (%s, 2, %s)",
 		(contexte.ids[nom], contexte.ids[banque_nom]),
 	)
 
@@ -95,7 +95,7 @@ def emission_directe(contexte: Contexte, base_vide: Connexion, nom: str) -> None
 	contexte.ids[nom] = evenement(base_vide, nom)
 	contexte.ids[f"element {nom}"] = creer(
 		base_vide,
-		"INSERT INTO evenements_elements (evenement_id, position, sonore_id) VALUES (%s, 1, %s)",
+		"INSERT INTO event_items (event_id, position, sound_id) VALUES (%s, 1, %s)",
 		(contexte.ids[nom], contexte.ids["sonore"]),
 	)
 
@@ -117,7 +117,7 @@ def commencer_direct(contexte: Contexte, lecture: Connexion, nom: str, instant: 
 
 @when(parsers.parse("le titre du sonore devient « {titre} »"))
 def nouveau_titre(contexte: Contexte, base_vide: Connexion, titre: str) -> None:
-	base_vide.execute("UPDATE sonores SET titre = %s WHERE id = %s", (titre, contexte.ids["sonore"]))
+	base_vide.execute("UPDATE sounds SET title = %s WHERE id = %s", (titre, contexte.ids["sonore"]))
 
 
 @when(parsers.re(r"(?:le binaire lecture termine le passage|le termine) à « (?P<instant>[^»]+) », joué en entier"))
@@ -148,15 +148,15 @@ def consigne(lecture: Connexion, niveau: str, nature: str, message: str, instant
 
 def airplay(base: Connexion) -> list[tuple[object, ...]]:
 	return base.execute(
-		"SELECT passage_id, type_ligne::text, horodatage, emplacement, artiste, titre, sonore_id, banque_id,"
-		" evenement_id, element_id, duree_diffusee, sans_incident FROM airplay ORDER BY id"
+		"SELECT play_id, line_type::text, logged_at, location, artist, title, sound_id, bank_id,"
+		" event_id, event_item_id, played_duration, without_incident FROM airplay ORDER BY id"
 	).fetchall()
 
 
 @then(parsers.parse("l'airplay contient {nombre:d} lignes, de début et de fin, avec le même identifiant de passage"))
 def deux_lignes(base_vide: Connexion, nombre: int) -> None:
 	lignes = airplay(base_vide)
-	assert [ligne[1] for ligne in lignes] == ["debut", "fin"][:nombre]
+	assert [ligne[1] for ligne in lignes] == ["start", "end"][:nombre]
 	assert len({ligne[0] for ligne in lignes}) == 1
 
 
@@ -195,14 +195,14 @@ def sans_banque(base_vide: Connexion) -> None:
 @then(parsers.re(r"la ligne de fin indique (?P<secondes>\d+) secondes diffusées, (?P<issue>sans|avec) incident"))
 def ligne_de_fin(base_vide: Connexion, secondes: str, issue: str) -> None:
 	fin = airplay(base_vide)[-1]
-	assert fin[1] == "fin"
+	assert fin[1] == "end"
 	assert fin[10] == timedelta(seconds=int(secondes))
 	assert fin[11] is (issue == "sans")
 
 
 def log(base: Connexion) -> list[tuple[object, ...]]:
 	return base.execute(
-		"SELECT niveau::text, nature, message, horodatage, sonore_id, banque_id, evenement_id FROM log ORDER BY id"
+		"SELECT level::text, kind, message, logged_at, sound_id, bank_id, event_id FROM log ORDER BY id"
 	).fetchall()
 
 

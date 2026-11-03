@@ -15,9 +15,7 @@ def base_migree(base_vide: Connexion) -> None:
 
 @when("j'enregistre un sonore sans préciser son état", target_fixture="sonore")
 def enregistrer(base_vide: Connexion) -> int:
-	ligne = base_vide.execute(
-		"INSERT INTO sonores (type, emplacement) VALUES ('fichier', '/a.flac') RETURNING id"
-	).fetchone()
+	ligne = base_vide.execute("INSERT INTO sounds (type, location) VALUES ('file', '/a.flac') RETURNING id").fetchone()
 	assert ligne is not None
 	return int(str(ligne[0]))
 
@@ -34,14 +32,14 @@ def valeurs_du_type(base_vide: Connexion, nom: str, valeurs: str) -> None:
 
 @then(parsers.parse("son état est « {etat} »"))
 def etat_du_sonore(base_vide: Connexion, sonore: int, etat: str) -> None:
-	ligne = base_vide.execute("SELECT etat::text FROM sonores WHERE id = %s", (sonore,)).fetchone()
+	ligne = base_vide.execute("SELECT state::text FROM sounds WHERE id = %s", (sonore,)).fetchone()
 	assert ligne == (etat,)
 
 
 @then(parsers.parse("un sonore à l'état « {etat} » est refusé"))
 def etat_refuse(base_vide: Connexion, etat: str) -> None:
 	try:
-		base_vide.execute("INSERT INTO sonores (type, emplacement, etat) VALUES ('fichier', '/x.flac', %s)", (etat,))
+		base_vide.execute("INSERT INTO sounds (type, location, state) VALUES ('file', '/x.flac', %s)", (etat,))
 	except psycopg.errors.InvalidTextRepresentation:
 		return
 	raise AssertionError(f"l'état « {etat} » aurait dû être refusé")

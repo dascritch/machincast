@@ -24,11 +24,11 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	Scénario: La liste des sonores
 		Étant donné les sonores :
-			| artiste     | titre         | type    | etat      | duree | emplacement                         |
-			| Les Gaufres | Café à minuit | fichier | actif     | 214   | /srv/musique/cafe.flac              |
-			|             | Jingle        | fichier | apercu    |       | /srv/habillage/jingle.flac          |
-			| Aube        | Matin clair   | fichier | desactive | 3725  | /srv/musique/matin.flac             |
-			|             | Direct studio | stream  | actif     |       | https://flux.exemple/direct         |
+			| artist      | title         | type   | state    | duration | location                    |
+			| Les Gaufres | Café à minuit | file   | active   | 214      | /srv/musique/cafe.flac      |
+			|             | Jingle        | file   | preview  |          | /srv/habillage/jingle.flac  |
+			| Aube        | Matin clair   | file   | disabled | 3725     | /srv/musique/matin.flac     |
+			|             | Direct studio | stream | active   |          | https://flux.exemple/direct |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Alors la liste montre :
@@ -44,9 +44,9 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		la fiche de la banque, et la fiche du sonore parmi ses relations, le signalent.
 
 		Étant donné les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement            |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/musique/cafe.flac |
-			|             | Spot          | fichier | actif | 30    | /srv/pubs/spot.flac    |
+			| artist      | title         | type | state  | duration | location               |
+			| Les Gaufres | Café à minuit | file | active | 214      | /srv/musique/cafe.flac |
+			|             | Spot          | file | active | 30       | /srv/pubs/spot.flac    |
 		Et la banque « Chansons », aléatoire, sans nom public, avec « Café à minuit », « Spot »
 		Et la banque « Chansons » veut des sonores de 2:00 à 6:00
 		Quand la fenêtre de l'interface s'ouvre
@@ -61,9 +61,9 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	Scénario: La liste des banques
 		Étant donné les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement   |
-			|         | j1    | fichier | actif | 8     | /srv/j1.flac  |
-			|         | j2    | fichier | actif | 8     | /srv/j2.flac  |
+			| artist | title | type | state  | duration | location     |
+			|        | j1    | file | active | 8        | /srv/j1.flac |
+			|        | j2    | file | active | 8        | /srv/j2.flac |
 		Et la banque « Jingles », séquentielle, de nom public « Radio Thune », marquée « ne pas répéter », avec « j1 », « j2 »
 		Et la banque « Tubes », aléatoire, sans nom public, avec « j1 »
 		Et les répertoires « /srv/jingles/hiver », « /srv/jingles/automne » de la banque « Jingles »
@@ -77,8 +77,8 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	Scénario: La liste des séquences
 		Étant donné les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement  |
-			|         | j1    | fichier | actif | 8     | /srv/j1.flac |
+			| artist | title | type | state  | duration | location     |
+			|        | j1    | file | active | 8        | /srv/j1.flac |
 		Et la banque « Tubes », aléatoire, sans nom public, avec « j1 »
 		Et la séquence « Passage pub », de nom public « Vous écoutez Radio Thune », avec le sonore « j1 », la banque « Tubes »
 		Quand la fenêtre de l'interface s'ouvre
@@ -92,8 +92,8 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		https://github.com/dascritch/machincast/issues/138 : une séquence vide s'enregistre, pour être complétée plus tard.
 
 		Étant donné les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement  |
-			|         | j1    | fichier | actif | 8     | /srv/j1.flac |
+			| artist | title | type | state  | duration | location     |
+			|        | j1    | file | active | 8        | /srv/j1.flac |
 		Et la séquence « Passage pub », sans nom public, avec le sonore « j1 »
 		Et la séquence « Brouillon », sans nom public, avec rien
 		Et la séquence « Habillage », sans nom public, avec rien
@@ -115,11 +115,11 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	Scénario: La liste des événements, du plus prioritaire au moins prioritaire
 		Étant donné les événements :
-			| nom       | nom_public    | priorite    | debut            | fin              | jours                     |
-			| Continue  |               | fil_musical |                  |                  |                           |
-			| Magazine  | Le magazine   | emission    | 2026-10-12 20:00 | 2026-10-12 21:00 | lundi, mercredi, vendredi |
-			| Élections | Soirée élection | special   | 2026-10-18 20:00 |                  |                           |
-			| Secours   |               | secours     |                  |                  |                           |
+			| name      | public_name     | priority               | starts_at        | ends_at          | days                      |
+			| Continue  |                 | background_programming |                  |                  |                           |
+			| Magazine  | Le magazine     | show                   | 2026-10-12 20:00 | 2026-10-12 21:00 | monday, wednesday, friday |
+			| Élections | Soirée élection | special                | 2026-10-18 20:00 |                  |                           |
+			| Secours   |                 | fallback               |                  |                  |                           |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Événements »
 		Alors la liste montre :
@@ -134,15 +134,15 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		https://github.com/dascritch/machincast/issues/140 : un événement vide s'enregistre, pour être complété plus tard.
 
 		Étant donné les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement  |
-			|         | j1    | fichier | actif | 8     | /srv/j1.flac |
+			| artist | title | type | state  | duration | location     |
+			|        | j1    | file | active | 8        | /srv/j1.flac |
 		Et les événements :
-			| nom       | nom_public | priorite    | debut            | fin              | jours |
-			| Continue  |            | fil_musical |                  |                  |       |
-			| Nuit      |            | fil_musical | 2026-10-12 00:00 | 2026-10-12 06:00 |       |
-			| Magazine  |            | emission    | 2026-10-12 20:00 | 2026-10-12 21:00 |       |
-			| Élections |            | special     | 2026-10-18 20:00 |                  |       |
-			| Secours   |            | secours     |                  |                  |       |
+			| name      | public_name | priority               | starts_at        | ends_at          | days |
+			| Continue  |             | background_programming |                  |                  |      |
+			| Nuit      |             | background_programming | 2026-10-12 00:00 | 2026-10-12 06:00 |      |
+			| Magazine  |             | show                   | 2026-10-12 20:00 | 2026-10-12 21:00 |      |
+			| Élections |             | special                | 2026-10-18 20:00 |                  |      |
+			| Secours   |             | fallback               |                  |                  |      |
 		Et l'événement « Continue » joue le sonore « j1 »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Événements »
@@ -175,12 +175,12 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	Scénario: Une banque sans sonore actif, ou avec un sonore erroné ou non supporté, est signalée en anomalie dans la liste
 		Étant donné les sonores :
-			| artiste | titre | type    | etat         | duree | emplacement   |
-			|         | j1    | fichier | actif        | 8     | /srv/j1.flac  |
-			|         | j2    | fichier | desactive    | 8     | /srv/j2.flac  |
-			|         | j3    | fichier | apercu       | 8     | /srv/j3.flac  |
-			|         | j4    | fichier | errone       | 8     | /srv/j4.flac  |
-			|         | j5    | fichier | non_supporte | 8     | /srv/j5.png   |
+			| artist | title | type | state       | duration | location     |
+			|        | j1    | file | active      | 8        | /srv/j1.flac |
+			|        | j2    | file | disabled    | 8        | /srv/j2.flac |
+			|        | j3    | file | preview     | 8        | /srv/j3.flac |
+			|        | j4    | file | corrupt     | 8        | /srv/j4.flac |
+			|        | j5    | file | unsupported | 8        | /srv/j5.png  |
 		Et la banque « Jingles », séquentielle, sans nom public, avec « j1 », « j2 »
 		Et la banque « Archives », séquentielle, sans nom public, avec « j2 », « j3 »
 		Et la banque « Nouveautés », aléatoire, sans nom public, avec rien
@@ -200,13 +200,13 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	Scénario: Un sonore erroné ou non supporté est signalé en anomalie dans la liste ; désactivé, expiré ou en aperçu, non
 		Étant donné les sonores :
-			| artiste | titre     | type    | etat         | duree | emplacement         |
-			|         | Abîmé     | fichier | errone       | 8     | /srv/abime.flac     |
-			|         | Actif     | fichier | actif        | 8     | /srv/actif.flac     |
-			|         | Aperçu    | fichier | apercu       | 8     | /srv/apercu.flac    |
-			|         | Désactivé | fichier | desactive    | 8     | /srv/desactive.flac |
-			|         | Expiré    | fichier | expire       | 8     | /srv/expire.flac    |
-			|         | Image     | fichier | non_supporte | 8     | /srv/image.png      |
+			| artist | title     | type | state       | duration | location            |
+			|        | Abîmé     | file | corrupt     | 8        | /srv/abime.flac     |
+			|        | Actif     | file | active      | 8        | /srv/actif.flac     |
+			|        | Aperçu    | file | preview     | 8        | /srv/apercu.flac    |
+			|        | Désactivé | file | disabled    | 8        | /srv/desactive.flac |
+			|        | Expiré    | file | expired     | 8        | /srv/expire.flac    |
+			|        | Image     | file | unsupported | 8        | /srv/image.png      |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Alors le compte de la liste est « 6 sonores, dont 2 en anomalie »
@@ -217,8 +217,8 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	Scénario: La colonne d'anomalie trie les lignes en anomalie ensemble
 		Étant donné les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement  |
-			|         | j1    | fichier | actif | 8     | /srv/j1.flac |
+			| artist | title | type | state  | duration | location     |
+			|        | j1    | file | active | 8        | /srv/j1.flac |
 		Et la séquence « Passage pub », sans nom public, avec le sonore « j1 »
 		Et la séquence « Brouillon », sans nom public, avec rien
 		Et la séquence « Zapping », sans nom public, avec rien
@@ -231,8 +231,8 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	Scénario: Une liste se relit chaque fois que son onglet s'ouvre
 		Étant donné les sonores :
-			| artiste | titre | type    | etat  | duree | emplacement  |
-			|         | j1    | fichier | actif | 8     | /srv/j1.flac |
+			| artist | title | type | state  | duration | location     |
+			|        | j1    | file | active | 8        | /srv/j1.flac |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et le sonore « j2 » est ajouté en base
@@ -249,10 +249,10 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	Plan du scénario: Le filtre garde les lignes qui contiennent le texte, dans n'importe quelle colonne, sans tenir compte des majuscules ni des accents
 		Étant donné les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement                 |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/musique/minuit.flac    |
-			| Zélie       | Été indien    | fichier | actif | 180   | /srv/musique/indien.flac    |
-			|             | Direct studio | stream  | actif |       | https://flux.exemple/direct |
+			| artist      | title         | type   | state  | duration | location                    |
+			| Les Gaufres | Café à minuit | file   | active | 214      | /srv/musique/minuit.flac    |
+			| Zélie       | Été indien    | file   | active | 180      | /srv/musique/indien.flac    |
+			|             | Direct studio | stream | active |          | https://flux.exemple/direct |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et je tape « <filtre> » dans le filtre de la liste
@@ -272,10 +272,10 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	Scénario: Un clic sur le titre d'une colonne trie la liste
 		Étant donné les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement              |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/musique/minuit.flac |
-			| Aube        | Matin clair   | fichier | actif | 200   | /srv/musique/matin.flac  |
-			| Zébulon     | Avril         | fichier | actif | 100   | /srv/musique/avril.flac  |
+			| artist      | title         | type | state  | duration | location                 |
+			| Les Gaufres | Café à minuit | file | active | 214      | /srv/musique/minuit.flac |
+			| Aube        | Matin clair   | file | active | 200      | /srv/musique/matin.flac  |
+			| Zébulon     | Avril         | file | active | 100      | /srv/musique/avril.flac  |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Alors la liste montre les titres « Matin clair », « Café à minuit », « Avril »
@@ -287,11 +287,11 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		inverse l'ordre.
 
 		Étant donné les événements :
-			| nom      | nom_public | priorite    | debut            | fin              | jours |
-			| Aide     |            | secours     |                  |                  |       |
-			| Concert  |            | special     | 2026-10-17 20:00 | 2026-10-17 22:00 |       |
-			| Continue |            | fil_musical |                  |                  |       |
-			| Journal  |            | emission    | 2026-10-17 12:00 | 2026-10-17 12:30 |       |
+			| name     | public_name | priority               | starts_at        | ends_at          | days |
+			| Aide     |             | fallback               |                  |                  |      |
+			| Concert  |             | special                | 2026-10-17 20:00 | 2026-10-17 22:00 |      |
+			| Continue |             | background_programming |                  |                  |      |
+			| Journal  |             | show                   | 2026-10-17 12:00 | 2026-10-17 12:30 |      |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Événements »
 		Et je clique sur le titre de la colonne « Nom »
@@ -307,13 +307,13 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		mesuré vient après les durées connues, et un stream, qui n'a pas de fin, en dernier.
 
 		Étant donné les sonores :
-			| artiste | titre    | type    | etat  | duree | emplacement                 |
-			| A       | Dix      | fichier | actif | 600   | /srv/musique/dix.flac       |
-			| B       | Heure    | fichier | actif | 3725  | /srv/musique/heure.flac     |
-			| C       | Deux     | fichier | actif | 120   | /srv/musique/deux.flac      |
-			| D       | Direct   | stream  | actif |       | https://flux.exemple/direct |
-			| E       | Inconnu  | fichier | actif |       | /srv/musique/inconnu.flac   |
-			| F       | Trois    | fichier | actif | 214   | /srv/musique/trois.flac     |
+			| artist | title   | type   | state  | duration | location                    |
+			| A      | Dix     | file   | active | 600      | /srv/musique/dix.flac       |
+			| B      | Heure   | file   | active | 3725     | /srv/musique/heure.flac     |
+			| C      | Deux    | file   | active | 120      | /srv/musique/deux.flac      |
+			| D      | Direct  | stream | active |          | https://flux.exemple/direct |
+			| E      | Inconnu | file   | active |          | /srv/musique/inconnu.flac   |
+			| F      | Trois   | file   | active | 214      | /srv/musique/trois.flac     |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et je clique sur le titre de la colonne « Durée »
@@ -325,12 +325,12 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		https://github.com/dascritch/machincast/issues/302
 
 		Étant donné les événements :
-			| nom      | nom_public | priorite    | debut            | fin              | jours           |
-			| Continue |            | fil_musical |                  |                  |                 |
-			| Soirée   |            | emission    | 2026-10-20 20:00 | 2026-10-20 23:00 | jeudi           |
-			| Matinale |            | emission    | 2026-10-19 07:00 | 2026-10-19 09:00 | lundi, mardi    |
-			| Midi     |            | emission    | 2026-10-21 12:00 | 2026-10-21 13:00 | mercredi        |
-			| Hebdo    |            | emission    | 2026-10-23 08:00 | 2026-10-23 09:00 | vendredi, lundi |
+			| name     | public_name | priority               | starts_at        | ends_at          | days            |
+			| Continue |             | background_programming |                  |                  |                 |
+			| Soirée   |             | show                   | 2026-10-20 20:00 | 2026-10-20 23:00 | thursday        |
+			| Matinale |             | show                   | 2026-10-19 07:00 | 2026-10-19 09:00 | monday, tuesday |
+			| Midi     |             | show                   | 2026-10-21 12:00 | 2026-10-21 13:00 | wednesday       |
+			| Hebdo    |             | show                   | 2026-10-23 08:00 | 2026-10-23 09:00 | friday, monday  |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Événements »
 		Et je clique sur le titre de la colonne « <colonne> »
@@ -344,9 +344,9 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	Scénario: Le filtre se garde quand la liste se relit
 		Étant donné les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement            |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/musique/cafe.flac |
-			|             | Jingle        | fichier | actif | 8     | /srv/jingle.flac       |
+			| artist      | title         | type | state  | duration | location               |
+			| Les Gaufres | Café à minuit | file | active | 214      | /srv/musique/cafe.flac |
+			|             | Jingle        | file | active | 8        | /srv/jingle.flac       |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et je tape « café » dans le filtre de la liste
@@ -358,9 +358,9 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 
 	Scénario: Le filtre ne change pas l'élément ouvert
 		Étant donné les sonores :
-			| artiste     | titre         | type    | etat  | duree | emplacement            |
-			| Les Gaufres | Café à minuit | fichier | actif | 214   | /srv/musique/cafe.flac |
-			| Aube        | Matin clair   | fichier | actif | 200   | /srv/musique/matin.flac |
+			| artist      | title         | type | state  | duration | location                |
+			| Les Gaufres | Café à minuit | file | active | 214      | /srv/musique/cafe.flac  |
+			| Aube        | Matin clair   | file | active | 200      | /srv/musique/matin.flac |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et je tape « café » dans le filtre de la liste

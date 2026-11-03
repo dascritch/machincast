@@ -20,8 +20,8 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Un fil musical sans dates est permanent
 		Étant donné les événements :
-			| nom      | priorité    | début | fin | jours | modifié          |
-			| Continue | fil_musical |       |     |       | 2026-10-01 10:00 |
+			| nom      | priorité               | début | fin | jours | modifié          |
+			| Continue | background_programming |       |     |       | 2026-10-01 10:00 |
 		Alors l'événement actif est « Continue » à chacune de ces heures :
 			| heure            |
 			| 2000-01-01 00:00 |
@@ -30,9 +30,9 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Un événement ponctuel est actif de son début, inclus, à sa fin, exclue
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours | modifié          |
-			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
-			| Concert  | emission    | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours | modifié          |
+			| Continue | background_programming |                  |                  |       | 2026-10-01 10:00 |
+			| Concert  | show                   | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
 		Alors l'événement actif est :
 			| heure            | actif    |
 			| 2026-10-14 19:59 | Continue |
@@ -43,10 +43,10 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Les priorités départagent les événements qui se chevauchent : spécial, puis émission, puis fil musical
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours | modifié          |
-			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
-			| Magazine | emission    | 2026-10-14 18:00 | 2026-10-14 20:00 |       | 2026-10-01 10:00 |
-			| Flash    | special     | 2026-10-14 19:00 | 2026-10-14 19:10 |       | 2026-09-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours | modifié          |
+			| Continue | background_programming |                  |                  |       | 2026-10-01 10:00 |
+			| Magazine | show                   | 2026-10-14 18:00 | 2026-10-14 20:00 |       | 2026-10-01 10:00 |
+			| Flash    | special                | 2026-10-14 19:00 | 2026-10-14 19:10 |       | 2026-09-01 10:00 |
 		Alors l'événement actif est :
 			| heure            | actif    |
 			| 2026-10-14 18:30 | Magazine |
@@ -58,9 +58,9 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Un événement récurrent revient les jours cochés, à partir de sa première occurrence
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours                     | modifié          |
-			| Continue | fil_musical |                  |                  |                           | 2026-10-01 10:00 |
-			| Magazine | emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | lundi, mercredi, vendredi | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours                     | modifié          |
+			| Continue | background_programming |                  |                  |                           | 2026-10-01 10:00 |
+			| Magazine | show                   | 2026-10-12 21:00 | 2026-10-12 23:00 | monday, wednesday, friday | 2026-10-01 10:00 |
 		Alors l'événement actif est :
 			| heure            | actif    |
 			| 2026-10-09 21:30 | Continue |
@@ -73,9 +73,9 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Un événement qui passe minuit couvre la fin de sa nuit
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours | modifié          |
-			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
-			| Nocturne | emission    | 2026-10-12 23:00 | 2026-10-13 01:00 | lundi | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours  | modifié          |
+			| Continue | background_programming |                  |                  |        | 2026-10-01 10:00 |
+			| Nocturne | show                   | 2026-10-12 23:00 | 2026-10-13 01:00 | monday | 2026-10-01 10:00 |
 		Alors l'événement actif est :
 			| heure            | actif    |
 			| 2026-10-12 23:30 | Nocturne |
@@ -87,9 +87,9 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Plusieurs fils musicaux se relaient selon l'heure
 		Étant donné les événements :
-			| nom  | priorité    | début            | fin              | jours                                                         | modifié          |
-			| Nuit | fil_musical | 2026-10-12 00:00 | 2026-10-12 06:00 | lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche     | 2026-10-01 10:00 |
-			| Jour | fil_musical | 2026-10-12 06:00 | 2026-10-13 00:00 | lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche     | 2026-10-01 10:00 |
+			| nom  | priorité               | début            | fin              | jours                                                          | modifié          |
+			| Nuit | background_programming | 2026-10-12 00:00 | 2026-10-12 06:00 | monday, tuesday, wednesday, thursday, friday, saturday, sunday | 2026-10-01 10:00 |
+			| Jour | background_programming | 2026-10-12 06:00 | 2026-10-13 00:00 | monday, tuesday, wednesday, thursday, friday, saturday, sunday | 2026-10-01 10:00 |
 		Alors l'événement actif est :
 			| heure            | actif |
 			| 2026-10-14 05:59 | Nuit  |
@@ -100,9 +100,9 @@ Fonctionnalité: Détermination de l'événement actif
 	Scénario: Un fil musical permanent sert de fond, là où aucun autre fil musical ne couvre l'heure
 		# https://github.com/dascritch/machincast/issues/32 : modifié en dernier, il ne l'emporte pas pour autant.
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours                                                     | modifié          |
-			| Nuit     | fil_musical | 2026-10-12 00:00 | 2026-10-12 06:00 | lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche | 2026-10-01 10:00 |
-			| Continue | fil_musical |                  |                  |                                                           | 2026-10-02 10:00 |
+			| nom      | priorité               | début            | fin              | jours                                                          | modifié          |
+			| Nuit     | background_programming | 2026-10-12 00:00 | 2026-10-12 06:00 | monday, tuesday, wednesday, thursday, friday, saturday, sunday | 2026-10-01 10:00 |
+			| Continue | background_programming |                  |                  |                                                                | 2026-10-02 10:00 |
 		Alors l'événement actif est :
 			| heure            | actif    |
 			| 2026-10-11 23:59 | Continue |
@@ -114,9 +114,9 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Une émission sans fin reste active jusqu'à ce que sa liste soit épuisée
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin | jours | modifié          |
-			| Continue | fil_musical |                  |     |       | 2026-10-01 10:00 |
-			| Direct   | emission    | 2026-10-14 20:00 |     |       | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin | jours | modifié          |
+			| Continue | background_programming |                  |     |       | 2026-10-01 10:00 |
+			| Direct   | show                   | 2026-10-14 20:00 |     |       | 2026-10-01 10:00 |
 		Alors l'événement actif est :
 			| heure            | actif    |
 			| 2026-10-14 19:59 | Continue |
@@ -130,11 +130,11 @@ Fonctionnalité: Détermination de l'événement actif
 	Scénario: Une émission sans fin laisse la place à une émission qui commence après elle, puis reprend
 		# https://github.com/dascritch/machincast/issues/32 : modifiée en dernier, elle ne l'emporte pas pour autant.
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours | modifié          |
-			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
-			| Magazine | emission    | 2026-10-14 21:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
-			| Direct   | emission    | 2026-10-14 20:00 |                  |       | 2026-10-02 10:00 |
-			| Tardif   | emission    | 2026-10-14 23:00 |                  |       | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours | modifié          |
+			| Continue | background_programming |                  |                  |       | 2026-10-01 10:00 |
+			| Magazine | show                   | 2026-10-14 21:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
+			| Direct   | show                   | 2026-10-14 20:00 |                  |       | 2026-10-02 10:00 |
+			| Tardif   | show                   | 2026-10-14 23:00 |                  |       | 2026-10-01 10:00 |
 		Alors l'événement actif est :
 			| heure            | actif    |
 			| 2026-10-14 20:30 | Direct   |
@@ -144,9 +144,9 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Une émission récurrente sans fin reprend à sa prochaine occurrence, même si la précédente est terminée
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin | jours | modifié          |
-			| Continue | fil_musical |                  |     |       | 2026-10-01 10:00 |
-			| Matinale | emission    | 2026-10-12 07:00 |     | lundi | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin | jours  | modifié          |
+			| Continue | background_programming |                  |     |        | 2026-10-01 10:00 |
+			| Matinale | show                   | 2026-10-12 07:00 |     | monday | 2026-10-01 10:00 |
 		Quand l'occurrence de « Matinale » commencée le « 2026-10-12 07:00 » se termine, sa liste épuisée
 		Alors l'événement actif est :
 			| heure            | actif    |
@@ -158,9 +158,9 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Deux événements de même priorité qui se chevauchent : le dernier modifié en base l'emporte
 		Étant donné les événements :
-			| nom    | priorité | début            | fin              | jours | modifié          |
-			| Premier | emission | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-02 10:00 |
-			| Second  | emission | 2026-10-14 21:00 | 2026-10-14 23:00 |       | 2026-10-01 10:00 |
+			| nom     | priorité | début            | fin              | jours | modifié          |
+			| Premier | show     | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-02 10:00 |
+			| Second  | show     | 2026-10-14 21:00 | 2026-10-14 23:00 |       | 2026-10-01 10:00 |
 		Alors l'événement actif est :
 			| heure            | actif   |
 			| 2026-10-14 20:30 | Premier |
@@ -171,9 +171,9 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Un événement quotidien garde son heure murale au changement d'heure
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours                                                     | modifié          |
-			| Continue | fil_musical |                  |                  |                                                           | 2026-10-01 10:00 |
-			| Journal  | emission    | 2026-03-01 21:00 | 2026-03-01 22:00 | lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche | 2026-02-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours                                                          | modifié          |
+			| Continue | background_programming |                  |                  |                                                                | 2026-10-01 10:00 |
+			| Journal  | show                   | 2026-03-01 21:00 | 2026-03-01 22:00 | monday, tuesday, wednesday, thursday, friday, saturday, sunday | 2026-02-01 10:00 |
 		Alors l'événement actif est :
 			| heure                  | actif    |
 			| 2026-03-28 21:30+01:00 | Journal  |
@@ -185,9 +185,9 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Le fil de nuit couvre l'heure sautée et l'heure répétée
 		Étant donné les événements :
-			| nom  | priorité    | début            | fin              | jours                                                     | modifié          |
-			| Nuit | fil_musical | 2026-01-05 00:00 | 2026-01-05 06:00 | lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche | 2026-01-01 10:00 |
-			| Jour | fil_musical | 2026-01-05 06:00 | 2026-01-06 00:00 | lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche | 2026-01-01 10:00 |
+			| nom  | priorité               | début            | fin              | jours                                                          | modifié          |
+			| Nuit | background_programming | 2026-01-05 00:00 | 2026-01-05 06:00 | monday, tuesday, wednesday, thursday, friday, saturday, sunday | 2026-01-01 10:00 |
+			| Jour | background_programming | 2026-01-05 06:00 | 2026-01-06 00:00 | monday, tuesday, wednesday, thursday, friday, saturday, sunday | 2026-01-01 10:00 |
 		Alors l'événement actif est :
 			| heure                  | actif |
 			| 2026-03-29 01:59+01:00 | Nuit  |
@@ -202,10 +202,10 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Une session sautée n'est jamais active : le fil musical, ou ce qui joue sans elle, l'est
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours            | modifié          |
-			| Continue | fil_musical |                  |                  |                  | 2026-10-01 10:00 |
-			| Magazine | emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | lundi, mercredi  | 2026-10-01 10:00 |
-			| Concert  | special     | 2026-10-14 22:00 | 2026-10-14 23:30 |                  | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours             | modifié          |
+			| Continue | background_programming |                  |                  |                   | 2026-10-01 10:00 |
+			| Magazine | show                   | 2026-10-12 21:00 | 2026-10-12 23:00 | monday, wednesday | 2026-10-01 10:00 |
+			| Concert  | special                | 2026-10-14 22:00 | 2026-10-14 23:30 |                   | 2026-10-01 10:00 |
 		Et la session du « 2026-10-14 » de « Magazine » est sautée
 		Alors l'événement actif est :
 			| heure            | actif    |
@@ -216,9 +216,9 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Même sans récurrence, un événement dont la session est sautée n'est pas actif
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours | modifié          |
-			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
-			| Concert  | special     | 2026-10-14 22:00 | 2026-10-14 23:30 |       | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours | modifié          |
+			| Continue | background_programming |                  |                  |       | 2026-10-01 10:00 |
+			| Concert  | special                | 2026-10-14 22:00 | 2026-10-14 23:30 |       | 2026-10-01 10:00 |
 		Et la session du « 2026-10-14 » de « Concert » est sautée
 		Alors l'événement actif est :
 			| heure            | actif    |
@@ -226,19 +226,19 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Une session sautée n'est pas un changement de la grille
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours            | modifié          |
-			| Continue | fil_musical |                  |                  |                  | 2026-10-01 10:00 |
-			| Magazine | emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | lundi, mercredi  | 2026-10-01 10:00 |
-			| Concert  | special     | 2026-10-16 22:00 | 2026-10-16 23:30 |                  | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours             | modifié          |
+			| Continue | background_programming |                  |                  |                   | 2026-10-01 10:00 |
+			| Magazine | show                   | 2026-10-12 21:00 | 2026-10-12 23:00 | monday, wednesday | 2026-10-01 10:00 |
+			| Concert  | special                | 2026-10-16 22:00 | 2026-10-16 23:30 |                   | 2026-10-01 10:00 |
 		Et la session du « 2026-10-14 » de « Magazine » est sautée
 		Et la session du « 2026-10-16 » de « Concert » est sautée
 		Alors le prochain changement de la grille après le « 2026-10-13 12:00 » est le « 2026-10-19 21:00 »
 
 	Scénario: Les sessions sautées se lisent en base avec les droits du binaire lecture
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours            | modifié          |
-			| Continue | fil_musical |                  |                  |                  | 2026-10-01 10:00 |
-			| Magazine | emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | lundi, mercredi  | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours             | modifié          |
+			| Continue | background_programming |                  |                  |                   | 2026-10-01 10:00 |
+			| Magazine | show                   | 2026-10-12 21:00 | 2026-10-12 23:00 | monday, wednesday | 2026-10-01 10:00 |
 		Et ces événements enregistrés en base
 		Et la session du 2026-10-14 de l'événement « Magazine » est sautée
 		Quand le binaire lecture lit la grille en base
@@ -254,11 +254,11 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Plan du scénario: L'événement suivant est la première occurrence à venir qui prendra l'antenne
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours | modifié          |
-			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
-			| Journal  | emission    | 2026-10-14 12:00 | 2026-10-14 13:00 |       | 2026-10-01 10:00 |
-			| Flash    | special     | 2026-10-14 11:30 | 2026-10-14 12:30 |       | 2026-10-01 10:00 |
-			| Concert  | emission    | 2026-10-12 20:00 | 2026-10-12 22:00 | lundi | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours  | modifié          |
+			| Continue | background_programming |                  |                  |        | 2026-10-01 10:00 |
+			| Journal  | show                   | 2026-10-14 12:00 | 2026-10-14 13:00 |        | 2026-10-01 10:00 |
+			| Flash    | special                | 2026-10-14 11:30 | 2026-10-14 12:30 |        | 2026-10-01 10:00 |
+			| Concert  | show                   | 2026-10-12 20:00 | 2026-10-12 22:00 | monday | 2026-10-01 10:00 |
 		Alors après le « <instant> », l'événement suivant est <suivant>
 
 		Exemples:
@@ -271,27 +271,27 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Au-delà de sept jours, ou sans occurrence à venir, il n'y a pas d'événement suivant
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours | modifié          |
-			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
-			| Concert  | emission    | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
-			| Gala     | special     | 2026-10-25 20:00 | 2026-10-25 22:00 |       | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours | modifié          |
+			| Continue | background_programming |                  |                  |       | 2026-10-01 10:00 |
+			| Concert  | show                   | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
+			| Gala     | special                | 2026-10-25 20:00 | 2026-10-25 22:00 |       | 2026-10-01 10:00 |
 		Alors après le « 2026-10-14 21:00 », il n'y a pas d'événement suivant
 		Et après le « 2026-10-18 20:00 », l'événement suivant est « Gala » du « 2026-10-25 20:00 »
 
 	Scénario: Une session sautée n'est pas l'événement suivant
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours           | modifié          |
-			| Continue | fil_musical |                  |                  |                 | 2026-10-01 10:00 |
-			| Concert  | emission    | 2026-10-12 20:00 | 2026-10-12 22:00 | lundi, mercredi | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours             | modifié          |
+			| Continue | background_programming |                  |                  |                   | 2026-10-01 10:00 |
+			| Concert  | show                   | 2026-10-12 20:00 | 2026-10-12 22:00 | monday, wednesday | 2026-10-01 10:00 |
 		Et la session du « 2026-10-14 » de « Concert » est sautée
 		Alors après le « 2026-10-13 12:00 », l'événement suivant est « Concert » du « 2026-10-19 20:00 »
 
 	Scénario: Une occurrence avancée est active aussitôt, jusqu'à son début prévu, puis comme prévu
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours | modifié          |
-			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
-			| Flash    | special     | 2026-10-14 18:00 | 2026-10-14 19:30 |       | 2026-10-01 10:00 |
-			| Concert  | emission    | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours | modifié          |
+			| Continue | background_programming |                  |                  |       | 2026-10-01 10:00 |
+			| Flash    | special                | 2026-10-14 18:00 | 2026-10-14 19:30 |       | 2026-10-01 10:00 |
+			| Concert  | show                   | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
 		Et l'occurrence de « Concert » du « 2026-10-14 20:00 » avancée
 		Alors l'événement actif est :
 			| heure            | actif    |
@@ -303,9 +303,9 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: Une occurrence avancée puis terminée plus tôt rend l'antenne à la grille
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours | modifié          |
-			| Continue | fil_musical |                  |                  |       | 2026-10-01 10:00 |
-			| Concert  | emission    | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours | modifié          |
+			| Continue | background_programming |                  |                  |       | 2026-10-01 10:00 |
+			| Concert  | show                   | 2026-10-14 20:00 | 2026-10-14 22:00 |       | 2026-10-01 10:00 |
 		Et l'occurrence de « Concert » du « 2026-10-14 20:00 » avancée
 		Quand l'occurrence de « Concert » commencée le « 2026-10-14 20:00 » se termine, sa liste épuisée
 		Alors l'événement actif est :
@@ -317,9 +317,9 @@ Fonctionnalité: Détermination de l'événement actif
 
 	Scénario: La grille est lue en base avec les droits du binaire lecture
 		Étant donné les événements :
-			| nom      | priorité    | début            | fin              | jours            | modifié          |
-			| Continue | fil_musical |                  |                  |                  | 2026-10-01 10:00 |
-			| Magazine | emission    | 2026-10-12 21:00 | 2026-10-12 23:00 | lundi, mercredi  | 2026-10-01 10:00 |
+			| nom      | priorité               | début            | fin              | jours             | modifié          |
+			| Continue | background_programming |                  |                  |                   | 2026-10-01 10:00 |
+			| Magazine | show                   | 2026-10-12 21:00 | 2026-10-12 23:00 | monday, wednesday | 2026-10-01 10:00 |
 		Et ces événements enregistrés en base
 		Quand le binaire lecture lit la grille en base
 		Alors l'événement actif est :

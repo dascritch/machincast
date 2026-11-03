@@ -85,10 +85,10 @@ def passage(base_vide: Connexion, nom: str, evenement: str) -> None:
 	"""Le début d'un passage dans l'historique de diffusion, joué par la ligne de la banque ou du sonore dans la liste
 	de l'événement."""
 	base_vide.execute(
-		"INSERT INTO airplay (passage_id, type_ligne, evenement_id, element_id, banque_id)"
-		" SELECT gen_random_uuid(), 'debut', ev.id, e.id, e.banque_id FROM evenements_elements e"
-		" JOIN evenements ev ON ev.id = e.evenement_id LEFT JOIN banques b ON b.id = e.banque_id"
-		" LEFT JOIN sonores s ON s.id = e.sonore_id WHERE ev.nom_interne = %s AND %s IN (b.nom_interne, s.titre)",
+		"INSERT INTO airplay (play_id, line_type, event_id, event_item_id, bank_id)"
+		" SELECT gen_random_uuid(), 'start', ev.id, e.id, e.bank_id FROM event_items e"
+		" JOIN events ev ON ev.id = e.event_id LEFT JOIN banks b ON b.id = e.bank_id"
+		" LEFT JOIN sounds s ON s.id = e.sound_id WHERE ev.internal_name = %s AND %s IN (b.internal_name, s.title)",
 		(evenement, nom),
 	)
 
@@ -151,8 +151,8 @@ def boutons_de_ligne(interface: Contexte, boutons: str) -> None:
 	)
 )
 def ajouter_en_effacant(interface: Contexte, qtbot: QtBot, base_vide: Connexion, noms: str, efface: str) -> None:
-	interface.feeds_choisis = [identifiant(base_vide, "feeds", "nom", nom) for nom in NOM.findall(noms)]
-	base_vide.execute("DELETE FROM feeds WHERE nom = %s", (efface,))
+	interface.feeds_choisis = [identifiant(base_vide, "feeds", "name", nom) for nom in NOM.findall(noms)]
+	base_vide.execute("DELETE FROM feeds WHERE name = %s", (efface,))
 	qtbot.mouseClick(fiche(interface).ui.ajouter_feeds, Qt.MouseButton.LeftButton)
 
 
@@ -241,9 +241,9 @@ def evenement_en_base(base_vide: Connexion, nom: str, datatable: list[list[str]]
 	attendus = [(champ.strip(), valeur.strip()) for champ, valeur in rangees]
 	lus = []
 	for champ, _valeur in attendus:
-		colonne = {"priorite": "priorite::text", "jours_recurrence": "jours_recurrence::text[]"}.get(champ, champ)
+		colonne = {"priorite": "priority::text", "recurrence_days": "recurrence_days::text[]"}.get(champ, champ)
 		ligne = base_vide.execute(
-			f"SELECT {colonne} FROM evenements WHERE nom_interne = %s",  # noqa: S608
+			f"SELECT {colonne} FROM events WHERE internal_name = %s",  # noqa: S608
 			(nom,),
 		).fetchone()
 		assert ligne is not None, f"« {nom} » absent de la base"
@@ -258,12 +258,12 @@ def evenement_en_base(base_vide: Connexion, nom: str, datatable: list[list[str]]
 def elements_en_base(interface: Contexte, base_vide: Connexion, nom: str, elements: str) -> None:
 	"""Un sonore par son titre, une banque ou une séquence par son nom, un sonore sans titre par son fichier."""
 	lignes_en_base = base_vide.execute(
-		"SELECT e.position, CASE WHEN e.banque_id IS NOT NULL THEN 'la banque'"
-		" WHEN e.sequence_id IS NOT NULL THEN 'la séquence' WHEN s.titre IS NOT NULL THEN 'le sonore'"
-		" ELSE 'le fichier' END, COALESCE(b.nom_interne, q.nom_interne, s.titre, s.emplacement)"
-		" FROM evenements_elements e JOIN evenements ev ON ev.id = e.evenement_id"
-		" LEFT JOIN banques b ON b.id = e.banque_id LEFT JOIN sequences q ON q.id = e.sequence_id"
-		" LEFT JOIN sonores s ON s.id = e.sonore_id WHERE ev.nom_interne = %s ORDER BY e.position",
+		"SELECT e.position, CASE WHEN e.bank_id IS NOT NULL THEN 'la banque'"
+		" WHEN e.sequence_id IS NOT NULL THEN 'la séquence' WHEN s.title IS NOT NULL THEN 'le sonore'"
+		" ELSE 'le fichier' END, COALESCE(b.internal_name, q.internal_name, s.title, s.location)"
+		" FROM event_items e JOIN events ev ON ev.id = e.event_id"
+		" LEFT JOIN banks b ON b.id = e.bank_id LEFT JOIN sequences q ON q.id = e.sequence_id"
+		" LEFT JOIN sounds s ON s.id = e.sound_id WHERE ev.internal_name = %s ORDER BY e.position",
 		(nom,),
 	).fetchall()
 	attendus = [(genre, interface.chemin(element)) for genre, element in EN_BASE.findall(elements)]
@@ -279,8 +279,8 @@ def elements_en_base(interface: Contexte, base_vide: Connexion, nom: str, elemen
 def historique(base_vide: Connexion, nom: str, numero: str) -> None:
 	"""Les passages, dans leur ordre : la position de la ligne qui les a joués, aucune pour une ligne retirée."""
 	positions = base_vide.execute(
-		"SELECT e.position FROM airplay a JOIN evenements ev ON ev.id = a.evenement_id"
-		" LEFT JOIN evenements_elements e ON e.id = a.element_id WHERE ev.nom_interne = %s ORDER BY a.id",
+		"SELECT e.position FROM airplay a JOIN events ev ON ev.id = a.event_id"
+		" LEFT JOIN event_items e ON e.id = a.event_item_id WHERE ev.internal_name = %s ORDER BY a.id",
 		(nom,),
 	).fetchall()
 	assert positions == [(int(numero),), (None,)]

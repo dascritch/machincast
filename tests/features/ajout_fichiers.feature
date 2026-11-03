@@ -14,8 +14,8 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-19 19:00:00 »
 		Et les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et le fichier de test « tags.flac » copié en « …/emissions/cafe.flac »
 		Et le fichier de test « sain.wav » copié en « …/emissions/jingle.wav »
 		Et le fichier « …/emissions/faux.mp3 », qui n'est pas un son
@@ -28,10 +28,10 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 		Alors la barre d'état a annoncé « 3 fichiers ajoutés, en cours de vérification. »
 		Et la barre d'état annonce « Vérification terminée : Les Gaufres Électriques – Café à minuit, actif ; jingle.wav, actif ; faux.mp3, non supporté. »
 		Et les sonores ajoutés sont en base :
-			| emplacement           | type    | etat   | artiste                 | titre         | duree   |
-			| …/emissions/cafe.flac | fichier | actif  | Les Gaufres Électriques | Café à minuit | 0:00:01 |
-			| …/emissions/jingle.wav | fichier | actif | None                    | None          | 0:00:01 |
-			| …/emissions/faux.mp3  | fichier | non_supporte | None              | None          | None    |
+			| location               | type | state       | artist                  | title         | duration |
+			| …/emissions/cafe.flac  | file | active      | Les Gaufres Électriques | Café à minuit | 0:00:01  |
+			| …/emissions/jingle.wav | file | active      | None                    | None          | 0:00:01  |
+			| …/emissions/faux.mp3   | file | unsupported | None                    | None          | None     |
 		# Les fichiers de test durent un peu moins d'une seconde : la liste ne compte que les secondes pleines.
 		Et la liste montre :
 			| ⚠️ | Artiste                 | Titre         | Type    | État         | Durée | Emplacement            |
@@ -47,45 +47,45 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 		Et j'ajoute les fichiers « …/emissions/jingle.wav »
 		Alors la barre d'état annonce « 1 fichier ajouté, en cours de vérification. »
 		Et les sonores ajoutés sont en base :
-			| emplacement            | type    | etat   | artiste | titre | duree |
-			| …/emissions/jingle.wav | fichier | apercu | None    | None  | None  |
+			| location               | type | state   | artist | title | duration |
+			| …/emissions/jingle.wav | file | preview | None   | None  | None     |
 		Et la liste montre :
 			| ⚠️ | Artiste | Titre | Type    | État   | Durée | Emplacement            |
 			|    |         |       | fichier | aperçu |       | …/emissions/jingle.wav |
 		Quand la vérification attendue reprend, et se termine
 		Alors les sonores ajoutés sont en base :
-			| emplacement            | type    | etat  | artiste | titre | duree   |
-			| …/emissions/jingle.wav | fichier | actif | None    | None  | 0:00:01 |
+			| location               | type | state  | artist | title | duration |
+			| …/emissions/jingle.wav | file | active | None   | None  | 0:00:01  |
 
 	Scénario: Un fichier déjà en base n'est pas ajouté une seconde fois, et ce qui n'est pas un fichier sonore est ignoré
 		Étant donné les dossiers « …/emissions/archives » du scénario
 		Et les fichiers « …/emissions/notes.txt » du scénario
 		Et les sonores :
-			| artiste | titre  | type    | etat  | duree | emplacement           |
-			|         | Ancien | fichier | actif | 1     | …/emissions/cafe.flac |
+			| artist | title  | type | state  | duration | location              |
+			|        | Ancien | file | active | 1        | …/emissions/cafe.flac |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et j'ajoute les fichiers « …/emissions/cafe.flac », « …/emissions/notes.txt », « …/emissions/archives », « …/emissions/jingle.wav »
 		Et la vérification des fichiers ajoutés se termine
 		Alors la barre d'état a annoncé « 1 fichier ajouté, en cours de vérification. Déjà en base : cafe.flac. Ignorés, ce ne sont pas des fichiers sonores : notes.txt, archives. »
 		Et les sonores ajoutés sont en base :
-			| emplacement            | type    | etat  | artiste | titre  | duree   |
-			| …/emissions/cafe.flac  | fichier | actif | None    | Ancien | 0:00:01 |
-			| …/emissions/jingle.wav | fichier | actif | None    | None   | 0:00:01 |
+			| location               | type | state  | artist | title  | duration |
+			| …/emissions/cafe.flac  | file | active | None   | Ancien | 0:00:01  |
+			| …/emissions/jingle.wav | file | active | None   | None   | 0:00:01  |
 
 	Scénario: La vérification immédiate ne décode que les fichiers ajoutés
 		Étant donné le fichier de test « sain.ogg » copié en « …/attente/autre.ogg »
 		Et les sonores :
-			| artiste | titre | type    | etat   | duree | emplacement         |
-			|         | Autre | fichier | apercu |       | …/attente/autre.ogg |
+			| artist | title | type | state   | duration | location            |
+			|        | Autre | file | preview |          | …/attente/autre.ogg |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et j'ajoute les fichiers « …/emissions/jingle.wav »
 		Et la vérification des fichiers ajoutés se termine
 		Alors les sonores ajoutés sont en base :
-			| emplacement            | type    | etat   | artiste | titre | duree   |
-			| …/attente/autre.ogg    | fichier | apercu | None    | Autre | None    |
-			| …/emissions/jingle.wav | fichier | actif  | None    | None  | 0:00:01 |
+			| location               | type | state   | artist | title | duration |
+			| …/attente/autre.ogg    | file | preview | None   | Autre | None     |
+			| …/emissions/jingle.wav | file | active  | None   | None  | 0:00:01  |
 
 	Scénario: Renoncer au choix des fichiers n'ajoute rien, et laisse la barre d'état telle qu'elle était
 		Quand la fenêtre de l'interface s'ouvre
@@ -100,8 +100,8 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 
 	Scénario: Un fichier déjà en base, seul, ne lance aucune vérification
 		Étant donné les sonores :
-			| artiste | titre  | type    | etat  | duree | emplacement           |
-			|         | Ancien | fichier | actif | 1     | …/emissions/cafe.flac |
+			| artist | title  | type | state  | duration | location              |
+			|        | Ancien | file | active | 1        | …/emissions/cafe.flac |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Sonores »
 		Et j'ajoute les fichiers « …/emissions/cafe.flac »
@@ -126,8 +126,8 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 		Et la vérification des fichiers ajoutés se termine
 		Alors la barre d'état a annoncé « 1 fichier ajouté, en cours de vérification. »
 		Et les sonores ajoutés sont en base :
-			| emplacement            | type    | etat  | artiste | titre | duree   |
-			| …/emissions/jingle.wav | fichier | actif | None    | None  | 0:00:01 |
+			| location               | type | state  | artist | title | duration |
+			| …/emissions/jingle.wav | file | active | None   | None  | 0:00:01  |
 
 	# ─── Dépôt depuis le navigateur de fichiers ────────────────
 
@@ -139,9 +139,9 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 		Alors le dépôt est accepté comme une copie
 		Et la barre d'état a annoncé « 2 fichiers ajoutés, en cours de vérification. »
 		Et les sonores ajoutés sont en base :
-			| emplacement            | type    | etat  | artiste                 | titre         | duree   |
-			| …/emissions/cafe.flac  | fichier | actif | Les Gaufres Électriques | Café à minuit | 0:00:01 |
-			| …/emissions/jingle.wav | fichier | actif | None                    | None          | 0:00:01 |
+			| location               | type | state  | artist                  | title         | duration |
+			| …/emissions/cafe.flac  | file | active | Les Gaufres Électriques | Café à minuit | 0:00:01  |
+			| …/emissions/jingle.wav | file | active | None                    | None          | 0:00:01  |
 		Et les fichiers déposés sont intacts
 
 	Scénario: Un glisser qui ne propose pas la copie est refusé
@@ -150,7 +150,7 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 		Et je dépose sur la liste des sonores « …/emissions/cafe.flac », en ne proposant que le déplacement
 		Alors le dépôt est refusé
 		Et les sonores ajoutés sont en base :
-			| emplacement | type | etat | artiste | titre | duree |
+			| location | type | state | artist | title | duration |
 
 	Scénario: Seule la liste des sonores ajoute des fichiers
 		Quand la fenêtre de l'interface s'ouvre
@@ -168,8 +168,8 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 		Et la vérification des fichiers ajoutés se termine
 		Alors la barre d'état annonce « Vérification impossible : aucun décodeur pour ce format ; la prochaine indexation reprendra les fichiers en aperçu. »
 		Et les sonores ajoutés sont en base :
-			| emplacement            | type    | etat   | artiste | titre | duree |
-			| …/emissions/jingle.wav | fichier | apercu | None    | None  | None  |
+			| location               | type | state   | artist | title | duration |
+			| …/emissions/jingle.wav | file | preview | None   | None  | None     |
 
 	Scénario: Fermer la fenêtre attend la fin de la vérification en cours
 		Étant donné une vérification des fichiers ajoutés qui attend
@@ -179,5 +179,5 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 		Et je ferme la fenêtre de l'interface, pendant que la vérification attendue reprend
 		Alors la vérification des fichiers ajoutés est terminée
 		Et les sonores ajoutés sont en base :
-			| emplacement            | type    | etat  | artiste | titre | duree   |
-			| …/emissions/jingle.wav | fichier | actif | None    | None  | 0:00:01 |
+			| location               | type | state  | artist | title | duration |
+			| …/emissions/jingle.wav | file | active | None   | None  | 0:00:01  |

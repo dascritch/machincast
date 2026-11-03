@@ -13,14 +13,14 @@ Fonctionnalité: Un fil musical existe toujours
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-19 20:30:00 »
 		Et les sonores :
-			| artiste | titre  | type    | etat  | duree | emplacement       |
-			|         | Jingle | fichier | actif | 5     | /srv/jingle.flac  |
+			| artist | title  | type | state  | duration | location         |
+			|        | Jingle | file | active | 5        | /srv/jingle.flac |
 
 	Scénario: Au lancement, sans fil musical, l'interface en crée un, permanent et sans élément
 		Étant donné les événements :
-			| nom      | nom_public | priorite | debut            | fin              | jours |
-			| Matinale |            | emission | 2026-10-19 07:00 | 2026-10-19 09:00 | lundi |
-			| Panne    |            | secours  |                  |                  |       |
+			| name     | public_name | priority | starts_at        | ends_at          | days   |
+			| Matinale |             | show     | 2026-10-19 07:00 | 2026-10-19 09:00 | monday |
+			| Panne    |             | fallback |                  |                  |        |
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la barre d'état annonce « Aucun fil musical : « Fil musical » est créé, permanent et sans élément ; sa liste se remplit dans sa fiche. »
 		Et le fil musical « Fil musical » est en base, permanent et sans élément
@@ -33,17 +33,17 @@ Fonctionnalité: Un fil musical existe toujours
 
 	Scénario: Au lancement, un fil musical existant suffit, même daté
 		Étant donné les événements :
-			| nom  | nom_public | priorite    | debut            | fin              | jours |
-			| Nuit |            | fil_musical | 2026-10-19 00:00 | 2026-10-19 06:00 | lundi |
+			| name | public_name | priority               | starts_at        | ends_at          | days   |
+			| Nuit |             | background_programming | 2026-10-19 00:00 | 2026-10-19 06:00 | monday |
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la barre d'état n'a rien annoncé
 		Et les fils musicaux en base sont « Nuit »
 
 	Plan du scénario: Le nom « Fil musical » déjà pris par un autre événement, le fil créé prend le premier libre
 		Étant donné les événements :
-			| nom     | nom_public | priorite | debut            | fin              | jours |
-			| <un>    |            | emission | 2026-10-19 07:00 | 2026-10-19 09:00 | lundi |
-			| <autre> |            | special  | 2026-10-20 07:00 | 2026-10-20 09:00 |       |
+			| name    | public_name | priority | starts_at        | ends_at          | days   |
+			| <un>    |             | show     | 2026-10-19 07:00 | 2026-10-19 09:00 | monday |
+			| <autre> |             | special  | 2026-10-20 07:00 | 2026-10-20 09:00 |        |
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la barre d'état annonce « Aucun fil musical : « <cree> » est créé, permanent et sans élément ; sa liste se remplit dans sa fiche. »
 		Et les fils musicaux en base sont « <cree> »
@@ -56,8 +56,8 @@ Fonctionnalité: Un fil musical existe toujours
 
 	Scénario: Supprimer le dernier fil musical en crée un autre
 		Étant donné les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et l'événement « Continue » joue le sonore « Jingle »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Continue »
@@ -68,9 +68,9 @@ Fonctionnalité: Un fil musical existe toujours
 
 	Scénario: Supprimer un fil musical quand il en reste un autre ne crée rien
 		Étant donné les événements :
-			| nom  | nom_public | priorite    | debut            | fin              | jours |
-			| Jour |            | fil_musical | 2026-10-19 06:00 | 2026-10-20 00:00 | lundi |
-			| Nuit |            | fil_musical | 2026-10-19 00:00 | 2026-10-19 06:00 | lundi |
+			| name | public_name | priority               | starts_at        | ends_at          | days   |
+			| Jour |             | background_programming | 2026-10-19 06:00 | 2026-10-20 00:00 | monday |
+			| Nuit |             | background_programming | 2026-10-19 00:00 | 2026-10-19 06:00 | monday |
 		Et l'événement « Nuit » joue le sonore « Jingle »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Nuit »
@@ -80,8 +80,8 @@ Fonctionnalité: Un fil musical existe toujours
 
 	Scénario: Supprimer un autre élément que le dernier fil musical ne crée rien
 		Étant donné les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Quand la fenêtre de l'interface s'ouvre
 		Et la base perd son dernier fil musical
 		Et j'ouvre la fiche du sonore « Jingle »
@@ -91,8 +91,8 @@ Fonctionnalité: Un fil musical existe toujours
 
 	Scénario: Le dernier fil musical enregistré sous une autre priorité en crée un autre
 		Étant donné les événements :
-			| nom      | nom_public | priorite    | debut | fin | jours |
-			| Continue |            | fil_musical |       |     |       |
+			| name     | public_name | priority               | starts_at | ends_at | days |
+			| Continue |             | background_programming |           |         |      |
 		Et l'événement « Continue » joue le sonore « Jingle »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Continue »
@@ -109,9 +109,9 @@ Fonctionnalité: Un fil musical existe toujours
 
 	Scénario: Enregistrer un autre événement ne crée rien tant qu'un fil musical existe
 		Étant donné les événements :
-			| nom      | nom_public | priorite    | debut            | fin              | jours |
-			| Continue |            | fil_musical |                  |                  |       |
-			| Matinale |            | emission    | 2026-10-19 07:00 | 2026-10-19 09:00 | lundi |
+			| name     | public_name | priority               | starts_at        | ends_at          | days   |
+			| Continue |             | background_programming |                  |                  |        |
+			| Matinale |             | show                   | 2026-10-19 07:00 | 2026-10-19 09:00 | monday |
 		Et l'événement « Matinale » joue le sonore « Jingle »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »

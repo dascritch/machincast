@@ -117,7 +117,7 @@ def verifier_un_sonore(configuration: Configuration, sonore: int, audit_complet:
 		with connecter(base.socket, base.production, Role.INDEXATION) as connexion:
 			with connexion.transaction():
 				fichier = connexion.execute(
-					"SELECT 1 FROM sonores WHERE id = %s AND type = 'fichier'", (sonore,)
+					"SELECT 1 FROM sounds WHERE id = %s AND type = 'file'", (sonore,)
 				).fetchone()
 			if fichier is None:
 				journal.error(f"sonore {sonore} : inconnu, ou pas un fichier")

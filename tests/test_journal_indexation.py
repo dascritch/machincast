@@ -22,7 +22,6 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.indexation.decodage import DecodeurIndisponible, Verification, verifier_fichier
-from machincast.indexation.verification import LIBELLES
 from machincast.interface import dialogues, indexation
 from machincast.interface.journal_indexation import FenetreJournal
 from tests.base_test import chemin_configuration_test, parametres_base_test
@@ -226,21 +225,21 @@ def anomalies(suivi: Journal, interface: Contexte, nombre: str, chemins: str) ->
 def sonores_de_la_banque(interface: Contexte, base_vide: Connexion, nom: str, datatable: list[list[str]]) -> None:
 	entetes, *rangees = datatable
 	lus = base_vide.execute(
-		"SELECT s.emplacement, s.etat::text, s.titre FROM sonores s"
-		" JOIN banques_sonores bs ON bs.sonore_id = s.id JOIN banques b ON b.id = bs.banque_id"
-		" WHERE b.nom_interne = %s ORDER BY bs.position",
+		"SELECT s.location, s.state::text, s.title FROM sounds s"
+		" JOIN bank_sounds bs ON bs.sound_id = s.id JOIN banks b ON b.id = bs.bank_id"
+		" WHERE b.internal_name = %s ORDER BY bs.position",
 		(nom,),
 	).fetchall()
-	assert [entete.strip() for entete in entetes] == ["emplacement", "etat", "titre"]
+	assert [entete.strip() for entete in entetes] == ["location", "state", "title"]
 	attendus = [tuple(interface.chemin(valeur.strip()) for valeur in rangee) for rangee in rangees]
 	assert [tuple(str(valeur) for valeur in ligne) for ligne in lus] == attendus
 
 
-@then(parsers.parse("le sonore « {titre} » est à l'état « {libelle} »"))
-def etat(base_vide: Connexion, titre: str, libelle: str) -> None:
-	lu = base_vide.execute("SELECT etat::text FROM sonores WHERE titre = %s", (titre,)).fetchone()
+@then(parsers.parse("le sonore « {titre} » est à l'état « {etat_attendu} »"))
+def etat(base_vide: Connexion, titre: str, etat_attendu: str) -> None:
+	lu = base_vide.execute("SELECT state::text FROM sounds WHERE title = %s", (titre,)).fetchone()
 	assert lu is not None, f"sonore « {titre} » absent"
-	assert LIBELLES[lu[0]] == libelle
+	assert lu[0] == etat_attendu
 
 
 @then(parsers.parse("la commande se termine avec le code {code:d}"))

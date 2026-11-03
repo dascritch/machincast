@@ -378,7 +378,7 @@ preparer_postgresql() {
 			DECLARE
 				role text;
 			BEGIN
-				FOREACH role IN ARRAY ARRAY['machincast_lecture', 'machincast_indexation', 'machincast_interface'] LOOP
+				FOREACH role IN ARRAY ARRAY['machincast_player', 'machincast_indexer', 'machincast_interface'] LOOP
 					IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = role) THEN
 						EXECUTE format('CREATE ROLE %I NOLOGIN', role);
 					END IF;
@@ -386,7 +386,7 @@ preparer_postgresql() {
 			END;
 			$$;
 		SQL
-		info "rôles machincast_lecture, machincast_indexation et machincast_interface présents"
+		info "rôles machincast_player, machincast_indexer et machincast_interface présents"
 	fi
 	executer "${VENV}/bin/python" -m machincast.installation migrate --config "${CONFIGURATION}"
 	etape "Rôles"
@@ -394,10 +394,10 @@ preparer_postgresql() {
 	# l'utilisateur postgres, qui peut attribuer les rôles quel que soit le compte qui les a créés. Sans héritage
 	# des droits : chaque binaire endosse son rôle par SET ROLE (doc/fr/spec.md § 3.2).
 	if "${SIMULATION}"; then
-		info "[simulation] sudo -u postgres psql : GRANT machincast_lecture, machincast_indexation, machincast_interface TO ${UTILISATEUR} WITH INHERIT FALSE, SET TRUE"
+		info "[simulation] sudo -u postgres psql : GRANT machincast_player, machincast_indexer, machincast_interface TO ${UTILISATEUR} WITH INHERIT FALSE, SET TRUE"
 	else
 		sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 --variable=nom="${UTILISATEUR}" <<-'SQL'
-			GRANT machincast_lecture, machincast_indexation, machincast_interface TO :"nom" WITH INHERIT FALSE, SET TRUE;
+			GRANT machincast_player, machincast_indexer, machincast_interface TO :"nom" WITH INHERIT FALSE, SET TRUE;
 		SQL
 		info "${UTILISATEUR} peut endosser les rôles ${ROLES[*]}"
 	fi

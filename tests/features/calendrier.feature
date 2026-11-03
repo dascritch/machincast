@@ -28,18 +28,18 @@ Fonctionnalité: Calendrier de la grille
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-20 16:40:00 »
 		Et les événements :
-			| nom      | nom_public | priorite    | debut            | fin              | jours                                    |
-			| Week-end |            | fil_musical | 2026-10-24 10:00 | 2026-10-24 18:00 |                                          |
-			| Continue |            | fil_musical |                  |                  |                                          |
-			| Matinale | Le réveil  | emission    | 2026-10-05 07:00 | 2026-10-05 09:00 | lundi, mardi, mercredi, jeudi, vendredi  |
-			| Concert  |            | special     | 2026-10-21 08:00 | 2026-10-21 10:00 |                                          |
-			| Nuit     |            | emission    | 2026-10-18 23:00 | 2026-10-19 01:00 | dimanche                                 |
-			| Festival |            | special     | 2026-10-23 00:00 | 2026-10-24 00:00 |                                          |
-			| Direct   |            | emission    | 2026-10-22 14:00 |                  |                                          |
-			| Soirée   |            | emission    | 2026-10-22 20:00 | 2026-10-22 21:00 |                                          |
-			| Midi     |            | emission    | 2026-10-21 12:00 | 2026-10-21 13:00 |                                          |
-			| Flash    |            | special     | 2026-10-24 12:00 | 2026-10-24 13:00 |                                          |
-			| Rediff   |            | emission    | 2026-10-24 17:30 | 2026-10-24 19:00 |                                          |
+			| name     | public_name | priority               | starts_at        | ends_at          | days                                         |
+			| Week-end |             | background_programming | 2026-10-24 10:00 | 2026-10-24 18:00 |                                              |
+			| Continue |             | background_programming |                  |                  |                                              |
+			| Matinale | Le réveil   | show                   | 2026-10-05 07:00 | 2026-10-05 09:00 | monday, tuesday, wednesday, thursday, friday |
+			| Concert  |             | special                | 2026-10-21 08:00 | 2026-10-21 10:00 |                                              |
+			| Nuit     |             | show                   | 2026-10-18 23:00 | 2026-10-19 01:00 | sunday                                       |
+			| Festival |             | special                | 2026-10-23 00:00 | 2026-10-24 00:00 |                                              |
+			| Direct   |             | show                   | 2026-10-22 14:00 |                  |                                              |
+			| Soirée   |             | show                   | 2026-10-22 20:00 | 2026-10-22 21:00 |                                              |
+			| Midi     |             | show                   | 2026-10-21 12:00 | 2026-10-21 13:00 |                                              |
+			| Flash    |             | special                | 2026-10-24 12:00 | 2026-10-24 13:00 |                                              |
+			| Rediff   |             | show                   | 2026-10-24 17:30 | 2026-10-24 19:00 |                                              |
 
 	# ─── Ouverture ─────────────────────────────────────────────
 
@@ -560,8 +560,8 @@ Fonctionnalité: Calendrier de la grille
 	Scénario: Une session ne se rétablit pas sur une émission qui a pris sa place
 		Étant donné la session du 2026-10-22 de l'événement « Matinale » est sautée
 		Et les événements :
-			| nom      | nom_public | priorite | debut            | fin              | jours |
-			| Vacances |            | emission | 2026-10-22 07:30 | 2026-10-22 08:30 |       |
+			| name     | public_name | priority | starts_at        | ends_at          | days |
+			| Vacances |             | show     | 2026-10-22 07:30 | 2026-10-22 08:30 |      |
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je choisis « Rétablir cette session » au clic droit sur le bloc « Matinale » du jeudi 22
