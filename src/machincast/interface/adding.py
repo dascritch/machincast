@@ -13,6 +13,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.i18n import _, counted
 from machincast.interface.card import sound_files
 
 
@@ -28,15 +29,19 @@ class Adding:
 	def text(self) -> str:
 		"""Ce que la barre d'état annonce ; rien pour un ajout vide."""
 		sentences = []
-		if len(self.added_list) == 1:
-			sentences.append("1 fichier ajouté, en cours de vérification.")
-		elif self.added_list != []:
-			sentences.append(f"{len(self.added_list)} fichiers ajoutés, en cours de vérification.")
+		if self.added_list != []:
+			sentences.append(
+				counted(
+					"{count} file added, being checked.", "{count} files added, being checked.", len(self.added_list)
+				)
+			)
 		if self.already != []:
-			sentences.append(f"Déjà en base : {', '.join(path.name for path in self.already)}.")
+			sentences.append(
+				_("Already in the database: {list}.").format(list=", ".join(path.name for path in self.already))
+			)
 		if self.ignored != []:
 			names = ", ".join(path.name for path in self.ignored)
-			sentences.append(f"Ignorés, ce ne sont pas des fichiers sonores : {names}.")
+			sentences.append(_("Ignored, these are not sound files: {names}.").format(names=names))
 		return " ".join(sentences)
 
 

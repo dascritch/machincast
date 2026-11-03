@@ -24,6 +24,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.conversion import integer_or_none
+from machincast.i18n import N_
 from machincast.player import saving
 from machincast.player.expiry import Expiry, expire
 from machincast.player.saving import Play
@@ -82,7 +83,7 @@ class History(Protocol):
 		instant: datetime,
 		cut: bool = False,
 		error: str | None = None,
-		kind: str = "lecture interrompue",
+		kind: str = N_("interrupted playback"),
 	) -> None: ...
 
 	def record(
@@ -139,7 +140,7 @@ class HistoryInPlayback:
 		instant: datetime,
 		cut: bool = False,
 		error: str | None = None,
-		kind: str = "lecture interrompue",
+		kind: str = N_("interrupted playback"),
 	) -> None:
 		raise AssertionError("une anticipation ne termine aucun passage")
 
@@ -282,7 +283,7 @@ class HistoryInDatabase:
 		instant: datetime,
 		cut: bool = False,
 		error: str | None = None,
-		kind: str = "lecture interrompue",
+		kind: str = N_("interrupted playback"),
 	) -> None:
 		saving.finish_play(connection, play, instant, cut=cut, error=error, kind=kind)
 

@@ -13,6 +13,7 @@ from pathlib import Path
 
 from pytest_bdd import parsers, scenarios, then
 
+from machincast.i18n import _
 from machincast.indexer.check import LABELS
 from machincast.indexer.decoding import FileState
 from machincast.indexer.tags import KEYS
@@ -125,7 +126,8 @@ def states(guide: str) -> None:
 
 @then(parsers.parse("chaque verdict de la vérification d'un fichier est documenté dans le guide {guide}"))
 def verdicts(guide: str) -> None:
-	missing_list = absent_list(guide, {str(state) for state in FileState})
+	# Le guide, en français, nomme chaque verdict traduit (https://github.com/dascritch/machincast/issues/360).
+	missing_list = absent_list(guide, {_(state) for state in FileState})
 	assert not missing_list, missing_list
 
 

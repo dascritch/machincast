@@ -29,6 +29,7 @@ from machincast.player.simulation import SimulatedEngine
 from machincast.player.state import StateSocket, request_reread_grid
 from machincast.randomness import create_randomness
 from tests.database_fixtures import configuration_test, sample_database_parameters
+from tests.log_texts import shown, stored
 from tests.sounds import sample_copy
 from tests.stream import StreamServer
 
@@ -726,7 +727,7 @@ def play(database: Connection, name: str) -> tuple[str, datetime, datetime | Non
 
 
 def log(database: Connection) -> list[tuple[str, str]]:
-	return [(str(n), str(t)) for n, t in database.execute("SELECT level::text, kind FROM log ORDER BY id").fetchall()]
+	return [(str(n), shown(t)) for n, t in database.execute("SELECT level::text, kind FROM log ORDER BY id").fetchall()]
 
 
 @then(parsers.re(r"l'airplay montre les passages (?P<list_>.+)"))
@@ -852,8 +853,9 @@ def on_air_log(empty_database: Connection, datatable: list[list[str]]) -> None:
 	fetched_list = empty_database.execute(
 		"SELECT l.logged_at, l.level::text, l.kind, l.message, e.internal_name FROM log l"
 		" LEFT JOIN events e ON e.id = l.event_id WHERE l.kind = ANY(%s) ORDER BY l.id",
-		(list(ON_AIR_KINDS),),
+		([stored(kind) for kind in ON_AIR_KINDS],),
 	).fetchall()
+	fetched_list = [(t, n, shown(k), shown(m), e) for t, n, k, m, e in fetched_list]
 	expected_list = [
 		(hour(timestamp.strip()), "info", kind.strip(), message.strip(), event.strip())
 		for timestamp, kind, message, event in rows
@@ -986,6 +988,6 @@ def finished_in_incident(empty_database: Connection, name: str, kind: str, insta
 	end, healthy = found_list[0]
 	assert (isinstance(end, datetime)) and (end == hour(instant)) and (healthy is False), found_list
 	line = empty_database.execute(
-		"SELECT message FROM log WHERE level = 'incident' AND kind = %s AND logged_at = %s", (kind, end)
+		"SELECT message FROM log WHERE level = 'incident' AND kind = %s AND logged_at = %s", (stored(kind), end)
 	).fetchone()
 	assert line is not None, kind

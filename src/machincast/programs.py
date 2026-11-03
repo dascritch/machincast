@@ -35,6 +35,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from machincast.i18n import _
 from machincast.service import UNIT
 
 PROC = Path("/proc")
@@ -69,10 +70,10 @@ class Program:
 		if self.name != "player":
 			return self.name
 		if self.service:
-			return "service de diffusion"
+			return _("broadcast service")
 		if "--simulation" in self.arguments:
 			return "simulation"
-		return "diffusion d'essai"
+		return _("trial broadcast")
 
 	@property
 	def command(self) -> str:
@@ -81,7 +82,9 @@ class Program:
 
 	@property
 	def label(self) -> str:
-		return f"{self.command} ({self.kind}), compte {self.account}"
+		return _("{command} ({kind}), account {account}").format(
+			command=self.command, kind=self.kind, account=self.account
+		)
 
 
 def recognise(line: Sequence[str]) -> tuple[str, tuple[str, ...]] | None:
@@ -221,35 +224,43 @@ def restart(
 		if program.service:
 			continue
 		if program.account != current_account:
-			rest.append(f"à rouvrir par le compte {program.account} : {program.command}")
+			rest.append(
+				_("to reopen by the account {account}: {command}").format(
+					account=program.account, command=program.command
+				)
+			)
 		elif program.kind == "simulation":
-			rest.append("simulation interrompue : la relancer depuis l'onglet Simulation de l'interface")
+			rest.append(_("simulation interrupted: launch it again from the Simulation tab of the interface"))
 		elif program.name == "indexer":
-			rest.append(f"indexation interrompue : relancer {program.command}")
+			rest.append(_("indexing interrupted: launch again {command}").format(command=program.command))
 		elif not graphic:
-			ou = "un terminal"
+			ou = _("a terminal")
 			if program.name == "interface":
-				ou = "la session graphique"
-			rest.append(f"à rouvrir dans {ou} : {program.command}")
+				ou = _("the graphical session")
+			rest.append(_("to reopen in {ou}: {command}").format(ou=ou, command=program.command))
 		elif program.name == "interface":
 			if not simulation:
 				launch(command, program.directory)
-			restarted_list.append(f"{prefix}relancé : {program.command}")
+			restarted_list.append(_("{prefix}relaunched: {command}").format(prefix=prefix, command=program.command))
 		elif terminal is None:
-			rest.append(f"à rouvrir dans un terminal : {program.command}")
+			rest.append(_("to reopen in a terminal: {command}").format(command=program.command))
 		else:
 			if not simulation:
 				launch([terminal, "-e", *command], program.directory)
-			restarted_list.append(f"{prefix}relancé dans un terminal : {program.command}")
+			restarted_list.append(
+				_("{prefix}relaunched in a terminal: {command}").format(prefix=prefix, command=program.command)
+			)
 	return restarted_list + rest
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
 	analyser = argparse.ArgumentParser(prog="machincast.programs", description=__doc__.splitlines()[0])
 	analyser.add_argument("action", choices=("list", "restart"))
-	analyser.add_argument("--state", type=Path, required=True, help="état des programmes en cours, en JSON")
+	analyser.add_argument("--state", type=Path, required=True, help=_("state of the running programs, in JSON"))
 	analyser.add_argument("--proc", type=Path, default=PROC, help=argparse.SUPPRESS)
-	analyser.add_argument("--simulation", action="store_true", help="dit ce qui serait relancé, sans rien lancer")
+	analyser.add_argument(
+		"--simulation", action="store_true", help=_("tells what would be relaunched, without launching anything")
+	)
 	options = analyser.parse_args(arguments)
 	current_account = _account(os.getuid())
 	if options.action == "list":

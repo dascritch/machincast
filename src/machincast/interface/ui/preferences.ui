@@ -3,7 +3,7 @@
  <class>PreferencesWindow</class>
  <widget class="QDialog" name="PreferencesWindow">
   <property name="windowTitle">
-   <string>Préférences</string>
+   <string>Preferences</string>
   </property>
   <layout class="QVBoxLayout" name="arrangement">
    <item>
@@ -16,13 +16,13 @@
        <item>
         <widget class="QGroupBox" name="crossfades_group">
          <property name="title">
-          <string>Durées</string>
+          <string>Durations</string>
          </property>
          <layout class="QFormLayout" name="crossfades_form">
           <item row="0" column="0">
            <widget class="QLabel" name="granularity_caption">
             <property name="text">
-             <string>&amp;Granularité</string>
+             <string>&amp;Granularity</string>
             </property>
             <property name="buddy">
              <cstring>granularity</cstring>
@@ -32,14 +32,14 @@
           <item row="0" column="1">
            <widget class="QComboBox" name="granularity">
             <property name="toolTip">
-             <string>Le pas de tous les crossfades de l'interface</string>
+             <string>The step of all the crossfades of the interface</string>
             </property>
            </widget>
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="maximum_caption">
             <property name="text">
-             <string>Durée &amp;maximale</string>
+             <string>&amp;Maximum duration</string>
             </property>
             <property name="buddy">
              <cstring>maximum</cstring>
@@ -49,10 +49,10 @@
           <item row="1" column="1">
            <widget class="QDoubleSpinBox" name="maximum">
             <property name="toolTip">
-             <string>Le crossfade le plus long que proposent les fiches</string>
+             <string>The longest crossfade that the cards offer</string>
             </property>
             <property name="suffix">
-             <string> s</string>
+             <string notr="true"> s</string>
             </property>
             <property name="maximum">
              <double>600.0</double>
@@ -62,10 +62,10 @@
           <item row="2" column="0">
            <widget class="QCheckBox" name="has_start">
             <property name="text">
-             <string>&amp;Début par défaut</string>
+             <string>Default &amp;start</string>
             </property>
             <property name="toolTip">
-             <string>Le crossfade de début d'un sonore qui n'en a pas de paramétré, et que sa banque ne règle pas</string>
+             <string>The start crossfade of a sound that has none set, and that its bank does not set</string>
             </property>
            </widget>
           </item>
@@ -75,17 +75,17 @@
              <bool>false</bool>
             </property>
             <property name="suffix">
-             <string> s</string>
+             <string notr="true"> s</string>
             </property>
            </widget>
           </item>
           <item row="3" column="0">
            <widget class="QCheckBox" name="has_end">
             <property name="text">
-             <string>&amp;Fin par défaut</string>
+             <string>Default &amp;end</string>
             </property>
             <property name="toolTip">
-             <string>Le crossfade de fin d'un sonore qui n'en a pas de paramétré, et que sa banque ne règle pas</string>
+             <string>The end crossfade of a sound that has none set, and that its bank does not set</string>
             </property>
            </widget>
           </item>
@@ -95,7 +95,7 @@
              <bool>false</bool>
             </property>
             <property name="suffix">
-             <string> s</string>
+             <string notr="true"> s</string>
             </property>
            </widget>
           </item>
@@ -105,16 +105,16 @@
        <item>
         <widget class="QGroupBox" name="position_group">
          <property name="title">
-          <string>Position des fondus, pour un sonore joué sans ses silences</string>
+          <string>Position of the fades, for a sound played without its silences</string>
          </property>
          <property name="toolTip">
-          <string>Où tombent les fondus par rapport au début et à la fin détectés d'un sonore joué sans ses silences, quelle que soit sa banque</string>
+          <string>Where the fades fall compared to the detected start and end of a sound played without its silences, whatever its bank</string>
          </property>
          <layout class="QFormLayout" name="position_form">
           <item row="0" column="0">
            <widget class="QLabel" name="entry_position_caption">
             <property name="text">
-             <string>Le fade-in, au début détecté</string>
+             <string>The fade-in, at the detected start</string>
             </property>
             <property name="buddy">
              <cstring>entry_position</cstring>
@@ -127,7 +127,7 @@
           <item row="1" column="0">
            <widget class="QLabel" name="output_position_caption">
             <property name="text">
-             <string>Le fade-out, à la fin détectée</string>
+             <string>The fade-out, at the detected end</string>
             </property>
             <property name="buddy">
              <cstring>output_position</cstring>
@@ -140,7 +140,7 @@
           <item row="2" column="0" colspan="2">
            <widget class="QWidget" name="place_demonstration" native="true">
             <property name="toolTip">
-             <string>Démonstration : un sonore de 30 s, aux silences de 3 s au début et 4 s à la fin, retirés à l'antenne, avec les crossfades par défaut saisis</string>
+             <string>Demonstration: a sound of 30 s, with silences of 3 s at the start and 4 s at the end, removed on air, with the default crossfades entered</string>
             </property>
             <property name="minimumSize">
              <size>
@@ -166,13 +166,13 @@
        <item>
         <widget class="QGroupBox" name="silence_group">
          <property name="title">
-          <string>Détection de silence</string>
+          <string>Silence detection</string>
          </property>
          <layout class="QFormLayout" name="silence_form">
           <item row="0" column="0">
            <widget class="QLabel" name="silence_threshold_caption">
             <property name="text">
-             <string>&amp;Seuil de silence</string>
+             <string>&amp;Silence threshold</string>
             </property>
             <property name="buddy">
              <cstring>silence_threshold</cstring>
@@ -182,10 +182,10 @@
           <item row="0" column="1">
            <widget class="QDoubleSpinBox" name="silence_threshold">
             <property name="toolTip">
-             <string>Niveau crête sous lequel le début et la fin d'un sonore sont un silence ; 0 dB est la pleine échelle</string>
+             <string>Peak level below which the start and the end of a sound are a silence; 0 dB is the full scale</string>
             </property>
             <property name="suffix">
-             <string> dB</string>
+             <string notr="true"> dB</string>
             </property>
             <property name="decimals">
              <number>1</number>
@@ -210,7 +210,7 @@
        <item>
         <widget class="QLabel" name="silence_explanation">
          <property name="text">
-          <string>L'audit complet mesure les silences au début et à la fin de chaque fichier à ce seuil ; un nouveau seuil vaut pour les audits suivants. Une banque, ou un sonore, choisit d'être joué sans ses silences.</string>
+          <string>The full audit measures the silences at the start and at the end of each file at this threshold; a new threshold applies to the next audits. A bank, or a sound, chooses to be played without its silences.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -220,7 +220,7 @@
        <item>
         <widget class="QLabel" name="explanation">
          <property name="text">
-          <string>Les fiches ouvertes ensuite suivent ces réglages. Machin player prend les durées par défaut à son prochain démarrage.</string>
+          <string>The cards opened afterwards follow these settings. Machin player takes the default durations at its next start.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -237,26 +237,26 @@
        <item>
         <widget class="QGroupBox" name="home_group">
          <property name="title">
-          <string>Accueil</string>
+          <string>Home</string>
          </property>
          <layout class="QVBoxLayout" name="home_layout">
           <item>
            <widget class="QCheckBox" name="clipping">
             <property name="text">
-             <string>Afficher le voyant de saturation de l'onglet Antenne</string>
+             <string>Show the clipping light of the On air tab</string>
             </property>
             <property name="toolTip">
-             <string>Le voyant « Saturation » de la colonne Antenne, au-dessus du VU-mètre ; le VU-mètre montre toujours les crêtes.</string>
+             <string>The “Clipping” light of the On air column, above the VU meter; the VU meter always shows the peaks.</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QCheckBox" name="suggestions">
             <property name="text">
-             <string>Proposer au lancement ce qui manque pour démarrer</string>
+             <string>Offer at launch what is missing to start</string>
             </property>
             <property name="toolTip">
-             <string>Fil musical, banques de base et périphérique de l'antenne, dans une fenêtre au lancement de l'interface.</string>
+             <string>Background programming, basic banks and on-air device, in a window when the interface is launched.</string>
             </property>
            </widget>
           </item>
@@ -266,10 +266,10 @@
        <item>
         <widget class="QGroupBox" name="icon_group">
          <property name="title">
-          <string>Icône de l'application</string>
+          <string>Application icon</string>
          </property>
          <property name="toolTip">
-          <string>L'icône des fenêtres de MachinCast, de son raccourci dans le menu des applications et sur le bureau, et de la barre des tâches.</string>
+          <string>The icon of the MachinCast windows, of its shortcut in the applications menu and on the desktop, and of the taskbar.</string>
          </property>
          <layout class="QVBoxLayout" name="icon_layout">
           <item>
@@ -303,20 +303,20 @@
             <item>
              <widget class="QPushButton" name="choose_icon">
               <property name="text">
-               <string>&amp;Choisir une image…</string>
+               <string>&amp;Choose an image…</string>
               </property>
               <property name="toolTip">
-               <string>Une image SVG, PNG ou JPEG, de préférence carrée</string>
+               <string>An SVG, PNG or JPEG image, preferably square</string>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QPushButton" name="default_icon">
               <property name="text">
-               <string>Icône de MachinCast</string>
+               <string>MachinCast icon</string>
               </property>
               <property name="toolTip">
-               <string>Revenir à l'icône de MachinCast</string>
+               <string>Go back to the MachinCast icon</string>
               </property>
              </widget>
             </item>
@@ -342,7 +342,7 @@
        <item>
         <widget class="QGroupBox" name="device_group">
          <property name="title">
-          <string>Cartes son</string>
+          <string>Sound cards</string>
          </property>
          <layout class="QVBoxLayout" name="device_layout"/>
         </widget>
@@ -350,7 +350,7 @@
        <item>
         <widget class="QLabel" name="audio_explanation">
          <property name="text">
-          <string>Machin player prend le type de sortie et la carte de l'antenne à son prochain démarrage ; sans carte d'antenne, il refuse de diffuser. La pré-écoute ne peut jamais utiliser la carte de l'antenne : chacune est grisée dans l'autre choix. « Tester » joue 2 secondes de son de test sur la carte de sa ligne.</string>
+          <string>Machin player takes the output type and the on-air card at its next start; without an on-air card, it refuses to broadcast. The pre-listen can never use the on-air card: each one is greyed out in the other choice. “Test” plays 2 seconds of test sound on the card of its line.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -360,23 +360,23 @@
        <item>
         <widget class="QGroupBox" name="dead_air_group">
          <property name="title">
-          <string>Blanc dans un sonore, à l'antenne</string>
+          <string>Dead air in a sound, on air</string>
          </property>
          <layout class="QFormLayout" name="dead_air_form">
           <item row="0" column="0" colspan="2">
            <widget class="QCheckBox" name="dead_air_fallback">
             <property name="toolTip">
-             <string>Coché, un blanc fait passer au sonore suivant, ou au secours d'un stream ; sinon, il est seulement noté dans le log</string>
+             <string>Ticked, a dead air moves on to the next sound, or to the fallback of a stream; otherwise, it is only noted in the log</string>
             </property>
             <property name="text">
-             <string>Passer au sonore suivant, ou au secours d'un s&amp;tream</string>
+             <string>Move on to the next sound, or to the fallback of a s&amp;tream</string>
             </property>
            </widget>
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="dead_air_duration_caption">
             <property name="text">
-             <string>D&amp;urée d'un blanc</string>
+             <string>D&amp;uration of a dead air</string>
             </property>
             <property name="buddy">
              <cstring>dead_air_duration</cstring>
@@ -386,10 +386,10 @@
           <item row="1" column="1">
            <widget class="QDoubleSpinBox" name="dead_air_duration">
             <property name="toolTip">
-             <string>Durée pendant laquelle un sonore qui joue doit rester sous le niveau d'un blanc</string>
+             <string>Duration for which a playing sound must stay below the dead air level</string>
             </property>
             <property name="suffix">
-             <string> s</string>
+             <string notr="true"> s</string>
             </property>
             <property name="decimals">
              <number>1</number>
@@ -411,7 +411,7 @@
           <item row="2" column="0">
            <widget class="QLabel" name="dead_air_threshold_caption">
             <property name="text">
-             <string>&amp;Niveau d'un blanc</string>
+             <string>Dead air &amp;level</string>
             </property>
             <property name="buddy">
              <cstring>dead_air_threshold</cstring>
@@ -421,10 +421,10 @@
           <item row="2" column="1">
            <widget class="QDoubleSpinBox" name="dead_air_threshold">
             <property name="toolTip">
-             <string>Niveau crête sous lequel un sonore qui joue ne donne plus de son ; 0 dB est la pleine échelle</string>
+             <string>Peak level below which a playing sound no longer gives any sound; 0 dB is the full scale</string>
             </property>
             <property name="suffix">
-             <string> dB</string>
+             <string notr="true"> dB</string>
             </property>
             <property name="decimals">
              <number>1</number>
@@ -449,7 +449,7 @@
        <item>
         <widget class="QLabel" name="dead_air_explanation">
          <property name="text">
-          <string>Un sonore qui reste cette durée sous ce niveau, pendant qu'il joue, est noté dans le log. Coché, un fichier laisse aussitôt l'antenne au sonore suivant, et un stream à son secours, jusqu'au retour de son son. Ce n'est pas un silence, au début ou à la fin d'un fichier. Machin player prend ces réglages à son prochain démarrage.</string>
+          <string>A sound that stays this duration below this level, while it plays, is noted in the log. Ticked, a file at once leaves the on-air output to the next sound, and a stream to its fallback, until its sound comes back. It is not a silence, at the start or at the end of a file. Machin player takes these settings at its next start.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -467,7 +467,7 @@
      </widget>
      <widget class="QWidget" name="database_page">
       <attribute name="title">
-       <string>Base</string>
+       <string>Database</string>
       </attribute>
       <layout class="QVBoxLayout" name="database_layout">
        <item>
@@ -475,7 +475,7 @@
          <item row="0" column="0">
           <widget class="QLabel" name="retention_caption">
            <property name="text">
-            <string>&amp;Durée de péremption</string>
+            <string>Expiry &amp;duration</string>
            </property>
            <property name="buddy">
             <cstring>retention</cstring>
@@ -485,7 +485,7 @@
          <item row="0" column="1">
           <widget class="QSpinBox" name="retention">
            <property name="suffix">
-            <string> jours</string>
+            <string> days</string>
            </property>
            <property name="minimum">
             <number>1</number>
@@ -503,7 +503,7 @@
        <item>
         <widget class="QLabel" name="retention_explanation">
          <property name="text">
-          <string>Machin purge efface de la base les passages de l'airplay et les lignes du log plus vieux que cette durée, et les sonores, banques, séquences et événements supprimés depuis plus longtemps. Il ne touche jamais aux fichiers sonores.</string>
+          <string>Machin purge erases from the database the plays of the airplay and the lines of the log older than this duration, and the sounds, banks, sequences and events deleted for longer. It never touches the sound files.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>

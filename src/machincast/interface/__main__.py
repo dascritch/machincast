@@ -16,9 +16,10 @@ from machincast.cli import launch
 from machincast.clock import SystemClock
 from machincast.configuration import PROJECT_DIRECTORY, Configuration
 from machincast.database import Role, open_connection
+from machincast.i18n import _
 
 EXECUTABLE = "Machin_interface"
-DESCRIPTION = "Interface graphique de supervision et de programmation de MachinCast."
+DESCRIPTION = _("MachinCast graphical interface, for supervision and programming.")
 
 FAILURE_CODE = 1
 
@@ -61,11 +62,15 @@ def run(configuration: Configuration, options: argparse.Namespace) -> int:
 	try:
 		connection = open_connection(database.socket, database.production, Role.INTERFACE)
 	except psycopg.OperationalError as error:
-		log.error(f"base de données injoignable ({database.production} par {database.socket}) : {error}")
+		log.error(
+			_("database unreachable ({production} through {socket}): {error}").format(
+				production=database.production, socket=database.socket, error=error
+			)
+		)
 		flag_database(configuration, error)
 		return FAILURE_CODE
 	except psycopg.Error as error:
-		log.error(f"erreur de base de données : {error}")
+		log.error(_("database error: {error}").format(error=error))
 		flag_database(configuration, error)
 		return FAILURE_CODE
 	with connection:

@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
+from machincast.i18n import _, counted
 from machincast.interface import icons
 from machincast.interface.columns import Columns
 from machincast.interface.lists import STATES, without_accents
@@ -41,13 +42,13 @@ MINIMUM = 2
 """Caractères à taper avant de chercher."""
 LIMIT = 500
 """Lignes de la table des résultats, au plus."""
-COLUMNS = ("Type", "Nom interne", "Nom public", "Statut")
-TYPES = {"événement": "Événement", "séquence": "Séquence", "banque": "Banque", "sonore": "Sonore"}
+COLUMNS = (_("Type"), _("Internal name"), _("Public name"), _("Status"))
+TYPES = {"événement": _("Event"), "séquence": _("Sequence"), "banque": _("Bank"), "sonore": _("Sound")}
 ACCENTED = "àâäáãåçéèêëíìîïñóòôöõúùûüýÿÀÂÄÁÃÅÇÉÈÊËÍÌÎÏÑÓÒÔÖÕÚÙÛÜÝ"
 WITHOUT_ACCENT = "aaaaaaceeeeiiiinooooouuuuyyaaaaaaceeeeiiiinooooouuuuy"
 """Les lettres accentuées, minuscules et majuscules, que la base ramène à leur lettre de base, dans le même ordre :
 avant lower(), qui ne sait pas toujours abaisser une majuscule accentuée, selon la locale de la base."""
-TOO_SHORT = f"Tapez au moins {MINIMUM} caractères."
+TOO_SHORT = _("Type at least {minimum} characters.").format(minimum=MINIMUM)
 
 
 @dataclass(frozen=True)
@@ -137,10 +138,10 @@ class SearchScreen(QWidget):
 		self.results: list[Result] = []
 		arrangement = QVBoxLayout(self)
 		self.field = QLineEdit(self)
-		self.field.setPlaceholderText("Rechercher un événement, une séquence, une banque ou un sonore…")
+		self.field.setPlaceholderText(_("Search an event, a sequence, a bank or a sound…"))
 		self.field.setClearButtonEnabled(True)
 		self.field.setToolTip(
-			"Nom interne et nom public des événements, des séquences et des banques ; artiste et titre des sonores"
+			_("Internal name and public name of the events, sequences and banks; artist and title of the sounds")
 		)
 		arrangement.addWidget(self.field)
 		self.count = QLabel(TOO_SHORT, self)
@@ -172,8 +173,8 @@ class SearchScreen(QWidget):
 		try:
 			self.results, total = find(self.connection, text, LIMIT)
 		except psycopg.Error as error:
-			log.error(f"recherche impossible : {error}")
-			self.count.setText(f"Recherche impossible : {error}")
+			log.error(_("search impossible: {error}").format(error=error))
+			self.count.setText(_("Search impossible: {error}").format(error=error))
 			return
 		self._show(total, len(text.strip()) >= MINIMUM)
 
@@ -187,13 +188,11 @@ class SearchScreen(QWidget):
 			self.model.appendRow(cells)
 		text = TOO_SHORT
 		if (looks_for) and (total == 0):
-			text = "aucun résultat"
-		elif total == 1:
-			text = "1 résultat"
+			text = _("no result")
 		elif total > len(self.results):
-			text = f"{len(self.results)} premiers résultats sur {total}"
+			text = _("first {count} results out of {total}").format(count=len(self.results), total=total)
 		elif looks_for:
-			text = f"{total} résultats"
+			text = counted("{count} result", "{count} results", total)
 		self.count.setText(text)
 
 	def _opened_line(self, index: QModelIndex) -> None:

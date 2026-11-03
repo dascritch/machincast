@@ -140,7 +140,7 @@ Fonctionnalité: Vérifications de l'installation
 		Alors la commande se termine sans erreur
 		Et l'unité a, dans la section « Unit » :
 			| clé         | valeur                                                     |
-			| Description | MachinCast : diffusion de l'antenne (Machin player)       |
+			| Description | MachinCast: on-air broadcast (Machin player)              |
 			| Wants       | network-online.target                                      |
 			| After       | network-online.target postgresql.service sound.target      |
 		Et l'unité a, dans la section « Service » :
@@ -204,7 +204,7 @@ Fonctionnalité: Vérifications de l'installation
 		Alors la commande se termine sans erreur
 		Et l'unité a, dans la section « Unit » :
 			| clé         | valeur                                                          |
-			| Description | MachinCast : purge de la base de données (Machin purge)         |
+			| Description | MachinCast: database purge (Machin purge)                       |
 			| After       | postgresql.service                                              |
 		Et l'unité a, dans la section « Service » :
 			| clé              | valeur                          |
@@ -221,7 +221,7 @@ Fonctionnalité: Vérifications de l'installation
 		Alors la commande se termine sans erreur
 		Et l'unité a, dans la section « Unit » :
 			| clé         | valeur                                                 |
-			| Description | MachinCast : purge quotidienne de la base, à midi      |
+			| Description | MachinCast: daily database purge, at noon              |
 		Et l'unité a, dans la section « Timer » :
 			| clé        | valeur                   |
 			| OnCalendar | *-*-* 12:00:00           |
@@ -264,14 +264,17 @@ Fonctionnalité: Vérifications de l'installation
 			| Type           | Application                                            |
 			| Version        | 1.5                                                    |
 			| Name           | MachinCast                                             |
-			| GenericName    | Diffusion radio automatisée                            |
-			| Comment        | Programmer l'antenne et suivre la diffusion            |
+			| GenericName    | Automated radio broadcasting                           |
+			| GenericName[fr] | Diffusion radio automatisée                           |
+			| Comment        | Program the on-air output and follow the broadcast     |
+			| Comment[fr]    | Programmer l'antenne et suivre la diffusion            |
 			| Exec           | <répertoire>/bin/Machin interface                      |
 			| Path           | <répertoire>                                           |
 			| Icon           | <répertoire>/src/machincast/interface/machincast.png   |
 			| Terminal       | false                                                  |
 			| Categories     | AudioVideo;Audio;                                      |
-			| Keywords       | radio;antenne;diffusion;programmation;                 |
+			| Keywords       | radio;on air;broadcast;programming;                    |
+			| Keywords[fr]   | radio;antenne;diffusion;programmation;                 |
 			| StartupNotify  | true                                                   |
 			| StartupWMClass | MachinCast                                             |
 

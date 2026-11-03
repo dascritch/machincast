@@ -18,7 +18,9 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from machincast import i18n
 from machincast.configuration import PROJECT_DIRECTORY
+from machincast.i18n import N_, _
 
 NAME = "machincast.desktop"
 """Le nom du raccourci ; l'interface s'en réclame (setDesktopFileName), sans « .desktop »."""
@@ -31,7 +33,12 @@ DESKTOP_FOLDER: Path | None = None
 """Le dossier du bureau ; None : celui du compte, que donne xdg-user-dir."""
 RESERVED_LIST = frozenset(" \t\n\"'\\><~|&;$*?#()`")
 """Caractères qui imposent de citer un argument de la clé Exec (Desktop Entry Specification, « The Exec key »)."""
-PLACES = {"menu": "dans le menu des applications", "bureau": "sur le bureau"}
+GENERIC_NAME = N_("Automated radio broadcasting")
+COMMENT = N_("Program the on-air output and follow the broadcast")
+KEYWORDS = N_("radio;on air;broadcast;programming;")
+"""Les textes du raccourci : en anglais, puis dans chaque langue du catalogue, par ses clés localisées
+(Desktop Entry Specification, « Localized values for keys »)."""
+PLACES = {"menu": _("in the applications menu"), "bureau": _("on the desktop")}
 """Les lieux d'un raccourci, pour les messages."""
 
 
@@ -61,20 +68,27 @@ def write(directory: Path = PROJECT_DIRECTORY, icon: Path | None = None) -> str:
 	image = directory / ICON.relative_to(PROJECT_DIRECTORY)
 	if (icon is not None) and (usable_icon(icon)):
 		image = icon
-	return f"""# Raccourci de l'interface de MachinCast (https://github.com/dascritch/machincast/issues/62).
-# Installé par install.sh, réécrit par les préférences de l'interface quand son icône change ; ne pas modifier ici.
+	translated = "".join(
+		f"GenericName[{code}]={i18n.load(code).gettext(GENERIC_NAME)}\n"
+		f"Comment[{code}]={i18n.load(code).gettext(COMMENT)}\n"
+		f"Keywords[{code}]={i18n.load(code).gettext(KEYWORDS)}\n"
+		for code in i18n.LANGUAGES
+		if code != i18n.SOURCE
+	)
+	return f"""# Shortcut of the MachinCast interface (https://github.com/dascritch/machincast/issues/62).
+# Installed by install.sh, rewritten by the interface preferences when its icon changes; do not edit here.
 [Desktop Entry]
 Type=Application
 Version=1.5
 Name=MachinCast
-GenericName=Diffusion radio automatisée
-Comment=Programmer l'antenne et suivre la diffusion
-Exec={_string(command)}
+GenericName={GENERIC_NAME}
+Comment={COMMENT}
+Keywords={KEYWORDS}
+{translated}Exec={_string(command)}
 Path={_string(str(directory))}
 Icon={_string(str(image))}
 Terminal=false
 Categories=AudioVideo;Audio;
-Keywords=radio;antenne;diffusion;programmation;
 StartupNotify=true
 StartupWMClass=MachinCast
 """

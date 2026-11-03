@@ -14,7 +14,7 @@
    <item>
     <widget class="QWidget" name="timeline_place">
      <property name="toolTip">
-      <string>Le fichier tel que l'antenne le jouera, selon les réglages de la fiche, même pas encore enregistrés</string>
+      <string>The file as the on-air output will play it, according to the settings of the form, even not yet saved</string>
      </property>
     </widget>
    </item>
@@ -30,7 +30,7 @@
          <item>
           <widget class="QGroupBox" name="sound_group">
            <property name="title">
-            <string>Sonore</string>
+            <string>Sound</string>
            </property>
            <layout class="QFormLayout" name="sound_form">
             <item row="0" column="0">
@@ -46,7 +46,7 @@
             <item row="1" column="0">
              <widget class="QLabel" name="location_caption">
               <property name="text">
-               <string>Emplacement</string>
+               <string>Location</string>
               </property>
              </widget>
             </item>
@@ -62,10 +62,10 @@
               <item>
                <widget class="QToolButton" name="open_folder">
                 <property name="toolTip">
-                 <string>Ouvrir le dossier du fichier dans le navigateur de fichiers</string>
+                 <string>Open the folder of the file in the file browser</string>
                 </property>
                 <property name="text">
-                 <string>Dossier…</string>
+                 <string>Folder…</string>
                 </property>
                 <property name="icon">
                  <iconset theme="folder-open"/>
@@ -77,7 +77,7 @@
             <item row="2" column="0">
              <widget class="QLabel" name="duration_caption">
               <property name="text">
-               <string>Durée</string>
+               <string>Duration</string>
               </property>
              </widget>
             </item>
@@ -87,7 +87,7 @@
             <item row="3" column="0">
              <widget class="QLabel" name="state_caption">
               <property name="text">
-               <string>É&amp;tat</string>
+               <string>S&amp;tate</string>
               </property>
               <property name="buddy">
                <cstring>state</cstring>
@@ -109,7 +109,7 @@
             <item row="0" column="0">
              <widget class="QRadioButton" name="by_address">
               <property name="text">
-               <string>Adresse &amp;directe</string>
+               <string>&amp;Direct address</string>
               </property>
              </widget>
             </item>
@@ -129,7 +129,7 @@
             <item row="2" column="0">
              <widget class="QLabel" name="fallback_caption">
               <property name="text">
-               <string>Événement de &amp;secours</string>
+               <string>&amp;Fallback event</string>
               </property>
               <property name="buddy">
                <cstring>fallback</cstring>
@@ -142,7 +142,7 @@
             <item row="3" column="0">
              <widget class="QPushButton" name="test">
               <property name="text">
-               <string>&amp;Tester le flux</string>
+               <string>&amp;Test the stream</string>
               </property>
              </widget>
             </item>
@@ -159,13 +159,13 @@
          <item>
           <widget class="QGroupBox" name="metadata_group">
            <property name="title">
-            <string>Métadonnées</string>
+            <string>Metadata</string>
            </property>
            <layout class="QFormLayout" name="metadata_form">
             <item row="0" column="0">
              <widget class="QLabel" name="artist_caption">
               <property name="text">
-               <string>&amp;Artiste</string>
+               <string>&amp;Artist</string>
               </property>
               <property name="buddy">
                <cstring>artist</cstring>
@@ -182,7 +182,7 @@
             <item row="1" column="0">
              <widget class="QLabel" name="title_caption">
               <property name="text">
-               <string>Tit&amp;re</string>
+               <string>Tit&amp;le</string>
               </property>
               <property name="buddy">
                <cstring>title</cstring>
@@ -199,7 +199,7 @@
             <item row="2" column="0">
              <widget class="QLabel" name="year_caption">
               <property name="text">
-               <string>Année</string>
+               <string>Year</string>
               </property>
               <property name="buddy">
                <cstring>year</cstring>
@@ -233,7 +233,7 @@
             <item row="4" column="0">
              <widget class="QLabel" name="album_artist_caption">
               <property name="text">
-               <string>Artiste de l'album</string>
+               <string>Album artist</string>
               </property>
               <property name="buddy">
                <cstring>album_artist</cstring>
@@ -250,7 +250,7 @@
             <item row="5" column="0">
              <widget class="QLabel" name="category_caption">
               <property name="text">
-               <string>Genre</string>
+               <string comment="category">Kind</string>
               </property>
               <property name="buddy">
                <cstring>genre</cstring>
@@ -267,7 +267,7 @@
             <item row="6" column="0">
              <widget class="QLabel" name="composer_caption">
               <property name="text">
-               <string>Compositeur</string>
+               <string>Composer</string>
               </property>
               <property name="buddy">
                <cstring>composer</cstring>
@@ -301,7 +301,7 @@
             <item row="8" column="0">
              <widget class="QLabel" name="track_caption">
               <property name="text">
-               <string>Piste</string>
+               <string>Track</string>
               </property>
               <property name="buddy">
                <cstring>track</cstring>
@@ -318,7 +318,7 @@
             <item row="9" column="0">
              <widget class="QLabel" name="other_caption">
               <property name="text">
-               <string>Autres</string>
+               <string>Others</string>
               </property>
              </widget>
             </item>
@@ -335,13 +335,13 @@
          <item>
           <widget class="QGroupBox" name="broadcast_group">
            <property name="title">
-            <string>Diffusion</string>
+            <string>Broadcast</string>
            </property>
            <layout class="QFormLayout" name="broadcast_form">
             <item row="0" column="0">
              <widget class="QLabel" name="hiding_caption">
               <property name="text">
-               <string>Artiste et titre</string>
+               <string>Artist and title</string>
               </property>
               <property name="buddy">
                <cstring>hiding</cstring>
@@ -354,14 +354,14 @@
             <item row="1" column="0">
              <widget class="QCheckBox" name="has_start">
               <property name="text">
-               <string>Diffusion à partir du</string>
+               <string>Broadcast from</string>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
              <widget class="QDateTimeEdit" name="broadcast_start">
               <property name="displayFormat">
-               <string>dd/MM/yyyy HH:mm</string>
+               <string notr="true">dd/MM/yyyy HH:mm</string>
               </property>
               <property name="calendarPopup">
                <bool>true</bool>
@@ -374,14 +374,14 @@
             <item row="2" column="0">
              <widget class="QCheckBox" name="has_end">
               <property name="text">
-               <string>Diffusion jusqu'au</string>
+               <string>Broadcast until</string>
               </property>
              </widget>
             </item>
             <item row="2" column="1">
              <widget class="QDateTimeEdit" name="broadcast_end">
               <property name="displayFormat">
-               <string>dd/MM/yyyy HH:mm</string>
+               <string notr="true">dd/MM/yyyy HH:mm</string>
               </property>
               <property name="calendarPopup">
                <bool>true</bool>
@@ -394,7 +394,7 @@
             <item row="3" column="0">
              <widget class="QLabel" name="playback_max_caption">
               <property name="text">
-               <string>Maximum de lectures</string>
+               <string>Maximum of plays</string>
               </property>
               <property name="buddy">
                <cstring>playback_max</cstring>
@@ -407,7 +407,7 @@
                <number>1000000</number>
               </property>
               <property name="specialValueText">
-               <string>illimité</string>
+               <string>unlimited</string>
               </property>
              </widget>
             </item>
@@ -417,26 +417,26 @@
          <item>
           <widget class="QGroupBox" name="silence_group">
            <property name="title">
-            <string>Enchainement</string>
+            <string>Transition</string>
            </property>
            <layout class="QFormLayout" name="silence_form">
             <item row="0" column="0" colspan="2">
              <widget class="QCheckBox" name="detection_silences">
               <property name="text">
-               <string>Jouer sans les silences détectés</string>
+               <string>Play without the detected silences</string>
               </property>
               <property name="toolTip">
-               <string>Coché, le sonore est joué de son début détecté à sa fin détectée, même hors d'une banque qui retire les silences.</string>
+               <string>Ticked, the sound is played from its detected start to its detected end, even outside a bank that removes the silences.</string>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
              <widget class="QCheckBox" name="has_detected_start">
               <property name="text">
-               <string>Début détecté</string>
+               <string>Detected start</string>
               </property>
               <property name="toolTip">
-               <string>Silence au début du fichier, mesuré par l'audit complet. Décoché, aucun silence n'est détecté : le début n'est pas rogné.</string>
+               <string>Silence at the start of the file, measured by the full audit. Unticked, no silence is detected: the start is not trimmed.</string>
               </property>
              </widget>
             </item>
@@ -446,7 +446,7 @@
                <bool>false</bool>
               </property>
               <property name="suffix">
-               <string> s</string>
+               <string notr="true"> s</string>
               </property>
               <property name="decimals">
                <number>2</number>
@@ -462,10 +462,10 @@
             <item row="2" column="0">
              <widget class="QCheckBox" name="has_detected_end">
               <property name="text">
-               <string>Fin détectée</string>
+               <string>Detected end</string>
               </property>
               <property name="toolTip">
-               <string>Silence à la fin du fichier, compté depuis sa fin, mesuré par l'audit complet. Décoché, aucun silence n'est détecté : la fin n'est pas rognée.</string>
+               <string>Silence at the end of the file, counted from its end, measured by the full audit. Unticked, no silence is detected: the end is not trimmed.</string>
               </property>
              </widget>
             </item>
@@ -475,7 +475,7 @@
                <bool>false</bool>
               </property>
               <property name="suffix">
-               <string> s</string>
+               <string notr="true"> s</string>
               </property>
               <property name="decimals">
                <number>2</number>
@@ -492,10 +492,10 @@
             <item row="3" column="0">
              <widget class="QCheckBox" name="has_start_crossfade">
               <property name="text">
-               <string>Crossfade de début</string>
+               <string>Start crossfade</string>
               </property>
               <property name="toolTip">
-               <string>Décoché, le crossfade n'est pas paramétré : il vient de la banque, ou des préférences. 0 seconde en est un.</string>
+               <string>Unticked, the crossfade is not set: it comes from the bank, or from the preferences. 0 second is one.</string>
               </property>
              </widget>
             </item>
@@ -509,10 +509,10 @@
             <item row="4" column="0">
              <widget class="QCheckBox" name="has_end_crossfade">
               <property name="text">
-               <string>Crossfade de fin</string>
+               <string>End crossfade</string>
               </property>
               <property name="toolTip">
-               <string>Décoché, le crossfade n'est pas paramétré : il vient de la banque, ou des préférences. 0 seconde en est un.</string>
+               <string>Unticked, the crossfade is not set: it comes from the bank, or from the preferences. 0 second is one.</string>
               </property>
              </widget>
             </item>
@@ -535,7 +535,7 @@
             <item>
              <widget class="QTableWidget" name="relations">
               <property name="toolTip">
-               <string>Double-clic : ouvrir la fiche</string>
+               <string>Double-click: open the card</string>
               </property>
               <property name="editTriggers">
                <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
@@ -551,12 +551,12 @@
               </attribute>
               <column>
                <property name="text">
-                <string>Genre</string>
+                <string comment="category">Kind</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Nom</string>
+                <string>Name</string>
                </property>
               </column>
              </widget>
@@ -564,7 +564,7 @@
             <item>
              <widget class="QLabel" name="no_relation">
               <property name="text">
-               <string>Aucune séquence, banque ni événement ne cite ce sonore.</string>
+               <string>No sequence, bank or event mentions this sound.</string>
               </property>
              </widget>
             </item>
@@ -574,7 +574,7 @@
          <item>
           <widget class="QGroupBox" name="file_group">
            <property name="title">
-            <string>Fichier</string>
+            <string>File</string>
            </property>
            <layout class="QFormLayout" name="file_form">
             <item row="0" column="0">
@@ -594,7 +594,7 @@
             <item row="1" column="0">
              <widget class="QLabel" name="encoding_caption">
               <property name="text">
-               <string>Encodage moyen</string>
+               <string>Average encoding</string>
               </property>
              </widget>
             </item>
@@ -608,7 +608,7 @@
             <item row="2" column="0">
              <widget class="QLabel" name="size_caption">
               <property name="text">
-               <string>Taille</string>
+               <string>Size</string>
               </property>
              </widget>
             </item>
@@ -622,7 +622,7 @@
             <item row="3" column="0">
              <widget class="QLabel" name="created_caption_at">
               <property name="text">
-               <string>Créé le</string>
+               <string>Created on</string>
               </property>
              </widget>
             </item>
@@ -636,7 +636,7 @@
             <item row="4" column="0">
              <widget class="QLabel" name="modified_caption_at">
               <property name="text">
-               <string>Modifié le</string>
+               <string>Modified on</string>
               </property>
              </widget>
             </item>
@@ -650,7 +650,7 @@
             <item row="5" column="0">
              <widget class="QLabel" name="checked_caption_at">
               <property name="text">
-               <string>Dernière vérification complète</string>
+               <string>Last full check</string>
               </property>
              </widget>
             </item>
@@ -685,7 +685,7 @@
      <item>
       <widget class="QGroupBox" name="play_group">
        <property name="title">
-        <string>Derniers passages</string>
+        <string>Last plays</string>
        </property>
        <layout class="QVBoxLayout" name="play_layout">
         <item>
@@ -707,32 +707,32 @@
           </attribute>
           <column>
            <property name="text">
-            <string>Début</string>
+            <string>Start</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Fin</string>
+            <string>End</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Durée</string>
+            <string>Duration</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Événement</string>
+            <string>Event</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Séquence</string>
+            <string>Sequence</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Banque</string>
+            <string>Bank</string>
            </property>
           </column>
           <column>
@@ -752,30 +752,30 @@
      <item>
       <widget class="QPushButton" name="delete">
        <property name="text">
-        <string>❌ Supprimer…</string>
+        <string>❌ Delete…</string>
        </property>
        <property name="toolTip">
-        <string>Supprime l'élément de la base, après confirmation ; aucun fichier n'est touché.</string>
+        <string>Deletes the element from the database, after confirmation; no file is touched.</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="preview">
        <property name="toolTip">
-        <string>Écouter le sonore sur la sortie de pré-écoute, jamais sur l'antenne</string>
+        <string>Listen to the sound on the pre-listen output, never on air</string>
        </property>
        <property name="text">
-        <string>Pré-écoute…</string>
+        <string>Pre-listen…</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="check">
        <property name="toolTip">
-        <string>Décoder le fichier en entier et mesurer ses silences, comme l'audit complet de Machin indexer, pour ce seul sonore</string>
+        <string>Decode the whole file and measure its silences, like the full audit of Machin indexer, for this sound only</string>
        </property>
        <property name="text">
-        <string>Vérification complète</string>
+        <string>Full check</string>
        </property>
       </widget>
      </item>
@@ -789,14 +789,14 @@
      <item>
       <widget class="QPushButton" name="cancel">
        <property name="text">
-        <string>Annuler</string>
+        <string>Cancel</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="save">
        <property name="text">
-        <string>Enregistrer</string>
+        <string>Save</string>
        </property>
        <property name="default">
         <bool>true</bool>

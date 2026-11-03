@@ -10,6 +10,8 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QMessageBox, QWidget
 
+from machincast.i18n import _
+
 
 class UnreachableDatabaseWindow(QMessageBox):
 	def __init__(
@@ -18,18 +20,23 @@ class UnreachableDatabaseWindow(QMessageBox):
 		super().__init__(parent)
 		self.installation = installation
 		self.setIcon(QMessageBox.Icon.Critical)
-		self.setWindowTitle("MachinCast : base de données injoignable")
+		self.setWindowTitle(_("MachinCast: database unreachable"))
 		self.setText(
-			f"L'interface de MachinCast n'est pas utilisable : elle n'accède pas à sa base de données « {database} »,"
-			f" par la socket {socket}. Sans base, elle n'a ni la programmation, ni l'historique de diffusion à montrer."
+			_(
+				"The MachinCast interface cannot be used: it does not reach its database “{database}” "
+				"through the socket {socket}. Without a database, it has neither the programming nor the "
+				"broadcast history to show."
+			).format(database=database, socket=socket)
 		)
 		self.setInformativeText(
-			"Vérifiez que PostgreSQL est démarré, que la base existe et que ce compte peut s'y connecter, en suivant"
-			f" le document {installation}, section « En cas de problème »."
+			_(
+				"Check that PostgreSQL is started, that the database exists and that this account can "
+				"connect to it, following the document {installation}, section “Troubleshooting”."
+			).format(installation=installation)
 		)
 		self.setDetailedText(error)
-		self.installation_button = self.addButton("Ouvrir INSTALL.md", QMessageBox.ButtonRole.ActionRole)
-		self.setDefaultButton(self.addButton("Fermer", QMessageBox.ButtonRole.RejectRole))
+		self.installation_button = self.addButton(_("Open INSTALL.md"), QMessageBox.ButtonRole.ActionRole)
+		self.setDefaultButton(self.addButton(_("Close"), QMessageBox.ButtonRole.RejectRole))
 
 	def display(self) -> None:
 		self.exec()

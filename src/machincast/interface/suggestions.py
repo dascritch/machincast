@@ -35,13 +35,14 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QListWidgetItem, QWidget
 
 from machincast.configuration import Audio, AudioOutput
+from machincast.i18n import _
 from machincast.interface import background_programming
 from machincast.interface.preferences import write_audio
 from machincast.interface.sound_cards import SoundCards
 from machincast.interface.ui.suggestions import Ui_SuggestionsWindow
 from machincast.service import ABSENT, ServiceState
 
-BACKGROUND_PROGRAMMING = "Fil musical"
+BACKGROUND_PROGRAMMING = _("Background programming")
 """La ligne du fil musical dans la fenêtre."""
 
 
@@ -60,14 +61,14 @@ class Setting:
 MUSIC = Setting(max_duration=timedelta(minutes=15))
 ANNOUNCEMENT = Setting(mode="sequential", max_duration=timedelta(minutes=2), without_crossfade=True)
 SETTINGS = {
-	"Identifiant station": Setting(no_repeat=True, max_duration=timedelta(minutes=2)),
-	"Musique rotation lourde": MUSIC,
-	"Musique rotation normale": MUSIC,
-	"Musique rotation rare": MUSIC,
-	"Musique rotation de nuit": Setting(),
-	"Partenariats": ANNOUNCEMENT,
-	"Publicités": ANNOUNCEMENT,
-	"Bande-annonce émissions": Setting(
+	_("Station identifier"): Setting(no_repeat=True, max_duration=timedelta(minutes=2)),
+	_("Music heavy rotation"): MUSIC,
+	_("Music normal rotation"): MUSIC,
+	_("Music rare rotation"): MUSIC,
+	_("Music night rotation"): Setting(),
+	_("Partnerships"): ANNOUNCEMENT,
+	_("Advertisements"): ANNOUNCEMENT,
+	_("Show trailers"): Setting(
 		mode="sequential", no_repeat=True, max_duration=timedelta(minutes=2), without_crossfade=True
 	),
 }
@@ -75,18 +76,18 @@ SETTINGS = {
 (https://github.com/dascritch/machincast/issues/231)."""
 BANKS = tuple(SETTINGS)
 ROTATION = (
-	"Identifiant station",
-	"Musique rotation lourde",
-	"Musique rotation normale",
-	"Musique rotation lourde",
-	"Musique rotation rare",
+	_("Station identifier"),
+	_("Music heavy rotation"),
+	_("Music normal rotation"),
+	_("Music heavy rotation"),
+	_("Music rare rotation"),
 )
 """La liste d'un fil musical encore vide ; la rotation de nuit reste à placer à la main dans un événement de nuit."""
 
 
 def label(bank: str) -> str:
 	"""« Banque « Identifiant station » » : la ligne d'une banque dans la fenêtre."""
-	return f"Banque « {bank} »"
+	return _("Bank “{bank}”").format(bank=bank)
 
 
 @dataclass(frozen=True)
@@ -149,7 +150,7 @@ def create(connection: psycopg.Connection[TupleRow], response: Response) -> str 
 		if response.background_programming:
 			name = background_programming.guarantee(connection)
 			if name is not None:
-				created_list.append(f"le fil musical « {name} »")
+				created_list.append(_("the background programming “{name}”").format(name=name))
 		new_list = []
 		for bank in response.banks:
 			setting = SETTINGS[bank]
@@ -162,15 +163,15 @@ def create(connection: psycopg.Connection[TupleRow], response: Response) -> str 
 				" VALUES (%s, %s, %s, %s, %s, '0 s', %s, '0 s')",
 				(bank, setting.mode, setting.no_repeat, setting.max_duration, rule, rule),
 			)
-			new_list.append(f"« {bank} »")
+			new_list.append(_("“{bank}”").format(bank=bank))
 		if len(new_list) == 1:
-			created_list.append(f"la banque {new_list[0]}")
+			created_list.append(_("the bank {new_list}").format(new_list=new_list[0]))
 		elif new_list:
-			created_list.append(f"les banques {', '.join(new_list)}")
+			created_list.append(_("the banks {list}").format(list=", ".join(new_list)))
 		_fill_empty_feed(connection)
 	if not created_list:
 		return None
-	return f"Créés : {', '.join(created_list)}."
+	return _("Created: {list}.").format(list=", ".join(created_list))
 
 
 def _fill_empty_feed(connection: psycopg.Connection[TupleRow]) -> None:
@@ -242,11 +243,11 @@ class SuggestionsWindow(QDialog):
 			self.ui.sound_cards_layout.addWidget(self.cards)
 			self.cards.changed.connect(self._validate)
 		buttons = self.ui.buttons
-		text = "Enregistrer"
+		text = _("Save")
 		if to_create:
-			text = "Créer"
+			text = _("Create")
 		buttons.button(QDialogButtonBox.StandardButton.Ok).setText(text)
-		buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Plus tard")
+		buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(_("Later"))
 		buttons.accepted.connect(self.accept)
 		buttons.rejected.connect(self.reject)
 		self._validate()

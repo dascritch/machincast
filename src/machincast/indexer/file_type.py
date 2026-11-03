@@ -21,9 +21,9 @@ UNDETERMINED = frozenset({"application/octet-stream", "inode/x-empty"})
 
 
 class Kind(Enum):
-	SOUND = "sonore"
-	UNDETERMINED = "indéterminée"
-	NON_SOUND = "non sonore"
+	SOUND = "sound"
+	UNDETERMINED = "undetermined"
+	NON_SOUND = "non_sound"
 
 
 def type_mime(path: Path) -> str | None:

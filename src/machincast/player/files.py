@@ -12,6 +12,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.conversion import integer_or_none
+from machincast.i18n import N_
 from machincast.player.history import IN_DATABASE, History
 
 
@@ -37,8 +38,8 @@ def check_before_playback(
 			history.record(
 				connection,
 				"incident",
-				"fichier introuvable",
-				f"{path} : aucun fichier à cet emplacement",
+				N_("file not found"),
+				N_("{path}: no file at this location").format(path=path),
 				sound=sound,
 			)
 			return None
@@ -46,17 +47,21 @@ def check_before_playback(
 		on_disk = datetime.fromtimestamp(state.st_mtime, tz=UTC)
 		if (modified_at is not None) and (on_disk != modified_at):
 			gaps.append(
-				f"date de modification {modified_at.astimezone():%Y-%m-%d %H:%M:%S} en base,"
-				f" {on_disk.astimezone():%Y-%m-%d %H:%M:%S} sur le disque"
+				N_(
+					"modification date {modified_at:%Y-%m-%d %H:%M:%S} in the database, "
+					"{on_disk:%Y-%m-%d %H:%M:%S} on the disk"
+				).format(modified_at=modified_at.astimezone(), on_disk=on_disk.astimezone())
 			)
 		if (size is not None) and (state.st_size != size):
-			gaps.append(f"taille {size} octets en base, {state.st_size} sur le disque")
+			gaps.append(
+				N_("size {size} bytes in the database, {st_size} on the disk").format(size=size, st_size=state.st_size)
+			)
 		if gaps:
 			history.record(
 				connection,
 				"warning",
-				"fichier modifié",
-				f"{path} : {' ; '.join(gaps)} ; l'indexeur mettra la base à jour",
+				N_("modified file"),
+				N_("{path}: {list}; the indexer will update the database").format(path=path, list=" ; ".join(gaps)),
 				sound=sound,
 			)
 		return path

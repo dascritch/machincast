@@ -4,12 +4,14 @@ import os
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import psycopg
 import pytest
 
 from machincast.clock import FixedClock
 from machincast.indexer import audit
+from machincast.interface.application import translate_screens
 from tests.database_fixtures import check_authorisations, purge_database, reset_database, sample_connection
 
 # Étapes partagées par plusieurs fonctionnalités : pytest-bdd les trouve comme celles de conftest.py.
@@ -24,6 +26,15 @@ pytest_plugins = [
 # Les écrans de l'interface s'affichent hors de l'écran du poste : aucune fenêtre ne s'ouvre pendant les tests
 # (https://github.com/dascritch/machincast/issues/23).
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+
+@pytest.fixture(autouse=True, scope="session")
+def translated_screens(qapp: Any) -> None:
+	"""Les écrans se traduisent en français, comme dans l'interface
+	(https://github.com/dascritch/machincast/issues/360) : l'application de pytest-qt reçoit la traduction des écrans,
+	sans celle de Qt, qu'un scénario charge à part."""
+	translate_screens(qapp)
+
 
 _recreated_schema = False
 

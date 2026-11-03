@@ -57,7 +57,7 @@ ecrire_outil() {
 	grep -qF "ruff [check] [--no-cache] [.] " "${APPELS}"
 	grep -qF "ruff [format] [--no-cache] [--check] [.] " "${APPELS}"
 	grep -qF "mypy [--strict] [src/] " "${APPELS}"
-	grep -qF "shellcheck [-x] [install.sh] [bin/Machin] [bash-completion/Machin] " "${APPELS}"
+	grep -qF "shellcheck [-x] [install.sh] [bin/Machin] [bin/i18n.bash] [bash-completion/Machin] " "${APPELS}"
 	grep -qF "bats [tests/wrapper] " "${APPELS}"
 }
 

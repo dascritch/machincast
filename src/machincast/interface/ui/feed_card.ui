@@ -16,7 +16,7 @@
      <item row="0" column="0">
       <widget class="QLabel" name="name_caption">
        <property name="text">
-        <string>&amp;Nom</string>
+        <string>&amp;Name</string>
        </property>
        <property name="buddy">
         <cstring>name</cstring>
@@ -29,14 +29,14 @@
         <number>255</number>
        </property>
        <property name="placeholderText">
-        <string>Obligatoire, et propre à ce feed</string>
+        <string>Required, and unique to this feed</string>
        </property>
       </widget>
      </item>
      <item row="1" column="0">
       <widget class="QLabel" name="url_caption">
        <property name="text">
-        <string>A&amp;dresse</string>
+        <string>A&amp;ddress</string>
        </property>
        <property name="buddy">
         <cstring>url</cstring>
@@ -46,7 +46,7 @@
      <item row="1" column="1">
       <widget class="QLineEdit" name="url">
        <property name="placeholderText">
-        <string>https://… : l'adresse du flux, obligatoire</string>
+        <string>https://…: the address of the stream, required</string>
        </property>
       </widget>
      </item>
@@ -57,7 +57,7 @@
      <item>
       <widget class="QPushButton" name="test">
        <property name="text">
-        <string>Tester le flux</string>
+        <string>Test the stream</string>
        </property>
       </widget>
      </item>
@@ -73,7 +73,7 @@
    <item>
     <widget class="QGroupBox" name="stream_group">
      <property name="title">
-      <string>Streams qui le suivent</string>
+      <string>Streams that follow it</string>
      </property>
      <layout class="QVBoxLayout" name="stream_layout">
       <item>
@@ -86,7 +86,7 @@
       <item>
        <widget class="QLabel" name="stream_explanation">
         <property name="text">
-         <string>Ces streams jouent l'adresse du feed : une nouvelle adresse vaut pour tous. Un stream choisit son feed dans sa fiche.</string>
+         <string>These streams play the address of the feed: a new address applies to all. A stream chooses its feed in its card.</string>
         </property>
         <property name="wordWrap">
          <bool>true</bool>
@@ -101,10 +101,10 @@
      <item>
       <widget class="QPushButton" name="delete">
        <property name="text">
-        <string>❌ Supprimer…</string>
+        <string>❌ Delete…</string>
        </property>
        <property name="toolTip">
-        <string>Supprime l'élément de la base, après confirmation ; aucun fichier n'est touché.</string>
+        <string>Deletes the element from the database, after confirmation; no file is touched.</string>
        </property>
       </widget>
      </item>
@@ -118,14 +118,14 @@
      <item>
       <widget class="QPushButton" name="cancel">
        <property name="text">
-        <string>Annuler</string>
+        <string>Cancel</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="save">
        <property name="text">
-        <string>Enregistrer</string>
+        <string>Save</string>
        </property>
        <property name="default">
         <bool>true</bool>

@@ -24,18 +24,20 @@ from PySide6.QtCore import QObject, QProcess, Signal, SignalInstance
 from machincast import log
 from machincast.configuration import SILENCE_THRESHOLD
 from machincast.database import Role, open_connection
+from machincast.i18n import _, pgettext
 from machincast.indexer import audit
-from machincast.indexer.check import report_text
+from machincast.indexer.check import report_detail, report_text
 from machincast.indexer.decoding import Check, UnavailableDecoder, check_file
 from machincast.indexer.indexer import OngoingIndexing, index
 
 INDEXER_LOG = "machincast.indexer"
 """Le journal où l'indexeur écrit ses lignes : une par sonore indexé, ses anomalies, son bilan."""
 
-TITLES = {False: "Indexation rapide", True: "Audit complet"}
+TITLES = {False: _("Quick indexing"), True: _("Full audit")}
 """Nom de chaque mode, selon audit_complet ; c'est aussi le titre de son journal et de son action de menu."""
-FINISHED = {False: "terminée", True: "terminé"}
-LAUNCHED = {False: "lancée", True: "lancé"}
+FINISHED = {False: pgettext("quick indexing", "finished"), True: pgettext("full audit", "finished")}
+LAUNCHED = {False: pgettext("quick indexing", "launched"), True: pgettext("full audit", "launched")}
+"""Accordés au nom de chaque mode, qui les précède."""
 
 
 def indexing_command(configuration: Path | None) -> list[str]:
@@ -137,11 +139,12 @@ class Indexing(QObject):
 			# Le bilan, puis le document d'audit, comme Machin indexer les écrit à la fin.
 			indexer.info(report_text(report))
 			audit.produce(report.anomalies, report_text(report), start)
-			mode, _point_two, detail = report_text(report).partition(" : ")
-			text = f"{mode.capitalize()} {FINISHED[full_audit]} : {detail}."
+			text = _("{mode} {finished}: {detail}.").format(
+				mode=TITLES[full_audit], finished=FINISHED[full_audit], detail=report_detail(report)
+			)
 		except (UnavailableDecoder, OngoingIndexing, psycopg.Error) as error:
-			indexer.error(f"indexation impossible : {error}")
-			text = f"Indexation impossible : {error} ; les sonores déjà vérifiés le restent."
+			indexer.error(_("indexing impossible: {error}").format(error=error))
+			text = _("Indexing impossible: {error}; the sounds already checked stay so.").format(error=error)
 		finally:
 			indexer.removeHandler(lines)
 		self._finished.emit(text)

@@ -17,6 +17,7 @@ MachinCast's programs and messages are in French for now: messages are quoted he
 - [Getting MachinCast](#getting-machincast)
 - [Installing with install.sh](#installing-with-installsh)
 - [Adapting the configuration](#adapting-the-configuration)
+- [Choosing the language](#choosing-the-language)
 - [Preparing the on-air machine](#preparing-the-on-air-machine)
 - [Checking the installation](#checking-the-installation)
 - [Playout service](#playout-service)
@@ -154,6 +155,17 @@ Without the `--config` option, the programs always read the `machincast.toml` of
 Machin indexer                                         # reads ~/machincast/machincast.toml
 Machin indexer --config ~/machincast/essai.toml        # reads essai.toml
 ```
+
+## Choosing the language
+
+MachinCast speaks English or French, following the language of the session ([#360](https://github.com/dascritch/machincast/issues/360)): `LANGUAGE`, `LC_ALL`, `LC_MESSAGES` then `LANG`, the first one set, as for other programs. The interface, the messages of the binaries, their help, `Machin` and `install.sh` follow it; a language that MachinCast does not speak gives English. To run a program in another language:
+
+```bash
+LANGUAGE=fr Machin interface      # French interface, on an English computer
+LANGUAGE=en Machin indexer        # English messages, on a French computer
+```
+
+The playout service speaks the language of the system (`localectl status`, `sudo localectl set-locale LANG=en_GB.UTF-8`). The database log is written in English and translated when shown: the incidents screen shows it in the language of the interface, whatever the language of the service.
 
 ## Preparing the on-air machine
 

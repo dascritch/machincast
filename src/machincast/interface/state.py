@@ -20,6 +20,7 @@ from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtNetwork import QLocalSocket
 
 from machincast.conversion import boolean_or_none, integer_or_none, text_or_none
+from machincast.i18n import _
 
 log = logging.getLogger(__name__)
 
@@ -143,7 +144,7 @@ def _following_event(fields: dict[str, Any] | None) -> FollowingEvent | None:
 		return None
 	start = _instant(fields["start"])
 	if start is None:
-		raise ValueError("un événement suivant a un début")
+		raise ValueError(_("a next event has a start"))
 	return FollowingEvent(
 		id=int(fields["id"]),
 		name=str(fields["name"]),
@@ -166,7 +167,7 @@ def read_message(line: str) -> PlaybackState:
 			_following_event(message.get("next_event")),
 		)
 	except (KeyError, TypeError, AttributeError) as error:
-		raise ValueError(f"message incomplet : {error}") from error
+		raise ValueError(_("incomplete message: {error}").format(error=error)) from error
 
 
 class StateClient(QObject):
@@ -230,12 +231,18 @@ class StateClient(QObject):
 		if len(self._buffer) > MAXIMAL_SIZE:
 			# Une ligne sans fin ne fait pas grossir la mémoire de l'interface
 			# (https://github.com/dascritch/machincast/issues/187).
-			log.warning(f"socket d'état {self.path} : message trop long ignoré, plus de {MAXIMAL_SIZE} octets")
+			log.warning(
+				_("state socket {path}: too long message ignored, more than {maximal_size} bytes").format(
+					path=self.path, maximal_size=MAXIMAL_SIZE
+				)
+			)
 			self._buffer = b""
 		for line in lines:
 			try:
 				state = read_message(line.decode())
 			except ValueError as error:
-				log.warning(f"socket d'état {self.path} : message illisible ignoré : {error}")
+				log.warning(
+					_("state socket {path}: unreadable message ignored: {error}").format(path=self.path, error=error)
+				)
 				continue
 			self.received_state.emit(state)

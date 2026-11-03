@@ -46,6 +46,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget  # noqa: E402
 from machincast import audio as audio_outputs  # noqa: E402
 from machincast.audio import PLAYER, PREVIEW, create_output  # noqa: E402
 from machincast.configuration import Audio, AudioOutput, Crossfades  # noqa: E402
+from machincast.i18n import _, decimal  # noqa: E402
 from machincast.interface import binding, display, preferences, states  # noqa: E402
 from machincast.interface.monitor import Unavailable, monitor_source, port_name  # noqa: E402
 from machincast.interface.timeline import Plan, Timeline, WaveShape, sound_plan  # noqa: E402
@@ -57,13 +58,13 @@ READING = 50
 LEVEL_INTERVAL = 50 * Gst.MSECOND
 STREAM_BUFFER = 5
 """Secondes de son qu'un stream reçoit d'avance : le pré-décodé en est la part remplie."""
-STATES = {"arret": "À l'arrêt", "lecture": "En lecture", "pause": "En pause"}
-NO = "Aucun sonore"
-CHANNELS = {1: "mono", 2: "stéréo"}
-BROADCAST = "(diffusion)"
+STATES = {"arret": _("Stopped"), "lecture": _("Playing"), "pause": _("Paused")}
+NO = _("No sound")
+CHANNELS = {1: "mono", 2: _("stereo")}
+BROADCAST = _("(broadcast)")
 """Ce qui suit, grisé dans le choix de sortie, le nom du périphérique de la diffusion."""
-PLAYBACK = ("⏵", "Lecture")
-PAUSE = ("⏸", "Pause")
+PLAYBACK = ("⏵", _("Play"))
+PAUSE = ("⏸", _("Pause"))
 """Le symbole du bouton, et son infobulle, qui le nomme aussi pour les technologies d'assistance ; l'arrêt est « ⏹ »."""
 
 
@@ -187,7 +188,7 @@ class Player:
 		if self.source is None:
 			return
 		if (not self.source.stream) and (not Path(self.source.address).is_file()):
-			self.error = f"fichier introuvable, {self.source.address}"
+			self.error = _("file not found, {address}").format(address=self.source.address)
 			return
 		since_start = self._pipeline is None
 		if self._pipeline is None:
@@ -357,7 +358,7 @@ class Player:
 			return self._build_listening(source.on_air)
 		player = Gst.ElementFactory.make(PLAYER, None)
 		level = Gst.ElementFactory.make("level", None)
-		assert (player is not None) and (level is not None), "installer gstreamer1.0-plugins-base et -good"
+		assert (player is not None) and (level is not None), _("install gstreamer1.0-plugins-base and -good")
 		level.set_property("interval", LEVEL_INTERVAL)
 		level.set_property("post-messages", True)
 		output = create_output(self.output, self.device, presentation=PREVIEW)
@@ -394,7 +395,7 @@ class Player:
 		# ElementFactory.make rend None pour un élément introuvable : pygobject-stubs le type ainsi depuis sa
 		# version 2.19, et mypy refuse alors de l'ajouter au pipeline sans l'avoir écarté.
 		items = [item for item in created_list if item is not None]
-		assert len(items) == len(created_list), "installer gstreamer1.0-plugins-base et -good"
+		assert len(items) == len(created_list), _("install gstreamer1.0-plugins-base and -good")
 		level = items[3]
 		level.set_property("interval", LEVEL_INTERVAL)
 		level.set_property("post-messages", True)
@@ -440,7 +441,7 @@ class Player:
 			self.channels = channels
 
 
-ONGOING = "en cours : "
+ONGOING = _("ongoing: ")
 """Début du titre de l'écoute de l'antenne, suivi du texte public du sonore en cours."""
 
 
@@ -511,10 +512,10 @@ class PreviewWindow(QWidget):
 			source = read_source(self.connection, sound, preferences.crossfades())
 		self.player.load(source)
 		self._show_timeline(source)
-		self.setWindowTitle("Pré-écoute")
+		self.setWindowTitle(_("Pre-listen"))
 		self.ui.source.setText(display.EMPTY)
 		if source is not None:
-			self.setWindowTitle(f"Pré-écoute : {source.title}")
+			self.setWindowTitle(_("Pre-listen: {title}").format(title=source.title))
 			self.ui.source.setText(source.address)
 		self.ui.message.clear()
 		self._refresh()
@@ -524,12 +525,12 @@ class PreviewWindow(QWidget):
 		titre de la fenêtre est « en cours : » et le texte public du sonore en cours
 		(https://github.com/dascritch/machincast/issues/223)."""
 		name = port_name(self.audio)
-		source = Source("Antenne", f"Antenne : {name}", True, None, self.audio)
+		source = Source(_("On air"), _("On air: {name}").format(name=name), True, None, self.audio)
 		self.player.load(source)
 		self._show_timeline(source)
 		self.on_air = True
 		self.follow_on_air(public_text)
-		self.ui.source.setText(f"Antenne : {name}")
+		self.ui.source.setText(_("On air: {name}").format(name=name))
 		self.ui.message.clear()
 		if launch:
 			self._play_or_pause()
@@ -577,7 +578,7 @@ class PreviewWindow(QWidget):
 		choice = self.ui.output
 		found_list = audio_outputs.devices(self.audio.output)
 		configured = next((p for p in found_list if p.identifier == self.audio.preview), None)
-		name = f"{self.audio.preview} (introuvable)"
+		name = _("{device} (not found)").format(device=self.audio.preview)
 		if configured is not None:
 			name = configured.name
 		choice.addItem(name, self.audio.preview)
@@ -592,24 +593,26 @@ class PreviewWindow(QWidget):
 			choice.addItem(f"{device.name} {BROADCAST}", device.identifier)
 			line = model.item(choice.count() - 1)
 			line.setEnabled(False)
-			line.setToolTip("Le périphérique de la diffusion ne peut pas servir à la pré-écoute.")
+			line.setToolTip(_("The broadcast device cannot be used for the pre-listen."))
 
 	def _change_output(self) -> None:
 		identifier = str(self.ui.output.currentData())
 		if identifier == self.audio.device:
 			# Jamais la sortie de la diffusion, même choisie autrement qu'à la souris : retour à la précédente.
 			self.ui.output.setCurrentIndex(self.ui.output.findData(self.player.device))
-			self.ui.message.setText("Le périphérique de la diffusion ne peut pas servir à la pré-écoute.")
+			self.ui.message.setText(_("The broadcast device cannot be used for the pre-listen."))
 			return
 		self.player.change_output(identifier)
-		text = "Sortie de pré-écoute changée pour cette session."
+		text = _("Pre-listen output changed for this session.")
 		if self.configuration is not None:
 			try:
 				write_preview(self.configuration, identifier)
 			except OSError as error:
-				text = f"Sortie de pré-écoute non enregistrée dans {self.configuration} : {error}"
+				text = _("Pre-listen output not saved in {configuration}: {error}").format(
+					configuration=self.configuration, error=error
+				)
 			else:
-				text = f"Sortie de pré-écoute enregistrée dans {self.configuration}."
+				text = _("Pre-listen output saved in {configuration}.").format(configuration=self.configuration)
 		self.ui.message.setText(text)
 		self._refresh()
 
@@ -656,7 +659,7 @@ class PreviewWindow(QWidget):
 		ui = self.ui
 		source = player.source
 		if player.error is not None:
-			ui.message.setText(f"Lecture impossible : {player.error}")
+			ui.message.setText(_("Playback impossible: {error}").format(error=player.error))
 		ui.state.setText(STATES[player.state])
 		if source is None:
 			ui.state.setText(NO)
@@ -685,11 +688,13 @@ class PreviewWindow(QWidget):
 			ui.sampling.setText(f"{player.frequency:,} Hz".replace(",", " "))
 		ui.channels.setText(display.EMPTY)
 		if player.channels is not None:
-			ui.channels.setText(CHANNELS.get(player.channels, f"{player.channels} canaux"))
+			ui.channels.setText(
+				CHANNELS.get(player.channels, _("{channels} channels").format(channels=player.channels))
+			)
 		ui.predecoded.setText(display.EMPTY)
 		predecoded = player.predecoded()
 		if predecoded is not None:
-			ui.predecoded.setText(f"{predecoded:.1f} s".replace(".", ","))
+			ui.predecoded.setText(decimal(f"{predecoded:.1f} s"))
 
 	def _time(self, duration: float | None) -> str:
 		"""« 0:12 / 3:34 » pour un fichier ; la position seule pour un stream en lecture ; « — » sinon."""

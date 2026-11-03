@@ -56,6 +56,12 @@ Tous les exécutables commencent par `Machin_`. Les binaires sans interface grap
 - **Niveaux du VU-mètre** : port de monitoring de la sortie audio (PulseAudio ou PipeWire). Avec la sortie ALSA, qui n'en expose pas, le VU-mètre ne fonctionne pas. C'est accepté.
 - **Pilotage du service** : systemd, via une règle polkit (voir [§ 10](#10-installation-et-déploiement)).
 
+### Langue des messages
+
+Chaque composant parle la langue de la session qui le lance ([#360](https://github.com/dascritch/machincast/issues/360)) : celle de `LANGUAGE`, `LC_ALL`, `LC_MESSAGES` puis `LANG`, la première renseignée, comme gettext. MachinCast parle anglais et français ; une autre langue, ou `C`, donne l'anglais. La langue vaut pour les messages du journal, l'aide des binaires et du wrapper, `install.sh`, les écrans de l'interface et les textes de Qt, les documents qu'ils produisent (document d'audit, exports, page publique, simulation). Le service de diffusion prend celle du système, que montre `localectl status`.
+
+Ne dépendent pas de la langue : la base, dont le log ([§ 3.1](#log)) garde ses textes en anglais, traduits à l'affichage ; la configuration ; la socket d'état ; les CSV de l'airplay et de la simulation, aux en-têtes fixes ; les unités systemd et la règle polkit, en anglais.
+
 ## 3. Base de données
 
 Deux bases à la structure strictement identique : la base de production et la base de test, utilisée notamment pour le TDD. Le schéma est géré par migrations **yoyo-migrations**, appliquées aux deux bases.
@@ -233,11 +239,11 @@ Journal de toutes les opérations du binaire lecture, normales comme incidents.
 | --- | --- |
 | `id`, `logged_at` | |
 | `level` | `info`, `warning` ou `incident`. |
-| `kind` | Nature de l'opération ou de l'incident. |
-| `message` | Détail. |
+| `kind` | Nature de l'opération ou de l'incident, en anglais : `dropped stream`, `dead air`… |
+| `message` | Détail, en anglais ; ses dates en ISO 8601, ses nombres décimaux avec un point, montrés à la façon de la langue de l'interface. |
 | `sound_id`, `bank_id`, `event_id` | Références facultatives, renseignées quand elles sont disponibles. |
 
-L'indexeur n'écrit pas dans le log : ses incidents ne figurent donc pas dans l'écran des incidents. La purge efface les lignes plus vieilles que la durée de péremption, et y écrit son bilan (`kind` `purge`, niveau `info`).
+`kind` et `message` s'écrivent en anglais, quelle que soit la langue du binaire lecture, et se traduisent à l'affichage, dans la langue de l'interface ([#360](https://github.com/dascritch/machincast/issues/360)) : un log écrit par un service anglais se lit en français. L'indexeur n'écrit pas dans le log : ses incidents ne figurent donc pas dans l'écran des incidents. La purge efface les lignes plus vieilles que la durée de péremption, et y écrit son bilan (`kind` `purge`, niveau `info`).
 
 #### Choix de modélisation
 

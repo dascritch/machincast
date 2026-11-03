@@ -11,6 +11,15 @@
 
 set -euo pipefail
 
+# Messages en anglais, traduits dans la langue de la session (https://github.com/dascritch/machincast/issues/360).
+# Sans commande externe : le wrapper signale encore une commande manquante dans un PATH réduit à bash.
+WRAPPER="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"
+REPERTOIRE_DU_WRAPPER="${WRAPPER%/*}"
+[[ "${REPERTOIRE_DU_WRAPPER}" != "${WRAPPER}" ]] || REPERTOIRE_DU_WRAPPER=.
+# shellcheck source=bin/i18n.bash
+. "${REPERTOIRE_DU_WRAPPER}/i18n.bash"
+charger_messages "${REPERTOIRE_DU_WRAPPER}/.."
+
 # Binaires connus, dans l'ordre de l'aide. Un test vérifie qu'ils correspondent à [project.scripts] de pyproject.toml.
 BINAIRES=(player indexer interface maintenance-db purge)
 UNITE_LECTURE="machincast.service"
@@ -21,81 +30,79 @@ CODE_INTROUVABLE=127
 aide_minimale() {
 	local liste
 	liste="$(printf '%s, ' "${BINAIRES[@]}")"
-	cat <<-FIN
-		Usage : Machin [--config FICHIER] BINAIRE [OPTIONS…]  ou  Machin logs|dev|dev-test|dev-screenshots
-		Binaires : ${liste%, }. Aide complète : Machin --help
-	FIN
+	tf 'Usage: Machin [--config FILE] BINARY [OPTIONS…]  or  Machin logs|dev|dev-test|dev-screenshots
+Binaries: %s. Full help: Machin --help
+' "${liste%, }"
 }
 
 aide_complete() {
-	cat <<-FIN
-		Machin — commande unique d'accès aux binaires de MachinCast.
+	tf 'Machin — single command to reach the MachinCast binaries.
 
-		Usage :
-		  Machin [--config FICHIER] BINAIRE [OPTIONS…]
-		  Machin logs [OPTIONS DE journalctl…]
-		  Machin dev | dev-test | dev-screenshots [REPERTOIRE]
-		  Machin -h | --help | --binaries
+Usage:
+  Machin [--config FILE] BINARY [OPTIONS…]
+  Machin logs [journalctl OPTIONS…]
+  Machin dev | dev-test | dev-screenshots [DIRECTORY]
+  Machin -h | --help | --binaries
 
-		Binaires (Machin BINAIRE appelle Machin_BINAIRE avec les options qui suivent,
-		pris dans le venv .venv du projet, sans qu'il soit activé, ou à défaut dans le PATH) :
-		  player       diffusion de l'antenne, normalement lancée comme service systemd
-		  indexer      vérification des fichiers sonores et mise à jour de la base
-		  interface    interface graphique de programmation
-		  maintenance-db
-		               sauvegarde, vérifie et optimise la base de données
-		               (https://github.com/dascritch/machincast/issues/127)
-		  purge        efface de la base ce qui dépasse la durée de péremption : vieux
-		               passages de l'airplay, lignes du log, éléments supprimés ; jamais un
-		               fichier (https://github.com/dascritch/machincast/issues/268)
+Binaries (Machin BINARY calls Machin_BINARY with the options that follow,
+taken from the .venv venv of the project, without it being activated, or else from the PATH):
+  player       on-air broadcast, normally launched as a systemd service
+  indexer      check of the sound files and update of the database
+  interface    graphical programming interface
+  maintenance-db
+               backs up, checks and optimises the database
+               (https://github.com/dascritch/machincast/issues/127)
+  purge        erases from the database what exceeds the expiry duration: old
+               plays of the airplay, lines of the log, deleted elements; never a
+               file (https://github.com/dascritch/machincast/issues/268)
 
-		  Aide d'un binaire : Machin BINAIRE --help
+  Help of a binary: Machin BINARY --help
 
-		Suivi des logs :
-		  logs         suit en direct le journal du service ${UNITE_LECTURE} (journalctl --follow).
-		               Les options qui suivent sont transmises à journalctl, par exemple :
-		               Machin logs --since "1 hour ago" --priority=warning
-		               Lire ce journal demande d'appartenir au groupe adm ou systemd-journal :
-		               install.sh y ajoute le compte qui l'installe.
+Following the logs:
+  logs         follows live the log of the %s service (journalctl --follow).
+               The options that follow are passed to journalctl, for instance:
+               Machin logs --since "1 hour ago" --priority=warning
+               Reading this log requires belonging to the adm or systemd-journal group:
+               install.sh adds the account that installs it.
 
-		Développement (poste installé par ./install.sh --dev) :
-		  dev          ouvre un sous-shell dans le répertoire de MachinCast, venv activé, avec
-		               l'invite « (MachinCast dev) » ; exit en sort
-		  dev-test     lance ruff check, ruff format --check, mypy --strict, shellcheck, pytest
-		               puis bats, tous même après un échec, avec les outils du venv sans qu'il
-		               soit activé ; affiche un bilan par outil et se termine en échec si l'un
-		               d'eux échoue. Un outil absent se signale : ./install.sh --dev l'installe.
-		  dev-screenshots refait les captures d'écran du guide de l'antenne, dans doc/fr/captures
-		               ou dans REPERTOIRE : l'interface hors de l'écran, sur une démonstration
-		               écrite dans la base de test, jamais dans celle de production.
+Development (computer installed by ./install.sh --dev):
+  dev          opens a subshell in the MachinCast directory, venv activated, with
+               the prompt “(MachinCast dev)”; exit leaves it
+  dev-test     runs ruff check, ruff format --check, mypy --strict, shellcheck, pytest
+               then bats, all even after a failure, with the tools of the venv without it
+               being activated; shows a summary per tool and ends in failure if one
+               of them fails. A missing tool is reported: ./install.sh --dev installs it.
+  dev-screenshots redoes the screenshots of the on-air guide, in doc/fr/captures
+               or in DIRECTORY: the interface off screen, on a demonstration
+               written in the test database, never in the production one.
 
-		Options du wrapper :
-		  --config FICHIER, --config=FICHIER
-		               fichier de configuration TOML transmis au binaire
-		               (par défaut, le binaire lit machincast.toml dans le répertoire de MachinCast :
-		               $(projet)/machincast.toml)
-		  -h           aide minimale
-		  --help       cette aide complète
-		  --binaries   liste des binaires, un par ligne (utilisée par l'autocomplétion)
+Wrapper options:
+  --config FILE, --config=FILE
+               TOML configuration file passed to the binary
+               (by default, the binary reads machincast.toml in the MachinCast directory:
+               %s/machincast.toml)
+  -h           minimal help
+  --help       this full help
+  --binaries   list of the binaries, one per line (used by the autocompletion)
 
-		Exemples :
-		  Machin player --config essai.toml
-		  Machin indexer --help
-		  Machin logs
-		  Machin dev-test
+Examples:
+  Machin player --config essai.toml
+  Machin indexer --help
+  Machin logs
+  Machin dev-test
 
-		Codes de sortie :
-		  celui du binaire appelé, de journalctl pour logs, ou du sous-shell pour dev ;
-		  1            dev-test : au moins un outil en échec ou absent ;
-		  ${CODE_USAGE}            appel incorrect du wrapper (binaire ou option inconnus) ;
-		  ${CODE_INTROUVABLE}          binaire, journalctl ou venv introuvable.
+Exit codes:
+  the one of the called binary, of journalctl for logs, or of the subshell for dev;
+  1            dev-test: at least one tool failed or is missing;
+  %s            incorrect call of the wrapper (unknown binary or option);
+  %s          binary, journalctl or venv not found.
 
-		Documentation : https://github.com/dascritch/machincast/blob/main/doc/fr/spec.md#7-wrapper-machin
-	FIN
+Documentation: https://github.com/dascritch/machincast/blob/main/doc/fr/spec.md#7-wrapper-machin
+' "${UNITE_LECTURE}" "$(projet)" "${CODE_USAGE}" "${CODE_INTROUVABLE}"
 }
 
 erreur_usage() {
-	printf 'Machin : %s\n' "$1" >&2
+	tf 'Machin: %s\n' "$1" >&2
 	aide_minimale >&2
 	exit "${CODE_USAGE}"
 }
@@ -135,7 +142,7 @@ est_binaire() {
 
 suivre_logs() {
 	if ! command -v journalctl >/dev/null; then
-		printf 'Machin : journalctl introuvable : les logs du service sont lus dans le journal de systemd\n' >&2
+		tf 'Machin: journalctl not found: the logs of the service are read in the systemd journal\n' >&2
 		exit "${CODE_INTROUVABLE}"
 	fi
 	exec journalctl --unit="${UNITE_LECTURE}" --follow "$@"
@@ -146,8 +153,8 @@ exiger_venv() {
 	local venv
 	venv="$(venv_du_projet)"
 	if [[ ! -r "${venv}/bin/activate" ]]; then
-		printf 'Machin : venv introuvable : %s\n' "${venv}" >&2
-		printf '         Installer le poste de développement : ./install.sh --dev\n' >&2
+		tf 'Machin: venv not found: %s\n' "${venv}" >&2
+		tf '         Install the development computer: ./install.sh --dev\n' >&2
 		exit "${CODE_INTROUVABLE}"
 	fi
 	printf '%s\n' "${venv}"
@@ -186,16 +193,16 @@ verifier_avec() {
 		chemin="$(command -v "${outil}" || true)"
 	fi
 	if [[ -z "${chemin}" ]]; then
-		printf 'Machin : %s introuvable : installer les outils de développement avec ./install.sh --dev\n' "${outil}" >&2
-		BILAN+=("$(printf '%-22s absent' "${libelle}")")
+		tf 'Machin: %s not found: install the development tools with ./install.sh --dev\n' "${outil}" >&2
+		BILAN+=("$(tf '%-22s missing' "${libelle}")")
 		ECHOUES+=("${libelle}")
 		return
 	fi
 	if "${chemin}" "$@"; then
-		BILAN+=("$(printf '%-22s réussi' "${libelle}")")
+		BILAN+=("$(tf '%-22s passed' "${libelle}")")
 	else
 		code=$?
-		BILAN+=("$(printf '%-22s échec (code %s)' "${libelle}" "${code}")")
+		BILAN+=("$(tf '%-22s failed (code %s)' "${libelle}" "${code}")")
 		ECHOUES+=("${libelle}")
 	fi
 }
@@ -210,7 +217,7 @@ lancer_dev_test() {
 	PATH="${venv}/bin:${PATH}"
 	export PATH
 	shopt -s nullglob
-	scripts=(install.sh bin/Machin bash-completion/Machin tests/wrapper/*.bash tests/wrapper/*.bats)
+	scripts=(install.sh bin/Machin bin/i18n.bash bash-completion/Machin tests/wrapper/*.bash tests/wrapper/*.bats)
 	shopt -u nullglob
 	BILAN=()
 	ECHOUES=()
@@ -222,19 +229,19 @@ lancer_dev_test() {
 	verifier_avec "shellcheck" PATH shellcheck -x "${scripts[@]}"
 	verifier_avec "pytest" venv pytest
 	verifier_avec "bats" PATH bats tests/wrapper
-	printf '\n==> Bilan\n'
+	tf '\n==> Summary\n'
 	for ligne in "${BILAN[@]}"; do
 		printf '    %s\n' "${ligne}"
 	done
 	if ((${#ECHOUES[@]} == 0)); then
-		printf '    tous les outils ont réussi\n'
+		tf '    all the tools passed\n'
 		exit 0
 	fi
 	liste="$(printf '%s, ' "${ECHOUES[@]}")"
 	if ((${#ECHOUES[@]} == 1)); then
-		printf '    1 outil en échec : %s\n' "${liste%, }"
+		tf '    1 tool failed: %s\n' "${liste%, }"
 	else
-		printf '    %s outils en échec : %s\n' "${#ECHOUES[@]}" "${liste%, }"
+		tf '    %s tools failed: %s\n' "${#ECHOUES[@]}" "${liste%, }"
 	fi
 	exit 1
 }
@@ -268,18 +275,18 @@ principal() {
 				;;
 			--config)
 				if (($# < 2)) || [[ -z "$2" ]]; then
-					erreur_usage "--config demande un fichier"
+					erreur_usage "$(t '--config requires a file')"
 				fi
 				configuration=(--config "$2")
 				shift 2
 				;;
 			--config=*)
-				[[ -n "${1#--config=}" ]] || erreur_usage "--config demande un fichier"
+				[[ -n "${1#--config=}" ]] || erreur_usage "$(t '--config requires a file')"
 				configuration=(--config "${1#--config=}")
 				shift
 				;;
 			-*)
-				erreur_usage "option inconnue : $1"
+				erreur_usage "$(tf 'unknown option: %s' "$1")"
 				;;
 			*)
 				break
@@ -287,32 +294,32 @@ principal() {
 		esac
 	done
 
-	(($# > 0)) || erreur_usage "binaire manquant"
+	(($# > 0)) || erreur_usage "$(t 'missing binary')"
 	binaire="$1"
 	shift
 
 	if [[ "${binaire}" == logs ]]; then
-		((${#configuration[@]} == 0)) || erreur_usage "--config ne s'applique pas à logs"
+		((${#configuration[@]} == 0)) || erreur_usage "$(tf '--config does not apply to %s' logs)"
 		suivre_logs "$@"
 	fi
 	if [[ "${binaire}" == dev || "${binaire}" == dev-test ]]; then
-		((${#configuration[@]} == 0)) || erreur_usage "--config ne s'applique pas à ${binaire}"
-		(($# == 0)) || erreur_usage "${binaire} ne prend pas d'argument"
+		((${#configuration[@]} == 0)) || erreur_usage "$(tf '--config does not apply to %s' "${binaire}")"
+		(($# == 0)) || erreur_usage "$(tf '%s takes no argument' "${binaire}")"
 		[[ "${binaire}" == dev ]] && ouvrir_dev
 		lancer_dev_test
 	fi
 
 	if [[ "${binaire}" == dev-screenshots ]]; then
-		((${#configuration[@]} == 0)) || erreur_usage "--config ne s'applique pas à dev-screenshots"
-		(($# <= 1)) || erreur_usage "dev-screenshots prend au plus un répertoire"
+		((${#configuration[@]} == 0)) || erreur_usage "$(tf '--config does not apply to %s' dev-screenshots)"
+		(($# <= 1)) || erreur_usage "$(t 'dev-screenshots takes at most one directory')"
 		lancer_dev_captures "$@"
 	fi
 
-	est_binaire "${binaire}" || erreur_usage "binaire inconnu : ${binaire}"
+	est_binaire "${binaire}" || erreur_usage "$(tf 'unknown binary: %s' "${binaire}")"
 
 	if ! chemin="$(trouver_binaire "${binaire}")"; then
-		printf 'Machin : Machin_%s introuvable dans %s ni dans le PATH.\n' "${binaire}" "$(venv_du_projet)" >&2
-		printf '         Créer le venv depuis la racine du projet : python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"\n' >&2
+		tf 'Machin: Machin_%s not found in %s nor in the PATH.\n' "${binaire}" "$(venv_du_projet)" >&2
+		tf '         Create the venv from the root of the project: python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"\n' >&2
 		exit "${CODE_INTROUVABLE}"
 	fi
 

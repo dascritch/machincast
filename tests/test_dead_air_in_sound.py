@@ -20,12 +20,14 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.clock import FixedClock
 from machincast.configuration import Configuration, DeadAirSettings
+from machincast.i18n import decimal
 from machincast.player import __main__ as playback_module
 from machincast.player import broadcast
 from machincast.player.engine import DeadAir, PlaybackTrack, Track
 from machincast.player.simulation import SimulatedEngine, SimulatedTrack
 from tests.broadcast_steps import Bench, hour, plays, seconds, sound
 from tests.database_fixtures import configuration_test
+from tests.log_texts import shown, stored
 from tests.sounds import generate_silences
 
 scenarios("dead_air_in_sound.feature")
@@ -218,9 +220,9 @@ def sound_to_dead_air(
 
 def log_lines(database: Connection, kind: str) -> list[tuple[str, object, object, object]]:
 	lines = database.execute(
-		"SELECT message, logged_at, sound_id, event_id FROM log WHERE kind = %s ORDER BY id", (kind,)
+		"SELECT message, logged_at, sound_id, event_id FROM log WHERE kind = %s ORDER BY id", (stored(kind),)
 	).fetchall()
-	return [(str(message), timestamp, id_sound, id_event) for message, timestamp, id_sound, id_event in lines]
+	return [(shown(message), timestamp, id_sound, id_event) for message, timestamp, id_sound, id_event in lines]
 
 
 @then(parsers.parse("l'incident « {kind} » dit « {text} »"))
@@ -312,4 +314,5 @@ def taken_dead_air(launching: dict[str, object], duration: str, threshold: str) 
 
 @then(parsers.parse("un blanc à {position} secondes s'écrit « {text} »"))
 def timecode(position: str, text: str) -> None:
-	assert broadcast._timecode(timedelta(seconds=seconds(position))) == text
+	# Gardée en anglais dans le log, la position s'affiche à la décimale du français (https://github.com/dascritch/machincast/issues/360).
+	assert decimal(broadcast._timecode(timedelta(seconds=seconds(position)))) == text

@@ -35,6 +35,7 @@ from PySide6.QtCore import QObject, QTimer, Signal  # noqa: E402
 
 from machincast import audio as outputs  # noqa: E402
 from machincast.configuration import Audio  # noqa: E402
+from machincast.i18n import _  # noqa: E402
 from machincast.interface import states  # noqa: E402
 
 DUMMY_SIGNAL = "audiotestsrc is-live=true wave=sine volume=0.1"
@@ -51,11 +52,13 @@ LEVEL_INTERVAL = 50 * Gst.MSECOND
 FREEZE_DELAY = 3.0
 """Secondes sans relevé au-delà desquelles le port de monitoring est gelé
 (https://github.com/dascritch/machincast/issues/311)."""
-FROZEN = f"Indisponible : le port de monitoring ne donne plus rien depuis {FREEZE_DELAY:g} secondes."
+FROZEN = _("Unavailable: the monitoring port has given nothing for {freeze_delay:g} seconds.").format(
+	freeze_delay=FREEZE_DELAY
+)
 CHANNELS = "audio/x-raw,channels=2"
 """Ce que donne le port de monitoring : les deux canaux de l'antenne."""
-WITHOUT_ALSA = "Indisponible avec la sortie ALSA, qui n'a pas de port de monitoring."
-WITHOUT_ON_AIR = "Indisponible : périphérique de l'antenne à renseigner."
+WITHOUT_ALSA = _("Unavailable with the ALSA output, which has no monitoring port.")
+WITHOUT_ON_AIR = _("Unavailable: on-air device to fill in.")
 
 
 class Unavailable(Exception):
@@ -65,14 +68,14 @@ class Unavailable(Exception):
 def port_name(audio: Audio) -> str:
 	"""Ce que le port de monitoring écoute, pour l'infobulle du VU-mètre et la source de la pré-écoute."""
 	output, device = audio.on_air()
-	name = (device) or ("périphérique à renseigner")
+	name = (device) or (_("device to fill in"))
 	if output == "dummy":
-		return "sortie factice, signal de test"
+		return _("dummy output, test signal")
 	if output == "pulseaudio":
-		return f"PulseAudio, {name}.monitor"
+		return _("PulseAudio, {name}.monitor").format(name=name)
 	if output == "pipewire":
-		return f"PipeWire, {name}"
-	return f"ALSA, {name}"
+		return _("PipeWire, {name}").format(name=name)
+	return _("ALSA, {name}").format(name=name)
 
 
 def check(audio: Audio) -> None:
@@ -93,7 +96,7 @@ def monitor_source(audio: Audio) -> Gst.Element:
 		try:
 			return Gst.parse_bin_from_description(f"{DUMMY_SIGNAL} ! capsfilter caps={CHANNELS}", True)
 		except GLib.Error as error:
-			raise Unavailable(f"Indisponible : {error.message}") from None
+			raise Unavailable(_("Unavailable: {message}").format(message=error.message)) from None
 	if output == "pulseaudio":
 		source = _item("pulsesrc")
 		source.set_property("device", f"{device}.monitor")
@@ -124,7 +127,7 @@ def _in_stereo(source: Gst.Element) -> Gst.Element:
 def _item(factory: str) -> Gst.Element:
 	item = Gst.ElementFactory.make(factory, None)
 	if item is None:
-		raise Unavailable(f"Indisponible : élément GStreamer {factory} introuvable.")
+		raise Unavailable(_("Unavailable: GStreamer element {factory} not found.").format(factory=factory))
 	return item
 
 
@@ -172,7 +175,7 @@ class Monitor(QObject):
 		"""Ouvre le port de monitoring ; indisponible, il le dit, et réessaie si l'antenne a bien un port."""
 		self.halt()
 		if self.audio is None:
-			self.unavailable = "Indisponible : sortie de l'antenne inconnue."
+			self.unavailable = _("Unavailable: unknown on-air output.")
 			self.changed.emit()
 			return
 		try:
@@ -223,17 +226,17 @@ class Monitor(QObject):
 		if pipeline is None:
 			return
 		if (self._piloted is not None) and (self._piloted.has_failed()):
-			self._unavailable("Indisponible : le port de monitoring ne s'ouvre pas.")
+			self._unavailable(_("Unavailable: the monitoring port does not open."))
 			return
 		bus = pipeline.get_bus()
 		assert bus is not None
 		while (message := bus.pop()) is not None:
 			if message.type in (Gst.MessageType.ERROR, Gst.MessageType.EOS):
-				text = "le port de monitoring s'est fermé."
+				text = _("the monitoring port has closed.")
 				if message.type == Gst.MessageType.ERROR:
 					error, _detail = message.parse_error()
 					text = str(error.message)
-				self._unavailable(f"Indisponible : {text}")
+				self._unavailable(_("Unavailable: {text}").format(text=text))
 				return
 			structure = message.get_structure()
 			if (message.src == self._level) and (structure is not None) and (structure.get_name() == "level"):

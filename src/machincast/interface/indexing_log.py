@@ -16,6 +16,7 @@ from PySide6.QtGui import QCloseEvent, QFontDatabase
 from PySide6.QtWidgets import QWidget
 
 from machincast.configuration import SILENCE_THRESHOLD
+from machincast.i18n import _, counted
 from machincast.indexer.__main__ import EXECUTABLE
 from machincast.interface import dialogs
 from machincast.interface.application import application
@@ -47,7 +48,7 @@ class LogWindow(QWidget):
 
 	def launch(self) -> None:
 		"""Ouvre la fenêtre, puis lance l'indexation."""
-		self.ui.conclusion.setText(f"{self.windowTitle()} en cours…")
+		self.ui.conclusion.setText(_("{windowtitle} running…").format(windowtitle=self.windowTitle()))
 		self.show()
 		self.indexer.launch(self.full_audit)
 
@@ -59,10 +60,11 @@ class LogWindow(QWidget):
 	def conclude(self, report: str) -> None:
 		text = report
 		count = len(self.anomalies)
-		if count == 1:
-			text = f"{report} 1 anomalie, dans le journal ci-dessus."
-		elif count > 1:
-			text = f"{report} {count} anomalies, dans le journal ci-dessus."
+		if count > 0:
+			text = _("{report} {anomalies}").format(
+				report=report,
+				anomalies=counted("{count} anomaly, in the log above.", "{count} anomalies, in the log above.", count),
+			)
 		self.ui.conclusion.setText(text)
 
 	def lines(self) -> list[str]:

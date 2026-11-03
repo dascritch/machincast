@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 from machincast.database import SHORT_TEXT_LENGTH
+from machincast.i18n import _
 from machincast.player.fades import DEFAULT_ENTRY, DEFAULT_OUTPUT, POSITIONS, Position
 from machincast.protection import is_sound_file
 
@@ -247,44 +248,55 @@ class _Player:
 		self.document = document
 
 	def error(self, message: str) -> InvalidConfiguration:
-		return InvalidConfiguration(f"{self.path} : {message}")
+		return InvalidConfiguration(_("{path}: {message}").format(path=self.path, message=message))
 
 	def check_keys(self) -> None:
 		for section, content in self.document.items():
 			if section in OLD_SECTIONS:
 				raise self.error(
-					f"section [{section}] inconnue : son nom est désormais [{OLD_SECTIONS[section]}], et ses clés"
-					" sont en anglais, comme dans machincast.exemple.toml (https://github.com/dascritch/machincast/issues/357)"
+					_(
+						"unknown section [{section}]: its name is now [{old_sections}], and its keys are in "
+						"English, as in machincast.exemple.toml "
+						"(https://github.com/dascritch/machincast/issues/357)"
+					).format(section=section, old_sections=OLD_SECTIONS[section])
 				)
 			if section not in KEYS:
-				raise self.error(f"section [{section}] inconnue")
+				raise self.error(_("unknown section [{section}]").format(section=section))
 			if not isinstance(content, dict):
-				raise self.error(f"[{section}] doit être une section")
+				raise self.error(_("[{section}] must be a section").format(section=section))
 			for key in content:
 				if key not in KEYS[section]:
-					raise self.error(f"clé {section}.{key} inconnue")
+					raise self.error(_("unknown key {section}.{key}").format(section=section, key=key))
 
 	def _value(self, section: str, key: str, mandatory: bool) -> object:
 		content = self.document.get(section, {})
 		if key not in content:
 			if mandatory:
-				raise self.error(f"clé {section}.{key} manquante")
+				raise self.error(_("missing key {section}.{key}").format(section=section, key=key))
 			return None
 		return cast(object, content[key])
 
 	def text(self, section: str, key: str) -> str:
 		value = self._value(section, key, mandatory=True)
 		if not isinstance(value, str):
-			raise self.error(f"clé {section}.{key} : texte attendu, {_describe(value)} trouvé")
+			raise self.error(
+				_("key {section}.{key}: text expected, {describe} found").format(
+					section=section, key=key, describe=_describe(value)
+				)
+			)
 		if not value.strip():
-			raise self.error(f"clé {section}.{key} : la valeur ne peut pas être vide")
+			raise self.error(_("key {section}.{key}: the value cannot be empty").format(section=section, key=key))
 		return value
 
 	def short_text(self, section: str, key: str) -> str:
 		"""Texte affiché au public : limité à SHORT_TEXT_LENGTH caractères, comme les textes en base."""
 		value = self.text(section, key)
 		if len(value) > SHORT_TEXT_LENGTH:
-			raise self.error(f"clé {section}.{key} : {SHORT_TEXT_LENGTH} caractères au maximum, {len(value)} trouvés")
+			raise self.error(
+				_("key {section}.{key}: {short_text_length} characters at most, {count} found").format(
+					section=section, key=key, short_text_length=SHORT_TEXT_LENGTH, count=len(value)
+				)
+			)
 		return value
 
 	def optional_text(self, section: str, key: str) -> str | None:
@@ -292,7 +304,11 @@ class _Player:
 		if value is None:
 			return None
 		if not isinstance(value, str):
-			raise self.error(f"clé {section}.{key} : texte attendu, {_describe(value)} trouvé")
+			raise self.error(
+				_("key {section}.{key}: text expected, {describe} found").format(
+					section=section, key=key, describe=_describe(value)
+				)
+			)
 		return (value) or (None)
 
 	def optional_path(self, section: str, key: str) -> Path | None:
@@ -306,13 +322,19 @@ class _Player:
 		l'icône de MachinCast."""
 		path = self.optional_path("interface", "icon")
 		if (path is not None) and (path.suffix.lower() not in ICON_EXTENSIONS):
-			raise self.error(f"clé interface.icon : image SVG, PNG ou JPEG attendue, « {path.name} » trouvé")
+			raise self.error(
+				_("key interface.icon: SVG, PNG or JPEG image expected, “{name}” found").format(name=path.name)
+			)
 		return path
 
 	def boolean(self, section: str, key: str) -> bool:
 		value = self._value(section, key, mandatory=True)
 		if not isinstance(value, bool):
-			raise self.error(f"clé {section}.{key} : booléen attendu (true ou false), {_describe(value)} trouvé")
+			raise self.error(
+				_("key {section}.{key}: boolean expected (true or false), {describe} found").format(
+					section=section, key=key, describe=_describe(value)
+				)
+			)
 		return value
 
 	def optional_boolean(self, section: str, key: str, default: bool) -> bool:
@@ -320,14 +342,22 @@ class _Player:
 		if value is None:
 			return default
 		if not isinstance(value, bool):
-			raise self.error(f"clé {section}.{key} : booléen attendu (true ou false), {_describe(value)} trouvé")
+			raise self.error(
+				_("key {section}.{key}: boolean expected (true or false), {describe} found").format(
+					section=section, key=key, describe=_describe(value)
+				)
+			)
 		return value
 
 	def days(self, section: str, key: str, default: int) -> int:
 		"""Un nombre entier de jours, 1 au moins ; defaut sans la clé."""
 		value = self.document.get(section, {}).get(key, default)
 		if (isinstance(value, bool)) or (not isinstance(value, int)) or (value < 1):
-			raise self.error(f"clé {section}.{key} : « {value} » n'est pas un nombre entier de jours, 1 au moins")
+			raise self.error(
+				_("key {section}.{key}: “{value}” is not a whole number of days, at least 1").format(
+					section=section, key=key, value=value
+				)
+			)
 		return value
 
 	def optional_count(self, section: str, key: str) -> float | None:
@@ -335,7 +365,11 @@ class _Player:
 		if value is None:
 			return None
 		if (isinstance(value, bool)) or (not isinstance(value, (int, float))):
-			raise self.error(f"clé {section}.{key} : nombre attendu, {_describe(value)} trouvé")
+			raise self.error(
+				_("key {section}.{key}: number expected, {describe} found").format(
+					section=section, key=key, describe=_describe(value)
+				)
+			)
 		return float(value)
 
 	def crossfades(self) -> Crossfades:
@@ -344,13 +378,15 @@ class _Player:
 		granularity = fetched
 		if granularity not in GRANULARITIES:
 			raise self.error(
-				f"clé crossfades.granularity : « {fetched} » inconnue, valeurs possibles : {', '.join(GRANULARITIES)}"
+				_("key crossfades.granularity: unknown “{fetched}”, possible values: {list}").format(
+					fetched=fetched, list=", ".join(GRANULARITIES)
+				)
 			)
 		maximum = CROSSFADES_MAXIMUM
 		seconds = self.optional_count("crossfades", "maximum")
 		if seconds is not None:
 			if seconds <= 0:
-				raise self.error("clé crossfades.maximum : un nombre de secondes strictement positif est attendu")
+				raise self.error(_("key crossfades.maximum: a strictly positive number of seconds is expected"))
 			maximum = timedelta(seconds=seconds)
 		durations: list[timedelta | None] = []
 		for key in ("start", "end"):
@@ -359,9 +395,15 @@ class _Player:
 				durations.append(None)
 				continue
 			if duration < 0:
-				raise self.error(f"clé crossfades.{key} : un nombre de secondes positif ou nul est attendu")
+				raise self.error(
+					_("key crossfades.{key}: a positive or zero number of seconds is expected").format(key=key)
+				)
 			if timedelta(seconds=duration) > maximum:
-				raise self.error(f"clé crossfades.{key} : au plus crossfades.maximum, {maximum.total_seconds():g} s")
+				raise self.error(
+					_("key crossfades.{key}: at most crossfades.maximum, {maximum:g} s").format(
+						key=key, maximum=maximum.total_seconds()
+					)
+				)
 			durations.append(timedelta(seconds=duration))
 		positions: list[Position] = []
 		for key, default in (("fade_in_position", DEFAULT_ENTRY), ("fade_out_position", DEFAULT_OUTPUT)):
@@ -369,7 +411,9 @@ class _Player:
 			position = fetched
 			if position not in POSITIONS:
 				raise self.error(
-					f"clé crossfades.{key} : « {fetched} » inconnue, valeurs possibles : {', '.join(POSITIONS)}"
+					_("key crossfades.{key}: unknown “{fetched}”, possible values: {list}").format(
+						key=key, fetched=fetched, list=", ".join(POSITIONS)
+					)
 				)
 			positions.append(position)
 		return Crossfades(durations[0], durations[1], maximum, granularity, positions[0], positions[1])
@@ -381,8 +425,10 @@ class _Player:
 			return Silences()
 		if not (MINIMUM_SILENCE_THRESHOLD <= threshold < 0):
 			raise self.error(
-				f"clé silences.threshold : un nombre de dB de {MINIMUM_SILENCE_THRESHOLD:g} dB compris à 0 dB exclu"
-				f" est attendu, {threshold:g} trouvé"
+				_(
+					"key silences.threshold: a number of dB from {minimum_silence_threshold:g} dB included to "
+					"0 dB excluded is expected, {threshold:g} found"
+				).format(minimum_silence_threshold=MINIMUM_SILENCE_THRESHOLD, threshold=threshold)
 			)
 		return Silences(threshold)
 
@@ -394,8 +440,10 @@ class _Player:
 			minimum, maximum = (bound.total_seconds() for bound in DEAD_AIR_DURATIONS)
 			if not (minimum <= seconds <= maximum):
 				raise self.error(
-					f"clé dead_air.duration : un nombre de secondes, de {minimum:g} à {maximum:g} secondes comprises,"
-					f" est attendu, {seconds:g} trouvé"
+					_(
+						"key dead_air.duration: a number of seconds, from {minimum:g} to {maximum:g} seconds "
+						"included, is expected, {seconds:g} found"
+					).format(minimum=minimum, maximum=maximum, seconds=seconds)
 				)
 			duration = timedelta(seconds=seconds)
 		threshold = self.optional_count("dead_air", "threshold")
@@ -403,8 +451,10 @@ class _Player:
 			threshold = DEAD_AIR_THRESHOLD
 		elif not (MINIMUM_SILENCE_THRESHOLD <= threshold < 0):
 			raise self.error(
-				f"clé dead_air.threshold : un nombre de dB de {MINIMUM_SILENCE_THRESHOLD:g} dB compris à 0 dB exclu"
-				f" est attendu, {threshold:g} trouvé"
+				_(
+					"key dead_air.threshold: a number of dB from {minimum_silence_threshold:g} dB included to "
+					"0 dB excluded is expected, {threshold:g} found"
+				).format(minimum_silence_threshold=MINIMUM_SILENCE_THRESHOLD, threshold=threshold)
 			)
 		return DeadAirSettings(duration, threshold, self.optional_boolean("dead_air", "fallback", False))
 
@@ -417,7 +467,7 @@ class _Player:
 def _describe(value: object) -> str:
 	match value:
 		case bool():
-			return "booléen"
+			return _("boolean")
 		case int() | float():
 			return "nombre"
 		case str():
@@ -441,9 +491,9 @@ def load(path: Path | None = None) -> Configuration:
 		with path.open("rb") as file:
 			document = tomllib.load(file)
 	except FileNotFoundError:
-		raise InvalidConfiguration(f"{path} : fichier de configuration introuvable") from None
+		raise InvalidConfiguration(_("{path}: configuration file not found").format(path=path)) from None
 	except tomllib.TOMLDecodeError as error:
-		raise InvalidConfiguration(f"{path} : syntaxe TOML invalide ({error})") from None
+		raise InvalidConfiguration(_("{path}: invalid TOML syntax ({error})").format(path=path, error=error)) from None
 
 	reader = _Player(path, document)
 	reader.check_keys()
@@ -455,18 +505,22 @@ def load(path: Path | None = None) -> Configuration:
 		retention=reader.days("database", "retention", RETENTION),
 	)
 	if database.test == database.production:
-		raise reader.error("clé database.test : la base de test ne peut pas être la base de production")
+		raise reader.error(_("key database.test: the test database cannot be the production database"))
 
 	fetched = reader.text("audio", "output")
 	output = fetched
 	if output not in AUDIO_OUTPUTS:
-		raise reader.error(f"clé audio.output : « {fetched} » inconnue, valeurs possibles : {', '.join(AUDIO_OUTPUTS)}")
+		raise reader.error(
+			_("key audio.output: unknown “{fetched}”, possible values: {list}").format(
+				fetched=fetched, list=", ".join(AUDIO_OUTPUTS)
+			)
+		)
 	device = reader.optional_text("audio", "device")
 	if device is not None:
 		device = device
 	preview = reader.text("audio", "preview")
 	if preview == device:
-		raise reader.error("clé audio.preview : la pré-écoute doit utiliser un autre périphérique que l'antenne")
+		raise reader.error(_("key audio.pre-listen: the pre-listen must use another device than the on-air one"))
 
 	outputs = Outputs(
 		csv=reader.file_path("outputs", "csv"),
@@ -483,8 +537,10 @@ def load(path: Path | None = None) -> Configuration:
 	):
 		if is_sound_file(value):
 			raise reader.error(
-				f"clé {key} : « {value} » porte l'extension d'un fichier sonore, et MachinCast n'écrit jamais dans un"
-				" fichier sonore"
+				_(
+					"key {key}: “{value}” has the extension of a sound file, and MachinCast never writes to a "
+					"sound file"
+				).format(key=key, value=value)
 			)
 
 	return Configuration(

@@ -44,7 +44,7 @@ class Ui_Choice(object):
     # setupUi
 
     def retranslateUi(self, Choice):
-        Choice.setWindowTitle(QCoreApplication.translate("Choice", u"Ajouter", None))
+        Choice.setWindowTitle(QCoreApplication.translate("Choice", u"Add", None))
         self.explanation.setText("")
     # retranslateUi
 

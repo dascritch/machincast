@@ -61,6 +61,7 @@ from PySide6.QtWidgets import (
 from machincast.clock import Clock
 from machincast.conformation import conform
 from machincast.conversion import text_or_none
+from machincast.i18n import _
 from machincast.interface import dialogs, display, preferences
 from machincast.interface.card import Card, Connection, Refusal, sound_files
 from machincast.interface.columns import Columns
@@ -74,16 +75,16 @@ from machincast.interface.lists import (
 )
 from machincast.interface.ui.bank_card import Ui_BankCard
 
-MODES = (("sequential", "Séquentielle"), ("random", "Aléatoire"))
+MODES = (("sequential", _("Sequential")), ("random", _("Random")))
 CROSSFADE_RULES = (
-	("sound", "Garder ceux des sonores"),
-	("default", "Appliquer si le sonore n'en a pas"),
-	("forced", "Imposer à tous les sonores"),
+	("sound", _("Keep the sounds' own")),
+	("default", _("Apply if the sound has none")),
+	("forced", _("Impose on all sounds")),
 )
 HIDINGS: tuple[tuple[bool | None, str], ...] = (
-	(None, "Hérité du sonore"),
-	(True, "Masqué par le nom public de la banque"),
-	(False, "Affichés"),
+	(None, _("Inherited from the sound")),
+	(True, _("Hidden by the bank's public name")),
+	(False, _("Shown")),
 )
 """Valeurs de banks.hide_metadata, dans l'ordre du choix de la fiche."""
 SOUND = Qt.ItemDataRole.UserRole
@@ -97,7 +98,7 @@ STATE = Qt.ItemDataRole.UserRole + 3
 CHOSEN_STATE = Qt.ItemDataRole.UserRole + 4
 """Rôle qui porte l'état choisi au clic droit, écrit à l'enregistrement ; absent sans choix."""
 STATE_COLUMN = 2
-CHOSEN_STATES = (("active", "Activer"), ("disabled", "Désactiver"))
+CHOSEN_STATES = (("active", _("Enable")), ("disabled", _("Disable")))
 """Les états qui se choisissent au clic droit sur les sonores, et leur entrée de menu."""
 LINE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsDragEnabled
 """Une ligne de sonore se glisse, mais rien ne se dépose dedans : la liste reste à plat."""
@@ -108,9 +109,9 @@ FETCHED_SOUNDS = (
 )
 
 
-ALREADY_IN_BANK = "Un sonore qui est déjà dans la banque n'y est pas ajouté une seconde fois."
+ALREADY_IN_BANK = _("A sound already in the bank is not added a second time.")
 """Remarque du choix des sonores."""
-FOLDER_ON_SOUNDS = " Un dossier se dépose sur les répertoires indexés."
+FOLDER_ON_SOUNDS = _(" A folder is dropped on the indexed directories.")
 """Conseil pour un dossier déposé sur les sonores."""
 
 
@@ -118,21 +119,22 @@ def group_removal_warning(sounds: list[str], directories: list[str]) -> str:
 	"""L'avertissement d'un retrait de sonores des répertoires de la banque ; celui d'un seul sonore, pour un seul."""
 	if (len(sounds) == 1) and (len(directories) == 1):
 		return removal_warning(sounds[0], directories[0])
-	names = ", ".join(f"« {sound} »" for sound in sounds)
-	ou = f"du répertoire {directories[0]}, indexé"
+	names = ", ".join(_("“{sound}”").format(sound=sound) for sound in sounds)
+	ou = _("of directory {directories}, indexed").format(directories=directories[0])
 	if len(directories) > 1:
-		ou = f"des répertoires {', '.join(directories)}, indexés"
-	return (
-		f"{names} sont des fichiers {ou} par cette banque : la prochaine indexation les y remettra. Pour les écarter"
-		" pour de bon, déplacez leurs fichiers hors de ces répertoires, en dehors de MachinCast."
-	)
+		ou = _("of directories {list}, indexed").format(list=", ".join(directories))
+	return _(
+		"{names} are files {ou} by this bank: the next indexing will put them back. To remove them "
+		"for good, move their files out of these directories, outside MachinCast."
+	).format(names=names, ou=ou)
 
 
 def removal_warning(sound: str, directory: str) -> str:
-	return (
-		f"« {sound} » est un fichier du répertoire {directory}, indexé par cette banque : la prochaine indexation "
-		"l'y remettra. Pour l'écarter pour de bon, déplacez son fichier hors de ce répertoire, en dehors de MachinCast."
-	)
+	return _(
+		"“{sound}” is a file of directory {directory}, indexed by this bank: the next indexing "
+		"will put it back. To remove it for good, move its file out of this directory, outside "
+		"MachinCast."
+	).format(sound=sound, directory=directory)
 
 
 class BankCard(Card):
@@ -200,10 +202,10 @@ class BankCard(Card):
 
 	def title(self) -> str:
 		if self.is_copy():
-			return f"Nouvelle banque, copie de {self._name}"
+			return _("New bank, copy of {name}").format(name=self._name)
 		if self.identifier is None:
-			return "Nouvelle banque"
-		return f"Banque : {self._name}"
+			return _("New bank")
+		return _("Bank: {name}").format(name=self._name)
 
 	def _read(self) -> None:
 		"""Lit la banque en base, ou celle qu'elle copie, sans ses sonores ; une nouvelle banque est vide, séquentielle,
@@ -278,13 +280,13 @@ class BankCard(Card):
 	def _write(self) -> int:
 		name = conform(self.ui.internal_name.text())
 		if name == "":
-			raise Refusal("Le nom interne est obligatoire.", self.ui.internal_name)
+			raise Refusal(_("The internal name is required."), self.ui.internal_name)
 		taken = self.connection.execute(
 			"SELECT 1 FROM banks WHERE internal_name = %s AND id IS DISTINCT FROM %s AND deleted_at IS NULL",
 			(name, self.identifier),
 		).fetchone()
 		if taken is not None:
-			raise Refusal(f"Une autre banque s'appelle déjà « {name} ».", self.ui.internal_name)
+			raise Refusal(_("Another bank is already called “{name}”.").format(name=name), self.ui.internal_name)
 		values: list[object] = [
 			name,
 			(conform(self.ui.public_name.text())) or (None),
@@ -297,7 +299,7 @@ class BankCard(Card):
 		minimum, maximum = self._bounds()
 		if (minimum is not None) and (maximum is not None) and (minimum > maximum):
 			raise Refusal(
-				"La durée minimale des sonores dépasse la durée maximale.",
+				_("The minimum duration of the sounds exceeds the maximum duration."),
 				self.ui.has_min_duration,
 				self.ui.has_max_duration,
 			)
@@ -542,7 +544,7 @@ class BankCard(Card):
 	def _drop_in_directories(self, paths: list[Path]) -> None:
 		"""Les dossiers déposés s'ajoutent aux répertoires ; un fichier est ignoré, et la fiche le dit."""
 		self._add_directories([str(path) for path in paths if path.is_dir()])
-		self.flag_ignored([path for path in paths if not path.is_dir()], "ce ne sont pas des répertoires")
+		self.flag_ignored([path for path in paths if not path.is_dir()], _("these are not directories"))
 
 	def _drop_in_sounds(self, paths: list[Path]) -> None:
 		"""Les fichiers sonores déposés s'ajoutent en fin de liste, une fois chacun. Un fichier pas encore en base est
@@ -564,7 +566,7 @@ class BankCard(Card):
 				lines.append(self._line(sound))
 		self.ui.sounds.addTopLevelItems(lines)
 		self._refresh_buttons()
-		self.flag_ignored(ignored, "ce ne sont pas des fichiers sonores", FOLDER_ON_SOUNDS)
+		self.flag_ignored(ignored, _("these are not sound files"), FOLDER_ON_SOUNDS)
 
 	def _show_directories(self, directories: list[str]) -> None:
 		"""Dans l'ordre de leurs caractères, quelle que soit la langue du poste."""

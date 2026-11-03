@@ -18,6 +18,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.i18n import _, date_and_hour, pgettext, short_date
 from machincast.interface import display
 
 Connection = psycopg.Connection[TupleRow]
@@ -25,13 +26,22 @@ Connection = psycopg.Connection[TupleRow]
 
 @dataclass(frozen=True)
 class Category:
+	"""Un genre d'élément, et ses phrases de suppression : chacune entière, pour que sa traduction s'accorde au genre
+	de l'élément (https://github.com/dascritch/machincast/issues/360)."""
+
 	table: str
-	item: str
-	"""« le sonore », « la banque »…"""
-	pronoun: str
-	"""« Il » ou « Elle »."""
-	agreement: str
-	"""« » ou « e » : retiré, retirée."""
+	title: str
+	"""Le titre de la question : « Supprimer le sonore »."""
+	ask: str
+	"""La question, à champ {name} : « Supprimer le sonore « {name} » ? »."""
+	removed: str
+	"""L'annonce des listes d'où il sera retiré : « Il en sera retiré : »."""
+	restorable: str
+	"""« Marqué « supprimé », il se restaure depuis sa fiche. »"""
+	marks: str
+	"""Ce que dit la fiche de l'élément supprimé, à champs {deleted} et {erased}."""
+	other: str
+	"""Un autre élément du même genre a son nom, à champ {name} : « une autre banque s'appelle déjà « {name} » »."""
 	column: str
 	"""Colonne qui désigne l'élément dans les listes qui le contiennent."""
 	containers: tuple[str, ...]
@@ -45,57 +55,108 @@ class Category:
 	deferred: bool = True
 	"""Supprimé, il reste en base, marqué, jusqu'à sa péremption ; sinon, il quitte la base."""
 
-	@property
-	def object_(self) -> str:
-		"""« le » ou « la » : le pronom qui le reprend."""
-		if self.agreement == "e":
-			return "la"
-		return "le"
-
 
 CATEGORIES = {
 	"sonore": Category(
 		"sounds",
-		"le sonore",
-		"Il",
-		"",
+		_("Delete the sound"),
+		_("Delete the sound “{name}”?"),
+		pgettext("sound", "It will be removed from:"),
+		pgettext("sound", "Marked “deleted”, it can be restored from its card."),
+		pgettext(
+			"sound",
+			"Deleted on {deleted}, erased from the database after {erased}: “Restore” puts it back into service.",
+		),
+		_("another sound is already called “{name}”"),
 		"sound_id",
 		("banque", "séquence", "événement"),
-		"Il ne figure dans aucune banque, aucune séquence ni aucun événement.",
+		_("It is in no bank, no sequence and no event."),
 	),
 	"banque": Category(
 		"banks",
-		"la banque",
-		"Elle",
-		"e",
+		_("Delete the bank"),
+		_("Delete the bank “{name}”?"),
+		pgettext("bank", "It will be removed from:"),
+		pgettext("bank", "Marked “deleted”, it can be restored from its card."),
+		pgettext(
+			"bank",
+			"Deleted on {deleted}, erased from the database after {erased}: “Restore” puts it back into service.",
+		),
+		_("another bank is already called “{name}”"),
 		"bank_id",
 		("séquence", "événement"),
-		"Elle ne figure dans aucune séquence ni aucun événement.",
+		_("It is in no sequence and no event."),
 	),
 	"séquence": Category(
-		"sequences", "la séquence", "Elle", "e", "sequence_id", ("événement",), "Elle ne figure dans aucun événement."
+		"sequences",
+		_("Delete the sequence"),
+		_("Delete the sequence “{name}”?"),
+		pgettext("sequence", "It will be removed from:"),
+		pgettext("sequence", "Marked “deleted”, it can be restored from its card."),
+		pgettext(
+			"sequence",
+			"Deleted on {deleted}, erased from the database after {erased}: “Restore” puts it back into service.",
+		),
+		_("another sequence is already called “{name}”"),
+		"sequence_id",
+		("événement",),
+		_("It is in no event."),
 	),
-	"événement": Category("events", "l'événement", "Il", "", "", (), ""),
-	"feed": Category("feeds", "le feed", "Il", "", "", (), "Aucun stream ne le suit.", "name", False, False),
+	"événement": Category(
+		"events",
+		_("Delete the event"),
+		_("Delete the event “{name}”?"),
+		pgettext("event", "It will be removed from:"),
+		pgettext("event", "Marked “deleted”, it can be restored from its card."),
+		pgettext(
+			"event",
+			"Deleted on {deleted}, erased from the database after {erased}: “Restore” puts it back into service.",
+		),
+		_("another event is already called “{name}”"),
+		"",
+		(),
+		"",
+	),
+	"feed": Category(
+		"feeds",
+		_("Delete the feed"),
+		_("Delete from the database the feed “{name}”?"),
+		pgettext("feed", "It will be removed from:"),
+		"",
+		"",
+		_("another feed is already called “{name}”"),
+		"",
+		(),
+		_("No stream follows it."),
+		"name",
+		False,
+		False,
+	),
 }
 CONTAINERS = {
-	"banque": ("banks", "bank_sounds", "bank_id", "de la banque", "qui n'aura plus aucun sonore"),
-	"séquence": ("sequences", "sequence_items", "sequence_id", "de la séquence", "qui n'aura plus aucun élément"),
+	"banque": ("banks", "bank_sounds", "bank_id", _("of the bank"), _("which will no longer have any sound")),
+	"séquence": (
+		"sequences",
+		"sequence_items",
+		"sequence_id",
+		_("of the sequence"),
+		_("which will no longer have any element"),
+	),
 	"événement": (
 		"events",
 		"event_items",
 		"event_id",
-		"de l'événement",
-		"qui n'aura plus rien à jouer",
+		_("of the event"),
+		_("which will no longer have anything to play"),
 	),
 }
 """Pour chaque genre de liste : sa table, la table de ses éléments, la colonne qui la désigne, comment la nommer, et
 ce qu'elle devient vide."""
-HISTORY = "L'historique de diffusion garde ses passages."
+HISTORY = _("The broadcast history keeps its plays.")
 
 
 def _names(lines: list[TupleRow]) -> str:
-	return ", ".join(f"« {line[0]} »" for line in lines)
+	return ", ".join(_("“{line}”").format(line=line[0]) for line in lines)
 
 
 def _name(connection: Connection, category: str, identifier: int) -> str | None:
@@ -130,9 +191,9 @@ def _removals(connection: Connection, category: str, identifier: int) -> list[st
 			(identifier, identifier),
 		).fetchall()
 		for name, emptied in found_list:
-			line = f"• {give_name} « {name} »"
+			line = _("• {give_name} “{name}”").format(give_name=give_name, name=name)
 			if emptied:
-				line = f"{line}, {empty}"
+				line = _("{line}, {empty}").format(line=line, empty=empty)
 			lines.append(line)
 	return lines
 
@@ -144,19 +205,18 @@ def _file(connection: Connection, identifier: int) -> list[str]:
 	if (line is None) or (line[0] is None):
 		return []
 	file = Path(str(line[0]))
-	text = f"Son fichier reste à sa place, intact : {file}."
+	text = _("Its file stays in place, intact: {file}.").format(file=file)
 	directories = connection.execute(
 		"SELECT b.internal_name, r.directory FROM bank_directories r JOIN banks b ON b.id = r.bank_id"
 		" ORDER BY b.internal_name, r.directory"
 	).fetchall()
 	banks = list(dict.fromkeys(str(name) for name, directory in directories if file.is_relative_to(str(directory))))
 	if banks != []:
-		which = f"de la banque « {banks[0]} »"
+		which = _("of bank “{banks}”").format(banks=banks[0])
 		if len(banks) > 1:
-			which = f"des banques {', '.join(f'« {bank} »' for bank in banks)}"
-		text = (
-			f"{text} Il est dans un répertoire {which} : la prochaine indexation l'enregistrera de nouveau, comme un"
-			" nouveau sonore."
+			which = _("of banks {list}").format(list=", ".join(_("“{bank}”").format(bank=bank) for bank in banks))
+		text = _("{text} It is in a directory {which}: the next indexing will record it again, as a new sound.").format(
+			text=text, which=which
 		)
 	return [text]
 
@@ -170,14 +230,15 @@ def _remainders(connection: Connection, category: str, identifier: int) -> list[
 			"SELECT directory FROM bank_directories WHERE bank_id = %s ORDER BY directory", (identifier,)
 		).fetchall()
 		if directories == []:
-			return ["Ses sonores restent en base."]
+			return [_("Its sounds stay in the database.")]
 		paths = ", ".join(str(directory) for (directory,) in directories)
 		return [
-			f"Ses répertoires restent à leur place, avec leurs fichiers, intacts : {paths}."
-			" Ses sonores restent en base."
+			_(
+				"Its directories stay in place, with their files, intact: {paths}. Its sounds stay in the database."
+			).format(paths=paths)
 		]
 	if category == "séquence":
-		return ["Ses sonores et ses banques restent en base."]
+		return [_("Its sounds and its banks stay in the database.")]
 	if category == "feed":
 		return []
 	streams = connection.execute(
@@ -185,11 +246,19 @@ def _remainders(connection: Connection, category: str, identifier: int) -> list[
 	).fetchall()
 	lines = []
 	if len(streams) == 1:
-		lines.append(f"Il est l'événement de secours du stream {_names(streams)}, qui n'en aura plus.")
+		lines.append(
+			_("It is the fallback event of stream {names}, which will have none any more.").format(
+				names=_names(streams)
+			)
+		)
 	elif streams != []:
-		lines.append(f"Il est l'événement de secours des streams {_names(streams)}, qui n'en auront plus.")
+		lines.append(
+			_("It is the fallback event of streams {names}, which will have none any more.").format(
+				names=_names(streams)
+			)
+		)
 	lines.append(
-		"Il ne joue plus ; sa liste de lecture reste avec lui. Ses sonores, banques et séquences restent en base."
+		_("It no longer plays; its play list stays with it. Its sounds, banks and sequences stay in the database.")
 	)
 	return lines
 
@@ -208,7 +277,9 @@ def _prevent(connection: Connection, category: str, identifier: int) -> None:
 	).fetchall()
 	if streams != []:
 		raise Prevented(
-			f"Les streams {_names(streams)} suivent ce feed : choisir pour eux une autre adresse avant de le supprimer."
+			_("Streams {names} follow this feed: choose another address for them before deleting it.").format(
+				names=_names(streams)
+			)
 		)
 
 
@@ -220,25 +291,20 @@ def question(connection: Connection, category: str, identifier: int) -> tuple[st
 		return None
 	_prevent(connection, category, identifier)
 	describes = CATEGORIES[category]
-	lines = [f"Supprimer {describes.item} « {name} » ?"]
-	if not describes.deferred:
-		lines = [f"Supprimer de la base {describes.item} « {name} » ?"]
+	lines = [describes.ask.format(name=name)]
 	removals = _removals(connection, category, identifier)
 	if removals != []:
-		lines.append(f"{describes.pronoun} en sera retiré{describes.agreement} :")
-		lines += [f"{removal} ;" for removal in removals[:-1]]
-		lines.append(f"{removals[-1]}.")
+		lines.append(describes.removed)
+		lines += [_("{removal};").format(removal=removal) for removal in removals[:-1]]
+		lines.append(_("{removal}.").format(removal=removals[-1]))
 	elif describes.no != "":
 		lines.append(describes.no)
 	lines += _remainders(connection, category, identifier)
 	if describes.history:
 		lines.append(HISTORY)
 	if describes.deferred:
-		lines.append(
-			f"Marqué{describes.agreement} « supprimé{describes.agreement} », {describes.pronoun.lower()} se restaure"
-			f" depuis sa fiche."
-		)
-	return f"Supprimer {describes.item}", "\n".join(lines)
+		lines.append(describes.restorable)
+	return describes.title, "\n".join(lines)
 
 
 def delete(connection: Connection, category: str, identifier: int, instant: datetime) -> None:
@@ -279,11 +345,7 @@ def marks(category: str, instant: datetime, retention: int) -> str:
 	base, peremption jours plus tard (https://github.com/dascritch/machincast/issues/268)."""
 	describes = CATEGORIES[category]
 	erased = (instant + timedelta(days=retention)).astimezone()
-	return (
-		f"Supprimé{describes.agreement} le {instant.astimezone():%d/%m/%Y à %H:%M}, effacé{describes.agreement} de la"
-		f" base après le"
-		f" {erased:%d/%m/%Y} : « Restaurer » {describes.object_} remet en service."
-	)
+	return describes.marks.format(deleted=date_and_hour(instant.astimezone()), erased=short_date(erased))
 
 
 def restore(connection: Connection, category: str, identifier: int) -> None:
@@ -299,16 +361,8 @@ def restore(connection: Connection, category: str, identifier: int) -> None:
 		(identifier,),
 	).fetchone()
 	if taken is not None:
-		who = f"{_a_other(describes)} s'appelle déjà « {taken[0]} »"
+		who = describes.other.format(name=taken[0])
 		if category == "sonore":
-			who = f"un autre sonore a déjà ce fichier, {taken[0]}"
-		raise Prevented(f"Restauration impossible : {who}.")
+			who = _("another sound already has this file, {taken}").format(taken=taken[0])
+		raise Prevented(_("Restoring impossible: {who}.").format(who=who))
 	connection.execute(f"UPDATE {describes.table} SET deleted_at = NULL WHERE id = %s", (identifier,))  # noqa: S608
-
-
-def _a_other(describes: Category) -> str:
-	"""« une autre banque », « un autre événement »…"""
-	name = describes.item.split(" ", 1)[-1].removeprefix("l'")
-	if describes.agreement == "e":
-		return f"une autre {name}"
-	return f"un autre {name}"

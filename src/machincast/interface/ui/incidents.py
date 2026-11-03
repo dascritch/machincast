@@ -64,10 +64,10 @@ class Ui_IncidentScreen(object):
     # setupUi
 
     def retranslateUi(self, IncidentScreen):
-        self.filter_.setPlaceholderText(QCoreApplication.translate("IncidentScreen", u"Filtrer\u2026", None))
-        self.information.setText(QCoreApplication.translate("IncidentScreen", u"Montrer aussi les informations", None))
+        self.filter_.setPlaceholderText(QCoreApplication.translate("IncidentScreen", u"Filter\u2026", None))
+        self.information.setText(QCoreApplication.translate("IncidentScreen", u"Also show the information entries", None))
 #if QT_CONFIG(tooltip)
-        self.table.setToolTip(QCoreApplication.translate("IncidentScreen", u"Un double-clic sur le sonore, la banque ou l'\u00e9v\u00e9nement d'une entr\u00e9e ouvre sa fiche.", None))
+        self.table.setToolTip(QCoreApplication.translate("IncidentScreen", u"A double-click on the sound, the bank or the event of an entry opens its card.", None))
 #endif // QT_CONFIG(tooltip)
         pass
     # retranslateUi

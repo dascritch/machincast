@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 
 from machincast.clock import Clock
 from machincast.configuration import Metadata
+from machincast.i18n import _
 from machincast.interface import columns, dialogs, display
 from machincast.interface.airplay import HOURS, read_airplay
 from machincast.interface.columns import Columns
@@ -92,13 +93,11 @@ class AirplayScreen(QWidget):
 		self.hours.setRange(1, HOURS_AT_MOST)
 		self.hours.setSuffix(" h")
 		self.hours.setValue(retained_hours())
-		self.hours.setToolTip(
-			"Les passages commencés depuis ce nombre d'heures ; retenu pour les prochaines ouvertures"
-		)
-		caption = QLabel("&Dernières heures", self)
+		self.hours.setToolTip(_("The plays started within this number of hours; kept for the next openings"))
+		caption = QLabel(_("&Last hours"), self)
 		caption.setBuddy(self.hours)
-		self.export = QPushButton("&Exporter…", self)
-		self.export.setToolTip("Enregistrer ce que l'onglet montre, en CSV, en HTML ou en M3U")
+		self.export = QPushButton(_("&Export…"), self)
+		self.export.setToolTip(_("Save what the tab shows, as CSV, HTML or M3U"))
 		self.table = QTableView(self)
 		self.table.setObjectName("table_airplay")
 		self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -106,7 +105,7 @@ class AirplayScreen(QWidget):
 		self.table.setAlternatingRowColors(True)
 		self.table.verticalHeader().setVisible(False)
 		self.table.horizontalHeader().setStretchLastSection(True)
-		self.table.setToolTip("Double-clic sur un sonore, un événement, une séquence ou une banque : ouvrir sa fiche")
+		self.table.setToolTip(_("Double-click on a sound, an event, a sequence or a bank: open its card"))
 		self.model = QStandardItemModel(0, len(self.COLUMNS), self)
 		self.model.setHorizontalHeaderLabels([title for _, title in self.COLUMNS])
 		self.table.setModel(self.model)
@@ -130,7 +129,7 @@ class AirplayScreen(QWidget):
 		try:
 			plays = read_airplay(self.connection, self.clock.now() - timedelta(hours=self.hours.value()))
 		except psycopg.Error as error:
-			log.error(f"airplay illisible : {error}")
+			log.error(_("unreadable airplay: {error}").format(error=error))
 			return
 		self.model.setRowCount(0)
 		for play in plays:
@@ -168,7 +167,7 @@ class AirplayScreen(QWidget):
 		now = self.clock.now()
 		hours = self.hours.value()
 		offers = f"airplay-{now.astimezone():%Y-%m-%d-%H%M}-{hours}h.csv"
-		choice = dialogs.choose_export(self, offers, list(FORMATS), "Exporter l'airplay")
+		choice = dialogs.choose_export(self, offers, list(FORMATS), _("Export the airplay"))
 		if choice is None:
 			return
 		path, filter_ = choice
@@ -176,7 +175,9 @@ class AirplayScreen(QWidget):
 		destination = with_extension(path, extension)
 		try:
 			lines = read_plays(self.connection, None, since=now - timedelta(hours=hours))
-			title = f"Airplay des {hours} dernières heures, au {now.astimezone():%d/%m/%Y %H:%M}"
+			title = _("Airplay of the last {hours} hours, at {now:%d/%m/%Y %H:%M}").format(
+				hours=hours, now=now.astimezone()
+			)
 			contents = {
 				".csv": lambda: in_csv(lines, self.metadata),
 				".html": lambda: in_html(lines, self.metadata, title, now),
@@ -188,6 +189,6 @@ class AirplayScreen(QWidget):
 			encoding = "utf-8-sig" if extension == ".csv" else "utf-8"
 			destination.write_text(content, encoding=encoding, newline="")
 		except (OSError, psycopg.Error) as error:
-			self.announces.emit(f"Export impossible : {error}")
+			self.announces.emit(_("Export impossible: {error}").format(error=error))
 			return
-		self.announces.emit(f"Airplay exporté dans {destination}.")
+		self.announces.emit(_("Airplay exported to {destination}.").format(destination=destination))

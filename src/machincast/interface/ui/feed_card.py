@@ -130,19 +130,19 @@ class Ui_FeedCard(object):
     # setupUi
 
     def retranslateUi(self, FeedCard):
-        self.name_caption.setText(QCoreApplication.translate("FeedCard", u"&Nom", None))
-        self.name.setPlaceholderText(QCoreApplication.translate("FeedCard", u"Obligatoire, et propre \u00e0 ce feed", None))
-        self.url_caption.setText(QCoreApplication.translate("FeedCard", u"A&dresse", None))
-        self.url.setPlaceholderText(QCoreApplication.translate("FeedCard", u"https://\u2026 : l'adresse du flux, obligatoire", None))
-        self.test.setText(QCoreApplication.translate("FeedCard", u"Tester le flux", None))
-        self.stream_group.setTitle(QCoreApplication.translate("FeedCard", u"Streams qui le suivent", None))
-        self.stream_explanation.setText(QCoreApplication.translate("FeedCard", u"Ces streams jouent l'adresse du feed : une nouvelle adresse vaut pour tous. Un stream choisit son feed dans sa fiche.", None))
-        self.delete.setText(QCoreApplication.translate("FeedCard", u"\u274c Supprimer\u2026", None))
+        self.name_caption.setText(QCoreApplication.translate("FeedCard", u"&Name", None))
+        self.name.setPlaceholderText(QCoreApplication.translate("FeedCard", u"Required, and unique to this feed", None))
+        self.url_caption.setText(QCoreApplication.translate("FeedCard", u"A&ddress", None))
+        self.url.setPlaceholderText(QCoreApplication.translate("FeedCard", u"https://\u2026: the address of the stream, required", None))
+        self.test.setText(QCoreApplication.translate("FeedCard", u"Test the stream", None))
+        self.stream_group.setTitle(QCoreApplication.translate("FeedCard", u"Streams that follow it", None))
+        self.stream_explanation.setText(QCoreApplication.translate("FeedCard", u"These streams play the address of the feed: a new address applies to all. A stream chooses its feed in its card.", None))
+        self.delete.setText(QCoreApplication.translate("FeedCard", u"\u274c Delete\u2026", None))
 #if QT_CONFIG(tooltip)
-        self.delete.setToolTip(QCoreApplication.translate("FeedCard", u"Supprime l'\u00e9l\u00e9ment de la base, apr\u00e8s confirmation ; aucun fichier n'est touch\u00e9.", None))
+        self.delete.setToolTip(QCoreApplication.translate("FeedCard", u"Deletes the element from the database, after confirmation; no file is touched.", None))
 #endif // QT_CONFIG(tooltip)
-        self.cancel.setText(QCoreApplication.translate("FeedCard", u"Annuler", None))
-        self.save.setText(QCoreApplication.translate("FeedCard", u"Enregistrer", None))
+        self.cancel.setText(QCoreApplication.translate("FeedCard", u"Cancel", None))
+        self.save.setText(QCoreApplication.translate("FeedCard", u"Save", None))
         pass
     # retranslateUi
 

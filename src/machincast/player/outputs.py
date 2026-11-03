@@ -42,6 +42,7 @@ from psycopg.rows import TupleRow
 from machincast.configuration import Configuration, Metadata
 from machincast.configuration import Outputs as Paths
 from machincast.conversion import boolean_or_none, text_or_none
+from machincast.i18n import N_, _, current, logged
 from machincast.player.saving import Play, record
 from machincast.protection import check_writing
 
@@ -65,7 +66,7 @@ CSV_COLUMNS = (
 	"banque",
 	"sans_incident",
 )
-INACCESSIBLE_OUTPUT = "sortie inaccessible"
+INACCESSIBLE_OUTPUT = N_("inaccessible output")
 
 
 @dataclass(frozen=True)
@@ -212,13 +213,16 @@ def public_page(lines: list[Line], metadata: Metadata, instant: datetime) -> str
 	if ongoing is not None:
 		on_air = play(ongoing)
 	items = "\n".join(f"\t\t\t<li>{play(line)}</li>" for line in previous_list[:PREVIOUS_LIST])
+	updated = _("Updated at {time}").format(
+		time=f'<time datetime="{instant.isoformat()}">{instant.astimezone():%H:%M:%S}</time>'
+	)
 	return f"""<!DOCTYPE html>
-<html lang="fr">
+<html lang="{current()}">
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="refresh" content="{REFRESH}">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>{name} : à l'antenne</title>
+	<title>{_("{name}: on air").format(name=name)}</title>
 	<style>
 		body {{ font-family: system-ui, sans-serif; margin: 1rem auto; max-width: 40rem; padding: 0 1rem; }}
 		.en-cours p {{ font-size: 1.4rem; }}
@@ -229,16 +233,16 @@ def public_page(lines: list[Line], metadata: Metadata, instant: datetime) -> str
 <body>
 	<h1>{name}</h1>
 	<section class="en-cours">
-		<h2>À l'antenne</h2>
+		<h2>{_("On air")}</h2>
 		<p>{on_air}</p>
 	</section>
 	<section>
-		<h2>Précédemment</h2>
+		<h2>{_("Previously")}</h2>
 		<ol class="precedents">
 {items}
 		</ol>
 	</section>
-	<footer><p>Mis à jour à <time datetime="{instant.isoformat()}">{instant.astimezone():%H:%M:%S}</time></p></footer>
+	<footer><p>{updated}</p></footer>
 </body>
 </html>
 """
@@ -309,13 +313,17 @@ class Outputs:
 		"""Annonce le passage dans le journal du binaire, puis met à jour la page publique et la playlist."""
 		for line in read_plays(connection, 1, play.id):
 			place = f" ({line.event})" if line.event else ""
-			log.info(f"à l'antenne : {(artist_and_title(line)) or (line.location)}{place}")
+			log.info(
+				_("on air: {artist_and_title}{place}").format(
+					artist_and_title=(artist_and_title(line)) or (line.location), place=place
+				)
+			)
 		self.update(connection, play.start)
 
 	def announce(self, kind: str, message: str) -> None:
 		"""Un début ou une fin d'événement ou de séquence, dans le journal du binaire
 		(https://github.com/dascritch/machincast/issues/153)."""
-		log.info(f"{kind} : {message}")
+		log.info(_("{kind}: {message}").format(kind=logged(kind), message=logged(message)))
 
 	def finished_play(self, connection: psycopg.Connection[TupleRow], play: Play, instant: datetime) -> None:
 		"""Ajoute le passage au CSV de son jour, puis met à jour la page publique et la playlist."""
@@ -350,6 +358,12 @@ class Outputs:
 		except OSError as error:
 			if path not in self._inaccessible_list:
 				self._inaccessible_list.add(path)
-				record(connection, "warning", INACCESSIBLE_OUTPUT, f"{path} : {error}", instant)
+				record(
+					connection,
+					"warning",
+					INACCESSIBLE_OUTPUT,
+					N_("{path}: {error}").format(path=path, error=error),
+					instant,
+				)
 		else:
 			self._inaccessible_list.discard(path)

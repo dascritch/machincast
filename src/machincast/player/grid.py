@@ -36,6 +36,8 @@ from enum import StrEnum
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.i18n import _
+
 
 class Priority(StrEnum):
 	"""Valeurs du type event_priority, de la plus basse à la plus haute."""
@@ -53,7 +55,7 @@ NEVER = datetime.min.replace(tzinfo=UTC)
 """Date de modification d'un événement qui n'en a pas."""
 DAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 """Valeurs du type weekday, dans l'ordre de datetime.weekday()."""
-DAY_NAMES = ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")
+DAY_NAMES = (_("Monday"), _("Tuesday"), _("Wednesday"), _("Thursday"), _("Friday"), _("Saturday"), _("Sunday"))
 """Leurs noms à l'écran, dans le même ordre : ceux aussi des cases de la fiche d'un événement."""
 
 

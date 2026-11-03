@@ -7,6 +7,7 @@ from pathlib import Path
 
 from machincast import __version__
 from machincast.configuration import Configuration, InvalidConfiguration, default_file, load
+from machincast.i18n import _
 from machincast.log import configure as configure_log
 
 log = logging.getLogger(__name__)
@@ -26,8 +27,8 @@ def create_analyser(executable: str, description: str) -> argparse.ArgumentParse
 		"--config",
 		type=Path,
 		default=None,
-		metavar="FICHIER",
-		help=f"fichier de configuration TOML (par défaut : {default_file()})",
+		metavar=_("FILE"),
+		help=_("TOML configuration file (default: {default_file})").format(default_file=default_file()),
 	)
 	return analyser
 
@@ -52,12 +53,14 @@ def launch(
 	try:
 		configuration = load(options.config)
 	except InvalidConfiguration as error:
-		log.error(f"configuration invalide : {error}")
+		log.error(_("invalid configuration: {error}").format(error=error))
 		return INVALID_CONFIGURATION_CODE
 	return action(configuration, options)
 
 
 def not_implemented(executable: str, ticket: int) -> int:
 	"""Signale une fonctionnalité pas encore développée et renvoie un code d'erreur."""
-	log.error(f"pas encore implémenté, voir https://github.com/dascritch/machincast/issues/{ticket}")
+	log.error(
+		_("not implemented yet, see https://github.com/dascritch/machincast/issues/{ticket}").format(ticket=ticket)
+	)
 	return 1

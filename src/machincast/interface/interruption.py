@@ -27,6 +27,7 @@ from psycopg.rows import TupleRow
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu
 
+from machincast.i18n import _
 from machincast.interface import display
 from machincast.interface.calendar import day_and_month
 from machincast.interface.intents import SKIP, label
@@ -35,26 +36,26 @@ from machincast.interface.state import FollowingEvent, PlaybackState
 log = logging.getLogger(__name__)
 
 ENTRIES = {
-	"sound": label(SKIP, "Sauter au sonore suivant"),
-	"sequence": label(SKIP, "Sauter après la séquence"),
-	"event": label(SKIP, "Couper l'événement par le fil musical"),
+	"sound": label(SKIP, _("Skip to the next sound")),
+	"sequence": label(SKIP, _("Skip after the sequence")),
+	"event": label(SKIP, _("Cut the event by the background programming")),
 }
 """Entrée du menu « Diffusion » de chaque élément qui s'interrompt, dans l'ordre du menu."""
 ANNOUNCEMENTS = {
-	"sound": "Saut au sonore suivant demandé.",
-	"sequence": "Saut après la séquence demandé.",
-	"event": "Coupure de l'événement par le fil musical demandée.",
+	"sound": _("Skip to the next sound requested."),
+	"sequence": _("Skip after the sequence requested."),
+	"event": _("Cut of the event by the background programming requested."),
 }
-ON_AIR_NOTHING = "Rien à l'antenne"
-NO_SEQUENCE = "Aucune séquence à l'antenne"
-ALREADY_BACKGROUND_PROGRAMMING = "Le fil musical est déjà à l'antenne"
-WITHOUT_PLAYBACK = "Interruption impossible : Machin player ne répond pas sur sa socket d'état."
-SKIP_TO_SOUND = label(SKIP, "Sauter à ce sonore")
-ADVANCE_FOLLOWING_EVENT = label(SKIP, "Avancer l'événement suivant")
-NO_NEXT_SOUND = "Aucun prochain sonore"
-NO_FOLLOWING_EVENT = "Aucun événement suivant dans les sept jours"
-WITHOUT_BROADCAST = "Machin player ne diffuse pas"
-ADVANCE_WITHOUT_PLAYBACK = "Avance impossible : Machin player ne répond pas sur sa socket d'état."
+ON_AIR_NOTHING = _("Nothing on air")
+NO_SEQUENCE = _("No sequence on air")
+ALREADY_BACKGROUND_PROGRAMMING = _("The background programming is already on air")
+WITHOUT_PLAYBACK = _("Interruption impossible: Machin player does not answer on its state socket.")
+SKIP_TO_SOUND = label(SKIP, _("Skip to this sound"))
+ADVANCE_FOLLOWING_EVENT = label(SKIP, _("Advance the next event"))
+NO_NEXT_SOUND = _("No next sound")
+NO_FOLLOWING_EVENT = _("No next event within seven days")
+WITHOUT_BROADCAST = _("Machin player is not broadcasting")
+ADVANCE_WITHOUT_PLAYBACK = _("Advance impossible: Machin player does not answer on its state socket.")
 
 
 @dataclass(frozen=True)
@@ -65,7 +66,7 @@ class Proposal:
 
 
 def _named(name: str | None) -> Proposal:
-	return Proposal(True, f"« {name} »")
+	return Proposal(True, _("“{name}”").format(name=name))
 
 
 def offer(state: PlaybackState) -> dict[str, Proposal]:
@@ -99,23 +100,22 @@ class NextEntry:
 
 def advances(following: FollowingEvent) -> str:
 	"""« ⏭ Avancer « Journal », prévu le mercredi 21 octobre à 12:00 »."""
-	return (
-		f"{SKIP} Avancer « {following.name} », prévu le {day_and_month(following.start.date())} à"
-		f" {following.start:%H:%M}"
+	return _("{skip} Advance “{name}”, planned on {day_and_month} at {start:%H:%M}").format(
+		skip=SKIP, name=following.name, day_and_month=day_and_month(following.start.date()), start=following.start
 	)
 
 
 def advance_announcement(name: str) -> str:
-	return f"Avance de l'événement « {name} » demandée."
+	return _("Advance of the event “{name}” requested.").format(name=name)
 
 
 def _until(following: FollowingEvent) -> str:
 	if following.end is None:
-		return "Il commence aussitôt, au-dessus de la grille, jusqu'à la fin de sa liste"
+		return _("It starts at once, above the grid, until the end of its list")
 	end = f"{following.end:%H:%M}"
 	if following.end.date() != following.start.date():
 		end = f"{day_and_month(following.end.date())}, {end}"
-	return f"Il commence aussitôt, au-dessus de la grille, jusqu'à sa fin, à {end}"
+	return _("It starts at once, above the grid, until its end, at {end}").format(end=end)
 
 
 def offer_to_next(state: PlaybackState) -> dict[str, NextEntry]:
@@ -131,7 +131,7 @@ def offer_to_next(state: PlaybackState) -> dict[str, NextEntry]:
 	if (state.ongoing is not None) and (state.next_ is not None):
 		next_ = (state.next_.title) or (state.next_.location)
 		ongoing = (state.ongoing.title) or (state.ongoing.location)
-		tooltip = f"« {next_} », aussitôt : « {ongoing} » s'arrête"
+		tooltip = _("“{next}”, at once: “{ongoing}” stops").format(next=next_, ongoing=ongoing)
 		sound = NextEntry(SKIP_TO_SOUND, Proposal(True, tooltip))
 	advance = NextEntry(ADVANCE_FOLLOWING_EVENT, Proposal(False, NO_FOLLOWING_EVENT))
 	following = state.following_event
@@ -142,20 +142,20 @@ def offer_to_next(state: PlaybackState) -> dict[str, NextEntry]:
 
 # ─── Coupures par le secours et par un feed (https://github.com/dascritch/machincast/issues/323) ───
 
-CUT_BY_FALLBACK = label(SKIP, "Couper par le secours")
+CUT_BY_FALLBACK = label(SKIP, _("Cut by the fallback"))
 """L'entrée du menu « Diffusion » et du clic droit sur le prochain sonore ; avec plusieurs secours, son sous-menu."""
-NO_FALLBACK = "Aucun événement de secours"
-UNTIL_END = (
-	"Le secours joue jusqu'à la fin prévue de l'événement coupé ; sous le fil musical, jusqu'à l'événement suivant"
+NO_FALLBACK = _("No fallback event")
+UNTIL_END = _(
+	"The fallback plays until the planned end of the cut event; under the background programming, until the next event"
 )
-CUT_EVENT_BY_FEED = label(SKIP, "Couper l'événement par ce feed")
-CUT_BACKGROUND_PROGRAMMING_BY_FEED = label(SKIP, "Couper le fil musical par ce feed")
-NO_STREAM = "Aucun stream actif ne suit ce feed"
-FEED_UNTIL_END = (
-	"Le stream du feed passe jusqu'à la fin prévue de l'événement coupé ; sous le fil musical, jusqu'à l'événement"
-	" suivant. S'il tombe, le fil musical prend le relais"
+CUT_EVENT_BY_FEED = label(SKIP, _("Cut the event by this feed"))
+CUT_BACKGROUND_PROGRAMMING_BY_FEED = label(SKIP, _("Cut the background programming by this feed"))
+NO_STREAM = _("No active stream follows this feed")
+FEED_UNTIL_END = _(
+	"The feed's stream plays until the planned end of the cut event; under the background "
+	"programming, until the next event. If it drops, the background programming takes over"
 )
-CUTOFF_WITHOUT_PLAYBACK = "Coupure impossible : Machin player ne répond pas sur sa socket d'état."
+CUTOFF_WITHOUT_PLAYBACK = _("Cutoff impossible: Machin player does not answer on its state socket.")
 
 
 @dataclass(frozen=True)
@@ -175,7 +175,7 @@ def read_fallback(connection: psycopg.Connection[TupleRow]) -> list[Fallback]:
 				" ORDER BY internal_name, id"
 			).fetchall()
 	except psycopg.Error as error:
-		log.error(f"événements de secours illisibles : {error}")
+		log.error(_("unreadable fallback events: {error}").format(error=error))
 		return []
 	return [Fallback(int(str(identifier)), str(name)) for identifier, name in lines]
 
@@ -187,7 +187,13 @@ def offer_fallback(state: PlaybackState, fallback: list[Fallback]) -> Proposal:
 	if state.ongoing is None:
 		return Proposal(False, ON_AIR_NOTHING)
 	if len(fallback) == 1:
-		return Proposal(True, f"« {fallback[0].name} », {UNTIL_END.removeprefix('Le secours ')}")
+		return Proposal(
+			True,
+			_(
+				"“{name}” plays until the planned end of the cut event; under the background programming, until the "
+				"next event"
+			).format(name=fallback[0].name),
+		)
 	return Proposal(True, UNTIL_END)
 
 
@@ -212,7 +218,7 @@ def fill_fallback(
 		under_menu = QMenu(CUT_BY_FALLBACK)
 		under_menu.setToolTipsVisible(True)
 		for un in fallback:
-			entry = under_menu.addAction(f"« {un.name} »")
+			entry = under_menu.addAction(_("“{name}”").format(name=un.name))
 			entry.setToolTip(UNTIL_END)
 			entry.triggered.connect(lambda _ticked=False, un=un: ask(un))
 		action.setMenu(under_menu)
@@ -226,7 +232,7 @@ def ask_fallback(action: QAction, ask: Callable[[Fallback], None]) -> None:
 
 
 def fallback_announcement(name: str) -> str:
-	return f"Coupure par le secours « {name} » demandée."
+	return _("Cut by the fallback “{name}” requested.").format(name=name)
 
 
 def offer_feed(state: PlaybackState, active_stream: bool) -> NextEntry:
@@ -244,7 +250,7 @@ def offer_feed(state: PlaybackState, active_stream: bool) -> NextEntry:
 
 
 def feed_announcement(name: str) -> str:
-	return f"Coupure par le feed « {name} » demandée."
+	return _("Cut by the feed “{name}” requested.").format(name=name)
 
 
 def feed_stream(connection: psycopg.Connection[TupleRow], feed: int) -> tuple[int | None, bool]:
@@ -258,7 +264,7 @@ def feed_stream(connection: psycopg.Connection[TupleRow], feed: int) -> tuple[in
 				(feed,),
 			).fetchone()
 	except psycopg.Error as error:
-		log.error(f"stream du feed {feed} illisible : {error}")
+		log.error(_("unreadable stream of feed {feed}: {error}").format(feed=feed, error=error))
 		return None, False
 	if line is None:
 		return None, False

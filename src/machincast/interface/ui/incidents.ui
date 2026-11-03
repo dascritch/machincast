@@ -16,7 +16,7 @@
      <item>
       <widget class="QLineEdit" name="filter_">
        <property name="placeholderText">
-        <string>Filtrer…</string>
+        <string>Filter…</string>
        </property>
        <property name="clearButtonEnabled">
         <bool>true</bool>
@@ -26,7 +26,7 @@
      <item>
       <widget class="QCheckBox" name="information">
        <property name="text">
-        <string>Montrer aussi les informations</string>
+        <string>Also show the information entries</string>
        </property>
       </widget>
      </item>
@@ -47,7 +47,7 @@
       <enum>QAbstractItemView::SelectionBehavior::SelectItems</enum>
      </property>
      <property name="toolTip">
-      <string>Un double-clic sur le sonore, la banque ou l'événement d'une entrée ouvre sa fiche.</string>
+      <string>A double-click on the sound, the bank or the event of an entry opens its card.</string>
      </property>
      <attribute name="verticalHeaderVisible">
       <bool>false</bool>

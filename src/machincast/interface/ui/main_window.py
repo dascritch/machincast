@@ -23,6 +23,7 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(1100, 800)
+        MainWindow.setWindowTitle(u"MachinCast")
         self.centre = QWidget(MainWindow)
         self.centre.setObjectName(u"centre")
         self.arrangement = QVBoxLayout(self.centre)
@@ -44,6 +45,6 @@ class Ui_MainWindow(object):
     # setupUi
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MachinCast", None))
+        pass
     # retranslateUi
 

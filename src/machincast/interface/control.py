@@ -19,37 +19,36 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QProcess, Signal
 
 from machincast.configuration import PROJECT_DIRECTORY, default_file
+from machincast.i18n import _
 from machincast.interface.intents import HALT, START, label
 from machincast.maintenance import default_backups
 from machincast.service import UNIT
 
 VERBS = {
-	"start": (label(START, "Démarrer la diffusion"), "Diffusion démarrée.", "Diffusion non démarrée"),
-	"stop": (label(HALT, "Arrêter la diffusion"), "Diffusion arrêtée.", "Diffusion non arrêtée"),
+	"start": (label(START, _("Start the broadcast")), _("Broadcast started."), _("Broadcast not started")),
+	"stop": (label(HALT, _("Stop the broadcast")), _("Broadcast stopped."), _("Broadcast not stopped")),
 }
 """Pour chaque verbe de systemctl : l'entrée du menu, ce qu'annonce sa réussite, et son échec."""
 TRIAL = {
-	"start": label(START, "Démarrer la diffusion d'essai"),
-	"stop": label(HALT, "Arrêter la diffusion d'essai"),
+	"start": label(START, _("Start the trial broadcast")),
+	"stop": label(HALT, _("Stop the trial broadcast")),
 }
 """Les entrées du menu sans le service."""
 TERMINALS = ("konsole", "x-terminal-emulator")
 """Les terminaux essayés, dans l'ordre : celui de Kubuntu, puis celui que choisit le poste."""
-WITHOUT_TERMINAL = "Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin player à la main."
+WITHOUT_TERMINAL = _("No terminal found (konsole, x-terminal-emulator): run Machin player by hand.")
 SERVICE_COMMAND = [str(PROJECT_DIRECTORY / "bin" / "Machin"), "player"]
 """Comme l'ExecStart de machincast.service : la diffusion d'essai sort là où sortirait le service."""
-LAUNCHED = "Diffusion d'essai lancée dans un terminal : Ctrl-C l'y arrête."
-MAINTENANCE = "Maintenance de la base de données…"
+LAUNCHED = _("Trial broadcast launched in a terminal: Ctrl-C stops it there.")
+MAINTENANCE = _("Database maintenance…")
 """L'entrée du menu « Maintenance » (https://github.com/dascritch/machincast/issues/127)."""
-LAUNCHED_MAINTENANCE = (
-	"Maintenance de la base de données lancée dans un terminal : sauvegarde, vérification du schéma, optimisation."
+LAUNCHED_MAINTENANCE = _("Database maintenance launched in a terminal: backup, schema check, optimisation.")
+ABANDONED_MAINTENANCE = _("Database maintenance abandoned: nothing was launched.")
+WITHOUT_TERMINAL_FOR_MAINTENANCE = _(
+	"No terminal found (konsole, x-terminal-emulator): run Machin maintenance-db by hand."
 )
-ABANDONED_MAINTENANCE = "Maintenance de la base de données abandonnée : rien n'a été lancé."
-WITHOUT_TERMINAL_FOR_MAINTENANCE = (
-	"Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin maintenance-db à la main."
-)
-REQUESTED_STOP = "Arrêt de la diffusion d'essai demandé…"
-STOPPED = "Diffusion d'essai arrêtée."
+REQUESTED_STOP = _("Stop of the trial broadcast requested…")
+STOPPED = _("Trial broadcast stopped.")
 
 
 class Control(QObject):
@@ -74,7 +73,7 @@ class Control(QObject):
 			self.finished.emit(success)
 			return
 		error = bytes(process.readAllStandardError().data()).decode("utf-8", "replace").strip()
-		self.finished.emit(f"{failure} : {(error) or (process.errorString())}")
+		self.finished.emit(_("{failure}: {error}").format(failure=failure, error=(error) or (process.errorString())))
 
 
 def open_terminal(command: list[str]) -> bool:
@@ -120,7 +119,9 @@ def _gap(configuration: Path | None) -> str:
 	of_service = service_configuration()
 	if (configuration is None) or (configuration.resolve() == of_service.resolve()):
 		return ""
-	return f" Elle lit {of_service}, comme le service, et non {configuration}, celle de l'interface."
+	return _(" It reads {of_service}, like the service, and not {configuration}, the interface's one.").format(
+		of_service=of_service, configuration=configuration
+	)
 
 
 def service_configuration() -> Path:
@@ -133,5 +134,5 @@ def halt_player(pid: int) -> str:
 	try:
 		os.kill(pid, signal.SIGTERM)
 	except OSError as error:
-		return f"Diffusion d'essai non arrêtée : {error.strerror}"
+		return _("Trial broadcast not stopped: {strerror}").format(strerror=error.strerror)
 	return REQUESTED_STOP

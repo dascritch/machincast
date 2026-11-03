@@ -29,6 +29,7 @@ from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSortFilterProxyM
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QAbstractItemView, QLabel, QLineEdit, QMenu, QTableView, QWidget
 
+from machincast.i18n import _, counted
 from machincast.interface import display, groups
 from machincast.interface.columns import Columns
 from machincast.interface.drop import FileDrop
@@ -45,17 +46,22 @@ SORT = IDENTIFIER + 2
 """Rôle de chaque cellule par lequel la liste se trie : son texte, sauf quand la ligne en donne un autre
 (Ligne.tris)."""
 STATES = {
-	"preview": "aperçu",
+	"preview": _("preview"),
 	"active": "actif",
-	"disabled": "désactivé",
-	"expired": "expiré",
-	"corrupt": "erroné",
-	"unsupported": "non supporté",
-	"missing": "supprimé",
+	"disabled": _("disabled"),
+	"expired": _("expired"),
+	"corrupt": _("corrupt"),
+	"unsupported": _("unsupported"),
+	"missing": _("deleted"),
 }
 TYPES = {"file": "fichier", "stream": "stream"}
 """Le type d'un sonore à l'écran, par sa valeur en base (https://github.com/dascritch/machincast/issues/358)."""
-PRIORITIES = {"special": "spécial", "show": "émission", "background_programming": "fil musical", "fallback": "secours"}
+PRIORITIES = {
+	"special": _("special"),
+	"show": _("show"),
+	"background_programming": _("background programming"),
+	"fallback": "secours",
+}
 IMPORTANCE = {priority: rank for rank, priority in enumerate(PRIORITIES)}
 AFTER_ALL = float("inf")
 """Clé de tri d'une durée ou d'une date inconnue : après les autres (https://github.com/dascritch/machincast/issues/302)."""
@@ -65,40 +71,42 @@ WITHOUT_DAY = "~"
 """Clé de tri d'un événement sans récurrence : après les jours, que leurs chiffres classent."""
 """Le tri de la colonne « Priorité » : du plus important au moins important, jamais par ordre alphabétique
 (https://github.com/dascritch/machincast/issues/272)."""
-MODES = {"sequential": "séquentielle", "random": "aléatoire"}
-EMPTY_SEQUENCE = "Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant."
-_RELAY = "Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage."
+MODES = {"sequential": _("sequential"), "random": _("random")}
+EMPTY_SEQUENCE = _("Empty sequence: it plays nothing, and an event that calls it moves on to its next element.")
+_RELAY = _("Empty event: it plays nothing, and the event of lower priority takes over during its slot.")
 EMPTY_EVENT = {
 	"special": _RELAY,
 	"show": _RELAY,
 	"background_programming": (
-		"Événement vide : il ne joue rien, et la diffusion se tait, avec une alerte, quand il est à l'antenne."
+		_("Empty event: it plays nothing, and the broadcast goes silent, with an alert, when it is on air.")
 	),
-	"fallback": "Événement vide : il ne joue rien, et l'événement de priorité inférieure remplace le stream tombé.",
+	"fallback": _("Empty event: it plays nothing, and the event of lower priority replaces the dropped stream."),
 }
 """Ce que fait la diffusion d'un événement vide, selon sa priorité (spec § 4.2,
 https://github.com/dascritch/machincast/issues/140)."""
-BANK_WITHOUT_ACTIVE_SOUND = (
-	"Banque sans sonore actif : elle ne fournit rien, et l'élément qui l'appelle passe à son élément suivant."
+BANK_WITHOUT_ACTIVE_SOUND = _(
+	"Bank without an active sound: it provides nothing, and the element that calls it moves on to its next element."
 )
 
 
 def bank_to_sounds_in_anomaly(count: int) -> str:
 	"""Une banque qui a des sonores actifs, mais aussi des sonores erronés ou non supportés : ceux-là ne passent pas."""
-	if count == 1:
-		return "Banque avec 1 sonore erroné ou non supporté : la diffusion ne le joue pas."
-	return f"Banque avec {count} sonores erronés ou non supportés : la diffusion ne les joue pas."
+	return counted(
+		"Bank with {count} corrupt or unsupported sound: the broadcast does not play it.",
+		"Bank with {count} corrupt or unsupported sounds: the broadcast does not play them.",
+		count,
+	)
 
 
 SOUND_IN_ANOMALY = {
-	"corrupt": "Sonore erroné : son fichier est illisible ou endommagé, et la diffusion ne le joue pas.",
-	"unsupported": "Sonore non supporté : son fichier n'est pas un son lisible, et la diffusion ne le joue pas.",
+	"corrupt": _("Corrupt sound: its file is unreadable or damaged, and the broadcast does not play it."),
+	"unsupported": _("Unsupported sound: its file is not a readable sound, and the broadcast does not play it."),
 }
 """Les états d'un sonore que la diffusion ne joue pas sans que personne l'ait voulu (spec § 3.1, § 4.5)."""
 ANOMALY_COLUMN = "⚠️"
 """Titre de la première colonne des listes en anomalie, et ce qu'elle montre sur une ligne en anomalie
 (https://github.com/dascritch/machincast/issues/327)."""
-ANOMALY_TOOLTIP = "Anomalie : la ligne a un problème, que dit son infobulle"
+ANOMALY_TOOLTIP = _("Anomaly: the line has a problem, which its tooltip tells")
 
 
 @dataclass(frozen=True)
@@ -120,8 +128,10 @@ class Source:
 	category: str
 	columns: tuple[str, ...]
 	read: Callable[[Connection], list[Line]]
-	singular: str
+	counting: Callable[[int], str]
+	"""« 1 sonore », « 2 sonores » : le nombre d'éléments, accordé et traduit."""
 	plural: str
+	"""Le nom des éléments au pluriel, traduit : « sonores »."""
 	no: str
 	new: str = ""
 	"""Texte du bouton qui crée un élément de ce type ; aucun bouton sans texte."""
@@ -131,6 +141,9 @@ class Source:
 	"""Le clic droit sur une ligne propose « Dupliquer »."""
 	anomalies: bool = False
 	"""Une première colonne, COLONNE_D_ANOMALIE, marque les lignes en anomalie."""
+	views: str = ""
+	"""La clé des réglages de ses vues, qui ne dépend pas de la langue : le pluriel français d'avant
+	https://github.com/dascritch/machincast/issues/360, pour garder les dispositions de colonnes déjà retenues."""
 
 
 def _text(value: object) -> str:
@@ -145,8 +158,8 @@ def _date(value: object) -> str:
 	return f"{value.astimezone():%Y-%m-%d %H:%M}"
 
 
-SOUND_COLUMNS = ("Artiste", "Titre", "Type", "État", "Durée", "Emplacement")
-DURATION_POSITION = SOUND_COLUMNS.index("Durée")
+SOUND_COLUMNS = (_("Artist"), _("Title"), _("Type"), _("State"), _("Duration"), _("Location"))
+DURATION_POSITION = SOUND_COLUMNS.index(_("Duration"))
 
 
 def read_sounds(connection: Connection) -> list[Line]:
@@ -167,7 +180,7 @@ def read_sounds(connection: Connection) -> list[Line]:
 		state_text = STATES.get(str(state), str(state))
 		if requested_audit is True:
 			# https://github.com/dascritch/machincast/issues/114
-			state_text = f"{state_text}, audit demandé"
+			state_text = _("{state_text}, audit requested").format(state_text=state_text)
 		# Les durées d'une banque ne se signalent que dans sa fiche, et parmi les relations du sonore, jamais ici
 		# (https://github.com/dascritch/machincast/issues/210).
 		cells = [
@@ -228,7 +241,7 @@ def read_sequences(connection: Connection) -> list[Line]:
 		cells = [str(name), _text(public_name), ""]
 		anomaly = ""
 		if empty:
-			cells[2] = "séquence vide"
+			cells[2] = _("empty sequence")
 			anomaly = EMPTY_SEQUENCE
 		lines.append(Line(int(str(identifier)), str(name), cells, anomaly))
 	return lines
@@ -248,11 +261,11 @@ def read_feeds(connection: Connection) -> list[Line]:
 	]
 
 
-EVENT_COLUMNS = ("Nom", "Nom public", "Priorité", "Début", "Fin", "Récurrence", "Anomalie")
-PRIORITY_POSITION = EVENT_COLUMNS.index("Priorité")
-START_POSITION = EVENT_COLUMNS.index("Début")
-END_POSITION = EVENT_COLUMNS.index("Fin")
-RECURRENCE_POSITION = EVENT_COLUMNS.index("Récurrence")
+EVENT_COLUMNS = (_("Name"), _("Public name"), _("Priority"), _("Start"), _("End"), _("Recurrence"), _("Anomaly"))
+PRIORITY_POSITION = EVENT_COLUMNS.index(_("Priority"))
+START_POSITION = EVENT_COLUMNS.index(_("Start"))
+END_POSITION = EVENT_COLUMNS.index(_("End"))
+RECURRENCE_POSITION = EVENT_COLUMNS.index(_("Recurrence"))
 
 
 def _instant(value: object) -> float:
@@ -289,7 +302,7 @@ def read_events(connection: Connection) -> list[Line]:
 		cells += [recurrence, ""]
 		anomaly = ""
 		if empty:
-			cells[-1] = "événement vide"
+			cells[-1] = _("empty event")
 			anomaly = EMPTY_EVENT[str(priority)]
 		sorts: dict[int, int | float | str] = {
 			PRIORITY_POSITION: IMPORTANCE.get(str(priority), len(IMPORTANCE)),
@@ -305,54 +318,59 @@ SOUNDS = Source(
 	"sonore",
 	SOUND_COLUMNS,
 	read_sounds,
-	"sonore",
-	"sonores",
-	"aucun sonore",
-	"Nouveau stream",
-	label(ADD, "Ajouter des fichiers…"),
+	lambda n: counted("{count} sound", "{count} sounds", n),
+	_("sounds"),
+	_("no sound"),
+	_("New stream"),
+	label(ADD, _("Add files…")),
 	anomalies=True,
+	views="sonores",
 )
 BANKS = Source(
 	"banque",
-	("Nom", "Nom public", "Mode", "Ne pas répéter", "Répertoire"),
+	(_("Name"), _("Public name"), _("Mode"), _("Do not repeat"), _("Directory")),
 	read_banks,
-	"banque",
-	"banques",
-	"aucune banque",
-	"Nouvelle banque",
+	lambda n: counted("{count} bank", "{count} banks", n),
+	_("banks"),
+	_("no bank"),
+	_("New bank"),
 	duplicable=True,
 	anomalies=True,
+	views="banques",
 )
 SEQUENCES = Source(
 	"séquence",
-	("Nom", "Nom public", "Anomalie"),
+	(_("Name"), _("Public name"), _("Anomaly")),
 	read_sequences,
-	"séquence",
-	"séquences",
-	"aucune séquence",
-	"Nouvelle séquence",
+	lambda n: counted("{count} sequence", "{count} sequences", n),
+	_("sequences"),
+	_("no sequence"),
+	_("New sequence"),
 	duplicable=True,
 	anomalies=True,
+	views="séquences",
 )
 EVENTS = Source(
 	"événement",
 	EVENT_COLUMNS,
 	read_events,
-	"événement",
-	"événements",
-	"aucun événement",
-	"Nouvel événement",
+	lambda n: counted("{count} event", "{count} events", n),
+	_("events"),
+	_("no event"),
+	_("New event"),
 	duplicable=True,
 	anomalies=True,
+	views="événements",
 )
 FEEDS = Source(
 	"feed",
-	("Nom", "Adresse", "Streams"),
+	(_("Name"), _("Address"), _("Streams")),
 	read_feeds,
-	"feed",
-	"feeds",
-	"aucun feed",
-	"Nouveau feed",
+	lambda n: counted("{count} feed", "{count} feeds", n),
+	_("feeds"),
+	_("no feed"),
+	_("New feed"),
+	views="feeds",
 )
 
 
@@ -435,7 +453,7 @@ class List(QWidget):
 		self.table.setModel(self.proxy)
 		header = self.table.horizontalHeader()
 		if view is None:
-			view = f"liste-{view_name(source.plural)}"
+			view = f"liste-{view_name(source.views)}"
 		self.columns = Columns(self.table, view)
 		# Un clic sur un titre de colonne trie la liste ; avant, elle garde l'ordre de la base.
 		self.table.setSortingEnabled(True)
@@ -483,7 +501,7 @@ class List(QWidget):
 		try:
 			lines = self.source.read(self.connection)
 		except psycopg.Error as error:
-			log.error(f"liste des {self.source.plural} illisible : {error}")
+			log.error(_("unreadable list of {plural}: {error}").format(plural=self.source.plural, error=error))
 			return
 		self.model.setRowCount(0)
 		for line in lines:
@@ -513,21 +531,16 @@ class List(QWidget):
 		total = self.model.rowCount()
 		visible_list = self.proxy.rowCount()
 		if self.filter_.text() != "":
-			text = f"{visible_list} {self._word(visible_list)} sur {total}"
+			text = _("{elements} out of {total}").format(elements=self.source.counting(visible_list), total=total)
 		elif total == 0:
 			text = self.source.no
 		else:
-			text = f"{total} {self._word(total)}"
+			text = self.source.counting(total)
 		# Les lignes en anomalie parmi celles que montre le filtre.
 		anomalies = sum(1 for row in range(visible_list) if self.proxy.index(row, 0).data(Qt.ItemDataRole.ToolTipRole))
 		if anomalies > 0:
-			text = f"{text}, dont {anomalies} en anomalie"
+			text = _("{text}, of which {anomalies} in anomaly").format(text=text, anomalies=anomalies)
 		self.count.setText(text)
-
-	def _word(self, count: int) -> str:
-		if count > 1:
-			return self.source.plural
-		return self.source.singular
 
 	def selection(self) -> list[int]:
 		"""Les éléments des lignes sélectionnées, dans l'ordre de la liste affichée."""
@@ -556,7 +569,7 @@ class List(QWidget):
 			items = [clicked]
 		menu = QMenu(self)
 		if (self.duplicable) and (len(items) == 1):
-			duplicate = menu.addAction("Dupliquer")
+			duplicate = menu.addAction(_("Duplicate"))
 			duplicate.triggered.connect(lambda: self.requested_duplication.emit(self.source.category, clicked))
 		for action in self.grouped_actions:
 			entry = menu.addAction(action.text)

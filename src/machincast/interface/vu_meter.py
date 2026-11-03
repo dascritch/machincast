@@ -20,6 +20,8 @@ from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QFontMetricsF, QMouseEvent, QPainter, QPaintEvent, QPen
 from PySide6.QtWidgets import QWidget
 
+from machincast.i18n import _
+
 FLOOR = -60.0
 PEAK_HOLD = 2.0
 """Secondes pendant lesquelles le repère garde la plus haute crête."""
@@ -87,7 +89,7 @@ class VuMeter(QWidget):
 		self.font_face = QFont(self.font())
 		self.font_face.setPointSizeF(SCALE_SIZE)
 		self.setMinimumSize(24, 24)
-		self.setToolTip("Niveau de chaque canal, en décibels")
+		self.setToolTip(_("Level of each channel, in decibels"))
 
 	def display(self, levels: list[float], peaks: list[float] | None = None) -> None:
 		self.levels = _valid_list(levels)

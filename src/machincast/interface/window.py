@@ -68,6 +68,7 @@ from machincast.configuration import (
 	Silences,
 	load,
 )
+from machincast.i18n import _
 from machincast.interface import (
 	columns,
 	control,
@@ -113,13 +114,22 @@ from machincast.player.state import (
 log = logging.getLogger(__name__)
 
 TABS = (
-	("Événements", EVENTS),
-	("Séquences", SEQUENCES),
-	("Banques", BANKS),
-	("Sonores", SOUNDS),
-	("Feeds", FEEDS),
+	(_("Events"), EVENTS),
+	(_("Sequences"), SEQUENCES),
+	(_("Banks"), BANKS),
+	(_("Sounds"), SOUNDS),
+	(_("Feeds"), FEEDS),
 )
-ON_DEMAND = frozenset({"Sonores", "Feeds"})
+LIST_KEYS = {
+	"événement": "Événements",
+	"séquence": "Séquences",
+	"banque": "Banques",
+	"sonore": "Sonores",
+	"feed": "Feeds",
+}
+"""Ce qui désigne l'onglet de chaque liste dans les réglages, « liste:Sonores » : son titre français d'avant
+https://github.com/dascritch/machincast/issues/360, qui ne dépend pas de la langue."""
+ON_DEMAND = frozenset({LIST_KEYS["sonore"], LIST_KEYS["feed"]})
 """Les listes qui ne s'ouvrent pas au lancement, mais par le menu « Affichage », et qui se ferment
 (https://github.com/dascritch/machincast/issues/180)."""
 CARDS: dict[str, type[Card]] = {
@@ -130,7 +140,7 @@ INDEXING_TRACKING = 1000
 """Millisecondes entre deux regards sur le processus de l'indexation lancée depuis le menu."""
 TICKETS = "https://github.com/dascritch/machincast/issues"
 """Les tickets de MachinCast, qu'ouvre « Signaler un problème… » ; comme dans pyproject.toml."""
-ON_AIR = "Antenne"
+ON_AIR = _("On air")
 TAB_KEY = "onglets/ouverts"
 ACTIVE_TAB_KEY = "onglets/actif"
 """Les onglets ouverts, et l'onglet actif, dans les réglages des vues du compte
@@ -147,34 +157,35 @@ DELETABLE = frozenset({"sounds", "banks", "sequences", "events"})
 """L'onglet de l'écran par défaut, l'onglet Antenne, qui suit l'antenne (https://github.com/dascritch/machincast/issues/322)."""
 INCOMPLETE_SERVICE, INSTALLED_SERVICE = "🟩", "🟥"
 """Le témoin du service de diffusion, devant le titre de l'onglet Antenne : pas complètement installé, ou installé."""
-STOPPED_BROADCAST = "🔇 Diffusion arrêtée"
-WITHOUT_SERVICE = "Installation non définitive : diffusion sans service"
+STOPPED_BROADCAST = _("🔇 Broadcast stopped")
+WITHOUT_SERVICE = _("Non-final installation: broadcast without a service")
 """Ce que montre la barre d'état tant que le service n'est pas installé (https://github.com/dascritch/machincast/issues/25)."""
-INSTALL_SERVICE = (
-	"La diffusion ne démarre pas avec le poste, et ne redémarre pas seule après un plantage. Sur un ordinateur dédié à "
-	"l'antenne, installer le service : ./install.sh --service (INSTALL.md, Service de diffusion)."
+INSTALL_SERVICE = _(
+	"The broadcast does not start with the computer, and does not restart by itself after a "
+	"crash. On a computer dedicated to the on-air output, install the service: ./install.sh "
+	"--service (INSTALL.md, Broadcast service)."
 )
-WITHOUT_SERVICE_START = "Sans service : Machin player dans une fenêtre de terminal"
-WITHOUT_TRIAL = "Aucune diffusion d'essai en cours"
-TRIAL_HALT = "Sans service : arrête le Machin player lancé à la main, comme Ctrl-C"
-TO_FILL_IN_ON_AIR = "Périphérique de l'antenne à renseigner"
-SET_ON_AIR = (
-	"Machin player refuse de diffuser sans lui : le choisir dans Fichier → Préférences…, page Audio, ou le donner"
-	" dans audio.device du fichier de configuration."
+WITHOUT_SERVICE_START = _("Without a service: Machin player in a terminal window")
+WITHOUT_TRIAL = _("No trial broadcast running")
+TRIAL_HALT = _("Without a service: stops the Machin player launched by hand, like Ctrl-C")
+TO_FILL_IN_ON_AIR = _("On-air device to fill in")
+SET_ON_AIR = _(
+	"Machin player refuses to broadcast without it: choose it in File → Preferences…, Audio "
+	"page, or give it in audio.device of the configuration file."
 )
-ALREADY_RUNNING = "La diffusion d'essai tourne déjà"
+ALREADY_RUNNING = _("The trial broadcast is already running")
 LISTENING = {
-	False: ("Pré-écoute de l'antenne", "Écouter l'antenne sur la sortie de pré-écoute, aussitôt"),
-	True: ("Arrêter la pré-écoute de l'antenne", "Arrêter l'écoute de l'antenne sur la sortie de pré-écoute"),
+	False: (_("On-air pre-listen"), _("Listen to the on-air output on the pre-listen output, at once")),
+	True: (_("Stop the on-air pre-listen"), _("Stop listening to the on-air output on the pre-listen output")),
 }
 """L'entrée d'écoute de l'antenne du menu « Diffusion », et son infobulle, selon que l'antenne s'écoute
 (https://github.com/dascritch/machincast/issues/256)."""
 
 TAB_SHORTCUTS = 12
 """Les onglets qui ont un raccourci, Maj+F1 à Maj+F12 (https://github.com/dascritch/machincast/issues/192)."""
-ADDITION_TO_BANKS = "Les sonores choisis s'ajoutent à la fin de chaque banque."
+ADDITION_TO_BANKS = _("The chosen sounds are added at the end of each bank.")
 """Remarque du choix des banques où ajouter des sonores (https://github.com/dascritch/machincast/issues/114)."""
-BANK_REMOVAL = "Seules les banques où figure l'un des sonores choisis sont proposées."
+BANK_REMOVAL = _("Only the banks containing one of the chosen sounds are offered.")
 """Remarque du choix des banques d'où retirer des sonores."""
 
 
@@ -274,7 +285,7 @@ class MainWindow(QMainWindow):
 		self.calendar.requested_creation.connect(self._create_event)
 		self.calendar.announces.connect(self.ui.state_bar.showMessage)
 		self.calendar.modified_grid.connect(self._modified_grid)
-		self._add_fixed(self.calendar, "Calendrier")
+		self._add_fixed(self.calendar, _("Calendar"))
 		self.home.opened.connect(self._open)
 		self.home.requested_preview.connect(self._preview)
 		# Le clic droit sur le prochain sonore (https://github.com/dascritch/machincast/issues/257).
@@ -337,6 +348,8 @@ class MainWindow(QMainWindow):
 		self.lists: list[List] = []
 		self._titles: dict[QWidget, str] = {}
 		"""Le titre de l'onglet de chaque liste, ouverte ou non."""
+		self._keys: dict[QWidget, str] = {}
+		"""La clé de l'onglet de chaque liste, dans les réglages (LIST_KEYS)."""
 		for title, source in TABS:
 			list_ = List(source, connection)
 			list_.opened.connect(self._open)
@@ -351,7 +364,8 @@ class MainWindow(QMainWindow):
 			list_.dropped_files.connect(lambda paths, list_=list_: self._add_files(list_, paths))
 			self.lists.append(list_)
 			self._titles[list_] = title
-			if title not in ON_DEMAND:
+			self._keys[list_] = LIST_KEYS[source.category]
+			if self._keys[list_] not in ON_DEMAND:
 				self._add_fixed(list_, title)
 				continue
 			# Sans onglet jusqu'à ce qu'on la demande, elle appartient à la fenêtre, cachée : elle ne lui survit pas
@@ -360,7 +374,7 @@ class MainWindow(QMainWindow):
 			list_.hide()
 		self.incidents = IncidentScreen(connection)
 		self.incidents.opened.connect(self._open)
-		self._add_fixed(self.incidents, "Incidents")
+		self._add_fixed(self.incidents, _("Incidents"))
 		self.ui.tabs.setCurrentIndex(0)
 		self.ui.tabs.currentChanged.connect(self._opened_tab)
 		self.ui.tabs.tabCloseRequested.connect(self._close)
@@ -368,7 +382,7 @@ class MainWindow(QMainWindow):
 		self.reopen_tabs()
 		if not identify(self._application(), self.icon):
 			self.statusBar().showMessage(
-				f"Icône {self.icon} illisible ou introuvable : icône de MachinCast à la place."
+				_("Icon {icon} unreadable or not found: MachinCast icon instead.").format(icon=self.icon)
 			)
 
 	@staticmethod
@@ -384,49 +398,51 @@ class MainWindow(QMainWindow):
 		try:
 			places = shortcut.rewrite(icon)
 		except OSError as error:
-			return f" Raccourcis non mis à jour : {error}."
+			return _(" Shortcuts not updated: {error}.").format(error=error)
 		if not places:
 			return ""
-		return f" Icône mise à jour {' et '.join(places)}."
+		return _(" Icon updated {places}.").format(places=_(" and ").join(places))
 
 	def _fill_menus(self) -> None:
 		"""Fichier, Affichage, Diffusion, Maintenance, Aide ; une fonction à venir a son entrée, inactive, avec son
 		ticket."""
-		file = self.menuBar().addMenu("&Fichier")
+		file = self.menuBar().addMenu(_("&File"))
 		# La page « Interface » : https://github.com/dascritch/machincast/issues/145 ; l'icône viendra avec
 		# https://github.com/dascritch/machincast/issues/111.
-		settings = file.addAction("Préférences…")
+		settings = file.addAction(_("Preferences…"))
 		settings.triggered.connect(self._preferences)
 		if self.configuration is None:
 			settings.setEnabled(False)
-			settings.setToolTip("Sans fichier de configuration, les préférences ne s'enregistrent pas")
+			settings.setToolTip(_("Without a configuration file, the preferences are not saved"))
 		file.addSeparator()
-		quit_ = file.addAction("Quitter")
+		quit_ = file.addAction(_("Quit"))
 		quit_.setShortcut(QKeySequence("Alt+Q"))
 		quit_.triggered.connect(self.close)
-		display_menu = self.menuBar().addMenu("A&ffichage")
-		look_up = display_menu.addAction("Rechercher…")
+		display_menu = self.menuBar().addMenu(_("&View"))
+		look_up = display_menu.addAction(_("Search…"))
 		look_up.setShortcut(QKeySequence("Ctrl+F"))
 		look_up.triggered.connect(self._open_search)
 		for title, source in TABS:
-			if title not in ON_DEMAND:
+			if LIST_KEYS[source.category] not in ON_DEMAND:
 				continue
-			open_ = display_menu.addAction(icons.icon_of(source.category), f"Ouvrir l'onglet {title}")
+			open_ = display_menu.addAction(
+				icons.icon_of(source.category), _("Open the {title} tab").format(title=title)
+			)
 			open_.triggered.connect(lambda _ticked=False, title=title: self.open_list(title))
-		grid = display_menu.addAction(icons.icon("grille"), "Ouvrir l'onglet Grille horaire")
+		grid = display_menu.addAction(icons.icon("grille"), _("Open the Time grid tab"))
 		grid.triggered.connect(self._open_calendar)
-		simulation = display_menu.addAction(icons.icon("simulation"), "Ouvrir l'onglet Simulation")
+		simulation = display_menu.addAction(icons.icon("simulation"), _("Open the Simulation tab"))
 		simulation.triggered.connect(self._open_simulation)
-		airplay = display_menu.addAction(icons.icon("airplay"), "Ouvrir l'onglet Airplay")
+		airplay = display_menu.addAction(icons.icon("airplay"), _("Open the Airplay tab"))
 		airplay.triggered.connect(self._open_airplay)
-		self.preview_action = display_menu.addAction(icons.icon("pré-écoute"), "Pré-écoute…")
+		self.preview_action = display_menu.addAction(icons.icon("pré-écoute"), _("Pre-listen…"))
 		self.preview_action.triggered.connect(lambda: self._preview(None))
 		# En bas du menu (https://github.com/dascritch/machincast/issues/322).
 		display_menu.addSeparator()
-		refresh = display_menu.addAction("Rafraîchir les onglets")
+		refresh = display_menu.addAction(_("Refresh the tabs"))
 		refresh.setShortcut(QKeySequence("F5"))
 		refresh.triggered.connect(self.refresh)
-		self.broadcast_menu = self.menuBar().addMenu("&Diffusion")
+		self.broadcast_menu = self.menuBar().addMenu(_("&Broadcast"))
 		self.broadcast_menu.aboutToShow.connect(self._reread_service)
 		# L'écoute de l'antenne, lancée aussitôt, en tête du menu (https://github.com/dascritch/machincast/issues/245) ;
 		# pendant l'écoute, elle l'arrête, et Alt+P fait l'un ou l'autre (https://github.com/dascritch/machincast/issues/256).
@@ -452,9 +468,9 @@ class MainWindow(QMainWindow):
 		fallback = self.cutoff_by_fallback
 		fallback.triggered.connect(lambda _ticked=False: interruption.ask_fallback(fallback, self._cut_by_fallback))
 		self.broadcast_menu.aboutToShow.connect(self._reread_fallback)
-		maintenance = self.menuBar().addMenu("&Maintenance")
+		maintenance = self.menuBar().addMenu(_("&Maintenance"))
 		_upcoming(
-			maintenance.addAction("Moniteur de la sortie…"), "ticket 85"
+			maintenance.addAction(_("Output monitor…")), "ticket 85"
 		)  # https://github.com/dascritch/machincast/issues/85
 		maintenance.addSeparator()
 		self.indexings: list[QAction] = []
@@ -468,10 +484,10 @@ class MainWindow(QMainWindow):
 		database = maintenance.addAction(control.MAINTENANCE)
 		database.triggered.connect(self._maintain_database)
 		self.indexings.append(database)
-		help_ = self.menuBar().addMenu("&Aide")
-		help_.addAction("Documentation").triggered.connect(lambda: dialogs.open_page(version.documentation()))
-		help_.addAction("Signaler un problème…").triggered.connect(lambda: dialogs.open_page(TICKETS))
-		help_.addAction("Version").triggered.connect(
+		help_ = self.menuBar().addMenu(_("&Help"))
+		help_.addAction(_("Documentation")).triggered.connect(lambda: dialogs.open_page(version.documentation()))
+		help_.addAction(_("Report a problem…")).triggered.connect(lambda: dialogs.open_page(TICKETS))
+		help_.addAction(_("Version")).triggered.connect(
 			lambda: dialogs.show_version(self, version.text(), version.of_the_version())
 		)
 		for menu in (file, display_menu, self.broadcast_menu, maintenance, help_):
@@ -614,11 +630,13 @@ class MainWindow(QMainWindow):
 			if result is Refreshed.ERASED:
 				erased_list.append(title)
 				self._remove(card)
-		text = "Onglets rafraîchis."
+		text = _("Tabs refreshed.")
 		if left_list != []:
-			text = f"{text} Fiches laissées telles quelles : {_titles(left_list)}."
+			text = _("{text} Cards left as they are: {titles}.").format(text=text, titles=_titles(left_list))
 		if erased_list != []:
-			text = f"{text} Fiches fermées, leur élément n'est plus en base : {_titles(erased_list)}."
+			text = _("{text} Cards closed, their element is no longer in the database: {titles}.").format(
+				text=text, titles=_titles(erased_list)
+			)
 		self.ui.state_bar.showMessage(text)
 
 	def cards(self) -> list[Card]:
@@ -655,7 +673,7 @@ class MainWindow(QMainWindow):
 				return None
 			return f"fiche:{screen.category}:{screen.identifier}"
 		if isinstance(screen, List):
-			return f"liste:{self._titles[screen]}"
+			return f"liste:{self._keys[screen]}"
 		for fixed, key in ((self.home, "antenne"), (self.calendar, "calendrier"), (self.incidents, "incidents")):
 			if screen is fixed:
 				return key
@@ -689,7 +707,7 @@ class MainWindow(QMainWindow):
 			try:
 				self._reopen(str(key))
 			except psycopg.Error as error:
-				log.error(f"onglet « {key} » non rouvert : {error}")
+				log.error(_("tab “{key}” not reopened: {error}").format(key=key, error=error))
 		active = str(settings.value(ACTIVE_TAB_KEY, "antenne"))
 		tabs = self.ui.tabs
 		found_list = [index for index in range(tabs.count()) if self.tab_key(tabs.widget(index)) == active]
@@ -697,7 +715,7 @@ class MainWindow(QMainWindow):
 
 	def _reopen(self, key: str) -> None:
 		"""Rouvre un onglet retenu ; un onglet fixe l'est déjà, une clé inconnue est ignorée."""
-		category, _, rest = key.partition(":")
+		category, _separator, rest = key.partition(":")
 		if (category == "liste") and (rest in ON_DEMAND):
 			self.open_list(rest)
 		elif category == "recherche":
@@ -707,12 +725,16 @@ class MainWindow(QMainWindow):
 		elif category == "airplay":
 			self._open_airplay()
 		elif category == "fiche":
-			card_type, _, identifier = rest.partition(":")
+			card_type, _separator, identifier = rest.partition(":")
 			if (card_type in CARD_TABLES) and (identifier.isdigit()):
 				if self._in_database(card_type, int(identifier)):
 					self._open_card(card_type, int(identifier))
 				else:
-					log.info(f"fiche {card_type} {identifier} oubliée : l'élément n'est plus en base")
+					log.info(
+						_("card {card_type} {identifier} forgotten: the element is no longer in the database").format(
+							card_type=card_type, identifier=identifier
+						)
+					)
 
 	def _in_database(self, category: str, identifier: int) -> bool:
 		"""L'élément est en base, et n'est pas supprimé."""
@@ -916,15 +938,17 @@ class MainWindow(QMainWindow):
 		if search is None:
 			search = SearchScreen(self.connection)
 			search.opened.connect(self._open)
-			self._add_tab(search, "Recherche")
+			self._add_tab(search, _("Search"))
 		tabs.setCurrentWidget(search)
 		search.focus()
 
 	def open_list(self, title: str) -> None:
 		"""Ouvre une liste à la demande à sa place, après les listes qui la précèdent et avant les incidents, ou la
-		ramène au premier plan (https://github.com/dascritch/machincast/issues/180)."""
+		ramène au premier plan (https://github.com/dascritch/machincast/issues/180). Elle se désigne par son titre, ou
+		par sa clé (LIST_KEYS)."""
 		tabs = self.ui.tabs
-		(list_,) = (list_ for list_ in self.lists if self._titles[list_] == title)
+		(list_,) = (list_ for list_ in self.lists if title in (self._titles[list_], self._keys[list_]))
+		title = self._titles[list_]
 		index = tabs.indexOf(list_)
 		if index < 0:
 			order: list[QWidget] = [self.home, self.calendar, *self.lists]
@@ -942,7 +966,7 @@ class MainWindow(QMainWindow):
 		simulation = next((screen for screen in opened_list if isinstance(screen, SimulationScreen)), None)
 		if simulation is None:
 			simulation = SimulationScreen(self.clock, self.configuration)
-			self._add_tab(simulation, "Simulation")
+			self._add_tab(simulation, _("Simulation"))
 		tabs.setCurrentWidget(simulation)
 
 	def _open_airplay(self) -> None:
@@ -957,7 +981,7 @@ class MainWindow(QMainWindow):
 			airplay.requested_preview.connect(self._preview)
 			airplay.announces.connect(self.ui.state_bar.showMessage)
 			self.home.reread_airplay.connect(airplay.refresh)
-			self._add_tab(airplay, "Airplay")
+			self._add_tab(airplay, _("Airplay"))
 		tabs.setCurrentWidget(airplay)
 
 	def _metadata(self) -> Metadata:
@@ -967,13 +991,15 @@ class MainWindow(QMainWindow):
 		try:
 			return load(self.configuration).metadata
 		except (InvalidConfiguration, OSError) as error:
-			log.warning(f"configuration illisible, exports sans masquage : {error}")
+			log.warning(_("unreadable configuration, exports without hiding: {error}").format(error=error))
 			return WITHOUT_METADATA
 
 	def _create_event(self, start: datetime) -> None:
 		"""Un nouvel événement, à l'heure cliquée dans le calendrier, s'ouvre dans sa fiche si on le confirme."""
 		end = start + ONE_HOUR
-		text = f"Créer un événement le {long_date(start.date())} de {start:%H:%M} à {end:%H:%M} ?"
+		text = _("Create an event on {long_date} from {start:%H:%M} to {end:%H:%M}?").format(
+			long_date=long_date(start.date()), start=start, end=end
+		)
 		if not dialogs.confirm_creation(self, text):
 			return
 		self._open_card("événement", None)
@@ -1030,8 +1056,8 @@ class MainWindow(QMainWindow):
 			with self.connection.transaction():
 				announces = action.run(self.connection, items, banks)
 		except psycopg.Error as error:
-			log.error(f"{action.title} : impossible : {error}")
-			self.ui.state_bar.showMessage(f"{action.title} : impossible : {error}")
+			log.error(_("{title}: impossible: {error}").format(title=action.title, error=error))
+			self.ui.state_bar.showMessage(_("{title}: impossible: {error}").format(title=action.title, error=error))
 			return
 		self.ui.state_bar.showMessage(announces)
 		list_.refresh()
@@ -1043,8 +1069,8 @@ class MainWindow(QMainWindow):
 		try:
 			adding = add_files(self.connection, paths)
 		except psycopg.Error as error:
-			log.error(f"ajout de fichiers impossible : {error}")
-			self.ui.state_bar.showMessage(f"Ajout impossible : {error}")
+			log.error(_("addition of files impossible: {error}").format(error=error))
+			self.ui.state_bar.showMessage(_("Addition impossible: {error}").format(error=error))
 			return
 		self.ui.state_bar.showMessage(adding.text())
 		list_.refresh()
@@ -1062,7 +1088,7 @@ class MainWindow(QMainWindow):
 		try:
 			gaps = suggestions.missing_list(self.connection, self.audio)
 		except psycopg.Error as error:
-			log.error(f"suggestions impossibles : {error}")
+			log.error(_("suggestions impossible: {error}").format(error=error))
 			return
 		if gaps.empty():
 			return
@@ -1071,7 +1097,11 @@ class MainWindow(QMainWindow):
 			try:
 				suggestions.save(self.configuration, response)
 			except OSError as error:
-				self.statusBar().showMessage(f"Réglages non enregistrés dans {self.configuration} : {error}")
+				self.statusBar().showMessage(
+					_("Settings not saved in {configuration}: {error}").format(
+						configuration=self.configuration, error=error
+					)
+				)
 				return
 		if response.more_offer:
 			self.suggestions = False
@@ -1080,7 +1110,7 @@ class MainWindow(QMainWindow):
 		try:
 			text = suggestions.create(self.connection, response)
 		except psycopg.Error as error:
-			self.statusBar().showMessage(f"Création impossible : {error}")
+			self.statusBar().showMessage(_("Creation impossible: {error}").format(error=error))
 			return
 		if text is not None:
 			self.statusBar().showMessage(text)
@@ -1091,10 +1121,12 @@ class MainWindow(QMainWindow):
 			self._flag_on_air()
 			self._follow_preview()
 			self.home.change_on_air(self.audio)
-			on_air = (response.on_air) or ("à renseigner")
+			on_air = (response.on_air) or (_("to fill in"))
 			self.statusBar().showMessage(
-				f"Cartes son : antenne {on_air}, pré-écoute {response.preview} ;"
-				" Machin player prendra l'antenne à son prochain démarrage."
+				_(
+					"Sound cards: on air {on_air}, pre-listen {preview}; Machin player will take the on-air "
+					"output at its next start."
+				).format(on_air=on_air, preview=response.preview)
 			)
 
 	def _guarantee_background_programming(self) -> None:
@@ -1102,14 +1134,14 @@ class MainWindow(QMainWindow):
 		try:
 			created = guarantee(self.connection)
 		except psycopg.Error as error:
-			log.error(f"vérification du fil musical impossible : {error}")
+			log.error(_("check of the background programming impossible: {error}").format(error=error))
 			return
 		if created is None:
 			return
-		text = (
-			f"Aucun fil musical : « {created} » est créé, permanent et sans élément ; sa liste se remplit dans sa"
-			f" fiche."
-		)
+		text = _(
+			"No background programming: “{created}” is created, permanent and without element; its "
+			"list is filled in its card."
+		).format(created=created)
 		log.warning(text)
 		self.ui.state_bar.showMessage(text)
 
@@ -1131,13 +1163,15 @@ class MainWindow(QMainWindow):
 		self._launched_mode = full_audit
 		self.launched_indexing = indexer.launch_detached(command)
 		if self.launched_indexing is None:
-			log.error(f"indexation impossible à lancer : {' '.join(command)}")
-			self.ui.state_bar.showMessage("Indexation impossible : Machin indexer n'a pas pu être lancé.")
+			log.error(_("indexing impossible to launch: {list}").format(list=" ".join(command)))
+			self.ui.state_bar.showMessage(_("Indexing impossible: Machin indexer could not be launched."))
 			return
 		for action in self.indexings:
 			action.setEnabled(False)
 		title = TITLES[full_audit]
-		self.ui.state_bar.showMessage(f"{title} {LAUNCHED[full_audit]}, dans sa propre fenêtre.")
+		self.ui.state_bar.showMessage(
+			_("{title} {launched}, in its own window.").format(title=title, launched=LAUNCHED[full_audit])
+		)
 		self._indexing_tracking.start()
 
 	def _follow_indexing(self) -> None:
@@ -1150,7 +1184,9 @@ class MainWindow(QMainWindow):
 			action.setEnabled(True)
 		title = TITLES[self._launched_mode]
 		self.ui.state_bar.showMessage(
-			f"{title} {FINISHED[self._launched_mode]} ; « Rafraîchir les onglets » (F5) montre ses changements."
+			_("{title} {finished}; “Refresh the tabs” (F5) shows its changes.").format(
+				title=title, finished=FINISHED[self._launched_mode]
+			)
 		)
 
 	def _finished_check(self, text: str) -> None:
@@ -1174,7 +1210,9 @@ class MainWindow(QMainWindow):
 		title = opened.title()
 		if opened.refresh() is Refreshed.ERASED:
 			self._remove(opened)
-			self.ui.state_bar.showMessage(f"Fiche fermée, son élément n'est plus en base : « {title} ».")
+			self.ui.state_bar.showMessage(
+				_("Card closed, its element is no longer in the database: “{title}”.").format(title=title)
+			)
 
 	def _preferences(self) -> None:
 		"""Les préférences réglées s'enregistrent dans le fichier de configuration, puis valent pour les fiches
@@ -1201,7 +1239,11 @@ class MainWindow(QMainWindow):
 		try:
 			preferences.write(self.configuration, settings)
 		except OSError as error:
-			self.statusBar().showMessage(f"Préférences non enregistrées dans {self.configuration} : {error}")
+			self.statusBar().showMessage(
+				_("Preferences not saved in {configuration}: {error}").format(
+					configuration=self.configuration, error=error
+				)
+			)
 			return
 		preferences.define(settings.crossfades)
 		preferences.define_retention(settings.retention)
@@ -1213,10 +1255,10 @@ class MainWindow(QMainWindow):
 		icon = ""
 		if settings.icon != self.icon:
 			icon = self._change_icon(settings.icon)
-		text = "les crossfades par défaut"
+		text = _("the default crossfades")
 		output = (settings.output) or (audio.output)
 		if (settings.on_air != audio.device) or (output != audio.output):
-			text = "les crossfades par défaut et le périphérique de l'antenne"
+			text = _("the default crossfades and the on-air device")
 		self.audio = dataclasses.replace(audio, output=output, device=settings.on_air, preview=settings.preview)
 		if self.preview is not None:
 			# La pré-écoute repart des nouveaux périphériques à sa prochaine ouverture.
@@ -1227,8 +1269,9 @@ class MainWindow(QMainWindow):
 		self._follow_preview()
 		self.home.change_on_air(self.audio)
 		self.statusBar().showMessage(
-			f"Préférences enregistrées dans {self.configuration} ;"
-			f" Machin player prendra {text} à son prochain démarrage.{icon}"
+			_("Preferences saved in {configuration}; Machin player will take {text} at its next start.{icon}").format(
+				configuration=self.configuration, text=text, icon=icon
+			)
 		)
 
 	def _flag_on_air(self) -> None:
@@ -1244,8 +1287,8 @@ class MainWindow(QMainWindow):
 def _upcoming(action: QAction, tickets: str) -> None:
 	"""Une infobulle ne porte pas de lien : elle nomme le ticket par son numéro, sans « # »."""
 	action.setEnabled(False)
-	action.setToolTip(f"À venir : {tickets} sur GitHub")
+	action.setToolTip(_("Upcoming: {tickets} on GitHub").format(tickets=tickets))
 
 
 def _titles(titles: list[str]) -> str:
-	return ", ".join(f"« {title} »" for title in titles)
+	return ", ".join(_("“{title}”").format(title=title) for title in titles)

@@ -56,7 +56,7 @@ class Ui_LogWindow(object):
     # setupUi
 
     def retranslateUi(self, LogWindow):
-        LogWindow.setWindowTitle(QCoreApplication.translate("LogWindow", u"Indexation", None))
-        self.shut_down.setText(QCoreApplication.translate("LogWindow", u"Fermer", None))
+        LogWindow.setWindowTitle(QCoreApplication.translate("LogWindow", u"Indexing", None))
+        self.shut_down.setText(QCoreApplication.translate("LogWindow", u"Close", None))
     # retranslateUi
 

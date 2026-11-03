@@ -35,7 +35,7 @@ Fonctionnalité: Désherbage de la base : Machin purge
 			| événement | Matinale                 |             |                    |
 		Quand je lance « Machin purge »
 		Alors la purge se termine avec le code 0
-		Et la purge a annoncé « purge de la base machincast_test, au-delà de 60 jours (avant le 21/10/2026 12:00) : 1 passage de l'airplay, 1 ligne du log, 2 sonores, 1 banque, 1 séquence, 1 événement effacés »
+		Et la purge a annoncé « purge de la base machincast_test, au-delà de 60 jours (avant le 21/10/2026 à 12:00) : 1 passage de l'airplay, 1 ligne du log, 2 sonores, 1 banque, 1 séquence, 1 événement effacés »
 		Et la purge n'a rien signalé
 		Et l'airplay garde les passages « Récent »
 		Et le log garde ses lignes du 2026-11-01, et une ligne « purge » qui reprend l'annonce
@@ -64,7 +64,7 @@ Fonctionnalité: Désherbage de la base : Machin purge
 			| 2026-11-01 | Récent |
 			| 2026-12-01 | Proche |
 		Quand je lance « Machin purge »
-		Alors la purge a annoncé « purge de la base machincast_test, au-delà de 30 jours (avant le 20/11/2026 12:00) : 1 passage de l'airplay, 1 ligne du log, 0 sonore, 0 banque, 0 séquence, 0 événement effacés »
+		Alors la purge a annoncé « purge de la base machincast_test, au-delà de 30 jours (avant le 20/11/2026 à 12:00) : 1 passage de l'airplay, 1 ligne du log, 0 sonore, 0 banque, 0 séquence, 0 événement effacés »
 		Et l'airplay garde les passages « Proche »
 
 	Scénario: Les fichiers des sonores effacés restent à leur place, intacts

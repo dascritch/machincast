@@ -17,6 +17,7 @@ gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 from PySide6.QtCore import QObject, QTimer, Signal  # noqa: E402
 
+from machincast.i18n import _  # noqa: E402
 from machincast.interface import states  # noqa: E402
 
 DELAY = timedelta(seconds=10)
@@ -33,20 +34,19 @@ def _milliseconds(duration: timedelta) -> int:
 
 def trial_result(answers: bool, detail: str) -> str:
 	"""« Le flux répond : du son arrive. », ou « Le flux ne répond pas : … », pour la fiche qui a lancé l'essai."""
-	verdict = "Le flux ne répond pas"
 	if answers:
-		verdict = "Le flux répond"
-	return f"{verdict} : {detail}"
+		return _("The stream answers: {detail}").format(detail=detail)
+	return _("The stream does not answer: {detail}").format(detail=detail)
 
 
 def describe(stream_type: str | None, bitrate: int | None) -> str:
 	"""« en MPEG-1 Layer 3 (MP3) à 128 kbit/s », ce qu'on en sait."""
-	fetched_type = "de type inconnu"
+	fetched_type = _("of unknown type")
 	if stream_type is not None:
-		fetched_type = f"en {stream_type}"
-	fetched_bitrate = "à débit inconnu"
+		fetched_type = _("in {stream_type}").format(stream_type=stream_type)
+	fetched_bitrate = _("at unknown bitrate")
 	if bitrate is not None:
-		fetched_bitrate = f"à {round(bitrate / 1000)} kbit/s"
+		fetched_bitrate = _("at {bitrate} kbit/s").format(bitrate=round(bitrate / 1000))
 	return f"{fetched_type} {fetched_bitrate}"
 
 
@@ -77,7 +77,7 @@ class StreamTrial(QObject):
 	def launch(self, address: str) -> None:
 		"""Un seul test à la fois : la fiche n'en relance pas un tant que le précédent n'est pas terminé."""
 		if not Gst.uri_is_valid(address):
-			self.finished.emit(False, f"« {address} » n'est pas une adresse.")
+			self.finished.emit(False, _("“{address}” is not an address.").format(address=address))
 			return
 		pipeline = Gst.parse_launch(
 			"uridecodebin name=source ! audioconvert ! fakesink name=sortie sync=false signal-handoffs=true"
@@ -118,7 +118,7 @@ class StreamTrial(QObject):
 			self._finish(False, f"{error.message.rstrip('.')}.")
 			return
 		if self._sound >= EXPECTED_SOUND.total_seconds() * Gst.SECOND:
-			self._finish(True, f"du son arrive, {describe(self._type, self._bitrate)}.")
+			self._finish(True, _("sound arrives, {describe}.").format(describe=describe(self._type, self._bitrate)))
 
 	def _read_tags(self, tags: Gst.TagList) -> None:
 		found, codec = tags.get_string(Gst.TAG_AUDIO_CODEC)
@@ -133,7 +133,7 @@ class StreamTrial(QObject):
 			self._bitrate = measure
 
 	def _expire(self) -> None:
-		self._finish(False, f"le son n'arrive pas en {int(DELAY.total_seconds())} s.")
+		self._finish(False, _("the sound does not arrive within {delay} s.").format(delay=int(DELAY.total_seconds())))
 
 	def _finish(self, answers: bool, detail: str) -> None:
 		self.halt()

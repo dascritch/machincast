@@ -1,6 +1,8 @@
 """Mise en forme des heures et des durées à l'écran (https://github.com/dascritch/machincast/issues/23).
 
-Les noms de jours et de mois sont écrits ici, en français : l'affichage ne dépend pas de la langue du poste.
+Les noms de jours et de mois sont écrits ici, traduits par le catalogue de MachinCast
+(https://github.com/dascritch/machincast/issues/360) : l'affichage suit la langue de la session, pas les formats du
+poste.
 """
 
 from collections.abc import Callable
@@ -11,29 +13,32 @@ from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QAbstractButton, QCheckBox, QDateTimeEdit, QMenu, QStyle, QWidget
 
 from machincast.conversion import text_or_none
+from machincast.i18n import _, decimal
 from machincast.interface import icons
 
 MONTH = (
-	"janvier",
-	"février",
-	"mars",
-	"avril",
-	"mai",
-	"juin",
-	"juillet",
-	"août",
-	"septembre",
-	"octobre",
-	"novembre",
-	"décembre",
+	_("January"),
+	_("February"),
+	_("March"),
+	_("April"),
+	_("May"),
+	_("June"),
+	_("July"),
+	_("August"),
+	_("September"),
+	_("October"),
+	_("November"),
+	_("December"),
 )
 EMPTY = "—"
 """Ce que montre un champ sans valeur : aucun sonore, par exemple."""
 
 
-def hour(instant: datetime | None, unknown: str = "inconnue") -> str:
+def hour(instant: datetime | None, unknown: str | None = None) -> str:
 	"""« 20:03:34 », en heure du poste, à la seconde près ; inconnue sans instant."""
 	if instant is None:
+		if unknown is None:
+			return _("unknown")
 		return unknown
 	return f"{instant.astimezone():%H:%M:%S}"
 
@@ -41,7 +46,7 @@ def hour(instant: datetime | None, unknown: str = "inconnue") -> str:
 def duration(seconds: float | timedelta | None) -> str:
 	"""« 3:34 », ou « 1:02:05 » au-delà d'une heure, à la seconde entamée près ; « inconnue » sans durée."""
 	if seconds is None:
-		return "inconnue"
+		return _("unknown")
 	if isinstance(seconds, timedelta):
 		seconds = seconds.total_seconds()
 	hours, rest = divmod(int(seconds), 3600)
@@ -54,7 +59,7 @@ def duration(seconds: float | timedelta | None) -> str:
 def artist_and_title(artist: str | None, title: str | None) -> str:
 	"""« Les Gaufres – Café à minuit », ou ce qui est connu des deux."""
 	text = " – ".join(part for part in (artist, title) if part)
-	return (text) or ("(sans titre)")
+	return (text) or (_("(untitled)"))
 
 
 def sound_name(artist: object, title: object, location: object, address: object) -> str:
@@ -70,8 +75,8 @@ def yes_no(value: bool | None, unknown: str = "") -> str:
 	if value is None:
 		return unknown
 	if value:
-		return "oui"
-	return "non"
+		return _("yes")
+	return _("no")
 
 
 def outside_durations(
@@ -83,15 +88,19 @@ def outside_durations(
 	"""« 3:20 : plus court que le minimum de la banque « Jingles », 3:30. » : un sonore hors des durées d'une banque
 	(https://github.com/dascritch/machincast/issues/147), nommée si on la donne. None pour un sonore dans ses durées,
 	ou de durée inconnue."""
-	name = "la banque"
+	name = _("the bank")
 	if bank is not None:
-		name = f"la banque « {bank} »"
+		name = _("the bank “{bank}”").format(bank=bank)
 	if sound_duration is None:
 		return None
 	if (minimum is not None) and (sound_duration < minimum):
-		return f"{duration(sound_duration)} : plus court que le minimum de {name}, {duration(minimum)}."
+		return _("{duration}: shorter than the minimum of {name}, {duration2}.").format(
+			duration=duration(sound_duration), name=name, duration2=duration(minimum)
+		)
 	if (maximum is not None) and (sound_duration > maximum):
-		return f"{duration(sound_duration)} : plus long que le maximum de {name}, {duration(maximum)}."
+		return _("{duration}: longer than the maximum of {name}, {duration2}.").format(
+			duration=duration(sound_duration), name=name, duration2=duration(maximum)
+		)
 	return None
 
 
@@ -112,7 +121,7 @@ def size(bytes_: int) -> str:
 	while (value >= 1000) and (rank < len(SIZE_UNITS) - 1):
 		value /= 1000
 		rank += 1
-	return f"{value:.1f} {SIZE_UNITS[rank]}".replace(".", ",")
+	return decimal(f"{value:.1f} {SIZE_UNITS[rank]}")
 
 
 def date(instant: datetime) -> str:
@@ -127,12 +136,12 @@ def ticked_date(box: QCheckBox, date: QDateTimeEdit) -> datetime | None:
 	return datetime.fromtimestamp(date.dateTime().toSecsSinceEpoch()).astimezone()
 
 
-PREVIEW = "Pré-écoute…"
+PREVIEW = _("Pre-listen…")
 """L'entrée des menus contextuels qui pré-écoute le sonore de la ligne, comme le bouton de sa fiche
 (https://github.com/dascritch/machincast/issues/226)."""
 
 
-DISABLED_PREVIEW = "Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences…, page Audio)."
+DISABLED_PREVIEW = _("Pre-listen disabled: its sound card is the dummy output (File → Preferences…, Audio page).")
 """L'infobulle des boutons et des entrées de menu de la pré-écoute, sur l'entrée « Sortie factice »
 (https://github.com/dascritch/machincast/issues/339)."""
 _disabled_preview = False

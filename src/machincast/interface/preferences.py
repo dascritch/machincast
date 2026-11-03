@@ -47,6 +47,7 @@ from machincast.configuration import (
 	DeadAirSettings,
 	Granularity,
 )
+from machincast.i18n import _
 from machincast.interface.application import ICON, readable
 from machincast.interface.sound_cards import SoundCards
 from machincast.interface.timeline import Plan, Timeline, demonstration_shape
@@ -57,13 +58,13 @@ from machincast.service import ABSENT, ServiceState
 FRENCH = QLocale(QLocale.Language.French, QLocale.Country.France)
 """Les durées s'écrivent avec une virgule."""
 GRANULARITIES: tuple[tuple[Granularity, str], ...] = (
-	("tenth", "Au dixième de seconde"),
-	("second", "À la seconde"),
+	("tenth", _("To the tenth of a second")),
+	("second", _("To the second")),
 )
 STEPS: dict[Granularity, tuple[int, float]] = {"tenth": (1, 0.1), "second": (0, 1.0)}
 """Pour chaque granularité : les décimales et le pas d'un champ de crossfade."""
 
-DEFAULT_ICON = "Icône de MachinCast"
+DEFAULT_ICON = _("MachinCast icon")
 """Ce que montre la page « Interface » quand aucune image n'est choisie."""
 PREVIEW_SIZE = 48
 
@@ -308,7 +309,7 @@ class PreferencesWindow(QDialog):
 		if chosen is None:
 			return
 		if not readable(chosen):
-			self._flag(f"Image illisible : {chosen}")
+			self._flag(_("Unreadable image: {chosen}").format(chosen=chosen))
 			return
 		self._flag("")
 		self.icon = chosen
@@ -366,7 +367,7 @@ class PreferencesWindow(QDialog):
 		)
 		self.demonstration.display(plan, duration)
 		self.ui.demonstration_legend.setText(
-			f"Démonstration : un sonore de 30 s, aux silences de 3 s et 4 s. {plan.summary()}"
+			_("Demonstration: a sound of 30 s, with silences of 3 s and 4 s. {summary}").format(summary=plan.summary())
 		)
 
 	def _exclude(self) -> None:

@@ -100,20 +100,20 @@ class Ui_SoundCards(object):
     # setupUi
 
     def retranslateUi(self, SoundCards):
-        self.output_caption.setText(QCoreApplication.translate("SoundCards", u"&Type de sortie", None))
+        self.output_caption.setText(QCoreApplication.translate("SoundCards", u"Output &type", None))
 #if QT_CONFIG(tooltip)
-        self.output.setToolTip(QCoreApplication.translate("SoundCards", u"Le serveur audio par lequel passent l'antenne et la pr\u00e9-\u00e9coute", None))
+        self.output.setToolTip(QCoreApplication.translate("SoundCards", u"The audio server through which the on-air output and the pre-listen go", None))
 #endif // QT_CONFIG(tooltip)
-        self.on_air_caption.setText(QCoreApplication.translate("SoundCards", u"&Antenne", None))
+        self.on_air_caption.setText(QCoreApplication.translate("SoundCards", u"&On air", None))
 #if QT_CONFIG(tooltip)
-        self.on_air.setToolTip(QCoreApplication.translate("SoundCards", u"La carte son sur laquelle Machin player diffuse l'antenne", None))
+        self.on_air.setToolTip(QCoreApplication.translate("SoundCards", u"The sound card on which Machin player broadcasts on air", None))
 #endif // QT_CONFIG(tooltip)
-        self.test_on_air.setText(QCoreApplication.translate("SoundCards", u"Tester", None))
-        self.preview_caption.setText(QCoreApplication.translate("SoundCards", u"&Pr\u00e9-\u00e9coute", None))
+        self.test_on_air.setText(QCoreApplication.translate("SoundCards", u"Test", None))
+        self.preview_caption.setText(QCoreApplication.translate("SoundCards", u"&Pre-listen", None))
 #if QT_CONFIG(tooltip)
-        self.preview.setToolTip(QCoreApplication.translate("SoundCards", u"La carte son de la pr\u00e9-\u00e9coute de l'interface, jamais celle de l'antenne", None))
+        self.preview.setToolTip(QCoreApplication.translate("SoundCards", u"The pre-listen sound card of the interface, never the on-air one", None))
 #endif // QT_CONFIG(tooltip)
-        self.test_preview.setText(QCoreApplication.translate("SoundCards", u"Tester", None))
+        self.test_preview.setText(QCoreApplication.translate("SoundCards", u"Test", None))
         pass
     # retranslateUi
 

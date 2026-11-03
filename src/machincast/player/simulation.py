@@ -32,6 +32,7 @@ from psycopg.rows import TupleRow
 from machincast.clock import FixedClock
 from machincast.configuration import Crossfades, Metadata
 from machincast.conversion import boolean_or_none, integer_or_none, text_or_none
+from machincast.i18n import N_, _, current, logged, ngettext
 from machincast.player.broadcast import Broadcast
 from machincast.player.engine import DeadAir, PlaybackTrack, TrackState
 from machincast.player.expiry import KIND as EXPIRED_SOUND
@@ -262,7 +263,7 @@ class SimulatedHistory:
 		instant: datetime,
 		cut: bool = False,
 		error: str | None = None,
-		kind: str = "lecture interrompue",
+		kind: str = N_("interrupted playback"),
 	) -> None:
 		for simulated in self.simulated_plays:
 			if simulated.play.id == play.id:
@@ -271,7 +272,7 @@ class SimulatedHistory:
 		if error is not None:
 			self.record(connection, "incident", kind, error, instant, **references)
 		elif cut:
-			self.record(connection, "info", "coupure nette", "début d'un événement", instant, **references)
+			self.record(connection, "info", N_("clean cut"), N_("start of an event"), instant, **references)
 
 	def record(
 		self,
@@ -285,10 +286,17 @@ class SimulatedHistory:
 		event: int | None = None,
 	) -> None:
 		if level != "info":
-			moment = ""
+			text = _("simulation: {level}: {kind}: {message}").format(
+				level=LEVELS.get(level, level), kind=logged(kind), message=logged(message)
+			)
 			if instant is not None:
-				moment = f"{instant.astimezone():%Y-%m-%d %H:%M:%S} : "
-			log.warning(f"simulation : {moment}{LEVELS.get(level, level)} : {kind} : {message}")
+				text = _("simulation: {moment}: {level}: {kind}: {message}").format(
+					moment=f"{instant.astimezone():%Y-%m-%d %H:%M:%S}",
+					level=LEVELS.get(level, level),
+					kind=logged(kind),
+					message=logged(message),
+				)
+			log.warning(text)
 		self.log.append((level, kind, message))
 
 	def expire(self, connection: Connection, instant: datetime, sound: int | None = None) -> list[Expiry]:
@@ -309,7 +317,14 @@ class SimulatedHistory:
 			):
 				expiry = Expiry(identifier, _cause(limit, play_counts[identifier], broadcast_end, instant))
 				self.expired_list.add(identifier)
-				self.record(connection, "info", EXPIRED_SOUND, f"{name} : {expiry.cause}", instant, identifier)
+				self.record(
+					connection,
+					"info",
+					EXPIRED_SOUND,
+					N_("{name}: {cause}").format(name=name, cause=expiry.cause),
+					instant,
+					identifier,
+				)
 				expiries.append(expiry)
 		return expiries
 
@@ -428,7 +443,7 @@ def simulate(
 	La connexion a endossé le rôle de la lecture (machincast.database.open_connection) ; rien n'est écrit en base.
 	"""
 	if end <= start:
-		raise InvalidPeriod("la fin doit suivre le début")
+		raise InvalidPeriod(_("the end must follow the start"))
 	history = SimulatedHistory()
 	clock = FixedClock(start)
 	engine = SimulatedEngine(clock)
@@ -466,7 +481,9 @@ def _end_hour(end: datetime | None) -> str:
 
 
 def simulation_page(lines: list[Line], log: list[tuple[str, str, str]], start: datetime, end: datetime) -> str:
-	period = f"du {start.astimezone():%Y-%m-%d %H:%M} au {end.astimezone():%Y-%m-%d %H:%M}"
+	period = _("from {start:%Y-%m-%d %H:%M} to {end:%Y-%m-%d %H:%M}").format(
+		start=start.astimezone(), end=end.astimezone()
+	)
 
 	def cell(text: str | None) -> str:
 		return f"<td>{html.escape((text) or (''))}</td>"
@@ -486,12 +503,35 @@ def simulation_page(lines: list[Line], log: list[tuple[str, str, str]], start: d
 	)
 	anomalies = "\n".join(
 		f'\t\t<li class="{html.escape(level)}">'
-		f"{html.escape(LEVELS.get(level, level))} : {html.escape(kind)} : {html.escape(message)}</li>"
+		+ html.escape(
+			_("{level}: {kind}: {message}").format(
+				level=LEVELS.get(level, level), kind=logged(kind), message=logged(message)
+			)
+		)
+		+ "</li>"
 		for level, kind, message in log
 		if level != "info"
 	)
+	plays = ngettext(
+		"{count} play. Nothing was written to the database.",
+		"{count} plays. Nothing was written to the database.",
+		len(lines),
+	).format(count=len(lines))
+	headers = "".join(
+		f"<th>{html.escape(header)}</th>"
+		for header in (
+			_("Start"),
+			_("End"),
+			_("Artist"),
+			_("Title"),
+			_("Location"),
+			_("Event"),
+			_("Sequence"),
+			_("Bank"),
+		)
+	)
 	return f"""<!DOCTYPE html>
-<html lang="fr">
+<html lang="{current()}">
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -505,14 +545,14 @@ def simulation_page(lines: list[Line], log: list[tuple[str, str, str]], start: d
 </head>
 <body>
 	<h1>Simulation {html.escape(period)}</h1>
-	<p>{len(lines)} passage{"s" if len(lines) > 1 else ""}. Rien n'a été écrit en base.</p>
-	<h2>Alertes et incidents</h2>
+	<p>{plays}</p>
+	<h2>{_("Alerts and incidents")}</h2>
 	<ul>
 {anomalies}
 	</ul>
-	<h2>Passages</h2>
+	<h2>{_("Plays")}</h2>
 	<table>
-		<thead><tr><th>Début</th><th>Fin</th><th>Artiste</th><th>Titre</th><th>Emplacement</th><th>Événement</th><th>Séquence</th><th>Banque</th></tr></thead>
+		<thead><tr>{headers}</tr></thead>
 		<tbody>
 {rows}
 		</tbody>

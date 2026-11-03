@@ -18,7 +18,7 @@
      <item row="0" column="0">
       <widget class="QLabel" name="internal_name_caption">
        <property name="text">
-        <string>&amp;Nom interne</string>
+        <string>&amp;Internal name</string>
        </property>
        <property name="buddy">
         <cstring>internal_name</cstring>
@@ -31,14 +31,14 @@
         <number>255</number>
        </property>
        <property name="placeholderText">
-        <string>Obligatoire, et propre à cet événement</string>
+        <string>Required, and unique to this event</string>
        </property>
       </widget>
      </item>
      <item row="1" column="0">
       <widget class="QLabel" name="public_name_caption">
        <property name="text">
-        <string>Nom p&amp;ublic</string>
+        <string>P&amp;ublic name</string>
        </property>
        <property name="buddy">
         <cstring>public_name</cstring>
@@ -51,14 +51,14 @@
         <number>255</number>
        </property>
        <property name="placeholderText">
-        <string>Affiché à la place de l'artiste et du titre masqués ; facultatif</string>
+        <string>Shown instead of the hidden artist and title; optional</string>
        </property>
       </widget>
      </item>
      <item row="2" column="0">
       <widget class="QLabel" name="priority_caption">
        <property name="text">
-        <string>P&amp;riorité</string>
+        <string>P&amp;riority</string>
        </property>
        <property name="buddy">
         <cstring>priority</cstring>
@@ -71,7 +71,7 @@
      <item row="3" column="0">
       <widget class="QLabel" name="hiding_caption">
        <property name="text">
-        <string>&amp;Artiste et titre</string>
+        <string>&amp;Artist and title</string>
        </property>
        <property name="buddy">
         <cstring>hiding</cstring>
@@ -86,13 +86,13 @@
      <item>
       <widget class="QGroupBox" name="grid_group">
        <property name="title">
-        <string>Grille : première occurrence, et jours où elle revient</string>
+        <string>Grid: first occurrence, and days when it comes back</string>
        </property>
        <layout class="QGridLayout" name="grid_layout">
         <item row="0" column="0">
          <widget class="QCheckBox" name="has_start">
           <property name="text">
-           <string>&amp;Début</string>
+           <string>&amp;Start</string>
           </property>
          </widget>
         </item>
@@ -102,7 +102,7 @@
            <bool>false</bool>
           </property>
           <property name="displayFormat">
-           <string>dd/MM/yyyy HH:mm</string>
+           <string notr="true">dd/MM/yyyy HH:mm</string>
           </property>
           <property name="calendarPopup">
            <bool>true</bool>
@@ -112,7 +112,7 @@
         <item row="1" column="0">
          <widget class="QCheckBox" name="has_end">
           <property name="text">
-           <string>&amp;Fin</string>
+           <string>&amp;End</string>
           </property>
          </widget>
         </item>
@@ -122,7 +122,7 @@
            <bool>false</bool>
           </property>
           <property name="displayFormat">
-           <string>dd/MM/yyyy HH:mm</string>
+           <string notr="true">dd/MM/yyyy HH:mm</string>
           </property>
           <property name="calendarPopup">
            <bool>true</bool>
@@ -134,49 +134,49 @@
           <item>
            <widget class="QCheckBox" name="monday">
             <property name="text">
-             <string>lundi</string>
+             <string>Monday</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QCheckBox" name="tuesday">
             <property name="text">
-             <string>mardi</string>
+             <string>Tuesday</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QCheckBox" name="wednesday">
             <property name="text">
-             <string>mercredi</string>
+             <string>Wednesday</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QCheckBox" name="thursday">
             <property name="text">
-             <string>jeudi</string>
+             <string>Thursday</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QCheckBox" name="friday">
             <property name="text">
-             <string>vendredi</string>
+             <string>Friday</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QCheckBox" name="saturday">
             <property name="text">
-             <string>samedi</string>
+             <string>Saturday</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QCheckBox" name="sunday">
             <property name="text">
-             <string>dimanche</string>
+             <string>Sunday</string>
             </property>
            </widget>
           </item>
@@ -185,7 +185,7 @@
         <item row="3" column="0" colspan="2">
          <widget class="QLabel" name="grid_explanation">
           <property name="text">
-           <string>Sans jour coché, l'événement n'a qu'une occurrence. Sans fin, une émission ou un spécial dure jusqu'au bout de sa liste ; un fil musical sans début est permanent, et sert de fond.</string>
+           <string>With no day ticked, the event has only one occurrence. Without an end, a show or a special lasts until the end of its list; a background programming without a start is permanent, and serves as background.</string>
           </property>
           <property name="wordWrap">
            <bool>true</bool>
@@ -202,7 +202,7 @@
      <item>
       <widget class="QGroupBox" name="item_group">
        <property name="title">
-        <string>Liste de lecture, dans l'ordre de passage</string>
+        <string>Play list, in the order of playing</string>
        </property>
        <layout class="QVBoxLayout" name="item_layout">
         <item>
@@ -221,17 +221,17 @@
           </property>
           <column>
            <property name="text">
-            <string>Genre</string>
+            <string comment="category">Kind</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Élément</string>
+            <string>Element</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Détail</string>
+            <string>Detail</string>
            </property>
           </column>
          </widget>
@@ -248,38 +248,38 @@
           <item>
            <widget class="QPushButton" name="add_sounds">
             <property name="text">
-             <string>➕ Ajouter des sonores…</string>
+             <string>➕ Add sounds…</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="add_banks">
             <property name="text">
-             <string>➕ Ajouter des banques…</string>
+             <string>➕ Add banks…</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="add_sequences">
             <property name="text">
-             <string>➕ Ajouter des séquences…</string>
+             <string>➕ Add sequences…</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="add_feeds">
             <property name="toolTip">
-             <string>Ajoute le stream qui suit chaque feed choisi, ou en crée un à l'enregistrement</string>
+             <string>Adds the stream that follows each chosen feed, or creates one when saving</string>
             </property>
             <property name="text">
-             <string>➕ Ajouter des feeds…</string>
+             <string>➕ Add feeds…</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="remove_item">
             <property name="text">
-             <string>➖ Retirer l'élément</string>
+             <string>➖ Remove the element</string>
             </property>
            </widget>
           </item>
@@ -293,14 +293,14 @@
           <item>
            <widget class="QPushButton" name="raise_">
             <property name="text">
-             <string>Monter</string>
+             <string>Move up</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="go_down">
             <property name="text">
-             <string>Descendre</string>
+             <string>Move down</string>
             </property>
            </widget>
           </item>
@@ -316,20 +316,20 @@
      <item>
       <widget class="QPushButton" name="delete">
        <property name="text">
-        <string>❌ Supprimer…</string>
+        <string>❌ Delete…</string>
        </property>
        <property name="toolTip">
-        <string>Supprime l'élément de la base, après confirmation ; aucun fichier n'est touché.</string>
+        <string>Deletes the element from the database, after confirmation; no file is touched.</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="duplicate">
        <property name="text">
-        <string>Dupliquer</string>
+        <string>Duplicate</string>
        </property>
        <property name="toolTip">
-        <string>Ouvre une copie de l'élément dans une nouvelle fiche ; rien n'est enregistré avant « Enregistrer ».</string>
+        <string>Opens a copy of the element in a new card; nothing is saved before “Save”.</string>
        </property>
       </widget>
      </item>
@@ -343,14 +343,14 @@
      <item>
       <widget class="QPushButton" name="cancel">
        <property name="text">
-        <string>Annuler</string>
+        <string>Cancel</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="save">
        <property name="text">
-        <string>Enregistrer</string>
+        <string>Save</string>
        </property>
        <property name="default">
         <bool>true</bool>

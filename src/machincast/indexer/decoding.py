@@ -31,6 +31,7 @@ import gi
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
+from machincast.i18n import N_, _, decimal  # noqa: E402
 from machincast.indexer.tags import Tags, extract  # noqa: E402
 
 DELAY_WITHOUT_PROGRESS = timedelta(seconds=30)
@@ -65,17 +66,17 @@ WAIT_STEP = timedelta(milliseconds=250)
 SILENCE_INTERVAL = timedelta(milliseconds=10)
 """Durée des tranches dont le niveau crête est mesuré : la précision des silences détectés."""
 
-DECODER_PACKAGES = "gstreamer1.0-plugins-base, gstreamer1.0-plugins-good et gstreamer1.0-plugins-bad"
+DECODER_PACKAGES = _("gstreamer1.0-plugins-base, gstreamer1.0-plugins-good and gstreamer1.0-plugins-bad")
 
 
 class FileState(StrEnum):
 	"""Verdict de la vérification d'un fichier."""
 
-	HEALTHY = "sain"
-	DAMAGED = "endommagé"
-	UNREADABLE = "illisible"
-	NOT_FOUND = "introuvable"
-	UNSUPPORTED = "non supporté"
+	HEALTHY = N_("healthy")
+	DAMAGED = N_("damaged")
+	UNREADABLE = N_("unreadable")
+	NOT_FOUND = N_("not found")
+	UNSUPPORTED = N_("unsupported")
 	"""Le fichier n'est pas du son, d'après son type (machincast.indexer.file_type) : il n'est pas décodé."""
 
 
@@ -96,11 +97,13 @@ class Check:
 	duration: timedelta | None
 	"""Durée effectivement décodée ; None si rien n'a pu être décodé."""
 	problem: str | None = None
-	"""Description du problème, commençant par l'état (« endommagé : … ») ; None pour un fichier sain."""
+	"""Description du problème, commençant par l'état (« endommagé : … »), traduite ; None pour un fichier sain."""
 	tags: Tags = field(default_factory=lambda: Tags(None, None, {}))
 	"""Tags lus pendant le décodage (https://github.com/dascritch/machincast/issues/8)."""
 	silences: Silences | None = None
 	"""Silences mesurés pendant le décodage d'un fichier sain ; None s'ils n'ont pas été mesurés, sans seuil."""
+	detail: str | None = None
+	"""Le problème seul, sans l'état qui le précède : pour le document d'audit."""
 
 	@classmethod
 	def healthy(cls, duration: timedelta, tags: Tags | None = None, silences: Silences | None = None) -> "Check":
@@ -108,7 +111,7 @@ class Check:
 
 	@classmethod
 	def defective(cls, state: FileState, detail: str, duration: timedelta | None = None) -> "Check":
-		return cls(state, duration, f"{state} : {detail}")
+		return cls(state, duration, _("{state}: {detail}").format(state=_(state), detail=detail), detail=detail)
 
 
 class Checker(Protocol):
@@ -174,7 +177,7 @@ def _probe(tracking: _Tracking) -> Callable[[Gst.Pad, Gst.PadProbeInfo], Gst.Pad
 
 
 def _in_seconds(duration: timedelta) -> str:
-	return f"{duration.total_seconds():.3f} s".replace(".", ",")
+	return decimal(f"{duration.total_seconds():.3f} s")
 
 
 def _nanoseconds(value: int) -> timedelta:
@@ -194,7 +197,11 @@ class _Decoding:
 			names.insert(3, "level")
 		items = [Gst.ElementFactory.make(name, None) for name in names]
 		if any(item is None for item in items):
-			raise UnavailableDecoder(f"éléments GStreamer de base introuvables : installer {DECODER_PACKAGES}")
+			raise UnavailableDecoder(
+				_("basic GStreamer elements not found: install {decoder_packages}").format(
+					decoder_packages=DECODER_PACKAGES
+				)
+			)
 		found_list = [item for item in items if item is not None]
 		source, decoder, self.conversion, sink = found_list[0], found_list[1], found_list[2], found_list[-1]
 		source.set_property("location", str(path))
@@ -290,12 +297,16 @@ class _Decoding:
 			return message
 
 	def error(self, message: Gst.Message) -> Check:
-		error, _ = message.parse_error()
+		error, _debug = message.parse_error()
 		if (self.absent_decoder is not None) or (
 			error.matches(Gst.StreamError.quark(), Gst.StreamError.CODEC_NOT_FOUND)
 		):
-			format_absent = (self.absent_decoder) or ("ce format")
-			raise UnavailableDecoder(f"aucun décodeur GStreamer pour {format_absent} : installer {DECODER_PACKAGES}")
+			format_absent = (self.absent_decoder) or (_("this format"))
+			raise UnavailableDecoder(
+				_("no GStreamer decoder for {format_absent}: install {decoder_packages}").format(
+					format_absent=format_absent, decoder_packages=DECODER_PACKAGES
+				)
+			)
 		return Check.defective(FileState.UNREADABLE, error.message)
 
 	def decoded_duration(self) -> timedelta | None:
@@ -330,15 +341,17 @@ def check_file(
 	n'a pas de décodeur pour ce format.
 	"""
 	if not path.exists():
-		return Check.defective(FileState.NOT_FOUND, "aucun fichier à cet emplacement")
+		return Check.defective(FileState.NOT_FOUND, _("no file at this location"))
 	Gst.init(None)
-	for _ in range(ATTEMPTS):
+	for _attempt_number in range(ATTEMPTS):
 		result = _attempt(path, startup_delay, delay_without_progress, silence_threshold)
 		if result is not None:
 			return result
 	return Check.defective(
 		FileState.UNREADABLE,
-		f"décodage bloqué au démarrage, aucun son décodé en {ATTEMPTS} tentatives de {_in_seconds(startup_delay)}",
+		_("decoding stuck at startup, no sound decoded in {attempts} attempts of {in_seconds}").format(
+			attempts=ATTEMPTS, in_seconds=_in_seconds(startup_delay)
+		),
 	)
 
 
@@ -349,7 +362,7 @@ def _attempt(
 	decoding = _Decoding(path, silence_threshold)
 	blocked = Check.defective(
 		FileState.UNREADABLE,
-		f"décodage bloqué, aucun son décodé pendant {_in_seconds(delay_without_progress)}",
+		_("decoding stuck, no sound decoded for {in_seconds}").format(in_seconds=_in_seconds(delay_without_progress)),
 	)
 	try:
 		# Pré-lecture : l'en-tête est lu, la durée annoncée devient connue quand le format la donne.
@@ -374,11 +387,13 @@ def _attempt(
 		decoding.release()
 	duration = decoding.decoded_duration()
 	if (duration is None) or (duration <= timedelta()):
-		return Check.defective(FileState.UNREADABLE, "aucun son décodé")
+		return Check.defective(FileState.UNREADABLE, _("no sound decoded"))
 	if decoding.tracking.breaks > 0:
 		return Check.defective(
 			FileState.DAMAGED,
-			f"{decoding.tracking.breaks} rupture(s) de continuité au décodage, des données ont été perdues",
+			_("{breaks} continuity break(s) while decoding, some data was lost").format(
+				breaks=decoding.tracking.breaks
+			),
 			duration,
 		)
 	if announced_duration is not None:
@@ -386,8 +401,9 @@ def _attempt(
 		if duration < announced_duration - tolerance:
 			return Check.defective(
 				FileState.DAMAGED,
-				f"{_in_seconds(duration)} décodées sur {_in_seconds(announced_duration)} annoncées par l'en-tête,"
-				" fichier tronqué ou trames perdues",
+				_(
+					"{in_seconds} decoded out of {in_seconds2} announced by the header, truncated file or lost frames"
+				).format(in_seconds=_in_seconds(duration), in_seconds2=_in_seconds(announced_duration)),
 				duration,
 			)
 	return Check.healthy(duration, extract(decoding.tags), decoding.silences())

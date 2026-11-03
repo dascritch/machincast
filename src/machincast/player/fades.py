@@ -22,11 +22,13 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Literal
 
+from machincast.i18n import _
+
 Position = Literal["starts", "ongoing", "ends"]
 POSITIONS: tuple[Position, ...] = ("starts", "ongoing", "ends")
 """Les positions d'un fondu, telles qu'elles s'écrivent dans la configuration (crossfades.fade_in_position et
 position_sortie)."""
-LABELS: dict[Position, str] = {"starts": "commence", "ongoing": "est en cours", "ends": "se termine"}
+LABELS: dict[Position, str] = {"starts": "commence", "ongoing": _("is ongoing"), "ends": _("ends")}
 """Ce que dit chaque position, dans « le fade-in se termine au début détecté »."""
 DEFAULT_ENTRY: Position = "ends"
 DEFAULT_OUTPUT: Position = "starts"

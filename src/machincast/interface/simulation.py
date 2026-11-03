@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
 )
 
 from machincast.clock import Clock
+from machincast.i18n import _, counted
 from machincast.interface import dialogs
 from machincast.interface.columns import Columns
 from machincast.log import TIMESTAMP
@@ -51,19 +52,19 @@ PERIOD = timedelta(days=1)
 NAME = "simulation"
 """Nom des sorties dans le répertoire temporaire de l'onglet."""
 DATE_FORMAT = "yyyy-MM-dd HH:mm"
-COLUMNS = ("Début", "Fin", "Artiste", "Titre", "Emplacement", "Événement", "Séquence", "Banque")
+COLUMNS = (_("Start"), _("End"), _("Artist"), _("Title"), _("Location"), _("Event"), _("Sequence"), _("Bank"))
 FIELDS = ("debut", "fin", "artiste", "titre", "emplacement", "evenement", "sequence", "banque")
 """Les colonnes du CSV de la simulation montrées dans la table, dans l'ordre de COLONNES."""
 FORMATS = {
-	"Tableur CSV (*.csv)": ".csv",
-	"Playlist PLS (*.pls)": ".pls",
-	"Page HTML (*.html)": ".html",
+	_("CSV spreadsheet (*.csv)"): ".csv",
+	_("PLS playlist (*.pls)"): ".pls",
+	_("HTML page (*.html)"): ".html",
 }
 """Filtres du sélecteur d'export, et l'extension de la sortie que chacun enregistre."""
-ANOMALY_PREFIX = "simulation : "
-PROMPTS = "Réglez la période, puis cliquez sur « Simuler »."
-ONGOING = "Simulation en cours…"
-INVALID_PERIOD = "La fin doit suivre le début."
+ANOMALY_PREFIX = _("simulation: ")
+PROMPTS = _("Set the period, then click on “Simulate”.")
+ONGOING = _("Simulation running…")
+INVALID_PERIOD = _("The end must follow the start.")
 
 
 def simulation_command(configuration: Path | None) -> list[str]:
@@ -82,20 +83,16 @@ def with_extension(path: Path, extension: str) -> Path:
 	return path.with_name(f"{path.name}{extension}")
 
 
-def _plural(count: int, singular: str, plural: str) -> str:
-	if count > 1:
-		return f"{count} {plural}"
-	return f"{count} {singular}"
-
-
 def report(plays: int, anomalies: int) -> str:
-	play_text = "Aucun passage"
+	play_text = _("No play")
 	if plays > 0:
-		play_text = _plural(plays, "passage", "passages")
-	anomaly_text = "aucune alerte ni incident"
+		play_text = counted("{count} play", "{count} plays", plays)
+	anomaly_text = _("no alert nor incident")
 	if anomalies > 0:
-		anomaly_text = _plural(anomalies, "alerte ou incident", "alertes ou incidents")
-	return f"{play_text}, {anomaly_text}. Rien n'a été écrit en base."
+		anomaly_text = counted("{count} alert or incident", "{count} alerts or incidents", anomalies)
+	return _("{play_text}, {anomaly_text}. Nothing was written to the database.").format(
+		play_text=play_text, anomaly_text=anomaly_text
+	)
 
 
 def _instant(editing: QDateTimeEdit) -> datetime:
@@ -125,16 +122,18 @@ class SimulationScreen(QWidget):
 		start = clock.now().astimezone()
 		self.start = self._editing(start)
 		self.end = self._editing(start + PERIOD)
-		setting.addWidget(QLabel("Du", self))
+		setting.addWidget(QLabel(_("From"), self))
 		setting.addWidget(self.start)
-		setting.addWidget(QLabel("au", self))
+		setting.addWidget(QLabel(_("to"), self))
 		setting.addWidget(self.end)
-		self.simulate = QPushButton("Simuler", self)
-		self.simulate.setToolTip("Machin player simule la diffusion de la période, sans son et sans écrire en base")
+		self.simulate = QPushButton(_("Simulate"), self)
+		self.simulate.setToolTip(
+			_("Machin player simulates the broadcast of the period, without sound and without writing to the database")
+		)
 		self.simulate.clicked.connect(self.launch)
 		setting.addWidget(self.simulate)
-		self.export = QPushButton("Exporter…", self)
-		self.export.setToolTip("Enregistre le résultat en .csv, .pls ou .html")
+		self.export = QPushButton(_("Export…"), self)
+		self.export.setToolTip(_("Saves the result as .csv, .pls or .html"))
 		self.export.setEnabled(False)
 		self.export.clicked.connect(self._export)
 		setting.addWidget(self.export)
@@ -154,7 +153,7 @@ class SimulationScreen(QWidget):
 		self.columns = Columns(self.table, "simulation")
 		arrangement.addWidget(self.table, 1)
 		self.anomalies = QListWidget(self)
-		self.anomalies.setToolTip("Alertes et incidents de la simulation")
+		self.anomalies.setToolTip(_("Alerts and incidents of the simulation"))
 		self.anomalies.setMaximumHeight(120)
 		self.anomalies.hide()
 		arrangement.addWidget(self.anomalies)
@@ -196,7 +195,11 @@ class SimulationScreen(QWidget):
 		self.launched_list += 1
 		self.simulate.setEnabled(False)
 		self.count.setText(ONGOING)
-		log.info(f"simulation du {start.isoformat(timespec='minutes')} au {end.isoformat(timespec='minutes')}")
+		log.info(
+			_("simulation from {start} to {end}").format(
+				start=start.isoformat(timespec="minutes"), end=end.isoformat(timespec="minutes")
+			)
+		)
 		process.start(program, arguments)
 
 	def _empty(self) -> None:
@@ -213,7 +216,7 @@ class SimulationScreen(QWidget):
 		"""Un programme qui ne démarre pas ne finit jamais : finished n'est pas émis."""
 		if error == QProcess.ProcessError.FailedToStart:
 			self._end(process)
-			self.count.setText(f"Simulation impossible : {process.errorString()}")
+			self.count.setText(_("Simulation impossible: {errorstring}").format(errorstring=process.errorString()))
 
 	def _end(self, process: QProcess) -> None:
 		self.process = None
@@ -227,13 +230,13 @@ class SimulationScreen(QWidget):
 		anomalies = [line.split(ANOMALY_PREFIX, 1)[1] for line in errors if ANOMALY_PREFIX in line]
 		path = self.temporary / f"{NAME}.csv"
 		if (code != 0) or (not path.exists()):
-			reason = "Machin player s'est arrêté sans rien dire"
+			reason = _("Machin player stopped without saying anything")
 			# Chaque message de Machin player commence par son horodatage (machincast.log) ; un message peut tenir
 			# sur plusieurs lignes.
 			messages = [TIMESTAMP.sub("", line) for line in errors if TIMESTAMP.match(line)]
 			if messages:
 				reason = messages[-1]
-			self.count.setText(f"Simulation impossible : {reason}")
+			self.count.setText(_("Simulation impossible: {reason}").format(reason=reason))
 			return
 		plays = self._read(path)
 		self.anomalies.addItems(anomalies)
@@ -267,9 +270,9 @@ class SimulationScreen(QWidget):
 			check_writing(destination)
 			shutil.copyfile(self.temporary / f"{NAME}{extension}", destination)
 		except OSError as error:
-			self._announce(f"Export impossible : {error}")
+			self._announce(_("Export impossible: {error}").format(error=error))
 			return
-		self._announce(f"Simulation exportée dans {destination}.")
+		self._announce(_("Simulation exported to {destination}.").format(destination=destination))
 
 	def _announce(self, text: str) -> None:
 		window = self.window()

@@ -15,6 +15,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.player import engine
 from tests.broadcast_steps import Bench, Connection, create_sound, hour, plays, sound, sounds_of
+from tests.log_texts import shown, stored
 from tests.sounds import TEST_TAGS
 from tests.stream import StreamServer
 
@@ -223,8 +224,10 @@ def stream_to_full_volume(bench: Bench) -> None:
 
 
 def log_lines(database: Connection, kind: str) -> list[tuple[int, str, str]]:
-	lines = database.execute("SELECT id, level::text, message FROM log WHERE kind = %s ORDER BY id", (kind,)).fetchall()
-	return [(int(str(i)), str(n), str(m)) for i, n, m in lines]
+	lines = database.execute(
+		"SELECT id, level::text, message FROM log WHERE kind = %s ORDER BY id", (stored(kind),)
+	).fetchall()
+	return [(int(str(i)), str(n), shown(m)) for i, n, m in lines]
 
 
 @then(parsers.parse("le log contient {count:d} incident « {kind} », qui donne l'adresse du flux « {stream} »"))

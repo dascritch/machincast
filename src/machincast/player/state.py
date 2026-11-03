@@ -41,6 +41,7 @@ from typing import Any
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.i18n import _
 from machincast.protection import check_writing
 
 log = logging.getLogger(__name__)
@@ -62,7 +63,7 @@ INTERRUPTIONS = ("sound", "sequence", "event")
 """Ce qu'une demande peut interrompre (https://github.com/dascritch/machincast/issues/104)."""
 MAXIMAL_SIZE = 4096
 """Octets d'une demande, au plus : au-delà, ce qui a été reçu est ignoré."""
-IGNORED_REQUEST = "demande ignorée sur la socket d'état"
+IGNORED_REQUEST = _("request ignored on the state socket")
 
 
 @dataclass(frozen=True)
@@ -111,7 +112,11 @@ def _identifier(message: dict[str, Any], key: str) -> int:
 	value = message.get(key)
 	# Un booléen est un entier pour Python : il n'est pas un identifiant.
 	if (set(message) != {"command", key}) or (not isinstance(value, int)) or (isinstance(value, bool)):
-		raise ValueError(f"la demande « {message.get('command')} » nomme un identifiant, « {key} », et rien d'autre")
+		raise ValueError(
+			_("the request “{message}” names an identifier, “{key}”, and nothing else").format(
+				message=message.get("command"), key=key
+			)
+		)
 	return value
 
 
@@ -120,9 +125,9 @@ def read_request(line: bytes) -> Request:
 	try:
 		message = json.loads(line.decode())
 	except (UnicodeDecodeError, json.JSONDecodeError) as error:
-		raise ValueError(f"illisible : {error}") from error
+		raise ValueError(_("unreadable: {error}").format(error=error)) from error
 	if not isinstance(message, dict):
-		raise ValueError("une demande est un objet JSON")
+		raise ValueError(_("a request is a JSON object"))
 	command = message.get("command")
 	item = message.get("item")
 	if (command == REREAD_GRID) and (set(message) == {"command"}):
@@ -131,16 +136,16 @@ def read_request(line: bytes) -> Request:
 		event = message.get("event")
 		# Un booléen est un entier pour Python : il n'est pas un identifiant.
 		if (set(message) != {"command", "event"}) or (not isinstance(event, int)) or (isinstance(event, bool)):
-			raise ValueError("une avance nomme l'identifiant de l'événement suivant, et rien d'autre")
+			raise ValueError(_("an advance names the identifier of the next event, and nothing else"))
 		return Request(command=ADVANCE, event=event)
 	if command == CUT_BY_FALLBACK:
 		return Request(command=CUT_BY_FALLBACK, event=_identifier(message, "event"))
 	if command == CUT_BY_FEED:
 		return Request(command=CUT_BY_FEED, feed=_identifier(message, "feed"))
 	if command != INTERRUPT:
-		raise ValueError(f"commande inconnue : {command}")
+		raise ValueError(_("unknown command: {command}").format(command=command))
 	if item not in INTERRUPTIONS:
-		raise ValueError(f"rien à interrompre de tel : {item}")
+		raise ValueError(_("nothing of that kind to interrupt: {item}").format(item=item))
 	return Request(str(item))
 
 
@@ -210,9 +215,9 @@ class StateSocket:
 		os.chmod(directory, 0o700)
 		if (self.path.exists()) or (self.path.is_symlink()):
 			if self._busy():
-				raise BusyStateSocket(f"{self.path} : un autre Machin player diffuse déjà")
+				raise BusyStateSocket(_("{path}: another Machin player is already broadcasting").format(path=self.path))
 			if not stat.S_ISSOCK(self.path.lstat().st_mode):
-				raise OSError(f"{self.path} existe et n'est pas une socket")
+				raise OSError(_("{path} exists and is not a socket").format(path=self.path))
 			self.path.unlink()  # fichier de MachinCast : socket d'état laissée par un arrêt brutal
 		server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 		try:
@@ -317,7 +322,11 @@ class StateSocket:
 			buffer += received
 			*lines, buffer = buffer.split(b"\n")
 			if len(buffer) > MAXIMAL_SIZE:
-				log.warning(f"{IGNORED_REQUEST} : plus de {MAXIMAL_SIZE} octets")
+				log.warning(
+					_("{ignored_request}: more than {maximal_size} bytes").format(
+						ignored_request=IGNORED_REQUEST, maximal_size=MAXIMAL_SIZE
+					)
+				)
 				buffer = b""
 			for line in lines:
 				self._receive(line)
@@ -328,4 +337,4 @@ class StateSocket:
 		try:
 			self._requests.put(read_request(line))
 		except ValueError as error:
-			log.warning(f"{IGNORED_REQUEST} : {error}")
+			log.warning(_("{ignored_request}: {error}").format(ignored_request=IGNORED_REQUEST, error=error))
