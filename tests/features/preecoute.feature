@@ -9,7 +9,7 @@ Fonctionnalité: Pré-écoute d'un sonore
 	une seule pour toute l'interface, avec son lecteur (lecture et pause, arrêt, position), son VU-mètre et des
 	informations techniques. La position d'un fichier se règle sur sa frise (https://github.com/dascritch/machincast/issues/224,
 	frise.feature), qui ne sert que pendant sa lecture, ou sa pause ; un stream n'a ni frise ni barre de position. Elle
-	joue sur le périphérique de pré-écoute de la configuration (audio.preecoute), jamais
+	joue sur le périphérique de pré-écoute de la configuration (audio.preview), jamais
 	sur celui de l'antenne ; son choix de sortie liste les périphériques du poste, celui de l'antenne grisé, et
 	s'enregistre dans le fichier de configuration. Le menu « Affichage » l'ouvre aussi, pour choisir sa sortie.
 	L'écoute de l'antenne viendra avec le VU-mètre de la sortie (https://github.com/dascritch/machincast/issues/24).

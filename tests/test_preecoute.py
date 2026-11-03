@@ -21,6 +21,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.exceptions import TimeoutError as DelaiDepasse
 from pytestqt.qtbot import QtBot
 
+from machincast.configuration import valeur_pour_le_fichier
 from machincast.interface.preecoute import FenetrePreecoute
 from tests.etapes_interface import NOM, Contexte, fenetre, fichier_de_configuration
 from tests.etapes_preecoute import fenetre_de_preecoute
@@ -80,7 +81,7 @@ def _secondes(texte: str) -> float:
 def crossfade_par_defaut(interface: Contexte, duree: str) -> None:
 	chemin = fichier_de_configuration(interface)
 	with chemin.open("a", encoding="utf-8") as fichier:
-		fichier.write(f"\n[crossfades]\ndebut = {_secondes(duree)}\n")
+		fichier.write(f"\n[crossfades]\nstart = {_secondes(duree)}\n")
 
 
 @given(parsers.parse("le fichier du sonore « {titre} » supprimé"))
@@ -209,7 +210,7 @@ def sorties_proposees(interface: Contexte, noms: str) -> None:
 def configuration_ecrite(interface: Contexte, identifiant: str) -> None:
 	chemin = fichier_de_configuration(interface)
 	texte = chemin.read_text(encoding="utf-8")
-	assert tomllib.loads(texte)["audio"]["preecoute"] == identifiant
+	assert tomllib.loads(texte)["audio"]["preview"] == valeur_pour_le_fichier("peripherique", identifiant)
 	initiale = interface.configuration_initiale.decode("utf-8")
 	commentaires = [ligne for ligne in initiale.splitlines() if ligne.startswith("#")]
 	assert commentaires == [ligne for ligne in texte.splitlines() if ligne.startswith("#")]
@@ -247,7 +248,9 @@ def sorties_et_etats(interface: Contexte, datatable: list[list[str]]) -> None:
 @then(parsers.parse("le fichier de configuration a toujours pour pré-écoute « {identifiant} »"))
 def configuration_intacte(interface: Contexte, identifiant: str) -> None:
 	chemin = fichier_de_configuration(interface)
-	assert tomllib.loads(chemin.read_text(encoding="utf-8"))["audio"]["preecoute"] == identifiant
+	assert tomllib.loads(chemin.read_text(encoding="utf-8"))["audio"]["preview"] == valeur_pour_le_fichier(
+		"peripherique", identifiant
+	)
 	assert chemin.read_bytes() == interface.configuration_initiale
 
 

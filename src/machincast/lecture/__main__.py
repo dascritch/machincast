@@ -77,7 +77,7 @@ def options_propres(analyseur: argparse.ArgumentParser) -> None:
 		dest="repertoire",
 		type=Path,
 		metavar="REPERTOIRE",
-		help="répertoire des sorties de la simulation (par défaut : celui de sorties.csv de la configuration)",
+		help="répertoire des sorties de la simulation (par défaut : celui de outputs.csv de la configuration)",
 	)
 
 
@@ -137,7 +137,7 @@ def executer_diffusion(configuration: Configuration) -> int:
 	if audio.antenne_a_renseigner():
 		# Le périphérique par défaut pourrait être celui de la pré-écoute, ou changer avec un branchement.
 		journal.error(
-			f"périphérique de l'antenne non renseigné : le donner dans audio.peripherique de {configuration.chemin},"
+			f"périphérique de l'antenne non renseigné : le donner dans audio.device de {configuration.chemin},"
 			" ou dans Fichier → Préférences… de Machin interface, page Audio"
 		)
 		return CODE_CONFIGURATION_INVALIDE

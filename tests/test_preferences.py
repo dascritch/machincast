@@ -116,9 +116,9 @@ def autres_sections(interface: Contexte, hors_audio: str | None) -> None:
 	avant = tomllib.loads(interface.configuration_initiale.decode("utf-8"))
 	apres = tomllib.loads(fichier_de_configuration(interface).read_text(encoding="utf-8"))
 	# Les préférences tiennent toujours [crossfades], [silences] (https://github.com/dascritch/machincast/issues/146) et
-	# [interface] (https://github.com/dascritch/machincast/issues/191), et [blanc_antenne]
+	# [interface] (https://github.com/dascritch/machincast/issues/191), et [dead_air]
 	# (https://github.com/dascritch/machincast/issues/122).
-	retirees = ["crossfades", "silences", "blanc_antenne", "interface"]
+	retirees = ["crossfades", "silences", "dead_air", "interface"]
 	if hors_audio is not None:
 		retirees.append("audio")
 	for section in retirees:
@@ -439,8 +439,8 @@ def configuration_lancee(base_vide: Connexion, tmp_path: Path, sortie: str, ante
 		source.chemin.read_text(encoding="utf-8")
 		.replace(f'test = "{source.base.test}"', f'test = "{source.base.test}_inutilisee"')
 		.replace(f'production = "{source.base.production}"', f'production = "{source.base.test}"')
-		.replace('sortie = "factice"', f'sortie = "{sortie}"\nperipherique = "{antenne}"')
-		.replace(f'preecoute = "{source.audio.preecoute}"', f'preecoute = "{preecoute}"')
+		.replace('output = "dummy"', f'output = "{sortie}"\ndevice = "{antenne}"')
+		.replace(f'preview = "{source.audio.preecoute}"', f'preview = "{preecoute}"')
 	)
 	chemin = tmp_path / "machincast.toml"
 	chemin.write_text(texte, encoding="utf-8")
@@ -757,7 +757,7 @@ def configuration_avec_icone(interface: Contexte, chemin: str) -> None:
 		document.add("interface", tomlkit.table())
 	section = document["interface"]
 	assert isinstance(section, tomlkit.items.Table)
-	section["icone"] = interface.chemin_dans(chemin)
+	section["icon"] = interface.chemin_dans(chemin)
 	fichier.write_text(tomlkit.dumps(document), encoding="utf-8")
 
 
@@ -816,7 +816,7 @@ def icone_montree(interface: Contexte, chemin: str | None) -> None:
 @then(parsers.parse("le fichier de configuration donne l'icône « {chemin} »"))
 def icone_du_fichier(interface: Contexte, chemin: str) -> None:
 	document = tomllib.loads(fichier_de_configuration(interface).read_text(encoding="utf-8"))
-	assert document["interface"]["icone"] == interface.chemin_dans(chemin)
+	assert document["interface"]["icon"] == interface.chemin_dans(chemin)
 
 
 @then("le fichier de configuration n'a pas d'icône")

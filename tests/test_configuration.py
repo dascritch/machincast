@@ -23,10 +23,10 @@ RACINE = Path(__file__).resolve().parents[1]
 
 # Configuration valide de référence, en littéraux TOML, section par section.
 VALIDE: dict[str, dict[str, str]] = {
-	"base": {"socket": '"/var/run/postgresql"', "production": '"machincast"', "test": '"machincast_test"'},
-	"audio": {"sortie": '"pipewire"', "peripherique": '"antenne"', "preecoute": '"casque"'},
-	"sorties": {"csv": '"airplay.csv"', "pls": '"playlist.pls"', "html": '"airplay.html"'},
-	"metadonnees": {"masquer": "false", "texte_public": '"Radio FMR"'},
+	"database": {"socket": '"/var/run/postgresql"', "production": '"machincast"', "test": '"machincast_test"'},
+	"audio": {"output": '"pipewire"', "device": '"antenne"', "preview": '"casque"'},
+	"outputs": {"csv": '"airplay.csv"', "pls": '"playlist.pls"', "html": '"airplay.html"'},
+	"metadata": {"hide": "false", "public_text": '"Radio FMR"'},
 }
 
 
@@ -122,7 +122,7 @@ def chemin_absent(contexte: Contexte) -> None:
 def valide_enregistree(contexte: Contexte, nom: str) -> None:
 	"""Configuration passée à un binaire : sa socket PostgreSQL n'existe pas, pour qu'il ne puisse joindre aucune
 	base, et surtout pas la base de production qu'elle désigne (https://github.com/dascritch/machincast/issues/7)."""
-	contexte.cles["base"]["socket"] = f'"{contexte.repertoire / "aucune-socket"}"'
+	contexte.cles["database"]["socket"] = f'"{contexte.repertoire / "aucune-socket"}"'
 	ecrire(contexte, nom)
 
 

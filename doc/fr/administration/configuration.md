@@ -30,27 +30,27 @@ MachinCast ne fait que **lire** les fichiers sonores ([#96](https://github.com/d
 
 Supprimer un fichier sonore du disque reste une décision humaine, prise hors de MachinCast.
 
-Pour la même raison, une sortie ne peut pas être placée sur un fichier sonore. La configuration refuse un chemin de `sorties.csv`, `sorties.pls`, `sorties.html` ou `lecture.socket_etat` qui se termine par l'extension d'un fichier sonore (`.mp3`, `.m4a`, `.aac`, `.ogg`, `.flac`, `.wav`, `.aiff`, `.aif`, en majuscules comme en minuscules), avec le code de sortie 2 :
+Pour la même raison, une sortie ne peut pas être placée sur un fichier sonore. La configuration refuse un chemin de `outputs.csv`, `outputs.pls`, `outputs.html` ou `player.state_socket` qui se termine par l'extension d'un fichier sonore (`.mp3`, `.m4a`, `.aac`, `.ogg`, `.flac`, `.wav`, `.aiff`, `.aif`, en majuscules comme en minuscules), avec le code de sortie 2 :
 
 ```text
-2026-10-15T08:15:00+02:00 configuration invalide : /home/xavier/machincast/machincast.toml : clé sorties.csv : « musique/airplay.mp3 » porte l'extension d'un fichier sonore, et MachinCast n'écrit jamais dans un fichier sonore
+2026-10-15T08:15:00+02:00 configuration invalide : /home/xavier/machincast/machincast.toml : clé outputs.csv : « musique/airplay.mp3 » porte l'extension d'un fichier sonore, et MachinCast n'écrit jamais dans un fichier sonore
 ```
 
 Si une sortie devait malgré tout tomber sur un tel chemin, elle n'est pas écrite : elle est signalée dans le log par l'alerte `sortie inaccessible`, qui mentionne `fichier sonore protégé`, et la diffusion continue. De même, la socket d'état n'est alors pas ouverte : l'alerte `socket d'état indisponible` est notée, et la diffusion continue sans elle. Les fichiers d'une simulation finissent toujours par `.csv`, `.pls` ou `.html` : quel que soit leur nom, ils ne remplacent jamais un fichier sonore.
 
 ## Sorties de la diffusion
 
-`Machin player` publie ce qu'il diffuse sur plusieurs sorties ([#19](https://github.com/dascritch/machincast/issues/19)), aux chemins de la section `[sorties]` de la configuration, compris depuis le répertoire du fichier de configuration (par défaut, le dossier `sorties` du répertoire de MachinCast, créé au besoin) :
+`Machin player` publie ce qu'il diffuse sur plusieurs sorties ([#19](https://github.com/dascritch/machincast/issues/19)), aux chemins de la section `[outputs]` de la configuration, compris depuis le répertoire du fichier de configuration (par défaut, le dossier `sorties` du répertoire de MachinCast, créé au besoin) :
 
 | Sortie | Pour qui | Contenu |
 | --- | --- | --- |
 | Sortie standard | équipe | Une ligne `à l'antenne : artiste – titre (événement)` à chaque passage, et une ligne à chaque début ou fin d'événement ou de séquence, comme dans le log : `début d'événement : « Journal », émission, de 20:00 à 20:30` ([#153](https://github.com/dascritch/machincast/issues/153)). |
 | Sortie d'erreur | équipe | Les alertes et incidents du log, et les erreurs du programme. |
-| CSV (`sorties.csv`) | équipe | Un fichier par jour, nommé avec sa date : `airplay.csv` donne `airplay-2026-10-15.csv`. Une ligne par passage terminé : début, fin, durée, artiste, titre, emplacement, événement, séquence, banque, sans incident (`oui` ou `non`). Séparateur `;`, s'ouvre directement dans LibreOffice ou Excel. Jamais réécrit. |
-| Playlist `.pls` (`sorties.pls`) | équipe | Les 100 derniers fichiers joués, streams compris, du plus ancien au plus récent : pour réécouter ce qui est passé. |
-| Page HTML (`sorties.html`) | public | Le sonore à l'antenne et les 20 précédents, avec l'heure. Page statique, à publier sur le site de la radio ; elle se recharge toute seule toutes les 30 secondes et ne montre jamais l'emplacement d'un fichier. |
+| CSV (`outputs.csv`) | équipe | Un fichier par jour, nommé avec sa date : `airplay.csv` donne `airplay-2026-10-15.csv`. Une ligne par passage terminé : début, fin, durée, artiste, titre, emplacement, événement, séquence, banque, sans incident (`oui` ou `non`). Séparateur `;`, s'ouvre directement dans LibreOffice ou Excel. Jamais réécrit. |
+| Playlist `.pls` (`outputs.pls`) | équipe | Les 100 derniers fichiers joués, streams compris, du plus ancien au plus récent : pour réécouter ce qui est passé. |
+| Page HTML (`outputs.html`) | public | Le sonore à l'antenne et les 20 précédents, avec l'heure. Page statique, à publier sur le site de la radio ; elle se recharge toute seule toutes les 30 secondes et ne montre jamais l'emplacement d'un fichier. |
 
-**Masquage de l'artiste et du titre.** Sur la page publique seulement, l'artiste et le titre d'un passage peuvent être masqués. Le choix se fait à cinq niveaux : l'événement, puis la séquence qui a fait jouer le sonore ([#99](https://github.com/dascritch/machincast/issues/99)), puis la banque qui l'a fourni, puis le sonore, puis `metadonnees.masquer` dans la configuration. C'est le premier niveau renseigné qui décide : un événement qui dit « afficher » l'emporte sur un sonore qui dit « masquer ». Masqués, l'artiste et le titre laissent la place au premier nom public renseigné, dans le même ordre : celui de l'événement, puis de la séquence, puis de la banque ; s'il n'y en a aucun, à `metadonnees.texte_public`. Les autres sorties disent toujours tout.
+**Masquage de l'artiste et du titre.** Sur la page publique seulement, l'artiste et le titre d'un passage peuvent être masqués. Le choix se fait à cinq niveaux : l'événement, puis la séquence qui a fait jouer le sonore ([#99](https://github.com/dascritch/machincast/issues/99)), puis la banque qui l'a fourni, puis le sonore, puis `metadata.hide` dans la configuration. C'est le premier niveau renseigné qui décide : un événement qui dit « afficher » l'emporte sur un sonore qui dit « masquer ». Masqués, l'artiste et le titre laissent la place au premier nom public renseigné, dans le même ordre : celui de l'événement, puis de la séquence, puis de la banque ; s'il n'y en a aucun, à `metadata.public_text`. Les autres sorties disent toujours tout.
 
 Une sortie impossible à écrire (dossier sans droit d'écriture, disque plein) est signalée une fois dans le log par l'alerte `sortie inaccessible`, avec le chemin et l'erreur. La diffusion continue.
 
@@ -60,10 +60,10 @@ L'interface garde, pour chaque compte, la disposition des colonnes de chacun de 
 
 ## Durée de péremption
 
-`base.peremption` ([#268](https://github.com/dascritch/machincast/issues/268)) est la durée, en jours entiers, 1 au moins, après laquelle [`Machin purge`](commandes.md#purge-de-la-base--machin-purge) efface de la base les passages de l'airplay, les lignes du log, et les éléments supprimés ou dont le fichier a disparu. 60 jours par défaut ; un nombre décimal, un texte ou 0 sont refusés (code 2). L'interface la règle aussi, **Fichier → Préférences…**, page **Base**, qui l'écrit dans la section `[base]`, et la fiche d'un élément supprimé donne le jour où il sera effacé.
+`database.retention` ([#268](https://github.com/dascritch/machincast/issues/268)) est la durée, en jours entiers, 1 au moins, après laquelle [`Machin purge`](commandes.md#purge-de-la-base--machin-purge) efface de la base les passages de l'airplay, les lignes du log, et les éléments supprimés ou dont le fichier a disparu. 60 jours par défaut ; un nombre décimal, un texte ou 0 sont refusés (code 2). L'interface la règle aussi, **Fichier → Préférences…**, page **Base**, qui l'écrit dans la section `[database]`, et la fiche d'un élément supprimé donne le jour où il sera effacé.
 
 ```toml
-[base]
+[database]
 peremption = 90
 ```
 

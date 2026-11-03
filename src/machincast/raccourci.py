@@ -1,7 +1,7 @@
 """Raccourci de l'interface, machincast.desktop (https://github.com/dascritch/machincast/issues/62).
 
 rediger donne son texte (Desktop Entry Specification 1.5) : Machin interface, lancé depuis le répertoire de MachinCast
-(clé Path), avec l'icône de la configuration (interface.icone, https://github.com/dascritch/machincast/issues/111), ou
+(clé Path), avec l'icône de la configuration (interface.icon, https://github.com/dascritch/machincast/issues/111), ou
 celle de MachinCast, ICONE, si aucune n'est choisie ou si l'image choisie n'existe plus. install.sh l'installe dans le
 menu des applications du compte (dossier_du_menu) et, sur demande, sur son bureau (dossier_du_bureau), par
 machincast.installation shortcut.

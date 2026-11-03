@@ -160,7 +160,7 @@ ESSAI_ARRETER = "Sans service : arrête le Machin player lancé à la main, comm
 ANTENNE_A_RENSEIGNER = "Périphérique de l'antenne à renseigner"
 REGLER_L_ANTENNE = (
 	"Machin player refuse de diffuser sans lui : le choisir dans Fichier → Préférences…, page Audio, ou le donner"
-	" dans audio.peripherique du fichier de configuration."
+	" dans audio.device du fichier de configuration."
 )
 DEJA_EN_MARCHE = "La diffusion d'essai tourne déjà"
 ECOUTE = {

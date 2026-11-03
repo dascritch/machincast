@@ -5,7 +5,7 @@ Fonctionnalité: Désherbage de la base : Machin purge
 	afin de maintenir en conditions opérationnelles le service.
 
 	https://github.com/dascritch/machincast/issues/268, partie de https://github.com/dascritch/machincast/issues/251.
-	Machin purge efface de la base de production ce qui dépasse la durée de péremption (base.peremption, 60 jours par
+	Machin purge efface de la base de production ce qui dépasse la durée de péremption (database.retention, 60 jours par
 	défaut) : les lignes de l'airplay et du log plus vieilles qu'elle ; les sonores, banques, séquences et événements
 	supprimés depuis plus longtemps (https://github.com/dascritch/machincast/issues/267) ; les sonores dont le fichier
 	a disparu depuis plus longtemps. Seules les données en base sont effacées, jamais un fichier sonore ni un

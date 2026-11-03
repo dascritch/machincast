@@ -141,7 +141,7 @@ _preecoute_desactivee = False
 
 
 def desactiver_la_preecoute(desactivee: bool) -> None:
-	"""La pré-écoute de la session, désactivée sur l'entrée « Sortie factice » (audio.preecoute) : la fenêtre
+	"""La pré-écoute de la session, désactivée sur l'entrée « Sortie factice » (audio.preview) : la fenêtre
 	principale la règle à son ouverture, et après les préférences ou les suggestions."""
 	global _preecoute_desactivee  # noqa: PLW0603 : la pré-écoute de la session, une seule par interface
 	_preecoute_desactivee = desactivee

@@ -34,10 +34,10 @@ pytest
 bats tests/wrapper
 ```
 
-Les tests lisent `tests/configuration-test.toml`, qui désigne la base de test `machincast_test`, celle du modèle de configuration. Ils ne touchent jamais à la base de production. Si `base.test` porte un autre nom dans `machincast.toml`, copier `tests/configuration-test.toml` dans le répertoire de MachinCast, y changer `base.test`, et désigner cette copie par la variable `MACHINCAST_CONFIG_TEST` :
+Les tests lisent `tests/configuration-test.toml`, qui désigne la base de test `machincast_test`, celle du modèle de configuration. Ils ne touchent jamais à la base de production. Si `database.test` porte un autre nom dans `machincast.toml`, copier `tests/configuration-test.toml` dans le répertoire de MachinCast, y changer `database.test`, et désigner cette copie par la variable `MACHINCAST_CONFIG_TEST` :
 
 ```bash
-cp tests/configuration-test.toml configuration-test-locale.toml   # puis y changer base.test
+cp tests/configuration-test.toml configuration-test-locale.toml   # puis y changer database.test
 MACHINCAST_CONFIG_TEST=configuration-test-locale.toml pytest
 ```
 

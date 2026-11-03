@@ -6,8 +6,8 @@ y envoie son sonore, qui remplace le précédent, à l'arrêt ; le menu « Affic
 sa sortie. Son lecteur est un pipeline playbin3 de GStreamer (machincast.audio.LECTEUR), dont le bus est relevé par
 un minuteur de Qt : rien ne bloque l'interface.
 
-- Sortie : le périphérique de pré-écoute de la configuration (audio.preecoute), sur la sortie de l'antenne
-  (audio.sortie), jamais le périphérique de l'antenne. Le choix liste les périphériques du poste (peripheriques), celui
+- Sortie : le périphérique de pré-écoute de la configuration (audio.preview), sur la sortie de l'antenne
+  (audio.output), jamais le périphérique de l'antenne. Le choix liste les périphériques du poste (peripheriques), celui
   de l'antenne grisé ; un périphérique configuré mais absent reste proposé. Le choix s'enregistre dans le fichier de
   configuration (ecrire_preecoute), qui garde ses commentaires, et arrête la lecture en cours.
 - Lecteur : lecture et pause, arrêt, qui ramène au début. La fin du fichier ramène à l'arrêt ; une erreur aussi, et
@@ -86,11 +86,9 @@ class Source:
 
 
 def ecrire_preecoute(chemin: Path, identifiant: str) -> None:
-	"""audio.preecoute dans le fichier de configuration, qui garde ses commentaires et ses autres réglages."""
+	"""audio.preview dans le fichier de configuration, qui garde ses commentaires et ses autres réglages."""
 	document = tomlkit.parse(chemin.read_text(encoding="utf-8"))
-	audio = document["audio"]
-	assert isinstance(audio, tomlkit.items.Table)
-	audio["preecoute"] = identifiant
+	preferences.ecrire_l_audio(document, None, None, identifiant)
 	chemin.write_text(tomlkit.dumps(document), encoding="utf-8")
 
 

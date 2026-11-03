@@ -1,6 +1,6 @@
 """Moniteur de la sortie d'antenne (https://github.com/dascritch/machincast/issues/24, spec § 2 et § 8.1).
 
-Les niveaux de l'antenne se lisent sur le port de monitoring du périphérique de l'antenne (audio.peripherique), sans
+Les niveaux de l'antenne se lisent sur le port de monitoring du périphérique de l'antenne (audio.device), sans
 rien demander à Machin player :
 
 - PipeWire : pipewiresrc sur le nœud de l'antenne, qui en capture la sortie (stream.capture.sink) ;

@@ -16,7 +16,7 @@ Fonctionnalité: Socle de test
 	Scénario: La connexion de test refuse la base de production
 		Étant donné une configuration de test dont la base de test porte le nom de la base de production
 		Quand je charge cette configuration
-		Alors le chargement échoue avec un message qui mentionne "base.test"
+		Alors le chargement échoue avec un message qui mentionne "database.test"
 
 	Scénario: La base de test est purgée entre deux scénarios
 		Étant donné une base de test vide

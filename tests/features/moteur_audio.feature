@@ -122,7 +122,7 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Et elle a été lue par l'élément GStreamer « playbin3 »
 
 	Scénario: Sur l'entrée « sortie factice », l'antenne joue sur la sortie factice, quelle que soit la sortie audio
-		https://github.com/dascritch/machincast/issues/339 : audio.peripherique = "factice".
+		https://github.com/dascritch/machincast/issues/339 : audio.device = "factice".
 
 		Étant donné un moteur audio sur la sortie « pipewire », antenne « factice », au plus vite
 		Quand il joue le fichier de test « sain.flac »

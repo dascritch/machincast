@@ -24,7 +24,7 @@ from typing import Literal
 
 Position = Literal["commence", "en_cours", "termine"]
 POSITIONS: tuple[Position, ...] = ("commence", "en_cours", "termine")
-"""Les positions d'un fondu, telles qu'elles s'écrivent dans la configuration (crossfades.position_entree et
+"""Les positions d'un fondu, telles qu'elles s'écrivent dans la configuration (crossfades.fade_in_position et
 position_sortie)."""
 LIBELLES: dict[Position, str] = {"commence": "commence", "en_cours": "est en cours", "termine": "se termine"}
 """Ce que dit chaque position, dans « le fade-in se termine au début détecté »."""

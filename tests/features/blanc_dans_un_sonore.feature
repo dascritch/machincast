@@ -4,10 +4,10 @@ Fonctionnalité: Un blanc dans un sonore à l'antenne est noté, et peut faire p
 	je veux qu'un sonore qui ne donne plus de son pendant qu'il joue soit noté, et remplacé si je le demande,
 	afin de ne pas laisser l'antenne sur un blanc : un fichier mal monté, un stream qui ne transmet plus que du vide.
 
-	https://github.com/dascritch/machincast/issues/122. Le sonore qui reste blanc_antenne.duree (10 secondes par défaut)
-	sous blanc_antenne.seuil (-90 dB crête par défaut) présente un blanc. Le niveau se mesure dans la voie, avant son
+	https://github.com/dascritch/machincast/issues/122. Le sonore qui reste dead_air.duration (10 secondes par défaut)
+	sous dead_air.threshold (-90 dB crête par défaut) présente un blanc. Le niveau se mesure dans la voie, avant son
 	volume : les fondus et une voie muette n'en font pas. Le log note un incident « blanc dans un sonore », avec la
-	position du blanc dans le fichier et son niveau moyen. Avec blanc_antenne.secours, un fichier laisse aussitôt
+	position du blanc dans le fichier et son niveau moyen. Avec dead_air.fallback, un fichier laisse aussitôt
 	l'antenne au sonore suivant ; un stream la laisse à son secours, comme un flux tombé, et la reprend dès que son son
 	revient, sa voie gardée ouverte. Sans, le blanc est seulement noté. Un blanc dans un sonore n'est ni un silence, au
 	début ou à la fin d'un fichier, ni l'alerte « blanc », rien à diffuser

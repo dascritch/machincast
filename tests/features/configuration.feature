@@ -12,24 +12,24 @@ Fonctionnalité: Fichier de configuration
 	Scénario: Une configuration complète est lue
 		Étant donné un fichier de configuration contenant :
 			"""
-			[base]
+			[database]
 			socket = "/var/run/postgresql"
 			production = "machincast"
 			test = "machincast_test"
 
 			[audio]
-			sortie = "pipewire"
-			peripherique = "antenne"
-			preecoute = "casque"
+			output = "pipewire"
+			device = "antenne"
+			preview = "casque"
 
-			[sorties]
+			[outputs]
 			csv = "sorties/airplay.csv"
 			pls = "sorties/playlist.pls"
 			html = "/srv/web/airplay.html"
 
-			[metadonnees]
-			masquer = true
-			texte_public = "Vous écoutez Radio FMR"
+			[metadata]
+			hide = true
+			public_text = "Vous écoutez Radio FMR"
 			"""
 		Quand je charge la configuration
 		Alors la base de production est "machincast"
@@ -42,18 +42,18 @@ Fonctionnalité: Fichier de configuration
 		Et le texte public par défaut est "Vous écoutez Radio FMR"
 
 	Scénario: Le périphérique d'antenne est facultatif
-		Étant donné une configuration valide où la clé "audio.peripherique" est absente
+		Étant donné une configuration valide où la clé "audio.device" est absente
 		Quand je charge la configuration
 		Alors la sortie audio utilise le périphérique par défaut
 
 	Scénario: La socket d'état de Machin player est par défaut dans le répertoire d'exécution du compte
 		Étant donné le répertoire d'exécution du compte « /run/user/1000 »
-		Et une configuration valide où la clé "lecture.socket_etat" est absente
+		Et une configuration valide où la clé "player.state_socket" est absente
 		Quand je charge la configuration
 		Alors la socket d'état est "/run/user/1000/machincast/lecture.sock"
 
-	Scénario: La clé lecture.socket_etat choisit un autre chemin pour la socket d'état
-		Étant donné une configuration valide où la clé "lecture.socket_etat" vaut "run/lecture.sock"
+	Scénario: La clé player.state_socket choisit un autre chemin pour la socket d'état
+		Étant donné une configuration valide où la clé "player.state_socket" vaut "run/lecture.sock"
 		Quand je charge la configuration
 		Alors la socket d'état est "run/lecture.sock" à côté du fichier de configuration
 
@@ -64,10 +64,10 @@ Fonctionnalité: Fichier de configuration
 
 		Exemples:
 			| cle                 | chemin               |
-			| sorties.csv         | musique/airplay.mp3  |
-			| sorties.pls         | musique/liste.flac   |
-			| sorties.html        | /srv/web/page.WAV    |
-			| lecture.socket_etat | run/lecture.ogg      |
+			| outputs.csv         | musique/airplay.mp3  |
+			| outputs.pls         | musique/liste.flac   |
+			| outputs.html        | /srv/web/page.WAV    |
+			| player.state_socket | run/lecture.ogg      |
 
 	Plan du scénario: Une clé obligatoire manque
 		Étant donné une configuration valide où la clé "<cle>" est absente
@@ -76,16 +76,16 @@ Fonctionnalité: Fichier de configuration
 
 		Exemples:
 			| cle                 |
-			| base.socket         |
-			| base.production     |
-			| base.test           |
-			| audio.sortie        |
-			| audio.preecoute     |
-			| sorties.csv         |
-			| sorties.pls         |
-			| sorties.html        |
-			| metadonnees.masquer |
-			| metadonnees.texte_public |
+			| database.socket         |
+			| database.production     |
+			| database.test           |
+			| audio.output        |
+			| audio.preview     |
+			| outputs.csv         |
+			| outputs.pls         |
+			| outputs.html        |
+			| metadata.hide |
+			| metadata.public_text |
 
 	Plan du scénario: Une valeur a un type invalide
 		Étant donné une configuration valide où la clé "<cle>" vaut <valeur>
@@ -95,40 +95,40 @@ Fonctionnalité: Fichier de configuration
 
 		Exemples:
 			| cle                 | valeur | attendu        |
-			| metadonnees.masquer | "oui"  | booléen        |
-			| base.production     | 12     | texte          |
-			| sorties.html        | false  | texte          |
+			| metadata.hide | "oui"  | booléen        |
+			| database.production     | 12     | texte          |
+			| outputs.html        | false  | texte          |
 
 	Scénario: Le texte public par défaut est limité à 255 caractères
-		Étant donné une configuration valide où la clé "metadonnees.texte_public" vaut "<256 caractères>"
+		Étant donné une configuration valide où la clé "metadata.public_text" vaut "<256 caractères>"
 		Quand je charge la configuration
-		Alors le chargement échoue avec un message qui mentionne "metadonnees.texte_public"
+		Alors le chargement échoue avec un message qui mentionne "metadata.public_text"
 		Et le message mentionne "255 caractères"
 
 	Scénario: La sortie audio doit être connue
-		Étant donné une configuration valide où la clé "audio.sortie" vaut "jack"
+		Étant donné une configuration valide où la clé "audio.output" vaut "jack"
 		Quand je charge la configuration
-		Alors le chargement échoue avec un message qui mentionne "audio.sortie"
-		Et le message mentionne "alsa, pulseaudio, pipewire, factice"
+		Alors le chargement échoue avec un message qui mentionne "audio.output"
+		Et le message mentionne "alsa, pulseaudio, pipewire, dummy"
 
 	Scénario: La sortie audio factice est acceptée
-		Étant donné une configuration valide où la clé "audio.sortie" vaut "factice"
+		Étant donné une configuration valide où la clé "audio.output" vaut "factice"
 		Quand je charge la configuration
 		Alors la configuration est chargée sans erreur
 
 	Scénario: La base de test ne peut pas être la base de production
-		Étant donné une configuration valide où la clé "base.test" vaut "machincast"
+		Étant donné une configuration valide où la clé "database.test" vaut "machincast"
 		Quand je charge la configuration
-		Alors le chargement échoue avec un message qui mentionne "base.test"
+		Alors le chargement échoue avec un message qui mentionne "database.test"
 		Et le message mentionne "base de production"
 
 	Scénario: La pré-écoute ne peut pas utiliser le périphérique d'antenne
-		Étant donné une configuration valide où la clé "audio.preecoute" vaut "antenne"
+		Étant donné une configuration valide où la clé "audio.preview" vaut "antenne"
 		Quand je charge la configuration
-		Alors le chargement échoue avec un message qui mentionne "audio.preecoute"
+		Alors le chargement échoue avec un message qui mentionne "audio.preview"
 
 	Plan du scénario: L'entrée « sortie factice » vaut pour l'antenne comme pour la pré-écoute (https://github.com/dascritch/machincast/issues/339)
-		Étant donné une configuration valide où la clé "audio.sortie" vaut "pipewire"
+		Étant donné une configuration valide où la clé "audio.output" vaut "pipewire"
 		Et la clé "<cle>" vaut "factice"
 		Quand je charge la configuration
 		Alors la configuration est chargée sans erreur
@@ -137,14 +137,14 @@ Fonctionnalité: Fichier de configuration
 
 		Exemples:
 			| cle               | sortie   | peripherique                   | preecoute  |
-			| audio.peripherique | factice  | sans périphérique              | active     |
-			| audio.preecoute    | pipewire | sur le périphérique « antenne » | désactivée |
+			| audio.device | factice  | sans périphérique              | active     |
+			| audio.preview    | pipewire | sur le périphérique « antenne » | désactivée |
 
 	Scénario: L'antenne et la pré-écoute ne sont pas toutes deux sur la sortie factice
-		Étant donné une configuration valide où la clé "audio.peripherique" vaut "factice"
-		Et la clé "audio.preecoute" vaut "factice"
+		Étant donné une configuration valide où la clé "audio.device" vaut "factice"
+		Et la clé "audio.preview" vaut "factice"
 		Quand je charge la configuration
-		Alors le chargement échoue avec un message qui mentionne "audio.preecoute"
+		Alors le chargement échoue avec un message qui mentionne "audio.preview"
 
 	# ─── Crossfades (https://github.com/dascritch/machincast/issues/145) ─────────────────────────
 
@@ -156,25 +156,25 @@ Fonctionnalité: Fichier de configuration
 		Et le fade-in se termine au début détecté, et le fade-out commence à la fin détectée
 
 	Scénario: La section [crossfades] donne la granularité, le maximum et les durées par défaut
-		Étant donné une configuration valide où la clé "crossfades.granularite" vaut "seconde"
+		Étant donné une configuration valide où la clé "crossfades.granularity" vaut "seconde"
 		Et la clé "crossfades.maximum" vaut 8
-		Et la clé "crossfades.debut" vaut 1.5
-		Et la clé "crossfades.fin" vaut 3
+		Et la clé "crossfades.start" vaut 1.5
+		Et la clé "crossfades.end" vaut 3
 		Quand je charge la configuration
 		Alors les crossfades se règlent à la seconde, jusqu'à 8 secondes
 		Et les crossfades durent par défaut 1,5 seconde au début et 3 secondes à la fin
 
 	Scénario: Les durées par défaut vont de 0 seconde jusqu'au maximum compris
-		Étant donné une configuration valide où la clé "crossfades.debut" vaut 0
-		Et la clé "crossfades.fin" vaut 5
+		Étant donné une configuration valide où la clé "crossfades.start" vaut 0
+		Et la clé "crossfades.end" vaut 5
 		Quand je charge la configuration
 		Alors les crossfades durent par défaut 0 seconde au début et 5 secondes à la fin
 
 	Scénario: La section [crossfades] donne la position des fondus par rapport aux silences détectés
 		https://github.com/dascritch/machincast/issues/234
 
-		Étant donné une configuration valide où la clé "crossfades.position_entree" vaut "en_cours"
-		Et la clé "crossfades.position_sortie" vaut "termine"
+		Étant donné une configuration valide où la clé "crossfades.fade_in_position" vaut "en_cours"
+		Et la clé "crossfades.fade_out_position" vaut "termine"
 		Quand je charge la configuration
 		Alors le fade-in est en cours au début détecté, et le fade-out se termine à la fin détectée
 
@@ -186,26 +186,26 @@ Fonctionnalité: Fichier de configuration
 
 		Exemples:
 			| cle                    | valeur     | attendu                    |
-			| crossfades.granularite | "centieme" | seconde, dixieme           |
+			| crossfades.granularity | "centieme" | second, tenth              |
 			| crossfades.maximum     | 0          | strictement positif        |
 			| crossfades.maximum     | "5"        | nombre                     |
-			| crossfades.debut       | -1         | positif ou nul             |
-			| crossfades.fin         | 11         | au plus crossfades.maximum |
-			| crossfades.debut       | true       | nombre                     |
-			| crossfades.position_entree | "avant" | commence, en_cours, termine |
-			| crossfades.position_sortie | 2       | texte                       |
+			| crossfades.start       | -1         | positif ou nul             |
+			| crossfades.end         | 11         | au plus crossfades.maximum |
+			| crossfades.start       | true       | nombre                     |
+			| crossfades.fade_in_position | "avant" | starts, ongoing, ends       |
+			| crossfades.fade_out_position | 2       | texte                       |
 
 	# ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ─────────────────
 
 	# ─── Péremption (https://github.com/dascritch/machincast/issues/268) ───
 
-	Scénario: Sans clé base.peremption, la durée de péremption est de 60 jours
-		Étant donné une configuration valide où la clé "base.peremption" est absente
+	Scénario: Sans clé database.retention, la durée de péremption est de 60 jours
+		Étant donné une configuration valide où la clé "database.retention" est absente
 		Quand je charge la configuration
 		Alors la durée de péremption est de 60 jours
 
-	Plan du scénario: La clé base.peremption donne la durée de péremption, en jours entiers, d'un jour au moins
-		Étant donné une configuration valide où la clé "base.peremption" vaut <valeur>
+	Plan du scénario: La clé database.retention donne la durée de péremption, en jours entiers, d'un jour au moins
+		Étant donné une configuration valide où la clé "database.retention" vaut <valeur>
 		Quand je charge la configuration
 		Alors la durée de péremption est de <valeur> jours
 
@@ -215,9 +215,9 @@ Fonctionnalité: Fichier de configuration
 			| 365    |
 
 	Plan du scénario: Une durée de péremption invalide est refusée
-		Étant donné une configuration valide où la clé "base.peremption" vaut <valeur>
+		Étant donné une configuration valide où la clé "database.retention" vaut <valeur>
 		Quand je charge la configuration
-		Alors le chargement échoue avec un message qui mentionne "base.peremption"
+		Alors le chargement échoue avec un message qui mentionne "database.retention"
 		Et le message mentionne "nombre entier de jours, 1 au moins"
 
 		Exemples:
@@ -233,8 +233,8 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors le seuil de silence est de -40 dB
 
-	Plan du scénario: La clé silences.seuil donne le seuil de silence, de -100 dB compris à 0 dB exclu
-		Étant donné une configuration valide où la clé "silences.seuil" vaut <valeur>
+	Plan du scénario: La clé silences.threshold donne le seuil de silence, de -100 dB compris à 0 dB exclu
+		Étant donné une configuration valide où la clé "silences.threshold" vaut <valeur>
 		Quand je charge la configuration
 		Alors le seuil de silence est de <seuil> dB
 
@@ -246,9 +246,9 @@ Fonctionnalité: Fichier de configuration
 			| -0.1   | -0,1  |
 
 	Plan du scénario: Un seuil de silence invalide est refusé
-		Étant donné une configuration valide où la clé "silences.seuil" vaut <valeur>
+		Étant donné une configuration valide où la clé "silences.threshold" vaut <valeur>
 		Quand je charge la configuration
-		Alors le chargement échoue avec un message qui mentionne "silences.seuil"
+		Alors le chargement échoue avec un message qui mentionne "silences.threshold"
 		Et le message mentionne "<attendu>"
 
 		Exemples:
@@ -264,7 +264,7 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors le chargement échoue avec un message qui mentionne "silences.duree"
 
-	Scénario: Sans section [blanc_antenne], un blanc de 10 secondes sous -90 dB dans un sonore est noté seulement
+	Scénario: Sans section [dead_air], un blanc de 10 secondes sous -90 dB dans un sonore est noté seulement
 		https://github.com/dascritch/machincast/issues/122 : un blanc dans un sonore, à l'antenne, n'est pas un silence,
 		qui borne un fichier (https://github.com/dascritch/machincast/issues/291).
 
@@ -272,16 +272,16 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors un blanc dans un sonore dure au moins 10 secondes sous -90 dB, et il est noté seulement
 
-	Scénario: La section [blanc_antenne] donne la durée et le niveau d'un blanc, et le passage au secours
-		Étant donné une configuration valide où la clé "blanc_antenne.duree" vaut 4.5
-		Et la clé "blanc_antenne.seuil" vaut -70
-		Et la clé "blanc_antenne.secours" vaut true
+	Scénario: La section [dead_air] donne la durée et le niveau d'un blanc, et le passage au secours
+		Étant donné une configuration valide où la clé "dead_air.duration" vaut 4.5
+		Et la clé "dead_air.threshold" vaut -70
+		Et la clé "dead_air.fallback" vaut true
 		Quand je charge la configuration
 		Alors un blanc dans un sonore dure au moins 4,5 secondes sous -70 dB, et il fait passer au secours
 
 	Plan du scénario: La durée d'un blanc va de 1 à 300 secondes comprises, son niveau de -100 dB compris à 0 dB exclu
-		Étant donné une configuration valide où la clé "blanc_antenne.duree" vaut <duree>
-		Et la clé "blanc_antenne.seuil" vaut <seuil>
+		Étant donné une configuration valide où la clé "dead_air.duration" vaut <duree>
+		Et la clé "dead_air.threshold" vaut <seuil>
 		Quand je charge la configuration
 		Alors un blanc dans un sonore dure au moins <secondes> secondes sous <db> dB, et il est noté seulement
 
@@ -290,42 +290,39 @@ Fonctionnalité: Fichier de configuration
 			| 1     | -100  | 1        | -100  |
 			| 300   | -0.1  | 300      | -0,1  |
 
-	Plan du scénario: Une clé de la section [blanc_antenne] invalide est refusée
-		Étant donné une configuration valide où la clé "blanc_antenne.<cle>" vaut <valeur>
+	Plan du scénario: Une clé de la section [dead_air] invalide est refusée
+		Étant donné une configuration valide où la clé "dead_air.<cle>" vaut <valeur>
 		Quand je charge la configuration
-		Alors le chargement échoue avec un message qui mentionne "blanc_antenne.<cle>"
+		Alors le chargement échoue avec un message qui mentionne "dead_air.<cle>"
 		Et le message mentionne "<attendu>"
 
 		Exemples:
-			| cle     | valeur | attendu                          |
-			| duree   | 0.5    | de 1 à 300 secondes comprises    |
-			| duree   | 301    | de 1 à 300 secondes comprises    |
-			| duree   | "10"   | nombre                           |
-			| seuil   | 0      | de -100 dB compris à 0 dB exclu  |
-			| seuil   | -101   | de -100 dB compris à 0 dB exclu  |
-			| seuil   | true   | nombre                           |
-			| secours | 1      | booléen                          |
-			| volume  | 1      | blanc_antenne.volume             |
+			| cle       | valeur | attendu                          |
+			| duration  | 0.5    | de 1 à 300 secondes comprises    |
+			| duration  | 301    | de 1 à 300 secondes comprises    |
+			| duration  | "10"   | nombre                           |
+			| threshold | 0      | de -100 dB compris à 0 dB exclu  |
+			| threshold | -101   | de -100 dB compris à 0 dB exclu  |
+			| threshold | true   | nombre                           |
+			| fallback  | 1      | booléen                          |
+			| volume    | 1      | dead_air.volume                  |
 
-	Scénario: L'ancienne section [blancs] est lue comme [silences], et le journal demande de la renommer
-		https://github.com/dascritch/machincast/issues/291 : la section s'appelait [blancs], avant que le son faible au
-		début et à la fin d'un fichier ne s'appelle un silence. Une configuration qui la garde reste valide.
+	Plan du scénario: Une ancienne section française est refusée, en nommant son nom anglais
+		https://github.com/dascritch/machincast/issues/357 : sections et clés sont en anglais, sans compatibilité ; les
+		installations se refont de zéro. [blancs] était l'ancien nom de [silences] (https://github.com/dascritch/machincast/issues/291).
 
-		Étant donné une configuration valide où la clé "blancs.seuil" vaut -55
+		Étant donné une configuration valide où la clé "<ancienne>.<cle>" vaut 1
 		Quand je charge la configuration
-		Alors le seuil de silence est de -55 dB
-		Et le journal avertit que la section [blancs] s'appelle désormais [silences]
+		Alors le chargement échoue avec un message qui mentionne "section [<ancienne>] inconnue : son nom est désormais [<nouvelle>]"
 
-	Scénario: Une configuration qui a les sections [blancs] et [silences] à la fois est refusée
-		Étant donné une configuration valide où la clé "blancs.seuil" vaut -55
-		Et la clé "silences.seuil" vaut -60
-		Quand je charge la configuration
-		Alors le chargement échoue avec un message qui mentionne "[blancs] est l'ancien nom de [silences]"
-
-	Scénario: Une clé inconnue de l'ancienne section [blancs] est refusée sous le nouveau nom
-		Étant donné une configuration valide où la clé "blancs.duree" vaut 1
-		Quand je charge la configuration
-		Alors le chargement échoue avec un message qui mentionne "silences.duree"
+		Exemples:
+			| ancienne      | cle        | nouvelle |
+			| base          | peremption | database |
+			| sorties       | csv        | outputs  |
+			| metadonnees   | masquer    | metadata |
+			| lecture       | socket     | player   |
+			| blanc_antenne | duree      | dead_air |
+			| blancs        | seuil      | silences |
 
 	Scénario: Une clé inconnue est refusée
 		Étant donné une configuration valide où la clé "audio.volume" vaut 80
@@ -400,8 +397,8 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors le voyant « Saturation » de l'onglet Antenne est affiché
 
-	Plan du scénario: La clé interface.saturation affiche ou cache le voyant « Saturation » de l'onglet Antenne
-		Étant donné une configuration valide où la clé "interface.saturation" vaut <valeur>
+	Plan du scénario: La clé interface.clipping affiche ou cache le voyant « Saturation » de l'onglet Antenne
+		Étant donné une configuration valide où la clé "interface.clipping" vaut <valeur>
 		Quand je charge la configuration
 		Alors le voyant « Saturation » de l'onglet Antenne est <etat>
 
@@ -410,15 +407,15 @@ Fonctionnalité: Fichier de configuration
 			| true   | affiché |
 			| false  | caché   |
 
-	Plan du scénario: Une valeur de interface.saturation qui n'est pas un booléen est refusée, comme une clé inconnue
+	Plan du scénario: Une valeur de interface.clipping qui n'est pas un booléen est refusée, comme une clé inconnue
 		Étant donné une configuration valide où la clé "<cle>" vaut <valeur>
 		Quand je charge la configuration
 		Alors le chargement échoue avec un message qui mentionne "<cle>"
 
 		Exemples:
 			| cle                  | valeur |
-			| interface.saturation | "oui"  |
-			| interface.saturation | 1      |
+			| interface.clipping | "oui"  |
+			| interface.clipping | 1      |
 			| interface.suggestions | "non" |
 			| interface.blanc      | true   |
 
@@ -437,13 +434,13 @@ Fonctionnalité: Fichier de configuration
 
 	# ─── Icône de l'interface (https://github.com/dascritch/machincast/issues/111) ───────
 
-	Scénario: Sans clé interface.icone, l'interface a l'icône de MachinCast
+	Scénario: Sans clé interface.icon, l'interface a l'icône de MachinCast
 		Étant donné une configuration valide sans section "interface"
 		Quand je charge la configuration
 		Alors l'icône de l'interface est celle de MachinCast
 
-	Plan du scénario: La clé interface.icone désigne une image SVG, PNG ou JPEG, relative au fichier de configuration
-		Étant donné une configuration valide où la clé "interface.icone" vaut "<chemin>"
+	Plan du scénario: La clé interface.icon désigne une image SVG, PNG ou JPEG, relative au fichier de configuration
+		Étant donné une configuration valide où la clé "interface.icon" vaut "<chemin>"
 		Quand je charge la configuration
 		Alors l'icône de l'interface est "<chemin>" à côté du fichier de configuration
 
@@ -455,9 +452,9 @@ Fonctionnalité: Fichier de configuration
 			| radio.jpeg       |
 
 	Plan du scénario: Une icône qui n'est pas une image SVG, PNG ou JPEG est refusée
-		Étant donné une configuration valide où la clé "interface.icone" vaut <valeur>
+		Étant donné une configuration valide où la clé "interface.icon" vaut <valeur>
 		Quand je charge la configuration
-		Alors le chargement échoue avec un message qui mentionne "interface.icone"
+		Alors le chargement échoue avec un message qui mentionne "interface.icon"
 
 		Exemples:
 			| valeur                |
