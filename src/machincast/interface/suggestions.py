@@ -3,15 +3,16 @@
 Au lancement, si les suggestions sont actives (interface.suggestions), l'interface cherche ce qui manque pour démarrer
 (manquants) : un événement de priorité fil musical, les banques de BANQUES (par leur nom interne, sans tenir compte des
 majuscules) et, sur une vraie sortie, la carte son de l'antenne. S'il manque quelque chose, une fenêtre modale
-(FenetreSuggestions, par machincast.interface.dialogues.suggerer) le propose, chaque élément coché par défaut. Tant que
+(SuggestionsWindow, par machincast.interface.dialogs.suggest) le propose, chaque élément coché par défaut. Tant que
 l'antenne n'a pas de carte son, la fenêtre propose d'abord, en tête, le bloc des cartes son des préférences
-(machincast.interface.cartes_son, https://github.com/dascritch/machincast/issues/339) : le type de sortie, et les cartes
+(machincast.interface.sound_cards, https://github.com/dascritch/machincast/issues/339) : le type de sortie, et les
+cartes
 de l'antenne et de la pré-écoute, chacune avec son bouton « Tester », selon le service de diffusion. Avec les seules
 cartes son à choisir, son bouton est « Enregistrer », sinon « Créer » ; il est grisé tant que l'antenne et la
 pré-écoute ont la même carte.
 
 - « Créer » (creer) crée ce qui est coché : le fil musical, permanent, comme le fil musical garanti
-  (machincast.interface.fil_musical) ; les banques, sans répertoire, chacune avec ses réglages (REGLAGES) :
+  (machincast.interface.background_programming) ; les banques, sans répertoire, chacune avec ses réglages (REGLAGES) :
   l'identifiant station et les musiques, aléatoires ; les annonces (partenariats, publicités, bandes-annonces),
   séquentielles, enchaînées sans crossfade, imposé à 0 seconde à leurs sonores ; « Identifiant station » et
   « Bande-annonce émissions » marquées « ne pas répéter » ; les musiques de 15 minutes au plus, l'identifiant station
@@ -33,46 +34,46 @@ from psycopg.rows import TupleRow
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QListWidgetItem, QWidget
 
-from machincast.configuration import Audio, SortieAudio
-from machincast.interface import fil_musical
-from machincast.interface.cartes_son import CartesSon
-from machincast.interface.preferences import ecrire_l_audio
-from machincast.interface.ui.suggestions import Ui_FenetreSuggestions
-from machincast.service import ABSENT, EtatDuService
+from machincast.configuration import Audio, AudioOutput
+from machincast.interface import background_programming
+from machincast.interface.preferences import write_audio
+from machincast.interface.sound_cards import SoundCards
+from machincast.interface.ui.suggestions import Ui_SuggestionsWindow
+from machincast.service import ABSENT, ServiceState
 
-FIL_MUSICAL = "Fil musical"
+BACKGROUND_PROGRAMMING = "Fil musical"
 """La ligne du fil musical dans la fenêtre."""
 
 
 @dataclass(frozen=True)
-class Reglage:
+class Setting:
 	"""Ce qu'une banque suggérée reçoit à sa création."""
 
 	mode: str = "random"
-	ne_pas_repeter: bool = False
+	no_repeat: bool = False
 	"""https://github.com/dascritch/machincast/issues/63"""
-	duree_max: timedelta | None = None
-	sans_crossfade: bool = False
+	max_duration: timedelta | None = None
+	without_crossfade: bool = False
 	"""Crossfades de début et de fin imposés à 0 seconde à tous ses sonores : ils s'enchaînent sans se mêler."""
 
 
-MUSIQUE = Reglage(duree_max=timedelta(minutes=15))
-ANNONCE = Reglage(mode="sequential", duree_max=timedelta(minutes=2), sans_crossfade=True)
-REGLAGES = {
-	"Identifiant station": Reglage(ne_pas_repeter=True, duree_max=timedelta(minutes=2)),
-	"Musique rotation lourde": MUSIQUE,
-	"Musique rotation normale": MUSIQUE,
-	"Musique rotation rare": MUSIQUE,
-	"Musique rotation de nuit": Reglage(),
-	"Partenariats": ANNONCE,
-	"Publicités": ANNONCE,
-	"Bande-annonce émissions": Reglage(
-		mode="sequential", ne_pas_repeter=True, duree_max=timedelta(minutes=2), sans_crossfade=True
+MUSIC = Setting(max_duration=timedelta(minutes=15))
+ANNOUNCEMENT = Setting(mode="sequential", max_duration=timedelta(minutes=2), without_crossfade=True)
+SETTINGS = {
+	"Identifiant station": Setting(no_repeat=True, max_duration=timedelta(minutes=2)),
+	"Musique rotation lourde": MUSIC,
+	"Musique rotation normale": MUSIC,
+	"Musique rotation rare": MUSIC,
+	"Musique rotation de nuit": Setting(),
+	"Partenariats": ANNOUNCEMENT,
+	"Publicités": ANNOUNCEMENT,
+	"Bande-annonce émissions": Setting(
+		mode="sequential", no_repeat=True, max_duration=timedelta(minutes=2), without_crossfade=True
 	),
 }
 """Les banques suggérées, dans l'ordre où la fenêtre les propose, et leurs réglages
 (https://github.com/dascritch/machincast/issues/231)."""
-BANQUES = tuple(REGLAGES)
+BANKS = tuple(SETTINGS)
 ROTATION = (
 	"Identifiant station",
 	"Musique rotation lourde",
@@ -83,202 +84,200 @@ ROTATION = (
 """La liste d'un fil musical encore vide ; la rotation de nuit reste à placer à la main dans un événement de nuit."""
 
 
-def libelle(banque: str) -> str:
+def label(bank: str) -> str:
 	"""« Banque « Identifiant station » » : la ligne d'une banque dans la fenêtre."""
-	return f"Banque « {banque} »"
+	return f"Banque « {bank} »"
 
 
 @dataclass(frozen=True)
-class Manques:
+class Shortfalls:
 	"""Ce qui manque pour démarrer."""
 
-	fil_musical: bool
-	banques: tuple[str, ...]
+	background_programming: bool
+	banks: tuple[str, ...]
 	audio: Audio | None = None
 	"""La configuration audio, que montrent les cartes son, quand l'antenne n'a pas de carte sur une vraie sortie ; None
 	sinon (https://github.com/dascritch/machincast/issues/339)."""
 
-	def elements(self) -> list[str]:
+	def items(self) -> list[str]:
 		"""Les lignes à cocher de la fenêtre."""
-		lignes = [libelle(banque) for banque in self.banques]
-		if self.fil_musical:
-			lignes.insert(0, FIL_MUSICAL)
-		return lignes
+		lines = [label(bank) for bank in self.banks]
+		if self.background_programming:
+			lines.insert(0, BACKGROUND_PROGRAMMING)
+		return lines
 
-	def vide(self) -> bool:
-		return (not self.fil_musical) and (not self.banques) and (self.audio is None)
+	def empty(self) -> bool:
+		return (not self.background_programming) and (not self.banks) and (self.audio is None)
 
 
 @dataclass(frozen=True)
-class Reponse:
+class Response:
 	"""Ce que la fenêtre a décidé : creer est faux pour « Plus tard »."""
 
-	creer: bool
-	fil_musical: bool = False
-	banques: tuple[str, ...] = ()
-	sortie: SortieAudio | None = None
+	create: bool
+	background_programming: bool = False
+	banks: tuple[str, ...] = ()
+	output: AudioOutput | None = None
 	"""Le type de sortie choisi ; None sans cartes son à choisir."""
-	antenne: str | None = None
-	preecoute: str | None = None
-	ne_plus_proposer: bool = False
+	on_air: str | None = None
+	preview: str | None = None
+	more_offer: bool = False
 
 
-def manquants(connexion: psycopg.Connection[TupleRow], audio: Audio) -> Manques:
+def missing_list(connection: psycopg.Connection[TupleRow], audio: Audio) -> Shortfalls:
 	"""Ce qui manque : fil musical, banques suggérées, carte son d'antenne sur une vraie sortie."""
-	with connexion.transaction():
-		fil = connexion.execute(
+	with connection.transaction():
+		feed = connection.execute(
 			"SELECT 1 FROM events WHERE priority = 'background_programming' AND deleted_at IS NULL LIMIT 1"
 		).fetchone()
-		existantes = {
-			str(nom).casefold()
-			for (nom,) in connexion.execute("SELECT internal_name FROM banks WHERE deleted_at IS NULL")
+		existing_list = {
+			str(name).casefold()
+			for (name,) in connection.execute("SELECT internal_name FROM banks WHERE deleted_at IS NULL")
 		}
-	banques = tuple(banque for banque in BANQUES if banque.casefold() not in existantes)
-	a_choisir = None
-	if audio.antenne_a_renseigner():
-		a_choisir = audio
-	return Manques(fil is None, banques, a_choisir)
+	banks = tuple(bank for bank in BANKS if bank.casefold() not in existing_list)
+	to_choose = None
+	if audio.to_fill_in_on_air():
+		to_choose = audio
+	return Shortfalls(feed is None, banks, to_choose)
 
 
-def creer(connexion: psycopg.Connection[TupleRow], reponse: Reponse) -> str | None:
+def create(connection: psycopg.Connection[TupleRow], response: Response) -> str | None:
 	"""Crée ce que la réponse demande, puis remplit un fil musical encore vide ; ce que dit la barre d'état, ou None
 	si rien n'est créé."""
-	crees: list[str] = []
-	with connexion.transaction():
-		if reponse.fil_musical:
-			nom = fil_musical.garantir(connexion)
-			if nom is not None:
-				crees.append(f"le fil musical « {nom} »")
-		nouvelles = []
-		for banque in reponse.banques:
-			reglage = REGLAGES[banque]
-			regle = "sound"
-			if reglage.sans_crossfade:
-				regle = "forced"
-			connexion.execute(
+	created_list: list[str] = []
+	with connection.transaction():
+		if response.background_programming:
+			name = background_programming.guarantee(connection)
+			if name is not None:
+				created_list.append(f"le fil musical « {name} »")
+		new_list = []
+		for bank in response.banks:
+			setting = SETTINGS[bank]
+			rule = "sound"
+			if setting.without_crossfade:
+				rule = "forced"
+			connection.execute(
 				"INSERT INTO banks (internal_name, mode, no_repeat, max_duration, crossfade_start_rule,"
 				" crossfade_start, crossfade_end_rule, crossfade_end)"
 				" VALUES (%s, %s, %s, %s, %s, '0 s', %s, '0 s')",
-				(banque, reglage.mode, reglage.ne_pas_repeter, reglage.duree_max, regle, regle),
+				(bank, setting.mode, setting.no_repeat, setting.max_duration, rule, rule),
 			)
-			nouvelles.append(f"« {banque} »")
-		if len(nouvelles) == 1:
-			crees.append(f"la banque {nouvelles[0]}")
-		elif nouvelles:
-			crees.append(f"les banques {', '.join(nouvelles)}")
-		_remplir_un_fil_vide(connexion)
-	if not crees:
+			new_list.append(f"« {bank} »")
+		if len(new_list) == 1:
+			created_list.append(f"la banque {new_list[0]}")
+		elif new_list:
+			created_list.append(f"les banques {', '.join(new_list)}")
+		_fill_empty_feed(connection)
+	if not created_list:
 		return None
-	return f"Créés : {', '.join(crees)}."
+	return f"Créés : {', '.join(created_list)}."
 
 
-def _remplir_un_fil_vide(connexion: psycopg.Connection[TupleRow]) -> None:
+def _fill_empty_feed(connection: psycopg.Connection[TupleRow]) -> None:
 	"""Le premier fil musical sans élément, par nom, reçoit la rotation type, avec les banques qui existent."""
-	vide = connexion.execute(
+	empty = connection.execute(
 		"SELECT e.id FROM events e WHERE e.priority = 'background_programming' AND e.deleted_at IS NULL"
 		" AND NOT EXISTS (SELECT 1 FROM event_items x WHERE x.event_id = e.id)"
 		" ORDER BY e.internal_name LIMIT 1"
 	).fetchone()
-	if vide is None:
+	if empty is None:
 		return
-	banques = {
-		str(nom).casefold(): int(str(identifiant))
-		for identifiant, nom in connexion.execute(
+	banks = {
+		str(name).casefold(): int(str(identifier))
+		for identifier, name in connection.execute(
 			"SELECT id, internal_name FROM banks WHERE deleted_at IS NULL ORDER BY id"
 		)
 	}
 	position = 0
-	for banque in ROTATION:
-		identifiant = banques.get(banque.casefold())
-		if identifiant is None:
+	for bank in ROTATION:
+		identifier = banks.get(bank.casefold())
+		if identifier is None:
 			continue
 		position += 1
-		connexion.execute(
+		connection.execute(
 			"INSERT INTO event_items (event_id, position, bank_id) VALUES (%s, %s, %s)",
-			(vide[0], position, identifiant),
+			(empty[0], position, identifier),
 		)
 
 
-def enregistrer(chemin: Path, reponse: Reponse) -> None:
+def save(path: Path, response: Response) -> None:
 	"""Écrit dans le fichier de configuration les cartes son choisies, et l'arrêt des suggestions ; le reste du fichier
 	reste tel quel, commentaires compris. « Plus tard » n'enregistre pas les cartes son."""
-	cartes = (reponse.creer) and (reponse.sortie is not None)
-	if (not cartes) and (not reponse.ne_plus_proposer):
+	cards = (response.create) and (response.output is not None)
+	if (not cards) and (not response.more_offer):
 		return
-	document = tomlkit.parse(chemin.read_text(encoding="utf-8"))
-	if cartes:
-		ecrire_l_audio(document, reponse.sortie, reponse.antenne, reponse.preecoute)
-	if reponse.ne_plus_proposer:
+	document = tomlkit.parse(path.read_text(encoding="utf-8"))
+	if cards:
+		write_audio(document, response.output, response.on_air, response.preview)
+	if response.more_offer:
 		if "interface" not in document:
 			document.add("interface", tomlkit.table())
 		section_interface = document["interface"]
 		assert isinstance(section_interface, tomlkit.items.Table)
 		section_interface["suggestions"] = False
-	chemin.write_text(tomlkit.dumps(document), encoding="utf-8")
+	path.write_text(tomlkit.dumps(document), encoding="utf-8")
 
 
-class FenetreSuggestions(QDialog):
+class SuggestionsWindow(QDialog):
 	"""La fenêtre des suggestions : les cartes son en tête, tant que l'antenne n'en a pas ; puis une ligne cochée par
 	élément manquant."""
 
-	def __init__(self, manques: Manques, parent: QWidget | None = None, service: EtatDuService = ABSENT) -> None:
+	def __init__(self, gaps: Shortfalls, parent: QWidget | None = None, service: ServiceState = ABSENT) -> None:
 		super().__init__(parent)
-		self.ui = Ui_FenetreSuggestions()
+		self.ui = Ui_SuggestionsWindow()
 		self.ui.setupUi(self)
-		self.manques = manques
-		for texte in manques.elements():
-			ligne = QListWidgetItem(texte, self.ui.elements)
-			ligne.setFlags(ligne.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-			ligne.setCheckState(Qt.CheckState.Checked)
-		a_creer = bool(manques.elements())
-		self.ui.elements.setVisible(a_creer)
-		self.ui.explication.setVisible(a_creer)
-		self.cartes: CartesSon | None = None
-		self.ui.groupe_cartes_son.setVisible(manques.audio is not None)
-		if manques.audio is not None:
-			audio = manques.audio
-			self.cartes = CartesSon(
-				audio.sortie, audio.peripherique, audio.preecoute, service, self.ui.groupe_cartes_son
-			)
-			self.ui.disposition_cartes_son.addWidget(self.cartes)
-			self.cartes.change.connect(self._valider)
-		boutons = self.ui.boutons
-		texte = "Enregistrer"
-		if a_creer:
-			texte = "Créer"
-		boutons.button(QDialogButtonBox.StandardButton.Ok).setText(texte)
-		boutons.button(QDialogButtonBox.StandardButton.Cancel).setText("Plus tard")
-		boutons.accepted.connect(self.accept)
-		boutons.rejected.connect(self.reject)
-		self._valider()
+		self.gaps = gaps
+		for text in gaps.items():
+			line = QListWidgetItem(text, self.ui.items)
+			line.setFlags(line.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+			line.setCheckState(Qt.CheckState.Checked)
+		to_create = bool(gaps.items())
+		self.ui.items.setVisible(to_create)
+		self.ui.explanation.setVisible(to_create)
+		self.cards: SoundCards | None = None
+		self.ui.sound_cards_group.setVisible(gaps.audio is not None)
+		if gaps.audio is not None:
+			audio = gaps.audio
+			self.cards = SoundCards(audio.output, audio.device, audio.preview, service, self.ui.sound_cards_group)
+			self.ui.sound_cards_layout.addWidget(self.cards)
+			self.cards.changed.connect(self._validate)
+		buttons = self.ui.buttons
+		text = "Enregistrer"
+		if to_create:
+			text = "Créer"
+		buttons.button(QDialogButtonBox.StandardButton.Ok).setText(text)
+		buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Plus tard")
+		buttons.accepted.connect(self.accept)
+		buttons.rejected.connect(self.reject)
+		self._validate()
 
-	def _valider(self) -> None:
+	def _validate(self) -> None:
 		"""Jamais la même carte à l'antenne et à la pré-écoute."""
-		valide = (self.cartes is None) or (self.cartes.valide())
-		self.ui.boutons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(valide)
+		valid = (self.cards is None) or (self.cards.valid())
+		self.ui.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(valid)
 
-	def _cochees(self) -> set[str]:
-		liste = self.ui.elements
-		lignes = [liste.item(rang) for rang in range(liste.count())]
-		return {ligne.text() for ligne in lignes if ligne.checkState() == Qt.CheckState.Checked}
+	def _ticked_list(self) -> set[str]:
+		list_ = self.ui.items
+		lines = [list_.item(rank) for rank in range(list_.count())]
+		return {line.text() for line in lines if line.checkState() == Qt.CheckState.Checked}
 
-	def reponse(self) -> Reponse:
+	def response(self) -> Response:
 		"""Ce qui est décidé : tout ce qui est coché sur « Créer », rien sur « Plus tard »."""
-		ne_plus = self.ui.ne_plus_proposer.isChecked()
+		more = self.ui.more_offer.isChecked()
 		if self.result() != QDialog.DialogCode.Accepted:
-			return Reponse(creer=False, ne_plus_proposer=ne_plus)
-		cochees = self._cochees()
-		sortie, antenne, preecoute = None, None, None
-		if self.cartes is not None:
-			sortie = self.cartes.sortie_choisie()
-			antenne = self.cartes.antenne_choisie()
-			preecoute = self.cartes.preecoute_choisie()
-		return Reponse(
-			creer=True,
-			fil_musical=FIL_MUSICAL in cochees,
-			banques=tuple(banque for banque in self.manques.banques if libelle(banque) in cochees),
-			sortie=sortie,
-			antenne=antenne,
-			preecoute=preecoute,
-			ne_plus_proposer=ne_plus,
+			return Response(create=False, more_offer=more)
+		ticked_list = self._ticked_list()
+		output, on_air, preview = None, None, None
+		if self.cards is not None:
+			output = self.cards.chosen_output()
+			on_air = self.cards.chosen_on_air()
+			preview = self.cards.chosen_preview()
+		return Response(
+			create=True,
+			background_programming=BACKGROUND_PROGRAMMING in ticked_list,
+			banks=tuple(bank for bank in self.gaps.banks if label(bank) in ticked_list),
+			output=output,
+			on_air=on_air,
+			preview=preview,
+			more_offer=more,
 		)

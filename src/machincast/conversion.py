@@ -9,33 +9,33 @@ from collections.abc import Collection
 from datetime import timedelta
 
 
-def texte_ou_rien(valeur: object) -> str | None:
-	if valeur is None:
+def text_or_none(value: object) -> str | None:
+	if value is None:
 		return None
-	return str(valeur)
+	return str(value)
 
 
-def entier_ou_rien(valeur: object) -> int | None:
-	if valeur is None:
+def integer_or_none(value: object) -> int | None:
+	if value is None:
 		return None
-	return int(str(valeur))
+	return int(str(value))
 
 
-def booleen_ou_rien(valeur: object) -> bool | None:
-	if valeur is None:
+def boolean_or_none(value: object) -> bool | None:
+	if value is None:
 		return None
-	return bool(valeur)
+	return bool(value)
 
 
-def duree_ou_rien(valeur: object) -> timedelta | None:
+def duration_or_none(value: object) -> timedelta | None:
 	"""Une durée, et rien pour toute autre valeur."""
-	if isinstance(valeur, timedelta):
-		return valeur
+	if isinstance(value, timedelta):
+		return value
 	return None
 
 
-def liste_ou_rien(identifiants: Collection[int] | None) -> list[int] | None:
+def list_or_none(identifiers: Collection[int] | None) -> list[int] | None:
 	"""Une collection d'identifiants en liste, pour un tableau PostgreSQL ; rien reste rien, c'est-à-dire tous."""
-	if identifiants is None:
+	if identifiers is None:
 		return None
-	return list(identifiants)
+	return list(identifiers)

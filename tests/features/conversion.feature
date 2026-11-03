@@ -13,16 +13,16 @@ Fonctionnalité: Conversion des valeurs lues en base ou dans un message
 
 		Exemples:
 			| conversion       | entrée              | sortie              |
-			| texte_ou_rien    | rien                | rien                |
-			| texte_ou_rien    | le nombre 12        | le texte « 12 »     |
-			| texte_ou_rien    | le texte « »        | le texte « »        |
-			| entier_ou_rien   | rien                | rien                |
-			| entier_ou_rien   | le texte « 42 »     | l'entier 42         |
-			| booleen_ou_rien  | rien                | rien                |
-			| booleen_ou_rien  | le nombre 0         | faux                |
-			| booleen_ou_rien  | le nombre 1         | vrai                |
-			| duree_ou_rien    | rien                | rien                |
-			| duree_ou_rien    | le texte « 3:20 »   | rien                |
-			| duree_ou_rien    | la durée de 200 s   | la durée de 200 s   |
-			| liste_ou_rien    | rien                | rien                |
-			| liste_ou_rien    | l'ensemble 3, 1     | la liste 1, 3       |
+			| text_or_none    | rien                | rien                |
+			| text_or_none    | le nombre 12        | le texte « 12 »     |
+			| text_or_none    | le texte « »        | le texte « »        |
+			| integer_or_none   | rien                | rien                |
+			| integer_or_none   | le texte « 42 »     | l'entier 42         |
+			| boolean_or_none  | rien                | rien                |
+			| boolean_or_none  | le nombre 0         | faux                |
+			| boolean_or_none  | le nombre 1         | vrai                |
+			| duration_or_none    | rien                | rien                |
+			| duration_or_none    | le texte « 3:20 »   | rien                |
+			| duration_or_none    | la durée de 200 s   | la durée de 200 s   |
+			| list_or_none    | rien                | rien                |
+			| list_or_none    | l'ensemble 3, 1     | la liste 1, 3       |

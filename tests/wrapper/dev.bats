@@ -160,14 +160,14 @@ machin_dev() {
 	cd "${BATS_TEST_TMPDIR}"
 	run "${MACHIN}" dev-screenshots
 	[ "${status}" -eq 0 ]
-	grep -qF "python [-m] [tests.captures] dans ${PROJET}, venv ${PROJET}/.venv" "${APPELS}"
+	grep -qF "python [-m] [tests.screenshots] dans ${PROJET}, venv ${PROJET}/.venv" "${APPELS}"
 }
 
 @test "Machin dev-screenshots transmet le répertoire où écrire les captures" {
 	ecrire_outil "${VENV}" python
 	run "${MACHIN}" dev-screenshots /tmp/essai
 	[ "${status}" -eq 0 ]
-	grep -qF "python [-m] [tests.captures] [/tmp/essai] dans ${PROJET}" "${APPELS}"
+	grep -qF "python [-m] [tests.screenshots] [/tmp/essai] dans ${PROJET}" "${APPELS}"
 }
 
 @test "Machin dev-screenshots refuse --config : il n'écrit que dans la base de test" {

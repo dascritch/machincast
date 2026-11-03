@@ -13,23 +13,23 @@ from pathlib import Path
 
 from pytest_bdd import parsers, scenarios, then
 
-from machincast.indexation.decodage import EtatFichier
-from machincast.indexation.tags import CLES
-from machincast.indexation.verification import LIBELLES
-from tests.markdown import ancres_cassees, liens_casses
+from machincast.indexer.check import LABELS
+from machincast.indexer.decoding import FileState
+from machincast.indexer.tags import KEYS
+from tests.markdown import broken_anchors, broken_links
 
 scenarios("guide.feature")
 
-RACINE = Path(__file__).resolve().parents[1]
-DOC = RACINE / "doc" / "fr"
+ROOT = Path(__file__).resolve().parents[1]
+DOC = ROOT / "doc" / "fr"
 GUIDES = {"utilisateur": DOC / "utilisateur", "d'administration": DOC / "administration"}
 OPTION = re.compile(r"(?<![\w-])(--?[a-z][a-z-]*)")
-LIEN = re.compile(r"\]\(([^)#\s]+)(?:#[^)]*)?\)")
-BLOC_DE_COMMANDES = re.compile(r"^```(?:bash|sh|shell|console)\s*$", re.MULTILINE)
+LINK = re.compile(r"\]\(([^)#\s]+)(?:#[^)]*)?\)")
+COMMAND_BLOCK = re.compile(r"^```(?:bash|sh|shell|console)\s*$", re.MULTILINE)
 
 
-def pages(dossier: Path) -> list[Path]:
-	return sorted(dossier.glob("*.md"))
+def pages(folder: Path) -> list[Path]:
+	return sorted(folder.glob("*.md"))
 
 
 def documentation() -> list[Path]:
@@ -39,112 +39,112 @@ def documentation() -> list[Path]:
 	]
 
 
-def texte_du_guide(guide: str) -> str:
-	dossier = GUIDES[guide]
-	assert pages(dossier), f"{dossier.relative_to(RACINE)} sans page"
-	return "\n".join(page.read_text(encoding="utf-8") for page in pages(dossier))
+def guide_text(guide: str) -> str:
+	folder = GUIDES[guide]
+	assert pages(folder), f"{folder.relative_to(ROOT)} sans page"
+	return "\n".join(page.read_text(encoding="utf-8") for page in pages(folder))
 
 
-def absents(guide: str, termes: set[str]) -> list[str]:
+def absent_list(guide: str, terms: set[str]) -> list[str]:
 	"""Termes que le guide ne cite dans aucun code entre accents graves, comme le veut sa mise en forme."""
-	codes = re.findall(r"`([^`\n]+)`", texte_du_guide(guide))
+	codes = re.findall(r"`([^`\n]+)`", guide_text(guide))
 
-	def cite(terme: str) -> bool:
-		motif = re.compile(rf"(?<![\w-]){re.escape(terme)}(?![\w-])")
-		return any(motif.search(code) for code in codes)
+	def cites(term: str) -> bool:
+		pattern = re.compile(rf"(?<![\w-]){re.escape(term)}(?![\w-])")
+		return any(pattern.search(code) for code in codes)
 
-	return sorted(terme for terme in termes if not cite(terme))
+	return sorted(term for term in terms if not cites(term))
 
 
-def options(aide: str) -> set[str]:
-	return set(OPTION.findall(aide))
+def options(help_: str) -> set[str]:
+	return set(OPTION.findall(help_))
 
 
 # ─── Organisation ──────────────────────────────────────────
 
 
-@then(parsers.parse("{fichier} contient un lien vers {cible}"))
-def lien(fichier: str, cible: str) -> None:
-	assert f"]({cible}" in (RACINE / fichier).read_text(encoding="utf-8"), f"{fichier} ne mène pas à {cible}"
+@then(parsers.parse("{file} contient un lien vers {target}"))
+def link(file: str, target: str) -> None:
+	assert f"]({target}" in (ROOT / file).read_text(encoding="utf-8"), f"{file} ne mène pas à {target}"
 
 
-@then(parsers.parse("chaque page de doc/{dossier} est liée depuis doc/{sommaire}/README.md"))
-def sommaire(dossier: str, sommaire: str) -> None:
-	assert dossier == sommaire
-	repertoire = DOC / dossier
-	liees = set(LIEN.findall((repertoire / "README.md").read_text(encoding="utf-8")))
-	manquantes = [page.name for page in pages(repertoire) if (page.name != "README.md") and (page.name not in liees)]
-	assert pages(repertoire), f"doc/{dossier} sans page"
-	assert not manquantes, manquantes
+@then(parsers.parse("chaque page de doc/{folder} est liée depuis doc/{summary}/README.md"))
+def summary(folder: str, summary: str) -> None:
+	assert folder == summary
+	directory = DOC / folder
+	linked = set(LINK.findall((directory / "README.md").read_text(encoding="utf-8")))
+	missing_list = [page.name for page in pages(directory) if (page.name != "README.md") and (page.name not in linked)]
+	assert pages(directory), f"doc/{folder} sans page"
+	assert not missing_list, missing_list
 
 
 @then("aucune page du guide utilisateur n'a de bloc de commandes à taper")
-def sans_commandes() -> None:
-	fautives = [page.name for page in pages(GUIDES["utilisateur"]) if BLOC_DE_COMMANDES.search(page.read_text())]
-	assert not fautives, fautives
+def without_commands() -> None:
+	faulty = [page.name for page in pages(GUIDES["utilisateur"]) if COMMAND_BLOCK.search(page.read_text())]
+	assert not faulty, faulty
 
 
 # ─── Couverture ────────────────────────────────────────────
 
 
 @then(parsers.parse("chaque binaire du wrapper est documenté dans le guide {guide}"))
-def binaires_wrapper(guide: str) -> None:
-	scripts = tomllib.loads((RACINE / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
-	manquants = absents(guide, {f"Machin {nom.removeprefix('Machin_')}" for nom in scripts})
-	assert not manquants, manquants
+def wrapper_binaries(guide: str) -> None:
+	scripts = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
+	missing_list = absent_list(guide, {f"Machin {name.removeprefix('Machin_')}" for name in scripts})
+	assert not missing_list, missing_list
 
 
 @then(parsers.parse("chaque option du wrapper est documentée dans le guide {guide}"))
 def options_wrapper(guide: str) -> None:
-	aide = subprocess.run([RACINE / "bin" / "Machin", "--help"], capture_output=True, text=True, check=True).stdout
-	section = aide.split("Options du wrapper :", 1)[1].split("Exemples :", 1)[0]
-	manquants = absents(guide, options(section))
-	assert not manquants, manquants
+	help_ = subprocess.run([ROOT / "bin" / "Machin", "--help"], capture_output=True, text=True, check=True).stdout
+	section = help_.split("Options du wrapper :", 1)[1].split("Exemples :", 1)[0]
+	missing_list = absent_list(guide, options(section))
+	assert not missing_list, missing_list
 
 
 @then(parsers.parse("la commande « Machin logs » est documentée dans le guide {guide}"))
 def machin_logs(guide: str) -> None:
-	assert not absents(guide, {"Machin logs"})
+	assert not absent_list(guide, {"Machin logs"})
 
 
 @then(parsers.parse("chaque option de l'aide de « {executable} » est documentée dans le guide {guide}"))
-def options_binaire(executable: str, guide: str) -> None:
-	# Le module du point d'entrée : Machin_player lance machincast.lecture (https://github.com/dascritch/machincast/issues/356).
-	scripts = tomllib.loads((RACINE / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
+def binary_options(executable: str, guide: str) -> None:
+	# Le module du point d'entrée : Machin_player lance machincast.player (https://github.com/dascritch/machincast/issues/356).
+	scripts = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
 	module = scripts[executable].split(":")[0].removesuffix(".__main__")
-	aide = subprocess.run([sys.executable, "-m", module, "--help"], capture_output=True, text=True, check=True)
-	manquants = absents(guide, options(aide.stdout.split("options:", 1)[1]))
-	assert not manquants, f"{executable} : {manquants}"
+	help_ = subprocess.run([sys.executable, "-m", module, "--help"], capture_output=True, text=True, check=True)
+	missing_list = absent_list(guide, options(help_.stdout.split("options:", 1)[1]))
+	assert not missing_list, f"{executable} : {missing_list}"
 
 
 @then(parsers.parse("chaque état d'un sonore est documenté dans le guide {guide}"))
-def etats(guide: str) -> None:
-	manquants = absents(guide, set(LIBELLES.values()))
-	assert not manquants, manquants
+def states(guide: str) -> None:
+	missing_list = absent_list(guide, set(LABELS.values()))
+	assert not missing_list, missing_list
 
 
 @then(parsers.parse("chaque verdict de la vérification d'un fichier est documenté dans le guide {guide}"))
 def verdicts(guide: str) -> None:
-	manquants = absents(guide, {str(etat) for etat in EtatFichier})
-	assert not manquants, manquants
+	missing_list = absent_list(guide, {str(state) for state in FileState})
+	assert not missing_list, missing_list
 
 
 @then(parsers.parse("chaque clé de métadonnées musicales tenue par l'indexeur est documentée dans le guide {guide}"))
-def cles(guide: str) -> None:
-	manquants = absents(guide, set(CLES))
-	assert not manquants, manquants
+def keys(guide: str) -> None:
+	missing_list = absent_list(guide, set(KEYS))
+	assert not missing_list, missing_list
 
 
 # ─── Liens ─────────────────────────────────────────────────
 
 
 @then("chaque lien relatif de la documentation mène à un fichier du dépôt")
-def liens() -> None:
-	casses = [casse for page in documentation() for casse in liens_casses(page)]
-	assert not casses, casses
+def links() -> None:
+	broken_list = [broken for page in documentation() for broken in broken_links(page)]
+	assert not broken_list, broken_list
 
 
 @then("chaque ancre citée par la documentation mène à un titre du fichier visé")
-def ancres() -> None:
-	cassees = [cassee for page in documentation() for cassee in ancres_cassees(page)]
-	assert not cassees, cassees
+def anchors() -> None:
+	broken_list = [broken for page in documentation() for broken in broken_anchors(page)]
+	assert not broken_list, broken_list

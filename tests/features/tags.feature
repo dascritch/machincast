@@ -18,11 +18,11 @@ Fonctionnalité: Lecture des tags
 
 		Exemples:
 			| format | metadonnees                                                                                                                                                  |
-			| flac   | {"annee": 1987, "album": "Été indien", "artiste_album": "Collectif Exemple", "genre": "Chanson", "compositeur": "Jeanne Exemple", "label": "Disques Exemple", "piste": 7} |
-			| ogg    | {"annee": 1987, "album": "Été indien", "artiste_album": "Collectif Exemple", "genre": "Chanson", "compositeur": "Jeanne Exemple", "label": "Disques Exemple", "piste": 7} |
-			| mp3    | {"annee": 1987, "album": "Été indien", "artiste_album": "Collectif Exemple", "genre": "Chanson", "compositeur": "Jeanne Exemple", "piste": 7}                             |
-			| m4a    | {"annee": 1987, "album": "Été indien", "artiste_album": "Collectif Exemple", "genre": "Chanson", "compositeur": "Jeanne Exemple", "piste": 7}                             |
-			| wav    | {"annee": 1987, "album": "Été indien", "artiste_album": "Collectif Exemple", "genre": "Chanson"}                                                                          |
+			| flac   | {"year": 1987, "album": "Été indien", "album_artist": "Collectif Exemple", "genre": "Chanson", "composer": "Jeanne Exemple", "label": "Disques Exemple", "track": 7} |
+			| ogg    | {"year": 1987, "album": "Été indien", "album_artist": "Collectif Exemple", "genre": "Chanson", "composer": "Jeanne Exemple", "label": "Disques Exemple", "track": 7} |
+			| mp3    | {"year": 1987, "album": "Été indien", "album_artist": "Collectif Exemple", "genre": "Chanson", "composer": "Jeanne Exemple", "track": 7}                             |
+			| m4a    | {"year": 1987, "album": "Été indien", "album_artist": "Collectif Exemple", "genre": "Chanson", "composer": "Jeanne Exemple", "track": 7}                             |
+			| wav    | {"year": 1987, "album": "Été indien", "album_artist": "Collectif Exemple", "genre": "Chanson"}                                                                          |
 
 	Plan du scénario: Un fichier sans tags n'a ni artiste, ni titre, ni métadonnées musicales
 		Étant donné un fichier <format> sain
@@ -73,15 +73,15 @@ Fonctionnalité: Lecture des tags
 		Et un sonore à l'état « active » pour ce fichier
 		Quand l'indexeur fait un audit complet
 		Alors en base, l'artiste est « Les Gaufres Électriques » et le titre « Café à minuit »
-		Et en base, les métadonnées musicales sont {"annee": 1987, "album": "Été indien", "artiste_album": "Collectif Exemple", "genre": "Chanson", "compositeur": "Jeanne Exemple", "label": "Disques Exemple", "piste": 7}
+		Et en base, les métadonnées musicales sont {"year": 1987, "album": "Été indien", "album_artist": "Collectif Exemple", "genre": "Chanson", "composer": "Jeanne Exemple", "label": "Disques Exemple", "track": 7}
 
 	Scénario: Les champs édités à la main ne sont jamais remplacés par les tags
 		Étant donné un fichier flac tagué
-		Et pour ce fichier, un sonore d'artiste « Saisi à la main » et de métadonnées {"annee": 1990, "commentaire": "Face B"}
-		Et les champs « artist » et « music_metadata.annee » de ce sonore édités à la main
+		Et pour ce fichier, un sonore d'artiste « Saisi à la main » et de métadonnées {"year": 1990, "commentaire": "Face B"}
+		Et les champs « artist » et « music_metadata.year » de ce sonore édités à la main
 		Quand l'indexeur fait un audit complet
 		Alors en base, l'artiste est « Saisi à la main » et le titre « Café à minuit »
-		Et en base, les métadonnées musicales sont {"annee": 1990, "commentaire": "Face B", "album": "Été indien", "artiste_album": "Collectif Exemple", "genre": "Chanson", "compositeur": "Jeanne Exemple", "label": "Disques Exemple", "piste": 7}
+		Et en base, les métadonnées musicales sont {"year": 1990, "commentaire": "Face B", "album": "Été indien", "album_artist": "Collectif Exemple", "genre": "Chanson", "composer": "Jeanne Exemple", "label": "Disques Exemple", "track": 7}
 
 	Scénario: Un tag retiré du fichier efface le champ correspondant, s'il n'a pas été édité
 		Étant donné un fichier flac sain

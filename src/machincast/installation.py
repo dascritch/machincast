@@ -40,111 +40,111 @@ import psycopg
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
-from machincast import audio as sorties_audio  # noqa: E402
-from machincast import raccourci as rediger_le_raccourci  # noqa: E402
-from machincast.audio import ESSAI, GREFFONS, Greffon, SortieAudioIndisponible, creer_sortie  # noqa: E402
-from machincast.base import SchemaPerime, appliquer_migrations, url_yoyo  # noqa: E402
-from machincast.cli import lancer  # noqa: E402
-from machincast.configuration import REPERTOIRE_PROJET, Configuration, SortieAudio  # noqa: E402
-from machincast.service import UNITE  # noqa: E402
+from machincast import audio as audio_outputs  # noqa: E402
+from machincast import shortcut as write_shortcut  # noqa: E402
+from machincast.audio import PLUGINS, TRIAL, Plugin, UnavailableAudioOutput, create_output  # noqa: E402
+from machincast.cli import launch  # noqa: E402
+from machincast.configuration import PROJECT_DIRECTORY, AudioOutput, Configuration  # noqa: E402
+from machincast.database import OutdatedSchema, apply_migrations, url_yoyo  # noqa: E402
+from machincast.service import UNIT  # noqa: E402
 
 EXECUTABLE = "machincast.installation"
 DESCRIPTION = "Étapes d'installation de MachinCast, appelées par install.sh."
-CODE_ECHEC = 1
-UNITE_PURGE = "machincast-purge.service"
+FAILURE_CODE = 1
+PURGE_UNIT = "machincast-purge.service"
 """L'unité de la purge, Machin purge : les mêmes noms dans install.sh."""
-MINUTEUR_PURGE = "machincast-purge.timer"
-HEURE_PURGE = "*-*-* 12:00:00"
+PURGE_TIMER = "machincast-purge.timer"
+PURGE_HOUR = "*-*-* 12:00:00"
 """Chaque jour à midi : en journée, quand le poste de l'antenne est allumé."""
 
 # Nom explicite : lancé par python -m, ce module s'appelle __main__, hors du journal « machincast ».
-journal = logging.getLogger("machincast.installation")
+log = logging.getLogger("machincast.installation")
 
 
 @dataclass(frozen=True)
-class Exigence:
+class Requirement:
 	"""Un élément GStreamer d'un type donné doit savoir lire ces capacités."""
 
-	type_element: int
-	capacites: str
-	paquet: str | None = None
+	item_type: int
+	capabilities: str
+	package: str | None = None
 	"""Paquet qui fournit l'élément, quand ce n'est pas celui du format."""
 
 
 @dataclass(frozen=True)
-class FormatSonore:
-	exigences: tuple[Exigence, ...]
-	paquet: str
+class SoundFormat:
+	requirements: tuple[Requirement, ...]
+	package: str
 	"""Paquet Ubuntu qui fournit les éléments, parmi les prérequis de CLAUDE.md."""
 
 
-_DECODEUR = Gst.ELEMENT_FACTORY_TYPE_DECODER
-_DEMULTIPLEXEUR = Gst.ELEMENT_FACTORY_TYPE_DEMUXER
-_ANALYSEUR = Gst.ELEMENT_FACTORY_TYPE_PARSER
+_DECODER = Gst.ELEMENT_FACTORY_TYPE_DECODER
+_DEMUXER = Gst.ELEMENT_FACTORY_TYPE_DEMUXER
+_ANALYSER = Gst.ELEMENT_FACTORY_TYPE_PARSER
 
-FORMATS: dict[str, FormatSonore] = {
-	"mp3": FormatSonore(
-		(Exigence(_DECODEUR, "audio/mpeg, mpegversion=(int)1, layer=(int)3"),), "gstreamer1.0-plugins-good"
+FORMATS: dict[str, SoundFormat] = {
+	"mp3": SoundFormat(
+		(Requirement(_DECODER, "audio/mpeg, mpegversion=(int)1, layer=(int)3"),), "gstreamer1.0-plugins-good"
 	),
-	"m4a": FormatSonore(
-		(Exigence(_DEMULTIPLEXEUR, "audio/x-m4a"), Exigence(_DECODEUR, "audio/mpeg, mpegversion=(int)4")),
+	"m4a": SoundFormat(
+		(Requirement(_DEMUXER, "audio/x-m4a"), Requirement(_DECODER, "audio/mpeg, mpegversion=(int)4")),
 		"gstreamer1.0-plugins-bad",
 	),
 	# AAC brut en trames ADTS (.aac) : aacparse (plugins-good) découpe les trames, le décodeur est celui du M4A.
-	"aac": FormatSonore(
+	"aac": SoundFormat(
 		(
-			Exigence(
-				_ANALYSEUR, "audio/mpeg, mpegversion=(int)4, stream-format=(string)adts", "gstreamer1.0-plugins-good"
+			Requirement(
+				_ANALYSER, "audio/mpeg, mpegversion=(int)4, stream-format=(string)adts", "gstreamer1.0-plugins-good"
 			),
-			Exigence(_DECODEUR, "audio/mpeg, mpegversion=(int)4"),
+			Requirement(_DECODER, "audio/mpeg, mpegversion=(int)4"),
 		),
 		"gstreamer1.0-plugins-bad",
 	),
-	"ogg": FormatSonore(
-		(Exigence(_DEMULTIPLEXEUR, "application/ogg"), Exigence(_DECODEUR, "audio/x-vorbis")),
+	"ogg": SoundFormat(
+		(Requirement(_DEMUXER, "application/ogg"), Requirement(_DECODER, "audio/x-vorbis")),
 		"gstreamer1.0-plugins-base",
 	),
-	"flac": FormatSonore((Exigence(_DECODEUR, "audio/x-flac"),), "gstreamer1.0-plugins-good"),
-	"wav": FormatSonore((Exigence(_DEMULTIPLEXEUR, "audio/x-wav"),), "gstreamer1.0-plugins-good"),
+	"flac": SoundFormat((Requirement(_DECODER, "audio/x-flac"),), "gstreamer1.0-plugins-good"),
+	"wav": SoundFormat((Requirement(_DEMUXER, "audio/x-wav"),), "gstreamer1.0-plugins-good"),
 }
 """Formats de la spec § 6.2, et ce que decodebin doit trouver pour les décoder."""
 
 
 @dataclass(frozen=True)
-class Manque:
-	element: str
+class Shortfall:
+	item: str
 	"""Format sonore, protocole de stream ou sortie audio qui ne peut pas fonctionner."""
-	paquet: str
+	package: str
 
 
-def _satisfaite(exigence: Exigence) -> bool:
+def _satisfied(requirement: Requirement) -> bool:
 	"""Vrai si un élément utilisable par decodebin (rang au moins MARGINAL) lit ces capacités."""
-	capacites = Gst.Caps.from_string(exigence.capacites)
-	assert capacites is not None
-	fabriques = Gst.ElementFactory.list_get_elements(exigence.type_element, Gst.Rank.MARGINAL)
-	return any(fabrique.can_sink_any_caps(capacites) for fabrique in fabriques)
+	capabilities = Gst.Caps.from_string(requirement.capabilities)
+	assert capabilities is not None
+	factories = Gst.ElementFactory.list_get_elements(requirement.item_type, Gst.Rank.MARGINAL)
+	return any(factory.can_sink_any_caps(capabilities) for factory in factories)
 
 
-def verifier_decodeurs() -> list[Manque]:
+def check_decoders() -> list[Shortfall]:
 	"""Formats de la spec qu'aucun décodeur GStreamer installé ne sait lire, avec le paquet à installer.
 
 	Le paquet nommé est celui du premier élément manquant.
 	"""
 	Gst.init(None)
-	manques = []
-	for nom, format_sonore in FORMATS.items():
-		absente = next((e for e in format_sonore.exigences if not _satisfaite(e)), None)
-		if absente is not None:
-			manques.append(Manque(nom, (absente.paquet) or (format_sonore.paquet)))
-	return manques
+	gaps = []
+	for name, sound_format in FORMATS.items():
+		absent = next((e for e in sound_format.requirements if not _satisfied(e)), None)
+		if absent is not None:
+			gaps.append(Shortfall(name, (absent.package) or (sound_format.package)))
+	return gaps
 
 
-PROTOCOLES_STREAMS = {"http": "gstreamer1.0-plugins-good", "https": "gstreamer1.0-plugins-good"}
+STREAM_PROTOCOLS = {"http": "gstreamer1.0-plugins-good", "https": "gstreamer1.0-plugins-good"}
 """Protocoles des streams (https://github.com/dascritch/machincast/issues/16), et le paquet de leur source
 (souphttpsrc)."""
 
 
-def verifier_streams() -> list[Manque]:
+def check_streams() -> list[Shortfall]:
 	"""Protocoles de stream qu'aucune source GStreamer installée ne sait lire, avec le paquet à installer."""
 	Gst.init(None)
 	sources = [
@@ -152,27 +152,27 @@ def verifier_streams() -> list[Manque]:
 		for f in Gst.ElementFactory.list_get_elements(Gst.ELEMENT_FACTORY_TYPE_SRC, Gst.Rank.MARGINAL)
 		if f.get_uri_type() == Gst.URIType.SRC
 	]
-	lus = {protocole for f in sources for protocole in ((f.get_uri_protocols()) or ([]))}
-	return [Manque(f"stream {p}", paquet) for p, paquet in PROTOCOLES_STREAMS.items() if p not in lus]
+	fetched_list = {protocol for f in sources for protocol in ((f.get_uri_protocols()) or ([]))}
+	return [Shortfall(f"stream {p}", package) for p, package in STREAM_PROTOCOLS.items() if p not in fetched_list]
 
 
-def verifier_sortie(configuration: Configuration, greffons: dict[SortieAudio, Greffon] = GREFFONS) -> list[Manque]:
+def check_output(configuration: Configuration, plugins: dict[AudioOutput, Plugin] = PLUGINS) -> list[Shortfall]:
 	"""Crée l'élément de la sortie audio configurée, sans jouer de son : aucun son ne part à l'antenne. Sur l'entrée
 	« sortie factice » de l'antenne, la sortie reste à vérifier, pour la pré-écoute."""
 	audio = configuration.audio
 	try:
-		creer_sortie(audio.sortie, audio.antenne()[1], greffons, presentation=ESSAI)
-	except SortieAudioIndisponible:
-		return [Manque(f"sortie audio {audio.sortie}", greffons[audio.sortie].paquet)]
+		create_output(audio.output, audio.on_air()[1], plugins, presentation=TRIAL)
+	except UnavailableAudioOutput:
+		return [Shortfall(f"sortie audio {audio.output}", plugins[audio.output].package)]
 	return []
 
 
-VERSION_VERIFIEE = (1, 28)
+CHECKED_VERSION = (1, 28)
 """Version de GStreamer avec laquelle MachinCast est vérifié, celle d'Ubuntu 26.04 LTS
-(https://github.com/dascritch/machincast/issues/284) : la suite de tests et les mesures de tests.mesures_gstreamer
+(https://github.com/dascritch/machincast/issues/284) : la suite de tests et les mesures de tests.gstreamer_measures
 y sont faites. Une version plus ancienne fonctionne, sans garantie : ses défauts peuvent être autres."""
-DISTRIBUTION_VERIFIEE = "Ubuntu 26.04 LTS"
-COMPOSANTS: dict[str, tuple[str | None, str]] = {
+CHECKED_DISTRIBUTION = "Ubuntu 26.04 LTS"
+COMPONENTS: dict[str, tuple[str | None, str]] = {
 	"GStreamer": (None, "libgstreamer1.0-0"),
 	"le greffon GStreamer playback": ("playback", "gstreamer1.0-plugins-base"),
 	"le greffon GStreamer flac": ("flac", "gstreamer1.0-plugins-good"),
@@ -182,124 +182,123 @@ COMPOSANTS: dict[str, tuple[str | None, str]] = {
 
 
 @dataclass(frozen=True)
-class Ancienne:
-	composant: str
+class Old:
+	component: str
 	version: str
-	paquet: str
+	package: str
 
 
-def lire_version(greffon: str | None) -> str | None:
+def read_version(plugin: str | None) -> str | None:
 	"""La version installée du cœur de GStreamer, ou d'un greffon ; None pour un greffon absent."""
 	Gst.init(None)
-	if greffon is None:
-		majeure, mineure, corrective, _nano = Gst.version()
-		return f"{majeure}.{mineure}.{corrective}"
-	trouve = Gst.Registry.get().find_plugin(greffon)
-	if trouve is None:
+	if plugin is None:
+		major, minor, corrective, _nano = Gst.version()
+		return f"{major}.{minor}.{corrective}"
+	found = Gst.Registry.get().find_plugin(plugin)
+	if found is None:
 		return None
-	return str(trouve.get_version())
+	return str(found.get_version())
 
 
-def _numeros(version: str) -> tuple[int, ...]:
-	return tuple(int(numero) for numero in version.split(".")[:2] if numero.isdigit())
+def _numbers(version: str) -> tuple[int, ...]:
+	return tuple(int(number) for number in version.split(".")[:2] if number.isdigit())
 
 
-def verifier_versions() -> list[Ancienne]:
+def check_versions() -> list[Old]:
 	"""Ce qui est plus ancien que la version vérifiée, avec le paquet à mettre à jour. Un greffon absent n'est pas
-	signalé ici : verifier_decodeurs le signale."""
-	anciennes = []
-	for composant, (greffon, paquet) in COMPOSANTS.items():
-		version = lire_version(greffon)
-		if (version is not None) and (_numeros(version) < VERSION_VERIFIEE):
-			anciennes.append(Ancienne(composant, version, paquet))
-	return anciennes
+	signalé ici : check_decoders le signale."""
+	old_list = []
+	for component, (plugin, package) in COMPONENTS.items():
+		version = read_version(plugin)
+		if (version is not None) and (_numbers(version) < CHECKED_VERSION):
+			old_list.append(Old(component, version, package))
+	return old_list
 
 
-def _bases(configuration: Configuration) -> int:
+def _databases(configuration: Configuration) -> int:
 	# Données lues par install.sh, une valeur par ligne : ce n'est pas un message, d'où l'écriture directe.
-	base = configuration.base
-	sys.stdout.write(f"{base.socket}\n{base.production}\n{base.test}\n")
+	database = configuration.database
+	sys.stdout.write(f"{database.socket}\n{database.production}\n{database.test}\n")
 	return 0
 
 
-def _migrer(configuration: Configuration) -> int:
-	base = configuration.base
-	for nom in (base.production, base.test):
+def _migrate(configuration: Configuration) -> int:
+	database = configuration.database
+	for name in (database.production, database.test):
 		try:
-			appliquer_migrations(url_yoyo(base.socket, nom), nom)
-		except SchemaPerime as erreur:
-			journal.error(f"schéma impossible à mettre à jour : {erreur}")
-			return CODE_ECHEC
-		except psycopg.OperationalError as erreur:
-			journal.error(f"base de données injoignable ({nom} par {base.socket}) : {erreur}")
-			return CODE_ECHEC
-		except psycopg.errors.InsufficientPrivilege as erreur:
-			journal.error(
-				f"droits insuffisants pour appliquer le schéma dans la base {nom}, qui appartient sans doute à un autre"
-				f" rôle PostgreSQL : {erreur}"
+			apply_migrations(url_yoyo(database.socket, name), name)
+		except OutdatedSchema as error:
+			log.error(f"schéma impossible à mettre à jour : {error}")
+			return FAILURE_CODE
+		except psycopg.OperationalError as error:
+			log.error(f"base de données injoignable ({name} par {database.socket}) : {error}")
+			return FAILURE_CODE
+		except psycopg.errors.InsufficientPrivilege as error:
+			log.error(
+				f"droits insuffisants pour appliquer le schéma dans la base {name}, qui appartient sans doute à un"
+				f" autre"
+				f" rôle PostgreSQL : {error}"
 			)
-			return CODE_ECHEC
-		journal.info(f"schéma à jour dans la base {nom}")
+			return FAILURE_CODE
+		log.info(f"schéma à jour dans la base {name}")
 	return 0
 
 
-def _verifier(configuration: Configuration) -> int:
-	verifiee = ".".join(str(numero) for numero in VERSION_VERIFIEE)
-	for ancienne in verifier_versions():
-		journal.warning(
-			f"{ancienne.composant} {ancienne.version} : MachinCast est vérifié avec la version {verifiee}"
-			f" ({DISTRIBUTION_VERIFIEE}) ; mettre à jour {ancienne.paquet}"
+def _check(configuration: Configuration) -> int:
+	checked = ".".join(str(number) for number in CHECKED_VERSION)
+	for old in check_versions():
+		log.warning(
+			f"{old.component} {old.version} : MachinCast est vérifié avec la version {checked}"
+			f" ({CHECKED_DISTRIBUTION}) ; mettre à jour {old.package}"
 		)
-	manques = verifier_decodeurs() + verifier_streams() + verifier_sortie(configuration)
-	for manque in manques:
-		journal.error(f"{manque.element} : greffon GStreamer absent, installer {manque.paquet}")
-	if manques:
-		return CODE_ECHEC
-	journal.info("décodeurs, source des streams et sortie audio disponibles")
+	gaps = check_decoders() + check_streams() + check_output(configuration)
+	for missing in gaps:
+		log.error(f"{missing.item} : greffon GStreamer absent, installer {missing.package}")
+	if gaps:
+		return FAILURE_CODE
+	log.info("décodeurs, source des streams et sortie audio disponibles")
 	return 0
 
 
-ANTENNE_FACTICE = (
+DUMMY_ON_AIR = (
 	"antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans"
 	" Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service"
 )
 
 
-def _antenne(configuration: Configuration) -> int:
+def _on_air(configuration: Configuration) -> int:
 	"""Le service de diffusion d'un poste dédié joue toujours sur une carte son : jamais sur la sortie factice, ni sur
 	l'entrée « Sortie factice » de l'antenne (https://github.com/dascritch/machincast/issues/339)."""
 	audio = configuration.audio
-	if audio.antenne_factice():
-		journal.error(ANTENNE_FACTICE)
-		return CODE_ECHEC
-	sortie, peripherique = audio.antenne()
-	if peripherique is None:
-		journal.warning(
-			f"antenne sur la sortie {sortie}, à renseigner : le service de diffusion refusera de démarrer tant que"
+	if audio.dummy_on_air():
+		log.error(DUMMY_ON_AIR)
+		return FAILURE_CODE
+	output, device = audio.on_air()
+	if device is None:
+		log.warning(
+			f"antenne sur la sortie {output}, à renseigner : le service de diffusion refusera de démarrer tant que"
 			" audio.device ne la donne pas"
 		)
 		return 0
-	journal.info(
-		f"antenne sur la sortie {sortie}, périphérique {peripherique} : le service de diffusion peut l'utiliser"
-	)
+	log.info(f"antenne sur la sortie {output}, périphérique {device} : le service de diffusion peut l'utiliser")
 	return 0
 
 
 @dataclass(frozen=True)
-class Compte:
+class Account:
 	"""Le compte de MachinCast, celui qui l'installe : le service tourne sous lui, avec sa session audio."""
 
-	nom: str
-	groupe: str
+	name: str
+	group: str
 	uid: int
 
 	@classmethod
-	def courant(cls) -> "Compte":
-		entree = pwd.getpwuid(os.getuid())
-		return cls(entree.pw_name, grp.getgrgid(entree.pw_gid).gr_name, entree.pw_uid)
+	def current(cls) -> "Account":
+		entry = pwd.getpwuid(os.getuid())
+		return cls(entry.pw_name, grp.getgrgid(entry.pw_gid).gr_name, entry.pw_uid)
 
 
-def unite_systemd(compte: Compte, repertoire: Path = REPERTOIRE_PROJET) -> str:
+def systemd_unit(account: Account, directory: Path = PROJECT_DIRECTORY) -> str:
 	"""L'unité du service de lecture : Machin player, sous le compte de MachinCast, relancé après un plantage. Son
 	répertoire d'exécution est celui de la session du compte, gardée active au démarrage (loginctl enable-linger) :
 	PipeWire ou PulseAudio, et la socket d'état que lit l'interface. Ses messages vont dans journald."""
@@ -313,11 +312,11 @@ After=network-online.target postgresql.service sound.target
 
 [Service]
 Type=simple
-User={compte.nom}
-Group={compte.groupe}
-WorkingDirectory={repertoire}
-Environment=XDG_RUNTIME_DIR=/run/user/{compte.uid}
-ExecStart={repertoire}/bin/Machin player
+User={account.name}
+Group={account.group}
+WorkingDirectory={directory}
+Environment=XDG_RUNTIME_DIR=/run/user/{account.uid}
+ExecStart={directory}/bin/Machin player
 Restart=on-failure
 RestartSec=5
 KillSignal=SIGTERM
@@ -329,7 +328,7 @@ WantedBy=multi-user.target
 """
 
 
-def unite_purge(compte: Compte, repertoire: Path = REPERTOIRE_PROJET) -> str:
+def purge_unit(account: Account, directory: Path = PROJECT_DIRECTORY) -> str:
 	"""L'unité de la purge : Machin purge, une fois, sous le compte de MachinCast, propriétaire de la base. Son
 	minuteur la lance ; elle n'a pas de section Install. Ses messages vont dans journald."""
 	return f"""# Purge de la base de MachinCast (https://github.com/dascritch/machincast/issues/268).
@@ -341,15 +340,15 @@ After=postgresql.service
 
 [Service]
 Type=oneshot
-User={compte.nom}
-Group={compte.groupe}
-WorkingDirectory={repertoire}
-ExecStart={repertoire}/bin/Machin purge
+User={account.name}
+Group={account.group}
+WorkingDirectory={directory}
+ExecStart={directory}/bin/Machin purge
 SyslogIdentifier=machincast-purge
 """
 
 
-def minuteur_purge() -> str:
+def purge_timer() -> str:
 	"""Le minuteur de la purge : chaque jour à midi ; une purge manquée, poste éteint, se fait à son démarrage."""
 	return f"""# Purge quotidienne de la base de MachinCast (https://github.com/dascritch/machincast/issues/268).
 # Installé par install.sh --service ; ne pas modifier ici, relancer install.sh --service.
@@ -358,23 +357,23 @@ def minuteur_purge() -> str:
 Description=MachinCast : purge quotidienne de la base, à midi
 
 [Timer]
-OnCalendar={HEURE_PURGE}
+OnCalendar={PURGE_HOUR}
 Persistent=true
-Unit={UNITE_PURGE}
+Unit={PURGE_UNIT}
 
 [Install]
 WantedBy=timers.target
 """
 
 
-def regle_polkit(compte: Compte) -> str:
+def polkit_rule(account: Account) -> str:
 	"""La règle polkit du service de lecture : son compte le démarre, l'arrête ou le redémarre, avec
 	l'authentification d'un administrateur ; rien d'autre, ni sur une autre unité."""
 	return f"""// Pilotage du service de diffusion de MachinCast (https://github.com/dascritch/machincast/issues/22).
 // Installé par install.sh --service ; ne pas modifier ici, relancer install.sh --service.
 polkit.addRule(function (action, subject) {{
-	if ((action.id == "org.freedesktop.systemd1.manage-units") && (action.lookup("unit") == "{UNITE}")
-		&& (["start", "stop", "restart"].indexOf(action.lookup("verb")) >= 0) && (subject.user == "{compte.nom}")) {{
+	if ((action.id == "org.freedesktop.systemd1.manage-units") && (action.lookup("unit") == "{UNIT}")
+		&& (["start", "stop", "restart"].indexOf(action.lookup("verb")) >= 0) && (subject.user == "{account.name}")) {{
 		return polkit.Result.AUTH_ADMIN;
 	}}
 	return polkit.Result.NOT_HANDLED;
@@ -382,90 +381,91 @@ polkit.addRule(function (action, subject) {{
 """
 
 
-ICONE = rediger_le_raccourci.ICONE
+ICON = write_shortcut.ICON
 
 
-def raccourci(repertoire: Path = REPERTOIRE_PROJET, icone: Path | None = None) -> str:
-	"""Le raccourci de l'interface (machincast.raccourci), avec l'icône choisie s'il y en a une qui existe
+def shortcut(directory: Path = PROJECT_DIRECTORY, icon: Path | None = None) -> str:
+	"""Le raccourci de l'interface (machincast.shortcut), avec l'icône choisie s'il y en a une qui existe
 	(https://github.com/dascritch/machincast/issues/111)."""
-	return rediger_le_raccourci.rediger(repertoire, icone)
+	return write_shortcut.write(directory, icon)
 
 
-def _unite(_configuration: Configuration) -> int:
+def _unit(_configuration: Configuration) -> int:
 	# Le texte de l'unité, qu'install.sh installe : ce n'est pas un message, d'où l'écriture directe.
-	sys.stdout.write(unite_systemd(Compte.courant()))
+	sys.stdout.write(systemd_unit(Account.current()))
 	return 0
 
 
-def _unite_purge(_configuration: Configuration) -> int:
-	sys.stdout.write(unite_purge(Compte.courant()))
+def _purge_unit(_configuration: Configuration) -> int:
+	sys.stdout.write(purge_unit(Account.current()))
 	return 0
 
 
-def _minuteur_purge(_configuration: Configuration) -> int:
-	sys.stdout.write(minuteur_purge())
+def _purge_timer(_configuration: Configuration) -> int:
+	sys.stdout.write(purge_timer())
 	return 0
 
 
-def _regle(_configuration: Configuration) -> int:
-	sys.stdout.write(regle_polkit(Compte.courant()))
+def _rule(_configuration: Configuration) -> int:
+	sys.stdout.write(polkit_rule(Account.current()))
 	return 0
 
 
-def _raccourci(configuration: Configuration) -> int:
-	sys.stdout.write(raccourci(icone=configuration.interface.icone))
+def _shortcut(configuration: Configuration) -> int:
+	sys.stdout.write(shortcut(icon=configuration.interface.icon))
 	return 0
 
 
-def lister_peripheriques(configuration: Configuration) -> str:
+def list_items_devices(configuration: Configuration) -> str:
 	"""Les périphériques de sortie de la sortie configurée, un par ligne : identifiant, nom, et leur rôle dans la
 	configuration (https://github.com/dascritch/machincast/issues/116). Sans aucun, tout ce que voit GStreamer, pour
 	comprendre pourquoi."""
 	audio = configuration.audio
-	roles = {audio.peripherique: "antenne", audio.preecoute: "pré-écoute"}
-	trouves = sorties_audio.peripheriques(audio.sortie)
-	lignes = [f"{p.identifiant}\t{p.nom}\t{roles.get(p.identifiant, '')}".rstrip("\t") for p in trouves]
-	if trouves:
-		return "\n".join(lignes) + "\n"
-	lignes = [f"aucun périphérique de sortie « {audio.sortie} » ; périphériques de sortie vus par GStreamer :"]
-	for appareil in sorties_audio.appareils():
-		nom = sorties_audio.identifiant(appareil)
-		lignes.append(
-			f"{sorties_audio.type_d_appareil(appareil)}\t{appareil.get_display_name()}\t{(nom) or ('sans identifiant')}"
+	roles = {audio.device: "antenne", audio.preview: "pré-écoute"}
+	found_list = audio_outputs.devices(audio.output)
+	lines = [f"{p.identifier}\t{p.name}\t{roles.get(p.identifier, '')}".rstrip("\t") for p in found_list]
+	if found_list:
+		return "\n".join(lines) + "\n"
+	lines = [f"aucun périphérique de sortie « {audio.output} » ; périphériques de sortie vus par GStreamer :"]
+	for appliance in audio_outputs.appliances():
+		name = audio_outputs.identifier(appliance)
+		lines.append(
+			f"{audio_outputs.appliance_type(appliance)}\t{appliance.get_display_name()}"
+			f"\t{(name) or ('sans identifiant')}"
 		)
-	return "\n".join(lignes) + "\n"
+	return "\n".join(lines) + "\n"
 
 
-def _peripheriques(configuration: Configuration) -> int:
+def _devices(configuration: Configuration) -> int:
 	# Une liste à lire, ou à recopier dans audio.device et audio.preview : écrite telle quelle.
-	sys.stdout.write(lister_peripheriques(configuration))
+	sys.stdout.write(list_items_devices(configuration))
 	return 0
 
 
 ACTIONS = {
-	"check": _verifier,
-	"databases": _bases,
-	"devices": _peripheriques,
-	"migrate": _migrer,
-	"on-air": _antenne,
-	"purge-timer": _minuteur_purge,
-	"purge-unit": _unite_purge,
-	"rule": _regle,
-	"shortcut": _raccourci,
-	"unit": _unite,
+	"check": _check,
+	"databases": _databases,
+	"devices": _devices,
+	"migrate": _migrate,
+	"on-air": _on_air,
+	"purge-timer": _purge_timer,
+	"purge-unit": _purge_unit,
+	"rule": _rule,
+	"shortcut": _shortcut,
+	"unit": _unit,
 }
 
 
-def _options(analyseur: argparse.ArgumentParser) -> None:
-	analyseur.add_argument("action", choices=sorted(ACTIONS), help="étape d'installation à exécuter")
+def _options(analyser: argparse.ArgumentParser) -> None:
+	analyser.add_argument("action", choices=sorted(ACTIONS), help="étape d'installation à exécuter")
 
 
-def _executer(configuration: Configuration, options: argparse.Namespace) -> int:
+def _run(configuration: Configuration, options: argparse.Namespace) -> int:
 	return ACTIONS[options.action](configuration)
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
-	return lancer(EXECUTABLE, DESCRIPTION, arguments, _executer, _options)
+	return launch(EXECUTABLE, DESCRIPTION, arguments, _run, _options)
 
 
 if __name__ == "__main__":

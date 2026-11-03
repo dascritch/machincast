@@ -12,40 +12,40 @@ from datetime import datetime, timedelta
 import psycopg
 from psycopg.rows import TupleRow
 
-from machincast.conversion import booleen_ou_rien, entier_ou_rien, texte_ou_rien
+from machincast.conversion import boolean_or_none, integer_or_none, text_or_none
 
-HEURES = 12
+HOURS = 12
 """Heures de l'airplay que montre l'onglet Airplay, sans réglage du compte."""
-DERNIERS = 10
+LAST_LIST = 10
 """Passages de l'airplay que montre l'onglet Antenne."""
 
 
 @dataclass(frozen=True)
-class PassageAffiche:
-	debut: datetime
-	fin: datetime | None
+class DisplayedPlay:
+	start: datetime
+	end: datetime | None
 	"""None pour le passage en cours."""
-	duree: timedelta | None
-	artiste: str | None
-	titre: str | None
-	evenement: str | None
+	duration: timedelta | None
+	artist: str | None
+	title: str | None
+	event: str | None
 	sequence: str | None
-	banque: str | None
-	sans_incident: bool | None
-	sonore_id: int | None = None
-	evenement_id: int | None = None
+	bank: str | None
+	without_incident: bool | None
+	id_sound: int | None = None
+	id_event: int | None = None
 	sequence_id: int | None = None
-	banque_id: int | None = None
+	id_bank: int | None = None
 	"""Les éléments du passage, pour ouvrir leur fiche (https://github.com/dascritch/machincast/issues/144) ; None
 	pour un élément supprimé depuis."""
 
 
-def lire_airplay(
-	connexion: psycopg.Connection[TupleRow], depuis: datetime | None = None, nombre: int | None = None
-) -> list[PassageAffiche]:
+def read_airplay(
+	connection: psycopg.Connection[TupleRow], since: datetime | None = None, count: int | None = None
+) -> list[DisplayedPlay]:
 	"""Passages commencés depuis cet instant, ou les derniers, du plus récent au plus ancien ; nombre au plus."""
-	with connexion.transaction():
-		lignes = connexion.execute(
+	with connection.transaction():
+		lines = connection.execute(
 			"SELECT d.logged_at, f.logged_at, f.played_duration, f.without_incident, d.artist, d.title,"
 			" e.internal_name, q.internal_name, b.internal_name, d.sound_id, e.id, q.id, b.id"
 			" FROM airplay d"
@@ -55,28 +55,28 @@ def lire_airplay(
 			" LEFT JOIN banks b ON b.id = d.bank_id"
 			" WHERE d.line_type = 'start' AND (%s::timestamptz IS NULL OR d.logged_at >= %s::timestamptz)"
 			" ORDER BY d.logged_at DESC, d.id DESC LIMIT %s",
-			(depuis, depuis, nombre),
+			(since, since, count),
 		).fetchall()
-	passages = []
-	for ligne in lignes:
-		debut, fin, duree, sans_incident, artiste, titre, evenement, sequence, banque, *identifiants = ligne
-		if not isinstance(debut, datetime):
+	plays = []
+	for line in lines:
+		start, end, duration, without_incident, artist, title, event, sequence, bank, *identifiers = line
+		if not isinstance(start, datetime):
 			continue
-		passages.append(
-			PassageAffiche(
-				debut=debut,
-				fin=fin if isinstance(fin, datetime) else None,
-				duree=duree if isinstance(duree, timedelta) else None,
-				artiste=texte_ou_rien(artiste),
-				titre=texte_ou_rien(titre),
-				evenement=texte_ou_rien(evenement),
-				sequence=texte_ou_rien(sequence),
-				banque=texte_ou_rien(banque),
-				sans_incident=booleen_ou_rien(sans_incident),
-				sonore_id=entier_ou_rien(identifiants[0]),
-				evenement_id=entier_ou_rien(identifiants[1]),
-				sequence_id=entier_ou_rien(identifiants[2]),
-				banque_id=entier_ou_rien(identifiants[3]),
+		plays.append(
+			DisplayedPlay(
+				start=start,
+				end=end if isinstance(end, datetime) else None,
+				duration=duration if isinstance(duration, timedelta) else None,
+				artist=text_or_none(artist),
+				title=text_or_none(title),
+				event=text_or_none(event),
+				sequence=text_or_none(sequence),
+				bank=text_or_none(bank),
+				without_incident=boolean_or_none(without_incident),
+				id_sound=integer_or_none(identifiers[0]),
+				id_event=integer_or_none(identifiers[1]),
+				sequence_id=integer_or_none(identifiers[2]),
+				id_bank=integer_or_none(identifiers[3]),
 			)
 		)
-	return passages
+	return plays

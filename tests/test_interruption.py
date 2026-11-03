@@ -1,9 +1,9 @@
 """Scénarios de l'interruption manuelle de l'antenne (https://github.com/dascritch/machincast/issues/104,
 https://github.com/dascritch/machincast/issues/228).
 
-La diffusion tourne sur le moteur simulé de la simulation (machincast.lecture.simulation.MoteurSimule), qui suit
+La diffusion tourne sur le moteur simulé de la simulation (machincast.player.simulation.SimulatedEngine), qui suit
 l'horloge du binaire : un sonore d'une minute s'interrompt à la seconde voulue, sans attendre. Les étapes partagées de
-la diffusion sont dans tests/etapes_diffusion.py.
+la diffusion sont dans tests/broadcast_steps.py.
 """
 
 import logging
@@ -14,41 +14,41 @@ import psycopg
 import pytest
 from pytest_bdd import parsers, scenarios, then, when
 
-from machincast.lecture.diffusion import EVENEMENT_AVANCE, INTERRUPTION_MANUELLE
-from machincast.lecture.etat import DEMANDE_IGNOREE, demande_d_avance, demande_de_coupure_par_le_secours
-from tests.etapes_diffusion import Banc, diffusion, horloge
+from machincast.player.broadcast import ADVANCED_EVENT, MANUAL_INTERRUPTION
+from machincast.player.state import IGNORED_REQUEST, advance_request, cutoff_request_by_fallback
+from tests.broadcast_steps import Bench, broadcast, clock
 
 scenarios("interruption.feature")
 
-Connexion = psycopg.Connection[tuple[object, ...]]
-ATTENTE = 5.0
+Connection = psycopg.Connection[tuple[object, ...]]
+WAITING = 5.0
 """Secondes qu'une demande a pour arriver par la socket d'état."""
 
 
-def log_des_interruptions(base: Connexion) -> list[str]:
+def interruption_log(database: Connection) -> list[str]:
 	return [
 		str(message)
-		for (message,) in base.execute(
-			"SELECT message FROM log WHERE level = 'info' AND kind = %s ORDER BY id", (INTERRUPTION_MANUELLE,)
+		for (message,) in database.execute(
+			"SELECT message FROM log WHERE level = 'info' AND kind = %s ORDER BY id", (MANUAL_INTERRUPTION,)
 		).fetchall()
 	]
 
 
-def log_des_avances(base: Connexion) -> list[str]:
+def advances_log(database: Connection) -> list[str]:
 	return [
 		str(message)
-		for (message,) in base.execute(
-			"SELECT message FROM log WHERE level = 'info' AND kind = %s ORDER BY id", (EVENEMENT_AVANCE,)
+		for (message,) in database.execute(
+			"SELECT message FROM log WHERE level = 'info' AND kind = %s ORDER BY id", (ADVANCED_EVENT,)
 		).fetchall()
 	]
 
 
-def identifiant(base: Connexion, nom: str) -> int:
+def identifier(database: Connection, name: str) -> int:
 	"""L'identifiant de l'événement ; 0, qu'aucun n'a, pour un événement absent."""
-	ligne = base.execute("SELECT id FROM events WHERE internal_name = %s", (nom,)).fetchone()
-	if ligne is None:
+	line = database.execute("SELECT id FROM events WHERE internal_name = %s", (name,)).fetchone()
+	if line is None:
 		return 0
-	return int(str(ligne[0]))
+	return int(str(line[0]))
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -57,41 +57,41 @@ def identifiant(base: Connexion, nom: str) -> int:
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when(parsers.parse("j'avance l'événement suivant « {nom} »"))
-def avancer_l_evenement(banc: Banc, base_vide: Connexion, nom: str) -> None:
+@when(parsers.parse("j'avance l'événement suivant « {name} »"))
+def advance_event(bench: Bench, empty_database: Connection, name: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/257 : la demande nomme l'événement suivant attendu."""
-	diffusion(banc).avancer(identifiant(base_vide, nom))
+	broadcast(bench).advance(identifier(empty_database, name))
 
 
-@when(parsers.parse("un client de la socket d'état demande d'avancer l'événement « {nom} »"))
-def demander_l_avance(banc: Banc, base_vide: Connexion, caplog: pytest.LogCaptureFixture, nom: str) -> None:
-	demander(banc, caplog, demande_d_avance(identifiant(base_vide, nom)).strip())
+@when(parsers.parse("un client de la socket d'état demande d'avancer l'événement « {name} »"))
+def ask_advance(bench: Bench, empty_database: Connection, caplog: pytest.LogCaptureFixture, name: str) -> None:
+	ask(bench, caplog, advance_request(identifier(empty_database, name)).strip())
 
 
-@when(parsers.parse("un client de la socket d'état demande de couper l'antenne par le secours « {nom} »"))
-def demander_le_secours(banc: Banc, base_vide: Connexion, caplog: pytest.LogCaptureFixture, nom: str) -> None:
+@when(parsers.parse("un client de la socket d'état demande de couper l'antenne par le secours « {name} »"))
+def ask_fallback(bench: Bench, empty_database: Connection, caplog: pytest.LogCaptureFixture, name: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/323"""
-	demander(banc, caplog, demande_de_coupure_par_le_secours(identifiant(base_vide, nom)).strip())
+	ask(bench, caplog, cutoff_request_by_fallback(identifier(empty_database, name)).strip())
 
 
-@when(parsers.parse("un client de la socket d'état demande « {demande} »"))
-def demander(banc: Banc, caplog: pytest.LogCaptureFixture, demande: str) -> None:
+@when(parsers.parse("un client de la socket d'état demande « {asks} »"))
+def ask(bench: Bench, caplog: pytest.LogCaptureFixture, asks: str) -> None:
 	"""La demande est envoyée, puis le scénario attend qu'elle arrive, ou que le journal du binaire dise qu'elle est
 	ignorée : jamais la fin d'un délai (https://github.com/dascritch/machincast/issues/280)."""
-	etat = banc.etat
-	assert etat is not None
+	state = bench.state
+	assert state is not None
 
-	def ignoree() -> bool:
-		return any(DEMANDE_IGNOREE in r.getMessage() for r in caplog.records)
+	def ignored() -> bool:
+		return any(IGNORED_REQUEST in r.getMessage() for r in caplog.records)
 
 	with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
-		client.connect(str(etat.chemin))
-		client.sendall(f"{demande}\n".encode())
+		client.connect(str(state.path))
+		client.sendall(f"{asks}\n".encode())
 		# Le message d'état qu'envoie la socket à la connexion montre qu'elle sert ce client.
-		client.settimeout(ATTENTE)
+		client.settimeout(WAITING)
 		client.recv(1)
-		limite = time.monotonic() + ATTENTE
-		while (etat._demandes.empty()) and (not ignoree()) and (time.monotonic() < limite):
+		limit = time.monotonic() + WAITING
+		while (state._requests.empty()) and (not ignored()) and (time.monotonic() < limit):
 			time.sleep(0.01)
 
 
@@ -99,32 +99,32 @@ def demander(banc: Banc, caplog: pytest.LogCaptureFixture, demande: str) -> None
 
 
 @then(parsers.parse("le log note l'interruption manuelle « {message} »"))
-def interruption_notee(base_vide: Connexion, message: str) -> None:
-	assert log_des_interruptions(base_vide) == [message]
+def noted_interruption(empty_database: Connection, message: str) -> None:
+	assert interruption_log(empty_database) == [message]
 
 
 @then(parsers.parse("le log note l'avance « {message} »"))
-def avance_notee(base_vide: Connexion, message: str) -> None:
-	assert log_des_avances(base_vide) == [message]
+def advances_noted(empty_database: Connection, message: str) -> None:
+	assert advances_log(empty_database) == [message]
 
 
 @then("le log ne note aucune avance")
-def aucune_avance(base_vide: Connexion) -> None:
-	assert log_des_avances(base_vide) == []
+def no_advanced(empty_database: Connection) -> None:
+	assert advances_log(empty_database) == []
 
 
-@then(parsers.parse("Machin player annonce l'événement suivant « {nom} », du « {debut} » au « {fin} »"))
-def annonce_du_suivant(banc: Banc, base_vide: Connexion, nom: str, debut: str, fin: str) -> None:
-	annonce = diffusion(banc)._etat(horloge(banc).maintenant(), False)["evenement_suivant"]
-	attendue = {"id": identifiant(base_vide, nom), "nom": nom, "priorite": "show", "debut": debut, "fin": fin}
-	assert annonce == attendue
+@then(parsers.parse("Machin player annonce l'événement suivant « {name} », du « {start} » au « {end} »"))
+def following_announcement(bench: Bench, empty_database: Connection, name: str, start: str, end: str) -> None:
+	announces = broadcast(bench)._state(clock(bench).now(), False)["next_event"]
+	expected = {"id": identifier(empty_database, name), "name": name, "priority": "show", "start": start, "end": end}
+	assert announces == expected
 
 
 @then("le log ne note aucune interruption manuelle")
-def aucune_interruption(base_vide: Connexion) -> None:
-	assert log_des_interruptions(base_vide) == []
+def no_interruption(empty_database: Connection) -> None:
+	assert interruption_log(empty_database) == []
 
 
-@then(parsers.parse("le journal du binaire a signalé « {texte} »"))
-def journal_signale(caplog: pytest.LogCaptureFixture, texte: str) -> None:
-	assert any((r.levelno == logging.WARNING) and (texte in r.getMessage()) for r in caplog.records), caplog.text
+@then(parsers.parse("le journal du binaire a signalé « {text} »"))
+def reported_log(caplog: pytest.LogCaptureFixture, text: str) -> None:
+	assert any((r.levelno == logging.WARNING) and (text in r.getMessage()) for r in caplog.records), caplog.text

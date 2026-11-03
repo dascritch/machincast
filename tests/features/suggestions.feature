@@ -139,7 +139,7 @@ Fonctionnalité: Suggestions au lancement de l'interface
 		Et la barre d'état ne signale pas « Périphérique de l'antenne à renseigner »
 
 	Scénario: Sur l'entrée « sortie factice », l'antenne n'est plus à renseigner : les cartes son ne sont pas proposées
-		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « factice »
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « dummy »
 		Et les suggestions seront refermées par « Plus tard »
 		Quand la fenêtre de l'interface s'ouvre
 		Alors les suggestions n'ont pas proposé les cartes son

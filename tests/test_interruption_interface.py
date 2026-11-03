@@ -1,7 +1,7 @@
 """Scénarios de l'interruption de l'antenne depuis l'interface (https://github.com/dascritch/machincast/issues/104).
 
-Une vraie socket d'état (machincast.lecture.etat.SocketEtat), là où l'interface la cherche, publie l'état d'un Machin
-lecture imaginaire et reçoit les demandes de l'interface. Les étapes de la fenêtre sont dans tests/etapes_interface.py.
+Une vraie socket d'état (machincast.player.state.StateSocket), là où l'interface la cherche, publie l'état d'un Machin
+lecture imaginaire et reçoit les demandes de l'interface. Les étapes de la fenêtre sont dans tests/interface_steps.py.
 """
 
 import time
@@ -13,18 +13,18 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface import interruption
-from machincast.interface.etat import lire_message
-from machincast.lecture.etat import AVANCER, COUPER_PAR_LE_FEED, COUPER_PAR_LE_SECOURS, Demande
-from tests.etapes_interface import Connexion, Contexte, Lecteur, fenetre, identifiant, liste, publier
+from machincast.interface.state import read_message
+from machincast.player.state import ADVANCE, CUT_BY_FALLBACK, CUT_BY_FEED, Request
+from tests.interface_steps import Connection, Context, Player, identifier, list_, publish, window
 
 scenarios("interruption_interface.feature")
 
-ATTENTE = 5000
+WAITING = 5000
 """Millisecondes qu'un état ou une demande a pour arriver."""
 
 
-def entrees(interface: Contexte) -> dict[str, QAction]:
-	return fenetre(interface).interruptions
+def entries(interface: Context) -> dict[str, QAction]:
+	return window(interface).interruptions
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -32,144 +32,146 @@ def entrees(interface: Contexte) -> dict[str, QAction]:
 
 @given(
 	parsers.re(
-		r"Machin player diffuse « (?P<titre>[^»]+) »(?:, de la séquence « (?P<sequence>[^»]+) »)?,"
-		r" dans (?P<fil>le fil musical )?« (?P<evenement>[^»]+) »"
+		r"Machin player diffuse « (?P<title>[^»]+) »(?:, de la séquence « (?P<sequence>[^»]+) »)?,"
+		r" dans (?P<feed>le fil musical )?« (?P<event>[^»]+) »"
 	)
 )
-def diffuse(lecteur: Lecteur, titre: str, sequence: str | None, fil: str | None, evenement: str) -> None:
+def broadcasts(player: Player, title: str, sequence: str | None, feed: str | None, event: str) -> None:
 	"""Un événement sans précision est une émission."""
-	en_cours = {
-		"sonore": 12,
-		"type": "fichier",
-		"artiste": None,
-		"titre": titre,
-		"evenement": evenement,
-		"evenement_priorite": "show" if fil is None else "background_programming",
+	ongoing = {
+		"sound_id": 12,
+		"type": "file",
+		"artist": None,
+		"title": title,
+		"event": event,
+		"event_priority": "show" if feed is None else "background_programming",
 		"sequence": sequence,
-		"emplacement": "/srv/musique/minuit.flac",
-		"debut": "2026-10-21T08:59:00+02:00",
-		"duree": 214.0,
-		"fin_estimee": "2026-10-21T09:02:34+02:00",
+		"location": "/srv/musique/minuit.flac",
+		"start": "2026-10-21T08:59:00+02:00",
+		"duration": 214.0,
+		"estimated_end": "2026-10-21T09:02:34+02:00",
 		"position": 60.0,
-		"progression": 0.28,
+		"progress": 0.28,
 	}
-	publier(lecteur, "diffusion", en_cours)
+	publish(player, "playing", ongoing)
 
 
-EVENEMENT_SUIVANT = 7
+FOLLOWING_EVENT = 7
 """L'identifiant de l'événement suivant annoncé."""
 
 
-def sonore_affiche(titre: str, evenement: str, debut: str) -> dict[str, object]:
+def displayed_sound(title: str, event: str, start: str) -> dict[str, object]:
 	return {
-		"sonore": 12 if debut == "debut" else 13,
-		"type": "fichier",
-		"artiste": None,
-		"titre": titre,
-		"evenement": evenement,
-		"evenement_priorite": "show",
-		"emplacement": f"/srv/musique/{titre}.flac",
-		debut: "2026-10-21T08:59:00+02:00",
-		"duree": 214.0,
-		"fin_estimee": "2026-10-21T09:02:34+02:00",
+		"sound_id": 12 if start == "debut" else 13,
+		"type": "file",
+		"artist": None,
+		"title": title,
+		"event": event,
+		"event_priority": "show",
+		"location": f"/srv/musique/{title}.flac",
+		start: "2026-10-21T08:59:00+02:00",
+		"duration": 214.0,
+		"estimated_end": "2026-10-21T09:02:34+02:00",
 	}
 
 
-def suivant(nom: str | None, debut: str | None, fin: str | None) -> dict[str, object] | None:
-	if nom is None:
+def following(name: str | None, start: str | None, end: str | None) -> dict[str, object] | None:
+	if name is None:
 		return None
-	return {"id": EVENEMENT_SUIVANT, "nom": nom, "priorite": "show", "debut": debut, "fin": fin}
+	return {"id": FOLLOWING_EVENT, "name": name, "priority": "show", "start": start, "end": end}
 
 
-ANNONCE = r"(?:, et annonce l'événement suivant « (?P<nom>[^»]+) », du « (?P<debut>[^»]+) » au « (?P<fin>[^»]+) »)?"
+ANNOUNCEMENT = (
+	r"(?:, et annonce l'événement suivant « (?P<name>[^»]+) », du « (?P<start>[^»]+) » au « (?P<end>[^»]+) »)?"
+)
 
 
 @given(
 	parsers.re(
-		r"Machin player diffuse « (?P<titre>[^»]+) », dans « (?P<evenement>[^»]+) », avant « (?P<prochain>[^»]+) »"
-		+ ANNONCE
+		r"Machin player diffuse « (?P<title>[^»]+) », dans « (?P<event>[^»]+) », avant « (?P<next_>[^»]+) »"
+		+ ANNOUNCEMENT
 	)
 )
-def diffuse_avant(
-	lecteur: Lecteur,
-	titre: str,
-	evenement: str,
-	prochain: str,
-	nom: str | None,
-	debut: str | None,
-	fin: str | None,
+def broadcasts_before(
+	player: Player,
+	title: str,
+	event: str,
+	next_: str,
+	name: str | None,
+	start: str | None,
+	end: str | None,
 ) -> None:
 	"""https://github.com/dascritch/machincast/issues/257 : le sonore en cours, le prochain, et l'événement suivant."""
-	en_cours = sonore_affiche(titre, evenement, "debut") | {"position": 60.0, "progression": 0.28}
-	publier(
-		lecteur,
-		"diffusion",
-		en_cours,
-		prochain=sonore_affiche(prochain, evenement, "debut_estime"),
-		evenement_suivant=suivant(nom, debut, fin),
+	ongoing = displayed_sound(title, event, "start") | {"position": 60.0, "progress": 0.28}
+	publish(
+		player,
+		"playing",
+		ongoing,
+		next_=displayed_sound(next_, event, "estimated_start"),
+		following_event=following(name, start, end),
 	)
 
 
-@given(parsers.re(r"Machin player laisse un blanc" + ANNONCE))
-def en_blanc_avant(lecteur: Lecteur, nom: str | None, debut: str | None, fin: str | None) -> None:
-	publier(lecteur, "blanc", evenement_suivant=suivant(nom, debut, fin))
+@given(parsers.re(r"Machin player laisse un blanc" + ANNOUNCEMENT))
+def in_dead_air_before(player: Player, name: str | None, start: str | None, end: str | None) -> None:
+	publish(player, "dead_air", following_event=following(name, start, end))
 
 
 @given("Machin player laisse un blanc")
 @when("Machin player passe à un blanc")
-def en_blanc(lecteur: Lecteur) -> None:
-	publier(lecteur, "blanc")
+def in_dead_air(player: Player) -> None:
+	publish(player, "dead_air")
 
 
 @given("Machin player s'est arrêté")
-def arrete(lecteur: Lecteur) -> None:
-	publier(lecteur, "arret")
+def stops(player: Player) -> None:
+	publish(player, "stopped")
 
 
 # ─── Quand ─────────────────────────────────────────────────
 
 
 @when("l'interface a reçu l'état de Machin player")
-def etat_recu(interface: Contexte, lecteur: Lecteur, qtbot: QtBot) -> None:
+def received_state(interface: Context, player: Player, qtbot: QtBot) -> None:
 	"""Les entrées montrent ce que propose le dernier état publié."""
-	attendues = interruption.proposer(lire_message(lecteur.publie))
+	expected_list = interruption.offer(read_message(player.published))
 
-	def a_jour() -> bool:
+	def up_to_date() -> bool:
 		return all(
-			(action.isEnabled() == attendues[element].active) and (action.toolTip() == attendues[element].infobulle)
-			for element, action in entrees(interface).items()
+			(action.isEnabled() == expected_list[item].active) and (action.toolTip() == expected_list[item].tooltip)
+			for item, action in entries(interface).items()
 		)
 
-	qtbot.waitUntil(a_jour, timeout=ATTENTE)
+	qtbot.waitUntil(up_to_date, timeout=WAITING)
 
 
 @when("l'onglet Antenne a reçu l'état de Machin player")
-def accueil_a_jour(interface: Contexte, lecteur: Lecteur, qtbot: QtBot) -> None:
-	attendu = lire_message(lecteur.publie)
-	qtbot.waitUntil(lambda: fenetre(interface).accueil.etat == attendu, timeout=ATTENTE)
+def up_to_date_home(interface: Context, player: Player, qtbot: QtBot) -> None:
+	expected = read_message(player.published)
+	qtbot.waitUntil(lambda: window(interface).home.state == expected, timeout=WAITING)
 
 
-def actions_du_prochain(interface: Contexte) -> list[QAction]:
-	menu = fenetre(interface).accueil.menu_du_prochain()
+def next_actions(interface: Context) -> list[QAction]:
+	menu = window(interface).home.next_menu()
 	assert menu is not None
 	return [action for action in menu.actions() if not action.isSeparator()]
 
 
-@when(parsers.parse("je choisis « {entree} » au clic droit sur le prochain sonore"))
-def choisir_au_prochain(interface: Contexte, entree: str) -> None:
-	(action,) = [action for action in actions_du_prochain(interface) if action.text() == entree]
+@when(parsers.parse("je choisis « {entry} » au clic droit sur le prochain sonore"))
+def choose_to_next(interface: Context, entry: str) -> None:
+	(action,) = [action for action in next_actions(interface) if action.text() == entry]
 	action.trigger()
 
 
-@when(parsers.parse("Machin player ferme sa socket d'état, juste avant que je choisisse « {entree} »"))
-def socket_fermee_avant_le_choix(interface: Contexte, lecteur: Lecteur, qtbot: QtBot, entree: str) -> None:
+@when(parsers.parse("Machin player ferme sa socket d'état, juste avant que je choisisse « {entry} »"))
+def closed_socket_before_choice(interface: Context, player: Player, qtbot: QtBot, entry: str) -> None:
 	"""Le choix arrive avant que l'interface ait vu la socket se fermer : l'entrée est encore active."""
-	assert lecteur.socket is not None
-	lecteur.socket.fermer()
-	lecteur.socket = None
-	client = fenetre(interface).accueil.client
-	qtbot.waitUntil(lambda: client._socket.state() != QLocalSocket.LocalSocketState.ConnectedState, timeout=ATTENTE)
-	(action,) = [action for action in entrees(interface).values() if action.text() == entree]
+	assert player.socket is not None
+	player.socket.shut_down()
+	player.socket = None
+	client = window(interface).home.client
+	qtbot.waitUntil(lambda: client._socket.state() != QLocalSocket.LocalSocketState.ConnectedState, timeout=WAITING)
+	(action,) = [action for action in entries(interface).values() if action.text() == entry]
 	action.setEnabled(True)
 	action.trigger()
 
@@ -178,176 +180,176 @@ def socket_fermee_avant_le_choix(interface: Contexte, lecteur: Lecteur, qtbot: Q
 
 
 @then(parsers.parse("les interruptions du menu « {menu} » sont :"))
-def interruptions(interface: Contexte, menu: str, datatable: list[list[str]]) -> None:
-	_, *lignes = datatable
+def interruptions(interface: Context, menu: str, datatable: list[list[str]]) -> None:
+	_, *lines = datatable
 	assert menu == "Diffusion"
-	menu_diffusion = fenetre(interface).menu_diffusion
-	obtenues = [
+	broadcast_menu = window(interface).broadcast_menu
+	obtained_list = [
 		[action.text(), "active" if action.isEnabled() else "inactive", action.toolTip()]
-		for action in menu_diffusion.actions()
-		if action in entrees(interface).values()
+		for action in broadcast_menu.actions()
+		if action in entries(interface).values()
 	]
-	assert obtenues == [[valeur.strip() for valeur in ligne] for ligne in lignes]
+	assert obtained_list == [[value.strip() for value in line] for line in lines]
 
 
 @then("le clic droit sur le prochain sonore propose :")
-def menu_du_prochain(interface: Contexte, datatable: list[list[str]]) -> None:
-	_, *lignes = datatable
-	obtenues = [
+def next_menu(interface: Context, datatable: list[list[str]]) -> None:
+	_, *lines = datatable
+	obtained_list = [
 		[action.text(), "active" if action.isEnabled() else "inactive", action.toolTip()]
-		for action in actions_du_prochain(interface)
+		for action in next_actions(interface)
 	]
 	# Qt donne à une action sans infobulle son texte pour infobulle : une cellule vide l'accepte.
-	attendues = [[valeur.strip() for valeur in ligne] for ligne in lignes]
-	for obtenue, attendue in zip(obtenues, attendues, strict=False):
-		if attendue[2] == "":
-			obtenue[2] = ""
-	assert obtenues == attendues
+	expected_list = [[value.strip() for value in line] for line in lines]
+	for obtained, expected in zip(obtained_list, expected_list, strict=False):
+		if expected[2] == "":
+			obtained[2] = ""
+	assert obtained_list == expected_list
 
 
-@then(parsers.parse("Machin player a reçu la demande d'avancer l'événement n°{evenement:d}"))
-def avance_recue(lecteur: Lecteur, qtbot: QtBot, evenement: int) -> None:
-	socket = lecteur.socket
+@then(parsers.parse("Machin player a reçu la demande d'avancer l'événement n°{event:d}"))
+def advances_received(player: Player, qtbot: QtBot, event: int) -> None:
+	socket = player.socket
 	assert socket is not None
 
-	def recue() -> bool:
-		lecteur.recues += socket.demandes()
-		return lecteur.recues != []
+	def received() -> bool:
+		player.received_list += socket.requests()
+		return player.received_list != []
 
-	qtbot.waitUntil(recue, timeout=ATTENTE)
+	qtbot.waitUntil(received, timeout=WAITING)
 	time.sleep(0.1)
-	lecteur.recues += socket.demandes()
-	assert lecteur.recues == [Demande(commande=AVANCER, evenement=evenement)]
+	player.received_list += socket.requests()
+	assert player.received_list == [Request(command=ADVANCE, event=event)]
 
 
 @then("aucune interruption n'est active")
-def aucune_active(interface: Contexte) -> None:
-	assert not any(action.isEnabled() for action in entrees(interface).values())
+def no_active(interface: Context) -> None:
+	assert not any(action.isEnabled() for action in entries(interface).values())
 
 
-@then(parsers.parse("Machin player a reçu la demande d'interrompre « {element} »"))
-def demande_recue(lecteur: Lecteur, qtbot: QtBot, element: str) -> None:
-	socket = lecteur.socket
+@then(parsers.parse("Machin player a reçu la demande d'interrompre « {item} »"))
+def asks_received(player: Player, qtbot: QtBot, item: str) -> None:
+	socket = player.socket
 	assert socket is not None
 
-	def recue() -> bool:
-		lecteur.recues += socket.demandes()
-		return lecteur.recues != []
+	def received() -> bool:
+		player.received_list += socket.requests()
+		return player.received_list != []
 
-	qtbot.waitUntil(recue, timeout=ATTENTE)
+	qtbot.waitUntil(received, timeout=WAITING)
 	time.sleep(0.1)
-	lecteur.recues += socket.demandes()
-	assert lecteur.recues == [Demande(element)]
+	player.received_list += socket.requests()
+	assert player.received_list == [Request(item)]
 
 
 # ─── Coupures par le secours et par un feed (https://github.com/dascritch/machincast/issues/323) ───
 
 
-def _entrees(texte: str) -> list[str]:
+def _entries(text: str) -> list[str]:
 	"""« « A » », « « B » » : les entrées, qui peuvent porter elles-mêmes des guillemets."""
-	return texte.removeprefix("« ").removesuffix(" »").split(" », « ")
+	return text.removeprefix("« ").removesuffix(" »").split(" », « ")
 
 
-def _recevoir(lecteur: Lecteur, qtbot: QtBot) -> list[Demande]:
+def _receive(player: Player, qtbot: QtBot) -> list[Request]:
 	"""Les demandes reçues jusqu'ici, après en avoir attendu au moins une de plus."""
-	socket = lecteur.socket
+	socket = player.socket
 	assert socket is not None
-	deja = len(lecteur.recues)
+	already = len(player.received_list)
 
-	def recue() -> bool:
-		lecteur.recues += socket.demandes()
-		return len(lecteur.recues) > deja
+	def received() -> bool:
+		player.received_list += socket.requests()
+		return len(player.received_list) > already
 
-	qtbot.waitUntil(recue, timeout=ATTENTE)
+	qtbot.waitUntil(received, timeout=WAITING)
 	time.sleep(0.1)
-	lecteur.recues += socket.demandes()
-	return lecteur.recues
+	player.received_list += socket.requests()
+	return player.received_list
 
 
-def _menu_du_feed(interface: Contexte, nom: str) -> QMenu:
-	ouverte = liste(interface)
-	modele = ouverte.table.model()
-	(rangee,) = [rangee for rangee in range(modele.rowCount()) if modele.index(rangee, 0).data() == nom]
-	menu = ouverte.menu_de_la_ligne(modele.index(rangee, 0))
+def _feed_menu(interface: Context, name: str) -> QMenu:
+	opened = list_(interface)
+	model = opened.table.model()
+	(row,) = [row for row in range(model.rowCount()) if model.index(row, 0).data() == name]
+	menu = opened.line_menu(model.index(row, 0))
 	assert menu is not None
 	return menu
 
 
-@when(parsers.parse("je choisis « {entree} » dans le sous-menu de la coupure par le secours"))
-def choisir_un_secours(interface: Contexte, entree: str) -> None:
-	sous_menu = fenetre(interface).coupure_par_le_secours.menu()
-	assert sous_menu is not None
-	(action,) = [action for action in sous_menu.actions() if action.text() == entree]
+@when(parsers.parse("je choisis « {entry} » dans le sous-menu de la coupure par le secours"))
+def choose_fallback(interface: Context, entry: str) -> None:
+	under_menu = window(interface).cutoff_by_fallback.menu()
+	assert under_menu is not None
+	(action,) = [action for action in under_menu.actions() if action.text() == entry]
 	action.trigger()
 
 
-@when(parsers.parse("je choisis « {entree} » au clic droit sur le feed « {nom} »"))
-def choisir_au_feed(interface: Contexte, entree: str, nom: str) -> None:
-	(action,) = [action for action in _menu_du_feed(interface, nom).actions() if action.text() == entree]
+@when(parsers.parse("je choisis « {entry} » au clic droit sur le feed « {name} »"))
+def choose_to_feed(interface: Context, entry: str, name: str) -> None:
+	(action,) = [action for action in _feed_menu(interface, name).actions() if action.text() == entry]
 	action.trigger()
 
 
 @then(
 	parsers.parse(
-		"la coupure par le secours du menu « Diffusion » est active, sans sous-menu, avec l'infobulle « {infobulle} »"
+		"la coupure par le secours du menu « Diffusion » est active, sans sous-menu, avec l'infobulle « {tooltip} »"
 	)
 )
-def secours_actif(interface: Contexte, infobulle: str) -> None:
-	action = fenetre(interface).coupure_par_le_secours
-	assert action in fenetre(interface).menu_diffusion.actions()
+def active_fallback(interface: Context, tooltip: str) -> None:
+	action = window(interface).cutoff_by_fallback
+	assert action in window(interface).broadcast_menu.actions()
 	assert (action.text(), action.isEnabled(), action.menu(), action.toolTip()) == (
-		interruption.COUPER_PAR_LE_SECOURS,
+		interruption.CUT_BY_FALLBACK,
 		True,
 		None,
-		infobulle,
+		tooltip,
 	)
 
 
-@then(parsers.parse("la coupure par le secours du menu « Diffusion » est inactive, avec l'infobulle « {infobulle} »"))
-def secours_inactif(interface: Contexte, infobulle: str) -> None:
-	action = fenetre(interface).coupure_par_le_secours
-	assert (action.isEnabled(), action.toolTip()) == (False, infobulle)
+@then(parsers.parse("la coupure par le secours du menu « Diffusion » est inactive, avec l'infobulle « {tooltip} »"))
+def inactive_fallback(interface: Context, tooltip: str) -> None:
+	action = window(interface).cutoff_by_fallback
+	assert (action.isEnabled(), action.toolTip()) == (False, tooltip)
 
 
-@then(parsers.parse("la coupure par le secours du menu « Diffusion » a le sous-menu {entrees}"))
-def sous_menu_des_secours(interface: Contexte, entrees: str) -> None:
-	action = fenetre(interface).coupure_par_le_secours
-	sous_menu = action.menu()
-	assert (action.isEnabled()) and (sous_menu is not None)
-	assert [entree.text() for entree in sous_menu.actions()] == _entrees(entrees)
+@then(parsers.parse("la coupure par le secours du menu « Diffusion » a le sous-menu {entries}"))
+def under_fallback_menu(interface: Context, entries: str) -> None:
+	action = window(interface).cutoff_by_fallback
+	under_menu = action.menu()
+	assert (action.isEnabled()) and (under_menu is not None)
+	assert [entry.text() for entry in under_menu.actions()] == _entries(entries)
 
 
-@then(parsers.parse("Machin player a reçu la demande de couper l'antenne par le secours « {nom} »"))
-def coupure_par_le_secours_recue(base_vide: Connexion, lecteur: Lecteur, qtbot: QtBot, nom: str) -> None:
-	secours = identifiant(base_vide, "events", "internal_name", nom)
-	assert _recevoir(lecteur, qtbot) == [Demande(commande=COUPER_PAR_LE_SECOURS, evenement=secours)]
+@then(parsers.parse("Machin player a reçu la demande de couper l'antenne par le secours « {name} »"))
+def cutoff_by_received_fallback(empty_database: Connection, player: Player, qtbot: QtBot, name: str) -> None:
+	fallback = identifier(empty_database, "events", "internal_name", name)
+	assert _receive(player, qtbot) == [Request(command=CUT_BY_FALLBACK, event=fallback)]
 
 
-@then(parsers.parse("Machin player a reçu la demande de couper l'antenne par le feed « {nom} »"))
-def coupure_par_le_feed_recue(base_vide: Connexion, lecteur: Lecteur, qtbot: QtBot, nom: str) -> None:
-	feed = identifiant(base_vide, "feeds", "name", nom)
-	assert _recevoir(lecteur, qtbot) == [Demande(commande=COUPER_PAR_LE_FEED, feed=feed)]
+@then(parsers.parse("Machin player a reçu la demande de couper l'antenne par le feed « {name} »"))
+def cutoff_by_received_feed(empty_database: Connection, player: Player, qtbot: QtBot, name: str) -> None:
+	feed = identifier(empty_database, "feeds", "name", name)
+	assert _receive(player, qtbot) == [Request(command=CUT_BY_FEED, feed=feed)]
 
 
-@then(parsers.parse("Machin player a reçu aussi la demande d'interrompre « {element} »"))
-def aussi_recue(lecteur: Lecteur, qtbot: QtBot, element: str) -> None:
-	assert _recevoir(lecteur, qtbot)[-1] == Demande(element)
+@then(parsers.parse("Machin player a reçu aussi la demande d'interrompre « {item} »"))
+def also_received(player: Player, qtbot: QtBot, item: str) -> None:
+	assert _receive(player, qtbot)[-1] == Request(item)
 
 
-@then(parsers.parse("le clic droit sur le feed « {nom} » propose :"))
-def menu_du_feed(interface: Contexte, nom: str, datatable: list[list[str]]) -> None:
-	_, *lignes = datatable
-	obtenues = []
-	for action in _menu_du_feed(interface, nom).actions():
+@then(parsers.parse("le clic droit sur le feed « {name} » propose :"))
+def feed_menu(interface: Context, name: str, datatable: list[list[str]]) -> None:
+	_, *lines = datatable
+	obtained_list = []
+	for action in _feed_menu(interface, name).actions():
 		if action.isSeparator():
 			continue
-		etat = "inactive"
+		state = "inactive"
 		if action.isEnabled():
-			etat = "active"
-		obtenues.append([action.text(), etat, action.toolTip()])
-	attendues = [[valeur.strip() for valeur in ligne] for ligne in lignes]
+			state = "active"
+		obtained_list.append([action.text(), state, action.toolTip()])
+	expected_list = [[value.strip() for value in line] for line in lines]
 	# Qt donne à une action sans infobulle son texte pour infobulle : une cellule vide l'accepte.
-	for obtenue, attendue in zip(obtenues, attendues, strict=False):
-		if attendue[2] == "":
-			obtenue[2] = ""
-	assert obtenues == attendues
+	for obtained, expected in zip(obtained_list, expected_list, strict=False):
+		if expected[2] == "":
+			obtained[2] = ""
+	assert obtained_list == expected_list

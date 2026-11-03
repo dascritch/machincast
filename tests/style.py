@@ -21,18 +21,18 @@ CONVERSIONS = frozenset({"int", "str", "bool"})
 """Fonctions qu'une branche d'expression conditionnelle peut appeler : la conversion d'une valeur lue,
 `None if valeur is None else int(str(valeur))`."""
 
-OPERANDE = "opérande sans parenthèses dans une condition enchaînée"
-APPEL = "appel dans une branche d'expression conditionnelle"
+OPERAND = "opérande sans parenthèses dans une condition enchaînée"
+CALL = "appel dans une branche d'expression conditionnelle"
 
 
 @dataclass(frozen=True)
-class Faute:
-	ligne: int
-	nature: str
+class Fault:
+	line: int
+	kind: str
 
 
-def _jetons(source: str) -> list[tokenize.TokenInfo]:
-	ignores = {
+def _tokens(source: str) -> list[tokenize.TokenInfo]:
+	ignored = {
 		tokenize.NL,
 		tokenize.NEWLINE,
 		tokenize.COMMENT,
@@ -41,50 +41,50 @@ def _jetons(source: str) -> list[tokenize.TokenInfo]:
 		tokenize.ENCODING,
 		tokenize.ENDMARKER,
 	}
-	return [jeton for jeton in tokenize.generate_tokens(io.StringIO(source).readline) if jeton.type not in ignores]
+	return [token for token in tokenize.generate_tokens(io.StringIO(source).readline) if token.type not in ignored]
 
 
-def _colonne(lignes: list[str], ligne: int, octet: int) -> int:
+def _column(lines: list[str], line: int, byte: int) -> int:
 	"""La colonne d'ast compte les octets UTF-8 ; celle des jetons, les caractères."""
-	return len(lignes[ligne - 1].encode()[:octet].decode())
+	return len(lines[line - 1].encode()[:byte].decode())
 
 
-def _entre_parentheses(
-	noeud: ast.expr, lignes: list[str], jetons: list[tokenize.TokenInfo], debuts: dict[tuple[int, int], int]
+def _between_parentheses(
+	node: ast.expr, lines: list[str], tokens: list[tokenize.TokenInfo], starts: dict[tuple[int, int], int]
 ) -> bool:
 	"""Le jeton qui précède l'opérande ouvre une parenthèse, et celui qui le suit la ferme."""
-	assert (noeud.end_lineno is not None) and (noeud.end_col_offset is not None)
-	debut = debuts.get((noeud.lineno, _colonne(lignes, noeud.lineno, noeud.col_offset)))
-	fin = (noeud.end_lineno, _colonne(lignes, noeud.end_lineno, noeud.end_col_offset))
-	suivants = [rang for rang, jeton in enumerate(jetons) if jeton.end == fin]
-	if (debut is None) or (debut == 0) or (suivants == []):
+	assert (node.end_lineno is not None) and (node.end_col_offset is not None)
+	start = starts.get((node.lineno, _column(lines, node.lineno, node.col_offset)))
+	end = (node.end_lineno, _column(lines, node.end_lineno, node.end_col_offset))
+	following_list = [rank for rank, token in enumerate(tokens) if token.end == end]
+	if (start is None) or (start == 0) or (following_list == []):
 		return False
-	suivant = suivants[-1] + 1
-	return (jetons[debut - 1].string == "(") and (suivant < len(jetons)) and (jetons[suivant].string == ")")
+	following = following_list[-1] + 1
+	return (tokens[start - 1].string == "(") and (following < len(tokens)) and (tokens[following].string == ")")
 
 
-def _appel_interdit(noeud: ast.expr) -> bool:
-	for appel in ast.walk(noeud):
-		if not isinstance(appel, ast.Call):
+def _forbidden_call(node: ast.expr) -> bool:
+	for call in ast.walk(node):
+		if not isinstance(call, ast.Call):
 			continue
-		if (not isinstance(appel.func, ast.Name)) or (appel.func.id not in CONVERSIONS):
+		if (not isinstance(call.func, ast.Name)) or (call.func.id not in CONVERSIONS):
 			return True
 	return False
 
 
-def fautes(source: str) -> list[Faute]:
+def faults(source: str) -> list[Fault]:
 	"""Les fautes de style d'un source Python, dans l'ordre des lignes."""
-	jetons = _jetons(source)
-	debuts = {jeton.start: rang for rang, jeton in enumerate(jetons)}
-	lignes = source.splitlines()
-	trouvees = []
-	for noeud in ast.walk(ast.parse(source)):
-		if isinstance(noeud, ast.BoolOp):
-			trouvees += [
-				Faute(operande.lineno, OPERANDE)
-				for operande in noeud.values
-				if not _entre_parentheses(operande, lignes, jetons, debuts)
+	tokens = _tokens(source)
+	starts = {token.start: rank for rank, token in enumerate(tokens)}
+	lines = source.splitlines()
+	found_list = []
+	for node in ast.walk(ast.parse(source)):
+		if isinstance(node, ast.BoolOp):
+			found_list += [
+				Fault(operand.lineno, OPERAND)
+				for operand in node.values
+				if not _between_parentheses(operand, lines, tokens, starts)
 			]
-		elif (isinstance(noeud, ast.IfExp)) and ((_appel_interdit(noeud.body)) or (_appel_interdit(noeud.orelse))):
-			trouvees.append(Faute(noeud.lineno, APPEL))
-	return sorted(set(trouvees), key=lambda faute: (faute.ligne, faute.nature))
+		elif (isinstance(node, ast.IfExp)) and ((_forbidden_call(node.body)) or (_forbidden_call(node.orelse))):
+			found_list.append(Fault(node.lineno, CALL))
+	return sorted(set(found_list), key=lambda fault: (fault.line, fault.kind))

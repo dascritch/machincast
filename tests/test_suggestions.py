@@ -1,6 +1,6 @@
 """Suggestions au lancement de l'interface (https://github.com/dascritch/machincast/issues/119).
 
-La fenêtre des suggestions est remplacée par les réponses du scénario (tests/etapes_interface.py) ; la vraie fenêtre
+La fenêtre des suggestions est remplacée par les réponses du scénario (tests/interface_steps.py) ; la vraie fenêtre
 s'ouvre ici, hors de l'écran du poste.
 """
 
@@ -17,10 +17,17 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.configuration import Audio
-from machincast.interface.cartes_son import CartesSon
-from machincast.interface.suggestions import BANQUES, FIL_MUSICAL, FenetreSuggestions, Manques, Reponse, libelle
-from machincast.service import ABSENT, EtatDuService
-from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, fichier_de_configuration
+from machincast.interface.sound_cards import SoundCards
+from machincast.interface.suggestions import (
+	BACKGROUND_PROGRAMMING,
+	BANKS,
+	Response,
+	Shortfalls,
+	SuggestionsWindow,
+	label,
+)
+from machincast.service import ABSENT, ServiceState
+from tests.interface_steps import NAME, Connection, Context, configuration_file, window
 
 scenarios("suggestions.feature")
 
@@ -29,189 +36,189 @@ scenarios("suggestions.feature")
 
 
 @given("les suggestions au lancement sont actives")
-def actives(interface: Contexte) -> None:
-	interface.suggestions_actives = True
+def active_list(interface: Context) -> None:
+	interface.active_suggestions = True
 
 
 @given("les suggestions au lancement sont éteintes dans le fichier de configuration")
-def eteintes(interface: Contexte) -> None:
-	chemin = fichier_de_configuration(interface)
-	document = tomlkit.parse(chemin.read_text(encoding="utf-8"))
+def off_list(interface: Context) -> None:
+	path = configuration_file(interface)
+	document = tomlkit.parse(path.read_text(encoding="utf-8"))
 	section = tomlkit.table()
 	section["suggestions"] = False
 	document["interface"] = section
-	chemin.write_text(tomlkit.dumps(document), encoding="utf-8")
+	path.write_text(tomlkit.dumps(document), encoding="utf-8")
 
 
 @given("les banques suggérées existent déjà")
-def banques_existantes(base_vide: Connexion) -> None:
-	for nom in BANQUES:
-		base_vide.execute("INSERT INTO banks (internal_name, mode) VALUES (%s, 'random')", (nom,))
+def existing_banks(empty_database: Connection) -> None:
+	for name in BANKS:
+		empty_database.execute("INSERT INTO banks (internal_name, mode) VALUES (%s, 'random')", (name,))
 
 
 @given(
 	parsers.re(
-		r"les suggestions seront refermées par « Plus tard »(?P<case>, en cochant « Ne plus proposer au lancement »)?"
+		r"les suggestions seront refermées par « Plus tard »(?P<box>, en cochant « Ne plus proposer au lancement »)?"
 	)
 )
-def plus_tard(interface: Contexte, case: str | None) -> None:
-	interface.reponse_aux_suggestions = lambda _manques: Reponse(creer=False, ne_plus_proposer=case is not None)
+def latest(interface: Context, box: str | None) -> None:
+	interface.response_to_suggestions = lambda _gaps: Response(create=False, more_offer=box is not None)
 
 
 @given(
 	parsers.re(
-		r"les suggestions seront acceptées par « Créer »(?:, sans « (?P<sans>.+) »)?"
-		r"(?:, avec la sortie « (?P<sortie>[^»]+) », l'antenne « (?P<antenne>[^»]+) »"
-		r" et la pré-écoute « (?P<preecoute>[^»]+) »)?$"
+		r"les suggestions seront acceptées par « Créer »(?:, sans « (?P<without>.+) »)?"
+		r"(?:, avec la sortie « (?P<output>[^»]+) », l'antenne « (?P<on_air>[^»]+) »"
+		r" et la pré-écoute « (?P<preview>[^»]+) »)?$"
 	)
 )
-def creer(
-	interface: Contexte, sans: str | None, sortie: str | None, antenne: str | None, preecoute: str | None
+def create(
+	interface: Context, without: str | None, output: str | None, on_air: str | None, preview: str | None
 ) -> None:
-	def repondre(manques: Manques) -> Reponse:
-		banques = tuple(banque for banque in manques.banques if libelle(banque) != sans)
-		return Reponse(
-			creer=True,
-			fil_musical=(manques.fil_musical) and (sans != FIL_MUSICAL),
-			banques=banques,
-			sortie=sortie,  # type: ignore[arg-type]
-			antenne=antenne,
-			preecoute=preecoute,
+	def answer(gaps: Shortfalls) -> Response:
+		banks = tuple(bank for bank in gaps.banks if label(bank) != without)
+		return Response(
+			create=True,
+			background_programming=(gaps.background_programming) and (without != BACKGROUND_PROGRAMMING),
+			banks=banks,
+			output=output,  # type: ignore[arg-type]
+			on_air=on_air,
+			preview=preview,
 		)
 
-	interface.reponse_aux_suggestions = repondre
+	interface.response_to_suggestions = answer
 
 
 # ─── Alors ─────────────────────────────────────────────────
 
 
-def premieres(interface: Contexte) -> Manques:
-	assert interface.suggestions_faites, "aucune suggestion"
-	return interface.suggestions_faites[0]
+def first_list(interface: Context) -> Shortfalls:
+	assert interface.done_suggestions, "aucune suggestion"
+	return interface.done_suggestions[0]
 
 
 @then("les suggestions ont proposé :")
-def proposees(interface: Contexte, datatable: list[list[str]]) -> None:
-	_entete, *lignes = datatable
-	assert premieres(interface).elements() == [ligne.strip() for (ligne,) in lignes]
+def offered_list(interface: Context, datatable: list[list[str]]) -> None:
+	_header, *lines = datatable
+	assert first_list(interface).items() == [line.strip() for (line,) in lines]
 
 
 @then("les suggestions n'ont pas proposé les cartes son")
-def sans_cartes(interface: Contexte) -> None:
-	assert premieres(interface).audio is None
+def without_cards(interface: Context) -> None:
+	assert first_list(interface).audio is None
 
 
 @then(
 	parsers.re(
-		r"les suggestions ont proposé les cartes son de la sortie « (?P<sortie>[^»]+) », l'antenne non renseignée"
-		r" et la pré-écoute « (?P<preecoute>[^»]+) »"
+		r"les suggestions ont proposé les cartes son de la sortie « (?P<output>[^»]+) », l'antenne non renseignée"
+		r" et la pré-écoute « (?P<preview>[^»]+) »"
 	)
 )
-def cartes_proposees(interface: Contexte, sortie: str, preecoute: str) -> None:
-	assert premieres(interface).audio == Audio(sortie, None, preecoute)  # type: ignore[arg-type]
+def offered_cards(interface: Context, output: str, preview: str) -> None:
+	assert first_list(interface).audio == Audio(output, None, preview)  # type: ignore[arg-type]
 
 
 @then("aucune suggestion n'a été faite")
-def aucune(interface: Contexte) -> None:
-	assert interface.suggestions_faites == []
+def no(interface: Context) -> None:
+	assert interface.done_suggestions == []
 
 
-@then(parsers.parse("les suggestions ont été faites {nombre:d} fois"))
-def nombre_de_fois(interface: Contexte, nombre: int) -> None:
-	assert len(interface.suggestions_faites) == nombre
+@then(parsers.parse("les suggestions ont été faites {count:d} fois"))
+def times_count(interface: Context, count: int) -> None:
+	assert len(interface.done_suggestions) == count
 
 
-@then(parsers.re(r"il n'y a aucun(?:e)? (?P<genre>événement|banque) en base"))
-def rien_en_base(base_vide: Connexion, genre: str) -> None:
-	table = {"événement": "events", "banque": "banks"}[genre]
-	ligne = base_vide.execute(f"SELECT count(*) FROM {table}").fetchone()  # noqa: S608
-	assert ligne == (0,), ligne
+@then(parsers.re(r"il n'y a aucun(?:e)? (?P<category>événement|banque) en base"))
+def nothing_in_database(empty_database: Connection, category: str) -> None:
+	table = {"événement": "events", "banque": "banks"}[category]
+	line = empty_database.execute(f"SELECT count(*) FROM {table}").fetchone()  # noqa: S608
+	assert line == (0,), line
 
 
-@then(parsers.parse("le fil musical « {nom} » est en base, permanent"))
-def fil_permanent(base_vide: Connexion, nom: str) -> None:
-	lignes = base_vide.execute(
+@then(parsers.parse("le fil musical « {name} » est en base, permanent"))
+def permanent_feed(empty_database: Connection, name: str) -> None:
+	lines = empty_database.execute(
 		"SELECT priority::text, starts_at, ends_at, recurrence_days::text[] FROM events WHERE internal_name = %s",
-		(nom,),
+		(name,),
 	).fetchall()
-	assert lignes == [("background_programming", None, None, [])], lignes
+	assert lines == [("background_programming", None, None, [])], lines
 
 
-@then(parsers.re(r"la liste de l'événement « (?P<nom>[^»]+) » est en base (?P<banques>«.+)"))
-def liste_du_fil(base_vide: Connexion, nom: str, banques: str) -> None:
-	lignes = base_vide.execute(
+@then(parsers.re(r"la liste de l'événement « (?P<name>[^»]+) » est en base (?P<banks>«.+)"))
+def feed_list(empty_database: Connection, name: str, banks: str) -> None:
+	lines = empty_database.execute(
 		"SELECT b.internal_name FROM event_items x JOIN events e ON e.id = x.event_id"
 		" JOIN banks b ON b.id = x.bank_id WHERE e.internal_name = %s ORDER BY x.position",
-		(nom,),
+		(name,),
 	).fetchall()
-	assert [str(banque) for (banque,) in lignes] == NOM.findall(banques)
+	assert [str(bank) for (bank,) in lines] == NAME.findall(banks)
 
 
-@then(parsers.re(r"les fils musicaux en base sont (?P<noms>«.+)"))
-def fils(base_vide: Connexion, noms: str) -> None:
-	lignes = base_vide.execute(
+@then(parsers.re(r"les fils musicaux en base sont (?P<names>«.+)"))
+def feeds(empty_database: Connection, names: str) -> None:
+	lines = empty_database.execute(
 		"SELECT internal_name FROM events WHERE priority = 'background_programming' AND deleted_at IS NULL"
 		" ORDER BY internal_name"
 	).fetchall()
-	assert [str(nom) for (nom,) in lignes] == NOM.findall(noms)
+	assert [str(name) for (name,) in lines] == NAME.findall(names)
 
 
-def _crossfade(regle: str, duree: timedelta) -> str:
-	if regle == "sound":
+def _crossfade(rule: str, duration: timedelta) -> str:
+	if rule == "sound":
 		return "des sonores"
-	return f"{REGLES[regle]}, {duree.total_seconds():g} s"
+	return f"{RULES[rule]}, {duration.total_seconds():g} s"
 
 
-REGLES = {"default": "à défaut", "forced": "imposé"}
+RULES = {"default": "à défaut", "forced": "imposé"}
 
 
 @then("les banques en base sont :")
-def banques_en_base(base_vide: Connexion, datatable: list[list[str]]) -> None:
-	_entete, *lignes = datatable
-	lues = []
-	for nom, mode, repeter, maximum, debut_regle, debut, fin_regle, fin in base_vide.execute(
+def banks_in_database(empty_database: Connection, datatable: list[list[str]]) -> None:
+	_header, *lines = datatable
+	fetched_list = []
+	for name, mode, repeat, maximum, rule_start, start, rule_end, end in empty_database.execute(
 		"SELECT internal_name, mode::text, no_repeat, max_duration, crossfade_start_rule::text, crossfade_start,"
 		' crossfade_end_rule::text, crossfade_end FROM banks ORDER BY internal_name COLLATE "C"'
 	).fetchall():
 		repetition = "non"
-		if repeter:
+		if repeat:
 			repetition = "oui"
-		lues.append(
+		fetched_list.append(
 			(
-				str(nom),
+				str(name),
 				str(mode),
 				repetition,
 				str((maximum) or ("")),
-				_crossfade(str(debut_regle), debut),
-				_crossfade(str(fin_regle), fin),
+				_crossfade(str(rule_start), start),
+				_crossfade(str(rule_end), end),
 			)
 		)
-	attendues = [tuple(valeur.strip() for valeur in ligne) for ligne in lignes]
-	assert lues == attendues, lues
+	expected_list = [tuple(value.strip() for value in line) for line in lines]
+	assert fetched_list == expected_list, fetched_list
 
 
-@then(parsers.parse("la banque « {nom} » en base a pour durée maximale « {maximum} », sans durée minimale"))
-def duree_maximale(base_vide: Connexion, nom: str, maximum: str) -> None:
-	ligne = base_vide.execute(
-		"SELECT min_duration, max_duration FROM banks WHERE internal_name = %s", (nom,)
+@then(parsers.parse("la banque « {name} » en base a pour durée maximale « {maximum} », sans durée minimale"))
+def maximal_duration(empty_database: Connection, name: str, maximum: str) -> None:
+	line = empty_database.execute(
+		"SELECT min_duration, max_duration FROM banks WHERE internal_name = %s", (name,)
 	).fetchone()
-	assert ligne is not None
-	assert (ligne[0], str(ligne[1])) == (None, maximum)
+	assert line is not None
+	assert (line[0], str(line[1])) == (None, maximum)
 
 
-@then(parsers.parse("le fichier de configuration contient la ligne « {ligne} »"))
-def contient_la_ligne(interface: Contexte, ligne: str) -> None:
-	assert ligne in fichier_de_configuration(interface).read_text(encoding="utf-8").splitlines()
+@then(parsers.parse("le fichier de configuration contient la ligne « {line} »"))
+def contains_line(interface: Context, line: str) -> None:
+	assert line in configuration_file(interface).read_text(encoding="utf-8").splitlines()
 
 
-@then(parsers.parse("le fichier de configuration contient encore « {texte} »"))
-def contient_encore(interface: Contexte, texte: str) -> None:
-	assert texte in fichier_de_configuration(interface).read_text(encoding="utf-8")
+@then(parsers.parse("le fichier de configuration contient encore « {text} »"))
+def contains_still(interface: Context, text: str) -> None:
+	assert text in configuration_file(interface).read_text(encoding="utf-8")
 
 
 @then("le fichier de configuration n'a pas changé")
-def inchange(interface: Contexte) -> None:
-	assert fichier_de_configuration(interface).read_bytes() == interface.configuration_initiale
+def unchanged(interface: Context) -> None:
+	assert configuration_file(interface).read_bytes() == interface.initial_configuration
 
 
 # ─── Vraie fenêtre ─────────────────────────────────────────
@@ -225,154 +232,154 @@ def parent(qtbot: QtBot) -> Iterator[QWidget]:
 
 
 @pytest.fixture
-def ouverte() -> dict[str, object]:
+def opened() -> dict[str, object]:
 	return {}
 
 
-def la_fenetre(ouverte: dict[str, object]) -> FenetreSuggestions:
-	fenetre = ouverte["fenetre"]
-	assert isinstance(fenetre, FenetreSuggestions)
-	return fenetre
+def the_window(opened: dict[str, object]) -> SuggestionsWindow:
+	window = opened["fenetre"]
+	assert isinstance(window, SuggestionsWindow)
+	return window
 
 
 SERVICES = {
 	"sans service de diffusion": ABSENT,
-	"service de diffusion à l'arrêt": EtatDuService(installe=True, actif="inactive"),
+	"service de diffusion à l'arrêt": ServiceState(installed=True, active="inactive"),
 }
 
 
 @when(
 	parsers.re(
-		r"la fenêtre des suggestions s'ouvre sur (?:le fil musical et la banque « (?P<banque>[^»]+) », avec les"
-		r"|(?P<seules>les seules)) cartes son de la sortie « (?P<sortie>[^»]+) », (?P<service>.+)"
+		r"la fenêtre des suggestions s'ouvre sur (?:le fil musical et la banque « (?P<bank>[^»]+) », avec les"
+		r"|(?P<only_list>les seules)) cartes son de la sortie « (?P<output>[^»]+) », (?P<service>.+)"
 	)
 )
-def ouvrir(
-	ouverte: dict[str, object], parent: QWidget, banque: str | None, seules: str | None, sortie: str, service: str
+def open_(
+	opened: dict[str, object], parent: QWidget, bank: str | None, only_list: str | None, output: str, service: str
 ) -> None:
 	"""La pré-écoute de la configuration des tests ; l'antenne à renseigner."""
-	audio = Audio(sortie, None, "preecoute-factice")  # type: ignore[arg-type]
-	manques = Manques(False, (), audio)
-	if seules is None:
-		assert banque is not None
-		manques = Manques(True, (banque,), audio)
-	ouverte["fenetre"] = FenetreSuggestions(manques, parent, SERVICES[service])
+	audio = Audio(output, None, "preecoute-factice")  # type: ignore[arg-type]
+	gaps = Shortfalls(False, (), audio)
+	if only_list is None:
+		assert bank is not None
+		gaps = Shortfalls(True, (bank,), audio)
+	opened["fenetre"] = SuggestionsWindow(gaps, parent, SERVICES[service])
 
 
-@then(parsers.parse("elle s'intitule « {titre} »"))
-def titre(ouverte: dict[str, object], titre: str) -> None:
-	assert la_fenetre(ouverte).windowTitle() == titre
+@then(parsers.parse("elle s'intitule « {title} »"))
+def title(opened: dict[str, object], title: str) -> None:
+	assert the_window(opened).windowTitle() == title
 
 
-@then(parsers.re(r"elle propose, cochés, (?P<elements>«.+)"))
-def coches(ouverte: dict[str, object], elements: str) -> None:
-	liste = la_fenetre(ouverte).ui.elements
-	lignes = [liste.item(rang) for rang in range(liste.count())]
-	assert [ligne.text() for ligne in lignes] == re.findall(r"« ((?:[^«»]|« [^»]+ »)+) »", elements)
-	assert all(ligne.checkState() == Qt.CheckState.Checked for ligne in lignes)
+@then(parsers.re(r"elle propose, cochés, (?P<items>«.+)"))
+def ticked_list(opened: dict[str, object], items: str) -> None:
+	list_ = the_window(opened).ui.items
+	lines = [list_.item(rank) for rank in range(list_.count())]
+	assert [line.text() for line in lines] == re.findall(r"« ((?:[^«»]|« [^»]+ »)+) »", items)
+	assert all(line.checkState() == Qt.CheckState.Checked for line in lines)
 
 
 @then("elle montre les cartes son en tête, avant ce qui est à créer")
-def cartes_en_tete(ouverte: dict[str, object]) -> None:
-	fenetre = la_fenetre(ouverte)
-	disposition = fenetre.layout()
-	assert disposition is not None
-	assert disposition.indexOf(fenetre.ui.groupe_cartes_son) == 0
-	assert disposition.indexOf(fenetre.ui.groupe_cartes_son) < disposition.indexOf(fenetre.ui.elements)
-	assert fenetre.ui.groupe_cartes_son.isVisibleTo(fenetre)
+def cards_in_head(opened: dict[str, object]) -> None:
+	window = the_window(opened)
+	arrangement = window.layout()
+	assert arrangement is not None
+	assert arrangement.indexOf(window.ui.sound_cards_group) == 0
+	assert arrangement.indexOf(window.ui.sound_cards_group) < arrangement.indexOf(window.ui.items)
+	assert window.ui.sound_cards_group.isVisibleTo(window)
 
 
 @then("elle ne propose rien à créer")
-def rien_a_creer(ouverte: dict[str, object]) -> None:
-	fenetre = la_fenetre(ouverte)
-	assert not fenetre.ui.elements.isVisibleTo(fenetre)
-	assert not fenetre.ui.explication.isVisibleTo(fenetre)
+def nothing_to_create(opened: dict[str, object]) -> None:
+	window = the_window(opened)
+	assert not window.ui.items.isVisibleTo(window)
+	assert not window.ui.explanation.isVisibleTo(window)
 
 
-def _cartes(ouverte: dict[str, object]) -> CartesSon:
-	cartes = la_fenetre(ouverte).cartes
-	assert cartes is not None
-	return cartes
+def _cards(opened: dict[str, object]) -> SoundCards:
+	cards = the_window(opened).cards
+	assert cards is not None
+	return cards
 
 
-@then(parsers.re(r"son choix de l'antenne propose (?P<noms>«.+)"))
-def choix_antenne(ouverte: dict[str, object], noms: str) -> None:
-	choix = _cartes(ouverte).ui.antenne
-	assert [choix.itemText(rang) for rang in range(choix.count())] == NOM.findall(noms)
+@then(parsers.re(r"son choix de l'antenne propose (?P<names>«.+)"))
+def on_air_choice(opened: dict[str, object], names: str) -> None:
+	choice = _cards(opened).ui.on_air
+	assert [choice.itemText(rank) for rank in range(choice.count())] == NAME.findall(names)
 
 
-@then(parsers.parse("dans son choix de l'antenne, « {texte} » est inactive"))
-def ligne_inactive(ouverte: dict[str, object], texte: str) -> None:
-	choix = _cartes(ouverte).ui.antenne
-	modele = choix.model()
-	assert isinstance(modele, QStandardItemModel)
-	assert not modele.item(choix.findText(texte)).isEnabled()
+@then(parsers.parse("dans son choix de l'antenne, « {text} » est inactive"))
+def inactive_line(opened: dict[str, object], text: str) -> None:
+	choice = _cards(opened).ui.on_air
+	model = choice.model()
+	assert isinstance(model, QStandardItemModel)
+	assert not model.item(choice.findText(text)).isEnabled()
 
 
-@then(parsers.re(r"son bouton « (?P<texte>Créer|Enregistrer) » est (?P<etat>actif|inactif)"))
-def bouton_ok(ouverte: dict[str, object], texte: str, etat: str) -> None:
-	bouton = la_fenetre(ouverte).ui.boutons.button(QDialogButtonBox.StandardButton.Ok)
-	assert (bouton.text(), bouton.isEnabled()) == (texte, etat == "actif")
+@then(parsers.re(r"son bouton « (?P<text>Créer|Enregistrer) » est (?P<state>actif|inactif)"))
+def ok_button(opened: dict[str, object], text: str, state: str) -> None:
+	button = the_window(opened).ui.buttons.button(QDialogButtonBox.StandardButton.Ok)
+	assert (button.text(), button.isEnabled()) == (text, state == "actif")
 
 
-@when(parsers.parse("j'y décoche « {texte} »"))
-def decocher(ouverte: dict[str, object], texte: str) -> None:
-	liste = la_fenetre(ouverte).ui.elements
-	(ligne,) = [liste.item(rang) for rang in range(liste.count()) if liste.item(rang).text() == texte]
-	ligne.setCheckState(Qt.CheckState.Unchecked)
+@when(parsers.parse("j'y décoche « {text} »"))
+def untick(opened: dict[str, object], text: str) -> None:
+	list_ = the_window(opened).ui.items
+	(line,) = [list_.item(rank) for rank in range(list_.count()) if list_.item(rank).text() == text]
+	line.setCheckState(Qt.CheckState.Unchecked)
 
 
-@when(parsers.re(r"j'y choisis pour (?P<role>l'antenne|la pré-écoute) « (?P<nom>[^»]+) »"))
-def choisir_carte(ouverte: dict[str, object], role: str, nom: str) -> None:
-	ui = _cartes(ouverte).ui
-	choix = {"l'antenne": ui.antenne, "la pré-écoute": ui.preecoute}[role]
-	indice = choix.findText(nom)
-	assert indice >= 0, nom
-	choix.setCurrentIndex(indice)
+@when(parsers.re(r"j'y choisis pour (?P<role>l'antenne|la pré-écoute) « (?P<name>[^»]+) »"))
+def choose_card(opened: dict[str, object], role: str, name: str) -> None:
+	ui = _cards(opened).ui
+	choice = {"l'antenne": ui.on_air, "la pré-écoute": ui.preview}[role]
+	index = choice.findText(name)
+	assert index >= 0, name
+	choice.setCurrentIndex(index)
 
 
 @when("j'y coche « Ne plus proposer au lancement »")
-def cocher_ne_plus(ouverte: dict[str, object]) -> None:
-	la_fenetre(ouverte).ui.ne_plus_proposer.setChecked(True)
+def tick_more(opened: dict[str, object]) -> None:
+	the_window(opened).ui.more_offer.setChecked(True)
 
 
 @when(parsers.re(r"j'y clique sur « (?:Créer|Enregistrer) »"))
-def cliquer_creer(ouverte: dict[str, object]) -> None:
-	fenetre = la_fenetre(ouverte)
-	fenetre.ui.boutons.button(QDialogButtonBox.StandardButton.Ok).click()
-	ouverte["reponse"] = fenetre.reponse()
+def click_create(opened: dict[str, object]) -> None:
+	window = the_window(opened)
+	window.ui.buttons.button(QDialogButtonBox.StandardButton.Ok).click()
+	opened["reponse"] = window.response()
 
 
 @then(
 	parsers.re(
-		r"elle a donné : (?:la banque « (?P<banque>[^»]+) », )?la sortie « (?P<sortie>[^»]+) »,"
-		r" l'antenne « (?P<antenne>[^»]+) », la pré-écoute « (?P<preecoute>[^»]+) »(?P<ne_plus>, ne plus proposer)?"
+		r"elle a donné : (?:la banque « (?P<bank>[^»]+) », )?la sortie « (?P<output>[^»]+) »,"
+		r" l'antenne « (?P<on_air>[^»]+) », la pré-écoute « (?P<preview>[^»]+) »(?P<more>, ne plus proposer)?"
 	)
 )
-def donne(
-	ouverte: dict[str, object],
-	banque: str | None,
-	sortie: str,
-	antenne: str,
-	preecoute: str,
-	ne_plus: str | None,
+def gives(
+	opened: dict[str, object],
+	bank: str | None,
+	output: str,
+	on_air: str,
+	preview: str,
+	more: str | None,
 ) -> None:
-	assert la_fenetre(ouverte).result() == FenetreSuggestions.DialogCode.Accepted
-	banques: tuple[str, ...] = ()
-	if banque is not None:
-		banques = (banque,)
-	assert ouverte["reponse"] == Reponse(
-		creer=True,
-		fil_musical=False,
-		banques=banques,
-		sortie=sortie,  # type: ignore[arg-type]
-		antenne=antenne,
-		preecoute=preecoute,
-		ne_plus_proposer=ne_plus is not None,
+	assert the_window(opened).result() == SuggestionsWindow.DialogCode.Accepted
+	banks: tuple[str, ...] = ()
+	if bank is not None:
+		banks = (bank,)
+	assert opened["reponse"] == Response(
+		create=True,
+		background_programming=False,
+		banks=banks,
+		output=output,  # type: ignore[arg-type]
+		on_air=on_air,
+		preview=preview,
+		more_offer=more is not None,
 	)
 
 
-@then(parsers.re(r"la barre d'état (?P<signale>signale|ne signale pas) « Périphérique de l'antenne à renseigner »"))
-def antenne_signalee(interface: Contexte, signale: str) -> None:
-	ouverte = fenetre(interface)
-	assert ouverte.antenne_a_renseigner.isVisibleTo(ouverte) == (signale == "signale")
+@then(parsers.re(r"la barre d'état (?P<reports>signale|ne signale pas) « Périphérique de l'antenne à renseigner »"))
+def reported_on_air(interface: Context, reports: str) -> None:
+	opened = window(interface)
+	assert opened.to_fill_in_on_air.isVisibleTo(opened) == (reports == "signale")

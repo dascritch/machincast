@@ -1,15 +1,15 @@
 """Préférences de l'interface (https://github.com/dascritch/machincast/issues/145, spec § 8.11).
 
-« Préférences… », dans le menu « Fichier », ouvre FenetrePreferences. Sa page « Crossfades », la première
+« Préférences… », dans le menu « Fichier », ouvre PreferencesWindow. Sa page « Crossfades », la première
 (https://github.com/dascritch/machincast/issues/234), règle les crossfades : leur granularité (à la seconde ou au
 dixième de seconde), leur durée maximale, leurs durées par défaut, celles d'un sonore sans crossfade paramétré que sa
-banque ne règle pas (machincast.lecture.diffusion.crossfade), et la position des fondus par rapport aux silences
-détectés d'un sonore joué sans eux (crossfades.fade_in_position et fade_out_position, machincast.lecture.fondus). Une
-frise de démonstration (machincast.interface.frise) montre où tombent les fondus, sur un sonore inventé, et suit les
+banque ne règle pas (machincast.player.broadcast.crossfade), et la position des fondus par rapport aux silences
+détectés d'un sonore joué sans eux (crossfades.fade_in_position et fade_out_position, machincast.player.fades). Une
+frise de démonstration (machincast.interface.timeline) montre où tombent les fondus, sur un sonore inventé, et suit les
 réglages. Elle règle aussi le seuil de silence (silences.threshold, https://github.com/dascritch/machincast/issues/146),
 que l'audit complet prend à son prochain passage, à côté des fondus qu'il place
 (https://github.com/dascritch/machincast/issues/324). Sa page « Audio » règle, par le bloc des cartes son
-(machincast.interface.cartes_son, https://github.com/dascritch/machincast/issues/339), le type de sortie (audio.output)
+(machincast.interface.sound_cards, https://github.com/dascritch/machincast/issues/339), le type de sortie (audio.output)
 et les cartes son de l'antenne (audio.device), que Machin player prend à son prochain démarrage, et de la pré-écoute
 (audio.preview, https://github.com/dascritch/machincast/issues/116) : chacune est grisée dans l'autre choix, et se teste
 ; service de diffusion en marche, celle de l'antenne ne se choisit pas ; elle règle aussi le blanc dans un sonore
@@ -19,7 +19,7 @@ secours, que Machin player prend à son prochain démarrage. La page « Base » 
 et que suit la fiche d'un élément supprimé. La page « Interface » règle l'onglet Antenne, et choisit l'icône de
 l'application (interface.icon, https://github.com/dascritch/machincast/issues/111) : une image lisible, ou celle de
 MachinCast ; la fenêtre principale la donne aussitôt à ses fenêtres et aux raccourcis déjà installés
-(machincast.raccourci.reecrire).
+(machincast.shortcut.rewrite).
 
 - Les préférences s'enregistrent dans la section [crossfades] du fichier de configuration (ecrire), qui garde ses
   commentaires et ses autres sections : tomlkit le réécrit tel qu'il l'a lu, sauf les clés réglées. Une durée par
@@ -40,67 +40,66 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QDoubleSpinBox, QVBoxLayout, QWidget
 
 from machincast.configuration import (
-	PEREMPTION,
-	SEUIL_DE_SILENCE,
-	BlancAntenne,
+	RETENTION,
+	SILENCE_THRESHOLD,
+	AudioOutput,
 	Crossfades,
-	Granularite,
-	SortieAudio,
-	valeur_pour_le_fichier,
+	DeadAirSettings,
+	Granularity,
 )
-from machincast.interface.application import ICONE, lisible
-from machincast.interface.cartes_son import CartesSon
-from machincast.interface.frise import Frise, Plan, forme_de_demonstration
-from machincast.interface.ui.preferences import Ui_FenetrePreferences
-from machincast.lecture.fondus import LIBELLES, POSITIONS, Position
-from machincast.service import ABSENT, EtatDuService
+from machincast.interface.application import ICON, readable
+from machincast.interface.sound_cards import SoundCards
+from machincast.interface.timeline import Plan, Timeline, demonstration_shape
+from machincast.interface.ui.preferences import Ui_PreferencesWindow
+from machincast.player.fades import LABELS, POSITIONS, Position
+from machincast.service import ABSENT, ServiceState
 
-FRANCAIS = QLocale(QLocale.Language.French, QLocale.Country.France)
+FRENCH = QLocale(QLocale.Language.French, QLocale.Country.France)
 """Les durées s'écrivent avec une virgule."""
-GRANULARITES: tuple[tuple[Granularite, str], ...] = (
-	("dixieme", "Au dixième de seconde"),
-	("seconde", "À la seconde"),
+GRANULARITIES: tuple[tuple[Granularity, str], ...] = (
+	("tenth", "Au dixième de seconde"),
+	("second", "À la seconde"),
 )
-PAS: dict[Granularite, tuple[int, float]] = {"dixieme": (1, 0.1), "seconde": (0, 1.0)}
+STEPS: dict[Granularity, tuple[int, float]] = {"tenth": (1, 0.1), "second": (0, 1.0)}
 """Pour chaque granularité : les décimales et le pas d'un champ de crossfade."""
 
-ICONE_PAR_DEFAUT = "Icône de MachinCast"
+DEFAULT_ICON = "Icône de MachinCast"
 """Ce que montre la page « Interface » quand aucune image n'est choisie."""
-TAILLE_DE_L_APERCU = 48
+PREVIEW_SIZE = 48
 
 
 @dataclass(frozen=True)
-class Reglages:
+class Settings:
 	"""Ce que règle la fenêtre des préférences."""
 
 	crossfades: Crossfades
-	antenne: str | None
+	on_air: str | None
 	"""audio.device ; None tant qu'il n'est pas renseigné."""
-	preecoute: str
+	preview: str
 	"""audio.preview."""
-	seuil_silences: float = SEUIL_DE_SILENCE
+	silence_threshold: float = SILENCE_THRESHOLD
 	"""silences.threshold, en dB crête (https://github.com/dascritch/machincast/issues/146)."""
-	saturation: bool = True
+	clipping: bool = True
 	"""interface.clipping : le voyant « Saturation » de l'onglet Antenne est affiché
 	(https://github.com/dascritch/machincast/issues/191)."""
 	suggestions: bool = True
 	"""interface.suggestions : au lancement, l'interface propose ce qui manque pour démarrer
 	(https://github.com/dascritch/machincast/issues/119)."""
-	icone: Path | None = None
+	icon: Path | None = None
 	"""interface.icon : l'image choisie pour icône de l'application ; None : celle de MachinCast
 	(https://github.com/dascritch/machincast/issues/111)."""
-	peremption: int = PEREMPTION
+	retention: int = RETENTION
 	"""database.retention, en jours : au-delà, Machin purge efface de la base
 	(https://github.com/dascritch/machincast/issues/268)."""
-	blanc_antenne: BlancAntenne = BlancAntenne()
+	dead_air: DeadAirSettings = DeadAirSettings()
 	"""La section [dead_air] : blanc dans un sonore, à l'antenne
 	(https://github.com/dascritch/machincast/issues/122)."""
-	sortie: SortieAudio | None = None
+	output: AudioOutput | None = None
 	"""audio.output, le type de sortie choisi (https://github.com/dascritch/machincast/issues/339) ; None : inchangé."""
 
 
-_courantes = Crossfades()
-_peremption = PEREMPTION
+_current_list = Crossfades()
+_retention = RETENTION
 
 
 DEMONSTRATION = (30.0, 3.0, 4.0)
@@ -110,296 +109,296 @@ silences détectés au début et à la fin, en secondes ; il est joué sans eux.
 
 def crossfades() -> Crossfades:
 	"""Les préférences de la session, que suivent les fiches qui s'ouvrent."""
-	return _courantes
+	return _current_list
 
 
-def definir(reglages: Crossfades) -> None:
-	global _courantes  # noqa: PLW0603 : les préférences de la session, une seule par interface
-	_courantes = reglages
+def define(settings: Crossfades) -> None:
+	global _current_list  # noqa: PLW0603 : les préférences de la session, une seule par interface
+	_current_list = settings
 
 
-def peremption() -> int:
+def retention() -> int:
 	"""La durée de péremption de la session, en jours : la fiche d'un élément supprimé dit quand il sera effacé."""
-	return _peremption
+	return _retention
 
 
-def definir_peremption(jours: int) -> None:
-	global _peremption  # noqa: PLW0603 : les préférences de la session, une seule par interface
-	_peremption = jours
+def define_retention(days: int) -> None:
+	global _retention  # noqa: PLW0603 : les préférences de la session, une seule par interface
+	_retention = days
 
 
-def regler(champ: QDoubleSpinBox, granularite: Granularite, maximum: timedelta) -> None:
+def set_(field: QDoubleSpinBox, granularity: Granularity, maximum: timedelta) -> None:
 	"""Le pas, les décimales et la durée maximale d'un champ de crossfade."""
-	decimales, pas = PAS[granularite]
-	champ.setLocale(FRANCAIS)
-	champ.setDecimals(decimales)
-	champ.setSingleStep(pas)
-	champ.setMaximum(maximum.total_seconds())
+	decimals, step = STEPS[granularity]
+	field.setLocale(FRENCH)
+	field.setDecimals(decimals)
+	field.setSingleStep(step)
+	field.setMaximum(maximum.total_seconds())
 
 
-def regler_selon_les_preferences(champ: QDoubleSpinBox) -> None:
-	reglages = crossfades()
-	regler(champ, reglages.granularite, reglages.maximum)
+def set_according_to_preferences(field: QDoubleSpinBox) -> None:
+	settings = crossfades()
+	set_(field, settings.granularity, settings.maximum)
 
 
-def montrer(champ: QDoubleSpinBox, secondes: float) -> None:
+def display(field: QDoubleSpinBox, seconds: float) -> None:
 	"""Une valeur plus longue que la durée maximale reste telle quelle : le champ s'allonge pour elle."""
-	champ.setMaximum(max(champ.maximum(), secondes))
-	champ.setValue(secondes)
+	field.setMaximum(max(field.maximum(), seconds))
+	field.setValue(seconds)
 
 
-def _secondes(duree: timedelta) -> int | float:
+def _seconds(duration: timedelta) -> int | float:
 	"""Un nombre entier de secondes s'écrit sans décimale dans le fichier."""
-	return _nombre(duree.total_seconds())
+	return _count(duration.total_seconds())
 
 
-def _nombre(valeur: float) -> int | float:
+def _count(value: float) -> int | float:
 	"""Un nombre entier s'écrit sans décimale dans le fichier."""
-	if valeur == int(valeur):
-		return int(valeur)
-	return valeur
+	if value == int(value):
+		return int(value)
+	return value
 
 
-def ecrire(chemin: Path, reglages: Reglages) -> None:
+def write(path: Path, settings: Settings) -> None:
 	"""Écrit les réglages dans les sections [crossfades], [audio], [silences], [dead_air], [interface] et [database] du
 	fichier de configuration, sous leurs noms anglais (https://github.com/dascritch/machincast/issues/357) ; le reste du
 	fichier reste tel quel, commentaires compris."""
-	document = tomlkit.parse(chemin.read_text(encoding="utf-8"))
-	base = document["database"]
-	assert isinstance(base, tomlkit.items.Table)
+	document = tomlkit.parse(path.read_text(encoding="utf-8"))
+	database = document["database"]
+	assert isinstance(database, tomlkit.items.Table)
 	# La durée par défaut ne s'écrit pas dans une section qui ne la donne pas : [database] reste telle quelle.
-	if ("retention" in base) or (reglages.peremption != PEREMPTION):
-		base["retention"] = reglages.peremption
+	if ("retention" in database) or (settings.retention != RETENTION):
+		database["retention"] = settings.retention
 	if "crossfades" not in document:
 		document.add("crossfades", tomlkit.table())
 	section = document["crossfades"]
 	assert isinstance(section, tomlkit.items.Table)
-	crossfades = reglages.crossfades
-	section["granularity"] = valeur_pour_le_fichier("granularite", crossfades.granularite)
-	section["maximum"] = _secondes(crossfades.maximum)
-	section["fade_in_position"] = valeur_pour_le_fichier("position", crossfades.entree)
-	section["fade_out_position"] = valeur_pour_le_fichier("position", crossfades.sortie)
-	ecrire_l_audio(document, reglages.sortie, reglages.antenne, reglages.preecoute)
-	for cle, duree in (("start", crossfades.debut), ("end", crossfades.fin)):
-		if duree is None:
-			if cle in section:
-				del section[cle]
+	crossfades = settings.crossfades
+	section["granularity"] = crossfades.granularity
+	section["maximum"] = _seconds(crossfades.maximum)
+	section["fade_in_position"] = crossfades.entry
+	section["fade_out_position"] = crossfades.output
+	write_audio(document, settings.output, settings.on_air, settings.preview)
+	for key, duration in (("start", crossfades.start), ("end", crossfades.end)):
+		if duration is None:
+			if key in section:
+				del section[key]
 			continue
-		section[cle] = _secondes(duree)
+		section[key] = _seconds(duration)
 	if "silences" not in document:
 		document.add("silences", tomlkit.table())
 	silences = document["silences"]
 	assert isinstance(silences, tomlkit.items.Table)
-	silences["threshold"] = _nombre(reglages.seuil_silences)
+	silences["threshold"] = _count(settings.silence_threshold)
 	if "dead_air" not in document:
 		document.add("dead_air", tomlkit.table())
-	blanc_antenne = document["dead_air"]
-	assert isinstance(blanc_antenne, tomlkit.items.Table)
-	blanc_antenne["duration"] = _secondes(reglages.blanc_antenne.duree)
-	blanc_antenne["threshold"] = _nombre(reglages.blanc_antenne.seuil)
-	blanc_antenne["fallback"] = reglages.blanc_antenne.secours
+	dead_air = document["dead_air"]
+	assert isinstance(dead_air, tomlkit.items.Table)
+	dead_air["duration"] = _seconds(settings.dead_air.duration)
+	dead_air["threshold"] = _count(settings.dead_air.threshold)
+	dead_air["fallback"] = settings.dead_air.fallback
 	if "interface" not in document:
 		document.add("interface", tomlkit.table())
 	section_interface = document["interface"]
 	assert isinstance(section_interface, tomlkit.items.Table)
-	section_interface["clipping"] = reglages.saturation
-	section_interface["suggestions"] = reglages.suggestions
-	if reglages.icone is not None:
-		section_interface["icon"] = str(reglages.icone)
+	section_interface["clipping"] = settings.clipping
+	section_interface["suggestions"] = settings.suggestions
+	if settings.icon is not None:
+		section_interface["icon"] = str(settings.icon)
 	elif "icon" in section_interface:
 		del section_interface["icon"]
-	chemin.write_text(tomlkit.dumps(document), encoding="utf-8")
+	path.write_text(tomlkit.dumps(document), encoding="utf-8")
 
 
-def ecrire_l_audio(
-	document: tomlkit.TOMLDocument, sortie: SortieAudio | None, antenne: str | None, preecoute: str | None
+def write_audio(
+	document: tomlkit.TOMLDocument, output: AudioOutput | None, on_air: str | None, preview: str | None
 ) -> None:
 	"""La section [audio] : audio.output, audio.device et audio.preview, chacun s'il est donné, en valeurs du fichier
 	(« dummy » pour la sortie factice) ; partagée par les préférences, les suggestions et la pré-écoute."""
 	audio = document["audio"]
 	assert isinstance(audio, tomlkit.items.Table)
-	if sortie is not None:
-		audio["output"] = valeur_pour_le_fichier("sortie", sortie)
-	if antenne is not None:
-		audio["device"] = valeur_pour_le_fichier("peripherique", antenne)
-	if preecoute is not None:
-		audio["preview"] = valeur_pour_le_fichier("peripherique", preecoute)
+	if output is not None:
+		audio["output"] = output
+	if on_air is not None:
+		audio["device"] = on_air
+	if preview is not None:
+		audio["preview"] = preview
 
 
-class FenetrePreferences(QDialog):
+class PreferencesWindow(QDialog):
 	"""La fenêtre des préférences : une page « Interface », avec les crossfades, et une page « Audio », avec les
 	périphériques."""
 
 	def __init__(
-		self, tous: Reglages, sortie: SortieAudio, parent: QWidget | None = None, service: EtatDuService = ABSENT
+		self, all_: Settings, output: AudioOutput, parent: QWidget | None = None, service: ServiceState = ABSENT
 	) -> None:
 		super().__init__(parent)
-		self.ui = Ui_FenetrePreferences()
+		self.ui = Ui_PreferencesWindow()
 		self.ui.setupUi(self)
 		ui = self.ui
-		reglages = tous.crossfades
-		self.cartes = CartesSon(sortie, tous.antenne, tous.preecoute, service, ui.groupe_peripheriques)
-		ui.disposition_peripheriques.addWidget(self.cartes)
-		self.cartes.change.connect(self._exclure)
-		self._exclure()
-		for valeur, texte in GRANULARITES:
-			ui.granularite.addItem(texte, valeur)
-		ui.granularite.setCurrentIndex(ui.granularite.findData(reglages.granularite))
-		self._granularite()
-		ui.maximum.setValue(reglages.maximum.total_seconds())
+		settings = all_.crossfades
+		self.cards = SoundCards(output, all_.on_air, all_.preview, service, ui.device_group)
+		ui.device_layout.addWidget(self.cards)
+		self.cards.changed.connect(self._exclude)
+		self._exclude()
+		for value, text in GRANULARITIES:
+			ui.granularity.addItem(text, value)
+		ui.granularity.setCurrentIndex(ui.granularity.findData(settings.granularity))
+		self._granularity()
+		ui.maximum.setValue(settings.maximum.total_seconds())
 		self._maximum()
-		for case, champ, duree in ((ui.a_debut, ui.debut, reglages.debut), (ui.a_fin, ui.fin, reglages.fin)):
-			case.toggled.connect(champ.setEnabled)
-			case.setChecked(duree is not None)
-			if duree is not None:
-				champ.setValue(duree.total_seconds())
-		ui.seuil_silences.setLocale(FRANCAIS)
-		ui.seuil_silences.setValue(tous.seuil_silences)
-		ui.secours_blanc.setChecked(tous.blanc_antenne.secours)
-		ui.duree_blanc.setLocale(FRANCAIS)
-		ui.duree_blanc.setValue(tous.blanc_antenne.duree.total_seconds())
-		ui.seuil_blanc.setLocale(FRANCAIS)
-		ui.seuil_blanc.setValue(tous.blanc_antenne.seuil)
-		ui.peremption.setValue(tous.peremption)
-		ui.saturation.setChecked(tous.saturation)
-		ui.suggestions.setChecked(tous.suggestions)
-		self.icone = tous.icone
-		self._montrer_l_icone()
-		self._signaler("")
-		ui.choisir_icone.clicked.connect(self._choisir_l_icone)
-		ui.icone_par_defaut.clicked.connect(self._revenir_a_l_icone_par_defaut)
-		ui.granularite.currentIndexChanged.connect(self._granularite)
+		for box, field, duration in ((ui.has_start, ui.start, settings.start), (ui.has_end, ui.end, settings.end)):
+			box.toggled.connect(field.setEnabled)
+			box.setChecked(duration is not None)
+			if duration is not None:
+				field.setValue(duration.total_seconds())
+		ui.silence_threshold.setLocale(FRENCH)
+		ui.silence_threshold.setValue(all_.silence_threshold)
+		ui.dead_air_fallback.setChecked(all_.dead_air.fallback)
+		ui.dead_air_duration.setLocale(FRENCH)
+		ui.dead_air_duration.setValue(all_.dead_air.duration.total_seconds())
+		ui.dead_air_threshold.setLocale(FRENCH)
+		ui.dead_air_threshold.setValue(all_.dead_air.threshold)
+		ui.retention.setValue(all_.retention)
+		ui.clipping.setChecked(all_.clipping)
+		ui.suggestions.setChecked(all_.suggestions)
+		self.icon = all_.icon
+		self._show_icon()
+		self._flag("")
+		ui.choose_icon.clicked.connect(self._choose_icon)
+		ui.default_icon.clicked.connect(self._come_back_to_default_icon)
+		ui.granularity.currentIndexChanged.connect(self._granularity)
 		ui.maximum.valueChanged.connect(self._maximum)
 		# Les positions des fondus, et leur frise de démonstration (https://github.com/dascritch/machincast/issues/234).
-		for choix, actuelle in ((ui.position_entree, reglages.entree), (ui.position_sortie, reglages.sortie)):
+		for choice, current in ((ui.entry_position, settings.entry), (ui.output_position, settings.output)):
 			for position in POSITIONS:
-				choix.addItem(LIBELLES[position], position)
-			choix.setCurrentIndex(choix.findData(actuelle))
-			choix.currentIndexChanged.connect(self._demontrer)
-		self.demonstration = Frise(ui.place_demonstration, interactive=False)
-		disposition = QVBoxLayout(ui.place_demonstration)
-		disposition.setContentsMargins(0, 0, 0, 0)
-		disposition.addWidget(self.demonstration)
-		longueur, silence_debut, silence_fin = DEMONSTRATION
-		self.demonstration.montrer_la_forme(forme_de_demonstration(longueur, silence_debut, silence_fin))
-		for champ in (ui.debut, ui.fin):
-			champ.valueChanged.connect(self._demontrer)
-		self._demontrer()
-		ui.boutons.accepted.connect(self.accept)
-		ui.boutons.rejected.connect(self.reject)
+				choice.addItem(LABELS[position], position)
+			choice.setCurrentIndex(choice.findData(current))
+			choice.currentIndexChanged.connect(self._demonstrate)
+		self.demonstration = Timeline(ui.place_demonstration, interactive=False)
+		arrangement = QVBoxLayout(ui.place_demonstration)
+		arrangement.setContentsMargins(0, 0, 0, 0)
+		arrangement.addWidget(self.demonstration)
+		length, start_silence, end_silence = DEMONSTRATION
+		self.demonstration.show_shape(demonstration_shape(length, start_silence, end_silence))
+		for field in (ui.start, ui.end):
+			field.valueChanged.connect(self._demonstrate)
+		self._demonstrate()
+		ui.buttons.accepted.connect(self.accept)
+		ui.buttons.rejected.connect(self.reject)
 
-	def _montrer_l_icone(self) -> None:
+	def _show_icon(self) -> None:
 		"""L'aperçu et le chemin de l'icône ; « Icône de MachinCast » ne sert que pour une autre icône."""
 		ui = self.ui
-		image = ICONE
-		texte = ICONE_PAR_DEFAUT
-		if self.icone is not None:
-			image = self.icone
-			texte = str(self.icone)
-		ui.icone_apercu.setPixmap(QIcon(str(image)).pixmap(TAILLE_DE_L_APERCU))
-		ui.icone_chemin.setText(texte)
-		ui.icone_par_defaut.setEnabled(self.icone is not None)
+		image = ICON
+		text = DEFAULT_ICON
+		if self.icon is not None:
+			image = self.icon
+			text = str(self.icon)
+		ui.preview_icon.setPixmap(QIcon(str(image)).pixmap(PREVIEW_SIZE))
+		ui.path_icon.setText(text)
+		ui.default_icon.setEnabled(self.icon is not None)
 
-	def _choisir_l_icone(self) -> None:
+	def _choose_icon(self) -> None:
 		"""Une image que Qt ne sait pas lire n'est pas prise : la page le dit."""
 		# Importé ici : dialogues ouvre cette fenêtre, et importe donc ce module.
-		from machincast.interface import dialogues
+		from machincast.interface import dialogs
 
-		choisie = dialogues.choisir_icone(self)
-		if choisie is None:
+		chosen = dialogs.choose_icon(self)
+		if chosen is None:
 			return
-		if not lisible(choisie):
-			self._signaler(f"Image illisible : {choisie}")
+		if not readable(chosen):
+			self._flag(f"Image illisible : {chosen}")
 			return
-		self._signaler("")
-		self.icone = choisie
-		self._montrer_l_icone()
+		self._flag("")
+		self.icon = chosen
+		self._show_icon()
 
-	def _revenir_a_l_icone_par_defaut(self) -> None:
-		self._signaler("")
-		self.icone = None
-		self._montrer_l_icone()
+	def _come_back_to_default_icon(self) -> None:
+		self._flag("")
+		self.icon = None
+		self._show_icon()
 
-	def _signaler(self, texte: str) -> None:
+	def _flag(self, text: str) -> None:
 		"""Ce qui ne va pas avec l'image choisie ; rien, sans place prise sur la page."""
-		self.ui.icone_erreur.setText(texte)
-		self.ui.icone_erreur.setVisible(texte != "")
+		self.ui.error_icon.setText(text)
+		self.ui.error_icon.setVisible(text != "")
 
-	def _choisie(self) -> Granularite:
-		granularite: Granularite = self.ui.granularite.currentData()
-		return granularite
+	def _chosen(self) -> Granularity:
+		granularity: Granularity = self.ui.granularity.currentData()
+		return granularity
 
-	def _granularite(self) -> None:
+	def _granularity(self) -> None:
 		"""Les champs suivent la granularité choisie ; la durée maximale fait au moins un pas."""
 		ui = self.ui
-		decimales, pas = PAS[self._choisie()]
-		ui.maximum.setLocale(FRANCAIS)
-		ui.maximum.setDecimals(decimales)
-		ui.maximum.setSingleStep(pas)
-		ui.maximum.setMinimum(pas)
-		for champ in (ui.debut, ui.fin):
-			regler(champ, self._choisie(), timedelta(seconds=ui.maximum.value()))
+		decimals, step = STEPS[self._chosen()]
+		ui.maximum.setLocale(FRENCH)
+		ui.maximum.setDecimals(decimals)
+		ui.maximum.setSingleStep(step)
+		ui.maximum.setMinimum(step)
+		for field in (ui.start, ui.end):
+			set_(field, self._chosen(), timedelta(seconds=ui.maximum.value()))
 
 	def _maximum(self) -> None:
 		"""Une durée par défaut ne dépasse pas la durée maximale."""
-		for champ in (self.ui.debut, self.ui.fin):
-			regler(champ, self._choisie(), timedelta(seconds=self.ui.maximum.value()))
+		for field in (self.ui.start, self.ui.end):
+			set_(field, self._chosen(), timedelta(seconds=self.ui.maximum.value()))
 
 	def _positions(self) -> tuple[Position, Position]:
-		entree: Position = self.ui.position_entree.currentData()
-		sortie: Position = self.ui.position_sortie.currentData()
-		return entree, sortie
+		entry: Position = self.ui.entry_position.currentData()
+		output: Position = self.ui.output_position.currentData()
+		return entry, output
 
-	def _demontrer(self) -> None:
+	def _demonstrate(self) -> None:
 		"""La frise de démonstration : le sonore inventé, avec les durées par défaut saisies, même décochées, et les
 		positions choisies."""
-		duree, silence_debut, silence_fin = DEMONSTRATION
-		entree, sortie = self._positions()
+		duration, start_silence, end_silence = DEMONSTRATION
+		entry, output = self._positions()
 		plan = Plan(
-			duree,
-			silence_debut,
-			silence_fin,
-			silences_retires=True,
-			crossfade_debut=self.ui.debut.value(),
-			crossfade_fin=self.ui.fin.value(),
-			position_entree=entree,
-			position_sortie=sortie,
+			duration,
+			start_silence,
+			end_silence,
+			removed_silences=True,
+			start_crossfade=self.ui.start.value(),
+			end_crossfade=self.ui.end.value(),
+			entry_position=entry,
+			output_position=output,
 		)
-		self.demonstration.montrer(plan, duree)
-		self.ui.legende_demonstration.setText(
-			f"Démonstration : un sonore de 30 s, aux silences de 3 s et 4 s. {plan.resume()}"
+		self.demonstration.display(plan, duration)
+		self.ui.demonstration_legend.setText(
+			f"Démonstration : un sonore de 30 s, aux silences de 3 s et 4 s. {plan.summary()}"
 		)
 
-	def _exclure(self) -> None:
-		"""« OK » ne donne jamais la même carte à l'antenne et à la pré-écoute (CartesSon grise chacune dans l'autre
+	def _exclude(self) -> None:
+		"""« OK » ne donne jamais la même carte à l'antenne et à la pré-écoute (SoundCards grise chacune dans l'autre
 		choix)."""
-		self.ui.boutons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(self.cartes.valide())
+		self.ui.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(self.cards.valid())
 
-	def reglages(self) -> Reglages:
+	def settings(self) -> Settings:
 		ui = self.ui
-		durees: list[timedelta | None] = []
-		for case, champ in ((ui.a_debut, ui.debut), (ui.a_fin, ui.fin)):
-			duree = None
-			if case.isChecked():
-				duree = timedelta(seconds=champ.value())
-			durees.append(duree)
-		entree, sortie = self._positions()
+		durations: list[timedelta | None] = []
+		for box, field in ((ui.has_start, ui.start), (ui.has_end, ui.end)):
+			duration = None
+			if box.isChecked():
+				duration = timedelta(seconds=field.value())
+			durations.append(duration)
+		entry, output = self._positions()
 		crossfades = Crossfades(
-			durees[0], durees[1], timedelta(seconds=ui.maximum.value()), self._choisie(), entree, sortie
+			durations[0], durations[1], timedelta(seconds=ui.maximum.value()), self._chosen(), entry, output
 		)
-		return Reglages(
+		return Settings(
 			crossfades,
-			self.cartes.antenne_choisie(),
-			str(self.cartes.preecoute_choisie()),
-			round(ui.seuil_silences.value(), 1),
-			ui.saturation.isChecked(),
+			self.cards.chosen_on_air(),
+			str(self.cards.chosen_preview()),
+			round(ui.silence_threshold.value(), 1),
+			ui.clipping.isChecked(),
 			ui.suggestions.isChecked(),
-			self.icone,
-			ui.peremption.value(),
-			BlancAntenne(
-				timedelta(seconds=round(ui.duree_blanc.value(), 1)),
-				round(ui.seuil_blanc.value(), 1),
-				ui.secours_blanc.isChecked(),
+			self.icon,
+			ui.retention.value(),
+			DeadAirSettings(
+				timedelta(seconds=round(ui.dead_air_duration.value(), 1)),
+				round(ui.dead_air_threshold.value(), 1),
+				ui.dead_air_fallback.isChecked(),
 			),
-			self.cartes.sortie_choisie(),
+			self.cards.chosen_output(),
 		)

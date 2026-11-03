@@ -8,81 +8,81 @@ from pathlib import Path
 import psycopg
 import pytest
 
-from machincast.horloge import HorlogeFixe
-from machincast.indexation import audit
-from tests.base_test import connexion_test, purger_base, reinitialiser_base, verifier_autorisations
+from machincast.clock import FixedClock
+from machincast.indexer import audit
+from tests.database_fixtures import check_authorisations, purge_database, reset_database, sample_connection
 
 # Étapes partagées par plusieurs fonctionnalités : pytest-bdd les trouve comme celles de conftest.py.
 pytest_plugins = [
-	"tests.etapes_indexation",
-	"tests.etapes_lecture",
-	"tests.etapes_diffusion",
-	"tests.etapes_interface",
-	"tests.etapes_preecoute",
+	"tests.indexing_steps",
+	"tests.playback_steps",
+	"tests.broadcast_steps",
+	"tests.interface_steps",
+	"tests.preview_steps",
 ]
 
 # Les écrans de l'interface s'affichent hors de l'écran du poste : aucune fenêtre ne s'ouvre pendant les tests
 # (https://github.com/dascritch/machincast/issues/23).
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-_schema_recree = False
+_recreated_schema = False
 
-LANCEMENT_DE_L_AUDIT = datetime(2026, 10, 15, 6, 15, tzinfo=UTC)
+AUDIT_LAUNCHING = datetime(2026, 10, 15, 6, 15, tzinfo=UTC)
 """Lancement de toute indexation des scénarios : 08:15 à Paris, pour le nom du document d'audit."""
 
 
 @pytest.fixture(autouse=True)
-def repertoire_d_audit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def audit_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 	"""Les documents d'audit de l'indexation vont dans le répertoire du scénario, jamais dans /tmp, à heure fixe
 	(https://github.com/dascritch/machincast/issues/11)."""
-	repertoire = tmp_path / "audit"
-	repertoire.mkdir()
-	monkeypatch.setattr(audit, "REPERTOIRE", repertoire)
-	monkeypatch.setattr(audit, "HORLOGE", HorlogeFixe(LANCEMENT_DE_L_AUDIT))
-	return repertoire
+	directory = tmp_path / "audit"
+	directory.mkdir()
+	monkeypatch.setattr(audit, "DIRECTORY", directory)
+	monkeypatch.setattr(audit, "CLOCK", FixedClock(AUDIT_LAUNCHING))
+	return directory
 
 
 @pytest.fixture(autouse=True)
-def reglages_des_vues(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def view_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 	"""Les réglages des colonnes de l'interface, dans le répertoire du test : jamais ceux du compte qui lance les tests
 	(https://github.com/dascritch/machincast/issues/207)."""
-	from machincast.interface import colonnes
+	from machincast.interface import columns
 
-	chemin = tmp_path / "vues.ini"
-	monkeypatch.setattr(colonnes, "FICHIER", chemin)
-	return chemin
+	path = tmp_path / "vues.ini"
+	monkeypatch.setattr(columns, "FILE", path)
+	return path
 
 
 @pytest.fixture(autouse=True)
-def nouveautes_du_test(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def sample_news(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 	"""Les nouveautés des versions publiées, dans le répertoire du test, absentes tant que le scénario ne les écrit
 	pas : jamais celles du dépôt, qui ouvriraient leur fenêtre au lancement
 	(https://github.com/dascritch/machincast/issues/208)."""
 	from machincast.interface import version
 
-	chemin = tmp_path / "nouveautes.md"
-	monkeypatch.setattr(version, "NOUVEAUTES", chemin)
-	return chemin
+	path = tmp_path / "news.md"
+	monkeypatch.setattr(version, "NEWS", path)
+	return path
 
 
 @pytest.fixture(autouse=True)
-def raccourcis_du_test(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def sample_shortcuts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 	"""Le menu des applications et le bureau, dans le répertoire du test : jamais les raccourcis du compte qui lance
 	les tests (https://github.com/dascritch/machincast/issues/111)."""
-	from machincast import raccourci
+	from machincast import shortcut
 
-	monkeypatch.setattr(raccourci, "DOSSIER_MENU", tmp_path / "applications")
-	monkeypatch.setattr(raccourci, "DOSSIER_BUREAU", tmp_path / "Bureau")
+	monkeypatch.setattr(shortcut, "MENU_FOLDER", tmp_path / "applications")
+	monkeypatch.setattr(shortcut, "DESKTOP_FOLDER", tmp_path / "Bureau")
 
 
 @pytest.fixture
-def base_vide() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
+def empty_database() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
 	"""Base de test migrée et vide : le schéma est recréé une fois par session, puis les tables sont purgées."""
-	global _schema_recree
-	with connexion_test() as connexion:
-		verifier_autorisations(connexion)
-		if not _schema_recree:
-			reinitialiser_base(connexion)
-			_schema_recree = True
-		purger_base(connexion)
-		yield connexion
+	global _recreated_schema
+	with sample_connection() as connection:
+		check_authorisations(connection)
+		if not _recreated_schema:
+			reset_database(connection)
+			_recreated_schema = True
+		purge_database(connection)
+		yield connection

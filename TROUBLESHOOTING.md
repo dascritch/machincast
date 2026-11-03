@@ -32,9 +32,9 @@ The known failures of MachinCast, their causes, what to check, and the scenarios
 
 - The MachinCast version: an installation from before [#305](https://github.com/dascritch/machincast/issues/305) is updated with `git pull`, then `./install.sh`.
 - The interface log: « le moniteur de périphériques n'a pas fini de démarrer en 5 secondes » (the device monitor did not finish starting within 5 seconds) means that a device provider, PipeWire, PulseAudio or ALSA, takes too long to answer. The list may then be incomplete; the interface does not close. Check that the sound server is running: `systemctl --user status pipewire`.
-- `python -m tests.mesures_peripheriques --bascule`, from the repository, measures the defect on the machine, while an output appears and disappears ([Mesurer la liste des périphériques audio](doc/fr/developpement/poste.md#mesurer-la-liste-des-périphériques-audio), French).
+- `python -m tests.device_measures --switch`, from the repository, measures the defect on the machine, while an output appears and disappears ([Mesurer la liste des périphériques audio](doc/fr/developpement/poste.md#mesurer-la-liste-des-périphériques-audio), French).
 
-**Scenario that watches for it**: « La liste des périphériques du poste, en boucle, ne fait jamais tomber son processus », in `tests/features/peripheriques_liste.feature`, on every test run.
+**Scenario that watches for it**: « La liste des périphériques du poste, en boucle, ne fait jamais tomber son processus », in `tests/features/device_list.feature`, on every test run.
 
 ## Desktop sounds go on air
 
@@ -73,7 +73,7 @@ The known failures of MachinCast, their causes, what to check, and the scenarios
 - While locked, `pw-top`, from another machine over SSH: the **MachinCast lecteur** line must never appear under another output than the on-air one.
 - `pw-mon`, started before locking, shows whether the card's profile changes: in that case, the on-air output disappears then comes back, and the station is silent meanwhile.
 
-**Scenarios that watch for it**: `tests/features/sortie_verrouillee.feature`, on a separate PipeWire and WirePlumber, on every test run; skipped if `pipewire` and `wireplumber` are not installed.
+**Scenarios that watch for it**: `tests/features/locked_output.feature`, on a separate PipeWire and WirePlumber, on every test run; skipped if `pipewire` and `wireplumber` are not installed.
 
 ## Scenarios to run before a release
 
@@ -87,4 +87,4 @@ They need the test dependencies (`./install.sh --dev`, or `pip install --editabl
 
 | Feature | What it checks | If it fails |
 | --- | --- | --- |
-| `tests/features/flux_http2.feature` ([#278](https://github.com/dascritch/machincast/issues/278)) | A local server serves an AAC stream over HTTP/2, encrypted, which freezes after 3 seconds. Read the way MachinCast reads it, it is served over HTTP/1.1, and the player reports it as an error at most 15 seconds after the freeze. Read over HTTP/2, the player reports nothing, but MachinCast's watchdog sees the frozen voice. | On « servi en HTTP/1.1 » (served over HTTP/1.1) or « en erreur » (in error): `SOUP_FORCE_HTTP1` no longer has an effect, the failure above may come back. On « toujours en cours » (still running) over HTTP/2: libsoup now reports the freeze over HTTP/2, and forcing HTTP/1.1 can be reconsidered, in an issue. |
+| `tests/features/http2_stream.feature` ([#278](https://github.com/dascritch/machincast/issues/278)) | A local server serves an AAC stream over HTTP/2, encrypted, which freezes after 3 seconds. Read the way MachinCast reads it, it is served over HTTP/1.1, and the player reports it as an error at most 15 seconds after the freeze. Read over HTTP/2, the player reports nothing, but MachinCast's watchdog sees the frozen voice. | On « servi en HTTP/1.1 » (served over HTTP/1.1) or « en erreur » (in error): `SOUP_FORCE_HTTP1` no longer has an effect, the failure above may come back. On « toujours en cours » (still running) over HTTP/2: libsoup now reports the freeze over HTTP/2, and forcing HTTP/1.1 can be reconsidered, in an issue. |

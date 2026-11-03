@@ -12,92 +12,90 @@ from collections.abc import Mapping, Sequence
 
 import psycopg
 
-from machincast.base import Role, connecter
-from machincast.cli import lancer
-from machincast.configuration import REPERTOIRE_PROJET, Configuration
-from machincast.horloge import HorlogeSysteme
+from machincast.cli import launch
+from machincast.clock import SystemClock
+from machincast.configuration import PROJECT_DIRECTORY, Configuration
+from machincast.database import Role, open_connection
 
 EXECUTABLE = "Machin_interface"
 DESCRIPTION = "Interface graphique de supervision et de programmation de MachinCast."
 
-CODE_ECHEC = 1
+FAILURE_CODE = 1
 
 # Nom explicite : lancé par python -m, ce module s'appelle __main__, hors du journal « machincast ».
-journal = logging.getLogger("machincast.interface")
+log = logging.getLogger("machincast.interface")
 
 
-PLATEFORMES_INVISIBLES = frozenset({"offscreen", "minimal"})
+INVISIBLE_PLATFORMS = frozenset({"offscreen", "minimal"})
 """Plateformes Qt qui ne montrent rien à personne, comme celle des tests."""
 
 
-def affichage_disponible(environnement: Mapping[str, str] = os.environ) -> bool:
+def available_display(environment: Mapping[str, str] = os.environ) -> bool:
 	"""Une fenêtre peut-elle être vue ? Pas sans affichage graphique, par exemple dans une session SSH, où Qt
 	s'arrêterait net, ni sur une plateforme Qt invisible."""
-	plateforme = environnement.get("QT_QPA_PLATFORM", "")
-	if plateforme in PLATEFORMES_INVISIBLES:
+	platform = environment.get("QT_QPA_PLATFORM", "")
+	if platform in INVISIBLE_PLATFORMS:
 		return False
-	return (
-		(plateforme != "")
-		or (environnement.get("DISPLAY", "") != "")
-		or (environnement.get("WAYLAND_DISPLAY", "") != "")
-	)
+	return (platform != "") or (environment.get("DISPLAY", "") != "") or (environment.get("WAYLAND_DISPLAY", "") != "")
 
 
-def signaler_la_base(configuration: Configuration, erreur: psycopg.Error) -> None:
+def flag_database(configuration: Configuration, error: psycopg.Error) -> None:
 	"""Sans base, une fenêtre d'erreur explique pourquoi l'interface n'est pas utilisable."""
-	if not affichage_disponible():
+	if not available_display():
 		return
 	from machincast.interface.application import application
-	from machincast.interface.erreur import FenetreBaseInjoignable
+	from machincast.interface.error import UnreachableDatabaseWindow
 
 	# L'application doit exister tant que la fenêtre est montrée.
 	qt = application(EXECUTABLE)
-	base = configuration.base
-	fenetre = FenetreBaseInjoignable(base.production, base.socket, str(erreur), REPERTOIRE_PROJET / "INSTALL.md")
-	fenetre.montrer()
+	database = configuration.database
+	window = UnreachableDatabaseWindow(
+		database.production, database.socket, str(error), PROJECT_DIRECTORY / "INSTALL.md"
+	)
+	window.display()
 	qt.processEvents()
 
 
-def executer(configuration: Configuration, options: argparse.Namespace) -> int:
-	base = configuration.base
+def run(configuration: Configuration, options: argparse.Namespace) -> int:
+	database = configuration.database
 	try:
-		connexion = connecter(base.socket, base.production, Role.INTERFACE)
-	except psycopg.OperationalError as erreur:
-		journal.error(f"base de données injoignable ({base.production} par {base.socket}) : {erreur}")
-		signaler_la_base(configuration, erreur)
-		return CODE_ECHEC
-	except psycopg.Error as erreur:
-		journal.error(f"erreur de base de données : {erreur}")
-		signaler_la_base(configuration, erreur)
-		return CODE_ECHEC
-	with connexion:
+		connection = open_connection(database.socket, database.production, Role.INTERFACE)
+	except psycopg.OperationalError as error:
+		log.error(f"base de données injoignable ({database.production} par {database.socket}) : {error}")
+		flag_database(configuration, error)
+		return FAILURE_CODE
+	except psycopg.Error as error:
+		log.error(f"erreur de base de données : {error}")
+		flag_database(configuration, error)
+		return FAILURE_CODE
+	with connection:
 		# PySide6 n'est importé qu'ici : l'aide et les erreurs de configuration ou de base restent disponibles sans
 		# affichage graphique.
 		from machincast.interface.application import application
-		from machincast.interface.fenetre import FenetrePrincipale
-		from machincast.interface.indexation import commande_indexation
+		from machincast.interface.indexer import indexing_command
+		from machincast.interface.window import MainWindow
 
 		qt = application(EXECUTABLE)
-		fenetre = FenetrePrincipale(
-			connexion,
-			configuration.lecture.socket_etat,
-			HorlogeSysteme(),
-			commande_indexation=commande_indexation(options.config),
-			configuration=configuration.chemin,
+		window = MainWindow(
+			connection,
+			configuration.player.state_socket,
+			SystemClock(),
+			indexing_command=indexing_command(options.config),
+			configuration=configuration.path,
 			crossfades=configuration.crossfades,
 			audio=configuration.audio,
 			silences=configuration.silences,
 			interface=configuration.interface,
-			peremption=configuration.base.peremption,
-			blanc_antenne=configuration.blanc_antenne,
+			retention=configuration.database.retention,
+			dead_air=configuration.dead_air,
 		)
-		fenetre.show()
-		fenetre.proposer_au_lancement()
+		window.show()
+		window.offer_to_launching()
 		return qt.exec()
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
-	return lancer(EXECUTABLE, DESCRIPTION, arguments, executer)
+	return launch(EXECUTABLE, DESCRIPTION, arguments, run)
 
 
 if __name__ == "__main__":

@@ -12,11 +12,11 @@ Les écrans de `Machin_interface` sont des écrans Qt Widgets, dessinés avec **
 
 ```bash
 bin/Machin dev           # sous-shell dans le dépôt, venv activé
-pyside6-designer src/machincast/interface/ui/fiche_banque.ui
+pyside6-designer src/machincast/interface/ui/bank_card.ui
 ```
 
-- Un écran = un fichier `.ui` dans `src/machincast/interface/ui/`, nommé en français et en `snake_case`, comme le module qu'il produira : `fiche_banque.ui`, `fiche_evenement.ui`.
-- Les `objectName` des widgets sont en français et en `snake_case` (`nom_interne`, `nom_public`, `liste_sonores`), puisqu'ils deviennent des attributs Python : `self.ui.nom_interne`.
+- Un écran = un fichier `.ui` dans `src/machincast/interface/ui/`, nommé en français et en `snake_case`, comme le module qu'il produira : `bank_card.ui`, `event_card.ui`.
+- Les `objectName` des widgets sont en français et en `snake_case` (`internal_name`, `public_name`, `sound_list`), puisqu'ils deviennent des attributs Python : `self.ui.internal_name`.
 - Vocabulaire à l'écran : celui de la spécification ([§ 1](doc/fr/spec.md#1-vocabulaire)) et des [règles de l'interface](doc/fr/regles/interface.md), « banque » et jamais « playlist ».
 - Les champs de texte courts sont limités à 255 caractères (`maxLength`), comme en base.
 - Le fichier `.ui` ne contient que la disposition. Le comportement (signaux, requêtes, validation, glisser-déposer) s'écrit en Python, dans la classe de l'écran, où il est testé avec pytest-qt.
@@ -26,7 +26,7 @@ pyside6-designer src/machincast/interface/ui/fiche_banque.ui
 Après chaque enregistrement dans le Designer, régénérer le module Python :
 
 ```bash
-pyside6-uic src/machincast/interface/ui/fiche_banque.ui -o src/machincast/interface/ui/fiche_banque.py
+pyside6-uic src/machincast/interface/ui/bank_card.ui -o src/machincast/interface/ui/fiche_banque.py
 ```
 
 - Le fichier `.ui` et le module généré sont versionnés ensemble, dans le même commit.
@@ -38,7 +38,7 @@ pyside6-uic src/machincast/interface/ui/fiche_banque.ui -o src/machincast/interf
 ```python
 from PySide6.QtWidgets import QWidget
 
-from machincast.interface.ui.fiche_banque import Ui_FicheBanque
+from machincast.interface.ui.bank_card import Ui_FicheBanque
 
 
 class FicheBanque(QWidget):

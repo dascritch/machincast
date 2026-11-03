@@ -1,7 +1,7 @@
 """Export de l'onglet Airplay (https://github.com/dascritch/machincast/issues/244, spec § 8.1).
 
 Trois formats, tous privés : chacun donne l'artiste, le titre et l'emplacement du passage, et aussi son texte public,
-tel que la page publique de la diffusion l'affiche, masquage appliqué (machincast.lecture.sorties.texte_public) :
+tel que la page publique de la diffusion l'affiche, masquage appliqué (machincast.player.outputs.public_text) :
 
 - CSV : une ligne par passage, du plus récent au plus ancien, avec les colonnes COLONNES, comme le CSV de la diffusion
   (séparateur « ; », heures « AAAA-MM-JJ HH:MM:SS », durée « HH:MM:SS »), le texte public après le titre ;
@@ -18,10 +18,10 @@ import html
 import io
 from datetime import datetime, timedelta
 
-from machincast.configuration import Metadonnees
-from machincast.lecture.sorties import Ligne, artiste_et_titre, texte_public
+from machincast.configuration import Metadata
+from machincast.player.outputs import Line, artist_and_title, public_text
 
-COLONNES = (
+COLUMNS = (
 	"debut",
 	"fin",
 	"duree",
@@ -40,7 +40,7 @@ FORMATS = {
 	"Liste de lecture M3U (*.m3u)": ".m3u",
 }
 """Filtres du sélecteur d'export, et l'extension de chacun."""
-ENTETES_HTML = (
+HTML_HEADERS = (
 	"Début",
 	"Fin",
 	"Durée",
@@ -55,72 +55,72 @@ ENTETES_HTML = (
 )
 
 
-def _heure(instant: datetime | None) -> str:
+def _hour(instant: datetime | None) -> str:
 	if instant is None:
 		return ""
 	return f"{instant.astimezone():%Y-%m-%d %H:%M:%S}"
 
 
-def _duree(duree: timedelta | None) -> str:
-	if duree is None:
+def _duration(duration: timedelta | None) -> str:
+	if duration is None:
 		return ""
-	secondes = round(duree.total_seconds())
-	return f"{secondes // 3600:02d}:{secondes % 3600 // 60:02d}:{secondes % 60:02d}"
+	seconds = round(duration.total_seconds())
+	return f"{seconds // 3600:02d}:{seconds % 3600 // 60:02d}:{seconds % 60:02d}"
 
 
-def _incident(ligne: Ligne) -> str:
+def _incident(line: Line) -> str:
 	"""Comme la colonne « Incident » de l'airplay de l'interface : « oui » pour un passage qui en a eu un."""
-	if ligne.sans_incident is False:
+	if line.without_incident is False:
 		return "oui"
 	return ""
 
 
-def _sans_incident(ligne: Ligne) -> str:
-	if ligne.sans_incident is None:
+def _without_incident(line: Line) -> str:
+	if line.without_incident is None:
 		return ""
-	if ligne.sans_incident:
+	if line.without_incident:
 		return "oui"
 	return "non"
 
 
-def _valeurs(ligne: Ligne, metadonnees: Metadonnees) -> list[str]:
+def _values(line: Line, metadata: Metadata) -> list[str]:
 	return [
-		_heure(ligne.debut),
-		_heure(ligne.fin),
-		_duree(ligne.duree),
-		(ligne.artiste) or (""),
-		(ligne.titre) or (""),
-		texte_public(ligne, metadonnees),
-		(ligne.emplacement) or (""),
-		(ligne.evenement) or (""),
-		(ligne.sequence) or (""),
-		(ligne.banque) or (""),
+		_hour(line.start),
+		_hour(line.end),
+		_duration(line.duration),
+		(line.artist) or (""),
+		(line.title) or (""),
+		public_text(line, metadata),
+		(line.location) or (""),
+		(line.event) or (""),
+		(line.sequence) or (""),
+		(line.bank) or (""),
 	]
 
 
-def en_csv(lignes: list[Ligne], metadonnees: Metadonnees) -> str:
-	tampon = io.StringIO()
-	ecrivain = csv.writer(tampon, delimiter=";", lineterminator="\r\n")
-	ecrivain.writerow(COLONNES)
-	for ligne in lignes:
-		ecrivain.writerow([*_valeurs(ligne, metadonnees), _sans_incident(ligne)])
-	return tampon.getvalue()
+def in_csv(lines: list[Line], metadata: Metadata) -> str:
+	buffer = io.StringIO()
+	writer = csv.writer(buffer, delimiter=";", lineterminator="\r\n")
+	writer.writerow(COLUMNS)
+	for line in lines:
+		writer.writerow([*_values(line, metadata), _without_incident(line)])
+	return buffer.getvalue()
 
 
-def en_html(lignes: list[Ligne], metadonnees: Metadonnees, titre: str, instant: datetime) -> str:
-	entetes = "".join(f"<th>{html.escape(entete)}</th>" for entete in ENTETES_HTML)
-	rangees = "\n".join(
+def in_html(lines: list[Line], metadata: Metadata, title: str, instant: datetime) -> str:
+	headers = "".join(f"<th>{html.escape(header)}</th>" for header in HTML_HEADERS)
+	rows = "\n".join(
 		'\t\t\t<tr class="passage">'
-		+ "".join(f"<td>{html.escape(valeur)}</td>" for valeur in [*_valeurs(ligne, metadonnees), _incident(ligne)])
+		+ "".join(f"<td>{html.escape(value)}</td>" for value in [*_values(line, metadata), _incident(line)])
 		+ "</tr>"
-		for ligne in lignes
+		for line in lines
 	)
 	return f"""<!DOCTYPE html>
 <html lang="fr">
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>{html.escape(titre)}</title>
+	<title>{html.escape(title)}</title>
 	<style>
 		body {{ font-family: system-ui, sans-serif; margin: 1rem; }}
 		table {{ border-collapse: collapse; }}
@@ -129,28 +129,28 @@ def en_html(lignes: list[Ligne], metadonnees: Metadonnees, titre: str, instant: 
 	</style>
 </head>
 <body>
-	<h1>{html.escape(titre)}</h1>
+	<h1>{html.escape(title)}</h1>
 	<table>
-		<thead><tr>{entetes}</tr></thead>
+		<thead><tr>{headers}</tr></thead>
 		<tbody>
-{rangees}
+{rows}
 		</tbody>
 	</table>
-	<footer><p>Exporté le <time datetime="{instant.isoformat()}">{_heure(instant)}</time></p></footer>
+	<footer><p>Exporté le <time datetime="{instant.isoformat()}">{_hour(instant)}</time></p></footer>
 </body>
 </html>
 """
 
 
-def en_m3u(lignes: list[Ligne], metadonnees: Metadonnees) -> str:
-	entrees = ["#EXTM3U"]
-	for ligne in reversed(lignes):
-		if not ligne.emplacement:
+def in_m3u(lines: list[Line], metadata: Metadata) -> str:
+	entries = ["#EXTM3U"]
+	for line in reversed(lines):
+		if not line.location:
 			continue
-		duree = -1
-		if ligne.duree is not None:
-			duree = round(ligne.duree.total_seconds())
-		entrees.append(f"#EXTINF:{duree},{(artiste_et_titre(ligne)) or (ligne.emplacement)}")
-		entrees.append(f"# texte public : {texte_public(ligne, metadonnees)}")
-		entrees.append(ligne.emplacement)
-	return "\n".join([*entrees, ""])
+		duration = -1
+		if line.duration is not None:
+			duration = round(line.duration.total_seconds())
+		entries.append(f"#EXTINF:{duration},{(artist_and_title(line)) or (line.location)}")
+		entries.append(f"# texte public : {public_text(line, metadata)}")
+		entries.append(line.location)
+	return "\n".join([*entries, ""])

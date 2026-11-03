@@ -19,35 +19,35 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QHBox
     QHeaderView, QLabel, QLineEdit, QSizePolicy,
     QTableView, QVBoxLayout, QWidget)
 
-class Ui_EcranIncidents(object):
-    def setupUi(self, EcranIncidents):
-        if not EcranIncidents.objectName():
-            EcranIncidents.setObjectName(u"EcranIncidents")
-        EcranIncidents.resize(1000, 600)
-        self.disposition = QVBoxLayout(EcranIncidents)
-        self.disposition.setObjectName(u"disposition")
-        self.bandeau = QHBoxLayout()
-        self.bandeau.setObjectName(u"bandeau")
-        self.filtre = QLineEdit(EcranIncidents)
-        self.filtre.setObjectName(u"filtre")
-        self.filtre.setClearButtonEnabled(True)
+class Ui_IncidentScreen(object):
+    def setupUi(self, IncidentScreen):
+        if not IncidentScreen.objectName():
+            IncidentScreen.setObjectName(u"IncidentScreen")
+        IncidentScreen.resize(1000, 600)
+        self.arrangement = QVBoxLayout(IncidentScreen)
+        self.arrangement.setObjectName(u"arrangement")
+        self.banner = QHBoxLayout()
+        self.banner.setObjectName(u"banner")
+        self.filter_ = QLineEdit(IncidentScreen)
+        self.filter_.setObjectName(u"filter_")
+        self.filter_.setClearButtonEnabled(True)
 
-        self.bandeau.addWidget(self.filtre)
+        self.banner.addWidget(self.filter_)
 
-        self.informations = QCheckBox(EcranIncidents)
-        self.informations.setObjectName(u"informations")
+        self.information = QCheckBox(IncidentScreen)
+        self.information.setObjectName(u"information")
 
-        self.bandeau.addWidget(self.informations)
+        self.banner.addWidget(self.information)
 
-        self.compte = QLabel(EcranIncidents)
-        self.compte.setObjectName(u"compte")
+        self.count = QLabel(IncidentScreen)
+        self.count.setObjectName(u"count")
 
-        self.bandeau.addWidget(self.compte)
+        self.banner.addWidget(self.count)
 
 
-        self.disposition.addLayout(self.bandeau)
+        self.arrangement.addLayout(self.banner)
 
-        self.table = QTableView(EcranIncidents)
+        self.table = QTableView(IncidentScreen)
         self.table.setObjectName(u"table")
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
@@ -55,19 +55,19 @@ class Ui_EcranIncidents(object):
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.verticalHeader().setVisible(False)
 
-        self.disposition.addWidget(self.table)
+        self.arrangement.addWidget(self.table)
 
 
-        self.retranslateUi(EcranIncidents)
+        self.retranslateUi(IncidentScreen)
 
-        QMetaObject.connectSlotsByName(EcranIncidents)
+        QMetaObject.connectSlotsByName(IncidentScreen)
     # setupUi
 
-    def retranslateUi(self, EcranIncidents):
-        self.filtre.setPlaceholderText(QCoreApplication.translate("EcranIncidents", u"Filtrer\u2026", None))
-        self.informations.setText(QCoreApplication.translate("EcranIncidents", u"Montrer aussi les informations", None))
+    def retranslateUi(self, IncidentScreen):
+        self.filter_.setPlaceholderText(QCoreApplication.translate("IncidentScreen", u"Filtrer\u2026", None))
+        self.information.setText(QCoreApplication.translate("IncidentScreen", u"Montrer aussi les informations", None))
 #if QT_CONFIG(tooltip)
-        self.table.setToolTip(QCoreApplication.translate("EcranIncidents", u"Un double-clic sur le sonore, la banque ou l'\u00e9v\u00e9nement d'une entr\u00e9e ouvre sa fiche.", None))
+        self.table.setToolTip(QCoreApplication.translate("IncidentScreen", u"Un double-clic sur le sonore, la banque ou l'\u00e9v\u00e9nement d'une entr\u00e9e ouvre sa fiche.", None))
 #endif // QT_CONFIG(tooltip)
         pass
     # retranslateUi

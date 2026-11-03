@@ -28,25 +28,25 @@ from datetime import datetime, timedelta
 
 import psycopg
 
-from machincast.cli import lancer
+from machincast.cli import launch
+from machincast.clock import Clock, SystemClock
 from machincast.configuration import Configuration
-from machincast.horloge import Horloge, HorlogeSysteme
 
 EXECUTABLE = "Machin_purge"
 DESCRIPTION = "Efface de la base de données ce qui dépasse la durée de péremption."
-CODE_ECHEC = 1
-HORLOGE: Horloge = HorlogeSysteme()
+FAILURE_CODE = 1
+CLOCK: Clock = SystemClock()
 """L'heure d'où se compte la péremption ; les scénarios la fixent."""
 
 # Nom explicite : lancé par son script, ce module garde le journal « machincast ».
-journal = logging.getLogger("machincast.purge")
+log = logging.getLogger("machincast.purge")
 
-PASSAGES = """
+PLAYS = """
 	DELETE FROM airplay WHERE play_id IN (
 		SELECT play_id FROM airplay GROUP BY play_id HAVING max(logged_at) < %s
 	) RETURNING play_id
 """
-ELEMENTS = (
+ITEMS = (
 	# LEAST ignore les valeurs vides : la suppression, ou la disparition du fichier, que l'indexation ne date que pour
 	# un sonore à l'état supprime, et efface quand le fichier revient.
 	("sonore", "sounds", "LEAST(deleted_at, missing_at)"),
@@ -57,49 +57,49 @@ ELEMENTS = (
 """Le genre, sa table, et la date d'où se compte la péremption d'une ligne."""
 
 
-def _nombre(nombre: int, nom: str, complement: str = "") -> str:
+def _count(count: int, name: str, complement: str = "") -> str:
 	"""« 0 sonore », « 1 sonore », « 2 sonores » : le pluriel français commence à deux."""
-	if nombre > 1:
-		nom = f"{nom}s"
-	return f"{nombre} {nom}{complement}"
+	if count > 1:
+		name = f"{name}s"
+	return f"{count} {name}{complement}"
 
 
-def purger(connexion: psycopg.Connection[tuple[object, ...]], limite: datetime) -> list[str]:
+def purge(connection: psycopg.Connection[tuple[object, ...]], limit: datetime) -> list[str]:
 	"""Efface ce qui est d'avant la limite, dans la transaction de la connexion ; le bilan, genre par genre."""
-	passages = {passage for (passage,) in connexion.execute(PASSAGES, (limite,)).fetchall()}
-	lignes = connexion.execute("DELETE FROM log WHERE logged_at < %s", (limite,)).rowcount
-	bilan = [_nombre(len(passages), "passage", " de l'airplay"), _nombre(lignes, "ligne", " du log")]
-	for genre, table, date in ELEMENTS:
-		effaces = connexion.execute(f"DELETE FROM {table} WHERE {date} < %s", (limite,)).rowcount  # noqa: S608
-		bilan.append(_nombre(effaces, genre))
+	plays = {play for (play,) in connection.execute(PLAYS, (limit,)).fetchall()}
+	lines = connection.execute("DELETE FROM log WHERE logged_at < %s", (limit,)).rowcount
+	report = [_count(len(plays), "passage", " de l'airplay"), _count(lines, "ligne", " du log")]
+	for category, table, date in ITEMS:
+		erased_list = connection.execute(f"DELETE FROM {table} WHERE {date} < %s", (limit,)).rowcount  # noqa: S608
+		report.append(_count(erased_list, category))
 	# Une session sautée d'avant la limite ne compte plus pour rien (https://github.com/dascritch/machincast/issues/273).
-	connexion.execute("DELETE FROM event_skips WHERE day < %s", (limite.date(),))
-	return bilan
+	connection.execute("DELETE FROM event_skips WHERE day < %s", (limit.date(),))
+	return report
 
 
-def executer(configuration: Configuration, _options: argparse.Namespace) -> int:
-	base = configuration.base
-	limite = (HORLOGE.maintenant() - timedelta(days=base.peremption)).astimezone()
+def run(configuration: Configuration, _options: argparse.Namespace) -> int:
+	database = configuration.database
+	limit = (CLOCK.now() - timedelta(days=database.retention)).astimezone()
 	try:
 		with (
-			psycopg.connect(host=str(base.socket), dbname=base.production) as connexion,
-			connexion.transaction(),
+			psycopg.connect(host=str(database.socket), dbname=database.production) as connection,
+			connection.transaction(),
 		):
-			bilan = purger(connexion, limite)
-			annonce = (
-				f"purge de la base {base.production}, au-delà de {base.peremption} jours"
-				f" (avant le {limite:%d/%m/%Y %H:%M}) : {', '.join(bilan)} effacés"
+			report = purge(connection, limit)
+			announces = (
+				f"purge de la base {database.production}, au-delà de {database.retention} jours"
+				f" (avant le {limit:%d/%m/%Y %H:%M}) : {', '.join(report)} effacés"
 			)
-			connexion.execute("INSERT INTO log (level, kind, message) VALUES ('info', 'purge', %s)", (annonce,))
-	except psycopg.OperationalError as erreur:
-		journal.error(f"base de données injoignable ({base.production}) : {erreur} ; rien n'a été effacé")
-		return CODE_ECHEC
-	except psycopg.Error as erreur:
-		journal.error(f"erreur de base de données : {erreur} ; rien n'a été effacé")
-		return CODE_ECHEC
-	journal.info(annonce)
+			connection.execute("INSERT INTO log (level, kind, message) VALUES ('info', 'purge', %s)", (announces,))
+	except psycopg.OperationalError as error:
+		log.error(f"base de données injoignable ({database.production}) : {error} ; rien n'a été effacé")
+		return FAILURE_CODE
+	except psycopg.Error as error:
+		log.error(f"erreur de base de données : {error} ; rien n'a été effacé")
+		return FAILURE_CODE
+	log.info(announces)
 	return 0
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
-	return lancer(EXECUTABLE, DESCRIPTION, arguments, executer)
+	return launch(EXECUTABLE, DESCRIPTION, arguments, run)

@@ -37,7 +37,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			"""
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
-		Alors les préférences ont montré : granularité « seconde », maximum 8 s, début par défaut 2 s, fin par défaut aucune
+		Alors les préférences ont montré : granularité « second », maximum 8 s, début par défaut 2 s, fin par défaut aucune
 
 	Scénario: Les préférences enregistrées vont dans le fichier de configuration, qui garde ses commentaires
 		Étant donné le fichier de configuration de l'interface, avec :
@@ -46,10 +46,10 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			# Réglages de l'antenne du matin.
 			maximum = 8
 			"""
-		Et les préférences seront réglées : granularité « dixieme », maximum 6 s, début par défaut 1,5 s, fin par défaut 2 s
+		Et les préférences seront réglées : granularité « tenth », maximum 6 s, début par défaut 1,5 s, fin par défaut 2 s
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
-		Alors le fichier de configuration donne les crossfades : granularité « dixieme », maximum 6 s, début par défaut 1,5 s, fin par défaut 2 s
+		Alors le fichier de configuration donne les crossfades : granularité « tenth », maximum 6 s, début par défaut 1,5 s, fin par défaut 2 s
 		Et le fichier de configuration contient encore « # Réglages de l'antenne du matin. »
 		Et le fichier de configuration contient la ligne « maximum = 6 »
 		Et le fichier de configuration contient la ligne « start = 1.5 »
@@ -63,19 +63,19 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			start = 2
 			end = 3
 			"""
-		Et les préférences seront réglées : granularité « dixieme », maximum 5 s, début par défaut aucune, fin par défaut 3 s
+		Et les préférences seront réglées : granularité « tenth », maximum 5 s, début par défaut aucune, fin par défaut 3 s
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
-		Alors le fichier de configuration donne les crossfades : granularité « dixieme », maximum 5 s, début par défaut aucune, fin par défaut 3 s
-		Et le fichier de configuration n'a plus de clé « debut »
+		Alors le fichier de configuration donne les crossfades : granularité « tenth », maximum 5 s, début par défaut aucune, fin par défaut 3 s
+		Et le fichier de configuration n'a plus de clé « start »
 
 	Scénario: Les fiches ouvertes ensuite suivent les préférences
-		Étant donné les préférences seront réglées : granularité « seconde », maximum 8 s, début par défaut aucune, fin par défaut aucune
+		Étant donné les préférences seront réglées : granularité « second », maximum 8 s, début par défaut aucune, fin par défaut aucune
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors les crossfades de la fiche se règlent au dixième de seconde, jusqu'à 10 s
 		Quand je choisis « Préférences… » dans le menu « Fichier »
-		Alors le fichier de configuration donne les crossfades : granularité « seconde », maximum 8 s, début par défaut aucune, fin par défaut aucune
+		Alors le fichier de configuration donne les crossfades : granularité « second », maximum 8 s, début par défaut aucune, fin par défaut aucune
 		Quand j'ouvre la fiche de la banque « Jingles »
 		Alors les crossfades de la fiche se règlent à la seconde, jusqu'à 8 s
 		Quand j'ouvre l'onglet « Sonore : Café à minuit »
@@ -102,7 +102,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 
 	Scénario: Un fichier de configuration qu'on ne peut pas écrire le dit, et les préférences ne changent pas
 		Étant donné le fichier de configuration de l'interface, que le poste refuse d'écrire
-		Et les préférences seront réglées : granularité « seconde », maximum 8 s, début par défaut aucune, fin par défaut aucune
+		Et les préférences seront réglées : granularité « second », maximum 8 s, début par défaut aucune, fin par défaut aucune
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
 		Alors le fichier de configuration n'a pas changé
@@ -132,16 +132,16 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Alors la barre d'état ne signale pas « Périphérique de l'antenne à renseigner »
 
 	Scénario: Sur l'entrée « sortie factice » d'une vraie sortie, l'antenne n'a pas à être renseignée
-		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « factice »
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « dummy »
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la barre d'état ne signale pas « Périphérique de l'antenne à renseigner »
 
 	Scénario: Le type de sortie réglé va aussi dans la section [audio] (https://github.com/dascritch/machincast/issues/339)
 		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « carte-1 »
-		Et les préférences régleront la sortie « pulseaudio », l'antenne « factice » et la pré-écoute « casque-usb »
+		Et les préférences régleront la sortie « pulseaudio », l'antenne « dummy » et la pré-écoute « casque-usb »
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
-		Alors le fichier de configuration donne la sortie « pulseaudio », l'antenne « factice » et la pré-écoute « casque-usb »
+		Alors le fichier de configuration donne la sortie « pulseaudio », l'antenne « dummy » et la pré-écoute « casque-usb »
 		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin player prendra les crossfades par défaut et le périphérique de l'antenne à son prochain démarrage. »
 
 	Scénario: Machin interface ouvre sa fenêtre sur la sortie et les périphériques de sa configuration
@@ -241,7 +241,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 	Scénario: La page « Crossfades » montre les réglages, et donne ceux qui sont saisis
 		Les crossfades ont leur propre page, la première (https://github.com/dascritch/machincast/issues/234).
 
-		Quand la fenêtre des préférences s'ouvre sur : granularité « dixieme », maximum 5 s, début par défaut 1,5 s, fin par défaut aucune
+		Quand la fenêtre des préférences s'ouvre sur : granularité « tenth », maximum 5 s, début par défaut 1,5 s, fin par défaut aucune
 		Alors elle s'intitule « Préférences », avec les pages « Crossfades », « Interface », « Audio », « Base »
 		Et elle montre : granularité « Au dixième de seconde », maximum « 5,0 s », début par défaut « 1,5 s », fin par défaut aucune
 		Et son maximum se règle par pas de 0,1 s, à partir de 0,1 s
@@ -252,22 +252,22 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et j'y saisis la durée de fin par défaut 2
 		Alors elle montre : granularité « À la seconde », maximum « 3 s », début par défaut aucune, fin par défaut « 2 s »
 		Quand j'y clique sur « OK »
-		Alors elle a donné : granularité « seconde », maximum 3 s, début par défaut aucune, fin par défaut 2 s
+		Alors elle a donné : granularité « second », maximum 3 s, début par défaut aucune, fin par défaut 2 s
 
 	Scénario: La page « Crossfades » montre les positions des fondus, et donne celles qui sont choisies
-		Quand la fenêtre des préférences s'ouvre sur : granularité « dixieme », maximum 5 s, début par défaut 2 s, fin par défaut 4 s
+		Quand la fenêtre des préférences s'ouvre sur : granularité « tenth », maximum 5 s, début par défaut 2 s, fin par défaut 4 s
 		Alors le fade-in se propose « commence », « est en cours », « se termine » au début détecté, et « se termine » est choisi
 		Et le fade-out se propose « commence », « est en cours », « se termine » à la fin détectée, et « commence » est choisi
 		Quand j'y choisis le fade-in « est en cours » et le fade-out « se termine »
 		Et j'y clique sur « OK »
-		Alors elle a donné les positions : fade-in « en_cours », fade-out « termine »
+		Alors elle a donné les positions : fade-in « ongoing », fade-out « ends »
 
 	Scénario: La frise de démonstration montre où tombent les fondus, et suit les réglages
 		Un sonore de démonstration de 30 secondes, aux silences détectés de 3 s au début et 4 s à la fin, retirés à
 		l'antenne : son début détecté est à 3 s, sa fin détectée à 26 s. Ses crossfades sont les durées par défaut
 		saisies, même décochées.
 
-		Quand la fenêtre des préférences s'ouvre sur : granularité « dixieme », maximum 5 s, début par défaut 2 s, fin par défaut 4 s
+		Quand la fenêtre des préférences s'ouvre sur : granularité « tenth », maximum 5 s, début par défaut 2 s, fin par défaut 4 s
 		Alors la frise de démonstration montre le fade-in de 1 à 3 s, et le fade-out de 26 à 30 s
 		Et la frise de démonstration a sa forme d'onde, sans tête de lecture
 		Quand j'y choisis le fade-in « commence » et le fade-out « se termine »
@@ -279,25 +279,25 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Alors la frise de démonstration montre le fade-in de 2 à 4 s, et le fade-out de 25 à 27 s
 
 	Scénario: Les positions enregistrées vont dans la section [crossfades] du fichier de configuration
-		Étant donné les positions des fondus seront réglées : fade-in « en_cours », fade-out « termine »
+		Étant donné les positions des fondus seront réglées : fade-in « ongoing », fade-out « ends »
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Préférences… » dans le menu « Fichier »
 		Alors le fichier de configuration contient la ligne « fade_in_position = "ongoing" »
 		Et le fichier de configuration contient la ligne « fade_out_position = "ends" »
-		Et le fichier de configuration donne les positions des fondus : fade-in « en_cours », fade-out « termine »
+		Et le fichier de configuration donne les positions des fondus : fade-in « ongoing », fade-out « ends »
 
 	Scénario: Une durée par défaut ne dépasse pas le maximum
-		Quand la fenêtre des préférences s'ouvre sur : granularité « dixieme », maximum 5 s, début par défaut 4 s, fin par défaut 5 s
+		Quand la fenêtre des préférences s'ouvre sur : granularité « tenth », maximum 5 s, début par défaut 4 s, fin par défaut 5 s
 		Et j'y saisis le maximum 3
 		Alors elle montre : granularité « Au dixième de seconde », maximum « 3,0 s », début par défaut « 3,0 s », fin par défaut « 3,0 s »
 
 	Plan du scénario: La fenêtre des préférences, modale, donne ses réglages sur « OK », et rien sur « Annuler »
-		Quand je réponds « <bouton> » à la fenêtre des préférences ouverte sur : granularité « seconde », maximum 8 s, début par défaut 2 s, fin par défaut aucune
+		Quand je réponds « <bouton> » à la fenêtre des préférences ouverte sur : granularité « second », maximum 8 s, début par défaut 2 s, fin par défaut aucune
 		Alors les réglages donnés sont <donnes>
 
 		Exemples:
 			| bouton  | donnes                                                                               |
-			| OK      | granularité « seconde », maximum 8 s, début par défaut 2 s, fin par défaut aucune |
+			| OK      | granularité « second », maximum 8 s, début par défaut 2 s, fin par défaut aucune |
 			| Annuler | aucun                                                                                |
 
 	Scénario: La page « Interface » montre le voyant « Saturation », et donne ce qui est coché
@@ -319,9 +319,9 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 	Scénario: Le seuil de silence est à la page « Crossfades », avec les fondus qu'il place ; le blanc reste à la page « Audio »
 		https://github.com/dascritch/machincast/issues/324
 		Quand la fenêtre des préférences s'ouvre sur le seuil de silence -40 dB
-		Alors le champ « seuil_silences » est à la page « Crossfades »
-		Et le champ « duree_blanc » est à la page « Audio »
-		Et le champ « seuil_blanc » est à la page « Audio »
+		Alors le champ « silence_threshold » est à la page « Crossfades »
+		Et le champ « dead_air_duration » est à la page « Audio »
+		Et le champ « dead_air_threshold » est à la page « Audio »
 
 	Scénario: La page « Crossfades » montre le seuil de silence, et donne celui qui est saisi
 		Quand la fenêtre des préférences s'ouvre sur le seuil de silence -40 dB

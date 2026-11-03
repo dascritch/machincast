@@ -129,8 +129,8 @@ Fonctionnalité: Vérifications de l'installation
 			| sortie   | antenne        | code | flux               | message                                                                                                                                                                                                     |
 			| pipewire | « carte-1 »    | 0    | annonce            | antenne sur la sortie pipewire, périphérique carte-1 : le service de diffusion peut l'utiliser                                                                                                              |
 			| pipewire | non renseignée | 0    | d'erreur mentionne | antenne sur la sortie pipewire, à renseigner : le service de diffusion refusera de démarrer tant que audio.device ne la donne pas                                                                     |
-			| pipewire | « factice »    | 1    | d'erreur mentionne | antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service |
-			| factice  | « carte-1 »    | 1    | d'erreur mentionne | antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service |
+			| pipewire | « dummy »    | 1    | d'erreur mentionne | antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service |
+			| dummy    | « carte-1 »    | 1    | d'erreur mentionne | antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service |
 
 	Scénario: install.sh vérifie l'antenne avant d'installer le service
 		Alors install.sh vérifie l'antenne par « installation on-air » avant la première étape du service, et s'arrête si elle échoue

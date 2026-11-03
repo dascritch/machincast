@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>BankCard</class>
+ <widget class="QWidget" name="BankCard">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1100</width>
+    <height>700</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="arrangement" stretch="0,1,0">
+   <item>
+    <layout class="QFormLayout" name="form">
+     <item row="0" column="0">
+      <widget class="QLabel" name="internal_name_caption">
+       <property name="text">
+        <string>&amp;Nom interne</string>
+       </property>
+       <property name="buddy">
+        <cstring>internal_name</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="internal_name">
+       <property name="maxLength">
+        <number>255</number>
+       </property>
+       <property name="placeholderText">
+        <string>Obligatoire, et propre à cette banque</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="public_name_caption">
+       <property name="text">
+        <string>Nom p&amp;ublic</string>
+       </property>
+       <property name="buddy">
+        <cstring>public_name</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="public_name">
+       <property name="maxLength">
+        <number>255</number>
+       </property>
+       <property name="placeholderText">
+        <string>Affiché à la place de l'artiste et du titre masqués ; facultatif</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="mode_caption">
+       <property name="text">
+        <string>&amp;Mode</string>
+       </property>
+       <property name="buddy">
+        <cstring>mode</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QComboBox" name="mode"/>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="hiding_caption">
+       <property name="text">
+        <string>&amp;Artiste et titre</string>
+       </property>
+       <property name="buddy">
+        <cstring>hiding</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QComboBox" name="hiding"/>
+     </item>
+     <item row="4" column="1">
+      <widget class="QCheckBox" name="no_repeat">
+       <property name="text">
+        <string>Ne pas &amp;répéter : la banque ne passe jamais deux fois de suite</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QCheckBox" name="detection_silences">
+       <property name="text">
+        <string>Détection de &amp;silence : les sonores sont joués sans leurs silences détectés</string>
+       </property>
+       <property name="toolTip">
+        <string>Chaque sonore joué via la banque commence à son début détecté et s'arrête à sa fin détectée, mesurés par l'audit complet.</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="start_crossfade_caption">
+       <property name="text">
+        <string>Crossfade de début</string>
+       </property>
+       <property name="buddy">
+        <cstring>start_crossfade_rule</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <layout class="QHBoxLayout" name="start_crossfade_layout" stretch="0,0,1">
+       <item>
+        <widget class="QComboBox" name="start_crossfade_rule">
+         <property name="toolTip">
+          <string>Le crossfade de début des sonores joués via cette banque : le leur, celui de la banque pour ceux qui n'en ont pas, ou celui de la banque pour tous</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QDoubleSpinBox" name="start_crossfade">
+         <property name="suffix">
+          <string> s</string>
+         </property>
+         <property name="decimals">
+          <number>2</number>
+         </property>
+         <property name="maximum">
+          <double>600.0</double>
+         </property>
+         <property name="singleStep">
+          <double>0.5</double>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="start_crossfade_space">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="end_crossfade_caption">
+       <property name="text">
+        <string>Crossfade de fin</string>
+       </property>
+       <property name="buddy">
+        <cstring>end_crossfade_rule</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <layout class="QHBoxLayout" name="end_crossfade_layout" stretch="0,0,1">
+       <item>
+        <widget class="QComboBox" name="end_crossfade_rule">
+         <property name="toolTip">
+          <string>Le crossfade de fin des sonores joués via cette banque : le leur, celui de la banque pour ceux qui n'en ont pas, ou celui de la banque pour tous</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QDoubleSpinBox" name="end_crossfade">
+         <property name="suffix">
+          <string> s</string>
+         </property>
+         <property name="decimals">
+          <number>2</number>
+         </property>
+         <property name="maximum">
+          <double>600.0</double>
+         </property>
+         <property name="singleStep">
+          <double>0.5</double>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="end_crossfade_space">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item row="8" column="0">
+      <widget class="QCheckBox" name="has_min_duration">
+       <property name="text">
+        <string>Durée minimale des sonores</string>
+       </property>
+       <property name="toolTip">
+        <string>Facultative : un sonore de la banque qui en sort est signalé, sans être refusé</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <layout class="QHBoxLayout" name="min_duration_layout" stretch="0,1">
+       <item>
+        <widget class="QTimeEdit" name="min_duration">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="displayFormat">
+          <string>H:mm:ss</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="min_duration_space">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item row="9" column="0">
+      <widget class="QCheckBox" name="has_max_duration">
+       <property name="text">
+        <string>Durée maximale des sonores</string>
+       </property>
+       <property name="toolTip">
+        <string>Facultative : un sonore de la banque qui en sort est signalé, sans être refusé</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <layout class="QHBoxLayout" name="max_duration_layout" stretch="0,1">
+       <item>
+        <widget class="QTimeEdit" name="max_duration">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="displayFormat">
+          <string>H:mm:ss</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="max_duration_space">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="lists" stretch="1,2">
+     <item>
+      <widget class="QGroupBox" name="directory_group">
+       <property name="title">
+        <string>Répertoires indexés</string>
+       </property>
+       <layout class="QVBoxLayout" name="directory_layout">
+        <item>
+         <widget class="QLabel" name="directory_explanation">
+          <property name="text">
+           <string>Machin indexer rattache à la banque les fichiers sonores de ces répertoires et de leurs sous-répertoires.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QListWidget" name="directories">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="directory_buttons">
+          <item>
+           <widget class="QPushButton" name="add_directory">
+            <property name="text">
+             <string>➕ Ajouter un répertoire…</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="remove_directory">
+            <property name="text">
+             <string>➖ Retirer le répertoire</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QGroupBox" name="sound_group">
+       <property name="title">
+        <string>Sonores</string>
+       </property>
+       <layout class="QVBoxLayout" name="sound_layout">
+        <item>
+         <widget class="QTreeWidget" name="sounds">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
+          </property>
+          <property name="rootIsDecorated">
+           <bool>false</bool>
+          </property>
+          <property name="uniformRowHeights">
+           <bool>true</bool>
+          </property>
+          <column>
+           <property name="text">
+            <string>Sonore</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Durée</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>État</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Emplacement</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="sound_buttons">
+          <item>
+           <widget class="QPushButton" name="add_sounds">
+            <property name="text">
+             <string>➕ Ajouter des sonores…</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="remove_sound">
+            <property name="text">
+             <string>➖ Retirer le sonore</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="sound_space">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="raise_">
+            <property name="text">
+             <string>Monter</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="go_down">
+            <property name="text">
+             <string>Descendre</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="foot" stretch="0,0,1,0,0">
+     <item>
+      <widget class="QPushButton" name="delete">
+       <property name="text">
+        <string>❌ Supprimer…</string>
+       </property>
+       <property name="toolTip">
+        <string>Supprime l'élément de la base, après confirmation ; aucun fichier n'est touché.</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="duplicate">
+       <property name="text">
+        <string>Dupliquer</string>
+       </property>
+       <property name="toolTip">
+        <string>Ouvre une copie de l'élément dans une nouvelle fiche ; rien n'est enregistré avant « Enregistrer ».</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="message">
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="cancel">
+       <property name="text">
+        <string>Annuler</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="save">
+       <property name="text">
+        <string>Enregistrer</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

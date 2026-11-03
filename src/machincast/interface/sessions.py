@@ -3,7 +3,7 @@ fiche d'un événement (https://github.com/dascritch/machincast/issues/295).
 
 Une session sautée se note en base par le jour où elle commence (event_skips). Elle se rétablit tant qu'elle n'a
 pas commencé, et qu'aucun événement de même priorité n'a pris sa place (chevauchee). Le jour seul compte : une session
-sautée le reste quand l'heure de l'événement change, et la fiche de l'événement l'annonce (prochaine_sautee).
+sautée le reste quand l'heure de l'événement change, et la fiche de l'événement l'annonce (next_skipped).
 """
 
 from dataclasses import dataclass
@@ -12,63 +12,63 @@ from datetime import datetime, timedelta
 import psycopg
 from psycopg.rows import TupleRow
 
-from machincast.lecture.grille import JAMAIS, Evenement, chevauchement, heure_murale, lire_grille, sessions
+from machincast.player.grid import NEVER, Event, overlap, read_grid, sessions, wall_hour
 
-Connexion = psycopg.Connection[TupleRow]
-UN_JOUR = timedelta(days=1)
+Connection = psycopg.Connection[TupleRow]
+ONE_DAY = timedelta(days=1)
 
 
 @dataclass(frozen=True)
 class Session:
 	"""Une session d'un événement, en heure murale du poste ; sans fin, elle dure jusqu'au bout de sa liste."""
 
-	evenement: Evenement
-	debut: datetime
-	fin: datetime | None
+	event: Event
+	start: datetime
+	end: datetime | None
 
 
-def passee(session: Session, maintenant: datetime) -> bool:
+def past(session: Session, now: datetime) -> bool:
 	"""Finie ; une session sans fin l'est le lendemain de son début."""
-	moment = heure_murale(maintenant)
-	if session.fin is None:
-		return session.debut.date() < moment.date()
-	return session.fin <= moment
+	moment = wall_hour(now)
+	if session.end is None:
+		return session.start.date() < moment.date()
+	return session.end <= moment
 
 
-def commencee(session: Session, maintenant: datetime) -> bool:
-	return session.debut <= heure_murale(maintenant)
+def started(session: Session, now: datetime) -> bool:
+	return session.start <= wall_hour(now)
 
 
-def prochaine_sautee(evenement: Evenement, maintenant: datetime) -> Session | None:
+def next_skipped(event: Event, now: datetime) -> Session | None:
 	"""La première session sautée de l'événement qui n'est pas encore passée : en cours, ou à venir. Un saut dont le
 	jour n'a plus de session, après un changement des jours de l'événement, ne compte pas."""
-	for jour in sorted(evenement.sautees):
-		for debut, fin in sessions(evenement, jour, jour + UN_JOUR):
-			session = Session(evenement, debut, fin)
-			if not passee(session, maintenant):
+	for day in sorted(event.skipped_list):
+		for start, end in sessions(event, day, day + ONE_DAY):
+			session = Session(event, start, end)
+			if not past(session, now):
 				return session
 	return None
 
 
-def chevauchee(connexion: Connexion, session: Session, maintenant: datetime) -> tuple[Evenement, datetime] | None:
+def overlapped(connection: Connection, session: Session, now: datetime) -> tuple[Event, datetime] | None:
 	"""L'événement de même priorité qui a pris la place de la session, et le premier instant commun ; None si elle
 	peut revenir. À appeler dans une transaction."""
-	seule = Evenement(
-		id=session.evenement.id,
-		nom=session.evenement.nom,
-		priorite=session.evenement.priorite,
-		debut=session.debut,
-		fin=session.fin,
-		jours=frozenset(),
-		modifie_le=JAMAIS,
+	only = Event(
+		id=session.event.id,
+		name=session.event.name,
+		priority=session.event.priority,
+		start=session.start,
+		end=session.end,
+		days=frozenset(),
+		modified_at=NEVER,
 	)
-	autres = [autre for autre in lire_grille(connexion) if autre.id != session.evenement.id]
-	return chevauchement(seule, autres, depuis=heure_murale(maintenant))
+	others = [other for other in read_grid(connection) if other.id != session.event.id]
+	return overlap(only, others, since=wall_hour(now))
 
 
-def retablir(connexion: Connexion, session: Session) -> None:
+def reinstate(connection: Connection, session: Session) -> None:
 	"""La session joue de nouveau. À appeler dans une transaction."""
-	connexion.execute(
+	connection.execute(
 		"DELETE FROM event_skips WHERE event_id = %s AND day = %s",
-		(session.evenement.id, session.debut.date()),
+		(session.event.id, session.start.date()),
 	)

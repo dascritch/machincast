@@ -1,8 +1,8 @@
 """Écran de simulation (https://github.com/dascritch/machincast/issues/37, spec § 8.7).
 
-L'onglet « Simulation » (EcranSimulation), qui se ferme, s'ouvre par « Affichage → Ouvrir l'onglet Simulation »
-(machincast.interface.fenetre). On y règle le début et la fin de la période, d'abord de l'heure qu'il est, à la
-minute, à un jour plus tard. « Simuler » lance Machin player --simulation (commande_simulation), par le Python de
+L'onglet « Simulation » (SimulationScreen), qui se ferme, s'ouvre par « Affichage → Ouvrir l'onglet Simulation »
+(machincast.interface.window). On y règle le début et la fin de la période, d'abord de l'heure qu'il est, à la
+minute, à un jour plus tard. « Simuler » lance Machin player --simulation (simulation_command), par le Python de
 l'interface et avec sa configuration, dans un processus à part (QProcess) : l'interface reste utilisable, et la
 simulation garde le rôle de la lecture en base, où elle n'écrit rien (spec § 5.5). Ses sorties vont dans un répertoire
 temporaire, propre à l'onglet et effacé à sa fermeture : jamais dans les sorties de la configuration.
@@ -10,7 +10,7 @@ temporaire, propre à l'onglet et effacé à sa fermeture : jamais dans les sort
 À la fin du processus, la table montre les passages de son CSV, avec l'artiste et le titre masqués comme sur la page
 publique ; la liste, les alertes et incidents qu'il a signalés sur sa sortie d'erreur (« simulation : … »). Un échec
 donne la dernière ligne de sa sortie d'erreur. « Exporter… » enregistre l'une des trois sorties, .csv, .pls ou .html,
-selon le filtre choisi dans le sélecteur de fichier (dialogues.choisir_export) ; le nom reçoit l'extension du format
+selon le filtre choisi dans le sélecteur de fichier (dialogs.choose_export) ; le nom reçoit l'extension du format
 s'il ne l'a pas déjà : un export ne peut donc jamais remplacer un fichier sonore
 (https://github.com/dascritch/machincast/issues/96, machincast.protection).
 """
@@ -37,22 +37,22 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
-from machincast.horloge import Horloge
-from machincast.interface import dialogues
-from machincast.interface.colonnes import Colonnes
-from machincast.journal import HORODATAGE
-from machincast.lecture.simulation import nom_par_defaut
-from machincast.protection import verifier_ecriture
+from machincast.clock import Clock
+from machincast.interface import dialogs
+from machincast.interface.columns import Columns
+from machincast.log import TIMESTAMP
+from machincast.player.simulation import default_name
+from machincast.protection import check_writing
 
-journal = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
-PERIODE = timedelta(days=1)
+PERIOD = timedelta(days=1)
 """Durée de la période proposée à l'ouverture de l'onglet."""
-NOM = "simulation"
+NAME = "simulation"
 """Nom des sorties dans le répertoire temporaire de l'onglet."""
-FORMAT_DES_DATES = "yyyy-MM-dd HH:mm"
-COLONNES = ("Début", "Fin", "Artiste", "Titre", "Emplacement", "Événement", "Séquence", "Banque")
-CHAMPS = ("debut", "fin", "artiste", "titre", "emplacement", "evenement", "sequence", "banque")
+DATE_FORMAT = "yyyy-MM-dd HH:mm"
+COLUMNS = ("Début", "Fin", "Artiste", "Titre", "Emplacement", "Événement", "Séquence", "Banque")
+FIELDS = ("debut", "fin", "artiste", "titre", "emplacement", "evenement", "sequence", "banque")
 """Les colonnes du CSV de la simulation montrées dans la table, dans l'ordre de COLONNES."""
 FORMATS = {
 	"Tableur CSV (*.csv)": ".csv",
@@ -60,228 +60,228 @@ FORMATS = {
 	"Page HTML (*.html)": ".html",
 }
 """Filtres du sélecteur d'export, et l'extension de la sortie que chacun enregistre."""
-PREFIXE_DES_ANOMALIES = "simulation : "
-INVITE = "Réglez la période, puis cliquez sur « Simuler »."
-EN_COURS = "Simulation en cours…"
-PERIODE_INVALIDE = "La fin doit suivre le début."
+ANOMALY_PREFIX = "simulation : "
+PROMPTS = "Réglez la période, puis cliquez sur « Simuler »."
+ONGOING = "Simulation en cours…"
+INVALID_PERIOD = "La fin doit suivre le début."
 
 
-def commande_simulation(configuration: Path | None) -> list[str]:
+def simulation_command(configuration: Path | None) -> list[str]:
 	"""Machin player, lancé par le Python de l'interface, avec la même configuration qu'elle."""
-	commande = [sys.executable, "-m", "machincast.lecture"]
+	command = [sys.executable, "-m", "machincast.player"]
 	if configuration is not None:
-		commande += ["--config", str(configuration.expanduser().absolute())]
-	return commande
+		command += ["--config", str(configuration.expanduser().absolute())]
+	return command
 
 
-def avec_extension(chemin: Path, extension: str) -> Path:
-	"""Le chemin, avec l'extension du format exporté s'il ne l'a pas déjà : « grille » devient « grille.pls »,
+def with_extension(path: Path, extension: str) -> Path:
+	"""Le chemin, avec l'extension du format exporté s'il ne l'a pas déjà : « grille » devient « grid.pls »,
 	« matinale.flac » devient « matinale.flac.csv »."""
-	if chemin.suffix.lower() == extension:
-		return chemin
-	return chemin.with_name(f"{chemin.name}{extension}")
+	if path.suffix.lower() == extension:
+		return path
+	return path.with_name(f"{path.name}{extension}")
 
 
-def _pluriel(nombre: int, singulier: str, pluriel: str) -> str:
-	if nombre > 1:
-		return f"{nombre} {pluriel}"
-	return f"{nombre} {singulier}"
+def _plural(count: int, singular: str, plural: str) -> str:
+	if count > 1:
+		return f"{count} {plural}"
+	return f"{count} {singular}"
 
 
-def bilan(passages: int, anomalies: int) -> str:
-	texte_des_passages = "Aucun passage"
-	if passages > 0:
-		texte_des_passages = _pluriel(passages, "passage", "passages")
-	texte_des_anomalies = "aucune alerte ni incident"
+def report(plays: int, anomalies: int) -> str:
+	play_text = "Aucun passage"
+	if plays > 0:
+		play_text = _plural(plays, "passage", "passages")
+	anomaly_text = "aucune alerte ni incident"
 	if anomalies > 0:
-		texte_des_anomalies = _pluriel(anomalies, "alerte ou incident", "alertes ou incidents")
-	return f"{texte_des_passages}, {texte_des_anomalies}. Rien n'a été écrit en base."
+		anomaly_text = _plural(anomalies, "alerte ou incident", "alertes ou incidents")
+	return f"{play_text}, {anomaly_text}. Rien n'a été écrit en base."
 
 
-def _instant(edition: QDateTimeEdit) -> datetime:
+def _instant(editing: QDateTimeEdit) -> datetime:
 	"""L'instant réglé, en heure du poste."""
-	moment = edition.dateTime().toPython()
+	moment = editing.dateTime().toPython()
 	assert isinstance(moment, datetime)
 	return moment.astimezone()
 
 
-class EcranSimulation(QWidget):
-	terminee = Signal()
+class SimulationScreen(QWidget):
+	finished = Signal()
 	"""La simulation lancée s'est terminée, réussie ou non."""
 
-	def __init__(self, horloge: Horloge, configuration: Path | None, parent: QWidget | None = None) -> None:
+	def __init__(self, clock: Clock, configuration: Path | None, parent: QWidget | None = None) -> None:
 		super().__init__(parent)
 		self.configuration = configuration
-		self.temporaire = Path(tempfile.mkdtemp(prefix="machincast-simulation-"))
+		self.temporary = Path(tempfile.mkdtemp(prefix="machincast-simulation-"))
 		"""Répertoire des sorties de la simulation, effacé à la fermeture de l'onglet."""
-		self.processus: QProcess | None = None
-		self.lancees = 0
+		self.process: QProcess | None = None
+		self.launched_list = 0
 		"""Simulations lancées depuis l'ouverture de l'onglet."""
-		self.periode: tuple[datetime, datetime] | None = None
+		self.period: tuple[datetime, datetime] | None = None
 		"""Période de la dernière simulation réussie, celle qu'on exporte."""
-		disposition = QVBoxLayout(self)
-		reglage = QHBoxLayout()
+		arrangement = QVBoxLayout(self)
+		setting = QHBoxLayout()
 		# Les champs sont à la minute : les secondes de l'horloge tombent.
-		debut = horloge.maintenant().astimezone()
-		self.debut = self._edition(debut)
-		self.fin = self._edition(debut + PERIODE)
-		reglage.addWidget(QLabel("Du", self))
-		reglage.addWidget(self.debut)
-		reglage.addWidget(QLabel("au", self))
-		reglage.addWidget(self.fin)
-		self.simuler = QPushButton("Simuler", self)
-		self.simuler.setToolTip("Machin player simule la diffusion de la période, sans son et sans écrire en base")
-		self.simuler.clicked.connect(self.lancer)
-		reglage.addWidget(self.simuler)
-		self.exporter = QPushButton("Exporter…", self)
-		self.exporter.setToolTip("Enregistre le résultat en .csv, .pls ou .html")
-		self.exporter.setEnabled(False)
-		self.exporter.clicked.connect(self._exporter)
-		reglage.addWidget(self.exporter)
-		reglage.addStretch()
-		disposition.addLayout(reglage)
-		self.compte = QLabel(INVITE, self)
-		self.compte.setWordWrap(True)
-		disposition.addWidget(self.compte)
-		self.modele = QStandardItemModel(0, len(COLONNES), self)
-		self.modele.setHorizontalHeaderLabels(list(COLONNES))
+		start = clock.now().astimezone()
+		self.start = self._editing(start)
+		self.end = self._editing(start + PERIOD)
+		setting.addWidget(QLabel("Du", self))
+		setting.addWidget(self.start)
+		setting.addWidget(QLabel("au", self))
+		setting.addWidget(self.end)
+		self.simulate = QPushButton("Simuler", self)
+		self.simulate.setToolTip("Machin player simule la diffusion de la période, sans son et sans écrire en base")
+		self.simulate.clicked.connect(self.launch)
+		setting.addWidget(self.simulate)
+		self.export = QPushButton("Exporter…", self)
+		self.export.setToolTip("Enregistre le résultat en .csv, .pls ou .html")
+		self.export.setEnabled(False)
+		self.export.clicked.connect(self._export)
+		setting.addWidget(self.export)
+		setting.addStretch()
+		arrangement.addLayout(setting)
+		self.count = QLabel(PROMPTS, self)
+		self.count.setWordWrap(True)
+		arrangement.addWidget(self.count)
+		self.model = QStandardItemModel(0, len(COLUMNS), self)
+		self.model.setHorizontalHeaderLabels(list(COLUMNS))
 		self.table = QTableView(self)
-		self.table.setModel(self.modele)
+		self.table.setModel(self.model)
 		self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
 		self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 		self.table.verticalHeader().hide()
 		self.table.horizontalHeader().setStretchLastSection(True)
-		self.colonnes = Colonnes(self.table, "simulation")
-		disposition.addWidget(self.table, 1)
+		self.columns = Columns(self.table, "simulation")
+		arrangement.addWidget(self.table, 1)
 		self.anomalies = QListWidget(self)
 		self.anomalies.setToolTip("Alertes et incidents de la simulation")
 		self.anomalies.setMaximumHeight(120)
 		self.anomalies.hide()
-		disposition.addWidget(self.anomalies)
+		arrangement.addWidget(self.anomalies)
 
-	def _edition(self, instant: datetime) -> QDateTimeEdit:
+	def _editing(self, instant: datetime) -> QDateTimeEdit:
 		local = instant.astimezone()
 		moment = QDateTime(QDate(local.year, local.month, local.day), QTime(local.hour, local.minute))
-		edition = QDateTimeEdit(moment, self)
-		edition.setDisplayFormat(FORMAT_DES_DATES)
-		edition.setCalendarPopup(True)
-		return edition
+		editing = QDateTimeEdit(moment, self)
+		editing.setDisplayFormat(DATE_FORMAT)
+		editing.setCalendarPopup(True)
+		return editing
 
-	def en_cours(self) -> bool:
-		return self.processus is not None
+	def ongoing(self) -> bool:
+		return self.process is not None
 
-	def actualiser(self) -> None:
+	def refresh(self) -> None:
 		"""Rien à relire : le résultat est celui de la dernière simulation, que seul « Simuler » relance."""
 
-	def lancer(self) -> None:
-		debut, fin = _instant(self.debut), _instant(self.fin)
-		if fin <= debut:
-			self.compte.setText(PERIODE_INVALIDE)
+	def launch(self) -> None:
+		start, end = _instant(self.start), _instant(self.end)
+		if end <= start:
+			self.count.setText(INVALID_PERIOD)
 			return
-		self._vider()
-		programme, *arguments = commande_simulation(self.configuration)
+		self._empty()
+		program, *arguments = simulation_command(self.configuration)
 		arguments += [
 			"--simulation",
-			debut.isoformat(timespec="minutes"),
-			fin.isoformat(timespec="minutes"),
+			start.isoformat(timespec="minutes"),
+			end.isoformat(timespec="minutes"),
 			"--directory",
-			str(self.temporaire),
+			str(self.temporary),
 			"--name",
-			NOM,
+			NAME,
 		]
-		processus = QProcess(self)
-		processus.finished.connect(lambda code, _statut: self._terminer(processus, code, (debut, fin)))
-		processus.errorOccurred.connect(lambda erreur: self._echouer(processus, erreur))
-		self.processus = processus
-		self.lancees += 1
-		self.simuler.setEnabled(False)
-		self.compte.setText(EN_COURS)
-		journal.info(f"simulation du {debut.isoformat(timespec='minutes')} au {fin.isoformat(timespec='minutes')}")
-		processus.start(programme, arguments)
+		process = QProcess(self)
+		process.finished.connect(lambda code, _status: self._finish(process, code, (start, end)))
+		process.errorOccurred.connect(lambda error: self._fail(process, error))
+		self.process = process
+		self.launched_list += 1
+		self.simulate.setEnabled(False)
+		self.count.setText(ONGOING)
+		log.info(f"simulation du {start.isoformat(timespec='minutes')} au {end.isoformat(timespec='minutes')}")
+		process.start(program, arguments)
 
-	def _vider(self) -> None:
-		self.periode = None
-		self.exporter.setEnabled(False)
-		self.modele.setRowCount(0)
+	def _empty(self) -> None:
+		self.period = None
+		self.export.setEnabled(False)
+		self.model.setRowCount(0)
 		self.anomalies.clear()
 		self.anomalies.hide()
-		for ancienne in self.temporaire.glob(f"{NOM}.*"):
+		for old in self.temporary.glob(f"{NAME}.*"):
 			# fichier de MachinCast : une sortie de la simulation précédente, dans le répertoire temporaire de l'onglet.
-			ancienne.unlink()
+			old.unlink()
 
-	def _echouer(self, processus: QProcess, erreur: QProcess.ProcessError) -> None:
+	def _fail(self, process: QProcess, error: QProcess.ProcessError) -> None:
 		"""Un programme qui ne démarre pas ne finit jamais : finished n'est pas émis."""
-		if erreur == QProcess.ProcessError.FailedToStart:
-			self._fin(processus)
-			self.compte.setText(f"Simulation impossible : {processus.errorString()}")
+		if error == QProcess.ProcessError.FailedToStart:
+			self._end(process)
+			self.count.setText(f"Simulation impossible : {process.errorString()}")
 
-	def _fin(self, processus: QProcess) -> None:
-		self.processus = None
-		self.simuler.setEnabled(True)
-		processus.deleteLater()
-		self.terminee.emit()
+	def _end(self, process: QProcess) -> None:
+		self.process = None
+		self.simulate.setEnabled(True)
+		process.deleteLater()
+		self.finished.emit()
 
-	def _terminer(self, processus: QProcess, code: int, periode: tuple[datetime, datetime]) -> None:
-		erreurs = bytes(processus.readAllStandardError().data()).decode("utf-8", errors="replace").splitlines()
-		self._fin(processus)
-		anomalies = [ligne.split(PREFIXE_DES_ANOMALIES, 1)[1] for ligne in erreurs if PREFIXE_DES_ANOMALIES in ligne]
-		chemin = self.temporaire / f"{NOM}.csv"
-		if (code != 0) or (not chemin.exists()):
-			raison = "Machin player s'est arrêté sans rien dire"
-			# Chaque message de Machin player commence par son horodatage (machincast.journal) ; un message peut tenir
+	def _finish(self, process: QProcess, code: int, period: tuple[datetime, datetime]) -> None:
+		errors = bytes(process.readAllStandardError().data()).decode("utf-8", errors="replace").splitlines()
+		self._end(process)
+		anomalies = [line.split(ANOMALY_PREFIX, 1)[1] for line in errors if ANOMALY_PREFIX in line]
+		path = self.temporary / f"{NAME}.csv"
+		if (code != 0) or (not path.exists()):
+			reason = "Machin player s'est arrêté sans rien dire"
+			# Chaque message de Machin player commence par son horodatage (machincast.log) ; un message peut tenir
 			# sur plusieurs lignes.
-			messages = [HORODATAGE.sub("", ligne) for ligne in erreurs if HORODATAGE.match(ligne)]
+			messages = [TIMESTAMP.sub("", line) for line in errors if TIMESTAMP.match(line)]
 			if messages:
-				raison = messages[-1]
-			self.compte.setText(f"Simulation impossible : {raison}")
+				reason = messages[-1]
+			self.count.setText(f"Simulation impossible : {reason}")
 			return
-		passages = self._lire(chemin)
+		plays = self._read(path)
 		self.anomalies.addItems(anomalies)
 		self.anomalies.setVisible(bool(anomalies))
-		self.compte.setText(bilan(passages, len(anomalies)))
-		self.periode = periode
-		self.exporter.setEnabled(True)
+		self.count.setText(report(plays, len(anomalies)))
+		self.period = period
+		self.export.setEnabled(True)
 
-	def _lire(self, chemin: Path) -> int:
-		with chemin.open(encoding="utf-8-sig", newline="") as fichier:
-			for ligne in csv.DictReader(fichier, delimiter=";"):
-				self.modele.appendRow([QStandardItem(ligne[champ]) for champ in CHAMPS])
-		return self.modele.rowCount()
+	def _read(self, path: Path) -> int:
+		with path.open(encoding="utf-8-sig", newline="") as file:
+			for line in csv.DictReader(file, delimiter=";"):
+				self.model.appendRow([QStandardItem(line[field]) for field in FIELDS])
+		return self.model.rowCount()
 
-	def lignes(self) -> list[list[str]]:
+	def lines(self) -> list[list[str]]:
 		return [
-			[str(self.modele.item(rangee, colonne).text()) for colonne in range(self.modele.columnCount())]
-			for rangee in range(self.modele.rowCount())
+			[str(self.model.item(row, column).text()) for column in range(self.model.columnCount())]
+			for row in range(self.model.rowCount())
 		]
 
-	def _exporter(self) -> None:
-		assert self.periode is not None
-		propose = f"{nom_par_defaut(*self.periode)}.csv"
-		choix = dialogues.choisir_export(self, propose, list(FORMATS))
-		if choix is None:
+	def _export(self) -> None:
+		assert self.period is not None
+		offers = f"{default_name(*self.period)}.csv"
+		choice = dialogs.choose_export(self, offers, list(FORMATS))
+		if choice is None:
 			return
-		chemin, filtre = choix
-		extension = FORMATS[filtre]
-		destination = avec_extension(chemin, extension)
+		path, filter_ = choice
+		extension = FORMATS[filter_]
+		destination = with_extension(path, extension)
 		try:
-			verifier_ecriture(destination)
-			shutil.copyfile(self.temporaire / f"{NOM}{extension}", destination)
-		except OSError as erreur:
-			self._annoncer(f"Export impossible : {erreur}")
+			check_writing(destination)
+			shutil.copyfile(self.temporary / f"{NAME}{extension}", destination)
+		except OSError as error:
+			self._announce(f"Export impossible : {error}")
 			return
-		self._annoncer(f"Simulation exportée dans {destination}.")
+		self._announce(f"Simulation exportée dans {destination}.")
 
-	def _annoncer(self, texte: str) -> None:
-		fenetre = self.window()
-		barre = getattr(fenetre, "statusBar", None)
-		if barre is not None:
-			barre().showMessage(texte)
+	def _announce(self, text: str) -> None:
+		window = self.window()
+		bar = getattr(window, "statusBar", None)
+		if bar is not None:
+			bar().showMessage(text)
 
-	def fermer(self) -> None:
+	def shut_down(self) -> None:
 		"""Arrête la simulation en cours, puis efface le répertoire temporaire de l'onglet."""
-		processus = self.processus
-		if processus is not None:
-			processus.kill()
-			processus.waitForFinished()
+		process = self.process
+		if process is not None:
+			process.kill()
+			process.waitForFinished()
 		# fichier de MachinCast : le répertoire temporaire de l'onglet, et les sorties de ses simulations.
-		shutil.rmtree(self.temporaire, ignore_errors=True)
+		shutil.rmtree(self.temporary, ignore_errors=True)

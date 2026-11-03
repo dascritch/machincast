@@ -199,7 +199,7 @@ Fonctionnalité: Mode simulation de Machin player
 		Par défaut, le fade-in se termine au début détecté et le fade-out commence à la fin détectée
 		(https://github.com/dascritch/machincast/issues/234) : les fondus de 10 secondes débordent des silences de 5 et 10
 		secondes, et la lecture va d'un bout à l'autre du fichier. Les positions elles-mêmes sont essayées dans
-		position_des_fondus.feature.
+		fade_position.feature.
 
 		Étant donné le fil musical permanent « Continue », avec la banque séquentielle « Titres » des sonores « f1 », « f2 »
 		Et chaque sonore dure 1 minute
