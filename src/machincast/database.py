@@ -15,6 +15,8 @@ from psycopg.rows import TupleRow
 from yoyo import get_backend, read_migrations
 from yoyo.backends.base import DatabaseBackend
 
+from machincast.i18n import _
+
 SHORT_TEXT_LENGTH = 255
 """Longueur maximale des textes saisis à la main (noms, artiste, titre), en base comme dans l'interface."""
 
@@ -97,9 +99,11 @@ def refuse_old_schema(backend: DatabaseBackend, database: str) -> None:
 	old_list = [migration for migration in OLD_MIGRATIONS if migration in {str(line[0]) for line in lines}]
 	if old_list != []:
 		raise OutdatedSchema(
-			f"base {database} : ancien schéma, aux noms français (migration {old_list[0]}) ; la recréer, après l'avoir"
-			f" sauvegardée si elle contient quelque chose d'utile : sudo -u postgres dropdb {database}, puis"
-			f" ./install.sh"
+			_(
+				"database {database}: old schema, with French names (migration {old_list}); recreate it, "
+				"after backing it up if it holds anything useful: sudo -u postgres dropdb {database}, then "
+				"./install.sh"
+			).format(database=database, old_list=old_list[0])
 		)
 
 

@@ -16,7 +16,7 @@
      <item>
       <widget class="QLineEdit" name="filter_">
        <property name="placeholderText">
-        <string>Filtrer…</string>
+        <string>Filter…</string>
        </property>
        <property name="clearButtonEnabled">
         <bool>true</bool>
@@ -26,7 +26,7 @@
      <item>
       <widget class="QLabel" name="count">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
       </widget>
      </item>
@@ -36,7 +36,7 @@
         <bool>false</bool>
        </property>
        <property name="toolTip">
-        <string>Les fichiers sont référencés là où ils sont, sans copie, et vérifiés aussitôt ; on peut aussi les déposer sur la liste.</string>
+        <string>The files are referenced where they are, without a copy, and checked at once; they can also be dropped on the list.</string>
        </property>
       </widget>
      </item>

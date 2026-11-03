@@ -15,6 +15,7 @@ Le script `install.sh` fait tout le travail. La section [Installer à la main](#
 - [Récupérer MachinCast](#récupérer-machincast)
 - [Installer avec install.sh](#installer-avec-installsh)
 - [Adapter la configuration](#adapter-la-configuration)
+- [Choisir la langue](#choisir-la-langue)
 - [Préparer le poste d'antenne](#préparer-le-poste-dantenne)
 - [Vérifier l'installation](#vérifier-linstallation)
 - [Service de diffusion](#service-de-diffusion)
@@ -152,6 +153,17 @@ Sans l'option `--config`, les programmes lisent toujours le `machincast.toml` du
 Machin indexer                                         # lit ~/machincast/machincast.toml
 Machin indexer --config ~/machincast/essai.toml        # lit essai.toml
 ```
+
+## Choisir la langue
+
+MachinCast parle français ou anglais, selon la langue de la session ([#360](https://github.com/dascritch/machincast/issues/360)) : `LANGUAGE`, `LC_ALL`, `LC_MESSAGES` puis `LANG`, la première renseignée, comme pour les autres programmes. L'interface, les messages des binaires, leur aide, `Machin` et `install.sh` la suivent ; une langue que MachinCast ne parle pas donne l'anglais. Sur un poste en français, il n'y a rien à faire. Pour lancer un programme dans une autre langue :
+
+```bash
+LANGUAGE=en Machin interface      # interface en anglais, sur un poste en français
+LANGUAGE=fr Machin indexer        # messages en français, sur un poste en anglais
+```
+
+Le service de diffusion parle la langue du système (`localectl status`, `sudo localectl set-locale LANG=fr_FR.UTF-8`). Le log de la base, lui, est écrit en anglais et traduit à l'affichage : l'écran des incidents le montre dans la langue de l'interface, quelle que soit celle du service.
 
 ## Préparer le poste d'antenne
 

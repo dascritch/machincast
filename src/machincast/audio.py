@@ -19,6 +19,7 @@ gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
 from machincast.configuration import AudioOutput  # noqa: E402
+from machincast.i18n import _  # noqa: E402
 
 log = logging.getLogger(__name__)
 
@@ -98,8 +99,10 @@ def appliances() -> list[Gst.Device]:
 			return []
 		if not _wait_startup(monitor):
 			log.warning(
-				f"le moniteur de périphériques n'a pas fini de démarrer en {MONITOR_STARTUP:g} secondes :"
-				" la liste des périphériques peut être incomplète"
+				_(
+					"the device monitor did not finish starting within {monitor_startup:g} seconds: the device "
+					"list may be incomplete"
+				).format(monitor_startup=MONITOR_STARTUP)
 			)
 		_monitor = monitor
 	return list(_monitor.get_devices())
@@ -165,9 +168,9 @@ class Presentation:
 	"""Le nom de son flux : media.name."""
 
 
-ON_AIR = Presentation("MachinCast lecteur", "Antenne")
-PREVIEW = Presentation("MachinCast interface", "Pré-écoute")
-TRIAL = Presentation("MachinCast installation", "Son de test")
+ON_AIR = Presentation("MachinCast lecteur", _("On air"))
+PREVIEW = Presentation("MachinCast interface", _("Pre-listen"))
+TRIAL = Presentation("MachinCast installation", _("Test sound"))
 
 
 def _has_property(item: Gst.Element, name: str) -> bool:
@@ -233,8 +236,10 @@ def create_output(
 	item = Gst.ElementFactory.make(plugin.factory, None)
 	if item is None:
 		raise UnavailableAudioOutput(
-			f"sortie audio « {output} » indisponible : élément GStreamer {plugin.factory} introuvable, "
-			f"installer le paquet {plugin.package}"
+			_(
+				"audio output “{output}” unavailable: GStreamer element {factory} not found, install the "
+				"{package} package"
+			).format(output=output, factory=plugin.factory, package=plugin.package)
 		)
 	if (device is not None) and (plugin.property_ is not None):
 		item.set_property(plugin.property_, device)
@@ -251,7 +256,7 @@ def play_test_sound(output: Gst.Element, duration: timedelta) -> bool:
 	source = Gst.ElementFactory.make("audiotestsrc", None)
 	conversion = Gst.ElementFactory.make("audioconvert", None)
 	if (source is None) or (conversion is None):
-		raise UnavailableAudioOutput("audiotestsrc ou audioconvert introuvable, installer gstreamer1.0-plugins-base")
+		raise UnavailableAudioOutput(_("audiotestsrc or audioconvert not found, install gstreamer1.0-plugins-base"))
 	# 44 100 échantillons par seconde, 1 024 par tampon.
 	source.set_property("num-buffers", max(1, round(duration.total_seconds() * 44100 / 1024)))
 	for item in (source, conversion, output):

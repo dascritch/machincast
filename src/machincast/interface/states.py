@@ -18,6 +18,8 @@ import gi
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
+from machincast.i18n import _  # noqa: E402
+
 log = logging.getLogger(__name__)
 
 END = None
@@ -67,7 +69,11 @@ class Pilot:
 	def _change(self, pipeline: Gst.Element) -> None:
 		while (state := self._requests.get()) is not END:
 			if pipeline.set_state(state) == Gst.StateChangeReturn.FAILURE:
-				log.warning(f"pipeline {pipeline.get_name()} : passage à l'état {state.value_nick} impossible")
+				log.warning(
+					_("pipeline {get_name}: switch to state {value_nick} impossible").format(
+						get_name=pipeline.get_name(), value_nick=state.value_nick
+					)
+				)
 				self._failure.set()
 			with self._done_list:
 				self._in_waiting -= 1

@@ -22,6 +22,7 @@ from psycopg.rows import TupleRow
 from PySide6.QtCore import QObject, Signal
 
 from machincast.database import Role, open_connection
+from machincast.i18n import _
 from machincast.indexer.check import check_sounds, threshold_text
 from machincast.indexer.decoding import Check, UnavailableDecoder, check_file
 from machincast.interface import display
@@ -29,7 +30,7 @@ from machincast.interface.lists import STATES
 
 log = logging.getLogger(__name__)
 
-AFTER_FAILURE = "la prochaine indexation reprendra les fichiers en aperçu."
+AFTER_FAILURE = _("the next indexing will take up the files in preview again.")
 
 
 class Checker(QObject):
@@ -95,13 +96,13 @@ class Checker(QObject):
 						(identifiers,),
 					).fetchall()
 		except (UnavailableDecoder, psycopg.Error) as error:
-			log.error(f"vérification des fichiers ajoutés impossible : {error}")
-			return f"Vérification impossible : {error} ; {AFTER_FAILURE}"
+			log.error(_("check of the added files impossible: {error}").format(error=error))
+			return _("Check impossible: {error}; {after_failure}").format(error=error, after_failure=AFTER_FAILURE)
 		states = [
 			f"{display.sound_name(artist, title, location, None)}, {STATES.get(str(state), str(state))}"
 			for artist, title, location, state in lines
 		]
-		return f"Vérification terminée : {' ; '.join(states)}."
+		return _("Check finished: {list}.").format(list=_("; ").join(states))
 
 
 def sound_states(connection: psycopg.Connection[TupleRow], identifiers: list[int]) -> str:
@@ -111,8 +112,10 @@ def sound_states(connection: psycopg.Connection[TupleRow], identifiers: list[int
 			"SELECT artist, title, location, state::text FROM sounds WHERE id = ANY(%s) ORDER BY id",
 			(identifiers,),
 		).fetchall()
-	return " ; ".join(
-		f"{display.sound_name(artist, title, location, None)}, {STATES.get(str(state), str(state))}"
+	return _("; ").join(
+		_("{sound}, {state}").format(
+			sound=display.sound_name(artist, title, location, None), state=STATES.get(str(state), str(state))
+		)
 		for artist, title, location, state in lines
 	)
 
@@ -168,12 +171,14 @@ class FullCheck(QObject):
 				)
 				states = sound_states(connection, [sound])
 		except (UnavailableDecoder, psycopg.Error) as error:
-			log.error(f"vérification complète impossible : {error}")
-			return f"Vérification impossible : {error}."
+			log.error(_("full check impossible: {error}").format(error=error))
+			return _("Check impossible: {error}.").format(error=error)
 		if report.already_audited:
 			# https://github.com/dascritch/machincast/issues/206
-			return f"Déjà audité au seuil de {threshold_text(silence_threshold)} dB, fichier inchangé : {states}."
-		return f"Vérification terminée : {states}."
+			return _("Already audited at the threshold of {threshold_text} dB, unchanged file: {states}.").format(
+				threshold_text=threshold_text(silence_threshold), states=states
+			)
+		return _("Check finished: {states}.").format(states=states)
 
 
 def _check_full_file(path: Path, *, silence_threshold: float | None = None) -> Check:

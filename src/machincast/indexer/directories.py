@@ -39,6 +39,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.conversion import list_or_none
+from machincast.i18n import _
 from machincast.indexer.check import Report, SoundState
 from machincast.protection import INDEXED_EXTENSIONS
 
@@ -64,7 +65,11 @@ def sound_files(directory: Path) -> Iterator[Path]:
 	"""Fichiers sonores du répertoire et de ses sous-répertoires, dans l'ordre de leur chemin."""
 
 	def flag(error: OSError) -> None:
-		log.warning(f"{error.filename} : répertoire illisible ({error.strerror}) ; ignoré")
+		log.warning(
+			_("{filename}: unreadable directory ({strerror}); ignored").format(
+				filename=error.filename, strerror=error.strerror
+			)
+		)
 
 	for current, under_directories, files in os.walk(directory, onerror=flag):
 		# Trié en place : os.walk descend ensuite dans cet ordre, et saute les répertoires cachés retirés.
@@ -112,10 +117,10 @@ def _announce(report: Report, scan: Scan, sound: int, name: str, location: str) 
 	"""Une ligne par rattachement ; la première banque d'un nouveau sonore l'annonce avec lui, sans compter de
 	rattachement."""
 	if scan.unannounced.pop(sound, None) is not None:
-		log.info(f"{location} : nouveau sonore, ajouté à la banque {name}")
+		log.info(_("{location}: new sound, added to bank {name}").format(location=location, name=name))
 		return
 	report.attached_list += 1
-	log.info(f"{location} : rattaché à la banque {name}")
+	log.info(_("{location}: attached to bank {name}").format(location=location, name=name))
 
 
 def _save(
@@ -163,7 +168,7 @@ def attach_in_waiting(connection: psycopg.Connection[TupleRow], report: Report, 
 		if attached:
 			_announce(report, scan, waiting.sound, waiting.name, waiting.location)
 	for location in scan.unannounced.values():
-		log.info(f"{location} : nouveau sonore")
+		log.info(_("{location}: new sound").format(location=location))
 
 
 def index_directories(
@@ -185,10 +190,12 @@ def index_directories(
 	for bank, name, directory in directories:
 		path = Path(os.path.normpath(str(directory)))
 		if not path.is_absolute():
-			log.warning(f"{directory} : répertoire relatif, ignoré pour la banque {name}")
+			log.warning(
+				_("{directory}: relative directory, ignored for bank {name}").format(directory=directory, name=name)
+			)
 			continue
 		if not path.is_dir():
-			log.warning(f"{path} : répertoire introuvable, ignoré pour la banque {name}")
+			log.warning(_("{path}: directory not found, ignored for bank {name}").format(path=path, name=name))
 			continue
 		for file in sound_files(path):
 			if (stop is not None) and (stop.is_set()):
@@ -218,7 +225,11 @@ def remove_outside_durations(
 		for bank, sound, name, location, duration, minimum, maximum in outside:
 			connection.execute("DELETE FROM bank_sounds WHERE bank_id = %s AND sound_id = %s", (bank, sound))
 			report.removals += 1
-			log.info(f"{location} : retiré de la banque {name}, {_outside_durations(duration, minimum, maximum)}")
+			log.info(
+				_("{location}: removed from bank {name}, {outside_durations}").format(
+					location=location, name=name, outside_durations=_outside_durations(duration, minimum, maximum)
+				)
+			)
 
 
 def _duration(value: object) -> str:
@@ -235,5 +246,9 @@ def _duration(value: object) -> str:
 def _outside_durations(duration: object, minimum: object, maximum: object) -> str:
 	"""« durée 0:30 plus courte que son minimum, 1:00 », ou « … plus longue que son maximum, 2:00 »."""
 	if (isinstance(minimum, timedelta)) and (isinstance(duration, timedelta)) and (duration < minimum):
-		return f"durée {_duration(duration)} plus courte que son minimum, {_duration(minimum)}"
-	return f"durée {_duration(duration)} plus longue que son maximum, {_duration(maximum)}"
+		return _("duration {duration} shorter than its minimum, {duration2}").format(
+			duration=_duration(duration), duration2=_duration(minimum)
+		)
+	return _("duration {duration} longer than its maximum, {duration2}").format(
+		duration=_duration(duration), duration2=_duration(maximum)
+	)

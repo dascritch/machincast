@@ -11,13 +11,13 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Pré-écoute</string>
+   <string>Pre-listen</string>
   </property>
   <layout class="QVBoxLayout" name="arrangement">
    <item>
     <widget class="QLabel" name="source">
      <property name="text">
-      <string>—</string>
+      <string notr="true">—</string>
      </property>
      <property name="textInteractionFlags">
       <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -32,26 +32,26 @@
      <item>
       <widget class="QToolButton" name="playback">
        <property name="toolTip">
-        <string>Lecture</string>
+        <string>Play</string>
        </property>
        <property name="accessibleName">
-        <string>Lecture</string>
+        <string>Play</string>
        </property>
        <property name="text">
-        <string>⏵</string>
+        <string notr="true">⏵</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QToolButton" name="stop">
        <property name="toolTip">
-        <string>Arrêt</string>
+        <string comment="preview">Stop</string>
        </property>
        <property name="accessibleName">
-        <string>Arrêt</string>
+        <string comment="preview">Stop</string>
        </property>
        <property name="text">
-        <string>⏹</string>
+        <string notr="true">⏹</string>
        </property>
       </widget>
      </item>
@@ -65,7 +65,7 @@
      <item>
       <widget class="QLabel" name="time">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
       </widget>
      </item>
@@ -99,7 +99,7 @@
       <item>
        <widget class="QLabel" name="range_">
         <property name="toolTip">
-         <string>Partie du fichier jouée à l'antenne, sans ses silences s'ils y sont retirés</string>
+         <string>Part of the file played on air, without its silences if they are removed there</string>
         </property>
         <property name="text">
          <string/>
@@ -114,20 +114,20 @@
         <item>
          <widget class="QToolButton" name="played_start">
           <property name="toolTip">
-           <string>Lire depuis le début de la partie jouée à l'antenne</string>
+           <string>Play from the start of the part played on air</string>
           </property>
           <property name="text">
-           <string>⇤ Début joué</string>
+           <string>⇤ Played start</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QToolButton" name="played_end">
           <property name="toolTip">
-           <string>Lire depuis quelques secondes avant le fondu de sortie</string>
+           <string>Play from a few seconds before the fade-out</string>
           </property>
           <property name="text">
-           <string>Fin jouée ⇥</string>
+           <string>Played end ⇥</string>
           </property>
          </widget>
         </item>
@@ -141,10 +141,10 @@
         <item>
          <widget class="QCheckBox" name="as_on_air">
           <property name="toolTip">
-           <string>Ne jouer que la partie jouée à l'antenne, avec ses fondus</string>
+           <string>Only play the part played on air, with its fades</string>
           </property>
           <property name="text">
-           <string>Écouter comme à l'antenne</string>
+           <string>Listen as on air</string>
           </property>
          </widget>
         </item>
@@ -168,14 +168,14 @@
      <item row="0" column="0">
       <widget class="QLabel" name="state_heading">
        <property name="text">
-        <string>État</string>
+        <string>State</string>
        </property>
       </widget>
      </item>
      <item row="0" column="1">
       <widget class="QLabel" name="state">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
       </widget>
      </item>
@@ -189,73 +189,73 @@
      <item row="1" column="1">
       <widget class="QLabel" name="format">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
       </widget>
      </item>
      <item row="2" column="0">
       <widget class="QLabel" name="bitrate_heading">
        <property name="text">
-        <string>Débit</string>
+        <string>Bitrate</string>
        </property>
       </widget>
      </item>
      <item row="2" column="1">
       <widget class="QLabel" name="bitrate">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
       </widget>
      </item>
      <item row="3" column="0">
       <widget class="QLabel" name="sampling_heading">
        <property name="text">
-        <string>Échantillonnage</string>
+        <string>Sampling</string>
        </property>
       </widget>
      </item>
      <item row="3" column="1">
       <widget class="QLabel" name="sampling">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
       </widget>
      </item>
      <item row="4" column="0">
       <widget class="QLabel" name="channel_heading">
        <property name="text">
-        <string>Canaux</string>
+        <string>Channels</string>
        </property>
       </widget>
      </item>
      <item row="4" column="1">
       <widget class="QLabel" name="channels">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
       </widget>
      </item>
      <item row="5" column="0">
       <widget class="QLabel" name="predecoded_heading">
        <property name="text">
-        <string>Pré-décodé</string>
+        <string>Pre-decoded</string>
        </property>
       </widget>
      </item>
      <item row="5" column="1">
       <widget class="QLabel" name="predecoded">
        <property name="toolTip">
-        <string>Son reçu et décodé d'avance, prêt à être joué</string>
+        <string>Sound received and decoded in advance, ready to be played</string>
        </property>
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
       </widget>
      </item>
      <item row="6" column="0">
       <widget class="QLabel" name="output_heading">
        <property name="text">
-        <string>Sortie</string>
+        <string>Output</string>
        </property>
        <property name="buddy">
         <cstring>output</cstring>
@@ -265,7 +265,7 @@
      <item row="6" column="1">
       <widget class="QComboBox" name="output">
        <property name="toolTip">
-        <string>Périphérique de pré-écoute, jamais celui de l'antenne</string>
+        <string>Pre-listen device, never the on-air one</string>
        </property>
       </widget>
      </item>

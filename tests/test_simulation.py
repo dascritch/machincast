@@ -30,6 +30,7 @@ from machincast.player.saving import LEVELS
 from machincast.player.simulation import Result, read_only, simulate
 from tests.broadcast_steps import Bench, Connection, create_sound, event, hour, sound
 from tests.database_fixtures import CONFIGURATION_TEST, sample_database_parameters
+from tests.log_texts import shown
 
 scenarios("simulation.feature")
 
@@ -356,7 +357,7 @@ def same_plays(context: Context) -> None:
 
 @then(parsers.re(r"la simulation a consigné (?P<count>\d+) (?P<level>info|alerte|incident) « (?P<kind>[^»]+) »"))
 def records(context: Context, count: str, level: str, kind: str) -> None:
-	lines = Counter((n, t) for n, t, _ in result(context).log)
+	lines = Counter((n, shown(t)) for n, t, _ in result(context).log)
 	in_database = {label: value for value, label in LEVELS.items()}[level]
 	assert lines[(in_database, kind)] == int(count), result(context).log
 

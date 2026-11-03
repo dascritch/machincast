@@ -19,6 +19,7 @@ from PySide6.QtCore import QModelIndex, Qt, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QTableView, QWidget
 
+from machincast.i18n import _, counted, logged, ngettext
 from machincast.interface import display
 from machincast.interface.columns import Columns
 from machincast.interface.lists import FilterWithoutAccents
@@ -29,7 +30,7 @@ log = logging.getLogger(__name__)
 
 LIMIT = 500
 """Nombre d'entrées lues au plus, les plus récentes."""
-COLUMNS = ("Horaire", "Niveau", "Nature", "Message", "Sonore", "Banque", "Événement")
+COLUMNS = (_("Time"), _("Level"), _("Kind"), _("Message"), _("Sound"), _("Bank"), _("Event"))
 LINKS = {4: "sonore", 5: "banque", 6: "événement"}
 """Colonnes qui désignent un élément, et son genre."""
 ITEM = Qt.ItemDataRole.UserRole
@@ -78,7 +79,7 @@ class IncidentScreen(QWidget):
 					(levels, LIMIT),
 				).fetchall()
 		except psycopg.Error as error:
-			log.error(f"écran des incidents illisible : {error}")
+			log.error(_("unreadable incidents screen: {error}").format(error=error))
 			return
 		self.model.setRowCount(0)
 		for timestamp, level, kind, message, *references in rows:
@@ -87,8 +88,8 @@ class IncidentScreen(QWidget):
 			cells = [
 				QStandardItem(f"{timestamp.astimezone():%Y-%m-%d %H:%M:%S}"),
 				QStandardItem(LEVELS.get(str(level), str(level))),
-				QStandardItem(str(kind)),
-				QStandardItem(str(message)),
+				QStandardItem(logged(str(kind))),
+				QStandardItem(logged(str(message))),
 				_link(sound, display.sound_name(artist, title, location, address)),
 				_link(bank, str(bank_name)),
 				_link(event, str(event_name)),
@@ -104,13 +105,15 @@ class IncidentScreen(QWidget):
 	def _count(self) -> None:
 		total = self.model.rowCount()
 		visible_list = self.proxy.rowCount()
-		text = f"{total} {_entries(total)}"
+		text = counted("{count} entry", "{count} entries", total)
 		if total == 0:
-			text = "aucune entrée"
+			text = _("no entry")
 		elif self.ui.filter_.text() != "":
-			text = f"{visible_list} {_entries(visible_list)} sur {total}"
+			text = ngettext("{count} entry out of {total}", "{count} entries out of {total}", visible_list).format(
+				count=visible_list, total=total
+			)
 		elif self._reached_limit:
-			text = f"{text}, les plus récentes"
+			text = _("{text}, the most recent").format(text=text)
 		self.ui.count.setText(text)
 
 	def _open(self, index: QModelIndex) -> None:
@@ -128,9 +131,3 @@ def _link(identifier: object, name: str) -> QStandardItem:
 	cell = QStandardItem(name)
 	cell.setData(int(str(identifier)), ITEM)
 	return cell
-
-
-def _entries(count: int) -> str:
-	if count > 1:
-		return "entrées"
-	return "entrée"

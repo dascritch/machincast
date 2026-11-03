@@ -14,6 +14,8 @@ entrée dans la table sonores. Il ne le renomme, ne le déplace, ne le remplace 
 import re
 from pathlib import Path
 
+from machincast.i18n import _
+
 INDEXED_EXTENSIONS = frozenset({".mp3", ".m4a", ".aac", ".ogg", ".flac", ".wav"})
 """Extensions des formats de la spec § 6.2, en minuscules : celles des fichiers que l'indexeur enregistre."""
 
@@ -41,7 +43,7 @@ def is_sound_file(path: Path) -> bool:
 def check_writing(path: Path) -> None:
 	"""À appeler avant d'écrire, de remplacer ou d'effacer un fichier : refuse un fichier sonore."""
 	if is_sound_file(path):
-		raise ProtectedSoundFile(f"{path} : fichier sonore protégé, MachinCast n'y écrit jamais")
+		raise ProtectedSoundFile(_("{path}: protected sound file, MachinCast never writes to it").format(path=path))
 
 
 def unjustified(text: str, bash: bool = False) -> list[tuple[int, str]]:

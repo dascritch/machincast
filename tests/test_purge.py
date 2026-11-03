@@ -25,6 +25,7 @@ from machincast.cli import create_analyser
 from machincast.clock import FixedClock
 from machincast.configuration import PROJECT_DIRECTORY, Configuration
 from tests.database_fixtures import configuration_test
+from tests.log_texts import shown
 
 scenarios("purge.feature")
 
@@ -242,7 +243,7 @@ def kept_log(empty_database: Connection, execution: Execution, date: str) -> Non
 	lines = empty_database.execute("SELECT logged_at, level::text, kind, message FROM log ORDER BY id").fetchall()
 	kept, purged = lines
 	assert kept[0] == _day(date)
-	assert purged[1:] == ("info", "purge", execution.information[-1])
+	assert (purged[1], purged[2], shown(purged[3])) == ("info", "purge", execution.information[-1])
 
 
 TABLES = {

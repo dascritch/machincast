@@ -40,6 +40,7 @@ from psycopg.types.json import Jsonb
 from machincast.configuration import SILENCE_THRESHOLD
 from machincast.conversion import duration_or_none, list_or_none
 from machincast.fingerprint import file_state, modified
+from machincast.i18n import _, decimal, ngettext
 from machincast.indexer.audit import Anomaly
 from machincast.indexer.decoding import Check, Checker, FileState, check_file
 from machincast.indexer.file_type import Kind, kind, type_mime
@@ -62,13 +63,13 @@ class SoundState(StrEnum):
 
 
 LABELS = {
-	SoundState.PREVIEW: "aperçu",
+	SoundState.PREVIEW: _("preview"),
 	SoundState.ACTIVE: "actif",
-	SoundState.DISABLED: "désactivé",
-	SoundState.EXPIRED: "expiré",
-	SoundState.CORRUPT: "erroné",
-	SoundState.UNSUPPORTED: "non supporté",
-	SoundState.DELETED: "supprimé",
+	SoundState.DISABLED: _("disabled"),
+	SoundState.EXPIRED: _("expired"),
+	SoundState.CORRUPT: _("corrupt"),
+	SoundState.UNSUPPORTED: _("unsupported"),
+	SoundState.DELETED: _("missing"),
 }
 """Libellés accentués, pour les messages et l'interface."""
 
@@ -98,9 +99,9 @@ class Report:
 	"""Les fichiers défectueux du passage, pour le document d'audit (https://github.com/dascritch/machincast/issues/11)."""
 
 
-def _grant(count: int, singular: str, plural: str) -> str:
-	"""Zéro et un s'accordent au singulier."""
-	return f"{count} {plural if count > 1 else singular}"
+def _grant(text: str, count: int) -> str:
+	"""Un nombre dans son texte, déjà accordé par ngettext : zéro et un s'accordent au singulier en français."""
+	return text.format(count=count)
 
 
 def report_text(report: Report) -> str:
@@ -110,17 +111,34 @@ def report_text(report: Report) -> str:
 	des banques (https://github.com/dascritch/machincast/issues/195) ; le nombre de
 	sonores vérifiés est celui des sonores décodés ; les autres nombres comptent les changements d'état.
 	"""
-	mode = "audit complet" if report.full_audit else "indexation rapide"
-	return (
-		f"{mode} : {_grant(report.new_list, 'nouveau sonore', 'nouveaux sonores')}, "
-		f"{_grant(report.attached_list, 'rattachement', 'rattachements')}, "
-		f"{_grant(report.removals, 'retrait', 'retraits')} ; "
-		f"{_grant(report.checked_list, 'sonore vérifié', 'sonores vérifiés')} ; "
-		f"{_grant(report.corrupt_list, 'erroné', 'erronés')}, "
-		f"{_grant(report.not_supported, 'non supporté', 'non supportés')}, "
-		f"{_grant(report.deleted_list, 'supprimé', 'supprimés')}, "
-		f"{_grant(report.restored, 'rétabli', 'rétablis')}, "
-		f"{_grant(report.exited_preview, 'sorti', 'sortis')} d'aperçu"
+	mode = _("quick indexing")
+	if report.full_audit:
+		mode = _("full audit")
+	return _("{mode}: {detail}").format(mode=mode, detail=report_detail(report))
+
+
+def report_detail(report: Report) -> str:
+	"""Le bilan sans son mode : « 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; … »."""
+	return _(
+		"{new}, {attached}, {removed}; {checked}; {corrupt}, {unsupported}, {deleted}, {restored}, {exited}"
+	).format(
+		new=_grant(ngettext("{count} new sound", "{count} new sounds", report.new_list), report.new_list),
+		attached=_grant(
+			ngettext("{count} attachment", "{count} attachments", report.attached_list), report.attached_list
+		),
+		removed=_grant(ngettext("{count} removal", "{count} removals", report.removals), report.removals),
+		checked=_grant(
+			ngettext("{count} sound checked", "{count} sounds checked", report.checked_list), report.checked_list
+		),
+		corrupt=_grant(ngettext("{count} corrupt", "{count} corrupt", report.corrupt_list), report.corrupt_list),
+		unsupported=_grant(
+			ngettext("{count} unsupported", "{count} unsupported", report.not_supported), report.not_supported
+		),
+		deleted=_grant(ngettext("{count} deleted", "{count} deleted", report.deleted_list), report.deleted_list),
+		restored=_grant(ngettext("{count} restored", "{count} restored", report.restored), report.restored),
+		exited=_grant(
+			ngettext("{count} out of preview", "{count} out of preview", report.exited_preview), report.exited_preview
+		),
 	)
 
 
@@ -140,9 +158,9 @@ def new_state(state: SoundState, verdict: FileState) -> SoundState:
 def _consequence(before: SoundState, after: SoundState) -> str:
 	if before == after:
 		if before in (SoundState.CORRUPT, SoundState.UNSUPPORTED):
-			return f"sonore toujours {LABELS[before]}"
-		return f"état {LABELS[before]} conservé"
-	return f"sonore passé {LABELS[after]}"
+			return _("sound still {labels}").format(labels=LABELS[before])
+		return _("state {labels} kept").format(labels=LABELS[before])
+	return _("sound now {labels}").format(labels=LABELS[after])
 
 
 def check_sounds(
@@ -234,7 +252,9 @@ def check_sounds(
 		# Un fichier dont le type n'est pas sonore n'est pas décodé non plus.
 		file_type = type_mime(path)
 		if (file_type is not None) and (kind(file_type) is Kind.NON_SOUND):
-			result = Check.defective(FileState.UNSUPPORTED, f"de type {file_type}, ce n'est pas un fichier sonore")
+			result = Check.defective(
+				FileState.UNSUPPORTED, _("of type {file_type}, this is not a sound file").format(file_type=file_type)
+			)
 		elif audited:
 			result = check(path, silence_threshold=silence_threshold)
 		else:
@@ -309,11 +329,18 @@ def check_sounds(
 				report.restored += 1
 		if result.state is not FileState.HEALTHY:
 			consequence = _consequence(before, after)
-			log.warning(f"{location} : {result.problem} ; {consequence}")
-			detail = str(result.problem).removeprefix(f"{result.state} : ")
-			report.anomalies.append(Anomaly(str(location), str(result.state), detail, consequence))
+			log.warning(
+				_("{location}: {problem}; {consequence}").format(
+					location=location, problem=result.problem, consequence=consequence
+				)
+			)
+			report.anomalies.append(Anomaly(str(location), _(result.state), str(result.detail), consequence))
 		else:
-			log.info(f"{location} : {_healthy(artist, title)} ; {_consequence(before, after)}")
+			log.info(
+				_("{location}: {healthy}; {consequence}").format(
+					location=location, healthy=_healthy(artist, title), consequence=_consequence(before, after)
+				)
+			)
 	if report.already_audited:
 		log.info(_already_audited(len(report.already_audited), silence_threshold))
 	return report
@@ -337,23 +364,24 @@ def already_audited(
 
 
 def threshold_text(threshold: float) -> str:
-	"""« -40 », « -55,5 » : un seuil de silence, en dB, à la française."""
-	return f"{threshold:g}".replace(".", ",")
+	"""« -40 », « -55,5 » : un seuil de silence, en dB, à la décimale de la langue : virgule en français."""
+	return decimal(f"{threshold:g}")
 
 
 def _already_audited(count: int, threshold: float) -> str:
 	"""« 2 sonores déjà audités au seuil de -40 dB, aux fichiers inchangés : non décodés ; … »."""
 	threshold_string = threshold_text(threshold)
-	if count > 1:
-		start = f"{count} sonores déjà audités au seuil de {threshold_string} dB, aux fichiers inchangés : non décodés"
-	else:
-		start = f"{count} sonore déjà audité au seuil de {threshold_string} dB, au fichier inchangé : non décodé"
-	return f"{start} ; --force décode tous les sonores"
+	start = ngettext(
+		"{count} sound already audited at the threshold of {threshold} dB, unchanged file: not decoded",
+		"{count} sounds already audited at the threshold of {threshold} dB, unchanged files: not decoded",
+		count,
+	).format(count=count, threshold=threshold_string)
+	return _("{start}; --force decodes all sounds").format(start=start)
 
 
 def _healthy(artist: object, title: object) -> str:
 	"""« sain », suivi du nom du sonore quand il en a un : « sain, Les Gaufres – Café à minuit »."""
 	name = " – ".join(str(part) for part in (artist, title) if part is not None)
 	if name == "":
-		return "sain"
-	return f"sain, {name}"
+		return _("healthy")
+	return _("healthy, {name}").format(name=name)

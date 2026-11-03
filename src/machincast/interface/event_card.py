@@ -38,6 +38,7 @@ from PySide6.QtWidgets import QBoxLayout, QDateTimeEdit, QFrame, QHBoxLayout, QL
 
 from machincast.clock import Clock
 from machincast.conformation import conform
+from machincast.i18n import _, date_and_hour
 from machincast.interface import display
 from machincast.interface.calendar import day_and_month, long_date
 from machincast.interface.card import ORANGE, Card, Connection, Refusal
@@ -48,10 +49,10 @@ from machincast.interface.ui.event_card import Ui_EventCard
 from machincast.player.grid import DAYS, NEVER, Event, Priority, overlap, read_grid
 
 PRIORITIES: tuple[tuple[str, str], ...] = (
-	("fallback", "Secours"),
-	("background_programming", "Fil musical"),
-	("show", "Émission"),
-	("special", "Spécial"),
+	("fallback", _("Fallback")),
+	("background_programming", _("Background programming")),
+	("show", _("Show")),
+	("special", _("Special")),
 )
 """Valeurs de events.priority, dans l'ordre du choix de la fiche : de la plus basse à la plus haute, comme le type
 event_priority (https://github.com/dascritch/machincast/issues/253)."""
@@ -60,19 +61,19 @@ NEW = "show"
 ENDLESS_DOES_NOT_LOOP = ("show", "special")
 """Priorités dont la liste ne boucle pas, sans fin : l'occurrence se termine au bout de sa liste."""
 HIDINGS: tuple[tuple[bool | None, str], ...] = (
-	(None, "Selon la séquence, la banque ou le sonore"),
-	(True, "Masqué par le nom public de l'événement"),
-	(False, "Affichés"),
+	(None, _("According to the sequence, the bank or the sound")),
+	(True, _("Hidden by the public name of the event")),
+	(False, _("Shown")),
 )
 """Valeurs de events.hide_metadata, dans l'ordre du choix de la fiche."""
-REPETITION = "Un sonore, une banque ou une séquence peut revenir plusieurs fois dans un événement."
+REPETITION = _("A sound, a bank or a sequence may come back several times in an event.")
 """Remarque des choix d'éléments."""
 DEFAULT_DURATION = timedelta(hours=1)
 """Écart entre le début et une fin qui se coche."""
 SESSION_OUTLINE = f"QFrame#session_sautee {{ border: 4px solid {ORANGE}; }}"
 """Le liseret d'une session sautée : un avertissement, de l'orange de ceux de la fiche."""
-REINSTATE = "Rétablir"
-STARTED = "Elle a déjà commencé : elle ne se rétablit plus."
+REINSTATE = _("Reinstate")
+STARTED = _("It has already started: it can no longer be reinstated.")
 
 
 def _show(date: QDateTimeEdit, instant: datetime) -> None:
@@ -134,10 +135,10 @@ class EventCard(Card):
 
 	def title(self) -> str:
 		if self.is_copy():
-			return f"Nouvel événement, copie de {self._name}"
+			return _("New event, copy of {name}").format(name=self._name)
 		if self.identifier is None:
-			return "Nouvel événement"
-		return f"Événement : {self._name}"
+			return _("New event")
+		return _("Event: {name}").format(name=self._name)
 
 	def _priority(self) -> str:
 		return PRIORITIES[self.ui.priority.currentIndex()][0]
@@ -198,7 +199,7 @@ class EventCard(Card):
 		self.skipped_session = QFrame(self)
 		self.skipped_session.setObjectName("skipped_session")
 		self.skipped_session.setStyleSheet(SESSION_OUTLINE)
-		self.skipped_session.setAccessibleName("Session sautée")
+		self.skipped_session.setAccessibleName(_("Skipped session"))
 		self.session_text = QLabel(self.skipped_session)
 		self.session_text.setWordWrap(True)
 		self.reinstate_session = QPushButton(REINSTATE, self.skipped_session)
@@ -235,13 +236,17 @@ class EventCard(Card):
 		if session is None:
 			self.skipped_session.hide()
 			return
-		will_play = "ne joue pas" if started(session, now) else "ne jouera pas"
+		will_play = _("will not play")
+		if started(session, now):
+			will_play = _("does not play")
 		self.session_text.setText(
-			f"La session du {long_date(session.start.date())} à {session.start:%H:%M} est sautée : elle {will_play}."
+			_("The session of {long_date} at {start:%H:%M} is skipped: it {will_play}.").format(
+				long_date=long_date(session.start.date()), start=session.start, will_play=will_play
+			)
 		)
 		self.reinstate_session.setEnabled(hindrance is None)
 		self.reinstate_session.setToolTip(
-			(hindrance) or ("Rétablir la session : elle jouera de nouveau, sans toucher aux champs de la fiche.")
+			(hindrance) or (_("Reinstate the session: it will play again, without touching the fields of the form."))
 		)
 		self.skipped_session.show()
 
@@ -253,8 +258,8 @@ class EventCard(Card):
 		if found is None:
 			return None
 		other, instant = found
-		return (
-			f"« {other.name} », de même priorité, a pris sa place le {day_and_month(instant.date())} à {instant:%H:%M}."
+		return _("“{name}”, of the same priority, took its place on {day_and_month} at {instant:%H:%M}.").format(
+			name=other.name, day_and_month=day_and_month(instant.date()), instant=instant
 		)
 
 	def _reinstate_session(self) -> None:
@@ -273,10 +278,14 @@ class EventCard(Card):
 		if session is None:
 			return
 		if hindrance is not None:
-			self.flag_error(f"Session non rétablie : {hindrance}")
+			self.flag_error(_("Session not reinstated: {hindrance}").format(hindrance=hindrance))
 			return
 		name, day = session.event.name, session.start.date()
-		self.restored_session.emit(f"Session de « {name} » du {day_and_month(day)} à {session.start:%H:%M} rétablie.")
+		self.restored_session.emit(
+			_("Session of “{name}” of {day_and_month} at {start:%H:%M} reinstated.").format(
+				name=name, day_and_month=day_and_month(day), start=session.start
+			)
+		)
 
 	def plan(self, start: datetime, end: datetime) -> None:
 		"""Les dates d'un nouvel événement demandé depuis le calendrier
@@ -327,19 +336,19 @@ class EventCard(Card):
 		ui = self.ui
 		name = conform(ui.internal_name.text())
 		if name == "":
-			raise Refusal("Le nom interne est obligatoire.", ui.internal_name)
+			raise Refusal(_("The internal name is required."), ui.internal_name)
 		taken = self.connection.execute(
 			"SELECT 1 FROM events WHERE internal_name = %s AND id IS DISTINCT FROM %s AND deleted_at IS NULL",
 			(name, self.identifier),
 		).fetchone()
 		if taken is not None:
-			raise Refusal(f"Un autre événement s'appelle déjà « {name} ».", ui.internal_name)
+			raise Refusal(_("Another event is already called “{name}”.").format(name=name), ui.internal_name)
 		priority = self._priority()
 		start, end = display.ticked_date(ui.has_start, ui.start), display.ticked_date(ui.has_end, ui.end)
 		if (priority in ENDLESS_DOES_NOT_LOOP) and (start is None):
-			raise Refusal("Une émission ou un spécial a un début.", ui.priority, ui.has_start)
+			raise Refusal(_("A show or a special has a start."), ui.priority, ui.has_start)
 		if (start is not None) and (end is not None) and (end <= start):
-			raise Refusal("La fin doit suivre le début.", ui.has_start, ui.has_end)
+			raise Refusal(_("The end must follow the start."), ui.has_start, ui.has_end)
 		days = [day_name for day_name, day in zip(DAYS, self.days, strict=True) if day.isChecked()]
 		self._refuse_overlap(name, priority, start, end, days)
 		self._refuse_designated_fallback(priority)
@@ -389,7 +398,9 @@ class EventCard(Card):
 		if found is not None:
 			other, instant = found
 			raise Refusal(
-				f"Chevauche l'événement « {other.name} », de même priorité, le {instant:%d/%m/%Y à %H:%M}.",
+				_("Overlaps the event “{name}”, of the same priority, on {date}.").format(
+					name=other.name, date=date_and_hour(instant)
+				),
 				self.ui.priority,
 				self.ui.has_start,
 				self.ui.has_end,
@@ -413,8 +424,8 @@ class EventCard(Card):
 			(self.identifier,),
 		).fetchall()
 		if streams != []:
-			names = ", ".join(f"« {stream} »" for (stream,) in streams)
+			names = ", ".join(_("“{stream}”").format(stream=stream) for (stream,) in streams)
 			raise Refusal(
-				f"Des streams ont cet événement pour secours : {names}. Il reste de priorité « Secours ».",
+				_("Streams have this event as fallback: {names}. It stays of priority “Fallback”.").format(names=names),
 				self.ui.priority,
 			)

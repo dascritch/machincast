@@ -32,10 +32,11 @@ from machincast.cli import launch
 from machincast.clock import Clock, SystemClock
 from machincast.configuration import Configuration
 from machincast.database import OutdatedSchema, Role, apply_migrations, url_yoyo
+from machincast.i18n import _, decimal, ngettext
 from machincast.protection import check_writing
 
 EXECUTABLE = "Machin_maintenance-db"
-DESCRIPTION = "Sauvegarde, vérifie et optimise la base de données de MachinCast."
+DESCRIPTION = _("Backs up, checks and optimises the MachinCast database.")
 FAILURE_CODE = 1
 BACKUPS = "sauvegardes"
 """Répertoire des sauvegardes, à côté du fichier de configuration, sauf --backups."""
@@ -45,7 +46,7 @@ ROLES: tuple[str, ...] = tuple(role.value for role in Role)
 """Les rôles que le compte doit pouvoir endosser."""
 CLOCK: Clock = SystemClock()
 """L'heure qui date les sauvegardes ; les scénarios la fixent."""
-END = "Maintenance finie : cette fenêtre reste ouverte, la fermer quand vous voulez."
+END = _("Maintenance finished: this window stays open, close it whenever you want.")
 
 # Nom explicite : lancé par son script, ce module garde le journal « machincast ».
 log = logging.getLogger("machincast.maintenance")
@@ -70,13 +71,13 @@ def back_up(configuration: Configuration, directory: Path) -> Path:
 	database = configuration.database
 	command = shutil.which("pg_dump")
 	if command is None:
-		raise BackupFailure("pg_dump introuvable, installer postgresql-client")
+		raise BackupFailure(_("pg_dump not found, install postgresql-client"))
 	timestamp = f"{CLOCK.now().astimezone():%Y-%m-%dT%H-%M-%S}"
 	file = directory / f"{database.production}-{timestamp}.dump"
-	log.info(f"sauvegarde de la base {database.production} dans {file}")
+	log.info(_("backup of database {production} into {file}").format(production=database.production, file=file))
 	check_writing(file)
 	if file.exists():
-		raise BackupFailure(f"{file} existe déjà, relancer dans une seconde")
+		raise BackupFailure(_("{file} already exists, run again in a second").format(file=file))
 	try:
 		directory.mkdir(parents=True, exist_ok=True)
 		result = subprocess.run(
@@ -91,7 +92,7 @@ def back_up(configuration: Configuration, directory: Path) -> Path:
 	if result.returncode != 0:
 		raise BackupFailure(result.stderr.strip())
 	size = file.stat().st_size / 1_000_000
-	log.info(f"sauvegarde faite : {size:.1f} Mo".replace(".", ","))
+	log.info(_("backup done: {size} MB").format(size=decimal(f"{size:.1f}")))
 	return file
 
 
@@ -100,10 +101,15 @@ def update_schema(configuration: Configuration) -> None:
 	database = configuration.database
 	count = apply_migrations(url_yoyo(database.socket, database.production), database.production)
 	if count == 0:
-		log.info(f"schéma de la base {database.production} à jour")
+		log.info(_("schema of database {production} up to date").format(production=database.production))
 		return
-	plural = "s" if count > 1 else ""
-	log.info(f"schéma de la base {database.production} : {count} migration{plural} appliquée{plural}")
+	log.info(
+		ngettext(
+			"schema of database {production}: {count} migration applied",
+			"schema of database {production}: {count} migrations applied",
+			count,
+		).format(production=database.production, count=count)
+	)
 
 
 def check_roles(connection: psycopg.Connection[tuple[object, ...]]) -> bool:
@@ -119,19 +125,21 @@ def check_roles(connection: psycopg.Connection[tuple[object, ...]]) -> bool:
 			continue
 		in_order = False
 		log.error(
-			f"rôle {role} : absent du serveur, ou non endossable par le compte ; à faire par un administrateur :"
-			f' sudo -u postgres psql -c "CREATE ROLE {role} NOLOGIN" ;'
-			f' sudo -u postgres psql -c "GRANT {role} TO {account()} WITH INHERIT FALSE, SET TRUE"'
+			_(
+				"role {role}: missing from the server, or not assumable by the account; to be done by an "
+				'administrator: sudo -u postgres psql -c "CREATE ROLE {role} NOLOGIN" ; sudo -u postgres '
+				'psql -c "GRANT {role} TO {account} WITH INHERIT FALSE, SET TRUE"'
+			).format(role=role, account=account())
 		)
 	if in_order:
-		log.info(f"rôles {', '.join(ROLES)} endossables par le compte")
+		log.info(_("roles {list} assumable by the account").format(list=", ".join(ROLES)))
 	return in_order
 
 
 def optimise(connection: psycopg.Connection[tuple[object, ...]], name: str) -> None:
 	"""VACUUM ne s'exécute pas dans une transaction : la connexion est en autocommit."""
 	connection.execute("VACUUM (ANALYZE)")
-	log.info(f"base {name} optimisée (VACUUM ANALYZE)")
+	log.info(_("database {name} optimised (VACUUM ANALYZE)").format(name=name))
 
 
 def maintain(configuration: Configuration, directory: Path) -> bool:
@@ -150,12 +158,14 @@ def own_options(analyser: argparse.ArgumentParser) -> None:
 		"--backups",
 		type=Path,
 		metavar="REPERTOIRE",
-		help=f"répertoire des sauvegardes ; par défaut « {BACKUPS} », à côté du fichier de configuration",
+		help=_("directory of the backups; by default “{backups}”, next to the configuration file").format(
+			backups=BACKUPS
+		),
 	)
 	analyser.add_argument(
 		"--keep-open",
 		action="store_true",
-		help="garde le terminal ouvert à la fin, jusqu'à sa fermeture : pour la fenêtre qu'ouvre l'interface",
+		help=_("keeps the terminal open at the end, until it is closed: for the window that the interface opens"),
 	)
 
 
@@ -175,18 +185,22 @@ def run(configuration: Configuration, options: argparse.Namespace) -> int:
 	code = FAILURE_CODE
 	try:
 		if maintain(configuration, Path(directory).expanduser()):
-			log.info("maintenance terminée")
+			log.info(_("maintenance finished"))
 			code = 0
 		else:
-			log.info("maintenance terminée, avec des anomalies")
+			log.info(_("maintenance finished, with anomalies"))
 	except BackupFailure as error:
-		log.error(f"sauvegarde impossible : {error} ; maintenance arrêtée, rien n'a été modifié")
+		log.error(_("backup impossible: {error}; maintenance stopped, nothing was changed").format(error=error))
 	except OutdatedSchema as error:
-		log.error(f"schéma impossible à mettre à jour : {error} ; la sauvegarde est faite, rien d'autre")
+		log.error(_("schema impossible to update: {error}; the backup is done, nothing else").format(error=error))
 	except psycopg.OperationalError as error:
-		log.error(f"base de données injoignable ({configuration.database.production}) : {error}")
+		log.error(
+			_("database unreachable ({production}): {error}").format(
+				production=configuration.database.production, error=error
+			)
+		)
 	except psycopg.Error as error:
-		log.error(f"erreur de base de données : {error}")
+		log.error(_("database error: {error}").format(error=error))
 	if options.keep_open:
 		stay_open()
 	return code

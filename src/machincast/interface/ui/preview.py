@@ -28,6 +28,7 @@ class Ui_PreviewWindow(object):
         self.arrangement.setObjectName(u"arrangement")
         self.source = QLabel(PreviewWindow)
         self.source.setObjectName(u"source")
+        self.source.setText(u"\u2014")
         self.source.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.source.setWordWrap(True)
 
@@ -37,11 +38,13 @@ class Ui_PreviewWindow(object):
         self.player.setObjectName(u"player")
         self.playback = QToolButton(PreviewWindow)
         self.playback.setObjectName(u"playback")
+        self.playback.setText(u"\u23f5")
 
         self.player.addWidget(self.playback)
 
         self.stop = QToolButton(PreviewWindow)
         self.stop.setObjectName(u"stop")
+        self.stop.setText(u"\u23f9")
 
         self.player.addWidget(self.stop)
 
@@ -51,6 +54,7 @@ class Ui_PreviewWindow(object):
 
         self.time = QLabel(PreviewWindow)
         self.time.setObjectName(u"time")
+        self.time.setText(u"\u2014")
 
         self.player.addWidget(self.time)
 
@@ -117,6 +121,7 @@ class Ui_PreviewWindow(object):
 
         self.state = QLabel(PreviewWindow)
         self.state.setObjectName(u"state")
+        self.state.setText(u"\u2014")
 
         self.information.setWidget(0, QFormLayout.ItemRole.FieldRole, self.state)
 
@@ -127,6 +132,7 @@ class Ui_PreviewWindow(object):
 
         self.format = QLabel(PreviewWindow)
         self.format.setObjectName(u"format")
+        self.format.setText(u"\u2014")
 
         self.information.setWidget(1, QFormLayout.ItemRole.FieldRole, self.format)
 
@@ -137,6 +143,7 @@ class Ui_PreviewWindow(object):
 
         self.bitrate = QLabel(PreviewWindow)
         self.bitrate.setObjectName(u"bitrate")
+        self.bitrate.setText(u"\u2014")
 
         self.information.setWidget(2, QFormLayout.ItemRole.FieldRole, self.bitrate)
 
@@ -147,6 +154,7 @@ class Ui_PreviewWindow(object):
 
         self.sampling = QLabel(PreviewWindow)
         self.sampling.setObjectName(u"sampling")
+        self.sampling.setText(u"\u2014")
 
         self.information.setWidget(3, QFormLayout.ItemRole.FieldRole, self.sampling)
 
@@ -157,6 +165,7 @@ class Ui_PreviewWindow(object):
 
         self.channels = QLabel(PreviewWindow)
         self.channels.setObjectName(u"channels")
+        self.channels.setText(u"\u2014")
 
         self.information.setWidget(4, QFormLayout.ItemRole.FieldRole, self.channels)
 
@@ -167,6 +176,7 @@ class Ui_PreviewWindow(object):
 
         self.predecoded = QLabel(PreviewWindow)
         self.predecoded.setObjectName(u"predecoded")
+        self.predecoded.setText(u"\u2014")
 
         self.information.setWidget(5, QFormLayout.ItemRole.FieldRole, self.predecoded)
 
@@ -199,57 +209,47 @@ class Ui_PreviewWindow(object):
     # setupUi
 
     def retranslateUi(self, PreviewWindow):
-        PreviewWindow.setWindowTitle(QCoreApplication.translate("PreviewWindow", u"Pr\u00e9-\u00e9coute", None))
-        self.source.setText(QCoreApplication.translate("PreviewWindow", u"\u2014", None))
+        PreviewWindow.setWindowTitle(QCoreApplication.translate("PreviewWindow", u"Pre-listen", None))
 #if QT_CONFIG(tooltip)
-        self.playback.setToolTip(QCoreApplication.translate("PreviewWindow", u"Lecture", None))
+        self.playback.setToolTip(QCoreApplication.translate("PreviewWindow", u"Play", None))
 #endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(accessibility)
-        self.playback.setAccessibleName(QCoreApplication.translate("PreviewWindow", u"Lecture", None))
+        self.playback.setAccessibleName(QCoreApplication.translate("PreviewWindow", u"Play", None))
 #endif // QT_CONFIG(accessibility)
-        self.playback.setText(QCoreApplication.translate("PreviewWindow", u"\u23f5", None))
 #if QT_CONFIG(tooltip)
-        self.stop.setToolTip(QCoreApplication.translate("PreviewWindow", u"Arr\u00eat", None))
+        self.stop.setToolTip(QCoreApplication.translate("PreviewWindow", u"Stop", u"preview"))
 #endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(accessibility)
-        self.stop.setAccessibleName(QCoreApplication.translate("PreviewWindow", u"Arr\u00eat", None))
+        self.stop.setAccessibleName(QCoreApplication.translate("PreviewWindow", u"Stop", u"preview"))
 #endif // QT_CONFIG(accessibility)
-        self.stop.setText(QCoreApplication.translate("PreviewWindow", u"\u23f9", None))
-        self.time.setText(QCoreApplication.translate("PreviewWindow", u"\u2014", None))
 #if QT_CONFIG(tooltip)
-        self.range_.setToolTip(QCoreApplication.translate("PreviewWindow", u"Partie du fichier jou\u00e9e \u00e0 l'antenne, sans ses silences s'ils y sont retir\u00e9s", None))
+        self.range_.setToolTip(QCoreApplication.translate("PreviewWindow", u"Part of the file played on air, without its silences if they are removed there", None))
 #endif // QT_CONFIG(tooltip)
         self.range_.setText("")
 #if QT_CONFIG(tooltip)
-        self.played_start.setToolTip(QCoreApplication.translate("PreviewWindow", u"Lire depuis le d\u00e9but de la partie jou\u00e9e \u00e0 l'antenne", None))
+        self.played_start.setToolTip(QCoreApplication.translate("PreviewWindow", u"Play from the start of the part played on air", None))
 #endif // QT_CONFIG(tooltip)
-        self.played_start.setText(QCoreApplication.translate("PreviewWindow", u"\u21e4 D\u00e9but jou\u00e9", None))
+        self.played_start.setText(QCoreApplication.translate("PreviewWindow", u"\u21e4 Played start", None))
 #if QT_CONFIG(tooltip)
-        self.played_end.setToolTip(QCoreApplication.translate("PreviewWindow", u"Lire depuis quelques secondes avant le fondu de sortie", None))
+        self.played_end.setToolTip(QCoreApplication.translate("PreviewWindow", u"Play from a few seconds before the fade-out", None))
 #endif // QT_CONFIG(tooltip)
-        self.played_end.setText(QCoreApplication.translate("PreviewWindow", u"Fin jou\u00e9e \u21e5", None))
+        self.played_end.setText(QCoreApplication.translate("PreviewWindow", u"Played end \u21e5", None))
 #if QT_CONFIG(tooltip)
-        self.as_on_air.setToolTip(QCoreApplication.translate("PreviewWindow", u"Ne jouer que la partie jou\u00e9e \u00e0 l'antenne, avec ses fondus", None))
+        self.as_on_air.setToolTip(QCoreApplication.translate("PreviewWindow", u"Only play the part played on air, with its fades", None))
 #endif // QT_CONFIG(tooltip)
-        self.as_on_air.setText(QCoreApplication.translate("PreviewWindow", u"\u00c9couter comme \u00e0 l'antenne", None))
-        self.state_heading.setText(QCoreApplication.translate("PreviewWindow", u"\u00c9tat", None))
-        self.state.setText(QCoreApplication.translate("PreviewWindow", u"\u2014", None))
+        self.as_on_air.setText(QCoreApplication.translate("PreviewWindow", u"Listen as on air", None))
+        self.state_heading.setText(QCoreApplication.translate("PreviewWindow", u"State", None))
         self.format_heading.setText(QCoreApplication.translate("PreviewWindow", u"Format", None))
-        self.format.setText(QCoreApplication.translate("PreviewWindow", u"\u2014", None))
-        self.bitrate_heading.setText(QCoreApplication.translate("PreviewWindow", u"D\u00e9bit", None))
-        self.bitrate.setText(QCoreApplication.translate("PreviewWindow", u"\u2014", None))
-        self.sampling_heading.setText(QCoreApplication.translate("PreviewWindow", u"\u00c9chantillonnage", None))
-        self.sampling.setText(QCoreApplication.translate("PreviewWindow", u"\u2014", None))
-        self.channel_heading.setText(QCoreApplication.translate("PreviewWindow", u"Canaux", None))
-        self.channels.setText(QCoreApplication.translate("PreviewWindow", u"\u2014", None))
-        self.predecoded_heading.setText(QCoreApplication.translate("PreviewWindow", u"Pr\u00e9-d\u00e9cod\u00e9", None))
+        self.bitrate_heading.setText(QCoreApplication.translate("PreviewWindow", u"Bitrate", None))
+        self.sampling_heading.setText(QCoreApplication.translate("PreviewWindow", u"Sampling", None))
+        self.channel_heading.setText(QCoreApplication.translate("PreviewWindow", u"Channels", None))
+        self.predecoded_heading.setText(QCoreApplication.translate("PreviewWindow", u"Pre-decoded", None))
 #if QT_CONFIG(tooltip)
-        self.predecoded.setToolTip(QCoreApplication.translate("PreviewWindow", u"Son re\u00e7u et d\u00e9cod\u00e9 d'avance, pr\u00eat \u00e0 \u00eatre jou\u00e9", None))
+        self.predecoded.setToolTip(QCoreApplication.translate("PreviewWindow", u"Sound received and decoded in advance, ready to be played", None))
 #endif // QT_CONFIG(tooltip)
-        self.predecoded.setText(QCoreApplication.translate("PreviewWindow", u"\u2014", None))
-        self.output_heading.setText(QCoreApplication.translate("PreviewWindow", u"Sortie", None))
+        self.output_heading.setText(QCoreApplication.translate("PreviewWindow", u"Output", None))
 #if QT_CONFIG(tooltip)
-        self.output.setToolTip(QCoreApplication.translate("PreviewWindow", u"P\u00e9riph\u00e9rique de pr\u00e9-\u00e9coute, jamais celui de l'antenne", None))
+        self.output.setToolTip(QCoreApplication.translate("PreviewWindow", u"Pre-listen device, never the on-air one", None))
 #endif // QT_CONFIG(tooltip)
         self.message.setText("")
     # retranslateUi

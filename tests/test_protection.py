@@ -24,6 +24,7 @@ from machincast.player.state import StateSocket
 from machincast.protection import ProtectedSoundFile, unjustified
 from tests.broadcast_steps import Connection
 from tests.database_fixtures import sample_database_parameters
+from tests.log_texts import shown, stored
 from tests.sounds import corrupt, sample_copy
 
 scenarios("protection.feature")
@@ -231,8 +232,8 @@ def play_count(empty_database: Connection, count: int) -> None:
 
 @then(parsers.parse("le log contient 1 alerte « {kind} », qui mentionne « {mention} »"))
 def warning(empty_database: Connection, kind: str, mention: str) -> None:
-	lines = empty_database.execute("SELECT level::text, message FROM log WHERE kind = %s", (kind,)).fetchall()
-	assert (len(lines) >= 1) and (all((n == "warning") and (mention in str(m)) for n, m in lines)), lines
+	lines = empty_database.execute("SELECT level::text, message FROM log WHERE kind = %s", (stored(kind),)).fetchall()
+	assert (len(lines) >= 1) and (all((n == "warning") and (mention in shown(m)) for n, m in lines)), lines
 
 
 @then("l'ouverture est refusée, car c'est un fichier sonore protégé")

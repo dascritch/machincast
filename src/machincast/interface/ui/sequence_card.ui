@@ -16,7 +16,7 @@
      <item row="0" column="0">
       <widget class="QLabel" name="internal_name_caption">
        <property name="text">
-        <string>&amp;Nom interne</string>
+        <string>&amp;Internal name</string>
        </property>
        <property name="buddy">
         <cstring>internal_name</cstring>
@@ -29,14 +29,14 @@
         <number>255</number>
        </property>
        <property name="placeholderText">
-        <string>Obligatoire, et propre à cette séquence</string>
+        <string>Required, and unique to this sequence</string>
        </property>
       </widget>
      </item>
      <item row="1" column="0">
       <widget class="QLabel" name="public_name_caption">
        <property name="text">
-        <string>Nom p&amp;ublic</string>
+        <string>P&amp;ublic name</string>
        </property>
        <property name="buddy">
         <cstring>public_name</cstring>
@@ -49,14 +49,14 @@
         <number>255</number>
        </property>
        <property name="placeholderText">
-        <string>Affiché à la place de l'artiste et du titre masqués ; facultatif</string>
+        <string>Shown instead of the hidden artist and title; optional</string>
        </property>
       </widget>
      </item>
      <item row="2" column="0">
       <widget class="QLabel" name="hiding_caption">
        <property name="text">
-        <string>&amp;Artiste et titre</string>
+        <string>&amp;Artist and title</string>
        </property>
        <property name="buddy">
         <cstring>hiding</cstring>
@@ -73,7 +73,7 @@
      <item>
       <widget class="QGroupBox" name="item_group">
        <property name="title">
-        <string>Éléments, dans l'ordre de passage</string>
+        <string>Elements, in the order of playing</string>
        </property>
        <layout class="QVBoxLayout" name="item_layout">
         <item>
@@ -92,17 +92,17 @@
           </property>
           <column>
            <property name="text">
-            <string>Genre</string>
+            <string comment="category">Kind</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Élément</string>
+            <string>Element</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Détail</string>
+            <string>Detail</string>
            </property>
           </column>
          </widget>
@@ -119,21 +119,21 @@
           <item>
            <widget class="QPushButton" name="add_sounds">
             <property name="text">
-             <string>➕ Ajouter des sonores…</string>
+             <string>➕ Add sounds…</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="add_banks">
             <property name="text">
-             <string>➕ Ajouter des banques…</string>
+             <string>➕ Add banks…</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="remove_item">
             <property name="text">
-             <string>➖ Retirer l'élément</string>
+             <string>➖ Remove the element</string>
             </property>
            </widget>
           </item>
@@ -147,14 +147,14 @@
           <item>
            <widget class="QPushButton" name="raise_">
             <property name="text">
-             <string>Monter</string>
+             <string>Move up</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="go_down">
             <property name="text">
-             <string>Descendre</string>
+             <string>Move down</string>
             </property>
            </widget>
           </item>
@@ -166,7 +166,7 @@
      <item>
       <widget class="QGroupBox" name="event_group">
        <property name="title">
-        <string>Événements où elle figure</string>
+        <string>Events where it appears</string>
        </property>
        <layout class="QVBoxLayout" name="event_layout">
         <item>
@@ -179,7 +179,7 @@
         <item>
          <widget class="QLabel" name="event_explanation">
           <property name="text">
-           <string>Une séquence se place dans un événement depuis la fiche de l'événement.</string>
+           <string>A sequence is placed in an event from the card of the event.</string>
           </property>
           <property name="wordWrap">
            <bool>true</bool>
@@ -196,20 +196,20 @@
      <item>
       <widget class="QPushButton" name="delete">
        <property name="text">
-        <string>❌ Supprimer…</string>
+        <string>❌ Delete…</string>
        </property>
        <property name="toolTip">
-        <string>Supprime l'élément de la base, après confirmation ; aucun fichier n'est touché.</string>
+        <string>Deletes the element from the database, after confirmation; no file is touched.</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="duplicate">
        <property name="text">
-        <string>Dupliquer</string>
+        <string>Duplicate</string>
        </property>
        <property name="toolTip">
-        <string>Ouvre une copie de l'élément dans une nouvelle fiche ; rien n'est enregistré avant « Enregistrer ».</string>
+        <string>Opens a copy of the element in a new card; nothing is saved before “Save”.</string>
        </property>
       </widget>
      </item>
@@ -223,14 +223,14 @@
      <item>
       <widget class="QPushButton" name="cancel">
        <property name="text">
-        <string>Annuler</string>
+        <string>Cancel</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="save">
        <property name="text">
-        <string>Enregistrer</string>
+        <string>Save</string>
        </property>
        <property name="default">
         <bool>true</bool>

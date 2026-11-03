@@ -17,7 +17,8 @@ pyside6-designer src/machincast/interface/ui/bank_card.ui
 
 - Un écran = un fichier `.ui` dans `src/machincast/interface/ui/`, nommé en français et en `snake_case`, comme le module qu'il produira : `bank_card.ui`, `event_card.ui`.
 - Les `objectName` des widgets sont en français et en `snake_case` (`internal_name`, `public_name`, `sound_list`), puisqu'ils deviennent des attributs Python : `self.ui.internal_name`.
-- Vocabulaire à l'écran : celui de la spécification ([§ 1](doc/fr/spec.md#1-vocabulaire)) et des [règles de l'interface](doc/fr/regles/interface.md), « banque » et jamais « playlist ».
+- Les textes de l'écran sont en anglais ; ils se traduisent par le catalogue de MachinCast ([traduire MachinCast](#traduire-machincast)). Un texte qui ne se traduit pas (un symbole, un format) se coche « non traduisible » (`notr`) ; un même mot anglais aux traductions différentes reçoit un commentaire (`comment`), qui devient son contexte.
+- Vocabulaire à l'écran : celui de la spécification ([§ 1](doc/fr/spec.md#1-vocabulaire)) et des [règles de l'interface](doc/fr/regles/interface.md), « banque » et jamais « playlist » ; en anglais, *bank*.
 - Les champs de texte courts sont limités à 255 caractères (`maxLength`), comme en base.
 - Le fichier `.ui` ne contient que la disposition. Le comportement (signaux, requêtes, validation, glisser-déposer) s'écrit en Python, dans la classe de l'écran, où il est testé avec pytest-qt.
 
@@ -73,3 +74,19 @@ disable_error_code = ["union-attr"]
 ```
 
 Garder `src/machincast/interface/ui/__init__.py`, sans quoi les modules générés ne sont pas importables.
+
+## Traduire MachinCast
+
+MachinCast écrit ses messages en anglais et les traduit par des catalogues gettext, un par langue : [`src/machincast/locale/fr/LC_MESSAGES/machincast.po`](src/machincast/locale/fr/LC_MESSAGES/machincast.po) pour le français ([#360](https://github.com/dascritch/machincast/issues/360)). Le catalogue couvre le code Python, les écrans `.ui`, le wrapper `Machin` et `install.sh` ; les règles d'écriture des messages sont dans les [règles de développement](doc/fr/regles/developpement.md#messages-et-traductions).
+
+```bash
+bin/Machin dev                          # sous-shell dans le dépôt, venv activé
+python -m machincast.catalog            # relève les messages et met à jour chaque catalogue
+python -m machincast.catalog --check    # vérifie, sans rien écrire : ce que fait language.feature
+python -m machincast.catalog --new de   # crée le catalogue d'une nouvelle langue, ici l'allemand
+```
+
+- Le `.po` se traduit avec tout éditeur de catalogues gettext (Poedit, Lokalize, Gtranslator) ou un éditeur de texte. Un message nouveau y arrive sans traduction ; une traduction existante est gardée tant que son message ne change pas.
+- Une traduction garde les champs de son message, `{count}`, `{name}`… même déplacés, et les `%s` d'un message de script dans le même ordre. Elle peut changer l'ordre des mots et s'accorder : un message au pluriel a ses deux formes (`msgstr[0]`, `msgstr[1]`), un message à contexte (`msgctxt`) une traduction par contexte.
+- Rien n'est à compiler : MachinCast lit le `.po` tel quel, et `python -m machincast.catalog` écrit à côté `machincast.bash`, la part des scripts, que le wrapper et `install.sh` chargent sans gettext. Les textes de Qt (boutons standard des fenêtres) viennent de la traduction livrée avec PySide6.
+- Une nouvelle langue est parlée dès que son catalogue existe ; une langue dont le pluriel ne suit pas la règle anglaise (`n != 1`) a sa règle dans `PLURALS` de [`machincast.i18n`](src/machincast/i18n.py).

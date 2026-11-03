@@ -87,6 +87,7 @@ from machincast import __version__
 from machincast.clock import Clock
 from machincast.configuration import Crossfades, DeadAirSettings, Metadata
 from machincast.conversion import integer_or_none, text_or_none
+from machincast.i18n import N_, _, logged
 from machincast.player.analysis import Analyser, to_analyse
 from machincast.player.engine import (
 	GUARD_DELAY,
@@ -121,15 +122,16 @@ log = logging.getLogger(__name__)
 
 PAUSE = 0.05
 NO_CROSSFADE = timedelta(0)
-EVENT_START, EVENT_END = "début d'événement", "fin d'événement"
-SEQUENCE_START, SEQUENCE_END = "début de séquence", "fin de séquence"
+EVENT_START, EVENT_END = N_("event start"), N_("event end")
+SEQUENCE_START, SEQUENCE_END = N_("sequence start"), N_("sequence end")
 """Natures, au niveau info, des débuts et des fins à l'antenne (https://github.com/dascritch/machincast/issues/153)."""
 PRIORITIES = {
-	Priority.SPECIAL: "spécial",
-	Priority.SHOW: "émission",
-	Priority.BACKGROUND_PROGRAMMING: "fil musical",
-	Priority.FALLBACK: "secours",
+	Priority.SPECIAL: N_("special"),
+	Priority.SHOW: N_("show"),
+	Priority.BACKGROUND_PROGRAMMING: N_("background programming"),
+	Priority.FALLBACK: N_("fallback"),
 }
+"""Les priorités, en anglais, dans les messages du log."""
 WITHOUT_DEFECTS = Crossfades()
 """Une configuration sans crossfades par défaut."""
 CUTOFF_HORIZON = timedelta(hours=12)
@@ -156,26 +158,26 @@ RECONNECTION_DELAY = timedelta(seconds=5)
 EXPIRY_CHECK = timedelta(minutes=1)
 """Intervalle entre deux vérifications de tous les sonores (fin de période de diffusion)."""
 
-STOPPED_STREAM = "le flux s'est arrêté avant la fin de son événement"
-DROPPED_STREAM = "flux tombé"
-FROZEN_STREAM = (
-	f"plus de son depuis {GUARD_DELAY.total_seconds():g} secondes, sans erreur du lecteur : la connexion reste"
-	" ouverte, mais plus rien n'arrive"
-)
+STOPPED_STREAM = N_("the stream stopped before the end of its event")
+DROPPED_STREAM = N_("dropped stream")
+FROZEN_STREAM = N_(
+	"no sound for {guard_delay:g} seconds, without a player error: the connection stays open, "
+	"but nothing arrives any more"
+).format(guard_delay=GUARD_DELAY.total_seconds())
 """Le message d'un stream gelé (https://github.com/dascritch/machincast/issues/278)."""
-STREAM_RESUMPTION = "reprise du flux"
-DEAD_AIR_IN_SOUND = "blanc dans un sonore"
+STREAM_RESUMPTION = N_("stream resumption")
+DEAD_AIR_IN_SOUND = N_("dead air in a sound")
 """Incident d'un sonore qui ne donne plus de son à l'antenne (https://github.com/dascritch/machincast/issues/122)."""
-BLOCKED_PLAYBACK = "lecture bloquée"
+BLOCKED_PLAYBACK = N_("blocked playback")
 """Incident d'un sonore dont le lecteur n'a pas démarré (https://github.com/dascritch/machincast/issues/281)."""
-BLOCKED_PLAYER = (
-	f"aucun son {GUARD_DELAY.total_seconds():g} secondes après son démarrage, le sonore suivant est joué"
-).replace(".", ",")
-MANUAL_INTERRUPTION = "interruption manuelle"
-IGNORED = f"{MANUAL_INTERRUPTION} ignorée"
-ADVANCED_EVENT = "événement avancé"
+BLOCKED_PLAYER = N_("no sound {guard_delay:g} seconds after its start, the next sound is played").format(
+	guard_delay=GUARD_DELAY.total_seconds()
+)
+MANUAL_INTERRUPTION = N_("manual interruption")
+IGNORED = N_("{manual_interruption} ignored").format(manual_interruption=MANUAL_INTERRUPTION)
+ADVANCED_EVENT = N_("advanced event")
 """Nature de la ligne du log d'une avance de l'événement suivant (https://github.com/dascritch/machincast/issues/257)."""
-IGNORED_ADVANCE = "avance ignorée"
+IGNORED_ADVANCE = N_("advance ignored")
 FOLLOWING_EVENT_SEARCH = timedelta(minutes=1)
 """L'événement suivant publié se cherche de nouveau au plus tard après ce délai, même si rien n'a changé."""
 
@@ -415,10 +417,14 @@ class Broadcast:
 				raise
 			except OSError as error:
 				self.history.record(
-					self.connection, "warning", "socket d'état indisponible", f"{self.state.path} : {error}", instant
+					self.connection,
+					"warning",
+					N_("state socket unavailable"),
+					N_("{path}: {error}").format(path=self.state.path, error=error),
+					instant,
 				)
 				self.state = None
-		self.history.record(self.connection, "info", "démarrage", f"Machin_player {__version__}", instant)
+		self.history.record(self.connection, "info", N_("start"), f"Machin_player {__version__}", instant)
 		self._check_expiries(instant)
 		self._publish(instant)
 
@@ -477,7 +483,7 @@ class Broadcast:
 		self.current, self.outgoing_list, self.in_waiting, self.probe, self.reserve = None, [], None, None, None
 		self.upcoming = []
 		self._note_on_air(None, instant)
-		self.history.record(self.connection, "info", "arrêt", "arrêt demandé", instant)
+		self.history.record(self.connection, "info", N_("stop"), N_("stop requested"), instant)
 		self._publish(instant, stop=True)
 		if self.state is not None:
 			self.state.shut_down()
@@ -505,15 +511,21 @@ class Broadcast:
 		instant = self.clock.now()
 		following = self.scheduler.following_event(instant)
 		if following is None:
-			log.warning(f"{IGNORED_ADVANCE} : aucun événement suivant")
+			log.warning(_("{ignored_advance}: no next event").format(ignored_advance=logged(IGNORED_ADVANCE)))
 			return False
 		if following.event.id != event:
 			expected = self._expected_name(event)
-			log.warning(f"{IGNORED_ADVANCE} : l'événement suivant est « {following.event.name} », pas {expected}")
+			log.warning(
+				_("{ignored_advance}: the next event is “{name}”, not {expected}").format(
+					ignored_advance=logged(IGNORED_ADVANCE), name=following.event.name, expected=expected
+				)
+			)
 			return False
 		self.scheduler.advance(instant)
 		assert following.start is not None
-		message = f"de l'événement « {following.event.name} », prévu le {following.start:%d/%m/%Y à %H:%M}"
+		message = N_("of the event “{name}”, planned on {start:%Y-%m-%d %H:%M}").format(
+			name=following.event.name, start=following.start
+		)
 		current = self.current
 		sound = None if current is None else current.choice.sound
 		self.history.record(
@@ -535,12 +547,12 @@ class Broadcast:
 	def _expected_name(self, event: int | None) -> str:
 		"""L'événement qu'attendait une demande d'avance, pour le journal."""
 		if event is None:
-			return "aucun"
+			return _("none")
 		with self.connection.transaction():
 			line = self.connection.execute("SELECT internal_name FROM events WHERE id = %s", (event,)).fetchone()
 		if line is None:
-			return f"l'événement n°{event}, inconnu"
-		return f"« {line[0]} »"
+			return _("event no. {event}, unknown").format(event=event)
+		return _("“{line}”").format(line=line[0])
 
 	def _the_following_event(self, instant: datetime) -> Occurrence | None:
 		"""L'événement suivant à publier, cherché de nouveau quand il a pu changer : au début d'un sonore, après une
@@ -566,22 +578,22 @@ class Broadcast:
 		instant = self.clock.now()
 		current = self.current
 		if current is None:
-			log.warning(f"{IGNORED} : rien à l'antenne")
+			log.warning(_("{ignored}: nothing on air").format(ignored=logged(IGNORED)))
 			return False
 		choice = current.choice
 		event = choice.occurrence.event
 		if (item == "sequence") and (choice.line is None):
-			log.warning(f"{IGNORED} : aucune séquence à l'antenne")
+			log.warning(_("{ignored}: no sequence on air").format(ignored=logged(IGNORED)))
 			return False
 		if (item == "event") and (event.priority is Priority.BACKGROUND_PROGRAMMING):
-			log.warning(f"{IGNORED} : le fil musical est déjà à l'antenne")
+			log.warning(_("{ignored}: the background programming is already on air").format(ignored=logged(IGNORED)))
 			return False
 		self._following = None
-		message = f"du sonore « {self._sound_name(choice.sound)} »"
+		message = N_("of the sound “{sound_name}”").format(sound_name=self._sound_name(choice.sound))
 		if item == "sequence":
-			message = f"de la séquence {self._on_air_sequence}"
+			message = N_("of the sequence {on_air_sequence}").format(on_air_sequence=self._on_air_sequence)
 		if item == "event":
-			message = f"de l'événement « {event.name} »"
+			message = N_("of the event “{name}”").format(name=event.name)
 		self.history.record(
 			self.connection,
 			"info",
@@ -616,9 +628,11 @@ class Broadcast:
 			with self.connection.transaction():
 				fallback = read_event(self.connection, event)
 		if (fallback is None) or (fallback.priority is not Priority.FALLBACK) or (fallback.deleted_at is not None):
-			log.warning(f"{IGNORED} : l'événement n°{event} n'est pas un secours")
+			log.warning(
+				_("{ignored}: event no. {event} is not a fallback").format(ignored=logged(IGNORED), event=event)
+			)
 			return False
-		return self._cut_by(fallback, None, f"par le secours « {fallback.name} »")
+		return self._cut_by(fallback, None, fallback.name)
 
 	def cut_by_feed(self, feed: int | None) -> bool:
 		"""Coupe l'antenne par le stream actif qui suit ce feed, le plus ancien
@@ -630,27 +644,35 @@ class Broadcast:
 				(feed,),
 			).fetchone()
 		if line is None:
-			log.warning(f"{IGNORED} : le feed n°{feed} n'existe pas")
+			log.warning(_("{ignored}: feed no. {feed} does not exist").format(ignored=logged(IGNORED), feed=feed))
 			return False
 		name, stream = line
 		if stream is None:
-			log.warning(f"{IGNORED} : aucun stream actif ne suit le feed « {name} »")
+			log.warning(
+				_("{ignored}: no active stream follows the feed “{name}”").format(ignored=logged(IGNORED), name=name)
+			)
 			return False
-		return self._cut_by(None, int(str(stream)), f"par le feed « {name} »")
+		return self._cut_by(None, int(str(stream)), str(name))
 
 	def _cut_by(self, fallback: Event | None, stream: int | None, by: str) -> bool:
 		"""Comme une interruption de l'événement, mais le secours ou le stream remplace la grille jusqu'à la fin de
-		l'événement coupé."""
+		l'événement coupé ; by : le nom du secours, ou celui du feed du stream."""
 		instant = self.clock.now()
 		current = self.current
 		if current is None:
-			log.warning(f"{IGNORED} : rien à l'antenne")
+			log.warning(_("{ignored}: nothing on air").format(ignored=logged(IGNORED)))
 			return False
 		event = current.choice.occurrence.event
-		cut = f"de l'événement « {event.name} »"
+		# Une phrase entière par cas, que le log traduit d'un seul gabarit.
 		if event.priority is Priority.BACKGROUND_PROGRAMMING:
-			cut = f"du fil musical « {event.name} »"
-		message = f"{cut} {by}"
+			message = N_("of the background programming “{name}” by the fallback “{by}”")
+			if fallback is None:
+				message = N_("of the background programming “{name}” by the feed “{by}”")
+		else:
+			message = N_("of the event “{name}” by the fallback “{by}”")
+			if fallback is None:
+				message = N_("of the event “{name}” by the feed “{by}”")
+		message = message.format(name=event.name, by=by)
 		self.history.record(
 			self.connection,
 			"info",
@@ -717,7 +739,9 @@ class Broadcast:
 				continue
 			if (playback.parameters.stream) and (not playback.off):
 				# Un stream n'a pas de fin : arrêté avant son extinction, il est tombé.
-				error = f"{playback.parameters.address} : {(playback.track.error) or (STOPPED_STREAM)}"
+				error = N_("{path}: {error}").format(
+					path=playback.parameters.address, error=(playback.track.error) or (STOPPED_STREAM)
+				)
 				self._finish(playback.play, instant, error=error, kind=DROPPED_STREAM)
 				self._suspend(playback, instant)
 			else:
@@ -737,7 +761,7 @@ class Broadcast:
 		self._finish(
 			current.play,
 			instant,
-			error=f"{current.parameters.location} : {BLOCKED_PLAYER}",
+			error=N_("{path}: {error}").format(path=current.parameters.location, error=BLOCKED_PLAYER),
 			kind=BLOCKED_PLAYBACK,
 		)
 		self.current = None
@@ -750,7 +774,7 @@ class Broadcast:
 		if (current is None) or (not current.parameters.stream) or (current.off) or (not current.track.frozen()):
 			return
 		current.track.cut()
-		error = f"{current.parameters.address} : {FROZEN_STREAM}"
+		error = N_("{path}: {error}").format(path=current.parameters.address, error=FROZEN_STREAM)
 		self._finish(current.play, instant, error=error, kind=DROPPED_STREAM)
 		self._suspend(current, instant)
 		self.current = None
@@ -782,12 +806,17 @@ class Broadcast:
 			return
 		if not parameters.stream:
 			current.track.cut()
-			self._finish(current.play, instant, error=f"{message}, le sonore suivant est joué", kind=DEAD_AIR_IN_SOUND)
+			self._finish(
+				current.play,
+				instant,
+				error=N_("{message}, the next sound is played").format(message=message),
+				kind=DEAD_AIR_IN_SOUND,
+			)
 			self.current = None
 			return
 		# La voie se tait, mais reste ouverte : elle sert de sonde, et reprendra l'antenne avec son son.
 		current.track.fade(0.0, NO_CROSSFADE)
-		error = f"{message}, le stream laisse l'antenne jusqu'au retour de son son"
+		error = N_("{message}, the stream leaves the on-air output until its sound comes back").format(message=message)
 		self._finish(current.play, instant, error=error, kind=DEAD_AIR_IN_SOUND)
 		self._suspend(current, instant)
 		probe = self.probe
@@ -980,14 +1009,19 @@ class Broadcast:
 			analyser.launch(sound, instant)
 		except OSError as error:
 			self.history.record(
-				self.connection, "warning", "analyse impossible", f"{location} : {error}", instant, sound=sound
+				self.connection,
+				"warning",
+				N_("analysis impossible"),
+				N_("{path}: {error}").format(path=location, error=error),
+				instant,
+				sound=sound,
 			)
 			return
 		self.history.record(
 			self.connection,
 			"info",
-			"analyse du prochain sonore",
-			f"{location} : audit complet par Machin indexer, avant sa lecture",
+			N_("analysis of the next sound"),
+			N_("{location}: full audit by Machin indexer, before its playback").format(location=location),
 			instant,
 			sound=sound,
 		)
@@ -1051,8 +1085,8 @@ class Broadcast:
 			self.history.record(
 				self.connection,
 				"info",
-				"reconnexion abandonnée",
-				f"{probe.parameters.address} : l'événement du stream n'est plus à l'antenne",
+				N_("reconnection abandoned"),
+				N_("{address}: the event of the stream is no longer on air").format(address=probe.parameters.address),
 				instant,
 				sound=probe.choice.sound,
 				event=probe.choice.occurrence.event.id,
@@ -1095,7 +1129,9 @@ class Broadcast:
 			self.connection,
 			"incident",
 			STREAM_RESUMPTION,
-			f"{probe.parameters.address} : le flux est revenu après {breakdown} s de panne",
+			N_("{address}: the stream came back after {breakdown} s of failure").format(
+				address=probe.parameters.address, breakdown=breakdown
+			),
 			instant,
 			sound=choice.sound,
 			event=choice.occurrence.event.id,
@@ -1174,7 +1210,7 @@ class Broadcast:
 		instant: datetime,
 		cut: bool = False,
 		error: str | None = None,
-		kind: str = "lecture interrompue",
+		kind: str = N_("interrupted playback"),
 	) -> None:
 		self.history.finish_play(self.connection, play, instant, cut=cut, error=error, kind=kind)
 		if self.outputs is not None:
@@ -1263,7 +1299,7 @@ class Broadcast:
 		if (previous is not None) and (previous.line is not None) and (not remainder):
 			self._note(SEQUENCE_END, self._on_air_sequence, previous, instant)
 		if (previous is not None) and (not same_occurrence):
-			self._note(EVENT_END, f"« {previous.occurrence.event.name} »", previous, instant)
+			self._note(EVENT_END, N_("“{name}”").format(name=previous.occurrence.event.name), previous, instant)
 		if choice is None:
 			return
 		if not same_occurrence:
@@ -1277,7 +1313,7 @@ class Broadcast:
 			name = str(choice.line.sequence)
 			if line is not None:
 				name = str(line[0])
-			self._on_air_sequence = f"« {name} », dans « {choice.occurrence.event.name} »"
+			self._on_air_sequence = N_("“{name}”, in “{name2}”").format(name=name, name2=choice.occurrence.event.name)
 			self._note(SEQUENCE_START, self._on_air_sequence, choice, instant)
 
 	def _note(self, kind: str, message: str, choice: Choice, instant: datetime) -> None:
@@ -1368,23 +1404,25 @@ def _announces(
 def _dead_air_message(dead_air: DeadAir, parameters: Parameters) -> str:
 	"""« <fichier> : blanc de 10 s à 1:23,4 du sonore, niveau moyen -95,2 dB » ; un stream compte depuis le début de
 	sa lecture (https://github.com/dascritch/machincast/issues/122)."""
-	level = "silence numérique"
+	level = N_("digital silence")
 	if dead_air.level is not None:
-		level = f"niveau moyen {dead_air.level:.1f} dB".replace(".", ",")
-	duration = f"{dead_air.duration.total_seconds():.1f}".replace(".", ",").removesuffix(",0")
-	ou = "du sonore"
+		level = N_("average level {level:.1f} dB").format(level=dead_air.level)
+	duration = f"{dead_air.duration.total_seconds():.1f}".removesuffix(".0")
+	ou = N_("of the sound")
 	if parameters.stream:
-		ou = "de sa lecture"
+		ou = N_("of its playback")
 	sound = (parameters.location) or (parameters.address)
-	return f"{sound} : blanc de {duration} s à {_timecode(dead_air.position)} {ou}, {level}"
+	return N_("{sound}: dead air of {duration} s at {timecode} {ou}, {level}").format(
+		sound=sound, duration=duration, timecode=_timecode(dead_air.position), ou=ou, level=level
+	)
 
 
 def _timecode(position: timedelta) -> str:
-	"""« 1:23,4 », ou « 1:02:03,4 » au-delà d'une heure : minutes, secondes et dixièmes."""
+	"""« 1:23.4 », ou « 1:02:03.4 » au-delà d'une heure : minutes, secondes et dixièmes, pour le log, en anglais."""
 	tenths = round(position.total_seconds() * 10)
 	hours, rest = divmod(tenths, 36000)
 	minutes, rest = divmod(rest, 600)
-	seconds = f"{rest // 10:02d},{rest % 10}"
+	seconds = f"{rest // 10:02d}.{rest % 10}"
 	if hours > 0:
 		return f"{hours}:{minutes:02d}:{seconds}"
 	return f"{minutes}:{seconds}"
@@ -1472,12 +1510,14 @@ def _hour(instant: datetime) -> str:
 def _on_air_event(occurrence: Occurrence) -> str:
 	"""« « Journal », émission, de 20:00 à 20:30 » ; « depuis 19:00 » sans fin, « permanent » pour un fil musical."""
 	start, end = occurrence.start, occurrence.end
-	hours = "permanent"
+	hours = N_("permanent")
 	if (start is not None) and (end is None):
-		hours = f"depuis {_hour(start)}"
+		hours = N_("since {hour}").format(hour=_hour(start))
 	if (start is not None) and (end is not None):
-		hours = f"de {_hour(start)} à {_hour(end)}"
-	return f"« {occurrence.event.name} », {PRIORITIES[occurrence.event.priority]}, {hours}"
+		hours = N_("from {hour} to {hour2}").format(hour=_hour(start), hour2=_hour(end))
+	return N_("“{name}”, {priorities}, {hours}").format(
+		name=occurrence.event.name, priorities=PRIORITIES[occurrence.event.priority], hours=hours
+	)
 
 
 def crossfade(of_sound: object, rule: object, of_the_bank: object, default: timedelta | None = None) -> timedelta:

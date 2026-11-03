@@ -63,6 +63,7 @@ from PySide6.QtWidgets import (
 )
 
 from machincast.clock import Clock
+from machincast.i18n import _
 from machincast.interface import deletion, dialogs, intents, preferences
 from machincast.interface.dialogs import Closing
 from machincast.protection import is_sound_file
@@ -80,8 +81,8 @@ INPUTS = (
 	QPlainTextEdit,
 )
 """Ce qui se modifie dans une fiche, et que la fiche d'un élément supprimé fige."""
-DELETE = intents.label(intents.DELETE, "Supprimer…")
-RESTORE = "Restaurer"
+DELETE = intents.label(intents.DELETE, _("Delete…"))
+RESTORE = _("Restore")
 REPORTED = "⚠️ "
 """Ce qui précède le libellé d'un champ en cause dans l'erreur de la fiche (https://github.com/dascritch/machincast/issues/270)."""
 RED = "#d32f2f"
@@ -126,9 +127,9 @@ class Refreshed(Enum):
 	"""Ce qu'est devenue une fiche rafraîchie."""
 
 	REREAD = "relue"
-	LEFT = "laissée telle quelle"
+	LEFT = _("left as is")
 	"""Ses modifications sont gardées : la réponse « Annuler », ou un enregistrement refusé."""
-	ERASED = "effacée"
+	ERASED = _("erased")
 	"""Son élément n'est plus en base : la fiche est à fermer, ses modifications perdues."""
 
 
@@ -203,7 +204,7 @@ class Card(QWidget):
 		self.error.setObjectName("erreur_de_la_fiche")
 		self.error.setWordWrap(True)
 		self.error.setStyleSheet(OUTLINE)
-		self.error.setAccessibleName("Erreur")
+		self.error.setAccessibleName(_("Error"))
 		self.error.hide()
 		arrangement = self.layout()
 		assert isinstance(arrangement, QBoxLayout)
@@ -212,7 +213,7 @@ class Card(QWidget):
 		self.warning.setObjectName("avertissement_de_la_fiche")
 		self.warning.setWordWrap(True)
 		self.warning.setStyleSheet(WARNING_OUTLINE)
-		self.warning.setAccessibleName("Avertissement")
+		self.warning.setAccessibleName(_("Warning"))
 		self.warning.hide()
 		arrangement.insertWidget(1, self.warning)
 		save.clicked.connect(self.save)
@@ -243,7 +244,7 @@ class Card(QWidget):
 		"""Lit l'élément en base et le montre ; la fiche n'est plus modifiée, même si la lecture a changé ses champs.
 		Une copie reste modifiée : elle n'est pas en base. Une copie dont l'original a été effacé reste telle quelle."""
 		if (self.is_copy()) and (not self._in_database(self.model)):
-			self.message.setText("L'original n'est plus en base : la copie reste telle quelle.")
+			self.message.setText(_("The original is no longer in the database: the copy stays as it is."))
 			return
 		self._read()
 		self._mark(self.is_copy())
@@ -281,8 +282,8 @@ class Card(QWidget):
 			self.flag_error(str(refusal), refusal.fields)
 			return False
 		except psycopg.Error as error:
-			log.error(f"{self.title()} : enregistrement impossible : {error}")
-			self.flag_error(f"Enregistrement impossible : {error}")
+			log.error(_("{self_}: saving impossible: {error}").format(self_=self.title(), error=error))
+			self.flag_error(_("Saving impossible: {error}").format(error=error))
 			return False
 		self.identifier = identifier
 		self.model = None
@@ -307,8 +308,8 @@ class Card(QWidget):
 			self.flag_error(str(prevented))
 			return
 		except psycopg.Error as error:
-			log.error(f"{self.title()} : restauration impossible : {error}")
-			self.flag_error(f"Restauration impossible : {error}")
+			log.error(_("{self_}: restoring impossible: {error}").format(self_=self.title(), error=error))
+			self.flag_error(_("Restoring impossible: {error}").format(error=error))
 			return
 		self.load()
 		self.saved.emit(self.identifier)
@@ -339,8 +340,8 @@ class Card(QWidget):
 		self.deleted.emit()
 
 	def _flag_impossible_deletion(self, error: psycopg.Error) -> None:
-		log.error(f"{self.title()} : suppression impossible : {error}")
-		self.flag_error(f"Suppression impossible : {error}")
+		log.error(_("{self_}: deletion impossible: {error}").format(self_=self.title(), error=error))
+		self.flag_error(_("Deletion impossible: {error}").format(error=error))
 
 	def flag_error(self, text: str, fields: tuple[QWidget, ...] = ()) -> None:
 		"""L'erreur en haut de la fiche, et ⚠️ devant le libellé de chaque champ en cause."""
@@ -405,7 +406,7 @@ class Card(QWidget):
 		if (self.identifier is not None) and (not self._in_database(self.identifier)):
 			return Refreshed.ERASED
 		if self.modified:
-			response = dialogs.confirm_closing(self, self.title(), "rafraîchir la fiche")
+			response = dialogs.confirm_closing(self, self.title(), _("refresh the card"))
 			if response is Closing.CANCEL:
 				return Refreshed.LEFT
 			if response is Closing.SAVE:
@@ -450,7 +451,11 @@ class Card(QWidget):
 	def flag_ignored(self, ignored: list[Path], reason: str, advice: str = "") -> None:
 		"""Ce que la fiche n'a pas pris d'un dépôt, et pourquoi."""
 		if ignored != []:
-			self.message.setText(f"Ignorés, {reason} : {', '.join(path.name for path in ignored)}.{advice}")
+			self.message.setText(
+				_("Ignored, {reason}: {list}.{advice}").format(
+					reason=reason, list=", ".join(path.name for path in ignored), advice=advice
+				)
+			)
 
 	def shut_down(self) -> None:
 		"""La fiche va être détruite : elle arrête ce qu'elle a lancé."""

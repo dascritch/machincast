@@ -19,6 +19,7 @@ from machincast.player.rundown import Ongoing, Scheduler, ignored_calls
 from machincast.player.saving import LEVELS
 from machincast.randomness import create_randomness
 from tests.database_fixtures import sample_database_parameters
+from tests.log_texts import stored
 
 scenarios("rundown.feature")
 
@@ -291,7 +292,7 @@ def warnings(empty_database: Connection, count: str, level: str, kind: str, even
 		"SELECT l.level::text, e.internal_name, b.internal_name FROM log l"
 		" LEFT JOIN events e ON e.id = l.event_id LEFT JOIN banks b ON b.id = l.bank_id"
 		" WHERE l.kind = %s",
-		(kind,),
+		(stored(kind),),
 	).fetchall()
 	obtained_list = [(n, e) + ((b,) if bank_name else ()) for n, e, b in lines]
 	expected = (LEVEL_IN_DATABASE[level], event) + ((bank_name,) if bank_name else ())
@@ -301,7 +302,7 @@ def warnings(empty_database: Connection, count: str, level: str, kind: str, even
 @then(parsers.re(r"le log ne contient aucune (?P<level>alerte|info) « (?P<kind>[^»]+) »"))
 def no_line(empty_database: Connection, level: str, kind: str) -> None:
 	query = "SELECT message FROM log WHERE level = %s AND kind = %s"
-	lines = empty_database.execute(query, (LEVEL_IN_DATABASE[level], kind)).fetchall()
+	lines = empty_database.execute(query, (LEVEL_IN_DATABASE[level], stored(kind))).fetchall()
 	assert lines == [], lines
 
 

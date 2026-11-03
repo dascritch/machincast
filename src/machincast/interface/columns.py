@@ -44,6 +44,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
+from machincast.i18n import _
 from machincast.protection import check_writing
 
 log = logging.getLogger(__name__)
@@ -51,11 +52,11 @@ log = logging.getLogger(__name__)
 FILE: Path | None = None
 """Le fichier des réglages des vues ; None : celui du compte, sous $XDG_CONFIG_HOME. Les tests le remplacent."""
 FILE_NAME = Path("machincast") / "vues.ini"
-REINSTATE = "Rétablir les colonnes"
+REINSTATE = _("Reset the columns")
 PROPERTY = "vue"
 """Propriété de l'en-tête qui porte le nom de sa vue."""
-EXPORT = "Exporter ce tableau…"
-CSV_FILTER = "Tableur CSV (*.csv)"
+EXPORT = _("Export this table…")
+CSV_FILTER = _("CSV spreadsheet (*.csv)")
 SEPARATOR = ";"
 """Séparateur du CSV, comme ceux de la diffusion et de l'airplay."""
 ANNOUNCEMENT_DURATION = 10000
@@ -64,7 +65,7 @@ ANNOUNCEMENT_DURATION = 10000
 
 def choose_file(parent: QWidget, offers: str) -> Path | None:
 	"""Le fichier où exporter le tableau, en .csv ; None si le choix est abandonné. Les tests le remplacent."""
-	path, _filter = QFileDialog.getSaveFileName(parent, "Exporter ce tableau", str(Path.home() / offers), CSV_FILTER)
+	path, _filter = QFileDialog.getSaveFileName(parent, _("Export this table"), str(Path.home() / offers), CSV_FILTER)
 	if path == "":
 		return None
 	return Path(path)
@@ -255,10 +256,10 @@ class Columns(QObject):
 			check_writing(path)
 			path.write_text(self.in_csv(), encoding="utf-8-sig", newline="")
 		except OSError as error:
-			log.error(f"export du tableau {self.name} impossible : {error}")
-			self._announce(f"Export impossible : {error}")
+			log.error(_("export of table {name} impossible: {error}").format(name=self.name, error=error))
+			self._announce(_("Export impossible: {error}").format(error=error))
 			return
-		self._announce(f"Tableau exporté dans {path}.")
+		self._announce(_("Table exported to {path}.").format(path=path))
 
 	def _announce(self, text: str) -> None:
 		window = self.view.window()
@@ -294,7 +295,7 @@ class Columns(QObject):
 		self._loading = True
 		try:
 			if not self.header.restoreState(arrangement):
-				log.warning(f"disposition des colonnes de la vue {self.name} illisible : oubliée")
+				log.warning(_("unreadable column layout of view {name}: forgotten").format(name=self.name))
 				return
 		finally:
 			self._loading = False

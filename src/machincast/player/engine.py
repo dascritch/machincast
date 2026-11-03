@@ -59,6 +59,7 @@ from gi.repository import Gst, GstController  # type: ignore[attr-defined]  # no
 
 from machincast.audio import ON_AIR, PLAYER, UnavailableAudioOutput, create_output  # noqa: E402
 from machincast.configuration import Audio, DeadAirSettings  # noqa: E402
+from machincast.i18n import _  # noqa: E402
 
 TrackState = Literal["prête", "en cours", "finie", "coupée", "en erreur"]
 
@@ -200,8 +201,10 @@ class Track:
 		level = Gst.ElementFactory.make("level", None)
 		if (player is None) or (volume is None) or (level is None):
 			raise UnavailableAudioOutput(
-				f"{PLAYER}, volume ou level introuvable, installer gstreamer1.0-plugins-base et"
-				" gstreamer1.0-plugins-good"
+				_(
+					"{player}, volume or level not found, install gstreamer1.0-plugins-base and "
+					"gstreamer1.0-plugins-good"
+				).format(player=PLAYER)
 			)
 		level.set_property("interval", _nanoseconds(LEVEL_MEASURE))
 		level.set_property("post-messages", True)
@@ -424,7 +427,7 @@ class Track:
 					self._measure(structure)
 				continue
 			if message.type == Gst.MessageType.ERROR:
-				error, _ = message.parse_error()
+				error, _debug = message.parse_error()
 				self.state, self.error = "en erreur", error.message
 			else:
 				self.state = "finie"

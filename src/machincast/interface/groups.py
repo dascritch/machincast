@@ -23,41 +23,36 @@ from dataclasses import dataclass
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.i18n import _, counted
 from machincast.interface.intents import ADD, REMOVE, label, without_intent
 
 Connection = psycopg.Connection[TupleRow]
-RECHECK = "La prochaine indexation, même rapide, les revérifiera en entier."
-
-
-def count(quantity: int, singular: str, plural: str) -> str:
-	"""« 1 sonore », « 2 sonores », « 0 sonore »."""
-	if quantity > 1:
-		return f"{quantity} {plural}"
-	return f"{quantity} {singular}"
+RECHECK = _("The next indexing, even quick, will check them again in full.")
 
 
 def _sounds(quantity: int) -> str:
-	return count(quantity, "sonore", "sonores")
+	"""« 1 sonore », « 2 sonores », « 0 sonore »."""
+	return counted("{count} sound", "{count} sounds", quantity)
 
 
 def _banks(quantity: int) -> str:
-	return count(quantity, "banque", "banques")
+	return counted("{count} bank", "{count} banks", quantity)
 
 
 def _names(names: list[str]) -> str:
-	return ", ".join(f"« {name} »" for name in names)
+	return ", ".join(_("“{name}”").format(name=name) for name in names)
 
 
 def _to_banks(names: list[str]) -> str:
 	if len(names) == 1:
-		return f"à la banque {_names(names)}"
-	return f"aux banques {_names(names)}"
+		return _("to bank {names}").format(names=_names(names))
+	return _("to banks {names}").format(names=_names(names))
 
 
 def _of_banks(names: list[str]) -> str:
 	if len(names) == 1:
-		return f"de la banque {_names(names)}"
-	return f"des banques {_names(names)}"
+		return _("from bank {names}").format(names=_names(names))
+	return _("from banks {names}").format(names=_names(names))
 
 
 def _identifiers(rows: list[TupleRow]) -> set[int]:
@@ -91,20 +86,20 @@ class Action:
 # ─── Sonores ───────────────────────────────────────────────
 
 
-def _change_state(state: str, done: str, facts: str) -> Callable[[Connection, list[int], list[int]], str]:
+def _change_state(state: str, done: Callable[[int], str]) -> Callable[[Connection, list[int], list[int]], str]:
 	def run(connection: Connection, sounds: list[int], _banks: list[int]) -> str:
 		changes = connection.execute(
 			"UPDATE sounds SET state = %s WHERE id = ANY(%s) AND state NOT IN ('preview', %s) RETURNING id",
 			(state, sounds, state),
 		).fetchall()
-		return f"{count(len(changes), done, facts)}."
+		return done(len(changes))
 
 	return run
 
 
 def _state_question(verb: str) -> Callable[[int, list[str]], str]:
 	def question(quantity: int, _bank_names: list[str]) -> str:
-		return f"{verb} {_sounds(quantity)} ? Un sonore en aperçu reste en aperçu."
+		return _("{verb} {sounds}? A sound in preview stays in preview.").format(verb=verb, sounds=_sounds(quantity))
 
 	return question
 
@@ -131,11 +126,10 @@ def _add(connection: Connection, sounds: list[int], banks: list[int]) -> str:
 			)
 		added_list |= set(new_list)
 		touched_list.add(bank)
-	return f"{count(len(added_list), 'sonore ajouté', 'sonores ajoutés')} {_a(len(touched_list))}."
-
-
-def _a(banks: int) -> str:
-	return f"à {count(banks, 'banque', 'banques')}"
+	return _("{sounds} {banks}.").format(
+		sounds=counted("{count} sound added", "{count} sounds added", len(added_list)),
+		banks=counted("to {count} bank", "to {count} banks", len(touched_list)),
+	)
 
 
 def _remove(connection: Connection, sounds: list[int], banks: list[int]) -> str:
@@ -153,12 +147,18 @@ def _remove(connection: Connection, sounds: list[int], banks: list[int]) -> str:
 		(touched_list,),
 	)
 	sound_count = len(_identifiers(removed_list))
-	de = f"de {count(len(touched_list), 'banque', 'banques')}"
-	return f"{count(sound_count, 'sonore retiré', 'sonores retirés')} {de}."
+	return _("{sounds} {banks}.").format(
+		sounds=counted("{count} sound removed", "{count} sounds removed", sound_count),
+		banks=counted("from {count} bank", "from {count} banks", len(touched_list)),
+	)
 
 
 def _audit_announcement(marks: int) -> str:
-	return f"Audit complet demandé pour {count(marks, 'sonore', 'sonores')}, à la prochaine indexation."
+	return counted(
+		"Full audit requested for {count} sound, at the next indexing.",
+		"Full audit requested for {count} sounds, at the next indexing.",
+		marks,
+	)
 
 
 def _ask_audit(connection: Connection, sounds: list[int], _banks: list[int]) -> str:
@@ -171,41 +171,43 @@ def _ask_audit(connection: Connection, sounds: list[int], _banks: list[int]) -> 
 def _audit_question(quantity: int, _bank_names: list[str]) -> str:
 	recheck = RECHECK
 	if quantity == 1:
-		recheck = "La prochaine indexation, même rapide, le revérifiera en entier."
-	return f"Demander l'audit complet de {_sounds(quantity)} ? {recheck}"
+		recheck = _("The next indexing, even quick, will check it again in full.")
+	return _("Request the full audit of {sounds}? {recheck}").format(sounds=_sounds(quantity), recheck=recheck)
 
 
 SOUNDS: tuple[Action, ...] = (
 	Action(
-		"activer", "Activer", _state_question("Activer"), _change_state("active", "sonore activé", "sonores activés")
+		"activer",
+		_("Enable"),
+		_state_question(_("Enable")),
+		_change_state("active", lambda n: counted("{count} sound enabled.", "{count} sounds enabled.", n)),
 	),
 	Action(
 		"desactiver",
-		"Désactiver",
-		_state_question("Désactiver"),
-		_change_state("disabled", "sonore désactivé", "sonores désactivés"),
+		_("Disable"),
+		_state_question(_("Disable")),
+		_change_state("disabled", lambda n: counted("{count} sound disabled.", "{count} sounds disabled.", n)),
 	),
 	Action(
 		"ajouter",
-		label(ADD, "Ajouter à des banques…"),
-		lambda quantity, names: (
-			f"Ajouter {_sounds(quantity)} {_to_banks(names)} ?"
-			" Un sonore déjà dans une banque n'y est pas ajouté une seconde fois."
-		),
+		label(ADD, _("Add to banks…")),
+		lambda quantity, names: _(
+			"Add {sounds} {to_banks}? A sound already in a bank is not added a second time."
+		).format(sounds=_sounds(quantity), to_banks=_to_banks(names)),
 		_add,
 		"toutes",
 	),
 	Action(
 		"retirer",
-		label(REMOVE, "Retirer de banques…"),
-		lambda quantity, names: (
-			f"Retirer {_sounds(quantity)} {_of_banks(names)} ?"
-			" Un sonore dont le fichier est dans un répertoire d'une banque y reviendra à la prochaine indexation."
-		),
+		label(REMOVE, _("Remove from banks…")),
+		lambda quantity, names: _(
+			"Remove {sounds} {of_banks}? A sound whose file is in a directory of a bank will come back "
+			"at the next indexing."
+		).format(sounds=_sounds(quantity), of_banks=_of_banks(names)),
 		_remove,
 		"leurs",
 	),
-	Action("audit", "Demander un audit complet", _audit_question, _ask_audit),
+	Action("audit", _("Request a full audit"), _audit_question, _ask_audit),
 )
 
 
@@ -226,7 +228,7 @@ def _hide(value: bool | None, state: str) -> Callable[[Connection, list[int], li
 		changed_list = connection.execute(
 			"UPDATE banks SET hide_metadata = %s WHERE id = ANY(%s) RETURNING id", (value, banks)
 		).fetchall()
-		return f"Artiste et titre {state} pour {count(len(changed_list), 'banque', 'banques')}."
+		return _("Artist and title {state} for {banks}.").format(state=state, banks=_banks(len(changed_list)))
 
 	return run
 
@@ -234,27 +236,35 @@ def _hide(value: bool | None, state: str) -> Callable[[Connection, list[int], li
 BANKS: tuple[Action, ...] = (
 	Action(
 		"audit",
-		"Demander l'audit complet de leurs sonores",
-		lambda quantity, _names: f"Demander l'audit complet des sonores de {_banks(quantity)} ? {RECHECK}",
+		_("Request the full audit of their sounds"),
+		lambda quantity, _names: _("Request the full audit of the sounds of {banks}? {recheck}").format(
+			banks=_banks(quantity), recheck=RECHECK
+		),
 		_ask_bank_audit,
 	),
 	Action(
 		"masquer",
-		"Masquer l'artiste et le titre",
-		lambda quantity, _names: f"Masquer l'artiste et le titre des sonores de {_banks(quantity)} ?",
-		_hide(True, "masqués"),
+		_("Hide the artist and the title"),
+		lambda quantity, _names: _("Hide the artist and the title of the sounds of {banks}?").format(
+			banks=_banks(quantity)
+		),
+		_hide(True, _("hidden")),
 	),
 	Action(
 		"afficher",
-		"Afficher l'artiste et le titre",
-		lambda quantity, _names: f"Afficher l'artiste et le titre des sonores de {_banks(quantity)} ?",
-		_hide(False, "affichés"),
+		_("Show the artist and the title"),
+		lambda quantity, _names: _("Show the artist and the title of the sounds of {banks}?").format(
+			banks=_banks(quantity)
+		),
+		_hide(False, _("shown")),
 	),
 	Action(
 		"heriter",
-		"Artiste et titre hérités du sonore",
-		lambda quantity, _names: f"Laisser au sonore le masquage de l'artiste et du titre de {_banks(quantity)} ?",
-		_hide(None, "hérités du sonore"),
+		_("Artist and title inherited from the sound"),
+		lambda quantity, _names: _("Leave to the sound the hiding of the artist and the title of {banks}?").format(
+			banks=_banks(quantity)
+		),
+		_hide(None, _("inherited from the sound")),
 	),
 )
 

@@ -29,8 +29,10 @@ from typing import Literal
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.i18n import N_, _, logged
+
 Level = Literal["info", "warning", "incident"]
-LEVELS = {"info": "info", "warning": "alerte", "incident": "incident"}
+LEVELS = {"info": _("info"), "warning": _("warning"), "incident": _("incident")}
 """Les niveaux du log à l'écran et dans les messages, par leur valeur en base
 (https://github.com/dascritch/machincast/issues/358)."""
 
@@ -65,7 +67,11 @@ def record(
 	n'a pas le droit de lire le log."""
 	if level != "info":
 		# Sortie privée stderr (https://github.com/dascritch/machincast/issues/19) : alertes et incidents.
-		log.warning(f"{LEVELS.get(level, level)} : {kind} : {message}")
+		log.warning(
+			_("{level}: {kind}: {message}").format(
+				level=LEVELS.get(level, level), kind=logged(kind), message=logged(message)
+			)
+		)
 	with connection.transaction():
 		connection.execute(
 			"INSERT INTO log (logged_at, level, kind, message, sound_id, bank_id, event_id)"
@@ -128,7 +134,7 @@ def finish_play(
 	instant: datetime,
 	cut: bool = False,
 	error: str | None = None,
-	kind: str = "lecture interrompue",
+	kind: str = N_("interrupted playback"),
 ) -> None:
 	"""Ligne de fin d'un passage, avec la durée diffusée ; une coupure ou une erreur est aussi consignée au log,
 	l'erreur en incident de la nature donnée."""
@@ -138,4 +144,4 @@ def finish_play(
 		if error is not None:
 			record(connection, "incident", kind, error, instant, **references)
 		elif cut:
-			record(connection, "info", "coupure nette", "début d'un événement", instant, **references)
+			record(connection, "info", N_("clean cut"), N_("start of an event"), instant, **references)

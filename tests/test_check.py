@@ -14,6 +14,7 @@ import gi
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from machincast.i18n import _
 from machincast.indexer import decoding
 from machincast.indexer.decoding import Check, FileState, UnavailableDecoder, check_file
 from tests.database_fixtures import sample_configuration_path
@@ -206,7 +207,8 @@ def measured_duration(result: Check, expected: str, margin: str) -> None:
 @then(parsers.parse("le fichier est déclaré {verdict}"))
 def is_declared(result: Check, verdict: str) -> None:
 	assert isinstance(result, Check), result
-	assert result.state == verdict, f"{result.state} : {result.problem}"
+	# Le verdict en base est anglais ; il se montre traduit (https://github.com/dascritch/machincast/issues/360).
+	assert _(result.state) == verdict, f"{result.state} : {result.problem}"
 	assert (result.problem is not None) and (result.problem.startswith(verdict))
 
 

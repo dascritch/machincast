@@ -36,6 +36,7 @@ class Ui_List(object):
 
         self.count = QLabel(List)
         self.count.setObjectName(u"count")
+        self.count.setText(u"\u2014")
 
         self.banner.addWidget(self.count)
 
@@ -72,10 +73,9 @@ class Ui_List(object):
     # setupUi
 
     def retranslateUi(self, List):
-        self.filter_.setPlaceholderText(QCoreApplication.translate("List", u"Filtrer\u2026", None))
-        self.count.setText(QCoreApplication.translate("List", u"\u2014", None))
+        self.filter_.setPlaceholderText(QCoreApplication.translate("List", u"Filter\u2026", None))
 #if QT_CONFIG(tooltip)
-        self.add_files.setToolTip(QCoreApplication.translate("List", u"Les fichiers sont r\u00e9f\u00e9renc\u00e9s l\u00e0 o\u00f9 ils sont, sans copie, et v\u00e9rifi\u00e9s aussit\u00f4t ; on peut aussi les d\u00e9poser sur la liste.", None))
+        self.add_files.setToolTip(QCoreApplication.translate("List", u"The files are referenced where they are, without a copy, and checked at once; they can also be dropped on the list.", None))
 #endif // QT_CONFIG(tooltip)
         pass
     # retranslateUi

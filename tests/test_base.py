@@ -337,7 +337,9 @@ def without_percent() -> None:
 		for path in files
 		if path.name != "test_base.py"
 		for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
-		if FORMATTING_PERCENT.search(line)
+		# Les messages d'argparse du catalogue (machincast.i18n.ARGPARSE), marqués N_, qu'argparse formate lui-même
+		# (https://github.com/dascritch/machincast/issues/360).
+		if (FORMATTING_PERCENT.search(line)) and ("N_(" not in line)
 	]
 	assert not faults, "utiliser une f-string, jamais la notation % :\n" + "\n".join(faults)
 

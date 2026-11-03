@@ -42,7 +42,7 @@ sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincas
 
 # Qualité
 ruff check . && ruff format --check . && mypy --strict src/
-shellcheck -x install.sh bin/Machin bash-completion/Machin tests/wrapper/*.bash tests/wrapper/*.bats
+shellcheck -x install.sh bin/Machin bin/i18n.bash bash-completion/Machin tests/wrapper/*.bash tests/wrapper/*.bats
 
 # Tests : configuration tests/configuration-test.toml, ou celle désignée par MACHINCAST_CONFIG_TEST
 # (les scénarios de base de données sont ignorés si PostgreSQL est injoignable)

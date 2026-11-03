@@ -22,6 +22,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from machincast import __version__
+from machincast.i18n import _, counted, pgettext
 
 log = logging.getLogger(__name__)
 
@@ -99,7 +100,9 @@ def _git(drop: Path, *arguments: str) -> str | None:
 			timeout=GIT_DELAY,
 		).stdout.strip()
 	except (OSError, subprocess.SubprocessError) as error:
-		log.debug(f"git {' '.join(arguments)} impossible dans {drop} : {error}")
+		log.debug(
+			_("git {list} impossible in {drop}: {error}").format(list=" ".join(arguments), drop=drop, error=error)
+		)
 		return None
 
 
@@ -113,7 +116,7 @@ def installation(drop: Path) -> Installation | None:
 		instant, commit = output.split("\t")
 		last = datetime.fromisoformat(instant)
 	except ValueError as error:
-		log.warning(f"date du dernier commit illisible dans {drop} : {error}")
+		log.warning(_("unreadable date of the last commit in {drop}: {error}").format(drop=drop, error=error))
 		return None
 	# « v0.9.0-3-g1a2b3c4 » : 3 modifications depuis le tag ; aucune sortie sans lui.
 	description = (_git(drop, "describe", "--tags", "--long", "--match", f"v{__version__}")) or ("")
@@ -133,9 +136,7 @@ def last_change(drop: Path) -> datetime | None:
 
 
 def _changes(count: int) -> str:
-	if count == 1:
-		return "1 modification"
-	return f"{count} modifications"
+	return counted("{count} change", "{count} changes", count)
 
 
 def text() -> str:
@@ -145,21 +146,24 @@ def text() -> str:
 	published = of_the_version()
 	if installed is None:
 		if published is not None:
-			return f"MachinCast {__version__}, publiée le {published.published_at:%Y-%m-%d}."
-		return (
-			f"MachinCast {__version__}, date de dernière modification inconnue : l'installation n'est pas un dépôt git."
+			return _("MachinCast {version}, published on {published_at:%Y-%m-%d}.").format(
+				version=__version__, published_at=published.published_at
+			)
+		return _("MachinCast {version}, date of last change unknown: the installation is not a git repository.").format(
+			version=__version__
 		)
-	last = f"{installed.last.astimezone():%Y-%m-%d à %H:%M}"
+	last = pgettext("version date", "{last:%Y-%m-%d at %H:%M}").format(last=installed.last.astimezone())
 	if installed.since_release is None:
-		return f"MachinCast {__version__}, dernière modification le {last}."
-	day = "date inconnue"
+		return _("MachinCast {version}, last change on {last}.").format(version=__version__, last=last)
+	day = _("unknown date")
 	if published is not None:
 		day = f"{published.published_at:%Y-%m-%d}"
 	if installed.since_release == 0:
-		return f"MachinCast {__version__}, publiée le {day}, commit {installed.commit}."
-	return (
-		f"MachinCast {__version__}, publiée le {day}, plus {_changes(installed.since_release)}, la dernière"
-		f" le {last}, commit {installed.commit}."
+		return _("MachinCast {version}, published on {day}, commit {commit}.").format(
+			version=__version__, day=day, commit=installed.commit
+		)
+	return _("MachinCast {version}, published on {day}, plus {changes}, the last on {last}, commit {commit}.").format(
+		version=__version__, day=day, changes=_changes(installed.since_release), last=last, commit=installed.commit
 	)
 
 

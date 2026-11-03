@@ -16,6 +16,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.configuration import SILENCE_THRESHOLD
+from machincast.i18n import _
 from machincast.indexer.check import Report, check_sounds
 from machincast.indexer.decoding import Checker, check_file
 from machincast.indexer.directories import attach_in_waiting, index_directories, remove_outside_durations
@@ -50,7 +51,7 @@ def index(
 		taken = connection.execute("SELECT pg_try_advisory_lock(%s)", (LOCK,)).fetchone()
 	assert taken is not None
 	if not taken[0]:
-		raise OngoingIndexing("une autre indexation est en cours sur cette base")
+		raise OngoingIndexing(_("another indexing is running on this database"))
 	try:
 		report = Report(full_audit=full_audit)
 		scan = index_directories(connection, report, stop)

@@ -14,6 +14,7 @@ from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import QGroupBox, QVBoxLayout, QWidget
 
+from machincast.i18n import _
 from machincast.interface import columns
 
 EXPANDED, COLLAPSED = "▾", "▸"
@@ -67,7 +68,7 @@ def make_expandable(group: QGroupBox, expanded: bool = False, retain: Retain | N
 	external.addWidget(content)
 	group.setProperty(TITLE, group.title())
 	group.setFocusPolicy(Qt.FocusPolicy.TabFocus)
-	group.setToolTip("Cliquer sur le titre pour déplier ou replier")
+	group.setToolTip(_("Click on the title to expand or collapse"))
 	group.installEventFilter(_Title(group, retain))
 	display(group, expanded)
 

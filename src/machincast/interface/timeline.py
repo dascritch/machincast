@@ -48,6 +48,7 @@ from PySide6.QtGui import (  # noqa: E402
 from PySide6.QtWidgets import QSizePolicy, QToolTip, QWidget  # noqa: E402
 
 from machincast.configuration import Crossfades  # noqa: E402
+from machincast.i18n import _, decimal  # noqa: E402
 from machincast.interface import states  # noqa: E402
 from machincast.player.broadcast import crossfade  # noqa: E402
 from machincast.player.engine import envelope  # noqa: E402
@@ -70,19 +71,19 @@ STEP_WITHOUT_DURATION = 0.05
 """Secondes d'une mesure, quand la durée du fichier n'est pas connue."""
 HEIGHT = 72
 """Points de la frise en hauteur."""
-UNAVAILABLE = "Forme d'onde indisponible :"
+UNAVAILABLE = _("Waveform unavailable:")
 LEGEND_MARGIN = 6
 """Points autour du texte de la légende, sur son fond."""
 SLIDER_SOCKET_JACK = 6
 """Points de part et d'autre d'un curseur où la souris le prend."""
-SLIDER_NAMES = {"debut": "Début", "fin": "Fin"}
+SLIDER_NAMES = {"debut": _("Start"), "fin": _("End")}
 """Points autour du texte de la légende, sur son fond."""
 Hatching = Literal["pleines", "pâles", "aucune"]
 
 
 def seconds(value: float) -> str:
 	"""« 0,50 s »."""
-	return f"{value:.2f} s".replace(".", ",")
+	return decimal(f"{value:.2f} s")
 
 
 def instant(value: float) -> str:
@@ -187,30 +188,34 @@ class Plan:
 	def areas(self) -> list[Area]:
 		"""Les silences et les fondus, dans l'ordre du fichier : silence de début, fondus, silence de fin."""
 		hatching: Hatching = "pâles"
-		sort = "joué à l'antenne"
+		sort = _("played on air")
 		if self.trims():
-			hatching, sort = "pleines", "retiré à l'antenne"
+			hatching, sort = "pleines", _("removed on air")
 		areas: list[Area] = []
 		if (self.start_silence is not None) and (self.start_silence > 0):
-			text = f"Silence de début : {seconds(self.start_silence)}, {sort}"
-			areas.append(Area("silence de début", 0.0, self.start_silence, hatching, text))
+			text = _("Start silence: {seconds}, {sort}").format(seconds=seconds(self.start_silence), sort=sort)
+			areas.append(Area(_("start silence"), 0.0, self.start_silence, hatching, text))
 		entry, output = self.fades()
 		if entry is not None:
-			text = (
-				f"Crossfade de début : {seconds(self.start_crossfade)}{_origin(self.start_origin)},"
-				f"{self._position(self.entry_position, 'au début détecté')}"
-				" montée si le sonore précédent a un crossfade de fin"
+			text = _(
+				"Start crossfade: {seconds}{origin},{position} rising if the previous sound has an end crossfade"
+			).format(
+				seconds=seconds(self.start_crossfade),
+				origin=_origin(self.start_origin),
+				position=self._position(self.entry_position, _("at the detected start")),
 			)
-			areas.append(Area("fondu d'entrée", entry[0], entry[1], "aucune", text))
+			areas.append(Area(_("fade in"), entry[0], entry[1], "aucune", text))
 		if output is not None:
-			text = f"Crossfade de fin : {seconds(self.end_crossfade)}{_origin(self.end_origin)}"
-			position = self._position(self.output_position, "à la fin détectée")
+			text = _("End crossfade: {seconds}{origin}").format(
+				seconds=seconds(self.end_crossfade), origin=_origin(self.end_origin)
+			)
+			position = self._position(self.output_position, _("at the detected end"))
 			if position != "":
 				text = f"{text},{position.rstrip(',')}"
-			areas.append(Area("fondu de sortie", output[0], output[1], "aucune", text))
+			areas.append(Area(_("fade out"), output[0], output[1], "aucune", text))
 		if (self.end_silence is not None) and (self.end_silence > 0):
-			text = f"Silence de fin : {seconds(self.end_silence)}, {sort}"
-			areas.append(Area("silence de fin", self.duration - self.end_silence, self.duration, hatching, text))
+			text = _("End silence: {seconds}, {sort}").format(seconds=seconds(self.end_silence), sort=sort)
+			areas.append(Area(_("end silence"), self.duration - self.end_silence, self.duration, hatching, text))
 		return areas
 
 	def _position(self, position: Position, ou: str) -> str:
@@ -222,9 +227,11 @@ class Plan:
 	def summary(self) -> str:
 		"""« Joué à l'antenne : 0:00,50 → 0:01,50 (0:01,00) », et si ses silences n'ont jamais été mesurés, le dire."""
 		de, a = self.part()
-		text = f"Joué à l'antenne : {instant(de)} → {instant(a)} ({instant(a - de)})"
+		text = _("Played on air: {instant} → {instant2} ({instant3})").format(
+			instant=instant(de), instant2=instant(a), instant3=instant(a - de)
+		)
 		if not self.audited:
-			text = f"{text} · silences jamais mesurés"
+			text = _("{text} · silences never measured").format(text=text)
 		return text
 
 	def start_marker(self) -> float:
@@ -283,13 +290,13 @@ WITHOUT_BANK = BankRule()
 def crossfade_origin(of_sound: timedelta | None, bank: BankRule, default: timedelta | None) -> str | None:
 	"""D'où vient le crossfade que retient machincast.player.broadcast.crossfade, dans le même ordre."""
 	if bank.rule == "forced":
-		return "imposé par la banque"
+		return _("imposed by the bank")
 	if of_sound is not None:
 		return None
 	if bank.rule == "default":
-		return "de la banque"
+		return _("from the bank")
 	if default is not None:
-		return "défaut"
+		return _("default")
 	return None
 
 
@@ -411,12 +418,12 @@ class WaveShape:
 	def start(self) -> None:
 		"""Lance le décodage, sans l'attendre."""
 		if not self.path.is_file():
-			self._fail(f"fichier introuvable, {self.path}")
+			self._fail(_("file not found, {path}").format(path=self.path))
 			return
 		pipeline = Gst.parse_launch("uridecodebin name=source ! audioconvert ! level name=niveau ! fakesink sync=false")
 		assert isinstance(pipeline, Gst.Bin)
 		source, level = pipeline.get_by_name("source"), pipeline.get_by_name("niveau")
-		assert (source is not None) and (level is not None), "installer gstreamer1.0-plugins-base et -good"
+		assert (source is not None) and (level is not None), _("install gstreamer1.0-plugins-base and -good")
 		source.set_property("uri", Gst.filename_to_uri(str(self.path)))
 		level.set_property("interval", round(self.step * Gst.SECOND))
 		level.set_property("post-messages", True)
@@ -543,10 +550,10 @@ class Timeline(QWidget):
 		self.setMinimumHeight(HEIGHT)
 		self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 		self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-		self.setAccessibleName("Frise du fichier")
+		self.setAccessibleName(_("File timeline"))
 		if interactive:
 			self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-			self.setAccessibleName("Position dans le fichier")
+			self.setAccessibleName(_("Position in the file"))
 		self.setAttribute(Qt.WidgetAttribute.WA_Hover)
 		# La souris change d'allure au-dessus d'un curseur, même sans bouton enfoncé.
 		self.setMouseTracking(True)

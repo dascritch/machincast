@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Indexation</string>
+   <string>Indexing</string>
   </property>
   <layout class="QVBoxLayout" name="arrangement">
    <item>
@@ -39,7 +39,7 @@
      <item>
       <widget class="QPushButton" name="shut_down">
        <property name="text">
-        <string>Fermer</string>
+        <string>Close</string>
        </property>
       </widget>
      </item>

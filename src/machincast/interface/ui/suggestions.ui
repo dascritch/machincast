@@ -3,7 +3,7 @@
  <class>SuggestionsWindow</class>
  <widget class="QDialog" name="SuggestionsWindow">
   <property name="windowTitle">
-   <string>Pour bien démarrer</string>
+   <string>Getting started</string>
   </property>
   <property name="modal">
    <bool>true</bool>
@@ -12,13 +12,13 @@
    <item>
     <widget class="QGroupBox" name="sound_cards_group">
      <property name="title">
-      <string>Cartes son</string>
+      <string>Sound cards</string>
      </property>
      <layout class="QVBoxLayout" name="sound_cards_layout">
       <item>
        <widget class="QLabel" name="sound_cards_explanation">
         <property name="text">
-         <string>Choisissez d'abord la carte son de l'antenne, puis celle de la pré-écoute. « Tester » joue 2 secondes de son de test sur la carte de sa ligne : sur celle de l'antenne, il part à l'antenne.</string>
+         <string>First choose the on-air sound card, then the pre-listen one. “Test” plays 2 seconds of test sound on the card of its line: on the on-air one, it goes on air.</string>
         </property>
         <property name="wordWrap">
          <bool>true</bool>
@@ -31,7 +31,7 @@
    <item>
     <widget class="QLabel" name="explanation">
      <property name="text">
-      <string>Il manque de quoi démarrer l'antenne. Cochez ce que MachinCast doit créer : les banques restent à remplir, depuis leur fiche ou par l'indexation de leurs répertoires.</string>
+      <string>Something is missing to start the on-air output. Tick what MachinCast must create: the banks remain to be filled, from their card or by the indexing of their directories.</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
@@ -48,7 +48,7 @@
    <item>
     <widget class="QCheckBox" name="more_offer">
      <property name="text">
-      <string>&amp;Ne plus proposer au lancement</string>
+      <string>&amp;Do not offer at launch again</string>
      </property>
     </widget>
    </item>

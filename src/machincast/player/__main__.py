@@ -20,6 +20,7 @@ from machincast.cli import INVALID_CONFIGURATION_CODE, launch
 from machincast.clock import SystemClock
 from machincast.configuration import Configuration
 from machincast.database import Role, open_connection
+from machincast.i18n import _, counted
 from machincast.player.analysis import Analyser, analysis_command
 from machincast.player.broadcast import Broadcast, air, install_stop
 from machincast.player.engine import AudioEngine
@@ -29,7 +30,7 @@ from machincast.player.state import BusyStateSocket, StateSocket
 from machincast.randomness import create_randomness
 
 EXECUTABLE = "Machin_player"
-DESCRIPTION = "Lit les événements programmés et les diffuse sur la sortie audio configurée."
+DESCRIPTION = _("Reads the programmed events and broadcasts them on the configured audio output.")
 
 FAILURE_CODE = 1
 
@@ -43,37 +44,42 @@ def instant(text: str) -> datetime:
 		return datetime.fromisoformat(text).astimezone()
 	except ValueError:
 		raise argparse.ArgumentTypeError(
-			f"date invalide : « {text} », attendu par exemple « 2026-10-20 20:00 »"
+			_("invalid date: “{text}”, expected for instance “2026-10-20 20:00”").format(text=text)
 		) from None
 
 
 def output_name(text: str) -> str:
 	if (not text) or ("/" in text) or (text.startswith(".")):
-		raise argparse.ArgumentTypeError(f"nom invalide : « {text} », sans « / » et sans point au début")
+		raise argparse.ArgumentTypeError(
+			_("invalid name: “{text}”, without “/” and without a dot at the start").format(text=text)
+		)
 	return text
 
 
 def own_options(analyser: argparse.ArgumentParser) -> None:
-	simulation = analyser.add_argument_group("simulation (https://github.com/dascritch/machincast/issues/21)")
+	simulation = analyser.add_argument_group(_("simulation (https://github.com/dascritch/machincast/issues/21)"))
 	simulation.add_argument(
 		"--simulation",
 		nargs=2,
 		type=instant,
 		metavar=("DEBUT", "FIN"),
-		help="simule la diffusion entre ces deux dates et heures, sans son et sans écrire en base",
+		help=_(
+			"simulates the broadcast between these two dates and times, without sound and without "
+			"writing to the database"
+		),
 	)
-	simulation.add_argument("--seed", type=int, metavar="N", help="graine du hasard, pour un résultat reproductible")
+	simulation.add_argument("--seed", type=int, metavar="N", help=_("random seed, for a reproducible result"))
 	simulation.add_argument(
 		"--name",
 		type=output_name,
 		metavar="NOM",
-		help="nom des sorties .csv, .pls et .html de la simulation (par défaut : simulation-DEBUT-FIN)",
+		help=_("name of the .csv, .pls and .html outputs of the simulation (by default: simulation-START-END)"),
 	)
 	simulation.add_argument(
 		"--directory",
 		type=Path,
 		metavar="REPERTOIRE",
-		help="répertoire des sorties de la simulation (par défaut : celui de outputs.csv de la configuration)",
+		help=_("directory of the outputs of the simulation (by default: the one of outputs.csv of the configuration)"),
 	)
 
 
@@ -81,7 +87,7 @@ def run(configuration: Configuration, options: argparse.Namespace) -> int:
 	if options.simulation is not None:
 		return run_simulation(configuration, options)
 	if (options.seed is not None) or (options.name is not None) or (options.directory is not None):
-		log.error("--seed, --name et --directory ne s'emploient qu'avec --simulation")
+		log.error(_("--seed, --name and --directory are only used with --simulation"))
 		return INVALID_CONFIGURATION_CODE
 	return run_broadcast(configuration)
 
@@ -89,7 +95,7 @@ def run(configuration: Configuration, options: argparse.Namespace) -> int:
 def run_simulation(configuration: Configuration, options: argparse.Namespace) -> int:
 	start, end = options.simulation
 	if end <= start:
-		log.error("période de simulation invalide : la fin doit suivre le début")
+		log.error(_("invalid simulation period: the end must follow the start"))
 		return INVALID_CONFIGURATION_CODE
 	database = configuration.database
 	directory = configuration.outputs.csv.parent
@@ -108,22 +114,29 @@ def run_simulation(configuration: Configuration, options: argparse.Namespace) ->
 				configuration.crossfades,
 			)
 	except psycopg.OperationalError as error:
-		log.error(f"base de données injoignable ({database.production} par {database.socket}) : {error}")
+		log.error(
+			_("database unreachable ({production} through {socket}): {error}").format(
+				production=database.production, socket=database.socket, error=error
+			)
+		)
 		return FAILURE_CODE
 	except psycopg.Error as error:
-		log.error(f"erreur de base de données : {error}")
+		log.error(_("database error: {error}").format(error=error))
 		return FAILURE_CODE
 	except OSError as error:
-		log.error(f"sorties de la simulation impossibles à écrire : {error}")
+		log.error(_("outputs of the simulation impossible to write: {error}").format(error=error))
 		return FAILURE_CODE
 	anomalies = sum(1 for level, _, _ in result.log if level != "info")
 	name = (options.name) or (default_name(start, end))
 	log.info(
-		f"simulation {name} : {len(result.plays)} passage(s), {anomalies} alerte(s) ou incident(s),"
-		" rien n'a été écrit en base"
+		_("simulation {name}: {plays}, {anomalies}, nothing was written to the database").format(
+			name=name,
+			plays=counted("{count} play", "{count} plays", len(result.plays)),
+			anomalies=counted("{count} alert or incident", "{count} alerts or incidents", anomalies),
+		)
 	)
 	for path in (result.files) or (()):
-		log.info(f"sortie : {path}")
+		log.info(_("output: {path}").format(path=path))
 	return 0
 
 
@@ -133,8 +146,10 @@ def run_broadcast(configuration: Configuration) -> int:
 	if audio.to_fill_in_on_air():
 		# Le périphérique par défaut pourrait être celui de la pré-écoute, ou changer avec un branchement.
 		log.error(
-			f"périphérique de l'antenne non renseigné : le donner dans audio.device de {configuration.path},"
-			" ou dans Fichier → Préférences… de Machin interface, page Audio"
+			_(
+				"on-air device not filled in: give it in audio.device of {path}, or in File → Preferences… "
+				"of Machin interface, Audio page"
+			).format(path=configuration.path)
 		)
 		return INVALID_CONFIGURATION_CODE
 	stop = install_stop()
@@ -145,10 +160,11 @@ def run_broadcast(configuration: Configuration) -> int:
 				on_air_output, on_air_device = audio.on_air()
 				device = ""
 				if on_air_device is not None:
-					device = f", périphérique {on_air_device}"
+					device = _(", device {on_air_device}").format(on_air_device=on_air_device)
 				log.info(
-					f"diffusion sur la sortie {on_air_output}{device},"
-					f" configuration {configuration.path}, arrêt par Ctrl-C ou SIGTERM"
+					_(
+						"broadcast on output {on_air_output}{device}, configuration {path}, stop with Ctrl-C or SIGTERM"
+					).format(on_air_output=on_air_output, device=device, path=configuration.path)
 				)
 				broadcast = Broadcast(
 					connection,
@@ -165,18 +181,22 @@ def run_broadcast(configuration: Configuration) -> int:
 			finally:
 				engine.shut_down()
 	except psycopg.OperationalError as error:
-		log.error(f"base de données injoignable ({database.production} par {database.socket}) : {error}")
+		log.error(
+			_("database unreachable ({production} through {socket}): {error}").format(
+				production=database.production, socket=database.socket, error=error
+			)
+		)
 		return FAILURE_CODE
 	except psycopg.Error as error:
-		log.error(f"erreur de base de données : {error}")
+		log.error(_("database error: {error}").format(error=error))
 		return FAILURE_CODE
 	except BusyStateSocket as error:
-		log.error(f"diffusion refusée : {error}")
+		log.error(_("broadcast refused: {error}").format(error=error))
 		return FAILURE_CODE
 	except UnavailableAudioOutput as error:
-		log.error(f"sortie audio indisponible : {error}")
+		log.error(_("audio output unavailable: {error}").format(error=error))
 		return FAILURE_CODE
-	log.info("diffusion arrêtée")
+	log.info(_("broadcast stopped"))
 	return 0
 
 

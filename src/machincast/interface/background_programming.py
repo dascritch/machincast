@@ -10,7 +10,9 @@ premier libre parmi « Fil musical 2 », « Fil musical 3 »…
 import psycopg
 from psycopg.rows import TupleRow
 
-NAME = "Fil musical"
+from machincast.i18n import _
+
+NAME = _("Background programming")
 
 
 def guarantee(connection: psycopg.Connection[TupleRow]) -> str | None:

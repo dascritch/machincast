@@ -80,6 +80,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.conversion import integer_or_none
+from machincast.i18n import N_, _
 from machincast.player.banks import choose_sound, has_no_repeat, playable_sound
 from machincast.player.grid import (
 	Event,
@@ -299,7 +300,9 @@ def next_(
 				return choice
 		elif (item.bank is not None) and (item.bank == forbidden):
 			if skipped_list is not None:
-				description = f"l'élément {item.position} de « {occurrence.event.name} »"
+				description = N_("element {position} of “{name}”").format(
+					position=item.position, name=occurrence.event.name
+				)
 				skipped_list.append(Skip(("event_items", item.id), description, occurrence.event.id))
 		else:
 			sound = _provide(connection, item.sound, item.bank, instant, randomness, excluded_list, history)
@@ -330,8 +333,8 @@ def in_sequence(
 	for line in items_after(sequence, last):
 		if (line.bank is not None) and (line.bank == forbidden):
 			if skipped_list is not None:
-				description = (
-					f"l'élément {line.position} de la séquence « {sequence.name} », dans « {occurrence.event.name} »"
+				description = N_("element {position} of the sequence “{name}”, in “{name2}”").format(
+					position=line.position, name=sequence.name, name2=occurrence.event.name
 				)
 				skipped_list.append(Skip(("sequence_items", line.id), description, occurrence.event.id))
 			continue
@@ -620,7 +623,7 @@ class Scheduler:
 			occurrence = _fallback_occurrence(fallback)
 			# Un secours épuisé par une coupure précédente retrouve toute sa liste.
 			self.finished_list.discard(occurrence.key)
-		assert occurrence is not None, "rien à couper : la diffusion vérifie qu'un sonore est à l'antenne"
+		assert occurrence is not None, _("nothing to cut: the broadcast checks that a sound is on air")
 		self.replacement = Replacement(occurrence, until, stream)
 		return self.replacement
 
@@ -692,8 +695,10 @@ class Scheduler:
 			self.history.record(
 				self.connection,
 				"info",
-				"élément sauté",
-				f"banque « {repetition.name} » à ne pas répéter : elle vient de passer, {skip.description} est sauté",
+				N_("skipped element"),
+				N_("bank “{name}” not to repeat: it has just played, {description} is skipped").format(
+					name=repetition.name, description=skip.description
+				),
 				instant,
 				bank=repetition.bank,
 				event=skip.event,
@@ -744,9 +749,11 @@ class Scheduler:
 				self.in_dead_air = False
 				return Decision(cut=cut, switch_off=switch_off, play=choice)
 			if active is None:
-				return self._dead_air(instant, cut, switch_off, None, "aucun événement actif")
+				return self._dead_air(instant, cut, switch_off, None, N_("no active event"))
 			if active.event.priority is Priority.BACKGROUND_PROGRAMMING:
-				return self._dead_air(instant, cut, switch_off, active, "rien à diffuser dans le fil musical")
+				return self._dead_air(
+					instant, cut, switch_off, active, N_("nothing to broadcast in the background programming")
+				)
 			# Liste épuisée, ou plus rien de jouable : l'occurrence se termine, l'événement inférieur reprend. Le sonore
 			# en cours est jugé de nouveau face à lui : il continue si c'est son événement
 			# (https://github.com/dascritch/machincast/issues/253).
@@ -756,8 +763,10 @@ class Scheduler:
 				self.history.record(
 					self.connection,
 					"warning",
-					"événement terminé plus tôt",
-					f"« {active.event.name} » : plus rien de jouable une fois la banque « {repetition.name} » sautée",
+					N_("event ended earlier"),
+					N_("“{name}”: nothing playable any more once the bank “{name2}” is skipped").format(
+						name=active.event.name, name2=repetition.name
+					),
 					instant,
 					bank=repetition.bank,
 					event=active.event.id,
@@ -846,7 +855,7 @@ class Scheduler:
 		if not self.in_dead_air:
 			self.in_dead_air = True
 			event = None if active is None else active.event.id
-			self.history.record(self.connection, "warning", "blanc", message, instant, event=event)
+			self.history.record(self.connection, "warning", N_("dead air"), message, instant, event=event)
 		return Decision(cut=cut, switch_off=switch_off, dead_air=True, occurrence=active)
 
 

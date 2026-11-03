@@ -17,6 +17,7 @@ from pytest_bdd import parsers, scenarios, then, when
 from machincast.player.broadcast import ADVANCED_EVENT, MANUAL_INTERRUPTION
 from machincast.player.state import IGNORED_REQUEST, advance_request, cutoff_request_by_fallback
 from tests.broadcast_steps import Bench, broadcast, clock
+from tests.log_texts import shown
 
 scenarios("interruption.feature")
 
@@ -27,7 +28,7 @@ WAITING = 5.0
 
 def interruption_log(database: Connection) -> list[str]:
 	return [
-		str(message)
+		shown(message)
 		for (message,) in database.execute(
 			"SELECT message FROM log WHERE level = 'info' AND kind = %s ORDER BY id", (MANUAL_INTERRUPTION,)
 		).fetchall()
@@ -36,7 +37,7 @@ def interruption_log(database: Connection) -> list[str]:
 
 def advances_log(database: Connection) -> list[str]:
 	return [
-		str(message)
+		shown(message)
 		for (message,) in database.execute(
 			"SELECT message FROM log WHERE level = 'info' AND kind = %s ORDER BY id", (ADVANCED_EVENT,)
 		).fetchall()

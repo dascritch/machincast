@@ -22,6 +22,8 @@ from tests.sounds import SOUND_FILES, sample_copy
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
+from tests.log_texts import shown  # noqa: E402
+
 scenarios("audio_engine.feature")
 
 Connection = psycopg.Connection[tuple[object, ...]]
@@ -397,7 +399,13 @@ def not_played(context: Context) -> None:
 
 
 def log(database: Connection) -> list[tuple[object, ...]]:
-	return database.execute("SELECT level::text, kind, message, sound_id FROM log ORDER BY id").fetchall()
+	"""Le log, ses textes tels que l'interface les montre, en français."""
+	return [
+		(level, shown(kind), shown(message), sound)
+		for level, kind, message, sound in database.execute(
+			"SELECT level::text, kind, message, sound_id FROM log ORDER BY id"
+		).fetchall()
+	]
 
 
 @then("le log ne contient rien")

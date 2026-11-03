@@ -13,6 +13,7 @@ from machincast.database import Role, open_connection
 from machincast.player.expiry import expire
 from tests.broadcast_steps import Connection, hour, sound
 from tests.database_fixtures import sample_database_parameters
+from tests.log_texts import shown, stored
 
 scenarios("expiry.feature")
 
@@ -122,11 +123,13 @@ def expected_state(empty_database: Connection, name: str, state: str) -> None:
 
 @then(parsers.parse("le log contient {count:d} info « {kind} », pour ce sonore, qui mentionne « {mention} »"))
 def log_line(empty_database: Connection, count: int, kind: str, mention: str) -> None:
-	lines = empty_database.execute("SELECT level::text, message, sound_id FROM log WHERE kind = %s", (kind,)).fetchall()
+	lines = empty_database.execute(
+		"SELECT level::text, message, sound_id FROM log WHERE kind = %s", (stored(kind),)
+	).fetchall()
 	assert len(lines) == count, lines
 	identifiers = {int(str(i)) for (i,) in empty_database.execute("SELECT id FROM sounds").fetchall()}
 	for level, message, id_sound in lines:
-		assert (level == "info") and (mention in str(message)) and (id_sound in identifiers), lines
+		assert (level == "info") and (mention in shown(message)) and (id_sound in identifiers), lines
 
 
 @then("le log est vide")

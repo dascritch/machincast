@@ -68,6 +68,7 @@ from PySide6.QtWidgets import (
 
 from machincast.clock import Clock
 from machincast.conversion import text_or_none
+from machincast.i18n import _, ngettext, pgettext
 from machincast.interface import dialogs, preferences
 from machincast.interface.display import MONTH
 from machincast.interface.sessions import Session, overlapped, reinstate
@@ -86,9 +87,9 @@ from machincast.player.grid import (
 Connection = psycopg.Connection[TupleRow]
 
 PRIORITIES = (
-	(Priority.SPECIAL, "Spécial"),
-	(Priority.SHOW, "Émission"),
-	(Priority.BACKGROUND_PROGRAMMING, "Fil musical"),
+	(Priority.SPECIAL, _("Special")),
+	(Priority.SHOW, _("Show")),
+	(Priority.BACKGROUND_PROGRAMMING, _("Background programming")),
 )
 """Les priorités de la grille, de la plus haute à la plus basse, et le nom de leur case."""
 NAMES = dict(PRIORITIES)
@@ -97,9 +98,13 @@ COLOURS = {
 	Priority.SHOW: QColor("#8cb4f0"),
 	Priority.BACKGROUND_PROGRAMMING: QColor("#8fd19e"),
 }
-TINTS = {Priority.SPECIAL: "rouge", Priority.SHOW: "bleu", Priority.BACKGROUND_PROGRAMMING: "vert"}
+TINTS = {Priority.SPECIAL: _("red"), Priority.SHOW: _("blue"), Priority.BACKGROUND_PROGRAMMING: _("green")}
 """Le nom de la couleur de chaque priorité, pour l'infobulle de sa case (https://github.com/dascritch/machincast/issues/293)."""
-PLURALS = {Priority.SPECIAL: "spéciaux", Priority.SHOW: "émissions", Priority.BACKGROUND_PROGRAMMING: "fils musicaux"}
+PLURALS = {
+	Priority.SPECIAL: _("specials"),
+	Priority.SHOW: _("shows"),
+	Priority.BACKGROUND_PROGRAMMING: _("background programmings"),
+}
 SQUARE_SIZE = 14
 """Côté, en pixels, du carré de couleur devant le nom de la case d'une priorité."""
 DELETED = QColor("#b0b0b0")
@@ -120,11 +125,11 @@ ZOOMS = (4, 8, 12, 24)
 """Les heures que montre la hauteur de la grille, au choix du zoom (https://github.com/dascritch/machincast/issues/326)."""
 DEFAULT_ZOOM = 12
 MAGNIFIER = "🔍"
-ZOOM_TOOLTIP = "Heures montrées dans la hauteur de la grille ; aussi Maj + molette dans la grille"
-VIEWS = (("Jour", False), ("Semaine", True))
+ZOOM_TOOLTIP = _("Hours shown in the height of the grid; also Shift + wheel in the grid")
+VIEWS = ((_("Day"), False), (_("Week"), True))
 """La liste déroulante des vues : son texte, et s'il s'agit de la vue semaine."""
-BEFORE = "◀ Avant"
-AFTER = "Après ▶"
+BEFORE = _("◀ Before")
+AFTER = _("After ▶")
 FIRST_HOUR = 7
 """L'heure en haut de la grille à l'ouverture du calendrier."""
 MARGIN = 52
@@ -135,35 +140,36 @@ GAP = 4
 NAME_HEIGHT = 24
 LINE_HEIGHT = 22
 """Hauteur d'un bloc de la journée entière."""
-OPEN = "Double-clic : ouvrir l'événement"
-DELETED_EVENT = "Événement supprimé"
-MASK = "par un autre événement"
-DELETED_REMAINDER = "la suite n'est plus prévue"
-SKIP = "Sauter cette session"
-SKIP_UNTIL = "Sauter les sessions jusqu'au…"
-REINSTATE = "Rétablir cette session"
-SKIPPED = "Session sautée"
+OPEN = _("Double-click: open the event")
+DELETED_EVENT = _("Deleted event")
+MASK = _("by another event")
+DELETED_REMAINDER = _("the rest is no longer planned")
+SKIP = _("Skip this session")
+SKIP_UNTIL = _("Skip the sessions until…")
+REINSTATE = _("Reinstate this session")
+SKIPPED = _("Skipped session")
 
 
 def number(day: date) -> str:
+	"""Le jour du mois : « 1er » en français pour le premier."""
 	if day.day == 1:
-		return "1er"
+		return pgettext("first day of the month", "1")
 	return str(day.day)
 
 
 def day_label(day: date) -> str:
 	"""« mardi 20 », « dimanche 1er »."""
-	return f"{DAY_NAMES[day.weekday()]} {number(day)}"
+	return _("{weekday} {day}").format(weekday=DAY_NAMES[day.weekday()], day=number(day))
 
 
 def day_and_month(day: date) -> str:
 	"""« mardi 20 octobre »."""
-	return f"{day_label(day)} {MONTH[day.month - 1]}"
+	return _("{day} {month}").format(day=day_label(day), month=MONTH[day.month - 1])
 
 
 def long_date(day: date) -> str:
 	"""« mardi 20 octobre 2026 »."""
-	return f"{day_and_month(day)} {day.year}"
+	return _("{date} {year}").format(date=day_and_month(day), year=day.year)
 
 
 def week_title(monday: date) -> str:
@@ -171,10 +177,12 @@ def week_title(monday: date) -> str:
 	sunday = monday + timedelta(days=6)
 	departure = number(monday)
 	if monday.year != sunday.year:
-		departure = f"{departure} {MONTH[monday.month - 1]} {monday.year}"
+		departure = _("{day} {month} {year}").format(day=departure, month=MONTH[monday.month - 1], year=monday.year)
 	elif monday.month != sunday.month:
-		departure = f"{departure} {MONTH[monday.month - 1]}"
-	return f"Semaine du lundi {departure} au dimanche {number(sunday)} {MONTH[sunday.month - 1]} {sunday.year}"
+		departure = _("{day} {month}").format(day=departure, month=MONTH[monday.month - 1])
+	return _("Week from Monday {start} to Sunday {day} {month} {year}").format(
+		start=departure, day=number(sunday), month=MONTH[sunday.month - 1], year=sunday.year
+	)
 
 
 def schedule(day: date, moment: datetime) -> str:
@@ -220,12 +228,12 @@ class Block:
 	@property
 	def state(self) -> str:
 		if self.skipped:
-			return "sauté"
+			return _("skipped")
 		if not self.plays:
-			return "estompé"
+			return _("faded")
 		if self.plays == ((self.start, self.end),):
 			return "joue"
-		return "joue en partie"
+		return _("partly plays")
 
 	def tooltip(self) -> str:
 		event = self.event
@@ -234,10 +242,14 @@ class Block:
 			name = f"{name} ({self.public_name})"
 		lines = [f"{name} — {NAMES[event.priority]}", self._schedules()]
 		if event.days:
-			lines.append(f"Revient le {', '.join(DAY_NAMES[day] for day in sorted(event.days))}")
+			lines.append(_("Comes back on {days}").format(days=", ".join(DAY_NAMES[day] for day in sorted(event.days))))
 		if event.deleted_at is not None:
 			deleted = wall_hour(event.deleted_at)
-			lines.append(f"Supprimé le {day_and_month(deleted.date())} à {deleted:%H:%M} : {DELETED_REMAINDER}")
+			lines.append(
+				_("Deleted on {day_and_month} at {deleted:%H:%M}: {deleted_remainder}").format(
+					day_and_month=day_and_month(deleted.date()), deleted=deleted, deleted_remainder=DELETED_REMAINDER
+				)
+			)
 		lines += [self._what_plays(), OPEN]
 		return "\n".join(lines)
 
@@ -245,16 +257,21 @@ class Block:
 		"""L'infobulle ; celle d'une session sautée à venir dit comment la rétablir."""
 		text = self.tooltip()
 		if (self.skipped) and (_upcoming(self, now)):
-			return text.replace(f"\n{SKIPPED}\n", f"\n{SKIPPED} : « {REINSTATE} » au clic droit\n")
+			return text.replace(
+				f"\n{SKIPPED}\n",
+				_("\n{skipped}: “{reinstate}” with a right click\n").format(skipped=SKIPPED, reinstate=REINSTATE),
+			)
 		return text
 
 	def _schedules(self) -> str:
 		occurrence = self.planned.occurrence
 		if occurrence.start is None:
-			return "Fil musical permanent"
+			return _("Permanent background programming")
 		departure = f"{day_and_month(occurrence.start.date())}, "
 		if occurrence.end is None:
-			return f"{departure}à partir de {occurrence.start:%H:%M}, sans fin : jusqu'à l'épuisement de sa liste"
+			return _("{departure}from {start:%H:%M}, endless: until its list runs out").format(
+				departure=departure, start=occurrence.start
+			)
 		if occurrence.end.date() == occurrence.start.date():
 			return f"{departure}{occurrence.start:%H:%M} – {occurrence.end:%H:%M}"
 		return f"{departure}{occurrence.start:%H:%M} – {day_and_month(occurrence.end.date())}, {occurrence.end:%H:%M}"
@@ -264,11 +281,14 @@ class Block:
 		if state == "sauté":
 			return SKIPPED
 		if state == "joue":
-			return "Joue en entier"
+			return _("Plays in full")
 		if state == "estompé":
-			return f"Masqué en entier {MASK}"
-		moments = " et ".join(f"de {schedule(self.day, d)} à {schedule(self.day, f)}" for d, f in self.plays)
-		return f"Joue {moments} ; masqué le reste du temps {MASK}"
+			return _("Hidden in full {mask}").format(mask=MASK)
+		moments = _(" and ").join(
+			_("from {schedule} to {schedule2}").format(schedule=schedule(self.day, d), schedule2=schedule(self.day, f))
+			for d, f in self.plays
+		)
+		return _("Plays {moments}; hidden the rest of the time {mask}").format(moments=moments, mask=MASK)
 
 
 @dataclass(frozen=True)
@@ -299,17 +319,17 @@ class Strip:
 	def tooltip(self) -> str:
 		departure = f"{day_and_month(self.departure.date())}, "
 		if self.arrival is None:
-			moments = f"{departure}depuis {self.departure:%H:%M:%S}, en cours"
+			moments = _("{departure}since {departure2:%H:%M:%S}, ongoing").format(
+				departure=departure, departure2=self.departure
+			)
 		elif self.arrival.date() == self.departure.date():
 			moments = f"{departure}{self.departure:%H:%M:%S} – {self.arrival:%H:%M:%S}"
 		else:
 			moments = (
 				f"{departure}{self.departure:%H:%M:%S} – {day_and_month(self.arrival.date())}, {self.arrival:%H:%M:%S}"
 			)
-		plural = ""
-		if self.plays > 1:
-			plural = "s"
-		lines = [f"Diffusé : {self.name}", moments, f"{self.plays} passage{plural}"]
+		plays = ngettext("{count} play", "{count} plays", self.plays).format(count=self.plays)
+		lines = [_("Played: {name}").format(name=self.name), moments, plays]
 		if self.id_event is not None:
 			lines.append(OPEN)
 		return "\n".join(lines)
@@ -457,7 +477,7 @@ class Calendar(QWidget):
 		"""L'heure au bord haut de la grille, que gardent un zoom et un changement de taille."""
 		self._adjustment = False
 		"""La hauteur de la grille change : la barre de défilement bouge, sans que l'heure du haut change."""
-		self.today = QPushButton("Aujourd'hui")
+		self.today = QPushButton(_("Today"))
 		self.previous = QPushButton(BEFORE)
 		self.following = QPushButton(AFTER)
 		self.title = QLabel()
@@ -467,11 +487,11 @@ class Calendar(QWidget):
 		self.view = QComboBox()
 		for text, week in VIEWS:
 			self.view.addItem(text, week)
-		self.view.setToolTip("Vue d'un jour ou d'une semaine")
+		self.view.setToolTip(_("View of a day or a week"))
 		self.magnifier = QLabel(MAGNIFIER)
 		self.zoom = QComboBox()
 		for hours in ZOOMS:
-			self.zoom.addItem(f"vue {hours}h", hours)
+			self.zoom.addItem(_("{hours}h view").format(hours=hours), hours)
 		self.zoom.setCurrentIndex(ZOOMS.index(DEFAULT_ZOOM))
 		self.magnifier.setBuddy(self.zoom)
 		self.magnifier.setToolTip(ZOOM_TOOLTIP)
@@ -485,7 +505,9 @@ class Calendar(QWidget):
 			ticked = QCheckBox(name)
 			# La couleur de ses blocs, devant son nom (https://github.com/dascritch/machincast/issues/293).
 			ticked.setIcon(colour_square(COLOURS[priority]))
-			ticked.setToolTip(f"Montrer ou cacher les {PLURALS[priority]}, en {TINTS[priority]}")
+			ticked.setToolTip(
+				_("Show or hide the {plurals}, in {tints}").format(plurals=PLURALS[priority], tints=TINTS[priority])
+			)
 			ticked.setChecked(True)
 			ticked.toggled.connect(self._apply_filter)
 			self.boxes[priority] = ticked
@@ -657,8 +679,10 @@ class Calendar(QWidget):
 		start = block.planned.occurrence.start
 		assert start is not None
 		name = block.event.name
-		text = f"Sauter les sessions de « {name} » à partir du {day_and_month(start.date())}, jusqu'au :"
-		last = dialogs.choose_day(self, "Sauter des sessions", text, start.date())
+		text = _("Skip the sessions of “{name}” from {day_and_month}, until:").format(
+			name=name, day_and_month=day_and_month(start.date())
+		)
+		last = dialogs.choose_day(self, _("Skip sessions"), text, start.date())
 		if last is None:
 			return
 		# Les sessions déjà sautées le restent, sans compter de nouveau.
@@ -677,11 +701,15 @@ class Calendar(QWidget):
 					(event.id, start.date()),
 				)
 		first, last = starts[0], starts[-1]
-		text = f"Session de « {event.name} » du {day_and_month(first.date())} à {first:%H:%M} sautée."
+		text = _("Session of “{name}” of {day_and_month} at {first:%H:%M} skipped.").format(
+			name=event.name, day_and_month=day_and_month(first.date()), first=first
+		)
 		if len(starts) > 1:
-			text = (
-				f"{len(starts)} sessions de « {event.name} » sautées, du {day_and_month(first.date())}"
-				f" au {day_and_month(last.date())}."
+			text = _("{count} sessions of “{name}” skipped, from {day_and_month} to {day_and_month2}.").format(
+				count=len(starts),
+				name=event.name,
+				day_and_month=day_and_month(first.date()),
+				day_and_month2=day_and_month(last.date()),
 			)
 		self._changed_grid(text)
 
@@ -699,11 +727,17 @@ class Calendar(QWidget):
 		if found is not None:
 			other, instant = found
 			self.announces.emit(
-				f"Session de « {name} » du {day_and_month(day)} non rétablie : elle chevaucherait"
-				f" « {other.name} » à {instant:%H:%M}."
+				_(
+					"Session of “{name}” of {day_and_month} not reinstated: it would overlap “{name2}” at "
+					"{instant:%H:%M}."
+				).format(name=name, day_and_month=day_and_month(day), name2=other.name, instant=instant)
 			)
 			return
-		self._changed_grid(f"Session de « {name} » du {day_and_month(day)} à {session.start:%H:%M} rétablie.")
+		self._changed_grid(
+			_("Session of “{name}” of {day_and_month} at {start:%H:%M} reinstated.").format(
+				name=name, day_and_month=day_and_month(day), start=session.start
+			)
+		)
 
 	def _changed_grid(self, text: str) -> None:
 		self.refresh()
@@ -724,12 +758,12 @@ class Calendar(QWidget):
 		period = timedelta(days=len(self.days()))
 		today = self._today()
 		self.title.setText(long_date(self._start))
-		self.previous.setToolTip("Jour précédent")
-		self.following.setToolTip("Jour suivant")
+		self.previous.setToolTip(_("Previous day"))
+		self.following.setToolTip(_("Next day"))
 		if self._week:
 			self.title.setText(week_title(self._start))
-			self.previous.setToolTip("Semaine précédente")
-			self.following.setToolTip("Semaine suivante")
+			self.previous.setToolTip(_("Previous week"))
+			self.following.setToolTip(_("Next week"))
 		# Une période se montre tant qu'elle touche les jours d'après le premier, et les PORTEE jours après aujourd'hui.
 		self.previous.setEnabled(self._start - timedelta(days=1) >= self.first_day())
 		self.following.setEnabled(self._start + period <= today + SCOPE)

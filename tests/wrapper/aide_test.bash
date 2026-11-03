@@ -1,6 +1,10 @@
 # shellcheck shell=bash
 # Outils communs aux tests bats du wrapper Machin (https://github.com/dascritch/machincast/issues/6).
 
+# Les tests attendent les messages en français, comme les scénarios pytest (tests/__init__.py,
+# https://github.com/dascritch/machincast/issues/360).
+export LANGUAGE=fr
+
 # Variables lues par les fichiers .bats qui chargent ce fichier.
 # shellcheck disable=SC2034
 RACINE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -44,6 +48,10 @@ preparer_projet() {
 	MACHIN="${PROJET}/bin/Machin"
 	mkdir -p "${PROJET}/bin" "${VENV}" "${BOUCHONS}"
 	cp "${MACHIN_DU_DEPOT}" "${MACHIN}"
+	# Ses traductions : bin/i18n.bash et le catalogue bash du français (https://github.com/dascritch/machincast/issues/360).
+	cp "${RACINE}/bin/i18n.bash" "${PROJET}/bin/"
+	mkdir -p "${PROJET}/src/machincast/locale/fr/LC_MESSAGES"
+	cp "${RACINE}/src/machincast/locale/fr/LC_MESSAGES/machincast.bash" "${PROJET}/src/machincast/locale/fr/LC_MESSAGES/"
 	local nom
 	for nom in Machin_player Machin_indexer Machin_interface; do
 		ecrire_bouchon "${VENV}" "${nom}"

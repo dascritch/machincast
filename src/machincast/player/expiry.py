@@ -18,9 +18,10 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.conversion import integer_or_none
+from machincast.i18n import N_, N_counted
 from machincast.player.saving import record
 
-KIND = "sonore expiré"
+KIND = N_("expired sound")
 
 
 @dataclass(frozen=True)
@@ -32,10 +33,10 @@ class Expiry:
 def _cause(maximum: int | None, plays: int, end: datetime | None, instant: datetime) -> str:
 	causes = []
 	if (maximum is not None) and (plays >= maximum):
-		causes.append(f"maximum de {maximum} lecture{'s' if maximum > 1 else ''} atteint")
+		causes.append(N_counted("maximum of {count} play reached", "maximum of {count} plays reached", maximum))
 	if (end is not None) and (end <= instant):
-		causes.append(f"période de diffusion terminée le {end.astimezone():%Y-%m-%d %H:%M:%S}")
-	return " ; ".join(causes)
+		causes.append(N_("broadcast period ended on {end:%Y-%m-%d %H:%M:%S}").format(end=end.astimezone()))
+	return "; ".join(causes)
 
 
 def expire(connection: psycopg.Connection[TupleRow], instant: datetime, sound: int | None = None) -> list[Expiry]:
@@ -73,7 +74,9 @@ def expire(connection: psycopg.Connection[TupleRow], instant: datetime, sound: i
 				connection,
 				"info",
 				KIND,
-				f"{(name) or (f'sonore {expiry.sound}')} : {expiry.cause}",
+				N_("{name}: {cause}").format(
+					name=(name) or (N_("sound {sound}").format(sound=expiry.sound)), cause=expiry.cause
+				),
 				instant,
 				sound=expiry.sound,
 			)

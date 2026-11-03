@@ -23,7 +23,7 @@ lance la purge chaque jour à midi. Le code de sortie est 0 si la purge s'est fa
 
 import argparse
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
 
 import psycopg
@@ -31,9 +31,10 @@ import psycopg
 from machincast.cli import launch
 from machincast.clock import Clock, SystemClock
 from machincast.configuration import Configuration
+from machincast.i18n import N_, N_counted, _, logged
 
 EXECUTABLE = "Machin_purge"
-DESCRIPTION = "Efface de la base de données ce qui dépasse la durée de péremption."
+DESCRIPTION = _("Erases from the database what exceeds the expiry duration.")
 FAILURE_CODE = 1
 CLOCK: Clock = SystemClock()
 """L'heure d'où se compte la péremption ; les scénarios la fixent."""
@@ -46,32 +47,29 @@ PLAYS = """
 		SELECT play_id FROM airplay GROUP BY play_id HAVING max(logged_at) < %s
 	) RETURNING play_id
 """
-ITEMS = (
+ITEMS: tuple[tuple[Callable[[int], str], str, str], ...] = (
 	# LEAST ignore les valeurs vides : la suppression, ou la disparition du fichier, que l'indexation ne date que pour
 	# un sonore à l'état supprime, et efface quand le fichier revient.
-	("sonore", "sounds", "LEAST(deleted_at, missing_at)"),
-	("banque", "banks", "deleted_at"),
-	("séquence", "sequences", "deleted_at"),
-	("événement", "events", "deleted_at"),
+	(lambda n: N_counted("{count} sound", "{count} sounds", n), "sounds", "LEAST(deleted_at, missing_at)"),
+	(lambda n: N_counted("{count} bank", "{count} banks", n), "banks", "deleted_at"),
+	(lambda n: N_counted("{count} sequence", "{count} sequences", n), "sequences", "deleted_at"),
+	(lambda n: N_counted("{count} event", "{count} events", n), "events", "deleted_at"),
 )
-"""Le genre, sa table, et la date d'où se compte la péremption d'une ligne."""
-
-
-def _count(count: int, name: str, complement: str = "") -> str:
-	"""« 0 sonore », « 1 sonore », « 2 sonores » : le pluriel français commence à deux."""
-	if count > 1:
-		name = f"{name}s"
-	return f"{count} {name}{complement}"
+"""Le décompte de chaque genre, en anglais pour le log, sa table, et la date d'où se compte la péremption d'une
+ligne."""
 
 
 def purge(connection: psycopg.Connection[tuple[object, ...]], limit: datetime) -> list[str]:
 	"""Efface ce qui est d'avant la limite, dans la transaction de la connexion ; le bilan, genre par genre."""
 	plays = {play for (play,) in connection.execute(PLAYS, (limit,)).fetchall()}
 	lines = connection.execute("DELETE FROM log WHERE logged_at < %s", (limit,)).rowcount
-	report = [_count(len(plays), "passage", " de l'airplay"), _count(lines, "ligne", " du log")]
-	for category, table, date in ITEMS:
+	report = [
+		N_counted("{count} play of the airplay", "{count} plays of the airplay", len(plays)),
+		N_counted("{count} line of the log", "{count} lines of the log", lines),
+	]
+	for counting, table, date in ITEMS:
 		erased_list = connection.execute(f"DELETE FROM {table} WHERE {date} < %s", (limit,)).rowcount  # noqa: S608
-		report.append(_count(erased_list, category))
+		report.append(counting(erased_list))
 	# Une session sautée d'avant la limite ne compte plus pour rien (https://github.com/dascritch/machincast/issues/273).
 	connection.execute("DELETE FROM event_skips WHERE day < %s", (limit.date(),))
 	return report
@@ -86,18 +84,26 @@ def run(configuration: Configuration, _options: argparse.Namespace) -> int:
 			connection.transaction(),
 		):
 			report = purge(connection, limit)
-			announces = (
-				f"purge de la base {database.production}, au-delà de {database.retention} jours"
-				f" (avant le {limit:%d/%m/%Y %H:%M}) : {', '.join(report)} effacés"
+			announces = N_(
+				"purge of database {production}, beyond {retention} days (before {limit}): {report} erased"
+			).format(
+				production=database.production,
+				retention=database.retention,
+				limit=f"{limit:%Y-%m-%d %H:%M}",
+				report=", ".join(report),
 			)
 			connection.execute("INSERT INTO log (level, kind, message) VALUES ('info', 'purge', %s)", (announces,))
 	except psycopg.OperationalError as error:
-		log.error(f"base de données injoignable ({database.production}) : {error} ; rien n'a été effacé")
+		log.error(
+			_("database unreachable ({production}): {error}; nothing was erased").format(
+				production=database.production, error=error
+			)
+		)
 		return FAILURE_CODE
 	except psycopg.Error as error:
-		log.error(f"erreur de base de données : {error} ; rien n'a été effacé")
+		log.error(_("database error: {error}; nothing was erased").format(error=error))
 		return FAILURE_CODE
-	log.info(announces)
+	log.info(logged(announces))
 	return 0
 
 

@@ -46,10 +46,11 @@ from machincast.audio import PLUGINS, TRIAL, Plugin, UnavailableAudioOutput, cre
 from machincast.cli import launch  # noqa: E402
 from machincast.configuration import PROJECT_DIRECTORY, AudioOutput, Configuration  # noqa: E402
 from machincast.database import OutdatedSchema, apply_migrations, url_yoyo  # noqa: E402
+from machincast.i18n import _  # noqa: E402
 from machincast.service import UNIT  # noqa: E402
 
 EXECUTABLE = "machincast.installation"
-DESCRIPTION = "Étapes d'installation de MachinCast, appelées par install.sh."
+DESCRIPTION = _("MachinCast installation steps, called by install.sh.")
 FAILURE_CODE = 1
 PURGE_UNIT = "machincast-purge.service"
 """L'unité de la purge, Machin purge : les mêmes noms dans install.sh."""
@@ -153,7 +154,11 @@ def check_streams() -> list[Shortfall]:
 		if f.get_uri_type() == Gst.URIType.SRC
 	]
 	fetched_list = {protocol for f in sources for protocol in ((f.get_uri_protocols()) or ([]))}
-	return [Shortfall(f"stream {p}", package) for p, package in STREAM_PROTOCOLS.items() if p not in fetched_list]
+	return [
+		Shortfall(_("stream {p}").format(p=p), package)
+		for p, package in STREAM_PROTOCOLS.items()
+		if p not in fetched_list
+	]
 
 
 def check_output(configuration: Configuration, plugins: dict[AudioOutput, Plugin] = PLUGINS) -> list[Shortfall]:
@@ -163,7 +168,7 @@ def check_output(configuration: Configuration, plugins: dict[AudioOutput, Plugin
 	try:
 		create_output(audio.output, audio.on_air()[1], plugins, presentation=TRIAL)
 	except UnavailableAudioOutput:
-		return [Shortfall(f"sortie audio {audio.output}", plugins[audio.output].package)]
+		return [Shortfall(_("audio output {output}").format(output=audio.output), plugins[audio.output].package)]
 	return []
 
 
@@ -174,9 +179,9 @@ y sont faites. Une version plus ancienne fonctionne, sans garantie : ses défaut
 CHECKED_DISTRIBUTION = "Ubuntu 26.04 LTS"
 COMPONENTS: dict[str, tuple[str | None, str]] = {
 	"GStreamer": (None, "libgstreamer1.0-0"),
-	"le greffon GStreamer playback": ("playback", "gstreamer1.0-plugins-base"),
-	"le greffon GStreamer flac": ("flac", "gstreamer1.0-plugins-good"),
-	"le greffon GStreamer faad": ("faad", "gstreamer1.0-plugins-bad"),
+	_("the GStreamer playback plugin"): ("playback", "gstreamer1.0-plugins-base"),
+	_("the GStreamer flac plugin"): ("flac", "gstreamer1.0-plugins-good"),
+	_("the GStreamer faad plugin"): ("faad", "gstreamer1.0-plugins-bad"),
 }
 """Le cœur de GStreamer, et un greffon de chaque paquet de greffons : celui qui les fournit, à mettre à jour."""
 
@@ -228,19 +233,24 @@ def _migrate(configuration: Configuration) -> int:
 		try:
 			apply_migrations(url_yoyo(database.socket, name), name)
 		except OutdatedSchema as error:
-			log.error(f"schéma impossible à mettre à jour : {error}")
+			log.error(_("schema cannot be updated: {error}").format(error=error))
 			return FAILURE_CODE
 		except psycopg.OperationalError as error:
-			log.error(f"base de données injoignable ({name} par {database.socket}) : {error}")
+			log.error(
+				_("database unreachable ({name} through {socket}): {error}").format(
+					name=name, socket=database.socket, error=error
+				)
+			)
 			return FAILURE_CODE
 		except psycopg.errors.InsufficientPrivilege as error:
 			log.error(
-				f"droits insuffisants pour appliquer le schéma dans la base {name}, qui appartient sans doute à un"
-				f" autre"
-				f" rôle PostgreSQL : {error}"
+				_(
+					"insufficient rights to apply the schema in database {name}, which probably belongs to "
+					"another PostgreSQL role: {error}"
+				).format(name=name, error=error)
 			)
 			return FAILURE_CODE
-		log.info(f"schéma à jour dans la base {name}")
+		log.info(_("schema up to date in database {name}").format(name=name))
 	return 0
 
 
@@ -248,21 +258,32 @@ def _check(configuration: Configuration) -> int:
 	checked = ".".join(str(number) for number in CHECKED_VERSION)
 	for old in check_versions():
 		log.warning(
-			f"{old.component} {old.version} : MachinCast est vérifié avec la version {checked}"
-			f" ({CHECKED_DISTRIBUTION}) ; mettre à jour {old.package}"
+			_(
+				"{component} {version}: MachinCast is checked with version {checked} "
+				"({checked_distribution}); update {package}"
+			).format(
+				component=old.component,
+				version=old.version,
+				checked=checked,
+				checked_distribution=CHECKED_DISTRIBUTION,
+				package=old.package,
+			)
 		)
 	gaps = check_decoders() + check_streams() + check_output(configuration)
 	for missing in gaps:
-		log.error(f"{missing.item} : greffon GStreamer absent, installer {missing.package}")
+		log.error(
+			_("{item}: GStreamer plugin missing, install {package}").format(item=missing.item, package=missing.package)
+		)
 	if gaps:
 		return FAILURE_CODE
-	log.info("décodeurs, source des streams et sortie audio disponibles")
+	log.info(_("decoders, stream source and audio output available"))
 	return 0
 
 
-DUMMY_ON_AIR = (
-	"antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans"
-	" Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service"
+DUMMY_ON_AIR = _(
+	"on air on the dummy output: the broadcast service would play no sound; choose another "
+	"sound card in Machin interface, File → Preferences…, Audio page, then run ./install.sh "
+	"--service again"
 )
 
 
@@ -276,11 +297,17 @@ def _on_air(configuration: Configuration) -> int:
 	output, device = audio.on_air()
 	if device is None:
 		log.warning(
-			f"antenne sur la sortie {output}, à renseigner : le service de diffusion refusera de démarrer tant que"
-			" audio.device ne la donne pas"
+			_(
+				"on air on output {output}, to be filled in: the broadcast service will refuse to start "
+				"until audio.device gives it"
+			).format(output=output)
 		)
 		return 0
-	log.info(f"antenne sur la sortie {output}, périphérique {device} : le service de diffusion peut l'utiliser")
+	log.info(
+		_("on air on output {output}, device {device}: the broadcast service can use it").format(
+			output=output, device=device
+		)
+	)
 	return 0
 
 
@@ -302,11 +329,11 @@ def systemd_unit(account: Account, directory: Path = PROJECT_DIRECTORY) -> str:
 	"""L'unité du service de lecture : Machin player, sous le compte de MachinCast, relancé après un plantage. Son
 	répertoire d'exécution est celui de la session du compte, gardée active au démarrage (loginctl enable-linger) :
 	PipeWire ou PulseAudio, et la socket d'état que lit l'interface. Ses messages vont dans journald."""
-	return f"""# Service de diffusion de MachinCast (https://github.com/dascritch/machincast/issues/22).
-# Installé par install.sh --service ; ne pas modifier ici, relancer install.sh --service.
+	return f"""# MachinCast broadcast service (https://github.com/dascritch/machincast/issues/22).
+# Installed by install.sh --service; do not edit here, run install.sh --service again.
 
 [Unit]
-Description=MachinCast : diffusion de l'antenne (Machin player)
+Description=MachinCast: on-air broadcast (Machin player)
 Wants=network-online.target
 After=network-online.target postgresql.service sound.target
 
@@ -331,11 +358,11 @@ WantedBy=multi-user.target
 def purge_unit(account: Account, directory: Path = PROJECT_DIRECTORY) -> str:
 	"""L'unité de la purge : Machin purge, une fois, sous le compte de MachinCast, propriétaire de la base. Son
 	minuteur la lance ; elle n'a pas de section Install. Ses messages vont dans journald."""
-	return f"""# Purge de la base de MachinCast (https://github.com/dascritch/machincast/issues/268).
-# Installé par install.sh --service ; ne pas modifier ici, relancer install.sh --service.
+	return f"""# MachinCast database purge (https://github.com/dascritch/machincast/issues/268).
+# Installed by install.sh --service; do not edit here, run install.sh --service again.
 
 [Unit]
-Description=MachinCast : purge de la base de données (Machin purge)
+Description=MachinCast: database purge (Machin purge)
 After=postgresql.service
 
 [Service]
@@ -350,11 +377,11 @@ SyslogIdentifier=machincast-purge
 
 def purge_timer() -> str:
 	"""Le minuteur de la purge : chaque jour à midi ; une purge manquée, poste éteint, se fait à son démarrage."""
-	return f"""# Purge quotidienne de la base de MachinCast (https://github.com/dascritch/machincast/issues/268).
-# Installé par install.sh --service ; ne pas modifier ici, relancer install.sh --service.
+	return f"""# Daily purge of the MachinCast database (https://github.com/dascritch/machincast/issues/268).
+# Installed by install.sh --service; do not edit here, run install.sh --service again.
 
 [Unit]
-Description=MachinCast : purge quotidienne de la base, à midi
+Description=MachinCast: daily database purge, at noon
 
 [Timer]
 OnCalendar={PURGE_HOUR}
@@ -369,8 +396,8 @@ WantedBy=timers.target
 def polkit_rule(account: Account) -> str:
 	"""La règle polkit du service de lecture : son compte le démarre, l'arrête ou le redémarre, avec
 	l'authentification d'un administrateur ; rien d'autre, ni sur une autre unité."""
-	return f"""// Pilotage du service de diffusion de MachinCast (https://github.com/dascritch/machincast/issues/22).
-// Installé par install.sh --service ; ne pas modifier ici, relancer install.sh --service.
+	return f"""// Control of the MachinCast broadcast service (https://github.com/dascritch/machincast/issues/22).
+// Installed by install.sh --service; do not edit here, run install.sh --service again.
 polkit.addRule(function (action, subject) {{
 	if ((action.id == "org.freedesktop.systemd1.manage-units") && (action.lookup("unit") == "{UNIT}")
 		&& (["start", "stop", "restart"].indexOf(action.lookup("verb")) >= 0) && (subject.user == "{account.name}")) {{
@@ -421,18 +448,16 @@ def list_items_devices(configuration: Configuration) -> str:
 	configuration (https://github.com/dascritch/machincast/issues/116). Sans aucun, tout ce que voit GStreamer, pour
 	comprendre pourquoi."""
 	audio = configuration.audio
-	roles = {audio.device: "antenne", audio.preview: "pré-écoute"}
+	roles = {audio.device: _("on air"), audio.preview: _("pre-listen")}
 	found_list = audio_outputs.devices(audio.output)
 	lines = [f"{p.identifier}\t{p.name}\t{roles.get(p.identifier, '')}".rstrip("\t") for p in found_list]
 	if found_list:
 		return "\n".join(lines) + "\n"
-	lines = [f"aucun périphérique de sortie « {audio.output} » ; périphériques de sortie vus par GStreamer :"]
+	lines = [_("no “{output}” output device; output devices seen by GStreamer:").format(output=audio.output)]
 	for appliance in audio_outputs.appliances():
 		name = audio_outputs.identifier(appliance)
-		lines.append(
-			f"{audio_outputs.appliance_type(appliance)}\t{appliance.get_display_name()}"
-			f"\t{(name) or ('sans identifiant')}"
-		)
+		shown = (name) or (_("no identifier"))
+		lines.append(f"{audio_outputs.appliance_type(appliance)}\t{appliance.get_display_name()}\t{shown}")
 	return "\n".join(lines) + "\n"
 
 
@@ -457,7 +482,7 @@ ACTIONS = {
 
 
 def _options(analyser: argparse.ArgumentParser) -> None:
-	analyser.add_argument("action", choices=sorted(ACTIONS), help="étape d'installation à exécuter")
+	analyser.add_argument("action", choices=sorted(ACTIONS), help=_("installation step to run"))
 
 
 def _run(configuration: Configuration, options: argparse.Namespace) -> int:

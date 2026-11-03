@@ -27,6 +27,10 @@
 set -euo pipefail
 
 RACINE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+# Messages en anglais, traduits dans la langue de la session (https://github.com/dascritch/machincast/issues/360).
+# shellcheck source=bin/i18n.bash
+. "${RACINE}/bin/i18n.bash"
+charger_messages "${RACINE}"
 LIEN_INSTALLATION="/opt/machincast"
 LIEN_WRAPPER="/usr/local/bin/Machin"
 LIEN_COMPLETION="/usr/share/bash-completion/completions/Machin"
@@ -80,68 +84,75 @@ DELAI_D_ARRET=15
 UTILISATEUR="$(id -un)"
 
 aide() {
-	cat <<-FIN
-		Usage : ./install.sh [--simulation] [--dev] [--service | --remove-service] [--desktop | --no-desktop]
-		                    [--stop-programs | --leave-programs]
+	tf 'Usage: ./install.sh [--simulation] [--dev] [--service | --remove-service] [--desktop | --no-desktop]
+                    [--stop-programs | --leave-programs]
 
-		Installe MachinCast en place, depuis ce répertoire (${RACINE}) :
-		  0. programmes de MachinCast en cours, sous tous les comptes du poste : Machin player (service de
-		     diffusion, diffusion d'essai, simulation), Machin indexer, Machin interface. S'ils tournent,
-		     la question est posée de les arrêter pendant l'installation, sauf avec --stop-programs ou
-		     --leave-programs ; sans réponse possible, ils continuent. Arrêtée, la diffusion se tait
-		     jusqu'à la fin, et l'interface perd ses fiches non enregistrées. À la fin, même après un échec,
-		     install.sh relance le service de diffusion, et la diffusion d'essai et l'interface de ${UTILISATEUR} ;
-		     il dit ce qui reste à rouvrir : l'indexation, et les programmes des autres comptes ;
-		  1. paquets système (apt) ;
-		  2. environnement virtuel Python isolé et dépendances (pip) ;
-		  3. machincast.toml, copié du modèle s'il n'existe pas ;
-		  4. rôle PostgreSQL du compte ${UTILISATEUR} (sans droit particulier), bases de production et de test
-		     dont il est propriétaire, rôles de MachinCast, schéma ;
-		  5. autorisation de ${UTILISATEUR} aux rôles ${ROLES[*]}, groupe systemd-journal ;
-		  6. liens ${LIEN_INSTALLATION}, ${LIEN_WRAPPER} et l'autocomplétion bash ;
-		  7. vérification de la version et des greffons GStreamer, et de la sortie audio ;
-		  8. raccourci de l'interface dans le menu des applications de ${UTILISATEUR}, et, s'il le veut,
-		     sur son bureau : la question est posée, sauf avec --desktop ou --no-desktop ; icône de
-		     MachinCast dans son thème d'icônes, pour le réglage du son du poste.
-		Avec --dev, aussi les outils du poste de développement : ${PAQUETS_DEV[*]} (apt) et les
-		dépendances de test (pip, extra [dev]), pour Machin dev et Machin dev-test.
-		Avec --service, aussi le service de diffusion ${UNITE}, seulement pour un ordinateur dédié à
-		l'antenne, dont l'antenne n'est pas sur la sortie factice (sinon install.sh s'arrête et recommande
-		une autre carte son) : Machin player démarre avec le poste, sous le compte ${UTILISATEUR}, et
-		redémarre après un plantage ; une règle polkit le laisse démarrer, arrêter et redémarrer avec le mot
-		de passe d'un administrateur ; un minuteur systemd, ${MINUTEUR_PURGE}, lance chaque jour à midi
-		Machin purge, qui efface de la base ce qui dépasse la durée de péremption. Sans --service, rien de
-		cela n'est installé : la diffusion et la purge se lancent à la main.
+Installs MachinCast in place, from this directory (%s):
+  0. running MachinCast programs, under all the accounts of the computer: Machin player (broadcast
+     service, trial broadcast, simulation), Machin indexer, Machin interface. If they are running,
+     the question is asked whether to stop them during the installation, except with --stop-programs or
+     --leave-programs; with no possible answer, they go on. Stopped, the broadcast goes silent
+     until the end, and the interface loses its unsaved cards. At the end, even after a failure,
+     install.sh relaunches the broadcast service, and the trial broadcast and the interface of %s;
+     it tells what remains to reopen: the indexing, and the programs of the other accounts;
+  1. system packages (apt);
+  2. isolated Python virtual environment and dependencies (pip);
+  3. machincast.toml, copied from the model if it does not exist;
+  4. PostgreSQL role of the account %s (without any particular right), production and test databases
+     that it owns, MachinCast roles, schema;
+  5. authorisation of %s to the roles %s, systemd-journal group;
+  6. links %s, %s and the bash autocompletion;
+  7. check of the GStreamer version and plugins, and of the audio output;
+  8. shortcut of the interface in the applications menu of %s, and, if wanted,
+     on the desktop: the question is asked, except with --desktop or --no-desktop; MachinCast
+     icon in the icon theme, for the sound settings of the computer.
+With --dev, also the tools of the development computer: %s (apt) and the
+test dependencies (pip, extra [dev]), for Machin dev and Machin dev-test.
+With --service, also the broadcast service %s, only for a computer dedicated to the
+on-air output, whose on-air output is not the dummy output (otherwise install.sh stops and recommends
+another sound card): Machin player starts with the computer, under the account %s, and
+restarts after a crash; a polkit rule lets it start, stop and restart with the password
+of an administrator; a systemd timer, %s, launches every day at noon
+Machin purge, which erases from the database what exceeds the expiry duration. Without --service, none
+of this is installed: the broadcast and the purge are launched by hand.
 
-		Relançable : chaque étape déjà faite est laissée telle quelle.
-		À lancer avec son propre compte, pas avec sudo : le script demande sudo quand il le faut.
+Can be run again: each step already done is left as is.
+To run with your own account, not with sudo: the script asks for sudo when needed.
 
-		Options :
-		  --simulation  affiche les commandes sans rien exécuter
-		  --dev         installe aussi les outils du poste de développement
-		  --service     installe aussi le service de diffusion (ordinateur dédié à l'antenne seulement)
-		  --remove-service
-		                retire le service de diffusion, sa règle polkit et le minuteur de la purge
-		  --desktop      dépose aussi le raccourci de l'interface sur le bureau, sans le demander
-		  --no-desktop ne le dépose pas sur le bureau, sans le demander
-		  --stop-programs
-		                arrête les programmes de MachinCast en cours, sans le demander
-		  --leave-programs
-		                les laisse tourner pendant l'installation, sans le demander
-		  -h, --help    cette aide
-	FIN
+Options:
+  --simulation  shows the commands without running anything
+  --dev         also installs the tools of the development computer
+  --service     also installs the broadcast service (computer dedicated to the on-air output only)
+  --remove-service
+                removes the broadcast service, its polkit rule and the purge timer
+  --desktop      also puts the shortcut of the interface on the desktop, without asking
+  --no-desktop does not put it on the desktop, without asking
+  --stop-programs
+                stops the running MachinCast programs, without asking
+  --leave-programs
+                lets them run during the installation, without asking
+  -h, --help    this help
+' "${RACINE}" "${UTILISATEUR}" "${UTILISATEUR}" "${UTILISATEUR}" "${ROLES[*]}" "${LIEN_INSTALLATION}" "${LIEN_WRAPPER}" "${UTILISATEUR}" "${PAQUETS_DEV[*]}" "${UNITE}" "${UTILISATEUR}" "${MINUTEUR_PURGE}"
 }
 
+# Les messages s'écrivent en anglais, en format de printf entre apostrophes, suivi de leurs valeurs : etape, info et
+# echec les traduisent dans la langue de la session (bin/i18n.bash, https://github.com/dascritch/machincast/issues/360).
 etape() {
-	printf '\n==> %s\n' "$1"
+	printf '\n==> '
+	tf "$@"
+	printf '\n'
 }
 
 info() {
-	printf '    %s\n' "$1"
+	printf '    '
+	tf "$@"
+	printf '\n'
 }
 
 echec() {
-	printf 'install.sh : %s\n' "$1" >&2
+	{
+		tf 'install.sh: %s\n' "$(tf "$@")"
+	} >&2
 	exit 1
 }
 
@@ -155,20 +166,20 @@ executer() {
 }
 
 verifier_systeme() {
-	etape "Système"
-	[[ "$(id -u)" -ne 0 ]] || echec "lancer install.sh avec son propre compte, sans sudo : il le demande quand il faut"
-	[[ -r /etc/os-release ]] || echec "/etc/os-release illisible : système non reconnu"
+	etape 'System'
+	[[ "$(id -u)" -ne 0 ]] || echec 'run install.sh with your own account, without sudo: it asks for it when needed'
+	[[ -r /etc/os-release ]] || echec '/etc/os-release unreadable: system not recognised'
 	local id version
 	id="$(. /etc/os-release && printf '%s' "${ID:-}")"
 	version="$(. /etc/os-release && printf '%s' "${VERSION_ID:-}")"
 	# Les LTS d'Ubuntu sortent en avril des années paires : 24.04, 26.04…
 	if [[ "${id}" != ubuntu ]] || ! [[ "${version}" =~ ^[0-9]*[02468]\.04$ ]]; then
-		"${SIMULATION}" || echec "Ubuntu LTS requis (cible : 26.04 LTS), trouvé : ${id} ${version}"
-		info "système non pris en charge (${id} ${version}), ignoré en simulation"
+		"${SIMULATION}" || echec 'Ubuntu LTS required (target: 26.04 LTS), found: %s %s' "${id}" "${version}"
+		info 'unsupported system (%s %s), ignored in simulation' "${id}" "${version}"
 	elif [[ "${version}" != 26.04 ]]; then
-		info "Ubuntu ${version} LTS : la cible est 26.04 LTS, poursuite de l'installation"
+		info 'Ubuntu %s LTS: the target is 26.04 LTS, the installation goes on' "${version}"
 	else
-		info "Ubuntu ${version} LTS"
+		info 'Ubuntu %s LTS' "${version}"
 	fi
 }
 
@@ -185,15 +196,16 @@ vouloir_arreter() {
 		non) return 1 ;;
 	esac
 	if "${SIMULATION}"; then
-		info "[simulation] question : les arrêter pendant l'installation ?"
+		info '[simulation] question: stop them during the installation?'
 		return 0
 	fi
 	if [[ ! -t 0 ]]; then
-		info "pas de question sans terminal : ./install.sh --stop-programs les arrête"
+		info 'no question without a terminal: ./install.sh --stop-programs stops them'
 		return 1
 	fi
-	read -r -p "    Les arrêter pendant l'installation, puis les relancer ? [o/N] " reponse
-	[[ "${reponse}" =~ ^[oO] ]]
+	read -r -p "    $(t 'Stop them during the installation, then relaunch them? [y/N] ')" reponse
+	# Oui : « o » en français, « y » en anglais.
+	[[ "${reponse}" =~ ^[oOyY] ]]
 }
 
 # Attend la fin des processus, puis force celle des retardataires ; ceux d'un autre compte, par sudo.
@@ -211,7 +223,7 @@ attendre_l_arret() {
 		du_compte="${pid#*:}"
 		pid="${pid%:*}"
 		[[ -e "/proc/${pid}" ]] || continue
-		info "pid ${pid} toujours là après ${DELAI_D_ARRET} s : arrêt forcé"
+		info 'pid %s still there after %s s: forced stop' "${pid}" "${DELAI_D_ARRET}"
 		if [[ "${du_compte}" == oui ]]; then
 			kill -KILL "${pid}" 2>/dev/null || true
 		else
@@ -221,25 +233,25 @@ attendre_l_arret() {
 }
 
 arreter_les_programmes() {
-	etape "Programmes de MachinCast en cours"
+	etape 'Running MachinCast programs'
 	ETAT_DES_PROGRAMMES="$(mktemp --tmpdir machincast-programmes.XXXXXX.json)"
 	local liste
 	if ! liste="$(programmes list --state "${ETAT_DES_PROGRAMMES}")"; then
-		info "programmes en cours illisibles : l'installation se fait sans les arrêter"
+		info 'running programs unreadable: the installation goes on without stopping them'
 		return
 	fi
 	if [[ -z "${liste}" ]]; then
-		info "aucun"
+		info 'none'
 		return
 	fi
 	local pid du_compte service libelle
 	while IFS=$'\t' read -r pid du_compte service libelle; do
-		info "${libelle}, pid ${pid}"
+		info '%s, pid %s' "${libelle}" "${pid}"
 	done <<<"${liste}"
-	info "une mise à jour, et ses migrations de la base, ne doit pas se faire sous eux"
-	info "arrêtée, la diffusion se tait jusqu'à la fin de l'installation ; l'interface perd ses fiches non enregistrées"
+	info 'an update, and its database migrations, must not happen under them'
+	info 'stopped, the broadcast goes silent until the end of the installation; the interface loses its unsaved cards'
 	if ! vouloir_arreter; then
-		info "ils continuent : la base peut changer sous eux, les relancer après l'installation"
+		info 'they go on: the database may change under them, relaunch them after the installation'
 		return
 	fi
 	PROGRAMMES_ARRETES=true
@@ -262,31 +274,31 @@ arreter_les_programmes() {
 	if ! "${SIMULATION}" && ((${#arretes[@]} > 0)); then
 		attendre_l_arret "${arretes[@]}"
 	fi
-	info "arrêtés : relancés à la fin de l'installation"
+	info 'stopped: relaunched at the end of the installation'
 }
 
 # À la fin, ou à la sortie d'install.sh après un échec : une seule fois.
 relancer_les_programmes() {
 	"${PROGRAMMES_ARRETES}" || return 0
 	PROGRAMMES_ARRETES=false
-	etape "Relance des programmes de MachinCast"
+	etape 'Relaunch of the MachinCast programs'
 	if "${SERVICE_ARRETE}"; then
 		if "${RETIRER_SERVICE}"; then
-			info "service de diffusion retiré : pas relancé"
+			info 'broadcast service removed: not relaunched'
 		else
-			executer sudo systemctl start "${UNITE}" || info "service de diffusion non relancé : Machin logs dit pourquoi"
+			executer sudo systemctl start "${UNITE}" || info 'broadcast service not relaunched: Machin logs tells why'
 		fi
 	fi
 	local options=() ligne
 	"${SIMULATION}" && options+=(--simulation)
 	while IFS= read -r ligne; do
-		info "${ligne}"
+		info '%s' "${ligne}"
 	done < <(programmes restart --state "${ETAT_DES_PROGRAMMES}" "${options[@]}")
 	rm --force "${ETAT_DES_PROGRAMMES}" # fichier de MachinCast : état des programmes arrêtés, temporaire
 }
 
 installer_paquets() {
-	etape "Paquets système"
+	etape 'System packages'
 	executer sudo apt-get update
 	local paquets=("${PAQUETS[@]}")
 	"${DEV}" && paquets+=("${PAQUETS_DEV[@]}")
@@ -294,10 +306,10 @@ installer_paquets() {
 }
 
 installer_venv() {
-	etape "Environnement virtuel Python"
+	etape 'Python virtual environment'
 	# Jamais --system-site-packages : toutes les dépendances Python viennent de pip.
 	if [[ -x "${VENV}/bin/python" ]]; then
-		info "${VENV} existe déjà"
+		info '%s already exists' "${VENV}"
 	else
 		executer python3 -m venv "${VENV}"
 	fi
@@ -310,12 +322,12 @@ installer_venv() {
 }
 
 preparer_configuration() {
-	etape "Configuration"
+	etape 'Configuration'
 	if [[ -e "${CONFIGURATION}" ]]; then
-		info "${CONFIGURATION} existe déjà : conservé"
+		info '%s already exists: kept' "${CONFIGURATION}"
 	else
 		executer cp "${RACINE}/machincast.exemple.toml" "${CONFIGURATION}"
-		info "à adapter : sortie audio, périphériques, sorties (voir doc/fr/spec.md § 9)"
+		info 'to adapt: audio output, devices, outputs (see doc/fr/spec.md § 9)'
 	fi
 }
 
@@ -338,14 +350,14 @@ existe_en_base() {
 }
 
 preparer_postgresql() {
-	etape "PostgreSQL"
-	[[ "${UTILISATEUR}" =~ ^[a-z_][a-z0-9_-]*$ ]] || echec "nom de compte inattendu pour PostgreSQL : ${UTILISATEUR}"
+	etape 'PostgreSQL'
+	[[ "${UTILISATEUR}" =~ ^[a-z_][a-z0-9_-]*$ ]] || echec 'unexpected account name for PostgreSQL: %s' "${UTILISATEUR}"
 	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
-		info "[simulation] bases lues dans ${CONFIGURATION} une fois l'environnement virtuel créé"
+		info '[simulation] databases read in %s once the virtual environment is created' "${CONFIGURATION}"
 		return
 	fi
 	local lus socket production test
-	lus="$(installation databases)" || echec "configuration ${CONFIGURATION} à corriger, puis relancer install.sh"
+	lus="$(installation databases)" || echec 'configuration %s to correct, then run install.sh again' "${CONFIGURATION}"
 	{
 		read -r socket
 		read -r production
@@ -356,14 +368,14 @@ preparer_postgresql() {
 	# demande est fait par l'utilisateur postgres. Le compte reçoit seulement la propriété des deux bases, qui lui
 	# permet d'y appliquer le schéma (doc/fr/spec.md § 3.2).
 	if existe_en_base "SELECT 1 FROM pg_roles WHERE rolname = :'nom'" "${UTILISATEUR}"; then
-		info "rôle PostgreSQL ${UTILISATEUR} existant"
+		info 'PostgreSQL role %s exists' "${UTILISATEUR}"
 	else
 		executer sudo -u postgres createuser "${UTILISATEUR}"
 	fi
 	local base
 	for base in "${production}" "${test}"; do
 		if existe_en_base "SELECT 1 FROM pg_database WHERE datname = :'nom'" "${base}"; then
-			info "base ${base} existante"
+			info 'database %s exists' "${base}"
 		else
 			executer sudo -u postgres createdb --host="${socket}" --owner="${UTILISATEUR}" "${base}"
 		fi
@@ -371,7 +383,7 @@ preparer_postgresql() {
 	# Les rôles de groupe appartiennent au serveur. La migration ne les crée que s'ils manquent, ce qui demanderait
 	# CREATEROLE : postgres les crée donc d'abord.
 	if "${SIMULATION}"; then
-		info "[simulation] sudo -u postgres psql : CREATE ROLE ${ROLES[*]/#/machincast_} NOLOGIN, s'ils n'existent pas"
+		info '[simulation] sudo -u postgres psql: CREATE ROLE %s NOLOGIN, if they do not exist' "${ROLES[*]/#/machincast_}"
 	else
 		sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 <<-'SQL'
 			DO $$
@@ -386,81 +398,81 @@ preparer_postgresql() {
 			END;
 			$$;
 		SQL
-		info "rôles machincast_player, machincast_indexer et machincast_interface présents"
+		info 'roles machincast_player, machincast_indexer and machincast_interface present'
 	fi
 	executer "${VENV}/bin/python" -m machincast.installation migrate --config "${CONFIGURATION}"
-	etape "Rôles"
+	etape 'Roles'
 	# Les rôles appartiennent au serveur : une seule autorisation vaut pour les deux bases. Elle est donnée par
 	# l'utilisateur postgres, qui peut attribuer les rôles quel que soit le compte qui les a créés. Sans héritage
 	# des droits : chaque binaire endosse son rôle par SET ROLE (doc/fr/spec.md § 3.2).
 	if "${SIMULATION}"; then
-		info "[simulation] sudo -u postgres psql : GRANT machincast_player, machincast_indexer, machincast_interface TO ${UTILISATEUR} WITH INHERIT FALSE, SET TRUE"
+		info '[simulation] sudo -u postgres psql: GRANT machincast_player, machincast_indexer, machincast_interface TO %s WITH INHERIT FALSE, SET TRUE' "${UTILISATEUR}"
 	else
 		sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 --variable=nom="${UTILISATEUR}" <<-'SQL'
 			GRANT machincast_player, machincast_indexer, machincast_interface TO :"nom" WITH INHERIT FALSE, SET TRUE;
 		SQL
-		info "${UTILISATEUR} peut endosser les rôles ${ROLES[*]}"
+		info '%s can assume the roles %s' "${UTILISATEUR}" "${ROLES[*]}"
 	fi
 	# Un superutilisateur endosse tous les rôles sans autorisation, et peut tout faire sur le serveur : l'installation
 	# voulue ne donne au compte aucun droit particulier (doc/fr/spec.md § 3.2). install.sh ne retire pas ce droit, qui peut
 	# servir à autre chose sur le poste : il le signale.
 	if existe_en_base "SELECT 1 FROM pg_roles WHERE rolname = :'nom' AND rolsuper" "${UTILISATEUR}"; then
-		info "attention : ${UTILISATEUR} est superutilisateur de PostgreSQL, ce que MachinCast ne demande pas ; pour le"
-		info "retirer : sudo -u postgres psql -c 'ALTER ROLE \"${UTILISATEUR}\" NOSUPERUSER'"
+		info 'warning: %s is a PostgreSQL superuser, which MachinCast does not require; to' "${UTILISATEUR}"
+		info 'remove it: sudo -u postgres psql -c %s' "'ALTER ROLE \"${UTILISATEUR}\" NOSUPERUSER'"
 	fi
 }
 
 autoriser_journal() {
-	etape "Journal système"
+	etape 'System journal'
 	if id -nG "${UTILISATEUR}" | tr ' ' '\n' | grep -qx systemd-journal; then
-		info "${UTILISATEUR} appartient déjà au groupe systemd-journal"
+		info '%s already belongs to the systemd-journal group' "${UTILISATEUR}"
 	else
 		# systemd-journal, jamais adm : la lecture du journal sans droits d'administration.
 		executer sudo usermod --append --groups systemd-journal "${UTILISATEUR}"
-		info "effectif après le redémarrage du poste"
+		info 'effective after the computer restarts'
 	fi
 }
 
 relier() {
 	local cible="$1" lien="$2"
 	if [[ -e "${lien}" && ! -L "${lien}" ]]; then
-		echec "${lien} existe et n'est pas un lien symbolique : le déplacer avant de relancer install.sh"
+		echec '%s exists and is not a symbolic link: move it before running install.sh again' "${lien}"
 	fi
 	if [[ -L "${lien}" && "$(readlink "${lien}")" == "${cible}" ]]; then
-		info "${lien} → ${cible}"
+		info '%s → %s' "${lien}" "${cible}"
 	else
 		executer sudo ln --symbolic --force --no-dereference "${cible}" "${lien}"
 	fi
 }
 
 installer_liens() {
-	etape "Liens"
+	etape 'Links'
 	relier "${RACINE}" "${LIEN_INSTALLATION}"
 	relier "${LIEN_INSTALLATION}/bin/Machin" "${LIEN_WRAPPER}"
 	relier "${LIEN_INSTALLATION}/bash-completion/Machin" "${LIEN_COMPLETION}"
 }
 
 verifier_greffons() {
-	etape "Version et greffons GStreamer, sortie audio"
+	etape 'GStreamer version and plugins, audio output'
 	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
-		info "[simulation] vérification faite une fois l'environnement virtuel créé"
+		info '[simulation] check done once the virtual environment is created'
 		return
 	fi
-	installation check || echec "installer les paquets indiqués, puis relancer install.sh"
+	installation check || echec 'install the indicated packages, then run install.sh again'
 }
 
 # Installe le fichier rédigé par machincast.installation, s'il diffère de celui en place ; vrai s'il a changé.
 installer_fichier() {
 	local action="$1" destination="$2" redige
 	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
-		info "[simulation] ${destination}, rédigé par machincast.installation ${action}"
+		info '[simulation] %s, written by machincast.installation %s' "${destination}" "${action}"
 		return 0
 	fi
 	redige="$(mktemp)"
 	# Appelée par if ou ||, la fonction ne s'arrête pas d'elle-même sur une erreur (set -e) : jamais de fichier vide.
-	installation "${action}" >"${redige}" || echec "machincast.installation ${action} a échoué : ${destination} non installé"
+	installation "${action}" >"${redige}" || echec 'machincast.installation %s failed: %s not installed' "${action}" "${destination}"
 	if [[ -r "${destination}" ]] && cmp --silent "${redige}" "${destination}"; then
-		info "${destination} est à jour"
+		info '%s is up to date' "${destination}"
 		rm --force "${redige}" # fichier de MachinCast : unité ou règle rédigée, temporaire
 		return 1
 	fi
@@ -474,14 +486,14 @@ installer_fichier() {
 installer_raccourci_en() {
 	local destination="$1" droits="$2" redige
 	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
-		info "[simulation] ${destination}, rédigé par machincast.installation shortcut"
+		info '[simulation] %s, written by machincast.installation shortcut' "${destination}"
 		return 0
 	fi
 	redige="$(mktemp)"
-	installation shortcut >"${redige}" || echec "machincast.installation shortcut a échoué : ${destination} non installé"
+	installation shortcut >"${redige}" || echec 'machincast.installation shortcut failed: %s not installed' "${destination}"
 	if [[ -r "${destination}" ]] && cmp --silent "${redige}" "${destination}" \
 		&& [[ "$(stat --format=%a "${destination}")" == "${droits}" ]]; then
-		info "${destination} est à jour"
+		info '%s is up to date' "${destination}"
 		rm --force "${redige}" # fichier de MachinCast : raccourci rédigé, temporaire
 		return 1
 	fi
@@ -510,14 +522,14 @@ vouloir_le_bureau() {
 	esac
 	[[ -e "${raccourci}" ]] && return 0
 	if "${SIMULATION}"; then
-		info "[simulation] question : déposer aussi le raccourci sur le bureau ?"
+		info '[simulation] question: also put the shortcut on the desktop?'
 		return 0
 	fi
 	if [[ ! -t 0 ]]; then
-		info "pas de question sans terminal : ./install.sh --desktop le dépose sur le bureau"
+		info 'no question without a terminal: ./install.sh --desktop puts it on the desktop'
 		return 1
 	fi
-	read -r -p "    Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] " reponse
+	read -r -p "    $(t 'Also put the MachinCast shortcut on the desktop? [Y/n] ')" reponse
 	[[ ! "${reponse}" =~ ^[nN] ]]
 }
 
@@ -525,49 +537,49 @@ vouloir_le_bureau() {
 installer_icone() {
 	local destination="$1" source="${RACINE}/src/machincast/interface/machincast.png"
 	if [[ -r "${destination}" ]] && cmp --silent "${source}" "${destination}"; then
-		info "${destination} est à jour"
+		info '%s is up to date' "${destination}"
 		return
 	fi
 	executer install -D --mode=644 "${source}" "${destination}"
 }
 
 installer_raccourci() {
-	etape "Raccourci de l'interface"
+	etape 'Shortcut of the interface'
 	installer_raccourci_en "${DOSSIER_APPLICATIONS}/${RACCOURCI}" 644 || true
 	installer_icone "${ICONE_DU_THEME}"
 	local bureau
 	bureau="$(dossier_du_bureau)"
 	if [[ -z "${bureau}" ]]; then
-		info "pas de dossier de bureau pour ${UTILISATEUR} : raccourci dans le menu des applications seulement"
+		info 'no desktop folder for %s: shortcut in the applications menu only' "${UTILISATEUR}"
 		return
 	fi
 	if vouloir_le_bureau "${bureau}/${RACCOURCI}"; then
 		# Exécutable : Plasma lance alors le raccourci du bureau sans demander de confirmation.
 		installer_raccourci_en "${bureau}/${RACCOURCI}" 755 || true
 	elif [[ -e "${bureau}/${RACCOURCI}" ]]; then
-		info "${bureau}/${RACCOURCI} laissé tel quel"
+		info '%s/%s left as is' "${bureau}" "${RACCOURCI}"
 	else
-		info "pas de raccourci sur le bureau ; ./install.sh --desktop l'y dépose"
+		info 'no shortcut on the desktop; ./install.sh --desktop puts it there'
 	fi
 }
 
 installer_service() {
-	etape "Service de diffusion"
+	etape 'Broadcast service'
 	if ! "${SERVICE}"; then
-		info "non installé : la diffusion se lance à la main, par Machin player"
-		info "sur un ordinateur dédié à l'antenne : ./install.sh --service"
+		info 'not installed: the broadcast is launched by hand, with Machin player'
+		info 'on a computer dedicated to the on-air output: ./install.sh --service'
 		return
 	fi
 	# L'antenne d'un poste dédié joue toujours sur une carte son (https://github.com/dascritch/machincast/issues/339).
 	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
-		info "[simulation] antenne vérifiée par machincast.installation on-air une fois l'environnement virtuel créé"
+		info '[simulation] on-air output checked by machincast.installation on-air once the virtual environment is created'
 	else
-		installation on-air || echec "service de diffusion non installé : l'antenne est sur la sortie factice"
+		installation on-air || echec 'broadcast service not installed: the on-air output is the dummy output'
 	fi
-	info "pour un ordinateur dédié à l'antenne : Machin player démarre avec le poste, sous ${UTILISATEUR}"
+	info 'for a computer dedicated to the on-air output: Machin player starts with the computer, as %s' "${UTILISATEUR}"
 	# La session du compte reste active sans connexion : PipeWire ou PulseAudio y tournent, comme la socket d'état.
 	if [[ "$(loginctl show-user "${UTILISATEUR}" --property=Linger --value 2>/dev/null)" == yes ]]; then
-		info "la session de ${UTILISATEUR} reste active au démarrage du poste"
+		info 'the session of %s stays active when the computer starts' "${UTILISATEUR}"
 	else
 		executer sudo loginctl enable-linger "${UTILISATEUR}"
 	fi
@@ -592,46 +604,46 @@ installer_service() {
 	fi
 	# La purge de la base, chaque jour à midi : Machin purge, sous le même compte.
 	executer sudo systemctl enable --now "${MINUTEUR_PURGE}"
-	info "suivre la diffusion : Machin logs ; la purge quotidienne : journalctl --unit=${UNITE_PURGE}"
+	info 'follow the broadcast: Machin logs; the daily purge: journalctl --unit=%s' "${UNITE_PURGE}"
 }
 
 retirer_service() {
-	etape "Retrait du service de diffusion"
+	etape 'Removal of the broadcast service'
 	if [[ -e "${FICHIER_UNITE}" ]]; then
 		executer sudo systemctl disable --now "${UNITE}"
 		executer sudo rm --force "${FICHIER_UNITE}" # fichier de MachinCast : unité installée par --service
 		executer sudo systemctl daemon-reload
 	else
-		info "${FICHIER_UNITE} absent"
+		info '%s missing' "${FICHIER_UNITE}"
 	fi
 	if [[ -e "${FICHIER_MINUTEUR_PURGE}" ]]; then
 		executer sudo systemctl disable --now "${MINUTEUR_PURGE}"
 		executer sudo rm --force "${FICHIER_MINUTEUR_PURGE}" # fichier de MachinCast : minuteur installé par --service
 	else
-		info "${FICHIER_MINUTEUR_PURGE} absent"
+		info '%s missing' "${FICHIER_MINUTEUR_PURGE}"
 	fi
 	if [[ -e "${FICHIER_UNITE_PURGE}" ]]; then
 		executer sudo rm --force "${FICHIER_UNITE_PURGE}" # fichier de MachinCast : unité installée par --service
 		executer sudo systemctl daemon-reload
 	else
-		info "${FICHIER_UNITE_PURGE} absent"
+		info '%s missing' "${FICHIER_UNITE_PURGE}"
 	fi
 	if [[ -e "${FICHIER_REGLE}" ]]; then
 		executer sudo rm --force "${FICHIER_REGLE}" # fichier de MachinCast : règle installée par --service
 	else
-		info "${FICHIER_REGLE} absent"
+		info '%s missing' "${FICHIER_REGLE}"
 	fi
-	info "la session de ${UTILISATEUR} reste active au démarrage : sudo loginctl disable-linger ${UTILISATEUR} la retire"
-	info "la diffusion se lance de nouveau à la main, par Machin player ; la purge de la base, par Machin purge"
+	info 'the session of %s stays active at startup: sudo loginctl disable-linger %s removes it' "${UTILISATEUR}" "${UTILISATEUR}"
+	info 'the broadcast is launched by hand again, with Machin player; the database purge, with Machin purge'
 }
 
 conclure() {
-	etape "Installation terminée"
-	info "Aide : Machin --help"
-	info "Interface : MachinCast, dans le menu des applications, ou Machin interface"
-	info "Première indexation : Machin indexer, puis Machin indexer --full-audit"
+	etape 'Installation finished'
+	info 'Help: Machin --help'
+	info 'Interface: MachinCast, in the applications menu, or Machin interface'
+	info 'First indexing: Machin indexer, then Machin indexer --full-audit'
 	if "${DEV}"; then
-		info "Poste de développement : Machin dev ouvre un shell, venv activé ; Machin dev-test lance les vérifications"
+		info 'Development computer: Machin dev opens a shell, venv activated; Machin dev-test runs the checks'
 	fi
 }
 
@@ -658,16 +670,16 @@ principal() {
 				;;
 			*)
 				aide >&2
-				echec "option inconnue : $1"
+				echec 'unknown option: %s' "$1"
 				;;
 		esac
 		shift
 	done
 	if "${SERVICE}" && "${RETIRER_SERVICE}"; then
-		echec "--service et --remove-service ne vont pas ensemble"
+		echec '--service and --remove-service do not go together'
 	fi
 	if [[ "${ARRETER}" != demander ]] && ((ARRETER_DEMANDE > 1)); then
-		echec "--stop-programs et --leave-programs ne vont pas ensemble"
+		echec '--stop-programs and --leave-programs do not go together'
 	fi
 	cd "${RACINE}"
 	verifier_systeme

@@ -70,10 +70,10 @@ class Ui_SuggestionsWindow(object):
     # setupUi
 
     def retranslateUi(self, SuggestionsWindow):
-        SuggestionsWindow.setWindowTitle(QCoreApplication.translate("SuggestionsWindow", u"Pour bien d\u00e9marrer", None))
-        self.sound_cards_group.setTitle(QCoreApplication.translate("SuggestionsWindow", u"Cartes son", None))
-        self.sound_cards_explanation.setText(QCoreApplication.translate("SuggestionsWindow", u"Choisissez d'abord la carte son de l'antenne, puis celle de la pr\u00e9-\u00e9coute. \u00ab Tester \u00bb joue 2 secondes de son de test sur la carte de sa ligne : sur celle de l'antenne, il part \u00e0 l'antenne.", None))
-        self.explanation.setText(QCoreApplication.translate("SuggestionsWindow", u"Il manque de quoi d\u00e9marrer l'antenne. Cochez ce que MachinCast doit cr\u00e9er : les banques restent \u00e0 remplir, depuis leur fiche ou par l'indexation de leurs r\u00e9pertoires.", None))
-        self.more_offer.setText(QCoreApplication.translate("SuggestionsWindow", u"&Ne plus proposer au lancement", None))
+        SuggestionsWindow.setWindowTitle(QCoreApplication.translate("SuggestionsWindow", u"Getting started", None))
+        self.sound_cards_group.setTitle(QCoreApplication.translate("SuggestionsWindow", u"Sound cards", None))
+        self.sound_cards_explanation.setText(QCoreApplication.translate("SuggestionsWindow", u"First choose the on-air sound card, then the pre-listen one. \u201cTest\u201d plays 2 seconds of test sound on the card of its line: on the on-air one, it goes on air.", None))
+        self.explanation.setText(QCoreApplication.translate("SuggestionsWindow", u"Something is missing to start the on-air output. Tick what MachinCast must create: the banks remain to be filled, from their card or by the indexing of their directories.", None))
+        self.more_offer.setText(QCoreApplication.translate("SuggestionsWindow", u"&Do not offer at launch again", None))
     # retranslateUi
 

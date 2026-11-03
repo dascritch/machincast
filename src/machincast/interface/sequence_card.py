@@ -22,20 +22,21 @@ from PySide6.QtWidgets import QListWidgetItem, QWidget
 
 from machincast.clock import Clock
 from machincast.conformation import conform
+from machincast.i18n import _
 from machincast.interface.card import Card, Connection, Refusal
 from machincast.interface.items import Buttons, ItemList
 from machincast.interface.lists import EMPTY_SEQUENCE
 from machincast.interface.ui.sequence_card import Ui_SequenceCard
 
 HIDINGS: tuple[tuple[bool | None, str], ...] = (
-	(None, "Selon la banque ou le sonore"),
-	(True, "Masqué par le nom public de la séquence"),
-	(False, "Affichés"),
+	(None, _("According to the bank or the sound")),
+	(True, _("Hidden by the public name of the sequence")),
+	(False, _("Shown")),
 )
 """Valeurs de sequences.hide_metadata, dans l'ordre du choix de la fiche."""
 EVENT = Qt.ItemDataRole.UserRole
 """Rôle qui porte l'identifiant d'un événement, dans la liste des événements."""
-REPETITION = "Un sonore ou une banque peut revenir plusieurs fois dans une séquence."
+REPETITION = _("A sound or a bank may come back several times in a sequence.")
 """Remarque des choix de sonores et de banques."""
 
 
@@ -65,10 +66,10 @@ class SequenceCard(Card):
 
 	def title(self) -> str:
 		if self.is_copy():
-			return f"Nouvelle séquence, copie de {self._name}"
+			return _("New sequence, copy of {name}").format(name=self._name)
 		if self.identifier is None:
-			return "Nouvelle séquence"
-		return f"Séquence : {self._name}"
+			return _("New sequence")
+		return _("Sequence: {name}").format(name=self._name)
 
 	def _read(self) -> None:
 		"""Lit la séquence en base, ou celle qu'elle copie ; une nouvelle séquence est vide, au masquage hérité de la
@@ -109,13 +110,13 @@ class SequenceCard(Card):
 	def _write(self) -> int:
 		name = conform(self.ui.internal_name.text())
 		if name == "":
-			raise Refusal("Le nom interne est obligatoire.", self.ui.internal_name)
+			raise Refusal(_("The internal name is required."), self.ui.internal_name)
 		taken = self.connection.execute(
 			"SELECT 1 FROM sequences WHERE internal_name = %s AND id IS DISTINCT FROM %s AND deleted_at IS NULL",
 			(name, self.identifier),
 		).fetchone()
 		if taken is not None:
-			raise Refusal(f"Une autre séquence s'appelle déjà « {name} ».", self.ui.internal_name)
+			raise Refusal(_("Another sequence is already called “{name}”.").format(name=name), self.ui.internal_name)
 		values = (
 			name,
 			(conform(self.ui.public_name.text())) or (None),

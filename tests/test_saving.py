@@ -12,6 +12,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from machincast.database import Role, open_connection
 from machincast.player.saving import Play, begin_play, finish_play, record
 from tests.database_fixtures import sample_database_parameters
+from tests.log_texts import shown
 
 scenarios("saving.feature")
 
@@ -202,9 +203,13 @@ def end_line(empty_database: Connection, seconds: str, outcome: str) -> None:
 
 
 def log(database: Connection) -> list[tuple[object, ...]]:
-	return database.execute(
-		"SELECT level::text, kind, message, logged_at, sound_id, bank_id, event_id FROM log ORDER BY id"
-	).fetchall()
+	"""Le log, ses textes tels que l'interface les montre, en français."""
+	return [
+		(level, shown(kind), shown(message), *rest)
+		for level, kind, message, *rest in database.execute(
+			"SELECT level::text, kind, message, logged_at, sound_id, bank_id, event_id FROM log ORDER BY id"
+		).fetchall()
+	]
 
 
 @then("le log ne contient rien")

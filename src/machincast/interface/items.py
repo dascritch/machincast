@@ -27,6 +27,7 @@ from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import QAbstractItemView, QMenu, QPushButton, QTreeWidget, QTreeWidgetItem
 
 from machincast.conversion import integer_or_none, text_or_none
+from machincast.i18n import _, counted
 from machincast.interface import dialogs, display
 from machincast.interface.card import Card, sound_files
 from machincast.interface.columns import Columns
@@ -72,7 +73,7 @@ PLAYS = {
 SOUNDS_PER_FILE = PLAYS["sonore"].replace("s.id = ANY(%s)", "s.location = ANY(%s)")
 FEED_STREAM = "SELECT id FROM sounds WHERE feed_id = %s AND deleted_at IS NULL ORDER BY title, id LIMIT 1"
 """Le stream repris pour un feed : le premier par titre qui le suit."""
-SKIPPED = "ne passe jamais deux fois de suite : cet appel sera sauté."
+SKIPPED = _("never plays twice in a row: this call will be skipped.")
 
 
 @dataclass(frozen=True)
@@ -166,12 +167,14 @@ class ItemList(QObject):
 		for number in ignored_calls_to_edges(edges, self.marked_list, loop):
 			line = lines[number - 1]
 			bank = self.marked_list[edges[number - 1][0]]
-			text = f"Ligne {number} : la banque « {bank} » vient de passer, et {SKIPPED}"
+			text = _("Line {number}: the bank “{bank}” has just played, and {skipped}").format(
+				number=number, bank=bank, skipped=SKIPPED
+			)
 			if line.data(0, CATEGORY) == "séquence":
-				text = (
-					f"Ligne {number} : la séquence « {line.text(1)} » commence par la banque « {bank} », qui vient"
-					f" de passer, et {SKIPPED}"
-				)
+				text = _(
+					"Line {number}: the sequence “{text}” starts with the bank “{bank}”, which has just "
+					"played, and {skipped}"
+				).format(number=number, text=line.text(1), bank=bank, skipped=SKIPPED)
 			texts.append(text)
 		return texts
 
@@ -254,16 +257,14 @@ class ItemList(QObject):
 		identifier, name, mode, marked = bank
 		detail = MODES.get(str(mode), str(mode))
 		if marked:
-			detail = f"{detail}, ne pas répéter"
+			detail = _("{detail}, do not repeat").format(detail=detail)
 		line = self._line("banque", [str(name), detail], (integer_or_none(identifier), integer_or_none(identifier)))
 		line.setData(0, ITEM, int(str(identifier)))
 		return line
 
 	def _sequence_line(self, sequence: tuple[object, ...]) -> QTreeWidgetItem:
 		identifier, name, count, first, last = sequence
-		detail = f"{count} éléments"
-		if int(str(count)) == 1:
-			detail = "1 élément"
+		detail = counted("{count} element", "{count} elements", int(str(count)))
 		line = self._line("séquence", [str(name), detail], (integer_or_none(first), integer_or_none(last)))
 		line.setData(0, ITEM, int(str(identifier)))
 		return line
@@ -336,7 +337,7 @@ class ItemList(QObject):
 					lines += self._read({"sonore": [int(str(stream[0]))]})["sonore"].values()
 					continue
 				name, url = marks
-				line = self._line("sonore", [str(name), f"{url}, nouveau stream"], (None, None))
+				line = self._line("sonore", [str(name), _("{url}, new stream").format(url=url)], (None, None))
 				line.setData(0, FEED, feed)
 				lines.append(line)
 		self.list_.addTopLevelItems(lines)
@@ -352,7 +353,7 @@ class ItemList(QObject):
 		lines = [self._sound_line(by_file.get(file, (None, None, None, file, file))) for file in files]
 		self.list_.addTopLevelItems(lines)
 		self._refresh_buttons()
-		self.card.flag_ignored(ignored, "ce ne sont pas des fichiers sonores")
+		self.card.flag_ignored(ignored, _("these are not sound files"))
 
 	def _remove(self) -> None:
 		self.list_.takeTopLevelItem(self.list_.indexOfTopLevelItem(self.list_.currentItem()))

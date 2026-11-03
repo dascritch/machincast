@@ -18,12 +18,13 @@ from datetime import datetime
 from pathlib import Path
 
 from machincast.clock import Clock, SystemClock
+from machincast.i18n import _, current
 
 log = logging.getLogger(__name__)
 
 DIRECTORY = Path("/tmp")
 CLOCK: Clock = SystemClock()
-COLUMNS = ("date", "chemin", "verdict", "problème", "conséquence")
+COLUMNS = ("date", "chemin", "verdict", _("problem"), _("consequence"))
 REPORT = "bilan"
 """Verdict de la dernière ligne du CSV, qui porte le bilan du passage dans la colonne du problème."""
 
@@ -70,17 +71,14 @@ def page(anomalies: list[Anomaly], report: str, start: datetime) -> str:
 		+ "</tr>"
 		for anomaly in anomalies
 	)
-	content = f"""	<table>
-		<thead><tr><th>Chemin</th><th>Verdict</th><th>Problème</th><th>Conséquence</th></tr></thead>
-		<tbody>
-{rows}
-		</tbody>
-	</table>"""
+	content = _(
+		"\t<table>\n\t\t<thead><tr><th>Path</th><th>Verdict</th><th>Problem</th><th>Consequence</th></tr></thead>\n\t\t<tbody>\n{rows}\n\t\t</tbody>\n\t</table>"
+	).format(rows=rows)
 	if anomalies == []:
-		content = "	<p>Aucune anomalie.</p>"
-	title = f"Audit de l'indexation du {_date(start)}"
+		content = _("\t<p>No anomaly.</p>")
+	title = _("Indexing audit of {date}").format(date=_date(start))
 	return f"""<!DOCTYPE html>
-<html lang="fr">
+<html lang="{current()}">
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -105,6 +103,8 @@ def produce(anomalies: list[Anomaly], report: str, start: datetime) -> None:
 	try:
 		csv_path, html_path = write(anomalies, report, start, DIRECTORY)
 	except OSError as error:
-		log.warning(f"document d'audit impossible à écrire dans {DIRECTORY} : {error}")
+		log.warning(
+			_("audit document cannot be written in {directory}: {error}").format(directory=DIRECTORY, error=error)
+		)
 		return
-	log.info(f"document d'audit : {csv_path}, {html_path}")
+	log.info(_("audit document: {csv_path}, {html_path}").format(csv_path=csv_path, html_path=html_path))

@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MachinCast</string>
+   <string notr="true">MachinCast</string>
   </property>
   <layout class="QVBoxLayout" name="arrangement">
    <item>
@@ -24,7 +24,7 @@
         </font>
        </property>
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -34,7 +34,7 @@
      <item>
       <widget class="QLabel" name="public_text">
        <property name="toolTip">
-        <string>Ce que les sorties publiques affichent du sonore en cours</string>
+        <string>What the public outputs show of the current sound</string>
        </property>
        <property name="font">
         <font>
@@ -43,7 +43,7 @@
         </font>
        </property>
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -59,7 +59,7 @@
      <item>
       <widget class="QLabel" name="playback_state">
        <property name="toolTip">
-        <string>État de Machin player</string>
+        <string>State of Machin player</string>
        </property>
        <property name="font">
         <font>
@@ -67,7 +67,7 @@
         </font>
        </property>
        <property name="text">
-        <string>À l'arrêt</string>
+        <string>Stopped</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -81,7 +81,7 @@
      <item>
       <widget class="QLabel" name="on_air_event">
        <property name="toolTip">
-        <string>Événement à l'antenne</string>
+        <string>Event on air</string>
        </property>
        <property name="font">
         <font>
@@ -89,7 +89,7 @@
         </font>
        </property>
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -106,13 +106,13 @@
      <item>
       <widget class="QGroupBox" name="ongoing_frame">
        <property name="title">
-        <string>Sonore en cours</string>
+        <string>Current sound</string>
        </property>
        <layout class="QVBoxLayout" name="ongoing_layout">
         <item>
          <widget class="QWidget" name="ongoing_timeline_place" native="true">
           <property name="toolTip">
-           <string>Forme d'onde, silences et fondus du sonore en cours, tels que la diffusion le joue</string>
+           <string>Waveform, silences and fades of the current sound, as the broadcast plays it</string>
           </property>
           <property name="minimumSize">
            <size>
@@ -131,7 +131,7 @@
            <number>0</number>
           </property>
           <property name="format">
-           <string>—</string>
+           <string notr="true">—</string>
           </property>
          </widget>
         </item>
@@ -145,7 +145,7 @@
         </font>
        </property>
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -158,10 +158,10 @@
           <item>
            <widget class="QToolButton" name="open_ongoing_sound">
           <property name="toolTip">
-           <string>Ouvrir la fiche du sonore</string>
+           <string>Open the card of the sound</string>
           </property>
           <property name="text">
-           <string>Fiche…</string>
+           <string>Card…</string>
           </property>
           <property name="enabled">
            <bool>false</bool>
@@ -175,7 +175,7 @@
           <item row="0" column="0">
            <widget class="QLabel" name="ongoing_event_heading">
             <property name="text">
-             <string>Événement</string>
+             <string>Event</string>
             </property>
            </widget>
           </item>
@@ -184,7 +184,7 @@
             <item>
              <widget class="QLabel" name="ongoing_event">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -197,10 +197,10 @@
             <item>
              <widget class="QToolButton" name="open_ongoing_event">
           <property name="toolTip">
-           <string>Ouvrir la fiche de l'événement</string>
+           <string>Open the card of the event</string>
           </property>
           <property name="text">
-           <string>Fiche…</string>
+           <string>Card…</string>
           </property>
           <property name="enabled">
            <bool>false</bool>
@@ -212,7 +212,7 @@
           <item row="1" column="0">
            <widget class="QLabel" name="ongoing_sequence_heading">
             <property name="text">
-             <string>Séquence</string>
+             <string>Sequence</string>
             </property>
            </widget>
           </item>
@@ -221,7 +221,7 @@
             <item>
            <widget class="QLabel" name="ongoing_sequence">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -234,10 +234,10 @@
             <item>
              <widget class="QToolButton" name="open_ongoing_sequence">
           <property name="toolTip">
-           <string>Ouvrir la fiche de la séquence</string>
+           <string>Open the card of the sequence</string>
           </property>
           <property name="text">
-           <string>Fiche…</string>
+           <string>Card…</string>
           </property>
           <property name="enabled">
            <bool>false</bool>
@@ -249,7 +249,7 @@
           <item row="2" column="0">
            <widget class="QLabel" name="ongoing_bank_heading">
             <property name="text">
-             <string>Banque</string>
+             <string>Bank</string>
             </property>
            </widget>
           </item>
@@ -258,7 +258,7 @@
             <item>
            <widget class="QLabel" name="ongoing_bank">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -271,10 +271,10 @@
             <item>
              <widget class="QToolButton" name="open_ongoing_bank">
           <property name="toolTip">
-           <string>Ouvrir la fiche de la banque</string>
+           <string>Open the card of the bank</string>
           </property>
           <property name="text">
-           <string>Fiche…</string>
+           <string>Card…</string>
           </property>
           <property name="enabled">
            <bool>false</bool>
@@ -286,14 +286,14 @@
           <item row="3" column="0">
            <widget class="QLabel" name="ongoing_schedule_heading">
             <property name="text">
-             <string>Horaire</string>
+             <string>Time</string>
             </property>
            </widget>
           </item>
           <item row="3" column="1">
            <widget class="QLabel" name="ongoing_schedule">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -306,14 +306,14 @@
           <item row="4" column="0">
            <widget class="QLabel" name="ongoing_location_heading">
             <property name="text">
-             <string>Emplacement</string>
+             <string>Location</string>
             </property>
            </widget>
           </item>
           <item row="4" column="1">
            <widget class="QLineEdit" name="ongoing_location">
             <property name="text">
-             <string>—</string>
+             <string notr="true">—</string>
             </property>
             <property name="frame">
              <bool>false</bool>
@@ -350,7 +350,7 @@
         </size>
        </property>
        <property name="title">
-        <string>Antenne</string>
+        <string>On air</string>
        </property>
        <layout class="QVBoxLayout" name="on_air_layout" stretch="0,1,0,0">
         <item>
@@ -361,10 +361,10 @@
            </font>
           </property>
           <property name="toolTip">
-           <string>Une crête à -1 dBFS ou plus, dans les 3 dernières secondes</string>
+           <string>A peak at -1 dBFS or more, in the last 3 seconds</string>
           </property>
           <property name="text">
-           <string>Saturation</string>
+           <string>Clipping</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -395,10 +395,10 @@
            </font>
           </property>
           <property name="toolTip">
-           <string>Plus de 5 secondes sous -50 dBFS</string>
+           <string>More than 5 seconds below -50 dBFS</string>
           </property>
           <property name="text">
-           <string>Blanc</string>
+           <string>Dead air</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -421,13 +421,13 @@
      <item>
       <widget class="QGroupBox" name="next_frame">
        <property name="title">
-        <string>Prochain sonore</string>
+        <string>Next sound</string>
        </property>
        <layout class="QVBoxLayout" name="next_layout">
         <item>
          <widget class="QWidget" name="next_timeline_place" native="true">
           <property name="toolTip">
-           <string>Forme d'onde, silences et fondus du prochain sonore, tels que la diffusion le jouera</string>
+           <string>Waveform, silences and fades of the next sound, as the broadcast will play it</string>
           </property>
           <property name="minimumSize">
            <size>
@@ -447,7 +447,7 @@
         </font>
        </property>
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -460,10 +460,10 @@
           <item>
            <widget class="QToolButton" name="open_next_sound">
           <property name="toolTip">
-           <string>Ouvrir la fiche du sonore</string>
+           <string>Open the card of the sound</string>
           </property>
           <property name="text">
-           <string>Fiche…</string>
+           <string>Card…</string>
           </property>
           <property name="enabled">
            <bool>false</bool>
@@ -477,7 +477,7 @@
           <item row="0" column="0">
            <widget class="QLabel" name="next_event_heading">
             <property name="text">
-             <string>Événement</string>
+             <string>Event</string>
             </property>
            </widget>
           </item>
@@ -486,7 +486,7 @@
             <item>
              <widget class="QLabel" name="next_event">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -499,10 +499,10 @@
             <item>
              <widget class="QToolButton" name="open_next_event">
           <property name="toolTip">
-           <string>Ouvrir la fiche de l'événement</string>
+           <string>Open the card of the event</string>
           </property>
           <property name="text">
-           <string>Fiche…</string>
+           <string>Card…</string>
           </property>
           <property name="enabled">
            <bool>false</bool>
@@ -514,7 +514,7 @@
           <item row="1" column="0">
            <widget class="QLabel" name="next_sequence_heading">
             <property name="text">
-             <string>Séquence</string>
+             <string>Sequence</string>
             </property>
            </widget>
           </item>
@@ -523,7 +523,7 @@
             <item>
            <widget class="QLabel" name="next_sequence">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -536,10 +536,10 @@
             <item>
              <widget class="QToolButton" name="open_next_sequence">
           <property name="toolTip">
-           <string>Ouvrir la fiche de la séquence</string>
+           <string>Open the card of the sequence</string>
           </property>
           <property name="text">
-           <string>Fiche…</string>
+           <string>Card…</string>
           </property>
           <property name="enabled">
            <bool>false</bool>
@@ -551,7 +551,7 @@
           <item row="2" column="0">
            <widget class="QLabel" name="next_bank_heading">
             <property name="text">
-             <string>Banque</string>
+             <string>Bank</string>
             </property>
            </widget>
           </item>
@@ -560,7 +560,7 @@
             <item>
            <widget class="QLabel" name="next_bank">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -573,10 +573,10 @@
             <item>
              <widget class="QToolButton" name="open_next_bank">
           <property name="toolTip">
-           <string>Ouvrir la fiche de la banque</string>
+           <string>Open the card of the bank</string>
           </property>
           <property name="text">
-           <string>Fiche…</string>
+           <string>Card…</string>
           </property>
           <property name="enabled">
            <bool>false</bool>
@@ -588,14 +588,14 @@
           <item row="3" column="0">
            <widget class="QLabel" name="next_schedule_heading">
             <property name="text">
-             <string>Horaire estimé</string>
+             <string>Estimated time</string>
             </property>
            </widget>
           </item>
           <item row="3" column="1">
            <widget class="QLabel" name="next_schedule">
        <property name="text">
-        <string>—</string>
+        <string notr="true">—</string>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -608,14 +608,14 @@
           <item row="4" column="0">
            <widget class="QLabel" name="next_location_heading">
             <property name="text">
-             <string>Emplacement</string>
+             <string>Location</string>
             </property>
            </widget>
           </item>
           <item row="4" column="1">
            <widget class="QLineEdit" name="next_location">
             <property name="text">
-             <string>—</string>
+             <string notr="true">—</string>
             </property>
             <property name="frame">
              <bool>false</bool>
@@ -628,7 +628,7 @@
           <item row="5" column="0">
            <widget class="QLabel" name="next_healthy_heading">
             <property name="text">
-             <string>Sain</string>
+             <string>Healthy</string>
             </property>
            </widget>
           </item>
@@ -637,7 +637,7 @@
             <item>
              <widget class="QLabel" name="next_healthy">
               <property name="text">
-               <string>—</string>
+               <string notr="true">—</string>
               </property>
               <property name="textInteractionFlags">
                <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
@@ -660,20 +660,20 @@
             <item>
              <widget class="QPushButton" name="test_next_stream">
               <property name="toolTip">
-               <string>Se connecter au flux du prochain sonore, sans rien jouer : reçoit-il du son, de quel type, à quel débit ?</string>
+               <string>Connect to the stream of the next sound, without playing anything: does it receive sound, of what type, at what bitrate?</string>
               </property>
               <property name="text">
-               <string>Tester la connexion du flux</string>
+               <string>Test the stream connection</string>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QPushButton" name="preview_next">
               <property name="toolTip">
-               <string>Écouter le prochain sonore sur la sortie de pré-écoute, jamais sur l'antenne</string>
+               <string>Listen to the next sound on the pre-listen output, never on air</string>
               </property>
               <property name="text">
-               <string>Pré-écoute</string>
+               <string>Pre-listen</string>
               </property>
              </widget>
             </item>
@@ -712,7 +712,7 @@
    <item>
     <widget class="QGroupBox" name="upcoming_frame">
      <property name="title">
-      <string>À venir après le prochain sonore</string>
+      <string>Coming after the next sound</string>
      </property>
      <layout class="QVBoxLayout" name="upcoming_layout">
       <item>
@@ -724,7 +724,7 @@
          </sizepolicy>
         </property>
         <property name="toolTip">
-         <string>Les sonores prévus après le prochain, le plus lointain en haut. Double-clic sur un sonore, un événement, une séquence ou une banque : ouvrir sa fiche</string>
+         <string>The sounds planned after the next one, the furthest at the top. Double-click on a sound, an event, a sequence or a bank: open its card</string>
         </property>
         <property name="editTriggers">
          <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
@@ -752,13 +752,13 @@
    <item>
     <widget class="QGroupBox" name="airplay_frame">
      <property name="title">
-      <string>Airplay : les 10 derniers sonores</string>
+      <string>Airplay: the last 10 sounds</string>
      </property>
      <layout class="QVBoxLayout" name="airplay_layout">
       <item>
        <widget class="QTableView" name="table_airplay">
         <property name="toolTip">
-         <string>Double-clic sur un sonore, un événement, une séquence ou une banque : ouvrir sa fiche</string>
+         <string>Double-click on a sound, an event, a sequence or a bank: open its card</string>
         </property>
         <property name="editTriggers">
          <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>

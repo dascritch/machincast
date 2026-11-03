@@ -7,6 +7,8 @@ passent une FixedClock, qu'ils font avancer à volonté. Les heures sont toujour
 from datetime import datetime, timedelta
 from typing import Protocol
 
+from machincast.i18n import _
+
 
 class Clock(Protocol):
 	def now(self) -> datetime:
@@ -26,7 +28,7 @@ class FixedClock:
 
 	def __init__(self, instant: datetime) -> None:
 		if instant.tzinfo is None:
-			raise ValueError(f"heure sans fuseau : {instant.isoformat()}")
+			raise ValueError(_("time without a time zone: {instant}").format(instant=instant.isoformat()))
 		self._instant = instant
 
 	def now(self) -> datetime:

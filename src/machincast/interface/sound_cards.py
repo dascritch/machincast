@@ -38,24 +38,26 @@ from PySide6.QtWidgets import QComboBox, QPushButton, QWidget  # noqa: E402
 from machincast import audio as audio_outputs  # noqa: E402
 from machincast.audio import Presentation, UnavailableAudioOutput  # noqa: E402
 from machincast.configuration import DUMMY, AudioOutput  # noqa: E402
+from machincast.i18n import _  # noqa: E402
 from machincast.interface import states  # noqa: E402
 from machincast.interface.ui.sound_cards import Ui_SoundCards  # noqa: E402
 from machincast.service import ABSENT, ServiceState  # noqa: E402
 
 TYPES: tuple[tuple[AudioOutput, str], ...] = (("pipewire", "PipeWire"), ("pulseaudio", "PulseAudio"), ("alsa", "ALSA"))
 """Les types de sortie proposés."""
-DUMMY_TYPE: tuple[AudioOutput, str] = ("dummy", "Factice, aucun son")
+DUMMY_TYPE: tuple[AudioOutput, str] = ("dummy", _("Dummy, no sound"))
 """La sortie factice des essais : proposée seulement si elle est déjà configurée."""
-DUMMY_OUTPUT = "Sortie factice"
-TO_FILL_IN = "(à renseigner)"
+DUMMY_OUTPUT = _("Dummy output")
+TO_FILL_IN = _("(to fill in)")
 """L'antenne, tant qu'elle n'a pas de carte : Machin player refuse alors de diffuser."""
-DUMMY_REFUSED = (
-	"Seulement sans service de diffusion installé : l'antenne d'un poste dédié joue toujours sur une carte son."
+DUMMY_REFUSED = _(
+	"Only without an installed broadcast service: the on-air output of a dedicated computer "
+	"always plays on a sound card."
 )
-RUNNING_BROADCAST = "Arrêter la diffusion pour choisir la carte son de l'antenne."
-WITHOUT_CARD = "Choisir d'abord une carte son."
-WITHOUT_SOUND = "La sortie factice ne joue aucun son."
-TEST = "Jouer 2 secondes de son de test sur cette carte : une sinusoïde à 1000 Hz, à -3 dB"
+RUNNING_BROADCAST = _("Stop the broadcast to choose the on-air sound card.")
+WITHOUT_CARD = _("Choose a sound card first.")
+WITHOUT_SOUND = _("The dummy output plays no sound.")
+TEST = _("Play 2 seconds of test sound on this card: a sine wave at 1000 Hz, at -3 dB")
 
 FREQUENCY = 1000
 """Hertz."""
@@ -70,7 +72,7 @@ MARGIN = 5.0
 """Secondes au-delà de la durée du son au bout desquelles un son de test qui ne finit pas est abandonné."""
 READING = 50
 """Millisecondes entre deux relèves du bus du son de test."""
-TEST_SOUND = Presentation("MachinCast interface", "Son de test")
+TEST_SOUND = Presentation("MachinCast interface", _("Test sound"))
 
 output_factory: Callable[..., Gst.Element] = audio_outputs.create_output
 """La sortie du son de test ; les scénarios la remplacent par une sortie factice."""
@@ -86,7 +88,7 @@ def sample_sound(output: AudioOutput, device: str) -> Gst.Pipeline:
 	resampling = Gst.ElementFactory.make("audioresample", None)
 	if (source is None) or (filter_ is None) or (conversion is None) or (resampling is None):
 		raise UnavailableAudioOutput(
-			"audiotestsrc, audioconvert ou audioresample introuvable, installer gstreamer1.0-plugins-base"
+			_("audiotestsrc, audioconvert or audioresample not found, install gstreamer1.0-plugins-base")
 		)
 	source.set_property("wave", "sine")
 	source.set_property("freq", float(FREQUENCY))
@@ -206,8 +208,8 @@ class SoundCards(QWidget):
 		locked = (self.service.installed) and (self.service.running)
 		for item in (ui.output, ui.on_air):
 			item.setEnabled(not locked)
-		ui.output.setToolTip("Le serveur audio par lequel passent l'antenne et la pré-écoute")
-		ui.on_air.setToolTip("La carte son sur laquelle Machin player diffuse l'antenne")
+		ui.output.setToolTip(_("The audio server through which the on-air output and the pre-listen go"))
+		ui.on_air.setToolTip(_("The sound card on which Machin player broadcasts on air"))
 		if locked:
 			for item in (ui.output, ui.on_air):
 				item.setToolTip(RUNNING_BROADCAST)
@@ -226,12 +228,12 @@ class SoundCards(QWidget):
 		try:
 			pipeline = sample_sound(self.chosen_output(), str(card))
 		except UnavailableAudioOutput as error:
-			self._say(f"Son de test impossible sur « {self._card} » : {error}")
+			self._say(_("Test sound impossible on “{card}”: {error}").format(card=self._card, error=error))
 			return
 		self._pipeline = pipeline
 		self._piloted = states.Pilot(pipeline)
 		self._end = self.clock() + TEST_SOUND_DURATION + MARGIN
-		self._say(f"Son de test sur « {self._card} »…")
+		self._say(_("Test sound on “{card}”…").format(card=self._card))
 		self._piloted.to(Gst.State.PLAYING)
 		self._reading.start()
 		self._refresh()
@@ -241,20 +243,22 @@ class SoundCards(QWidget):
 		if pipeline is None:
 			return
 		if (self._piloted is not None) and (self._piloted.has_failed()):
-			self._finish(f"Son de test impossible sur « {self._card} » : la carte ne s'ouvre pas.")
+			self._finish(_("Test sound impossible on “{card}”: the card does not open.").format(card=self._card))
 			return
 		bus = pipeline.get_bus()
 		assert bus is not None
 		while (message := bus.pop()) is not None:
 			if message.type == Gst.MessageType.EOS:
-				self._finish(f"Son de test joué sur « {self._card} ».")
+				self._finish(_("Test sound played on “{card}”.").format(card=self._card))
 				return
 			if message.type == Gst.MessageType.ERROR:
 				error, _detail = message.parse_error()
-				self._finish(f"Son de test impossible sur « {self._card} » : {error.message}")
+				self._finish(
+					_("Test sound impossible on “{card}”: {message}").format(card=self._card, message=error.message)
+				)
 				return
 		if self.clock() > self._end:
-			self._finish(f"Son de test impossible sur « {self._card} » : la carte ne répond pas.")
+			self._finish(_("Test sound impossible on “{card}”: the card does not answer.").format(card=self._card))
 
 	def _finish(self, text: str) -> None:
 		self.halt()
@@ -289,7 +293,9 @@ def _fill(choice: QComboBox, current: str | None, found_list: list[audio_outputs
 	elif current == DUMMY:
 		choice.addItem(DUMMY_OUTPUT, DUMMY)
 	else:
-		name = next((p.name for p in found_list if p.identifier == current), f"{current} (introuvable)")
+		name = next(
+			(p.name for p in found_list if p.identifier == current), _("{device} (not found)").format(device=current)
+		)
 		choice.addItem(name, current)
 	for device in found_list:
 		if device.identifier != current:

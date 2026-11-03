@@ -19,6 +19,7 @@ import io
 from datetime import datetime, timedelta
 
 from machincast.configuration import Metadata
+from machincast.i18n import _, current
 from machincast.player.outputs import Line, artist_and_title, public_text
 
 COLUMNS = (
@@ -35,23 +36,23 @@ COLUMNS = (
 	"sans_incident",
 )
 FORMATS = {
-	"Tableur CSV (*.csv)": ".csv",
-	"Page HTML (*.html)": ".html",
-	"Liste de lecture M3U (*.m3u)": ".m3u",
+	_("CSV spreadsheet (*.csv)"): ".csv",
+	_("HTML page (*.html)"): ".html",
+	_("M3U playlist (*.m3u)"): ".m3u",
 }
 """Filtres du sélecteur d'export, et l'extension de chacun."""
 HTML_HEADERS = (
-	"Début",
-	"Fin",
-	"Durée",
-	"Artiste",
-	"Titre",
-	"Texte public",
-	"Emplacement",
-	"Événement",
-	"Séquence",
-	"Banque",
-	"Incident",
+	_("Start"),
+	_("End"),
+	_("Duration"),
+	_("Artist"),
+	_("Title"),
+	_("Public text"),
+	_("Location"),
+	_("Event"),
+	_("Sequence"),
+	_("Bank"),
+	_("Incident"),
 )
 
 
@@ -71,7 +72,7 @@ def _duration(duration: timedelta | None) -> str:
 def _incident(line: Line) -> str:
 	"""Comme la colonne « Incident » de l'airplay de l'interface : « oui » pour un passage qui en a eu un."""
 	if line.without_incident is False:
-		return "oui"
+		return _("yes")
 	return ""
 
 
@@ -115,8 +116,11 @@ def in_html(lines: list[Line], metadata: Metadata, title: str, instant: datetime
 		+ "</tr>"
 		for line in lines
 	)
+	exported = _("Exported on {time}").format(
+		time=f'<time datetime="{instant.isoformat()}">{html.escape(_hour(instant))}</time>'
+	)
 	return f"""<!DOCTYPE html>
-<html lang="fr">
+<html lang="{current()}">
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -136,7 +140,7 @@ def in_html(lines: list[Line], metadata: Metadata, title: str, instant: datetime
 {rows}
 		</tbody>
 	</table>
-	<footer><p>Exporté le <time datetime="{instant.isoformat()}">{_hour(instant)}</time></p></footer>
+	<footer><p>{exported}</p></footer>
 </body>
 </html>
 """
@@ -151,6 +155,6 @@ def in_m3u(lines: list[Line], metadata: Metadata) -> str:
 		if line.duration is not None:
 			duration = round(line.duration.total_seconds())
 		entries.append(f"#EXTINF:{duration},{(artist_and_title(line)) or (line.location)}")
-		entries.append(f"# texte public : {public_text(line, metadata)}")
+		entries.append(_("# public text: {public_text}").format(public_text=public_text(line, metadata)))
 		entries.append(line.location)
 	return "\n".join([*entries, ""])

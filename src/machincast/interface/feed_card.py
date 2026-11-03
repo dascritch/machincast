@@ -18,6 +18,7 @@ from PySide6.QtWidgets import QListWidgetItem, QWidget
 
 from machincast.clock import Clock
 from machincast.conformation import conform
+from machincast.i18n import _
 from machincast.interface.card import Card, Connection, Refusal
 from machincast.interface.stream_trial import StreamTrial, trial_result
 from machincast.interface.ui.feed_card import Ui_FeedCard
@@ -47,8 +48,8 @@ class FeedCard(Card):
 
 	def title(self) -> str:
 		if self.identifier is None:
-			return "Nouveau feed"
-		return f"Feed : {self._name}"
+			return _("New feed")
+		return _("Feed: {name}").format(name=self._name)
 
 	def shut_down(self) -> None:
 		self.trial.halt()
@@ -82,14 +83,14 @@ class FeedCard(Card):
 		name = conform(self.ui.name.text())
 		url = self.ui.url.text().strip()
 		if name == "":
-			raise Refusal("Le nom est obligatoire.", self.ui.name)
+			raise Refusal(_("The name is required."), self.ui.name)
 		taken = self.connection.execute(
 			"SELECT 1 FROM feeds WHERE name = %s AND id IS DISTINCT FROM %s", (name, self.identifier)
 		).fetchone()
 		if taken is not None:
-			raise Refusal(f"Un autre feed s'appelle déjà « {name} ».", self.ui.name)
+			raise Refusal(_("Another feed is already called “{name}”.").format(name=name), self.ui.name)
 		if url == "":
-			raise Refusal("L'adresse est obligatoire.", self.ui.url)
+			raise Refusal(_("The address is required."), self.ui.url)
 		if self.identifier is None:
 			created = self.connection.execute(
 				"INSERT INTO feeds (name, url) VALUES (%s, %s) RETURNING id", (name, url)
@@ -101,7 +102,7 @@ class FeedCard(Card):
 
 	def _test(self) -> None:
 		self.ui.test.setEnabled(False)
-		self.ui.trial_result.setText("Test du flux en cours…")
+		self.ui.trial_result.setText(_("Stream test running…"))
 		self.trial.launch(self.ui.url.text().strip())
 
 	def _finished_trial(self, answers: bool, detail: str) -> None:

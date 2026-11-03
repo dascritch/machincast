@@ -63,6 +63,7 @@ from PySide6.QtWidgets import (
 from machincast.clock import Clock
 from machincast.conformation import conform
 from machincast.conversion import duration_or_none, text_or_none
+from machincast.i18n import _, logged, pgettext
 from machincast.interface import dialogs, display, expandable, icons, preferences
 from machincast.interface.bank_card import removal_warning
 from machincast.interface.card import Card, Connection, Refusal
@@ -76,9 +77,9 @@ from machincast.interface.timeline import Timeline, WaveShape, sound_plan
 from machincast.interface.ui.sound_card import Ui_SoundCard
 
 METADATA: tuple[tuple[str, str], ...] = (
-	("year", "année"),
+	("year", _("year")),
 	("album", "album"),
-	("album_artist", "artiste de l'album"),
+	("album_artist", _("album artist")),
 	("genre", "genre"),
 	("composer", "compositeur"),
 	("label", "label"),
@@ -91,19 +92,19 @@ LABELS: dict[str, str] = {
 	"artist": "artiste",
 	"title": "titre",
 	**{f"music_metadata.{key}": name for key, name in METADATA},
-	"crossfade_start": "crossfade de début",
-	"crossfade_end": "crossfade de fin",
-	"max_plays": "maximum de lectures",
-	"hide_metadata": "artiste et titre",
-	"broadcast_start": "début de diffusion",
-	"broadcast_end": "fin de diffusion",
-	"stream_url": "adresse directe",
+	"crossfade_start": _("start crossfade"),
+	"crossfade_end": _("end crossfade"),
+	"max_plays": _("maximum of plays"),
+	"hide_metadata": _("artist and title"),
+	"broadcast_start": _("broadcast start"),
+	"broadcast_end": _("broadcast end"),
+	"stream_url": _("direct address"),
 	"feed_id": "feed",
-	"fallback_event_id": "événement de secours",
-	"silence_detection": "détection de silence",
-	"detected_start": "début détecté",
-	"detected_end": "fin détectée",
-	"duration": "durée",
+	"fallback_event_id": _("fallback event"),
+	"silence_detection": _("silence detection"),
+	"detected_start": _("detected start"),
+	"detected_end": _("detected end"),
+	"duration": _("duration"),
 }
 """Nom à l'écran d'un champ de edited_fields."""
 STATE_CHOICE: dict[str, tuple[str, ...]] = {
@@ -117,9 +118,9 @@ STATE_CHOICE: dict[str, tuple[str, ...]] = {
 }
 """L'état du sonore, puis ceux que l'interface peut poser."""
 HIDINGS: tuple[tuple[bool | None, str], ...] = (
-	(None, "Selon la configuration"),
-	(True, "Masqués"),
-	(False, "Affichés"),
+	(None, _("According to the configuration")),
+	(True, _("Hidden")),
+	(False, _("Shown")),
 )
 """Valeurs de sounds.hide_metadata, dans l'ordre du choix de la fiche."""
 NEW_STREAM: tuple[object, ...] = (
@@ -153,12 +154,12 @@ RELATION = Qt.ItemDataRole.UserRole
 SILENCE_MAXIMAL = 86400.0
 """Secondes d'un silence détecté au plus, sans durée connue : celles du champ de la fiche."""
 MARKERS = {
-	"detected_start": ("Début détecté", "Début"),
-	"detected_end": ("Fin détectée", "Fin"),
+	"detected_start": (_("Detected start"), _("Start")),
+	"detected_end": (_("Detected end"), _("End")),
 }
 """Le nom de chaque silence détecté : mesuré par l'indexeur, ou saisi à la main
 (https://github.com/dascritch/machincast/issues/330)."""
-ITEMS = {"séquence": "la séquence", "banque": "la banque", "événement": "l'événement"}
+ITEMS = {"séquence": _("the sequence"), "banque": _("the bank"), "événement": _("the event")}
 RELATION_LISTS = {
 	"séquence": ("sequence_items", "sequence_id"),
 	"banque": ("bank_sounds", "bank_id"),
@@ -176,13 +177,15 @@ EXPANDED_PANELS = "fiche-sonore/encarts-deplies"
 """Dans les réglages des vues du compte (machincast.interface.columns) : les encarts dépliés des fiches de sonore."""
 SHAPE_READING = 100
 """Millisecondes entre deux relèves de la forme d'onde en cours de calcul."""
-TIMELINE_TITLE = "Le fichier tel que l'antenne le jouera, selon les réglages de la fiche, même pas encore enregistrés"
+TIMELINE_TITLE = _(
+	"The file as the on-air output will play it, according to the settings of the form, even not yet saved"
+)
 
 STAT_DELAY = 5
 """Secondes laissées à stat pour lire la date de création d'un fichier, sur un partage réseau par exemple."""
 
 
-PREVIEW = "Écouter le sonore sur la sortie de pré-écoute, jamais sur l'antenne"
+PREVIEW = _("Listen to the sound on the pre-listen output, never on air")
 """L'infobulle de « Pré-écoute… », celle de fiche_sonore.ui."""
 
 
@@ -295,8 +298,8 @@ class SoundCard(Card):
 
 	def title(self) -> str:
 		if self.identifier is None:
-			return "Nouveau stream"
-		return f"Sonore : {self._name}"
+			return _("New stream")
+		return _("Sound: {name}").format(name=self._name)
 
 	def _refresh_timeline(self) -> None:
 		"""Le plan du fichier selon les champs de la fiche, même pas encore enregistrés : crossfades, silences détectés
@@ -415,15 +418,15 @@ class SoundCard(Card):
 	def wait_check(self) -> None:
 		"""La vérification complète est lancée : le bouton attend sa fin."""
 		self._in_check = True
-		self.ui.check.setText("Vérification…")
+		self.ui.check.setText(_("Checking…"))
 		self._refresh_check()
-		self.message.setText("Vérification complète en cours…")
+		self.message.setText(_("Full check running…"))
 
 	def finished_check(self, text: str) -> None:
 		"""La vérification complète est finie : une question propose de rafraîchir la fiche, qui montre alors ce que
 		l'indexeur a écrit."""
 		self._in_check = False
-		self.ui.check.setText("Vérification complète")
+		self.ui.check.setText(_("Full check"))
 		self._refresh_check()
 		self.message.clear()
 		if dialogs.offer_refresh(self, text):
@@ -552,7 +555,7 @@ class SoundCard(Card):
 		musical_list = dict(metadata)
 		for key, field in self.metadata.items():
 			field.setText(str(musical_list.pop(key, "")))
-		others = [f"{key} : {value}" for key, value in sorted(musical_list.items())]
+		others = [_("{key}: {value}").format(key=key, value=value) for key, value in sorted(musical_list.items())]
 		self.ui.other_metadata.setText(", ".join(others))
 		# Un crossfade non paramétré (NULL) est décoché ; 0 seconde en est un (https://github.com/dascritch/machincast/issues/145).
 		for box, slider, crossfade in (
@@ -576,7 +579,7 @@ class SoundCard(Card):
 		self.ui.by_address.setChecked(feed is None)
 		self._mode_stream()
 		self.ui.fallback.clear()
-		self.ui.fallback.addItem("Aucun : le fil musical", None)
+		self.ui.fallback.addItem(_("None: the background programming"), None)
 		for identifier, name in fallback:
 			self.ui.fallback.addItem(str(name), int(str(identifier)))
 		self.ui.fallback.setCurrentIndex(self.ui.fallback.findData(fallback_event))
@@ -584,7 +587,9 @@ class SoundCard(Card):
 		edited_list = [LABELS.get(str(field), str(field)) for field in _list(edited_fields)]
 		edited_text = ""
 		if edited_list != []:
-			edited_text = f"Saisis à la main, que l'indexeur ne modifie plus : {', '.join(edited_list)}."
+			edited_text = _("Entered by hand, no longer changed by the indexer: {list}.").format(
+				list=", ".join(edited_list)
+			)
 		self.ui.edited_fields.setText(edited_text)
 		self._show_plays(plays)
 		self.ui.timeline_place.setVisible(self._file)
@@ -646,9 +651,9 @@ class SoundCard(Card):
 		inputs = self._inputs()
 		start, end = inputs["broadcast_start"], inputs["broadcast_end"]
 		if (isinstance(start, datetime)) and (isinstance(end, datetime)) and (end <= start):
-			raise Refusal("La fin de la diffusion doit suivre son début.", self.ui.has_start, self.ui.has_end)
+			raise Refusal(_("The end of the broadcast must follow its start."), self.ui.has_start, self.ui.has_end)
 		if ("stream_url" in inputs) and (inputs["stream_url"] is None) and (inputs["feed_id"] is None):
-			raise Refusal("L'adresse du stream est obligatoire.", self.ui.by_address, self.ui.by_feed)
+			raise Refusal(_("The address of the stream is required."), self.ui.by_address, self.ui.by_feed)
 		# Seuls des silences saisis sont refusés : l'indexeur ne mesure jamais des silences qui couvrent tout le
 		# fichier.
 		sides = ("detected_start", "detected_end")
@@ -656,7 +661,7 @@ class SoundCard(Card):
 		silences = [silence for silence in (inputs.get(side) for side in sides) if isinstance(silence, timedelta)]
 		if (entered_list) and (self._duration is not None) and (sum(silences, timedelta(0)) >= self._duration):
 			raise Refusal(
-				"Les silences détectés doivent laisser du son : ensemble, plus courts que la durée du sonore.",
+				_("The detected silences must leave some sound: together, shorter than the duration of the sound."),
 				self.ui.has_detected_start,
 				self.ui.has_detected_end,
 			)
@@ -675,7 +680,7 @@ class SoundCard(Card):
 			"SELECT edited_fields FROM sounds WHERE id = %s FOR UPDATE", (identifier,)
 		).fetchone()
 		if line is None:
-			raise Refusal("Ce sonore n'est plus en base.")
+			raise Refusal(_("This sound is no longer in the database."))
 		edited_list = list((line[0]) or ([]))
 		edited_list += [field for field in modified_list if (field != "state") and (field not in edited_list)]
 		columns = [field for field in modified_list if not field.startswith("music_metadata.")]
@@ -747,7 +752,9 @@ class SoundCard(Card):
 			return None
 		category, _identifier = name.data(RELATION)
 		menu = QMenu(self)
-		remove = menu.addAction(label(REMOVE, f"Retirer de {ITEMS[category]} « {name.text()} »"))
+		remove = menu.addAction(
+			label(REMOVE, _("Remove from {items} “{text}”").format(items=ITEMS[category], text=name.text()))
+		)
 		remove.triggered.connect(lambda _ticked=False: self.remove_relation(row))
 		return menu
 
@@ -795,8 +802,8 @@ class SoundCard(Card):
 	def _show_file(self, path: Path, type_mime: object, duration: object, checks_at: object) -> None:
 		"""Ce que la base sait du fichier, et ce que le fichier dit de lui-même, sans être modifié."""
 		ui = self.ui
-		ui.type_mime.setText(str((type_mime) or ("inconnu")))
-		ui.checks_at.setText("jamais")
+		ui.type_mime.setText(str((type_mime) or (pgettext("masculine", "unknown"))))
+		ui.checks_at.setText(_("never"))
 		if isinstance(checks_at, datetime):
 			ui.checks_at.setText(display.date(checks_at))
 		ui.encoding.setText("inconnu")
@@ -804,11 +811,11 @@ class SoundCard(Card):
 			state = path.stat()
 		except OSError:
 			for field in (ui.size, ui.created_at, ui.modified_at):
-				field.setText("introuvable")
+				field.setText(_("not found"))
 			return
 		ui.size.setText(display.size(state.st_size))
 		ui.modified_at.setText(display.date(datetime.fromtimestamp(state.st_mtime).astimezone()))
-		ui.created_at.setText("inconnue")
+		ui.created_at.setText(_("unknown"))
 		birth = _birth(path)
 		if birth is not None:
 			ui.created_at.setText(display.date(birth))
@@ -843,7 +850,7 @@ class SoundCard(Card):
 		table.setRowCount(0)
 		for start, end, duration, event, sequence, bank, timestamps, kinds, messages in plays:
 			assert isinstance(start, datetime)
-			end_text, duration_text = "en cours", ""
+			end_text, duration_text = _("ongoing"), ""
 			if isinstance(end, datetime):
 				end_text = display.hour(end)
 			if isinstance(duration, timedelta):
@@ -851,9 +858,14 @@ class SoundCard(Card):
 			incidents = list(zip(_list(timestamps), _list(kinds), _list(messages), strict=True))
 			cells = [f"{start.astimezone():%Y-%m-%d %H:%M:%S}", end_text, duration_text]
 			cells += [str((name) or ("")) for name in (event, sequence, bank)]
-			cells.append(", ".join(str(kind) for _h, kind, _m in incidents))
+			cells.append(", ".join(logged(str(kind)) for _h, kind, _m in incidents))
 			items = [QTableWidgetItem(text) for text in cells]
-			details = [f"{_hour(h)} {kind} : {message}" for h, kind, message in incidents]
+			details = [
+				_("{hour} {kind}: {message}").format(
+					hour=_hour(h), kind=logged(str(kind)), message=logged(str(message))
+				)
+				for h, kind, message in incidents
+			]
 			items[-1].setToolTip("\n".join(details))
 			row = table.rowCount()
 			table.insertRow(row)
@@ -867,7 +879,7 @@ class SoundCard(Card):
 
 	def _test(self) -> None:
 		self.ui.test.setEnabled(False)
-		self.ui.trial_result.setText("Test du flux en cours…")
+		self.ui.trial_result.setText(_("Stream test running…"))
 		self.trial.launch(self._address())
 
 	def _finished_trial(self, answers: bool, detail: str) -> None:

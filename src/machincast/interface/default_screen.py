@@ -24,6 +24,7 @@ from PySide6.QtWidgets import QLineEdit, QMenu, QSizePolicy, QVBoxLayout, QWidge
 
 from machincast.clock import Clock
 from machincast.configuration import Audio
+from machincast.i18n import _, pgettext
 from machincast.interface import display, expandable, icons, interruption, preferences
 from machincast.interface.airplay import LAST_LIST, DisplayedPlay, read_airplay
 from machincast.interface.calendar import long_date
@@ -41,15 +42,17 @@ SECOND = 1000
 """Rafraîchissement de l'heure, en millisecondes."""
 SHAPE_READING = 100
 """Millisecondes entre deux relèves des formes d'onde en cours de calcul (https://github.com/dascritch/machincast/issues/230)."""
-STATES = {"playing": "En diffusion", "dead_air": "Blanc à l'antenne", "stopped": "À l'arrêt"}
+STATES = {"playing": _("Broadcasting"), "dead_air": _("Dead air on air"), "stopped": _("Stopped")}
 UPCOMING = 5
 """Lignes que montre la table des sonores à venir, autant que Machin player en prévoit."""
 COLLAPSED_PANELS = "accueil/encarts-replies"
 """Dans les réglages des vues du compte : les encarts de l'onglet Antenne repliés, dépliés sinon."""
 UPCOMING_LINES_AT_LEAST = 2
 """Lignes de la table des sonores à venir sur un écran trop petit pour les 5."""
-ONGOING_TRIAL = "Test du flux en cours…"
-NOT_HEALTHY = "pas sain"
+ONGOING_TRIAL = _("Stream test running…")
+NOT_HEALTHY = _("not healthy")
+INCIDENT = _("yes")
+"""La colonne Incident d'un passage qui en a eu un."""
 """Colonne « Incident » d'un sonore à venir dont le fichier a posé problème (spec § 4.6)."""
 ITEM = Qt.ItemDataRole.UserRole
 """Rôle qui porte, sur une cellule de l'airplay, le genre et l'identifiant de l'élément qu'elle désigne."""
@@ -58,7 +61,7 @@ OFF_LIGHT = "QLabel { color: palette(mid); font-size: 7pt; }"
 """Les voyants « Blanc » et « Saturation » de l'antenne, allumés de leur teinte, ou éteints, grisés."""
 
 
-PREVIEW_NEXT = "Écouter le prochain sonore sur la sortie de pré-écoute, jamais sur l'antenne"
+PREVIEW_NEXT = _("Listen to the next sound on the pre-listen output, never on air")
 """L'infobulle du bouton « Pré-écoute » du prochain sonore, celle de ecran_par_defaut.ui."""
 
 
@@ -83,15 +86,15 @@ class DefaultScreen(QWidget):
 	requested_fallback = Signal(object)
 	"""« ⏭ Couper par le secours », au clic droit sur le prochain sonore : le secours choisi (interruption.Secours)."""
 	AIRPLAY_COLUMNS = (
-		("debut", "Début"),
-		("fin", "Fin"),
-		("duree", "Durée"),
-		("artiste", "Artiste"),
-		("titre", "Titre"),
-		("evenement", "Événement"),
-		("sequence", "Séquence"),
-		("banque", "Banque"),
-		("incident", "Incident"),
+		("debut", _("Start")),
+		("fin", _("End")),
+		("duree", _("Duration")),
+		("artiste", _("Artist")),
+		("titre", _("Title")),
+		("evenement", _("Event")),
+		("sequence", _("Sequence")),
+		("banque", _("Bank")),
+		("incident", _("Incident")),
 	)
 
 	def __init__(
@@ -222,9 +225,11 @@ class DefaultScreen(QWidget):
 	def change_on_air(self, audio: Audio | None) -> None:
 		"""Le VU-mètre lit le port de monitoring de cette antenne, par exemple après les préférences."""
 		self.monitor.audio = audio
-		tooltip = "Port de monitoring inconnu."
+		tooltip = _("Unknown monitoring port.")
 		if audio is not None:
-			tooltip = f"Port de monitoring : {port_name(audio)}. Clic : écouter l'antenne en pré-écoute."
+			tooltip = _("Monitoring port: {port_name}. Click: listen to the on-air output on the pre-listen.").format(
+				port_name=port_name(audio)
+			)
 		self.vu_meter.setToolTip(tooltip)
 		self.monitor.start()
 
@@ -286,7 +291,7 @@ class DefaultScreen(QWidget):
 		next_ = state.next_
 		self.ui.next_healthy.setText(display.EMPTY)
 		if next_ is not None:
-			self.ui.next_healthy.setText(display.yes_no(next_.healthy, "non testé"))
+			self.ui.next_healthy.setText(display.yes_no(next_.healthy, _("not tested")))
 		self._offer_listened(next_)
 		start = None
 		if state.ongoing is not None:
@@ -370,7 +375,7 @@ class DefaultScreen(QWidget):
 			try:
 				self._plans[key] = read_plan(self.connection, sound.sound, sound.id_bank, preferences.crossfades())
 			except psycopg.Error as error:
-				log.error(f"plan du sonore {sound.sound} illisible : {error}")
+				log.error(_("unreadable plan of sound {sound}: {error}").format(sound=sound.sound, error=error))
 				return None
 		return self._plans[key]
 
@@ -413,7 +418,7 @@ class DefaultScreen(QWidget):
 		if sound is None:
 			return
 		if sound.public_text:
-			ui.public_text.setText(f"« {sound.public_text} »")
+			ui.public_text.setText(_("“{text}”").format(text=sound.public_text))
 		if sound.event is not None:
 			ui.on_air_event.setText(f"{sound.event}, {_event_hours(sound)}")
 
@@ -565,7 +570,7 @@ class DefaultScreen(QWidget):
 		try:
 			plays = read_airplay(self.connection, count=LAST_LIST)
 		except psycopg.Error as error:
-			log.error(f"airplay illisible : {error}")
+			log.error(_("unreadable airplay: {error}").format(error=error))
 			return []
 		self.airplay_model.setRowCount(0)
 		for play in plays:
@@ -582,13 +587,13 @@ def _show_location(field: QLineEdit, sound: DisplayedSound | None) -> None:
 	en page, sa fin (le nom du fichier) reste visible, et l'infobulle le donne en entier."""
 	location = None
 	if sound is not None:
-		location = (sound.location) or ("inconnu")
+		location = (sound.location) or (pgettext("masculine", "unknown"))
 	field.setText((location) or (display.EMPTY))
 	field.setToolTip((location) or (""))
 
 
 def play_cells(play: DisplayedPlay) -> list[str]:
-	end = "en cours"
+	end = _("ongoing")
 	duration = ""
 	if play.end is not None:
 		end = display.hour(play.end)
@@ -602,7 +607,7 @@ def play_cells(play: DisplayedPlay) -> list[str]:
 		(play.event) or (""),
 		(play.sequence) or (""),
 		(play.bank) or (""),
-		"oui" if play.without_incident is False else "",
+		INCIDENT if play.without_incident is False else "",
 	]
 
 
@@ -662,17 +667,19 @@ def _schedule(sound: DisplayedSound) -> str:
 	"""« 20:00:00 – 20:03:34 (3:34) » : début, fin et durée sur une ligne ; « 20:00:00, durée inconnue » sans durée.
 	Un sonore qu'un événement coupera finit à la coupure : « 20:00:00 – 20:02:00 (coupé par « Journal », sur 3:34) »
 	(https://github.com/dascritch/machincast/issues/169)."""
-	start = display.hour(sound.start, "inconnu")
+	start = display.hour(sound.start, pgettext("masculine", "unknown"))
 	if sound.cut_by is not None:
-		duration = "durée inconnue"
+		duration = _("unknown duration")
 		if sound.duration is not None:
-			duration = f"sur {display.duration(sound.duration)}"
-		return f"{start} – {display.hour(sound.estimated_end)} (coupé par « {sound.cut_by} », {duration})"
+			duration = _("out of {duration}").format(duration=display.duration(sound.duration))
+		return _("{start} – {hour} (cut by “{cut_by}”, {duration})").format(
+			start=start, hour=display.hour(sound.estimated_end), cut_by=sound.cut_by, duration=duration
+		)
 	if (sound.duration is None) and (sound.estimated_end is not None):
 		# Un stream finit avec son événement (https://github.com/dascritch/machincast/issues/242).
-		return f"{start} – {display.hour(sound.estimated_end)} (fin de l'événement)"
+		return _("{start} – {hour} (end of the event)").format(start=start, hour=display.hour(sound.estimated_end))
 	if sound.duration is None:
-		return f"{start}, durée inconnue"
+		return _("{start}, unknown duration").format(start=start)
 	return f"{start} – {display.hour(sound.estimated_end)} ({display.duration(sound.duration)})"
 
 
@@ -691,15 +698,15 @@ def _progress(sound: DisplayedSound | None) -> tuple[str, int]:
 		return display.EMPTY, 0
 	length = _length(sound)
 	if (length is None) or (sound.position is None):
-		return "durée inconnue", 0
+		return _("unknown duration"), 0
 	value = 100
 	if length > 0:
 		value = min(100, round(sound.position / length * 100))
 	# Le temps qui reste se compte à la seconde entamée : « reste 0:01 » jusqu'à la fin, puis « reste 0:00 ».
 	rest = math.ceil(max(0.0, length - sound.position))
-	text = f"reste {display.duration(rest)}"
+	text = _("{duration} left").format(duration=display.duration(rest))
 	if sound.cut_by is not None:
-		text = f"{text} avant « {sound.cut_by} »"
+		text = _("{text} before “{cut_by}”").format(text=text, cut_by=sound.cut_by)
 	return text, value
 
 
@@ -717,5 +724,5 @@ def _event_hours(sound: DisplayedSound) -> str:
 	if start is None:
 		return "permanent"
 	if end is None:
-		return f"depuis {start:%H:%M}"
-	return f"de {start:%H:%M} à {end:%H:%M}"
+		return _("since {start:%H:%M}").format(start=start)
+	return _("from {start:%H:%M} to {end:%H:%M}").format(start=start, end=end)

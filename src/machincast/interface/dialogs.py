@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 )
 
 from machincast.configuration import ICON_EXTENSIONS, AudioOutput
+from machincast.i18n import _, short_date
 from machincast.interface import intents
 from machincast.interface.choice import Choice
 from machincast.interface.intents import label
@@ -39,31 +40,31 @@ from machincast.service import ABSENT, ServiceState
 class Closing(StrEnum):
 	"""Ce que devient une fiche modifiée qui se ferme."""
 
-	SAVE = "Enregistrer"
-	ABANDON = "Abandonner"
-	CANCEL = "Annuler"
+	SAVE = _("Save")
+	ABANDON = _("Abandon")
+	CANCEL = _("Cancel")
 
 
 class Removal(StrEnum):
 	"""Ce que devient un sonore retiré d'une banque, quand la prochaine indexation l'y remettra."""
 
-	REMOVE = f"{intents.REMOVE} Retirer quand même"
-	OPEN_FOLDER = "Ouvrir le dossier"
-	CANCEL = "Annuler"
+	REMOVE = _("{remove} Remove anyway").format(remove=intents.REMOVE)
+	OPEN_FOLDER = _("Open the folder")
+	CANCEL = _("Cancel")
 
 
-CHOOSE_LOCATION = "Choisir l'emplacement…"
+CHOOSE_LOCATION = _("Choose the location…")
 """Le bouton de la confirmation de la maintenance qui ouvre le sélecteur de répertoires."""
 
 
-def confirm_closing(parent: QWidget, title: str, before: str = "fermer la fiche") -> Closing:
+def confirm_closing(parent: QWidget, title: str, before: str = _("close the card")) -> Closing:
 	"""Demande quoi faire des modifications d'une fiche, avant de la fermer ou de la rafraîchir : Entrée enregistre,
 	Échap annule la fermeture ou le rafraîchissement de la fiche."""
 	question = QMessageBox(parent)
 	question.setIcon(QMessageBox.Icon.Question)
 	question.setWindowTitle(title)
-	question.setText(f"« {title} » a des modifications qui ne sont pas enregistrées.")
-	question.setInformativeText(f"Les enregistrer avant de {before} ?")
+	question.setText(_("“{title}” has changes that are not saved.").format(title=title))
+	question.setInformativeText(_("Save them before you {before}?").format(before=before))
 	# Le bouton du rôle AcceptRole répond à Entrée, celui du rôle RejectRole à Échap.
 	save = question.addButton(Closing.SAVE.value, QMessageBox.ButtonRole.AcceptRole)
 	abandon = question.addButton(Closing.ABANDON.value, QMessageBox.ButtonRole.DestructiveRole)
@@ -81,13 +82,12 @@ def confirm_indexing_stop(parent: QWidget, title: str) -> bool:
 	question = QMessageBox(parent)
 	question.setIcon(QMessageBox.Icon.Question)
 	question.setWindowTitle(title)
-	question.setText(f"L'indexation est en cours : « {title} ».")
+	question.setText(_("The indexing is running: “{title}”.").format(title=title))
 	question.setInformativeText(
-		"L'arrêter ? Elle s'arrête après le fichier en cours ; le travail fait est gardé, la prochaine indexation"
-		" reprendra le reste."
+		_("Stop it? It stops after the current file; the work done is kept, the next indexing will take up the rest.")
 	)
-	halt = question.addButton("Arrêter", QMessageBox.ButtonRole.DestructiveRole)
-	continue_ = question.addButton("Continuer", QMessageBox.ButtonRole.RejectRole)
+	halt = question.addButton(_("Stop"), QMessageBox.ButtonRole.DestructiveRole)
+	continue_ = question.addButton(_("Continue"), QMessageBox.ButtonRole.RejectRole)
 	question.setDefaultButton(continue_)
 	question.exec()
 	return question.clickedButton() is halt
@@ -97,7 +97,7 @@ def confirm_removal(parent: QWidget, warning: str) -> Removal:
 	"""Prévient qu'un sonore retiré reviendra : Entrée et Échap gardent le sonore."""
 	question = QMessageBox(parent)
 	question.setIcon(QMessageBox.Icon.Warning)
-	question.setWindowTitle("Retirer un sonore")
+	question.setWindowTitle(_("Remove a sound"))
 	question.setText(warning)
 	remove = question.addButton(Removal.REMOVE.value, QMessageBox.ButtonRole.DestructiveRole)
 	open_ = question.addButton(Removal.OPEN_FOLDER.value, QMessageBox.ButtonRole.ActionRole)
@@ -116,10 +116,10 @@ def offer_refresh(parent: QWidget, text: str) -> bool:
 	fiche ? Entrée rafraîchit, Échap laisse la fiche telle quelle."""
 	question = QMessageBox(parent)
 	question.setIcon(QMessageBox.Icon.Question)
-	question.setWindowTitle("Vérification complète")
-	question.setText(f"{text} Rafraîchir la fiche ?")
-	refresh = question.addButton("Rafraîchir", QMessageBox.ButtonRole.AcceptRole)
-	question.addButton("Plus tard", QMessageBox.ButtonRole.RejectRole)
+	question.setWindowTitle(_("Full check"))
+	question.setText(_("{text} Refresh the card?").format(text=text))
+	refresh = question.addButton(_("Refresh"), QMessageBox.ButtonRole.AcceptRole)
+	question.addButton(_("Later"), QMessageBox.ButtonRole.RejectRole)
 	question.setDefaultButton(refresh)
 	question.exec()
 	return question.clickedButton() is refresh
@@ -129,10 +129,10 @@ def confirm_creation(parent: QWidget, text: str) -> bool:
 	"""Créer un événement depuis le calendrier ? Rien n'est enregistré avant sa fiche : Entrée crée, Échap annule."""
 	question = QMessageBox(parent)
 	question.setIcon(QMessageBox.Icon.Question)
-	question.setWindowTitle("Nouvel événement")
+	question.setWindowTitle(_("New event"))
 	question.setText(text)
-	create = question.addButton("Créer", QMessageBox.ButtonRole.AcceptRole)
-	question.addButton("Annuler", QMessageBox.ButtonRole.RejectRole)
+	create = question.addButton(_("Create"), QMessageBox.ButtonRole.AcceptRole)
+	question.addButton(_("Cancel"), QMessageBox.ButtonRole.RejectRole)
 	question.setDefaultButton(create)
 	question.exec()
 	return question.clickedButton() is create
@@ -168,8 +168,8 @@ def confirm_deletion(parent: QWidget, title: str, text: str) -> bool:
 	question.setIcon(QMessageBox.Icon.Warning)
 	question.setWindowTitle(title)
 	question.setText(text)
-	delete = question.addButton(label(intents.DELETE, "Supprimer"), QMessageBox.ButtonRole.DestructiveRole)
-	cancel = question.addButton("Annuler", QMessageBox.ButtonRole.RejectRole)
+	delete = question.addButton(label(intents.DELETE, _("Delete")), QMessageBox.ButtonRole.DestructiveRole)
+	cancel = question.addButton(_("Cancel"), QMessageBox.ButtonRole.RejectRole)
 	question.setDefaultButton(cancel)
 	question.exec()
 	return question.clickedButton() is delete
@@ -183,7 +183,7 @@ def confirm_action(parent: QWidget, title: str, text: str, button: str | None = 
 	question.setWindowTitle(title)
 	question.setText(text)
 	make = question.addButton((button) or (title), QMessageBox.ButtonRole.AcceptRole)
-	question.addButton("Annuler", QMessageBox.ButtonRole.RejectRole)
+	question.addButton(_("Cancel"), QMessageBox.ButtonRole.RejectRole)
 	question.setDefaultButton(make)
 	question.exec()
 	return question.clickedButton() is make
@@ -196,12 +196,12 @@ def confirm_maintenance(parent: QWidget, backups: Path) -> Path | None:
 	while True:
 		question = QMessageBox(parent)
 		question.setIcon(QMessageBox.Icon.Question)
-		question.setWindowTitle("Maintenance de la base de données")
-		question.setText("Êtes-vous sûr de vouloir lancer cette opération ?")
-		question.setInformativeText(f"Une sauvegarde de la base sera enregistrée à l'emplacement {backups}.")
-		launch = question.addButton("Lancer la maintenance", QMessageBox.ButtonRole.AcceptRole)
+		question.setWindowTitle(_("Database maintenance"))
+		question.setText(_("Are you sure you want to launch this operation?"))
+		question.setInformativeText(_("A backup of the database will be saved at {backups}.").format(backups=backups))
+		launch = question.addButton(_("Launch the maintenance"), QMessageBox.ButtonRole.AcceptRole)
 		choose = question.addButton(CHOOSE_LOCATION, QMessageBox.ButtonRole.ActionRole)
-		cancel = question.addButton("Annuler", QMessageBox.ButtonRole.RejectRole)
+		cancel = question.addButton(_("Cancel"), QMessageBox.ButtonRole.RejectRole)
 		question.setDefaultButton(cancel)
 		question.exec()
 		if question.clickedButton() is launch:
@@ -209,7 +209,7 @@ def confirm_maintenance(parent: QWidget, backups: Path) -> Path | None:
 		if question.clickedButton() is not choose:
 			return None
 		# Un choix abandonné garde l'emplacement d'avant ; la question se repose, avec l'emplacement à jour.
-		choice = choose_directory(parent, "Emplacement de la sauvegarde de la base", str(backups))
+		choice = choose_directory(parent, _("Location of the database backup"), str(backups))
 		if choice is not None:
 			backups = Path(choice)
 
@@ -218,7 +218,7 @@ def choose_files(parent: QWidget) -> list[Path]:
 	"""Les fichiers choisis dans le sélecteur du poste, plusieurs à la fois ; aucun si le choix est abandonné."""
 	patterns = " ".join(f"*{extension}" for extension in sorted(INDEXED_EXTENSIONS))
 	chosen_list, _filter = QFileDialog.getOpenFileNames(
-		parent, "Ajouter des fichiers sonores", "", f"Fichiers sonores ({patterns});;Tous les fichiers (*)"
+		parent, _("Add sound files"), "", _("Sound files ({patterns});;All files (*)").format(patterns=patterns)
 	)
 	return [Path(path) for path in chosen_list]
 
@@ -227,14 +227,16 @@ def choose_icon(parent: QWidget) -> Path | None:
 	"""L'image choisie pour icône de l'application (https://github.com/dascritch/machincast/issues/111) ; None si le
 	choix est abandonné."""
 	patterns = " ".join(f"*{extension}" for extension in sorted(ICON_EXTENSIONS))
-	path, _filter = QFileDialog.getOpenFileName(parent, "Icône de l'application", "", f"Images ({patterns})")
+	path, _filter = QFileDialog.getOpenFileName(
+		parent, _("Application icon"), "", _("Images ({patterns})").format(patterns=patterns)
+	)
 	if path == "":
 		return None
 	return Path(path)
 
 
 def choose_export(
-	parent: QWidget, offers: str, filters: list[str], title: str = "Exporter la simulation"
+	parent: QWidget, offers: str, filters: list[str], title: str = _("Export the simulation")
 ) -> tuple[Path, str] | None:
 	"""Le fichier où exporter, et le filtre choisi, qui en donne le format ; None si le choix est abandonné."""
 	path, filter_ = QFileDialog.getSaveFileName(parent, title, str(Path.home() / offers), ";;".join(filters))
@@ -243,7 +245,9 @@ def choose_export(
 	return Path(path), filter_
 
 
-def choose_directory(parent: QWidget, title: str = "Répertoire indexé de la banque", departure: str = "") -> str | None:
+def choose_directory(
+	parent: QWidget, title: str = _("Indexed directory of the bank"), departure: str = ""
+) -> str | None:
 	"""Un répertoire choisi dans le sélecteur du poste, ouvert sur depart, ou None si le choix est abandonné."""
 	directory = QFileDialog.getExistingDirectory(parent, title, departure)
 	if directory == "":
@@ -309,9 +313,9 @@ def suggest(parent: QWidget, gaps: Shortfalls, service: ServiceState = ABSENT) -
 
 
 VERSION_LINKS = (
-	("Code", "https://github.com/dascritch/machincast/"),
-	("Auteur : DaScritch", "https://dascritch.com"),
-	("Pour : \\<FMR\\>", "https://radio-fmr.net"),
+	(_("Code"), "https://github.com/dascritch/machincast/"),
+	(_("Author: DaScritch"), "https://dascritch.com"),
+	(_("For: \\<FMR\\>"), "https://radio-fmr.net"),
 )
 """Les liens de la fenêtre de version, en Markdown (https://github.com/dascritch/machincast/issues/332)."""
 
@@ -324,8 +328,10 @@ def version_window(parent: QWidget | None, text: str, news: News | None) -> QMes
 	links = " · ".join(f"[{label}]({address})" for label, address in VERSION_LINKS)
 	content = f"{text}\n\n{links}"
 	if news is not None:
-		content = f"{content}\n\n### Nouveautés de la version {news.version}\n\n{news.text}"
-	window = QMessageBox(QMessageBox.Icon.Information, "Version de MachinCast", "", parent=parent)
+		content = _("{content}\n\n### What's new in version {version}\n\n{text}").format(
+			content=content, version=news.version, text=news.text
+		)
+	window = QMessageBox(QMessageBox.Icon.Information, _("MachinCast version"), "", parent=parent)
 	window.setTextFormat(Qt.TextFormat.MarkdownText)
 	window.setText(content)
 	caption = window.findChild(QLabel, "qt_msgbox_label")
@@ -344,8 +350,10 @@ def show_news(parent: QWidget, news: News) -> None:
 	(https://github.com/dascritch/machincast/issues/208)."""
 	window = QMessageBox(
 		QMessageBox.Icon.Information,
-		f"Nouveautés de MachinCast {news.version}",
-		f"### MachinCast {news.version}, publiée le {news.published_at:%d/%m/%Y}\n\n{news.text}",
+		_("What's new in MachinCast {version}").format(version=news.version),
+		_("### MachinCast {version}, published on {date}\n\n{text}").format(
+			version=news.version, date=short_date(news.published_at), text=news.text
+		),
 		parent=parent,
 	)
 	window.setTextFormat(Qt.TextFormat.MarkdownText)

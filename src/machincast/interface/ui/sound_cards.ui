@@ -18,7 +18,7 @@
    <item row="0" column="0">
     <widget class="QLabel" name="output_caption">
      <property name="text">
-      <string>&amp;Type de sortie</string>
+      <string>Output &amp;type</string>
      </property>
      <property name="buddy">
       <cstring>output</cstring>
@@ -28,14 +28,14 @@
    <item row="0" column="1">
     <widget class="QComboBox" name="output">
      <property name="toolTip">
-      <string>Le serveur audio par lequel passent l'antenne et la pré-écoute</string>
+      <string>The audio server through which the on-air output and the pre-listen go</string>
      </property>
     </widget>
    </item>
    <item row="1" column="0">
     <widget class="QLabel" name="on_air_caption">
      <property name="text">
-      <string>&amp;Antenne</string>
+      <string>&amp;On air</string>
      </property>
      <property name="buddy">
       <cstring>on_air</cstring>
@@ -53,14 +53,14 @@
         </sizepolicy>
        </property>
        <property name="toolTip">
-        <string>La carte son sur laquelle Machin player diffuse l'antenne</string>
+        <string>The sound card on which Machin player broadcasts on air</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="test_on_air">
        <property name="text">
-        <string>Tester</string>
+        <string>Test</string>
        </property>
       </widget>
      </item>
@@ -69,7 +69,7 @@
    <item row="2" column="0">
     <widget class="QLabel" name="preview_caption">
      <property name="text">
-      <string>&amp;Pré-écoute</string>
+      <string>&amp;Pre-listen</string>
      </property>
      <property name="buddy">
       <cstring>preview</cstring>
@@ -87,14 +87,14 @@
         </sizepolicy>
        </property>
        <property name="toolTip">
-        <string>La carte son de la pré-écoute de l'interface, jamais celle de l'antenne</string>
+        <string>The pre-listen sound card of the interface, never the on-air one</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="test_preview">
        <property name="text">
-        <string>Tester</string>
+        <string>Test</string>
        </property>
       </widget>
      </item>

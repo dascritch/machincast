@@ -10,6 +10,7 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QWidget
 
+from machincast.i18n import _
 from machincast.interface.intents import ADD, label
 from machincast.interface.lists import IDENTIFIER, List, Source, view_name
 from machincast.interface.ui.choice import Ui_Choice
@@ -27,13 +28,15 @@ class Choice(QDialog):
 		super().__init__(parent)
 		self.ui = Ui_Choice()
 		self.ui.setupUi(self)
-		self.setWindowTitle(f"Ajouter des {source.plural}")
-		explanation = f"Choisir parmi les {source.plural} déjà en base (Ctrl ou Maj pour en prendre plusieurs)."
+		self.setWindowTitle(_("Add {plural}").format(plural=source.plural))
+		explanation = _("Choose among the {plural} already in the database (Ctrl or Shift to take several).").format(
+			plural=source.plural
+		)
 		self.ui.explanation.setText(f"{explanation} {remark}".strip())
-		self.list_ = List(source, connection, self, actions=False, view=f"choix-{view_name(source.plural)}")
+		self.list_ = List(source, connection, self, actions=False, view=f"choix-{view_name(source.views)}")
 		self.list_.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 		self.ui.arrangement.insertWidget(1, self.list_)
-		self.ui.buttons.button(QDialogButtonBox.StandardButton.Ok).setText(label(ADD, "Ajouter"))
+		self.ui.buttons.button(QDialogButtonBox.StandardButton.Ok).setText(label(ADD, _("Add")))
 		self.ui.buttons.accepted.connect(self.accept)
 		self.ui.buttons.rejected.connect(self.reject)
 		self.list_.opened.connect(self.accept)
