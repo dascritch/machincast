@@ -2,8 +2,8 @@
 Airplay (https://github.com/dascritch/machincast/issues/244).
 
 Lu avec le rôle de l'interface, qui lit l'airplay sans pouvoir l'écrire. L'écran ne le relit qu'à chaque changement de
-sonore annoncé par la socket d'état, jamais en boucle (doc/regles/interface.md). L'interface est privée : l'artiste et
-le titre sont toujours affichés, même masqués.
+sonore annoncé par la socket d'état, jamais en boucle (doc/fr/regles/interface.md). L'interface est privée : l'artiste
+et le titre sont toujours affichés, même masqués.
 """
 
 from dataclasses import dataclass

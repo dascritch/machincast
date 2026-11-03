@@ -3,10 +3,10 @@
 « bin/Machin dev-captures [REPERTOIRE] » lance ce module, depuis le répertoire de MachinCast, avec le Python du venv :
 il remplit la base de TEST d'une démonstration, « Radio Exemple », ouvre l'interface hors de l'écran
 (QT_QPA_PLATFORM=offscreen), à une heure fixe, le mercredi 21 octobre 2026 à 09:41:30, et enregistre chaque écran de
-CAPTURES en PNG, dans doc/captures par défaut. La base de production n'est jamais ouverte : la connexion est celle des
-tests (tests.base_test), sur la base de test de la configuration des tests. Ses fichiers sonores sont des copies d'un
-fichier de test, dans DEMONSTRATION, un répertoire temporaire propre à ce module. L'état de la diffusion vient d'une
-socket d'état publiée ici même ; aucun Machin lecture ne tourne.
+CAPTURES en PNG, dans doc/fr/captures par défaut. La base de production n'est jamais ouverte : la connexion est celle
+des tests (tests.base_test), sur la base de test de la configuration des tests. Ses fichiers sonores sont des copies
+d'un fichier de test, dans DEMONSTRATION, un répertoire temporaire propre à ce module. L'état de la diffusion vient
+d'une socket d'état publiée ici même ; aucun Machin lecture ne tourne.
 
 Les captures sont reproductibles : même heure, mêmes données, même style de Qt (Fusion). Refaire les captures après
 un changement d'écran, puis les relire avant de les livrer avec le ticket.
@@ -65,7 +65,7 @@ journal = logging.getLogger("machincast.captures")
 
 Connexion = psycopg.Connection[tuple[object, ...]]
 RACINE = Path(__file__).resolve().parents[1]
-CAPTURES_DU_GUIDE = RACINE / "doc" / "captures"
+CAPTURES_DU_GUIDE = RACINE / "doc" / "fr" / "captures"
 DEMONSTRATION = Path(tempfile.gettempdir()) / "machincast-demonstration"
 """Les fichiers sonores de la démonstration : des copies d'un fichier de test, jamais un fichier de l'utilisateur."""
 MAINTENANT = datetime.fromisoformat("2026-10-21T09:41:30").astimezone()

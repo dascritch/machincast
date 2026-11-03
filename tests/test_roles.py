@@ -226,8 +226,8 @@ def compte_courant(contexte: Contexte) -> None:
 		# Un superutilisateur endosse tous les rôles sans autorisation : les autres scénarios passent, celui-ci non.
 		explication = (
 			f"le compte {nom} est superutilisateur de PostgreSQL, et endosse les rôles sans autorisation ;"
-			f" l'installation voulue ne lui donne aucun droit particulier sur le serveur (doc/regles/tests.md, Base de"
-			f" test). Lancer :"
+			f" l'installation voulue ne lui donne aucun droit particulier sur le serveur (doc/fr/regles/tests.md,"
+			f" Base de test). Lancer :"
 			f" {commande_d_autorisation(str(nom))}, puis sudo -u postgres psql -c 'ALTER ROLE \"{nom}\" NOSUPERUSER'"
 		)
 	assert lignes != [], explication

@@ -23,7 +23,7 @@ from tests.etapes_diffusion import Banc, Connexion, creer_sonore, evenement, heu
 
 scenarios("etat.feature")
 
-SPEC = Path(__file__).resolve().parents[1] / "doc" / "spec.md"
+SPEC = Path(__file__).resolve().parents[1] / "doc" / "fr" / "spec.md"
 DELAI = 3.0
 
 

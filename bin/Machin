@@ -7,7 +7,7 @@
 #   Machin dev-test                                 lance tous les outils de vérification, avec un bilan
 #   Machin dev-captures [REPERTOIRE]                refait les captures d'écran du guide de l'antenne
 #
-# Règles : doc/regles/wrapper.md. Tests : bats tests/wrapper.
+# Règles : doc/fr/regles/wrapper.md. Tests : bats tests/wrapper.
 
 set -euo pipefail
 
@@ -65,7 +65,7 @@ aide_complete() {
 		               puis bats, tous même après un échec, avec les outils du venv sans qu'il
 		               soit activé ; affiche un bilan par outil et se termine en échec si l'un
 		               d'eux échoue. Un outil absent se signale : ./install.sh --dev l'installe.
-		  dev-captures refait les captures d'écran du guide de l'antenne, dans doc/captures
+		  dev-captures refait les captures d'écran du guide de l'antenne, dans doc/fr/captures
 		               ou dans REPERTOIRE : l'interface hors de l'écran, sur une démonstration
 		               écrite dans la base de test, jamais dans celle de production.
 

@@ -13,7 +13,7 @@ Ce guide s'adresse aux développeurs de MachinCast. L'usage de l'interface est d
   - [Machin indexation](../regles/indexation.md) ;
   - [Machin interface](../regles/interface.md) ;
   - [Wrapper Machin, configuration, install.sh](../regles/wrapper.md).
-- [CLAUDE.md](../../CLAUDE.md) : les commandes du dépôt, en résumé.
+- [CLAUDE.md](../../../CLAUDE.md) : les commandes du dépôt, en résumé.
 - Les tickets : [GitHub Issues](https://github.com/dascritch/machincast/issues).
 
 ## Où va la documentation
@@ -22,8 +22,8 @@ Chaque public a son guide ([#128](https://github.com/dascritch/machincast/issues
 
 | Public | Guide | Ce qu'il contient |
 | --- | --- | --- |
-| Équipe de l'antenne | [doc/utilisateur](../utilisateur/README.md) | Le métier de l'antenne et l'interface graphique, avec ses captures d'écran, sans commande à taper. Le menu **Aide → Documentation** l'ouvre. |
-| Administrateur du poste | [INSTALL.md](../../INSTALL.md) et [doc/administration](../administration/README.md) | L'installation, les commandes, la configuration, l'indexation et la diffusion en ligne de commande, les messages et les droits. |
+| Équipe de l'antenne | [doc/fr/utilisateur](../utilisateur/README.md) | Le métier de l'antenne et l'interface graphique, avec ses captures d'écran, sans commande à taper. Le menu **Aide → Documentation** l'ouvre. |
+| Administrateur du poste | [INSTALL.md](../../../INSTALL.fr.md) et [doc/fr/administration](../administration/README.md) | L'installation, les commandes, la configuration, l'indexation et la diffusion en ligne de commande, les messages et les droits. |
 | Développeur | ce guide | Le poste de développement, la spécification et les règles. |
 
-`doc/utilisation.md`, l'ancien guide, n'est plus qu'un index vers ces trois guides.
+`doc/fr/utilisation.md`, l'ancien guide, n'est plus qu'un index vers ces trois guides.

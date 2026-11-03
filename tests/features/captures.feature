@@ -6,13 +6,13 @@ Fonctionnalité: Captures d'écran du guide utilisateur
 
 	https://github.com/dascritch/machincast/issues/128. « Machin dev-captures » ouvre l'interface hors de l'écran, sur
 	une base de démonstration écrite dans la base de test, jamais dans celle de production, et enregistre chaque
-	écran en PNG dans doc/captures. Le guide utilisateur les cite toutes, et seulement elles.
+	écran en PNG dans doc/fr/captures. Le guide utilisateur les cite toutes, et seulement elles.
 
-	Scénario: Chaque capture produite est dans doc/captures et citée par le guide utilisateur, et réciproquement
-		Alors chaque capture de Machin dev-captures est une image de doc/captures
-		Et chaque image de doc/captures est une capture de Machin dev-captures
+	Scénario: Chaque capture produite est dans doc/fr/captures et citée par le guide utilisateur, et réciproquement
+		Alors chaque capture de Machin dev-captures est une image de doc/fr/captures
+		Et chaque image de doc/fr/captures est une capture de Machin dev-captures
 		Et chaque capture de Machin dev-captures est citée par le guide utilisateur
-		Et chaque image citée par le guide utilisateur est dans doc/captures
+		Et chaque image citée par le guide utilisateur est dans doc/fr/captures
 
 	Scénario: Machin dev-captures enregistre une image par capture, à la taille de la fenêtre
 		Quand je produis les captures dans un répertoire temporaire

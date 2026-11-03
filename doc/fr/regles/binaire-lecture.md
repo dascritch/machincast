@@ -65,7 +65,7 @@ Lire les événements et les jouer, rien d'autre. Le binaire tourne comme servic
 - `Ordonnanceur.suspendre` remplace l'occurrence du stream tombé par son événement de secours, ou par l'événement inférieur ; toute autre occurrence active lève la suspension. `Decision.eteindre` demande d'éteindre un stream à la fin de son événement.
 - La reconnexion passe par une voie muette (`MoteurAudio.jouer(..., muette=True)`), retentée tous les `Diffusion.delai_reconnexion` ; la source HTTP ne retente rien d'elle-même (`retries` à 0). Le flux est revenu dès que la position de la voie avance.
 - Les événements de secours ne sont jamais dans la grille : `lire_grille` les écarte, `lire_evenement` les lit.
-- Les scénarios des streams utilisent un serveur HTTP local ([`tests/flux.py`](../../tests/flux.py)), qui envoie le flux au rythme du temps réel ; aucun accès au réseau.
+- Les scénarios des streams utilisent un serveur HTTP local ([`tests/flux.py`](../../../tests/flux.py)), qui envoie le flux au rythme du temps réel ; aucun accès au réseau.
 
 ## Expiration
 

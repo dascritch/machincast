@@ -1,37 +1,39 @@
-# Contribuer à MachinCast
+# Contributing to MachinCast
 
-Avant toute modification, lire [CLAUDE.md](CLAUDE.md) et les [règles de développement](doc/regles/developpement.md) : ticket, scénarios BDD d'abord, un commit par fonctionnalité, indentation par tabulations, [definition of done](doc/regles/developpement.md#definition-of-done). Le poste de développement s'installe avec `./install.sh --dev` ([INSTALL.md](INSTALL.md)).
+*[Version française](CONTRIBUTION.fr.md)*
 
-## Écrans de l'interface
+Before any change, read [CLAUDE.md](CLAUDE.md) and the [development rules](doc/fr/regles/developpement.md) (French): a ticket, BDD scenarios first, one commit per feature, tab indentation, [definition of done](doc/fr/regles/developpement.md#definition-of-done). The development machine is installed with `./install.sh --dev` ([INSTALL.md](INSTALL.md)).
 
-Les écrans de `Machin_interface` sont des écrans Qt Widgets, dessinés avec **Qt Widgets Designer** et compilés en modules Python par **`pyside6-uic`**. Les deux outils sont fournis par le paquet PySide6 du venv : ils ont la même version de Qt que l'interface, et il n'y a rien à installer en plus. On ne prend ni le Designer d'apt ou de Qt Creator, dont la version de Qt peut différer, ni Qt Design Studio, qui sert à QML.
+## Interface screens
 
-### Dessiner un écran
+The screens of `Machin_interface` are Qt Widgets screens, drawn with **Qt Widgets Designer** and compiled into Python modules by **`pyside6-uic`**. Both tools come with the PySide6 package of the venv: they have the same Qt version as the interface, and there is nothing more to install. Neither the Designer from apt or Qt Creator, whose Qt version may differ, nor Qt Design Studio, which is for QML, are used.
+
+### Drawing a screen
 
 ```bash
-bin/Machin dev           # sous-shell dans le dépôt, venv activé
+bin/Machin dev           # sub-shell in the repository, venv activated
 pyside6-designer src/machincast/interface/ui/fiche_banque.ui
 ```
 
-- Un écran = un fichier `.ui` dans `src/machincast/interface/ui/`, nommé en français et en `snake_case`, comme le module qu'il produira : `fiche_banque.ui`, `fiche_evenement.ui`.
-- Les `objectName` des widgets sont en français et en `snake_case` (`nom_interne`, `nom_public`, `liste_sonores`), puisqu'ils deviennent des attributs Python : `self.ui.nom_interne`.
-- Vocabulaire à l'écran : celui de la spécification ([§ 1](doc/spec.md#1-vocabulaire)) et des [règles de l'interface](doc/regles/interface.md), « banque » et jamais « playlist ».
-- Les champs de texte courts sont limités à 255 caractères (`maxLength`), comme en base.
-- Le fichier `.ui` ne contient que la disposition. Le comportement (signaux, requêtes, validation, glisser-déposer) s'écrit en Python, dans la classe de l'écran, où il est testé avec pytest-qt.
+- One screen = one `.ui` file in `src/machincast/interface/ui/`, named in French and in `snake_case`, like the module it will produce: `fiche_banque.ui`, `fiche_evenement.ui`.
+- Widget `objectName`s are in French and in `snake_case` (`nom_interne`, `nom_public`, `liste_sonores`), since they become Python attributes: `self.ui.nom_interne`.
+- On-screen vocabulary: that of the specification ([§ 1](doc/fr/spec.md#1-vocabulaire)) and of the [interface rules](doc/fr/regles/interface.md), « banque » (bank) and never « playlist ».
+- Short text fields are limited to 255 characters (`maxLength`), as in the database.
+- The `.ui` file only holds the layout. The behaviour (signals, queries, validation, drag and drop) is written in Python, in the screen's class, where it is tested with pytest-qt.
 
-### Compiler un écran
+### Compiling a screen
 
-Après chaque enregistrement dans le Designer, régénérer le module Python :
+After each save in the Designer, regenerate the Python module:
 
 ```bash
 pyside6-uic src/machincast/interface/ui/fiche_banque.ui -o src/machincast/interface/ui/fiche_banque.py
 ```
 
-- Le fichier `.ui` et le module généré sont versionnés ensemble, dans le même commit.
-- Un module généré ne se modifie **jamais** à la main : il serait écrasé à la compilation suivante. Toute modification passe par le `.ui`.
-- Le module généré est indenté par espaces et n'est pas annoté : c'est la seule exception à la règle des tabulations et au typage strict. Il est exclu de `ruff`, et `mypy` y tolère les fonctions non annotées.
+- The `.ui` file and the generated module are versioned together, in the same commit.
+- A generated module is **never** edited by hand: it would be overwritten by the next compilation. Every change goes through the `.ui`.
+- The generated module is indented with spaces and is not annotated: it is the only exception to the tab rule and to strict typing. It is excluded from `ruff`, and `mypy` accepts its unannotated functions.
 
-### Utiliser un écran compilé
+### Using a compiled screen
 
 ```python
 from PySide6.QtWidgets import QWidget
@@ -47,27 +49,27 @@ class FicheBanque(QWidget):
 		self.ui.nom_interne.textChanged.connect(self._nom_modifie)
 ```
 
-`mypy --strict` connaît les widgets créés par `setupUi` : un `objectName` mal orthographié, ou un widget retiré du `.ui`, est signalé à la vérification de types.
+`mypy --strict` knows the widgets created by `setupUi`: a misspelt `objectName`, or a widget removed from the `.ui`, is reported by type checking.
 
-### Configuration des outils
+### Tool configuration
 
-Elle est dans `pyproject.toml` depuis le premier écran, l'écran par défaut ([#23](https://github.com/dascritch/machincast/issues/23)), dans les sections `[tool.ruff]` et `[tool.mypy]` :
+It has been in `pyproject.toml` since the first screen, the default screen ([#23](https://github.com/dascritch/machincast/issues/23)), in the `[tool.ruff]` and `[tool.mypy]` sections:
 
 ```toml
 [tool.ruff]
 extend-exclude = ["src/machincast/interface/ui/*.py"]
 
 [tool.mypy]
-# setupUi n'est pas annoté : l'appeler depuis un code typé reste permis.
+# setupUi is not annotated: calling it from typed code stays allowed.
 untyped_calls_exclude = ["machincast.interface.ui"]
 
 [[tool.mypy.overrides]]
-# Modules générés par pyside6-uic.
+# Modules generated by pyside6-uic.
 module = ["machincast.interface.ui.*"]
 disallow_untyped_defs = false
 disallow_untyped_calls = false
-# Les titres de colonnes d'une table (horizontalHeaderItem) y sont posés sans vérifier leur existence.
+# The column titles of a table (horizontalHeaderItem) are set there without checking that they exist.
 disable_error_code = ["union-attr"]
 ```
 
-Garder `src/machincast/interface/ui/__init__.py`, sans quoi les modules générés ne sont pas importables.
+Keep `src/machincast/interface/ui/__init__.py`, without which the generated modules cannot be imported.

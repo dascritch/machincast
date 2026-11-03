@@ -4,7 +4,7 @@
 
 ## Wrapper `Machin`
 
-- Script bash [`bin/Machin`](../../bin/Machin) : `Machin <binaire> [options]` appelle `Machin_<binaire>` par `exec`, options et code de sortie transmis intacts.
+- Script bash [`bin/Machin`](../../../bin/Machin) : `Machin <binaire> [options]` appelle `Machin_<binaire>` par `exec`, options et code de sortie transmis intacts.
 - Options génériques : aide minimale (`-h`), aide complète (`--help`), choix du fichier de configuration (`--config`), suivi en direct des logs du binaire lecture (`Machin logs`), liste des binaires (`--binaires`).
 - Développement ([#77](https://github.com/dascritch/machincast/issues/77)) : `Machin dev` (sous-shell, venv activé) et `Machin dev-test` (toutes les vérifications, avec un bilan). La liste des outils de `dev-test` est celle de la section « Qualité » et des tests de `CLAUDE.md` : la changer d'un côté, c'est la changer de l'autre. Ils restent visibles sans `--dev`, et nomment alors ce qui manque. `Machin dev-captures` ([#128](https://github.com/dascritch/machincast/issues/128)) refait les captures du guide de l'antenne avec le Python du venv, depuis le répertoire de MachinCast (`python -m tests.captures`) : jamais avec `--config`, puisqu'il n'écrit que dans la base de test.
 - Un nouveau binaire `Machin_<nom>` s'ajoute aussi au tableau `BINAIRES` du wrapper et à son aide complète : un test bats vérifie que `BINAIRES` correspond à `[project.scripts]` de `pyproject.toml`. Un nom peut contenir un tiret, comme `Machin_maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)).
@@ -12,8 +12,8 @@
 - Le wrapper n'est pas installé dans le venv : en développement, `bin/Machin` ; en production, `install.sh` le rend accessible à tout le système.
 - Codes de sortie propres au wrapper : 2 pour un appel incorrect, 127 pour un binaire ou `journalctl` introuvable.
 - Le nom de l'unité systemd, `machincast.service`, est fixé dans le wrapper : le changer demande de changer aussi l'unité installée.
-- Autocomplétion bash [`bash-completion/Machin`](../../bash-completion/Machin) : les binaires viennent de `Machin --binaires` et leurs options de leur aide, sans liste à recopier.
-- Testé avec bats ([`tests/wrapper`](../../tests/wrapper)), vérifié par shellcheck. Messages et aide en français.
+- Autocomplétion bash [`bash-completion/Machin`](../../../bash-completion/Machin) : les binaires viennent de `Machin --binaires` et leurs options de leur aide, sans liste à recopier.
+- Testé avec bats ([`tests/wrapper`](../../../tests/wrapper)), vérifié par shellcheck. Messages et aide en français.
 
 ## Configuration
 
@@ -29,7 +29,7 @@
 - `install.sh` se lance avec son propre compte, jamais avec sudo, et doit rester relançable : chaque étape vérifie d'abord si elle est déjà faite. Toute commande qui modifie le système passe par `executer`, pour que `--simulation` l'affiche sans l'exécuter.
 - `install.sh` n'appelle que des commandes système et n'a pas de tests automatisés : shellcheck seulement. Ce qui se teste passe par `machincast.installation` (lecture de la configuration, schéma, greffons GStreamer), et par `machincast.programmes` pour les programmes en cours ([#254](https://github.com/dascritch/machincast/issues/254)) : ce dernier n'emploie que la bibliothèque standard, car `install.sh` le lance avec le `python3` du système, avant de toucher au venv.
 - La liste des paquets apt d'`install.sh` est celle des prérequis de `CLAUDE.md`, sans les outils de développement, que `--dev` ajoute (`PAQUETS_DEV`).
-- [`INSTALL.md`](../../INSTALL.md) documente `install.sh` pour l'administrateur, étape par étape, avec les commandes équivalentes à la main ([#71](https://github.com/dascritch/machincast/issues/71)). Toute modification d'`install.sh`, du wrapper ou de `machincast.installation` le met à jour dans le même commit. [`documentation.feature`](../../tests/features/documentation.feature) vérifie que ses paquets apt, son `GRANT`, les options, binaires et étapes qu'il cite et ses liens restent cohérents avec `install.sh`, `CLAUDE.md` et le code.
+- [`INSTALL.md`](../../../INSTALL.fr.md) documente `install.sh` pour l'administrateur, étape par étape, avec les commandes équivalentes à la main ([#71](https://github.com/dascritch/machincast/issues/71)). Toute modification d'`install.sh`, du wrapper ou de `machincast.installation` le met à jour dans le même commit. [`documentation.feature`](../../../tests/features/documentation.feature) vérifie que ses paquets apt, son `GRANT`, les options, binaires et étapes qu'il cite et ses liens restent cohérents avec `install.sh`, `CLAUDE.md` et le code.
 - Le compte qui installe ne reçoit aucun droit particulier sur le serveur PostgreSQL (ni `CREATEDB`, ni `CREATEROLE`) : tout ce qui en demande passe par `sudo -u postgres` (revue de [PR #72](https://github.com/dascritch/machincast/pull/72)).
 - Environnement virtuel isolé : jamais `--system-site-packages`. Toute dépendance Python est déclarée dans `pyproject.toml` et installée par pip ; apt ne fournit que les bibliothèques système ([#51](https://github.com/dascritch/machincast/issues/51)).
 - La règle polkit n'autorise que le démarrage, l'arrêt et le redémarrage du service de lecture, au compte de MachinCast, avec l'authentification d'un administrateur ([#22](https://github.com/dascritch/machincast/issues/22)).

@@ -1,79 +1,83 @@
-# Installer MachinCast
+# Installing MachinCast
 
-Ce document décrit l'installation de MachinCast sur un poste de diffusion, sa vérification, sa mise à jour et l'ajout d'autres comptes. Il s'adresse à l'administrateur du poste : il ne demande pas de connaître le code. L'usage des programmes une fois installés est décrit dans le [guide d'administration](doc/administration/README.md), et celui de l'interface graphique dans le [guide de l'antenne](doc/utilisateur/README.md). Le poste de développement est décrit dans le [guide du développement](doc/developpement/poste.md).
+*[Version française](INSTALL.fr.md)*
 
-Le script `install.sh` fait tout le travail. La section [Installer à la main](#installer-à-la-main) détaille chacune de ses étapes, pour qui veut les faire soi-même ou comprendre ce qu'il fait.
+This document describes how to install MachinCast on a playout machine, check it, update it and add other accounts. It is meant for the machine's administrator: it does not require knowing the code. How to use the programs once installed is described in the [administration guide](doc/fr/administration/README.md), and how to use the graphical interface in the [on-air guide](doc/fr/utilisateur/README.md); the development machine is described in the [development guide](doc/fr/developpement/poste.md). These guides are in French for now.
 
-> **État du projet** : MachinCast 0.9.0 est sa première version publiée, avant la 1.0 ([RELEASE.md](RELEASE.md)). L'indexation vérifie les sonores, `Machin lecture` diffuse la grille, depuis un terminal ou comme service, et l'interface graphique (`Machin interface`) la programme et la suit. Ce qui manque encore est dans les [tickets ouverts](https://github.com/dascritch/machincast/issues).
+The `install.sh` script does all the work. The [Installing by hand](#installing-by-hand) section details each of its steps, for those who want to do them themselves or understand what it does.
 
-## Sommaire
+MachinCast's programs and messages are in French for now: messages are quoted here as they appear, followed by their meaning when it helps.
 
-- [En bref](#en-bref)
-- [Prérequis](#prérequis)
-- [Récupérer MachinCast](#récupérer-machincast)
-- [Installer avec install.sh](#installer-avec-installsh)
-- [Adapter la configuration](#adapter-la-configuration)
-- [Préparer le poste d'antenne](#préparer-le-poste-dantenne)
-- [Vérifier l'installation](#vérifier-linstallation)
-- [Service de diffusion](#service-de-diffusion)
-- [Ajouter un autre compte](#ajouter-un-autre-compte)
-- [Mettre à jour](#mettre-à-jour)
-- [Installer à la main](#installer-à-la-main)
-- [Désinstaller](#désinstaller)
-- [En cas de problème](#en-cas-de-problème)
+> **Project status**: MachinCast 0.9.0 is its first published version, ahead of 1.0 ([RELEASE.md](RELEASE.md)). Indexing checks the sounds, `Machin lecture` plays out the schedule, from a terminal or as a service, and the graphical interface (`Machin interface`) schedules and follows it. What is still missing is in the [open issues](https://github.com/dascritch/machincast/issues).
 
-## En bref
+## Contents
+
+- [In short](#in-short)
+- [Requirements](#requirements)
+- [Getting MachinCast](#getting-machincast)
+- [Installing with install.sh](#installing-with-installsh)
+- [Adapting the configuration](#adapting-the-configuration)
+- [Preparing the on-air machine](#preparing-the-on-air-machine)
+- [Checking the installation](#checking-the-installation)
+- [Playout service](#playout-service)
+- [Adding another account](#adding-another-account)
+- [Updating](#updating)
+- [Installing by hand](#installing-by-hand)
+- [Uninstalling](#uninstalling)
+- [When something goes wrong](#when-something-goes-wrong)
+
+## In short
 
 ```bash
 git clone https://github.com/dascritch/machincast.git ~/machincast
 cd ~/machincast
-./install.sh --simulation   # affiche ce qui sera fait, sans rien changer
+./install.sh --simulation   # shows what will be done, without changing anything
 ./install.sh
 ```
 
-Ensuite : adapter `machincast.toml` ([voir plus bas](#adapter-la-configuration)), puis redémarrer le poste pour lire le journal du service.
+Then: adapt `machincast.toml` ([see below](#adapting-the-configuration)), then restart the machine to read the service log.
 
-## Prérequis
+## Requirements
 
-- **Ubuntu 26.04 LTS**. Les autres versions LTS (24.04…) sont acceptées, avec un avertissement ; les versions qui ne sont pas LTS sont refusées. MachinCast est vérifié avec la version de GStreamer d'Ubuntu 26.04, la 1.28 : avec une version plus ancienne, comme la 1.24 d'Ubuntu 24.04, l'installation avertit, et rien n'est garanti ([#284](https://github.com/dascritch/machincast/issues/284)).
-- **Le compte qui utilisera MachinCast, avec le droit `sudo`**. L'installation est mono-utilisateur : un seul compte Unix utilise MachinCast, celui qui l'installe. Le script se lance avec ce compte, jamais avec `sudo` : il demande le mot de passe pour les seules étapes qui l'exigent.
-- **Un accès à Internet**, pour apt et pip.
-- **PostgreSQL 16 ou plus récent**, installé par le script s'il manque. Ubuntu 26.04 fournit une version qui convient.
+- **Ubuntu 26.04 LTS**. Other LTS versions (24.04…) are accepted, with a warning; non-LTS versions are refused. MachinCast is checked with the GStreamer version of Ubuntu 26.04, 1.28: with an older version, like 1.24 in Ubuntu 24.04, the installation warns, and nothing is guaranteed ([#284](https://github.com/dascritch/machincast/issues/284)).
+- **The account that will use MachinCast, with `sudo` rights**. The installation is single-user: a single Unix account uses MachinCast, the one that installs it. The script is run with that account, never with `sudo`: it asks for the password only for the steps that need it.
+- **Internet access**, for apt and pip.
+- **PostgreSQL 16 or newer**, installed by the script if missing. Ubuntu 26.04 provides a suitable version.
 
-Paquets installés par apt : uniquement ce que pip ne peut pas fournir. Toutes les bibliothèques Python, elles, viennent de pip, dans un environnement isolé ([#51](https://github.com/dascritch/machincast/issues/51)).
+Packages installed by apt: only what pip cannot provide. All Python libraries come from pip, in an isolated environment ([#51](https://github.com/dascritch/machincast/issues/51)).
 
-| Paquet | Rôle |
+| Package | Role |
 | --- | --- |
-| `python3-venv` | Création de l'environnement virtuel Python. |
-| `python3-dev` | En-têtes Python, pour compiler PyGObject lors du `pip install`. |
-| `build-essential` | Compilateur C, pour PyGObject. |
-| `pkg-config` | Recherche des bibliothèques lors de la compilation. |
-| `libgirepository-2.0-dev` | Introspection GObject, dont PyGObject a besoin pour accéder à GStreamer. |
-| `libcairo2-dev` | Cairo, dépendance de compilation de PyGObject. |
-| `gir1.2-gstreamer-1.0` | Description de GStreamer pour PyGObject. |
-| `gstreamer1.0-plugins-base` | Décodage Ogg Vorbis, conversion et rééchantillonnage audio. |
-| `gstreamer1.0-plugins-good` | Décodage MP3, FLAC et WAV ; découpage des fichiers AAC bruts (`.aac`) ; lecture des streams HTTP et HTTPS. |
-| `gstreamer1.0-plugins-bad` | Décodage AAC (fichiers `.m4a` et `.aac`). |
-| `gstreamer1.0-alsa` | Sortie audio `alsa`. |
-| `gstreamer1.0-pulseaudio` | Sortie audio `pulseaudio`. |
-| `gstreamer1.0-pipewire` | Sortie audio `pipewire`. |
-| `pipewire-bin` | `pw-link`, qui relie l'antenne à la pré-écoute pour l'écouter sous PipeWire ([#24](https://github.com/dascritch/machincast/issues/24)). Déjà présent avec PipeWire sur une Ubuntu de bureau. |
-| `libmagic1t64` | Reconnaissance du type réel des fichiers sonores, sans se fier à leur extension ([#121](https://github.com/dascritch/machincast/issues/121)). |
-| `postgresql` | Serveur de base de données. |
-| `bash-completion` | Chargement de l'autocomplétion de `Machin`. Déjà présent sur une Ubuntu standard, absent d'une installation minimale. |
+| `python3-venv` | Creating the Python virtual environment. |
+| `python3-dev` | Python headers, to compile PyGObject during `pip install`. |
+| `build-essential` | C compiler, for PyGObject. |
+| `pkg-config` | Finding libraries during compilation. |
+| `libgirepository-2.0-dev` | GObject introspection, which PyGObject needs to reach GStreamer. |
+| `libcairo2-dev` | Cairo, a build dependency of PyGObject. |
+| `gir1.2-gstreamer-1.0` | Description of GStreamer for PyGObject. |
+| `gstreamer1.0-plugins-base` | Ogg Vorbis decoding, audio conversion and resampling. |
+| `gstreamer1.0-plugins-good` | MP3, FLAC and WAV decoding; parsing raw AAC files (`.aac`); reading HTTP and HTTPS streams. |
+| `gstreamer1.0-plugins-bad` | AAC decoding (`.m4a` and `.aac` files). |
+| `gstreamer1.0-alsa` | `alsa` audio output. |
+| `gstreamer1.0-pulseaudio` | `pulseaudio` audio output. |
+| `gstreamer1.0-pipewire` | `pipewire` audio output. |
+| `pipewire-bin` | `pw-link`, which links the on-air output to the preview output to listen to it under PipeWire ([#24](https://github.com/dascritch/machincast/issues/24)). Already there with PipeWire on an Ubuntu desktop. |
+| `libmagic1t64` | Recognising the real type of sound files, without relying on their extension ([#121](https://github.com/dascritch/machincast/issues/121)). |
+| `postgresql` | Database server. |
+| `bash-completion` | Loading the completion of `Machin`. Already there on a standard Ubuntu, missing from a minimal installation. |
 
-## Récupérer MachinCast
+## Getting MachinCast
 
-MachinCast s'installe **en place** : le répertoire où il se trouve devient le répertoire d'installation, et `/opt/machincast` pointe vers lui. Il ne faut donc plus le déplacer après l'installation.
+MachinCast is installed **in place**: the directory it is in becomes the installation directory, and `/opt/machincast` points to it. It must therefore not be moved after the installation.
 
-L'installation est mono-utilisateur : MachinCast se place dans le répertoire personnel du compte qui l'utilise, par exemple `~/machincast`.
+The installation is single-user: MachinCast goes in the home directory of the account that uses it, for instance `~/machincast`.
 
 ```bash
 git clone https://github.com/dascritch/machincast.git ~/machincast
 cd ~/machincast
 ```
 
-Chaque version publiée a aussi son archive, `machincast-<version>.tar.gz`, dans les [releases du dépôt](https://github.com/dascritch/machincast/releases) ([#41](https://github.com/dascritch/machincast/issues/41)). Elle s'utilise de la même façon : la décompresser dans le répertoire choisi, puis lancer `./install.sh` depuis ce répertoire. Ses notes sont dans [RELEASE.md](RELEASE.md).
+Each published version also has its archive, `machincast-<version>.tar.gz`, in the [repository's releases](https://github.com/dascritch/machincast/releases) ([#41](https://github.com/dascritch/machincast/issues/41)). It is used the same way: extract it into the chosen directory, then run `./install.sh` from that directory. Its notes are in [RELEASE.md](RELEASE.md).
 
 ```bash
 tar -xzf machincast-0.9.0.tar.gz -C ~
@@ -81,146 +85,146 @@ mv ~/machincast-0.9.0 ~/machincast
 cd ~/machincast
 ```
 
-Hors d'un dépôt git, **Aide → Version** donne la version et sa date de publication ; une mise à jour se fait alors en décompressant l'archive suivante à la place, `machincast.toml` gardé.
+Outside a git repository, **Aide → Version** (Help → Version) gives the version and its release date; an update is then done by extracting the next archive in its place, keeping `machincast.toml`.
 
-## Installer avec install.sh
+## Installing with install.sh
 
-Depuis le répertoire de MachinCast, avec son propre compte :
+From the MachinCast directory, with your own account:
 
 ```bash
-./install.sh --simulation   # affiche les commandes sans rien exécuter
-./install.sh                # installe
-./install.sh --dev          # installe, avec les outils du poste de développement
-./install.sh --service      # installe, avec le service de diffusion : ordinateur dédié à l'antenne seulement
-./install.sh --bureau       # installe, et dépose le raccourci de l'interface sur le bureau sans le demander
-./install.sh --sans-bureau  # installe, sans raccourci sur le bureau ni question
-./install.sh --arreter-les-programmes  # arrête sans le demander les programmes de MachinCast en cours
-./install.sh --laisser-les-programmes  # les laisse tourner, sans le demander
-./install.sh --help         # aide
+./install.sh --simulation   # shows the commands without running anything
+./install.sh                # installs
+./install.sh --dev          # installs, with the development machine's tools
+./install.sh --service      # installs, with the playout service: computer dedicated to the station only
+./install.sh --bureau       # installs, and puts the interface shortcut on the desktop without asking
+./install.sh --sans-bureau  # installs, without a desktop shortcut or question
+./install.sh --arreter-les-programmes  # stops the running MachinCast programs without asking
+./install.sh --laisser-les-programmes  # leaves them running, without asking
+./install.sh --help         # help
 ```
 
-`--dev` se combine avec `--simulation`. Voir [Poste de développement](doc/developpement/poste.md).
+`--dev` can be combined with `--simulation`. See the [development machine](doc/fr/developpement/poste.md) (French).
 
-**Relançable** : chaque étape déjà faite est laissée telle quelle. En cas d'échec, corriger ce que le message indique, puis relancer le script. À la relance, PostgreSQL signale par des lignes `NOTICE:  role … has already been granted membership …` que le compte était déjà autorisé : ce n'est pas une erreur.
+**Can be run again**: each step already done is left as it is. On failure, fix what the message says, then run the script again. When run again, PostgreSQL reports with `NOTICE:  role … has already been granted membership …` lines that the account was already authorised: this is not an error.
 
-**Ce qu'il demande** : le mot de passe `sudo`, pour apt, pour les commandes passées en tant qu'utilisateur `postgres`, pour l'ajout au groupe `systemd-journal`, pour les liens dans `/opt`, `/usr/local/bin` et `/usr/share`, et, avec `--service`, pour la session du compte, l'unité systemd et la règle polkit. Deux questions au plus. Si des programmes de MachinCast tournent : « Les arrêter pendant l'installation, puis les relancer ? [o/N] » ; Entrée répond non. `--arreter-les-programmes` et `--laisser-les-programmes` y répondent d'avance ; sans terminal, elle n'est pas posée, et ils continuent. À la première installation : « Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] » ; Entrée répond oui. `--bureau` et `--sans-bureau` y répondent d'avance ; sans terminal, par exemple dans un script, elle n'est pas posée, et le raccourci ne va pas sur le bureau.
+**What it asks for**: the `sudo` password, for apt, for the commands run as the `postgres` user, for adding the account to the `systemd-journal` group, for the links in `/opt`, `/usr/local/bin` and `/usr/share`, and, with `--service`, for the account's session, the systemd unit and the polkit rule. At most two questions. If MachinCast programs are running: « Les arrêter pendant l'installation, puis les relancer ? [o/N] » (stop them during the installation, then restart them?); Enter answers no. `--arreter-les-programmes` and `--laisser-les-programmes` answer it in advance; without a terminal, it is not asked, and they keep running. On the first installation: « Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] » (also put the MachinCast shortcut on the desktop?); Enter answers yes. `--bureau` and `--sans-bureau` answer it in advance; without a terminal, for instance in a script, it is not asked, and the shortcut does not go on the desktop.
 
-**Ce qu'il fait**, dans l'ordre :
+**What it does**, in order:
 
-| Étape | Ce qui se passe | Ce qui est modifié sur le poste |
+| Step | What happens | What changes on the machine |
 | --- | --- | --- |
-| Système | Vérifie qu'il est lancé sans `sudo`, sur une Ubuntu LTS. | Rien. |
-| Programmes de MachinCast en cours | Liste ceux qui tournent, sous tous les comptes du poste : `Machin lecture` (le service de diffusion, une diffusion d'essai, une simulation), `Machin indexation`, `Machin interface`. Une mise à jour, et ses migrations de la base, ne doit pas se faire sous eux : selon la réponse à la question, il les arrête, le service par `systemctl stop`, les autres par un signal, avec `sudo` pour ceux d'un autre compte ([#254](https://github.com/dascritch/machincast/issues/254)). **Arrêtée, la diffusion se tait jusqu'à la fin de l'installation** ; l'interface perd les fiches qui n'étaient pas enregistrées. | Rien, ou programmes arrêtés. |
-| Paquets système | Installe les paquets du [tableau des prérequis](#prérequis). | Paquets apt. |
-| Environnement virtuel Python | Crée `.venv` dans le répertoire de MachinCast, sans accès aux paquets Python du système, et y installe MachinCast et ses dépendances. | `.venv` dans le répertoire de MachinCast. |
-| Configuration | Copie `machincast.exemple.toml` en `machincast.toml` s'il n'existe pas. Un `machincast.toml` existant n'est jamais modifié. | `machincast.toml`. |
-| PostgreSQL | En tant qu'utilisateur `postgres` : crée le rôle PostgreSQL du compte, **sans aucun droit particulier** sur le serveur ; crée les bases de production et de test nommées dans `machincast.toml`, dont le compte devient propriétaire ; crée les trois rôles de groupe de MachinCast. Puis, avec le compte : applique le schéma aux deux bases. | Serveur PostgreSQL. |
-| Rôles | En tant qu'utilisateur `postgres` : autorise le compte à endosser les trois rôles de MachinCast, sans en hériter les droits. | Serveur PostgreSQL. |
-| Journal système | Ajoute le compte au groupe `systemd-journal`, pour lire le journal du service. Effectif après le redémarrage du poste. | Groupes du compte. |
-| Liens | `/opt/machincast` vers le répertoire de MachinCast ; `/usr/local/bin/Machin` vers le wrapper ; l'autocomplétion bash dans `/usr/share/bash-completion/completions/Machin`. | Trois liens symboliques. |
-| Version et greffons GStreamer, sortie audio | Avertit si GStreamer ou ses greffons sont plus anciens que la version 1.28, avec laquelle MachinCast est vérifié, en nommant le paquet à mettre à jour ([#284](https://github.com/dascritch/machincast/issues/284)). Vérifie que GStreamer sait décoder MP3, M4A, AAC, Ogg, FLAC et WAV, lire les streams HTTP et HTTPS, et créer la sortie audio de `machincast.toml`, sans jouer aucun son. | Rien. |
-| Raccourci de l'interface | Installe le raccourci **MachinCast**, avec son icône, dans le menu des applications du compte, rubrique Multimédia. Selon la réponse à la question, ou `--bureau`, le dépose aussi sur le bureau du compte (le dossier que donne `xdg-user-dir DESKTOP`, « Bureau » en français), exécutable pour que Plasma le lance sans avertissement. Un raccourci déjà sur le bureau est mis à jour sans question ; `--sans-bureau` le laisse tel quel ([#62](https://github.com/dascritch/machincast/issues/62)). | `~/.local/share/applications/machincast.desktop`, et `machincast.desktop` sur le bureau ; l'icône de MachinCast dans le thème d'icônes du compte, `~/.local/share/icons/hicolor/512x512/apps/machincast.png`, que le réglage du son montre devant les programmes de MachinCast ([#296](https://github.com/dascritch/machincast/issues/296)). |
+| System | Checks that it runs without `sudo`, on an Ubuntu LTS. | Nothing. |
+| Running MachinCast programs | Lists those running, under every account of the machine: `Machin lecture` (the playout service, a test playout, a simulation), `Machin indexation`, `Machin interface`. An update, and its database migrations, must not happen under them: depending on the answer to the question, it stops them, the service with `systemctl stop`, the others with a signal, with `sudo` for those of another account ([#254](https://github.com/dascritch/machincast/issues/254)). **Once stopped, playout is silent until the end of the installation**; the interface loses the detail screens that were not saved. | Nothing, or programs stopped. |
+| System packages | Installs the packages of the [requirements table](#requirements). | apt packages. |
+| Python virtual environment | Creates `.venv` in the MachinCast directory, without access to the system's Python packages, and installs MachinCast and its dependencies in it. | `.venv` in the MachinCast directory. |
+| Configuration | Copies `machincast.exemple.toml` to `machincast.toml` if it does not exist. An existing `machincast.toml` is never changed. | `machincast.toml`. |
+| PostgreSQL | As the `postgres` user: creates the account's PostgreSQL role, **without any particular right** on the server; creates the production and test databases named in `machincast.toml`, which the account owns; creates MachinCast's three group roles. Then, with the account: applies the schema to both databases. | PostgreSQL server. |
+| Roles | As the `postgres` user: allows the account to take on MachinCast's three roles, without inheriting their rights. | PostgreSQL server. |
+| System log | Adds the account to the `systemd-journal` group, to read the service log. Effective after the machine restarts. | The account's groups. |
+| Links | `/opt/machincast` to the MachinCast directory; `/usr/local/bin/Machin` to the wrapper; bash completion in `/usr/share/bash-completion/completions/Machin`. | Three symbolic links. |
+| GStreamer version and plugins, audio output | Warns if GStreamer or its plugins are older than version 1.28, with which MachinCast is checked, naming the package to update ([#284](https://github.com/dascritch/machincast/issues/284)). Checks that GStreamer can decode MP3, M4A, AAC, Ogg, FLAC and WAV, read HTTP and HTTPS streams, and create the audio output of `machincast.toml`, without playing any sound. | Nothing. |
+| Interface shortcut | Installs the **MachinCast** shortcut, with its icon, in the account's applications menu, under Multimedia. Depending on the answer to the question, or `--bureau`, also puts it on the account's desktop (the folder given by `xdg-user-dir DESKTOP`, « Bureau » in French), executable so that Plasma launches it without a warning. A shortcut already on the desktop is updated without a question; `--sans-bureau` leaves it as it is ([#62](https://github.com/dascritch/machincast/issues/62)). | `~/.local/share/applications/machincast.desktop`, and `machincast.desktop` on the desktop; the MachinCast icon in the account's icon theme, `~/.local/share/icons/hicolor/512x512/apps/machincast.png`, which the sound settings show in front of MachinCast's programs ([#296](https://github.com/dascritch/machincast/issues/296)). |
 
-**Relance des programmes de MachinCast** : avant d'afficher `Installation terminée`, et même après un échec, il relance ceux qu'il a arrêtés : le service de diffusion (sauf avec `--retirer-service`), et, pour son compte, la diffusion d'essai dans un terminal et l'interface dans la session graphique, avec leurs arguments. Il dit ce qui reste à rouvrir : une indexation interrompue, la simulation de l'interface, et les programmes des autres comptes, que leur compte relance.
+**Restarting MachinCast programs**: before showing `Installation terminée` (installation complete), and even after a failure, it restarts those it stopped: the playout service (except with `--retirer-service`), and, for its own account, the test playout in a terminal and the interface in the graphical session, with their arguments. It says what remains to be reopened: an interrupted indexing, the interface's simulation, and the programs of other accounts, which their account restarts.
 
-À la fin, il affiche `Installation terminée`. Le service de diffusion n'est installé que sur demande : voir [Service de diffusion](#service-de-diffusion).
+At the end, it shows `Installation terminée`. The playout service is only installed on request: see [Playout service](#playout-service).
 
-**Rôles PostgreSQL.** Chaque programme de MachinCast agit avec ses propres droits : `machincast_lecture` pour la diffusion, `machincast_indexation` pour l'indexation, `machincast_interface` pour l'interface graphique. Un compte de la radio se connecte avec son propre rôle PostgreSQL, qui ne donne accès à rien en lui-même : chaque programme endosse son rôle dès la connexion. Le détail est dans la [spécification, § 3.2](doc/spec.md#32-rôles-et-droits).
+**PostgreSQL roles.** Each MachinCast program acts with its own rights: `machincast_lecture` for playout, `machincast_indexation` for indexing, `machincast_interface` for the graphical interface. A station account connects with its own PostgreSQL role, which gives access to nothing by itself: each program takes on its role as soon as it connects. The details are in the [specification, § 3.2](doc/fr/spec.md#32-rôles-et-droits) (French).
 
-## Adapter la configuration
+## Adapting the configuration
 
-La configuration est le fichier `machincast.toml`, dans le répertoire de MachinCast. Il n'est jamais versionné par git. Le modèle `machincast.exemple.toml` commente chaque clé, et le [tableau des clés de la spécification](doc/spec.md#9-configuration) en donne le type et le rôle.
+The configuration is the `machincast.toml` file, in the MachinCast directory. It is never versioned by git. The template `machincast.exemple.toml` comments each key, and the [table of keys in the specification](doc/fr/spec.md#9-configuration) (French) gives their type and role.
 
-À adapter au moins :
+Adapt at least:
 
-- `audio.sortie` : `pipewire` (valeur du modèle), `pulseaudio`, `alsa`, ou `factice` pour un essai sans aucun son ; avec `alsa`, le VU-mètre de l'interface est indisponible, faute de port de monitoring ([#24](https://github.com/dascritch/machincast/issues/24)) ;
-- `audio.peripherique` : le périphérique de l'antenne, **obligatoire pour diffuser** (sauf avec `factice`) ; `"factice"`, l'entrée « sortie factice », fait jouer l'antenne sans aucun son, pour une installation sans service de diffusion ([#339](https://github.com/dascritch/machincast/issues/339)). Sans lui, `Machin lecture` refuse de démarrer. Il peut aussi se choisir dans l'interface, **Fichier → Préférences…**, page **Audio**, qui l'écrit dans `machincast.toml`. `.venv/bin/python -m machincast.installation peripheriques` liste les périphériques de la sortie configurée, avec leur identifiant à recopier ; s'il n'en trouve aucun, il dit tout ce que voit GStreamer, et `gst-device-monitor-1.0 Audio/Sink` en donne le détail ;
-- `audio.preecoute` : le périphérique de pré-écoute de l'interface, différent de celui de l'antenne ; il peut aussi se choisir ensuite dans la fenêtre de pré-écoute de l'interface ; `"factice"`, l'entrée « sortie factice », désactive la pré-écoute ([#339](https://github.com/dascritch/machincast/issues/339)) ;
-- `metadonnees.texte_public` : le nom affiché sur la page publique à la place d'un titre masqué ;
-- `lecture.socket_etat` : facultatif, la socket d'état lue par l'interface ; par défaut dans le répertoire d'exécution du compte (`$XDG_RUNTIME_DIR/machincast/lecture.sock`) ;
-- `[sorties]` : les chemins de l'airplay CSV (un fichier par jour), de la playlist et de la page HTML publique, dans le dossier `sorties` du répertoire de MachinCast par défaut. Pour publier la page sur le site de la radio, la copier ou la servir depuis ce chemin.
+- `audio.sortie`: `pipewire` (the template's value), `pulseaudio`, `alsa`, or `factice` for a trial without any sound; with `alsa`, the interface's VU meter is unavailable, for lack of a monitoring port ([#24](https://github.com/dascritch/machincast/issues/24));
+- `audio.peripherique`: the on-air device, **required for playout** (except with `factice`); `"factice"`, the « sortie factice » (dummy output) entry, makes the station play without any sound, for an installation without the playout service ([#339](https://github.com/dascritch/machincast/issues/339)). Without it, `Machin lecture` refuses to start. It can also be chosen in the interface, **Fichier → Préférences…** (File → Preferences…), **Audio** page, which writes it into `machincast.toml`. `.venv/bin/python -m machincast.installation peripheriques` lists the devices of the configured output, with their identifier to copy; if it finds none, it says everything GStreamer sees, and `gst-device-monitor-1.0 Audio/Sink` gives the details;
+- `audio.preecoute`: the interface's preview device, different from the on-air one; it can also be chosen later in the interface's preview window; `"factice"`, the « sortie factice » entry, disables the preview ([#339](https://github.com/dascritch/machincast/issues/339));
+- `metadonnees.texte_public`: the name shown on the public page instead of a hidden title;
+- `lecture.socket_etat`: optional, the state socket read by the interface; by default in the account's runtime directory (`$XDG_RUNTIME_DIR/machincast/lecture.sock`);
+- `[sorties]`: the paths of the CSV airplay (one file per day), the playlist and the public HTML page, in the `sorties` folder of the MachinCast directory by default. To publish the page on the station's website, copy it or serve it from that path.
 
-Les noms des bases (`base.production` et `base.test`) se choisissent **avant** de lancer `install.sh`, qui crée les bases sous ces noms. La base de test doit porter un autre nom que la base de production : MachinCast refuse sinon la configuration.
+The database names (`base.production` and `base.test`) are chosen **before** running `install.sh`, which creates the databases under those names. The test database must have another name than the production database: otherwise MachinCast refuses the configuration.
 
-Toute clé inconnue est refusée, pour détecter les fautes de frappe. Après une modification, relancer `./install.sh` vérifie la configuration et la sortie audio.
+Any unknown key is refused, to catch typos. After a change, running `./install.sh` again checks the configuration and the audio output.
 
-Sans l'option `--config`, les programmes lisent toujours le `machincast.toml` du répertoire de MachinCast, quel que soit le répertoire d'où ils sont lancés ([#76](https://github.com/dascritch/machincast/issues/76)). `Machin --help` indique son chemin complet. Une autre configuration, placée elle aussi dans le répertoire de MachinCast, se désigne par `--config` :
-
-```bash
-Machin indexation                                         # lit ~/machincast/machincast.toml
-Machin indexation --config ~/machincast/essai.toml        # lit essai.toml
-```
-
-## Préparer le poste d'antenne
-
-Le poste qui diffuse est aussi un ordinateur de bureau : tout ce qu'il joue sur le périphérique de l'antenne part à l'antenne. Trois réglages du bureau l'évitent ([#250](https://github.com/dascritch/machincast/issues/250)). Les chemins ci-dessous sont ceux de la configuration du système de KDE Plasma, le bureau d'Ubuntu 26.04 LTS utilisé à l'antenne ; leurs noms peuvent varier d'une version ou d'un bureau à l'autre.
-
-**1. L'antenne n'est pas la sortie par défaut du bureau.** La sortie par défaut est celle de tous les programmes qui n'en choisissent pas : le navigateur, une visioconférence, un lecteur de vidéos, les sons du système. Sur l'antenne, ils passeraient à l'air. MachinCast n'en a pas besoin : `Machin lecture` joue toujours sur `audio.peripherique`, et la pré-écoute sur `audio.preecoute`, qu'ils soient ou non la sortie par défaut.
-
-- Dans **Configuration du système → Son**, page des périphériques de lecture, choisir comme sortie par défaut un autre périphérique que celui de l'antenne : le casque de la régie, ou les haut-parleurs du poste.
-- Pour vérifier, en ligne de commande : `wpctl status`, sous PipeWire, marque d'une `*` la sortie par défaut parmi les « Sinks » ; `pactl get-default-sink` donne son identifiant, à comparer à `audio.peripherique`. `wpctl set-default <numéro>` en choisit une autre, d'après les numéros de `wpctl status`.
-
-**2. Les sons de notification sont coupés.** Une notification, un message reçu, une clé USB branchée, le volume réglé au clavier font un son, sur la sortie par défaut, ou sur l'antenne si elle l'est encore :
-
-- dans **Couleurs et thèmes → Thème global → Sons du système**, décocher, en haut à droite, **Activer les sons de notification** ;
-
-  ![Sons du système de KDE Plasma : la case « Activer les sons de notification », en haut à droite, décochée](doc/administration/images/kde-sons-du-systeme.png)
-
-- dans **Son**, partie **Flux de lecture**, sur la ligne **Sons de notification**, couper le son par son bouton, à gauche de la réglette, qui passe à 0 %.
-
-  ![Page Son de KDE Plasma : la ligne « Sons de notification » des flux de lecture, son coupé, à 0 %](doc/administration/images/kde-sons-de-notification.png)
-
-**3. Pas de veille de l'écran.** Au retour d'un écran éteint, le serveur audio du poste peut interrompre un moment la pré-écoute, et le [VU-mètre](doc/utilisateur/prise-en-main.md#vu-mètre-de-lantenne) de l'antenne se rouvre ([#259](https://github.com/dascritch/machincast/issues/259), [#311](https://github.com/dascritch/machincast/issues/311)). La diffusion, elle, continue. Dans **Configuration du système → Gestion de l'énergie**, sur secteur, régler l'extinction de l'écran (**Éteindre l'écran**) sur **Jamais**. La mise en veille du poste (**Suspendre la session**) ne doit pas non plus être programmée : en veille, le poste ne diffuse plus.
-
-## Vérifier l'installation
-
-Redémarrer d'abord le poste, pour que le groupe `systemd-journal` soit pris en compte. Sous Ubuntu Desktop, se déconnecter puis se reconnecter ne suffit pas toujours : les nouveaux terminaux peuvent garder les anciens groupes de la session. Puis :
+Without the `--config` option, the programs always read the `machincast.toml` of the MachinCast directory, whatever directory they are started from ([#76](https://github.com/dascritch/machincast/issues/76)). `Machin --help` gives its full path. Another configuration, also placed in the MachinCast directory, is given with `--config`:
 
 ```bash
-id -nG                                     # doit citer systemd-journal
-Machin --help                              # aide du wrapper, liste des programmes
-Machin indexation --help                   # aide de l'indexation
-Machin indexation                          # indexation rapide
+Machin indexation                                         # reads ~/machincast/machincast.toml
+Machin indexation --config ~/machincast/essai.toml        # reads essai.toml
 ```
 
-`Machin indexation` affiche un bilan, par exemple `2026-10-15T08:15:00+02:00 indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu`, et se termine avec le code 0. Sur un poste neuf, aucune banque n'existe encore, donc aucun répertoire à parcourir : les banques se créent dans l'interface, à venir ([#31](https://github.com/dascritch/machincast/issues/31)).
+## Preparing the on-air machine
 
-**Première indexation.** L'indexation rapide, par défaut, ne décode que les sonores nouvellement découverts (état « aperçu ») et vérifie seulement la présence des autres fichiers. L'audit complet décode tous les sonores, ce qui peut être long sur une grande discothèque :
+The machine that plays out is also a desktop computer: everything it plays on the on-air device goes on air. Three desktop settings prevent this ([#250](https://github.com/dascritch/machincast/issues/250)). The paths below are those of the KDE Plasma system settings, the desktop of Ubuntu 26.04 LTS used on air; their names may vary from one version or desktop to another.
+
+**1. The on-air device is not the desktop's default output.** The default output is that of every program that does not choose one: the browser, a video call, a video player, the system sounds. On the on-air device, they would go on air. MachinCast does not need it: `Machin lecture` always plays on `audio.peripherique`, and the preview on `audio.preecoute`, whether or not they are the default output.
+
+- In **System Settings → Sound**, playback devices page, choose as default output another device than the on-air one: the control room headphones, or the machine's speakers.
+- To check, on the command line: `wpctl status`, under PipeWire, marks the default output with a `*` among the « Sinks »; `pactl get-default-sink` gives its identifier, to compare with `audio.peripherique`. `wpctl set-default <number>` chooses another, by the numbers of `wpctl status`.
+
+**2. Notification sounds are muted.** A notification, a received message, a plugged-in USB key, the volume set from the keyboard make a sound, on the default output, or on air if it still is:
+
+- in **Colours & Themes → Global Theme → System Sounds**, uncheck, top right, **Enable notification sounds**;
+
+  ![KDE Plasma system sounds: the « Activer les sons de notification » (enable notification sounds) box, top right, unchecked](doc/fr/administration/images/kde-sons-du-systeme.png)
+
+- in **Sound**, **Playback Streams** part, on the **Notification Sounds** line, mute the sound with its button, left of the slider, which goes to 0 %.
+
+  ![KDE Plasma Sound page: the « Sons de notification » (notification sounds) line of the playback streams, muted, at 0 %](doc/fr/administration/images/kde-sons-de-notification.png)
+
+**3. No screen sleep.** When a screen turns back on, the machine's sound server can interrupt the preview for a while, and the station's [VU meter](doc/fr/utilisateur/prise-en-main.md#vu-mètre-de-lantenne) reopens ([#259](https://github.com/dascritch/machincast/issues/259), [#311](https://github.com/dascritch/machincast/issues/311)). Playout itself goes on. In **System Settings → Power Management**, on AC power, set **Turn off screen** to **Never**. Suspending the machine (**Suspend session**) must not be scheduled either: asleep, the machine no longer plays out.
+
+## Checking the installation
+
+First restart the machine, so that the `systemd-journal` group is taken into account. Under Ubuntu Desktop, logging out then in again is not always enough: new terminals may keep the session's old groups. Then:
 
 ```bash
-Machin indexation                   # rapide
-Machin indexation --audit-complet   # complet, à lancer une fois après la première indexation
+id -nG                                     # must list systemd-journal
+Machin --help                              # wrapper help, list of programs
+Machin indexation --help                   # indexing help
+Machin indexation                          # quick indexing
 ```
 
-Les anomalies (fichier endommagé, illisible ou introuvable) s'affichent sur la sortie d'erreur avec le chemin du fichier ; elles ne bloquent pas l'indexation.
+`Machin indexation` shows a summary, for instance `2026-10-15T08:15:00+02:00 indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu` (quick indexing: 0 new sound, 0 attached, 0 removed; 0 sound checked; 0 faulty, 0 unsupported, 0 deleted, 0 restored, 0 out of preview), and ends with code 0. On a new machine, no bank exists yet, so there is no directory to go through: banks are created in the interface ([#31](https://github.com/dascritch/machincast/issues/31)).
 
-**Journal du service.** `Machin logs` suit le journal du service de diffusion. Tant que le service n'est pas installé ([#22](https://github.com/dascritch/machincast/issues/22)), il n'affiche rien, ce qui est normal.
-
-## Service de diffusion
-
-**Pour un ordinateur dédié à l'antenne seulement** ([#22](https://github.com/dascritch/machincast/issues/22)). Sans service, `Machin lecture` se lance à la main, et s'arrête avec son terminal : c'est ce qui convient pour essayer MachinCast. Avec le service, `machincast.service`, la diffusion démarre avec le poste, sans connexion de personne, et redémarre seule après un plantage.
+**First indexing.** Quick indexing, the default, only decodes newly found sounds (« aperçu », preview state) and only checks that the other files are there. The full audit decodes every sound, which can take long on a large music library:
 
 ```bash
-./install.sh --service            # installe le service, ou le met à jour
-./install.sh --retirer-service    # le retire
+Machin indexation                   # quick
+Machin indexation --audit-complet   # full, to run once after the first indexing
 ```
 
-`--service` se combine avec `--simulation`. **Ce qu'il fait**, après les étapes habituelles :
+Anomalies (damaged, unreadable or missing file) are shown on the error output with the file's path; they do not block indexing.
 
-| Étape | Ce qui se passe | Ce qui est modifié sur le poste |
+**Service log.** `Machin logs` follows the playout service's log. As long as the service is not installed ([#22](https://github.com/dascritch/machincast/issues/22)), it shows nothing, which is normal.
+
+## Playout service
+
+**For a computer dedicated to the station only** ([#22](https://github.com/dascritch/machincast/issues/22)). Without the service, `Machin lecture` is started by hand, and stops with its terminal: this is what suits a trial of MachinCast. With the service, `machincast.service`, playout starts with the machine, without anyone logging in, and restarts by itself after a crash.
+
+```bash
+./install.sh --service            # installs the service, or updates it
+./install.sh --retirer-service    # removes it
+```
+
+`--service` can be combined with `--simulation`. **What it does**, after the usual steps:
+
+| Step | What happens | What changes on the machine |
 | --- | --- | --- |
-| Antenne | Vérifie, par `python -m machincast.installation antenne`, que l'antenne joue sur une carte son ([#339](https://github.com/dascritch/machincast/issues/339)) : sur la sortie factice (`audio.sortie = "factice"`, ou l'entrée « Sortie factice », `audio.peripherique = "factice"`), install.sh s'arrête, sans rien installer du service, et recommande une autre carte son. Une antenne à renseigner est seulement signalée : le service refusera de démarrer sans elle. | Rien. |
-| Session du compte | Garde active, dès le démarrage du poste, la session du compte qui installe (`loginctl enable-linger`) : c'est là que tournent PipeWire ou PulseAudio, et la socket d'état que lit l'interface. | Session du compte. |
-| Unité systemd | Installe `/etc/systemd/system/machincast.service`, rédigé par `python -m machincast.installation unite`, puis recharge systemd. | Une unité systemd. |
-| Règle polkit | Installe `/etc/polkit-1/rules.d/50-machincast.rules`, rédigée par `python -m machincast.installation regle`. | Une règle polkit. |
-| Activation | Active le service au démarrage du poste, et le démarre ; une unité modifiée redémarre le service. | Service activé. |
-| Purge quotidienne | Installe `/etc/systemd/system/machincast-purge.service` et son minuteur `machincast-purge.timer`, rédigés par `python -m machincast.installation unite-purge` et `minuteur-purge`, et active le minuteur ([#268](https://github.com/dascritch/machincast/issues/268)). | Une unité et un minuteur systemd. |
+| On-air output | Checks, with `python -m machincast.installation antenne`, that the station plays on a sound card ([#339](https://github.com/dascritch/machincast/issues/339)): on the dummy output (`audio.sortie = "factice"`, or the « sortie factice » entry, `audio.peripherique = "factice"`), install.sh stops, without installing anything of the service, and recommends another sound card. An on-air device still to be set is only reported: the service will refuse to start without it. | Nothing. |
+| Account session | Keeps the session of the installing account active from the machine's start (`loginctl enable-linger`): this is where PipeWire or PulseAudio run, and the state socket the interface reads. | Account session. |
+| systemd unit | Installs `/etc/systemd/system/machincast.service`, written by `python -m machincast.installation unite`, then reloads systemd. | A systemd unit. |
+| polkit rule | Installs `/etc/polkit-1/rules.d/50-machincast.rules`, written by `python -m machincast.installation regle`. | A polkit rule. |
+| Activation | Enables the service at the machine's start, and starts it; a changed unit restarts the service. | Service enabled. |
+| Daily purge | Installs `/etc/systemd/system/machincast-purge.service` and its timer `machincast-purge.timer`, written by `python -m machincast.installation unite-purge` and `minuteur-purge`, and enables the timer ([#268](https://github.com/dascritch/machincast/issues/268)). | A systemd unit and timer. |
 
-**Le service** tourne sous le compte qui a installé MachinCast, pas sous un compte système : il en a le rôle PostgreSQL, les fichiers et la session audio. Il lance `bin/Machin lecture`, avec le `machincast.toml` du répertoire de MachinCast, et le relance 5 secondes après un plantage. Son arrêt envoie `SIGTERM`, qui termine proprement le passage en cours. Ses messages vont dans le journal du système : `Machin logs` les suit.
+**The service** runs under the account that installed MachinCast, not under a system account: it has its PostgreSQL role, its files and its audio session. It runs `bin/Machin lecture`, with the `machincast.toml` of the MachinCast directory, and restarts it 5 seconds after a crash. Stopping it sends `SIGTERM`, which ends the current play cleanly. Its messages go to the system log: `Machin logs` follows them.
 
-**La purge quotidienne** lance `bin/Machin purge` chaque jour à midi, sous le même compte : elle efface de la base ce qui dépasse la durée de péremption, `base.peremption`, 60 jours par défaut, et jamais un fichier ([Purge de la base](doc/administration/commandes.md#purge-de-la-base--machin-purge)). Une purge manquée, poste éteint à midi, se fait à son démarrage. `systemctl list-timers machincast-purge.timer` donne la prochaine ; `journalctl --unit=machincast-purge.service`, ce que les précédentes ont effacé.
+**The daily purge** runs `bin/Machin purge` every day at noon, under the same account: it deletes from the database what is past the retention period, `base.peremption`, 60 days by default, and never a file ([Purge de la base](doc/fr/administration/commandes.md#purge-de-la-base--machin-purge), French). A missed purge, machine off at noon, happens at its start. `systemctl list-timers machincast-purge.timer` gives the next one; `journalctl --unit=machincast-purge.service`, what the previous ones deleted.
 
-**La règle polkit** n'autorise que trois actions sur `machincast.service`, au seul compte de MachinCast : le démarrer, l'arrêter et le redémarrer, avec le mot de passe, ou l'empreinte, d'un administrateur du poste. Elle n'autorise rien d'autre, ni sur une autre unité. Jamais de `sudo` pour piloter la diffusion :
+**The polkit rule** only allows three actions on `machincast.service`, to MachinCast's account only: starting, stopping and restarting it, with the password, or the fingerprint, of an administrator of the machine. It allows nothing else, nor on another unit. Never `sudo` to control playout:
 
 ```bash
 systemctl start machincast.service
@@ -229,11 +233,11 @@ systemctl restart machincast.service
 systemctl status machincast.service
 ```
 
-**Depuis l'interface**, le menu **Diffusion** fait la même chose, avec la même authentification ([guide de l'antenne](doc/utilisateur/antenne.md#piloter-la-diffusion), [#25](https://github.com/dascritch/machincast/issues/25)). Tant que le service n'est pas installé, la barre d'état de l'interface affiche `Installation non définitive : diffusion sans service`, et le menu **Diffusion** pilote une diffusion d'essai : `Machin lecture` dans une fenêtre de terminal, que l'interface sait arrêter et redémarrer.
+**From the interface**, the **Diffusion** (playout) menu does the same, with the same authentication ([on-air guide](doc/fr/utilisateur/antenne.md#piloter-la-diffusion), French, [#25](https://github.com/dascritch/machincast/issues/25)). As long as the service is not installed, the interface's status bar shows `Installation non définitive : diffusion sans service` (provisional installation: playout without service), and the **Diffusion** menu controls a test playout: `Machin lecture` in a terminal window, which the interface can stop and restart.
 
-**Avant d'installer le service**, arrêter tout `Machin lecture` lancé à la main : un second Machin lecture est refusé, tant que la socket d'état est occupée, et le service redémarrerait sans fin.
+**Before installing the service**, stop any `Machin lecture` started by hand: a second Machin lecture is refused while the state socket is in use, and the service would restart endlessly.
 
-À la main, sans `install.sh` :
+By hand, without `install.sh`:
 
 ```bash
 sudo loginctl enable-linger "$(id -un)"
@@ -247,45 +251,45 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now machincast.service machincast-purge.timer
 ```
 
-`--retirer-service` arrête et désactive le service et le minuteur de la purge, puis retire leurs unités et la règle : la purge se lance ensuite à la main, par `Machin purge`. La session du compte reste active au démarrage ; `sudo loginctl disable-linger "$(id -un)"` la retire.
+`--retirer-service` stops and disables the service and the purge timer, then removes their units and the rule: the purge is then run by hand, with `Machin purge`. The account's session stays active at start-up; `sudo loginctl disable-linger "$(id -un)"` removes that.
 
-## Ajouter un autre compte
+## Adding another account
 
-MachinCast est prévu pour un seul compte Unix, celui qui l'installe, et `install.sh` n'autorise que lui. Si un autre compte doit exceptionnellement y accéder, un administrateur (un compte avec `sudo`) lance, en remplaçant `programmation` par le nom du compte :
+MachinCast is meant for a single Unix account, the one that installs it, and `install.sh` only authorises that one. If another account must exceptionally access it, an administrator (an account with `sudo`) runs, replacing `programmation` with the account's name:
 
 ```bash
 COMPTE=programmation
-# Rôle PostgreSQL du compte, sans aucun droit particulier sur le serveur
+# PostgreSQL role of the account, without any particular right on the server
 sudo -u postgres createuser "${COMPTE}"
-# Autorisation à endosser les trois rôles de MachinCast, sans en hériter les droits
+# Permission to take on MachinCast's three roles, without inheriting their rights
 sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machincast_interface TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
-# Lecture du journal du service, effective après le redémarrage du poste
+# Reading the service log, effective after the machine restarts
 sudo usermod --append --groups systemd-journal "${COMPTE}"
 ```
 
-Pour ne lui donner qu'une partie des droits, ne nommer que les rôles voulus dans le `GRANT` : par exemple `machincast_indexation` seul pour un compte qui ne fait qu'indexer.
+To give it only part of the rights, name only the wanted roles in the `GRANT`: for instance `machincast_indexation` alone for an account that only indexes.
 
-Le compte doit aussi pouvoir lire le répertoire de MachinCast. Sous Ubuntu, un répertoire personnel n'est lisible que par son propriétaire : une installation dans `~/machincast` reste donc inaccessible aux autres comptes tant que ces droits ne sont pas changés.
+The account must also be able to read the MachinCast directory. Under Ubuntu, a home directory is only readable by its owner: an installation in `~/machincast` therefore stays inaccessible to other accounts until those rights are changed.
 
-Pour retirer l'accès d'un compte :
+To remove an account's access:
 
 ```bash
 COMPTE=programmation
 sudo -u postgres psql -c "REVOKE machincast_lecture, machincast_indexation, machincast_interface FROM \"${COMPTE}\""
 ```
 
-## Mettre à jour
+## Updating
 
-Depuis le répertoire de MachinCast :
+From the MachinCast directory:
 
 ```bash
 git pull
 ./install.sh
 ```
 
-`install.sh` met à jour les dépendances Python et applique les nouvelles migrations du schéma aux deux bases. Si des programmes de MachinCast tournent, il propose d'abord de les arrêter, puis les relance à la fin ([Installer avec install.sh](#installer-avec-installsh)) : pour ne pas faire taire l'antenne au mauvais moment, lancer la mise à jour hors d'une émission. `machincast.toml` n'est pas modifié : comparer avec `machincast.exemple.toml` pour y ajouter les nouvelles clés, que MachinCast signale sinon comme manquantes.
+`install.sh` updates the Python dependencies and applies the new schema migrations to both databases. If MachinCast programs are running, it first offers to stop them, then restarts them at the end ([Installing with install.sh](#installing-with-installsh)): so as not to silence the station at the wrong time, run the update outside a show. `machincast.toml` is not changed: compare it with `machincast.exemple.toml` to add the new keys, which MachinCast otherwise reports as missing.
 
-À la main, sans relancer `install.sh` :
+By hand, without running `install.sh` again:
 
 ```bash
 git pull
@@ -293,46 +297,46 @@ git pull
 .venv/bin/python -m machincast.installation migrer --config machincast.toml
 ```
 
-`migrer` applique le schéma aux bases de production et de test de la configuration. Pour une seule base, la même chose avec yoyo :
+`migrer` applies the schema to the production and test databases of the configuration. For a single database, the same with yoyo:
 
 ```bash
 .venv/bin/yoyo apply --batch --database "postgresql+psycopg:///machincast?host=/var/run/postgresql" src/machincast/migrations/
 ```
 
-**Entretenir la base.** `Machin maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)) sauvegarde la base de production avec `pg_dump`, dans le répertoire `sauvegardes` de MachinCast, applique les migrations manquantes, vérifie les rôles, puis l'optimise (`VACUUM ANALYZE`). L'interface la lance aussi, après confirmation, menu **Maintenance → Maintenance de la base de données…**. Détails et restauration : [Maintenance de la base](doc/administration/commandes.md#maintenance-de-la-base--machin-maintenance-db).
+**Maintaining the database.** `Machin maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)) backs up the production database with `pg_dump`, into the `sauvegardes` directory of MachinCast, applies the missing migrations, checks the roles, then optimises it (`VACUUM ANALYZE`). The interface also runs it, after confirmation, from the **Maintenance → Maintenance de la base de données…** menu. Details and restoring: [Maintenance de la base](doc/fr/administration/commandes.md#maintenance-de-la-base--machin-maintenance-db) (French).
 
-**Purger la base.** `Machin purge` ([#268](https://github.com/dascritch/machincast/issues/268)) efface de la base de production l'airplay et le log plus vieux que la durée de péremption (`base.peremption`, 60 jours par défaut), et les éléments supprimés depuis plus longtemps ; jamais un fichier. Le service de diffusion l'installe avec un minuteur, chaque jour à midi : une installation qui a déjà le service le reçoit en relançant `./install.sh --service`. Détails : [Purge de la base](doc/administration/commandes.md#purge-de-la-base--machin-purge).
+**Purging the database.** `Machin purge` ([#268](https://github.com/dascritch/machincast/issues/268)) deletes from the production database the airplay and the log older than the retention period (`base.peremption`, 60 days by default), and the items deleted longer ago than that; never a file. The playout service installs it with a timer, every day at noon: an installation that already has the service gets it by running `./install.sh --service` again. Details: [Purge de la base](doc/fr/administration/commandes.md#purge-de-la-base--machin-purge) (French).
 
-**Marques-pages devenus feeds.** Depuis [#252](https://github.com/dascritch/machincast/issues/252), le schéma renomme la table `marques_pages_streams` en `feeds`, et la colonne `marque_page_id` des sonores en `feed_id`, sans toucher aux données ; les droits des trois rôles suivent. Une requête écrite à la main sur les anciens noms est à corriger. La disposition des colonnes de l'ancien onglet « Marques-pages » n'est pas reprise : celle de l'onglet « Feeds » repart des colonnes par défaut.
+**Bookmarks turned into feeds.** Since [#252](https://github.com/dascritch/machincast/issues/252), the schema renames the `marques_pages_streams` table to `feeds`, and the `marque_page_id` column of sounds to `feed_id`, without touching the data; the rights of the three roles follow. A hand-written query using the old names must be fixed. The column layout of the former « Marques-pages » tab is not kept: that of the « Feeds » tab starts again from the default columns.
 
-**Schéma unique.** Avant que le projet serve réellement, toutes les migrations ont été fondues en une seule, `0001.schema-initial` ([#314](https://github.com/dascritch/machincast/issues/314)). Une base qui avait reçu les quinze anciennes, de `0001.schema-initial` à `0015.vocabulaire-silences-blancs`, garde ses données : `install.sh` ou `Machin maintenance-db` le reconnaissent, l'annoncent (`base … : les migrations 0002.evenements-nom-unique à 0015.vocabulaire-silences-blancs, fondues dans 0001.schema-initial, sont oubliées ; ses données ne changent pas`), et la tiennent ensuite pour à jour. Une base restée à une migration intermédiaire est refusée, sans rien modifier : `schéma impossible à mettre à jour : base … : ancien schéma, sans la migration …`. La mettre d'abord à jour avec la version `cd2e564` de MachinCast (`git checkout cd2e564`, puis `./install.sh`), puis revenir à la version actuelle (`git checkout main`, puis `./install.sh`) ; ou la recréer, comme ci-dessous.
+**Single schema.** Before the project was really in use, all migrations were merged into a single one, `0001.schema-initial` ([#314](https://github.com/dascritch/machincast/issues/314)). A database that had received the fifteen old ones, from `0001.schema-initial` to `0015.vocabulaire-silences-blancs`, keeps its data: `install.sh` or `Machin maintenance-db` recognise it, announce it (`base … : les migrations 0002.evenements-nom-unique à 0015.vocabulaire-silences-blancs, fondues dans 0001.schema-initial, sont oubliées ; ses données ne changent pas`), and from then on consider it up to date. A database left at an intermediate migration is refused, without changing anything: `schéma impossible à mettre à jour : base … : ancien schéma, sans la migration …` (schema cannot be updated: old schema, without the migration …). First update it with version `cd2e564` of MachinCast (`git checkout cd2e564`, then `./install.sh`), then come back to the current version (`git checkout main`, then `./install.sh`); or recreate it, as below.
 
-**Base créée avant une fusion plus ancienne.** Avant toute mise en production, les migrations avaient déjà été fusionnées trois fois ([PR #70](https://github.com/dascritch/machincast/pull/70), puis [PR #90](https://github.com/dascritch/machincast/pull/90), qui ajoute la priorité `secours` des événements, puis [PR #100](https://github.com/dascritch/machincast/pull/100), qui ajoute les séquences et la banque « ne pas répéter »). Une base créée avant l'une de ces fusions ne peut pas être mise à jour. Pour la reconnaître, lister les migrations qu'elle a reçues, et vérifier qu'elle connaît les séquences :
+**Database created before an older merge.** Before any production use, the migrations had already been merged three times ([PR #70](https://github.com/dascritch/machincast/pull/70), then [PR #90](https://github.com/dascritch/machincast/pull/90), which adds the `secours` (fallback) priority of events, then [PR #100](https://github.com/dascritch/machincast/pull/100), which adds sequences and the "do not repeat" bank). A database created before one of these merges cannot be updated. To recognise it, list the migrations it received, and check that it knows sequences:
 
 ```bash
 psql --dbname=machincast -c "SELECT migration_id FROM _yoyo_migration"
 psql --dbname=machincast -c "SELECT to_regclass('sequences')"
 ```
 
-Si la première liste contient autre chose que `0001.schema-initial`, et les migrations `0002.evenements-nom-unique` à `0015.vocabulaire-silences-blancs` d'avant le schéma unique, ou si la seconde répond une valeur vide au lieu de `sequences`, recréer la base. **Cela efface son contenu** : ce n'est possible que tant que MachinCast n'est pas en production. Les commandes de ce document utilisent le nom de base du modèle, `machincast` : le remplacer par celui de `base.production` (ou `base.test`) dans `machincast.toml`.
+If the first list holds anything else than `0001.schema-initial`, and the migrations `0002.evenements-nom-unique` to `0015.vocabulaire-silences-blancs` from before the single schema, or if the second answers an empty value instead of `sequences`, recreate the database. **This deletes its content**: it is only possible as long as MachinCast is not in production. The commands of this document use the template's database name, `machincast`: replace it with that of `base.production` (or `base.test`) in `machincast.toml`.
 
 ```bash
 sudo -u postgres dropdb machincast
 ./install.sh
 ```
 
-**Deux événements du même nom.** Depuis [#32](https://github.com/dascritch/machincast/issues/32), deux événements qui ne sont pas supprimés n'ont pas le même nom interne. Une base d'avant, restée à une ancienne migration, où c'est le cas, s'arrête en passant par la version `cd2e564` sur l'erreur `could not create unique index "evenements_nom_interne_key"`, qui nomme le nom en double. Lister les noms en double, renommer l'un des événements, puis relancer `./install.sh` :
+**Two events with the same name.** Since [#32](https://github.com/dascritch/machincast/issues/32), two events that are not deleted do not have the same internal name. An older database, left at an old migration, where this is the case, stops when going through version `cd2e564` on the error `could not create unique index "evenements_nom_interne_key"`, which names the duplicated name. List the duplicated names, rename one of the events, then run `./install.sh` again:
 
 ```bash
 psql --dbname=machincast -c "SELECT nom_interne, array_agg(id) FROM evenements GROUP BY nom_interne HAVING count(*) > 1"
 psql --dbname=machincast -c "UPDATE evenements SET nom_interne = 'Matinale du samedi' WHERE id = 42"
 ```
 
-## Installer à la main
+## Installing by hand
 
-Les commandes ci-dessous sont celles qu'enchaîne `install.sh`. Elles se lancent depuis le répertoire de MachinCast, avec son propre compte. Les noms de bases sont ceux du modèle de configuration : `machincast` et `machincast_test`.
+The commands below are those that `install.sh` runs in sequence. They are run from the MachinCast directory, with your own account. The database names are those of the configuration template: `machincast` and `machincast_test`.
 
-**1. Paquets système.**
+**1. System packages.**
 
 ```bash
 sudo apt install python3-venv python3-dev build-essential pkg-config libgirepository-2.0-dev libcairo2-dev \
@@ -340,7 +344,7 @@ sudo apt install python3-venv python3-dev build-essential pkg-config libgireposi
 	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire pipewire-bin libmagic1t64 postgresql bash-completion
 ```
 
-**2. Environnement virtuel Python.** Jamais `--system-site-packages` : MachinCast ne doit pas dépendre des versions des paquets Python de la distribution.
+**2. Python virtual environment.** Never `--system-site-packages`: MachinCast must not depend on the versions of the distribution's Python packages.
 
 ```bash
 python3 -m venv .venv
@@ -354,9 +358,9 @@ python3 -m venv .venv
 cp machincast.exemple.toml machincast.toml
 ```
 
-Puis l'adapter (voir [Adapter la configuration](#adapter-la-configuration)).
+Then adapt it (see [Adapting the configuration](#adapting-the-configuration)).
 
-**4. PostgreSQL.** Tout ce qui demande des droits sur le serveur passe par l'utilisateur `postgres` : le compte ne reçoit ni `CREATEDB`, ni `CREATEROLE`. Il devient seulement propriétaire des deux bases, ce qui lui permet d'y appliquer le schéma.
+**4. PostgreSQL.** Everything that needs rights on the server goes through the `postgres` user: the account gets neither `CREATEDB` nor `CREATEROLE`. It only becomes the owner of both databases, which lets it apply the schema to them.
 
 ```bash
 sudo -u postgres createuser "$(id -un)"
@@ -367,21 +371,21 @@ sudo -u postgres psql -c "CREATE ROLE machincast_lecture NOLOGIN" -c "CREATE ROL
 .venv/bin/python -m machincast.installation migrer --config machincast.toml
 ```
 
-Les trois rôles de groupe appartiennent au serveur, pas à une base : ils servent aux deux bases, et ne se créent qu'une fois. Une erreur `role … already exists` signifie qu'ils existent déjà.
+The three group roles belong to the server, not to a database: they serve both databases, and are created only once. A `role … already exists` error means that they already exist.
 
-**5. Rôles du compte.**
+**5. The account's roles.**
 
 ```bash
 sudo -u postgres psql -c "GRANT machincast_lecture, machincast_indexation, machincast_interface TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
 ```
 
-**6. Journal système.**
+**6. System log.**
 
 ```bash
 sudo usermod --append --groups systemd-journal "$(id -un)"
 ```
 
-**7. Liens.**
+**7. Links.**
 
 ```bash
 sudo ln --symbolic --force --no-dereference "$(pwd)" /opt/machincast
@@ -389,9 +393,9 @@ sudo ln --symbolic --force --no-dereference /opt/machincast/bin/Machin /usr/loca
 sudo ln --symbolic --force --no-dereference /opt/machincast/bash-completion/Machin /usr/share/bash-completion/completions/Machin
 ```
 
-Sans ces liens, le wrapper s'appelle par `bin/Machin` depuis le répertoire de MachinCast, et l'autocomplétion se charge dans le shell courant par `source bash-completion/Machin`.
+Without these links, the wrapper is called with `bin/Machin` from the MachinCast directory, and completion is loaded in the current shell with `source bash-completion/Machin`.
 
-**Raccourci de l'interface.** Dans le menu des applications, puis, si on le veut, sur le bureau, exécutable :
+**Interface shortcut.** In the applications menu, then, if wanted, on the desktop, executable:
 
 ```bash
 .venv/bin/python -m machincast.installation raccourci --config machincast.toml >machincast.desktop
@@ -401,55 +405,55 @@ rm machincast.desktop
 install -D --mode=644 src/machincast/interface/machincast.png ~/.local/share/icons/hicolor/512x512/apps/machincast.png
 ```
 
-Le raccourci lance `bin/Machin interface` depuis le répertoire de MachinCast, avec l'icône `src/machincast/interface/machincast.png`, le logo des équipes techniques de la radio ([#213](https://github.com/dascritch/machincast/issues/213)), ou l'image de `interface.icone` quand elle existe ([#111](https://github.com/dascritch/machincast/issues/111)) ; une icône choisie dans les préférences de l'interface réécrit aussitôt les raccourcis installés. Déplacer le répertoire de MachinCast demande de le refaire. La dernière commande installe l'icône de MachinCast dans le thème d'icônes du compte : le réglage du son de Plasma la montre devant « MachinCast lecteur », « MachinCast interface » et « MachinCast installation », les noms sous lesquels les programmes se présentent à PipeWire ([#296](https://github.com/dascritch/machincast/issues/296)).
+The shortcut runs `bin/Machin interface` from the MachinCast directory, with the icon `src/machincast/interface/machincast.png`, the logo of the station's technical teams ([#213](https://github.com/dascritch/machincast/issues/213)), or the image of `interface.icone` when it exists ([#111](https://github.com/dascritch/machincast/issues/111)); an icon chosen in the interface's preferences rewrites the installed shortcuts at once. Moving the MachinCast directory requires doing it again. The last command installs the MachinCast icon in the account's icon theme: Plasma's sound settings show it in front of « MachinCast lecteur », « MachinCast interface » and « MachinCast installation », the names under which the programs present themselves to PipeWire ([#296](https://github.com/dascritch/machincast/issues/296)).
 
-**8. Vérification des greffons GStreamer et de la sortie audio.**
+**8. Checking the GStreamer plugins and the audio output.**
 
 ```bash
 .venv/bin/python -m machincast.installation verifier --config machincast.toml
 ```
 
-Pour chaque greffon manquant, la commande nomme le paquet apt à installer.
+For each missing plugin, the command names the apt package to install.
 
-## Désinstaller
+## Uninstalling
 
 ```bash
-./install.sh --retirer-service   # si le service de diffusion est installé
+./install.sh --retirer-service   # if the playout service is installed
 sudo rm /opt/machincast /usr/local/bin/Machin /usr/share/bash-completion/completions/Machin
 rm --force ~/.local/share/applications/machincast.desktop "$(xdg-user-dir DESKTOP)/machincast.desktop"
 sudo -u postgres dropdb machincast
 sudo -u postgres dropdb machincast_test
 ```
 
-Les noms de bases sont ceux du modèle : reprendre ceux de `base.production` et `base.test` dans `machincast.toml`. Sur un poste de développement, la base de test peut servir à d'autres copies de MachinCast : ne la supprimer que si elle n'est plus utilisée.
+The database names are those of the template: use those of `base.production` and `base.test` in `machincast.toml`. On a development machine, the test database may serve other copies of MachinCast: only delete it if it is no longer used.
 
-**Les deux commandes `dropdb` effacent la programmation et l'historique de diffusion.** Les fichiers sonores, eux, ne sont jamais modifiés ni supprimés par MachinCast ([#96](https://github.com/dascritch/machincast/issues/96)) : ils restent en place, ni la désinstallation ni la suppression des bases n'y touchent. Le répertoire de MachinCast peut ensuite être supprimé. Les rôles PostgreSQL et les paquets apt restent en place : ils peuvent servir à d'autres logiciels.
+**The two `dropdb` commands delete the schedule and the playout history.** Sound files, for their part, are never changed or deleted by MachinCast ([#96](https://github.com/dascritch/machincast/issues/96)): they stay in place, neither the uninstallation nor the deletion of the databases touches them. The MachinCast directory can then be deleted. The PostgreSQL roles and the apt packages stay in place: they may serve other software.
 
-## En cas de problème
+## When something goes wrong
 
-| Message | Cause et solution |
+| Message | Cause and solution |
 | --- | --- |
-| `install.sh : lancer install.sh avec son propre compte, sans sudo` | Le script a été lancé avec `sudo` ou en `root`. Le relancer avec son compte. |
-| `install.sh : Ubuntu LTS requis (cible : 26.04 LTS)` | Le système n'est pas une Ubuntu LTS. `./install.sh --simulation` montre tout de même les commandes. |
-| `install.sh : configuration … à corriger, puis relancer install.sh` | `machincast.toml` est invalide : le message précédent nomme la clé en cause. |
-| `antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; …`, puis `install.sh : service de diffusion non installé : l'antenne est sur la sortie factice` | `./install.sh --service` sur une configuration dont l'antenne ne joue aucun son ([#339](https://github.com/dascritch/machincast/issues/339)). Choisir la carte son de l'antenne dans l'interface, **Fichier → Préférences…**, page **Audio** (la sortie factice y est alors grisée si le service est déjà installé), ou dans `audio.sortie` et `audio.peripherique` de `machincast.toml`, puis relancer `./install.sh --service`. |
-| `périphérique de l'antenne non renseigné : …` | `audio.peripherique` manque : le donner dans `machincast.toml`, ou dans l'interface, **Fichier → Préférences…**, page **Audio**. Puis relancer la diffusion. |
-| `sortie audio indisponible : …` | La sortie de `audio.sortie` ne peut pas être créée : installer le greffon nommé, ou vérifier `audio.peripherique`. Relancer `install.sh` vérifie la sortie. |
-| `indexation refusée : une autre indexation est en cours sur cette base` | Une indexation tourne déjà sur la base, lancée d'un terminal, de l'interface ou d'un autre poste. Attendre sa fin, puis relancer. Sa fenêtre, si elle vient de l'interface, peut l'arrêter. |
-| `--fenetre demande un affichage graphique …` | `--fenetre` a été donné sans session graphique, par exemple en SSH : lancer `Machin indexation` sans `--fenetre`, son journal s'affiche dans le terminal. |
-| `base de données injoignable` | PostgreSQL n'est pas démarré (`sudo systemctl start postgresql`), ou `base.socket` ne désigne pas sa socket. |
-| `droits insuffisants pour appliquer le schéma dans la base …` | La base existait déjà et appartient à un autre compte, ou ses tables ont été créées par un autre compte. Tant qu'elle ne contient rien d'utile, la supprimer (`sudo -u postgres dropdb …`) puis relancer `install.sh`, qui la recrée. |
-| `… : greffon GStreamer absent, installer …` | Un format sonore ou la sortie audio configurée ne peut pas fonctionner. Installer le paquet nommé, puis relancer `install.sh`. |
-| `GStreamer 1.24.2 : MachinCast est vérifié avec la version 1.28 (Ubuntu 26.04 LTS) ; mettre à jour libgstreamer1.0-0` | Avertissement : GStreamer, ou l'un de ses greffons, est plus ancien que la version vérifiée. L'installation continue, mais la version installée n'a pas été vérifiée. Passer le poste en Ubuntu 26.04 LTS, ou mettre à jour le paquet nommé. |
-| `install.sh : … existe et n'est pas un lien symbolique` | Un fichier ou un répertoire occupe déjà la place d'un lien, par exemple une ancienne installation dans `/opt/machincast`. Le déplacer, puis relancer `install.sh`. |
-| `configuration invalide : …` (code 2) | Le message nomme le fichier et la clé en cause. `fichier de configuration introuvable` : le `machincast.toml` du répertoire de MachinCast n'existe pas ; le copier depuis `machincast.exemple.toml`, ou relancer `install.sh`. |
-| `install.sh` : `attention : … est superutilisateur de PostgreSQL` | Le compte peut tout faire sur le serveur PostgreSQL, et endosse les rôles de MachinCast sans autorisation, ce que MachinCast ne demande pas. S'il ne sert pas à autre chose, retirer ce droit avec la commande donnée. Tant qu'il est superutilisateur, le scénario de `roles.feature` qui vérifie les autorisations du compte de test échoue, en donnant les commandes à lancer. |
-| `erreur de base de données : … permission denied to set role …` | Le compte n'est pas autorisé à endosser le rôle : voir [Ajouter un autre compte](#ajouter-un-autre-compte). |
-| Fenêtre « MachinCast : base de données injoignable », au lancement de `Machin interface` | L'interface n'accède pas à la base de `base.production`. Le bouton « Ouvrir INSTALL.md » ouvre ce document, et les détails de la fenêtre donnent l'erreur de PostgreSQL. `connection … failed` ou `No such file or directory` : PostgreSQL n'est pas démarré (`sudo systemctl start postgresql`), ou `base.socket` ne désigne pas sa socket. `database … does not exist` : relancer `install.sh`, qui crée la base. `permission denied to set role` : voir [Ajouter un autre compte](#ajouter-un-autre-compte). |
-| `sauvegarde impossible : pg_dump introuvable, installer postgresql-client` | `pg_dump` manque : `sudo apt install postgresql-client`, puis relancer. Rien n'a été modifié. |
-| `sauvegarde impossible : … ; maintenance arrêtée, rien n'a été modifié` | Le répertoire des sauvegardes ne peut pas être écrit, le disque est plein, ou `pg_dump` a échoué : son erreur suit. Corriger, ou donner un autre répertoire avec `--sauvegardes`. |
-| `schéma impossible à mettre à jour : base … : ancien schéma, sans la migration …` | La base est restée à une migration d'avant le schéma unique ([#314](https://github.com/dascritch/machincast/issues/314)) : rien n'a été modifié. Voir **Schéma unique**, dans [Mettre à jour](#mettre-à-jour). |
-| `rôle … : absent du serveur, ou non endossable par le compte` | Lancer, avec un compte administrateur, les deux commandes données par le message, puis relancer la maintenance. Voir aussi [Ajouter un autre compte](#ajouter-un-autre-compte). |
-| `Machin logs` réclame le groupe `adm` ou `systemd-journal`, ou n'affiche que des messages de son propre compte | Le groupe n'est pas encore pris en compte par la session. Si `id -nG "$(id -un)"` cite `systemd-journal` mais pas `id -nG`, l'ajout est fait : redémarrer le poste. Sinon, relancer `install.sh`. |
+| `install.sh : lancer install.sh avec son propre compte, sans sudo` | The script was run with `sudo` or as `root`. Run it again with your own account. |
+| `install.sh : Ubuntu LTS requis (cible : 26.04 LTS)` | The system is not an Ubuntu LTS. `./install.sh --simulation` still shows the commands. |
+| `install.sh : configuration … à corriger, puis relancer install.sh` | `machincast.toml` is invalid: the previous message names the key at fault. |
+| `antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; …`, then `install.sh : service de diffusion non installé : l'antenne est sur la sortie factice` | `./install.sh --service` on a configuration whose on-air output plays no sound ([#339](https://github.com/dascritch/machincast/issues/339)). Choose the on-air sound card in the interface, **Fichier → Préférences…**, **Audio** page (the dummy output is then greyed out if the service is already installed), or in `audio.sortie` and `audio.peripherique` of `machincast.toml`, then run `./install.sh --service` again. |
+| `périphérique de l'antenne non renseigné : …` | `audio.peripherique` is missing: give it in `machincast.toml`, or in the interface, **Fichier → Préférences…**, **Audio** page. Then restart playout. |
+| `sortie audio indisponible : …` | The output of `audio.sortie` cannot be created: install the named plugin, or check `audio.peripherique`. Running `install.sh` again checks the output. |
+| `indexation refusée : une autre indexation est en cours sur cette base` | An indexing is already running on the database, started from a terminal, the interface or another machine. Wait for it to end, then run it again. Its window, if it comes from the interface, can stop it. |
+| `--fenetre demande un affichage graphique …` | `--fenetre` was given without a graphical session, for instance over SSH: run `Machin indexation` without `--fenetre`, its log is shown in the terminal. |
+| `base de données injoignable` | PostgreSQL is not started (`sudo systemctl start postgresql`), or `base.socket` does not point to its socket. |
+| `droits insuffisants pour appliquer le schéma dans la base …` | The database already existed and belongs to another account, or its tables were created by another account. As long as it holds nothing useful, delete it (`sudo -u postgres dropdb …`) then run `install.sh` again, which recreates it. |
+| `… : greffon GStreamer absent, installer …` | A sound format or the configured audio output cannot work. Install the named package, then run `install.sh` again. |
+| `GStreamer 1.24.2 : MachinCast est vérifié avec la version 1.28 (Ubuntu 26.04 LTS) ; mettre à jour libgstreamer1.0-0` | Warning: GStreamer, or one of its plugins, is older than the checked version. The installation goes on, but the installed version has not been checked. Move the machine to Ubuntu 26.04 LTS, or update the named package. |
+| `install.sh : … existe et n'est pas un lien symbolique` | A file or a directory already takes the place of a link, for instance an old installation in `/opt/machincast`. Move it, then run `install.sh` again. |
+| `configuration invalide : …` (code 2) | The message names the file and the key at fault. `fichier de configuration introuvable` (configuration file not found): the `machincast.toml` of the MachinCast directory does not exist; copy it from `machincast.exemple.toml`, or run `install.sh` again. |
+| `install.sh` : `attention : … est superutilisateur de PostgreSQL` | The account can do anything on the PostgreSQL server, and takes on MachinCast's roles without permission, which MachinCast does not ask for. If it is not used for anything else, remove that right with the given command. As long as it is a superuser, the scenario of `roles.feature` that checks the test account's permissions fails, giving the commands to run. |
+| `erreur de base de données : … permission denied to set role …` | The account is not allowed to take on the role: see [Adding another account](#adding-another-account). |
+| « MachinCast : base de données injoignable » window (database unreachable), when starting `Machin interface` | The interface cannot reach the `base.production` database. The « Ouvrir INSTALL.md » button opens this document, and the window's details give PostgreSQL's error. `connection … failed` or `No such file or directory`: PostgreSQL is not started (`sudo systemctl start postgresql`), or `base.socket` does not point to its socket. `database … does not exist`: run `install.sh` again, which creates the database. `permission denied to set role`: see [Adding another account](#adding-another-account). |
+| `sauvegarde impossible : pg_dump introuvable, installer postgresql-client` | `pg_dump` is missing: `sudo apt install postgresql-client`, then run it again. Nothing was changed. |
+| `sauvegarde impossible : … ; maintenance arrêtée, rien n'a été modifié` | The backup directory cannot be written, the disk is full, or `pg_dump` failed: its error follows. Fix it, or give another directory with `--sauvegardes`. |
+| `schéma impossible à mettre à jour : base … : ancien schéma, sans la migration …` | The database stayed at a migration from before the single schema ([#314](https://github.com/dascritch/machincast/issues/314)): nothing was changed. See **Single schema**, in [Updating](#updating). |
+| `rôle … : absent du serveur, ou non endossable par le compte` | Run, with an administrator account, the two commands given by the message, then run the maintenance again. See also [Adding another account](#adding-another-account). |
+| `Machin logs` asks for the `adm` or `systemd-journal` group, or only shows messages from its own account | The group is not yet taken into account by the session. If `id -nG "$(id -un)"` lists `systemd-journal` but `id -nG` does not, it has been added: restart the machine. Otherwise, run `install.sh` again. |
 
-Les messages d'information s'affichent sur la sortie standard ; les anomalies et les erreurs sur la sortie d'erreur. Chaque ligne commence par son heure, en ISO 8601, avec le décalage horaire du poste, par exemple `2026-10-23T07:55:19+02:00 sortie audio indisponible : …` ([#253](https://github.com/dascritch/machincast/issues/253)) ; le tableau ci-dessus la laisse de côté. Celles de `install.sh` commencent par `install.sh :`.
+Information messages are shown on the standard output; anomalies and errors on the error output. Each line starts with its time, in ISO 8601, with the machine's time zone offset, for instance `2026-10-23T07:55:19+02:00 sortie audio indisponible : …` ([#253](https://github.com/dascritch/machincast/issues/253)); the table above leaves it out. Those of `install.sh` start with `install.sh :`.

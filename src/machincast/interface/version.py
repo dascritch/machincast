@@ -34,7 +34,7 @@ SECTION = re.compile(r"^## (?P<version>\S+) — (?P<date>\d{4}-\d{2}-\d{2})[ \t]
 """Le titre d'une section des nouveautés : « ## 0.9.0 — 2026-10-28 »."""
 
 DEPOT_EN_LIGNE = "https://github.com/dascritch/machincast"
-DOCUMENTATION = "doc/utilisateur/README.md"
+DOCUMENTATION = "doc/fr/utilisateur/README.md"
 """Le guide de l'antenne, dans le dépôt (https://github.com/dascritch/machincast/issues/128)."""
 
 DELAI_DE_GIT = 5

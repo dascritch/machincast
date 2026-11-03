@@ -14,8 +14,8 @@ from tests import captures
 scenarios("captures.feature")
 
 RACINE = Path(__file__).resolve().parents[1]
-CAPTURES = RACINE / "doc" / "captures"
-GUIDE = RACINE / "doc" / "utilisateur"
+CAPTURES = RACINE / "doc" / "fr" / "captures"
+GUIDE = RACINE / "doc" / "fr" / "utilisateur"
 IMAGE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)\)")
 COULEURS_MINIMALES = 20
 """Couleurs distinctes, au moins, d'une capture qui montre un écran, sur un échantillon de ses pixels."""
@@ -53,13 +53,13 @@ def produire(base_vide: Connexion, qtbot: QtBot, tmp_path: Path, produits: dict[
 # ─── Alors ─────────────────────────────────────────────────
 
 
-@then("chaque capture de Machin dev-captures est une image de doc/captures")
+@then("chaque capture de Machin dev-captures est une image de doc/fr/captures")
 def capture_presente() -> None:
 	manquantes = sorted(produites() - {image.name for image in CAPTURES.glob("*")})
 	assert not manquantes, f"lancer bin/Machin dev-captures : {manquantes}"
 
 
-@then("chaque image de doc/captures est une capture de Machin dev-captures")
+@then("chaque image de doc/fr/captures est une capture de Machin dev-captures")
 def image_produite() -> None:
 	orphelines = sorted({image.name for image in CAPTURES.glob("*")} - produites())
 	assert not orphelines, orphelines
@@ -71,7 +71,7 @@ def capture_citee() -> None:
 	assert not absentes, absentes
 
 
-@then("chaque image citée par le guide utilisateur est dans doc/captures")
+@then("chaque image citée par le guide utilisateur est dans doc/fr/captures")
 def citee_dans_captures() -> None:
 	ailleurs = sorted(f"{page.name} : {image}" for image, page in citees().items() if image.parent != CAPTURES)
 	assert not ailleurs, ailleurs

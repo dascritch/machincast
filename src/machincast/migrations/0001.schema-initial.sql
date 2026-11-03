@@ -1,4 +1,4 @@
--- Schéma initial de MachinCast. Référence : doc/spec.md § 3.1 (tables) et § 3.2 (rôles et droits).
+-- Schéma initial de MachinCast. Référence : doc/fr/spec.md § 3.1 (tables) et § 3.2 (rôles et droits).
 --
 -- Fusion, avant toute mise en production, des quatre premières migrations
 -- (https://github.com/dascritch/machincast/pull/70) : schéma (https://github.com/dascritch/machincast/issues/3),
@@ -25,12 +25,12 @@
 CREATE TYPE type_sonore AS ENUM ('fichier', 'stream');
 CREATE TYPE mode_banque AS ENUM ('sequentiel', 'aleatoire');
 -- Ordre croissant de priorité : fil_musical < emission < special. La priorité secours, rangée en dessous, est hors
--- grille : un événement de secours ne joue qu'à la place d'un stream tombé (doc/spec.md § 4.7).
+-- grille : un événement de secours ne joue qu'à la place d'un stream tombé (doc/fr/spec.md § 4.7).
 CREATE TYPE priorite_evenement AS ENUM ('secours', 'fil_musical', 'emission', 'special');
 CREATE TYPE jour_semaine AS ENUM ('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche');
 CREATE TYPE type_ligne_airplay AS ENUM ('debut', 'fin');
 CREATE TYPE niveau_log AS ENUM ('info', 'alerte', 'incident');
--- État d'un sonore, dans l'ordre de sa vie (doc/spec.md § 3.1) :
+-- État d'un sonore, dans l'ordre de sa vie (doc/fr/spec.md § 3.1) :
 --   apercu     nouveau fichier, enregistré sans être décodé ; pas jouable ;
 --   actif      jouable ;
 --   desactive  retiré par l'interface : choix humain ;
@@ -158,7 +158,7 @@ CREATE TABLE banques (
 	nom_public varchar(255),
 	mode mode_banque NOT NULL,
 	masquer_metadonnees boolean,
-	-- Une banque marquée ne passe jamais deux fois de suite, même d'un événement à l'autre (doc/spec.md § 4.4).
+	-- Une banque marquée ne passe jamais deux fois de suite, même d'un événement à l'autre (doc/fr/spec.md § 4.4).
 	ne_pas_repeter boolean NOT NULL DEFAULT false,
 	modifie_le timestamptz NOT NULL DEFAULT clock_timestamp(),
 	crossfade_debut_regle regle_crossfade NOT NULL DEFAULT 'sonore',
@@ -289,7 +289,7 @@ CREATE TRIGGER evenements_secours BEFORE UPDATE OF priorite ON evenements
 
 -- ─── Séquences ─────────────────────────────────────────────
 
--- Suites de sonores et de banques réutilisables dans les événements (doc/spec.md § 4.3).
+-- Suites de sonores et de banques réutilisables dans les événements (doc/fr/spec.md § 4.3).
 CREATE TABLE sequences (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	-- Unique parmi les séquences qui ne sont pas supprimées : voir sequences_nom_interne_key.

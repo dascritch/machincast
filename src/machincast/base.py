@@ -40,7 +40,7 @@ TABLES: tuple[str, ...] = (
 	"airplay",
 	"log",
 )
-"""Tables créées par les migrations, dans l'ordre de doc/spec.md § 3.1."""
+"""Tables créées par les migrations, dans l'ordre de doc/fr/spec.md § 3.1."""
 
 TYPES: tuple[str, ...] = (
 	"type_sonore",
@@ -56,7 +56,7 @@ TYPES: tuple[str, ...] = (
 
 
 class Role(StrEnum):
-	"""Rôles de groupe PostgreSQL, un par binaire. Droits : doc/spec.md § 3.2 et migration 0001.schema-initial."""
+	"""Rôles de groupe PostgreSQL, un par binaire. Droits : doc/fr/spec.md § 3.2 et migration 0001.schema-initial."""
 
 	LECTURE = "machincast_lecture"
 	INDEXATION = "machincast_indexation"
@@ -164,7 +164,7 @@ def annuler_migrations(url: str) -> None:
 def connecter(socket: Path, base: str, role: Role) -> psycopg.Connection[TupleRow]:
 	"""Ouvre une connexion par socket Unix (authentification peer) et endosse le rôle du binaire.
 
-	L'utilisateur système doit avoir été autorisé par l'utilisateur postgres (doc/spec.md § 3.2) : il n'hérite pas
+	L'utilisateur système doit avoir été autorisé par l'utilisateur postgres (doc/fr/spec.md § 3.2) : il n'hérite pas
 	des droits de ses rôles, il doit les endosser. Chaque binaire n'agit ainsi qu'avec ses propres droits.
 	"""
 	connexion = psycopg.connect(host=str(socket), dbname=base)

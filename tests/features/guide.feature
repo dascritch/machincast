@@ -5,24 +5,24 @@ Fonctionnalité: Documentation par public
 	afin de comprendre très vite ce qui me concerne.
 
 	https://github.com/dascritch/machincast/issues/74, https://github.com/dascritch/machincast/issues/128. Trois
-	dossiers, un par public : doc/utilisateur, le métier de l'antenne et l'interface graphique, que le menu
-	« Aide → Documentation » ouvre ; doc/administration, avec INSTALL.md, les commandes, la configuration et la
-	maintenance ; doc/developpement, la spécification, les règles et le poste de développement. doc/utilisation.md,
+	dossiers, un par public : doc/fr/utilisateur, le métier de l'antenne et l'interface graphique, que le menu
+	« Aide → Documentation » ouvre ; doc/fr/administration, avec INSTALL.md, les commandes, la configuration et la
+	maintenance ; doc/fr/developpement, la spécification, les règles et le poste de développement. doc/fr/utilisation.md,
 	l'ancien guide, n'est plus qu'un index qui renvoie à chacun. Ces scénarios vérifient que chaque guide couvre ce
 	que les programmes exposent : un ajout au code sans documentation les fait échouer.
 
 	# ─── Organisation ──────────────────────────────────────────
 
 	Scénario: README.md mène à chaque public, et INSTALL.md au guide d'administration
-		Alors README.md contient un lien vers doc/utilisateur/README.md
-		Et README.md contient un lien vers doc/administration/README.md
-		Et README.md contient un lien vers doc/developpement/README.md
-		Et INSTALL.md contient un lien vers doc/administration/README.md
+		Alors README.md contient un lien vers doc/fr/utilisateur/README.md
+		Et README.md contient un lien vers doc/fr/administration/README.md
+		Et README.md contient un lien vers doc/fr/developpement/README.md
+		Et INSTALL.md contient un lien vers doc/fr/administration/README.md
 
 	Scénario: L'ancien guide d'utilisation renvoie à chaque public
-		Alors doc/utilisation.md contient un lien vers utilisateur/README.md
-		Et doc/utilisation.md contient un lien vers administration/README.md
-		Et doc/utilisation.md contient un lien vers developpement/README.md
+		Alors doc/fr/utilisation.md contient un lien vers utilisateur/README.md
+		Et doc/fr/utilisation.md contient un lien vers administration/README.md
+		Et doc/fr/utilisation.md contient un lien vers developpement/README.md
 
 	Plan du scénario: Chaque page d'un guide figure dans son sommaire
 		Alors chaque page de doc/<dossier> est liée depuis doc/<dossier>/README.md

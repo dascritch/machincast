@@ -3,7 +3,7 @@
 Ce guide a été découpé par public ([#128](https://github.com/dascritch/machincast/issues/128)) :
 
 - **Équipe de l'antenne** : le [guide de l'antenne](utilisateur/README.md), le métier et l'interface graphique, que le menu **Aide → Documentation** ouvre.
-- **Administrateur du poste** : le [guide d'administration](administration/README.md), avec l'installation dans [INSTALL.md](../INSTALL.md).
+- **Administrateur du poste** : le [guide d'administration](administration/README.md), avec l'installation dans [INSTALL.md](../../INSTALL.fr.md).
 - **Développeur** : le [guide du développement](developpement/README.md).
 
 ## Où sont passées les sections
