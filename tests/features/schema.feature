@@ -28,17 +28,17 @@ Fonctionnalité: Schéma de la base de données
 			| log              |
 
 	Scénario: La purge entre deux scénarios vide chaque table, et remet les identifiants à 1
-		https://github.com/dascritch/machincast/issues/280 : la purge vide table par table (tests.base_test.ORDRE_DE_PURGE),
+		https://github.com/dascritch/machincast/issues/280 : la purge vide table par table (tests.database_fixtures.PURGE_ORDER),
 		dans un ordre qui respecte les clés étrangères.
 
 		Étant donné les éléments de référence en base
 		Quand la base est purgée comme entre deux scénarios
-		Alors la purge connaît chaque table de machincast.base.TABLES
+		Alors la purge connaît chaque table de machincast.database.TABLES
 		Et chaque table de la base est vide
 		Et un nouveau sonore reçoit l'identifiant 1
 
 	Scénario: Chaque type énuméré créé par les migrations est connu de MachinCast
-		Alors les types énumérés de la base sont ceux de machincast.base.TYPES
+		Alors les types énumérés de la base sont ceux de machincast.database.TYPES
 
 	Scénario: Un sonore peut ne pas avoir de crossfade paramétré, et 0 seconde en est un
 		https://github.com/dascritch/machincast/issues/145
@@ -99,7 +99,7 @@ Fonctionnalité: Schéma de la base de données
 			| type = 'stream', stream_url = 'https://flux.exemple/direct?SESSIONID=42'                                      |
 			| type = 'stream', feed_id = {feed}                                                                             |
 			| type = 'file', location = '/c.mp3', broadcast_start = '2026-11-01', broadcast_end = '2026-11-30'              |
-			| type = 'file', location = '/d.ogg', music_metadata = '{"annee": 1987, "label": "Disques Exemple"}'            |
+			| type = 'file', location = '/d.ogg', music_metadata = '{"year": 1987, "label": "Disques Exemple"}'            |
 			| type = 'file', location = '/e.flac', detected_start = '0 s', detected_end = '2.5 s', silence_detection = true |
 
 	Plan du scénario: Un sonore incohérent est refusé

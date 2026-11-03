@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SoundCards</class>
+ <widget class="QWidget" name="SoundCards">
+  <layout class="QFormLayout" name="form">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item row="0" column="0">
+    <widget class="QLabel" name="output_caption">
+     <property name="text">
+      <string>&amp;Type de sortie</string>
+     </property>
+     <property name="buddy">
+      <cstring>output</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QComboBox" name="output">
+     <property name="toolTip">
+      <string>Le serveur audio par lequel passent l'antenne et la pré-écoute</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="on_air_caption">
+     <property name="text">
+      <string>&amp;Antenne</string>
+     </property>
+     <property name="buddy">
+      <cstring>on_air</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <layout class="QHBoxLayout" name="on_air_line">
+     <item>
+      <widget class="QComboBox" name="on_air">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="toolTip">
+        <string>La carte son sur laquelle Machin player diffuse l'antenne</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="test_on_air">
+       <property name="text">
+        <string>Tester</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="preview_caption">
+     <property name="text">
+      <string>&amp;Pré-écoute</string>
+     </property>
+     <property name="buddy">
+      <cstring>preview</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <layout class="QHBoxLayout" name="preview_line">
+     <item>
+      <widget class="QComboBox" name="preview">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="toolTip">
+        <string>La carte son de la pré-écoute de l'interface, jamais celle de l'antenne</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="test_preview">
+       <property name="text">
+        <string>Tester</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="3" column="0" colspan="2">
+    <widget class="QLabel" name="trial">
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -18,32 +18,32 @@ tels quels. Les chemins et les adresses ne sont jamais conformés : ce sont ceux
 
 import unicodedata
 
-CATEGORIES_SUPPRIMEES = frozenset({"Cc", "Cs", "Co", "Cn"})
+DELETED_CATEGORIES = frozenset({"Cc", "Cs", "Co", "Cn"})
 """Contrôle, demi-codet, usage privé, non attribué."""
-PLAGES_SUPPRIMEES = (
+DELETED_RANGES = (
 	(0xFE00, 0xFE0F),
 	(0xE0100, 0xE01EF),
 	(0x180B, 0x180F),
 	(0xFFF0, 0xFFFF),
 )
 """Sélecteurs de variante, dont ceux du mongol, et caractères spéciaux."""
-SANS_LARGEUR = frozenset({"​", "﻿"})
+WITHOUT_WIDTH = frozenset({"​", "﻿"})
 """Espace sans largeur, et espace insécable sans largeur (l'indicateur d'ordre des octets en tête de texte)."""
 
 
-def _supprime(caractere: str) -> bool:
-	code = ord(caractere)
-	if (caractere in SANS_LARGEUR) or (unicodedata.category(caractere) in CATEGORIES_SUPPRIMEES):
+def _deleted(character: str) -> bool:
+	code = ord(character)
+	if (character in WITHOUT_WIDTH) or (unicodedata.category(character) in DELETED_CATEGORIES):
 		return True
-	return any(debut <= code <= fin for debut, fin in PLAGES_SUPPRIMEES)
+	return any(start <= code <= end for start, end in DELETED_RANGES)
 
 
-def conformer(texte: str) -> str:
+def conform(text: str) -> str:
 	"""Le texte filtré : espaces simples, uniques, sans espace au début ni à la fin ; sans caractère indésirable."""
-	gardes = []
-	for caractere in texte:
-		if caractere.isspace():
-			gardes.append(" ")
-		elif not _supprime(caractere):
-			gardes.append(caractere)
-	return " ".join(mot for mot in "".join(gardes).split(" ") if mot != "")
+	kept_list = []
+	for character in text:
+		if character.isspace():
+			kept_list.append(" ")
+		elif not _deleted(character):
+			kept_list.append(character)
+	return " ".join(word for word in "".join(kept_list).split(" ") if word != "")

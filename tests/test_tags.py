@@ -1,6 +1,6 @@
 """Étapes des scénarios de lecture des tags (https://github.com/dascritch/machincast/issues/8).
 
-Les étapes des fichiers, des sonores en base et du passage de l'indexeur sont dans tests/etapes_indexation.py.
+Les étapes des fichiers, des sonores en base et du passage de l'indexeur sont dans tests/indexing_steps.py.
 """
 
 import json
@@ -10,124 +10,124 @@ import gi
 import psycopg
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast.base import LONGUEUR_TEXTE_COURT
-from machincast.indexation.decodage import Verification
-from machincast.indexation.tags import Tags, extraire
-from tests.etapes_indexation import lire_tags_en_base as lire
+from machincast.database import SHORT_TEXT_LENGTH
+from machincast.indexer.decoding import Check
+from machincast.indexer.tags import Tags, extract
+from tests.indexing_steps import read_tags_in_database as read
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
 scenarios("tags.feature")
 
-Connexion = psycopg.Connection[tuple[object, ...]]
-JSON = r"(?P<objet>\{.*\})"
+Connection = psycopg.Connection[tuple[object, ...]]
+JSON = r"(?P<object_>\{.*\})"
 
 
-def liste_de_tags(texte: str) -> Gst.TagList:
+def tags_list(text: str) -> Gst.TagList:
 	Gst.init(None)
-	liste = Gst.TagList.new_from_string(texte)
-	assert liste is not None, f"tags illisibles : {texte}"
-	return liste
+	list_ = Gst.TagList.new_from_string(text)
+	assert list_ is not None, f"tags illisibles : {text}"
+	return list_
 
 
 # ─── Lecture ───────────────────────────────────────────────
 
 
-@given(parsers.parse("les tags « {texte} »"), target_fixture="liste")
-def tags_donnes(texte: str) -> Gst.TagList:
-	return liste_de_tags(texte)
+@given(parsers.parse("les tags « {text} »"), target_fixture="list_")
+def provided_tags(text: str) -> Gst.TagList:
+	return tags_list(text)
 
 
-@given("des tags dont l'artiste et le titre font 300 caractères", target_fixture="liste")
-def tags_longs() -> Gst.TagList:
-	return liste_de_tags(f'taglist, artist=(string)"{"a" * 300}", title=(string)"{"t" * 300}"')
+@given("des tags dont l'artiste et le titre font 300 caractères", target_fixture="list_")
+def long_tags() -> Gst.TagList:
+	return tags_list(f'taglist, artist=(string)"{"a" * 300}", title=(string)"{"t" * 300}"')
 
 
 @when("j'extrais ces tags", target_fixture="tags")
-def extraire_tags(liste: Gst.TagList) -> Tags:
-	return extraire(liste)
+def extract_tags(list_: Gst.TagList) -> Tags:
+	return extract(list_)
 
 
-@then(parsers.parse("l'artiste lu est « {artiste} » et le titre lu « {titre} »"))
-def artiste_et_titre_lus(resultat: Verification, artiste: str, titre: str) -> None:
-	assert (resultat.tags.artiste, resultat.tags.titre) == (artiste, titre)
+@then(parsers.parse("l'artiste lu est « {artist} » et le titre lu « {title} »"))
+def artist_and_fetched_title(result: Check, artist: str, title: str) -> None:
+	assert (result.tags.artist, result.tags.title) == (artist, title)
 
 
 @then(parsers.re(rf"les métadonnées musicales lues sont {JSON}"))
-def metadonnees_lues(resultat: Verification, objet: str) -> None:
-	assert resultat.tags.metadonnees == json.loads(objet)
+def fetched_metadata(result: Check, object_: str) -> None:
+	assert result.tags.metadata == json.loads(object_)
 
 
 @then("aucun tag n'est lu")
-def aucun_tag(resultat: Verification) -> None:
-	assert resultat.tags == Tags(None, None, {})
+def no_tag(result: Check) -> None:
+	assert result.tags == Tags(None, None, {})
 
 
-@then(parsers.re(r"l'année retenue est (?P<annee>\d+|aucune)"))
-def annee_retenue(tags: Tags, annee: str) -> None:
-	assert tags.metadonnees.get("annee") == (None if annee == "aucune" else int(annee))
+@then(parsers.re(r"l'année retenue est (?P<year>\d+|aucune)"))
+def retained_year(tags: Tags, year: str) -> None:
+	assert tags.metadata.get("year") == (None if year == "aucune" else int(year))
 
 
 @then(parsers.re(rf"les métadonnées musicales retenues sont {JSON}"))
-def metadonnees_retenues(tags: Tags, objet: str) -> None:
-	assert tags.metadonnees == json.loads(objet)
+def retained_metadata(tags: Tags, object_: str) -> None:
+	assert tags.metadata == json.loads(object_)
 
 
 @then("l'artiste et le titre retenus font 255 caractères")
-def tronques(tags: Tags) -> None:
-	assert (tags.artiste is not None) and (tags.titre is not None)
-	assert len(tags.artiste) == len(tags.titre) == LONGUEUR_TEXTE_COURT
+def truncated_list(tags: Tags) -> None:
+	assert (tags.artist is not None) and (tags.title is not None)
+	assert len(tags.artist) == len(tags.title) == SHORT_TEXT_LENGTH
 
 
 @then("aucun artiste ni titre n'est retenu")
-def ni_artiste_ni_titre(tags: Tags) -> None:
-	assert (tags.artiste, tags.titre) == (None, None)
+def nor_artist_nor_title(tags: Tags) -> None:
+	assert (tags.artist, tags.title) == (None, None)
 
 
 # ─── Enregistrement en base ────────────────────────────────
 
 
-def inserer(base: Connexion, fichier: Path, colonne: str, valeur: str, metadonnees: str) -> int:
-	ligne = base.execute(
-		f"INSERT INTO sounds (type, location, {colonne}, music_metadata) VALUES ('file', %s, %s, %s) RETURNING id",
-		(str(fichier), valeur, metadonnees),
+def insert(database: Connection, file: Path, column: str, value: str, metadata: str) -> int:
+	line = database.execute(
+		f"INSERT INTO sounds (type, location, {column}, music_metadata) VALUES ('file', %s, %s, %s) RETURNING id",
+		(str(file), value, metadata),
 	).fetchone()
-	assert ligne is not None
-	return int(str(ligne[0]))
+	assert line is not None
+	return int(str(line[0]))
 
 
 @given(
-	parsers.re(rf"pour ce fichier, un sonore d'artiste « (?P<artiste>[^»]+) » et de métadonnées {JSON}"),
-	target_fixture="sonore",
+	parsers.re(rf"pour ce fichier, un sonore d'artiste « (?P<artist>[^»]+) » et de métadonnées {JSON}"),
+	target_fixture="sound",
 )
-def sonore_avec_artiste(base_vide: Connexion, fichier: Path, artiste: str, objet: str) -> int:
-	return inserer(base_vide, fichier, "artist", artiste, objet)
+def sound_with_artist(empty_database: Connection, file: Path, artist: str, object_: str) -> int:
+	return insert(empty_database, file, "artist", artist, object_)
 
 
 @given(
-	parsers.re(rf"pour ce fichier, un sonore de titre « (?P<titre>[^»]+) » et de métadonnées {JSON}"),
-	target_fixture="sonore",
+	parsers.re(rf"pour ce fichier, un sonore de titre « (?P<title>[^»]+) » et de métadonnées {JSON}"),
+	target_fixture="sound",
 )
-def sonore_avec_titre(base_vide: Connexion, fichier: Path, titre: str, objet: str) -> int:
-	return inserer(base_vide, fichier, "title", titre, objet)
+def sound_with_title(empty_database: Connection, file: Path, title: str, object_: str) -> int:
+	return insert(empty_database, file, "title", title, object_)
 
 
-@given(parsers.parse("les champs « {premier} » et « {second} » de ce sonore édités à la main"))
-def champs_edites(base_vide: Connexion, sonore: int, premier: str, second: str) -> None:
-	base_vide.execute("UPDATE sounds SET edited_fields = %s WHERE id = %s", ([premier, second], sonore))
+@given(parsers.parse("les champs « {first} » et « {second} » de ce sonore édités à la main"))
+def edited_fields(empty_database: Connection, sound: int, first: str, second: str) -> None:
+	empty_database.execute("UPDATE sounds SET edited_fields = %s WHERE id = %s", ([first, second], sound))
 
 
 @then(parsers.re(rf"en base, les métadonnées musicales sont {JSON}"))
-def metadonnees_en_base(base_vide: Connexion, sonore: int, objet: str) -> None:
-	assert lire(base_vide, sonore)[2] == json.loads(objet)
+def metadata_in_database(empty_database: Connection, sound: int, object_: str) -> None:
+	assert read(empty_database, sound)[2] == json.loads(object_)
 
 
 @then("en base, le sonore n'a ni artiste ni titre")
-def sans_artiste_ni_titre(base_vide: Connexion, sonore: int) -> None:
-	assert lire(base_vide, sonore)[:2] == (None, None)
+def without_artist_nor_title(empty_database: Connection, sound: int) -> None:
+	assert read(empty_database, sound)[:2] == (None, None)
 
 
-@then(parsers.parse("en base, le titre est toujours « {titre} »"))
-def titre_inchange(base_vide: Connexion, sonore: int, titre: str) -> None:
-	assert lire(base_vide, sonore)[1] == titre
+@then(parsers.parse("en base, le titre est toujours « {title} »"))
+def unchanged_title(empty_database: Connection, sound: int, title: str) -> None:
+	assert read(empty_database, sound)[1] == title

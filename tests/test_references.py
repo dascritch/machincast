@@ -9,10 +9,10 @@ from pytest_bdd import given, parsers, scenarios, then
 
 scenarios("references.feature")
 
-RACINE = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]
 EXTENSIONS = (".md", ".py", ".toml", ".sql", ".sh", ".bash", ".bats", ".feature")
 # Scripts bash sans extension : wrapper et autocomplétion (https://github.com/dascritch/machincast/issues/6).
-REPERTOIRES_SCRIPTS = ("bin/", "bash-completion/")
+SCRIPTS_DIRECTORIES = ("bin/", "bash-completion/")
 
 EXCLUSIONS = (
 	# Ce scénario et ses étapes contiennent volontairement des références nues, comme exemples.
@@ -24,62 +24,62 @@ EXCLUSIONS = (
 # (ce qui écarte les ancres Markdown comme #48-metadonnees et les couleurs comme #1d76db).
 REFERENCE = re.compile(r"(?<![\w/&])#(\d+)(?![\w-])")
 # Un lien Markdown dont le texte contient la référence et qui pointe vers le ticket ou la PR.
-LIEN = re.compile(r"\[[^\]]*#(\d+)[^\]]*\]\(https://github\.com/dascritch/machincast/(?:issues|pull)/(\d+)\)")
+LINK = re.compile(r"\[[^\]]*#(\d+)[^\]]*\]\(https://github\.com/dascritch/machincast/(?:issues|pull)/(\d+)\)")
 
 
-def references_nues(ligne: str) -> list[str]:
+def bare_references(line: str) -> list[str]:
 	"""Références « #N » d'une ligne qui ne sont pas le texte d'un lien vers le ticket ou la PR N."""
-	liees = {m.span(0): m for m in LIEN.finditer(ligne)}
-	nues = []
-	for reference in REFERENCE.finditer(ligne):
-		dans_un_lien = any(
-			(debut <= reference.start() < fin) and (m.group(1) == m.group(2) == reference.group(1))
-			for (debut, fin), m in liees.items()
+	linked = {m.span(0): m for m in LINK.finditer(line)}
+	bare = []
+	for reference in REFERENCE.finditer(line):
+		in_link = any(
+			(start <= reference.start() < end) and (m.group(1) == m.group(2) == reference.group(1))
+			for (start, end), m in linked.items()
 		)
-		if not dans_un_lien:
-			nues.append(reference.group(0))
-	return nues
+		if not in_link:
+			bare.append(reference.group(0))
+	return bare
 
 
 @pytest.fixture
-def contexte() -> dict[str, object]:
+def context() -> dict[str, object]:
 	return {}
 
 
 @given("les fichiers Markdown, Python, TOML, SQL, shell et Gherkin du dépôt")
-def fichiers(contexte: dict[str, object]) -> None:
-	suivis = subprocess.run(
+def files(context: dict[str, object]) -> None:
+	tracked_list = subprocess.run(
 		["git", "ls-files", "--cached", "--others", "--exclude-standard"],
-		cwd=RACINE,
+		cwd=ROOT,
 		capture_output=True,
 		text=True,
 		check=True,
 	).stdout.splitlines()
-	contexte["fichiers"] = [
-		chemin
-		for chemin in suivis
-		if ((chemin.endswith(EXTENSIONS)) or (chemin.startswith(REPERTOIRES_SCRIPTS)))
-		and (not chemin.startswith(EXCLUSIONS))
+	context["fichiers"] = [
+		path
+		for path in tracked_list
+		if ((path.endswith(EXTENSIONS)) or (path.startswith(SCRIPTS_DIRECTORIES)))
+		and (not path.startswith(EXCLUSIONS))
 		# Un fichier supprimé mais pas encore retiré de l'index git n'est plus à lire.
-		and ((RACINE / chemin).is_file())
+		and ((ROOT / path).is_file())
 	]
 
 
-@given(parsers.parse("la ligne « {ligne} »"))
-def une_ligne(contexte: dict[str, object], ligne: str) -> None:
-	contexte["ligne"] = ligne
+@given(parsers.parse("la ligne « {line} »"))
+def a_line(context: dict[str, object], line: str) -> None:
+	context["ligne"] = line
 
 
 @then("chaque référence à un ticket ou une PR est un lien vers GitHub")
-def toutes_liees(contexte: dict[str, object]) -> None:
-	fautes = []
-	for chemin in contexte["fichiers"]:  # type: ignore[attr-defined]
-		for numero, ligne in enumerate((RACINE / chemin).read_text(encoding="utf-8").splitlines(), start=1):
-			for reference in references_nues(ligne):
-				fautes.append(f"{chemin}:{numero} : {reference}")
-	assert not fautes, "références sans lien :\n" + "\n".join(fautes)
+def linked_all(context: dict[str, object]) -> None:
+	faults = []
+	for path in context["fichiers"]:  # type: ignore[attr-defined]
+		for number, line in enumerate((ROOT / path).read_text(encoding="utf-8").splitlines(), start=1):
+			for reference in bare_references(line):
+				faults.append(f"{path}:{number} : {reference}")
+	assert not faults, "références sans lien :\n" + "\n".join(faults)
 
 
-@then(parsers.parse("le détecteur y trouve {nombre:d} référence(s) nue(s)"))
-def detecteur(contexte: dict[str, object], nombre: int) -> None:
-	assert len(references_nues(str(contexte["ligne"]))) == nombre
+@then(parsers.parse("le détecteur y trouve {count:d} référence(s) nue(s)"))
+def detector(context: dict[str, object], count: int) -> None:
+	assert len(bare_references(str(context["ligne"]))) == count

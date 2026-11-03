@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FeedCard</class>
+ <widget class="QWidget" name="FeedCard">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>900</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="arrangement" stretch="0,0,1,0">
+   <item>
+    <layout class="QFormLayout" name="form">
+     <item row="0" column="0">
+      <widget class="QLabel" name="name_caption">
+       <property name="text">
+        <string>&amp;Nom</string>
+       </property>
+       <property name="buddy">
+        <cstring>name</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="name">
+       <property name="maxLength">
+        <number>255</number>
+       </property>
+       <property name="placeholderText">
+        <string>Obligatoire, et propre à ce feed</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="url_caption">
+       <property name="text">
+        <string>A&amp;dresse</string>
+       </property>
+       <property name="buddy">
+        <cstring>url</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="url">
+       <property name="placeholderText">
+        <string>https://… : l'adresse du flux, obligatoire</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="trial" stretch="0,1">
+     <item>
+      <widget class="QPushButton" name="test">
+       <property name="text">
+        <string>Tester le flux</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="trial_result">
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="stream_group">
+     <property name="title">
+      <string>Streams qui le suivent</string>
+     </property>
+     <layout class="QVBoxLayout" name="stream_layout">
+      <item>
+       <widget class="QListWidget" name="streams">
+        <property name="alternatingRowColors">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="stream_explanation">
+        <property name="text">
+         <string>Ces streams jouent l'adresse du feed : une nouvelle adresse vaut pour tous. Un stream choisit son feed dans sa fiche.</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="foot" stretch="0,1,0,0">
+     <item>
+      <widget class="QPushButton" name="delete">
+       <property name="text">
+        <string>❌ Supprimer…</string>
+       </property>
+       <property name="toolTip">
+        <string>Supprime l'élément de la base, après confirmation ; aucun fichier n'est touché.</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="message">
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="cancel">
+       <property name="text">
+        <string>Annuler</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="save">
+       <property name="text">
+        <string>Enregistrer</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources />
+ <connections />
+</ui>

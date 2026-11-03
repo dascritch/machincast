@@ -23,34 +23,34 @@ from pathlib import Path
 
 from machincast import __version__
 
-journal = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
-DEPOT = Path(__file__).resolve().parents[3]
+DROP = Path(__file__).resolve().parents[3]
 """Répertoire d'où MachinCast est installé : src/machincast/interface/ y est trois niveaux plus bas."""
 
-NOUVEAUTES = Path(__file__).with_name("nouveautes.md")
+NEWS = Path(__file__).with_name("news.md")
 """Les nouveautés de chaque version publiée, pour l'équipe de l'antenne."""
 SECTION = re.compile(r"^## (?P<version>\S+) — (?P<date>\d{4}-\d{2}-\d{2})[ \t]*$", re.MULTILINE)
 """Le titre d'une section des nouveautés : « ## 0.9.0 — 2026-10-28 »."""
 
-DEPOT_EN_LIGNE = "https://github.com/dascritch/machincast"
+DROP_IN_LINE = "https://github.com/dascritch/machincast"
 DOCUMENTATION = "doc/fr/utilisateur/README.md"
 """Le guide de l'antenne, dans le dépôt (https://github.com/dascritch/machincast/issues/128)."""
 
-DELAI_DE_GIT = 5
+GIT_DELAY = 5
 """Secondes laissées à git pour répondre."""
 
-CLE_DES_NOUVEAUTES = "nouveautes/vues"
+NEWS_KEY = "nouveautes/vues"
 """La dernière version dont les nouveautés ont été montrées, dans les réglages des vues du compte."""
 
 
 @dataclass(frozen=True)
-class Nouveautes:
+class News:
 	"""Les nouveautés d'une version publiée."""
 
 	version: str
-	publiee_le: date
-	texte: str
+	published_at: date
+	text: str
 	"""En Markdown, sans le titre de la section."""
 
 
@@ -58,118 +58,118 @@ class Nouveautes:
 class Installation:
 	"""Ce que git dit du code installé."""
 
-	derniere: datetime
+	last: datetime
 	"""Date du dernier commit."""
 	commit: str
 	"""Le dernier commit, abrégé."""
-	depuis_la_release: int | None
+	since_release: int | None
 	"""Modifications depuis le tag v<version> ; None sans ce tag."""
 
 
-def nouveautes(chemin: Path | None = None) -> list[Nouveautes]:
+def news(path: Path | None = None) -> list[News]:
 	"""Les sections du fichier des nouveautés, dans l'ordre du fichier ; aucune s'il manque."""
 	try:
-		contenu = ((chemin) or (NOUVEAUTES)).read_text(encoding="utf-8")
+		content = ((path) or (NEWS)).read_text(encoding="utf-8")
 	except OSError:
 		return []
-	titres = list(SECTION.finditer(contenu))
+	titles = list(SECTION.finditer(content))
 	sections = []
-	for rang, titre in enumerate(titres):
-		fin = len(contenu)
-		if rang + 1 < len(titres):
-			fin = titres[rang + 1].start()
-		texte = contenu[titre.end() : fin].strip()
-		sections.append(Nouveautes(titre["version"], date.fromisoformat(titre["date"]), texte))
+	for rank, title in enumerate(titles):
+		end = len(content)
+		if rank + 1 < len(titles):
+			end = titles[rank + 1].start()
+		text = content[title.end() : end].strip()
+		sections.append(News(title["version"], date.fromisoformat(title["date"]), text))
 	return sections
 
 
-def de_la_version(version: str = __version__, chemin: Path | None = None) -> Nouveautes | None:
+def of_the_version(version: str = __version__, path: Path | None = None) -> News | None:
 	"""Les nouveautés de cette version, si elle est publiée."""
-	return next((section for section in nouveautes(chemin) if section.version == version), None)
+	return next((section for section in news(path) if section.version == version), None)
 
 
-def _git(depot: Path, *arguments: str) -> str | None:
+def _git(drop: Path, *arguments: str) -> str | None:
 	"""La sortie de git dans le dépôt ; None s'il échoue."""
 	try:
 		return subprocess.run(
-			["git", "-C", str(depot), *arguments],
+			["git", "-C", str(drop), *arguments],
 			capture_output=True,
 			text=True,
 			check=True,
-			timeout=DELAI_DE_GIT,
+			timeout=GIT_DELAY,
 		).stdout.strip()
-	except (OSError, subprocess.SubprocessError) as erreur:
-		journal.debug(f"git {' '.join(arguments)} impossible dans {depot} : {erreur}")
+	except (OSError, subprocess.SubprocessError) as error:
+		log.debug(f"git {' '.join(arguments)} impossible dans {drop} : {error}")
 		return None
 
 
-def installation(depot: Path) -> Installation | None:
+def installation(drop: Path) -> Installation | None:
 	"""Le dernier commit du dépôt, et les modifications depuis la release ; None hors d'un dépôt git, ou sans git."""
-	if not (depot / ".git").exists():
+	if not (drop / ".git").exists():
 		return None
 	# Un dépôt sans commit ne donne aucune date (https://github.com/dascritch/machincast/issues/187).
-	sortie = (_git(depot, "log", "-1", "--format=%cI%x09%h")) or ("")
+	output = (_git(drop, "log", "-1", "--format=%cI%x09%h")) or ("")
 	try:
-		instant, commit = sortie.split("\t")
-		derniere = datetime.fromisoformat(instant)
-	except ValueError as erreur:
-		journal.warning(f"date du dernier commit illisible dans {depot} : {erreur}")
+		instant, commit = output.split("\t")
+		last = datetime.fromisoformat(instant)
+	except ValueError as error:
+		log.warning(f"date du dernier commit illisible dans {drop} : {error}")
 		return None
 	# « v0.9.0-3-g1a2b3c4 » : 3 modifications depuis le tag ; aucune sortie sans lui.
-	description = (_git(depot, "describe", "--tags", "--long", "--match", f"v{__version__}")) or ("")
-	trouve = re.fullmatch(r".+-(?P<nombre>\d+)-g[0-9a-f]+", description)
-	depuis = None
-	if trouve is not None:
-		depuis = int(trouve["nombre"])
-	return Installation(derniere, commit, depuis)
+	description = (_git(drop, "describe", "--tags", "--long", "--match", f"v{__version__}")) or ("")
+	found = re.fullmatch(r".+-(?P<nombre>\d+)-g[0-9a-f]+", description)
+	since = None
+	if found is not None:
+		since = int(found["nombre"])
+	return Installation(last, commit, since)
 
 
-def derniere_modification(depot: Path) -> datetime | None:
+def last_change(drop: Path) -> datetime | None:
 	"""Date du dernier commit du dépôt ; None hors d'un dépôt git, ou sans git."""
-	installee = installation(depot)
-	if installee is None:
+	installed = installation(drop)
+	if installed is None:
 		return None
-	return installee.derniere
+	return installed.last
 
 
-def _modifications(nombre: int) -> str:
-	if nombre == 1:
+def _changes(count: int) -> str:
+	if count == 1:
 		return "1 modification"
-	return f"{nombre} modifications"
+	return f"{count} modifications"
 
 
-def texte() -> str:
+def text() -> str:
 	"""« MachinCast 0.9.0, publiée le 2026-10-28, commit 1a2b3c4. », ou, sans release, « MachinCast 0.1.0, dernière
 	modification le 2026-10-18 à 14:05. », à l'heure du poste."""
-	installee = installation(DEPOT)
-	publiee = de_la_version()
-	if installee is None:
-		if publiee is not None:
-			return f"MachinCast {__version__}, publiée le {publiee.publiee_le:%Y-%m-%d}."
+	installed = installation(DROP)
+	published = of_the_version()
+	if installed is None:
+		if published is not None:
+			return f"MachinCast {__version__}, publiée le {published.published_at:%Y-%m-%d}."
 		return (
 			f"MachinCast {__version__}, date de dernière modification inconnue : l'installation n'est pas un dépôt git."
 		)
-	derniere = f"{installee.derniere.astimezone():%Y-%m-%d à %H:%M}"
-	if installee.depuis_la_release is None:
-		return f"MachinCast {__version__}, dernière modification le {derniere}."
-	jour = "date inconnue"
-	if publiee is not None:
-		jour = f"{publiee.publiee_le:%Y-%m-%d}"
-	if installee.depuis_la_release == 0:
-		return f"MachinCast {__version__}, publiée le {jour}, commit {installee.commit}."
+	last = f"{installed.last.astimezone():%Y-%m-%d à %H:%M}"
+	if installed.since_release is None:
+		return f"MachinCast {__version__}, dernière modification le {last}."
+	day = "date inconnue"
+	if published is not None:
+		day = f"{published.published_at:%Y-%m-%d}"
+	if installed.since_release == 0:
+		return f"MachinCast {__version__}, publiée le {day}, commit {installed.commit}."
 	return (
-		f"MachinCast {__version__}, publiée le {jour}, plus {_modifications(installee.depuis_la_release)}, la dernière"
-		f" le {derniere}, commit {installee.commit}."
+		f"MachinCast {__version__}, publiée le {day}, plus {_changes(installed.since_release)}, la dernière"
+		f" le {last}, commit {installed.commit}."
 	)
 
 
 def documentation() -> str:
 	"""Le guide de l'antenne du code installé : celui du tag de la release, ou celui de main."""
-	installee = installation(DEPOT)
+	installed = installation(DROP)
 	reference = "main"
-	if installee is None:
-		if de_la_version() is not None:
+	if installed is None:
+		if of_the_version() is not None:
 			reference = f"v{__version__}"
-	elif installee.depuis_la_release == 0:
+	elif installed.since_release == 0:
 		reference = f"v{__version__}"
-	return f"{DEPOT_EN_LIGNE}/blob/{reference}/{DOCUMENTATION}"
+	return f"{DROP_IN_LINE}/blob/{reference}/{DOCUMENTATION}"

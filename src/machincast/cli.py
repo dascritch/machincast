@@ -6,58 +6,58 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from machincast import __version__
-from machincast.configuration import Configuration, ConfigurationInvalide, charger, fichier_par_defaut
-from machincast.journal import configurer as configurer_journal
+from machincast.configuration import Configuration, InvalidConfiguration, default_file, load
+from machincast.log import configure as configure_log
 
-journal = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
-CODE_CONFIGURATION_INVALIDE = 2
+INVALID_CONFIGURATION_CODE = 2
 
 
-def creer_analyseur(executable: str, description: str) -> argparse.ArgumentParser:
+def create_analyser(executable: str, description: str) -> argparse.ArgumentParser:
 	"""Crée l'analyseur d'arguments commun à tous les exécutables Machin_*."""
-	analyseur = argparse.ArgumentParser(prog=executable, description=description)
-	analyseur.add_argument(
+	analyser = argparse.ArgumentParser(prog=executable, description=description)
+	analyser.add_argument(
 		"--version",
 		action="version",
 		version=f"{executable} (MachinCast) {__version__}",
 	)
-	analyseur.add_argument(
+	analyser.add_argument(
 		"--config",
 		type=Path,
 		default=None,
 		metavar="FICHIER",
-		help=f"fichier de configuration TOML (par défaut : {fichier_par_defaut()})",
+		help=f"fichier de configuration TOML (par défaut : {default_file()})",
 	)
-	return analyseur
+	return analyser
 
 
-def lancer(
+def launch(
 	executable: str,
 	description: str,
 	arguments: Sequence[str] | None,
 	action: Callable[[Configuration, argparse.Namespace], int],
-	options_propres: Callable[[argparse.ArgumentParser], None] | None = None,
+	own_options: Callable[[argparse.ArgumentParser], None] | None = None,
 ) -> int:
 	"""Analyse les arguments, charge la configuration, puis exécute l'action du binaire.
 
-	options_propres ajoute à l'analyseur commun les options propres au binaire ; l'action reçoit la configuration
-	et toutes les options. Renvoie le code de sortie : celui de l'action, ou CODE_CONFIGURATION_INVALIDE.
+	own_options ajoute à l'analyseur commun les options propres au binaire ; l'action reçoit la configuration
+	et toutes les options. Renvoie le code de sortie : celui de l'action, ou INVALID_CONFIGURATION_CODE.
 	"""
-	configurer_journal(executable)
-	analyseur = creer_analyseur(executable, description)
-	if options_propres is not None:
-		options_propres(analyseur)
-	options = analyseur.parse_args(arguments)
+	configure_log(executable)
+	analyser = create_analyser(executable, description)
+	if own_options is not None:
+		own_options(analyser)
+	options = analyser.parse_args(arguments)
 	try:
-		configuration = charger(options.config)
-	except ConfigurationInvalide as erreur:
-		journal.error(f"configuration invalide : {erreur}")
-		return CODE_CONFIGURATION_INVALIDE
+		configuration = load(options.config)
+	except InvalidConfiguration as error:
+		log.error(f"configuration invalide : {error}")
+		return INVALID_CONFIGURATION_CODE
 	return action(configuration, options)
 
 
-def non_implemente(executable: str, ticket: int) -> int:
+def not_implemented(executable: str, ticket: int) -> int:
 	"""Signale une fonctionnalité pas encore développée et renvoie un code d'erreur."""
-	journal.error(f"pas encore implémenté, voir https://github.com/dascritch/machincast/issues/{ticket}")
+	log.error(f"pas encore implémenté, voir https://github.com/dascritch/machincast/issues/{ticket}")
 	return 1

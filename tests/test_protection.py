@@ -1,6 +1,6 @@
 """Étapes de la protection des fichiers sonores (https://github.com/dascritch/machincast/issues/96).
 
-Les étapes de la diffusion viennent de tests/etapes_diffusion.py.
+Les étapes de la diffusion viennent de tests/broadcast_steps.py.
 """
 
 import hashlib
@@ -13,260 +13,260 @@ from pathlib import Path
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast.base import Role, connecter
-from machincast.configuration import Metadonnees
-from machincast.configuration import Sorties as CheminsDesSorties
-from machincast.indexation.indexeur import indexer
-from machincast.lecture.enregistrement import Passage
-from machincast.lecture.etat import SocketEtat
-from machincast.lecture.simulation import exporter, simuler
-from machincast.lecture.sorties import Sorties
-from machincast.protection import FichierSonoreProtege, injustifiees
-from tests.base_test import parametres_base_test
-from tests.etapes_diffusion import Connexion
-from tests.sons import copie_de_test, corrompre
+from machincast.configuration import Metadata
+from machincast.configuration import Outputs as OutputPaths
+from machincast.database import Role, open_connection
+from machincast.indexer.indexer import index
+from machincast.player.outputs import Outputs
+from machincast.player.saving import Play
+from machincast.player.simulation import export, simulate
+from machincast.player.state import StateSocket
+from machincast.protection import ProtectedSoundFile, unjustified
+from tests.broadcast_steps import Connection
+from tests.database_fixtures import sample_database_parameters
+from tests.sounds import corrupt, sample_copy
 
 scenarios("protection.feature")
 
-RACINE = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]
 INSTANT = datetime.fromisoformat("2026-10-14 20:00:00").astimezone()
 
-Releve = dict[Path, tuple[str, int, int]]
+Reading = dict[Path, tuple[str, int, int]]
 
 
 @dataclass
-class Contexte:
-	repertoire: Path | None = None
-	banque: int | None = None
-	releve: Releve = field(default_factory=dict)
-	sorties: Sorties | None = None
-	erreur: Exception | None = None
+class Context:
+	directory: Path | None = None
+	bank: int | None = None
+	reading: Reading = field(default_factory=dict)
+	outputs: Outputs | None = None
+	error: Exception | None = None
 	code: str = ""
 
 
 @pytest.fixture
-def contexte() -> Contexte:
-	return Contexte()
+def context() -> Context:
+	return Context()
 
 
-def repertoire(contexte: Contexte) -> Path:
-	assert contexte.repertoire is not None
-	return contexte.repertoire
+def directory(context: Context) -> Path:
+	assert context.directory is not None
+	return context.directory
 
 
-def relever(dossier: Path) -> Releve:
+def read_off(folder: Path) -> Reading:
 	"""Octets, taille et date de modification de chaque fichier du répertoire."""
 	return {
-		chemin: (hashlib.sha256(chemin.read_bytes()).hexdigest(), chemin.stat().st_size, chemin.stat().st_mtime_ns)
-		for chemin in sorted(dossier.rglob("*"))
-		if chemin.is_file()
+		path: (hashlib.sha256(path.read_bytes()).hexdigest(), path.stat().st_size, path.stat().st_mtime_ns)
+		for path in sorted(folder.rglob("*"))
+		if path.is_file()
 	}
 
 
-def indexer_la_base(audit_complet: bool) -> None:
-	with connecter(*parametres_base_test(), Role.INDEXATION) as connexion:
-		indexer(connexion, audit_complet=audit_complet)
+def index_database(full_audit: bool) -> None:
+	with open_connection(*sample_database_parameters(), Role.INDEXING) as connection:
+		index(connection, full_audit=full_audit)
 
 
-def sonore_de(base: Connexion, contexte: Contexte, nom: str) -> int:
-	ligne = base.execute("SELECT id FROM sounds WHERE location = %s", (str(repertoire(contexte) / nom),)).fetchone()
-	assert ligne is not None, f"aucun sonore pour {nom}"
-	return int(str(ligne[0]))
+def sound_of(database: Connection, context: Context, name: str) -> int:
+	line = database.execute("SELECT id FROM sounds WHERE location = %s", (str(directory(context) / name),)).fetchone()
+	assert line is not None, f"aucun sonore pour {name}"
+	return int(str(line[0]))
 
 
 # ─── Étant donné ───────────────────────────────────────────
 
 
-@given(parsers.parse("une banque « {nom} » dont le répertoire contient « {sain} », sain, et « {abime} », endommagé"))
-def banque(contexte: Contexte, base_vide: Connexion, tmp_path: Path, nom: str, sain: str, abime: str) -> None:
-	dossier = tmp_path / "musique"
-	dossier.mkdir()
-	copie_de_test("flac", dossier).rename(dossier / sain)
-	endommage = copie_de_test("mp3", dossier)
-	corrompre(endommage, 1000, 1 / 3)
-	endommage.rename(dossier / abime)
-	ligne = base_vide.execute(
-		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'sequential') RETURNING id", (nom,)
+@given(parsers.parse("une banque « {name} » dont le répertoire contient « {healthy} », sain, et « {worn} », endommagé"))
+def bank(context: Context, empty_database: Connection, tmp_path: Path, name: str, healthy: str, worn: str) -> None:
+	folder = tmp_path / "musique"
+	folder.mkdir()
+	sample_copy("flac", folder).rename(folder / healthy)
+	damaged = sample_copy("mp3", folder)
+	corrupt(damaged, 1000, 1 / 3)
+	damaged.rename(folder / worn)
+	line = empty_database.execute(
+		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'sequential') RETURNING id", (name,)
 	).fetchone()
-	assert ligne is not None
-	base_vide.execute("INSERT INTO bank_directories VALUES (%s, %s)", (ligne[0], str(dossier)))
-	contexte.repertoire, contexte.banque = dossier, int(str(ligne[0]))
+	assert line is not None
+	empty_database.execute("INSERT INTO bank_directories VALUES (%s, %s)", (line[0], str(folder)))
+	context.directory, context.bank = folder, int(str(line[0]))
 
 
-@given(parsers.parse("les fichiers de la banque « {nom} » relevés, puis la banque indexée"))
-def indexee(contexte: Contexte, nom: str) -> None:
-	contexte.releve = relever(repertoire(contexte))
-	indexer_la_base(audit_complet=False)
+@given(parsers.parse("les fichiers de la banque « {name} » relevés, puis la banque indexée"))
+def indexed(context: Context, name: str) -> None:
+	context.reading = read_off(directory(context))
+	index_database(full_audit=False)
 
 
-@given(parsers.parse("le fil musical permanent « {nom} », avec la banque « {banque} »"))
-def fil_de_la_banque(contexte: Contexte, base_vide: Connexion, nom: str, banque: str) -> None:
-	ligne = base_vide.execute(
-		"INSERT INTO events (internal_name, priority) VALUES (%s, 'background_programming') RETURNING id", (nom,)
+@given(parsers.parse("le fil musical permanent « {name} », avec la banque « {bank} »"))
+def bank_feed(context: Context, empty_database: Connection, name: str, bank: str) -> None:
+	line = empty_database.execute(
+		"INSERT INTO events (internal_name, priority) VALUES (%s, 'background_programming') RETURNING id", (name,)
 	).fetchone()
-	assert ligne is not None
-	base_vide.execute(
+	assert line is not None
+	empty_database.execute(
 		"INSERT INTO event_items (event_id, position, bank_id) VALUES (%s, 1, %s)",
-		(ligne[0], contexte.banque),
+		(line[0], context.bank),
 	)
 
 
-@given(parsers.parse("la sortie {sortie} placée sur le fichier sonore « {nom} »"))
-def sortie_sur_un_sonore(contexte: Contexte, tmp_path: Path, sortie: str, nom: str) -> None:
-	cible = repertoire(contexte) / nom
-	chemins = {
+@given(parsers.parse("la sortie {output} placée sur le fichier sonore « {name} »"))
+def output_on_sound(context: Context, tmp_path: Path, output: str, name: str) -> None:
+	target = directory(context) / name
+	paths = {
 		"csv": tmp_path / "sorties" / "airplay.csv",
 		"pls": tmp_path / "sorties" / "playlist.pls",
 		"html": tmp_path / "sorties" / "airplay.html",
 	}
 	# Le CSV du jour ajoute la date au nom : son modèle est placé à côté du fichier sonore, avec son extension.
-	chemins[sortie] = cible
-	contexte.sorties = Sorties(CheminsDesSorties(**chemins), Metadonnees(masquer=False, texte_public="Radio"))
+	paths[output] = target
+	context.outputs = Outputs(OutputPaths(**paths), Metadata(hide=False, public_text="Radio"))
 
 
 @given(parsers.parse("le code « {code} »"))
-def code(contexte: Contexte, code: str) -> None:
-	contexte.code = code
+def code(context: Context, code: str) -> None:
+	context.code = code
 
 
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when(parsers.re(r"l'entrée du sonore « (?P<nom>[^»]+) » (?P<changement>.+)"))
-def changer_l_entree(contexte: Contexte, base_vide: Connexion, nom: str, changement: str) -> None:
-	identifiant = sonore_de(base_vide, contexte, nom)
-	etat = re.fullmatch(r"passe à l'état « (\w+) »", changement)
-	if etat:
-		base_vide.execute("UPDATE sounds SET state = %s WHERE id = %s", (etat.group(1), identifiant))
-	elif changement == "change d'emplacement":
-		base_vide.execute(
+@when(parsers.re(r"l'entrée du sonore « (?P<name>[^»]+) » (?P<change>.+)"))
+def change_entry(context: Context, empty_database: Connection, name: str, change: str) -> None:
+	identifier = sound_of(empty_database, context, name)
+	state = re.fullmatch(r"passe à l'état « (\w+) »", change)
+	if state:
+		empty_database.execute("UPDATE sounds SET state = %s WHERE id = %s", (state.group(1), identifier))
+	elif change == "change d'emplacement":
+		empty_database.execute(
 			"UPDATE sounds SET location = %s WHERE id = %s",
-			(str(repertoire(contexte) / "ailleurs.flac"), identifiant),
+			(str(directory(context) / "ailleurs.flac"), identifier),
 		)
-	elif changement == "change d'artiste et de titre":
-		base_vide.execute("UPDATE sounds SET artist = 'Autre', title = 'Autre' WHERE id = %s", (identifiant,))
-	elif changement == "est supprimée de la base":
-		base_vide.execute("DELETE FROM sounds WHERE id = %s", (identifiant,))
+	elif change == "change d'artiste et de titre":
+		empty_database.execute("UPDATE sounds SET artist = 'Autre', title = 'Autre' WHERE id = %s", (identifier,))
+	elif change == "est supprimée de la base":
+		empty_database.execute("DELETE FROM sounds WHERE id = %s", (identifier,))
 	else:
-		raise AssertionError(f"changement inconnu : {changement}")
+		raise AssertionError(f"changement inconnu : {change}")
 
 
 @when("l'indexeur fait une indexation rapide, puis un audit complet")
-def indexations() -> None:
-	indexer_la_base(audit_complet=False)
-	indexer_la_base(audit_complet=True)
+def indexings() -> None:
+	index_database(full_audit=False)
+	index_database(full_audit=True)
 
 
 @when(parsers.parse("une simulation de {minutes:d} minutes tourne"))
 def simulation(tmp_path: Path, minutes: int) -> None:
 	"""Quelques minutes suffisent : des centaines de passages de sonores d'une seconde
 	(https://github.com/dascritch/machincast/issues/280)."""
-	with connecter(*parametres_base_test(), Role.LECTURE) as connexion:
-		simuler(connexion, tmp_path / "simulation", INSTANT, INSTANT + timedelta(minutes=minutes))
+	with open_connection(*sample_database_parameters(), Role.PLAYBACK) as connection:
+		simulate(connection, tmp_path / "simulation", INSTANT, INSTANT + timedelta(minutes=minutes))
 
 
-@when(parsers.parse("un passage de « {nom} » est publié sur les sorties"))
-def publier(contexte: Contexte, base_vide: Connexion, nom: str) -> None:
-	assert contexte.sorties is not None
-	identifiant = sonore_de(base_vide, contexte, nom)
-	passage = Passage(uuid.uuid4(), identifiant, None, None, None, INSTANT)
-	base_vide.execute(
+@when(parsers.parse("un passage de « {name} » est publié sur les sorties"))
+def publish(context: Context, empty_database: Connection, name: str) -> None:
+	assert context.outputs is not None
+	identifier = sound_of(empty_database, context, name)
+	play = Play(uuid.uuid4(), identifier, None, None, None, INSTANT)
+	empty_database.execute(
 		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, location, title)"
 		" VALUES (%s, 'start', %s, %s, %s, %s)",
-		(passage.id, INSTANT, identifiant, str(repertoire(contexte) / nom), nom),
+		(play.id, INSTANT, identifier, str(directory(context) / name), name),
 	)
-	base_vide.execute(
+	empty_database.execute(
 		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, location, title, played_duration,"
 		" without_incident) VALUES (%s, 'end', %s, %s, %s, %s, '1 s', true)",
-		(passage.id, INSTANT, identifiant, str(repertoire(contexte) / nom), nom),
+		(play.id, INSTANT, identifier, str(directory(context) / name), name),
 	)
-	with connecter(*parametres_base_test(), Role.LECTURE) as connexion:
-		contexte.sorties.passage_commence(connexion, passage)
-		contexte.sorties.passage_termine(connexion, passage, INSTANT)
+	with open_connection(*sample_database_parameters(), Role.PLAYBACK) as connection:
+		context.outputs.started_play(connection, play)
+		context.outputs.finished_play(connection, play, INSTANT)
 
 
-@when(parsers.parse("la socket d'état est ouverte sur le fichier sonore « {nom} »"))
-def ouvrir_la_socket(contexte: Contexte, nom: str) -> None:
+@when(parsers.parse("la socket d'état est ouverte sur le fichier sonore « {name} »"))
+def open_socket(context: Context, name: str) -> None:
 	try:
-		SocketEtat(repertoire(contexte) / nom).ouvrir()
-	except OSError as erreur:
-		contexte.erreur = erreur
+		StateSocket(directory(context) / name).open_()
+	except OSError as error:
+		context.error = error
 
 
-@when(parsers.parse("une simulation est exportée sous le nom « {nom} », dans le répertoire de la banque"))
-def exporter_dans_la_banque(contexte: Contexte, nom: str) -> None:
-	exporter([], [], repertoire(contexte), nom, INSTANT, INSTANT.replace(hour=21))
+@when(parsers.parse("une simulation est exportée sous le nom « {name} », dans le répertoire de la banque"))
+def export_in_bank(context: Context, name: str) -> None:
+	export([], [], directory(context), name, INSTANT, INSTANT.replace(hour=21))
 
 
 # ─── Alors ─────────────────────────────────────────────────
 
 
 @then("les fichiers sonores de la banque sont intacts")
-def intacts(contexte: Contexte) -> None:
-	apres = relever(repertoire(contexte))
-	for chemin, releve in contexte.releve.items():
-		assert apres.get(chemin) == releve, f"{chemin} a changé ou disparu"
+def intact_list(context: Context) -> None:
+	after = read_off(directory(context))
+	for path, reading in context.reading.items():
+		assert after.get(path) == reading, f"{path} a changé ou disparu"
 
 
-@then(parsers.parse("le fichier « {nom} » a de nouveau un sonore, à l'état « {etat} »"))
-def reindexe(contexte: Contexte, base_vide: Connexion, nom: str, etat: str) -> None:
-	ligne = base_vide.execute(
-		"SELECT state::text FROM sounds WHERE id = %s", (sonore_de(base_vide, contexte, nom),)
+@then(parsers.parse("le fichier « {name} » a de nouveau un sonore, à l'état « {state} »"))
+def reindexed(context: Context, empty_database: Connection, name: str, state: str) -> None:
+	line = empty_database.execute(
+		"SELECT state::text FROM sounds WHERE id = %s", (sound_of(empty_database, context, name),)
 	).fetchone()
-	assert ligne == (etat,)
+	assert line == (state,)
 
 
-@then(parsers.parse("le sonore de « {nom} » est à l'état « {etat} »"))
-def etat_du_sonore(contexte: Contexte, base_vide: Connexion, nom: str, etat: str) -> None:
-	ligne = base_vide.execute(
-		"SELECT state::text FROM sounds WHERE id = %s", (sonore_de(base_vide, contexte, nom),)
+@then(parsers.parse("le sonore de « {name} » est à l'état « {state} »"))
+def sound_state(context: Context, empty_database: Connection, name: str, state: str) -> None:
+	line = empty_database.execute(
+		"SELECT state::text FROM sounds WHERE id = %s", (sound_of(empty_database, context, name),)
 	).fetchone()
-	assert ligne == (etat,)
+	assert line == (state,)
 
 
-@then(parsers.parse("l'airplay montre {nombre:d} passages"))
-def nombre_de_passages(base_vide: Connexion, nombre: int) -> None:
-	assert base_vide.execute("SELECT count(*) FROM airplay WHERE line_type = 'start'").fetchone() == (nombre,)
+@then(parsers.parse("l'airplay montre {count:d} passages"))
+def play_count(empty_database: Connection, count: int) -> None:
+	assert empty_database.execute("SELECT count(*) FROM airplay WHERE line_type = 'start'").fetchone() == (count,)
 
 
-@then(parsers.parse("le log contient 1 alerte « {nature} », qui mentionne « {mention} »"))
-def alerte(base_vide: Connexion, nature: str, mention: str) -> None:
-	lignes = base_vide.execute("SELECT level::text, message FROM log WHERE kind = %s", (nature,)).fetchall()
-	assert (len(lignes) >= 1) and (all((n == "warning") and (mention in str(m)) for n, m in lignes)), lignes
+@then(parsers.parse("le log contient 1 alerte « {kind} », qui mentionne « {mention} »"))
+def warning(empty_database: Connection, kind: str, mention: str) -> None:
+	lines = empty_database.execute("SELECT level::text, message FROM log WHERE kind = %s", (kind,)).fetchall()
+	assert (len(lines) >= 1) and (all((n == "warning") and (mention in str(m)) for n, m in lines)), lines
 
 
 @then("l'ouverture est refusée, car c'est un fichier sonore protégé")
-def socket_refusee(contexte: Contexte) -> None:
-	assert isinstance(contexte.erreur, FichierSonoreProtege), repr(contexte.erreur)
+def refused_socket(context: Context) -> None:
+	assert isinstance(context.error, ProtectedSoundFile), repr(context.error)
 
 
 @then(
 	parsers.parse(
 		"chaque suppression, renommage ou remplacement de fichier de src, bin et install.sh porte la justification"
-		" « {marque} »"
+		" « {marks} »"
 	)
 )
-def code_justifie(marque: str) -> None:
-	fichiers = [*sorted((RACINE / "src").rglob("*.py")), RACINE / "bin" / "Machin", RACINE / "install.sh"]
-	fautes = [
-		f"{chemin.relative_to(RACINE)}:{numero} : {ligne.strip()}"
-		for chemin in fichiers
-		for numero, ligne in injustifiees(chemin.read_text(encoding="utf-8"), chemin.suffix != ".py")
+def justified_code(marks: str) -> None:
+	files = [*sorted((ROOT / "src").rglob("*.py")), ROOT / "bin" / "Machin", ROOT / "install.sh"]
+	faults = [
+		f"{path.relative_to(ROOT)}:{number} : {line.strip()}"
+		for path in files
+		for number, line in unjustified(path.read_text(encoding="utf-8"), path.suffix != ".py")
 	]
-	assert not fautes, "suppressions sans « " + marque + " » :\n" + "\n".join(fautes)
+	assert not faults, "suppressions sans « " + marks + " » :\n" + "\n".join(faults)
 
 
 @then(parsers.re(r"le garde-fou (?P<verdict>refuse|accepte) ce code"))
-def garde_fou(contexte: Contexte, verdict: str) -> None:
-	bash = contexte.code.startswith(("rm ", "mv "))
-	trouvees = injustifiees(contexte.code, bash)
-	assert bool(trouvees) is (verdict == "refuse"), trouvees
+def keeps_crazy(context: Context, verdict: str) -> None:
+	bash = context.code.startswith(("rm ", "mv "))
+	found_list = unjustified(context.code, bash)
+	assert bool(found_list) is (verdict == "refuse"), found_list
 
 
-@then(parsers.parse("le sonore de « {nom} » a un début et une fin détectés"))
-def silences_detectes(contexte: Contexte, base_vide: Connexion, nom: str) -> None:
+@then(parsers.parse("le sonore de « {name} » a un début et une fin détectés"))
+def detected_silences(context: Context, empty_database: Connection, name: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/146"""
-	ligne = base_vide.execute(
-		"SELECT detected_start, detected_end FROM sounds WHERE id = %s", (sonore_de(base_vide, contexte, nom),)
+	line = empty_database.execute(
+		"SELECT detected_start, detected_end FROM sounds WHERE id = %s", (sound_of(empty_database, context, name),)
 	).fetchone()
-	assert (ligne is not None) and (all(isinstance(valeur, timedelta) for valeur in ligne)), ligne
+	assert (line is not None) and (all(isinstance(value, timedelta) for value in line)), line

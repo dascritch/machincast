@@ -4,7 +4,7 @@ Fonctionnalité: Conformation des textes
 	je veux conformer les textes entrés dans l'interface et ceux lus dans les tags des fichiers,
 	afin d'éviter les caractères spéciaux qui posent problème sur le reste de la chaîne de diffusion.
 
-	https://github.com/dascritch/machincast/issues/108. machincast.conformation.conformer ne fait que filtrer : tout
+	https://github.com/dascritch/machincast/issues/108. machincast.conformation.conform ne fait que filtrer : tout
 	espace Unicode devient une espace simple (0x20), les espaces de début et de fin sont retirées, et jamais deux
 	espaces ne se suivent ; les caractères de contrôle, les sélecteurs de variante, les caractères spéciaux
 	(U+FFF0 à U+FFFF), les caractères à usage privé, les caractères non attribués et les espaces sans largeur
@@ -67,13 +67,13 @@ Fonctionnalité: Conformation des textes
 
 		Exemples:
 			| ouverture                                  | champ       | saisie                        | table         | colonne                            | enregistre       |
-			| j'ouvre la fiche de la banque « Jingles »  | nom_interne | \u{20}Jingles\u{a0}\u{a0}soir | banks       | internal_name                        | Jingles soir     |
-			| j'ouvre la fiche de la banque « Jingles »  | nom_public  | Les\u{2003}jingles\u{fe0f}    | banks       | public_name                         | Les jingles      |
-			| j'ouvre la fiche de la séquence « Pub »    | nom_interne | Pub\u{9}du\u{e000} soir       | sequences     | internal_name                        | Pub du soir      |
-			| j'ouvre la fiche de la séquence « Pub »    | nom_public  | \u{a0}                        | sequences     | public_name                         |                  |
-			| j'ouvre la fiche de l'événement « Continue » | nom_interne | Continue\u{200b}  nuit      | events    | internal_name                        | Continue nuit    |
-			| j'ouvre la fiche de l'événement « Continue » | nom_public  | La\u{202f}nuit\u{7}         | events    | public_name                         | La nuit          |
-			| j'ouvre la fiche du feed « Radio »  | nom         | Radio\u{a0}\u{a0}locale\u{feff} | feeds | name                       | Radio locale     |
-			| j'ouvre la fiche du sonore « Minuit »      | artiste     | Les\u{a0}Gaufres\u{20}        | sounds       | artist                            | Les Gaufres      |
-			| j'ouvre la fiche du sonore « Minuit »      | titre       | Café\u{2028}à minuit          | sounds       | title                              | Café à minuit    |
+			| j'ouvre la fiche de la banque « Jingles »  | internal_name | \u{20}Jingles\u{a0}\u{a0}soir | banks       | internal_name                        | Jingles soir     |
+			| j'ouvre la fiche de la banque « Jingles »  | public_name  | Les\u{2003}jingles\u{fe0f}    | banks       | public_name                         | Les jingles      |
+			| j'ouvre la fiche de la séquence « Pub »    | internal_name | Pub\u{9}du\u{e000} soir       | sequences     | internal_name                        | Pub du soir      |
+			| j'ouvre la fiche de la séquence « Pub »    | public_name  | \u{a0}                        | sequences     | public_name                         |                  |
+			| j'ouvre la fiche de l'événement « Continue » | internal_name | Continue\u{200b}  nuit      | events    | internal_name                        | Continue nuit    |
+			| j'ouvre la fiche de l'événement « Continue » | public_name  | La\u{202f}nuit\u{7}         | events    | public_name                         | La nuit          |
+			| j'ouvre la fiche du feed « Radio »  | name        | Radio\u{a0}\u{a0}locale\u{feff} | feeds | name                       | Radio locale     |
+			| j'ouvre la fiche du sonore « Minuit »      | artist      | Les\u{a0}Gaufres\u{20}        | sounds       | artist                            | Les Gaufres      |
+			| j'ouvre la fiche du sonore « Minuit »      | title       | Café\u{2028}à minuit          | sounds       | title                              | Café à minuit    |
 			| j'ouvre la fiche du sonore « Minuit »      | album       | Nuit\u{fffd} blanche          | sounds       | music_metadata.album               | Nuit blanche     |

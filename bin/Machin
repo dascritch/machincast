@@ -239,14 +239,14 @@ lancer_dev_test() {
 	exit 1
 }
 
-# Captures d'écran du guide de l'antenne (https://github.com/dascritch/machincast/issues/128) : tests/captures.py,
+# Captures d'écran du guide de l'antenne (https://github.com/dascritch/machincast/issues/128) : tests/screenshots.py,
 # avec le Python du venv, depuis le répertoire de MachinCast, où il trouve le paquet tests.
 lancer_dev_captures() {
 	local venv
 	venv="$(exiger_venv)"
 	cd "$(projet)"
 	export VIRTUAL_ENV="${venv}"
-	exec "${venv}/bin/python" -m tests.captures "$@"
+	exec "${venv}/bin/python" -m tests.screenshots "$@"
 }
 
 principal() {

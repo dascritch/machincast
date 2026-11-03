@@ -1,6 +1,6 @@
 """Scénarios de l'écran des incidents (https://github.com/dascritch/machincast/issues/35).
 
-Les étapes de la fenêtre, des listes et des fiches sont dans tests/etapes_interface.py ; celles-ci écrivent le log de
+Les étapes de la fenêtre, des listes et des fiches sont dans tests/interface_steps.py ; celles-ci écrivent le log de
 la base de test, comme Machin player, et lisent l'écran.
 """
 
@@ -10,49 +10,49 @@ from PySide6.QtCore import QModelIndex, Qt
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
-from machincast.interface.incidents import EcranIncidents
-from tests.etapes_interface import NOM, Connexion, Contexte, fenetre, identifiant, taper
+from machincast.interface.incidents import IncidentScreen
+from tests.interface_steps import NAME, Connection, Context, identifier, type_, window
 
 scenarios("incidents.feature")
 
 
-def ecran(interface: Contexte) -> EcranIncidents:
-	ouvert = fenetre(interface).ui.onglets.currentWidget()
-	assert isinstance(ouvert, EcranIncidents), ouvert
-	return ouvert
+def screen(interface: Context) -> IncidentScreen:
+	opened = window(interface).ui.tabs.currentWidget()
+	assert isinstance(opened, IncidentScreen), opened
+	return opened
 
 
-def lignes(interface: Contexte) -> list[dict[str, str]]:
-	modele = ecran(interface).table.model()
-	titres = [str(modele.headerData(colonne, Qt.Orientation.Horizontal)) for colonne in range(modele.columnCount())]
+def lines(interface: Context) -> list[dict[str, str]]:
+	model = screen(interface).table.model()
+	titles = [str(model.headerData(column, Qt.Orientation.Horizontal)) for column in range(model.columnCount())]
 	return [
-		{titre: str((modele.index(rangee, colonne).data()) or ("")) for colonne, titre in enumerate(titres)}
-		for rangee in range(modele.rowCount())
+		{title: str((model.index(row, column).data()) or ("")) for column, title in enumerate(titles)}
+		for row in range(model.rowCount())
 	]
 
 
-def noter(base: Connexion, horodatage: str, niveau: str, nature: str, message: str, references: dict[str, str]) -> None:
+def note(database: Connection, timestamp: str, level: str, kind: str, message: str, references: dict[str, str]) -> None:
 	"""Une entrée du log, comme l'écrit Machin player ; chaque référence par le nom de l'élément."""
 	ids = {
 		"sound": ("sounds", "title"),
 		"bank": ("banks", "internal_name"),
 		"event": ("events", "internal_name"),
 	}
-	valeurs = {cle: None for cle in ids}
-	for cle, (table, colonne) in ids.items():
-		if references.get(cle, "") != "":
-			valeurs[cle] = identifiant(base, table, colonne, references[cle])
-	base.execute(
+	values = {key: None for key in ids}
+	for key, (table, column) in ids.items():
+		if references.get(key, "") != "":
+			values[key] = identifier(database, table, column, references[key])
+	database.execute(
 		"INSERT INTO log (logged_at, level, kind, message, sound_id, bank_id, event_id)"
 		" VALUES (%s, %s, %s, %s, %s, %s, %s)",
 		(
-			datetime.fromisoformat(horodatage).astimezone(),
-			niveau,
-			nature,
+			datetime.fromisoformat(timestamp).astimezone(),
+			level,
+			kind,
 			message,
-			valeurs["sound"],
-			valeurs["bank"],
-			valeurs["event"],
+			values["sound"],
+			values["bank"],
+			values["event"],
 		),
 	)
 
@@ -61,57 +61,57 @@ def noter(base: Connexion, horodatage: str, niveau: str, nature: str, message: s
 
 
 @given("le log :")
-def log(base_vide: Connexion, datatable: list[list[str]]) -> None:
-	entetes, *rangees = datatable
-	for valeurs in rangees:
-		ligne = dict(zip((entete.strip() for entete in entetes), (v.strip() for v in valeurs), strict=True))
-		noter(base_vide, ligne["logged_at"], ligne["level"], ligne["kind"], ligne["message"], ligne)
+def log(empty_database: Connection, datatable: list[list[str]]) -> None:
+	headers, *rows = datatable
+	for values in rows:
+		line = dict(zip((header.strip() for header in headers), (v.strip() for v in values), strict=True))
+		note(empty_database, line["logged_at"], line["level"], line["kind"], line["message"], line)
 
 
 @given("le log est vide")
-def log_vide(base_vide: Connexion) -> None:
-	base_vide.execute("DELETE FROM log")
+def empty_log(empty_database: Connection) -> None:
+	empty_database.execute("DELETE FROM log")
 
 
-@given(parsers.parse("{nombre:d} alertes « {nature} » dans le log, une par minute depuis « {debut} »"))
-def alertes(base_vide: Connexion, nombre: int, nature: str, debut: str) -> None:
-	depart = datetime.fromisoformat(debut)
-	for rang in range(nombre):
-		noter(base_vide, (depart + timedelta(minutes=rang)).isoformat(), "warning", nature, f"n° {rang}", {})
+@given(parsers.parse("{count:d} alertes « {kind} » dans le log, une par minute depuis « {start} »"))
+def warnings(empty_database: Connection, count: int, kind: str, start: str) -> None:
+	departure = datetime.fromisoformat(start)
+	for rank in range(count):
+		note(empty_database, (departure + timedelta(minutes=rank)).isoformat(), "warning", kind, f"n° {rank}", {})
 
 
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when(parsers.parse("Machin player note l'incident « {nature} » à « {horodatage} »"))
-def incident(base_vide: Connexion, nature: str, horodatage: str) -> None:
-	noter(base_vide, horodatage, "incident", nature, "", {})
+@when(parsers.parse("Machin player note l'incident « {kind} » à « {timestamp} »"))
+def incident(empty_database: Connection, kind: str, timestamp: str) -> None:
+	note(empty_database, timestamp, "incident", kind, "", {})
 
 
-@when(parsers.re(r"je (?P<geste>coche|décoche) « Montrer aussi les informations »"))
-def informations(interface: Contexte, geste: str) -> None:
-	case = ecran(interface).ui.informations
-	assert case.isChecked() == (geste == "décoche")
-	case.click()
+@when(parsers.re(r"je (?P<gesture>coche|décoche) « Montrer aussi les informations »"))
+def information(interface: Context, gesture: str) -> None:
+	box = screen(interface).ui.information
+	assert box.isChecked() == (gesture == "décoche")
+	box.click()
 
 
-@when(parsers.parse("je tape « {texte} » dans le filtre des incidents"))
-def filtrer(interface: Contexte, qtbot: QtBot, texte: str) -> None:
-	taper(qtbot, ecran(interface).ui.filtre, texte)
+@when(parsers.parse("je tape « {text} » dans le filtre des incidents"))
+def apply_filter(interface: Context, qtbot: QtBot, text: str) -> None:
+	type_(qtbot, screen(interface).ui.filter_, text)
 
 
-@when(parsers.parse("j'ouvre la cellule « {cellule} » de l'entrée « {nature} »"))
-def ouvrir_cellule(interface: Contexte, qtbot: QtBot, cellule: str, nature: str) -> None:
-	table = ecran(interface).table
-	modele = table.model()
-	trouves = [
-		modele.index(rangee, colonne)
-		for rangee in range(modele.rowCount())
-		for colonne in range(modele.columnCount())
-		if (modele.index(rangee, 2).data() == nature) and (modele.index(rangee, colonne).data() == cellule)
+@when(parsers.parse("j'ouvre la cellule « {cell} » de l'entrée « {kind} »"))
+def open_cell(interface: Context, qtbot: QtBot, cell: str, kind: str) -> None:
+	table = screen(interface).table
+	model = table.model()
+	found_list = [
+		model.index(row, column)
+		for row in range(model.rowCount())
+		for column in range(model.columnCount())
+		if (model.index(row, 2).data() == kind) and (model.index(row, column).data() == cell)
 	]
-	assert len(trouves) == 1, trouves
-	index: QModelIndex = trouves[0]
+	assert len(found_list) == 1, found_list
+	index: QModelIndex = found_list[0]
 	table.scrollTo(index)
 	centre = table.visualRect(index).center()
 	qtbot.mouseClick(table.viewport(), Qt.MouseButton.LeftButton, pos=centre)
@@ -122,24 +122,24 @@ def ouvrir_cellule(interface: Contexte, qtbot: QtBot, cellule: str, nature: str)
 
 
 @then("la liste des incidents montre :")
-def montre(interface: Contexte, datatable: list[list[str]]) -> None:
-	entetes, *rangees = datatable
-	attendues = [
-		dict(zip((e.strip() for e in entetes), (v.strip() for v in valeurs), strict=True)) for valeurs in rangees
+def shows(interface: Context, datatable: list[list[str]]) -> None:
+	headers, *rows = datatable
+	expected_list = [
+		dict(zip((e.strip() for e in headers), (v.strip() for v in values), strict=True)) for values in rows
 	]
-	assert lignes(interface) == attendues
+	assert lines(interface) == expected_list
 
 
-@then(parsers.re(r"la liste des incidents montre les natures (?P<natures>.+)"))
-def natures(interface: Contexte, natures: str) -> None:
-	assert [ligne["Nature"] for ligne in lignes(interface)] == NOM.findall(natures)
+@then(parsers.re(r"la liste des incidents montre les natures (?P<kinds>.+)"))
+def kinds(interface: Context, kinds: str) -> None:
+	assert [line["Nature"] for line in lines(interface)] == NAME.findall(kinds)
 
 
-@then(parsers.parse("la liste des incidents commence par la nature « {nature} »"))
-def premiere(interface: Contexte, nature: str) -> None:
-	assert lignes(interface)[0]["Nature"] == nature
+@then(parsers.parse("la liste des incidents commence par la nature « {kind} »"))
+def first(interface: Context, kind: str) -> None:
+	assert lines(interface)[0]["Nature"] == kind
 
 
-@then(parsers.parse("le compte des incidents est « {texte} »"))
-def compte(interface: Contexte, texte: str) -> None:
-	assert ecran(interface).ui.compte.text() == texte
+@then(parsers.parse("le compte des incidents est « {text} »"))
+def count(interface: Context, text: str) -> None:
+	assert screen(interface).ui.count.text() == text

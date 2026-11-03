@@ -1,6 +1,6 @@
 """Scénarios de la purge de la base (https://github.com/dascritch/machincast/issues/268).
 
-Comme la maintenance (test_maintenance_base.py), la purge travaille sur la base de test, désignée comme base de
+Comme la maintenance (test_database_maintenance.py), la purge travaille sur la base de test, désignée comme base de
 production d'une configuration du scénario, modifiée après lecture : le chargement d'un fichier refuse une base de
 production égale à la base de test. Les dates des tableaux sont prises à midi, heure de Paris.
 """
@@ -21,22 +21,22 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast import purge
-from machincast.cli import creer_analyseur
-from machincast.configuration import REPERTOIRE_PROJET, Configuration
-from machincast.horloge import HorlogeFixe
-from tests.base_test import configuration_test
+from machincast.cli import create_analyser
+from machincast.clock import FixedClock
+from machincast.configuration import PROJECT_DIRECTORY, Configuration
+from tests.database_fixtures import configuration_test
 
 scenarios("purge.feature")
 
 PARIS = ZoneInfo("Europe/Paris")
-Connexion = psycopg.Connection[tuple[object, ...]]
+Connection = psycopg.Connection[tuple[object, ...]]
 
 
 @dataclasses.dataclass
 class Execution:
 	code: int = -1
-	informations: list[str] = dataclasses.field(default_factory=list)
-	erreurs: list[str] = dataclasses.field(default_factory=list)
+	information: list[str] = dataclasses.field(default_factory=list)
+	errors: list[str] = dataclasses.field(default_factory=list)
 
 
 @pytest.fixture
@@ -44,202 +44,205 @@ def execution() -> Execution:
 	return Execution()
 
 
-def _jour(date: str) -> datetime:
+def _day(date: str) -> datetime:
 	return datetime.fromisoformat(f"{date} 12:00:00").replace(tzinfo=PARIS)
 
 
-def _instant(texte: str) -> datetime:
-	return datetime.fromisoformat(texte).replace(tzinfo=PARIS)
+def _instant(text: str) -> datetime:
+	return datetime.fromisoformat(text).replace(tzinfo=PARIS)
 
 
 @given("une configuration dont la base de production est la base de test", target_fixture="configuration")
-def configuration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, base_vide: Connexion) -> Configuration:
+def configuration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, empty_database: Connection) -> Configuration:
 	monkeypatch.setenv("TZ", "Europe/Paris")
 	time.tzset()
-	lue = configuration_test()
-	base = dataclasses.replace(lue.base, production=lue.base.test)
-	return dataclasses.replace(lue, base=base, chemin=tmp_path / "machincast.toml")
+	fetched = configuration_test()
+	database = dataclasses.replace(fetched.database, production=fetched.database.test)
+	return dataclasses.replace(fetched, database=database, path=tmp_path / "machincast.toml")
 
 
 @given("une configuration dont la base de production est injoignable", target_fixture="configuration")
-def configuration_injoignable(configuration: Configuration, tmp_path: Path) -> Configuration:
-	base = dataclasses.replace(configuration.base, socket=tmp_path / "sans-postgresql")
-	return dataclasses.replace(configuration, base=base)
+def unreachable_configuration(configuration: Configuration, tmp_path: Path) -> Configuration:
+	database = dataclasses.replace(configuration.database, socket=tmp_path / "sans-postgresql")
+	return dataclasses.replace(configuration, database=database)
 
 
 @given(parsers.parse("l'horloge de la purge au « {instant} »"))
-def horloge(monkeypatch: pytest.MonkeyPatch, instant: str) -> None:
-	monkeypatch.setattr(purge, "HORLOGE", HorlogeFixe(_instant(instant)))
+def clock(monkeypatch: pytest.MonkeyPatch, instant: str) -> None:
+	monkeypatch.setattr(purge, "CLOCK", FixedClock(_instant(instant)))
 
 
-@given(parsers.parse("la durée de péremption de {jours:d} jours dans la configuration"), target_fixture="configuration")
-def peremption(configuration: Configuration, jours: int) -> Configuration:
-	return dataclasses.replace(configuration, base=dataclasses.replace(configuration.base, peremption=jours))
+@given(parsers.parse("la durée de péremption de {days:d} jours dans la configuration"), target_fixture="configuration")
+def retention(configuration: Configuration, days: int) -> Configuration:
+	return dataclasses.replace(configuration, database=dataclasses.replace(configuration.database, retention=days))
 
 
-def _passage(
-	connexion: Connexion,
-	titre: str,
-	debut: datetime,
-	fin: datetime,
-	sonore_id: object = None,
-	emplacement: str | None = None,
+def _play(
+	connection: Connection,
+	title: str,
+	start: datetime,
+	end: datetime,
+	id_sound: object = None,
+	location: str | None = None,
 ) -> None:
-	passage = uuid.uuid4()
-	connexion.execute(
+	play = uuid.uuid4()
+	connection.execute(
 		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, location, title)"
 		" VALUES (%s, 'start', %s, %s, %s, %s)",
-		(passage, debut, sonore_id, emplacement, titre),
+		(play, start, id_sound, location, title),
 	)
-	connexion.execute(
+	connection.execute(
 		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, location, title, played_duration,"
 		" without_incident) VALUES (%s, 'end', %s, %s, %s, %s, %s, true)",
-		(passage, fin, sonore_id, emplacement, titre, fin - debut),
+		(play, end, id_sound, location, title, end - start),
 	)
 
 
 @given("les passages de l'airplay, et autant de lignes du log :")
-def passages_et_log(base_vide: Connexion, datatable: list[list[str]]) -> None:
-	_entete, *lignes = datatable
-	for date, titre in lignes:
-		moment = _jour(date)
-		_passage(base_vide, titre, moment.replace(minute=0), moment.replace(minute=3))
-		base_vide.execute(
+def plays_and_log(empty_database: Connection, datatable: list[list[str]]) -> None:
+	_header, *lines = datatable
+	for date, title in lines:
+		moment = _day(date)
+		_play(empty_database, title, moment.replace(minute=0), moment.replace(minute=3))
+		empty_database.execute(
 			"INSERT INTO log (logged_at, level, kind, message) VALUES (%s, 'warning', 'essai', %s)",
-			(moment, titre),
+			(moment, title),
 		)
 
 
-def _sonore(connexion: Connexion, nom: str, emplacement: str) -> object:
-	ligne = connexion.execute(
-		"INSERT INTO sounds (type, location, title) VALUES ('file', %s, %s) RETURNING id", (emplacement, nom)
+def _sound(connection: Connection, name: str, location: str) -> object:
+	line = connection.execute(
+		"INSERT INTO sounds (type, location, title) VALUES ('file', %s, %s) RETURNING id", (location, name)
 	).fetchone()
-	assert ligne is not None
-	return ligne[0]
+	assert line is not None
+	return line[0]
 
 
 @given("les éléments en base :")
-def elements(base_vide: Connexion, datatable: list[list[str]]) -> None:
-	_entete, *lignes = datatable
-	for genre, nom, supprime, disparu in lignes:
-		supprime_le = None
-		if supprime:
-			supprime_le = _jour(supprime)
-		if genre == "sonore":
-			identifiant = _sonore(base_vide, nom, f"/srv/{nom}.flac")
-			base_vide.execute("UPDATE sounds SET deleted_at = %s WHERE id = %s", (supprime_le, identifiant))
-			if disparu:
-				base_vide.execute(
-					"UPDATE sounds SET state = 'missing', missing_at = %s WHERE id = %s", (_jour(disparu), identifiant)
+def items(empty_database: Connection, datatable: list[list[str]]) -> None:
+	_header, *lines = datatable
+	for category, name, deleted, disappeared in lines:
+		deleted_at = None
+		if deleted:
+			deleted_at = _day(deleted)
+		if category == "sonore":
+			identifier = _sound(empty_database, name, f"/srv/{name}.flac")
+			empty_database.execute("UPDATE sounds SET deleted_at = %s WHERE id = %s", (deleted_at, identifier))
+			if disappeared:
+				empty_database.execute(
+					"UPDATE sounds SET state = 'missing', missing_at = %s WHERE id = %s",
+					(_day(disappeared), identifier),
 				)
-		elif genre == "banque":
-			base_vide.execute(
-				"INSERT INTO banks (internal_name, mode, deleted_at) VALUES (%s, 'sequential', %s)", (nom, supprime_le)
+		elif category == "banque":
+			empty_database.execute(
+				"INSERT INTO banks (internal_name, mode, deleted_at) VALUES (%s, 'sequential', %s)", (name, deleted_at)
 			)
-		elif genre == "séquence":
-			base_vide.execute("INSERT INTO sequences (internal_name, deleted_at) VALUES (%s, %s)", (nom, supprime_le))
+		elif category == "séquence":
+			empty_database.execute(
+				"INSERT INTO sequences (internal_name, deleted_at) VALUES (%s, %s)", (name, deleted_at)
+			)
 		else:
-			assert genre == "événement", genre
-			base_vide.execute(
+			assert category == "événement", category
+			empty_database.execute(
 				"INSERT INTO events (internal_name, priority, starts_at, deleted_at) VALUES (%s, 'show', %s, %s)",
-				(nom, _jour("2026-09-01"), supprime_le),
+				(name, _day("2026-09-01"), deleted_at),
 			)
 
 
-@given(parsers.parse("un passage du sonore « {titre} » le {date}"))
-def passage_du_sonore(base_vide: Connexion, titre: str, date: str) -> None:
-	ligne = base_vide.execute("SELECT id, location FROM sounds WHERE title = %s", (titre,)).fetchone()
-	assert ligne is not None
-	moment = _jour(date)
-	_passage(base_vide, titre, moment, moment.replace(minute=3), ligne[0], str(ligne[1]))
+@given(parsers.parse("un passage du sonore « {title} » le {date}"))
+def sound_play(empty_database: Connection, title: str, date: str) -> None:
+	line = empty_database.execute("SELECT id, location FROM sounds WHERE title = %s", (title,)).fetchone()
+	assert line is not None
+	moment = _day(date)
+	_play(empty_database, title, moment, moment.replace(minute=3), line[0], str(line[1]))
 
 
-@given(parsers.parse("un passage « {titre} », commencé le « {debut} » et fini le « {fin} »"))
-def passage_a_cheval(base_vide: Connexion, titre: str, debut: str, fin: str) -> None:
-	_passage(base_vide, titre, _instant(debut), _instant(fin))
+@given(parsers.parse("un passage « {title} », commencé le « {start} » et fini le « {end} »"))
+def play_to_straddling(empty_database: Connection, title: str, start: str, end: str) -> None:
+	_play(empty_database, title, _instant(start), _instant(end))
 
 
-@given(parsers.parse("le fichier sonore « {chemin} » du sonore « {titre} », supprimé le {date}"))
-def fichier_supprime(base_vide: Connexion, configuration: Configuration, chemin: str, titre: str, date: str) -> None:
-	fichier = Path(chemin.replace("…/", f"{configuration.chemin.parent}/"))
-	fichier.parent.mkdir(parents=True, exist_ok=True)
-	fichier.write_bytes(b"fLaC un vieux sonore")
-	identifiant = _sonore(base_vide, titre, str(fichier))
-	base_vide.execute("UPDATE sounds SET deleted_at = %s WHERE id = %s", (_jour(date), identifiant))
+@given(parsers.parse("le fichier sonore « {path} » du sonore « {title} », supprimé le {date}"))
+def deleted_file(empty_database: Connection, configuration: Configuration, path: str, title: str, date: str) -> None:
+	file = Path(path.replace("…/", f"{configuration.path.parent}/"))
+	file.parent.mkdir(parents=True, exist_ok=True)
+	file.write_bytes(b"fLaC un vieux sonore")
+	identifier = _sound(empty_database, title, str(file))
+	empty_database.execute("UPDATE sounds SET deleted_at = %s WHERE id = %s", (_day(date), identifier))
 
 
 @given(parsers.parse("le feed « {feed} », suivi par le stream « {stream} », supprimé le {date}"))
-def feed_et_stream(base_vide: Connexion, feed: str, stream: str, date: str) -> None:
-	base_vide.execute("INSERT INTO feeds (name, url) VALUES (%s, 'http://localhost:8000/direct')", (feed,))
-	base_vide.execute(
+def feed_and_stream(empty_database: Connection, feed: str, stream: str, date: str) -> None:
+	empty_database.execute("INSERT INTO feeds (name, url) VALUES (%s, 'http://localhost:8000/direct')", (feed,))
+	empty_database.execute(
 		"INSERT INTO sounds (type, feed_id, title, deleted_at) SELECT 'stream', id, %s, %s FROM feeds WHERE name = %s",
-		(stream, _jour(date), feed),
+		(stream, _day(date), feed),
 	)
 
 
-@when(parsers.parse("je lance « {commande} »"))
-def lancer(configuration: Configuration, execution: Execution, caplog: pytest.LogCaptureFixture, commande: str) -> None:
-	_machin, _binaire, *arguments = commande.split()
-	analyseur = creer_analyseur(purge.EXECUTABLE, purge.DESCRIPTION)
-	options = analyseur.parse_args(arguments)
+@when(parsers.parse("je lance « {command} »"))
+def launch(configuration: Configuration, execution: Execution, caplog: pytest.LogCaptureFixture, command: str) -> None:
+	_machin, _binary, *arguments = command.split()
+	analyser = create_analyser(purge.EXECUTABLE, purge.DESCRIPTION)
+	options = analyser.parse_args(arguments)
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"):
-		execution.code = purge.executer(configuration, options)
-	execution.informations = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
-	execution.erreurs = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
+		execution.code = purge.run(configuration, options)
+	execution.information = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+	execution.errors = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
 
 
 @then(parsers.parse("la purge se termine avec le code {code:d}"))
-def code_de_sortie(execution: Execution, code: int) -> None:
-	assert execution.code == code, (execution.informations, execution.erreurs)
+def output_code(execution: Execution, code: int) -> None:
+	assert execution.code == code, (execution.information, execution.errors)
 
 
-@then(parsers.parse("la purge a annoncé « {texte} »"))
-def annonce(execution: Execution, texte: str) -> None:
-	assert texte in execution.informations, execution.informations
+@then(parsers.parse("la purge a annoncé « {text} »"))
+def announces(execution: Execution, text: str) -> None:
+	assert text in execution.information, execution.information
 
 
 @then("la purge n'a rien signalé")
-def rien_signale(execution: Execution) -> None:
-	assert execution.erreurs == []
+def reported_nothing(execution: Execution) -> None:
+	assert execution.errors == []
 
 
 @then("la purge a signalé une base de données injoignable")
-def injoignable(execution: Execution) -> None:
-	assert any(erreur.startswith("base de données injoignable") for erreur in execution.erreurs), execution.erreurs
+def unreachable(execution: Execution) -> None:
+	assert any(error.startswith("base de données injoignable") for error in execution.errors), execution.errors
 
 
-def _liste(texte: str) -> list[str]:
-	return sorted(nom.strip().strip("«»").strip() for nom in texte.split(","))
+def _list(text: str) -> list[str]:
+	return sorted(name.strip().strip("«»").strip() for name in text.split(","))
 
 
-@then(parsers.parse("l'airplay garde les passages « {titres} »"))
-def airplay_garde(base_vide: Connexion, titres: str) -> None:
-	lignes = base_vide.execute("SELECT DISTINCT title FROM airplay ORDER BY title").fetchall()
-	assert [titre for (titre,) in lignes] == _liste(titres)
+@then(parsers.parse("l'airplay garde les passages « {titles} »"))
+def kept_airplay(empty_database: Connection, titles: str) -> None:
+	lines = empty_database.execute("SELECT DISTINCT title FROM airplay ORDER BY title").fetchall()
+	assert [title for (title,) in lines] == _list(titles)
 
 
-@then(parsers.parse("l'airplay garde le début et la fin du passage « {titre} »"))
-def airplay_entier(base_vide: Connexion, titre: str) -> None:
-	lignes = base_vide.execute(
-		"SELECT line_type::text AS genre FROM airplay WHERE title = %s ORDER BY line_type", (titre,)
+@then(parsers.parse("l'airplay garde le début et la fin du passage « {title} »"))
+def integer_airplay(empty_database: Connection, title: str) -> None:
+	lines = empty_database.execute(
+		"SELECT line_type::text AS genre FROM airplay WHERE title = %s ORDER BY line_type", (title,)
 	).fetchall()
-	assert lignes == [("start",), ("end",)]
+	assert lines == [("start",), ("end",)]
 
 
-@then(parsers.parse("l'airplay garde le passage « {titre} », à l'emplacement « {emplacement} », sans sonore en base"))
-def airplay_sans_sonore(base_vide: Connexion, titre: str, emplacement: str) -> None:
-	lignes = base_vide.execute("SELECT title, location, sound_id FROM airplay").fetchall()
-	assert lignes == [(titre, emplacement, None), (titre, emplacement, None)]
-	assert base_vide.execute("SELECT count(*) FROM sounds").fetchone() == (0,)
+@then(parsers.parse("l'airplay garde le passage « {title} », à l'emplacement « {location} », sans sonore en base"))
+def airplay_without_sound(empty_database: Connection, title: str, location: str) -> None:
+	lines = empty_database.execute("SELECT title, location, sound_id FROM airplay").fetchall()
+	assert lines == [(title, location, None), (title, location, None)]
+	assert empty_database.execute("SELECT count(*) FROM sounds").fetchone() == (0,)
 
 
 @then(parsers.parse("le log garde ses lignes du {date}, et une ligne « purge » qui reprend l'annonce"))
-def log_garde(base_vide: Connexion, execution: Execution, date: str) -> None:
-	lignes = base_vide.execute("SELECT logged_at, level::text, kind, message FROM log ORDER BY id").fetchall()
-	gardee, purgee = lignes
-	assert gardee[0] == _jour(date)
-	assert purgee[1:] == ("info", "purge", execution.informations[-1])
+def kept_log(empty_database: Connection, execution: Execution, date: str) -> None:
+	lines = empty_database.execute("SELECT logged_at, level::text, kind, message FROM log ORDER BY id").fetchall()
+	kept, purged = lines
+	assert kept[0] == _day(date)
+	assert purged[1:] == ("info", "purge", execution.information[-1])
 
 
 TABLES = {
@@ -249,49 +252,49 @@ TABLES = {
 }
 
 
-@then(parsers.parse("en base restent les {genre} « {noms} »"))
-def restent(base_vide: Connexion, genre: str, noms: str) -> None:
-	table, colonne = TABLES[genre]
-	lignes = base_vide.execute(f"SELECT {colonne} FROM {table} ORDER BY {colonne}").fetchall()  # noqa: S608
-	assert [nom for (nom,) in lignes] == _liste(noms)
+@then(parsers.parse("en base restent les {category} « {names} »"))
+def remain(empty_database: Connection, category: str, names: str) -> None:
+	table, column = TABLES[category]
+	lines = empty_database.execute(f"SELECT {column} FROM {table} ORDER BY {column}").fetchall()  # noqa: S608
+	assert [name for (name,) in lines] == _list(names)
 
 
 @then(parsers.parse("en base ne reste aucune séquence"))
-def aucune_sequence(base_vide: Connexion) -> None:
-	assert base_vide.execute("SELECT count(*) FROM sequences").fetchone() == (0,)
+def no_sequence(empty_database: Connection) -> None:
+	assert empty_database.execute("SELECT count(*) FROM sequences").fetchone() == (0,)
 
 
 @then("en base ne reste aucun sonore")
-def aucun_sonore(base_vide: Connexion) -> None:
-	assert base_vide.execute("SELECT count(*) FROM sounds").fetchone() == (0,)
+def no_sound(empty_database: Connection) -> None:
+	assert empty_database.execute("SELECT count(*) FROM sounds").fetchone() == (0,)
 
 
-@then(parsers.parse("le fichier « {chemin} » est toujours là, intact"))
-def fichier_intact(configuration: Configuration, chemin: str) -> None:
-	fichier = Path(chemin.replace("…/", f"{configuration.chemin.parent}/"))
-	assert fichier.read_bytes() == b"fLaC un vieux sonore"
+@then(parsers.parse("le fichier « {path} » est toujours là, intact"))
+def intact_file(configuration: Configuration, path: str) -> None:
+	file = Path(path.replace("…/", f"{configuration.path.parent}/"))
+	assert file.read_bytes() == b"fLaC un vieux sonore"
 
 
 @then(parsers.parse("aucun stream ne suit plus le feed « {feed} », qui peut se supprimer"))
-def feed_libre(base_vide: Connexion, feed: str) -> None:
-	assert base_vide.execute("SELECT count(*) FROM sounds").fetchone() == (0,)
-	base_vide.execute("DELETE FROM feeds WHERE name = %s", (feed,))
+def free_feed(empty_database: Connection, feed: str) -> None:
+	assert empty_database.execute("SELECT count(*) FROM sounds").fetchone() == (0,)
+	empty_database.execute("DELETE FROM feeds WHERE name = %s", (feed,))
 
 
-@then(parsers.re(r"les sessions sautées de « (?P<nom>[^»]+) » sont (?P<jours>«.+)"))
-def sessions_sautees(base_vide: Connexion, nom: str, jours: str) -> None:
-	lignes = base_vide.execute(
+@then(parsers.re(r"les sessions sautées de « (?P<name>[^»]+) » sont (?P<days>«.+)"))
+def skipped_sessions(empty_database: Connection, name: str, days: str) -> None:
+	lines = empty_database.execute(
 		"SELECT s.day FROM event_skips s JOIN events e ON e.id = s.event_id WHERE e.internal_name = %s ORDER BY s.day",
-		(nom,),
+		(name,),
 	).fetchall()
-	assert [str(jour) for (jour,) in lignes] == re.findall(r"« ([^»]+) »", jours)
+	assert [str(day) for (day,) in lines] == re.findall(r"« ([^»]+) »", days)
 
 
-@then(parsers.parse("« {binaire} » est un binaire du wrapper, déclaré dans pyproject.toml"))
-def binaire_du_wrapper(binaire: str) -> None:
-	scripts = tomllib.loads((REPERTOIRE_PROJET / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
-	assert scripts[f"Machin_{binaire}"] == "machincast.purge:main"
-	sortie = subprocess.run(
-		[str(REPERTOIRE_PROJET / "bin" / "Machin"), "--binaries"], capture_output=True, text=True, timeout=30
+@then(parsers.parse("« {binary} » est un binaire du wrapper, déclaré dans pyproject.toml"))
+def wrapper_binary(binary: str) -> None:
+	scripts = tomllib.loads((PROJECT_DIRECTORY / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
+	assert scripts[f"Machin_{binary}"] == "machincast.purge:main"
+	output = subprocess.run(
+		[str(PROJECT_DIRECTORY / "bin" / "Machin"), "--binaries"], capture_output=True, text=True, timeout=30
 	)
-	assert binaire in sortie.stdout.split(), sortie.stdout
+	assert binary in output.stdout.split(), output.stdout

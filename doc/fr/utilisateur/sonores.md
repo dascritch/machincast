@@ -66,13 +66,13 @@ Quand un fichier est sain, ses tags remplissent sa fiche :
 | --- | --- | --- |
 | Artiste | `artist` | artiste |
 | Titre | `title` | titre |
-| Année | `annee` | année de sortie |
+| Année | `year` | année de sortie |
 | Album | `album` | album |
-| Artiste de l'album | `artiste_album` | artiste de l'album |
+| Artiste de l'album | `album_artist` | artiste de l'album |
 | Genre | `genre` | genre |
-| Compositeur | `compositeur` | compositeur |
+| Compositeur | `composer` | compositeur |
 | Label | `label` | organisation ou éditeur |
-| Piste | `piste` | numéro de piste |
+| Piste | `track` | numéro de piste |
 
 Les champs suivent les tags du fichier : un tag retiré vide le champ à la vérification suivante. **Un champ modifié à la main dans la fiche n'est plus jamais écrasé** par les tags.
 

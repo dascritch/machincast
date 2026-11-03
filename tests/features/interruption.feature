@@ -403,7 +403,7 @@ Fonctionnalité: Interruption manuelle de l'antenne
 		Et la socket d'état dans un répertoire temporaire
 		Quand la diffusion démarre sur un moteur simulé
 		Et la diffusion avance de 10 secondes
-		Et un client de la socket d'état demande « {"commande": "interrompre", "element": "sonore"} »
+		Et un client de la socket d'état demande « {"command": "interrupt", "item": "sound"} »
 		Et la diffusion avance de 5 secondes
 		Et la diffusion s'arrête
 		Alors l'airplay montre les passages « f1 », « f2 »
@@ -424,11 +424,11 @@ Fonctionnalité: Interruption manuelle de l'antenne
 		Exemples:
 			| demande                                          |
 			| pas du JSON                                      |
-			| {"commande": "arreter"}                          |
-			| {"commande": "arreter", "element": "sonore"}     |
-			| {"commande": "interrompre", "element": "banque"} |
+			| {"command": "stop"}                          |
+			| {"command": "stop", "item": "sound"}     |
+			| {"command": "interrupt", "item": "bank"} |
 			| [1, 2]                                           |
-			| {"commande": "relire_la_grille", "element": "x"} |
-			| {"commande": "avancer"}                          |
-			| {"commande": "avancer", "evenement": "Journal"}  |
-			| {"commande": "avancer", "evenement": true}       |
+			| {"command": "reread_grid", "item": "x"} |
+			| {"command": "advance"}                          |
+			| {"command": "advance", "event": "Journal"}  |
+			| {"command": "advance", "event": true}       |

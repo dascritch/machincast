@@ -1,7 +1,7 @@
 """Étapes de la diffusion des streams (https://github.com/dascritch/machincast/issues/16).
 
 Les étapes communes aux scénarios de la diffusion, dont le serveur de flux local (tests/flux.py), sont dans
-tests/etapes_diffusion.py.
+tests/broadcast_steps.py.
 """
 
 import os
@@ -13,10 +13,10 @@ from pathlib import Path
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast.lecture import moteur
-from tests.etapes_diffusion import Banc, Connexion, creer_sonore, heure, passages, sonore, sonores_de
-from tests.flux import ServeurDeFlux
-from tests.sons import TAGS_DE_TEST
+from machincast.player import engine
+from tests.broadcast_steps import Bench, Connection, create_sound, hour, plays, sound, sounds_of
+from tests.sounds import TEST_TAGS
+from tests.stream import StreamServer
 
 scenarios("streams.feature")
 
@@ -24,246 +24,244 @@ scenarios("streams.feature")
 # ─── Étant donné ───────────────────────────────────────────
 
 
-@given(parsers.parse("le flux « {flux} » est hors ligne"))
-def flux_hors_ligne(serveur: ServeurDeFlux, flux: str) -> None:
-	serveur.en_ligne[flux] = False
+@given(parsers.parse("le flux « {stream} » est hors ligne"))
+def stream_outside_line(server: StreamServer, stream: str) -> None:
+	server.in_line[stream] = False
 
 
-@given(parsers.parse("le stream « {nom} » sur le feed « {feed} » du flux « {flux} »"))
-def stream_feed(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, feed: str, flux: str) -> None:
-	cree = base_vide.execute(
+@given(parsers.parse("le stream « {name} » sur le feed « {feed} » du flux « {stream} »"))
+def stream_feed(server: StreamServer, empty_database: Connection, name: str, feed: str, stream: str) -> None:
+	created = empty_database.execute(
 		"INSERT INTO feeds (name, url) VALUES (%s, %s) RETURNING id",
-		(feed, serveur.adresse(flux)),
+		(feed, server.address(stream)),
 	).fetchone()
-	assert cree is not None
-	base_vide.execute("INSERT INTO sounds (type, feed_id, title) VALUES ('stream', %s, %s)", (cree[0], nom))
+	assert created is not None
+	empty_database.execute("INSERT INTO sounds (type, feed_id, title) VALUES ('stream', %s, %s)", (created[0], name))
 
 
 @given(
 	parsers.re(
-		r"l'émission « (?P<nom>[^»]+) » de (?P<debut>[\d:]+) à (?P<fin>[\d:]+), avec la séquence des sonores"
-		r" « (?P<avant>[^»]+) », « (?P<stream>[^»]+) », « (?P<apres>[^»]+) »"
+		r"l'émission « (?P<name>[^»]+) » de (?P<start>[\d:]+) à (?P<end>[\d:]+), avec la séquence des sonores"
+		r" « (?P<before>[^»]+) », « (?P<stream>[^»]+) », « (?P<after>[^»]+) »"
 	)
 )
-def emission_avec_sequence(
-	banc: Banc,
-	base_vide: Connexion,
+def show_with_sequence(
+	bench: Bench,
+	empty_database: Connection,
 	tmp_path: Path,
-	nom: str,
-	debut: str,
-	fin: str,
-	avant: str,
+	name: str,
+	start: str,
+	end: str,
+	before: str,
 	stream: str,
-	apres: str,
+	after: str,
 ) -> None:
 	"""Le stream existe déjà ; les deux autres sonores sont créés."""
-	sequence = base_vide.execute(
-		"INSERT INTO sequences (internal_name) VALUES (%s) RETURNING id", (f"Séquence de {nom}",)
+	sequence = empty_database.execute(
+		"INSERT INTO sequences (internal_name) VALUES (%s) RETURNING id", (f"Séquence de {name}",)
 	).fetchone()
-	evenement = base_vide.execute(
+	event = empty_database.execute(
 		"INSERT INTO events (internal_name, priority, starts_at, ends_at) VALUES (%s, 'show', %s, %s) RETURNING id",
-		(nom, heure(f"2026-10-14 {debut}"), heure(f"2026-10-14 {fin}")),
+		(name, hour(f"2026-10-14 {start}"), hour(f"2026-10-14 {end}")),
 	).fetchone()
-	assert (sequence is not None) and (evenement is not None)
-	identifiants = (
-		creer_sonore(banc, base_vide, tmp_path, avant),
-		sonore(base_vide, stream),
-		creer_sonore(banc, base_vide, tmp_path, apres),
+	assert (sequence is not None) and (event is not None)
+	identifiers = (
+		create_sound(bench, empty_database, tmp_path, before),
+		sound(empty_database, stream),
+		create_sound(bench, empty_database, tmp_path, after),
 	)
-	for position, identifiant in enumerate(identifiants, start=1):
-		base_vide.execute(
+	for position, identifier in enumerate(identifiers, start=1):
+		empty_database.execute(
 			"INSERT INTO sequence_items (sequence_id, position, sound_id) VALUES (%s, %s, %s)",
-			(sequence[0], position, identifiant),
+			(sequence[0], position, identifier),
 		)
-	base_vide.execute(
+	empty_database.execute(
 		"INSERT INTO event_items (event_id, position, sequence_id) VALUES (%s, 1, %s)",
-		(evenement[0], sequence[0]),
+		(event[0], sequence[0]),
 	)
 
 
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when(parsers.parse("le flux « {flux} » tombe"))
-def flux_tombe(serveur: ServeurDeFlux, flux: str) -> None:
-	serveur.en_ligne[flux] = False
+@when(parsers.parse("le flux « {stream} » tombe"))
+def dropped_stream(server: StreamServer, stream: str) -> None:
+	server.in_line[stream] = False
 
 
 @given("un délai de garde de 2 secondes, et un lecteur qui ne signale pas un flux muet")
-def garde_courte(monkeypatch: pytest.MonkeyPatch) -> None:
+def keeps_short(monkeypatch: pytest.MonkeyPatch) -> None:
 	"""Le délai de connexion de la source HTTP, d'ordinaire le délai de garde, n'expire plus : comme libsoup en HTTP/2
 	(https://github.com/dascritch/machincast/issues/278), seule la garde voit le flux gelé."""
-	monkeypatch.setattr(moteur, "DELAI_DE_GARDE", timedelta(seconds=2))
-	monkeypatch.setattr(moteur, "DELAI_CONNEXION_SECONDES", 3600)
+	monkeypatch.setattr(engine, "GUARD_DELAY", timedelta(seconds=2))
+	monkeypatch.setattr(engine, "CONNECTION_DELAY_SECONDS", 3600)
 
 
-@when(parsers.parse("le flux « {flux} » gèle, sans fermer sa connexion"))
-def flux_gele(serveur: ServeurDeFlux, flux: str) -> None:
+@when(parsers.parse("le flux « {stream} » gèle, sans fermer sa connexion"))
+def frozen_stream(server: StreamServer, stream: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/278 : comme un réseau coupé."""
-	serveur.geles.add(flux)
+	server.frozen_list.add(stream)
 
 
-@when(parsers.parse("le flux « {flux} » dégèle"))
-def flux_degele(serveur: ServeurDeFlux, flux: str) -> None:
-	serveur.geles.discard(flux)
+@when(parsers.parse("le flux « {stream} » dégèle"))
+def thawed_stream(server: StreamServer, stream: str) -> None:
+	server.frozen_list.discard(stream)
 
 
-@when(parsers.re(r"le flux « (?P<flux>[^»]+) » (?P<quoi>devient muet, sa connexion ouverte|retrouve son son)"))
-def flux_muet(serveur: ServeurDeFlux, flux: str, quoi: str) -> None:
+@when(parsers.re(r"le flux « (?P<stream>[^»]+) » (?P<what>devient muet, sa connexion ouverte|retrouve son son)"))
+def silent_stream(server: StreamServer, stream: str, what: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/122"""
-	if quoi == "retrouve son son":
-		serveur.muets.discard(flux)
+	if what == "retrouve son son":
+		server.silent_list.discard(stream)
 	else:
-		serveur.muets.add(flux)
+		server.silent_list.add(stream)
 
 
-@then(parsers.parse("la voie du flux « {flux} » est muette"))
-def voie_muette(banc: Banc, serveur: ServeurDeFlux, flux: str) -> None:
+@then(parsers.parse("la voie du flux « {stream} » est muette"))
+def silent_track(bench: Bench, server: StreamServer, stream: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/122 : la voie gardée pour la reprise ne s'entend pas."""
-	assert banc.moteur is not None
-	voie = banc.moteur.jouees[serveur.adresse(flux)]
-	assert (voie.etat == "en cours") and (voie.volume_a(voie.position()) == 0.0), (
-		voie.etat,
-		voie.volume_a(voie.position()),
+	assert bench.engine is not None
+	track = bench.engine.played_list[server.address(stream)]
+	assert (track.state == "en cours") and (track.volume_to(track.position()) == 0.0), (
+		track.state,
+		track.volume_to(track.position()),
 	)
 
 
 @then(parsers.parse("le serveur de flux n'a reçu qu'une connexion"))
-def une_connexion(serveur: ServeurDeFlux) -> None:
-	assert serveur.recues == 1, serveur.recues
+def a_connection(server: StreamServer) -> None:
+	assert server.received_list == 1, server.received_list
 
 
-@when(parsers.parse("le flux « {flux} » revient"))
-def flux_revient(serveur: ServeurDeFlux, flux: str) -> None:
-	serveur.en_ligne[flux] = True
+@when(parsers.parse("le flux « {stream} » revient"))
+def stream_comes_back(server: StreamServer, stream: str) -> None:
+	server.in_line[stream] = True
 
 
 # ─── Alors ─────────────────────────────────────────────────
 
 
-def emplacements(base: Connexion, nom: str) -> list[str]:
-	lignes = base.execute("SELECT DISTINCT location FROM airplay WHERE title = %s", (nom,)).fetchall()
-	return [str(ligne[0]) for ligne in lignes]
+def locations(database: Connection, name: str) -> list[str]:
+	lines = database.execute("SELECT DISTINCT location FROM airplay WHERE title = %s", (name,)).fetchall()
+	return [str(line[0]) for line in lines]
 
 
-@then(parsers.parse("le passage « {nom} » a pour emplacement l'adresse du flux « {flux} »"))
-def emplacement_du_flux(serveur: ServeurDeFlux, base_vide: Connexion, nom: str, flux: str) -> None:
-	assert emplacements(base_vide, nom) == [serveur.adresse(flux)]
+@then(parsers.parse("le passage « {name} » a pour emplacement l'adresse du flux « {stream} »"))
+def stream_location(server: StreamServer, empty_database: Connection, name: str, stream: str) -> None:
+	assert locations(empty_database, name) == [server.address(stream)]
 
 
 @then("aucun passage ne porte l'artiste ou le titre des tags du flux")
-def sans_tags_du_flux(base_vide: Connexion) -> None:
-	lignes = base_vide.execute("SELECT artist, title FROM airplay").fetchall()
-	assert lignes
-	for artiste, titre in lignes:
-		assert artiste is None, artiste
-		assert str(titre) not in TAGS_DE_TEST, titre
+def without_stream_tags(empty_database: Connection) -> None:
+	lines = empty_database.execute("SELECT artist, title FROM airplay").fetchall()
+	assert lines
+	for artist, title in lines:
+		assert artist is None, artist
+		assert str(title) not in TEST_TAGS, title
 
 
 @then(
 	parsers.re(
-		r"l'airplay montre « (?P<stream>[^»]+) », puis des sonores de « (?P<evenement>[^»]+) »,"
-		r" puis « (?P<stream_fin>[^»]+) »$"
+		r"l'airplay montre « (?P<stream>[^»]+) », puis des sonores de « (?P<event>[^»]+) »,"
+		r" puis « (?P<end_stream>[^»]+) »$"
 	)
 )
-def remplacement(
-	base_vide: Connexion, stream: str, evenement: str, stream_fin: str, noms: list[str] | None = None
+def replacement(
+	empty_database: Connection, stream: str, event: str, end_stream: str, names: list[str] | None = None
 ) -> None:
-	if noms is None:
-		noms = [p[0] for p in passages(base_vide)]
-	assert (len(noms) >= 3) and (noms[0] == stream) and (noms[-1] == stream_fin), noms
-	assert set(noms[1:-1]) <= sonores_de(base_vide, evenement), noms
+	if names is None:
+		names = [p[0] for p in plays(empty_database)]
+	assert (len(names) >= 3) and (names[0] == stream) and (names[-1] == end_stream), names
+	assert set(names[1:-1]) <= sounds_of(empty_database, event), names
 
 
 @then(
-	parsers.parse(
-		"l'airplay montre « {avant} », « {stream} », puis des sonores de « {evenement} », puis « {stream_fin} »"
-	)
+	parsers.parse("l'airplay montre « {before} », « {stream} », puis des sonores de « {event} », puis « {end_stream} »")
 )
-def remplacement_apres(base_vide: Connexion, avant: str, stream: str, evenement: str, stream_fin: str) -> None:
-	noms = [p[0] for p in passages(base_vide)]
-	assert noms[0] == avant, noms
-	remplacement(base_vide, stream, evenement, stream_fin, noms[1:])
+def replacement_after(empty_database: Connection, before: str, stream: str, event: str, end_stream: str) -> None:
+	names = [p[0] for p in plays(empty_database)]
+	assert names[0] == before, names
+	replacement(empty_database, stream, event, end_stream, names[1:])
 
 
-@then(parsers.re(r"l'airplay montre « (?P<stream>[^»]+) », puis des sonores de « (?P<evenement>[^»]+) »$"))
-def repli(base_vide: Connexion, stream: str, evenement: str) -> None:
-	noms = [p[0] for p in passages(base_vide)]
-	assert (len(noms) >= 2) and (noms[0] == stream), noms
-	assert set(noms[1:]) <= sonores_de(base_vide, evenement), noms
+@then(parsers.re(r"l'airplay montre « (?P<stream>[^»]+) », puis des sonores de « (?P<event>[^»]+) »$"))
+def fallback(empty_database: Connection, stream: str, event: str) -> None:
+	names = [p[0] for p in plays(empty_database)]
+	assert (len(names) >= 2) and (names[0] == stream), names
+	assert set(names[1:]) <= sounds_of(empty_database, event), names
 
 
-@then(parsers.parse("le premier passage « {nom} » a fini en incident"))
-def premier_en_incident(base_vide: Connexion, nom: str) -> None:
-	premier = next(p for p in passages(base_vide) if p[0] == nom)
-	assert (premier[2] is not None) and (premier[3] is False), premier
+@then(parsers.parse("le premier passage « {name} » a fini en incident"))
+def first_in_incident(empty_database: Connection, name: str) -> None:
+	first = next(p for p in plays(empty_database) if p[0] == name)
+	assert (first[2] is not None) and (first[3] is False), first
 
 
-@then(parsers.re(r"le sonore joué avant la reprise a fini (?P<quand>au début|après le début) de la reprise"))
-def fin_avant_reprise(base_vide: Connexion, quand: str) -> None:
-	lignes = passages(base_vide)
-	reprise = lignes[-1]
-	avant = lignes[-2]
-	assert avant[2] is not None, avant
-	if quand == "au début":
-		assert avant[2] == reprise[1], (avant, reprise)
+@then(parsers.re(r"le sonore joué avant la reprise a fini (?P<moment>au début|après le début) de la reprise"))
+def end_before_resumption(empty_database: Connection, moment: str) -> None:
+	lines = plays(empty_database)
+	resumption = lines[-1]
+	before = lines[-2]
+	assert before[2] is not None, before
+	if moment == "au début":
+		assert before[2] == resumption[1], (before, resumption)
 	else:
-		assert avant[2] > reprise[1], (avant, reprise)
+		assert before[2] > resumption[1], (before, resumption)
 
 
-@then(parsers.parse("l'airplay montre {nombre:d} passage « {nom} »"))
-def nombre_de_passages(base_vide: Connexion, nombre: int, nom: str) -> None:
-	assert [p[0] for p in passages(base_vide)].count(nom) == nombre, passages(base_vide)
+@then(parsers.parse("l'airplay montre {count:d} passage « {name} »"))
+def play_count(empty_database: Connection, count: int, name: str) -> None:
+	assert [p[0] for p in plays(empty_database)].count(name) == count, plays(empty_database)
 
 
 @then("le stream repris joue à plein volume")
-def stream_a_plein_volume(banc: Banc) -> None:
-	assert (banc.diffusion is not None) and (banc.diffusion.courant is not None)
-	courant = banc.diffusion.courant
-	assert courant.parametres.stream, courant
-	assert courant.voie.volume_a(courant.voie.position()) == pytest.approx(1.0)
+def stream_to_full_volume(bench: Bench) -> None:
+	assert (bench.broadcast is not None) and (bench.broadcast.current is not None)
+	current = bench.broadcast.current
+	assert current.parameters.stream, current
+	assert current.track.volume_to(current.track.position()) == pytest.approx(1.0)
 
 
-def lignes_du_log(base: Connexion, nature: str) -> list[tuple[int, str, str]]:
-	lignes = base.execute("SELECT id, level::text, message FROM log WHERE kind = %s ORDER BY id", (nature,)).fetchall()
-	return [(int(str(i)), str(n), str(m)) for i, n, m in lignes]
+def log_lines(database: Connection, kind: str) -> list[tuple[int, str, str]]:
+	lines = database.execute("SELECT id, level::text, message FROM log WHERE kind = %s ORDER BY id", (kind,)).fetchall()
+	return [(int(str(i)), str(n), str(m)) for i, n, m in lines]
 
 
-@then(parsers.parse("le log contient {nombre:d} incident « {nature} », qui donne l'adresse du flux « {flux} »"))
-def incident_du_flux(serveur: ServeurDeFlux, base_vide: Connexion, nombre: int, nature: str, flux: str) -> None:
-	lignes = lignes_du_log(base_vide, nature)
-	assert len(lignes) == nombre, lignes
-	assert all((niveau == "incident") and (serveur.adresse(flux) in message) for _, niveau, message in lignes), lignes
+@then(parsers.parse("le log contient {count:d} incident « {kind} », qui donne l'adresse du flux « {stream} »"))
+def stream_incident(server: StreamServer, empty_database: Connection, count: int, kind: str, stream: str) -> None:
+	lines = log_lines(empty_database, kind)
+	assert len(lines) == count, lines
+	assert all((level == "incident") and (server.address(stream) in message) for _, level, message in lines), lines
 
 
-@then(parsers.parse("l'incident « {nature} » dit « {texte} »"))
-def incident_dit(base_vide: Connexion, nature: str, texte: str) -> None:
-	assert all(texte in message for _, _, message in lignes_du_log(base_vide, nature)), lignes_du_log(base_vide, nature)
+@then(parsers.parse("l'incident « {kind} » dit « {text} »"))
+def incident_says(empty_database: Connection, kind: str, text: str) -> None:
+	assert all(text in message for _, _, message in log_lines(empty_database, kind)), log_lines(empty_database, kind)
 
 
-def soup_force_http1(environnement: dict[str, str]) -> str:
+def soup_forces_http1(environment: dict[str, str]) -> str:
 	"""Ce que vaut SOUP_FORCE_HTTP1 dans un programme de MachinCast, une fois le paquet chargé."""
-	commande = [sys.executable, "-c", "import os, machincast; print(os.environ.get('SOUP_FORCE_HTTP1'))"]
-	return subprocess.run(commande, env=environnement, capture_output=True, text=True, check=True).stdout.strip()
+	command = [sys.executable, "-c", "import os, machincast; print(os.environ.get('SOUP_FORCE_HTTP1'))"]
+	return subprocess.run(command, env=environment, capture_output=True, text=True, check=True).stdout.strip()
 
 
 @then("un programme de MachinCast demande HTTP/1.1 à libsoup")
 def http1() -> None:
-	environnement = {cle: valeur for cle, valeur in os.environ.items() if cle != "SOUP_FORCE_HTTP1"}
-	assert soup_force_http1(environnement) == "1"
+	environment = {key: value for key, value in os.environ.items() if key != "SOUP_FORCE_HTTP1"}
+	assert soup_forces_http1(environment) == "1"
 
 
-@then(parsers.parse("l'incident « {suivante} » suit l'incident « {premiere} »"))
-def ordre_des_incidents(base_vide: Connexion, suivante: str, premiere: str) -> None:
-	assert lignes_du_log(base_vide, premiere)[0][0] < lignes_du_log(base_vide, suivante)[0][0]
+@then(parsers.parse("l'incident « {following} » suit l'incident « {first} »"))
+def incident_order(empty_database: Connection, following: str, first: str) -> None:
+	assert log_lines(empty_database, first)[0][0] < log_lines(empty_database, following)[0][0]
 
 
-@then(parsers.parse("l'airplay montre des sonores de « {avant} », puis « {stream} », puis des sonores de « {apres} »"))
-def coupure_par_le_feed(base_vide: Connexion, avant: str, stream: str, apres: str) -> None:
+@then(parsers.parse("l'airplay montre des sonores de « {before} », puis « {stream} », puis des sonores de « {after} »"))
+def cutoff_by_feed(empty_database: Connection, before: str, stream: str, after: str) -> None:
 	"""Le stream passe une seule fois, entre des sonores des événements (https://github.com/dascritch/machincast/issues/323)."""
-	noms = [p[0] for p in passages(base_vide)]
-	assert noms.count(stream) == 1, noms
-	rang = noms.index(stream)
-	assert 0 < rang < len(noms) - 1, noms
-	assert set(noms[:rang]) <= sonores_de(base_vide, avant), noms
-	assert set(noms[rang + 1 :]) <= sonores_de(base_vide, apres), noms
+	names = [p[0] for p in plays(empty_database)]
+	assert names.count(stream) == 1, names
+	rank = names.index(stream)
+	assert 0 < rank < len(names) - 1, names
+	assert set(names[:rank]) <= sounds_of(empty_database, before), names
+	assert set(names[rank + 1 :]) <= sounds_of(empty_database, after), names

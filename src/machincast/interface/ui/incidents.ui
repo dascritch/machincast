@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>EcranIncidents</class>
- <widget class="QWidget" name="EcranIncidents">
+ <class>IncidentScreen</class>
+ <widget class="QWidget" name="IncidentScreen">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -10,11 +10,11 @@
     <height>600</height>
    </rect>
   </property>
-  <layout class="QVBoxLayout" name="disposition">
+  <layout class="QVBoxLayout" name="arrangement">
    <item>
-    <layout class="QHBoxLayout" name="bandeau">
+    <layout class="QHBoxLayout" name="banner">
      <item>
-      <widget class="QLineEdit" name="filtre">
+      <widget class="QLineEdit" name="filter_">
        <property name="placeholderText">
         <string>Filtrer…</string>
        </property>
@@ -24,14 +24,14 @@
       </widget>
      </item>
      <item>
-      <widget class="QCheckBox" name="informations">
+      <widget class="QCheckBox" name="information">
        <property name="text">
         <string>Montrer aussi les informations</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="compte"/>
+      <widget class="QLabel" name="count"/>
      </item>
     </layout>
    </item>

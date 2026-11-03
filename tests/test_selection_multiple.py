@@ -1,7 +1,7 @@
 """Scénarios de la sélection multiple dans les listes des sonores et des banques
 (https://github.com/dascritch/machincast/issues/114).
 
-Les étapes de la fenêtre, des listes et des éléments en base sont dans tests/etapes_interface.py ; les fenêtres de
+Les étapes de la fenêtre, des listes et des éléments en base sont dans tests/interface_steps.py ; les fenêtres de
 dialogue y sont remplacées par les réponses du scénario.
 """
 
@@ -12,257 +12,261 @@ from PySide6.QtCore import QItemSelection, QItemSelectionModel, QModelIndex, Qt
 from PySide6.QtWidgets import QTreeWidgetItem
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast.interface.fiche_banque import COLONNE_ETAT, FicheBanque
-from machincast.interface.listes import Liste
-from tests.etapes_interface import NOM, Contexte, fenetre, identifiant, liste, titre_d_onglet
+from machincast.interface.bank_card import STATE_COLUMN, BankCard
+from machincast.interface.lists import List
+from tests.interface_steps import NAME, Context, identifier, list_, tab_title, window
 
 scenarios("selection_multiple.feature")
 
-Connexion = psycopg.Connection[tuple[object, ...]]
-MASQUAGES = {"masqués": True, "affichés": False, "hérité": None}
+Connection = psycopg.Connection[tuple[object, ...]]
+HIDINGS = {"masqués": True, "affichés": False, "hérité": None}
 """Valeurs de banks.hide_metadata, par leur nom dans les scénarios."""
 
 
-def index_de(ouverte: Liste, nom: str) -> QModelIndex:
+def index_of(opened: List, name: str) -> QModelIndex:
 	"""La première cellule de la ligne dont une cellule porte ce nom."""
-	modele = ouverte.table.model()
-	trouvees = [
-		modele.index(rangee, 0)
-		for rangee in range(modele.rowCount())
-		if any(modele.index(rangee, colonne).data() == nom for colonne in range(modele.columnCount()))
+	model = opened.table.model()
+	found_list = [
+		model.index(row, 0)
+		for row in range(model.rowCount())
+		if any(model.index(row, column).data() == name for column in range(model.columnCount()))
 	]
-	assert len(trouvees) == 1, nom
-	return trouvees[0]
+	assert len(found_list) == 1, name
+	return found_list[0]
 
 
-def menu(ouverte: Liste, index: QModelIndex) -> list[str]:
-	choix = ouverte.menu_de_la_ligne(index)
-	assert choix is not None
+def menu(opened: List, index: QModelIndex) -> list[str]:
+	choice = opened.line_menu(index)
+	assert choice is not None
 	# Les séparateurs ne sont pas des entrées.
-	return [action.text() for action in choix.actions() if not action.isSeparator()]
+	return [action.text() for action in choice.actions() if not action.isSeparator()]
 
 
-def declencher(ouverte: Liste, index: QModelIndex, texte: str) -> None:
-	choix = ouverte.menu_de_la_ligne(index)
-	assert choix is not None
-	(action,) = [action for action in choix.actions() if action.text() == texte]
+def trigger(opened: List, index: QModelIndex, text: str) -> None:
+	choice = opened.line_menu(index)
+	assert choice is not None
+	(action,) = [action for action in choice.actions() if action.text() == text]
 	action.trigger()
 
 
-def sonores_par_titre(base: Connexion, titres: str) -> list[int]:
-	return [identifiant(base, "sounds", "title", titre) for titre in NOM.findall(titres)]
+def sounds_by_title(database: Connection, titles: str) -> list[int]:
+	return [identifier(database, "sounds", "title", title) for title in NAME.findall(titles)]
 
 
 # ─── Étant donné ───────────────────────────────────────────
 
 
-@given(parsers.re(r"les banques choisies (?P<noms>aucune|«.+)"))
-def banques_choisies(interface: Contexte, base_vide: Connexion, noms: str) -> None:
-	interface.banques_choisies = [identifiant(base_vide, "banks", "internal_name", nom) for nom in NOM.findall(noms)]
+@given(parsers.re(r"les banques choisies (?P<names>aucune|«.+)"))
+def chosen_banks(interface: Context, empty_database: Connection, names: str) -> None:
+	interface.chosen_banks = [
+		identifier(empty_database, "banks", "internal_name", name) for name in NAME.findall(names)
+	]
 
 
 @given("les confirmations d'action refusées")
-def confirmations_refusees(interface: Contexte) -> None:
+def refused_confirmations(interface: Context) -> None:
 	interface.action = False
 
 
 @given(
 	parsers.re(
-		r"le masquage « (?P<premier>[^»]+) » de la banque « (?P<banque>[^»]+) » et « (?P<second>[^»]+) »"
-		r" de la banque « (?P<autre>[^»]+) »"
+		r"le masquage « (?P<first>[^»]+) » de la banque « (?P<bank>[^»]+) » et « (?P<second>[^»]+) »"
+		r" de la banque « (?P<other>[^»]+) »"
 	)
 )
-def masquages(base_vide: Connexion, premier: str, banque: str, second: str, autre: str) -> None:
-	for valeur, nom in ((premier, banque), (second, autre)):
-		base_vide.execute("UPDATE banks SET hide_metadata = %s WHERE internal_name = %s", (MASQUAGES[valeur], nom))
+def hidings(empty_database: Connection, first: str, bank: str, second: str, other: str) -> None:
+	for value, name in ((first, bank), (second, other)):
+		empty_database.execute("UPDATE banks SET hide_metadata = %s WHERE internal_name = %s", (HIDINGS[value], name))
 
 
 # ─── Quand ─────────────────────────────────────────────────
 
 
-@when(parsers.re(r"je sélectionne les lignes (?P<noms>«.+) de la liste"))
-def selectionner(interface: Contexte, noms: str) -> None:
-	ouverte = liste(interface)
+@when(parsers.re(r"je sélectionne les lignes (?P<names>«.+) de la liste"))
+def select(interface: Context, names: str) -> None:
+	opened = list_(interface)
 	selection = QItemSelection()
-	for nom in NOM.findall(noms):
-		index = index_de(ouverte, nom)
+	for name in NAME.findall(names):
+		index = index_of(opened, name)
 		selection.select(index, index)
-	ouverte.table.selectionModel().select(
+	opened.table.selectionModel().select(
 		selection, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows
 	)
 
 
-@when(parsers.parse("je choisis « {texte} » au clic droit sur la sélection"))
-def agir_sur_la_selection(interface: Contexte, texte: str) -> None:
-	ouverte = liste(interface)
-	(premiere, *_autres) = sorted(ouverte.table.selectionModel().selectedRows(), key=lambda index: index.row())
-	declencher(ouverte, premiere, texte)
+@when(parsers.parse("je choisis « {text} » au clic droit sur la sélection"))
+def act_on_selection(interface: Context, text: str) -> None:
+	opened = list_(interface)
+	(first, *_others) = sorted(opened.table.selectionModel().selectedRows(), key=lambda index: index.row())
+	trigger(opened, first, text)
 
 
-@when(parsers.parse("je choisis « {texte} » au clic droit sur la ligne « {nom} »"))
-def agir_sur_la_ligne(interface: Contexte, texte: str, nom: str) -> None:
-	ouverte = liste(interface)
-	declencher(ouverte, index_de(ouverte, nom), texte)
+@when(parsers.parse("je choisis « {text} » au clic droit sur la ligne « {name} »"))
+def act_on_line(interface: Context, text: str, name: str) -> None:
+	opened = list_(interface)
+	trigger(opened, index_of(opened, name), text)
 
 
 # ─── Alors ─────────────────────────────────────────────────
 
 
-@then(parsers.re(r"le clic droit sur la sélection propose (?P<textes>«.+)"))
-def menu_de_la_selection(interface: Contexte, textes: str) -> None:
-	ouverte = liste(interface)
-	(premiere, *_autres) = sorted(ouverte.table.selectionModel().selectedRows(), key=lambda index: index.row())
-	assert menu(ouverte, premiere) == NOM.findall(textes)
+@then(parsers.re(r"le clic droit sur la sélection propose (?P<texts>«.+)"))
+def selection_menu(interface: Context, texts: str) -> None:
+	opened = list_(interface)
+	(first, *_others) = sorted(opened.table.selectionModel().selectedRows(), key=lambda index: index.row())
+	assert menu(opened, first) == NAME.findall(texts)
 
 
-@then(parsers.parse("la dernière question, intitulée « {titre} », a dit « {texte} »"))
-def derniere_question(interface: Contexte, titre: str, texte: str) -> None:
-	assert interface.questions[-1] == f"action : {titre}\n{texte}", interface.questions
+@then(parsers.parse("la dernière question, intitulée « {title} », a dit « {text} »"))
+def last_question(interface: Context, title: str, text: str) -> None:
+	assert interface.questions[-1] == f"action : {title}\n{text}", interface.questions
 
 
-@then(parsers.parse("son bouton était « {bouton} »"))
-def bouton_de_la_question(interface: Contexte, bouton: str) -> None:
+@then(parsers.parse("son bouton était « {button} »"))
+def question_button(interface: Context, button: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/294"""
-	assert interface.boutons_d_action[-1] == bouton, interface.boutons_d_action
+	assert interface.action_buttons[-1] == button, interface.action_buttons
 
 
-@then(parsers.re(r"les sonores (?P<titres>«.+) sont à l'état « (?P<etat>[^»]+) » en base"))
-@then(parsers.re(r"le sonore (?P<titres>« [^»]+ ») est à l'état « (?P<etat>[^»]+) » en base"))
-def etats_en_base(base_vide: Connexion, titres: str, etat: str) -> None:
-	for sonore in sonores_par_titre(base_vide, titres):
-		assert base_vide.execute("SELECT state::text FROM sounds WHERE id = %s", (sonore,)).fetchone() == (etat,)
+@then(parsers.re(r"les sonores (?P<titles>«.+) sont à l'état « (?P<state>[^»]+) » en base"))
+@then(parsers.re(r"le sonore (?P<titles>« [^»]+ ») est à l'état « (?P<state>[^»]+) » en base"))
+def states_in_database(empty_database: Connection, titles: str, state: str) -> None:
+	for sound in sounds_by_title(empty_database, titles):
+		assert empty_database.execute("SELECT state::text FROM sounds WHERE id = %s", (sound,)).fetchone() == (state,)
 
 
-@then(parsers.re(r"la liste montre l'état « (?P<etat>[^»]+) » pour (?P<titres>«.+)"))
-def etats_montres(interface: Contexte, etat: str, titres: str) -> None:
-	ouverte = liste(interface)
-	modele = ouverte.table.model()
-	titres_des_colonnes = [modele.headerData(rang, Qt.Orientation.Horizontal) for rang in range(modele.columnCount())]
-	colonne = titres_des_colonnes.index("État")
-	for titre in NOM.findall(titres):
-		assert modele.index(index_de(ouverte, titre).row(), colonne).data() == etat, titre
+@then(parsers.re(r"la liste montre l'état « (?P<state>[^»]+) » pour (?P<titles>«.+)"))
+def shown_states(interface: Context, state: str, titles: str) -> None:
+	opened = list_(interface)
+	model = opened.table.model()
+	column_titles = [model.headerData(rank, Qt.Orientation.Horizontal) for rank in range(model.columnCount())]
+	column = column_titles.index("État")
+	for title in NAME.findall(titles):
+		assert model.index(index_of(opened, title).row(), column).data() == state, title
 
 
-@then(parsers.re(r"les sonores de la banque « (?P<nom>[^»]+) » sont, dans l'ordre, (?P<titres>aucun|«.+)"))
-def sonores_de_la_banque(base_vide: Connexion, nom: str, titres: str) -> None:
-	lus = base_vide.execute(
+@then(parsers.re(r"les sonores de la banque « (?P<name>[^»]+) » sont, dans l'ordre, (?P<titles>aucun|«.+)"))
+def bank_sounds(empty_database: Connection, name: str, titles: str) -> None:
+	fetched_list = empty_database.execute(
 		"SELECT s.title, bs.position FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
 		" JOIN banks b ON b.id = bs.bank_id WHERE b.internal_name = %s ORDER BY bs.position",
-		(nom,),
+		(name,),
 	).fetchall()
-	assert [str(titre) for titre, _position in lus] == NOM.findall(titres)
+	assert [str(title) for title, _position in fetched_list] == NAME.findall(titles)
 	# Les positions se suivent, sans trou.
-	assert [int(str(position)) for _titre, position in lus] == list(range(1, len(lus) + 1))
+	assert [int(str(position)) for _title, position in fetched_list] == list(range(1, len(fetched_list) + 1))
 
 
-@then(parsers.re(r"le choix des banques a proposé (?P<noms>«.+)"))
-def banques_proposees(interface: Contexte, base_vide: Connexion, noms: str) -> None:
-	(proposees,) = interface.banques_proposees
-	assert proposees is not None
-	assert proposees == [identifiant(base_vide, "banks", "internal_name", nom) for nom in NOM.findall(noms)]
+@then(parsers.re(r"le choix des banques a proposé (?P<names>«.+)"))
+def offered_banks(interface: Context, empty_database: Connection, names: str) -> None:
+	(offered_list,) = interface.offered_banks
+	assert offered_list is not None
+	assert offered_list == [identifier(empty_database, "banks", "internal_name", name) for name in NAME.findall(names)]
 
 
-@then(parsers.re(r"l'audit complet est demandé pour les sonores (?P<titres>«.+), et pas pour « (?P<autre>[^»]+) »"))
-def audits_demandes(base_vide: Connexion, titres: str, autre: str) -> None:
-	marques = [
-		str(titre)
-		for (titre,) in base_vide.execute('SELECT title FROM sounds WHERE audit_requested ORDER BY title COLLATE "C"')
+@then(parsers.re(r"l'audit complet est demandé pour les sonores (?P<titles>«.+), et pas pour « (?P<other>[^»]+) »"))
+def request_audits(empty_database: Connection, titles: str, other: str) -> None:
+	marks = [
+		str(title)
+		for (title,) in empty_database.execute(
+			'SELECT title FROM sounds WHERE audit_requested ORDER BY title COLLATE "C"'
+		)
 	]
-	assert marques == sorted(NOM.findall(titres))
-	assert autre not in marques
+	assert marks == sorted(NAME.findall(titles))
+	assert other not in marks
 
 
 @then(
 	parsers.re(
-		r"le masquage des banques (?P<noms>«.+) est « (?P<masquage>[^»]+) » en base,"
-		r" et celui de « (?P<autre>[^»]+) » « (?P<masquage_autre>[^»]+) »"
+		r"le masquage des banques (?P<names>«.+) est « (?P<hiding>[^»]+) » en base,"
+		r" et celui de « (?P<other>[^»]+) » « (?P<other_hiding>[^»]+) »"
 	)
 )
-def masquages_en_base(base_vide: Connexion, noms: str, masquage: str, autre: str, masquage_autre: str) -> None:
-	for nom, attendu in [(nom, masquage) for nom in NOM.findall(noms)] + [(autre, masquage_autre)]:
-		lu = base_vide.execute("SELECT hide_metadata FROM banks WHERE internal_name = %s", (nom,)).fetchone()
-		assert lu == (MASQUAGES[attendu],), nom
+def hidings_in_database(empty_database: Connection, names: str, hiding: str, other: str, other_hiding: str) -> None:
+	for name, expected in [(name, hiding) for name in NAME.findall(names)] + [(other, other_hiding)]:
+		lu = empty_database.execute("SELECT hide_metadata FROM banks WHERE internal_name = %s", (name,)).fetchone()
+		assert lu == (HIDINGS[expected],), name
 
 
-@then(parsers.re(r"les listes qui sélectionnent plusieurs lignes sont (?P<onglets>«.+)"))
-def listes_multiples(interface: Contexte, onglets: str) -> None:
-	ui = fenetre(interface).ui
-	multiples = sorted(
-		titre_d_onglet(ui.onglets, rangee)
-		for rangee in range(ui.onglets.count())
-		if (isinstance(ecran := ui.onglets.widget(rangee), Liste))
-		and (ecran.table.selectionMode() == ecran.table.SelectionMode.ExtendedSelection)
+@then(parsers.re(r"les listes qui sélectionnent plusieurs lignes sont (?P<tabs>«.+)"))
+def multiple_lists(interface: Context, tabs: str) -> None:
+	ui = window(interface).ui
+	multiple_list = sorted(
+		tab_title(ui.tabs, row)
+		for row in range(ui.tabs.count())
+		if (isinstance(screen := ui.tabs.widget(row), List))
+		and (screen.table.selectionMode() == screen.table.SelectionMode.ExtendedSelection)
 	)
-	assert multiples == NOM.findall(onglets)
+	assert multiple_list == NAME.findall(tabs)
 
 
 # ─── Fiche d'une banque ────────────────────────────────────
 
-ETAT_DE_SONORE = re.compile(r"« ([^»]+) » ([^,]+)")
+SOUND_STATE = re.compile(r"« ([^»]+) » ([^,]+)")
 """« Les Gaufres – Café à minuit » actif : le sonore de la fiche et son état affiché."""
 
 
-def fiche_de_banque(interface: Contexte) -> FicheBanque:
-	ouverte = fenetre(interface).ui.onglets.currentWidget()
-	assert isinstance(ouverte, FicheBanque), ouverte
-	return ouverte
+def bank_card(interface: Context) -> BankCard:
+	opened = window(interface).ui.tabs.currentWidget()
+	assert isinstance(opened, BankCard), opened
+	return opened
 
 
-def lignes_de_la_fiche(interface: Contexte) -> list[QTreeWidgetItem]:
-	sonores = fiche_de_banque(interface).ui.sonores
-	return [ligne for rangee in range(sonores.topLevelItemCount()) if (ligne := sonores.topLevelItem(rangee))]
+def card_lines(interface: Context) -> list[QTreeWidgetItem]:
+	sounds = bank_card(interface).ui.sounds
+	return [line for row in range(sounds.topLevelItemCount()) if (line := sounds.topLevelItem(row))]
 
 
-def ligne_de_la_fiche(interface: Contexte, nom: str) -> QTreeWidgetItem:
-	(ligne,) = [ligne for ligne in lignes_de_la_fiche(interface) if ligne.text(0) == nom]
-	return ligne
+def card_line(interface: Context, name: str) -> QTreeWidgetItem:
+	(line,) = [line for line in card_lines(interface) if line.text(0) == name]
+	return line
 
 
-def choisir_au_clic_droit(interface: Contexte, ligne: QTreeWidgetItem, texte: str) -> None:
-	menu = fiche_de_banque(interface).menu_des_sonores(ligne)
+def choose_to_right_click(interface: Context, line: QTreeWidgetItem, text: str) -> None:
+	menu = bank_card(interface).sound_menu(line)
 	assert menu is not None
-	(action,) = [action for action in menu.actions() if action.text() == texte]
+	(action,) = [action for action in menu.actions() if action.text() == text]
 	action.trigger()
 
 
-@when(parsers.re(r"je sélectionne les sonores (?P<noms>«.+) de la fiche"))
-def selectionner_dans_la_fiche(interface: Contexte, noms: str) -> None:
-	sonores = fiche_de_banque(interface).ui.sonores
-	sonores.clearSelection()
-	choisis = NOM.findall(noms)
-	sonores.setCurrentItem(ligne_de_la_fiche(interface, choisis[0]))
-	for nom in choisis:
-		ligne_de_la_fiche(interface, nom).setSelected(True)
+@when(parsers.re(r"je sélectionne les sonores (?P<names>«.+) de la fiche"))
+def select_in_card(interface: Context, names: str) -> None:
+	sounds = bank_card(interface).ui.sounds
+	sounds.clearSelection()
+	chosen_list = NAME.findall(names)
+	sounds.setCurrentItem(card_line(interface, chosen_list[0]))
+	for name in chosen_list:
+		card_line(interface, name).setSelected(True)
 
 
-@when(parsers.parse("je choisis « {texte} » au clic droit sur les sonores choisis de la fiche"))
-def etat_des_sonores_choisis(interface: Contexte, texte: str) -> None:
-	premiere = fiche_de_banque(interface).ui.sonores.selectedItems()[0]
-	choisir_au_clic_droit(interface, premiere, texte)
+@when(parsers.parse("je choisis « {text} » au clic droit sur les sonores choisis de la fiche"))
+def chosen_sound_state(interface: Context, text: str) -> None:
+	first = bank_card(interface).ui.sounds.selectedItems()[0]
+	choose_to_right_click(interface, first, text)
 
 
-@when(parsers.parse("je choisis « {texte} » au clic droit sur le sonore « {nom} » de la fiche"))
-def etat_d_un_sonore(interface: Contexte, texte: str, nom: str) -> None:
-	choisir_au_clic_droit(interface, ligne_de_la_fiche(interface, nom), texte)
+@when(parsers.parse("je choisis « {text} » au clic droit sur le sonore « {name} » de la fiche"))
+def sound_state(interface: Context, text: str, name: str) -> None:
+	choose_to_right_click(interface, card_line(interface, name), text)
 
 
-@then(parsers.re(r"les sonores de la fiche sont, avec leur état, (?P<sonores>aucun|«.+)"))
-def etats_de_la_fiche(interface: Contexte, sonores: str) -> None:
-	montres = [(ligne.text(0), ligne.text(COLONNE_ETAT)) for ligne in lignes_de_la_fiche(interface)]
-	assert montres == ETAT_DE_SONORE.findall(sonores)
+@then(parsers.re(r"les sonores de la fiche sont, avec leur état, (?P<sounds>aucun|«.+)"))
+def card_states(interface: Context, sounds: str) -> None:
+	shown_list = [(line.text(0), line.text(STATE_COLUMN)) for line in card_lines(interface)]
+	assert shown_list == SOUND_STATE.findall(sounds)
 
 
 @then("seul « ➖ Retirer le sonore » sert aux sonores choisis de la fiche")
-def seul_retirer(interface: Contexte) -> None:
-	ui = fiche_de_banque(interface).ui
-	assert [ui.retirer_sonore.isEnabled(), ui.monter.isEnabled(), ui.descendre.isEnabled()] == [True, False, False]
+def only_remove(interface: Context) -> None:
+	ui = bank_card(interface).ui
+	assert [ui.remove_sound.isEnabled(), ui.raise_.isEnabled(), ui.go_down.isEnabled()] == [True, False, False]
 
 
-@then(parsers.parse("l'avertissement de réintégration a dit « {texte} »"))
-def avertissement(interface: Contexte, texte: str) -> None:
-	assert interface.questions == [f"retrait : {texte}"]
+@then(parsers.parse("l'avertissement de réintégration a dit « {text} »"))
+def warning(interface: Context, text: str) -> None:
+	assert interface.questions == [f"retrait : {text}"]
 
 
-@when(parsers.parse("le sonore « {titre} » repasse en aperçu en base"))
-def repasse_en_apercu(base_vide: Connexion, titre: str) -> None:
-	base_vide.execute("UPDATE sounds SET state = 'preview' WHERE title = %s", (titre,))
+@when(parsers.parse("le sonore « {title} » repasse en aperçu en base"))
+def replays_in_preview(empty_database: Connection, title: str) -> None:
+	empty_database.execute("UPDATE sounds SET state = 'preview' WHERE title = %s", (title,))

@@ -5,9 +5,9 @@ Fonctionnalité: Menu général de l'interface
 	afin d'accéder rapidement aux fonctions de maintenance de l'interface.
 
 	https://github.com/dascritch/machincast/issues/117, spec § 8.11. La barre de menus a cinq menus : « Fichier »,
-	« Affichage » (rafraichissement.feature), « Diffusion » (pilotage.feature), « Maintenance » et « Aide ». Une fonction pas encore écrite a son entrée, inactive, dont l'infobulle donne le ticket
+	« Affichage » (rafraichissement.feature), « Diffusion » (control.feature), « Maintenance » et « Aide ». Une fonction pas encore écrite a son entrée, inactive, dont l'infobulle donne le ticket
 	qui l'apportera. « Version » donne la date du dernier commit du dépôt git d'où MachinCast est installé ; dans les
-	textes attendus, « <version> » est le numéro de version de MachinCast. L'indexation lancée depuis « Maintenance » a ses propres scénarios (indexation_interface.feature).
+	textes attendus, « <version> » est le numéro de version de MachinCast. L'indexation lancée depuis « Maintenance » a ses propres scénarios (interface_indexing.feature).
 
 	Contexte:
 		Étant donné le poste à l'heure de Paris

@@ -112,7 +112,7 @@ Fonctionnalité: Fichier de configuration
 		Et le message mentionne "alsa, pulseaudio, pipewire, dummy"
 
 	Scénario: La sortie audio factice est acceptée
-		Étant donné une configuration valide où la clé "audio.output" vaut "factice"
+		Étant donné une configuration valide où la clé "audio.output" vaut "dummy"
 		Quand je charge la configuration
 		Alors la configuration est chargée sans erreur
 
@@ -129,7 +129,7 @@ Fonctionnalité: Fichier de configuration
 
 	Plan du scénario: L'entrée « sortie factice » vaut pour l'antenne comme pour la pré-écoute (https://github.com/dascritch/machincast/issues/339)
 		Étant donné une configuration valide où la clé "audio.output" vaut "pipewire"
-		Et la clé "<cle>" vaut "factice"
+		Et la clé "<cle>" vaut "dummy"
 		Quand je charge la configuration
 		Alors la configuration est chargée sans erreur
 		Et l'antenne joue sur la sortie « <sortie> », <peripherique>
@@ -137,12 +137,12 @@ Fonctionnalité: Fichier de configuration
 
 		Exemples:
 			| cle               | sortie   | peripherique                   | preecoute  |
-			| audio.device | factice  | sans périphérique              | active     |
+			| audio.device | dummy    | sans périphérique              | active     |
 			| audio.preview    | pipewire | sur le périphérique « antenne » | désactivée |
 
 	Scénario: L'antenne et la pré-écoute ne sont pas toutes deux sur la sortie factice
-		Étant donné une configuration valide où la clé "audio.device" vaut "factice"
-		Et la clé "audio.preview" vaut "factice"
+		Étant donné une configuration valide où la clé "audio.device" vaut "dummy"
+		Et la clé "audio.preview" vaut "dummy"
 		Quand je charge la configuration
 		Alors le chargement échoue avec un message qui mentionne "audio.preview"
 
@@ -156,7 +156,7 @@ Fonctionnalité: Fichier de configuration
 		Et le fade-in se termine au début détecté, et le fade-out commence à la fin détectée
 
 	Scénario: La section [crossfades] donne la granularité, le maximum et les durées par défaut
-		Étant donné une configuration valide où la clé "crossfades.granularity" vaut "seconde"
+		Étant donné une configuration valide où la clé "crossfades.granularity" vaut "second"
 		Et la clé "crossfades.maximum" vaut 8
 		Et la clé "crossfades.start" vaut 1.5
 		Et la clé "crossfades.end" vaut 3
@@ -173,8 +173,8 @@ Fonctionnalité: Fichier de configuration
 	Scénario: La section [crossfades] donne la position des fondus par rapport aux silences détectés
 		https://github.com/dascritch/machincast/issues/234
 
-		Étant donné une configuration valide où la clé "crossfades.fade_in_position" vaut "en_cours"
-		Et la clé "crossfades.fade_out_position" vaut "termine"
+		Étant donné une configuration valide où la clé "crossfades.fade_in_position" vaut "ongoing"
+		Et la clé "crossfades.fade_out_position" vaut "ends"
 		Quand je charge la configuration
 		Alors le fade-in est en cours au début détecté, et le fade-out se termine à la fin détectée
 

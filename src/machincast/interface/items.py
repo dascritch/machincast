@@ -1,0 +1,381 @@
+"""Liste ordonnée des éléments d'une séquence ou d'un événement (https://github.com/dascritch/machincast/issues/112,
+https://github.com/dascritch/machincast/issues/32).
+
+Commune aux fiches d'une séquence (machincast.interface.sequence_card) et d'un événement
+(machincast.interface.event_card) :
+
+- les éléments sont des sonores et des banques, et des séquences dans un événement ; un même élément peut revenir.
+  Chaque ligne montre son genre, son nom (artiste et titre d'un sonore, le nom du fichier d'un sonore pas encore
+  décodé, le nom interne d'une banque ou d'une séquence) et un détail ;
+- ils se réordonnent par glisser-déposer, ou par « Monter » et « Descendre » ; une ligne ne se dépose pas dans une
+  autre. Ils s'ajoutent parmi ceux déjà en base (machincast.interface.choice), ou par dépôt de fichiers sonores
+  (machincast.interface.drop), toujours comme une copie ; un fichier pas encore en base devient un sonore à l'état
+  aperçu à l'enregistrement seulement. Dans un événement, un feed choisi ajoute le premier stream, par titre, qui
+  le suit ; sans stream qui le suive, un stream actif, titré du nom du feed, est créé à l'enregistrement, un
+  seul par feed (https://github.com/dascritch/machincast/issues/167) ;
+- une banque « ne pas répéter » appelée juste après elle-même est signalée : cet appel sera sauté à la diffusion
+  (machincast.player.rundown.ignored_calls_to_edges). Une séquence compte par la première et la dernière de ses
+  lignes, quand ce sont des banques ;
+- à l'enregistrement, une ligne restée dans la liste garde son identifiant en base, à sa nouvelle position :
+  l'historique de diffusion la désigne pour reprendre la liste. Un élément effacé de la base entre-temps est oublié.
+"""
+
+from dataclasses import dataclass
+from pathlib import Path
+
+from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtWidgets import QAbstractItemView, QMenu, QPushButton, QTreeWidget, QTreeWidgetItem
+
+from machincast.conversion import integer_or_none, text_or_none
+from machincast.interface import dialogs, display
+from machincast.interface.card import Card, sound_files
+from machincast.interface.columns import Columns
+from machincast.interface.drop import FileDrop
+from machincast.interface.lists import MODES
+from machincast.player.rundown import ignored_calls_to_edges
+
+CATEGORY = Qt.ItemDataRole.UserRole
+"""Rôle qui porte, sur la première colonne d'une ligne, le genre de l'élément : « sonore », « banque », « séquence »."""
+ITEM = Qt.ItemDataRole.UserRole + 1
+"""Rôle qui porte l'identifiant de l'élément ; None pour un fichier déposé, pas encore en base."""
+FILE = Qt.ItemDataRole.UserRole + 2
+"""Rôle qui porte le chemin d'un fichier déposé, pas encore en base."""
+LINE_IN_DATABASE = Qt.ItemDataRole.UserRole + 3
+"""Rôle qui porte l'identifiant de la ligne en base ; None pour une ligne ajoutée."""
+ENTRY = Qt.ItemDataRole.UserRole + 4
+"""Rôle qui porte la banque par laquelle commence une ligne : la banque elle-même, la première ligne d'une séquence
+si c'est une banque ; None sinon."""
+OUTPUT = Qt.ItemDataRole.UserRole + 5
+"""Rôle qui porte la banque par laquelle finit une ligne, comme ENTREE."""
+FEED = Qt.ItemDataRole.UserRole + 6
+"""Rôle qui porte le feed d'un stream à créer à l'enregistrement, faute de stream qui le suive."""
+LINE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsDragEnabled
+"""Une ligne se glisse, mais rien ne se dépose dedans : la liste reste à plat."""
+
+COLUMNS = {"sonore": "sound_id", "banque": "bank_id", "séquence": "sequence_id"}
+"""Colonne de chaque genre d'élément, dans sequence_items et event_items."""
+TABLES = {"sonore": "sounds", "banque": "banks", "séquence": "sequences"}
+PLAYS = {
+	"sonore": (
+		"SELECT s.id, s.artist, s.title, s.location, COALESCE(s.location, s.stream_url, m.url)"
+		" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = ANY(%s)"
+	),
+	"banque": "SELECT b.id, b.internal_name, b.mode::text, b.no_repeat FROM banks b WHERE b.id = ANY(%s)",
+	"séquence": (
+		"SELECT q.id, q.internal_name, (SELECT count(*) FROM sequence_items e WHERE e.sequence_id = q.id),"
+		" (SELECT e.bank_id FROM sequence_items e WHERE e.sequence_id = q.id ORDER BY e.position LIMIT 1),"
+		" (SELECT e.bank_id FROM sequence_items e WHERE e.sequence_id = q.id ORDER BY e.position DESC LIMIT 1)"
+		" FROM sequences q WHERE q.id = ANY(%s)"
+	),
+}
+"""Ce que montre la ligne d'un élément, lu par identifiants."""
+SOUNDS_PER_FILE = PLAYS["sonore"].replace("s.id = ANY(%s)", "s.location = ANY(%s)")
+FEED_STREAM = "SELECT id FROM sounds WHERE feed_id = %s AND deleted_at IS NULL ORDER BY title, id LIMIT 1"
+"""Le stream repris pour un feed : le premier par titre qui le suit."""
+SKIPPED = "ne passe jamais deux fois de suite : cet appel sera sauté."
+
+
+@dataclass(frozen=True)
+class Buttons:
+	"""Les boutons qui agissent sur la liste : un bouton d'ajout par genre, et ceux de la ligne choisie."""
+
+	add: dict[str, QPushButton]
+	remove: QPushButton
+	raise_: QPushButton
+	go_down: QPushButton
+
+
+VIEWS = {"sequence_items": "fiche-sequence-elements", "event_items": "fiche-evenement-elements"}
+"""Le nom de la vue des éléments, selon la table de la fiche (https://github.com/dascritch/machincast/issues/207)."""
+
+
+class ItemList(QObject):
+	changed = Signal()
+	"""Une ligne a été ajoutée, retirée ou déplacée : le glisser-déposer déplace en retirant, puis en insérant."""
+
+	def __init__(
+		self, card: Card, list_: QTreeWidget, buttons: Buttons, table: str, column_parent: str, remark: str
+	) -> None:
+		"""table et column_parent : la table des éléments, et sa colonne qui désigne la séquence ou l'événement.
+		remarque : celle des choix d'éléments, qu'un élément peut revenir."""
+		super().__init__(card)
+		self.card = card
+		self.list_ = list_
+		self.buttons = buttons
+		self.table = table
+		self.column_parent = column_parent
+		self.remark = remark
+		self.marked_list: dict[int, str] = {}
+		"""Banques « ne pas répéter », par identifiant, avec leur nom."""
+		self.columns = Columns(list_, VIEWS[table])
+		list_.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+		self.drop = FileDrop(list_)
+		self.drop.dropped.connect(self._drop_in)
+		model = list_.model()
+		for signal in (model.rowsInserted, model.rowsRemoved):
+			signal.connect(self.changed)
+		list_.currentItemChanged.connect(self._refresh_buttons)
+		list_.itemActivated.connect(self._open)
+		self.columns.line_menu = lambda position: self.line_menu(self.list_.itemAt(position))
+		for category, button in buttons.add.items():
+			button.clicked.connect(lambda _ticked=False, category=category: self._add(category))
+		buttons.remove.clicked.connect(self._remove)
+		buttons.raise_.clicked.connect(lambda: self._move(-1))
+		buttons.go_down.clicked.connect(lambda: self._move(1))
+
+	def load(self, parent: int | None, copies: bool = False) -> None:
+		"""Lit en base les éléments de la séquence ou de l'événement, dans l'ordre ; aucun pour un nouveau. Une copie
+		(https://github.com/dascritch/machincast/issues/130) les lit comme des lignes ajoutées : l'enregistrement les
+		crée pour elle, et laisse celles de l'original. À appeler dans une transaction."""
+		self._read_marked()
+		rows: list[tuple[object, ...]] = []
+		if parent is not None:
+			columns = ", ".join(f"e.{column}" for column in self._columns().values())
+			rows = self.card.connection.execute(
+				f"SELECT e.id, {columns} FROM {self.table} e"  # noqa: S608
+				f" WHERE e.{self.column_parent} = %s ORDER BY e.position",
+				(parent,),
+			).fetchall()
+		categories = list(self._columns())
+		items = []
+		for line_in_database, *identifiers in rows:
+			((category, identifier),) = [(g, i) for g, i in zip(categories, identifiers, strict=True) if i is not None]
+			items.append((int(str(line_in_database)), category, int(str(identifier))))
+		fetched_list = self._read({category: [i for _l, g, i in items if g == category] for category in categories})
+		self.list_.clear()
+		lines = []
+		for line_in_database, category, identifier in items:
+			# Un même élément peut revenir : chaque ligne a son exemplaire.
+			line = fetched_list[category][identifier].clone()
+			if not copies:
+				line.setData(0, LINE_IN_DATABASE, line_in_database)
+			lines.append(line)
+		self.list_.addTopLevelItems(lines)
+		self._refresh_buttons()
+
+	def lines(self) -> list[QTreeWidgetItem]:
+		lines = [self.list_.topLevelItem(row) for row in range(self.list_.topLevelItemCount())]
+		return [line for line in lines if line is not None]
+
+	def warnings(self, loop: bool) -> list[str]:
+		"""Une ligne par appel d'une banque « ne pas répéter » juste après elle-même ; pour une liste qui boucle, la
+		première ligne suit la dernière."""
+		lines = self.lines()
+		edges = [(line.data(0, ENTRY), line.data(0, OUTPUT)) for line in lines]
+		texts = []
+		for number in ignored_calls_to_edges(edges, self.marked_list, loop):
+			line = lines[number - 1]
+			bank = self.marked_list[edges[number - 1][0]]
+			text = f"Ligne {number} : la banque « {bank} » vient de passer, et {SKIPPED}"
+			if line.data(0, CATEGORY) == "séquence":
+				text = (
+					f"Ligne {number} : la séquence « {line.text(1)} » commence par la banque « {bank} », qui vient"
+					f" de passer, et {SKIPPED}"
+				)
+			texts.append(text)
+		return texts
+
+	def write(self, parent: int) -> None:
+		"""Dans la transaction d'« Enregistrer » : les lignes restées dans la liste gardent leur identifiant, à leur
+		nouvelle position ; les autres sont retirées ou ajoutées. L'unicité des positions n'est vérifiée qu'en fin de
+		transaction."""
+		connection = self.card.connection
+		items: list[tuple[int | None, str, int]] = []
+		"""Ligne en base, genre et identifiant de l'élément."""
+		for item in self.lines():
+			identifier = item.data(0, ITEM)
+			if item.data(0, FEED) is not None:
+				identifier = self._save_stream(int(item.data(0, FEED)), item.text(1))
+			elif identifier is None:
+				identifier = self.card.save_file(str(item.data(0, FILE)))
+			if identifier is not None:
+				items.append((item.data(0, LINE_IN_DATABASE), str(item.data(0, CATEGORY)), int(identifier)))
+		existing_list: set[tuple[str, int]] = set()
+		for category in self._columns():
+			requests = [item_id for _line, g, item_id in items if g == category]
+			fetched_list = connection.execute(f"SELECT id FROM {TABLES[category]} WHERE id = ANY(%s)", (requests,))  # noqa: S608
+			existing_list |= {(category, int(str(identifier))) for (identifier,) in fetched_list}
+		kept_list = [
+			(line, category, item_id) for line, category, item_id in items if (category, item_id) in existing_list
+		]
+		in_database = [line for line, _category, _item in kept_list if line is not None]
+		connection.execute(
+			f"DELETE FROM {self.table} WHERE {self.column_parent} = %s AND NOT (id = ANY(%s))",  # noqa: S608
+			(parent, in_database),
+		)
+		for position, (line, category, item_id) in enumerate(kept_list, start=1):
+			if line is not None:
+				# Une ligne n'est jamais reprise d'une autre séquence ou d'un autre événement.
+				connection.execute(
+					f"UPDATE {self.table} SET position = %s WHERE id = %s AND {self.column_parent} = %s",  # noqa: S608
+					(position, line, parent),
+				)
+				continue
+			connection.execute(
+				f"INSERT INTO {self.table} ({self.column_parent}, position, {COLUMNS[category]})"  # noqa: S608
+				" VALUES (%s, %s, %s)",
+				(parent, position, item_id),
+			)
+
+	def _save_stream(self, feed: int, name: str) -> int | None:
+		"""Dans la transaction d'« Enregistrer » : le stream qui suit le feed, créé s'il n'y en a pas, actif et
+		titré du nom du feed ; un second ajout du même feed le reprend. None pour un feed effacé
+		de la base entre-temps : la ligne est oubliée."""
+		connection = self.card.connection
+		if connection.execute("SELECT 1 FROM feeds WHERE id = %s", (feed,)).fetchone() is None:
+			return None
+		line = connection.execute(FEED_STREAM, (feed,)).fetchone()
+		if line is None:
+			line = connection.execute(
+				"INSERT INTO sounds (type, feed_id, title, state) VALUES ('stream', %s, %s, 'active') RETURNING id",
+				(feed, name),
+			).fetchone()
+			assert line is not None
+		return int(str(line[0]))
+
+	def _columns(self) -> dict[str, str]:
+		"""Les genres d'éléments de la liste, et leur colonne : jamais une séquence dans une séquence."""
+		return {category: column for category, column in COLUMNS.items() if column != self.column_parent}
+
+	def _read_marked(self) -> None:
+		fetched_list = self.card.connection.execute("SELECT id, internal_name FROM banks WHERE no_repeat").fetchall()
+		self.marked_list = {int(str(identifier)): str(name) for identifier, name in fetched_list}
+
+	def _read(self, identifiers: dict[str, list[int]]) -> dict[str, dict[int, QTreeWidgetItem]]:
+		"""Les lignes des éléments, par genre et par identifiant ; un élément absent de la base n'en a pas."""
+		build = {"sonore": self._sound_line, "banque": self._bank_line, "séquence": self._sequence_line}
+		lines: dict[str, dict[int, QTreeWidgetItem]] = {}
+		for category, requests in identifiers.items():
+			fetched_list = self.card.connection.execute(PLAYS[category], (requests,)).fetchall()
+			lines[category] = {int(str(lu[0])): build[category](lu) for lu in fetched_list}
+		return lines
+
+	def _bank_line(self, bank: tuple[object, ...]) -> QTreeWidgetItem:
+		identifier, name, mode, marked = bank
+		detail = MODES.get(str(mode), str(mode))
+		if marked:
+			detail = f"{detail}, ne pas répéter"
+		line = self._line("banque", [str(name), detail], (integer_or_none(identifier), integer_or_none(identifier)))
+		line.setData(0, ITEM, int(str(identifier)))
+		return line
+
+	def _sequence_line(self, sequence: tuple[object, ...]) -> QTreeWidgetItem:
+		identifier, name, count, first, last = sequence
+		detail = f"{count} éléments"
+		if int(str(count)) == 1:
+			detail = "1 élément"
+		line = self._line("séquence", [str(name), detail], (integer_or_none(first), integer_or_none(last)))
+		line.setData(0, ITEM, int(str(identifier)))
+		return line
+
+	def _sound_line(self, sound: tuple[object, ...]) -> QTreeWidgetItem:
+		"""Une ligne de sonore ; un fichier déposé, pas encore en base, n'a pas d'identifiant."""
+		identifier, artist, title, file, location = sound
+		text = display.artist_and_title(text_or_none(artist), text_or_none(title))
+		if (artist is None) and (title is None) and (file is not None):
+			# Pas encore décodé : le nom du fichier en attendant ses tags.
+			text = Path(str(file)).name
+		line = self._line("sonore", [text, str((location) or (""))], (None, None))
+		if identifier is not None:
+			line.setData(0, ITEM, int(str(identifier)))
+		else:
+			line.setData(0, FILE, str(file))
+		return line
+
+	def _line(self, category: str, cells: list[str], edges: tuple[int | None, int | None]) -> QTreeWidgetItem:
+		line = QTreeWidgetItem([category, *cells])
+		line.setData(0, CATEGORY, category)
+		line.setData(0, ITEM, None)
+		line.setData(0, ENTRY, edges[0])
+		line.setData(0, OUTPUT, edges[1])
+		line.setFlags(LINE)
+		return line
+
+	def _refresh_buttons(self) -> None:
+		"""Les boutons d'une ligne ne servent qu'à une ligne choisie ; « Monter » et « Descendre », pas aux
+		extrémités."""
+		line = self.list_.currentItem()
+		self.buttons.remove.setEnabled(line is not None)
+		row = -1
+		if line is not None:
+			row = self.list_.indexOfTopLevelItem(line)
+		self.buttons.raise_.setEnabled(row > 0)
+		self.buttons.go_down.setEnabled(0 <= row < self.list_.topLevelItemCount() - 1)
+
+	def _add(self, category: str) -> None:
+		"""Les éléments choisis s'ajoutent en fin de liste, dans l'ordre du choix ; un élément effacé de la base
+		pendant le choix est oublié."""
+		if category == "feed":
+			self._add_feeds()
+			return
+		choose = {
+			"sonore": dialogs.choose_sounds,
+			"banque": dialogs.choose_banks,
+			"séquence": dialogs.choose_sequences,
+		}[category]
+		chosen_list = choose(self.card, self.card.connection, self.remark)
+		with self.card.connection.transaction():
+			self._read_marked()
+			fetched_list = self._read({category: chosen_list})[category]
+		self.list_.addTopLevelItems([fetched_list[chosen] for chosen in chosen_list if chosen in fetched_list])
+		self._refresh_buttons()
+
+	def _add_feeds(self) -> None:
+		"""Pour chaque feed choisi, le stream qui le suit ; sans stream, une ligne qui en créera un à
+		l'enregistrement (https://github.com/dascritch/machincast/issues/167)."""
+		chosen_list = dialogs.choose_feeds(self.card, self.card.connection, self.remark)
+		connection = self.card.connection
+		lines: list[QTreeWidgetItem] = []
+		with connection.transaction():
+			for feed in chosen_list:
+				marks = connection.execute("SELECT name, url FROM feeds WHERE id = %s", (feed,)).fetchone()
+				if marks is None:
+					continue
+				stream = connection.execute(FEED_STREAM, (feed,)).fetchone()
+				if stream is not None:
+					lines += self._read({"sonore": [int(str(stream[0]))]})["sonore"].values()
+					continue
+				name, url = marks
+				line = self._line("sonore", [str(name), f"{url}, nouveau stream"], (None, None))
+				line.setData(0, FEED, feed)
+				lines.append(line)
+		self.list_.addTopLevelItems(lines)
+		self._refresh_buttons()
+
+	def _drop_in(self, paths: list[Path]) -> None:
+		"""Les fichiers sonores déposés s'ajoutent en fin de liste. Un fichier pas encore en base est montré par son
+		nom, et deviendra un sonore à l'état aperçu à l'enregistrement."""
+		files, ignored = sound_files(paths)
+		with self.card.connection.transaction():
+			fetched_list = self.card.connection.execute(SOUNDS_PER_FILE, (files,)).fetchall()
+		by_file = {str(sound[3]): sound for sound in fetched_list}
+		lines = [self._sound_line(by_file.get(file, (None, None, None, file, file))) for file in files]
+		self.list_.addTopLevelItems(lines)
+		self._refresh_buttons()
+		self.card.flag_ignored(ignored, "ce ne sont pas des fichiers sonores")
+
+	def _remove(self) -> None:
+		self.list_.takeTopLevelItem(self.list_.indexOfTopLevelItem(self.list_.currentItem()))
+
+	def _move(self, offset: int) -> None:
+		line = self.list_.currentItem()
+		row = self.list_.indexOfTopLevelItem(line)
+		self.list_.takeTopLevelItem(row)
+		self.list_.insertTopLevelItem(row + offset, line)
+		# Rendue courante, la ligne déplacée met à jour les boutons (currentItemChanged).
+		self.list_.setCurrentItem(line)
+
+	def line_menu(self, line: QTreeWidgetItem | None) -> QMenu | None:
+		"""Le menu du clic droit sur une ligne : « Pré-écoute… » d'un sonore en base ; aucun pour une banque, une
+		séquence, un fichier déposé pas encore enregistré, ou hors d'une ligne (https://github.com/dascritch/machincast/issues/226)."""
+		if (line is None) or (line.data(0, CATEGORY) != "sonore") or (line.data(0, ITEM) is None):
+			return None
+		menu = QMenu(self.list_)
+		display.offer_preview(menu, int(line.data(0, ITEM)), self.card.requested_preview.emit)
+		return menu
+
+	def _open(self, line: QTreeWidgetItem) -> None:
+		"""Ouvrir un élément demande sa fiche ; un fichier déposé n'en a pas avant l'enregistrement."""
+		identifier = line.data(0, ITEM)
+		if identifier is not None:
+			self.card.requested_opening.emit(str(line.data(0, CATEGORY)), int(identifier), line.text(1))

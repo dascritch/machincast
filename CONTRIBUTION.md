@@ -12,11 +12,11 @@ The screens of `Machin_interface` are Qt Widgets screens, drawn with **Qt Widget
 
 ```bash
 bin/Machin dev           # sub-shell in the repository, venv activated
-pyside6-designer src/machincast/interface/ui/fiche_banque.ui
+pyside6-designer src/machincast/interface/ui/bank_card.ui
 ```
 
-- One screen = one `.ui` file in `src/machincast/interface/ui/`, named in French and in `snake_case`, like the module it will produce: `fiche_banque.ui`, `fiche_evenement.ui`.
-- Widget `objectName`s are in French and in `snake_case` (`nom_interne`, `nom_public`, `liste_sonores`), since they become Python attributes: `self.ui.nom_interne`.
+- One screen = one `.ui` file in `src/machincast/interface/ui/`, named in French and in `snake_case`, like the module it will produce: `bank_card.ui`, `event_card.ui`.
+- Widget `objectName`s are in French and in `snake_case` (`internal_name`, `public_name`, `sound_list`), since they become Python attributes: `self.ui.internal_name`.
 - On-screen vocabulary: that of the specification ([§ 1](doc/fr/spec.md#1-vocabulaire)) and of the [interface rules](doc/fr/regles/interface.md), « banque » (bank) and never « playlist ».
 - Short text fields are limited to 255 characters (`maxLength`), as in the database.
 - The `.ui` file only holds the layout. The behaviour (signals, queries, validation, drag and drop) is written in Python, in the screen's class, where it is tested with pytest-qt.
@@ -26,7 +26,7 @@ pyside6-designer src/machincast/interface/ui/fiche_banque.ui
 After each save in the Designer, regenerate the Python module:
 
 ```bash
-pyside6-uic src/machincast/interface/ui/fiche_banque.ui -o src/machincast/interface/ui/fiche_banque.py
+pyside6-uic src/machincast/interface/ui/bank_card.ui -o src/machincast/interface/ui/fiche_banque.py
 ```
 
 - The `.ui` file and the generated module are versioned together, in the same commit.
@@ -38,7 +38,7 @@ pyside6-uic src/machincast/interface/ui/fiche_banque.ui -o src/machincast/interf
 ```python
 from PySide6.QtWidgets import QWidget
 
-from machincast.interface.ui.fiche_banque import Ui_FicheBanque
+from machincast.interface.ui.bank_card import Ui_FicheBanque
 
 
 class FicheBanque(QWidget):

@@ -36,8 +36,8 @@ Source = "https://github.com/dascritch/machincast"
 Tickets = "https://github.com/dascritch/machincast/issues"
 
 [project.scripts]
-Machin_player = "machincast.lecture.__main__:main"
-Machin_indexer = "machincast.indexation.__main__:main"
+Machin_player = "machincast.player.__main__:main"
+Machin_indexer = "machincast.indexer.__main__:main"
 Machin_interface = "machincast.interface.__main__:main"
 Machin_maintenance-db = "machincast.maintenance:main"
 Machin_purge = "machincast.purge:main"
@@ -46,7 +46,7 @@ Machin_purge = "machincast.purge:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-machincast = ["py.typed", "migrations/*.sql", "interface/*.png", "interface/nouveautes.md", "interface/icones/*.svg"]
+machincast = ["py.typed", "migrations/*.sql", "interface/*.png", "interface/news.md", "interface/icons/*.svg"]
 
 # ─── Qualité ───────────────────────────────────────────────
 

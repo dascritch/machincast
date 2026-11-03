@@ -28,143 +28,141 @@ from pathlib import Path
 
 import psycopg
 
-from machincast.base import Role, SchemaPerime, appliquer_migrations, url_yoyo
-from machincast.cli import lancer
+from machincast.cli import launch
+from machincast.clock import Clock, SystemClock
 from machincast.configuration import Configuration
-from machincast.horloge import Horloge, HorlogeSysteme
-from machincast.protection import verifier_ecriture
+from machincast.database import OutdatedSchema, Role, apply_migrations, url_yoyo
+from machincast.protection import check_writing
 
 EXECUTABLE = "Machin_maintenance-db"
 DESCRIPTION = "Sauvegarde, vérifie et optimise la base de données de MachinCast."
-CODE_ECHEC = 1
-SAUVEGARDES = "sauvegardes"
+FAILURE_CODE = 1
+BACKUPS = "sauvegardes"
 """Répertoire des sauvegardes, à côté du fichier de configuration, sauf --backups."""
-DELAI_DE_SAUVEGARDE = 3600
+BACKUP_DELAY = 3600
 """Secondes laissées à pg_dump : une grosse base, sur un disque lent, prend du temps."""
 ROLES: tuple[str, ...] = tuple(role.value for role in Role)
 """Les rôles que le compte doit pouvoir endosser."""
-HORLOGE: Horloge = HorlogeSysteme()
+CLOCK: Clock = SystemClock()
 """L'heure qui date les sauvegardes ; les scénarios la fixent."""
-FIN = "Maintenance finie : cette fenêtre reste ouverte, la fermer quand vous voulez."
+END = "Maintenance finie : cette fenêtre reste ouverte, la fermer quand vous voulez."
 
 # Nom explicite : lancé par son script, ce module garde le journal « machincast ».
-journal = logging.getLogger("machincast.maintenance")
+log = logging.getLogger("machincast.maintenance")
 
 
-class EchecDeSauvegarde(Exception):
+class BackupFailure(Exception):
 	"""La sauvegarde n'a pas pu être faite : la maintenance s'arrête."""
 
 
-def sauvegardes_par_defaut(fichier_de_configuration: Path) -> Path:
+def default_backups(configuration_file: Path) -> Path:
 	"""Le répertoire des sauvegardes sans --backups : « sauvegardes », à côté du fichier de configuration."""
-	return fichier_de_configuration.parent / SAUVEGARDES
+	return configuration_file.parent / BACKUPS
 
 
-def compte() -> str:
+def account() -> str:
 	"""Le compte qui lance la maintenance, celui de MachinCast."""
 	return getpass.getuser()
 
 
-def sauvegarder(configuration: Configuration, repertoire: Path) -> Path:
-	"""pg_dump de la base de production dans un nouveau fichier daté ; lève EchecDeSauvegarde."""
-	base = configuration.base
-	commande = shutil.which("pg_dump")
-	if commande is None:
-		raise EchecDeSauvegarde("pg_dump introuvable, installer postgresql-client")
-	horodatage = f"{HORLOGE.maintenant().astimezone():%Y-%m-%dT%H-%M-%S}"
-	fichier = repertoire / f"{base.production}-{horodatage}.dump"
-	journal.info(f"sauvegarde de la base {base.production} dans {fichier}")
-	verifier_ecriture(fichier)
-	if fichier.exists():
-		raise EchecDeSauvegarde(f"{fichier} existe déjà, relancer dans une seconde")
+def back_up(configuration: Configuration, directory: Path) -> Path:
+	"""pg_dump de la base de production dans un nouveau fichier daté ; lève BackupFailure."""
+	database = configuration.database
+	command = shutil.which("pg_dump")
+	if command is None:
+		raise BackupFailure("pg_dump introuvable, installer postgresql-client")
+	timestamp = f"{CLOCK.now().astimezone():%Y-%m-%dT%H-%M-%S}"
+	file = directory / f"{database.production}-{timestamp}.dump"
+	log.info(f"sauvegarde de la base {database.production} dans {file}")
+	check_writing(file)
+	if file.exists():
+		raise BackupFailure(f"{file} existe déjà, relancer dans une seconde")
 	try:
-		repertoire.mkdir(parents=True, exist_ok=True)
-		resultat = subprocess.run(
-			[commande, "--format=custom", f"--file={fichier}", f"--host={base.socket}", base.production],
+		directory.mkdir(parents=True, exist_ok=True)
+		result = subprocess.run(
+			[command, "--format=custom", f"--file={file}", f"--host={database.socket}", database.production],
 			capture_output=True,
 			text=True,
-			timeout=DELAI_DE_SAUVEGARDE,
+			timeout=BACKUP_DELAY,
 			stdin=subprocess.DEVNULL,
 		)
-	except (OSError, subprocess.SubprocessError) as erreur:
-		raise EchecDeSauvegarde(str(erreur)) from erreur
-	if resultat.returncode != 0:
-		raise EchecDeSauvegarde(resultat.stderr.strip())
-	taille = fichier.stat().st_size / 1_000_000
-	journal.info(f"sauvegarde faite : {taille:.1f} Mo".replace(".", ","))
-	return fichier
+	except (OSError, subprocess.SubprocessError) as error:
+		raise BackupFailure(str(error)) from error
+	if result.returncode != 0:
+		raise BackupFailure(result.stderr.strip())
+	size = file.stat().st_size / 1_000_000
+	log.info(f"sauvegarde faite : {size:.1f} Mo".replace(".", ","))
+	return file
 
 
-def mettre_a_jour_le_schema(configuration: Configuration) -> None:
+def update_schema(configuration: Configuration) -> None:
 	"""Les migrations manquantes ; aucune si le schéma est à jour."""
-	base = configuration.base
-	nombre = appliquer_migrations(url_yoyo(base.socket, base.production), base.production)
-	if nombre == 0:
-		journal.info(f"schéma de la base {base.production} à jour")
+	database = configuration.database
+	count = apply_migrations(url_yoyo(database.socket, database.production), database.production)
+	if count == 0:
+		log.info(f"schéma de la base {database.production} à jour")
 		return
-	pluriel = "s" if nombre > 1 else ""
-	journal.info(f"schéma de la base {base.production} : {nombre} migration{pluriel} appliquée{pluriel}")
+	plural = "s" if count > 1 else ""
+	log.info(f"schéma de la base {database.production} : {count} migration{plural} appliquée{plural}")
 
 
-def verifier_les_roles(connexion: psycopg.Connection[tuple[object, ...]]) -> bool:
+def check_roles(connection: psycopg.Connection[tuple[object, ...]]) -> bool:
 	"""Chaque rôle de MachinCast existe, et le compte peut l'endosser ; sinon, ce qu'un administrateur doit faire."""
-	en_ordre = True
+	in_order = True
 	for role in ROLES:
-		ligne = connexion.execute(
+		line = connection.execute(
 			"SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)"
 			" AND pg_has_role(current_user, (SELECT oid FROM pg_roles WHERE rolname = %s), 'SET')",
 			(role, role),
 		).fetchone()
-		if (ligne is not None) and (ligne[0] is True):
+		if (line is not None) and (line[0] is True):
 			continue
-		en_ordre = False
-		journal.error(
+		in_order = False
+		log.error(
 			f"rôle {role} : absent du serveur, ou non endossable par le compte ; à faire par un administrateur :"
 			f' sudo -u postgres psql -c "CREATE ROLE {role} NOLOGIN" ;'
-			f' sudo -u postgres psql -c "GRANT {role} TO {compte()} WITH INHERIT FALSE, SET TRUE"'
+			f' sudo -u postgres psql -c "GRANT {role} TO {account()} WITH INHERIT FALSE, SET TRUE"'
 		)
-	if en_ordre:
-		journal.info(f"rôles {', '.join(ROLES)} endossables par le compte")
-	return en_ordre
+	if in_order:
+		log.info(f"rôles {', '.join(ROLES)} endossables par le compte")
+	return in_order
 
 
-def optimiser(connexion: psycopg.Connection[tuple[object, ...]], nom: str) -> None:
+def optimise(connection: psycopg.Connection[tuple[object, ...]], name: str) -> None:
 	"""VACUUM ne s'exécute pas dans une transaction : la connexion est en autocommit."""
-	connexion.execute("VACUUM (ANALYZE)")
-	journal.info(f"base {nom} optimisée (VACUUM ANALYZE)")
+	connection.execute("VACUUM (ANALYZE)")
+	log.info(f"base {name} optimisée (VACUUM ANALYZE)")
 
 
-def maintenir(configuration: Configuration, repertoire: Path) -> bool:
-	"""Les trois étapes ; vrai si tout s'est bien passé. Lève EchecDeSauvegarde, psycopg.Error."""
-	base = configuration.base
-	sauvegarder(configuration, repertoire)
-	mettre_a_jour_le_schema(configuration)
-	with psycopg.connect(host=str(base.socket), dbname=base.production, autocommit=True) as connexion:
-		roles = verifier_les_roles(connexion)
-		optimiser(connexion, base.production)
+def maintain(configuration: Configuration, directory: Path) -> bool:
+	"""Les trois étapes ; vrai si tout s'est bien passé. Lève BackupFailure, psycopg.Error."""
+	database = configuration.database
+	back_up(configuration, directory)
+	update_schema(configuration)
+	with psycopg.connect(host=str(database.socket), dbname=database.production, autocommit=True) as connection:
+		roles = check_roles(connection)
+		optimise(connection, database.production)
 	return roles
 
 
-def options_propres(analyseur: argparse.ArgumentParser) -> None:
-	analyseur.add_argument(
+def own_options(analyser: argparse.ArgumentParser) -> None:
+	analyser.add_argument(
 		"--backups",
-		dest="sauvegardes",
 		type=Path,
 		metavar="REPERTOIRE",
-		help=f"répertoire des sauvegardes ; par défaut « {SAUVEGARDES} », à côté du fichier de configuration",
+		help=f"répertoire des sauvegardes ; par défaut « {BACKUPS} », à côté du fichier de configuration",
 	)
-	analyseur.add_argument(
+	analyser.add_argument(
 		"--keep-open",
-		dest="garder_ouvert",
 		action="store_true",
 		help="garde le terminal ouvert à la fin, jusqu'à sa fermeture : pour la fenêtre qu'ouvre l'interface",
 	)
 
 
-def garder_ouvert() -> None:
+def stay_open() -> None:
 	"""Jusqu'à la fermeture du terminal : la fin de l'entrée standard, ou Ctrl-C. Fermer la fenêtre envoie SIGHUP,
 	qui arrête aussi le programme."""
-	sys.stdout.write(f"{FIN}\n")
+	sys.stdout.write(f"{END}\n")
 	sys.stdout.flush()
 	try:
 		sys.stdin.read()
@@ -172,27 +170,27 @@ def garder_ouvert() -> None:
 		sys.stdout.write("\n")
 
 
-def executer(configuration: Configuration, options: argparse.Namespace) -> int:
-	repertoire = (options.sauvegardes) or (sauvegardes_par_defaut(configuration.chemin))
-	code = CODE_ECHEC
+def run(configuration: Configuration, options: argparse.Namespace) -> int:
+	directory = (options.backups) or (default_backups(configuration.path))
+	code = FAILURE_CODE
 	try:
-		if maintenir(configuration, Path(repertoire).expanduser()):
-			journal.info("maintenance terminée")
+		if maintain(configuration, Path(directory).expanduser()):
+			log.info("maintenance terminée")
 			code = 0
 		else:
-			journal.info("maintenance terminée, avec des anomalies")
-	except EchecDeSauvegarde as erreur:
-		journal.error(f"sauvegarde impossible : {erreur} ; maintenance arrêtée, rien n'a été modifié")
-	except SchemaPerime as erreur:
-		journal.error(f"schéma impossible à mettre à jour : {erreur} ; la sauvegarde est faite, rien d'autre")
-	except psycopg.OperationalError as erreur:
-		journal.error(f"base de données injoignable ({configuration.base.production}) : {erreur}")
-	except psycopg.Error as erreur:
-		journal.error(f"erreur de base de données : {erreur}")
-	if options.garder_ouvert:
-		garder_ouvert()
+			log.info("maintenance terminée, avec des anomalies")
+	except BackupFailure as error:
+		log.error(f"sauvegarde impossible : {error} ; maintenance arrêtée, rien n'a été modifié")
+	except OutdatedSchema as error:
+		log.error(f"schéma impossible à mettre à jour : {error} ; la sauvegarde est faite, rien d'autre")
+	except psycopg.OperationalError as error:
+		log.error(f"base de données injoignable ({configuration.database.production}) : {error}")
+	except psycopg.Error as error:
+		log.error(f"erreur de base de données : {error}")
+	if options.keep_open:
+		stay_open()
 	return code
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
-	return lancer(EXECUTABLE, DESCRIPTION, arguments, executer, options_propres)
+	return launch(EXECUTABLE, DESCRIPTION, arguments, run, own_options)

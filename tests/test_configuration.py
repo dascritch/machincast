@@ -12,17 +12,17 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast import configuration as module_configuration
-from machincast.cli import CODE_CONFIGURATION_INVALIDE
-from machincast.cli import lancer as lancer_binaire
-from machincast.configuration import Configuration, ConfigurationInvalide, charger, fichier_par_defaut
-from machincast.lecture.fondus import LIBELLES
+from machincast.cli import INVALID_CONFIGURATION_CODE
+from machincast.cli import launch as launch_binary
+from machincast.configuration import Configuration, InvalidConfiguration, default_file, load
+from machincast.player.fades import LABELS
 
 scenarios("configuration.feature")
 
-RACINE = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]
 
 # Configuration valide de référence, en littéraux TOML, section par section.
-VALIDE: dict[str, dict[str, str]] = {
+VALID: dict[str, dict[str, str]] = {
 	"database": {"socket": '"/var/run/postgresql"', "production": '"machincast"', "test": '"machincast_test"'},
 	"audio": {"output": '"pipewire"', "device": '"antenne"', "preview": '"casque"'},
 	"outputs": {"csv": '"airplay.csv"', "pls": '"playlist.pls"', "html": '"airplay.html"'},
@@ -31,40 +31,40 @@ VALIDE: dict[str, dict[str, str]] = {
 
 
 @dataclass
-class Contexte:
-	repertoire: Path
-	chemin: Path | None = None
+class Context:
+	directory: Path
+	path: Path | None = None
 	configuration: Configuration | None = None
-	erreur: ConfigurationInvalide | None = None
-	resultat: subprocess.CompletedProcess[str] | None = None
+	error: InvalidConfiguration | None = None
+	result: subprocess.CompletedProcess[str] | None = None
 	code: int | None = None
-	recue: Configuration | None = None
-	erreurs: str = ""
-	cles: dict[str, dict[str, str]] = field(default_factory=lambda: {s: dict(c) for s, c in VALIDE.items()})
+	received: Configuration | None = None
+	errors: str = ""
+	keys: dict[str, dict[str, str]] = field(default_factory=lambda: {s: dict(c) for s, c in VALID.items()})
 
 
 @pytest.fixture
-def contexte(tmp_path: Path) -> Contexte:
-	return Contexte(repertoire=tmp_path)
+def context(tmp_path: Path) -> Context:
+	return Context(directory=tmp_path)
 
 
-def ecrire(contexte: Contexte, nom: str = "machincast.toml") -> Path:
-	lignes: list[str] = []
-	for section, cles in contexte.cles.items():
-		lignes.append(f"[{section}]")
-		lignes += [f"{cle} = {valeur}" for cle, valeur in cles.items()]
-		lignes.append("")
-	chemin = contexte.repertoire / nom
-	chemin.write_text("\n".join(lignes), encoding="utf-8")
-	contexte.chemin = chemin
-	return chemin
+def write(context: Context, name: str = "machincast.toml") -> Path:
+	lines: list[str] = []
+	for section, keys in context.keys.items():
+		lines.append(f"[{section}]")
+		lines += [f"{key} = {value}" for key, value in keys.items()]
+		lines.append("")
+	path = context.directory / name
+	path.write_text("\n".join(lines), encoding="utf-8")
+	context.path = path
+	return path
 
 
-def lancer(executable: str, arguments: list[str], repertoire: Path) -> subprocess.CompletedProcess[str]:
-	chemin = shutil.which(executable)
-	assert chemin is not None, f"{executable} n'est pas installé"
+def launch(executable: str, arguments: list[str], directory: Path) -> subprocess.CompletedProcess[str]:
+	path = shutil.which(executable)
+	assert path is not None, f"{executable} n'est pas installé"
 	return subprocess.run(
-		[chemin, *arguments], capture_output=True, text=True, timeout=30, cwd=repertoire, env=os.environ.copy()
+		[path, *arguments], capture_output=True, text=True, timeout=30, cwd=directory, env=os.environ.copy()
 	)
 
 
@@ -72,247 +72,247 @@ def lancer(executable: str, arguments: list[str], repertoire: Path) -> subproces
 
 
 @given("le modèle de configuration du dépôt")
-def modele(contexte: Contexte) -> None:
-	contexte.chemin = RACINE / "machincast.exemple.toml"
+def model(context: Context) -> None:
+	context.path = ROOT / "machincast.exemple.toml"
 
 
 @given("un fichier de configuration contenant :")
-def fichier_contenant(contexte: Contexte, docstring: str) -> None:
-	contexte.chemin = contexte.repertoire / "machincast.toml"
-	contexte.chemin.write_text(docstring, encoding="utf-8")
+def container_file(context: Context, docstring: str) -> None:
+	context.path = context.directory / "machincast.toml"
+	context.path.write_text(docstring, encoding="utf-8")
 
 
-@given(parsers.parse('une configuration valide où la clé "{cle}" est absente'))
-def cle_absente(contexte: Contexte, cle: str) -> None:
-	section, nom = cle.split(".")
-	contexte.cles.setdefault(section, {}).pop(nom, None)
-	ecrire(contexte)
+@given(parsers.parse('une configuration valide où la clé "{key}" est absente'))
+def absent_key(context: Context, key: str) -> None:
+	section, name = key.split(".")
+	context.keys.setdefault(section, {}).pop(name, None)
+	write(context)
 
 
-@given(parsers.parse('une configuration valide où la clé "{cle}" vaut {valeur}'))
-def cle_vaut(contexte: Contexte, cle: str, valeur: str) -> None:
-	section, nom = cle.split(".")
-	valeur = valeur.replace("<256 caractères>", "é" * 256)
-	contexte.cles.setdefault(section, {})[nom] = valeur
-	ecrire(contexte)
+@given(parsers.parse('une configuration valide où la clé "{key}" vaut {value}'))
+def key_is_worth(context: Context, key: str, value: str) -> None:
+	section, name = key.split(".")
+	value = value.replace("<256 caractères>", "é" * 256)
+	context.keys.setdefault(section, {})[name] = value
+	write(context)
 
 
 @given(parsers.parse('une configuration valide sans section "{section}"'))
-def sans_section(contexte: Contexte, section: str) -> None:
-	contexte.cles.pop(section, None)
-	ecrire(contexte)
+def without_section(context: Context, section: str) -> None:
+	context.keys.pop(section, None)
+	write(context)
 
 
-@given(parsers.parse('la clé "{cle}" vaut {valeur}'))
-def et_la_cle_vaut(contexte: Contexte, cle: str, valeur: str) -> None:
-	cle_vaut(contexte, cle, valeur)
+@given(parsers.parse('la clé "{key}" vaut {value}'))
+def and_key_is_worth(context: Context, key: str, value: str) -> None:
+	key_is_worth(context, key, value)
 
 
-@given(parsers.parse("le répertoire d'exécution du compte « {repertoire} »"))
-def repertoire_d_execution(monkeypatch: pytest.MonkeyPatch, repertoire: str) -> None:
-	monkeypatch.setenv("XDG_RUNTIME_DIR", repertoire)
+@given(parsers.parse("le répertoire d'exécution du compte « {directory} »"))
+def execution_directory(monkeypatch: pytest.MonkeyPatch, directory: str) -> None:
+	monkeypatch.setenv("XDG_RUNTIME_DIR", directory)
 
 
 @given("un chemin de configuration qui n'existe pas")
-def chemin_absent(contexte: Contexte) -> None:
-	contexte.chemin = contexte.repertoire / "absent.toml"
+def absent_path(context: Context) -> None:
+	context.path = context.directory / "absent.toml"
 
 
-@given(parsers.parse('une configuration valide enregistrée dans "{nom}"'))
-def valide_enregistree(contexte: Contexte, nom: str) -> None:
+@given(parsers.parse('une configuration valide enregistrée dans "{name}"'))
+def valid_saved(context: Context, name: str) -> None:
 	"""Configuration passée à un binaire : sa socket PostgreSQL n'existe pas, pour qu'il ne puisse joindre aucune
 	base, et surtout pas la base de production qu'elle désigne (https://github.com/dascritch/machincast/issues/7)."""
-	contexte.cles["database"]["socket"] = f'"{contexte.repertoire / "aucune-socket"}"'
-	ecrire(contexte, nom)
+	context.keys["database"]["socket"] = f'"{context.directory / "aucune-socket"}"'
+	write(context, name)
 
 
 # ─── Quand ─────────────────────────────────────────────────
 
 
 @when("je charge la configuration")
-def charger_configuration(contexte: Contexte) -> None:
+def load_configuration(context: Context) -> None:
 	try:
-		contexte.configuration = charger(contexte.chemin)
-	except ConfigurationInvalide as erreur:
-		contexte.erreur = erreur
+		context.configuration = load(context.path)
+	except InvalidConfiguration as error:
+		context.error = error
 
 
-@when(parsers.parse('je lance "{executable}" avec la configuration "{nom}"'))
-def lancer_avec_configuration(contexte: Contexte, executable: str, nom: str) -> None:
-	contexte.resultat = lancer(executable, ["--config", nom], contexte.repertoire)
+@when(parsers.parse('je lance "{executable}" avec la configuration "{name}"'))
+def launch_with_configuration(context: Context, executable: str, name: str) -> None:
+	context.result = launch(executable, ["--config", name], context.directory)
 
 
 @given("ce répertoire tient lieu de répertoire de MachinCast")
-def repertoire_machincast(contexte: Contexte, monkeypatch: pytest.MonkeyPatch) -> None:
-	monkeypatch.setattr(module_configuration, "REPERTOIRE_PROJET", contexte.repertoire)
+def machincast_directory(context: Context, monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.setattr(module_configuration, "PROJECT_DIRECTORY", context.directory)
 
 
 @given("un répertoire de MachinCast sans machincast.toml")
-def repertoire_sans_fichier(contexte: Contexte, monkeypatch: pytest.MonkeyPatch) -> None:
-	monkeypatch.setattr(module_configuration, "REPERTOIRE_PROJET", contexte.repertoire)
+def directory_without_file(context: Context, monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.setattr(module_configuration, "PROJECT_DIRECTORY", context.directory)
 
 
 @given("le répertoire courant est un autre répertoire")
-def autre_repertoire(contexte: Contexte, monkeypatch: pytest.MonkeyPatch) -> None:
-	ailleurs = contexte.repertoire / "ailleurs"
-	ailleurs.mkdir()
-	monkeypatch.chdir(ailleurs)
+def other_directory(context: Context, monkeypatch: pytest.MonkeyPatch) -> None:
+	elsewhere = context.directory / "ailleurs"
+	elsewhere.mkdir()
+	monkeypatch.chdir(elsewhere)
 
 
 @when("un binaire démarre sans option")
-def demarrer_sans_option(contexte: Contexte, capsys: pytest.CaptureFixture[str]) -> None:
+def start_without_option(context: Context, capsys: pytest.CaptureFixture[str]) -> None:
 	def action(configuration: Configuration, _options: object) -> int:
-		contexte.recue = configuration
+		context.received = configuration
 		return 0
 
-	contexte.code = lancer_binaire("Machin_essai", "Binaire d'essai.", [], action)
-	contexte.erreurs = capsys.readouterr().err
+	context.code = launch_binary("Machin_essai", "Binaire d'essai.", [], action)
+	context.errors = capsys.readouterr().err
 
 
 @when(parsers.parse('je lance "{executable}" avec l\'option "{option}"'))
-def lancer_option(contexte: Contexte, executable: str, option: str) -> None:
-	contexte.resultat = lancer(executable, [option], contexte.repertoire)
+def launch_option(context: Context, executable: str, option: str) -> None:
+	context.result = launch(executable, [option], context.directory)
 
 
 @when(parsers.parse('je lance "{executable}" avec ce chemin de configuration'))
-def lancer_avec_chemin(contexte: Contexte, executable: str) -> None:
-	assert contexte.chemin is not None
-	contexte.resultat = lancer(executable, ["--config", str(contexte.chemin)], contexte.repertoire)
+def launch_with_path(context: Context, executable: str) -> None:
+	assert context.path is not None
+	context.result = launch(executable, ["--config", str(context.path)], context.directory)
 
 
 # ─── Alors ─────────────────────────────────────────────────
 
 
-def configuration(contexte: Contexte) -> Configuration:
-	assert contexte.erreur is None, str(contexte.erreur)
-	assert contexte.configuration is not None
-	return contexte.configuration
+def configuration(context: Context) -> Configuration:
+	assert context.error is None, str(context.error)
+	assert context.configuration is not None
+	return context.configuration
 
 
-@then(parsers.parse('le fichier de configuration par défaut est "{nom}" à la racine du dépôt'))
-def defaut_dans_le_depot(nom: str) -> None:
-	assert fichier_par_defaut() == RACINE / nom
+@then(parsers.parse('le fichier de configuration par défaut est "{name}" à la racine du dépôt'))
+def default_in_drop(name: str) -> None:
+	assert default_file() == ROOT / name
 
 
 @then("il reçoit la configuration de ce répertoire")
-def recoit_configuration(contexte: Contexte) -> None:
-	assert contexte.code == 0, contexte.erreurs
-	assert contexte.recue is not None
+def receives_configuration(context: Context) -> None:
+	assert context.code == 0, context.errors
+	assert context.received is not None
 	# Les chemins relatifs sont résolus depuis le fichier lu : c'est bien celui de ce répertoire.
-	assert contexte.recue.sorties.csv == contexte.repertoire / "airplay.csv"
+	assert context.received.outputs.csv == context.directory / "airplay.csv"
 
 
 @then(parsers.parse("il s'arrête avec le code {code:d}"))
-def arret_code(contexte: Contexte, code: int) -> None:
-	assert contexte.code == code
+def code_stop(context: Context, code: int) -> None:
+	assert context.code == code
 
 
 @then("son erreur mentionne le chemin complet du machincast.toml de ce répertoire")
-def erreur_chemin_complet(contexte: Contexte) -> None:
-	assert str(contexte.repertoire / "machincast.toml") in contexte.erreurs, contexte.erreurs
+def full_path_error(context: Context) -> None:
+	assert str(context.directory / "machincast.toml") in context.errors, context.errors
 
 
 @then("la sortie mentionne le machincast.toml à la racine du dépôt")
-def aide_defaut(contexte: Contexte) -> None:
-	assert contexte.resultat is not None
-	assert str(RACINE / "machincast.toml") in contexte.resultat.stdout, contexte.resultat.stdout
+def default_help(context: Context) -> None:
+	assert context.result is not None
+	assert str(ROOT / "machincast.toml") in context.result.stdout, context.result.stdout
 
 
 @then("la configuration est chargée sans erreur")
-def chargee(contexte: Contexte) -> None:
-	configuration(contexte)
+def loaded(context: Context) -> None:
+	configuration(context)
 
 
-@then(parsers.parse('la base de production est "{nom}"'))
-def base_production(contexte: Contexte, nom: str) -> None:
-	assert configuration(contexte).base.production == nom
+@then(parsers.parse('la base de production est "{name}"'))
+def production_database(context: Context, name: str) -> None:
+	assert configuration(context).database.production == name
 
 
-@then(parsers.parse('la base de test est "{nom}"'))
-def base_test(contexte: Contexte, nom: str) -> None:
-	assert configuration(contexte).base.test == nom
+@then(parsers.parse('la base de test est "{name}"'))
+def sample_database(context: Context, name: str) -> None:
+	assert configuration(context).database.test == name
 
 
-@then(parsers.parse('la sortie audio est "{sortie}" sur le périphérique "{peripherique}"'))
-def sortie_audio(contexte: Contexte, sortie: str, peripherique: str) -> None:
-	audio = configuration(contexte).audio
-	assert (audio.sortie, audio.peripherique) == (sortie, peripherique)
+@then(parsers.parse('la sortie audio est "{output}" sur le périphérique "{device}"'))
+def audio_output(context: Context, output: str, device: str) -> None:
+	audio = configuration(context).audio
+	assert (audio.output, audio.device) == (output, device)
 
 
 @then("la sortie audio utilise le périphérique par défaut")
-def peripherique_defaut(contexte: Contexte) -> None:
-	assert configuration(contexte).audio.peripherique is None
+def default_device(context: Context) -> None:
+	assert configuration(context).audio.device is None
 
 
-@then(parsers.parse('la pré-écoute utilise le périphérique "{peripherique}"'))
-def preecoute(contexte: Contexte, peripherique: str) -> None:
-	assert configuration(contexte).audio.preecoute == peripherique
+@then(parsers.parse('la pré-écoute utilise le périphérique "{device}"'))
+def preview(context: Context, device: str) -> None:
+	assert configuration(context).audio.preview == device
 
 
-@then(parsers.parse('la sortie CSV est "{relatif}" à côté du fichier de configuration'))
-def sortie_csv(contexte: Contexte, relatif: str) -> None:
-	assert configuration(contexte).sorties.csv == contexte.repertoire / relatif
+@then(parsers.parse('la sortie CSV est "{relative}" à côté du fichier de configuration'))
+def csv_output(context: Context, relative: str) -> None:
+	assert configuration(context).outputs.csv == context.directory / relative
 
 
-@then(parsers.re(r'la socket d\'état est "(?P<chemin>[^"]+)"(?P<relatif> à côté du fichier de configuration)?$'))
-def socket_etat(contexte: Contexte, chemin: str, relatif: str | None) -> None:
-	assert contexte.configuration is not None
-	attendu = Path(chemin)
-	if relatif:
-		attendu = contexte.repertoire / chemin
-	assert contexte.configuration.lecture.socket_etat == attendu
+@then(parsers.re(r'la socket d\'état est "(?P<path>[^"]+)"(?P<relative> à côté du fichier de configuration)?$'))
+def state_socket(context: Context, path: str, relative: str | None) -> None:
+	assert context.configuration is not None
+	expected = Path(path)
+	if relative:
+		expected = context.directory / path
+	assert context.configuration.player.state_socket == expected
 
 
-@then(parsers.parse('la sortie HTML est "{absolu}"'))
-def sortie_html(contexte: Contexte, absolu: str) -> None:
-	assert configuration(contexte).sorties.html == Path(absolu)
+@then(parsers.parse('la sortie HTML est "{absolute}"'))
+def html_output(context: Context, absolute: str) -> None:
+	assert configuration(context).outputs.html == Path(absolute)
 
 
-@then(parsers.parse('le texte public par défaut est "{texte}"'))
-def texte_public(contexte: Contexte, texte: str) -> None:
-	assert configuration(contexte).metadonnees.texte_public == texte
+@then(parsers.parse('le texte public par défaut est "{text}"'))
+def public_text(context: Context, text: str) -> None:
+	assert configuration(context).metadata.public_text == text
 
 
 @then("les métadonnées sont masquées par défaut")
-def masquees(contexte: Contexte) -> None:
-	assert configuration(contexte).metadonnees.masquer is True
+def hidden_list(context: Context) -> None:
+	assert configuration(context).metadata.hide is True
 
 
-@then(parsers.parse('le chargement échoue avec un message qui mentionne "{texte}"'))
-def echec_mentionne(contexte: Contexte, texte: str) -> None:
-	assert contexte.erreur is not None, "le chargement aurait dû échouer"
-	assert texte in str(contexte.erreur)
+@then(parsers.parse('le chargement échoue avec un message qui mentionne "{text}"'))
+def mentioned_failure(context: Context, text: str) -> None:
+	assert context.error is not None, "le chargement aurait dû échouer"
+	assert text in str(context.error)
 
 
-@then(parsers.parse('le message mentionne "{texte}"'))
-def message_mentionne(contexte: Contexte, texte: str) -> None:
-	assert texte in str(contexte.erreur)
+@then(parsers.parse('le message mentionne "{text}"'))
+def mentioned_message(context: Context, text: str) -> None:
+	assert text in str(context.error)
 
 
 @then("le chargement échoue avec un message qui mentionne le chemin du fichier")
-def echec_chemin(contexte: Contexte) -> None:
-	assert contexte.erreur is not None, "le chargement aurait dû échouer"
-	assert str(contexte.chemin) in str(contexte.erreur)
+def path_failure(context: Context) -> None:
+	assert context.error is not None, "le chargement aurait dû échouer"
+	assert str(context.path) in str(context.error)
 
 
 @then("la configuration est acceptée par le binaire")
-def acceptee(contexte: Contexte) -> None:
+def accepted(context: Context) -> None:
 	# Après une configuration acceptée, le binaire va plus loin : il signale un ticket à venir, ou ne joint pas la base.
-	assert contexte.resultat is not None
-	assert contexte.resultat.returncode != CODE_CONFIGURATION_INVALIDE, contexte.resultat.stderr
-	assert "configuration invalide" not in contexte.resultat.stderr, contexte.resultat.stderr
+	assert context.result is not None
+	assert context.result.returncode != INVALID_CONFIGURATION_CODE, context.result.stderr
+	assert "configuration invalide" not in context.result.stderr, context.result.stderr
 
 
 @then(parsers.parse("le binaire s'arrête avec le code {code:d}"))
-def code_retour(contexte: Contexte, code: int) -> None:
-	assert contexte.resultat is not None
-	assert contexte.resultat.returncode == code
+def returned_code(context: Context, code: int) -> None:
+	assert context.result is not None
+	assert context.result.returncode == code
 
 
 @then("l'erreur affichée mentionne le chemin du fichier")
-def erreur_chemin(contexte: Contexte) -> None:
-	assert contexte.resultat is not None
-	assert str(contexte.chemin) in contexte.resultat.stderr
+def path_error(context: Context) -> None:
+	assert context.result is not None
+	assert str(context.path) in context.result.stderr
 
 
 # ─── Crossfades (https://github.com/dascritch/machincast/issues/145) ─────
@@ -320,127 +320,127 @@ def erreur_chemin(contexte: Contexte) -> None:
 
 @then(
 	parsers.re(
-		r"les crossfades se règlent (?P<granularite>au dixième de seconde|à la seconde),"
+		r"les crossfades se règlent (?P<granularity>au dixième de seconde|à la seconde),"
 		r" jusqu'à (?P<maximum>\d+) secondes"
 	)
 )
-def granularite_et_maximum(contexte: Contexte, granularite: str, maximum: str) -> None:
-	assert contexte.configuration is not None, contexte.erreur
-	crossfades = contexte.configuration.crossfades
-	attendue = {"au dixième de seconde": "dixieme", "à la seconde": "seconde"}[granularite]
-	assert (crossfades.granularite, crossfades.maximum) == (attendue, timedelta(seconds=int(maximum)))
+def granularity_and_maximum(context: Context, granularity: str, maximum: str) -> None:
+	assert context.configuration is not None, context.error
+	crossfades = context.configuration.crossfades
+	expected = {"au dixième de seconde": "tenth", "à la seconde": "second"}[granularity]
+	assert (crossfades.granularity, crossfades.maximum) == (expected, timedelta(seconds=int(maximum)))
 
 
 @then("les crossfades n'ont pas de durée par défaut")
-def sans_defaut(contexte: Contexte) -> None:
-	assert contexte.configuration is not None, contexte.erreur
-	assert (contexte.configuration.crossfades.debut, contexte.configuration.crossfades.fin) == (None, None)
+def without_default(context: Context) -> None:
+	assert context.configuration is not None, context.error
+	assert (context.configuration.crossfades.start, context.configuration.crossfades.end) == (None, None)
 
 
 @then(
 	parsers.re(
-		r"les crossfades durent par défaut (?P<debut>[\d,]+) secondes? au début et (?P<fin>[\d,]+) secondes? à la fin"
+		r"les crossfades durent par défaut (?P<start>[\d,]+) secondes? au début et (?P<end>[\d,]+) secondes? à la fin"
 	)
 )
-def defauts(contexte: Contexte, debut: str, fin: str) -> None:
-	assert contexte.configuration is not None, contexte.erreur
-	crossfades = contexte.configuration.crossfades
-	attendus = tuple(timedelta(seconds=float(valeur.replace(",", "."))) for valeur in (debut, fin))
-	assert (crossfades.debut, crossfades.fin) == attendus
+def defects(context: Context, start: str, end: str) -> None:
+	assert context.configuration is not None, context.error
+	crossfades = context.configuration.crossfades
+	expected_list = tuple(timedelta(seconds=float(value.replace(",", "."))) for value in (start, end))
+	assert (crossfades.start, crossfades.end) == expected_list
 
 
-@then(parsers.parse("la durée de péremption est de {jours:d} jours"))
-def peremption(contexte: Contexte, jours: int) -> None:
+@then(parsers.parse("la durée de péremption est de {days:d} jours"))
+def retention(context: Context, days: int) -> None:
 	"""https://github.com/dascritch/machincast/issues/268"""
-	assert contexte.configuration is not None, contexte.erreur
-	assert contexte.configuration.base.peremption == jours
+	assert context.configuration is not None, context.error
+	assert context.configuration.database.retention == days
 
 
-@then(parsers.re(r"le seuil de silence est de (?P<seuil>-?[\d,]+) dB"))
-def seuil_de_silence(contexte: Contexte, seuil: str) -> None:
+@then(parsers.re(r"le seuil de silence est de (?P<threshold>-?[\d,]+) dB"))
+def silence_threshold(context: Context, threshold: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/146"""
-	assert contexte.configuration is not None, contexte.erreur
-	assert contexte.configuration.silences.seuil == float(seuil.replace(",", "."))
+	assert context.configuration is not None, context.error
+	assert context.configuration.silences.threshold == float(threshold.replace(",", "."))
 
 
 @then(
 	parsers.re(
-		r"un blanc dans un sonore dure au moins (?P<duree>[\d,]+) secondes sous (?P<seuil>-?[\d,]+) dB, et il"
-		r" (?P<suite>est noté seulement|fait passer au secours)"
+		r"un blanc dans un sonore dure au moins (?P<duration>[\d,]+) secondes sous (?P<threshold>-?[\d,]+) dB, et il"
+		r" (?P<remainder>est noté seulement|fait passer au secours)"
 	)
 )
-def blanc_antenne(contexte: Contexte, duree: str, seuil: str, suite: str) -> None:
+def dead_air(context: Context, duration: str, threshold: str, remainder: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/122"""
-	assert contexte.configuration is not None, contexte.erreur
-	blanc = contexte.configuration.blanc_antenne
-	attendu = (timedelta(seconds=float(duree.replace(",", "."))), float(seuil.replace(",", ".")))
-	assert (blanc.duree, blanc.seuil) == attendu
-	assert blanc.secours is (suite == "fait passer au secours")
+	assert context.configuration is not None, context.error
+	dead_air_found = context.configuration.dead_air
+	expected = (timedelta(seconds=float(duration.replace(",", "."))), float(threshold.replace(",", ".")))
+	assert (dead_air_found.duration, dead_air_found.threshold) == expected
+	assert dead_air_found.fallback is (remainder == "fait passer au secours")
 
 
 @then("le journal avertit que la section [blancs] s'appelle désormais [silences]")
-def avertit_blancs(caplog: pytest.LogCaptureFixture) -> None:
+def warns_dead_airs(caplog: pytest.LogCaptureFixture) -> None:
 	"""https://github.com/dascritch/machincast/issues/291"""
-	avertissements = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
-	assert any("la section [blancs] s'appelle désormais [silences]" in m for m in avertissements), avertissements
+	warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+	assert any("la section [blancs] s'appelle désormais [silences]" in m for m in warnings), warnings
 
 
-@then(parsers.re(r"le voyant « Saturation » de l'onglet Antenne est (?P<etat>affiché|caché)"))
-def voyant_de_saturation(contexte: Contexte, etat: str) -> None:
+@then(parsers.re(r"le voyant « Saturation » de l'onglet Antenne est (?P<state>affiché|caché)"))
+def clipping_light(context: Context, state: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/191"""
-	assert contexte.configuration is not None, contexte.erreur
-	assert contexte.configuration.interface.saturation is (etat == "affiché")
+	assert context.configuration is not None, context.error
+	assert context.configuration.interface.clipping is (state == "affiché")
 
 
-@then(parsers.re(r"les suggestions au lancement sont (?P<etat>actives|éteintes)"))
-def suggestions_au_lancement(contexte: Contexte, etat: str) -> None:
+@then(parsers.re(r"les suggestions au lancement sont (?P<state>actives|éteintes)"))
+def suggestions_to_launching(context: Context, state: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/119"""
-	assert contexte.configuration is not None, contexte.erreur
-	assert contexte.configuration.interface.suggestions is (etat == "actives")
+	assert context.configuration is not None, context.error
+	assert context.configuration.interface.suggestions is (state == "actives")
 
 
 # ─── Icône de l'interface (https://github.com/dascritch/machincast/issues/111) ───
 
 
 @then("l'icône de l'interface est celle de MachinCast")
-def icone_par_defaut(contexte: Contexte) -> None:
-	assert contexte.configuration is not None
-	assert contexte.configuration.interface.icone is None
+def default_icon(context: Context) -> None:
+	assert context.configuration is not None
+	assert context.configuration.interface.icon is None
 
 
-@then(parsers.parse("l'icône de l'interface est \"{relatif}\" à côté du fichier de configuration"))
-def icone_relative(contexte: Contexte, relatif: str) -> None:
-	assert contexte.configuration is not None
-	assert contexte.chemin is not None
-	assert contexte.configuration.interface.icone == contexte.chemin.parent / relatif
+@then(parsers.parse("l'icône de l'interface est \"{relative}\" à côté du fichier de configuration"))
+def relative_icon(context: Context, relative: str) -> None:
+	assert context.configuration is not None
+	assert context.path is not None
+	assert context.configuration.interface.icon == context.path.parent / relative
 
 
 @then(
 	parsers.re(
-		r"le fade-in (?P<entree>commence|est en cours|se termine) au début détecté, et le fade-out"
-		r" (?P<sortie>commence|est en cours|se termine) à la fin détectée"
+		r"le fade-in (?P<entry>commence|est en cours|se termine) au début détecté, et le fade-out"
+		r" (?P<output>commence|est en cours|se termine) à la fin détectée"
 	)
 )
-def positions_des_fondus(contexte: Contexte, entree: str, sortie: str) -> None:
+def fade_positions(context: Context, entry: str, output: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/234"""
-	assert contexte.configuration is not None, contexte.erreur
-	crossfades = contexte.configuration.crossfades
-	assert (LIBELLES[crossfades.entree], LIBELLES[crossfades.sortie]) == (entree, sortie)
+	assert context.configuration is not None, context.error
+	crossfades = context.configuration.crossfades
+	assert (LABELS[crossfades.entry], LABELS[crossfades.output]) == (entry, output)
 
 
 @then(
 	parsers.re(
-		r"l'antenne joue sur la sortie « (?P<sortie>[^»]+) »,"
-		r" (?:sans périphérique|sur le périphérique « (?P<peripherique>[^»]+) »)"
+		r"l'antenne joue sur la sortie « (?P<output>[^»]+) »,"
+		r" (?:sans périphérique|sur le périphérique « (?P<device>[^»]+) »)"
 	)
 )
-def sortie_de_l_antenne(contexte: Contexte, sortie: str, peripherique: str | None) -> None:
+def on_air_output(context: Context, output: str, device: str | None) -> None:
 	"""L'entrée « sortie factice » (https://github.com/dascritch/machincast/issues/339)."""
-	assert contexte.configuration is not None, contexte.erreur
-	assert contexte.configuration.audio.antenne() == (sortie, peripherique)
+	assert context.configuration is not None, context.error
+	assert context.configuration.audio.on_air() == (output, device)
 
 
-@then(parsers.re(r"la pré-écoute est (?P<etat>active|désactivée)"))
-def preecoute_active(contexte: Contexte, etat: str) -> None:
-	assert contexte.configuration is not None, contexte.erreur
-	assert contexte.configuration.audio.preecoute_desactivee() == (etat == "désactivée")
+@then(parsers.re(r"la pré-écoute est (?P<state>active|désactivée)"))
+def active_preview(context: Context, state: str) -> None:
+	assert context.configuration is not None, context.error
+	assert context.configuration.audio.disabled_preview() == (state == "désactivée")

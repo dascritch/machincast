@@ -1,6 +1,6 @@
 """Étapes du mode simulation de Machin player (https://github.com/dascritch/machincast/issues/21).
 
-Les étapes de la diffusion viennent de tests/etapes_diffusion.py. Les sorties de la simulation sont écrites dans le
+Les étapes de la diffusion viennent de tests/broadcast_steps.py. Les sorties de la simulation sont écrites dans le
 répertoire temporaire du scénario.
 """
 
@@ -22,223 +22,229 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 import machincast.audio
-import machincast.lecture.moteur
-from machincast.audio import SortieAudioIndisponible
-from machincast.base import Role, connecter
-from machincast.configuration import Crossfades, Metadonnees
-from machincast.lecture.enregistrement import NIVEAUX
-from machincast.lecture.simulation import Resultat, lecture_seule, simuler
-from tests.base_test import CONFIGURATION_TEST, parametres_base_test
-from tests.etapes_diffusion import Banc, Connexion, creer_sonore, evenement, heure, sonore
+import machincast.player.engine
+from machincast.audio import UnavailableAudioOutput
+from machincast.configuration import Crossfades, Metadata
+from machincast.database import Role, open_connection
+from machincast.player.saving import LEVELS
+from machincast.player.simulation import Result, read_only, simulate
+from tests.broadcast_steps import Bench, Connection, create_sound, event, hour, sound
+from tests.database_fixtures import CONFIGURATION_TEST, sample_database_parameters
 
 scenarios("simulation.feature")
 
 
 @dataclass
-class Contexte:
-	repertoire: Path | None = None
-	resultats: list[Resultat] = field(default_factory=list)
-	avant: tuple[object, ...] | None = None
-	metadonnees: Metadonnees = field(default_factory=lambda: Metadonnees(masquer=False, texte_public=""))
-	erreur: Exception | None = None
-	processus: subprocess.CompletedProcess[str] | None = None
+class Context:
+	directory: Path | None = None
+	results: list[Result] = field(default_factory=list)
+	before: tuple[object, ...] | None = None
+	metadata: Metadata = field(default_factory=lambda: Metadata(hide=False, public_text=""))
+	error: Exception | None = None
+	process: subprocess.CompletedProcess[str] | None = None
 
 
 @pytest.fixture
-def contexte() -> Contexte:
-	return Contexte()
+def context() -> Context:
+	return Context()
 
 
-def resultat(contexte: Contexte) -> Resultat:
-	assert contexte.resultats
-	return contexte.resultats[-1]
+def result(context: Context) -> Result:
+	assert context.results
+	return context.results[-1]
 
 
-def etat_de_la_base(base: Connexion) -> tuple[object, ...]:
+def database_state(database: Connection) -> tuple[object, ...]:
 	"""Tout ce que la simulation pourrait changer : airplay, log, et chaque sonore."""
-	ligne = base.execute(
+	line = database.execute(
 		"SELECT (SELECT count(*) FROM airplay), (SELECT count(*) FROM log),"
 		" (SELECT COALESCE(jsonb_agg(to_jsonb(s) ORDER BY s.id), '[]') FROM sounds s)"
 	).fetchone()
-	assert ligne is not None
-	return tuple(ligne)
+	assert line is not None
+	return tuple(line)
 
 
-def lancer_simulation(
-	contexte: Contexte,
-	base: Connexion,
-	debut: str,
-	fin: str,
-	graine: int | None = None,
-	nom: str | None = None,
+def launch_simulation(
+	context: Context,
+	database: Connection,
+	start: str,
+	end: str,
+	seed: int | None = None,
+	name: str | None = None,
 	crossfades: Crossfades | None = None,
 ) -> None:
-	assert contexte.repertoire is not None
-	contexte.avant = etat_de_la_base(base)
-	with connecter(*parametres_base_test(), Role.LECTURE) as connexion:
-		contexte.resultats.append(
-			simuler(
-				connexion,
-				contexte.repertoire,
-				heure(debut),
-				heure(fin),
-				graine,
-				nom,
-				contexte.metadonnees,
+	assert context.directory is not None
+	context.before = database_state(database)
+	with open_connection(*sample_database_parameters(), Role.PLAYBACK) as connection:
+		context.results.append(
+			simulate(
+				connection,
+				context.directory,
+				hour(start),
+				hour(end),
+				seed,
+				name,
+				context.metadata,
 				(crossfades) or (Crossfades()),
 			)
 		)
 
 
-def titres(contexte: Contexte) -> list[str]:
-	return [str(ligne.titre) for ligne in resultat(contexte).passages]
+def titles(context: Context) -> list[str]:
+	return [str(line.title) for line in result(context).plays]
 
 
 # ─── Étant donné ───────────────────────────────────────────
 
 
-@given(parsers.parse("des sorties de simulation dans un répertoire temporaire, avec le texte public « {texte} »"))
-def sorties_temporaires(contexte: Contexte, tmp_path: Path, caplog: pytest.LogCaptureFixture, texte: str) -> None:
+@given(parsers.parse("des sorties de simulation dans un répertoire temporaire, avec le texte public « {text} »"))
+def temporary_outputs(context: Context, tmp_path: Path, caplog: pytest.LogCaptureFixture, text: str) -> None:
 	caplog.set_level(logging.INFO, logger="machincast")
-	contexte.repertoire = tmp_path / "sorties"
-	contexte.metadonnees = Metadonnees(masquer=False, texte_public=texte)
+	context.directory = tmp_path / "sorties"
+	context.metadata = Metadata(hide=False, public_text=text)
 
 
 @given(parsers.parse("chaque sonore dure {minutes:d} minute"))
-def duree_des_sonores(base_vide: Connexion, minutes: int) -> None:
-	base_vide.execute("UPDATE sounds SET duration = %s WHERE type = 'file'", (timedelta(minutes=minutes),))
+def sound_duration(empty_database: Connection, minutes: int) -> None:
+	empty_database.execute("UPDATE sounds SET duration = %s WHERE type = 'file'", (timedelta(minutes=minutes),))
 
 
-@given(parsers.parse("l'émission « {nom} » du « {debut} » au « {fin} », avec le sonore « {nom_sonore} »"))
-def emission_datee(
-	banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, debut: str, fin: str, nom_sonore: str
+@given(parsers.parse("l'émission « {name} » du « {start} » au « {end} », avec le sonore « {sound_name} »"))
+def dated_show(
+	bench: Bench, empty_database: Connection, tmp_path: Path, name: str, start: str, end: str, sound_name: str
 ) -> None:
-	evenement(banc, base_vide, tmp_path, nom, "show", heure(debut), heure(fin), [nom_sonore])
+	event(bench, empty_database, tmp_path, name, "show", hour(start), hour(end), [sound_name])
 
 
-@given(parsers.parse("le stream « {nom} » à l'adresse « {adresse} »"))
-def stream(base_vide: Connexion, nom: str, adresse: str) -> None:
-	base_vide.execute("INSERT INTO sounds (type, stream_url, title) VALUES ('stream', %s, %s)", (adresse, nom))
+@given(parsers.parse("le stream « {name} » à l'adresse « {address} »"))
+def stream(empty_database: Connection, name: str, address: str) -> None:
+	empty_database.execute("INSERT INTO sounds (type, stream_url, title) VALUES ('stream', %s, %s)", (address, name))
 
 
-@given(parsers.parse("« {nom} » a été joué dans le fil « {fil} » le « {instant} »"))
-def joue_dans_le_fil(base_vide: Connexion, nom: str, fil: str, instant: str) -> None:
-	ligne = base_vide.execute(
+@given(parsers.parse("« {name} » a été joué dans le fil « {feed} » le « {instant} »"))
+def plays_in_feed(empty_database: Connection, name: str, feed: str, instant: str) -> None:
+	line = empty_database.execute(
 		"SELECT e.id, ee.id FROM events e JOIN event_items ee ON ee.event_id = e.id"
 		" WHERE e.internal_name = %s AND ee.sound_id = %s",
-		(fil, sonore(base_vide, nom)),
+		(feed, sound(empty_database, name)),
 	).fetchone()
-	assert ligne is not None
-	base_vide.execute(
+	assert line is not None
+	empty_database.execute(
 		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, event_id, event_item_id, title)"
 		" VALUES (%s, 'start', %s, %s, %s, %s, %s)",
-		(uuid.uuid4(), heure(instant), sonore(base_vide, nom), ligne[0], ligne[1], nom),
+		(uuid.uuid4(), hour(instant), sound(empty_database, name), line[0], line[1], name),
 	)
 
 
-@given(parsers.re(r"la banque séquentielle « (?P<nom>[^»]+) » des sonores (?P<liste>.+), marquée « ne pas répéter »"))
-def banque_a_ne_pas_repeter(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str) -> None:
-	creee = base_vide.execute(
-		"INSERT INTO banks (internal_name, mode, no_repeat) VALUES (%s, 'sequential', true) RETURNING id", (nom,)
+@given(parsers.re(r"la banque séquentielle « (?P<name>[^»]+) » des sonores (?P<list_>.+), marquée « ne pas répéter »"))
+def bank_to_no_repeat(bench: Bench, empty_database: Connection, tmp_path: Path, name: str, list_: str) -> None:
+	created = empty_database.execute(
+		"INSERT INTO banks (internal_name, mode, no_repeat) VALUES (%s, 'sequential', true) RETURNING id", (name,)
 	).fetchone()
-	assert creee is not None
-	for position, nom_sonore in enumerate(re.findall(r"« ([^»]+) »", liste), start=1):
-		base_vide.execute(
+	assert created is not None
+	for position, sound_name in enumerate(re.findall(r"« ([^»]+) »", list_), start=1):
+		empty_database.execute(
 			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
-			(creee[0], creer_sonore(banc, base_vide, tmp_path, nom_sonore), position),
+			(created[0], create_sound(bench, empty_database, tmp_path, sound_name), position),
 		)
 
 
-@given(parsers.re(r"la banque « (?P<nom>[^»]+) » des sonores (?P<liste>.+), de nom public « (?P<nom_public>[^»]+) »"))
-def banque_nommee(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str, nom_public: str) -> None:
-	creee = base_vide.execute(
+@given(parsers.re(r"la banque « (?P<name>[^»]+) » des sonores (?P<list_>.+), de nom public « (?P<public_name>[^»]+) »"))
+def named_bank(
+	bench: Bench, empty_database: Connection, tmp_path: Path, name: str, list_: str, public_name: str
+) -> None:
+	created = empty_database.execute(
 		"INSERT INTO banks (internal_name, public_name, mode) VALUES (%s, %s, 'sequential') RETURNING id",
-		(nom, nom_public),
+		(name, public_name),
 	).fetchone()
-	assert creee is not None
-	for position, nom_sonore in enumerate(re.findall(r"« ([^»]+) »", liste), start=1):
-		base_vide.execute(
+	assert created is not None
+	for position, sound_name in enumerate(re.findall(r"« ([^»]+) »", list_), start=1):
+		empty_database.execute(
 			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
-			(creee[0], creer_sonore(banc, base_vide, tmp_path, nom_sonore), position),
+			(created[0], create_sound(bench, empty_database, tmp_path, sound_name), position),
 		)
 
 
 @given(
 	parsers.re(
-		r"la séquence « (?P<nom>[^»]+) », qui appelle deux fois la banque « (?P<banque>[^»]+) »,"
-		r" de nom public « (?P<nom_public>[^»]+) », masquée"
+		r"la séquence « (?P<name>[^»]+) », qui appelle deux fois la banque « (?P<bank>[^»]+) »,"
+		r" de nom public « (?P<public_name>[^»]+) », masquée"
 	)
 )
-def sequence_masquee(base_vide: Connexion, nom: str, banque: str, nom_public: str) -> None:
-	creee = base_vide.execute(
+def hidden_sequence(empty_database: Connection, name: str, bank: str, public_name: str) -> None:
+	created = empty_database.execute(
 		"INSERT INTO sequences (internal_name, public_name, hide_metadata) VALUES (%s, %s, true) RETURNING id",
-		(nom, nom_public),
+		(name, public_name),
 	).fetchone()
-	ligne = base_vide.execute("SELECT id FROM banks WHERE internal_name = %s", (banque,)).fetchone()
-	assert (creee is not None) and (ligne is not None)
+	line = empty_database.execute("SELECT id FROM banks WHERE internal_name = %s", (bank,)).fetchone()
+	assert (created is not None) and (line is not None)
 	for position in (1, 2):
-		base_vide.execute(
+		empty_database.execute(
 			"INSERT INTO sequence_items (sequence_id, position, bank_id) VALUES (%s, %s, %s)",
-			(creee[0], position, ligne[0]),
+			(created[0], position, line[0]),
 		)
 
 
 @given(
-	parsers.re(r"le fil musical permanent « (?P<nom>[^»]+) », avec (?P<liste>(?:la banque|la séquence|le sonore) « .+)")
+	parsers.re(
+		r"le fil musical permanent « (?P<name>[^»]+) », avec (?P<list_>(?:la banque|la séquence|le sonore) « .+)"
+	)
 )
-def fil_avec_elements(banc: Banc, base_vide: Connexion, tmp_path: Path, nom: str, liste: str) -> None:
-	cree = base_vide.execute(
-		"INSERT INTO events (internal_name, priority) VALUES (%s, 'background_programming') RETURNING id", (nom,)
+def feed_with_items(bench: Bench, empty_database: Connection, tmp_path: Path, name: str, list_: str) -> None:
+	created = empty_database.execute(
+		"INSERT INTO events (internal_name, priority) VALUES (%s, 'background_programming') RETURNING id", (name,)
 	).fetchone()
-	assert cree is not None
-	for position, (genre, nom_element) in enumerate(
-		re.findall(r"(banque|séquence|sonore) « ([^»]+) »", liste), start=1
+	assert created is not None
+	for position, (category, item_name) in enumerate(
+		re.findall(r"(banque|séquence|sonore) « ([^»]+) »", list_), start=1
 	):
-		table = {"banque": "banks", "séquence": "sequences"}.get(genre)
+		table = {"banque": "banks", "séquence": "sequences"}.get(category)
 		if table is not None:
-			ligne = base_vide.execute(
+			line = empty_database.execute(
 				f"SELECT id FROM {table} WHERE internal_name = %s",  # noqa: S608
-				(nom_element,),
+				(item_name,),
 			).fetchone()
-			assert ligne is not None
-			reference = int(str(ligne[0]))
+			assert line is not None
+			reference = int(str(line[0]))
 		else:
-			reference = creer_sonore(banc, base_vide, tmp_path, nom_element)
-		colonne = {"banque": "bank_id", "séquence": "sequence_id"}.get(genre, "sound_id")
-		base_vide.execute(
-			f"INSERT INTO event_items (event_id, position, {colonne}) VALUES (%s, %s, %s)",  # noqa: S608
-			(cree[0], position, reference),
+			reference = create_sound(bench, empty_database, tmp_path, item_name)
+		column = {"banque": "bank_id", "séquence": "sequence_id"}.get(category, "sound_id")
+		empty_database.execute(
+			f"INSERT INTO event_items (event_id, position, {column}) VALUES (%s, %s, %s)",  # noqa: S608
+			(created[0], position, reference),
 		)
 
 
-@given(parsers.parse("« {nom} » a été joué via la banque « {banque} » le « {instant} »"))
-def joue_via_la_banque(base_vide: Connexion, nom: str, banque: str, instant: str) -> None:
-	ligne = base_vide.execute("SELECT id FROM banks WHERE internal_name = %s", (banque,)).fetchone()
-	assert ligne is not None
-	base_vide.execute(
+@given(parsers.parse("« {name} » a été joué via la banque « {bank} » le « {instant} »"))
+def plays_via_bank(empty_database: Connection, name: str, bank: str, instant: str) -> None:
+	line = empty_database.execute("SELECT id FROM banks WHERE internal_name = %s", (bank,)).fetchone()
+	assert line is not None
+	empty_database.execute(
 		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, bank_id, title)"
 		" VALUES (%s, 'start', %s, %s, %s, %s)",
-		(uuid.uuid4(), heure(instant), sonore(base_vide, nom), ligne[0], nom),
+		(uuid.uuid4(), hour(instant), sound(empty_database, name), line[0], name),
 	)
 
 
 @given("le masquage de tous les sonores")
-def masquer_tous(base_vide: Connexion) -> None:
-	base_vide.execute("UPDATE sounds SET hide_metadata = true")
+def hide_all(empty_database: Connection) -> None:
+	empty_database.execute("UPDATE sounds SET hide_metadata = true")
 
 
 @given("aucune sortie audio ne peut être créée")
-def sans_sortie_audio(monkeypatch: pytest.MonkeyPatch) -> None:
-	def refuser(*arguments: object, **options: object) -> object:
-		raise SortieAudioIndisponible("aucune sortie audio dans ce scénario")
+def without_audio_output(monkeypatch: pytest.MonkeyPatch) -> None:
+	def refuse(*arguments: object, **options: object) -> object:
+		raise UnavailableAudioOutput("aucune sortie audio dans ce scénario")
 
-	monkeypatch.setattr(machincast.audio, "creer_sortie", refuser)
-	monkeypatch.setattr(machincast.lecture.moteur, "creer_sortie", refuser)
+	monkeypatch.setattr(machincast.audio, "create_output", refuse)
+	monkeypatch.setattr(machincast.player.engine, "create_output", refuse)
 
 
-@given(parsers.re(r"le sonore « (?P<nom>[^»]+) » a un maximum de (?P<maximum>\d+) lectures?"))
-def maximum_du_sonore(base_vide: Connexion, nom: str, maximum: str) -> None:
-	base_vide.execute("UPDATE sounds SET max_plays = %s WHERE id = %s", (int(maximum), sonore(base_vide, nom)))
+@given(parsers.re(r"le sonore « (?P<name>[^»]+) » a un maximum de (?P<maximum>\d+) lectures?"))
+def sound_maximum(empty_database: Connection, name: str, maximum: str) -> None:
+	empty_database.execute(
+		"UPDATE sounds SET max_plays = %s WHERE id = %s", (int(maximum), sound(empty_database, name))
+	)
 
 
 # ─── Quand ─────────────────────────────────────────────────
@@ -246,48 +252,50 @@ def maximum_du_sonore(base_vide: Connexion, nom: str, maximum: str) -> None:
 
 @when(
 	parsers.re(
-		r"je simule la diffusion du « (?P<debut>[^»]+) » au « (?P<fin>[^»]+) »"
-		r"(?:, avec la graine (?P<graine>\d+))?(?:, sous le nom « (?P<nom>[^»]+) »)?$"
+		r"je simule la diffusion du « (?P<start>[^»]+) » au « (?P<end>[^»]+) »"
+		r"(?:, avec la graine (?P<seed>\d+))?(?:, sous le nom « (?P<name>[^»]+) »)?$"
 	)
 )
-def simuler_la_diffusion(
-	contexte: Contexte, banc: Banc, base_vide: Connexion, debut: str, fin: str, graine: str | None, nom: str | None
+def simulate_broadcast(
+	context: Context, bench: Bench, empty_database: Connection, start: str, end: str, seed: str | None, name: str | None
 ) -> None:
-	lancer_simulation(contexte, base_vide, debut, fin, None if graine is None else int(graine), nom, banc.crossfades)
+	launch_simulation(context, empty_database, start, end, None if seed is None else int(seed), name, bench.crossfades)
 
 
-@when(parsers.parse("je simule deux fois la diffusion du « {debut} » au « {fin} », avec la graine {graine:d}"))
-def simuler_deux_fois(contexte: Contexte, base_vide: Connexion, debut: str, fin: str, graine: int) -> None:
-	lancer_simulation(contexte, base_vide, debut, fin, graine)
-	lancer_simulation(contexte, base_vide, debut, fin, graine)
+@when(parsers.parse("je simule deux fois la diffusion du « {start} » au « {end} », avec la graine {seed:d}"))
+def simulate_times_two(context: Context, empty_database: Connection, start: str, end: str, seed: int) -> None:
+	launch_simulation(context, empty_database, start, end, seed)
+	launch_simulation(context, empty_database, start, end, seed)
 
 
 @when("une écriture dans le log est tentée pendant une simulation")
-def ecrire_pendant_la_simulation(contexte: Contexte, base_vide: Connexion) -> None:
-	with connecter(*parametres_base_test(), Role.LECTURE) as connexion:
+def write_during_simulation(context: Context, empty_database: Connection) -> None:
+	with open_connection(*sample_database_parameters(), Role.PLAYBACK) as connection:
 		try:
-			with lecture_seule(connexion):
-				connexion.execute("INSERT INTO log (level, kind, message) VALUES ('info', 'essai', 'interdit')")
-		except psycopg.Error as erreur:
-			contexte.erreur = erreur
+			with read_only(connection):
+				connection.execute("INSERT INTO log (level, kind, message) VALUES ('info', 'essai', 'interdit')")
+		except psycopg.Error as error:
+			context.error = error
 
 
-def machin_lecture() -> str:
+def playback_machin() -> str:
 	return (shutil.which("Machin_player")) or (str(Path(sys.executable).parent / "Machin_player"))
 
 
-@when(parsers.re(r"je lance Machin_player avec « (?P<arguments>.+) »(?P<sans_base> et une socket inexistante)?$"))
-def lancer(contexte: Contexte, tmp_path: Path, arguments: str, sans_base: str | None) -> None:
+@when(
+	parsers.re(r"je lance Machin_player avec « (?P<arguments>.+) »(?P<without_database> et une socket inexistante)?$")
+)
+def launch(context: Context, tmp_path: Path, arguments: str, without_database: str | None) -> None:
 	configuration = CONFIGURATION_TEST
-	if sans_base:
+	if without_database:
 		configuration = tmp_path / "sans-base.toml"
-		texte = CONFIGURATION_TEST.read_text(encoding="utf-8")
+		text = CONFIGURATION_TEST.read_text(encoding="utf-8")
 		configuration.write_text(
-			texte.replace('socket = "/var/run/postgresql"', f'socket = "{tmp_path / "aucune-socket"}"'),
+			text.replace('socket = "/var/run/postgresql"', f'socket = "{tmp_path / "aucune-socket"}"'),
 			encoding="utf-8",
 		)
-	contexte.processus = subprocess.run(
-		[machin_lecture(), "--config", str(configuration), *shlex.split(arguments)],
+	context.process = subprocess.run(
+		[playback_machin(), "--config", str(configuration), *shlex.split(arguments)],
 		capture_output=True,
 		text=True,
 		timeout=60,
@@ -297,156 +305,157 @@ def lancer(contexte: Contexte, tmp_path: Path, arguments: str, sans_base: str | 
 # ─── Alors ─────────────────────────────────────────────────
 
 
-def fin_affichee(fin: datetime | None) -> str:
-	if fin is None:
+def displayed_end(end: datetime | None) -> str:
+	if end is None:
 		return ""
-	return f"{fin.astimezone():%Y-%m-%d %H:%M:%S}"
+	return f"{end.astimezone():%Y-%m-%d %H:%M:%S}"
 
 
 @then("la simulation donne les passages :")
-def passages_attendus(contexte: Contexte, datatable: list[list[str]]) -> None:
-	_, *lignes = datatable
-	obtenus = [
-		[f"{p.debut.astimezone():%Y-%m-%d %H:%M:%S}", fin_affichee(p.fin), str(p.titre)]
-		for p in resultat(contexte).passages
+def expected_plays(context: Context, datatable: list[list[str]]) -> None:
+	_, *lines = datatable
+	obtained_list = [
+		[f"{p.start.astimezone():%Y-%m-%d %H:%M:%S}", displayed_end(p.end), str(p.title)] for p in result(context).plays
 	]
-	assert obtenus == lignes, obtenus
+	assert obtained_list == lines, obtained_list
 
 
-@then(parsers.parse("la simulation donne {nombre:d} passages"))
-def nombre_de_passages(contexte: Contexte, nombre: int) -> None:
-	assert len(resultat(contexte).passages) == nombre
+@then(parsers.parse("la simulation donne {count:d} passages"))
+def play_count(context: Context, count: int) -> None:
+	assert len(result(context).plays) == count
 
 
-@then(parsers.re(r"la simulation donne les titres (?P<liste>.+)"))
-def titres_attendus(contexte: Contexte, liste: str) -> None:
-	assert titres(contexte) == [n.strip(" «»") for n in liste.split(",")], titres(contexte)
+@then(parsers.re(r"la simulation donne les titres (?P<list_>.+)"))
+def expected_titles(context: Context, list_: str) -> None:
+	assert titles(context) == [n.strip(" «»") for n in list_.split(",")], titles(context)
 
 
 @then("la base n'a pas changé")
-def base_intacte(contexte: Contexte, base_vide: Connexion) -> None:
-	assert etat_de_la_base(base_vide) == contexte.avant
+def intact_database(context: Context, empty_database: Connection) -> None:
+	assert database_state(empty_database) == context.before
 
 
 @then("PostgreSQL la refuse, la transaction étant en lecture seule")
-def refus(contexte: Contexte, base_vide: Connexion) -> None:
-	assert isinstance(contexte.erreur, psycopg.errors.ReadOnlySqlTransaction), repr(contexte.erreur)
-	assert base_vide.execute("SELECT count(*) FROM log WHERE kind = 'essai'").fetchone() == (0,)
+def refusal(context: Context, empty_database: Connection) -> None:
+	assert isinstance(context.error, psycopg.errors.ReadOnlySqlTransaction), repr(context.error)
+	assert empty_database.execute("SELECT count(*) FROM log WHERE kind = 'essai'").fetchone() == (0,)
 
 
 @then(parsers.parse("chaque tranche de 3 passages joue « a », « b » et « c », chacun une fois"))
-def cycles(contexte: Contexte) -> None:
-	vus = titres(contexte)
-	assert len(vus) == 6, vus
-	assert (sorted(vus[:3]) == ["a", "b", "c"]) and (sorted(vus[3:]) == ["a", "b", "c"]), vus
+def cycles(context: Context) -> None:
+	seen_list = titles(context)
+	assert len(seen_list) == 6, seen_list
+	assert (sorted(seen_list[:3]) == ["a", "b", "c"]) and (sorted(seen_list[3:]) == ["a", "b", "c"]), seen_list
 
 
 @then("les deux simulations donnent les mêmes passages")
-def memes_passages(contexte: Contexte) -> None:
-	premiere, seconde = ([str(p.titre) for p in r.passages] for r in contexte.resultats)
-	assert (premiere == seconde) and (len(set(premiere)) > 1), (premiere, seconde)
+def same_plays(context: Context) -> None:
+	first, second = ([str(p.title) for p in r.plays] for r in context.results)
+	assert (first == second) and (len(set(first)) > 1), (first, second)
 
 
-@then(parsers.re(r"la simulation a consigné (?P<nombre>\d+) (?P<niveau>info|alerte|incident) « (?P<nature>[^»]+) »"))
-def consigne(contexte: Contexte, nombre: str, niveau: str, nature: str) -> None:
-	lignes = Counter((n, t) for n, t, _ in resultat(contexte).log)
-	en_base = {libelle: valeur for valeur, libelle in NIVEAUX.items()}[niveau]
-	assert lignes[(en_base, nature)] == int(nombre), resultat(contexte).log
+@then(parsers.re(r"la simulation a consigné (?P<count>\d+) (?P<level>info|alerte|incident) « (?P<kind>[^»]+) »"))
+def records(context: Context, count: str, level: str, kind: str) -> None:
+	lines = Counter((n, t) for n, t, _ in result(context).log)
+	in_database = {label: value for value, label in LEVELS.items()}[level]
+	assert lines[(in_database, kind)] == int(count), result(context).log
 
 
-@then(parsers.parse("le sonore « {nom} » est toujours à l'état « {etat} » en base"))
-def etat_en_base(base_vide: Connexion, nom: str, etat: str) -> None:
-	ligne = base_vide.execute("SELECT state::text FROM sounds WHERE id = %s", (sonore(base_vide, nom),)).fetchone()
-	assert ligne == (etat,)
+@then(parsers.parse("le sonore « {name} » est toujours à l'état « {state} » en base"))
+def state_in_database(empty_database: Connection, name: str, state: str) -> None:
+	line = empty_database.execute(
+		"SELECT state::text FROM sounds WHERE id = %s", (sound(empty_database, name),)
+	).fetchone()
+	assert line == (state,)
 
 
-@then(parsers.parse("la simulation a écrit « {nom} » en .csv, .pls et .html"))
-def fichiers_ecrits(contexte: Contexte, nom: str) -> None:
-	assert contexte.repertoire is not None
-	attendus = tuple(contexte.repertoire / f"{nom}{extension}" for extension in (".csv", ".pls", ".html"))
-	assert resultat(contexte).fichiers == attendus
-	assert all(chemin.is_file() for chemin in attendus), list(contexte.repertoire.iterdir())
+@then(parsers.parse("la simulation a écrit « {name} » en .csv, .pls et .html"))
+def written_files(context: Context, name: str) -> None:
+	assert context.directory is not None
+	expected_list = tuple(context.directory / f"{name}{extension}" for extension in (".csv", ".pls", ".html"))
+	assert result(context).files == expected_list
+	assert all(path.is_file() for path in expected_list), list(context.directory.iterdir())
 
 
-def fichier(contexte: Contexte, extension: str) -> Path:
-	return next(chemin for chemin in resultat(contexte).fichiers if chemin.suffix == extension)
+def file(context: Context, extension: str) -> Path:
+	return next(path for path in result(context).files if path.suffix == extension)
 
 
-@then(parsers.parse("le CSV de la simulation a {nombre:d} lignes de passage, sur les deux jours"))
-def csv_de_la_simulation(contexte: Contexte, nombre: int) -> None:
-	with fichier(contexte, ".csv").open(encoding="utf-8-sig", newline="") as source:
-		lignes = list(csv.DictReader(source, delimiter=";"))
-	assert len(lignes) == nombre
-	assert {ligne["debut"][:10] for ligne in lignes} == {"2026-10-20", "2026-10-21"}, lignes
+@then(parsers.parse("le CSV de la simulation a {count:d} lignes de passage, sur les deux jours"))
+def simulation_csv(context: Context, count: int) -> None:
+	with file(context, ".csv").open(encoding="utf-8-sig", newline="") as source:
+		lines = list(csv.DictReader(source, delimiter=";"))
+	assert len(lines) == count
+	assert {line["debut"][:10] for line in lines} == {"2026-10-20", "2026-10-21"}, lines
 
 
-@then(parsers.parse("la playlist de la simulation compte {nombre:d} entrées"))
-def playlist_de_la_simulation(contexte: Contexte, nombre: int) -> None:
-	assert f"NumberOfEntries={nombre}" in fichier(contexte, ".pls").read_text(encoding="utf-8")
+@then(parsers.parse("la playlist de la simulation compte {count:d} entrées"))
+def simulation_playlist(context: Context, count: int) -> None:
+	assert f"NumberOfEntries={count}" in file(context, ".pls").read_text(encoding="utf-8")
 
 
 @then("la page de la simulation montre l'emplacement de chaque fichier joué")
-def page_avec_emplacements(contexte: Contexte) -> None:
-	page = fichier(contexte, ".html").read_text(encoding="utf-8")
-	for ligne in resultat(contexte).passages:
-		assert f">{ligne.emplacement}<" in page, page
+def page_with_locations(context: Context) -> None:
+	page = file(context, ".html").read_text(encoding="utf-8")
+	for line in result(context).plays:
+		assert f">{line.location}<" in page, page
 	assert (">f1<" not in page) and (">f2<" not in page), page
 
 
-@given(parsers.parse("le masquage du sonore « {nom} »"))
-def masquer_un_sonore(base_vide: Connexion, nom: str) -> None:
-	base_vide.execute("UPDATE sounds SET hide_metadata = true WHERE id = %s", (sonore(base_vide, nom),))
+@given(parsers.parse("le masquage du sonore « {name} »"))
+def hide_sound(empty_database: Connection, name: str) -> None:
+	empty_database.execute("UPDATE sounds SET hide_metadata = true WHERE id = %s", (sound(empty_database, name),))
 
 
-def sorties_lues(contexte: Contexte) -> dict[str, str]:
-	return {chemin.suffix: chemin.read_text(encoding="utf-8-sig") for chemin in (resultat(contexte).fichiers) or (())}
+def fetched_outputs(context: Context) -> dict[str, str]:
+	return {path.suffix: path.read_text(encoding="utf-8-sig") for path in (result(context).files) or (())}
 
 
 @then(
-	parsers.parse(
-		"les sorties de la simulation montrent « {visible} », mais pas « {masque} », remplacé par « {texte} »"
-	)
+	parsers.parse("les sorties de la simulation montrent « {visible} », mais pas « {hides} », remplacé par « {text} »")
 )
-def sorties_masquees(contexte: Contexte, visible: str, masque: str, texte: str) -> None:
-	for extension, contenu in sorties_lues(contexte).items():
-		assert (visible in contenu) and (texte in contenu), (extension, contenu)
-		assert (f">{masque}<" not in contenu) and (f";{masque};" not in contenu) and (f"={masque}\n" not in contenu), (
+def hidden_outputs(context: Context, visible: str, hides: str, text: str) -> None:
+	for extension, content in fetched_outputs(context).items():
+		assert (visible in content) and (text in content), (extension, content)
+		assert (f">{hides}<" not in content) and (f";{hides};" not in content) and (f"={hides}\n" not in content), (
 			extension,
-			contenu,
+			content,
 		)
 
 
-@then(parsers.parse("le CSV de la simulation nomme la séquence « {nom} » pour {nombre:d} passages"))
-def sequence_dans_le_csv(contexte: Contexte, nom: str, nombre: int) -> None:
-	with fichier(contexte, ".csv").open(encoding="utf-8-sig", newline="") as source:
-		lignes = list(csv.DictReader(source, delimiter=";"))
-	assert sum(1 for ligne in lignes if ligne["sequence"] == nom) == nombre, lignes
+@then(parsers.parse("le CSV de la simulation nomme la séquence « {name} » pour {count:d} passages"))
+def sequence_in_csv(context: Context, name: str, count: int) -> None:
+	with file(context, ".csv").open(encoding="utf-8-sig", newline="") as source:
+		lines = list(csv.DictReader(source, delimiter=";"))
+	assert sum(1 for line in lines if line["sequence"] == name) == count, lines
 
 
 @then(
-	parsers.parse("les sorties de la simulation donnent l'emplacement des fichiers de « {premier} » et de « {second} »")
+	parsers.parse("les sorties de la simulation donnent l'emplacement des fichiers de « {first} » et de « {second} »")
 )
-def sorties_avec_emplacements(contexte: Contexte, base_vide: Connexion, premier: str, second: str) -> None:
-	for nom in (premier, second):
-		ligne = base_vide.execute("SELECT location FROM sounds WHERE id = %s", (sonore(base_vide, nom),)).fetchone()
-		assert ligne is not None
-		for extension, contenu in sorties_lues(contexte).items():
-			assert str(ligne[0]) in contenu, (extension, nom)
+def outputs_with_locations(context: Context, empty_database: Connection, first: str, second: str) -> None:
+	for name in (first, second):
+		line = empty_database.execute(
+			"SELECT location FROM sounds WHERE id = %s", (sound(empty_database, name),)
+		).fetchone()
+		assert line is not None
+		for extension, content in fetched_outputs(context).items():
+			assert str(line[0]) in content, (extension, name)
 
 
-@then(parsers.parse("la page de la simulation signale l'alerte « {nature} »"))
-def page_alerte(contexte: Contexte, nature: str) -> None:
-	page = fichier(contexte, ".html").read_text(encoding="utf-8")
-	assert ("alerte" in page) and (nature in page), page
+@then(parsers.parse("la page de la simulation signale l'alerte « {kind} »"))
+def warning_page(context: Context, kind: str) -> None:
+	page = file(context, ".html").read_text(encoding="utf-8")
+	assert ("alerte" in page) and (kind in page), page
 
 
-@then(parsers.parse("il s'arrête avec le code {code:d}, en signalant « {motif} »"))
-def arret(contexte: Contexte, code: int, motif: str) -> None:
-	assert contexte.processus is not None
-	assert contexte.processus.returncode == code, contexte.processus.stderr
-	assert motif in contexte.processus.stderr, contexte.processus.stderr
+@then(parsers.parse("il s'arrête avec le code {code:d}, en signalant « {pattern} »"))
+def stop(context: Context, code: int, pattern: str) -> None:
+	assert context.process is not None
+	assert context.process.returncode == code, context.process.stderr
+	assert pattern in context.process.stderr, context.process.stderr
 
 
-@then(parsers.parse("le journal du binaire a signalé « {texte} »"))
-def journal_signale(caplog: pytest.LogCaptureFixture, texte: str) -> None:
-	assert any((r.levelno == logging.WARNING) and (texte in r.getMessage()) for r in caplog.records), caplog.text
+@then(parsers.parse("le journal du binaire a signalé « {text} »"))
+def reported_log(caplog: pytest.LogCaptureFixture, text: str) -> None:
+	assert any((r.levelno == logging.WARNING) and (text in r.getMessage()) for r in caplog.records), caplog.text

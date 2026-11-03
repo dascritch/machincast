@@ -69,9 +69,9 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 
 		Exemples:
 			| entrée                                | élément   | annonce                                             |
-			| ⏭ Sauter au sonore suivant              | sonore    | Saut au sonore suivant demandé.                     |
+			| ⏭ Sauter au sonore suivant              | sound     | Saut au sonore suivant demandé.                     |
 			| ⏭ Sauter après la séquence              | sequence  | Saut après la séquence demandé.                     |
-			| ⏭ Couper l'événement par le fil musical | evenement | Coupure de l'événement par le fil musical demandée. |
+			| ⏭ Couper l'événement par le fil musical | event     | Coupure de l'événement par le fil musical demandée. |
 
 	Scénario: Une demande que Machin player ne peut pas recevoir n'est pas annoncée comme envoyée
 		Étant donné Machin player diffuse « Café à minuit », dans « Matinale »
@@ -154,7 +154,7 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 
 		Exemples:
 			| entrée                                                    | demande                                | annonce                                       |
-			| ⏭ Sauter à ce sonore                                        | d'interrompre « sonore »               | Saut au sonore suivant demandé.               |
+			| ⏭ Sauter à ce sonore                                        | d'interrompre « sound »                | Saut au sonore suivant demandé.               |
 			| ⏭ Avancer « Journal », prévu le mercredi 21 octobre à 12:00 | d'avancer l'événement n°7              | Avance de l'événement « Journal » demandée.   |
 
 	# ─── Coupures par le secours et par un feed (https://github.com/dascritch/machincast/issues/323) ───
@@ -210,7 +210,7 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 		Et je choisis « ⏭ Couper par le secours » au clic droit sur le prochain sonore
 		Alors Machin player a reçu la demande de couper l'antenne par le secours « Coupure studio »
 		Quand je choisis « ⏭ Couper l'événement par le fil musical » au clic droit sur le prochain sonore
-		Alors Machin player a reçu aussi la demande d'interrompre « evenement »
+		Alors Machin player a reçu aussi la demande d'interrompre « event »
 		Et la barre d'état a annoncé « Coupure de l'événement par le fil musical demandée. »
 
 	Plan du scénario: Le clic droit sur un feed propose sa pré-écoute, et de couper l'antenne par lui

@@ -1,0 +1,787 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DefaultScreen</class>
+ <widget class="QWidget" name="DefaultScreen">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1100</width>
+    <height>760</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MachinCast</string>
+  </property>
+  <layout class="QVBoxLayout" name="arrangement">
+   <item>
+    <layout class="QHBoxLayout" name="banner" stretch="0,1,0">
+     <item>
+      <widget class="QLabel" name="hour">
+       <property name="font">
+        <font>
+         <pointsize>16</pointsize><bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="public_text">
+       <property name="toolTip">
+        <string>Ce que les sorties publiques affichent du sonore en cours</string>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>12</pointsize>
+         <italic>true</italic>
+        </font>
+       </property>
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignCenter</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="playback_state">
+       <property name="toolTip">
+        <string>État de Machin player</string>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>12</pointsize><bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>À l'arrêt</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="on_air_event_line" stretch="1">
+     <item>
+      <widget class="QLabel" name="on_air_event">
+       <property name="toolTip">
+        <string>Événement à l'antenne</string>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>12</pointsize><bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="sounds" stretch="1,0,1">
+     <item>
+      <widget class="QGroupBox" name="ongoing_frame">
+       <property name="title">
+        <string>Sonore en cours</string>
+       </property>
+       <layout class="QVBoxLayout" name="ongoing_layout">
+        <item>
+         <widget class="QWidget" name="ongoing_timeline_place" native="true">
+          <property name="toolTip">
+           <string>Forme d'onde, silences et fondus du sonore en cours, tels que la diffusion le joue</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>72</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QProgressBar" name="ongoing_progress">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="value">
+           <number>0</number>
+          </property>
+          <property name="format">
+           <string>—</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="ongoing_title_line" stretch="1,0">
+          <item>
+           <widget class="QLabel" name="ongoing_title">
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize><bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="open_ongoing_sound">
+          <property name="toolTip">
+           <string>Ouvrir la fiche du sonore</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QFormLayout" name="ongoing_form">
+          <item row="0" column="0">
+           <widget class="QLabel" name="ongoing_event_heading">
+            <property name="text">
+             <string>Événement</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <layout class="QHBoxLayout" name="ongoing_event_line" stretch="1,0">
+            <item>
+             <widget class="QLabel" name="ongoing_event">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="open_ongoing_event">
+          <property name="toolTip">
+           <string>Ouvrir la fiche de l'événement</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="ongoing_sequence_heading">
+            <property name="text">
+             <string>Séquence</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <layout class="QHBoxLayout" name="ongoing_sequence_line" stretch="1,0">
+            <item>
+           <widget class="QLabel" name="ongoing_sequence">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="open_ongoing_sequence">
+          <property name="toolTip">
+           <string>Ouvrir la fiche de la séquence</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="ongoing_bank_heading">
+            <property name="text">
+             <string>Banque</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <layout class="QHBoxLayout" name="ongoing_bank_line" stretch="1,0">
+            <item>
+           <widget class="QLabel" name="ongoing_bank">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="open_ongoing_bank">
+          <property name="toolTip">
+           <string>Ouvrir la fiche de la banque</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="ongoing_schedule_heading">
+            <property name="text">
+             <string>Horaire</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLabel" name="ongoing_schedule">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="ongoing_location_heading">
+            <property name="text">
+             <string>Emplacement</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLineEdit" name="ongoing_location">
+            <property name="text">
+             <string>—</string>
+            </property>
+            <property name="frame">
+             <bool>false</bool>
+            </property>
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <spacer name="pack_ongoing">
+          <property name="orientation">
+           <enum>Qt::Orientation::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QGroupBox" name="on_air_column">
+       <property name="maximumSize">
+        <size>
+         <width>140</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="title">
+        <string>Antenne</string>
+       </property>
+       <layout class="QVBoxLayout" name="on_air_layout" stretch="0,1,0,0">
+        <item>
+         <widget class="QLabel" name="clipping_light">
+          <property name="font">
+           <font>
+            <pointsize>7</pointsize>
+           </font>
+          </property>
+          <property name="toolTip">
+           <string>Une crête à -1 dBFS ou plus, dans les 3 dernières secondes</string>
+          </property>
+          <property name="text">
+           <string>Saturation</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignmentFlag::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QWidget" name="vu_meter_place" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>1</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>90</width>
+            <height>160</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="dead_air_light">
+          <property name="font">
+           <font>
+            <pointsize>7</pointsize>
+           </font>
+          </property>
+          <property name="toolTip">
+           <string>Plus de 5 secondes sous -50 dBFS</string>
+          </property>
+          <property name="text">
+           <string>Blanc</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignmentFlag::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="monitor_state">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QGroupBox" name="next_frame">
+       <property name="title">
+        <string>Prochain sonore</string>
+       </property>
+       <layout class="QVBoxLayout" name="next_layout">
+        <item>
+         <widget class="QWidget" name="next_timeline_place" native="true">
+          <property name="toolTip">
+           <string>Forme d'onde, silences et fondus du prochain sonore, tels que la diffusion le jouera</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>72</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="next_title_line" stretch="1,0">
+          <item>
+           <widget class="QLabel" name="next_title">
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize><bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="open_next_sound">
+          <property name="toolTip">
+           <string>Ouvrir la fiche du sonore</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QFormLayout" name="next_form">
+          <item row="0" column="0">
+           <widget class="QLabel" name="next_event_heading">
+            <property name="text">
+             <string>Événement</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <layout class="QHBoxLayout" name="next_event_line" stretch="1,0">
+            <item>
+             <widget class="QLabel" name="next_event">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="open_next_event">
+          <property name="toolTip">
+           <string>Ouvrir la fiche de l'événement</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="next_sequence_heading">
+            <property name="text">
+             <string>Séquence</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <layout class="QHBoxLayout" name="next_sequence_line" stretch="1,0">
+            <item>
+           <widget class="QLabel" name="next_sequence">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="open_next_sequence">
+          <property name="toolTip">
+           <string>Ouvrir la fiche de la séquence</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="next_bank_heading">
+            <property name="text">
+             <string>Banque</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <layout class="QHBoxLayout" name="next_bank_line" stretch="1,0">
+            <item>
+           <widget class="QLabel" name="next_bank">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="open_next_bank">
+          <property name="toolTip">
+           <string>Ouvrir la fiche de la banque</string>
+          </property>
+          <property name="text">
+           <string>Fiche…</string>
+          </property>
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="next_schedule_heading">
+            <property name="text">
+             <string>Horaire estimé</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLabel" name="next_schedule">
+       <property name="text">
+        <string>—</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="next_location_heading">
+            <property name="text">
+             <string>Emplacement</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLineEdit" name="next_location">
+            <property name="text">
+             <string>—</string>
+            </property>
+            <property name="frame">
+             <bool>false</bool>
+            </property>
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="next_healthy_heading">
+            <property name="text">
+             <string>Sain</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1" colspan="2">
+           <layout class="QHBoxLayout" name="next_healthy_line">
+            <item>
+             <widget class="QLabel" name="next_healthy">
+              <property name="text">
+               <string>—</string>
+              </property>
+              <property name="textInteractionFlags">
+               <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="push_listened">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="test_next_stream">
+              <property name="toolTip">
+               <string>Se connecter au flux du prochain sonore, sans rien jouer : reçoit-il du son, de quel type, à quel débit ?</string>
+              </property>
+              <property name="text">
+               <string>Tester la connexion du flux</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="preview_next">
+              <property name="toolTip">
+               <string>Écouter le prochain sonore sur la sortie de pré-écoute, jamais sur l'antenne</string>
+              </property>
+              <property name="text">
+               <string>Pré-écoute</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="6" column="1" colspan="2">
+           <widget class="QLabel" name="next_stream">
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="textInteractionFlags">
+             <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <spacer name="pack_next">
+          <property name="orientation">
+           <enum>Qt::Orientation::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="upcoming_frame">
+     <property name="title">
+      <string>À venir après le prochain sonore</string>
+     </property>
+     <layout class="QVBoxLayout" name="upcoming_layout">
+      <item>
+       <widget class="QTableView" name="upcoming_table">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="toolTip">
+         <string>Les sonores prévus après le prochain, le plus lointain en haut. Double-clic sur un sonore, un événement, une séquence ou une banque : ouvrir sa fiche</string>
+        </property>
+        <property name="editTriggers">
+         <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+        </property>
+        <property name="alternatingRowColors">
+         <bool>true</bool>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+        </property>
+        <property name="verticalScrollBarPolicy">
+         <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
+        </property>
+        <attribute name="verticalHeaderVisible">
+         <bool>false</bool>
+        </attribute>
+        <attribute name="horizontalHeaderStretchLastSection">
+         <bool>true</bool>
+        </attribute>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="airplay_frame">
+     <property name="title">
+      <string>Airplay : les 10 derniers sonores</string>
+     </property>
+     <layout class="QVBoxLayout" name="airplay_layout">
+      <item>
+       <widget class="QTableView" name="table_airplay">
+        <property name="toolTip">
+         <string>Double-clic sur un sonore, un événement, une séquence ou une banque : ouvrir sa fiche</string>
+        </property>
+        <property name="editTriggers">
+         <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+        </property>
+        <property name="alternatingRowColors">
+         <bool>true</bool>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+        </property>
+        <attribute name="verticalHeaderVisible">
+         <bool>false</bool>
+        </attribute>
+        <attribute name="horizontalHeaderStretchLastSection">
+         <bool>true</bool>
+        </attribute>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

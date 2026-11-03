@@ -32,9 +32,9 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 
 - La version de MachinCast : une installation d'avant [#305](https://github.com/dascritch/machincast/issues/305) se met à jour par `git pull`, puis `./install.sh`.
 - Le journal de l'interface : « le moniteur de périphériques n'a pas fini de démarrer en 5 secondes » dit qu'un fournisseur de périphériques, PipeWire, PulseAudio ou ALSA, met trop longtemps à répondre. La liste peut alors être incomplète ; l'interface ne se ferme pas. Vérifier que le serveur audio tourne : `systemctl --user status pipewire`.
-- `python -m tests.mesures_peripheriques --bascule`, depuis le dépôt, mesure le défaut sur le poste, pendant qu'une sortie apparaît et disparaît ([Mesurer la liste des périphériques audio](doc/fr/developpement/poste.md#mesurer-la-liste-des-périphériques-audio)).
+- `python -m tests.device_measures --switch`, depuis le dépôt, mesure le défaut sur le poste, pendant qu'une sortie apparaît et disparaît ([Mesurer la liste des périphériques audio](doc/fr/developpement/poste.md#mesurer-la-liste-des-périphériques-audio)).
 
-**Scénario qui le surveille** : « La liste des périphériques du poste, en boucle, ne fait jamais tomber son processus », dans `tests/features/peripheriques_liste.feature`, à chaque passage des tests.
+**Scénario qui le surveille** : « La liste des périphériques du poste, en boucle, ne fait jamais tomber son processus », dans `tests/features/device_list.feature`, à chaque passage des tests.
 
 ## Des sons du bureau passent à l'antenne
 
@@ -73,7 +73,7 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 - Pendant le verrouillage, `pw-top`, depuis une autre machine par SSH : la ligne **MachinCast lecteur** ne doit jamais apparaître sous une autre sortie que celle de l'antenne.
 - `pw-mon`, lancé avant le verrouillage, montre si le profil de la carte change : dans ce cas, la sortie de l'antenne disparaît puis revient, et l'antenne se tait pendant ce temps.
 
-**Scénarios qui le surveillent** : `tests/features/sortie_verrouillee.feature`, sur un PipeWire et un WirePlumber à part, à chaque passage des tests ; ignorés si `pipewire` et `wireplumber` ne sont pas installés.
+**Scénarios qui le surveillent** : `tests/features/locked_output.feature`, sur un PipeWire et un WirePlumber à part, à chaque passage des tests ; ignorés si `pipewire` et `wireplumber` ne sont pas installés.
 
 ## Scénarios à lancer avant une version
 
@@ -87,4 +87,4 @@ Ils demandent les dépendances de test (`./install.sh --dev`, ou `pip install --
 
 | Fonctionnalité | Ce qu'elle vérifie | Si elle échoue |
 | --- | --- | --- |
-| `tests/features/flux_http2.feature` ([#278](https://github.com/dascritch/machincast/issues/278)) | Un serveur local sert un flux AAC en HTTP/2, chiffré, qui gèle au bout de 3 secondes. Lu comme le lit MachinCast, il est servi en HTTP/1.1, et le lecteur le signale en erreur au plus 15 secondes après le gel. Lu en HTTP/2, le lecteur ne signale rien, mais la garde de MachinCast voit la voie gelée. | Sur « servi en HTTP/1.1 » ou « en erreur » : `SOUP_FORCE_HTTP1` n'a plus d'effet, la panne ci-dessus peut revenir. Sur « toujours en cours » en HTTP/2 : libsoup signale désormais le gel en HTTP/2, et le passage forcé en HTTP/1.1 peut être reconsidéré, dans un ticket. |
+| `tests/features/http2_stream.feature` ([#278](https://github.com/dascritch/machincast/issues/278)) | Un serveur local sert un flux AAC en HTTP/2, chiffré, qui gèle au bout de 3 secondes. Lu comme le lit MachinCast, il est servi en HTTP/1.1, et le lecteur le signale en erreur au plus 15 secondes après le gel. Lu en HTTP/2, le lecteur ne signale rien, mais la garde de MachinCast voit la voie gelée. | Sur « servi en HTTP/1.1 » ou « en erreur » : `SOUP_FORCE_HTTP1` n'a plus d'effet, la panne ci-dessus peut revenir. Sur « toujours en cours » en HTTP/2 : libsoup signale désormais le gel en HTTP/2, et le passage forcé en HTTP/1.1 peut être reconsidéré, dans un ticket. |

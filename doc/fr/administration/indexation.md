@@ -110,13 +110,13 @@ Pour un fichier `sain`, l'indexeur lit les tags du fichier pendant le décodage,
 | --- | --- |
 | `artist` | artiste, tronqué à 255 caractères |
 | `title` | titre, tronqué à 255 caractères |
-| `annee` | année de la date de sortie. Un horodatage avec une heure, comme la date de création qu'annoncent certains M4A, n'est jamais pris pour l'année du morceau. |
+| `year` | année de la date de sortie. Un horodatage avec une heure, comme la date de création qu'annoncent certains M4A, n'est jamais pris pour l'année du morceau. |
 | `album` | album |
-| `artiste_album` | artiste de l'album |
+| `album_artist` | artiste de l'album |
 | `genre` | genre |
-| `compositeur` | compositeur |
+| `composer` | compositeur |
 | `label` | organisation (Vorbis `ORGANIZATION`) ou éditeur (ID3 `TPUB`) |
-| `piste` | numéro de piste |
+| `track` | numéro de piste |
 
 Les champs suivent les tags du fichier : un tag retiré du fichier vide le champ au passage suivant. **Un champ modifié à la main dans l'interface n'est plus jamais écrasé** par l'indexeur ([Fiche d'un sonore](../utilisateur/sonores.md#fiche-dun-sonore)). Les tags d'un fichier défectueux ne sont pas lus, et les valeurs en base restent telles quelles.
 

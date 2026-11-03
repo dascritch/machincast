@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>FenetreSuggestions</class>
- <widget class="QDialog" name="FenetreSuggestions">
+ <class>SuggestionsWindow</class>
+ <widget class="QDialog" name="SuggestionsWindow">
   <property name="windowTitle">
    <string>Pour bien démarrer</string>
   </property>
   <property name="modal">
    <bool>true</bool>
   </property>
-  <layout class="QVBoxLayout" name="disposition">
+  <layout class="QVBoxLayout" name="arrangement">
    <item>
-    <widget class="QGroupBox" name="groupe_cartes_son">
+    <widget class="QGroupBox" name="sound_cards_group">
      <property name="title">
       <string>Cartes son</string>
      </property>
-     <layout class="QVBoxLayout" name="disposition_cartes_son">
+     <layout class="QVBoxLayout" name="sound_cards_layout">
       <item>
-       <widget class="QLabel" name="explication_cartes_son">
+       <widget class="QLabel" name="sound_cards_explanation">
         <property name="text">
          <string>Choisissez d'abord la carte son de l'antenne, puis celle de la pré-écoute. « Tester » joue 2 secondes de son de test sur la carte de sa ligne : sur celle de l'antenne, il part à l'antenne.</string>
         </property>
@@ -29,7 +29,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="explication">
+    <widget class="QLabel" name="explanation">
      <property name="text">
       <string>Il manque de quoi démarrer l'antenne. Cochez ce que MachinCast doit créer : les banques restent à remplir, depuis leur fiche ou par l'indexation de leurs répertoires.</string>
      </property>
@@ -39,21 +39,21 @@
     </widget>
    </item>
    <item>
-    <widget class="QListWidget" name="elements">
+    <widget class="QListWidget" name="items">
      <property name="selectionMode">
       <enum>QAbstractItemView::SelectionMode::NoSelection</enum>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QCheckBox" name="ne_plus_proposer">
+    <widget class="QCheckBox" name="more_offer">
      <property name="text">
       <string>&amp;Ne plus proposer au lancement</string>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QDialogButtonBox" name="boutons">
+    <widget class="QDialogButtonBox" name="buttons">
      <property name="standardButtons">
       <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
      </property>
