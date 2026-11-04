@@ -54,12 +54,14 @@ Fonctionnalité: Documentation d'installation et definition of done
 
 	Scénario: Les informations des versions publiées concordent : nouveautés, RELEASE.md, README.md, leurs sources françaises, et pyproject.toml
 		https://github.com/dascritch/machincast/issues/208 : chaque version publiée a sa section, « ## <version> — <date> »,
-		la plus récente d'abord, dans les nouveautés de l'interface et dans RELEASE.md, aux mêmes dates ; README.md donne la
+		la plus récente d'abord, dans les nouveautés de l'interface, en anglais et en français
+		(https://github.com/dascritch/machincast/issues/369), et dans RELEASE.md, aux mêmes dates ; README.md donne la
 		dernière, « **Version <version>**, publiée le <date> », et pyproject.toml n'a pas de version plus ancienne. Tant
 		qu'aucune version n'est publiée, il n'y a rien à faire concorder.
 		Alors les nouveautés de l'interface ont une section par version, de la plus récente à la plus ancienne
 		Et RELEASE.md a les mêmes versions, aux mêmes dates, dans le même ordre
 		Et RELEASE.fr.md a les mêmes versions, aux mêmes dates, dans le même ordre
+		Et src/machincast/interface/news.fr.md a les mêmes versions, aux mêmes dates, dans le même ordre
 		Et README.md donne la dernière version publiée et sa date
 		Et README.fr.md donne la dernière version publiée et sa date
 		Et la version de pyproject.toml n'est pas plus ancienne que la dernière publiée
@@ -70,6 +72,6 @@ Fonctionnalité: Documentation d'installation et definition of done
 		Quand je fais l'archive de la version de pyproject.toml
 		Alors l'archive a pour répertoire « machincast-<version> »
 		Et l'archive contient « install.sh », exécutable
-		Et l'archive contient « pyproject.toml », « bin/Machin », « src/machincast/migrations/0001.initial-schema.sql », « src/machincast/interface/news.md », « machincast.exemple.toml »
+		Et l'archive contient « pyproject.toml », « bin/Machin », « src/machincast/migrations/0001.initial-schema.sql », « src/machincast/interface/news.md », « src/machincast/interface/news.fr.md », « machincast.exemple.toml »
 		Et l'archive contient « README.md », « INSTALL.md », « RELEASE.md », « TROUBLESHOOTING.md », « LICENSE », « doc/fr/utilisateur/README.md », « doc/fr/administration/README.md »
 		Et l'archive contient « README.fr.md », « INSTALL.fr.md », « RELEASE.fr.md », « TROUBLESHOOTING.fr.md », « CONTRIBUTION.md », « CONTRIBUTION.fr.md »

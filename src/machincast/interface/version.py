@@ -10,6 +10,10 @@ ont suivi.
 Hors d'un dépôt git, depuis l'archive d'une release, la date vient des nouveautés. La documentation de l'aide est celle
 du tag quand le code installé est celui de la release, celle de main sinon.
 
+Les nouveautés s'écrivent dans un fichier par langue (https://github.com/dascritch/machincast/issues/369) : news.md en
+anglais, news.<langue>.md pour une autre, news.fr.md en français ; l'interface lit celui de la langue de la session,
+news.md à défaut.
+
 Les nouveautés de la version installée s'affichent une fois, au premier lancement de l'interface qui la découvre
 (vue_le, la version vue retenue dans les réglages des vues du compte), et dans la fenêtre de « Version ».
 """
@@ -21,7 +25,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
-from machincast import __version__
+from machincast import __version__, i18n
 from machincast.i18n import _, counted, pgettext
 
 log = logging.getLogger(__name__)
@@ -30,7 +34,8 @@ DROP = Path(__file__).resolve().parents[3]
 """Répertoire d'où MachinCast est installé : src/machincast/interface/ y est trois niveaux plus bas."""
 
 NEWS = Path(__file__).with_name("news.md")
-"""Les nouveautés de chaque version publiée, pour l'équipe de l'antenne."""
+"""Les nouveautés de chaque version publiée, pour l'équipe de l'antenne, en anglais ; celles d'une autre langue sont à
+côté, dans news.<langue>.md."""
 SECTION = re.compile(r"^## (?P<version>\S+) — (?P<date>\d{4}-\d{2}-\d{2})[ \t]*$", re.MULTILINE)
 """Le titre d'une section des nouveautés : « ## 0.9.0 — 2026-10-28 »."""
 
@@ -67,10 +72,22 @@ class Installation:
 	"""Modifications depuis le tag v<version> ; None sans ce tag."""
 
 
+def news_file(language: str | None = None) -> Path:
+	"""Le fichier des nouveautés de cette langue, celle de la session par défaut : news.<langue>.md s'il existe,
+	news.md, en anglais, sinon."""
+	code = (language) or (i18n.current())
+	if code != i18n.SOURCE:
+		translated = NEWS.with_name(f"{NEWS.stem}.{code}{NEWS.suffix}")
+		if translated.is_file():
+			return translated
+	return NEWS
+
+
 def news(path: Path | None = None) -> list[News]:
-	"""Les sections du fichier des nouveautés, dans l'ordre du fichier ; aucune s'il manque."""
+	"""Les sections du fichier des nouveautés, celui de la langue de la session par défaut, dans l'ordre du fichier ;
+	aucune s'il manque."""
 	try:
-		content = ((path) or (NEWS)).read_text(encoding="utf-8")
+		content = ((path) or (news_file())).read_text(encoding="utf-8")
 	except OSError:
 		return []
 	titles = list(SECTION.finditer(content))

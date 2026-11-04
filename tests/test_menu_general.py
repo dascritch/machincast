@@ -10,12 +10,13 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
+import pytest
 from PySide6.QtGui import QTextDocument
 from PySide6.QtWidgets import QLabel, QMessageBox
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
-from machincast import __version__
+from machincast import __version__, i18n
 from machincast.interface import columns, dialogs, version
 from tests.interface_steps import Context
 
@@ -83,6 +84,27 @@ def news(sample_news: Path, which: str, day: str, text: str) -> None:
 		old = sample_news.read_text(encoding="utf-8")
 	section = f"## {number[which]} — {day}\n\n{text}\n\n"
 	sample_news.write_text(f"{old}{section}", encoding="utf-8")
+
+
+@given(
+	parsers.re(
+		r"les nouveautés en français de la version de MachinCast, publiée le (?P<day>[\d-]+) : « (?P<text>[^»]+) »"
+	)
+)
+def french_news(sample_news: Path, day: str, text: str) -> None:
+	"""À côté de news.md, en anglais, news.fr.md (https://github.com/dascritch/machincast/issues/369)."""
+	sample_news.with_name("news.fr.md").write_text(f"## {__version__} — {day}\n\n{text}\n", encoding="utf-8")
+
+
+@given("aucune nouveauté en français")
+def no_french_news(sample_news: Path) -> None:
+	assert not sample_news.with_name("news.fr.md").exists()
+
+
+@given(parsers.parse("une session de l'interface en « {code} »"))
+def session_language(monkeypatch: pytest.MonkeyPatch, code: str) -> None:
+	"""La langue de la session, pour le choix du fichier des nouveautés ; les écrans restent dans celle des tests."""
+	monkeypatch.setattr(i18n, "current", lambda: code)
 
 
 @given("les nouveautés de la version précédente déjà vues")
