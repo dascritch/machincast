@@ -38,6 +38,8 @@ class DisplayedPlay:
 	id_bank: int | None = None
 	"""Les éléments du passage, pour ouvrir leur fiche (https://github.com/dascritch/machincast/issues/144) ; None
 	pour un élément supprimé depuis."""
+	location: str | None = None
+	"""Chemin du fichier, ou adresse du stream, recopié au passage (https://github.com/dascritch/machincast/issues/344)."""
 
 
 def read_airplay(
@@ -47,7 +49,7 @@ def read_airplay(
 	with connection.transaction():
 		lines = connection.execute(
 			"SELECT d.logged_at, f.logged_at, f.played_duration, f.without_incident, d.artist, d.title,"
-			" e.internal_name, q.internal_name, b.internal_name, d.sound_id, e.id, q.id, b.id"
+			" e.internal_name, q.internal_name, b.internal_name, d.sound_id, e.id, q.id, b.id, d.location"
 			" FROM airplay d"
 			" LEFT JOIN airplay f ON f.play_id = d.play_id AND f.line_type = 'end'"
 			" LEFT JOIN events e ON e.id = d.event_id"
@@ -77,6 +79,7 @@ def read_airplay(
 				id_event=integer_or_none(identifiers[1]),
 				sequence_id=integer_or_none(identifiers[2]),
 				id_bank=integer_or_none(identifiers[3]),
+				location=text_or_none(identifiers[4]),
 			)
 		)
 	return plays

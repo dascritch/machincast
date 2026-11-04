@@ -13,6 +13,7 @@ est dessinée dans ui/default_screen.ui (CONTRIBUTION.md).
 
 import logging
 import math
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
@@ -25,7 +26,7 @@ from PySide6.QtWidgets import QLineEdit, QMenu, QSizePolicy, QVBoxLayout, QWidge
 from machincast.clock import Clock
 from machincast.configuration import Audio
 from machincast.i18n import _, pgettext
-from machincast.interface import display, expandable, icons, interruption, preferences
+from machincast.interface import dialogs, display, expandable, icons, interruption, preferences
 from machincast.interface.airplay import LAST_LIST, DisplayedPlay, read_airplay
 from machincast.interface.calendar import long_date
 from machincast.interface.columns import Columns
@@ -56,6 +57,9 @@ INCIDENT = _("yes")
 """Colonne « Incident » d'un sonore à venir dont le fichier a posé problème (spec § 4.6)."""
 ITEM = Qt.ItemDataRole.UserRole
 """Rôle qui porte, sur une cellule de l'airplay, le genre et l'identifiant de l'élément qu'elle désigne."""
+LOCATION = Qt.ItemDataRole.UserRole + 1
+"""Rôle qui porte, sur la première cellule d'une ligne de l'airplay ou des sonores à venir, l'emplacement du sonore et
+s'il est un stream (https://github.com/dascritch/machincast/issues/344)."""
 LIT_LIGHT = "QLabel {{ background: {tint}; color: white; border-radius: 3px; font-weight: bold; font-size: 7pt; }}"
 OFF_LIGHT = "QLabel { color: palette(mid); font-size: 7pt; }"
 """Les voyants « Blanc » et « Saturation » de l'antenne, allumés de leur teinte, ou éteints, grisés."""
@@ -210,6 +214,9 @@ class DefaultScreen(QWidget):
 		# Le clic droit sur le prochain sonore (https://github.com/dascritch/machincast/issues/257).
 		self.ui.next_frame.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 		self.ui.next_frame.customContextMenuRequested.connect(self._next_menu)
+		# Le clic droit sur le sonore en cours : son emplacement (https://github.com/dascritch/machincast/issues/344).
+		self.ui.ongoing_frame.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+		self.ui.ongoing_frame.customContextMenuRequested.connect(self._ongoing_menu)
 		self.client = StateClient(state_socket, self)
 		self.client.received_state.connect(self.show_state)
 		self.client.open_connection()
@@ -301,11 +308,16 @@ class DefaultScreen(QWidget):
 			self.refresh_airplay()
 
 	def _show_sound(self, which: str, sound: DisplayedSound | None) -> None:
-		"""Titre, événement, séquence, banque, horaire sur une ligne et emplacement d'un des deux sonores."""
+		"""Titre, événement, séquence, banque, horaire sur une ligne et, pour un stream seulement, emplacement d'un des
+		deux sonores : celui d'un fichier se copie ou s'ouvre par le clic droit
+		(https://github.com/dascritch/machincast/issues/344)."""
 		ui = self.ui
 		fields = [getattr(ui, f"{which}_{name}") for name in ("title", "event", "sequence", "bank", "schedule")]
 		title, event, sequence, bank, schedule = fields
 		_show_location(getattr(ui, f"{which}_location"), sound)
+		stream = (sound is not None) and (sound.stream)
+		getattr(ui, f"{which}_location").setVisible(stream)
+		getattr(ui, f"{which}_location_heading").setVisible(stream)
 		getattr(ui, f"open_{which}_sound").setEnabled(sound is not None)
 		getattr(ui, f"open_{which}_event").setEnabled((sound is not None) and (sound.id_event is not None))
 		getattr(ui, f"open_{which}_sequence").setEnabled((sound is not None) and (sound.sequence_id is not None))
@@ -456,18 +468,7 @@ class DefaultScreen(QWidget):
 		return self._line_menu(self.upcoming_model, index)
 
 	def _line_menu(self, model: QStandardItemModel, index: QModelIndex) -> QMenu | None:
-		if not index.isValid():
-			return None
-		sound = None
-		for column in range(model.columnCount()):
-			item = model.index(index.row(), column).data(ITEM)
-			if (item is not None) and (item[0] == "sound"):
-				sound = int(item[1])
-		if sound is None:
-			return None
-		menu = QMenu(self)
-		display.offer_preview(menu, sound, self.requested_preview.emit)
-		return menu
+		return line_menu(self, model, index, self.requested_preview.emit)
 
 	def next_menu(self) -> QMenu:
 		"""Le menu du clic droit sur le prochain sonore : sa pré-écoute, y sauter aussitôt, et avancer l'événement
@@ -504,7 +505,25 @@ class DefaultScreen(QWidget):
 			action.setToolTip(entry.proposal.tooltip)
 		if self._next is not None:
 			display.offer_preview(menu, self._next.sound, self.requested_preview.emit)
+			display.offer_location(menu, self._next.location, self._next.stream, _open_folder)
 		return menu
+
+	def ongoing_menu(self) -> QMenu | None:
+		"""Le menu du clic droit sur le sonore en cours : copier son emplacement, ouvrir son dossier ; aucun sans
+		sonore en cours, ou sans emplacement connu (https://github.com/dascritch/machincast/issues/344)."""
+		sound = self._ongoing
+		if (sound is None) or (sound.location is None):
+			return None
+		menu = QMenu(self)
+		display.offer_location(menu, sound.location, sound.stream, _open_folder)
+		return menu
+
+	def _ongoing_menu(self, position: QPoint) -> None:
+		menu = self.ongoing_menu()
+		if menu is None:
+			return
+		menu.exec(self.ui.ongoing_frame.mapToGlobal(position))
+		menu.deleteLater()
 
 	def _next_menu(self, position: QPoint) -> None:
 		menu = self.next_menu()
@@ -560,6 +579,7 @@ class DefaultScreen(QWidget):
 			cells = [QStandardItem(text) for text in _upcoming_cells(sound)]
 			for column, item in _upcoming_items(sound).items():
 				cells[column].setData(item, ITEM)
+			cells[0].setData((sound.location, sound.stream), LOCATION)
 			self.upcoming_model.appendRow(cells)
 
 	# ─── Airplay ───────────────────────────────────────────
@@ -577,9 +597,45 @@ class DefaultScreen(QWidget):
 			cells = [QStandardItem(text) for text in play_cells(play)]
 			for column, item in play_items(play).items():
 				cells[column].setData(item, ITEM)
+			cells[0].setData(play_location(play), LOCATION)
 			self.airplay_model.appendRow(cells)
 		self.reread_airplay.emit()
 		return plays
+
+
+def _open_folder(folder: Path) -> None:
+	"""Par le module, pour que les scénarios remplacent le gestionnaire de fichiers."""
+	dialogs.open_folder(folder)
+
+
+def play_location(play: DisplayedPlay) -> tuple[str | None, bool]:
+	"""L'emplacement d'un passage de l'airplay, et s'il est l'adresse d'un stream."""
+	if play.location is None:
+		return None, False
+	return play.location, display.is_stream_location(play.location)
+
+
+def line_menu(
+	parent: QWidget, model: QStandardItemModel, index: QModelIndex, ask_preview: Callable[[int], None]
+) -> QMenu | None:
+	"""Le menu du clic droit sur une ligne de l'airplay ou des sonores à venir : « Pré-écoute… » de son sonore, puis
+	son emplacement (https://github.com/dascritch/machincast/issues/344) ; aucun hors d'une ligne, ni pour une ligne
+	sans sonore en base ni emplacement."""
+	if not index.isValid():
+		return None
+	sound = None
+	for column in range(model.columnCount()):
+		item = model.index(index.row(), column).data(ITEM)
+		if (item is not None) and (item[0] == "sound"):
+			sound = int(item[1])
+	location, stream = (model.index(index.row(), 0).data(LOCATION)) or ((None, False))
+	if (sound is None) and (location is None):
+		return None
+	menu = QMenu(parent)
+	if sound is not None:
+		display.offer_preview(menu, sound, ask_preview)
+	display.offer_location(menu, location, stream, _open_folder)
+	return menu
 
 
 def _show_location(field: QLineEdit, sound: DisplayedSound | None) -> None:

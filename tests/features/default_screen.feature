@@ -54,7 +54,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Alors l'état du binaire lecture est bientôt « En diffusion »
 		Et le sonore en cours est « Les Gaufres – Café à minuit »
 		Et le sonore en cours a pour événement « Fil de jour » et pour horaire « 20:00:00 – 20:03:34 (3:34) »
-		Et le sonore en cours a pour emplacement « /srv/musique/Café_à_minuit.flac »
+		Et le sonore en cours n'a pas de ligne « Emplacement »
 		Et l'avancement du sonore en cours est à « reste 3:05 », à 14 %
 		Et le sonore en cours n'a pas d'intitulé « Progression »
 
@@ -193,7 +193,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Quand l'écran par défaut s'ouvre
 		Alors le prochain sonore est bientôt « Jingle »
 		Et le prochain sonore a pour événement « Fil de jour » et pour horaire « 20:03:30 – 20:03:38 (0:08) »
-		Et le prochain sonore a pour emplacement « /srv/musique/Jingle.flac »
+		Et le prochain sonore n'a pas de ligne « Emplacement »
 		Et le prochain sonore est sain : « <affiche> »
 
 		Exemples:
@@ -230,8 +230,8 @@ Fonctionnalité: Écran par défaut de l'interface
 		Quand l'écran par défaut s'ouvre
 		Alors l'état du binaire lecture est bientôt « Blanc à l'antenne »
 		Et le sonore en cours est « — »
-		Et le sonore en cours a pour emplacement « — »
-		Et le prochain sonore a pour emplacement « — »
+		Et le sonore en cours n'a pas de ligne « Emplacement »
+		Et le prochain sonore n'a pas de ligne « Emplacement »
 		Et l'avancement du sonore en cours est à « — »
 
 	Scénario: Le dernier état du binaire lecture qui s'arrête met l'écran à l'arrêt
@@ -300,7 +300,8 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le binaire lecture diffuse un sonore sans artiste ni titre dans « Fil de jour », commencé à 20:00:00, de 60 secondes
 		Quand l'écran par défaut s'ouvre
 		Alors le sonore en cours est bientôt « (sans titre) »
-		Et le sonore en cours a pour emplacement « inconnu »
+		Et le sonore en cours n'a pas de ligne « Emplacement »
+		Et le clic droit sur le sonore en cours n'ouvre aucun menu
 
 	# ─── Contexte du sonore (https://github.com/dascritch/machincast/issues/144) ─────
 
@@ -550,6 +551,68 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et la table des sonores à venir a bientôt 1 ligne
 		Et je choisis « Pré-écoute… » au clic droit sur la ligne « Spot » des sonores à venir
 		Alors la pré-écoute du sonore 41 a été demandée
+
+	# ─── Emplacement d'un sonore (https://github.com/dascritch/machincast/issues/344) ───
+	# L'emplacement d'un fichier n'est plus montré : il se copie, et son dossier s'ouvre, au clic droit. Celui d'un
+	# stream reste montré, et se copie aussi.
+
+	Plan du scénario: Le clic droit sur le sonore en cours ou le prochain, d'un fichier, copie son emplacement et ouvre son dossier
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
+		Quand l'écran par défaut s'ouvre
+		Alors le prochain sonore est bientôt « Jingle »
+		Et le clic droit sur le <sonore> finit par « Copier l'emplacement », « Ouvrir le dossier »
+		Quand je choisis « Copier l'emplacement » au clic droit sur le <sonore>
+		Alors le presse-papiers contient « <emplacement> »
+		Quand je choisis « Ouvrir le dossier » au clic droit sur le <sonore>
+		Alors le dossier « /srv/musique » a été ouvert
+
+		Exemples:
+			| sonore          | emplacement                      |
+			| sonore en cours | /srv/musique/Café_à_minuit.flac |
+			| prochain sonore | /srv/musique/Jingle.flac         |
+
+	Scénario: Le clic droit sur un stream copie son adresse, sans dossier à ouvrir
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse le stream « Direct studio » dans « Direct », commencé à 20:00:00, joué depuis 30 secondes
+		Et le prochain sonore est le stream « Relais » dans « Direct », de début inconnu
+		Quand l'écran par défaut s'ouvre
+		Alors le sonore en cours est bientôt « Direct studio »
+		Et le clic droit sur le sonore en cours finit par « Copier l'URL du feed »
+		Et le clic droit sur le prochain sonore finit par « Copier l'URL du feed »
+		Quand je choisis « Copier l'URL du feed » au clic droit sur le prochain sonore
+		Alors le presse-papiers contient « https://flux.exemple/Relais »
+
+	Scénario: Une ligne des sonores à venir copie l'emplacement de son sonore et ouvre son dossier
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et les sonores à venir après le prochain sont :
+			| start    | end      | duration| artist  | title | event       | sequence | bank   | healthy|
+			| 20:06:38 | 20:07:08 | 30    | Radio   | Spot  | Fil de jour |          |        | oui  |
+		Quand l'écran par défaut s'ouvre
+		Et la table des sonores à venir a bientôt 1 ligne
+		Alors le clic droit sur la ligne « Spot » des sonores à venir propose « Pré-écoute… », « — », « Copier l'emplacement », « Ouvrir le dossier »
+		Quand je choisis « Copier l'emplacement » au clic droit sur la ligne « Spot » des sonores à venir
+		Alors le presse-papiers contient « /srv/musique/Spot.flac »
+		Quand je choisis « Ouvrir le dossier » au clic droit sur la ligne « Spot » des sonores à venir
+		Alors le dossier « /srv/musique » a été ouvert
+
+	Plan du scénario: Une ligne de l'airplay copie l'emplacement de son passage, même d'un sonore supprimé depuis
+		Étant donné les passages dans l'airplay :
+			| starts_at           | ends_at             | artist      | title         | event       | sequence | bank | without_incident |
+			| 2026-10-16 19:50:00 | 2026-10-16 19:53:00 | Les Gaufres | Café à minuit | Fil de jour |          |      | oui              |
+		Et le passage « Café à minuit » de l'airplay a pour emplacement « <emplacement> »<supprimé>
+		Quand l'écran par défaut s'ouvre
+		Alors le clic droit sur la ligne « Café à minuit » de l'airplay propose <entrées>
+		Quand je choisis « <copier> » au clic droit sur la ligne « Café à minuit » de l'airplay
+		Alors le presse-papiers contient « <emplacement> »
+
+		Exemples:
+			| emplacement                     | supprimé                   | entrées                                                         | copier                |
+			| /srv/musique/Café_à_minuit.flac |                            | « Pré-écoute… », « — », « Copier l'emplacement », « Ouvrir le dossier » | Copier l'emplacement  |
+			| /srv/musique/Café_à_minuit.flac | , son sonore supprimé depuis | « Copier l'emplacement », « Ouvrir le dossier »                 | Copier l'emplacement  |
+			| https://flux.exemple/Direct     |                            | « Pré-écoute… », « — », « Copier l'URL du feed »                | Copier l'URL du feed  |
 
 	# ─── Airplay des derniers sonores (https://github.com/dascritch/machincast/issues/244) ───
 

@@ -65,6 +65,9 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 		Alors l'onglet ouvert est « Séquence : Pub »
 		Quand j'ouvre l'onglet « Airplay »
 		Alors le clic droit sur la ligne « Spot » de l'onglet Airplay propose « Pré-écoute… »
+		# https://github.com/dascritch/machincast/issues/344 : l'emplacement du passage, comme l'onglet Antenne.
+		Et le clic droit sur la ligne « Spot » de l'onglet Airplay propose « Copier l'emplacement »
+		Et le clic droit sur la ligne « Spot » de l'onglet Airplay propose « Ouvrir le dossier »
 
 	Scénario: Rafraîchir les onglets relit l'onglet Airplay
 		Quand la fenêtre de l'interface s'ouvre

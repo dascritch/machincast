@@ -18,8 +18,8 @@ from typing import Any
 import psycopg
 import pytest
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QGroupBox, QLabel, QWidget
+from PySide6.QtGui import QGuiApplication, QStandardItemModel
+from PySide6.QtWidgets import QGroupBox, QLabel, QMenu, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -30,7 +30,7 @@ import machincast.interface.error as error_module
 from machincast.clock import FixedClock
 from machincast.configuration import PROJECT_DIRECTORY
 from machincast.database import Role, open_connection
-from machincast.interface import expandable
+from machincast.interface import dialogs, expandable
 from machincast.interface.application import translate
 from machincast.interface.default_screen import DefaultScreen
 from machincast.interface.error import UnreachableDatabaseWindow
@@ -852,7 +852,7 @@ def open_upcoming(context: Context, qtbot: QtBot, text: str) -> None:
 
 
 @when(parsers.parse("je choisis « {entry} » au clic droit sur la ligne « {title} » des sonores à venir"))
-def upcoming_menu(context: Context, entry: str, title: str) -> None:
+def upcoming_menu(context: Context, opened_folders: list[Path], entry: str, title: str) -> None:
 	opened = screen(context)
 	model = opened.upcoming_model
 	(row,) = [
@@ -1332,3 +1332,123 @@ def vu_meter_in_column(context: Context) -> None:
 			expected = light.heightForWidth(light.width())
 		assert light.height() == expected, (light.objectName(), light.height(), expected)
 	assert ui.on_air_column.height() == ui.ongoing_frame.height()
+
+
+# ─── Emplacement d'un sonore (https://github.com/dascritch/machincast/issues/344) ───
+
+
+@pytest.fixture
+def opened_folders(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
+	"""Les dossiers ouverts dans le gestionnaire de fichiers, à sa place."""
+	folders: list[Path] = []
+	monkeypatch.setattr(dialogs, "open_folder", folders.append)
+	return folders
+
+
+def _entries(text: str) -> list[str]:
+	return re.findall(r"« ([^»]+) »", text)
+
+
+def _texts(menu: QMenu) -> list[str]:
+	return [(action.text()) or ("—") for action in menu.actions()]
+
+
+def _block_menu(context: Context, which: str) -> QMenu | None:
+	opened = screen(context)
+	if which == "sonore en cours":
+		return opened.ongoing_menu()
+	return opened.next_menu()
+
+
+def _row(model: QStandardItemModel, title: str) -> int:
+	(row,) = [
+		row
+		for row in range(model.rowCount())
+		if any(model.index(row, column).data() == title for column in range(model.columnCount()))
+	]
+	return row
+
+
+def _table_menu(context: Context, table: str, title: str) -> QMenu | None:
+	opened = screen(context)
+	if table == "des sonores à venir":
+		return opened.upcoming_sound_menu(opened.upcoming_model.index(_row(opened.upcoming_model, title), 0))
+	return opened.airplay_menu(opened.airplay_model.index(_row(opened.airplay_model, title), 0))
+
+
+def _choose(menu: QMenu | None, entry: str) -> None:
+	assert menu is not None
+	(action,) = [action for action in menu.actions() if action.text() == entry]
+	action.trigger()
+
+
+@given(
+	parsers.re(
+		r"le passage « (?P<title>[^»]+) » de l'airplay a pour emplacement « (?P<location>[^»]+) »"
+		r"(?P<deleted>, son sonore supprimé depuis)?$"
+	)
+)
+def play_location(empty_database: Connection, title: str, location: str, deleted: str | None) -> None:
+	"""L'airplay recopie l'emplacement au passage : il reste celui du passage, même le sonore effacé de la base."""
+	empty_database.execute("UPDATE airplay SET location = %s WHERE title = %s", (location, title))
+	if deleted:
+		empty_database.execute("UPDATE airplay SET sound_id = NULL WHERE title = %s", (title,))
+
+
+@when(parsers.re(r"je choisis « (?P<entry>[^»]+) » au clic droit sur le (?P<which>sonore en cours|prochain sonore)$"))
+def choose_in_block(context: Context, opened_folders: list[Path], entry: str, which: str) -> None:
+	_choose(_block_menu(context, which), entry)
+
+
+@when(
+	parsers.re(
+		r"je choisis « (?P<entry>[^»]+) » au clic droit sur la ligne « (?P<title>[^»]+) » (?P<table>de l'airplay)$"
+	)
+)
+def choose_in_line(context: Context, opened_folders: list[Path], entry: str, title: str, table: str) -> None:
+	_choose(_table_menu(context, table, title), entry)
+
+
+@then(parsers.re(r"le (?P<which>sonore en cours|prochain sonore) n'a pas de ligne « Emplacement »"))
+def without_location(context: Context, which: str) -> None:
+	ui = screen(context).ui
+	prefix = "ongoing" if which == "sonore en cours" else "next"
+	assert getattr(ui, f"{prefix}_location").isHidden()
+	assert getattr(ui, f"{prefix}_location_heading").isHidden()
+
+
+@then(parsers.re(r"le clic droit sur le (?P<which>sonore en cours|prochain sonore) finit par (?P<entries>«.+»)$"))
+def block_menu_ends(context: Context, which: str, entries: str) -> None:
+	menu = _block_menu(context, which)
+	assert menu is not None
+	expected_list = _entries(entries)
+	assert _texts(menu)[-len(expected_list) :] == expected_list, _texts(menu)
+
+
+@then("le clic droit sur le sonore en cours n'ouvre aucun menu")
+def no_block_menu(context: Context) -> None:
+	assert screen(context).ongoing_menu() is None
+
+
+@then(
+	parsers.re(
+		r"le clic droit sur la ligne « (?P<title>[^»]+) » (?P<table>de l'airplay|des sonores à venir) propose "
+		r"(?P<entries>«.+»)$"
+	)
+)
+def line_menu_offers(context: Context, title: str, table: str, entries: str) -> None:
+	menu = _table_menu(context, table, title)
+	assert menu is not None
+	assert _texts(menu) == _entries(entries), _texts(menu)
+
+
+@then(parsers.parse("le presse-papiers contient « {text} »"))
+def clipboard_holds(text: str) -> None:
+	clipboard = QGuiApplication.clipboard()
+	assert clipboard is not None
+	assert clipboard.text() == text, clipboard.text()
+
+
+@then(parsers.parse("le dossier « {folder} » a été ouvert"))
+def folder_opened(opened_folders: list[Path], folder: str) -> None:
+	assert opened_folders[-1:] == [Path(folder)], opened_folders

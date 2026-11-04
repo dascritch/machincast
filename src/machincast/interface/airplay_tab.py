@@ -40,10 +40,18 @@ from PySide6.QtWidgets import (
 from machincast.clock import Clock
 from machincast.configuration import Metadata
 from machincast.i18n import _
-from machincast.interface import columns, dialogs, display
+from machincast.interface import columns, dialogs
 from machincast.interface.airplay import HOURS, read_airplay
 from machincast.interface.columns import Columns
-from machincast.interface.default_screen import ITEM, DefaultScreen, play_cells, play_items
+from machincast.interface.default_screen import (
+	ITEM,
+	LOCATION,
+	DefaultScreen,
+	line_menu,
+	play_cells,
+	play_items,
+	play_location,
+)
 from machincast.interface.export_airplay import FORMATS, in_csv, in_html, in_m3u
 from machincast.interface.simulation import with_extension
 from machincast.player.outputs import read_plays
@@ -136,6 +144,7 @@ class AirplayScreen(QWidget):
 			cells = [QStandardItem(text) for text in play_cells(play)]
 			for column, item in play_items(play).items():
 				cells[column].setData(item, ITEM)
+			cells[0].setData(play_location(play), LOCATION)
 			self.model.appendRow(cells)
 
 	def _set(self, hours: int) -> None:
@@ -149,19 +158,9 @@ class AirplayScreen(QWidget):
 			self.opened.emit(category, identifier, name)
 
 	def line_menu(self, index: QModelIndex) -> QMenu | None:
-		"""« Pré-écoute… » du sonore de la ligne ; aucun menu hors d'une ligne, ou pour un sonore supprimé depuis."""
-		if not index.isValid():
-			return None
-		sound = None
-		for column in range(self.model.columnCount()):
-			item = self.model.index(index.row(), column).data(ITEM)
-			if (item is not None) and (item[0] == "sound"):
-				sound = int(item[1])
-		if sound is None:
-			return None
-		menu = QMenu(self)
-		display.offer_preview(menu, sound, self.requested_preview.emit)
-		return menu
+		"""« Pré-écoute… » du sonore de la ligne, puis son emplacement, comme l'airplay de l'onglet Antenne ; aucun
+		menu hors d'une ligne."""
+		return line_menu(self, self.model, index, self.requested_preview.emit)
 
 	def _export(self) -> None:
 		now = self.clock.now()
