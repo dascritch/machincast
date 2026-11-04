@@ -178,6 +178,12 @@ def column(context: Context, role: str, verdict: str, column: str) -> None:
 	assert allowed(context, role, query) is (verdict == "peut")
 
 
+@then(parsers.parse('le rôle "{role}" {verdict} retrouver le démarrage précédent d\'un binaire'))
+def previous_start(context: Context, role: str, verdict: str) -> None:
+	query = "SELECT * FROM machincast_previous_start('Machin_purge')"
+	assert allowed(context, role, query) is (verdict == "peut")
+
+
 @then("les deux lignes d'airplay et l'entrée de log sont en base")
 def saved_play(context: Context) -> None:
 	lines = context.connection.execute("SELECT line_type::text FROM airplay ORDER BY id").fetchall()

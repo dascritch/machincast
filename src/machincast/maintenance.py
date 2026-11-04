@@ -13,8 +13,10 @@ Sur la base de production de la configuration, trois étapes, dans l'ordre :
 Le compte de MachinCast est propriétaire de la base et de ses tables : il fait tout cela sans endosser de rôle, et
 sans droit particulier sur le serveur. Avec --keep-open, la maintenance finie ne rend la main qu'à la fermeture
 de son terminal (fin de l'entrée standard, ou Ctrl-C) : la fenêtre ouverte par l'interface reste lisible, Entrée n'y
-fait rien. Le code de sortie est 0 si tout s'est bien passé,
-1 sinon.
+fait rien ; la fin de la maintenance est notée avant (https://github.com/dascritch/machincast/issues/341). Le code de
+sortie est 0 si tout s'est bien passé, 1 sinon. Le démarrage et la fin de chaque maintenance sont notés au journal et
+au log de la base (machincast.runs) ; la base qui n'a pas encore le schéma de MachinCast ne peut pas noter le
+démarrage.
 """
 
 import argparse
@@ -34,10 +36,14 @@ from machincast.configuration import Configuration
 from machincast.database import OutdatedSchema, Role, apply_migrations, url_yoyo
 from machincast.i18n import _, decimal, ngettext
 from machincast.protection import check_writing
+from machincast.runs import Recording
 
 EXECUTABLE = "Machin_maintenance-db"
 DESCRIPTION = _("Backs up, checks and optimises the MachinCast database.")
 FAILURE_CODE = 1
+RECORDING = Recording(role=None)
+"""Le démarrage et la fin de la maintenance, dans le log, par le compte propriétaire de la base
+(https://github.com/dascritch/machincast/issues/341)."""
 BACKUPS = "sauvegardes"
 """Répertoire des sauvegardes, à côté du fichier de configuration, sauf --backups."""
 BACKUP_DELAY = 3600
@@ -201,10 +207,15 @@ def run(configuration: Configuration, options: argparse.Namespace) -> int:
 		)
 	except psycopg.Error as error:
 		log.error(_("database error: {error}").format(error=error))
-	if options.keep_open:
-		stay_open()
 	return code
 
 
+def after(options: argparse.Namespace) -> None:
+	"""Après la fin, notée au log : le terminal qu'ouvre l'interface reste ouvert, sans que la maintenance soit encore
+	en cours pour le log."""
+	if options.keep_open:
+		stay_open()
+
+
 def main(arguments: Sequence[str] | None = None) -> int:
-	return launch(EXECUTABLE, DESCRIPTION, arguments, run, own_options)
+	return launch(EXECUTABLE, DESCRIPTION, arguments, run, own_options, recording=RECORDING, then=after)

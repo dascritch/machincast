@@ -1,8 +1,9 @@
 """Accès à la base PostgreSQL et application des migrations yoyo.
 
-Schéma unique, aux noms anglais (https://github.com/dascritch/machincast/issues/314,
-https://github.com/dascritch/machincast/issues/358) : 0001.initial-schema. Une base créée avec l'ancien schéma, aux
-noms français, est refusée (OutdatedSchema), sans rien modifier : elle se recrée.
+Schéma initial, aux noms anglais (https://github.com/dascritch/machincast/issues/314,
+https://github.com/dascritch/machincast/issues/358) : 0001.initial-schema, puis les migrations qui le suivent, comme
+0002.run-log (https://github.com/dascritch/machincast/issues/341). Une base créée avec l'ancien schéma, aux noms
+français, est refusée (OutdatedSchema), sans rien modifier : elle se recrée.
 """
 
 from enum import StrEnum
@@ -53,7 +54,7 @@ TYPES: tuple[str, ...] = (
 
 
 class Role(StrEnum):
-	"""Rôles de groupe PostgreSQL, un par binaire. Droits : doc/fr/spec.md § 3.2 et migration 0001.initial-schema."""
+	"""Rôles de groupe PostgreSQL, un par binaire. Droits : doc/fr/spec.md § 3.2 et migrations."""
 
 	PLAYBACK = "machincast_player"
 	INDEXING = "machincast_indexer"

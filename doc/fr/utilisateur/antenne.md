@@ -203,7 +203,7 @@ Sur l'onglet Antenne, le **clic droit sur le cadre du prochain sonore** propose 
 
 Chaque passage à l'antenne est noté dans l'**historique**, l'airplay : son début, sa fin, la durée diffusée, l'artiste et le titre **tels qu'ils étaient au moment du passage**, l'événement, la séquence et la banque, et s'il s'est déroulé sans incident. Un sonore coupé net par un événement, ou interrompu à la main, n'est pas un incident. L'onglet Antenne en montre les 10 derniers passages, l'[onglet Airplay](prise-en-main.md#onglet-airplay) les dernières heures, réglables et exportables, et la fiche d'un sonore ses 50 derniers passages.
 
-La diffusion tient aussi un **journal** de ce qu'elle fait. L'onglet **Incidents** en montre les alertes et les incidents, du plus récent au plus ancien : horaire, niveau, nature, message, et le sonore, la banque et l'événement concernés.
+La diffusion tient aussi un **journal** de ce qu'elle fait. L'onglet **Incidents** en montre les alertes et les incidents, du plus récent au plus ancien : horaire, niveau, nature, message, et le sonore, la banque et l'événement concernés. L'indexation, la maintenance et la purge de la base y notent aussi une fin en erreur, et un `plantage probable` quand leur lancement précédent n'est pas allé au bout ([#341](https://github.com/dascritch/machincast/issues/341)) : c'est à signaler à l'administrateur du poste.
 
 ![L'onglet Incidents : un fichier introuvable, un fichier modifié, un blanc](../captures/incidents.png)
 

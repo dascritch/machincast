@@ -24,11 +24,15 @@ from machincast.indexer.check import report_text
 from machincast.indexer.decoding import UnavailableDecoder
 from machincast.indexer.indexer import OngoingIndexing, index, index_sound
 from machincast.interface.__main__ import available_display
+from machincast.runs import Recording
 
 EXECUTABLE = "Machin_indexer"
 DESCRIPTION = _("Checks the sounds and indexes the bank directories.")
 
 FAILURE_CODE = 1
+RECORDING = Recording(role=Role.INDEXING, when=lambda options: options.sound is None)
+"""Le démarrage et la fin de l'indexation, dans le log (https://github.com/dascritch/machincast/issues/341) : pas ceux
+de la vérification d'un seul sonore, que Machin player demande avant chaque sonore qu'il va jouer."""
 
 # Nom explicite : lancé par python -m, ce module s'appelle __main__, hors du journal « machincast ».
 log = logging.getLogger("machincast.indexer")
@@ -145,7 +149,7 @@ def check_sound(configuration: Configuration, sound: int, full_audit: bool, forc
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
-	return launch(EXECUTABLE, DESCRIPTION, arguments, run, own_options)
+	return launch(EXECUTABLE, DESCRIPTION, arguments, run, own_options, recording=RECORDING)
 
 
 if __name__ == "__main__":

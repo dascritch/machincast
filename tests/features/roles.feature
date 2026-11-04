@@ -25,6 +25,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 
 	Scénario: Droits du binaire indexation
 		https://github.com/dascritch/machincast/issues/195 : l'indexation retire d'une banque les sonores hors de ses durées.
+		https://github.com/dascritch/machincast/issues/341 : elle note ses démarrages et ses fins au log, sans le lire.
 
 		Alors le rôle "machincast_indexer" a exactement ces droits :
 			| table            | lire | inserer | modifier | supprimer |
@@ -39,7 +40,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| sequences        | non  | non     | non      | non       |
 			| sequence_items   | non  | non     | non      | non       |
 			| airplay          | non  | non     | non      | non       |
-			| log              | non  | non     | non      | non       |
+			| log              | non  | oui     | non      | non       |
 
 	Scénario: Droits de l'interface
 		Alors le rôle "machincast_interface" a exactement ces droits :
@@ -65,6 +66,17 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| state    | peut     |
 			| title   | ne peut pas |
 			| duration   | ne peut pas |
+
+	Plan du scénario: Seule l'indexation, parmi les rôles, retrouve le démarrage précédent d'un binaire
+		https://github.com/dascritch/machincast/issues/341 : la fonction machincast_previous_start ne rend que l'heure, le
+		pid et la fin du dernier démarrage noté ; elle lit le log avec les droits du propriétaire de la base.
+		Alors le rôle "<role>" <verdict> retrouver le démarrage précédent d'un binaire
+
+		Exemples:
+			| role                 | verdict     |
+			| machincast_indexer   | peut        |
+			| machincast_player    | ne peut pas |
+			| machincast_interface | ne peut pas |
 
 	Scénario: Le binaire lecture enregistre un passage complet
 		Quand le rôle "machincast_player" enregistre le début et la fin d'un passage, puis une entrée de log

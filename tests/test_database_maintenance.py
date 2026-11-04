@@ -108,6 +108,7 @@ def _launch(
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		execution.code = maintenance.run(configuration, options)
+		maintenance.after(options)
 	execution.information = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
 	execution.errors = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
 
