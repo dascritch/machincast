@@ -19,16 +19,16 @@ from PySide6.QtSvg import QSvgRenderer
 
 FOLDER = Path(__file__).with_name("icons")
 FILES = {
-	"sonore": "sonore.svg",
-	"séquence": "sequence.svg",
-	"banque": "banque.svg",
-	"événement": "evenement.svg",
-	"grille": "grille.svg",
+	"sound": "sound.svg",
+	"sequence": "sequence.svg",
+	"bank": "bank.svg",
+	"event": "event.svg",
+	"grid": "grid.svg",
 	"simulation": "simulation.svg",
-	"pré-écoute": "preecoute.svg",
+	"preview": "preview.svg",
 	"airplay": "airplay.svg",
 }
-"""Le dessin de chaque genre ; les fiches et la recherche nomment les genres ainsi. « pré-écoute », un casque, n'est pas
+"""Le dessin de chaque genre ; les fiches et la recherche nomment les genres ainsi. « preview », un casque, n'est pas
 un genre : il marque chaque bouton et chaque entrée de menu qui lance une pré-écoute
 (https://github.com/dascritch/machincast/issues/223). « airplay » marque l'onglet de l'historique de diffusion
 (https://github.com/dascritch/machincast/issues/244)."""

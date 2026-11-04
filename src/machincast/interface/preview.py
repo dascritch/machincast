@@ -58,7 +58,7 @@ READING = 50
 LEVEL_INTERVAL = 50 * Gst.MSECOND
 STREAM_BUFFER = 5
 """Secondes de son qu'un stream reçoit d'avance : le pré-décodé en est la part remplie."""
-STATES = {"arret": _("Stopped"), "lecture": _("Playing"), "pause": _("Paused")}
+STATES = {"stopped": _("Stopped"), "playing": _("Playing"), "paused": _("Paused")}
 NO = _("No sound")
 CHANNELS = {1: "mono", 2: _("stereo")}
 BROADCAST = _("(broadcast)")
@@ -153,7 +153,7 @@ class Player:
 		self._level: Gst.Element | None = None
 		self._links: list[binding.Pair] = []
 		"""Les liens de PipeWire qui copient l'antenne sur la pré-écoute, tant qu'elle joue."""
-		self.state = "arret"
+		self.state = "stopped"
 		self.levels: list[float] = []
 		"""Niveau RMS de chaque canal, en décibels ; vide à l'arrêt."""
 		self.error: str | None = None
@@ -204,7 +204,7 @@ class Player:
 			self._set_volume(plan.volume(plan.start_marker()))
 		assert self._piloted is not None
 		self._piloted.to(Gst.State.PLAYING)
-		self.state = "lecture"
+		self.state = "playing"
 		if (plan is not None) and (since_start):
 			self.put_to(plan.start_marker())
 		on_air = self._on_air_by_pipewire(self.source.on_air)
@@ -219,7 +219,7 @@ class Player:
 	def pause(self) -> None:
 		if self._piloted is not None:
 			self._piloted.to(Gst.State.PAUSED)
-			self.state = "pause"
+			self.state = "paused"
 		self._unbind()
 
 	def halt(self) -> None:
@@ -227,7 +227,7 @@ class Player:
 		if self._piloted is not None:
 			self._piloted.switch_off()
 		self._pipeline, self._piloted, self._level = None, None, None
-		self.state = "arret"
+		self.state = "stopped"
 		self.levels = []
 
 	def _unbind(self) -> None:
@@ -338,14 +338,14 @@ class Player:
 		"""Note la position ; écouté comme à l'antenne, règle le volume de l'enveloppe, et s'arrête à la fin de la
 		partie jouée. Sinon, le volume est plein."""
 		position = self.position()
-		if (self.state == "lecture") and (position is not None):
+		if (self.state == "playing") and (position is not None):
 			self.last_position = position
 		plan = self._on_air_plan()
 		if plan is None:
 			if self.volume != 1.0:
 				self._set_volume(1.0)
 			return
-		if (position is None) or (self.state != "lecture"):
+		if (position is None) or (self.state != "playing"):
 			return
 		_de, a = plan.part()
 		if (a < plan.duration) and (position >= a):
@@ -617,7 +617,7 @@ class PreviewWindow(QWidget):
 		self._refresh()
 
 	def _play_or_pause(self) -> None:
-		if self.player.state == "lecture":
+		if self.player.state == "playing":
 			self.player.pause()
 		else:
 			self.ui.message.clear()
@@ -640,7 +640,7 @@ class PreviewWindow(QWidget):
 		marker = source.plan.end_marker()
 		if start:
 			marker = source.plan.start_marker()
-		if self.player.state != "lecture":
+		if self.player.state != "playing":
 			self.ui.message.clear()
 			self.player.read()
 		self.player.put_to(marker)
@@ -665,7 +665,7 @@ class PreviewWindow(QWidget):
 			ui.state.setText(NO)
 		ui.playback.setEnabled(source is not None)
 		button = PLAYBACK
-		if player.state == "lecture":
+		if player.state == "playing":
 			button = PAUSE
 		ui.playback.setText(button[0])
 		ui.playback.setToolTip(button[1])

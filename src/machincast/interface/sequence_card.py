@@ -41,7 +41,7 @@ REPETITION = _("A sound or a bank may come back several times in a sequence.")
 
 
 class SequenceCard(Card):
-	category = "séquence"
+	category = "sequence"
 
 	def __init__(
 		self, connection: Connection, identifier: int | None, clock: Clock, parent: QWidget | None = None
@@ -54,7 +54,7 @@ class SequenceCard(Card):
 			self.ui.hiding.addItem(text)
 		self._name = ""
 		ui = self.ui
-		buttons = Buttons({"sonore": ui.add_sounds, "banque": ui.add_banks}, ui.remove_item, ui.raise_, ui.go_down)
+		buttons = Buttons({"sound": ui.add_sounds, "bank": ui.add_banks}, ui.remove_item, ui.raise_, ui.go_down)
 		self.items = ItemList(self, ui.items, buttons, "sequence_items", "sequence_id", REPETITION)
 		self.items.changed.connect(self._modify)
 		self.items.changed.connect(self._warn)

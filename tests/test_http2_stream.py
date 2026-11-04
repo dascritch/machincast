@@ -50,7 +50,7 @@ track = engine.Track(sys.argv[1], configuration_test().audio, None)
 track.start()
 limit = time.monotonic() + float(sys.argv[3])
 frozen = False
-while (time.monotonic() < limit) and (track.state == "en cours"):
+while (time.monotonic() < limit) and (track.state == "playing"):
 	track.handle()
 	frozen = track.frozen()
 	time.sleep(0.1)
@@ -159,13 +159,13 @@ def served_version(server: Server, version: str) -> None:
 @then(parsers.parse("la voie est en erreur au plus {seconds:d} secondes après le gel"))
 def in_error(server: Server, playback: Playback, seconds: int) -> None:
 	result = playback.result
-	assert (result["state"] == "en erreur") and (server.frozen_at is not None), result
+	assert (result["state"] == "error") and (server.frozen_at is not None), result
 	assert result["end"] - server.frozen_at <= seconds + 1, result
 
 
 @then("la voie est toujours en cours, sans erreur")
 def always_ongoing(playback: Playback) -> None:
-	assert (playback.result["state"] == "en cours") and (playback.result["error"] is None), playback.result
+	assert (playback.result["state"] == "playing") and (playback.result["error"] is None), playback.result
 
 
 @then("la voie est gelée")

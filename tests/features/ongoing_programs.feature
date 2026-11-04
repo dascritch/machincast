@@ -63,9 +63,9 @@ Fonctionnalité: Programmes de MachinCast en cours pendant l'installation
 		Quand install.sh demande la liste des programmes en cours, sous le compte « radio »
 		Alors la liste pour install.sh est :
 			| pid | du compte | service | programme                                                  |
-			| 101 | oui       | oui     | Machin player (service de diffusion), compte radio         |
-			| 102 | oui       | non     | Machin interface --config m.toml (interface), compte radio |
-			| 104 | non       | non     | Machin indexer (indexation), compte xavier                 |
+			| 101 | yes       | yes     | Machin player (service de diffusion), compte radio         |
+			| 102 | yes       | no      | Machin interface --config m.toml (interface), compte radio |
+			| 104 | no        | no      | Machin indexer (indexation), compte xavier                 |
 		Et l'état des programmes arrêtés est enregistré
 
 	Scénario: À la fin, la diffusion d'essai et l'interface du compte se relancent, avec leurs arguments et depuis leur répertoire

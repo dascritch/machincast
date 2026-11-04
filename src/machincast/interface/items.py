@@ -53,16 +53,16 @@ FEED = Qt.ItemDataRole.UserRole + 6
 LINE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsDragEnabled
 """Une ligne se glisse, mais rien ne se dépose dedans : la liste reste à plat."""
 
-COLUMNS = {"sonore": "sound_id", "banque": "bank_id", "séquence": "sequence_id"}
+COLUMNS = {"sound": "sound_id", "bank": "bank_id", "sequence": "sequence_id"}
 """Colonne de chaque genre d'élément, dans sequence_items et event_items."""
-TABLES = {"sonore": "sounds", "banque": "banks", "séquence": "sequences"}
+TABLES = {"sound": "sounds", "bank": "banks", "sequence": "sequences"}
 PLAYS = {
-	"sonore": (
+	"sound": (
 		"SELECT s.id, s.artist, s.title, s.location, COALESCE(s.location, s.stream_url, m.url)"
 		" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = ANY(%s)"
 	),
-	"banque": "SELECT b.id, b.internal_name, b.mode::text, b.no_repeat FROM banks b WHERE b.id = ANY(%s)",
-	"séquence": (
+	"bank": "SELECT b.id, b.internal_name, b.mode::text, b.no_repeat FROM banks b WHERE b.id = ANY(%s)",
+	"sequence": (
 		"SELECT q.id, q.internal_name, (SELECT count(*) FROM sequence_items e WHERE e.sequence_id = q.id),"
 		" (SELECT e.bank_id FROM sequence_items e WHERE e.sequence_id = q.id ORDER BY e.position LIMIT 1),"
 		" (SELECT e.bank_id FROM sequence_items e WHERE e.sequence_id = q.id ORDER BY e.position DESC LIMIT 1)"
@@ -70,7 +70,7 @@ PLAYS = {
 	),
 }
 """Ce que montre la ligne d'un élément, lu par identifiants."""
-SOUNDS_PER_FILE = PLAYS["sonore"].replace("s.id = ANY(%s)", "s.location = ANY(%s)")
+SOUNDS_PER_FILE = PLAYS["sound"].replace("s.id = ANY(%s)", "s.location = ANY(%s)")
 FEED_STREAM = "SELECT id FROM sounds WHERE feed_id = %s AND deleted_at IS NULL ORDER BY title, id LIMIT 1"
 """Le stream repris pour un feed : le premier par titre qui le suit."""
 SKIPPED = _("never plays twice in a row: this call will be skipped.")
@@ -170,7 +170,7 @@ class ItemList(QObject):
 			text = _("Line {number}: the bank “{bank}” has just played, and {skipped}").format(
 				number=number, bank=bank, skipped=SKIPPED
 			)
-			if line.data(0, CATEGORY) == "séquence":
+			if line.data(0, CATEGORY) == "sequence":
 				text = _(
 					"Line {number}: the sequence “{text}” starts with the bank “{bank}”, which has just "
 					"played, and {skipped}"
@@ -246,7 +246,7 @@ class ItemList(QObject):
 
 	def _read(self, identifiers: dict[str, list[int]]) -> dict[str, dict[int, QTreeWidgetItem]]:
 		"""Les lignes des éléments, par genre et par identifiant ; un élément absent de la base n'en a pas."""
-		build = {"sonore": self._sound_line, "banque": self._bank_line, "séquence": self._sequence_line}
+		build = {"sound": self._sound_line, "bank": self._bank_line, "sequence": self._sequence_line}
 		lines: dict[str, dict[int, QTreeWidgetItem]] = {}
 		for category, requests in identifiers.items():
 			fetched_list = self.card.connection.execute(PLAYS[category], (requests,)).fetchall()
@@ -258,14 +258,14 @@ class ItemList(QObject):
 		detail = MODES.get(str(mode), str(mode))
 		if marked:
 			detail = _("{detail}, do not repeat").format(detail=detail)
-		line = self._line("banque", [str(name), detail], (integer_or_none(identifier), integer_or_none(identifier)))
+		line = self._line("bank", [str(name), detail], (integer_or_none(identifier), integer_or_none(identifier)))
 		line.setData(0, ITEM, int(str(identifier)))
 		return line
 
 	def _sequence_line(self, sequence: tuple[object, ...]) -> QTreeWidgetItem:
 		identifier, name, count, first, last = sequence
 		detail = counted("{count} element", "{count} elements", int(str(count)))
-		line = self._line("séquence", [str(name), detail], (integer_or_none(first), integer_or_none(last)))
+		line = self._line("sequence", [str(name), detail], (integer_or_none(first), integer_or_none(last)))
 		line.setData(0, ITEM, int(str(identifier)))
 		return line
 
@@ -276,7 +276,7 @@ class ItemList(QObject):
 		if (artist is None) and (title is None) and (file is not None):
 			# Pas encore décodé : le nom du fichier en attendant ses tags.
 			text = Path(str(file)).name
-		line = self._line("sonore", [text, str((location) or (""))], (None, None))
+		line = self._line("sound", [text, str((location) or (""))], (None, None))
 		if identifier is not None:
 			line.setData(0, ITEM, int(str(identifier)))
 		else:
@@ -310,9 +310,9 @@ class ItemList(QObject):
 			self._add_feeds()
 			return
 		choose = {
-			"sonore": dialogs.choose_sounds,
-			"banque": dialogs.choose_banks,
-			"séquence": dialogs.choose_sequences,
+			"sound": dialogs.choose_sounds,
+			"bank": dialogs.choose_banks,
+			"sequence": dialogs.choose_sequences,
 		}[category]
 		chosen_list = choose(self.card, self.card.connection, self.remark)
 		with self.card.connection.transaction():
@@ -334,10 +334,10 @@ class ItemList(QObject):
 					continue
 				stream = connection.execute(FEED_STREAM, (feed,)).fetchone()
 				if stream is not None:
-					lines += self._read({"sonore": [int(str(stream[0]))]})["sonore"].values()
+					lines += self._read({"sound": [int(str(stream[0]))]})["sound"].values()
 					continue
 				name, url = marks
-				line = self._line("sonore", [str(name), _("{url}, new stream").format(url=url)], (None, None))
+				line = self._line("sound", [str(name), _("{url}, new stream").format(url=url)], (None, None))
 				line.setData(0, FEED, feed)
 				lines.append(line)
 		self.list_.addTopLevelItems(lines)
@@ -369,7 +369,7 @@ class ItemList(QObject):
 	def line_menu(self, line: QTreeWidgetItem | None) -> QMenu | None:
 		"""Le menu du clic droit sur une ligne : « Pré-écoute… » d'un sonore en base ; aucun pour une banque, une
 		séquence, un fichier déposé pas encore enregistré, ou hors d'une ligne (https://github.com/dascritch/machincast/issues/226)."""
-		if (line is None) or (line.data(0, CATEGORY) != "sonore") or (line.data(0, ITEM) is None):
+		if (line is None) or (line.data(0, CATEGORY) != "sound") or (line.data(0, ITEM) is None):
 			return None
 		menu = QMenu(self.list_)
 		display.offer_preview(menu, int(line.data(0, ITEM)), self.card.requested_preview.emit)

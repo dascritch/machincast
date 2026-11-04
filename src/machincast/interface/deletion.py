@@ -57,7 +57,7 @@ class Category:
 
 
 CATEGORIES = {
-	"sonore": Category(
+	"sound": Category(
 		"sounds",
 		_("Delete the sound"),
 		_("Delete the sound “{name}”?"),
@@ -69,10 +69,10 @@ CATEGORIES = {
 		),
 		_("another sound is already called “{name}”"),
 		"sound_id",
-		("banque", "séquence", "événement"),
+		("bank", "sequence", "event"),
 		_("It is in no bank, no sequence and no event."),
 	),
-	"banque": Category(
+	"bank": Category(
 		"banks",
 		_("Delete the bank"),
 		_("Delete the bank “{name}”?"),
@@ -84,10 +84,10 @@ CATEGORIES = {
 		),
 		_("another bank is already called “{name}”"),
 		"bank_id",
-		("séquence", "événement"),
+		("sequence", "event"),
 		_("It is in no sequence and no event."),
 	),
-	"séquence": Category(
+	"sequence": Category(
 		"sequences",
 		_("Delete the sequence"),
 		_("Delete the sequence “{name}”?"),
@@ -99,10 +99,10 @@ CATEGORIES = {
 		),
 		_("another sequence is already called “{name}”"),
 		"sequence_id",
-		("événement",),
+		("event",),
 		_("It is in no event."),
 	),
-	"événement": Category(
+	"event": Category(
 		"events",
 		_("Delete the event"),
 		_("Delete the event “{name}”?"),
@@ -134,15 +134,15 @@ CATEGORIES = {
 	),
 }
 CONTAINERS = {
-	"banque": ("banks", "bank_sounds", "bank_id", _("of the bank"), _("which will no longer have any sound")),
-	"séquence": (
+	"bank": ("banks", "bank_sounds", "bank_id", _("of the bank"), _("which will no longer have any sound")),
+	"sequence": (
 		"sequences",
 		"sequence_items",
 		"sequence_id",
 		_("of the sequence"),
 		_("which will no longer have any element"),
 	),
-	"événement": (
+	"event": (
 		"events",
 		"event_items",
 		"event_id",
@@ -162,7 +162,7 @@ def _names(lines: list[TupleRow]) -> str:
 def _name(connection: Connection, category: str, identifier: int) -> str | None:
 	"""Le nom de l'élément ; None s'il n'est plus en base. Un sonore : artiste et titre, ou le nom de son fichier, ou
 	l'adresse de son stream."""
-	if category != "sonore":
+	if category != "sound":
 		line = connection.execute(
 			f"SELECT {CATEGORIES[category].name} FROM {CATEGORIES[category].table} WHERE id = %s",  # noqa: S608
 			(identifier,),
@@ -223,9 +223,9 @@ def _file(connection: Connection, identifier: int) -> list[str]:
 
 def _remainders(connection: Connection, category: str, identifier: int) -> list[str]:
 	"""Ce qui reste après la suppression, propre à chaque genre."""
-	if category == "sonore":
+	if category == "sound":
 		return _file(connection, identifier)
-	if category == "banque":
+	if category == "bank":
 		directories = connection.execute(
 			"SELECT directory FROM bank_directories WHERE bank_id = %s ORDER BY directory", (identifier,)
 		).fetchall()
@@ -237,7 +237,7 @@ def _remainders(connection: Connection, category: str, identifier: int) -> list[
 				"Its directories stay in place, with their files, intact: {paths}. Its sounds stay in the database."
 			).format(paths=paths)
 		]
-	if category == "séquence":
+	if category == "sequence":
 		return [_("Its sounds and its banks stay in the database.")]
 	if category == "feed":
 		return []
@@ -317,7 +317,7 @@ def delete(connection: Connection, category: str, identifier: int, instant: date
 	for container in describes.containers:
 		_table, items, _parent, _give_name, _empty = CONTAINERS[container]
 		connection.execute(f"DELETE FROM {items} WHERE {describes.column} = %s", (identifier,))  # noqa: S608
-	if category == "événement":
+	if category == "event":
 		connection.execute("UPDATE sounds SET fallback_event_id = NULL WHERE fallback_event_id = %s", (identifier,))
 	connection.execute(
 		f"UPDATE {describes.table} SET deleted_at = %s WHERE id = %s",  # noqa: S608
@@ -353,7 +353,7 @@ def restore(connection: Connection, category: str, identifier: int) -> None:
 	retiré. Lève Empechee si un autre élément a repris son nom, ou son emplacement."""
 	describes = CATEGORIES[category]
 	column = "location"
-	if category != "sonore":
+	if category != "sound":
 		column = describes.name
 	taken = connection.execute(
 		f"SELECT o.{column} FROM {describes.table} s JOIN {describes.table} o ON o.{column} = s.{column}"  # noqa: S608
@@ -362,7 +362,7 @@ def restore(connection: Connection, category: str, identifier: int) -> None:
 	).fetchone()
 	if taken is not None:
 		who = describes.other.format(name=taken[0])
-		if category == "sonore":
+		if category == "sound":
 			who = _("another sound already has this file, {taken}").format(taken=taken[0])
 		raise Prevented(_("Restoring impossible: {who}.").format(who=who))
 	connection.execute(f"UPDATE {describes.table} SET deleted_at = NULL WHERE id = %s", (identifier,))  # noqa: S608

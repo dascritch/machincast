@@ -120,18 +120,34 @@ TABS = (
 	(_("Sounds"), SOUNDS),
 	(_("Feeds"), FEEDS),
 )
-LIST_KEYS = {
-	"événement": "Événements",
-	"séquence": "Séquences",
-	"banque": "Banques",
-	"sonore": "Sonores",
-	"feed": "Feeds",
-}
-"""Ce qui désigne l'onglet de chaque liste dans les réglages, « liste:Sonores » : son titre français d'avant
-https://github.com/dascritch/machincast/issues/360, qui ne dépend pas de la langue."""
-ON_DEMAND = frozenset({LIST_KEYS["sonore"], LIST_KEYS["feed"]})
+ON_DEMAND = frozenset({"sound", "feed"})
 """Les listes qui ne s'ouvrent pas au lancement, mais par le menu « Affichage », et qui se ferment
-(https://github.com/dascritch/machincast/issues/180)."""
+(https://github.com/dascritch/machincast/issues/180), par leur genre."""
+OLD_TAB_KEYS = {
+	"antenne": "on_air",
+	"calendrier": "calendar",
+	"recherche": "search",
+	"liste:Événements": "list:event",
+	"liste:Séquences": "list:sequence",
+	"liste:Banques": "list:bank",
+	"liste:Sonores": "list:sound",
+	"liste:Feeds": "list:feed",
+}
+"""Les clés des onglets retenus avant https://github.com/dascritch/machincast/issues/368, en français, et leur clé
+anglaise : les onglets retenus par une version d'avant se rouvrent."""
+OLD_CATEGORIES = {"sonore": "sound", "banque": "bank", "séquence": "sequence", "événement": "event"}
+"""Les genres des fiches retenues avant https://github.com/dascritch/machincast/issues/368 : « fiche:banque:12 »."""
+
+
+def current_tab_key(key: str) -> str:
+	"""La clé d'un onglet retenu, celle d'une version d'avant traduite : « fiche:banque:12 » devient
+	« card:bank:12 »."""
+	if key.startswith("fiche:"):
+		category, _separator, identifier = key.removeprefix("fiche:").partition(":")
+		return f"card:{OLD_CATEGORIES.get(category, category)}:{identifier}"
+	return OLD_TAB_KEYS.get(key, key)
+
+
 CARDS: dict[str, type[Card]] = {
 	card.category: card for card in (EventCard, SequenceCard, BankCard, SoundCard, FeedCard)
 }
@@ -146,10 +162,10 @@ ACTIVE_TAB_KEY = "onglets/actif"
 """Les onglets ouverts, et l'onglet actif, dans les réglages des vues du compte
 (https://github.com/dascritch/machincast/issues/321)."""
 CARD_TABLES = {
-	"sonore": "sounds",
-	"banque": "banks",
-	"séquence": "sequences",
-	"événement": "events",
+	"sound": "sounds",
+	"bank": "banks",
+	"sequence": "sequences",
+	"event": "events",
 	"feed": "feeds",
 }
 DELETABLE = frozenset({"sounds", "banks", "sequences", "events"})
@@ -197,7 +213,7 @@ def screen_category(screen: QWidget) -> str:
 	if isinstance(screen, Card):
 		return screen.category
 	if isinstance(screen, Calendar):
-		return "grille"
+		return "grid"
 	if isinstance(screen, SimulationScreen):
 		return "simulation"
 	if isinstance(screen, AirplayScreen):
@@ -349,7 +365,7 @@ class MainWindow(QMainWindow):
 		self._titles: dict[QWidget, str] = {}
 		"""Le titre de l'onglet de chaque liste, ouverte ou non."""
 		self._keys: dict[QWidget, str] = {}
-		"""La clé de l'onglet de chaque liste, dans les réglages (LIST_KEYS)."""
+		"""La clé de l'onglet de chaque liste, dans les réglages : son genre."""
 		for title, source in TABS:
 			list_ = List(source, connection)
 			list_.opened.connect(self._open)
@@ -364,7 +380,7 @@ class MainWindow(QMainWindow):
 			list_.dropped_files.connect(lambda paths, list_=list_: self._add_files(list_, paths))
 			self.lists.append(list_)
 			self._titles[list_] = title
-			self._keys[list_] = LIST_KEYS[source.category]
+			self._keys[list_] = source.category
 			if self._keys[list_] not in ON_DEMAND:
 				self._add_fixed(list_, title)
 				continue
@@ -423,19 +439,19 @@ class MainWindow(QMainWindow):
 		look_up.setShortcut(QKeySequence("Ctrl+F"))
 		look_up.triggered.connect(self._open_search)
 		for title, source in TABS:
-			if LIST_KEYS[source.category] not in ON_DEMAND:
+			if source.category not in ON_DEMAND:
 				continue
 			open_ = display_menu.addAction(
 				icons.icon_of(source.category), _("Open the {title} tab").format(title=title)
 			)
 			open_.triggered.connect(lambda _ticked=False, title=title: self.open_list(title))
-		grid = display_menu.addAction(icons.icon("grille"), _("Open the Time grid tab"))
+		grid = display_menu.addAction(icons.icon("grid"), _("Open the Time grid tab"))
 		grid.triggered.connect(self._open_calendar)
 		simulation = display_menu.addAction(icons.icon("simulation"), _("Open the Simulation tab"))
 		simulation.triggered.connect(self._open_simulation)
 		airplay = display_menu.addAction(icons.icon("airplay"), _("Open the Airplay tab"))
 		airplay.triggered.connect(self._open_airplay)
-		self.preview_action = display_menu.addAction(icons.icon("pré-écoute"), _("Pre-listen…"))
+		self.preview_action = display_menu.addAction(icons.icon("preview"), _("Pre-listen…"))
 		self.preview_action.triggered.connect(lambda: self._preview(None))
 		# En bas du menu (https://github.com/dascritch/machincast/issues/322).
 		display_menu.addSeparator()
@@ -446,7 +462,7 @@ class MainWindow(QMainWindow):
 		self.broadcast_menu.aboutToShow.connect(self._reread_service)
 		# L'écoute de l'antenne, lancée aussitôt, en tête du menu (https://github.com/dascritch/machincast/issues/245) ;
 		# pendant l'écoute, elle l'arrête, et Alt+P fait l'un ou l'autre (https://github.com/dascritch/machincast/issues/256).
-		self.listen = self.broadcast_menu.addAction(icons.icon("pré-écoute"), "")
+		self.listen = self.broadcast_menu.addAction(icons.icon("preview"), "")
 		self.listen.setShortcut(QKeySequence("Alt+P"))
 		self.listen.triggered.connect(self._switch_listening)
 		self._show_listening(False)
@@ -671,14 +687,14 @@ class MainWindow(QMainWindow):
 		if isinstance(screen, Card):
 			if (screen.identifier is None) or (screen.deleted_at is not None):
 				return None
-			return f"fiche:{screen.category}:{screen.identifier}"
+			return f"card:{screen.category}:{screen.identifier}"
 		if isinstance(screen, List):
-			return f"liste:{self._keys[screen]}"
-		for fixed, key in ((self.home, "antenne"), (self.calendar, "calendrier"), (self.incidents, "incidents")):
+			return f"list:{self._keys[screen]}"
+		for fixed, key in ((self.home, "on_air"), (self.calendar, "calendar"), (self.incidents, "incidents")):
 			if screen is fixed:
 				return key
 		for category, key in (
-			(SearchScreen, "recherche"),
+			(SearchScreen, "search"),
 			(SimulationScreen, "simulation"),
 			(AirplayScreen, "airplay"),
 		):
@@ -692,7 +708,7 @@ class MainWindow(QMainWindow):
 		keys = [self.tab_key(tabs.widget(index)) for index in range(tabs.count())]
 		settings = columns.settings()
 		settings.setValue(TAB_KEY, [key for key in keys if key is not None])
-		settings.setValue(ACTIVE_TAB_KEY, (self.tab_key(tabs.currentWidget())) or ("antenne"))
+		settings.setValue(ACTIVE_TAB_KEY, (self.tab_key(tabs.currentWidget())) or ("on_air"))
 
 	def reopen_tabs(self) -> None:
 		"""Les onglets retenus à la dernière fermeture, dans leur ordre, puis l'onglet actif ; une fiche dont l'élément
@@ -705,10 +721,10 @@ class MainWindow(QMainWindow):
 			retained = [retained]
 		for key in retained:
 			try:
-				self._reopen(str(key))
+				self._reopen(current_tab_key(str(key)))
 			except psycopg.Error as error:
 				log.error(_("tab “{key}” not reopened: {error}").format(key=key, error=error))
-		active = str(settings.value(ACTIVE_TAB_KEY, "antenne"))
+		active = current_tab_key(str(settings.value(ACTIVE_TAB_KEY, "on_air")))
 		tabs = self.ui.tabs
 		found_list = [index for index in range(tabs.count()) if self.tab_key(tabs.widget(index)) == active]
 		tabs.setCurrentIndex(next(iter(found_list), 0))
@@ -716,15 +732,15 @@ class MainWindow(QMainWindow):
 	def _reopen(self, key: str) -> None:
 		"""Rouvre un onglet retenu ; un onglet fixe l'est déjà, une clé inconnue est ignorée."""
 		category, _separator, rest = key.partition(":")
-		if (category == "liste") and (rest in ON_DEMAND):
+		if (category == "list") and (rest in ON_DEMAND):
 			self.open_list(rest)
-		elif category == "recherche":
+		elif category == "search":
 			self._open_search()
 		elif category == "simulation":
 			self._open_simulation()
 		elif category == "airplay":
 			self._open_airplay()
-		elif category == "fiche":
+		elif category == "card":
 			card_type, _separator, identifier = rest.partition(":")
 			if (card_type in CARD_TABLES) and (identifier.isdigit()):
 				if self._in_database(card_type, int(identifier)):
@@ -821,7 +837,7 @@ class MainWindow(QMainWindow):
 		card.requested_preview.connect(self._preview)
 		if isinstance(card, SoundCard):
 			card.requested_check.connect(lambda sound, card=card: self._check_fully(card, sound))
-		if category == "événement":
+		if category == "event":
 			card.deleted.connect(self._guarantee_background_programming)
 			card.saved.connect(self._guarantee_background_programming)
 		if isinstance(card, EventCard):
@@ -945,7 +961,7 @@ class MainWindow(QMainWindow):
 	def open_list(self, title: str) -> None:
 		"""Ouvre une liste à la demande à sa place, après les listes qui la précèdent et avant les incidents, ou la
 		ramène au premier plan (https://github.com/dascritch/machincast/issues/180). Elle se désigne par son titre, ou
-		par sa clé (LIST_KEYS)."""
+		par son genre."""
 		tabs = self.ui.tabs
 		(list_,) = (list_ for list_ in self.lists if title in (self._titles[list_], self._keys[list_]))
 		title = self._titles[list_]

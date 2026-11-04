@@ -268,7 +268,7 @@ BANKS: tuple[Action, ...] = (
 	),
 )
 
-ACTIONS: dict[str, tuple[Action, ...]] = {"sonore": SOUNDS, "banque": BANKS}
+ACTIONS: dict[str, tuple[Action, ...]] = {"sound": SOUNDS, "bank": BANKS}
 """Les actions sur la sélection de chaque liste ; les autres listes ne sélectionnent qu'une ligne."""
 
 

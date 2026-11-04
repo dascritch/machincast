@@ -302,7 +302,7 @@ def cut(context: Context) -> None:
 @then(parsers.parse("la voie de « {name} » est finie"))
 def finished(context: Context, name: str) -> None:
 	track = context.tracks[name]
-	assert track.state == "finie", f"{track.state} : {track.error}"
+	assert track.state == "finished", f"{track.state} : {track.error}"
 
 
 @then(parsers.parse("elle a joué sur l'élément GStreamer « {factory} »"))
@@ -332,14 +332,14 @@ def no(context: Context) -> None:
 @then(parsers.parse("la voie de « {name} » est coupée avant {milliseconds:d} millisecondes"))
 def was_cut(context: Context, name: str, milliseconds: int) -> None:
 	track = context.tracks[name]
-	assert track.state == "coupée", track.state
+	assert track.state == "cut", track.state
 	assert (track.final_position is not None) and (track.final_position < timedelta(milliseconds=milliseconds))
 
 
 @then("la voie du fichier texte est en erreur, avec le motif de GStreamer")
 def in_error(context: Context) -> None:
 	track = context.tracks["texte"]
-	assert track.state == "en erreur"
+	assert track.state == "error"
 	assert track.error
 
 

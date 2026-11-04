@@ -469,13 +469,13 @@ def _describe(value: object) -> str:
 		case bool():
 			return _("boolean")
 		case int() | float():
-			return "nombre"
+			return _("number")
 		case str():
-			return "texte"
+			return _("text")
 		case list():
-			return "liste"
+			return _("list")
 		case dict():
-			return "section"
+			return _("section")
 		case _:
 			return type(value).__name__
 

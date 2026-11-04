@@ -86,14 +86,14 @@ class DefaultScreen(QWidget):
 	requested_fallback = Signal(object)
 	"""« ⏭ Couper par le secours », au clic droit sur le prochain sonore : le secours choisi (interruption.Secours)."""
 	AIRPLAY_COLUMNS = (
-		("debut", _("Start")),
-		("fin", _("End")),
-		("duree", _("Duration")),
-		("artiste", _("Artist")),
-		("titre", _("Title")),
-		("evenement", _("Event")),
+		("start", _("Start")),
+		("end", _("End")),
+		("duration", _("Duration")),
+		("artist", _("Artist")),
+		("title", _("Title")),
+		("event", _("Event")),
 		("sequence", _("Sequence")),
-		("banque", _("Bank")),
+		("bank", _("Bank")),
 		("incident", _("Incident")),
 	)
 
@@ -158,10 +158,10 @@ class DefaultScreen(QWidget):
 		ui = self.ui
 		# Chaque bouton « Fiche… » porte l'icône du genre qu'il ouvre (https://github.com/dascritch/machincast/issues/215).
 		for category, buttons in (
-			("sonore", (ui.open_ongoing_sound, ui.open_next_sound)),
-			("événement", (ui.open_ongoing_event, ui.open_next_event)),
-			("séquence", (ui.open_ongoing_sequence, ui.open_next_sequence)),
-			("banque", (ui.open_ongoing_bank, ui.open_next_bank)),
+			("sound", (ui.open_ongoing_sound, ui.open_next_sound)),
+			("event", (ui.open_ongoing_event, ui.open_next_event)),
+			("sequence", (ui.open_ongoing_sequence, ui.open_next_sequence)),
+			("bank", (ui.open_ongoing_bank, ui.open_next_bank)),
 		):
 			for button in buttons:
 				button.setIcon(icons.icon(category))
@@ -180,7 +180,7 @@ class DefaultScreen(QWidget):
 		self.ongoing_timeline = _set_timeline(ui.ongoing_timeline_place)
 		self.next_timeline = _set_timeline(ui.next_timeline_place)
 		# Écouter le prochain sonore, et tester le flux d'un stream (https://github.com/dascritch/machincast/issues/223).
-		ui.preview_next.setIcon(icons.icon("pré-écoute"))
+		ui.preview_next.setIcon(icons.icon("preview"))
 		ui.preview_next.clicked.connect(self._preview_next)
 		self.next_timeline.clicked.connect(self._preview_next)
 		self.stream_trial = StreamTrial(self)
@@ -461,7 +461,7 @@ class DefaultScreen(QWidget):
 		sound = None
 		for column in range(model.columnCount()):
 			item = model.index(index.row(), column).data(ITEM)
-			if (item is not None) and (item[0] == "sonore"):
+			if (item is not None) and (item[0] == "sound"):
 				sound = int(item[1])
 		if sound is None:
 			return None
@@ -617,11 +617,11 @@ def play_items(play: DisplayedPlay) -> dict[int, tuple[str, int, str]]:
 	items: dict[int, tuple[str, int, str]] = {}
 	if play.id_sound is not None:
 		title = (play.title) or (display.artist_and_title(play.artist, play.title))
-		items[3] = items[4] = ("sonore", play.id_sound, title)
+		items[3] = items[4] = ("sound", play.id_sound, title)
 	for column, category, identifier, name in (
-		(5, "événement", play.id_event, play.event),
-		(6, "séquence", play.sequence_id, play.sequence),
-		(7, "banque", play.id_bank, play.bank),
+		(5, "event", play.id_event, play.event),
+		(6, "sequence", play.sequence_id, play.sequence),
+		(7, "bank", play.id_bank, play.bank),
 	):
 		if identifier is not None:
 			items[column] = (category, identifier, str(name))
@@ -650,13 +650,13 @@ def _upcoming_items(sound: DisplayedSound) -> dict[int, tuple[str, int, str]]:
 	"""Les cellules qui désignent un élément, par colonne, comme dans l'airplay."""
 	title = (sound.title) or (display.artist_and_title(sound.artist, sound.title))
 	items: dict[int, tuple[str, int, str]] = {
-		3: ("sonore", sound.sound, title),
-		4: ("sonore", sound.sound, title),
+		3: ("sound", sound.sound, title),
+		4: ("sound", sound.sound, title),
 	}
 	for column, category, identifier, name in (
-		(5, "événement", sound.id_event, sound.event),
-		(6, "séquence", sound.sequence_id, sound.sequence),
-		(7, "banque", sound.id_bank, sound.bank),
+		(5, "event", sound.id_event, sound.event),
+		(6, "sequence", sound.sequence_id, sound.sequence),
+		(7, "bank", sound.id_bank, sound.bank),
 	):
 		if identifier is not None:
 			items[column] = (category, identifier, str(name))

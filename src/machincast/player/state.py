@@ -234,7 +234,7 @@ class StateSocket:
 			server.close()
 			raise
 		self._server = server
-		self._feed = threading.Thread(target=self._accept, name="socket d'état", daemon=True)
+		self._feed = threading.Thread(target=self._accept, name="state socket", daemon=True)
 		self._feed.start()
 
 	def _busy(self) -> bool:

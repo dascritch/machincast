@@ -735,7 +735,7 @@ class Broadcast:
 
 	def _finish_stopped_tracks(self, instant: datetime) -> None:
 		for playback in self._plays():
-			if playback.track.state not in ("finie", "en erreur"):
+			if playback.track.state not in ("finished", "error"):
 				continue
 			if (playback.parameters.stream) and (not playback.off):
 				# Un stream n'a pas de fin : arrêté avant son extinction, il est tombé.
@@ -746,8 +746,8 @@ class Broadcast:
 				self._suspend(playback, instant)
 			else:
 				self._finish(playback.play, instant, error=playback.track.error)
-		self.outgoing_list = [s for s in self.outgoing_list if s.track.state == "en cours"]
-		if (self.current is not None) and (self.current.track.state != "en cours"):
+		self.outgoing_list = [s for s in self.outgoing_list if s.track.state == "playing"]
+		if (self.current is not None) and (self.current.track.state != "playing"):
 			self.current = None
 
 	def _discard_blocked_playback(self, instant: datetime) -> None:
@@ -1098,7 +1098,7 @@ class Broadcast:
 			return
 		probe.track.handle()
 		# Le même délai de garde : une tentative qui ne donne aucun son est abandonnée, puis reprise.
-		if (probe.track.state != "en cours") or (probe.track.frozen()):
+		if (probe.track.state != "playing") or (probe.track.frozen()):
 			probe.track.shut_down()
 			probe.track = None
 			probe.next_attempt = instant + self.reconnection_delay
@@ -1116,7 +1116,7 @@ class Broadcast:
 			else:
 				playback.track.cut()
 				self._finish(playback.play, instant)
-		self.outgoing_list = [playback for playback in self._plays() if playback.track.state == "en cours"]
+		self.outgoing_list = [playback for playback in self._plays() if playback.track.state == "playing"]
 		self.in_waiting, self.probe = None, None
 		self.scheduler.resume()
 		choice = probe.choice

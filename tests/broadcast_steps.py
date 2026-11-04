@@ -677,7 +677,7 @@ def run(bench: Bench, count: str, duration: str | None) -> None:
 def wait_track_end(bench: Bench, delay: float = 5.0) -> None:
 	assert bench.engine is not None
 	limit = time.monotonic() + delay
-	while (any(v.state == "en cours" for v in bench.engine.ongoing_tracks())) and (time.monotonic() < limit):
+	while (any(v.state == "playing" for v in bench.engine.ongoing_tracks())) and (time.monotonic() < limit):
 		time.sleep(REAL_STEP / 5)
 		for track in bench.engine.ongoing_tracks():
 			track.handle()

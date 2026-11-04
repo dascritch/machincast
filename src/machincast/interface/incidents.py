@@ -31,7 +31,7 @@ log = logging.getLogger(__name__)
 LIMIT = 500
 """Nombre d'entrées lues au plus, les plus récentes."""
 COLUMNS = (_("Time"), _("Level"), _("Kind"), _("Message"), _("Sound"), _("Bank"), _("Event"))
-LINKS = {4: "sonore", 5: "banque", 6: "événement"}
+LINKS = {4: "sound", 5: "bank", 6: "event"}
 """Colonnes qui désignent un élément, et son genre."""
 ITEM = Qt.ItemDataRole.UserRole
 """Rôle qui porte l'identifiant de l'élément d'une cellule de lien."""

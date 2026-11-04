@@ -68,7 +68,7 @@ from PySide6.QtWidgets import (
 
 from machincast.clock import Clock
 from machincast.conversion import text_or_none
-from machincast.i18n import _, ngettext, pgettext
+from machincast.i18n import N_, _, ngettext, pgettext
 from machincast.interface import dialogs, preferences
 from machincast.interface.display import MONTH
 from machincast.interface.sessions import Session, overlapped, reinstate
@@ -227,13 +227,14 @@ class Block:
 
 	@property
 	def state(self) -> str:
+		"""Ce qui joue de l'occurrence, en anglais ; _(state) le dit dans la langue de l'interface."""
 		if self.skipped:
-			return _("skipped")
+			return N_("skipped")
 		if not self.plays:
-			return _("faded")
+			return N_("faded")
 		if self.plays == ((self.start, self.end),):
-			return "joue"
-		return _("partly plays")
+			return N_("plays")
+		return N_("partly plays")
 
 	def tooltip(self) -> str:
 		event = self.event
@@ -278,11 +279,11 @@ class Block:
 
 	def _what_plays(self) -> str:
 		state = self.state
-		if state == "sauté":
+		if state == "skipped":
 			return SKIPPED
-		if state == "joue":
+		if state == "plays":
 			return _("Plays in full")
-		if state == "estompé":
+		if state == "faded":
 			return _("Hidden in full {mask}").format(mask=MASK)
 		moments = _(" and ").join(
 			_("from {schedule} to {schedule2}").format(schedule=schedule(self.day, d), schedule2=schedule(self.day, f))

@@ -165,7 +165,7 @@ def begins_by(menu: Menu, entry: str, separator: str | None) -> None:
 	if entry == display.PREVIEW:
 		# Toute entrée « Pré-écoute… » porte le casque (https://github.com/dascritch/machincast/issues/223).
 		assert menu.opened is not None
-		assert same_icon(menu.opened.actions()[0].icon(), icons.icon("pré-écoute"))
+		assert same_icon(menu.opened.actions()[0].icon(), icons.icon("preview"))
 	if separator is not None:
 		assert menu.opened is not None
 		assert menu.opened.actions()[1].isSeparator(), menu.entries

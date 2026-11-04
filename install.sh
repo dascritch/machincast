@@ -224,7 +224,7 @@ attendre_l_arret() {
 		pid="${pid%:*}"
 		[[ -e "/proc/${pid}" ]] || continue
 		info 'pid %s still there after %s s: forced stop' "${pid}" "${DELAI_D_ARRET}"
-		if [[ "${du_compte}" == oui ]]; then
+		if [[ "${du_compte}" == yes ]]; then
 			kill -KILL "${pid}" 2>/dev/null || true
 		else
 			sudo kill -KILL "${pid}" || true
@@ -258,12 +258,12 @@ arreter_les_programmes() {
 	trap relancer_les_programmes EXIT
 	local arretes=()
 	while IFS=$'\t' read -r pid du_compte service libelle; do
-		if [[ "${service}" == oui ]]; then
+		if [[ "${service}" == yes ]]; then
 			if ! "${SERVICE_ARRETE}"; then
 				executer sudo systemctl stop "${UNITE}"
 				SERVICE_ARRETE=true
 			fi
-		elif [[ "${du_compte}" == oui ]]; then
+		elif [[ "${du_compte}" == yes ]]; then
 			executer kill -TERM "${pid}"
 			arretes+=("${pid}:oui")
 		else

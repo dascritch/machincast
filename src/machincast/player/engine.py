@@ -61,7 +61,7 @@ from machincast.audio import ON_AIR, PLAYER, UnavailableAudioOutput, create_outp
 from machincast.configuration import Audio, DeadAirSettings  # noqa: E402
 from machincast.i18n import _  # noqa: E402
 
-TrackState = Literal["prête", "en cours", "finie", "coupée", "en erreur"]
+TrackState = Literal["ready", "playing", "finished", "cut", "error"]
 
 # GstPlayFlags : audio seulement, sans vidéo ni sous-titres.
 ONLY_AUDIO_PLAYBACK = 0x00000002
@@ -183,7 +183,7 @@ class Track:
 		ceux de la configuration par défaut, sans lui."""
 		Gst.init(None)
 		self.path = path
-		self.state: TrackState = "prête"
+		self.state: TrackState = "ready"
 		self.error: str | None = None
 		self.offset = timedelta(0)
 		"""Position du fichier où la voie commence : son début détecté ; 0 pour un sonore joué en entier."""
@@ -311,7 +311,7 @@ class Track:
 		return max(timedelta(0), timedelta(microseconds=nanoseconds / 1000) - self.offset)
 
 	def start(self) -> None:
-		self.state = "en cours"
+		self.state = "playing"
 		self._started_to = self._clock()
 		self._advance_at = self._started_to
 		if self._trimmed:
@@ -322,7 +322,7 @@ class Track:
 	def blocked(self) -> bool:
 		"""Le lecteur n'a pas atteint l'état PLAYING GUARD_DELAY après son démarrage, sans erreur ni fin : il
 		ne jouera rien (https://github.com/dascritch/machincast/issues/281). Jamais bloquée une fois qu'elle a joué."""
-		if (self.state != "en cours") or (self._started_to is None) or (self._has_played):
+		if (self.state != "playing") or (self._started_to is None) or (self._has_played):
 			return False
 		_result, current, _expected = self._player.get_state(0)
 		if current == Gst.State.PLAYING:
@@ -336,7 +336,7 @@ class Track:
 		flux qui ne donne plus rien sans fermer sa connexion, quand le lecteur ne le signale pas : en HTTP/2, libsoup 3
 		ne remonte pas l'expiration de son délai. À demander à chaque pas : chaque appel note l'avance de la
 		position."""
-		if (self.state != "en cours") or (self._advance_at is None):
+		if (self.state != "playing") or (self._advance_at is None):
 			return False
 		now = self._clock()
 		position = self.position()
@@ -404,20 +404,20 @@ class Track:
 
 	def cut(self) -> None:
 		"""Arrêt net, sans fondu."""
-		if self.state == "en cours":
+		if self.state == "playing":
 			self.final_position = self.position()
-			self.state = "coupée"
+			self.state = "cut"
 		self._player.set_state(Gst.State.NULL)
 
 	def handle(self) -> None:
 		"""Lit les messages du pipeline : fin du sonore, ou erreur de lecture ; arrête la voie à la fin d'un fondu
 		de sortie."""
-		if (self.state == "en cours") and (self.planned_stop is not None) and (self.position() >= self.planned_stop):
-			self.state = "finie"
+		if (self.state == "playing") and (self.planned_stop is not None) and (self.position() >= self.planned_stop):
+			self.state = "finished"
 			self._player.set_state(Gst.State.NULL)
 			return
 		bus = self._player.get_bus()
-		while (self.state == "en cours") and (bus is not None):
+		while (self.state == "playing") and (bus is not None):
 			message = bus.pop_filtered(Gst.MessageType.EOS | Gst.MessageType.ERROR | Gst.MessageType.ELEMENT)
 			if message is None:
 				return
@@ -428,9 +428,9 @@ class Track:
 				continue
 			if message.type == Gst.MessageType.ERROR:
 				error, _debug = message.parse_error()
-				self.state, self.error = "en erreur", error.message
+				self.state, self.error = "error", error.message
 			else:
-				self.state = "finie"
+				self.state = "finished"
 				self.final_position = self.position()
 			self._player.set_state(Gst.State.NULL)
 
@@ -551,10 +551,10 @@ class AudioEngine:
 	def handle_messages(self) -> None:
 		for track in self._tracks:
 			track.handle()
-		self._tracks = [track for track in self._tracks if track.state == "en cours"]
+		self._tracks = [track for track in self._tracks if track.state == "playing"]
 
 	def ongoing_tracks(self) -> list[Track]:
-		return [track for track in self._tracks if track.state == "en cours"]
+		return [track for track in self._tracks if track.state == "playing"]
 
 	def cut(self) -> None:
 		"""Coupure nette de toutes les voies en cours."""
