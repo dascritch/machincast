@@ -315,7 +315,7 @@ def read_events(connection: Connection) -> list[Line]:
 
 
 SOUNDS = Source(
-	"sonore",
+	"sound",
 	SOUND_COLUMNS,
 	read_sounds,
 	lambda n: counted("{count} sound", "{count} sounds", n),
@@ -327,7 +327,7 @@ SOUNDS = Source(
 	views="sonores",
 )
 BANKS = Source(
-	"banque",
+	"bank",
 	(_("Name"), _("Public name"), _("Mode"), _("Do not repeat"), _("Directory")),
 	read_banks,
 	lambda n: counted("{count} bank", "{count} banks", n),
@@ -339,7 +339,7 @@ BANKS = Source(
 	views="banques",
 )
 SEQUENCES = Source(
-	"séquence",
+	"sequence",
 	(_("Name"), _("Public name"), _("Anomaly")),
 	read_sequences,
 	lambda n: counted("{count} sequence", "{count} sequences", n),
@@ -351,7 +351,7 @@ SEQUENCES = Source(
 	views="séquences",
 )
 EVENTS = Source(
-	"événement",
+	"event",
 	EVENT_COLUMNS,
 	read_events,
 	lambda n: counted("{count} event", "{count} events", n),
@@ -476,7 +476,7 @@ class List(QWidget):
 			self.grouped_actions = groups.ACTIONS.get(source.category, ())
 		if self.grouped_actions != ():
 			self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-		self.previewable = (actions) and (source.category == "sonore")
+		self.previewable = (actions) and (source.category == "sound")
 		"""La liste des sonores, hors d'un choix : le clic droit sur une ligne en propose la pré-écoute."""
 		self.item_menu: Callable[[QMenu, int, str], None] | None = None
 		"""Des entrées que la fenêtre ajoute au clic droit sur une ligne : le menu, l'élément et son nom. Celles

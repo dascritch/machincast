@@ -155,7 +155,7 @@ class AirplayScreen(QWidget):
 		sound = None
 		for column in range(self.model.columnCount()):
 			item = self.model.index(index.row(), column).data(ITEM)
-			if (item is not None) and (item[0] == "sonore"):
+			if (item is not None) and (item[0] == "sound"):
 				sound = int(item[1])
 		if sound is None:
 			return None

@@ -76,9 +76,9 @@ LEGEND_MARGIN = 6
 """Points autour du texte de la légende, sur son fond."""
 SLIDER_SOCKET_JACK = 6
 """Points de part et d'autre d'un curseur où la souris le prend."""
-SLIDER_NAMES = {"debut": _("Start"), "fin": _("End")}
+SLIDER_NAMES = {"start": _("Start"), "end": _("End")}
 """Points autour du texte de la légende, sur son fond."""
-Hatching = Literal["pleines", "pâles", "aucune"]
+Hatching = Literal["pleines", "pale", "none"]
 
 
 def seconds(value: float) -> str:
@@ -187,7 +187,7 @@ class Plan:
 
 	def areas(self) -> list[Area]:
 		"""Les silences et les fondus, dans l'ordre du fichier : silence de début, fondus, silence de fin."""
-		hatching: Hatching = "pâles"
+		hatching: Hatching = "pale"
 		sort = _("played on air")
 		if self.trims():
 			hatching, sort = "pleines", _("removed on air")
@@ -609,10 +609,10 @@ class Timeline(QWidget):
 	def bound(self, name: str, position: float) -> float:
 		"""La position d'un curseur dans le fichier, le début jamais après la fin, ni la fin avant le début."""
 		bottom, top = 0.0, self.extent()
-		if name == "debut":
-			top = min(top, self.sliders.get("fin", top))
+		if name == "start":
+			top = min(top, self.sliders.get("end", top))
 		else:
-			bottom = max(bottom, self.sliders.get("debut", bottom))
+			bottom = max(bottom, self.sliders.get("start", bottom))
 		return max(bottom, min(top, position))
 
 	def show_legend(self, text: str) -> None:
@@ -827,7 +827,7 @@ class Timeline(QWidget):
 		sont joués. La différence tient au motif, pas qu'à la couleur."""
 		assert self.plan is not None
 		for area in self.plan.areas():
-			if area.hatching == "aucune":
+			if area.hatching == "none":
 				continue
 			rectangle = QRectF(
 				self.seconds_to_x(area.start), 0, self.seconds_to_x(area.end - area.start), self.height()
@@ -883,7 +883,7 @@ class Timeline(QWidget):
 			text = SLIDER_NAMES[name]
 			width = self.fontMetrics().horizontalAdvance(text)
 			left = x + 4
-			if name == "fin":
+			if name == "end":
 				left = x - 4 - width
 			painter.setPen(colour)
 			painter.drawText(QPointF(left, bottom - 14), text)

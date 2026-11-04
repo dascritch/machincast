@@ -43,7 +43,7 @@ MINIMUM = 2
 LIMIT = 500
 """Lignes de la table des résultats, au plus."""
 COLUMNS = (_("Type"), _("Internal name"), _("Public name"), _("Status"))
-TYPES = {"événement": _("Event"), "séquence": _("Sequence"), "banque": _("Bank"), "sonore": _("Sound")}
+TYPES = {"event": _("Event"), "sequence": _("Sequence"), "bank": _("Bank"), "sound": _("Sound")}
 ACCENTED = "àâäáãåçéèêëíìîïñóòôöõúùûüýÿÀÂÄÁÃÅÇÉÈÊËÍÌÎÏÑÓÒÔÖÕÚÙÛÜÝ"
 WITHOUT_ACCENT = "aaaaaaceeeeiiiinooooouuuuyyaaaaaaceeeeiiiinooooouuuuy"
 """Les lettres accentuées, minuscules et majuscules, que la base ramène à leur lettre de base, dans le même ordre :

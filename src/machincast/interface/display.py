@@ -175,7 +175,7 @@ def offer_preview(menu: QMenu, sound: int, ask: Callable[[int], None]) -> None:
 	first = None
 	if menu.actions():
 		first = menu.actions()[0]
-	entry = menu.addAction(icons.icon("pré-écoute"), PREVIEW)
+	entry = menu.addAction(icons.icon("preview"), PREVIEW)
 	entry.triggered.connect(lambda _ticked=False: ask(sound))
 	set_preview(entry, True, PREVIEW)
 	menu.setToolTipsVisible(True)

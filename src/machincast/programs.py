@@ -13,9 +13,9 @@ Ce module n'emploie que la bibliothèque standard : install.sh le lance avec le 
 manquer ou changer pendant l'installation. Il lit /proc : la ligne de commande, le propriétaire, le groupe de contrôle
 (le service de diffusion est celui de l'unité machincast.service) et le répertoire de chaque processus.
 
-« lister » écrit, séparés par des tabulations : le pid, « oui » si le programme est du compte qui installe, « oui »
-s'il est le service de diffusion, et ce qu'install.sh en affiche. L'état enregistré est en JSON : ni install.sh ni la
-relance n'évaluent la ligne de commande d'un autre programme.
+« lister » écrit, séparés par des tabulations : le pid, « yes » si le programme est du compte qui installe, « yes »
+s'il est le service de diffusion (« no » sinon), et ce qu'install.sh en affiche. L'état enregistré est en JSON : ni
+install.sh ni la relance n'évaluent la ligne de commande d'un autre programme.
 
 « relancer » relance, pour le seul compte qui installe, et depuis son répertoire : la diffusion d'essai dans un
 terminal (konsole, sinon x-terminal-emulator), l'interface dans la session graphique, détachées d'install.sh, avec
@@ -158,9 +158,10 @@ def ongoing(proc: Path = PROC, accounts: Callable[[int], str] = _account) -> lis
 
 
 def _yes(true: bool) -> str:
+	"""« yes » ou « no », pour install.sh (https://github.com/dascritch/machincast/issues/368)."""
 	if true:
-		return "oui"
-	return "non"
+		return "yes"
+	return "no"
 
 
 def list_items(programs: list[Program], current_account: str) -> str:

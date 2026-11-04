@@ -83,7 +83,7 @@ class SimulatedTrack:
 		self.clock = clock
 		self.start = clock.now()
 		self.duration = duration
-		self.state: TrackState = "en cours"
+		self.state: TrackState = "playing"
 		self.error: str | None = None
 		self.planned_stop: timedelta | None = None
 
@@ -115,12 +115,12 @@ class SimulatedTrack:
 
 	def handle(self) -> None:
 		end = self.planned_end()
-		if (self.state == "en cours") and (end is not None) and (self.clock.now() >= end):
-			self.state = "finie"
+		if (self.state == "playing") and (end is not None) and (self.clock.now() >= end):
+			self.state = "finished"
 
 	def cut(self) -> None:
-		if self.state == "en cours":
-			self.state = "coupée"
+		if self.state == "playing":
+			self.state = "cut"
 
 	def shut_down(self) -> None:
 		pass
@@ -165,7 +165,7 @@ class SimulatedEngine:
 	def handle_messages(self) -> None:
 		for track in self._tracks:
 			track.handle()
-		self._tracks = [track for track in self._tracks if track.state == "en cours"]
+		self._tracks = [track for track in self._tracks if track.state == "playing"]
 
 	def cut(self) -> None:
 		for track in self._tracks:

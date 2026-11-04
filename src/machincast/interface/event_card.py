@@ -81,7 +81,7 @@ def _show(date: QDateTimeEdit, instant: datetime) -> None:
 
 
 class EventCard(Card):
-	category = "événement"
+	category = "event"
 	restored_session = Signal(str)
 	"""Une session sautée a été rétablie depuis la fiche : ce que la barre d'état en annonce. Machin player doit
 	relire la grille (https://github.com/dascritch/machincast/issues/295)."""
@@ -103,9 +103,9 @@ class EventCard(Card):
 		self._name = ""
 		buttons = Buttons(
 			{
-				"sonore": ui.add_sounds,
-				"banque": ui.add_banks,
-				"séquence": ui.add_sequences,
+				"sound": ui.add_sounds,
+				"bank": ui.add_banks,
+				"sequence": ui.add_sequences,
 				"feed": ui.add_feeds,
 			},
 			ui.remove_item,

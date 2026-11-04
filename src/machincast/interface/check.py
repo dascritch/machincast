@@ -60,7 +60,7 @@ class Checker(QObject):
 			self._waiting.append(identifiers)
 			if (self._feed is not None) and (self._feed.is_alive()):
 				return
-			self._feed = threading.Thread(target=self._work, name="vérification", daemon=True)
+			self._feed = threading.Thread(target=self._work, name="check", daemon=True)
 			self._feed.start()
 
 	def ongoing(self) -> bool:
@@ -140,7 +140,7 @@ class FullCheck(QObject):
 		self._remaining_list += 1
 		feed = threading.Thread(
 			target=lambda: self._finished.emit(sound, self._check(sound, silence_threshold)),
-			name="vérification complète",
+			name="full check",
 			daemon=True,
 		)
 		self._feeds.append(feed)

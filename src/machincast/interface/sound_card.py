@@ -159,11 +159,11 @@ MARKERS = {
 }
 """Le nom de chaque silence détecté : mesuré par l'indexeur, ou saisi à la main
 (https://github.com/dascritch/machincast/issues/330)."""
-ITEMS = {"séquence": _("the sequence"), "banque": _("the bank"), "événement": _("the event")}
+ITEMS = {"sequence": _("the sequence"), "bank": _("the bank"), "event": _("the event")}
 RELATION_LISTS = {
-	"séquence": ("sequence_items", "sequence_id"),
-	"banque": ("bank_sounds", "bank_id"),
-	"événement": ("event_items", "event_id"),
+	"sequence": ("sequence_items", "sequence_id"),
+	"bank": ("bank_sounds", "bank_id"),
+	"event": ("event_items", "event_id"),
 }
 """La table de la liste de chaque genre de relation, et sa colonne qui désigne l'élément."""
 """Rôle qui porte, sur la cellule du nom d'une relation, son genre et son identifiant."""
@@ -194,7 +194,7 @@ class SoundCard(Card):
 	requested_check = Signal(int)
 	"""« Vérification complète » : le sonore dont faire l'audit complet
 	(https://github.com/dascritch/machincast/issues/190)."""
-	category = "sonore"
+	category = "sound"
 
 	def __init__(
 		self, connection: Connection, identifier: int | None, clock: Clock, parent: QWidget | None = None
@@ -226,7 +226,7 @@ class SoundCard(Card):
 		for _value, text in HIDINGS:
 			self.ui.hiding.addItem(text)
 		self.trial = StreamTrial(self)
-		self.ui.preview.setIcon(icons.icon("pré-écoute"))
+		self.ui.preview.setIcon(icons.icon("preview"))
 		self.ui.preview.clicked.connect(self._preview)
 		self.ui.check.clicked.connect(self._check)
 		self._file = False
@@ -323,9 +323,9 @@ class SoundCard(Card):
 		self.ui.timeline_place.setToolTip(f"{plan.summary()}\n{TIMELINE_TITLE}")
 		sliders = {}
 		if ui.has_detected_start.isChecked():
-			sliders["debut"] = ui.detected_start.value()
+			sliders["start"] = ui.detected_start.value()
 		if ui.has_detected_end.isChecked():
-			sliders["fin"] = duration.total_seconds() - ui.detected_end.value()
+			sliders["end"] = duration.total_seconds() - ui.detected_end.value()
 		self.timeline.show_sliders(sliders)
 		self._give_name_markers()
 
@@ -333,7 +333,7 @@ class SoundCard(Card):
 		"""Un curseur glissé sur la frise règle sa case : le début depuis le début du fichier, la fin depuis sa fin."""
 		if self._duration is None:
 			return
-		if name == "debut":
+		if name == "start":
 			self.ui.detected_start.setValue(position)
 		else:
 			self.ui.detected_end.setValue(self._duration.total_seconds() - position)
@@ -765,7 +765,7 @@ class SoundCard(Card):
 		assert name is not None
 		category, identifier = name.data(RELATION)
 		directory = None
-		if category == "banque":
+		if category == "bank":
 			directory = self._bank_directory(identifier)
 		if directory is not None:
 			response = dialogs.confirm_removal(self, removal_warning(self._name, directory))

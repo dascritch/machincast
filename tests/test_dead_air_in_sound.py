@@ -94,7 +94,7 @@ def play(
 	try:
 		track.start()
 		limit = time.monotonic() + MAXIMAL_WAITING
-		while (track.state == "en cours") and (time.monotonic() < limit):
+		while (track.state == "playing") and (time.monotonic() < limit):
 			time.sleep(0.01)
 			track.handle()
 			while (dead_air := track.dead_air()) is not None:
@@ -103,7 +103,7 @@ def play(
 			dead_airs.append(dead_air)
 	finally:
 		track.shut_down()
-	assert track.state == "finie", (track.state, track.error)
+	assert track.state == "finished", (track.state, track.error)
 	playback["voie"], playback["blancs"] = track, dead_airs
 
 

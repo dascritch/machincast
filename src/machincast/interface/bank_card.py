@@ -138,7 +138,7 @@ def removal_warning(sound: str, directory: str) -> str:
 
 
 class BankCard(Card):
-	category = "banque"
+	category = "bank"
 
 	def __init__(
 		self, connection: Connection, identifier: int | None, clock: Clock, parent: QWidget | None = None

@@ -16,6 +16,7 @@ from PySide6.QtWidgets import QApplication, QCheckBox, QComboBox, QMenu, QPushBu
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
+from machincast.i18n import _
 from machincast.interface.calendar import Block, Calendar, Strip, day_label
 from machincast.interface.event_card import EventCard
 from tests.interface_steps import NAME, Connection, Context, identifier, window
@@ -229,7 +230,7 @@ def days(interface: Context, days: str) -> None:
 def blocks(interface: Context, datatable: list[list[str]]) -> None:
 	view = calendar(interface)
 	fetched_list = [
-		[day_label(b.day), schedule(b.day, b.start), schedule(b.day, b.end), b.event.name, b.state]
+		[day_label(b.day), schedule(b.day, b.start), schedule(b.day, b.end), b.event.name, _(b.state)]
 		for b in view.blocks()
 	]
 	assert fetched_list == table(datatable)
@@ -240,7 +241,7 @@ def blocks(interface: Context, datatable: list[list[str]]) -> None:
 @then("la bande de la journée entière montre :")
 def whole_day(interface: Context, datatable: list[list[str]]) -> None:
 	view = calendar(interface)
-	assert [[day_label(b.day), b.event.name, b.state] for b in view.whole_day()] == table(datatable)
+	assert [[day_label(b.day), b.event.name, _(b.state)] for b in view.whole_day()] == table(datatable)
 	for block in view.whole_day():
 		assert view.header.rect().contains(view.header.rectangle(block).toRect()), block
 
@@ -382,7 +383,7 @@ def no_skipped(empty_database: Connection, name: str) -> None:
 
 @then(parsers.parse("le bloc « {name} » du {day} est « {state} »"))
 def block_state(interface: Context, name: str, day: str, state: str) -> None:
-	assert named_block(calendar(interface), name, day).state == state
+	assert _(named_block(calendar(interface), name, day).state) == state
 
 
 @then(parsers.parse("le bouton « {text} » du calendrier est inactif"))

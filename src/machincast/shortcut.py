@@ -38,7 +38,7 @@ COMMENT = N_("Program the on-air output and follow the broadcast")
 KEYWORDS = N_("radio;on air;broadcast;programming;")
 """Les textes du raccourci : en anglais, puis dans chaque langue du catalogue, par ses clés localisées
 (Desktop Entry Specification, « Localized values for keys »)."""
-PLACES = {"menu": _("in the applications menu"), "bureau": _("on the desktop")}
+PLACES = {"menu": _("in the applications menu"), "desktop": _("on the desktop")}
 """Les lieux d'un raccourci, pour les messages."""
 
 
@@ -127,7 +127,7 @@ def installed_list() -> dict[str, Path]:
 	found_list = {"menu": menu_folder() / NAME}
 	desktop = desktop_folder()
 	if desktop is not None:
-		found_list["bureau"] = desktop / NAME
+		found_list["desktop"] = desktop / NAME
 	return {place: path for place, path in found_list.items() if path.is_file()}
 
 

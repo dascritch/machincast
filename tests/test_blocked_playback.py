@@ -31,7 +31,7 @@ class BlockedTrack(SimulatedTrack):
 		pass
 
 	def blocked(self) -> bool:
-		return (self.state == "en cours") and (self.clock.now() - self.start >= GUARD_DELAY)
+		return (self.state == "playing") and (self.clock.now() - self.start >= GUARD_DELAY)
 
 
 @given(parsers.parse("le lecteur du sonore « {name} » se bloque à son premier démarrage"))
