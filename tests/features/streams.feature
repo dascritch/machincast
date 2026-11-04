@@ -182,6 +182,23 @@ Fonctionnalité: Diffusion des streams
 		Et le log contient 1 incident « flux tombé », qui donne l'adresse du flux « studio »
 		Et le log contient 1 incident « reprise du flux », qui donne l'adresse du flux « studio »
 
+	Scénario: Le secours d'un stream tombé choisi dans l'événement l'emporte sur celui du stream
+		https://github.com/dascritch/machincast/issues/350
+
+		Étant donné le stream « Direct studio » à l'adresse du flux « studio »
+		Et l'événement de secours « Secours direct », avec les sonores « s1 »
+		Et l'événement de secours « Secours émission », avec les sonores « e1 »
+		Et le stream « Direct studio » est secouru par « Secours direct »
+		Et l'émission « Direct » de 19:59:50 à 20:30:00, avec le sonore « Direct studio »
+		Et l'événement « Direct » a pour secours d'un stream tombé « Secours émission »
+		Et le flux « studio » est hors ligne
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne pendant 1,5 seconde en temps réel
+		Et le flux « studio » revient
+		Et la diffusion tourne pendant 1,5 seconde en temps réel
+		Et la diffusion s'arrête
+		Alors l'airplay montre « Direct studio », puis des sonores de « Secours émission », puis « Direct studio »
+
 	Scénario: Un flux injoignable dès le début de son événement est remplacé de même
 		Étant donné le stream « Direct studio » à l'adresse du flux « studio »
 		Et l'événement de secours « Secours direct », avec les sonores « s1 »

@@ -129,7 +129,7 @@ Un **stream** relaie un flux audio par Internet, un direct extérieur par exempl
 - **Fin de l'événement pendant la panne** : la reconnexion est abandonnée, et la diffusion continue normalement.
 - **Métadonnées** : l'historique note l'artiste et le titre du stream en base, jamais ceux qu'annonce le flux.
 
-Un **événement de secours** est un événement de priorité `secours` : il n'a ni début, ni fin, ni jours, et ne passe à l'antenne qu'à la place d'un stream tombé. Chaque stream désigne le sien dans [sa fiche](sonores.md#fiche-dun-sonore).
+Un **événement de secours** est un événement de priorité `secours` : il n'a ni début, ni fin, ni jours, et ne passe à l'antenne qu'à la place d'un stream tombé, ou à la fin de la liste d'une émission qui y bascule ([Fiche d'un événement](grille.md#fiche-dun-événement), [#350](https://github.com/dascritch/machincast/issues/350)). Chaque stream désigne le sien dans [sa fiche](sonores.md#fiche-dun-sonore) ; l'événement qui joue le stream peut en choisir un autre, **Secours d'un stream tombé**, qui l'emporte.
 
 ## Page publique et masquage
 

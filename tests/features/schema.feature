@@ -72,8 +72,8 @@ Fonctionnalité: Schéma de la base de données
 		https://github.com/dascritch/machincast/issues/341 : 0002.run-log, les démarrages et fins des binaires au log.
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 2 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.run-log »
+		Alors 3 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.run-log, 0003.end-of-list »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
 	# Le ramasse-miettes est suspendu : une connexion qui n'est pas fermée explicitement reste ouverte.
@@ -304,6 +304,39 @@ Fonctionnalité: Schéma de la base de données
 		Et un stream secouru par cet événement
 		Quand je supprime l'événement de secours
 		Alors le stream n'a plus d'événement de secours
+
+	# ─── Fin de liste et secours d'un événement (https://github.com/dascritch/machincast/issues/350) ───
+
+	Plan du scénario: Seule une émission ou un spécial qui a une fin choisit sa fin de liste, et ses secours sont de priorité secours
+		Étant donné les éléments de référence en base
+		Et un événement de secours en base
+		Quand j'enregistre dans "events" : <valeurs>
+		Alors la base <verdict> l'enregistrement
+
+		Exemples:
+			| valeurs                                                                                                                                                   | verdict |
+			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', end_of_list = 'fallback', end_fallback_event_id = {secours} | accepte |
+			| internal_name = 'X', priority = 'special', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', end_of_list = 'background_programming'            | accepte |
+			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', stream_fallback_event_id = {secours}                                               | accepte |
+			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', end_of_list = 'background_programming'                                             | refuse  |
+			| internal_name = 'X', priority = 'background_programming', end_of_list = 'fallback', end_fallback_event_id = {secours}                                       | refuse  |
+			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', end_of_list = 'repeat'                               | refuse  |
+			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', end_fallback_event_id = {evenement}                  | refuse  |
+			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', stream_fallback_event_id = {evenement}                                             | refuse  |
+
+	Plan du scénario: Un événement de secours désigné par un événement garde sa priorité, et sa suppression laisse l'événement sans secours
+		Étant donné les éléments de référence en base
+		Et un événement de secours en base
+		Et une émission dont le <secours> est cet événement
+		Quand je passe l'événement de secours en émission
+		Alors la base refuse l'enregistrement
+		Quand je supprime l'événement de secours
+		Alors l'émission n'a plus de <secours>
+
+		Exemples:
+			| secours                    |
+			| secours de fin de liste    |
+			| secours d'un stream tombé  |
 
 	# ─── Sessions sautées (https://github.com/dascritch/machincast/issues/273) ───
 

@@ -102,6 +102,10 @@ NOT_FOUND_FILE_RETRY = timedelta(hours=1)
 """Durée pendant laquelle un sonore au fichier introuvable n'est plus proposé."""
 OUTSIDE_LIST = 0
 """Identifiant de l'élément d'un passage qui ne vient d'aucune liste : le stream d'un feed qui coupe l'antenne."""
+END_REPLAY = "replay"
+END_TO_BACKGROUND = "background_programming"
+END_TO_FALLBACK = "fallback"
+"""Les valeurs de events.end_of_list (https://github.com/dascritch/machincast/issues/350)."""
 
 
 @dataclass(frozen=True)
@@ -268,9 +272,13 @@ def last_item(
 
 def loop(occurrence: Occurrence) -> bool:
 	"""Une émission ou un spécial sans fin ne boucle pas : il se termine à la fin de sa liste. Un fil musical et un
-	événement de secours bouclent toujours."""
+	événement de secours bouclent toujours. Une occurrence qui a une fin rejoue sa liste, sauf si son événement passe
+	alors au fil musical ou à un secours (https://github.com/dascritch/machincast/issues/350) : elle se termine, comme
+	sans fin."""
 	permanent_list = (Priority.BACKGROUND_PROGRAMMING, Priority.FALLBACK)
-	return (occurrence.event.priority in permanent_list) or (occurrence.end is not None)
+	if occurrence.event.priority in permanent_list:
+		return True
+	return (occurrence.end is not None) and (occurrence.event.end_of_list == END_REPLAY)
 
 
 def next_(
@@ -392,6 +400,9 @@ class Scheduler:
 		self.replacement: Replacement | None = None
 		"""La coupure par le secours ou par un feed en cours (https://github.com/dascritch/machincast/issues/323) ;
 		retenue en mémoire seulement, comme une occurrence terminée plus tôt."""
+		self.cut_list: set[tuple[int, datetime | None]] = set()
+		"""Occurrences terminées à la main, coupées par le fil musical, par le secours ou par un feed : leur secours de
+		fin de liste ne les remplace pas (https://github.com/dascritch/machincast/issues/350)."""
 		self.advanced: Occurrence | None = None
 		"""L'occurrence avancée à la demande (https://github.com/dascritch/machincast/issues/257) : active dès la
 		demande, jusqu'à son début prévu, où la grille la retrouve. Retenue en mémoire seulement, comme une occurrence
@@ -411,6 +422,30 @@ class Scheduler:
 		if (active is not None) and (self.advanced is not None) and (active.key == self.advanced.key):
 			return self.advanced
 		return active
+
+	def _on_grid(self, events: list[Event], instant: datetime) -> Occurrence | None:
+		"""L'occurrence active, ou, au-dessus d'elle, le secours de fin de liste d'une occurrence dont la liste s'est
+		épuisée (https://github.com/dascritch/machincast/issues/350) : il tient l'antenne jusqu'à la fin prévue de
+		l'occurrence, tant qu'il a de quoi jouer."""
+		active = self._active(events, instant)
+		above: set[tuple[int, datetime | None]] = set()
+		while True:
+			top = self._active(events, instant, above)
+			if (top is None) or ((active is not None) and (top.key == active.key)):
+				return active
+			event = top.event
+			if (
+				(top.key not in self.cut_list)
+				and (event.end_of_list == END_TO_FALLBACK)
+				and (event.end_fallback is not None)
+				and (top.end is not None)
+			):
+				fallback = read_event(self.connection, event.end_fallback)
+				if (fallback is not None) and (fallback.deleted_at is None):
+					occurrence = _fallback_occurrence(fallback)
+					if occurrence.key not in self.finished_list:
+						return occurrence
+			above.add(top.key)
 
 	def following_event(self, instant: datetime) -> Occurrence | None:
 		"""L'événement suivant, après l'occurrence en cours, avancée comprise (grid.following_event)."""
@@ -539,7 +574,7 @@ class Scheduler:
 		"""Le sonore réservé peut-il encore être joué : son occurrence est toujours active et il est jouable."""
 		with self.connection.transaction():
 			events = read_grid(self.connection)
-			active = self._cover(instant, self._replace(events, instant, self._active(events, instant)))
+			active = self._cover(instant, self._replace(events, instant, self._on_grid(events, instant)))
 			if (
 				(active is None)
 				or (active.key != choice.occurrence.key)
@@ -555,6 +590,10 @@ class Scheduler:
 		"""Le stream de l'occurrence est tombé : la remplacer, tant qu'elle reste active, par l'événement de secours,
 		ou sans secours par l'événement de priorité inférieure."""
 		event = None
+		# Le secours d'un stream tombé, choisi dans l'événement, l'emporte sur celui du stream
+		# (https://github.com/dascritch/machincast/issues/350).
+		if occurrence.event.stream_fallback is not None:
+			fallback = occurrence.event.stream_fallback
 		if fallback is not None:
 			with self.connection.transaction():
 				event = read_event(self.connection, fallback)
@@ -586,19 +625,23 @@ class Scheduler:
 		un stream tombé n'est plus reconnecté. Renvoie les occurrences terminées, de la plus prioritaire à la moins
 		prioritaire."""
 		self.replacement = None
+		# Une occurrence déjà terminée ne passe plus à son secours de fin de liste.
+		self.cut_list |= self.finished_list
 		with self.connection.transaction():
 			events = read_grid(self.connection)
 		finished_list = []
 		suspension = self.suspension
 		if (suspension is not None) and (suspension.occurrence.event.priority is not Priority.BACKGROUND_PROGRAMMING):
 			self.finished_list.add(suspension.occurrence.key)
+			self.cut_list.add(suspension.occurrence.key)
 			finished_list.append(suspension.occurrence)
 			self._raise_suspension()
 		while True:
-			active = self._replace(events, instant, self._active(events, instant))
+			active = self._replace(events, instant, self._on_grid(events, instant))
 			if (active is None) or (active.event.priority in (Priority.BACKGROUND_PROGRAMMING, Priority.FALLBACK)):
 				return finished_list
 			self.finished_list.add(active.key)
+			self.cut_list.add(active.key)
 			finished_list.append(active)
 
 	def cut_by(self, instant: datetime, fallback: Event | None, stream: int | None) -> Replacement:
@@ -608,7 +651,7 @@ class Scheduler:
 		suivant."""
 		with self.connection.transaction():
 			events = read_grid(self.connection)
-			under = self._replace(events, instant, self._active(events, instant))
+			under = self._replace(events, instant, self._on_grid(events, instant))
 		cut_list = self.return_to_background_programming(instant)
 		ends = [occurrence.end for occurrence in cut_list]
 		until: datetime | None = None
@@ -708,7 +751,7 @@ class Scheduler:
 		events = read_grid(self.connection)
 		cut = switch_off = False
 		while True:
-			active = self._cover(instant, self._replace(events, instant, self._active(events, instant)))
+			active = self._cover(instant, self._replace(events, instant, self._on_grid(events, instant)))
 			if (ongoing is not None) and (not ((cut) or (switch_off))):
 				if (active is not None) and (active.key == ongoing.occurrence.key):
 					return Decision()

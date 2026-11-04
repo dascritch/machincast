@@ -30,12 +30,23 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 - Un événement de secours n'a ni début, ni fin, ni jours : choisir `Secours` les décoche.
 - Une émission ou un spécial a un début ; sans fin, il dure jusqu'au bout de sa liste.
 
+**Fin de la liste** ([#350](https://github.com/dascritch/machincast/issues/350)) : ce que fait une émission ou un spécial qui a une fin quand sa liste se termine avant elle.
+
+- **Rejouer la liste de lecture**, le choix par défaut : la liste reprend au début.
+- **Basculer vers le fil musical** : l'émission s'arrête là, et le fil musical reprend l'antenne jusqu'à l'heure de fin.
+- **Basculer vers un secours** : le secours choisi à côté joue sa liste, en boucle, jusqu'à l'heure de fin. S'il n'a rien de jouable, le fil musical reprend.
+
+Le choix est grisé, sur **Rejouer la liste de lecture**, sans fin cochée, et pour un fil musical ou un secours, qui rejouent toujours leur liste.
+
+**Secours d'un stream tombé** : le secours qui joue quand un stream de la liste tombe ([Streams](antenne.md#streams)). Il l'emporte sur celui que donne la fiche du stream ; **Celui de chaque stream** garde le secours de chaque stream. Grisé tant que la liste n'a pas de stream.
+
 **Rien n'est enregistré**, et la fiche dit pourquoi, en haut, sur un liseret rouge, avec ⚠️ devant chaque champ en cause ([Enregistrer, annuler, fermer](listes.md#enregistrer-annuler-fermer)), pour :
 
 - un nom interne vide, ou celui d'un autre événement ;
 - une émission ou un spécial sans début, ou une fin qui ne suit pas le début ;
 - un **chevauchement** avec un autre événement de même priorité, occurrences récurrentes comprises : « Chevauche l'événement « Journal », de même priorité, le 21/10/2026 à 09:00. ». Seul compte ce qui chevauche à partir de maintenant : ce que la grille a déjà diffusé ne bloque rien, et un chevauchement en cours est daté de l'instant présent ;
-- une priorité changée pour un événement de secours qu'un stream désigne.
+- une priorité changée pour un événement de secours qu'un stream ou un événement désigne ;
+- **Basculer vers un secours** sans secours choisi.
 
 **Session sautée** ([#295](https://github.com/dascritch/machincast/issues/295)) : quand la prochaine session de l'événement est [sautée](#sauter-une-session), en cours ou à venir, la fiche le dit en haut, sur un liseret orange : « La session du jeudi 22 octobre 2026 à 07:00 est sautée : elle ne jouera pas. ». Ce n'est qu'un avertissement : la fiche s'enregistre.
 

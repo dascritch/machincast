@@ -49,8 +49,10 @@ TYPES: tuple[str, ...] = (
 	"log_level",
 	"sound_state",
 	"crossfade_rule",
+	"end_of_list",
 )
-"""Types énumérés créés par les migrations."""
+"""Types énumérés créés par les migrations ; end_of_list depuis 0003.end-of-list
+(https://github.com/dascritch/machincast/issues/350)."""
 
 
 class Role(StrEnum):

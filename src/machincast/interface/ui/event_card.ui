@@ -81,6 +81,39 @@
      <item row="3" column="1">
       <widget class="QComboBox" name="hiding" />
      </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="end_of_list_caption">
+       <property name="text">
+        <string>End of the &amp;list</string>
+       </property>
+       <property name="buddy">
+        <cstring>end_of_list</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <layout class="QHBoxLayout" name="end_of_list_layout" stretch="1,1">
+       <item>
+        <widget class="QComboBox" name="end_of_list" />
+       </item>
+       <item>
+        <widget class="QComboBox" name="end_fallback" />
+       </item>
+      </layout>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="stream_fallback_caption">
+       <property name="text">
+        <string>Fallback of a &amp;dropped stream</string>
+       </property>
+       <property name="buddy">
+        <cstring>stream_fallback</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QComboBox" name="stream_fallback" />
+     </item>
     </layout>
      </item>
      <item>

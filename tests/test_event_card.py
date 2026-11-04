@@ -58,6 +58,18 @@ def if_ticked(box: QAbstractButton, read: Callable[[], str]) -> Callable[[], str
 	return playback
 
 
+def _combo(combo: QComboBox) -> Callable[[], str]:
+	"""Le choix d'une liste déroulante, et « (grisé) » quand elle ne se choisit pas."""
+
+	def shown() -> str:
+		text = combo.currentText().casefold()
+		if not combo.isEnabled():
+			text += " (grisé)"
+		return text
+
+	return shown
+
+
 def shows(event: EventCard) -> dict[str, Callable[[], str]]:
 	"""Ce que la fiche montre, par nom de champ à l'écran."""
 	ui = event.ui
@@ -69,6 +81,10 @@ def shows(event: EventCard) -> dict[str, Callable[[], str]]:
 		"Début": if_ticked(ui.has_start, ui.start.text),
 		"Fin": if_ticked(ui.has_end, ui.end.text),
 		"Jours": lambda: ", ".join(day.text() for day in event.days if day.isChecked()),
+		# https://github.com/dascritch/machincast/issues/350
+		"Fin de la liste": _combo(ui.end_of_list),
+		"Secours de fin de liste": _combo(ui.end_fallback),
+		"Secours d'un stream tombé": _combo(ui.stream_fallback),
 	}
 
 
@@ -103,8 +119,15 @@ def enter(interface: Context, datatable: list[list[str]]) -> None:
 	ui = event.ui
 	_headers, *rows = datatable
 	for field, raw in ((field.strip(), raw.strip()) for field, raw in rows):
-		if field in ("Priorité", "Artiste et titre"):
-			choose_text({"Priorité": ui.priority, "Artiste et titre": ui.hiding}[field], raw)
+		combos = {
+			"Priorité": ui.priority,
+			"Artiste et titre": ui.hiding,
+			"Fin de la liste": ui.end_of_list,
+			"Secours de fin de liste": ui.end_fallback,
+			"Secours d'un stream tombé": ui.stream_fallback,
+		}
+		if field in combos:
+			choose_text(combos[field], raw)
 		elif field in ("Début", "Fin"):
 			box, date = {"Début": (ui.has_start, ui.start), "Fin": (ui.has_end, ui.end)}[field]
 			if raw != "":
@@ -241,7 +264,13 @@ def event_in_database(empty_database: Connection, name: str, datatable: list[lis
 	expected_list = [(field.strip(), value.strip()) for field, value in rows]
 	fetched_list = []
 	for field, _value in expected_list:
-		column = {"priorite": "priority::text", "recurrence_days": "recurrence_days::text[]"}.get(field, field)
+		column = {
+			"priorite": "priority::text",
+			"recurrence_days": "recurrence_days::text[]",
+			"end_of_list": "end_of_list::text",
+			"end_fallback": "(SELECT f.internal_name FROM events f WHERE f.id = events.end_fallback_event_id)",
+			"stream_fallback": "(SELECT f.internal_name FROM events f WHERE f.id = events.stream_fallback_event_id)",
+		}.get(field, field)
 		line = empty_database.execute(
 			f"SELECT {column} FROM events WHERE internal_name = %s",  # noqa: S608
 			(name,),
