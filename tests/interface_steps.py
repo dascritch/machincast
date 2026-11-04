@@ -154,6 +154,8 @@ class Context:
 	version_news: list[object] = field(default_factory=list)
 	"""Les nouveautés montrées par la fenêtre de version, None sans elles (https://github.com/dascritch/machincast/issues/208)."""
 	shown_news: list[object] = field(default_factory=list)
+	not_started: list[tuple[str, list[str]]] = field(default_factory=list)
+	"""Les alertes d'un service démarré dont Machin player s'est arrêté aussitôt, et leurs lignes du journal."""
 	"""Les nouveautés montrées au lancement."""
 	configuration: Path | None = None
 	"""Fichier de configuration de la fenêtre : une copie de celui des tests, dans le répertoire du scénario."""
@@ -313,6 +315,9 @@ def replace_dialogs(interface: Context) -> None:
 
 	monkeypatch.setattr(dialogs, "show_version", show_version)
 	monkeypatch.setattr(dialogs, "show_news", lambda _parent, news: interface.shown_news.append(news))
+	monkeypatch.setattr(
+		dialogs, "warn_not_started", lambda _parent, text, journal: interface.not_started.append((text, journal))
+	)
 
 	def day(_parent: QWidget, _title: str, text: str, minimum: date) -> date | None:
 		interface.day_choice.append((text, minimum))

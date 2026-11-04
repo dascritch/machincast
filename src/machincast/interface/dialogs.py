@@ -189,6 +189,20 @@ def confirm_action(parent: QWidget, title: str, text: str, button: str | None = 
 	return question.clickedButton() is make
 
 
+def warn_not_started(parent: QWidget, text: str, journal: list[str]) -> None:
+	"""Le service a démarré, mais Machin player s'est arrêté aussitôt
+	(https://github.com/dascritch/machincast/issues/376) : une alerte, que la barre d'état seule laisserait passer,
+	avec les dernières lignes du journal du service en détails."""
+	alert = QMessageBox(parent)
+	alert.setIcon(QMessageBox.Icon.Warning)
+	alert.setWindowTitle(_("Broadcast not started"))
+	alert.setText(text)
+	if journal:
+		alert.setInformativeText(_("Last lines of the journal of the service:"))
+		alert.setDetailedText("\n".join(journal))
+	alert.exec()
+
+
 def confirm_maintenance(parent: QWidget, backups: Path) -> Path | None:
 	"""Lancer la maintenance de la base, qui écrit une sauvegarde dans sauvegardes, ou dans un autre répertoire choisi
 	depuis la question ? L'emplacement de la sauvegarde, ou None si elle est annulée. Entrée et Échap l'annulent :

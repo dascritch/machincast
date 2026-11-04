@@ -1642,6 +1642,24 @@ msgstr ""
 "maintenance-db à la main."
 
 #: machincast/interface/control.py
+msgid "Broadcast starting…"
+msgstr "Démarrage de la diffusion…"
+
+#: machincast/interface/control.py
+#, python-brace-format
+msgid "Broadcast not started: Machin player stopped, exit code {code}."
+msgstr ""
+"Diffusion non démarrée : Machin player s'est arrêté, code de sortie {code}."
+
+#: machincast/interface/control.py
+msgid "Broadcast not started: Machin player stopped."
+msgstr "Diffusion non démarrée : Machin player s'est arrêté."
+
+#: machincast/interface/control.py
+msgid "Machin logs, in a terminal, tells more."
+msgstr "Machin logs, dans un terminal, en dit plus."
+
+#: machincast/interface/control.py
 msgid "Stop of the trial broadcast requested…"
 msgstr "Arrêt de la diffusion d'essai demandé…"
 
@@ -1650,10 +1668,35 @@ msgid "Trial broadcast stopped."
 msgstr "Diffusion d'essai arrêtée."
 
 #: machincast/interface/control.py
+msgid ""
+"The database is unreachable, the audio output unavailable, or another "
+"Machin player is already broadcasting."
+msgstr ""
+"La base de données est injoignable, la sortie audio indisponible, ou un "
+"autre Machin player diffuse déjà."
+
+#: machincast/interface/control.py
+msgid ""
+"Its configuration or its call is invalid: after an update of MachinCast, "
+"run ./install.sh again, which updates the service."
+msgstr ""
+"Sa configuration ou son appel est invalide : après une mise à jour de "
+"MachinCast, relancer ./install.sh, qui met le service à jour."
+
+#: machincast/interface/control.py
+msgid ""
+"A program is missing: after an update of MachinCast, run ./install.sh "
+"again, which updates the service."
+msgstr ""
+"Un programme manque : après une mise à jour de MachinCast, relancer "
+"./install.sh, qui met le service à jour."
+
+#: machincast/interface/control.py
 msgid "Broadcast started."
 msgstr "Diffusion démarrée."
 
 #: machincast/interface/control.py
+#: machincast/interface/dialogs.py
 msgid "Broadcast not started"
 msgstr "Diffusion non démarrée"
 
@@ -2334,6 +2377,10 @@ msgstr "{remove} Retirer quand même"
 #: machincast/interface/dialogs.py
 msgid "Delete"
 msgstr "Supprimer"
+
+#: machincast/interface/dialogs.py
+msgid "Last lines of the journal of the service:"
+msgstr "Dernières lignes du journal du service :"
 
 #: machincast/interface/dialogs.py
 msgid "Database maintenance"

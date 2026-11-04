@@ -28,6 +28,8 @@ echo "$*" >> "${MACHINCAST_TEST_SYSTEMCTL}"
 if [ "$1" = show ]; then
 	case "$*" in *LoadState*) echo "LoadState=$(cat "${MACHINCAST_TEST_SERVICE}/charge")" ;; esac
 	case "$*" in *ActiveState*) echo "ActiveState=$(cat "${MACHINCAST_TEST_SERVICE}/actif")" ;; esac
+	case "$*" in *SubState*) echo "SubState=$(cat "${MACHINCAST_TEST_SERVICE}/sous" 2>/dev/null)" ;; esac
+	case "$*" in *ExecMainStatus*) echo "ExecMainStatus=$(cat "${MACHINCAST_TEST_SERVICE}/code" 2>/dev/null)" ;; esac
 	exit 0
 fi
 if [ -n "${MACHINCAST_TEST_ERREUR}" ]; then
@@ -35,12 +37,27 @@ if [ -n "${MACHINCAST_TEST_ERREUR}" ]; then
 	exit 4
 fi
 case "$1" in
-	start | restart) echo active > "${MACHINCAST_TEST_SERVICE}/actif" ;;
+	start | restart)
+		echo active > "${MACHINCAST_TEST_SERVICE}/actif"
+		echo running > "${MACHINCAST_TEST_SERVICE}/sous"
+		if [ -n "${MACHINCAST_TEST_ARRET}" ]; then
+			# Machin player lancé, puis aussitôt sorti : « code actif sous ».
+			set -- ${MACHINCAST_TEST_ARRET}
+			echo "$1" > "${MACHINCAST_TEST_SERVICE}/code"
+			echo "$2" > "${MACHINCAST_TEST_SERVICE}/actif"
+			echo "$3" > "${MACHINCAST_TEST_SERVICE}/sous"
+		fi
+		;;
 	stop) echo inactive > "${MACHINCAST_TEST_SERVICE}/actif" ;;
 esac
 """
 """systemctl imité : « show » donne les propriétés demandées de l'état du service, noté dans deux fichiers ; les
 autres verbes le changent, ou échouent avec l'erreur et le code de systemctl pour une autorisation refusée (4)."""
+JOURNALCTL = """#!/bin/sh
+echo "$*" >> "${MACHINCAST_TEST_JOURNALCTL}.log"
+cat "${MACHINCAST_TEST_JOURNALCTL}" 2>/dev/null
+"""
+"""journalctl imité : il note ses arguments, et répond les lignes du journal que donne le scénario."""
 TERMINAL = """#!/bin/sh
 if [ -e "${MACHINCAST_TEST_ESSAI}" ]; then echo arrêtée; else echo aucune; fi > "${MACHINCAST_TEST_TERMINAL}.essai"
 for argument in "$@"; do
@@ -105,6 +122,12 @@ class Station:
 def station(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Station]:
 	fake = Station(tmp_path)
 	fake.imitate("systemctl", SYSTEMCTL)
+	fake.imitate("journalctl", JOURNALCTL)
+	monkeypatch.setenv("MACHINCAST_TEST_JOURNALCTL", str(tmp_path / "journal"))
+	monkeypatch.setenv("MACHINCAST_TEST_ARRET", "")
+	# Le suivi du démarrage, en dixièmes de seconde (https://github.com/dascritch/machincast/issues/376).
+	monkeypatch.setattr(control, "STARTUP_WINDOW", 0.5)
+	monkeypatch.setattr(control, "STARTUP_STEP", 0.1)
 	monkeypatch.setenv("PATH", f"{fake.commands}{os.pathsep}{os.environ['PATH']}")
 	monkeypatch.setenv("MACHINCAST_TEST_SYSTEMCTL", str(fake.systemctl))
 	monkeypatch.setenv("MACHINCAST_TEST_TERMINAL", str(fake.terminal))
@@ -130,6 +153,37 @@ def service_absent(station: Station) -> None:
 @given(parsers.parse("systemctl refuse en disant « {error} »"))
 def refusal(monkeypatch: pytest.MonkeyPatch, error: str) -> None:
 	monkeypatch.setenv("MACHINCAST_TEST_ERREUR", error)
+
+
+@given(
+	parsers.re(
+		r"Machin player qui s'arrête aussitôt lancé par le service, avec le code (?P<code>\d+), le service "
+		r"(?P<state>en échec|relancé par systemd)"
+	)
+)
+def immediate_stop(monkeypatch: pytest.MonkeyPatch, code: str, state: str) -> None:
+	active, sub = {"en échec": ("failed", "failed"), "relancé par systemd": ("activating", "auto-restart")}[state]
+	monkeypatch.setenv("MACHINCAST_TEST_ARRET", f"{code} {active} {sub}")
+
+
+@given(parsers.parse("le journal du service qui finit par « {line} »"))
+def service_journal(tmp_path: Path, line: str) -> None:
+	(tmp_path / "journal").write_text(f"Started machincast.service\n{line}\n", encoding="utf-8")
+
+
+@then(parsers.parse("une alerte dit bientôt « {text} »"))
+def alert_soon(interface: Context, qtbot: QtBot, text: str) -> None:
+	qtbot.waitUntil(lambda: [said for said, _journal in interface.not_started] == [text], timeout=5000)
+
+
+@then(parsers.parse("elle montre en détails les lignes du journal « {first} » et « {second} »"))
+def alert_journal(interface: Context, first: str, second: str) -> None:
+	assert [journal for _said, journal in interface.not_started] == [[first, second]]
+
+
+@then("aucune alerte ne dit que la diffusion n'a pas démarré")
+def no_alert(interface: Context) -> None:
+	assert interface.not_started == []
 
 
 @given(parsers.parse("le terminal « {name} » du poste"))
