@@ -136,6 +136,29 @@ Fonctionnalité: Menu général de l'interface
 		Alors la fenêtre de version n'a montré aucune nouveauté
 		Et aucune nouveauté n'a été montrée au lancement
 
+	Plan du scénario: Les nouveautés s'affichent dans la langue de la session, en anglais pour une autre langue
+		https://github.com/dascritch/machincast/issues/369 : news.md en anglais, news.fr.md en français.
+		Étant donné les nouveautés de la version de MachinCast, publiée le 2026-10-28 : « - A gap in a sound is noted. »
+		Et les nouveautés en français de la version de MachinCast, publiée le 2026-10-28 : « - Un blanc dans un sonore est noté. »
+		Et une session de l'interface en « <langue> »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors les nouveautés de la version de MachinCast ont été montrées au lancement : « <montrées> »
+		Quand je choisis « Version » dans le menu « Aide »
+		Alors la fenêtre de version a montré les nouveautés de la version de MachinCast : « <montrées> »
+
+		Exemples:
+			| langue | montrées                            |
+			| fr     | - Un blanc dans un sonore est noté. |
+			| en     | - A gap in a sound is noted.        |
+			| de     | - A gap in a sound is noted.        |
+
+	Scénario: Sans nouveautés en français, une session française montre celles en anglais
+		Étant donné les nouveautés de la version de MachinCast, publiée le 2026-10-28 : « - A gap in a sound is noted. »
+		Et aucune nouveauté en français
+		Et une session de l'interface en « fr »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors les nouveautés de la version de MachinCast ont été montrées au lancement : « - A gap in a sound is noted. »
+
 	Scénario: Les nouveautés d'une version publiée s'ouvrent au premier lancement qui la découvre, et pas aux suivants
 		Étant donné les nouveautés de la version de MachinCast, publiée le 2026-10-28 : « - Un blanc dans un sonore est noté. »
 		Et les nouveautés de la version précédente, publiée le 2026-09-01 : « - Le calendrier. »

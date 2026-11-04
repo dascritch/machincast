@@ -142,7 +142,7 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | Aide | Signaler un problème… | Ouvre les tickets de MachinCast dans le navigateur web. |
 | Aide | Version | Donne la version de MachinCast, sa date de publication ou de sa dernière modification, et les nouveautés de la version ([#208](https://github.com/dascritch/machincast/issues/208)), avec trois liens : **Code**, le dépôt de MachinCast, **Auteur : DaScritch** et **Pour : &lt;FMR&gt;**, la radio ([#332](https://github.com/dascritch/machincast/issues/332)). |
 
-**Nouveautés.** Au premier lancement d'une nouvelle version de MachinCast, une fenêtre en donne les nouveautés ([#208](https://github.com/dascritch/machincast/issues/208)). Elle ne revient pas aux lancements suivants ; **Aide → Version** les redonne quand on veut.
+**Nouveautés.** Au premier lancement d'une nouvelle version de MachinCast, une fenêtre en donne les nouveautés ([#208](https://github.com/dascritch/machincast/issues/208)), dans la langue de la session : en français, ou en anglais pour une autre langue ([#369](https://github.com/dascritch/machincast/issues/369)). Elle ne revient pas aux lancements suivants ; **Aide → Version** les redonne quand on veut.
 
 ## Rafraîchir les onglets
 

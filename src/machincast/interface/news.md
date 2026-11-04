@@ -1,18 +1,19 @@
 <!--
-Les nouveautés de chaque version publiée de MachinCast, pour l'équipe de l'antenne
-(https://github.com/dascritch/machincast/issues/208) : l'interface les montre au premier lancement qui découvre la
-version, et dans Aide → Version. Une section par version, la plus récente d'abord, titrée « ## <version> — <AAAA-MM-JJ> »,
-la même que dans RELEASE.md. Ce qui précède la première section n'est pas montré. Procédure :
-doc/fr/developpement/release.md.
+What's new in each published version of MachinCast, for the on-air team
+(https://github.com/dascritch/machincast/issues/208), in English: the interface shows it on the first launch that
+discovers the version, and in Help → Version, in any session language that has no news file of its own; a French
+session reads news.fr.md, its French source (https://github.com/dascritch/machincast/issues/369). One section per
+version, most recent first, titled "## <version> — <YYYY-MM-DD>", the same as in RELEASE.md and news.fr.md. Whatever
+precedes the first section is not shown. Procedure: doc/fr/developpement/release.md (French).
 -->
 
 ## 0.9.0 — 2026-10-28
 
-Bienvenue dans la première version publiée de MachinCast !
+Welcome to the first published version of MachinCast!
 
-- **L'antenne tourne seule** : fil musical, émissions, spéciaux et streams s'enchaînent selon la grille, avec leurs crossfades. Un stream qui tombe laisse la place à son secours, puis reprend l'antenne.
-- **L'accueil suit l'antenne** : sonore en cours et prochain, avec leur frise, sonores à venir, airplay, et le VU-mètre de la sortie. Un clic droit saute un sonore ou avance l'événement suivant.
-- **La grille se programme ici** : événements, séquences, banques, sonores et feeds, chacun avec sa fiche, et le calendrier de la semaine, où une session se saute pour les vacances.
-- **Pré-écouter** un sonore, ou l'antenne, au casque, sans rien changer à la diffusion.
-- **Les incidents** de la diffusion se lisent dans leur onglet ; un sonore qui ne donne plus de son peut être remplacé aussitôt (Préférences, page Audio).
-- **Aide → Documentation** ouvre le guide de l'antenne de cette version, et **Aide → Version** redonne ces nouveautés.
+- **On air runs by itself**: music rotation, shows, specials and streams follow one another according to the schedule, with their crossfades. A stream that drops out gives way to its fallback, then takes the air back.
+- **Home follows the air**: current and next sound, with their timeline, upcoming sounds, airplay, and the output VU meter. A right-click skips a sound or brings the next event forward.
+- **The schedule is programmed here**: events, sequences, banks, sounds and feeds, each with its card, and the week's calendar, where a session can be skipped for the holidays.
+- **Pre-listen** to a sound, or to the air, on headphones, without changing anything in the broadcast.
+- **Incidents** of the broadcast are read in their tab; a sound that no longer gives any sound can be replaced at once (Preferences, Audio page).
+- **Help → Documentation** opens the on-air guide of this version, and **Help → Version** shows this news again.
