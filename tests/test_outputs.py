@@ -318,7 +318,7 @@ def csv_lines(bench: Bench, name: str) -> list[dict[str, str]]:
 @then(parsers.parse("le CSV « {name} » commence par l'en-tête et le BOM"))
 def csv_header(bench: Bench, name: str) -> None:
 	bytes_ = (bench_outputs(bench).paths.csv.parent / name).read_bytes()
-	header = "﻿debut;fin;duree;artiste;titre;emplacement;evenement;sequence;banque;sans_incident\r\n"
+	header = "﻿start;end;duration;artist;title;location;event;sequence;bank;without_incident\r\n"
 	assert bytes_.startswith(header.encode()), bytes_[:120]
 
 

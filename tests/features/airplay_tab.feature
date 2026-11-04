@@ -88,7 +88,7 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
 		Et j'exporte l'onglet Airplay sous « matinale », avec le filtre « Tableur CSV (*.csv) »
 		Alors l'export proposait le nom « airplay-2026-10-16-2001-12h.csv »
-		Et l'export « matinale.csv » a l'en-tête « debut;fin;duree;artiste;titre;texte_public;emplacement;evenement;sequence;banque;sans_incident »
+		Et l'export « matinale.csv » a l'en-tête « start;end;duration;artist;title;public_text;location;event;sequence;bank;without_incident »
 		Et l'export « matinale.csv » a 3 passages, le premier « 2026-10-16 20:00:00;;;Les Gaufres;Café à minuit;Radio de test;…;Fil de jour;;Titres; »
 		Et la barre d'état annonce un export, « Airplay exporté dans » suivi de son chemin
 

@@ -53,7 +53,7 @@ NAME = "simulation"
 """Nom des sorties dans le répertoire temporaire de l'onglet."""
 DATE_FORMAT = "yyyy-MM-dd HH:mm"
 COLUMNS = (_("Start"), _("End"), _("Artist"), _("Title"), _("Location"), _("Event"), _("Sequence"), _("Bank"))
-FIELDS = ("debut", "fin", "artiste", "titre", "emplacement", "evenement", "sequence", "banque")
+FIELDS = ("start", "end", "artist", "title", "location", "event", "sequence", "bank")
 """Les colonnes du CSV de la simulation montrées dans la table, dans l'ordre de COLONNES."""
 FORMATS = {
 	_("CSV spreadsheet (*.csv)"): ".csv",

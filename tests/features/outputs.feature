@@ -96,10 +96,10 @@ Fonctionnalité: Masquage des métadonnées et modules de sortie
 		Et la diffusion s'arrête
 		Alors le CSV « airplay-2026-10-14.csv » commence par l'en-tête et le BOM
 		Et le CSV « airplay-2026-10-14.csv » a les lignes :
-			| debut               | fin                 | duree    | titre | evenement | sans_incident |
-			| 2026-10-14 19:59:50 | 2026-10-14 19:59:51 | 00:00:01 | f1    | Continue  | oui           |
-			| 2026-10-14 19:59:51 | 2026-10-14 19:59:52 | 00:00:01 | f2    | Continue  | oui           |
-			| 2026-10-14 19:59:52 | 2026-10-14 19:59:53 | 00:00:01 | f1    | Continue  | oui           |
+			| start               | end                 | duration | title | event    | without_incident |
+			| 2026-10-14 19:59:50 | 2026-10-14 19:59:51 | 00:00:01 | f1    | Continue | yes              |
+			| 2026-10-14 19:59:51 | 2026-10-14 19:59:52 | 00:00:01 | f2    | Continue | yes              |
+			| 2026-10-14 19:59:52 | 2026-10-14 19:59:53 | 00:00:01 | f1    | Continue | yes              |
 
 	Scénario: Chaque jour a son CSV, nommé par sa date
 		Étant donné l'horloge du binaire au « 2026-10-14 23:59:58 »

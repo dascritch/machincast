@@ -387,7 +387,7 @@ def simulation_csv(context: Context, count: int) -> None:
 	with file(context, ".csv").open(encoding="utf-8-sig", newline="") as source:
 		lines = list(csv.DictReader(source, delimiter=";"))
 	assert len(lines) == count
-	assert {line["debut"][:10] for line in lines} == {"2026-10-20", "2026-10-21"}, lines
+	assert {line["start"][:10] for line in lines} == {"2026-10-20", "2026-10-21"}, lines
 
 
 @then(parsers.parse("la playlist de la simulation compte {count:d} entrées"))
