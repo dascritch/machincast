@@ -157,6 +157,8 @@ Le menu **Diffusion** démarre et arrête la diffusion, sans terminal. Pour la r
 
 Chaque entrée demande le mot de passe d'un administrateur du poste. La barre d'état dit ensuite ce qu'il en est : `Diffusion démarrée.`, `Diffusion arrêtée.`, ou l'échec et sa raison, par exemple quand le mot de passe est refusé.
 
+Après **⏵ Démarrer la diffusion**, la barre d'état dit `Démarrage de la diffusion…` pendant quelques secondes, le temps de voir si la diffusion tient ([#376](https://github.com/dascritch/machincast/issues/376)). Si elle s'arrête aussitôt, une alerte **Diffusion non démarrée** le dit, avec son code et ce qu'il veut dire, et, en détails, les dernières lignes du journal de la diffusion. Le code 2, une configuration ou un appel invalide, se voit surtout après une mise à jour de MachinCast : l'administrateur du poste relance `./install.sh`, qui met le service à jour. Le code 1 : base de données injoignable, sortie audio indisponible, ou une autre diffusion déjà en cours. Dans tous les cas, `Machin logs`, dans un terminal, en dit plus.
+
 **Sur un poste d'essai**, sans ce service, la barre d'état affiche en permanence `Installation non définitive : diffusion sans service`, l'onglet s'appelle **🟩 Antenne** au lieu de **🟥 Antenne**, et le menu pilote une **diffusion d'essai**, qui joue bel et bien à l'antenne :
 
 | Entrée | Ce qu'elle fait |

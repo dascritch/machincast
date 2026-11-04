@@ -58,6 +58,30 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| arrêté    | ⏵ Démarrer la diffusion   | start   | Diffusion démarrée.   |
 			| en marche | ⏹ Arrêter la diffusion    | stop    | Diffusion arrêtée.    |
 
+	Plan du scénario: Un service démarré dont Machin player s'arrête aussitôt : une alerte le dit, avec ce que veut dire son code et le journal du service
+		https://github.com/dascritch/machincast/issues/376 : systemctl réussit dès que Machin player est lancé ; après une
+		mise à jour, le service d'avant appelait « Machin lecture », que Machin refuse, avec le code 2.
+		Étant donné le service de diffusion installé, arrêté
+		Et Machin player qui s'arrête aussitôt lancé par le service, avec le code <code>, le service <état>
+		Et le journal du service qui finit par « <ligne> »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « ⏵ Démarrer la diffusion » dans le menu « Diffusion »
+		Alors une alerte dit bientôt « Diffusion non démarrée : Machin player s'est arrêté, code de sortie <code>. <sens> Machin logs, dans un terminal, en dit plus. »
+		Et elle montre en détails les lignes du journal « Started machincast.service » et « <ligne> »
+		Et la barre d'état annonce bientôt « Diffusion non démarrée : Machin player s'est arrêté, code de sortie <code>. <sens> »
+
+		Exemples:
+			| code | état                | ligne                         | sens                                                                                                                  |
+			| 2    | en échec            | Machin: unknown binary: lecture | Sa configuration ou son appel est invalide : après une mise à jour de MachinCast, relancer ./install.sh, qui met le service à jour. |
+			| 1    | relancé par systemd | base de données injoignable   | La base de données est injoignable, la sortie audio indisponible, ou un autre Machin player diffuse déjà.             |
+
+	Scénario: Un service démarré dont Machin player tient ne fait pas d'alerte
+		Étant donné le service de diffusion installé, arrêté
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « ⏵ Démarrer la diffusion » dans le menu « Diffusion »
+		Alors la barre d'état annonce bientôt « Diffusion démarrée. »
+		Et aucune alerte ne dit que la diffusion n'a pas démarré
+
 	Scénario: Une authentification refusée laisse la diffusion telle quelle, et la barre d'état le dit
 		Étant donné le service de diffusion installé, arrêté
 		Et systemctl refuse en disant « Access denied »

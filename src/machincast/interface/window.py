@@ -331,6 +331,7 @@ class MainWindow(QMainWindow):
 		"""Audit complet ou indexation rapide, pour l'indexation lancée."""
 		self.control = control.Control(self)
 		self.control.finished.connect(self._finished_control)
+		self.control.not_started.connect(lambda text, journal: dialogs.warn_not_started(self, text, journal))
 		self.service = service.ABSENT
 		"""L'état du service de diffusion, relu au lancement, à l'ouverture du menu et après chaque commande."""
 		self._requested_stop = False

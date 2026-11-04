@@ -16,8 +16,10 @@ import shutil
 import signal
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QProcess, Signal
+from PySide6.QtCore import QObject, QProcess, QTimer, Signal
 
+from machincast import service
+from machincast.clock import Clock, SystemClock
 from machincast.configuration import PROJECT_DIRECTORY, default_file
 from machincast.i18n import _
 from machincast.interface.intents import HALT, START, label
@@ -47,6 +49,29 @@ ABANDONED_MAINTENANCE = _("Database maintenance abandoned: nothing was launched.
 WITHOUT_TERMINAL_FOR_MAINTENANCE = _(
 	"No terminal found (konsole, x-terminal-emulator): run Machin maintenance-db by hand."
 )
+STARTING = _("Broadcast starting…")
+STARTUP_WINDOW = 8.0
+"""Secondes pendant lesquelles un service qui vient de démarrer est suivi : Machin player qui s'arrête dans ce délai,
+le plus souvent sur une configuration ou une base injoignable, n'a pas démarré la diffusion
+(https://github.com/dascritch/machincast/issues/376)."""
+STARTUP_STEP = 1.0
+"""Secondes entre deux lectures de l'état du service pendant ce suivi."""
+CLOCK: Clock = SystemClock()
+"""L'heure de la demande, d'où se lit le journal du service."""
+NOT_STARTED = _("Broadcast not started: Machin player stopped, exit code {code}.")
+NOT_STARTED_WITHOUT_CODE = _("Broadcast not started: Machin player stopped.")
+CODES = {
+	1: _(
+		"The database is unreachable, the audio output unavailable, or another Machin player is already broadcasting."
+	),
+	2: _(
+		"Its configuration or its call is invalid: after an update of MachinCast, run ./install.sh again, which "
+		"updates the service."
+	),
+	127: _("A program is missing: after an update of MachinCast, run ./install.sh again, which updates the service."),
+}
+"""Ce que veut dire le code de sortie de Machin player, ou de Machin qui le lance (doc/fr/administration)."""
+SEE_LOGS = _("Machin logs, in a terminal, tells more.")
 REQUESTED_STOP = _("Stop of the trial broadcast requested…")
 STOPPED = _("Trial broadcast stopped.")
 
@@ -54,26 +79,60 @@ STOPPED = _("Trial broadcast stopped.")
 class Control(QObject):
 	finished = Signal(str)
 	"""Ce qu'il advient d'une commande : réussite ou échec, avec le message de systemctl."""
+	not_started = Signal(str, list)
+	"""Le service a démarré, mais Machin player s'est arrêté aussitôt : ce qu'il en est, et les dernières lignes du
+	journal du service (https://github.com/dascritch/machincast/issues/376)."""
 
 	def __init__(self, parent: QObject | None = None) -> None:
 		super().__init__(parent)
 		self._process: list[QProcess] = []
+		self._started_at = CLOCK.now()
 
 	def control(self, verb: str) -> None:
 		"""systemctl <verbe> machincast.service, sans attendre : l'authentification peut prendre du temps."""
 		process = QProcess(self)
 		self._process.append(process)
 		process.finished.connect(lambda code, _status: self._end(process, verb, code))
+		self._started_at = CLOCK.now()
 		process.start("systemctl", [verb, UNIT])
 
 	def _end(self, process: QProcess, verb: str, code: int) -> None:
 		self._process.remove(process)
 		_entry, success, failure = VERBS[verb]
+		if (code == 0) and (verb == "start"):
+			# systemctl réussit dès que Machin player est lancé : il reste à voir s'il tient.
+			self.finished.emit(STARTING)
+			self._follow(round(STARTUP_WINDOW / STARTUP_STEP))
+			return
 		if code == 0:
 			self.finished.emit(success)
 			return
 		error = bytes(process.readAllStandardError().data()).decode("utf-8", "replace").strip()
 		self.finished.emit(_("{failure}: {error}").format(failure=failure, error=(error) or (process.errorString())))
+
+	def _follow(self, remaining: int) -> None:
+		"""Relit l'état du service, encore remaining fois, une fois par STARTUP_STEP."""
+		startup = service.read_startup()
+		if startup.stopped:
+			self._not_started(startup)
+			return
+		if remaining <= 0:
+			if startup.running:
+				self.finished.emit(VERBS["start"][1])
+			else:
+				self._not_started(startup)
+			return
+		QTimer.singleShot(int(STARTUP_STEP * 1000), lambda: self._follow(remaining - 1))
+
+	def _not_started(self, startup: service.Startup) -> None:
+		text = NOT_STARTED_WITHOUT_CODE
+		if (startup.code is not None) and (startup.code != 0):
+			text = NOT_STARTED.format(code=startup.code)
+		meaning = CODES.get((startup.code) or (0))
+		if meaning is not None:
+			text = f"{text} {meaning}"
+		self.finished.emit(text)
+		self.not_started.emit(f"{text} {SEE_LOGS}", service.journal(self._started_at))
 
 
 def open_terminal(command: list[str]) -> bool:

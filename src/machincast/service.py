@@ -8,6 +8,7 @@ son unité et sa règle polkit.
 
 import subprocess
 from dataclasses import dataclass
+from datetime import datetime
 
 UNIT = "machincast.service"
 """L'unité systemd du service de lecture, celle que suit « Machin logs » : le même nom dans bin/Machin."""
@@ -46,3 +47,82 @@ def read_state() -> ServiceState:
 	if properties.get("LoadState") != "loaded":
 		return ABSENT
 	return ServiceState(installed=True, active=properties.get("ActiveState", "inactive"))
+
+
+@dataclass(frozen=True)
+class Startup:
+	"""Ce que devient le service après « systemctl start » (https://github.com/dascritch/machincast/issues/376) :
+	systemctl réussit dès que Machin player est lancé, même s'il s'arrête aussitôt."""
+
+	active: str
+	"""ActiveState : « active », « activating », « failed », « inactive »…"""
+	sub: str
+	"""SubState : « running », « auto-restart » quand systemd s'apprête à le relancer…"""
+	result: str
+	"""Result : « success », « exit-code », « signal »…"""
+	code: int | None
+	"""ExecMainStatus : le code de sortie du dernier Machin player, None tant qu'il n'est pas sorti."""
+
+	@property
+	def running(self) -> bool:
+		return (self.active == "active") and (self.sub == "running")
+
+	@property
+	def stopped(self) -> bool:
+		"""Machin player est sorti : en échec, arrêté, ou relancé par systemd après un échec."""
+		return (self.active in ("failed", "inactive")) or (self.sub == "auto-restart")
+
+
+def read_startup() -> Startup:
+	"""L'état du service et le code de sortie de son dernier Machin player, d'après systemctl ; arrêté si systemctl
+	manque ou échoue."""
+	try:
+		output = subprocess.run(
+			["systemctl", "show", UNIT, "--property=ActiveState,SubState,Result,ExecMainStatus"],
+			capture_output=True,
+			text=True,
+			timeout=DELAY,
+			check=False,
+		)
+	except (OSError, subprocess.TimeoutExpired):
+		return Startup(active="inactive", sub="dead", result="", code=None)
+	properties = dict(line.split("=", 1) for line in output.stdout.splitlines() if "=" in line)
+	code = None
+	if properties.get("ExecMainStatus", "").isdigit():
+		code = int(properties["ExecMainStatus"])
+	return Startup(
+		active=properties.get("ActiveState", "inactive"),
+		sub=properties.get("SubState", ""),
+		result=properties.get("Result", ""),
+		code=code,
+	)
+
+
+JOURNAL_LINES = 5
+"""Les dernières lignes du journal du service montrées après un démarrage manqué."""
+
+
+def journal(since: datetime, lines: int = JOURNAL_LINES) -> list[str]:
+	"""Les dernières lignes du journal du service depuis cet instant ; aucune si journalctl
+	manque, échoue, ou si le compte ne peut pas le lire (groupe systemd-journal, que donne install.sh)."""
+	try:
+		output = subprocess.run(
+			[
+				"journalctl",
+				f"--unit={UNIT}",
+				f"--since=@{int(since.timestamp())}",
+				f"--lines={lines}",
+				"--output=cat",
+				"--no-pager",
+				"--quiet",
+			],
+			capture_output=True,
+			text=True,
+			timeout=DELAY,
+			check=False,
+		)
+	except (OSError, subprocess.TimeoutExpired):
+		return []
+	if output.returncode != 0:
+		return []
+	return [line for line in output.stdout.splitlines() if line.strip()]
