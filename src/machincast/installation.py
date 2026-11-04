@@ -346,6 +346,8 @@ Environment=XDG_RUNTIME_DIR=/run/user/{account.uid}
 ExecStart={directory}/bin/Machin player
 Restart=on-failure
 RestartSec=5
+# Code 2 : configuration ou appel invalide, que relancer ne corrige pas (https://github.com/dascritch/machincast/issues/376).
+RestartPreventExitStatus=2
 KillSignal=SIGTERM
 TimeoutStopSec=15
 SyslogIdentifier=machincast

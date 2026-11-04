@@ -153,6 +153,7 @@ Fonctionnalité: Vérifications de l'installation
 			| ExecStart        | <répertoire>/bin/Machin player                 |
 			| Restart          | on-failure                                      |
 			| RestartSec       | 5                                               |
+			| RestartPreventExitStatus | 2                                       |
 			| KillSignal       | SIGTERM                                         |
 			| TimeoutStopSec   | 15                                              |
 			| SyslogIdentifier | machincast                                      |
