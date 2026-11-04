@@ -30,6 +30,15 @@ MONTH = (
 	_("November"),
 	_("December"),
 )
+CATEGORIES = {
+	"sound": _("sound"),
+	"bank": _("bank"),
+	"sequence": _("sequence"),
+	"event": _("event"),
+	"feed": _("feed"),
+}
+"""Le nom montré de chaque genre d'élément, dont le code ne garde que la clé anglaise
+(https://github.com/dascritch/machincast/issues/368)."""
 EMPTY = "—"
 """Ce que montre un champ sans valeur : aucun sonore, par exemple."""
 

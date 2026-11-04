@@ -15,10 +15,10 @@ from tests.interface_steps import NAME, TABLES, Connection, Context, identifier,
 scenarios("intents.feature")
 
 CATEGORIES = {
-	"le sonore": "sonore",
-	"la banque": "banque",
-	"la séquence": "séquence",
-	"l'événement": "événement",
+	"le sonore": "sound",
+	"la banque": "bank",
+	"la séquence": "sequence",
+	"l'événement": "event",
 	"le feed": "feed",
 }
 VERBS = ("Ajouter", "Retirer", "Supprimer")

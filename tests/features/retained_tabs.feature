@@ -64,3 +64,9 @@ Fonctionnalité: Onglets ouverts retenus d'un lancement à l'autre
 		Et la fenêtre de l'interface s'ouvre
 		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Et l'onglet ouvert est « Antenne »
+
+	Scénario: Les onglets retenus par une version d'avant, aux clés françaises, se rouvrent
+		Étant donné les onglets retenus par une version d'avant, aux clés françaises, la fiche de la banque « Jingles » active
+		Quand la fenêtre de l'interface s'ouvre
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Feeds », « Incidents », « Banque : Jingles »
+		Et l'onglet ouvert est « Banque : Jingles »

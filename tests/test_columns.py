@@ -214,7 +214,7 @@ def all_open(interface: Context, qtbot: QtBot) -> None:
 		"Rechercher…",
 	):
 		choose_in_menu(interface, menu_entry, "Affichage")
-	for category in ("banque", "séquence", "événement", "sonore"):
+	for category in ("bank", "sequence", "event", "sound"):
 		opened._open_card(category, None)
 	qtbot.wait(50)
 

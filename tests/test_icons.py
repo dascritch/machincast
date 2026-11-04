@@ -17,6 +17,7 @@ from pytestqt.qtbot import QtBot
 from machincast.interface import icons
 from machincast.interface.search import SearchScreen
 from machincast.interface.sound_card import SoundCard
+from tests.categories import CATEGORY
 from tests.interface_steps import NAME, Context, actions, tab_title, window
 
 scenarios("icons.feature")
@@ -28,11 +29,19 @@ def image(icon: QIcon, size: int = SIZE) -> QImage:
 	return icon.pixmap(size).toImage().convertToFormat(QImage.Format.Format_ARGB32)
 
 
+ICON_NAMES = CATEGORY | {"grille": "grid", "pré-écoute": "preview"}
+"""Le nom d'une icône dans le code, par son mot des scénarios (https://github.com/dascritch/machincast/issues/368)."""
+
+
+def _icon_name(name: str) -> str:
+	return ICON_NAMES.get(name, name)
+
+
 def _expected(name: str) -> QImage | None:
 	"""L'image de l'icône d'un genre, ou None pour « aucune »."""
 	if name == "aucune":
 		return None
-	return image(icons.icon(name))
+	return image(icons.icon(_icon_name(name)))
 
 
 def _scope(icon: QIcon | None) -> QImage | None:
@@ -50,7 +59,7 @@ def _scope(icon: QIcon | None) -> QImage | None:
 def monochrome(qapp: QApplication, category: str, colour: str, sizes: str) -> None:
 	expected = QColor(colour)
 	for size in (int(text) for text in sizes.replace(" et ", ", ").split(", ")):
-		drawing = image(icons.icon(category, expected), size)
+		drawing = image(icons.icon(_icon_name(category), expected), size)
 		assert (drawing.width(), drawing.height()) == (size, size)
 		pixels = [drawing.pixelColor(x, y) for x in range(size) for y in range(size)]
 		# Chaque pixel net est de la couleur demandée ; les bords lissés, presque transparents, perdent un peu de
@@ -70,7 +79,7 @@ def monochrome(qapp: QApplication, category: str, colour: str, sizes: str) -> No
 
 @then(parsers.re(r"les icônes (?P<names>«.+) sont toutes différentes"))
 def different(qapp: QApplication, names: str) -> None:
-	images = [image(icons.icon(name)) for name in NAME.findall(names)]
+	images = [image(icons.icon(_icon_name(name))) for name in NAME.findall(names)]
 	assert all((a != b) for rank, a in enumerate(images) for b in images[rank + 1 :])
 
 
@@ -90,7 +99,7 @@ def theme(qapp: QApplication, origin_palette: None, colour: str) -> None:
 
 @then(parsers.parse("l'icône « {category} » de l'application est dessinée en {colour}"))
 def follows_theme(qapp: QApplication, category: str, colour: str) -> None:
-	assert image(icons.icon(category)) == image(icons.icon(category, QColor(colour)))
+	assert image(icons.icon(_icon_name(category))) == image(icons.icon(_icon_name(category), QColor(colour)))
 
 
 def _tabs(interface: Context) -> dict[str, QIcon]:

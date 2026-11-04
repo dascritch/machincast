@@ -87,6 +87,22 @@ msgid "boolean"
 msgstr "booléen"
 
 #: machincast/configuration.py
+msgid "number"
+msgstr "nombre"
+
+#: machincast/configuration.py
+msgid "text"
+msgstr "texte"
+
+#: machincast/configuration.py
+msgid "list"
+msgstr "liste"
+
+#: machincast/configuration.py
+msgid "section"
+msgstr "section"
+
+#: machincast/configuration.py
 msgid ""
 "key database.test: the test database cannot be the production database"
 msgstr ""
@@ -1268,6 +1284,10 @@ msgstr "sauté"
 #: machincast/interface/calendar.py
 msgid "faded"
 msgstr "estompé"
+
+#: machincast/interface/calendar.py
+msgid "plays"
+msgstr "joue"
 
 #: machincast/interface/calendar.py
 msgid "Permanent background programming"
@@ -2459,6 +2479,26 @@ msgstr "novembre"
 #: machincast/interface/display.py
 msgid "December"
 msgstr "décembre"
+
+#: machincast/interface/display.py
+msgid "sound"
+msgstr "sonore"
+
+#: machincast/interface/display.py
+msgid "bank"
+msgstr "banque"
+
+#: machincast/interface/display.py
+msgid "sequence"
+msgstr "séquence"
+
+#: machincast/interface/display.py
+msgid "event"
+msgstr "événement"
+
+#: machincast/interface/display.py
+msgid "feed"
+msgstr "feed"
 
 #: machincast/interface/display.py
 msgid "no"

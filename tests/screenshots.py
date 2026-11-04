@@ -681,13 +681,13 @@ def produce(directory: Path) -> dict[str, Path]:
 		take("menu-colonnes", menu)
 		menu.hide()
 		for name, category, identifier in (
-			("fiche-evenement", "événement", demonstration.events["matinale"]),
-			("fiche-sequence", "séquence", demonstration.sequence),
-			("fiche-banque", "banque", demonstration.banks["lourde"]),
-			("fiche-sonore", "sonore", demonstration.sounds["cafe"]),
+			("fiche-evenement", "event", demonstration.events["matinale"]),
+			("fiche-sequence", "sequence", demonstration.sequence),
+			("fiche-banque", "bank", demonstration.banks["lourde"]),
+			("fiche-sonore", "sound", demonstration.sounds["cafe"]),
 		):
 			window._open(category, identifier, "")
-			if category == "sonore":
+			if category == "sound":
 				_expand(window, "Métadonnées")
 				card = window.ui.tabs.currentWidget()
 				assert isinstance(card, SoundCard)
@@ -695,7 +695,7 @@ def produce(directory: Path) -> dict[str, Path]:
 			take(name, window)
 			_close_tab(window)
 		# Une erreur de fiche, en haut, sur son liseret rouge (https://github.com/dascritch/machincast/issues/270).
-		window._open("événement", demonstration.events["matinale"], "")
+		window._open("event", demonstration.events["matinale"], "")
 		corrupt = window.ui.tabs.currentWidget()
 		assert isinstance(corrupt, EventCard)
 		corrupt.ui.internal_name.setText("")

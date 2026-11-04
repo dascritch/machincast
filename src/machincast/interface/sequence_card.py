@@ -147,4 +147,4 @@ class SequenceCard(Card):
 		self.warn(empty)
 
 	def _open_event(self, item: QListWidgetItem) -> None:
-		self.requested_opening.emit("événement", int(item.data(EVENT)), item.text())
+		self.requested_opening.emit("event", int(item.data(EVENT)), item.text())

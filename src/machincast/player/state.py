@@ -278,7 +278,7 @@ class StateSocket:
 				continue
 			except OSError:
 				return
-			threading.Thread(target=self._serve, args=(client,), name="client de l'état", daemon=True).start()
+			threading.Thread(target=self._serve, args=(client,), name="state client", daemon=True).start()
 
 	def _to_send(self, sent: int) -> bool:
 		return (self._number > sent) or (self._closed)
@@ -288,7 +288,7 @@ class StateSocket:
 		sent = 0
 		with client:
 			client.settimeout(CLIENTS_WAITING)
-			threading.Thread(target=self._listen, args=(client,), name="demandes d'un client", daemon=True).start()
+			threading.Thread(target=self._listen, args=(client,), name="client requests", daemon=True).start()
 			while True:
 				with self._condition:
 					self._sent_list[key] = sent

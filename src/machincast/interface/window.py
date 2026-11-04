@@ -1018,7 +1018,7 @@ class MainWindow(QMainWindow):
 		)
 		if not dialogs.confirm_creation(self, text):
 			return
-		self._open_card("événement", None)
+		self._open_card("event", None)
 		card = self.ui.tabs.currentWidget()
 		assert isinstance(card, EventCard)
 		card.plan(start, end)

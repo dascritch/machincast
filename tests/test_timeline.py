@@ -17,6 +17,7 @@ from pytestqt.qtbot import QtBot
 
 from machincast.configuration import Crossfades
 from machincast.interface.timeline import Plan, Timeline, WaveShape, sound_plan
+from tests.categories import HATCHINGS
 from tests.sounds import SOUND_FILES
 
 scenarios("timeline.feature")
@@ -195,7 +196,7 @@ def areas(trial: Trial, datatable: list[list[str]]) -> None:
 			area.name,
 			f"{area.start:.2f}".replace(".", ","),
 			f"{area.end:.2f}".replace(".", ","),
-			area.hatching,
+			HATCHINGS[area.hatching],
 			area.tooltip,
 		]
 		for area in trial.plan.areas()

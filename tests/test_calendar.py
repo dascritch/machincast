@@ -160,7 +160,7 @@ def tick(interface: Context, qtbot: QtBot, action: str, text: str) -> None:
 
 @when(parsers.re(r"je clique (?:(?P<times>\d+) fois )?sur « (?P<text>[^»]+) » du calendrier"))
 def click_on(interface: Context, qtbot: QtBot, times: str | None, text: str) -> None:
-	for _ in range(int((times) or ("1"))):
+	for _click in range(int((times) or ("1"))):
 		qtbot.mouseClick(button(calendar(interface), text), Qt.MouseButton.LeftButton)
 
 
@@ -445,7 +445,7 @@ def choose_zoom(interface: Context, text: str) -> None:
 def wheel(interface: Context, times: str | None, direction: str) -> None:
 	grid = calendar(interface).grid
 	notch = 120 if direction == "haut" else -120
-	for _ in range(int((times) or ("1"))):
+	for _click in range(int((times) or ("1"))):
 		centre = QPointF(grid.width() / 2, grid.height() / 2)
 		event = QWheelEvent(
 			centre,

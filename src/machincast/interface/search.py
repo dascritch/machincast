@@ -74,24 +74,24 @@ def _pattern(text: str) -> str:
 
 
 def _finds(*columns: str) -> str:
-	return " OR ".join(f"{_normalised(column)} LIKE recherche.motif" for column in columns)
+	return " OR ".join(f"{_normalised(column)} LIKE query.pattern" for column in columns)
 
 
 FOUND_LIST = f"""
-	WITH recherche AS (SELECT %s::text AS motif)
-	SELECT 1 AS rang, 'événement' AS genre, id, internal_name AS name, public_name, NULL AS state FROM events, recherche
+	WITH query AS (SELECT %s::text AS pattern)
+	SELECT 1 AS rank, 'event' AS category, id, internal_name AS name, public_name, NULL AS state FROM events, query
 		WHERE (deleted_at IS NULL) AND ({_finds("internal_name", "public_name")})
 	UNION ALL
-	SELECT 2, 'séquence', id, internal_name, public_name, NULL FROM sequences, recherche
+	SELECT 2, 'sequence', id, internal_name, public_name, NULL FROM sequences, query
 		WHERE (deleted_at IS NULL) AND ({_finds("internal_name", "public_name")})
 	UNION ALL
-	SELECT 3, 'banque', id, internal_name, public_name, NULL FROM banks, recherche
+	SELECT 3, 'bank', id, internal_name, public_name, NULL FROM banks, query
 		WHERE (deleted_at IS NULL) AND ({_finds("internal_name", "public_name")})
 	UNION ALL
-	SELECT 4, 'sonore', id, concat_ws(' – ', artist, title), NULL, state::text FROM sounds, recherche
+	SELECT 4, 'sound', id, concat_ws(' – ', artist, title), NULL, state::text FROM sounds, query
 		WHERE (deleted_at IS NULL) AND ({_finds("artist", "title")})
 """
-"""Les éléments où se trouve le motif, lié une seule fois (recherche.motif), avec le rang de leur type ; jamais un
+"""Les éléments où se trouve le motif, lié une seule fois (query.pattern), avec le rang de leur type (rank) ; jamais un
 élément supprimé (https://github.com/dascritch/machincast/issues/267)."""
 
 
@@ -109,7 +109,7 @@ def find(connection: Connection, text: str, limit: int) -> tuple[list[Result], i
 	pattern = _pattern(text.strip())
 	with connection.transaction():
 		lines = connection.execute(
-			f"SELECT genre, id, name, public_name, state FROM ({FOUND_LIST}) t ORDER BY rang, lower(name), id"  # noqa: S608
+			f"SELECT category, id, name, public_name, state FROM ({FOUND_LIST}) t ORDER BY rank, lower(name), id"  # noqa: S608
 			" LIMIT %s",
 			(pattern, limit),
 		).fetchall()

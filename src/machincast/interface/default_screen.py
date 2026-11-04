@@ -424,19 +424,19 @@ class DefaultScreen(QWidget):
 
 	def _open_sound(self, sound: DisplayedSound | None) -> None:
 		if sound is not None:
-			self.opened.emit("sonore", sound.sound, display.artist_and_title(sound.artist, sound.title))
+			self.opened.emit("sound", sound.sound, display.artist_and_title(sound.artist, sound.title))
 
 	def _open_event(self, sound: DisplayedSound | None) -> None:
 		if (sound is not None) and (sound.id_event is not None):
-			self.opened.emit("événement", sound.id_event, str(sound.event))
+			self.opened.emit("event", sound.id_event, str(sound.event))
 
 	def _open_sequence(self, sound: DisplayedSound | None) -> None:
 		if (sound is not None) and (sound.sequence_id is not None):
-			self.opened.emit("séquence", sound.sequence_id, str(sound.sequence))
+			self.opened.emit("sequence", sound.sequence_id, str(sound.sequence))
 
 	def _open_bank(self, sound: DisplayedSound | None) -> None:
 		if (sound is not None) and (sound.id_bank is not None):
-			self.opened.emit("banque", sound.id_bank, str(sound.bank))
+			self.opened.emit("bank", sound.id_bank, str(sound.bank))
 
 	def _open_cell(self, index: QModelIndex) -> None:
 		"""Un double-clic sur une cellule qui désigne un élément demande sa fiche ; ailleurs, il ne fait rien."""
