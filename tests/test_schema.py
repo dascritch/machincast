@@ -480,7 +480,7 @@ def old_migration(request: pytest.FixtureRequest, context: Context, migration: s
 	request.addfinalizer(return_migrations)
 
 
-@then(parsers.re(r"(?P<count>aucune|\d+) migrations? (?:n')?a été appliquée"))
+@then(parsers.re(r"(?P<count>aucune|\d+) migrations? (?:n')?(?:a été appliquée|ont été appliquées)"))
 def applied_count(context: Context, count: str) -> None:
 	assert context.refusal is None, context.refusal
 	assert context.applied == (0 if count == "aucune" else int(count))
@@ -488,7 +488,7 @@ def applied_count(context: Context, count: str) -> None:
 
 @then(parsers.parse("les migrations appliquées à la base de test sont « {migration} »"))
 def applied_migrations(context: Context, migration: str) -> None:
-	assert database_migrations(context) == [migration]
+	assert database_migrations(context) == [name.strip() for name in migration.split(",")]
 
 
 @then("les migrations appliquées à la base de test sont celles d'avant")

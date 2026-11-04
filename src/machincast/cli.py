@@ -2,10 +2,11 @@
 
 import argparse
 import logging
+import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from machincast import __version__
+from machincast import __version__, runs
 from machincast.configuration import Configuration, InvalidConfiguration, default_file, load
 from machincast.i18n import _
 from machincast.log import configure as configure_log
@@ -39,11 +40,15 @@ def launch(
 	arguments: Sequence[str] | None,
 	action: Callable[[Configuration, argparse.Namespace], int],
 	own_options: Callable[[argparse.ArgumentParser], None] | None = None,
+	recording: runs.Recording | None = None,
+	then: Callable[[argparse.Namespace], None] | None = None,
 ) -> int:
 	"""Analyse les arguments, charge la configuration, puis exécute l'action du binaire.
 
 	own_options ajoute à l'analyseur commun les options propres au binaire ; l'action reçoit la configuration
-	et toutes les options. Renvoie le code de sortie : celui de l'action, ou INVALID_CONFIGURATION_CODE.
+	et toutes les options. Avec recording, le démarrage et la fin de l'action sont notés dans le journal et dans le log
+	de la base (https://github.com/dascritch/machincast/issues/341) ; then vient après la fin, comme le terminal que la
+	maintenance garde ouvert. Renvoie le code de sortie : celui de l'action, ou INVALID_CONFIGURATION_CODE.
 	"""
 	configure_log(executable)
 	analyser = create_analyser(executable, description)
@@ -55,7 +60,16 @@ def launch(
 	except InvalidConfiguration as error:
 		log.error(_("invalid configuration: {error}").format(error=error))
 		return INVALID_CONFIGURATION_CODE
-	return action(configuration, options)
+	if (recording is None) or (not recording.when(options)):
+		code = action(configuration, options)
+	else:
+		given = list(sys.argv[1:] if arguments is None else arguments)
+		code = runs.recorded(
+			configuration.database, executable, given, recording.role, lambda: action(configuration, options)
+		)
+	if then is not None:
+		then(options)
+	return code
 
 
 def not_implemented(executable: str, ticket: int) -> int:

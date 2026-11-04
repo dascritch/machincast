@@ -5078,6 +5078,7 @@ msgid "of its playback"
 msgstr "de sa lecture"
 
 #: machincast/player/broadcast.py
+#: machincast/runs.py
 msgid "start"
 msgstr "démarrage"
 
@@ -5388,6 +5389,7 @@ msgid "{name}: on air"
 msgstr "{name} : à l'antenne"
 
 #: machincast/player/outputs.py
+#: machincast/runs.py
 #, python-brace-format
 msgid "{kind}: {message}"
 msgstr "{kind} : {message}"
@@ -5672,6 +5674,44 @@ msgstr ""
 #, python-brace-format
 msgid "database error: {error}; nothing was erased"
 msgstr "erreur de base de données : {error} ; rien n'a été effacé"
+
+#: machincast/runs.py
+msgid "end"
+msgstr "fin"
+
+#: machincast/runs.py
+msgid "probable crash"
+msgstr "plantage probable"
+
+#: machincast/runs.py
+#, python-brace-format
+msgid "{program} {version}, pid {pid}"
+msgstr "{program} {version}, pid {pid}"
+
+#: machincast/runs.py
+#, python-brace-format
+msgid "{program} {version}, pid {pid}: {options}"
+msgstr "{program} {version}, pid {pid} : {options}"
+
+#: machincast/runs.py
+#, python-brace-format
+msgid "{program}, pid {pid}: exit code {code}"
+msgstr "{program}, pid {pid} : code de sortie {code}"
+
+#: machincast/runs.py
+#, python-brace-format
+msgid "{program}, pid {pid}, started on {start}, did not log its end"
+msgstr "{program}, pid {pid}, démarré le {start}, n'a pas noté sa fin"
+
+#: machincast/runs.py
+#, python-brace-format
+msgid "{program}: start not logged in the database: {error}"
+msgstr "{program} : démarrage non noté dans la base : {error}"
+
+#: machincast/runs.py
+#, python-brace-format
+msgid "{program}: end not logged in the database: {error}"
+msgstr "{program} : fin non notée dans la base : {error}"
 
 #: machincast/shortcut.py
 msgid "Automated radio broadcasting"

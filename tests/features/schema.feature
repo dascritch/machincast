@@ -4,7 +4,8 @@ Fonctionnalité: Schéma de la base de données
 	je veux que les migrations yoyo créent toutes les tables de la spécification,
 	afin que la base de production et la base de test aient un schéma strictement identique.
 
-	Un seul schéma, 0001.initial-schema, aux noms anglais (https://github.com/dascritch/machincast/issues/358). Une base
+	Un schéma initial, 0001.initial-schema, aux noms anglais (https://github.com/dascritch/machincast/issues/358), que
+	suivent les migrations d'après la première release, comme 0002.run-log. Une base
 	créée avec l'ancien schéma, aux noms français, celui de 0001.schema-initial ou des migrations d'avant
 	https://github.com/dascritch/machincast/issues/314, est refusée, sans rien modifier : elle se recrée.
 
@@ -67,11 +68,12 @@ Fonctionnalité: Schéma de la base de données
 			| 0001.schema-initial              |
 			| 0015.vocabulaire-silences-blancs |
 
-	Scénario: Une base neuve reçoit le schéma unique
+	Scénario: Une base neuve reçoit le schéma initial, puis les migrations qui le suivent
+		https://github.com/dascritch/machincast/issues/341 : 0002.run-log, les démarrages et fins des binaires au log.
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 1 migration a été appliquée
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema »
+		Alors 2 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.run-log »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
 	# Le ramasse-miettes est suspendu : une connexion qui n'est pas fermée explicitement reste ouverte.

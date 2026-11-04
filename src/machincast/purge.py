@@ -18,7 +18,8 @@ lignes de la base sont effacées : jamais un fichier sonore, ni un répertoire
 
 Le compte de MachinCast est propriétaire de la base et de ses tables : il efface sans endosser de rôle, aucun des
 trois rôles n'ayant le droit d'effacer l'airplay ou le log. install.sh --service installe un minuteur systemd qui
-lance la purge chaque jour à midi. Le code de sortie est 0 si la purge s'est faite, 1 sinon.
+lance la purge chaque jour à midi. Le code de sortie est 0 si la purge s'est faite, 1 sinon. Le démarrage et la fin de
+chaque purge sont notés au journal et au log de la base (machincast.runs).
 """
 
 import argparse
@@ -32,10 +33,14 @@ from machincast.cli import launch
 from machincast.clock import Clock, SystemClock
 from machincast.configuration import Configuration
 from machincast.i18n import N_, N_counted, _, logged
+from machincast.runs import Recording
 
 EXECUTABLE = "Machin_purge"
 DESCRIPTION = _("Erases from the database what exceeds the expiry duration.")
 FAILURE_CODE = 1
+RECORDING = Recording(role=None)
+"""Le démarrage et la fin de la purge, dans le log, par le compte propriétaire de la base
+(https://github.com/dascritch/machincast/issues/341)."""
 CLOCK: Clock = SystemClock()
 """L'heure d'où se compte la péremption ; les scénarios la fixent."""
 
@@ -108,4 +113,4 @@ def run(configuration: Configuration, _options: argparse.Namespace) -> int:
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
-	return launch(EXECUTABLE, DESCRIPTION, arguments, run)
+	return launch(EXECUTABLE, DESCRIPTION, arguments, run, recording=RECORDING)

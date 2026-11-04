@@ -8,6 +8,7 @@
 - [Purge de la base : Machin purge](#purge-de-la-base--machin-purge)
 - [Suivre le journal : Machin logs](#suivre-le-journal--machin-logs)
 - [Messages et codes de sortie](#messages-et-codes-de-sortie)
+- [Démarrages et fins dans le log](#démarrages-et-fins-dans-le-log)
 
 ## Lancer les programmes : Machin
 
@@ -130,7 +131,22 @@ Chaque message commence par son heure, en ISO 8601, à la seconde, avec le déca
 | --- | --- |
 | 0 | Le programme est allé au bout. Pour l'indexation, même si des sonores ont changé d'état : ce sont des anomalies, pas des erreurs. |
 | 1 | Base de données injoignable ou perdue (pour `Machin interface`, au lancement), décodeur GStreamer manquant, autre indexation en cours sur la base, `Machin indexer --window` sans affichage graphique, sortie audio indisponible, autre `Machin player` déjà en diffusion, maintenance de la base inachevée ou avec un rôle manquant, purge de la base impossible, ou fonction pas encore écrite. |
-| 2 | Configuration invalide, ou appel incorrect (option inconnue, `--config` sans fichier). |
+| 2 | Configuration invalide, ou appel incorrect (option inconnue, `--config` sans fichier, option refusée avec une autre). |
 | 127 | Programme ou `journalctl` introuvable, signalé par `Machin`. |
 
 Les messages d'erreur courants et leur solution sont dans le tableau [En cas de problème](../../../INSTALL.fr.md#en-cas-de-problème) d'`INSTALL.md`.
+
+## Démarrages et fins dans le log
+
+`Machin indexer`, `Machin maintenance-db` et `Machin purge` notent chacun de leurs lancements, comme `Machin player`, dans leur journal et dans le log de la base, que l'interface montre ([#341](https://github.com/dascritch/machincast/issues/341)). Une fausse manœuvre ou un plantage s'y retrouve, avec l'heure :
+
+```text
+2026-11-04T03:00:02+01:00 démarrage : Machin_indexer 0.9.0, pid 4812 : --full-audit
+2026-11-04T03:12:47+01:00 fin : Machin_indexer, pid 4812 : code de sortie 0
+```
+
+- **Le démarrage**, nature `démarrage`, au niveau information : le programme, sa version, son numéro de processus (pid) et ses options.
+- **La fin**, nature `fin` : le même pid, et le [code de sortie](#messages-et-codes-de-sortie). Elle est au niveau information pour le code 0, en **incident** pour tout autre code, comme le 2 d'une option refusée, et se lit alors dans l'onglet **Incidents** de l'interface.
+- **Un plantage probable**, nature `plantage probable`, en incident : au lancement suivant d'un programme, si son démarrage précédent n'a pas noté de fin et que son processus ne tourne plus. Le programme a été tué, arrêté par un signal, ou le poste s'est éteint en cours de route : `Machin_purge, pid 3920, démarré le 03/11/2026 à 12:00, n'a pas noté sa fin`. Un lancement précédent encore en cours n'en est pas un.
+
+`Machin indexer --sound N`, que `Machin player` lance avant chaque sonore qu'il va jouer, ne note ni démarrage ni fin. `Machin maintenance-db --keep-open`, lancé depuis l'interface, note sa fin avant que sa fenêtre reste ouverte : la fermer n'est pas un plantage. Une configuration invalide ne dit pas quelle base joindre : seul le journal en parle. Une base injoignable n'empêche pas le programme de tourner : le journal dit que son démarrage n'a pas été noté dans la base.
