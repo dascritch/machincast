@@ -2283,6 +2283,7 @@ msgid "Cancel"
 msgstr "Annuler"
 
 #: machincast/interface/dialogs.py
+#: machincast/interface/display.py
 msgid "Open the folder"
 msgstr "Ouvrir le dossier"
 
@@ -2478,6 +2479,14 @@ msgid ""
 msgstr ""
 "Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → "
 "Préférences…, page Audio)."
+
+#: machincast/interface/display.py
+msgid "Copy the location"
+msgstr "Copier l'emplacement"
+
+#: machincast/interface/display.py
+msgid "Copy the URL of the feed"
+msgstr "Copier l'URL du feed"
 
 #: machincast/interface/display.py
 msgid "January"

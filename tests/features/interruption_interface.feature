@@ -105,6 +105,8 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 			| ⏭ Couper l'événement par le fil musical | active | « Matinale » |
 			| ⏭ Couper par le secours | inactive | Aucun événement de secours |
 			| ⏭ Avancer « Journal », prévu le mercredi 21 octobre à 12:00 | active | Il commence aussitôt, au-dessus de la grille, jusqu'à sa fin, à 12:30 |
+			| Copier l'emplacement | active | |
+			| Ouvrir le dossier | active | |
 
 	Scénario: Sans événement suivant annoncé, l'avance est inactive
 		Étant donné Machin player diffuse « Café à minuit », dans « Matinale », avant « Spot »
@@ -118,6 +120,8 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 			| ⏭ Couper l'événement par le fil musical | active | « Matinale » |
 			| ⏭ Couper par le secours | inactive | Aucun événement de secours |
 			| ⏭ Avancer l'événement suivant  | inactive | Aucun événement suivant dans les sept jours |
+			| Copier l'emplacement | active | |
+			| Ouvrir le dossier | active | |
 
 	Scénario: Pendant un blanc, l'événement suivant s'avance quand même, mais il n'y a rien à sauter
 		Étant donné Machin player laisse un blanc, et annonce l'événement suivant « Journal », du « 2026-10-21T12:00:00 » au « 2026-10-21T12:30:00 »

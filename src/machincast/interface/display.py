@@ -9,7 +9,7 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction, QGuiApplication, QIcon
 from PySide6.QtWidgets import QAbstractButton, QCheckBox, QDateTimeEdit, QMenu, QStyle, QWidget
 
 from machincast.conversion import text_or_none
@@ -192,3 +192,40 @@ def offer_preview(menu: QMenu, sound: int, ask: Callable[[int], None]) -> None:
 		menu.removeAction(entry)
 		menu.insertAction(first, entry)
 		menu.insertSeparator(first)
+
+
+# ─── Emplacement d'un sonore (https://github.com/dascritch/machincast/issues/344) ───
+
+COPY_LOCATION = _("Copy the location")
+COPY_FEED_URL = _("Copy the URL of the feed")
+OPEN_FOLDER = _("Open the folder")
+
+
+def is_stream_location(location: str) -> bool:
+	"""Un emplacement de l'airplay est l'adresse d'un stream, ou le chemin, absolu, d'un fichier."""
+	return not location.startswith("/")
+
+
+def copy_text(text: str) -> None:
+	"""Dans le presse-papiers du bureau."""
+	clipboard = QGuiApplication.clipboard()
+	if clipboard is not None:
+		clipboard.setText(text)
+
+
+def offer_location(menu: QMenu, location: str | None, stream: bool, open_folder: Callable[[Path], None]) -> None:
+	"""À la fin du menu d'un sonore, ce que l'onglet Antenne ne montre plus de son emplacement : « Copier
+	l'emplacement » et « Ouvrir le dossier » d'un fichier, « Copier l'URL du feed » d'un stream. Rien pour un sonore
+	à l'emplacement inconnu. Ouvrir le dossier ne fait que le montrer : jamais un fichier modifié."""
+	if location is None:
+		return
+	if menu.actions():
+		menu.addSeparator()
+	if stream:
+		copy = menu.addAction(COPY_FEED_URL)
+	else:
+		copy = menu.addAction(COPY_LOCATION)
+	copy.triggered.connect(lambda _ticked=False: copy_text(location))
+	if not stream:
+		folder = menu.addAction(OPEN_FOLDER)
+		folder.triggered.connect(lambda _ticked=False: open_folder(Path(location).parent))
