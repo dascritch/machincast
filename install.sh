@@ -84,13 +84,23 @@ PROGRAMMES_ARRETES=false
 SERVICE_ARRETE=false
 # Secondes laissées à un programme pour s'arrêter, avant de l'y forcer.
 DELAI_D_ARRET=15
+# Accès au réseau (https://github.com/dascritch/machincast/issues/376) : une seule de ces adresses qui répond suffit,
+# quelle que soit sa réponse. Sans réseau, apt et pip ne peuvent rien installer ni mettre à jour.
+ADRESSES_DU_RESEAU=(
+	https://dascritch.net/machincast_test_its_connection
+	https://cpu.pm/machincast_test_its_connection
+	https://google.com
+)
+DELAI_DU_RESEAU=10
+RESEAU=true
 UTILISATEUR="$(id -un)"
 
 aide() {
 	tf 'Usage: ./install.sh [--simulation] [--dev] [--service | --remove-service] [--desktop | --no-desktop]
                     [--stop-programs | --leave-programs]
 
-Installs MachinCast in place, from this directory (%s):
+Installs MachinCast in place, from this directory (%s), after checking the network access, without
+which a first installation stops, and an update goes on without updating the packages and dependencies:
   0. running MachinCast programs, under all the accounts of the computer: Machin player (broadcast
      service, trial broadcast, simulation), Machin indexer, Machin interface. If they are running,
      the question is asked whether to stop them during the installation, except with --stop-programs or
@@ -167,6 +177,42 @@ executer() {
 	else
 		"$@"
 	fi
+}
+
+# Vrai si l'adresse répond, quelle que soit sa réponse : par curl, ou, sans curl, par le python3 du système.
+repond() {
+	local adresse="$1"
+	if command -v curl >/dev/null; then
+		curl --head --silent --output /dev/null --max-time "${DELAI_DU_RESEAU}" "${adresse}"
+		return
+	fi
+	python3 -c '
+import sys, urllib.error, urllib.request
+try:
+	urllib.request.urlopen(urllib.request.Request(sys.argv[1], method="HEAD"), timeout=float(sys.argv[2]))
+except urllib.error.HTTPError:
+	pass
+except OSError:
+	sys.exit(1)
+' "${adresse}" "${DELAI_DU_RESEAU}"
+}
+
+# Sans réseau, une première installation ne peut pas aller plus loin ; une mise à jour continue, sans apt ni pip.
+verifier_reseau() {
+	etape 'Network access'
+	local adresse
+	for adresse in "${ADRESSES_DU_RESEAU[@]}"; do
+		if repond "${adresse}"; then
+			info '%s answers' "${adresse}"
+			return
+		fi
+		info '%s does not answer' "${adresse}"
+	done
+	if [[ ! -x "${VENV}/bin/python" ]]; then
+		echec 'no network access: a first installation needs it, for the system packages and the Python dependencies'
+	fi
+	RESEAU=false
+	info 'no network access: the system packages and the Python dependencies will not be updated; the installation goes on'
 }
 
 verifier_systeme() {
@@ -303,6 +349,10 @@ relancer_les_programmes() {
 
 installer_paquets() {
 	etape 'System packages'
+	if ! "${RESEAU}"; then
+		info 'not updated: no network access'
+		return
+	fi
 	executer sudo apt-get update
 	local paquets=("${PAQUETS[@]}")
 	"${DEV}" && paquets+=("${PAQUETS_DEV[@]}")
@@ -316,6 +366,10 @@ installer_venv() {
 		info '%s already exists' "${VENV}"
 	else
 		executer python3 -m venv "${VENV}"
+	fi
+	if ! "${RESEAU}"; then
+		info 'Python dependencies not updated: no network access'
+		return
 	fi
 	executer "${VENV}/bin/pip" install --upgrade pip
 	if "${DEV}"; then
@@ -751,6 +805,7 @@ principal() {
 	fi
 	cd "${RACINE}"
 	verifier_systeme
+	verifier_reseau
 	arreter_les_programmes
 	installer_paquets
 	installer_venv

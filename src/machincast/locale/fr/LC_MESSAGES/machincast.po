@@ -7047,7 +7047,10 @@ msgid ""
 "[--desktop | --no-desktop]\n"
 "                    [--stop-programs | --leave-programs]\n"
 "\n"
-"Installs MachinCast in place, from this directory (%s):\n"
+"Installs MachinCast in place, from this directory (%s), after checking the "
+"network access, without\n"
+"which a first installation stops, and an update goes on without updating "
+"the packages and dependencies:\n"
 "  0. running MachinCast programs, under all the accounts of the computer: "
 "Machin player (broadcast\n"
 "     service, trial broadcast, simulation), Machin indexer, Machin "
@@ -7119,7 +7122,11 @@ msgstr ""
 "[--desktop | --no-desktop]\n"
 "                    [--stop-programs | --leave-programs]\n"
 "\n"
-"Installe MachinCast en place, depuis ce répertoire (%s) :\n"
+"Installe MachinCast en place, depuis ce répertoire (%s), après avoir "
+"vérifié l'accès au réseau, sans\n"
+"lequel une première installation s'arrête, et une mise à jour continue sans "
+"mettre à jour les paquets\n"
+"et les dépendances :\n"
 "  0. programmes de MachinCast en cours, sous tous les comptes du poste : "
 "Machin player (service de\n"
 "     diffusion, diffusion d'essai, simulation), Machin indexer, Machin "
@@ -7196,6 +7203,34 @@ msgstr ""
 #: install.sh
 msgid "install.sh: %s\\n"
 msgstr "install.sh : %s\\n"
+
+#: install.sh
+msgid "Network access"
+msgstr "Accès au réseau"
+
+#: install.sh
+msgid "%s answers"
+msgstr "%s répond"
+
+#: install.sh
+msgid "%s does not answer"
+msgstr "%s ne répond pas"
+
+#: install.sh
+msgid ""
+"no network access: a first installation needs it, for the system packages "
+"and the Python dependencies"
+msgstr ""
+"pas d'accès au réseau : une première installation en a besoin, pour les "
+"paquets du système et les dépendances Python"
+
+#: install.sh
+msgid ""
+"no network access: the system packages and the Python dependencies will not "
+"be updated; the installation goes on"
+msgstr ""
+"pas d'accès au réseau : les paquets du système et les dépendances Python ne "
+"seront pas mis à jour ; l'installation continue"
 
 #: install.sh
 msgid "System"
@@ -7307,12 +7342,20 @@ msgid "System packages"
 msgstr "Paquets système"
 
 #: install.sh
+msgid "not updated: no network access"
+msgstr "pas mis à jour : pas d'accès au réseau"
+
+#: install.sh
 msgid "Python virtual environment"
 msgstr "Environnement virtuel Python"
 
 #: install.sh
 msgid "%s already exists"
 msgstr "%s existe déjà"
+
+#: install.sh
+msgid "Python dependencies not updated: no network access"
+msgstr "dépendances Python pas mises à jour : pas d'accès au réseau"
 
 #: install.sh
 msgid "Configuration"
