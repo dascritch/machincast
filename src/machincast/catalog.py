@@ -85,7 +85,8 @@ def extract(package: Path = PACKAGE) -> dict[str, Message]:
 				continue
 			texts = [_constant(argument) for argument in node.args]
 			kind = KEYWORDS[node.func.id]
-			reference = f"{relative}:{node.lineno}"
+			# Le fichier seul, sans numéro de ligne : déplacer du code ne change pas le catalogue.
+			reference = relative
 			if (kind == "message") and (texts) and (texts[0]):
 				add(Message(texts[0]), reference)
 			elif (kind == "plural") and (len(texts) >= 2) and (texts[0]) and (texts[1]):
@@ -104,8 +105,7 @@ def extract(package: Path = PACKAGE) -> dict[str, Message]:
 			start = text.rfind("\n", 0, found_message.start()) + 1
 			if text[start : found_message.start()].lstrip().startswith("#"):
 				continue
-			line = text.count("\n", 0, found_message.start()) + 1
-			add(Message(found_message.group(1)), f"{script.relative_to(package.parent.parent).as_posix()}:{line}")
+			add(Message(found_message.group(1)), script.relative_to(package.parent.parent).as_posix())
 	return found
 
 
