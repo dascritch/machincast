@@ -106,7 +106,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 
 **Relançable** : chaque étape déjà faite est laissée telle quelle. En cas d'échec, corriger ce que le message indique, puis relancer le script. À la relance, PostgreSQL signale par des lignes `NOTICE:  role … has already been granted membership …` que le compte était déjà autorisé : ce n'est pas une erreur.
 
-**Ce qu'il demande** : le mot de passe `sudo`, pour apt, pour les commandes passées en tant qu'utilisateur `postgres`, pour l'ajout au groupe `systemd-journal`, pour les liens dans `/opt`, `/usr/local/bin` et `/usr/share`, et, avec `--service`, pour la session du compte, l'unité systemd et la règle polkit. Deux questions au plus. Si des programmes de MachinCast tournent : « Les arrêter pendant l'installation, puis les relancer ? [o/N] » ; Entrée répond non. `--stop-programs` et `--leave-programs` y répondent d'avance ; sans terminal, elle n'est pas posée, et ils continuent. À la première installation : « Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] » ; Entrée répond oui. `--desktop` et `--no-desktop` y répondent d'avance ; sans terminal, par exemple dans un script, elle n'est pas posée, et le raccourci ne va pas sur le bureau.
+**Ce qu'il demande** : le mot de passe `sudo`, pour apt, pour les commandes passées en tant qu'utilisateur `postgres`, pour l'ajout au groupe `systemd-journal`, pour les liens dans `/opt`, `/usr/local/bin` et `/usr/share`, et, avec `--service`, pour la session du compte, l'unité systemd et la règle polkit. Trois questions au plus. Si des programmes de MachinCast tournent : « Les arrêter pendant l'installation, puis les relancer ? [o/N] » ; Entrée répond non. `--stop-programs` et `--leave-programs` y répondent d'avance ; sans terminal, elle n'est pas posée, et ils continuent. À la première installation : « Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] » ; Entrée répond oui. `--desktop` et `--no-desktop` y répondent d'avance ; sans terminal, par exemple dans un script, elle n'est pas posée, et le raccourci ne va pas sur le bureau. Sans `--service`, si le service de diffusion est installé mais n'est plus à jour pour cette version de MachinCast : « Mettre à jour le service de diffusion ? Il redémarre s'il tourne. [O/n] » ; Entrée répond oui ([#376](https://github.com/dascritch/machincast/issues/376)). `--service` le met à jour sans question ; sans terminal, elle n'est pas posée, et le service reste tel quel.
 
 **Ce qu'il fait**, dans l'ordre :
 
@@ -228,7 +228,8 @@ Les anomalies (fichier endommagé, illisible ou introuvable) s'affichent sur la 
 | Unité systemd | Installe `/etc/systemd/system/machincast.service`, rédigé par `python -m machincast.installation unit`, puis recharge systemd. | Une unité systemd. |
 | Règle polkit | Installe `/etc/polkit-1/rules.d/50-machincast.rules`, rédigée par `python -m machincast.installation rule`. | Une règle polkit. |
 | Activation | Active le service au démarrage du poste, et le démarre ; une unité modifiée redémarre le service. | Service activé. |
-| Purge quotidienne | Installe `/etc/systemd/system/machincast-purge.service` et son minuteur `machincast-purge.timer`, rédigés par `python -m machincast.installation purge-unit` et `minuteur-purge`, et active le minuteur ([#268](https://github.com/dascritch/machincast/issues/268)). | Une unité et un minuteur systemd. |
+| Service déjà installé, sans `--service` | Compare l'unité, la règle, l'unité et le minuteur de la purge à ceux de cette version ([#376](https://github.com/dascritch/machincast/issues/376)) : à jour, rien à faire ; sinon, il les nomme, et propose de mettre le service à jour, comme `--service`. | Rien, ou le service mis à jour. |
+| Purge quotidienne | Installe `/etc/systemd/system/machincast-purge.service` et son minuteur `machincast-purge.timer`, rédigés par `python -m machincast.installation purge-unit` et `purge-timer`, et active le minuteur ([#268](https://github.com/dascritch/machincast/issues/268)). | Une unité et un minuteur systemd. |
 
 **Le service** tourne sous le compte qui a installé MachinCast, pas sous un compte système : il en a le rôle PostgreSQL, les fichiers et la session audio. Il lance `bin/Machin player`, avec le `machincast.toml` du répertoire de MachinCast, et le relance 5 secondes après un plantage. Son arrêt envoie `SIGTERM`, qui termine proprement le passage en cours. Ses messages vont dans le journal du système : `Machin logs` les suit.
 
@@ -297,7 +298,7 @@ git pull
 ./install.sh
 ```
 
-`install.sh` met à jour les dépendances Python et applique les nouvelles migrations du schéma aux deux bases. Si des programmes de MachinCast tournent, il propose d'abord de les arrêter, puis les relance à la fin ([Installer avec install.sh](#installer-avec-installsh)) : pour ne pas faire taire l'antenne au mauvais moment, lancer la mise à jour hors d'une émission. `machincast.toml` n'est pas modifié : comparer avec `machincast.exemple.toml` pour y ajouter les nouvelles clés, que MachinCast signale sinon comme manquantes.
+`install.sh` met à jour les dépendances Python et applique les nouvelles migrations du schéma aux deux bases. **Avec le service de diffusion**, il vérifie que le service installé est celui de cette version, et propose de le mettre à jour s'il ne l'est plus ([#376](https://github.com/dascritch/machincast/issues/376)) : un service d'avant peut appeler un programme qui n'existe plus, comme `Machin lecture`, devenu `Machin player` ; il ne démarre alors plus, et s'arrête avec le code 2, ce que dit l'interface. Si des programmes de MachinCast tournent, il propose d'abord de les arrêter, puis les relance à la fin ([Installer avec install.sh](#installer-avec-installsh)) : pour ne pas faire taire l'antenne au mauvais moment, lancer la mise à jour hors d'une émission. `machincast.toml` n'est pas modifié : comparer avec `machincast.exemple.toml` pour y ajouter les nouvelles clés, que MachinCast signale sinon comme manquantes.
 
 À la main, sans relancer `install.sh` :
 
@@ -307,7 +308,7 @@ git pull
 .venv/bin/python -m machincast.installation migrate --config machincast.toml
 ```
 
-`migrer` applique le schéma aux bases de production et de test de la configuration. Pour une seule base, la même chose avec yoyo :
+`migrate` applique le schéma aux bases de production et de test de la configuration. Pour une seule base, la même chose avec yoyo :
 
 ```bash
 .venv/bin/yoyo apply --batch --database "postgresql+psycopg:///machincast?host=/var/run/postgresql" src/machincast/migrations/

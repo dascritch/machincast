@@ -54,7 +54,7 @@ DOSSIER_APPLICATIONS="${XDG_DATA_HOME:-${HOME}/.local/share}/applications"
 ICONE_DU_THEME="${XDG_DATA_HOME:-${HOME}/.local/share}/icons/hicolor/512x512/apps/machincast.png"
 CONFIGURATION="${RACINE}/machincast.toml"
 VENV="${RACINE}/.venv"
-ROLES=(lecture indexation interface)
+ROLES=(player indexer interface)
 
 # Prérequis système : ce que pip ne peut pas fournir (https://github.com/dascritch/machincast/issues/51).
 # Même liste que CLAUDE.md, sans les outils de développement.
@@ -72,6 +72,9 @@ SERVICE=false
 RETIRER_SERVICE=false
 # Raccourci sur le bureau : demander, oui ou non.
 BUREAU=demander
+# Service déjà installé mais pas à jour, sans --service (https://github.com/dascritch/machincast/issues/376) : le mettre à
+# jour, demandé à la question.
+METTRE_A_JOUR_LE_SERVICE=false
 # Programmes de MachinCast en cours (https://github.com/dascritch/machincast/issues/254) : demander, oui ou non ;
 # ceux qu'install.sh a arrêtés, à relancer à la fin, même après un échec.
 ARRETER=demander
@@ -114,7 +117,8 @@ another sound card): Machin player starts with the computer, under the account %
 restarts after a crash; a polkit rule lets it start, stop and restart with the password
 of an administrator; a systemd timer, %s, launches every day at noon
 Machin purge, which erases from the database what exceeds the expiry duration. Without --service, none
-of this is installed: the broadcast and the purge are launched by hand.
+of this is installed: the broadcast and the purge are launched by hand. A service installed before is
+checked: if it is not up to date for this version, the question is asked whether to update it.
 
 Can be run again: each step already done is left as is.
 To run with your own account, not with sudo: the script asks for sudo when needed.
@@ -184,9 +188,9 @@ verifier_systeme() {
 }
 
 # Programmes de MachinCast en cours (https://github.com/dascritch/machincast/issues/254), lus par
-# machincast.programmes avec le python3 du système : le venv peut manquer, ou changer pendant l'installation.
+# machincast.programs avec le python3 du système : le venv peut manquer, ou changer pendant l'installation.
 programmes() {
-	PYTHONPATH="${RACINE}/src" python3 -m machincast.programmes "$@"
+	PYTHONPATH="${RACINE}/src" python3 -m machincast.programs "$@"
 }
 
 vouloir_arreter() {
@@ -563,12 +567,76 @@ installer_raccourci() {
 	fi
 }
 
-installer_service() {
-	etape 'Broadcast service'
-	if ! "${SERVICE}"; then
+# Vrai si le fichier en place est celui que rédige machincast.installation ; sans rien installer.
+fichier_a_jour() {
+	local action="$1" destination="$2" redige
+	redige="$(mktemp)"
+	if ! installation "${action}" >"${redige}"; then
+		rm --force "${redige}" # fichier de MachinCast : unité ou règle rédigée, temporaire
+		return 1
+	fi
+	if [[ -r "${destination}" ]] && cmp --silent "${redige}" "${destination}"; then
+		rm --force "${redige}" # fichier de MachinCast : unité ou règle rédigée, temporaire
+		return 0
+	fi
+	rm --force "${redige}" # fichier de MachinCast : unité ou règle rédigée, temporaire
+	return 1
+}
+
+# Les fichiers du service installé qui ne sont plus ceux de cette version de MachinCast, un par ligne : après une mise
+# à jour, l'unité d'avant peut appeler un programme qui n'existe plus (https://github.com/dascritch/machincast/issues/376).
+fichiers_du_service_perimes() {
+	local paire
+	for paire in "unit:${FICHIER_UNITE}" "purge-unit:${FICHIER_UNITE_PURGE}" "purge-timer:${FICHIER_MINUTEUR_PURGE}" \
+		"rule:${FICHIER_REGLE}"; do
+		fichier_a_jour "${paire%%:*}" "${paire#*:}" || printf '%s\n' "${paire#*:}"
+	done
+}
+
+vouloir_mettre_a_jour_le_service() {
+	local reponse
+	if "${SIMULATION}"; then
+		info '[simulation] question: update the broadcast service?'
+		return 0
+	fi
+	if [[ ! -t 0 ]]; then
+		info 'no question without a terminal: ./install.sh --service updates it'
+		return 1
+	fi
+	read -r -p "    $(t 'Update the broadcast service? It restarts if it is running. [Y/n] ')" reponse
+	[[ ! "${reponse}" =~ ^[nN] ]]
+}
+
+# Sans --service, le service déjà installé est vérifié : pas à jour, la question est posée de le mettre à jour.
+verifier_le_service_installe() {
+	if [[ ! -e "${FICHIER_UNITE}" ]]; then
 		info 'not installed: the broadcast is launched by hand, with Machin player'
 		info 'on a computer dedicated to the on-air output: ./install.sh --service'
 		return
+	fi
+	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
+		info '[simulation] installed service compared with machincast.installation once the virtual environment is created'
+		return
+	fi
+	local perimes
+	perimes="$(fichiers_du_service_perimes)"
+	if [[ -z "${perimes}" ]]; then
+		info 'installed and up to date'
+		return
+	fi
+	info 'installed, but not up to date for this version of MachinCast, it may no longer start: %s' "${perimes//$'\n'/, }"
+	if vouloir_mettre_a_jour_le_service; then
+		METTRE_A_JOUR_LE_SERVICE=true
+	else
+		info 'left as is; ./install.sh --service updates it'
+	fi
+}
+
+installer_service() {
+	etape 'Broadcast service'
+	if ! "${SERVICE}"; then
+		verifier_le_service_installe
+		"${METTRE_A_JOUR_LE_SERVICE}" || return 0
 	fi
 	# L'antenne d'un poste dédié joue toujours sur une carte son (https://github.com/dascritch/machincast/issues/339).
 	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then

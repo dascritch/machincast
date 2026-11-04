@@ -7089,7 +7089,10 @@ msgid ""
 "of an administrator; a systemd timer, %s, launches every day at noon\n"
 "Machin purge, which erases from the database what exceeds the expiry "
 "duration. Without --service, none\n"
-"of this is installed: the broadcast and the purge are launched by hand.\n"
+"of this is installed: the broadcast and the purge are launched by hand. A "
+"service installed before is\n"
+"checked: if it is not up to date for this version, the question is asked "
+"whether to update it.\n"
 "\n"
 "Can be run again: each step already done is left as is.\n"
 "To run with your own account, not with sudo: the script asks for sudo when "
@@ -7161,7 +7164,11 @@ msgstr ""
 "midi\n"
 "Machin purge, qui efface de la base ce qui dépasse la durée de péremption. "
 "Sans --service, rien de\n"
-"cela n'est installé : la diffusion et la purge se lancent à la main.\n"
+"cela n'est installé : la diffusion et la purge se lancent à la main. Un "
+"service\n"
+"installé avant est vérifié : s'il n'est pas à jour pour cette version, la "
+"question est posée de le\n"
+"mettre à jour.\n"
 "\n"
 "Relançable : chaque étape déjà faite est laissée telle quelle.\n"
 "À lancer avec son propre compte, pas avec sudo : le script demande sudo "
@@ -7483,8 +7490,17 @@ msgid "no shortcut on the desktop; ./install.sh --desktop puts it there"
 msgstr "pas de raccourci sur le bureau ; ./install.sh --desktop l'y dépose"
 
 #: install.sh
-msgid "Broadcast service"
-msgstr "Service de diffusion"
+msgid "[simulation] question: update the broadcast service?"
+msgstr "[simulation] question : mettre à jour le service de diffusion ?"
+
+#: install.sh
+msgid "no question without a terminal: ./install.sh --service updates it"
+msgstr "pas de question sans terminal : ./install.sh --service le met à jour"
+
+#: install.sh
+msgid "Update the broadcast service? It restarts if it is running. [Y/n] "
+msgstr ""
+"Mettre à jour le service de diffusion ? Il redémarre s'il tourne. [O/n] "
 
 #: install.sh
 msgid "not installed: the broadcast is launched by hand, with Machin player"
@@ -7493,6 +7509,34 @@ msgstr "non installé : la diffusion se lance à la main, par Machin player"
 #: install.sh
 msgid "on a computer dedicated to the on-air output: ./install.sh --service"
 msgstr "sur un ordinateur dédié à l'antenne : ./install.sh --service"
+
+#: install.sh
+msgid ""
+"[simulation] installed service compared with machincast.installation once "
+"the virtual environment is created"
+msgstr ""
+"[simulation] service installé comparé par machincast.installation une fois "
+"l'environnement virtuel créé"
+
+#: install.sh
+msgid "installed and up to date"
+msgstr "installé et à jour"
+
+#: install.sh
+msgid ""
+"installed, but not up to date for this version of MachinCast, it may no "
+"longer start: %s"
+msgstr ""
+"installé, mais pas à jour pour cette version de MachinCast, il pourrait ne "
+"plus démarrer : %s"
+
+#: install.sh
+msgid "left as is; ./install.sh --service updates it"
+msgstr "laissé tel quel ; ./install.sh --service le met à jour"
+
+#: install.sh
+msgid "Broadcast service"
+msgstr "Service de diffusion"
 
 #: install.sh
 msgid ""
