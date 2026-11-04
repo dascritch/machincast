@@ -42,7 +42,7 @@ from machincast.i18n import _, date_and_hour
 from machincast.interface import display
 from machincast.interface.calendar import day_and_month, long_date
 from machincast.interface.card import ORANGE, Card, Connection, Refusal
-from machincast.interface.items import Buttons, ItemList
+from machincast.interface.items import CATEGORY, FEED, ITEM, Buttons, ItemList
 from machincast.interface.lists import EMPTY_EVENT
 from machincast.interface.sessions import Session, next_skipped, overlapped, reinstate, started
 from machincast.interface.ui.event_card import Ui_EventCard
@@ -68,6 +68,19 @@ HIDINGS: tuple[tuple[bool | None, str], ...] = (
 """Valeurs de events.hide_metadata, dans l'ordre du choix de la fiche."""
 REPETITION = _("A sound, a bank or a sequence may come back several times in an event.")
 """Remarque des choix d'éléments."""
+END_OF_LIST: tuple[tuple[str, str], ...] = (
+	("replay", _("Replay the list")),
+	("background_programming", _("Switch to the background programming")),
+	("fallback", _("Switch to a fallback")),
+)
+"""Valeurs de events.end_of_list, dans l'ordre du choix de la fiche (https://github.com/dascritch/machincast/issues/350).
+Le choix n'a de sens que pour une émission ou un spécial qui a une fin : sans fin, sa liste ne boucle pas ; un fil
+musical et un secours rejouent toujours la leur."""
+CHOOSE_FALLBACK = _("Choose a fallback…")
+EACH_STREAM = _("The fallback of each stream")
+"""Sans secours d'un stream tombé dans l'événement : celui de chaque stream, comme avant."""
+WITHOUT_END = _("Only for a show or a special that has an end: otherwise, its list does not replay.")
+WITHOUT_STREAM = _("Only for an event whose list has a stream.")
 DEFAULT_DURATION = timedelta(hours=1)
 """Écart entre le début et une fin qui se coche."""
 SESSION_OUTLINE = f"QFrame#session_sautee {{ border: 4px solid {ORANGE}; }}"
@@ -127,6 +140,15 @@ class EventCard(Card):
 		ui.has_end.toggled.connect(self._grid)
 		ui.has_end.toggled.connect(self._modify)
 		ui.has_end.toggled.connect(self._warn)
+		for value, text in END_OF_LIST:
+			ui.end_of_list.addItem(text, value)
+		ui.end_of_list.currentIndexChanged.connect(self._end_of_list)
+		ui.end_of_list.currentIndexChanged.connect(self._modify)
+		ui.end_fallback.currentIndexChanged.connect(self._modify)
+		ui.stream_fallback.currentIndexChanged.connect(self._modify)
+		ui.priority.currentIndexChanged.connect(self._end_of_list)
+		ui.has_end.toggled.connect(self._end_of_list)
+		self.items.changed.connect(self._end_of_list)
 		for field in (ui.start, ui.end):
 			field.dateTimeChanged.connect(self._modify)
 		for day in self.days:
@@ -146,19 +168,25 @@ class EventCard(Card):
 	def _read(self) -> None:
 		"""Lit l'événement en base, ou celui qu'il copie, sans ses dates ni ses jours ; un nouvel événement est une
 		émission, sans dates, au masquage hérité."""
-		event: tuple[object, ...] = ("", None, NEW, None, None, [], None)
+		event: tuple[object, ...] = ("", None, NEW, None, None, [], None, "replay", None, None)
 		lu = self.lu()
 		with self.connection.transaction():
 			if lu is not None:
 				line = self.connection.execute(
 					"SELECT internal_name, public_name, priority::text, starts_at, ends_at, recurrence_days::text[],"
-					" hide_metadata FROM events WHERE id = %s",
+					" hide_metadata, end_of_list::text, end_fallback_event_id, stream_fallback_event_id"
+					" FROM events WHERE id = %s",
 					(lu,),
 				).fetchone()
 				assert line is not None, f"événement {lu} absent"
 				event = line
+			fallbacks = self.connection.execute(
+				"SELECT id, internal_name FROM events WHERE priority = 'fallback' AND deleted_at IS NULL"
+				" AND id IS DISTINCT FROM %s ORDER BY internal_name",
+				(lu,),
+			).fetchall()
 			self.items.load(lu, self.is_copy())
-		name, public_name, priority, start, end, days, hiding = event
+		name, public_name, priority, start, end, days, hiding, end_of_list, end_fallback, stream_fallback = event
 		if self.is_copy():
 			start, end, days = None, None, []
 		ui = self.ui
@@ -187,9 +215,11 @@ class EventCard(Card):
 			ticked_list = {str(day) for day in days}
 		for day_name, day in zip(DAYS, self.days, strict=True):
 			day.setChecked(day_name in ticked_list)
+		self._fill_fallbacks(fallbacks, end_of_list, end_fallback, stream_fallback)
 		# Une priorité déjà choisie ne change pas l'index : l'avertissement ne suit pas de lui-même.
 		self._grid()
 		self._warn()
+		self._end_of_list()
 		self._announce_session()
 
 	# ─── Session sautée (https://github.com/dascritch/machincast/issues/295) ───
@@ -316,6 +346,63 @@ class EventCard(Card):
 		for day in self.days:
 			day.setEnabled(with_start)
 
+	# ─── Fin de liste et secours (https://github.com/dascritch/machincast/issues/350) ───
+
+	def _fill_fallbacks(
+		self, fallbacks: list[tuple[object, ...]], end_of_list: object, end_fallback: object, stream_fallback: object
+	) -> None:
+		"""Les secours proposés, ceux de priorité secours qui ne sont pas supprimés, et les choix de l'événement."""
+		ui = self.ui
+		for combo, first in ((ui.end_fallback, CHOOSE_FALLBACK), (ui.stream_fallback, EACH_STREAM)):
+			combo.blockSignals(True)
+			combo.clear()
+			combo.addItem(first, None)
+			for identifier, fallback_name in fallbacks:
+				combo.addItem(str(fallback_name), int(str(identifier)))
+			combo.blockSignals(False)
+		ui.end_of_list.setCurrentIndex(max(ui.end_of_list.findData(str(end_of_list)), 0))
+		ui.end_fallback.setCurrentIndex(max(ui.end_fallback.findData(end_fallback), 0))
+		ui.stream_fallback.setCurrentIndex(max(ui.stream_fallback.findData(stream_fallback), 0))
+
+	def _end_of_list(self) -> None:
+		"""La fin de liste ne se choisit que pour une émission ou un spécial qui a une fin, grisée sinon sur
+		« Rejouer la liste » ; son secours, que pour « Basculer vers un secours ». Le secours d'un stream tombé, que
+		pour une liste qui a un stream."""
+		ui = self.ui
+		with_end = (self._priority() in ENDLESS_DOES_NOT_LOOP) and (ui.has_end.isChecked())
+		if not with_end:
+			ui.end_of_list.setCurrentIndex(0)
+		ui.end_of_list.setEnabled(with_end)
+		tooltip = WITHOUT_END
+		if with_end:
+			tooltip = ""
+		ui.end_of_list.setToolTip(tooltip)
+		ui.end_fallback.setEnabled((with_end) and (ui.end_of_list.currentData() == "fallback"))
+		stream = self._has_stream()
+		ui.stream_fallback.setEnabled(stream)
+		tooltip = WITHOUT_STREAM
+		if stream:
+			tooltip = ""
+		ui.stream_fallback.setToolTip(tooltip)
+
+	def _has_stream(self) -> bool:
+		"""Un stream dans la liste : un feed ajouté, ou un sonore de type stream."""
+		sounds = []
+		for line in self.items.lines():
+			if line.data(0, CATEGORY) != "sound":
+				continue
+			if line.data(0, FEED) is not None:
+				return True
+			if line.data(0, ITEM) is not None:
+				sounds.append(int(line.data(0, ITEM)))
+		if sounds == []:
+			return False
+		with self.connection.transaction():
+			found = self.connection.execute(
+				"SELECT 1 FROM sounds WHERE type = 'stream' AND id = ANY(%s) LIMIT 1", (sounds,)
+			).fetchone()
+		return found is not None
+
 	def _tick_end(self) -> None:
 		"""Une fin cochée qui ne suit pas le début part d'une heure après lui."""
 		ui = self.ui
@@ -352,6 +439,15 @@ class EventCard(Card):
 		days = [day_name for day_name, day in zip(DAYS, self.days, strict=True) if day.isChecked()]
 		self._refuse_overlap(name, priority, start, end, days)
 		self._refuse_designated_fallback(priority)
+		end_of_list = str(ui.end_of_list.currentData())
+		end_fallback = None
+		if end_of_list == "fallback":
+			end_fallback = ui.end_fallback.currentData()
+			if end_fallback is None:
+				raise Refusal(_("Choose the fallback that follows the end of the list."), ui.end_of_list_caption)
+		stream_fallback = None
+		if ui.stream_fallback.isEnabled():
+			stream_fallback = ui.stream_fallback.currentData()
 		values = (
 			name,
 			(conform(ui.public_name.text())) or (None),
@@ -360,12 +456,16 @@ class EventCard(Card):
 			end,
 			days,
 			HIDINGS[ui.hiding.currentIndex()][0],
+			end_of_list,
+			end_fallback,
+			stream_fallback,
 		)
 		if self.identifier is None:
 			created = self.connection.execute(
 				"INSERT INTO events"
-				" (internal_name, public_name, priority, starts_at, ends_at, recurrence_days, hide_metadata)"
-				" VALUES (%s, %s, %s, %s, %s, %s::weekday[], %s) RETURNING id",
+				" (internal_name, public_name, priority, starts_at, ends_at, recurrence_days, hide_metadata,"
+				" end_of_list, end_fallback_event_id, stream_fallback_event_id)"
+				" VALUES (%s, %s, %s, %s, %s, %s::weekday[], %s, %s, %s, %s) RETURNING id",
 				values,
 			).fetchone()
 			assert created is not None
@@ -374,7 +474,8 @@ class EventCard(Card):
 			identifier = self.identifier
 			self.connection.execute(
 				"UPDATE events SET internal_name = %s, public_name = %s, priority = %s, starts_at = %s, ends_at = %s,"
-				" recurrence_days = %s::weekday[], hide_metadata = %s WHERE id = %s",
+				" recurrence_days = %s::weekday[], hide_metadata = %s, end_of_list = %s, end_fallback_event_id = %s,"
+				" stream_fallback_event_id = %s WHERE id = %s",
 				(*values, identifier),
 			)
 		self.items.write(identifier)
@@ -423,6 +524,17 @@ class EventCard(Card):
 			"SELECT COALESCE(title, stream_url) FROM sounds WHERE fallback_event_id = %s ORDER BY 1",
 			(self.identifier,),
 		).fetchall()
+		events = self.connection.execute(
+			"SELECT internal_name FROM events WHERE (end_fallback_event_id = %s OR stream_fallback_event_id = %s)"
+			" AND deleted_at IS NULL ORDER BY 1",
+			(self.identifier, self.identifier),
+		).fetchall()
+		if events != []:
+			names = ", ".join(_("“{event}”").format(event=event) for (event,) in events)
+			raise Refusal(
+				_("Events have this event as fallback: {names}. It stays of priority “Fallback”.").format(names=names),
+				self.ui.priority,
+			)
 		if streams != []:
 			names = ", ".join(_("“{stream}”").format(stream=stream) for (stream,) in streams)
 			raise Refusal(

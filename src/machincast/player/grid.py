@@ -36,6 +36,7 @@ from enum import StrEnum
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.conversion import integer_or_none
 from machincast.i18n import _
 
 
@@ -76,6 +77,15 @@ class Event:
 	"""Supprimé depuis l'interface (https://github.com/dascritch/machincast/issues/267) : il ne joue plus après ;
 	seul le calendrier lit un événement supprimé, pour ses occurrences d'avant
 	(https://github.com/dascritch/machincast/issues/269)."""
+	end_of_list: str = "replay"
+	"""Que faire à la fin de sa liste, avant la fin de son occurrence
+	(https://github.com/dascritch/machincast/issues/350) : « replay », la rejouer ; « background_programming »,
+	laisser l'antenne à l'événement en dessous, le fil musical ; « fallback », passer au secours de fin de liste.
+	Sans fin d'occurrence, la liste ne boucle pas."""
+	end_fallback: int | None = None
+	"""Le secours de fin de liste, pour « fallback »."""
+	stream_fallback: int | None = None
+	"""Le secours d'un stream de sa liste qui tombe ; il l'emporte sur celui du stream."""
 
 
 @dataclass(frozen=True)
@@ -468,7 +478,8 @@ def _winning(covering: list[Occurrence]) -> Occurrence | None:
 
 COLUMNS = (
 	"id, internal_name, priority::text, starts_at, ends_at, recurrence_days::text[], modified_at, deleted_at,"
-	" ARRAY(SELECT s.day FROM event_skips s WHERE s.event_id = events.id)"
+	" ARRAY(SELECT s.day FROM event_skips s WHERE s.event_id = events.id), end_of_list::text, end_fallback_event_id,"
+	" stream_fallback_event_id"
 )
 
 
@@ -509,6 +520,22 @@ def _events(lines: list[TupleRow]) -> list[Event]:
 				day for day in (skipped_list if isinstance(skipped_list, list) else []) if isinstance(day, date)
 			),
 			deleted_at=deleted_at if isinstance(deleted_at, datetime) else None,
+			end_of_list=str(end_of_list),
+			end_fallback=integer_or_none(end_fallback),
+			stream_fallback=integer_or_none(stream_fallback),
 		)
-		for identifier, name, priority, start, end, days, modified_at, deleted_at, skipped_list in lines
+		for (
+			identifier,
+			name,
+			priority,
+			start,
+			end,
+			days,
+			modified_at,
+			deleted_at,
+			skipped_list,
+			end_of_list,
+			end_fallback,
+			stream_fallback,
+		) in lines
 	]

@@ -74,6 +74,38 @@ class Ui_EventCard(object):
 
         self.form.setWidget(3, QFormLayout.ItemRole.FieldRole, self.hiding)
 
+        self.end_of_list_caption = QLabel(EventCard)
+        self.end_of_list_caption.setObjectName(u"end_of_list_caption")
+
+        self.form.setWidget(4, QFormLayout.ItemRole.LabelRole, self.end_of_list_caption)
+
+        self.end_of_list_layout = QHBoxLayout()
+        self.end_of_list_layout.setObjectName(u"end_of_list_layout")
+        self.end_of_list = QComboBox(EventCard)
+        self.end_of_list.setObjectName(u"end_of_list")
+
+        self.end_of_list_layout.addWidget(self.end_of_list)
+
+        self.end_fallback = QComboBox(EventCard)
+        self.end_fallback.setObjectName(u"end_fallback")
+
+        self.end_of_list_layout.addWidget(self.end_fallback)
+
+        self.end_of_list_layout.setStretch(0, 1)
+        self.end_of_list_layout.setStretch(1, 1)
+
+        self.form.setLayout(4, QFormLayout.ItemRole.FieldRole, self.end_of_list_layout)
+
+        self.stream_fallback_caption = QLabel(EventCard)
+        self.stream_fallback_caption.setObjectName(u"stream_fallback_caption")
+
+        self.form.setWidget(5, QFormLayout.ItemRole.LabelRole, self.stream_fallback_caption)
+
+        self.stream_fallback = QComboBox(EventCard)
+        self.stream_fallback.setObjectName(u"stream_fallback")
+
+        self.form.setWidget(5, QFormLayout.ItemRole.FieldRole, self.stream_fallback)
+
 
         self.top.addLayout(self.form)
 
@@ -270,6 +302,8 @@ class Ui_EventCard(object):
         self.public_name_caption.setBuddy(self.public_name)
         self.priority_caption.setBuddy(self.priority)
         self.hiding_caption.setBuddy(self.hiding)
+        self.end_of_list_caption.setBuddy(self.end_of_list)
+        self.stream_fallback_caption.setBuddy(self.stream_fallback)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(EventCard)
@@ -287,6 +321,8 @@ class Ui_EventCard(object):
         self.public_name.setPlaceholderText(QCoreApplication.translate("EventCard", u"Shown instead of the hidden artist and title; optional", None))
         self.priority_caption.setText(QCoreApplication.translate("EventCard", u"P&riority", None))
         self.hiding_caption.setText(QCoreApplication.translate("EventCard", u"&Artist and title", None))
+        self.end_of_list_caption.setText(QCoreApplication.translate("EventCard", u"End of the &list", None))
+        self.stream_fallback_caption.setText(QCoreApplication.translate("EventCard", u"Fallback of a &dropped stream", None))
         self.grid_group.setTitle(QCoreApplication.translate("EventCard", u"Grid: first occurrence, and days when it comes back", None))
         self.has_start.setText(QCoreApplication.translate("EventCard", u"&Start", None))
         self.has_end.setText(QCoreApplication.translate("EventCard", u"&End", None))

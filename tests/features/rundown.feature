@@ -71,6 +71,44 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 			| 20:20 | f      | Continue  | entier |
 			| 20:30 | f      | Continue  | entier |
 
+	Plan du scénario: À la fin de sa liste, une émission qui a une fin la rejoue, laisse l'antenne au fil musical, ou passe à son secours, jusqu'à sa fin
+		https://github.com/dascritch/machincast/issues/350 : rejouer sa liste reste le choix par défaut.
+
+		Étant donné les événements :
+			| nom      | priorité               | début | fin   | liste                        |
+			| Continue | background_programming |       |       | sonore « f »                 |
+			| Magazine | show                   | 20:00 | 20:40 | sonore « a », sonore « b »   |
+			| Relève   | fallback               |       |       | sonore « s1 », sonore « s2 » |
+		Et <choix>
+		Quand la diffusion se déroule de 20:00 à 20:50
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | a      | Magazine  | entier |
+			| 20:10 | b      | Magazine  | entier |
+			| 20:20 | <3e>   | <de 3e>   | entier |
+			| 20:30 | <4e>   | <de 4e>   | entier |
+			| 20:40 | f      | Continue  | entier |
+
+		Exemples:
+			| choix                                                              | 3e | de 3e    | 4e | de 4e    |
+			| l'événement « Magazine » passe, à la fin de sa liste, au fil musical | f  | Continue | f  | Continue |
+			| l'événement « Magazine » passe, à la fin de sa liste, au secours « Relève » | s1 | Relève | s2 | Relève |
+
+	Scénario: Un secours de fin de liste sans rien de jouable laisse l'antenne au fil musical
+		Étant donné le sonore « x » est à l'état « disabled »
+		Et les événements :
+			| nom      | priorité               | début | fin   | liste                      |
+			| Continue | background_programming |       |       | sonore « f »               |
+			| Magazine | show                   | 20:00 | 20:30 | sonore « a »               |
+			| Relève   | fallback               |       |       | sonore « x »               |
+		Et l'événement « Magazine » passe, à la fin de sa liste, au secours « Relève »
+		Quand la diffusion se déroule de 20:00 à 20:30
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | a      | Magazine  | entier |
+			| 20:10 | f      | Continue  | entier |
+			| 20:20 | f      | Continue  | entier |
+
 	Scénario: Une banque sans sonore jouable est sautée, comme un sonore qui n'est pas jouable
 		Étant donné une banque séquentielle « Vide » contenant « x »
 		Et le sonore « x » est à l'état « disabled »

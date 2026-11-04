@@ -375,6 +375,96 @@ Fonctionnalité: Fiche d'un événement
 		Alors la fiche ne signale rien
 		Et l'onglet ouvert est « Événement : Panne du direct »
 
+	# ─── Fin de liste et secours (https://github.com/dascritch/machincast/issues/350) ───
+
+	Scénario: Une émission qui a une fin choisit ce qui suit la fin de sa liste, et son secours
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Alors la fiche de l'événement montre :
+			| champ                     | valeur                                |
+			| Fin de la liste           | rejouer la liste de lecture           |
+			| Secours de fin de liste   | choisir un secours… (grisé)           |
+			| Secours d'un stream tombé | celui de chaque stream (grisé)        |
+		Quand je saisis dans la fiche de l'événement :
+			| champ                   | valeur                   |
+			| Fin de la liste         | basculer vers un secours |
+		Et j'enregistre la fiche
+		Alors la fiche signale « Choisir le secours qui suit la fin de la liste. »
+		Quand je saisis dans la fiche de l'événement :
+			| champ                   | valeur |
+			| Secours de fin de liste | Panne  |
+		Et j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et l'événement « Journal » a en base :
+			| champ        | valeur   |
+			| end_of_list  | fallback |
+			| end_fallback | Panne    |
+		Quand je saisis dans la fiche de l'événement :
+			| champ           | valeur                       |
+			| Fin de la liste | basculer vers le fil musical |
+		Et j'enregistre la fiche
+		Alors l'événement « Journal » a en base :
+			| champ        | valeur                 |
+			| end_of_list  | background_programming |
+			| end_fallback | None                   |
+
+	Plan du scénario: Sans fin, ou pour un fil musical ou un secours, la fin de liste est grisée : la liste se rejoue, ou se termine sans fin
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « <événement> »
+		Et je saisis dans la fiche de l'événement :
+			| champ | valeur |
+			| Fin   | <fin>  |
+		Alors la fiche de l'événement montre :
+			| champ           | valeur                              |
+			| Fin de la liste | rejouer la liste de lecture (grisé) |
+
+		Exemples:
+			| événement | fin |
+			| Journal   |     |
+			| Continue  |     |
+			| Panne     |     |
+
+	Scénario: Une émission qui ne la rejoue plus perd son choix de fin de liste avec sa fin
+		Étant donné l'événement « Journal » passe, à la fin de sa liste, au fil musical
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Et je saisis dans la fiche de l'événement :
+			| champ | valeur |
+			| Fin   |        |
+		Et j'enregistre la fiche
+		Alors l'événement « Journal » a en base :
+			| champ       | valeur |
+			| end_of_list | replay |
+
+	Scénario: Le secours d'un stream tombé ne se choisit que pour une liste qui a un stream, et l'emporte sur celui du stream
+		Étant donné les sonores :
+			| artist | title       | type   | state  | duration | location                    |
+			|        | Radio Thune | stream | active |          | https://flux.exemple/direct |
+		Et l'événement « Journal » joue le sonore « Radio Thune »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Alors la fiche de l'événement montre :
+			| champ                     | valeur                 |
+			| Secours d'un stream tombé | celui de chaque stream |
+		Quand je saisis dans la fiche de l'événement :
+			| champ                     | valeur |
+			| Secours d'un stream tombé | Panne  |
+		Et j'enregistre la fiche
+		Alors l'événement « Journal » a en base :
+			| champ           | valeur |
+			| stream_fallback | Panne  |
+
+	Scénario: Un événement de secours qu'un événement désigne garde sa priorité
+		Étant donné l'événement « Journal » passe, à la fin de sa liste, au secours « Panne »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Panne »
+		Et je saisis dans la fiche de l'événement :
+			| champ    | valeur      |
+			| Priorité | fil musical |
+		Et j'ajoute les banques « Habillage »
+		Et j'enregistre la fiche
+		Alors la fiche signale « Des événements ont cet événement pour secours : « Journal ». Il reste de priorité « Secours ». »
+
 	# ─── À l'antenne (https://github.com/dascritch/machincast/issues/266) ───
 	# Un événement enregistré, supprimé ou restauré vaut aussitôt à l'antenne : la fenêtre demande à Machin player de
 	# relire la grille, qui recalcule le sonore en cours et les sonores à venir si ce qui règle l'antenne a changé.

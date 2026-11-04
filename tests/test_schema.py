@@ -151,6 +151,36 @@ def fallback_in_show(context: Context) -> None:
 		context.error = error
 
 
+FALLBACK_COLUMNS = {
+	"secours de fin de liste": "end_fallback_event_id",
+	"secours d'un stream tombé": "stream_fallback_event_id",
+}
+"""Les secours d'un événement (https://github.com/dascritch/machincast/issues/350)."""
+
+
+@given(parsers.parse("une émission dont le {fallback} est cet événement"))
+def rescued_show(context: Context, fallback: str) -> None:
+	values = {
+		"internal_name": "'Journal'",
+		"priority": "'show'",
+		"starts_at": "'2026-10-19 18:00'",
+		"ends_at": "'2026-10-19 19:00'",
+		FALLBACK_COLUMNS[fallback]: str(context.references["secours"]),
+	}
+	if fallback == "secours de fin de liste":
+		values["end_of_list"] = "'fallback'"
+	context.references["emission"] = insert(context, "events", values)
+
+
+@then(parsers.parse("l'émission n'a plus de {fallback}"))
+def show_without_fallback(context: Context, fallback: str) -> None:
+	line = context.connection.execute(
+		f"SELECT {FALLBACK_COLUMNS[fallback]} FROM events WHERE id = %s",  # noqa: S608
+		(context.references["emission"],),
+	).fetchone()
+	assert line == (None,)
+
+
 @when("je supprime l'événement de secours")
 def delete_fallback(context: Context) -> None:
 	context.connection.execute("DELETE FROM events WHERE id = %s", (context.references["secours"],))

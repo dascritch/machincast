@@ -2632,6 +2632,26 @@ msgstr ""
 "événement."
 
 #: machincast/interface/event_card.py
+msgid "Choose a fallback…"
+msgstr "Choisir un secours…"
+
+#: machincast/interface/event_card.py
+msgid "The fallback of each stream"
+msgstr "Celui de chaque stream"
+
+#: machincast/interface/event_card.py
+msgid ""
+"Only for a show or a special that has an end: otherwise, its list does not "
+"replay."
+msgstr ""
+"Seulement pour une émission ou un spécial qui a une fin : sinon, sa liste "
+"ne se rejoue pas."
+
+#: machincast/interface/event_card.py
+msgid "Only for an event whose list has a stream."
+msgstr "Seulement pour un événement dont la liste a un stream."
+
+#: machincast/interface/event_card.py
 msgid "Reinstate"
 msgstr "Rétablir"
 
@@ -2650,6 +2670,18 @@ msgstr "Selon la séquence, la banque ou le sonore"
 #: machincast/interface/event_card.py
 msgid "Hidden by the public name of the event"
 msgstr "Masqué par le nom public de l'événement"
+
+#: machincast/interface/event_card.py
+msgid "Replay the list"
+msgstr "Rejouer la liste de lecture"
+
+#: machincast/interface/event_card.py
+msgid "Switch to the background programming"
+msgstr "Basculer vers le fil musical"
+
+#: machincast/interface/event_card.py
+msgid "Switch to a fallback"
+msgstr "Basculer vers un secours"
 
 #: machincast/interface/event_card.py
 msgid "will not play"
@@ -2703,6 +2735,10 @@ msgstr ""
 "La session du {long_date} à {start:%H:%M} est sautée : elle {will_play}."
 
 #: machincast/interface/event_card.py
+msgid "Choose the fallback that follows the end of the list."
+msgstr "Choisir le secours qui suit la fin de la liste."
+
+#: machincast/interface/event_card.py
 #, python-brace-format
 msgid "Session not reinstated: {hindrance}"
 msgstr "Session non rétablie : {hindrance}"
@@ -2720,11 +2756,25 @@ msgstr "Chevauche l'événement « {name} », de même priorité, le {date}."
 #: machincast/interface/event_card.py
 #, python-brace-format
 msgid ""
+"Events have this event as fallback: {names}. It stays of priority "
+"“Fallback”."
+msgstr ""
+"Des événements ont cet événement pour secours : {names}. Il reste de "
+"priorité « Secours »."
+
+#: machincast/interface/event_card.py
+#, python-brace-format
+msgid ""
 "Streams have this event as fallback: {names}. It stays of priority "
 "“Fallback”."
 msgstr ""
 "Des streams ont cet événement pour secours : {names}. Il reste de priorité "
 "« Secours »."
+
+#: machincast/interface/event_card.py
+#, python-brace-format
+msgid "“{event}”"
+msgstr "« {event} »"
 
 #: machincast/interface/event_card.py
 #, python-brace-format
@@ -6065,6 +6115,14 @@ msgstr "Obligatoire, et propre à cet événement"
 #: machincast/interface/ui/event_card.ui
 msgid "P&riority"
 msgstr "P&riorité"
+
+#: machincast/interface/ui/event_card.ui
+msgid "End of the &list"
+msgstr "Fin de la &liste"
+
+#: machincast/interface/ui/event_card.ui
+msgid "Fallback of a &dropped stream"
+msgstr "Secours d'un stream &tombé"
 
 #: machincast/interface/ui/event_card.ui
 msgid "Grid: first occurrence, and days when it comes back"
