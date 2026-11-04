@@ -57,7 +57,7 @@ def open_close(interface: Context, empty_database: Connection, plays: SimpleName
 	main = window(interface)
 	bank = identifier(empty_database, "banks", "internal_name", name)
 	for _ in range(times):
-		main._open("banque", bank, name)
+		main._open("bank", bank, name)
 		opened = opened_card(interface)
 		plays.cards.append(weakref.ref(opened))
 		main._close(main.ui.tabs.indexOf(opened))

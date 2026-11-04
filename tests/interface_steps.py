@@ -65,6 +65,7 @@ from machincast.interface.suggestions import Response, Shortfalls
 from machincast.interface.window import MainWindow
 from machincast.player.state import REREAD_GRID, Request, StateSocket
 from machincast.service import ABSENT, ServiceState
+from tests.categories import SCENARIO
 from tests.database_fixtures import configuration_test, sample_database_parameters
 from tests.sounds import SOUND_FILES
 
@@ -760,10 +761,10 @@ HISTORY_CATEGORIES = {
 	"de l'événement": "l'événement",
 }
 HISTORY_CARDS = {
-	"le sonore": "sonore",
-	"la banque": "banque",
-	"la séquence": "séquence",
-	"l'événement": "événement",
+	"le sonore": "sound",
+	"la banque": "bank",
+	"la séquence": "sequence",
+	"l'événement": "event",
 }
 
 
@@ -848,7 +849,9 @@ def open_window(interface: Context, qtbot: QtBot, with_configuration: bool = Tru
 		retention=retention,
 		dead_air=dead_air,
 	)
-	interface.window.requested_detail.connect(lambda category, number: interface.requests.append((category, number)))
+	interface.window.requested_detail.connect(
+		lambda category, number: interface.requests.append((SCENARIO.get(category, category), number))
+	)
 
 	def announce(text: str) -> None:
 		# Effacer la barre d'état n'annonce rien.

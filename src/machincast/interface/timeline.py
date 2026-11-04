@@ -78,7 +78,7 @@ SLIDER_SOCKET_JACK = 6
 """Points de part et d'autre d'un curseur où la souris le prend."""
 SLIDER_NAMES = {"start": _("Start"), "end": _("End")}
 """Points autour du texte de la légende, sur son fond."""
-Hatching = Literal["pleines", "pale", "none"]
+Hatching = Literal["full", "pale", "none"]
 
 
 def seconds(value: float) -> str:
@@ -190,7 +190,7 @@ class Plan:
 		hatching: Hatching = "pale"
 		sort = _("played on air")
 		if self.trims():
-			hatching, sort = "pleines", _("removed on air")
+			hatching, sort = "full", _("removed on air")
 		areas: list[Area] = []
 		if (self.start_silence is not None) and (self.start_silence > 0):
 			text = _("Start silence: {seconds}, {sort}").format(seconds=seconds(self.start_silence), sort=sort)
@@ -204,7 +204,7 @@ class Plan:
 				origin=_origin(self.start_origin),
 				position=self._position(self.entry_position, _("at the detected start")),
 			)
-			areas.append(Area(_("fade in"), entry[0], entry[1], "aucune", text))
+			areas.append(Area(_("fade in"), entry[0], entry[1], "none", text))
 		if output is not None:
 			text = _("End crossfade: {seconds}{origin}").format(
 				seconds=seconds(self.end_crossfade), origin=_origin(self.end_origin)
@@ -212,7 +212,7 @@ class Plan:
 			position = self._position(self.output_position, _("at the detected end"))
 			if position != "":
 				text = f"{text},{position.rstrip(',')}"
-			areas.append(Area(_("fade out"), output[0], output[1], "aucune", text))
+			areas.append(Area(_("fade out"), output[0], output[1], "none", text))
 		if (self.end_silence is not None) and (self.end_silence > 0):
 			text = _("End silence: {seconds}, {sort}").format(seconds=seconds(self.end_silence), sort=sort)
 			areas.append(Area(_("end silence"), self.duration - self.end_silence, self.duration, hatching, text))
@@ -834,7 +834,7 @@ class Timeline(QWidget):
 			)
 			line = QColor(colour)
 			pattern = Qt.BrushStyle.BDiagPattern
-			if area.hatching == "pleines":
+			if area.hatching == "full":
 				veil = QColor(colour)
 				veil.setAlpha(45)
 				painter.fillRect(rectangle, veil)

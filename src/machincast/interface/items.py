@@ -284,7 +284,7 @@ class ItemList(QObject):
 		return line
 
 	def _line(self, category: str, cells: list[str], edges: tuple[int | None, int | None]) -> QTreeWidgetItem:
-		line = QTreeWidgetItem([category, *cells])
+		line = QTreeWidgetItem([display.CATEGORIES.get(category, category), *cells])
 		line.setData(0, CATEGORY, category)
 		line.setData(0, ITEM, None)
 		line.setData(0, ENTRY, edges[0])

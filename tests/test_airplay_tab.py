@@ -16,6 +16,7 @@ from pytestqt.qtbot import QtBot
 
 from machincast.interface import dialogs
 from machincast.interface.airplay_tab import AirplayScreen
+from tests.categories import AIRPLAY_KEYS
 from tests.interface_steps import NAME, Context, open_in, window
 
 scenarios("airplay_tab.feature")
@@ -98,7 +99,7 @@ def table(interface: Context) -> list[dict[str, str]]:
 	opened = screen(interface)
 	model = opened.model
 	return [
-		{key: model.item(row, column).text() for column, (key, _) in enumerate(opened.COLUMNS)}
+		{AIRPLAY_KEYS.get(key, key): model.item(row, column).text() for column, (key, _) in enumerate(opened.COLUMNS)}
 		for row in range(model.rowCount())
 	]
 

@@ -1054,6 +1054,6 @@ def _menu(calendar: "Calendar", block: Block | None, parent: QWidget) -> QMenu |
 
 def _open(calendar: Calendar, item: Block | Strip | None) -> None:
 	if isinstance(item, Block):
-		calendar.opened.emit("événement", item.event.id, item.event.name)
+		calendar.opened.emit("event", item.event.id, item.event.name)
 	if (isinstance(item, Strip)) and (item.id_event is not None):
-		calendar.opened.emit("événement", item.id_event, item.name)
+		calendar.opened.emit("event", item.id_event, item.name)

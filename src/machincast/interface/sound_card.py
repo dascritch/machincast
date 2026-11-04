@@ -709,18 +709,18 @@ class SoundCard(Card):
 	def _read_relations(self) -> list[tuple[object, ...]]:
 		"""Les séquences, banques et événements dont la liste cite le sonore ; dans une transaction."""
 		return self.connection.execute(
-			"SELECT genre, id, name, minimum, maximum, (SELECT duration FROM sounds WHERE id = %s) FROM ("
-			" SELECT 1 AS ordre, 'séquence' AS genre, q.id, q.internal_name AS name, NULL::interval AS minimum,"
+			"SELECT category, id, name, minimum, maximum, (SELECT duration FROM sounds WHERE id = %s) FROM ("
+			" SELECT 1 AS rank, 'sequence' AS category, q.id, q.internal_name AS name, NULL::interval AS minimum,"
 			"  NULL::interval AS maximum FROM sequences q"
 			"  WHERE q.deleted_at IS NULL"
 			"  AND EXISTS (SELECT 1 FROM sequence_items x WHERE x.sequence_id = q.id AND x.sound_id = %s)"
-			" UNION ALL SELECT 2, 'banque', b.id, b.internal_name, b.min_duration, b.max_duration FROM banks b"
+			" UNION ALL SELECT 2, 'bank', b.id, b.internal_name, b.min_duration, b.max_duration FROM banks b"
 			"  WHERE b.deleted_at IS NULL"
 			"  AND EXISTS (SELECT 1 FROM bank_sounds x WHERE x.bank_id = b.id AND x.sound_id = %s)"
-			" UNION ALL SELECT 3, 'événement', e.id, e.internal_name, NULL, NULL FROM events e"
+			" UNION ALL SELECT 3, 'event', e.id, e.internal_name, NULL, NULL FROM events e"
 			"  WHERE e.deleted_at IS NULL"
 			"  AND EXISTS (SELECT 1 FROM event_items x WHERE x.event_id = e.id AND x.sound_id = %s)"
-			") r ORDER BY ordre, name, id",
+			") r ORDER BY rank, name, id",
 			(self.identifier, self.identifier, self.identifier, self.identifier),
 		).fetchall()
 
@@ -731,7 +731,11 @@ class SoundCard(Card):
 			row = table.rowCount()
 			table.insertRow(row)
 			# L'icône du genre (https://github.com/dascritch/machincast/issues/215).
-			table.setItem(row, 0, QTableWidgetItem(icons.icon_of(str(category)), str(category)))
+			table.setItem(
+				row,
+				0,
+				QTableWidgetItem(icons.icon_of(str(category)), display.CATEGORIES.get(str(category), str(category))),
+			)
 			cell = QTableWidgetItem(str(name))
 			cell.setData(RELATION, (str(category), int(str(identifier))))
 			# Une banque dont le sonore sort des durées (https://github.com/dascritch/machincast/issues/147).

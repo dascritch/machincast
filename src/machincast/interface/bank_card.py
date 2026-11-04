@@ -491,7 +491,7 @@ class BankCard(Card):
 		"""Ouvrir un sonore demande sa fiche ; un fichier déposé n'en a pas avant l'enregistrement."""
 		identifier = line.data(0, SOUND)
 		if identifier is not None:
-			self.requested_opening.emit("sonore", int(identifier), line.text(0))
+			self.requested_opening.emit("sound", int(identifier), line.text(0))
 
 	def _lines(self) -> list[QTreeWidgetItem]:
 		list_ = self.ui.sounds

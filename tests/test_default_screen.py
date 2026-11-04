@@ -36,6 +36,8 @@ from machincast.interface.default_screen import DefaultScreen
 from machincast.interface.error import UnreachableDatabaseWindow
 from machincast.interface.timeline import HEIGHT, Timeline
 from machincast.player.state import StateSocket
+from tests.categories import AIRPLAY_KEYS as KEYS
+from tests.categories import HATCHINGS, SCENARIO
 from tests.database_fixtures import CONFIGURATION_TEST, sample_database_parameters
 from tests.interface_steps import insert_play, open_in
 from tests.sounds import SOUND_FILES
@@ -396,7 +398,9 @@ def open_(context: Context, empty_database: Connection, qtbot: QtBot, monkeypatc
 	monkeypatch.setattr(screen_module, "read_plan", read_plan_and_count)
 	context.connection = open_connection(*sample_database_parameters(), Role.INTERFACE)
 	context.screen = DefaultScreen(context.connection, context.path, context.clock)
-	context.screen.opened.connect(lambda category, number, name: context.cards.append((category, number, name)))
+	context.screen.opened.connect(
+		lambda category, number, name: context.cards.append((SCENARIO.get(category, category), number, name))
+	)
 	context.screen.requested_preview.connect(context.previewed_list.append)
 	qtbot.addWidget(context.screen)
 	context.screen.show()
@@ -794,7 +798,7 @@ def table(context: Context) -> list[dict[str, str]]:
 	model = screen(context).airplay_model
 	columns = screen(context).AIRPLAY_COLUMNS
 	return [
-		{key: model.item(row, column).text() for column, (key, _) in enumerate(columns)}
+		{KEYS.get(key, key): model.item(row, column).text() for column, (key, _) in enumerate(columns)}
 		for row in range(model.rowCount())
 	]
 
@@ -803,7 +807,7 @@ def upcoming_table(context: Context) -> list[dict[str, str]]:
 	model = screen(context).upcoming_model
 	columns = screen(context).AIRPLAY_COLUMNS
 	return [
-		{key: model.item(row, column).text() for column, (key, _) in enumerate(columns)}
+		{KEYS.get(key, key): model.item(row, column).text() for column, (key, _) in enumerate(columns)}
 		for row in range(model.rowCount())
 	]
 
@@ -1208,7 +1212,7 @@ def ongoing_areas(context: Context, qtbot: QtBot, datatable: list[list[str]]) ->
 			area.name,
 			f"{area.start:.2f}".replace(".", ","),
 			f"{area.end:.2f}".replace(".", ","),
-			area.hatching,
+			HATCHINGS[area.hatching],
 			area.tooltip,
 		]
 		for area in timeline.plan.areas()
@@ -1225,7 +1229,7 @@ def next_areas(context: Context, qtbot: QtBot, names: str) -> None:
 	assert timeline.plan is not None
 	areas = timeline.plan.areas()
 	assert [area.name for area in areas] == re.findall(r"« ([^»]+) »", names)
-	assert {area.hatching for area in areas if area.name.startswith("silence")} == {"pâles"}
+	assert {area.hatching for area in areas if area.name.startswith("silence")} == {"pale"}
 
 
 @then(

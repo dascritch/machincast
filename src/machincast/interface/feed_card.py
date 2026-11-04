@@ -110,4 +110,4 @@ class FeedCard(Card):
 		self.ui.test.setEnabled(True)
 
 	def _open_stream(self, item: QListWidgetItem) -> None:
-		self.requested_opening.emit("sonore", int(item.data(SOUND)), item.text())
+		self.requested_opening.emit("sound", int(item.data(SOUND)), item.text())

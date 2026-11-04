@@ -796,7 +796,7 @@ def untick_start(interface: Context) -> None:
 def slide_slider(interface: Context, name: str, seconds: str) -> None:
 	"""Prise sur le curseur, glissement, puis relâche à l'instant voulu, en points non arrondis."""
 	timeline = card(interface).timeline
-	key = {"Début": "debut", "Fin": "fin"}[name]
+	key = {"Début": "start", "Fin": "end"}[name]
 	departure = QPointF(timeline.seconds_to_x(timeline.sliders[key]), timeline.height() / 2)
 	arrival = QPointF(timeline.seconds_to_x(_seconds_fetched(seconds)), timeline.height() / 2)
 	left = Qt.MouseButton.LeftButton
@@ -826,7 +826,7 @@ def silence_bounds(interface: Context, start: str, end: str) -> None:
 @then(parsers.re(r"la frise de la fiche a (?:les curseurs|le seul curseur) (?P<sliders>«.+)"))
 def timeline_sliders(interface: Context, sliders: str) -> None:
 	expected_list = {
-		{"Début": "debut", "Fin": "fin"}[name]: _seconds_fetched(value)
+		{"Début": "start", "Fin": "end"}[name]: _seconds_fetched(value)
 		for name, value in re.findall(r"« ([^»]+) » à ([\d,]+) s", sliders)
 	}
 	fetched_list = {name: round(position, 2) for name, position in card(interface).timeline.sliders.items()}

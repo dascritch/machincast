@@ -123,7 +123,7 @@ def silent_track(bench: Bench, server: StreamServer, stream: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/122 : la voie gardée pour la reprise ne s'entend pas."""
 	assert bench.engine is not None
 	track = bench.engine.played_list[server.address(stream)]
-	assert (track.state == "en cours") and (track.volume_to(track.position()) == 0.0), (
+	assert (track.state == "playing") and (track.volume_to(track.position()) == 0.0), (
 		track.state,
 		track.volume_to(track.position()),
 	)
