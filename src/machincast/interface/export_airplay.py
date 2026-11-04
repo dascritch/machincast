@@ -20,21 +20,23 @@ from datetime import datetime, timedelta
 
 from machincast.configuration import Metadata
 from machincast.i18n import _, current
-from machincast.player.outputs import Line, artist_and_title, public_text
+from machincast.player.outputs import YES_NO, Line, artist_and_title, public_text
 
 COLUMNS = (
-	"debut",
-	"fin",
-	"duree",
-	"artiste",
-	"titre",
-	"texte_public",
-	"emplacement",
-	"evenement",
+	"start",
+	"end",
+	"duration",
+	"artist",
+	"title",
+	"public_text",
+	"location",
+	"event",
 	"sequence",
-	"banque",
-	"sans_incident",
+	"bank",
+	"without_incident",
 )
+"""L'en-tête de l'export CSV : un format de données, en anglais, qui ne dépend pas de la langue
+(https://github.com/dascritch/machincast/issues/367)."""
 FORMATS = {
 	_("CSV spreadsheet (*.csv)"): ".csv",
 	_("HTML page (*.html)"): ".html",
@@ -79,9 +81,7 @@ def _incident(line: Line) -> str:
 def _without_incident(line: Line) -> str:
 	if line.without_incident is None:
 		return ""
-	if line.without_incident:
-		return "oui"
-	return "non"
+	return YES_NO[line.without_incident]
 
 
 def _values(line: Line, metadata: Metadata) -> list[str]:

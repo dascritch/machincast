@@ -55,17 +55,21 @@ PLAYLIST = 100
 REFRESH = 30
 """Délai de rafraîchissement de la page publique, en secondes."""
 CSV_COLUMNS = (
-	"debut",
-	"fin",
-	"duree",
-	"artiste",
-	"titre",
-	"emplacement",
-	"evenement",
+	"start",
+	"end",
+	"duration",
+	"artist",
+	"title",
+	"location",
+	"event",
 	"sequence",
-	"banque",
-	"sans_incident",
+	"bank",
+	"without_incident",
 )
+"""L'en-tête du CSV de l'airplay et de la simulation : un format de données, en anglais, qui ne dépend pas de la langue
+(https://github.com/dascritch/machincast/issues/367)."""
+YES_NO = {True: "yes", False: "no"}
+"""Les valeurs de without_incident dans les CSV."""
 INACCESSIBLE_OUTPUT = N_("inaccessible output")
 
 
@@ -264,7 +268,7 @@ def playlist(lines: list[Line]) -> str:
 
 def csv_line(line: Line) -> str:
 	buffer = io.StringIO()
-	without_incident = "" if line.without_incident is None else ("oui" if line.without_incident else "non")
+	without_incident = "" if line.without_incident is None else YES_NO[line.without_incident]
 	csv.writer(buffer, delimiter=";", lineterminator="\r\n").writerow(
 		[
 			_hour(line.start),
