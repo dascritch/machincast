@@ -4,7 +4,7 @@
 
 **Version 0.9.0**, released on 2026-10-28, first published version, ahead of 1.0: [what it brings](RELEASE.md), and [its archive](https://github.com/dascritch/machincast/releases/tag/v0.9.0).
 
-Automated audio playout system for radio continuity, on Linux: it keeps the station on air outside live shows, from banks of sounds, external *feeds* and scheduled events. The service tolerates failing sources, has fallback scenarios, and keeps its business services apart.
+Automated audio playout system for radio continuity, on Linux: it keeps the station on air outside live shows, from banks of sounds, external *feeds* and scheduled events. The service tolerates failing sources, has fallback scenarios, and keeps its business services apart. Sound files are immutable, any treatment is done without modifying them. 
 
 MachinCast speaks English and French, following the language of the session: its interface, messages and help ([INSTALL.md](INSTALL.md#choosing-the-language), [#360](https://github.com/dascritch/machincast/issues/360)). The detailed guides are in French for now.
 
