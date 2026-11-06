@@ -4,7 +4,7 @@
 
 **Version 0.9.0**, publiée le 2026-10-28, première version publiée, avant la 1.0 : [ce qu'elle apporte](RELEASE.fr.md), et [son archive](https://github.com/dascritch/machincast/releases/tag/v0.9.0).
 
-Système automatisé de diffusion sonore pour continuité d'antenne radio, sous Linux : il fournit un fil antenne en dehors des émissions en direct, à partir de banques de sonores, de *feeds* externes et d'événements horaires. Le service a des tolérance de sources, des scénarios de secours et sépare les services métiers.
+Système automatisé de diffusion sonore pour continuité d'antenne radio, sous Linux : il fournit un fil antenne en dehors des émissions en direct, à partir de banques de sonores, de *feeds* externes et d'événements horaires. Le service a des tolérance de sources, des scénarios de secours et sépare les services métiers. Les fichiers sonores sont immuables, les traitements sont faits sans les modifier.
 
 MachinCast parle français et anglais, selon la langue de la session : son interface, ses messages et son aide ([INSTALL.md](INSTALL.fr.md#choisir-la-langue), [#360](https://github.com/dascritch/machincast/issues/360)).
 
