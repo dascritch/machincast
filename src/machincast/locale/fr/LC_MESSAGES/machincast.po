@@ -281,17 +281,6 @@ msgstr ""
 msgid "unknown key {section}.{key}"
 msgstr "clé {section}.{key} inconnue"
 
-#: machincast/database.py
-#, python-brace-format
-msgid ""
-"database {database}: old schema, with French names (migration {old_list}); "
-"recreate it, after backing it up if it holds anything useful: sudo -u "
-"postgres dropdb {database}, then ./install.sh"
-msgstr ""
-"base {database} : ancien schéma, aux noms français (migration {old_list}) ; "
-"la recréer, après l'avoir sauvegardée si elle contient quelque chose "
-"d'utile : sudo -u postgres dropdb {database}, puis ./install.sh"
-
 #: machincast/i18n.py
 #: machincast/interface/check.py
 msgid "; "
@@ -904,11 +893,6 @@ msgstr ""
 #, python-brace-format
 msgid "audio output {output}"
 msgstr "sortie audio {output}"
-
-#: machincast/installation.py
-#, python-brace-format
-msgid "schema cannot be updated: {error}"
-msgstr "schéma impossible à mettre à jour : {error}"
 
 #: machincast/installation.py
 #, python-brace-format
@@ -4972,14 +4956,6 @@ msgstr ""
 msgid "backup impossible: {error}; maintenance stopped, nothing was changed"
 msgstr ""
 "sauvegarde impossible : {error} ; maintenance arrêtée, rien n'a été modifié"
-
-#: machincast/maintenance.py
-#, python-brace-format
-msgid ""
-"schema impossible to update: {error}; the backup is done, nothing else"
-msgstr ""
-"schéma impossible à mettre à jour : {error} ; la sauvegarde est faite, rien "
-"d'autre"
 
 #: machincast/maintenance.py
 #, python-brace-format

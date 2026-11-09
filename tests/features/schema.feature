@@ -5,9 +5,8 @@ Fonctionnalité: Schéma de la base de données
 	afin que la base de production et la base de test aient un schéma strictement identique.
 
 	Un schéma initial, 0001.initial-schema, aux noms anglais (https://github.com/dascritch/machincast/issues/358), que
-	suivent les migrations d'après la première release, comme 0002.run-log. Une base
-	créée avec l'ancien schéma, aux noms français, celui de 0001.schema-initial ou des migrations d'avant
-	https://github.com/dascritch/machincast/issues/314, est refusée, sans rien modifier : elle se recrée.
+	suivent les migrations d'après la première release, comme 0002.run-log. Une base de l'ancien schéma, aux noms
+	français, n'est plus reconnue (https://github.com/dascritch/machincast/issues/384) : elle se recrée.
 
 	Contexte:
 		Étant donné une base de test vide où les migrations sont appliquées
@@ -52,21 +51,6 @@ Fonctionnalité: Schéma de la base de données
 	Scénario: Les migrations s'annulent proprement
 		Quand j'annule toutes les migrations
 		Alors la base ne contient plus aucune table ni aucun type de MachinCast
-
-	# ─── Ancien schéma, aux noms français (https://github.com/dascritch/machincast/issues/358) ───
-
-	Plan du scénario: Une base créée avec l'ancien schéma, aux noms français, est refusée, sans rien modifier
-		Étant donné les éléments de référence en base
-		Et la base de test marquée comme ayant reçu l'ancienne migration « <migration> »
-		Quand j'applique les migrations
-		Alors l'application des migrations est refusée : « base machincast_test : ancien schéma, aux noms français (migration <migration>) ; la recréer, après l'avoir sauvegardée si elle contient quelque chose d'utile : sudo -u postgres dropdb machincast_test, puis ./install.sh »
-		Et les migrations appliquées à la base de test sont celles d'avant
-		Et la table « sounds » a 1 ligne
-
-		Exemples:
-			| migration                        |
-			| 0001.schema-initial              |
-			| 0015.vocabulaire-silences-blancs |
 
 	Scénario: Une base neuve reçoit le schéma initial, puis les migrations qui le suivent
 		https://github.com/dascritch/machincast/issues/341 : 0002.run-log, les démarrages et fins des binaires au log.

@@ -15,16 +15,13 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from machincast.database import (
 	TABLES,
 	TYPES,
-	OutdatedSchema,
 	apply_migrations,
 	cancel_migrations,
 	url_yoyo,
 )
 from tests.database_fixtures import (
 	PURGE_ORDER,
-	mark_old_migrations,
 	purge_database,
-	return_migrations,
 	sample_database_parameters,
 )
 
@@ -488,26 +485,14 @@ def sound_crossfades(context: Context, location: str, value: str) -> None:
 def apply(context: Context) -> None:
 	context.connection.commit()
 	try:
-		context.applied = apply_migrations(url_yoyo(*sample_database_parameters()), sample_database_parameters()[1])
-	except OutdatedSchema as error:
+		context.applied = apply_migrations(url_yoyo(*sample_database_parameters()))
+	except psycopg.Error as error:
 		context.refusal = str(error)
-
-
-# ─── Ancien schéma, aux noms français (https://github.com/dascritch/machincast/issues/358) ───
 
 
 def database_migrations(context: Context) -> list[str]:
 	lines = context.connection.execute("SELECT migration_id FROM _yoyo_migration ORDER BY migration_id").fetchall()
 	return [str(line[0]) for line in lines]
-
-
-@given(parsers.parse("la base de test marquée comme ayant reçu l'ancienne migration « {migration} »"))
-def old_migration(request: pytest.FixtureRequest, context: Context, migration: str) -> None:
-	"""Comme une base créée avec l'ancien schéma : yoyo y note cette migration d'alors, par l'empreinte de son nom. La
-	base est rendue telle quelle à la fin du scénario."""
-	mark_old_migrations(context.connection, migration)
-	context.before = database_migrations(context)
-	request.addfinalizer(return_migrations)
 
 
 @then(parsers.re(r"(?P<count>aucune|\d+) migrations? (?:n')?(?:a été appliquée|ont été appliquées)"))
@@ -519,16 +504,6 @@ def applied_count(context: Context, count: str) -> None:
 @then(parsers.parse("les migrations appliquées à la base de test sont « {migration} »"))
 def applied_migrations(context: Context, migration: str) -> None:
 	assert database_migrations(context) == [name.strip() for name in migration.split(",")]
-
-
-@then("les migrations appliquées à la base de test sont celles d'avant")
-def migrations_before(context: Context) -> None:
-	assert database_migrations(context) == context.before
-
-
-@then(parsers.parse("l'application des migrations est refusée : « {text} »"))
-def refused(context: Context, text: str) -> None:
-	assert (context.refusal is not None) and (text in context.refusal), context.refusal
 
 
 # ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───

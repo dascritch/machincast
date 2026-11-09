@@ -16,7 +16,6 @@ from yoyo import read_migrations
 from machincast.configuration import Configuration, load
 from machincast.database import (
 	MIGRATION_DIRECTORY,
-	OLD_MIGRATIONS,
 	Role,
 	apply_migrations,
 	url_yoyo,
@@ -127,24 +126,3 @@ def check_authorisations(connection: psycopg.Connection[tuple[object, ...]]) -> 
 			f"le compte {name} ne peut pas endosser {', '.join(missing_list)} : lancer ./install.sh, ou en tant que"
 			f' postgres : GRANT {", ".join(roles)} TO "{name}" WITH INHERIT FALSE, SET TRUE'
 		)
-
-
-# ─── Bases à l'ancien schéma, aux noms français (https://github.com/dascritch/machincast/issues/358) ───
-
-
-def mark_old_migrations(connection: psycopg.Connection[tuple[object, ...]], migration: str) -> None:
-	"""Comme une base créée avec l'ancien schéma : yoyo y note cette migration d'alors, par l'empreinte de son nom. À
-	défaire par return_migrations, à la fin du scénario."""
-	connection.execute(
-		"INSERT INTO _yoyo_migration (migration_hash, migration_id, applied_at_utc)"
-		" VALUES (encode(sha256(convert_to(%s, 'UTF8')), 'hex'), %s, now() AT TIME ZONE 'UTC')",
-		(migration, migration),
-	)
-	connection.commit()
-
-
-def return_migrations() -> None:
-	"""La base de test sert aux autres scénarios : les traces des anciennes migrations en sont retirées."""
-	socket, name = sample_database_parameters()
-	with psycopg.connect(host=str(socket), dbname=name) as put_back:
-		put_back.execute("DELETE FROM _yoyo_migration WHERE migration_id = ANY(%s)", (list(OLD_MIGRATIONS),))

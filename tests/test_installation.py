@@ -1,8 +1,6 @@
 """Étapes des scénarios de vérification de l'installation (https://github.com/dascritch/machincast/issues/40)."""
 
-import dataclasses
 import grp
-import logging
 import os
 import pwd
 import re
@@ -43,10 +41,7 @@ from machincast.installation import (
 from machincast.interface.application import application
 from tests.database_fixtures import (
 	configuration_test,
-	mark_old_migrations,
-	return_migrations,
 	sample_configuration_path,
-	sample_connection,
 )
 
 gi.require_version("Gst", "1.0")
@@ -282,38 +277,6 @@ def announced_output(command: subprocess.CompletedProcess[str], text: str) -> No
 @then(parsers.parse("sa sortie d'erreur mentionne « {text} »"))
 def mentioned_error(command: subprocess.CompletedProcess[str], text: str) -> None:
 	assert text in command.stderr, command.stderr
-
-
-# ─── Ancien schéma, aux noms français (https://github.com/dascritch/machincast/issues/358) ─────
-
-
-@given(parsers.parse("la base de test marquée comme ayant reçu l'ancienne migration « {migration} »"))
-def old_migration(request: pytest.FixtureRequest, empty_database: object, migration: str) -> None:
-	with sample_connection() as connection:
-		mark_old_migrations(connection, migration)
-	request.addfinalizer(return_migrations)
-
-
-@when("install.sh applique le schéma de la base de test", target_fixture="application")
-def apply_schema(caplog: pytest.LogCaptureFixture) -> tuple[int, list[str]]:
-	"""La commande migrer d'install.sh, sur une configuration dont les deux bases sont la base de test."""
-	fetched = configuration_test()
-	configuration = dataclasses.replace(
-		fetched, database=dataclasses.replace(fetched.database, production=fetched.database.test)
-	)
-	with caplog.at_level(logging.ERROR):
-		code = installation._migrate(configuration)
-	return code, [saving.getMessage() for saving in caplog.records]
-
-
-@then(parsers.parse("l'application du schéma se termine avec le code {code:d}"))
-def schema_code(application: tuple[int, list[str]], code: int) -> None:
-	assert application[0] == code, application
-
-
-@then(parsers.parse("elle a signalé « {text} »"))
-def reported_schema(application: tuple[int, list[str]], text: str) -> None:
-	assert any(text in message for message in application[1]), application
 
 
 @pytest.fixture(autouse=True)
