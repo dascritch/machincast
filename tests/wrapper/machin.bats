@@ -35,6 +35,22 @@ setup() {
 	[ "${status}" -eq 3 ]
 }
 
+@test "un binaire mort d'un signal fait achever ses rapports de crash par le Python de son venv" {
+	# https://github.com/dascritch/machincast/issues/413 : 139 = 128 + SIGSEGV.
+	ecrire_bouchon "${VENV}" python
+	CODE_BOUCHON=139 run "${MACHIN}" --config ici.toml player
+	[ "${status}" -eq 139 ]
+	[ "${lines[0]}" = "Machin_player [--config] [ici.toml]" ]
+	[ "${lines[1]}" = "python [-m] [machincast.crash] [Machin_player] [--config] [ici.toml]" ]
+}
+
+@test "un binaire qui se termine sans signal ne fait rien achever" {
+	ecrire_bouchon "${VENV}" python
+	CODE_BOUCHON=3 run "${MACHIN}" interface
+	[ "${status}" -eq 3 ]
+	[ "${output}" = "Machin_interface" ]
+}
+
 @test "l'aide d'un binaire est celle du binaire lui-même" {
 	run "${MACHIN}" player --help
 	[ "${status}" -eq 0 ]

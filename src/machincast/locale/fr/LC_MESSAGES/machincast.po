@@ -55,6 +55,7 @@ msgstr ""
 "incomplète"
 
 #: machincast/cli.py
+#: machincast/crash.py
 msgid "FILE"
 msgstr "FICHIER"
 
@@ -286,6 +287,18 @@ msgid "wpctl not found"
 msgstr "wpctl introuvable"
 
 #: machincast/crash.py
+msgid "journalctl not found"
+msgstr "journalctl introuvable"
+
+#: machincast/crash.py
+msgid "no line in the journal for this process"
+msgstr "aucune ligne du journal pour ce processus"
+
+#: machincast/crash.py
+msgid "Versions, when the report was finished"
+msgstr "Versions, à l'achèvement du rapport"
+
+#: machincast/crash.py
 msgid "MachinCast crash report"
 msgstr "Rapport de crash de MachinCast"
 
@@ -300,6 +313,27 @@ msgstr "Pile Python"
 #: machincast/crash.py
 msgid "Errors outside MachinCast"
 msgstr "Erreurs hors de MachinCast"
+
+#: machincast/crash.py
+msgid "Finishes the pending crash reports left by a binary."
+msgstr "Achève les rapports de crash en cours laissés par un binaire."
+
+#: machincast/crash.py
+msgid "BINARY"
+msgstr "BINAIRE"
+
+#: machincast/crash.py
+msgid "Machin_player, Machin_interface…"
+msgstr "Machin_player, Machin_interface…"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "On air: output {output}, device {device}"
+msgstr "Antenne : sortie {output}, périphérique {device}"
+
+#: machincast/crash.py
+msgid "Sound cards, from the configuration file"
+msgstr "Cartes son, d'après le fichier de configuration"
 
 #: machincast/crash.py
 #, python-brace-format
@@ -337,12 +371,37 @@ msgstr "wpctl status impossible : {error}"
 
 #: machincast/crash.py
 #, python-brace-format
+msgid "Pre-listen: output {output}, device {device}"
+msgstr "Pré-écoute : sortie {output}, périphérique {device}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "journalctl impossible: {error}"
+msgstr "journalctl impossible : {error}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "Last lines of the journal of pid {pid}"
+msgstr "Dernières lignes du journal du pid {pid}"
+
+#: machincast/crash.py
+#, python-brace-format
 msgid ""
 "End: unknown, the process stopped without a report (fatal signal, kill -9, "
 "out of memory, power cut); last written {last}"
 msgstr ""
 "Fin : inconnue, le processus s'est arrêté sans rapport (signal fatal, kill "
 "-9, manque de mémoire, coupure de courant) ; dernière écriture {last}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "unreadable configuration: {error}"
+msgstr "configuration illisible : {error}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "pending crash report not written: {error}"
+msgstr "rapport de crash en cours pas écrit : {error}"
 
 #: machincast/crash.py
 #, python-brace-format
@@ -358,11 +417,6 @@ msgstr "indisponible : {error}"
 #, python-brace-format
 msgid "crash report impossible to write in {path}: {error}"
 msgstr "rapport de crash impossible à écrire dans {path} : {error}"
-
-#: machincast/crash.py
-#, python-brace-format
-msgid "pending crash report not written: {error}"
-msgstr "rapport de crash en cours pas écrit : {error}"
 
 #: machincast/crash.py
 #, python-brace-format
@@ -3935,6 +3989,11 @@ msgstr "Antenne : {name}"
 
 #: machincast/interface/preview.py
 #, python-brace-format
+msgid "pre-listen: {title} ({address})"
+msgstr "pré-écoute : {title} ({address})"
+
+#: machincast/interface/preview.py
+#, python-brace-format
 msgid "Pre-listen: {title}"
 msgstr "Pré-écoute : {title}"
 
@@ -4732,6 +4791,10 @@ msgid "Pre-listened sound"
 msgstr "Sonore en pré-écoute"
 
 #: machincast/interface/window.py
+msgid "Tab shown"
+msgstr "Onglet affiché"
+
+#: machincast/interface/window.py
 msgid "The chosen sounds are added at the end of each bank."
 msgstr "Les sonores choisis s'ajoutent à la fin de chaque banque."
 
@@ -4975,16 +5038,6 @@ msgstr "Version"
 
 #: machincast/interface/window.py
 #, python-brace-format
-msgid "On air: output {output}, device {device}"
-msgstr "Antenne : sortie {output}, périphérique {device}"
-
-#: machincast/interface/window.py
-#, python-brace-format
-msgid "Pre-listen: output {output}, device {device}"
-msgstr "Pré-écoute : sortie {output}, périphérique {device}"
-
-#: machincast/interface/window.py
-#, python-brace-format
 msgid ""
 "Sound cards: on air {on_air}, pre-listen {preview}; Machin player will take "
 "the on-air output at its next start."
@@ -5002,6 +5055,11 @@ msgstr "indexation impossible à lancer : {list}"
 msgid "{title} {finished}; “Refresh the tabs” (F5) shows its changes."
 msgstr ""
 "{title} {finished} ; « Rafraîchir les onglets » (F5) montre ses changements."
+
+#: machincast/interface/window.py
+#, python-brace-format
+msgid "tab shown: {title}"
+msgstr "onglet affiché : {title}"
 
 #: machincast/interface/window.py
 #, python-brace-format

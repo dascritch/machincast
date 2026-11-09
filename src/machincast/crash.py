@@ -16,8 +16,8 @@ Il contient :
 - les versions de Python, de MachinCast, de psycopg et de libpq, de PyGObject et de GStreamer, de PySide6 et de Qt,
   pour celles qui sont chargées ;
 - ce que chaque binaire y ajoute (provide, note) : le fichier en cours d'analyse pour Machin indexer, les cartes son
-  et la sortie de « wpctl status » pour Machin interface et Machin player, le sonore en pré-écoute, les sonores
-  précédent, en cours et à venir de l'antenne.
+  et la sortie de « wpctl status » pour Machin interface et Machin player, l'onglet affiché et le sonore en
+  pré-écoute, les sonores précédent, en cours et à venir de l'antenne.
 
 Trois sortes de plantage :
 
@@ -25,13 +25,17 @@ Trois sortes de plantage :
   binaire, celle d'un fil ou celle qu'une fonction appelée par Qt laisse passer, n'est pas un plantage : le journal la
   montre, sans rapport ;
 - un signal fatal (SIGSEGV, SIGABRT, SIGBUS, SIGFPE, SIGILL), souvent dans GStreamer ou Qt : faulthandler écrit la
-  pile de chaque fil dans un rapport en cours, ouvert dès le démarrage (« .<binaire>-<démarrage>-<pid>.en-cours ») ;
+  pile de chaque fil dans un rapport en cours, ouvert dès le démarrage (« .<binaire>-<démarrage>-<pid>.en-cours »),
+  qui ne reçoit rien d'autre que son en-tête ;
 - un arrêt sans un mot (kill -9, manque de mémoire, coupure de courant) : le rapport en cours reste seul.
 
-Un lancement qui se termine normalement efface son rapport en cours. Le lancement suivant du même binaire achève ceux
-qu'ont laissés les processus qui ne tournent plus (finish_leftovers), avec l'heure de leur dernière écriture. Le
-rapport en cours se réécrit à chaque changement notable (refresh) : le sonore qui commence, par exemple. Le module signal
-n'a pas sa place ici : il ne s'exécute qu'entre deux instructions Python, jamais pendant un appel bloqué ou planté.
+Un lancement qui se termine normalement efface son rapport en cours. Ceux qu'ont laissés les processus qui ne tournent
+plus sont achevés (finish_leftovers, https://github.com/dascritch/machincast/issues/413) : par bin/Machin, dès que le
+binaire meurt d'un signal (python -m machincast.crash), sinon par le lancement suivant du même binaire. Ce qui n'était
+qu'en mémoire est perdu ; l'achèvement retrouve ce qui reste : les versions, les cartes son du fichier de
+configuration, la sortie de « wpctl status », et les dernières lignes du journal de ce pid (journalctl), qui nomment le
+sonore à l'antenne, l'onglet affiché ou le sonore en pré-écoute. Le module signal n'a pas sa place ici : il ne
+s'exécute qu'entre deux instructions Python, jamais pendant un appel bloqué ou planté.
 """
 
 import contextlib
@@ -54,7 +58,7 @@ from typing import TextIO
 
 from machincast import __version__
 from machincast.clock import SystemClock
-from machincast.configuration import PROJECT_DIRECTORY
+from machincast.configuration import PROJECT_DIRECTORY, Audio, InvalidConfiguration, load
 from machincast.i18n import _
 
 log = logging.getLogger(__name__)
@@ -171,6 +175,71 @@ def wpctl_status() -> str:
 	except (OSError, subprocess.SubprocessError) as error:
 		return _("wpctl status impossible: {error}").format(error=error)
 	return f"{result.stdout}{result.stderr}".rstrip()
+
+
+JOURNALCTL = "journalctl"
+JOURNAL_LINES = 40
+"""Les dernières lignes du journal d'un processus qu'un rapport achevé reprend."""
+WITH_SOUND_CARDS = {"Machin_player": False, "Machin_interface": True}
+"""Les binaires qui jouent du son, et s'ils ont une pré-écoute."""
+
+
+def sound_cards(audio: Audio, preview: bool) -> str:
+	"""La sortie et le périphérique de l'antenne et, avec preview, ceux de la pré-écoute."""
+	output, device = audio.on_air()
+	lines = [_("On air: output {output}, device {device}").format(output=output, device=device)]
+	if preview:
+		lines.append(
+			_("Pre-listen: output {output}, device {device}").format(output=audio.output, device=audio.preview)
+		)
+	return "\n".join(lines)
+
+
+def journal(pid: int) -> str:
+	"""Les JOURNAL_LINES dernières lignes du journal systemd de ce processus, s'il y écrivait : celui d'un service ou
+	d'un lancement par le raccourci du bureau ; rien pour un lancement dans un terminal."""
+	program = shutil.which(JOURNALCTL)
+	if program is None:
+		return _("journalctl not found")
+	command = [program, f"_PID={pid}", "--no-pager", "--output=short-iso", f"--lines={JOURNAL_LINES}"]
+	try:
+		result = subprocess.run(command, capture_output=True, text=True, timeout=WPCTL_DELAY, stdin=subprocess.DEVNULL)
+	except (OSError, subprocess.SubprocessError) as error:
+		return _("journalctl impossible: {error}").format(error=error)
+	lines = [line for line in result.stdout.splitlines() if not line.startswith("-- ")]
+	return ("\n".join(lines)) or (_("no line in the journal for this process"))
+
+
+def _load_libraries() -> None:
+	"""Charge les bibliothèques des binaires, pour que versions() les donne à l'achèvement d'un rapport."""
+	for module in ("psycopg", "PySide6.QtCore"):
+		with contextlib.suppress(Exception):
+			__import__(module)
+	with contextlib.suppress(Exception):
+		from machincast import audio  # noqa: F401 : charge GStreamer
+	with contextlib.suppress(Exception):
+		from gi.repository import Gst
+
+		Gst.init(None)
+
+
+def completion(program: str, pid: int, configuration: Path | None) -> list[str]:
+	"""Ce qu'un rapport en cours, achevé après la mort de son processus, reçoit encore : les versions, les cartes son du
+	fichier de configuration et « wpctl status » pour les binaires qui jouent du son, puis les dernières lignes du
+	journal de ce pid."""
+	_load_libraries()
+	lines = ["", _("Versions, when the report was finished"), *(f"  {line}" for line in versions())]
+	sections: list[tuple[str, str]] = []
+	if program in WITH_SOUND_CARDS:
+		try:
+			cards = sound_cards(load(configuration).audio, WITH_SOUND_CARDS[program])
+		except (InvalidConfiguration, OSError) as error:
+			cards = _("unreadable configuration: {error}").format(error=error)
+		sections += [(_("Sound cards, from the configuration file"), cards), ("wpctl status", wpctl_status())]
+	sections.append((_("Last lines of the journal of pid {pid}").format(pid=pid), journal(pid)))
+	for key, value in sections:
+		lines += ["", key, *(f"  {line}" for line in value.splitlines())]
+	return lines
 
 
 def versions() -> list[str]:
@@ -321,26 +390,22 @@ def write_report(error: BaseException, instant: datetime | None = None) -> Path 
 	return path
 
 
-def refresh() -> None:
-	"""Réécrit le rapport en cours, avec ce que le binaire a noté : un signal fatal ou un arrêt brutal en laissera
-	ce dernier état. faulthandler écrit après, dans le même fichier."""
-	watch = _watch
-	if (watch is None) or (watch.pending is None):
+def _start_pending(watch: Watch) -> None:
+	"""L'en-tête du rapport en cours, écrit une fois au démarrage : faulthandler écrit à sa suite. Jamais réécrit
+	(https://github.com/dascritch/machincast/issues/413)."""
+	if watch.pending is None:
 		return
-	text = "\n".join([*_header(watch), *_context(watch, live=False), "", _("Fatal signal, if any"), ""]) + "\n"
-	with _lock:
-		try:
-			watch.pending.seek(0)
-			watch.pending.truncate()
-			watch.pending.write(text)
-			watch.pending.flush()
-		except (OSError, ValueError) as error:
-			log.warning(_("pending crash report not written: {error}").format(error=error))
+	text = "\n".join([*_header(watch), "", _("Fatal signal, if any"), ""]) + "\n"
+	try:
+		watch.pending.write(text)
+		watch.pending.flush()
+	except (OSError, ValueError) as error:
+		log.warning(_("pending crash report not written: {error}").format(error=error))
 
 
-def finish_leftovers(program: str, place: Path | None = None) -> list[Path]:
+def finish_leftovers(program: str, place: Path | None = None, configuration: Path | None = None) -> list[Path]:
 	"""Les rapports en cours de ce binaire laissés par des processus qui ne tournent plus deviennent des rapports, avec
-	l'heure de leur dernière écriture ; leurs chemins."""
+	l'heure de leur dernière écriture et ce que completion retrouve encore ; leurs chemins."""
 	place = (place) or (directory())
 	finished: list[Path] = []
 	for pending in sorted(place.glob(f".{program}-*{PENDING}")):
@@ -355,7 +420,8 @@ def finish_leftovers(program: str, place: Path | None = None) -> list[Path]:
 				"End: unknown, the process stopped without a report (fatal signal, kill -9, out of memory, power cut);"
 				" last written {last}"
 			).format(last=last.isoformat(timespec="seconds"))
-			target.write_text(f"{text.rstrip()}\n\n{ending}\n", encoding="utf-8")
+			added = "\n".join(completion(program, int(pid_text), configuration))
+			target.write_text(f"{text.rstrip()}\n\n{ending}\n{added}\n", encoding="utf-8")
 			pending.unlink()
 		except OSError as error:
 			log.warning(_("pending crash report {path} not finished: {error}").format(path=pending, error=error))
@@ -398,13 +464,15 @@ def _running(pid: int) -> bool:
 
 
 @contextmanager
-def watch(program: str, arguments: Sequence[str] = (), place: Path | None = None) -> Iterator[Watch]:
+def watch(
+	program: str, arguments: Sequence[str] = (), place: Path | None = None, configuration: Path | None = None
+) -> Iterator[Watch]:
 	"""Surveille le lancement : rapport en cours ouvert, faulthandler ; une
 	exception qui sort du bloc écrit son rapport, puis passe. À la sortie, tout est rendu, et le rapport en cours
 	effacé : le lancement s'est terminé."""
 	global _watch
 	place = (place) or (directory())
-	finish_leftovers(program, place)
+	finish_leftovers(program, place, configuration)
 	watched = Watch(program, list(arguments), SystemClock().now(), os.getpid(), place)
 	try:
 		watched.pending = watched.pending_path.open("w", encoding="utf-8")
@@ -413,7 +481,7 @@ def watch(program: str, arguments: Sequence[str] = (), place: Path | None = None
 	previous_watch, _watch = _watch, watched
 	enabled = faulthandler.is_enabled()
 	if watched.pending is not None:
-		refresh()
+		_start_pending(watched)
 		faulthandler.enable(file=watched.pending, all_threads=True)
 	try:
 		yield watched
@@ -433,3 +501,26 @@ def watch(program: str, arguments: Sequence[str] = (), place: Path | None = None
 			watched.pending.close()
 			watched.pending_path.unlink(missing_ok=True)
 		_watch = previous_watch
+
+
+def main(arguments: Sequence[str] | None = None) -> int:
+	"""« python -m machincast.crash BINAIRE [--config FICHIER] » : achève les rapports en cours que ce binaire a laissés.
+	bin/Machin l'appelle quand le binaire meurt d'un signal (https://github.com/dascritch/machincast/issues/413)."""
+	import argparse
+
+	from machincast.log import configure as configure_log
+
+	configure_log("Machin")
+	analyser = argparse.ArgumentParser(
+		prog="python -m machincast.crash", description=_("Finishes the pending crash reports left by a binary.")
+	)
+	analyser.add_argument("program", metavar=_("BINARY"), help=_("Machin_player, Machin_interface…"))
+	analyser.add_argument("--config", type=Path, default=None, metavar=_("FILE"))
+	options = analyser.parse_args(arguments)
+	for path in finish_leftovers(options.program, configuration=options.config):
+		log.error(_("crash report written: {path}").format(path=path))
+	return 0
+
+
+if __name__ == "__main__":
+	sys.exit(main())

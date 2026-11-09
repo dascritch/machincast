@@ -310,6 +310,19 @@ lancer_dev_captures() {
 	exec "${venv}/bin/python" -m tests.screenshots "$@"
 }
 
+# Achève les rapports de crash en cours du binaire $2, de chemin $1 (python -m machincast.crash), avec le Python du
+# binaire : celui de son venv, sinon celui de sa ligne #!. Les options qui suivent sont celles de la configuration.
+achever_rapports() {
+	local chemin="$1" programme="$2" python="${1%/*}/python" premiere=""
+	shift 2
+	if [[ ! -x "${python}" ]]; then
+		IFS= read -r premiere <"${chemin}" || true
+		python="${premiere#\#!}"
+		[[ "${premiere}" == '#!'* && -x "${python}" ]] || return 0
+	fi
+	"${python}" -m machincast.crash "${programme}" "$@" || true
+}
+
 principal() {
 	local configuration=() binaire chemin
 
@@ -379,7 +392,17 @@ principal() {
 		exit "${CODE_INTROUVABLE}"
 	fi
 
-	exec "${chemin}" "${configuration[@]}" "$@"
+	# Pas d'exec : un binaire mort d'un signal (code 128 + n, kill -9 compris) laisse un rapport de crash en cours, que
+	# le wrapper fait achever aussitôt (https://github.com/dascritch/machincast/issues/413). Ctrl-C et SIGTERM vont au
+	# binaire, par le groupe du terminal ou le cgroup du service ; le wrapper attend sa fin, puis rend son code.
+	trap ':' INT TERM HUP
+	local code=0
+	"${chemin}" "${configuration[@]}" "$@" || code=$?
+	trap - INT TERM HUP
+	if ((code > 128 && code < 160)); then
+		achever_rapports "${chemin}" "Machin_${binaire}" "${configuration[@]}"
+	fi
+	exit "${code}"
 }
 
 principal "$@"

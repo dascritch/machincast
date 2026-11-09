@@ -204,6 +204,7 @@ CLOSE_ALL = _("Close all closable tabs")
 SOUND_CARDS = _("Sound cards")
 WPCTL_STATUS = "wpctl status"
 PRELISTENED = _("Pre-listened sound")
+SHOWN_TAB = _("Tab shown")
 """Les rubriques des rapports de crash de Machin interface (https://github.com/dascritch/machincast/issues/342)."""
 TAB_TITLE = 40
 """Longueur maximale du titre affiché d'un onglet ; au-delà, il est coupé, et son infobulle le donne en entier
@@ -296,6 +297,7 @@ class MainWindow(QMainWindow):
 		crash.provide(SOUND_CARDS, self._sound_cards)
 		crash.provide(WPCTL_STATUS, crash.wpctl_status)
 		crash.provide(PRELISTENED, self._prelistened)
+		crash.provide(SHOWN_TAB, self._shown_tab)
 		preferences.define((crossfades) or (Crossfades()))
 		preferences.define_retention(retention)
 		self.silence_threshold = ((silences) or (Silences())).threshold
@@ -703,13 +705,14 @@ class MainWindow(QMainWindow):
 		if self.configuration is not None:
 			with contextlib.suppress(InvalidConfiguration, OSError):
 				audio = load(self.configuration).audio
-		output, device = audio.on_air()
-		return "\n".join(
-			[
-				_("On air: output {output}, device {device}").format(output=output, device=device),
-				_("Pre-listen: output {output}, device {device}").format(output=audio.output, device=audio.preview),
-			]
-		)
+		return crash.sound_cards(audio, True)
+
+	def _shown_tab(self) -> str:
+		"""Le titre complet de l'onglet au premier plan."""
+		index = self.ui.tabs.currentIndex()
+		if index < 0:
+			return "—"
+		return self.full_title(index)
 
 	def _prelistened(self) -> str:
 		"""Le fichier ou le stream de la pré-écoute, s'il y en a un."""
@@ -734,7 +737,7 @@ class MainWindow(QMainWindow):
 		self.checker.halt()
 		self.full_check.halt()
 		self.home.close()
-		for key in (SOUND_CARDS, WPCTL_STATUS, PRELISTENED):
+		for key in (SOUND_CARDS, WPCTL_STATUS, PRELISTENED, SHOWN_TAB):
 			crash.provide(key, None)
 		if self.preview is not None:
 			self.preview.close()
@@ -1398,6 +1401,10 @@ class MainWindow(QMainWindow):
 		l'airplay, l'airplay de l'onglet Antenne, et une fiche qui n'est pas modifiée, sans rien demander. Une fiche
 		modifiée reste telle quelle ; celle d'un élément effacé de la base se ferme."""
 		opened = self.ui.tabs.widget(index)
+		# Dans le journal, que l'achèvement d'un rapport de crash reprend
+		# (https://github.com/dascritch/machincast/issues/413).
+		if index >= 0:
+			log.info(_("tab shown: {title}").format(title=self.full_title(index)))
 		if isinstance(opened, (List, IncidentScreen, Calendar, SearchScreen, AirplayScreen)):
 			opened.refresh()
 		if opened is self.home:
