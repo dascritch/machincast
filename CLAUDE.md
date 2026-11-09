@@ -37,6 +37,8 @@ sudo -u postgres psql -c "CREATE ROLE machincast_player NOLOGIN" -c "CREATE ROLE
 sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
 
 # Toutes les vérifications ci-dessous d'un coup, avec un bilan par outil (venv non activé) : bin/Machin dev-test
+# Pour un ticket : bin/Machin dev-test --scenarios <fonctionnalités…> [wrapper] ; la suite complète, tous les 10
+# tickets et à chaque release (doc/fr/regles/tests.md#quels-tests-lancer)
 # Sous-shell dans le dépôt, venv activé : bin/Machin dev
 # Captures d'écran du guide de l'antenne, sur la base de test : bin/Machin dev-screenshots (doc/fr/developpement/poste.md)
 

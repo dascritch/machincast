@@ -4,7 +4,7 @@
 #   Machin [--config FICHIER] BINAIRE [OPTIONS…]   appelle Machin_BINAIRE en lui transmettant les options
 #   Machin logs [OPTIONS DE journalctl…]           suit en direct le journal du service de lecture
 #   Machin dev                                      sous-shell de développement, venv activé
-#   Machin dev-test                                 lance tous les outils de vérification, avec un bilan
+#   Machin dev-test [--scenarios NOM…]              lance les outils de vérification, avec un bilan
 #   Machin dev-screenshots [REPERTOIRE]                refait les captures d'écran du guide de l'antenne
 #
 # Règles : doc/fr/regles/wrapper.md. Tests : bats tests/wrapper.
@@ -41,7 +41,7 @@ aide_complete() {
 Usage:
   Machin [--config FILE] BINARY [OPTIONS…]
   Machin logs [journalctl OPTIONS…]
-  Machin dev | dev-test | dev-screenshots [DIRECTORY]
+  Machin dev | dev-test [--scenarios NAME…] | dev-screenshots [DIRECTORY]
   Machin -h | --help | --binaries
 
 Binaries (Machin BINARY calls Machin_BINARY with the options that follow,
@@ -72,6 +72,11 @@ Development (computer installed by ./install.sh --dev):
                then bats, all even after a failure, with the tools of the venv without it
                being activated; shows a summary per tool and ends in failure if one
                of them fails. A missing tool is reported: ./install.sh --dev installs it.
+               With --scenarios NAME…, the same checks, but pytest runs only the
+               scenarios of these features (streams, streams.feature or
+               tests/features/streams.feature), with those of the style, the catalogues
+               and the documentation; bats runs only for the name wrapper. The full run
+               is for the tests and code review ticket.
   dev-screenshots redoes the screenshots of the on-air guide, in doc/fr/captures
                or in DIRECTORY: the interface off screen, on a demonstration
                written in the test database, never in the production one.
@@ -90,6 +95,7 @@ Examples:
   Machin indexer --help
   Machin logs
   Machin dev-test
+  Machin dev-test --scenarios streams feed_card
 
 Exit codes:
   the one of the called binary, of journalctl for logs, or of the subshell for dev;
@@ -209,10 +215,54 @@ verifier_avec() {
 
 # Vérifications du poste de développement (https://github.com/dascritch/machincast/issues/77) : les commandes de la
 # section « Qualité » et « Tests » de CLAUDE.md, toutes lancées même après un échec.
+# Scénarios toujours lancés avec --scenarios : le style, les catalogues de traduction et la documentation, que tout
+# ticket peut casser, en une dizaine de secondes (https://github.com/dascritch/machincast/issues/408).
+TOUJOURS=(tests/test_base.py tests/test_language.py tests/test_documentation.py tests/test_guide.py)
+
+# Module de test d'une fonctionnalité : streams, streams.feature ou tests/features/streams.feature donnent celui qui
+# appelle scenarios("streams.feature"). Échec pour une fonctionnalité inconnue.
+module_de() {
+	local nom="${1##*/}" module
+	nom="${nom%.feature}"
+	for module in tests/test_*.py; do
+		if grep -qF "scenarios(\"${nom}.feature\")" "${module}"; then
+			printf '%s\n' "${module}"
+			return 0
+		fi
+	done
+	return 1
+}
+
+# Les modules de pytest pour dev-test --scenarios, dans MODULES, et BATS_DEMANDE : vrai pour le nom wrapper.
+choisir_scenarios() {
+	local nom module deja
+	MODULES=("${TOUJOURS[@]}")
+	BATS_DEMANDE=false
+	for nom in "$@"; do
+		if [[ "${nom}" == wrapper ]]; then
+			BATS_DEMANDE=true
+			continue
+		fi
+		module="$(module_de "${nom}")" || erreur_usage "$(tf 'unknown feature: %s' "${nom}")"
+		for deja in "${MODULES[@]}"; do
+			[[ "${deja}" == "${module}" ]] && continue 2
+		done
+		MODULES+=("${module}")
+	done
+}
+
 lancer_dev_test() {
 	local venv scripts ligne liste
+	MODULES=()
+	BATS_DEMANDE=true
+	if (($# > 0)); then
+		[[ "$1" == --scenarios ]] || erreur_usage "$(tf 'unknown option of dev-test: %s' "$1")"
+		shift
+		(($# > 0)) || erreur_usage "$(t '--scenarios requires at least one feature')"
+	fi
 	venv="$(exiger_venv)"
 	cd "$(projet)"
+	(($# == 0)) || choisir_scenarios "$@"
 	export VIRTUAL_ENV="${venv}"
 	PATH="${venv}/bin:${PATH}"
 	export PATH
@@ -227,8 +277,12 @@ lancer_dev_test() {
 	verifier_avec "ruff format --check" venv ruff format --no-cache --check .
 	verifier_avec "mypy --strict" venv mypy --strict src/
 	verifier_avec "shellcheck" PATH shellcheck -x "${scripts[@]}"
-	verifier_avec "pytest" venv pytest
-	verifier_avec "bats" PATH bats tests/wrapper
+	verifier_avec "pytest" venv pytest "${MODULES[@]}"
+	if "${BATS_DEMANDE}"; then
+		verifier_avec "bats" PATH bats tests/wrapper
+	else
+		BILAN+=("$(tf '%-22s not run' bats)")
+	fi
 	tf '\n==> Summary\n'
 	for ligne in "${BILAN[@]}"; do
 		printf '    %s\n' "${ligne}"
@@ -304,9 +358,11 @@ principal() {
 	fi
 	if [[ "${binaire}" == dev || "${binaire}" == dev-test ]]; then
 		((${#configuration[@]} == 0)) || erreur_usage "$(tf '--config does not apply to %s' "${binaire}")"
-		(($# == 0)) || erreur_usage "$(tf '%s takes no argument' "${binaire}")"
-		[[ "${binaire}" == dev ]] && ouvrir_dev
-		lancer_dev_test
+		if [[ "${binaire}" == dev ]]; then
+			(($# == 0)) || erreur_usage "$(tf '%s takes no argument' dev)"
+			ouvrir_dev
+		fi
+		lancer_dev_test "$@"
 	fi
 
 	if [[ "${binaire}" == dev-screenshots ]]; then

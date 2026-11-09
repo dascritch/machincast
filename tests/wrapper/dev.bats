@@ -106,6 +106,76 @@ ecrire_outil() {
 	[[ "${stderr}" == *"${PROJET}/.venv"*"./install.sh --dev"* ]]
 }
 
+# ─── Machin dev-test --scenarios (https://github.com/dascritch/machincast/issues/408) ───
+
+# Modules de test factices : un par fonctionnalité, comme dans tests/, plus ceux toujours lancés.
+ecrire_modules() {
+	mkdir -p "${PROJET}/tests/features"
+	local nom
+	for nom in base language documentation guide streams feed_card; do
+		printf 'scenarios("%s.feature")\n' "${nom}" >"${PROJET}/tests/test_${nom}.py"
+		touch "${PROJET}/tests/features/${nom}.feature"
+	done
+}
+
+@test "Machin dev-test --scenarios ne lance que les scénarios de ces fonctionnalités, avec ceux toujours lancés" {
+	ecrire_modules
+	run "${MACHIN}" dev-test --scenarios streams tests/features/feed_card.feature
+	[ "${status}" -eq 0 ]
+	grep -qxF "pytest [tests/test_base.py] [tests/test_language.py] [tests/test_documentation.py] [tests/test_guide.py] [tests/test_streams.py] [tests/test_feed_card.py] dans ${PROJET}, venv ${PROJET}/.venv" "${APPELS}"
+}
+
+@test "Machin dev-test --scenarios garde les vérifications rapides, mais pas bats" {
+	ecrire_modules
+	run "${MACHIN}" dev-test --scenarios streams.feature
+	[ "${status}" -eq 0 ]
+	run cut -d ' ' -f 1 "${APPELS}"
+	[ "${output}" = "$(printf '%s\n' ruff ruff mypy shellcheck pytest)" ]
+	run "${MACHIN}" dev-test --scenarios streams.feature
+	[[ "${output}" == *"bats"*"non lancé"* ]]
+}
+
+@test "Machin dev-test --scenarios wrapper lance bats" {
+	ecrire_modules
+	run "${MACHIN}" dev-test --scenarios wrapper
+	[ "${status}" -eq 0 ]
+	grep -qF "bats [tests/wrapper] " "${APPELS}"
+	grep -qF "pytest [tests/test_base.py] [tests/test_language.py] [tests/test_documentation.py] [tests/test_guide.py] dans" "${APPELS}"
+}
+
+@test "Machin dev-test --scenarios ne lance qu'une fois un module donné deux fois" {
+	ecrire_modules
+	run "${MACHIN}" dev-test --scenarios guide streams streams.feature
+	[ "${status}" -eq 0 ]
+	grep -qF "[tests/test_guide.py] [tests/test_streams.py] dans" "${APPELS}"
+}
+
+@test "Machin dev-test --scenarios refuse une fonctionnalité inconnue, sans rien lancer" {
+	ecrire_modules
+	run --separate-stderr "${MACHIN}" dev-test --scenarios inconnue
+	[ "${status}" -eq 2 ]
+	[[ "${stderr}" == *"fonctionnalité inconnue : inconnue"* ]]
+	[ ! -e "${APPELS}" ]
+}
+
+@test "Machin dev-test --scenarios sans fonctionnalité est refusé" {
+	run --separate-stderr "${MACHIN}" dev-test --scenarios
+	[ "${status}" -eq 2 ]
+	[[ "${stderr}" == *"--scenarios demande au moins une fonctionnalité"* ]]
+}
+
+@test "Machin dev-test refuse une autre option" {
+	run --separate-stderr "${MACHIN}" dev-test --vite
+	[ "${status}" -eq 2 ]
+	[[ "${stderr}" == *"option inconnue de dev-test : --vite"* ]]
+}
+
+@test "Machin dev ne prend toujours aucun argument" {
+	run --separate-stderr "${MACHIN}" dev --scenarios streams
+	[ "${status}" -eq 2 ]
+	[[ "${stderr}" == *"dev ne prend pas d'argument"* ]]
+}
+
 # ─── Machin dev ────────────────────────────────────────────
 
 # Lance Machin dev depuis un autre répertoire, avec les commandes données sur l'entrée standard.

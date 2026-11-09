@@ -23,7 +23,7 @@
 Un ticket n'est terminé que si :
 
 - ses scénarios BDD ont été écrits d'abord, vus en échec, puis réussis ;
-- `ruff`, `mypy --strict`, `shellcheck`, `pytest` et `bats` passent ;
+- `bin/Machin dev-test --scenarios` passe, avec les fonctionnalités du ticket et celles qui utilisent ses modules, plus `wrapper` si le wrapper, `install.sh` ou la configuration change ; la PR dit lesquelles ont tourné ([Quels tests lancer](tests.md#quels-tests-lancer), [#408](https://github.com/dascritch/machincast/issues/408)). La suite complète revient au ticket « Tests, revue de code et performances », tous les 10 tickets fermés et à chaque demande de release ;
 - ses fonctions et ses actions externes sont documentées pour les humains ([#71](https://github.com/dascritch/machincast/issues/71)) : tout ce qu'un utilisateur ou un administrateur voit ou déclenche, c'est-à-dire les commandes, options et codes de retour, les clés de configuration, les fichiers produits, les messages affichés et les effets sur le système (base, journal, sortie audio, fichiers sonores) ;
 - la spécification et les règles de développement sont à jour.
 

@@ -19,6 +19,20 @@ Les scénarios Gherkin sont écrits en français (`# language: fr`).
 - Les scénarios marqués `@release` (marqueur pytest `release`) ne tournent pas avec `pytest` ni `bin/Machin dev-test` : lents ou avec un serveur à part, ils se lancent avant chaque version, par `pytest -m release`, et après une mise à jour de GStreamer ou de libsoup ([#278](https://github.com/dascritch/machincast/issues/278), [#208](https://github.com/dascritch/machincast/issues/208), [TROUBLESHOOTING.md](../../../TROUBLESHOOTING.fr.md#scénarios-à-lancer-avant-une-version)).
 - Un défaut de GStreamer se mesure hors du code de MachinCast, avec `python -m tests.gstreamer_measures` ([poste de développement](../developpement/poste.md#mesurer-les-blocages-de-gstreamer)), avant d'écrire ou de retirer un contournement.
 
+## Quels tests lancer
+
+Ce qui tourne dépend du moment ([#408](https://github.com/dascritch/machincast/issues/408)) : la suite complète dure plusieurs minutes, et la plupart de ses scénarios sont hors de la portée d'un ticket.
+
+**Pour chaque ticket**, `bin/Machin dev-test --scenarios <fonctionnalités…>` :
+
+- toujours, `ruff check`, `ruff format --check`, `mypy --strict` et `shellcheck`, sur tout le dépôt, puis les scénarios du style (`base.feature`), des catalogues de traduction (`language.feature`) et de la documentation (`documentation.feature`, `guide.feature`), qu'un ticket peut casser sans y toucher ;
+- les fonctionnalités du ticket, et celles qui utilisent les modules qu'il modifie : chaque nom désigne un fichier de `tests/features` (`streams`, `streams.feature` ou `tests/features/streams.feature`), donc son module `tests/test_*.py` ;
+- `wrapper` en plus, pour lancer `bats tests/wrapper`, si le wrapper, `bin/i18n.bash`, l'autocomplétion, `install.sh` ou la configuration change ; sans lui, bats n'est pas lancé et le bilan le dit.
+
+La PR dit quelles fonctionnalités ont tourné, et pourquoi celles-là.
+
+**Tous les 10 tickets fermés, et à chaque demande de release**, un ticket « Tests, revue de code et performances » : `bin/Machin dev-test` complet sous Ubuntu 26.04, les scénarios `@release` (`pytest -m release`), une revue de la qualité du code (doublons, code mort, respect de ces règles) et une mesure des performances (durée de la suite, lancement, charge de `Machin player`). Les tickets se comptent depuis le précédent ticket de ce type ; ce ticket se crée à la fermeture du dixième, et avant de commencer la [préparation d'une version](../developpement/release.md). Les échecs qu'il trouve deviennent des tickets, ou des corrections dans le sien quand elles sont petites.
+
 ## Base de test
 
 - Les tests lisent `tests/configuration-test.toml`, ou le fichier désigné par la variable d'environnement `MACHINCAST_CONFIG_TEST` ([#5](https://github.com/dascritch/machincast/issues/5)).
@@ -50,7 +64,7 @@ Les scénarios Gherkin sont écrits en français (`# language: fr`).
 - Les tests qui demandent les vrais binaires sont ignorés si le venv du dépôt (`.venv`) n'existe pas.
 - `tests/wrapper/dev.bats` vérifie `Machin dev` et `Machin dev-test` avec des bouchons des outils, qui notent leurs appels ; `Machin dev` y reçoit ses commandes sur l'entrée standard, avec un `HOME` temporaire ([#77](https://github.com/dascritch/machincast/issues/77)).
 - `tests/screenshots.py` ([#128](https://github.com/dascritch/machincast/issues/128)) est l'outil de `Machin dev-screenshots`, pas un test : il remplit la base de test d'une démonstration et capture l'interface hors de l'écran. `screenshots.feature` vérifie qu'il produit une image par capture, et que `doc/fr/captures` et le guide de l'antenne les ont toutes, et seulement elles.
-- Toutes les vérifications d'un coup : `Machin dev-test`, qui lance ruff sans cache (un cache peut masquer un import mal rangé quand un module est créé après coup).
+- Toutes les vérifications d'un coup : `Machin dev-test`, qui lance ruff sans cache (un cache peut masquer un import mal rangé quand un module est créé après coup) ; celles d'un ticket : `Machin dev-test --scenarios …` ([Quels tests lancer](#quels-tests-lancer)).
 
 ## Configuration
 
