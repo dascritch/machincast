@@ -43,9 +43,10 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast import crash
 from machincast.conversion import list_or_none
 from machincast.i18n import _
-from machincast.indexer.check import Report, SoundState
+from machincast.indexer.check import ANALYSED, Report, SoundState
 from machincast.protection import INDEXED_EXTENSIONS
 
 log = logging.getLogger(__name__)
@@ -217,6 +218,7 @@ def index_directories(
 		for file in sound_files(path):
 			if (stop is not None) and (stop.is_set()):
 				return scan
+			crash.note(ANALYSED, str(file))
 			_save(connection, int(str(bank)), str(name), str(file), report, scan)
 	return scan
 

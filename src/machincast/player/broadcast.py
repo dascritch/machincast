@@ -84,7 +84,7 @@ from typing import Any
 import psycopg
 from psycopg.rows import TupleRow
 
-from machincast import __version__
+from machincast import crash
 from machincast.clock import Clock
 from machincast.configuration import Crossfades, DeadAirSettings, Metadata
 from machincast.conversion import integer_or_none, text_or_none
@@ -417,6 +417,8 @@ class Broadcast:
 	(https://github.com/dascritch/machincast/issues/399)."""
 	lender: Occurrence | None = field(default=None, init=False)
 	"""L'occurrence qui prête son nom à l'antenne, selon la dernière décision de l'ordonnanceur."""
+	_crash_current: dict[str, Any] | None = field(default=None, init=False)
+	"""Le sonore en cours, tel que le dernier rapport de crash l'a noté : le précédent du suivant."""
 	_announced_lender: Occurrence | None = field(default=None, init=False)
 	"""Celle que les sorties et le log connaissent : un changement s'y annonce dès l'heure, sans attendre de passage."""
 	_on_air_sequence: str = field(default="", init=False)
@@ -435,8 +437,8 @@ class Broadcast:
 		self.scheduler = Scheduler(self.connection, self.randomness, self.history)
 
 	def start(self) -> None:
-		"""Ouvre la socket d'état, puis consigne le démarrage ; lève BusyStateSocket si un autre Machin player
-		diffuse déjà."""
+		"""Ouvre la socket d'état ; lève BusyStateSocket si un autre Machin player diffuse déjà. Le démarrage du binaire
+		se note au log par machincast.runs (https://github.com/dascritch/machincast/issues/342)."""
 		instant = self.clock.now()
 		if self.state is not None:
 			try:
@@ -452,7 +454,6 @@ class Broadcast:
 					instant,
 				)
 				self.state = None
-		self.history.record(self.connection, "info", N_("start"), f"Machin_player {__version__}", instant)
 		self._check_expiries(instant)
 		self._publish(instant)
 
@@ -1003,6 +1004,22 @@ class Broadcast:
 		preload = self.preload
 		if (preload is not None) and (preload.sound not in self._planned_sounds()):
 			self._drop_preload()
+		self._note_for_crash(instant)
+
+	def _note_for_crash(self, instant: datetime) -> None:
+		"""Pour un rapport de crash (https://github.com/dascritch/machincast/issues/342) : les sonores précédent, en
+		cours et les CRASH_UPCOMING suivants annoncés, à chaque début de sonore ; le rapport en cours se réécrit. Seulement
+		pendant un lancement surveillé, et sans jamais gêner la diffusion."""
+		if crash.current() is None:
+			return
+		try:
+			message = self._state(instant, False)
+		except Exception as error:  # noqa: BLE001 : le contexte d'un rapport ne doit pas arrêter l'antenne
+			log.debug(_("crash report context unavailable: {error}").format(error=error))
+			return
+		previous, self._crash_current = self._crash_current, message["current"]
+		crash.note(SOUNDS_ON_AIR, crash_text(previous, message))
+		crash.refresh()
 
 	def _engage(self, planned: Planned, instant: datetime) -> None:
 		"""Le sonore prévu devient le prochain : ce que sa décision a terminé l'est pour de bon, et ce qu'elle
@@ -1584,6 +1601,43 @@ def _timecode(position: timedelta) -> str:
 	if hours > 0:
 		return f"{hours}:{minutes:02d}:{seconds}"
 	return f"{minutes}:{seconds}"
+
+
+SOUNDS_ON_AIR = _("Sounds on air")
+"""La rubrique des rapports de crash de Machin player (https://github.com/dascritch/machincast/issues/342)."""
+CRASH_UPCOMING = 5
+
+
+def _crash_line(label: str, sound: dict[str, Any] | None) -> str:
+	"""« À l'antenne : Matinale / Séquence / Banque / Artiste – Titre / /srv/fichier.flac »."""
+	if sound is None:
+		return f"{label} : —"
+	event = str((sound.get("event")) or ("—"))
+	if sound.get("lender"):
+		event = _("{event}, in the name of “{lender}”").format(event=event, lender=sound["lender"])
+	title = " – ".join(str(part) for part in (sound.get("artist"), sound.get("title")) if part)
+	parts = [
+		event,
+		(sound.get("sequence")) or ("—"),
+		(sound.get("bank")) or ("—"),
+		(title) or ("—"),
+		(sound.get("location")) or ("—"),
+	]
+	return f"{label} : {' / '.join(str(part) for part in parts)}"
+
+
+def crash_text(previous: dict[str, Any] | None, message: dict[str, Any]) -> str:
+	"""Les sonores précédent, en cours, et les CRASH_UPCOMING suivants annoncés, une ligne chacun : événement,
+	séquence, banque, artiste et titre, fichier."""
+	coming = [message.get("next"), *((message.get("upcoming")) or ([]))]
+	coming = [sound for sound in coming if sound is not None][:CRASH_UPCOMING]
+	lines = [
+		_("Event / sequence / bank / sound / file"),
+		_crash_line(_("Previous"), previous),
+		_crash_line(_("Playing now"), message.get("current")),
+	]
+	lines += [_crash_line(_("Next {rank}").format(rank=rank), sound) for rank, sound in enumerate(coming, 1)]
+	return "\n".join(lines)
 
 
 def _lender_id(choice: Choice) -> int | None:

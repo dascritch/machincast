@@ -6,7 +6,7 @@ import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from machincast import __version__, runs
+from machincast import __version__, crash, runs
 from machincast.configuration import Configuration, InvalidConfiguration, default_file, load
 from machincast.i18n import _
 from machincast.log import configure as configure_log
@@ -48,7 +48,9 @@ def launch(
 	own_options ajoute à l'analyseur commun les options propres au binaire ; l'action reçoit la configuration
 	et toutes les options. Avec recording, le démarrage et la fin de l'action sont notés dans le journal et dans le log
 	de la base (https://github.com/dascritch/machincast/issues/341) ; then vient après la fin, comme le terminal que la
-	maintenance garde ouvert. Renvoie le code de sortie : celui de l'action, ou INVALID_CONFIGURATION_CODE.
+	maintenance garde ouvert. L'action est surveillée (machincast.crash) : un plantage laisse un rapport dans
+	crash-dump/ (https://github.com/dascritch/machincast/issues/342). Renvoie le code de sortie : celui de l'action, ou
+	INVALID_CONFIGURATION_CODE.
 	"""
 	configure_log(executable)
 	analyser = create_analyser(executable, description)
@@ -60,13 +62,14 @@ def launch(
 	except InvalidConfiguration as error:
 		log.error(_("invalid configuration: {error}").format(error=error))
 		return INVALID_CONFIGURATION_CODE
-	if (recording is None) or (not recording.when(options)):
-		code = action(configuration, options)
-	else:
-		given = list(sys.argv[1:] if arguments is None else arguments)
-		code = runs.recorded(
-			configuration.database, executable, given, recording.role, lambda: action(configuration, options)
-		)
+	given = list(sys.argv[1:] if arguments is None else arguments)
+	with crash.watch(executable, given):
+		if (recording is None) or (not recording.when(options)):
+			code = action(configuration, options)
+		else:
+			code = runs.recorded(
+				configuration.database, executable, given, recording.role, lambda: action(configuration, options)
+			)
 	if then is not None:
 		then(options)
 	return code

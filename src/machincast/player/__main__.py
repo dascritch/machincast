@@ -15,6 +15,7 @@ from pathlib import Path
 
 import psycopg
 
+from machincast import crash
 from machincast.audio import UnavailableAudioOutput
 from machincast.cli import INVALID_CONFIGURATION_CODE, launch
 from machincast.clock import SystemClock
@@ -28,11 +29,20 @@ from machincast.player.outputs import Outputs
 from machincast.player.simulation import default_name, simulate
 from machincast.player.state import BusyStateSocket, StateSocket
 from machincast.randomness import create_randomness
+from machincast.runs import Recording
 
 EXECUTABLE = "Machin_player"
 DESCRIPTION = _("Reads the programmed events and broadcasts them on the configured audio output.")
 
 FAILURE_CODE = 1
+ON_AIR_CARD = _("On-air sound card")
+WPCTL_STATUS = "wpctl status"
+"""Les rubriques des rapports de crash de Machin player, avec les sonores de l'antenne
+(machincast.player.broadcast.SOUNDS_ON_AIR, https://github.com/dascritch/machincast/issues/342)."""
+RECORDING = Recording(role=Role.PLAYBACK, when=lambda options: options.simulation is None)
+"""Le démarrage et la fin de la diffusion, au journal et au log de la base, comme les autres binaires, avec le plantage
+probable du lancement précédent (https://github.com/dascritch/machincast/issues/342) ; pas la simulation, qui n'écrit
+rien en base."""
 
 # Nom explicite : lancé par python -m, ce module s'appelle __main__, hors du journal « machincast ».
 log = logging.getLogger("machincast.player")
@@ -166,6 +176,12 @@ def run_broadcast(configuration: Configuration) -> int:
 						"broadcast on output {on_air_output}{device}, configuration {path}, stop with Ctrl-C or SIGTERM"
 					).format(on_air_output=on_air_output, device=device, path=configuration.path)
 				)
+				# Pour un rapport de crash (https://github.com/dascritch/machincast/issues/342).
+				crash.note(
+					ON_AIR_CARD,
+					_("output {output}, device {device}").format(output=on_air_output, device=on_air_device),
+				)
+				crash.provide(WPCTL_STATUS, crash.wpctl_status)
 				broadcast = Broadcast(
 					connection,
 					engine,
@@ -201,7 +217,7 @@ def run_broadcast(configuration: Configuration) -> int:
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
-	return launch(EXECUTABLE, DESCRIPTION, arguments, run, own_options)
+	return launch(EXECUTABLE, DESCRIPTION, arguments, run, own_options, recording=RECORDING)
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@
 
 Le tableau des droits par binaire est dans [spec.md § 3.2](../spec.md#32-rôles-et-droits). Il est appliqué deux fois :
 
-1. en base, par les `GRANT` des migrations, `0001.initial-schema` puis `0002.run-log` ([#341](https://github.com/dascritch/machincast/issues/341)), aux rôles `machincast_player`, `machincast_indexer` et `machincast_interface` ;
+1. en base, par les `GRANT` des migrations, `0001.initial-schema`, `0002.run-log` ([#341](https://github.com/dascritch/machincast/issues/341)) puis `0006.player-runs` ([#342](https://github.com/dascritch/machincast/issues/342)), aux rôles `machincast_player`, `machincast_indexer` et `machincast_interface` ;
 2. dans le code : chaque binaire n'exécute que les requêtes autorisées à son rôle.
 
 Règles :
@@ -38,7 +38,7 @@ Règles :
 Points sensibles :
 
 - `Machin_player` n'écrit dans `sounds` que le champ `state`, pour le passer à `expired`. Dans `airplay` et `log`, il ne fait que des insertions.
-- `Machin_indexer` n'écrit que dans `sounds` et `bank_sounds`, et dans `log` ses seuls démarrages, fins et plantages probables, sans le lire : `machincast_previous_start`, `SECURITY DEFINER`, lui rend le démarrage précédent ([#341](https://github.com/dascritch/machincast/issues/341)). Une fonction `SECURITY DEFINER` fixe son `search_path`, ne rend que ce dont le rôle a besoin, et n'est exécutable que par les rôles qui s'en servent (`REVOKE ALL … FROM PUBLIC`). Il ne supprime que des lignes de `bank_sounds`, pour retirer d'une banque les sonores hors de ses durées ([#195](https://github.com/dascritch/machincast/issues/195)).
+- `Machin_indexer` n'écrit que dans `sounds` et `bank_sounds`, et dans `log` ses seuls démarrages, fins et plantages probables, sans le lire : `machincast_previous_start`, `SECURITY DEFINER`, lui rend le démarrage précédent ([#341](https://github.com/dascritch/machincast/issues/341)) ; `Machin_player` aussi, pour les siens ([#342](https://github.com/dascritch/machincast/issues/342)). Une fonction `SECURITY DEFINER` fixe son `search_path`, ne rend que ce dont le rôle a besoin, et n'est exécutable que par les rôles qui s'en servent (`REVOKE ALL … FROM PUBLIC`). Il ne supprime que des lignes de `bank_sounds`, pour retirer d'une banque les sonores hors de ses durées ([#195](https://github.com/dascritch/machincast/issues/195)).
 - En mode simulation, `Machin_player` n'écrit **rien** en base : toute la simulation tient dans une transaction en lecture seule (`machincast.player.simulation.read_only`), où PostgreSQL refuse toute écriture ([#21](https://github.com/dascritch/machincast/issues/21)).
 
 ## Intégrité

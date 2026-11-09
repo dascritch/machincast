@@ -15,12 +15,15 @@ Fonctionnalité: Boucle de diffusion de Machin player
 
 	# ─── Marche continue ───────────────────────────────────────
 
-	Scénario: Le démarrage et l'arrêt sont consignés dans le log
+	# Le démarrage et la fin du binaire sont notés par machincast.runs (run_log.feature,
+	# https://github.com/dascritch/machincast/issues/342) : la diffusion ne note que l'arrêt demandé.
+	Scénario: L'arrêt est consigné dans le log, le démarrage ne l'est pas par la diffusion
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
 		Quand la diffusion démarre au plus vite
 		Et la diffusion tourne 3 pas d'une seconde
 		Et la diffusion s'arrête
-		Alors le log commence par « info » « démarrage » et finit par « info » « arrêt »
+		Alors le log finit par « info » « arrêt »
+		Et le log contient 0 info « démarrage »
 
 	Scénario: Le fil musical passe en continu, chaque passage écrit dans l'airplay
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »

@@ -67,15 +67,16 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| title   | ne peut pas |
 			| duration   | ne peut pas |
 
-	Plan du scénario: Seule l'indexation, parmi les rôles, retrouve le démarrage précédent d'un binaire
+	Plan du scénario: L'indexation et la lecture, parmi les rôles, retrouvent le démarrage précédent d'un binaire
 		https://github.com/dascritch/machincast/issues/341 : la fonction machincast_previous_start ne rend que l'heure, le
 		pid et la fin du dernier démarrage noté ; elle lit le log avec les droits du propriétaire de la base.
+		https://github.com/dascritch/machincast/issues/342 : la lecture aussi, sans lire le log.
 		Alors le rôle "<role>" <verdict> retrouver le démarrage précédent d'un binaire
 
 		Exemples:
 			| role                 | verdict     |
 			| machincast_indexer   | peut        |
-			| machincast_player    | ne peut pas |
+			| machincast_player    | peut        |
 			| machincast_interface | ne peut pas |
 
 	Scénario: Le binaire lecture enregistre un passage complet

@@ -44,6 +44,7 @@ vérifie en tâche de fond (machincast.interface.check, https://github.com/dascr
 barre d'état annonce l'un et l'autre.
 """
 
+import contextlib
 import dataclasses
 import logging
 from datetime import datetime
@@ -55,7 +56,7 @@ from PySide6.QtCore import QEvent, QObject, QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QKeyEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QMenu, QTabBar, QWidget
 
-from machincast import service, shortcut
+from machincast import crash, service, shortcut
 from machincast.clock import Clock
 from machincast.configuration import (
 	RETENTION,
@@ -200,6 +201,10 @@ LISTENING = {
 TAB_SHORTCUTS = 12
 CLOSE_ALL = _("Close all closable tabs")
 """La dernière entrée du menu « Onglets » (https://github.com/dascritch/machincast/issues/405)."""
+SOUND_CARDS = _("Sound cards")
+WPCTL_STATUS = "wpctl status"
+PRELISTENED = _("Pre-listened sound")
+"""Les rubriques des rapports de crash de Machin interface (https://github.com/dascritch/machincast/issues/342)."""
 TAB_TITLE = 40
 """Longueur maximale du titre affiché d'un onglet ; au-delà, il est coupé, et son infobulle le donne en entier
 (https://github.com/dascritch/machincast/issues/398)."""
@@ -287,6 +292,10 @@ class MainWindow(QMainWindow):
 		"""Sortie de l'antenne et périphérique de pré-écoute (https://github.com/dascritch/machincast/issues/116)."""
 		self.preview: PreviewWindow | None = None
 		"""La fenêtre de pré-écoute, une seule pour toute l'interface, créée à sa première demande."""
+		# Pour un rapport de crash (https://github.com/dascritch/machincast/issues/342).
+		crash.provide(SOUND_CARDS, self._sound_cards)
+		crash.provide(WPCTL_STATUS, crash.wpctl_status)
+		crash.provide(PRELISTENED, self._prelistened)
 		preferences.define((crossfades) or (Crossfades()))
 		preferences.define_retention(retention)
 		self.silence_threshold = ((silences) or (Silences())).threshold
@@ -688,6 +697,27 @@ class MainWindow(QMainWindow):
 		tabs = self.ui.tabs
 		return [card for index in range(tabs.count()) if isinstance(card := tabs.widget(index), Card)]
 
+	def _sound_cards(self) -> str:
+		"""Les périphériques de l'antenne et de la pré-écoute, tels que le fichier de configuration les donne alors."""
+		audio = self.audio
+		if self.configuration is not None:
+			with contextlib.suppress(InvalidConfiguration, OSError):
+				audio = load(self.configuration).audio
+		output, device = audio.on_air()
+		return "\n".join(
+			[
+				_("On air: output {output}, device {device}").format(output=output, device=device),
+				_("Pre-listen: output {output}, device {device}").format(output=audio.output, device=audio.preview),
+			]
+		)
+
+	def _prelistened(self) -> str:
+		"""Le fichier ou le stream de la pré-écoute, s'il y en a un."""
+		source = None if self.preview is None else self.preview.player.source
+		if source is None:
+			return "—"
+		return f"{source.title} : {source.address}"
+
 	def closeEvent(self, event: QCloseEvent) -> None:
 		for card in self.cards():
 			if not card.can_close():
@@ -704,6 +734,8 @@ class MainWindow(QMainWindow):
 		self.checker.halt()
 		self.full_check.halt()
 		self.home.close()
+		for key in (SOUND_CARDS, WPCTL_STATUS, PRELISTENED):
+			crash.provide(key, None)
 		if self.preview is not None:
 			self.preview.close()
 		super().closeEvent(event)

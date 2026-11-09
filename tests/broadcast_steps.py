@@ -839,12 +839,6 @@ def end_lines(empty_database: Connection) -> None:
 	assert (lines) and (all((end is not None) and (without_incident) for _, _, end, without_incident in lines)), lines
 
 
-@then(parsers.parse("le log commence par « {level} » « {kind} » et finit par « {end_level} » « {end_kind} »"))
-def log_bounds(empty_database: Connection, level: str, kind: str, end_level: str, end_kind: str) -> None:
-	lines = log(empty_database)
-	assert (lines[0] == (level, kind)) and (lines[-1] == (end_level, end_kind)), lines
-
-
 @then(parsers.parse("le log finit par « {level} » « {kind} »"))
 def log_end(empty_database: Connection, level: str, kind: str) -> None:
 	assert log(empty_database)[-1] == (level, kind)

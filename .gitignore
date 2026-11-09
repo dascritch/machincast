@@ -225,3 +225,6 @@ machincast.toml
 /configuration-test-*.toml
 /sorties/
 /sauvegardes/
+
+# Rapports de crash des binaires (https://github.com/dascritch/machincast/issues/342)
+/crash-dump/

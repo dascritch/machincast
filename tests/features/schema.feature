@@ -54,11 +54,12 @@ Fonctionnalité: Schéma de la base de données
 
 	Scénario: Une base neuve reçoit le schéma initial, puis les migrations qui le suivent
 		https://github.com/dascritch/machincast/issues/341 : 0002.run-log, les démarrages et fins des binaires au log ;
-		https://github.com/dascritch/machincast/issues/399 : 0005.lend-name, dont l'annulation recrée le type end_of_list.
+		https://github.com/dascritch/machincast/issues/399 : 0005.lend-name, dont l'annulation recrée le type end_of_list ;
+		https://github.com/dascritch/machincast/issues/342 : 0006.player-runs, la lecture retrouve son démarrage précédent.
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 5 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.run-log, 0003.end-of-list, 0004.feed-buffer, 0005.lend-name »
+		Alors 6 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.run-log, 0003.end-of-list, 0004.feed-buffer, 0005.lend-name, 0006.player-runs »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
 	# Le ramasse-miettes est suspendu : une connexion qui n'est pas fermée explicitement reste ouverte.
