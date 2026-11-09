@@ -61,8 +61,8 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| onglet                   | icône      |
 			| Antenne                  | aucune     |
 			| Sonores                  | sonore     |
-			| Sonore : Café à minuit   | sonore     |
 			| Feeds                    | aucune     |
+			| Sonore : Café à minuit   | sonore     |
 			| Calendrier               | grille     |
 			| Simulation               | simulation |
 			| Airplay                  | airplay    |

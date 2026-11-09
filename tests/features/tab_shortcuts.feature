@@ -12,7 +12,7 @@ Fonctionnalité: Raccourcis des onglets
 	droite, sans boucler, Ctrl+Home au premier, l'onglet Antenne, et Ctrl+End au dernier, quel que soit le widget qui a le
 	focus, champ de texte et tableau compris.
 
-	Un onglet s'ouvre directement à droite de l'onglet ouvert, une fiche à droite de sa liste
+	Un onglet s'ouvre à droite de l'onglet ouvert, une fiche à droite de sa liste, après celles déjà ouvertes depuis elle
 	(https://github.com/dascritch/machincast/issues/405, movable_tabs.feature).
 
 	Contexte:
@@ -53,22 +53,22 @@ Fonctionnalité: Raccourcis des onglets
 		Et j'ouvre la fiche de la séquence « Quatre »
 		Et j'ouvre la fiche de la séquence « Cinq »
 		Et j'ouvre la fiche de la séquence « Six »
-		Alors l'onglet « Séquence : Un » a pour infobulle « Maj+F12 »
+		Alors l'onglet « Séquence : Six » a pour infobulle « Maj+F12 »
 		Et l'onglet « Banques » n'a pas d'infobulle
 		Quand j'appuie sur « Shift+F1 »
 		Et j'appuie sur « Shift+F12 »
-		Alors l'onglet ouvert est « Séquence : Un »
+		Alors l'onglet ouvert est « Séquence : Six »
 
 	Scénario: Fermer un onglet décale les raccourcis des suivants
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Un »
 		Et j'ouvre la fiche de la séquence « Deux »
-		Alors l'onglet « Séquence : Un » a pour infobulle « Maj+F6 »
-		Quand je ferme l'onglet « Séquence : Deux »
-		Alors l'onglet « Séquence : Un » a pour infobulle « Maj+F5 »
+		Alors l'onglet « Séquence : Deux » a pour infobulle « Maj+F6 »
+		Quand je ferme l'onglet « Séquence : Un »
+		Alors l'onglet « Séquence : Deux » a pour infobulle « Maj+F5 »
 		Quand j'appuie sur « Shift+F1 »
 		Et j'appuie sur « Shift+F5 »
-		Alors l'onglet ouvert est « Séquence : Un »
+		Alors l'onglet ouvert est « Séquence : Deux »
 		Quand j'appuie sur « Shift+F6 »
 		Alors l'onglet ouvert est « Banques »
 

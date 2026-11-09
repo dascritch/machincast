@@ -308,6 +308,9 @@ class MainWindow(QMainWindow):
 		self._appending = True
 		"""Vrai pendant la construction de la fenêtre et la réouverture des onglets retenus : un onglet s'ajoute à la fin,
 		au lieu de s'ouvrir à droite de l'onglet ouvert."""
+		self._last_opened: dict[QWidget, QWidget] = {}
+		"""Pour chaque onglet d'origine, le dernier onglet ouvert depuis lui : le suivant se range après lui, comme dans
+		Firefox (https://github.com/dascritch/machincast/issues/405)."""
 		self.home = DefaultScreen(connection, state_socket, clock, audio=audio)
 		self.home.show_clipping(self.clipping)
 		self.home.requested_listening.connect(self._listen_on_air)
@@ -813,18 +816,37 @@ class MainWindow(QMainWindow):
 			self.ui.tabs.tabBar().setTabButton(index, side, None)
 
 	def _add_tab(self, screen: QWidget, title: str) -> int:
-		"""Tout onglet s'ajoute par ici, et se retire par _retirer_onglet : les raccourcis suivent. Il s'ouvre
-		directement à droite de l'onglet d'où il est ouvert, l'onglet ouvert à cet instant
-		(https://github.com/dascritch/machincast/issues/405) ; à la fin, pendant la construction de la fenêtre et la
-		réouverture des onglets retenus."""
+		"""Tout onglet s'ajoute par ici, et se retire par _remove_tab : les raccourcis suivent. Il s'ouvre à droite de
+		l'onglet d'où il est ouvert, l'onglet ouvert à cet instant, après ceux déjà ouverts depuis lui, comme dans
+		Firefox (https://github.com/dascritch/machincast/issues/405) ; à la fin, pendant la construction de la fenêtre et
+		la réouverture des onglets retenus."""
 		tabs = self.ui.tabs
 		icon = icons.icon_of(screen_category(screen))
 		if self._appending:
 			index = tabs.addTab(screen, icon, title)
 		else:
-			index = tabs.insertTab(tabs.currentIndex() + 1, screen, icon, title)
+			origin = tabs.currentWidget()
+			index = tabs.insertTab(self._place_from(origin), screen, icon, title)
+			self._note_opening(origin, screen)
 		self._title_tab(index, title)
 		return index
+
+	def _place_from(self, origin: QWidget | None) -> int:
+		"""La place d'un onglet ouvert depuis origin : après le dernier onglet ouvert depuis lui, s'il est encore ouvert
+		et à sa droite, sinon directement à sa droite. origin retient ce nouvel onglet ; un onglet sans origine va à la
+		fin."""
+		tabs = self.ui.tabs
+		if origin is None:
+			return tabs.count()
+		place = tabs.indexOf(origin) + 1
+		last = self._last_opened.get(origin)
+		if (last is not None) and (tabs.indexOf(last) >= place):
+			place = tabs.indexOf(last) + 1
+		return place
+
+	def _note_opening(self, origin: QWidget | None, screen: QWidget) -> None:
+		if origin is not None:
+			self._last_opened[origin] = screen
 
 	def _moved_tab(self, _from: int, _to: int) -> None:
 		"""Un onglet déplacé : l'onglet Antenne revient en tête, Maj+F1 et Ctrl+Home y mènent toujours ; les raccourcis
@@ -868,6 +890,9 @@ class MainWindow(QMainWindow):
 			action.triggered.connect(lambda _ticked=False, widget=widget: tabs.setCurrentWidget(widget))
 
 	def _remove_tab(self, index: int) -> None:
+		"""Un onglet fermé n'est plus ni l'origine ni le dernier ouvert d'aucun autre."""
+		screen = self.ui.tabs.widget(index)
+		self._last_opened = {origin: last for origin, last in self._last_opened.items() if screen not in (origin, last)}
 		self.ui.tabs.removeTab(index)
 		self._number_tabs()
 
