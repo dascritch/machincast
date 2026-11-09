@@ -559,6 +559,43 @@ def tick_duration(interface: Context, qtbot: QtBot, bound: str) -> None:
 	interface.response_duration = time.monotonic() - start
 
 
+@when("je compte les lectures de toutes les lignes de la fiche")
+def count_readings(interface: Context, monkeypatch: pytest.MonkeyPatch) -> None:
+	"""Chaque appel de BankCard._lines lit toutes les lignes de la liste
+	(https://github.com/dascritch/machincast/issues/383)."""
+	interface.readings = 0
+	original = BankCard._lines
+
+	def counted(self: BankCard) -> list[QTreeWidgetItem]:
+		interface.readings += 1
+		return original(self)
+
+	monkeypatch.setattr(BankCard, "_lines", counted)
+
+
+@when(parsers.parse("je choisis les {count:d} derniers sonores de la fiche"))
+def choose_last(interface: Context, count: int) -> None:
+	lines = card(interface).ui.sounds
+	total = lines.topLevelItemCount()
+	for row in range(total - count, total):
+		lines.topLevelItem(row).setSelected(True)
+
+
+@when("je retire les sonores choisis")
+def remove_chosen(interface: Context, qtbot: QtBot) -> None:
+	click(qtbot, card(interface).ui.remove_sound)
+
+
+@then(parsers.parse("la fiche a lu toutes ses lignes au plus {count:d} fois"))
+def readings_at_most(interface: Context, count: int) -> None:
+	assert interface.readings <= count, interface.readings
+
+
+@then(parsers.parse("la fiche montre {count:d} sonores"))
+def shows_sounds(interface: Context, count: int) -> None:
+	assert card(interface).ui.sounds.topLevelItemCount() == count
+
+
 @then(parsers.parse("la fiche a marqué hors des durées {count:d} sonores en moins de {seconds:d} secondes"))
 def marked_fast(interface: Context, count: int, seconds: int) -> None:
 	lines = card(interface).ui.sounds

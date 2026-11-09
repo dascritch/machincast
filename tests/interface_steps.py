@@ -193,6 +193,9 @@ class Context:
 	"""Ce que la fenêtre des suggestions a proposé, à chaque lancement."""
 	response_duration: float = 0.0
 	"""Temps qu'a pris la dernière action mesurée, en secondes (https://github.com/dascritch/machincast/issues/194)."""
+	readings: int = 0
+	"""Les lectures de toutes les lignes d'une fiche de banque, quand un scénario les compte
+	(https://github.com/dascritch/machincast/issues/383)."""
 	adjusted_clipping: bool | None = None
 	"""Le voyant « Saturation » que donnera la fenêtre des préférences ; None : inchangé
 	(https://github.com/dascritch/machincast/issues/191)."""
