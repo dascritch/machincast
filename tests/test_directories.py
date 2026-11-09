@@ -4,6 +4,8 @@ import logging
 import re
 import shutil
 import threading
+import time
+from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
 
@@ -12,11 +14,13 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.database import Role, open_connection
+from machincast.indexer.check import Report
 from machincast.indexer.decoding import Check, check_file
+from machincast.indexer.directories import DIRECTORIES_LOCK
 from machincast.indexer.indexer import index as index_full
 from machincast.indexer.indexer import index_sound
 from tests.database_fixtures import sample_database_parameters
-from tests.indexing_steps import Execution, count, insert_sound
+from tests.indexing_steps import Execution, OtherIndexing, count, insert_sound
 from tests.sounds import corrupt, sample_copy
 
 scenarios("directories.feature")
@@ -132,9 +136,89 @@ def reported_error(execution: Execution, root: Path, path: str, consequence: str
 	assert line.endswith(f" ; {consequence}"), line
 
 
-@then("le verrou de l'indexation a été rendu dès la fin de l'indexation")
+@then("le verrou de l'indexation rapide a été rendu dès la fin de l'indexation")
 def rendering_lock(execution: Execution) -> None:
 	assert execution.rendering_lock
+
+
+@then(parsers.parse("Machin indexer se termine avec le code {code:d}"))
+def finished_launching(launching: tuple[int, list[str]], code: int) -> None:
+	obtained, messages = launching
+	assert obtained == code, messages
+
+
+# ─── Deux parcours en même temps (https://github.com/dascritch/machincast/issues/401) ───
+
+
+@dataclass
+class Background:
+	"""Une indexation lancée dans un fil, et ce qu'elle a rendu ou levé."""
+
+	feed: threading.Thread
+	report: Report | None = None
+	error: BaseException | None = None
+
+
+@given(parsers.parse("une autre indexation qui enregistre « {relative} » dans la banque « {name} », sans avoir fini"))
+def other_registering(
+	empty_database: Connection, other_indexing: OtherIndexing, root: Path, relative: str, name: str
+) -> None:
+	"""Comme le parcours d'une autre indexation : le verrou des enregistrements, le nouveau sonore et son rattachement,
+	dans une transaction encore ouverte."""
+	connection = open_connection(*sample_database_parameters(), Role.INDEXING)
+	connection.execute("SELECT pg_advisory_xact_lock(%s)", (DIRECTORIES_LOCK,))
+	line = connection.execute(
+		"INSERT INTO sounds (type, location, state) VALUES ('file', %s, 'preview') RETURNING id",
+		(str(root / relative),),
+	).fetchone()
+	assert line is not None
+	connection.execute(
+		"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, 1)",
+		(bank(empty_database, name), line[0]),
+	)
+	other_indexing.connections.append(connection)
+
+
+def _waiting_lock(database: Connection) -> bool:
+	"""Une connexion attend-elle un verrou consultatif ?"""
+	line = database.execute("SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' AND NOT granted").fetchone()
+	return (line is not None) and (int(str(line[0])) > 0)
+
+
+@when("l'indexeur commence une indexation rapide", target_fixture="background")
+def starts_indexing(empty_database: Connection) -> Background:
+	"""L'indexation, dans un fil, jusqu'à ce qu'elle attende le verrou des enregistrements que tient l'autre."""
+
+	def run() -> None:
+		try:
+			with open_connection(*sample_database_parameters(), Role.INDEXING) as connection:
+				background.report = index_full(connection, full_audit=False)
+		except BaseException as error:  # noqa: BLE001 : rendue au scénario
+			background.error = error
+
+	background = Background(threading.Thread(target=run, daemon=True))
+	background.feed.start()
+	end = time.monotonic() + 20
+	while (not _waiting_lock(empty_database)) and (time.monotonic() < end) and (background.feed.is_alive()):
+		time.sleep(0.05)
+	assert _waiting_lock(empty_database), "l'indexation n'attend pas le verrou des enregistrements"
+	return background
+
+
+@then("l'indexation rapide se termine sans erreur")
+def finished_without_error(background: Background) -> None:
+	background.feed.join(60)
+	assert not background.feed.is_alive()
+	assert background.error is None, background.error
+	assert background.report is not None
+
+
+@then(parsers.re(r"la banque « (?P<name>[^»]+) » contient (?P<count>\d+) sonores?"))
+def bank_count(empty_database: Connection, name: str, count: str) -> None:
+	line = empty_database.execute(
+		"SELECT count(*) FROM bank_sounds WHERE bank_id = %s", (bank(empty_database, name),)
+	).fetchone()
+	assert (line is not None) and (line[0] == int(count))
 
 
 @given(parsers.parse("« {relative} » déplacé en « {destination} »"))

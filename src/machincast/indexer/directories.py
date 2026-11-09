@@ -24,7 +24,12 @@ qui suit le décode dans le même passage.
   durées, qu'ils viennent de ses répertoires ou qu'ils aient été ajoutés à la main.
 - Un répertoire introuvable ou illisible est signalé en anomalie ; les autres banques sont indexées.
 
-Chaque fichier est enregistré dans sa propre transaction, pour qu'une interruption garde le travail fait.
+Chaque fichier est enregistré dans sa propre transaction, pour qu'une interruption garde le travail fait. Une
+indexation rapide et un audit complet peuvent parcourir les répertoires en même temps
+(https://github.com/dascritch/machincast/issues/401) : chaque enregistrement et chaque rattachement tient, le temps de
+sa transaction, le verrou DIRECTORIES_LOCK. Le second parcours à trouver un nouveau fichier attend donc que le premier
+l'ait enregistré, puis le voit en base : il ne l'enregistre pas une seconde fois, et ne rattache pas deux sonores à la
+même position d'une banque.
 """
 
 import logging
@@ -44,6 +49,10 @@ from machincast.indexer.check import Report, SoundState
 from machincast.protection import INDEXED_EXTENSIONS
 
 log = logging.getLogger(__name__)
+
+DIRECTORIES_LOCK = 0x4D616368_64697273
+"""Clé du verrou consultatif, le temps d'une transaction, des enregistrements et rattachements du parcours :
+« Machdirs »."""
 
 EXTENSIONS = INDEXED_EXTENSIONS
 """Extensions des formats de la spec § 6.2, en minuscules (machincast.protection)."""
@@ -101,6 +110,7 @@ class Scan:
 
 def _attach(connection: psycopg.Connection[TupleRow], bank: int, sound: int) -> bool:
 	"""Rattache le sonore à la fin de la banque, s'il n'y est pas et qu'il ne sort pas de ses durées."""
+	_take_lock(connection)
 	return (
 		connection.execute(
 			"INSERT INTO bank_sounds (bank_id, sound_id, position)"
@@ -111,6 +121,12 @@ def _attach(connection: psycopg.Connection[TupleRow], bank: int, sound: int) -> 
 		).rowcount
 		> 0
 	)
+
+
+def _take_lock(connection: psycopg.Connection[TupleRow]) -> None:
+	"""Le verrou des enregistrements du parcours, jusqu'à la fin de la transaction en cours ; attend l'autre parcours
+	qui le tient."""
+	connection.execute("SELECT pg_advisory_xact_lock(%s)", (DIRECTORIES_LOCK,))
 
 
 def _announce(report: Report, scan: Scan, sound: int, name: str, location: str) -> None:
@@ -129,6 +145,7 @@ def _save(
 	"""Enregistre le fichier comme nouveau sonore s'il ne l'est pas, et le rattache à la banque, ou le met en attente
 	de sa vérification ; une ligne dit chaque rattachement."""
 	with connection.transaction():
+		_take_lock(connection)
 		line = connection.execute(
 			"SELECT s.id, s.duration IS NULL AND (b.min_duration IS NOT NULL OR b.max_duration IS NOT NULL)"
 			" FROM sounds s, banks b WHERE s.location = %s AND s.deleted_at IS NULL AND b.id = %s",

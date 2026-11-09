@@ -13,6 +13,7 @@ from pathlib import Path
 import psycopg
 from pytest_bdd import given, parsers, scenarios, then
 
+from machincast.configuration import SILENCE_THRESHOLD
 from machincast.player.analysis import Analyser, analysis_command
 from tests.broadcast_steps import Bench, sound
 from tests.database_fixtures import configuration_test
@@ -55,8 +56,33 @@ def calls(log: Path) -> list[list[str]]:
 
 @given(parsers.parse("le sonore « {name} » a été vérifié en entier"))
 def checks(empty_database: Connection, name: str) -> None:
+	"""Un audit complet, après la dernière modification du fichier."""
+	now = datetime.now(UTC)
 	empty_database.execute(
-		"UPDATE sounds SET checked_at = %s WHERE id = %s", (datetime.now(UTC), sound(empty_database, name))
+		"UPDATE sounds SET checked_at = %s, audited_at = %s, audit_threshold = %s WHERE id = %s",
+		(now, now, SILENCE_THRESHOLD, sound(empty_database, name)),
+	)
+
+
+@given(parsers.parse("le sonore « {name} » a été vérifié par une indexation rapide seulement"))
+def quick_checks(empty_database: Connection, name: str) -> None:
+	"""Décodé, mais sans audit complet : pas de date d'audit (https://github.com/dascritch/machincast/issues/401)."""
+	empty_database.execute(
+		"UPDATE sounds SET checked_at = %s, audited_at = NULL, audit_threshold = NULL WHERE id = %s",
+		(datetime.now(UTC), sound(empty_database, name)),
+	)
+
+
+@given(parsers.parse("le sonore « {name} » a été audité avant la dernière modification de son fichier"))
+def audited_before(empty_database: Connection, name: str) -> None:
+	"""La date de modification et la taille enregistrées sont celles du fichier, mais l'audit date d'avant."""
+	identifier = sound(empty_database, name)
+	line = empty_database.execute("SELECT file_modified_at FROM sounds WHERE id = %s", (identifier,)).fetchone()
+	assert (line is not None) and (isinstance(line[0], datetime))
+	before = line[0] - timedelta(minutes=5)
+	empty_database.execute(
+		"UPDATE sounds SET checked_at = %s, audited_at = %s, audit_threshold = %s WHERE id = %s",
+		(before, before, SILENCE_THRESHOLD, identifier),
 	)
 
 
@@ -122,19 +148,21 @@ def no(analysis_log: Path) -> None:
 	assert calls(analysis_log) == []
 
 
-@then(parsers.parse("le sonore « {name} » a bientôt sa date de vérification complète"))
+@then(parsers.parse("le sonore « {name} » a bientôt sa date de vérification complète, et sa date d'audit"))
 def checks_soon(empty_database: Connection, name: str) -> None:
 	identifier = sound(empty_database, name)
 
-	def checks_at() -> object:
-		line = empty_database.execute("SELECT checked_at FROM sounds WHERE id = %s", (identifier,)).fetchone()
+	def dates() -> tuple[object, ...]:
+		line = empty_database.execute(
+			"SELECT checked_at, audited_at FROM sounds WHERE id = %s", (identifier,)
+		).fetchone()
 		assert line is not None
-		return line[0]
+		return tuple(line)
 
-	assert wait(lambda: checks_at() is not None), "le sonore n'a pas été vérifié"
-	date = checks_at()
-	assert isinstance(date, datetime)
-	assert datetime.now(UTC) - date < timedelta(seconds=DELAY)
+	assert wait(lambda: None not in dates()), "le sonore n'a pas été audité"
+	for date in dates():
+		assert isinstance(date, datetime)
+		assert datetime.now(UTC) - date < timedelta(seconds=DELAY)
 
 
 @then("l'analyse tourne dans sa propre session, à l'abri d'un Ctrl-C dans le terminal de la diffusion")

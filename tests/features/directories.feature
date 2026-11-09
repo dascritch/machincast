@@ -247,19 +247,52 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 			| …/jingles/intro.flac : sain ; sonore passé actif                 |
 		Et la sortie d'erreur signale « …/jingles/abime.mp3 », avec « sonore passé erroné »
 
-	# ─── Une indexation à la fois ──────────────────────────────
+	# ─── Une indexation rapide et un audit complet à la fois ───
+	# https://github.com/dascritch/machincast/issues/401 : chaque mode a son verrou ; l'audit d'un sonore nommé n'en
+	# prend aucun (sound_indexing.feature).
 
-	Scénario: Machin indexer refuse de commencer pendant une autre indexation sur la même base
+	Scénario: Machin indexer refuse une indexation rapide pendant une autre indexation rapide sur la même base
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
 		Et le fichier « jingles/intro.flac », sain
-		Et une autre indexation en cours sur la base
+		Et une autre indexation rapide en cours sur la base
 		Quand Machin indexer est lancé sur la base de test
-		Alors Machin indexer se termine avec le code 1, en signalant « indexation refusée : une autre indexation est en cours sur cette base »
+		Alors Machin indexer se termine avec le code 1, en signalant « indexation refusée : une autre indexation rapide est en cours sur cette base »
 		Et la base contient 0 sonore
 		Quand l'autre indexation se termine
 		Et Machin indexer est lancé sur la base de test
 		Alors Machin indexer se termine avec le code 0, en signalant « indexation rapide : 1 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 1 sorti d'aperçu »
 		Et la base contient 1 sonore
+
+	Scénario: Machin indexer refuse un audit complet pendant un autre audit complet sur la même base
+		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
+		Et le fichier « jingles/intro.flac », sain
+		Et un autre audit complet en cours sur la base
+		Quand Machin indexer est lancé sur la base de test, en audit complet
+		Alors Machin indexer se termine avec le code 1, en signalant « indexation refusée : un autre audit complet est en cours sur cette base »
+		Et la base contient 0 sonore
+
+	Plan du scénario: Une indexation rapide et un audit complet tournent en même temps
+		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
+		Et le fichier « jingles/intro.flac », sain
+		Et <autre> en cours sur la base
+		Quand Machin indexer est lancé sur la base de test<mode>
+		Alors Machin indexer se termine avec le code 0
+		Et la base contient 1 sonore
+
+		Exemples:
+			| autre                       | mode                 |
+			| un autre audit complet      |                      |
+			| une autre indexation rapide | , en audit complet   |
+
+	Scénario: Deux indexations qui trouvent le même nouveau fichier ne l'enregistrent qu'une fois
+		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
+		Et le fichier « jingles/intro.flac », sain
+		Et une autre indexation qui enregistre « jingles/intro.flac » dans la banque « Jingles », sans avoir fini
+		Quand l'indexeur commence une indexation rapide
+		Et l'autre indexation se termine
+		Alors l'indexation rapide se termine sans erreur
+		Et la base contient 1 sonore
+		Et la banque « Jingles » contient 1 sonore
 
 	Scénario: Une indexation arrêtée avant son début n'enregistre ni ne vérifie rien
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
@@ -272,7 +305,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
 		Et le fichier « jingles/intro.flac », sain
 		Quand l'indexeur fait une indexation rapide
-		Alors le verrou de l'indexation a été rendu dès la fin de l'indexation
+		Alors le verrou de l'indexation rapide a été rendu dès la fin de l'indexation
 
 	Scénario: Un rattachement a sa ligne, et un sonore revérifié dit que son état est conservé
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »

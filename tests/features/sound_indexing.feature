@@ -6,8 +6,9 @@ Fonctionnalité: Indexation d'un seul sonore
 
 	https://github.com/dascritch/machincast/issues/181. « Machin indexer --sound N » ne vérifie que le sonore N,
 	sans parcourir les répertoires des banques, avec --full-audit pour décoder son fichier quoi qu'il en soit. Il ne
-	prend pas le verrou de l'indexation, comme la vérification des fichiers ajoutés depuis l'interface : une
-	indexation complète peut tourner en même temps. Il n'écrit pas de document d'audit : une anomalie est signalée
+	prend aucun verrou, comme la vérification des fichiers ajoutés depuis l'interface : une indexation rapide et un
+	audit complet de toute la base peuvent tourner en même temps
+	(https://github.com/dascritch/machincast/issues/401). Il n'écrit pas de document d'audit : une anomalie est signalée
 	sur la sortie d'erreur, comme toujours.
 
 	Scénario: Un audit complet d'un seul sonore ne vérifie que lui
@@ -20,13 +21,19 @@ Fonctionnalité: Indexation d'un seul sonore
 		Et le deuxième sonore n'a pas de date de vérification complète
 		Et aucun document d'audit n'est écrit
 
-	Scénario: Un audit complet d'un seul sonore se fait même pendant une autre indexation
+	Plan du scénario: Un audit complet d'un seul sonore se fait même pendant une indexation générale
 		Étant donné un fichier flac sain
 		Et un sonore à l'état « active » pour ce fichier
-		Et une autre indexation en cours sur la base
+		Et <autre> en cours sur la base
 		Quand Machin indexer est lancé sur la base de test, en audit complet, pour ce sonore seulement
 		Alors Machin indexer se termine avec le code 0
 		Et la date de vérification complète du sonore est celle de ce lancement
+
+		Exemples:
+			| autre                                          |
+			| une autre indexation rapide                    |
+			| un autre audit complet                         |
+			| une autre indexation rapide et un autre audit complet |
 
 	Scénario: Un sonore inconnu est refusé
 		Quand Machin indexer est lancé sur la base de test, en audit complet, pour le sonore 999999

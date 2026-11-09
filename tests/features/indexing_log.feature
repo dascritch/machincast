@@ -104,11 +104,11 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 			| [horodatage] …/pubs/jingle.wav : nouveau sonore, ajouté à la banque Publicité   |
 			| [horodatage] indexation impossible : aucun décodeur pour ce format              |
 
-	Scénario: Une seule indexation à la fois sur la base
-		Étant donné une autre indexation en cours sur la base
+	Scénario: Une seule indexation rapide à la fois sur la base
+		Étant donné une autre indexation rapide en cours sur la base
 		Quand le journal « Indexation rapide » de l'indexation s'ouvre
 		Et l'indexation se termine
-		Alors le journal « Indexation rapide » de l'indexation conclut « Indexation impossible : une autre indexation est en cours sur cette base ; les sonores déjà vérifiés le restent. 1 anomalie, dans le journal ci-dessus. »
+		Alors le journal « Indexation rapide » de l'indexation conclut « Indexation impossible : une autre indexation rapide est en cours sur cette base ; les sonores déjà vérifiés le restent. 1 anomalie, dans le journal ci-dessus. »
 		Et les sonores de la banque « Publicité » en base sont :
 			| location    | state  | title  |
 			| …/vieux.wav | active | Ancien |
