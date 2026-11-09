@@ -287,6 +287,34 @@ def now_in_database(database: Connection) -> datetime:
 	return line[0]
 
 
+ANALYSIS = " : analyse…"
+"""La fin de la ligne qui ouvre l'analyse d'un fichier ; son résultat suit, en retrait, sans le nom
+(https://github.com/dascritch/machincast/issues/413)."""
+
+
+def per_file(records: list[logging.LogRecord]) -> list[tuple[int, str]]:
+	"""Le niveau et le message de chaque ligne du journal, le résultat d'une analyse précédé du nom de son fichier,
+	« chemin : résultat », comme on le lit : les scénarios parlent d'un fichier et de son verdict."""
+	lines: list[tuple[int, str]] = []
+	opened: str | None = None
+	for saving in records:
+		message = saving.getMessage()
+		if (opened is not None) and (message.startswith("  ")):
+			lines.append((saving.levelno, f"{opened} : {message.strip()}"))
+			opened = None
+			continue
+		if opened is not None:
+			lines.append((logging.INFO, f"{opened}{ANALYSIS}"))
+			opened = None
+		if message.endswith(ANALYSIS):
+			opened = message.removesuffix(ANALYSIS)
+			continue
+		lines.append((saving.levelno, message))
+	if opened is not None:
+		lines.append((logging.INFO, f"{opened}{ANALYSIS}"))
+	return lines
+
+
 def index(
 	empty_database: Connection,
 	caplog: pytest.LogCaptureFixture,
@@ -311,8 +339,9 @@ def index(
 			indexings.append((start, now_in_database(empty_database)))
 		rendering_lock = free_lock(LOCKS[full_audit])
 	# Les anomalies et les erreurs vont sur la sortie d'erreur : niveau WARNING et au-delà.
-	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
-	information = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+	lines = per_file(caplog.records)
+	anomalies = [message for level, message in lines if level >= logging.WARNING]
+	information = [message for level, message in lines if level == logging.INFO]
 	return Execution(report, "\n".join(anomalies), information, rendering_lock)
 
 
@@ -430,7 +459,7 @@ def launch_on_test_database(
 			on_test_database,
 			argparse.Namespace(full_audit=audit is not None, window=False, sound=None, force=False),
 		)
-	return code, [saving.getMessage() for saving in caplog.records]
+	return code, [message for _level, message in per_file(caplog.records)]
 
 
 @then(parsers.parse("Machin indexer se termine avec le code {code:d}, en signalant « {text} »"))
@@ -579,8 +608,9 @@ def sound_audit(empty_database: Connection, caplog: pytest.LogCaptureFixture, so
 		open_connection(*sample_database_parameters(), Role.INDEXING) as c,
 	):
 		report = index_sound(c, sound, full_audit=True)
-	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
-	information = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+	lines = per_file(caplog.records)
+	anomalies = [message for level, message in lines if level >= logging.WARNING]
+	information = [message for level, message in lines if level == logging.INFO]
 	return Execution(report, "\n".join(anomalies), information)
 
 

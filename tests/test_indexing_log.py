@@ -213,10 +213,16 @@ def without_anomaly(tracking: Log) -> None:
 
 @then(parsers.re(r"le journal de l'indexation signale (?P<count>\d+) anomalies?, sur (?P<paths>«.+)"))
 def anomalies(tracking: Log, interface: Context, count: str, paths: str) -> None:
-	reported_list = log(tracking).anomalies
+	"""Chaque anomalie suit la ligne qui ouvre l'analyse de son fichier, et le nomme
+	(https://github.com/dascritch/machincast/issues/413)."""
+	window = log(tracking)
+	reported_list = window.anomalies
 	assert len(reported_list) == int(count), reported_list
+	shown = window.lines()
 	for anomaly, path in zip(reported_list, NAME.findall(paths), strict=True):
-		assert without_timestamp(anomaly).startswith(f"[horodatage] {interface.path(path)} : "), anomaly
+		place = shown.index(anomaly)
+		assert place > 0, shown
+		assert without_timestamp(shown[place - 1]) == f"[horodatage] {interface.path(path)} : analyse…", shown
 
 
 @then(parsers.parse("les sonores de la banque « {name} » en base sont :"))

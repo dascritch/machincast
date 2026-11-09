@@ -286,7 +286,9 @@ def _check_sound(
 		threshold_audit,
 	) = line
 	path = Path(str(location))
-	# Pour le rapport de crash d'une exception (https://github.com/dascritch/machincast/issues/342).
+	# Pour le rapport de crash d'une exception (https://github.com/dascritch/machincast/issues/342) ; après un signal
+	# fatal, la dernière ligne du journal qui ouvre une analyse nomme le fichier
+	# (https://github.com/dascritch/machincast/issues/413). Le résultat suit, sans le nom.
 	crash.note(ANALYSED, str(path))
 	before = SoundState(str(text_state))
 	audited = (full_audit) or (asks is True)
@@ -304,6 +306,7 @@ def _check_sound(
 			with connection.transaction():
 				connection.execute("UPDATE sounds SET audit_requested = false WHERE id = %s", (identifier,))
 		return
+	log.info(_("{location}: analysis…").format(location=location))
 	# Un fichier introuvable est déclaré tel sans décodage : l'indexation rapide repère donc les disparus.
 	# Un fichier dont le type n'est pas sonore n'est pas décodé non plus.
 	file_type, result = watched(lambda: _examine(path, check, audited, silence_threshold), AUDIT_LIMIT)
@@ -377,16 +380,12 @@ def _check_sound(
 			report.restored += 1
 	if result.state is not FileState.HEALTHY:
 		consequence = _consequence(before, after)
-		log.warning(
-			_("{location}: {problem}; {consequence}").format(
-				location=location, problem=result.problem, consequence=consequence
-			)
-		)
+		log.warning(_("  {problem}; {consequence}").format(problem=result.problem, consequence=consequence))
 		report.anomalies.append(Anomaly(str(location), _(result.state), str(result.detail), consequence))
 	else:
 		log.info(
-			_("{location}: {healthy}; {consequence}").format(
-				location=location, healthy=_healthy(artist, title), consequence=_consequence(before, after)
+			_("  {healthy}; {consequence}").format(
+				healthy=_healthy(artist, title), consequence=_consequence(before, after)
 			)
 		)
 
@@ -443,11 +442,7 @@ def _incident(report: Report, location: str, error: Exception) -> None:
 		problem = _("unexpected error during the check: {error}").format(error=f"{type(error).__name__}: {error}")
 	consequence = _("sound left unchanged")
 	report.incidents += 1
-	log.error(
-		_("{location}: incident, {problem}; {consequence}").format(
-			location=location, problem=problem, consequence=consequence
-		)
-	)
+	log.error(_("  incident, {problem}; {consequence}").format(problem=problem, consequence=consequence))
 	report.anomalies.append(Anomaly(location, INCIDENT, problem, consequence))
 
 

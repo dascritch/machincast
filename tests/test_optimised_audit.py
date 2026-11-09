@@ -12,7 +12,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.indexer.__main__ import main
 from tests.database_fixtures import sample_configuration_path
-from tests.indexing_steps import DECIMAL, Execution, count, index
+from tests.indexing_steps import DECIMAL, Execution, count, index, per_file
 
 scenarios("optimised_audit.feature")
 
@@ -89,4 +89,4 @@ def launch(caplog: pytest.LogCaptureFixture, options: str) -> tuple[int, list[st
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		code = main(["--config", str(sample_configuration_path()), *options.split()])
-	return code, [saving.getMessage() for saving in caplog.records]
+	return code, [message for _level, message in per_file(caplog.records)]
