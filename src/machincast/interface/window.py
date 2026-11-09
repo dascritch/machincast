@@ -1172,10 +1172,10 @@ class MainWindow(QMainWindow):
 			return
 		self.statusBar().showMessage(control.launch_maintenance(self.configuration, backups))
 
-	def _index(self, full_audit: bool) -> None:
+	def _index(self, full_audit: bool) -> bool:
 		"""Lance Machin indexer dans son propre processus, avec sa fenêtre ; le menu ne propose plus ce mode, ni la
 		maintenance de la base, tant qu'il tourne. L'autre mode reste proposé
-		(https://github.com/dascritch/machincast/issues/401)."""
+		(https://github.com/dascritch/machincast/issues/401). Vrai s'il est lancé."""
 		command = [*self.indexing_command, "--window"]
 		if full_audit:
 			command.append("--full-audit")
@@ -1183,7 +1183,7 @@ class MainWindow(QMainWindow):
 		if number is None:
 			log.error(_("indexing impossible to launch: {list}").format(list=" ".join(command)))
 			self.ui.state_bar.showMessage(_("Indexing impossible: Machin indexer could not be launched."))
-			return
+			return False
 		self.launched_indexings[full_audit] = number
 		self.indexings[full_audit].setEnabled(False)
 		self.database_maintenance.setEnabled(False)
@@ -1192,6 +1192,7 @@ class MainWindow(QMainWindow):
 			_("{title} {launched}, in its own window.").format(title=title, launched=LAUNCHED[full_audit])
 		)
 		self._indexing_tracking.start()
+		return True
 
 	def _follow_indexing(self) -> None:
 		for full_audit, number in list(self.launched_indexings.items()):
@@ -1235,7 +1236,8 @@ class MainWindow(QMainWindow):
 
 	def _preferences(self) -> None:
 		"""Les préférences réglées s'enregistrent dans le fichier de configuration, puis valent pour les fiches
-		ouvertes ensuite ; un fichier qui ne s'écrit pas les laisse inchangées, et la barre d'état le dit."""
+		ouvertes ensuite ; un fichier qui ne s'écrit pas les laisse inchangées, et la barre d'état le dit. Un seuil de
+		silence changé relance l'audit complet (https://github.com/dascritch/machincast/issues/401)."""
 		assert self.configuration is not None
 		audio = self.audio
 		shown_list = preferences.Settings(
@@ -1266,6 +1268,7 @@ class MainWindow(QMainWindow):
 			return
 		preferences.define(settings.crossfades)
 		preferences.define_retention(settings.retention)
+		new_threshold = settings.silence_threshold != self.silence_threshold
 		self.silence_threshold = settings.silence_threshold
 		self.dead_air = settings.dead_air
 		self.clipping = settings.clipping
@@ -1287,11 +1290,28 @@ class MainWindow(QMainWindow):
 		self._flag_on_air()
 		self._follow_preview()
 		self.home.change_on_air(self.audio)
+		audit = ""
+		if new_threshold:
+			audit = f" {self._audit_new_threshold()}"
 		self.statusBar().showMessage(
 			_("Preferences saved in {configuration}; Machin player will take {text} at its next start.{icon}").format(
 				configuration=self.configuration, text=text, icon=icon
 			)
+			+ audit
 		)
+
+	def _audit_new_threshold(self) -> str:
+		"""Les silences mesurés au seuil précédent ne valent plus : l'audit complet est relancé, avec la configuration
+		qui vient d'être enregistrée ; un audit complet lancé d'ici, encore en cours, garde l'ancien seuil
+		(https://github.com/dascritch/machincast/issues/401). Ce que la barre d'état en dit."""
+		if True in self.launched_indexings:
+			return _(
+				"Silence threshold changed: the ongoing full audit keeps the former threshold, launch “{title}” again "
+				"at its end."
+			).format(title=TITLES[True])
+		if self._index(True):
+			return _("Silence threshold changed: full audit launched, in its own window.")
+		return _("Silence threshold changed: full audit impossible, Machin indexer could not be launched.")
 
 	def _flag_on_air(self) -> None:
 		"""Sans périphérique d'antenne, sur une vraie sortie, Machin player refuse de diffuser : la barre d'état le

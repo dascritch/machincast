@@ -4662,6 +4662,14 @@ msgid "the default crossfades"
 msgstr "les crossfades par défaut"
 
 #: machincast/interface/window.py
+msgid ""
+"Silence threshold changed: full audit impossible, Machin indexer could not "
+"be launched."
+msgstr ""
+"Seuil de silence changé : audit complet impossible, Machin indexer n'a pas "
+"pu être lancé."
+
+#: machincast/interface/window.py
 msgid "Calendar"
 msgstr "Calendrier"
 
@@ -4721,6 +4729,11 @@ msgstr "&Aide"
 #: machincast/interface/window.py
 msgid "the default crossfades and the on-air device"
 msgstr "les crossfades par défaut et le périphérique de l'antenne"
+
+#: machincast/interface/window.py
+msgid "Silence threshold changed: full audit launched, in its own window."
+msgstr ""
+"Seuil de silence changé : audit complet lancé, dans sa propre fenêtre."
 
 #: machincast/interface/window.py
 #, python-brace-format
@@ -4793,11 +4806,11 @@ msgstr "{title} {launched}, dans sa propre fenêtre."
 #: machincast/interface/window.py
 #, python-brace-format
 msgid ""
-"Preferences saved in {configuration}; Machin player will take {text} at its "
-"next start.{icon}"
+"Silence threshold changed: the ongoing full audit keeps the former "
+"threshold, launch “{title}” again at its end."
 msgstr ""
-"Préférences enregistrées dans {configuration} ; Machin player prendra "
-"{text} à son prochain démarrage.{icon}"
+"Seuil de silence changé : l'audit complet en cours garde l'ancien seuil, "
+"relancez « {title} » à sa fin."
 
 #: machincast/interface/window.py
 #, python-brace-format
@@ -4856,6 +4869,15 @@ msgstr ""
 #, python-brace-format
 msgid "Card closed, its element is no longer in the database: “{title}”."
 msgstr "Fiche fermée, son élément n'est plus en base : « {title} »."
+
+#: machincast/interface/window.py
+#, python-brace-format
+msgid ""
+"Preferences saved in {configuration}; Machin player will take {text} at its "
+"next start.{icon}"
+msgstr ""
+"Préférences enregistrées dans {configuration} ; Machin player prendra "
+"{text} à son prochain démarrage.{icon}"
 
 #: machincast/interface/window.py
 #, python-brace-format

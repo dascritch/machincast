@@ -185,7 +185,7 @@ Alimenter une banque se limite à déposer des fichiers dans l'un de ses répert
 L'**indexation** enregistre les fichiers déposés dans les répertoires des banques, et vérifie les sonores. Le menu **Maintenance** la lance :
 
 - **Indexation rapide** : les nouveaux fichiers des banques sont enregistrés et vérifiés, ceux qui ont changé sont revérifiés, et la présence des autres est contrôlée. À lancer après avoir déposé des fichiers.
-- **Audit complet** : tous les fichiers sont vérifiés en entier, et leurs silences mesurés. Plus long, il repère aussi un fichier abîmé sans que sa date ni sa taille aient changé. À lancer après la première indexation, après avoir changé le seuil de silence, puis de temps en temps.
+- **Audit complet** : tous les fichiers sont vérifiés en entier, et leurs silences mesurés. Plus long, il repère aussi un fichier abîmé sans que sa date ni sa taille aient changé. À lancer après la première indexation, puis de temps en temps ; changer le seuil de silence dans les préférences le lance tout seul.
 
 Pour ne vérifier que quelques sonores en entier, sans tout auditer, le clic droit dans les listes Sonores ou Banques propose **Demander un audit complet** : la prochaine indexation, même rapide, s'en charge ([Agir sur plusieurs sonores ou banques](listes.md#agir-sur-plusieurs-sonores-ou-banques)).
 
