@@ -12,6 +12,9 @@ Fonctionnalité: Raccourcis des onglets
 	droite, sans boucler, Ctrl+Home au premier, l'onglet Antenne, et Ctrl+End au dernier, quel que soit le widget qui a le
 	focus, champ de texte et tableau compris.
 
+	Un onglet s'ouvre directement à droite de l'onglet ouvert, une fiche à droite de sa liste
+	(https://github.com/dascritch/machincast/issues/405, movable_tabs.feature).
+
 	Contexte:
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-21 09:00:00 »
@@ -50,24 +53,24 @@ Fonctionnalité: Raccourcis des onglets
 		Et j'ouvre la fiche de la séquence « Quatre »
 		Et j'ouvre la fiche de la séquence « Cinq »
 		Et j'ouvre la fiche de la séquence « Six »
-		Alors l'onglet « Séquence : Quatre » a pour infobulle « Maj+F12 »
-		Et l'onglet « Séquence : Cinq » n'a pas d'infobulle
+		Alors l'onglet « Séquence : Un » a pour infobulle « Maj+F12 »
+		Et l'onglet « Banques » n'a pas d'infobulle
 		Quand j'appuie sur « Shift+F1 »
 		Et j'appuie sur « Shift+F12 »
-		Alors l'onglet ouvert est « Séquence : Quatre »
+		Alors l'onglet ouvert est « Séquence : Un »
 
 	Scénario: Fermer un onglet décale les raccourcis des suivants
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Un »
 		Et j'ouvre la fiche de la séquence « Deux »
-		Alors l'onglet « Séquence : Deux » a pour infobulle « Maj+F8 »
-		Quand je ferme l'onglet « Séquence : Un »
-		Alors l'onglet « Séquence : Deux » a pour infobulle « Maj+F7 »
+		Alors l'onglet « Séquence : Un » a pour infobulle « Maj+F6 »
+		Quand je ferme l'onglet « Séquence : Deux »
+		Alors l'onglet « Séquence : Un » a pour infobulle « Maj+F5 »
 		Quand j'appuie sur « Shift+F1 »
-		Et j'appuie sur « Shift+F7 »
-		Alors l'onglet ouvert est « Séquence : Deux »
-		Quand j'appuie sur « Shift+F8 »
-		Alors l'onglet ouvert est « Séquence : Deux »
+		Et j'appuie sur « Shift+F5 »
+		Alors l'onglet ouvert est « Séquence : Un »
+		Quand j'appuie sur « Shift+F6 »
+		Alors l'onglet ouvert est « Banques »
 
 	# ─── Onglet précédent, suivant, premier et dernier (https://github.com/dascritch/machincast/issues/318) ───
 
@@ -93,7 +96,7 @@ Fonctionnalité: Raccourcis des onglets
 		Et j'appuie sur « Shift+F1 »
 		Et je clique sur l'horloge de l'onglet Antenne
 		Et j'appuie sur « Ctrl+End »
-		Alors l'onglet ouvert est « Séquence : Un »
+		Alors l'onglet ouvert est « Incidents »
 		Quand j'ouvre l'onglet « Banques »
 		Et je donne le focus au tableau de l'onglet « Banques »
 		Et j'appuie sur « Ctrl+Home »

@@ -5,7 +5,9 @@ Fonctionnalité: Onglets ouverts retenus d'un lancement à l'autre
 	afin de reprendre mon travail là où je l'avais laissé.
 
 	https://github.com/dascritch/machincast/issues/321. À la fermeture, l'interface retient, dans les réglages des vues
-	du compte, les onglets ouverts dans leur ordre, fiches comprises, et l'onglet actif. Au lancement, elle les rouvre.
+	du compte, les onglets ouverts dans leur ordre, fiches comprises, et l'onglet actif. Au lancement, elle les rouvre,
+	dans cet ordre, onglets fixes déplacés compris (https://github.com/dascritch/machincast/issues/405) ; chaque onglet
+	s'est ouvert à droite de celui d'où il a été ouvert, une fiche à droite de sa liste.
 	Une fiche dont l'élément n'est plus en base, ou est supprimé, est oubliée sans question ; une nouvelle fiche, jamais
 	enregistrée, n'est pas retenue.
 
@@ -32,7 +34,7 @@ Fonctionnalité: Onglets ouverts retenus d'un lancement à l'autre
 		Et j'ouvre l'onglet « Banque : Jingles »
 		Et je ferme la fenêtre de l'interface
 		Et la fenêtre de l'interface s'ouvre
-		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Feeds », « Incidents », « Sonore : Café à minuit », « Airplay », « Banque : Jingles », « Recherche », « Simulation »
+		Alors la fenêtre a les onglets « Antenne », « Feeds », « Sonores », « Sonore : Café à minuit », « Airplay », « Calendrier », « Événements », « Séquences », « Banques », « Banque : Jingles », « Recherche », « Simulation », « Incidents »
 		Et l'onglet ouvert est « Banque : Jingles »
 
 	Scénario: Sans onglet ajouté, la fenêtre se rouvre comme au premier lancement, sur l'onglet actif
@@ -52,7 +54,7 @@ Fonctionnalité: Onglets ouverts retenus d'un lancement à l'autre
 		Et le sonore « Café à minuit » est supprimé en base, depuis un autre poste
 		Et la banque « Jingles » est effacée de la base
 		Et la fenêtre de l'interface s'ouvre
-		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Incidents », « Sonore : Matin clair »
+		Alors la fenêtre a les onglets « Antenne », « Sonores », « Sonore : Matin clair », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Et l'onglet ouvert est « Antenne »
 		Et aucune question n'a été posée
 

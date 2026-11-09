@@ -80,7 +80,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et j'ouvre le sonore « Aube – Matin clair » de la banque
 		Alors l'onglet ouvert est « Sonore : Matin clair »
-		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Banque : Jingles », « Sonore : Matin clair »
+		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Banque : Jingles », « Sonore : Matin clair », « Incidents »
 
 	Scénario: Entrée sur le sonore choisi ouvre aussi sa fiche
 		Quand la fenêtre de l'interface s'ouvre
@@ -131,7 +131,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre l'onglet « Antenne »
 		Et j'ouvre la fiche de la banque « Jingles »
 		Alors l'onglet ouvert est « Banque : Jingles »
-		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Banque : Jingles »
+		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Banque : Jingles », « Incidents »
 
 	Scénario: Chaque clic sur « Nouvelle banque » ouvre une nouvelle fiche
 		Quand la fenêtre de l'interface s'ouvre
@@ -139,7 +139,7 @@ Fonctionnalité: Fiche d'une banque
 		Et je clique sur « Nouvelle banque »
 		Et j'ouvre l'onglet « Banques »
 		Et je clique sur « Nouvelle banque »
-		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Nouvelle banque », « Nouvelle banque »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Nouvelle banque », « Nouvelle banque », « Incidents »
 
 	Scénario: Seuls les onglets des fiches se ferment, pas ceux de l'onglet Antenne et des listes
 		Quand la fenêtre de l'interface s'ouvre
@@ -498,7 +498,7 @@ Fonctionnalité: Fiche d'une banque
 			|    | Jingles   | Radio Thune | séquentielle | oui            | /srv/jingles/hiver |
 		Quand j'ouvre la ligne « Habillage »
 		Alors l'onglet ouvert est « Banque : Habillage »
-		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Banque : Habillage »
+		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Banque : Habillage », « Incidents »
 
 	# ─── Répertoires ───────────────────────────────────────────
 

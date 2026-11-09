@@ -63,7 +63,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 			| L'historique de diffusion garde ses passages.                                                                                                                                               |
 			| Marqué « supprimé », il se restaure depuis sa fiche.                                                                                                                                        |
 		Et le sonore « Spot » est marqué « supprimé » en base
-		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Incidents »
+		Et la fenêtre a les onglets « Antenne », « Sonores », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Et la liste en base de la banque « Publicité » est rien
 		Et la liste en base de l'événement « Matinale » est « Habillage », « Passage pub »
 		Et l'historique de diffusion garde le passage de « Les Gaufres – Spot », à l'emplacement « …/pubs/spot.flac »
@@ -85,7 +85,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 			| Son fichier reste à sa place, intact : <emplacement>.                |
 			| L'historique de diffusion garde ses passages.                        |
 			| Marqué « supprimé », il se restaure depuis sa fiche.                 |
-		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Incidents »
+		Et la fenêtre a les onglets « Antenne », « Sonores », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 
 		Exemples:
 			| artiste | titre  | emplacement                 | ouvert                      | nom             |

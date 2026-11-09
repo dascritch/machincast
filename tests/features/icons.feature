@@ -60,20 +60,20 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 		Alors les onglets portent les icônes :
 			| onglet                   | icône      |
 			| Antenne                  | aucune     |
-			| Calendrier               | grille     |
-			| Événements               | événement  |
-			| Séquences                | séquence   |
-			| Banques                  | banque     |
 			| Sonores                  | sonore     |
-			| Feeds            | aucune     |
-			| Incidents                | aucune     |
-			| Banque : Rotation        | banque     |
-			| Séquence : Passage pub   | séquence   |
-			| Événement : Fil de jour  | événement  |
 			| Sonore : Café à minuit   | sonore     |
+			| Feeds                    | aucune     |
+			| Calendrier               | grille     |
 			| Simulation               | simulation |
 			| Airplay                  | airplay    |
 			| Recherche                | aucune     |
+			| Événements               | événement  |
+			| Événement : Fil de jour  | événement  |
+			| Séquences                | séquence   |
+			| Séquence : Passage pub   | séquence   |
+			| Banques                  | banque     |
+			| Banque : Rotation        | banque     |
+			| Incidents                | aucune     |
 
 	Scénario: Les boutons de l'onglet Antenne qui ouvrent une fiche portent l'icône de son genre
 		Pour le sonore en cours de diffusion comme pour le suivant, chaque bouton « Fiche… » ouvre la fiche d'un sonore,
