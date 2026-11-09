@@ -37,3 +37,10 @@ def stream_fallback(empty_database: Connection, name: str, fallback: str) -> Non
 		"UPDATE events SET stream_fallback_event_id = %s WHERE id = %s",
 		(_event(empty_database, fallback), _event(empty_database, name)),
 	)
+
+
+@given(parsers.parse("l'événement « {name} » prête, à la fin de sa liste, son nom au fil musical"))
+def lends_name(empty_database: Connection, name: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/399 : le fil musical, ou l'événement en dessous, joue sous son
+	nom jusqu'à sa fin."""
+	empty_database.execute("UPDATE events SET end_of_list = 'lend_name' WHERE id = %s", (_event(empty_database, name),))

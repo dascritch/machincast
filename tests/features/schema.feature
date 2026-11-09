@@ -53,11 +53,12 @@ Fonctionnalité: Schéma de la base de données
 		Alors la base ne contient plus aucune table ni aucun type de MachinCast
 
 	Scénario: Une base neuve reçoit le schéma initial, puis les migrations qui le suivent
-		https://github.com/dascritch/machincast/issues/341 : 0002.run-log, les démarrages et fins des binaires au log.
+		https://github.com/dascritch/machincast/issues/341 : 0002.run-log, les démarrages et fins des binaires au log ;
+		https://github.com/dascritch/machincast/issues/399 : 0005.lend-name, dont l'annulation recrée le type end_of_list.
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 4 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.run-log, 0003.end-of-list, 0004.feed-buffer »
+		Alors 5 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.run-log, 0003.end-of-list, 0004.feed-buffer, 0005.lend-name »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
 	# Le ramasse-miettes est suspendu : une connexion qui n'est pas fermée explicitement reste ouverte.

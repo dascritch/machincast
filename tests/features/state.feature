@@ -82,6 +82,24 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Et un client lit la socket d'état
 		Alors le texte public du sonore en cours est « Radio Machin »
 
+	Scénario: Le sonore joué sous le nom d'une émission le dit, dès l'heure de l'émission
+		https://github.com/dascritch/machincast/issues/399 : les champs lender et lender_id.
+
+		Étant donné l'horloge du binaire au « 2026-10-14 19:59:50 »
+		Et le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et le sonore « f1 » dure 60 secondes en base
+		Et le sonore « f2 » dure 600 secondes en base
+		Et l'émission « Matinale » de 20:00:00 à 20:30:00, sans élément
+		Et l'événement « Matinale » a pour nom public « La matinale », et masque ses sonores
+		Et l'événement « Matinale » prête, à la fin de sa liste, son nom au fil musical
+		Et la socket d'état dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 15 secondes
+		Et un client lit la socket d'état
+		Alors le sonore en cours, de l'événement « Continue », est au nom de « Matinale »
+		Et le texte public du sonore en cours est « La matinale »
+		Et le prochain sonore, de l'événement « Continue », est au nom de « Matinale »
+
 	# ─── Prochain sonore ───────────────────────────────────────
 
 	Scénario: Le prochain sonore est annoncé avec son début et sa fin estimés

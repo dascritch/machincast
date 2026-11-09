@@ -28,6 +28,21 @@ Fonctionnalité: Mode simulation de Machin player
 			| 2026-10-20 20:04:00 | 2026-10-20 20:05:00 | f1    |
 		Et la base n'a pas changé
 
+	Scénario: Un passage joué au nom d'une émission a l'émission pour événement
+		https://github.com/dascritch/machincast/issues/399 : l'émission vide prête son nom au fil musical.
+
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 1 minute
+		Et l'émission « Matinale » de 20:01 à 20:03, sans élément
+		Et l'événement « Matinale » prête, à la fin de sa liste, son nom au fil musical
+		Quand je simule la diffusion du « 2026-10-14 20:00 » au « 2026-10-14 20:04 »
+		Alors la simulation donne les passages, avec leur événement :
+			| starts_at           | title | event    |
+			| 2026-10-14 20:00:00 | f1    | Continue |
+			| 2026-10-14 20:01:00 | f2    | Matinale |
+			| 2026-10-14 20:02:00 | f1    | Matinale |
+			| 2026-10-14 20:03:00 | f2    | Continue |
+
 	Scénario: Pendant la simulation, PostgreSQL refuse toute écriture
 		Quand une écriture dans le log est tentée pendant une simulation
 		Alors PostgreSQL la refuse, la transaction étant en lecture seule

@@ -15,7 +15,10 @@ Sortie publique, avec le masquage :
   sans JavaScript, rafraîchie toutes les RAFRAICHISSEMENT secondes. L'emplacement d'un fichier n'y paraît jamais.
 
 Masquage : la valeur retenue est celle du premier niveau renseigné, événement, séquence, banque, sonore, puis la
-configuration (metadata.hide). Masqués, l'artiste et le titre laissent la place au premier nom public renseigné,
+configuration (metadata.hide). L'événement d'un passage est celui qui lui prête son nom, s'il y en a un
+(airplay.lender_event_id, https://github.com/dascritch/machincast/issues/399) : son nom, son nom public et son masquage
+valent, sur toutes les sorties. Pour le passage en cours, c'est l'événement qui prête son nom à cet instant
+(Outputs.lend) : la page publique change dès qu'un prêt commence ou cesse, sans attendre le passage suivant. Masqués, l'artiste et le titre laissent la place au premier nom public renseigné,
 celui de l'événement, de la séquence puis de la banque (https://github.com/dascritch/machincast/issues/99), sinon au
 texte public de la configuration. Les indicateurs sont lus en base au moment d'écrire la page.
 
@@ -141,10 +144,17 @@ def read_plays(
 	count: int | None,
 	play: uuid.UUID | None = None,
 	since: datetime | None = None,
+	ongoing_lender: tuple[int | None] | None = None,
 ) -> list[Line]:
 	"""Les derniers passages, du plus récent au plus ancien, ou un seul ; nombre None : tous, depuis cet instant s'il
 	est donné. La connexion a le rôle de la lecture, ou celui de l'interface pour l'export de son onglet Airplay
-	(https://github.com/dascritch/machincast/issues/244)."""
+	(https://github.com/dascritch/machincast/issues/244).
+
+	L'événement d'un passage est celui qui lui prête son nom, sinon le sien. ongoing_lender : pour un passage encore
+	en cours, l'événement qui prête son nom à cet instant, ou (None,) sans prêt, à la place de celui qu'il avait à son
+	début (https://github.com/dascritch/machincast/issues/399)."""
+	override = ongoing_lender is not None
+	lender = None if ongoing_lender is None else ongoing_lender[0]
 	with connection.transaction():
 		lines = connection.execute(
 			"SELECT d.logged_at, f.logged_at, f.played_duration, f.without_incident, d.artist, d.title, d.location,"
@@ -152,14 +162,15 @@ def read_plays(
 			" e.hide_metadata, q.hide_metadata, b.hide_metadata, s.hide_metadata"
 			" FROM airplay d"
 			" LEFT JOIN airplay f ON f.play_id = d.play_id AND f.line_type = 'end'"
-			" LEFT JOIN events e ON e.id = d.event_id"
+			" LEFT JOIN events e ON e.id = CASE WHEN %s AND f.play_id IS NULL THEN COALESCE(%s::bigint, d.event_id)"
+			" ELSE COALESCE(d.lender_event_id, d.event_id) END"
 			" LEFT JOIN sequences q ON q.id = d.sequence_id"
 			" LEFT JOIN banks b ON b.id = d.bank_id"
 			" LEFT JOIN sounds s ON s.id = d.sound_id"
 			" WHERE d.line_type = 'start' AND (%s::uuid IS NULL OR d.play_id = %s::uuid)"
 			" AND (%s::timestamptz IS NULL OR d.logged_at >= %s::timestamptz)"
 			" ORDER BY d.logged_at DESC, d.id DESC LIMIT %s",
-			(play, play, since, since, count),
+			(override, lender, play, play, since, since, count),
 		).fetchall()
 	return [
 		Line(
@@ -308,14 +319,25 @@ class Outputs:
 	paths: Paths
 	metadata: Metadata
 	_inaccessible_list: set[Path] = field(default_factory=set, init=False, repr=False)
+	_lender: tuple[int | None] = field(default=(None,), init=False, repr=False)
+	"""L'événement qui prête son nom au passage en cours (https://github.com/dascritch/machincast/issues/399)."""
 
 	@classmethod
 	def since(cls, configuration: Configuration) -> "Outputs":
 		return cls(configuration.outputs, configuration.metadata)
 
+	def lend(
+		self, connection: psycopg.Connection[TupleRow], lender: int | None, instant: datetime | None = None
+	) -> None:
+		"""L'événement qui prête son nom au passage en cours, ou None ; à l'instant donné, la page publique est réécrite
+		aussitôt (https://github.com/dascritch/machincast/issues/399)."""
+		self._lender = (lender,)
+		if instant is not None:
+			self.update(connection, instant)
+
 	def started_play(self, connection: psycopg.Connection[TupleRow], play: Play) -> None:
 		"""Annonce le passage dans le journal du binaire, puis met à jour la page publique et la playlist."""
-		for line in read_plays(connection, 1, play.id):
+		for line in read_plays(connection, 1, play.id, ongoing_lender=self._lender):
 			place = f" ({line.event})" if line.event else ""
 			log.info(
 				_("on air: {artist_and_title}{place}").format(
@@ -338,7 +360,7 @@ class Outputs:
 
 	def update(self, connection: psycopg.Connection[TupleRow], instant: datetime) -> None:
 		"""Réécrit la page publique et la playlist depuis l'airplay."""
-		lines = read_plays(connection, max(PREVIOUS_LIST + 1, PLAYLIST))
+		lines = read_plays(connection, max(PREVIOUS_LIST + 1, PLAYLIST), ongoing_lender=self._lender)
 		page = public_page(lines[: PREVIOUS_LIST + 1], self.metadata, instant)
 		list_ = playlist(lines[:PLAYLIST])
 		self._output(connection, self.paths.html, instant, lambda: _write(self.paths.html, page))

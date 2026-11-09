@@ -601,6 +601,15 @@ def start(bench: Bench, empty_database: Connection, rhythm: str) -> None:
 	bench.broadcast.start()
 
 
+@given(parsers.parse("le sonore « {name} » dure {duration:d} secondes en base"))
+def duration_in_database(empty_database: Connection, name: str, duration: int) -> None:
+	"""La durée en base décide des heures annoncées, et de la fin d'un sonore sur le moteur simulé ; le fichier joué
+	reste le court fichier de test."""
+	empty_database.execute(
+		"UPDATE sounds SET duration = %s WHERE id = %s", (timedelta(seconds=duration), sound(empty_database, name))
+	)
+
+
 @when("la diffusion démarre sur un moteur simulé")
 def start_on_simulated_engine(bench: Bench, empty_database: Connection) -> None:
 	"""Le moteur simulé suit l'horloge du binaire : un sonore d'une minute se joue sans attendre."""
@@ -614,6 +623,7 @@ def start_on_simulated_engine(bench: Bench, empty_database: Connection) -> None:
 		state=bench.state,
 		crossfades=bench.crossfades,
 		dead_air=bench.dead_air,
+		outputs=bench.outputs,
 	)
 	bench.broadcast.start()
 
@@ -997,3 +1007,20 @@ def finished_in_incident(empty_database: Connection, name: str, kind: str, insta
 		"SELECT message FROM log WHERE level = 'incident' AND kind = %s AND logged_at = %s", (stored(kind), end)
 	).fetchone()
 	assert line is not None, kind
+
+
+@then(
+	parsers.re(
+		r"le passage « (?P<name>[^»]+) », de l'événement « (?P<event>[^»]+) », est au nom (?:de « (?P<lender>[^»]+) »|d'aucun"
+		r" autre)"
+	)
+)
+def lent_play(empty_database: Connection, name: str, event: str, lender: str | None) -> None:
+	"""https://github.com/dascritch/machincast/issues/399 : l'événement du passage, et celui qui lui prête son nom."""
+	lines = empty_database.execute(
+		"SELECT e.internal_name, l.internal_name FROM airplay a JOIN events e ON e.id = a.event_id"
+		" LEFT JOIN events l ON l.id = a.lender_event_id WHERE a.line_type = 'start' AND a.sound_id = %s"
+		" ORDER BY a.logged_at DESC, a.id DESC LIMIT 1",
+		(sound(empty_database, name),),
+	).fetchall()
+	assert lines == [(event, lender)], lines

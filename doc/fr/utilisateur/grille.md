@@ -35,6 +35,7 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 - **Rejouer la liste de lecture**, le choix par défaut : la liste reprend au début.
 - **Basculer vers le fil musical** : l'émission s'arrête là, et le fil musical reprend l'antenne jusqu'à l'heure de fin.
 - **Basculer vers un secours** : le secours choisi à côté joue sa liste, en boucle, jusqu'à l'heure de fin. S'il n'a rien de jouable, le fil musical reprend.
+- **Prêter son nom au fil musical** ([#399](https://github.com/dascritch/machincast/issues/399)) : le fil musical joue jusqu'à l'heure de fin, mais **au nom de l'émission** : son nom public s'affiche sur la page publique, et l'artiste et le titre y sont masqués si l'émission les masque. Avec une **liste vide**, c'est le cas dès l'heure de début, sans couper le morceau en cours : utile quand l'émission est annoncée, mais que l'équipe ne peut pas prendre l'antenne à l'heure. Avec un générique seul dans la liste, il passe d'abord, puis le fil musical continue au nom de l'émission. Si une autre émission est en dessous, c'est elle qui joue sa liste, au nom de celle-ci. **Diffusion → Couper l'événement par le fil musical** met fin au prêt. Une liste vide n'est alors pas une anomalie.
 
 Le choix est grisé, sur **Rejouer la liste de lecture**, sans fin cochée, et pour un fil musical ou un secours, qui rejouent toujours leur liste.
 

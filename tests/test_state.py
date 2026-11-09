@@ -11,7 +11,6 @@ import stat
 import threading
 import uuid
 from dataclasses import dataclass, field
-from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -386,14 +385,6 @@ def without_public_text(client: Client) -> None:
 # ─── Coupure par un événement à venir (https://github.com/dascritch/machincast/issues/169) ─────
 
 
-@given(parsers.parse("le sonore « {name} » dure {duration:d} secondes en base"))
-def duration_in_database(empty_database: Connection, name: str, duration: int) -> None:
-	"""La durée en base décide des heures annoncées ; le fichier joué reste le court fichier de test."""
-	empty_database.execute(
-		"UPDATE sounds SET duration = %s WHERE id = %s", (timedelta(seconds=duration), sound(empty_database, name))
-	)
-
-
 @given(parsers.parse("la banque « {name} » est marquée « ne pas répéter »"))
 def no_repeat(empty_database: Connection, name: str) -> None:
 	empty_database.execute("UPDATE banks SET no_repeat = true WHERE internal_name = %s", (name,))
@@ -476,3 +467,20 @@ def random_bank_show(
 def nor_end_nor_cutoff(client: Client) -> None:
 	current = ongoing(client)
 	assert (current["estimated_end"], current["cut_by"], current["cut_by_id"]) == (None, None, None), current
+
+
+@then(
+	parsers.re(
+		r"(?P<which>le sonore en cours|le prochain sonore), de l'événement « (?P<event>[^»]+) », est au nom de"
+		r" « (?P<lender>[^»]+) »"
+	)
+)
+def lent_sound(empty_database: Connection, client: Client, which: str, event: str, lender: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/399"""
+	if which == "le sonore en cours":
+		fields = ongoing(client)
+	else:
+		fields = next_(client)
+	identifier = empty_database.execute("SELECT id FROM events WHERE internal_name = %s", (lender,)).fetchone()
+	assert identifier is not None
+	assert (fields["event"], fields["lender"], fields["lender_id"]) == (event, lender, identifier[0]), fields

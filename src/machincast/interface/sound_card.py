@@ -834,7 +834,7 @@ class SoundCard(Card):
 			" b.internal_name, i.horodatages, i.natures, i.messages"
 			" FROM airplay d"
 			" LEFT JOIN airplay f ON f.play_id = d.play_id AND f.line_type = 'end'"
-			" LEFT JOIN events e ON e.id = d.event_id"
+			" LEFT JOIN events e ON e.id = COALESCE(d.lender_event_id, d.event_id)"
 			" LEFT JOIN sequences q ON q.id = d.sequence_id"
 			" LEFT JOIN banks b ON b.id = d.bank_id"
 			" LEFT JOIN LATERAL ("

@@ -247,6 +247,7 @@ class SimulatedHistory:
 		instant: datetime,
 		sequence: int | None = None,
 		item_sequence: int | None = None,
+		lender: int | None = None,
 	) -> Play:
 		line = connection.execute(
 			"SELECT s.artist, s.title, COALESCE(s.location, s.stream_url, m.url) FROM sounds s"
@@ -254,7 +255,7 @@ class SimulatedHistory:
 			(sound,),
 		).fetchone()
 		artist, title, location = line if line is not None else (None, None, None)
-		play = Play(uuid.uuid4(), sound, bank, event, item, instant, sequence, item_sequence)
+		play = Play(uuid.uuid4(), sound, bank, event, item, instant, sequence, item_sequence, lender)
 		self.simulated_plays.append(
 			SimulatedPlay(
 				play,
@@ -339,12 +340,13 @@ class SimulatedHistory:
 
 	def lines(self, connection: Connection) -> list[Line]:
 		"""Passages simulés, dans l'ordre où ils commencent, avec leur événement, leur banque et le masquage de chaque
-		niveau, comme machincast.player.outputs.read_plays pour l'airplay."""
+		niveau, comme machincast.player.outputs.read_plays pour l'airplay : l'événement d'un passage est celui qui lui
+		prête son nom, s'il y en a un (https://github.com/dascritch/machincast/issues/399)."""
 		events = {
 			identifier: (name, public_name, hides)
 			for identifier, name, public_name, hides in connection.execute(
 				"SELECT id, internal_name, public_name, hide_metadata FROM events WHERE id = ANY(%s)",
-				([s.play.event for s in self.simulated_plays],),
+				([(s.play.lender) or (s.play.event) for s in self.simulated_plays],),
 			).fetchall()
 		}
 		sequences = {
@@ -370,7 +372,7 @@ class SimulatedHistory:
 		result = []
 		for simulated in sorted(self.simulated_plays, key=lambda s: s.play.start):
 			play = simulated.play
-			event = events.get(play.event, (None, None, None))
+			event = events.get((play.lender) or (play.event), (None, None, None))
 			sequence = sequences.get(play.sequence, (None, None, None))
 			bank = banks.get(play.bank, (None, None, None))
 			result.append(

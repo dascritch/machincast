@@ -2675,6 +2675,14 @@ msgstr ""
 "événement."
 
 #: machincast/interface/event_card.py
+msgid ""
+"Empty list: the event below, most often the background programming, plays "
+"in its name during its slot."
+msgstr ""
+"Liste vide : l'événement en dessous, le plus souvent le fil musical, joue "
+"sous son nom pendant sa plage."
+
+#: machincast/interface/event_card.py
 msgid "Choose a fallback…"
 msgstr "Choisir un secours…"
 
@@ -2725,6 +2733,10 @@ msgstr "Basculer vers le fil musical"
 #: machincast/interface/event_card.py
 msgid "Switch to a fallback"
 msgstr "Basculer vers un secours"
+
+#: machincast/interface/event_card.py
+msgid "Lend its name to the background programming"
+msgstr "Prêter son nom au fil musical"
 
 #: machincast/interface/event_card.py
 msgid "will not play"
@@ -4277,6 +4289,11 @@ msgstr "un événement suivant a un début"
 
 #: machincast/interface/state.py
 #, python-brace-format
+msgid "{event}, in the name of “{lender}”"
+msgstr "{event}, au nom de « {lender} »"
+
+#: machincast/interface/state.py
+#, python-brace-format
 msgid "incomplete message: {error}"
 msgstr "message incomplet : {error}"
 
@@ -5371,6 +5388,11 @@ msgstr "{address} : le flux est revenu après {breakdown} s de panne"
 #, python-brace-format
 msgid "“{name}”, in “{name2}”"
 msgstr "« {name} », dans « {name2} »"
+
+#: machincast/player/broadcast.py
+#, python-brace-format
+msgid "{on_air}, lending its name to “{name}”"
+msgstr "{on_air}, qui prête son nom à « {name} »"
 
 #: machincast/player/broadcast.py
 msgid "state socket unavailable"

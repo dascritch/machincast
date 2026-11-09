@@ -329,7 +329,7 @@ class DefaultScreen(QWidget):
 				field.setText(display.EMPTY)
 			return
 		title.setText(display.artist_and_title(sound.artist, sound.title))
-		event.setText((sound.event) or (display.EMPTY))
+		event.setText((sound.shown_event) or (display.EMPTY))
 		sequence.setText((sound.sequence) or (display.EMPTY))
 		bank.setText((sound.bank) or (display.EMPTY))
 		schedule.setText(_schedule(sound))
@@ -434,7 +434,7 @@ class DefaultScreen(QWidget):
 		if sound.public_text:
 			ui.public_text.setText(_("“{text}”").format(text=sound.public_text))
 		if sound.event is not None:
-			ui.on_air_event.setText(f"{sound.event}, {_event_hours(sound)}")
+			ui.on_air_event.setText(f"{sound.shown_event}, {_event_hours(sound)}")
 
 	def _open_sound(self, sound: DisplayedSound | None) -> None:
 		if sound is not None:
@@ -714,7 +714,7 @@ def _upcoming_cells(sound: DisplayedSound) -> list[str]:
 		duration,
 		(sound.artist) or (""),
 		(sound.title) or (""),
-		(sound.event) or (""),
+		(sound.shown_event) or (""),
 		(sound.sequence) or (""),
 		(sound.bank) or (""),
 		NOT_HEALTHY if sound.healthy is False else "",

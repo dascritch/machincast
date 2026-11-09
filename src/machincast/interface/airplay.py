@@ -52,7 +52,7 @@ def read_airplay(
 			" e.internal_name, q.internal_name, b.internal_name, d.sound_id, e.id, q.id, b.id, d.location"
 			" FROM airplay d"
 			" LEFT JOIN airplay f ON f.play_id = d.play_id AND f.line_type = 'end'"
-			" LEFT JOIN events e ON e.id = d.event_id"
+			" LEFT JOIN events e ON e.id = COALESCE(d.lender_event_id, d.event_id)"
 			" LEFT JOIN sequences q ON q.id = d.sequence_id"
 			" LEFT JOIN banks b ON b.id = d.bank_id"
 			" WHERE d.line_type = 'start' AND (%s::timestamptz IS NULL OR d.logged_at >= %s::timestamptz)"
