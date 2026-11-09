@@ -745,40 +745,39 @@ class Timeline(QWidget):
 	# ─── Dessin ────────────────────────────────────────────
 
 	def paintEvent(self, _event: QPaintEvent) -> None:
-		painter = QPainter(self)
-		painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-		palette = self.palette()
-		# Jamais grisée : à l'arrêt, la frise reste lisible, et se lit comme pendant la lecture.
-		group = QPalette.ColorGroup.Normal
-		frame = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
-		painter.fillRect(frame, palette.color(group, QPalette.ColorRole.Base))
-		self._draw_shape(painter, palette.color(group, QPalette.ColorRole.Text))
-		if self.plan is not None:
-			self._draw_areas(painter, palette.color(group, QPalette.ColorRole.Text))
-			self._draw_fades(painter, palette.color(group, QPalette.ColorRole.Highlight))
-		self._draw_head(painter, palette.color(group, QPalette.ColorRole.Highlight))
-		self._draw_sliders(painter, palette.color(group, QPalette.ColorRole.Link))
-		remark = self.remark()
-		background = self.legend_background()
-		if remark != "":
-			# Sous la légende, s'il y en a une : la remarque prend le bas de la frise.
-			place = QRectF(frame)
+		with QPainter(self) as painter:
+			painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+			palette = self.palette()
+			# Jamais grisée : à l'arrêt, la frise reste lisible, et se lit comme pendant la lecture.
+			group = QPalette.ColorGroup.Normal
+			frame = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+			painter.fillRect(frame, palette.color(group, QPalette.ColorRole.Base))
+			self._draw_shape(painter, palette.color(group, QPalette.ColorRole.Text))
+			if self.plan is not None:
+				self._draw_areas(painter, palette.color(group, QPalette.ColorRole.Text))
+				self._draw_fades(painter, palette.color(group, QPalette.ColorRole.Highlight))
+			self._draw_head(painter, palette.color(group, QPalette.ColorRole.Highlight))
+			self._draw_sliders(painter, palette.color(group, QPalette.ColorRole.Link))
+			remark = self.remark()
+			background = self.legend_background()
+			if remark != "":
+				# Sous la légende, s'il y en a une : la remarque prend le bas de la frise.
+				place = QRectF(frame)
+				if background is not None:
+					place.setTop(background.bottom())
+				painter.setPen(palette.color(group, QPalette.ColorRole.Text))
+				painter.drawText(place, Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap, remark)
 			if background is not None:
-				place.setTop(background.bottom())
-			painter.setPen(palette.color(group, QPalette.ColorRole.Text))
-			painter.drawText(place, Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap, remark)
-		if background is not None:
-			veil = QColor(palette.color(group, QPalette.ColorRole.Base))
-			veil.setAlpha(225)
+				veil = QColor(palette.color(group, QPalette.ColorRole.Base))
+				veil.setAlpha(225)
+				painter.setPen(QPen(palette.color(group, QPalette.ColorRole.Mid), 1))
+				painter.setBrush(veil)
+				painter.drawRoundedRect(background, 4, 4)
+				painter.setPen(palette.color(group, QPalette.ColorRole.Text))
+				painter.drawText(background, Qt.AlignmentFlag.AlignCenter, self.legend)
 			painter.setPen(QPen(palette.color(group, QPalette.ColorRole.Mid), 1))
-			painter.setBrush(veil)
-			painter.drawRoundedRect(background, 4, 4)
-			painter.setPen(palette.color(group, QPalette.ColorRole.Text))
-			painter.drawText(background, Qt.AlignmentFlag.AlignCenter, self.legend)
-		painter.setPen(QPen(palette.color(group, QPalette.ColorRole.Mid), 1))
-		painter.setBrush(Qt.BrushStyle.NoBrush)
-		painter.drawRect(frame)
-		painter.end()
+			painter.setBrush(Qt.BrushStyle.NoBrush)
+			painter.drawRect(frame)
 
 	def columns(self) -> list[float]:
 		"""L'amplitude crête de chaque colonne de points : la plus forte des mesures qui y tombent."""

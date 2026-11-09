@@ -81,6 +81,12 @@ Fonctionnalité: Socle de test
 	Scénario: Le code source n'affiche rien par print : les messages passent par logging
 		Alors aucun fichier de src/ n'appelle print
 
+	Scénario: Le code source ne dessine qu'avec un QPainter ouvert par with, qui se ferme même sur une exception
+		https://github.com/dascritch/machincast/issues/413 : une exception dans un paintEvent laissait son QPainter
+		ouvert ; sous Wayland, le dessin suivant de la fenêtre plantait l'interface (SIGSEGV dans Qt).
+
+		Alors aucun fichier de src/ ne crée de QPainter hors d'un bloc with
+
 	Scénario: Les messages d'un exécutable vont sur la sortie qui convient, précédés de leur horodatage
 		https://github.com/dascritch/machincast/issues/253 : « [horodatage] » est l'heure du message, en ISO 8601, à la
 		seconde, avec le décalage horaire du poste, par exemple « 2026-10-23T07:55:19+02:00 ».

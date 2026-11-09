@@ -57,9 +57,8 @@ def icon(category: str, colour: QColor | None = None) -> QIcon:
 		for size in SIZES:
 			image = QPixmap(size, size)
 			image.fill(Qt.GlobalColor.transparent)
-			painter = QPainter(image)
-			rendering.render(painter)
-			painter.end()
+			with QPainter(image) as painter:
+				rendering.render(painter)
 			drawn.addPixmap(image)
 		_drawn_list[key] = drawn
 	return _drawn_list[key]

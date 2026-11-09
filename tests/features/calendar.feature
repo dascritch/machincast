@@ -211,6 +211,29 @@ Fonctionnalité: Calendrier de la grille
 		Quand je coche la case « Émission » du calendrier
 		Alors le calendrier montre 11 blocs
 
+	Scénario: L'airplay d'un événement de secours se dessine dans sa couleur, que les cases soient cochées ou non
+		https://github.com/dascritch/machincast/issues/413 : un événement de secours, hors grille, n'a pas de case ; son
+		airplay, quand il a remplacé un stream tombé, faisait planter le dessin du calendrier, et l'interface sous Wayland.
+
+		Étant donné les événements :
+			| name    | public_name | priority | starts_at | ends_at | days |
+			| Secours |             | fallback |           |         |      |
+		Et les passages de l'airplay :
+			| événement | début               | fin                 |
+			| Secours   | 2026-10-20 09:00:00 | 2026-10-20 09:30:00 |
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Alors le calendrier montre les bandes d'airplay :
+			| jour     | début | fin   | événement | passages |
+			| mardi 20 | 09:00 | 09:30 | Secours   | 1        |
+		Et la bande d'airplay « Secours » de 09:00 du mardi 20 est dessinée en « #e8b45c » assombri
+		Quand je décoche la case « Spécial » du calendrier
+		Et je décoche la case « Émission » du calendrier
+		Et je décoche la case « Fil musical » du calendrier
+		Alors le calendrier montre les bandes d'airplay :
+			| jour     | début | fin   | événement | passages |
+			| mardi 20 | 09:00 | 09:30 | Secours   | 1        |
+
 	Plan du scénario: Chaque case de priorité montre la couleur de ses blocs
 		https://github.com/dascritch/machincast/issues/293 : un carré de la couleur de la priorité, devant son nom ; son
 		infobulle la nomme.

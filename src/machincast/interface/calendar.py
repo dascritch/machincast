@@ -97,6 +97,9 @@ COLOURS = {
 	Priority.SPECIAL: QColor("#f08c8c"),
 	Priority.SHOW: QColor("#8cb4f0"),
 	Priority.BACKGROUND_PROGRAMMING: QColor("#8fd19e"),
+	# Hors grille, un événement de secours n'a que de l'airplay, quand il a remplacé un stream tombé : toujours montré,
+	# sans case (https://github.com/dascritch/machincast/issues/413).
+	Priority.FALLBACK: QColor("#e8b45c"),
 }
 TINTS = {Priority.SPECIAL: _("red"), Priority.SHOW: _("blue"), Priority.BACKGROUND_PROGRAMMING: _("green")}
 """Le nom de la couleur de chaque priorité, pour l'infobulle de sa case (https://github.com/dascritch/machincast/issues/293)."""
@@ -448,11 +451,10 @@ def colour_square(colour: QColor) -> QIcon:
 	"""Un carré plein de la couleur, bordé comme un bloc du calendrier."""
 	image = QPixmap(SQUARE_SIZE, SQUARE_SIZE)
 	image.fill(Qt.GlobalColor.transparent)
-	painter = QPainter(image)
-	painter.fillRect(0, 0, SQUARE_SIZE, SQUARE_SIZE, colour)
-	painter.setPen(QPen(colour.darker(140)))
-	painter.drawRect(0, 0, SQUARE_SIZE - 1, SQUARE_SIZE - 1)
-	painter.end()
+	with QPainter(image) as painter:
+		painter.fillRect(0, 0, SQUARE_SIZE, SQUARE_SIZE, colour)
+		painter.setPen(QPen(colour.darker(140)))
+		painter.drawRect(0, 0, SQUARE_SIZE - 1, SQUARE_SIZE - 1)
 	return QIcon(image)
 
 
@@ -615,11 +617,14 @@ class Calendar(QWidget):
 		return [block for block in self._blocks if (block.whole_day) and (self._shown(block.event.priority))]
 
 	def strips(self) -> list[Strip]:
-		"""L'airplay des priorités cochées ; celui d'un événement effacé de la base est toujours montré."""
+		"""L'airplay des priorités cochées ; celui d'un événement effacé de la base, ou d'un événement de secours, qui n'a
+		pas de case, est toujours montré (https://github.com/dascritch/machincast/issues/413)."""
 		return [strip for strip in self._strips if (strip.priority is None) or (self._shown(strip.priority))]
 
 	def _shown(self, priority: Priority) -> bool:
-		return self.boxes[priority].isChecked()
+		"""Vrai si la case de la priorité est cochée, ou si elle n'a pas de case : le secours."""
+		box = self.boxes.get(priority)
+		return (box is None) or (box.isChecked())
 
 	def refresh(self) -> None:
 		"""Relit la grille et l'airplay de la période, ramenée au premier jour si la péremption l'a dépassée."""
@@ -822,28 +827,27 @@ class Header(QWidget):
 			menu.exec(event.globalPos())
 
 	def paintEvent(self, _event: QPaintEvent) -> None:
-		painter = QPainter(self)
-		days = self.calendar.days()
-		x = _day_x(self, len(days))
-		painter.setPen(self.palette().text().color())
-		outdated_list = self.calendar.outdated_days()
-		for index, day in enumerate(days):
-			frame = QRectF(x[index], 0, x[index + 1] - x[index], NAME_HEIGHT)
-			colour = self.palette().text().color()
-			if day in outdated_list:
-				colour = self.palette().placeholderText().color()
-				painter.fillRect(QRectF(x[index], 0, x[index + 1] - x[index], self.height()), OUTDATED)
-			painter.setPen(colour)
+		with QPainter(self) as painter:
+			days = self.calendar.days()
+			x = _day_x(self, len(days))
+			painter.setPen(self.palette().text().color())
+			outdated_list = self.calendar.outdated_days()
+			for index, day in enumerate(days):
+				frame = QRectF(x[index], 0, x[index + 1] - x[index], NAME_HEIGHT)
+				colour = self.palette().text().color()
+				if day in outdated_list:
+					colour = self.palette().placeholderText().color()
+					painter.fillRect(QRectF(x[index], 0, x[index + 1] - x[index], self.height()), OUTDATED)
+				painter.setPen(colour)
+				font_face = painter.font()
+				font_face.setBold(day == self.calendar.now().date())
+				painter.setFont(font_face)
+				painter.drawText(frame, Qt.AlignmentFlag.AlignCenter, day_label(day))
 			font_face = painter.font()
-			font_face.setBold(day == self.calendar.now().date())
+			font_face.setBold(False)
 			painter.setFont(font_face)
-			painter.drawText(frame, Qt.AlignmentFlag.AlignCenter, day_label(day))
-		font_face = painter.font()
-		font_face.setBold(False)
-		painter.setFont(font_face)
-		for block in self.calendar.whole_day():
-			_paint_block(painter, self.rectangle(block), block, _day_share)
-		painter.end()
+			for block in self.calendar.whole_day():
+				_paint_block(painter, self.rectangle(block), block, _day_share)
 
 
 def _day_share(frame: QRectF, block: Block, start: datetime, end: datetime) -> QRectF:
@@ -946,47 +950,46 @@ class Grid(QWidget):
 		self.calendar.requested_creation.emit(start)
 
 	def paintEvent(self, _event: QPaintEvent) -> None:
-		painter = QPainter(self)
-		days = self.calendar.days()
-		x = self._x()
-		line = QPen(self.palette().mid().color())
-		painter.setPen(line)
-		hour_height = self.calendar.hour_height()
-		for hour in range(25):
-			y = hour * hour_height
-			painter.drawLine(QPointF(MARGIN, y), QPointF(x[-1], y))
-			if hour < 24:
-				painter.setPen(self.palette().text().color())
-				painter.drawText(QRectF(0, y, MARGIN - GAP, 16), Qt.AlignmentFlag.AlignRight, f"{hour:02d}:00")
-				painter.setPen(line)
-		for edge in x:
-			painter.drawLine(QPointF(edge, 0), QPointF(edge, 24 * hour_height))
-		for block in self.calendar.blocks():
-			_paint_block(painter, self.rectangle(block), block, self._hour_share)
-		now = self.calendar.now()
-		for day in self.calendar.outdated_days():
-			index = days.index(day)
-			painter.fillRect(QRectF(x[index], 0, x[index + 1] - x[index], 24 * hour_height), OUTDATED)
-		# Le passé de chaque jour, du côté de l'airplay : la place de ce qui a été diffusé.
-		for index, day in enumerate(days):
-			passes = min(max(now, midnight(day)), midnight(day + ONE_DAY))
-			left = x[index] + (x[index + 1] - x[index]) * PLANNED_SHARE + GAP
-			background = QRectF(left, 0, x[index + 1] - GAP - left, self._y(day, passes))
-			painter.fillRect(background, self.palette().alternateBase())
-		for strip in self.calendar.strips():
-			colour = DELETED
-			if strip.priority is not None:
-				colour = COLOURS[strip.priority].darker(130)
-			frame = self.rectangle(strip)
-			painter.fillRect(frame, colour)
-			painter.setPen(QPen(colour.darker(150)))
-			painter.drawRect(frame)
-		if now.date() in days:
-			index = days.index(now.date())
-			height = self._y(now.date(), now)
-			painter.setPen(QPen(QColor("#d03030"), 2))
-			painter.drawLine(QPointF(x[index], height), QPointF(x[index + 1], height))
-		painter.end()
+		with QPainter(self) as painter:
+			days = self.calendar.days()
+			x = self._x()
+			line = QPen(self.palette().mid().color())
+			painter.setPen(line)
+			hour_height = self.calendar.hour_height()
+			for hour in range(25):
+				y = hour * hour_height
+				painter.drawLine(QPointF(MARGIN, y), QPointF(x[-1], y))
+				if hour < 24:
+					painter.setPen(self.palette().text().color())
+					painter.drawText(QRectF(0, y, MARGIN - GAP, 16), Qt.AlignmentFlag.AlignRight, f"{hour:02d}:00")
+					painter.setPen(line)
+			for edge in x:
+				painter.drawLine(QPointF(edge, 0), QPointF(edge, 24 * hour_height))
+			for block in self.calendar.blocks():
+				_paint_block(painter, self.rectangle(block), block, self._hour_share)
+			now = self.calendar.now()
+			for day in self.calendar.outdated_days():
+				index = days.index(day)
+				painter.fillRect(QRectF(x[index], 0, x[index + 1] - x[index], 24 * hour_height), OUTDATED)
+			# Le passé de chaque jour, du côté de l'airplay : la place de ce qui a été diffusé.
+			for index, day in enumerate(days):
+				passes = min(max(now, midnight(day)), midnight(day + ONE_DAY))
+				left = x[index] + (x[index + 1] - x[index]) * PLANNED_SHARE + GAP
+				background = QRectF(left, 0, x[index + 1] - GAP - left, self._y(day, passes))
+				painter.fillRect(background, self.palette().alternateBase())
+			for strip in self.calendar.strips():
+				colour = DELETED
+				if strip.priority is not None:
+					colour = COLOURS[strip.priority].darker(130)
+				frame = self.rectangle(strip)
+				painter.fillRect(frame, colour)
+				painter.setPen(QPen(colour.darker(150)))
+				painter.drawRect(frame)
+			if now.date() in days:
+				index = days.index(now.date())
+				height = self._y(now.date(), now)
+				painter.setPen(QPen(QColor("#d03030"), 2))
+				painter.drawLine(QPointF(x[index], height), QPointF(x[index + 1], height))
 
 	def _hour_share(self, frame: QRectF, block: Block, start: datetime, end: datetime) -> QRectF:
 		top, bottom = self._y(block.day, start), self._y(block.day, end)
