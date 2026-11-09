@@ -22,7 +22,7 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Quand je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
-		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Airplay »
+		Alors la fenêtre a les onglets « Antenne », « Airplay », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Et l'onglet ouvert est « Airplay »
 
 	Scénario: L'onglet montre les passages des 12 dernières heures, du plus récent au plus ancien, avec les colonnes de l'onglet Antenne
@@ -53,7 +53,7 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
 		Et j'ouvre l'onglet « Antenne »
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
-		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents », « Airplay »
+		Alors la fenêtre a les onglets « Antenne », « Airplay », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Et l'onglet ouvert est « Airplay »
 		Quand je ferme l'onglet « Airplay »
 		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »

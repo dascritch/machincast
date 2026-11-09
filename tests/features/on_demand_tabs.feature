@@ -5,8 +5,8 @@ Fonctionnalité: Onglets ouverts à la demande
 	afin que la fenêtre ne montre au lancement que ce dont j'ai besoin chaque jour.
 
 	https://github.com/dascritch/machincast/issues/180. Le menu « Affichage » ouvre chacun de ces onglets, ou le ramène
-	au premier plan. « Sonores » et « Feeds » se rouvrent à leur place habituelle, après « Banques » et avant
-	« Incidents ». Le calendrier, nommé « Grille horaire » dans le menu, est un onglet fixe depuis
+	au premier plan. « Sonores » et « Feeds » s'ouvrent directement à droite de l'onglet ouvert, comme tout onglet
+	(https://github.com/dascritch/machincast/issues/405). Le calendrier, nommé « Grille horaire » dans le menu, est un onglet fixe depuis
 	https://github.com/dascritch/machincast/issues/307 : le menu le ramène au premier plan.
 
 	Contexte:
@@ -36,7 +36,9 @@ Fonctionnalité: Onglets ouverts à la demande
 			| —                               |        |           |           |
 			| Rafraîchir les onglets          | active | F5        |           |
 
-	Scénario: Les onglets demandés s'ouvrent à leur place, et se ferment
+	Scénario: Les onglets demandés s'ouvrent à droite de l'onglet ouvert, et se ferment
+		https://github.com/dascritch/machincast/issues/405
+
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Feeds » dans le menu « Affichage »
 		Alors l'onglet ouvert est « Feeds »
@@ -44,8 +46,8 @@ Fonctionnalité: Onglets ouverts à la demande
 		Alors l'onglet ouvert est « Calendrier »
 		Quand je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
 		Alors l'onglet ouvert est « Sonores »
-		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Feeds », « Incidents »
-		Et seuls les onglets « Sonores », « Feeds » ont un bouton de fermeture
+		Et la fenêtre a les onglets « Antenne », « Feeds », « Calendrier », « Sonores », « Événements », « Séquences », « Banques », « Incidents »
+		Et seuls les onglets « Feeds », « Sonores » ont un bouton de fermeture
 		Quand je ferme l'onglet « Sonores »
 		Et je ferme l'onglet « Feeds »
 		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
@@ -56,7 +58,7 @@ Fonctionnalité: Onglets ouverts à la demande
 		Et j'ouvre l'onglet « Antenne »
 		Et je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
 		Alors l'onglet ouvert est « Sonores »
-		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Incidents »
+		Et la fenêtre a les onglets « Antenne », « Sonores », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 
 	Scénario: Une liste fermée puis rouverte garde son filtre et se relit
 		Quand la fenêtre de l'interface s'ouvre
@@ -75,7 +77,8 @@ Fonctionnalité: Onglets ouverts à la demande
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'appuie sur « Shift+F6 »
 		Alors l'onglet ouvert est « Incidents »
-		Quand je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
+		Quand j'appuie sur « Shift+F5 »
+		Et je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
 		Et j'appuie sur « Shift+F7 »
 		Alors l'onglet ouvert est « Incidents »
 

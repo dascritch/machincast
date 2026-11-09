@@ -303,6 +303,11 @@ class MainWindow(QMainWindow):
 		self.ui = Ui_MainWindow()
 		self.ui.setupUi(self)
 		self.ui.tabs.setTabsClosable(True)
+		# Déplaçables, l'onglet Antenne toujours le premier (https://github.com/dascritch/machincast/issues/405).
+		self.ui.tabs.setMovable(True)
+		self._appending = True
+		"""Vrai pendant la construction de la fenêtre et la réouverture des onglets retenus : un onglet s'ajoute à la fin,
+		au lieu de s'ouvrir à droite de l'onglet ouvert."""
 		self.home = DefaultScreen(connection, state_socket, clock, audio=audio)
 		self.home.show_clipping(self.clipping)
 		self.home.requested_listening.connect(self._listen_on_air)
@@ -408,8 +413,10 @@ class MainWindow(QMainWindow):
 		self.ui.tabs.setCurrentIndex(0)
 		self.ui.tabs.currentChanged.connect(self._opened_tab)
 		self.ui.tabs.tabCloseRequested.connect(self._close)
+		self.ui.tabs.tabBar().tabMoved.connect(self._moved_tab)
 		self._create_shortcuts()
 		self.reopen_tabs()
+		self._appending = False
 		if not identify(self._application(), self.icon):
 			self.statusBar().showMessage(
 				_("Icon {icon} unreadable or not found: MachinCast icon instead.").format(icon=self.icon)
@@ -741,10 +748,27 @@ class MainWindow(QMainWindow):
 				self._reopen(current_tab_key(str(key)))
 			except psycopg.Error as error:
 				log.error(_("tab “{key}” not reopened: {error}").format(key=key, error=error))
-		active = current_tab_key(str(settings.value(ACTIVE_TAB_KEY, "on_air")))
+		self._order_tabs([current_tab_key(str(key)) for key in retained])
 		tabs = self.ui.tabs
+		active = current_tab_key(str(settings.value(ACTIVE_TAB_KEY, "on_air")))
 		found_list = [index for index in range(tabs.count()) if self.tab_key(tabs.widget(index)) == active]
 		tabs.setCurrentIndex(next(iter(found_list), 0))
+
+	def _order_tabs(self, order: list[str]) -> None:
+		"""Les onglets retenus reprennent l'ordre retenu, onglets fixes compris, qui ont pu être déplacés
+		(https://github.com/dascritch/machincast/issues/405) : ils échangent leurs places entre eux, et un onglet absent
+		de l'ordre retenu, celui d'une version d'avant, garde la sienne. L'onglet Antenne reste le premier."""
+		tabs = self.ui.tabs
+		screens = [screen for index in range(tabs.count()) if (screen := tabs.widget(index)) is not None]
+		by_key = {self.tab_key(screen): screen for screen in screens}
+		retained = iter([by_key[key] for key in dict.fromkeys(order) if key in by_key])
+		wanted: list[QWidget] = []
+		for screen in screens:
+			if self.tab_key(screen) in order:
+				screen = next(retained)
+			wanted.append(screen)
+		for index, screen in enumerate(wanted):
+			tabs.tabBar().moveTab(tabs.indexOf(screen), index)
 
 	def _reopen(self, key: str) -> None:
 		"""Rouvre un onglet retenu ; un onglet fixe l'est déjà, une clé inconnue est ignorée."""
@@ -789,10 +813,28 @@ class MainWindow(QMainWindow):
 			self.ui.tabs.tabBar().setTabButton(index, side, None)
 
 	def _add_tab(self, screen: QWidget, title: str) -> int:
-		"""Tout onglet s'ajoute par ici, et se retire par _retirer_onglet : les raccourcis suivent."""
-		index = self.ui.tabs.addTab(screen, icons.icon_of(screen_category(screen)), title)
+		"""Tout onglet s'ajoute par ici, et se retire par _retirer_onglet : les raccourcis suivent. Il s'ouvre
+		directement à droite de l'onglet d'où il est ouvert, l'onglet ouvert à cet instant
+		(https://github.com/dascritch/machincast/issues/405) ; à la fin, pendant la construction de la fenêtre et la
+		réouverture des onglets retenus."""
+		tabs = self.ui.tabs
+		icon = icons.icon_of(screen_category(screen))
+		if self._appending:
+			index = tabs.addTab(screen, icon, title)
+		else:
+			index = tabs.insertTab(tabs.currentIndex() + 1, screen, icon, title)
 		self._title_tab(index, title)
 		return index
+
+	def _moved_tab(self, _from: int, _to: int) -> None:
+		"""Un onglet déplacé : l'onglet Antenne revient en tête, Maj+F1 et Ctrl+Home y mènent toujours ; les raccourcis
+		et les infobulles suivent le nouvel ordre (https://github.com/dascritch/machincast/issues/405)."""
+		bar = self.ui.tabs.tabBar()
+		on_air = self.ui.tabs.indexOf(self.home)
+		if on_air > 0:
+			bar.moveTab(on_air, 0)
+			return
+		self._number_tabs()
 
 	def _title_tab(self, index: int, title: str) -> None:
 		"""Le titre affiché, coupé à TAB_TITLE caractères ; le titre entier reste dans l'onglet, pour son infobulle et
@@ -1011,19 +1053,14 @@ class MainWindow(QMainWindow):
 		search.focus()
 
 	def open_list(self, title: str) -> None:
-		"""Ouvre une liste à la demande à sa place, après les listes qui la précèdent et avant les incidents, ou la
-		ramène au premier plan (https://github.com/dascritch/machincast/issues/180). Elle se désigne par son titre, ou
-		par son genre."""
+		"""Ouvre une liste à la demande à droite de l'onglet ouvert, comme tout onglet
+		(https://github.com/dascritch/machincast/issues/405), ou la ramène au premier plan
+		(https://github.com/dascritch/machincast/issues/180). Elle se désigne par son titre, ou par son genre."""
 		tabs = self.ui.tabs
 		(list_,) = (list_ for list_ in self.lists if title in (self._titles[list_], self._keys[list_]))
-		title = self._titles[list_]
 		index = tabs.indexOf(list_)
 		if index < 0:
-			order: list[QWidget] = [self.home, self.calendar, *self.lists]
-			rank = order.index(list_)
-			place = sum(1 for screen in order[:rank] if tabs.indexOf(screen) >= 0)
-			index = tabs.insertTab(place, list_, icons.icon_of(screen_category(list_)), title)
-			self._title_tab(index, title)
+			index = self._add_tab(list_, self._titles[list_])
 		tabs.setCurrentIndex(index)
 
 	def _open_simulation(self) -> None:

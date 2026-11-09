@@ -115,7 +115,7 @@ Fonctionnalité: Fiche d'un événement
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
 		Et je choisis « Ouvrir l'onglet Feeds » dans le menu « Affichage »
-		Alors les listes qui proposent de créer un élément sont « Événements : Nouvel événement », « Séquences : Nouvelle séquence », « Banques : Nouvelle banque », « Sonores : Nouveau stream », « Feeds : Nouveau feed »
+		Alors les listes qui proposent de créer un élément sont « Sonores : Nouveau stream », « Feeds : Nouveau feed », « Événements : Nouvel événement », « Séquences : Nouvelle séquence », « Banques : Nouvelle banque »
 
 	# ─── Champs ────────────────────────────────────────────────
 

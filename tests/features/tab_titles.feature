@@ -6,7 +6,8 @@ Fonctionnalité: Titres des onglets et menu « Onglets »
 
 	https://github.com/dascritch/machincast/issues/398. Le titre affiché d'un onglet a au plus 40 caractères : au-delà,
 	il est coupé, et finit par « … ». L'infobulle de l'onglet donne alors le titre entier, au-dessus de son raccourci
-	(tab_shortcuts.feature). Le menu « Onglets » liste les onglets ouverts, dans leur ordre, avec leur titre entier et
+	(tab_shortcuts.feature). Une fiche s'ouvre depuis sa liste, à sa droite (movable_tabs.feature). Le menu « Onglets »
+	liste les onglets ouverts, dans leur ordre, avec leur titre entier et
 	leur raccourci ; l'onglet ouvert y est coché, et choisir une entrée ouvre son onglet.
 
 	Contexte:
@@ -22,13 +23,13 @@ Fonctionnalité: Titres des onglets et menu « Onglets »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Une séquence au nom vraiment beaucoup trop long »
 		Alors l'onglet ouvert affiche « Séquence : Une séquence au nom vraiment… »
-		Et l'infobulle de l'onglet ouvert est « Séquence : Une séquence au nom vraiment beaucoup trop long », puis « Maj+F7 »
+		Et l'infobulle de l'onglet ouvert est « Séquence : Une séquence au nom vraiment beaucoup trop long », puis « Maj+F5 »
 
 	Scénario: Un titre de 40 caractères s'affiche en entier, et son infobulle ne donne que son raccourci
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Quarante caractères tout pile »
 		Alors l'onglet ouvert affiche « Séquence : Quarante caractères tout pile »
-		Et l'infobulle de l'onglet ouvert est « Maj+F7 »
+		Et l'infobulle de l'onglet ouvert est « Maj+F5 »
 
 	Scénario: Le menu « Onglets » liste les onglets ouverts, avec leur titre entier, et coche l'onglet ouvert
 		Quand la fenêtre de l'interface s'ouvre
@@ -39,9 +40,9 @@ Fonctionnalité: Titres des onglets et menu « Onglets »
 			| Calendrier                                                 | Maj+F2    | non    |
 			| Événements                                                 | Maj+F3    | non    |
 			| Séquences                                                  | Maj+F4    | non    |
-			| Banques                                                    | Maj+F5    | non    |
-			| Incidents                                                  | Maj+F6    | non    |
-			| Séquence : Une séquence au nom vraiment beaucoup trop long | Maj+F7    | oui    |
+			| Séquence : Une séquence au nom vraiment beaucoup trop long | Maj+F5    | oui    |
+			| Banques                                                    | Maj+F6    | non    |
+			| Incidents                                                  | Maj+F7    | non    |
 
 	Scénario: Choisir un onglet dans le menu « Onglets » l'ouvre
 		Quand la fenêtre de l'interface s'ouvre
@@ -61,5 +62,5 @@ Fonctionnalité: Titres des onglets et menu « Onglets »
 			| Calendrier | Maj+F2    | non    |
 			| Événements | Maj+F3    | non    |
 			| Séquences  | Maj+F4    | non    |
-			| Banques    | Maj+F5    | non    |
-			| Incidents  | Maj+F6    | oui    |
+			| Banques    | Maj+F5    | oui    |
+			| Incidents  | Maj+F6    | non    |
