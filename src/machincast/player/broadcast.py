@@ -211,6 +211,19 @@ class Parameters:
 	"""Mémoire tampon du stream d'un feed (https://github.com/dascritch/machincast/issues/351) ; None sinon."""
 
 
+PRELOAD = timedelta(seconds=30)
+"""Le stream d'un feed se charge, muet, cette avance avant de prendre l'antenne
+(https://github.com/dascritch/machincast/issues/351) : sa mémoire tampon est pleine quand il commence, sans blanc."""
+
+
+@dataclass
+class Preload:
+	"""La voie muette du prochain sonore, un stream de feed, qui se charge avant de prendre l'antenne."""
+
+	sound: int
+	track: PlaybackTrack
+
+
 @dataclass
 class Playback:
 	"""Un sonore sur la sortie : son choix, sa voie et son passage dans l'airplay."""
@@ -389,6 +402,9 @@ class Broadcast:
 	"""Heure de la dernière vérification de tous les sonores."""
 	reserve: Reserve | None = field(default=None, init=False)
 	"""Prochain sonore, réservé au début du sonore en cours : il sera joué s'il est encore valable."""
+	preload: Preload | None = field(default=None, init=False)
+	"""La voie muette du prochain sonore, un stream de feed, qui se charge avant de prendre l'antenne
+	(https://github.com/dascritch/machincast/issues/351)."""
 	_publication: tuple[str, datetime | None] = field(default=("", None), init=False)
 	"""Dernier état publié sur la socket, sans ce qui change à chaque pas, et heure de sa publication."""
 	_reserved_details: tuple[Reserve, dict[str, Any]] | None = field(default=None, init=False)
@@ -474,7 +490,46 @@ class Broadcast:
 			else:
 				self._play_decision(self.scheduler.decide(instant, None), reserve, instant)
 		self._follow_probe(instant)
+		self._preload(instant)
 		self._publish(instant)
+
+	def _preload(self, instant: datetime) -> None:
+		"""PRELOAD avant son début estimé, le prochain stream d'un feed, le prochain sonore ou l'un des sonores à venir,
+		se charge, muet (https://github.com/dascritch/machincast/issues/351) : sa mémoire tampon est pleine quand il
+		prend l'antenne. Une voie préchargée qui tombe est abandonnée : le stream démarrera comme un autre."""
+		preload = self.preload
+		if (preload is not None) and (preload.track.state != "playing"):
+			self._drop_preload()
+		reserve, current = self.reserve, self.current
+		if (self.preload is not None) or (reserve is None) or (current is None):
+			return
+		planned = [(reserve.choice, reserve.parameters)] + [(item.choice, item.parameters) for item in self.upcoming]
+		starts = self._starts()
+		if (reserve.early) and (current.cutoff is not None) and (starts != []):
+			starts[0] = current.cutoff.instant
+		for (choice, parameters), start in zip(planned, starts, strict=False):
+			if start is None:
+				return
+			if start - instant > PRELOAD:
+				return
+			if (parameters.stream) and (parameters.buffer is not None) and (parameters.address is not None):
+				track = self.engine.play(parameters.address, None, silent=True, buffer=parameters.buffer)
+				self.preload = Preload(choice.sound, track)
+				return
+
+	def _planned_sounds(self) -> set[int]:
+		reserve = self.reserve
+		if reserve is None:
+			return set()
+		return {reserve.choice.sound} | {item.choice.sound for item in self.upcoming}
+
+	def _drop_preload(self, sound: int | None = None) -> None:
+		"""Abandonne la voie préchargée, sauf celle de ce sonore."""
+		preload = self.preload
+		if (preload is None) or (preload.sound == sound):
+			return
+		preload.track.shut_down()
+		self.preload = None
 
 	def halt(self) -> None:
 		"""Arrête la sortie : les passages en cours se terminent sans incident, puis l'arrêt est consigné."""
@@ -485,6 +540,7 @@ class Broadcast:
 		for playback in self._plays():
 			self._finish(playback.play, instant)
 		self.current, self.outgoing_list, self.in_waiting, self.probe, self.reserve = None, [], None, None, None
+		self.preload = None
 		self.upcoming = []
 		self._note_on_air(None, instant)
 		self.history.record(self.connection, "info", N_("stop"), N_("stop requested"), instant)
@@ -892,6 +948,10 @@ class Broadcast:
 		if self.reserve is not None:
 			self._analyse(self.reserve, instant)
 		self._extend(instant)
+		# Les sonores prévus ont pu changer : la voie préchargée d'un stream qui n'y est plus ne sert plus.
+		preload = self.preload
+		if (preload is not None) and (preload.sound not in self._planned_sounds()):
+			self._drop_preload()
 
 	def _engage(self, planned: Planned, instant: datetime) -> None:
 		"""Le sonore prévu devient le prochain : ce que sa décision a terminé l'est pour de bon, et ce qu'elle
@@ -1144,7 +1204,12 @@ class Broadcast:
 		)
 
 	def _cut(self, instant: datetime) -> None:
-		self.engine.cut()
+		"""Coupe net les voies à l'antenne et celle de la reprise d'un stream tombé, pas la voie préchargée du sonore
+		qui coupe (https://github.com/dascritch/machincast/issues/351)."""
+		for playback in self._plays():
+			playback.track.cut()
+		if (self.probe is not None) and (self.probe.track is not None):
+			self.probe.track.cut()
 		for playback in self._plays():
 			self._finish(playback.play, instant, cut=True)
 		self.current, self.outgoing_list, self.in_waiting, self.reserve = None, [], None, None
@@ -1177,16 +1242,25 @@ class Broadcast:
 			return
 		if rise is None:
 			rise = entry_fade(previous_end_crossfade, parameters.start_crossfade)
-		track = self.engine.play(
-			path,
-			parameters.duration,
-			rise,
-			parameters.end_crossfade,
-			offset=parameters.offset,
-			departure=parameters.departure_volume,
-			arrival=parameters.arrival_volume,
-			buffer=parameters.buffer,
-		)
+		preload = self.preload
+		if (preload is not None) and (preload.sound == following.sound):
+			# Le stream préchargé prend l'antenne, sa mémoire tampon pleine ; une autre voie préchargée attend son
+			# tour, ou est abandonnée si son stream n'est plus prévu (_reserve).
+			track = preload.track
+			self.preload = None
+			track.take_air()
+			track.fade(1.0, rise)
+		else:
+			track = self.engine.play(
+				path,
+				parameters.duration,
+				rise,
+				parameters.end_crossfade,
+				offset=parameters.offset,
+				departure=parameters.departure_volume,
+				arrival=parameters.arrival_volume,
+				buffer=parameters.buffer,
+			)
 		play = self._begin(following, instant)
 		if self.current is not None:
 			self.outgoing_list.append(self.current)
