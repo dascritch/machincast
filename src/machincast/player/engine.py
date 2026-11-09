@@ -65,6 +65,8 @@ TrackState = Literal["ready", "playing", "finished", "cut", "error"]
 
 # GstPlayFlags : audio seulement, sans vidéo ni sous-titres.
 ONLY_AUDIO_PLAYBACK = 0x00000002
+BUFFERING = 0x00000100
+"""Drapeau de playbin3 : la mise en mémoire tampon d'un stream, qui publie son remplissage (messages BUFFERING)."""
 
 PREROLL_DELAY = timedelta(seconds=2)
 """Délai accordé à la pré-lecture d'un fichier rogné, avant la recherche de son début détecté : au-delà, la voie joue
@@ -76,6 +78,9 @@ une voie qui n'a pas atteint l'état PLAYING au bout de ce délai est bloquée
 (https://github.com/dascritch/machincast/issues/281) ; un stream qui ne donne plus de son pendant ce délai est gelé
 (https://github.com/dascritch/machincast/issues/278)."""
 
+PREFILL_MARGIN = 1.5
+"""Au-delà de sa durée fois cette marge, une mémoire tampon qui ne se remplit pas n'est plus attendue
+(https://github.com/dascritch/machincast/issues/351) : le flux arrive en temps réel, la durée devrait suffire."""
 CONNECTION_DELAY_SECONDS = round(GUARD_DELAY.total_seconds())
 """Délai de connexion et de réponse d'un flux HTTP, au-delà duquel la voie passe en erreur : le délai de garde."""
 
@@ -169,6 +174,7 @@ class Track:
 		arrival: float = 0.0,
 		clock: Callable[[], float] = time.monotonic,
 		dead_air: DeadAirSettings | None = None,
+		buffer: timedelta | None = None,
 	) -> None:
 		"""chemin : un fichier, ou l'adresse d'un stream. Muette, la voie joue à volume nul jusqu'à un fondu.
 
@@ -180,7 +186,11 @@ class Track:
 		entier.
 
 		blanc : la durée et le seuil d'un blanc dans le sonore (https://github.com/dascritch/machincast/issues/122) ;
-		ceux de la configuration par défaut, sans lui."""
+		ceux de la configuration par défaut, sans lui.
+
+		tampon : pour le stream d'un feed, la durée de sa mémoire tampon
+		(https://github.com/dascritch/machincast/issues/351) : la voie attend qu'elle soit pleine pour jouer, et en
+		publie le remplissage (tampon_rempli) ; None : le stream joue dès son premier son, comme un fichier."""
 		Gst.init(None)
 		self.path = path
 		self.state: TrackState = "ready"
@@ -227,7 +237,18 @@ class Track:
 		assert entry is not None
 		plugged.add_pad(Gst.GhostPad.new("sink", entry))
 
-		player.set_property("flags", ONLY_AUDIO_PLAYBACK)
+		self.buffer = None
+		"""Durée de la mémoire tampon du stream d'un feed ; None sinon."""
+		self.buffering = 0
+		"""Remplissage de la mémoire tampon, en pour cent, d'après le dernier message BUFFERING."""
+		self._prefilling = False
+		"""La voie attend que sa mémoire tampon soit pleine pour jouer."""
+		flags = ONLY_AUDIO_PLAYBACK
+		if (isinstance(path, str)) and (buffer is not None):
+			self.buffer = buffer
+			flags |= BUFFERING
+			player.set_property("buffer-duration", _nanoseconds(buffer))
+		player.set_property("flags", flags)
 		player.set_property("audio-sink", plugged)
 		address: Path | str | None = path
 		if not isinstance(path, str):
@@ -316,8 +337,37 @@ class Track:
 		self._advance_at = self._started_to
 		if self._trimmed:
 			self._bound()
-		if self._player.set_state(Gst.State.PLAYING) == Gst.StateChangeReturn.FAILURE:
+		target = Gst.State.PLAYING
+		if self.buffer is not None:
+			# Le stream d'un feed attend sa mémoire tampon (https://github.com/dascritch/machincast/issues/351).
+			self._prefilling = True
+			target = Gst.State.PAUSED
+		if self._player.set_state(target) == Gst.StateChangeReturn.FAILURE:
 			self.handle()
+
+	def buffer_level(self) -> timedelta | None:
+		"""Ce que contient la mémoire tampon du stream d'un feed, d'après son remplissage ; None sans elle."""
+		if self.buffer is None:
+			return None
+		return self.buffer * min(self.buffering, 100) / 100
+
+	def _grace(self) -> float:
+		"""Le délai de garde, allongé de la mémoire tampon tant qu'elle se remplit, avant le premier son."""
+		guard = GUARD_DELAY.total_seconds()
+		if (self.buffer is not None) and (self._last_position == timedelta(0)):
+			guard += self.buffer.total_seconds()
+		return guard
+
+	def _fill(self, percent: int) -> None:
+		"""Un message BUFFERING : la voie qui attendait joue dès que sa mémoire tampon est pleine."""
+		self.buffering = percent
+		if (self._prefilling) and (percent >= 100):
+			self._play_now()
+
+	def _play_now(self) -> None:
+		self._prefilling = False
+		if self._player.set_state(Gst.State.PLAYING) == Gst.StateChangeReturn.FAILURE:
+			self.state, self.error = "error", _("the stream did not start after its buffer")
 
 	def blocked(self) -> bool:
 		"""Le lecteur n'a pas atteint l'état PLAYING GUARD_DELAY après son démarrage, sans erreur ni fin : il
@@ -328,7 +378,7 @@ class Track:
 		if current == Gst.State.PLAYING:
 			self._has_played = True
 			return False
-		return self._clock() - self._started_to >= GUARD_DELAY.total_seconds()
+		return self._clock() - self._started_to >= self._grace()
 
 	def frozen(self) -> bool:
 		"""Aucun son depuis GUARD_DELAY : la position n'a pas avancé depuis le démarrage de la voie, ou depuis sa
@@ -343,7 +393,7 @@ class Track:
 		if position > self._last_position:
 			self._last_position, self._advance_at = position, now
 			return False
-		return now - self._advance_at >= GUARD_DELAY.total_seconds()
+		return now - self._advance_at >= self._grace()
 
 	def dead_air(self) -> DeadAir | None:
 		"""Le premier blanc constaté dans le sonore depuis la dernière demande, une seule fois chacun
@@ -416,11 +466,23 @@ class Track:
 			self.state = "finished"
 			self._player.set_state(Gst.State.NULL)
 			return
+		if (
+			(self._prefilling)
+			and (self.buffer is not None)
+			and (self._started_to is not None)
+			and (self._clock() - self._started_to >= self.buffer.total_seconds() * PREFILL_MARGIN)
+		):
+			# Un flux plus lent que le temps réel ne remplit jamais sa mémoire tampon : la voie joue ce qu'elle a.
+			self._play_now()
 		bus = self._player.get_bus()
+		wanted = Gst.MessageType.EOS | Gst.MessageType.ERROR | Gst.MessageType.ELEMENT | Gst.MessageType.BUFFERING
 		while (self.state == "playing") and (bus is not None):
-			message = bus.pop_filtered(Gst.MessageType.EOS | Gst.MessageType.ERROR | Gst.MessageType.ELEMENT)
+			message = bus.pop_filtered(wanted)
 			if message is None:
 				return
+			if message.type == Gst.MessageType.BUFFERING:
+				self._fill(message.parse_buffering())
+				continue
 			structure = message.get_structure()
 			if message.type == Gst.MessageType.ELEMENT:
 				if (structure is not None) and (structure.get_name() == "level"):
@@ -476,6 +538,8 @@ class PlaybackTrack(Protocol):
 
 	def volume_to(self, instant: timedelta) -> float: ...
 
+	def buffer_level(self) -> timedelta | None: ...
+
 
 class Engine(Protocol):
 	"""Ce que la diffusion attend du moteur : AudioEngine, ou le moteur simulé de la simulation."""
@@ -490,6 +554,7 @@ class Engine(Protocol):
 		offset: timedelta | None = ...,
 		departure: float = ...,
 		arrival: float = ...,
+		buffer: timedelta | None = ...,
 	) -> PlaybackTrack: ...
 
 	def handle_messages(self) -> None: ...
@@ -527,6 +592,7 @@ class AudioEngine:
 		offset: timedelta | None = None,
 		departure: float = 0.0,
 		arrival: float = 0.0,
+		buffer: timedelta | None = None,
 	) -> Track:
 		"""Démarre le sonore dans une nouvelle voie, en plus de celles en cours (crossfade) ; un sonore rogné commence à
 		decalage secondes du début de son fichier (https://github.com/dascritch/machincast/issues/146)."""
@@ -543,6 +609,7 @@ class AudioEngine:
 			arrival,
 			self.clock,
 			self.dead_air,
+			buffer,
 		)
 		track.start()
 		self._tracks.append(track)

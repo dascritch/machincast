@@ -50,6 +50,55 @@
        </property>
       </widget>
      </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="buffer_caption">
+       <property name="text">
+        <string>&amp;Buffer</string>
+       </property>
+       <property name="buddy">
+        <cstring>buffer</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <layout class="QHBoxLayout" name="buffer_layout" stretch="1,0">
+       <item>
+        <widget class="QSlider" name="buffer">
+         <property name="minimum">
+          <number>2</number>
+         </property>
+         <property name="maximum">
+          <number>10</number>
+         </property>
+         <property name="pageStep">
+          <number>1</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+         <property name="tickPosition">
+          <enum>QSlider::TickPosition::TicksBelow</enum>
+         </property>
+         <property name="tickInterval">
+          <number>1</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="buffer_value" />
+       </item>
+      </layout>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLabel" name="buffer_explanation">
+       <property name="text">
+        <string>The stream waits for its buffer to be full before playing. Short, it starts quickly, but may not be enough for an irregular network; long, it holds better, but takes longer to start and to restart.</string>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>

@@ -17,7 +17,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QFormLayout, QGroupBox, QHBoxLayout,
     QLabel, QLineEdit, QListWidget, QListWidgetItem,
-    QPushButton, QSizePolicy, QVBoxLayout, QWidget)
+    QPushButton, QSizePolicy, QSlider, QVBoxLayout,
+    QWidget)
 
 class Ui_FeedCard(object):
     def setupUi(self, FeedCard):
@@ -48,6 +49,39 @@ class Ui_FeedCard(object):
         self.url.setObjectName(u"url")
 
         self.form.setWidget(1, QFormLayout.ItemRole.FieldRole, self.url)
+
+        self.buffer_caption = QLabel(FeedCard)
+        self.buffer_caption.setObjectName(u"buffer_caption")
+
+        self.form.setWidget(2, QFormLayout.ItemRole.LabelRole, self.buffer_caption)
+
+        self.buffer_layout = QHBoxLayout()
+        self.buffer_layout.setObjectName(u"buffer_layout")
+        self.buffer = QSlider(FeedCard)
+        self.buffer.setObjectName(u"buffer")
+        self.buffer.setMinimum(2)
+        self.buffer.setMaximum(10)
+        self.buffer.setPageStep(1)
+        self.buffer.setOrientation(Qt.Orientation.Horizontal)
+        self.buffer.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.buffer.setTickInterval(1)
+
+        self.buffer_layout.addWidget(self.buffer)
+
+        self.buffer_value = QLabel(FeedCard)
+        self.buffer_value.setObjectName(u"buffer_value")
+
+        self.buffer_layout.addWidget(self.buffer_value)
+
+        self.buffer_layout.setStretch(0, 1)
+
+        self.form.setLayout(2, QFormLayout.ItemRole.FieldRole, self.buffer_layout)
+
+        self.buffer_explanation = QLabel(FeedCard)
+        self.buffer_explanation.setObjectName(u"buffer_explanation")
+        self.buffer_explanation.setWordWrap(True)
+
+        self.form.setWidget(3, QFormLayout.ItemRole.FieldRole, self.buffer_explanation)
 
 
         self.arrangement.addLayout(self.form)
@@ -119,6 +153,7 @@ class Ui_FeedCard(object):
 #if QT_CONFIG(shortcut)
         self.name_caption.setBuddy(self.name)
         self.url_caption.setBuddy(self.url)
+        self.buffer_caption.setBuddy(self.buffer)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(FeedCard)
@@ -134,6 +169,8 @@ class Ui_FeedCard(object):
         self.name.setPlaceholderText(QCoreApplication.translate("FeedCard", u"Required, and unique to this feed", None))
         self.url_caption.setText(QCoreApplication.translate("FeedCard", u"A&ddress", None))
         self.url.setPlaceholderText(QCoreApplication.translate("FeedCard", u"https://\u2026: the address of the stream, required", None))
+        self.buffer_caption.setText(QCoreApplication.translate("FeedCard", u"&Buffer", None))
+        self.buffer_explanation.setText(QCoreApplication.translate("FeedCard", u"The stream waits for its buffer to be full before playing. Short, it starts quickly, but may not be enough for an irregular network; long, it holds better, but takes longer to start and to restart.", None))
         self.test.setText(QCoreApplication.translate("FeedCard", u"Test the stream", None))
         self.stream_group.setTitle(QCoreApplication.translate("FeedCard", u"Streams that follow it", None))
         self.stream_explanation.setText(QCoreApplication.translate("FeedCard", u"These streams play the address of the feed: a new address applies to all. A stream chooses its feed in its card.", None))

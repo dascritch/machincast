@@ -4,6 +4,8 @@ Les étapes de la fenêtre, des listes, des fiches, de la suppression et des fen
 tests/interface_steps.py ; le serveur de flux local, dans tests/broadcast_steps.py.
 """
 
+from datetime import timedelta
+
 from PySide6.QtCore import Qt
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
@@ -108,3 +110,24 @@ def silent(interface: Context, qtbot: QtBot) -> None:
 	ui = card(interface).ui
 	qtbot.waitUntil(lambda: ui.trial_result.text().startswith("Le flux ne répond pas : "), timeout=15000)
 	assert ui.test.isEnabled()
+
+
+# ─── Mémoire tampon (https://github.com/dascritch/machincast/issues/351) ───
+
+
+@when(parsers.parse("je règle la mémoire tampon du feed à {seconds:d} secondes"))
+def set_buffer(interface: Context, seconds: int) -> None:
+	card(interface).ui.buffer.setValue(seconds)
+
+
+@then(parsers.parse("la fiche du feed montre une mémoire tampon de « {text} », réglable de 2 à 10 secondes"))
+def buffer_shown(interface: Context, text: str) -> None:
+	ui = card(interface).ui
+	assert ui.buffer_value.text() == text
+	assert (ui.buffer.minimum(), ui.buffer.maximum()) == (2, 10)
+
+
+@then(parsers.parse("le feed « {name} » a en base une mémoire tampon de {seconds:d} secondes"))
+def buffer_saved(empty_database: Connection, name: str, seconds: int) -> None:
+	line = empty_database.execute("SELECT buffer_duration FROM feeds WHERE name = %s", (name,)).fetchone()
+	assert line == (timedelta(seconds=seconds),), line

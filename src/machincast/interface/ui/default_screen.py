@@ -230,6 +230,18 @@ class Ui_DefaultScreen(object):
 
         self.ongoing_form.setWidget(4, QFormLayout.ItemRole.FieldRole, self.ongoing_location)
 
+        self.ongoing_buffer_heading = QLabel(self.ongoing_frame)
+        self.ongoing_buffer_heading.setObjectName(u"ongoing_buffer_heading")
+
+        self.ongoing_form.setWidget(5, QFormLayout.ItemRole.LabelRole, self.ongoing_buffer_heading)
+
+        self.ongoing_buffer = QProgressBar(self.ongoing_frame)
+        self.ongoing_buffer.setObjectName(u"ongoing_buffer")
+        self.ongoing_buffer.setMaximum(1000)
+        self.ongoing_buffer.setValue(0)
+
+        self.ongoing_form.setWidget(5, QFormLayout.ItemRole.FieldRole, self.ongoing_buffer)
+
 
         self.ongoing_layout.addLayout(self.ongoing_form)
 
@@ -551,6 +563,7 @@ class Ui_DefaultScreen(object):
         self.open_ongoing_bank.setText(QCoreApplication.translate("DefaultScreen", u"Card\u2026", None))
         self.ongoing_schedule_heading.setText(QCoreApplication.translate("DefaultScreen", u"Time", None))
         self.ongoing_location_heading.setText(QCoreApplication.translate("DefaultScreen", u"Location", None))
+        self.ongoing_buffer_heading.setText(QCoreApplication.translate("DefaultScreen", u"Buffer", None))
         self.on_air_column.setTitle(QCoreApplication.translate("DefaultScreen", u"On air", None))
 #if QT_CONFIG(tooltip)
         self.clipping_light.setToolTip(QCoreApplication.translate("DefaultScreen", u"A peak at -1 dBFS or more, in the last 3 seconds", None))

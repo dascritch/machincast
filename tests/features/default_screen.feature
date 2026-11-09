@@ -573,6 +573,16 @@ Fonctionnalité: Écran par défaut de l'interface
 			| sonore en cours | /srv/musique/Café_à_minuit.flac |
 			| prochain sonore | /srv/musique/Jingle.flac         |
 
+	Scénario: Le stream d'un feed en cours montre le remplissage de sa mémoire tampon, sous son adresse
+		https://github.com/dascritch/machincast/issues/351
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse le stream « Direct studio » dans « Direct », commencé à 20:00:00, joué depuis 30 secondes
+		Quand l'écran par défaut s'ouvre
+		Alors le sonore en cours est bientôt « Direct studio »
+		Et le sonore en cours n'a pas de mémoire tampon
+		Quand la mémoire tampon du stream en cours contient 1,2 seconde sur 2
+		Alors la mémoire tampon du sonore en cours montre bientôt « 1,2 s sur 2 s », remplie à 60 %
+
 	Scénario: Le clic droit sur un stream copie son adresse, sans dossier à ouvrir
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse le stream « Direct studio » dans « Direct », commencé à 20:00:00, joué depuis 30 secondes

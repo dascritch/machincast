@@ -196,6 +196,7 @@ L'indexation tourne dans sa propre fenêtre, qui montre ligne par ligne chaque s
 Un **feed** est une adresse de flux réutilisable, souvent en ligne par intermittence, comme le studio mobile de la radio : plusieurs streams peuvent le suivre. **Affichage → Ouvrir l'onglet Feeds** en donne la liste ; **Nouveau feed** ouvre une fiche vide.
 
 - **Nom** et **Adresse** : obligatoires. Une nouvelle adresse vaut aussitôt pour tous les streams qui suivent le feed.
+- **Mémoire tampon**, de 2 à 10 secondes, 2 par défaut ([#351](https://github.com/dascritch/machincast/issues/351)) : le stream attend qu'elle soit pleine pour jouer. Courte, il démarre vite, mais elle risque d'être insuffisante si le réseau est irrégulier, et le flux coupe ; longue, il tient mieux, mais met plus de temps à démarrer, et à redémarrer après une coupure. Elle vaut au prochain démarrage des streams du feed. À l'antenne, l'onglet Antenne montre son remplissage sous l'adresse du stream.
 - **Tester le flux** : comme dans la fiche d'un sonore, dit si du son arrive à l'adresse saisie, de quel type et à quel débit.
 - **Streams qui le suivent** : un double-clic ouvre leur fiche.
 - **Clic droit sur un feed**, dans la liste : **Pré-écoute…** de son stream, et la coupure de l'antenne par lui ([Interrompre l'antenne](antenne.md#interrompre-lantenne), [#323](https://github.com/dascritch/machincast/issues/323)).

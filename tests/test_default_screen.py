@@ -1452,3 +1452,32 @@ def clipboard_holds(text: str) -> None:
 @then(parsers.parse("le dossier « {folder} » a été ouvert"))
 def folder_opened(opened_folders: list[Path], folder: str) -> None:
 	assert opened_folders[-1:] == [Path(folder)], opened_folders
+
+
+# ─── Mémoire tampon d'un feed (https://github.com/dascritch/machincast/issues/351) ───
+
+
+@when(parsers.parse("la mémoire tampon du stream en cours contient {level} seconde sur {target:d}"))
+def buffer_level(context: Context, level: str, target: int) -> None:
+	assert context.ongoing is not None
+	context.ongoing["buffer"] = {"level": seconds(level), "target": float(target)}
+	publish(context)
+
+
+@then("le sonore en cours n'a pas de mémoire tampon")
+def without_buffer(context: Context) -> None:
+	ui = screen(context).ui
+	assert ui.ongoing_buffer.isHidden()
+	assert ui.ongoing_buffer_heading.isHidden()
+
+
+@then(parsers.parse("la mémoire tampon du sonore en cours montre bientôt « {text} », remplie à {percent:d} %"))
+def buffer_shown(context: Context, qtbot: QtBot, text: str, percent: int) -> None:
+	bar = screen(context).ui.ongoing_buffer
+
+	def shown() -> None:
+		assert not bar.isHidden()
+		assert bar.text() == text, bar.text()
+		assert round(100 * bar.value() / bar.maximum()) == percent
+
+	qtbot.waitUntil(shown, timeout=3000)

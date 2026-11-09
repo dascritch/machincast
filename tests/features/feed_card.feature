@@ -67,6 +67,20 @@ Fonctionnalité: Feeds de streams
 			| Radio Machin | https://machin.exemple/live | 2       |
 			| Radio Truc   | https://truc.exemple/live   | 0       |
 
+	Scénario: La mémoire tampon d'un feed se règle de 2 à 10 secondes, 2 par défaut
+		https://github.com/dascritch/machincast/issues/351
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Feeds »
+		Et j'ouvre la ligne « Radio Machin »
+		Alors la fiche du feed montre une mémoire tampon de « 2 s », réglable de 2 à 10 secondes
+		Quand je règle la mémoire tampon du feed à 6 secondes
+		Et j'enregistre la fiche
+		Alors le feed « Radio Machin » a en base une mémoire tampon de 6 secondes
+		Quand je ferme l'onglet « Feed : Radio Machin »
+		Et j'ouvre l'onglet « Feeds »
+		Et j'ouvre la ligne « Radio Machin »
+		Alors la fiche du feed montre une mémoire tampon de « 6 s », réglable de 2 à 10 secondes
+
 	Scénario: Une nouvelle adresse vaut pour tous les streams qui suivent le feed
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Feeds »

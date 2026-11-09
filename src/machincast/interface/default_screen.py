@@ -21,11 +21,11 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QModelIndex, QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QLineEdit, QMenu, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QLineEdit, QMenu, QProgressBar, QSizePolicy, QVBoxLayout, QWidget
 
 from machincast.clock import Clock
 from machincast.configuration import Audio
-from machincast.i18n import _, pgettext
+from machincast.i18n import _, decimal, pgettext
 from machincast.interface import dialogs, display, expandable, icons, interruption, preferences
 from machincast.interface.airplay import LAST_LIST, DisplayedPlay, read_airplay
 from machincast.interface.calendar import long_date
@@ -318,6 +318,8 @@ class DefaultScreen(QWidget):
 		stream = (sound is not None) and (sound.stream)
 		getattr(ui, f"{which}_location").setVisible(stream)
 		getattr(ui, f"{which}_location_heading").setVisible(stream)
+		if which == "ongoing":
+			_show_buffer(ui.ongoing_buffer, ui.ongoing_buffer_heading, sound)
 		getattr(ui, f"open_{which}_sound").setEnabled(sound is not None)
 		getattr(ui, f"open_{which}_event").setEnabled((sound is not None) and (sound.id_event is not None))
 		getattr(ui, f"open_{which}_sequence").setEnabled((sound is not None) and (sound.sequence_id is not None))
@@ -601,6 +603,23 @@ class DefaultScreen(QWidget):
 			self.airplay_model.appendRow(cells)
 		self.reread_airplay.emit()
 		return plays
+
+
+def _show_buffer(bar: QProgressBar, heading: QLabel, sound: DisplayedSound | None) -> None:
+	"""Sous l'adresse du stream d'un feed en cours, le remplissage de sa mémoire tampon, « 1,2 s sur 2 s »
+	(https://github.com/dascritch/machincast/issues/351) ; caché pour tout autre sonore."""
+	shown = (sound is not None) and (sound.buffer_level is not None) and (sound.buffer_target is not None)
+	bar.setVisible(shown)
+	heading.setVisible(shown)
+	if (sound is None) or (sound.buffer_level is None) or (sound.buffer_target is None):
+		return
+	target = max(sound.buffer_target, 0.1)
+	bar.setValue(round(min(sound.buffer_level / target, 1.0) * bar.maximum()))
+	bar.setFormat(
+		_("{level} s of {target} s").format(
+			level=decimal(f"{sound.buffer_level:.1f}"), target=decimal(f"{sound.buffer_target:g}")
+		)
+	)
 
 
 def _open_folder(folder: Path) -> None:
