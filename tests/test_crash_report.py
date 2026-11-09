@@ -259,13 +259,13 @@ def next_launch(program: str) -> None:
 	crash.finish_leftovers(program)
 
 
-@when(parsers.parse("une erreur imprévue « {text} » remonte jusqu'à Qt"))
-def to_qt(text: str) -> None:
-	"""Comme une exception qu'une fonction appelée par Qt laisse passer : Qt la donne à sys.excepthook."""
+@when(parsers.parse("une erreur imprévue « {text} » arrête le lancement surveillé"))
+def stopping_error(surveillance: ExitStack, text: str) -> None:
+	"""Comme une exception qui sort du lancement surveillé : la surveillance écrit le rapport, puis la laisse passer."""
 	try:
 		raise RuntimeError(text)
 	except RuntimeError as error:
-		sys.excepthook(type(error), error, error.__traceback__)
+		assert not surveillance.__exit__(type(error), error, error.__traceback__)
 
 
 @then(parsers.parse("le lancement se termine avec le code {code:d}"))

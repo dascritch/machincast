@@ -153,7 +153,7 @@ Les messages d'erreur courants et leur solution sont dans le tableau [En cas de 
 
 ## Rapports de crash
 
-Quand un programme de MachinCast plante, il laisse un **rapport de crash** dans le répertoire `crash-dump/` du répertoire de MachinCast (`/opt/machincast/crash-dump/` sur un poste installé), ou, s'il ne peut pas y écrire, dans `~/.local/state/machincast/crash-dump/` ([#342](https://github.com/dascritch/machincast/issues/342)). Le journal le signale : `rapport de crash écrit : /opt/machincast/crash-dump/Machin_player-2026-11-09T14-03-12-4242.txt`. Le nom donne le programme, l'heure de son démarrage et son numéro de processus, les mêmes que dans le log.
+Quand un programme de MachinCast plante, il laisse un **rapport de crash** dans le répertoire `crash-dump/` du répertoire de MachinCast (`/opt/machincast/crash-dump/` sur un poste installé), ou, s'il ne peut pas y écrire, dans `/tmp/machincast/crash-dump/`, vidé au redémarrage du poste ([#342](https://github.com/dascritch/machincast/issues/342)). Le journal le signale : `rapport de crash écrit : /opt/machincast/crash-dump/Machin_player-2026-11-09T14-03-12-4242.txt`. Le nom donne le programme, l'heure de son démarrage et son numéro de processus, les mêmes que dans le log.
 
 Ce rapport est fait pour les développeurs : **joignez-le au ticket** qui signale le problème. Il contient :
 
