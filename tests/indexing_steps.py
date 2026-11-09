@@ -46,6 +46,8 @@ class Execution:
 	"""Ce qui va sur la sortie standard, ligne par ligne : niveau INFO."""
 	rendering_lock: bool = False
 	"""Le verrou du mode de l'indexation était libre dès sa fin, sa connexion encore ouverte."""
+	queries: int = 0
+	"""Les requêtes de la connexion de l'indexation, quand le scénario les compte."""
 
 
 def free_lock(lock: int) -> bool:

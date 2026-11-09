@@ -205,6 +205,10 @@ def index_directories(
 			"SELECT b.id, b.internal_name, r.directory FROM bank_directories r JOIN banks b ON b.id = r.bank_id"
 			" WHERE b.deleted_at IS NULL ORDER BY b.id, r.directory"
 		).fetchall()
+	# Les fichiers déjà rattachés à chaque banque, lus une fois : leur fichier ne demande rien à la base. Seuls les
+	# nouveaux fichiers et les rattachements manquants passent par _save, une transaction chacun
+	# (https://github.com/dascritch/machincast/issues/390).
+	attached: dict[int, set[str]] = {}
 	for bank, name, directory in directories:
 		path = Path(os.path.normpath(str(directory)))
 		if not path.is_absolute():
@@ -215,12 +219,30 @@ def index_directories(
 		if not path.is_dir():
 			log.warning(_("{path}: directory not found, ignored for bank {name}").format(path=path, name=name))
 			continue
+		identifier = int(str(bank))
+		if identifier not in attached:
+			attached[identifier] = _attached_files(connection, identifier)
 		for file in sound_files(path):
 			if (stop is not None) and (stop.is_set()):
 				return scan
+			if str(file) in attached[identifier]:
+				continue
 			crash.note(ANALYSED, str(file))
-			_save(connection, int(str(bank)), str(name), str(file), report, scan)
+			_save(connection, identifier, str(name), str(file), report, scan)
 	return scan
+
+
+def _attached_files(connection: psycopg.Connection[TupleRow], bank: int) -> set[str]:
+	"""Les emplacements des sonores de la banque qui ne sont pas supprimés."""
+	with connection.transaction():
+		return {
+			str(location)
+			for (location,) in connection.execute(
+				"SELECT s.location FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
+				" WHERE bs.bank_id = %s AND s.deleted_at IS NULL AND s.location IS NOT NULL",
+				(bank,),
+			)
+		}
 
 
 def remove_outside_durations(
@@ -233,16 +255,18 @@ def remove_outside_durations(
 	événements, et son fichier n'est jamais touché. La durée comparée est la durée complète, même saisie à la main.
 	identifiants : seuls ces sonores ; tous sans eux. Chaque retrait a sa ligne, désignée par le chemin du fichier.
 	"""
+	# Une seule requête, quel que soit le nombre de retraits (https://github.com/dascritch/machincast/issues/390).
 	with connection.transaction():
-		outside = connection.execute(
-			"SELECT bs.bank_id, bs.sound_id, b.internal_name, s.location, s.duration, b.min_duration, b.max_duration"
-			" FROM bank_sounds bs JOIN banks b ON b.id = bs.bank_id JOIN sounds s ON s.id = bs.sound_id"
-			f" WHERE (%s::bigint[] IS NULL OR s.id = ANY(%s)) AND b.deleted_at IS NULL AND {OUTSIDE_DURATIONS}"
-			" ORDER BY b.id, bs.position",
+		removed = connection.execute(
+			"WITH removed AS (DELETE FROM bank_sounds bs USING banks b, sounds s"
+			" WHERE b.id = bs.bank_id AND s.id = bs.sound_id"
+			f" AND (%s::bigint[] IS NULL OR s.id = ANY(%s)) AND b.deleted_at IS NULL AND {OUTSIDE_DURATIONS}"
+			" RETURNING bs.bank_id, bs.position, b.internal_name, s.location, s.duration, b.min_duration, b.max_duration)"
+			" SELECT internal_name, location, duration, min_duration, max_duration FROM removed"
+			" ORDER BY bank_id, position",
 			(list_or_none(identifiers), list_or_none(identifiers)),
 		).fetchall()
-		for bank, sound, name, location, duration, minimum, maximum in outside:
-			connection.execute("DELETE FROM bank_sounds WHERE bank_id = %s AND sound_id = %s", (bank, sound))
+		for name, location, duration, minimum, maximum in removed:
 			report.removals += 1
 			log.info(
 				_("{location}: removed from bank {name}, {outside_durations}").format(

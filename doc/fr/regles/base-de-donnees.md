@@ -7,6 +7,10 @@
 - PostgreSQL, accès par socket Unix locale avec psycopg 3.
 - Authentification **peer** : chaque rôle correspond à un utilisateur système.
 - Deux bases au schéma strictement identique : production et test.
+- **Volume** ([#390](https://github.com/dascritch/machincast/issues/390)) : un traitement qui parcourt des sonores, des passages ou des lignes du log ne doit coûter ni une requête par ligne, ni la mémoire de toutes les lignes à la fois, pour 100 000 sonores comme pour 10.
+  - Une requête par ligne dans une boucle se remplace par une seule requête : `DELETE … USING … RETURNING`, `INSERT … SELECT`, un compte calculé par la base (`count(DISTINCT …)`) plutôt que des lignes ramenées pour être comptées. Ce qu'une boucle doit savoir de la base se lit une fois avant elle (`directories._attached_files`).
+  - `fetchall()` rend une liste de toutes les lignes ; itérer le curseur côté client n'y change rien, psycopg ayant déjà reçu tout le résultat à l'`execute`. Un résultat qui grossit avec la base se lit par lots, triés par identifiant, chacun dans sa transaction (`check._sounds`, `check.BATCH`, `WHERE id > %s ORDER BY id LIMIT %s`). Un curseur nommé, côté serveur, ne convient pas quand chaque ligne a sa propre transaction sur la même connexion : il se ferme au premier `COMMIT`.
+  - Un scénario le vérifie en comptant les requêtes (`directories.feature`, « en comptant ses requêtes »).
 
 ## Migrations
 

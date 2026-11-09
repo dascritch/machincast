@@ -48,10 +48,14 @@ CLOCK: Clock = SystemClock()
 log = logging.getLogger("machincast.purge")
 
 PLAYS = """
-	DELETE FROM airplay WHERE play_id IN (
-		SELECT play_id FROM airplay GROUP BY play_id HAVING max(logged_at) < %s
-	) RETURNING play_id
+	WITH erased AS (
+		DELETE FROM airplay WHERE play_id IN (
+			SELECT play_id FROM airplay GROUP BY play_id HAVING max(logged_at) < %s
+		) RETURNING play_id
+	) SELECT count(DISTINCT play_id) FROM erased
 """
+"""Efface les passages d'avant la limite et les compte, dans la base : ni leurs identifiants, ni leurs lignes ne
+viennent jusqu'ici (https://github.com/dascritch/machincast/issues/390)."""
 ITEMS: tuple[tuple[Callable[[int], str], str, str], ...] = (
 	# LEAST ignore les valeurs vides : la suppression, ou la disparition du fichier, que l'indexation ne date que pour
 	# un sonore à l'état supprime, et efface quand le fichier revient.
@@ -66,10 +70,12 @@ ligne."""
 
 def purge(connection: psycopg.Connection[tuple[object, ...]], limit: datetime) -> list[str]:
 	"""Efface ce qui est d'avant la limite, dans la transaction de la connexion ; le bilan, genre par genre."""
-	plays = {play for (play,) in connection.execute(PLAYS, (limit,)).fetchall()}
+	counted = connection.execute(PLAYS, (limit,)).fetchone()
+	assert counted is not None
+	plays = int(str(counted[0]))
 	lines = connection.execute("DELETE FROM log WHERE logged_at < %s", (limit,)).rowcount
 	report = [
-		N_counted("{count} play of the airplay", "{count} plays of the airplay", len(plays)),
+		N_counted("{count} play of the airplay", "{count} plays of the airplay", plays),
 		N_counted("{count} line of the log", "{count} lines of the log", lines),
 	]
 	for counting, table, date in ITEMS:

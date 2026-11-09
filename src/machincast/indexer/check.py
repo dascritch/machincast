@@ -34,7 +34,7 @@ libmagic ou le système de fichiers, seulement l'interpréteur Python ; le fil a
 
 import logging
 import threading
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Iterator
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import StrEnum
@@ -232,18 +232,9 @@ def check_sounds(
 	La connexion doit avoir endossé le rôle de l'indexation (machincast.database.open_connection). Lève
 	UnavailableDecoder si GStreamer ne sait pas décoder un format : les sonores déjà vérifiés le restent.
 	"""
-	with connection.transaction():
-		sounds = connection.execute(
-			"SELECT id, location, state::text, edited_fields, artist, title, music_metadata,"
-			" file_modified_at, file_size, detected_start, detected_end, audit_requested, audited_at, audit_threshold"
-			" FROM sounds WHERE type = 'file' AND deleted_at IS NULL AND (%s::bigint[] IS NULL OR id = ANY(%s))"
-			" ORDER BY id",
-			(list_or_none(identifiers), list_or_none(identifiers)),
-		).fetchall()
-
 	if report is None:
 		report = Report(full_audit=full_audit)
-	for line in sounds:
+	for line in _sounds(connection, identifiers):
 		if (stop is not None) and (stop.is_set()):
 			break
 		try:
@@ -256,6 +247,31 @@ def check_sounds(
 	if report.already_audited:
 		log.info(_already_audited(len(report.already_audited), silence_threshold))
 	return report
+
+
+BATCH = 500
+"""Les sonores que la vérification lit à la fois : la mémoire ne croît pas avec leur nombre
+(https://github.com/dascritch/machincast/issues/390)."""
+
+
+def _sounds(connection: psycopg.Connection[TupleRow], identifiers: Collection[int] | None) -> Iterator[TupleRow]:
+	"""Les sonores à vérifier, par identifiant croissant, lus par lots de BATCH, chacun dans sa transaction : la
+	vérification d'un sonore a la sienne. Un sonore ajouté pendant la vérification, d'identifiant plus grand, est
+	vérifié aussi."""
+	last = 0
+	while True:
+		with connection.transaction():
+			lines = connection.execute(
+				"SELECT id, location, state::text, edited_fields, artist, title, music_metadata,"
+				" file_modified_at, file_size, detected_start, detected_end, audit_requested, audited_at,"
+				" audit_threshold FROM sounds WHERE type = 'file' AND deleted_at IS NULL"
+				" AND (%s::bigint[] IS NULL OR id = ANY(%s)) AND id > %s ORDER BY id LIMIT %s",
+				(list_or_none(identifiers), list_or_none(identifiers), last, BATCH),
+			).fetchall()
+		yield from lines
+		if len(lines) < BATCH:
+			return
+		last = int(str(lines[-1][0]))
 
 
 def _check_sound(
