@@ -300,6 +300,7 @@ class MainWindow(QMainWindow):
 		crash.provide(SHOWN_TAB, self._shown_tab)
 		preferences.define((crossfades) or (Crossfades()))
 		preferences.define_retention(retention)
+		preferences.define_table_rows(((interface) or (Interface())).table_rows)
 		self.silence_threshold = ((silences) or (Silences())).threshold
 		self.dead_air = (dead_air) or (DeadAirSettings())
 		"""Blanc dans un sonore, que montrent les préférences (https://github.com/dascritch/machincast/issues/122)."""
@@ -1434,6 +1435,7 @@ class MainWindow(QMainWindow):
 			self.icon,
 			preferences.retention(),
 			self.dead_air,
+			table_rows=preferences.table_rows(),
 		)
 		# L'état du service, lu à l'ouverture : en marche, la carte de l'antenne ne se choisit pas
 		# (https://github.com/dascritch/machincast/issues/339).
@@ -1452,6 +1454,7 @@ class MainWindow(QMainWindow):
 			return
 		preferences.define(settings.crossfades)
 		preferences.define_retention(settings.retention)
+		preferences.define_table_rows(settings.table_rows)
 		new_threshold = settings.silence_threshold != self.silence_threshold
 		self.silence_threshold = settings.silence_threshold
 		self.dead_air = settings.dead_air

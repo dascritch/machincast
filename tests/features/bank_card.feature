@@ -220,6 +220,7 @@ Fonctionnalité: Fiche d'une banque
 		toute la colonne, et cocher la durée maximale, encore à 0:00:00, marquait d'un coup tous les sonores.
 
 		Étant donné 3000 sonores de 3:00 de plus dans la banque « Jingles »
+		Et les fiches chargent leurs tableaux par 5000 lignes
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et je coche la durée <borne> des sonores
@@ -236,6 +237,7 @@ Fonctionnalité: Fiche d'une banque
 		472 secondes.
 
 		Étant donné 3000 sonores de 3:00 de plus dans la banque « Jingles »
+		Et les fiches chargent leurs tableaux par 5000 lignes
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et je saisis le nom public « Les jingles »
@@ -246,6 +248,7 @@ Fonctionnalité: Fiche d'une banque
 
 	Scénario: Retirer d'un coup la plupart des sonores d'une grande banque ne relit pas toutes ses lignes à chaque ligne
 		Étant donné 3000 sonores de 3:00 de plus dans la banque « Jingles »
+		Et les fiches chargent leurs tableaux par 5000 lignes
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et je choisis les 2500 derniers sonores de la fiche
@@ -253,6 +256,68 @@ Fonctionnalité: Fiche d'une banque
 		Et je retire les sonores choisis
 		Alors la fiche a lu toutes ses lignes au plus 10 fois
 		Et la fiche montre 502 sonores
+
+	# ─── Pages (https://github.com/dascritch/machincast/issues/383) ─────────────────
+
+	Scénario: Une grande banque ne montre d'abord que sa première page, dans l'ordre de la banque
+		Étant donné 250 sonores de 3:00 de plus dans la banque « Jingles »
+		Et les fiches chargent leurs tableaux par 100 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Alors la fiche montre 100 sonores
+		Et la liste des sonores de la fiche a pour titre « Sonores : 100 montrés sur 252, la suite se charge en descendant »
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
+
+	Scénario: Descendre au bas de la liste charge la page suivante, jusqu'au dernier sonore
+		Étant donné 250 sonores de 3:00 de plus dans la banque « Jingles »
+		Et les fiches chargent leurs tableaux par 100 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je descends au bas de la liste des sonores de la fiche
+		Alors la fiche montre 200 sonores
+		Quand je descends au bas de la liste des sonores de la fiche
+		Alors la fiche montre 252 sonores
+		Et la liste des sonores de la fiche a pour titre « Sonores »
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
+
+	Scénario: L'avertissement d'une banque compte aussi ses sonores pas encore montrés
+		Étant donné 250 sonores de 3:00 de plus dans la banque « Jingles »
+		Et le dernier sonore de la banque « Jingles » est à l'état « erroné »
+		Et les fiches chargent leurs tableaux par 100 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Alors la fiche montre 100 sonores
+		Et la fiche avertit en haut « Banque avec 1 sonore erroné ou non supporté : la diffusion ne le joue pas. »
+
+	Scénario: Enregistrer une banque sans toucher à ses sonores ne les réécrit pas
+		Étant donné les fiches chargent leurs tableaux par 100 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je compte les réécritures des sonores de la banque
+		Et je saisis le nom public « Les jingles »
+		Et j'enregistre la fiche
+		Alors la fiche a réécrit les sonores de la banque 0 fois
+
+	Scénario: Retirer un sonore d'une banque lue en partie garde, dans leur ordre, ceux qui ne sont pas encore montrés
+		Étant donné 250 sonores de 3:00 de plus dans la banque « Jingles »
+		Et les fiches chargent leurs tableaux par 100 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je réponds « ➖ Retirer quand même » à l'avertissement de réintégration
+		Et je retire le sonore « Matin clair »
+		Et j'enregistre la fiche
+		Alors en base, la banque « Jingles » a 251 sonores dans l'ordre de la fiche, « Café à minuit » d'abord
+
+	Scénario: Ajouter un sonore à une banque lue en partie la lit d'abord en entier, et l'ajoute à la fin
+		Étant donné 250 sonores de 3:00 de plus dans la banque « Jingles »
+		Et les fiches chargent leurs tableaux par 100 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et j'ajoute les sonores « Spot »
+		Alors la fiche montre 253 sonores
+		Et la liste des sonores de la fiche a pour titre « Sonores »
+		Quand j'enregistre la fiche
+		Alors en base, la banque « Jingles » a 253 sonores dans l'ordre de la fiche, « Spot » en dernier
 
 	# ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ─────────────────
 

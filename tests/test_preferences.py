@@ -961,6 +961,39 @@ def shown_retention(interface: Context, days: int) -> None:
 	assert interface.shown_retentions == [days]
 
 
+@then(parsers.parse("les préférences ont montré {rows:d} lignes chargées à la fois"))
+def shown_table_rows(interface: Context, rows: int) -> None:
+	assert interface.shown_table_rows == [rows]
+
+
+@then(parsers.parse("les fiches de l'interface chargent {rows:d} lignes à la fois"))
+def session_table_rows(rows: int) -> None:
+	assert preferences.table_rows() == rows
+
+
+@when(parsers.parse("la fenêtre des préférences s'ouvre sur {rows:d} lignes chargées à la fois"))
+def open_on_table_rows(opened: Opened, parent: QWidget, rows: int) -> None:
+	all_ = Settings(Crossfades(), None, TEST_PREVIEW, table_rows=rows)
+	opened.window = PreferencesWindow(all_, "dummy", parent)
+
+
+@then(parsers.parse("elle montre « {text} » lignes chargées à la fois, réglables de {minimum:d} à {maximum:d}"))
+def displayed_table_rows(opened: Opened, text: str, minimum: int, maximum: int) -> None:
+	field = the_window(opened).ui.table_rows
+	assert (field.text(), field.minimum(), field.maximum()) == (text, minimum, maximum)
+
+
+@when(parsers.parse("j'y saisis {rows:d} lignes chargées à la fois"))
+def enter_table_rows(opened: Opened, rows: int) -> None:
+	the_window(opened).ui.table_rows.setValue(rows)
+
+
+@then(parsers.parse("elle a donné {rows:d} lignes chargées à la fois"))
+def given_table_rows(opened: Opened, rows: int) -> None:
+	assert opened.provided_list is not None
+	assert opened.provided_list.table_rows == rows
+
+
 @then(parsers.parse("la durée de péremption de l'interface est de {days:d} jours"))
 def session_retention(days: int) -> None:
 	assert preferences.retention() == days

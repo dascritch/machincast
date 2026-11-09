@@ -176,6 +176,15 @@ msgstr ""
 
 #: machincast/configuration.py
 #, python-brace-format
+msgid ""
+"key {section}.{key}: “{value}” is not a whole number of rows, at least "
+"{minimum}"
+msgstr ""
+"clé {section}.{key} : « {value} » n'est pas un nombre entier de lignes, au "
+"moins {minimum}"
+
+#: machincast/configuration.py
+#, python-brace-format
 msgid "key {section}.{key}: number expected, {describe} found"
 msgstr "clé {section}.{key} : nombre attendu, {describe} trouvé"
 
@@ -1197,6 +1206,13 @@ msgid "Background programming"
 msgstr "Fil musical"
 
 #: machincast/interface/bank_card.py
+#, python-brace-format
+msgid ""
+"Sounds: {shown} shown out of {total}, the rest is loaded as you scroll down"
+msgstr ""
+"Sonores : {shown} montrés sur {total}, la suite se charge en descendant"
+
+#: machincast/interface/bank_card.py
 msgid "A sound already in the bank is not added a second time."
 msgstr ""
 "Un sonore qui est déjà dans la banque n'y est pas ajouté une seconde fois."
@@ -1249,6 +1265,12 @@ msgstr "Activer"
 #: machincast/interface/groups.py
 msgid "Disable"
 msgstr "Désactiver"
+
+#: machincast/interface/bank_card.py
+#: machincast/interface/window.py
+#: machincast/interface/ui/bank_card.ui
+msgid "Sounds"
+msgstr "Sonores"
 
 #: machincast/interface/bank_card.py
 #, python-brace-format
@@ -4821,11 +4843,6 @@ msgid "Banks"
 msgstr "Banques"
 
 #: machincast/interface/window.py
-#: machincast/interface/ui/bank_card.ui
-msgid "Sounds"
-msgstr "Sonores"
-
-#: machincast/interface/window.py
 msgid "Feeds"
 msgstr "Feeds"
 
@@ -6727,6 +6744,25 @@ msgid ""
 msgstr ""
 "Fil musical, banques de base et périphérique de l'antenne, dans une fenêtre "
 "au lancement de l'interface."
+
+#: machincast/interface/ui/preferences.ui
+msgid "Tables of the cards"
+msgstr "Tableaux des fiches"
+
+#: machincast/interface/ui/preferences.ui
+msgid "&Rows loaded at a time"
+msgstr "&Lignes chargées à la fois"
+
+#: machincast/interface/ui/preferences.ui
+msgid ""
+"The sounds of a bank are loaded this many at a time in its card: the rest "
+"comes as you scroll down. A higher number can strongly slow down the "
+"interface for a bank with a very large number of sounds."
+msgstr ""
+"Les sonores d'une banque se chargent dans sa fiche par ce nombre de lignes "
+"à la fois : la suite vient en descendant dans la liste. Un nombre plus "
+"grand peut fortement ralentir l'interface pour une banque qui a un très "
+"grand nombre de sonores."
 
 #: machincast/interface/ui/preferences.ui
 msgid ""

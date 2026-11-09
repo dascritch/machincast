@@ -199,6 +199,31 @@ Fonctionnalité: Fichier de configuration
 
 	# ─── Péremption (https://github.com/dascritch/machincast/issues/268) ───
 
+	# ─── Lignes chargées à la fois (https://github.com/dascritch/machincast/issues/383) ───
+
+	Scénario: Sans clé interface.table_rows, les fiches chargent 1000 lignes à la fois
+		Étant donné une configuration valide où la clé "interface.table_rows" est absente
+		Quand je charge la configuration
+		Alors les fiches chargent 1000 lignes à la fois
+
+	Plan du scénario: Un nombre de lignes chargées à la fois invalide est refusé
+		Étant donné une configuration valide où la clé "interface.table_rows" vaut <valeur>
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "interface.table_rows"
+		Et le message mentionne "nombre entier de lignes, au moins 100"
+
+		Exemples:
+			| valeur |
+			| 99     |
+			| 2.5    |
+			| "1000" |
+			| true   |
+
+	Scénario: La clé interface.table_rows donne les lignes chargées à la fois
+		Étant donné une configuration valide où la clé "interface.table_rows" vaut 250
+		Quand je charge la configuration
+		Alors les fiches chargent 250 lignes à la fois
+
 	Scénario: Sans clé database.retention, la durée de péremption est de 60 jours
 		Étant donné une configuration valide où la clé "database.retention" est absente
 		Quand je charge la configuration

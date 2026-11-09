@@ -20,7 +20,8 @@ Fonctionnalité: L'interface reste réactive et libère ce qu'elle ferme
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Grosse »
 		Alors la fiche de la banque a été lue 1 fois
-		Et la fiche montre 3000 sonores
+		# Sa première page (https://github.com/dascritch/machincast/issues/383).
+		Et la fiche montre 1000 sonores
 		Quand j'ouvre l'onglet « Antenne »
 		Et j'ouvre l'onglet « Banque : Grosse »
 		Alors la fiche de la banque a été lue 2 fois

@@ -181,6 +181,11 @@ class DeadAirSettings:
 	"""Un blanc fait passer au sonore suivant, ou au secours d'un stream ; sinon, il est seulement noté."""
 
 
+TABLE_ROWS = 1000
+"""Les lignes qu'un tableau de fiche charge d'un coup, par défaut ; la suite se charge en descendant (https://github.com/dascritch/machincast/issues/383)."""
+MINIMUM_TABLE_ROWS = 100
+
+
 @dataclass(frozen=True)
 class Interface:
 	"""Réglages de l'interface graphique (https://github.com/dascritch/machincast/issues/191), section [interface]."""
@@ -193,6 +198,8 @@ class Interface:
 	icon: Path | None = None
 	"""L'image choisie pour icône de l'application, ses fenêtres et ses raccourcis ; None : celle de MachinCast
 	(https://github.com/dascritch/machincast/issues/111)."""
+	table_rows: int = TABLE_ROWS
+	"""Les lignes qu'un tableau de fiche charge d'un coup (https://github.com/dascritch/machincast/issues/383)."""
 
 
 ICON_EXTENSIONS = frozenset({".svg", ".png", ".jpg", ".jpeg"})
@@ -224,7 +231,7 @@ KEYS: dict[str, frozenset[str]] = {
 	"crossfades": frozenset({"granularity", "maximum", "start", "end", "fade_in_position", "fade_out_position"}),
 	"silences": frozenset({"threshold"}),
 	"dead_air": frozenset({"duration", "threshold", "fallback"}),
-	"interface": frozenset({"clipping", "suggestions", "icon"}),
+	"interface": frozenset({"clipping", "suggestions", "icon", "table_rows"}),
 }
 
 
@@ -356,6 +363,17 @@ class _Player:
 			raise self.error(
 				_("key {section}.{key}: “{value}” is not a whole number of days, at least 1").format(
 					section=section, key=key, value=value
+				)
+			)
+		return value
+
+	def rows(self, section: str, key: str, default: int) -> int:
+		"""Un nombre entier de lignes, MINIMUM_TABLE_ROWS au moins ; defaut sans la clé."""
+		value = self.document.get(section, {}).get(key, default)
+		if (isinstance(value, bool)) or (not isinstance(value, int)) or (value < MINIMUM_TABLE_ROWS):
+			raise self.error(
+				_("key {section}.{key}: “{value}” is not a whole number of rows, at least {minimum}").format(
+					section=section, key=key, value=value, minimum=MINIMUM_TABLE_ROWS
 				)
 			)
 		return value
@@ -560,5 +578,6 @@ def load(path: Path | None = None) -> Configuration:
 			clipping=reader.optional_boolean("interface", "clipping", True),
 			suggestions=reader.optional_boolean("interface", "suggestions", True),
 			icon=reader.icon(),
+			table_rows=reader.rows("interface", "table_rows", TABLE_ROWS),
 		),
 	)

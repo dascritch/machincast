@@ -182,6 +182,38 @@ class Ui_PreferencesWindow(object):
 
         self.interface_layout.addWidget(self.home_group)
 
+        self.tables_group = QGroupBox(self.page_interface)
+        self.tables_group.setObjectName(u"tables_group")
+        self.tables_layout = QVBoxLayout(self.tables_group)
+        self.tables_layout.setObjectName(u"tables_layout")
+        self.tables_form = QFormLayout()
+        self.tables_form.setObjectName(u"tables_form")
+        self.table_rows_caption = QLabel(self.tables_group)
+        self.table_rows_caption.setObjectName(u"table_rows_caption")
+
+        self.tables_form.setWidget(0, QFormLayout.ItemRole.LabelRole, self.table_rows_caption)
+
+        self.table_rows = QSpinBox(self.tables_group)
+        self.table_rows.setObjectName(u"table_rows")
+        self.table_rows.setMinimum(100)
+        self.table_rows.setMaximum(1000000)
+        self.table_rows.setSingleStep(100)
+        self.table_rows.setValue(1000)
+
+        self.tables_form.setWidget(0, QFormLayout.ItemRole.FieldRole, self.table_rows)
+
+
+        self.tables_layout.addLayout(self.tables_form)
+
+        self.table_rows_explanation = QLabel(self.tables_group)
+        self.table_rows_explanation.setObjectName(u"table_rows_explanation")
+        self.table_rows_explanation.setWordWrap(True)
+
+        self.tables_layout.addWidget(self.table_rows_explanation)
+
+
+        self.interface_layout.addWidget(self.tables_group)
+
         self.icon_group = QGroupBox(self.page_interface)
         self.icon_group.setObjectName(u"icon_group")
         self.icon_layout = QVBoxLayout(self.icon_group)
@@ -346,6 +378,7 @@ class Ui_PreferencesWindow(object):
         self.entry_position_caption.setBuddy(self.entry_position)
         self.output_position_caption.setBuddy(self.output_position)
         self.silence_threshold_caption.setBuddy(self.silence_threshold)
+        self.table_rows_caption.setBuddy(self.table_rows)
         self.dead_air_duration_caption.setBuddy(self.dead_air_duration)
         self.dead_air_threshold_caption.setBuddy(self.dead_air_threshold)
         self.retention_caption.setBuddy(self.retention)
@@ -402,6 +435,9 @@ class Ui_PreferencesWindow(object):
 #if QT_CONFIG(tooltip)
         self.suggestions.setToolTip(QCoreApplication.translate("PreferencesWindow", u"Background programming, basic banks and on-air device, in a window when the interface is launched.", None))
 #endif // QT_CONFIG(tooltip)
+        self.tables_group.setTitle(QCoreApplication.translate("PreferencesWindow", u"Tables of the cards", None))
+        self.table_rows_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Rows loaded at a time", None))
+        self.table_rows_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"The sounds of a bank are loaded this many at a time in its card: the rest comes as you scroll down. A higher number can strongly slow down the interface for a bank with a very large number of sounds.", None))
         self.icon_group.setTitle(QCoreApplication.translate("PreferencesWindow", u"Application icon", None))
 #if QT_CONFIG(tooltip)
         self.icon_group.setToolTip(QCoreApplication.translate("PreferencesWindow", u"The icon of the MachinCast windows, of its shortcut in the applications menu and on the desktop, and of the taskbar.", None))

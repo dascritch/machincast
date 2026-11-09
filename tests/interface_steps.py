@@ -179,6 +179,9 @@ class Context:
 	"""La durée de péremption, en jours, que donnera la fenêtre des préférences
 	(https://github.com/dascritch/machincast/issues/268) ; None : celle qu'elle a montrée."""
 	shown_retentions: list[int] = field(default_factory=list)
+	adjusted_table_rows: int | None = None
+	"""Les lignes chargées à la fois que donnera la fenêtre des préférences (https://github.com/dascritch/machincast/issues/383) ; None : celles montrées."""
+	shown_table_rows: list[int] = field(default_factory=list)
 	chosen_days: list[date | None] = field(default_factory=list)
 	"""Ce que donneront les prochains choix d'un jour, None pour un choix abandonné
 	(https://github.com/dascritch/machincast/issues/273)."""
@@ -357,6 +360,7 @@ def replace_dialogs(interface: Context) -> None:
 		interface.shown_thresholds.append(shown_list.silence_threshold)
 		interface.shown_dead_airs.append(shown_list.dead_air)
 		interface.shown_retentions.append(shown_list.retention)
+		interface.shown_table_rows.append(shown_list.table_rows)
 		interface.shown_clippings.append(shown_list.clipping)
 		interface.shown_icons.append(shown_list.icon)
 		if (
@@ -365,6 +369,7 @@ def replace_dialogs(interface: Context) -> None:
 			and (interface.rule_threshold is None)
 			and (interface.rule_dead_air is None)
 			and (interface.adjusted_retention is None)
+			and (interface.adjusted_table_rows is None)
 			and (interface.adjusted_clipping is None)
 			and (interface.adjusted_icon is None)
 		):
@@ -393,6 +398,7 @@ def replace_dialogs(interface: Context) -> None:
 			retention,
 			(interface.rule_dead_air) or (shown_list.dead_air),
 			output,
+			(interface.adjusted_table_rows) or (shown_list.table_rows),
 		)
 
 	monkeypatch.setattr(dialogs, "set_preferences", preferences)
@@ -1858,6 +1864,11 @@ def file_sounds(interface: Context, empty_database: Connection, path: str, count
 @given(parsers.parse("les préférences seront réglées avec la durée de péremption de {days:d} jours"))
 def adjusted_retention(interface: Context, days: int) -> None:
 	interface.adjusted_retention = days
+
+
+@given(parsers.parse("les préférences seront réglées avec {rows:d} lignes chargées à la fois"))
+def adjusted_table_rows(interface: Context, rows: int) -> None:
+	interface.adjusted_table_rows = rows
 
 
 @given(parsers.parse("la durée de péremption du fichier de configuration de l'interface est de {days:d} jours"))

@@ -112,3 +112,7 @@ fallback = false
 # machine, the MachinCast icon. Also chosen in the preferences, « Interface » page, which writes it here and updates
 # the shortcuts already installed.
 # icon = "/home/radio/images/logo-radio.png"
+# The rows that the sound table of a bank card loads at a time (https://github.com/dascritch/machincast/issues/383): the
+# rest is loaded as you scroll down. 1000 by default, at least 100. Also set in the preferences, « Interface » page; a
+# higher number can strongly slow down the interface for a bank with a very large number of sounds.
+# table_rows = 1000
