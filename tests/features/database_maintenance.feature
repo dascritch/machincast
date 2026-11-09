@@ -16,7 +16,7 @@ Fonctionnalité: Maintenance de la base de données
 	Scénario: La maintenance sauvegarde la base, vérifie son schéma, puis l'optimise
 		Quand je lance « Machin maintenance-db »
 		Alors la maintenance se termine avec le code 0
-		Et une sauvegarde datée de la base est dans le répertoire « sauvegardes » de la configuration, lisible par pg_restore
+		Et une sauvegarde datée de la base est dans le répertoire « sauvegardes » de la configuration, lisible par le pg_restore du serveur
 		Et la maintenance a annoncé, dans l'ordre :
 			| ligne                                                                                         |
 			| sauvegarde de la base machincast_test dans …/sauvegardes/machincast_test-2026-10-22T08-30-00.dump |
@@ -34,19 +34,21 @@ Fonctionnalité: Maintenance de la base de données
 		Et la maintenance a annoncé « schéma de la base machincast_test : 1 migration appliquée »
 		Et la base de test a toutes ses migrations
 
-	Scénario: Une base à l'ancien schéma, aux noms français, est sauvegardée, puis laissée telle quelle
-		https://github.com/dascritch/machincast/issues/358 : elle se recrée.
-
-		Étant donné la base de test marquée comme ayant reçu l'ancienne migration « 0001.schema-initial »
-		Quand je lance « Machin maintenance-db »
-		Alors la maintenance se termine avec le code 1
-		Et une sauvegarde datée de la base est dans le répertoire « sauvegardes » de la configuration, lisible par pg_restore
-		Et la maintenance a signalé « schéma impossible à mettre à jour : base machincast_test : ancien schéma, aux noms français (migration 0001.schema-initial) ; la recréer, après l'avoir sauvegardée si elle contient quelque chose d'utile : sudo -u postgres dropdb machincast_test, puis ./install.sh ; la sauvegarde est faite, rien d'autre »
-		Et la maintenance n'a annoncé ni le schéma ni l'optimisation
-
 	Scénario: Les sauvegardes vont dans le répertoire demandé
 		Quand je lance « Machin maintenance-db --backups …/ailleurs »
-		Alors une sauvegarde datée de la base est dans le répertoire « ailleurs » de la configuration, lisible par pg_restore
+		Alors une sauvegarde datée de la base est dans le répertoire « ailleurs » de la configuration, lisible par le pg_restore du serveur
+
+	Plan du scénario: La sauvegarde est faite par le pg_dump de la version du serveur, sinon par celui du PATH
+		https://github.com/dascritch/machincast/issues/384 : le pg_dump du PATH est le plus récent installé, et sa
+		sauvegarde ne se relirait pas avec le pg_restore d'un serveur plus ancien. Ici, le PATH mène à celui de la 16.
+		Étant donné les programmes de PostgreSQL 16 et 18 installés
+		Alors pour un serveur <serveur>, la maintenance prend « <pg_dump> »
+
+		Exemples:
+			| serveur | pg_dump           |
+			| 16      | …/16/bin/pg_dump  |
+			| 18      | …/18/bin/pg_dump  |
+			| 17      | …/16/bin/pg_dump  |
 
 	Scénario: Sans pg_dump, rien n'est fait, ni migration ni optimisation
 		Étant donné pg_dump absent du poste

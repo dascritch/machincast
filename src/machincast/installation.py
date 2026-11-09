@@ -45,7 +45,7 @@ from machincast import shortcut as write_shortcut  # noqa: E402
 from machincast.audio import PLUGINS, TRIAL, Plugin, UnavailableAudioOutput, create_output  # noqa: E402
 from machincast.cli import launch  # noqa: E402
 from machincast.configuration import PROJECT_DIRECTORY, AudioOutput, Configuration  # noqa: E402
-from machincast.database import OutdatedSchema, apply_migrations, url_yoyo  # noqa: E402
+from machincast.database import apply_migrations, url_yoyo  # noqa: E402
 from machincast.i18n import _  # noqa: E402
 from machincast.service import UNIT  # noqa: E402
 
@@ -231,10 +231,7 @@ def _migrate(configuration: Configuration) -> int:
 	database = configuration.database
 	for name in (database.production, database.test):
 		try:
-			apply_migrations(url_yoyo(database.socket, name), name)
-		except OutdatedSchema as error:
-			log.error(_("schema cannot be updated: {error}").format(error=error))
-			return FAILURE_CODE
+			apply_migrations(url_yoyo(database.socket, name))
 		except psycopg.OperationalError as error:
 			log.error(
 				_("database unreachable ({name} through {socket}): {error}").format(

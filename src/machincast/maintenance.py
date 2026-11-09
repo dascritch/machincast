@@ -22,6 +22,7 @@ démarrage.
 import argparse
 import getpass
 import logging
+import os
 import shutil
 import subprocess
 import sys
@@ -32,8 +33,8 @@ import psycopg
 
 from machincast.cli import launch
 from machincast.clock import Clock, SystemClock
-from machincast.configuration import Configuration
-from machincast.database import OutdatedSchema, Role, apply_migrations, url_yoyo
+from machincast.configuration import Configuration, Database
+from machincast.database import Role, apply_migrations, url_yoyo
 from machincast.i18n import _, decimal, ngettext
 from machincast.protection import check_writing
 from machincast.runs import Recording
@@ -58,6 +59,10 @@ END = _("Maintenance finished: this window stays open, close it whenever you wan
 log = logging.getLogger("machincast.maintenance")
 
 
+POSTGRESQL = Path("/usr/lib/postgresql")
+"""Les versions de PostgreSQL installées par les paquets, chacune avec ses programmes."""
+
+
 class BackupFailure(Exception):
 	"""La sauvegarde n'a pas pu être faite : la maintenance s'arrête."""
 
@@ -72,10 +77,35 @@ def account() -> str:
 	return getpass.getuser()
 
 
+def tool(name: str, version: int | None, root: Path | None = None) -> str | None:
+	"""Le programme de PostgreSQL de cette version majeure, comme les paquets Debian et Ubuntu l'installent
+	(/usr/lib/postgresql/<version>/bin), sinon celui du PATH (https://github.com/dascritch/machincast/issues/384) :
+	le pg_dump du PATH est le plus récent installé, et sa sauvegarde ne se relirait pas avec le pg_restore du serveur,
+	plus ancien (« unsupported version (1.16) in file header »)."""
+	if version is not None:
+		candidate = ((root) or (POSTGRESQL)) / str(version) / "bin" / name
+		if os.access(candidate, os.X_OK):
+			return str(candidate)
+	return shutil.which(name)
+
+
+def server_version(database: Database) -> int | None:
+	"""La version majeure du serveur de la base de production ; None s'il est injoignable."""
+	try:
+		with psycopg.connect(host=str(database.socket), dbname=database.production) as connection:
+			line = connection.execute("SHOW server_version_num").fetchone()
+	except psycopg.Error:
+		return None
+	if line is None:
+		return None
+	return int(str(line[0])) // 10000
+
+
 def back_up(configuration: Configuration, directory: Path) -> Path:
-	"""pg_dump de la base de production dans un nouveau fichier daté ; lève BackupFailure."""
+	"""pg_dump de la version du serveur, sur la base de production, dans un nouveau fichier daté ; lève
+	BackupFailure."""
 	database = configuration.database
-	command = shutil.which("pg_dump")
+	command = tool("pg_dump", server_version(database))
 	if command is None:
 		raise BackupFailure(_("pg_dump not found, install postgresql-client"))
 	timestamp = f"{CLOCK.now().astimezone():%Y-%m-%dT%H-%M-%S}"
@@ -105,7 +135,7 @@ def back_up(configuration: Configuration, directory: Path) -> Path:
 def update_schema(configuration: Configuration) -> None:
 	"""Les migrations manquantes ; aucune si le schéma est à jour."""
 	database = configuration.database
-	count = apply_migrations(url_yoyo(database.socket, database.production), database.production)
+	count = apply_migrations(url_yoyo(database.socket, database.production))
 	if count == 0:
 		log.info(_("schema of database {production} up to date").format(production=database.production))
 		return
@@ -197,8 +227,6 @@ def run(configuration: Configuration, options: argparse.Namespace) -> int:
 			log.info(_("maintenance finished, with anomalies"))
 	except BackupFailure as error:
 		log.error(_("backup impossible: {error}; maintenance stopped, nothing was changed").format(error=error))
-	except OutdatedSchema as error:
-		log.error(_("schema impossible to update: {error}; the backup is done, nothing else").format(error=error))
 	except psycopg.OperationalError as error:
 		log.error(
 			_("database unreachable ({production}): {error}").format(

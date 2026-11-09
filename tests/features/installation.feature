@@ -104,15 +104,6 @@ Fonctionnalité: Vérifications de l'installation
 		Alors la commande se termine avec le code 1
 		Et sa sortie d'erreur mentionne « base de données injoignable »
 
-	Scénario: L'application du schéma refuse une base à l'ancien schéma, aux noms français, sans la modifier
-		https://github.com/dascritch/machincast/issues/358 : elle se recrée.
-		La configuration du scénario désigne la base de test comme base de production : aucune autre base n'est touchée.
-
-		Étant donné la base de test marquée comme ayant reçu l'ancienne migration « 0001.schema-initial »
-		Quand install.sh applique le schéma de la base de test
-		Alors l'application du schéma se termine avec le code 1
-		Et elle a signalé « schéma impossible à mettre à jour : base machincast_test : ancien schéma, aux noms français (migration 0001.schema-initial) ; la recréer »
-
 	# ─── Service systemd (https://github.com/dascritch/machincast/issues/22) ─────
 	# Facultatif, pour un ordinateur dédié à l'antenne : install.sh --service installe l'unité et la règle polkit que
 	# rédige machincast.installation. Le service tourne sous le compte de MachinCast, dont la session garde PipeWire.

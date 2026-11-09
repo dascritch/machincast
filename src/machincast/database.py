@@ -2,8 +2,9 @@
 
 Schéma initial, aux noms anglais (https://github.com/dascritch/machincast/issues/314,
 https://github.com/dascritch/machincast/issues/358) : 0001.initial-schema, puis les migrations qui le suivent, comme
-0002.run-log (https://github.com/dascritch/machincast/issues/341). Une base créée avec l'ancien schéma, aux noms
-français, est refusée (OutdatedSchema), sans rien modifier : elle se recrée.
+0002.run-log (https://github.com/dascritch/machincast/issues/341). Une base de l'ancien schéma, aux noms français,
+n'est plus reconnue (https://github.com/dascritch/machincast/issues/384) : aucune ne sera mise à jour avant la 1.0.0,
+elles se recréent.
 """
 
 from enum import StrEnum
@@ -14,9 +15,6 @@ import psycopg
 from psycopg import sql
 from psycopg.rows import TupleRow
 from yoyo import get_backend, read_migrations
-from yoyo.backends.base import DatabaseBackend
-
-from machincast.i18n import _
 
 SHORT_TEXT_LENGTH = 255
 """Longueur maximale des textes saisis à la main (noms, artiste, titre), en base comme dans l'interface."""
@@ -68,58 +66,15 @@ def url_yoyo(socket: Path, database: str) -> str:
 	return f"postgresql+psycopg:///{quote(database)}?host={quote(str(socket))}"
 
 
-OLD_MIGRATIONS: tuple[str, ...] = (
-	"0001.schema-initial",
-	"0002.evenements-nom-unique",
-	"0003.sonores-type-de-fichier",
-	"0004.sonores-verifie-le",
-	"0005.banques-crossfades",
-	"0006.banques-durees",
-	"0007.sonores-crossfades-facultatifs",
-	"0008.detection-blancs",
-	"0009.sonores-audit-demande",
-	"0010.indexation-retire-des-banques",
-	"0011.sonores-dernier-audit",
-	"0012.feeds",
-	"0013.suppression-differee",
-	"0014.sessions-sautees",
-	"0015.vocabulaire-silences-blancs",
-)
-"""Migrations de l'ancien schéma, aux noms français, d'avant https://github.com/dascritch/machincast/issues/358 : une
-base qui en a reçu une se recrée."""
-
-
-class OutdatedSchema(Exception):
-	"""La base a l'ancien schéma, aux noms français : le message dit quoi faire."""
-
-
-def refuse_old_schema(backend: DatabaseBackend, database: str) -> None:
-	"""Lève OutdatedSchema, sans rien modifier, pour une base qui a reçu une migration de l'ancien schéma. À appeler
-	sous
-	le verrou du backend."""
-	backend.ensure_internal_schema_updated()
-	lines = backend.execute(f"SELECT migration_id FROM {backend.migration_table_quoted}").fetchall()
-	old_list = [migration for migration in OLD_MIGRATIONS if migration in {str(line[0]) for line in lines}]
-	if old_list != []:
-		raise OutdatedSchema(
-			_(
-				"database {database}: old schema, with French names (migration {old_list}); recreate it, "
-				"after backing it up if it holds anything useful: sudo -u postgres dropdb {database}, then "
-				"./install.sh"
-			).format(database=database, old_list=old_list[0])
-		)
-
-
 # Le backend yoyo garde sa connexion ouverte jusqu'au ramasse-miettes : le « with » la ferme, même en cas
 # d'erreur, pour ne pas épuiser les connexions du serveur (https://github.com/dascritch/machincast/issues/78).
 
 
-def apply_migrations(url: str, database: str = "") -> int:
+def apply_migrations(url: str) -> int:
 	"""Applique toutes les migrations pas encore appliquées, puis ferme la connexion ; rend le nombre de migrations
-	appliquées. Lève OutdatedSchema, sans rien modifier, pour une base à l'ancien schéma."""
+	appliquées."""
 	migrations = read_migrations(str(MIGRATION_DIRECTORY))
 	with get_backend(url) as backend, backend.lock():
-		refuse_old_schema(backend, database)
 		missing_list = backend.to_apply(migrations)
 		backend.apply_migrations(missing_list)
 	return len(missing_list)

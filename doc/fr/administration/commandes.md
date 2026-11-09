@@ -80,7 +80,7 @@ Machin maintenance-db --backups /srv/sauvegardes/machincast
 
 Elle se termine par `maintenance terminée` (code 0), ou par `maintenance terminée, avec des anomalies` (code 1) quand un rôle manque. Une base injoignable, une sauvegarde impossible ou un schéma impossible à mettre à jour donnent aussi le code 1.
 
-**Restaurer une sauvegarde.** Elle se relit avec `pg_restore`, de préférence dans une base neuve, pour comparer avant de remplacer quoi que ce soit :
+**Restaurer une sauvegarde.** Elle est faite par le `pg_dump` de la version du serveur, `/usr/lib/postgresql/<version>/bin/pg_dump` ([#384](https://github.com/dascritch/machincast/issues/384)), sinon par celui du `PATH` : le `pg_dump` du `PATH` est le plus récent installé, et sa sauvegarde ne se relirait pas avec un `pg_restore` plus ancien (`unsupported version (1.16) in file header`). Elle se relit avec le `pg_restore` du serveur, de préférence dans une base neuve, pour comparer avant de remplacer quoi que ce soit :
 
 ```bash
 sudo -u postgres createdb --owner="$(id -un)" machincast_restauree

@@ -25,7 +25,7 @@ from machincast.cli import create_analyser
 from machincast.clock import FixedClock
 from machincast.configuration import PROJECT_DIRECTORY, Configuration
 from machincast.database import MIGRATION_DIRECTORY, apply_migrations, url_yoyo
-from tests.database_fixtures import configuration_test, mark_old_migrations, return_migrations, sample_connection
+from tests.database_fixtures import configuration_test
 
 scenarios("database_maintenance.feature")
 
@@ -69,19 +69,12 @@ def remove_last(configuration: Configuration, request: pytest.FixtureRequest) ->
 		backend.rollback_migrations(backend.to_rollback(read_migrations(str(MIGRATION_DIRECTORY)))[:1])
 
 
-@given(parsers.parse("la base de test marquée comme ayant reçu l'ancienne migration « {migration} »"))
-def old_migration(request: pytest.FixtureRequest, migration: str) -> None:
-	"""https://github.com/dascritch/machincast/issues/358"""
-	with sample_connection() as connection:
-		mark_old_migrations(connection, migration)
-	request.addfinalizer(return_migrations)
-
-
 @given("pg_dump absent du poste")
 def without_dump_pg(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
 	empty = tmp_path / "sans-pg-dump"
 	empty.mkdir()
 	monkeypatch.setenv("PATH", str(empty))
+	monkeypatch.setattr(maintenance, "POSTGRESQL", empty)
 
 
 @given(parsers.parse("un rôle « {role} » attendu en plus par MachinCast"))
@@ -166,13 +159,17 @@ def _backups(configuration: Configuration, directory: str) -> list[Path]:
 @then(
 	parsers.parse(
 		"une sauvegarde datée de la base est dans le répertoire « {directory} » de la configuration,"
-		" lisible par pg_restore"
+		" lisible par le pg_restore du serveur"
 	)
 )
 def backup(configuration: Configuration, directory: str) -> None:
+	"""Le pg_restore de la version du serveur, comme le documente la restauration
+	(https://github.com/dascritch/machincast/issues/384)."""
 	(file,) = _backups(configuration, directory)
 	assert file.name == f"{configuration.database.test}-2026-10-22T08-30-00.dump"
-	list_ = subprocess.run(["pg_restore", "--list", str(file)], capture_output=True, text=True, timeout=60)
+	restore = maintenance.tool("pg_restore", maintenance.server_version(configuration.database))
+	assert restore is not None
+	list_ = subprocess.run([restore, "--list", str(file)], capture_output=True, text=True, timeout=60)
 	assert (list_.returncode == 0) and ("TABLE public sounds" in list_.stdout), list_.stderr
 
 
@@ -245,3 +242,25 @@ def wrapper_binary(binary: str) -> None:
 		[str(PROJECT_DIRECTORY / "bin" / "Machin"), "--binaries"], capture_output=True, text=True, timeout=30
 	)
 	assert binary in output.stdout.split(), output.stdout
+
+
+# ─── Programmes de la version du serveur (https://github.com/dascritch/machincast/issues/384) ───
+
+
+@given(parsers.parse("les programmes de PostgreSQL {versions} installés"), target_fixture="installed")
+def installed_versions(tmp_path: Path, versions: str) -> Path:
+	"""Comme les paquets : /usr/lib/postgresql/<version>/bin/pg_dump, un par version."""
+	root = tmp_path / "postgresql"
+	for version in versions.replace(" et ", ", ").split(", "):
+		program = root / version / "bin" / "pg_dump"
+		program.parent.mkdir(parents=True)
+		program.write_text("#!/bin/sh\n", encoding="utf-8")
+		program.chmod(0o755)
+	return root
+
+
+@then(parsers.parse("pour un serveur {version:d}, la maintenance prend « {chosen} »"))
+def chosen_program(installed: Path, monkeypatch: pytest.MonkeyPatch, version: int, chosen: str) -> None:
+	monkeypatch.setenv("PATH", str(installed / "16" / "bin"))
+	expected = str(installed / chosen.removeprefix("…/"))
+	assert maintenance.tool("pg_dump", version, installed) == expected
