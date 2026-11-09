@@ -52,6 +52,7 @@ machincast = ["py.typed", "migrations/*.sql", "locale/*/LC_MESSAGES/*.po", "inte
 
 [tool.ruff]
 target-version = "py312"
+# La largeur où ruff format coupe le code ; aucune ligne n'est refusée parce que longue (E501 ignorée).
 line-length = 120
 src = ["src", "tests"]
 # Écrans compilés par pyside6-uic, jamais modifiés à la main (CONTRIBUTION.md).
@@ -66,7 +67,9 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 # W191 signale les tabulations : désactivée, puisque les tabulations sont la règle du projet.
 # SIM108 réclame une expression conditionnelle à la place d'un if : désactivée, une expression conditionnelle ne décide
 # jamais d'un appel (doc/fr/regles/developpement.md, https://github.com/dascritch/machincast/issues/103).
-ignore = ["W191", "SIM108"]
+# E501 refuse une ligne de plus de line-length caractères : désactivée, une contrainte d'éditeurs qui n'a plus cours
+# (https://github.com/dascritch/machincast/issues/384).
+ignore = ["W191", "SIM108", "E501"]
 
 [tool.mypy]
 strict = true
