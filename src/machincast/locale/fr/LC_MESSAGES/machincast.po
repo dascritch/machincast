@@ -4732,6 +4732,10 @@ msgid "Refresh the tabs"
 msgstr "Rafraîchir les onglets"
 
 #: machincast/interface/window.py
+msgid "&Tabs"
+msgstr "&Onglets"
+
+#: machincast/interface/window.py
 msgid "&Broadcast"
 msgstr "&Diffusion"
 

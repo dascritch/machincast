@@ -26,7 +26,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 	Plan du scénario: Le menu « Diffusion » propose ce que permet l'état du service
 		Étant donné le service de diffusion installé, <etat>
 		Quand la fenêtre de l'interface s'ouvre
-		Alors la barre de menus a les menus « Fichier », « Affichage », « Diffusion », « Maintenance », « Aide »
+		Alors la barre de menus a les menus « Fichier », « Affichage », « Onglets », « Diffusion », « Maintenance », « Aide »
 		Et le menu « Diffusion » a les entrées :
 			| entrée                                | état       | raccourci | infobulle                                               |
 			| Pré-écoute de l'antenne               | active     | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
@@ -147,7 +147,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Étant donné le service de diffusion non installé
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la barre d'état signale « Installation non définitive : diffusion sans service », avec l'infobulle « La diffusion ne démarre pas avec le poste, et ne redémarre pas seule après un plantage. Sur un ordinateur dédié à l'antenne, installer le service : ./install.sh --service (INSTALL.md, Service de diffusion). »
-		Et la barre de menus a les menus « Fichier », « Affichage », « Diffusion », « Maintenance », « Aide »
+		Et la barre de menus a les menus « Fichier », « Affichage », « Onglets », « Diffusion », « Maintenance », « Aide »
 		Et le menu « Diffusion » a les entrées :
 			| entrée                                | état     | raccourci | infobulle                                                  |
 			| Pré-écoute de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt    |

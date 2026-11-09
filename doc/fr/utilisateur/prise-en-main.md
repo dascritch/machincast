@@ -106,7 +106,7 @@ Le VU-mètre écoute le périphérique de l'antenne, quel que soit le programme 
 
 ## Passer d'un onglet à l'autre
 
-Les 12 premiers onglets s'ouvrent au clavier, par <kbd>Maj</kbd>+<kbd>F1</kbd> à <kbd>Maj</kbd>+<kbd>F12</kbd>, selon leur rang : <kbd>Maj</kbd>+<kbd>F1</kbd> est toujours l'onglet Antenne ; au lancement, <kbd>Maj</kbd>+<kbd>F2</kbd> mène au Calendrier, <kbd>Maj</kbd>+<kbd>F3</kbd> à <kbd>Maj</kbd>+<kbd>F5</kbd> aux Événements, Séquences et Banques, <kbd>Maj</kbd>+<kbd>F6</kbd> aux Incidents, puis aux fiches et aux autres onglets, dans l'ordre où ils sont ouverts. Ouvrir ou fermer un onglet décale ceux qui le suivent. L'infobulle de chaque onglet donne son raccourci.
+Les 12 premiers onglets s'ouvrent au clavier, par <kbd>Maj</kbd>+<kbd>F1</kbd> à <kbd>Maj</kbd>+<kbd>F12</kbd>, selon leur rang : <kbd>Maj</kbd>+<kbd>F1</kbd> est toujours l'onglet Antenne ; au lancement, <kbd>Maj</kbd>+<kbd>F2</kbd> mène au Calendrier, <kbd>Maj</kbd>+<kbd>F3</kbd> à <kbd>Maj</kbd>+<kbd>F5</kbd> aux Événements, Séquences et Banques, <kbd>Maj</kbd>+<kbd>F6</kbd> aux Incidents, puis aux fiches et aux autres onglets, dans l'ordre où ils sont ouverts. Ouvrir ou fermer un onglet décale ceux qui le suivent. L'infobulle de chaque onglet donne son raccourci. Un titre de plus de 40 caractères est coupé, et finit par « … » : son infobulle le donne en entier ([#398](https://github.com/dascritch/machincast/issues/398)). Le menu **Onglets** liste tous les onglets ouverts, avec leur titre entier et leur raccourci ; l'onglet ouvert y est coché, et choisir une entrée y mène.
 
 De proche en proche ([#318](https://github.com/dascritch/machincast/issues/318)), où que soit le curseur, dans un tableau ou un champ de texte compris :
 
@@ -132,6 +132,7 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | Affichage | Ouvrir l'onglet Airplay | Ouvre l'historique de diffusion, réglable et exportable ([Onglet Airplay](#onglet-airplay)). |
 | Affichage | Pré-écoute… | Ouvre la fenêtre de pré-écoute ([Pré-écoute](sonores.md#pré-écoute)). Comme chaque bouton et chaque entrée de pré-écoute, elle porte un casque. |
 | Affichage | Rafraîchir les onglets, en bas du menu | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
+| Onglets | Un onglet ouvert par entrée | Mène à l'onglet ; l'onglet ouvert est coché, et chaque entrée donne le titre entier et le raccourci ([#398](https://github.com/dascritch/machincast/issues/398)). |
 | Diffusion | Pré-écoute de l'antenne, Arrêter la pré-écoute de l'antenne | En tête du menu : écoute aussitôt l'antenne sur la sortie de pré-écoute ([Pré-écoute](sonores.md#pré-écoute), [#245](https://github.com/dascritch/machincast/issues/245)), puis, pendant l'écoute, l'arrête ; aussi par <kbd>Alt</kbd>+<kbd>P</kbd> ([#256](https://github.com/dascritch/machincast/issues/256)). |
 | Diffusion | ⏵ Démarrer, ⏹ Arrêter la diffusion | Pilotent la diffusion ([Piloter la diffusion](antenne.md#piloter-la-diffusion)). |
 | Diffusion | ⏭ Sauter au sonore suivant, ⏭ Sauter après la séquence, ⏭ Couper l'événement par le fil musical, ⏭ Couper par le secours | Corrigent l'antenne sans attendre ([Interrompre l'antenne](antenne.md#interrompre-lantenne)). |
