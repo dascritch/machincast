@@ -6,8 +6,10 @@ Fonctionnalité: Onglets déplaçables, ouverts à droite de leur onglet d'origi
 
 	https://github.com/dascritch/machincast/issues/405. Tout onglet se déplace à la souris, sauf l'onglet Antenne, qui
 	reste le premier : Maj+F1 et Ctrl+Home y mènent toujours. Les raccourcis, les infobulles et le menu « Onglets »
-	suivent le nouvel ordre. Un onglet s'ouvre directement à droite de l'onglet ouvert, celui d'où il est ouvert : une
-	fiche à droite de sa liste, une liste à la demande ou la recherche à droite de l'onglet où l'on était. L'ordre, onglets
+	suivent le nouvel ordre. Un onglet s'ouvre à droite de l'onglet ouvert, celui d'où il est ouvert : une fiche à
+	droite de sa liste, une liste à la demande ou la recherche à droite de l'onglet où l'on était. Comme dans Firefox,
+	les onglets ouverts depuis un même onglet se rangent dans l'ordre de leur ouverture : chacun après le dernier
+	ouvert depuis lui, s'il est encore ouvert et à sa droite. L'ordre, onglets
 	fixes compris, est retenu d'un lancement à l'autre (retained_tabs.feature). Les scénarios déplacent un onglet comme le
 	ferait la souris, par la barre des onglets.
 
@@ -18,6 +20,8 @@ Fonctionnalité: Onglets déplaçables, ouverts à droite de leur onglet d'origi
 			| name        | public_name | priority               | starts_at | ends_at | days |
 			| Fil de jour |             | background_programming |           |         |      |
 		Et la séquence « Un », sans nom public, avec rien
+		Et la séquence « Deux », sans nom public, avec rien
+		Et la séquence « Trois », sans nom public, avec rien
 
 	Scénario: Un onglet déplacé change de raccourci
 		Quand la fenêtre de l'interface s'ouvre
@@ -47,6 +51,20 @@ Fonctionnalité: Onglets déplaçables, ouverts à droite de leur onglet d'origi
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Un »
 		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Séquence : Un », « Banques », « Incidents »
+
+	Scénario: Les fiches ouvertes depuis une même liste se rangent dans l'ordre de leur ouverture
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Un »
+		Et j'ouvre la fiche de la séquence « Deux »
+		Et j'ouvre la fiche de la séquence « Trois »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Séquence : Un », « Séquence : Deux », « Séquence : Trois », « Banques », « Incidents »
+
+	Scénario: Une fiche déplacée loin de sa liste n'attire plus les suivantes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Un »
+		Et je déplace l'onglet « Séquence : Un » à la place 2
+		Et j'ouvre la fiche de la séquence « Deux »
+		Alors la fenêtre a les onglets « Antenne », « Séquence : Un », « Calendrier », « Événements », « Séquences », « Séquence : Deux », « Banques », « Incidents »
 
 	Scénario: Un onglet déjà ouvert revient au premier plan sans changer de place
 		Quand la fenêtre de l'interface s'ouvre
