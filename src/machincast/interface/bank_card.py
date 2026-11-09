@@ -109,6 +109,20 @@ FETCHED_SOUNDS = (
 	" s.state::text"
 	" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id"
 )
+PAGE = (
+	"SELECT s.id, s.artist, s.title, s.duration, s.location, COALESCE(s.location, s.stream_url, m.url),"
+	" s.state::text, bs.position"
+	" FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id LEFT JOIN feeds m ON m.id = s.feed_id"
+	" WHERE bs.bank_id = %s AND bs.position > %s ORDER BY bs.position LIMIT %s"
+)
+"""Les sonores de la banque qui suivent une position, dans l'ordre de la banque, au plus un nombre : la fiche les lit
+par pages (https://github.com/dascritch/machincast/issues/383)."""
+TAIL_STATES = (
+	"SELECT s.state::text, count(*) FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
+	" WHERE bs.bank_id = %s AND bs.position > %s GROUP BY 1"
+)
+"""Les états des sonores de la banque qui ne sont pas encore lus, et leur nombre, pour l'avertissement de la fiche."""
+PARTIAL_SOUNDS = _("Sounds: {shown} shown out of {total}, the rest is loaded as you scroll down")
 
 
 ALREADY_IN_BANK = _("A sound already in the bank is not added a second time.")
@@ -158,6 +172,15 @@ class BankCard(Card):
 		self._loaded_list: set[int] = set()
 		self._bulk = False
 		"""Pendant un retrait de lignes en masse, _warn attend la fin (https://github.com/dascritch/machincast/issues/383)."""
+		self._after: int | None = None
+		"""La position du dernier sonore lu, quand la banque en a d'autres après ; None : tous sont lus
+		(https://github.com/dascritch/machincast/issues/383)."""
+		self._tail: dict[str, int] = {}
+		"""Les états des sonores pas encore lus, et leur nombre."""
+		self._paging = False
+		"""Pendant la lecture d'une page, ses lignes ne modifient pas la fiche."""
+		self._sounds_changed = False
+		"""La liste des sonores a changé depuis la lecture : sans changement, l'enregistrement ne la réécrit pas."""
 		"""Sonores de la banque à la dernière lecture : ceux qui manquent à la fiche en ont été retirés."""
 		self.directory_drop = FileDrop(self.ui.directories)
 		self.directory_drop.dropped.connect(self._drop_in_directories)
@@ -186,9 +209,10 @@ class BankCard(Card):
 			field.timeChanged.connect(self._mark_outside_durations)
 		model = self.ui.sounds.model()
 		# Le glisser-déposer déplace une ligne en la retirant, puis en l'insérant.
-		model.rowsInserted.connect(self._modify)
+		model.rowsInserted.connect(self._lines_changed)
 		model.rowsInserted.connect(self._mark_outside_durations)
-		model.rowsRemoved.connect(self._modify)
+		model.rowsRemoved.connect(self._lines_changed)
+		self.ui.sounds.verticalScrollBar().valueChanged.connect(self._scrolled)
 		model.rowsInserted.connect(self._warn)
 		model.rowsRemoved.connect(self._warn)
 		self.ui.directories.currentItemChanged.connect(self._refresh_buttons)
@@ -248,11 +272,7 @@ class BankCard(Card):
 					)
 				]
 			if self.identifier is not None:
-				sounds = self.connection.execute(
-					f"{FETCHED_SOUNDS} JOIN bank_sounds bs ON bs.sound_id = s.id"
-					" WHERE bs.bank_id = %s ORDER BY bs.position",
-					(self.identifier,),
-				).fetchall()
+				sounds = self._page(0, preferences.table_rows())
 		name, public_name, mode, hiding, no_repeat, *crossfades, min_duration, max_duration, detection = bank
 		self._name = str(name)
 		self.ui.internal_name.setText(self._name)
@@ -275,12 +295,76 @@ class BankCard(Card):
 			if isinstance(bound, timedelta):
 				field.setTime(QTime(0, 0).addSecs(int(bound.total_seconds())))
 		self._show_directories(directories)
-		with self._in_bulk():
-			self.ui.sounds.clear()
-		self.ui.sounds.addTopLevelItems([self._line(sound) for sound in sounds])
+		self._paging = True
+		try:
+			with self._in_bulk():
+				self.ui.sounds.clear()
+			self.ui.sounds.addTopLevelItems([self._line(sound) for sound in sounds])
+		finally:
+			self._paging = False
 		self._loaded_list = set(self._sounds())
+		self._sounds_changed = False
+		self._show_count()
 		self._warn()
 		self._refresh_buttons()
+
+	def _page(self, after: int, rows: int | None) -> list[tuple[object, ...]]:
+		"""Les sonores qui suivent la position, au plus rows, sans leur position ; note la position du dernier, s'il en
+		reste après, et les états de ceux qui restent. À lire dans une transaction."""
+		assert self.identifier is not None
+		lines = self.connection.execute(PAGE, (self.identifier, after, None if rows is None else rows + 1)).fetchall()
+		self._after = None
+		self._tail = {}
+		if (rows is not None) and (len(lines) > rows):
+			lines = lines[:rows]
+			self._after = int(str(lines[-1][-1]))
+			self._tail = {
+				str(state): int(str(count))
+				for state, count in self.connection.execute(TAIL_STATES, (self.identifier, self._after))
+			}
+		return [tuple(line[:-1]) for line in lines]
+
+	def load_more(self, rows: int | None = None) -> None:
+		"""La page suivante des sonores, ou tous ceux qui restent avec rows None ; ses lignes ne modifient pas la fiche
+		(https://github.com/dascritch/machincast/issues/383)."""
+		if self._after is None:
+			return
+		with self.connection.transaction():
+			sounds = self._page(self._after, rows)
+		lines = [self._line(sound) for sound in sounds]
+		self._paging = True
+		try:
+			self.ui.sounds.addTopLevelItems(lines)
+		finally:
+			self._paging = False
+		self._loaded_list |= {int(str(sound[0])) for sound in sounds}
+		self._show_count()
+		self._warn()
+
+	def load_all(self) -> None:
+		"""Tous les sonores qui restent : avant un ajout, qui va en fin de banque."""
+		self.load_more(None)
+
+	def _scrolled(self, value: int) -> None:
+		"""La page suivante, quand la liste arrive à sa dernière page visible."""
+		bar = self.ui.sounds.verticalScrollBar()
+		if (self._after is not None) and (value >= bar.maximum() - bar.pageStep()):
+			self.load_more(preferences.table_rows())
+
+	def _lines_changed(self) -> None:
+		"""Une ligne ajoutée, retirée ou déplacée par l'utilisateur ; pas celles d'une page lue."""
+		if self._paging:
+			return
+		self._sounds_changed = True
+		self._modify()
+
+	def _show_count(self) -> None:
+		"""Le titre de la liste dit combien de sonores sont montrés, tant que tous ne le sont pas."""
+		title = _("Sounds")
+		if self._after is not None:
+			shown = self.ui.sounds.topLevelItemCount()
+			title = PARTIAL_SOUNDS.format(shown=shown, total=shown + sum(self._tail.values()))
+		self.ui.sound_group.setTitle(title)
 
 	def _write(self) -> int:
 		name = conform(self.ui.internal_name.text())
@@ -331,7 +415,10 @@ class BankCard(Card):
 			"INSERT INTO bank_directories (bank_id, directory) SELECT %s, unnest(%s::text[])",
 			(identifier, self._directories()),
 		)
-		self._write_sounds(identifier)
+		# Une liste inchangée n'est pas réécrite (https://github.com/dascritch/machincast/issues/383) ; une nouvelle
+		# banque, ou une copie, écrit toujours la sienne.
+		if (self._sounds_changed) or (identifier != self.identifier):
+			self._write_sounds(identifier)
 		self._write_states()
 		return identifier
 
@@ -415,11 +502,14 @@ class BankCard(Card):
 		if self._bulk:
 			return
 		states = [(line.data(0, CHOSEN_STATE)) or (line.data(0, STATE)) for line in self._lines()]
+		# Les sonores pas encore lus comptent aussi (https://github.com/dascritch/machincast/issues/383).
+		anomalies = sum(1 for state in states if state in SOUND_IN_ANOMALY)
+		anomalies += sum(count for state, count in self._tail.items() if state in SOUND_IN_ANOMALY)
 		text = ""
-		if "active" not in states:
+		if ("active" not in states) and (self._tail.get("active", 0) == 0):
 			text = BANK_WITHOUT_ACTIVE_SOUND
-		elif any(state in SOUND_IN_ANOMALY for state in states):
-			text = bank_to_sounds_in_anomaly(sum(1 for state in states if state in SOUND_IN_ANOMALY))
+		elif anomalies > 0:
+			text = bank_to_sounds_in_anomaly(anomalies)
 		self.warn(text)
 
 	def _mark_outside_durations(self) -> None:
@@ -571,6 +661,7 @@ class BankCard(Card):
 		"""Les fichiers sonores déposés s'ajoutent en fin de liste, une fois chacun. Un fichier pas encore en base est
 		montré par son nom, et deviendra un sonore à l'état aperçu à l'enregistrement."""
 		files, ignored = sound_files(paths)
+		self.load_all()
 		with self.connection.transaction():
 			fetched_list = self.connection.execute(f"{FETCHED_SOUNDS} WHERE s.location = ANY(%s)", (files,)).fetchall()
 		by_file = {str(sound[4]): sound for sound in fetched_list}
@@ -599,6 +690,8 @@ class BankCard(Card):
 		self._modify()
 
 	def _add_sounds(self) -> None:
+		# En fin de banque, après les sonores pas encore lus, et une seule fois chacun.
+		self.load_all()
 		chosen_list = dialogs.choose_sounds(self, self.connection, ALREADY_IN_BANK)
 		present_list = set(self._sounds())
 		new_list = [sound for sound in chosen_list if sound not in present_list]

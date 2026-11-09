@@ -24,6 +24,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.database import Role, open_connection
+from machincast.interface import preferences
 from machincast.interface.bank_card import SOUND, BankCard
 from machincast.interface.choice import Choice
 from machincast.interface.lists import IDENTIFIER, SOUNDS
@@ -589,6 +590,72 @@ def remove_chosen(interface: Context, qtbot: QtBot) -> None:
 @then(parsers.parse("la fiche a lu toutes ses lignes au plus {count:d} fois"))
 def readings_at_most(interface: Context, count: int) -> None:
 	assert interface.readings <= count, interface.readings
+
+
+@given(parsers.parse("les fiches chargent leurs tableaux par {rows:d} lignes"))
+def table_rows(monkeypatch: pytest.MonkeyPatch, rows: int) -> None:
+	"""Quelle que soit la configuration que la fenêtre lit à son ouverture."""
+	monkeypatch.setattr(preferences, "table_rows", lambda: rows)
+
+
+@given(parsers.parse("le dernier sonore de la banque « {name} » est à l'état « erroné »"))
+def last_corrupt(empty_database: Connection, name: str) -> None:
+	empty_database.execute(
+		"UPDATE sounds SET state = 'corrupt' WHERE id = (SELECT bs.sound_id FROM bank_sounds bs"
+		" JOIN banks b ON b.id = bs.bank_id WHERE b.internal_name = %s ORDER BY bs.position DESC LIMIT 1)",
+		(name,),
+	)
+
+
+@when("je descends au bas de la liste des sonores de la fiche")
+def scroll_to_bottom(interface: Context, qtbot: QtBot) -> None:
+	bar = card(interface).ui.sounds.verticalScrollBar()
+	bar.setValue(bar.maximum())
+	qtbot.wait(10)
+
+
+@when("je compte les réécritures des sonores de la banque")
+def count_rewrites(interface: Context, monkeypatch: pytest.MonkeyPatch) -> None:
+	interface.readings = 0
+	original = BankCard._write_sounds
+
+	def counted(self: BankCard, bank: int) -> None:
+		interface.readings += 1
+		original(self, bank)
+
+	monkeypatch.setattr(BankCard, "_write_sounds", counted)
+
+
+@then(parsers.parse("la fiche a réécrit les sonores de la banque {count:d} fois"))
+def rewrites(interface: Context, count: int) -> None:
+	assert interface.readings == count, interface.readings
+
+
+@then(parsers.parse("la liste des sonores de la fiche a pour titre « {title} »"))
+def sounds_title(interface: Context, title: str) -> None:
+	assert card(interface).ui.sound_group.title() == title
+
+
+@then(
+	parsers.re(
+		r"en base, la banque « (?P<name>[^»]+) » a (?P<count>\d+) sonores dans l'ordre de la fiche, « (?P<title>[^»]+) » (?P<where>d'abord|en dernier)"
+	)
+)
+def bank_sounds_in_database(empty_database: Connection, name: str, count: str, title: str, where: str) -> None:
+	"""Les sonores en base, dans l'ordre de leurs positions : les grands, ajoutés par 1000 + leur identifiant,
+	gardent leur ordre."""
+	titles = [
+		str(found)
+		for (found,) in empty_database.execute(
+			"SELECT COALESCE(s.title, s.location) FROM bank_sounds bs JOIN banks b ON b.id = bs.bank_id"
+			" JOIN sounds s ON s.id = bs.sound_id WHERE b.internal_name = %s ORDER BY bs.position",
+			(name,),
+		)
+	]
+	assert len(titles) == int(count), len(titles)
+	assert titles[0 if where == "d'abord" else -1] == title, titles[:3] + titles[-3:]
+	big = [found for found in titles if found.startswith("/srv/grande/")]
+	assert big == sorted(big, key=lambda found: int(found.removeprefix("/srv/grande/").removesuffix(".flac")))
 
 
 @then(parsers.parse("la fiche montre {count:d} sonores"))

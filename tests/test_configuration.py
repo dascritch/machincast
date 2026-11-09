@@ -349,6 +349,12 @@ def defects(context: Context, start: str, end: str) -> None:
 	assert (crossfades.start, crossfades.end) == expected_list
 
 
+@then(parsers.parse("les fiches chargent {rows:d} lignes à la fois"))
+def table_rows(context: Context, rows: int) -> None:
+	assert context.configuration is not None
+	assert context.configuration.interface.table_rows == rows
+
+
 @then(parsers.parse("la durée de péremption est de {days:d} jours"))
 def retention(context: Context, days: int) -> None:
 	"""https://github.com/dascritch/machincast/issues/268"""

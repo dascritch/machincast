@@ -254,6 +254,16 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et le fichier de configuration contient la ligne « retention = 90 »
 		Et la durée de péremption de l'interface est de 90 jours
 
+	Scénario: Les lignes chargées à la fois, réglées dans les préférences, vont dans la section [interface], et les fiches les suivent
+		https://github.com/dascritch/machincast/issues/383
+
+		Étant donné les préférences seront réglées avec 300 lignes chargées à la fois
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors les préférences ont montré 1000 lignes chargées à la fois
+		Et le fichier de configuration contient la ligne « table_rows = 300 »
+		Et les fiches de l'interface chargent 300 lignes à la fois
+
 	Scénario: Le voyant « Saturation » réglé dans les préférences va dans la section [interface], et l'onglet Antenne le suit aussitôt
 		https://github.com/dascritch/machincast/issues/191 : le voyant reste affiché par défaut.
 
@@ -381,6 +391,13 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| duree | seuil | suite                   | duree_montree | seuil_montre | case    | action  | donne                   |
 			| 10    | -90   | est noté seulement      | 10,0 s        | -90,0 dB     | décoché | coche   | fait passer au secours  |
 			| 12    | -80   | fait passer au secours  | 12,0 s        | -80,0 dB     | coché   | décoche | est noté seulement      |
+
+	Scénario: La page « Interface » montre les lignes chargées à la fois, et donne celles qui sont saisies
+		Quand la fenêtre des préférences s'ouvre sur 1000 lignes chargées à la fois
+		Alors elle montre « 1000 » lignes chargées à la fois, réglables de 100 à 1000000
+		Quand j'y saisis 2500 lignes chargées à la fois
+		Et j'y clique sur « OK »
+		Alors elle a donné 2500 lignes chargées à la fois
 
 	Scénario: La page « Base » montre la durée de péremption, et donne celle qui est saisie
 		Quand la fenêtre des préférences s'ouvre sur la durée de péremption de 60 jours

@@ -40,8 +40,10 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QDoubleSpinBox, QVBoxLayout, QWidget
 
 from machincast.configuration import (
+	MINIMUM_TABLE_ROWS,
 	RETENTION,
 	SILENCE_THRESHOLD,
+	TABLE_ROWS,
 	AudioOutput,
 	Crossfades,
 	DeadAirSettings,
@@ -97,10 +99,13 @@ class Settings:
 	(https://github.com/dascritch/machincast/issues/122)."""
 	output: AudioOutput | None = None
 	"""audio.output, le type de sortie choisi (https://github.com/dascritch/machincast/issues/339) ; None : inchangé."""
+	table_rows: int = TABLE_ROWS
+	"""interface.table_rows : les lignes qu'un tableau de fiche charge d'un coup (https://github.com/dascritch/machincast/issues/383)."""
 
 
 _current_list = Crossfades()
 _retention = RETENTION
+_table_rows = TABLE_ROWS
 
 
 DEMONSTRATION = (30.0, 3.0, 4.0)
@@ -126,6 +131,16 @@ def retention() -> int:
 def define_retention(days: int) -> None:
 	global _retention  # noqa: PLW0603 : les préférences de la session, une seule par interface
 	_retention = days
+
+
+def table_rows() -> int:
+	"""Les lignes qu'un tableau de fiche charge d'un coup, dans la session (https://github.com/dascritch/machincast/issues/383)."""
+	return _table_rows
+
+
+def define_table_rows(rows: int) -> None:
+	global _table_rows  # noqa: PLW0603 : les préférences de la session, une seule par interface
+	_table_rows = rows
 
 
 def set_(field: QDoubleSpinBox, granularity: Granularity, maximum: timedelta) -> None:
@@ -204,6 +219,9 @@ def write(path: Path, settings: Settings) -> None:
 	assert isinstance(section_interface, tomlkit.items.Table)
 	section_interface["clipping"] = settings.clipping
 	section_interface["suggestions"] = settings.suggestions
+	# Le nombre par défaut ne s'écrit pas dans une section qui ne le donne pas.
+	if ("table_rows" in section_interface) or (settings.table_rows != TABLE_ROWS):
+		section_interface["table_rows"] = settings.table_rows
 	if settings.icon is not None:
 		section_interface["icon"] = str(settings.icon)
 	elif "icon" in section_interface:
@@ -263,6 +281,8 @@ class PreferencesWindow(QDialog):
 		ui.retention.setValue(all_.retention)
 		ui.clipping.setChecked(all_.clipping)
 		ui.suggestions.setChecked(all_.suggestions)
+		ui.table_rows.setMinimum(MINIMUM_TABLE_ROWS)
+		ui.table_rows.setValue(all_.table_rows)
 		self.icon = all_.icon
 		self._show_icon()
 		self._flag("")
@@ -402,4 +422,5 @@ class PreferencesWindow(QDialog):
 				ui.dead_air_fallback.isChecked(),
 			),
 			self.cards.chosen_output(),
+			ui.table_rows.value(),
 		)
