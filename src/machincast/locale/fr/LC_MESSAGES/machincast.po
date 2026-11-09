@@ -4625,6 +4625,10 @@ msgid "The trial broadcast is already running"
 msgstr "La diffusion d'essai tourne déjà"
 
 #: machincast/interface/window.py
+msgid "Close all closable tabs"
+msgstr "Fermer tous les onglets fermables"
+
+#: machincast/interface/window.py
 msgid "The chosen sounds are added at the end of each bank."
 msgstr "Les sonores choisis s'ajoutent à la fin de chaque banque."
 

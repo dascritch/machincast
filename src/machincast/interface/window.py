@@ -198,6 +198,8 @@ LISTENING = {
 (https://github.com/dascritch/machincast/issues/256)."""
 
 TAB_SHORTCUTS = 12
+CLOSE_ALL = _("Close all closable tabs")
+"""La dernière entrée du menu « Onglets » (https://github.com/dascritch/machincast/issues/405)."""
 TAB_TITLE = 40
 """Longueur maximale du titre affiché d'un onglet ; au-delà, il est coupé, et son infobulle le donne en entier
 (https://github.com/dascritch/machincast/issues/398)."""
@@ -888,6 +890,37 @@ class MainWindow(QMainWindow):
 			action.setChecked(index == tabs.currentIndex())
 			widget = tabs.widget(index)
 			action.triggered.connect(lambda _ticked=False, widget=widget: tabs.setCurrentWidget(widget))
+		# Tout à la fin (https://github.com/dascritch/machincast/issues/405).
+		menu.addSeparator()
+		close_all = menu.addAction(CLOSE_ALL)
+		close_all.setEnabled(self._closable() != [])
+		close_all.triggered.connect(self.close_closable)
+
+	def _closable(self) -> list[QWidget]:
+		"""Les onglets qui se ferment, dans leur ordre : fiches, listes à la demande, recherche, simulation et airplay ;
+		jamais les onglets fixes."""
+		tabs = self.ui.tabs
+		found: list[QWidget] = []
+		for index in range(tabs.count()):
+			screen = tabs.widget(index)
+			closing = isinstance(screen, (Card, SearchScreen, SimulationScreen, AirplayScreen))
+			on_demand = (isinstance(screen, List)) and (self._keys[screen] in ON_DEMAND)
+			if (screen is not None) and ((closing) or (on_demand)):
+				found.append(screen)
+		return found
+
+	def close_closable(self) -> None:
+		"""Ferme tous les onglets fermables, de gauche à droite ; une fiche modifiée pose la question de sa fermeture,
+		et « Annuler » arrête là : elle et les suivantes restent ouvertes
+		(https://github.com/dascritch/machincast/issues/405)."""
+		tabs = self.ui.tabs
+		for screen in self._closable():
+			if isinstance(screen, Card):
+				if not screen.can_close():
+					return
+				self._remove(screen)
+				continue
+			self._close(tabs.indexOf(screen))
 
 	def _remove_tab(self, index: int) -> None:
 		"""Un onglet fermé n'est plus ni l'origine ni le dernier ouvert d'aucun autre."""

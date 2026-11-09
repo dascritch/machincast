@@ -12,7 +12,8 @@ def _tab_entries(interface: Context) -> list[QAction]:
 	"""Les entrées du menu, telles qu'il les montre à son ouverture."""
 	menu = named_menu(interface, "Onglets")
 	menu.aboutToShow.emit()
-	return [action for action in menu.actions() if not action.isSeparator()]
+	# Une entrée par onglet, cochable ; « Fermer tous les onglets fermables », à la fin, ne l'est pas.
+	return [action for action in menu.actions() if action.isCheckable()]
 
 
 def _title(action: QAction) -> str:

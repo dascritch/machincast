@@ -1,8 +1,9 @@
 """Scénarios des onglets déplaçables (https://github.com/dascritch/machincast/issues/405)."""
 
+from PySide6.QtGui import QAction
 from pytest_bdd import parsers, scenarios, then, when
 
-from tests.interface_steps import Context, tab_title, window
+from tests.interface_steps import Context, named_menu, tab_title, window
 
 scenarios("movable_tabs.feature")
 
@@ -25,3 +26,30 @@ def tooltip(interface: Context, title: str, text: str) -> None:
 	tabs = window(interface).ui.tabs
 	(index,) = [index for index in range(tabs.count()) if tab_title(tabs, index) == title]
 	assert tabs.tabToolTip(index) == text
+
+
+CLOSE_ALL = "Fermer tous les onglets fermables"
+
+
+def _close_all(interface: Context) -> QAction:
+	"""La dernière entrée du menu, telle qu'il la montre à son ouverture, après un séparateur."""
+	menu = named_menu(interface, "Onglets")
+	menu.aboutToShow.emit()
+	*_, separator, last = menu.actions()
+	assert separator.isSeparator()
+	assert last.text() == CLOSE_ALL
+	return last
+
+
+@then(
+	parsers.re(
+		r"le menu « Onglets » finit par un séparateur, puis « Fermer tous les onglets fermables », (?P<state>active|inactive)"
+	)
+)
+def close_all_entry(interface: Context, state: str) -> None:
+	assert _close_all(interface).isEnabled() == (state == "active")
+
+
+@when("je ferme tous les onglets fermables par le menu « Onglets »")
+def close_all(interface: Context) -> None:
+	_close_all(interface).trigger()

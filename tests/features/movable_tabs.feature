@@ -10,7 +10,10 @@ Fonctionnalité: Onglets déplaçables, ouverts à droite de leur onglet d'origi
 	droite de sa liste, une liste à la demande ou la recherche à droite de l'onglet où l'on était. Comme dans Firefox,
 	les onglets ouverts depuis un même onglet se rangent dans l'ordre de leur ouverture : chacun après le dernier
 	ouvert depuis lui, s'il est encore ouvert et à sa droite. L'ordre, onglets
-	fixes compris, est retenu d'un lancement à l'autre (retained_tabs.feature). Les scénarios déplacent un onglet comme le
+	fixes compris, est retenu d'un lancement à l'autre (retained_tabs.feature). Le menu « Onglets » finit par un
+	séparateur, puis « Fermer tous les onglets fermables » : les fiches, les listes à la demande, la recherche, la
+	simulation et l'airplay, jamais les onglets fixes ; une fiche modifiée pose la question de sa fermeture, et
+	« Annuler » arrête là. L'entrée est inactive sans onglet à fermer. Les scénarios déplacent un onglet comme le
 	ferait la souris, par la barre des onglets.
 
 	Contexte:
@@ -86,3 +89,37 @@ Fonctionnalité: Onglets déplaçables, ouverts à droite de leur onglet d'origi
 	Scénario: Les onglets se déplacent à la souris
 		Quand la fenêtre de l'interface s'ouvre
 		Alors les onglets sont déplaçables
+
+	# ─── Fermer tous les onglets fermables ─────────────────────
+
+	Scénario: Sans onglet fermable, l'entrée de fin du menu « Onglets » est inactive
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le menu « Onglets » finit par un séparateur, puis « Fermer tous les onglets fermables », inactive
+
+	Scénario: Fermer tous les onglets fermables ne laisse que les onglets fixes
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
+		Et je choisis « Rechercher… » dans le menu « Affichage »
+		Et j'ouvre la fiche de la séquence « Un »
+		Et je déplace l'onglet « Incidents » à la place 2
+		Alors le menu « Onglets » finit par un séparateur, puis « Fermer tous les onglets fermables », active
+		Quand je ferme tous les onglets fermables par le menu « Onglets »
+		Alors la fenêtre a les onglets « Antenne », « Incidents », « Calendrier », « Événements », « Séquences », « Banques »
+		Et aucune question n'a été posée
+		Et le menu « Onglets » finit par un séparateur, puis « Fermer tous les onglets fermables », inactive
+
+	Plan du scénario: Une fiche modifiée demande quoi faire de ses modifications ; « Annuler » arrête la fermeture
+		Étant donné la banque « Jingles », séquentielle, sans nom public, avec aucun
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je saisis le nom interne « Jingles du soir »
+		Et je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
+		Et je réponds « <reponse> » à la question de fermeture
+		Et je ferme tous les onglets fermables par le menu « Onglets »
+		Alors la question de fermeture a nommé « Banque : Jingles »
+		Et la fenêtre a les onglets <onglets>
+
+		Exemples:
+			| reponse    | onglets                                                                                                                  |
+			| Abandonner | « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »                                     |
+			| Annuler    | « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Banque : Jingles », « Sonores », « Incidents »    |
