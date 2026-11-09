@@ -22,7 +22,7 @@ Machin player --config <fichier>
 
 - **Base** : `Machin player` diffuse la grille de la base de production (`database.production`), avec le rôle `machincast_player`. Si la base est injoignable, il s'arrête aussitôt avec le code 1 et le message `base de données injoignable`.
 - **Sortie** : il joue sur la sortie de `audio.output`, sur le périphérique de l'antenne, `audio.device`. Sans ce périphérique, il refuse de diffuser avec le code 2 et le message `périphérique de l'antenne non renseigné` : le périphérique par défaut pourrait être celui de la pré-écoute. Il se règle dans `machincast.toml` ou dans les [préférences](../utilisateur/prise-en-main.md#préférences) de l'interface ([#116](https://github.com/dascritch/machincast/issues/116)) ; seule la sortie `factice` des essais s'en passe. Si la sortie ne peut pas être créée, il s'arrête avec le code 1 et le message `sortie audio indisponible`. Le périphérique de l'antenne ne doit pas être la sortie par défaut du bureau, et les sons de notification doivent être coupés : sinon, ils passent à l'antenne ([#250](https://github.com/dascritch/machincast/issues/250), [Préparer le poste d'antenne](../../../INSTALL.fr.md#préparer-le-poste-dantenne)).
-- **En marche** : il affiche la sortie utilisée, note `démarrage` dans le log, puis enchaîne les sonores sans intervention. Chaque passage est écrit dans l'airplay au moment où il commence et où il finit.
+- **En marche** : il affiche la sortie utilisée, note `démarrage` dans le log (sauf en simulation), puis enchaîne les sonores sans intervention. Chaque passage est écrit dans l'airplay au moment où il commence et où il finit.
 - **Arrêt** : `Ctrl-C` dans le terminal, ou le signal `SIGTERM` (arrêt d'un service). Le sonore en cours s'arrête, son passage est terminé dans l'airplay, sans incident, `arrêt` est noté dans le log, et le programme s'arrête avec le code 0.
 - **Perte de la base en cours de diffusion** : la sortie se coupe, et le programme s'arrête avec le code 1 et le message `erreur de base de données`.
 - **Un seul `Machin player` à la fois** : deux diffusions en même temps joueraient chacune leurs sonores et écriraient chacune leur airplay. Un second `Machin player` lancé sur la même socket d'état est refusé : il s'arrête avec le code 1 et le message `diffusion refusée : … un autre Machin player diffuse déjà`.
@@ -110,7 +110,9 @@ Le **log** note les opérations du binaire lecture, avec leur heure, leur niveau
 
 | Nature | Niveau | Quand |
 | --- | --- | --- |
-| `démarrage` | info | `Machin player` démarre la diffusion ; le message donne sa version. |
+| `démarrage` | info | `Machin player` démarre la diffusion ; le message donne sa version, son numéro de processus et ses options ([#342](https://github.com/dascritch/machincast/issues/342)). |
+| `fin` | info ou incident | `Machin player` a fini, avec son code de sortie : info pour 0, incident pour 1 (une erreur l'a arrêté) ou 2 (configuration ou sortie son invalide). |
+| `plantage probable` | incident | Au démarrage : la diffusion précédente n'a pas noté sa fin (tuée, privée de courant) ; le message donne le chemin de son [rapport de crash](commandes.md#rapports-de-crash), s'il y en a un. |
 | `arrêt` | info | `Machin player` arrête la diffusion, sur `Ctrl-C` ou `SIGTERM`. |
 | `coupure nette` | info | Un événement commence et coupe le sonore en cours. |
 | `interruption manuelle` | info | Depuis l'interface, le sonore en cours a été sauté, la séquence en cours sautée, ou l'événement en cours coupé par le fil musical ([Interrompre l'antenne](../utilisateur/antenne.md#interrompre-lantenne)) ; le message dit lequel, par exemple `du sonore « Café à minuit »`. Le sonore coupé s'éteint pendant le crossfade de fin par défaut de la configuration, ou net sans lui. |

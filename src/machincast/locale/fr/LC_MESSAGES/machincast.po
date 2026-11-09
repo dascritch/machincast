@@ -281,6 +281,99 @@ msgstr ""
 msgid "unknown key {section}.{key}"
 msgstr "clé {section}.{key} inconnue"
 
+#: machincast/crash.py
+msgid "wpctl not found"
+msgstr "wpctl introuvable"
+
+#: machincast/crash.py
+msgid "MachinCast crash report"
+msgstr "Rapport de crash de MachinCast"
+
+#: machincast/crash.py
+msgid "Versions"
+msgstr "Versions"
+
+#: machincast/crash.py
+msgid "Python stack"
+msgstr "Pile Python"
+
+#: machincast/crash.py
+msgid "Errors outside MachinCast"
+msgstr "Erreurs hors de MachinCast"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "Program: {program} {version}, pid {pid}"
+msgstr "Binaire : {program} {version}, pid {pid}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "Options: {options}"
+msgstr "Options : {options}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "Started: {start}"
+msgstr "Démarrage : {start}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid ", thread {thread}"
+msgstr ", fil {thread}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "Crash: {instant}{where}"
+msgstr "Plantage : {instant}{where}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "crash report written: {path}"
+msgstr "rapport de crash écrit : {path}"
+
+#: machincast/crash.py
+msgid "Fatal signal, if any"
+msgstr "Signal fatal, s'il y en a un"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "wpctl status impossible: {error}"
+msgstr "wpctl status impossible : {error}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid ""
+"End: unknown, the process stopped without a report (fatal signal, kill -9, "
+"out of memory, power cut); last written {last}"
+msgstr ""
+"Fin : inconnue, le processus s'est arrêté sans rapport (signal fatal, kill "
+"-9, manque de mémoire, coupure de courant) ; dernière écriture {last}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "pending crash report impossible to open: {error}"
+msgstr "rapport de crash en cours impossible à ouvrir : {error}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "not available: {error}"
+msgstr "indisponible : {error}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "crash report impossible to write in {path}: {error}"
+msgstr "rapport de crash impossible à écrire dans {path} : {error}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "pending crash report not written: {error}"
+msgstr "rapport de crash en cours pas écrit : {error}"
+
+#: machincast/crash.py
+#, python-brace-format
+msgid "pending crash report {path} not finished: {error}"
+msgstr "rapport de crash en cours {path} pas achevé : {error}"
+
 #: machincast/i18n.py
 #: machincast/interface/check.py
 msgid "; "
@@ -491,6 +584,10 @@ msgstr "document d'audit : {csv_path}, {html_path}"
 #, python-brace-format
 msgid "audit document cannot be written in {directory}: {error}"
 msgstr "document d'audit impossible à écrire dans {directory} : {error}"
+
+#: machincast/indexer/check.py
+msgid "File being analysed"
+msgstr "Fichier en cours d'analyse"
 
 #: machincast/indexer/check.py
 #: machincast/player/saving.py
@@ -4288,6 +4385,7 @@ msgid "a next event has a start"
 msgstr "un événement suivant a un début"
 
 #: machincast/interface/state.py
+#: machincast/player/broadcast.py
 #, python-brace-format
 msgid "{event}, in the name of “{lender}”"
 msgstr "{event}, au nom de « {lender} »"
@@ -4629,6 +4727,16 @@ msgid "Close all closable tabs"
 msgstr "Fermer tous les onglets fermables"
 
 #: machincast/interface/window.py
+#: machincast/interface/ui/preferences.ui
+#: machincast/interface/ui/suggestions.ui
+msgid "Sound cards"
+msgstr "Cartes son"
+
+#: machincast/interface/window.py
+msgid "Pre-listened sound"
+msgstr "Sonore en pré-écoute"
+
+#: machincast/interface/window.py
 msgid "The chosen sounds are added at the end of each bank."
 msgstr "Les sonores choisis s'ajoutent à la fin de chaque banque."
 
@@ -4872,6 +4980,16 @@ msgstr "Version"
 
 #: machincast/interface/window.py
 #, python-brace-format
+msgid "On air: output {output}, device {device}"
+msgstr "Antenne : sortie {output}, périphérique {device}"
+
+#: machincast/interface/window.py
+#, python-brace-format
+msgid "Pre-listen: output {output}, device {device}"
+msgstr "Pré-écoute : sortie {output}, périphérique {device}"
+
+#: machincast/interface/window.py
+#, python-brace-format
 msgid ""
 "Sound cards: on air {on_air}, pre-listen {preview}; Machin player will take "
 "the on-air output at its next start."
@@ -5071,6 +5189,10 @@ msgstr ""
 "Lit les événements programmés et les diffuse sur la sortie audio configurée."
 
 #: machincast/player/__main__.py
+msgid "On-air sound card"
+msgstr "Carte son de l'antenne"
+
+#: machincast/player/__main__.py
 msgid "simulation (https://github.com/dascritch/machincast/issues/21)"
 msgstr "simulation (https://github.com/dascritch/machincast/issues/21)"
 
@@ -5173,6 +5295,11 @@ msgstr ""
 "diffusion sur la sortie {on_air_output}{device}, configuration {path}, "
 "arrêt par Ctrl-C ou SIGTERM"
 
+#: machincast/player/__main__.py
+#, python-brace-format
+msgid "output {output}, device {device}"
+msgstr "sortie {output}, périphérique {device}"
+
 #: machincast/player/broadcast.py
 msgid "the stream stopped before the end of its event"
 msgstr "le flux s'est arrêté avant la fin de son événement"
@@ -5204,6 +5331,10 @@ msgstr "événement avancé"
 #: machincast/player/broadcast.py
 msgid "advance ignored"
 msgstr "avance ignorée"
+
+#: machincast/player/broadcast.py
+msgid "Sounds on air"
+msgstr "Sonores de l'antenne"
 
 #: machincast/player/broadcast.py
 msgid "event start"
@@ -5271,9 +5402,8 @@ msgid "of its playback"
 msgstr "de sa lecture"
 
 #: machincast/player/broadcast.py
-#: machincast/runs.py
-msgid "start"
-msgstr "démarrage"
+msgid "Event / sequence / bank / sound / file"
+msgstr "Événement / séquence / banque / sonore / fichier"
 
 #: machincast/player/broadcast.py
 msgid "stop"
@@ -5306,6 +5436,14 @@ msgstr "analyse du prochain sonore"
 #, python-brace-format
 msgid "{sound}: dead air of {duration} s at {timecode} {ou}, {level}"
 msgstr "{sound} : blanc de {duration} s à {timecode} {ou}, {level}"
+
+#: machincast/player/broadcast.py
+msgid "Previous"
+msgstr "Précédent"
+
+#: machincast/player/broadcast.py
+msgid "Playing now"
+msgstr "À l'antenne"
 
 #: machincast/player/broadcast.py
 #, python-brace-format
@@ -5403,6 +5541,11 @@ msgid "{on_air}, lending its name to “{name}”"
 msgstr "{on_air}, qui prête son nom à « {name} »"
 
 #: machincast/player/broadcast.py
+#, python-brace-format
+msgid "Next {rank}"
+msgstr "Suivant {rank}"
+
+#: machincast/player/broadcast.py
 msgid "state socket unavailable"
 msgstr "socket d'état indisponible"
 
@@ -5456,6 +5599,11 @@ msgstr "{address} : l'événement du stream n'est plus à l'antenne"
 #, python-brace-format
 msgid "{message}, the next sound is played"
 msgstr "{message}, le sonore suivant est joué"
+
+#: machincast/player/broadcast.py
+#, python-brace-format
+msgid "crash report context unavailable: {error}"
+msgstr "contexte du rapport de crash indisponible : {error}"
 
 #: machincast/player/engine.py
 msgid "the stream did not start after its buffer"
@@ -5874,6 +6022,10 @@ msgid "database error: {error}; nothing was erased"
 msgstr "erreur de base de données : {error} ; rien n'a été effacé"
 
 #: machincast/runs.py
+msgid "start"
+msgstr "démarrage"
+
+#: machincast/runs.py
 msgid "end"
 msgstr "fin"
 
@@ -5900,6 +6052,15 @@ msgstr "{program}, pid {pid} : code de sortie {code}"
 #, python-brace-format
 msgid "{program}, pid {pid}, started on {start}, did not log its end"
 msgstr "{program}, pid {pid}, démarré le {start}, n'a pas noté sa fin"
+
+#: machincast/runs.py
+#, python-brace-format
+msgid ""
+"{program}, pid {pid}, started on {start}, did not log its end; crash report "
+"{report}"
+msgstr ""
+"{program}, pid {pid}, démarré le {start}, n'a pas noté sa fin ; rapport de "
+"crash {report}"
 
 #: machincast/runs.py
 #, python-brace-format
@@ -6532,11 +6693,6 @@ msgstr "Revenir à l'icône de MachinCast"
 #: machincast/interface/ui/preferences.ui
 msgid "Audio"
 msgstr "Audio"
-
-#: machincast/interface/ui/preferences.ui
-#: machincast/interface/ui/suggestions.ui
-msgid "Sound cards"
-msgstr "Cartes son"
 
 #: machincast/interface/ui/preferences.ui
 msgid ""

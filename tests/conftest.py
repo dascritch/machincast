@@ -9,6 +9,7 @@ from typing import Any
 import psycopg
 import pytest
 
+from machincast import crash
 from machincast.clock import FixedClock
 from machincast.indexer import audit
 from machincast.interface.application import translate_screens
@@ -51,6 +52,18 @@ def audit_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 	directory.mkdir()
 	monkeypatch.setattr(audit, "DIRECTORY", directory)
 	monkeypatch.setattr(audit, "CLOCK", FixedClock(AUDIT_LAUNCHING))
+	return directory
+
+
+@pytest.fixture(autouse=True)
+def crash_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+	"""Les rapports de crash des binaires lancés par les scénarios, dans le répertoire du scénario : jamais dans
+	crash-dump/ du dépôt (https://github.com/dascritch/machincast/issues/342)."""
+	directory = tmp_path / "crash-dump"
+	monkeypatch.setattr(crash, "DIRECTORY", directory)
+	# Les binaires que les scénarios lancent dans un autre processus aussi.
+	monkeypatch.setenv(crash.ENVIRONMENT, str(directory))
+	monkeypatch.setattr(crash, "FALLBACK", tmp_path / "crash-dump-de-secours")
 	return directory
 
 

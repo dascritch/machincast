@@ -9,7 +9,8 @@ déjà, pour que l'administrateur y retrouve un plantage ou une fausse manœuvre
 - leur fin, ligne « end » : « Machin_indexer, pid 1234: exit code 0 », au niveau info pour le code 0, en incident pour
   tout autre code, comme le 2 d'une option refusée ;
 - un plantage probable, en incident, quand le démarrage précédent du même binaire n'a pas noté sa fin et que son
-  processus ne tourne plus : arrêté par un signal, tué, ou le poste éteint en cours de route.
+  processus ne tourne plus : arrêté par un signal, tué, ou le poste éteint en cours de route ; avec le chemin de son
+  rapport de crash, s'il en a laissé un (machincast.crash, https://github.com/dascritch/machincast/issues/342).
 
 Un lancement dont la configuration est illisible ne sait pas quelle base joindre : seul le journal en parle. Une base
 injoignable n'empêche pas le binaire de tourner : le journal dit que son démarrage n'a pas pu être noté, et sa fin ne
@@ -29,7 +30,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 
-from machincast import __version__
+from machincast import __version__, crash
 from machincast.configuration import Database
 from machincast.database import Role, open_connection
 from machincast.i18n import N_, _, logged
@@ -44,6 +45,7 @@ START_MESSAGE = N_("{program} {version}, pid {pid}")
 START_WITH_OPTIONS = N_("{program} {version}, pid {pid}: {options}")
 END_MESSAGE = N_("{program}, pid {pid}: exit code {code}")
 CRASH_MESSAGE = N_("{program}, pid {pid}, started on {start}, did not log its end")
+CRASH_WITH_REPORT = N_("{program}, pid {pid}, started on {start}, did not log its end; crash report {report}")
 INTERRUPTED_CODE = 130
 """Le code d'un programme arrêté par Ctrl-C, comme le donne le shell."""
 PROC_STAT = Path("/proc/stat")
@@ -113,7 +115,12 @@ def _check_previous(connection: psycopg.Connection[TupleRow], program: str) -> N
 	started_at, previous_pid, finished = previous
 	if (finished) or (alive(previous_pid, started_at)):
 		return
-	message = CRASH_MESSAGE.format(program=program, pid=previous_pid, start=f"{started_at.astimezone():%Y-%m-%d %H:%M}")
+	start = f"{started_at.astimezone():%Y-%m-%d %H:%M}"
+	message = CRASH_MESSAGE.format(program=program, pid=previous_pid, start=start)
+	# Le rapport de crash du lancement, s'il en a laissé un (https://github.com/dascritch/machincast/issues/342).
+	report = crash.report_of(program, started_at, previous_pid)
+	if report is not None:
+		message = CRASH_WITH_REPORT.format(program=program, pid=previous_pid, start=start, report=report)
 	record(connection, "incident", PROBABLE_CRASH, message)
 
 

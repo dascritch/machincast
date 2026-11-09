@@ -44,6 +44,7 @@ import psycopg
 from psycopg.rows import TupleRow
 from psycopg.types.json import Jsonb
 
+from machincast import crash
 from machincast.configuration import SILENCE_THRESHOLD
 from machincast.conversion import duration_or_none, list_or_none
 from machincast.fingerprint import audited_since_modification, file_state, modified
@@ -55,6 +56,8 @@ from machincast.indexer.tags import merge
 
 log = logging.getLogger(__name__)
 
+ANALYSED = _("File being analysed")
+"""La rubrique des rapports de crash de Machin indexer (https://github.com/dascritch/machincast/issues/342)."""
 AUDIT_LIMIT = timedelta(minutes=10)
 """Durée maximale de l'examen d'un fichier : au-delà, quelque chose est bloqué, et l'examen est abandonné en incident
 (https://github.com/dascritch/machincast/issues/401)."""
@@ -283,6 +286,9 @@ def _check_sound(
 		threshold_audit,
 	) = line
 	path = Path(str(location))
+	# Pour un rapport de crash, jusque dans un plantage de GStreamer (https://github.com/dascritch/machincast/issues/342).
+	crash.note(ANALYSED, str(path))
+	crash.refresh()
 	before = SoundState(str(text_state))
 	audited = (full_audit) or (asks is True)
 	if (

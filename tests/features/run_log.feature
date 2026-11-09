@@ -5,7 +5,8 @@ Fonctionnalité: Démarrages et fins des binaires dans le log
 	afin d'identifier d'éventuels soucis ou fausses manœuvres
 	(https://github.com/dascritch/machincast/issues/341).
 
-	Comme Machin player, chacun note son démarrage et sa fin au journal et au log de la base. Un démarrage précédent sans
+	Chacun note son démarrage et sa fin au journal et au log de la base, Machin player compris depuis
+	https://github.com/dascritch/machincast/issues/342. Un démarrage précédent sans
 	fin, dont le processus ne tourne plus, est un plantage probable, noté en incident. Dans les textes attendus,
 	« <version> » est la version de MachinCast, « <pid> » le pid du lancement, « <ancien pid> » celui du démarrage
 	précédent, et « …/ » le répertoire du scénario.
@@ -65,3 +66,37 @@ Fonctionnalité: Démarrages et fins des binaires dans le log
 		Quand je lance « Machin purge »
 		Alors le lancement se termine avec le code 1
 		Et le journal a signalé que le démarrage de « Machin_purge » n'a pas été noté dans la base
+
+	# ─── Machin player (https://github.com/dascritch/machincast/issues/342) ───
+	# La diffusion est remplacée par une diffusion qui s'arrête aussitôt, avec le code donné, comme run_broadcast.
+
+	Scénario: Machin player note son démarrage et sa fin, comme les autres binaires
+		Étant donné une diffusion de Machin player qui s'arrête avec le code 0
+		Quand je lance « Machin player »
+		Alors le lancement se termine avec le code 0
+		Et le log de la base a noté, au niveau info, le « démarrage » « Machin_player <version>, pid <pid> », puis la « fin » « Machin_player, pid <pid> : code de sortie 0 »
+
+	Scénario: Une diffusion arrêtée en erreur note son code de sortie, en incident
+		Le code 1 : une sortie audio indisponible, un autre Machin player déjà en diffusion.
+		Étant donné une diffusion de Machin player qui s'arrête avec le code 1
+		Quand je lance « Machin player »
+		Alors le lancement se termine avec le code 1
+		Et le log de la base a noté, au niveau incident, la « fin » « Machin_player, pid <pid> : code de sortie 1 »
+
+	Scénario: Sans périphérique d'antenne, Machin player note sa fin au code 2, en incident
+		Étant donné une configuration sans périphérique d'antenne
+		Quand je lance « Machin player »
+		Alors le lancement se termine avec le code 2
+		Et le log de la base a noté, au niveau incident, la « fin » « Machin_player, pid <pid> : code de sortie 2 »
+
+	Scénario: Le plantage probable d'un Machin player précédent donne le chemin de son rapport de crash
+		Étant donné un démarrage de « Machin_player » noté le 2026-11-01 à 03:00 par un processus qui ne tourne plus, sans fin
+		Et le rapport de crash en cours de ce démarrage, laissé par son processus
+		Et une diffusion de Machin player qui s'arrête avec le code 0
+		Quand je lance « Machin player »
+		Alors le log de la base a noté, au niveau incident, le « plantage probable » « Machin_player, pid <ancien pid>, démarré le 01/11/2026 à 03:00, n'a pas noté sa fin ; rapport de crash …/crash-dump/Machin_player-2026-11-01T03-00-00-<ancien pid>.txt »
+
+	Scénario: La simulation ne note ni démarrage ni fin
+		Quand je lance « Machin player --simulation 2026-11-01T20:00 2026-11-01T20:10 --directory …/simulation »
+		Alors le lancement se termine avec le code 0
+		Et le log de la base n'a noté ni démarrage ni fin

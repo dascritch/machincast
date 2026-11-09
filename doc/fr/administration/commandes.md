@@ -138,7 +138,7 @@ Les messages d'erreur courants et leur solution sont dans le tableau [En cas de 
 
 ## Démarrages et fins dans le log
 
-`Machin indexer`, `Machin maintenance-db` et `Machin purge` notent chacun de leurs lancements, comme `Machin player`, dans leur journal et dans le log de la base, que l'interface montre ([#341](https://github.com/dascritch/machincast/issues/341)). Une fausse manœuvre ou un plantage s'y retrouve, avec l'heure :
+`Machin player`, `Machin indexer`, `Machin maintenance-db` et `Machin purge` notent chacun de leurs lancements dans leur journal et dans le log de la base, que l'interface montre ([#341](https://github.com/dascritch/machincast/issues/341), [#342](https://github.com/dascritch/machincast/issues/342) pour `Machin player`, hors simulation). Une fausse manœuvre ou un plantage s'y retrouve, avec l'heure :
 
 ```text
 2026-11-04T03:00:02+01:00 démarrage : Machin_indexer 0.9.0, pid 4812 : --full-audit
@@ -147,6 +147,22 @@ Les messages d'erreur courants et leur solution sont dans le tableau [En cas de 
 
 - **Le démarrage**, nature `démarrage`, au niveau information : le programme, sa version, son numéro de processus (pid) et ses options.
 - **La fin**, nature `fin` : le même pid, et le [code de sortie](#messages-et-codes-de-sortie). Elle est au niveau information pour le code 0, en **incident** pour tout autre code, comme le 2 d'une option refusée, et se lit alors dans l'onglet **Incidents** de l'interface.
-- **Un plantage probable**, nature `plantage probable`, en incident : au lancement suivant d'un programme, si son démarrage précédent n'a pas noté de fin et que son processus ne tourne plus. Le programme a été tué, arrêté par un signal, ou le poste s'est éteint en cours de route : `Machin_purge, pid 3920, démarré le 03/11/2026 à 12:00, n'a pas noté sa fin`. Un lancement précédent encore en cours n'en est pas un.
+- **Un plantage probable**, nature `plantage probable`, en incident : au lancement suivant d'un programme, si son démarrage précédent n'a pas noté de fin et que son processus ne tourne plus. Le programme a été tué, arrêté par un signal, ou le poste s'est éteint en cours de route : `Machin_purge, pid 3920, démarré le 03/11/2026 à 12:00, n'a pas noté sa fin`. S'il a laissé un [rapport de crash](#rapports-de-crash), le message se termine par son chemin : `; rapport de crash /opt/machincast/crash-dump/Machin_purge-2026-11-03T12-00-00-3920.txt`. Un lancement précédent encore en cours n'en est pas un. Le service de diffusion arrêté par `systemctl stop`, ou par le bouton de l'interface, note sa fin ; tué ou privé de courant, il note le plantage probable à son redémarrage.
 
 `Machin indexer --sound N`, que `Machin player` lance avant chaque sonore qu'il va jouer, ne note ni démarrage ni fin. `Machin maintenance-db --keep-open`, lancé depuis l'interface, note sa fin avant que sa fenêtre reste ouverte : la fermer n'est pas un plantage. Une configuration invalide ne dit pas quelle base joindre : seul le journal en parle. Une base injoignable n'empêche pas le programme de tourner : le journal dit que son démarrage n'a pas été noté dans la base.
+
+## Rapports de crash
+
+Quand un programme de MachinCast plante, il laisse un **rapport de crash** dans le répertoire `crash-dump/` du répertoire de MachinCast (`/opt/machincast/crash-dump/` sur un poste installé), ou, s'il ne peut pas y écrire, dans `~/.local/state/machincast/crash-dump/` ([#342](https://github.com/dascritch/machincast/issues/342)). Le journal le signale : `rapport de crash écrit : /opt/machincast/crash-dump/Machin_player-2026-11-09T14-03-12-4242.txt`. Le nom donne le programme, l'heure de son démarrage et son numéro de processus, les mêmes que dans le log.
+
+Ce rapport est fait pour les développeurs : **joignez-le au ticket** qui signale le problème. Il contient :
+
+- le programme, sa version, ses options, l'heure de son démarrage et celle du plantage ;
+- la pile Python ;
+- ce qu'ont répondu PostgreSQL, GStreamer ou le système, s'ils sont en cause, et les versions des outils ;
+- pour `Machin indexer`, le fichier qu'il examinait ;
+- pour `Machin interface`, les cartes son de l'antenne et de la pré-écoute, la sortie de `wpctl status` et le sonore en pré-écoute ;
+- pour `Machin player`, la carte son de l'antenne, la sortie de `wpctl status`, et les sonores précédent, à l'antenne et les 5 suivants annoncés : événement, séquence, banque, artiste et titre, fichier.
+
+Un programme qui s'arrête d'un coup, sur une erreur de GStreamer ou de Qt, tué par `kill -9` ou privé de courant, ne peut pas écrire son rapport sur le moment : son **lancement suivant** l'achève, avec ce qu'il avait noté en dernier, et sa fin dit `Fin : inconnue`. Les rapports s'accumulent : effacez-les quand le ticket est traité. Un fichier caché qui finit par `.en-cours` est le rapport d'un programme qui tourne encore ; ne l'effacez pas.
+

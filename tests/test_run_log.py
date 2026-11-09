@@ -19,9 +19,10 @@ import psycopg
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast import __version__, cli, maintenance, purge
+from machincast import __version__, cli, crash, maintenance, purge
 from machincast.configuration import Configuration
 from machincast.indexer import __main__ as indexer
+from machincast.player import __main__ as player
 from tests.database_fixtures import configuration_test
 from tests.log_texts import shown
 
@@ -33,6 +34,7 @@ BINARIES: dict[str, Callable[[list[str]], int]] = {
 	"purge": purge.main,
 	"indexer": indexer.main,
 	"maintenance-db": maintenance.main,
+	"player": player.main,
 }
 
 
@@ -197,3 +199,30 @@ def nothing_noted(empty_database: Connection) -> None:
 @then("le terminal est resté ouvert après la « fin » notée au log de la base")
 def end_before_staying_open(execution: Execution) -> None:
 	assert execution.end_before_staying_open is True
+
+
+# ─── Machin player (https://github.com/dascritch/machincast/issues/342) ───
+
+
+@given(parsers.parse("une diffusion de Machin player qui s'arrête avec le code {code:d}"))
+def stopping_broadcast(monkeypatch: pytest.MonkeyPatch, code: int) -> None:
+	monkeypatch.setattr(player, "run_broadcast", lambda _configuration: code)
+
+
+@given("une configuration sans périphérique d'antenne")
+def without_device(execution: Execution, monkeypatch: pytest.MonkeyPatch) -> None:
+	audio = dataclasses.replace(execution.configuration.audio, output="pipewire", device=None)
+	chosen = dataclasses.replace(execution.configuration, audio=audio)
+	monkeypatch.setattr(cli, "load", lambda _path: chosen)
+	execution.configuration = chosen
+
+
+@given("le rapport de crash en cours de ce démarrage, laissé par son processus")
+def leftover_report(execution: Execution, crash_directory: Path) -> None:
+	"""Comme le laisse un Machin player tué : le rapport en cours, au nom de son démarrage et de son pid."""
+	assert execution.old_pid is not None
+	started = datetime(2026, 11, 1, 3, 0, tzinfo=PARIS)
+	crash_directory.mkdir(parents=True, exist_ok=True)
+	(crash_directory / crash.pending_name("Machin_player", started, execution.old_pid)).write_text(
+		"MachinCast\n", encoding="utf-8"
+	)
