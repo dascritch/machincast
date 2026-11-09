@@ -1,15 +1,19 @@
 """Scénarios du verrou des sorties PipeWire sur leur périphérique (https://github.com/dascritch/machincast/issues/345).
 
 Les scénarios de comportement font tourner un PipeWire et un WirePlumber à part (PipeWireBench), dans des répertoires
-temporaires : jamais ceux du poste. GStreamer les joint par PIPEWIRE_RUNTIME_DIR. Les sorties sont deux sorties
+temporaires : jamais ceux du poste. Le son y joue dans un processus à part, lancé avec leur environnement
+(tests/pipewire_player.py, https://github.com/dascritch/machincast/issues/384) : celui des tests a pu joindre le
+PipeWire du poste, et un pipewiresink y créé le rejoignait. Les sorties sont deux sorties
 muettes (support.null-audio-sink) : la pré-écoute, périphérique par défaut, et l'antenne. Sans pipewire ni
 wireplumber, ces scénarios sont ignorés.
 """
 
 import json
 import os
+import select
 import shutil
 import subprocess
+import sys
 import time
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -47,8 +51,8 @@ class PipeWireBench:
 			path.mkdir(mode=0o700)
 			self.env[name] = str(path)
 		self.env["PIPEWIRE_RUNTIME_DIR"] = self.env["XDG_RUNTIME_DIR"]
-		self.env.pop("DBUS_SESSION_BUS_ADDRESS", None)
-		self.env.pop("PULSE_SERVER", None)
+		for name in ("DBUS_SESSION_BUS_ADDRESS", "PULSE_SERVER", "PIPEWIRE_REMOTE", "PIPEWIRE_CORE"):
+			self.env.pop(name, None)
 		self.log = root / "pipewire.log"
 		self.process: list[subprocess.Popen[bytes]] = []
 
@@ -145,21 +149,30 @@ class PipeWireBench:
 
 @pytest.fixture
 def context() -> SimpleNamespace:
-	return SimpleNamespace(output=None, source=None, bench=None, pipelines=[], program=None)
+	return SimpleNamespace(output=None, source=None, bench=None, players=[], program=None)
 
 
 @pytest.fixture
-def bench(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, context: SimpleNamespace) -> Iterator[PipeWireBench]:
-	"""Les pipelines s'arrêtent avant PipeWire : une sortie dont le serveur a disparu ne s'arrêterait plus."""
+def bench(tmp_path: Path, context: SimpleNamespace) -> Iterator[PipeWireBench]:
+	"""Les sons s'arrêtent avant PipeWire : une sortie dont le serveur a disparu ne s'arrêterait plus."""
 	if not _pipewire_present():
 		pytest.skip("pipewire ou wireplumber absent")
 	bench = PipeWireBench(tmp_path)
 	bench.start()
-	monkeypatch.setenv("PIPEWIRE_RUNTIME_DIR", bench.env["PIPEWIRE_RUNTIME_DIR"])
 	yield bench
-	for pipeline in context.pipelines:
-		pipeline.set_state(audio.Gst.State.NULL)
+	for player in context.players:
+		_stop(player)
 	bench.halt()
+
+
+def _stop(player: subprocess.Popen[str]) -> None:
+	assert player.stdin is not None
+	player.stdin.close()
+	try:
+		player.wait(timeout=5)
+	except subprocess.TimeoutExpired:
+		player.kill()
+		player.wait()
 
 
 # ─── Propriétés ────────────────────────────────────────────
@@ -227,38 +240,31 @@ def pipewire_to_share(context: SimpleNamespace, bench: PipeWireBench, on_air: st
 	context.bench = bench
 
 
-def _play(context: SimpleNamespace, output: audio.Gst.Element, program: str) -> None:
-	"""Un son continu sur la sortie : le flux existe même sans périphérique où aller.
-
-	La source n'est pas en direct, comme les sonores de MachinCast : un pipeline à source en direct, sur un pipewiresink
-	synchronisé, ne s'arrête plus avec le PipeWire à part.
-	"""
-	pipeline = audio.Gst.Pipeline.new(None)
-	source = audio.Gst.ElementFactory.make("audiotestsrc", None)
-	conversion = audio.Gst.ElementFactory.make("audioconvert", None)
-	assert (source is not None) and (conversion is not None)
-	for item in (source, conversion, output):
-		pipeline.add(item)
-	source.link(conversion)
-	conversion.link(output)
-	assert pipeline.set_state(audio.Gst.State.PLAYING) != audio.Gst.StateChangeReturn.FAILURE
-	context.pipelines.append(pipeline)
+def _play(context: SimpleNamespace, kind: str, program: str) -> None:
+	"""Un son continu sur la sortie, dans un processus à part, avec l'environnement du PipeWire à part : le flux
+	existe même sans périphérique où aller."""
+	player = subprocess.Popen(
+		[sys.executable, "-m", "tests.pipewire_player", kind],
+		env=context.bench.env,
+		stdin=subprocess.PIPE,
+		stdout=subprocess.PIPE,
+		text=True,
+	)
+	context.players.append(player)
+	assert player.stdout is not None
+	assert player.stdout.readline().strip() == "prêt"
 	context.program = program
 	context.bench._wait(lambda: context.bench.node(program, "application.name") is not None)
 
 
 @when("l'antenne joue sur sa sortie")
 def played_on_air(context: SimpleNamespace) -> None:
-	_play(context, audio.create_output("pipewire", "antenne", presentation=audio.ON_AIR), audio.ON_AIR.program)
+	_play(context, "antenne", audio.ON_AIR.program)
 
 
 @when("une sortie sans verrou joue sur l'antenne")
 def without_played_lock(context: SimpleNamespace) -> None:
-	output = audio.Gst.ElementFactory.make("pipewiresink", None)
-	assert output is not None
-	output.set_property("target-object", "antenne")
-	audio.present(output, audio.Presentation("Sans verrou", "Antenne"))
-	_play(context, output, "Sans verrou")
+	_play(context, "sans-verrou", "Sans verrou")
 
 
 @when(parsers.parse("le périphérique « {name} » disparaît"))
@@ -293,10 +299,13 @@ def linked_to_nothing(context: SimpleNamespace) -> None:
 
 @then("l'antenne joue toujours")
 def plays_always(context: SimpleNamespace) -> None:
-	"""Ni erreur, ni flux détruit : WirePlumber attend le périphérique, sans envoyer « defined target not found »."""
-	(pipeline,) = context.pipelines
-	bus = pipeline.get_bus()
-	assert bus.pop_filtered(audio.Gst.MessageType.ERROR) is None
+	"""Ni erreur, ni flux détruit : WirePlumber attend le périphérique, sans envoyer « defined target not found ». Le
+	processus qui joue tourne encore, sans avoir rien écrit d'autre que « prêt »."""
+	(player,) = context.players
+	assert player.poll() is None
+	assert player.stdout is not None
+	readable, _writable, _exceptional = select.select([player.stdout], [], [], 0)
+	assert readable == [], player.stdout.readline()
 	assert context.bench.node(context.program, "application.name") is not None
 
 
