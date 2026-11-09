@@ -1,15 +1,15 @@
 """Rapports de crash des binaires (https://github.com/dascritch/machincast/issues/342).
 
 Un plantage d'un binaire de MachinCast laisse un fichier horodaté dans crash-dump/, à la racine du dépôt du code
-(DIRECTORY, ou celui de la variable d'environnement MACHINCAST_CRASH_DUMP), ou, s'il n'est pas accessible en écriture, dans ~/.local/state/machincast/crash-dump : de quoi reproduire
-les conditions du plantage. Il se nomme « <binaire>-<démarrage>-<pid>.txt », le démarrage en heure du poste
+(DIRECTORY, ou celui de la variable d'environnement MACHINCAST_CRASH_DUMP), ou, s'il n'est pas accessible en écriture,
+dans /tmp/machincast/crash-dump (FALLBACK) : de quoi reproduire les conditions du plantage. Il se nomme « <binaire>-<démarrage>-<pid>.txt », le démarrage en heure du poste
 (« Machin_player-2026-11-09T14-03-12-4242.txt ») : le pid et l'heure de démarrage sont aussi ceux de la ligne
 « start » du log, et le plantage probable que note le lancement suivant donne son chemin (machincast.runs).
 
 Il contient :
 
 - le binaire, sa version, son pid, ses options, l'heure de son démarrage et celle du plantage ;
-- la pile Python, causes enchaînées comprises, de chaque fil qui a planté ;
+- la pile Python, causes enchaînées comprises ;
 - les détails d'une erreur venue d'ailleurs que du code de MachinCast : PostgreSQL (SQLSTATE, messages, détail,
   indice, contexte), GLib et GStreamer (domaine, code, message), le système (errno, fichier), un programme lancé (code,
   sortie d'erreur) ;
@@ -21,8 +21,9 @@ Il contient :
 
 Trois sortes de plantage :
 
-- une exception qui remonte jusqu'à cli.launch, ou qui arrête un fil (threading.excepthook), ou qu'une fonction
-  appelée par Qt laisse passer (sys.excepthook) : le rapport s'écrit aussitôt ;
+- une exception qui remonte jusqu'à cli.launch : le rapport s'écrit aussitôt. Une exception qui n'arrête pas le
+  binaire, celle d'un fil ou celle qu'une fonction appelée par Qt laisse passer, n'est pas un plantage : le journal la
+  montre, sans rapport ;
 - un signal fatal (SIGSEGV, SIGABRT, SIGBUS, SIGFPE, SIGILL), souvent dans GStreamer ou Qt : faulthandler écrit la
   pile de chaque fil dans un rapport en cours, ouvert dès le démarrage (« .<binaire>-<démarrage>-<pid>.en-cours ») ;
 - un arrêt sans un mot (kill -9, manque de mémoire, coupure de courant) : le rapport en cours reste seul.
@@ -41,6 +42,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import traceback
 from collections.abc import Callable, Iterator, Sequence
@@ -48,7 +50,6 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from types import TracebackType
 from typing import TextIO
 
 from machincast import __version__
@@ -60,8 +61,9 @@ log = logging.getLogger(__name__)
 
 DIRECTORY = PROJECT_DIRECTORY / "crash-dump"
 """Le répertoire des rapports, dans le dépôt du code."""
-FALLBACK = Path.home() / ".local" / "state" / "machincast" / "crash-dump"
-"""Celui des rapports quand le dépôt n'est pas accessible en écriture."""
+FALLBACK = Path(tempfile.gettempdir()) / "machincast" / "crash-dump"
+"""Celui des rapports quand le dépôt n'est pas accessible en écriture : /tmp/machincast/crash-dump, vidé au
+redémarrage du poste."""
 PENDING = ".en-cours"
 """Le suffixe d'un rapport en cours, que le lancement efface s'il se termine normalement."""
 WPCTL = "wpctl"
@@ -284,19 +286,16 @@ def _context(watch: Watch, live: bool) -> list[str]:
 	return lines
 
 
-def write_report(error: BaseException, thread: str | None = None, instant: datetime | None = None) -> Path | None:
+def write_report(error: BaseException, instant: datetime | None = None) -> Path | None:
 	"""Le rapport d'un plantage par cette exception, pendant le lancement surveillé ; None sans surveillance, ou s'il
 	n'a pas pu s'écrire. Plusieurs plantages du même lancement s'ajoutent au même rapport."""
 	watch = _watch
 	if watch is None:
 		return None
 	instant = (instant) or (SystemClock().now())
-	where = ""
-	if thread is not None:
-		where = _(", thread {thread}").format(thread=thread)
 	lines = [
 		*_header(watch),
-		_("Crash: {instant}{where}").format(instant=instant.isoformat(timespec="seconds"), where=where),
+		_("Crash: {instant}").format(instant=instant.isoformat(timespec="seconds")),
 		"",
 		_("Python stack"),
 		*(line.rstrip("\n") for line in traceback.format_exception(error)),
@@ -398,29 +397,12 @@ def _running(pid: int) -> bool:
 	return True
 
 
-def _thread_hook(arguments: threading.ExceptHookArgs) -> None:
-	if (arguments.exc_value is not None) and (not isinstance(arguments.exc_value, SystemExit)):
-		thread = None if arguments.thread is None else arguments.thread.name
-		write_report(arguments.exc_value, thread=thread)
-	_previous_thread_hook(arguments)
-
-
-def _hook(kind: type[BaseException], value: BaseException, stack: TracebackType | None) -> None:
-	if not isinstance(value, (KeyboardInterrupt, SystemExit)):
-		write_report(value)
-	_previous_hook(kind, value, stack)
-
-
-_previous_hook = sys.excepthook
-_previous_thread_hook = threading.excepthook
-
-
 @contextmanager
 def watch(program: str, arguments: Sequence[str] = (), place: Path | None = None) -> Iterator[Watch]:
-	"""Surveille le lancement : rapport en cours ouvert, faulthandler, crochets des exceptions non rattrapées ; une
+	"""Surveille le lancement : rapport en cours ouvert, faulthandler ; une
 	exception qui sort du bloc écrit son rapport, puis passe. À la sortie, tout est rendu, et le rapport en cours
 	effacé : le lancement s'est terminé."""
-	global _watch, _previous_hook, _previous_thread_hook
+	global _watch
 	place = (place) or (directory())
 	finish_leftovers(program, place)
 	watched = Watch(program, list(arguments), SystemClock().now(), os.getpid(), place)
@@ -429,8 +411,6 @@ def watch(program: str, arguments: Sequence[str] = (), place: Path | None = None
 	except OSError as error:
 		log.warning(_("pending crash report impossible to open: {error}").format(error=error))
 	previous_watch, _watch = _watch, watched
-	_previous_hook, _previous_thread_hook = sys.excepthook, threading.excepthook
-	sys.excepthook, threading.excepthook = _hook, _thread_hook
 	enabled = faulthandler.is_enabled()
 	if watched.pending is not None:
 		refresh()
@@ -443,7 +423,6 @@ def watch(program: str, arguments: Sequence[str] = (), place: Path | None = None
 		write_report(error)
 		raise
 	finally:
-		sys.excepthook, threading.excepthook = _previous_hook, _previous_thread_hook
 		if watched.pending is not None:
 			faulthandler.disable()
 			# faulthandler ne dit pas sur quel fichier il écrivait : il reprend la sortie d'erreur d'origine, quand

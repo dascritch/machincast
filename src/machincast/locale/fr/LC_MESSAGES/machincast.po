@@ -318,13 +318,8 @@ msgstr "Démarrage : {start}"
 
 #: machincast/crash.py
 #, python-brace-format
-msgid ", thread {thread}"
-msgstr ", fil {thread}"
-
-#: machincast/crash.py
-#, python-brace-format
-msgid "Crash: {instant}{where}"
-msgstr "Plantage : {instant}{where}"
+msgid "Crash: {instant}"
+msgstr "Plantage : {instant}"
 
 #: machincast/crash.py
 #, python-brace-format

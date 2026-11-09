@@ -56,14 +56,13 @@ Fonctionnalité: Rapports de crash
 			| GStreamer 1.                |
 			| PyGObject                   |
 
-	Scénario: Un fil qui plante laisse aussi un rapport, qui le nomme
+	Scénario: Un fil qui plante sans arrêter le binaire ne laisse pas de rapport
+		Seuls les plantages comptent : le journal montre l'exception du fil.
+
 		Étant donné Machin purge dont un fil plante sur l'erreur imprévue « panne du fil »
 		Quand je lance « Machin purge »
 		Alors le lancement se termine avec le code 0
-		Et le rapport dit :
-			| texte                               |
-			| , fil fil-imité                      |
-			| RuntimeError: panne du fil           |
+		Et crash-dump ne contient aucun rapport, ni aucun rapport en cours
 
 	Scénario: Un lancement sans plantage ne laisse ni rapport ni rapport en cours
 		Quand je lance « Machin purge »
@@ -100,7 +99,7 @@ Fonctionnalité: Rapports de crash
 		Quand le lancement suivant de « Machin_essai » achève les rapports en cours
 		Alors crash-dump ne contient aucun rapport, mais un rapport en cours
 
-	Scénario: Sans droit d'écriture dans le dépôt, les rapports vont dans ~/.local/state/machincast/crash-dump
+	Scénario: Sans droit d'écriture dans le dépôt, les rapports vont dans /tmp/machincast/crash-dump
 		Étant donné un dépôt du code sans droit d'écriture
 		Et Machin purge qui plante sur l'erreur imprévue « panne imitée »
 		Quand je lance « Machin purge », qui plante
@@ -117,10 +116,7 @@ Fonctionnalité: Rapports de crash
 			| Fichier en cours d'analyse  |
 			| jingles/intro.flac          |
 
-	@qt_no_exception_capture
 	Scénario: Machin interface donne ses cartes son, la sortie de wpctl status et le sonore en pré-écoute
-		L'erreur imitée passe à sys.excepthook, comme Qt le fait : pytest-qt ne la capture pas.
-
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-21 09:00:00 »
 		Et les événements :
@@ -131,7 +127,7 @@ Fonctionnalité: Rapports de crash
 		Et le sonore « Café à minuit » de « Les Gaufres », pour une copie du fichier de test « sain.flac »
 		Quand la fenêtre de l'interface s'ouvre
 		Et je demande la pré-écoute du sonore « Café à minuit »
-		Et une erreur imprévue « panne de l'interface » remonte jusqu'à Qt
+		Et une erreur imprévue « panne de l'interface » arrête le lancement surveillé
 		Alors le rapport dit :
 			| texte                              |
 			| RuntimeError: panne de l'interface |
