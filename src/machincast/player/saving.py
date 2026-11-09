@@ -51,6 +51,8 @@ class Play:
 	"""Séquence qui a fait jouer le sonore (https://github.com/dascritch/machincast/issues/99)."""
 	item_sequence: int | None = None
 	"""Élément de cette séquence."""
+	lender: int | None = None
+	"""L'événement au nom de qui le passage est joué (https://github.com/dascritch/machincast/issues/399)."""
 
 
 def record(
@@ -83,9 +85,9 @@ def record(
 def _start(connection: psycopg.Connection[TupleRow], play: Play) -> None:
 	connection.execute(
 		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, bank_id, event_id, event_item_id,"
-		" sequence_id, sequence_item_id, location, artist, title)"
-		" SELECT %s, 'start', %s, s.id, %s, %s, %s, %s, %s, COALESCE(s.location, s.stream_url, m.url), s.artist,"
-		" s.title FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
+		" sequence_id, sequence_item_id, lender_event_id, location, artist, title)"
+		" SELECT %s, 'start', %s, s.id, %s, %s, %s, %s, %s, %s, COALESCE(s.location, s.stream_url, m.url),"
+		" s.artist, s.title FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 		(
 			play.id,
 			play.start,
@@ -94,6 +96,7 @@ def _start(connection: psycopg.Connection[TupleRow], play: Play) -> None:
 			play.item,
 			play.sequence,
 			play.item_sequence,
+			play.lender,
 			play.sound,
 		),
 	)
@@ -103,9 +106,9 @@ def _end(connection: psycopg.Connection[TupleRow], play: Play, instant: datetime
 	# La ligne de fin recopie la ligne de début : l'artiste et le titre restent ceux du moment du passage.
 	connection.execute(
 		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, bank_id, event_id, event_item_id,"
-		" sequence_id, sequence_item_id, location, artist, title, played_duration, without_incident)"
+		" sequence_id, sequence_item_id, lender_event_id, location, artist, title, played_duration, without_incident)"
 		" SELECT play_id, 'end', %s, sound_id, bank_id, event_id, event_item_id, sequence_id,"
-		" sequence_item_id, location, artist, title, %s, %s FROM airplay"
+		" sequence_item_id, lender_event_id, location, artist, title, %s, %s FROM airplay"
 		" WHERE play_id = %s AND line_type = 'start'",
 		(instant, instant - play.start, without_incident, play.id),
 	)
@@ -120,9 +123,10 @@ def begin_play(
 	instant: datetime,
 	sequence: int | None = None,
 	item_sequence: int | None = None,
+	lender: int | None = None,
 ) -> Play:
 	"""Ligne de début d'un passage ; l'artiste et le titre sont recopiés tels qu'ils sont à cet instant."""
-	play = Play(uuid.uuid4(), sound, bank, event, item, instant, sequence, item_sequence)
+	play = Play(uuid.uuid4(), sound, bank, event, item, instant, sequence, item_sequence, lender)
 	with connection.transaction():
 		_start(connection, play)
 	return play

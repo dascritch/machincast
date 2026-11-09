@@ -69,6 +69,7 @@ commence vérifie si son sonore a atteint son maximum de lectures ; tous les son
 toutes les EXPIRY_CHECK, pour les périodes de diffusion terminées.
 """
 
+import dataclasses
 import json
 import logging
 import signal
@@ -411,6 +412,13 @@ class Broadcast:
 	"""Contexte du sonore réservé, lu une fois pour lui."""
 	_on_air: Choice | None = field(default=None, init=False)
 	"""Le dernier passage commencé, pour noter les débuts et les fins d'événements et de séquences."""
+	_on_air_occurrence: Occurrence | None = field(default=None, init=False)
+	"""L'occurrence à l'antenne : celle du dernier passage, ou celle qui lui prête son nom
+	(https://github.com/dascritch/machincast/issues/399)."""
+	lender: Occurrence | None = field(default=None, init=False)
+	"""L'occurrence qui prête son nom à l'antenne, selon la dernière décision de l'ordonnanceur."""
+	_announced_lender: Occurrence | None = field(default=None, init=False)
+	"""Celle que les sorties et le log connaissent : un changement s'y annonce dès l'heure, sans attendre de passage."""
 	_on_air_sequence: str = field(default="", init=False)
 	"""Le message de la séquence à l'antenne, gardé pour sa fin."""
 	upcoming: list[Planned] = field(default_factory=list, init=False)
@@ -470,7 +478,7 @@ class Broadcast:
 					self.interrupt(asks.item)
 		current = self.current
 		if current is not None:
-			decision = self.scheduler.decide(instant, current.ongoing)
+			decision = self._decide(instant, current.ongoing)
 			if decision.cut:
 				reserve = self.reserve
 				self._cut(instant)
@@ -488,10 +496,52 @@ class Broadcast:
 			if choice is not None:
 				self._play(choice, instant)
 			else:
-				self._play_decision(self.scheduler.decide(instant, None), reserve, instant)
+				self._play_decision(self._decide(instant, None), reserve, instant)
 		self._follow_probe(instant)
 		self._preload(instant)
+		self._follow_lender(instant)
 		self._publish(instant)
+
+	def _decide(self, instant: datetime, ongoing: Ongoing | None) -> Decision:
+		"""La décision de l'ordonnanceur, dont l'occurrence qui prête alors son nom est retenue."""
+		decision = self.scheduler.decide(instant, ongoing)
+		self.lender = decision.lender
+		return decision
+
+	def _lent(self, choice: Choice, start: datetime | None = None) -> Choice:
+		"""Le sonore, au nom de l'occurrence qui prête alors le sien à son événement, s'il y en a une
+		(https://github.com/dascritch/machincast/issues/399) ; pour un sonore à venir qui commencera à start, si le prêt
+		dure encore. Un sonore réservé avant le début du prêt, ou après sa fin, suit ainsi le prêt du moment."""
+		lender = self.lender
+		if (lender is not None) and (lender.event.id == choice.occurrence.event.id):
+			lender = None
+		if (
+			(lender is not None)
+			and (start is not None)
+			and (lender.end is not None)
+			and (wall_hour(start) >= lender.end)
+		):
+			lender = None
+		if (None if lender is None else lender.key) == (None if choice.lender is None else choice.lender.key):
+			# Le même objet : le prochain sonore attendu se reconnaît à lui (_reserve).
+			return choice
+		return dataclasses.replace(choice, lender=lender)
+
+	def _follow_lender(self, instant: datetime) -> None:
+		"""Une occurrence commence ou cesse de prêter son nom pendant un sonore : le log, le journal, la page publique
+		et la socket d'état le disent dès l'heure, sans couper le sonore (https://github.com/dascritch/machincast/issues/399)."""
+		lender, announced = self.lender, self._announced_lender
+		if (None if lender is None else lender.key) == (None if announced is None else announced.key):
+			return
+		self._announced_lender = lender
+		current = self.current
+		if current is None:
+			return
+		current.choice = self._lent(current.choice)
+		current.details = None
+		self._note_events(current.choice, instant)
+		if self.outputs is not None:
+			self.outputs.lend(self.connection, _lender_id(current.choice), instant)
 
 	def _preload(self, instant: datetime) -> None:
 		"""PRELOAD avant son début estimé, le prochain stream d'un feed, le prochain sonore ou l'un des sonores à venir,
@@ -598,7 +648,7 @@ class Broadcast:
 			# Une séquence en cours ne continue pas : l'occurrence avancée a commencé après son dernier passage.
 			self.upcoming = []
 			self._expected = None
-			play = self.scheduler.decide(instant, None).play
+			play = self._decide(instant, None).play
 			fade = (self.crossfades.end) or (NO_CROSSFADE)
 			self._switch_off(current, play, instant, fade, (self.crossfades.start) or (NO_CROSSFADE))
 		self._publish(instant)
@@ -641,7 +691,8 @@ class Broadcast:
 			log.warning(_("{ignored}: nothing on air").format(ignored=logged(IGNORED)))
 			return False
 		choice = current.choice
-		event = choice.occurrence.event
+		# L'événement à l'antenne : celui qui prête son nom, s'il y en a un (https://github.com/dascritch/machincast/issues/399).
+		event = ((choice.lender) or (choice.occurrence)).event
 		if (item == "sequence") and (choice.line is None):
 			log.warning(_("{ignored}: no sequence on air").format(ignored=logged(IGNORED)))
 			return False
@@ -674,7 +725,7 @@ class Broadcast:
 		else:
 			following = self._skip(current, item == "sequence", instant)
 		if following is None:
-			following = self.scheduler.decide(instant, None).play
+			following = self._decide(instant, None).play
 		fade = (self.crossfades.end) or (NO_CROSSFADE)
 		self._switch_off(current, following, instant, fade, (self.crossfades.start) or (NO_CROSSFADE))
 		self._publish(instant)
@@ -749,7 +800,7 @@ class Broadcast:
 		self.scheduler.cut_by(instant, fallback, stream)
 		self.upcoming = []
 		self._expected = None
-		following = self.scheduler.decide(instant, None).play
+		following = self._decide(instant, None).play
 		fade = (self.crossfades.end) or (NO_CROSSFADE)
 		self._switch_off(current, following, instant, fade, (self.crossfades.start) or (NO_CROSSFADE))
 		self._publish(instant)
@@ -1091,7 +1142,7 @@ class Broadcast:
 		)
 
 	def _prepare_following(self, current: Playback, instant: datetime) -> None:
-		choice = (self._take_reserve(instant)) or (self.scheduler.decide(instant, None).play)
+		choice = (self._take_reserve(instant)) or (self._decide(instant, None).play)
 		if choice is None:
 			# Rien ensuite : le sonore finit avec son fondu, et le prochain pas sans voie redemande.
 			return
@@ -1185,7 +1236,8 @@ class Broadcast:
 		self.outgoing_list = [playback for playback in self._plays() if playback.track.state == "playing"]
 		self.in_waiting, self.probe = None, None
 		self.scheduler.resume()
-		choice = probe.choice
+		self.lender = self.scheduler.lender(instant)
+		choice = self._lent(probe.choice)
 		play = self._begin(choice, instant)
 		self.current = Playback(choice, probe.parameters, track, play)
 		self.history.expire(self.connection, instant, choice.sound)
@@ -1237,9 +1289,12 @@ class Broadcast:
 				break
 			tried.add(following.sound)
 			self.scheduler.exclude(following.sound, instant)
-			following = self.scheduler.decide(instant, None).play
+			following = self._decide(instant, None).play
 		if (following is None) or (path is None):
 			return
+		# Un sonore réservé commence sans nouvelle décision : le prêt de nom se relit à son début.
+		self.lender = self.scheduler.lender(instant)
+		following = self._lent(following)
 		if rise is None:
 			rise = entry_fade(previous_end_crossfade, parameters.start_crossfade)
 		preload = self.preload
@@ -1280,8 +1335,11 @@ class Broadcast:
 			instant,
 			None if line is None else line.sequence,
 			None if line is None else line.id,
+			_lender_id(choice),
 		)
+		self._announced_lender = self.lender
 		if self.outputs is not None:
+			self.outputs.lend(self.connection, _lender_id(choice))
 			self.outputs.started_play(self.connection, play)
 		return play
 
@@ -1351,7 +1409,7 @@ class Broadcast:
 				(planned.choice, planned.parameters, planned.healthy, planned.details) for planned in self.upcoming
 			]
 			announcements = [
-				_announces(choice, parameters, healthy, details, start, cutoff)
+				_announces(self._lent(choice, start), parameters, healthy, details, start, cutoff)
 				for (choice, parameters, healthy, details), start, cutoff in zip(
 					remainder, starts, cutoffs, strict=False
 				)
@@ -1372,20 +1430,18 @@ class Broadcast:
 	def _note_on_air(self, choice: Choice | None, instant: datetime) -> None:
 		"""Avant le passage qui commence, ou à l'arrêt (None) : la fin de la séquence et de l'événement qu'il ne
 		continue pas, puis le début des siens, dans le log et le journal du binaire
-		(https://github.com/dascritch/machincast/issues/153). Les heures sont celles de l'antenne."""
+		(https://github.com/dascritch/machincast/issues/153). Les heures sont celles de l'antenne. L'événement à
+		l'antenne est celui qui prête son nom, s'il y en a un (https://github.com/dascritch/machincast/issues/399)."""
 		previous, self._on_air = self._on_air, choice
 		same_occurrence = (
 			(previous is not None) and (choice is not None) and (previous.occurrence.key == choice.occurrence.key)
 		)
 		remainder = (same_occurrence) and (_continues_sequence(previous, choice))
 		if (previous is not None) and (previous.line is not None) and (not remainder):
-			self._note(SEQUENCE_END, self._on_air_sequence, previous, instant)
-		if (previous is not None) and (not same_occurrence):
-			self._note(EVENT_END, N_("“{name}”").format(name=previous.occurrence.event.name), previous, instant)
+			self._note(SEQUENCE_END, self._on_air_sequence, previous.occurrence.event.id, instant)
+		self._note_events(choice, instant)
 		if choice is None:
 			return
-		if not same_occurrence:
-			self._note(EVENT_START, _on_air_event(choice.occurrence), choice, instant)
 		if (choice.line is not None) and (not remainder):
 			# Dans sa propre transaction : la connexion n'en laisse jamais une ouverte, qui retiendrait l'airplay.
 			with self.connection.transaction():
@@ -1396,10 +1452,27 @@ class Broadcast:
 			if line is not None:
 				name = str(line[0])
 			self._on_air_sequence = N_("“{name}”, in “{name2}”").format(name=name, name2=choice.occurrence.event.name)
-			self._note(SEQUENCE_START, self._on_air_sequence, choice, instant)
+			self._note(SEQUENCE_START, self._on_air_sequence, choice.occurrence.event.id, instant)
 
-	def _note(self, kind: str, message: str, choice: Choice, instant: datetime) -> None:
-		self.history.record(self.connection, "info", kind, message, instant, event=choice.occurrence.event.id)
+	def _note_events(self, choice: Choice | None, instant: datetime) -> None:
+		"""La fin de l'événement à l'antenne, puis le début du nouveau, s'il change : au début d'un passage, ou quand
+		une occurrence commence ou cesse de prêter son nom pendant un sonore."""
+		on_air = None if choice is None else ((choice.lender) or (choice.occurrence))
+		previous, self._on_air_occurrence = self._on_air_occurrence, on_air
+		same = (previous is not None) and (on_air is not None) and (previous.key == on_air.key)
+		if (previous is not None) and (not same):
+			self._note(EVENT_END, N_("“{name}”").format(name=previous.event.name), previous.event.id, instant)
+		if (choice is None) or (on_air is None) or (same):
+			return
+		message = _on_air_event(on_air)
+		if choice.lender is not None:
+			message = N_("{on_air}, lending its name to “{name}”").format(
+				on_air=message, name=choice.occurrence.event.name
+			)
+		self._note(EVENT_START, message, on_air.event.id, instant)
+
+	def _note(self, kind: str, message: str, event: int, instant: datetime) -> None:
+		self.history.record(self.connection, "info", kind, message, instant, event=event)
 		if self.outputs is not None:
 			self.outputs.announce(kind, message)
 
@@ -1427,7 +1500,7 @@ class Broadcast:
 			"bank_id": choice.bank,
 		}
 		if play is not None:
-			lines = read_plays(self.connection, 1, play.id)
+			lines = read_plays(self.connection, 1, play.id, ongoing_lender=(_lender_id(choice),))
 			details["public_text"] = None
 			if lines != []:
 				details["public_text"] = public_text(lines[0], self._metadata())
@@ -1455,6 +1528,9 @@ def _display(choice: Choice, parameters: Parameters) -> dict[str, Any]:
 		"title": parameters.title,
 		"location": parameters.location,
 		"event": choice.occurrence.event.name,
+		# https://github.com/dascritch/machincast/issues/399, sans changer la version.
+		"lender": None if choice.lender is None else choice.lender.event.name,
+		"lender_id": _lender_id(choice),
 	}
 
 
@@ -1508,6 +1584,11 @@ def _timecode(position: timedelta) -> str:
 	if hours > 0:
 		return f"{hours}:{minutes:02d}:{seconds}"
 	return f"{minutes}:{seconds}"
+
+
+def _lender_id(choice: Choice) -> int | None:
+	"""L'événement au nom de qui le sonore passe (https://github.com/dascritch/machincast/issues/399)."""
+	return None if choice.lender is None else choice.lender.event.id
 
 
 def _play_item(choice: Choice) -> int | None:

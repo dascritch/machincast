@@ -207,7 +207,8 @@ def unroll(context: Context, database: Connection, playback: Connection, start: 
 			choice = decision.play
 			database.execute(
 				"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, bank_id, event_id,"
-				" event_item_id, sequence_id, sequence_item_id) VALUES (%s, 'start', %s, %s, %s, %s, %s, %s, %s)",
+				" event_item_id, sequence_id, sequence_item_id, lender_event_id)"
+				" VALUES (%s, 'start', %s, %s, %s, %s, %s, %s, %s, %s)",
 				(
 					uuid.uuid4(),
 					instant,
@@ -217,12 +218,17 @@ def unroll(context: Context, database: Connection, playback: Connection, start: 
 					choice.item.id,
 					None if choice.line is None else choice.line.sequence,
 					None if choice.line is None else choice.line.id,
+					None if choice.lender is None else choice.lender.event.id,
 				),
 			)
 			name = name_of(database, "sounds", "location", choice.sound)
 			ongoing = Ongoing(choice.occurrence, instant, instant + context.durations.get(name, context.duration))
 			outcome = "entier" if ongoing.planned_end <= end else "en cours"
-			context.log.append(Line(f"{instant:%H:%M}", name, choice.occurrence.event.name, outcome))
+			event = choice.occurrence.event.name
+			if choice.lender is not None:
+				# https://github.com/dascritch/machincast/issues/399
+				event = f"{event}, au nom de {choice.lender.event.name}"
+			context.log.append(Line(f"{instant:%H:%M}", name, event, outcome))
 			in_dead_air = False
 		elif (decision.dead_air) and (not in_dead_air):
 			event = "" if decision.occurrence is None else decision.occurrence.event.name

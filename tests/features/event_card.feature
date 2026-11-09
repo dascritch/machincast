@@ -408,6 +408,23 @@ Fonctionnalité: Fiche d'un événement
 			| end_of_list  | background_programming |
 			| end_fallback | None                   |
 
+	Scénario: Une émission qui a une fin peut prêter son nom au fil musical, même sans liste
+		https://github.com/dascritch/machincast/issues/399 : sa liste vide n'est plus une anomalie, la fiche dit ce que
+		fait la diffusion.
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et je retire les éléments « Habillage », « Passage pub », « Les Gaufres – Spot »
+		Et je saisis dans la fiche de l'événement :
+			| champ           | valeur                        |
+			| Fin de la liste | prêter son nom au fil musical |
+		Alors la fiche avertit en haut « Liste vide : l'événement en dessous, le plus souvent le fil musical, joue sous son nom pendant sa plage. »
+		Quand j'enregistre la fiche
+		Alors la fiche ne signale rien
+		Et l'événement « Matinale » a en base :
+			| champ       | valeur    |
+			| end_of_list | lend_name |
+
 	Plan du scénario: Sans fin, ou pour un fil musical ou un secours, la fin de liste est grisée : la liste se rejoue, ou se termine sans fin
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « <événement> »

@@ -83,6 +83,10 @@ def offer(state: PlaybackState) -> dict[str, Proposal]:
 		event = _named(ongoing.event)
 	if ongoing.priority_event == "background_programming":
 		event = Proposal(False, ALREADY_BACKGROUND_PROGRAMMING)
+	if ongoing.lender is not None:
+		# Le fil musical joue au nom d'une émission : la couper met fin au prêt
+		# (https://github.com/dascritch/machincast/issues/399).
+		event = _named(ongoing.lender)
 	return {
 		"sound": _named((ongoing.title) or (ongoing.location)),
 		"sequence": sequence,

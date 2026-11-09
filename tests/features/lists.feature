@@ -154,6 +154,22 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 			| Nuit      | Événement vide : il ne joue rien, et la diffusion se tait, avec une alerte, quand il est à l'antenne. |
 			| Secours   | Événement vide : il ne joue rien, et l'événement de priorité inférieure remplace le stream tombé. |
 
+	Scénario: Une émission vide qui prête son nom au fil musical n'est pas en anomalie
+		https://github.com/dascritch/machincast/issues/399 : sans liste, elle prête son nom pendant toute sa plage.
+
+		Étant donné les sonores :
+			| artist | title | type | state  | duration | location     |
+			|        | j1    | file | active | 8        | /srv/j1.flac |
+		Et les événements :
+			| name     | public_name | priority               | starts_at        | ends_at          | days |
+			| Continue |             | background_programming |                  |                  |      |
+			| Magazine | Le magazine | show                   | 2026-10-12 20:00 | 2026-10-12 21:00 |      |
+		Et l'événement « Continue » joue le sonore « j1 »
+		Et l'événement « Magazine » prête, à la fin de sa liste, son nom au fil musical
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Événements »
+		Alors le compte de la liste est « 2 événements »
+
 	# ─── Colonne d'anomalie (https://github.com/dascritch/machincast/issues/327) ───
 
 	Plan du scénario: La liste des <onglet> a, tout à gauche, la colonne d'anomalie

@@ -56,6 +56,44 @@ Fonctionnalité: Masquage des métadonnées et modules de sortie
 		Alors la page publique montre « Radio Exemple »
 		Et la page publique ne montre ni « Les Gaufres » ni « Café à minuit »
 
+	# ─── Prêt de nom (https://github.com/dascritch/machincast/issues/399) ───
+
+	Scénario: Une émission vide qui prête son nom s'affiche dès son heure, sans couper le sonore du fil musical
+		Étant donné l'horloge du binaire au « 2026-10-14 19:59:50 »
+		Et le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et le sonore « f1 » dure 60 secondes en base
+		Et le sonore « f2 » dure 600 secondes en base
+		Et l'émission « Matinale » de 20:00:00 à 20:30:00, sans élément
+		Et l'événement « Matinale » a pour nom public « La matinale », et masque ses sonores
+		Et l'événement « Matinale » prête, à la fin de sa liste, son nom au fil musical
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 5 secondes
+		Alors la page publique montre « f1 » comme sonore à l'antenne
+		Quand la diffusion avance de 10 secondes
+		Alors la page publique montre « La matinale » comme sonore à l'antenne
+		Et l'airplay montre les passages « f1 »
+		Et le journal du binaire a annoncé « début d'événement : « Matinale », émission, de 20:00 à 20:30, qui prête son nom à « Continue » », en information
+		Quand la diffusion avance de 60 secondes
+		Alors l'airplay montre les passages « f1 », « f2 »
+		Et le passage « f2 », de l'événement « Continue », est au nom de « Matinale »
+		Et la page publique montre « La matinale » comme sonore à l'antenne
+
+	Scénario: Couper par le fil musical l'émission qui prête son nom y met fin
+		Étant donné l'horloge du binaire au « 2026-10-14 19:59:50 »
+		Et le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et le sonore « f1 » dure 60 secondes en base
+		Et le sonore « f2 » dure 600 secondes en base
+		Et l'émission « Matinale » de 20:00:00 à 20:30:00, sans élément
+		Et l'événement « Matinale » a pour nom public « La matinale », et masque ses sonores
+		Et l'événement « Matinale » prête, à la fin de sa liste, son nom au fil musical
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 15 secondes
+		Et je coupe l'événement par le fil musical
+		Et la diffusion avance de 2 secondes
+		Alors l'airplay montre les passages « f1 », « f2 »
+		Et le passage « f2 », de l'événement « Continue », est au nom d'aucun autre
+		Et la page publique montre « f2 » comme sonore à l'antenne
+
 	# ─── Page publique (HTML) ──────────────────────────────────
 
 	Scénario: La page publique montre le sonore à l'antenne, puis les 20 précédents

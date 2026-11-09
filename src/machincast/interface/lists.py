@@ -289,7 +289,8 @@ def read_events(connection: Connection) -> list[Line]:
 		rows = connection.execute(
 			"SELECT e.id, e.internal_name, e.public_name, e.priority::text, e.starts_at, e.ends_at,"
 			" e.recurrence_days::text[],"
-			" NOT EXISTS (SELECT 1 FROM event_items x WHERE x.event_id = e.id)"
+			# Une liste vide qui prête son nom n'est pas une anomalie (https://github.com/dascritch/machincast/issues/399).
+			" NOT EXISTS (SELECT 1 FROM event_items x WHERE x.event_id = e.id) AND e.end_of_list <> 'lend_name'"
 			# e.priorite : l'ordre du type énuméré, pas celui du texte de la colonne affichée.
 			" FROM events e WHERE e.deleted_at IS NULL ORDER BY e.priority DESC, e.internal_name, e.id"
 		).fetchall()

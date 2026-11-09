@@ -599,7 +599,7 @@ def next_displayed(context: Context, qtbot: QtBot, soon: str | None, text: str) 
 
 @then(
 	parsers.re(
-		r"le (?P<which>sonore en cours|prochain sonore) a pour événement « (?P<event>[^»]+) »"
+		r"le (?P<which>sonore en cours|prochain sonore) a pour événement « (?P<event>.+?) »"
 		r" et pour horaire « (?P<schedule>.+) »$"
 	)
 )
@@ -637,7 +637,7 @@ def public_text(context: Context, qtbot: QtBot, soon: str | None, text: str) -> 
 	assert caption.text() == text
 
 
-@then(parsers.re(r"l'événement à l'antenne est (?P<soon>bientôt )?« (?P<text>[^»]+) »"))
+@then(parsers.re(r"l'événement à l'antenne est (?P<soon>bientôt )?« (?P<text>.+) »$"))
 def on_air_event(context: Context, qtbot: QtBot, soon: str | None, text: str) -> None:
 	caption = screen(context).ui.on_air_event
 	if soon:

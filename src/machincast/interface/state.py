@@ -68,11 +68,23 @@ class DisplayedSound:
 	"""Ce que la page publique affiche du sonore en cours, masquage appliqué."""
 	cut_by: str | None = None
 	"""L'événement qui coupera le sonore en cours, à sa fin estimée (https://github.com/dascritch/machincast/issues/169)."""
+	lender: str | None = None
+	"""L'événement au nom de qui le sonore passe, quand il prête son nom à celui qui le joue
+	(https://github.com/dascritch/machincast/issues/399)."""
+	lender_id: int | None = None
 	buffer_level: float | None = None
 	"""Secondes dans la mémoire tampon du stream d'un feed en cours
 	(https://github.com/dascritch/machincast/issues/351) ; None sans elle."""
 	buffer_target: float | None = None
 	"""Durée de cette mémoire tampon, en secondes."""
+
+	@property
+	def shown_event(self) -> str | None:
+		"""L'événement qui le joue, au nom de celui qui lui prête le sien : « Continue, au nom de « Matinale » »
+		(https://github.com/dascritch/machincast/issues/399)."""
+		if (self.event is None) or (self.lender is None):
+			return self.event
+		return _("{event}, in the name of “{lender}”").format(event=self.event, lender=self.lender)
 
 
 @dataclass(frozen=True)
@@ -149,6 +161,8 @@ def _sound(fields: dict[str, Any] | None, start: str) -> DisplayedSound | None:
 		id_bank=integer_or_none(fields.get("bank_id")),
 		public_text=text_or_none(fields.get("public_text")),
 		cut_by=text_or_none(fields.get("cut_by")),
+		lender=text_or_none(fields.get("lender")),
+		lender_id=integer_or_none(fields.get("lender_id")),
 		buffer_level=_buffer(fields, "level"),
 		buffer_target=_buffer(fields, "target"),
 	)

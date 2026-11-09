@@ -64,6 +64,12 @@ prévision (prevision), où les décisions voient les passages prévus comme jou
 tirages au hasard, qui sont engagés : ces sonores seront joués. Quand l'un d'eux devient le prochain sonore, les
 occurrences que sa décision a terminées le sont pour de bon (engager).
 
+Prêter son nom (https://github.com/dascritch/machincast/issues/399, END_LEND_NAME) : une émission ou un spécial dont la
+liste est épuisée, ou vide dès son début, se termine comme les autres, mais reste au-dessus de la grille jusqu'à sa fin
+prévue : l'événement en dessous, le plus souvent le fil musical, y joue sa liste sous son nom (Choice.lender,
+Decision.lender). Ce prêt se déduit de la grille et des occurrences terminées (_lender) : il survit à une prévision et
+se retrouve après un redémarrage. Une coupure par le fil musical, par le secours ou par un feed y met fin.
+
 Un sonore dont le fichier est introuvable au moment de le jouer est écarté (exclure) pendant
 NOT_FOUND_FILE_RETRY : il est traité comme non jouable, pour ne pas le réessayer à chaque tour de liste
 (https://github.com/dascritch/machincast/issues/88).
@@ -105,7 +111,9 @@ OUTSIDE_LIST = 0
 END_REPLAY = "replay"
 END_TO_BACKGROUND = "background_programming"
 END_TO_FALLBACK = "fallback"
-"""Les valeurs de events.end_of_list (https://github.com/dascritch/machincast/issues/350)."""
+END_LEND_NAME = "lend_name"
+"""Les valeurs de events.end_of_list (https://github.com/dascritch/machincast/issues/350,
+https://github.com/dascritch/machincast/issues/399)."""
 
 
 @dataclass(frozen=True)
@@ -130,6 +138,9 @@ class Choice:
 	occurrence: Occurrence
 	line: SequenceItem | None = None
 	"""Élément de la séquence qui a fait jouer le sonore, quand l'élément de l'événement est une séquence."""
+	lender: Occurrence | None = None
+	"""L'occurrence au nom de qui le sonore passe, quand elle prête son nom à son événement
+	(https://github.com/dascritch/machincast/issues/399)."""
 
 
 @dataclass(frozen=True)
@@ -204,6 +215,9 @@ class Decision:
 	"""Rien à diffuser : se taire."""
 	occurrence: Occurrence | None = None
 	"""Événement actif pendant un blanc, pour le signaler."""
+	lender: Occurrence | None = None
+	"""L'occurrence qui prête son nom à l'antenne à cet instant, sonore en cours compris
+	(https://github.com/dascritch/machincast/issues/399)."""
 
 	@property
 	def continue_(self) -> bool:
@@ -713,9 +727,34 @@ class Scheduler:
 		return frozenset(self.excluded_list)
 
 	def decide(self, instant: datetime, ongoing: Ongoing | None) -> Decision:
-		"""Ce que la sortie audio doit faire à l'instant ; ongoing est le passage qu'elle diffuse, s'il y en a un."""
+		"""Ce que la sortie audio doit faire à l'instant ; ongoing est le passage qu'elle diffuse, s'il y en a un. Le
+		sonore à jouer, et la décision, portent l'occurrence qui prête alors son nom."""
 		with self.connection.transaction():
-			return self._decide(instant, ongoing)
+			events = read_grid(self.connection)
+			decision = self._decide(instant, ongoing, events)
+			lender = self._lender(events, instant)
+		play = decision.play
+		if (play is not None) and (lender is not None) and (lender.event.id != play.occurrence.event.id):
+			play = dataclasses.replace(play, lender=lender)
+		return dataclasses.replace(decision, play=play, lender=lender)
+
+	def lender(self, instant: datetime) -> Occurrence | None:
+		"""L'occurrence qui prête son nom à cet instant : pour un sonore réservé, qui commence sans nouvelle décision."""
+		with self.connection.transaction():
+			return self._lender(read_grid(self.connection), instant)
+
+	def _lender(self, events: list[Event], instant: datetime) -> Occurrence | None:
+		"""L'occurrence qui prête son nom (https://github.com/dascritch/machincast/issues/399) : la plus haute de la
+		grille, si son événement prête son nom à la fin de sa liste, que sa liste est épuisée (terminée plus tôt), et
+		qu'aucune coupure ne l'a terminée. Une occurrence terminée d'un autre événement n'en est pas une."""
+		lending = {event.id for event in events if event.end_of_list == END_LEND_NAME}
+		if not lending:
+			return None
+		others = frozenset(key for key in self.finished_list if (key[0] not in lending) or (key in self.cut_list))
+		top = self._active(events, instant, others)
+		if (top is None) or (top.event.id not in lending) or (top.key not in self.finished_list) or (top.end is None):
+			return None
+		return top
 
 	def _repetition(self, last: LastPlay | None) -> Repetition | None:
 		"""La banque « ne pas répéter » qui a fourni le dernier passage, s'il y en a une."""
@@ -747,8 +786,7 @@ class Scheduler:
 				event=skip.event,
 			)
 
-	def _decide(self, instant: datetime, ongoing: Ongoing | None) -> Decision:
-		events = read_grid(self.connection)
+	def _decide(self, instant: datetime, ongoing: Ongoing | None, events: list[Event]) -> Decision:
 		cut = switch_off = False
 		while True:
 			active = self._cover(instant, self._replace(events, instant, self._on_grid(events, instant)))

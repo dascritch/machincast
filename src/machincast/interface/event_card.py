@@ -72,10 +72,15 @@ END_OF_LIST: tuple[tuple[str, str], ...] = (
 	("replay", _("Replay the list")),
 	("background_programming", _("Switch to the background programming")),
 	("fallback", _("Switch to a fallback")),
+	("lend_name", _("Lend its name to the background programming")),
 )
 """Valeurs de events.end_of_list, dans l'ordre du choix de la fiche (https://github.com/dascritch/machincast/issues/350).
 Le choix n'a de sens que pour une émission ou un spécial qui a une fin : sans fin, sa liste ne boucle pas ; un fil
-musical et un secours rejouent toujours la leur."""
+musical et un secours rejouent toujours la leur. Prêter son nom (https://github.com/dascritch/machincast/issues/399) :
+l'événement en dessous, le plus souvent le fil musical, joue sous son nom jusqu'à sa fin, dès son début si sa liste
+est vide."""
+LENDS_NAME = _("Empty list: the event below, most often the background programming, plays in its name during its slot.")
+"""Ce que dit la fiche d'une liste vide qui prête son nom : ce n'est pas une anomalie."""
 CHOOSE_FALLBACK = _("Choose a fallback…")
 EACH_STREAM = _("The fallback of each stream")
 """Sans secours d'un stream tombé dans l'événement : celui de chaque stream, comme avant."""
@@ -144,6 +149,7 @@ class EventCard(Card):
 			ui.end_of_list.addItem(text, value)
 		ui.end_of_list.currentIndexChanged.connect(self._end_of_list)
 		ui.end_of_list.currentIndexChanged.connect(self._modify)
+		ui.end_of_list.currentIndexChanged.connect(self._warn)
 		ui.end_fallback.currentIndexChanged.connect(self._modify)
 		ui.stream_fallback.currentIndexChanged.connect(self._modify)
 		ui.priority.currentIndexChanged.connect(self._end_of_list)
@@ -417,6 +423,8 @@ class EventCard(Card):
 		empty = ""
 		if self.items.lines() == []:
 			empty = EMPTY_EVENT[self._priority()]
+			if self.ui.end_of_list.currentData() == "lend_name":
+				empty = LENDS_NAME
 		self.warn(empty)
 
 	def _write(self) -> int:

@@ -33,11 +33,14 @@ def entries(interface: Context) -> dict[str, QAction]:
 @given(
 	parsers.re(
 		r"Machin player diffuse « (?P<title>[^»]+) »(?:, de la séquence « (?P<sequence>[^»]+) »)?,"
-		r" dans (?P<feed>le fil musical )?« (?P<event>[^»]+) »"
+		r" dans (?P<feed>le fil musical )?« (?P<event>[^»]+) »(?:, au nom de « (?P<lender>[^»]+) »)?"
 	)
 )
-def broadcasts(player: Player, title: str, sequence: str | None, feed: str | None, event: str) -> None:
-	"""Un événement sans précision est une émission."""
+def broadcasts(
+	player: Player, title: str, sequence: str | None, feed: str | None, event: str, lender: str | None
+) -> None:
+	"""Un événement sans précision est une émission ; au nom d'une autre, elle lui prête son nom
+	(https://github.com/dascritch/machincast/issues/399)."""
 	ongoing = {
 		"sound_id": 12,
 		"type": "file",
@@ -52,6 +55,8 @@ def broadcasts(player: Player, title: str, sequence: str | None, feed: str | Non
 		"estimated_end": "2026-10-21T09:02:34+02:00",
 		"position": 60.0,
 		"progress": 0.28,
+		"lender": lender,
+		"lender_id": None if lender is None else 9,
 	}
 	publish(player, "playing", ongoing)
 

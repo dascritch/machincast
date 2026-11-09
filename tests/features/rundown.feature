@@ -109,6 +109,82 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 			| 20:10 | f      | Continue  | entier |
 			| 20:20 | f      | Continue  | entier |
 
+	# ─── Prêter son nom à l'événement en dessous (https://github.com/dascritch/machincast/issues/399) ───
+	# La colonne événement donne « Continue, au nom de Matinale » pour un passage joué par le fil musical sous le nom
+	# de l'émission.
+
+	Scénario: Une émission vide qui prête son nom laisse jouer le fil musical en son nom, sans le couper, jusqu'à sa fin
+		Étant donné les événements :
+			| nom      | priorité               | début | fin   | liste        |
+			| Continue | background_programming |       |       | sonore « f » |
+			| Matinale | show                   | 20:05 | 20:35 |              |
+		Et l'événement « Matinale » prête, à la fin de sa liste, son nom au fil musical
+		Quand la diffusion se déroule de 20:00 à 20:50
+		Alors la diffusion a été :
+			| heure | sonore | événement                     | issue  |
+			| 20:00 | f      | Continue                      | entier |
+			| 20:10 | f      | Continue, au nom de Matinale  | entier |
+			| 20:20 | f      | Continue, au nom de Matinale  | entier |
+			| 20:30 | f      | Continue, au nom de Matinale  | entier |
+			| 20:40 | f      | Continue                      | entier |
+
+	Scénario: Une émission qui n'a que son générique le joue, puis prête son nom au fil musical jusqu'à sa fin
+		Étant donné les événements :
+			| nom      | priorité               | début | fin   | liste        |
+			| Continue | background_programming |       |       | sonore « f » |
+			| Matinale | show                   | 20:00 | 20:30 | sonore « g » |
+		Et l'événement « Matinale » prête, à la fin de sa liste, son nom au fil musical
+		Quand la diffusion se déroule de 20:00 à 20:40
+		Alors la diffusion a été :
+			| heure | sonore | événement                     | issue  |
+			| 20:00 | g      | Matinale                      | entier |
+			| 20:10 | f      | Continue, au nom de Matinale  | entier |
+			| 20:20 | f      | Continue, au nom de Matinale  | entier |
+			| 20:30 | f      | Continue                      | entier |
+
+	Scénario: Un spécial vide prête son nom à l'émission en dessous, qui garde sa liste
+		Étant donné les événements :
+			| nom      | priorité               | début | fin   | liste                      |
+			| Continue | background_programming |       |       | sonore « f »               |
+			| Magazine | show                   | 20:00 | 21:00 | sonore « a », sonore « b » |
+			| Spécial  | special                | 20:15 | 20:45 |                            |
+		Et l'événement « Spécial » prête, à la fin de sa liste, son nom au fil musical
+		Quand la diffusion se déroule de 20:00 à 21:00
+		Alors la diffusion a été :
+			| heure | sonore | événement                     | issue  |
+			| 20:00 | a      | Magazine                      | entier |
+			| 20:10 | b      | Magazine                      | entier |
+			| 20:20 | a      | Magazine, au nom de Spécial   | entier |
+			| 20:30 | b      | Magazine, au nom de Spécial   | entier |
+			| 20:40 | a      | Magazine, au nom de Spécial   | entier |
+			| 20:50 | b      | Magazine                      | entier |
+
+	Scénario: Une émission qui prête son nom le prête encore après un redémarrage du binaire
+		Étant donné les événements :
+			| nom      | priorité               | début | fin   | liste        |
+			| Continue | background_programming |       |       | sonore « f » |
+			| Matinale | show                   | 20:00 | 20:30 |              |
+		Et l'événement « Matinale » prête, à la fin de sa liste, son nom au fil musical
+		Quand la diffusion se déroule de 20:00 à 20:10
+		Et le binaire redémarre
+		Et la diffusion se déroule de 20:10 à 20:20
+		Alors la diffusion a été :
+			| heure | sonore | événement                     | issue  |
+			| 20:00 | f      | Continue, au nom de Matinale  | entier |
+			| 20:10 | f      | Continue, au nom de Matinale  | entier |
+
+	Scénario: Une émission qui prête son nom, sans rien de jouable en dessous, laisse un blanc
+		Étant donné le sonore « f » est à l'état « disabled »
+		Et les événements :
+			| nom      | priorité               | début | fin   | liste        |
+			| Continue | background_programming |       |       | sonore « f » |
+			| Matinale | show                   | 20:00 | 20:30 |              |
+		Et l'événement « Matinale » prête, à la fin de sa liste, son nom au fil musical
+		Quand la diffusion se déroule de 20:00 à 20:10
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue |
+			| 20:00 | blanc  | Continue  |       |
+
 	Scénario: Une banque sans sonore jouable est sautée, comme un sonore qui n'est pas jouable
 		Étant donné une banque séquentielle « Vide » contenant « x »
 		Et le sonore « x » est à l'état « disabled »

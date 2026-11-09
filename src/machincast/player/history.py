@@ -74,6 +74,7 @@ class History(Protocol):
 		instant: datetime,
 		sequence: int | None = None,
 		item_sequence: int | None = None,
+		lender: int | None = None,
 	) -> Play: ...
 
 	def finish_play(
@@ -130,6 +131,7 @@ class HistoryInPlayback:
 		instant: datetime,
 		sequence: int | None = None,
 		item_sequence: int | None = None,
+		lender: int | None = None,
 	) -> Play:
 		raise AssertionError("une anticipation ne commence aucun passage")
 
@@ -273,8 +275,9 @@ class HistoryInDatabase:
 		instant: datetime,
 		sequence: int | None = None,
 		item_sequence: int | None = None,
+		lender: int | None = None,
 	) -> Play:
-		return saving.begin_play(connection, sound, bank, event, item, instant, sequence, item_sequence)
+		return saving.begin_play(connection, sound, bank, event, item, instant, sequence, item_sequence, lender)
 
 	def finish_play(
 		self,

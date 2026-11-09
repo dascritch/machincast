@@ -332,6 +332,19 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et l'état du binaire lecture a pour infobulle « État de Machin player »
 		Et l'événement à l'antenne a pour infobulle « Événement à l'antenne »
 
+	Scénario: Un sonore joué au nom d'une émission le dit, dans le bandeau et pour le sonore en cours
+		https://github.com/dascritch/machincast/issues/399
+
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le sonore en cours a pour contexte :
+			| champ       | valeur   |
+			| lender      | Matinale |
+			| lender_id   | 9        |
+		Quand l'écran par défaut s'ouvre
+		Alors l'événement à l'antenne est bientôt « Fil de jour, au nom de « Matinale », permanent »
+		Et le sonore en cours a pour événement « Fil de jour, au nom de « Matinale » » et pour horaire « 20:00:00 – 20:03:34 (3:34) »
+
 	Plan du scénario: L'événement à l'antenne dit s'il est permanent, ou sans fin prévue
 		Étant donné la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes

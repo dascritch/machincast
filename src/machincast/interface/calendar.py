@@ -357,10 +357,11 @@ def read_plays(connection: Connection, de: datetime, a: datetime, first: datetim
 	if first is not None:
 		since = max(since, first)
 	lines = connection.execute(
-		"SELECT d.logged_at, f.logged_at, d.event_id, e.internal_name, e.priority::text"
+		# L'événement à l'antenne : celui qui prête son nom (https://github.com/dascritch/machincast/issues/399).
+		"SELECT d.logged_at, f.logged_at, e.id, e.internal_name, e.priority::text"
 		" FROM airplay d"
 		" LEFT JOIN airplay f ON (f.play_id = d.play_id) AND (f.line_type = 'end')"
-		" LEFT JOIN events e ON e.id = d.event_id"
+		" LEFT JOIN events e ON e.id = COALESCE(d.lender_event_id, d.event_id)"
 		" WHERE (d.line_type = 'start') AND (d.logged_at >= %s) AND (d.logged_at < %s)"
 		" ORDER BY d.logged_at, d.id",
 		(since.astimezone(), a.astimezone()),

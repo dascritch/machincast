@@ -321,6 +321,16 @@ def expected_plays(context: Context, datatable: list[list[str]]) -> None:
 	assert obtained_list == lines, obtained_list
 
 
+@then("la simulation donne les passages, avec leur événement :")
+def plays_with_event(context: Context, datatable: list[list[str]]) -> None:
+	"""https://github.com/dascritch/machincast/issues/399"""
+	_, *lines = datatable
+	obtained_list = [
+		[f"{p.start.astimezone():%Y-%m-%d %H:%M:%S}", str(p.title), str(p.event)] for p in result(context).plays
+	]
+	assert obtained_list == lines, obtained_list
+
+
 @then(parsers.parse("la simulation donne {count:d} passages"))
 def play_count(context: Context, count: int) -> None:
 	assert len(result(context).plays) == count

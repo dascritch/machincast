@@ -43,6 +43,19 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 			| ⏭ Sauter après la séquence              | active   | « Pub »                             |
 			| ⏭ Couper l'événement par le fil musical | inactive | Le fil musical est déjà à l'antenne |
 
+	Scénario: Dans le fil musical joué au nom d'une émission, couper l'événement par le fil musical coupe l'émission
+		https://github.com/dascritch/machincast/issues/399 : l'émission prête son nom au fil musical ; la couper met fin
+		au prêt.
+
+		Étant donné Machin player diffuse « Café à minuit », dans le fil musical « Continue », au nom de « Matinale »
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'interface a reçu l'état de Machin player
+		Alors les interruptions du menu « Diffusion » sont :
+			| entrée                                | état     | infobulle                   |
+			| ⏭ Sauter au sonore suivant              | active   | « Café à minuit »           |
+			| ⏭ Sauter après la séquence              | inactive | Aucune séquence à l'antenne |
+			| ⏭ Couper l'événement par le fil musical | active   | « Matinale »                |
+
 	Plan du scénario: Sans rien à l'antenne, aucune interruption n'est proposée
 		Étant donné Machin player <situation>
 		Quand la fenêtre de l'interface s'ouvre
