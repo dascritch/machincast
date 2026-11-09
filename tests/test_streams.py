@@ -290,3 +290,23 @@ def prefilled(bench: Bench, server: StreamServer, stream: str, seconds: int, wai
 	assert track.buffering >= 100, track.buffering
 	assert track.final_position is not None
 	assert timedelta(seconds=0.5) < track.final_position <= timedelta(seconds=6 - wait), track.final_position
+
+
+@then(parsers.parse("le flux « {stream} » s'est ouvert une seule fois, muet, à {hour_}"))
+def opened_once(bench: Bench, server: StreamServer, stream: str, hour_: str) -> None:
+	"""Le moteur simulé a ouvert la voie du stream une fois, muette, PRELOAD avant son début
+	(https://github.com/dascritch/machincast/issues/351) ; elle a pris l'antenne sans nouvelle ouverture."""
+	assert bench.simulated is not None
+	opened = [(at, silent) for path, at, silent in bench.simulated.opened_list if path == server.address(stream)]
+	assert opened == [(hour(f"2026-10-14 {hour_}"), True)], opened
+
+
+@then(parsers.parse("la voie du flux « {stream} » a joué dès sa prise d'antenne, à plein volume"))
+def played_at_once(bench: Bench, server: StreamServer, stream: str) -> None:
+	"""Sa position repart de zéro à la prise d'antenne (Track.take_air) : 2 secondes ensuite, elle en a joué près de
+	2, sans attendre sa mémoire tampon, déjà pleine."""
+	assert bench.engine is not None
+	track = bench.engine.played_list[server.address(stream)]
+	assert track.final_position is not None
+	assert timedelta(seconds=1.4) <= track.final_position <= timedelta(seconds=2.6), track.final_position
+	assert track.volume_to(track.final_position) == 1.0

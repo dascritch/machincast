@@ -345,6 +345,15 @@ class Track:
 		if self._player.set_state(target) == Gst.StateChangeReturn.FAILURE:
 			self.handle()
 
+	def take_air(self) -> None:
+		"""Une voie préchargée prend l'antenne (https://github.com/dascritch/machincast/issues/351) : sa position
+		repart de zéro, comme celle d'une voie qui démarre, pour l'enveloppe, le gel et la socket d'état."""
+		found, nanoseconds = self._player.query_position(Gst.Format.TIME)
+		if found:
+			self.offset = timedelta(microseconds=nanoseconds / 1000)
+		self._last_position = timedelta(0)
+		self._advance_at = self._clock()
+
 	def buffer_level(self) -> timedelta | None:
 		"""Ce que contient la mémoire tampon du stream d'un feed, d'après son remplissage ; None sans elle."""
 		if self.buffer is None:
@@ -539,6 +548,8 @@ class PlaybackTrack(Protocol):
 	def volume_to(self, instant: timedelta) -> float: ...
 
 	def buffer_level(self) -> timedelta | None: ...
+
+	def take_air(self) -> None: ...
 
 
 class Engine(Protocol):

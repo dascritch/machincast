@@ -70,6 +70,8 @@ class RecordingSimulatedEngine(SimulatedEngine):
 	def __init__(self, clock: FixedClock) -> None:
 		super().__init__(clock)
 		self.rises: dict[str, timedelta] = {}
+		self.opened_list: list[tuple[str, datetime, bool]] = []
+		"""Chaque voie ouverte : son chemin ou son adresse, l'heure du binaire, et si elle est muette."""
 
 	def play(
 		self,
@@ -84,6 +86,7 @@ class RecordingSimulatedEngine(SimulatedEngine):
 		buffer: timedelta | None = None,
 	) -> PlaybackTrack:
 		self.rises[Path(str(path)).parent.name] = start_crossfade
+		self.opened_list.append((str(path), self.clock.now(), silent))
 		return super().play(path, duration, start_crossfade, end_crossfade, silent, offset, departure, arrival, buffer)
 
 
@@ -344,7 +347,8 @@ def reread_grid(bench: Bench) -> None:
 
 @given(parsers.parse("chaque sonore dure {duration:d} secondes"))
 def sound_duration(empty_database: Connection, duration: int) -> None:
-	empty_database.execute("UPDATE sounds SET duration = %s", (timedelta(seconds=duration),))
+	"""Chaque fichier : un stream n'a pas de durée."""
+	empty_database.execute("UPDATE sounds SET duration = %s WHERE type = 'file'", (timedelta(seconds=duration),))
 
 
 @given(

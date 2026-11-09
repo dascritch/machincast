@@ -112,6 +112,10 @@ class SimulatedTrack:
 		"""Une voie simulée n'a pas de mémoire tampon (https://github.com/dascritch/machincast/issues/351)."""
 		return None
 
+	def take_air(self) -> None:
+		"""Une voie simulée préchargée repart de zéro en prenant l'antenne."""
+		self.start = self.clock.now()
+
 	def planned_end(self) -> datetime | None:
 		if self.planned_stop is not None:
 			return self.start + self.planned_stop

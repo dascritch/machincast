@@ -49,6 +49,29 @@ Fonctionnalité: Diffusion des streams
 		Et la diffusion s'arrête
 		Alors la voie du flux « studio » a rempli sa mémoire tampon de 6 secondes, en attendant au moins 2 secondes avant de jouer
 
+	Scénario: Le stream d'un feed se charge, muet, 30 secondes avant de prendre l'antenne, pour la prendre sans blanc
+		https://github.com/dascritch/machincast/issues/351 : sa mémoire tampon est pleine quand il commence.
+		Étant donné le stream « Direct mobile » sur le feed « Studio mobile » du flux « studio »
+		Et l'émission « Direct » de 20:00:30 à 20:30:00, avec le sonore « Direct mobile »
+		Et chaque sonore dure 20 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 50 secondes
+		Et la diffusion s'arrête
+		Alors le flux « studio » s'est ouvert une seule fois, muet, à 20:00:00
+		Et l'airplay montre les passages « f1 », « f2 », « Direct mobile »
+
+	Scénario: Le stream préchargé prend l'antenne aussitôt, sur sa seule connexion
+		Étant donné le stream « Direct mobile » sur le feed « Studio mobile » du flux « studio »
+		Et le feed « Studio mobile » a une mémoire tampon de 6 secondes
+		Et l'émission « Direct » de 19:59:55 à 20:30:00, avec le sonore « Direct mobile »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne pendant 4,5 secondes en temps réel
+		Et l'horloge du binaire passe au « 2026-10-14 19:59:55 »
+		Et la diffusion tourne pendant 2 secondes en temps réel
+		Et la diffusion s'arrête
+		Alors le serveur de flux n'a reçu qu'une connexion
+		Et la voie du flux « studio » a joué dès sa prise d'antenne, à plein volume
+
 	# ─── Arrêt du stream ───────────────────────────────────────
 
 	Scénario: Le début d'un événement de priorité supérieure coupe net le stream
