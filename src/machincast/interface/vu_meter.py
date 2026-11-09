@@ -190,31 +190,30 @@ class VuMeter(QWidget):
 		return [(str(tick), frame) for tick, frame in sorted(retained_list.items(), reverse=True)]
 
 	def paintEvent(self, _event: QPaintEvent) -> None:
-		painter = QPainter(self)
-		arrangement = self.arrangement()
-		for channel in arrangement.channels:
-			painter.fillRect(channel, self.palette().base())
-		for index, level in enumerate(self.levels):
-			channel = arrangement.channels[index]
-			peak = self.peaks[index]
-			more_light = QColor(colour(peak))
-			more_light.setAlpha(110)
-			painter.fillRect(self._bar(channel, share(peak)), more_light)
-			painter.fillRect(self._bar(channel, share(level)), colour(level))
-			if index < len(self.maintained):
-				kept = self.maintained[index][0]
-				painter.setPen(QPen(colour(kept), 2))
-				marker = self._bar(channel, share(kept))
-				if self.vertical:
-					painter.drawLine(marker.topLeft(), marker.topRight())
-				else:
-					painter.drawLine(marker.topRight(), marker.bottomRight())
-		line = self.palette().mid().color()
-		painter.setPen(line)
-		for channel in arrangement.channels:
-			painter.drawRect(channel)
-		self._paint_scale(painter, arrangement)
-		painter.end()
+		with QPainter(self) as painter:
+			arrangement = self.arrangement()
+			for channel in arrangement.channels:
+				painter.fillRect(channel, self.palette().base())
+			for index, level in enumerate(self.levels):
+				channel = arrangement.channels[index]
+				peak = self.peaks[index]
+				more_light = QColor(colour(peak))
+				more_light.setAlpha(110)
+				painter.fillRect(self._bar(channel, share(peak)), more_light)
+				painter.fillRect(self._bar(channel, share(level)), colour(level))
+				if index < len(self.maintained):
+					kept = self.maintained[index][0]
+					painter.setPen(QPen(colour(kept), 2))
+					marker = self._bar(channel, share(kept))
+					if self.vertical:
+						painter.drawLine(marker.topLeft(), marker.topRight())
+					else:
+						painter.drawLine(marker.topRight(), marker.bottomRight())
+			line = self.palette().mid().color()
+			painter.setPen(line)
+			for channel in arrangement.channels:
+				painter.drawRect(channel)
+			self._paint_scale(painter, arrangement)
 
 	def _paint_scale(self, painter: QPainter, arrangement: Arrangement) -> None:
 		scale = arrangement.scale

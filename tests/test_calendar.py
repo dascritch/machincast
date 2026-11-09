@@ -11,7 +11,7 @@ import uuid
 from datetime import date, datetime, time, timedelta
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
-from PySide6.QtGui import QHelpEvent, QWheelEvent
+from PySide6.QtGui import QColor, QHelpEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication, QCheckBox, QComboBox, QMenu, QPushButton, QToolTip, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
@@ -330,6 +330,17 @@ def coloured_box(interface: Context, box: str, name: str, day: str) -> None:
 	middle = view.grid.rectangle(named_block(view, name, day)).center().toPoint()
 	drawing = view.grid.grab().toImage()
 	assert icon.pixelColor(8, 8).name() == drawing.pixelColor(middle).name()
+
+
+@then(parsers.parse("la bande d'airplay « {name} » de {start} du {day} est dessinée en « {colour} » assombri"))
+def strip_colour(interface: Context, name: str, start: str, day: str, colour: str) -> None:
+	"""Le milieu de la bande, dans le dessin de la grille, a la couleur de sa priorité assombrie, comme toute bande
+	d'airplay ; le dessin ne lève rien, ce que pytest-qt vérifie."""
+	view = calendar(interface)
+	(strip,) = [s for s in view.strips() if (s.name == name) and (day_label(s.day) == day)]
+	assert schedule(strip.day, strip.start) == start
+	drawing = view.grid.grab().toImage()
+	assert drawing.pixelColor(view.grid.rectangle(strip).center().toPoint()).name() == QColor(colour).darker(130).name()
 
 
 @then(parsers.parse("la case « {box} » du calendrier a l'infobulle « {tooltip} »"))

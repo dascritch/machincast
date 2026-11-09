@@ -265,6 +265,24 @@ def keeps_crazy() -> None:
 	assert not faults, "utiliser machincast.clock ou machincast.randomness :\n" + "\n".join(faults)
 
 
+# Un QPainter s'ouvre par with : il se ferme même quand le dessin lève une exception
+# (https://github.com/dascritch/machincast/issues/413).
+PAINTER = re.compile(r"QPainter\(")
+PAINTER_IN_WITH = re.compile(r"^\s*with QPainter\(.*\) as \w+:")
+
+
+@then("aucun fichier de src/ ne crée de QPainter hors d'un bloc with")
+def painter_in_with() -> None:
+	faults = [
+		f"{path.relative_to(SOURCES)}:{number}"
+		for path in sorted(SOURCES.rglob("*.py"))
+		if path.parent.name != "ui"
+		for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
+		if (PAINTER.search(line.split("#", 1)[0])) and (not PAINTER_IN_WITH.match(line))
+	]
+	assert not faults, "ouvrir le QPainter par « with QPainter(…) as painter: » :\n" + "\n".join(faults)
+
+
 # Les messages des exécutables passent par logging et machincast.log, jamais par print
 # (revue de https://github.com/dascritch/machincast/pull/65).
 PRINT = re.compile(r"(?<![\w.])print\s*\(")
