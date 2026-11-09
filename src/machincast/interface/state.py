@@ -68,6 +68,11 @@ class DisplayedSound:
 	"""Ce que la page publique affiche du sonore en cours, masquage appliqué."""
 	cut_by: str | None = None
 	"""L'événement qui coupera le sonore en cours, à sa fin estimée (https://github.com/dascritch/machincast/issues/169)."""
+	buffer_level: float | None = None
+	"""Secondes dans la mémoire tampon du stream d'un feed en cours
+	(https://github.com/dascritch/machincast/issues/351) ; None sans elle."""
+	buffer_target: float | None = None
+	"""Durée de cette mémoire tampon, en secondes."""
 
 
 @dataclass(frozen=True)
@@ -103,6 +108,14 @@ def _instant(value: object) -> datetime | None:
 	return datetime.fromisoformat(str(value))
 
 
+def _buffer(fields: dict[str, object], key: str) -> float | None:
+	"""Une valeur de la mémoire tampon du sonore en cours, {"level": …, "target": …} ; None sans elle."""
+	buffer = fields.get("buffer")
+	if not isinstance(buffer, dict):
+		return None
+	return _count(buffer.get(key))
+
+
 def _count(value: object) -> float | None:
 	if value is None:
 		return None
@@ -136,6 +149,8 @@ def _sound(fields: dict[str, Any] | None, start: str) -> DisplayedSound | None:
 		id_bank=integer_or_none(fields.get("bank_id")),
 		public_text=text_or_none(fields.get("public_text")),
 		cut_by=text_or_none(fields.get("cut_by")),
+		buffer_level=_buffer(fields, "level"),
+		buffer_target=_buffer(fields, "target"),
 	)
 
 

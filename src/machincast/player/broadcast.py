@@ -207,6 +207,8 @@ class Parameters:
 	"""Volume au début de la lecture, quand le fade-in déborde avant le début du fichier ; 0 sinon."""
 	arrival_volume: float = 0.0
 	"""Volume à la fin de la lecture, quand le fade-out déborde après la fin du fichier ; 0 sinon."""
+	buffer: timedelta | None = None
+	"""Mémoire tampon du stream d'un feed (https://github.com/dascritch/machincast/issues/351) ; None sinon."""
 
 
 @dataclass
@@ -292,7 +294,8 @@ def read_parameters(
 			"SELECT s.duration, s.crossfade_start, s.crossfade_end, s.type::text, COALESCE(s.stream_url, m.url),"
 			" s.fallback_event_id, s.artist, s.title, COALESCE(s.location, s.stream_url, m.url),"
 			" s.silence_detection OR COALESCE(b.silence_detection, false), s.detected_start, s.detected_end,"
-			" b.crossfade_start_rule::text, b.crossfade_start, b.crossfade_end_rule::text, b.crossfade_end"
+			" b.crossfade_start_rule::text, b.crossfade_start, b.crossfade_end_rule::text, b.crossfade_end,"
+			" m.buffer_duration"
 			" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id"
 			" LEFT JOIN banks b ON b.id = %s"
 			" WHERE s.id = %s",
@@ -301,7 +304,7 @@ def read_parameters(
 	if line is None:
 		return Parameters(None, timedelta(0), timedelta(0))
 	duration, start, end, sound_type, address, fallback, artist, title, location, *remainder = line
-	detection, detected_start, detected_end, start_rule, bank_start, end_rule, bank_end = remainder
+	detection, detected_start, detected_end, start_rule, bank_start, end_rule, bank_end, buffer = remainder
 	start_crossfade = crossfade(start, start_rule, bank_start, defects.start)
 	end_crossfade = crossfade(end, end_rule, bank_end, defects.end)
 	# Sans durée connue (un stream), les crossfades restent tels quels.
@@ -332,6 +335,7 @@ def read_parameters(
 		offset=placement.offset,
 		departure_volume=placement.departure,
 		arrival_volume=placement.arrival,
+		buffer=_interval(buffer),
 	)
 
 
@@ -1094,7 +1098,9 @@ class Broadcast:
 			return
 		if probe.track is None:
 			if (instant >= probe.next_attempt) and (probe.parameters.address is not None):
-				probe.track = self.engine.play(probe.parameters.address, None, silent=True)
+				probe.track = self.engine.play(
+					probe.parameters.address, None, silent=True, buffer=probe.parameters.buffer
+				)
 			return
 		probe.track.handle()
 		# Le même délai de garde : une tentative qui ne donne aucun son est abandonnée, puis reprise.
@@ -1179,6 +1185,7 @@ class Broadcast:
 			offset=parameters.offset,
 			departure=parameters.departure_volume,
 			arrival=parameters.arrival_volume,
+			buffer=parameters.buffer,
 		)
 		play = self._begin(following, instant)
 		if self.current is not None:
@@ -1249,6 +1256,7 @@ class Broadcast:
 				"cut_by_id": None,
 				"position": round(position.total_seconds(), 3),
 				"progress": _progress(position, duration),
+				"buffer": _buffer(current.track, parameters),
 			}
 			if current.cutoff is not None:
 				event = current.cutoff.occurrence.event
@@ -1578,10 +1586,19 @@ def _progress(position: timedelta, duration: timedelta | None) -> float | None:
 	return round(min(1.0, position / duration), 3)
 
 
+def _buffer(track: PlaybackTrack, parameters: Parameters) -> dict[str, float] | None:
+	"""La mémoire tampon du stream d'un feed, en secondes : ce qu'elle contient, sur sa durée
+	(https://github.com/dascritch/machincast/issues/351) ; None sans elle."""
+	level = track.buffer_level()
+	if (parameters.buffer is None) or (level is None):
+		return None
+	return {"level": round(level.total_seconds(), 1), "target": round(parameters.buffer.total_seconds(), 1)}
+
+
 def _without_progress(ongoing: object) -> object:
 	if not isinstance(ongoing, dict):
 		return ongoing
-	return {key: value for key, value in ongoing.items() if key not in ("position", "progression")}
+	return {key: value for key, value in ongoing.items() if key not in ("position", "progression", "buffer")}
 
 
 def install_stop() -> threading.Event:

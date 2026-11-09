@@ -1893,6 +1893,11 @@ msgstr "de {start:%H:%M} à {end:%H:%M}"
 
 #: machincast/interface/default_screen.py
 #, python-brace-format
+msgid "{level} s of {target} s"
+msgstr "{level} s sur {target} s"
+
+#: machincast/interface/default_screen.py
+#, python-brace-format
 msgid "{start} – {hour} (cut by “{cut_by}”, {duration})"
 msgstr "{start} – {hour} (coupé par « {cut_by} », {duration})"
 
@@ -2835,6 +2840,11 @@ msgstr "Le nom est obligatoire."
 #: machincast/interface/feed_card.py
 msgid "The address is required."
 msgstr "L'adresse est obligatoire."
+
+#: machincast/interface/feed_card.py
+#, python-brace-format
+msgid "{seconds} s"
+msgstr "{seconds} s"
 
 #: machincast/interface/feed_card.py
 #, python-brace-format
@@ -5366,6 +5376,10 @@ msgid "{message}, the next sound is played"
 msgstr "{message}, le sonore suivant est joué"
 
 #: machincast/player/engine.py
+msgid "the stream did not start after its buffer"
+msgstr "le stream n'a pas démarré après sa mémoire tampon"
+
+#: machincast/player/engine.py
 #, python-brace-format
 msgid ""
 "{player}, volume or level not found, install gstreamer1.0-plugins-base and "
@@ -6045,6 +6059,10 @@ msgid "Open the card of the bank"
 msgstr "Ouvrir la fiche de la banque"
 
 #: machincast/interface/ui/default_screen.ui
+msgid "Buffer"
+msgstr "Mémoire tampon"
+
+#: machincast/interface/ui/default_screen.ui
 msgid "A peak at -1 dBFS or more, in the last 3 seconds"
 msgstr "Une crête à -1 dBFS ou plus, dans les 3 dernières secondes"
 
@@ -6207,6 +6225,20 @@ msgstr "A&dresse"
 #: machincast/interface/ui/feed_card.ui
 msgid "https://…: the address of the stream, required"
 msgstr "https://… : l'adresse du flux, obligatoire"
+
+#: machincast/interface/ui/feed_card.ui
+msgid "&Buffer"
+msgstr "&Mémoire tampon"
+
+#: machincast/interface/ui/feed_card.ui
+msgid ""
+"The stream waits for its buffer to be full before playing. Short, it starts "
+"quickly, but may not be enough for an irregular network; long, it holds "
+"better, but takes longer to start and to restart."
+msgstr ""
+"Le stream attend que sa mémoire tampon soit pleine pour jouer. Courte, il "
+"démarre vite, mais elle risque d'être insuffisante sur un réseau irrégulier "
+"; longue, il tient mieux, mais met plus de temps à démarrer et à redémarrer."
 
 #: machincast/interface/ui/feed_card.ui
 msgid "Test the stream"

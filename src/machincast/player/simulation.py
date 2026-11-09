@@ -108,6 +108,10 @@ class SimulatedTrack:
 	def heard(self) -> bool:
 		return True
 
+	def buffer_level(self) -> timedelta | None:
+		"""Une voie simulée n'a pas de mémoire tampon (https://github.com/dascritch/machincast/issues/351)."""
+		return None
+
 	def planned_end(self) -> datetime | None:
 		if self.planned_stop is not None:
 			return self.start + self.planned_stop
@@ -156,6 +160,7 @@ class SimulatedEngine:
 		offset: timedelta | None = None,
 		departure: float = 0.0,
 		arrival: float = 0.0,
+		buffer: timedelta | None = None,
 	) -> PlaybackTrack:
 		"""La durée d'un sonore rogné est déjà sans ses silences : le décalage ne change rien à la voie simulée."""
 		track = SimulatedTrack(self.clock, duration)

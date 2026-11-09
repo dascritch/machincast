@@ -38,6 +38,17 @@ Fonctionnalité: Diffusion des streams
 		Alors l'airplay montre les passages « Direct mobile »
 		Et le passage « Direct mobile » a pour emplacement l'adresse du flux « studio »
 
+	Scénario: Le stream d'un feed attend que sa mémoire tampon soit pleine pour jouer
+		https://github.com/dascritch/machincast/issues/351 : le serveur envoie d'abord une avance de 2,5 secondes, puis le
+		son en temps réel ; 6 secondes de mémoire tampon se remplissent en 3,5 secondes.
+		Étant donné le stream « Direct mobile » sur le feed « Studio mobile » du flux « studio »
+		Et le feed « Studio mobile » a une mémoire tampon de 6 secondes
+		Et l'émission « Direct » de 19:59:50 à 20:30:00, avec le sonore « Direct mobile »
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne pendant 6 secondes en temps réel
+		Et la diffusion s'arrête
+		Alors la voie du flux « studio » a rempli sa mémoire tampon de 6 secondes, en attendant au moins 2 secondes avant de jouer
+
 	# ─── Arrêt du stream ───────────────────────────────────────
 
 	Scénario: Le début d'un événement de priorité supérieure coupe net le stream

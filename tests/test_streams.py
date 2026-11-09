@@ -268,3 +268,25 @@ def cutoff_by_feed(empty_database: Connection, before: str, stream: str, after: 
 	assert 0 < rank < len(names) - 1, names
 	assert set(names[:rank]) <= sounds_of(empty_database, before), names
 	assert set(names[rank + 1 :]) <= sounds_of(empty_database, after), names
+
+
+@given(parsers.parse("le feed « {feed} » a une mémoire tampon de {seconds:d} secondes"))
+def feed_buffer(empty_database: Connection, feed: str, seconds: int) -> None:
+	empty_database.execute("UPDATE feeds SET buffer_duration = %s WHERE name = %s", (timedelta(seconds=seconds), feed))
+
+
+@then(
+	parsers.parse(
+		"la voie du flux « {stream} » a rempli sa mémoire tampon de {seconds:d} secondes, en attendant au moins "
+		"{wait:d} secondes avant de jouer"
+	)
+)
+def prefilled(bench: Bench, server: StreamServer, stream: str, seconds: int, wait: int) -> None:
+	"""Elle a joué, mais moins longtemps que la diffusion n'a tourné : elle a d'abord attendu sa mémoire tampon
+	(https://github.com/dascritch/machincast/issues/351)."""
+	assert bench.engine is not None
+	track = bench.engine.played_list[server.address(stream)]
+	assert track.buffer == timedelta(seconds=seconds)
+	assert track.buffering >= 100, track.buffering
+	assert track.final_position is not None
+	assert timedelta(seconds=0.5) < track.final_position <= timedelta(seconds=6 - wait), track.final_position

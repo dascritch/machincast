@@ -7,11 +7,16 @@ Enregistrement, annulation et fermeture : machincast.interface.card.
 
 - Le nom est obligatoire, propre au feed ; l'adresse est obligatoire. Les deux sont enregistrés sans les
   espaces qui les entourent. Une nouvelle adresse vaut pour tous les streams qui le suivent.
+- La mémoire tampon, de 2 à 10 secondes, 2 par défaut (https://github.com/dascritch/machincast/issues/351) : le
+  stream attend qu'elle soit pleine pour jouer. Elle vaut pour tous les streams qui suivent le feed, à leur prochain
+  démarrage.
 - Le test du flux (machincast.interface.stream_trial) porte sur l'adresse saisie, même pas encore enregistrée ; il
   s'arrête à la fermeture de la fiche.
 - Les streams qui le suivent sont montrés ; ouvrir l'un d'eux ouvre sa fiche. Un feed qu'un stream suit ne se
   supprime pas (machincast.interface.deletion) : la base le refuserait aussi.
 """
+
+from datetime import timedelta
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QListWidgetItem, QWidget
@@ -23,6 +28,8 @@ from machincast.interface.card import Card, Connection, Refusal
 from machincast.interface.stream_trial import StreamTrial, trial_result
 from machincast.interface.ui.feed_card import Ui_FeedCard
 
+DEFAULT_BUFFER = 2
+"""Secondes de mémoire tampon d'un nouveau feed, comme la valeur par défaut de feeds.buffer_duration."""
 SOUND = Qt.ItemDataRole.UserRole
 """Rôle qui porte l'identifiant d'un stream, dans la liste des streams."""
 
@@ -42,6 +49,8 @@ class FeedCard(Card):
 		self.trial.finished.connect(self._finished_trial)
 		self.ui.name.textChanged.connect(self._modify)
 		self.ui.url.textChanged.connect(self._modify)
+		self.ui.buffer.valueChanged.connect(self._show_buffer)
+		self.ui.buffer.valueChanged.connect(self._modify)
 		self.ui.test.clicked.connect(self._test)
 		self.ui.streams.itemActivated.connect(self._open_stream)
 		self.load()
@@ -55,12 +64,12 @@ class FeedCard(Card):
 		self.trial.halt()
 
 	def _read(self) -> None:
-		marks: tuple[object, ...] = ("", "")
+		marks: tuple[object, ...] = ("", "", timedelta(seconds=DEFAULT_BUFFER))
 		streams: list[tuple[object, ...]] = []
 		with self.connection.transaction():
 			if self.identifier is not None:
 				line = self.connection.execute(
-					"SELECT name, url FROM feeds WHERE id = %s", (self.identifier,)
+					"SELECT name, url, buffer_duration FROM feeds WHERE id = %s", (self.identifier,)
 				).fetchone()
 				assert line is not None, f"feed {self.identifier} absent"
 				marks = line
@@ -69,10 +78,13 @@ class FeedCard(Card):
 					" ORDER BY 2, id",
 					(str(marks[1]), self.identifier),
 				).fetchall()
-		name, url = marks
+		name, url, buffer = marks
 		self._name = str(name)
 		self.ui.name.setText(self._name)
 		self.ui.url.setText(str(url))
+		if isinstance(buffer, timedelta):
+			self.ui.buffer.setValue(round(buffer.total_seconds()))
+		self._show_buffer()
 		self.ui.streams.clear()
 		for identifier, title in streams:
 			item = QListWidgetItem(str(title))
@@ -91,14 +103,21 @@ class FeedCard(Card):
 			raise Refusal(_("Another feed is already called “{name}”.").format(name=name), self.ui.name)
 		if url == "":
 			raise Refusal(_("The address is required."), self.ui.url)
+		buffer = timedelta(seconds=self.ui.buffer.value())
 		if self.identifier is None:
 			created = self.connection.execute(
-				"INSERT INTO feeds (name, url) VALUES (%s, %s) RETURNING id", (name, url)
+				"INSERT INTO feeds (name, url, buffer_duration) VALUES (%s, %s, %s) RETURNING id", (name, url, buffer)
 			).fetchone()
 			assert created is not None
 			return int(str(created[0]))
-		self.connection.execute("UPDATE feeds SET name = %s, url = %s WHERE id = %s", (name, url, self.identifier))
+		self.connection.execute(
+			"UPDATE feeds SET name = %s, url = %s, buffer_duration = %s WHERE id = %s",
+			(name, url, buffer, self.identifier),
+		)
 		return self.identifier
+
+	def _show_buffer(self) -> None:
+		self.ui.buffer_value.setText(_("{seconds} s").format(seconds=self.ui.buffer.value()))
 
 	def _test(self) -> None:
 		self.ui.test.setEnabled(False)

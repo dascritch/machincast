@@ -72,8 +72,8 @@ Fonctionnalité: Schéma de la base de données
 		https://github.com/dascritch/machincast/issues/341 : 0002.run-log, les démarrages et fins des binaires au log.
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 3 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.run-log, 0003.end-of-list »
+		Alors 4 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.run-log, 0003.end-of-list, 0004.feed-buffer »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
 	# Le ramasse-miettes est suspendu : une connexion qui n'est pas fermée explicitement reste ouverte.
@@ -337,6 +337,19 @@ Fonctionnalité: Schéma de la base de données
 			| secours                    |
 			| secours de fin de liste    |
 			| secours d'un stream tombé  |
+
+	Plan du scénario: La mémoire tampon d'un feed va de 2 à 10 secondes, 2 par défaut
+		https://github.com/dascritch/machincast/issues/351
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "feeds" : <valeurs>
+		Alors la base <verdict> l'enregistrement
+
+		Exemples:
+			| valeurs                                                                | verdict |
+			| name = 'F1', url = 'https://f.exemple'                                 | accepte |
+			| name = 'F2', url = 'https://f.exemple', buffer_duration = '10 seconds' | accepte |
+			| name = 'F3', url = 'https://f.exemple', buffer_duration = '1 second'   | refuse  |
+			| name = 'F4', url = 'https://f.exemple', buffer_duration = '11 seconds' | refuse  |
 
 	# ─── Sessions sautées (https://github.com/dascritch/machincast/issues/273) ───
 

@@ -56,8 +56,9 @@ class RecordingEngine(AudioEngine):
 		offset: timedelta | None = None,
 		departure: float = 0.0,
 		arrival: float = 0.0,
+		buffer: timedelta | None = None,
 	) -> Track:
-		track = super().play(path, duration, start_crossfade, end_crossfade, silent, offset, departure, arrival)
+		track = super().play(path, duration, start_crossfade, end_crossfade, silent, offset, departure, arrival, buffer)
 		self.played_list[str(path)] = track
 		return track
 
@@ -80,9 +81,10 @@ class RecordingSimulatedEngine(SimulatedEngine):
 		offset: timedelta | None = None,
 		departure: float = 0.0,
 		arrival: float = 0.0,
+		buffer: timedelta | None = None,
 	) -> PlaybackTrack:
 		self.rises[Path(str(path)).parent.name] = start_crossfade
-		return super().play(path, duration, start_crossfade, end_crossfade, silent, offset, departure, arrival)
+		return super().play(path, duration, start_crossfade, end_crossfade, silent, offset, departure, arrival, buffer)
 
 
 ITEMS = {
@@ -683,7 +685,7 @@ def wait_track_end(bench: Bench, delay: float = 5.0) -> None:
 			track.handle()
 
 
-@when(parsers.parse("la diffusion tourne pendant {duration} seconde en temps réel"))
+@when(parsers.re(r"la diffusion tourne pendant (?P<duration>[\d,]+) secondes? en temps réel"))
 def run_in_real_time(bench: Bench, duration: str) -> None:
 	end = time.monotonic() + seconds(duration)
 	previous = time.monotonic()
