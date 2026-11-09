@@ -322,12 +322,13 @@ class MainWindow(QMainWindow):
 		if indexing_command is None:
 			indexing_command = indexer.indexing_command(None)
 		self.indexing_command = indexing_command
-		self.launched_indexing: int | None = None
-		"""Numéro du processus de l'indexation lancée depuis le menu, tant qu'il tourne."""
+		self.launched_indexings: dict[bool, int] = {}
+		"""Numéro du processus de chaque indexation lancée depuis le menu, selon full_audit, tant qu'il tourne : une
+		indexation rapide et un audit complet peuvent tourner ensemble
+		(https://github.com/dascritch/machincast/issues/401)."""
 		self._indexing_tracking = QTimer(self)
 		self._indexing_tracking.setInterval(INDEXING_TRACKING)
 		self._indexing_tracking.timeout.connect(self._follow_indexing)
-		self._launched_mode = False
 		"""Audit complet ou indexation rapide, pour l'indexation lancée."""
 		self.control = control.Control(self)
 		self.control.finished.connect(self._finished_control)
@@ -490,17 +491,17 @@ class MainWindow(QMainWindow):
 			maintenance.addAction(_("Output monitor…")), "ticket 85"
 		)  # https://github.com/dascritch/machincast/issues/85
 		maintenance.addSeparator()
-		self.indexings: list[QAction] = []
+		self.indexings: dict[bool, QAction] = {}
+		"""L'action de chaque mode, selon full_audit : grisée tant que son indexation tourne."""
 		for full_audit in (False, True):
 			action = maintenance.addAction(TITLES[full_audit])
 			action.triggered.connect(lambda _ticked=False, audit=full_audit: self._index(audit))
-			self.indexings.append(action)
+			self.indexings[full_audit] = action
 		maintenance.addSeparator()
-		# Grisée, comme l'indexation, pendant une indexation lancée d'ici : ses migrations attendraient la base
+		# Grisée pendant toute indexation lancée d'ici : ses migrations attendraient la base
 		# (https://github.com/dascritch/machincast/issues/127).
-		database = maintenance.addAction(control.MAINTENANCE)
-		database.triggered.connect(self._maintain_database)
-		self.indexings.append(database)
+		self.database_maintenance = maintenance.addAction(control.MAINTENANCE)
+		self.database_maintenance.triggered.connect(self._maintain_database)
 		help_ = self.menuBar().addMenu(_("&Help"))
 		help_.addAction(_("Documentation")).triggered.connect(lambda: dialogs.open_page(version.documentation()))
 		help_.addAction(_("Report a problem…")).triggered.connect(lambda: dialogs.open_page(TICKETS))
@@ -1172,19 +1173,20 @@ class MainWindow(QMainWindow):
 		self.statusBar().showMessage(control.launch_maintenance(self.configuration, backups))
 
 	def _index(self, full_audit: bool) -> None:
-		"""Lance Machin indexer dans son propre processus, avec sa fenêtre ; le menu ne la propose plus tant qu'il
-		tourne."""
+		"""Lance Machin indexer dans son propre processus, avec sa fenêtre ; le menu ne propose plus ce mode, ni la
+		maintenance de la base, tant qu'il tourne. L'autre mode reste proposé
+		(https://github.com/dascritch/machincast/issues/401)."""
 		command = [*self.indexing_command, "--window"]
 		if full_audit:
 			command.append("--full-audit")
-		self._launched_mode = full_audit
-		self.launched_indexing = indexer.launch_detached(command)
-		if self.launched_indexing is None:
+		number = indexer.launch_detached(command)
+		if number is None:
 			log.error(_("indexing impossible to launch: {list}").format(list=" ".join(command)))
 			self.ui.state_bar.showMessage(_("Indexing impossible: Machin indexer could not be launched."))
 			return
-		for action in self.indexings:
-			action.setEnabled(False)
+		self.launched_indexings[full_audit] = number
+		self.indexings[full_audit].setEnabled(False)
+		self.database_maintenance.setEnabled(False)
 		title = TITLES[full_audit]
 		self.ui.state_bar.showMessage(
 			_("{title} {launched}, in its own window.").format(title=title, launched=LAUNCHED[full_audit])
@@ -1192,19 +1194,19 @@ class MainWindow(QMainWindow):
 		self._indexing_tracking.start()
 
 	def _follow_indexing(self) -> None:
-		assert self.launched_indexing is not None
-		if indexer.active_process(self.launched_indexing):
-			return
-		self._indexing_tracking.stop()
-		self.launched_indexing = None
-		for action in self.indexings:
-			action.setEnabled(True)
-		title = TITLES[self._launched_mode]
-		self.ui.state_bar.showMessage(
-			_("{title} {finished}; “Refresh the tabs” (F5) shows its changes.").format(
-				title=title, finished=FINISHED[self._launched_mode]
+		for full_audit, number in list(self.launched_indexings.items()):
+			if indexer.active_process(number):
+				continue
+			del self.launched_indexings[full_audit]
+			self.indexings[full_audit].setEnabled(True)
+			self.ui.state_bar.showMessage(
+				_("{title} {finished}; “Refresh the tabs” (F5) shows its changes.").format(
+					title=TITLES[full_audit], finished=FINISHED[full_audit]
+				)
 			)
-		)
+		if self.launched_indexings == {}:
+			self._indexing_tracking.stop()
+			self.database_maintenance.setEnabled(True)
 
 	def _finished_check(self, text: str) -> None:
 		self.ui.state_bar.showMessage(text)

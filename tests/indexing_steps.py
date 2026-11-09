@@ -24,7 +24,7 @@ from machincast.database import Role, open_connection
 from machincast.indexer.__main__ import run
 from machincast.indexer.check import Report, report_text
 from machincast.indexer.decoding import Check, Silences, UnavailableDecoder, check_file
-from machincast.indexer.indexer import LOCK, index_sound
+from machincast.indexer.indexer import FULL_LOCK, LOCKS, QUICK_LOCK, index_sound
 from machincast.indexer.indexer import index as index_full
 from tests.database_fixtures import configuration_test, sample_database_parameters
 from tests.sounds import corrupt, sample_copy
@@ -45,28 +45,30 @@ class Execution:
 	information: list[str] = field(default_factory=list)
 	"""Ce qui va sur la sortie standard, ligne par ligne : niveau INFO."""
 	rendering_lock: bool = False
-	"""Le verrou de l'indexation était libre dès la fin de l'indexation, sa connexion encore ouverte."""
+	"""Le verrou du mode de l'indexation était libre dès sa fin, sa connexion encore ouverte."""
 
 
-def free_lock() -> bool:
-	"""Une autre connexion peut-elle prendre le verrou de l'indexation ? Elle le rend aussitôt."""
+def free_lock(lock: int) -> bool:
+	"""Une autre connexion peut-elle prendre ce verrou de l'indexation ? Elle le rend aussitôt."""
 	with open_connection(*sample_database_parameters(), Role.INDEXING) as other:
-		taken = other.execute("SELECT pg_try_advisory_lock(%s)", (LOCK,)).fetchone()
+		taken = other.execute("SELECT pg_try_advisory_lock(%s)", (lock,)).fetchone()
 		assert taken is not None
-		other.execute("SELECT pg_advisory_unlock(%s)", (LOCK,))
+		other.execute("SELECT pg_advisory_unlock(%s)", (lock,))
 		return bool(taken[0])
 
 
 @dataclass
 class OtherIndexing:
-	"""Une autre connexion, qui tient le verrou de l'indexation jusqu'à sa fin."""
+	"""D'autres connexions, qui tiennent chacune le verrou d'un mode de l'indexation, ou une transaction ouverte,
+	jusqu'à leur fin."""
 
-	connection: psycopg.Connection[tuple[object, ...]] | None = None
+	connections: list[psycopg.Connection[tuple[object, ...]]] = field(default_factory=list)
 
 	def finish(self) -> None:
-		if self.connection is not None:
-			self.connection.close()
-		self.connection = None
+		for connection in self.connections:
+			connection.commit()
+			connection.close()
+		self.connections = []
 
 
 @pytest.fixture
@@ -76,11 +78,20 @@ def other_indexing() -> Iterator[OtherIndexing]:
 	other.finish()
 
 
-@given("une autre indexation en cours sur la base")
-def ongoing_indexing(empty_database: Connection, other_indexing: OtherIndexing) -> None:
-	other_indexing.connection = open_connection(*sample_database_parameters(), Role.INDEXING)
-	other_indexing.connection.execute("SELECT pg_advisory_lock(%s)", (LOCK,))
-	other_indexing.connection.commit()
+OTHER_LOCKS = {"une autre indexation rapide": QUICK_LOCK, "un autre audit complet": FULL_LOCK}
+"""Le verrou que tient chaque autre indexation, désignée comme dans les scénarios
+(https://github.com/dascritch/machincast/issues/401)."""
+
+
+@given(
+	parsers.re(r"(?P<others>(?:une autre indexation rapide|un autre audit complet)(?: et .+)?) en cours sur la base")
+)
+def ongoing_indexing(empty_database: Connection, other_indexing: OtherIndexing, others: str) -> None:
+	for other in others.split(" et "):
+		connection = open_connection(*sample_database_parameters(), Role.INDEXING)
+		connection.execute("SELECT pg_advisory_lock(%s)", (OTHER_LOCKS[other],))
+		connection.commit()
+		other_indexing.connections.append(connection)
 
 
 @when("l'autre indexation se termine")
@@ -298,7 +309,7 @@ def index(
 		report = index_full(c, full_audit=full_audit, stop=stop, silence_threshold=threshold, force=force)
 		if indexings is not None:
 			indexings.append((start, now_in_database(empty_database)))
-		rendering_lock = free_lock()
+		rendering_lock = free_lock(LOCKS[full_audit])
 	# Les anomalies et les erreurs vont sur la sortie d'erreur : niveau WARNING et au-delà.
 	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
 	information = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]

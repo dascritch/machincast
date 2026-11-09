@@ -21,15 +21,22 @@ Un fichier sain met aussi à jour l'artiste, le titre et les clés de music_meta
 depuis ses tags (https://github.com/dascritch/machincast/issues/8) ; un tag absent vide le champ correspondant.
 
 Chaque fichier défectueux est signalé par son chemin, en anomalie (logging, niveau WARNING, sur la sortie
-d'erreur). L'indexeur n'écrit jamais dans le log, et ne modifie jamais un champ listé dans edited_fields
+d'erreur).
+
+Chaque sonore est vérifié à part (https://github.com/dascritch/machincast/issues/401) : une erreur imprévue pendant sa
+vérification est un incident (logging, niveau ERROR), désigné par son chemin, qui laisse le sonore tel quel et
+n'empêche pas de vérifier les suivants ; seuls un décodeur absent et une base injoignable arrêtent tout. L'examen de
+chaque fichier (type, puis décodage) tourne dans un fil à part, que la vérification attend au plus AUDIT_LIMIT : au-delà,
+il est abandonné en incident. Le module signal ne convient pas : il n'interrompt pas un appel bloqué dans GStreamer,
+libmagic ou le système de fichiers, seulement l'interpréteur Python ; le fil abandonné, lui, n'empêche pas la suite. L'indexeur n'écrit jamais dans le log, et ne modifie jamais un champ listé dans edited_fields
 (« music_metadata.<clé> » pour une clé des métadonnées musicales).
 """
 
 import logging
 import threading
-from collections.abc import Collection
+from collections.abc import Callable, Collection
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import timedelta
 from enum import StrEnum
 from pathlib import Path
 
@@ -39,14 +46,24 @@ from psycopg.types.json import Jsonb
 
 from machincast.configuration import SILENCE_THRESHOLD
 from machincast.conversion import duration_or_none, list_or_none
-from machincast.fingerprint import file_state, modified
+from machincast.fingerprint import audited_since_modification, file_state, modified
 from machincast.i18n import _, decimal, ngettext
 from machincast.indexer.audit import Anomaly
-from machincast.indexer.decoding import Check, Checker, FileState, check_file
+from machincast.indexer.decoding import Check, Checker, FileState, UnavailableDecoder, check_file
 from machincast.indexer.file_type import Kind, kind, type_mime
 from machincast.indexer.tags import merge
 
 log = logging.getLogger(__name__)
+
+AUDIT_LIMIT = timedelta(minutes=10)
+"""Durée maximale de l'examen d'un fichier : au-delà, quelque chose est bloqué, et l'examen est abandonné en incident
+(https://github.com/dascritch/machincast/issues/401)."""
+INCIDENT = _("incident")
+"""Le verdict d'un incident, dans le document d'audit."""
+
+
+class Expired(Exception):
+	"""L'examen d'un fichier a dépassé AUDIT_LIMIT."""
 
 
 class SoundState(StrEnum):
@@ -95,8 +112,12 @@ class Report:
 	already_audited: list[int] = field(default_factory=list)
 	"""Sonores dont l'audit complet est sauté : déjà audités au même seuil, fichier inchangé
 	(https://github.com/dascritch/machincast/issues/206)."""
+	incidents: int = 0
+	"""Sonores dont la vérification a été interrompue par une erreur imprévue ou par AUDIT_LIMIT
+	(https://github.com/dascritch/machincast/issues/401)."""
 	anomalies: list[Anomaly] = field(default_factory=list)
-	"""Les fichiers défectueux du passage, pour le document d'audit (https://github.com/dascritch/machincast/issues/11)."""
+	"""Les fichiers défectueux du passage, et ses incidents, pour le document d'audit
+	(https://github.com/dascritch/machincast/issues/11)."""
 
 
 def _grant(text: str, count: int) -> str:
@@ -118,8 +139,9 @@ def report_text(report: Report) -> str:
 
 
 def report_detail(report: Report) -> str:
-	"""Le bilan sans son mode : « 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; … »."""
-	return _(
+	"""Le bilan sans son mode : « 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; … », suivi
+	des incidents s'il y en a eu (« ; 1 incident »)."""
+	detail = _(
 		"{new}, {attached}, {removed}; {checked}; {corrupt}, {unsupported}, {deleted}, {restored}, {exited}"
 	).format(
 		new=_grant(ngettext("{count} new sound", "{count} new sounds", report.new_list), report.new_list),
@@ -139,6 +161,12 @@ def report_detail(report: Report) -> str:
 		exited=_grant(
 			ngettext("{count} out of preview", "{count} out of preview", report.exited_preview), report.exited_preview
 		),
+	)
+	if report.incidents == 0:
+		return detail
+	return _("{detail}; {incidents}").format(
+		detail=detail,
+		incidents=_grant(ngettext("{count} incident", "{count} incidents", report.incidents), report.incidents),
 	)
 
 
@@ -215,135 +243,207 @@ def check_sounds(
 	for line in sounds:
 		if (stop is not None) and (stop.is_set()):
 			break
-		(
-			identifier,
-			location,
-			text_state,
-			edited_fields,
-			artist,
-			title,
-			metadata,
-			modified_before,
-			size_before,
-			detected_start,
-			detected_end,
-			asks,
-			audited_at,
-			threshold_audit,
-		) = line
-		path = Path(str(location))
-		before = SoundState(str(text_state))
-		audited = (full_audit) or (asks is True)
-		if (
-			(audited)
-			and (not force)
-			and (already_audited(path, modified_before, size_before, audited_at, threshold_audit, silence_threshold))
-		):
-			audited = False
-			report.already_audited.append(int(str(identifier)))
-		decode = (audited) or (before is SoundState.PREVIEW) or (modified(path, modified_before, size_before))
-		if (not decode) and (path.exists()):
-			if asks is True:
-				# La demande est faite : le dernier audit vaut toujours.
-				with connection.transaction():
-					connection.execute("UPDATE sounds SET audit_requested = false WHERE id = %s", (identifier,))
-			continue
-		# Un fichier introuvable est déclaré tel sans décodage : l'indexation rapide repère donc les disparus.
-		# Un fichier dont le type n'est pas sonore n'est pas décodé non plus.
-		file_type = type_mime(path)
-		if (file_type is not None) and (kind(file_type) is Kind.NON_SOUND):
-			result = Check.defective(
-				FileState.UNSUPPORTED, _("of type {file_type}, this is not a sound file").format(file_type=file_type)
-			)
-		elif audited:
-			result = check(path, silence_threshold=silence_threshold)
-		else:
-			result = check(path)
-		after = new_state(before, result.state)
-		file = file_state(path)
-		modified_at, size = file if file is not None else (None, None)
-		# La durée n'est enregistrée que pour un fichier sain, et jamais à la place d'une durée saisie à la main.
-		healthy = result.state is FileState.HEALTHY
-		duration = result.duration if (healthy) and ("duration" not in edited_fields) else None
-		# Les tags d'un fichier défectueux ne sont pas lus : artiste, titre et métadonnées restent tels quels.
-		if healthy:
-			artist = artist if "artist" in edited_fields else result.tags.artist
-			title = title if "title" in edited_fields else result.tags.title
-			metadata = merge(dict(metadata), result.tags.metadata, list(edited_fields))
-		# Les silences mesurés remplacent ceux en base, sauf ceux saisis à la main ; sans mesure, rien ne change.
-		if (healthy) and (result.silences is not None):
-			if "detected_start" not in edited_fields:
-				detected_start = result.silences.start
-			if "detected_end" not in edited_fields:
-				detected_end = result.silences.end
-		with connection.transaction():
-			# Un fichier introuvable garde la date et la taille de son dernier passage.
-			connection.execute(
-				"UPDATE sounds SET state = %s, duration = COALESCE(%s, duration),"
-				" file_modified_at = COALESCE(%s, file_modified_at), file_size = COALESCE(%s, file_size),"
-				" artist = %s, title = %s, music_metadata = %s, mime_type = COALESCE(%s, mime_type),"
-				" checked_at = CASE WHEN %s THEN clock_timestamp() ELSE checked_at END,"
-				" detected_start = %s, detected_end = %s, audit_requested = audit_requested AND NOT %s,"
-				" audited_at = CASE WHEN %s THEN clock_timestamp() ELSE audited_at END,"
-				" audit_threshold = CASE WHEN %s THEN %s ELSE audit_threshold END,"
-				# La disparition du fichier est datée une fois ; un fichier revenu ne l'est plus
-				# (https://github.com/dascritch/machincast/issues/267).
-				" missing_at = CASE WHEN %s THEN COALESCE(missing_at, clock_timestamp()) END"
-				" WHERE id = %s",
-				(
-					after.value,
-					duration,
-					modified_at,
-					size,
-					artist,
-					title,
-					Jsonb(metadata),
-					file_type,
-					# Un fichier trouvé arrive ici vérifié en entier ; un fichier disparu garde la date de sa dernière
-					# vérification.
-					file is not None,
-					duration_or_none(detected_start),
-					duration_or_none(detected_end),
-					# La marque d'un audit demandé tombe avec la vérification du fichier, pas avant.
-					file is not None,
-					# Un audit complet d'un fichier trouvé est retenu, avec son seuil, quel que soit le verdict.
-					(audited) and (file is not None),
-					(audited) and (file is not None),
-					silence_threshold,
-					after is SoundState.DELETED,
-					identifier,
-				),
-			)
-		if decode:
-			report.checked_list += 1
-		if (before is SoundState.PREVIEW) and (after is not SoundState.PREVIEW):
-			report.exited_preview += 1
-		if after != before:
-			if after is SoundState.CORRUPT:
-				report.corrupt_list += 1
-			elif after is SoundState.UNSUPPORTED:
-				report.not_supported += 1
-			elif after is SoundState.DELETED:
-				report.deleted_list += 1
-			elif (after is SoundState.ACTIVE) and (before in (SoundState.CORRUPT, SoundState.UNSUPPORTED)):
-				report.restored += 1
-		if result.state is not FileState.HEALTHY:
-			consequence = _consequence(before, after)
-			log.warning(
-				_("{location}: {problem}; {consequence}").format(
-					location=location, problem=result.problem, consequence=consequence
-				)
-			)
-			report.anomalies.append(Anomaly(str(location), _(result.state), str(result.detail), consequence))
-		else:
-			log.info(
-				_("{location}: {healthy}; {consequence}").format(
-					location=location, healthy=_healthy(artist, title), consequence=_consequence(before, after)
-				)
-			)
+		try:
+			_check_sound(connection, line, check, full_audit, report, silence_threshold, force)
+		except (UnavailableDecoder, psycopg.OperationalError):
+			# Un décodeur absent n'est la faute d'aucun fichier, et une base injoignable arrête tout.
+			raise
+		except Exception as error:  # noqa: BLE001 : un incident sur un sonore n'arrête pas les autres
+			_incident(report, str(line[1]), error)
 	if report.already_audited:
 		log.info(_already_audited(len(report.already_audited), silence_threshold))
 	return report
+
+
+def _check_sound(
+	connection: psycopg.Connection[TupleRow],
+	line: TupleRow,
+	check: Checker,
+	full_audit: bool,
+	report: Report,
+	silence_threshold: float,
+	force: bool,
+) -> None:
+	"""Vérifie un sonore, dans sa propre transaction, et complète le bilan. Lève Expired si l'examen de son fichier
+	dépasse AUDIT_LIMIT, UnavailableDecoder si GStreamer ne sait pas décoder son format."""
+	(
+		identifier,
+		location,
+		text_state,
+		edited_fields,
+		artist,
+		title,
+		metadata,
+		modified_before,
+		size_before,
+		detected_start,
+		detected_end,
+		asks,
+		audited_at,
+		threshold_audit,
+	) = line
+	path = Path(str(location))
+	before = SoundState(str(text_state))
+	audited = (full_audit) or (asks is True)
+	if (
+		(audited)
+		and (not force)
+		and (already_audited(path, modified_before, size_before, audited_at, threshold_audit, silence_threshold))
+	):
+		audited = False
+		report.already_audited.append(int(str(identifier)))
+	decode = (audited) or (before is SoundState.PREVIEW) or (modified(path, modified_before, size_before))
+	if (not decode) and (path.exists()):
+		if asks is True:
+			# La demande est faite : le dernier audit vaut toujours.
+			with connection.transaction():
+				connection.execute("UPDATE sounds SET audit_requested = false WHERE id = %s", (identifier,))
+		return
+	# Un fichier introuvable est déclaré tel sans décodage : l'indexation rapide repère donc les disparus.
+	# Un fichier dont le type n'est pas sonore n'est pas décodé non plus.
+	file_type, result = watched(lambda: _examine(path, check, audited, silence_threshold), AUDIT_LIMIT)
+	after = new_state(before, result.state)
+	file = file_state(path)
+	modified_at, size = file if file is not None else (None, None)
+	# La durée n'est enregistrée que pour un fichier sain, et jamais à la place d'une durée saisie à la main.
+	healthy = result.state is FileState.HEALTHY
+	duration = result.duration if (healthy) and ("duration" not in edited_fields) else None
+	# Les tags d'un fichier défectueux ne sont pas lus : artiste, titre et métadonnées restent tels quels.
+	if healthy:
+		artist = artist if "artist" in edited_fields else result.tags.artist
+		title = title if "title" in edited_fields else result.tags.title
+		metadata = merge(dict(metadata), result.tags.metadata, list(edited_fields))
+	# Les silences mesurés remplacent ceux en base, sauf ceux saisis à la main ; sans mesure, rien ne change.
+	if (healthy) and (result.silences is not None):
+		if "detected_start" not in edited_fields:
+			detected_start = result.silences.start
+		if "detected_end" not in edited_fields:
+			detected_end = result.silences.end
+	with connection.transaction():
+		# Un fichier introuvable garde la date et la taille de son dernier passage.
+		connection.execute(
+			"UPDATE sounds SET state = %s, duration = COALESCE(%s, duration),"
+			" file_modified_at = COALESCE(%s, file_modified_at), file_size = COALESCE(%s, file_size),"
+			" artist = %s, title = %s, music_metadata = %s, mime_type = COALESCE(%s, mime_type),"
+			" checked_at = CASE WHEN %s THEN clock_timestamp() ELSE checked_at END,"
+			" detected_start = %s, detected_end = %s, audit_requested = audit_requested AND NOT %s,"
+			" audited_at = CASE WHEN %s THEN clock_timestamp() ELSE audited_at END,"
+			" audit_threshold = CASE WHEN %s THEN %s ELSE audit_threshold END,"
+			# La disparition du fichier est datée une fois ; un fichier revenu ne l'est plus
+			# (https://github.com/dascritch/machincast/issues/267).
+			" missing_at = CASE WHEN %s THEN COALESCE(missing_at, clock_timestamp()) END"
+			" WHERE id = %s",
+			(
+				after.value,
+				duration,
+				modified_at,
+				size,
+				artist,
+				title,
+				Jsonb(metadata),
+				file_type,
+				# Un fichier trouvé arrive ici vérifié en entier ; un fichier disparu garde la date de sa dernière
+				# vérification.
+				file is not None,
+				duration_or_none(detected_start),
+				duration_or_none(detected_end),
+				# La marque d'un audit demandé tombe avec la vérification du fichier, pas avant.
+				file is not None,
+				# Un audit complet d'un fichier trouvé est retenu, avec son seuil, quel que soit le verdict.
+				(audited) and (file is not None),
+				(audited) and (file is not None),
+				silence_threshold,
+				after is SoundState.DELETED,
+				identifier,
+			),
+		)
+	if decode:
+		report.checked_list += 1
+	if (before is SoundState.PREVIEW) and (after is not SoundState.PREVIEW):
+		report.exited_preview += 1
+	if after != before:
+		if after is SoundState.CORRUPT:
+			report.corrupt_list += 1
+		elif after is SoundState.UNSUPPORTED:
+			report.not_supported += 1
+		elif after is SoundState.DELETED:
+			report.deleted_list += 1
+		elif (after is SoundState.ACTIVE) and (before in (SoundState.CORRUPT, SoundState.UNSUPPORTED)):
+			report.restored += 1
+	if result.state is not FileState.HEALTHY:
+		consequence = _consequence(before, after)
+		log.warning(
+			_("{location}: {problem}; {consequence}").format(
+				location=location, problem=result.problem, consequence=consequence
+			)
+		)
+		report.anomalies.append(Anomaly(str(location), _(result.state), str(result.detail), consequence))
+	else:
+		log.info(
+			_("{location}: {healthy}; {consequence}").format(
+				location=location, healthy=_healthy(artist, title), consequence=_consequence(before, after)
+			)
+		)
+
+
+def _examine(path: Path, check: Checker, audited: bool, silence_threshold: float) -> tuple[str | None, Check]:
+	"""Le type du fichier, puis son décodage, sauf s'il n'est pas du son ; un fichier introuvable est déclaré tel
+	par le décodage."""
+	file_type = type_mime(path)
+	if (file_type is not None) and (kind(file_type) is Kind.NON_SOUND):
+		return file_type, Check.defective(
+			FileState.UNSUPPORTED, _("of type {file_type}, this is not a sound file").format(file_type=file_type)
+		)
+	if audited:
+		return file_type, check(path, silence_threshold=silence_threshold)
+	return file_type, check(path)
+
+
+def watched[T](function: Callable[[], T], limit: timedelta) -> T:
+	"""Le résultat de la fonction, lancée dans un fil à part, ou ce qu'elle lève ; Expired si elle dure plus que la
+	limite. Le fil n'est pas interrompu, Python ne le permet pas : il est abandonné, et se termine seul s'il le peut,
+	sans rien écrire en base (https://github.com/dascritch/machincast/issues/401)."""
+	outcome: list[T] = []
+	failure: list[BaseException] = []
+
+	def run() -> None:
+		try:
+			outcome.append(function())
+		except BaseException as error:  # noqa: BLE001 : rendue à l'appelant
+			failure.append(error)
+
+	feed = threading.Thread(target=run, name="examination", daemon=True)
+	feed.start()
+	feed.join(limit.total_seconds())
+	if feed.is_alive():
+		raise Expired
+	if failure:
+		raise failure[0]
+	return outcome[0]
+
+
+def _limit_text(limit: timedelta) -> str:
+	"""« 10 minutes », ou « 2 secondes » pour une limite de moins d'une minute."""
+	seconds = round(limit.total_seconds())
+	if seconds < 60:
+		return ngettext("{count} second", "{count} seconds", seconds).format(count=seconds)
+	minutes = seconds // 60
+	return ngettext("{count} minute", "{count} minutes", minutes).format(count=minutes)
+
+
+def _incident(report: Report, location: str, error: Exception) -> None:
+	"""Un sonore dont la vérification s'est interrompue : il reste tel quel, et la vérification passe au suivant."""
+	problem = _("check abandoned after {limit}").format(limit=_limit_text(AUDIT_LIMIT))
+	if not isinstance(error, Expired):
+		problem = _("unexpected error during the check: {error}").format(error=f"{type(error).__name__}: {error}")
+	consequence = _("sound left unchanged")
+	report.incidents += 1
+	log.error(
+		_("{location}: incident, {problem}; {consequence}").format(
+			location=location, problem=problem, consequence=consequence
+		)
+	)
+	report.anomalies.append(Anomaly(location, INCIDENT, problem, consequence))
 
 
 def already_audited(
@@ -357,10 +457,9 @@ def already_audited(
 	"""Le sonore a déjà eu un audit complet à ce seuil, et son fichier n'a pas changé depuis : ni sa date de
 	modification, plus ancienne que l'audit, ni sa date et sa taille, celles enregistrées
 	(https://github.com/dascritch/machincast/issues/206)."""
-	if (not isinstance(audited_at, datetime)) or (threshold_audit != threshold):
-		return False
-	file = file_state(path)
-	return (file is not None) and (file == (modified_before, size_before)) and (file[0] <= audited_at)
+	return (threshold_audit == threshold) and (
+		audited_since_modification(path, modified_before, size_before, audited_at)
+	)
 
 
 def threshold_text(threshold: float) -> str:

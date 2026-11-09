@@ -25,7 +25,8 @@ INDEXING_COMMAND = indexer.indexing_command
 
 DUMMY = """
 import pathlib, sys, time
-pathlib.Path(sys.argv[1]).write_text("\\n".join(sys.argv[3:]))
+with pathlib.Path(sys.argv[1]).open("a") as options:
+	options.write(" ".join(sys.argv[3:]) + "\\n")
 fin = pathlib.Path(sys.argv[2])
 while not fin.exists():
 	time.sleep(0.05)
@@ -34,7 +35,8 @@ while not fin.exists():
 
 @pytest.fixture
 def dummy(interface: Context) -> Iterator[tuple[Path, Path]]:
-	"""Le fichier des options du programme factice, et celui qui le termine ; il est terminé en fin de scénario."""
+	"""Le fichier des options du programme factice, une ligne par lancement, et celui qui le termine ; il est terminé en
+	fin de scénario."""
 	options, end = interface.directory / "options-indexation", interface.directory / "fin-indexation"
 	yield options, end
 	end.touch()
@@ -62,22 +64,29 @@ def several_views(qtbot: QtBot) -> None:
 def finish(interface: Context, qtbot: QtBot, dummy: tuple[Path, Path]) -> None:
 	_options, end = dummy
 	end.touch()
-	qtbot.waitUntil(lambda: window(interface).launched_indexing is None, timeout=WAITING)
+	qtbot.waitUntil(lambda: window(interface).launched_indexings == {}, timeout=WAITING)
 
 
 @then(parsers.re(r"Machin indexer a été lancé avec (?P<options>«.+)"))
 def launches_with(qtbot: QtBot, dummy: tuple[Path, Path], options: str) -> None:
 	file, _end = dummy
-	qtbot.waitUntil(file.exists, timeout=WAITING)
-	assert file.read_text().splitlines() == NAME.findall(options)
+	expected = " ".join(NAME.findall(options))
+	# Chaque Machin indexer factice ajoute une ligne, ses options : deux lancés ensemble en ajoutent deux.
+	qtbot.waitUntil(lambda: (file.exists()) and (expected in file.read_text().splitlines()), timeout=WAITING)
 
 
 @then("le Machin indexer factice tourne toujours")
 def runs_always(interface: Context, dummy: tuple[Path, Path]) -> None:
-	number = window(interface).launched_indexing
-	assert number is not None
+	(number,) = window(interface).launched_indexings.values()
 	assert indexer.active_process(number)
 	assert not dummy[1].exists()
+
+
+@then(parsers.parse("{count:d} Machin indexer factices tournent"))
+def running(interface: Context, count: int) -> None:
+	numbers = list(window(interface).launched_indexings.values())
+	assert len(numbers) == count
+	assert all(indexer.active_process(number) for number in numbers)
 
 
 @then(parsers.re(r"la commande d'indexation, pour la configuration (?P<configuration>.+), est « (?P<expected>.+) »"))

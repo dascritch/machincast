@@ -1,11 +1,13 @@
 """Analyse du prochain sonore au dernier moment (https://github.com/dascritch/machincast/issues/181).
 
 Au début de chaque sonore, Machin player réserve le suivant (machincast.player.broadcast). Si ce prochain sonore
-est un fichier jamais vérifié en entier (sounds.checked_at vide), ou dont le fichier a changé depuis sa dernière
-vérification (machincast.fingerprint.modified), la diffusion lance « Machin indexer --full-audit --sound N »
+est un fichier qui n'a pas eu d'audit complet depuis la dernière modification de son fichier (sounds.audited_at vide,
+plus ancien que la date de modification du fichier, ou fichier changé depuis :
+machincast.fingerprint.audited_since_modification, https://github.com/dascritch/machincast/issues/401), même s'il a
+été vérifié par une indexation rapide, la diffusion lance « Machin indexer --full-audit --sound N »
 dans un processus à part, sans fenêtre, et ne l'attend jamais : que l'indexeur plante ou n'ait pas fini, le sonore
-est joué à son heure. Ses lignes vont dans le journal de Machin player. Un même sonore n'est pas redemandé avant
-RELANCE. Un stream n'est jamais analysé, comme l'indexeur ne vérifie jamais les streams.
+est joué à son heure. Ses lignes vont dans le journal de Machin player. Machin indexer --sound ne prend aucun verrou : l'audit se fait même pendant
+une indexation rapide ou un audit complet de toute la base. Un même sonore n'est pas redemandé avant RESTARTED. Un stream n'est jamais analysé, comme l'indexeur ne vérifie jamais les streams.
 """
 
 import subprocess
@@ -16,7 +18,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 
-from machincast.fingerprint import modified
+from machincast.fingerprint import audited_since_modification
 
 RESTARTED = timedelta(hours=1)
 """Délai avant de redemander l'analyse d'un même sonore : celle d'avant a peut-être échoué, ou le fichier changé."""
@@ -37,17 +39,15 @@ def analysis_command(configuration: Path) -> list[str]:
 
 
 def to_analyse(connection: psycopg.Connection[TupleRow], sound: int) -> bool:
-	"""Un fichier jamais vérifié en entier, ou changé depuis ; la connexion a le rôle de la lecture."""
+	"""Un fichier sans audit complet depuis sa dernière modification ; la connexion a le rôle de la lecture."""
 	line = connection.execute(
-		"SELECT location, checked_at, file_modified_at, file_size FROM sounds WHERE id = %s", (sound,)
+		"SELECT location, audited_at, file_modified_at, file_size FROM sounds WHERE id = %s", (sound,)
 	).fetchone()
 	# Seul un fichier a un emplacement : la base le garantit (contrainte sounds_file_or_stream).
 	if (line is None) or (line[0] is None):
 		return False
-	location, checks_at, modified_at, size = line
-	if checks_at is None:
-		return True
-	return modified(Path(str(location)), modified_at, size)
+	location, audited_at, modified_at, size = line
+	return not audited_since_modification(Path(str(location)), modified_at, size, audited_at)
 
 
 class Analyser:

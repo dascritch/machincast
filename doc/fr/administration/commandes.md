@@ -130,7 +130,7 @@ Chaque message commence par son heure, en ISO 8601, à la seconde, avec le déca
 | Code | Signification |
 | --- | --- |
 | 0 | Le programme est allé au bout. Pour l'indexation, même si des sonores ont changé d'état : ce sont des anomalies, pas des erreurs. |
-| 1 | Base de données injoignable ou perdue (pour `Machin interface`, au lancement), décodeur GStreamer manquant, autre indexation en cours sur la base, `Machin indexer --window` sans affichage graphique, sortie audio indisponible, autre `Machin player` déjà en diffusion, maintenance de la base inachevée ou avec un rôle manquant, purge de la base impossible, ou fonction pas encore écrite. |
+| 1 | Base de données injoignable ou perdue (pour `Machin interface`, au lancement), décodeur GStreamer manquant, autre indexation du même mode en cours sur la base, `Machin indexer --window` sans affichage graphique, sortie audio indisponible, autre `Machin player` déjà en diffusion, maintenance de la base inachevée ou avec un rôle manquant, purge de la base impossible, ou fonction pas encore écrite. |
 | 2 | Configuration invalide, ou appel incorrect (option inconnue, `--config` sans fichier, option refusée avec une autre). |
 | 127 | Programme ou `journalctl` introuvable, signalé par `Machin`. |
 

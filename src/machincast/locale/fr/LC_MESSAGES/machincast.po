@@ -493,6 +493,11 @@ msgid "audit document cannot be written in {directory}: {error}"
 msgstr "document d'audit impossible à écrire dans {directory} : {error}"
 
 #: machincast/indexer/check.py
+#: machincast/player/saving.py
+msgid "incident"
+msgstr "incident"
+
+#: machincast/indexer/check.py
 #: machincast/interface/lists.py
 msgid "preview"
 msgstr "aperçu"
@@ -527,6 +532,10 @@ msgid "quick indexing"
 msgstr "indexation rapide"
 
 #: machincast/indexer/check.py
+msgid "sound left unchanged"
+msgstr "sonore laissé tel quel"
+
+#: machincast/indexer/check.py
 msgid "full audit"
 msgstr "audit complet"
 
@@ -551,8 +560,25 @@ msgstr ""
 
 #: machincast/indexer/check.py
 #, python-brace-format
+msgid "{detail}; {incidents}"
+msgstr "{detail} ; {incidents}"
+
+#: machincast/indexer/check.py
+#, python-brace-format
 msgid "sound now {labels}"
 msgstr "sonore passé {labels}"
+
+#: machincast/indexer/check.py
+#, python-brace-format
+msgid "{count} minute"
+msgid_plural "{count} minutes"
+msgstr[0] "{count} minute"
+msgstr[1] "{count} minutes"
+
+#: machincast/indexer/check.py
+#, python-brace-format
+msgid "check abandoned after {limit}"
+msgstr "vérification abandonnée au bout de {limit}"
 
 #: machincast/indexer/check.py
 #, python-brace-format
@@ -644,18 +670,37 @@ msgstr[1] "{count} sortis d'aperçu"
 
 #: machincast/indexer/check.py
 #, python-brace-format
+msgid "{count} incident"
+msgid_plural "{count} incidents"
+msgstr[0] "{count} incident"
+msgstr[1] "{count} incidents"
+
+#: machincast/indexer/check.py
+#, python-brace-format
 msgid "state {labels} kept"
 msgstr "état {labels} conservé"
 
 #: machincast/indexer/check.py
 #, python-brace-format
-msgid "sound still {labels}"
-msgstr "sonore toujours {labels}"
+msgid "{count} second"
+msgid_plural "{count} seconds"
+msgstr[0] "{count} seconde"
+msgstr[1] "{count} secondes"
 
 #: machincast/indexer/check.py
 #, python-brace-format
-msgid "of type {file_type}, this is not a sound file"
-msgstr "de type {file_type}, ce n'est pas un fichier sonore"
+msgid "unexpected error during the check: {error}"
+msgstr "erreur imprévue pendant la vérification : {error}"
+
+#: machincast/indexer/check.py
+#, python-brace-format
+msgid "{location}: incident, {problem}; {consequence}"
+msgstr "{location} : incident, {problem} ; {consequence}"
+
+#: machincast/indexer/check.py
+#, python-brace-format
+msgid "sound still {labels}"
+msgstr "sonore toujours {labels}"
 
 #: machincast/indexer/check.py
 #, python-brace-format
@@ -666,6 +711,11 @@ msgstr "{location} : {problem} ; {consequence}"
 #, python-brace-format
 msgid "{location}: {healthy}; {consequence}"
 msgstr "{location} : {healthy} ; {consequence}"
+
+#: machincast/indexer/check.py
+#, python-brace-format
+msgid "of type {file_type}, this is not a sound file"
+msgstr "de type {file_type}, ce n'est pas un fichier sonore"
 
 #: machincast/indexer/decoding.py
 msgid ""
@@ -792,8 +842,12 @@ msgid "{location}: removed from bank {name}, {outside_durations}"
 msgstr "{location} : retiré de la banque {name}, {outside_durations}"
 
 #: machincast/indexer/indexer.py
-msgid "another indexing is running on this database"
-msgstr "une autre indexation est en cours sur cette base"
+msgid "another quick indexing is running on this database"
+msgstr "une autre indexation rapide est en cours sur cette base"
+
+#: machincast/indexer/indexer.py
+msgid "another full audit is running on this database"
+msgstr "un autre audit complet est en cours sur cette base"
 
 #: machincast/installation.py
 msgid "MachinCast installation steps, called by install.sh."
@@ -4738,12 +4792,6 @@ msgstr "{title} {launched}, dans sa propre fenêtre."
 
 #: machincast/interface/window.py
 #, python-brace-format
-msgid "{title} {finished}; “Refresh the tabs” (F5) shows its changes."
-msgstr ""
-"{title} {finished} ; « Rafraîchir les onglets » (F5) montre ses changements."
-
-#: machincast/interface/window.py
-#, python-brace-format
 msgid ""
 "Preferences saved in {configuration}; Machin player will take {text} at its "
 "next start.{icon}"
@@ -4797,6 +4845,12 @@ msgstr ""
 #, python-brace-format
 msgid "indexing impossible to launch: {list}"
 msgstr "indexation impossible à lancer : {list}"
+
+#: machincast/interface/window.py
+#, python-brace-format
+msgid "{title} {finished}; “Refresh the tabs” (F5) shows its changes."
+msgstr ""
+"{title} {finished} ; « Rafraîchir les onglets » (F5) montre ses changements."
 
 #: machincast/interface/window.py
 #, python-brace-format
@@ -5551,10 +5605,6 @@ msgstr "info"
 #: machincast/player/saving.py
 msgid "warning"
 msgstr "alerte"
-
-#: machincast/player/saving.py
-msgid "incident"
-msgstr "incident"
 
 #: machincast/player/saving.py
 #: machincast/player/simulation.py

@@ -4,10 +4,14 @@ Le parcours enregistre les nouveaux fichiers à l'état apercu (https://github.c
 la vérification qui suit les décode dans le même passage, en indexation rapide comme en audit complet
 (https://github.com/dascritch/machincast/issues/69).
 
-Une seule indexation à la fois sur une base, qu'elle vienne d'un terminal ou de l'interface : l'indexation tient un
-verrou consultatif de PostgreSQL (VERROU) pendant tout son passage. Une indexation peut être arrêtée entre deux
-fichiers (arret) : sa fenêtre de journal le demande quand on la ferme
-(https://github.com/dascritch/machincast/issues/120).
+Une seule indexation rapide et un seul audit complet à la fois sur une base, qu'ils viennent d'un terminal ou de
+l'interface : chacun tient le verrou consultatif de PostgreSQL de son mode (LOCKS) pendant tout son passage
+(https://github.com/dascritch/machincast/issues/120). Une indexation rapide et un audit complet tournent donc en même
+temps, et l'audit d'un sonore nommé (index_sound, Machin indexer --sound) ne prend aucun verrou : Machin player le
+demande pour le prochain sonore qu'il va jouer, même pendant une indexation générale
+(https://github.com/dascritch/machincast/issues/401). Deux parcours qui trouvent le même nouveau fichier ne
+l'enregistrent qu'une fois (machincast.indexer.directories.DIRECTORIES_LOCK). Une indexation peut être arrêtée entre
+deux fichiers (arret) : sa fenêtre de journal le demande quand on la ferme.
 """
 
 import threading
@@ -21,12 +25,20 @@ from machincast.indexer.check import Report, check_sounds
 from machincast.indexer.decoding import Checker, check_file
 from machincast.indexer.directories import attach_in_waiting, index_directories, remove_outside_durations
 
-LOCK = 0x4D616368_696E6478
-"""Clé du verrou consultatif de l'indexation, propre à MachinCast : « Machindx »."""
+QUICK_LOCK = 0x4D616368_696E6478
+"""Clé du verrou consultatif de l'indexation rapide, propre à MachinCast : « Machindx »."""
+FULL_LOCK = 0x4D616368_61756474
+"""Clé du verrou consultatif de l'audit complet : « Machaudt » (https://github.com/dascritch/machincast/issues/401)."""
+LOCKS = {False: QUICK_LOCK, True: FULL_LOCK}
+"""Le verrou de chaque mode, selon full_audit."""
+ONGOING = {
+	False: _("another quick indexing is running on this database"),
+	True: _("another full audit is running on this database"),
+}
 
 
 class OngoingIndexing(Exception):
-	"""Une autre indexation tient le verrou de la base : celle-ci ne commence pas."""
+	"""Une autre indexation du même mode tient son verrou sur la base : celle-ci ne commence pas."""
 
 
 def index(
@@ -44,14 +56,15 @@ def index(
 
 	arret : une fois posé, l'indexation s'arrête après le fichier en cours ; le travail fait est gardé.
 	silence_threshold : seuil de silence de l'audit complet, en dB crête (https://github.com/dascritch/machincast/issues/146).
-	Lève OngoingIndexing si une autre indexation tourne sur la base, UnavailableDecoder si GStreamer ne sait
-	pas décoder un format.
+	Lève OngoingIndexing si une autre indexation du même mode tourne sur la base, UnavailableDecoder si GStreamer ne
+	sait pas décoder un format.
 	"""
+	lock = LOCKS[full_audit]
 	with connection.transaction():
-		taken = connection.execute("SELECT pg_try_advisory_lock(%s)", (LOCK,)).fetchone()
+		taken = connection.execute("SELECT pg_try_advisory_lock(%s)", (lock,)).fetchone()
 	assert taken is not None
 	if not taken[0]:
-		raise OngoingIndexing(_("another indexing is running on this database"))
+		raise OngoingIndexing(ONGOING[full_audit])
 	try:
 		report = Report(full_audit=full_audit)
 		scan = index_directories(connection, report, stop)
@@ -64,7 +77,7 @@ def index(
 			remove_outside_durations(connection, report)
 	finally:
 		with connection.transaction():
-			connection.execute("SELECT pg_advisory_unlock(%s)", (LOCK,))
+			connection.execute("SELECT pg_advisory_unlock(%s)", (lock,))
 	return report
 
 
@@ -76,7 +89,8 @@ def index_sound(
 	force: bool = False,
 ) -> Report:
 	"""Machin_indexer --sound N (https://github.com/dascritch/machincast/issues/181) : vérifie ce seul sonore, sans
-	parcours ni verrou, puis le retire des banques dont il sort des durées
+	parcours ni verrou, même pendant une indexation rapide ou un audit complet
+	(https://github.com/dascritch/machincast/issues/401), puis le retire des banques dont il sort des durées
 	(https://github.com/dascritch/machincast/issues/195)."""
 	report = check_sounds(
 		connection, full_audit=full_audit, identifiers=[sound], silence_threshold=silence_threshold, force=force
