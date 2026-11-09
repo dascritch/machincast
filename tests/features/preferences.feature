@@ -167,6 +167,46 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et le fichier de configuration contient encore « # Seuil de l'antenne du matin. »
 		Et le fichier de configuration contient encore les autres sections
 
+	Scénario: Changer le seuil de silence relance un audit complet
+		https://github.com/dascritch/machincast/issues/401 : les silences mesurés au seuil précédent ne valent plus, et
+		Machin player ne fait pas auditer un sonore pour un seuil changé.
+
+		Étant donné le fichier de configuration de l'interface, avec :
+			"""
+			[silences]
+			threshold = -50
+			"""
+		Et les préférences seront réglées avec le seuil de silence -55,5 dB
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors Machin indexer a été lancé une fois, avec « --window », « --full-audit »
+		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin player prendra les crossfades par défaut à son prochain démarrage. Seuil de silence changé : audit complet lancé, dans sa propre fenêtre. »
+		Et le menu « Maintenance » propose « Indexation rapide »
+
+	Scénario: Garder le seuil de silence ne relance pas d'audit complet
+		Étant donné le fichier de configuration de l'interface, avec :
+			"""
+			[silences]
+			threshold = -50
+			"""
+		Et les préférences seront réglées avec le seuil de silence -50 dB
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors Machin indexer n'a pas été lancé
+
+	Scénario: Changer le seuil de silence pendant un audit complet lancé de l'interface demande de le relancer à sa fin
+		Étant donné le fichier de configuration de l'interface, avec :
+			"""
+			[silences]
+			threshold = -50
+			"""
+		Et les préférences seront réglées avec le seuil de silence -55,5 dB
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Audit complet » dans le menu « Maintenance »
+		Et je choisis « Préférences… » dans le menu « Fichier »
+		Alors Machin indexer a été lancé une fois, avec « --window », « --full-audit »
+		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin player prendra les crossfades par défaut à son prochain démarrage. Seuil de silence changé : l'audit complet en cours garde l'ancien seuil, relancez « Audit complet » à sa fin. »
+
 	Scénario: Le blanc dans un sonore réglé dans les préférences va dans la section [dead_air] du fichier de configuration
 		https://github.com/dascritch/machincast/issues/122 : Machin player le prend à son prochain démarrage. Les
 		préférences suivantes montrent le blanc enregistré.

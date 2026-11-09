@@ -13,6 +13,8 @@ import dataclasses
 import json
 import re
 import shutil
+import sys
+import time
 import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
@@ -56,7 +58,7 @@ from machincast.audio import Device
 from machincast.clock import FixedClock
 from machincast.configuration import RETENTION, AudioOutput, Crossfades, DeadAirSettings, Interface, load
 from machincast.database import Role, open_connection
-from machincast.interface import dialogs, version
+from machincast.interface import dialogs, indexer, version
 from machincast.interface.card import DELETE, REPORTED, Card
 from machincast.interface.dialogs import Closing, Removal
 from machincast.interface.lists import ANOMALY_COLUMN, IDENTIFIER, List
@@ -215,11 +217,29 @@ class Context:
 		return text
 
 
+IMITATED_INDEXER = """
+import pathlib, sys, time
+with pathlib.Path(sys.argv[1]).open("a") as options:
+	options.write(" ".join(sys.argv[3:]) + "\\n")
+fin = pathlib.Path(sys.argv[2])
+while not fin.exists():
+	time.sleep(0.05)
+"""
+"""Machin indexer imité, que toute fenêtre des scénarios lance à la place du vrai : il ajoute ses options, une ligne par
+lancement, au fichier LAUNCHED_INDEXERS du scénario, puis attend la fin du scénario. Les scénarios de
+interface_indexing.feature le remplacent par le leur."""
+LAUNCHED_INDEXERS = "indexeurs-lances"
+
+
 @pytest.fixture
 def interface(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Context]:
 	# monkeypatch est demandé ici, avant qtbot : la fenêtre se ferme en fin de scénario, dialogues encore remplacés.
 	interface = Context(tmp_path, monkeypatch)
+	end = tmp_path / "fin-des-indexeurs"
+	command = [sys.executable, "-c", IMITATED_INDEXER, str(tmp_path / LAUNCHED_INDEXERS), str(end)]
+	monkeypatch.setattr(indexer, "indexing_command", lambda _configuration: command)
 	yield interface
+	end.touch()
 	if interface.window is not None:
 		interface.window.close()
 	if interface.connection is not None:
@@ -1846,3 +1866,30 @@ def file_retention(interface: Context, days: int) -> None:
 	assert isinstance(database, tomlkit.items.Table)
 	database["retention"] = days
 	path.write_text(tomlkit.dumps(document), encoding="utf-8")
+
+
+# ─── Machin indexer imité (https://github.com/dascritch/machincast/issues/401) ───
+
+
+def _launched_indexers(interface: Context) -> list[str]:
+	file = interface.directory / LAUNCHED_INDEXERS
+	if not file.exists():
+		return []
+	return file.read_text().splitlines()
+
+
+@then(parsers.re(r"Machin indexer a été lancé une fois, avec (?P<options>«.+)"))
+def launched_once(interface: Context, qtbot: QtBot, options: str) -> None:
+	expected = " ".join(NAME.findall(options))
+	qtbot.waitUntil(lambda: _launched_indexers(interface) != [], timeout=WAITING)
+	# Un deuxième lancement aurait eu le temps de s'annoncer.
+	time.sleep(0.5)
+	assert _launched_indexers(interface) == [expected]
+
+
+@then("Machin indexer n'a pas été lancé")
+def not_launched(interface: Context) -> None:
+	time.sleep(0.5)
+	assert _launched_indexers(interface) == []
+	assert interface.window is not None
+	assert interface.window.launched_indexings == {}

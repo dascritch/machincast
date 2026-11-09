@@ -178,7 +178,7 @@ Page **Crossfades** ([#234](https://github.com/dascritch/machincast/issues/234))
 | Début par défaut, fin par défaut | Le crossfade d'un sonore qui n'en a pas, et que sa banque ne règle pas ([Enchaînements](antenne.md#enchaînements)). |
 | Le fade-in, au début détecté | Pour un sonore joué sans ses silences : le fade-in `commence`, `est en cours` ou `se termine` (par défaut) au début détecté ([Silences au début et à la fin](antenne.md#silences-au-début-et-à-la-fin)). |
 | Le fade-out, à la fin détectée | De même, à la fin détectée : `commence` (par défaut), `est en cours` ou `se termine`. |
-| Seuil de silence | De -100 à -0,1 dB, -40 dB par défaut : le niveau sous lequel le début et la fin d'un sonore sont un silence, mesuré par l'audit complet, et autour duquel se placent les fondus ([#324](https://github.com/dascritch/machincast/issues/324), [Silences au début et à la fin](antenne.md#silences-au-début-et-à-la-fin)). |
+| Seuil de silence | De -100 à -0,1 dB, -40 dB par défaut : le niveau sous lequel le début et la fin d'un sonore sont un silence, mesuré par l'audit complet, et autour duquel se placent les fondus ([#324](https://github.com/dascritch/machincast/issues/324), [Silences au début et à la fin](antenne.md#silences-au-début-et-à-la-fin)). Le changer lance aussitôt un **audit complet**, dans sa propre fenêtre, pour remesurer les silences ; si un audit complet tourne déjà, la barre d'état demande de le relancer à sa fin. |
 
 Sous ces réglages, une **frise de démonstration** montre un sonore inventé de 30 secondes, aux silences de 3 et 4 secondes : ses fondus s'y placent selon les durées par défaut saisies et les positions choisies, à chaque changement.
 
