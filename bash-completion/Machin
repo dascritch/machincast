@@ -51,8 +51,25 @@ _Machin() {
 		return 0
 	fi
 
-	# dev et dev-test ne prennent aucun argument ; dev-screenshots, un répertoire.
-	if [[ "${binaire}" == dev || "${binaire}" == dev-test ]]; then
+	# dev ne prend aucun argument ; dev-test, --scenarios puis des fonctionnalités, celles de tests/features du
+	# répertoire de MachinCast, et wrapper (https://github.com/dascritch/machincast/issues/408) ; dev-screenshots, un
+	# répertoire.
+	if [[ "${binaire}" == dev ]]; then
+		return 0
+	fi
+	if [[ "${binaire}" == dev-test ]]; then
+		if ((COMP_CWORD == i + 1)); then
+			mapfile -t COMPREPLY < <(compgen -W "--scenarios" -- "${courant}")
+		elif [[ "${COMP_WORDS[i + 1]}" == --scenarios ]]; then
+			local wrapper fonctionnalites=(wrapper) fichier
+			wrapper="$(type -P "${commande}" 2>/dev/null)" && wrapper="$(readlink -f "${wrapper}")"
+			for fichier in "${wrapper%/bin/*}"/tests/features/*.feature; do
+				[[ -e "${fichier}" ]] || continue
+				fichier="${fichier##*/}"
+				fonctionnalites+=("${fichier%.feature}")
+			done
+			mapfile -t COMPREPLY < <(compgen -W "${fonctionnalites[*]}" -- "${courant}")
+		fi
 		return 0
 	fi
 	if [[ "${binaire}" == dev-screenshots ]]; then
