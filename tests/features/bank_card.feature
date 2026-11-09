@@ -230,6 +230,30 @@ Fonctionnalité: Fiche d'une banque
 			| maximale | 3002    |
 			| minimale | 0       |
 
+	Scénario: Enregistrer une grande banque ne relit pas toutes ses lignes à chaque ligne
+		https://github.com/dascritch/machincast/issues/383 : la relecture de la fiche, après l'enregistrement, vidait la
+		liste ligne à ligne, et chaque retrait relisait les états de toutes les lignes restantes ; 30 000 sonores prenaient
+		472 secondes.
+
+		Étant donné 3000 sonores de 3:00 de plus dans la banque « Jingles »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je saisis le nom public « Les jingles »
+		Et je compte les lectures de toutes les lignes de la fiche
+		Et j'enregistre la fiche
+		Alors la fiche a lu toutes ses lignes au plus 10 fois
+		Et la fiche montre 3002 sonores
+
+	Scénario: Retirer d'un coup la plupart des sonores d'une grande banque ne relit pas toutes ses lignes à chaque ligne
+		Étant donné 3000 sonores de 3:00 de plus dans la banque « Jingles »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je choisis les 2500 derniers sonores de la fiche
+		Et je compte les lectures de toutes les lignes de la fiche
+		Et je retire les sonores choisis
+		Alors la fiche a lu toutes ses lignes au plus 10 fois
+		Et la fiche montre 502 sonores
+
 	# ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ─────────────────
 
 	Scénario: Une nouvelle banque n'active pas la détection de silence

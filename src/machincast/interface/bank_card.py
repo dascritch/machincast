@@ -42,6 +42,8 @@ Les fenêtres de dialogue sont celles de machincast.interface.dialogs.
 """
 
 import os
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
 
@@ -154,6 +156,8 @@ class BankCard(Card):
 		self.columns = Columns(self.ui.sounds, "fiche-banque-sonores")
 		self._name = ""
 		self._loaded_list: set[int] = set()
+		self._bulk = False
+		"""Pendant un retrait de lignes en masse, _warn attend la fin (https://github.com/dascritch/machincast/issues/383)."""
 		"""Sonores de la banque à la dernière lecture : ceux qui manquent à la fiche en ont été retirés."""
 		self.directory_drop = FileDrop(self.ui.directories)
 		self.directory_drop.dropped.connect(self._drop_in_directories)
@@ -271,7 +275,8 @@ class BankCard(Card):
 			if isinstance(bound, timedelta):
 				field.setTime(QTime(0, 0).addSecs(int(bound.total_seconds())))
 		self._show_directories(directories)
-		self.ui.sounds.clear()
+		with self._in_bulk():
+			self.ui.sounds.clear()
 		self.ui.sounds.addTopLevelItems([self._line(sound) for sound in sounds])
 		self._loaded_list = set(self._sounds())
 		self._warn()
@@ -389,10 +394,26 @@ class BankCard(Card):
 			bounds.append(bound)
 		return bounds[0], bounds[1]
 
+	@contextmanager
+	def _in_bulk(self) -> Iterator[None]:
+		"""Retire des lignes en masse : la liste prévient la vue de chaque retrait, mais _warn, qui relit toutes les
+		lignes, ne passe qu'une fois, à la fin. Le vider ligne à ligne relisait toutes les lignes restantes à chaque
+		retrait : l'enregistrement d'une banque de 30 000 sonores, qui relit la fiche, prenait 472 s
+		(https://github.com/dascritch/machincast/issues/383). Les signaux du modèle ne sont pas bloqués : la vue ne
+		saurait plus quelles lignes existent."""
+		self._bulk = True
+		try:
+			yield
+		finally:
+			self._bulk = False
+		self._warn()
+
 	def _warn(self) -> None:
 		"""Une banque sans sonore actif ne fournit rien ; ses sonores erronés ou non supportés ne passent pas : en haut
 		de la fiche, d'après les états qu'elle montre, choisis compris (https://github.com/dascritch/machincast/issues/328),
 		comme la liste des banques (machincast.interface.lists)."""
+		if self._bulk:
+			return
 		states = [(line.data(0, CHOSEN_STATE)) or (line.data(0, STATE)) for line in self._lines()]
 		text = ""
 		if "active" not in states:
@@ -603,8 +624,16 @@ class BankCard(Card):
 			directories = list(dict.fromkeys(directory for _line, directory in reinstated))
 			response = dialogs.confirm_removal(self, group_removal_warning(sounds, directories))
 		if response is Removal.REMOVE:
-			for line in lines:
-				self.ui.sounds.takeTopLevelItem(self.ui.sounds.indexOfTopLevelItem(line))
+			# Du bas vers le haut, par rang : chercher chaque ligne dans la liste coûtait un parcours par ligne retirée.
+			list_ = self.ui.sounds
+			rows = [
+				row
+				for row in reversed(range(list_.topLevelItemCount()))
+				if ((line := list_.topLevelItem(row)) is not None) and (line.isSelected())
+			]
+			with self._in_bulk():
+				for row in rows:
+					list_.takeTopLevelItem(row)
 			# La ligne qui suit devient la ligne choisie, prête à être retirée à son tour.
 			following = self.ui.sounds.currentItem()
 			if following is not None:
