@@ -27,6 +27,7 @@ bouton « Pré-écoute » de la fenêtre, a pour titre « en cours : » et le te
 (https://github.com/dascritch/machincast/issues/223).
 """
 
+import logging
 import math
 from dataclasses import dataclass
 from datetime import timedelta
@@ -66,6 +67,8 @@ BROADCAST = _("(broadcast)")
 PLAYBACK = ("⏵", _("Play"))
 PAUSE = ("⏸", _("Pause"))
 """Le symbole du bouton, et son infobulle, qui le nomme aussi pour les technologies d'assistance ; l'arrêt est « ⏹ »."""
+
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -174,6 +177,10 @@ class Player:
 		self.halt()
 		self.last_position = None
 		self.source = source
+		# Dans le journal, que l'achèvement d'un rapport de crash reprend
+		# (https://github.com/dascritch/machincast/issues/413).
+		if source is not None:
+			log.info(_("pre-listen: {title} ({address})").format(title=source.title, address=source.address))
 		self.error = None
 		self.codec, self.bitrate, self.frequency, self.channels = None, None, None, None
 

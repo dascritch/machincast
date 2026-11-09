@@ -63,7 +63,7 @@ def launch(
 		log.error(_("invalid configuration: {error}").format(error=error))
 		return INVALID_CONFIGURATION_CODE
 	given = list(sys.argv[1:] if arguments is None else arguments)
-	with crash.watch(executable, given):
+	with crash.watch(executable, given, configuration=options.config):
 		if (recording is None) or (not recording.when(options)):
 			code = action(configuration, options)
 		else:

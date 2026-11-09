@@ -286,9 +286,8 @@ def _check_sound(
 		threshold_audit,
 	) = line
 	path = Path(str(location))
-	# Pour un rapport de crash, jusque dans un plantage de GStreamer (https://github.com/dascritch/machincast/issues/342).
+	# Pour le rapport de crash d'une exception (https://github.com/dascritch/machincast/issues/342).
 	crash.note(ANALYSED, str(path))
-	crash.refresh()
 	before = SoundState(str(text_state))
 	audited = (full_audit) or (asks is True)
 	if (

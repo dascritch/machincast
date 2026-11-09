@@ -8,10 +8,13 @@ Fonctionnalité: Rapports de crash
 	racine du dépôt du code : « <binaire>-<démarrage>-<pid>.txt ». Il donne le binaire, sa version, son pid et ses
 	options, l'heure de son démarrage et celle du plantage, la pile Python, ce qu'ont rendu PostgreSQL, GLib et
 	GStreamer, le système ou un programme lancé, et les versions des outils. Machin indexer y ajoute le fichier en cours
-	d'analyse ; Machin interface, ses cartes son, la sortie de « wpctl status » et le sonore en pré-écoute ; Machin
-	player, sa carte son, la sortie de « wpctl status », et les sonores précédent, en cours et les 5 suivants annoncés.
-	Un signal fatal, ou un arrêt sans un mot, laisse un rapport en cours, que le lancement suivant du même binaire
-	achève. Les scénarios écrivent leurs rapports dans le répertoire du scénario ; « <pid> » est celui du lancement,
+	d'analyse ; Machin interface, ses cartes son, la sortie de « wpctl status », l'onglet affiché et le sonore en
+	pré-écoute ; Machin player, sa carte son, la sortie de « wpctl status », et les sonores précédent, en cours et les 5
+	suivants annoncés. Un signal fatal, ou un arrêt sans un mot, laisse un rapport en cours, réduit à son en-tête et à
+	ce qu'écrit faulthandler, jamais réécrit : bin/Machin le fait achever dès que le binaire meurt d'un signal, sinon le
+	lancement suivant du même binaire l'achève. L'achèvement ajoute les versions, les cartes son du fichier de
+	configuration, la sortie de « wpctl status » et les dernières lignes du journal du processus
+	(https://github.com/dascritch/machincast/issues/413). Les scénarios écrivent leurs rapports dans le répertoire du scénario ; « <pid> » est celui du lancement,
 	« <version> » la version de MachinCast, et « …/ » le répertoire du scénario.
 
 	Contexte:
@@ -75,24 +78,49 @@ Fonctionnalité: Rapports de crash
 		Alors crash-dump contenait, pendant le lancement, un rapport en cours de « Machin_purge » pour ce lancement
 
 	Scénario: Un signal fatal laisse sa pile dans le rapport en cours, que le lancement suivant achève
-		Étant donné un binaire « Machin_essai » qui note « /srv/musique/a.flac » comme fichier en cours d'analyse, puis plante sur un signal SIGSEGV
-		Quand le lancement suivant de « Machin_essai » achève les rapports en cours
-		Alors crash-dump contient un seul rapport, celui de « Machin_essai » pour le lancement planté, et aucun rapport en cours
+		Ce qui n'était qu'en mémoire, le fichier en cours d'analyse, n'y est pas : le journal en tient lieu.
+
+		Étant donné « wpctl status » qui répond « PipeWire 'pipewire-0' »
+		Et « journalctl » qui répond « à l'antenne : Café à minuit (Continue) »
+		Et un binaire « Machin_player » qui note « /srv/musique/a.flac » comme fichier en cours d'analyse, puis plante sur un signal SIGSEGV
+		Quand le lancement suivant de « Machin_player » achève les rapports en cours
+		Alors crash-dump contient un seul rapport, celui de « Machin_player » pour le lancement planté, et aucun rapport en cours
 		Et le rapport dit :
-			| texte                              |
-			| Binaire : Machin_essai              |
-			| Fichier en cours d'analyse          |
-			| /srv/musique/a.flac                 |
-			| Fatal Python error: Segmentation fault |
-			| Fin : inconnue                      |
+			| texte                                          |
+			| Binaire : Machin_player                         |
+			| Fatal Python error: Segmentation fault          |
+			| Fin : inconnue                                  |
+			| Versions, à l'achèvement du rapport             |
+			| GStreamer 1.                                    |
+			| PySide6                                         |
+			| Cartes son, d'après le fichier de configuration |
+			| Antenne : sortie                                |
+			| wpctl status                                    |
+			| PipeWire 'pipewire-0'                           |
+			| Dernières lignes du journal du pid              |
+			| à l'antenne : Café à minuit (Continue)          |
+		Et le rapport ne dit pas « /srv/musique/a.flac »
 
 	Scénario: Un arrêt sans un mot laisse le rapport en cours, que le lancement suivant achève
-		Étant donné un binaire « Machin_essai » qui note « /srv/musique/b.flac » comme fichier en cours d'analyse, puis est tué par kill -9
+		Étant donné « journalctl » qui répond « indexer : jingles/b.flac sain »
+		Et un binaire « Machin_essai » qui note « /srv/musique/b.flac » comme fichier en cours d'analyse, puis est tué par kill -9
 		Quand le lancement suivant de « Machin_essai » achève les rapports en cours
 		Alors le rapport dit :
-			| texte                       |
-			| /srv/musique/b.flac          |
-			| Fin : inconnue               |
+			| texte                              |
+			| Fin : inconnue                      |
+			| Dernières lignes du journal du pid  |
+			| indexer : jingles/b.flac sain       |
+		Et le rapport ne dit pas « wpctl status »
+
+	Scénario: bin/Machin fait achever les rapports en cours d'un binaire mort d'un signal, par python -m machincast.crash
+		Étant donné un binaire « Machin_interface » qui note « /srv/musique/d.flac » comme fichier en cours d'analyse, puis plante sur un signal SIGSEGV
+		Quand j'appelle « python -m machincast.crash Machin_interface »
+		Alors crash-dump contient un seul rapport, celui de « Machin_interface » pour le lancement planté, et aucun rapport en cours
+		Et le rapport dit :
+			| texte                                          |
+			| Cartes son, d'après le fichier de configuration |
+			| Pré-écoute : sortie                             |
+		Et le journal de l'utilitaire a signalé le rapport de crash écrit
 
 	Scénario: Le rapport en cours d'un lancement qui tourne encore n'est pas achevé
 		Étant donné un binaire « Machin_essai » qui tourne encore, avec son rapport en cours
@@ -131,6 +159,8 @@ Fonctionnalité: Rapports de crash
 		Alors le rapport dit :
 			| texte                              |
 			| RuntimeError: panne de l'interface |
+			| Onglet affiché                     |
+			| 🟩 Antenne                         |
 			| Cartes son                         |
 			| Antenne : sortie dummy             |
 			| Pré-écoute : sortie                |
@@ -139,14 +169,15 @@ Fonctionnalité: Rapports de crash
 			| Sonore en pré-écoute               |
 			| Café à minuit : …/                 |
 
-	Scénario: Machin player donne les sonores précédent, en cours et à venir, à chaque début de sonore
+	Scénario: Machin player donne les sonores précédent, en cours et à venir, notés à chaque début de sonore
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge du binaire au « 2026-10-14 19:59:50 »
 		Et le lancement surveillé, comme « Machin_player »
 		Et le fil musical permanent « Continue », avec les sonores « f1 », « f2 », « f3 »
 		Quand la diffusion démarre au plus vite
 		Et la diffusion tourne 3 pas d'une seconde
-		Alors le rapport en cours dit :
+		Et une erreur imprévue « panne de l'antenne » arrête le lancement surveillé
+		Alors le rapport dit :
 			| texte                                                 |
 			| Sonores de l'antenne                                  |
 			| Événement / séquence / banque / sonore / fichier      |

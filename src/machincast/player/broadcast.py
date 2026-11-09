@@ -1008,8 +1008,10 @@ class Broadcast:
 
 	def _note_for_crash(self, instant: datetime) -> None:
 		"""Pour un rapport de crash (https://github.com/dascritch/machincast/issues/342) : les sonores précédent, en
-		cours et les CRASH_UPCOMING suivants annoncés, à chaque début de sonore ; le rapport en cours se réécrit. Seulement
-		pendant un lancement surveillé, et sans jamais gêner la diffusion."""
+		cours et les CRASH_UPCOMING suivants annoncés, à chaque début de sonore, en mémoire : le rapport d'une exception
+		les donne ; après un signal fatal, le journal donne les sonores joués
+		(https://github.com/dascritch/machincast/issues/413). Seulement pendant un lancement surveillé, et sans jamais
+		gêner la diffusion."""
 		if crash.current() is None:
 			return
 		try:
@@ -1019,7 +1021,6 @@ class Broadcast:
 			return
 		previous, self._crash_current = self._crash_current, message["current"]
 		crash.note(SOUNDS_ON_AIR, crash_text(previous, message))
-		crash.refresh()
 
 	def _engage(self, planned: Planned, instant: datetime) -> None:
 		"""Le sonore prévu devient le prochain : ce que sa décision a terminé l'est pour de bon, et ce qu'elle

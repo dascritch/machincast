@@ -36,7 +36,6 @@ from machincast import crash
 from machincast.indexer.check import ANALYSED
 with crash.watch(sys.argv[1]):
 	crash.note(ANALYSED, sys.argv[2])
-	crash.refresh()
 	if sys.argv[3] == "segv":
 		faulthandler._sigsegv()
 	print("prêt", flush=True)
@@ -85,6 +84,7 @@ def configuration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, empty_databas
 	database = dataclasses.replace(fetched.database, production=fetched.database.test)
 	chosen = dataclasses.replace(fetched, database=database, path=tmp_path / "machincast.toml")
 	monkeypatch.setattr(cli, "load", lambda _path: chosen)
+	monkeypatch.setattr(crash, "load", lambda _path: chosen)
 	return Execution(configuration=chosen, directory=tmp_path)
 
 
@@ -230,6 +230,14 @@ def imitated_wpctl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, text: str) -
 	monkeypatch.setattr(crash, "WPCTL", str(program))
 
 
+@given(parsers.parse("« journalctl » qui répond « {text} »"))
+def imitated_journalctl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+	program = tmp_path / "journalctl"
+	program.write_text(f'#!/bin/sh\necho "{text}"\n', encoding="utf-8")
+	program.chmod(0o755)
+	monkeypatch.setattr(crash, "JOURNALCTL", str(program))
+
+
 def _launch(execution: Execution, caplog: pytest.LogCaptureFixture, command: str) -> None:
 	_machin, binary, *arguments = execution.text(command).split()
 	caplog.clear()
@@ -257,6 +265,15 @@ def launch_crashing(execution: Execution, caplog: pytest.LogCaptureFixture, comm
 @when(parsers.parse("le lancement suivant de « {program} » achève les rapports en cours"))
 def next_launch(program: str) -> None:
 	crash.finish_leftovers(program)
+
+
+@when(parsers.parse("j'appelle « python -m machincast.crash {program} »"))
+def utility(execution: Execution, caplog: pytest.LogCaptureFixture, program: str) -> None:
+	"""Comme bin/Machin après la mort du binaire par un signal (https://github.com/dascritch/machincast/issues/413)."""
+	caplog.clear()
+	with caplog.at_level(logging.INFO, logger="machincast"):
+		execution.code = crash.main([program])
+	execution.errors = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
 
 
 @when(parsers.parse("une erreur imprévue « {text} » arrête le lancement surveillé"))
@@ -347,11 +364,17 @@ def says(request: pytest.FixtureRequest, crash_directory: Path, datatable: list[
 	_contains(report.read_text(encoding="utf-8"), execution, datatable)
 
 
-@then("le rapport en cours dit :")
-def pending_says(datatable: list[list[str]]) -> None:
-	watch = crash.current()
-	assert watch is not None
-	_contains(watch.pending_path.read_text(encoding="utf-8"), None, datatable)
+@then(parsers.parse("le rapport ne dit pas « {text} »"))
+def does_not_say(crash_directory: Path, text: str) -> None:
+	(report,) = _reports(crash_directory)
+	assert text not in report.read_text(encoding="utf-8")
+
+
+@then("le journal de l'utilitaire a signalé le rapport de crash écrit")
+def utility_announced(execution: Execution, crash_directory: Path) -> None:
+	assert execution.code == 0
+	(report,) = _reports(crash_directory)
+	assert f"rapport de crash écrit : {report}" in execution.errors, execution.errors
 
 
 @then("le journal a signalé le rapport de crash écrit")

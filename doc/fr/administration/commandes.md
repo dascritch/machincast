@@ -161,8 +161,8 @@ Ce rapport est fait pour les développeurs : **joignez-le au ticket** qui signal
 - la pile Python ;
 - ce qu'ont répondu PostgreSQL, GStreamer ou le système, s'ils sont en cause, et les versions des outils ;
 - pour `Machin indexer`, le fichier qu'il examinait ;
-- pour `Machin interface`, les cartes son de l'antenne et de la pré-écoute, la sortie de `wpctl status` et le sonore en pré-écoute ;
+- pour `Machin interface`, les cartes son de l'antenne et de la pré-écoute, la sortie de `wpctl status`, l'onglet affiché et le sonore en pré-écoute ;
 - pour `Machin player`, la carte son de l'antenne, la sortie de `wpctl status`, et les sonores précédent, à l'antenne et les 5 suivants annoncés : événement, séquence, banque, artiste et titre, fichier.
 
-Un programme qui s'arrête d'un coup, sur une erreur de GStreamer ou de Qt, tué par `kill -9` ou privé de courant, ne peut pas écrire son rapport sur le moment : son **lancement suivant** l'achève, avec ce qu'il avait noté en dernier, et sa fin dit `Fin : inconnue`. Les rapports s'accumulent : effacez-les quand le ticket est traité. Un fichier caché qui finit par `.en-cours` est le rapport d'un programme qui tourne encore ; ne l'effacez pas.
+Un programme qui s'arrête d'un coup, sur une erreur de GStreamer ou de Qt, ou tué par `kill -9`, ne peut pas écrire tout son rapport : il n'y laisse que la pile de ses fils. `Machin` l'achève aussitôt après ([#413](https://github.com/dascritch/machincast/issues/413)) ; privé de courant, c'est son **lancement suivant** qui l'achève. Sa fin dit alors `Fin : inconnue`, et il donne ce qu'on retrouve encore : les versions, les cartes son du fichier de configuration et la sortie de `wpctl status` pour la diffusion et l'interface, puis les dernières lignes du journal du programme, qui disent ce qui jouait, l'onglet affiché ou le sonore en pré-écoute. Lancé dans un terminal, un programme n'écrit pas dans le journal : ces lignes manquent alors. Les rapports s'accumulent : effacez-les quand le ticket est traité. Un fichier caché qui finit par `.en-cours` est le rapport d'un programme qui tourne encore ; ne l'effacez pas.
 
