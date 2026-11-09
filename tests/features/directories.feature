@@ -353,3 +353,25 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Quand l'indexeur fait une indexation rapide
 		Alors le sonore de « jingles/intro.flac » est à l'état « missing »
 		Et le sonore de « jingles/archives/intro.flac » est à l'état « active »
+
+	# ─── Volume (https://github.com/dascritch/machincast/issues/390) ─
+
+	Scénario: L'indexation rapide de sonores déjà rattachés fait quelques requêtes, quel que soit leur nombre
+		Un fichier déjà rattaché à la banque ne demande rien à la base au parcours des répertoires ; la vérification lit
+		les sonores par lots ; les retraits se font en une requête.
+
+		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
+		Et 30 fichiers sains dans le répertoire « jingles »
+		Et l'indexeur a fait une indexation rapide
+		Quand l'indexeur fait une indexation rapide, en comptant ses requêtes
+		Alors le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu »
+		Et la banque « Jingles » contient 30 sonores
+		Et l'indexation a fait au plus 12 requêtes
+
+	Scénario: La vérification lit les sonores par lots, sans en oublier aucun
+		Étant donné la vérification lit les sonores par lots de 4
+		Et une banque « Jingles » alimentée par le répertoire « jingles »
+		Et 10 fichiers sains dans le répertoire « jingles »
+		Quand l'indexeur fait une indexation rapide
+		Alors le bilan indique « indexation rapide : 10 nouveaux sonores, 0 rattachement, 0 retrait ; 10 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 10 sortis d'aperçu »
+		Et la banque « Jingles » contient 10 sonores

@@ -11,9 +11,11 @@ from pathlib import Path
 
 import psycopg
 import pytest
+from psycopg.rows import TupleRow
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.database import Role, open_connection
+from machincast.indexer import check
 from machincast.indexer.check import Report
 from machincast.indexer.decoding import Check, check_file
 from machincast.indexer.directories import DIRECTORIES_LOCK
@@ -76,6 +78,20 @@ def file(tmp_path: Path, root: Path, relative: str, state: str) -> None:
 	if state == "endommagé":
 		corrupt(source, 1000, 1 / 3)
 	shutil.move(source, target)
+
+
+@given(parsers.parse("{number:d} fichiers sains dans le répertoire « {directory} »"))
+def many_files(tmp_path: Path, root: Path, number: int, directory: str) -> None:
+	"""Des copies d'un même FLAC sain, « s01.flac », « s02.flac »…"""
+	source = sample_copy(FORMATS["flac"], tmp_path)
+	(root / directory).mkdir(parents=True, exist_ok=True)
+	for rank in range(1, number + 1):
+		shutil.copyfile(source, root / directory / f"s{rank:02d}.flac")
+
+
+@given(parsers.parse("la vérification lit les sonores par lots de {size:d}"))
+def batches(monkeypatch: pytest.MonkeyPatch, size: int) -> None:
+	monkeypatch.setattr(check, "BATCH", size)
 
 
 @given(parsers.parse("« {relative} » a été retiré à la main de la banque « {name} »"))
@@ -295,6 +311,44 @@ def duration_in_database(empty_database: Connection, root: Path, relative: str, 
 def sound_without_duration(empty_database: Connection, root: Path, state: str, relative: str) -> None:
 	"""Comme un fichier enregistré par une indexation interrompue avant de le vérifier."""
 	insert_sound(empty_database, str(root / relative), state)
+
+
+@when("l'indexeur fait une indexation rapide, en comptant ses requêtes", target_fixture="execution")
+def counted_indexing(
+	empty_database: Connection, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> Execution:
+	"""Les requêtes de la connexion de l'indexation, sans celles du scénario
+	(https://github.com/dascritch/machincast/issues/390)."""
+	queries: list[object] = []
+	original = psycopg.Connection.execute
+
+	def execute(
+		connection: psycopg.Connection[TupleRow], query: object, *arguments: object, **options: object
+	) -> object:
+		if connection is not empty_database:
+			queries.append(query)
+		return original(connection, query, *arguments, **options)  # type: ignore[arg-type]
+
+	monkeypatch.setattr(psycopg.Connection, "execute", execute)
+	caplog.clear()
+	with (
+		caplog.at_level(logging.INFO, logger="machincast"),
+		open_connection(*sample_database_parameters(), Role.INDEXING) as c,
+	):
+		queries.clear()
+		report = index_full(c)
+	monkeypatch.undo()
+	lines = per_file(caplog.records)
+	anomalies = [message for level, message in lines if level >= logging.WARNING]
+	information = [message for level, message in lines if level == logging.INFO]
+	execution = Execution(report, "\n".join(anomalies), information)
+	execution.queries = len(queries)
+	return execution
+
+
+@then(parsers.parse("l'indexation a fait au plus {maximum:d} requêtes"))
+def at_most_queries(execution: Execution, maximum: int) -> None:
+	assert execution.queries <= maximum, execution.queries
 
 
 @when(
