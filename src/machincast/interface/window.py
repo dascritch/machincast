@@ -198,6 +198,18 @@ LISTENING = {
 (https://github.com/dascritch/machincast/issues/256)."""
 
 TAB_SHORTCUTS = 12
+TAB_TITLE = 40
+"""Longueur maximale du titre affiché d'un onglet ; au-delà, il est coupé, et son infobulle le donne en entier
+(https://github.com/dascritch/machincast/issues/398)."""
+
+
+def short_title(title: str) -> str:
+	"""Le titre tel que l'onglet l'affiche : au plus TAB_TITLE caractères, « … » compris."""
+	if len(title) <= TAB_TITLE:
+		return title
+	return f"{title[: TAB_TITLE - 1].rstrip()}…"
+
+
 """Les onglets qui ont un raccourci, Maj+F1 à Maj+F12 (https://github.com/dascritch/machincast/issues/192)."""
 ADDITION_TO_BANKS = _("The chosen sounds are added at the end of each bank.")
 """Remarque du choix des banques où ajouter des sonores (https://github.com/dascritch/machincast/issues/114)."""
@@ -422,8 +434,8 @@ class MainWindow(QMainWindow):
 		return _(" Icon updated {places}.").format(places=_(" and ").join(places))
 
 	def _fill_menus(self) -> None:
-		"""Fichier, Affichage, Diffusion, Maintenance, Aide ; une fonction à venir a son entrée, inactive, avec son
-		ticket."""
+		"""Fichier, Affichage, Onglets, Diffusion, Maintenance, Aide ; une fonction à venir a son entrée, inactive, avec
+		son ticket."""
 		file = self.menuBar().addMenu(_("&File"))
 		# La page « Interface » : https://github.com/dascritch/machincast/issues/145 ; l'icône viendra avec
 		# https://github.com/dascritch/machincast/issues/111.
@@ -460,6 +472,9 @@ class MainWindow(QMainWindow):
 		refresh = display_menu.addAction(_("Refresh the tabs"))
 		refresh.setShortcut(QKeySequence("F5"))
 		refresh.triggered.connect(self.refresh)
+		# https://github.com/dascritch/machincast/issues/398 : relu à chaque ouverture.
+		self.tabs_menu = self.menuBar().addMenu(_("&Tabs"))
+		self.tabs_menu.aboutToShow.connect(self._list_tabs)
 		self.broadcast_menu = self.menuBar().addMenu(_("&Broadcast"))
 		self.broadcast_menu.aboutToShow.connect(self._reread_service)
 		# L'écoute de l'antenne, lancée aussitôt, en tête du menu (https://github.com/dascritch/machincast/issues/245) ;
@@ -508,7 +523,7 @@ class MainWindow(QMainWindow):
 		help_.addAction(_("Version")).triggered.connect(
 			lambda: dialogs.show_version(self, version.text(), version.of_the_version())
 		)
-		for menu in (file, display_menu, self.broadcast_menu, maintenance, help_):
+		for menu in (file, display_menu, self.tabs_menu, self.broadcast_menu, maintenance, help_):
 			menu.setToolTipsVisible(True)
 
 	def _show_news(self) -> None:
@@ -596,7 +611,7 @@ class MainWindow(QMainWindow):
 		if self.service.installed:
 			indicator = INSTALLED_SERVICE
 		index = self.ui.tabs.indexOf(self.home)
-		self.ui.tabs.setTabText(index, f"{indicator} {ON_AIR}")
+		self._title_tab(index, f"{indicator} {ON_AIR}")
 		if self.service.installed:
 			# En marche : arrêter ; arrêté ou en échec : démarrer.
 			allowed = {"start": not self.service.running, "stop": self.service.running}
@@ -776,8 +791,39 @@ class MainWindow(QMainWindow):
 	def _add_tab(self, screen: QWidget, title: str) -> int:
 		"""Tout onglet s'ajoute par ici, et se retire par _retirer_onglet : les raccourcis suivent."""
 		index = self.ui.tabs.addTab(screen, icons.icon_of(screen_category(screen)), title)
-		self._number_tabs()
+		self._title_tab(index, title)
 		return index
+
+	def _title_tab(self, index: int, title: str) -> None:
+		"""Le titre affiché, coupé à TAB_TITLE caractères ; le titre entier reste dans l'onglet, pour son infobulle et
+		le menu « Onglets » (https://github.com/dascritch/machincast/issues/398)."""
+		tabs = self.ui.tabs
+		tabs.setTabText(index, short_title(title))
+		tabs.tabBar().setTabData(index, title)
+		self._number_tabs()
+
+	def full_title(self, index: int) -> str:
+		"""Le titre entier de l'onglet."""
+		title = self.ui.tabs.tabBar().tabData(index)
+		if isinstance(title, str):
+			return title
+		return self.ui.tabs.tabText(index)
+
+	def _list_tabs(self) -> None:
+		"""Le menu « Onglets » : les onglets ouverts, dans leur ordre, avec leur titre entier et leur raccourci ;
+		l'onglet ouvert est coché (https://github.com/dascritch/machincast/issues/398). Le raccourci s'affiche après
+		une tabulation, sans être celui de l'entrée : Maj+F1 à Maj+F12 restent ceux de la fenêtre."""
+		menu, tabs = self.tabs_menu, self.ui.tabs
+		menu.clear()
+		for index in range(tabs.count()):
+			text = self.full_title(index).replace("&", "&&")
+			if index < TAB_SHORTCUTS:
+				text = f"{text}\t{_shortcut_text(index)}"
+			action = menu.addAction(tabs.tabIcon(index), text)
+			action.setCheckable(True)
+			action.setChecked(index == tabs.currentIndex())
+			widget = tabs.widget(index)
+			action.triggered.connect(lambda _ticked=False, widget=widget: tabs.setCurrentWidget(widget))
 
 	def _remove_tab(self, index: int) -> None:
 		self.ui.tabs.removeTab(index)
@@ -817,13 +863,17 @@ class MainWindow(QMainWindow):
 		self.ui.tabs.setCurrentIndex(rank)
 
 	def _number_tabs(self) -> None:
-		"""L'infobulle de chaque onglet donne son raccourci ; au-delà des 12 premiers, il n'en a pas."""
+		"""L'infobulle de chaque onglet donne son raccourci ; au-delà des 12 premiers, il n'en a pas. Au-dessus, celle
+		d'un titre coupé le donne en entier (https://github.com/dascritch/machincast/issues/398)."""
 		tabs = self.ui.tabs
 		for index in range(tabs.count()):
-			text = ""
+			lines = []
+			title = self.full_title(index)
+			if short_title(title) != title:
+				lines.append(title)
 			if index < TAB_SHORTCUTS:
-				text = f"Maj+F{index + 1}"
-			tabs.setTabToolTip(index, text)
+				lines.append(_shortcut_text(index))
+			tabs.setTabToolTip(index, "\n".join(lines))
 
 	def _open_card(self, category: str, identifier: int | None) -> None:
 		"""Ouvre la fiche d'un élément, ou ramène au premier plan celle déjà ouverte ; None pour un nouvel élément."""
@@ -879,7 +929,7 @@ class MainWindow(QMainWindow):
 				card.finished_check(text)
 
 	def _rename(self, card: QWidget, title: str) -> None:
-		self.ui.tabs.setTabText(self.ui.tabs.indexOf(card), title)
+		self._title_tab(self.ui.tabs.indexOf(card), title)
 
 	def _preview(self, sound: int | None) -> None:
 		"""La fenêtre de pré-écoute, au premier plan : le sonore demandé y remplace le précédent ; sans sonore, elle
@@ -973,7 +1023,7 @@ class MainWindow(QMainWindow):
 			rank = order.index(list_)
 			place = sum(1 for screen in order[:rank] if tabs.indexOf(screen) >= 0)
 			index = tabs.insertTab(place, list_, icons.icon_of(screen_category(list_)), title)
-			self._number_tabs()
+			self._title_tab(index, title)
 		tabs.setCurrentIndex(index)
 
 	def _open_simulation(self) -> None:
@@ -1321,6 +1371,11 @@ class MainWindow(QMainWindow):
 	def _open(self, category: str, identifier: int, _name: str) -> None:
 		self.requested_detail.emit(category, identifier)
 		self._open_card(category, identifier)
+
+
+def _shortcut_text(index: int) -> str:
+	"""Le raccourci de l'onglet de ce rang, tel que l'écrit l'infobulle : Maj+F1 à Maj+F12."""
+	return f"Maj+F{index + 1}"
 
 
 def _upcoming(action: QAction, tickets: str) -> None:

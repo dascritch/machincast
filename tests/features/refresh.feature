@@ -24,7 +24,7 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 
 	Scénario: « Rafraîchir les onglets » est en bas du menu « Affichage », avec le raccourci F5
 		Quand la fenêtre de l'interface s'ouvre
-		Alors la barre de menus a les menus « Fichier », « Affichage », « Diffusion », « Maintenance », « Aide »
+		Alors la barre de menus a les menus « Fichier », « Affichage », « Onglets », « Diffusion », « Maintenance », « Aide »
 		Et le menu « Affichage » a les entrées :
 			| entrée                         | état   | raccourci | infobulle |
 			| Rechercher…                    | active | Ctrl+F    |           |

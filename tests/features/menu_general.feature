@@ -17,9 +17,11 @@ Fonctionnalité: Menu général de l'interface
 			| Continue |             | background_programming |           |         |      |
 		Et la banque « Jingles », séquentielle, sans nom public, avec aucun
 
-	Scénario: La barre de menus a les menus « Fichier », « Affichage », « Diffusion », « Maintenance » et « Aide »
+	Scénario: La barre de menus a les menus « Fichier », « Affichage », « Onglets », « Diffusion », « Maintenance » et « Aide »
+		Le menu « Onglets » : https://github.com/dascritch/machincast/issues/398 (tab_titles.feature).
+
 		Quand la fenêtre de l'interface s'ouvre
-		Alors la barre de menus a les menus « Fichier », « Affichage », « Diffusion », « Maintenance », « Aide »
+		Alors la barre de menus a les menus « Fichier », « Affichage », « Onglets », « Diffusion », « Maintenance », « Aide »
 		Et le menu « Fichier » a les entrées :
 			| entrée       | état     | raccourci | infobulle                               |
 			| Préférences… | active   |           |                                         |
