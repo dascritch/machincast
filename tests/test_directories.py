@@ -20,7 +20,7 @@ from machincast.indexer.directories import DIRECTORIES_LOCK
 from machincast.indexer.indexer import index as index_full
 from machincast.indexer.indexer import index_sound
 from tests.database_fixtures import sample_database_parameters
-from tests.indexing_steps import Execution, OtherIndexing, count, insert_sound
+from tests.indexing_steps import Execution, OtherIndexing, count, insert_sound, per_file
 from tests.sounds import corrupt, sample_copy
 
 scenarios("directories.feature")
@@ -315,8 +315,9 @@ def stopped_during_check(empty_database: Connection, caplog: pytest.LogCaptureFi
 		open_connection(*sample_database_parameters(), Role.INDEXING) as c,
 	):
 		report = index_full(c, check=check, stop=stop)
-	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
-	information = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+	lines = per_file(caplog.records)
+	anomalies = [message for level, message in lines if level >= logging.WARNING]
+	information = [message for level, message in lines if level == logging.INFO]
 	return Execution(report, "\n".join(anomalies), information)
 
 
@@ -333,8 +334,9 @@ def a_only_sound(empty_database: Connection, root: Path, caplog: pytest.LogCaptu
 		open_connection(*sample_database_parameters(), Role.INDEXING) as c,
 	):
 		report = index_sound(c, sound, full_audit=True)
-	anomalies = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
-	information = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+	lines = per_file(caplog.records)
+	anomalies = [message for level, message in lines if level >= logging.WARNING]
+	information = [message for level, message in lines if level == logging.INFO]
 	return Execution(report, "\n".join(anomalies), information)
 
 

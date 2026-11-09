@@ -31,8 +31,10 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 			| ligne                                                                                                                     |
 			| [horodatage] …/pubs/cafe.flac : nouveau sonore, ajouté à la banque Publicité                                       |
 			| [horodatage] …/pubs/jingle.wav : nouveau sonore, ajouté à la banque Publicité                                      |
-			| [horodatage] …/pubs/cafe.flac : sain, Les Gaufres Électriques – Café à minuit ; sonore passé actif                 |
-			| [horodatage] …/pubs/jingle.wav : sain ; sonore passé actif                                                         |
+			| [horodatage] …/pubs/cafe.flac : analyse…                                                                           |
+			| [horodatage]   sain, Les Gaufres Électriques – Café à minuit ; sonore passé actif                                   |
+			| [horodatage] …/pubs/jingle.wav : analyse…                                                                          |
+			| [horodatage]   sain ; sonore passé actif                                                                           |
 			| [horodatage] indexation rapide : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu |
 			| [horodatage] document d'audit : …/audit/machincast-audit-2026-10-15T08:15:00.csv, …/audit/machincast-audit-2026-10-15T08:15:00.html |
 		Et le journal « Indexation rapide » de l'indexation conclut « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. »
@@ -102,6 +104,7 @@ Fonctionnalité: Journal de l'indexation, dans sa propre fenêtre
 			| ligne                                                                                  |
 			| [horodatage] …/pubs/cafe.flac : nouveau sonore, ajouté à la banque Publicité    |
 			| [horodatage] …/pubs/jingle.wav : nouveau sonore, ajouté à la banque Publicité   |
+			| [horodatage] …/pubs/cafe.flac : analyse…                                        |
 			| [horodatage] indexation impossible : aucun décodeur pour ce format              |
 
 	Scénario: Une seule indexation rapide à la fois sur la base

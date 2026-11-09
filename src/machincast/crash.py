@@ -34,7 +34,7 @@ plus sont achevés (finish_leftovers, https://github.com/dascritch/machincast/is
 binaire meurt d'un signal (python -m machincast.crash), sinon par le lancement suivant du même binaire. Ce qui n'était
 qu'en mémoire est perdu ; l'achèvement retrouve ce qui reste : les versions, les cartes son du fichier de
 configuration, la sortie de « wpctl status », et les dernières lignes du journal de ce pid (journalctl), qui nomment le
-sonore à l'antenne, l'onglet affiché ou le sonore en pré-écoute. Le module signal n'a pas sa place ici : il ne
+sonore à l'antenne, le fichier dont l'indexation a ouvert l'analyse, l'onglet affiché ou le sonore en pré-écoute. Le module signal n'a pas sa place ici : il ne
 s'exécute qu'entre deux instructions Python, jamais pendant un appel bloqué ou planté.
 """
 
@@ -422,7 +422,7 @@ def finish_leftovers(program: str, place: Path | None = None, configuration: Pat
 			).format(last=last.isoformat(timespec="seconds"))
 			added = "\n".join(completion(program, int(pid_text), configuration))
 			target.write_text(f"{text.rstrip()}\n\n{ending}\n{added}\n", encoding="utf-8")
-			pending.unlink()
+			pending.unlink()  # fichier de MachinCast : un rapport en cours, devenu rapport
 		except OSError as error:
 			log.warning(_("pending crash report {path} not finished: {error}").format(path=pending, error=error))
 			continue
@@ -499,6 +499,7 @@ def watch(
 				with contextlib.suppress(ValueError, OSError):
 					faulthandler.enable(file=sys.__stderr__, all_threads=True)
 			watched.pending.close()
+			# fichier de MachinCast : le rapport en cours d'un lancement qui s'est terminé.
 			watched.pending_path.unlink(missing_ok=True)
 		_watch = previous_watch
 

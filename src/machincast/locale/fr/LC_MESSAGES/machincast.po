@@ -828,6 +828,11 @@ msgstr "état {labels} conservé"
 
 #: machincast/indexer/check.py
 #, python-brace-format
+msgid "{location}: analysis…"
+msgstr "{location} : analyse…"
+
+#: machincast/indexer/check.py
+#, python-brace-format
 msgid "{count} second"
 msgid_plural "{count} seconds"
 msgstr[0] "{count} seconde"
@@ -840,8 +845,8 @@ msgstr "erreur imprévue pendant la vérification : {error}"
 
 #: machincast/indexer/check.py
 #, python-brace-format
-msgid "{location}: incident, {problem}; {consequence}"
-msgstr "{location} : incident, {problem} ; {consequence}"
+msgid "  incident, {problem}; {consequence}"
+msgstr "  incident, {problem} ; {consequence}"
 
 #: machincast/indexer/check.py
 #, python-brace-format
@@ -850,13 +855,13 @@ msgstr "sonore toujours {labels}"
 
 #: machincast/indexer/check.py
 #, python-brace-format
-msgid "{location}: {problem}; {consequence}"
-msgstr "{location} : {problem} ; {consequence}"
+msgid "  {problem}; {consequence}"
+msgstr "  {problem} ; {consequence}"
 
 #: machincast/indexer/check.py
 #, python-brace-format
-msgid "{location}: {healthy}; {consequence}"
-msgstr "{location} : {healthy} ; {consequence}"
+msgid "  {healthy}; {consequence}"
+msgstr "  {healthy} ; {consequence}"
 
 #: machincast/indexer/check.py
 #, python-brace-format

@@ -139,24 +139,30 @@ Une ligne par sonore indexé, au fil de l'indexation ([#120](https://github.com/
 ```text
 2026-10-15T08:15:00+02:00 /musique/jingles/intro.flac : nouveau sonore, ajouté à la banque Jingles
 2026-10-15T08:15:00+02:00 /musique/titres/cafe.flac : rattaché à la banque Nuit
-2026-10-15T08:15:00+02:00 /musique/jingles/intro.flac : sain, Radio Machin – Générique ; sonore passé actif
-2026-10-15T08:15:00+02:00 /musique/titres/cafe.flac : sain, Les Gaufres – Café à minuit ; état actif conservé
-2026-10-15T08:15:00+02:00 /musique/titres/aube.flac : sain, Aube – Matin clair ; sonore passé actif
+2026-10-15T08:15:00+02:00 /musique/jingles/intro.flac : analyse…
+2026-10-15T08:15:00+02:00   sain, Radio Machin – Générique ; sonore passé actif
+2026-10-15T08:15:00+02:00 /musique/titres/cafe.flac : analyse…
+2026-10-15T08:15:00+02:00   sain, Les Gaufres – Café à minuit ; état actif conservé
+2026-10-15T08:15:00+02:00 /musique/titres/aube.flac : analyse…
+2026-10-15T08:15:00+02:00   sain, Aube – Matin clair ; sonore passé actif
 2026-10-15T08:15:00+02:00 /musique/titres/aube.flac : nouveau sonore, ajouté à la banque Nuit
 2026-10-15T08:15:00+02:00 /musique/titres/mix.flac : retiré de la banque Nuit, durée 1:02:05 plus longue que son maximum, 8:00
 ```
 
-En indexation rapide, un sonore qui n'est ni nouveau ni en aperçu n'est pas décodé, et n'a donc pas de ligne, sauf si son fichier a disparu. Sur la sortie d'erreur, une ligne par fichier défectueux, avec le problème et sa conséquence :
+Chaque analyse s'ouvre par le chemin du fichier, `analyse…`, au moment où elle commence : si l'indexation plante dans le décodeur, la dernière de ces lignes dit sur quel fichier ([#413](https://github.com/dascritch/machincast/issues/413)). Son résultat suit, en retrait, sans répéter le chemin. En indexation rapide, un sonore qui n'est ni nouveau ni en aperçu n'est pas décodé, et n'a donc pas de ligne, sauf si son fichier a disparu. Le résultat d'un fichier défectueux, avec le problème et sa conséquence, va sur la sortie d'erreur ; dans un terminal, il suit la ligne qui ouvre son analyse :
 
 ```text
-2026-10-15T08:15:00+02:00 /musique/jingles/intro.mp3 : endommagé : 2 rupture(s) de continuité au décodage, des données ont été perdues ; sonore passé erroné
-2026-10-15T08:15:00+02:00 /musique/fond/nappe.flac : introuvable : aucun fichier à cet emplacement ; état désactivé conservé
+2026-10-15T08:15:00+02:00 /musique/jingles/intro.mp3 : analyse…
+2026-10-15T08:15:00+02:00   endommagé : 2 rupture(s) de continuité au décodage, des données ont été perdues ; sonore passé erroné
+2026-10-15T08:15:00+02:00 /musique/fond/nappe.flac : analyse…
+2026-10-15T08:15:00+02:00   introuvable : aucun fichier à cet emplacement ; état désactivé conservé
 ```
 
 Une erreur imprévue pendant la vérification d'un sonore, ou un examen qui dure plus de **10 minutes** (fichier sur un partage réseau bloqué, décodeur qui ne rend plus la main), est un **incident** ([#401](https://github.com/dascritch/machincast/issues/401)) : le sonore est laissé tel quel, sans changer d'état ni de date de vérification, et l'indexation passe au suivant. L'incident est signalé sur la sortie d'erreur, et dans le document d'audit, de verdict `incident` :
 
 ```text
-2026-10-15T08:15:00+02:00 /musique/titres/long.flac : incident, vérification abandonnée au bout de 10 minutes ; sonore laissé tel quel
+2026-10-15T08:15:00+02:00 /musique/titres/long.flac : analyse…
+2026-10-15T08:15:00+02:00   incident, vérification abandonnée au bout de 10 minutes ; sonore laissé tel quel
 ```
 
 Le bilan se termine alors par le nombre d'incidents (`; 1 incident`). Un sonore en incident est repris à la prochaine indexation ; un incident qui revient sur le même fichier est à examiner à la main. Les sonores sont à garder sur un disque local du poste : un partage réseau peut bloquer leur lecture, à l'indexation comme à l'antenne.

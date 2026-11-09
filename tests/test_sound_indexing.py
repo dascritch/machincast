@@ -15,7 +15,7 @@ from pytest_bdd import parsers, scenarios, then, when
 
 from machincast.indexer.__main__ import run
 from tests.database_fixtures import configuration_test
-from tests.indexing_steps import checks_at, now_in_database
+from tests.indexing_steps import checks_at, now_in_database, per_file
 
 scenarios("sound_indexing.feature")
 
@@ -43,7 +43,7 @@ def launch(
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		options = argparse.Namespace(full_audit=full_audit, window=window, sound=sound, force=False)
 		code = run(on_test_database, options)
-	messages = [saving.getMessage() for saving in caplog.records]
+	messages = [message for _level, message in per_file(caplog.records)]
 	return Launching(code, messages, start, now_in_database(database))
 
 
