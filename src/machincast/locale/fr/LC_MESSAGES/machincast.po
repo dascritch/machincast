@@ -8728,6 +8728,14 @@ msgid "left in place, not played on air"
 msgstr "laissés en place, sans passer à l'antenne"
 
 #: install.sh
+msgid "%s kept: it is the directory of the sound files"
+msgstr "%s gardé : c'est le répertoire des sonores"
+
+#: install.sh
+msgid "%s kept: it contains sound files, such as %s"
+msgstr "%s gardé : il contient des sonores, comme %s"
+
+#: install.sh
 msgid "Broadcast service"
 msgstr "Service de diffusion"
 

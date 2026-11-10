@@ -9,6 +9,7 @@ import subprocess
 import sys
 from collections.abc import Iterator
 from pathlib import Path
+from types import SimpleNamespace
 
 import gi
 import pytest
@@ -45,6 +46,7 @@ from machincast.installation import (
 	systemd_unit,
 )
 from machincast.interface.application import application
+from machincast.protection import SOUND_EXTENSIONS
 from tests.database_fixtures import (
 	configuration_test,
 	sample_configuration_path,
@@ -733,3 +735,86 @@ def image_icon(command: subprocess.CompletedProcess[str], image: Path) -> None:
 )
 def write_with_icon(directory: str, icon: str) -> str:
 	return shortcut(Path(directory), Path(icon))
+
+
+# ─── Désinstallation (https://github.com/dascritch/machincast/issues/430) ───
+
+
+@pytest.fixture
+def removal() -> SimpleNamespace:
+	return SimpleNamespace(directory=None, welcome=None, result=None)
+
+
+@given(parsers.parse("un répertoire créé par MachinCast, qui contient « {content} »"))
+def created_directory(tmp_path: Path, removal: SimpleNamespace, content: str) -> None:
+	directory = tmp_path / "machincast-cree"
+	(directory / content).parent.mkdir(parents=True)
+	(directory / content).write_bytes(b"contenu")
+	removal.directory = directory
+	removal.welcome = tmp_path / "accueil"
+
+
+@given("le répertoire d'accueil des sonores, vide")
+def empty_welcome(tmp_path: Path, removal: SimpleNamespace) -> None:
+	removal.welcome = tmp_path / "accueil"
+	removal.welcome.mkdir()
+	removal.directory = removal.welcome
+
+
+@when("install.sh retire ce répertoire")
+def removed(removal: SimpleNamespace) -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	line = re.search(r"^EXTENSIONS_SONORES=.*$", install, re.MULTILINE)
+	assert line is not None
+	program = "\n".join(
+		[
+			"set -euo pipefail",
+			"SIMULATION=false",
+			f'ACCUEIL="{removal.welcome}"',
+			line.group(0),
+			'executer() { "$@"; }',
+			'avertissement() { local format="$1"; shift; printf -- "${format}\\n" "$@"; }',
+			_function(install, "premier_sonore") + "\n}",
+			_function(install, "retirer_repertoires") + "\n}",
+			f'retirer_repertoires "{removal.directory}"',
+		]
+	)
+	removal.result = subprocess.run(["bash", "-c", program], capture_output=True, text=True, timeout=10, check=False)
+	assert removal.result.returncode == 0, removal.result.stderr
+
+
+@then(
+	parsers.re(
+		r"le répertoire (?P<verdict>est retiré|reste, et install.sh dit qu'il contient des sonores|reste, et install.sh dit que c'est celui des sonores)"
+	)
+)
+def removal_verdict(removal: SimpleNamespace, verdict: str) -> None:
+	if verdict == "est retiré":
+		assert not removal.directory.exists()
+		return
+	assert removal.directory.is_dir()
+	expected = "it contains sound files, such as"
+	if "celui des sonores" in verdict:
+		expected = "it is the directory of the sound files"
+	assert expected in removal.result.stdout, removal.result.stdout
+
+
+@then("install.sh ne lance « rm --recursive » que dans retirer_repertoires")
+def only_guarded_removal() -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	guarded = _function(install, "retirer_repertoires")
+	outside = install.replace(guarded, "")
+	for line in outside.splitlines():
+		if not line.lstrip().startswith("#"):
+			assert "rm --recursive" not in line, line
+
+
+@then("les extensions des sonores d'install.sh sont celles de machincast.protection")
+def same_extensions() -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	line = re.search(r"^EXTENSIONS_SONORES=\((?P<list>[^)]*)\)$", install, re.MULTILINE)
+	assert line is not None
+	expected = set()
+	for extension in SOUND_EXTENSIONS:
+		expected.add(extension.removeprefix("."))
+	assert set(line.group("list").split()) == expected

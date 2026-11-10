@@ -467,3 +467,27 @@ Fonctionnalité: Vérifications de l'installation
 		Alors le raccourci a, dans la section « Desktop Entry », entre autres :
 			| clé  | valeur                                                     |
 			| Icon | /home/radio/machincast/src/machincast/interface/machincast.png |
+
+	# ─── Désinstallation (https://github.com/dascritch/machincast/issues/430) ─────
+	# Un répertoire qui contient des sonores n'est jamais retiré, ni le répertoire d'accueil des sonores, même vide.
+
+	Plan du scénario: install.sh ne retire un répertoire qu'il a créé que s'il ne contient aucun sonore
+		Étant donné un répertoire créé par MachinCast, qui contient <contenu>
+		Quand install.sh retire ce répertoire
+		Alors le répertoire <verdict>
+
+		Exemples:
+			| contenu                                  | verdict                                              |
+			| « wireplumber/etat »                     | est retiré                                           |
+			| « sons/jingle.flac »                     | reste, et install.sh dit qu'il contient des sonores  |
+			| « a/b/c/VIEUX.MP3 »                      | reste, et install.sh dit qu'il contient des sonores  |
+			| « reportage.Wav »                        | reste, et install.sh dit qu'il contient des sonores  |
+
+	Scénario: install.sh ne retire jamais le répertoire d'accueil des sonores, même vide
+		Étant donné le répertoire d'accueil des sonores, vide
+		Quand install.sh retire ce répertoire
+		Alors le répertoire reste, et install.sh dit que c'est celui des sonores
+
+	Scénario: install.sh ne retire un répertoire que par retirer_repertoires
+		Alors install.sh ne lance « rm --recursive » que dans retirer_repertoires
+		Et les extensions des sonores d'install.sh sont celles de machincast.protection
