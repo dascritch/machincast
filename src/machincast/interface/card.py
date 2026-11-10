@@ -37,8 +37,8 @@ module.
 
 Pendant l'enregistrement, toute la fiche est grisée, pour montrer que l'application y travaille ; elle se dégrise à la
 fin, réussie ou refusée (https://github.com/dascritch/machincast/issues/382). Réussi par « Enregistrer », l'enregistrement
-d'une banque, d'un événement, d'une séquence ou d'un sonore ferme son onglet (CLOSES_AFTER_SAVE, finished) ; refusé, la
-fiche reste ouverte, et dit pourquoi.
+d'une banque, d'un événement, d'une séquence, d'un sonore ou d'un feed ferme son onglet (CLOSES_AFTER_SAVE, finished) ;
+refusé, la fiche reste ouverte, et dit pourquoi.
 """
 
 import logging
@@ -187,8 +187,8 @@ class Card(QWidget):
 
 	category = ""
 	CLOSES_AFTER_SAVE = False
-	"""La fiche se ferme après « Enregistrer », s'il réussit : celle d'une banque, d'un événement, d'une séquence ou d'un
-	sonore (https://github.com/dascritch/machincast/issues/382)."""
+	"""La fiche se ferme après « Enregistrer », s'il réussit : celle d'une banque, d'un événement, d'une séquence, d'un
+	sonore ou d'un feed (https://github.com/dascritch/machincast/issues/382)."""
 	"""Genre de l'élément, celui des listes et de detail_demande : « banque », « sonore », « séquence »."""
 	button_save: QPushButton
 	button_cancel: QPushButton

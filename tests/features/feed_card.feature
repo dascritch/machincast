@@ -59,7 +59,8 @@ Fonctionnalité: Feeds de streams
 		Et je saisis l'adresse du feed «  https://truc.exemple/live  »
 		Et j'enregistre la fiche
 		Alors le feed « Radio Truc » est en base, à l'adresse « https://truc.exemple/live »
-		Et l'onglet ouvert est « Feed : Radio Truc »
+		Et l'onglet « Nouveau feed » est fermé
+		Et l'onglet « Feed : Radio Truc » est fermé
 		Quand j'ouvre l'onglet « Feeds »
 		Alors la liste montre :
 			| Nom          | Adresse                     | Streams |
@@ -76,8 +77,8 @@ Fonctionnalité: Feeds de streams
 		Quand je règle la mémoire tampon du feed à 6 secondes
 		Et j'enregistre la fiche
 		Alors le feed « Radio Machin » a en base une mémoire tampon de 6 secondes
-		Quand je ferme l'onglet « Feed : Radio Machin »
-		Et j'ouvre l'onglet « Feeds »
+		Et l'onglet « Feed : Radio Machin » est fermé
+		Quand j'ouvre l'onglet « Feeds »
 		Et j'ouvre la ligne « Radio Machin »
 		Alors la fiche du feed montre une mémoire tampon de « 6 s », réglable de 2 à 10 secondes
 
@@ -86,7 +87,7 @@ Fonctionnalité: Feeds de streams
 		Et j'ouvre l'onglet « Feeds »
 		Et j'ouvre la ligne « Radio Machin »
 		Et je saisis l'adresse du feed « https://machin.exemple/nouveau »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors le feed « Radio Machin » est en base, à l'adresse « https://machin.exemple/nouveau »
 		Et le stream « Machin soir » joue l'adresse « https://machin.exemple/nouveau »
 		Et la fiche du feed montre les streams « Machin nuit », « Machin soir »

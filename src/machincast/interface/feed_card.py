@@ -36,6 +36,7 @@ SOUND = Qt.ItemDataRole.UserRole
 
 class FeedCard(Card):
 	category = "feed"
+	CLOSES_AFTER_SAVE = True
 
 	def __init__(
 		self, connection: Connection, identifier: int | None, clock: Clock, parent: QWidget | None = None
