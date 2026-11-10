@@ -143,7 +143,7 @@ déposer les sonores dans /home/machincast, que le service de diffusion lit
 un administrateur peut lancer : sudo setfacl --modify=u:machincast:x /data/partage
 ```
 
-Code 0 quand le service lit tout ; 1 sinon, ou sans compte `machincast` : le service n'est pas installé, et `Machin player` lit avec le compte qui le lance. Depuis l'interface, **Maintenance → Faire lire les fichiers sonores au service de diffusion…** le lance dans un terminal, sur la base de l'interface ; l'ajout d'un répertoire à une banque, ou de fichiers, refuse ceux d'un répertoire personnel, vérifie que le service lit les autres, et propose sinon de les lui faire lire. Pendant la diffusion, un fichier que le service ne lit pas n'est pas joué : le log de la base le dit en alerte, `fichier illisible`, avec son chemin.
+Code 0 quand le service lit tout ; 1 sinon, ou sans compte `machincast` : le service n'est pas installé, et `Machin player` lit avec le compte qui le lance. Depuis l'interface, **Maintenance → Faire lire les fichiers sonores au service de diffusion…** le lance dans un terminal, sur la base de l'interface ; l'ajout d'un répertoire à une banque, ou de fichiers, accepte toujours ce que le service lit déjà, refuse ce qu'il ne lit pas dans un répertoire personnel, vérifie que le service lit les autres, et propose sinon de les lui faire lire. Pendant la diffusion, un fichier que le service ne lit pas n'est pas joué : le log de la base le dit en alerte, `fichier illisible`, avec son chemin.
 
 ## Suivre le journal : Machin logs
 

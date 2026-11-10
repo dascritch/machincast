@@ -3,10 +3,13 @@
 Le service de diffusion tourne sous son propre compte (machincast.access). Quand un répertoire s'ajoute à une banque,
 ou des fichiers à la liste des sonores, l'interface les passe au crible avant de les ajouter :
 
-- dans un répertoire personnel (machincast.access.personal_home), ils sont refusés : le service ne les lira jamais,
-  et l'interface dit de les déposer dans le répertoire d'accueil des sonores, /home/machincast ;
-- dans une autre arborescence sensible (/media, /mnt…), ils ne sont acceptés que si le service les lit déjà :
-  MachinCast n'y change aucun droit ;
+- ce que le service lit déjà est accepté, où que ce soit : un répertoire comme /home/musiques, que son administrateur
+  a ouvert au compte machincast, s'ajoute et s'indexe ;
+- illisibles dans un répertoire personnel (machincast.access.personal_home), ils sont refusés : MachinCast n'en
+  changera pas les droits, et l'interface dit de les déposer dans le répertoire d'accueil des sonores,
+  /home/machincast ;
+- illisibles dans une autre arborescence sensible (/media, /mnt…), refusés aussi : MachinCast n'y change aucun
+  droit ;
 - ailleurs, s'il ne les lit pas, elle propose de lui en donner la lecture (ACL, setfacl) ; refusée, ils s'ajoutent
   quand même, et le menu Maintenance la donnera plus tard.
 
@@ -30,8 +33,8 @@ REFUSED = _(
 	"it access later."
 )
 PERSONAL = _(
-	"Not added, in a personal directory, which the broadcast service never reads: {list}. Put the sound files in "
-	"{welcome}."
+	"Not added, unreadable by the broadcast service, in a personal directory whose rights MachinCast never changes: "
+	"{list}. Put the sound files in {welcome}."
 )
 SENSITIVE = _(
 	"Not added, unreadable by the broadcast service, in a directory where MachinCast never changes any right: {list}."
@@ -83,12 +86,13 @@ def _sort(
 	sensitive: list[Path],
 	missing: list[Path],
 ) -> None:
-	"""Range un chemin : refusé dans un répertoire personnel, ou illisible dans une arborescence sensible ; accepté
-	sinon, à faire lire au service s'il ne le lit pas."""
-	if access.personal_home(path) is not None:
+	"""Range un chemin : ce que le service lit déjà est toujours accepté, même dans un répertoire personnel, dont les
+	droits ont été ouverts par d'autres ; illisible, il est refusé dans un répertoire personnel ou une autre
+	arborescence sensible, et accepté ailleurs, à faire lire au service."""
+	unread = (path.exists()) and (_missing(path, account))
+	if (unread) and (access.personal_home(path) is not None):
 		personal.append(path)
 		return
-	unread = (path.exists()) and (_missing(path, account))
 	if (unread) and (access.sensitive_tree(path) is not None):
 		sensitive.append(path)
 		return

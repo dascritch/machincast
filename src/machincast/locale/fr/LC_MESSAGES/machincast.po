@@ -4376,11 +4376,13 @@ msgstr ""
 #: machincast/interface/service_access.py
 #, python-brace-format
 msgid ""
-"Not added, in a personal directory, which the broadcast service never "
-"reads: {list}. Put the sound files in {welcome}."
+"Not added, unreadable by the broadcast service, in a personal directory "
+"whose rights MachinCast never changes: {list}. Put the sound files in "
+"{welcome}."
 msgstr ""
-"Non ajoutés, dans un répertoire personnel, que le service de diffusion ne "
-"lit jamais : {list}. Déposer les sonores dans {welcome}."
+"Non ajoutés, illisibles par le service de diffusion, dans un répertoire "
+"personnel dont MachinCast ne change jamais les droits : {list}. Déposer les "
+"sonores dans {welcome}."
 
 #: machincast/interface/service_access.py
 #, python-brace-format

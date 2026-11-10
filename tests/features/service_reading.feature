@@ -123,13 +123,29 @@ Fonctionnalité: Le service de diffusion lit les sonores, sous son propre compte
 		Alors la commande se termine avec le code 1
 		Et sa sortie d'erreur mentionne « où MachinCast ne change jamais aucun droit »
 
-	Scénario: L'interface du service refuse un sonore d'un répertoire personnel
+	Scénario: L'interface du service refuse un sonore d'un répertoire personnel qu'il ne lit pas
 		Étant donné le répertoire personnel « …/maison »
-		Et le répertoire « …/maison » en mode 0755
-		Et le fichier « …/maison/a.flac » en mode 0644
+		Et le répertoire « …/maison » en mode 0700
+		Et le fichier « …/maison/a.flac » en mode 0600
 		Quand l'interface ajoute « …/maison/a.flac », et que j'accepte de les faire lire au service
 		Alors l'interface n'a rien demandé, et refuse « …/maison/a.flac »
-		Et elle annonce, entre autres, « dans un répertoire personnel, que le service de diffusion ne lit jamais »
+		Et elle annonce, entre autres, « dans un répertoire personnel dont MachinCast ne change jamais les droits »
+
+	Plan du scénario: Un répertoire de /home déjà ouvert au service s'ajoute, et install.sh le laisse en place
+		Comme /home/musiques, sans compte du même nom, dont l'administrateur a ouvert les droits au compte machincast.
+
+		Étant donné le répertoire personnel « …/musiques »
+		Et le répertoire « …/musiques » en mode <répertoire>
+		Et le fichier « …/musiques/a.flac » en mode <fichier>
+		Et <acl>
+		Quand l'interface ajoute « …/musiques », et que j'accepte de les faire lire au service
+		Alors l'interface n'a rien demandé, et accepte « …/musiques »
+		Et install.sh ne propose pas de déplacer « …/musiques »
+
+		Exemples:
+			| répertoire | fichier | acl                                                     |
+			| 0755       | 0644    | aucune ACL                                              |
+			| 0700       | 0600    | l'ACL « u:nobody:rX » sur tout « …/musiques »           |
 
 	Scénario: L'interface du service accepte un sonore d'une arborescence sensible qu'il lit déjà
 		Étant donné le fichier « /usr/bin/env » lisible par tous
