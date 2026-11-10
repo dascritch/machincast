@@ -32,15 +32,22 @@ def entries(interface: Context) -> dict[str, QAction]:
 
 @given(
 	parsers.re(
-		r"Machin player diffuse « (?P<title>[^»]+) »(?:, de la séquence « (?P<sequence>[^»]+) »)?,"
+		r"Machin player diffuse (?P<stream>le stream )?« (?P<title>[^»]+) »(?:, de la séquence « (?P<sequence>[^»]+) »)?,"
 		r" dans (?P<feed>le fil musical )?« (?P<event>[^»]+) »(?:, au nom de « (?P<lender>[^»]+) »)?"
 	)
 )
 def broadcasts(
-	player: Player, title: str, sequence: str | None, feed: str | None, event: str, lender: str | None
+	player: Player,
+	stream: str | None,
+	title: str,
+	sequence: str | None,
+	feed: str | None,
+	event: str,
+	lender: str | None,
 ) -> None:
 	"""Un événement sans précision est une émission ; au nom d'une autre, elle lui prête son nom
-	(https://github.com/dascritch/machincast/issues/399)."""
+	(https://github.com/dascritch/machincast/issues/399). Un stream n'a ni durée, ni progression
+	(https://github.com/dascritch/machincast/issues/366)."""
 	if feed is None:
 		priority = "show"
 	else:
@@ -66,6 +73,11 @@ def broadcasts(
 		"lender": lender,
 		"lender_id": lender_identifier,
 	}
+	if stream is not None:
+		ongoing.update(
+			{"type": "stream", "location": "https://flux.exemple/amie", "duration": None, "estimated_end": None}
+		)
+		ongoing.update({"progress": None})
 	publish(player, "playing", ongoing)
 
 

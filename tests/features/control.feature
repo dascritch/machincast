@@ -34,6 +34,9 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| ⏵ Démarrer la diffusion                 | <demarrer> |           |                                                         |
 			| ⏹ Arrêter la diffusion                  | <arreter>  |           |                                                         |
 			| —                                     |            |           |                                                         |
+			| ⏮ Revenir au début de ce sonore | inactive | | Rien à l'antenne |
+			| ⏮ Recommencer cet événement | inactive | | Rien à l'antenne |
+			| —                                     |            |           |                                                         |
 			| ⏭ Sauter au sonore suivant              | inactive   |           | Rien à l'antenne                                        |
 			| ⏭ Sauter après la séquence              | inactive   |           | Rien à l'antenne                                        |
 			| ⏭ Couper l'événement par le fil musical | inactive   |           | Rien à l'antenne                                        |
@@ -101,6 +104,9 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| ⏵ Démarrer la diffusion                 | inactive |           |                                                         |
 			| ⏹ Arrêter la diffusion                  | active   |           |                                                         |
 			| —                                     |          |           |                                                         |
+			| ⏮ Revenir au début de ce sonore | inactive | | Rien à l'antenne |
+			| ⏮ Recommencer cet événement | inactive | | Rien à l'antenne |
+			| —                                     |          |           |                                                         |
 			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
 			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
 			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
@@ -118,6 +124,9 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| ⏵ Démarrer la diffusion                 | inactive |           |                                                         |
 			| ⏹ Arrêter la diffusion                  | active   |           |                                                         |
 			| —                                     |          |           |                                                         |
+			| ⏮ Revenir au début de ce sonore | inactive | | Rien à l'antenne |
+			| ⏮ Recommencer cet événement | inactive | | Rien à l'antenne |
+			| —                                     |          |           |                                                         |
 			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
 			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
 			| ⏭ Couper l'événement par le fil musical | inactive |           | Rien à l'antenne                                        |
@@ -134,6 +143,9 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| —                                     |          |           |                                                         |
 			| ⏵ Démarrer la diffusion                 | active   |           |                                                         |
 			| ⏹ Arrêter la diffusion                  | inactive |           |                                                         |
+			| —                                     |          |           |                                                         |
+			| ⏮ Revenir au début de ce sonore | inactive | | Rien à l'antenne |
+			| ⏮ Recommencer cet événement | inactive | | Rien à l'antenne |
 			| —                                     |          |           |                                                         |
 			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                        |
 			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                        |
@@ -154,6 +166,9 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| —                                     |          |           |                                                            |
 			| ⏵ Démarrer la diffusion d'essai         | active   |           | Sans service : Machin player dans une fenêtre de terminal |
 			| ⏹ Arrêter la diffusion d'essai          | inactive |           | Aucune diffusion d'essai en cours                          |
+			| —                                     |          |           |                                                            |
+			| ⏮ Revenir au début de ce sonore | inactive | | Rien à l'antenne |
+			| ⏮ Recommencer cet événement | inactive | | Rien à l'antenne |
 			| —                                     |          |           |                                                            |
 			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                           |
 			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                           |
@@ -190,6 +205,9 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| —                                     |          |           |                                                                       |
 			| ⏵ Démarrer la diffusion d'essai         | inactive |           | La diffusion d'essai tourne déjà                                      |
 			| ⏹ Arrêter la diffusion d'essai          | active   |           | Sans service : arrête le Machin player lancé à la main, comme Ctrl-C |
+			| —                                     |          |           |                                                                       |
+			| ⏮ Revenir au début de ce sonore | inactive | | Rien à l'antenne |
+			| ⏮ Recommencer cet événement | inactive | | Rien à l'antenne |
 			| —                                     |          |           |                                                                       |
 			| ⏭ Sauter au sonore suivant              | inactive |           | Rien à l'antenne                                                      |
 			| ⏭ Sauter après la séquence              | inactive |           | Rien à l'antenne                                                      |

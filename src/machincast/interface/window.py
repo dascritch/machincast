@@ -537,12 +537,16 @@ class MainWindow(QMainWindow):
 			action.triggered.connect(lambda _ticked=False, verb=verb: self._control(verb))
 			self.controlled_list[verb] = action
 		self.broadcast_menu.addSeparator()
-		# https://github.com/dascritch/machincast/issues/104
 		self.interruptions: dict[str, QAction] = {}
-		for item, entry in interruption.ENTRIES.items():
-			action = self.broadcast_menu.addAction(entry)
-			action.triggered.connect(lambda _ticked=False, item=item: self._interrupt(item))
-			self.interruptions[item] = action
+		# Revenir au début, entre deux traits (https://github.com/dascritch/machincast/issues/366), puis les sauts
+		# (https://github.com/dascritch/machincast/issues/104).
+		for entries in (interruption.RESTARTS, interruption.ENTRIES):
+			for item, entry in entries.items():
+				action = self.broadcast_menu.addAction(entry)
+				action.triggered.connect(lambda _ticked=False, item=item: self._interrupt(item))
+				self.interruptions[item] = action
+			if entries is interruption.RESTARTS:
+				self.broadcast_menu.addSeparator()
 		# https://github.com/dascritch/machincast/issues/323 : relu à l'ouverture du menu, et quand la grille change.
 		self.cutoff_by_fallback = self.broadcast_menu.addAction(interruption.CUT_BY_FALLBACK)
 		fallback = self.cutoff_by_fallback

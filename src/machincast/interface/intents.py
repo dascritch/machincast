@@ -14,6 +14,8 @@ DELETE = "❌"
 START = "⏵"
 HALT = "⏹"
 SKIP = "⏭"
+RESTART = "⏮"
+"""Revenir au début du sonore ou de l'événement à l'antenne (https://github.com/dascritch/machincast/issues/366)."""
 """Les actions sur l'antenne (https://github.com/dascritch/machincast/issues/322) : démarrer la diffusion, l'arrêter,
 et sauter le sonore ou l'événement en cours."""
 INTENTS = (ADD, REMOVE, DELETE, START, HALT, SKIP)
