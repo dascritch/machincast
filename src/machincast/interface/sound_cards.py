@@ -9,7 +9,10 @@ bien démarrer » (machincast.interface.suggestions). Il choisit :
   factice ; la pré-écoute garde sa carte si elle y est ;
 - la carte son de l'antenne (audio.device) et celle de la pré-écoute (audio.preview), chacune parmi les
   périphériques du poste (machincast.audio.devices), la carte configurée en tête, et l'entrée « Sortie factice »
-  (configuration.DUMMY). La carte choisie pour l'une est grisée dans l'autre, sortie factice comprise.
+  (configuration.DUMMY). La carte choisie pour l'une est grisée dans l'autre, sortie factice comprise. Avec le
+  service de diffusion, la carte de l'antenne se choisit parmi celles du PipeWire du service
+  (machincast.audio.on_air_devices, https://github.com/dascritch/machincast/issues/381) : celle qu'il occupe est
+  cachée aux sessions du poste.
 
 Le service de diffusion (machincast.service.ServiceState), lu par la fenêtre qui ouvre le bloc :
 
@@ -24,6 +27,7 @@ de Qt. Pendant le son, les deux boutons « Tester » sont grisés ; le bloc dit 
 bloc caché arrête son son de test.
 """
 
+import socket
 import time
 from collections.abc import Callable
 
@@ -36,6 +40,7 @@ from PySide6.QtGui import QHideEvent, QStandardItemModel  # noqa: E402
 from PySide6.QtWidgets import QComboBox, QPushButton, QWidget  # noqa: E402
 
 from machincast import audio as audio_outputs  # noqa: E402
+from machincast import service  # noqa: E402
 from machincast.audio import Presentation, UnavailableAudioOutput  # noqa: E402
 from machincast.configuration import DUMMY, AudioOutput  # noqa: E402
 from machincast.i18n import _  # noqa: E402
@@ -78,8 +83,10 @@ output_factory: Callable[..., Gst.Element] = audio_outputs.create_output
 """La sortie du son de test ; les scénarios la remplacent par une sortie factice."""
 
 
-def sample_sound(output: AudioOutput, device: str) -> Gst.Pipeline:
-	"""Le pipeline du son de test sur la carte ; lève UnavailableAudioOutput si sa sortie ne peut pas être créée."""
+def sample_sound(output: AudioOutput, device: str, connection: socket.socket | None = None) -> Gst.Pipeline:
+	"""Le pipeline du son de test sur la carte ; lève UnavailableAudioOutput si sa sortie ne peut pas être créée. Avec
+	une connexion au PipeWire du service, sur celui-ci (https://github.com/dascritch/machincast/issues/381) : la
+	connexion doit vivre jusqu'au démarrage du pipeline."""
 	Gst.init(None)
 	pipeline = Gst.Pipeline.new("son-de-test")
 	source = Gst.ElementFactory.make("audiotestsrc", "source")
@@ -98,6 +105,8 @@ def sample_sound(output: AudioOutput, device: str) -> Gst.Pipeline:
 	filter_.set_property("caps", Gst.Caps.from_string(f"audio/x-raw,rate={RATE},channels=2"))
 	sink = output_factory(output, device, presentation=TEST_SOUND)
 	sink.set_name("puits")
+	if connection is not None:
+		sink.set_property("fd", connection.fileno())
 	for item in (source, filter_, conversion, resampling, sink):
 		pipeline.add(item)
 	source.link(filter_)
@@ -130,6 +139,8 @@ class SoundCards(QWidget):
 		"""L'horloge monotone du poste : un son de test qui ne finit pas est abandonné."""
 		self._pipeline: Gst.Pipeline | None = None
 		self._piloted: states.Pilot | None = None
+		self._connection: socket.socket | None = None
+		"""La connexion au PipeWire du service du son de test en cours sur la carte de l'antenne."""
 		self._card = ""
 		self._end = 0.0
 		self._reading = QTimer(self)
@@ -181,7 +192,7 @@ class SoundCards(QWidget):
 		for choice in (self.ui.on_air, self.ui.preview):
 			choice.blockSignals(True)
 			choice.clear()
-		_fill(self.ui.on_air, on_air, found_list)
+		_fill(self.ui.on_air, on_air, audio_outputs.on_air_devices(self.chosen_output()))
 		_fill(self.ui.preview, preview, found_list)
 		for choice in (self.ui.on_air, self.ui.preview):
 			choice.blockSignals(False)
@@ -231,11 +242,19 @@ class SoundCards(QWidget):
 		if (self._pipeline is not None) or (card is None) or (card == DUMMY):
 			return
 		self._card = choice.currentText()
+		connection = None
 		try:
-			pipeline = sample_sound(self.chosen_output(), str(card))
-		except UnavailableAudioOutput as error:
+			if (choice is self.ui.on_air) and (self.chosen_output() == "pipewire"):
+				# La carte de l'antenne est celle du PipeWire du service, s'il tourne
+				# (https://github.com/dascritch/machincast/issues/381).
+				connection = service.connect_pipewire()
+			pipeline = sample_sound(self.chosen_output(), str(card), connection)
+		except (UnavailableAudioOutput, OSError) as error:
+			if connection is not None:
+				connection.close()
 			self._say(_("Test sound impossible on “{card}”: {error}").format(card=self._card, error=error))
 			return
+		self._connection = connection
 		self._pipeline = pipeline
 		self._piloted = states.Pilot(pipeline)
 		self._end = self.clock() + TEST_SOUND_DURATION + MARGIN
@@ -276,6 +295,9 @@ class SoundCards(QWidget):
 		if self._piloted is not None:
 			self._piloted.switch_off()
 		self._pipeline, self._piloted = None, None
+		if self._connection is not None:
+			self._connection.close()
+			self._connection = None
 		self._refresh()
 
 	def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802 : nom imposé par Qt

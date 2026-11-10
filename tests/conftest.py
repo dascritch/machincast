@@ -80,6 +80,18 @@ def log_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 @pytest.fixture(autouse=True)
+def service_runtime(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+	"""Le répertoire d'exécution du service de diffusion, dans le répertoire du scénario, absent tant qu'il ne le crée
+	pas : jamais /run/machincast, ni le PipeWire du service du poste (https://github.com/dascritch/machincast/issues/381),
+	y compris pour les binaires lancés à part."""
+	from machincast import service
+
+	directory = tmp_path / "service"
+	monkeypatch.setenv(service.RUNTIME_ENVIRONMENT, str(directory))
+	return directory
+
+
+@pytest.fixture(autouse=True)
 def view_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 	"""Les réglages des colonnes de l'interface, dans le répertoire du test : jamais ceux du compte qui lance les tests
 	(https://github.com/dascritch/machincast/issues/207)."""

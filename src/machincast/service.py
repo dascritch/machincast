@@ -1,19 +1,68 @@
 """Le service de diffusion, machincast.service (https://github.com/dascritch/machincast/issues/22).
 
-Installé sur demande par install.sh --service, il fait tourner Machin player sous le compte de MachinCast. Ce module
-dit seulement son nom et son état, que lit systemctl sans aucun droit particulier ; l'interface le pilote
+Installé sur demande par install.sh --service, il fait tourner Machin player sous son propre compte, machincast, avec
+son PipeWire (https://github.com/dascritch/machincast/issues/381). Ce module dit son nom et son état, que lit systemctl
+sans aucun droit particulier, et où joindre son PipeWire ; l'interface le pilote
 (machincast.interface.control, https://github.com/dascritch/machincast/issues/25), et machincast.installation rédige
 son unité et sa règle polkit.
 """
 
+import os
+import socket
 import subprocess
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 UNIT = "machincast.service"
 """L'unité systemd du service de lecture, celle que suit « Machin logs » : le même nom dans bin/Machin."""
 DELAY = 5
 """Secondes laissées à systemctl pour dire l'état du service."""
+RUNTIME = Path("/run/machincast")
+"""Le répertoire d'exécution du service (https://github.com/dascritch/machincast/issues/381), au groupe machincast :
+la socket de son PipeWire et sa socket d'état. tmpfiles.d le recrée à chaque démarrage du poste."""
+RUNTIME_ENVIRONMENT = "MACHINCAST_SERVICE_RUNTIME"
+"""La variable d'environnement qui le remplace : les scénarios n'atteignent jamais le service du poste."""
+PIPEWIRE_SOCKET = "pipewire-0"
+
+
+def runtime() -> Path:
+	"""Le répertoire d'exécution du service : celui de RUNTIME_ENVIRONMENT, sinon RUNTIME."""
+	value = os.environ.get(RUNTIME_ENVIRONMENT)
+	if value:
+		return Path(value)
+	return RUNTIME
+
+
+def shared_runtime() -> bool:
+	"""Vrai si le répertoire d'exécution du service existe et que ce compte y écrit : le service, ou un compte de son
+	groupe."""
+	directory = runtime()
+	return (directory.is_dir()) and (os.access(directory, os.W_OK | os.X_OK))
+
+
+def pipewire_socket() -> Path | None:
+	"""La socket du PipeWire du service, s'il tourne ; None sinon."""
+	path = runtime() / PIPEWIRE_SOCKET
+	if path.is_socket():
+		return path
+	return None
+
+
+def connect_pipewire() -> socket.socket | None:
+	"""Une connexion au PipeWire du service, pour un élément GStreamer (sa propriété fd) ; None sans PipeWire du
+	service. Lève OSError s'il tourne mais ne se joint pas : un compte hors du groupe machincast, ou qui n'a pas rouvert
+	sa session depuis qu'il y est entré."""
+	path = pipewire_socket()
+	if path is None:
+		return None
+	connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+	try:
+		connection.connect(str(path))
+	except OSError:
+		connection.close()
+		raise
+	return connection
 
 
 @dataclass(frozen=True)

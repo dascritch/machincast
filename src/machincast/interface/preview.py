@@ -45,6 +45,7 @@ from PySide6.QtGui import QCloseEvent, QStandardItemModel  # noqa: E402
 from PySide6.QtWidgets import QVBoxLayout, QWidget  # noqa: E402
 
 from machincast import audio as audio_outputs  # noqa: E402
+from machincast import service  # noqa: E402
 from machincast.audio import PLAYER, PREVIEW, create_output  # noqa: E402
 from machincast.configuration import Audio, AudioOutput, Crossfades  # noqa: E402
 from machincast.i18n import _, decimal  # noqa: E402
@@ -243,8 +244,11 @@ class Player:
 
 	def _on_air_by_pipewire(self, on_air: Audio | None) -> str | None:
 		"""Le périphérique de l'antenne, quand elle s'écoute par un lien de PipeWire : sur la sortie pipewire, qui est
-		aussi celle de la pré-écoute."""
+		aussi celle de la pré-écoute. Pas avec le service de diffusion, dont le PipeWire n'est pas celui de la session :
+		le pipeline relaie alors le son de l'un à l'autre (https://github.com/dascritch/machincast/issues/381)."""
 		if (on_air is None) or (on_air.monitored_on_air()[0] != "pipewire"):
+			return None
+		if service.pipewire_socket() is not None:
 			return None
 		return on_air.monitored_on_air()[1]
 

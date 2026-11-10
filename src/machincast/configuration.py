@@ -11,6 +11,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any, Literal, cast
 
+from machincast import service
 from machincast.database import SHORT_TEXT_LENGTH
 from machincast.i18n import _
 from machincast.player.fades import DEFAULT_ENTRY, DEFAULT_OUTPUT, POSITIONS, Position
@@ -131,11 +132,18 @@ class Player:
 	"""Socket Unix d'état du binaire lecture, lue par l'interface (https://github.com/dascritch/machincast/issues/20)."""
 
 
+STATE_SOCKET = "lecture.sock"
+
+
 def default_state_socket() -> Path:
-	"""Dans le répertoire d'exécution du compte ($XDG_RUNTIME_DIR, sinon /run/user/<uid>) : privé, effacé au
-	redémarrage du poste."""
+	"""Dans le répertoire d'exécution du service de diffusion, quand il est installé et que ce compte y écrit : le
+	service et le compte de MachinCast, de son groupe, s'y retrouvent (https://github.com/dascritch/machincast/issues/381).
+	Sinon, dans celui du compte ($XDG_RUNTIME_DIR, sinon /run/user/<uid>) : privé. Tous deux sont effacés au redémarrage
+	du poste."""
+	if service.shared_runtime():
+		return service.runtime() / STATE_SOCKET
 	directory = (os.environ.get("XDG_RUNTIME_DIR")) or (f"/run/user/{os.getuid()}")
-	return Path(directory) / "machincast" / "lecture.sock"
+	return Path(directory) / "machincast" / STATE_SOCKET
 
 
 Granularity = Literal["second", "tenth"]

@@ -3,7 +3,9 @@
 Les niveaux de l'antenne se lisent sur le port de monitoring du périphérique de l'antenne (audio.device), sans
 rien demander à Machin player :
 
-- PipeWire : pipewiresrc sur le nœud de l'antenne, qui en capture la sortie (stream.capture.sink) ;
+- PipeWire : pipewiresrc sur le nœud de l'antenne, qui en capture la sortie (stream.capture.sink) ; avec le service
+  de diffusion, sur son PipeWire, joint par sa socket (propriété fd, https://github.com/dascritch/machincast/issues/381),
+  celui de la session ne voyant pas la carte de l'antenne ;
 - PulseAudio : pulsesrc sur son « .monitor » ;
 - ALSA n'a pas de port de monitoring : le moniteur est indisponible, sans erreur ;
 - l'entrée « sortie factice » de l'antenne d'une sortie PipeWire ou PulseAudio : le port de monitoring de la carte
@@ -27,6 +29,7 @@ est gelé (https://github.com/dascritch/machincast/issues/311) : au retour d'une
 niveaux : le VU-mètre ne reste pas figé sur les derniers. Il le dit, et le rouvre comme un port qui ne s'ouvre pas.
 """
 
+import socket
 import time
 from collections.abc import Callable
 
@@ -37,6 +40,7 @@ from gi.repository import GLib, Gst  # noqa: E402
 from PySide6.QtCore import QObject, QTimer, Signal  # noqa: E402
 
 from machincast import audio as outputs  # noqa: E402
+from machincast import service  # noqa: E402
 from machincast.configuration import VIRTUAL_CARD, VIRTUAL_CARD_DESCRIPTION, Audio  # noqa: E402
 from machincast.i18n import _  # noqa: E402
 from machincast.interface import states  # noqa: E402
@@ -62,6 +66,10 @@ CHANNELS = "audio/x-raw,channels=2"
 """Ce que donne le port de monitoring : les deux canaux de l'antenne."""
 WITHOUT_ALSA = _("Unavailable with the ALSA output, which has no monitoring port.")
 WITHOUT_ON_AIR = _("Unavailable: on-air device to fill in.")
+NO_SERVICE_ACCESS = _(
+	"Unavailable: the PipeWire of the broadcast service does not answer ({error}); the account must belong to the "
+	"machincast group, from a session opened after ./install.sh --service."
+)
 
 
 class Unavailable(Exception):
@@ -78,6 +86,8 @@ def port_name(audio: Audio) -> str:
 		return _("dummy output, test signal")
 	if output == "pulseaudio":
 		return _("PulseAudio, {name}.monitor").format(name=name)
+	if (output == "pipewire") and (service.pipewire_socket() is not None):
+		return _("PipeWire of the broadcast service, {name}").format(name=name)
 	if output == "pipewire":
 		return _("PipeWire, {name}").format(name=name)
 	return _("ALSA, {name}").format(name=name)
@@ -107,19 +117,42 @@ def monitor_source(audio: Audio) -> Gst.Element:
 		source.set_property("device", f"{device}.monitor")
 		outputs.present(source, outputs.MONITORING)
 		return _in_stereo(source)
+	connection = _service_connection()
 	source = _item("pipewiresrc")
+	if connection is not None:
+		# L'antenne joue sur le PipeWire du service (https://github.com/dascritch/machincast/issues/381).
+		source.set_property("fd", connection.fileno())
 	source.set_property("target-object", device)
 	properties, _end = Gst.Structure.from_string("props, stream.capture.sink=(boolean)true")
 	source.set_property("stream-properties", properties)
 	outputs.present(source, outputs.MONITORING)
 	# Jamais l'écoute d'un autre périphérique que l'antenne (https://github.com/dascritch/machincast/issues/345).
 	outputs.lock(source)
-	return _in_stereo(source)
+	return _in_stereo(source, connection)
 
 
-def _in_stereo(source: Gst.Element) -> Gst.Element:
+def _service_connection() -> socket.socket | None:
+	"""La connexion au PipeWire du service, s'il tourne ; lève Indisponible s'il ne se joint pas."""
+	try:
+		return service.connect_pipewire()
+	except OSError as error:
+		raise Unavailable(NO_SERVICE_ACCESS.format(error=error.strerror)) from None
+
+
+class _ServiceBin(Gst.Bin):
+	"""Un bin qui garde la connexion au PipeWire du service le temps de sa vie : pipewiresrc la duplique en
+	s'ouvrant."""
+
+	def __init__(self, connection: socket.socket) -> None:
+		super().__init__()
+		self.connection = connection
+
+
+def _in_stereo(source: Gst.Element, connection: socket.socket | None = None) -> Gst.Element:
 	"""La source, suivie d'un filtre qui lui demande les deux canaux de l'antenne."""
-	block = Gst.Bin.new(None)
+	block: Gst.Bin = Gst.Bin.new(None)
+	if connection is not None:
+		block = _ServiceBin(connection)
 	filter_ = _item("capsfilter")
 	filter_.set_property("caps", Gst.Caps.from_string(CHANNELS))
 	block.add(source)
