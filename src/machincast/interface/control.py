@@ -112,17 +112,10 @@ class Control(QObject):
 			success, failure = RESTART
 		else:
 			_entry, success, failure = VERBS[verb]
+		self.finished.emit(self._outcome(process, verb, code, success, failure))
 		if (code == 0) and (verb in ("start", "restart")):
 			# systemctl réussit dès que Machin player est lancé : il reste à voir s'il tient.
-			self.finished.emit(STARTING)
 			self._follow(round(STARTUP_WINDOW / STARTUP_STEP))
-		elif code == 0:
-			self.finished.emit(success)
-		else:
-			error = bytes(process.readAllStandardError().data()).decode("utf-8", "replace").strip()
-			self.finished.emit(
-				_("{failure}: {error}").format(failure=failure, error=(error) or (process.errorString()))
-			)
 		if verb == "restart":
 			# Après le message de systemctl : les paramètres du service gardés, ou revenus, ont le dernier mot.
 			self.restarted.emit(code == 0)
