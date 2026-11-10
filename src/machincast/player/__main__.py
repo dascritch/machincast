@@ -22,6 +22,7 @@ from machincast.clock import SystemClock
 from machincast.configuration import Configuration
 from machincast.database import Role, open_connection
 from machincast.i18n import _, counted
+from machincast.player import virtual_card
 from machincast.player.analysis import Analyser, analysis_command
 from machincast.player.broadcast import Broadcast, air, install_stop
 from machincast.player.engine import AudioEngine
@@ -168,10 +169,13 @@ def run_broadcast(configuration: Configuration) -> int:
 		return INVALID_CONFIGURATION_CODE
 	stop = install_stop()
 	try:
-		with open_connection(database.socket, database.production, Role.PLAYBACK) as connection:
-			engine = AudioEngine(configuration.audio, dead_air=configuration.dead_air)
+		with (
+			open_connection(database.socket, database.production, Role.PLAYBACK) as connection,
+			virtual_card.on_air(audio) as played,
+		):
+			engine = AudioEngine(played, dead_air=configuration.dead_air)
 			try:
-				on_air_output, on_air_device = audio.on_air()
+				on_air_output, on_air_device = played.on_air()
 				device = ""
 				if on_air_device is not None:
 					device = _(", device {on_air_device}").format(on_air_device=on_air_device)

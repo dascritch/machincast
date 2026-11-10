@@ -244,9 +244,9 @@ class Player:
 	def _on_air_by_pipewire(self, on_air: Audio | None) -> str | None:
 		"""Le périphérique de l'antenne, quand elle s'écoute par un lien de PipeWire : sur la sortie pipewire, qui est
 		aussi celle de la pré-écoute."""
-		if (on_air is None) or (on_air.on_air()[0] != "pipewire"):
+		if (on_air is None) or (on_air.monitored_on_air()[0] != "pipewire"):
 			return None
-		return on_air.on_air()[1]
+		return on_air.monitored_on_air()[1]
 
 	def put_to(self, position: float) -> None:
 		"""Va à cette position du fichier, en secondes ; écouté comme à l'antenne, dans sa partie jouée."""

@@ -139,13 +139,21 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et l'onglet Antenne ne capture rien
 		Et le port de monitoring ne sera pas rouvert
 
-	Scénario: Sur l'entrée « sortie factice », le VU-mètre de l'antenne écoute le signal de test
-		https://github.com/dascritch/machincast/issues/339 : audio.device = "dummy", sur une vraie sortie.
+	Scénario: Sur l'entrée « sortie factice » d'une sortie ALSA, le VU-mètre de l'antenne écoute le signal de test
+		https://github.com/dascritch/machincast/issues/339 : audio.device = "dummy", sur une vraie sortie sans carte
+		virtuelle.
 
-		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « dummy »
+		Étant donné la configuration audio sortie « alsa », avec le périphérique d'antenne « dummy »
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le VU-mètre de l'antenne est intitulé « Antenne », avec l'infobulle « Port de monitoring : sortie factice, signal de test. Clic : écouter l'antenne en pré-écoute. »
 		Et le VU-mètre de l'antenne montre bientôt 2 canaux, entre -25 et -15 dB
+
+	Scénario: Sur l'entrée « sortie factice » d'une sortie PipeWire, le VU-mètre de l'antenne écoute la carte virtuelle
+		https://github.com/dascritch/machincast/issues/400 : Machin player y joue l'antenne le temps de sa diffusion.
+
+		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « dummy »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le VU-mètre de l'antenne est intitulé « Antenne », avec l'infobulle « Port de monitoring : PipeWire, MachinCast antenne factice. Clic : écouter l'antenne en pré-écoute. »
 
 	Scénario: Les préférences qui règlent l'antenne changent aussitôt le port du VU-mètre
 		Étant donné la configuration audio sortie « pipewire », sans périphérique d'antenne
