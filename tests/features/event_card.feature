@@ -257,6 +257,41 @@ Fonctionnalité: Fiche d'un événement
 		Quand j'ouvre la fiche de l'événement « Journal »
 		Alors la priorité se choisit parmi « secours », « fil musical », « émission », « spécial », de la plus basse à la plus haute
 
+	# ─── Secours non local (https://github.com/dascritch/machincast/issues/403) ───
+	# Un secours sert quand un flux tombe, souvent à une perte du réseau : un secours qui fait appel à un flux externe,
+	# un stream, directement, par une banque ou par une séquence, tomberait avec lui.
+
+	Plan du scénario: Un secours qui fait appel à un flux externe est signalé, même par une banque ou une séquence
+		Étant donné les sonores :
+			| artist | title       | type   | state  | duration | location                    |
+			|        | Radio Thune | stream | active |          | https://flux.exemple/direct |
+		Et la banque « Relais », séquentielle, sans nom public, avec « Radio Thune »
+		Et la séquence « Direct », sans nom public, avec le sonore « Jingle début », la banque « Relais »
+		Et l'événement « Panne » joue <éléments>
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Panne »
+		Alors la fiche avertit en haut « Un secours qui fait appel à un flux externe n'est pas recommandé : une perte du réseau le ferait taire, comme le flux qu'il secourt. »
+
+		Exemples:
+			| éléments                |
+			| le sonore « Radio Thune » |
+			| la banque « Relais »      |
+			| la séquence « Direct »    |
+
+	Scénario: L'avertissement du secours non local suit la liste et la priorité de la fiche
+		Étant donné les sonores :
+			| artist | title       | type   | state  | duration | location                    |
+			|        | Radio Thune | stream | active |          | https://flux.exemple/direct |
+		Et la banque « Relais », séquentielle, sans nom public, avec « Radio Thune »
+		Et l'événement « Panne » joue la banque « Habillage »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Panne »
+		Alors la fiche de l'événement n'avertit de rien
+		Quand j'ajoute les banques « Relais »
+		Alors la fiche avertit en haut « Un secours qui fait appel à un flux externe n'est pas recommandé : une perte du réseau le ferait taire, comme le flux qu'il secourt. »
+		Quand je choisis la priorité « émission »
+		Alors la fiche de l'événement n'avertit de rien
+
 	Scénario: Un nouvel événement, vide, s'enregistre sans élément
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Événements »

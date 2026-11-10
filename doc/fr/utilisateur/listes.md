@@ -17,7 +17,7 @@ Les onglets **Événements**, **Séquences**, **Banques**, **Sonores** et **Feed
 
 | Onglet | Colonnes | Ordre |
 | --- | --- | --- |
-| Événements | ⚠️, nom, nom public, priorité, début, fin, jours, anomalie (`événement vide`) | du plus prioritaire au moins prioritaire, puis par nom |
+| Événements | ⚠️, nom, nom public, priorité, début, fin, jours, anomalie (`événement vide`, `secours non local` : un secours qui fait appel à un stream, [#403](https://github.com/dascritch/machincast/issues/403)) | du plus prioritaire au moins prioritaire, puis par nom |
 | Séquences | ⚠️, nom, nom public, anomalie (`séquence vide`) | par nom |
 | Banques | ⚠️, nom, nom public, mode, « ne pas répéter », premier répertoire | par nom |
 | Sonores | ⚠️, artiste, titre, type, état, durée, emplacement | par artiste, puis par titre |

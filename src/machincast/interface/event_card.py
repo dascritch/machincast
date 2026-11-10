@@ -43,7 +43,7 @@ from machincast.interface import display
 from machincast.interface.calendar import day_and_month, long_date
 from machincast.interface.card import ORANGE, Card, Connection, Refusal, rank_of
 from machincast.interface.items import CATEGORY, FEED, ITEM, Buttons, ItemList
-from machincast.interface.lists import EMPTY_EVENT
+from machincast.interface.lists import EMPTY_EVENT, FALLBACK_NOT_LOCAL, calls_stream
 from machincast.interface.sessions import Session, next_skipped, overlapped, reinstate, started
 from machincast.interface.ui.event_card import Ui_EventCard
 from machincast.player.grid import DAYS, NEVER, Event, Priority, overlap, read_grid
@@ -455,7 +455,25 @@ class EventCard(Card):
 			empty = EMPTY_EVENT[self._priority()]
 			if self.ui.end_of_list.currentData() == "lend_name":
 				empty = LENDS_NAME
+		if (self._priority() == "fallback") and (self._calls_stream()):
+			empty = FALLBACK_NOT_LOCAL
 		self.warn(empty)
+
+	def _calls_stream(self) -> bool:
+		"""La liste fait appel à un stream : un feed ajouté, ou un stream, directement, par une banque ou par une
+		séquence (https://github.com/dascritch/machincast/issues/403)."""
+		if self.items.tail_stream:
+			return True
+		ids: dict[str, list[int]] = {"sound": [], "bank": [], "sequence": []}
+		for line in self.items.lines():
+			if line.data(0, FEED) is not None:
+				return True
+			category = line.data(0, CATEGORY)
+			if (category in ids) and (line.data(0, ITEM) is not None):
+				ids[category].append(int(line.data(0, ITEM)))
+		if ids == {"sound": [], "bank": [], "sequence": []}:
+			return False
+		return calls_stream(self.connection, ids["sound"], ids["bank"], ids["sequence"])
 
 	def _write(self) -> int:
 		ui = self.ui
