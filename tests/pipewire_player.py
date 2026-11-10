@@ -7,12 +7,18 @@ pipeline lancé, puis « erreur : … » à toute erreur, et s'arrête à la fer
 
 	python -m tests.pipewire_player antenne      # la sortie de l'antenne, verrouillée sur le périphérique « antenne »
 	python -m tests.pipewire_player sans-verrou  # une sortie sans verrou, sur le même périphérique
+	python -m tests.pipewire_player factice      # l'antenne factice, sur sa carte virtuelle (#400)
 """
 
+import contextlib
 import select
 import sys
 
 from machincast import audio
+from machincast.configuration import DUMMY, Audio
+from machincast.player import virtual_card
+
+DUMMY_ON_AIR = Audio(output="pipewire", device=DUMMY, preview="casque")
 
 
 def output(kind: str) -> audio.Gst.Element:
@@ -26,13 +32,21 @@ def output(kind: str) -> audio.Gst.Element:
 
 
 def main(kind: str) -> int:
+	audio.Gst.init(None)
+	with contextlib.ExitStack() as stack:
+		if kind == "factice":
+			played = stack.enter_context(virtual_card.on_air(DUMMY_ON_AIR))
+			return play(audio.create_output(*played.on_air(), presentation=audio.ON_AIR))
+		return play(output(kind))
+
+
+def play(sink: audio.Gst.Element) -> int:
 	"""La source n'est pas en direct, comme les sonores de MachinCast : un pipeline à source en direct, sur un
 	pipewiresink synchronisé, ne s'arrête plus avec le PipeWire à part."""
 	audio.Gst.init(None)
 	pipeline = audio.Gst.Pipeline.new(None)
 	source = audio.Gst.ElementFactory.make("audiotestsrc", None)
 	conversion = audio.Gst.ElementFactory.make("audioconvert", None)
-	sink = output(kind)
 	assert (source is not None) and (conversion is not None)
 	for item in (source, conversion, sink):
 		pipeline.add(item)

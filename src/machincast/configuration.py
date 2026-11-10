@@ -61,6 +61,13 @@ class Database:
 DUMMY = "dummy"
 """L'entrée « sortie factice », que prennent audio.device et audio.preview
 (https://github.com/dascritch/machincast/issues/339) : l'antenne ne joue aucun son, la pré-écoute est désactivée."""
+VIRTUAL_CARD = "machincast_antenne_factice"
+"""Le nœud de PipeWire de la carte virtuelle où Machin player joue l'antenne factice d'une sortie PipeWire ou
+PulseAudio (https://github.com/dascritch/machincast/issues/400, machincast.player.virtual_card)."""
+VIRTUAL_CARD_DESCRIPTION = "MachinCast antenne factice"
+"""Le nom de la carte virtuelle dans les réglages du son du poste, comme « MachinCast lecteur »."""
+VIRTUAL_OUTPUTS: tuple[AudioOutput, ...] = ("pipewire", "pulseaudio")
+"""Les sorties dont l'antenne factice joue sur la carte virtuelle."""
 
 
 @dataclass(frozen=True)
@@ -77,6 +84,18 @@ class Audio:
 		if self.device == DUMMY:
 			return "dummy", None
 		return self.output, self.device
+
+	def virtual_on_air(self) -> bool:
+		"""L'antenne factice d'une sortie PipeWire ou PulseAudio : Machin player la joue sur la carte virtuelle
+		(https://github.com/dascritch/machincast/issues/400)."""
+		return (self.device == DUMMY) and (self.output in VIRTUAL_OUTPUTS)
+
+	def monitored_on_air(self) -> tuple[AudioOutput, str | None]:
+		"""La sortie et le périphérique dont l'interface écoute l'antenne : la carte virtuelle pour l'antenne factice
+		d'une sortie PipeWire ou PulseAudio, sinon ceux où elle joue."""
+		if self.virtual_on_air():
+			return self.output, VIRTUAL_CARD
+		return self.on_air()
 
 	def dummy_on_air(self) -> bool:
 		"""L'antenne ne joue aucun son : sortie factice, ou entrée « sortie factice »."""

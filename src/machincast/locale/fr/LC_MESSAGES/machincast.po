@@ -5997,6 +5997,28 @@ msgstr "{path} existe et n'est pas une socket"
 msgid "{ignored_request}: {error}"
 msgstr "{ignored_request} : {error}"
 
+#: machincast/player/virtual_card.py
+msgid "PipeWire unreachable"
+msgstr "PipeWire injoignable"
+
+#: machincast/player/virtual_card.py
+msgid "pw-cli not found, install the pipewire-bin package"
+msgstr "pw-cli introuvable, installer le paquet pipewire-bin"
+
+#: machincast/player/virtual_card.py
+#, python-brace-format
+msgid "on air on the virtual card “{name}”"
+msgstr "antenne sur la carte virtuelle « {name} »"
+
+#: machincast/player/virtual_card.py
+#, python-brace-format
+msgid ""
+"virtual card “{name}” not created ({reason}): the dummy output plays no "
+"sound"
+msgstr ""
+"carte virtuelle « {name} » non créée ({reason}) : la sortie factice ne joue "
+"aucun son"
+
 #: machincast/programs.py
 msgid "trial broadcast"
 msgstr "diffusion d'essai"

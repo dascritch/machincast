@@ -6,7 +6,10 @@ rien demander à Machin player :
 - PipeWire : pipewiresrc sur le nœud de l'antenne, qui en capture la sortie (stream.capture.sink) ;
 - PulseAudio : pulsesrc sur son « .monitor » ;
 - ALSA n'a pas de port de monitoring : le moniteur est indisponible, sans erreur ;
-- la sortie factice des tests et des essais, et l'entrée « sortie factice » de l'antenne
+- l'entrée « sortie factice » de l'antenne d'une sortie PipeWire ou PulseAudio : le port de monitoring de la carte
+  virtuelle « MachinCast antenne factice », où Machin player la joue le temps de sa diffusion
+  (https://github.com/dascritch/machincast/issues/400, machincast.player.virtual_card) ;
+- la sortie factice des tests et des essais, et l'entrée « sortie factice » de l'antenne d'une sortie ALSA
   (https://github.com/dascritch/machincast/issues/339) : un signal de test en stéréo (DUMMY_SIGNAL).
 
 Le port est capté en stéréo (CANAUX) : sans contrainte, pipewiresrc et pulsesrc se contentent d'un canal, et le
@@ -34,7 +37,7 @@ from gi.repository import GLib, Gst  # noqa: E402
 from PySide6.QtCore import QObject, QTimer, Signal  # noqa: E402
 
 from machincast import audio as outputs  # noqa: E402
-from machincast.configuration import Audio  # noqa: E402
+from machincast.configuration import VIRTUAL_CARD, VIRTUAL_CARD_DESCRIPTION, Audio  # noqa: E402
 from machincast.i18n import _  # noqa: E402
 from machincast.interface import states  # noqa: E402
 
@@ -67,8 +70,10 @@ class Unavailable(Exception):
 
 def port_name(audio: Audio) -> str:
 	"""Ce que le port de monitoring écoute, pour l'infobulle du VU-mètre et la source de la pré-écoute."""
-	output, device = audio.on_air()
+	output, device = audio.monitored_on_air()
 	name = (device) or (_("device to fill in"))
+	if device == VIRTUAL_CARD:
+		name = VIRTUAL_CARD_DESCRIPTION
 	if output == "dummy":
 		return _("dummy output, test signal")
 	if output == "pulseaudio":
@@ -91,7 +96,7 @@ def monitor_source(audio: Audio) -> Gst.Element:
 	(https://github.com/dascritch/machincast/issues/339), le signal de test, comme sur la sortie factice."""
 	Gst.init(None)
 	check(audio)
-	output, device = audio.on_air()
+	output, device = audio.monitored_on_air()
 	if output == "dummy":
 		try:
 			return Gst.parse_bin_from_description(f"{DUMMY_SIGNAL} ! capsfilter caps={CHANNELS}", True)
