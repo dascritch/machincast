@@ -1,13 +1,17 @@
-"""Vérification de deux règles de style du code Python (https://github.com/dascritch/machincast/issues/103).
+"""Vérification des règles de style du code Python (https://github.com/dascritch/machincast/issues/103,
+https://github.com/dascritch/machincast/issues/340).
 
 Décidées en relecture de https://github.com/dascritch/machincast/pull/100 (doc/fr/regles/developpement.md, Style de
 code) :
 
 1. dans une condition qui enchaîne `and` ou `or` (un nœud BoolOp), chaque opérande est entre parenthèses dans le
    source : `(a) and (f(b))`, jamais `a and f(b)` ;
-2. une expression conditionnelle (un nœud IfExp) ne décide pas d'un appel : aucune de ses deux branches n'appelle de
-   fonction, sauf les conversions d'une valeur lue, listées dans CONVERSIONS. La condition, elle, peut appeler
-   (`x if isinstance(x, int) else None`).
+2. pas d'expression conditionnelle (un nœud IfExp), `a if b else c` : une valeur par défaut puis un `if`, ou un
+   `if`/`else` développé (https://github.com/dascritch/machincast/issues/340) ;
+3. pas de `elif` : un `match`/`case`, un `return`, ou une conditionnelle développée ;
+4. pas de compréhension, de liste, d'ensemble, de dictionnaire, ni d'expression génératrice : une boucle `for`
+   développée, au besoin dans une fonction nommée ;
+5. pas de `continue` : une sous-fonction dont on sort par un simple `return` dit de quelle boucle on s'échappe.
 
 Les parenthèses se lisent dans les jetons du source : le module ast ne les garde pas.
 """
@@ -17,12 +21,12 @@ import io
 import tokenize
 from dataclasses import dataclass
 
-CONVERSIONS = frozenset({"int", "str", "bool"})
-"""Fonctions qu'une branche d'expression conditionnelle peut appeler : la conversion d'une valeur lue,
-`None if valeur is None else int(str(valeur))`."""
-
 OPERAND = "opérande sans parenthèses dans une condition enchaînée"
-CALL = "appel dans une branche d'expression conditionnelle"
+TERNARY = "expression conditionnelle"
+ELIF = "elif"
+COMPREHENSION = "compréhension"
+CONTINUE = "continue"
+COMPREHENSIONS = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
 
 
 @dataclass(frozen=True)
@@ -63,13 +67,11 @@ def _between_parentheses(
 	return (tokens[start - 1].string == "(") and (following < len(tokens)) and (tokens[following].string == ")")
 
 
-def _forbidden_call(node: ast.expr) -> bool:
-	for call in ast.walk(node):
-		if not isinstance(call, ast.Call):
-			continue
-		if (not isinstance(call.func, ast.Name)) or (call.func.id not in CONVERSIONS):
-			return True
-	return False
+def _elif(node: ast.If, lines: list[str]) -> bool:
+	"""Le sinon du if est un if écrit elif : un seul if, sur une ligne qui commence par elif."""
+	if (len(node.orelse) != 1) or (not isinstance(node.orelse[0], ast.If)):
+		return False
+	return lines[node.orelse[0].lineno - 1].lstrip().startswith("elif")
 
 
 def faults(source: str) -> list[Fault]:
@@ -79,12 +81,30 @@ def faults(source: str) -> list[Fault]:
 	lines = source.splitlines()
 	found_list = []
 	for node in ast.walk(ast.parse(source)):
-		if isinstance(node, ast.BoolOp):
-			found_list += [
-				Fault(operand.lineno, OPERAND)
-				for operand in node.values
-				if not _between_parentheses(operand, lines, tokens, starts)
-			]
-		elif (isinstance(node, ast.IfExp)) and ((_forbidden_call(node.body)) or (_forbidden_call(node.orelse))):
-			found_list.append(Fault(node.lineno, CALL))
-	return sorted(set(found_list), key=lambda fault: (fault.line, fault.kind))
+		found_list += _node_faults(node, lines, tokens, starts)
+	return sorted(set(found_list), key=_line_then_kind)
+
+
+def _line_then_kind(fault: Fault) -> tuple[int, str]:
+	return (fault.line, fault.kind)
+
+
+def _node_faults(
+	node: ast.AST, lines: list[str], tokens: list[tokenize.TokenInfo], starts: dict[tuple[int, int], int]
+) -> list[Fault]:
+	"""Les fautes d'un nœud, sans ses enfants."""
+	found_list: list[Fault] = []
+	if isinstance(node, ast.BoolOp):
+		for operand in node.values:
+			if not _between_parentheses(operand, lines, tokens, starts):
+				found_list.append(Fault(operand.lineno, OPERAND))
+		return found_list
+	if isinstance(node, ast.IfExp):
+		return [Fault(node.lineno, TERNARY)]
+	if isinstance(node, COMPREHENSIONS):
+		return [Fault(node.lineno, COMPREHENSION)]
+	if isinstance(node, ast.Continue):
+		return [Fault(node.lineno, CONTINUE)]
+	if (isinstance(node, ast.If)) and (_elif(node, lines)):
+		return [Fault(node.orelse[0].lineno, ELIF)]
+	return found_list

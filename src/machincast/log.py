@@ -38,7 +38,10 @@ class _Outputs(logging.Handler):
 
 	def emit(self, saving: logging.LogRecord) -> None:
 		try:
-			output = sys.stdout if saving.levelno < logging.WARNING else sys.stderr
+			if saving.levelno < logging.WARNING:
+				output = sys.stdout
+			else:
+				output = sys.stderr
 			output.write(self.format(saving) + "\n")
 			output.flush()
 		except Exception:

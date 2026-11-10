@@ -211,7 +211,9 @@ def created_item(context: Context, factory: str) -> None:
 @then(parsers.parse('son périphérique est "{device}"'))
 def rule_device(context: Context, device: str) -> None:
 	item = context.item
-	name = "target-object" if item.get_factory().get_name() == "pipewiresink" else "device"  # type: ignore[attr-defined]
+	name = "device"
+	if item.get_factory().get_name() == "pipewiresink":
+		name = "target-object"
 	assert item.get_property(name) == device  # type: ignore[attr-defined]
 
 
@@ -369,7 +371,10 @@ def without_percent() -> None:
 
 @when(parsers.parse("je vérifie le style de l'extrait « {code} »"))
 def check_extract(context: Context, code: str) -> None:
-	context.style_faults = [fault.kind for fault in style_faults(code)]
+	"""\\n dans l'extrait est une fin de ligne."""
+	context.style_faults = []
+	for fault in style_faults(code.replace("\\n", "\n")):
+		context.style_faults.append(fault.kind)
 
 
 @then(parsers.re(r"l'extrait est (?P<verdict>accepté|refusé : .+)"))

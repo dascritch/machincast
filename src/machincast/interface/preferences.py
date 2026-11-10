@@ -224,8 +224,9 @@ def write(path: Path, settings: Settings) -> None:
 		section_interface["table_rows"] = settings.table_rows
 	if settings.icon is not None:
 		section_interface["icon"] = str(settings.icon)
-	elif "icon" in section_interface:
-		del section_interface["icon"]
+	else:
+		if "icon" in section_interface:
+			del section_interface["icon"]
 	path.write_text(tomlkit.dumps(document), encoding="utf-8")
 
 

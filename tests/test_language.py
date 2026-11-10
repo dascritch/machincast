@@ -121,6 +121,9 @@ def same_fields() -> None:
 		translations = i18n.read_catalog(i18n.catalog_file(code).read_text(encoding="utf-8"))
 		for key, message in messages.items():
 			translated = translations[key]
-			forms = translated if isinstance(translated, tuple) else (translated,)
+			if isinstance(translated, tuple):
+				forms = translated
+			else:
+				forms = (translated,)
 			for form in forms:
 				assert set(fields.findall(form)) == set(fields.findall(message.msgid)), (code, message.msgid, form)

@@ -169,7 +169,10 @@ def _probe(tracking: _Tracking) -> Callable[[Gst.Pad, Gst.PadProbeInfo], Gst.Pad
 		if buffer.pts != Gst.CLOCK_TIME_NONE:
 			if tracking.start is None:
 				tracking.start = buffer.pts
-			duration = buffer.duration if buffer.duration != Gst.CLOCK_TIME_NONE else 0
+			if buffer.duration != Gst.CLOCK_TIME_NONE:
+				duration = buffer.duration
+			else:
+				duration = 0
 			tracking.end = max(tracking.end, buffer.pts + duration)
 		return Gst.PadProbeReturn.OK
 
@@ -267,7 +270,10 @@ class _Decoding:
 			if message is None:
 				if self.tracking.buffers == last:
 					still += WAIT_STEP
-					if still >= (startup_delay if self.tracking.buffers == 0 else delay_without_progress):
+					chosen = delay_without_progress
+					if self.tracking.buffers == 0:
+						chosen = startup_delay
+					if still >= chosen:
 						return None
 				else:
 					last, still = self.tracking.buffers, timedelta()
@@ -369,7 +375,9 @@ def _attempt(
 		decoding.pipeline.set_state(Gst.State.PAUSED)
 		message = decoding.wait(Gst.MessageType.ASYNC_DONE, startup_delay, delay_without_progress)
 		if message is None:
-			return blocked if decoding.tracking.buffers > 0 else None
+			if decoding.tracking.buffers > 0:
+				return blocked
+			return None
 		if message.type == Gst.MessageType.ERROR:
 			return decoding.error(message)
 		known, announced = decoding.pipeline.query_duration(Gst.Format.TIME)
@@ -380,7 +388,9 @@ def _attempt(
 		decoding.pipeline.set_state(Gst.State.PLAYING)
 		message = decoding.wait(Gst.MessageType.EOS, startup_delay, delay_without_progress)
 		if message is None:
-			return blocked if decoding.tracking.buffers > 0 else None
+			if decoding.tracking.buffers > 0:
+				return blocked
+			return None
 		if message.type == Gst.MessageType.ERROR:
 			return decoding.error(message)
 	finally:

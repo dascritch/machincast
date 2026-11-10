@@ -126,28 +126,30 @@ def items(empty_database: Connection, datatable: list[list[str]]) -> None:
 		deleted_at = None
 		if deleted:
 			deleted_at = _day(deleted)
-		if category == "sonore":
-			identifier = _sound(empty_database, name, f"/srv/{name}.flac")
-			empty_database.execute("UPDATE sounds SET deleted_at = %s WHERE id = %s", (deleted_at, identifier))
-			if disappeared:
+		match category:
+			case "sonore":
+				identifier = _sound(empty_database, name, f"/srv/{name}.flac")
+				empty_database.execute("UPDATE sounds SET deleted_at = %s WHERE id = %s", (deleted_at, identifier))
+				if disappeared:
+					empty_database.execute(
+						"UPDATE sounds SET state = 'missing', missing_at = %s WHERE id = %s",
+						(_day(disappeared), identifier),
+					)
+			case "banque":
 				empty_database.execute(
-					"UPDATE sounds SET state = 'missing', missing_at = %s WHERE id = %s",
-					(_day(disappeared), identifier),
+					"INSERT INTO banks (internal_name, mode, deleted_at) VALUES (%s, 'sequential', %s)",
+					(name, deleted_at),
 				)
-		elif category == "banque":
-			empty_database.execute(
-				"INSERT INTO banks (internal_name, mode, deleted_at) VALUES (%s, 'sequential', %s)", (name, deleted_at)
-			)
-		elif category == "séquence":
-			empty_database.execute(
-				"INSERT INTO sequences (internal_name, deleted_at) VALUES (%s, %s)", (name, deleted_at)
-			)
-		else:
-			assert category == "événement", category
-			empty_database.execute(
-				"INSERT INTO events (internal_name, priority, starts_at, deleted_at) VALUES (%s, 'show', %s, %s)",
-				(name, _day("2026-09-01"), deleted_at),
-			)
+			case "séquence":
+				empty_database.execute(
+					"INSERT INTO sequences (internal_name, deleted_at) VALUES (%s, %s)", (name, deleted_at)
+				)
+			case _:
+				assert category == "événement", category
+				empty_database.execute(
+					"INSERT INTO events (internal_name, priority, starts_at, deleted_at) VALUES (%s, 'show', %s, %s)",
+					(name, _day("2026-09-01"), deleted_at),
+				)
 
 
 @given(parsers.parse("un passage du sonore « {title} » le {date}"))

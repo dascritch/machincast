@@ -455,7 +455,9 @@ def choose_zoom(interface: Context, text: str) -> None:
 )
 def wheel(interface: Context, times: str | None, direction: str) -> None:
 	grid = calendar(interface).grid
-	notch = 120 if direction == "haut" else -120
+	notch = -120
+	if direction == "haut":
+		notch = 120
 	for _click in range(int((times) or ("1"))):
 		centre = QPointF(grid.width() / 2, grid.height() / 2)
 		event = QWheelEvent(

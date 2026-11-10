@@ -67,7 +67,10 @@ def more_requested(empty_database: Connection, sound: int) -> None:
 def audited(
 	empty_database: Connection, sound: int, indexings: list[tuple[datetime, datetime]], threshold: str, moment: str
 ) -> None:
-	start, end = indexings[-1 if moment == "cette indexation" else -2]
+	chosen = -2
+	if moment == "cette indexation":
+		chosen = -1
+	start, end = indexings[chosen]
 	date, audit_threshold = _audit(empty_database, sound)
 	assert isinstance(date, datetime), date
 	assert start <= date <= end, (start, date, end)

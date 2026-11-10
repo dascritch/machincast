@@ -119,7 +119,9 @@ class SimulatedTrack:
 	def planned_end(self) -> datetime | None:
 		if self.planned_stop is not None:
 			return self.start + self.planned_stop
-		return None if self.duration is None else self.start + self.duration
+		if self.duration is None:
+			return None
+		return self.start + self.duration
 
 	def handle(self) -> None:
 		end = self.planned_end()
@@ -254,7 +256,10 @@ class SimulatedHistory:
 			" LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 			(sound,),
 		).fetchone()
-		artist, title, location = line if line is not None else (None, None, None)
+		if line is not None:
+			artist, title, location = line
+		else:
+			artist, title, location = (None, None, None)
 		play = Play(uuid.uuid4(), sound, bank, event, item, instant, sequence, item_sequence, lender)
 		self.simulated_plays.append(
 			SimulatedPlay(
@@ -281,8 +286,9 @@ class SimulatedHistory:
 		references = {"sound": play.sound, "bank": play.bank, "event": play.event}
 		if error is not None:
 			self.record(connection, "incident", kind, error, instant, **references)
-		elif cut:
-			self.record(connection, "info", N_("clean cut"), N_("start of an event"), instant, **references)
+		else:
+			if cut:
+				self.record(connection, "info", N_("clean cut"), N_("start of an event"), instant, **references)
 
 	def record(
 		self,
@@ -321,7 +327,10 @@ class SimulatedHistory:
 		expiries = []
 		for identifier, (maximum, end, name) in candidates.items():
 			limit = integer_or_none(maximum)
-			broadcast_end = end if isinstance(end, datetime) else None
+			if isinstance(end, datetime):
+				broadcast_end = end
+			else:
+				broadcast_end = None
 			if ((limit is not None) and (play_counts[identifier] >= limit)) or (
 				(broadcast_end is not None) and (broadcast_end <= instant)
 			):
@@ -375,11 +384,15 @@ class SimulatedHistory:
 			event = events.get((play.lender) or (play.event), (None, None, None))
 			sequence = sequences.get(play.sequence, (None, None, None))
 			bank = banks.get(play.bank, (None, None, None))
+			if simulated.end is None:
+				chosen = None
+			else:
+				chosen = simulated.end - play.start
 			result.append(
 				Line(
 					start=play.start,
 					end=simulated.end,
-					duration=None if simulated.end is None else simulated.end - play.start,
+					duration=chosen,
 					without_incident=simulated.without_incident,
 					artist=simulated.artist,
 					title=simulated.title,

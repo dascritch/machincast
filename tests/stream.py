@@ -114,7 +114,9 @@ class StreamServer:
 				time.sleep(1 / SLICES_PER_SECOND / 2)
 				continue
 			# Muet ou de nouveau sonore, le flux repart du début d'un fichier : d'une trame MP3 entière.
-			following_list = SILENT if name in self.silent_list else HEALTHY
+			following_list = HEALTHY
+			if name in self.silent_list:
+				following_list = SILENT
 			if following_list is not data:
 				data, position = following_list, 0
 			slice_ = max(1, len(data) // SLICES_PER_SECOND)

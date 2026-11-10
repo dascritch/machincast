@@ -48,7 +48,9 @@ def _text(list_: Gst.TagList, *names: str, length: int | None = None) -> str | N
 			continue
 		text = conform((value) or (""))
 		if text != "":
-			return text[:length] if length is not None else text
+			if length is not None:
+				return text[:length]
+			return text
 	return None
 
 

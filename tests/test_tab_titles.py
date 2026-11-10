@@ -31,7 +31,10 @@ def displayed(interface: Context, text: str) -> None:
 @then(parsers.re(r"l'infobulle de l'onglet ouvert est « (?P<first>[^»]+) »(?:, puis « (?P<second>[^»]+) »)?"))
 def tooltip(interface: Context, first: str, second: str | None) -> None:
 	tabs = window(interface).ui.tabs
-	expected = first if second is None else f"{first}\n{second}"
+	if second is None:
+		expected = first
+	else:
+		expected = f"{first}\n{second}"
 	assert tabs.tabToolTip(tabs.currentIndex()) == expected
 
 

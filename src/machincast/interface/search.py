@@ -189,10 +189,12 @@ class SearchScreen(QWidget):
 		text = TOO_SHORT
 		if (looks_for) and (total == 0):
 			text = _("no result")
-		elif total > len(self.results):
-			text = _("first {count} results out of {total}").format(count=len(self.results), total=total)
-		elif looks_for:
-			text = counted("{count} result", "{count} results", total)
+		else:
+			if total > len(self.results):
+				text = _("first {count} results out of {total}").format(count=len(self.results), total=total)
+			else:
+				if looks_for:
+					text = counted("{count} result", "{count} results", total)
 		self.count.setText(text)
 
 	def _opened_line(self, index: QModelIndex) -> None:

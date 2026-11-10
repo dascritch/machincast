@@ -251,12 +251,13 @@ def _remainders(connection: Connection, category: str, identifier: int) -> list[
 				names=_names(streams)
 			)
 		)
-	elif streams != []:
-		lines.append(
-			_("It is the fallback event of streams {names}, which will have none any more.").format(
-				names=_names(streams)
+	else:
+		if streams != []:
+			lines.append(
+				_("It is the fallback event of streams {names}, which will have none any more.").format(
+					names=_names(streams)
+				)
 			)
-		)
 	lines.append(
 		_("It no longer plays; its play list stays with it. Its sounds, banks and sequences stay in the database.")
 	)
@@ -297,8 +298,9 @@ def question(connection: Connection, category: str, identifier: int) -> tuple[st
 		lines.append(describes.removed)
 		lines += [_("{removal};").format(removal=removal) for removal in removals[:-1]]
 		lines.append(_("{removal}.").format(removal=removals[-1]))
-	elif describes.no != "":
-		lines.append(describes.no)
+	else:
+		if describes.no != "":
+			lines.append(describes.no)
 	lines += _remainders(connection, category, identifier)
 	if describes.history:
 		lines.append(HISTORY)

@@ -166,8 +166,9 @@ def create(connection: psycopg.Connection[TupleRow], response: Response) -> str 
 			new_list.append(_("“{bank}”").format(bank=bank))
 		if len(new_list) == 1:
 			created_list.append(_("the bank {new_list}").format(new_list=new_list[0]))
-		elif new_list:
-			created_list.append(_("the banks {list}").format(list=", ".join(new_list)))
+		else:
+			if new_list:
+				created_list.append(_("the banks {list}").format(list=", ".join(new_list)))
 		_fill_empty_feed(connection)
 	if not created_list:
 		return None

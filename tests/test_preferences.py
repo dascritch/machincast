@@ -56,7 +56,10 @@ def settings(granularity: str, maximum: str, start: str | None, end: str | None)
 	duration = _seconds(maximum)
 	assert duration is not None
 	assert granularity in ("second", "tenth")
-	return Crossfades(_seconds(start), _seconds(end), duration, "second" if granularity == "second" else "tenth")
+	chosen = "tenth"
+	if granularity == "second":
+		chosen = "second"
+	return Crossfades(_seconds(start), _seconds(end), duration, chosen)
 
 
 def read_settings(text: str) -> Crossfades:
@@ -580,7 +583,9 @@ def rule_dead_air(interface: Context, duration: str, threshold: str, remainder: 
 
 @then(parsers.re(rf"les préférences (?P<moment>ont|suivantes ont) montré {DEAD_AIR}"))
 def shown_dead_air(interface: Context, moment: str, duration: str, threshold: str, remainder: str) -> None:
-	rank = 0 if moment == "ont" else -1
+	rank = -1
+	if moment == "ont":
+		rank = 0
 	assert interface.shown_dead_airs[rank] == dead_air(duration, threshold, remainder), interface.shown_dead_airs
 
 
@@ -776,7 +781,10 @@ def installed_shortcut(place: str) -> None:
 	path = _place(place)
 	path.parent.mkdir(parents=True, exist_ok=True)
 	path.write_text(shortcut.write(), encoding="utf-8")
-	path.chmod(0o755 if place == "sur le bureau" else 0o644)
+	chosen = 0o644
+	if place == "sur le bureau":
+		chosen = 0o755
+	path.chmod(chosen)
 
 
 def _shortcut_icon(path: Path) -> str:

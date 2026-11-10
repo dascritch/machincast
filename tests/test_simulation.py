@@ -260,7 +260,11 @@ def sound_maximum(empty_database: Connection, name: str, maximum: str) -> None:
 def simulate_broadcast(
 	context: Context, bench: Bench, empty_database: Connection, start: str, end: str, seed: str | None, name: str | None
 ) -> None:
-	launch_simulation(context, empty_database, start, end, None if seed is None else int(seed), name, bench.crossfades)
+	if seed is None:
+		chosen = None
+	else:
+		chosen = int(seed)
+	launch_simulation(context, empty_database, start, end, chosen, name, bench.crossfades)
 
 
 @when(parsers.parse("je simule deux fois la diffusion du « {start} » au « {end} », avec la graine {seed:d}"))

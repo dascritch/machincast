@@ -589,8 +589,9 @@ class Timeline(QWidget):
 		taken = self._taken_slider
 		if (taken is not None) and (taken not in sliders):
 			self._taken_slider = None
-		elif taken is not None:
-			sliders = {**sliders, taken: self.sliders.get(taken, sliders[taken])}
+		else:
+			if taken is not None:
+				sliders = {**sliders, taken: self.sliders.get(taken, sliders[taken])}
 		if sliders != self.sliders:
 			self.sliders = dict(sliders)
 			self.update()

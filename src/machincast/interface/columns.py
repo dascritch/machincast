@@ -141,8 +141,9 @@ class Columns(QObject):
 		if object_ is self._titles:
 			if event.type() == QEvent.Type.MouseButtonPress:
 				self._slides = True
-			elif event.type() == QEvent.Type.MouseButtonRelease:
-				self._slides = False
+			else:
+				if event.type() == QEvent.Type.MouseButtonRelease:
+					self._slides = False
 			return False
 		if event.type() in (QEvent.Type.Show, QEvent.Type.Resize):
 			self._adjust_soon.start()
@@ -219,8 +220,9 @@ class Columns(QObject):
 			menu = self.line_menu(position)
 		if menu is None:
 			menu = QMenu(self.view)
-		elif menu.actions() != []:
-			menu.addSeparator()
+		else:
+			if menu.actions() != []:
+				menu.addSeparator()
 		menu.addAction(EXPORT).triggered.connect(self.export)
 		return menu
 

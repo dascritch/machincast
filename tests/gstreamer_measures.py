@@ -74,8 +74,12 @@ def _build(gst, pipeline: str, location: Path):  # type: ignore[no-untyped-def]
 		player.set_property("video-sink", gst.ElementFactory.make("fakesink", None))
 		player.set_property("uri", location.absolute().as_uri())
 		return player, sink.get_static_pad("sink")
-	decoder = "decodebin3" if (pipeline == "decodebin3") else "decodebin"
-	file = "queue ! " if (pipeline == "queue-decodebin") else ""
+	decoder = "decodebin"
+	if pipeline == "decodebin3":
+		decoder = "decodebin3"
+	file = ""
+	if pipeline == "queue-decodebin":
+		file = "queue ! "
 	description = f'filesrc location="{location}" ! {file}{decoder} ! audioconvert ! fakesink name=puits sync=false'
 	player = gst.parse_launch(description)
 	return player, player.get_by_name("puits").get_static_pad("sink")
@@ -99,7 +103,9 @@ def _trial(gst, pipeline: str, location: Path) -> str:  # type: ignore[no-untype
 	while time.monotonic() - start < END:
 		message = bus.timed_pop_filtered(step, types)
 		if message is not None:
-			verdict = "sain" if (message.type == gst.MessageType.EOS) else "erreur"
+			verdict = "erreur"
+			if message.type == gst.MessageType.EOS:
+				verdict = "sain"
 			break
 		elapsed = time.monotonic() - start
 		if pipeline.startswith("playbin"):
@@ -107,9 +113,10 @@ def _trial(gst, pipeline: str, location: Path) -> str:  # type: ignore[no-untype
 			if (state != gst.State.PLAYING) and (elapsed >= PLAYBACK_STARTUP):
 				verdict = "bloqué au démarrage"
 				break
-		elif (buffers[0] == 0) and (elapsed >= DECODING_STARTUP):
-			verdict = "bloqué au démarrage"
-			break
+		else:
+			if (buffers[0] == 0) and (elapsed >= DECODING_STARTUP):
+				verdict = "bloqué au démarrage"
+				break
 	player.set_state(gst.State.NULL)
 	return verdict
 
@@ -185,10 +192,11 @@ def _measure(pipeline: str, format_: str, trials: int) -> Counter[str]:
 			time.sleep(0.05)
 			if len(lines) > seen_list:
 				seen_list, last = len(lines), time.monotonic()
-			elif time.monotonic() - last > WORKER_DELAY:
-				process.kill()
-				verdicts["ne rend pas la main"] += 1
-				break
+			else:
+				if time.monotonic() - last > WORKER_DELAY:
+					process.kill()
+					verdicts["ne rend pas la main"] += 1
+					break
 		process.wait()
 		playback.join(timeout=5)
 		verdicts.update(json.loads(line) for line in lines)
@@ -237,7 +245,9 @@ def main(arguments: list[str] | None = None) -> int:
 	print(f"Poste : {_versions()}")
 	if options.synchronous:
 		os.environ[SYNCHRONOUS] = "1"
-	rhythm = "playbin en temps réel" if options.synchronous else "au plus vite"
+	rhythm = "au plus vite"
+	if options.synchronous:
+		rhythm = "playbin en temps réel"
 	print(f"{options.trials} essais par pipeline et par format, {options.parallel} à la fois, {rhythm}\n")
 	measures = [(pipeline, format_) for pipeline in options.pipelines for format_ in options.formats]
 	departure = time.monotonic()

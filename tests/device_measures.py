@@ -85,20 +85,21 @@ def work(way: str, repetitions: int) -> None:
 	Gst = _gst()
 	unique = None
 	for _ in range(repetitions):
-		if way == "moniteur":
-			_monitor(Gst, halt=True)
-		elif way == "moniteur-attendu":
-			_monitor(Gst, halt=True, wait=True)
-		elif way == "moniteur-sans-arret":
-			_monitor(Gst, halt=False)
-		elif way == "moniteur-unique":
-			if unique is None:
-				unique = Gst.DeviceMonitor.new()
-				unique.add_filter(CLASS, None)
-				unique.start()
-			list(unique.get_devices())
-		else:
-			_probe(Gst)
+		match way:
+			case "moniteur":
+				_monitor(Gst, halt=True)
+			case "moniteur-attendu":
+				_monitor(Gst, halt=True, wait=True)
+			case "moniteur-sans-arret":
+				_monitor(Gst, halt=False)
+			case "moniteur-unique":
+				if unique is None:
+					unique = Gst.DeviceMonitor.new()
+					unique.add_filter(CLASS, None)
+					unique.start()
+				list(unique.get_devices())
+			case _:
+				_probe(Gst)
 	print(len(_probe(Gst)))
 
 
@@ -124,7 +125,10 @@ def main() -> None:
 	Gst = _gst()
 	print(f"Poste : {platform.freedesktop_os_release().get('PRETTY_NAME', '?')}, Python {platform.python_version()}")
 	print(f"GStreamer : {Gst.version_string()} ; serveurs audio : {_servers()}")
-	switch = "" if not options.switch else ", pendant que des sorties vont et viennent"
+	if not options.switch:
+		switch = ""
+	else:
+		switch = ", pendant que des sorties vont et viennent"
 	print(f"{options.process} processus de {options.repetitions} listes par façon{switch}\n")
 	stop = threading.Event()
 	if options.switch:
@@ -141,7 +145,10 @@ def main() -> None:
 			except subprocess.TimeoutExpired:
 				report["sans réponse"] += 1
 				continue
-			report["normal" if finished.returncode == 0 else "signal"] += 1
+			chosen = "signal"
+			if finished.returncode == 0:
+				chosen = "normal"
+			report[chosen] += 1
 		print(f"| {way} | {report['normal']} | {report['signal']} | {report['sans réponse']} |", flush=True)
 	stop.set()
 

@@ -188,10 +188,14 @@ class ItemList(QObject):
 		if self._parent is None:
 			return []
 		columns = ", ".join(f"e.{column}" for column in self._columns().values())
+		if rows is None:
+			chosen = None
+		else:
+			chosen = rows + 1
 		rows_read = self.card.connection.execute(
 			f"SELECT e.id, e.position, {columns} FROM {self.table} e"  # noqa: S608
 			f" WHERE e.{self.column_parent} = %s AND e.position > %s ORDER BY e.position LIMIT %s",
-			(self._parent, after, None if rows is None else rows + 1),
+			(self._parent, after, chosen),
 		).fetchall()
 		if (rows is not None) and (len(rows_read) > rows):
 			rows_read = rows_read[:rows]
@@ -305,8 +309,9 @@ class ItemList(QObject):
 			identifier = item.data(0, ITEM)
 			if item.data(0, FEED) is not None:
 				identifier = self._save_stream(int(item.data(0, FEED)), item.text(1))
-			elif identifier is None:
-				identifier = self.card.save_file(str(item.data(0, FILE)))
+			else:
+				if identifier is None:
+					identifier = self.card.save_file(str(item.data(0, FILE)))
 			if identifier is not None:
 				items.append((item.data(0, LINE_IN_DATABASE), str(item.data(0, CATEGORY)), int(identifier)))
 		existing_list: set[tuple[str, int]] = set()

@@ -218,14 +218,15 @@ def fill_fallback(
 	action.setData(None)
 	if len(fallback) == 1:
 		action.setData(fallback[0])
-	elif len(fallback) > 1:
-		under_menu = QMenu(CUT_BY_FALLBACK)
-		under_menu.setToolTipsVisible(True)
-		for un in fallback:
-			entry = under_menu.addAction(_("“{name}”").format(name=un.name))
-			entry.setToolTip(UNTIL_END)
-			entry.triggered.connect(lambda _ticked=False, un=un: ask(un))
-		action.setMenu(under_menu)
+	else:
+		if len(fallback) > 1:
+			under_menu = QMenu(CUT_BY_FALLBACK)
+			under_menu.setToolTipsVisible(True)
+			for un in fallback:
+				entry = under_menu.addAction(_("“{name}”").format(name=un.name))
+				entry.setToolTip(UNTIL_END)
+				entry.triggered.connect(lambda _ticked=False, un=un: ask(un))
+			action.setMenu(under_menu)
 
 
 def ask_fallback(action: QAction, ask: Callable[[Fallback], None]) -> None:

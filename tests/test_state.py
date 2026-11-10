@@ -79,7 +79,9 @@ def temporary_socket(bench: Bench, tmp_path: Path) -> None:
 def last_playback_in_incident(empty_database: Connection, name: str) -> None:
 	identifier = uuid.uuid4()
 	for line_type, end in (("start", ""), ("end", ", played_duration, without_incident")):
-		values = ", '1 s', false" if end else ""
+		values = ""
+		if end:
+			values = ", '1 s', false"
 		empty_database.execute(
 			f"INSERT INTO airplay (play_id, line_type, logged_at, sound_id{end})"
 			f" VALUES (%s, %s, '2026-10-13 12:00', %s{values})",
@@ -297,7 +299,10 @@ def upcoming_sounds(client: Client, list_: str) -> None:
 	)
 )
 def upcoming_hours(client: Client, which: str, start: str, end: str) -> None:
-	fetched_sound = upcoming(client)[0 if which == "premier" else -1]
+	chosen = -1
+	if which == "premier":
+		chosen = 0
+	fetched_sound = upcoming(client)[chosen]
 	assert hour(fetched_sound["estimated_start"]) == hour(start), fetched_sound
 	assert hour(fetched_sound["estimated_end"]) == hour(end), fetched_sound
 

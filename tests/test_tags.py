@@ -66,7 +66,11 @@ def no_tag(result: Check) -> None:
 
 @then(parsers.re(r"l'année retenue est (?P<year>\d+|aucune)"))
 def retained_year(tags: Tags, year: str) -> None:
-	assert tags.metadata.get("year") == (None if year == "aucune" else int(year))
+	if year == "aucune":
+		chosen = None
+	else:
+		chosen = int(year)
+	assert tags.metadata.get("year") == chosen
 
 
 @then(parsers.re(rf"les métadonnées musicales retenues sont {JSON}"))

@@ -406,7 +406,9 @@ def shown_crossfades(interface: Context, datatable: list[list[str]]) -> None:
 	shown_list = []
 	for side, *_values in rows:
 		list_, field = _crossfade(interface, side.strip())
-		editable = "oui" if field.isEnabled() else "non"
+		editable = "non"
+		if field.isEnabled():
+			editable = "oui"
 		shown_list.append([side.strip(), list_.currentText(), field.text(), editable])
 	assert shown_list == [[value.strip() for value in row] for row in rows]
 
@@ -646,7 +648,10 @@ def bank_sounds_in_database(empty_database: Connection, name: str, count: str, t
 		)
 	]
 	assert len(titles) == int(count), len(titles)
-	assert titles[0 if where == "d'abord" else -1] == title, titles[:3] + titles[-3:]
+	chosen = -1
+	if where == "d'abord":
+		chosen = 0
+	assert titles[chosen] == title, titles[:3] + titles[-3:]
 	big = [found for found in titles if found.startswith("/srv/grande/")]
 	assert big == sorted(big, key=lambda found: int(found.removeprefix("/srv/grande/").removesuffix(".flac")))
 

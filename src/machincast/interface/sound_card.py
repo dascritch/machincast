@@ -367,7 +367,10 @@ class SoundCard(Card):
 			entered = (field in self._edited_fields) or (
 				(field in initial_list) and (inputs[field] != initial_list[field])
 			)
-			box.setText(manual if entered else detected)
+			chosen = detected
+			if entered:
+				chosen = manual
+			box.setText(chosen)
 
 	def _show_shape(self, path: Path | None) -> None:
 		"""La forme d'onde du fichier, calculée en tâche de fond, une fois par fichier."""
@@ -533,8 +536,9 @@ class SoundCard(Card):
 		duration_text = ""
 		if stream:
 			duration_text = display.duration(None)
-		elif isinstance(duration, timedelta):
-			duration_text = display.duration(duration)
+		else:
+			if isinstance(duration, timedelta):
+				duration_text = display.duration(duration)
 		self.ui.duration.setText(duration_text)
 		# Tous les états, dans leur ordre ; ceux que l'interface ne pose pas sont grisés
 		# (https://github.com/dascritch/machincast/issues/223).

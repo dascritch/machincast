@@ -205,6 +205,18 @@ def unroll(context: Context, database: Connection, playback: Connection, start: 
 			ongoing = None
 		if decision.play is not None:
 			choice = decision.play
+			if choice.line is None:
+				line_sequence = None
+			else:
+				line_sequence = choice.line.sequence
+			if choice.line is None:
+				line_id = None
+			else:
+				line_id = choice.line.id
+			if choice.lender is None:
+				event_id = None
+			else:
+				event_id = choice.lender.event.id
 			database.execute(
 				"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, bank_id, event_id,"
 				" event_item_id, sequence_id, sequence_item_id, lender_event_id)"
@@ -216,24 +228,30 @@ def unroll(context: Context, database: Connection, playback: Connection, start: 
 					choice.bank,
 					choice.occurrence.event.id,
 					choice.item.id,
-					None if choice.line is None else choice.line.sequence,
-					None if choice.line is None else choice.line.id,
-					None if choice.lender is None else choice.lender.event.id,
+					line_sequence,
+					line_id,
+					event_id,
 				),
 			)
 			name = name_of(database, "sounds", "location", choice.sound)
 			ongoing = Ongoing(choice.occurrence, instant, instant + context.durations.get(name, context.duration))
-			outcome = "entier" if ongoing.planned_end <= end else "en cours"
+			outcome = "en cours"
+			if ongoing.planned_end <= end:
+				outcome = "entier"
 			event = choice.occurrence.event.name
 			if choice.lender is not None:
 				# https://github.com/dascritch/machincast/issues/399
 				event = f"{event}, au nom de {choice.lender.event.name}"
 			context.log.append(Line(f"{instant:%H:%M}", name, event, outcome))
 			in_dead_air = False
-		elif (decision.dead_air) and (not in_dead_air):
-			event = "" if decision.occurrence is None else decision.occurrence.event.name
-			context.log.append(Line(f"{instant:%H:%M}", "blanc", event, ""))
-			in_dead_air = True
+		else:
+			if (decision.dead_air) and (not in_dead_air):
+				if decision.occurrence is None:
+					event = ""
+				else:
+					event = decision.occurrence.event.name
+				context.log.append(Line(f"{instant:%H:%M}", "blanc", event, ""))
+				in_dead_air = True
 		instant += timedelta(minutes=1)
 
 
@@ -301,7 +319,10 @@ def warnings(empty_database: Connection, count: str, level: str, kind: str, even
 		(stored(kind),),
 	).fetchall()
 	obtained_list = [(n, e) + ((b,) if bank_name else ()) for n, e, b in lines]
-	expected = (LEVEL_IN_DATABASE[level], event) + ((bank_name,) if bank_name else ())
+	chosen = ()
+	if bank_name:
+		chosen = (bank_name,)
+	expected = (LEVEL_IN_DATABASE[level], event) + chosen
 	assert obtained_list == [expected] * int(count), lines
 
 

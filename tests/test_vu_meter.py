@@ -460,8 +460,9 @@ def pipewire_links(pipewire: Path) -> set[tuple[str, str]]:
 		arguments = line.split(" ")
 		if arguments[0] == "-d":
 			links.discard((arguments[1], arguments[2]))
-		elif (arguments[0] not in ("-o", "-i")) and (not (pipewire / "refus").exists()):
-			links.add((arguments[0], arguments[1]))
+		else:
+			if (arguments[0] not in ("-o", "-i")) and (not (pipewire / "refus").exists()):
+				links.add((arguments[0], arguments[1]))
 	return links
 
 

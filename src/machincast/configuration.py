@@ -467,19 +467,22 @@ class _Player:
 		threshold = self.optional_count("dead_air", "threshold")
 		if threshold is None:
 			threshold = DEAD_AIR_THRESHOLD
-		elif not (MINIMUM_SILENCE_THRESHOLD <= threshold < 0):
-			raise self.error(
-				_(
-					"key dead_air.threshold: a number of dB from {minimum_silence_threshold:g} dB included to "
-					"0 dB excluded is expected, {threshold:g} found"
-				).format(minimum_silence_threshold=MINIMUM_SILENCE_THRESHOLD, threshold=threshold)
-			)
+		else:
+			if not (MINIMUM_SILENCE_THRESHOLD <= threshold < 0):
+				raise self.error(
+					_(
+						"key dead_air.threshold: a number of dB from {minimum_silence_threshold:g} dB included to "
+						"0 dB excluded is expected, {threshold:g} found"
+					).format(minimum_silence_threshold=MINIMUM_SILENCE_THRESHOLD, threshold=threshold)
+				)
 		return DeadAirSettings(duration, threshold, self.optional_boolean("dead_air", "fallback", False))
 
 	def file_path(self, section: str, key: str) -> Path:
 		"""Chemin absolu tel quel ; chemin relatif résolu depuis le répertoire du fichier de configuration."""
 		path = Path(self.text(section, key)).expanduser()
-		return path if path.is_absolute() else self.path.parent / path
+		if path.is_absolute():
+			return path
+		return self.path.parent / path
 
 
 def _describe(value: object) -> str:

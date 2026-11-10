@@ -48,7 +48,9 @@ def check_writing(path: Path) -> None:
 
 def unjustified(text: str, bash: bool = False) -> list[tuple[int, str]]:
 	"""Lignes qui suppriment, renomment ou remplacent un fichier sans la justification MARQUE (numérotées dès 1)."""
-	pattern = _BASH if bash else _PYTHON
+	pattern = _PYTHON
+	if bash:
+		pattern = _BASH
 	faults = []
 	previous = ""
 	for number, line in enumerate(text.splitlines(), start=1):

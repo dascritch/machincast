@@ -128,16 +128,17 @@ def enter(interface: Context, datatable: list[list[str]]) -> None:
 		}
 		if field in combos:
 			choose_text(combos[field], raw)
-		elif field in ("Début", "Fin"):
-			box, date = {"Début": (ui.has_start, ui.start), "Fin": (ui.has_end, ui.end)}[field]
-			if raw != "":
-				date.setDateTime(QDateTime.fromString(raw, DATE))
-			box.setChecked(raw != "")
 		else:
-			assert field == "Jours", field
-			ticked_list = {day.strip() for day in raw.split(",") if day.strip()}
-			for day in event.days:
-				day.setChecked(day.text() in ticked_list)
+			if field in ("Début", "Fin"):
+				box, date = {"Début": (ui.has_start, ui.start), "Fin": (ui.has_end, ui.end)}[field]
+				if raw != "":
+					date.setDateTime(QDateTime.fromString(raw, DATE))
+				box.setChecked(raw != "")
+			else:
+				assert field == "Jours", field
+				ticked_list = {day.strip() for day in raw.split(",") if day.strip()}
+				for day in event.days:
+					day.setChecked(day.text() in ticked_list)
 
 
 @when(parsers.re(r"je (?P<gesture>coche|décoche) « (?P<box>[^»]+) » dans la fiche de l'événement"))
