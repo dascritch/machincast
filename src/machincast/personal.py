@@ -58,7 +58,19 @@ def _inside(path: Path, directory: Path) -> bool:
 	return (path == directory) or (directory in path.parents)
 
 
+def _closed(path: Path, account: access.Account | None) -> bool:
+	"""Vrai si le service ne lit pas le chemin, ou ce qu'il contient ; toujours vrai sans compte du service."""
+	if account is None:
+		return True
+	if path.is_dir():
+		return access.unreadable_inside(path, account) != []
+	return not access.readable(path, account)
+
+
 def find(connection: psycopg.Connection[TupleRow]) -> Found:
+	"""Ce que la base a dans des répertoires personnels, et que le service ne lit pas : ce qu'il lit déjà, ouvert par
+	l'administrateur du poste, reste en place."""
+	account = access.service_account()
 	directories: list[Path] = []
 	rows = connection.execute(
 		"SELECT DISTINCT d.directory FROM bank_directories d JOIN banks b ON b.id = d.bank_id"
@@ -66,7 +78,7 @@ def find(connection: psycopg.Connection[TupleRow]) -> Found:
 	).fetchall()
 	for (directory,) in rows:
 		path = Path(str(directory))
-		if access.personal_home(path) is not None:
+		if (access.personal_home(path) is not None) and (_closed(path, account)):
 			directories.append(path)
 	files: list[Path] = []
 	rows = connection.execute(
@@ -74,7 +86,7 @@ def find(connection: psycopg.Connection[TupleRow]) -> Found:
 	).fetchall()
 	for (location,) in rows:
 		path = Path(str(location))
-		if (access.personal_home(path) is not None) and (not _in_any(path, directories)):
+		if (access.personal_home(path) is not None) and (not _in_any(path, directories)) and (_closed(path, account)):
 			files.append(path)
 	return Found(directories, files)
 

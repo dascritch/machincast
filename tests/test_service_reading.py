@@ -20,7 +20,7 @@ from PySide6.QtWidgets import QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
-from machincast import access, service
+from machincast import access, personal, service
 from machincast.interface import dialogs, service_access
 from tests.database_fixtures import sample_configuration_path
 
@@ -295,3 +295,13 @@ def rights_unchanged(root: Path, context: SimpleNamespace, path: str) -> None:
 	folder = _path(root, path)
 	assert folder.stat().st_mode == context.before[folder]
 	assert access._acl(folder) == []
+
+
+@given(parsers.parse("l'ACL « {entry} » sur tout « {path} »"))
+def acl_all(root: Path, entry: str, path: str) -> None:
+	subprocess.run([access.TOOL, "--recursive", f"--modify={entry}", str(_path(root, path))], check=True)
+
+
+@then(parsers.parse("install.sh ne propose pas de déplacer « {path} »"))
+def not_proposed(root: Path, path: str) -> None:
+	assert not personal._closed(_path(root, path), _account())
