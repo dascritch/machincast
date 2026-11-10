@@ -1106,7 +1106,10 @@ def kind_pages(kinds: dict[str, object], pages: str) -> None:
 
 
 def _names(text: str) -> list[str]:
-	return [name.strip() for name in text.split(", ")]
+	found = []
+	for name in text.split(", "):
+		found.append(name.strip())
+	return found
 
 
 @then(parsers.re(r"elle (?P<verdict>montre|cache) (?P<names>.+)"))
