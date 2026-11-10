@@ -302,13 +302,13 @@ def _check(configuration: Configuration) -> int:
 
 DUMMY_ON_AIR = _(
 	"on air on the dummy output: the broadcast service would play no sound; choose another "
-	"sound card in Machin interface, File → Preferences…, Audio page, then run ./install.sh "
+	"sound card in Machin interface, File → Broadcast service settings…, Audio page, then run ./install.sh "
 	"--service again"
 )
 
 PULSEAUDIO_ON_AIR = _(
 	"on air on the PulseAudio output: the broadcast service plays through its own PipeWire; choose the "
-	"PipeWire output in Machin interface, File → Preferences…, Audio page, then run ./install.sh --service again"
+	"PipeWire output in Machin interface, File → Broadcast service settings…, Audio page, then run ./install.sh --service again"
 )
 
 

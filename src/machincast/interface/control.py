@@ -31,6 +31,9 @@ VERBS = {
 	"stop": (label(HALT, _("Stop the broadcast")), _("Broadcast stopped."), _("Broadcast not stopped")),
 }
 """Pour chaque verbe de systemctl : l'entrée du menu, ce qu'annonce sa réussite, et son échec."""
+RESTART = (_("Broadcast restarted."), _("Broadcast not restarted"))
+"""Ce qu'annonce un redémarrage, demandé par les paramètres du service (https://github.com/dascritch/machincast/issues/389) :
+sa réussite, et son échec ; il n'a pas d'entrée de menu."""
 TRIAL = {
 	"start": label(START, _("Start the trial broadcast")),
 	"stop": label(HALT, _("Stop the trial broadcast")),
@@ -84,6 +87,8 @@ STOPPED = _("Trial broadcast stopped.")
 class Control(QObject):
 	finished = Signal(str)
 	"""Ce qu'il advient d'une commande : réussite ou échec, avec le message de systemctl."""
+	restarted = Signal(bool)
+	"""systemctl restart a réussi, ou échoué : authentification refusée, service qui ne redémarre pas."""
 	not_started = Signal(str, list)
 	"""Le service a démarré, mais Machin player s'est arrêté aussitôt : ce qu'il en est, et les dernières lignes du
 	journal du service (https://github.com/dascritch/machincast/issues/376)."""
@@ -103,17 +108,33 @@ class Control(QObject):
 
 	def _end(self, process: QProcess, verb: str, code: int) -> None:
 		self._process.remove(process)
-		_entry, success, failure = VERBS[verb]
-		if (code == 0) and (verb == "start"):
+		if verb == "restart":
+			success, failure = RESTART
+		else:
+			_entry, success, failure = VERBS[verb]
+		if (code == 0) and (verb in ("start", "restart")):
 			# systemctl réussit dès que Machin player est lancé : il reste à voir s'il tient.
 			self.finished.emit(STARTING)
 			self._follow(round(STARTUP_WINDOW / STARTUP_STEP))
-			return
-		if code == 0:
+		elif code == 0:
 			self.finished.emit(success)
-			return
+		else:
+			error = bytes(process.readAllStandardError().data()).decode("utf-8", "replace").strip()
+			self.finished.emit(
+				_("{failure}: {error}").format(failure=failure, error=(error) or (process.errorString()))
+			)
+		if verb == "restart":
+			# Après le message de systemctl : les paramètres du service gardés, ou revenus, ont le dernier mot.
+			self.restarted.emit(code == 0)
+
+	def _outcome(self, process: QProcess, verb: str, code: int, success: str, failure: str) -> str:
+		"""Ce qu'annonce la commande finie."""
+		if (code == 0) and (verb in ("start", "restart")):
+			return STARTING
+		if code == 0:
+			return success
 		error = bytes(process.readAllStandardError().data()).decode("utf-8", "replace").strip()
-		self.finished.emit(_("{failure}: {error}").format(failure=failure, error=(error) or (process.errorString())))
+		return _("{failure}: {error}").format(failure=failure, error=(error) or (process.errorString()))
 
 	def _follow(self, remaining: int) -> None:
 		"""Relit l'état du service, encore remaining fois, une fois par STARTUP_STEP."""

@@ -154,7 +154,9 @@ PREVIEW = _("Pre-listen…")
 (https://github.com/dascritch/machincast/issues/226)."""
 
 
-DISABLED_PREVIEW = _("Pre-listen disabled: its sound card is the dummy output (File → Preferences…, Audio page).")
+DISABLED_PREVIEW = _(
+	"Pre-listen disabled: its sound card is the dummy output (File → Interface preferences…, Audio page)."
+)
 """L'infobulle des boutons et des entrées de menu de la pré-écoute, sur l'entrée « Sortie factice »
 (https://github.com/dascritch/machincast/issues/339)."""
 _disabled_preview = False

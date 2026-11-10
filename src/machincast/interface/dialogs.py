@@ -30,7 +30,7 @@ from machincast.interface import intents
 from machincast.interface.choice import Choice
 from machincast.interface.intents import label
 from machincast.interface.lists import BANKS, FEEDS, SEQUENCES, SOUNDS, Line
-from machincast.interface.preferences import PreferencesWindow, Settings
+from machincast.interface.preferences import SERVICE, Kind, PreferencesWindow, Settings
 from machincast.interface.suggestions import Response, Shortfalls, SuggestionsWindow
 from machincast.interface.version import News
 from machincast.protection import INDEXED_EXTENSIONS
@@ -322,12 +322,13 @@ def _choose(choice: Choice) -> list[int]:
 
 
 def set_preferences(
-	parent: QWidget, settings: Settings, output: AudioOutput, service: ServiceState = ABSENT
+	parent: QWidget, settings: Settings, output: AudioOutput, service: ServiceState = ABSENT, kind: Kind = SERVICE
 ) -> Settings | None:
 	"""Les préférences réglées dans leur fenêtre ; None si elle est abandonnée
 	(https://github.com/dascritch/machincast/issues/145). Le service de diffusion en marche verrouille la carte de
-	l'antenne (https://github.com/dascritch/machincast/issues/339)."""
-	window = PreferencesWindow(settings, output, parent, service)
+	l'antenne (https://github.com/dascritch/machincast/issues/339). kind : les préférences de l'interface, ou les
+	paramètres du service (https://github.com/dascritch/machincast/issues/389)."""
+	window = PreferencesWindow(settings, output, parent, service, kind)
 	if window.exec() != QDialog.DialogCode.Accepted:
 		return None
 	return window.settings()

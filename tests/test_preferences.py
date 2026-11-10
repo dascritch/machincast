@@ -508,7 +508,9 @@ def window_audio(launching: Launching, output: str, on_air: str, preview: str) -
 def window_preferences(
 	launching: Launching, monkeypatch: pytest.MonkeyPatch, on_air: str, preview: str, output: str
 ) -> None:
-	def set_(_parent: QWidget, shown_list: Settings, shown_output: str, _service: object = None) -> None:
+	def set_(
+		_parent: QWidget, shown_list: Settings, shown_output: str, _service: object = None, _kind: object = None
+	) -> None:
 		launching.shown_list = (shown_list, shown_output)
 
 	monkeypatch.setattr(dialogs, "set_preferences", set_)
@@ -1051,3 +1053,104 @@ def enter_retention(opened: Opened, days: int) -> None:
 def data_retention(opened: Opened, days: int) -> None:
 	assert opened.provided_list is not None
 	assert opened.provided_list.retention == days
+
+
+# ─── Deux fenêtres (https://github.com/dascritch/machincast/issues/389) ───
+
+KINDS = {"préférences de l'interface": preferences.INTERFACE, "paramètres du service": preferences.SERVICE}
+
+
+def _widgets(window: PreferencesWindow) -> dict[str, list[QWidget]]:
+	ui = window.ui
+	cards = window.cards.ui
+	return {
+		"la granularité": [ui.granularity, ui.granularity_caption],
+		"le maximum": [ui.maximum, ui.maximum_caption],
+		"les durées par défaut": [ui.has_start, ui.start, ui.has_end, ui.end],
+		"les positions": [ui.position_group],
+		"le seuil de silence": [ui.silence_group],
+		"le blanc": [ui.dead_air_group],
+		"l'antenne": [cards.on_air, cards.test_on_air],
+		"le type de sortie": [cards.output],
+		"la pré-écoute": [cards.preview, cards.test_preview],
+	}
+
+
+@pytest.fixture
+def kinds() -> dict[str, object]:
+	return {}
+
+
+@when(parsers.re(r"j'ouvre la fenêtre des (?P<name>préférences de l'interface|paramètres du service)$"))
+def open_kind(qtbot: QtBot, kinds: dict[str, object], name: str) -> None:
+	window = PreferencesWindow(Settings(Crossfades(), None, TEST_PREVIEW), "dummy", None, kind=KINDS[name])
+	qtbot.addWidget(window)
+	kinds["window"] = window
+
+
+@then(parsers.parse("son titre est « {title} »"))
+def kind_title(kinds: dict[str, object], title: str) -> None:
+	window = kinds["window"]
+	assert isinstance(window, PreferencesWindow)
+	assert window.windowTitle() == title
+
+
+@then(parsers.parse("ses pages sont « {pages} »"))
+def kind_pages(kinds: dict[str, object], pages: str) -> None:
+	window = kinds["window"]
+	assert isinstance(window, PreferencesWindow)
+	found = []
+	for index in range(window.ui.pages.count()):
+		found.append(window.ui.pages.tabText(index).replace("&", ""))
+	assert ", ".join(found) == pages
+
+
+def _names(text: str) -> list[str]:
+	return [name.strip() for name in text.split(", ")]
+
+
+@then(parsers.re(r"elle (?P<verdict>montre|cache) (?P<names>.+)"))
+def kind_widgets(kinds: dict[str, object], verdict: str, names: str) -> None:
+	window = kinds["window"]
+	assert isinstance(window, PreferencesWindow)
+	widgets = _widgets(window)
+	for name in _names(names):
+		for widget in widgets[name]:
+			assert widget.isHidden() is (verdict == "cache"), (name, widget.objectName())
+
+
+@when(
+	parsers.parse(
+		"j'ouvre la fenêtre des paramètres du service, sur une granularité « {granularity} », un seuil de silence de "
+		"{threshold:g} dB et la pré-écoute « {preview} »"
+	)
+)
+def open_service_with(qtbot: QtBot, kinds: dict[str, object], granularity: str, threshold: float, preview: str) -> None:
+	shown = Settings(Crossfades(granularity=granularity), None, preview, threshold)  # type: ignore[arg-type]
+	window = PreferencesWindow(shown, "dummy", None, kind=preferences.SERVICE)
+	qtbot.addWidget(window)
+	kinds["window"] = window
+
+
+@when("je clique sur « OK » des préférences ouvertes")
+def ok_kind(kinds: dict[str, object]) -> None:
+	window = kinds["window"]
+	assert isinstance(window, PreferencesWindow)
+	window.ui.buttons.button(QDialogButtonBox.StandardButton.Ok).click()
+	kinds["settings"] = window.settings()
+
+
+@then(
+	parsers.parse(
+		"les réglages rendus gardent la granularité « {granularity} », le seuil de silence de {threshold:g} dB et la "
+		"pré-écoute « {preview} »"
+	)
+)
+def kept_settings(kinds: dict[str, object], granularity: str, threshold: float, preview: str) -> None:
+	settings_ = kinds["settings"]
+	assert isinstance(settings_, Settings)
+	assert (settings_.crossfades.granularity, settings_.silence_threshold, settings_.preview) == (
+		granularity,
+		threshold,
+		preview,
+	)

@@ -33,6 +33,7 @@ MachinCast ; la fenêtre principale la donne aussitôt à ses fenêtres et aux r
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
+from typing import Literal
 
 import tomlkit
 from PySide6.QtCore import QLocale
@@ -65,6 +66,30 @@ GRANULARITIES: tuple[tuple[Granularity, str], ...] = (
 )
 STEPS: dict[Granularity, tuple[int, float]] = {"tenth": (1, 0.1), "second": (0, 1.0)}
 """Pour chaque granularité : les décimales et le pas d'un champ de crossfade."""
+
+Kind = Literal["interface", "service"]
+"""Les deux fenêtres (https://github.com/dascritch/machincast/issues/389) : les préférences de l'interface, qui valent
+aussitôt et ne touchent pas la diffusion, et les paramètres du service, que Machin player ne prend qu'à son
+redémarrage."""
+INTERFACE: Kind = "interface"
+SERVICE: Kind = "service"
+TITLES: dict[Kind, str] = {
+	INTERFACE: _("Interface preferences"),
+	SERVICE: _("Broadcast service settings"),
+}
+ENTRIES: dict[Kind, str] = {
+	INTERFACE: _("Interface preferences…"),
+	SERVICE: _("Broadcast service settings…"),
+}
+"""Les entrées du menu « Fichier »."""
+SERVICE_EXPLANATION = _(
+	"Machin player takes these settings when it restarts: OK saves them, then restarts the broadcast, with the "
+	"password of an administrator if the broadcast service runs; refused, the former settings come back."
+)
+INTERFACE_AUDIO_EXPLANATION = _(
+	"The pre-listen applies at once, on a card of the output type of the broadcast service settings; it can never use "
+	"the on-air card. “Test” plays 2 seconds of test sound on it."
+)
 
 DEFAULT_ICON = _("MachinCast icon")
 """Ce que montre la page « Interface » quand aucune image n'est choisie."""
@@ -101,6 +126,22 @@ class Settings:
 	"""audio.output, le type de sortie choisi (https://github.com/dascritch/machincast/issues/339) ; None : inchangé."""
 	table_rows: int = TABLE_ROWS
 	"""interface.table_rows : les lignes qu'un tableau de fiche charge d'un coup (https://github.com/dascritch/machincast/issues/383)."""
+
+
+def service_changed(before: Settings, after: Settings) -> bool:
+	"""Vrai si un réglage que Machin player ne prend qu'à son redémarrage a changé : les durées et les positions des
+	crossfades, le type de sortie, la carte de l'antenne, le blanc dans un sonore
+	(https://github.com/dascritch/machincast/issues/389)."""
+	first, second = before.crossfades, after.crossfades
+	crossfades = (first.start, first.end, first.maximum, first.entry, first.output) != (
+		second.start,
+		second.end,
+		second.maximum,
+		second.entry,
+		second.output,
+	)
+	output = (after.output is not None) and (after.output != before.output)
+	return (crossfades) or (output) or (after.on_air != before.on_air) or (after.dead_air != before.dead_air)
 
 
 _current_list = Crossfades()
@@ -250,15 +291,21 @@ def write_audio(
 
 
 class PreferencesWindow(QDialog):
-	"""La fenêtre des préférences : une page « Interface », avec les crossfades, et une page « Audio », avec les
-	périphériques."""
+	"""La fenêtre des préférences de l'interface, ou celle des paramètres du service, selon kind : les mêmes pages,
+	chacune réduite à ce que règle sa fenêtre."""
 
 	def __init__(
-		self, all_: Settings, output: AudioOutput, parent: QWidget | None = None, service: ServiceState = ABSENT
+		self,
+		all_: Settings,
+		output: AudioOutput,
+		parent: QWidget | None = None,
+		service: ServiceState = ABSENT,
+		kind: Kind = SERVICE,
 	) -> None:
 		super().__init__(parent)
 		self.ui = Ui_PreferencesWindow()
 		self.ui.setupUi(self)
+		self.kind = kind
 		ui = self.ui
 		settings = all_.crossfades
 		self.cards = SoundCards(output, all_.on_air, all_.preview, service, ui.device_group)
@@ -312,6 +359,30 @@ class PreferencesWindow(QDialog):
 		self._demonstrate()
 		ui.buttons.accepted.connect(self.accept)
 		ui.buttons.rejected.connect(self.reject)
+		self._keep_only(kind)
+
+	def _keep_only(self, kind: Kind) -> None:
+		"""Les réglages de cette fenêtre seulement : les autres restent ceux du fichier, et settings() les rend tels
+		quels (https://github.com/dascritch/machincast/issues/389)."""
+		ui = self.ui
+		self.setWindowTitle(TITLES[kind])
+		if kind == SERVICE:
+			for page in (ui.page_interface, ui.database_page):
+				ui.pages.removeTab(ui.pages.indexOf(page))
+			ui.crossfades_form.setRowVisible(0, False)
+			ui.silence_group.setVisible(False)
+			ui.silence_explanation.setVisible(False)
+			ui.explanation.setText(SERVICE_EXPLANATION)
+			self.cards.keep_rows(on_air=True, preview=False)
+			return
+		for row in (1, 2, 3):
+			ui.crossfades_form.setRowVisible(row, False)
+		ui.position_group.setVisible(False)
+		ui.explanation.setVisible(False)
+		ui.dead_air_group.setVisible(False)
+		ui.pages.setTabText(ui.pages.indexOf(ui.page_crossfades), _("Crossfades and silences"))
+		ui.audio_explanation.setText(INTERFACE_AUDIO_EXPLANATION)
+		self.cards.keep_rows(on_air=False, preview=True)
 
 	def _show_icon(self) -> None:
 		"""L'aperçu et le chemin de l'icône ; « Icône de MachinCast » ne sert que pour une autre icône."""

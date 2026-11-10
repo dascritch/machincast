@@ -148,6 +148,8 @@ class SoundCards(QWidget):
 		self._connection: socket.socket | None = None
 		"""La connexion au PipeWire du service du son de test en cours sur la carte de l'antenne."""
 		self._card = ""
+		self._rows_on_air = True
+		"""La ligne de l'antenne est montrée : son niveau aussi, en mode service."""
 		self._end = 0.0
 		self._reading = QTimer(self)
 		self._reading.setInterval(READING)
@@ -252,22 +254,33 @@ class SoundCards(QWidget):
 		_set_button(ui.test_preview, preview, ongoing, False)
 		self.changed.emit()
 
+	def keep_rows(self, on_air: bool, preview: bool) -> None:
+		"""Les lignes que montre la fenêtre qui l'accueille (https://github.com/dascritch/machincast/issues/389) : le
+		type de sortie, l'antenne et son niveau pour les paramètres du service ; la pré-écoute pour les préférences de
+		l'interface. Une ligne cachée garde son choix, que rendent chosen_output, chosen_on_air et chosen_preview."""
+		self._rows_on_air = on_air
+		form = self.ui.form
+		for row in (0, 1):
+			form.setRowVisible(row, on_air)
+		form.setRowVisible(3, preview)
+		self._read_level()
+
 	# ─── Niveau de l'antenne, en mode service ──────────────────
 
 	def _service_card(self) -> str | None:
 		"""La carte de l'antenne réglable dans le PipeWire du service : en mode service, sur la sortie PipeWire, une
 		vraie carte ; None sinon."""
 		card = self.chosen_on_air()
-		if (not self.service.installed) or (self.chosen_output() != "pipewire") or (card in (None, DUMMY)):
+		if (not self._rows_on_air) or (not self.service.installed) or (self.chosen_output() != "pipewire"):
+			return None
+		if card in (None, DUMMY):
 			return None
 		if service.pipewire_socket() is None:
 			return None
 		return card
 
 	def _show_level(self, visible: bool) -> None:
-		ui = self.ui
-		for item in (ui.on_air_level_caption, ui.on_air_level, ui.on_air_level_value, ui.on_air_mute):
-			item.setVisible(visible)
+		self.ui.form.setRowVisible(2, visible)
 
 	def _read_level(self) -> None:
 		"""Le niveau et la sourdine de la carte, tels que le PipeWire du service les a ; indisponibles, la raison est

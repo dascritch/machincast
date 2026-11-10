@@ -184,6 +184,9 @@ class Context:
 	adjusted_table_rows: int | None = None
 	"""Les lignes chargées à la fois que donnera la fenêtre des préférences (https://github.com/dascritch/machincast/issues/383) ; None : celles montrées."""
 	shown_table_rows: list[int] = field(default_factory=list)
+	shown_kinds: list[str] = field(default_factory=list)
+	"""La fenêtre de chaque ouverture : préférences de l'interface ou paramètres du service
+	(https://github.com/dascritch/machincast/issues/389)."""
 	versions: list[str] = field(default_factory=list)
 	"""Les versions en base (xmin) de lignes que le scénario a notées."""
 	chosen_days: list[date | None] = field(default_factory=list)
@@ -356,9 +359,14 @@ def replace_dialogs(interface: Context) -> None:
 	monkeypatch.setattr(dialogs, "choose_day", day)
 
 	def preferences(
-		_parent: QWidget, shown_list: Settings, _output: AudioOutput, _service: ServiceState = ABSENT
+		_parent: QWidget,
+		shown_list: Settings,
+		_output: AudioOutput,
+		_service: ServiceState = ABSENT,
+		kind: str = "service",
 	) -> Settings | None:
 		"""Les crossfades et les périphériques du scénario ; ceux qu'il ne règle pas restent ceux montrés."""
+		interface.shown_kinds.append(kind)
 		interface.shown_preferences.append(shown_list.crossfades)
 		interface.shown_audio.append((shown_list.on_air, shown_list.preview))
 		interface.shown_thresholds.append(shown_list.silence_threshold)
@@ -1749,7 +1757,7 @@ def menu_entries(interface: Context, menu: str, datatable: list[list[str]]) -> N
 		assert named_menu(interface, menu).toolTipsVisible()
 
 
-@then(parsers.re(r"le menu « (?P<menu>[^»]+) » propose (?P<titles>«.+)"))
+@then(parsers.re(r"le menu « (?P<menu>[^»]+) » (?:ne )?propose (?:plus que )?(?P<titles>«.+»)(?:, qui [^«»]+)?$"))
 def offered_menu(interface: Context, menu: str, titles: str) -> None:
 	active_list = []
 	for action in actions(interface, menu):

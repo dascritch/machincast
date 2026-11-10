@@ -60,7 +60,7 @@ L'interface garde, pour chaque compte, la disposition des colonnes de chacun de 
 
 ## Durée de péremption
 
-`database.retention` ([#268](https://github.com/dascritch/machincast/issues/268)) est la durée, en jours entiers, 1 au moins, après laquelle [`Machin purge`](commandes.md#purge-de-la-base--machin-purge) efface de la base les passages de l'airplay, les lignes du log, et les éléments supprimés ou dont le fichier a disparu. 60 jours par défaut ; un nombre décimal, un texte ou 0 sont refusés (code 2). L'interface la règle aussi, **Fichier → Préférences…**, page **Base**, qui l'écrit dans la section `[database]`, et la fiche d'un élément supprimé donne le jour où il sera effacé.
+`database.retention` ([#268](https://github.com/dascritch/machincast/issues/268)) est la durée, en jours entiers, 1 au moins, après laquelle [`Machin purge`](commandes.md#purge-de-la-base--machin-purge) efface de la base les passages de l'airplay, les lignes du log, et les éléments supprimés ou dont le fichier a disparu. 60 jours par défaut ; un nombre décimal, un texte ou 0 sont refusés (code 2). L'interface la règle aussi, **Fichier → Préférences de l'interface…**, page **Base**, qui l'écrit dans la section `[database]`, et la fiche d'un élément supprimé donne le jour où il sera effacé.
 
 ```toml
 [database]

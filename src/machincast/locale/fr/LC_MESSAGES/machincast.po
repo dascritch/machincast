@@ -1114,22 +1114,23 @@ msgstr "Étapes d'installation de MachinCast, appelées par install.sh."
 #: machincast/installation.py
 msgid ""
 "on air on the dummy output: the broadcast service would play no sound; "
-"choose another sound card in Machin interface, File → Preferences…, Audio "
-"page, then run ./install.sh --service again"
+"choose another sound card in Machin interface, File → Broadcast service "
+"settings…, Audio page, then run ./install.sh --service again"
 msgstr ""
 "antenne sur la sortie factice : le service de diffusion ne jouerait aucun "
 "son ; choisir une autre carte son dans Machin interface, Fichier → "
-"Préférences…, page Audio, puis relancer ./install.sh --service"
+"Paramètres du service…, page Audio, puis relancer ./install.sh --service"
 
 #: machincast/installation.py
 msgid ""
 "on air on the PulseAudio output: the broadcast service plays through its "
 "own PipeWire; choose the PipeWire output in Machin interface, File → "
-"Preferences…, Audio page, then run ./install.sh --service again"
+"Broadcast service settings…, Audio page, then run ./install.sh --service "
+"again"
 msgstr ""
 "antenne sur la sortie PulseAudio : le service de diffusion joue par son "
 "propre PipeWire ; choisir la sortie PipeWire dans Machin interface, Fichier "
-"→ Préférences…, page Audio, puis relancer ./install.sh --service"
+"→ Paramètres du service…, page Audio, puis relancer ./install.sh --service"
 
 #: machincast/installation.py
 msgid "the GStreamer playback plugin"
@@ -2042,6 +2043,14 @@ msgid "Trial broadcast stopped."
 msgstr "Diffusion d'essai arrêtée."
 
 #: machincast/interface/control.py
+msgid "Broadcast restarted."
+msgstr "Diffusion redémarrée."
+
+#: machincast/interface/control.py
+msgid "Broadcast not restarted"
+msgstr "Diffusion non redémarrée"
+
+#: machincast/interface/control.py
 msgid ""
 "The database is unreachable, the audio output unavailable, or another "
 "Machin player is already broadcasting."
@@ -2853,11 +2862,11 @@ msgstr "Pré-écoute…"
 
 #: machincast/interface/display.py
 msgid ""
-"Pre-listen disabled: its sound card is the dummy output (File → "
-"Preferences…, Audio page)."
+"Pre-listen disabled: its sound card is the dummy output (File → Interface "
+"preferences…, Audio page)."
 msgstr ""
 "Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → "
-"Préférences…, page Audio)."
+"Préférences de l'interface…, page Audio)."
 
 #: machincast/interface/display.py
 msgid "Copy the location"
@@ -4212,9 +4221,45 @@ msgid "Unavailable: {text}"
 msgstr "Indisponible : {text}"
 
 #: machincast/interface/preferences.py
+msgid ""
+"Machin player takes these settings when it restarts: OK saves them, then "
+"restarts the broadcast, with the password of an administrator if the "
+"broadcast service runs; refused, the former settings come back."
+msgstr ""
+"Machin player prend ces paramètres à son redémarrage : OK les enregistre, "
+"puis redémarre la diffusion, avec le mot de passe d'un administrateur si le "
+"service de diffusion tourne ; refusé, les paramètres précédents reviennent."
+
+#: machincast/interface/preferences.py
+msgid ""
+"The pre-listen applies at once, on a card of the output type of the "
+"broadcast service settings; it can never use the on-air card. “Test” plays "
+"2 seconds of test sound on it."
+msgstr ""
+"La pré-écoute vaut aussitôt, sur une carte du type de sortie des paramètres "
+"du service ; elle ne prend jamais la carte de l'antenne. « Tester » y joue "
+"2 secondes de son de test."
+
+#: machincast/interface/preferences.py
 #: machincast/interface/ui/preferences.ui
 msgid "MachinCast icon"
 msgstr "Icône de MachinCast"
+
+#: machincast/interface/preferences.py
+msgid "Interface preferences"
+msgstr "Préférences de l'interface"
+
+#: machincast/interface/preferences.py
+msgid "Broadcast service settings"
+msgstr "Paramètres du service"
+
+#: machincast/interface/preferences.py
+msgid "Interface preferences…"
+msgstr "Préférences de l'interface…"
+
+#: machincast/interface/preferences.py
+msgid "Broadcast service settings…"
+msgstr "Paramètres du service…"
 
 #: machincast/interface/preferences.py
 msgid "To the tenth of a second"
@@ -4223,6 +4268,10 @@ msgstr "Au dixième de seconde"
 #: machincast/interface/preferences.py
 msgid "To the second"
 msgstr "À la seconde"
+
+#: machincast/interface/preferences.py
+msgid "Crossfades and silences"
+msgstr "Crossfades et silences"
 
 #: machincast/interface/preferences.py
 #, python-brace-format
@@ -5140,16 +5189,31 @@ msgstr "Périphérique de l'antenne à renseigner"
 #: machincast/interface/window.py
 msgid ""
 "Machin player refuses to broadcast without it: choose it in File → "
-"Preferences…, Audio page, or give it in audio.device of the configuration "
-"file."
+"Broadcast service settings…, Audio page, or give it in audio.device of the "
+"configuration file."
 msgstr ""
 "Machin player refuse de diffuser sans lui : le choisir dans Fichier → "
-"Préférences…, page Audio, ou le donner dans audio.device du fichier de "
-"configuration."
+"Paramètres du service…, page Audio, ou le donner dans audio.device du "
+"fichier de configuration."
 
 #: machincast/interface/window.py
 msgid "The trial broadcast is already running"
 msgstr "La diffusion d'essai tourne déjà"
+
+#: machincast/interface/window.py
+msgid ""
+"Broadcast service settings saved: restarting the broadcast, which takes "
+"them…"
+msgstr ""
+"Paramètres du service enregistrés : la diffusion redémarre pour les prendre…"
+
+#: machincast/interface/window.py
+msgid ""
+"Broadcast not restarted: the former broadcast service settings are back, in "
+"the configuration file and in the interface."
+msgstr ""
+"Diffusion non redémarrée : les paramètres du service précédents sont "
+"revenus, dans le fichier de configuration et dans l'interface."
 
 #: machincast/interface/window.py
 msgid "Close all closable tabs"
@@ -5240,10 +5304,6 @@ msgid "&File"
 msgstr "&Fichier"
 
 #: machincast/interface/window.py
-msgid "Preferences…"
-msgstr "Préférences…"
-
-#: machincast/interface/window.py
 msgid "Quit"
 msgstr "Quitter"
 
@@ -5306,10 +5366,6 @@ msgid " Icon updated {places}."
 msgstr " Icône mise à jour {places}."
 
 #: machincast/interface/window.py
-msgid "Without a configuration file, the preferences are not saved"
-msgstr "Sans fichier de configuration, les préférences ne s'enregistrent pas"
-
-#: machincast/interface/window.py
 msgid "Output monitor…"
 msgstr "Moniteur de la sortie…"
 
@@ -5353,6 +5409,10 @@ msgid "Upcoming: {tickets} on GitHub"
 msgstr "À venir : {tickets} sur GitHub"
 
 #: machincast/interface/window.py
+msgid "Without a configuration file, the preferences are not saved"
+msgstr "Sans fichier de configuration, les préférences ne s'enregistrent pas"
+
+#: machincast/interface/window.py
 #, python-brace-format
 msgid "{text} Cards left as they are: {titles}."
 msgstr "{text} Fiches laissées telles quelles : {titles}."
@@ -5367,6 +5427,15 @@ msgstr "{text} Fiches fermées, leur élément n'est plus en base : {titles}."
 #, python-brace-format
 msgid "{title} {launched}, in its own window."
 msgstr "{title} {launched}, dans sa propre fenêtre."
+
+#: machincast/interface/window.py
+#, python-brace-format
+msgid ""
+"Preferences saved in {configuration}; Machin player will take {text} at its "
+"next start.{icon}"
+msgstr ""
+"Préférences enregistrées dans {configuration} ; Machin player prendra "
+"{text} à son prochain démarrage.{icon}"
 
 #: machincast/interface/window.py
 #, python-brace-format
@@ -5442,15 +5511,6 @@ msgstr "Fiche fermée, son élément n'est plus en base : « {title} »."
 
 #: machincast/interface/window.py
 #, python-brace-format
-msgid ""
-"Preferences saved in {configuration}; Machin player will take {text} at its "
-"next start.{icon}"
-msgstr ""
-"Préférences enregistrées dans {configuration} ; Machin player prendra "
-"{text} à son prochain démarrage.{icon}"
-
-#: machincast/interface/window.py
-#, python-brace-format
 msgid "unreadable configuration, exports without hiding: {error}"
 msgstr "configuration illisible, exports sans masquage : {error}"
 
@@ -5488,6 +5548,15 @@ msgstr "vérification du fil musical impossible : {error}"
 #, python-brace-format
 msgid "Preferences not saved in {configuration}: {error}"
 msgstr "Préférences non enregistrées dans {configuration} : {error}"
+
+#: machincast/interface/window.py
+#, python-brace-format
+msgid ""
+"Broadcast not restarted, and the former settings could not be written back "
+"in {configuration}: {error}"
+msgstr ""
+"Diffusion non redémarrée, et les paramètres précédents n'ont pas pu être "
+"réécrits dans {configuration} : {error}"
 
 #: machincast/interface/window.py
 #, python-brace-format
@@ -5680,10 +5749,11 @@ msgstr "sortie : {path}"
 #, python-brace-format
 msgid ""
 "on-air device not filled in: give it in audio.device of {path}, or in File "
-"→ Preferences… of Machin interface, Audio page"
+"→ Broadcast service settings… of Machin interface, Audio page"
 msgstr ""
 "périphérique de l'antenne non renseigné : le donner dans audio.device de "
-"{path}, ou dans Fichier → Préférences… de Machin interface, page Audio"
+"{path}, ou dans Fichier → Paramètres du service… de Machin interface, page "
+"Audio"
 
 #: machincast/player/__main__.py
 #, python-brace-format

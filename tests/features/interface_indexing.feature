@@ -21,18 +21,18 @@ Fonctionnalité: Lancer l'indexation depuis l'interface
 
 	Scénario: Le menu « Maintenance » lance l'indexation rapide ou l'audit complet
 		Quand la fenêtre de l'interface s'ouvre
-		Alors le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Maintenance de la base de données… »
+		Alors le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Statut des indexations… », « Maintenance de la base de données… »
 
 	Plan du scénario: Machin indexer est lancé dans son propre processus, avec sa fenêtre
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « <mode> » dans le menu « Maintenance »
 		Alors Machin indexer a été lancé avec <options>
 		Et la barre d'état annonce « <lancement> »
-		Et le menu « Maintenance » propose « <autre> »
+		Et le menu « Maintenance » propose « <autre> », « Statut des indexations… »
 		Quand l'interface a regardé plusieurs fois si le Machin indexer factice tourne
-		Alors le menu « Maintenance » propose « <autre> »
+		Alors le menu « Maintenance » propose « <autre> », « Statut des indexations… »
 		Quand le Machin indexer factice se termine
-		Alors le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Maintenance de la base de données… »
+		Alors le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Statut des indexations… », « Maintenance de la base de données… »
 		Et la barre d'état annonce « <fin> »
 
 		Exemples:
@@ -46,9 +46,9 @@ Fonctionnalité: Lancer l'indexation depuis l'interface
 		Et je choisis « Audit complet » dans le menu « Maintenance »
 		Alors Machin indexer a été lancé avec « --window », « --full-audit »
 		Et 2 Machin indexer factices tournent
-		Et le menu « Maintenance » ne propose plus rien
+		Et le menu « Maintenance » ne propose plus que « Statut des indexations… », qui suit les deux indexations
 		Quand le Machin indexer factice se termine
-		Alors le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Maintenance de la base de données… »
+		Alors le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Statut des indexations… », « Maintenance de la base de données… »
 
 	Scénario: Fermer l'interface n'attend pas l'indexation, et ne l'arrête pas
 		Quand la fenêtre de l'interface s'ouvre
@@ -62,7 +62,7 @@ Fonctionnalité: Lancer l'indexation depuis l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Indexation rapide » dans le menu « Maintenance »
 		Alors la barre d'état annonce « Indexation impossible : Machin indexer n'a pas pu être lancé. »
-		Et le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Maintenance de la base de données… »
+		Et le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Statut des indexations… », « Maintenance de la base de données… »
 
 	Plan du scénario: Machin indexer reçoit la configuration de l'interface
 		Alors la commande d'indexation, pour la configuration <configuration>, est « <commande> »

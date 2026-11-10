@@ -24,7 +24,8 @@ Fonctionnalité: Menu général de l'interface
 		Alors la barre de menus a les menus « Fichier », « Affichage », « Onglets », « Diffusion », « Maintenance », « Aide »
 		Et le menu « Fichier » a les entrées :
 			| entrée       | état     | raccourci | infobulle                               |
-			| Préférences… | active   |           |                                         |
+			| Préférences de l'interface… | active   |           |                                         |
+			| Paramètres du service… | active   |           |                                         |
 			| —            |          |           |                                         |
 			| Quitter      | active   | Alt+Q     |                                         |
 		Et le menu « Maintenance » a les entrées :

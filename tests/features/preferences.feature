@@ -36,7 +36,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			start = 2
 			"""
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors les préférences ont montré : granularité « second », maximum 8 s, début par défaut 2 s, fin par défaut aucune
 
 	Scénario: Les préférences enregistrées vont dans le fichier de configuration, qui garde ses commentaires
@@ -48,7 +48,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			"""
 		Et les préférences seront réglées : granularité « tenth », maximum 6 s, début par défaut 1,5 s, fin par défaut 2 s
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors le fichier de configuration donne les crossfades : granularité « tenth », maximum 6 s, début par défaut 1,5 s, fin par défaut 2 s
 		Et le fichier de configuration contient encore « # Réglages de l'antenne du matin. »
 		Et le fichier de configuration contient la ligne « maximum = 6 »
@@ -65,7 +65,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			"""
 		Et les préférences seront réglées : granularité « tenth », maximum 5 s, début par défaut aucune, fin par défaut 3 s
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors le fichier de configuration donne les crossfades : granularité « tenth », maximum 5 s, début par défaut aucune, fin par défaut 3 s
 		Et le fichier de configuration n'a plus de clé « start »
 
@@ -74,7 +74,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »
 		Alors les crossfades de la fiche se règlent au dixième de seconde, jusqu'à 10 s
-		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Quand je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors le fichier de configuration donne les crossfades : granularité « second », maximum 8 s, début par défaut aucune, fin par défaut aucune
 		Quand j'ouvre la fiche de la banque « Jingles »
 		Alors les crossfades de la fiche se règlent à la seconde, jusqu'à 8 s
@@ -85,7 +85,8 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Quand la fenêtre de l'interface s'ouvre, sans fichier de configuration
 		Alors le menu « Fichier » a les entrées :
 			| entrée       | état     | raccourci | infobulle                                                       |
-			| Préférences… | inactive |           | Sans fichier de configuration, les préférences ne s'enregistrent pas |
+			| Préférences de l'interface… | inactive |           | Sans fichier de configuration, les préférences ne s'enregistrent pas |
+			| Paramètres du service… | inactive |           | Sans fichier de configuration, les préférences ne s'enregistrent pas |
 			| —            |          |           |                                                                 |
 			| Quitter      | active   | Alt+Q     |                                                                 |
 
@@ -96,7 +97,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			maximum = 8
 			"""
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors le fichier de configuration n'a pas changé
 		Et la barre d'état n'a rien annoncé
 
@@ -104,7 +105,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Étant donné le fichier de configuration de l'interface, que le poste refuse d'écrire
 		Et les préférences seront réglées : granularité « second », maximum 8 s, début par défaut aucune, fin par défaut aucune
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors le fichier de configuration n'a pas changé
 		Et la barre d'état annonce une erreur qui commence par « Préférences non enregistrées dans …/machincast.toml : »
 		Quand j'ouvre la fiche du sonore « Café à minuit »
@@ -113,7 +114,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 	Scénario: Les périphériques réglés vont dans la section [audio] du fichier de configuration
 		Étant donné les préférences régleront l'antenne « carte-2 » et la pré-écoute « casque-usb »
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors les préférences ont montré l'antenne non renseignée et la pré-écoute « preecoute-factice »
 		Et le fichier de configuration donne l'antenne « carte-2 » et la pré-écoute « casque-usb »
 		Et le fichier de configuration contient encore les autres sections, hors [audio]
@@ -124,7 +125,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et les préférences régleront l'antenne « carte-2 » et la pré-écoute « casque-usb »
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la barre d'état signale « Périphérique de l'antenne à renseigner »
-		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Quand je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors la barre d'état ne signale pas « Périphérique de l'antenne à renseigner »
 
 	Scénario: Sur la sortie factice des essais, l'antenne n'a pas à être renseignée
@@ -140,7 +141,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « carte-1 »
 		Et les préférences régleront la sortie « pulseaudio », l'antenne « dummy » et la pré-écoute « casque-usb »
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors le fichier de configuration donne la sortie « pulseaudio », l'antenne « dummy » et la pré-écoute « casque-usb »
 		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin player prendra les crossfades par défaut et le périphérique de l'antenne à son prochain démarrage. »
 
@@ -161,7 +162,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			"""
 		Et les préférences seront réglées avec le seuil de silence -55,5 dB
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors les préférences ont montré le seuil de silence -50 dB
 		Et le fichier de configuration contient la ligne « threshold = -55.5 »
 		Et le fichier de configuration contient encore « # Seuil de l'antenne du matin. »
@@ -178,10 +179,10 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			"""
 		Et les préférences seront réglées avec le seuil de silence -55,5 dB
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors Machin indexer a été lancé une fois, avec « --window », « --full-audit »
 		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin player prendra les crossfades par défaut à son prochain démarrage. Seuil de silence changé : audit complet lancé, dans sa propre fenêtre. »
-		Et le menu « Maintenance » propose « Indexation rapide »
+		Et le menu « Maintenance » propose « Indexation rapide », « Statut des indexations… »
 
 	Scénario: Garder le seuil de silence ne relance pas d'audit complet
 		Étant donné le fichier de configuration de l'interface, avec :
@@ -191,7 +192,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			"""
 		Et les préférences seront réglées avec le seuil de silence -50 dB
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors Machin indexer n'a pas été lancé
 
 	Scénario: Changer le seuil de silence pendant un audit complet lancé de l'interface demande de le relancer à sa fin
@@ -203,7 +204,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et les préférences seront réglées avec le seuil de silence -55,5 dB
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Audit complet » dans le menu « Maintenance »
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors Machin indexer a été lancé une fois, avec « --window », « --full-audit »
 		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin player prendra les crossfades par défaut à son prochain démarrage. Seuil de silence changé : l'audit complet en cours garde l'ancien seuil, relancez « Audit complet » à sa fin. »
 
@@ -219,7 +220,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			"""
 		Et les préférences seront réglées avec un blanc de 4,5 secondes sous -70 dB, qui fait passer au secours
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors les préférences ont montré un blanc de 12 secondes sous -90 dB, qui est noté seulement
 		Et le fichier de configuration contient la ligne « duration = 4.5 »
 		Et le fichier de configuration contient la ligne « threshold = -70 »
@@ -227,7 +228,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et le fichier de configuration contient encore « # Blanc de l'antenne de nuit. »
 		Et le fichier de configuration donne un blanc de 4,5 secondes sous -70 dB, qui fait passer au secours
 		Et le fichier de configuration contient encore les autres sections
-		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Quand je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors les préférences suivantes ont montré un blanc de 4,5 secondes sous -70 dB, qui fait passer au secours
 
 	Scénario: Régler d'autres préférences garde le blanc dans un sonore du fichier de configuration
@@ -240,7 +241,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			"""
 		Et les préférences seront réglées avec le seuil de silence -55,5 dB
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors le fichier de configuration donne un blanc de 12 secondes sous -80 dB, qui fait passer au secours
 
 	Scénario: La durée de péremption réglée dans les préférences va dans la section [database], et les fiches la suivent
@@ -249,7 +250,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Étant donné la durée de péremption du fichier de configuration de l'interface est de 30 jours
 		Et les préférences seront réglées avec la durée de péremption de 90 jours
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors les préférences ont montré la durée de péremption de 30 jours
 		Et le fichier de configuration contient la ligne « retention = 90 »
 		Et la durée de péremption de l'interface est de 90 jours
@@ -259,7 +260,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 
 		Étant donné les préférences seront réglées avec 300 lignes chargées à la fois
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors les préférences ont montré 1000 lignes chargées à la fois
 		Et le fichier de configuration contient la ligne « table_rows = 300 »
 		Et les fiches de l'interface chargent 300 lignes à la fois
@@ -270,7 +271,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Étant donné les préférences seront réglées avec le voyant « Saturation » caché
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le voyant « Saturation » de l'antenne est affiché dans l'onglet
-		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Quand je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors les préférences ont montré le voyant « Saturation » affiché
 		Et le fichier de configuration contient la ligne « clipping = false »
 		Et le fichier de configuration contient encore les autres sections
@@ -292,7 +293,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Les crossfades ont leur propre page, la première (https://github.com/dascritch/machincast/issues/234).
 
 		Quand la fenêtre des préférences s'ouvre sur : granularité « tenth », maximum 5 s, début par défaut 1,5 s, fin par défaut aucune
-		Alors elle s'intitule « Préférences », avec les pages « Crossfades », « Interface », « Audio », « Base »
+		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio »
 		Et elle montre : granularité « Au dixième de seconde », maximum « 5,0 s », début par défaut « 1,5 s », fin par défaut aucune
 		Et son maximum se règle par pas de 0,1 s, à partir de 0,1 s
 		Quand j'y choisis la granularité « À la seconde »
@@ -331,7 +332,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 	Scénario: Les positions enregistrées vont dans la section [crossfades] du fichier de configuration
 		Étant donné les positions des fondus seront réglées : fade-in « ongoing », fade-out « ends »
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors le fichier de configuration contient la ligne « fade_in_position = "ongoing" »
 		Et le fichier de configuration contient la ligne « fade_out_position = "ends" »
 		Et le fichier de configuration donne les positions des fondus : fade-in « ongoing », fade-out « ends »
@@ -413,7 +414,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| casque-usb        | Casque USB    |
 			| preecoute-factice | Haut-parleurs |
 		Quand la fenêtre des préférences s'ouvre sur l'antenne « carte-1 » et la pré-écoute « preecoute-factice »
-		Alors elle s'intitule « Préférences », avec les pages « Crossfades », « Interface », « Audio », « Base »
+		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio »
 		Et le choix de l'antenne propose :
 			| sortie         | état     |
 			| Carte 1        | active   |
@@ -468,7 +469,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et les préférences seront réglées avec l'icône « …/logo.png »
 		Quand la fenêtre de l'interface s'ouvre
 		Alors l'application a l'icône de MachinCast
-		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Quand je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors les préférences ont montré l'icône de MachinCast
 		Et le fichier de configuration donne l'icône « …/logo.png »
 		Et le fichier de configuration contient encore les autres sections
@@ -479,7 +480,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et le raccourci de MachinCast installé dans le menu des applications
 		Et les préférences seront réglées avec l'icône « …/logo.png »
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors le raccourci du menu des applications a l'icône « …/logo.png »
 		Et il n'y a pas de raccourci de MachinCast sur le bureau
 		Et la barre d'état dit « Icône mise à jour dans le menu des applications »
@@ -490,7 +491,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et le raccourci de MachinCast installé sur le bureau
 		Et les préférences seront réglées avec l'icône « …/logo.png »
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors le raccourci du menu des applications a l'icône « …/logo.png »
 		Et le raccourci du bureau a l'icône « …/logo.png », et reste exécutable
 		Et la barre d'état dit « Icône mise à jour dans le menu des applications et sur le bureau »
@@ -502,7 +503,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et les préférences seront réglées avec l'icône de MachinCast
 		Quand la fenêtre de l'interface s'ouvre
 		Alors l'application a l'icône « …/logo.png »
-		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Quand je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors les préférences ont montré l'icône « …/logo.png »
 		Et le fichier de configuration n'a pas d'icône
 		Et l'application a l'icône de MachinCast
@@ -514,7 +515,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et le raccourci de MachinCast installé dans le menu des applications
 		Et les préférences seront réglées avec le voyant « Saturation » caché
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors le raccourci du menu des applications a l'icône de MachinCast
 		Et la barre d'état ne dit pas « Icône mise à jour »
 
@@ -556,3 +557,22 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Quand la fenêtre des préférences s'ouvre sur l'icône « …/logo.png »
 		Et j'y renonce au choix d'une image
 		Alors elle montre l'icône « …/logo.png »
+
+	# ─── Deux fenêtres (https://github.com/dascritch/machincast/issues/389) ───
+
+	Plan du scénario: Chaque fenêtre ne montre que ses réglages
+		Quand j'ouvre la fenêtre des <fenêtre>
+		Alors son titre est « <titre> »
+		Et ses pages sont « <pages> »
+		Et elle montre <montrés>
+		Et elle cache <cachés>
+
+		Exemples:
+			| fenêtre                    | titre                       | pages                                       | montrés                                                        | cachés                                                                 |
+			| préférences de l'interface | Préférences de l'interface  | Crossfades et silences, Interface, Audio, Base | la granularité, le seuil de silence, la pré-écoute              | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie |
+			| paramètres du service      | Paramètres du service       | Crossfades, Audio                           | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie | la granularité, le seuil de silence, la pré-écoute              |
+
+	Scénario: Les paramètres du service rendent tels quels les réglages de l'interface qu'ils ne montrent pas
+		Quand j'ouvre la fenêtre des paramètres du service, sur une granularité « second », un seuil de silence de -55 dB et la pré-écoute « casque-usb »
+		Et je clique sur « OK » des préférences ouvertes
+		Alors les réglages rendus gardent la granularité « second », le seuil de silence de -55 dB et la pré-écoute « casque-usb »
