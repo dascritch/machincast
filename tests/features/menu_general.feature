@@ -35,6 +35,7 @@ Fonctionnalité: Menu général de l'interface
 			| Audit complet          | active   |           |                                |
 			| —                      |          |           |                                |
 			| Maintenance de la base de données… | active |   |                                |
+			| Faire lire les fichiers sonores au service de diffusion… | inactive | | Sans service de diffusion, Machin player lit les fichiers sonores avec votre compte. |
 		Et le menu « Aide » a les entrées :
 			| entrée                | état   | raccourci | infobulle |
 			| Documentation         | active |           |           |

@@ -8,6 +8,78 @@ msgstr ""
 "Language: fr\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+#: machincast/access.py
+msgid "Lets the broadcast service read the sound files."
+msgstr "Laisse le service de diffusion lire les fichiers sonores."
+
+#: machincast/access.py
+msgid "setfacl not found; install the acl package"
+msgstr "setfacl introuvable ; installer le paquet acl"
+
+#: machincast/access.py
+msgid "setfacl does not answer"
+msgstr "setfacl ne répond pas"
+
+#: machincast/access.py
+#, python-brace-format
+msgid "an administrator can run: sudo {command}"
+msgstr "un administrateur peut lancer : sudo {command}"
+
+#: machincast/access.py
+msgid "PATH"
+msgstr "CHEMIN"
+
+#: machincast/access.py
+msgid ""
+"files or directories; by default, the bank directories and the added files "
+"of the database"
+msgstr ""
+"fichiers ou répertoires ; par défaut, les répertoires des banques et les "
+"fichiers ajoutés de la base"
+
+#: machincast/access.py
+#: machincast/maintenance.py
+msgid ""
+"keeps the terminal open at the end, until it is closed: for the window that "
+"the interface opens"
+msgstr ""
+"garde le terminal ouvert à la fin, jusqu'à sa fermeture : pour la fenêtre "
+"qu'ouvre l'interface"
+
+#: machincast/access.py
+#, python-brace-format
+msgid "{path}: readable by {account}"
+msgstr "{path} : lisible par {account}"
+
+#: machincast/access.py
+#: machincast/player/broadcast.py
+#: machincast/player/outputs.py
+#, python-brace-format
+msgid "{path}: {error}"
+msgstr "{path} : {error}"
+
+#: machincast/access.py
+#, python-brace-format
+msgid "{path}: {account} cannot cross it, and it belongs to another account"
+msgstr ""
+"{path} : {account} ne peut pas le traverser, et il appartient à un autre "
+"compte"
+
+#: machincast/access.py
+#, python-brace-format
+msgid "no {account} account: the broadcast service is not installed"
+msgstr "pas de compte {account} : le service de diffusion n'est pas installé"
+
+#: machincast/access.py
+#, python-brace-format
+msgid "{path}: already readable by {account}"
+msgstr "{path} : déjà lisible par {account}"
+
+#: machincast/access.py
+#, python-brace-format
+msgid "{path}: not found"
+msgstr "{path} : introuvable"
+
 #: machincast/audio.py
 #: machincast/interface/preview.py
 #: machincast/interface/window.py
@@ -1875,6 +1947,34 @@ msgid ""
 msgstr ""
 "Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin "
 "maintenance-db à la main."
+
+#: machincast/interface/control.py
+msgid "Let the broadcast service read the sound files…"
+msgstr "Faire lire les fichiers sonores au service de diffusion…"
+
+#: machincast/interface/control.py
+msgid ""
+"Machin grant-read launched in a terminal: the bank directories and the "
+"added files."
+msgstr ""
+"Machin grant-read lancé dans un terminal : les répertoires des banques et "
+"les fichiers ajoutés."
+
+#: machincast/interface/control.py
+msgid ""
+"No terminal found (konsole, x-terminal-emulator): run Machin grant-read by "
+"hand."
+msgstr ""
+"Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin "
+"grant-read à la main."
+
+#: machincast/interface/control.py
+msgid ""
+"Without the broadcast service, Machin player reads the sound files with "
+"your account."
+msgstr ""
+"Sans service de diffusion, Machin player lit les fichiers sonores avec "
+"votre compte."
 
 #: machincast/interface/control.py
 msgid "Broadcast starting…"
@@ -4215,6 +4315,40 @@ msgstr "Nouvelle séquence, copie de {name}"
 msgid "Another sequence is already called “{name}”."
 msgstr "Une autre séquence s'appelle déjà « {name} »."
 
+#: machincast/interface/service_access.py
+msgid "Reading by the broadcast service"
+msgstr "Lecture par le service de diffusion"
+
+#: machincast/interface/service_access.py
+msgid "Let it read them"
+msgstr "Les lui faire lire"
+
+#: machincast/interface/service_access.py
+msgid "The broadcast service can now read them."
+msgstr "Le service de diffusion peut maintenant les lire."
+
+#: machincast/interface/service_access.py
+msgid ""
+"The broadcast service cannot read them: Maintenance → Let the broadcast "
+"service read the sound files… gives it access later."
+msgstr ""
+"Le service de diffusion ne peut pas les lire : Maintenance → Faire lire les "
+"fichiers sonores au service de diffusion… les lui fera lire plus tard."
+
+#: machincast/interface/service_access.py
+#, python-brace-format
+msgid ""
+"The broadcast service, under its own account {account}, cannot read these "
+"files or directories, or what they contain: {list}."
+msgstr ""
+"Le service de diffusion, sous son propre compte {account}, ne peut pas lire "
+"ces fichiers ou ces répertoires, ni ce qu'ils contiennent : {list}."
+
+#: machincast/interface/service_access.py
+#, python-brace-format
+msgid "Reading not given to the broadcast service: {list}"
+msgstr "Lecture non donnée au service de diffusion : {list}"
+
 #: machincast/interface/simulation.py
 msgid "simulation: "
 msgstr "simulation : "
@@ -5263,14 +5397,6 @@ msgid "pg_dump not found, install postgresql-client"
 msgstr "pg_dump introuvable, installer postgresql-client"
 
 #: machincast/maintenance.py
-msgid ""
-"keeps the terminal open at the end, until it is closed: for the window that "
-"the interface opens"
-msgstr ""
-"garde le terminal ouvert à la fin, jusqu'à sa fermeture : pour la fenêtre "
-"qu'ouvre l'interface"
-
-#: machincast/maintenance.py
 #, python-brace-format
 msgid "backup of database {production} into {file}"
 msgstr "sauvegarde de la base {production} dans {file}"
@@ -5638,12 +5764,6 @@ msgid "of the event “{name}” by the feed “{by}”"
 msgstr "de l'événement « {name} » par le feed « {by} »"
 
 #: machincast/player/broadcast.py
-#: machincast/player/outputs.py
-#, python-brace-format
-msgid "{path}: {error}"
-msgstr "{path} : {error}"
-
-#: machincast/player/broadcast.py
 #, python-brace-format
 msgid ""
 "{message}, the stream leaves the on-air output until its sound comes back"
@@ -5834,6 +5954,19 @@ msgstr "est en cours"
 #: machincast/player/fades.py
 msgid "ends"
 msgstr "se termine"
+
+#: machincast/player/files.py
+msgid "unreadable file"
+msgstr "fichier illisible"
+
+#: machincast/player/files.py
+#, python-brace-format
+msgid ""
+"{path}: Machin player, under the account {account}, cannot read it; Machin "
+"grant-read gives it access"
+msgstr ""
+"{path} : Machin player, sous le compte {account}, ne peut pas le lire ; "
+"Machin grant-read lui en donne la lecture"
 
 #: machincast/player/files.py
 msgid "modified file"
@@ -7359,6 +7492,11 @@ msgid ""
 "               plays of the airplay, lines of the log, deleted elements; "
 "never a\n"
 "               file (https://github.com/dascritch/machincast/issues/268)\n"
+"  grant-read   lets the broadcast service, under its own account, read the "
+"sound\n"
+"               files: the bank directories and the added files, or the "
+"paths\n"
+"               given (https://github.com/dascritch/machincast/issues/381)\n"
 "\n"
 "  Help of a binary: Machin BINARY --help\n"
 "\n"
@@ -7451,6 +7589,12 @@ msgstr ""
 "jamais un\n"
 "               fichier "
 "(https://github.com/dascritch/machincast/issues/268)\n"
+"  grant-read   laisse le service de diffusion, sous son propre compte, lire "
+"les\n"
+"               fichiers sonores : les répertoires des banques et les "
+"fichiers\n"
+"               ajoutés, ou les chemins donnés "
+"(https://github.com/dascritch/machincast/issues/381)\n"
 "\n"
 "  Aide d'un binaire : Machin BINAIRE --help\n"
 "\n"

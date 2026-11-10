@@ -56,7 +56,7 @@ from PySide6.QtCore import QEvent, QObject, QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QKeyEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QMenu, QTabBar, QWidget
 
-from machincast import crash, service, shortcut
+from machincast import access, crash, service, shortcut
 from machincast.clock import Clock
 from machincast.configuration import (
 	RETENTION,
@@ -80,6 +80,7 @@ from machincast.interface import (
 	indexer,
 	interruption,
 	preferences,
+	service_access,
 	suggestions,
 	version,
 )
@@ -568,6 +569,11 @@ class MainWindow(QMainWindow):
 		# (https://github.com/dascritch/machincast/issues/127).
 		self.database_maintenance = maintenance.addAction(control.MAINTENANCE)
 		self.database_maintenance.triggered.connect(self._maintain_database)
+		# La lecture des sonores par le service de diffusion (https://github.com/dascritch/machincast/issues/381).
+		self.grant_read = maintenance.addAction(control.GRANT_READ)
+		self.grant_read.triggered.connect(self._grant_read)
+		maintenance.aboutToShow.connect(self._reread_grant_read)
+		self._reread_grant_read()
 		help_ = self.menuBar().addMenu(_("&Help"))
 		help_.addAction(_("Documentation")).triggered.connect(lambda: dialogs.open_page(version.documentation()))
 		help_.addAction(_("Report a problem…")).triggered.connect(lambda: dialogs.open_page(TICKETS))
@@ -1346,6 +1352,17 @@ class MainWindow(QMainWindow):
 		self.ui.state_bar.showMessage(announces)
 		list_.refresh()
 
+	def _reread_grant_read(self) -> None:
+		"""Sans compte du service, Machin player lit avec le compte qui le lance : rien à donner."""
+		installed = access.service_account() is not None
+		self.grant_read.setEnabled(installed)
+		self.grant_read.setToolTip("")
+		if not installed:
+			self.grant_read.setToolTip(control.WITHOUT_SERVICE_ACCOUNT)
+
+	def _grant_read(self) -> None:
+		self.ui.state_bar.showMessage(control.launch_grant_read(self.configuration))
+
 	def _add_files(self, list_: List, paths: list[Path]) -> None:
 		"""Les fichiers entrent en base à l'état aperçu, puis l'indexeur les vérifie, en tâche de fond."""
 		if paths == []:
@@ -1359,6 +1376,11 @@ class MainWindow(QMainWindow):
 		self.ui.state_bar.showMessage(adding.text())
 		list_.refresh()
 		self.checker.check(adding.added_list)
+		# Le service de diffusion, sous son propre compte, doit pouvoir les lire
+		# (https://github.com/dascritch/machincast/issues/381).
+		reading = service_access.offer(self, paths)
+		if reading != "":
+			self.ui.state_bar.showMessage(f"{adding.text()} {reading}")
 
 	def offer_to_launching(self) -> None:
 		"""Une fois la fenêtre montrée : les nouveautés d'une version publiée, si elles n'ont pas encore été montrées

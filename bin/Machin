@@ -21,7 +21,7 @@ REPERTOIRE_DU_WRAPPER="${WRAPPER%/*}"
 charger_messages "${REPERTOIRE_DU_WRAPPER}/.."
 
 # Binaires connus, dans l'ordre de l'aide. Un test vérifie qu'ils correspondent à [project.scripts] de pyproject.toml.
-BINAIRES=(player indexer interface maintenance-db purge)
+BINAIRES=(player indexer interface maintenance-db purge grant-read)
 UNITE_LECTURE="machincast.service"
 
 CODE_USAGE=2
@@ -55,6 +55,9 @@ taken from the .venv venv of the project, without it being activated, or else fr
   purge        erases from the database what exceeds the expiry duration: old
                plays of the airplay, lines of the log, deleted elements; never a
                file (https://github.com/dascritch/machincast/issues/268)
+  grant-read   lets the broadcast service, under its own account, read the sound
+               files: the bank directories and the added files, or the paths
+               given (https://github.com/dascritch/machincast/issues/381)
 
   Help of a binary: Machin BINARY --help
 

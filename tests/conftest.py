@@ -88,6 +88,8 @@ def service_runtime(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 	directory = tmp_path / "service"
 	monkeypatch.setenv(service.RUNTIME_ENVIRONMENT, str(directory))
+	# Un compte qui n'existe pas : le service n'est pas installé, tant que le scénario n'en choisit pas un.
+	monkeypatch.setenv(service.ACCOUNT_ENVIRONMENT, "machincast-absent-des-tests")
 	return directory
 
 

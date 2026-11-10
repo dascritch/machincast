@@ -14,6 +14,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+ACCOUNT = "machincast"
+"""Le compte système du service de diffusion, et son groupe (https://github.com/dascritch/machincast/issues/381) : les
+mêmes noms dans install.sh."""
+ACCOUNT_ENVIRONMENT = "MACHINCAST_SERVICE_ACCOUNT"
+"""La variable d'environnement qui le remplace : les scénarios éprouvent la lecture avec un autre compte."""
 UNIT = "machincast.service"
 """L'unité systemd du service de lecture, celle que suit « Machin logs » : le même nom dans bin/Machin."""
 DELAY = 5
@@ -24,6 +29,11 @@ la socket de son PipeWire et sa socket d'état. tmpfiles.d le recrée à chaque 
 RUNTIME_ENVIRONMENT = "MACHINCAST_SERVICE_RUNTIME"
 """La variable d'environnement qui le remplace : les scénarios n'atteignent jamais le service du poste."""
 PIPEWIRE_SOCKET = "pipewire-0"
+
+
+def account() -> str:
+	"""Le compte du service : celui de ACCOUNT_ENVIRONMENT, sinon ACCOUNT."""
+	return (os.environ.get(ACCOUNT_ENVIRONMENT)) or (ACCOUNT)
 
 
 def runtime() -> Path:
