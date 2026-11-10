@@ -68,6 +68,7 @@ Le choix est grisé, sur **Rejouer la liste de lecture**, sans fin cochée, et p
 - **➖ Retirer l'élément** retire la ligne choisie, sans rien demander : le sonore, la banque ou la séquence reste en base.
 - **Banque « ne pas répéter »** : la fiche signale chaque appel d'une banque marquée juste après elle-même, qui sera toujours sauté. Ce n'est qu'un avertissement.
 - **Ouvrir un élément** : un double-clic, ou <kbd>Entrée</kbd>, ouvre sa fiche dans un autre onglet.
+- **Longue liste** ([#383](https://github.com/dascritch/machincast/issues/383)) : la fiche ne montre d'abord que ses 1 000 premiers éléments ; arriver au bas de la liste charge les suivants, et le titre de la liste le dit tant que tous ne sont pas montrés : « Éléments : 1000 montrés sur 3000, la suite se charge en descendant ». Ce nombre se règle dans les [préférences](prise-en-main.md#préférences), page **Interface**. Les ajouts chargent d'abord toute la liste, puisqu'ils vont à sa fin ; l'avertissement d'une banque « ne pas répéter » ne porte que sur les éléments montrés. Enregistrer une fiche dont on n'a pas touché à la liste ne la réécrit pas.
 
 ## Fiche d'une séquence
 
@@ -81,7 +82,7 @@ La fiche d'une [séquence](antenne.md#séquences) s'ouvre dans un onglet nommé 
 | Nom public | Facultatif. Affiché sur la page publique à la place de l'artiste et du titre masqués, si l'événement n'en a pas. |
 | Artiste et titre | `Masqué par le nom public de la séquence` ou `Affichés` sur la page publique, pour les sonores que joue la séquence, sauf si l'événement en décide ; `Selon la banque ou le sonore` laisse décider ceux-ci. |
 
-**Éléments** : la liste ordonnée des sonores et des banques que joue la séquence, avec un détail : l'emplacement d'un sonore, le mode d'une banque et « ne pas répéter » si elle l'est. Elle se gère comme la liste de lecture d'un événement : glisser-déposer, **Monter** et **Descendre**, **➕ Ajouter des sonores…**, **➕ Ajouter des banques…**, dépôt de fichiers, **➖ Retirer l'élément**. Un même sonore ou une même banque peut revenir ; une séquence ne contient jamais une autre séquence. La fiche signale les appels qui seront sautés à cause d'une banque « ne pas répéter ».
+**Éléments** : la liste ordonnée des sonores et des banques que joue la séquence, avec un détail : l'emplacement d'un sonore, le mode d'une banque et « ne pas répéter » si elle l'est. Elle se gère comme la liste de lecture d'un événement : glisser-déposer, **Monter** et **Descendre**, **➕ Ajouter des sonores…**, **➕ Ajouter des banques…**, dépôt de fichiers, **➖ Retirer l'élément**, et une longue liste se charge au fil de la descente. Un même sonore ou une même banque peut revenir ; une séquence ne contient jamais une autre séquence. La fiche signale les appels qui seront sautés à cause d'une banque « ne pas répéter ».
 
 **Séquence vide** : elle s'enregistre, pour être complétée plus tard ; la fiche avertit en haut, sur un liseret orange, qu'elle ne joue rien, et la diffusion la saute ([#328](https://github.com/dascritch/machincast/issues/328)).
 

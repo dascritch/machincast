@@ -58,7 +58,7 @@ from machincast.audio import Device
 from machincast.clock import FixedClock
 from machincast.configuration import RETENTION, AudioOutput, Crossfades, DeadAirSettings, Interface, load
 from machincast.database import Role, open_connection
-from machincast.interface import dialogs, indexer, version
+from machincast.interface import dialogs, indexer, preferences, version
 from machincast.interface.card import DELETE, REPORTED, Card
 from machincast.interface.dialogs import Closing, Removal
 from machincast.interface.lists import ANOMALY_COLUMN, IDENTIFIER, List
@@ -182,6 +182,8 @@ class Context:
 	adjusted_table_rows: int | None = None
 	"""Les lignes chargées à la fois que donnera la fenêtre des préférences (https://github.com/dascritch/machincast/issues/383) ; None : celles montrées."""
 	shown_table_rows: list[int] = field(default_factory=list)
+	versions: list[str] = field(default_factory=list)
+	"""Les versions en base (xmin) de lignes que le scénario a notées."""
 	chosen_days: list[date | None] = field(default_factory=list)
 	"""Ce que donneront les prochains choix d'un jour, None pour un choix abandonné
 	(https://github.com/dascritch/machincast/issues/273)."""
@@ -676,6 +678,25 @@ def sequence(empty_database: Connection, name: str, public_name: str | None, ite
 			f"INSERT INTO sequence_items (sequence_id, position, {reference}) VALUES (%s, %s, %s)",  # noqa: S608
 			(created[0], position, identifier(empty_database, table, column, item)),
 		)
+
+
+@given(parsers.parse("la séquence « {name} », sans nom public, avec {count:d} fois le sonore « {title} »"))
+def long_sequence(empty_database: Connection, name: str, count: int, title: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/383"""
+	created = empty_database.execute(
+		"INSERT INTO sequences (internal_name) VALUES (%s) RETURNING id", (name,)
+	).fetchone()
+	assert created is not None
+	empty_database.execute(
+		"INSERT INTO sequence_items (sequence_id, position, sound_id) SELECT %s, n, %s FROM generate_series(1, %s) n",
+		(created[0], identifier(empty_database, "sounds", "title", title), count),
+	)
+
+
+@then(parsers.parse("la fiche montre {count:d} éléments"))
+def item_count(interface: Context, count: int) -> None:
+	opened = window(interface).ui.tabs.currentWidget()
+	assert opened.ui.items.topLevelItemCount() == count  # type: ignore[attr-defined]
 
 
 @given(parsers.re(rf"l'événement « (?P<event>[^»]+) » joue (?P<items>{ITEMS})"))
@@ -1864,6 +1885,49 @@ def file_sounds(interface: Context, empty_database: Connection, path: str, count
 @given(parsers.parse("les préférences seront réglées avec la durée de péremption de {days:d} jours"))
 def adjusted_retention(interface: Context, days: int) -> None:
 	interface.adjusted_retention = days
+
+
+@given(parsers.parse("les fiches chargent leurs tableaux par {rows:d} lignes"))
+def table_rows(monkeypatch: pytest.MonkeyPatch, rows: int) -> None:
+	"""Quelle que soit la configuration que la fenêtre lit à son ouverture (https://github.com/dascritch/machincast/issues/383)."""
+	monkeypatch.setattr(preferences, "table_rows", lambda: rows)
+
+
+@given(parsers.parse("je note les versions en base des éléments de la séquence « {name} »"))
+@when(parsers.parse("je note les versions en base des éléments de la séquence « {name} »"))
+def note_versions(interface: Context, empty_database: Connection, name: str) -> None:
+	"""xmin change à chaque UPDATE d'une ligne : une liste réécrite change de versions."""
+	interface.versions = _versions(empty_database, name)
+
+
+@then(parsers.parse("les éléments de la séquence « {name} » n'ont pas été réécrits en base"))
+def not_rewritten(interface: Context, empty_database: Connection, name: str) -> None:
+	assert _versions(empty_database, name) == interface.versions
+
+
+def _versions(connection: Connection, name: str) -> list[str]:
+	return [
+		str(version)
+		for (version,) in connection.execute(
+			"SELECT e.xmin::text FROM sequence_items e JOIN sequences q ON q.id = e.sequence_id"
+			" WHERE q.internal_name = %s ORDER BY e.position",
+			(name,),
+		)
+	]
+
+
+@then(parsers.parse("la liste des éléments de la fiche a pour titre « {title} »"))
+def items_title(interface: Context, title: str) -> None:
+	opened = window(interface).ui.tabs.currentWidget()
+	assert opened.ui.item_group.title() == title  # type: ignore[attr-defined]
+
+
+@when("je descends au bas de la liste des éléments de la fiche")
+def items_to_bottom(interface: Context, qtbot: QtBot) -> None:
+	opened = window(interface).ui.tabs.currentWidget()
+	bar = opened.ui.items.verticalScrollBar()  # type: ignore[attr-defined]
+	bar.setValue(bar.maximum())
+	qtbot.wait(10)
 
 
 @given(parsers.parse("les préférences seront réglées avec {rows:d} lignes chargées à la fois"))

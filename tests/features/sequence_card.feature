@@ -311,3 +311,53 @@ Fonctionnalité: Fiche d'une séquence
 		Quand j'ouvre l'onglet « Séquence : Passage pub »
 		Et j'ouvre l'événement « Continue » de la séquence
 		Alors l'onglet ouvert est « Événement : Continue »
+
+	# ─── Pages (https://github.com/dascritch/machincast/issues/383) ─────────────────
+
+	Scénario: Une séquence aux nombreux éléments ne montre d'abord que sa première page
+		Étant donné les fiches chargent leurs tableaux par 2 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Passage pub »
+		Alors la fiche de la séquence montre les éléments « Jingle début », « Publicité »
+		Et la liste des éléments de la fiche a pour titre « Éléments : 2 montrés sur 3, la suite se charge en descendant »
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
+
+	Scénario: Descendre au bas de la liste des éléments charge la page suivante, jusqu'au dernier
+		Étant donné la séquence « Longue », sans nom public, avec 250 fois le sonore « Spot »
+		Et les fiches chargent leurs tableaux par 100 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Longue »
+		Alors la fiche montre 100 éléments
+		Quand je descends au bas de la liste des éléments de la fiche
+		Alors la fiche montre 200 éléments
+		Quand je descends au bas de la liste des éléments de la fiche
+		Alors la fiche montre 250 éléments
+		Et la liste des éléments de la fiche a pour titre « Éléments, dans l'ordre de passage »
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
+
+	Scénario: Retirer un élément d'une liste lue en partie garde, à sa suite, ceux qui ne sont pas encore montrés
+		Étant donné les fiches chargent leurs tableaux par 2 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Passage pub »
+		Et je choisis l'élément « Jingle début »
+		Et je clique sur « ➖ Retirer l'élément »
+		Et j'enregistre la fiche
+		Alors les éléments de la séquence « Passage pub » sont, dans l'ordre, la banque « Publicité », le sonore « Jingle fin »
+
+	Scénario: Ajouter un élément à une liste lue en partie la lit d'abord en entier, et l'ajoute à la fin
+		Étant donné les fiches chargent leurs tableaux par 2 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Passage pub »
+		Et j'ajoute les sonores « Spot »
+		Alors la fiche de la séquence montre les éléments « Jingle début », « Publicité », « Jingle fin », « Les Gaufres – Spot »
+		Quand j'enregistre la fiche
+		Alors les éléments de la séquence « Passage pub » sont, dans l'ordre, le sonore « Jingle début », la banque « Publicité », le sonore « Jingle fin », le sonore « Spot »
+
+	Scénario: Enregistrer une séquence sans toucher à ses éléments ne les réécrit pas
+		Étant donné les fiches chargent leurs tableaux par 2 lignes
+		Et je note les versions en base des éléments de la séquence « Passage pub »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Passage pub »
+		Et je saisis le nom public « Pub »
+		Et j'enregistre la fiche
+		Alors les éléments de la séquence « Passage pub » n'ont pas été réécrits en base

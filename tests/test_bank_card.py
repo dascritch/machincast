@@ -24,7 +24,6 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.database import Role, open_connection
-from machincast.interface import preferences
 from machincast.interface.bank_card import SOUND, BankCard
 from machincast.interface.choice import Choice
 from machincast.interface.lists import IDENTIFIER, SOUNDS
@@ -590,12 +589,6 @@ def remove_chosen(interface: Context, qtbot: QtBot) -> None:
 @then(parsers.parse("la fiche a lu toutes ses lignes au plus {count:d} fois"))
 def readings_at_most(interface: Context, count: int) -> None:
 	assert interface.readings <= count, interface.readings
-
-
-@given(parsers.parse("les fiches chargent leurs tableaux par {rows:d} lignes"))
-def table_rows(monkeypatch: pytest.MonkeyPatch, rows: int) -> None:
-	"""Quelle que soit la configuration que la fenêtre lit à son ouverture."""
-	monkeypatch.setattr(preferences, "table_rows", lambda: rows)
 
 
 @given(parsers.parse("le dernier sonore de la banque « {name} » est à l'état « erroné »"))

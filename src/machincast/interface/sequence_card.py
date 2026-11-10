@@ -55,9 +55,10 @@ class SequenceCard(Card):
 		self._name = ""
 		ui = self.ui
 		buttons = Buttons({"sound": ui.add_sounds, "bank": ui.add_banks}, ui.remove_item, ui.raise_, ui.go_down)
-		self.items = ItemList(self, ui.items, buttons, "sequence_items", "sequence_id", REPETITION)
+		self.items = ItemList(self, ui.items, buttons, "sequence_items", "sequence_id", REPETITION, ui.item_group)
 		self.items.changed.connect(self._modify)
 		self.items.changed.connect(self._warn)
+		self.items.loaded.connect(self._warn)
 		ui.internal_name.textChanged.connect(self._modify)
 		ui.public_name.textChanged.connect(self._modify)
 		ui.hiding.currentIndexChanged.connect(self._modify)

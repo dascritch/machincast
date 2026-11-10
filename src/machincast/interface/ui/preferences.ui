@@ -302,7 +302,7 @@
           <item>
            <widget class="QLabel" name="table_rows_explanation">
             <property name="text">
-             <string>The sounds of a bank are loaded this many at a time in its card: the rest comes as you scroll down. A higher number can strongly slow down the interface for a bank with a very large number of sounds.</string>
+             <string>The sounds of a bank, and the items of a sequence or an event, are loaded this many at a time in their card: the rest comes as you scroll down. A higher number can strongly slow down the interface for a bank with a very large number of sounds.</string>
             </property>
             <property name="wordWrap">
              <bool>true</bool>
