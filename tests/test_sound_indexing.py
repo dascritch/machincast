@@ -43,7 +43,9 @@ def launch(
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		options = argparse.Namespace(full_audit=full_audit, window=window, sound=sound, force=False)
 		code = run(on_test_database, options)
-	messages = [message for _level, message in per_file(caplog.records)]
+	messages = []
+	for _level, message in per_file(caplog.records):
+		messages.append(message)
 	return Launching(code, messages, start, now_in_database(database))
 
 

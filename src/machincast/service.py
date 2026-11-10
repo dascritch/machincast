@@ -43,7 +43,11 @@ def read_state() -> ServiceState:
 	except (OSError, subprocess.TimeoutExpired):
 		return ABSENT
 	# Sans systemd, ou sans l'unité, systemctl ne dit rien sur sa sortie standard : le service est absent.
-	properties = dict(line.split("=", 1) for line in output.stdout.splitlines() if "=" in line)
+	line_list = []
+	for line in output.stdout.splitlines():
+		if "=" in line:
+			line_list.append(line.split("=", 1))
+	properties = dict(line_list)
 	if properties.get("LoadState") != "loaded":
 		return ABSENT
 	return ServiceState(installed=True, active=properties.get("ActiveState", "inactive"))
@@ -86,7 +90,11 @@ def read_startup() -> Startup:
 		)
 	except (OSError, subprocess.TimeoutExpired):
 		return Startup(active="inactive", sub="dead", result="", code=None)
-	properties = dict(line.split("=", 1) for line in output.stdout.splitlines() if "=" in line)
+	line_list = []
+	for line in output.stdout.splitlines():
+		if "=" in line:
+			line_list.append(line.split("=", 1))
+	properties = dict(line_list)
 	code = None
 	if properties.get("ExecMainStatus", "").isdigit():
 		code = int(properties["ExecMainStatus"])
@@ -125,4 +133,8 @@ def journal(since: datetime, lines: int = JOURNAL_LINES) -> list[str]:
 		return []
 	if output.returncode != 0:
 		return []
-	return [line for line in output.stdout.splitlines() if line.strip()]
+	journal = []
+	for line in output.stdout.splitlines():
+		if line.strip():
+			journal.append(line)
+	return journal

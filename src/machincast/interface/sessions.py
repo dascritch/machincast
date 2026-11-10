@@ -62,7 +62,10 @@ def overlapped(connection: Connection, session: Session, now: datetime) -> tuple
 		days=frozenset(),
 		modified_at=NEVER,
 	)
-	others = [other for other in read_grid(connection) if other.id != session.event.id]
+	others = []
+	for other in read_grid(connection):
+		if other.id != session.event.id:
+			others.append(other)
 	return overlap(only, others, since=wall_hour(now))
 
 

@@ -28,13 +28,22 @@ def card(interface: Context) -> SequenceCard:
 
 def lines(interface: Context) -> list[QTreeWidgetItem]:
 	list_ = card(interface).ui.items
-	found_list = [list_.topLevelItem(row) for row in range(list_.topLevelItemCount())]
-	return [line for line in found_list if line is not None]
+	found_list = []
+	for row in range(list_.topLevelItemCount()):
+		found_list.append(list_.topLevelItem(row))
+	lines = []
+	for line in found_list:
+		if line is not None:
+			lines.append(line)
+	return lines
 
 
 def choose(interface: Context, name: str) -> None:
 	"""Rend courante la seule ligne de l'élément."""
-	found_list = [line for line in lines(interface) if line.text(1) == name]
+	found_list = []
+	for line in lines(interface):
+		if line.text(1) == name:
+			found_list.append(line)
 	assert len(found_list) == 1, f"« {name} » : {len(found_list)} lignes"
 	card(interface).ui.items.setCurrentItem(found_list[0])
 
@@ -119,21 +128,43 @@ def fields(interface: Context, name: str, public_name: str, hiding: str) -> None
 def items_in_table(interface: Context, datatable: list[list[str]]) -> None:
 	list_ = card(interface).ui.items
 	headers, *rows = datatable
-	titles = [list_.headerItem().text(column) for column in range(list_.columnCount())]
-	assert titles == [header.strip() for header in headers]
-	shown_list = [[line.text(column) for column in range(list_.columnCount())] for line in lines(interface)]
-	assert shown_list == [[value.strip() for value in values] for values in rows]
+	titles = []
+	for column in range(list_.columnCount()):
+		titles.append(list_.headerItem().text(column))
+	header_list = []
+	for header in headers:
+		header_list.append(header.strip())
+	assert titles == header_list
+	shown_list = []
+	for line in lines(interface):
+		column_list = []
+		for column in range(list_.columnCount()):
+			column_list.append(line.text(column))
+		shown_list.append(column_list)
+	values_list = []
+	for values in rows:
+		value_list = []
+		for value in values:
+			value_list.append(value.strip())
+		values_list.append(value_list)
+	assert shown_list == values_list
 
 
 @then(parsers.re(r"la fiche de la séquence montre les éléments (?P<names>«.+)"))
 def shown_items(interface: Context, names: str) -> None:
-	assert [line.text(1) for line in lines(interface)] == NAME.findall(names)
+	line_list = []
+	for line in lines(interface):
+		line_list.append(line.text(1))
+	assert line_list == NAME.findall(names)
 
 
 @then(parsers.re(r"la fiche de la séquence montre les événements (?P<names>aucun|«.+)"))
 def shown_events(interface: Context, names: str) -> None:
 	list_ = card(interface).ui.events
-	assert [list_.item(row).text() for row in range(list_.count())] == NAME.findall(names)
+	row_list = []
+	for row in range(list_.count()):
+		row_list.append(list_.item(row).text())
+	assert row_list == NAME.findall(names)
 
 
 @then(parsers.re(r"la fiche de la séquence (?:n')?avertit (?:de rien|« (?P<text>.+) »)"))
@@ -147,7 +178,10 @@ def warns(interface: Context, text: str | None) -> None:
 @then(parsers.re(r"les boutons de ligne actifs de la séquence sont (?P<buttons>.+)"))
 def line_buttons(interface: Context, buttons: str) -> None:
 	ui = card(interface).ui
-	active_list = [button.text() for button in (ui.remove_item, ui.raise_, ui.go_down) if button.isEnabled()]
+	active_list = []
+	for button in (ui.remove_item, ui.raise_, ui.go_down):
+		if button.isEnabled():
+			active_list.append(button.text())
 	assert active_list == NAME.findall(buttons)
 
 
@@ -156,8 +190,18 @@ def reorderable(interface: Context) -> None:
 	list_ = card(interface).ui.items
 	assert list_.dragDropMode() == QAbstractItemView.DragDropMode.InternalMove
 	assert lines(interface) != []
-	assert all(not (line.flags() & Qt.ItemFlag.ItemIsDropEnabled) for line in lines(interface))
-	assert all(line.flags() & Qt.ItemFlag.ItemIsDragEnabled for line in lines(interface))
+	every_one = True
+	for line in lines(interface):
+		if line.flags() & Qt.ItemFlag.ItemIsDropEnabled:
+			every_one = False
+			break
+	assert every_one
+	every_one_2 = True
+	for line in lines(interface):
+		if not (line.flags() & Qt.ItemFlag.ItemIsDragEnabled):
+			every_one_2 = False
+			break
+	assert every_one_2
 
 
 @then(
@@ -200,5 +244,10 @@ def items_in_database(interface: Context, empty_database: Connection, name: str,
 		" WHERE q.internal_name = %s ORDER BY e.position",
 		(name,),
 	).fetchall()
-	expected_list = [(category, interface.path(item)) for category, item in IN_DATABASE.findall(items)]
-	assert lines == [(position, *expected) for position, expected in enumerate(expected_list, start=1)]
+	expected_list = []
+	for category, item in IN_DATABASE.findall(items):
+		expected_list.append((category, interface.path(item)))
+	expected_list_2 = []
+	for position, expected in enumerate(expected_list, start=1):
+		expected_list_2.append((position, *expected))
+	assert lines == expected_list_2

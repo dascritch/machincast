@@ -187,7 +187,10 @@ class ItemList(QObject):
 		self.tail_stream = False
 		if self._parent is None:
 			return []
-		columns = ", ".join(f"e.{column}" for column in self._columns().values())
+		column_list = []
+		for column in self._columns().values():
+			column_list.append(f"e.{column}")
+		columns = ", ".join(column_list)
 		if rows is None:
 			chosen = None
 		else:
@@ -211,7 +214,11 @@ class ItemList(QObject):
 		categories = list(self._columns())
 		items = []
 		for line_in_database, _position, *identifiers in rows_read:
-			((category, identifier),) = [(g, i) for g, i in zip(categories, identifiers, strict=True) if i is not None]
+			g_list = []
+			for g, i in zip(categories, identifiers, strict=True):
+				if i is not None:
+					g_list.append((g, i))
+			((category, identifier),) = g_list
 			items.append((int(str(line_in_database)), category, int(str(identifier))))
 		fetched_list = self._read({category: [i for _l, g, i in items if g == category] for category in categories})
 		lines = []
@@ -269,8 +276,14 @@ class ItemList(QObject):
 		self.group.setTitle(title)
 
 	def lines(self) -> list[QTreeWidgetItem]:
-		lines = [self.list_.topLevelItem(row) for row in range(self.list_.topLevelItemCount())]
-		return [line for line in lines if line is not None]
+		lines = []
+		for row in range(self.list_.topLevelItemCount()):
+			lines.append(self.list_.topLevelItem(row))
+		line_list = []
+		for line in lines:
+			if line is not None:
+				line_list.append(line)
+		return line_list
 
 	def warnings(self, loop: bool) -> list[str]:
 		"""Une ligne par appel d'une banque « ne pas répéter » juste après elle-même ; pour une liste qui boucle, la
@@ -316,37 +329,58 @@ class ItemList(QObject):
 				items.append((item.data(0, LINE_IN_DATABASE), str(item.data(0, CATEGORY)), int(identifier)))
 		existing_list: set[tuple[str, int]] = set()
 		for category in self._columns():
-			requests = [item_id for _line, g, item_id in items if g == category]
+			requests = []
+			for _line, g, item_id in items:
+				if g == category:
+					requests.append(item_id)
 			fetched_list = connection.execute(f"SELECT id FROM {TABLES[category]} WHERE id = ANY(%s)", (requests,))  # noqa: S608
 			existing_list |= {(category, int(str(identifier))) for (identifier,) in fetched_list}
-		kept_list = [
-			(line, category, item_id) for line, category, item_id in items if (category, item_id) in existing_list
-		]
-		in_database = [line for line, _category, _item in kept_list if line is not None]
+		kept_list = []
+		for line, category, item_id in items:
+			if (category, item_id) in existing_list:
+				kept_list.append((line, category, item_id))
+		in_database = []
+		for line, _category, _item in kept_list:
+			if line is not None:
+				in_database.append(line)
 		connection.execute(
 			f"DELETE FROM {self.table} WHERE {self.column_parent} = %s AND NOT (id = ANY(%s))",  # noqa: S608
 			(parent, in_database),
 		)
 		# Une requête pour les lignes gardées, une par genre pour les nouvelles, quel que soit leur nombre (https://github.com/dascritch/machincast/issues/383).
-		kept = [(line, position) for position, (line, _g, _i) in enumerate(kept_list, start=1) if line is not None]
+		kept = []
+		for position, (line, _g, _i) in enumerate(kept_list, start=1):
+			if line is not None:
+				kept.append((line, position))
 		# Une ligne n'est jamais reprise d'une autre séquence ou d'un autre événement.
+		p_list_2 = []
+		for line, _p in kept:
+			p_list_2.append(line)
+		l_list = []
+		for _l, position in kept:
+			l_list.append(position)
 		connection.execute(
 			f"UPDATE {self.table} e SET position = v.position FROM unnest(%s::bigint[], %s::int[])"  # noqa: S608
 			f" AS v(id, position) WHERE e.id = v.id AND e.{self.column_parent} = %s",
-			([line for line, _p in kept], [position for _l, position in kept], parent),
+			(p_list_2, l_list, parent),
 		)
 		for category, column in COLUMNS.items():
-			new = [
-				(position, item_id)
-				for position, (line, g, item_id) in enumerate(kept_list, start=1)
-				if (line is None) and (g == category)
-			]
+			new = []
+			for position, (line, g, item_id) in enumerate(kept_list, start=1):
+				if (line is None) and (g == category):
+					new.append((position, item_id))
 			if new == []:
 				continue
+			i_list = []
+			for position, _i in new:
+				i_list.append(position)
+			p_list = []
+			for _p, item_id in new:
+				p_list.append(item_id)
 			connection.execute(
 				f"INSERT INTO {self.table} ({self.column_parent}, position, {column})"  # noqa: S608
 				" SELECT %s, v.position, v.item FROM unnest(%s::int[], %s::bigint[]) AS v(position, item)",
-				(parent, [position for position, _i in new], [item_id for _p, item_id in new]),
+				(parent, i_list, p_list),
 			)
 
 	def _save_stream(self, feed: int, name: str) -> int | None:
@@ -367,11 +401,18 @@ class ItemList(QObject):
 
 	def _columns(self) -> dict[str, str]:
 		"""Les genres d'éléments de la liste, et leur colonne : jamais une séquence dans une séquence."""
-		return {category: column for category, column in COLUMNS.items() if column != self.column_parent}
+		columns = {}
+		for category, column in COLUMNS.items():
+			if column != self.column_parent:
+				columns[category] = column
+		return columns
 
 	def _read_marked(self) -> None:
 		fetched_list = self.card.connection.execute("SELECT id, internal_name FROM banks WHERE no_repeat").fetchall()
-		self.marked_list = {int(str(identifier)): str(name) for identifier, name in fetched_list}
+		identifier_dict = {}
+		for identifier, name in fetched_list:
+			identifier_dict[int(str(identifier))] = str(name)
+		self.marked_list = identifier_dict
 
 	def _read(self, identifiers: dict[str, list[int]]) -> dict[str, dict[int, QTreeWidgetItem]]:
 		"""Les lignes des éléments, par genre et par identifiant ; un élément absent de la base n'en a pas."""
@@ -379,7 +420,10 @@ class ItemList(QObject):
 		lines: dict[str, dict[int, QTreeWidgetItem]] = {}
 		for category, requests in identifiers.items():
 			fetched_list = self.card.connection.execute(PLAYS[category], (requests,)).fetchall()
-			lines[category] = {int(str(lu[0])): build[category](lu) for lu in fetched_list}
+			lu_dict = {}
+			for lu in fetched_list:
+				lu_dict[int(str(lu[0]))] = build[category](lu)
+			lines[category] = lu_dict
 		return lines
 
 	def _bank_line(self, bank: tuple[object, ...]) -> QTreeWidgetItem:
@@ -448,7 +492,11 @@ class ItemList(QObject):
 		with self.card.connection.transaction():
 			self._read_marked()
 			fetched_list = self._read({category: chosen_list})[category]
-		self.list_.addTopLevelItems([fetched_list[chosen] for chosen in chosen_list if chosen in fetched_list])
+		chosen_list_2 = []
+		for chosen in chosen_list:
+			if chosen in fetched_list:
+				chosen_list_2.append(fetched_list[chosen])
+		self.list_.addTopLevelItems(chosen_list_2)
 		self._refresh_buttons()
 
 	def _add_feeds(self) -> None:
@@ -481,8 +529,12 @@ class ItemList(QObject):
 		self.load_all()
 		with self.card.connection.transaction():
 			fetched_list = self.card.connection.execute(SOUNDS_PER_FILE, (files,)).fetchall()
-		by_file = {str(sound[3]): sound for sound in fetched_list}
-		lines = [self._sound_line(by_file.get(file, (None, None, None, file, file))) for file in files]
+		by_file = {}
+		for sound in fetched_list:
+			by_file[str(sound[3])] = sound
+		lines = []
+		for file in files:
+			lines.append(self._sound_line(by_file.get(file, (None, None, None, file, file))))
 		self.list_.addTopLevelItems(lines)
 		self._refresh_buttons()
 		self.card.flag_ignored(ignored, _("these are not sound files"))

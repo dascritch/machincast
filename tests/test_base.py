@@ -175,7 +175,10 @@ def different_generators(context: Context, first: int, second: int) -> None:
 
 
 def draws(randomness: random.Random, count: int, among: int) -> list[int]:
-	return [randomness.choice(range(among)) for _ in range(count)]
+	draws = []
+	for _ in range(count):
+		draws.append(randomness.choice(range(among)))
+	return draws
 
 
 @then(parsers.parse("ils tirent les mêmes {count:d} sonores parmi {among:d}"))
@@ -258,12 +261,11 @@ FORBIDDEN_LIST = re.compile(
 
 @then("aucun fichier de src/ ne lit l'heure ni le hasard en dehors de machincast.clock et machincast.randomness")
 def keeps_crazy() -> None:
-	faults = [
-		f"{path.relative_to(SOURCES)} : {m.group(0).strip()}"
-		for path in sorted(SOURCES.rglob("*.py"))
-		if path.name not in DEDICATED_MODULES
-		for m in FORBIDDEN_LIST.finditer(path.read_text(encoding="utf-8"))
-	]
+	faults = []
+	for path in sorted(SOURCES.rglob("*.py")):
+		if path.name not in DEDICATED_MODULES:
+			for m in FORBIDDEN_LIST.finditer(path.read_text(encoding="utf-8")):
+				faults.append(f"{path.relative_to(SOURCES)} : {m.group(0).strip()}")
 	assert not faults, "utiliser machincast.clock ou machincast.randomness :\n" + "\n".join(faults)
 
 
@@ -275,13 +277,12 @@ PAINTER_IN_WITH = re.compile(r"^\s*with QPainter\(.*\) as \w+:")
 
 @then("aucun fichier de src/ ne crée de QPainter hors d'un bloc with")
 def painter_in_with() -> None:
-	faults = [
-		f"{path.relative_to(SOURCES)}:{number}"
-		for path in sorted(SOURCES.rglob("*.py"))
-		if path.parent.name != "ui"
-		for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
-		if (PAINTER.search(line.split("#", 1)[0])) and (not PAINTER_IN_WITH.match(line))
-	]
+	faults = []
+	for path in sorted(SOURCES.rglob("*.py")):
+		if path.parent.name != "ui":
+			for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+				if (PAINTER.search(line.split("#", 1)[0])) and (not PAINTER_IN_WITH.match(line)):
+					faults.append(f"{path.relative_to(SOURCES)}:{number}")
 	assert not faults, "ouvrir le QPainter par « with QPainter(…) as painter: » :\n" + "\n".join(faults)
 
 
@@ -292,12 +293,11 @@ PRINT = re.compile(r"(?<![\w.])print\s*\(")
 
 @then("aucun fichier de src/ n'appelle print")
 def without_print() -> None:
-	faults = [
-		f"{path.relative_to(SOURCES)}:{number}"
-		for path in sorted(SOURCES.rglob("*.py"))
-		for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
-		if PRINT.search(line.split("#", 1)[0])
-	]
+	faults = []
+	for path in sorted(SOURCES.rglob("*.py")):
+		for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+			if PRINT.search(line.split("#", 1)[0]):
+				faults.append(f"{path.relative_to(SOURCES)}:{number}")
 	assert not faults, "utiliser logging (machincast.log) au lieu de print :\n" + "\n".join(faults)
 
 
@@ -352,15 +352,12 @@ VARIABLE_WITHOUT_BRACES = re.compile(r"(?<!\\)\$[A-Za-z_]")
 @then("aucun fichier Python du dépôt ne compose une chaîne ou un message de journal avec la notation %")
 def without_percent() -> None:
 	files = sorted(SOURCES.rglob("*.py")) + sorted((ROOT / "tests").glob("*.py"))
-	faults = [
-		f"{path.relative_to(ROOT)}:{number}"
-		for path in files
-		if path.name != "test_base.py"
-		for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
-		# Les messages d'argparse du catalogue (machincast.i18n.ARGPARSE), marqués N_, qu'argparse formate lui-même
-		# (https://github.com/dascritch/machincast/issues/360).
-		if (FORMATTING_PERCENT.search(line)) and ("N_(" not in line)
-	]
+	faults = []
+	for path in files:
+		if path.name != "test_base.py":
+			for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+				if (FORMATTING_PERCENT.search(line)) and ("N_(" not in line):
+					faults.append(f"{path.relative_to(ROOT)}:{number}")
 	assert not faults, "utiliser une f-string, jamais la notation % :\n" + "\n".join(faults)
 
 
@@ -387,22 +384,23 @@ def extract_verdict(context: Context, verdict: str) -> None:
 
 @then("aucun fichier Python de src/ ni de tests/ n'enfreint le style des conditions")
 def condition_style() -> None:
-	files = [path for path in sorted(SOURCES.rglob("*.py")) if path.parent.name != "ui"]
+	files = []
+	for path in sorted(SOURCES.rglob("*.py")):
+		if path.parent.name != "ui":
+			files.append(path)
 	files += sorted((ROOT / "tests").rglob("*.py"))
-	faults = [
-		f"{path.relative_to(ROOT)}:{fault.line} : {fault.kind}"
-		for path in files
-		for fault in style_faults(path.read_text(encoding="utf-8"))
-	]
+	faults = []
+	for path in files:
+		for fault in style_faults(path.read_text(encoding="utf-8")):
+			faults.append(f"{path.relative_to(ROOT)}:{fault.line} : {fault.kind}")
 	assert not faults, "doc/fr/regles/developpement.md, Style de code :\n" + "\n".join(faults[:40])
 
 
 @then("aucun script bash du dépôt n'écrit une variable sans accolades")
 def braces() -> None:
-	faults = [
-		f"{path.relative_to(ROOT)}:{number} : {line.strip()}"
-		for path in SCRIPTS_BASH
-		for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
-		if VARIABLE_WITHOUT_BRACES.search(line)
-	]
+	faults = []
+	for path in SCRIPTS_BASH:
+		for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+			if VARIABLE_WITHOUT_BRACES.search(line):
+				faults.append(f"{path.relative_to(ROOT)}:{number} : {line.strip()}")
 	assert not faults, "écrire ${VARIABLE}, jamais $VARIABLE :\n" + "\n".join(faults[:20])

@@ -98,10 +98,9 @@ class Checker(QObject):
 		except (UnavailableDecoder, psycopg.Error) as error:
 			log.error(_("check of the added files impossible: {error}").format(error=error))
 			return _("Check impossible: {error}; {after_failure}").format(error=error, after_failure=AFTER_FAILURE)
-		states = [
-			f"{display.sound_name(artist, title, location, None)}, {STATES.get(str(state), str(state))}"
-			for artist, title, location, state in lines
-		]
+		states = []
+		for artist, title, location, state in lines:
+			states.append(f"{display.sound_name(artist, title, location, None)}, {STATES.get(str(state), str(state))}")
 		return _("Check finished: {list}.").format(list=_("; ").join(states))
 
 
@@ -112,12 +111,14 @@ def sound_states(connection: psycopg.Connection[TupleRow], identifiers: list[int
 			"SELECT artist, title, location, state::text FROM sounds WHERE id = ANY(%s) ORDER BY id",
 			(identifiers,),
 		).fetchall()
-	return _("; ").join(
-		_("{sound}, {state}").format(
-			sound=display.sound_name(artist, title, location, None), state=STATES.get(str(state), str(state))
+	artist_list = []
+	for artist, title, location, state in lines:
+		artist_list.append(
+			_("{sound}, {state}").format(
+				sound=display.sound_name(artist, title, location, None), state=STATES.get(str(state), str(state))
+			)
 		)
-		for artist, title, location, state in lines
-	)
+	return _("; ").join(artist_list)
 
 
 class FullCheck(QObject):

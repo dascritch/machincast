@@ -250,10 +250,26 @@ class Monitor(QObject):
 	def note(self, levels: list[float], peaks: list[float]) -> None:
 		"""Un relevé de level : le VU (RMS) et la crête de chaque canal, en décibels ; met à jour les voyants."""
 		now = self.clock()
-		self.levels, self.peaks = [float(n) for n in levels], [float(c) for c in peaks]
-		if any(level > DEAD_AIR_THRESHOLD for level in self.levels):
+		n_list = []
+		for n in levels:
+			n_list.append(float(n))
+		c_list = []
+		for c in peaks:
+			c_list.append(float(c))
+		self.levels, self.peaks = n_list, c_list
+		found = False
+		for level in self.levels:
+			if level > DEAD_AIR_THRESHOLD:
+				found = True
+				break
+		if found:
 			self._sound_since = now
 		self.dead_air = (self._sound_since is not None) and (now - self._sound_since >= DEAD_AIR_DURATION)
-		if any(peak >= CLIPPING_THRESHOLD for peak in self.peaks):
+		found_2 = False
+		for peak in self.peaks:
+			if peak >= CLIPPING_THRESHOLD:
+				found_2 = True
+				break
+		if found_2:
 			self._clipping_since = now
 		self.clipping = (self._clipping_since is not None) and (now - self._clipping_since < CLIPPING_HOLD)

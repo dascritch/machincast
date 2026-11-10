@@ -192,10 +192,16 @@ class SoundCards(QWidget):
 		on_air = None
 		if self.chosen_on_air() == DUMMY:
 			on_air = DUMMY
-		found_list = [p.identifier for p in audio_outputs.devices(self.chosen_output())]
+		found_list = []
+		for p in audio_outputs.devices(self.chosen_output()):
+			found_list.append(p.identifier)
 		preview = self.chosen_preview()
 		if (preview != DUMMY) and (preview not in found_list):
-			preview = next((card for card in found_list if card != on_air), DUMMY)
+			preview = DUMMY
+			for card in found_list:
+				if card != on_air:
+					preview = card
+					break
 		self._fill_cards(on_air, preview)
 		self._refresh()
 
@@ -294,10 +300,11 @@ def _fill(choice: QComboBox, current: str | None, found_list: list[audio_outputs
 		if current == DUMMY:
 			choice.addItem(DUMMY_OUTPUT, DUMMY)
 		else:
-			name = next(
-				(p.name for p in found_list if p.identifier == current),
-				_("{device} (not found)").format(device=current),
-			)
+			name = _("{device} (not found)").format(device=current)
+			for p in found_list:
+				if p.identifier == current:
+					name = p.name
+					break
 			choice.addItem(name, current)
 	for device in found_list:
 		if device.identifier != current:

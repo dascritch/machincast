@@ -74,7 +74,10 @@ def offer(state: PlaybackState) -> dict[str, Proposal]:
 	ongoing = state.ongoing
 	# Machin player ne publie un sonore en cours qu'en diffusion : ni pendant un blanc, ni à l'arrêt.
 	if ongoing is None:
-		return {item: Proposal(False, ON_AIR_NOTHING) for item in ENTRIES}
+		offer = {}
+		for item in ENTRIES:
+			offer[item] = Proposal(False, ON_AIR_NOTHING)
+		return offer
 	sequence = Proposal(False, NO_SEQUENCE)
 	if ongoing.sequence is not None:
 		sequence = _named(ongoing.sequence)
@@ -181,7 +184,10 @@ def read_fallback(connection: psycopg.Connection[TupleRow]) -> list[Fallback]:
 	except psycopg.Error as error:
 		log.error(_("unreadable fallback events: {error}").format(error=error))
 		return []
-	return [Fallback(int(str(identifier)), str(name)) for identifier, name in lines]
+	fallback = []
+	for identifier, name in lines:
+		fallback.append(Fallback(int(str(identifier)), str(name)))
+	return fallback
 
 
 def offer_fallback(state: PlaybackState, fallback: list[Fallback]) -> Proposal:

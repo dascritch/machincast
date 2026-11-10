@@ -103,7 +103,12 @@ def news(path: Path | None = None) -> list[News]:
 
 def of_the_version(version: str = __version__, path: Path | None = None) -> News | None:
 	"""Les nouveautés de cette version, si elle est publiée."""
-	return next((section for section in news(path) if section.version == version), None)
+	first = None
+	for section in news(path):
+		if section.version == version:
+			first = section
+			break
+	return first
 
 
 def _git(drop: Path, *arguments: str) -> str | None:

@@ -27,21 +27,21 @@ WAITING = 5.0
 
 
 def interruption_log(database: Connection) -> list[str]:
-	return [
-		shown(message)
-		for (message,) in database.execute(
-			"SELECT message FROM log WHERE level = 'info' AND kind = %s ORDER BY id", (MANUAL_INTERRUPTION,)
-		).fetchall()
-	]
+	interruption_log = []
+	for (message,) in database.execute(
+		"SELECT message FROM log WHERE level = 'info' AND kind = %s ORDER BY id", (MANUAL_INTERRUPTION,)
+	).fetchall():
+		interruption_log.append(shown(message))
+	return interruption_log
 
 
 def advances_log(database: Connection) -> list[str]:
-	return [
-		shown(message)
-		for (message,) in database.execute(
-			"SELECT message FROM log WHERE level = 'info' AND kind = %s ORDER BY id", (ADVANCED_EVENT,)
-		).fetchall()
-	]
+	advances_log = []
+	for (message,) in database.execute(
+		"SELECT message FROM log WHERE level = 'info' AND kind = %s ORDER BY id", (ADVANCED_EVENT,)
+	).fetchall():
+		advances_log.append(shown(message))
+	return advances_log
 
 
 def identifier(database: Connection, name: str) -> int:
@@ -83,7 +83,12 @@ def ask(bench: Bench, caplog: pytest.LogCaptureFixture, asks: str) -> None:
 	assert state is not None
 
 	def ignored() -> bool:
-		return any(IGNORED_REQUEST in r.getMessage() for r in caplog.records)
+		found = False
+		for r in caplog.records:
+			if IGNORED_REQUEST in r.getMessage():
+				found = True
+				break
+		return found
 
 	with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
 		client.connect(str(state.path))
@@ -128,4 +133,9 @@ def no_interruption(empty_database: Connection) -> None:
 
 @then(parsers.parse("le journal du binaire a signalé « {text} »"))
 def reported_log(caplog: pytest.LogCaptureFixture, text: str) -> None:
-	assert any((r.levelno == logging.WARNING) and (text in r.getMessage()) for r in caplog.records), caplog.text
+	found = False
+	for r in caplog.records:
+		if (r.levelno == logging.WARNING) and (text in r.getMessage()):
+			found = True
+			break
+	assert found, caplog.text

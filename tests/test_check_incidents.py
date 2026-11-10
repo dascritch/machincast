@@ -74,7 +74,11 @@ def full_audit(
 
 @then(parsers.parse("l'audit complet a duré moins de {seconds:d} secondes"))
 def lasted(execution: Execution, seconds: int) -> None:
-	(duration,) = [line for line in execution.information if line.startswith("durée ")]
+	line_list = []
+	for line in execution.information:
+		if line.startswith("durée "):
+			line_list.append(line)
+	(duration,) = line_list
 	assert float(duration.removeprefix("durée ")) < seconds, duration
 
 

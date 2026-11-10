@@ -191,8 +191,16 @@ def launch(configuration: Configuration, execution: Execution, caplog: pytest.Lo
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		execution.code = purge.run(configuration, options)
-	execution.information = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
-	execution.errors = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
+	r_list = []
+	for r in caplog.records:
+		if r.levelno == logging.INFO:
+			r_list.append(r.getMessage())
+	execution.information = r_list
+	r_list_2 = []
+	for r in caplog.records:
+		if r.levelno >= logging.WARNING:
+			r_list_2.append(r.getMessage())
+	execution.errors = r_list_2
 
 
 @then(parsers.parse("la purge se termine avec le code {code:d}"))
@@ -212,17 +220,28 @@ def reported_nothing(execution: Execution) -> None:
 
 @then("la purge a signalé une base de données injoignable")
 def unreachable(execution: Execution) -> None:
-	assert any(error.startswith("base de données injoignable") for error in execution.errors), execution.errors
+	found = False
+	for error in execution.errors:
+		if error.startswith("base de données injoignable"):
+			found = True
+			break
+	assert found, execution.errors
 
 
 def _list(text: str) -> list[str]:
-	return sorted(name.strip().strip("«»").strip() for name in text.split(","))
+	name_list = []
+	for name in text.split(","):
+		name_list.append(name.strip().strip("«»").strip())
+	return sorted(name_list)
 
 
 @then(parsers.parse("l'airplay garde les passages « {titles} »"))
 def kept_airplay(empty_database: Connection, titles: str) -> None:
 	lines = empty_database.execute("SELECT DISTINCT title FROM airplay ORDER BY title").fetchall()
-	assert [title for (title,) in lines] == _list(titles)
+	title_list = []
+	for (title,) in lines:
+		title_list.append(title)
+	assert title_list == _list(titles)
 
 
 @then(parsers.parse("l'airplay garde le début et la fin du passage « {title} »"))
@@ -259,7 +278,10 @@ TABLES = {
 def remain(empty_database: Connection, category: str, names: str) -> None:
 	table, column = TABLES[category]
 	lines = empty_database.execute(f"SELECT {column} FROM {table} ORDER BY {column}").fetchall()  # noqa: S608
-	assert [name for (name,) in lines] == _list(names)
+	name_list = []
+	for (name,) in lines:
+		name_list.append(name)
+	assert name_list == _list(names)
 
 
 @then(parsers.parse("en base ne reste aucune séquence"))
@@ -290,7 +312,10 @@ def skipped_sessions(empty_database: Connection, name: str, days: str) -> None:
 		"SELECT s.day FROM event_skips s JOIN events e ON e.id = s.event_id WHERE e.internal_name = %s ORDER BY s.day",
 		(name,),
 	).fetchall()
-	assert [str(day) for (day,) in lines] == re.findall(r"« ([^»]+) »", days)
+	day_list = []
+	for (day,) in lines:
+		day_list.append(str(day))
+	assert day_list == re.findall(r"« ([^»]+) »", days)
 
 
 @then(parsers.parse("« {binary} » est un binaire du wrapper, déclaré dans pyproject.toml"))

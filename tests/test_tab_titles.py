@@ -13,7 +13,11 @@ def _tab_entries(interface: Context) -> list[QAction]:
 	menu = named_menu(interface, "Onglets")
 	menu.aboutToShow.emit()
 	# Une entrée par onglet, cochable ; « Fermer tous les onglets fermables », à la fin, ne l'est pas.
-	return [action for action in menu.actions() if action.isCheckable()]
+	tab_entries = []
+	for action in menu.actions():
+		if action.isCheckable():
+			tab_entries.append(action)
+	return tab_entries
 
 
 def _title(action: QAction) -> str:
@@ -41,15 +45,22 @@ def tooltip(interface: Context, first: str, second: str | None) -> None:
 @then(parsers.parse("le menu « Onglets » liste :"))
 def listed(interface: Context, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
-	fetched = [
-		[
-			_title(action),
-			action.text().partition("\t")[2],
-			"oui" if action.isChecked() else "non",
-		]
-		for action in _tab_entries(interface)
-	]
-	assert fetched == [[value.strip() for value in row] for row in rows]
+	fetched = []
+	for action in _tab_entries(interface):
+		fetched.append(
+			[
+				_title(action),
+				action.text().partition("\t")[2],
+				"oui" if action.isChecked() else "non",
+			]
+		)
+	row_list = []
+	for row in rows:
+		value_list = []
+		for value in row:
+			value_list.append(value.strip())
+		row_list.append(value_list)
+	assert fetched == row_list
 
 
 @when(parsers.parse("je choisis l'onglet « {title} » dans le menu « Onglets »"))

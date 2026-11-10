@@ -57,11 +57,11 @@ def directory(context: Context) -> Path:
 
 def read_off(folder: Path) -> Reading:
 	"""Octets, taille et date de modification de chaque fichier du répertoire."""
-	return {
-		path: (hashlib.sha256(path.read_bytes()).hexdigest(), path.stat().st_size, path.stat().st_mtime_ns)
-		for path in sorted(folder.rglob("*"))
-		if path.is_file()
-	}
+	off = {}
+	for path in sorted(folder.rglob("*")):
+		if path.is_file():
+			off[path] = (hashlib.sha256(path.read_bytes()).hexdigest(), path.stat().st_size, path.stat().st_mtime_ns)
+	return off
 
 
 def index_database(full_audit: bool) -> None:
@@ -250,11 +250,10 @@ def refused_socket(context: Context) -> None:
 )
 def justified_code(marks: str) -> None:
 	files = [*sorted((ROOT / "src").rglob("*.py")), ROOT / "bin" / "Machin", ROOT / "install.sh"]
-	faults = [
-		f"{path.relative_to(ROOT)}:{number} : {line.strip()}"
-		for path in files
-		for number, line in unjustified(path.read_text(encoding="utf-8"), path.suffix != ".py")
-	]
+	faults = []
+	for path in files:
+		for number, line in unjustified(path.read_text(encoding="utf-8"), path.suffix != ".py"):
+			faults.append(f"{path.relative_to(ROOT)}:{number} : {line.strip()}")
 	assert not faults, "suppressions sans « " + marks + " » :\n" + "\n".join(faults)
 
 

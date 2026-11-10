@@ -65,7 +65,10 @@ def file_by_pieces(tmp_path: Path, files: dict[str, Path], name: str, pieces: st
 	"""« 1 seconde à -20 dB, 3 secondes de silence numérique, puis 1 seconde à -20 dB »."""
 	found_list = re.findall(r"([\d,]+) secondes? (?:à (-[\d,]+) dB|de (silence numérique))", pieces)
 	assert found_list, pieces
-	plan = tuple((seconds(duration), amplitude((level) or (silence))) for duration, level, silence in found_list)
+	duration_list = []
+	for duration, level, silence in found_list:
+		duration_list.append((seconds(duration), amplitude((level) or (silence))))
+	plan = tuple(duration_list)
 	files[name] = generate_silences(tmp_path / f"{name}.flac", plan, FREQUENCY)
 
 
@@ -222,7 +225,10 @@ def log_lines(database: Connection, kind: str) -> list[tuple[str, object, object
 	lines = database.execute(
 		"SELECT message, logged_at, sound_id, event_id FROM log WHERE kind = %s ORDER BY id", (stored(kind),)
 	).fetchall()
-	return [(shown(message), timestamp, id_sound, id_event) for message, timestamp, id_sound, id_event in lines]
+	log_lines = []
+	for message, timestamp, id_sound, id_event in lines:
+		log_lines.append((shown(message), timestamp, id_sound, id_event))
+	return log_lines
 
 
 @then(parsers.parse("l'incident « {kind} » dit « {text} »"))
@@ -235,7 +241,9 @@ def incident_says(empty_database: Connection, kind: str, text: str) -> None:
 def noted_incident(empty_database: Connection, kind: str, instant: str, name: str, event: str) -> None:
 	line = empty_database.execute("SELECT id FROM events WHERE internal_name = %s", (event,)).fetchone()
 	assert line is not None, event
-	lines = [(timestamp, id_sound, id_event) for _, timestamp, id_sound, id_event in log_lines(empty_database, kind)]
+	lines = []
+	for _, timestamp, id_sound, id_event in log_lines(empty_database, kind):
+		lines.append((timestamp, id_sound, id_event))
 	assert lines == [(hour(instant), sound(empty_database, name), line[0])], lines
 
 
@@ -246,7 +254,10 @@ def a_only_track(openings: dict[str, int], name: str) -> None:
 
 @then(parsers.parse("le passage « {name} » a fini sans incident"))
 def finished_without_incident(empty_database: Connection, name: str) -> None:
-	found_list = [(end, healthy) for title, _start, end, healthy in plays(empty_database) if title == name]
+	found_list = []
+	for title, _start, end, healthy in plays(empty_database):
+		if title == name:
+			found_list.append((end, healthy))
 	assert (found_list) and (all((end is not None) and (healthy is True) for end, healthy in found_list)), found_list
 
 

@@ -35,7 +35,12 @@ def impossible_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
 
 @then(parsers.parse("le document d'audit « {name} » contient :"))
 def csv_content(audit_directory: Path, tmp_path: Path, name: str, datatable: list[list[str]]) -> None:
-	expected = [[in_scenario(value.strip(), tmp_path) for value in row] for row in datatable]
+	expected = []
+	for row in datatable:
+		value_list = []
+		for value in row:
+			value_list.append(in_scenario(value.strip(), tmp_path))
+		expected.append(value_list)
 	assert read_csv(audit_directory, name) == expected
 
 
@@ -62,7 +67,12 @@ def announces_after_report(launching: tuple[int, list[str]]) -> None:
 
 @then(parsers.parse("la sortie d'erreur de Machin indexer mentionne « {text} »"))
 def error(caplog: pytest.LogCaptureFixture, text: str) -> None:
-	assert any((r.levelno >= logging.WARNING) and (text in r.getMessage()) for r in caplog.records), caplog.text
+	found = False
+	for r in caplog.records:
+		if (r.levelno >= logging.WARNING) and (text in r.getMessage()):
+			found = True
+			break
+	assert found, caplog.text
 
 
 @then("le log de la base est vide")

@@ -49,7 +49,10 @@ def _retain(menu: Menu, opened: QMenu | None) -> None:
 	menu.opened = opened
 	menu.entries = []
 	if opened is not None:
-		menu.entries = [(action.text()) or ("—") for action in opened.actions()]
+		action_list = []
+		for action in opened.actions():
+			action_list.append((action.text()) or ("—"))
+		menu.entries = action_list
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -91,7 +94,12 @@ def _list_line(opened: List, title: str) -> QModelIndex:
 def _tree_line(tree: QTreeWidget, title: str) -> QTreeWidgetItem:
 	for row in range(tree.topLevelItemCount()):
 		line = tree.topLevelItem(row)
-		if any(title in line.text(column) for column in range(tree.columnCount())):
+		found = False
+		for column in range(tree.columnCount()):
+			if title in line.text(column):
+				found = True
+				break
+		if found:
 			return line
 	raise AssertionError(f"aucune ligne « {title} »")
 

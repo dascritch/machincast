@@ -144,7 +144,10 @@ def stream_comes_back(server: StreamServer, stream: str) -> None:
 
 def locations(database: Connection, name: str) -> list[str]:
 	lines = database.execute("SELECT DISTINCT location FROM airplay WHERE title = %s", (name,)).fetchall()
-	return [str(line[0]) for line in lines]
+	locations = []
+	for line in lines:
+		locations.append(str(line[0]))
+	return locations
 
 
 @then(parsers.parse("le passage « {name} » a pour emplacement l'adresse du flux « {stream} »"))
@@ -171,7 +174,9 @@ def replacement(
 	empty_database: Connection, stream: str, event: str, end_stream: str, names: list[str] | None = None
 ) -> None:
 	if names is None:
-		names = [p[0] for p in plays(empty_database)]
+		names = []
+		for p in plays(empty_database):
+			names.append(p[0])
 	assert (len(names) >= 3) and (names[0] == stream) and (names[-1] == end_stream), names
 	assert set(names[1:-1]) <= sounds_of(empty_database, event), names
 
@@ -180,21 +185,29 @@ def replacement(
 	parsers.parse("l'airplay montre « {before} », « {stream} », puis des sonores de « {event} », puis « {end_stream} »")
 )
 def replacement_after(empty_database: Connection, before: str, stream: str, event: str, end_stream: str) -> None:
-	names = [p[0] for p in plays(empty_database)]
+	names = []
+	for p in plays(empty_database):
+		names.append(p[0])
 	assert names[0] == before, names
 	replacement(empty_database, stream, event, end_stream, names[1:])
 
 
 @then(parsers.re(r"l'airplay montre « (?P<stream>[^»]+) », puis des sonores de « (?P<event>[^»]+) »$"))
 def fallback(empty_database: Connection, stream: str, event: str) -> None:
-	names = [p[0] for p in plays(empty_database)]
+	names = []
+	for p in plays(empty_database):
+		names.append(p[0])
 	assert (len(names) >= 2) and (names[0] == stream), names
 	assert set(names[1:]) <= sounds_of(empty_database, event), names
 
 
 @then(parsers.parse("le premier passage « {name} » a fini en incident"))
 def first_in_incident(empty_database: Connection, name: str) -> None:
-	first = next(p for p in plays(empty_database) if p[0] == name)
+	p_list = []
+	for p in plays(empty_database):
+		if p[0] == name:
+			p_list.append(p)
+	first = p_list[0]
 	assert (first[2] is not None) and (first[3] is False), first
 
 
@@ -212,7 +225,10 @@ def end_before_resumption(empty_database: Connection, moment: str) -> None:
 
 @then(parsers.parse("l'airplay montre {count:d} passage « {name} »"))
 def play_count(empty_database: Connection, count: int, name: str) -> None:
-	assert [p[0] for p in plays(empty_database)].count(name) == count, plays(empty_database)
+	p_list = []
+	for p in plays(empty_database):
+		p_list.append(p[0])
+	assert p_list.count(name) == count, plays(empty_database)
 
 
 @then("le stream repris joue à plein volume")
@@ -227,19 +243,32 @@ def log_lines(database: Connection, kind: str) -> list[tuple[int, str, str]]:
 	lines = database.execute(
 		"SELECT id, level::text, message FROM log WHERE kind = %s ORDER BY id", (stored(kind),)
 	).fetchall()
-	return [(int(str(i)), str(n), shown(m)) for i, n, m in lines]
+	log_lines = []
+	for i, n, m in lines:
+		log_lines.append((int(str(i)), str(n), shown(m)))
+	return log_lines
 
 
 @then(parsers.parse("le log contient {count:d} incident « {kind} », qui donne l'adresse du flux « {stream} »"))
 def stream_incident(server: StreamServer, empty_database: Connection, count: int, kind: str, stream: str) -> None:
 	lines = log_lines(empty_database, kind)
 	assert len(lines) == count, lines
-	assert all((level == "incident") and (server.address(stream) in message) for _, level, message in lines), lines
+	every_one = True
+	for _, level, message in lines:
+		if not ((level == "incident") and (server.address(stream) in message)):
+			every_one = False
+			break
+	assert every_one, lines
 
 
 @then(parsers.parse("l'incident « {kind} » dit « {text} »"))
 def incident_says(empty_database: Connection, kind: str, text: str) -> None:
-	assert all(text in message for _, _, message in log_lines(empty_database, kind)), log_lines(empty_database, kind)
+	every_one = True
+	for _, _, message in log_lines(empty_database, kind):
+		if text not in message:
+			every_one = False
+			break
+	assert every_one, log_lines(empty_database, kind)
 
 
 def soup_forces_http1(environment: dict[str, str]) -> str:
@@ -250,7 +279,10 @@ def soup_forces_http1(environment: dict[str, str]) -> str:
 
 @then("un programme de MachinCast demande HTTP/1.1 à libsoup")
 def http1() -> None:
-	environment = {key: value for key, value in os.environ.items() if key != "SOUP_FORCE_HTTP1"}
+	environment = {}
+	for key, value in os.environ.items():
+		if key != "SOUP_FORCE_HTTP1":
+			environment[key] = value
 	assert soup_forces_http1(environment) == "1"
 
 
@@ -262,7 +294,9 @@ def incident_order(empty_database: Connection, following: str, first: str) -> No
 @then(parsers.parse("l'airplay montre des sonores de « {before} », puis « {stream} », puis des sonores de « {after} »"))
 def cutoff_by_feed(empty_database: Connection, before: str, stream: str, after: str) -> None:
 	"""Le stream passe une seule fois, entre des sonores des événements (https://github.com/dascritch/machincast/issues/323)."""
-	names = [p[0] for p in plays(empty_database)]
+	names = []
+	for p in plays(empty_database):
+		names.append(p[0])
 	assert names.count(stream) == 1, names
 	rank = names.index(stream)
 	assert 0 < rank < len(names) - 1, names
@@ -297,7 +331,10 @@ def opened_once(bench: Bench, server: StreamServer, stream: str, hour_: str) -> 
 	"""Le moteur simulé a ouvert la voie du stream une fois, muette, PRELOAD avant son début
 	(https://github.com/dascritch/machincast/issues/351) ; elle a pris l'antenne sans nouvelle ouverture."""
 	assert bench.simulated is not None
-	opened = [(at, silent) for path, at, silent in bench.simulated.opened_list if path == server.address(stream)]
+	opened = []
+	for path, at, silent in bench.simulated.opened_list:
+		if path == server.address(stream):
+			opened.append((at, silent))
 	assert opened == [(hour(f"2026-10-14 {hour_}"), True)], opened
 
 

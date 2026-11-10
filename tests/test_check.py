@@ -127,13 +127,14 @@ def disabled_vorbis() -> Iterator[None]:
 	Gst.init(None)
 	vorbis = Gst.Caps.from_string("audio/x-vorbis")
 	assert vorbis is not None
-	factories = [
-		factory
-		for factory in Gst.ElementFactory.list_get_elements(Gst.ELEMENT_FACTORY_TYPE_DECODER, Gst.Rank.MARGINAL)
-		if factory.can_sink_any_caps(vorbis)
-	]
+	factories = []
+	for factory in Gst.ElementFactory.list_get_elements(Gst.ELEMENT_FACTORY_TYPE_DECODER, Gst.Rank.MARGINAL):
+		if factory.can_sink_any_caps(vorbis):
+			factories.append(factory)
 	assert factories, "aucun décodeur Vorbis : installer gstreamer1.0-plugins-base"
-	ranks = [(factory, factory.get_rank()) for factory in factories]
+	ranks = []
+	for factory in factories:
+		ranks.append((factory, factory.get_rank()))
 	for factory in factories:
 		factory.set_rank(Gst.Rank.NONE)
 	yield
@@ -176,7 +177,11 @@ def check_several_times(file: Path, times: int) -> list[Check]:
 
 @then("le fichier est sain à chaque vérification")
 def always_healthy(results: list[Check]) -> None:
-	assert [result.problem for result in results if result.state != FileState.HEALTHY] == []
+	result_list = []
+	for result in results:
+		if result.state != FileState.HEALTHY:
+			result_list.append(result.problem)
+	assert result_list == []
 
 
 @then("autant de descripteurs de fichier sont ouverts qu'avant les vérifications")

@@ -51,6 +51,8 @@ def add_to_grid(
 
 @then("les passages, à partir du deuxième, sont les sonores notés")
 def engaged_list(empty_database: Connection, notes: list[str]) -> None:
-	played_list = [p[0] for p in plays(empty_database)]
+	played_list = []
+	for p in plays(empty_database):
+		played_list.append(p[0])
 	assert len(notes) == 6, notes
 	assert played_list[1 : 1 + len(notes)] == notes, (played_list, notes)

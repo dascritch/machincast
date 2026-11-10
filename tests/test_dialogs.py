@@ -136,7 +136,11 @@ def maintenance_elsewhere(
 
 	def choose_location(modal: QWidget) -> None:
 		assert isinstance(modal, QMessageBox), modal
-		(choice,) = [b for b in modal.buttons() if b.text() == dialogs.CHOOSE_LOCATION]
+		b_list = []
+		for b in modal.buttons():
+			if b.text() == dialogs.CHOOSE_LOCATION:
+				b_list.append(b)
+		(choice,) = b_list
 		choice.click()
 		answer(dialog, qtbot, f"clique sur « {button} »")
 
@@ -273,11 +277,10 @@ def choice_among(dialog: Dialog, empty_database: Connection, names: str) -> None
 		modal.ui.buttons.button(QDialogButtonBox.StandardButton.Ok).click()
 
 	when_modal(make)
-	among = [
-		int(str(line[0]))
-		for name in NAME.findall(names)
-		if (line := empty_database.execute("SELECT id FROM banks WHERE internal_name = %s", (name,)).fetchone())
-	]
+	among = []
+	for name in NAME.findall(names):
+		if line := empty_database.execute("SELECT id FROM banks WHERE internal_name = %s", (name,)).fetchone():
+			among.append(int(str(line[0])))
 	connection = open_connection(*sample_database_parameters(), Role.INTERFACE)
 	try:
 		dialog.response = dialogs.choose_banks(dialog.parent, connection, "", among)
@@ -346,12 +349,18 @@ def chosen_list(dialog: Dialog, empty_database: Connection, category: str, names
 		"séquences": ("sequences", "internal_name"),
 		"feeds": ("feeds", "name"),
 	}[category]
-	assert dialog.response == [identifier(empty_database, table, column, name) for name in NAME.findall(names)]
+	name_list = []
+	for name in NAME.findall(names):
+		name_list.append(identifier(empty_database, table, column, name))
+	assert dialog.response == name_list
 
 
 @then(parsers.parse("le poste a ouvert l'adresse « {address} »"))
 def address(dialog: Dialog, address: str) -> None:
-	assert [url.toString() for url in dialog.addresses] == [address]
+	url_list = []
+	for url in dialog.addresses:
+		url_list.append(url.toString())
+	assert url_list == [address]
 
 
 @then("le choix n'a proposé aucune action au clic droit")

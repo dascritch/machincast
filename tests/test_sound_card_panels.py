@@ -40,7 +40,11 @@ def card(interface: Context) -> SoundCard:
 
 def panels(interface: Context) -> list[QGroupBox]:
 	"""Les encarts montrés par la fiche, dans l'ordre de leur création."""
-	return [group for group in card(interface).findChildren(QGroupBox) if not group.isHidden()]
+	panels = []
+	for group in card(interface).findChildren(QGroupBox):
+		if not group.isHidden():
+			panels.append(group)
+	return panels
 
 
 def title(group: QGroupBox) -> str:
@@ -152,7 +156,10 @@ def play_without_silences(interface: Context, gesture: str) -> None:
 
 @then(parsers.re(r"les encarts (?P<state>repliés|dépliés) de la fiche sont (?P<names>«.+)"))
 def panels_according_to_state(interface: Context, state: str, names: str) -> None:
-	found_list = [title(group) for group in panels(interface) if is_collapsed(group) is (state == "repliés")]
+	found_list = []
+	for group in panels(interface):
+		if is_collapsed(group) is (state == "repliés"):
+			found_list.append(title(group))
 	assert found_list == NAME.findall(names)
 
 

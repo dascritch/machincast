@@ -312,7 +312,9 @@ class DefaultScreen(QWidget):
 		deux sonores : celui d'un fichier se copie ou s'ouvre par le clic droit
 		(https://github.com/dascritch/machincast/issues/344)."""
 		ui = self.ui
-		fields = [getattr(ui, f"{which}_{name}") for name in ("title", "event", "sequence", "bank", "schedule")]
+		fields = []
+		for name in ("title", "event", "sequence", "bank", "schedule"):
+			fields.append(getattr(ui, f"{which}_{name}"))
 		title, event, sequence, bank, schedule = fields
 		_show_location(getattr(ui, f"{which}_location"), sound)
 		stream = (sound is not None) and (sound.stream)
@@ -406,13 +408,22 @@ class DefaultScreen(QWidget):
 
 	def _forget_shapes(self) -> None:
 		"""Seules restent les formes et les plans des deux sonores montrés ; un calcul en cours d'un autre s'arrête."""
-		kept_list = {timeline.shape for timeline in (self.ongoing_timeline, self.next_timeline)}
+		kept_list = set()
+		for timeline in (self.ongoing_timeline, self.next_timeline):
+			kept_list.add(timeline.shape)
 		for file, shape in list(self._shapes.items()):
 			if shape not in kept_list:
 				shape.halt()
 				del self._shapes[file]
-		plans = {(sound.sound, sound.id_bank) for sound in (self._ongoing, self._next) if sound is not None}
-		for forgotten in [key for key in self._plans if key not in plans]:
+		plans = set()
+		for sound in (self._ongoing, self._next):
+			if sound is not None:
+				plans.add((sound.sound, sound.id_bank))
+		key_list = []
+		for key in self._plans:
+			if key not in plans:
+				key_list.append(key)
+		for forgotten in key_list:
 			del self._plans[forgotten]
 
 	def _read_off_shapes(self) -> None:
@@ -421,7 +432,12 @@ class DefaultScreen(QWidget):
 				for timeline in (self.ongoing_timeline, self.next_timeline):
 					if timeline.shape is shape:
 						timeline.update()
-		if all(shape.finished for shape in self._shapes.values()):
+		every_one = True
+		for shape in self._shapes.values():
+			if not (shape.finished):
+				every_one = False
+				break
+		if every_one:
 			self._shape_reading.stop()
 
 	def _show_on_air(self, sound: DisplayedSound | None) -> None:
@@ -581,7 +597,9 @@ class DefaultScreen(QWidget):
 		"""Les sonores à venir, le plus lointain en haut : le plus proche est juste au-dessus de l'airplay."""
 		self.upcoming_model.setRowCount(0)
 		for sound in reversed(sounds):
-			cells = [QStandardItem(text) for text in _upcoming_cells(sound)]
+			cells = []
+			for text in _upcoming_cells(sound):
+				cells.append(QStandardItem(text))
 			for column, item in _upcoming_items(sound).items():
 				cells[column].setData(item, ITEM)
 			cells[0].setData((sound.location, sound.stream), LOCATION)
@@ -599,7 +617,9 @@ class DefaultScreen(QWidget):
 			return []
 		self.airplay_model.setRowCount(0)
 		for play in plays:
-			cells = [QStandardItem(text) for text in play_cells(play)]
+			cells = []
+			for text in play_cells(play):
+				cells.append(QStandardItem(text))
 			for column, item in play_items(play).items():
 				cells[column].setData(item, ITEM)
 			cells[0].setData(play_location(play), LOCATION)

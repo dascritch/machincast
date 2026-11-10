@@ -32,7 +32,9 @@ def tracking() -> dict[str, str]:
 
 def screen(interface: Context) -> AirplayScreen:
 	tabs = window(interface).ui.tabs
-	screens = [tabs.widget(index) for index in range(tabs.count())]
+	screens = []
+	for index in range(tabs.count()):
+		screens.append(tabs.widget(index))
 	(found,) = [screen for screen in screens if isinstance(screen, AirplayScreen)]
 	return found
 
@@ -98,16 +100,24 @@ def shown_hours(interface: Context, hours: int) -> None:
 def table(interface: Context) -> list[dict[str, str]]:
 	opened = screen(interface)
 	model = opened.model
-	return [
-		{AIRPLAY_KEYS.get(key, key): model.item(row, column).text() for column, (key, _) in enumerate(opened.COLUMNS)}
-		for row in range(model.rowCount())
-	]
+	table = []
+	for row in range(model.rowCount()):
+		item_dict = {}
+		for column, (key, _) in enumerate(opened.COLUMNS):
+			item_dict[AIRPLAY_KEYS.get(key, key)] = model.item(row, column).text()
+		table.append(item_dict)
+	return table
 
 
 @then("la table de l'onglet Airplay montre :")
 def expected_table(interface: Context, datatable: list[list[str]]) -> None:
 	headers, *lines = datatable
-	expected_list = [dict(zip(headers, (v.strip() for v in values), strict=True)) for values in lines]
+	expected_list = []
+	for values in lines:
+		v_list = []
+		for v in values:
+			v_list.append(v.strip())
+		expected_list.append(dict(zip(headers, v_list, strict=True)))
 	assert table(interface) == expected_list, table(interface)
 
 
@@ -127,7 +137,10 @@ def menu(interface: Context, title: str, entry: str) -> None:
 	]
 	line_menu = opened.line_menu(model.index(row, 0))
 	assert line_menu is not None
-	assert entry in [action.text() for action in line_menu.actions()]
+	action_list = []
+	for action in line_menu.actions():
+		action_list.append(action.text())
+	assert entry in action_list
 	assert not line_menu.actions()[0].icon().isNull()
 
 
@@ -179,7 +192,9 @@ def page_content(interface: Context, empty_database: Connection, name: str, text
 )
 def page_incidents(interface: Context, name: str, title: str, incident: str, other: str) -> None:
 	rows = re.findall(r'<tr class="passage">(.*?)</tr>', read(interface, name))
-	cells = {re.findall(r"<td>(.*?)</td>", row)[4]: re.findall(r"<td>(.*?)</td>", row)[-1] for row in rows}
+	cells = {}
+	for row in rows:
+		cells[re.findall(r"<td>(.*?)</td>", row)[4]] = re.findall(r"<td>(.*?)</td>", row)[-1]
 	assert (cells[title], cells[other]) == (incident, ""), cells
 
 
@@ -190,8 +205,14 @@ def m3u_start(interface: Context, name: str, start: str) -> None:
 
 @then(parsers.re(r"l'export « (?P<name>[^»]+) » donne, dans l'ordre, les emplacements de (?P<titles>.+)"))
 def m3u_locations(interface: Context, empty_database: Connection, name: str, titles: str) -> None:
-	fetched_list = [line for line in read(interface, name).splitlines() if (line) and (not line.startswith("#"))]
-	assert fetched_list == [location(empty_database, title) for title in NAME.findall(titles)]
+	fetched_list = []
+	for line in read(interface, name).splitlines():
+		if (line) and (not line.startswith("#")):
+			fetched_list.append(line)
+	title_list = []
+	for title in NAME.findall(titles):
+		title_list.append(location(empty_database, title))
+	assert fetched_list == title_list
 
 
 @then(parsers.re(r"l'export « (?P<name>[^»]+) » contient « (?P<first>[^»]+) » et « (?P<second>[^»]+) »$"))

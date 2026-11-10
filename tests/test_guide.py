@@ -43,7 +43,10 @@ def documentation() -> list[Path]:
 def guide_text(guide: str) -> str:
 	folder = GUIDES[guide]
 	assert pages(folder), f"{folder.relative_to(ROOT)} sans page"
-	return "\n".join(page.read_text(encoding="utf-8") for page in pages(folder))
+	page_list = []
+	for page in pages(folder):
+		page_list.append(page.read_text(encoding="utf-8"))
+	return "\n".join(page_list)
 
 
 def absent_list(guide: str, terms: set[str]) -> list[str]:
@@ -52,7 +55,12 @@ def absent_list(guide: str, terms: set[str]) -> list[str]:
 
 	def cites(term: str) -> bool:
 		pattern = re.compile(rf"(?<![\w-]){re.escape(term)}(?![\w-])")
-		return any(pattern.search(code) for code in codes)
+		found = False
+		for code in codes:
+			if pattern.search(code):
+				found = True
+				break
+		return found
 
 	return sorted(term for term in terms if not cites(term))
 
@@ -74,14 +82,20 @@ def summary(folder: str, summary: str) -> None:
 	assert folder == summary
 	directory = DOC / folder
 	linked = set(LINK.findall((directory / "README.md").read_text(encoding="utf-8")))
-	missing_list = [page.name for page in pages(directory) if (page.name != "README.md") and (page.name not in linked)]
+	missing_list = []
+	for page in pages(directory):
+		if (page.name != "README.md") and (page.name not in linked):
+			missing_list.append(page.name)
 	assert pages(directory), f"doc/{folder} sans page"
 	assert not missing_list, missing_list
 
 
 @then("aucune page du guide utilisateur n'a de bloc de commandes à taper")
 def without_commands() -> None:
-	faulty = [page.name for page in pages(GUIDES["utilisateur"]) if COMMAND_BLOCK.search(page.read_text())]
+	faulty = []
+	for page in pages(GUIDES["utilisateur"]):
+		if COMMAND_BLOCK.search(page.read_text()):
+			faulty.append(page.name)
 	assert not faulty, faulty
 
 
@@ -91,7 +105,10 @@ def without_commands() -> None:
 @then(parsers.parse("chaque binaire du wrapper est documenté dans le guide {guide}"))
 def wrapper_binaries(guide: str) -> None:
 	scripts = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
-	missing_list = absent_list(guide, {f"Machin {name.removeprefix('Machin_')}" for name in scripts})
+	name_set = set()
+	for name in scripts:
+		name_set.add(f"Machin {name.removeprefix('Machin_')}")
+	missing_list = absent_list(guide, name_set)
 	assert not missing_list, missing_list
 
 
@@ -127,7 +144,10 @@ def states(guide: str) -> None:
 @then(parsers.parse("chaque verdict de la vérification d'un fichier est documenté dans le guide {guide}"))
 def verdicts(guide: str) -> None:
 	# Le guide, en français, nomme chaque verdict traduit (https://github.com/dascritch/machincast/issues/360).
-	missing_list = absent_list(guide, {_(state) for state in FileState})
+	state_set = set()
+	for state in FileState:
+		state_set.add(_(state))
+	missing_list = absent_list(guide, state_set)
 	assert not missing_list, missing_list
 
 
@@ -142,11 +162,17 @@ def keys(guide: str) -> None:
 
 @then("chaque lien relatif de la documentation mène à un fichier du dépôt")
 def links() -> None:
-	broken_list = [broken for page in documentation() for broken in broken_links(page)]
+	broken_list = []
+	for page in documentation():
+		for broken in broken_links(page):
+			broken_list.append(broken)
 	assert not broken_list, broken_list
 
 
 @then("chaque ancre citée par la documentation mène à un titre du fichier visé")
 def anchors() -> None:
-	broken_list = [broken for page in documentation() for broken in broken_anchors(page)]
+	broken_list = []
+	for page in documentation():
+		for broken in broken_anchors(page):
+			broken_list.append(broken)
 	assert not broken_list, broken_list

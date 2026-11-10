@@ -70,7 +70,12 @@ def present_calls() -> None:
 		for node in ast.walk(ast.parse(file.read_text(encoding="utf-8"))):
 			if (not isinstance(node, ast.Call)) or (ast.unparse(node.func).split(".")[-1] != "creer_sortie"):
 				continue
-			if not any(word.arg == "presentation" for word in node.keywords):
+			found = False
+			for word in node.keywords:
+				if word.arg == "presentation":
+					found = True
+					break
+			if not found:
 				without.append(f"{file.relative_to(PROJECT_DIRECTORY)}:{node.lineno}")
 	assert without == []
 

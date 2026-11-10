@@ -148,7 +148,9 @@ class _Levels:
 
 	def note(self, structure: Gst.Structure) -> None:
 		"""Un message de l'élément level : le niveau crête de chaque canal, en dB, sur une tranche."""
-		peaks = [float(value) for value in ((structure.get_value("peak")) or ([]))]
+		peaks = []
+		for value in (structure.get_value("peak")) or ([]):
+			peaks.append(float(value))
 		if (not peaks) or (max(peaks) < self.threshold):
 			return
 		start = int(str(structure.get_value("timestamp")))
@@ -198,14 +200,24 @@ class _Decoding:
 		names = ["filesrc", "decodebin", "audioconvert", "fakesink"]
 		if silence_threshold is not None:
 			names.insert(3, "level")
-		items = [Gst.ElementFactory.make(name, None) for name in names]
-		if any(item is None for item in items):
+		items = []
+		for name in names:
+			items.append(Gst.ElementFactory.make(name, None))
+		found = False
+		for item in items:
+			if item is None:
+				found = True
+				break
+		if found:
 			raise UnavailableDecoder(
 				_("basic GStreamer elements not found: install {decoder_packages}").format(
 					decoder_packages=DECODER_PACKAGES
 				)
 			)
-		found_list = [item for item in items if item is not None]
+		found_list = []
+		for item in items:
+			if item is not None:
+				found_list.append(item)
 		source, decoder, self.conversion, sink = found_list[0], found_list[1], found_list[2], found_list[-1]
 		source.set_property("location", str(path))
 		sink.set_property("sync", False)

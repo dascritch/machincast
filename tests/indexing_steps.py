@@ -342,8 +342,14 @@ def index(
 		rendering_lock = free_lock(LOCKS[full_audit])
 	# Les anomalies et les erreurs vont sur la sortie d'erreur : niveau WARNING et au-delà.
 	lines = per_file(caplog.records)
-	anomalies = [message for level, message in lines if level >= logging.WARNING]
-	information = [message for level, message in lines if level == logging.INFO]
+	anomalies = []
+	for level, message in lines:
+		if level >= logging.WARNING:
+			anomalies.append(message)
+	information = []
+	for level, message in lines:
+		if level == logging.INFO:
+			information.append(message)
 	return Execution(report, "\n".join(anomalies), information, rendering_lock)
 
 
@@ -412,7 +418,10 @@ def reported_nothing(execution: Execution) -> None:
 
 @then(parsers.parse("la sortie d'erreur signale ce fichier comme « {verdict} », avec « {consequence} »"))
 def reported_error(execution: Execution, file: Path, verdict: str, consequence: str) -> None:
-	lines = [line for line in execution.errors.splitlines() if line.startswith(f"{file} : ")]
+	lines = []
+	for line in execution.errors.splitlines():
+		if line.startswith(f"{file} : "):
+			lines.append(line)
 	assert len(lines) == 1, execution.errors
 	assert (f" : {verdict} : " in lines[0]) and (lines[0].endswith(f" ; {consequence}")), lines[0]
 
@@ -461,7 +470,10 @@ def launch_on_test_database(
 			on_test_database,
 			argparse.Namespace(full_audit=audit is not None, window=False, sound=None, force=False),
 		)
-	return code, [message for _level, message in per_file(caplog.records)]
+	level_list = []
+	for _level, message in per_file(caplog.records):
+		level_list.append(message)
+	return code, level_list
 
 
 @then(parsers.parse("Machin indexer se termine avec le code {code:d}, en signalant « {text} »"))
@@ -615,8 +627,14 @@ def sound_audit(empty_database: Connection, caplog: pytest.LogCaptureFixture, so
 	):
 		report = index_sound(c, sound, full_audit=True)
 	lines = per_file(caplog.records)
-	anomalies = [message for level, message in lines if level >= logging.WARNING]
-	information = [message for level, message in lines if level == logging.INFO]
+	anomalies = []
+	for level, message in lines:
+		if level >= logging.WARNING:
+			anomalies.append(message)
+	information = []
+	for level, message in lines:
+		if level == logging.INFO:
+			information.append(message)
 	return Execution(report, "\n".join(anomalies), information)
 
 
@@ -634,8 +652,17 @@ def silences_in_database(database: Connection, sound: int) -> tuple[object, obje
 )
 def sound_silences(empty_database: Connection, sound: int, start: str, end: str, margin: str) -> None:
 	in_database = silences_in_database(empty_database, sound)
-	assert all(isinstance(value, timedelta) for value in in_database), in_database
-	start_value, end_value = (value for value in in_database if isinstance(value, timedelta))
+	every_one = True
+	for value in in_database:
+		if not (isinstance(value, timedelta)):
+			every_one = False
+			break
+	assert every_one, in_database
+	value_list = []
+	for value in in_database:
+		if isinstance(value, timedelta):
+			value_list.append(value)
+	start_value, end_value = value_list
 	assert _near(start_value, start, margin), in_database
 	assert _near(end_value, end, margin), in_database
 

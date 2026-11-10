@@ -36,11 +36,15 @@ class Adding:
 				)
 			)
 		if self.already != []:
-			sentences.append(
-				_("Already in the database: {list}.").format(list=", ".join(path.name for path in self.already))
-			)
+			path_list = []
+			for path in self.already:
+				path_list.append(path.name)
+			sentences.append(_("Already in the database: {list}.").format(list=", ".join(path_list)))
 		if self.ignored != []:
-			names = ", ".join(path.name for path in self.ignored)
+			path_list_2 = []
+			for path in self.ignored:
+				path_list_2.append(path.name)
+			names = ", ".join(path_list_2)
 			sentences.append(_("Ignored, these are not sound files: {names}.").format(names=names))
 		return " ".join(sentences)
 

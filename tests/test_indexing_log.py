@@ -147,9 +147,10 @@ def close_during(tracking: Log, qtbot: QtBot, resumption: threading.Event, respo
 def without_display() -> subprocess.CompletedProcess[str]:
 	path = shutil.which("Machin_indexer")
 	assert path is not None, 'Machin_indexer n\'est pas installé : lancer pip install -e ".[dev]"'
-	environment = {
-		key: value for key, value in os.environ.items() if key not in ("DISPLAY", "WAYLAND_DISPLAY", "QT_QPA_PLATFORM")
-	}
+	environment = {}
+	for key, value in os.environ.items():
+		if key not in ("DISPLAY", "WAYLAND_DISPLAY", "QT_QPA_PLATFORM"):
+			environment[key] = value
 	return subprocess.run(
 		[path, "--window", "--config", str(sample_configuration_path())],
 		capture_output=True,
@@ -202,8 +203,13 @@ def free_log() -> None:
 def log_lines(tracking: Log, interface: Context, datatable: list[list[str]]) -> None:
 	"""Les lignes, comme dans le terminal ; un chemin qui commence par « …/ » est dans le répertoire du scénario."""
 	_header, *lines = datatable
-	shown_list = [without_timestamp(line) for line in log(tracking).lines()]
-	assert shown_list == [interface.path_in(line.strip()) for (line,) in lines]
+	shown_list = []
+	for line in log(tracking).lines():
+		shown_list.append(without_timestamp(line))
+	line_list = []
+	for (line,) in lines:
+		line_list.append(interface.path_in(line.strip()))
+	assert shown_list == line_list
 
 
 @then("le journal de l'indexation ne signale aucune anomalie")
@@ -234,9 +240,23 @@ def bank_sounds(interface: Context, empty_database: Connection, name: str, datat
 		" WHERE b.internal_name = %s ORDER BY bs.position",
 		(name,),
 	).fetchall()
-	assert [header.strip() for header in headers] == ["location", "state", "title"]
-	expected_list = [tuple(interface.path(value.strip()) for value in row) for row in rows]
-	assert [tuple(str(value) for value in line) for line in fetched_list] == expected_list
+	header_list = []
+	for header in headers:
+		header_list.append(header.strip())
+	assert header_list == ["location", "state", "title"]
+	expected_list = []
+	for row in rows:
+		value_list = []
+		for value in row:
+			value_list.append(interface.path(value.strip()))
+		expected_list.append(tuple(value_list))
+	line_list = []
+	for line in fetched_list:
+		value_list_2 = []
+		for value in line:
+			value_list_2.append(str(value))
+		line_list.append(tuple(value_list_2))
+	assert line_list == expected_list
 
 
 @then(parsers.parse("le sonore « {title} » est à l'état « {expected_state} »"))

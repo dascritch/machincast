@@ -165,8 +165,14 @@ def state(empty_database: Connection, name: str, state: str) -> None:
 def events(empty_database: Connection, datatable: list[list[str]]) -> None:
 	headers, *lines = datatable
 	for values in lines:
-		line = dict(zip(headers, (v.strip() for v in values), strict=True))
-		days = [j.strip() for j in line.get("jours", "").split(",") if j.strip()]
+		v_list = []
+		for v in values:
+			v_list.append(v.strip())
+		line = dict(zip(headers, v_list, strict=True))
+		days = []
+		for j in line.get("jours", "").split(","):
+			if j.strip():
+				days.append(j.strip())
 		created = empty_database.execute(
 			"INSERT INTO events (internal_name, priority, starts_at, ends_at, recurrence_days)"
 			" VALUES (%s, %s, %s, %s, %s::weekday[]) RETURNING id",
@@ -281,13 +287,17 @@ def restart(context: Context) -> None:
 
 @when(parsers.re(r"la liste « (?P<list_>[^»]+) » est vérifiée pour un événement qui (?P<loop>boucle|ne boucle pas)"))
 def check_list(context: Context, empty_database: Connection, list_: str, loop: str) -> None:
-	names = [name.strip() for name in list_.split(",")]
+	names = []
+	for name in list_.split(","):
+		names.append(name.strip())
 	banks: list[int | None] = []
 	for name in names:
 		banks.append(None)
 		if name != "sonore":
 			banks[-1] = bank(empty_database, name)
-	marked_list = {int(str(line[0])) for line in empty_database.execute("SELECT id FROM banks WHERE no_repeat")}
+	marked_list = set()
+	for line in empty_database.execute("SELECT id FROM banks WHERE no_repeat"):
+		marked_list.add(int(str(line[0])))
 	context.reported_list = ignored_calls(banks, marked_list, loop == "boucle")
 
 
@@ -297,8 +307,16 @@ def check_list(context: Context, empty_database: Connection, list_: str, loop: s
 @then("la diffusion a été :")
 def broadcast(context: Context, datatable: list[list[str]]) -> None:
 	_, *lines = datatable
-	expected = [Line(*(v.strip() for v in values)) for values in lines]
-	assert context.log == expected, "\n".join(str(line) for line in context.log)
+	expected = []
+	for values in lines:
+		v_list = []
+		for v in values:
+			v_list.append(v.strip())
+		expected.append(Line(*v_list))
+	line_list = []
+	for line in context.log:
+		line_list.append(str(line))
+	assert context.log == expected, "\n".join(line_list)
 
 
 LEVEL_IN_DATABASE = {label: level for level, label in LEVELS.items()}
@@ -318,7 +336,9 @@ def warnings(empty_database: Connection, count: str, level: str, kind: str, even
 		" WHERE l.kind = %s",
 		(stored(kind),),
 	).fetchall()
-	obtained_list = [(n, e) + ((b,) if bank_name else ()) for n, e, b in lines]
+	obtained_list = []
+	for n, e, b in lines:
+		obtained_list.append((n, e) + ((b,) if bank_name else ()))
 	chosen = ()
 	if bank_name:
 		chosen = (bank_name,)
@@ -335,4 +355,8 @@ def no_line(empty_database: Connection, level: str, kind: str) -> None:
 
 @then(parsers.re(r"les lignes signalées sont « (?P<lines>[^»]*) »"))
 def reported_lines(context: Context, lines: str) -> None:
-	assert context.reported_list == [int(n) for n in lines.split(",") if n.strip()]
+	n_list = []
+	for n in lines.split(","):
+		if n.strip():
+			n_list.append(int(n))
+	assert context.reported_list == n_list

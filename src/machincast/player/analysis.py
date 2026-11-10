@@ -69,7 +69,11 @@ class Analyser:
 		l'interrompt pas. Lève OSError si la commande ne peut pas être lancée ; la demande est retenue quand même,
 		pour ne pas redire l'échec à chaque sonore."""
 		# Les analyses finies sont relevées, pour ne pas laisser de processus zombie.
-		self._process = [process for process in self._process if process.poll() is None]
+		process_list = []
+		for process in self._process:
+			if process.poll() is None:
+				process_list.append(process)
+		self._process = process_list
 		self._requests[sound] = instant
 		self._process.append(
 			subprocess.Popen([*self.command, str(sound)], stdin=subprocess.DEVNULL, start_new_session=True)

@@ -52,7 +52,10 @@ def write(context: Context, name: str = "machincast.toml") -> Path:
 	lines: list[str] = []
 	for section, keys in context.keys.items():
 		lines.append(f"[{section}]")
-		lines += [f"{key} = {value}" for key, value in keys.items()]
+		key_list = []
+		for key, value in keys.items():
+			key_list.append(f"{key} = {value}")
+		lines += key_list
 		lines.append("")
 	path = context.directory / name
 	path.write_text("\n".join(lines), encoding="utf-8")
@@ -345,7 +348,10 @@ def without_default(context: Context) -> None:
 def defects(context: Context, start: str, end: str) -> None:
 	assert context.configuration is not None, context.error
 	crossfades = context.configuration.crossfades
-	expected_list = tuple(timedelta(seconds=float(value.replace(",", "."))) for value in (start, end))
+	value_list = []
+	for value in (start, end):
+		value_list.append(timedelta(seconds=float(value.replace(",", "."))))
+	expected_list = tuple(value_list)
 	assert (crossfades.start, crossfades.end) == expected_list
 
 
@@ -387,8 +393,16 @@ def dead_air(context: Context, duration: str, threshold: str, remainder: str) ->
 @then("le journal avertit que la section [blancs] s'appelle désormais [silences]")
 def warns_dead_airs(caplog: pytest.LogCaptureFixture) -> None:
 	"""https://github.com/dascritch/machincast/issues/291"""
-	warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
-	assert any("la section [blancs] s'appelle désormais [silences]" in m for m in warnings), warnings
+	warnings = []
+	for r in caplog.records:
+		if r.levelno == logging.WARNING:
+			warnings.append(r.getMessage())
+	found = False
+	for m in warnings:
+		if "la section [blancs] s'appelle désormais [silences]" in m:
+			found = True
+			break
+	assert found, warnings
 
 
 @then(parsers.re(r"le voyant « Saturation » de l'onglet Antenne est (?P<state>affiché|caché)"))

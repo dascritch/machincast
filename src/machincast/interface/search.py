@@ -74,7 +74,10 @@ def _pattern(text: str) -> str:
 
 
 def _finds(*columns: str) -> str:
-	return " OR ".join(f"{_normalised(column)} LIKE query.pattern" for column in columns)
+	column_list = []
+	for column in columns:
+		column_list.append(f"{_normalised(column)} LIKE query.pattern")
+	return " OR ".join(column_list)
 
 
 FOUND_LIST = f"""
@@ -115,16 +118,17 @@ def find(connection: Connection, text: str, limit: int) -> tuple[list[Result], i
 		).fetchall()
 		line = connection.execute(f"SELECT count(*) FROM ({FOUND_LIST}) t", (pattern,)).fetchone()  # noqa: S608
 	assert line is not None
-	results = [
-		Result(
-			str(category),
-			int(str(identifier)),
-			str(name),
-			str((public_name) or ("")),
-			_status(state),
+	results = []
+	for category, identifier, name, public_name, state in lines:
+		results.append(
+			Result(
+				str(category),
+				int(str(identifier)),
+				str(name),
+				str((public_name) or ("")),
+				_status(state),
+			)
 		)
-		for category, identifier, name, public_name, state in lines
-	]
 	return results, int(str(line[0]))
 
 

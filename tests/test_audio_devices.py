@@ -59,7 +59,12 @@ def context() -> SimpleNamespace:
 
 @given("les périphériques vus par GStreamer :")
 def seen_list(monkeypatch: pytest.MonkeyPatch, datatable: list[list[str]]) -> None:
-	appliances = [FakeAppliance(*(cell.strip() for cell in row)) for row in datatable[1:]]
+	appliances = []
+	for row in datatable[1:]:
+		cell_list = []
+		for cell in row:
+			cell_list.append(cell.strip())
+		appliances.append(FakeAppliance(*cell_list))
 	monkeypatch.setattr(audio, "appliances", lambda: appliances)
 
 
@@ -84,7 +89,9 @@ def list_items(context: SimpleNamespace) -> None:
 def found_list(output: str, list_: str) -> None:
 	names = NAME.findall(list_)
 	expected_list = list(zip(names[::2], names[1::2], strict=True))
-	fetched_list = [(p.identifier, p.name) for p in audio.devices(output)]  # type: ignore[arg-type]
+	fetched_list = []
+	for p in audio.devices(output):
+		fetched_list.append((p.identifier, p.name))
 	assert fetched_list == expected_list
 
 

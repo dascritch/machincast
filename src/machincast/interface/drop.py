@@ -18,7 +18,11 @@ from PySide6.QtWidgets import QAbstractItemView
 
 def local_paths(data: QMimeData) -> list[Path]:
 	"""Les fichiers et dossiers locaux d'un glisser, dans l'ordre ; aucun pour un glisser venu d'une liste."""
-	return [Path(address.toLocalFile()) for address in data.urls() if address.isLocalFile()]
+	local_paths = []
+	for address in data.urls():
+		if address.isLocalFile():
+			local_paths.append(Path(address.toLocalFile()))
+	return local_paths
 
 
 class FileDrop(QObject):

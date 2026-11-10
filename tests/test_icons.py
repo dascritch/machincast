@@ -58,29 +58,45 @@ def _scope(icon: QIcon | None) -> QImage | None:
 )
 def monochrome(qapp: QApplication, category: str, colour: str, sizes: str) -> None:
 	expected = QColor(colour)
-	for size in (int(text) for text in sizes.replace(" et ", ", ").split(", ")):
+	text_list = []
+	for text in sizes.replace(" et ", ", ").split(", "):
+		text_list.append(int(text))
+	for size in text_list:
 		drawing = image(icons.icon(_icon_name(category), expected), size)
 		assert (drawing.width(), drawing.height()) == (size, size)
-		pixels = [drawing.pixelColor(x, y) for x in range(size) for y in range(size)]
+		pixels = []
+		for x in range(size):
+			for y in range(size):
+				pixels.append(drawing.pixelColor(x, y))
 		# Chaque pixel net est de la couleur demandée ; les bords lissés, presque transparents, perdent un peu de
 		# précision, d'où la marge d'arrondi.
-		clean_list = [pixel for pixel in pixels if pixel.alpha() > 128]
-		gaps = [
-			max(
-				abs(pixel.red() - expected.red()),
-				abs(pixel.green() - expected.green()),
-				abs(pixel.blue() - expected.blue()),
+		clean_list = []
+		for pixel in pixels:
+			if pixel.alpha() > 128:
+				clean_list.append(pixel)
+		gaps = []
+		for pixel in clean_list:
+			gaps.append(
+				max(
+					abs(pixel.red() - expected.red()),
+					abs(pixel.green() - expected.green()),
+					abs(pixel.blue() - expected.blue()),
+				)
 			)
-			for pixel in clean_list
-		]
 		assert max(gaps) <= 3, (category, size, max(gaps))
 		assert len(clean_list) >= len(pixels) / 10, (category, size)
 
 
 @then(parsers.re(r"les icônes (?P<names>«.+) sont toutes différentes"))
 def different(qapp: QApplication, names: str) -> None:
-	images = [image(icons.icon(_icon_name(name))) for name in NAME.findall(names)]
-	assert all((a != b) for rank, a in enumerate(images) for b in images[rank + 1 :])
+	images = []
+	for name in NAME.findall(names):
+		images.append(image(icons.icon(_icon_name(name))))
+	a_list = []
+	for rank, a in enumerate(images):
+		for b in images[rank + 1 :]:
+			a_list.append(a != b)
+	assert all(a_list)
 
 
 @pytest.fixture
@@ -104,14 +120,20 @@ def follows_theme(qapp: QApplication, category: str, colour: str) -> None:
 
 def _tabs(interface: Context) -> dict[str, QIcon]:
 	tabs = window(interface).ui.tabs
-	return {tab_title(tabs, index): tabs.tabIcon(index) for index in range(tabs.count())}
+	index_dict = {}
+	for index in range(tabs.count()):
+		index_dict[tab_title(tabs, index)] = tabs.tabIcon(index)
+	return index_dict
 
 
 @then("les onglets portent les icônes :")
 def tab_icons(interface: Context, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
 	scopes = _tabs(interface)
-	assert list(scopes) == [title.strip() for title, _icon in rows]
+	icon_list = []
+	for title, _icon in rows:
+		icon_list.append(title.strip())
+	assert list(scopes) == icon_list
 	for title, name in rows:
 		assert _scope(scopes[title.strip()]) == _expected(name.strip()), title
 
@@ -124,7 +146,10 @@ def tab_icon(interface: Context, title: str, name: str) -> None:
 @then(parsers.parse("les entrées du menu « {menu} » portent les icônes :"))
 def menu_icons(interface: Context, menu: str, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
-	scopes = {action.text(): action.icon() for action in actions(interface, menu) if not action.isSeparator()}
+	scopes = {}
+	for action in actions(interface, menu):
+		if not action.isSeparator():
+			scopes[action.text()] = action.icon()
 	for entry, name in rows:
 		assert _scope(scopes[entry.strip()]) == _expected(name.strip()), entry
 
@@ -196,4 +221,10 @@ def theme_icons(datatable: list[list[str]]) -> None:
 			for property_ in widget.findall("property[@name='icon']"):
 				for iconset in property_.iter("iconset"):
 					found_list.append([file.name, str(widget.get("name")), str(iconset.get("theme"))])
-	assert found_list == [[cell.strip() for cell in row] for row in rows]
+	row_list = []
+	for row in rows:
+		cell_list = []
+		for cell in row:
+			cell_list.append(cell.strip())
+		row_list.append(cell_list)
+	assert found_list == row_list

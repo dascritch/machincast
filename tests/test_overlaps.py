@@ -26,7 +26,17 @@ def events() -> list[Event]:
 def to_compare(events: list[Event], datatable: list[list[str]]) -> None:
 	headers, *lines = datatable
 	for number, values in enumerate(lines, start=1):
-		line = dict(zip((header.strip() for header in headers), (value.strip() for value in values), strict=True))
+		header_list = []
+		for header in headers:
+			header_list.append(header.strip())
+		value_list = []
+		for value in values:
+			value_list.append(value.strip())
+		line = dict(zip(header_list, value_list, strict=True))
+		day_list = []
+		for day in line["jours"].split(","):
+			if day.strip():
+				day_list.append(DAYS.index(day.strip()))
 		events.append(
 			Event(
 				id=number,
@@ -34,7 +44,7 @@ def to_compare(events: list[Event], datatable: list[list[str]]) -> None:
 				priority=Priority(line["priorité"]),
 				start=hour_or_none(line["début"]),
 				end=hour_or_none(line["fin"]),
-				days=frozenset(DAYS.index(day.strip()) for day in line["jours"].split(",") if day.strip()),
+				days=frozenset(day_list),
 				modified_at=NEVER,
 			)
 		)
@@ -47,8 +57,15 @@ def to_compare(events: list[Event], datatable: list[list[str]]) -> None:
 	)
 )
 def overlaps(events: list[Event], since: str | None, name: str, other: str | None, instant: str | None) -> None:
-	(place,) = [event for event in events if event.name == name]
-	others = [event for event in events if event is not place]
+	event_list = []
+	for event in events:
+		if event.name == name:
+			event_list.append(event)
+	(place,) = event_list
+	others = []
+	for event in events:
+		if event is not place:
+			others.append(event)
 	found = overlap(place, others, since=hour_or_none((since) or ("")))
 	obtained = None
 	if found is not None:

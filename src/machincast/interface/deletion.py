@@ -156,7 +156,10 @@ HISTORY = _("The broadcast history keeps its plays.")
 
 
 def _names(lines: list[TupleRow]) -> str:
-	return ", ".join(_("“{line}”").format(line=line[0]) for line in lines)
+	line_list = []
+	for line in lines:
+		line_list.append(_("“{line}”").format(line=line[0]))
+	return ", ".join(line_list)
 
 
 def _name(connection: Connection, category: str, identifier: int) -> str | None:
@@ -210,11 +213,18 @@ def _file(connection: Connection, identifier: int) -> list[str]:
 		"SELECT b.internal_name, r.directory FROM bank_directories r JOIN banks b ON b.id = r.bank_id"
 		" ORDER BY b.internal_name, r.directory"
 	).fetchall()
-	banks = list(dict.fromkeys(str(name) for name, directory in directories if file.is_relative_to(str(directory))))
+	directory_list = []
+	for name, directory in directories:
+		if file.is_relative_to(str(directory)):
+			directory_list.append(str(name))
+	banks = list(dict.fromkeys(directory_list))
 	if banks != []:
 		which = _("of bank “{banks}”").format(banks=banks[0])
 		if len(banks) > 1:
-			which = _("of banks {list}").format(list=", ".join(_("“{bank}”").format(bank=bank) for bank in banks))
+			bank_list = []
+			for bank in banks:
+				bank_list.append(_("“{bank}”").format(bank=bank))
+			which = _("of banks {list}").format(list=", ".join(bank_list))
 		text = _("{text} It is in a directory {which}: the next indexing will record it again, as a new sound.").format(
 			text=text, which=which
 		)
@@ -231,7 +241,10 @@ def _remainders(connection: Connection, category: str, identifier: int) -> list[
 		).fetchall()
 		if directories == []:
 			return [_("Its sounds stay in the database.")]
-		paths = ", ".join(str(directory) for (directory,) in directories)
+		directory_list = []
+		for (directory,) in directories:
+			directory_list.append(str(directory))
+		paths = ", ".join(directory_list)
 		return [
 			_(
 				"Its directories stay in place, with their files, intact: {paths}. Its sounds stay in the database."
@@ -296,7 +309,10 @@ def question(connection: Connection, category: str, identifier: int) -> tuple[st
 	removals = _removals(connection, category, identifier)
 	if removals != []:
 		lines.append(describes.removed)
-		lines += [_("{removal};").format(removal=removal) for removal in removals[:-1]]
+		removal_list = []
+		for removal in removals[:-1]:
+			removal_list.append(_("{removal};").format(removal=removal))
+		lines += removal_list
 		lines.append(_("{removal}.").format(removal=removals[-1]))
 	else:
 		if describes.no != "":

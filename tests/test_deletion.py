@@ -90,7 +90,10 @@ def list_in_database(empty_database: Connection, category: str, name: str, names
 	"""Les éléments, dans l'ordre : un sonore par son titre, une banque ou une séquence par son nom."""
 	table, query = LISTS[category]
 	lines = empty_database.execute(query, (identifier(empty_database, table, "internal_name", name),)).fetchall()
-	assert [str(line[0]) for line in lines] == NAME.findall(names)
+	line_list = []
+	for line in lines:
+		line_list.append(str(line[0]))
+	assert line_list == NAME.findall(names)
 
 
 @then(parsers.parse("l'historique de diffusion garde le passage de « {sound} », à l'emplacement « {location} »"))
@@ -103,7 +106,10 @@ def kept_play(interface: Context, empty_database: Connection, sound: str, locati
 @then("les fichiers du scénario sont intacts")
 def intact_list(interface: Context) -> None:
 	assert interface.files != []
-	assert {file: file.read_bytes() for file in interface.files} == interface.files
+	file_dict = {}
+	for file in interface.files:
+		file_dict[file] = file.read_bytes()
+	assert file_dict == interface.files
 
 
 @then(parsers.parse("le dossier « {folder} » est toujours là"))
@@ -129,9 +135,15 @@ def other_bank(empty_database: Connection, name: str) -> None:
 def fields(interface: Context, no: str | None) -> None:
 	"""Les champs de saisie ; la case et les boutons de la fiche en lecture seule, sauf « Restaurer »."""
 	card = opened_card(interface)
-	inputs = [field for field in card.findChildren(QLineEdit) if field.parent() is not None]
+	inputs = []
+	for field in card.findChildren(QLineEdit):
+		if field.parent() is not None:
+			inputs.append(field)
 	assert inputs != []
-	active_list = [field.objectName() for field in inputs if field.isEnabled()]
+	active_list = []
+	for field in inputs:
+		if field.isEnabled():
+			active_list.append(field.objectName())
 	if no is None:
 		assert active_list != [], "aucun champ modifiable"
 	else:
@@ -140,14 +152,19 @@ def fields(interface: Context, no: str | None) -> None:
 
 @then(parsers.re(r"la fiche propose « (?P<yes>[^»]+) », pas « (?P<no>[^»]+) »"))
 def offers(interface: Context, yes: str, no: str) -> None:
-	texts = {button.text(): button for button in opened_card(interface).findChildren(QPushButton)}
+	texts = {}
+	for button in opened_card(interface).findChildren(QPushButton):
+		texts[button.text()] = button
 	assert (yes in texts) and (texts[yes].isEnabled()), list(texts)
 	assert no not in texts, list(texts)
 
 
 @then(parsers.re(r"la liste montre les noms (?P<names>.+)"))
 def shown_names(interface: Context, names: str) -> None:
-	assert [line["Nom"] for line in lines(interface)] == NAME.findall(names), lines(interface)
+	line_list = []
+	for line in lines(interface):
+		line_list.append(line["Nom"])
+	assert line_list == NAME.findall(names), lines(interface)
 
 
 @then(parsers.parse("la recherche de « {text} » ne trouve rien"))
@@ -163,7 +180,12 @@ def choice_without(interface: Context, qtbot: QtBot, title: str) -> None:
 	choice = Choice(SOUNDS, interface.connection)
 	qtbot.addWidget(choice)
 	model = choice.list_.table.model()
-	column = [model.headerData(c, Qt.Orientation.Horizontal) for c in range(model.columnCount())].index("Titre")
-	titles = [model.index(row, column).data() for row in range(model.rowCount())]
+	c_list = []
+	for c in range(model.columnCount()):
+		c_list.append(model.headerData(c, Qt.Orientation.Horizontal))
+	column = c_list.index("Titre")
+	titles = []
+	for row in range(model.rowCount()):
+		titles.append(model.index(row, column).data())
 	assert titles != []
 	assert title not in titles, titles

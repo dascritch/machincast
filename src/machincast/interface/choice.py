@@ -44,6 +44,12 @@ class Choice(QDialog):
 
 	def selection(self) -> list[int]:
 		"""Les éléments sélectionnés, dans l'ordre de la liste affichée."""
-		rows = sorted(index.row() for index in self.list_.table.selectionModel().selectedRows())
+		index_list = []
+		for index in self.list_.table.selectionModel().selectedRows():
+			index_list.append(index.row())
+		rows = sorted(index_list)
 		model = self.list_.table.model()
-		return [int(model.index(row, 0).data(IDENTIFIER)) for row in rows]
+		selection = []
+		for row in rows:
+			selection.append(int(model.index(row, 0).data(IDENTIFIER)))
+		return selection

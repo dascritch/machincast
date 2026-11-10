@@ -267,7 +267,10 @@ def upcoming_sounds(context: Context, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
 	context.upcoming = []
 	for rank, values in enumerate(rows, start=1):
-		line = dict(zip(headers, (value.strip() for value in values), strict=True))
+		value_list = []
+		for value in values:
+			value_list.append(value.strip())
+		line = dict(zip(headers, value_list, strict=True))
 		chosen = None
 		if line["sequence"]:
 			chosen = 60 + rank
@@ -549,7 +552,10 @@ def click(context: Context, button: str) -> None:
 def environment(context: Context, environment: str) -> None:
 	variables = {}
 	if environment != "vide":
-		variables = dict(pair.strip().split("=", 1) for pair in environment.split(","))
+		pair_list = []
+		for pair in environment.split(","):
+			pair_list.append(pair.strip().split("=", 1))
+		variables = dict(pair_list)
 	context.display = module_interface.available_display(variables)
 
 
@@ -640,7 +646,9 @@ def sequence_and_bank(context: Context, which: str, sequence: str, bank: str) ->
 
 @then(parsers.parse("le sonore en cours n'a pas d'intitulé « {heading} »"))
 def without_heading(context: Context, heading: str) -> None:
-	texts = [caption.text() for caption in screen(context).ui.ongoing_frame.findChildren(QLabel)]
+	texts = []
+	for caption in screen(context).ui.ongoing_frame.findChildren(QLabel):
+		texts.append(caption.text())
 	assert heading not in texts, texts
 
 
@@ -670,19 +678,23 @@ def click_button(context: Context, qtbot: QtBot, name: str) -> None:
 @then("l'onglet Antenne a demandé les fiches :")
 def requested_cards(context: Context, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
-	expected_list = [(category.strip(), int(number), name.strip()) for category, number, name in rows]
+	expected_list = []
+	for category, number, name in rows:
+		expected_list.append((category.strip(), int(number), name.strip()))
 	assert context.cards == expected_list
 
 
 @then("les boutons de fiche de l'onglet Antenne sont inactifs")
 def inactive_buttons(context: Context) -> None:
 	ui = screen(context).ui
-	buttons = [
-		getattr(ui, f"open_{which}_{category}")
-		for which in ("ongoing", "next")
-		for category in ("sound", "event", "sequence", "bank")
-	]
-	assert [button.isEnabled() for button in buttons] == [False] * 8
+	buttons = []
+	for which in ("ongoing", "next"):
+		for category in ("sound", "event", "sequence", "bank"):
+			buttons.append(getattr(ui, f"open_{which}_{category}"))
+	button_list = []
+	for button in buttons:
+		button_list.append(button.isEnabled())
+	assert button_list == [False] * 8
 
 
 @then(
@@ -712,7 +724,9 @@ def bank_sequence_states(context: Context, states: str) -> None:
 def button_states(context: Context, states: str) -> None:
 	ui = screen(context).ui
 	buttons = (ui.open_ongoing_sound, ui.open_ongoing_event, ui.open_next_sound)
-	obtained_list = ["actif" if button.isEnabled() else "inactif" for button in (*buttons, ui.open_next_event)]
+	obtained_list = []
+	for button in (*buttons, ui.open_next_event):
+		obtained_list.append("actif" if button.isEnabled() else "inactif")
 	assert obtained_list == states.split(", ")
 
 
@@ -725,7 +739,9 @@ def erase_sound(empty_database: Connection, title: str) -> None:
 def open_column(context: Context, qtbot: QtBot, column: str) -> None:
 	"""Double-clic sur la première ligne de l'airplay, dans cette colonne, même vide."""
 	table_airplay = screen(context).ui.table_airplay
-	titles = [title for _name, title in screen(context).AIRPLAY_COLUMNS]
+	titles = []
+	for _name, title in screen(context).AIRPLAY_COLUMNS:
+		titles.append(title)
 	index = table_airplay.model().index(0, titles.index(column))
 	table_airplay.scrollTo(index)
 	position = table_airplay.visualRect(index).center()
@@ -750,7 +766,10 @@ def airplay_cards(context: Context, empty_database: Connection, datatable: list[
 	tables |= {"séquence": ("sequences", "internal_name"), "banque": ("banks", "internal_name")}
 	_headers, *rows = datatable
 	expected_list = []
-	for category, name in ((category.strip(), name.strip()) for category, name in rows):
+	category_list = []
+	for category, name in rows:
+		category_list.append((category.strip(), name.strip()))
+	for category, name in category_list:
 		table_in_database, column = tables[category]
 		line = empty_database.execute(f"SELECT id FROM {table_in_database} WHERE {column} = %s", (name,)).fetchone()  # noqa: S608
 		assert line is not None, name
@@ -821,25 +840,36 @@ def progress(context: Context, qtbot: QtBot, soon: str | None, text: str, value:
 def table(context: Context) -> list[dict[str, str]]:
 	model = screen(context).airplay_model
 	columns = screen(context).AIRPLAY_COLUMNS
-	return [
-		{KEYS.get(key, key): model.item(row, column).text() for column, (key, _) in enumerate(columns)}
-		for row in range(model.rowCount())
-	]
+	table = []
+	for row in range(model.rowCount()):
+		item_dict = {}
+		for column, (key, _) in enumerate(columns):
+			item_dict[KEYS.get(key, key)] = model.item(row, column).text()
+		table.append(item_dict)
+	return table
 
 
 def upcoming_table(context: Context) -> list[dict[str, str]]:
 	model = screen(context).upcoming_model
 	columns = screen(context).AIRPLAY_COLUMNS
-	return [
-		{KEYS.get(key, key): model.item(row, column).text() for column, (key, _) in enumerate(columns)}
-		for row in range(model.rowCount())
-	]
+	upcoming_table = []
+	for row in range(model.rowCount()):
+		item_dict = {}
+		for column, (key, _) in enumerate(columns):
+			item_dict[KEYS.get(key, key)] = model.item(row, column).text()
+		upcoming_table.append(item_dict)
+	return upcoming_table
 
 
 @then("la table des sonores à venir montre :")
 def upcoming_expected_table(context: Context, qtbot: QtBot, datatable: list[list[str]]) -> None:
 	headers, *lines = datatable
-	expected_list = [dict(zip(headers, (v.strip() for v in values), strict=True)) for values in lines]
+	expected_list = []
+	for values in lines:
+		v_list = []
+		for v in values:
+			v_list.append(v.strip())
+		expected_list.append(dict(zip(headers, v_list, strict=True)))
 	wait(qtbot, lambda: len(upcoming_table(context)) == len(expected_list))
 	assert upcoming_table(context) == expected_list, upcoming_table(context)
 
@@ -855,7 +885,10 @@ def upcoming_columns(context: Context) -> None:
 	opened = screen(context)
 
 	def headers(model: QStandardItemModel) -> list[str]:
-		return [str(model.headerData(column, Qt.Orientation.Horizontal)) for column in range(model.columnCount())]
+		headers = []
+		for column in range(model.columnCount()):
+			headers.append(str(model.headerData(column, Qt.Orientation.Horizontal)))
+		return headers
 
 	assert headers(opened.upcoming_model) == headers(opened.airplay_model), headers(opened.upcoming_model)
 
@@ -941,7 +974,9 @@ def minute_plays(empty_database: Connection, count: str, name: str, start: str) 
 
 @then(parsers.parse("la table de l'airplay a {count:d} lignes, de « {first} » à « {last} »"))
 def airplay_lines(context: Context, count: int, first: str, last: str) -> None:
-	titles = [line["titre"] for line in table(context)]
+	titles = []
+	for line in table(context):
+		titles.append(line["titre"])
 	assert (len(titles), titles[0], titles[-1]) == (count, first, last), titles
 
 
@@ -984,7 +1019,12 @@ def reopen_screen(context: Context, empty_database: Connection, qtbot: QtBot, mo
 @then("la table de l'airplay montre :")
 def expected_table(context: Context, datatable: list[list[str]]) -> None:
 	headers, *lines = datatable
-	expected_list = [dict(zip(headers, (v.strip() for v in values), strict=True)) for values in lines]
+	expected_list = []
+	for values in lines:
+		v_list = []
+		for v in values:
+			v_list.append(v.strip())
+		expected_list.append(dict(zip(headers, v_list, strict=True)))
 	assert table(context) == expected_list, table(context)
 
 
@@ -1039,7 +1079,10 @@ def also_on_output(context: Context, pattern: str) -> None:
 
 @then(parsers.parse("la fenêtre d'erreur a les boutons « {first} », « {second} » et « {third} »"))
 def buttons(context: Context, first: str, second: str, third: str) -> None:
-	texts = sorted(button.text() for button in error_window(context).buttons())
+	button_list = []
+	for button in error_window(context).buttons():
+		button_list.append(button.text())
+	texts = sorted(button_list)
 	assert texts == sorted([first, second, third]), texts
 
 
@@ -1063,7 +1106,9 @@ def binary_stop(context: Context, code: int, pattern: str) -> None:
 @then(parsers.re(r"l'écran n'a aucun intitulé (?P<texts>«.+)"))
 def without_heading_to_banner(context: Context, texts: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/191"""
-	shown_list = {caption.text() for caption in screen(context).findChildren(QLabel)}
+	shown_list = set()
+	for caption in screen(context).findChildren(QLabel):
+		shown_list.add(caption.text())
 	for text in re.findall(r"« ([^»]+) »", texts):
 		assert text not in shown_list, text
 
@@ -1231,17 +1276,24 @@ def ongoing_areas(context: Context, qtbot: QtBot, datatable: list[list[str]]) ->
 	timeline = _timeline(context, "sonore en cours")
 	wait(qtbot, lambda: timeline.plan is not None)
 	assert timeline.plan is not None
-	fetched_list = [
-		[
-			area.name,
-			f"{area.start:.2f}".replace(".", ","),
-			f"{area.end:.2f}".replace(".", ","),
-			HATCHINGS[area.hatching],
-			area.tooltip,
-		]
-		for area in timeline.plan.areas()
-	]
-	assert fetched_list == [[cell.strip() for cell in row] for row in datatable[1:]]
+	fetched_list = []
+	for area in timeline.plan.areas():
+		fetched_list.append(
+			[
+				area.name,
+				f"{area.start:.2f}".replace(".", ","),
+				f"{area.end:.2f}".replace(".", ","),
+				HATCHINGS[area.hatching],
+				area.tooltip,
+			]
+		)
+	row_list = []
+	for row in datatable[1:]:
+		cell_list = []
+		for cell in row:
+			cell_list.append(cell.strip())
+		row_list.append(cell_list)
+	assert fetched_list == row_list
 
 
 @then(
@@ -1252,8 +1304,15 @@ def next_areas(context: Context, qtbot: QtBot, names: str) -> None:
 	wait(qtbot, lambda: timeline.plan is not None)
 	assert timeline.plan is not None
 	areas = timeline.plan.areas()
-	assert [area.name for area in areas] == re.findall(r"« ([^»]+) »", names)
-	assert {area.hatching for area in areas if area.name.startswith("silence")} == {"pale"}
+	area_list = []
+	for area in areas:
+		area_list.append(area.name)
+	assert area_list == re.findall(r"« ([^»]+) »", names)
+	area_set = set()
+	for area in areas:
+		if area.name.startswith("silence"):
+			area_set.add(area.hatching)
+	assert area_set == {"pale"}
 
 
 @then(
@@ -1374,7 +1433,10 @@ def _entries(text: str) -> list[str]:
 
 
 def _texts(menu: QMenu) -> list[str]:
-	return [(action.text()) or ("—") for action in menu.actions()]
+	texts = []
+	for action in menu.actions():
+		texts.append((action.text()) or ("—"))
+	return texts
 
 
 def _block_menu(context: Context, which: str) -> QMenu | None:

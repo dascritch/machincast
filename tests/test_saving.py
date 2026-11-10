@@ -159,13 +159,22 @@ def airplay(database: Connection) -> list[tuple[object, ...]]:
 @then(parsers.parse("l'airplay contient {count:d} lignes, de début et de fin, avec le même identifiant de passage"))
 def line_two(empty_database: Connection, count: int) -> None:
 	lines = airplay(empty_database)
-	assert [line[1] for line in lines] == ["start", "end"][:count]
-	assert len({line[0] for line in lines}) == 1
+	line_list = []
+	for line in lines:
+		line_list.append(line[1])
+	assert line_list == ["start", "end"][:count]
+	line_set = set()
+	for line in lines:
+		line_set.add(line[0])
+	assert len(line_set) == 1
 
 
 @then(parsers.parse("la ligne de début est datée de « {start} », celle de fin de « {end} »"))
 def dates(empty_database: Connection, start: str, end: str) -> None:
-	assert [line[2] for line in airplay(empty_database)] == [hour(start), hour(end)]
+	line_list = []
+	for line in airplay(empty_database):
+		line_list.append(line[2])
+	assert line_list == [hour(start), hour(end)]
 
 
 @then(
@@ -186,7 +195,12 @@ def copies(empty_database: Connection, location: str, artist: str, title: str) -
 def references(context: Context, empty_database: Connection, name_bank: str, name: str) -> None:
 	i = context.ids
 	expected = (i["sonore"], i[name_bank], i[name], i["element"])
-	assert all(line[6:10] == expected for line in airplay(empty_database))
+	every_one = True
+	for line in airplay(empty_database):
+		if line[6:10] != expected:
+			every_one = False
+			break
+	assert every_one
 
 
 @then("la ligne de début ne référence aucune banque")
@@ -204,12 +218,12 @@ def end_line(empty_database: Connection, seconds: str, outcome: str) -> None:
 
 def log(database: Connection) -> list[tuple[object, ...]]:
 	"""Le log, ses textes tels que l'interface les montre, en français."""
-	return [
-		(level, shown(kind), shown(message), *rest)
-		for level, kind, message, *rest in database.execute(
-			"SELECT level::text, kind, message, logged_at, sound_id, bank_id, event_id FROM log ORDER BY id"
-		).fetchall()
-	]
+	log = []
+	for level, kind, message, *rest in database.execute(
+		"SELECT level::text, kind, message, logged_at, sound_id, bank_id, event_id FROM log ORDER BY id"
+	).fetchall():
+		log.append((level, shown(kind), shown(message), *rest))
+	return log
 
 
 @then("le log ne contient rien")
@@ -221,9 +235,10 @@ def empty_log(empty_database: Connection) -> None:
 def log_line(context: Context, empty_database: Connection, level: str, kind: str) -> None:
 	i = context.ids
 	lines = log(empty_database)
-	assert [(n, t, s, b, e) for n, t, _, _, s, b, e in lines] == [
-		(level, kind, i["sonore"], i["Titres"], i["Magazine"])
-	], lines
+	item_list = []
+	for n, t, _, _, s, b, e in lines:
+		item_list.append((n, t, s, b, e))
+	assert item_list == [(level, kind, i["sonore"], i["Titres"], i["Magazine"])], lines
 
 
 @then(parsers.parse("cette ligne du log mentionne « {text} »"))
@@ -246,9 +261,8 @@ def dated_line(empty_database: Connection, level: str, kind: str, instant: str, 
 
 @then("aucun module du binaire lecture n'écrit dans le log autrement que par machincast.player.saving")
 def a_only_log() -> None:
-	faults = [
-		path.name
-		for path in sorted(PLAYBACK_SOURCES.glob("*.py"))
-		if (path.name != "saving.py") and ("INSERT INTO log" in path.read_text(encoding="utf-8"))
-	]
+	faults = []
+	for path in sorted(PLAYBACK_SOURCES.glob("*.py")):
+		if (path.name != "saving.py") and ("INSERT INTO log" in path.read_text(encoding="utf-8")):
+			faults.append(path.name)
 	assert not faults, faults

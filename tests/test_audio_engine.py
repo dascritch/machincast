@@ -234,14 +234,18 @@ def advance_clock(context: Context, duration: str) -> None:
 
 @then("aucune voie n'est bloquée")
 def no_blocked(context: Context) -> None:
-	assert {name: track.blocked() for name, track in context.tracks.items()} == dict.fromkeys(context.tracks, False)
+	name_dict = {}
+	for name, track in context.tracks.items():
+		name_dict[name] = track.blocked()
+	assert name_dict == dict.fromkeys(context.tracks, False)
 
 
 @then(parsers.parse("seule la voie de « {name} » est bloquée"))
 def only_blocked(context: Context, name: str) -> None:
-	assert {other: track.blocked() for other, track in context.tracks.items()} == {
-		other: other == name for other in context.tracks
-	}
+	other_dict = {}
+	for other, track in context.tracks.items():
+		other_dict[other] = track.blocked()
+	assert other_dict == {other: other == name for other in context.tracks}
 
 
 @when(parsers.parse("il joue le fichier de test « {name} »"))
@@ -400,12 +404,12 @@ def not_played(context: Context) -> None:
 
 def log(database: Connection) -> list[tuple[object, ...]]:
 	"""Le log, ses textes tels que l'interface les montre, en français."""
-	return [
-		(level, shown(kind), shown(message), sound)
-		for level, kind, message, sound in database.execute(
-			"SELECT level::text, kind, message, sound_id FROM log ORDER BY id"
-		).fetchall()
-	]
+	log = []
+	for level, kind, message, sound in database.execute(
+		"SELECT level::text, kind, message, sound_id FROM log ORDER BY id"
+	).fetchall():
+		log.append((level, shown(kind), shown(message), sound))
+	return log
 
 
 @then("le log ne contient rien")
@@ -425,4 +429,7 @@ def warning(context: Context, empty_database: Connection, kind: str, mention: st
 @then(parsers.parse("le log contient un incident « {kind} » pour ce sonore"))
 def incident(context: Context, empty_database: Connection, kind: str) -> None:
 	lines = log(empty_database)
-	assert [(n, t, s) for n, t, _, s in lines] == [("incident", kind, context.sound)], lines
+	item_list = []
+	for n, t, _, s in lines:
+		item_list.append((n, t, s))
+	assert item_list == [("incident", kind, context.sound)], lines

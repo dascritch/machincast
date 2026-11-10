@@ -576,7 +576,10 @@ class Broadcast:
 		reserve, current = self.reserve, self.current
 		if (self.preload is not None) or (reserve is None) or (current is None):
 			return
-		planned = [(reserve.choice, reserve.parameters)] + [(item.choice, item.parameters) for item in self.upcoming]
+		item_list = []
+		for item in self.upcoming:
+			item_list.append((item.choice, item.parameters))
+		planned = [(reserve.choice, reserve.parameters)] + item_list
 		starts = self._starts()
 		if (reserve.early) and (current.cutoff is not None) and (starts != []):
 			starts[0] = current.cutoff.instant
@@ -594,7 +597,10 @@ class Broadcast:
 		reserve = self.reserve
 		if reserve is None:
 			return set()
-		return {reserve.choice.sound} | {item.choice.sound for item in self.upcoming}
+		item_set = set()
+		for item in self.upcoming:
+			item_set.add(item.choice.sound)
+		return {reserve.choice.sound} | item_set
 
 	def _drop_preload(self, sound: int | None = None) -> None:
 		"""Abandonne la voie préchargée, sauf celle de ce sonore."""
@@ -840,7 +846,8 @@ class Broadcast:
 		if (reserve is None) or (reserve.early):
 			return None
 		candidates: list[tuple[Choice, Planned | None]] = [(reserve.choice, None)]
-		candidates += [(planned.choice, planned) for planned in self.upcoming]
+		for upcoming in self.upcoming:
+			candidates.append((upcoming.choice, upcoming))
 		previous = current.choice
 		for rank, (choice, planned) in enumerate(candidates):
 			same_occurrence = previous.occurrence.key == choice.occurrence.key
@@ -887,7 +894,11 @@ class Broadcast:
 				self._suspend(playback, instant)
 			else:
 				self._finish(playback.play, instant, error=playback.track.error)
-		self.outgoing_list = [s for s in self.outgoing_list if s.track.state == "playing"]
+		s_list = []
+		for s in self.outgoing_list:
+			if s.track.state == "playing":
+				s_list.append(s)
+		self.outgoing_list = s_list
 		if (self.current is not None) and (self.current.track.state != "playing"):
 			self.current = None
 
@@ -1145,10 +1156,14 @@ class Broadcast:
 		current, reserve = self.current, self.reserve
 		if (current is None) or (reserve is None):
 			return []
-		remainder = [(reserve.choice, reserve.parameters)] + [
-			(planned.choice, planned.parameters) for planned in self.upcoming
-		]
-		cutoffs = [current.cutoff] + [planned.cutoff for planned in self.upcoming]
+		planned_list = []
+		for planned in self.upcoming:
+			planned_list.append((planned.choice, planned.parameters))
+		remainder = [(reserve.choice, reserve.parameters)] + planned_list
+		planned_list_2 = []
+		for planned in self.upcoming:
+			planned_list_2.append(planned.cutoff)
+		cutoffs = [current.cutoff] + planned_list_2
 		start: datetime | None = current.play.start
 		parameters, occurrence = current.parameters, current.choice.occurrence
 		starts: list[datetime | None] = []
@@ -1461,11 +1476,15 @@ class Broadcast:
 			if starts == []:
 				starts = [None]
 			# La fin de chaque sonore : le début de l'événement qui coupera le suivant, sinon sa durée.
-			cutoffs = [planned.cutoff for planned in self.upcoming] + [None]
+			planned_list = []
+			for planned in self.upcoming:
+				planned_list.append(planned.cutoff)
+			cutoffs = planned_list + [None]
 			remainder = [(reserve.choice, reserve.parameters, reserve.healthy, self._reserved_details[1])]
-			remainder += [
-				(planned.choice, planned.parameters, planned.healthy, planned.details) for planned in self.upcoming
-			]
+			planned_list_2 = []
+			for planned in self.upcoming:
+				planned_list_2.append((planned.choice, planned.parameters, planned.healthy, planned.details))
+			remainder += planned_list_2
 			announcements = [
 				_announces(self._lent(choice, start), parameters, healthy, details, start, cutoff)
 				for (choice, parameters, healthy, details), start, cutoff in zip(
@@ -1672,7 +1691,11 @@ def _crash_line(label: str, sound: dict[str, Any] | None) -> str:
 	event = str((sound.get("event")) or ("—"))
 	if sound.get("lender"):
 		event = _("{event}, in the name of “{lender}”").format(event=event, lender=sound["lender"])
-	title = " – ".join(str(part) for part in (sound.get("artist"), sound.get("title")) if part)
+	part_list = []
+	for part in (sound.get("artist"), sound.get("title")):
+		if part:
+			part_list.append(str(part))
+	title = " – ".join(part_list)
 	parts = [
 		event,
 		(sound.get("sequence")) or ("—"),
@@ -1687,13 +1710,20 @@ def crash_text(previous: dict[str, Any] | None, message: dict[str, Any]) -> str:
 	"""Les sonores précédent, en cours, et les CRASH_UPCOMING suivants annoncés, une ligne chacun : événement,
 	séquence, banque, artiste et titre, fichier."""
 	coming = [message.get("next"), *((message.get("upcoming")) or ([]))]
-	coming = [sound for sound in coming if sound is not None][:CRASH_UPCOMING]
+	sound_list = []
+	for sound in coming:
+		if sound is not None:
+			sound_list.append(sound)
+	coming = sound_list[:CRASH_UPCOMING]
 	lines = [
 		_("Event / sequence / bank / sound / file"),
 		_crash_line(_("Previous"), previous),
 		_crash_line(_("Playing now"), message.get("current")),
 	]
-	lines += [_crash_line(_("Next {rank}").format(rank=rank), sound) for rank, sound in enumerate(coming, 1)]
+	rank_list = []
+	for rank, sound in enumerate(coming, 1):
+		rank_list.append(_crash_line(_("Next {rank}").format(rank=rank), sound))
+	lines += rank_list
 	return "\n".join(lines)
 
 
@@ -1874,7 +1904,11 @@ def _buffer(track: PlaybackTrack, parameters: Parameters) -> dict[str, float] | 
 def _without_progress(ongoing: object) -> object:
 	if not isinstance(ongoing, dict):
 		return ongoing
-	return {key: value for key, value in ongoing.items() if key not in ("position", "progression", "buffer")}
+	without_progress = {}
+	for key, value in ongoing.items():
+		if key not in ("position", "progression", "buffer"):
+			without_progress[key] = value
+	return without_progress
 
 
 def install_stop() -> threading.Event:

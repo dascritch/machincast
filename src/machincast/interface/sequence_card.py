@@ -23,7 +23,7 @@ from PySide6.QtWidgets import QListWidgetItem, QWidget
 from machincast.clock import Clock
 from machincast.conformation import conform
 from machincast.i18n import _
-from machincast.interface.card import Card, Connection, Refusal
+from machincast.interface.card import Card, Connection, Refusal, rank_of
 from machincast.interface.items import Buttons, ItemList
 from machincast.interface.lists import EMPTY_SEQUENCE
 from machincast.interface.ui.sequence_card import Ui_SequenceCard
@@ -99,7 +99,7 @@ class SequenceCard(Card):
 		if self.is_copy():
 			self.ui.internal_name.setText(self.name_of_copy(self._name))
 		self.ui.public_name.setText(str((public_name) or ("")))
-		self.ui.hiding.setCurrentIndex(next(i for i, (value, _text) in enumerate(HIDINGS) if value is hiding))
+		self.ui.hiding.setCurrentIndex(rank_of(HIDINGS, hiding))
 		self.ui.events.clear()
 		for identifier, event_name in events:
 			item = QListWidgetItem(str(event_name))

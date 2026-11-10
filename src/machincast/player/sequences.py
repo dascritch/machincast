@@ -41,16 +41,17 @@ def read_sequence(connection: psycopg.Connection[TupleRow], identifier: int) -> 
 		"SELECT id, position, sound_id, bank_id FROM sequence_items WHERE sequence_id = %s ORDER BY position",
 		(identifier,),
 	).fetchall()
-	items = [
-		SequenceItem(
-			id=int(str(item)),
-			sequence=identifier,
-			position=int(str(position)),
-			sound=integer_or_none(sound),
-			bank=integer_or_none(bank),
+	items = []
+	for item, position, sound, bank in lines:
+		items.append(
+			SequenceItem(
+				id=int(str(item)),
+				sequence=identifier,
+				position=int(str(position)),
+				sound=integer_or_none(sound),
+				bank=integer_or_none(bank),
+			)
 		)
-		for item, position, sound, bank in lines
-	]
 	return Sequence(identifier, str(line[0]), items)
 
 
@@ -59,7 +60,9 @@ def items_after(sequence: Sequence, last: int | None) -> list[SequenceItem]:
 	depuis termine la séquence : on ne sait plus où la reprendre."""
 	if last is None:
 		return sequence.items
-	ids = [item.id for item in sequence.items]
+	ids = []
+	for item in sequence.items:
+		ids.append(item.id)
 	if last not in ids:
 		return []
 	return sequence.items[ids.index(last) + 1 :]

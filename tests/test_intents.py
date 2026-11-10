@@ -32,8 +32,14 @@ def open_by_identifier(interface: Context, empty_database: Connection, qtbot: Qt
 
 @then(parsers.re(r"les boutons de la fiche qui ajoutent, retirent ou suppriment sont (?P<buttons>«.+)"))
 def mark_buttons(interface: Context, buttons: str) -> None:
-	texts = [button.text() for button in opened_card(interface).findChildren(QPushButton)]
-	assert [text for text in texts if without_intent(text).startswith(VERBS)] == NAME.findall(buttons)
+	texts = []
+	for button in opened_card(interface).findChildren(QPushButton):
+		texts.append(button.text())
+	text_list = []
+	for text in texts:
+		if without_intent(text).startswith(VERBS):
+			text_list.append(text)
+	assert text_list == NAME.findall(buttons)
 
 
 @then(

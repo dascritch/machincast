@@ -86,7 +86,12 @@ def runs_always(interface: Context, dummy: tuple[Path, Path]) -> None:
 def running(interface: Context, count: int) -> None:
 	numbers = list(window(interface).launched_indexings.values())
 	assert len(numbers) == count
-	assert all(indexer.active_process(number) for number in numbers)
+	every_one = True
+	for number in numbers:
+		if not (indexer.active_process(number)):
+			every_one = False
+			break
+	assert every_one
 
 
 @then(parsers.re(r"la commande d'indexation, pour la configuration (?P<configuration>.+), est « (?P<expected>.+) »"))

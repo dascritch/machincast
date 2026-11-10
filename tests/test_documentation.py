@@ -56,7 +56,11 @@ def apt_packages(path: Path) -> set[str]:
 		if words[:1] == ["sudo"]:
 			without_sudo = words[1:]
 		if without_sudo[:2] in (["apt", "install"], ["apt-get", "install"]):
-			return {word for word in without_sudo[2:] if not word.startswith("-")}
+			apt_packages = set()
+			for word in without_sudo[2:]:
+				if not word.startswith("-"):
+					apt_packages.add(word)
+			return apt_packages
 	raise AssertionError(f"aucune commande apt install dans {path.name}")
 
 
@@ -78,20 +82,34 @@ def apt_install(document: str) -> None:
 
 @then(parsers.parse("chaque paquet apt d'install.sh figure dans un tableau de {document}"))
 def explained_packages(document: str) -> None:
-	tables = "\n".join(line for line in text(INSTALLS[document]).splitlines() if line.startswith("|"))
-	absent_list = sorted(package for package in script_packages() if f"`{package}`" not in tables)
+	line_list = []
+	for line in text(INSTALLS[document]).splitlines():
+		if line.startswith("|"):
+			line_list.append(line)
+	tables = "\n".join(line_list)
+	package_list = []
+	for package in script_packages():
+		if f"`{package}`" not in tables:
+			package_list.append(package)
+	absent_list = sorted(package_list)
 	assert not absent_list, absent_list
 
 
 @then(parsers.parse("{document}, install.sh et CLAUDE.md accordent les trois rôles par le même GRANT"))
 def same_grant(document: str) -> None:
-	absent_list = [path.name for path in (INSTALLS[document], SCRIPT, CLAUDE) if not GRANT.search(text(path))]
+	absent_list = []
+	for path in (INSTALLS[document], SCRIPT, CLAUDE):
+		if not GRANT.search(text(path)):
+			absent_list.append(path.name)
 	assert not absent_list, absent_list
 
 
 @then(parsers.parse("aucune commande createuser de {document} ne donne de droit particulier"))
 def createuser_without_right(document: str) -> None:
-	createuser = [words for words in commands(INSTALLS[document]) if "createuser" in words]
+	createuser = []
+	for words in commands(INSTALLS[document]):
+		if "createuser" in words:
+			createuser.append(words)
 	assert createuser, f"{document} ne cite pas createuser"
 	for words in createuser:
 		assert not PARTICULAR_RIGHTS & set(words), words
@@ -100,9 +118,17 @@ def createuser_without_right(document: str) -> None:
 @then(parsers.parse("chaque option d'install.sh citée dans {document} figure dans son aide"))
 def options_install(document: str) -> None:
 	help_ = subprocess.run([str(SCRIPT), "--help"], capture_output=True, text=True, check=True).stdout
-	cited_list = {word for words in commands(INSTALLS[document]) if words[:1] == ["./install.sh"] for word in words[1:]}
+	cited_list = set()
+	for words in commands(INSTALLS[document]):
+		if words[:1] == ["./install.sh"]:
+			for word in words[1:]:
+				cited_list.add(word)
 	assert cited_list, f"{document} ne cite pas ./install.sh avec ses options"
-	unknown_list = sorted(option for option in cited_list if option not in help_)
+	option_list = []
+	for option in cited_list:
+		if option not in help_:
+			option_list.append(option)
+	unknown_list = sorted(option_list)
 	assert not unknown_list, unknown_list
 
 
@@ -111,13 +137,15 @@ def machin_commands(document: str) -> None:
 	pyproject = tomllib.loads(text(ROOT / "pyproject.toml"))
 	# Le module de chaque binaire, d'après son point d'entrée : Machin_player lance machincast.player
 	# (https://github.com/dascritch/machincast/issues/356).
-	modules = {
-		name.removeprefix("Machin_"): target.split(":")[0].removesuffix(".__main__")
-		for name, target in pyproject["project"]["scripts"].items()
-	}
+	modules = {}
+	for name, target in pyproject["project"]["scripts"].items():
+		modules[name.removeprefix("Machin_")] = target.split(":")[0].removesuffix(".__main__")
 	binaries = set(modules)
 	options_wrapper = {"--config", "-h", "--help", "--binaries"}
-	cited_list = [words[1:] for words in commands(INSTALLS[document]) if (words[:1]) and (words[0] in WRAPPERS)]
+	cited_list = []
+	for words in commands(INSTALLS[document]):
+		if (words[:1]) and (words[0] in WRAPPERS):
+			cited_list.append(words[1:])
 	assert cited_list, f"{document} ne cite aucune commande Machin"
 	for arguments in cited_list:
 		# Options du wrapper avant le binaire : --config FICHIER ou --config=FICHIER.
@@ -134,19 +162,19 @@ def machin_commands(document: str) -> None:
 		help_ = subprocess.run(
 			[sys.executable, "-m", modules[binary], "--help"], capture_output=True, text=True, check=True
 		).stdout
-		unknown_list = [
-			option for option in options if (option.startswith("-")) and (option.split("=")[0] not in help_)
-		]
+		unknown_list = []
+		for option in options:
+			if (option.startswith("-")) and (option.split("=")[0] not in help_):
+				unknown_list.append(option)
 		assert not unknown_list, f"Machin {binary} : {unknown_list}"
 
 
 @then(parsers.parse("chaque étape de machincast.installation citée dans {document} existe"))
 def installation_steps(document: str) -> None:
-	cited_list = [
-		words[words.index("machincast.installation") + 1]
-		for words in commands(INSTALLS[document])
-		if "machincast.installation" in words[:-1]
-	]
+	cited_list = []
+	for words in commands(INSTALLS[document]):
+		if "machincast.installation" in words[:-1]:
+			cited_list.append(words[words.index("machincast.installation") + 1])
 	assert cited_list, f"{document} ne cite aucune étape de machincast.installation"
 	unknown_list = sorted(set(cited_list) - set(ACTIONS))
 	assert not unknown_list, unknown_list
@@ -200,25 +228,41 @@ def published_list() -> list[version.News]:
 
 def number(text: str) -> tuple[int, ...]:
 	"""« 0.9.0 » → (0, 9, 0) ; les suffixes (« 1.0.0rc1 ») ne comptent pas."""
-	return tuple(int(count) for count in re.findall(r"\d+", text)[:3])
+	count_list = []
+	for count in re.findall(r"\d+", text)[:3]:
+		count_list.append(int(count))
+	return tuple(count_list)
 
 
 @then("les nouveautés de l'interface ont une section par version, de la plus récente à la plus ancienne")
 def ordinates_sections() -> None:
 	sections = published_list()
-	versions = [number(section.version) for section in sections]
+	versions = []
+	for section in sections:
+		versions.append(number(section.version))
 	assert versions == sorted(set(versions), reverse=True), versions
-	days = [section.published_at for section in sections]
+	days = []
+	for section in sections:
+		days.append(section.published_at)
 	assert days == sorted(days, reverse=True), days
-	assert all(section.text != "" for section in sections)
+	every_one = True
+	for section in sections:
+		if section.text == "":
+			every_one = False
+			break
+	assert every_one
 
 
 @then(parsers.parse("{release} a les mêmes versions, aux mêmes dates, dans le même ordre"))
 def release_md(release: str) -> None:
-	expected_list = [(section.version, section.published_at) for section in published_list()]
+	expected_list = []
+	for section in published_list():
+		expected_list.append((section.version, section.published_at))
 	if expected_list == []:
 		return
-	fetched_list = [(section.version, section.published_at) for section in version.news(ROOT / release)]
+	fetched_list = []
+	for section in version.news(ROOT / release):
+		fetched_list.append((section.version, section.published_at))
 	assert fetched_list == expected_list, fetched_list
 
 
@@ -262,7 +306,10 @@ def make_archive(tmp_path: Path) -> dict[str, tarfile.TarInfo]:
 		check=True,
 	)
 	with tarfile.open(path) as archive:
-		return {member.name: member for member in archive.getmembers()}
+		member_dict = {}
+		for member in archive.getmembers():
+			member_dict[member.name] = member
+		return member_dict
 
 
 def project() -> str:
@@ -272,7 +319,12 @@ def project() -> str:
 @then(parsers.parse("l'archive a pour répertoire « {directory} »"))
 def archive_directory(archive: dict[str, tarfile.TarInfo], directory: str) -> None:
 	expected = directory.replace("<version>", project())
-	assert all((name == expected) or (name.startswith(f"{expected}/")) for name in archive), sorted(archive)[:5]
+	every_one = True
+	for name in archive:
+		if not ((name == expected) or (name.startswith(f"{expected}/"))):
+			every_one = False
+			break
+	assert every_one, sorted(archive)[:5]
 
 
 @then(parsers.parse("l'archive contient « {name} », exécutable"))
@@ -283,9 +335,10 @@ def executable(archive: dict[str, tarfile.TarInfo], name: str) -> None:
 
 @then(parsers.re(r"l'archive contient (?P<names>«.+»)$"))
 def contains(archive: dict[str, tarfile.TarInfo], names: str) -> None:
-	missing_list = [
-		name for name in re.findall(r"« ([^»]+) »", names) if f"machincast-{project()}/{name}" not in archive
-	]
+	missing_list = []
+	for name in re.findall(r"« ([^»]+) »", names):
+		if f"machincast-{project()}/{name}" not in archive:
+			missing_list.append(name)
 	assert missing_list == [], missing_list
 
 
@@ -304,7 +357,10 @@ def first_level() -> None:
 
 @then("doc ne contient que des répertoires de langue, dont la source française doc/fr")
 def doc_by_language() -> None:
-	content = sorted(path.name for path in (ROOT / "doc").iterdir())
+	path_list = []
+	for path in (ROOT / "doc").iterdir():
+		path_list.append(path.name)
+	content = sorted(path_list)
 	assert "fr" in content, content
 	assert set(content) <= {"fr", "en"}, content
 
@@ -313,7 +369,13 @@ def doc_by_language() -> None:
 	parsers.parse("chaque lien relatif des documents de premier niveau et de doc/{language} mène à un fichier du dépôt")
 )
 def documentation_links(language: str) -> None:
-	documents = [ROOT / f"{name}{suffix}.md" for name in FIRST_LEVEL for suffix in ("", ".fr")]
+	documents = []
+	for name in FIRST_LEVEL:
+		for suffix in ("", ".fr"):
+			documents.append(ROOT / f"{name}{suffix}.md")
 	documents += sorted((ROOT / "doc" / language).rglob("*.md"))
-	broken_list = [link for document in documents for link in broken_links(document)]
+	broken_list = []
+	for document in documents:
+		for link in broken_links(document):
+			broken_list.append(link)
 	assert not broken_list, broken_list

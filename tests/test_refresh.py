@@ -59,7 +59,10 @@ def empty_airplay(interface: Context) -> None:
 @then(parsers.parse("l'airplay de l'onglet Antenne montre « {title} »"))
 def airplay(interface: Context, title: str) -> None:
 	model = window(interface).home.airplay_model
-	assert [model.item(line, TITLE).text() for line in range(model.rowCount())] == [title]
+	line_list = []
+	for line in range(model.rowCount()):
+		line_list.append(model.item(line, TITLE).text())
+	assert line_list == [title]
 
 
 @when(parsers.parse("je double-clique sur « {title} » dans l'airplay de l'onglet Antenne"))

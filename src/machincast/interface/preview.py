@@ -401,7 +401,10 @@ class Player:
 		]
 		# ElementFactory.make rend None pour un élément introuvable : pygobject-stubs le type ainsi depuis sa
 		# version 2.19, et mypy refuse alors de l'ajouter au pipeline sans l'avoir écarté.
-		items = [item for item in created_list if item is not None]
+		items = []
+		for item in created_list:
+			if item is not None:
+				items.append(item)
 		assert len(items) == len(created_list), _("install gstreamer1.0-plugins-base and -good")
 		level = items[3]
 		level.set_property("interval", LEVEL_INTERVAL)
@@ -428,7 +431,10 @@ class Player:
 			return
 		values = structure.get_value("rms")
 		if values is not None:
-			self.levels = [float(value) for value in values]
+			value_list = []
+			for value in values:
+				value_list.append(float(value))
+			self.levels = value_list
 
 	def _read_format(self) -> None:
 		if (self._level is None) or ((self.frequency is not None) and (self.channels is not None)):
@@ -584,7 +590,11 @@ class PreviewWindow(QWidget):
 		grisé : il ne peut pas être choisi."""
 		choice = self.ui.output
 		found_list = audio_outputs.devices(self.audio.output)
-		configured = next((p for p in found_list if p.identifier == self.audio.preview), None)
+		configured = None
+		for p in found_list:
+			if p.identifier == self.audio.preview:
+				configured = p
+				break
 		name = _("{device} (not found)").format(device=self.audio.preview)
 		if configured is not None:
 			name = configured.name

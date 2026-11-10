@@ -136,7 +136,10 @@ def failing_thread(monkeypatch: pytest.MonkeyPatch, text: str) -> None:
 @given("Machin purge qui regarde crash-dump pendant qu'il tourne")
 def watching_purge(monkeypatch: pytest.MonkeyPatch, execution: Execution, crash_directory: Path) -> None:
 	def run(_configuration: Configuration, _options: object) -> int:
-		execution.seen = sorted(path.name for path in crash_directory.iterdir())
+		path_list = []
+		for path in crash_directory.iterdir():
+			path_list.append(path.name)
+		execution.seen = sorted(path_list)
 		return 0
 
 	monkeypatch.setattr(purge, "run", run)
@@ -246,8 +249,16 @@ def _launch(execution: Execution, caplog: pytest.LogCaptureFixture, command: str
 			execution.code = BINARIES[binary](arguments)
 		except Exception as error:  # noqa: BLE001 : le plantage du scénario
 			execution.crashed = error
-	execution.information = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
-	execution.errors = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
+	r_list = []
+	for r in caplog.records:
+		if r.levelno == logging.INFO:
+			r_list.append(r.getMessage())
+	execution.information = r_list
+	r_list_2 = []
+	for r in caplog.records:
+		if r.levelno >= logging.WARNING:
+			r_list_2.append(r.getMessage())
+	execution.errors = r_list_2
 
 
 @when(parsers.re(r"je lance « (?P<command>[^»]+) »$"))
@@ -273,7 +284,11 @@ def utility(execution: Execution, caplog: pytest.LogCaptureFixture, program: str
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		execution.code = crash.main([program])
-	execution.errors = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
+	r_list = []
+	for r in caplog.records:
+		if r.levelno >= logging.WARNING:
+			r_list.append(r.getMessage())
+	execution.errors = r_list
 
 
 @when(parsers.parse("une erreur imprévue « {text} » arrête le lancement surveillé"))

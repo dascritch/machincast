@@ -92,7 +92,10 @@ def launch_simulation(
 
 
 def titles(context: Context) -> list[str]:
-	return [str(line.title) for line in result(context).plays]
+	titles = []
+	for line in result(context).plays:
+		titles.append(str(line.title))
+	return titles
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -319,9 +322,9 @@ def displayed_end(end: datetime | None) -> str:
 @then("la simulation donne les passages :")
 def expected_plays(context: Context, datatable: list[list[str]]) -> None:
 	_, *lines = datatable
-	obtained_list = [
-		[f"{p.start.astimezone():%Y-%m-%d %H:%M:%S}", displayed_end(p.end), str(p.title)] for p in result(context).plays
-	]
+	obtained_list = []
+	for p in result(context).plays:
+		obtained_list.append([f"{p.start.astimezone():%Y-%m-%d %H:%M:%S}", displayed_end(p.end), str(p.title)])
 	assert obtained_list == lines, obtained_list
 
 
@@ -329,9 +332,9 @@ def expected_plays(context: Context, datatable: list[list[str]]) -> None:
 def plays_with_event(context: Context, datatable: list[list[str]]) -> None:
 	"""https://github.com/dascritch/machincast/issues/399"""
 	_, *lines = datatable
-	obtained_list = [
-		[f"{p.start.astimezone():%Y-%m-%d %H:%M:%S}", str(p.title), str(p.event)] for p in result(context).plays
-	]
+	obtained_list = []
+	for p in result(context).plays:
+		obtained_list.append([f"{p.start.astimezone():%Y-%m-%d %H:%M:%S}", str(p.title), str(p.event)])
 	assert obtained_list == lines, obtained_list
 
 
@@ -342,7 +345,10 @@ def play_count(context: Context, count: int) -> None:
 
 @then(parsers.re(r"la simulation donne les titres (?P<list_>.+)"))
 def expected_titles(context: Context, list_: str) -> None:
-	assert titles(context) == [n.strip(" «»") for n in list_.split(",")], titles(context)
+	n_list = []
+	for n in list_.split(","):
+		n_list.append(n.strip(" «»"))
+	assert titles(context) == n_list, titles(context)
 
 
 @then("la base n'a pas changé")
@@ -365,14 +371,26 @@ def cycles(context: Context) -> None:
 
 @then("les deux simulations donnent les mêmes passages")
 def same_plays(context: Context) -> None:
-	first, second = ([str(p.title) for p in r.plays] for r in context.results)
+	r_list = []
+	for r in context.results:
+		p_list = []
+		for p in r.plays:
+			p_list.append(str(p.title))
+		r_list.append(p_list)
+	first, second = r_list
 	assert (first == second) and (len(set(first)) > 1), (first, second)
 
 
 @then(parsers.re(r"la simulation a consigné (?P<count>\d+) (?P<level>info|alerte|incident) « (?P<kind>[^»]+) »"))
 def records(context: Context, count: str, level: str, kind: str) -> None:
-	lines = Counter((n, shown(t)) for n, t, _ in result(context).log)
-	in_database = {label: value for value, label in LEVELS.items()}[level]
+	item_list = []
+	for n, t, _ in result(context).log:
+		item_list.append((n, shown(t)))
+	lines = Counter(item_list)
+	label_dict = {}
+	for value, label in LEVELS.items():
+		label_dict[label] = value
+	in_database = label_dict[level]
 	assert lines[(in_database, kind)] == int(count), result(context).log
 
 
@@ -387,13 +405,25 @@ def state_in_database(empty_database: Connection, name: str, state: str) -> None
 @then(parsers.parse("la simulation a écrit « {name} » en .csv, .pls et .html"))
 def written_files(context: Context, name: str) -> None:
 	assert context.directory is not None
-	expected_list = tuple(context.directory / f"{name}{extension}" for extension in (".csv", ".pls", ".html"))
+	extension_list = []
+	for extension in (".csv", ".pls", ".html"):
+		extension_list.append(context.directory / f"{name}{extension}")
+	expected_list = tuple(extension_list)
 	assert result(context).files == expected_list
-	assert all(path.is_file() for path in expected_list), list(context.directory.iterdir())
+	every_one = True
+	for path in expected_list:
+		if not (path.is_file()):
+			every_one = False
+			break
+	assert every_one, list(context.directory.iterdir())
 
 
 def file(context: Context, extension: str) -> Path:
-	return next(path for path in result(context).files if path.suffix == extension)
+	path_list = []
+	for path in result(context).files:
+		if path.suffix == extension:
+			path_list.append(path)
+	return path_list[0]
 
 
 @then(parsers.parse("le CSV de la simulation a {count:d} lignes de passage, sur les deux jours"))
@@ -401,7 +431,10 @@ def simulation_csv(context: Context, count: int) -> None:
 	with file(context, ".csv").open(encoding="utf-8-sig", newline="") as source:
 		lines = list(csv.DictReader(source, delimiter=";"))
 	assert len(lines) == count
-	assert {line["start"][:10] for line in lines} == {"2026-10-20", "2026-10-21"}, lines
+	line_set = set()
+	for line in lines:
+		line_set.add(line["start"][:10])
+	assert line_set == {"2026-10-20", "2026-10-21"}, lines
 
 
 @then(parsers.parse("la playlist de la simulation compte {count:d} entrées"))
@@ -423,7 +456,10 @@ def hide_sound(empty_database: Connection, name: str) -> None:
 
 
 def fetched_outputs(context: Context) -> dict[str, str]:
-	return {path.suffix: path.read_text(encoding="utf-8-sig") for path in (result(context).files) or (())}
+	fetched_outputs = {}
+	for path in (result(context).files) or (()):
+		fetched_outputs[path.suffix] = path.read_text(encoding="utf-8-sig")
+	return fetched_outputs
 
 
 @then(
@@ -442,7 +478,11 @@ def hidden_outputs(context: Context, visible: str, hides: str, text: str) -> Non
 def sequence_in_csv(context: Context, name: str, count: int) -> None:
 	with file(context, ".csv").open(encoding="utf-8-sig", newline="") as source:
 		lines = list(csv.DictReader(source, delimiter=";"))
-	assert sum(1 for line in lines if line["sequence"] == name) == count, lines
+	total = 0
+	for line in lines:
+		if line["sequence"] == name:
+			total += 1
+	assert total == count, lines
 
 
 @then(
@@ -473,4 +513,9 @@ def stop(context: Context, code: int, pattern: str) -> None:
 
 @then(parsers.parse("le journal du binaire a signalé « {text} »"))
 def reported_log(caplog: pytest.LogCaptureFixture, text: str) -> None:
-	assert any((r.levelno == logging.WARNING) and (text in r.getMessage()) for r in caplog.records), caplog.text
+	found = False
+	for r in caplog.records:
+		if (r.levelno == logging.WARNING) and (text in r.getMessage()):
+			found = True
+			break
+	assert found, caplog.text

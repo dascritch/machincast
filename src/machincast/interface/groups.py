@@ -40,7 +40,10 @@ def _banks(quantity: int) -> str:
 
 
 def _names(names: list[str]) -> str:
-	return ", ".join(_("“{name}”").format(name=name) for name in names)
+	name_list = []
+	for name in names:
+		name_list.append(_("“{name}”").format(name=name))
+	return ", ".join(name_list)
 
 
 def _to_banks(names: list[str]) -> str:
@@ -56,7 +59,10 @@ def _of_banks(names: list[str]) -> str:
 
 
 def _identifiers(rows: list[TupleRow]) -> set[int]:
-	return {int(str(row[0])) for row in rows}
+	identifiers = set()
+	for row in rows:
+		identifiers.add(int(str(row[0])))
+	return identifiers
 
 
 @dataclass(frozen=True)
@@ -111,7 +117,10 @@ def _add(connection: Connection, sounds: list[int], banks: list[int]) -> str:
 		present_list = _identifiers(
 			connection.execute("SELECT sound_id FROM bank_sounds WHERE bank_id = %s FOR UPDATE", (bank,)).fetchall()
 		)
-		new_list = [sound for sound in sounds if sound not in present_list]
+		new_list = []
+		for sound in sounds:
+			if sound not in present_list:
+				new_list.append(sound)
 		if new_list == []:
 			continue
 		line = connection.execute(
@@ -120,9 +129,12 @@ def _add(connection: Connection, sounds: list[int], banks: list[int]) -> str:
 		assert line is not None
 		end = int(str(line[0]))
 		with connection.cursor() as slider:
+			rank_list = []
+			for rank, sound in enumerate(new_list, start=1):
+				rank_list.append((bank, sound, end + rank))
 			slider.executemany(
 				"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
-				[(bank, sound, end + rank) for rank, sound in enumerate(new_list, start=1)],
+				rank_list,
 			)
 		added_list |= set(new_list)
 		touched_list.add(bank)
@@ -137,7 +149,10 @@ def _remove(connection: Connection, sounds: list[int], banks: list[int]) -> str:
 		"DELETE FROM bank_sounds WHERE sound_id = ANY(%s) AND bank_id = ANY(%s) RETURNING sound_id, bank_id",
 		(sounds, banks),
 	).fetchall()
-	touched_list = sorted({int(str(bank)) for _sound, bank in removed_list})
+	sound_set = set()
+	for _sound, bank in removed_list:
+		sound_set.add(int(str(bank)))
+	touched_list = sorted(sound_set)
 	# Les positions restantes se resserrent ; leur unicité n'est vérifiée qu'en fin de transaction.
 	connection.execute(
 		"UPDATE bank_sounds bs SET position = r.rang FROM ("
@@ -279,20 +294,19 @@ def action(category: str, key: str) -> Action:
 
 def sound_banks(connection: Connection, sounds: list[int]) -> list[int]:
 	"""Les banques où figure l'un des sonores, par nom. À appeler dans une transaction."""
-	return [
-		int(str(bank))
-		for (bank,) in connection.execute(
-			"SELECT b.id FROM banks b WHERE b.id IN (SELECT bank_id FROM bank_sounds WHERE sound_id = ANY(%s))"
-			" ORDER BY b.internal_name, b.id",
-			(sounds,),
-		)
-	]
+	sound_banks = []
+	for (bank,) in connection.execute(
+		"SELECT b.id FROM banks b WHERE b.id IN (SELECT bank_id FROM bank_sounds WHERE sound_id = ANY(%s))"
+		" ORDER BY b.internal_name, b.id",
+		(sounds,),
+	):
+		sound_banks.append(int(str(bank)))
+	return sound_banks
 
 
 def bank_names(connection: Connection, banks: list[int]) -> list[str]:
 	"""Les noms des banques, dans l'ordre donné. À appeler dans une transaction."""
-	names = {
-		int(str(bank)): str(name)
-		for bank, name in connection.execute("SELECT id, internal_name FROM banks WHERE id = ANY(%s)", (banks,))
-	}
+	names = {}
+	for bank, name in connection.execute("SELECT id, internal_name FROM banks WHERE id = ANY(%s)", (banks,)):
+		names[int(str(bank))] = str(name)
 	return [names[bank] for bank in banks if bank in names]

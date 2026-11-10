@@ -65,7 +65,7 @@ from machincast.conformation import conform
 from machincast.conversion import text_or_none
 from machincast.i18n import _
 from machincast.interface import dialogs, display, preferences
-from machincast.interface.card import Card, Connection, Refusal, sound_files
+from machincast.interface.card import Card, Connection, Refusal, rank_of, sound_files
 from machincast.interface.columns import Columns
 from machincast.interface.dialogs import Removal
 from machincast.interface.drop import FileDrop
@@ -135,7 +135,10 @@ def group_removal_warning(sounds: list[str], directories: list[str]) -> str:
 	"""L'avertissement d'un retrait de sonores des répertoires de la banque ; celui d'un seul sonore, pour un seul."""
 	if (len(sounds) == 1) and (len(directories) == 1):
 		return removal_warning(sounds[0], directories[0])
-	names = ", ".join(_("“{sound}”").format(sound=sound) for sound in sounds)
+	sound_list = []
+	for sound in sounds:
+		sound_list.append(_("“{sound}”").format(sound=sound))
+	names = ", ".join(sound_list)
 	ou = _("of directory {directories}, indexed").format(directories=directories[0])
 	if len(directories) > 1:
 		ou = _("of directories {list}, indexed").format(list=", ".join(directories))
@@ -266,12 +269,11 @@ class BankCard(Card):
 				).fetchone()
 				assert line is not None, f"banque {lu} absente"
 				bank = line
-				directories = [
-					str(directory)
-					for (directory,) in self.connection.execute(
-						"SELECT directory FROM bank_directories WHERE bank_id = %s", (lu,)
-					)
-				]
+				directories = []
+				for (directory,) in self.connection.execute(
+					"SELECT directory FROM bank_directories WHERE bank_id = %s", (lu,)
+				):
+					directories.append(str(directory))
 			if self.identifier is not None:
 				sounds = self._page(0, preferences.table_rows())
 		name, public_name, mode, hiding, no_repeat, *crossfades, min_duration, max_duration, detection = bank
@@ -281,7 +283,7 @@ class BankCard(Card):
 			self.ui.internal_name.setText(self.name_of_copy(self._name))
 		self.ui.public_name.setText(str((public_name) or ("")))
 		self.ui.mode.setCurrentIndex(self.ui.mode.findData(mode))
-		self.ui.hiding.setCurrentIndex(next(i for i, (value, _text) in enumerate(HIDINGS) if value is hiding))
+		self.ui.hiding.setCurrentIndex(rank_of(HIDINGS, hiding))
 		self.ui.no_repeat.setChecked(bool(no_repeat))
 		self.ui.detection_silences.setChecked(detection is True)
 		for (rule, duration), (value, seconds) in zip(
@@ -300,7 +302,10 @@ class BankCard(Card):
 		try:
 			with self._in_bulk():
 				self.ui.sounds.clear()
-			self.ui.sounds.addTopLevelItems([self._line(sound) for sound in sounds])
+			sound_list = []
+			for sound in sounds:
+				sound_list.append(self._line(sound))
+			self.ui.sounds.addTopLevelItems(sound_list)
 		finally:
 			self._paging = False
 		self._loaded_list = set(self._sounds())
@@ -323,11 +328,14 @@ class BankCard(Card):
 		if (rows is not None) and (len(lines) > rows):
 			lines = lines[:rows]
 			self._after = int(str(lines[-1][-1]))
-			self._tail = {
-				str(state): int(str(count))
-				for state, count in self.connection.execute(TAIL_STATES, (self.identifier, self._after))
-			}
-		return [tuple(line[:-1]) for line in lines]
+			count_dict = {}
+			for state, count in self.connection.execute(TAIL_STATES, (self.identifier, self._after)):
+				count_dict[str(state)] = int(str(count))
+			self._tail = count_dict
+		page = []
+		for line in lines:
+			page.append(tuple(line[:-1]))
+		return page
 
 	def load_more(self, rows: int | None = None) -> None:
 		"""La page suivante des sonores, ou tous ceux qui restent avec rows None ; ses lignes ne modifient pas la fiche
@@ -336,13 +344,18 @@ class BankCard(Card):
 			return
 		with self.connection.transaction():
 			sounds = self._page(self._after, rows)
-		lines = [self._line(sound) for sound in sounds]
+		lines = []
+		for sound in sounds:
+			lines.append(self._line(sound))
 		self._paging = True
 		try:
 			self.ui.sounds.addTopLevelItems(lines)
 		finally:
 			self._paging = False
-		self._loaded_list |= {int(str(sound[0])) for sound in sounds}
+		sound_set = set()
+		for sound in sounds:
+			sound_set.add(int(str(sound[0])))
+		self._loaded_list |= sound_set
 		self._show_count()
 		self._warn()
 
@@ -506,10 +519,19 @@ class BankCard(Card):
 		comme la liste des banques (machincast.interface.lists)."""
 		if self._bulk:
 			return
-		states = [(line.data(0, CHOSEN_STATE)) or (line.data(0, STATE)) for line in self._lines()]
+		states = []
+		for line in self._lines():
+			states.append((line.data(0, CHOSEN_STATE)) or (line.data(0, STATE)))
 		# Les sonores pas encore lus comptent aussi (https://github.com/dascritch/machincast/issues/383).
-		anomalies = sum(1 for state in states if state in SOUND_IN_ANOMALY)
-		anomalies += sum(count for state, count in self._tail.items() if state in SOUND_IN_ANOMALY)
+		anomalies = 0
+		for state in states:
+			if state in SOUND_IN_ANOMALY:
+				anomalies += 1
+		total = 0
+		for state, count in self._tail.items():
+			if state in SOUND_IN_ANOMALY:
+				total += count
+		anomalies += total
 		text = ""
 		if ("active" not in states) and (self._tail.get("active", 0) == 0):
 			text = BANK_WITHOUT_ACTIVE_SOUND
@@ -557,29 +579,35 @@ class BankCard(Card):
 			if identifier is None:
 				identifier = self.save_file(str(line.data(0, FILE)))
 			wanted.append(int(identifier))
-		in_database = [
-			int(str(sound))
-			for (sound,) in self.connection.execute(
-				"SELECT sound_id FROM bank_sounds WHERE bank_id = %s ORDER BY position FOR UPDATE", (bank,)
-			)
-		]
+		in_database = []
+		for (sound,) in self.connection.execute(
+			"SELECT sound_id FROM bank_sounds WHERE bank_id = %s ORDER BY position FOR UPDATE", (bank,)
+		):
+			in_database.append(int(str(sound)))
 		# Rattachés par une indexation depuis la lecture de la fiche : gardés, en fin de liste. Un ensemble, et non la
 		# liste voulue, pour qu'une banque de milliers de sonores s'enregistre en un temps linéaire
 		# (https://github.com/dascritch/machincast/issues/187).
 		kept_list = set(wanted)
-		attached_list = [
-			sound for sound in in_database if (sound not in self._loaded_list) and (sound not in kept_list)
-		]
-		existing_list = {
-			int(str(sound))
-			for (sound,) in self.connection.execute("SELECT id FROM sounds WHERE id = ANY(%s)", (wanted,))
-		}
-		order = [sound for sound in wanted if sound in existing_list] + attached_list
+		attached_list = []
+		for sound in in_database:
+			if (sound not in self._loaded_list) and (sound not in kept_list):
+				attached_list.append(sound)
+		existing_list = set()
+		for (sound,) in self.connection.execute("SELECT id FROM sounds WHERE id = ANY(%s)", (wanted,)):
+			existing_list.add(int(str(sound)))
+		sound_list = []
+		for sound in wanted:
+			if sound in existing_list:
+				sound_list.append(sound)
+		order = sound_list + attached_list
 		self.connection.execute("DELETE FROM bank_sounds WHERE bank_id = %s", (bank,))
 		with self.connection.cursor() as slider:
+			position_list = []
+			for position, sound in enumerate(order, start=1):
+				position_list.append((bank, sound, position))
 			slider.executemany(
 				"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
-				[(bank, sound, position) for position, sound in enumerate(order, start=1)],
+				position_list,
 			)
 
 	def _line(self, sound: tuple[object, ...]) -> QTreeWidgetItem:
@@ -613,17 +641,32 @@ class BankCard(Card):
 
 	def _lines(self) -> list[QTreeWidgetItem]:
 		list_ = self.ui.sounds
-		lines = [list_.topLevelItem(row) for row in range(list_.topLevelItemCount())]
-		return [line for line in lines if line is not None]
+		lines = []
+		for row in range(list_.topLevelItemCount()):
+			lines.append(list_.topLevelItem(row))
+		line_list = []
+		for line in lines:
+			if line is not None:
+				line_list.append(line)
+		return line_list
 
 	def _sounds(self) -> list[int]:
 		"""Les sonores de la fiche déjà en base."""
-		identifiers = [line.data(0, SOUND) for line in self._lines()]
-		return [int(identifier) for identifier in identifiers if identifier is not None]
+		identifiers = []
+		for line in self._lines():
+			identifiers.append(line.data(0, SOUND))
+		sounds = []
+		for identifier in identifiers:
+			if identifier is not None:
+				sounds.append(int(identifier))
+		return sounds
 
 	def _directories(self) -> list[str]:
 		list_ = self.ui.directories
-		return [list_.item(row).text() for row in range(list_.count())]
+		directories = []
+		for row in range(list_.count()):
+			directories.append(list_.item(row).text())
+		return directories
 
 	def _refresh_buttons(self) -> None:
 		"""Les boutons d'une ligne ne servent qu'à une ligne choisie. L'ordre des sonores ne compte, et ne se change,
@@ -653,7 +696,10 @@ class BankCard(Card):
 	def _add_directories(self, chosen_list: list[str]) -> None:
 		"""Sous leur forme normale, sans doublon."""
 		present_list = self._directories()
-		new_list = [directory for directory in map(os.path.normpath, chosen_list) if directory not in present_list]
+		new_list = []
+		for directory in map(os.path.normpath, chosen_list):
+			if directory not in present_list:
+				new_list.append(directory)
 		if new_list == []:
 			return
 		self._show_directories(present_list + list(dict.fromkeys(new_list)))
@@ -661,8 +707,16 @@ class BankCard(Card):
 
 	def _drop_in_directories(self, paths: list[Path]) -> None:
 		"""Les dossiers déposés s'ajoutent aux répertoires ; un fichier est ignoré, et la fiche le dit."""
-		self._add_directories([str(path) for path in paths if path.is_dir()])
-		self.flag_ignored([path for path in paths if not path.is_dir()], _("these are not directories"))
+		path_list = []
+		for path in paths:
+			if path.is_dir():
+				path_list.append(str(path))
+		self._add_directories(path_list)
+		path_list_2 = []
+		for path in paths:
+			if not path.is_dir():
+				path_list_2.append(path)
+		self.flag_ignored(path_list_2, _("these are not directories"))
 
 	def _drop_in_sounds(self, paths: list[Path]) -> None:
 		"""Les fichiers sonores déposés s'ajoutent en fin de liste, une fois chacun. Un fichier pas encore en base est
@@ -673,7 +727,10 @@ class BankCard(Card):
 			fetched_list = self.connection.execute(f"{FETCHED_SOUNDS} WHERE s.location = ANY(%s)", (files,)).fetchall()
 		by_file = {str(sound[4]): sound for sound in fetched_list}
 		present_list: set[object] = set(self._sounds())
-		present_list |= {line.data(0, FILE) for line in self._lines()}
+		line_set = set()
+		for line in self._lines():
+			line_set.add(line.data(0, FILE))
+		present_list |= line_set
 		lines = []
 		for file in files:
 			sound = by_file.get(file, (None, None, None, None, file, file, "preview"))
@@ -701,10 +758,15 @@ class BankCard(Card):
 		self.load_all()
 		chosen_list = dialogs.choose_sounds(self, self.connection, ALREADY_IN_BANK)
 		present_list = set(self._sounds())
-		new_list = [sound for sound in chosen_list if sound not in present_list]
+		new_list = []
+		for sound in chosen_list:
+			if sound not in present_list:
+				new_list.append(sound)
 		with self.connection.transaction():
 			fetched_list = self.connection.execute(f"{FETCHED_SOUNDS} WHERE s.id = ANY(%s)", (new_list,)).fetchall()
-		by_identifier = {int(str(sound[0])): sound for sound in fetched_list}
+		by_identifier = {}
+		for fetched in fetched_list:
+			by_identifier[int(str(fetched[0]))] = fetched
 		lines = [self._line(by_identifier[sound]) for sound in new_list if sound in by_identifier]
 		self.ui.sounds.addTopLevelItems(lines)
 		self._refresh_buttons()
@@ -726,11 +788,10 @@ class BankCard(Card):
 		if response is Removal.REMOVE:
 			# Du bas vers le haut, par rang : chercher chaque ligne dans la liste coûtait un parcours par ligne retirée.
 			list_ = self.ui.sounds
-			rows = [
-				row
-				for row in reversed(range(list_.topLevelItemCount()))
-				if ((line := list_.topLevelItem(row)) is not None) and (line.isSelected())
-			]
+			rows = []
+			for row in reversed(range(list_.topLevelItemCount())):
+				if ((line := list_.topLevelItem(row)) is not None) and (line.isSelected()):
+					rows.append(row)
 			with self._in_bulk():
 				for row in rows:
 					list_.takeTopLevelItem(row)

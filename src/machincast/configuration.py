@@ -455,7 +455,10 @@ class _Player:
 		duration = DEAD_AIR_DURATION
 		seconds = self.optional_count("dead_air", "duration")
 		if seconds is not None:
-			minimum, maximum = (bound.total_seconds() for bound in DEAD_AIR_DURATIONS)
+			bound_list = []
+			for bound in DEAD_AIR_DURATIONS:
+				bound_list.append(bound.total_seconds())
+			minimum, maximum = bound_list
 			if not (minimum <= seconds <= maximum):
 				raise self.error(
 					_(

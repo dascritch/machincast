@@ -187,12 +187,18 @@ def read_message(line: str) -> PlaybackState:
 	"""Un message de la socket d'état ; ValueError s'il est illisible."""
 	try:
 		message = json.loads(line)
-		upcoming = [_sound(fields, "estimated_start") for fields in (message.get("upcoming")) or ([])]
+		upcoming = []
+		for fields in (message.get("upcoming")) or ([]):
+			upcoming.append(_sound(fields, "estimated_start"))
+		sound_list = []
+		for sound in upcoming:
+			if sound is not None:
+				sound_list.append(sound)
 		return PlaybackState(
 			str(message["state"]),
 			_sound(message.get("current"), "start"),
 			_sound(message.get("next"), "estimated_start"),
-			tuple(sound for sound in upcoming if sound is not None),
+			tuple(sound_list),
 			_following_event(message.get("next_event")),
 		)
 	except (KeyError, TypeError, AttributeError) as error:

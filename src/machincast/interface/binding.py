@@ -42,13 +42,23 @@ def _pw_link(*arguments: str) -> str:
 
 
 def _ports(option: str) -> list[str]:
-	return [line.strip() for line in _pw_link(option).splitlines() if line.strip()]
+	ports = []
+	for line in _pw_link(option).splitlines():
+		if line.strip():
+			ports.append(line.strip())
+	return ports
 
 
 def pairs(on_air: str, preview: str) -> list[Pair]:
 	"""Les liens qui copient l'antenne sur la pré-écoute ; lève ImpossibleBinding s'il n'y en a aucun."""
-	outputs = [port for port in _ports("-o") if port.startswith(f"{on_air}:monitor_")]
-	entries = [port for port in _ports("-i") if port.startswith(f"{preview}:playback_")]
+	outputs = []
+	for port in _ports("-o"):
+		if port.startswith(f"{on_air}:monitor_"):
+			outputs.append(port)
+	entries = []
+	for port in _ports("-i"):
+		if port.startswith(f"{preview}:playback_"):
+			entries.append(port)
 	if (not outputs) or (not entries):
 		raise ImpossibleBinding(
 			_("PipeWire has no monitoring port for {on_air}, or no input for {preview}.").format(
@@ -56,13 +66,17 @@ def pairs(on_air: str, preview: str) -> list[Pair]:
 			)
 		)
 	if len(entries) == 1:
-		return [(output, entries[0]) for output in outputs]
-	by_channel = {entry.removeprefix(f"{preview}:playback_"): entry for entry in entries}
-	found_list = [
-		(output, by_channel[channel])
-		for output in outputs
-		if (channel := output.removeprefix(f"{on_air}:monitor_")) in by_channel
-	]
+		pairs = []
+		for output in outputs:
+			pairs.append((output, entries[0]))
+		return pairs
+	by_channel = {}
+	for entry in entries:
+		by_channel[entry.removeprefix(f"{preview}:playback_")] = entry
+	found_list = []
+	for output in outputs:
+		if (channel := output.removeprefix(f"{on_air}:monitor_")) in by_channel:
+			found_list.append((output, by_channel[channel]))
 	if found_list:
 		return found_list
 	return list(zip(outputs, entries, strict=False))

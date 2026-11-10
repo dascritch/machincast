@@ -57,11 +57,21 @@ def hour_or_none(context: Context, text: str) -> datetime | None:
 
 def table(datatable: list[list[str]]) -> list[dict[str, str]]:
 	headers, *lines = datatable
-	return [dict(zip(headers, (cell.strip() for cell in line), strict=True)) for line in lines]
+	table = []
+	for line in lines:
+		cell_list = []
+		for cell in line:
+			cell_list.append(cell.strip())
+		table.append(dict(zip(headers, cell_list, strict=True)))
+	return table
 
 
 def named(context: Context, name: str) -> Event:
-	return next(e for e in context.events if e.name == name)
+	e_list = []
+	for e in context.events:
+		if e.name == name:
+			e_list.append(e)
+	return e_list[0]
 
 
 def active(context: Context, instant: datetime) -> str | None:
@@ -83,27 +93,36 @@ def clock(context: Context, text: str) -> None:
 
 @given("les événements :")
 def events(context: Context, datatable: list[list[str]]) -> None:
-	context.events = [
-		Event(
-			id=number,
-			name=line["nom"],
-			priority=Priority(line["priorité"]),
-			start=hour_or_none(context, line["début"]),
-			end=hour_or_none(context, line["fin"]),
-			days=frozenset(DAYS.index(day.strip()) for day in line["jours"].split(",") if day.strip()),
-			modified_at=hour(context, line["modifié"]),
+	line_list = []
+	for number, line in enumerate(table(datatable), start=1):
+		day_list = []
+		for day in line["jours"].split(","):
+			if day.strip():
+				day_list.append(DAYS.index(day.strip()))
+		line_list.append(
+			Event(
+				id=number,
+				name=line["nom"],
+				priority=Priority(line["priorité"]),
+				start=hour_or_none(context, line["début"]),
+				end=hour_or_none(context, line["fin"]),
+				days=frozenset(day_list),
+				modified_at=hour(context, line["modifié"]),
+			)
 		)
-		for number, line in enumerate(table(datatable), start=1)
-	]
+	context.events = line_list
 
 
 @given("ces événements enregistrés en base")
 def in_database(context: Context, empty_database: Connection) -> None:
 	for e in context.events:
+		j_list = []
+		for j in sorted(e.days):
+			j_list.append(DAYS[j])
 		empty_database.execute(
 			"INSERT INTO events (internal_name, priority, starts_at, ends_at, recurrence_days, modified_at)"
 			" VALUES (%s, %s, %s, %s, %s::weekday[], %s)",
-			(e.name, e.priority.value, e.start, e.end, [DAYS[j] for j in sorted(e.days)], e.modified_at),
+			(e.name, e.priority.value, e.start, e.end, j_list, e.modified_at),
 		)
 
 

@@ -104,7 +104,10 @@ def purge_database(connection: psycopg.Connection[tuple[object, ...]]) -> None:
 
 def authorisation_command(name: str) -> str:
 	"""La commande qui autorise le compte à endosser les trois rôles, comme le fait install.sh."""
-	roles = ", ".join(str(role) for role in Role)
+	role_list = []
+	for role in Role:
+		role_list.append(str(role))
+	roles = ", ".join(role_list)
 	return f"sudo -u postgres psql -c 'GRANT {roles} TO \"{name}\" WITH INHERIT FALSE, SET TRUE'"
 
 
@@ -114,11 +117,16 @@ def check_authorisations(connection: psycopg.Connection[tuple[object, ...]]) -> 
 	Les tests ne créent jamais de compte PostgreSQL et n'attribuent jamais de rôle : le compte doit déjà y être
 	autorisé, par install.sh ou par l'utilisateur postgres (https://github.com/dascritch/machincast/pull/72).
 	"""
-	roles = [str(role) for role in Role]
+	roles = []
+	for role in Role:
+		roles.append(str(role))
 	lines = connection.execute(
 		"SELECT rolname FROM pg_roles WHERE rolname = ANY(%s) AND pg_has_role(current_user, oid, 'SET')", (roles,)
 	).fetchall()
-	missing_list = sorted(set(roles) - {str(line[0]) for line in lines})
+	line_set = set()
+	for line in lines:
+		line_set.add(str(line[0]))
+	missing_list = sorted(set(roles) - line_set)
 	if missing_list:
 		count = connection.execute("SELECT current_user").fetchone()
 		if count is not None:

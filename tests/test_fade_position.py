@@ -224,5 +224,8 @@ def parameters(trial: Trial, offset: str, duration: str, cd: str, departure: str
 		fetched_list.end_crossfade.total_seconds(),
 		fetched_list.arrival_volume,
 	)
-	expected_list = tuple(seconds(value) for value in (offset, duration, cd, departure, cf, arrival))
+	value_list = []
+	for value in (offset, duration, cd, departure, cf, arrival):
+		value_list.append(seconds(value))
+	expected_list = tuple(value_list)
 	assert fetched_rows == pytest.approx(expected_list), fetched_rows

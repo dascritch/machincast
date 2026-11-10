@@ -127,7 +127,9 @@ def log_line(empty_database: Connection, count: int, kind: str, mention: str) ->
 		"SELECT level::text, message, sound_id FROM log WHERE kind = %s", (stored(kind),)
 	).fetchall()
 	assert len(lines) == count, lines
-	identifiers = {int(str(i)) for (i,) in empty_database.execute("SELECT id FROM sounds").fetchall()}
+	identifiers = set()
+	for (i,) in empty_database.execute("SELECT id FROM sounds").fetchall():
+		identifiers.add(int(str(i)))
 	for level, message, id_sound in lines:
 		assert (level == "info") and (mention in shown(message)) and (id_sound in identifiers), lines
 
@@ -140,5 +142,8 @@ def empty_log(empty_database: Connection) -> None:
 @then(parsers.parse("seules les colonnes state et modified_at du sonore « {name} » ont changé"))
 def only_state(empty_database: Connection, before: Before, name: str) -> None:
 	after = sound_line(empty_database, name)
-	changed_list = {key for key in after if after[key] != before.lines[name][key]}
+	changed_list = set()
+	for key in after:
+		if after[key] != before.lines[name][key]:
+			changed_list.add(key)
 	assert changed_list == {"state", "modified_at"}, changed_list

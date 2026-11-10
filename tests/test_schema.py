@@ -58,10 +58,16 @@ def run_insertion(
 	context: Context, table: str, values: dict[str, str], return_: str = ""
 ) -> psycopg.Cursor[tuple[object, ...]]:
 	# Les valeurs sont des littéraux SQL écrits dans les scénarios : elles sont insérées telles quelles.
+	c_list = []
+	for c in values:
+		c_list.append(sql.Identifier(c))
+	v_list = []
+	for v in values.values():
+		v_list.append(sql.SQL(v))
 	query = sql.SQL("INSERT INTO {} ({}) VALUES ({})" + return_).format(
 		sql.Identifier(table),
-		sql.SQL(", ").join(sql.Identifier(c) for c in values),
-		sql.SQL(", ").join(sql.SQL(v) for v in values.values()),
+		sql.SQL(", ").join(c_list),
+		sql.SQL(", ").join(v_list),
 	)
 	return context.connection.execute(query)
 
@@ -76,8 +82,14 @@ def insert(context: Context, table: str, values: dict[str, str]) -> int:
 def analyse(context: Context, values: str) -> dict[str, str]:
 	# Remplace {banque}, {sonore}… par les identifiants de référence, sans toucher aux tableaux '{1,2,3}'.
 	values = REFERENCE.sub(lambda m: str(context.references.get(m.group(1), m.group(0))), values)
-	pairs = [p.split("=", 1) for p in SEPARATOR.split(values.strip().strip(",")) if p.strip()]
-	return {key.strip(): value.strip() for key, value in pairs}
+	pairs = []
+	for p in SEPARATOR.split(values.strip().strip(",")):
+		if p.strip():
+			pairs.append(p.split("=", 1))
+	analyse = {}
+	for key, value in pairs:
+		analyse[key.strip()] = value.strip()
+	return analyse
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -383,12 +395,17 @@ def present_tables(context: Context) -> set[str]:
 	lines = context.connection.execute(
 		"SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
 	).fetchall()
-	return {str(line[0]) for line in lines}
+	present_tables = set()
+	for line in lines:
+		present_tables.add(str(line[0]))
+	return present_tables
 
 
 @then("la base contient les tables :")
 def contains_tables(context: Context, datatable: list[list[str]]) -> None:
-	expected_list = {line[0] for line in datatable[1:]}
+	expected_list = set()
+	for line in datatable[1:]:
+		expected_list.add(line[0])
 	assert expected_list == set(TABLES)
 	assert expected_list <= present_tables(context)
 
@@ -467,7 +484,10 @@ def known_types(context: Context) -> None:
 		"SELECT t.typname FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace"
 		" WHERE t.typtype = 'e' AND n.nspname = 'public'"
 	).fetchall()
-	assert {str(name) for (name,) in lines} == set(TYPES)
+	name_set = set()
+	for (name,) in lines:
+		name_set.add(str(name))
+	assert name_set == set(TYPES)
 
 
 @then(parsers.re(r"le sonore « (?P<location>[^»]+) » a ses crossfades (?P<value>non paramétrés|de 0 seconde)"))
@@ -492,7 +512,10 @@ def apply(context: Context) -> None:
 
 def database_migrations(context: Context) -> list[str]:
 	lines = context.connection.execute("SELECT migration_id FROM _yoyo_migration ORDER BY migration_id").fetchall()
-	return [str(line[0]) for line in lines]
+	database_migrations = []
+	for line in lines:
+		database_migrations.append(str(line[0]))
+	return database_migrations
 
 
 @then(parsers.re(r"(?P<count>aucune|\d+) migrations? (?:n')?(?:a été appliquée|ont été appliquées)"))
@@ -507,7 +530,10 @@ def applied_count(context: Context, count: str) -> None:
 
 @then(parsers.parse("les migrations appliquées à la base de test sont « {migration} »"))
 def applied_migrations(context: Context, migration: str) -> None:
-	assert database_migrations(context) == [name.strip() for name in migration.split(",")]
+	name_list = []
+	for name in migration.split(","):
+		name_list.append(name.strip())
+	assert database_migrations(context) == name_list
 
 
 # ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───

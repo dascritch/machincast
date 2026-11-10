@@ -123,7 +123,12 @@ def _satisfied(requirement: Requirement) -> bool:
 	capabilities = Gst.Caps.from_string(requirement.capabilities)
 	assert capabilities is not None
 	factories = Gst.ElementFactory.list_get_elements(requirement.item_type, Gst.Rank.MARGINAL)
-	return any(factory.can_sink_any_caps(capabilities) for factory in factories)
+	found = False
+	for factory in factories:
+		if factory.can_sink_any_caps(capabilities):
+			found = True
+			break
+	return found
 
 
 def check_decoders() -> list[Shortfall]:
@@ -134,7 +139,11 @@ def check_decoders() -> list[Shortfall]:
 	Gst.init(None)
 	gaps = []
 	for name, sound_format in FORMATS.items():
-		absent = next((e for e in sound_format.requirements if not _satisfied(e)), None)
+		absent = None
+		for e in sound_format.requirements:
+			if not _satisfied(e):
+				absent = e
+				break
 		if absent is not None:
 			gaps.append(Shortfall(name, (absent.package) or (sound_format.package)))
 	return gaps
@@ -148,17 +157,19 @@ STREAM_PROTOCOLS = {"http": "gstreamer1.0-plugins-good", "https": "gstreamer1.0-
 def check_streams() -> list[Shortfall]:
 	"""Protocoles de stream qu'aucune source GStreamer installée ne sait lire, avec le paquet à installer."""
 	Gst.init(None)
-	sources = [
-		f
-		for f in Gst.ElementFactory.list_get_elements(Gst.ELEMENT_FACTORY_TYPE_SRC, Gst.Rank.MARGINAL)
-		if f.get_uri_type() == Gst.URIType.SRC
-	]
-	fetched_list = {protocol for f in sources for protocol in ((f.get_uri_protocols()) or ([]))}
-	return [
-		Shortfall(_("stream {p}").format(p=p), package)
-		for p, package in STREAM_PROTOCOLS.items()
-		if p not in fetched_list
-	]
+	sources = []
+	for f in Gst.ElementFactory.list_get_elements(Gst.ELEMENT_FACTORY_TYPE_SRC, Gst.Rank.MARGINAL):
+		if f.get_uri_type() == Gst.URIType.SRC:
+			sources.append(f)
+	fetched_list = set()
+	for f in sources:
+		for protocol in (f.get_uri_protocols()) or ([]):
+			fetched_list.add(protocol)
+	check_streams = []
+	for p, package in STREAM_PROTOCOLS.items():
+		if p not in fetched_list:
+			check_streams.append(Shortfall(_("stream {p}").format(p=p), package))
+	return check_streams
 
 
 def check_output(configuration: Configuration, plugins: dict[AudioOutput, Plugin] = PLUGINS) -> list[Shortfall]:
@@ -206,7 +217,11 @@ def read_version(plugin: str | None) -> str | None:
 
 
 def _numbers(version: str) -> tuple[int, ...]:
-	return tuple(int(number) for number in version.split(".")[:2] if number.isdigit())
+	number_list = []
+	for number in version.split(".")[:2]:
+		if number.isdigit():
+			number_list.append(int(number))
+	return tuple(number_list)
 
 
 def check_versions() -> list[Old]:
@@ -252,7 +267,10 @@ def _migrate(configuration: Configuration) -> int:
 
 
 def _check(configuration: Configuration) -> int:
-	checked = ".".join(str(number) for number in CHECKED_VERSION)
+	number_list = []
+	for number in CHECKED_VERSION:
+		number_list.append(str(number))
+	checked = ".".join(number_list)
 	for old in check_versions():
 		log.warning(
 			_(
@@ -449,7 +467,9 @@ def list_items_devices(configuration: Configuration) -> str:
 	audio = configuration.audio
 	roles = {audio.device: _("on air"), audio.preview: _("pre-listen")}
 	found_list = audio_outputs.devices(audio.output)
-	lines = [f"{p.identifier}\t{p.name}\t{roles.get(p.identifier, '')}".rstrip("\t") for p in found_list]
+	lines = []
+	for p in found_list:
+		lines.append(f"{p.identifier}\t{p.name}\t{roles.get(p.identifier, '')}".rstrip("\t"))
 	if found_list:
 		return "\n".join(lines) + "\n"
 	lines = [_("no “{output}” output device; output devices seen by GStreamer:").format(output=audio.output)]

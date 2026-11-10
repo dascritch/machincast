@@ -227,13 +227,19 @@ class SimulationScreen(QWidget):
 	def _finish(self, process: QProcess, code: int, period: tuple[datetime, datetime]) -> None:
 		errors = bytes(process.readAllStandardError().data()).decode("utf-8", errors="replace").splitlines()
 		self._end(process)
-		anomalies = [line.split(ANOMALY_PREFIX, 1)[1] for line in errors if ANOMALY_PREFIX in line]
+		anomalies = []
+		for line in errors:
+			if ANOMALY_PREFIX in line:
+				anomalies.append(line.split(ANOMALY_PREFIX, 1)[1])
 		path = self.temporary / f"{NAME}.csv"
 		if (code != 0) or (not path.exists()):
 			reason = _("Machin player stopped without saying anything")
 			# Chaque message de Machin player commence par son horodatage (machincast.log) ; un message peut tenir
 			# sur plusieurs lignes.
-			messages = [TIMESTAMP.sub("", line) for line in errors if TIMESTAMP.match(line)]
+			messages = []
+			for line in errors:
+				if TIMESTAMP.match(line):
+					messages.append(TIMESTAMP.sub("", line))
 			if messages:
 				reason = messages[-1]
 			self.count.setText(_("Simulation impossible: {reason}").format(reason=reason))
@@ -248,14 +254,20 @@ class SimulationScreen(QWidget):
 	def _read(self, path: Path) -> int:
 		with path.open(encoding="utf-8-sig", newline="") as file:
 			for line in csv.DictReader(file, delimiter=";"):
-				self.model.appendRow([QStandardItem(line[field]) for field in FIELDS])
+				field_list = []
+				for field in FIELDS:
+					field_list.append(QStandardItem(line[field]))
+				self.model.appendRow(field_list)
 		return self.model.rowCount()
 
 	def lines(self) -> list[list[str]]:
-		return [
-			[str(self.model.item(row, column).text()) for column in range(self.model.columnCount())]
-			for row in range(self.model.rowCount())
-		]
+		lines = []
+		for row in range(self.model.rowCount()):
+			column_list = []
+			for column in range(self.model.columnCount()):
+				column_list.append(str(self.model.item(row, column).text()))
+			lines.append(column_list)
+		return lines
 
 	def _export(self) -> None:
 		assert self.period is not None

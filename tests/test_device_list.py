@@ -141,8 +141,16 @@ def empty_list(context: SimpleNamespace) -> None:
 
 @then("le journal avertit que le moniteur de périphériques n'a pas fini de démarrer")
 def warning(caplog: pytest.LogCaptureFixture) -> None:
-	messages = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
-	assert any(("moniteur de périphériques" in m) and ("pas fini de démarrer" in m) for m in messages), messages
+	messages = []
+	for r in caplog.records:
+		if r.levelno == logging.WARNING:
+			messages.append(r.getMessage())
+	found = False
+	for m in messages:
+		if ("moniteur de périphériques" in m) and ("pas fini de démarrer" in m):
+			found = True
+			break
+	assert found, messages
 
 
 @then("chaque processus a rendu la main normalement")

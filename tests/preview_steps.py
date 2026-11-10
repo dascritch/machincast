@@ -160,7 +160,9 @@ def commands(interface: Context, commands: str) -> None:
 		if active:
 			button_state = "actif"
 		fetched_list.append(f"{name} {button_state}")
-	expected_list = [c.replace("active", "actif").replace("inactive", "inactif") for c in commands.split(", ")]
+	expected_list = []
+	for c in commands.split(", "):
+		expected_list.append(c.replace("active", "actif").replace("inactive", "inactif"))
 	assert fetched_list == expected_list
 
 
@@ -204,5 +206,12 @@ def ask(interface: Context, empty_database: Connection, title: str) -> None:
 def without_button(interface: Context) -> None:
 	"""https://github.com/dascritch/machincast/issues/245 : l'entrée du menu « Diffusion » remplace le bouton."""
 	opened = window(interface)
-	outside_tabs = [button for button in opened.findChildren(QPushButton) if not opened.ui.tabs.isAncestorOf(button)]
-	assert [button.text() for button in outside_tabs if "Pré-écoute" in button.text()] == []
+	outside_tabs = []
+	for button in opened.findChildren(QPushButton):
+		if not opened.ui.tabs.isAncestorOf(button):
+			outside_tabs.append(button)
+	button_list = []
+	for button in outside_tabs:
+		if "Pré-écoute" in button.text():
+			button_list.append(button.text())
+	assert button_list == []

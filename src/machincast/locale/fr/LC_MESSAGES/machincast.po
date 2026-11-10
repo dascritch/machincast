@@ -1072,11 +1072,6 @@ msgstr ""
 
 #: machincast/installation.py
 #, python-brace-format
-msgid "stream {p}"
-msgstr "stream {p}"
-
-#: machincast/installation.py
-#, python-brace-format
 msgid "schema up to date in database {name}"
 msgstr "schéma à jour dans la base {name}"
 
@@ -1102,6 +1097,11 @@ msgid ""
 msgstr ""
 "antenne sur la sortie {output}, à renseigner : le service de diffusion "
 "refusera de démarrer tant que audio.device ne la donne pas"
+
+#: machincast/installation.py
+#, python-brace-format
+msgid "stream {p}"
+msgstr "stream {p}"
 
 #: machincast/installation.py
 #, python-brace-format
@@ -2435,11 +2435,6 @@ msgstr ""
 
 #: machincast/interface/deletion.py
 #, python-brace-format
-msgid "{removal};"
-msgstr "{removal} ;"
-
-#: machincast/interface/deletion.py
-#, python-brace-format
 msgid "{removal}."
 msgstr "{removal}."
 
@@ -2464,6 +2459,11 @@ msgid ""
 "It is the fallback event of streams {names}, which will have none any more."
 msgstr ""
 "Il est l'événement de secours des streams {names}, qui n'en auront plus."
+
+#: machincast/interface/deletion.py
+#, python-brace-format
+msgid "{removal};"
+msgstr "{removal} ;"
 
 #: machincast/interface/deletion.py
 #: machincast/interface/suggestions.py
@@ -4362,13 +4362,13 @@ msgstr "Ce sonore n'est plus en base."
 
 #: machincast/interface/sound_card.py
 #, python-brace-format
-msgid "{key}: {value}"
-msgstr "{key} : {value}"
+msgid "Entered by hand, no longer changed by the indexer: {list}."
+msgstr "Saisis à la main, que l'indexeur ne modifie plus : {list}."
 
 #: machincast/interface/sound_card.py
 #, python-brace-format
-msgid "Entered by hand, no longer changed by the indexer: {list}."
-msgstr "Saisis à la main, que l'indexeur ne modifie plus : {list}."
+msgid "{key}: {value}"
+msgstr "{key} : {value}"
 
 #: machincast/interface/sound_card.py
 #, python-brace-format
@@ -5623,11 +5623,6 @@ msgid "{on_air}, lending its name to “{name}”"
 msgstr "{on_air}, qui prête son nom à « {name} »"
 
 #: machincast/player/broadcast.py
-#, python-brace-format
-msgid "Next {rank}"
-msgstr "Suivant {rank}"
-
-#: machincast/player/broadcast.py
 msgid "state socket unavailable"
 msgstr "socket d'état indisponible"
 
@@ -5676,6 +5671,11 @@ msgstr "{ignored} : aucun stream actif ne suit le feed « {name} »"
 #, python-brace-format
 msgid "{address}: the event of the stream is no longer on air"
 msgstr "{address} : l'événement du stream n'est plus à l'antenne"
+
+#: machincast/player/broadcast.py
+#, python-brace-format
+msgid "Next {rank}"
+msgstr "Suivant {rank}"
 
 #: machincast/player/broadcast.py
 #, python-brace-format

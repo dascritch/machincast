@@ -208,7 +208,9 @@ def clock_to(bench: Bench, instant: str) -> None:
 
 @given(parsers.re(r"le fil musical permanent « (?P<name>[^»]+) », avec les sonores (?P<list_>.+)"))
 def feed(bench: Bench, empty_database: Connection, tmp_path: Path, name: str, list_: str) -> None:
-	names = [n.strip(" «»") for n in list_.split(",")]
+	names = []
+	for n in list_.split(","):
+		names.append(n.strip(" «»"))
 	event(bench, empty_database, tmp_path, name, "background_programming", None, None, names)
 
 
@@ -229,7 +231,10 @@ def feed_with_bank(
 		(bank, chosen),
 	).fetchone()
 	assert created is not None
-	for position, sound_name in enumerate((n.strip(" «»") for n in list_.split(",")), start=1):
+	n_list = []
+	for n in list_.split(","):
+		n_list.append(n.strip(" «»"))
+	for position, sound_name in enumerate(n_list, start=1):
 		empty_database.execute(
 			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(created[0], create_sound(bench, empty_database, tmp_path, sound_name), position),
@@ -287,6 +292,9 @@ def sound_show(
 	chosen = "special"
 	if category == "l'émission":
 		chosen = "show"
+	n_list = []
+	for n in list_.split(","):
+		n_list.append(n.strip(" «»"))
 	event(
 		bench,
 		empty_database,
@@ -295,7 +303,7 @@ def sound_show(
 		chosen,
 		hour(f"2026-10-14 {start}"),
 		hour(f"2026-10-14 {end}"),
-		[n.strip(" «»") for n in list_.split(",")],
+		n_list,
 	)
 
 
@@ -313,7 +321,9 @@ def empty_show(bench: Bench, empty_database: Connection, tmp_path: Path, name: s
 def special_without_sound_end(
 	bench: Bench, empty_database: Connection, tmp_path: Path, name: str, start: str, list_: str
 ) -> None:
-	names = [n.strip(" «»") for n in list_.split(",")]
+	names = []
+	for n in list_.split(","):
+		names.append(n.strip(" «»"))
 	event(bench, empty_database, tmp_path, name, "special", hour(f"2026-10-14 {start}"), None, names)
 
 
@@ -404,7 +414,10 @@ def sequence_feed(bench: Bench, empty_database: Connection, tmp_path: Path, feed
 			"INSERT INTO sequences (internal_name) VALUES (%s) RETURNING id", (name.strip(" «»"),)
 		).fetchone()
 		assert sequence is not None
-		for position, sound_name in enumerate((n.strip(" «»") for n in sounds.split(",")), start=1):
+		n_list = []
+		for n in sounds.split(","):
+			n_list.append(n.strip(" «»"))
+		for position, sound_name in enumerate(n_list, start=1):
 			empty_database.execute(
 				"INSERT INTO sequence_items (sequence_id, position, sound_id) VALUES (%s, %s, %s)",
 				(sequence[0], position, create_sound(bench, empty_database, tmp_path, sound_name)),
@@ -436,7 +449,10 @@ def sequence_feed_then_bank(
 		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'random') RETURNING id", (bank,)
 	).fetchone()
 	assert created is not None
-	for position, sound_name in enumerate((n.strip(" «»") for n in of_the_bank.split(",")), start=1):
+	n_list = []
+	for n in of_the_bank.split(","):
+		n_list.append(n.strip(" «»"))
+	for position, sound_name in enumerate(n_list, start=1):
 		empty_database.execute(
 			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(created[0], create_sound(bench, empty_database, tmp_path, sound_name), position),
@@ -527,7 +543,10 @@ def sound_bank(empty_database: Connection, name: str, list_: str) -> None:
 		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'sequential') RETURNING id", (name,)
 	).fetchone()
 	assert created is not None
-	for position, sound_name in enumerate((n.strip(" «»") for n in list_.split(",")), start=1):
+	n_list = []
+	for n in list_.split(","):
+		n_list.append(n.strip(" «»"))
+	for position, sound_name in enumerate(n_list, start=1):
 		empty_database.execute(
 			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(created[0], sound(empty_database, sound_name), position),
@@ -752,20 +771,36 @@ def plays(database: Connection) -> list[tuple[str, datetime, datetime | None, bo
 		" LEFT JOIN airplay f ON f.play_id = d.play_id AND f.line_type = 'end'"
 		" WHERE d.line_type = 'start' ORDER BY d.logged_at, d.id"
 	).fetchall()
-	return [(str(t), d, f, s) for t, d, f, s in lines]  # type: ignore[misc]
+	plays = []
+	for t, d, f, s in lines:
+		plays.append((str(t), d, f, s))
+	return plays  # type: ignore[misc]
 
 
 def play(database: Connection, name: str) -> tuple[str, datetime, datetime | None, bool | None]:
-	return next(p for p in plays(database) if p[0] == name)
+	p_list = []
+	for p in plays(database):
+		if p[0] == name:
+			p_list.append(p)
+	return p_list[0]
 
 
 def log(database: Connection) -> list[tuple[str, str]]:
-	return [(str(n), shown(t)) for n, t in database.execute("SELECT level::text, kind FROM log ORDER BY id").fetchall()]
+	log = []
+	for n, t in database.execute("SELECT level::text, kind FROM log ORDER BY id").fetchall():
+		log.append((str(n), shown(t)))
+	return log
 
 
 @then(parsers.re(r"l'airplay montre les passages (?P<list_>.+)"))
 def airplay(empty_database: Connection, list_: str) -> None:
-	assert [p[0] for p in plays(empty_database)] == [n.strip(" «»") for n in list_.split(",")], plays(empty_database)
+	p_list = []
+	for p in plays(empty_database):
+		p_list.append(p[0])
+	n_list = []
+	for n in list_.split(","):
+		n_list.append(n.strip(" «»"))
+	assert p_list == n_list, plays(empty_database)
 
 
 def title(database: Connection, sound: int) -> str:
@@ -775,11 +810,17 @@ def title(database: Connection, sound: int) -> str:
 
 
 def announcements(bench: Bench, database: Connection) -> list[str]:
-	return [title(database, planned.choice.sound) for planned in broadcast(bench).upcoming]
+	announcements = []
+	for planned in broadcast(bench).upcoming:
+		announcements.append(title(database, planned.choice.sound))
+	return announcements
 
 
 def list_(text: str) -> list[str]:
-	return [name.strip(" «»") for name in text.split(",")]
+	name_list = []
+	for name in text.split(","):
+		name_list.append(name.strip(" «»"))
+	return name_list
 
 
 @then(parsers.parse("le prochain sonore réservé est « {name} »"))
@@ -809,7 +850,9 @@ def note(bench: Bench, empty_database: Connection, notes: list[str]) -> None:
 
 @then(parsers.parse("le passage n°{play:d} est le sonore noté n°{rank:d}"))
 def noted_play(empty_database: Connection, notes: list[str], play: int, rank: int) -> None:
-	played_list = [p[0] for p in plays(empty_database)]
+	played_list = []
+	for p in plays(empty_database):
+		played_list.append(p[0])
 	assert played_list[play - 1] == notes[rank - 1], (played_list, notes)
 
 
@@ -834,7 +877,13 @@ def detailed_airplay(empty_database: Connection, datatable: list[list[str]]) -> 
 		[title, f"{start.astimezone():%H:%M:%S}", end_hour(end), "oui" if without_incident else "non"]
 		for title, start, end, without_incident in plays(empty_database)
 	]
-	assert obtained_list == [[value.strip() for value in line] for line in lines], obtained_list
+	line_list = []
+	for line in lines:
+		value_list = []
+		for value in line:
+			value_list.append(value.strip())
+		line_list.append(value_list)
+	assert obtained_list == line_list, obtained_list
 
 
 @then(
@@ -877,12 +926,18 @@ ON_AIR_KINDS = ("début d'événement", "fin d'événement", "début de séquenc
 @then("le log note pour les événements et les séquences :")
 def on_air_log(empty_database: Connection, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
+	kind_list = []
+	for kind in ON_AIR_KINDS:
+		kind_list.append(stored(kind))
 	fetched_list = empty_database.execute(
 		"SELECT l.logged_at, l.level::text, l.kind, l.message, e.internal_name FROM log l"
 		" LEFT JOIN events e ON e.id = l.event_id WHERE l.kind = ANY(%s) ORDER BY l.id",
-		([stored(kind) for kind in ON_AIR_KINDS],),
+		(kind_list,),
 	).fetchall()
-	fetched_list = [(t, n, shown(k), shown(m), e) for t, n, k, m, e in fetched_list]
+	e_list = []
+	for t, n, k, m, e in fetched_list:
+		e_list.append((t, n, shown(k), shown(m), e))
+	fetched_list = e_list
 	expected_list = [
 		(hour(timestamp.strip()), "info", kind.strip(), message.strip(), event.strip())
 		for timestamp, kind, message, event in rows
@@ -924,7 +979,10 @@ def sound_crossfade(empty_database: Connection, name: str, duration: str, side: 
 
 @given(parsers.re(r"l'événement de secours « (?P<name>[^»]+) », avec les sonores (?P<list_>.+)"))
 def fallback_event(bench: Bench, empty_database: Connection, tmp_path: Path, name: str, list_: str) -> None:
-	event(bench, empty_database, tmp_path, name, "fallback", None, None, [n.strip(" «»") for n in list_.split(",")])
+	n_list = []
+	for n in list_.split(","):
+		n_list.append(n.strip(" «»"))
+	event(bench, empty_database, tmp_path, name, "fallback", None, None, n_list)
 
 
 @given(parsers.parse("le fichier du sonore « {name} » a été supprimé"))
@@ -948,7 +1006,10 @@ def sounds_of(database: Connection, event: str) -> set[str]:
 		" JOIN sounds s ON s.id = ee.sound_id WHERE e.internal_name = %s",
 		(event,),
 	).fetchall()
-	return {str(line[0]) for line in lines}
+	sounds_of = set()
+	for line in lines:
+		sounds_of.add(str(line[0]))
+	return sounds_of
 
 
 @then("l'airplay ne montre aucun passage")

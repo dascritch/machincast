@@ -627,7 +627,11 @@ def _tab(window: MainWindow, title: str) -> None:
 
 def _screen[T](window: MainWindow, category: type[T]) -> T:
 	tabs = window.ui.tabs
-	(found,) = [screen for index in range(tabs.count()) if isinstance(screen := tabs.widget(index), category)]
+	index_list = []
+	for index in range(tabs.count()):
+		if isinstance(screen := tabs.widget(index), category):
+			index_list.append(screen)
+	(found,) = index_list
 	return found
 
 
@@ -698,7 +702,11 @@ def produce(directory: Path) -> dict[str, Path]:
 		take("liste-evenements", window)
 		window.open_list("Sonores")
 		take("liste-sonores", window)
-		(sounds,) = [list_ for list_ in window.lists if window._titles[list_] == "Sonores"]
+		list__list = []
+		for list_ in window.lists:
+			if window._titles[list_] == "Sonores":
+				list__list.append(list_)
+		(sounds,) = list__list
 		menu = sounds.columns.menu()
 		menu.popup(window.mapToGlobal(QPoint(400, 110)))
 		wait(lambda: menu.isVisible())
@@ -793,7 +801,10 @@ def _simulate(window: MainWindow) -> None:
 			name="simulation",
 			metadata=Metadata(hide=False, public_text="Radio Exemple"),
 		)
-	anomalies = [message for level, _kind, message in result.log if level != "info"]
+	anomalies = []
+	for level, _kind, message in result.log:
+		if level != "info":
+			anomalies.append(message)
 	plays = screen._read(screen.temporary / "simulation.csv")
 	screen.anomalies.addItems(anomalies)
 	screen.anomalies.setVisible(bool(anomalies))

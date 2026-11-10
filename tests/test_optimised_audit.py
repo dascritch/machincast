@@ -92,4 +92,7 @@ def launch(caplog: pytest.LogCaptureFixture, options: str) -> tuple[int, list[st
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		code = main(["--config", str(sample_configuration_path()), *options.split()])
-	return code, [message for _level, message in per_file(caplog.records)]
+	level_list = []
+	for _level, message in per_file(caplog.records):
+		level_list.append(message)
+	return code, level_list

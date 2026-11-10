@@ -118,7 +118,10 @@ def _account(uid: int) -> str:
 def _read(process: Path, accounts: Callable[[int], str]) -> Program | None:
 	"""Un processus disparu entre-temps, ou illisible, n'est pas un programme en cours."""
 	try:
-		line = [part for part in process.joinpath("cmdline").read_bytes().decode().split("\0") if part]
+		line = []
+		for part in process.joinpath("cmdline").read_bytes().decode().split("\0"):
+			if part:
+				line.append(part)
 		recognised = recognise(line)
 		if recognised is None:
 			return None
@@ -166,15 +169,24 @@ def _yes(true: bool) -> str:
 
 def list_items(programs: list[Program], current_account: str) -> str:
 	"""Les lignes pour install.sh : pid, du compte, service, et ce qu'il en affiche."""
-	return "".join(f"{p.pid}\t{_yes(p.account == current_account)}\t{_yes(p.service)}\t{p.label}\n" for p in programs)
+	p_list = []
+	for p in programs:
+		p_list.append(f"{p.pid}\t{_yes(p.account == current_account)}\t{_yes(p.service)}\t{p.label}\n")
+	return "".join(p_list)
 
 
 def save(programs: list[Program], state: Path) -> None:
-	state.write_text(json.dumps([asdict(program) for program in programs], ensure_ascii=False))
+	program_list = []
+	for program in programs:
+		program_list.append(asdict(program))
+	state.write_text(json.dumps(program_list, ensure_ascii=False))
 
 
 def reread(state: Path) -> list[Program]:
-	return [Program(**{**values, "arguments": tuple(values["arguments"])}) for values in json.loads(state.read_text())]
+	reread = []
+	for values in json.loads(state.read_text()):
+		reread.append(Program(**{**values, "arguments": tuple(values["arguments"])}))
+	return reread
 
 
 Launch = Callable[[list[str], str], None]
@@ -215,7 +227,11 @@ def restart(
 	diffusion n'y est pas : install.sh le relance lui-même."""
 	restarted_list: list[str] = []
 	rest: list[str] = []
-	graphic = any(environment.get(variable) for variable in GRAPHIC_SESSION)
+	graphic = False
+	for variable in GRAPHIC_SESSION:
+		if environment.get(variable):
+			graphic = True
+			break
 	terminal = _terminal(find)
 	prefix = ""
 	if simulation:

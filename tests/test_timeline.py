@@ -191,17 +191,24 @@ def no_area(trial: Trial) -> None:
 @then("la frise montre les zones :")
 def areas(trial: Trial, datatable: list[list[str]]) -> None:
 	assert trial.plan is not None
-	fetched_list = [
-		[
-			area.name,
-			f"{area.start:.2f}".replace(".", ","),
-			f"{area.end:.2f}".replace(".", ","),
-			HATCHINGS[area.hatching],
-			area.tooltip,
-		]
-		for area in trial.plan.areas()
-	]
-	assert fetched_list == [[cell.strip() for cell in row] for row in datatable[1:]]
+	fetched_list = []
+	for area in trial.plan.areas():
+		fetched_list.append(
+			[
+				area.name,
+				f"{area.start:.2f}".replace(".", ","),
+				f"{area.end:.2f}".replace(".", ","),
+				HATCHINGS[area.hatching],
+				area.tooltip,
+			]
+		)
+	row_list = []
+	for row in datatable[1:]:
+		cell_list = []
+		for cell in row:
+			cell_list.append(cell.strip())
+		row_list.append(cell_list)
+	assert fetched_list == row_list
 
 
 @then(parsers.parse("l'infobulle de la frise à {x:d} points est « {text} »"))
@@ -301,7 +308,12 @@ def mean_under_peaks(trial: Trial, width: int) -> None:
 	timeline.show_shape(trial.shape)
 	peaks, means = timeline.columns(), timeline.medium_columns()
 	assert len(peaks) == len(means)
-	assert all(mean <= peak for mean, peak in zip(means, peaks, strict=True))
+	every_one = True
+	for mean, peak in zip(means, peaks, strict=True):
+		if not (mean <= peak):
+			every_one = False
+			break
+	assert every_one
 	assert max(means) > 0.3
 
 
@@ -355,7 +367,12 @@ def without_hole(trial: Trial, width: int, de: str, a: str) -> None:
 	timeline.show_shape(trial.shape)
 	columns = timeline.columns()
 	left, right = round(timeline.seconds_to_x(seconds(de))), round(timeline.seconds_to_x(seconds(a)))
-	assert all(height > 0.4 for height in columns[left:right]), columns[left:right]
+	every_one = True
+	for height in columns[left:right]:
+		if not (height > 0.4):
+			every_one = False
+			break
+	assert every_one, columns[left:right]
 
 
 @then("la frise de cette forme d'onde se dessine pareil, active ou inactive")

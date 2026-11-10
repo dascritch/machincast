@@ -38,6 +38,7 @@ module.
 
 import logging
 import os
+from collections.abc import Sequence
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -99,10 +100,29 @@ NAME_LENGTH = 255
 """Longueur maximale d'un nom interne en base (varchar)."""
 
 
+def rank_of(choices: Sequence[tuple[object, str]], wanted: object) -> int:
+	"""Le rang du choix de valeur wanted, parmi des couples (valeur, texte) : celui à montrer dans une liste déroulante
+	(https://github.com/dascritch/machincast/issues/340). ValueError pour une valeur qui n'en est pas."""
+	for rank, (value, _text) in enumerate(choices):
+		if value == wanted:
+			return rank
+	raise ValueError(wanted)
+
+
 def sound_files(paths: list[Path]) -> tuple[list[str], list[Path]]:
 	"""Les fichiers sonores d'un dépôt, sous leur forme normale et dans l'ordre ; puis ce qui n'en est pas."""
-	sounds = [path for path in paths if (path.is_file()) and (is_sound_file(path))]
-	return [os.path.normpath(path) for path in sounds], [path for path in paths if path not in sounds]
+	sounds = []
+	for path in paths:
+		if (path.is_file()) and (is_sound_file(path)):
+			sounds.append(path)
+	path_list = []
+	for path in sounds:
+		path_list.append(os.path.normpath(path))
+	path_list_2 = []
+	for path in paths:
+		if path not in sounds:
+			path_list_2.append(path)
+	return path_list, path_list_2
 
 
 def copy_name(connection: Connection, table: str, name: str) -> str:
@@ -451,10 +471,11 @@ class Card(QWidget):
 	def flag_ignored(self, ignored: list[Path], reason: str, advice: str = "") -> None:
 		"""Ce que la fiche n'a pas pris d'un dépôt, et pourquoi."""
 		if ignored != []:
+			path_list = []
+			for path in ignored:
+				path_list.append(path.name)
 			self.message.setText(
-				_("Ignored, {reason}: {list}.{advice}").format(
-					reason=reason, list=", ".join(path.name for path in ignored), advice=advice
-				)
+				_("Ignored, {reason}: {list}.{advice}").format(reason=reason, list=", ".join(path_list), advice=advice)
 			)
 
 	def shut_down(self) -> None:
