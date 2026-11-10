@@ -58,6 +58,11 @@ msgstr ""
 "{monitor_startup:g} secondes : la liste des périphériques peut être "
 "incomplète"
 
+#: machincast/audio.py
+#, python-brace-format
+msgid "PipeWire of the broadcast service unreachable: {error}"
+msgstr "PipeWire du service de diffusion injoignable : {error}"
+
 #: machincast/cli.py
 #: machincast/crash.py
 msgid "FILE"
@@ -3942,6 +3947,17 @@ msgstr "Indisponible : périphérique de l'antenne à renseigner."
 #: machincast/interface/monitor.py
 #, python-brace-format
 msgid ""
+"Unavailable: the PipeWire of the broadcast service does not answer "
+"({error}); the account must belong to the machincast group, from a session "
+"opened after ./install.sh --service."
+msgstr ""
+"Indisponible : le PipeWire du service de diffusion ne répond pas ({error}) "
+"; le compte doit être du groupe machincast, dans une session ouverte après "
+"./install.sh --service."
+
+#: machincast/interface/monitor.py
+#, python-brace-format
+msgid ""
 "Unavailable: the monitoring port has given nothing for {freeze_delay:g} "
 "seconds."
 msgstr ""
@@ -3969,6 +3985,11 @@ msgstr "Indisponible : sortie de l'antenne inconnue."
 #, python-brace-format
 msgid "PulseAudio, {name}.monitor"
 msgstr "PulseAudio, {name}.monitor"
+
+#: machincast/interface/monitor.py
+#, python-brace-format
+msgid "PipeWire of the broadcast service, {name}"
+msgstr "PipeWire du service de diffusion, {name}"
 
 #: machincast/interface/monitor.py
 #, python-brace-format

@@ -45,7 +45,7 @@ gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
 from machincast import audio as audio_outputs  # noqa: E402
-from machincast import crash  # noqa: E402
+from machincast import crash, service  # noqa: E402
 from machincast import log as log_directory  # noqa: E402
 from machincast import shortcut as write_shortcut  # noqa: E402
 from machincast.audio import PLUGINS, TRIAL, Plugin, UnavailableAudioOutput, create_output  # noqa: E402
@@ -357,7 +357,7 @@ class Account:
 SERVICE_ACCOUNT = "machincast"
 """Le compte système du service de diffusion, et son groupe, où install.sh --service ajoute le compte de MachinCast
 (https://github.com/dascritch/machincast/issues/381) : les mêmes noms dans install.sh."""
-SERVICE_RUNTIME = Path("/run/machincast")
+SERVICE_RUNTIME = service.RUNTIME
 """Le répertoire d'exécution du service : la socket de son PipeWire, pipewire-0, et sa socket d'état. Partagé avec le
 groupe (2770), recréé à chaque démarrage du poste par tmpfiles.d."""
 SERVICE_STATE = Path("/var/lib/machincast")

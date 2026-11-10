@@ -42,6 +42,7 @@ from typing import Any
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast import service
 from machincast.i18n import _
 from machincast.protection import check_writing
 
@@ -213,8 +214,15 @@ class StateSocket:
 		"""Crée la socket ; lève BusyStateSocket si un autre Machin player l'a déjà ouverte."""
 		check_writing(self.path)
 		directory = self.path.parent
-		directory.mkdir(mode=0o700, parents=True, exist_ok=True)
-		os.chmod(directory, 0o700)
+		# Dans le répertoire du service, la socket est à son groupe : le compte de MachinCast la lit et y écrit ; le
+		# répertoire est à tmpfiles.d (https://github.com/dascritch/machincast/issues/381). Ailleurs, privée.
+		shared = directory == service.runtime()
+		mode = 0o600
+		if shared:
+			mode = 0o660
+		else:
+			directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+			os.chmod(directory, 0o700)
 		if (self.path.exists()) or (self.path.is_symlink()):
 			if self._busy():
 				raise BusyStateSocket(_("{path}: another Machin player is already broadcasting").format(path=self.path))
@@ -223,12 +231,12 @@ class StateSocket:
 			self.path.unlink()  # fichier de MachinCast : socket d'état laissée par un arrêt brutal
 		server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 		try:
-			old = os.umask(0o177)
+			old = os.umask(0o777 & ~mode)
 			try:
 				server.bind(str(self.path))
 			finally:
 				os.umask(old)
-			os.chmod(self.path, 0o600)
+			os.chmod(self.path, mode)
 			server.listen()
 			server.settimeout(0.2)
 		except BaseException:

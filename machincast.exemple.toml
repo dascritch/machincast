@@ -55,8 +55,9 @@ hide = false
 public_text = "Radio FMR"
 
 [player]
-# State socket of Machin player, read by the interface. Optional: by default
-# $XDG_RUNTIME_DIR/machincast/lecture.sock, private to the account and deleted when the machine restarts.
+# State socket of Machin player, read by the interface. Optional: by default /run/machincast/lecture.sock with
+# the broadcast service, shared with its group; otherwise $XDG_RUNTIME_DIR/machincast/lecture.sock, private to the
+# account. Both are deleted when the machine restarts.
 # state_socket = "/run/user/1000/machincast/lecture.sock"
 
 [crossfades]

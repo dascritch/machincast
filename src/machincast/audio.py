@@ -10,14 +10,16 @@ Verrouillé, le flux attend son périphérique, sans son, et WirePlumber le reli
 """
 
 import logging
+import socket
 from dataclasses import dataclass
 from datetime import timedelta
 
 import gi
 
 gi.require_version("Gst", "1.0")
-from gi.repository import GLib, Gst  # noqa: E402
+from gi.repository import GLib, GObject, Gst  # noqa: E402
 
+from machincast import service  # noqa: E402
 from machincast.configuration import AudioOutput  # noqa: E402
 from machincast.i18n import _  # noqa: E402
 
@@ -139,13 +141,68 @@ def identifier(appliance: Gst.Device) -> str | None:
 def devices(output: AudioOutput) -> list[Device]:
 	"""Les périphériques de sortie du poste pour cette sortie, dans l'ordre de GStreamer ; aucun pour la sortie
 	factice."""
+	return _devices(output, appliances())
+
+
+def _devices(output: AudioOutput, appliance_list: list[Gst.Device]) -> list[Device]:
 	types = APPLIANCE_TYPES.get(output, ())
 	found_list = []
-	for appliance in appliances():
+	for appliance in appliance_list:
 		name = identifier(appliance)
 		if (appliance_type(appliance) in types) and (name is not None):
 			found_list.append(Device(name, appliance.get_display_name()))
 	return found_list
+
+
+PIPEWIRE_PROVIDER = "pipewiredeviceprovider"
+_service_provider: tuple[Gst.DeviceProvider, socket.socket] | None = None
+"""Le fournisseur de périphériques du PipeWire du service, et sa connexion : démarré à la première liste, jamais
+arrêté, comme le moniteur du processus (https://github.com/dascritch/machincast/issues/305)."""
+
+
+def service_appliances() -> list[Gst.Device] | None:
+	"""Les périphériques de sortie du PipeWire du service de diffusion (https://github.com/dascritch/machincast/issues/381),
+	où joue l'antenne : un fournisseur PipeWire à lui, joint par sa socket, distinct de celui du moniteur du processus,
+	qui suit le PipeWire de la session. None sans PipeWire du service joignable."""
+	global _service_provider
+	Gst.init(None)
+	if _service_provider is None:
+		try:
+			connection = service.connect_pipewire()
+		except OSError as error:
+			log.warning(_("PipeWire of the broadcast service unreachable: {error}").format(error=error))
+			return None
+		if connection is None:
+			return None
+		factory = Gst.DeviceProviderFactory.find(PIPEWIRE_PROVIDER)
+		feature = None
+		if factory is not None:
+			feature = factory.load()
+		if not isinstance(feature, Gst.DeviceProviderFactory):
+			connection.close()
+			return None
+		provider = GObject.new(feature.get_device_provider_type())  # type: ignore[arg-type]
+		assert isinstance(provider, Gst.DeviceProvider)
+		provider.set_property("fd", connection.fileno())
+		if not provider.start():
+			connection.close()
+			return None
+		_service_provider = (provider, connection)
+	found_list = []
+	for appliance in _service_provider[0].get_devices():
+		if appliance.has_classes(OUTPUT_CLASS):
+			found_list.append(appliance)
+	return found_list
+
+
+def on_air_devices(output: AudioOutput) -> list[Device]:
+	"""Les périphériques où l'antenne peut jouer : sur la sortie PipeWire, ceux du PipeWire du service quand il tourne
+	(la carte de l'antenne est cachée aux sessions du poste) ; sinon ceux du poste."""
+	if output == "pipewire":
+		found = service_appliances()
+		if found is not None:
+			return _devices(output, found)
+	return devices(output)
 
 
 ICON = "machincast"

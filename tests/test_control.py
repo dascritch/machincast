@@ -16,7 +16,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.configuration import PROJECT_DIRECTORY
-from machincast.installation import Account, systemd_unit
+from machincast.installation import systemd_unit
 from machincast.interface import control
 from machincast.interface.control import service_configuration
 from tests.interface_steps import Context, configuration_file, window
@@ -295,12 +295,7 @@ def launches_in_terminal(station: Station, qtbot: QtBot) -> None:
 	qtbot.waitUntil(station.terminal.exists, timeout=5000)
 	arguments = station.terminal.read_text(encoding="utf-8").splitlines()
 	assert arguments == ["-e", str(PROJECT_DIRECTORY / "bin" / "Machin"), "player"], arguments
-	assert (
-		systemd_unit(Account("radio", "antenne", 1001), PROJECT_DIRECTORY).count(
-			f"ExecStart={PROJECT_DIRECTORY}/bin/Machin player\n"
-		)
-		== 1
-	)
+	assert systemd_unit(PROJECT_DIRECTORY).count(f"ExecStart={PROJECT_DIRECTORY}/bin/Machin player\n") == 1
 
 
 @given("l'interface lancée sur la configuration du service")
