@@ -5975,6 +5975,11 @@ msgstr "illisible : {error}"
 
 #: machincast/player/state.py
 #, python-brace-format
+msgid "{ignored_request}: more than {maximal_size} bytes"
+msgstr "{ignored_request} : plus de {maximal_size} octets"
+
+#: machincast/player/state.py
+#, python-brace-format
 msgid "{path}: another Machin player is already broadcasting"
 msgstr "{path} : un autre Machin player diffuse déjà"
 
@@ -5982,11 +5987,6 @@ msgstr "{path} : un autre Machin player diffuse déjà"
 #, python-brace-format
 msgid "{path} exists and is not a socket"
 msgstr "{path} existe et n'est pas une socket"
-
-#: machincast/player/state.py
-#, python-brace-format
-msgid "{ignored_request}: more than {maximal_size} bytes"
-msgstr "{ignored_request} : plus de {maximal_size} octets"
 
 #: machincast/player/state.py
 #, python-brace-format
