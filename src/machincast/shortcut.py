@@ -45,9 +45,17 @@ PLACES = {"menu": _("in the applications menu"), "desktop": _("on the desktop")}
 def _argument(text: str) -> str:
 	"""Un argument de la clé Exec, cité s'il contient un caractère réservé ; dans les guillemets, « " », « ` », « $ » et
 	« \\ » sont précédés d'une barre oblique inversée."""
-	if not any(character in RESERVED_LIST for character in text):
+	found = False
+	for character in text:
+		if character in RESERVED_LIST:
+			found = True
+			break
+	if not found:
 		return text
-	cites = "".join(f"\\{character}" if character in '"`$\\' else character for character in text)
+	character_list = []
+	for character in text:
+		character_list.append(f"\\{character}" if character in '"`$\\' else character)
+	cites = "".join(character_list)
 	return f'"{cites}"'
 
 
@@ -68,13 +76,15 @@ def write(directory: Path = PROJECT_DIRECTORY, icon: Path | None = None) -> str:
 	image = directory / ICON.relative_to(PROJECT_DIRECTORY)
 	if (icon is not None) and (usable_icon(icon)):
 		image = icon
-	translated = "".join(
-		f"GenericName[{code}]={i18n.load(code).gettext(GENERIC_NAME)}\n"
-		f"Comment[{code}]={i18n.load(code).gettext(COMMENT)}\n"
-		f"Keywords[{code}]={i18n.load(code).gettext(KEYWORDS)}\n"
-		for code in i18n.LANGUAGES
-		if code != i18n.SOURCE
-	)
+	code_list = []
+	for code in i18n.LANGUAGES:
+		if code != i18n.SOURCE:
+			code_list.append(
+				f"GenericName[{code}]={i18n.load(code).gettext(GENERIC_NAME)}\n"
+				f"Comment[{code}]={i18n.load(code).gettext(COMMENT)}\n"
+				f"Keywords[{code}]={i18n.load(code).gettext(KEYWORDS)}\n"
+			)
+	translated = "".join(code_list)
 	return f"""# Shortcut of the MachinCast interface (https://github.com/dascritch/machincast/issues/62).
 # Installed by install.sh, rewritten by the interface preferences when its icon changes; do not edit here.
 [Desktop Entry]
@@ -128,7 +138,11 @@ def installed_list() -> dict[str, Path]:
 	desktop = desktop_folder()
 	if desktop is not None:
 		found_list["desktop"] = desktop / NAME
-	return {place: path for place, path in found_list.items() if path.is_file()}
+	installed_list = {}
+	for place, path in found_list.items():
+		if path.is_file():
+			installed_list[place] = path
+	return installed_list
 
 
 def rewrite(icon: Path | None) -> list[str]:

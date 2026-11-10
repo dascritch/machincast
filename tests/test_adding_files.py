@@ -109,7 +109,10 @@ def close_during(interface: Context, resumption: threading.Event) -> None:
 @then(parsers.re(r"la barre d'état a annoncé, dans l'ordre, (?P<texts>.+)"))
 def ordinates_announcements(interface: Context, texts: str) -> None:
 	expected_list = re.findall(r"« (.+?) »(?:, |$)", texts)
-	final_list = [announces for announces in interface.announcements if announces.startswith("Vérification")]
+	final_list = []
+	for announces in interface.announcements:
+		if announces.startswith("Vérification"):
+			final_list.append(announces)
 	assert final_list == expected_list
 
 
@@ -138,7 +141,13 @@ def in_database(interface: Context, empty_database: Connection, datatable: list[
 		if isinstance(duration, timedelta):
 			duration = timedelta(seconds=round(duration.total_seconds()))
 		values = (location, sound_type, state, artist, title, duration)
-		found_list.append(dict(zip([header.strip() for header in headers], (str(v) for v in values), strict=True)))
+		header_list = []
+		for header in headers:
+			header_list.append(header.strip())
+		v_list = []
+		for v in values:
+			v_list.append(str(v))
+		found_list.append(dict(zip(header_list, v_list, strict=True)))
 	assert found_list == sorted(expected_list, key=lambda line: line["location"])
 
 

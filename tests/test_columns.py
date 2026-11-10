@@ -55,7 +55,11 @@ VIEWS = {
 
 
 def all_(screen: QWidget) -> list[Columns]:
-	return [columns for view in screen.findChildren(QAbstractItemView) for columns in view.findChildren(Columns)]
+	view_list = []
+	for view in screen.findChildren(QAbstractItemView):
+		for columns in view.findChildren(Columns):
+			view_list.append(columns)
+	return view_list
 
 
 def of_the_tab(interface: Context, title: str) -> Columns:
@@ -291,11 +295,10 @@ def intact_configuration(interface: Context) -> None:
 @then("chaque tableau de l'interface a des colonnes déplaçables, de largeur libre, avec le menu des colonnes de sa vue")
 def table_all(interface: Context) -> None:
 	opened = window(interface)
-	views = [
-		view
-		for view in opened.findChildren(QAbstractItemView)
-		if (isinstance(view, (QTableView, QTreeView))) and (not _in_calendar(view))
-	]
+	views = []
+	for view in opened.findChildren(QAbstractItemView):
+		if (isinstance(view, (QTableView, QTreeView))) and (not _in_calendar(view)):
+			views.append(view)
 	names = set()
 	for view in views:
 		(columns,) = view.findChildren(Columns)
@@ -303,10 +306,16 @@ def table_all(interface: Context) -> None:
 		assert header.sectionsMovable(), columns.name
 		# La dernière colonne affichée peut s'étirer jusqu'au bord du tableau ; les autres sont de largeur libre.
 		last = header.logicalIndex(header.count() - 1)
-		free_list = [column for column in range(header.count()) if column != last]
-		assert all(header.sectionResizeMode(column) == header.ResizeMode.Interactive for column in free_list), (
-			columns.name
-		)
+		free_list = []
+		for column in range(header.count()):
+			if column != last:
+				free_list.append(column)
+		every_one = True
+		for column in free_list:
+			if header.sectionResizeMode(column) != header.ResizeMode.Interactive:
+				every_one = False
+				break
+		assert every_one, columns.name
 		assert header.property(column_module.PROPERTY) == columns.name
 		names.add(columns.name)
 	assert names == VIEWS, sorted(names ^ VIEWS)
@@ -370,11 +379,10 @@ def abandon(interface: Context, tab_: str) -> None:
 
 @then("le clic droit hors des lignes de chaque tableau de l'interface ne propose que « Exporter ce tableau… »")
 def export_everywhere(interface: Context) -> None:
-	views = [
-		view
-		for view in window(interface).findChildren(QAbstractItemView)
-		if (isinstance(view, (QTableView, QTreeView))) and (not _in_calendar(view))
-	]
+	views = []
+	for view in window(interface).findChildren(QAbstractItemView):
+		if (isinstance(view, (QTableView, QTreeView))) and (not _in_calendar(view)):
+			views.append(view)
 	for view in views:
 		(columns,) = view.findChildren(Columns)
 		assert view.contextMenuPolicy() == Qt.ContextMenuPolicy.CustomContextMenu, columns.name

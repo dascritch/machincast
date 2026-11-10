@@ -49,7 +49,10 @@ BACKUPS = "sauvegardes"
 """Répertoire des sauvegardes, à côté du fichier de configuration, sauf --backups."""
 BACKUP_DELAY = 3600
 """Secondes laissées à pg_dump : une grosse base, sur un disque lent, prend du temps."""
-ROLES: tuple[str, ...] = tuple(role.value for role in Role)
+role_list = []
+for role in Role:
+	role_list.append(role.value)
+ROLES: tuple[str, ...] = tuple(role_list)
 """Les rôles que le compte doit pouvoir endosser."""
 CLOCK: Clock = SystemClock()
 """L'heure qui date les sauvegardes ; les scénarios la fixent."""

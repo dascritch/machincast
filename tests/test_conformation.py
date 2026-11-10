@@ -53,7 +53,10 @@ def text_conforms(conforms: str, expected: str) -> None:
 def file_tags(datatable: list[list[str]]) -> Gst.TagList:
 	Gst.init(None)
 	list_ = Gst.TagList.new_empty()
-	for tag, value in (row for row in datatable[1:]):
+	row_list = []
+	for row in datatable[1:]:
+		row_list.append(row)
+	for tag, value in row_list:
 		list_.add_value(Gst.TagMergeMode.APPEND, tag.strip(), decode(value.strip()))
 	return list_
 

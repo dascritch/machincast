@@ -134,7 +134,10 @@ def choose_output(interface: Context, name: str) -> None:
 
 @then(parsers.parse("il n'y a qu'une fenêtre de pré-écoute, titrée « {title} »"))
 def a_only(interface: Context, title: str) -> None:
-	opened_list = [w for w in QApplication.topLevelWidgets() if (isinstance(w, PreviewWindow)) and (w.isVisible())]
+	opened_list = []
+	for w in QApplication.topLevelWidgets():
+		if (isinstance(w, PreviewWindow)) and (w.isVisible()):
+			opened_list.append(w)
 	assert len(opened_list) == 1
 	assert opened_list[0].windowTitle() == title
 
@@ -165,13 +168,20 @@ def information(interface: Context, qtbot: QtBot, datatable: list[list[str]]) ->
 		return fetched == expected
 
 	def all_() -> bool:
-		return all(conforms(fields[name].text(), value) for name, value in expected_list)
+		every_one = True
+		for name, value in expected_list:
+			if not (conforms(fields[name].text(), value)):
+				every_one = False
+				break
+		return every_one
 
 	try:
 		qtbot.waitUntil(all_, timeout=DELAY)
 	except ExceededDelay as error:
 		# Les valeurs lues, pour comprendre l'écart sur un autre poste.
-		fetched_list = {name: fields[name].text() for name, _value in expected_list}
+		fetched_list = {}
+		for name, _value in expected_list:
+			fetched_list[name] = fields[name].text()
 		raise AssertionError(f"informations lues : {fetched_list}, attendues : {dict(expected_list)}") from error
 
 
@@ -202,7 +212,10 @@ def more_nothing(interface: Context) -> None:
 @then(parsers.re(r"la pré-écoute propose les sorties (?P<names>«.+)"))
 def offered_outputs(interface: Context, names: str) -> None:
 	choice = preview_window(interface).ui.output
-	assert [choice.itemText(index) for index in range(choice.count())] == NAME.findall(names)
+	index_list = []
+	for index in range(choice.count()):
+		index_list.append(choice.itemText(index))
+	assert index_list == NAME.findall(names)
 
 
 @then(parsers.parse("le fichier de configuration a pour pré-écoute « {identifier} », avec ses commentaires"))
@@ -211,8 +224,15 @@ def written_configuration(interface: Context, identifier: str) -> None:
 	text = path.read_text(encoding="utf-8")
 	assert tomllib.loads(text)["audio"]["preview"] == identifier
 	initial = interface.initial_configuration.decode("utf-8")
-	comments = [line for line in initial.splitlines() if line.startswith("#")]
-	assert comments == [line for line in text.splitlines() if line.startswith("#")]
+	comments = []
+	for line in initial.splitlines():
+		if line.startswith("#"):
+			comments.append(line)
+	line_list = []
+	for line in text.splitlines():
+		if line.startswith("#"):
+			line_list.append(line)
+	assert comments == line_list
 
 
 @then("le bouton « Pré-écoute… » de la fiche est inactif")
@@ -241,7 +261,13 @@ def outputs_and_states(interface: Context, datatable: list[list[str]]) -> None:
 		if model.item(index).isEnabled():
 			line_state = "active"
 		fetched_list.append([choice.itemText(index), line_state])
-	assert fetched_list == [[cell.strip() for cell in row] for row in datatable[1:]]
+	row_list = []
+	for row in datatable[1:]:
+		cell_list = []
+		for cell in row:
+			cell_list.append(cell.strip())
+		row_list.append(cell_list)
+	assert fetched_list == row_list
 
 
 @then(parsers.parse("le fichier de configuration a toujours pour pré-écoute « {identifier} »"))
@@ -271,7 +297,10 @@ def without_timeline(interface: Context) -> None:
 def areas(interface: Context, names: str) -> None:
 	plan = preview_window(interface).timeline.plan
 	assert plan is not None
-	assert [area.name for area in plan.areas()] == NAME.findall(names)
+	area_list = []
+	for area in plan.areas():
+		area_list.append(area.name)
+	assert area_list == NAME.findall(names)
 
 
 @then(parsers.parse("la frise de la pré-écoute résume « {text} »"))
@@ -283,7 +312,11 @@ def summary(interface: Context, text: str) -> None:
 def tooltip(interface: Context, name: str, text: str) -> None:
 	plan = preview_window(interface).timeline.plan
 	assert plan is not None
-	assert [area.tooltip for area in plan.areas() if area.name == name] == [text]
+	area_list = []
+	for area in plan.areas():
+		if area.name == name:
+			area_list.append(area.tooltip)
+	assert area_list == [text]
 
 
 @then("la forme d'onde de la pré-écoute est bientôt complète, silencieuse au début et sonore au milieu")

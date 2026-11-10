@@ -89,7 +89,10 @@ def _choice(block: Block, name: str) -> QComboBox:
 def output_type(block: Block, type: str, types: str) -> None:
 	choice = opened(block).ui.output
 	assert choice.currentText() == type
-	assert [choice.itemText(index) for index in range(choice.count())] == _list(types)
+	index_list = []
+	for index in range(choice.count()):
+		index_list.append(choice.itemText(index))
+	assert index_list == _list(types)
 
 
 @then(parsers.re(r"son choix de (?P<name>l'antenne|la pré-écoute) propose :"))
@@ -97,11 +100,13 @@ def offers(block: Block, name: str, datatable: list[list[str]]) -> None:
 	choice = _choice(block, name)
 	model = choice.model()
 	assert isinstance(model, QStandardItemModel)
-	shown_list = [
-		[choice.itemText(index), "active" if model.item(index).isEnabled() else "inactive"]
-		for index in range(choice.count())
-	]
-	assert shown_list == [[card.strip(), state.strip()] for card, state in datatable[1:]]
+	shown_list = []
+	for index in range(choice.count()):
+		shown_list.append([choice.itemText(index), "active" if model.item(index).isEnabled() else "inactive"])
+	card_list = []
+	for card, state in datatable[1:]:
+		card_list.append([card.strip(), state.strip()])
+	assert shown_list == card_list
 
 
 @when(parsers.re(r"j'y choisis pour (?P<name>l'antenne|la pré-écoute) « (?P<text>[^»]+) »"))
@@ -155,9 +160,15 @@ def line_tooltip(block: Block, text: str, tooltip: str) -> None:
 def locked_on_air(block: Block, state: str, tooltip: str | None) -> None:
 	ui = opened(block).ui
 	items = (ui.on_air, ui.test_on_air, ui.output)
-	assert [item.isEnabled() for item in items] == [state == "actifs"] * 3
+	item_list_2 = []
+	for item in items:
+		item_list_2.append(item.isEnabled())
+	assert item_list_2 == [state == "actifs"] * 3
 	if tooltip is not None:
-		assert [item.toolTip() for item in items] == [tooltip] * 3
+		item_list = []
+		for item in items:
+			item_list.append(item.toolTip())
+		assert item_list == [tooltip] * 3
 
 
 @then("le choix de la pré-écoute et son bouton « Tester » sont actifs")

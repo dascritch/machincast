@@ -206,7 +206,10 @@ def journal(pid: int) -> str:
 		result = subprocess.run(command, capture_output=True, text=True, timeout=WPCTL_DELAY, stdin=subprocess.DEVNULL)
 	except (OSError, subprocess.SubprocessError) as error:
 		return _("journalctl impossible: {error}").format(error=error)
-	lines = [line for line in result.stdout.splitlines() if not line.startswith("-- ")]
+	lines = []
+	for line in result.stdout.splitlines():
+		if not line.startswith("-- "):
+			lines.append(line)
 	return ("\n".join(lines)) or (_("no line in the journal for this process"))
 
 
@@ -228,7 +231,10 @@ def completion(program: str, pid: int, configuration: Path | None) -> list[str]:
 	fichier de configuration et « wpctl status » pour les binaires qui jouent du son, puis les dernières lignes du
 	journal de ce pid."""
 	_load_libraries()
-	lines = ["", _("Versions, when the report was finished"), *(f"  {line}" for line in versions())]
+	line_list_2 = []
+	for line in versions():
+		line_list_2.append(f"  {line}")
+	lines = ["", _("Versions, when the report was finished"), *line_list_2]
 	sections: list[tuple[str, str]] = []
 	if program in WITH_SOUND_CARDS:
 		try:
@@ -238,7 +244,10 @@ def completion(program: str, pid: int, configuration: Path | None) -> list[str]:
 		sections += [(_("Sound cards, from the configuration file"), cards), ("wpctl status", wpctl_status())]
 	sections.append((_("Last lines of the journal of pid {pid}").format(pid=pid), journal(pid)))
 	for key, value in sections:
-		lines += ["", key, *(f"  {line}" for line in value.splitlines())]
+		line_list = []
+		for line in value.splitlines():
+			line_list.append(f"  {line}")
+		lines += ["", key, *line_list]
 	return lines
 
 
@@ -345,16 +354,25 @@ def _header(watch: Watch) -> list[str]:
 
 def _context(watch: Watch, live: bool) -> list[str]:
 	"""Les versions, puis ce que le binaire a noté et, en direct seulement, ce qu'il donne."""
-	lines = ["", _("Versions"), *(f"  {line}" for line in versions())]
+	line_list_3 = []
+	for line in versions():
+		line_list_3.append(f"  {line}")
+	lines = ["", _("Versions"), *line_list_3]
 	for key, value in watch.notes.items():
-		lines += ["", key, *(f"  {line}" for line in value.splitlines())]
+		line_list = []
+		for line in value.splitlines():
+			line_list.append(f"  {line}")
+		lines += ["", key, *line_list]
 	if live:
 		for key, provider in list(watch.providers.items()):
 			try:
 				value = provider()
 			except Exception as error:  # noqa: BLE001 : un rapport ne doit pas planter
 				value = _("not available: {error}").format(error=error)
-			lines += ["", key, *(f"  {line}" for line in value.splitlines())]
+			line_list_2 = []
+			for line in value.splitlines():
+				line_list_2.append(f"  {line}")
+			lines += ["", key, *line_list_2]
 	return lines
 
 
@@ -365,16 +383,22 @@ def write_report(error: BaseException, instant: datetime | None = None) -> Path 
 	if watch is None:
 		return None
 	instant = (instant) or (SystemClock().now())
+	line_list_2 = []
+	for line in traceback.format_exception(error):
+		line_list_2.append(line.rstrip("\n"))
 	lines = [
 		*_header(watch),
 		_("Crash: {instant}").format(instant=instant.isoformat(timespec="seconds")),
 		"",
 		_("Python stack"),
-		*(line.rstrip("\n") for line in traceback.format_exception(error)),
+		*line_list_2,
 	]
 	details = external(error)
 	if details:
-		lines += ["", _("Errors outside MachinCast"), *(f"  {line}" for line in details)]
+		line_list = []
+		for line in details:
+			line_list.append(f"  {line}")
+		lines += ["", _("Errors outside MachinCast"), *line_list]
 	lines += _context(watch, live=True)
 	path = watch.report_path
 	with _lock:

@@ -19,9 +19,13 @@ def in_venv() -> None:
 @then("cet environnement virtuel n'inclut pas les paquets Python du système")
 def isolated() -> None:
 	settings = (PREFIX / "pyvenv.cfg").read_text(encoding="utf-8")
-	options = dict(
-		(key.strip(), value.strip()) for key, _, value in (line.partition("=") for line in settings.splitlines())
-	)
+	item_list = []
+	line_list = []
+	for line in settings.splitlines():
+		line_list.append(line.partition("="))
+	for key, _, value in line_list:
+		item_list.append((key.strip(), value.strip()))
+	options = dict(item_list)
 	assert options.get("include-system-site-packages") == "false", (
 		"recréer le venv sans --system-site-packages (décision : https://github.com/dascritch/machincast/issues/51)"
 	)

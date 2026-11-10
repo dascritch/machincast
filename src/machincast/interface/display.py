@@ -67,7 +67,11 @@ def duration(seconds: float | timedelta | None) -> str:
 
 def artist_and_title(artist: str | None, title: str | None) -> str:
 	"""« Les Gaufres – Café à minuit », ou ce qui est connu des deux."""
-	text = " – ".join(part for part in (artist, title) if part)
+	part_list = []
+	for part in (artist, title):
+		if part:
+			part_list.append(part)
+	text = " – ".join(part_list)
 	return (text) or (_("(untitled)"))
 
 

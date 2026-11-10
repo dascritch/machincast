@@ -111,7 +111,10 @@ def stops(qtbot: QtBot, server: AudioServer) -> None:
 
 @then("le pipeline de la pré-écoute est passé, dans l'ordre, en pause, en lecture, puis à l'arrêt")
 def in_order(server: AudioServer) -> None:
-	states = [state for item, state in server.requests if item is server.pipeline]
+	states = []
+	for item, state in server.requests:
+		if item is server.pipeline:
+			states.append(state)
 	assert states == [Gst.State.PAUSED, Gst.State.PLAYING, Gst.State.NULL], states
 
 
@@ -123,9 +126,8 @@ def retries(interface: Context, qtbot: QtBot, server: AudioServer) -> None:
 
 @then("aucun autre module de l'interface n'appelle set_state")
 def only_states() -> None:
-	faults = [
-		str(path.relative_to(INTERFACE))
-		for path in sorted(INTERFACE.rglob("*.py"))
-		if (path.name != "states.py") and (SET_STATE.search(path.read_text(encoding="utf-8")))
-	]
+	faults = []
+	for path in sorted(INTERFACE.rglob("*.py")):
+		if (path.name != "states.py") and (SET_STATE.search(path.read_text(encoding="utf-8"))):
+			faults.append(str(path.relative_to(INTERFACE)))
 	assert faults == [], faults

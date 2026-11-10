@@ -35,7 +35,12 @@ def _deleted(character: str) -> bool:
 	code = ord(character)
 	if (character in WITHOUT_WIDTH) or (unicodedata.category(character) in DELETED_CATEGORIES):
 		return True
-	return any(start <= code <= end for start, end in DELETED_RANGES)
+	found = False
+	for start, end in DELETED_RANGES:
+		if start <= code <= end:
+			found = True
+			break
+	return found
 
 
 def conform(text: str) -> str:
@@ -47,4 +52,8 @@ def conform(text: str) -> str:
 		else:
 			if not _deleted(character):
 				kept_list.append(character)
-	return " ".join(word for word in "".join(kept_list).split(" ") if word != "")
+	word_list = []
+	for word in "".join(kept_list).split(" "):
+		if word != "":
+			word_list.append(word)
+	return " ".join(word_list)

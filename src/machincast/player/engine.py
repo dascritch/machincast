@@ -104,8 +104,12 @@ class DeadAir:
 
 def mean_level(measures: list[tuple[float, float]]) -> float | None:
 	"""Niveau moyen de mesures (RMS en dB, durée en secondes), en énergie ; None pour un silence numérique."""
-	duration = sum(seconds for _rms, seconds in measures)
-	energy = sum((10 ** (rms / 10)) * seconds for rms, seconds in measures)
+	duration = 0.0
+	for _rms, seconds in measures:
+		duration += seconds
+	energy = 0.0
+	for rms, seconds in measures:
+		energy += (10 ** (rms / 10)) * seconds
 	if (duration <= 0) or (energy <= 0):
 		return None
 	level = 10 * math.log10(energy / duration)
@@ -433,7 +437,10 @@ class Track:
 		if self._dead_air_start is None:
 			self._dead_air_start = position
 		self._under_threshold.append((rms, duration))
-		measure = timedelta(seconds=sum(seconds for _rms, seconds in self._under_threshold))
+		total = 0.0
+		for _rms, seconds in self._under_threshold:
+			total += seconds
+		measure = timedelta(seconds=total)
 		if (not self._reported) and (measure >= self._dead_air.duration):
 			self._reported = True
 			self._dead_airs.append(DeadAir(self._dead_air_start, measure, mean_level(self._under_threshold)))
@@ -629,10 +636,18 @@ class AudioEngine:
 	def handle_messages(self) -> None:
 		for track in self._tracks:
 			track.handle()
-		self._tracks = [track for track in self._tracks if track.state == "playing"]
+		track_list = []
+		for track in self._tracks:
+			if track.state == "playing":
+				track_list.append(track)
+		self._tracks = track_list
 
 	def ongoing_tracks(self) -> list[Track]:
-		return [track for track in self._tracks if track.state == "playing"]
+		ongoing_tracks = []
+		for track in self._tracks:
+			if track.state == "playing":
+				ongoing_tracks.append(track)
+		return ongoing_tracks
 
 	def cut(self) -> None:
 		"""Coupure nette de toutes les voies en cours."""

@@ -85,7 +85,9 @@ def extract(package: Path = PACKAGE) -> dict[str, Message]:
 		for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
 			if not ((isinstance(node, ast.Call)) and (isinstance(node.func, ast.Name)) and (node.func.id in KEYWORDS)):
 				continue
-			texts = [_constant(argument) for argument in node.args]
+			texts = []
+			for argument in node.args:
+				texts.append(_constant(argument))
 			kind = KEYWORDS[node.func.id]
 			# Le fichier seul, sans numéro de ligne : déplacer du code ne change pas le catalogue.
 			reference = relative
@@ -115,14 +117,28 @@ def extract(package: Path = PACKAGE) -> dict[str, Message]:
 
 def scripts(package: Path = PACKAGE) -> list[Path]:
 	"""Les scripts bash du dépôt ; aucun pour un paquet installé hors du dépôt."""
-	return [path for path in (package.parent.parent / name for name in SCRIPTS) if path.is_file()]
+	scripts = []
+	name_list = []
+	for name in SCRIPTS:
+		name_list.append(package.parent.parent / name)
+	for path in name_list:
+		if path.is_file():
+			scripts.append(path)
+	return scripts
 
 
 def bash_messages(messages: dict[str, Message]) -> set[str]:
 	"""Les messages qui viennent d'un script bash."""
-	return {
-		key for key, message in messages.items() if any(not ref.startswith("machincast/") for ref in message.references)
-	}
+	bash_messages = set()
+	for key, message in messages.items():
+		found = False
+		for ref in message.references:
+			if not ref.startswith("machincast/"):
+				found = True
+				break
+		if found:
+			bash_messages.add(key)
+	return bash_messages
 
 
 def _bash(text: str) -> str:
@@ -153,7 +169,10 @@ def _quote(text: str, width: int = 76) -> str:
 	chosen = []
 	if lines[-1]:
 		chosen = [lines[-1]]
-	pieces = [line + "\\n" for line in lines[:-1]] + chosen
+	line_list = []
+	for line in lines[:-1]:
+		line_list.append(line + "\\n")
+	pieces = line_list + chosen
 	if (len(pieces) <= 1) and (len(escaped) <= width - 8):
 		return f'"{"".join(pieces)}"'
 	parts = []
@@ -165,7 +184,10 @@ def _quote(text: str, width: int = 76) -> str:
 			parts.append(piece[: cut + 1])
 			piece = piece[cut + 1 :]
 		parts.append(piece)
-	return '""\n' + "\n".join(f'"{part}"' for part in parts)
+	part_list = []
+	for part in parts:
+		part_list.append(f'"{part}"')
+	return '""\n' + "\n".join(part_list)
 
 
 def write_catalog(code: str, messages: dict[str, Message], translations: dict[str, str | tuple[str, ...]]) -> str:
@@ -175,7 +197,9 @@ def write_catalog(code: str, messages: dict[str, Message], translations: dict[st
 		header += f"Plural-Forms: {PLURAL_FORMS[code]}\n"
 	blocks = [f'msgid ""\nmsgstr {_quote(header)}\n']
 	for key, message in messages.items():
-		lines = [f"#: {reference}" for reference in dict.fromkeys(message.references)]
+		lines = []
+		for reference in dict.fromkeys(message.references):
+			lines.append(f"#: {reference}")
 		if i18n._PLACEHOLDER.search(message.msgid):
 			lines.append("#, python-brace-format")
 		if message.context is not None:
@@ -188,7 +212,10 @@ def write_catalog(code: str, messages: dict[str, Message], translations: dict[st
 				forms = known
 			else:
 				forms = ("", "")
-			lines.extend(f"msgstr[{index}] {_quote(form)}" for index, form in enumerate(forms))
+			form_list = []
+			for index, form in enumerate(forms):
+				form_list.append(f"msgstr[{index}] {_quote(form)}")
+			lines.extend(form_list)
 		else:
 			lines.append(f"msgstr {_quote(known if isinstance(known, str) else '')}")
 		blocks.append("\n".join(lines) + "\n")
@@ -197,7 +224,11 @@ def write_catalog(code: str, messages: dict[str, Message], translations: dict[st
 
 def untranslated(messages: dict[str, Message], translations: dict[str, str | tuple[str, ...]]) -> list[str]:
 	"""Les messages sans traduction dans un catalogue."""
-	return [message.msgid for key, message in messages.items() if not translations.get(key)]
+	untranslated = []
+	for key, message in messages.items():
+		if not translations.get(key):
+			untranslated.append(message.msgid)
+	return untranslated
 
 
 def main(arguments: list[str] | None = None) -> int:

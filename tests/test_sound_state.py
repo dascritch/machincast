@@ -29,7 +29,13 @@ def type_values(empty_database: Connection, name: str, values: str) -> None:
 		" WHERE typname = %s ORDER BY enumsortorder",
 		(name,),
 	).fetchall()
-	assert [line[0] for line in lines] == [value.strip() for value in values.split(",")]
+	line_list = []
+	for line in lines:
+		line_list.append(line[0])
+	value_list = []
+	for value in values.split(","):
+		value_list.append(value.strip())
+	assert line_list == value_list
 
 
 @then(parsers.parse("son état est « {state} »"))

@@ -112,7 +112,13 @@ def content(empty_database: Connection, root: Path, name: str, list_: str) -> No
 		" WHERE bs.bank_id = %s ORDER BY bs.position",
 		(bank(empty_database, name),),
 	).fetchall()
-	assert [str(line[0]) for line in lines] == [str(root / relative) for relative in ITEM.findall(list_)]
+	line_list = []
+	for line in lines:
+		line_list.append(str(line[0]))
+	relative_list = []
+	for relative in ITEM.findall(list_):
+		relative_list.append(str(root / relative))
+	assert line_list == relative_list
 
 
 @then(parsers.parse("le sonore de « {relative} » est à l'état « {state} »"))
@@ -136,7 +142,10 @@ def sound_count(empty_database: Connection, count: str) -> None:
 	)
 )
 def reported_directory(execution: Execution, root: Path, directory: str, name: str) -> None:
-	lines = [line for line in execution.errors.splitlines() if str(root / directory) in line]
+	lines = []
+	for line in execution.errors.splitlines():
+		if str(root / directory) in line:
+			lines.append(line)
 	assert lines, execution.errors
 	assert ("introuvable" in lines[0]) and (name in lines[0]), lines[0]
 
@@ -145,7 +154,10 @@ def reported_directory(execution: Execution, root: Path, directory: str, name: s
 def standard_output(execution: Execution, root: Path, datatable: list[list[str]]) -> None:
 	"""Un chemin qui commence par « …/ » est dans le répertoire du scénario."""
 	_header, *lines = datatable
-	assert execution.information == [line.strip().replace("…/", f"{root}/") for (line,) in lines]
+	line_list = []
+	for (line,) in lines:
+		line_list.append(line.strip().replace("…/", f"{root}/"))
+	assert execution.information == line_list
 
 
 @then(parsers.parse("la sortie d'erreur signale « {path} », avec « {consequence} »"))
@@ -342,8 +354,14 @@ def counted_indexing(
 		report = index_full(c)
 	monkeypatch.undo()
 	lines = per_file(caplog.records)
-	anomalies = [message for level, message in lines if level >= logging.WARNING]
-	information = [message for level, message in lines if level == logging.INFO]
+	anomalies = []
+	for level, message in lines:
+		if level >= logging.WARNING:
+			anomalies.append(message)
+	information = []
+	for level, message in lines:
+		if level == logging.INFO:
+			information.append(message)
 	execution = Execution(report, "\n".join(anomalies), information)
 	execution.queries = len(queries)
 	return execution
@@ -373,8 +391,14 @@ def stopped_during_check(empty_database: Connection, caplog: pytest.LogCaptureFi
 	):
 		report = index_full(c, check=check, stop=stop)
 	lines = per_file(caplog.records)
-	anomalies = [message for level, message in lines if level >= logging.WARNING]
-	information = [message for level, message in lines if level == logging.INFO]
+	anomalies = []
+	for level, message in lines:
+		if level >= logging.WARNING:
+			anomalies.append(message)
+	information = []
+	for level, message in lines:
+		if level == logging.INFO:
+			information.append(message)
 	return Execution(report, "\n".join(anomalies), information)
 
 
@@ -392,8 +416,14 @@ def a_only_sound(empty_database: Connection, root: Path, caplog: pytest.LogCaptu
 	):
 		report = index_sound(c, sound, full_audit=True)
 	lines = per_file(caplog.records)
-	anomalies = [message for level, message in lines if level >= logging.WARNING]
-	information = [message for level, message in lines if level == logging.INFO]
+	anomalies = []
+	for level, message in lines:
+		if level >= logging.WARNING:
+			anomalies.append(message)
+	information = []
+	for level, message in lines:
+		if level == logging.INFO:
+			information.append(message)
 	return Execution(report, "\n".join(anomalies), information)
 
 

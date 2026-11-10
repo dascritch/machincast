@@ -23,7 +23,9 @@ def value(text: str) -> object:
 	if (found := re.fullmatch(r"la durée de (\d+) s", text)) is not None:
 		return timedelta(seconds=int(found.group(1)))
 	if (found := re.fullmatch(r"(?:l'ensemble|la liste) (.+)", text)) is not None:
-		counts = [int(count) for count in found.group(1).split(", ")]
+		counts = []
+		for count in found.group(1).split(", "):
+			counts.append(int(count))
 		if text.startswith("l'ensemble"):
 			return set(counts)
 		return counts

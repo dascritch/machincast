@@ -109,13 +109,17 @@ def in_csv(lines: list[Line], metadata: Metadata) -> str:
 
 
 def in_html(lines: list[Line], metadata: Metadata, title: str, instant: datetime) -> str:
-	headers = "".join(f"<th>{html.escape(header)}</th>" for header in HTML_HEADERS)
-	rows = "\n".join(
-		'\t\t\t<tr class="passage">'
-		+ "".join(f"<td>{html.escape(value)}</td>" for value in [*_values(line, metadata), _incident(line)])
-		+ "</tr>"
-		for line in lines
-	)
+	header_list = []
+	for header in HTML_HEADERS:
+		header_list.append(f"<th>{html.escape(header)}</th>")
+	headers = "".join(header_list)
+	line_list = []
+	for line in lines:
+		value_list = []
+		for value in [*_values(line, metadata), _incident(line)]:
+			value_list.append(f"<td>{html.escape(value)}</td>")
+		line_list.append('\t\t\t<tr class="passage">' + "".join(value_list) + "</tr>")
+	rows = "\n".join(line_list)
 	exported = _("Exported on {time}").format(
 		time=f'<time datetime="{instant.isoformat()}">{html.escape(_hour(instant))}</time>'
 	)

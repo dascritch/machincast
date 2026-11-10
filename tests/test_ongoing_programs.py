@@ -51,12 +51,24 @@ def account(uid: int) -> str:
 
 def table(datatable: list[list[str]]) -> list[dict[str, str]]:
 	headers, *rows = datatable
-	return [dict(zip((e.strip() for e in headers), (v.strip() for v in row), strict=True)) for row in rows]
+	table = []
+	for row in rows:
+		e_list = []
+		for e in headers:
+			e_list.append(e.strip())
+		v_list = []
+		for v in row:
+			v_list.append(v.strip())
+		table.append(dict(zip(e_list, v_list, strict=True)))
+	return table
 
 
 def readable(command: list[str]) -> str:
 	"""bin/Machin s'écrit « Machin »."""
-	return " ".join("Machin" if word == str(programs.MACHIN) else word for word in command)
+	word_list = []
+	for word in command:
+		word_list.append("Machin" if word == str(programs.MACHIN) else word)
+	return " ".join(word_list)
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -67,7 +79,10 @@ def process(station: Station, datatable: list[list[str]]) -> None:
 	for row in table(datatable):
 		folder = station.proc / row["pid"]
 		folder.mkdir()
-		folder.joinpath("cmdline").write_bytes("".join(f"{word}\0" for word in row["commande"].split()).encode())
+		word_list = []
+		for word in row["commande"].split():
+			word_list.append(f"{word}\0")
+		folder.joinpath("cmdline").write_bytes("".join(word_list).encode())
 		uid = COUNTS[row["compte"]]
 		folder.joinpath("status").write_text(f"Name:\tpython3\nUid:\t{uid}\t{uid}\t{uid}\t{uid}\n")
 		folder.joinpath("cgroup").write_text(f"{row['cgroup']}\n")
@@ -161,7 +176,9 @@ def describe(program: Program) -> dict[str, str]:
 
 @then("les programmes en cours sont :")
 def ongoing(station: Station, datatable: list[list[str]]) -> None:
-	found_list = [describe(program) for program in programs.ongoing(station.proc, account)]
+	found_list = []
+	for program in programs.ongoing(station.proc, account):
+		found_list.append(describe(program))
 	assert found_list == table(datatable)
 
 
@@ -172,7 +189,9 @@ def no(station: Station) -> None:
 
 @then("la liste pour install.sh est :")
 def list_for_install(station: Station, datatable: list[list[str]]) -> None:
-	expected_list = ["\t".join(row.values()) for row in table(datatable)]
+	expected_list = []
+	for row in table(datatable):
+		expected_list.append("\t".join(row.values()))
 	assert station.list_.splitlines() == expected_list
 
 
@@ -183,7 +202,9 @@ def saved_state(station: Station) -> None:
 
 @then("les programmes relancés sont :")
 def restarted_list(station: Station, datatable: list[list[str]]) -> None:
-	expected_list = [(row["commande"], row["répertoire"]) for row in table(datatable)]
+	expected_list = []
+	for row in table(datatable):
+		expected_list.append((row["commande"], row["répertoire"]))
 	assert station.launched_list == expected_list
 
 
@@ -194,7 +215,10 @@ def no_restarted(station: Station) -> None:
 
 @then("la relance dit :")
 def restarts_says(station: Station, datatable: list[list[str]]) -> None:
-	assert station.messages == [row["message"] for row in table(datatable)]
+	row_list = []
+	for row in table(datatable):
+		row_list.append(row["message"])
+	assert station.messages == row_list
 
 
 @then("machincast.programs liste les programmes en cours avec un Python sans paquet installé")

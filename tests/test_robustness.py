@@ -154,12 +154,21 @@ def send_too(robustness: Robustness, qtbot: QtBot, caplog: pytest.LogCaptureFixt
 def bytes_ignored(robustness: Robustness, caplog: pytest.LogCaptureFixture) -> None:
 	assert robustness.client is not None
 	assert len(robustness.client.buffer_in_waiting()) == 0
-	assert any("trop long" in saving.getMessage() for saving in caplog.records), caplog.records
+	found = False
+	for saving in caplog.records:
+		if "trop long" in saving.getMessage():
+			found = True
+			break
+	assert found, caplog.records
 
 
 @then("elle a reçu le message complet")
 def received_message(robustness: Robustness) -> None:
-	assert [state.state for state in robustness.received_list if state.state == "dead_air"] == ["dead_air"]
+	state_list = []
+	for state in robustness.received_list:
+		if state.state == "dead_air":
+			state_list.append(state.state)
+	assert state_list == ["dead_air"]
 
 
 # ─── Commandes système de l'interface ─────────────────────

@@ -67,7 +67,11 @@ class Arrangement:
 
 
 def _valid_list(levels: list[float]) -> list[float]:
-	return [level for level in levels if not math.isnan(level)]
+	valid_list = []
+	for level in levels:
+		if not math.isnan(level):
+			valid_list.append(level)
+	return valid_list
 
 
 class VuMeter(QWidget):
@@ -96,7 +100,10 @@ class VuMeter(QWidget):
 		self.peaks = _valid_list((peaks) or (levels))
 		now = self.clock()
 		if len(self.maintained) != len(self.peaks):
-			self.maintained = [(peak, now) for peak in self.peaks]
+			peak_list = []
+			for peak in self.peaks:
+				peak_list.append((peak, now))
+			self.maintained = peak_list
 		for index, peak in enumerate(self.peaks):
 			kept, since = self.maintained[index]
 			if (peak >= kept) or (now - since > PEAK_HOLD):
@@ -139,10 +146,9 @@ class VuMeter(QWidget):
 		names: list[tuple[str, QRectF]] = []
 		if stereo:
 			scale.moveLeft(channels[0].right() + GAP)
-			names = [
-				(name, QRectF(channel.left(), bottom, channel.width(), name_height))
-				for name, channel in zip(CHANNEL_NAMES, channels, strict=True)
-			]
+			names = []
+			for name, channel in zip(CHANNEL_NAMES, channels, strict=True):
+				names.append((name, QRectF(channel.left(), bottom, channel.width(), name_height)))
 		return Arrangement(channels, scale, names)
 
 	def _lying_layout(self, frame: QRectF, count: int, metrics: QFontMetricsF) -> Arrangement:
@@ -151,7 +157,9 @@ class VuMeter(QWidget):
 		right = frame.right() - metrics.horizontalAdvance("0") / 2
 		bottom = frame.bottom() - scale_height
 		height = (bottom - frame.top()) / count
-		channels = [QRectF(left, frame.top() + index * height, right - left, height) for index in range(count)]
+		channels = []
+		for index in range(count):
+			channels.append(QRectF(left, frame.top() + index * height, right - left, height))
 		scale = QRectF(left, bottom, right - left, scale_height)
 		return Arrangement(channels, scale, [])
 

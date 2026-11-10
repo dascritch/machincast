@@ -203,8 +203,14 @@ def midnight(day: date) -> datetime:
 def _cross(
 	moments: Iterable[tuple[datetime, datetime]], start: datetime, end: datetime
 ) -> tuple[tuple[datetime, datetime], ...]:
-	crossed = ((max(departure, start), min(arrival, end)) for departure, arrival in moments)
-	return tuple((departure, arrival) for departure, arrival in crossed if departure < arrival)
+	crossed = []
+	for departure, arrival in moments:
+		crossed.append((max(departure, start), min(arrival, end)))
+	arrival_list = []
+	for departure, arrival in crossed:
+		if departure < arrival:
+			arrival_list.append((departure, arrival))
+	return tuple(arrival_list)
 
 
 @dataclass(frozen=True)
@@ -247,7 +253,10 @@ class Block:
 			name = f"{name} ({self.public_name})"
 		lines = [f"{name} — {NAMES[event.priority]}", self._schedules()]
 		if event.days:
-			lines.append(_("Comes back on {days}").format(days=", ".join(DAY_NAMES[day] for day in sorted(event.days))))
+			day_list = []
+			for day in sorted(event.days):
+				day_list.append(DAY_NAMES[day])
+			lines.append(_("Comes back on {days}").format(days=", ".join(day_list)))
 		if event.deleted_at is not None:
 			deleted = wall_hour(event.deleted_at)
 			lines.append(
@@ -289,10 +298,14 @@ class Block:
 			return _("Plays in full")
 		if state == "faded":
 			return _("Hidden in full {mask}").format(mask=MASK)
-		moments = _(" and ").join(
-			_("from {schedule} to {schedule2}").format(schedule=schedule(self.day, d), schedule2=schedule(self.day, f))
-			for d, f in self.plays
-		)
+		d_list = []
+		for d, f in self.plays:
+			d_list.append(
+				_("from {schedule} to {schedule2}").format(
+					schedule=schedule(self.day, d), schedule2=schedule(self.day, f)
+				)
+			)
+		moments = _(" and ").join(d_list)
 		return _("Plays {moments}; hidden the rest of the time {mask}").format(moments=moments, mask=MASK)
 
 
@@ -442,7 +455,10 @@ def columns(blocks: list[Block]) -> dict[Block, tuple[int, int]]:
 
 
 def _put(group: list[tuple[Block, int]], places: dict[Block, tuple[int, int]]) -> None:
-	count = max((column for _block, column in group), default=-1) + 1
+	block_list = []
+	for _block, column in group:
+		block_list.append(column)
+	count = max(block_list, default=-1) + 1
 	for block, column in group:
 		places[block] = (column, count)
 
@@ -601,7 +617,10 @@ class Calendar(QWidget):
 		count = 1
 		if self._week:
 			count = 7
-		return [self._start + timedelta(days=gap) for gap in range(count)]
+		days = []
+		for gap in range(count):
+			days.append(self._start + timedelta(days=gap))
+		return days
 
 	def first_day(self) -> date:
 		"""Le premier jour que montre le calendrier : la base n'a plus rien d'avant la durée de péremption."""
@@ -609,20 +628,36 @@ class Calendar(QWidget):
 
 	def outdated_days(self) -> list[date]:
 		"""Les jours montrés d'avant le premier jour : grisés, vides."""
-		return [day for day in self.days() if day < self.first_day()]
+		outdated_days = []
+		for day in self.days():
+			if day < self.first_day():
+				outdated_days.append(day)
+		return outdated_days
 
 	def blocks(self) -> list[Block]:
 		"""Les blocs des heures, des priorités cochées."""
-		return [block for block in self._blocks if (not block.whole_day) and (self._shown(block.event.priority))]
+		blocks = []
+		for block in self._blocks:
+			if (not block.whole_day) and (self._shown(block.event.priority)):
+				blocks.append(block)
+		return blocks
 
 	def whole_day(self) -> list[Block]:
 		"""Les blocs de la journée entière, des priorités cochées."""
-		return [block for block in self._blocks if (block.whole_day) and (self._shown(block.event.priority))]
+		whole_day = []
+		for block in self._blocks:
+			if (block.whole_day) and (self._shown(block.event.priority)):
+				whole_day.append(block)
+		return whole_day
 
 	def strips(self) -> list[Strip]:
 		"""L'airplay des priorités cochées ; celui d'un événement effacé de la base, ou d'un événement de secours, qui n'a
 		pas de case, est toujours montré (https://github.com/dascritch/machincast/issues/413)."""
-		return [strip for strip in self._strips if (strip.priority is None) or (self._shown(strip.priority))]
+		strips = []
+		for strip in self._strips:
+			if (strip.priority is None) or (self._shown(strip.priority)):
+				strips.append(strip)
+		return strips
 
 	def _shown(self, priority: Priority) -> bool:
 		"""Vrai si la case de la priorité est cochée, ou si elle n'a pas de case : le secours."""
@@ -634,7 +669,10 @@ class Calendar(QWidget):
 		self._bound()
 		self._present()
 		outdated_list = set(self.outdated_days())
-		days = [day for day in self.days() if day not in outdated_list]
+		days = []
+		for day in self.days():
+			if day not in outdated_list:
+				days.append(day)
 		self._blocks, self._strips = [], []
 		if days != []:
 			self._reread(days)
@@ -644,10 +682,9 @@ class Calendar(QWidget):
 		de, a = midnight(days[0]), midnight(days[-1] + ONE_DAY)
 		with self.connection.transaction():
 			events = read_grid(self.connection, deleted_list=True)
-			public_names = {
-				int(str(identifier)): text_or_none(public_name)
-				for identifier, public_name in self.connection.execute("SELECT id, public_name FROM events")
-			}
+			public_names = {}
+			for identifier, public_name in self.connection.execute("SELECT id, public_name FROM events"):
+				public_names[int(str(identifier))] = text_or_none(public_name)
 			plays = read_plays(self.connection, de, a, midnight(self.first_day()))
 		self._blocks = split(plan(events, de, a), days, public_names)
 		self._strips = strips(plays, days, self.now())
@@ -697,11 +734,10 @@ class Calendar(QWidget):
 		if last is None:
 			return
 		# Les sessions déjà sautées le restent, sans compter de nouveau.
-		to_skip = [
-			departure
-			for departure, _end in sessions(block.event, start.date(), last + ONE_DAY)
-			if departure.date() not in block.event.skipped_list
-		]
+		to_skip = []
+		for departure, _end in sessions(block.event, start.date(), last + ONE_DAY):
+			if departure.date() not in block.event.skipped_list:
+				to_skip.append(departure)
 		self._skip(block.event, to_skip)
 
 	def _skip(self, event: Event, starts: list[datetime]) -> None:
@@ -778,13 +814,19 @@ class Calendar(QWidget):
 		# Une période se montre tant qu'elle touche les jours d'après le premier, et les PORTEE jours après aujourd'hui.
 		self.previous.setEnabled(self._start - timedelta(days=1) >= self.first_day())
 		self.following.setEnabled(self._start + period <= today + SCOPE)
-		self.view.setCurrentIndex([week for _text, week in VIEWS].index(self._week))
+		text_list = []
+		for _text, week in VIEWS:
+			text_list.append(week)
+		self.view.setCurrentIndex(text_list.index(self._week))
 
 
 def _day_x(widget: QWidget, count: int) -> list[float]:
 	"""Le bord gauche de chaque jour, et le bord droit du dernier."""
 	width = (widget.contentsRect().width() - MARGIN) / count
-	return [MARGIN + index * width for index in range(count + 1)]
+	day_x = []
+	for index in range(count + 1):
+		day_x.append(MARGIN + index * width)
+	return day_x
 
 
 class Header(QWidget):
@@ -795,10 +837,19 @@ class Header(QWidget):
 		self.calendar = calendar
 
 	def labels(self) -> list[str]:
-		return [day_label(day) for day in self.calendar.days()]
+		labels = []
+		for day in self.calendar.days():
+			labels.append(day_label(day))
+		return labels
 
 	def reread(self) -> None:
-		by_day = [sum(1 for b in self.calendar.whole_day() if b.day == day) for day in self.calendar.days()]
+		by_day = []
+		for day in self.calendar.days():
+			total = 0
+			for b in self.calendar.whole_day():
+				if b.day == day:
+					total += 1
+			by_day.append(total)
 		self.setFixedHeight(NAME_HEIGHT + max([1, *by_day]) * LINE_HEIGHT + GAP)
 		self.update()
 
@@ -806,12 +857,21 @@ class Header(QWidget):
 		days = self.calendar.days()
 		x = _day_x(self, len(days))
 		index = days.index(block.day)
-		rank = [b for b in self.calendar.whole_day() if b.day == block.day].index(block)
+		b_list = []
+		for b in self.calendar.whole_day():
+			if b.day == block.day:
+				b_list.append(b)
+		rank = b_list.index(block)
 		y = NAME_HEIGHT + rank * LINE_HEIGHT
 		return QRectF(x[index] + 1, y + 1, x[index + 1] - x[index] - 2, LINE_HEIGHT - 2)
 
 	def _block_in(self, point: QPointF) -> Block | None:
-		return next((b for b in self.calendar.whole_day() if self.rectangle(b).contains(point)), None)
+		first = None
+		for b in self.calendar.whole_day():
+			if self.rectangle(b).contains(point):
+				first = b
+				break
+		return first
 
 	def event(self, radio_event: QEvent) -> bool:
 		if (isinstance(radio_event, QHelpEvent)) and (radio_event.type() == QEvent.Type.ToolTip):
@@ -885,7 +945,11 @@ class Grid(QWidget):
 		if isinstance(item, Strip):
 			left = x[index] + width * PLANNED_SHARE + GAP
 			return QRectF(left, top, x[index + 1] - GAP - left, bottom - top)
-		column, count = columns([b for b in self.calendar.blocks() if b.day == item.day])[item]
+		b_list = []
+		for b in self.calendar.blocks():
+			if b.day == item.day:
+				b_list.append(b)
+		column, count = columns(b_list)[item]
 		share = (width * PLANNED_SHARE - GAP) / count
 		return QRectF(x[index] + GAP + column * share, top, share - 1, bottom - top)
 
@@ -897,7 +961,12 @@ class Grid(QWidget):
 
 	def item_in(self, point: QPointF) -> Block | Strip | None:
 		items: list[Block | Strip] = [*self.calendar.strips(), *self.calendar.blocks()]
-		return next((item for item in items if self.rectangle(item).contains(point)), None)
+		first = None
+		for item in items:
+			if self.rectangle(item).contains(point):
+				first = item
+				break
+		return first
 
 	def _moment_in(self, point: QPointF) -> datetime | None:
 		x = self._x()

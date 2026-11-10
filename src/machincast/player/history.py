@@ -204,7 +204,10 @@ class PlannedHistory(HistoryInPlayback):
 		return counts
 
 	def played_via_bank(self, connection: Connection, bank: int) -> list[int]:
-		planned_list = [play.sound for play in reversed(self.planned_list) if play.bank == bank]
+		planned_list = []
+		for play in reversed(self.planned_list):
+			if play.bank == bank:
+				planned_list.append(play.sound)
 		return planned_list + self.source.played_via_bank(connection, bank)
 
 	def last_item(self, connection: Connection, event: int, since: datetime | None) -> int | None:
@@ -228,7 +231,9 @@ class HistoryInDatabase:
 			"SELECT sound_id, count(*) FROM airplay WHERE line_type = 'start' AND sound_id = ANY(%s) GROUP BY sound_id",
 			(list(sounds),),
 		).fetchall()
-		counts = {int(str(sound)): int(str(count)) for sound, count in lines}
+		counts = {}
+		for sound, count in lines:
+			counts[int(str(sound))] = int(str(count))
 		return {sound: counts.get(sound, 0) for sound in sounds}
 
 	def played_via_bank(self, connection: Connection, bank: int) -> list[int]:
@@ -237,7 +242,10 @@ class HistoryInDatabase:
 			" ORDER BY logged_at DESC, id DESC",
 			(bank,),
 		).fetchall()
-		return [int(str(line[0])) for line in lines]
+		played_via_bank = []
+		for line in lines:
+			played_via_bank.append(int(str(line[0])))
+		return played_via_bank
 
 	def last_item(self, connection: Connection, event: int, since: datetime | None) -> int | None:
 		line = connection.execute(

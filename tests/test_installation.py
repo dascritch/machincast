@@ -58,11 +58,14 @@ def disabled_items(caps: str) -> Iterator[None]:
 	Gst.init(None)
 	capabilities = Gst.Caps.from_string(caps)
 	assert capabilities is not None
-	factories = [
-		f for f in Gst.ElementFactory.list_get_elements(PLAYERS, Gst.Rank.MARGINAL) if f.can_sink_any_caps(capabilities)
-	]
+	factories = []
+	for f in Gst.ElementFactory.list_get_elements(PLAYERS, Gst.Rank.MARGINAL):
+		if f.can_sink_any_caps(capabilities):
+			factories.append(f)
 	assert factories, f"aucun élément ne lit {caps}"
-	ranks = [(factory, factory.get_rank()) for factory in factories]
+	ranks = []
+	for factory in factories:
+		ranks.append((factory, factory.get_rank()))
 	for factory in factories:
 		factory.set_rank(Gst.Rank.NONE)
 	yield
@@ -73,13 +76,14 @@ def disabled_items(caps: str) -> Iterator[None]:
 @given(parsers.parse("les sources GStreamer du protocole « {protocol} » désactivées"))
 def disabled_sources(protocol: str) -> Iterator[None]:
 	Gst.init(None)
-	factories = [
-		f
-		for f in Gst.ElementFactory.list_get_elements(Gst.ELEMENT_FACTORY_TYPE_SRC, Gst.Rank.MARGINAL)
-		if (f.get_uri_type() == Gst.URIType.SRC) and (protocol in ((f.get_uri_protocols()) or ([])))
-	]
+	factories = []
+	for f in Gst.ElementFactory.list_get_elements(Gst.ELEMENT_FACTORY_TYPE_SRC, Gst.Rank.MARGINAL):
+		if (f.get_uri_type() == Gst.URIType.SRC) and (protocol in ((f.get_uri_protocols()) or ([]))):
+			factories.append(f)
 	assert factories, f"aucune source pour {protocol}"
-	ranks = [(factory, factory.get_rank()) for factory in factories]
+	ranks = []
+	for factory in factories:
+		ranks.append((factory, factory.get_rank()))
 	for factory in factories:
 		factory.set_rank(Gst.Rank.NONE)
 	yield
@@ -113,7 +117,11 @@ def no_old(old_list: list[Old]) -> None:
 
 @then(parsers.parse("{component} n'est pas signalé"))
 def component_not_reported(old_list: list[Old], component: str) -> None:
-	assert [old for old in old_list if old.component == component] == [], old_list
+	old_list_2 = []
+	for old in old_list:
+		if old.component == component:
+			old_list_2.append(old)
+	assert old_list_2 == [], old_list
 
 
 @then(parsers.parse("{component} est signalé en version « {version} », avec le paquet « {package} »"))
@@ -134,7 +142,10 @@ def successful_check(output_code: int) -> None:
 
 @then(parsers.parse("le journal avertit « {message} »"))
 def log_warns(caplog: pytest.LogCaptureFixture, message: str) -> None:
-	warnings = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+	warnings = []
+	for r in caplog.records:
+		if r.levelname == "WARNING":
+			warnings.append(r.getMessage())
 	assert message in warnings, warnings
 
 
@@ -183,7 +194,10 @@ def available_output(gaps: list[Shortfall]) -> None:
 
 @then(parsers.parse("la sortie audio manque, avec le paquet « {package} »"))
 def missing_output(gaps: list[Shortfall], package: str) -> None:
-	assert [missing.package for missing in gaps] == [package], gaps
+	missing_list = []
+	for missing in gaps:
+		missing_list.append(missing.package)
+	assert missing_list == [package], gaps
 
 
 def launch(action: str, configuration: Path) -> subprocess.CompletedProcess[str]:
@@ -425,9 +439,10 @@ def write_purge(name: str, group: str, directory: str) -> str:
 def purge_section(written_purge: str, name: str, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
 	section = _section(written_purge, name)
-	assert {key.strip(): section.get(key.strip()) for key, _value in rows} == {
-		key.strip(): value.strip() for key, value in rows
-	}
+	value_dict = {}
+	for key, _value in rows:
+		value_dict[key.strip()] = section.get(key.strip())
+	assert value_dict == {key.strip(): value.strip() for key, value in rows}
 
 
 @then("install.sh installe et retire l'unité et le minuteur de la purge de machincast.installation")
@@ -448,9 +463,10 @@ def sh_install_purge() -> None:
 def written_section(written_list: tuple[str, str], name: str, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
 	section = _section(written_list[0], name)
-	assert {key.strip(): section.get(key.strip()) for key, _value in rows} == {
-		key.strip(): value.strip() for key, value in rows
-	}
+	value_dict = {}
+	for key, _value in rows:
+		value_dict[key.strip()] = section.get(key.strip())
+	assert value_dict == {key.strip(): value.strip() for key, value in rows}
 
 
 @then(parsers.parse("la règle ne concerne que le compte « {name} »"))
@@ -464,7 +480,9 @@ def count_rule(written_list: tuple[str, str], name: str) -> None:
 @then(parsers.parse("le raccourci a, dans la section « {name} » :"))
 def shortcut_section(command: subprocess.CompletedProcess[str], name: str, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
-	expected_list = {key.strip(): value.strip().replace("<répertoire>", str(PROJECT_DIRECTORY)) for key, value in rows}
+	expected_list = {}
+	for key, value in rows:
+		expected_list[key.strip()] = value.strip().replace("<répertoire>", str(PROJECT_DIRECTORY))
 	assert _section(command.stdout, name) == expected_list, command.stdout
 
 
@@ -477,9 +495,10 @@ def write_shortcut(directory: str) -> str:
 def written_shortcut_section(written: str, name: str, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
 	section = _section(written, name)
-	assert {key.strip(): section.get(key.strip()) for key, _value in rows} == {
-		key.strip(): value.strip() for key, value in rows
-	}, written
+	value_dict = {}
+	for key, _value in rows:
+		value_dict[key.strip()] = section.get(key.strip())
+	assert value_dict == {key.strip(): value.strip() for key, value in rows}, written
 
 
 @then(parsers.parse("« desktop-file-validate » accepte « {name} »"))
@@ -518,12 +537,22 @@ def readable_icon(qapp: QApplication, sizes: str) -> None:
 	"""À chaque taille, chacune des couleurs couvre au moins un pixel sur quarante : rien ne disparaît. Le casque, au
 	trait fin, n'a que quelques pixels à 16 pixels ; les bords lissés s'écartent du noir pur."""
 	icon = QIcon(str(ICON))
-	for size in (int(count) for count in re.findall(r"\d+", sizes)):
+	count_list = []
+	for count in re.findall(r"\d+", sizes):
+		count_list.append(int(count))
+	for size in count_list:
 		image = icon.pixmap(size).toImage()
 		assert (image.width(), image.height()) == (size, size)
-		pixels = [image.pixelColor(x, y) for x in range(size) for y in range(size)]
+		pixels = []
+		for x in range(size):
+			for y in range(size):
+				pixels.append(image.pixelColor(x, y))
 		for name, colour in ICON_COLOURS.items():
-			share = sum(1 for pixel in pixels if (pixel.alpha() > 200) and (_near(pixel, colour))) / len(pixels)
+			total = 0
+			for pixel in pixels:
+				if (pixel.alpha() > 200) and (_near(pixel, colour)):
+					total += 1
+			share = total / len(pixels)
 			assert share >= 1 / 40, f"{name} à {size} pixels : {share:.3f}"
 
 

@@ -49,15 +49,23 @@ def sequence_plays(empty_database: Connection, first: str, second: str, name: st
 	).fetchall()
 	positions = {first: 1, second: 2}
 	assert len(lines) == 6, lines
-	assert all((sequence == name) and (position == positions[str(title)]) for title, _, sequence, position in lines), (
-		lines
-	)
-	assert {line_type for _, line_type, _, _ in lines} == {"start", "end"}, lines
+	every_one = True
+	for title, _, sequence, position in lines:
+		if not ((sequence == name) and (position == positions[str(title)])):
+			every_one = False
+			break
+	assert every_one, lines
+	item_set = set()
+	for _, line_type, _, _ in lines:
+		item_set.add(line_type)
+	assert item_set == {"start", "end"}, lines
 
 
 @given("l'arrêt de la diffusion branché sur les signaux")
 def plugged_stop(process: Process) -> Iterator[None]:
-	old_list = {number: signal.getsignal(number) for number in (signal.SIGTERM, signal.SIGINT)}
+	old_list = {}
+	for number in (signal.SIGTERM, signal.SIGINT):
+		old_list[number] = signal.getsignal(number)
 	process.stop = install_stop()
 	yield
 	for number, old in old_list.items():

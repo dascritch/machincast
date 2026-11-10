@@ -23,9 +23,13 @@ DOMAIN = "machincast"
 LOCALE = Path(__file__).with_name("locale")
 SOURCE = "en"
 """Langue des messages dans le code, et de repli."""
+path_list = []
+for path in LOCALE.glob("*"):
+	if (path / "LC_MESSAGES" / "machincast.po").is_file():
+		path_list.append(path.name)
 LANGUAGES = (
 	SOURCE,
-	*sorted(path.name for path in LOCALE.glob("*") if (path / "LC_MESSAGES" / "machincast.po").is_file()),
+	*sorted(path_list),
 )
 """Les langues de MachinCast : l'anglais, et celles qui ont un catalogue ; en ajouter une, c'est ajouter son
 catalogue."""
@@ -88,7 +92,11 @@ def read_catalog(text: str, plurals: dict[str, str] | None = None) -> dict[str, 
 			key = fields["msgid"]
 			if "msgctxt" in fields:
 				key = fields["msgctxt"] + CONTEXT_SEPARATOR + key
-			forms = tuple(fields[name] for name in sorted(fields) if name.startswith("msgstr["))
+			name_list = []
+			for name in sorted(fields):
+				if name.startswith("msgstr["):
+					name_list.append(fields[name])
+			forms = tuple(name_list)
 			if (forms) and (all(forms)):
 				entries[key] = forms
 				if (plurals is not None) and ("msgid_plural" in fields):
@@ -393,7 +401,9 @@ def logged(text: str) -> str:
 	for separator in _SEPARATORS:
 		parts = text.split(separator)
 		if len(parts) > 1:
-			translated = [logged(part) for part in parts]
+			translated = []
+			for part in parts:
+				translated.append(logged(part))
 			if translated != parts:
 				return _(separator).join(translated)
 	listed = _fill(text, weak=None)

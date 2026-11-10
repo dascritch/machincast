@@ -33,12 +33,22 @@ def release(interface: Context, window_lists: list[QWidget], request: pytest.Fix
 	opened.deleteLater()
 	QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 	assert not shiboken6.isValid(opened)
-	request.node.qt_widgets = [(ref, before) for ref, before in request.node.qt_widgets if ref() is not opened]
+	before_list = []
+	for ref, before in request.node.qt_widgets:
+		if ref() is not opened:
+			before_list.append((ref, before))
+	request.node.qt_widgets = before_list
 	interface.window = None
 
 
 @then("aucune liste de la fenêtre ne lui survit")
 def released_lists(window_lists: list[QWidget]) -> None:
 	assert len(window_lists) == len(TABS)
-	surviving = [list_ for list_ in window_lists if shiboken6.isValid(list_)]
-	assert surviving == [], [list_.source.category for list_ in surviving]
+	surviving = []
+	for list_ in window_lists:
+		if shiboken6.isValid(list_):
+			surviving.append(list_)
+	list__list = []
+	for list_ in surviving:
+		list__list.append(list_.source.category)
+	assert surviving == [], list__list

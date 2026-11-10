@@ -152,13 +152,22 @@ class Columns(QObject):
 	def titles(self) -> list[str]:
 		"""Les titres des colonnes, dans l'ordre du modèle."""
 		model = self.view.model()
-		return [str(model.headerData(column, Qt.Orientation.Horizontal)) for column in range(model.columnCount())]
+		titles = []
+		for column in range(model.columnCount()):
+			titles.append(str(model.headerData(column, Qt.Orientation.Horizontal)))
+		return titles
 
 	def shown_list(self) -> list[str]:
 		"""Les titres des colonnes montrées, dans l'ordre affiché."""
 		titles = self.titles()
-		order = [self.header.logicalIndex(rank) for rank in range(self.header.count())]
-		return [titles[column] for column in order if not self.header.isSectionHidden(column)]
+		order = []
+		for rank in range(self.header.count()):
+			order.append(self.header.logicalIndex(rank))
+		shown_list = []
+		for column in order:
+			if not self.header.isSectionHidden(column):
+				shown_list.append(titles[column])
+		return shown_list
 
 	def adjust(self) -> None:
 		"""Les colonnes à la largeur de leur contenu, tant qu'aucune n'a été élargie à la main."""
@@ -241,16 +250,29 @@ class Columns(QObject):
 		while model.canFetchMore(QModelIndex()):
 			model.fetchMore(QModelIndex())
 		titles = self.titles()
-		order = [self.header.logicalIndex(rank) for rank in range(self.header.count())]
-		columns = [column for column in order if not self.header.isSectionHidden(column)]
+		order = []
+		for rank in range(self.header.count()):
+			order.append(self.header.logicalIndex(rank))
+		columns = []
+		for column in order:
+			if not self.header.isSectionHidden(column):
+				columns.append(column)
 		output = io.StringIO()
 		writer = csv.writer(output, delimiter=SEPARATOR, lineterminator="\n")
-		writer.writerow([titles[column] for column in columns])
+		column_list = []
+		for column in columns:
+			column_list.append(titles[column])
+		writer.writerow(column_list)
 		for row in range(model.rowCount()):
 			if (isinstance(self.view, QTableView)) and (self.view.isRowHidden(row)):
 				continue
-			cells = [model.index(row, column).data() for column in columns]
-			writer.writerow([str((cell) or ("")) for cell in cells])
+			cells = []
+			for column in columns:
+				cells.append(model.index(row, column).data())
+			cell_list = []
+			for cell in cells:
+				cell_list.append(str((cell) or ("")))
+			writer.writerow(cell_list)
 		return output.getvalue()
 
 	def export(self) -> None:
@@ -314,7 +336,10 @@ class Columns(QObject):
 def _list(value: object) -> list[str]:
 	"""Une liste lue dans les réglages : QSettings rend une seule valeur, sans liste, pour une liste d'un élément."""
 	if isinstance(value, list):
-		return [str(item) for item in value]
+		item_list = []
+		for item in value:
+			item_list.append(str(item))
+		return item_list
 	if value is None:
 		return []
 	return [str(value)]

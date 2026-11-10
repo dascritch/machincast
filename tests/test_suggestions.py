@@ -76,7 +76,11 @@ def create(
 	interface: Context, without: str | None, output: str | None, on_air: str | None, preview: str | None
 ) -> None:
 	def answer(gaps: Shortfalls) -> Response:
-		banks = tuple(bank for bank in gaps.banks if label(bank) != without)
+		bank_list = []
+		for bank in gaps.banks:
+			if label(bank) != without:
+				bank_list.append(bank)
+		banks = tuple(bank_list)
 		return Response(
 			create=True,
 			background_programming=(gaps.background_programming) and (without != BACKGROUND_PROGRAMMING),
@@ -100,7 +104,10 @@ def first_list(interface: Context) -> Shortfalls:
 @then("les suggestions ont proposé :")
 def offered_list(interface: Context, datatable: list[list[str]]) -> None:
 	_header, *lines = datatable
-	assert first_list(interface).items() == [line.strip() for (line,) in lines]
+	line_list = []
+	for (line,) in lines:
+		line_list.append(line.strip())
+	assert first_list(interface).items() == line_list
 
 
 @then("les suggestions n'ont pas proposé les cartes son")
@@ -151,7 +158,10 @@ def feed_list(empty_database: Connection, name: str, banks: str) -> None:
 		" JOIN banks b ON b.id = x.bank_id WHERE e.internal_name = %s ORDER BY x.position",
 		(name,),
 	).fetchall()
-	assert [str(bank) for (bank,) in lines] == NAME.findall(banks)
+	bank_list = []
+	for (bank,) in lines:
+		bank_list.append(str(bank))
+	assert bank_list == NAME.findall(banks)
 
 
 @then(parsers.re(r"les fils musicaux en base sont (?P<names>«.+)"))
@@ -160,7 +170,10 @@ def feeds(empty_database: Connection, names: str) -> None:
 		"SELECT internal_name FROM events WHERE priority = 'background_programming' AND deleted_at IS NULL"
 		" ORDER BY internal_name"
 	).fetchall()
-	assert [str(name) for (name,) in lines] == NAME.findall(names)
+	name_list = []
+	for (name,) in lines:
+		name_list.append(str(name))
+	assert name_list == NAME.findall(names)
 
 
 def _crossfade(rule: str, duration: timedelta) -> str:
@@ -193,7 +206,12 @@ def banks_in_database(empty_database: Connection, datatable: list[list[str]]) ->
 				_crossfade(str(rule_end), end),
 			)
 		)
-	expected_list = [tuple(value.strip() for value in line) for line in lines]
+	expected_list = []
+	for line in lines:
+		value_list = []
+		for value in line:
+			value_list.append(value.strip())
+		expected_list.append(tuple(value_list))
 	assert fetched_list == expected_list, fetched_list
 
 
@@ -274,9 +292,19 @@ def title(opened: dict[str, object], title: str) -> None:
 @then(parsers.re(r"elle propose, cochés, (?P<items>«.+)"))
 def ticked_list(opened: dict[str, object], items: str) -> None:
 	list_ = the_window(opened).ui.items
-	lines = [list_.item(rank) for rank in range(list_.count())]
-	assert [line.text() for line in lines] == re.findall(r"« ((?:[^«»]|« [^»]+ »)+) »", items)
-	assert all(line.checkState() == Qt.CheckState.Checked for line in lines)
+	lines = []
+	for rank in range(list_.count()):
+		lines.append(list_.item(rank))
+	line_list = []
+	for line in lines:
+		line_list.append(line.text())
+	assert line_list == re.findall(r"« ((?:[^«»]|« [^»]+ »)+) »", items)
+	every_one = True
+	for line in lines:
+		if line.checkState() != Qt.CheckState.Checked:
+			every_one = False
+			break
+	assert every_one
 
 
 @then("elle montre les cartes son en tête, avant ce qui est à créer")
@@ -305,7 +333,10 @@ def _cards(opened: dict[str, object]) -> SoundCards:
 @then(parsers.re(r"son choix de l'antenne propose (?P<names>«.+)"))
 def on_air_choice(opened: dict[str, object], names: str) -> None:
 	choice = _cards(opened).ui.on_air
-	assert [choice.itemText(rank) for rank in range(choice.count())] == NAME.findall(names)
+	rank_list = []
+	for rank in range(choice.count()):
+		rank_list.append(choice.itemText(rank))
+	assert rank_list == NAME.findall(names)
 
 
 @then(parsers.parse("dans son choix de l'antenne, « {text} » est inactive"))
@@ -325,7 +356,11 @@ def ok_button(opened: dict[str, object], text: str, state: str) -> None:
 @when(parsers.parse("j'y décoche « {text} »"))
 def untick(opened: dict[str, object], text: str) -> None:
 	list_ = the_window(opened).ui.items
-	(line,) = [list_.item(rank) for rank in range(list_.count()) if list_.item(rank).text() == text]
+	rank_list = []
+	for rank in range(list_.count()):
+		if list_.item(rank).text() == text:
+			rank_list.append(list_.item(rank))
+	(line,) = rank_list
 	line.setCheckState(Qt.CheckState.Unchecked)
 
 

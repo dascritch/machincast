@@ -36,7 +36,10 @@ def lines(interface: Context) -> list[QTreeWidgetItem]:
 
 def choose(interface: Context, name: str) -> None:
 	"""Rend courante la seule ligne de l'élément."""
-	found_list = [line for line in lines(interface) if line.text(1) == name]
+	found_list = []
+	for line in lines(interface):
+		if line.text(1) == name:
+			found_list.append(line)
 	assert len(found_list) == 1, f"« {name} » : {len(found_list)} lignes"
 	card(interface).ui.items.setCurrentItem(found_list[0])
 
@@ -90,7 +93,10 @@ def shows(event: EventCard) -> dict[str, Callable[[], str]]:
 
 def boxes(event: EventCard) -> dict[str, QAbstractButton]:
 	ui = event.ui
-	return {"Début": ui.has_start, "Fin": ui.has_end} | {day.text(): day for day in event.days}
+	day_dict = {}
+	for day in event.days:
+		day_dict[day.text()] = day
+	return {"Début": ui.has_start, "Fin": ui.has_end} | day_dict
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -118,7 +124,10 @@ def enter(interface: Context, datatable: list[list[str]]) -> None:
 	event = card(interface)
 	ui = event.ui
 	_headers, *rows = datatable
-	for field, raw in ((field.strip(), raw.strip()) for field, raw in rows):
+	field_list = []
+	for field, raw in rows:
+		field_list.append((field.strip(), raw.strip()))
+	for field, raw in field_list:
 		combos = {
 			"Priorité": ui.priority,
 			"Artiste et titre": ui.hiding,
@@ -136,7 +145,10 @@ def enter(interface: Context, datatable: list[list[str]]) -> None:
 				box.setChecked(raw != "")
 			else:
 				assert field == "Jours", field
-				ticked_list = {day.strip() for day in raw.split(",") if day.strip()}
+				ticked_list = set()
+				for day in raw.split(","):
+					if day.strip():
+						ticked_list.add(day.strip())
 				for day in event.days:
 					day.setChecked(day.text() in ticked_list)
 
@@ -164,7 +176,10 @@ def choose_item(interface: Context, name: str) -> None:
 @then(parsers.re(r"les boutons de ligne actifs de l'événement sont (?P<buttons>.+)"))
 def line_buttons(interface: Context, buttons: str) -> None:
 	ui = card(interface).ui
-	active_list = [button.text() for button in (ui.remove_item, ui.raise_, ui.go_down) if button.isEnabled()]
+	active_list = []
+	for button in (ui.remove_item, ui.raise_, ui.go_down):
+		if button.isEnabled():
+			active_list.append(button.text())
 	assert active_list == NAME.findall(buttons)
 
 
@@ -175,7 +190,10 @@ def line_buttons(interface: Context, buttons: str) -> None:
 	)
 )
 def add_in_erasing(interface: Context, qtbot: QtBot, empty_database: Connection, names: str, erased: str) -> None:
-	interface.chosen_feeds = [identifier(empty_database, "feeds", "name", name) for name in NAME.findall(names)]
+	name_list = []
+	for name in NAME.findall(names):
+		name_list.append(identifier(empty_database, "feeds", "name", name))
+	interface.chosen_feeds = name_list
 	empty_database.execute("DELETE FROM feeds WHERE name = %s", (erased,))
 	qtbot.mouseClick(card(interface).ui.add_feeds, Qt.MouseButton.LeftButton)
 
@@ -208,30 +226,57 @@ def open_item(interface: Context, qtbot: QtBot, name: str) -> None:
 @then(parsers.re(r"la priorité se choisit parmi (?P<priorities>.+)"))
 def priorities(interface: Context, priorities: str) -> None:
 	choice = card(interface).ui.priority
-	assert [choice.itemText(index).casefold() for index in range(choice.count())] == NAME.findall(priorities)
+	index_list = []
+	for index in range(choice.count()):
+		index_list.append(choice.itemText(index).casefold())
+	assert index_list == NAME.findall(priorities)
 
 
 @then("la fiche de l'événement montre :")
 def shown_list(interface: Context, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
 	players = shows(card(interface))
-	expected_list = [(field.strip(), value.strip()) for field, value in rows]
-	assert [(field, players[field]()) for field, _value in expected_list] == expected_list
+	expected_list = []
+	for field, value in rows:
+		expected_list.append((field.strip(), value.strip()))
+	value_list = []
+	for field, _value in expected_list:
+		value_list.append((field, players[field]()))
+	assert value_list == expected_list
 
 
 @then("la fiche de l'événement montre les éléments :")
 def items_in_table(interface: Context, datatable: list[list[str]]) -> None:
 	list_ = card(interface).ui.items
 	headers, *rows = datatable
-	titles = [list_.headerItem().text(column) for column in range(list_.columnCount())]
-	assert titles == [header.strip() for header in headers]
-	shown_list = [[line.text(column) for column in range(list_.columnCount())] for line in lines(interface)]
-	assert shown_list == [[value.strip() for value in values] for values in rows]
+	titles = []
+	for column in range(list_.columnCount()):
+		titles.append(list_.headerItem().text(column))
+	header_list = []
+	for header in headers:
+		header_list.append(header.strip())
+	assert titles == header_list
+	shown_list = []
+	for line in lines(interface):
+		column_list = []
+		for column in range(list_.columnCount()):
+			column_list.append(line.text(column))
+		shown_list.append(column_list)
+	values_list = []
+	for values in rows:
+		value_list = []
+		for value in values:
+			value_list.append(value.strip())
+		values_list.append(value_list)
+	assert shown_list == values_list
 
 
 @then(parsers.re(r"la fiche de l'événement montre les éléments (?P<names>aucun|«.+)"))
 def shown_items(interface: Context, names: str) -> None:
-	assert [line.text(1) for line in lines(interface)] == NAME.findall(names)
+	line_list = []
+	for line in lines(interface):
+		line_list.append(line.text(1))
+	assert line_list == NAME.findall(names)
 
 
 @then(parsers.re(r"la fiche de l'événement (?:n')?avertit (?:de rien|« (?P<text>.+) »)"))
@@ -247,11 +292,24 @@ def grid(interface: Context, what: str) -> None:
 	"""Les cases de dates actives, et « les jours » quand tous les jours se cochent ; « rien » sinon."""
 	event = card(interface)
 	ui = event.ui
-	active_list = [box.text().replace("&", "") for box in (ui.has_start, ui.has_end) if box.isEnabled()]
-	if all(day.isEnabled() for day in event.days):
+	active_list = []
+	for box in (ui.has_start, ui.has_end):
+		if box.isEnabled():
+			active_list.append(box.text().replace("&", ""))
+	every_one = True
+	for day in event.days:
+		if not (day.isEnabled()):
+			every_one = False
+			break
+	if every_one:
 		active_list.append("les jours")
 	else:
-		assert not any(day.isEnabled() for day in event.days)
+		found = False
+		for day in event.days:
+			if day.isEnabled():
+				found = True
+				break
+		assert not found
 	expected_list = NAME.findall(what)
 	if what.endswith("les jours"):
 		expected_list.append("les jours")
@@ -296,8 +354,13 @@ def items_in_database(interface: Context, empty_database: Connection, name: str,
 		" LEFT JOIN sounds s ON s.id = e.sound_id WHERE ev.internal_name = %s ORDER BY e.position",
 		(name,),
 	).fetchall()
-	expected_list = [(category, interface.path(item)) for category, item in IN_DATABASE.findall(items)]
-	assert lines_in_database == [(position, *expected) for position, expected in enumerate(expected_list, start=1)]
+	expected_list = []
+	for category, item in IN_DATABASE.findall(items):
+		expected_list.append((category, interface.path(item)))
+	expected_list_2 = []
+	for position, expected in enumerate(expected_list, start=1):
+		expected_list_2.append((position, *expected))
+	assert lines_in_database == expected_list_2
 
 
 @then(

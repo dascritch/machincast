@@ -230,7 +230,9 @@ def items_to_try(items: list[Item], last: int | None, loop: bool) -> list[Item]:
 	Avec boucle, la liste fait un tour complet ; sans boucle, elle s'arrête à son dernier élément. Un dernier
 	élément inconnu (jamais joué, ou supprimé depuis) fait repartir du début.
 	"""
-	ids = [e.id for e in items]
+	ids = []
+	for e in items:
+		ids.append(e.id)
 	departure = 0
 	if last in ids:
 		departure = ids.index(last) + 1
@@ -240,16 +242,18 @@ def items_to_try(items: list[Item], last: int | None, loop: bool) -> list[Item]:
 
 
 def _items(lines: list[TupleRow]) -> list[Item]:
-	return [
-		Item(
-			id=int(str(identifier)),
-			position=int(str(position)),
-			sound=integer_or_none(sound),
-			bank=integer_or_none(bank),
-			sequence=integer_or_none(sequence),
+	items = []
+	for identifier, position, sound, bank, sequence in lines:
+		items.append(
+			Item(
+				id=int(str(identifier)),
+				position=int(str(position)),
+				sound=integer_or_none(sound),
+				bank=integer_or_none(bank),
+				sequence=integer_or_none(sequence),
+			)
 		)
-		for identifier, position, sound, bank, sequence in lines
-	]
+	return items
 
 
 def read_items(connection: psycopg.Connection[TupleRow], event: int) -> list[Item]:
@@ -675,7 +679,11 @@ class Scheduler:
 		ends = [occurrence.end for occurrence in cut_list]
 		until: datetime | None = None
 		if (ends != []) and (None not in ends):
-			until = max(end for end in ends if end is not None)
+			end_list = []
+			for end in ends:
+				if end is not None:
+					end_list.append(end)
+			until = max(end_list)
 		else:
 			following = self.following_event(instant)
 			if following is not None:
@@ -726,9 +734,11 @@ class Scheduler:
 		self.excluded_list[sound] = instant
 
 	def _excluded_list(self, instant: datetime) -> frozenset[int]:
-		self.excluded_list = {
-			s: since for s, since in self.excluded_list.items() if instant < since + NOT_FOUND_FILE_RETRY
-		}
+		s_dict = {}
+		for s, since in self.excluded_list.items():
+			if instant < since + NOT_FOUND_FILE_RETRY:
+				s_dict[s] = since
+		self.excluded_list = s_dict
 		return frozenset(self.excluded_list)
 
 	def decide(self, instant: datetime, ongoing: Ongoing | None) -> Decision:
@@ -752,10 +762,17 @@ class Scheduler:
 		"""L'occurrence qui prête son nom (https://github.com/dascritch/machincast/issues/399) : la plus haute de la
 		grille, si son événement prête son nom à la fin de sa liste, que sa liste est épuisée (terminée plus tôt), et
 		qu'aucune coupure ne l'a terminée. Une occurrence terminée d'un autre événement n'en est pas une."""
-		lending = {event.id for event in events if event.end_of_list == END_LEND_NAME}
+		lending = set()
+		for event in events:
+			if event.end_of_list == END_LEND_NAME:
+				lending.add(event.id)
 		if not lending:
 			return None
-		others = frozenset(key for key in self.finished_list if (key[0] not in lending) or (key in self.cut_list))
+		key_list = []
+		for key in self.finished_list:
+			if (key[0] not in lending) or (key in self.cut_list):
+				key_list.append(key)
+		others = frozenset(key_list)
 		top = self._active(events, instant, others)
 		if (top is None) or (top.event.id not in lending) or (top.key not in self.finished_list) or (top.end is None):
 			return None
@@ -966,7 +983,10 @@ def ignored_calls(banks: Sequence[int | None], no_repeat: Collection[int], loop:
 	banques : la banque de chaque ligne, None pour un sonore. Pour l'avertissement de l'interface à l'édition d'une
 	séquence (https://github.com/dascritch/machincast/issues/112), qui n'empêche pas d'enregistrer.
 	"""
-	return ignored_calls_to_edges([(bank, bank) for bank in banks], no_repeat, loop)
+	bank_list = []
+	for bank in banks:
+		bank_list.append((bank, bank))
+	return ignored_calls_to_edges(bank_list, no_repeat, loop)
 
 
 def ignored_calls_to_edges(

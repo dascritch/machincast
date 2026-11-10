@@ -176,7 +176,11 @@ class SimulatedEngine:
 	def handle_messages(self) -> None:
 		for track in self._tracks:
 			track.handle()
-		self._tracks = [track for track in self._tracks if track.state == "playing"]
+		track_list = []
+		for track in self._tracks:
+			if track.state == "playing":
+				track_list.append(track)
+		self._tracks = track_list
 
 	def cut(self) -> None:
 		for track in self._tracks:
@@ -188,7 +192,11 @@ class SimulatedEngine:
 
 	def deadlines(self) -> list[datetime]:
 		"""Fins prévues des voies en cours."""
-		return [end for track in self._tracks if (end := track.planned_end()) is not None]
+		deadlines = []
+		for track in self._tracks:
+			if (end := track.planned_end()) is not None:
+				deadlines.append(end)
+		return deadlines
 
 
 # ─── Historique en mémoire ─────────────────────────────────
@@ -223,7 +231,10 @@ class SimulatedHistory:
 		return counts
 
 	def played_via_bank(self, connection: Connection, bank: int) -> list[int]:
-		simulated_list = [s.play.sound for s in reversed(self.simulated_plays) if s.play.bank == bank]
+		simulated_list = []
+		for s in reversed(self.simulated_plays):
+			if s.play.bank == bank:
+				simulated_list.append(s.play.sound)
 		return simulated_list + IN_DATABASE.played_via_bank(connection, bank)
 
 	def last_item(self, connection: Connection, event: int, since: datetime | None) -> int | None:
@@ -322,7 +333,10 @@ class SimulatedHistory:
 			" AND (broadcast_end <= %s OR max_plays IS NOT NULL)",
 			(sound, sound, instant),
 		).fetchall()
-		candidates = {int(str(i)): (m, f, n) for i, m, f, n in lines if int(str(i)) not in self.expired_list}
+		candidates = {}
+		for i, m, f, n in lines:
+			if int(str(i)) not in self.expired_list:
+				candidates[int(str(i))] = (m, f, n)
 		play_counts = self.plays(connection, list(candidates))
 		expiries = []
 		for identifier, (maximum, end, name) in candidates.items():
@@ -446,7 +460,10 @@ def _next_deadline(
 		candidates.append(change)
 	if (current is None) and (not broadcast.outgoing_list):
 		candidates.append(instant + WAITING_IN_DEAD_AIR)
-	after = [candidate for candidate in candidates if candidate > instant]
+	after = []
+	for candidate in candidates:
+		if candidate > instant:
+			after.append(candidate)
 	if not after:
 		return end
 	return min(after)
@@ -490,7 +507,9 @@ def simulate(
 			clock.advance(_next_deadline(connection, broadcast, engine, instant, end) - instant)
 		broadcast.halt()
 		lines = history.lines(connection)
-	hidden_list = [hide(line, (metadata) or (Metadata(hide=False, public_text=""))) for line in lines]
+	hidden_list = []
+	for line in lines:
+		hidden_list.append(hide(line, (metadata) or (Metadata(hide=False, public_text=""))))
 	files = export(hidden_list, history.log, directory, (name) or (default_name(start, end)), start, end)
 	return Result(lines, history.log, files)
 
@@ -512,48 +531,52 @@ def simulation_page(lines: list[Line], log: list[tuple[str, str, str]], start: d
 	def cell(text: str | None) -> str:
 		return f"<td>{html.escape((text) or (''))}</td>"
 
-	rows = "\n".join(
-		"\t\t\t<tr>"
-		+ cell(f"{line.start.astimezone():%Y-%m-%d %H:%M:%S}")
-		+ cell(_end_hour(line.end))
-		+ cell(line.artist)
-		+ cell(line.title)
-		+ cell(line.location)
-		+ cell(line.event)
-		+ cell(line.sequence)
-		+ cell(line.bank)
-		+ "</tr>"
-		for line in lines
-	)
-	anomalies = "\n".join(
-		f'\t\t<li class="{html.escape(level)}">'
-		+ html.escape(
-			_("{level}: {kind}: {message}").format(
-				level=LEVELS.get(level, level), kind=logged(kind), message=logged(message)
-			)
+	line_list = []
+	for line in lines:
+		line_list.append(
+			"\t\t\t<tr>"
+			+ cell(f"{line.start.astimezone():%Y-%m-%d %H:%M:%S}")
+			+ cell(_end_hour(line.end))
+			+ cell(line.artist)
+			+ cell(line.title)
+			+ cell(line.location)
+			+ cell(line.event)
+			+ cell(line.sequence)
+			+ cell(line.bank)
+			+ "</tr>"
 		)
-		+ "</li>"
-		for level, kind, message in log
-		if level != "info"
-	)
+	rows = "\n".join(line_list)
+	kind_list = []
+	for level, kind, message in log:
+		if level != "info":
+			kind_list.append(
+				f'\t\t<li class="{html.escape(level)}">'
+				+ html.escape(
+					_("{level}: {kind}: {message}").format(
+						level=LEVELS.get(level, level), kind=logged(kind), message=logged(message)
+					)
+				)
+				+ "</li>"
+			)
+	anomalies = "\n".join(kind_list)
 	plays = ngettext(
 		"{count} play. Nothing was written to the database.",
 		"{count} plays. Nothing was written to the database.",
 		len(lines),
 	).format(count=len(lines))
-	headers = "".join(
-		f"<th>{html.escape(header)}</th>"
-		for header in (
-			_("Start"),
-			_("End"),
-			_("Artist"),
-			_("Title"),
-			_("Location"),
-			_("Event"),
-			_("Sequence"),
-			_("Bank"),
-		)
-	)
+	header_list = []
+	for header in (
+		_("Start"),
+		_("End"),
+		_("Artist"),
+		_("Title"),
+		_("Location"),
+		_("Event"),
+		_("Sequence"),
+		_("Bank"),
+	):
+		header_list.append(f"<th>{html.escape(header)}</th>")
+	headers = "".join(header_list)
 	return f"""<!DOCTYPE html>
 <html lang="{current()}">
 <head>
@@ -596,7 +619,10 @@ def export(
 ) -> tuple[Path, Path, Path]:
 	"""CSV, .pls et .html de la simulation, pour toute la période ; un fichier existant est remplacé."""
 	directory.mkdir(parents=True, exist_ok=True)
-	csv_path, pls_path, html_path = (directory / f"{name}{extension}" for extension in (".csv", ".pls", ".html"))
+	extension_list = []
+	for extension in (".csv", ".pls", ".html"):
+		extension_list.append(directory / f"{name}{extension}")
+	csv_path, pls_path, html_path = extension_list
 	with csv_path.open("w", encoding="utf-8-sig", newline="") as file:
 		file.write(";".join(CSV_COLUMNS) + "\r\n")
 		for line in lines:

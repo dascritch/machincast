@@ -698,7 +698,11 @@ class MainWindow(QMainWindow):
 
 	def cards(self) -> list[Card]:
 		tabs = self.ui.tabs
-		return [card for index in range(tabs.count()) if isinstance(card := tabs.widget(index), Card)]
+		cards = []
+		for index in range(tabs.count()):
+			if isinstance(card := tabs.widget(index), Card):
+				cards.append(card)
+		return cards
 
 	def _sound_cards(self) -> str:
 		"""Les périphériques de l'antenne et de la pré-écoute, tels que le fichier de configuration les donne alors."""
@@ -773,9 +777,15 @@ class MainWindow(QMainWindow):
 	def retain_tabs(self) -> None:
 		"""Les onglets ouverts, dans leur ordre, et l'onglet actif, dans les réglages des vues du compte."""
 		tabs = self.ui.tabs
-		keys = [self.tab_key(tabs.widget(index)) for index in range(tabs.count())]
+		keys = []
+		for index in range(tabs.count()):
+			keys.append(self.tab_key(tabs.widget(index)))
 		settings = columns.settings()
-		settings.setValue(TAB_KEY, [key for key in keys if key is not None])
+		key_list = []
+		for key in keys:
+			if key is not None:
+				key_list.append(key)
+		settings.setValue(TAB_KEY, key_list)
 		settings.setValue(ACTIVE_TAB_KEY, (self.tab_key(tabs.currentWidget())) or ("on_air"))
 
 	def reopen_tabs(self) -> None:
@@ -792,10 +802,16 @@ class MainWindow(QMainWindow):
 				self._reopen(current_tab_key(str(key)))
 			except psycopg.Error as error:
 				log.error(_("tab “{key}” not reopened: {error}").format(key=key, error=error))
-		self._order_tabs([current_tab_key(str(key)) for key in retained])
+		key_list = []
+		for key in retained:
+			key_list.append(current_tab_key(str(key)))
+		self._order_tabs(key_list)
 		tabs = self.ui.tabs
 		active = current_tab_key(str(settings.value(ACTIVE_TAB_KEY, "on_air")))
-		found_list = [index for index in range(tabs.count()) if self.tab_key(tabs.widget(index)) == active]
+		found_list = []
+		for index in range(tabs.count()):
+			if self.tab_key(tabs.widget(index)) == active:
+				found_list.append(index)
 		tabs.setCurrentIndex(next(iter(found_list), 0))
 
 	def _order_tabs(self, order: list[str]) -> None:
@@ -803,9 +819,16 @@ class MainWindow(QMainWindow):
 		(https://github.com/dascritch/machincast/issues/405) : ils échangent leurs places entre eux, et un onglet absent
 		de l'ordre retenu, celui d'une version d'avant, garde la sienne. L'onglet Antenne reste le premier."""
 		tabs = self.ui.tabs
-		screens = [screen for index in range(tabs.count()) if (screen := tabs.widget(index)) is not None]
+		screens = []
+		for index in range(tabs.count()):
+			if (screen := tabs.widget(index)) is not None:
+				screens.append(screen)
 		by_key = {self.tab_key(screen): screen for screen in screens}
-		retained = iter([by_key[key] for key in dict.fromkeys(order) if key in by_key])
+		key_list = []
+		for key in dict.fromkeys(order):
+			if key in by_key:
+				key_list.append(by_key[key])
+		retained = iter(key_list)
 		wanted: list[QWidget] = []
 		for screen in screens:
 			if self.tab_key(screen) in order:
@@ -965,7 +988,11 @@ class MainWindow(QMainWindow):
 	def _remove_tab(self, index: int) -> None:
 		"""Un onglet fermé n'est plus ni l'origine ni le dernier ouvert d'aucun autre."""
 		screen = self.ui.tabs.widget(index)
-		self._last_opened = {origin: last for origin, last in self._last_opened.items() if screen not in (origin, last)}
+		last_dict = {}
+		for origin, last in self._last_opened.items():
+			if screen not in (origin, last):
+				last_dict[origin] = last
+		self._last_opened = last_dict
 		self.ui.tabs.removeTab(index)
 		self._number_tabs()
 
@@ -1141,8 +1168,14 @@ class MainWindow(QMainWindow):
 		"""Un seul onglet de recherche (https://github.com/dascritch/machincast/issues/27) : celui qui est ouvert
 		revient au premier plan ; le curseur va dans son champ."""
 		tabs = self.ui.tabs
-		opened_list = [tabs.widget(index) for index in range(tabs.count())]
-		search = next((screen for screen in opened_list if isinstance(screen, SearchScreen)), None)
+		opened_list = []
+		for index in range(tabs.count()):
+			opened_list.append(tabs.widget(index))
+		search = None
+		for screen in opened_list:
+			if isinstance(screen, SearchScreen):
+				search = screen
+				break
 		if search is None:
 			search = SearchScreen(self.connection)
 			search.opened.connect(self._open)
@@ -1165,8 +1198,14 @@ class MainWindow(QMainWindow):
 		"""Un seul onglet de simulation (https://github.com/dascritch/machincast/issues/37) : celui qui est ouvert
 		revient au premier plan, avec son résultat."""
 		tabs = self.ui.tabs
-		opened_list = [tabs.widget(index) for index in range(tabs.count())]
-		simulation = next((screen for screen in opened_list if isinstance(screen, SimulationScreen)), None)
+		opened_list = []
+		for index in range(tabs.count()):
+			opened_list.append(tabs.widget(index))
+		simulation = None
+		for screen in opened_list:
+			if isinstance(screen, SimulationScreen):
+				simulation = screen
+				break
 		if simulation is None:
 			simulation = SimulationScreen(self.clock, self.configuration)
 			self._add_tab(simulation, _("Simulation"))
@@ -1176,8 +1215,14 @@ class MainWindow(QMainWindow):
 		"""Un seul onglet Airplay (https://github.com/dascritch/machincast/issues/244) : celui qui est ouvert revient au
 		premier plan. Il se relit quand l'onglet Antenne voit un nouveau sonore."""
 		tabs = self.ui.tabs
-		opened_list = [tabs.widget(index) for index in range(tabs.count())]
-		airplay = next((screen for screen in opened_list if isinstance(screen, AirplayScreen)), None)
+		opened_list = []
+		for index in range(tabs.count()):
+			opened_list.append(tabs.widget(index))
+		airplay = None
+		for screen in opened_list:
+			if isinstance(screen, AirplayScreen):
+				airplay = screen
+				break
 		if airplay is None:
 			airplay = AirplayScreen(self.connection, self.clock, self._metadata())
 			airplay.opened.connect(self._open)
@@ -1527,4 +1572,7 @@ def _upcoming(action: QAction, tickets: str) -> None:
 
 
 def _titles(titles: list[str]) -> str:
-	return ", ".join(_("“{title}”").format(title=title) for title in titles)
+	title_list = []
+	for title in titles:
+		title_list.append(_("“{title}”").format(title=title))
+	return ", ".join(title_list)

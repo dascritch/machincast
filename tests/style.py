@@ -45,7 +45,11 @@ def _tokens(source: str) -> list[tokenize.TokenInfo]:
 		tokenize.ENCODING,
 		tokenize.ENDMARKER,
 	}
-	return [token for token in tokenize.generate_tokens(io.StringIO(source).readline) if token.type not in ignored]
+	tokens = []
+	for token in tokenize.generate_tokens(io.StringIO(source).readline):
+		if token.type not in ignored:
+			tokens.append(token)
+	return tokens
 
 
 def _column(lines: list[str], line: int, byte: int) -> int:
@@ -60,7 +64,10 @@ def _between_parentheses(
 	assert (node.end_lineno is not None) and (node.end_col_offset is not None)
 	start = starts.get((node.lineno, _column(lines, node.lineno, node.col_offset)))
 	end = (node.end_lineno, _column(lines, node.end_lineno, node.end_col_offset))
-	following_list = [rank for rank, token in enumerate(tokens) if token.end == end]
+	following_list = []
+	for rank, token in enumerate(tokens):
+		if token.end == end:
+			following_list.append(rank)
 	if (start is None) or (start == 0) or (following_list == []):
 		return False
 	following = following_list[-1] + 1
@@ -77,7 +84,9 @@ def _elif(node: ast.If, lines: list[str]) -> bool:
 def faults(source: str) -> list[Fault]:
 	"""Les fautes de style d'un source Python, dans l'ordre des lignes."""
 	tokens = _tokens(source)
-	starts = {token.start: rank for rank, token in enumerate(tokens)}
+	starts = {}
+	for rank, token in enumerate(tokens):
+		starts[token.start] = rank
 	lines = source.splitlines()
 	found_list = []
 	for node in ast.walk(ast.parse(source)):

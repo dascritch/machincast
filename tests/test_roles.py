@@ -189,7 +189,10 @@ def previous_start(context: Context, role: str, verdict: str) -> None:
 @then("les deux lignes d'airplay et l'entrée de log sont en base")
 def saved_play(context: Context) -> None:
 	lines = context.connection.execute("SELECT line_type::text FROM airplay ORDER BY id").fetchall()
-	assert [line[0] for line in lines] == ["start", "end"]
+	line_list = []
+	for line in lines:
+		line_list.append(line[0])
+	assert line_list == ["start", "end"]
 	log = context.connection.execute("SELECT kind FROM log").fetchall()
 	assert log == [("passage",)]
 
@@ -207,19 +210,23 @@ def acts_in_as_long_as_that(current_role: str, role: str) -> None:
 
 @then("les trois rôles existent toujours")
 def roles_exist(context: Context) -> None:
-	lines = context.connection.execute(
-		"SELECT rolname FROM pg_roles WHERE rolname = ANY(%s)", ([str(r) for r in Role],)
-	).fetchall()
+	r_list = []
+	for r in Role:
+		r_list.append(str(r))
+	lines = context.connection.execute("SELECT rolname FROM pg_roles WHERE rolname = ANY(%s)", (r_list,)).fetchall()
 	assert len(lines) == 3
 
 
 @then("le compte courant peut endosser chacun des trois rôles, sans en hériter les droits")
 def current_count(context: Context) -> None:
+	role_list = []
+	for role in Role:
+		role_list.append(str(role))
 	lines = context.connection.execute(
 		"SELECT r.rolname, m.inherit_option, m.set_option FROM pg_auth_members m"
 		" JOIN pg_roles r ON r.oid = m.roleid WHERE m.member = (SELECT oid FROM pg_roles WHERE rolname = current_user)"
 		" AND r.rolname = ANY(%s)",
-		([str(role) for role in Role],),
+		(role_list,),
 	).fetchall()
 	count = context.connection.execute(
 		"SELECT current_user, rolsuper FROM pg_roles WHERE rolname = current_user"
@@ -239,5 +246,10 @@ def current_count(context: Context) -> None:
 		)
 	assert lines != [], explanation
 	# Aucune autorisation n'hérite des droits, et chaque rôle peut être endossé par au moins l'une d'elles.
-	assert not any(inheritance for _, inheritance, _ in lines), lines
+	found = False
+	for _, inheritance, _ in lines:
+		if inheritance:
+			found = True
+			break
+	assert not found, lines
 	assert {str(name) for name, _, assumable in lines if assumable} == {str(role) for role in Role}, lines

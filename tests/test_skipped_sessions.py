@@ -18,7 +18,9 @@ Connection = psycopg.Connection[tuple[object, ...]]
 
 @given(parsers.re(r"l'émission « (?P<name>[^»]+) » revient (?P<days>chaque .+)"))
 def recurrence(empty_database: Connection, name: str, days: str) -> None:
-	names = [DAYS[DAY_NAMES.index(day.strip())] for day in days.replace("chaque", "").split(" et ")]
+	names = []
+	for day in days.replace("chaque", "").split(" et "):
+		names.append(DAYS[DAY_NAMES.index(day.strip())])
 	empty_database.execute("UPDATE events SET recurrence_days = %s WHERE internal_name = %s", (names, name))
 
 

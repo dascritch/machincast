@@ -141,7 +141,9 @@ class AirplayScreen(QWidget):
 			return
 		self.model.setRowCount(0)
 		for play in plays:
-			cells = [QStandardItem(text) for text in play_cells(play)]
+			cells = []
+			for text in play_cells(play):
+				cells.append(QStandardItem(text))
 			for column, item in play_items(play).items():
 				cells[column].setData(item, ITEM)
 			cells[0].setData(play_location(play), LOCATION)

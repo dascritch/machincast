@@ -38,7 +38,10 @@ def retained(key: str) -> set[str]:
 	if isinstance(value, str):
 		return {value}
 	if isinstance(value, list):
-		return {str(name) for name in value}
+		retained = set()
+		for name in value:
+			retained.add(str(name))
+		return retained
 	return set()
 
 

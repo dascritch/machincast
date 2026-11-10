@@ -21,16 +21,23 @@ Connection = psycopg.Connection[tuple[object, ...]]
 
 def screen(interface: Context) -> SearchScreen:
 	tabs = window(interface).ui.tabs
-	(found,) = [widget for index in range(tabs.count()) if isinstance(widget := tabs.widget(index), SearchScreen)]
+	index_list = []
+	for index in range(tabs.count()):
+		if isinstance(widget := tabs.widget(index), SearchScreen):
+			index_list.append(widget)
+	(found,) = index_list
 	return found
 
 
 def lines(interface: Context) -> list[list[str]]:
 	model = screen(interface).model
-	return [
-		[str((model.index(row, column).data()) or ("")) for column in range(model.columnCount())]
-		for row in range(model.rowCount())
-	]
+	lines = []
+	for row in range(model.rowCount()):
+		column_list = []
+		for column in range(model.columnCount()):
+			column_list.append(str((model.index(row, column).data()) or ("")))
+		lines.append(column_list)
+	return lines
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -100,16 +107,30 @@ def without_suggestions(interface: Context) -> None:
 
 @then(parsers.re(r"les résultats nommés sont (?P<names>aucun|«.+)"))
 def result_names(interface: Context, names: str) -> None:
-	assert [line[1] for line in lines(interface)] == NAME.findall(names)
+	line_list = []
+	for line in lines(interface):
+		line_list.append(line[1])
+	assert line_list == NAME.findall(names)
 
 
 @then("les résultats sont :")
 def results(interface: Context, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
 	model = screen(interface).model
-	titles = [str(model.headerData(column, Qt.Orientation.Horizontal)) for column in range(model.columnCount())]
-	assert titles == [header.strip() for header in headers]
-	assert lines(interface) == [[value.strip() for value in values] for values in rows]
+	titles = []
+	for column in range(model.columnCount()):
+		titles.append(str(model.headerData(column, Qt.Orientation.Horizontal)))
+	header_list = []
+	for header in headers:
+		header_list.append(header.strip())
+	assert titles == header_list
+	values_list = []
+	for values in rows:
+		value_list = []
+		for value in values:
+			value_list.append(value.strip())
+		values_list.append(value_list)
+	assert lines(interface) == values_list
 
 
 @then(parsers.parse("le compte des résultats est « {text} »"))

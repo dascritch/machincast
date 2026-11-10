@@ -131,8 +131,16 @@ def launch(
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		execution.code = BINARIES[binary](arguments)
-	execution.information = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
-	execution.errors = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
+	r_list = []
+	for r in caplog.records:
+		if r.levelno == logging.INFO:
+			r_list.append(r.getMessage())
+	execution.information = r_list
+	r_list_2 = []
+	for r in caplog.records:
+		if r.levelno >= logging.WARNING:
+			r_list_2.append(r.getMessage())
+	execution.errors = r_list_2
 
 
 @then(parsers.parse("le lancement se termine avec le code {code:d}"))
@@ -153,12 +161,20 @@ def reported(execution: Execution, text: str) -> None:
 @then(parsers.parse("le journal a signalé que le démarrage de « {program} » n'a pas été noté dans la base"))
 def start_not_noted(execution: Execution, program: str) -> None:
 	start = f"{program} : démarrage non noté dans la base : "
-	assert any(error.startswith(start) for error in execution.errors), execution.errors
+	found = False
+	for error in execution.errors:
+		if error.startswith(start):
+			found = True
+			break
+	assert found, execution.errors
 
 
 def _lines(connection: Connection) -> list[tuple[str, str, str]]:
 	lines = connection.execute("SELECT level::text, kind, message FROM log ORDER BY logged_at, id").fetchall()
-	return [(str(level), shown(kind), shown(message)) for level, kind, message in lines]
+	kind_list = []
+	for level, kind, message in lines:
+		kind_list.append((str(level), shown(kind), shown(message)))
+	return kind_list
 
 
 @then(
@@ -168,7 +184,10 @@ def start_and_end(
 	empty_database: Connection, execution: Execution, kind: str, start: str, other: str, end: str
 ) -> None:
 	"""Les lignes du démarrage et de la fin, sans celles du travail du binaire, comme le bilan de la purge."""
-	lines = [line for line in _lines(empty_database) if line[1] in (kind, other)]
+	lines = []
+	for line in _lines(empty_database):
+		if line[1] in (kind, other):
+			lines.append(line)
 	assert lines == [
 		("info", kind, execution.text(start)),
 		("info", other, execution.text(end)),
@@ -188,7 +207,12 @@ def line_noted(empty_database: Connection, execution: Execution, level: str, kin
 
 @then("le log de la base n'a noté aucun plantage probable")
 def no_crash(empty_database: Connection) -> None:
-	assert all(kind != "plantage probable" for _level, kind, _message in _lines(empty_database))
+	every_one = True
+	for _level, kind, _message in _lines(empty_database):
+		if kind == "plantage probable":
+			every_one = False
+			break
+	assert every_one
 
 
 @then("le log de la base n'a noté ni démarrage ni fin")

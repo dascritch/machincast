@@ -43,7 +43,11 @@ def item_list(interface: Context) -> QTreeWidget:
 
 def lines(list_: QTreeWidget) -> list[str]:
 	"""Le nom de l'élément de chaque ligne, deuxième colonne."""
-	return [item.text(1) for row in range(list_.topLevelItemCount()) if (item := list_.topLevelItem(row))]
+	lines = []
+	for row in range(list_.topLevelItemCount()):
+		if item := list_.topLevelItem(row):
+			lines.append(item.text(1))
+	return lines
 
 
 def instant(text: str) -> datetime:
@@ -135,7 +139,12 @@ def copied_event(interface: Context, priority: str, hiding: str) -> None:
 	assert (ui.priority.currentText(), ui.hiding.currentText()) == (priority, hiding)
 	assert not ui.has_start.isChecked()
 	assert not ui.has_end.isChecked()
-	assert not any(day.isChecked() for day in opened.days)
+	found = False
+	for day in opened.days:
+		if day.isChecked():
+			found = True
+			break
+	assert not found
 
 
 @then(
@@ -149,8 +158,13 @@ def copied_bank(interface: Context, mode: str, directories: str) -> None:
 	assert isinstance(opened, BankCard)
 	ui = opened.ui
 	assert (ui.mode.currentText(), ui.no_repeat.isChecked()) == (mode, True)
-	shown_list = [ui.directories.item(row).text() for row in range(ui.directories.count())]
-	assert shown_list == [interface.path(directory) for directory in NAME.findall(directories)]
+	shown_list = []
+	for row in range(ui.directories.count()):
+		shown_list.append(ui.directories.item(row).text())
+	directory_list = []
+	for directory in NAME.findall(directories):
+		directory_list.append(interface.path(directory))
+	assert shown_list == directory_list
 	assert ui.sounds.topLevelItemCount() == 0
 
 
@@ -177,7 +191,10 @@ def items_in_database(database: Connection, category: str, name: str) -> list[tu
 		f" WHERE e.{parent} = %s ORDER BY e.position",
 		(number,),
 	).fetchall()
-	return [(str(what), str(who)) for what, who in rows]
+	items_in_database = []
+	for what, who in rows:
+		items_in_database.append((str(what), str(who)))
+	return items_in_database
 
 
 @then(
@@ -252,13 +269,22 @@ def bank_in_database(
 	fetched_list = empty_database.execute(
 		'SELECT directory FROM bank_directories WHERE bank_id = %s ORDER BY directory COLLATE "C"', (number,)
 	).fetchall()
-	assert [str(directory) for (directory,) in fetched_list] == [interface.path(r) for r in NAME.findall(directories)]
+	directory_list = []
+	for (directory,) in fetched_list:
+		directory_list.append(str(directory))
+	r_list = []
+	for r in NAME.findall(directories):
+		r_list.append(interface.path(r))
+	assert directory_list == r_list
 	titles = empty_database.execute(
 		"SELECT s.title FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
 		" WHERE bs.bank_id = %s ORDER BY bs.position",
 		(number,),
 	).fetchall()
-	assert [str(title) for (title,) in titles] == NAME.findall(sounds)
+	title_list = []
+	for (title,) in titles:
+		title_list.append(str(title))
+	assert title_list == NAME.findall(sounds)
 
 
 @then(parsers.re(r"les listes qui proposent de dupliquer au clic droit sont (?P<tabs>.+)"))

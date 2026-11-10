@@ -230,17 +230,26 @@ def confirm_maintenance(parent: QWidget, backups: Path) -> Path | None:
 
 def choose_files(parent: QWidget) -> list[Path]:
 	"""Les fichiers choisis dans le sélecteur du poste, plusieurs à la fois ; aucun si le choix est abandonné."""
-	patterns = " ".join(f"*{extension}" for extension in sorted(INDEXED_EXTENSIONS))
+	extension_list = []
+	for extension in sorted(INDEXED_EXTENSIONS):
+		extension_list.append(f"*{extension}")
+	patterns = " ".join(extension_list)
 	chosen_list, _filter = QFileDialog.getOpenFileNames(
 		parent, _("Add sound files"), "", _("Sound files ({patterns});;All files (*)").format(patterns=patterns)
 	)
-	return [Path(path) for path in chosen_list]
+	choose_files = []
+	for path in chosen_list:
+		choose_files.append(Path(path))
+	return choose_files
 
 
 def choose_icon(parent: QWidget) -> Path | None:
 	"""L'image choisie pour icône de l'application (https://github.com/dascritch/machincast/issues/111) ; None si le
 	choix est abandonné."""
-	patterns = " ".join(f"*{extension}" for extension in sorted(ICON_EXTENSIONS))
+	extension_list = []
+	for extension in sorted(ICON_EXTENSIONS):
+		extension_list.append(f"*{extension}")
+	patterns = " ".join(extension_list)
 	path, _filter = QFileDialog.getOpenFileName(
 		parent, _("Application icon"), "", _("Images ({patterns})").format(patterns=patterns)
 	)

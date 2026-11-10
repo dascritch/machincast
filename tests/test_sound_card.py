@@ -64,7 +64,10 @@ def choose_text(choice: QComboBox, text: str) -> None:
 
 
 def texts(choice: QComboBox) -> list[str]:
-	return [choice.itemText(index).casefold() for index in range(choice.count())]
+	texts = []
+	for index in range(choice.count()):
+		texts.append(choice.itemText(index).casefold())
+	return texts
 
 
 def if_ticked(box: QAbstractButton, read: Callable[[], str]) -> Callable[[], str]:
@@ -131,7 +134,10 @@ def silent_server() -> Iterator[str]:
 def sound_in_database(empty_database: Connection, name: str, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
 	sound_identifier = id_sound(empty_database, name)
-	for field, text in ((field.strip(), text.strip()) for field, text in rows):
+	field_list = []
+	for field, text in rows:
+		field_list.append((field.strip(), text.strip()))
+	for field, text in field_list:
 		value: object = text
 		if field in ("broadcast_start", "broadcast_end", "checked_at"):
 			value = paris_hour(text)
@@ -195,7 +201,10 @@ def reference(database: Connection, table: str, name: str) -> int | None:
 def plays(empty_database: Connection, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
 	for values in rows:
-		line = dict(zip(headers, (value.strip() for value in values), strict=True))
+		value_list = []
+		for value in values:
+			value_list.append(value.strip())
+		line = dict(zip(headers, value_list, strict=True))
 		end = None
 		if line["ends_at"] != "":
 			end = paris_hour(line["ends_at"])
@@ -213,7 +222,10 @@ def plays(empty_database: Connection, datatable: list[list[str]]) -> None:
 def log(empty_database: Connection, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
 	for values in rows:
-		line = dict(zip(headers, (value.strip() for value in values), strict=True))
+		value_list = []
+		for value in values:
+			value_list.append(value.strip())
+		line = dict(zip(headers, value_list, strict=True))
 		empty_database.execute(
 			"INSERT INTO log (logged_at, level, kind, message, sound_id) VALUES (%s, %s, %s, %s, %s)",
 			(
@@ -264,7 +276,10 @@ def enter(interface: Context, qtbot: QtBot, datatable: list[list[str]]) -> None:
 		"Diffusion jusqu'au": (ui.has_end, ui.broadcast_end),
 	}
 	_headers, *rows = datatable
-	for field, raw in ((field.strip(), raw.strip().replace(SPACE, " ")) for field, raw in rows):
+	field_list = []
+	for field, raw in rows:
+		field_list.append((field.strip(), raw.strip().replace(SPACE, " ")))
+	for field, raw in field_list:
 		match field:
 			case _ if field in free_texts:
 				type_(qtbot, free_texts[field], raw)
@@ -373,8 +388,13 @@ def launch_trial(interface: Context, qtbot: QtBot) -> None:
 def shown_list(interface: Context, datatable: list[list[str]]) -> None:
 	playback = shows(card(interface))
 	_headers, *rows = datatable
-	expected_list = [(field.strip(), value.strip()) for field, value in rows]
-	assert [(field, playback[field]()) for field, _value in expected_list] == expected_list
+	expected_list = []
+	for field, value in rows:
+		expected_list.append((field.strip(), value.strip()))
+	value_list = []
+	for field, _value in expected_list:
+		value_list.append((field, playback[field]()))
+	assert value_list == expected_list
 
 
 @then(parsers.parse("la fiche du sonore montre les autres métadonnées « {text} »"))
@@ -470,11 +490,10 @@ def states(interface: Context, states: str) -> None:
 	(https://github.com/dascritch/machincast/issues/223)."""
 	choice = card(interface).ui.state
 	model = choice.model()
-	possible = [
-		choice.itemText(rank).casefold()
-		for rank in range(choice.count())
-		if (rank != choice.currentIndex()) and (model.flags(model.index(rank, 0)) & Qt.ItemFlag.ItemIsEnabled)
-	]
+	possible = []
+	for rank in range(choice.count()):
+		if (rank != choice.currentIndex()) and (model.flags(model.index(rank, 0)) & Qt.ItemFlag.ItemIsEnabled):
+			possible.append(choice.itemText(rank).casefold())
 	expected_list = NAME.findall(states)
 	obtained_list = [choice.currentText().casefold(), *possible]
 	assert (obtained_list, choice.isEnabled()) == (expected_list, len(expected_list) > 1)
@@ -482,12 +501,18 @@ def states(interface: Context, states: str) -> None:
 
 @then(parsers.re(r"les feeds proposés sont (?P<names>.+)"))
 def offered_marks(interface: Context, names: str) -> None:
-	assert texts(card(interface).ui.feed) == [name.casefold() for name in NAME.findall(names)]
+	name_list = []
+	for name in NAME.findall(names):
+		name_list.append(name.casefold())
+	assert texts(card(interface).ui.feed) == name_list
 
 
 @then(parsers.re(r"les événements de secours proposés sont (?P<names>.+)"))
 def offered_fallback(interface: Context, names: str) -> None:
-	assert texts(card(interface).ui.fallback) == [name.casefold() for name in NAME.findall(names)]
+	name_list = []
+	for name in NAME.findall(names):
+		name_list.append(name.casefold())
+	assert texts(card(interface).ui.fallback) == name_list
 
 
 @then(
@@ -555,14 +580,22 @@ def always(interface: Context, qtbot: QtBot, seconds: int, verdict: str) -> None
 def active_dates(interface: Context, dates: str) -> None:
 	ui = card(interface).ui
 	fields = {"Diffusion à partir du": ui.broadcast_start, "Diffusion jusqu'au": ui.broadcast_end}
-	assert [name for name, field in fields.items() if field.isEnabled()] == NAME.findall(dates)
+	field_list = []
+	for name, field in fields.items():
+		if field.isEnabled():
+			field_list.append(name)
+	assert field_list == NAME.findall(dates)
 
 
 @then(parsers.parse("seul le champ « {name} » du stream se saisit"))
 def stream_field(interface: Context, name: str) -> None:
 	ui = card(interface).ui
 	fields = {"Adresse directe": ui.url_stream, "Feed": ui.feed}
-	assert [key for key, field in fields.items() if field.isEnabled()] == [name]
+	field_list = []
+	for key, field in fields.items():
+		if field.isEnabled():
+			field_list.append(key)
+	assert field_list == [name]
 
 
 @then("la fiche du sonore ne montre aucun champ saisi à la main")
@@ -580,18 +613,35 @@ def rerunnable_trial(interface: Context) -> None:
 def last_plays(interface: Context, datatable: list[list[str]]) -> None:
 	table = card(interface).ui.plays
 	headers, *rows = datatable
-	titles = [table.horizontalHeaderItem(column).text() for column in range(table.columnCount())]
-	assert titles == [header.strip() for header in headers]
-	shown_list = [
-		[table.item(row, column).text() for column in range(table.columnCount())] for row in range(table.rowCount())
-	]
-	assert shown_list == [[value.strip() for value in values] for values in rows]
+	titles = []
+	for column in range(table.columnCount()):
+		titles.append(table.horizontalHeaderItem(column).text())
+	header_list = []
+	for header in headers:
+		header_list.append(header.strip())
+	assert titles == header_list
+	shown_list = []
+	for row in range(table.rowCount()):
+		column_list = []
+		for column in range(table.columnCount()):
+			column_list.append(table.item(row, column).text())
+		shown_list.append(column_list)
+	values_list = []
+	for values in rows:
+		value_list = []
+		for value in values:
+			value_list.append(value.strip())
+		values_list.append(value_list)
+	assert shown_list == values_list
 
 
 @then(parsers.parse("l'infobulle des incidents du passage de « {start} » est « {text} »"))
 def tooltip(interface: Context, start: str, text: str) -> None:
 	table = card(interface).ui.plays
-	rows = [row for row in range(table.rowCount()) if table.item(row, 0).text() == start]
+	rows = []
+	for row in range(table.rowCount()):
+		if table.item(row, 0).text() == start:
+			rows.append(row)
 	assert len(rows) == 1
 	assert table.item(rows[0], table.columnCount() - 1).toolTip() == text.replace(RETURN, "\n")
 
@@ -599,7 +649,9 @@ def tooltip(interface: Context, start: str, text: str) -> None:
 @then(parsers.parse("la fiche du sonore montre {count:d} passages, du « {first} » au « {last} »"))
 def play_count(interface: Context, count: int, first: str, last: str) -> None:
 	table = card(interface).ui.plays
-	starts = [table.item(row, 0).text() for row in range(table.rowCount())]
+	starts = []
+	for row in range(table.rowCount()):
+		starts.append(table.item(row, 0).text())
 	assert (len(starts), starts[0], starts[-1]) == (count, first, last)
 
 
@@ -629,12 +681,26 @@ def open_relation(interface: Context, qtbot: QtBot, name: str) -> None:
 def relations(interface: Context, datatable: list[list[str]]) -> None:
 	table = card(interface).ui.relations
 	headers, *rows = datatable
-	columns = [table.horizontalHeaderItem(column).text() for column in range(table.columnCount())]
-	assert columns == [header.strip() for header in headers]
-	fetched_list = [
-		[table.item(row, column).text() for column in range(table.columnCount())] for row in range(table.rowCount())
-	]
-	assert fetched_list == [[value.strip() for value in row] for row in rows]
+	columns = []
+	for column in range(table.columnCount()):
+		columns.append(table.horizontalHeaderItem(column).text())
+	header_list = []
+	for header in headers:
+		header_list.append(header.strip())
+	assert columns == header_list
+	fetched_list = []
+	for row in range(table.rowCount()):
+		column_list = []
+		for column in range(table.columnCount()):
+			column_list.append(table.item(row, column).text())
+		fetched_list.append(column_list)
+	row_list = []
+	for row in rows:
+		value_list = []
+		for value in row:
+			value_list.append(value.strip())
+		row_list.append(value_list)
+	assert fetched_list == row_list
 
 
 @then(parsers.parse("la fiche du sonore dit « {text} »"))
@@ -752,7 +818,9 @@ def relation_menu(interface: Context, name: str, entries: str) -> None:
 		if action.isSeparator():
 			text = "—"
 		texts.append(text)
-	expected_list = [entry.strip() for entry in entries.strip("« »").split(" », « ")]
+	expected_list = []
+	for entry in entries.strip("« »").split(" », « "):
+		expected_list.append(entry.strip())
 	assert texts == expected_list, texts
 
 
@@ -826,9 +894,8 @@ def silence_bounds(interface: Context, start: str, end: str) -> None:
 
 @then(parsers.re(r"la frise de la fiche a (?:les curseurs|le seul curseur) (?P<sliders>«.+)"))
 def timeline_sliders(interface: Context, sliders: str) -> None:
-	expected_list = {
-		{"Début": "start", "Fin": "end"}[name]: _seconds_fetched(value)
-		for name, value in re.findall(r"« ([^»]+) » à ([\d,]+) s", sliders)
-	}
+	expected_list = {}
+	for name, value in re.findall(r"« ([^»]+) » à ([\d,]+) s", sliders):
+		expected_list[{"Début": "start", "Fin": "end"}[name]] = _seconds_fetched(value)
 	fetched_list = {name: round(position, 2) for name, position in card(interface).timeline.sliders.items()}
 	assert fetched_list == expected_list, fetched_list

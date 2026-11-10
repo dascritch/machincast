@@ -94,18 +94,23 @@ def _read_candidates(
 	connection: psycopg.Connection[TupleRow], query: str, value: int, history: History
 ) -> list[Candidate]:
 	lines = connection.execute(query, (value,)).fetchall()
-	plays = history.plays(connection, [int(str(line[0])) for line in lines])
-	return [
-		Candidate(
-			sound=int(str(sound)),
-			state=str(state),
-			broadcast_start=start if isinstance(start, datetime) else None,
-			broadcast_end=end if isinstance(end, datetime) else None,
-			playback_max=integer_or_none(maximum),
-			plays=plays[int(str(sound))],
+	line_list = []
+	for line in lines:
+		line_list.append(int(str(line[0])))
+	plays = history.plays(connection, line_list)
+	candidates = []
+	for sound, state, start, end, maximum in lines:
+		candidates.append(
+			Candidate(
+				sound=int(str(sound)),
+				state=str(state),
+				broadcast_start=start if isinstance(start, datetime) else None,
+				broadcast_end=end if isinstance(end, datetime) else None,
+				playback_max=integer_or_none(maximum),
+				plays=plays[int(str(sound))],
+			)
 		)
-		for sound, state, start, end, maximum in lines
-	]
+	return candidates
 
 
 def _candidates(connection: psycopg.Connection[TupleRow], bank: int, history: History) -> list[Candidate]:
@@ -136,7 +141,14 @@ def _playable_list(
 	connection: psycopg.Connection[TupleRow], bank: int, instant: datetime, history: History
 ) -> tuple[list[int], set[int]]:
 	candidates = _candidates(connection, bank, history)
-	return [c.sound for c in candidates], {c.sound for c in candidates if playable(c, instant)}
+	c_list = []
+	for c in candidates:
+		c_list.append(c.sound)
+	c_set = set()
+	for c in candidates:
+		if playable(c, instant):
+			c_set.add(c.sound)
+	return c_list, c_set
 
 
 def remaining_list(

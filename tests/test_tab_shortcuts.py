@@ -16,7 +16,10 @@ scenarios("tab_shortcuts.feature")
 
 def tooltips(interface: Context) -> dict[str, str]:
 	tabs = window(interface).ui.tabs
-	return {tab_title(tabs, index): tabs.tabToolTip(index) for index in range(tabs.count())}
+	tooltips = {}
+	for index in range(tabs.count()):
+		tooltips[tab_title(tabs, index)] = tabs.tabToolTip(index)
+	return tooltips
 
 
 @then(parsers.re(r"les onglets ont pour infobulles (?P<texts>«.+)"))
@@ -40,7 +43,11 @@ def without_tooltip(interface: Context, title: str) -> None:
 def screen(interface: Context, title: str) -> List:
 	tabs = window(interface).ui.tabs
 	indices = range(tabs.count())
-	(found,) = [tabs.widget(index) for index in indices if tab_title(tabs, index) == title]
+	index_list = []
+	for index in indices:
+		if tab_title(tabs, index) == title:
+			index_list.append(tabs.widget(index))
+	(found,) = index_list
 	assert isinstance(found, List), found
 	return found
 

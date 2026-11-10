@@ -39,7 +39,11 @@ def tracking() -> dict[str, object]:
 
 def screen(interface: Context) -> SimulationScreen:
 	tabs = window(interface).ui.tabs
-	(found,) = [widget for index in range(tabs.count()) if isinstance(widget := tabs.widget(index), SimulationScreen)]
+	index_list = []
+	for index in range(tabs.count()):
+		if isinstance(widget := tabs.widget(index), SimulationScreen):
+			index_list.append(widget)
+	(found,) = index_list
 	return found
 
 
@@ -183,9 +187,13 @@ def button(interface: Context, button: str, state: str) -> None:
 def plays(interface: Context, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
 	model = screen(interface).model
-	assert [str(model.horizontalHeaderItem(column).text()) for column in range(model.columnCount())] == [
-		header.strip() for header in headers
-	]
+	column_list = []
+	for column in range(model.columnCount()):
+		column_list.append(str(model.horizontalHeaderItem(column).text()))
+	header_list = []
+	for header in headers:
+		header_list.append(header.strip())
+	assert column_list == header_list
 	expected_list = [[value.strip() for value in row] for row in rows]
 	location = COLUMNS.index("Emplacement")
 	for row in expected_list:
@@ -200,7 +208,10 @@ def no_play(interface: Context) -> None:
 
 @then(parsers.parse("la simulation montre les titres {titles}"))
 def titles(interface: Context, titles: str) -> None:
-	assert [line[3] for line in screen(interface).lines()] == NAME.findall(titles)
+	line_list = []
+	for line in screen(interface).lines():
+		line_list.append(line[3])
+	assert line_list == NAME.findall(titles)
 
 
 @then("la simulation ne signale rien")
@@ -213,7 +224,10 @@ def reported_nothing(interface: Context) -> None:
 def reports(interface: Context, text: str) -> None:
 	anomalies = screen(interface).anomalies
 	assert not anomalies.isHidden()
-	assert [anomalies.item(row).text() for row in range(anomalies.count())] == [text]
+	row_list = []
+	for row in range(anomalies.count()):
+		row_list.append(anomalies.item(row).text())
+	assert row_list == [text]
 
 
 @then("l'airplay de la base est vide")

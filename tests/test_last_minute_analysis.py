@@ -48,7 +48,11 @@ def calls(log: Path) -> list[list[str]]:
 	if not log.exists():
 		return []
 	text = log.read_text(encoding="utf-8")
-	return [block.strip().splitlines() for block in text.split("--\n") if block.strip()]
+	calls = []
+	for block in text.split("--\n"):
+		if block.strip():
+			calls.append(block.strip().splitlines())
+	return calls
 
 
 # ─── Étant donné ───────────────────────────────────────────

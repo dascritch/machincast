@@ -81,7 +81,10 @@ def fields(interface: Context, name: str, url: str) -> None:
 @then(parsers.re(r"la fiche du feed montre les streams (?P<titles>aucun|«.+)"))
 def streams(interface: Context, titles: str) -> None:
 	list_ = card(interface).ui.streams
-	assert [list_.item(row).text() for row in range(list_.count())] == NAME.findall(titles)
+	row_list = []
+	for row in range(list_.count()):
+		row_list.append(list_.item(row).text())
+	assert row_list == NAME.findall(titles)
 
 
 @then(parsers.parse("le feed « {name} » est en base, à l'adresse « {url} »"))

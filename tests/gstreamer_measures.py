@@ -199,7 +199,10 @@ def _measure(pipeline: str, format_: str, trials: int) -> Counter[str]:
 					break
 		process.wait()
 		playback.join(timeout=5)
-		verdicts.update(json.loads(line) for line in lines)
+		line_list = []
+		for line in lines:
+			line_list.append(json.loads(line))
+		verdicts.update(line_list)
 		if (process.returncode not in (0, -9)) and (not lines):
 			verdicts["erreur"] += rest
 	return verdicts

@@ -79,8 +79,13 @@ def skipped_in_database(empty_database: Connection, name: str, days: str) -> Non
 	).fetchall()
 	expected_list: list[date] = []
 	if days != "aucune":
-		expected_list = [date.fromisoformat(day) for day in days.strip("« »").split(" », « ")]
-	assert [day for (day,) in lines] == expected_list
+		expected_list = []
+		for day in days.strip("« »").split(" », « "):
+			expected_list.append(date.fromisoformat(day))
+	day_list = []
+	for (day,) in lines:
+		day_list.append(day)
+	assert day_list == expected_list
 
 
 @then(parsers.parse("la fiche est modifiée, avec le nom interne « {name} »"))

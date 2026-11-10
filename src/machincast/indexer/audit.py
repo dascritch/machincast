@@ -62,15 +62,17 @@ def page(anomalies: list[Anomaly], report: str, start: datetime) -> str:
 	def cell(text: str) -> str:
 		return f"<td>{html.escape(text)}</td>"
 
-	rows = "\n".join(
-		"\t\t\t<tr>"
-		+ cell(anomaly.path)
-		+ cell(anomaly.verdict)
-		+ cell(anomaly.problem)
-		+ cell(anomaly.consequence)
-		+ "</tr>"
-		for anomaly in anomalies
-	)
+	anomaly_list = []
+	for anomaly in anomalies:
+		anomaly_list.append(
+			"\t\t\t<tr>"
+			+ cell(anomaly.path)
+			+ cell(anomaly.verdict)
+			+ cell(anomaly.problem)
+			+ cell(anomaly.consequence)
+			+ "</tr>"
+		)
+	rows = "\n".join(anomaly_list)
 	content = _(
 		"\t<table>\n\t\t<thead><tr><th>Path</th><th>Verdict</th><th>Problem</th><th>Consequence</th></tr></thead>\n\t\t<tbody>\n{rows}\n\t\t</tbody>\n\t</table>"
 	).format(rows=rows)

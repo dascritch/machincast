@@ -102,7 +102,9 @@ class Shortfalls:
 
 	def items(self) -> list[str]:
 		"""Les lignes à cocher de la fenêtre."""
-		lines = [label(bank) for bank in self.banks]
+		lines = []
+		for bank in self.banks:
+			lines.append(label(bank))
 		if self.background_programming:
 			lines.insert(0, BACKGROUND_PROGRAMMING)
 		return lines
@@ -131,11 +133,14 @@ def missing_list(connection: psycopg.Connection[TupleRow], audio: Audio) -> Shor
 		feed = connection.execute(
 			"SELECT 1 FROM events WHERE priority = 'background_programming' AND deleted_at IS NULL LIMIT 1"
 		).fetchone()
-		existing_list = {
-			str(name).casefold()
-			for (name,) in connection.execute("SELECT internal_name FROM banks WHERE deleted_at IS NULL")
-		}
-	banks = tuple(bank for bank in BANKS if bank.casefold() not in existing_list)
+		existing_list = set()
+		for (name,) in connection.execute("SELECT internal_name FROM banks WHERE deleted_at IS NULL"):
+			existing_list.add(str(name).casefold())
+	bank_list = []
+	for bank in BANKS:
+		if bank.casefold() not in existing_list:
+			bank_list.append(bank)
+	banks = tuple(bank_list)
 	to_choose = None
 	if audio.to_fill_in_on_air():
 		to_choose = audio
@@ -260,8 +265,14 @@ class SuggestionsWindow(QDialog):
 
 	def _ticked_list(self) -> set[str]:
 		list_ = self.ui.items
-		lines = [list_.item(rank) for rank in range(list_.count())]
-		return {line.text() for line in lines if line.checkState() == Qt.CheckState.Checked}
+		lines = []
+		for rank in range(list_.count()):
+			lines.append(list_.item(rank))
+		ticked_list = set()
+		for line in lines:
+			if line.checkState() == Qt.CheckState.Checked:
+				ticked_list.add(line.text())
+		return ticked_list
 
 	def response(self) -> Response:
 		"""Ce qui est décidé : tout ce qui est coché sur « Créer », rien sur « Plus tard »."""
@@ -274,10 +285,14 @@ class SuggestionsWindow(QDialog):
 			output = self.cards.chosen_output()
 			on_air = self.cards.chosen_on_air()
 			preview = self.cards.chosen_preview()
+		bank_list = []
+		for bank in self.gaps.banks:
+			if label(bank) in ticked_list:
+				bank_list.append(bank)
 		return Response(
 			create=True,
 			background_programming=BACKGROUND_PROGRAMMING in ticked_list,
-			banks=tuple(bank for bank in self.gaps.banks if label(bank) in ticked_list),
+			banks=tuple(bank_list),
 			output=output,
 			on_air=on_air,
 			preview=preview,

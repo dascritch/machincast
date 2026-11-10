@@ -156,7 +156,9 @@ def card_crossfades(interface: Context, granularity: str, maximum: str) -> None:
 	assert isinstance(opened, (SoundCard, BankCard)), opened
 	fields = (opened.ui.start_crossfade, opened.ui.end_crossfade)
 	decimals, step = {"au dixième de seconde": (1, 0.1), "à la seconde": (0, 1.0)}[granularity]
-	fetched_settings = [(field.decimals(), field.singleStep(), field.maximum()) for field in fields]
+	fetched_settings = []
+	for field in fields:
+		fetched_settings.append((field.decimals(), field.singleStep(), field.maximum()))
 	assert fetched_settings == [(decimals, step, float(maximum))] * 2
 
 
@@ -198,7 +200,9 @@ def title_and_pages(opened: Opened, title: str, pages: str) -> None:
 	"""Les pages dans l'ordre, la première ouverte : les crossfades ont la leur
 	(https://github.com/dascritch/machincast/issues/234)."""
 	ui = the_window(opened).ui
-	fetched_list = [ui.pages.tabText(rank) for rank in range(ui.pages.count())]
+	fetched_list = []
+	for rank in range(ui.pages.count()):
+		fetched_list.append(ui.pages.tabText(rank))
 	assert (the_window(opened).windowTitle(), fetched_list) == (title, NAME.findall(pages))
 	assert ui.pages.currentIndex() == 0
 
@@ -330,7 +334,10 @@ def open_without_configuration(interface: Context, empty_database: Connection, q
 @then(parsers.re(r"son maximum se règle par pas de (?P<step>[\d,]+) s, à partir de (?P<minimum>[\d,]+) s"))
 def not_maximum(opened: Opened, step: str, minimum: str) -> None:
 	field = the_window(opened).ui.maximum
-	expected_list = tuple(float(value.replace(",", ".")) for value in (step, minimum))
+	value_list = []
+	for value in (step, minimum):
+		value_list.append(float(value.replace(",", ".")))
+	expected_list = tuple(value_list)
 	assert (field.singleStep(), field.minimum()) == expected_list
 
 
@@ -364,7 +371,13 @@ def offered_choice(opened: Opened, name: str, datatable: list[list[str]]) -> Non
 		if model.item(index).isEnabled():
 			line_state = "active"
 		fetched_list.append([choice.itemText(index), line_state])
-	assert fetched_list == [[cell.strip() for cell in row] for row in datatable[1:]]
+	row_list = []
+	for row in datatable[1:]:
+		cell_list = []
+		for cell in row:
+			cell_list.append(cell.strip())
+		row_list.append(cell_list)
+	assert fetched_list == row_list
 
 
 @when(parsers.re(r"j'y choisis (?:pour l'|pour la )(?P<name>antenne|pré-écoute) « (?P<text>[^»]+) »"))
@@ -557,7 +570,11 @@ def field_page(opened: Opened, name: str, page: str) -> None:
 	window = the_window(opened)
 	field = getattr(window.ui, name)
 	pages = window.ui.pages
-	(found,) = [index for index in range(pages.count()) if pages.widget(index).isAncestorOf(field)]
+	index_list = []
+	for index in range(pages.count()):
+		if pages.widget(index).isAncestorOf(field):
+			index_list.append(index)
+	(found,) = index_list
 	assert pages.tabText(found) == page
 
 
@@ -788,7 +805,10 @@ def installed_shortcut(place: str) -> None:
 
 
 def _shortcut_icon(path: Path) -> str:
-	lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line.startswith("Icon=")]
+	lines = []
+	for line in path.read_text(encoding="utf-8").splitlines():
+		if line.startswith("Icon="):
+			lines.append(line)
 	assert len(lines) == 1, lines
 	return lines[0].removeprefix("Icon=")
 
@@ -901,7 +921,10 @@ def _position_choice(opened: Opened, fade: str) -> QComboBox:
 )
 def offered_positions(opened: Opened, fade: str, texts: str, chosen: str) -> None:
 	choice = _position_choice(opened, fade)
-	assert [choice.itemText(rank) for rank in range(choice.count())] == NAME.findall(texts)
+	rank_list = []
+	for rank in range(choice.count()):
+		rank_list.append(choice.itemText(rank))
+	assert rank_list == NAME.findall(texts)
 	assert choice.currentText() == chosen
 
 

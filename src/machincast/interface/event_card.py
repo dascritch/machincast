@@ -41,7 +41,7 @@ from machincast.conformation import conform
 from machincast.i18n import _, date_and_hour
 from machincast.interface import display
 from machincast.interface.calendar import day_and_month, long_date
-from machincast.interface.card import ORANGE, Card, Connection, Refusal
+from machincast.interface.card import ORANGE, Card, Connection, Refusal, rank_of
 from machincast.interface.items import CATEGORY, FEED, ITEM, Buttons, ItemList
 from machincast.interface.lists import EMPTY_EVENT
 from machincast.interface.sessions import Session, next_skipped, overlapped, reinstate, started
@@ -117,7 +117,10 @@ class EventCard(Card):
 			ui.priority.addItem(text)
 		for _mask, text in HIDINGS:
 			ui.hiding.addItem(text)
-		self.days = [getattr(ui, day) for day in DAYS]
+		day_list = []
+		for day in DAYS:
+			day_list.append(getattr(ui, day))
+		self.days = day_list
 		self._name = ""
 		buttons = Buttons(
 			{
@@ -203,8 +206,8 @@ class EventCard(Card):
 		if self.is_copy():
 			ui.internal_name.setText(self.name_of_copy(self._name))
 		ui.public_name.setText(str((public_name) or ("")))
-		ui.priority.setCurrentIndex(next(i for i, (value, _text) in enumerate(PRIORITIES) if value == priority))
-		ui.hiding.setCurrentIndex(next(i for i, (value, _text) in enumerate(HIDINGS) if value is hiding))
+		ui.priority.setCurrentIndex(rank_of(PRIORITIES, priority))
+		ui.hiding.setCurrentIndex(rank_of(HIDINGS, hiding))
 		now = self.clock.now().replace(second=0, microsecond=0)
 		departure = now
 		if isinstance(start, datetime):
@@ -218,9 +221,10 @@ class EventCard(Card):
 		# Chaque case met la grille à jour quand elle change d'état (toggled) : le début d'abord, qui permet le reste.
 		ui.has_start.setChecked(isinstance(start, datetime))
 		ui.has_end.setChecked(isinstance(end, datetime))
-		ticked_list = set()
+		ticked_list: set[str] = set()
 		if isinstance(days, list):
-			ticked_list = {str(day) for day in days}
+			for day in days:
+				ticked_list.add(str(day))
 		for day_name, day in zip(DAYS, self.days, strict=True):
 			day.setChecked(day_name in ticked_list)
 		self._fill_fallbacks(fallbacks, end_of_list, end_fallback, stream_fallback)
@@ -257,7 +261,11 @@ class EventCard(Card):
 		événement supprimé."""
 		if self.identifier is None:
 			return None
-		event = next((lu for lu in read_grid(self.connection) if lu.id == self.identifier), None)
+		event = None
+		for lu in read_grid(self.connection):
+			if lu.id == self.identifier:
+				event = lu
+				break
 		if event is None:
 			return None
 		return next_skipped(event, self.clock.now())
@@ -449,7 +457,10 @@ class EventCard(Card):
 			raise Refusal(_("A show or a special has a start."), ui.priority, ui.has_start)
 		if (start is not None) and (end is not None) and (end <= start):
 			raise Refusal(_("The end must follow the start."), ui.has_start, ui.has_end)
-		days = [day_name for day_name, day in zip(DAYS, self.days, strict=True) if day.isChecked()]
+		days = []
+		for day_name, day in zip(DAYS, self.days, strict=True):
+			if day.isChecked():
+				days.append(day_name)
 		self._refuse_overlap(name, priority, start, end, days)
 		self._refuse_designated_fallback(priority)
 		end_of_list = str(ui.end_of_list.currentData())
@@ -497,13 +508,16 @@ class EventCard(Card):
 	def _refuse_overlap(
 		self, name: str, priority: str, start: datetime | None, end: datetime | None, days: list[str]
 	) -> None:
+		day_list = []
+		for day in days:
+			day_list.append(DAYS.index(day))
 		place = Event(
 			id=-1,
 			name=name,
 			priority=Priority(priority),
 			start=start,
 			end=end,
-			days=frozenset(DAYS.index(day) for day in days),
+			days=frozenset(day_list),
 			modified_at=NEVER,
 			skipped_list=self._skipped_list(),
 		)
@@ -527,7 +541,11 @@ class EventCard(Card):
 		lines = self.connection.execute(
 			"SELECT day FROM event_skips WHERE event_id = %s", (self.identifier,)
 		).fetchall()
-		return frozenset(day for (day,) in lines if isinstance(day, date))
+		day_list = []
+		for (day,) in lines:
+			if isinstance(day, date):
+				day_list.append(day)
+		return frozenset(day_list)
 
 	def _refuse_designated_fallback(self, priority: str) -> None:
 		"""Un événement de secours qu'un stream désigne garde sa priorité."""
@@ -543,13 +561,19 @@ class EventCard(Card):
 			(self.identifier, self.identifier),
 		).fetchall()
 		if events != []:
-			names = ", ".join(_("“{event}”").format(event=event) for (event,) in events)
+			event_list = []
+			for (event,) in events:
+				event_list.append(_("“{event}”").format(event=event))
+			names = ", ".join(event_list)
 			raise Refusal(
 				_("Events have this event as fallback: {names}. It stays of priority “Fallback”.").format(names=names),
 				self.ui.priority,
 			)
 		if streams != []:
-			names = ", ".join(_("“{stream}”").format(stream=stream) for (stream,) in streams)
+			stream_list = []
+			for (stream,) in streams:
+				stream_list.append(_("“{stream}”").format(stream=stream))
+			names = ", ".join(stream_list)
 			raise Refusal(
 				_("Streams have this event as fallback: {names}. It stays of priority “Fallback”.").format(names=names),
 				self.ui.priority,

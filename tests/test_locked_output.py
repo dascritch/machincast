@@ -38,7 +38,12 @@ PROGRAMS = {
 
 
 def _pipewire_present() -> bool:
-	return all(shutil.which(tool) for tool in ("pipewire", "wireplumber", "pw-cli", "pw-dump", "pw-metadata"))
+	every_one = True
+	for tool in ("pipewire", "wireplumber", "pw-cli", "pw-dump", "pw-metadata"):
+		if not (shutil.which(tool)):
+			every_one = False
+			break
+	return every_one
 
 
 class PipeWireBench:
@@ -192,14 +197,21 @@ def create(context: SimpleNamespace, output: str, program: str, device: str) -> 
 @when(parsers.parse("je crée la source du VU-mètre de l'antenne « {device} », sur PipeWire"))
 def create_source(context: SimpleNamespace, device: str) -> None:
 	block = monitor.monitor_source(Audio(output="pipewire", device=device, preview="casque"))
-	(context.source,) = [item for item in block.children if item.get_factory().get_name() == "pipewiresrc"]
+	item_list = []
+	for item in block.children:
+		if item.get_factory().get_name() == "pipewiresrc":
+			item_list.append(item)
+	(context.source,) = item_list
 
 
 def _locked(item: audio.Gst.Element, device: str) -> None:
 	properties = item.get_property("stream-properties")
 	assert item.get_property("target-object") == device
 	assert properties is not None
-	assert {key: properties.get_value(key) for key in audio.LOCK} == dict.fromkeys(audio.LOCK, True)
+	key_dict = {}
+	for key in audio.LOCK:
+		key_dict[key] = properties.get_value(key)
+	assert key_dict == dict.fromkeys(audio.LOCK, True)
 
 
 @then(parsers.parse("la sortie vise « {device} », sans repli, en l'attendant, sans déplacement"))

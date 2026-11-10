@@ -82,7 +82,11 @@ def shown_sounds(interface: Context, count: int) -> None:
 @then("aucune des fiches fermées ne survit")
 def released_list(plays: SimpleNamespace) -> None:
 	assert plays.cards != []
-	assert [reference for reference in plays.cards if reference() is not None] == []
+	reference_list = []
+	for reference in plays.cards:
+		if reference() is not None:
+			reference_list.append(reference)
+	assert reference_list == []
 
 
 @then("psycopg n'utilise pas son implémentation en Python")

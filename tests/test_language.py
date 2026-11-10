@@ -23,12 +23,18 @@ class Context:
 
 def _variables(text: str) -> dict[str, str]:
 	"""« LC_ALL=fr_CA.UTF-8 LANG=en_US.UTF-8 » : les variables de langue d'une session."""
-	return dict(pair.split("=", 1) for pair in text.split())
+	pair_list = []
+	for pair in text.split():
+		pair_list.append(pair.split("=", 1))
+	return dict(pair_list)
 
 
 def _session(text: str) -> dict[str, str]:
 	"""L'environnement d'un programme lancé dans cette session : celui des scénarios, sans leurs variables de langue."""
-	environment = {key: value for key, value in os.environ.items() if key not in LANGUAGE_VARIABLES}
+	environment = {}
+	for key, value in os.environ.items():
+		if key not in LANGUAGE_VARIABLES:
+			environment[key] = value
 	environment.update(_variables(text))
 	return environment
 

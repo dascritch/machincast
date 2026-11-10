@@ -280,7 +280,10 @@ def previous_list(bench: Bench, count: int) -> None:
 	list_ = re.search(r'<ol class="precedents">(.*?)</ol>', page(bench), re.DOTALL)
 	assert list_ is not None, page(bench)
 	titles = re.findall(r"Titre (\d+)", list_.group(1))
-	assert titles == [str(n) for n in range(25, 25 - count, -1)], titles
+	n_list = []
+	for n in range(25, 25 - count, -1):
+		n_list.append(str(n))
+	assert titles == n_list, titles
 
 
 @then("la page publique se rafraîchit toutes les 30 secondes")
@@ -299,7 +302,10 @@ def playlist(bench: Bench, count: int, first: int, last: int) -> None:
 	files = re.findall(r"^File\d+=(.*)$", text, re.MULTILINE)
 	assert text.startswith("[playlist]\n")
 	assert (f"NumberOfEntries={count}" in text) and ("Version=2" in text)
-	assert files == [f"/musique/{n}.flac" for n in range(first, last + 1)], files
+	n_list = []
+	for n in range(first, last + 1):
+		n_list.append(f"/musique/{n}.flac")
+	assert files == n_list, files
 
 
 @then("chaque entrée de la playlist donne l'artiste et le titre")
@@ -325,7 +331,12 @@ def csv_header(bench: Bench, name: str) -> None:
 @then(parsers.parse("le CSV « {name} » a les lignes :"))
 def expected_lines(bench: Bench, name: str, datatable: list[list[str]]) -> None:
 	columns, *expected_list = datatable
-	fetched_list = [[line[column] for column in columns] for line in csv_lines(bench, name)]
+	fetched_list = []
+	for line in csv_lines(bench, name):
+		column_list = []
+		for column in columns:
+			column_list.append(line[column])
+		fetched_list.append(column_list)
 	assert fetched_list == expected_list, fetched_list
 
 
@@ -336,12 +347,22 @@ def line_count(bench: Bench, name: str, count: str) -> None:
 
 @then(parsers.parse("le journal du binaire a annoncé « {text} », en information"))
 def announces(caplog: pytest.LogCaptureFixture, text: str) -> None:
-	assert any((r.levelno == logging.INFO) and (text in r.getMessage()) for r in caplog.records), caplog.text
+	found = False
+	for r in caplog.records:
+		if (r.levelno == logging.INFO) and (text in r.getMessage()):
+			found = True
+			break
+	assert found, caplog.text
 
 
 @then(parsers.parse("le journal du binaire a signalé « {text} », en anomalie"))
 def anomaly(caplog: pytest.LogCaptureFixture, text: str) -> None:
-	assert any((r.levelno == logging.WARNING) and (text in r.getMessage()) for r in caplog.records), caplog.text
+	found = False
+	for r in caplog.records:
+		if (r.levelno == logging.WARNING) and (text in r.getMessage()):
+			found = True
+			break
+	assert found, caplog.text
 
 
 @then("les sorties de Machin player sont celles de la configuration de test")

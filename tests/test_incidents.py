@@ -24,11 +24,16 @@ def screen(interface: Context) -> IncidentScreen:
 
 def lines(interface: Context) -> list[dict[str, str]]:
 	model = screen(interface).table.model()
-	titles = [str(model.headerData(column, Qt.Orientation.Horizontal)) for column in range(model.columnCount())]
-	return [
-		{title: str((model.index(row, column).data()) or ("")) for column, title in enumerate(titles)}
-		for row in range(model.rowCount())
-	]
+	titles = []
+	for column in range(model.columnCount()):
+		titles.append(str(model.headerData(column, Qt.Orientation.Horizontal)))
+	lines = []
+	for row in range(model.rowCount()):
+		column_dict = {}
+		for column, title in enumerate(titles):
+			column_dict[title] = str((model.index(row, column).data()) or (""))
+		lines.append(column_dict)
+	return lines
 
 
 def note(database: Connection, timestamp: str, level: str, kind: str, message: str, references: dict[str, str]) -> None:
@@ -64,7 +69,13 @@ def note(database: Connection, timestamp: str, level: str, kind: str, message: s
 def log(empty_database: Connection, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
 	for values in rows:
-		line = dict(zip((header.strip() for header in headers), (v.strip() for v in values), strict=True))
+		header_list = []
+		for header in headers:
+			header_list.append(header.strip())
+		v_list = []
+		for v in values:
+			v_list.append(v.strip())
+		line = dict(zip(header_list, v_list, strict=True))
 		note(empty_database, line["logged_at"], line["level"], line["kind"], line["message"], line)
 
 
@@ -104,12 +115,11 @@ def apply_filter(interface: Context, qtbot: QtBot, text: str) -> None:
 def open_cell(interface: Context, qtbot: QtBot, cell: str, kind: str) -> None:
 	table = screen(interface).table
 	model = table.model()
-	found_list = [
-		model.index(row, column)
-		for row in range(model.rowCount())
-		for column in range(model.columnCount())
-		if (model.index(row, 2).data() == kind) and (model.index(row, column).data() == cell)
-	]
+	found_list = []
+	for row in range(model.rowCount()):
+		for column in range(model.columnCount()):
+			if (model.index(row, 2).data() == kind) and (model.index(row, column).data() == cell):
+				found_list.append(model.index(row, column))
 	assert len(found_list) == 1, found_list
 	index: QModelIndex = found_list[0]
 	table.scrollTo(index)
@@ -124,15 +134,24 @@ def open_cell(interface: Context, qtbot: QtBot, cell: str, kind: str) -> None:
 @then("la liste des incidents montre :")
 def shows(interface: Context, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
-	expected_list = [
-		dict(zip((e.strip() for e in headers), (v.strip() for v in values), strict=True)) for values in rows
-	]
+	expected_list = []
+	for values in rows:
+		e_list = []
+		for e in headers:
+			e_list.append(e.strip())
+		v_list = []
+		for v in values:
+			v_list.append(v.strip())
+		expected_list.append(dict(zip(e_list, v_list, strict=True)))
 	assert lines(interface) == expected_list
 
 
 @then(parsers.re(r"la liste des incidents montre les natures (?P<kinds>.+)"))
 def kinds(interface: Context, kinds: str) -> None:
-	assert [line["Nature"] for line in lines(interface)] == NAME.findall(kinds)
+	line_list = []
+	for line in lines(interface):
+		line_list.append(line["Nature"])
+	assert line_list == NAME.findall(kinds)
 
 
 @then(parsers.parse("la liste des incidents commence par la nature « {kind} »"))

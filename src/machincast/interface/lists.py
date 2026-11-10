@@ -184,7 +184,10 @@ SOUND_ORDER = "s.artist NULLS LAST, s.title, s.id"
 def read_sounds(connection: Connection) -> list[Line]:
 	with connection.transaction():
 		rows = connection.execute(f"SELECT {SOUND_FIELDS} {SOUND_TABLES} ORDER BY {SOUND_ORDER}").fetchall()  # noqa: S608
-	return [sound_line(row) for row in rows]
+	sounds = []
+	for row in rows:
+		sounds.append(sound_line(row))
+	return sounds
 
 
 def _state_text(state: str, requested_audit: bool) -> str:
@@ -279,10 +282,10 @@ def read_feeds(connection: Connection) -> list[Line]:
 			" (SELECT count(*) FROM sounds s WHERE s.feed_id = m.id AND s.deleted_at IS NULL)"
 			" FROM feeds m ORDER BY m.name, m.id"
 		).fetchall()
-	return [
-		Line(int(str(identifier)), str(name), [str(name), str(url), str(streams)])
-		for identifier, name, url, streams in rows
-	]
+	feeds = []
+	for identifier, name, url, streams in rows:
+		feeds.append(Line(int(str(identifier)), str(name), [str(name), str(url), str(streams)]))
+	return feeds
 
 
 EVENT_COLUMNS = (_("Name"), _("Public name"), _("Priority"), _("Start"), _("End"), _("Recurrence"), _("Anomaly"))
@@ -304,7 +307,10 @@ def _days(value: object) -> str:
 	jour, après les autres."""
 	if (not isinstance(value, list)) or (value == []):
 		return WITHOUT_DAY
-	return "".join(sorted(str(DAYS.index(str(day))) for day in value))
+	day_list = []
+	for day in value:
+		day_list.append(str(DAYS.index(str(day))))
+	return "".join(sorted(day_list))
 
 
 def read_events(connection: Connection) -> list[Line]:
@@ -322,7 +328,10 @@ def read_events(connection: Connection) -> list[Line]:
 	for identifier, name, public_name, priority, start, end, days, empty in rows:
 		recurrence = ""
 		if isinstance(days, list):
-			recurrence = ", ".join(DAY_NAMES[DAYS.index(str(day))] for day in days)
+			day_list = []
+			for day in days:
+				day_list.append(DAY_NAMES[DAYS.index(str(day))])
+			recurrence = ", ".join(day_list)
 		cells = [str(name), _text(public_name), PRIORITIES.get(str(priority), str(priority)), _date(start), _date(end)]
 		cells += [recurrence, ""]
 		anomaly = ""
@@ -408,7 +417,11 @@ def view_name(text: str) -> str:
 def without_accents(text: str) -> str:
 	"""Le texte en minuscules, sans accents ni cédilles : « Été » donne « ete »."""
 	breaks_down = unicodedata.normalize("NFKD", text.casefold())
-	return "".join(letter for letter in breaks_down if not unicodedata.combining(letter))
+	letter_list = []
+	for letter in breaks_down:
+		if not unicodedata.combining(letter):
+			letter_list.append(letter)
+	return "".join(letter_list)
 
 
 class FilterWithoutAccents(QSortFilterProxyModel):
@@ -581,7 +594,10 @@ class PagedSounds(QAbstractTableModel):
 				[*values, *values, list(SOUND_IN_ANOMALY)],
 			).fetchone()
 			assert counts is not None
-			self.total, self.anomalies, self.overall = (int(str(count)) for count in counts)
+			count_list = []
+			for count in counts:
+				count_list.append(int(str(count)))
+			self.total, self.anomalies, self.overall = count_list
 			lines = self._page(0)
 		self.beginResetModel()
 		self._lines = lines
@@ -595,7 +611,10 @@ class PagedSounds(QAbstractTableModel):
 			f"SELECT {SOUND_FIELDS} {SOUND_TABLES} AND ({where}) ORDER BY {order} LIMIT %s OFFSET %s",  # noqa: S608
 			[*values, *order_values, preferences.table_rows(), offset],
 		).fetchall()
-		return [sound_line(row) for row in rows]
+		page = []
+		for row in rows:
+			page.append(sound_line(row))
+		return page
 
 	def _filter(self) -> tuple[str, list[object]]:
 		"""La condition du filtre, sur chaque colonne montrée, et ses paramètres ; vraie sans filtre."""
@@ -611,9 +630,18 @@ class PagedSounds(QAbstractTableModel):
 			values += [ACCENTED, PLAIN, pattern]
 		parts.append(f"{_fold(DURATION_TEXT)} LIKE %s ESCAPE '\\'")
 		values += [display.duration(None), ACCENTED, PLAIN, pattern]
-		types = [sound_type for sound_type, label_ in TYPES.items() if text in without_accents(label_)]
-		plain = [state for state in STATES if text in without_accents(_state_text(state, False))]
-		audited = [state for state in STATES if text in without_accents(_state_text(state, True))]
+		types = []
+		for sound_type, label_ in TYPES.items():
+			if text in without_accents(label_):
+				types.append(sound_type)
+		plain = []
+		for state in STATES:
+			if text in without_accents(_state_text(state, False)):
+				plain.append(state)
+		audited = []
+		for state in STATES:
+			if text in without_accents(_state_text(state, True)):
+				audited.append(state)
 		parts += [
 			"s.type::text = ANY(%s)",
 			"s.state::text = ANY(%s)",
@@ -623,7 +651,10 @@ class PagedSounds(QAbstractTableModel):
 		if text in without_accents(ANOMALY_COLUMN):
 			parts.append("s.state::text = ANY(%s)")
 			values.append(list(SOUND_IN_ANOMALY))
-		return " OR ".join(f"({part})" for part in parts), values
+		part_list = []
+		for part in parts:
+			part_list.append(f"({part})")
+		return " OR ".join(part_list), values
 
 	def _ordering(self) -> tuple[str, list[object]]:
 		"""L'ordre de la colonne choisie, comme le tri de la table par SORT, puis l'ordre de la base ; celui de la
@@ -770,7 +801,9 @@ class List(QWidget):
 		assert isinstance(self.model, QStandardItemModel)
 		self.model.setRowCount(0)
 		for line in lines:
-			cells = [QStandardItem(text) for text in line.cells]
+			cells = []
+			for text in line.cells:
+				cells.append(QStandardItem(text))
 			for column, cell in enumerate(cells):
 				cell.setData(line.sorts.get(column, cell.text()), SORT)
 			if self.source.anomalies:
@@ -806,7 +839,10 @@ class List(QWidget):
 		total = self.model.rowCount()
 		visible_list = self.proxy.rowCount()
 		# Les lignes en anomalie parmi celles que montre le filtre.
-		anomalies = sum(1 for row in range(visible_list) if self.proxy.index(row, 0).data(Qt.ItemDataRole.ToolTipRole))
+		anomalies = 0
+		for row in range(visible_list):
+			if self.proxy.index(row, 0).data(Qt.ItemDataRole.ToolTipRole):
+				anomalies += 1
 		self._show_count(total, visible_list, anomalies)
 
 	def _show_count(self, total: int, visible_list: int, anomalies: int) -> None:
@@ -823,8 +859,14 @@ class List(QWidget):
 
 	def selection(self) -> list[int]:
 		"""Les éléments des lignes sélectionnées, dans l'ordre de la liste affichée."""
-		rows = sorted(index.row() for index in self.table.selectionModel().selectedRows())
-		return [self._item(self.proxy.index(row, 0)) for row in rows]
+		index_list = []
+		for index in self.table.selectionModel().selectedRows():
+			index_list.append(index.row())
+		rows = sorted(index_list)
+		selection = []
+		for row in rows:
+			selection.append(self._item(self.proxy.index(row, 0)))
+		return selection
 
 	def _item(self, index: QModelIndex) -> int:
 		first = self.model.index(self.proxy.mapToSource(index).row(), 0)

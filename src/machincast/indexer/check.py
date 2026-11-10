@@ -511,7 +511,11 @@ def _already_audited(count: int, threshold: float) -> str:
 
 def _healthy(artist: object, title: object) -> str:
 	"""« sain », suivi du nom du sonore quand il en a un : « sain, Les Gaufres – Café à minuit »."""
-	name = " – ".join(str(part) for part in (artist, title) if part is not None)
+	part_list = []
+	for part in (artist, title):
+		if part is not None:
+			part_list.append(str(part))
+	name = " – ".join(part_list)
 	if name == "":
 		return _("healthy")
 	return _("healthy, {name}").format(name=name)

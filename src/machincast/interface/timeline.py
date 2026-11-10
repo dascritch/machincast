@@ -171,7 +171,9 @@ class Plan:
 		leur part hors du fichier ; None sans crossfade de ce côté."""
 		de, _a = self.part()
 		placement = self.placement()
-		points = [(de + moment.total_seconds(), volume) for moment, volume in self._points()]
+		points = []
+		for moment, volume in self._points():
+			points.append((de + moment.total_seconds(), volume))
 		entry = None
 		if placement.entry_fade > timedelta(0):
 			entry = (points[0][0], points[1][0])
@@ -464,19 +466,19 @@ class WaveShape:
 
 	def amplitudes(self, de: float, a: float) -> list[float]:
 		"""Les mesures entièrement comprises entre ces deux instants."""
-		return [
-			peak
-			for index, peak in enumerate(self.peaks)
-			if (index * self.step >= de) and ((index + 1) * self.step <= a)
-		]
+		amplitudes = []
+		for index, peak in enumerate(self.peaks):
+			if (index * self.step >= de) and ((index + 1) * self.step <= a):
+				amplitudes.append(peak)
+		return amplitudes
 
 	def means_between(self, de: float, a: float) -> list[float]:
 		"""Les niveaux moyens des mesures entièrement comprises entre ces deux instants."""
-		return [
-			mean
-			for index, mean in enumerate(self.means)
-			if (index * self.step >= de) and ((index + 1) * self.step <= a)
-		]
+		means_between = []
+		for index, mean in enumerate(self.means):
+			if (index * self.step >= de) and ((index + 1) * self.step <= a):
+				means_between.append(mean)
+		return means_between
 
 	def _fail(self, error: str) -> None:
 		self.halt()
@@ -497,7 +499,10 @@ class WaveShape:
 def _amplitude(levels: object) -> float:
 	"""Le canal le plus fort, de 0 à 1 ; un silence numérique donne -inf, ou un niveau très bas."""
 	assert isinstance(levels, (list, tuple))
-	decibels = max(float(value) for value in levels)
+	value_list = []
+	for value in levels:
+		value_list.append(float(value))
+	decibels = max(value_list)
 	if not math.isfinite(decibels):
 		return 0.0
 	return min(1.0, max(0.0, 10 ** (decibels / 20)))
@@ -598,11 +603,10 @@ class Timeline(QWidget):
 
 	def slider_in(self, x: float) -> str | None:
 		"""Le curseur sous ce point, à SLIDER_SOCKET_JACK près ; le plus proche, si les deux y sont."""
-		near_list = [
-			(abs(self.seconds_to_x(position) - x), name)
-			for name, position in self.sliders.items()
-			if abs(self.seconds_to_x(position) - x) <= SLIDER_SOCKET_JACK
-		]
+		near_list = []
+		for name, position in self.sliders.items():
+			if abs(self.seconds_to_x(position) - x) <= SLIDER_SOCKET_JACK:
+				near_list.append((abs(self.seconds_to_x(position) - x), name))
 		if near_list == []:
 			return None
 		return min(near_list)[1]
@@ -814,8 +818,12 @@ class Timeline(QWidget):
 				continue
 			middle = self.height() / 2
 			half = middle - 2
-			top = [QPointF(x + 0.5, middle - height * half) for x, height in enumerate(heights)]
-			bottom = [QPointF(x + 0.5, middle + height * half) for x, height in reversed(list(enumerate(heights)))]
+			top = []
+			for x, height in enumerate(heights):
+				top.append(QPointF(x + 0.5, middle - height * half))
+			bottom = []
+			for x, height in reversed(list(enumerate(heights))):
+				bottom.append(QPointF(x + 0.5, middle + height * half))
 			tint = QColor(colour)
 			tint.setAlpha(opacity)
 			painter.setPen(Qt.PenStyle.NoPen)

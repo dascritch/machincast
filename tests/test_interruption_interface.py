@@ -153,10 +153,14 @@ def received_state(interface: Context, player: Player, qtbot: QtBot) -> None:
 	expected_list = interruption.offer(read_message(player.published))
 
 	def up_to_date() -> bool:
-		return all(
-			(action.isEnabled() == expected_list[item].active) and (action.toolTip() == expected_list[item].tooltip)
-			for item, action in entries(interface).items()
-		)
+		every_one = True
+		for item, action in entries(interface).items():
+			if not (
+				(action.isEnabled() == expected_list[item].active) and (action.toolTip() == expected_list[item].tooltip)
+			):
+				every_one = False
+				break
+		return every_one
 
 	qtbot.waitUntil(up_to_date, timeout=WAITING)
 
@@ -170,7 +174,11 @@ def up_to_date_home(interface: Context, player: Player, qtbot: QtBot) -> None:
 def next_actions(interface: Context) -> list[QAction]:
 	menu = window(interface).home.next_menu()
 	assert menu is not None
-	return [action for action in menu.actions() if not action.isSeparator()]
+	next_actions = []
+	for action in menu.actions():
+		if not action.isSeparator():
+			next_actions.append(action)
+	return next_actions
 
 
 @when(parsers.parse("je choisis « {entry} » au clic droit sur le prochain sonore"))
@@ -200,23 +208,32 @@ def interruptions(interface: Context, menu: str, datatable: list[list[str]]) -> 
 	_, *lines = datatable
 	assert menu == "Diffusion"
 	broadcast_menu = window(interface).broadcast_menu
-	obtained_list = [
-		[action.text(), "active" if action.isEnabled() else "inactive", action.toolTip()]
-		for action in broadcast_menu.actions()
-		if action in entries(interface).values()
-	]
-	assert obtained_list == [[value.strip() for value in line] for line in lines]
+	obtained_list = []
+	for action in broadcast_menu.actions():
+		if action in entries(interface).values():
+			obtained_list.append([action.text(), "active" if action.isEnabled() else "inactive", action.toolTip()])
+	line_list = []
+	for line in lines:
+		value_list = []
+		for value in line:
+			value_list.append(value.strip())
+		line_list.append(value_list)
+	assert obtained_list == line_list
 
 
 @then("le clic droit sur le prochain sonore propose :")
 def next_menu(interface: Context, datatable: list[list[str]]) -> None:
 	_, *lines = datatable
-	obtained_list = [
-		[action.text(), "active" if action.isEnabled() else "inactive", action.toolTip()]
-		for action in next_actions(interface)
-	]
+	obtained_list = []
+	for action in next_actions(interface):
+		obtained_list.append([action.text(), "active" if action.isEnabled() else "inactive", action.toolTip()])
 	# Qt donne à une action sans infobulle son texte pour infobulle : une cellule vide l'accepte.
-	expected_list = [[value.strip() for value in line] for line in lines]
+	expected_list = []
+	for line in lines:
+		value_list = []
+		for value in line:
+			value_list.append(value.strip())
+		expected_list.append(value_list)
 	for obtained, expected in zip(obtained_list, expected_list, strict=False):
 		if expected[2] == "":
 			obtained[2] = ""
@@ -240,7 +257,12 @@ def advances_received(player: Player, qtbot: QtBot, event: int) -> None:
 
 @then("aucune interruption n'est active")
 def no_active(interface: Context) -> None:
-	assert not any(action.isEnabled() for action in entries(interface).values())
+	found = False
+	for action in entries(interface).values():
+		if action.isEnabled():
+			found = True
+			break
+	assert not found
 
 
 @then(parsers.parse("Machin player a reçu la demande d'interrompre « {item} »"))
@@ -332,7 +354,10 @@ def under_fallback_menu(interface: Context, entries: str) -> None:
 	action = window(interface).cutoff_by_fallback
 	under_menu = action.menu()
 	assert (action.isEnabled()) and (under_menu is not None)
-	assert [entry.text() for entry in under_menu.actions()] == _entries(entries)
+	entry_list = []
+	for entry in under_menu.actions():
+		entry_list.append(entry.text())
+	assert entry_list == _entries(entries)
 
 
 @then(parsers.parse("Machin player a reçu la demande de couper l'antenne par le secours « {name} »"))
@@ -363,7 +388,12 @@ def feed_menu(interface: Context, name: str, datatable: list[list[str]]) -> None
 		if action.isEnabled():
 			state = "active"
 		obtained_list.append([action.text(), state, action.toolTip()])
-	expected_list = [[value.strip() for value in line] for line in lines]
+	expected_list = []
+	for line in lines:
+		value_list = []
+		for value in line:
+			value_list.append(value.strip())
+		expected_list.append(value_list)
 	# Qt donne à une action sans infobulle son texte pour infobulle : une cellule vide l'accepte.
 	for obtained, expected in zip(obtained_list, expected_list, strict=False):
 		if expected[2] == "":

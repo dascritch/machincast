@@ -32,4 +32,7 @@ def feeds(empty_database: Connection, names: str) -> None:
 		"SELECT internal_name FROM events WHERE priority = 'background_programming' AND deleted_at IS NULL"
 		" ORDER BY internal_name"
 	).fetchall()
-	assert [str(name) for (name,) in lines] == NAME.findall(names)
+	name_list = []
+	for (name,) in lines:
+		name_list.append(str(name))
+	assert name_list == NAME.findall(names)

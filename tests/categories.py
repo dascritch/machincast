@@ -3,7 +3,9 @@
 
 CATEGORY = {"sonore": "sound", "banque": "bank", "séquence": "sequence", "événement": "event", "feed": "feed"}
 """Le genre dans le code, par son mot des scénarios."""
-SCENARIO = {category: word for word, category in CATEGORY.items()}
+SCENARIO = {}
+for word, category in CATEGORY.items():
+	SCENARIO[category] = word
 """Le mot des scénarios, par le genre dans le code."""
 AIRPLAY_KEYS = {
 	"start": "debut",

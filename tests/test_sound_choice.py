@@ -225,7 +225,9 @@ def same_remainder(context: Context, empty_database: Connection, count: int, see
 	)
 )
 def different_remainders(context: Context, empty_database: Connection, count: int, first: int, last: int) -> None:
-	remainders = {tuple(remainder(context, empty_database, g, count, "Titres")) for g in range(first, last + 1)}
+	remainders = set()
+	for g in range(first, last + 1):
+		remainders.add(tuple(remainder(context, empty_database, g, count, "Titres")))
 	assert len(remainders) > 1
 
 
@@ -235,7 +237,10 @@ def remaining_cycle(context: Context, empty_database: Connection, name: str, lis
 	socket, sample_database = sample_database_parameters()
 	with open_connection(socket, sample_database, Role.PLAYBACK) as connection:
 		rest = remaining_list(connection, playback_bank(connection, name), context.clock.now())
-	assert sorted(sound_name(empty_database, s) for s in rest) == sorted(names(list_))
+	s_list = []
+	for s in rest:
+		s_list.append(sound_name(empty_database, s))
+	assert sorted(s_list) == sorted(names(list_))
 
 
 @then(parsers.parse("la banque « {name} » ne fournit aucun sonore"))

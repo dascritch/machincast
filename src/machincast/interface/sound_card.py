@@ -66,7 +66,7 @@ from machincast.conversion import duration_or_none, text_or_none
 from machincast.i18n import _, logged, pgettext
 from machincast.interface import dialogs, display, expandable, icons, preferences
 from machincast.interface.bank_card import removal_warning
-from machincast.interface.card import Card, Connection, Refusal
+from machincast.interface.card import Card, Connection, Refusal, rank_of
 from machincast.interface.columns import Columns
 from machincast.interface.dialogs import Removal
 from machincast.interface.intents import REMOVE, label
@@ -559,7 +559,9 @@ class SoundCard(Card):
 		musical_list = dict(metadata)
 		for key, field in self.metadata.items():
 			field.setText(str(musical_list.pop(key, "")))
-		others = [_("{key}: {value}").format(key=key, value=value) for key, value in sorted(musical_list.items())]
+		others = []
+		for key, value in sorted(musical_list.items()):
+			others.append(_("{key}: {value}").format(key=key, value=value))
 		self.ui.other_metadata.setText(", ".join(others))
 		# Un crossfade non paramétré (NULL) est décoché ; 0 seconde en est un (https://github.com/dascritch/machincast/issues/145).
 		for box, slider, crossfade in (
@@ -569,7 +571,7 @@ class SoundCard(Card):
 			slider.display(_seconds(crossfade))
 			box.setChecked(isinstance(crossfade, timedelta))
 		self.ui.playback_max.setValue(int(str((playback_max) or (0))))
-		self.ui.hiding.setCurrentIndex(next(i for i, (value, _text) in enumerate(HIDINGS) if value is hiding))
+		self.ui.hiding.setCurrentIndex(rank_of(HIDINGS, hiding))
 		self._show_date(self.ui.has_start, self.ui.broadcast_start, start)
 		self._show_date(self.ui.has_end, self.ui.broadcast_end, end)
 		self.ui.feed.clear()
@@ -587,8 +589,13 @@ class SoundCard(Card):
 		for identifier, name in fallback:
 			self.ui.fallback.addItem(str(name), int(str(identifier)))
 		self.ui.fallback.setCurrentIndex(self.ui.fallback.findData(fallback_event))
-		self._edited_fields = {str(field) for field in _list(edited_fields)}
-		edited_list = [LABELS.get(str(field), str(field)) for field in _list(edited_fields)]
+		field_set = set()
+		for edited in _list(edited_fields):
+			field_set.add(str(edited))
+		self._edited_fields = field_set
+		edited_list = []
+		for edited in _list(edited_fields):
+			edited_list.append(LABELS.get(str(edited), str(edited)))
 		edited_text = ""
 		if edited_list != []:
 			edited_text = _("Entered by hand, no longer changed by the indexer: {list}.").format(
@@ -661,8 +668,18 @@ class SoundCard(Card):
 		# Seuls des silences saisis sont refusés : l'indexeur ne mesure jamais des silences qui couvrent tout le
 		# fichier.
 		sides = ("detected_start", "detected_end")
-		entered_list = any(inputs.get(side) != self._initial_list.get(side) for side in sides)
-		silences = [silence for silence in (inputs.get(side) for side in sides) if isinstance(silence, timedelta)]
+		entered_list = False
+		for side in sides:
+			if inputs.get(side) != self._initial_list.get(side):
+				entered_list = True
+				break
+		silences = []
+		side_list = []
+		for side in sides:
+			side_list.append(inputs.get(side))
+		for silence in side_list:
+			if isinstance(silence, timedelta):
+				silences.append(silence)
 		if (entered_list) and (self._duration is not None) and (sum(silences, timedelta(0)) >= self._duration):
 			raise Refusal(
 				_("The detected silences must leave some sound: together, shorter than the duration of the sound."),
@@ -679,23 +696,38 @@ class SoundCard(Card):
 			).fetchone()
 			assert created is not None
 			identifier = int(str(created[0]))
-		modified_list = [field for field, value in inputs.items() if value != self._initial_list[field]]
+		modified_list = []
+		for field, value in inputs.items():
+			if value != self._initial_list[field]:
+				modified_list.append(field)
 		line = self.connection.execute(
 			"SELECT edited_fields FROM sounds WHERE id = %s FOR UPDATE", (identifier,)
 		).fetchone()
 		if line is None:
 			raise Refusal(_("This sound is no longer in the database."))
 		edited_list = list((line[0]) or ([]))
-		edited_list += [field for field in modified_list if (field != "state") and (field not in edited_list)]
-		columns = [field for field in modified_list if not field.startswith("music_metadata.")]
+		field_list = []
+		for field in modified_list:
+			if (field != "state") and (field not in edited_list):
+				field_list.append(field)
+		edited_list += field_list
+		columns = []
+		for field in modified_list:
+			if not field.startswith("music_metadata."):
+				columns.append(field)
 		assignments: list[sql.Composable] = [sql.SQL("{} = %s").format(sql.Identifier(column)) for column in columns]
 		values: list[object] = [inputs[column] for column in columns]
 		prefix = "music_metadata."
-		musical_list = {
-			field.removeprefix(prefix): inputs[field] for field in modified_list if field.startswith(prefix)
-		}
+		musical_list = {}
+		for field in modified_list:
+			if field.startswith(prefix):
+				musical_list[field.removeprefix(prefix)] = inputs[field]
 		assignments.append(sql.SQL("music_metadata = (music_metadata - %s::text[]) || %s::jsonb"))
-		values += [list(musical_list), Jsonb({key: value for key, value in musical_list.items() if value is not None})]
+		key_dict = {}
+		for key, value in musical_list.items():
+			if value is not None:
+				key_dict[key] = value
+		values += [list(musical_list), Jsonb(key_dict)]
 		assignments.append(sql.SQL("edited_fields = %s"))
 		values.append(edited_list)
 		query = sql.SQL("UPDATE sounds SET {} WHERE id = %s").format(sql.SQL(", ").join(assignments))
@@ -865,15 +897,24 @@ class SoundCard(Card):
 				duration_text = display.duration(duration)
 			incidents = list(zip(_list(timestamps), _list(kinds), _list(messages), strict=True))
 			cells = [f"{start.astimezone():%Y-%m-%d %H:%M:%S}", end_text, duration_text]
-			cells += [str((name) or ("")) for name in (event, sequence, bank)]
-			cells.append(", ".join(logged(str(kind)) for _h, kind, _m in incidents))
-			items = [QTableWidgetItem(text) for text in cells]
-			details = [
-				_("{hour} {kind}: {message}").format(
-					hour=_hour(h), kind=logged(str(kind)), message=logged(str(message))
+			name_list = []
+			for name in (event, sequence, bank):
+				name_list.append(str((name) or ("")))
+			cells += name_list
+			h_list = []
+			for _h, kind, _m in incidents:
+				h_list.append(logged(str(kind)))
+			cells.append(", ".join(h_list))
+			items = []
+			for text in cells:
+				items.append(QTableWidgetItem(text))
+			details = []
+			for h, kind, message in incidents:
+				details.append(
+					_("{hour} {kind}: {message}").format(
+						hour=_hour(h), kind=logged(str(kind)), message=logged(str(message))
+					)
 				)
-				for h, kind, message in incidents
-			]
 			items[-1].setToolTip("\n".join(details))
 			row = table.rowCount()
 			table.insertRow(row)

@@ -76,7 +76,11 @@ def _probe(Gst):  # type: ignore[no-untyped-def]
 		provider = factory.get()
 		if provider is None:
 			continue
-		appliances += [appliance for appliance in provider.get_devices() if appliance.has_classes(CLASS)]
+		appliance_list = []
+		for appliance in provider.get_devices():
+			if appliance.has_classes(CLASS):
+				appliance_list.append(appliance)
+		appliances += appliance_list
 	return appliances
 
 

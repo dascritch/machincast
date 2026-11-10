@@ -40,12 +40,18 @@ class Pendulum:
 
 def decibels(text: str) -> list[float]:
 	"""« -10, -1,1 » : un niveau par canal, à la virgule décimale."""
-	return [float(value.replace(",", ".")) for value in text.split(", ")]
+	decibels = []
+	for value in text.split(", "):
+		decibels.append(float(value.replace(",", ".")))
+	return decibels
 
 
 def lines(datatable: list[list[str]]) -> list[dict[str, str]]:
 	header, *rest = datatable
-	return [dict(zip(header, line, strict=True)) for line in rest]
+	lines = []
+	for line in rest:
+		lines.append(dict(zip(header, line, strict=True)))
+	return lines
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -150,7 +156,12 @@ def no_channel(interface: Context) -> None:
 @then("la crête de chaque canal est au moins au niveau du VU")
 def peaks(interface: Context) -> None:
 	vu_meter = home(interface).vu_meter
-	assert all(peak >= level for peak, level in zip(vu_meter.peaks, vu_meter.levels, strict=True))
+	every_one = True
+	for peak, level in zip(vu_meter.peaks, vu_meter.levels, strict=True):
+		if not (peak >= level):
+			every_one = False
+			break
+	assert every_one
 
 
 @then("le VU-mètre de l'antenne est disponible")
@@ -174,7 +185,9 @@ def not_reopened(interface: Context) -> None:
 def column_order(interface: Context) -> None:
 	ui = home(interface).ui
 	arrangement = ui.on_air_layout
-	order = [arrangement.itemAt(index).widget() for index in range(arrangement.count())]
+	order = []
+	for index in range(arrangement.count()):
+		order.append(arrangement.itemAt(index).widget())
 	assert order[:3] == [ui.clipping_light, ui.vu_meter_place, ui.dead_air_light]
 
 
@@ -182,7 +195,12 @@ def column_order(interface: Context) -> None:
 def small_lights(interface: Context) -> None:
 	ui = home(interface).ui
 	title = ui.on_air_column.font().pointSizeF()
-	assert all(lamp.font().pointSizeF() < title for lamp in (ui.dead_air_light, ui.clipping_light))
+	every_one = True
+	for lamp in (ui.dead_air_light, ui.clipping_light):
+		if not (lamp.font().pointSizeF() < title):
+			every_one = False
+			break
+	assert every_one
 
 
 @then(parsers.parse("le voyant « {name} » de l'antenne reste éteint une seconde"))
@@ -210,7 +228,10 @@ def marker(pendulum: tuple[Pendulum, VuMeter], datatable: list[list[str]]) -> No
 		clock.instant = decibels(line["instant"])[0]
 		vu_meter.display(decibels(line["vu"]), decibels(line["crete"]))
 		assert vu_meter.peaks == decibels(line["crete"]), line
-		assert [kept for kept, _since in vu_meter.maintained] == decibels(line["repere"]), line
+		since_list = []
+		for kept, _since in vu_meter.maintained:
+			since_list.append(kept)
+		assert since_list == decibels(line["repere"]), line
 
 
 @then("les voyants de l'antenne sont éteints")
@@ -251,7 +272,10 @@ def nothing_screenshot(interface: Context) -> None:
 
 @then(parsers.re(r"c'est l'élément « (?P<factory>[^»]+) », avec (?P<properties>.+)"))
 def item(port: object, factory: str, properties: str) -> None:
-	found_list = [child for child in port.children if child.get_factory().get_name() == factory]  # type: ignore[attr-defined]
+	found_list = []
+	for child in port.children:
+		if child.get_factory().get_name() == factory:
+			found_list.append(child)
 	assert len(found_list) == 1, port.children  # type: ignore[attr-defined]
 	source = found_list[0]
 	for key, value in re.findall(r"([\w-]+) « ([^»]+) »", properties):
@@ -311,12 +335,17 @@ def size_vu_meter(qtbot: QtBot, direction: str, width: str, height: str) -> VuMe
 
 @then(parsers.parse("son échelle porte les nombres « {counts} »"))
 def scale_counts(only_vu_meter: VuMeter, counts: str) -> None:
-	assert [text for text, _frame in only_vu_meter.captions()] == counts.split(", ")
+	frame_list = []
+	for text, _frame in only_vu_meter.captions():
+		frame_list.append(text)
+	assert frame_list == counts.split(", ")
 
 
 @then("son échelle commence à 0 et finit à -60")
 def bounds(only_vu_meter: VuMeter) -> None:
-	texts = [text for text, _frame in only_vu_meter.captions()]
+	texts = []
+	for text, _frame in only_vu_meter.captions():
+		texts.append(text)
 	assert (texts[0], texts[-1]) == ("0", "-60"), texts
 
 
@@ -332,25 +361,36 @@ def without_only_overlap(only_vu_meter: VuMeter) -> None:
 @then(parsers.re(r"chaque nombre écarté chevauche un nombre gardé plus important, dans l'ordre (?P<order>.+)"))
 def discarded_list(only_vu_meter: VuMeter, order: str) -> None:
 	"""Un nombre n'est écarté que parce qu'il chevauche un nombre gardé, venu avant lui dans l'ordre d'importance."""
-	importance = [int(count) for count in order.split(", ")]
+	importance = []
+	for count in order.split(", "):
+		importance.append(int(count))
 	candidates = only_vu_meter.candidates()
-	assert [tick for tick, _frame in candidates] == importance
-	kept_list = {int(text) for text, _frame in only_vu_meter.captions()}
+	frame_list = []
+	for tick, _frame in candidates:
+		frame_list.append(tick)
+	assert frame_list == importance
+	kept_list = set()
+	for text, _frame in only_vu_meter.captions():
+		kept_list.add(int(text))
 	for rank, (tick, frame) in enumerate(candidates):
 		if tick in kept_list:
 			continue
-		before = [
-			other
-			for other, other_frame in candidates[:rank]
-			if (other in kept_list) and (frame.intersects(other_frame))
-		]
+		before = []
+		for other, other_frame in candidates[:rank]:
+			if (other in kept_list) and (frame.intersects(other_frame)):
+				before.append(other)
 		assert before != [], f"{tick} écarté sans chevaucher un nombre gardé plus important"
 
 
 def without_overlap(vu_meter: VuMeter) -> list[tuple[str, QRectF]]:
 	captions = vu_meter.captions()
 	for index, (_text, frame) in enumerate(captions):
-		assert all(not frame.intersects(other) for _t, other in captions[index + 1 :]), captions
+		every_one = True
+		for _t, other in captions[index + 1 :]:
+			if frame.intersects(other):
+				every_one = False
+				break
+		assert every_one, captions
 		assert vu_meter.rect().toRectF().contains(frame), (frame, vu_meter.rect())
 	return captions
 
@@ -361,9 +401,20 @@ def separated_channels(interface: Context) -> None:
 	arrangement = vu_meter.arrangement()
 	left, right = arrangement.channels
 	assert left.right() < arrangement.scale.left() < arrangement.scale.right() < right.left()
-	assert [name for name, _frame in arrangement.names] == ["G", "D"]
-	assert [frame.center().x() for _name, frame in arrangement.names] == [left.center().x(), right.center().x()]
-	assert all(frame.top() >= left.bottom() for _name, frame in arrangement.names)
+	frame_list = []
+	for name, _frame in arrangement.names:
+		frame_list.append(name)
+	assert frame_list == ["G", "D"]
+	name_list = []
+	for _name, frame in arrangement.names:
+		name_list.append(frame.center().x())
+	assert name_list == [left.center().x(), right.center().x()]
+	every_one = True
+	for _name, frame in arrangement.names:
+		if not (frame.top() >= left.bottom()):
+			every_one = False
+			break
+	assert every_one
 
 
 @then("l'échelle du VU-mètre de l'antenne va de 0 dB en haut à -60 dB en bas, sans nombres qui se chevauchent")
@@ -374,7 +425,9 @@ def vertical_scale(interface: Context) -> None:
 	assert (captions[0][0], captions[-1][0]) == ("0", "-60")
 	assert abs(captions[0][1].center().y() - channel.top()) <= 1
 	assert abs(captions[-1][1].center().y() - channel.bottom()) <= 1
-	tops = [frame.center().y() for _text, frame in captions]
+	tops = []
+	for _text, frame in captions:
+		tops.append(frame.center().y())
 	assert tops == sorted(tops)
 
 
@@ -392,8 +445,16 @@ def lying_scale(interface: Context) -> None:
 	assert (captions[0][0], captions[-1][0]) == ("0", "-60")
 	assert abs(captions[0][1].center().x() - channel.right()) <= 1
 	assert abs(captions[-1][1].center().x() - channel.left()) <= 1
-	assert arrangement.scale.top() >= max(frame.bottom() for frame in arrangement.channels)
-	assert all(frame.top() >= arrangement.scale.top() for _text, frame in captions)
+	frame_list = []
+	for frame in arrangement.channels:
+		frame_list.append(frame.bottom())
+	assert arrangement.scale.top() >= max(frame_list)
+	every_one = True
+	for _text, frame in captions:
+		if not (frame.top() >= arrangement.scale.top()):
+			every_one = False
+			break
+	assert every_one
 
 
 # ─── PipeWire simulé ───────────────────────────────────────
@@ -517,6 +578,9 @@ def listening_entry(interface: Context, menu: str, text: str, shortcut: str, too
 @then(parsers.parse("le nom public de la fiche se saisit par « {keys} »"))
 def public_name_to_keyboard(interface: Context, keys: str) -> None:
 	card = window(interface).ui.tabs.currentWidget()
-	captions = [caption for caption in card.findChildren(QLabel) if caption.buddy() is card.ui.public_name]
+	captions = []
+	for caption in card.findChildren(QLabel):
+		if caption.buddy() is card.ui.public_name:
+			captions.append(caption)
 	assert len(captions) == 1, captions
 	assert QKeySequence.mnemonic(captions[0].text()).toString() == keys

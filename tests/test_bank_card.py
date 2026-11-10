@@ -123,7 +123,10 @@ def remove_directory(interface: Context, qtbot: QtBot, directory: str) -> None:
 
 @when(parsers.re(r"j'ajoute les sonores (?P<titles>.+), en effaçant « (?P<erased>[^»]+) » de la base pendant le choix"))
 def add_erased_sounds(interface: Context, qtbot: QtBot, empty_database: Connection, titles: str, erased: str) -> None:
-	interface.chosen_sounds = [identifier(empty_database, "sounds", "title", title) for title in NAME.findall(titles)]
+	title_list = []
+	for title in NAME.findall(titles):
+		title_list.append(identifier(empty_database, "sounds", "title", title))
+	interface.chosen_sounds = title_list
 	empty_database.execute("DELETE FROM sounds WHERE title = %s", (erased,))
 	click(qtbot, card(interface).ui.add_sounds)
 
@@ -223,7 +226,10 @@ def select(choice: list[Choice], titles: str) -> None:
 	table = choice[0].list_.table
 	model = table.model()
 	for title in NAME.findall(titles):
-		rows = [row for row in range(model.rowCount()) if model.index(row, 0).data(IDENTIFIER + 1) == title]
+		rows = []
+		for row in range(model.rowCount()):
+			if model.index(row, 0).data(IDENTIFIER + 1) == title:
+				rows.append(row)
 		assert len(rows) == 1, title
 		table.selectionModel().select(
 			model.index(rows[0], 0),
@@ -256,47 +262,81 @@ def fields(interface: Context, name: str, public_name: str, mode: str, hiding: s
 @then(parsers.re(r"la fiche montre les répertoires (?P<directories>.+)"))
 def shown_directories(interface: Context, directories: str) -> None:
 	list_ = card(interface).ui.directories
-	expected_list = [interface.path(directory) for directory in NAME.findall(directories)]
-	assert [list_.item(row).text() for row in range(list_.count())] == expected_list
+	expected_list = []
+	for directory in NAME.findall(directories):
+		expected_list.append(interface.path(directory))
+	row_list = []
+	for row in range(list_.count()):
+		row_list.append(list_.item(row).text())
+	assert row_list == expected_list
 
 
 @then("la fiche montre les sonores :")
 def sounds_in_table(interface: Context, datatable: list[list[str]]) -> None:
 	list_ = card(interface).ui.sounds
 	headers, *rows = datatable
-	titles = [list_.headerItem().text(column) for column in range(list_.columnCount())]
-	assert titles == [header.strip() for header in headers]
+	titles = []
+	for column in range(list_.columnCount()):
+		titles.append(list_.headerItem().text(column))
+	header_list = []
+	for header in headers:
+		header_list.append(header.strip())
+	assert titles == header_list
 	shown_list = []
 	for row in range(list_.topLevelItemCount()):
 		line = list_.topLevelItem(row)
 		assert line is not None
-		shown_list.append([line.text(column) for column in range(list_.columnCount())])
-	assert shown_list == [[interface.path(value.strip()) for value in values] for values in rows]
+		column_list = []
+		for column in range(list_.columnCount()):
+			column_list.append(line.text(column))
+		shown_list.append(column_list)
+	values_list = []
+	for values in rows:
+		value_list = []
+		for value in values:
+			value_list.append(interface.path(value.strip()))
+		values_list.append(value_list)
+	assert shown_list == values_list
 
 
 @then(parsers.re(r"les boutons de ligne actifs de la fiche sont (?P<buttons>.+)"))
 def line_buttons(interface: Context, buttons: str) -> None:
 	ui = card(interface).ui
-	active_list = [
-		button.text() for button in (ui.remove_directory, ui.remove_sound, ui.raise_, ui.go_down) if button.isEnabled()
-	]
+	active_list = []
+	for button in (ui.remove_directory, ui.remove_sound, ui.raise_, ui.go_down):
+		if button.isEnabled():
+			active_list.append(button.text())
 	assert active_list == NAME.findall(buttons)
 
 
 @then(parsers.re(r"la fiche montre les sonores (?P<sounds>«.+)"))
 def shown_sounds(interface: Context, sounds: str) -> None:
 	list_ = card(interface).ui.sounds
-	shown_list = [list_.topLevelItem(row).text(0) for row in range(list_.topLevelItemCount())]
+	shown_list = []
+	for row in range(list_.topLevelItemCount()):
+		shown_list.append(list_.topLevelItem(row).text(0))
 	assert shown_list == NAME.findall(sounds)
 
 
 @then("aucune ligne de sonore de la fiche n'accepte qu'on y dépose une autre")
 def no_drop(interface: Context) -> None:
 	list_ = card(interface).ui.sounds
-	lines = [list_.topLevelItem(row) for row in range(list_.topLevelItemCount())]
+	lines = []
+	for row in range(list_.topLevelItemCount()):
+		lines.append(list_.topLevelItem(row))
 	assert lines != []
-	assert all(not (line.flags() & Qt.ItemFlag.ItemIsDropEnabled) for line in lines)
-	assert all(line.flags() & Qt.ItemFlag.ItemIsDragEnabled for line in lines)
+	every_one = True
+	for line in lines:
+		if line.flags() & Qt.ItemFlag.ItemIsDropEnabled:
+			every_one = False
+			break
+	assert every_one
+	every_one_2 = True
+	for line in lines:
+		if not (line.flags() & Qt.ItemFlag.ItemIsDragEnabled):
+			every_one_2 = False
+			break
+	assert every_one_2
 
 
 @then(parsers.re(r"les sonores de la fiche (?P<verdict>peuvent|ne peuvent pas) se réordonner"))
@@ -331,7 +371,13 @@ def directories_in_database(interface: Context, empty_database: Connection, name
 		" WHERE b.internal_name = %s ORDER BY r.directory",
 		(name,),
 	).fetchall()
-	assert [str(line[0]) for line in lines] == [interface.path(directory) for directory in NAME.findall(directories)]
+	line_list = []
+	for line in lines:
+		line_list.append(str(line[0]))
+	directory_list = []
+	for directory in NAME.findall(directories):
+		directory_list.append(interface.path(directory))
+	assert line_list == directory_list
 
 
 @then(parsers.re(r"les sonores de la banque « (?P<name>[^»]+) » sont, dans l'ordre, (?P<titles>.+)"))
@@ -343,7 +389,9 @@ def sounds_in_database(interface: Context, empty_database: Connection, name: str
 		" WHERE b.internal_name = %s ORDER BY bs.position",
 		(name,),
 	).fetchall()
-	expected_list = [interface.path(title) for title in NAME.findall(titles)]
+	expected_list = []
+	for title in NAME.findall(titles):
+		expected_list.append(interface.path(title))
 	assert lines == list(enumerate(expected_list, start=1))
 
 
@@ -354,7 +402,9 @@ def always_in_database(empty_database: Connection, title: str) -> None:
 
 @then(parsers.re(r"le choix des sonores donne (?P<titles>.+)"))
 def chosen_list(choice: list[Choice], empty_database: Connection, titles: str) -> None:
-	expected_list = [identifier(empty_database, "sounds", "title", title) for title in NAME.findall(titles)]
+	expected_list = []
+	for title in NAME.findall(titles):
+		expected_list.append(identifier(empty_database, "sounds", "title", title))
 	assert choice[0].selection() == expected_list
 
 
@@ -362,7 +412,10 @@ def chosen_list(choice: list[Choice], empty_database: Connection, titles: str) -
 def accept(interface: Context) -> None:
 	ui = card(interface).ui
 	lists = (ui.directories, ui.directories.viewport(), ui.sounds, ui.sounds.viewport())
-	assert [list_.acceptDrops() for list_ in lists] == [True] * 4
+	list__list = []
+	for list_ in lists:
+		list__list.append(list_.acceptDrops())
+	assert list__list == [True] * 4
 
 
 @then(parsers.parse("le fichier « {path} » n'est pas en base"))
@@ -410,13 +463,22 @@ def shown_crossfades(interface: Context, datatable: list[list[str]]) -> None:
 		if field.isEnabled():
 			editable = "oui"
 		shown_list.append([side.strip(), list_.currentText(), field.text(), editable])
-	assert shown_list == [[value.strip() for value in row] for row in rows]
+	row_list = []
+	for row in rows:
+		value_list = []
+		for value in row:
+			value_list.append(value.strip())
+		row_list.append(value_list)
+	assert shown_list == row_list
 
 
 @then(parsers.re(r"le crossfade de début se règle parmi (?P<rules>.+)"))
 def offered_rules(interface: Context, rules: str) -> None:
 	list_, _field = _crossfade(interface, "début")
-	assert [list_.itemText(rank) for rank in range(list_.count())] == NAME.findall(rules)
+	rank_list = []
+	for rank in range(list_.count()):
+		rank_list.append(list_.itemText(rank))
+	assert rank_list == NAME.findall(rules)
 
 
 @then(
@@ -433,7 +495,9 @@ def crossfades_in_database(
 		" FROM banks WHERE internal_name = %s",
 		(name,),
 	).fetchall()
-	seconds = [timedelta(seconds=float(value.replace(",", "."))) for value in (start, end)]
+	seconds = []
+	for value in (start, end):
+		seconds.append(timedelta(seconds=float(value.replace(",", "."))))
 	assert lines == [(start_rule, seconds[0], end_rule, seconds[1])]
 
 
@@ -497,20 +561,26 @@ def durations_in_database(empty_database: Connection, name: str, minimum: str | 
 
 
 def _marks(interface: Context) -> list[list[str]]:
-	return [
-		[line.text(0), line.toolTip(0)]
-		for line in (
-			card(interface).ui.sounds.topLevelItem(row) for row in range(card(interface).ui.sounds.topLevelItemCount())
-		)
-		if (line is not None) and (not line.icon(0).isNull())
-	]
+	marks = []
+	row_list = []
+	for row in range(card(interface).ui.sounds.topLevelItemCount()):
+		row_list.append(card(interface).ui.sounds.topLevelItem(row))
+	for line in row_list:
+		if (line is not None) and (not line.icon(0).isNull()):
+			marks.append([line.text(0), line.toolTip(0)])
+	return marks
 
 
 @then("la fiche ne marque aucun sonore hors des durées")
 def no_marked(interface: Context) -> None:
 	assert _marks(interface) == []
 	lines = card(interface).ui.sounds
-	assert all(lines.topLevelItem(row).toolTip(0) == "" for row in range(lines.topLevelItemCount()))
+	every_one = True
+	for row in range(lines.topLevelItemCount()):
+		if lines.topLevelItem(row).toolTip(0) != "":
+			every_one = False
+			break
+	assert every_one
 
 
 @then("la fiche marque hors des durées les sonores :")
@@ -664,6 +734,9 @@ def shows_sounds(interface: Context, count: int) -> None:
 @then(parsers.parse("la fiche a marqué hors des durées {count:d} sonores en moins de {seconds:d} secondes"))
 def marked_fast(interface: Context, count: int, seconds: int) -> None:
 	lines = card(interface).ui.sounds
-	marked_list = [row for row in range(lines.topLevelItemCount()) if lines.topLevelItem(row).toolTip(0) != ""]
+	marked_list = []
+	for row in range(lines.topLevelItemCount()):
+		if lines.topLevelItem(row).toolTip(0) != "":
+			marked_list.append(row)
 	assert len(marked_list) == count
 	assert interface.response_duration < seconds, interface.response_duration

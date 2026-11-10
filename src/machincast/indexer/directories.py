@@ -83,7 +83,11 @@ def sound_files(directory: Path) -> Iterator[Path]:
 
 	for current, under_directories, files in os.walk(directory, onerror=flag):
 		# Trié en place : os.walk descend ensuite dans cet ordre, et saute les répertoires cachés retirés.
-		under_directories[:] = sorted(name for name in under_directories if not _cache(name))
+		name_list = []
+		for name in under_directories:
+			if not _cache(name):
+				name_list.append(name)
+		under_directories[:] = sorted(name_list)
 		for name in sorted(files):
 			path = Path(current) / name
 			if (not _cache(name)) and (path.suffix.lower() in EXTENSIONS) and (path.is_file()):
@@ -235,14 +239,14 @@ def index_directories(
 def _attached_files(connection: psycopg.Connection[TupleRow], bank: int) -> set[str]:
 	"""Les emplacements des sonores de la banque qui ne sont pas supprimés."""
 	with connection.transaction():
-		return {
-			str(location)
-			for (location,) in connection.execute(
-				"SELECT s.location FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
-				" WHERE bs.bank_id = %s AND s.deleted_at IS NULL AND s.location IS NOT NULL",
-				(bank,),
-			)
-		}
+		attached_files = set()
+		for (location,) in connection.execute(
+			"SELECT s.location FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
+			" WHERE bs.bank_id = %s AND s.deleted_at IS NULL AND s.location IS NOT NULL",
+			(bank,),
+		):
+			attached_files.add(str(location))
+		return attached_files
 
 
 def remove_outside_durations(

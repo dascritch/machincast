@@ -102,8 +102,16 @@ def _launch(
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		execution.code = maintenance.run(configuration, options)
 		maintenance.after(options)
-	execution.information = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
-	execution.errors = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
+	r_list = []
+	for r in caplog.records:
+		if r.levelno == logging.INFO:
+			r_list.append(r.getMessage())
+	execution.information = r_list
+	r_list_2 = []
+	for r in caplog.records:
+		if r.levelno >= logging.WARNING:
+			r_list_2.append(r.getMessage())
+	execution.errors = r_list_2
 
 
 @when(parsers.parse("je lance « {command} »"))
@@ -176,11 +184,24 @@ def backup(configuration: Configuration, directory: str) -> None:
 @then("la maintenance a annoncé, dans l'ordre :")
 def announcements(configuration: Configuration, execution: Execution, datatable: list[list[str]]) -> None:
 	_header, *lines = datatable
-	expected_list = [line.strip().replace("…/", f"{configuration.path.parent}/") for (line,) in lines]
-	assert [line for line in execution.information if not line.startswith("sauvegarde faite")] == [
-		line for line in expected_list if line != "sauvegarde faite"
-	]
-	assert any(line.startswith("sauvegarde faite") for line in execution.information), execution.information
+	expected_list = []
+	for (line,) in lines:
+		expected_list.append(line.strip().replace("…/", f"{configuration.path.parent}/"))
+	line_list = []
+	for line in execution.information:
+		if not line.startswith("sauvegarde faite"):
+			line_list.append(line)
+	line_list_2 = []
+	for line in expected_list:
+		if line != "sauvegarde faite":
+			line_list_2.append(line)
+	assert line_list == line_list_2
+	found = False
+	for line in execution.information:
+		if line.startswith("sauvegarde faite"):
+			found = True
+			break
+	assert found, execution.information
 
 
 @then(parsers.parse("la maintenance a annoncé « {text} »"))
@@ -197,8 +218,16 @@ def reports(execution: Execution, text: str) -> None:
 @then("la maintenance n'a annoncé ni le schéma ni l'optimisation")
 def other_nothing(execution: Execution) -> None:
 	# Le chemin de la sauvegarde porte le nom du scénario, qui peut contenir « schéma ».
-	announcements = [line for line in execution.information if not line.startswith("sauvegarde")]
-	assert not any(("schéma" in line) or ("optimisée" in line) for line in announcements), announcements
+	announcements = []
+	for line in execution.information:
+		if not line.startswith("sauvegarde"):
+			announcements.append(line)
+	found = False
+	for line in announcements:
+		if ("schéma" in line) or ("optimisée" in line):
+			found = True
+			break
+	assert not found, announcements
 
 
 @then(parsers.parse("la maintenance a dit « {text} »"))

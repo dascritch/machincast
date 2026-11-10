@@ -434,14 +434,16 @@ def list_(interface: Context) -> List:
 def lines(interface: Context) -> list[dict[str, str]]:
 	"""Les lignes affichées, après filtre et tri, par titre de colonne."""
 	model = list_(interface).table.model()
-	titles = [
-		str(model.headerData(column, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole))
-		for column in range(model.columnCount())
-	]
-	return [
-		{title: str((model.index(row, column).data()) or ("")) for column, title in enumerate(titles)}
-		for row in range(model.rowCount())
-	]
+	titles = []
+	for column in range(model.columnCount()):
+		titles.append(str(model.headerData(column, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole)))
+	lines = []
+	for row in range(model.rowCount()):
+		column_dict = {}
+		for column, title in enumerate(titles):
+			column_dict[title] = str((model.index(row, column).data()) or (""))
+		lines.append(column_dict)
+	return lines
 
 
 def opened_card(interface: Context) -> Card:
@@ -452,7 +454,9 @@ def opened_card(interface: Context) -> Card:
 
 def tab(interface: Context, title: str) -> int:
 	tabs = window(interface).ui.tabs
-	titles = [tab_title(tabs, index) for index in range(tabs.count())]
+	titles = []
+	for index in range(tabs.count()):
+		titles.append(tab_title(tabs, index))
 	assert title in titles, titles
 	return titles.index(title)
 
@@ -559,7 +563,10 @@ def deletion_questions(interface: Context) -> list[str]:
 
 def expected_lines(interface: Context, datatable: list[list[str]]) -> str:
 	_header, *lines = datatable
-	return "\n".join(line[0].strip().replace("…/", f"{interface.directory}/") for line in lines)
+	line_list = []
+	for line in lines:
+		line_list.append(line[0].strip().replace("…/", f"{interface.directory}/"))
+	return "\n".join(line_list)
 
 
 TABLES = {
@@ -584,7 +591,10 @@ def clock(interface: Context, instant: str) -> None:
 def sounds(interface: Context, empty_database: Connection, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
 	for values in rows:
-		line = dict(zip(headers, (v.strip() for v in values), strict=True))
+		v_list = []
+		for v in values:
+			v_list.append(v.strip())
+		line = dict(zip(headers, v_list, strict=True))
 		line["location"] = interface.path(line["location"])
 		stream = line["type"] == "stream"
 		if stream:
@@ -801,7 +811,14 @@ def fake_sound(interface: Context, path: str) -> None:
 def events(empty_database: Connection, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
 	for values in rows:
-		line = dict(zip(headers, (v.strip() for v in values), strict=True))
+		v_list = []
+		for v in values:
+			v_list.append(v.strip())
+		line = dict(zip(headers, v_list, strict=True))
+		day_list = []
+		for day in line["days"].split(","):
+			if day.strip():
+				day_list.append(day.strip())
 		empty_database.execute(
 			"INSERT INTO events (internal_name, public_name, priority, starts_at, ends_at, recurrence_days)"
 			" VALUES (%s, %s, %s, %s, %s, %s::weekday[])",
@@ -811,7 +828,7 @@ def events(empty_database: Connection, datatable: list[list[str]]) -> None:
 				line["priority"],
 				date_or_none(line["starts_at"]),
 				date_or_none(line["ends_at"]),
-				[day.strip() for day in line["days"].split(",") if day.strip()],
+				day_list,
 			),
 		)
 
@@ -951,7 +968,9 @@ def open_tab(interface: Context, title: str) -> None:
 	"""Une liste ouverte à la demande, pas encore ouverte, s'ouvre par le menu « Affichage », comme le ferait
 	l'utilisateur (https://github.com/dascritch/machincast/issues/180)."""
 	tabs = window(interface).ui.tabs
-	titles = [tab_title(tabs, index) for index in range(tabs.count())]
+	titles = []
+	for index in range(tabs.count()):
+		titles.append(tab_title(tabs, index))
 	if (title in ON_DEMAND) and (title not in titles):
 		choose_in_menu(interface, ON_DEMAND[title], "Affichage")
 		return
@@ -986,7 +1005,10 @@ def open_sound_card(interface: Context, qtbot: QtBot, name: str) -> None:
 @when(parsers.parse("je clique sur « {text} »"))
 def click_on(interface: Context, qtbot: QtBot, text: str) -> None:
 	opened = window(interface).ui.tabs.currentWidget()
-	buttons = [button for button in opened.findChildren(QPushButton) if button.text() == text]
+	buttons = []
+	for button in opened.findChildren(QPushButton):
+		if button.text() == text:
+			buttons.append(button)
 	assert len(buttons) == 1, f"bouton « {text} » : {len(buttons)} trouvés"
 	qtbot.mouseClick(buttons[0], Qt.MouseButton.LeftButton)
 
@@ -1039,7 +1061,10 @@ def add_feeds(interface: Context, qtbot: QtBot, empty_database: Connection, name
 	"""Le choix donnera ces feeds, par leur nom ; « aucun » : le choix est abandonné
 	(https://github.com/dascritch/machincast/issues/167)."""
 	ui = opened_card(interface).ui  # type: ignore[attr-defined]
-	interface.chosen_feeds = [identifier(empty_database, "feeds", "name", name) for name in NAME.findall(names)]
+	name_list = []
+	for name in NAME.findall(names):
+		name_list.append(identifier(empty_database, "feeds", "name", name))
+	interface.chosen_feeds = name_list
 	qtbot.mouseClick(ui.add_feeds, Qt.MouseButton.LeftButton)
 
 
@@ -1070,17 +1095,20 @@ def add_items(interface: Context, qtbot: QtBot, empty_database: Connection, cate
 	ui = opened_card(interface).ui  # type: ignore[attr-defined]
 	match category:
 		case "sonores":
-			interface.chosen_sounds = [
-				identifier(empty_database, "sounds", "title", name) for name in NAME.findall(names)
-			]
+			name_list = []
+			for name in NAME.findall(names):
+				name_list.append(identifier(empty_database, "sounds", "title", name))
+			interface.chosen_sounds = name_list
 		case "banques":
-			interface.chosen_banks = [
-				identifier(empty_database, "banks", "internal_name", name) for name in NAME.findall(names)
-			]
+			name_list_2 = []
+			for name in NAME.findall(names):
+				name_list_2.append(identifier(empty_database, "banks", "internal_name", name))
+			interface.chosen_banks = name_list_2
 		case _:
-			interface.chosen_sequences = [
-				identifier(empty_database, "sequences", "internal_name", name) for name in NAME.findall(names)
-			]
+			name_list_3 = []
+			for name in NAME.findall(names):
+				name_list_3.append(identifier(empty_database, "sequences", "internal_name", name))
+			interface.chosen_sequences = name_list_3
 	button = {"sonores": "add_sounds", "banques": "add_banks", "séquences": "add_sequences"}[category]
 	qtbot.mouseClick(getattr(ui, button), Qt.MouseButton.LeftButton)
 
@@ -1174,7 +1202,10 @@ def open_line(interface: Context, qtbot: QtBot, name: str) -> None:
 @then(parsers.re(r"la fenêtre a les onglets (?P<titles>.+)"))
 def tabs(interface: Context, titles: str) -> None:
 	tabs = window(interface).ui.tabs
-	assert [tab_title(tabs, index) for index in range(tabs.count())] == NAME.findall(titles)
+	index_list = []
+	for index in range(tabs.count()):
+		index_list.append(tab_title(tabs, index))
+	assert index_list == NAME.findall(titles)
 
 
 @then(parsers.parse("l'onglet ouvert est « {title} »"))
@@ -1185,7 +1216,11 @@ def opened_tab(interface: Context, title: str) -> None:
 
 def closable_list(interface: Context) -> list[str]:
 	tabs = window(interface).ui.tabs
-	return [tab_title(tabs, index) for index in range(tabs.count()) if closing_button(tabs.tabBar(), index) is not None]
+	closable_list = []
+	for index in range(tabs.count()):
+		if closing_button(tabs.tabBar(), index) is not None:
+			closable_list.append(tab_title(tabs, index))
+	return closable_list
 
 
 @then("aucun onglet n'a de bouton de fermeture")
@@ -1206,9 +1241,10 @@ def erase_filter(interface: Context) -> None:
 @then(parsers.parse("seul l'onglet « {title} » a un bouton de fermeture"))
 def only_closable(interface: Context, title: str) -> None:
 	tabs = window(interface).ui.tabs
-	closable_list = [
-		tab_title(tabs, index) for index in range(tabs.count()) if closing_button(tabs.tabBar(), index) is not None
-	]
+	closable_list = []
+	for index in range(tabs.count()):
+		if closing_button(tabs.tabBar(), index) is not None:
+			closable_list.append(tab_title(tabs, index))
 	assert closable_list == [title]
 
 
@@ -1220,7 +1256,10 @@ def opened_window(interface: Context, state: str) -> None:
 @then("la fiche fermée est libérée")
 def released(interface: Context) -> None:
 	QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
-	assert [shiboken6.isValid(closed) for closed in interface.closed_list] == [False]
+	closed_list_2 = []
+	for closed in interface.closed_list:
+		closed_list_2.append(shiboken6.isValid(closed))
+	assert closed_list_2 == [False]
 
 
 @then(
@@ -1250,7 +1289,10 @@ def closing_question(interface: Context, what: str, title: str) -> None:
 
 @then(parsers.re(r"le navigateur de fichiers a ouvert (?P<folder>.+)"))
 def opened_folder(interface: Context, folder: str) -> None:
-	assert interface.opened_folders == [Path(path) for path in NAME.findall(folder)]
+	path_list = []
+	for path in NAME.findall(folder):
+		path_list.append(Path(path))
+	assert interface.opened_folders == path_list
 
 
 def report(card: Card) -> str:
@@ -1299,7 +1341,11 @@ def reported_fields(card: Card) -> list[str]:
 		else:
 			if isinstance(widget, QGroupBox):
 				labels.append(widget.title())
-	return [text.removeprefix(REPORTED).replace("&", "") for text in labels if text.startswith(REPORTED)]
+	reported_fields = []
+	for text in labels:
+		if text.startswith(REPORTED):
+			reported_fields.append(text.removeprefix(REPORTED).replace("&", ""))
+	return reported_fields
 
 
 @then(parsers.re(r"les champs signalés par ⚠️ sont (?P<names>«.+)"))
@@ -1322,14 +1368,21 @@ def warns_in_top(interface: Context, text: str) -> None:
 	# En haut : après l'erreur, et avant les champs de la fiche, dont la première disposition est le formulaire.
 	arrangement = opened.layout()
 	assert arrangement is not None
-	fields = next(rank for rank in range(arrangement.count()) if arrangement.itemAt(rank).layout() is not None)
+	rank_list = []
+	for rank in range(arrangement.count()):
+		if arrangement.itemAt(rank).layout() is not None:
+			rank_list.append(rank)
+	fields = rank_list[0]
 	assert arrangement.indexOf(opened.error) < arrangement.indexOf(opened.warning) < fields
 
 
 @then(parsers.re(r"le choix du masquage de la fiche propose (?P<texts>«.+)"))
 def offered_hidings(interface: Context, texts: str) -> None:
 	choice = opened_card(interface).ui.hiding  # type: ignore[attr-defined]
-	assert [choice.itemText(rank) for rank in range(choice.count())] == NAME.findall(texts)
+	rank_list = []
+	for rank in range(choice.count()):
+		rank_list.append(choice.itemText(rank))
+	assert rank_list == NAME.findall(texts)
 
 
 @then("la fiche n'avertit pas en haut")
@@ -1348,8 +1401,15 @@ def buttons(interface: Context, state: str) -> None:
 @then(parsers.re(r"la fenêtre (?P<verdict>n'a plus|a encore) d'onglet de fiche"))
 def card_tab(interface: Context, verdict: str) -> None:
 	tabs = window(interface).ui.tabs
-	cards = [tabs.widget(index) for index in range(tabs.count())]
-	assert any(isinstance(opened, Card) for opened in cards) == (verdict == "a encore")
+	cards = []
+	for index in range(tabs.count()):
+		cards.append(tabs.widget(index))
+	found = False
+	for opened in cards:
+		if isinstance(opened, Card):
+			found = True
+			break
+	assert found == (verdict == "a encore")
 
 
 @then(parsers.re(r"les listes qui proposent de créer un élément sont (?P<buttons>.+)"))
@@ -1371,18 +1431,29 @@ def home(interface: Context) -> None:
 @then("la liste montre :")
 def expected_entries(interface: Context, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
-	expected_list = [dict(zip(headers, (interface.path(v.strip()) for v in values), strict=True)) for values in rows]
+	expected_list = []
+	for values in rows:
+		v_list = []
+		for v in values:
+			v_list.append(interface.path(v.strip()))
+		expected_list.append(dict(zip(headers, v_list, strict=True)))
 	assert lines(interface) == expected_list, lines(interface)
 
 
 @then(parsers.re(r"la colonne « (?P<column>[^»]+) » de la liste montre (?P<values>«.+)"))
 def displayed_column(interface: Context, column: str, values: str) -> None:
-	assert [line[column] for line in lines(interface)] == NAME.findall(values), lines(interface)
+	line_list = []
+	for line in lines(interface):
+		line_list.append(line[column])
+	assert line_list == NAME.findall(values), lines(interface)
 
 
 @then(parsers.re(r"la liste montre les titres (?P<titles>.+)"))
 def shown_titles(interface: Context, titles: str) -> None:
-	assert [line["Titre"] for line in lines(interface)] == NAME.findall(titles), lines(interface)
+	line_list = []
+	for line in lines(interface):
+		line_list.append(line["Titre"])
+	assert line_list == NAME.findall(titles), lines(interface)
 
 
 def marked_list(interface: Context) -> list[list[str]]:
@@ -1393,9 +1464,16 @@ def marked_list(interface: Context) -> list[list[str]]:
 	assert model.headerData(0, Qt.Orientation.Horizontal) == ANOMALY_COLUMN
 	found_list = []
 	for row in range(model.rowCount()):
-		cells = [model.index(row, column) for column in range(model.columnCount())]
-		assert {cell.data(Qt.ItemDataRole.DecorationRole) for cell in cells} == {None}
-		bubbles = {cell.data(Qt.ItemDataRole.ToolTipRole) for cell in cells}
+		cells = []
+		for column in range(model.columnCount()):
+			cells.append(model.index(row, column))
+		cell_set = set()
+		for cell in cells:
+			cell_set.add(cell.data(Qt.ItemDataRole.DecorationRole))
+		assert cell_set == {None}
+		bubbles = set()
+		for cell in cells:
+			bubbles.add(cell.data(Qt.ItemDataRole.ToolTipRole))
 		if cells[0].data() == ANOMALY_COLUMN:
 			assert len(bubbles) == 1, bubbles
 			found_list.append([str(cells[0].data(IDENTIFIER + 1)), str(bubbles.pop())])
@@ -1406,14 +1484,20 @@ def marked_list(interface: Context) -> list[list[str]]:
 
 @then(parsers.re(r"la liste marque en anomalie les lignes (?P<names>.+), avec l'infobulle « (?P<tooltip>[^»]+) »"))
 def anomalies(interface: Context, names: str, tooltip: str) -> None:
-	assert marked_list(interface) == [[name, tooltip] for name in NAME.findall(names)]
+	name_list = []
+	for name in NAME.findall(names):
+		name_list.append([name, tooltip])
+	assert marked_list(interface) == name_list
 
 
 @then("la liste marque en anomalie les lignes et infobulles :")
 def anomalies_and_tooltips(interface: Context, datatable: list[list[str]]) -> None:
 	"""Chaque ligne en anomalie a son infobulle, propre à la ligne (https://github.com/dascritch/machincast/issues/140)."""
 	_headers, *rows = datatable
-	assert marked_list(interface) == [[line.strip(), tooltip.strip()] for line, tooltip in rows]
+	line_list = []
+	for line, tooltip in rows:
+		line_list.append([line.strip(), tooltip.strip()])
+	assert marked_list(interface) == line_list
 
 
 @then(parsers.parse("la première colonne de la liste est « {title} », avec l'infobulle « {tooltip} »"))
@@ -1430,7 +1514,9 @@ def anomaly_column(interface: Context, title: str, tooltip: str) -> None:
 @then(parsers.parse("la liste n'a pas de colonne « {title} »"))
 def without_column(interface: Context, title: str) -> None:
 	model = list_(interface).table.model()
-	titles = [model.headerData(column, Qt.Orientation.Horizontal) for column in range(model.columnCount())]
+	titles = []
+	for column in range(model.columnCount()):
+		titles.append(model.headerData(column, Qt.Orientation.Horizontal))
 	assert title not in titles
 
 
@@ -1466,7 +1552,10 @@ def copied_drop(interface: Context) -> None:
 
 @then("le dépôt est refusé")
 def refused_drop(interface: Context) -> None:
-	assert [accepts for accepts, _action in interface.drops] == [False]
+	action_list = []
+	for accepts, _action in interface.drops:
+		action_list.append(accepts)
+	assert action_list == [False]
 
 
 @then(parsers.parse("le fichier « {path} » est en base, à l'état aperçu, sans artiste ni titre"))
@@ -1479,7 +1568,10 @@ def file_in_preview(interface: Context, empty_database: Connection, path: str) -
 
 @then("les fichiers déposés sont intacts")
 def intact_list(interface: Context) -> None:
-	assert {file: file.read_bytes() for file in interface.files} == interface.files
+	file_dict = {}
+	for file in interface.files:
+		file_dict[file] = file.read_bytes()
+	assert file_dict == interface.files
 
 
 @then(parsers.re(r"le bouton « ❌ Supprimer… » de la fiche est (?P<state>actif|inactif)"))
@@ -1498,12 +1590,20 @@ def state_bar(interface: Context, text: str) -> None:
 def menus(interface: Context) -> list[QMenu]:
 	"""Les menus de la barre de menus, dans l'ordre."""
 	bar = window(interface).menuBar()
-	found_list = {under_menu.menuAction(): under_menu for under_menu in bar.findChildren(QMenu)}
-	return [found_list[action] for action in bar.actions()]
+	found_list = {}
+	for under_menu in bar.findChildren(QMenu):
+		found_list[under_menu.menuAction()] = under_menu
+	menus = []
+	for action in bar.actions():
+		menus.append(found_list[action])
+	return menus
 
 
 def named_menu(interface: Context, menu: str) -> QMenu:
-	found_list = [under_menu for under_menu in menus(interface) if under_menu.title().replace("&", "") == menu]
+	found_list = []
+	for under_menu in menus(interface):
+		if under_menu.title().replace("&", "") == menu:
+			found_list.append(under_menu)
 	assert len(found_list) == 1, f"menu « {menu} » absent"
 	return found_list[0]
 
@@ -1523,7 +1623,10 @@ def open_menu(interface: Context, menu: str) -> None:
 def choose_in_menu(interface: Context, title: str, menu: str) -> None:
 	"""Le menu s'ouvre d'abord, comme sous la souris : il peut relire ce qu'il propose (aboutToShow)."""
 	named_menu(interface, menu).aboutToShow.emit()
-	chosen_list = [action for action in actions(interface, menu) if action.text() == title]
+	chosen_list = []
+	for action in actions(interface, menu):
+		if action.text() == title:
+			chosen_list.append(action)
 	assert len(chosen_list) == 1, f"« {title} » absent du menu « {menu} »"
 	chosen_list[0].trigger()
 
@@ -1543,14 +1646,20 @@ def press(interface: Context, qtbot: QtBot, keys: str) -> None:
 
 @then(parsers.re(r"la barre de menus a les menus (?P<titles>«.+)"))
 def menu_bar(interface: Context, titles: str) -> None:
-	assert [under_menu.title().replace("&", "") for under_menu in menus(interface)] == NAME.findall(titles)
+	under_menu_list = []
+	for under_menu in menus(interface):
+		under_menu_list.append(under_menu.title().replace("&", ""))
+	assert under_menu_list == NAME.findall(titles)
 
 
 @then(parsers.parse("le menu « {menu} » a les entrées :"))
 def menu_entries(interface: Context, menu: str, datatable: list[list[str]]) -> None:
 	"""Un séparateur s'écrit « — ». Une infobulle s'affiche au survol de son entrée, même inactive."""
 	headers, *rows = datatable
-	assert [header.strip() for header in headers] == ["entrée", "état", "raccourci", "infobulle"]
+	header_list = []
+	for header in headers:
+		header_list.append(header.strip())
+	assert header_list == ["entrée", "état", "raccourci", "infobulle"]
 	fetched_list = []
 	for action in actions(interface, menu):
 		if action.isSeparator():
@@ -1563,21 +1672,40 @@ def menu_entries(interface: Context, menu: str, datatable: list[list[str]]) -> N
 		if action.isEnabled():
 			state = "active"
 		fetched_list.append([action.text(), state, action.shortcut().toString(), tooltip])
-	expected_list = [[value.strip() for value in row] for row in rows]
+	expected_list = []
+	for row in rows:
+		value_list = []
+		for value in row:
+			value_list.append(value.strip())
+		expected_list.append(value_list)
 	assert fetched_list == expected_list
-	if any((row[3] != "") for row in expected_list):
+	found = False
+	for row in expected_list:
+		if row[3] != "":
+			found = True
+			break
+	if found:
 		assert named_menu(interface, menu).toolTipsVisible()
 
 
 @then(parsers.re(r"le menu « (?P<menu>[^»]+) » propose (?P<titles>«.+)"))
 def offered_menu(interface: Context, menu: str, titles: str) -> None:
-	active_list = [action for action in actions(interface, menu) if (action.isEnabled()) and (not action.isSeparator())]
-	assert [action.text() for action in active_list] == NAME.findall(titles)
+	active_list = []
+	for action in actions(interface, menu):
+		if (action.isEnabled()) and (not action.isSeparator()):
+			active_list.append(action)
+	action_list = []
+	for action in active_list:
+		action_list.append(action.text())
+	assert action_list == NAME.findall(titles)
 
 
 @then(parsers.parse("le menu « {menu} » ne propose plus rien"))
 def inactive_menu(interface: Context, menu: str) -> None:
-	active_list = [action for action in actions(interface, menu) if (action.isEnabled()) and (not action.isSeparator())]
+	active_list = []
+	for action in actions(interface, menu):
+		if (action.isEnabled()) and (not action.isSeparator()):
+			active_list.append(action)
 	assert active_list == []
 
 
@@ -1599,7 +1727,10 @@ def wait_check(interface: Context, qtbot: QtBot) -> None:
 @when(parsers.re(r"j'ajoute les fichiers (?P<paths>aucun|«.+)"))
 def add_files(interface: Context, qtbot: QtBot, paths: str) -> None:
 	"""Depuis la liste des sonores ouverte, par le sélecteur de fichiers."""
-	interface.chosen_files = [Path(interface.path(path)) for path in NAME.findall(paths)]
+	path_list = []
+	for path in NAME.findall(paths):
+		path_list.append(Path(interface.path(path)))
+	interface.chosen_files = path_list
 	qtbot.mouseClick(list_(interface).ui.add_files, Qt.MouseButton.LeftButton)
 
 
@@ -1659,7 +1790,10 @@ def in_database(empty_database: Connection, category: str, name: str, state: str
 		case "n'est plus":
 			assert lines == [], lines
 		case "est toujours":
-			assert [line[0] for line in lines] == [None], lines
+			line_list = []
+			for line in lines:
+				line_list.append(line[0])
+			assert line_list == [None], lines
 		case _:
 			assert (len(lines) == 1) and (lines[0][0] is not None), lines
 
@@ -1740,7 +1874,10 @@ def publish(
 	assert player.socket is not None
 	# Les arguments nommés suivent les noms du code (next_, following_event) ; le message, ceux du protocole.
 	keys = {"next_": "next", "following_event": "next_event"}
-	message = {"state": state, "current": ongoing, "next": None, **{keys.get(k, k): v for k, v in others.items()}}
+	k_dict = {}
+	for k, v in others.items():
+		k_dict[keys.get(k, k)] = v
+	message = {"state": state, "current": ongoing, "next": None, **k_dict}
 	player.published = json.dumps({"version": 3, **message})
 	player.socket.publish(message)
 
@@ -1868,7 +2005,10 @@ def insert_play(
 def plays(empty_database: Connection, datatable: list[list[str]]) -> None:
 	headers, *lines = datatable
 	for values in lines:
-		line = dict(zip(headers, (v.strip() for v in values), strict=True))
+		v_list = []
+		for v in values:
+			v_list.append(v.strip())
+		line = dict(zip(headers, v_list, strict=True))
 		insert_play(
 			empty_database,
 			hour(line["starts_at"]),
@@ -1921,7 +2061,11 @@ def file_sounds(interface: Context, empty_database: Connection, path: str, count
 	lines = empty_database.execute(
 		"SELECT deleted_at IS NOT NULL FROM sounds WHERE location = %s", (interface.path(path),)
 	).fetchall()
-	assert (len(lines), sum(1 for (deleted,) in lines if deleted)) == (count, deleted_list), lines
+	total = 0
+	for (deleted,) in lines:
+		if deleted:
+			total += 1
+	assert (len(lines), total) == (count, deleted_list), lines
 
 
 @given(parsers.parse("les préférences seront réglées avec la durée de péremption de {days:d} jours"))

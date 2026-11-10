@@ -100,16 +100,30 @@ class Line:
 def hides(hidings: tuple[bool | None, ...], default: bool) -> bool:
 	"""Premier niveau renseigné, dans l'ordre événement, séquence, banque, sonore ; sinon la valeur de la
 	configuration."""
-	return next((value for value in hidings if value is not None), default)
+	first = default
+	for value in hidings:
+		if value is not None:
+			first = value
+			break
+	return first
 
 
 def first_public_name(*names: object) -> str | None:
 	"""Premier nom public renseigné, dans l'ordre donné : événement, séquence, banque."""
-	return next((str(name) for name in names if name), None)
+	first = None
+	for name in names:
+		if name:
+			first = str(name)
+			break
+	return first
 
 
 def artist_and_title(line: Line) -> str:
-	return " – ".join(part for part in (line.artist, line.title) if part)
+	part_list = []
+	for part in (line.artist, line.title):
+		if part:
+			part_list.append(part)
+	return " – ".join(part_list)
 
 
 def public_text(line: Line, metadata: Metadata) -> str:
@@ -175,46 +189,48 @@ def read_plays(
 			" ORDER BY d.logged_at DESC, d.id DESC LIMIT %s",
 			(override, lender, play, play, since, since, count),
 		).fetchall()
-	return [
-		Line(
-			start=start,
-			end=end if isinstance(end, datetime) else None,
-			duration=duration if isinstance(duration, timedelta) else None,
-			without_incident=boolean_or_none(without_incident),
-			artist=text_or_none(artist),
-			title=text_or_none(title),
-			location=text_or_none(location),
-			event=text_or_none(event),
-			public_name=first_public_name(e_public_name, q_public_name, b_public_name),
-			sequence=text_or_none(sequence),
-			bank=text_or_none(bank),
-			hidings=(
-				boolean_or_none(e_mask),
-				boolean_or_none(q_mask),
-				boolean_or_none(b_mask),
-				boolean_or_none(s_mask),
-			),
+	plays = []
+	for (
+		start,
+		end,
+		duration,
+		without_incident,
+		artist,
+		title,
+		location,
+		event,
+		e_public_name,
+		q_public_name,
+		b_public_name,
+		sequence,
+		bank,
+		e_mask,
+		q_mask,
+		b_mask,
+		s_mask,
+	) in lines:
+		plays.append(
+			Line(
+				start=start,
+				end=end if isinstance(end, datetime) else None,
+				duration=duration if isinstance(duration, timedelta) else None,
+				without_incident=boolean_or_none(without_incident),
+				artist=text_or_none(artist),
+				title=text_or_none(title),
+				location=text_or_none(location),
+				event=text_or_none(event),
+				public_name=first_public_name(e_public_name, q_public_name, b_public_name),
+				sequence=text_or_none(sequence),
+				bank=text_or_none(bank),
+				hidings=(
+					boolean_or_none(e_mask),
+					boolean_or_none(q_mask),
+					boolean_or_none(b_mask),
+					boolean_or_none(s_mask),
+				),
+			)
 		)
-		for (
-			start,
-			end,
-			duration,
-			without_incident,
-			artist,
-			title,
-			location,
-			event,
-			e_public_name,
-			q_public_name,
-			b_public_name,
-			sequence,
-			bank,
-			e_mask,
-			q_mask,
-			b_mask,
-			s_mask,
-		) in lines
-	]
+	return plays
 
 
 def public_page(lines: list[Line], metadata: Metadata, instant: datetime) -> str:
@@ -274,7 +290,10 @@ def public_page(lines: list[Line], metadata: Metadata, instant: datetime) -> str
 
 def playlist(lines: list[Line]) -> str:
 	"""Playlist .pls : du plus ancien au plus récent, sans masquage."""
-	played_list = [line for line in reversed(lines) if line.location]
+	played_list = []
+	for line in reversed(lines):
+		if line.location:
+			played_list.append(line)
 	entries = []
 	for number, line in enumerate(played_list, start=1):
 		duration = -1

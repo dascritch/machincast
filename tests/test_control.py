@@ -178,7 +178,10 @@ def alert_soon(interface: Context, qtbot: QtBot, text: str) -> None:
 
 @then(parsers.parse("elle montre en détails les lignes du journal « {first} » et « {second} »"))
 def alert_journal(interface: Context, first: str, second: str) -> None:
-	assert [journal for _said, journal in interface.not_started] == [[first, second]]
+	said_list = []
+	for _said, journal in interface.not_started:
+		said_list.append(journal)
+	assert said_list == [[first, second]]
 
 
 @then("aucune alerte ne dit que la diffusion n'a pas démarré")

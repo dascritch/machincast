@@ -212,7 +212,9 @@ def next_start(client: Client, start: str) -> None:
 
 @then("le deuxième passage est le prochain sonore annoncé")
 def held_reservation(empty_database: Connection, client: Client) -> None:
-	names = [p[0] for p in plays(empty_database)]
+	names = []
+	for p in plays(empty_database):
+		names.append(p[0])
 	assert (len(names) == 2) and (names[1] == next_(client)["title"]), (names, next_(client))
 
 
@@ -230,7 +232,10 @@ def seen_list(client: Client, list_: str) -> None:
 		current = received["current"]
 		if (current is not None) and ((not titles) or (titles[-1] != current["title"])):
 			titles.append(current["title"])
-	assert titles == [n.strip(" «»") for n in list_.split(",")], titles
+	n_list = []
+	for n in list_.split(","):
+		n_list.append(n.strip(" «»"))
+	assert titles == n_list, titles
 
 
 @then(parsers.parse("son dernier message est à l'état « {state} »"))
@@ -264,7 +269,11 @@ def broadcast_second(bench: Bench) -> None:
 def fields(value: object) -> set[str]:
 	if not isinstance(value, dict):
 		return set()
-	return set(value) | {key for under in value.values() for key in fields(under)}
+	under_set = set()
+	for under in value.values():
+		for key in fields(under):
+			under_set.add(key)
+	return set(value) | under_set
 
 
 @then("chaque champ du message figure dans la spécification, § 5.4")
@@ -272,7 +281,10 @@ def documented_fields(client: Client) -> None:
 	text = SPEC.read_text(encoding="utf-8")
 	section = re.search(r"### 5\.4 Socket d'état\n(.*?)\n### ", text, re.DOTALL)
 	assert section is not None
-	absent_list = {key for key in fields(message(client)) if f"`{key}`" not in section.group(1)}
+	absent_list = set()
+	for key in fields(message(client)):
+		if f"`{key}`" not in section.group(1):
+			absent_list.add(key)
 	assert not absent_list, f"absents de spec § 5.4 : {sorted(absent_list)}"
 
 
@@ -288,8 +300,19 @@ def upcoming(client: Client) -> list[dict[str, Any]]:
 @then(parsers.re(r"la socket annonce les sonores à venir (?P<list_>.+), sains"))
 def upcoming_sounds(client: Client, list_: str) -> None:
 	sounds = upcoming(client)
-	assert [s["title"] for s in sounds] == [n.strip(" «»") for n in list_.split(",")], sounds
-	assert all(s["healthy"] is True for s in sounds), sounds
+	s_list = []
+	for s in sounds:
+		s_list.append(s["title"])
+	n_list = []
+	for n in list_.split(","):
+		n_list.append(n.strip(" «»"))
+	assert s_list == n_list, sounds
+	every_one = True
+	for s in sounds:
+		if s["healthy"] is not True:
+			every_one = False
+			break
+	assert every_one, sounds
 
 
 @then(
@@ -365,7 +388,10 @@ def sound_context(
 		"event_start": None,
 		"event_end": None,
 	}
-	assert {key: fetched_sound.get(key) for key in expected} == expected, fetched_sound
+	key_dict = {}
+	for key in expected:
+		key_dict[key] = fetched_sound.get(key)
+	assert key_dict == expected, fetched_sound
 
 
 @then(parsers.parse("l'événement du sonore en cours va du « {start} » au « {end} »"))
@@ -457,7 +483,10 @@ def random_bank_show(
 		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'random') RETURNING id", (bank,)
 	).fetchone()
 	assert created is not None
-	for position, sound_name in enumerate((n.strip(" «»") for n in list_.split(",")), start=1):
+	n_list = []
+	for n in list_.split(","):
+		n_list.append(n.strip(" «»"))
+	for position, sound_name in enumerate(n_list, start=1):
 		empty_database.execute(
 			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(created[0], create_sound(bench, empty_database, tmp_path, sound_name), position),
