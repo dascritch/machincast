@@ -86,7 +86,15 @@ Fonctionnalité: Le service de diffusion lit les sonores, sous son propre compte
 			| chemin                    | personnel          | sensible           |
 			| /home/radio/sons/a.flac   | « /home/radio »    | « /home/radio »    |
 			| /root/sons                | « /root »          | « /root »          |
-			| /home/machincast/jingles  | aucun              | « /home »          |
+			| /home/machincast          | aucun              | « /home/machincast » |
+			| /home/machincast/jingles  | aucun              | aucune             |
+			| /home/autre               | « /home/autre »    | « /home/autre »    |
+			| /opt                      | aucun              | « /opt »           |
+			| /opt/discotheque/sons     | aucun              | aucune             |
+			| /var/discotheque          | aucun              | aucune             |
+			| /var/lib/postgresql       | aucun              | « /var/lib »       |
+			| /var/log/machincast       | aucun              | « /var/log »       |
+			| /srv/sons                 | aucun              | aucune             |
 			| /etc/machincast           | aucun              | « /etc »           |
 			| /media/disque/sons        | aucun              | « /media »         |
 			| /mnt/partage              | aucun              | « /mnt »           |
@@ -127,3 +135,20 @@ Fonctionnalité: Le service de diffusion lit les sonores, sous son propre compte
 		Étant donné le fichier « /usr/bin/env » lisible par tous
 		Quand l'interface ajoute « /usr/bin/env », et que j'accepte de les faire lire au service
 		Alors l'interface n'a rien demandé, et accepte « /usr/bin/env »
+
+	Scénario: Machin grant-read donne la lecture sous le répertoire d'accueil des sonores, qui se traverse déjà
+		Étant donné le répertoire d'accueil « …/accueil » en mode 0751, que le service traverse
+		Et le répertoire « …/accueil/live » en mode 0700
+		Et le fichier « …/accueil/live/a.flac » en mode 0600
+		Quand je lance « Machin grant-read » sur « …/accueil/live »
+		Alors la commande se termine avec le code 0
+		Et le service lit tout « …/accueil/live »
+		Et les droits de « …/accueil » sont inchangés
+
+	Scénario: Machin grant-read refuse quand la racine d'une discothèque ne se traverse pas déjà
+		Étant donné le répertoire d'accueil « …/accueil » en mode 0700, que le service ne traverse pas
+		Et le répertoire « …/accueil/live » en mode 0700
+		Et le fichier « …/accueil/live/a.flac » en mode 0600
+		Quand la lecture de « …/accueil/live » est demandée pour le service
+		Alors la lecture n'est pas donnée, et le problème dit « où MachinCast ne change jamais aucun droit »
+		Et setfacl n'a pas été lancé
