@@ -94,6 +94,37 @@ EMPTY_EVENT = {
 }
 """Ce que fait la diffusion d'un événement vide, selon sa priorité (spec § 4.2,
 https://github.com/dascritch/machincast/issues/140)."""
+FALLBACK_NOT_LOCAL = _(
+	"A fallback that calls an external stream is not recommended: a network loss would silence it, like the stream it"
+	" stands in for."
+)
+"""Un secours qui fait appel à un stream, directement, par une banque ou par une séquence
+(https://github.com/dascritch/machincast/issues/403) : il sert quand un flux tombe, souvent à une perte du réseau."""
+STREAMS_CALLED = (
+	"SELECT EXISTS (SELECT 1 FROM sounds s WHERE s.type = 'stream' AND s.deleted_at IS NULL AND (s.id = ANY(%s)"
+	" OR s.id IN (SELECT b.sound_id FROM bank_sounds b WHERE b.bank_id = ANY(%s))"
+	" OR s.id IN (SELECT q.sound_id FROM sequence_items q WHERE q.sequence_id = ANY(%s))"
+	" OR s.id IN (SELECT b.sound_id FROM sequence_items q JOIN bank_sounds b ON b.bank_id = q.bank_id"
+	" WHERE q.sequence_id = ANY(%s))))"
+)
+"""Un stream parmi des sonores, des banques et des séquences, en une requête : les sonores, les banques, et deux fois
+les séquences."""
+EVENT_CALLS_STREAM = (
+	"EXISTS (SELECT 1 FROM event_items x LEFT JOIN sequence_items q ON q.sequence_id = x.sequence_id"
+	" LEFT JOIN bank_sounds b ON b.bank_id IN (x.bank_id, q.bank_id)"
+	" JOIN sounds s ON s.id IN (x.sound_id, q.sound_id, b.sound_id)"
+	" WHERE x.event_id = e.id AND s.type = 'stream' AND s.deleted_at IS NULL)"
+)
+"""L'événement e fait appel à un stream, directement, par une banque ou par une séquence."""
+
+
+def calls_stream(connection: Connection, sounds: list[int], banks: list[int], sequences: list[int]) -> bool:
+	"""Un stream parmi ces sonores, dans ces banques, ou dans ces séquences et leurs banques."""
+	with connection.transaction():
+		line = connection.execute(STREAMS_CALLED, (sounds, banks, sequences, sequences)).fetchone()
+	return (line is not None) and (bool(line[0]))
+
+
 BANK_WITHOUT_ACTIVE_SOUND = _(
 	"Bank without an active sound: it provides nothing, and the element that calls it moves on to its next element."
 )
@@ -322,12 +353,14 @@ def read_events(connection: Connection) -> list[Line]:
 			"SELECT e.id, e.internal_name, e.public_name, e.priority::text, e.starts_at, e.ends_at,"
 			" e.recurrence_days::text[],"
 			# Une liste vide qui prête son nom n'est pas une anomalie (https://github.com/dascritch/machincast/issues/399).
-			" NOT EXISTS (SELECT 1 FROM event_items x WHERE x.event_id = e.id) AND e.end_of_list <> 'lend_name'"
+			" NOT EXISTS (SELECT 1 FROM event_items x WHERE x.event_id = e.id) AND e.end_of_list <> 'lend_name',"
+			# Un secours non local (https://github.com/dascritch/machincast/issues/403).
+			f" e.priority = 'fallback' AND {EVENT_CALLS_STREAM}"
 			# e.priorite : l'ordre du type énuméré, pas celui du texte de la colonne affichée.
 			" FROM events e WHERE e.deleted_at IS NULL ORDER BY e.priority DESC, e.internal_name, e.id"
 		).fetchall()
 	lines = []
-	for identifier, name, public_name, priority, start, end, days, empty in rows:
+	for identifier, name, public_name, priority, start, end, days, empty, not_local in rows:
 		recurrence = ""
 		if isinstance(days, list):
 			day_list = []
@@ -340,6 +373,9 @@ def read_events(connection: Connection) -> list[Line]:
 		if empty:
 			cells[-1] = _("empty event")
 			anomaly = EMPTY_EVENT[str(priority)]
+		if not_local:
+			cells[-1] = _("fallback not local")
+			anomaly = FALLBACK_NOT_LOCAL
 		sorts: dict[int, int | float | str] = {
 			PRIORITY_POSITION: IMPORTANCE.get(str(priority), len(IMPORTANCE)),
 			START_POSITION: _instant(start),

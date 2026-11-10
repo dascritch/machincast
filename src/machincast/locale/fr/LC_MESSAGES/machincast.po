@@ -3654,6 +3654,14 @@ msgstr ""
 
 #: machincast/interface/lists.py
 msgid ""
+"A fallback that calls an external stream is not recommended: a network loss "
+"would silence it, like the stream it stands in for."
+msgstr ""
+"Un secours qui fait appel à un flux externe n'est pas recommandé : une "
+"perte du réseau le ferait taire, comme le flux qu'il secourt."
+
+#: machincast/interface/lists.py
+msgid ""
 "Bank without an active sound: it provides nothing, and the element that "
 "calls it moves on to its next element."
 msgstr ""
@@ -3881,6 +3889,10 @@ msgstr "séquence vide"
 #: machincast/interface/lists.py
 msgid "empty event"
 msgstr "événement vide"
+
+#: machincast/interface/lists.py
+msgid "fallback not local"
+msgstr "secours non local"
 
 #: machincast/interface/lists.py
 #, python-brace-format

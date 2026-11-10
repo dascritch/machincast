@@ -154,6 +154,35 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 			| Nuit      | Événement vide : il ne joue rien, et la diffusion se tait, avec une alerte, quand il est à l'antenne. |
 			| Secours   | Événement vide : il ne joue rien, et l'événement de priorité inférieure remplace le stream tombé. |
 
+	Scénario: Un secours qui fait appel à un flux externe est signalé en anomalie dans la liste
+		https://github.com/dascritch/machincast/issues/403 : directement, par une banque ou par une séquence ; un
+		autre événement peut jouer un stream.
+
+		Étant donné les sonores :
+			| artist | title       | type   | state  | duration | location                    |
+			|        | j1          | file   | active | 8        | /srv/j1.flac                |
+			|        | Radio Thune | stream | active |          | https://flux.exemple/direct |
+		Et la banque « Relais », séquentielle, sans nom public, avec « Radio Thune »
+		Et les événements :
+			| name     | public_name | priority | starts_at        | ends_at          | days |
+			| Continue |             | background_programming |                  |                  |      |
+			| Direct   |             | show     | 2026-10-12 20:00 | 2026-10-12 21:00 |      |
+			| Panne    |             | fallback |                  |                  |      |
+			| Relève   |             | fallback |                  |                  |      |
+			| Attente  |             | fallback |                  |                  |      |
+		Et l'événement « Direct » joue le sonore « Radio Thune »
+		Et l'événement « Panne » joue le sonore « Radio Thune »
+		Et l'événement « Relève » joue la banque « Relais »
+		Et l'événement « Attente » joue le sonore « j1 »
+		Et l'événement « Continue » joue le sonore « j1 »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Événements »
+		Alors le compte de la liste est « 5 événements, dont 2 en anomalie »
+		Et la liste marque en anomalie les lignes et infobulles :
+			| ligne  | infobulle |
+			| Panne  | Un secours qui fait appel à un flux externe n'est pas recommandé : une perte du réseau le ferait taire, comme le flux qu'il secourt. |
+			| Relève | Un secours qui fait appel à un flux externe n'est pas recommandé : une perte du réseau le ferait taire, comme le flux qu'il secourt. |
+
 	Scénario: Une émission vide qui prête son nom au fil musical n'est pas en anomalie
 		https://github.com/dascritch/machincast/issues/399 : sans liste, elle prête son nom pendant toute sa plage.
 

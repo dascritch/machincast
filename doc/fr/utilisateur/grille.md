@@ -57,6 +57,8 @@ Le choix est grisé, sur **Rejouer la liste de lecture**, sans fin cochée, et p
 
 **Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion, en haut, sur un liseret orange ([#328](https://github.com/dascritch/machincast/issues/328)) : une émission vide laisse l'événement en dessous prendre le relais, sans couper le sonore en cours, et l'onglet Antenne n'annonce aucune coupure à son heure ; un fil musical vide laisse un blanc à l'antenne, avec une alerte. La liste des événements le montre en anomalie.
 
+**Secours non local** ([#403](https://github.com/dascritch/machincast/issues/403)) : un secours sert quand un flux tombe, souvent à une perte du réseau. S'il fait appel à un flux externe, un stream, directement, par une banque ou par une séquence, il tomberait avec lui : la fiche l'avertit en haut, « Un secours qui fait appel à un flux externe n'est pas recommandé : une perte du réseau le ferait taire, comme le flux qu'il secourt. », et la liste des événements le montre en anomalie, « secours non local ». Préférer des fichiers du poste.
+
 **À l'antenne, aussitôt** ([#266](https://github.com/dascritch/machincast/issues/266)) : un événement enregistré, supprimé ou restauré vaut tout de suite, si la diffusion tourne. Une émission avancée coupe le sonore en cours à sa nouvelle heure ; une émission déplacée, raccourcie ou retirée change les sonores à venir de l'onglet Antenne. Un nom, un nom public ou un masquage changés ne retirent pas les sonores déjà annoncés : ils passeront comme prévu.
 
 **Liste de lecture** : les sonores, les banques et les séquences que l'événement joue, dans l'ordre.
