@@ -7,6 +7,8 @@ bien démarrer » (machincast.interface.suggestions). Il choisit :
 - le type de sortie (audio.output) : PipeWire, PulseAudio ou ALSA ; la sortie factice des essais n'est proposée que si
   elle est déjà configurée. Un autre type relit les cartes du poste : l'antenne reste à renseigner, sauf sur la sortie
   factice ; la pré-écoute garde sa carte si elle y est ;
+- en mode service, le niveau et la sourdine de la carte de l'antenne, réglés aussitôt dans le PipeWire du service
+  (machincast.service_mixer, https://github.com/dascritch/machincast/issues/381) ;
 - la carte son de l'antenne (audio.device) et celle de la pré-écoute (audio.preview), chacune parmi les
   périphériques du poste (machincast.audio.devices), la carte configurée en tête, et l'entrée « Sortie factice »
   (configuration.DUMMY). La carte choisie pour l'une est grisée dans l'autre, sortie factice comprise. Avec le
@@ -40,7 +42,7 @@ from PySide6.QtGui import QHideEvent, QStandardItemModel  # noqa: E402
 from PySide6.QtWidgets import QComboBox, QPushButton, QWidget  # noqa: E402
 
 from machincast import audio as audio_outputs  # noqa: E402
-from machincast import service  # noqa: E402
+from machincast import service, service_mixer  # noqa: E402
 from machincast.audio import Presentation, UnavailableAudioOutput  # noqa: E402
 from machincast.configuration import DUMMY, AudioOutput  # noqa: E402
 from machincast.i18n import _  # noqa: E402
@@ -75,6 +77,10 @@ SAMPLES_PER_BUFFER = 4800
 """Un dixième de seconde par tampon."""
 MARGIN = 5.0
 """Secondes au-delà de la durée du son au bout desquelles un son de test qui ne finit pas est abandonné."""
+LEVEL_UNAVAILABLE = _("On-air level unavailable: {error}")
+LEVEL_DELAY = 150
+"""Millisecondes d'attente avant de régler le niveau de l'antenne : le curseur qui glisse ne lance pas un wpctl par
+pas."""
 READING = 50
 """Millisecondes entre deux relèves du bus du son de test."""
 TEST_SOUND = Presentation("MachinCast interface", _("Test sound"))
@@ -159,8 +165,19 @@ class SoundCards(QWidget):
 		ui.preview.currentIndexChanged.connect(self._refresh)
 		ui.test_on_air.clicked.connect(lambda: self._test(ui.on_air))
 		ui.test_preview.clicked.connect(lambda: self._test(ui.preview))
+		# Le niveau et la sourdine de la carte de l'antenne, dans le PipeWire du service
+		# (https://github.com/dascritch/machincast/issues/381).
+		self._level_timer = QTimer(self)
+		self._level_timer.setSingleShot(True)
+		self._level_timer.setInterval(LEVEL_DELAY)
+		self._level_timer.timeout.connect(self._apply_level)
+		ui.on_air_level.valueChanged.connect(self._level_moved)
+		ui.on_air_mute.toggled.connect(self._mute)
+		ui.on_air.currentIndexChanged.connect(self._read_level)
+		ui.output.currentIndexChanged.connect(self._read_level)
 		self._say("")
 		self._refresh()
+		self._read_level()
 
 	# ─── Ce qui est choisi ─────────────────────────────────────
 
@@ -234,6 +251,73 @@ class SoundCards(QWidget):
 		_set_button(ui.test_on_air, on_air, ongoing, locked)
 		_set_button(ui.test_preview, preview, ongoing, False)
 		self.changed.emit()
+
+	# ─── Niveau de l'antenne, en mode service ──────────────────
+
+	def _service_card(self) -> str | None:
+		"""La carte de l'antenne réglable dans le PipeWire du service : en mode service, sur la sortie PipeWire, une
+		vraie carte ; None sinon."""
+		card = self.chosen_on_air()
+		if (not self.service.installed) or (self.chosen_output() != "pipewire") or (card in (None, DUMMY)):
+			return None
+		if service.pipewire_socket() is None:
+			return None
+		return card
+
+	def _show_level(self, visible: bool) -> None:
+		ui = self.ui
+		for item in (ui.on_air_level_caption, ui.on_air_level, ui.on_air_level_value, ui.on_air_mute):
+			item.setVisible(visible)
+
+	def _read_level(self) -> None:
+		"""Le niveau et la sourdine de la carte, tels que le PipeWire du service les a ; indisponibles, la raison est
+		dans l'infobulle."""
+		ui = self.ui
+		card = self._service_card()
+		self._show_level(card is not None)
+		if card is None:
+			return
+		try:
+			found = service_mixer.level(card)
+		except service_mixer.Unavailable as error:
+			for item in (ui.on_air_level, ui.on_air_mute):
+				item.setEnabled(False)
+				item.setToolTip(LEVEL_UNAVAILABLE.format(error=error))
+			ui.on_air_level_value.setText("")
+			return
+		for item in (ui.on_air_level, ui.on_air_mute):
+			item.setEnabled(True)
+			item.blockSignals(True)
+		ui.on_air_level.setValue(round(found.volume * 100))
+		ui.on_air_mute.setChecked(found.muted)
+		for item in (ui.on_air_level, ui.on_air_mute):
+			item.blockSignals(False)
+		self._show_value()
+
+	def _show_value(self) -> None:
+		self.ui.on_air_level_value.setText(_("{level} %").format(level=self.ui.on_air_level.value()))
+
+	def _level_moved(self) -> None:
+		self._show_value()
+		self._level_timer.start()
+
+	def _apply_level(self) -> None:
+		card = self._service_card()
+		if card is None:
+			return
+		try:
+			service_mixer.set_volume(card, self.ui.on_air_level.value() / 100)
+		except service_mixer.Unavailable as error:
+			self._say(LEVEL_UNAVAILABLE.format(error=error))
+
+	def _mute(self, muted: bool) -> None:
+		card = self._service_card()
+		if card is None:
+			return
+		try:
+			service_mixer.set_muted(card, muted)
+		except service_mixer.Unavailable as error:
+			self._say(LEVEL_UNAVAILABLE.format(error=error))
 
 	# ─── Son de test ───────────────────────────────────────────
 

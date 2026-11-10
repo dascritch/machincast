@@ -4693,6 +4693,11 @@ msgstr ""
 "à -3 dB"
 
 #: machincast/interface/sound_cards.py
+#, python-brace-format
+msgid "On-air level unavailable: {error}"
+msgstr "Niveau de l'antenne indisponible : {error}"
+
+#: machincast/interface/sound_cards.py
 msgid "Dummy, no sound"
 msgstr "Factice, aucun son"
 
@@ -4714,6 +4719,11 @@ msgstr "Le serveur audio par lequel passent l'antenne et la pré-écoute"
 #: machincast/interface/ui/sound_cards.ui
 msgid "The sound card on which Machin player broadcasts on air"
 msgstr "La carte son sur laquelle Machin player diffuse l'antenne"
+
+#: machincast/interface/sound_cards.py
+#, python-brace-format
+msgid "{level} %"
+msgstr "{level} %"
 
 #: machincast/interface/sound_cards.py
 #, python-brace-format
@@ -6472,6 +6482,36 @@ msgstr "{program} : démarrage non noté dans la base : {error}"
 msgid "{program}: end not logged in the database: {error}"
 msgstr "{program} : fin non notée dans la base : {error}"
 
+#: machincast/service_mixer.py
+msgid "the PipeWire of the broadcast service is not running"
+msgstr "le PipeWire du service de diffusion ne tourne pas"
+
+#: machincast/service_mixer.py
+#, python-brace-format
+msgid "no on-air card {name} in the PipeWire of the broadcast service"
+msgstr ""
+"pas de carte d'antenne {name} dans le PipeWire du service de diffusion"
+
+#: machincast/service_mixer.py
+#, python-brace-format
+msgid "level of {name} unreadable"
+msgstr "niveau de {name} illisible"
+
+#: machincast/service_mixer.py
+#, python-brace-format
+msgid "{program} not found"
+msgstr "{program} introuvable"
+
+#: machincast/service_mixer.py
+#, python-brace-format
+msgid "{program} does not answer"
+msgstr "{program} ne répond pas"
+
+#: machincast/service_mixer.py
+#, python-brace-format
+msgid "{program} failed"
+msgstr "{program} a échoué"
+
 #: machincast/shortcut.py
 msgid "Automated radio broadcasting"
 msgstr "Diffusion radio automatisée"
@@ -7483,6 +7523,30 @@ msgstr "&Antenne"
 #: machincast/interface/ui/sound_cards.ui
 msgid "Test"
 msgstr "Tester"
+
+#: machincast/interface/ui/sound_cards.ui
+msgid "On-air &level"
+msgstr "&Niveau de l'antenne"
+
+#: machincast/interface/ui/sound_cards.ui
+msgid ""
+"Output level of the on-air sound card, in the PipeWire of the broadcast "
+"service: it changes at once"
+msgstr ""
+"Niveau de sortie de la carte son de l'antenne, dans le PipeWire du service "
+"de diffusion : il change aussitôt"
+
+#: machincast/interface/ui/sound_cards.ui
+msgid "&Mute"
+msgstr "&Muet"
+
+#: machincast/interface/ui/sound_cards.ui
+msgid ""
+"Mutes the on-air sound card, in the PipeWire of the broadcast service: it "
+"changes at once"
+msgstr ""
+"Coupe le son de la carte de l'antenne, dans le PipeWire du service de "
+"diffusion : il change aussitôt"
 
 #: machincast/interface/ui/sound_cards.ui
 msgid "&Pre-listen"
