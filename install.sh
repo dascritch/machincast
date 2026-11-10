@@ -45,6 +45,22 @@ UNITE_PURGE="machincast-purge.service"
 MINUTEUR_PURGE="machincast-purge.timer"
 FICHIER_UNITE_PURGE="/etc/systemd/system/${UNITE_PURGE}"
 FICHIER_MINUTEUR_PURGE="/etc/systemd/system/${MINUTEUR_PURGE}"
+# Le service tourne sous son propre compte, avec son PipeWire et son WirePlumber
+# (https://github.com/dascritch/machincast/issues/381) : les mêmes noms dans machincast.installation.
+COMPTE_SERVICE="machincast"
+DOSSIER_DU_COMPTE_SERVICE="/var/lib/machincast"
+DOSSIER_D_EXECUTION_SERVICE="/run/machincast"
+DOSSIER_DES_LOGS="/var/log/machincast"
+UNITE_PIPEWIRE="machincast-pipewire.service"
+UNITE_WIREPLUMBER="machincast-wireplumber.service"
+FICHIER_UNITE_PIPEWIRE="/etc/systemd/system/${UNITE_PIPEWIRE}"
+FICHIER_UNITE_WIREPLUMBER="/etc/systemd/system/${UNITE_WIREPLUMBER}"
+FICHIER_TMPFILES="/etc/tmpfiles.d/machincast.conf"
+FICHIER_LOGROTATE="/etc/logrotate.d/machincast"
+DOSSIER_WIREPLUMBER_SERVICE="/etc/machincast"
+FICHIER_WIREPLUMBER_SERVICE="${DOSSIER_WIREPLUMBER_SERVICE}/wireplumber/wireplumber.conf.d/50-machincast.conf"
+# La carte de l'antenne, cachée aux sessions du poste : elle est au PipeWire du service.
+FICHIER_WIREPLUMBER_BUREAU="/etc/wireplumber/wireplumber.conf.d/50-machincast.conf"
 # Raccourci de l'interface (https://github.com/dascritch/machincast/issues/62) : dans le menu des applications du
 # compte, et sur son bureau s'il le veut. Le même nom que RACCOURCI de machincast.interface.application.
 RACCOURCI="machincast.desktop"
@@ -62,6 +78,7 @@ PAQUETS=(
 	python3-venv python3-dev build-essential pkg-config libgirepository-2.0-dev libcairo2-dev
 	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad
 	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire pipewire-bin libmagic1t64 postgresql bash-completion
+	acl wireplumber
 )
 # Outils du poste de développement, installés par --dev : ceux de CLAUDE.md.
 PAQUETS_DEV=(bats shellcheck desktop-file-utils pipewire wireplumber)
@@ -122,10 +139,12 @@ which a first installation stops, and an update goes on without updating the pac
 With --dev, also the tools of the development computer: %s (apt) and the
 test dependencies (pip, extra [dev]), for Machin dev and Machin dev-test.
 With --service, also the broadcast service %s, only for a computer dedicated to the
-on-air output, whose on-air output is not the dummy output (otherwise install.sh stops and recommends
-another sound card): Machin player starts with the computer, under the account %s, and
-restarts after a crash; a polkit rule lets it start, stop and restart with the password
-of an administrator; a systemd timer, %s, launches every day at noon
+on-air output, whose on-air output is a sound card, through the PipeWire or ALSA output (otherwise
+install.sh stops and recommends another one): Machin player starts with the computer, under its
+own account %s, with its own PipeWire, and restarts after a crash. %s joins the group %s, which
+reads its logs (%s) and pre-listens to the on-air output; the service reads MachinCast, and the
+on-air card is hidden from the sessions of the computer. A polkit rule lets it start, stop and
+restart with the password of an administrator; a systemd timer, %s, launches every day at noon
 Machin purge, which erases from the database what exceeds the expiry duration. Without --service, none
 of this is installed: the broadcast and the purge are launched by hand. A service installed before is
 checked: if it is not up to date for this version, the question is asked whether to update it.
@@ -138,7 +157,8 @@ Options:
   --dev         also installs the tools of the development computer
   --service     also installs the broadcast service (computer dedicated to the on-air output only)
   --remove-service
-                removes the broadcast service, its polkit rule and the purge timer
+                removes the broadcast service, its PipeWire, its account, its polkit rule and the purge
+                timer; the logs stay
   --desktop      also puts the shortcut of the interface on the desktop, without asking
   --no-desktop does not put it on the desktop, without asking
   --stop-programs
@@ -146,7 +166,7 @@ Options:
   --leave-programs
                 lets them run during the installation, without asking
   -h, --help    this help
-' "${RACINE}" "${UTILISATEUR}" "${UTILISATEUR}" "${UTILISATEUR}" "${ROLES[*]}" "${LIEN_INSTALLATION}" "${LIEN_WRAPPER}" "${UTILISATEUR}" "${PAQUETS_DEV[*]}" "${UNITE}" "${UTILISATEUR}" "${MINUTEUR_PURGE}"
+' "${RACINE}" "${UTILISATEUR}" "${UTILISATEUR}" "${UTILISATEUR}" "${ROLES[*]}" "${LIEN_INSTALLATION}" "${LIEN_WRAPPER}" "${UTILISATEUR}" "${PAQUETS_DEV[*]}" "${UNITE}" "${COMPTE_SERVICE}" "${UTILISATEUR}" "${COMPTE_SERVICE}" "${DOSSIER_DES_LOGS}" "${MINUTEUR_PURGE}"
 }
 
 # Les messages s'écrivent en anglais, en format de printf entre apostrophes, suivi de leurs valeurs : etape, info et
@@ -534,7 +554,7 @@ installer_fichier() {
 		rm --force "${redige}" # fichier de MachinCast : unité ou règle rédigée, temporaire
 		return 1
 	fi
-	executer sudo install --mode=644 --owner=root --group=root "${redige}" "${destination}"
+	executer sudo install -D --mode=644 --owner=root --group=root "${redige}" "${destination}"
 	rm --force "${redige}" # fichier de MachinCast : unité ou règle rédigée, temporaire
 	return 0
 }
@@ -641,7 +661,10 @@ fichier_a_jour() {
 # à jour, l'unité d'avant peut appeler un programme qui n'existe plus (https://github.com/dascritch/machincast/issues/376).
 fichiers_du_service_perimes() {
 	local paire
-	for paire in "unit:${FICHIER_UNITE}" "purge-unit:${FICHIER_UNITE_PURGE}" "purge-timer:${FICHIER_MINUTEUR_PURGE}" \
+	for paire in "unit:${FICHIER_UNITE}" "pipewire-unit:${FICHIER_UNITE_PIPEWIRE}" \
+		"wireplumber-unit:${FICHIER_UNITE_WIREPLUMBER}" "wireplumber-service:${FICHIER_WIREPLUMBER_SERVICE}" \
+		"wireplumber-desktop:${FICHIER_WIREPLUMBER_BUREAU}" "tmpfiles:${FICHIER_TMPFILES}" \
+		"logrotate:${FICHIER_LOGROTATE}" "purge-unit:${FICHIER_UNITE_PURGE}" "purge-timer:${FICHIER_MINUTEUR_PURGE}" \
 		"rule:${FICHIER_REGLE}"; do
 		fichier_a_jour "${paire%%:*}" "${paire#*:}" || printf '%s\n' "${paire#*:}"
 	done
@@ -686,76 +709,193 @@ verifier_le_service_installe() {
 	fi
 }
 
+# Le compte du service et son groupe, que rejoint le compte de MachinCast : il lit ses logs et pré-écoute l'antenne.
+creer_le_compte_du_service() {
+	if getent passwd "${COMPTE_SERVICE}" >/dev/null; then
+		info 'account %s present' "${COMPTE_SERVICE}"
+	else
+		executer sudo useradd --system --user-group --home-dir "${DOSSIER_DU_COMPTE_SERVICE}" --no-create-home \
+			--shell /usr/sbin/nologin --comment 'MachinCast broadcast service' "${COMPTE_SERVICE}"
+	fi
+	if id -nG "${UTILISATEUR}" | tr ' ' '\n' | grep -qx "${COMPTE_SERVICE}"; then
+		info '%s already belongs to the %s group' "${UTILISATEUR}" "${COMPTE_SERVICE}"
+	else
+		executer sudo usermod --append --groups "${COMPTE_SERVICE}" "${UTILISATEUR}"
+		info 'effective after the computer restarts'
+	fi
+}
+
+# Le rôle PostgreSQL du compte du service : il se connecte par authentification peer, et n'endosse que le rôle de
+# Machin player, sans en hériter les droits (doc/fr/spec.md § 3.2).
+autoriser_le_service_en_base() {
+	if "${SIMULATION}"; then
+		info '[simulation] sudo -u postgres psql: CREATE ROLE %s LOGIN; GRANT machincast_player TO %s WITH INHERIT FALSE, SET TRUE' \
+			"${COMPTE_SERVICE}" "${COMPTE_SERVICE}"
+		return
+	fi
+	sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 <<-'SQL'
+		DO $$
+		BEGIN
+			IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'machincast') THEN
+				CREATE ROLE machincast LOGIN;
+			END IF;
+		END;
+		$$;
+		GRANT machincast_player TO machincast WITH INHERIT FALSE, SET TRUE;
+	SQL
+	info '%s can assume the role machincast_player' "${COMPTE_SERVICE}"
+}
+
+# Le compte du service lit MachinCast : son programme, son environnement virtuel et sa configuration. Les droits de
+# lecture sont donnés par des ACL, sans rien changer d'autre ; les répertoires parents, au compte, sont seulement
+# traversés.
+donner_la_lecture_au_service() {
+	local chemin parent
+	chemin="$(realpath "$1")"
+	parent="$(dirname "${chemin}")"
+	while [[ "${parent}" != / ]]; do
+		if [[ -O "${parent}" ]]; then
+			executer setfacl --modify="u:${COMPTE_SERVICE}:x" "${parent}"
+		fi
+		parent="$(dirname "${parent}")"
+	done
+	executer setfacl --recursive --modify="u:${COMPTE_SERVICE}:rX,d:u:${COMPTE_SERVICE}:rX" "${chemin}"
+	info '%s can read %s' "${COMPTE_SERVICE}" "${chemin}"
+}
+
+retirer_la_lecture_au_service() {
+	local chemin parent
+	chemin="$(realpath "$1")"
+	executer setfacl --recursive --remove="u:${COMPTE_SERVICE}" --remove="d:u:${COMPTE_SERVICE}" "${chemin}"
+	parent="$(dirname "${chemin}")"
+	while [[ "${parent}" != / ]]; do
+		if [[ -O "${parent}" ]]; then
+			executer setfacl --remove="u:${COMPTE_SERVICE}" "${parent}"
+		fi
+		parent="$(dirname "${parent}")"
+	done
+}
+
+# Le WirePlumber des sessions relit sa configuration : la carte de l'antenne y disparaît, ou y revient.
+relancer_le_wireplumber_du_bureau() {
+	if systemctl --user is-active --quiet wireplumber.service 2>/dev/null; then
+		executer systemctl --user restart wireplumber.service
+	fi
+}
+
 installer_service() {
 	etape 'Broadcast service'
 	if ! "${SERVICE}"; then
 		verifier_le_service_installe
 		"${METTRE_A_JOUR_LE_SERVICE}" || return 0
 	fi
-	# L'antenne d'un poste dédié joue toujours sur une carte son (https://github.com/dascritch/machincast/issues/339).
+	# L'antenne d'un poste dédié joue toujours sur une carte son (https://github.com/dascritch/machincast/issues/339),
+	# par le PipeWire du service (https://github.com/dascritch/machincast/issues/381).
 	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
 		info '[simulation] on-air output checked by machincast.installation on-air once the virtual environment is created'
 	else
-		installation on-air || echec 'broadcast service not installed: the on-air output is the dummy output'
+		installation on-air || echec 'broadcast service not installed: the on-air output does not suit it'
 	fi
-	info 'for a computer dedicated to the on-air output: Machin player starts with the computer, as %s' "${UTILISATEUR}"
-	# La session du compte reste active sans connexion : PipeWire ou PulseAudio y tournent, comme la socket d'état.
+	info 'for a computer dedicated to the on-air output: Machin player starts with the computer, as %s' "${COMPTE_SERVICE}"
+	creer_le_compte_du_service
+	autoriser_le_service_en_base
+	donner_la_lecture_au_service "${RACINE}"
+	# Le service ne dépend plus de la session du compte (https://github.com/dascritch/machincast/issues/381).
 	if [[ "$(loginctl show-user "${UTILISATEUR}" --property=Linger --value 2>/dev/null)" == yes ]]; then
-		info 'the session of %s stays active when the computer starts' "${UTILISATEUR}"
-	else
-		executer sudo loginctl enable-linger "${UTILISATEUR}"
+		info 'the session of %s no longer needs to stay active at startup: sudo loginctl disable-linger %s' \
+			"${UTILISATEUR}" "${UTILISATEUR}"
 	fi
-	local unite_changee=false purge_changee=false
-	if installer_fichier unit "${FICHIER_UNITE}"; then
-		unite_changee=true
+	# Les répertoires d'exécution, des logs et des rapports de crash, au groupe du service.
+	installer_fichier tmpfiles "${FICHIER_TMPFILES}" || true
+	executer sudo systemd-tmpfiles --create "${FICHIER_TMPFILES}"
+	installer_fichier logrotate "${FICHIER_LOGROTATE}" || true
+	local unites_changees=false service_change=false purge_changee=false
+	if installer_fichier wireplumber-service "${FICHIER_WIREPLUMBER_SERVICE}"; then
+		service_change=true
 	fi
+	if installer_fichier wireplumber-desktop "${FICHIER_WIREPLUMBER_BUREAU}"; then
+		relancer_le_wireplumber_du_bureau
+		service_change=true
+	fi
+	local paire
+	for paire in "pipewire-unit:${FICHIER_UNITE_PIPEWIRE}" "wireplumber-unit:${FICHIER_UNITE_WIREPLUMBER}" \
+		"unit:${FICHIER_UNITE}"; do
+		if installer_fichier "${paire%%:*}" "${paire#*:}"; then
+			unites_changees=true
+		fi
+	done
 	if installer_fichier purge-unit "${FICHIER_UNITE_PURGE}"; then
 		purge_changee=true
 	fi
 	if installer_fichier purge-timer "${FICHIER_MINUTEUR_PURGE}"; then
 		purge_changee=true
 	fi
-	if "${unite_changee}" || "${purge_changee}"; then
+	if "${unites_changees}" || "${purge_changee}"; then
 		executer sudo systemctl daemon-reload
 	fi
 	installer_fichier rule "${FICHIER_REGLE}" || true
-	executer sudo systemctl enable --now "${UNITE}"
-	if "${unite_changee}"; then
-		# Une unité modifiée ne vaut qu'au redémarrage du service, s'il tournait déjà.
-		executer sudo systemctl try-restart "${UNITE}"
+	executer sudo systemctl enable --now "${UNITE_PIPEWIRE}" "${UNITE_WIREPLUMBER}" "${UNITE}"
+	if "${unites_changees}" || "${service_change}"; then
+		# Une unité ou une configuration modifiée ne vaut qu'au redémarrage du service, s'il tournait déjà.
+		executer sudo systemctl try-restart "${UNITE_PIPEWIRE}" "${UNITE_WIREPLUMBER}" "${UNITE}"
 	fi
-	# La purge de la base, chaque jour à midi : Machin purge, sous le même compte.
+	# La purge de la base, chaque jour à midi : Machin purge, sous le compte de MachinCast, propriétaire de la base.
 	executer sudo systemctl enable --now "${MINUTEUR_PURGE}"
 	info 'follow the broadcast: Machin logs; the daily purge: journalctl --unit=%s' "${UNITE_PURGE}"
 }
 
+# Retire un fichier installé par --service, s'il existe ; vrai s'il existait.
+retirer_fichier() {
+	local fichier="$1"
+	if [[ -e "${fichier}" ]]; then
+		executer sudo rm --force "${fichier}" # fichier de MachinCast : installé par --service
+		return 0
+	fi
+	info '%s missing' "${fichier}"
+	return 1
+}
+
 retirer_service() {
 	etape 'Removal of the broadcast service'
-	if [[ -e "${FICHIER_UNITE}" ]]; then
-		executer sudo systemctl disable --now "${UNITE}"
-		executer sudo rm --force "${FICHIER_UNITE}" # fichier de MachinCast : unité installée par --service
-		executer sudo systemctl daemon-reload
-	else
-		info '%s missing' "${FICHIER_UNITE}"
+	local unite
+	for unite in "${UNITE}" "${UNITE_WIREPLUMBER}" "${UNITE_PIPEWIRE}" "${MINUTEUR_PURGE}"; do
+		if [[ -e "/etc/systemd/system/${unite}" ]]; then
+			executer sudo systemctl disable --now "${unite}"
+		fi
+	done
+	local fichier
+	for fichier in "${FICHIER_UNITE}" "${FICHIER_UNITE_WIREPLUMBER}" "${FICHIER_UNITE_PIPEWIRE}" \
+		"${FICHIER_MINUTEUR_PURGE}" "${FICHIER_UNITE_PURGE}" "${FICHIER_REGLE}" "${FICHIER_TMPFILES}" \
+		"${FICHIER_LOGROTATE}" "${FICHIER_WIREPLUMBER_SERVICE}"; do
+		retirer_fichier "${fichier}" || true
+	done
+	executer sudo systemctl daemon-reload
+	if [[ -d "${DOSSIER_WIREPLUMBER_SERVICE}" ]]; then
+		# Répertoires de MachinCast, vides une fois son fragment retiré : rmdir n'efface rien d'autre.
+		executer sudo rmdir --ignore-fail-on-non-empty --parents "$(dirname "${FICHIER_WIREPLUMBER_SERVICE}")"
 	fi
-	if [[ -e "${FICHIER_MINUTEUR_PURGE}" ]]; then
-		executer sudo systemctl disable --now "${MINUTEUR_PURGE}"
-		executer sudo rm --force "${FICHIER_MINUTEUR_PURGE}" # fichier de MachinCast : minuteur installé par --service
-	else
-		info '%s missing' "${FICHIER_MINUTEUR_PURGE}"
+	# La carte de l'antenne revient aux sessions du poste.
+	if retirer_fichier "${FICHIER_WIREPLUMBER_BUREAU}"; then
+		relancer_le_wireplumber_du_bureau
 	fi
-	if [[ -e "${FICHIER_UNITE_PURGE}" ]]; then
-		executer sudo rm --force "${FICHIER_UNITE_PURGE}" # fichier de MachinCast : unité installée par --service
-		executer sudo systemctl daemon-reload
+	if getent passwd "${COMPTE_SERVICE}" >/dev/null; then
+		retirer_la_lecture_au_service "${RACINE}"
+		if "${SIMULATION}"; then
+			info '[simulation] sudo -u postgres psql: DROP ROLE IF EXISTS %s' "${COMPTE_SERVICE}"
+		else
+			sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 --command='DROP ROLE IF EXISTS machincast'
+		fi
+		# Le groupe du même nom part avec le compte, une fois que le compte de MachinCast n'en est plus membre.
+		if id -nG "${UTILISATEUR}" | tr ' ' '\n' | grep -qx "${COMPTE_SERVICE}"; then
+			executer sudo gpasswd --delete "${UTILISATEUR}" "${COMPTE_SERVICE}"
+		fi
+		executer sudo userdel "${COMPTE_SERVICE}"
+		# Répertoires du service : l'état de son WirePlumber, ses sockets.
+		executer sudo rm --recursive --force "${DOSSIER_DU_COMPTE_SERVICE}" "${DOSSIER_D_EXECUTION_SERVICE}"
 	else
-		info '%s missing' "${FICHIER_UNITE_PURGE}"
+		info 'account %s missing' "${COMPTE_SERVICE}"
 	fi
-	if [[ -e "${FICHIER_REGLE}" ]]; then
-		executer sudo rm --force "${FICHIER_REGLE}" # fichier de MachinCast : règle installée par --service
-	else
-		info '%s missing' "${FICHIER_REGLE}"
-	fi
-	info 'the session of %s stays active at startup: sudo loginctl disable-linger %s removes it' "${UTILISATEUR}" "${UTILISATEUR}"
+	info 'the logs stay in %s: sudo rm -r %s removes them' "${DOSSIER_DES_LOGS}" "${DOSSIER_DES_LOGS}"
 	info 'the broadcast is launched by hand again, with Machin player; the database purge, with Machin purge'
 }
 
