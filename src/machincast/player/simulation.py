@@ -365,31 +365,40 @@ class SimulatedHistory:
 		"""Passages simulés, dans l'ordre où ils commencent, avec leur événement, leur banque et le masquage de chaque
 		niveau, comme machincast.player.outputs.read_plays pour l'airplay : l'événement d'un passage est celui qui lui
 		prête son nom, s'il y en a un (https://github.com/dascritch/machincast/issues/399)."""
-		events = {
-			identifier: (name, public_name, hides)
-			for identifier, name, public_name, hides in connection.execute(
-				"SELECT id, internal_name, public_name, hide_metadata FROM events WHERE id = ANY(%s)",
-				([(s.play.lender) or (s.play.event) for s in self.simulated_plays],),
-			).fetchall()
-		}
-		sequences = {
-			identifier: (name, public_name, hides)
-			for identifier, name, public_name, hides in connection.execute(
-				"SELECT id, internal_name, public_name, hide_metadata FROM sequences WHERE id = ANY(%s)",
-				([s.play.sequence for s in self.simulated_plays],),
-			).fetchall()
-		}
-		banks = {
-			identifier: (name, public_name, hides)
-			for identifier, name, public_name, hides in connection.execute(
-				"SELECT id, internal_name, public_name, hide_metadata FROM banks WHERE id = ANY(%s)",
-				([s.play.bank for s in self.simulated_plays],),
-			).fetchall()
-		}
+		events = {}
+		event_identifiers = []
+		for simulated in self.simulated_plays:
+			event_identifiers.append((simulated.play.lender) or (simulated.play.event))
+		for identifier, name, public_name, hidden in connection.execute(
+			"SELECT id, internal_name, public_name, hide_metadata FROM events WHERE id = ANY(%s)",
+			(event_identifiers,),
+		).fetchall():
+			events[identifier] = (name, public_name, hidden)
+		sequences = {}
+		sequence_identifiers = []
+		for simulated in self.simulated_plays:
+			sequence_identifiers.append(simulated.play.sequence)
+		for identifier, name, public_name, hidden in connection.execute(
+			"SELECT id, internal_name, public_name, hide_metadata FROM sequences WHERE id = ANY(%s)",
+			(sequence_identifiers,),
+		).fetchall():
+			sequences[identifier] = (name, public_name, hidden)
+		banks = {}
+		bank_identifiers = []
+		for simulated in self.simulated_plays:
+			bank_identifiers.append(simulated.play.bank)
+		for identifier, name, public_name, hidden in connection.execute(
+			"SELECT id, internal_name, public_name, hide_metadata FROM banks WHERE id = ANY(%s)",
+			(bank_identifiers,),
+		).fetchall():
+			banks[identifier] = (name, public_name, hidden)
+		sound_identifiers = []
+		for simulated in self.simulated_plays:
+			sound_identifiers.append(simulated.play.sound)
 		sounds: dict[object, object] = dict(
 			connection.execute(
 				"SELECT id, hide_metadata FROM sounds WHERE id = ANY(%s)",
-				([s.play.sound for s in self.simulated_plays],),
+				(sound_identifiers,),
 			).fetchall()
 		)
 		result = []
@@ -399,14 +408,14 @@ class SimulatedHistory:
 			sequence = sequences.get(play.sequence, (None, None, None))
 			bank = banks.get(play.bank, (None, None, None))
 			if simulated.end is None:
-				chosen = None
+				known_duration = None
 			else:
-				chosen = simulated.end - play.start
+				known_duration = simulated.end - play.start
 			result.append(
 				Line(
 					start=play.start,
 					end=simulated.end,
-					duration=chosen,
+					duration=known_duration,
 					without_incident=simulated.without_incident,
 					artist=simulated.artist,
 					title=simulated.title,

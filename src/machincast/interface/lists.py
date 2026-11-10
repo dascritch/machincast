@@ -43,7 +43,7 @@ from machincast.interface.columns import Columns
 from machincast.interface.drop import FileDrop
 from machincast.interface.intents import ADD, label
 from machincast.interface.ui.list_view import Ui_List
-from machincast.player.grid import DAY_NAMES, DAYS
+from machincast.player.grid import DAY_NAMES, DAYS, ranks
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ PRIORITIES = {
 	"background_programming": _("background programming"),
 	"fallback": "secours",
 }
-IMPORTANCE = {priority: rank for rank, priority in enumerate(PRIORITIES)}
+IMPORTANCE = ranks(PRIORITIES)
 AFTER_ALL = float("inf")
 """Clé de tri d'une durée ou d'une date inconnue : après les autres (https://github.com/dascritch/machincast/issues/302)."""
 WITHOUT_DURATION = 1e12

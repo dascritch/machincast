@@ -74,10 +74,10 @@ def file(tmp_path: Path, root: Path, relative: str, state: str) -> None:
 		target.write_bytes(b"pas du son")
 		return
 	extension = target.suffix.lstrip(".").lower()
-	chosen = "mp3"
+	sample_format = "mp3"
 	if state == "sain":
-		chosen = FORMATS[extension]
-	source = sample_copy(chosen, tmp_path)
+		sample_format = FORMATS[extension]
+	source = sample_copy(sample_format, tmp_path)
 	if state == "endommagé":
 		corrupt(source, 1000, 1 / 3)
 	shutil.move(source, target)

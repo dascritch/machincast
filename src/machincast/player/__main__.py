@@ -136,7 +136,10 @@ def run_simulation(configuration: Configuration, options: argparse.Namespace) ->
 	except OSError as error:
 		log.error(_("outputs of the simulation impossible to write: {error}").format(error=error))
 		return FAILURE_CODE
-	anomalies = sum(1 for level, _, _ in result.log if level != "info")
+	anomalies = 0
+	for level, *_details in result.log:
+		if level != "info":
+			anomalies += 1
 	name = (options.name) or (default_name(start, end))
 	log.info(
 		_("simulation {name}: {plays}, {anomalies}, nothing was written to the database").format(

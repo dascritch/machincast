@@ -18,11 +18,12 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast import programs
 from machincast.programs import Program
+from tests.categories import inverted
 
 scenarios("ongoing_programs.feature")
 
 COUNTS = {"radio": 5001, "xavier": 5002}
-NAMES = {uid: name for name, uid in COUNTS.items()}
+NAMES = inverted(COUNTS)
 SRC = Path(__file__).parent.parent / "src"
 
 
@@ -53,13 +54,13 @@ def table(datatable: list[list[str]]) -> list[dict[str, str]]:
 	headers, *rows = datatable
 	table = []
 	for row in rows:
-		e_list = []
-		for e in headers:
-			e_list.append(e.strip())
-		v_list = []
+		keys = []
+		for header in headers:
+			keys.append(header.strip())
+		cells = []
 		for v in row:
-			v_list.append(v.strip())
-		table.append(dict(zip(e_list, v_list, strict=True)))
+			cells.append(v.strip())
+		table.append(dict(zip(keys, cells, strict=True)))
 	return table
 
 
@@ -67,7 +68,10 @@ def readable(command: list[str]) -> str:
 	"""bin/Machin s'écrit « Machin »."""
 	word_list = []
 	for word in command:
-		word_list.append("Machin" if word == str(programs.MACHIN) else word)
+		shown = word
+		if word == str(programs.MACHIN):
+			shown = "Machin"
+		word_list.append(shown)
 	return " ".join(word_list)
 
 

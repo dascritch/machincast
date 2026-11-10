@@ -319,10 +319,10 @@ class BankCard(Card):
 		reste après, et les états de ceux qui restent. À lire dans une transaction."""
 		assert self.identifier is not None
 		if rows is None:
-			chosen = None
+			limit = None
 		else:
-			chosen = rows + 1
-		lines = self.connection.execute(PAGE, (self.identifier, after, chosen)).fetchall()
+			limit = rows + 1
+		lines = self.connection.execute(PAGE, (self.identifier, after, limit)).fetchall()
 		self._after = None
 		self._tail = {}
 		if (rows is not None) and (len(lines) > rows):
@@ -720,11 +720,11 @@ class BankCard(Card):
 			if path.is_dir():
 				path_list.append(str(path))
 		self._add_directories(path_list)
-		path_list_2 = []
+		not_directories = []
 		for path in paths:
 			if not path.is_dir():
-				path_list_2.append(path)
-		self.flag_ignored(path_list_2, _("these are not directories"))
+				not_directories.append(path)
+		self.flag_ignored(not_directories, _("these are not directories"))
 
 	def _drop_in_sounds(self, paths: list[Path]) -> None:
 		"""Les fichiers sonores déposés s'ajoutent en fin de liste, une fois chacun. Un fichier pas encore en base est
@@ -733,7 +733,9 @@ class BankCard(Card):
 		self.load_all()
 		with self.connection.transaction():
 			fetched_list = self.connection.execute(f"{FETCHED_SOUNDS} WHERE s.location = ANY(%s)", (files,)).fetchall()
-		by_file = {str(sound[4]): sound for sound in fetched_list}
+		by_file = {}
+		for fetched in fetched_list:
+			by_file[str(fetched[4])] = fetched
 		present_list: set[object] = set(self._sounds())
 		line_set = set()
 		for line in self._lines():
@@ -775,23 +777,35 @@ class BankCard(Card):
 		by_identifier = {}
 		for fetched in fetched_list:
 			by_identifier[int(str(fetched[0]))] = fetched
-		lines = [self._line(by_identifier[sound]) for sound in new_list if sound in by_identifier]
+		lines = []
+		for sound in new_list:
+			if sound in by_identifier:
+				lines.append(self._line(by_identifier[sound]))
 		self.ui.sounds.addTopLevelItems(lines)
 		self._refresh_buttons()
 
 	def _remove_sound(self) -> None:
 		"""Les sonores choisis ; ceux des répertoires de la fiche y reviendront à la prochaine indexation, ce qu'un seul
 		avertissement dit pour tous. « Ouvrir le dossier » ouvre celui du premier."""
-		lines = [line for line in self._lines() if line.isSelected()]
+		lines = []
+		for candidate in self._lines():
+			if candidate.isSelected():
+				lines.append(candidate)
 		if lines == []:
 			return
-		reinstated = [
-			(line, directory) for line in lines if (directory := self._directory_of(line.data(0, FILE))) is not None
-		]
+		reinstated = []
+		for selected in lines:
+			if (directory := self._directory_of(selected.data(0, FILE))) is not None:
+				reinstated.append((selected, directory))
 		response = Removal.REMOVE
 		if reinstated != []:
-			sounds = [line.text(0) for line, _directory in reinstated]
-			directories = list(dict.fromkeys(directory for _line, directory in reinstated))
+			sounds = []
+			for reinstated_line, _reinstated_directory in reinstated:
+				sounds.append(reinstated_line.text(0))
+			line_list = []
+			for _line, reinstated_directory in reinstated:
+				line_list.append(reinstated_directory)
+			directories = list(dict.fromkeys(line_list))
 			response = dialogs.confirm_removal(self, group_removal_warning(sounds, directories))
 		if response is Removal.REMOVE:
 			# Du bas vers le haut, par rang : chercher chaque ligne dans la liste coûtait un parcours par ligne retirée.

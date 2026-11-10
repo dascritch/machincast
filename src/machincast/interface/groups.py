@@ -114,7 +114,7 @@ def _add(connection: Connection, sounds: list[int], banks: list[int]) -> str:
 	added_list: set[int] = set()
 	touched_list: set[int] = set()
 
-	def handle_bank(bank: int) -> None:
+	def add_to_bank(bank: int) -> None:
 		nonlocal added_list
 		present_list = _identifiers(
 			connection.execute("SELECT sound_id FROM bank_sounds WHERE bank_id = %s FOR UPDATE", (bank,)).fetchall()
@@ -142,7 +142,7 @@ def _add(connection: Connection, sounds: list[int], banks: list[int]) -> str:
 		touched_list.add(bank)
 
 	for bank in banks:
-		handle_bank(bank)
+		add_to_bank(bank)
 	return _("{sounds} {banks}.").format(
 		sounds=counted("{count} sound added", "{count} sounds added", len(added_list)),
 		banks=counted("to {count} bank", "to {count} banks", len(touched_list)),
@@ -293,7 +293,11 @@ ACTIONS: dict[str, tuple[Action, ...]] = {"sound": SOUNDS, "bank": BANKS}
 
 
 def action(category: str, key: str) -> Action:
-	(found,) = [action for action in ACTIONS[category] if action.key == key]
+	action_list = []
+	for candidate in ACTIONS[category]:
+		if candidate.key == key:
+			action_list.append(candidate)
+	(found,) = action_list
 	return found
 
 
@@ -314,4 +318,8 @@ def bank_names(connection: Connection, banks: list[int]) -> list[str]:
 	names = {}
 	for bank, name in connection.execute("SELECT id, internal_name FROM banks WHERE id = ANY(%s)", (banks,)):
 		names[int(str(bank))] = str(name)
-	return [names[bank] for bank in banks if bank in names]
+	bank_names = []
+	for wanted in banks:
+		if wanted in names:
+			bank_names.append(names[wanted])
+	return bank_names

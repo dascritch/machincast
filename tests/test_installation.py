@@ -117,11 +117,11 @@ def no_old(old_list: list[Old]) -> None:
 
 @then(parsers.parse("{component} n'est pas signalé"))
 def component_not_reported(old_list: list[Old], component: str) -> None:
-	old_list_2 = []
+	reported = []
 	for old in old_list:
 		if old.component == component:
-			old_list_2.append(old)
-	assert old_list_2 == [], old_list
+			reported.append(old)
+	assert reported == [], old_list
 
 
 @then(parsers.parse("{component} est signalé en version « {version} », avec le paquet « {package} »"))
@@ -311,7 +311,7 @@ def _section(text: str, name: str) -> dict[str, str]:
 	keys: dict[str, str] = {}
 	inside = False
 
-	def handle_line(line) -> None:
+	def read_ini_line(line) -> None:
 		nonlocal inside
 		line = line.strip()
 		if line.startswith("["):
@@ -322,7 +322,7 @@ def _section(text: str, name: str) -> dict[str, str]:
 			keys[key] = value
 
 	for line in text.splitlines():
-		handle_line(line)
+		read_ini_line(line)
 	return keys
 
 
@@ -447,7 +447,10 @@ def purge_section(written_purge: str, name: str, datatable: list[list[str]]) -> 
 	value_dict = {}
 	for key, _value in rows:
 		value_dict[key.strip()] = section.get(key.strip())
-	assert value_dict == {key.strip(): value.strip() for key, value in rows}
+	key_dict = {}
+	for expected_key, value in rows:
+		key_dict[expected_key.strip()] = value.strip()
+	assert value_dict == key_dict
 
 
 @then("install.sh installe et retire l'unité et le minuteur de la purge de machincast.installation")
@@ -471,7 +474,10 @@ def written_section(written_list: tuple[str, str], name: str, datatable: list[li
 	value_dict = {}
 	for key, _value in rows:
 		value_dict[key.strip()] = section.get(key.strip())
-	assert value_dict == {key.strip(): value.strip() for key, value in rows}
+	key_dict = {}
+	for expected_key, value in rows:
+		key_dict[expected_key.strip()] = value.strip()
+	assert value_dict == key_dict
 
 
 @then(parsers.parse("la règle ne concerne que le compte « {name} »"))
@@ -503,7 +509,10 @@ def written_shortcut_section(written: str, name: str, datatable: list[list[str]]
 	value_dict = {}
 	for key, _value in rows:
 		value_dict[key.strip()] = section.get(key.strip())
-	assert value_dict == {key.strip(): value.strip() for key, value in rows}, written
+	key_dict = {}
+	for expected_key, value in rows:
+		key_dict[expected_key.strip()] = value.strip()
+	assert value_dict == key_dict, written
 
 
 @then(parsers.parse("« desktop-file-validate » accepte « {name} »"))

@@ -118,11 +118,11 @@ def sound_files(paths: list[Path]) -> tuple[list[str], list[Path]]:
 	path_list = []
 	for path in sounds:
 		path_list.append(os.path.normpath(path))
-	path_list_2 = []
+	others = []
 	for path in paths:
 		if path not in sounds:
-			path_list_2.append(path)
-	return path_list, path_list_2
+			others.append(path)
+	return path_list, others
 
 
 def copy_name(connection: Connection, table: str, name: str) -> str:
@@ -363,6 +363,13 @@ class Card(QWidget):
 		log.error(_("{self_}: deletion impossible: {error}").format(self_=self.title(), error=error))
 		self.flag_error(_("Deletion impossible: {error}").format(error=error))
 
+	def _reported(self, label: QWidget) -> bool:
+		"""Le libellé signale déjà une erreur."""
+		for reports, _text in self._reported_list:
+			if reports is label:
+				return True
+		return False
+
 	def flag_error(self, text: str, fields: tuple[QWidget, ...] = ()) -> None:
 		"""L'erreur en haut de la fiche, et ⚠️ devant le libellé de chaque champ en cause."""
 		self.erase_error()
@@ -371,7 +378,7 @@ class Card(QWidget):
 
 		def flag_field(field: QWidget) -> None:
 			label = self._label(field)
-			if (label is None) or (any(reports is label for reports, _text in self._reported_list)):
+			if (label is None) or (self._reported(label)):
 				return
 			if isinstance(label, QGroupBox):
 				self._reported_list.append((label, label.title()))

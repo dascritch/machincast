@@ -95,11 +95,11 @@ def link(links: list[Pair]) -> None:
 def unbind(links: list[Pair]) -> None:
 	"""Un lien déjà défait, ou un PipeWire arrêté, n'est pas une erreur."""
 
-	def handle_entry(entry: str, output: str) -> None:
+	def unlink(entry: str, output: str) -> None:
 		try:
 			_pw_link("-d", output, entry)
 		except ImpossibleBinding:
 			return
 
 	for output, entry in links:
-		handle_entry(entry, output)
+		unlink(entry, output)

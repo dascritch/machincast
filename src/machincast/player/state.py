@@ -258,9 +258,7 @@ class StateSocket:
 		if self._server is None:
 			return
 		with self._condition:
-			self._condition.wait_for(
-				lambda: all(sent >= self._number for sent in self._sent_list.values()), CLIENTS_WAITING
-			)
+			self._condition.wait_for(self._all_sent, CLIENTS_WAITING)
 			self._closed = True
 			self._condition.notify_all()
 		if self._feed is not None:
@@ -275,10 +273,19 @@ class StateSocket:
 			try:
 				client, _ = server.accept()
 			except TimeoutError:
-				continue
+				# Le délai d'attente laisse voir la fermeture de la socket.
+				pass
 			except OSError:
 				return
-			threading.Thread(target=self._serve, args=(client,), name="state client", daemon=True).start()
+			else:
+				threading.Thread(target=self._serve, args=(client,), name="state client", daemon=True).start()
+
+	def _all_sent(self) -> bool:
+		"""Chaque client a reçu le dernier message."""
+		for sent in self._sent_list.values():
+			if sent < self._number:
+				return False
+		return True
 
 	def _to_send(self, sent: int) -> bool:
 		return (self._number > sent) or (self._closed)
@@ -290,19 +297,21 @@ class StateSocket:
 			client.settimeout(CLIENTS_WAITING)
 			threading.Thread(target=self._listen, args=(client,), name="client requests", daemon=True).start()
 			while True:
+				line = None
 				with self._condition:
 					self._sent_list[key] = sent
 					self._condition.notify_all()
 					self._condition.wait_for(functools.partial(self._to_send, sent), 0.5)
-					if self._number <= sent:
+					if self._number > sent:
+						line, sent = self._message, self._number
+					else:
 						if self._closed:
 							break
-						continue
-					line, sent = self._message, self._number
-				try:
-					client.sendall(line.encode())
-				except OSError:
-					break
+				if line is not None:
+					try:
+						client.sendall(line.encode())
+					except OSError:
+						break
 			with self._condition:
 				self._sent_list.pop(key, None)
 				self._condition.notify_all()
@@ -314,22 +323,29 @@ class StateSocket:
 			try:
 				received = client.recv(MAXIMAL_SIZE)
 			except TimeoutError:
-				continue
+				# Le délai d'attente laisse voir la fermeture de la socket.
+				received = None
 			except OSError:
 				return
 			if received == b"":
 				return
-			buffer += received
-			*lines, buffer = buffer.split(b"\n")
-			if len(buffer) > MAXIMAL_SIZE:
-				log.warning(
-					_("{ignored_request}: more than {maximal_size} bytes").format(
-						ignored_request=IGNORED_REQUEST, maximal_size=MAXIMAL_SIZE
-					)
+			if received is not None:
+				buffer = self._receive_lines(buffer + received)
+
+	def _receive_lines(self, buffer: bytes) -> bytes:
+		"""Les demandes complètes du tampon sont reçues ; le reste, une demande commencée, est rendu, ou oublié s'il
+		est trop long."""
+		*lines, rest = buffer.split(b"\n")
+		if len(rest) > MAXIMAL_SIZE:
+			log.warning(
+				_("{ignored_request}: more than {maximal_size} bytes").format(
+					ignored_request=IGNORED_REQUEST, maximal_size=MAXIMAL_SIZE
 				)
-				buffer = b""
-			for line in lines:
-				self._receive(line)
+			)
+			rest = b""
+		for line in lines:
+			self._receive(line)
+		return rest
 
 	def _receive(self, line: bytes) -> None:
 		if line.strip() == b"":

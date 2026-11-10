@@ -523,10 +523,10 @@ def check_date(
 	empty_database: Connection, sound: int, indexings: list[tuple[datetime, datetime]], previous: str | None
 ) -> None:
 	if previous is not None:
-		chosen = -2
+		rank = -2
 	else:
-		chosen = -1
-	start, end = indexings[chosen]
+		rank = -1
+	start, end = indexings[rank]
 	date = checks_at(empty_database, sound)
 	assert isinstance(date, datetime)
 	assert start <= date <= end, (start, date, end)

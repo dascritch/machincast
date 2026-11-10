@@ -13,7 +13,7 @@ un autre n'est pas écrit ; 0 et -60 le sont toujours.
 
 import math
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
@@ -52,6 +52,14 @@ def colour(level: float) -> QColor:
 def share(level: float) -> float:
 	"""La part de la barre, de 0 au plancher à 1 à 0 dB."""
 	return (max(FLOOR, min(0.0, level)) - FLOOR) / -FLOOR
+
+
+def _apart(frame: QRectF, others: Iterable[QRectF]) -> bool:
+	"""Le cadre ne chevauche aucun des autres."""
+	for other in others:
+		if frame.intersects(other):
+			return False
+	return True
 
 
 @dataclass(frozen=True)
@@ -193,9 +201,12 @@ class VuMeter(QWidget):
 		poste."""
 		retained_list: dict[int, QRectF] = {}
 		for tick, frame in self.candidates():
-			if (tick in (0, int(FLOOR))) or (all(not frame.intersects(other) for other in retained_list.values())):
+			if (tick in (0, int(FLOOR))) or (_apart(frame, retained_list.values())):
 				retained_list[tick] = frame
-		return [(str(tick), frame) for tick, frame in sorted(retained_list.items(), reverse=True)]
+		captions = []
+		for retained_tick, frame in sorted(retained_list.items(), reverse=True):
+			captions.append((str(retained_tick), frame))
+		return captions
 
 	def paintEvent(self, _event: QPaintEvent) -> None:
 		with QPainter(self) as painter:

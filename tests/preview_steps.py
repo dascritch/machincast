@@ -170,7 +170,14 @@ def commands(interface: Context, commands: str) -> None:
 @then("le VU-mètre de la pré-écoute montre bientôt du son")
 def of_sound(interface: Context, qtbot: QtBot) -> None:
 	vu_meter = preview_window(interface).vu_meter
-	qtbot.waitUntil(lambda: any(level > vu_meter.FLOOR for level in vu_meter.levels), timeout=DELAY)
+
+	def sound_shown() -> bool:
+		for level in vu_meter.levels:
+			if level > vu_meter.FLOOR:
+				return True
+		return False
+
+	qtbot.waitUntil(sound_shown, timeout=DELAY)
 
 
 @then(parsers.parse("la pré-écoute signale bientôt « {start} »"))

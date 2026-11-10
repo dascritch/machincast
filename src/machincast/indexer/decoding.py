@@ -282,37 +282,43 @@ class _Decoding:
 			if message is None:
 				if self.tracking.buffers == last:
 					still += WAIT_STEP
-					chosen = delay_without_progress
+					delay = delay_without_progress
 					if self.tracking.buffers == 0:
-						chosen = startup_delay
-					if still >= chosen:
+						delay = startup_delay
+					if still >= delay:
 						return None
 				else:
 					last, still = self.tracking.buffers, timedelta()
-				continue
-			if message.type == Gst.MessageType.TAG:
-				# Tags du conteneur et de chaque flux : la première valeur trouvée est gardée.
-				merge = self.tags.merge(message.parse_tag(), Gst.TagMergeMode.KEEP)
-				if merge is not None:
-					self.tags = merge
-				continue
-			if message.type == Gst.MessageType.ELEMENT:
-				structure = message.get_structure()
-				if (
-					(self.levels is not None)
-					and (structure is not None)
-					and (message.src == self.measure)
-					and (structure.get_name() == "level")
-				):
-					self.levels.note(structure)
-					continue
-				if (structure is not None) and (structure.get_name() == "missing-plugin"):
-					detail = structure.get_value("detail")
-					self.absent_decoder = str(detail)
-					if isinstance(detail, Gst.Caps):
-						self.absent_decoder = detail.to_string()
-				continue
-			return message
+			else:
+				if not self._noted(message):
+					return message
+
+	def _noted(self, message: Gst.Message) -> bool:
+		"""Un message de tags ou d'élément est noté, et l'attente continue ; un autre message est attendu, ou une
+		erreur."""
+		if message.type == Gst.MessageType.TAG:
+			# Tags du conteneur et de chaque flux : la première valeur trouvée est gardée.
+			merge = self.tags.merge(message.parse_tag(), Gst.TagMergeMode.KEEP)
+			if merge is not None:
+				self.tags = merge
+			return True
+		if message.type == Gst.MessageType.ELEMENT:
+			structure = message.get_structure()
+			if (
+				(self.levels is not None)
+				and (structure is not None)
+				and (message.src == self.measure)
+				and (structure.get_name() == "level")
+			):
+				self.levels.note(structure)
+				return True
+			if (structure is not None) and (structure.get_name() == "missing-plugin"):
+				detail = structure.get_value("detail")
+				self.absent_decoder = str(detail)
+				if isinstance(detail, Gst.Caps):
+					self.absent_decoder = detail.to_string()
+			return True
+		return False
 
 	def error(self, message: Gst.Message) -> Check:
 		error, _debug = message.parse_error()

@@ -234,7 +234,9 @@ def log_lines(database: Connection, kind: str) -> list[tuple[str, object, object
 @then(parsers.parse("l'incident « {kind} » dit « {text} »"))
 def incident_says(empty_database: Connection, kind: str, text: str) -> None:
 	lines = log_lines(empty_database, kind)
-	assert (lines) and (all(text in message for message, *_ in lines)), lines
+	assert lines, lines
+	for message, *_ in lines:
+		assert text in message, lines
 
 
 @then(parsers.parse("l'incident « {kind} » a été noté au « {instant} », pour le sonore « {name} » de « {event} »"))
@@ -258,7 +260,9 @@ def finished_without_incident(empty_database: Connection, name: str) -> None:
 	for title, _start, end, healthy in plays(empty_database):
 		if title == name:
 			found_list.append((end, healthy))
-	assert (found_list) and (all((end is not None) and (healthy is True) for end, healthy in found_list)), found_list
+	assert found_list, found_list
+	for end, healthy in found_list:
+		assert (end is not None) and (healthy is True), found_list
 
 
 # ─── Machin player ────────────────────────────────────────

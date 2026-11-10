@@ -26,11 +26,15 @@ HIDINGS = {"masqués": True, "affichés": False, "hérité": None}
 def index_of(opened: List, name: str) -> QModelIndex:
 	"""La première cellule de la ligne dont une cellule porte ce nom."""
 	model = opened.table.model()
-	found_list = [
-		model.index(row, 0)
-		for row in range(model.rowCount())
-		if any(model.index(row, column).data() == name for column in range(model.columnCount()))
-	]
+	found_list = []
+	for row in range(model.rowCount()):
+		found = False
+		for column in range(model.columnCount()):
+			if model.index(row, column).data() == name:
+				found = True
+				break
+		if found:
+			found_list.append(model.index(row, 0))
 	assert len(found_list) == 1, name
 	return found_list[0]
 
@@ -39,18 +43,29 @@ def menu(opened: List, index: QModelIndex) -> list[str]:
 	choice = opened.line_menu(index)
 	assert choice is not None
 	# Les séparateurs ne sont pas des entrées.
-	return [action.text() for action in choice.actions() if not action.isSeparator()]
+	menu = []
+	for action in choice.actions():
+		if not action.isSeparator():
+			menu.append(action.text())
+	return menu
 
 
 def trigger(opened: List, index: QModelIndex, text: str) -> None:
 	choice = opened.line_menu(index)
 	assert choice is not None
-	(action,) = [action for action in choice.actions() if action.text() == text]
+	action_list = []
+	for candidate in choice.actions():
+		if candidate.text() == text:
+			action_list.append(candidate)
+	(action,) = action_list
 	action.trigger()
 
 
 def sounds_by_title(database: Connection, titles: str) -> list[int]:
-	return [identifier(database, "sounds", "title", title) for title in NAME.findall(titles)]
+	sounds_by_title = []
+	for title in NAME.findall(titles):
+		sounds_by_title.append(identifier(database, "sounds", "title", title))
+	return sounds_by_title
 
 
 # ─── Étant donné ───────────────────────────────────────────
@@ -58,9 +73,10 @@ def sounds_by_title(database: Connection, titles: str) -> list[int]:
 
 @given(parsers.re(r"les banques choisies (?P<names>aucune|«.+)"))
 def chosen_banks(interface: Context, empty_database: Connection, names: str) -> None:
-	interface.chosen_banks = [
-		identifier(empty_database, "banks", "internal_name", name) for name in NAME.findall(names)
-	]
+	name_list = []
+	for name in NAME.findall(names):
+		name_list.append(identifier(empty_database, "banks", "internal_name", name))
+	interface.chosen_banks = name_list
 
 
 @given("les confirmations d'action refusées")
@@ -139,7 +155,9 @@ def states_in_database(empty_database: Connection, titles: str, state: str) -> N
 def shown_states(interface: Context, state: str, titles: str) -> None:
 	opened = list_(interface)
 	model = opened.table.model()
-	column_titles = [model.headerData(rank, Qt.Orientation.Horizontal) for rank in range(model.columnCount())]
+	column_titles = []
+	for rank in range(model.columnCount()):
+		column_titles.append(model.headerData(rank, Qt.Orientation.Horizontal))
 	column = column_titles.index("État")
 	for title in NAME.findall(titles):
 		assert model.index(index_of(opened, title).row(), column).data() == state, title
@@ -152,26 +170,32 @@ def bank_sounds(empty_database: Connection, name: str, titles: str) -> None:
 		" JOIN banks b ON b.id = bs.bank_id WHERE b.internal_name = %s ORDER BY bs.position",
 		(name,),
 	).fetchall()
-	assert [str(title) for title, _position in fetched_list] == NAME.findall(titles)
+	position_list = []
+	for title, _position in fetched_list:
+		position_list.append(str(title))
+	assert position_list == NAME.findall(titles)
 	# Les positions se suivent, sans trou.
-	assert [int(str(position)) for _title, position in fetched_list] == list(range(1, len(fetched_list) + 1))
+	title_list = []
+	for _title, position in fetched_list:
+		title_list.append(int(str(position)))
+	assert title_list == list(range(1, len(fetched_list) + 1))
 
 
 @then(parsers.re(r"le choix des banques a proposé (?P<names>«.+)"))
 def offered_banks(interface: Context, empty_database: Connection, names: str) -> None:
 	(offered_list,) = interface.offered_banks
 	assert offered_list is not None
-	assert offered_list == [identifier(empty_database, "banks", "internal_name", name) for name in NAME.findall(names)]
+	name_list = []
+	for name in NAME.findall(names):
+		name_list.append(identifier(empty_database, "banks", "internal_name", name))
+	assert offered_list == name_list
 
 
 @then(parsers.re(r"l'audit complet est demandé pour les sonores (?P<titles>«.+), et pas pour « (?P<other>[^»]+) »"))
 def request_audits(empty_database: Connection, titles: str, other: str) -> None:
-	marks = [
-		str(title)
-		for (title,) in empty_database.execute(
-			'SELECT title FROM sounds WHERE audit_requested ORDER BY title COLLATE "C"'
-		)
-	]
+	marks = []
+	for (title,) in empty_database.execute('SELECT title FROM sounds WHERE audit_requested ORDER BY title COLLATE "C"'):
+		marks.append(str(title))
 	assert marks == sorted(NAME.findall(titles))
 	assert other not in marks
 
@@ -183,7 +207,10 @@ def request_audits(empty_database: Connection, titles: str, other: str) -> None:
 	)
 )
 def hidings_in_database(empty_database: Connection, names: str, hiding: str, other: str, other_hiding: str) -> None:
-	for name, expected in [(name, hiding) for name in NAME.findall(names)] + [(other, other_hiding)]:
+	name_list = []
+	for name in NAME.findall(names):
+		name_list.append((name, hiding))
+	for name, expected in name_list + [(other, other_hiding)]:
 		lu = empty_database.execute("SELECT hide_metadata FROM banks WHERE internal_name = %s", (name,)).fetchone()
 		assert lu == (HIDINGS[expected],), name
 
@@ -191,12 +218,13 @@ def hidings_in_database(empty_database: Connection, names: str, hiding: str, oth
 @then(parsers.re(r"les listes qui sélectionnent plusieurs lignes sont (?P<tabs>«.+)"))
 def multiple_lists(interface: Context, tabs: str) -> None:
 	ui = window(interface).ui
-	multiple_list = sorted(
-		tab_title(ui.tabs, row)
-		for row in range(ui.tabs.count())
-		if (isinstance(screen := ui.tabs.widget(row), List))
-		and (screen.table.selectionMode() == screen.table.SelectionMode.ExtendedSelection)
-	)
+	row_list = []
+	for row in range(ui.tabs.count()):
+		if (isinstance(screen := ui.tabs.widget(row), List)) and (
+			screen.table.selectionMode() == screen.table.SelectionMode.ExtendedSelection
+		):
+			row_list.append(tab_title(ui.tabs, row))
+	multiple_list = sorted(row_list)
 	assert multiple_list == NAME.findall(tabs)
 
 
@@ -214,18 +242,30 @@ def bank_card(interface: Context) -> BankCard:
 
 def card_lines(interface: Context) -> list[QTreeWidgetItem]:
 	sounds = bank_card(interface).ui.sounds
-	return [line for row in range(sounds.topLevelItemCount()) if (line := sounds.topLevelItem(row))]
+	card_lines = []
+	for row in range(sounds.topLevelItemCount()):
+		if line := sounds.topLevelItem(row):
+			card_lines.append(line)
+	return card_lines
 
 
 def card_line(interface: Context, name: str) -> QTreeWidgetItem:
-	(line,) = [line for line in card_lines(interface) if line.text(0) == name]
+	line_list = []
+	for candidate in card_lines(interface):
+		if candidate.text(0) == name:
+			line_list.append(candidate)
+	(line,) = line_list
 	return line
 
 
 def choose_to_right_click(interface: Context, line: QTreeWidgetItem, text: str) -> None:
 	menu = bank_card(interface).sound_menu(line)
 	assert menu is not None
-	(action,) = [action for action in menu.actions() if action.text() == text]
+	action_list = []
+	for candidate in menu.actions():
+		if candidate.text() == text:
+			action_list.append(candidate)
+	(action,) = action_list
 	action.trigger()
 
 
@@ -252,7 +292,9 @@ def sound_state(interface: Context, text: str, name: str) -> None:
 
 @then(parsers.re(r"les sonores de la fiche sont, avec leur état, (?P<sounds>aucun|«.+)"))
 def card_states(interface: Context, sounds: str) -> None:
-	shown_list = [(line.text(0), line.text(STATE_COLUMN)) for line in card_lines(interface)]
+	shown_list = []
+	for line in card_lines(interface):
+		shown_list.append((line.text(0), line.text(STATE_COLUMN)))
 	assert shown_list == SOUND_STATE.findall(sounds)
 
 

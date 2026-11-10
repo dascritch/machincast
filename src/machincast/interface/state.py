@@ -273,7 +273,7 @@ class StateClient(QObject):
 			)
 			self._buffer = b""
 
-		def handle_line(line: bytes) -> None:
+		def receive_line(line: bytes) -> None:
 			try:
 				state = read_message(line.decode())
 			except ValueError as error:
@@ -284,4 +284,4 @@ class StateClient(QObject):
 			self.received_state.emit(state)
 
 		for line in lines:
-			handle_line(line)
+			receive_line(line)

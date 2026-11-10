@@ -331,12 +331,12 @@ def no_drop(interface: Context) -> None:
 			every_one = False
 			break
 	assert every_one
-	every_one_2 = True
+	all_draggable = True
 	for line in lines:
 		if not (line.flags() & Qt.ItemFlag.ItemIsDragEnabled):
-			every_one_2 = False
+			all_draggable = False
 			break
-	assert every_one_2
+	assert all_draggable
 
 
 @then(parsers.re(r"les sonores de la fiche (?P<verdict>peuvent|ne peuvent pas) se réordonner"))
@@ -586,7 +586,10 @@ def no_marked(interface: Context) -> None:
 @then("la fiche marque hors des durées les sonores :")
 def marks(interface: Context, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
-	assert _marks(interface) == [[sound.strip(), tooltip.strip()] for sound, tooltip in rows]
+	sound_list = []
+	for sound, tooltip in rows:
+		sound_list.append([sound.strip(), tooltip.strip()])
+	assert _marks(interface) == sound_list
 
 
 # ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───
@@ -709,20 +712,22 @@ def sounds_title(interface: Context, title: str) -> None:
 def bank_sounds_in_database(empty_database: Connection, name: str, count: str, title: str, where: str) -> None:
 	"""Les sonores en base, dans l'ordre de leurs positions : les grands, ajoutés par 1000 + leur identifiant,
 	gardent leur ordre."""
-	titles = [
-		str(found)
-		for (found,) in empty_database.execute(
-			"SELECT COALESCE(s.title, s.location) FROM bank_sounds bs JOIN banks b ON b.id = bs.bank_id"
-			" JOIN sounds s ON s.id = bs.sound_id WHERE b.internal_name = %s ORDER BY bs.position",
-			(name,),
-		)
-	]
+	titles = []
+	for (found_title,) in empty_database.execute(
+		"SELECT COALESCE(s.title, s.location) FROM bank_sounds bs JOIN banks b ON b.id = bs.bank_id"
+		" JOIN sounds s ON s.id = bs.sound_id WHERE b.internal_name = %s ORDER BY bs.position",
+		(name,),
+	):
+		titles.append(str(found_title))
 	assert len(titles) == int(count), len(titles)
-	chosen = -1
+	rank = -1
 	if where == "d'abord":
-		chosen = 0
-	assert titles[chosen] == title, titles[:3] + titles[-3:]
-	big = [found for found in titles if found.startswith("/srv/grande/")]
+		rank = 0
+	assert titles[rank] == title, titles[:3] + titles[-3:]
+	big = []
+	for title_found in titles:
+		if title_found.startswith("/srv/grande/"):
+			big.append(title_found)
 	assert big == sorted(big, key=lambda found: int(found.removeprefix("/srv/grande/").removesuffix(".flac")))
 
 

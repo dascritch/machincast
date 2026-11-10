@@ -18,6 +18,7 @@ from machincast.database import Role, open_connection
 from machincast.player.rundown import Ongoing, Scheduler, ignored_calls
 from machincast.player.saving import LEVELS
 from machincast.randomness import create_randomness
+from tests.categories import inverted
 from tests.database_fixtures import sample_database_parameters
 from tests.log_texts import stored
 
@@ -165,10 +166,10 @@ def state(empty_database: Connection, name: str, state: str) -> None:
 def events(empty_database: Connection, datatable: list[list[str]]) -> None:
 	headers, *lines = datatable
 	for values in lines:
-		v_list = []
+		cells = []
 		for v in values:
-			v_list.append(v.strip())
-		line = dict(zip(headers, v_list, strict=True))
+			cells.append(v.strip())
+		line = dict(zip(headers, cells, strict=True))
 		days = []
 		for j in line.get("jours", "").split(","):
 			if j.strip():
@@ -309,17 +310,17 @@ def broadcast(context: Context, datatable: list[list[str]]) -> None:
 	_, *lines = datatable
 	expected = []
 	for values in lines:
-		v_list = []
+		cells = []
 		for v in values:
-			v_list.append(v.strip())
-		expected.append(Line(*v_list))
+			cells.append(v.strip())
+		expected.append(Line(*cells))
 	line_list = []
 	for line in context.log:
 		line_list.append(str(line))
 	assert context.log == expected, "\n".join(line_list)
 
 
-LEVEL_IN_DATABASE = {label: level for level, label in LEVELS.items()}
+LEVEL_IN_DATABASE = inverted(LEVELS)
 """Le niveau du log en base, par le mot des scénarios."""
 
 
@@ -338,11 +339,14 @@ def warnings(empty_database: Connection, count: str, level: str, kind: str, even
 	).fetchall()
 	obtained_list = []
 	for n, e, b in lines:
-		obtained_list.append((n, e) + ((b,) if bank_name else ()))
-	chosen = ()
+		obtained_bank = ()
+		if bank_name:
+			obtained_bank = (b,)
+		obtained_list.append((n, e) + obtained_bank)
+	expected_bank = ()
 	if bank_name:
-		chosen = (bank_name,)
-	expected = (LEVEL_IN_DATABASE[level], event) + chosen
+		expected_bank = (bank_name,)
+	expected = (LEVEL_IN_DATABASE[level], event) + expected_bank
 	assert obtained_list == [expected] * int(count), lines
 
 
@@ -355,8 +359,8 @@ def no_line(empty_database: Connection, level: str, kind: str) -> None:
 
 @then(parsers.re(r"les lignes signalées sont « (?P<lines>[^»]*) »"))
 def reported_lines(context: Context, lines: str) -> None:
-	n_list = []
-	for n in lines.split(","):
-		if n.strip():
-			n_list.append(int(n))
-	assert context.reported_list == n_list
+	expected_lines = []
+	for number in lines.split(","):
+		if number.strip():
+			expected_lines.append(int(number))
+	assert context.reported_list == expected_lines

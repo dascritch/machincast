@@ -123,12 +123,10 @@ def _satisfied(requirement: Requirement) -> bool:
 	capabilities = Gst.Caps.from_string(requirement.capabilities)
 	assert capabilities is not None
 	factories = Gst.ElementFactory.list_get_elements(requirement.item_type, Gst.Rank.MARGINAL)
-	found = False
 	for factory in factories:
 		if factory.can_sink_any_caps(capabilities):
-			found = True
-			break
-	return found
+			return True
+	return False
 
 
 def check_decoders() -> list[Shortfall]:

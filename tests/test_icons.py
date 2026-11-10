@@ -92,11 +92,11 @@ def different(qapp: QApplication, names: str) -> None:
 	images = []
 	for name in NAME.findall(names):
 		images.append(image(icons.icon(_icon_name(name))))
-	a_list = []
-	for rank, a in enumerate(images):
-		for b in images[rank + 1 :]:
-			a_list.append(a != b)
-	assert all(a_list)
+	differences = []
+	for rank, first in enumerate(images):
+		for second in images[rank + 1 :]:
+			differences.append(first != second)
+	assert all(differences)
 
 
 @pytest.fixture

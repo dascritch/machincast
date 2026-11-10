@@ -29,13 +29,16 @@ LINK = re.compile(r"\[[^\]]*#(\d+)[^\]]*\]\(https://github\.com/dascritch/machin
 
 def bare_references(line: str) -> list[str]:
 	"""Références « #N » d'une ligne qui ne sont pas le texte d'un lien vers le ticket ou la PR N."""
-	linked = {m.span(0): m for m in LINK.finditer(line)}
+	linked = {}
+	for m in LINK.finditer(line):
+		linked[m.span(0)] = m
 	bare = []
 	for reference in REFERENCE.finditer(line):
-		in_link = any(
-			(start <= reference.start() < end) and (m.group(1) == m.group(2) == reference.group(1))
-			for (start, end), m in linked.items()
-		)
+		in_link = False
+		for (start, end), m in linked.items():
+			if (start <= reference.start() < end) and (m.group(1) == m.group(2) == reference.group(1)):
+				in_link = True
+				break
 		if not in_link:
 			bare.append(reference.group(0))
 	return bare
@@ -55,14 +58,16 @@ def files(context: dict[str, object]) -> None:
 		text=True,
 		check=True,
 	).stdout.splitlines()
-	context["fichiers"] = [
-		path
-		for path in tracked_list
-		if ((path.endswith(EXTENSIONS)) or (path.startswith(SCRIPTS_DIRECTORIES)))
-		and (not path.startswith(EXCLUSIONS))
-		# Un fichier supprimé mais pas encore retiré de l'index git n'est plus à lire.
-		and ((ROOT / path).is_file())
-	]
+	path_list = []
+	for path in tracked_list:
+		if (
+			((path.endswith(EXTENSIONS)) or (path.startswith(SCRIPTS_DIRECTORIES)))
+			and (not path.startswith(EXCLUSIONS))
+			# Un fichier supprimé mais pas encore retiré de l'index git n'est plus à lire.
+			and ((ROOT / path).is_file())
+		):
+			path_list.append(path)
+	context["fichiers"] = path_list
 
 
 @given(parsers.parse("la ligne « {line} »"))

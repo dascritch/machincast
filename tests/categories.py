@@ -1,11 +1,18 @@
 """Les genres d'éléments, tels que les scénarios les écrivent, et leur nom dans le code
 (https://github.com/dascritch/machincast/issues/368)."""
 
+
+def inverted[K, V](mapping: dict[K, V]) -> dict[V, K]:
+	"""Le dictionnaire retourné : chaque valeur donne sa clé."""
+	keys = {}
+	for key, value in mapping.items():
+		keys[value] = key
+	return keys
+
+
 CATEGORY = {"sonore": "sound", "banque": "bank", "séquence": "sequence", "événement": "event", "feed": "feed"}
 """Le genre dans le code, par son mot des scénarios."""
-SCENARIO = {}
-for word, category in CATEGORY.items():
-	SCENARIO[category] = word
+SCENARIO = inverted(CATEGORY)
 """Le mot des scénarios, par le genre dans le code."""
 AIRPLAY_KEYS = {
 	"start": "debut",

@@ -172,7 +172,10 @@ def cap(limit: Limit, file: Path, margin: int) -> None:
 
 @when(parsers.parse("je vérifie ce fichier {times:d} fois de suite"), target_fixture="results")
 def check_several_times(file: Path, times: int) -> list[Check]:
-	return [check_file(file) for _ in range(times)]
+	check_several_times = []
+	for _trial in range(times):
+		check_several_times.append(check_file(file))
+	return check_several_times
 
 
 @then("le fichier est sain à chaque vérification")

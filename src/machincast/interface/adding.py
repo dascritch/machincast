@@ -41,10 +41,10 @@ class Adding:
 				path_list.append(path.name)
 			sentences.append(_("Already in the database: {list}.").format(list=", ".join(path_list)))
 		if self.ignored != []:
-			path_list_2 = []
+			ignored_names = []
 			for path in self.ignored:
-				path_list_2.append(path.name)
-			names = ", ".join(path_list_2)
+				ignored_names.append(path.name)
+			names = ", ".join(ignored_names)
 			sentences.append(_("Ignored, these are not sound files: {names}.").format(names=names))
 		return " ".join(sentences)
 

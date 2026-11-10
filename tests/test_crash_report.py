@@ -249,16 +249,16 @@ def _launch(execution: Execution, caplog: pytest.LogCaptureFixture, command: str
 			execution.code = BINARIES[binary](arguments)
 		except Exception as error:  # noqa: BLE001 : le plantage du scénario
 			execution.crashed = error
-	r_list = []
-	for r in caplog.records:
-		if r.levelno == logging.INFO:
-			r_list.append(r.getMessage())
-	execution.information = r_list
-	r_list_2 = []
-	for r in caplog.records:
-		if r.levelno >= logging.WARNING:
-			r_list_2.append(r.getMessage())
-	execution.errors = r_list_2
+	information = []
+	for record in caplog.records:
+		if record.levelno == logging.INFO:
+			information.append(record.getMessage())
+	execution.information = information
+	errors = []
+	for record in caplog.records:
+		if record.levelno >= logging.WARNING:
+			errors.append(record.getMessage())
+	execution.errors = errors
 
 
 @when(parsers.re(r"je lance « (?P<command>[^»]+) »$"))
@@ -284,11 +284,11 @@ def utility(execution: Execution, caplog: pytest.LogCaptureFixture, program: str
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		execution.code = crash.main([program])
-	r_list = []
-	for r in caplog.records:
-		if r.levelno >= logging.WARNING:
-			r_list.append(r.getMessage())
-	execution.errors = r_list
+	errors = []
+	for record in caplog.records:
+		if record.levelno >= logging.WARNING:
+			errors.append(record.getMessage())
+	execution.errors = errors
 
 
 @when(parsers.parse("une erreur imprévue « {text} » arrête le lancement surveillé"))

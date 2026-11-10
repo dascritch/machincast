@@ -8,7 +8,7 @@ la lecture.
 
 import socket
 import time
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -28,6 +28,7 @@ from machincast.player.saving import LEVELS
 from machincast.player.simulation import SimulatedEngine
 from machincast.player.state import StateSocket, request_reread_grid
 from machincast.randomness import create_randomness
+from tests.categories import inverted
 from tests.database_fixtures import configuration_test, sample_database_parameters
 from tests.log_texts import shown, stored
 from tests.sounds import sample_copy
@@ -208,9 +209,7 @@ def clock_to(bench: Bench, instant: str) -> None:
 
 @given(parsers.re(r"le fil musical permanent « (?P<name>[^»]+) », avec les sonores (?P<list_>.+)"))
 def feed(bench: Bench, empty_database: Connection, tmp_path: Path, name: str, list_: str) -> None:
-	names = []
-	for n in list_.split(","):
-		names.append(n.strip(" «»"))
+	names = quoted_names(list_)
 	event(bench, empty_database, tmp_path, name, "background_programming", None, None, names)
 
 
@@ -223,18 +222,16 @@ def feed(bench: Bench, empty_database: Connection, tmp_path: Path, name: str, li
 def feed_with_bank(
 	bench: Bench, empty_database: Connection, tmp_path: Path, name: str, mode: str, bank: str, list_: str
 ) -> None:
-	chosen = "random"
+	mode_code = "random"
 	if mode == "séquentielle":
-		chosen = "sequential"
+		mode_code = "sequential"
 	created = empty_database.execute(
 		"INSERT INTO banks (internal_name, mode) VALUES (%s, %s) RETURNING id",
-		(bank, chosen),
+		(bank, mode_code),
 	).fetchone()
 	assert created is not None
-	n_list = []
-	for n in list_.split(","):
-		n_list.append(n.strip(" «»"))
-	for position, sound_name in enumerate(n_list, start=1):
+	sound_names = quoted_names(list_)
+	for position, sound_name in enumerate(sound_names, start=1):
 		empty_database.execute(
 			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(created[0], create_sound(bench, empty_database, tmp_path, sound_name), position),
@@ -265,15 +262,15 @@ def show(
 	end: str,
 	sound_name: str,
 ) -> None:
-	chosen = "special"
+	event_category = "special"
 	if category == "l'émission":
-		chosen = "show"
+		event_category = "show"
 	event(
 		bench,
 		empty_database,
 		tmp_path,
 		name,
-		chosen,
+		event_category,
 		hour(f"2026-10-14 {start}"),
 		hour(f"2026-10-14 {end}"),
 		[sound_name],
@@ -289,21 +286,18 @@ def show(
 def sound_show(
 	bench: Bench, empty_database: Connection, tmp_path: Path, category: str, name: str, start: str, end: str, list_: str
 ) -> None:
-	chosen = "special"
+	event_category = "special"
 	if category == "l'émission":
-		chosen = "show"
-	n_list = []
-	for n in list_.split(","):
-		n_list.append(n.strip(" «»"))
+		event_category = "show"
 	event(
 		bench,
 		empty_database,
 		tmp_path,
 		name,
-		chosen,
+		event_category,
 		hour(f"2026-10-14 {start}"),
 		hour(f"2026-10-14 {end}"),
-		n_list,
+		quoted_names(list_),
 	)
 
 
@@ -321,9 +315,7 @@ def empty_show(bench: Bench, empty_database: Connection, tmp_path: Path, name: s
 def special_without_sound_end(
 	bench: Bench, empty_database: Connection, tmp_path: Path, name: str, start: str, list_: str
 ) -> None:
-	names = []
-	for n in list_.split(","):
-		names.append(n.strip(" «»"))
+	names = quoted_names(list_)
 	event(bench, empty_database, tmp_path, name, "special", hour(f"2026-10-14 {start}"), None, names)
 
 
@@ -414,10 +406,8 @@ def sequence_feed(bench: Bench, empty_database: Connection, tmp_path: Path, feed
 			"INSERT INTO sequences (internal_name) VALUES (%s) RETURNING id", (name.strip(" «»"),)
 		).fetchone()
 		assert sequence is not None
-		n_list = []
-		for n in sounds.split(","):
-			n_list.append(n.strip(" «»"))
-		for position, sound_name in enumerate(n_list, start=1):
+		sound_names = quoted_names(sounds)
+		for position, sound_name in enumerate(sound_names, start=1):
 			empty_database.execute(
 				"INSERT INTO sequence_items (sequence_id, position, sound_id) VALUES (%s, %s, %s)",
 				(sequence[0], position, create_sound(bench, empty_database, tmp_path, sound_name)),
@@ -449,10 +439,8 @@ def sequence_feed_then_bank(
 		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'random') RETURNING id", (bank,)
 	).fetchone()
 	assert created is not None
-	n_list = []
-	for n in of_the_bank.split(","):
-		n_list.append(n.strip(" «»"))
-	for position, sound_name in enumerate(n_list, start=1):
+	sound_names = quoted_names(of_the_bank)
+	for position, sound_name in enumerate(sound_names, start=1):
 		empty_database.execute(
 			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(created[0], create_sound(bench, empty_database, tmp_path, sound_name), position),
@@ -543,10 +531,8 @@ def sound_bank(empty_database: Connection, name: str, list_: str) -> None:
 		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'sequential') RETURNING id", (name,)
 	).fetchone()
 	assert created is not None
-	n_list = []
-	for n in list_.split(","):
-		n_list.append(n.strip(" «»"))
-	for position, sound_name in enumerate(n_list, start=1):
+	sound_names = quoted_names(list_)
+	for position, sound_name in enumerate(sound_names, start=1):
 		empty_database.execute(
 			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(created[0], sound(empty_database, sound_name), position),
@@ -674,20 +660,20 @@ def cut_by_fallback(bench: Bench, empty_database: Connection, name: str) -> None
 	"""https://github.com/dascritch/machincast/issues/323 ; un secours absent a l'identifiant 0, qu'aucun n'a."""
 	line = empty_database.execute("SELECT id FROM events WHERE internal_name = %s", (name,)).fetchone()
 	if line is None:
-		chosen = 0
+		cut_event = 0
 	else:
-		chosen = int(str(line[0]))
-	broadcast(bench).cut_by_fallback(chosen)
+		cut_event = int(str(line[0]))
+	broadcast(bench).cut_by_fallback(cut_event)
 
 
 @when(parsers.parse("je coupe l'antenne par le feed « {name} »"))
 def cut_by_feed(bench: Bench, empty_database: Connection, name: str) -> None:
 	line = empty_database.execute("SELECT id FROM feeds WHERE name = %s", (name,)).fetchone()
 	if line is None:
-		chosen = 0
+		cut_feed = 0
 	else:
-		chosen = int(str(line[0]))
-	broadcast(bench).cut_by_feed(chosen)
+		cut_feed = int(str(line[0]))
+	broadcast(bench).cut_by_feed(cut_feed)
 
 
 @given(parsers.parse("le stream « {name} » sur le feed « {feed} », à une adresse factice"))
@@ -726,10 +712,18 @@ def run(bench: Bench, count: str, duration: str | None) -> None:
 		clock(bench).advance(timedelta(seconds=gap))
 
 
+def _playing(tracks: Iterable[Track]) -> bool:
+	"""Une des voies joue encore."""
+	for track in tracks:
+		if track.state == "playing":
+			return True
+	return False
+
+
 def wait_track_end(bench: Bench, delay: float = 5.0) -> None:
 	assert bench.engine is not None
 	limit = time.monotonic() + delay
-	while (any(v.state == "playing" for v in bench.engine.ongoing_tracks())) and (time.monotonic() < limit):
+	while (_playing(bench.engine.ongoing_tracks())) and (time.monotonic() < limit):
 		time.sleep(REAL_STEP / 5)
 		for track in bench.engine.ongoing_tracks():
 			track.handle()
@@ -778,11 +772,11 @@ def plays(database: Connection) -> list[tuple[str, datetime, datetime | None, bo
 
 
 def play(database: Connection, name: str) -> tuple[str, datetime, datetime | None, bool | None]:
-	p_list = []
-	for p in plays(database):
-		if p[0] == name:
-			p_list.append(p)
-	return p_list[0]
+	found = []
+	for played in plays(database):
+		if played[0] == name:
+			found.append(played)
+	return found[0]
 
 
 def log(database: Connection) -> list[tuple[str, str]]:
@@ -794,13 +788,11 @@ def log(database: Connection) -> list[tuple[str, str]]:
 
 @then(parsers.re(r"l'airplay montre les passages (?P<list_>.+)"))
 def airplay(empty_database: Connection, list_: str) -> None:
-	p_list = []
-	for p in plays(empty_database):
-		p_list.append(p[0])
-	n_list = []
-	for n in list_.split(","):
-		n_list.append(n.strip(" «»"))
-	assert p_list == n_list, plays(empty_database)
+	titles = []
+	for played in plays(empty_database):
+		titles.append(played[0])
+	expected_names = quoted_names(list_)
+	assert titles == expected_names, plays(empty_database)
 
 
 def title(database: Connection, sound: int) -> str:
@@ -816,11 +808,12 @@ def announcements(bench: Bench, database: Connection) -> list[str]:
 	return announcements
 
 
-def list_(text: str) -> list[str]:
-	name_list = []
+def quoted_names(text: str) -> list[str]:
+	"""Les noms d'une liste du scénario, « A », « B », sans leurs guillemets."""
+	names = []
 	for name in text.split(","):
-		name_list.append(name.strip(" «»"))
-	return name_list
+		names.append(name.strip(" «»"))
+	return names
 
 
 @then(parsers.parse("le prochain sonore réservé est « {name} »"))
@@ -832,7 +825,7 @@ def next_reserved(bench: Bench, empty_database: Connection, name: str) -> None:
 
 @then(parsers.re(r"les sonores à venir sont (?P<names>.+)"))
 def upcoming(bench: Bench, empty_database: Connection, names: str) -> None:
-	assert announcements(bench, empty_database) == list_(names)
+	assert announcements(bench, empty_database) == quoted_names(names)
 
 
 @pytest.fixture
@@ -873,10 +866,12 @@ def end_hour(end: datetime | None) -> str:
 @then("l'airplay montre :")
 def detailed_airplay(empty_database: Connection, datatable: list[list[str]]) -> None:
 	_, *lines = datatable
-	obtained_list = [
-		[title, f"{start.astimezone():%H:%M:%S}", end_hour(end), "oui" if without_incident else "non"]
-		for title, start, end, without_incident in plays(empty_database)
-	]
+	obtained_list = []
+	for played_title, played_start, end, without_incident in plays(empty_database):
+		healthy = "non"
+		if without_incident:
+			healthy = "oui"
+		obtained_list.append([played_title, f"{played_start.astimezone():%H:%M:%S}", end_hour(end), healthy])
 	line_list = []
 	for line in lines:
 		value_list = []
@@ -902,7 +897,9 @@ def rise(bench: Bench, name: str, duration: str | None) -> None:
 @then("chaque passage a sa ligne de fin, sans incident")
 def end_lines(empty_database: Connection) -> None:
 	lines = plays(empty_database)
-	assert (lines) and (all((end is not None) and (without_incident) for _, _, end, without_incident in lines)), lines
+	assert lines, lines
+	for _, _, end, without_incident in lines:
+		assert (end is not None) and (without_incident), lines
 
 
 @then(parsers.parse("le log finit par « {level} » « {kind} »"))
@@ -910,7 +907,7 @@ def log_end(empty_database: Connection, level: str, kind: str) -> None:
 	assert log(empty_database)[-1] == (level, kind)
 
 
-LEVEL_IN_DATABASE = {label: level for level, label in LEVELS.items()}
+LEVEL_IN_DATABASE = inverted(LEVELS)
 """Le niveau du log en base, par le mot des scénarios."""
 
 
@@ -934,14 +931,13 @@ def on_air_log(empty_database: Connection, datatable: list[list[str]]) -> None:
 		" LEFT JOIN events e ON e.id = l.event_id WHERE l.kind = ANY(%s) ORDER BY l.id",
 		(kind_list,),
 	).fetchall()
-	e_list = []
+	shown_rows = []
 	for t, n, k, m, e in fetched_list:
-		e_list.append((t, n, shown(k), shown(m), e))
-	fetched_list = e_list
-	expected_list = [
-		(hour(timestamp.strip()), "info", kind.strip(), message.strip(), event.strip())
-		for timestamp, kind, message, event in rows
-	]
+		shown_rows.append((t, n, shown(k), shown(m), e))
+	fetched_list = shown_rows
+	expected_list = []
+	for timestamp, kind, message, event_name in rows:
+		expected_list.append((hour(timestamp.strip()), "info", kind.strip(), message.strip(), event_name.strip()))
 	assert fetched_list == expected_list, fetched_list
 
 
@@ -960,10 +956,10 @@ def overlap(empty_database: Connection, following: str, moment: str, name: str) 
 	start = play(empty_database, following)[1]
 	assert end is not None
 	if moment == "avant":
-		chosen = start < end
+		in_order = start < end
 	else:
-		chosen = start >= end
-	assert chosen, (start, end)
+		in_order = start >= end
+	assert in_order, (start, end)
 
 
 @given(parsers.re(r"le sonore « (?P<name>[^»]+) » a (?P<duration>[\d,]+) seconde de crossfade de (?P<side>début|fin)"))
@@ -979,10 +975,8 @@ def sound_crossfade(empty_database: Connection, name: str, duration: str, side: 
 
 @given(parsers.re(r"l'événement de secours « (?P<name>[^»]+) », avec les sonores (?P<list_>.+)"))
 def fallback_event(bench: Bench, empty_database: Connection, tmp_path: Path, name: str, list_: str) -> None:
-	n_list = []
-	for n in list_.split(","):
-		n_list.append(n.strip(" «»"))
-	event(bench, empty_database, tmp_path, name, "fallback", None, None, n_list)
+	names = quoted_names(list_)
+	event(bench, empty_database, tmp_path, name, "fallback", None, None, names)
 
 
 @given(parsers.parse("le fichier du sonore « {name} » a été supprimé"))
@@ -1042,7 +1036,10 @@ def live_stream(server: StreamServer, empty_database: Connection, name: str, str
 @then(parsers.parse("le passage « {name} » a duré {duration} seconde, à {margin} seconde près"))
 def play_duration(empty_database: Connection, name: str, duration: str, margin: str) -> None:
 	"""Du début à la fin du passage, à l'heure du binaire (https://github.com/dascritch/machincast/issues/146)."""
-	found_list = [(start, end) for title, start, end, _ in plays(empty_database) if title == name]
+	found_list = []
+	for played_title, played_start, played_end, _ in plays(empty_database):
+		if played_title == name:
+			found_list.append((played_start, played_end))
 	assert found_list, f"aucun passage de {name}"
 	start, end = found_list[0]
 	assert end is not None, f"passage de {name} sans fin"
@@ -1077,7 +1074,10 @@ def dummy_stream(empty_database: Connection, name: str) -> None:
 
 @then(parsers.parse("le passage « {name} » a fini en incident « {kind} » au « {instant} »"))
 def finished_in_incident(empty_database: Connection, name: str, kind: str, instant: str) -> None:
-	found_list = [(end, healthy) for title, _start, end, healthy in plays(empty_database) if title == name]
+	found_list = []
+	for played_title, _start, played_end, played_healthy in plays(empty_database):
+		if played_title == name:
+			found_list.append((played_end, played_healthy))
 	assert found_list, name
 	end, healthy = found_list[0]
 	assert (isinstance(end, datetime)) and (end == hour(instant)) and (healthy is False), found_list

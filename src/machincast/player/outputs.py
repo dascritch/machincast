@@ -209,11 +209,19 @@ def read_plays(
 		b_mask,
 		s_mask,
 	) in lines:
+		if isinstance(end, datetime):
+			known_end = end
+		else:
+			known_end = None
+		if isinstance(duration, timedelta):
+			known_duration = duration
+		else:
+			known_duration = None
 		plays.append(
 			Line(
 				start=start,
-				end=end if isinstance(end, datetime) else None,
-				duration=duration if isinstance(duration, timedelta) else None,
+				end=known_end,
+				duration=known_duration,
 				without_incident=boolean_or_none(without_incident),
 				artist=text_or_none(artist),
 				title=text_or_none(title),
@@ -252,7 +260,10 @@ def public_page(lines: list[Line], metadata: Metadata, instant: datetime) -> str
 	on_air = name
 	if ongoing is not None:
 		on_air = play(ongoing)
-	items = "\n".join(f"\t\t\t<li>{play(line)}</li>" for line in previous_list[:PREVIOUS_LIST])
+	line_list = []
+	for previous in previous_list[:PREVIOUS_LIST]:
+		line_list.append(f"\t\t\t<li>{play(previous)}</li>")
+	items = "\n".join(line_list)
 	updated = _("Updated at {time}").format(
 		time=f'<time datetime="{instant.isoformat()}">{instant.astimezone():%H:%M:%S}</time>'
 	)
@@ -404,10 +415,10 @@ class Outputs:
 		check_writing(path)
 		path.parent.mkdir(parents=True, exist_ok=True)
 		new = not path.exists()
-		chosen = "utf-8"
+		file_encoding = "utf-8"
 		if new:
-			chosen = "utf-8-sig"
-		with path.open("a", encoding=chosen, newline="") as file:
+			file_encoding = "utf-8-sig"
+		with path.open("a", encoding=file_encoding, newline="") as file:
 			if new:
 				file.write(";".join(CSV_COLUMNS) + "\r\n")
 			file.write(csv_line(line))

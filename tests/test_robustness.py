@@ -144,10 +144,24 @@ def send_too(robustness: Robustness, qtbot: QtBot, caplog: pytest.LogCaptureFixt
 	assert robustness.connection is not None
 	caplog.set_level(logging.WARNING, logger="machincast")
 	robustness.connection.sendall(b"x" * count)
+
 	# L'interface lit d'abord les octets sans fin de ligne, puis la suite.
-	qtbot.waitUntil(lambda: any("trop long" in saving.getMessage() for saving in caplog.records))
+	def too_long_logged() -> bool:
+		for saving in caplog.records:
+			if "trop long" in saving.getMessage():
+				return True
+		return False
+
+	qtbot.waitUntil(too_long_logged)
 	robustness.connection.sendall(b'\n{"state": "dead_air", "current": null, "next": null}\n')
-	qtbot.waitUntil(lambda: any(state.state == "dead_air" for state in robustness.received_list), timeout=5000)
+
+	def dead_air_received() -> bool:
+		for state in robustness.received_list:
+			if state.state == "dead_air":
+				return True
+		return False
+
+	qtbot.waitUntil(dead_air_received, timeout=5000)
 
 
 @then("l'interface a ignoré les octets en trop, en le signalant")

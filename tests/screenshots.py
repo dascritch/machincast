@@ -313,13 +313,13 @@ def _events(connection: Connection, sounds: dict[str, int], banks: dict[str, int
 		name: str, public_name: str | None, priority: str, start: timedelta | None, end: timedelta | None, days: tuple
 	) -> int:
 		if start is None:
-			chosen = None
+			starts_at = None
 		else:
-			chosen = day + start
+			starts_at = day + start
 		if end is None:
-			chosen_2 = None
+			ends_at = None
 		else:
-			chosen_2 = day + end
+			ends_at = day + end
 		return _un(
 			connection,
 			"INSERT INTO events (internal_name, public_name, priority, starts_at, ends_at, recurrence_days)"
@@ -328,8 +328,8 @@ def _events(connection: Connection, sounds: dict[str, int], banks: dict[str, int
 				name,
 				public_name,
 				priority,
-				chosen,
-				chosen_2,
+				starts_at,
+				ends_at,
 				list(days),
 			),
 		)
@@ -411,9 +411,13 @@ def _history(
 	cours."""
 	turns = dict.fromkeys(BANKS, 0)
 	positions = dict.fromkeys(ROTATIONS, 0)
-	playable_list = {
-		key: [m for m in members if SOUNDS[m].state == "active"] for key, (*_, members, _d) in BANKS.items()
-	}
+	playable_list = {}
+	for key, (*_, bank_members, _d) in BANKS.items():
+		playable = []
+		for m in bank_members:
+			if SOUNDS[m].state == "active":
+				playable.append(m)
+		playable_list[key] = playable
 	plays: list[tuple[datetime, datetime, str, str | None, str]] = []
 	instant = HISTORY_START
 	while instant <= NOW:
@@ -435,13 +439,13 @@ def _history(
 	for start, end, sound, bank, event in plays:
 		play = uuid.uuid4()
 		if bank is None:
-			chosen = None
+			bank_identifier = None
 		else:
-			chosen = banks[bank]
+			bank_identifier = banks[bank]
 		common = (
 			play,
 			sounds[sound],
-			chosen,
+			bank_identifier,
 			events[event],
 			str(_location(sound)),
 			SOUNDS[sound].artist,
@@ -492,9 +496,9 @@ def _incidents(connection: Connection, sounds: dict[str, int], events: dict[str,
 	]
 	for timestamp, level, kind, message, sound, event in entries:
 		if sound is None:
-			chosen = None
+			sound_identifier = None
 		else:
-			chosen = sounds[sound]
+			sound_identifier = sounds[sound]
 		connection.execute(
 			"INSERT INTO log (logged_at, level, kind, message, sound_id, event_id) VALUES (%s, %s, %s, %s, %s, %s)",
 			(
@@ -502,7 +506,7 @@ def _incidents(connection: Connection, sounds: dict[str, int], events: dict[str,
 				level,
 				kind,
 				message,
-				chosen,
+				sound_identifier,
 				events[event],
 			),
 		)
@@ -518,13 +522,13 @@ def _shows(demonstration: Demonstration, rank: int, start_key: str) -> dict[str,
 	if model.artist is not None:
 		text = f"{model.artist} – {model.title}"
 	if bank is None:
-		chosen = None
+		bank_name = None
 	else:
-		chosen = BANKS[bank][0]
+		bank_name = BANKS[bank][0]
 	if bank is None:
-		banks_2 = None
+		bank_identifier = None
 	else:
-		banks_2 = demonstration.banks[bank]
+		bank_identifier = demonstration.banks[bank]
 	return {
 		"sound_id": demonstration.sounds[sound],
 		"type": "file",
@@ -537,8 +541,8 @@ def _shows(demonstration: Demonstration, rank: int, start_key: str) -> dict[str,
 		"event_end": None,
 		"sequence": None,
 		"sequence_id": None,
-		"bank": chosen,
-		"bank_id": banks_2,
+		"bank": bank_name,
+		"bank_id": bank_identifier,
 		start_key: start.isoformat(),
 		"duration": float(model.duration),
 		"estimated_end": end.isoformat(),
@@ -621,7 +625,11 @@ def save(widget: QWidget, path: Path) -> Path:
 
 def _tab(window: MainWindow, title: str) -> None:
 	tabs = window.ui.tabs
-	(index,) = [index for index in range(tabs.count()) if tabs.tabText(index) == title]
+	index_list = []
+	for rank in range(tabs.count()):
+		if tabs.tabText(rank) == title:
+			index_list.append(rank)
+	(index,) = index_list
 	tabs.setCurrentIndex(index)
 
 
@@ -644,7 +652,11 @@ def _close_tab(window: MainWindow) -> None:
 def _expand(window: MainWindow, title: str) -> None:
 	opened = window.ui.tabs.currentWidget()
 	assert opened is not None
-	(group,) = [group for group in opened.findChildren(QGroupBox) if group.property(expandable.TITLE) == title]
+	group_list = []
+	for candidate in opened.findChildren(QGroupBox):
+		if candidate.property(expandable.TITLE) == title:
+			group_list.append(candidate)
+	(group,) = group_list
 	expandable.display(group, True)
 
 
@@ -683,7 +695,14 @@ def produce(directory: Path) -> dict[str, Path]:
 		window.show()
 		wait(lambda: window.home.ui.playback_state.text() == "En diffusion")
 		timelines = (window.home.ongoing_timeline, window.home.next_timeline)
-		wait(lambda: all((timeline.shape is not None) and (timeline.shape.finished) for timeline in timelines))
+
+		def drawn() -> bool:
+			for timeline in timelines:
+				if (timeline.shape is None) or (not timeline.shape.finished):
+					return False
+			return True
+
+		wait(drawn)
 		take("accueil", window)
 		gaps = ("Identifiant station", "Musique rotation lourde", "Musique rotation de nuit", "Publicités")
 		# Les cartes son en tête, sur PipeWire, tant que l'antenne est à renseigner

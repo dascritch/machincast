@@ -180,10 +180,10 @@ def choice_without(interface: Context, qtbot: QtBot, title: str) -> None:
 	choice = Choice(SOUNDS, interface.connection)
 	qtbot.addWidget(choice)
 	model = choice.list_.table.model()
-	c_list = []
-	for c in range(model.columnCount()):
-		c_list.append(model.headerData(c, Qt.Orientation.Horizontal))
-	column = c_list.index("Titre")
+	headers = []
+	for rank in range(model.columnCount()):
+		headers.append(model.headerData(rank, Qt.Orientation.Horizontal))
+	column = headers.index("Titre")
 	titles = []
 	for row in range(model.rowCount()):
 		titles.append(model.index(row, column).data())

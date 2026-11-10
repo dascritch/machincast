@@ -264,15 +264,12 @@ class Columns(QObject):
 			column_list.append(titles[column])
 		writer.writerow(column_list)
 		for row in range(model.rowCount()):
-			if (isinstance(self.view, QTableView)) and (self.view.isRowHidden(row)):
-				continue
-			cells = []
-			for column in columns:
-				cells.append(model.index(row, column).data())
-			cell_list = []
-			for cell in cells:
-				cell_list.append(str((cell) or ("")))
-			writer.writerow(cell_list)
+			# Une ligne masquée par le filtre n'est pas exportée.
+			if not ((isinstance(self.view, QTableView)) and (self.view.isRowHidden(row))):
+				cells = []
+				for column in columns:
+					cells.append(str((model.index(row, column).data()) or ("")))
+				writer.writerow(cells)
 		return output.getvalue()
 
 	def export(self) -> None:

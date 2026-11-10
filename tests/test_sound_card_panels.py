@@ -102,7 +102,11 @@ def refuse(interface: Context) -> None:
 
 @when(parsers.parse("je clique sur le titre de l'encart « {name} »"))
 def click_title(interface: Context, qtbot: QtBot, name: str) -> None:
-	(group,) = [group for group in panels(interface) if title(group) == name]
+	group_list = []
+	for candidate in panels(interface):
+		if title(candidate) == name:
+			group_list.append(candidate)
+	(group,) = group_list
 	# Le titre est en haut de l'encart, à gauche.
 	qtbot.mouseClick(group, Qt.MouseButton.LeftButton, pos=QPoint(12, 6))
 
@@ -175,7 +179,11 @@ def dated_check(interface: Context) -> None:
 
 @then(parsers.re(r"le bouton « (?P<text>[^»]+) » de la fiche est (?P<state>actif|inactif)"))
 def button(interface: Context, text: str, state: str) -> None:
-	(found,) = [button for button in card(interface).findChildren(QPushButton) if button.text() == text]
+	button_list = []
+	for candidate in card(interface).findChildren(QPushButton):
+		if candidate.text() == text:
+			button_list.append(candidate)
+	(found,) = button_list
 	assert found.isEnabled() is (state == "actif")
 
 
@@ -198,7 +206,11 @@ def checks_in_integer(interface: Context, empty_database: Connection, qtbot: QtB
 
 @when(parsers.parse("je clique dans l'encart « {name} », sous son titre"))
 def click_content(interface: Context, qtbot: QtBot, name: str) -> None:
-	(group,) = [group for group in panels(interface) if title(group) == name]
+	group_list = []
+	for candidate in panels(interface):
+		if title(candidate) == name:
+			group_list.append(candidate)
+	(group,) = group_list
 	# Déplié, l'encart grandit quand sa disposition s'applique.
 	qtbot.waitUntil(lambda: group.height() > 4 * group.fontMetrics().height(), timeout=1000)
 	qtbot.mouseClick(group, Qt.MouseButton.LeftButton, pos=QPoint(12, group.height() - 4))
@@ -211,7 +223,11 @@ def click_content(interface: Context, qtbot: QtBot, name: str) -> None:
 	)
 )
 def title_and_content(interface: Context, name: str, text: str, gesture: str) -> None:
-	(group,) = [group for group in panels(interface) if title(group) == name]
+	group_list = []
+	for candidate in panels(interface):
+		if title(candidate) == name:
+			group_list.append(candidate)
+	(group,) = group_list
 	assert group.title() == text
 	assert card(interface).ui.checks_at.isVisible() is (gesture == "montre")
 
@@ -223,7 +239,7 @@ def labels(group: QGroupBox) -> list[str]:
 	found_list: list[str] = []
 	for line in range(form.rowCount()):
 
-		def handle_role(role, line) -> None:
+		def add_text(role, line) -> None:
 			item = form.itemAt(line, role)
 			if item is None:
 				return
@@ -232,13 +248,17 @@ def labels(group: QGroupBox) -> list[str]:
 				found_list.append(widget.text())
 
 		for role in (QFormLayout.ItemRole.LabelRole, QFormLayout.ItemRole.SpanningRole):
-			handle_role(role, line)
+			add_text(role, line)
 	return found_list
 
 
 @then(parsers.re(r"l'encart « (?P<name>[^»]+) » a les champs (?P<names>«.+)"))
 def panel_fields(interface: Context, name: str, names: str) -> None:
-	(group,) = [group for group in panels(interface) if title(group) == name]
+	group_list = []
+	for candidate in panels(interface):
+		if title(candidate) == name:
+			group_list.append(candidate)
+	(group,) = group_list
 	assert labels(group) == NAME.findall(names)
 
 
@@ -289,7 +309,10 @@ def offered_states(interface: Context, datatable: list[list[str]]) -> None:
 			state = "choisi"
 		found_list.append([choice.itemText(rank), state])
 	_headers, *rows = datatable
-	assert found_list == [[state.strip(), what.strip()] for state, what in rows]
+	state_list = []
+	for expected_state, what in rows:
+		state_list.append([expected_state.strip(), what.strip()])
+	assert found_list == state_list
 
 
 @then("la frise de la fiche est sur toute sa largeur, au-dessus des encarts")

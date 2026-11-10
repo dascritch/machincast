@@ -12,7 +12,11 @@ scenarios("movable_tabs.feature")
 def move(interface: Context, title: str, place: int) -> None:
 	"""Comme la souris : la barre des onglets le déplace, et le signale (tabMoved)."""
 	tabs = window(interface).ui.tabs
-	(index,) = [index for index in range(tabs.count()) if tab_title(tabs, index) == title]
+	index_list = []
+	for rank in range(tabs.count()):
+		if tab_title(tabs, rank) == title:
+			index_list.append(rank)
+	(index,) = index_list
 	tabs.tabBar().moveTab(index, place - 1)
 
 
@@ -24,7 +28,11 @@ def movable(interface: Context) -> None:
 @then(parsers.parse("l'onglet « {title} » a pour infobulle « {text} »"))
 def tooltip(interface: Context, title: str, text: str) -> None:
 	tabs = window(interface).ui.tabs
-	(index,) = [index for index in range(tabs.count()) if tab_title(tabs, index) == title]
+	index_list = []
+	for rank in range(tabs.count()):
+		if tab_title(tabs, rank) == title:
+			index_list.append(rank)
+	(index,) = index_list
 	assert tabs.tabToolTip(index) == text
 
 

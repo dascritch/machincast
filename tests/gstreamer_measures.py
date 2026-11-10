@@ -252,14 +252,20 @@ def main(arguments: list[str] | None = None) -> int:
 	if options.synchronous:
 		rhythm = "playbin en temps réel"
 	print(f"{options.trials} essais par pipeline et par format, {options.parallel} à la fois, {rhythm}\n")
-	measures = [(pipeline, format_) for pipeline in options.pipelines for format_ in options.formats]
+	measures = []
+	for measured_pipeline in options.pipelines:
+		for measured_format in options.formats:
+			measures.append((measured_pipeline, measured_format))
 	departure = time.monotonic()
 	with ThreadPoolExecutor(options.parallel) as runner:
 		results = list(runner.map(lambda measure: _measure(*measure, options.trials), measures))
 	print(f"| pipeline | format | {' | '.join(VERDICTS)} |")
 	print(f"| --- | --- |{' --- |' * len(VERDICTS)}")
 	for (pipeline, format_), verdicts in zip(measures, results, strict=True):
-		print(f"| {pipeline} | {format_} | {' | '.join(str(verdicts[verdict]) for verdict in VERDICTS)} |")
+		cells = []
+		for verdict in VERDICTS:
+			cells.append(str(verdicts[verdict]))
+		print(f"| {pipeline} | {format_} | {' | '.join(cells)} |")
 	print("\nTube nommé dont la lecture se bloque après son début :")
 	for pipeline in options.pipelines:
 		print(f"- {pipeline} : {_pipe(pipeline)}")

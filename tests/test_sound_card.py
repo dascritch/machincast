@@ -59,7 +59,10 @@ def paris_hour(text: str) -> datetime:
 
 def choose_text(choice: QComboBox, text: str) -> None:
 	index = choice.findText(text, Qt.MatchFlag.MatchFixedString)
-	assert index >= 0, f"« {text} » absent : {[choice.itemText(i) for i in range(choice.count())]}"
+	offered = []
+	for rank in range(choice.count()):
+		offered.append(choice.itemText(rank))
+	assert index >= 0, f"« {text} » absent : {offered}"
 	choice.setCurrentIndex(index)
 
 
@@ -68,6 +71,17 @@ def texts(choice: QComboBox) -> list[str]:
 	for index in range(choice.count()):
 		texts.append(choice.itemText(index).casefold())
 	return texts
+
+
+def yes_or_no(box: QAbstractButton) -> Callable[[], str]:
+	"""« oui » pour une case cochée, « non » sinon."""
+
+	def shown() -> str:
+		if box.isChecked():
+			return "oui"
+		return "non"
+
+	return shown
 
 
 def if_ticked(box: QAbstractButton, read: Callable[[], str]) -> Callable[[], str]:
@@ -102,7 +116,7 @@ def shows(sound: SoundCard) -> dict[str, Callable[[], str]]:
 		"Crossfade de début": if_ticked(ui.has_start_crossfade, ui.start_crossfade.text),
 		"Crossfade de fin": if_ticked(ui.has_end_crossfade, ui.end_crossfade.text),
 		"Maximum de lectures": ui.playback_max.text,
-		"Détection de silence": lambda: "oui" if ui.detection_silences.isChecked() else "non",
+		"Détection de silence": yes_or_no(ui.detection_silences),
 		"Début détecté": if_ticked(ui.has_detected_start, ui.detected_start.text),
 		"Fin détectée": if_ticked(ui.has_detected_end, ui.detected_end.text),
 		# Saisis à la main, ils s'appellent « Début » et « Fin » (https://github.com/dascritch/machincast/issues/330).
@@ -471,7 +485,9 @@ def fields_in_database(empty_database: Connection, name: str, fields: str) -> No
 @then(parsers.parse("le sonore « {name} » a en base :"))
 def columns_in_database(empty_database: Connection, name: str, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
-	expected_list = [(field.strip(), value.strip()) for field, value in rows]
+	expected_list = []
+	for field, expected_value in rows:
+		expected_list.append((field.strip(), expected_value.strip()))
 	sound_identifier = id_sound(empty_database, name)
 	fetched_list = []
 	for field, _value in expected_list:
@@ -726,7 +742,10 @@ def file_panel(interface: Context, datatable: list[list[str]]) -> None:
 	}
 	_headers, *rows = datatable
 	location = Path(ui.location.text())
-	for field, value in ((field.strip(), value.strip()) for field, value in rows):
+	field_list = []
+	for field, expected_value in rows:
+		field_list.append((field.strip(), expected_value.strip()))
+	for field, value in field_list:
 		if value == "<création du fichier>":
 			birth = int(subprocess.run(["stat", "--format=%W", str(location)], capture_output=True, text=True).stdout)
 			value = "inconnue"
@@ -772,7 +791,10 @@ def banks_outside_durations(interface: Context, datatable: list[list[str]]) -> N
 		if not name.icon().isNull():
 			marked_list.append([name.text(), name.toolTip()])
 	_headers, *rows = datatable
-	assert marked_list == [[bank.strip(), tooltip.strip()] for bank, tooltip in rows]
+	bank_list = []
+	for bank, expected_tooltip in rows:
+		bank_list.append([bank.strip(), expected_tooltip.strip()])
+	assert marked_list == bank_list
 
 
 @then("le champ du crossfade de début de la fiche du sonore est inactif, celui de fin actif")
@@ -793,7 +815,11 @@ ITEM_OF = r"(?P<item>la séquence|la banque|l'événement) « (?P<name>[^»]+) �
 
 def _relation_row(interface: Context, name: str) -> int:
 	table = card(interface).ui.relations
-	(row,) = [row for row in range(table.rowCount()) if table.item(row, 1).text() == name]
+	row_list = []
+	for candidate_row in range(table.rowCount()):
+		if table.item(candidate_row, 1).text() == name:
+			row_list.append(candidate_row)
+	(row,) = row_list
 	return row
 
 
@@ -806,7 +832,11 @@ def _relation_menu(interface: Context, name: str) -> QMenu:
 
 @when(parsers.re(r"je choisis « (?P<entry>.+) » au clic droit sur la relation « (?P<name>[^»]+) » du sonore$"))
 def remove_relation(interface: Context, entry: str, name: str) -> None:
-	(action,) = [action for action in _relation_menu(interface, name).actions() if action.text() == entry]
+	action_list = []
+	for candidate in _relation_menu(interface, name).actions():
+		if candidate.text() == entry:
+			action_list.append(candidate)
+	(action,) = action_list
 	action.trigger()
 
 
@@ -897,5 +927,7 @@ def timeline_sliders(interface: Context, sliders: str) -> None:
 	expected_list = {}
 	for name, value in re.findall(r"« ([^»]+) » à ([\d,]+) s", sliders):
 		expected_list[{"Début": "start", "Fin": "end"}[name]] = _seconds_fetched(value)
-	fetched_list = {name: round(position, 2) for name, position in card(interface).timeline.sliders.items()}
+	fetched_list = {}
+	for slider_name, position in card(interface).timeline.sliders.items():
+		fetched_list[slider_name] = round(position, 2)
 	assert fetched_list == expected_list, fetched_list

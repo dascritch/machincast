@@ -46,5 +46,9 @@ def mark_buttons(interface: Context, buttons: str) -> None:
 	parsers.re(r"l'action groupée « (?P<key>[^»]+) » s'intitule « (?P<title>[^»]+) », au bouton « (?P<button>[^»]+) »")
 )
 def grouped_action(key: str, title: str, button: str) -> None:
-	(action,) = [action for action in groups.SOUNDS if action.key == key]
+	action_list = []
+	for candidate in groups.SOUNDS:
+		if candidate.key == key:
+			action_list.append(candidate)
+	(action,) = action_list
 	assert (action.title, action.button) == (title, button)

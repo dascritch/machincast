@@ -82,7 +82,11 @@ def of_the_card(interface: Context, group: str) -> Columns:
 			parent = parent.parentWidget()
 		return False
 
-	(found_list,) = [columns for columns in all_(card) if in_(columns)]
+	columns_list = []
+	for candidate in all_(card):
+		if in_(candidate):
+			columns_list.append(candidate)
+	(found_list,) = columns_list
 	return found_list
 
 
@@ -103,7 +107,11 @@ def width(columns: Columns, title: str) -> int:
 
 
 def entry(columns: Columns, text: str) -> QAction:
-	(action,) = [action for action in columns.menu().actions() if action.text() == text]
+	action_list = []
+	for candidate in columns.menu().actions():
+		if candidate.text() == text:
+			action_list.append(candidate)
+	(action,) = action_list
 	return action
 
 
@@ -270,8 +278,16 @@ def menu(interface: Context, place: str, datatable: list[list[str]]) -> None:
 			return [action.text(), "coché"]
 		return [action.text(), "décoché"]
 
-	obtained_list = [line(action) for action in columns_of(interface, place).menu().actions()]
-	assert obtained_list == [[value.strip() for value in line] for line in lines]
+	obtained_list = []
+	for shown in columns_of(interface, place).menu().actions():
+		obtained_list.append(line(shown))
+	line_list = []
+	for expected_line in lines:
+		value_list = []
+		for value in expected_line:
+			value_list.append(value.strip())
+		line_list.append(value_list)
+	assert obtained_list == line_list
 
 
 @then(parsers.re(rf"l'entrée « (?P<title>[^»]+) » du menu des colonnes {PLACE} est inactive"))
@@ -358,7 +374,11 @@ def _export(interface: Context, tab_: str, file: str | None) -> None:
 	interface.monkeypatch.setattr(column_module, "choose_file", choose)
 	columns = of_the_tab(interface, tab_)
 	menu = columns.table_menu(QPoint(-1, -1))
-	(action,) = [action for action in menu.actions() if action.text() == EXPORT]
+	action_list = []
+	for candidate in menu.actions():
+		if candidate.text() == EXPORT:
+			action_list.append(candidate)
+	(action,) = action_list
 	action.trigger()
 
 
@@ -443,7 +463,11 @@ def line_menu(interface: Context, name: str, tab_: str, first: str, last_list: s
 	columns = of_the_tab(interface, tab_)
 	view = columns.view
 	model = view.model()
-	(row,) = [row for row in range(model.rowCount()) if name in str(model.index(row, 1).data())]
+	row_list = []
+	for candidate_row in range(model.rowCount()):
+		if name in str(model.index(candidate_row, 1).data()):
+			row_list.append(candidate_row)
+	(row,) = row_list
 	position = view.visualRect(model.index(row, 1)).center()
 	texts = _texts(columns.table_menu(position))
 	end = NAME.findall(last_list)

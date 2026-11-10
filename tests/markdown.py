@@ -32,6 +32,9 @@ def broken_anchors(path: Path) -> list[str]:
 	text = path.read_text(encoding="utf-8")
 	broken_anchors = []
 	for file, anchor in ANCHOR_LINK.findall(text):
-		if anchor not in anchors(path.parent / file if file else path):
+		target = path
+		if file:
+			target = path.parent / file
+		if anchor not in anchors(target):
 			broken_anchors.append(f"{file}#{anchor}")
 	return broken_anchors

@@ -158,7 +158,9 @@ def to_silence(interface: Context) -> None:
 def information(interface: Context, qtbot: QtBot, datatable: list[list[str]]) -> None:
 	ui = preview_window(interface).ui
 	fields = {"Format": ui.format, "Échantillonnage": ui.sampling, "Canaux": ui.channels}
-	expected_list = [(name.strip(), value.strip()) for name, value in datatable[1:]]
+	expected_list = []
+	for field_name, value in datatable[1:]:
+		expected_list.append((field_name.strip(), value.strip()))
 
 	def conforms(fetched: str, expected: str) -> bool:
 		"""« contient « FLAC » » : le libellé, qui vient de GStreamer, contient ce nom ; sinon, égal."""
@@ -168,12 +170,10 @@ def information(interface: Context, qtbot: QtBot, datatable: list[list[str]]) ->
 		return fetched == expected
 
 	def all_() -> bool:
-		every_one = True
 		for name, value in expected_list:
 			if not (conforms(fields[name].text(), value)):
-				every_one = False
-				break
-		return every_one
+				return False
+		return True
 
 	try:
 		qtbot.waitUntil(all_, timeout=DELAY)

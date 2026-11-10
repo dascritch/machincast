@@ -280,7 +280,9 @@ def silent(trial: Trial, de: str, a: str, of_2: str, has_2: str) -> None:
 def sound(trial: Trial, de: str, a: str) -> None:
 	assert trial.shape is not None
 	amplitudes = trial.shape.amplitudes(seconds(de), seconds(a))
-	assert (amplitudes) and (all(0.4 <= amplitude <= 0.6 for amplitude in amplitudes)), amplitudes
+	assert amplitudes, amplitudes
+	for amplitude in amplitudes:
+		assert 0.4 <= amplitude <= 0.6, amplitudes
 
 
 @then(
@@ -293,7 +295,9 @@ def mean_level(trial: Trial, level: str, de: str, a: str, of_2: str, has_2: str)
 	assert shape is not None
 	assert len(shape.means) == len(shape.peaks)
 	means = shape.means_between(seconds(de), seconds(a))
-	assert (means) and (all(abs(mean - seconds(level)) < 0.03 for mean in means)), means
+	assert means, means
+	for mean in means:
+		assert abs(mean - seconds(level)) < 0.03, means
 	silences = shape.means_between(seconds(of_2), seconds(has_2))
 	assert (silences) and (max(silences) < 0.01), silences
 

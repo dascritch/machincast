@@ -194,7 +194,12 @@ def plays(interface: Context, datatable: list[list[str]]) -> None:
 	for header in headers:
 		header_list.append(header.strip())
 	assert column_list == header_list
-	expected_list = [[value.strip() for value in row] for row in rows]
+	expected_list = []
+	for expected_row in rows:
+		value_list = []
+		for value in expected_row:
+			value_list.append(value.strip())
+		expected_list.append(value_list)
 	location = COLUMNS.index("Emplacement")
 	for row in expected_list:
 		row[location] = interface.path(row[location])

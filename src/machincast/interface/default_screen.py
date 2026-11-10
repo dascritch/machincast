@@ -117,14 +117,20 @@ class DefaultScreen(QWidget):
 		self.ui = Ui_DefaultScreen()
 		self.ui.setupUi(self)
 		self.airplay_model = QStandardItemModel(0, len(self.AIRPLAY_COLUMNS), self)
-		self.airplay_model.setHorizontalHeaderLabels([title for _, title in self.AIRPLAY_COLUMNS])
+		item_list = []
+		for _key, title in self.AIRPLAY_COLUMNS:
+			item_list.append(title)
+		self.airplay_model.setHorizontalHeaderLabels(item_list)
 		self.ui.table_airplay.setModel(self.airplay_model)
 		self.airplay_columns = Columns(self.ui.table_airplay, "accueil-airplay")
 		self.ui.table_airplay.activated.connect(self._open_cell)
 		self.airplay_columns.line_menu = lambda position: self.airplay_menu(self.ui.table_airplay.indexAt(position))
 		# Les sonores à venir, avec les colonnes de l'airplay (https://github.com/dascritch/machincast/issues/228).
 		self.upcoming_model = QStandardItemModel(0, len(self.AIRPLAY_COLUMNS), self)
-		self.upcoming_model.setHorizontalHeaderLabels([title for _, title in self.AIRPLAY_COLUMNS])
+		upcoming_titles = []
+		for _upcoming_key, title in self.AIRPLAY_COLUMNS:
+			upcoming_titles.append(title)
+		self.upcoming_model.setHorizontalHeaderLabels(upcoming_titles)
 		upcoming_table = self.ui.upcoming_table
 		upcoming_table.setModel(self.upcoming_model)
 		self.upcoming_columns = Columns(upcoming_table, "accueil-a-venir")
@@ -696,9 +702,9 @@ def play_cells(play: DisplayedPlay) -> list[str]:
 	if play.end is not None:
 		end = display.hour(play.end)
 		duration = display.duration(play.duration)
-	chosen = ""
+	incident = ""
 	if play.without_incident is False:
-		chosen = INCIDENT
+		incident = INCIDENT
 	return [
 		display.hour(play.start),
 		end,
@@ -708,7 +714,7 @@ def play_cells(play: DisplayedPlay) -> list[str]:
 		(play.event) or (""),
 		(play.sequence) or (""),
 		(play.bank) or (""),
-		chosen,
+		incident,
 	]
 
 
@@ -734,9 +740,9 @@ def _upcoming_cells(sound: DisplayedSound) -> list[str]:
 	duration = ""
 	if sound.duration is not None:
 		duration = display.duration(sound.duration)
-	chosen = ""
+	health = ""
 	if sound.healthy is False:
-		chosen = NOT_HEALTHY
+		health = NOT_HEALTHY
 	return [
 		display.hour(sound.start, ""),
 		display.hour(sound.estimated_end, ""),
@@ -746,7 +752,7 @@ def _upcoming_cells(sound: DisplayedSound) -> list[str]:
 		(sound.shown_event) or (""),
 		(sound.sequence) or (""),
 		(sound.bank) or (""),
-		chosen,
+		health,
 	]
 
 

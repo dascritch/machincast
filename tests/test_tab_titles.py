@@ -47,11 +47,14 @@ def listed(interface: Context, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
 	fetched = []
 	for action in _tab_entries(interface):
+		checked = "non"
+		if action.isChecked():
+			checked = "oui"
 		fetched.append(
 			[
 				_title(action),
 				action.text().partition("\t")[2],
-				"oui" if action.isChecked() else "non",
+				checked,
 			]
 		)
 	row_list = []
@@ -65,5 +68,9 @@ def listed(interface: Context, datatable: list[list[str]]) -> None:
 
 @when(parsers.parse("je choisis l'onglet « {title} » dans le menu « Onglets »"))
 def choose(interface: Context, title: str) -> None:
-	(action,) = [action for action in _tab_entries(interface) if _title(action) == title]
+	action_list = []
+	for candidate in _tab_entries(interface):
+		if _title(candidate) == title:
+			action_list.append(candidate)
+	(action,) = action_list
 	action.trigger()

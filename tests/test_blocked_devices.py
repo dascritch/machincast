@@ -102,7 +102,11 @@ def stops(qtbot: QtBot, server: AudioServer) -> None:
 	assert pipeline is not None
 
 	def has_stop() -> bool:
-		asks = any((item is pipeline) and (state == Gst.State.NULL) for item, state in server.requests)
+		asks = False
+		for item, requested in server.requests:
+			if (item is pipeline) and (requested == Gst.State.NULL):
+				asks = True
+				break
 		_return, state, _expected = pipeline.get_state(0)
 		return (asks) and (state == Gst.State.NULL)
 
@@ -120,7 +124,13 @@ def in_order(server: AudioServer) -> None:
 
 @then("le port de monitoring de l'antenne est bientôt réessayé")
 def retries(interface: Context, qtbot: QtBot, server: AudioServer) -> None:
-	qtbot.waitUntil(lambda: Gst.State.PLAYING in [state for _e, state in server.requests], timeout=DELAY)
+	def playing_requested() -> bool:
+		for _element, state in server.requests:
+			if state == Gst.State.PLAYING:
+				return True
+		return False
+
+	qtbot.waitUntil(playing_requested, timeout=DELAY)
 	assert home(interface).monitor.active()
 
 

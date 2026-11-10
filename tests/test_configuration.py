@@ -30,6 +30,14 @@ VALID: dict[str, dict[str, str]] = {
 }
 
 
+def _copy(sections: dict[str, dict[str, str]]) -> dict[str, dict[str, str]]:
+	"""Une copie des sections, que modifier ne change pas l'original."""
+	copy = {}
+	for name, keys in sections.items():
+		copy[name] = dict(keys)
+	return copy
+
+
 @dataclass
 class Context:
 	directory: Path
@@ -40,7 +48,7 @@ class Context:
 	code: int | None = None
 	received: Configuration | None = None
 	errors: str = ""
-	keys: dict[str, dict[str, str]] = field(default_factory=lambda: {s: dict(c) for s, c in VALID.items()})
+	keys: dict[str, dict[str, str]] = field(default_factory=lambda: _copy(VALID))
 
 
 @pytest.fixture

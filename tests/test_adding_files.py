@@ -130,7 +130,12 @@ def finished(interface: Context) -> None:
 def in_database(interface: Context, empty_database: Connection, datatable: list[list[str]]) -> None:
 	"""Les sonores dont le fichier est dans le répertoire du scénario, par emplacement ; la durée à la seconde."""
 	headers, *rows = datatable
-	expected_list = [dict(zip(headers, (interface.path(v.strip()) for v in values), strict=True)) for values in rows]
+	expected_list = []
+	for row_values in rows:
+		cells = []
+		for v in row_values:
+			cells.append(interface.path(v.strip()))
+		expected_list.append(dict(zip(headers, cells, strict=True)))
 	fetched_list = empty_database.execute(
 		"SELECT location, type::text, state::text, artist, title, duration FROM sounds"
 		" WHERE location LIKE %s || '/%%' ORDER BY location",
@@ -144,10 +149,10 @@ def in_database(interface: Context, empty_database: Connection, datatable: list[
 		header_list = []
 		for header in headers:
 			header_list.append(header.strip())
-		v_list = []
+		found_cells = []
 		for v in values:
-			v_list.append(str(v))
-		found_list.append(dict(zip(header_list, v_list, strict=True)))
+			found_cells.append(str(v))
+		found_list.append(dict(zip(header_list, found_cells, strict=True)))
 	assert found_list == sorted(expected_list, key=lambda line: line["location"])
 
 

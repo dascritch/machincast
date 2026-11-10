@@ -408,12 +408,11 @@ class EventCard(Card):
 			return True
 		sounds = []
 		for line in self.items.lines():
-			if line.data(0, CATEGORY) != "sound":
-				continue
-			if line.data(0, FEED) is not None:
-				return True
-			if line.data(0, ITEM) is not None:
-				sounds.append(int(line.data(0, ITEM)))
+			if line.data(0, CATEGORY) == "sound":
+				if line.data(0, FEED) is not None:
+					return True
+				if line.data(0, ITEM) is not None:
+					sounds.append(int(line.data(0, ITEM)))
 		if sounds == []:
 			return False
 		with self.connection.transaction():
@@ -521,7 +520,10 @@ class EventCard(Card):
 			modified_at=NEVER,
 			skipped_list=self._skipped_list(),
 		)
-		others = [other for other in read_grid(self.connection) if other.id != self.identifier]
+		others = []
+		for other_event in read_grid(self.connection):
+			if other_event.id != self.identifier:
+				others.append(other_event)
 		found = overlap(place, others, since=self.clock.now())
 		if found is not None:
 			other, instant = found

@@ -42,20 +42,20 @@ def broadcasts(
 	"""Un événement sans précision est une émission ; au nom d'une autre, elle lui prête son nom
 	(https://github.com/dascritch/machincast/issues/399)."""
 	if feed is None:
-		chosen = "show"
+		priority = "show"
 	else:
-		chosen = "background_programming"
+		priority = "background_programming"
 	if lender is None:
-		chosen_2 = None
+		lender_identifier = None
 	else:
-		chosen_2 = 9
+		lender_identifier = 9
 	ongoing = {
 		"sound_id": 12,
 		"type": "file",
 		"artist": None,
 		"title": title,
 		"event": event,
-		"event_priority": chosen,
+		"event_priority": priority,
 		"sequence": sequence,
 		"location": "/srv/musique/minuit.flac",
 		"start": "2026-10-21T08:59:00+02:00",
@@ -64,7 +64,7 @@ def broadcasts(
 		"position": 60.0,
 		"progress": 0.28,
 		"lender": lender,
-		"lender_id": chosen_2,
+		"lender_id": lender_identifier,
 	}
 	publish(player, "playing", ongoing)
 
@@ -74,11 +74,11 @@ FOLLOWING_EVENT = 7
 
 
 def displayed_sound(title: str, event: str, start: str) -> dict[str, object]:
-	chosen = 13
+	sound_identifier = 13
 	if start == "debut":
-		chosen = 12
+		sound_identifier = 12
 	return {
-		"sound_id": chosen,
+		"sound_id": sound_identifier,
 		"type": "file",
 		"artist": None,
 		"title": title,
@@ -183,7 +183,11 @@ def next_actions(interface: Context) -> list[QAction]:
 
 @when(parsers.parse("je choisis « {entry} » au clic droit sur le prochain sonore"))
 def choose_to_next(interface: Context, entry: str) -> None:
-	(action,) = [action for action in next_actions(interface) if action.text() == entry]
+	action_list = []
+	for candidate in next_actions(interface):
+		if candidate.text() == entry:
+			action_list.append(candidate)
+	(action,) = action_list
 	action.trigger()
 
 
@@ -195,7 +199,11 @@ def closed_socket_before_choice(interface: Context, player: Player, qtbot: QtBot
 	player.socket = None
 	client = window(interface).home.client
 	qtbot.waitUntil(lambda: client._socket.state() != QLocalSocket.LocalSocketState.ConnectedState, timeout=WAITING)
-	(action,) = [action for action in entries(interface).values() if action.text() == entry]
+	action_list = []
+	for candidate in entries(interface).values():
+		if candidate.text() == entry:
+			action_list.append(candidate)
+	(action,) = action_list
 	action.setEnabled(True)
 	action.trigger()
 
@@ -211,7 +219,10 @@ def interruptions(interface: Context, menu: str, datatable: list[list[str]]) -> 
 	obtained_list = []
 	for action in broadcast_menu.actions():
 		if action in entries(interface).values():
-			obtained_list.append([action.text(), "active" if action.isEnabled() else "inactive", action.toolTip()])
+			state = "inactive"
+			if action.isEnabled():
+				state = "active"
+			obtained_list.append([action.text(), state, action.toolTip()])
 	line_list = []
 	for line in lines:
 		value_list = []
@@ -226,7 +237,10 @@ def next_menu(interface: Context, datatable: list[list[str]]) -> None:
 	_, *lines = datatable
 	obtained_list = []
 	for action in next_actions(interface):
-		obtained_list.append([action.text(), "active" if action.isEnabled() else "inactive", action.toolTip()])
+		state = "inactive"
+		if action.isEnabled():
+			state = "active"
+		obtained_list.append([action.text(), state, action.toolTip()])
 	# Qt donne à une action sans infobulle son texte pour infobulle : une cellule vide l'accepte.
 	expected_list = []
 	for line in lines:
@@ -307,7 +321,11 @@ def _receive(player: Player, qtbot: QtBot) -> list[Request]:
 def _feed_menu(interface: Context, name: str) -> QMenu:
 	opened = list_(interface)
 	model = opened.table.model()
-	(row,) = [row for row in range(model.rowCount()) if model.index(row, 0).data() == name]
+	row_list = []
+	for candidate_row in range(model.rowCount()):
+		if model.index(candidate_row, 0).data() == name:
+			row_list.append(candidate_row)
+	(row,) = row_list
 	menu = opened.line_menu(model.index(row, 0))
 	assert menu is not None
 	return menu
@@ -317,13 +335,21 @@ def _feed_menu(interface: Context, name: str) -> QMenu:
 def choose_fallback(interface: Context, entry: str) -> None:
 	under_menu = window(interface).cutoff_by_fallback.menu()
 	assert under_menu is not None
-	(action,) = [action for action in under_menu.actions() if action.text() == entry]
+	action_list = []
+	for candidate in under_menu.actions():
+		if candidate.text() == entry:
+			action_list.append(candidate)
+	(action,) = action_list
 	action.trigger()
 
 
 @when(parsers.parse("je choisis « {entry} » au clic droit sur le feed « {name} »"))
 def choose_to_feed(interface: Context, entry: str, name: str) -> None:
-	(action,) = [action for action in _feed_menu(interface, name).actions() if action.text() == entry]
+	action_list = []
+	for candidate in _feed_menu(interface, name).actions():
+		if candidate.text() == entry:
+			action_list.append(candidate)
+	(action,) = action_list
 	action.trigger()
 
 

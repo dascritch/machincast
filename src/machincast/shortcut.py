@@ -54,7 +54,10 @@ def _argument(text: str) -> str:
 		return text
 	character_list = []
 	for character in text:
-		character_list.append(f"\\{character}" if character in '"`$\\' else character)
+		escaped = character
+		if character in '"`$\\':
+			escaped = f"\\{character}"
+		character_list.append(escaped)
 	cites = "".join(character_list)
 	return f'"{cites}"'
 

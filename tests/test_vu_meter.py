@@ -121,7 +121,12 @@ def channels(interface: Context, qtbot: QtBot, count: str, bottom: str, top: str
 
 	def shown_list() -> bool:
 		levels = vu_meter.levels
-		return (len(levels) == int(count)) and (all(int(bottom) <= level <= int(top) for level in levels))
+		if len(levels) != int(count):
+			return False
+		for level in levels:
+			if not int(bottom) <= level <= int(top):
+				return False
+		return True
 
 	qtbot.waitUntil(shown_list, timeout=DELAY)
 
@@ -279,7 +284,7 @@ def item(port: object, factory: str, properties: str) -> None:
 	assert len(found_list) == 1, port.children  # type: ignore[attr-defined]
 	source = found_list[0]
 
-	def handle_key(key, value) -> None:
+	def check_property(key, value) -> None:
 		if key == "stream-properties":
 			field, expected = value.split("=")
 			assert source.get_property(key).get_value(field) == (expected == "true")
@@ -287,7 +292,7 @@ def item(port: object, factory: str, properties: str) -> None:
 		assert source.get_property(key) == value
 
 	for key, value in re.findall(r"([\w-]+) « ([^»]+) »", properties):
-		handle_key(key, value)
+		check_property(key, value)
 
 
 @then(parsers.parse("le port de monitoring donne {count:d} canaux"))
@@ -564,8 +569,14 @@ def build_listening(output: str, device: str) -> object:
 
 @then(parsers.parse("l'écoute de l'antenne finit par l'élément « {factory} »"))
 def finishes_by(listening: object, factory: str) -> None:
-	sink = [item for item in listening.children if not item.srcpads]  # type: ignore[attr-defined]
-	assert [item.get_factory().get_name() for item in sink] == [factory]
+	sink = []
+	for element in listening.children:
+		if not element.srcpads:
+			sink.append(element)
+	item_list = []
+	for sink_element in sink:
+		item_list.append(sink_element.get_factory().get_name())
+	assert item_list == [factory]
 
 
 # ─── Entrée d'écoute de l'antenne (https://github.com/dascritch/machincast/issues/256) ───

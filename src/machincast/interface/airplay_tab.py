@@ -115,7 +115,10 @@ class AirplayScreen(QWidget):
 		self.table.horizontalHeader().setStretchLastSection(True)
 		self.table.setToolTip(_("Double-click on a sound, an event, a sequence or a bank: open its card"))
 		self.model = QStandardItemModel(0, len(self.COLUMNS), self)
-		self.model.setHorizontalHeaderLabels([title for _, title in self.COLUMNS])
+		item_list = []
+		for _key, title in self.COLUMNS:
+			item_list.append(title)
+		self.model.setHorizontalHeaderLabels(item_list)
 		self.table.setModel(self.model)
 		self.columns = Columns(self.table, "onglet-airplay")
 		top = QHBoxLayout()

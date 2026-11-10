@@ -280,10 +280,10 @@ def previous_list(bench: Bench, count: int) -> None:
 	list_ = re.search(r'<ol class="precedents">(.*?)</ol>', page(bench), re.DOTALL)
 	assert list_ is not None, page(bench)
 	titles = re.findall(r"Titre (\d+)", list_.group(1))
-	n_list = []
-	for n in range(25, 25 - count, -1):
-		n_list.append(str(n))
-	assert titles == n_list, titles
+	expected_titles = []
+	for number in range(25, 25 - count, -1):
+		expected_titles.append(str(number))
+	assert titles == expected_titles, titles
 
 
 @then("la page publique se rafraîchit toutes les 30 secondes")
@@ -302,17 +302,19 @@ def playlist(bench: Bench, count: int, first: int, last: int) -> None:
 	files = re.findall(r"^File\d+=(.*)$", text, re.MULTILINE)
 	assert text.startswith("[playlist]\n")
 	assert (f"NumberOfEntries={count}" in text) and ("Version=2" in text)
-	n_list = []
-	for n in range(first, last + 1):
-		n_list.append(f"/musique/{n}.flac")
-	assert files == n_list, files
+	expected_files = []
+	for number in range(first, last + 1):
+		expected_files.append(f"/musique/{number}.flac")
+	assert files == expected_files, files
 
 
 @then("chaque entrée de la playlist donne l'artiste et le titre")
 def playlist_titles(bench: Bench) -> None:
 	text = bench_outputs(bench).paths.pls.read_text(encoding="utf-8")
 	titles = re.findall(r"^Title(\d+)=(.*)$", text, re.MULTILINE)
-	assert (titles) and (all(re.fullmatch(r"Artiste \d+ – Titre \d+", title) for _, title in titles)), titles
+	assert titles, titles
+	for _, title in titles:
+		assert re.fullmatch(r"Artiste \d+ – Titre \d+", title), titles
 
 
 def csv_lines(bench: Bench, name: str) -> list[dict[str, str]]:

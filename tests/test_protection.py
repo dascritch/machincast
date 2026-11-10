@@ -234,7 +234,9 @@ def play_count(empty_database: Connection, count: int) -> None:
 @then(parsers.parse("le log contient 1 alerte « {kind} », qui mentionne « {mention} »"))
 def warning(empty_database: Connection, kind: str, mention: str) -> None:
 	lines = empty_database.execute("SELECT level::text, message FROM log WHERE kind = %s", (stored(kind),)).fetchall()
-	assert (len(lines) >= 1) and (all((n == "warning") and (mention in shown(m)) for n, m in lines)), lines
+	assert len(lines) >= 1, lines
+	for level, message in lines:
+		assert (level == "warning") and (mention in shown(message)), lines
 
 
 @then("l'ouverture est refusée, car c'est un fichier sonore protégé")
@@ -270,4 +272,6 @@ def detected_silences(context: Context, empty_database: Connection, name: str) -
 	line = empty_database.execute(
 		"SELECT detected_start, detected_end FROM sounds WHERE id = %s", (sound_of(empty_database, context, name),)
 	).fetchone()
-	assert (line is not None) and (all(isinstance(value, timedelta) for value in line)), line
+	assert line is not None, line
+	for value in line:
+		assert isinstance(value, timedelta), line

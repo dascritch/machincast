@@ -44,9 +44,9 @@ def _text(list_: Gst.TagList, *names: str, length: int | None = None) -> str | N
 	(https://github.com/dascritch/machincast/issues/108) ; plusieurs valeurs d'un tag sont jointes par GStreamer."""
 	for name in names:
 		found, value = list_.get_string(name)
-		if not found:
-			continue
-		text = conform((value) or (""))
+		text = ""
+		if found:
+			text = conform((value) or (""))
 		if text != "":
 			if length is not None:
 				return text[:length]
@@ -99,7 +99,7 @@ def merge(
 	"""
 	result = dict(current_list)
 
-	def handle_key(key: str) -> None:
+	def merge_field(key: str) -> None:
 		if f"music_metadata.{key}" in edited_fields:
 			return
 		if key in fetched_list:
@@ -108,5 +108,5 @@ def merge(
 			result.pop(key, None)
 
 	for key in KEYS:
-		handle_key(key)
+		merge_field(key)
 	return result

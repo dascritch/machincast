@@ -18,7 +18,7 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.player.state import BusyStateSocket, StateSocket
-from tests.broadcast_steps import Bench, Connection, create_sound, event, hour, plays, sound
+from tests.broadcast_steps import Bench, Connection, create_sound, event, hour, plays, quoted_names, sound
 
 scenarios("state.feature")
 
@@ -232,10 +232,8 @@ def seen_list(client: Client, list_: str) -> None:
 		current = received["current"]
 		if (current is not None) and ((not titles) or (titles[-1] != current["title"])):
 			titles.append(current["title"])
-	n_list = []
-	for n in list_.split(","):
-		n_list.append(n.strip(" «»"))
-	assert titles == n_list, titles
+	expected_names = quoted_names(list_)
+	assert titles == expected_names, titles
 
 
 @then(parsers.parse("son dernier message est à l'état « {state} »"))
@@ -300,16 +298,14 @@ def upcoming(client: Client) -> list[dict[str, Any]]:
 @then(parsers.re(r"la socket annonce les sonores à venir (?P<list_>.+), sains"))
 def upcoming_sounds(client: Client, list_: str) -> None:
 	sounds = upcoming(client)
-	s_list = []
-	for s in sounds:
-		s_list.append(s["title"])
-	n_list = []
-	for n in list_.split(","):
-		n_list.append(n.strip(" «»"))
-	assert s_list == n_list, sounds
+	titles = []
+	for upcoming_sound in sounds:
+		titles.append(upcoming_sound["title"])
+	expected_names = quoted_names(list_)
+	assert titles == expected_names, sounds
 	every_one = True
-	for s in sounds:
-		if s["healthy"] is not True:
+	for upcoming_sound in sounds:
+		if upcoming_sound["healthy"] is not True:
 			every_one = False
 			break
 	assert every_one, sounds
@@ -322,10 +318,10 @@ def upcoming_sounds(client: Client, list_: str) -> None:
 	)
 )
 def upcoming_hours(client: Client, which: str, start: str, end: str) -> None:
-	chosen = -1
+	rank = -1
 	if which == "premier":
-		chosen = 0
-	fetched_sound = upcoming(client)[chosen]
+		rank = 0
+	fetched_sound = upcoming(client)[rank]
 	assert hour(fetched_sound["estimated_start"]) == hour(start), fetched_sound
 	assert hour(fetched_sound["estimated_end"]) == hour(end), fetched_sound
 
@@ -483,10 +479,8 @@ def random_bank_show(
 		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'random') RETURNING id", (bank,)
 	).fetchone()
 	assert created is not None
-	n_list = []
-	for n in list_.split(","):
-		n_list.append(n.strip(" «»"))
-	for position, sound_name in enumerate(n_list, start=1):
+	sound_names = quoted_names(list_)
+	for position, sound_name in enumerate(sound_names, start=1):
 		empty_database.execute(
 			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
 			(created[0], create_sound(bench, empty_database, tmp_path, sound_name), position),

@@ -58,16 +58,16 @@ def run_insertion(
 	context: Context, table: str, values: dict[str, str], return_: str = ""
 ) -> psycopg.Cursor[tuple[object, ...]]:
 	# Les valeurs sont des littéraux SQL écrits dans les scénarios : elles sont insérées telles quelles.
-	c_list = []
-	for c in values:
-		c_list.append(sql.Identifier(c))
-	v_list = []
-	for v in values.values():
-		v_list.append(sql.SQL(v))
+	columns = []
+	for column in values:
+		columns.append(sql.Identifier(column))
+	literals = []
+	for literal in values.values():
+		literals.append(sql.SQL(literal))
 	query = sql.SQL("INSERT INTO {} ({}) VALUES ({})" + return_).format(
 		sql.Identifier(table),
-		sql.SQL(", ").join(c_list),
-		sql.SQL(", ").join(v_list),
+		sql.SQL(", ").join(columns),
+		sql.SQL(", ").join(literals),
 	)
 	return context.connection.execute(query)
 
@@ -522,10 +522,10 @@ def database_migrations(context: Context) -> list[str]:
 def applied_count(context: Context, count: str) -> None:
 	assert context.refusal is None, context.refusal
 	if count == "aucune":
-		chosen = 0
+		expected = 0
 	else:
-		chosen = int(count)
-	assert context.applied == chosen
+		expected = int(count)
+	assert context.applied == expected
 
 
 @then(parsers.parse("les migrations appliquées à la base de test sont « {migration} »"))

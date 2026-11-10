@@ -185,7 +185,9 @@ class SearchScreen(QWidget):
 	def _show(self, total: int, looks_for: bool) -> None:
 		self.model.setRowCount(0)
 		for result in self.results:
-			cells = [QStandardItem(text) for text in (TYPES[result.category], result.name, result.public_name)]
+			cells = []
+			for cell_text in (TYPES[result.category], result.name, result.public_name):
+				cells.append(QStandardItem(cell_text))
 			# L'icône du genre (https://github.com/dascritch/machincast/issues/215).
 			cells[0].setIcon(icons.icon_of(result.category))
 			cells.append(QStandardItem(result.status))

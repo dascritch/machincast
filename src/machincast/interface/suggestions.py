@@ -189,22 +189,26 @@ def _fill_empty_feed(connection: psycopg.Connection[TupleRow]) -> None:
 	).fetchone()
 	if empty is None:
 		return
-	banks = {
-		str(name).casefold(): int(str(identifier))
-		for identifier, name in connection.execute(
-			"SELECT id, internal_name FROM banks WHERE deleted_at IS NULL ORDER BY id"
-		)
-	}
+	banks = {}
+	for bank_identifier, name in connection.execute(
+		"SELECT id, internal_name FROM banks WHERE deleted_at IS NULL ORDER BY id"
+	):
+		banks[str(name).casefold()] = int(str(bank_identifier))
 	position = 0
-	for bank in ROTATION:
+
+	def add_bank(bank: str) -> None:
+		nonlocal position
 		identifier = banks.get(bank.casefold())
 		if identifier is None:
-			continue
+			return
 		position += 1
 		connection.execute(
 			"INSERT INTO event_items (event_id, position, bank_id) VALUES (%s, %s, %s)",
 			(empty[0], position, identifier),
 		)
+
+	for bank in ROTATION:
+		add_bank(bank)
 
 
 def save(path: Path, response: Response) -> None:
