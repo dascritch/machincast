@@ -61,9 +61,21 @@ def crash_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 	crash-dump/ du dépôt (https://github.com/dascritch/machincast/issues/342)."""
 	directory = tmp_path / "crash-dump"
 	monkeypatch.setattr(crash, "DIRECTORY", directory)
+	monkeypatch.setattr(crash, "REPOSITORY", directory)
 	# Les binaires que les scénarios lancent dans un autre processus aussi.
 	monkeypatch.setenv(crash.ENVIRONMENT, str(directory))
 	monkeypatch.setattr(crash, "FALLBACK", tmp_path / "crash-dump-de-secours")
+	return directory
+
+
+@pytest.fixture(autouse=True)
+def log_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+	"""Les fichiers de log des binaires, dans le répertoire du scénario, s'il le crée : jamais dans /var/log/machincast
+	(https://github.com/dascritch/machincast/issues/381), y compris pour les binaires lancés à part."""
+	from machincast import log
+
+	directory = tmp_path / "logs"
+	monkeypatch.setenv(log.ENVIRONMENT, str(directory))
 	return directory
 
 

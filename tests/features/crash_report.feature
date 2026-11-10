@@ -127,7 +127,10 @@ Fonctionnalité: Rapports de crash
 		Quand le lancement suivant de « Machin_essai » achève les rapports en cours
 		Alors crash-dump ne contient aucun rapport, mais un rapport en cours
 
-	Scénario: Sans droit d'écriture dans le dépôt, les rapports vont dans /tmp/machincast/crash-dump
+	Scénario: Sans /var/log/machincast ni droit d'écriture dans le dépôt, les rapports vont dans /tmp/machincast/crash-dump
+		https://github.com/dascritch/machincast/issues/381 : d'abord /var/log/machincast/crash-dump, avec les logs, puis
+		crash-dump/ du dépôt, puis /tmp/machincast/crash-dump.
+
 		Étant donné un dépôt du code sans droit d'écriture
 		Et Machin purge qui plante sur l'erreur imprévue « panne imitée »
 		Quand je lance « Machin purge », qui plante

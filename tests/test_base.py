@@ -3,6 +3,7 @@
 import logging
 import random
 import re
+import stat
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -299,6 +300,33 @@ def without_print() -> None:
 			if PRINT.search(line.split("#", 1)[0]):
 				faults.append(f"{path.relative_to(SOURCES)}:{number}")
 	assert not faults, "utiliser logging (machincast.log) au lieu de print :\n" + "\n".join(faults)
+
+
+@given("le répertoire des logs créé")
+def created_log_directory(log_directory: Path) -> None:
+	"""https://github.com/dascritch/machincast/issues/381 : celui du scénario (conftest.log_directory)."""
+	log_directory.mkdir()
+
+
+@then(parsers.re(r"le fichier « (?P<name>[^»]+) » du répertoire des logs contient (?P<lines>«.+»)$"))
+def log_file_lines(log_directory: Path, name: str, lines: str) -> None:
+	expected = []
+	for text in re.findall(r"« ((?:[^«»]|«[^»]*»)*) »", lines):
+		expected.append(text)
+	for handler in logging.getLogger("machincast").handlers:
+		handler.flush()
+	content = (log_directory / name).read_text(encoding="utf-8")
+	assert without_timestamp(content).splitlines() == expected, content
+
+
+@then(parsers.parse("le fichier « {name} » du répertoire des logs se lit et s'écrit par le groupe, pas par les autres"))
+def log_file_mode(log_directory: Path, name: str) -> None:
+	assert stat.S_IMODE((log_directory / name).stat().st_mode) == 0o660
+
+
+@then("le répertoire des logs n'existe pas")
+def no_log_directory(log_directory: Path) -> None:
+	assert not log_directory.exists()
 
 
 @given(parsers.parse('les messages configurés pour l\'exécutable "{executable}"'))
