@@ -33,6 +33,7 @@ Fonctionnalité: Menu général de l'interface
 			| —                      |          |           |                                |
 			| Indexation rapide      | active   |           |                                |
 			| Audit complet          | active   |           |                                |
+			| Statut des indexations… | active |           |                                |
 			| —                      |          |           |                                |
 			| Maintenance de la base de données… | active |   |                                |
 			| Faire lire les fichiers sonores au service de diffusion… | inactive | | Sans service de diffusion, Machin player lit les fichiers sonores avec votre compte. |

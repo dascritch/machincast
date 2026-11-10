@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>StatusWindow</class>
+ <widget class="QWidget" name="StatusWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>640</width>
+    <height>520</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Indexing status</string>
+  </property>
+  <layout class="QVBoxLayout" name="arrangement">
+   <item>
+    <layout class="QFormLayout" name="counts">
+     <item row="0" column="0">
+      <widget class="QLabel" name="to_scan_caption">
+       <property name="text">
+        <string>Directories to scan</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLabel" name="to_scan"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="scanned_caption">
+       <property name="text">
+        <string>Directories scanned</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLabel" name="scanned"/>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="found_caption">
+       <property name="text">
+        <string>Sounds found</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLabel" name="found"/>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="summary_caption">
+       <property name="text">
+        <string>Sounds with a quick indexing</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLabel" name="summary"/>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="complete_caption">
+       <property name="text">
+        <string>Sounds with a full audit</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QLabel" name="complete"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="charts"/>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="foot">
+     <item>
+      <widget class="QLabel" name="since">
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="shut_down">
+       <property name="text">
+        <string>Close</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

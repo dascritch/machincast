@@ -193,6 +193,20 @@ Pour ne vérifier que quelques sonores en entier, sans tout auditer, le clic dro
 
 L'indexation tourne dans sa propre fenêtre, qui montre ligne par ligne chaque sonore vérifié, les anomalies, puis le bilan : « Indexation rapide terminée : 2 nouveaux sonores, 0 rattachement, 0 retrait ; 2 sonores vérifiés ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 2 sortis d'aperçu. ». L'interface reste utilisable, et peut même être fermée. Une indexation rapide et un audit complet peuvent tourner en même temps, mais pas deux du même genre : l'entrée du menu reste grisée tant que la sienne tourne. Un sonore dont la vérification plante ou dure plus de 10 minutes est signalé en **incident** dans la fenêtre, laissé tel quel, et l'indexation passe au suivant. Fermer sa fenêtre pendant l'indexation propose de l'arrêter après le fichier en cours : le travail fait est gardé. À la fin, **Affichage → Rafraîchir les onglets** (<kbd>F5</kbd>) montre ses changements.
 
+### Statut des indexations
+
+**Maintenance → Statut des indexations…** ouvre une fenêtre qui dit où en sont les indexations ([#392](https://github.com/dascritch/machincast/issues/392)) :
+
+| Ligne | Ce qu'elle compte |
+| --- | --- |
+| Répertoires à scanner | Les répertoires des banques que l'indexation n'a pas encore parcourus depuis son dernier démarrage. Un répertoire qui alimente plusieurs banques compte une fois. |
+| Répertoires scannés | Ceux qu'elle a parcourus jusqu'au bout depuis son dernier démarrage. |
+| Sonores détectés | Tous les sonores fichiers qui ne sont pas supprimés. |
+| Sonores à l'indexation sommaire | Ceux qui ont été vérifiés (type et décodage), sans audit complet. |
+| Sonores à l'indexation complète | Ceux qui ont eu un audit complet, silences mesurés. |
+
+Sous les nombres, deux camemberts : les répertoires, scannés ou à scanner ; les sonores, à l'audit complet, à l'indexation sommaire, ou pas encore indexés. La fenêtre se met à jour toutes les deux secondes : laissée ouverte pendant une indexation, elle en suit l'avancée. Son bas dit depuis quel démarrage de l'indexation les répertoires comptent comme scannés.
+
 ## Feeds
 
 Un **feed** est une adresse de flux réutilisable, souvent en ligne par intermittence, comme le studio mobile de la radio : plusieurs streams peuvent le suivre. **Affichage → Ouvrir l'onglet Feeds** en donne la liste ; **Nouveau feed** ouvre une fiche vide.

@@ -53,12 +53,14 @@ Fonctionnalité: Schéma de la base de données
 		Quand j'annule toutes les migrations
 		Alors la base ne contient plus aucune table ni aucun type de MachinCast
 
-	Scénario: Une base neuve reçoit le schéma, en une seule migration
+	Scénario: Une base neuve reçoit le schéma initial, puis les migrations qui l'ont suivi
 		https://github.com/dascritch/machincast/issues/381 : les migrations 0002 à 0007 ont rejoint 0001.initial-schema.
+		Les suivantes s'y ajoutent : une base de production déjà créée ne repasse pas par 0001
+		(https://github.com/dascritch/machincast/issues/392).
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 1 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema »
+		Alors 2 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
 	# Le ramasse-miettes est suspendu : une connexion qui n'est pas fermée explicitement reste ouverte.
