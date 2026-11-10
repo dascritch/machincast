@@ -16,6 +16,11 @@ l'export est enregistré (annonce).
 
 L'onglet se relit à son ouverture, à chaque réglage, et quand l'onglet Antenne voit un nouveau sonore (actualiser) :
 jamais en boucle.
+
+Un filtre, comme celui de l'onglet Incidents, garde les passages dont une colonne contient le texte tapé, sans tenir
+compte des majuscules ni des accents (FilterWithoutAccents) ; un clic sur un titre de colonne trie les passages,
+le début et la fin dans l'ordre du temps, même sur plusieurs jours, la durée dans l'ordre des durées ; avant, ils
+gardent l'ordre de la base, le plus récent en tête (https://github.com/dascritch/machincast/issues/393).
 """
 
 import logging
@@ -23,12 +28,13 @@ from datetime import timedelta
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QModelIndex, Signal
+from PySide6.QtCore import QModelIndex, Qt, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
 	QAbstractItemView,
 	QHBoxLayout,
 	QLabel,
+	QLineEdit,
 	QMenu,
 	QPushButton,
 	QSpinBox,
@@ -39,9 +45,9 @@ from PySide6.QtWidgets import (
 
 from machincast.clock import Clock
 from machincast.configuration import Metadata
-from machincast.i18n import _
+from machincast.i18n import _, counted, ngettext
 from machincast.interface import columns, dialogs
-from machincast.interface.airplay import HOURS, read_airplay
+from machincast.interface.airplay import HOURS, DisplayedPlay, read_airplay
 from machincast.interface.columns import Columns
 from machincast.interface.default_screen import (
 	ITEM,
@@ -53,6 +59,7 @@ from machincast.interface.default_screen import (
 	play_location,
 )
 from machincast.interface.export_airplay import FORMATS, in_csv, in_html, in_m3u
+from machincast.interface.lists import SORT, FilterWithoutAccents, without_accents
 from machincast.interface.simulation import with_extension
 from machincast.player.outputs import read_plays
 from machincast.protection import check_writing
@@ -73,6 +80,21 @@ def retained_hours() -> int:
 	except ValueError:
 		return HOURS
 	return min(HOURS_AT_MOST, max(1, hours))
+
+
+def _sort_keys(play: DisplayedPlay) -> list[object]:
+	"""Ce qui trie chaque colonne : le début et la fin par leur instant, le passage en cours après les autres, la durée
+	en secondes, le reste par son texte, sans majuscules ni accents."""
+	end: float = float("inf")
+	if play.end is not None:
+		end = play.end.timestamp()
+	duration = -1.0
+	if play.duration is not None:
+		duration = play.duration.total_seconds()
+	keys: list[object] = [play.start.timestamp(), end, duration]
+	for text in play_cells(play)[3:]:
+		keys.append(without_accents(text))
+	return keys
 
 
 class AirplayScreen(QWidget):
@@ -119,17 +141,31 @@ class AirplayScreen(QWidget):
 		for _key, title in self.COLUMNS:
 			item_list.append(title)
 		self.model.setHorizontalHeaderLabels(item_list)
-		self.table.setModel(self.model)
+		self.proxy = FilterWithoutAccents(self)
+		self.proxy.setSourceModel(self.model)
+		self.proxy.setSortRole(SORT)
+		self.table.setModel(self.proxy)
 		self.columns = Columns(self.table, "onglet-airplay")
+		# Un clic sur un titre de colonne trie les passages ; avant, ils gardent l'ordre de la base.
+		self.table.setSortingEnabled(True)
+		self.table.horizontalHeader().setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
+		self.filter_ = QLineEdit(self)
+		self.filter_.setObjectName("filter_airplay")
+		self.filter_.setPlaceholderText(_("Filter…"))
+		self.filter_.setClearButtonEnabled(True)
+		self.filter_.setToolTip(_("The plays of which a column contains this text, whatever the case and the accents"))
+		self.count = QLabel(self)
 		top = QHBoxLayout()
 		top.addWidget(caption)
 		top.addWidget(self.hours)
-		top.addStretch(1)
+		top.addWidget(self.filter_, 1)
+		top.addWidget(self.count)
 		top.addWidget(self.export)
 		arrangement = QVBoxLayout(self)
 		arrangement.addLayout(top)
 		arrangement.addWidget(self.table, 1)
 		self.hours.valueChanged.connect(self._set)
+		self.filter_.textChanged.connect(self._apply_filter)
 		self.export.clicked.connect(self._export)
 		self.table.activated.connect(self._open_cell)
 		self.columns.line_menu = lambda position: self.line_menu(self.table.indexAt(position))
@@ -145,12 +181,30 @@ class AirplayScreen(QWidget):
 		self.model.setRowCount(0)
 		for play in plays:
 			cells = []
-			for text in play_cells(play):
-				cells.append(QStandardItem(text))
+			for text, key in zip(play_cells(play), _sort_keys(play), strict=True):
+				cell = QStandardItem(text)
+				cell.setData(key, SORT)
+				cells.append(cell)
 			for column, item in play_items(play).items():
 				cells[column].setData(item, ITEM)
 			cells[0].setData(play_location(play), LOCATION)
 			self.model.appendRow(cells)
+		self._count()
+
+	def _apply_filter(self, text: str) -> None:
+		self.proxy.apply_filter(text)
+		self._count()
+
+	def _count(self) -> None:
+		"""Combien de passages l'onglet montre ; avec un filtre, sur combien."""
+		total = self.model.rowCount()
+		shown = self.proxy.rowCount()
+		text = counted("{count} play", "{count} plays", total)
+		if self.filter_.text() != "":
+			text = ngettext("{count} play out of {total}", "{count} plays out of {total}", shown).format(
+				count=shown, total=total
+			)
+		self.count.setText(text)
 
 	def _set(self, hours: int) -> None:
 		columns.settings().setValue(HOUR_SETTING, hours)
@@ -165,7 +219,7 @@ class AirplayScreen(QWidget):
 	def line_menu(self, index: QModelIndex) -> QMenu | None:
 		"""« Pré-écoute… » du sonore de la ligne, puis son emplacement, comme l'airplay de l'onglet Antenne ; aucun
 		menu hors d'une ligne."""
-		return line_menu(self, self.model, index, self.requested_preview.emit)
+		return line_menu(self, self.model, self.proxy.mapToSource(index), self.requested_preview.emit)
 
 	def _export(self) -> None:
 		now = self.clock.now()

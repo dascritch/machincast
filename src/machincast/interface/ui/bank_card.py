@@ -228,6 +228,12 @@ class Ui_BankCard(object):
         self.sound_group.setObjectName(u"sound_group")
         self.sound_layout = QVBoxLayout(self.sound_group)
         self.sound_layout.setObjectName(u"sound_layout")
+        self.sound_filter = QLineEdit(self.sound_group)
+        self.sound_filter.setObjectName(u"sound_filter")
+        self.sound_filter.setClearButtonEnabled(True)
+
+        self.sound_layout.addWidget(self.sound_filter)
+
         self.sounds = QTreeWidget(self.sound_group)
         self.sounds.setObjectName(u"sounds")
         self.sounds.setAlternatingRowColors(True)
@@ -357,6 +363,10 @@ class Ui_BankCard(object):
         self.add_directory.setText(QCoreApplication.translate("BankCard", u"\u2795 Add a directory\u2026", None))
         self.remove_directory.setText(QCoreApplication.translate("BankCard", u"\u2796 Remove the directory", None))
         self.sound_group.setTitle(QCoreApplication.translate("BankCard", u"Sounds", None))
+#if QT_CONFIG(tooltip)
+        self.sound_filter.setToolTip(QCoreApplication.translate("BankCard", u"The sounds of which a column contains this text, whatever the case and the accents", None))
+#endif // QT_CONFIG(tooltip)
+        self.sound_filter.setPlaceholderText(QCoreApplication.translate("BankCard", u"Filter\u2026", None))
         ___qtreewidgetitem = self.sounds.headerItem()
         ___qtreewidgetitem.setText(3, QCoreApplication.translate("BankCard", u"Location", None))
         ___qtreewidgetitem.setText(2, QCoreApplication.translate("BankCard", u"State", None))

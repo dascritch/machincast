@@ -37,6 +37,13 @@ une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interf
 - Sa copie (https://github.com/dascritch/machincast/issues/130) garde tout sauf sa liste de sonores : nom public, mode,
   masquage, « ne pas répéter », crossfades, durées et répertoires. Ses répertoires la rempliront à la prochaine
   indexation.
+- Filtre et tri (https://github.com/dascritch/machincast/issues/393) : le filtre au-dessus des sonores ne garde que
+  ceux dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents, comme celui de l'onglet
+  Incidents ; il lit d'abord tous les sonores de la banque. Pendant un filtre, l'ordre ne se change pas : ni glisser,
+  ni « Monter », ni « Descendre ». En mode aléatoire seulement, un clic sur un titre de colonne trie les sonores
+  (SoundLine : la durée dans l'ordre des durées, le reste par son texte), après avoir lu toute la banque ; en mode
+  séquentiel, l'ordre est celui de passage, et ne se trie pas : passer en séquentiel rend l'ordre d'avant le tri
+  (ORDER), pour ne jamais enregistrer un ordre trié.
 
 Les fenêtres de dialogue sont celles de machincast.interface.dialogs.
 """
@@ -74,6 +81,7 @@ from machincast.interface.lists import (
 	SOUND_IN_ANOMALY,
 	STATES,
 	bank_to_sounds_in_anomaly,
+	without_accents,
 )
 from machincast.interface.ui.bank_card import Ui_BankCard
 
@@ -99,11 +107,47 @@ STATE = Qt.ItemDataRole.UserRole + 3
 """Rôle qui porte l'état du sonore en base ; « apercu » pour un fichier déposé."""
 CHOSEN_STATE = Qt.ItemDataRole.UserRole + 4
 """Rôle qui porte l'état choisi au clic droit, écrit à l'enregistrement ; absent sans choix."""
+ORDER = Qt.ItemDataRole.UserRole + 5
+"""Rang de la ligne dans l'ordre de la banque : en passant en séquentiel, un tri par colonne se défait d'après lui
+(https://github.com/dascritch/machincast/issues/393)."""
+DURATION_COLUMN = 1
 STATE_COLUMN = 2
 CHOSEN_STATES = (("active", _("Enable")), ("disabled", _("Disable")))
 """Les états qui se choisissent au clic droit sur les sonores, et leur entrée de menu."""
 LINE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsDragEnabled
 """Une ligne de sonore se glisse, mais rien ne se dépose dedans : la liste reste à plat."""
+FILTERED_SOUNDS = _("Sounds: {shown} shown out of {total}")
+
+
+def _seconds(line: QTreeWidgetItem) -> float:
+	duration = line.data(0, DURATION)
+	if isinstance(duration, timedelta):
+		return duration.total_seconds()
+	return -1.0
+
+
+class SoundLine(QTreeWidgetItem):
+	"""Une ligne de sonore, qui se trie par sa durée dans la colonne des durées, sinon par son texte, sans majuscules ni
+	accents (https://github.com/dascritch/machincast/issues/393)."""
+
+	def __lt__(self, other: QTreeWidgetItem) -> bool:
+		tree = self.treeWidget()
+		column = 0
+		if tree is not None:
+			column = tree.sortColumn()
+		if column == DURATION_COLUMN:
+			return _seconds(self) < _seconds(other)
+		return without_accents(self.text(column)) < without_accents(other.text(column))
+
+
+def _matches(line: QTreeWidgetItem, text: str) -> bool:
+	"""Une colonne de la ligne contient le texte, déjà sans majuscules ni accents."""
+	for column in range(line.columnCount()):
+		if text in without_accents(line.text(column)):
+			return True
+	return False
+
+
 FETCHED_SOUNDS = (
 	"SELECT s.id, s.artist, s.title, s.duration, s.location, COALESCE(s.location, s.stream_url, m.url),"
 	" s.state::text"
@@ -186,6 +230,8 @@ class BankCard(Card):
 		"""Pendant la lecture d'une page, ses lignes ne modifient pas la fiche."""
 		self._sounds_changed = False
 		"""La liste des sonores a changé depuis la lecture : sans changement, l'enregistrement ne la réécrit pas."""
+		self._order = 0
+		"""Le rang de la dernière ligne créée (ORDER)."""
 		"""Sonores de la banque à la dernière lecture : ceux qui manquent à la fiche en ont été retirés."""
 		self.directory_drop = FileDrop(self.ui.directories)
 		self.directory_drop.dropped.connect(self._drop_in_directories)
@@ -225,6 +271,10 @@ class BankCard(Card):
 		self.ui.sounds.itemSelectionChanged.connect(self._refresh_buttons)
 		self.columns.line_menu = lambda position: self.sound_menu(self.ui.sounds.itemAt(position))
 		self.ui.sounds.itemActivated.connect(self._open_sound)
+		# Filtre et tri des sonores (https://github.com/dascritch/machincast/issues/393).
+		self.ui.sound_filter.textChanged.connect(self._filter_sounds)
+		model.rowsInserted.connect(self._refilter)
+		self.ui.sounds.header().sortIndicatorChanged.connect(self._sort_requested)
 		self.ui.add_directory.clicked.connect(self._add_directory)
 		self.ui.remove_directory.clicked.connect(self._remove_directory)
 		self.ui.add_sounds.clicked.connect(self._add_sounds)
@@ -306,7 +356,7 @@ class BankCard(Card):
 			sound_list = []
 			for sound in sounds:
 				sound_list.append(self._line(sound))
-			self.ui.sounds.addTopLevelItems(sound_list)
+			self._append(sound_list)
 		finally:
 			self._paging = False
 		self._loaded_list = set(self._sounds())
@@ -350,7 +400,7 @@ class BankCard(Card):
 			lines.append(self._line(sound))
 		self._paging = True
 		try:
-			self.ui.sounds.addTopLevelItems(lines)
+			self._append(lines)
 		finally:
 			self._paging = False
 		sound_set = set()
@@ -383,6 +433,12 @@ class BankCard(Card):
 		if self._after is not None:
 			shown = self.ui.sounds.topLevelItemCount()
 			title = PARTIAL_SOUNDS.format(shown=shown, total=shown + sum(self._tail.values()))
+		if self.ui.sound_filter.text() != "":
+			visible = 0
+			for line in self._lines():
+				if not line.isHidden():
+					visible += 1
+			title = FILTERED_SOUNDS.format(shown=visible, total=self.ui.sounds.topLevelItemCount())
 		self.ui.sound_group.setTitle(title)
 
 	def _write(self) -> int:
@@ -632,7 +688,9 @@ class BankCard(Card):
 		if (artist is None) and (title is None) and (file is not None):
 			# Pas encore décodé : le nom du fichier en attendant ses tags.
 			text = Path(str(file)).name
-		line = QTreeWidgetItem([text, duration_text, STATES.get(str(state), str(state)), str((location) or (""))])
+		line = SoundLine([text, duration_text, STATES.get(str(state), str(state)), str((location) or (""))])
+		self._order += 1
+		line.setData(0, ORDER, self._order)
 		line.setData(0, STATE, str(state))
 		if identifier is not None:
 			line.setData(0, SOUND, int(str(identifier)))
@@ -682,8 +740,12 @@ class BankCard(Card):
 		qu'en mode séquentiel : « Monter » et « Descendre » ne servent pas en tête et en fin de liste."""
 		self.ui.remove_directory.setEnabled(self.ui.directories.currentItem() is not None)
 		sequential = self.ui.mode.currentData() == "sequential"
+		self._follow_mode(sequential)
+		filtered = self.ui.sound_filter.text() != ""
+		# Pendant un filtre, l'ordre ne se change pas : des lignes cachées sépareraient les lignes montrées.
+		movable = (sequential) and (not filtered)
 		mode = QAbstractItemView.DragDropMode.NoDragDrop
-		if sequential:
+		if movable:
 			mode = QAbstractItemView.DragDropMode.InternalMove
 		self.ui.sounds.setDragDropMode(mode)
 		self.sound_drop.accept()
@@ -693,8 +755,73 @@ class BankCard(Card):
 		row = -1
 		if len(chosen_list) == 1:
 			row = list_.indexOfTopLevelItem(chosen_list[0])
-		self.ui.raise_.setEnabled((sequential) and (row > 0))
-		self.ui.go_down.setEnabled((sequential) and (0 <= row < list_.topLevelItemCount() - 1))
+		self.ui.raise_.setEnabled((movable) and (row > 0))
+		self.ui.go_down.setEnabled((movable) and (0 <= row < list_.topLevelItemCount() - 1))
+
+	def _follow_mode(self, sequential: bool) -> None:
+		"""En mode aléatoire, les sonores se trient par colonne ; en séquentiel, non, et l'ordre d'avant le tri revient
+		(https://github.com/dascritch/machincast/issues/393)."""
+		tree = self.ui.sounds
+		header = tree.header()
+		if (not sequential) and (not tree.isSortingEnabled()):
+			# L'ordre de la banque, tel qu'il est, est celui qu'un passage en séquentiel rendra.
+			for rank, line in enumerate(self._lines()):
+				line.setData(0, ORDER, rank)
+			self._order = tree.topLevelItemCount()
+			header.setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
+			tree.setSortingEnabled(True)
+			return
+		if (sequential) and (tree.isSortingEnabled()):
+			was_sorted = header.sortIndicatorSection() >= 0
+			tree.setSortingEnabled(False)
+			header.setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
+			if was_sorted:
+				self._restore_order()
+
+	def _append(self, lines: list[QTreeWidgetItem]) -> None:
+		"""Ajoute les lignes en fin de tableau ; à leur place dans le tri si une colonne est triée. Sans colonne triée,
+		Qt trierait quand même un ajout de plusieurs lignes : le tri se suspend le temps de l'ajout."""
+		tree = self.ui.sounds
+		suspended = (tree.isSortingEnabled()) and (tree.header().sortIndicatorSection() < 0)
+		if suspended:
+			tree.setSortingEnabled(False)
+		tree.addTopLevelItems(lines)
+		if suspended:
+			tree.header().setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
+			tree.setSortingEnabled(True)
+
+	def _restore_order(self) -> None:
+		"""Les lignes dans l'ordre de la banque (ORDER) : ce n'est pas un changement de la fiche."""
+		tree = self.ui.sounds
+		lines = sorted(self._lines(), key=lambda line: int(line.data(0, ORDER)))
+		self._paging = True
+		try:
+			with self._in_bulk():
+				while tree.topLevelItemCount() > 0:
+					tree.takeTopLevelItem(0)
+				tree.addTopLevelItems(lines)
+		finally:
+			self._paging = False
+
+	def _sort_requested(self, section: int, _order: Qt.SortOrder) -> None:
+		"""Un tri porte sur toute la banque : les sonores pas encore lus le sont d'abord."""
+		if (section >= 0) and (self.ui.sounds.isSortingEnabled()):
+			self.load_all()
+
+	def _filter_sounds(self) -> None:
+		"""Ne montre que les sonores dont une colonne contient le texte ; le filtre porte sur toute la banque."""
+		text = without_accents(self.ui.sound_filter.text())
+		if (text != "") and (self._after is not None):
+			self.load_all()
+		for line in self._lines():
+			line.setHidden(not _matches(line, text))
+		self._show_count()
+		self._refresh_buttons()
+
+	def _refilter(self) -> None:
+		"""Une ligne lue ou ajoutée pendant un filtre le suit."""
+		if self.ui.sound_filter.text() != "":
+			self._filter_sounds()
 
 	def _add_directory(self) -> None:
 		chosen = dialogs.choose_directory(self)
@@ -773,7 +900,7 @@ class BankCard(Card):
 			if key not in present_list:
 				present_list.add(key)
 				lines.append(self._line(sound))
-		self.ui.sounds.addTopLevelItems(lines)
+		self._append(lines)
 		self._refresh_buttons()
 		self.flag_ignored(ignored, _("these are not sound files"), FOLDER_ON_SOUNDS)
 
@@ -804,7 +931,7 @@ class BankCard(Card):
 		for sound in new_list:
 			if sound in by_identifier:
 				lines.append(self._line(by_identifier[sound]))
-		self.ui.sounds.addTopLevelItems(lines)
+		self._append(lines)
 		self._refresh_buttons()
 
 	def _remove_sound(self) -> None:

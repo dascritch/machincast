@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from datetime import timedelta
 
 import pytest
-from PySide6.QtCore import QItemSelectionModel, Qt, QTime
+from PySide6.QtCore import QItemSelectionModel, QPoint, Qt, QTime
 from PySide6.QtWidgets import (
 	QAbstractItemView,
 	QCheckBox,
@@ -745,3 +745,41 @@ def marked_fast(interface: Context, count: int, seconds: int) -> None:
 			marked_list.append(row)
 	assert len(marked_list) == count
 	assert interface.response_duration < seconds, interface.response_duration
+
+
+# ─── Filtre et tri des sonores (https://github.com/dascritch/machincast/issues/393) ───
+
+
+@when(parsers.parse("je tape « {text} » dans le filtre des sonores de la fiche"))
+def type_filter(interface: Context, text: str) -> None:
+	field = card(interface).ui.sound_filter
+	field.clear()
+	field.insert(text)
+
+
+@when("je vide le filtre des sonores de la fiche")
+def empty_filter(interface: Context) -> None:
+	card(interface).ui.sound_filter.clear()
+
+
+@then(parsers.re(r"la fiche montre seulement les sonores (?P<sounds>«.+)"))
+def only_sounds(interface: Context, sounds: str) -> None:
+	list_ = card(interface).ui.sounds
+	shown = []
+	for row in range(list_.topLevelItemCount()):
+		line = list_.topLevelItem(row)
+		if not line.isHidden():
+			shown.append(line.text(0))
+	assert shown == NAME.findall(sounds)
+
+
+@when(parsers.parse("je clique sur le titre « {title} » des sonores de la fiche"))
+def sort_sounds(interface: Context, qtbot: QtBot, title: str) -> None:
+	list_ = card(interface).ui.sounds
+	header = list_.header()
+	titles = []
+	for column in range(list_.columnCount()):
+		titles.append(list_.headerItem().text(column))
+	column = titles.index(title)
+	position = QPoint(header.sectionViewportPosition(column) + header.sectionSize(column) // 2, header.height() // 2)
+	qtbot.mouseClick(header.viewport(), Qt.MouseButton.LeftButton, pos=position)
