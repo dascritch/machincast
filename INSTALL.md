@@ -264,7 +264,7 @@ systemctl status machincast.service machincast-pipewire.service machincast-wirep
 
 **Updating from a service installed before #381**: it ran under the installing account, whose session stayed active at start-up. `./install.sh --service` moves it to the `machincast` account; `sudo loginctl disable-linger "$(id -un)"` then gives the session back its usual behaviour.
 
-`--remove-service` stops and disables the service, its PipeWire, its WirePlumber and the purge timer, removes their units, the rule and the configuration files, gives the on-air card back to the sessions of the machine, removes the PostgreSQL role `machincast`, then the account and group `machincast`. The logs stay in `/var/log/machincast`, the sound files in `/home/machincast`, and MachinCast in `/opt/machincast`. The purge is then run by hand, with `Machin purge`.
+`--remove-service` stops and disables the service, its PipeWire, its WirePlumber and the purge timer, removes their units, the rule and the configuration files, gives the on-air card back to the sessions of the machine, removes the PostgreSQL role `machincast`, then the account and group `machincast`. The logs stay in `/var/log/machincast`, the sound files in `/home/machincast`, and MachinCast in `/opt/machincast`. **No directory that contains a sound file is ever removed**, nor `/home/machincast`, even empty ([#430](https://github.com/dascritch/machincast/issues/430)): install.sh only removes the directories it created, once it has checked that they hold no sound file (any extension of [the indexed formats](doc/fr/spec.md#62-indexation-des-répertoires-de-banques), whatever its case), and says which ones it keeps. The purge is then run by hand, with `Machin purge`.
 
 ## Adding another account
 

@@ -62,6 +62,9 @@ FICHIER_WIREPLUMBER_SERVICE="${DOSSIER_WIREPLUMBER_SERVICE}/wireplumber/wireplum
 # Le répertoire d'accueil des sonores (machincast.access.WELCOME) : les répertoires personnels restent fermés au
 # service, et leurs droits ne changent jamais.
 ACCUEIL="/home/machincast"
+# Les extensions des fichiers sonores (machincast.protection.SOUND_EXTENSIONS) : un répertoire qui en contient un ne se
+# retire jamais (https://github.com/dascritch/machincast/issues/430).
+EXTENSIONS_SONORES=(aac aif aiff flac m4a mp3 ogg wav)
 # Accepte, sans question, de dédier le poste à l'antenne : --dedicated.
 DEDIE=false
 # La carte de l'antenne, cachée aux sessions du poste : elle est au PipeWire du service.
@@ -831,8 +834,8 @@ relocaliser_machincast() {
 	# fichier de MachinCast : son propre répertoire, programme et configuration, jamais un sonore
 	executer sudo mv "${RACINE}" "${LIEN_INSTALLATION}"
 	executer ln --symbolic "${LIEN_INSTALLATION}" "${RACINE}"
-	# fichier de MachinCast : l'environnement virtuel, créé par install.sh, dont les scripts gardent l'ancien chemin
-	executer rm --recursive --force "${LIEN_INSTALLATION}/.venv"
+	# L'environnement virtuel, créé par install.sh, dont les scripts gardent l'ancien chemin.
+	retirer_repertoires "${LIEN_INSTALLATION}/.venv"
 	if "${SIMULATION}"; then
 		info '[simulation] install.sh would start again from %s' "${LIEN_INSTALLATION}"
 		return 0
@@ -886,6 +889,59 @@ traiter_les_sonores_personnels() {
 		[rR]*) installation forget-personal-sounds ;;
 		*) info 'left in place, not played on air' ;;
 	esac
+}
+
+# Le premier fichier sonore d'un répertoire, quelle que soit la casse de son extension ; rien s'il n'en contient aucun.
+# --sudo : pour un répertoire du compte du service.
+premier_sonore() {
+	local prefixe=() extension criteres=()
+	if [[ "$1" == --sudo ]]; then
+		shift
+		if ! "${SIMULATION}"; then
+			prefixe=(sudo)
+		fi
+	fi
+	for extension in "${EXTENSIONS_SONORES[@]}"; do
+		if ((${#criteres[@]} > 0)); then
+			criteres+=(-o)
+		fi
+		criteres+=(-iname "*.${extension}")
+	done
+	"${prefixe[@]}" find "$1" -type f \( "${criteres[@]}" \) -print -quit 2>/dev/null || true
+}
+
+# Retire des répertoires créés par MachinCast, jamais le répertoire d'accueil des sonores, ni un répertoire qui contient
+# un fichier sonore, quel qu'il soit : il reste, et install.sh le dit (https://github.com/dascritch/machincast/issues/430).
+# --sudo : pour des répertoires du compte du service.
+retirer_repertoires() {
+	local option=() repertoire sonore
+	if [[ "$1" == --sudo ]]; then
+		option=(--sudo)
+		shift
+	fi
+	for repertoire in "$@"; do
+		if [[ ! -e "${repertoire}" ]]; then
+			continue
+		fi
+		case "$(realpath --canonicalize-missing "${repertoire}")/" in
+			"${ACCUEIL}"/* | "$(dirname "${ACCUEIL}")"/)
+				avertissement '%s kept: it is the directory of the sound files' "${repertoire}"
+				continue
+				;;
+		esac
+		sonore="$(premier_sonore "${option[@]}" "${repertoire}")"
+		if [[ -n "${sonore}" ]]; then
+			avertissement '%s kept: it contains sound files, such as %s' "${repertoire}" "${sonore}"
+			continue
+		fi
+		if ((${#option[@]} > 0)); then
+			# fichier de MachinCast : un répertoire qu'il a créé, sans aucun fichier sonore
+			executer sudo rm --recursive --force "${repertoire}"
+		else
+			# fichier de MachinCast : un répertoire qu'il a créé, sans aucun fichier sonore
+			executer rm --recursive --force "${repertoire}"
+		fi
+	done
 }
 
 # Le WirePlumber des sessions relit sa configuration : la carte de l'antenne y disparaît, ou y revient.
@@ -1002,8 +1058,8 @@ retirer_service() {
 			executer sudo gpasswd --delete "${UTILISATEUR}" "${COMPTE_SERVICE}"
 		fi
 		executer sudo userdel "${COMPTE_SERVICE}"
-		# fichier de MachinCast : les répertoires du service, l'état de son WirePlumber et ses sockets
-		executer sudo rm --recursive --force "${DOSSIER_DU_COMPTE_SERVICE}" "${DOSSIER_D_EXECUTION_SERVICE}"
+		# Les répertoires du service, l'état de son WirePlumber et ses sockets ; ceux qui contiennent des sonores restent.
+		retirer_repertoires --sudo "${DOSSIER_DU_COMPTE_SERVICE}" "${DOSSIER_D_EXECUTION_SERVICE}"
 	else
 		info 'account %s missing' "${COMPTE_SERVICE}"
 	fi
