@@ -368,16 +368,20 @@ class Card(QWidget):
 		self.erase_error()
 		self.error.setText(text)
 		self.error.show()
-		for field in fields:
+
+		def flag_field(field: QWidget) -> None:
 			label = self._label(field)
 			if (label is None) or (any(reports is label for reports, _text in self._reported_list)):
-				continue
+				return
 			if isinstance(label, QGroupBox):
 				self._reported_list.append((label, label.title()))
 				label.setTitle(f"{REPORTED}{label.title()}")
 			else:
 				self._reported_list.append((label, label.text()))
 				label.setText(f"{REPORTED}{label.text()}")
+
+		for field in fields:
+			flag_field(field)
 
 	def warn(self, text: str) -> None:
 		"""L'avertissement en haut de la fiche, sous l'erreur, sur un liseret orange : il ne refuse rien, et la fiche

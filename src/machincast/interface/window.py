@@ -96,7 +96,7 @@ from machincast.interface.event_card import EventCard
 from machincast.interface.feed_card import FeedCard
 from machincast.interface.incidents import IncidentScreen
 from machincast.interface.indexer import FINISHED, LAUNCHED, TITLES
-from machincast.interface.lists import BANKS, EVENTS, FEEDS, SEQUENCES, SOUNDS, List
+from machincast.interface.lists import BANKS, EVENTS, FEEDS, SEQUENCES, SOUNDS, List, Source
 from machincast.interface.preview import PreviewWindow
 from machincast.interface.search import SearchScreen
 from machincast.interface.sequence_card import SequenceCard
@@ -402,7 +402,8 @@ class MainWindow(QMainWindow):
 		"""Le titre de l'onglet de chaque liste, ouverte ou non."""
 		self._keys: dict[QWidget, str] = {}
 		"""La clé de l'onglet de chaque liste, dans les réglages : son genre."""
-		for title, source in TABS:
+
+		def init_source(source: Source, title: str) -> None:
 			list_ = List(source, connection)
 			list_.opened.connect(self._open)
 			list_.requested_creation.connect(lambda category: self._open_card(category, None))
@@ -419,11 +420,14 @@ class MainWindow(QMainWindow):
 			self._keys[list_] = source.category
 			if self._keys[list_] not in ON_DEMAND:
 				self._add_fixed(list_, title)
-				continue
+				return
 			# Sans onglet jusqu'à ce qu'on la demande, elle appartient à la fenêtre, cachée : elle ne lui survit pas
 			# (https://github.com/dascritch/machincast/issues/262).
 			list_.setParent(self)
 			list_.hide()
+
+		for title, source in TABS:
+			init_source(source, title)
 		self.incidents = IncidentScreen(connection)
 		self.incidents.opened.connect(self._open)
 		self._add_fixed(self.incidents, _("Incidents"))
@@ -476,13 +480,17 @@ class MainWindow(QMainWindow):
 		look_up = display_menu.addAction(_("Search…"))
 		look_up.setShortcut(QKeySequence("Ctrl+F"))
 		look_up.triggered.connect(self._open_search)
-		for title, source in TABS:
+
+		def fill_source(source: Source, title: str) -> None:
 			if source.category not in ON_DEMAND:
-				continue
+				return
 			open_ = display_menu.addAction(
 				icons.icon_of(source.category), _("Open the {title} tab").format(title=title)
 			)
 			open_.triggered.connect(lambda _ticked=False, title=title: self.open_list(title))
+
+		for title, source in TABS:
+			fill_source(source, title)
 		grid = display_menu.addAction(icons.icon("grid"), _("Open the Time grid tab"))
 		grid.triggered.connect(self._open_calendar)
 		simulation = display_menu.addAction(icons.icon("simulation"), _("Open the Simulation tab"))
@@ -1426,9 +1434,9 @@ class MainWindow(QMainWindow):
 		return True
 
 	def _follow_indexing(self) -> None:
-		for full_audit, number in list(self.launched_indexings.items()):
+		def follow_full_audit(full_audit: bool, number: int) -> None:
 			if indexer.active_process(number):
-				continue
+				return
 			del self.launched_indexings[full_audit]
 			self.indexings[full_audit].setEnabled(True)
 			self.ui.state_bar.showMessage(
@@ -1436,6 +1444,9 @@ class MainWindow(QMainWindow):
 					title=TITLES[full_audit], finished=FINISHED[full_audit]
 				)
 			)
+
+		for full_audit, number in list(self.launched_indexings.items()):
+			follow_full_audit(full_audit, number)
 		if self.launched_indexings == {}:
 			self._indexing_tracking.stop()
 			self.database_maintenance.setEnabled(True)

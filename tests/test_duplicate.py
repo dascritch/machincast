@@ -292,15 +292,19 @@ def lists_who_duplicate(interface: Context, tabs: str) -> None:
 	"""Le menu de la première ligne de chaque liste ; toutes en ont une."""
 	ui = window(interface).ui
 	found_list = []
-	for row in range(ui.tabs.count()):
+
+	def lists_row(row) -> None:
 		list_ = ui.tabs.widget(row)
 		if not isinstance(list_, List):
-			continue
+			return
 		list_.refresh()
 		assert list_.proxy.rowCount() > 0, tab_title(ui.tabs, row)
 		menu = list_.line_menu(list_.proxy.index(0, 0))
 		if (menu is not None) and (any(action.text() == "Dupliquer" for action in menu.actions())):
 			found_list.append(tab_title(ui.tabs, row))
+
+	for row in range(ui.tabs.count()):
+		lists_row(row)
 	assert found_list == NAME.findall(tabs)
 
 

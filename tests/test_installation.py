@@ -310,14 +310,19 @@ def _section(text: str, name: str) -> dict[str, str]:
 	"""Les clés d'une section d'unité systemd ; une clé répétée garde sa dernière valeur."""
 	keys: dict[str, str] = {}
 	inside = False
-	for line in text.splitlines():
+
+	def handle_line(line) -> None:
+		nonlocal inside
 		line = line.strip()
 		if line.startswith("["):
 			inside = line == f"[{name}]"
-			continue
+			return
 		if (inside) and ("=" in line) and (not line.startswith("#")):
 			key, value = line.split("=", 1)
 			keys[key] = value
+
+	for line in text.splitlines():
+		handle_line(line)
 	return keys
 
 

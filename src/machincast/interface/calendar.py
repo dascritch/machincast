@@ -357,12 +357,16 @@ def split(planned_list: Iterable[Planned], days: list[date], public_names: dict[
 	blocks = []
 	for planned in planned_list:
 		whole_day = (planned.occurrence.start is None) or (planned.end - planned.start >= ONE_DAY)
-		for day in days:
+
+		def handle_day(day: date, planned: Planned, whole_day: bool) -> None:
 			start, end = max(planned.start, midnight(day)), min(planned.end, midnight(day + ONE_DAY))
 			if start >= end:
-				continue
+				return
 			public_name = public_names.get(planned.occurrence.event.id)
 			blocks.append(Block(planned, day, start, end, _cross(planned.plays, start, end), whole_day, public_name))
+
+		for day in days:
+			handle_day(day, planned, whole_day)
 	return sorted(blocks, key=lambda b: (b.day, b.start, RANKS[b.event.priority], b.event.id))
 
 
@@ -415,10 +419,13 @@ def strips(plays: list[Play], days: list[date], now: datetime) -> list[Strip]:
 	found_list = []
 	for play, departure, arrival, count in groups:
 		end = (arrival) or (now)
-		for day in days:
+
+		def handle_day_2(
+			day: date, arrival: datetime | None, count: int, departure: datetime, end: datetime, play: Play
+		) -> None:
 			day_start, day_end = max(departure, midnight(day)), min(end, midnight(day + ONE_DAY))
 			if day_start >= day_end:
-				continue
+				return
 			name = (play.name) or (DELETED_EVENT)
 			found_list.append(
 				Strip(
@@ -433,6 +440,9 @@ def strips(plays: list[Play], days: list[date], now: datetime) -> list[Strip]:
 					arrival,
 				)
 			)
+
+		for day in days:
+			handle_day_2(day, arrival, count, departure, end, play)
 	return found_list
 
 

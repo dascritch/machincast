@@ -39,13 +39,17 @@ def commands(path: Path) -> list[list[str]]:
 	blocks = re.findall(r"^```(?:bash|sh)\n(.*?)^```", text(path), flags=re.MULTILINE | re.DOTALL)
 	result = []
 	for block in blocks:
-		for line in block.replace("\\\n", " ").splitlines():
+
+		def handle_line(line) -> None:
 			line = line.split(" #", 1)[0].strip()
 			if (not line) or (line.startswith("#")):
-				continue
+				return
 			for command in re.split(r"\s*(?:&&|\|\||;|\|)\s*", line):
 				if command:
 					result.append(shlex.split(command))
+
+		for line in block.replace("\\\n", " ").splitlines():
+			handle_line(line)
 	return result
 
 
@@ -147,7 +151,8 @@ def machin_commands(document: str) -> None:
 		if (words[:1]) and (words[0] in WRAPPERS):
 			cited_list.append(words[1:])
 	assert cited_list, f"{document} ne cite aucune commande Machin"
-	for arguments in cited_list:
+
+	def machin_arguments(arguments) -> None:
 		# Options du wrapper avant le binaire : --config FICHIER ou --config=FICHIER.
 		while (arguments) and (arguments[0].startswith("-")):
 			assert arguments[0].split("=")[0] in options_wrapper, arguments
@@ -156,7 +161,7 @@ def machin_commands(document: str) -> None:
 			else:
 				arguments = arguments[1:]
 		if (not arguments) or (arguments[0] == "logs"):
-			continue
+			return
 		binary, *options = arguments
 		assert binary in binaries, f"binaire inconnu : {binary}"
 		help_ = subprocess.run(
@@ -167,6 +172,9 @@ def machin_commands(document: str) -> None:
 			if (option.startswith("-")) and (option.split("=")[0] not in help_):
 				unknown_list.append(option)
 		assert not unknown_list, f"Machin {binary} : {unknown_list}"
+
+	for arguments in cited_list:
+		machin_arguments(arguments)
 
 
 @then(parsers.parse("chaque étape de machincast.installation citée dans {document} existe"))

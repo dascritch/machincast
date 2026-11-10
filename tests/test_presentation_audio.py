@@ -67,9 +67,10 @@ def client_pipewire(context: SimpleNamespace, name: str, icon: str) -> None:
 def present_calls() -> None:
 	without = []
 	for file in sorted((PROJECT_DIRECTORY / "src").rglob("*.py")):
-		for node in ast.walk(ast.parse(file.read_text(encoding="utf-8"))):
+
+		def present_node(node, file) -> None:
 			if (not isinstance(node, ast.Call)) or (ast.unparse(node.func).split(".")[-1] != "creer_sortie"):
-				continue
+				return
 			found = False
 			for word in node.keywords:
 				if word.arg == "presentation":
@@ -77,6 +78,9 @@ def present_calls() -> None:
 					break
 			if not found:
 				without.append(f"{file.relative_to(PROJECT_DIRECTORY)}:{node.lineno}")
+
+		for node in ast.walk(ast.parse(file.read_text(encoding="utf-8"))):
+			present_node(node, file)
 	assert without == []
 
 

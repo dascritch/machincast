@@ -98,11 +98,15 @@ def merge(
 	éditée à la main (« music_metadata.<clé> » dans edited_fields). Les autres clés sont conservées.
 	"""
 	result = dict(current_list)
-	for key in KEYS:
+
+	def handle_key(key: str) -> None:
 		if f"music_metadata.{key}" in edited_fields:
-			continue
+			return
 		if key in fetched_list:
 			result[key] = fetched_list[key]
 		else:
 			result.pop(key, None)
+
+	for key in KEYS:
+		handle_key(key)
 	return result

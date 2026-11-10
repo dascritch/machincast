@@ -54,17 +54,21 @@ def add_files(connection: psycopg.Connection[TupleRow], paths: list[Path]) -> Ad
 	files, ignored = sound_files(paths)
 	adding = Adding(ignored=ignored)
 	with connection.transaction():
-		for file in dict.fromkeys(files):
+
+		def add_file(file: str) -> None:
 			existing = connection.execute(
 				"SELECT id FROM sounds WHERE location = %s AND deleted_at IS NULL", (file,)
 			).fetchone()
 			if existing is not None:
 				adding.already.append(Path(file))
-				continue
+				return
 			created = connection.execute(
 				"INSERT INTO sounds (type, location, state) VALUES ('file', %s, 'preview') RETURNING id",
 				(file,),
 			).fetchone()
 			assert created is not None
 			adding.added_list.append(int(str(created[0])))
+
+		for file in dict.fromkeys(files):
+			add_file(file)
 	return adding

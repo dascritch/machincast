@@ -407,11 +407,12 @@ class _Player:
 				raise self.error(_("key crossfades.maximum: a strictly positive number of seconds is expected"))
 			maximum = timedelta(seconds=seconds)
 		durations: list[timedelta | None] = []
-		for key in ("start", "end"):
+
+		def handle_key(key: str | str) -> None:
 			duration = self.optional_count("crossfades", key)
 			if duration is None:
 				durations.append(None)
-				continue
+				return
 			if duration < 0:
 				raise self.error(
 					_("key crossfades.{key}: a positive or zero number of seconds is expected").format(key=key)
@@ -423,6 +424,9 @@ class _Player:
 					)
 				)
 			durations.append(timedelta(seconds=duration))
+
+		for key in ("start", "end"):
+			handle_key(key)
 		positions: list[Position] = []
 		for key, default in (("fade_in_position", DEFAULT_ENTRY), ("fade_out_position", DEFAULT_OUTPUT)):
 			fetched = (self.optional_text("crossfades", key)) or (default)

@@ -135,14 +135,19 @@ class PipeWireBench:
 		objects = self.objects()
 		names = {}
 		stream = None
-		for object_ in objects:
+
+		def linked_object_(object_) -> None:
+			nonlocal stream
 			info = object_.get("info")
 			if (object_.get("type") != "PipeWire:Interface:Node") or (not isinstance(info, dict)):
-				continue
+				return
 			properties = info.get("props", {})
 			names[object_["id"]] = properties.get("node.name")
 			if properties.get("application.name") == program:
 				stream = object_["id"]
+
+		for object_ in objects:
+			linked_object_(object_)
 		linked_list = set()
 		for object_ in objects:
 			info = object_.get("info")

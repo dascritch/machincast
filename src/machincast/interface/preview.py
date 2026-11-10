@@ -601,16 +601,20 @@ class PreviewWindow(QWidget):
 		choice.addItem(name, self.audio.preview)
 		model = choice.model()
 		assert isinstance(model, QStandardItemModel)
-		for device in found_list:
+
+		def fill_device(device: audio_outputs.Device) -> None:
 			if device.identifier == self.audio.preview:
-				continue
+				return
 			if device.identifier != self.audio.device:
 				choice.addItem(device.name, device.identifier)
-				continue
+				return
 			choice.addItem(f"{device.name} {BROADCAST}", device.identifier)
 			line = model.item(choice.count() - 1)
 			line.setEnabled(False)
 			line.setToolTip(_("The broadcast device cannot be used for the pre-listen."))
+
+		for device in found_list:
+			fill_device(device)
 
 	def _change_output(self) -> None:
 		identifier = str(self.ui.output.currentData())

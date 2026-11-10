@@ -107,23 +107,27 @@ def read_catalog(text: str, plurals: dict[str, str] | None = None) -> dict[str, 
 		fields = {}
 		fuzzy = False
 
-	for line in [*text.splitlines(), ""]:
+	def read_line(line: str) -> None:
+		nonlocal current, fuzzy
 		stripped = line.strip()
 		if not stripped:
 			close()
-			continue
+			return
 		if stripped.startswith("#"):
 			if (stripped.startswith("#,")) and ("fuzzy" in stripped):
 				fuzzy = True
-			continue
+			return
 		if stripped.startswith('"'):
 			fields[current] += _unquote(stripped)
-			continue
+			return
 		keyword, _space, rest = stripped.partition(" ")
 		if (keyword in fields) and (keyword in ("msgctxt", "msgid")):
 			close()
 		current = keyword
 		fields[current] = _unquote(rest)
+
+	for line in [*text.splitlines(), ""]:
+		read_line(line)
 	return entries
 
 

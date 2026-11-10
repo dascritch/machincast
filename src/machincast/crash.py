@@ -437,10 +437,11 @@ def finish_leftovers(program: str, place: Path | None = None, configuration: Pat
 	l'heure de leur dernière écriture et ce que completion retrouve encore ; leurs chemins."""
 	place = (place) or (directory())
 	finished: list[Path] = []
-	for pending in sorted(place.glob(f".{program}-*{PENDING}")):
+
+	def finish_pending(pending: Path) -> None:
 		pid_text = pending.name.removesuffix(PENDING).rsplit("-", 1)[-1]
 		if (not pid_text.isdigit()) or (_running(int(pid_text))):
-			continue
+			return
 		target = place / f"{pending.name.removeprefix('.').removesuffix(PENDING)}.txt"
 		try:
 			last = datetime.fromtimestamp(pending.stat().st_mtime).astimezone()
@@ -454,8 +455,11 @@ def finish_leftovers(program: str, place: Path | None = None, configuration: Pat
 			pending.unlink()  # fichier de MachinCast : un rapport en cours, devenu rapport
 		except OSError as error:
 			log.warning(_("pending crash report {path} not finished: {error}").format(path=pending, error=error))
-			continue
+			return
 		finished.append(target)
+
+	for pending in sorted(place.glob(f".{program}-*{PENDING}")):
+		finish_pending(pending)
 	return finished
 
 
@@ -469,16 +473,21 @@ def report_of(program: str, started: datetime, pid: int, place: Path | None = No
 	n'y en a pas."""
 	place = (place) or (directory())
 	best: tuple[float, Path] | None = None
-	for path in place.glob(f"{program}-*-{pid}.txt"):
+
+	def report_path_2(path: Path) -> None:
+		nonlocal best
 		stamp = path.name.removeprefix(f"{program}-").removesuffix(f"-{pid}.txt")
 		try:
 			day, _separator, hour = stamp.partition("T")
 			instant = datetime.fromisoformat(f"{day}T{hour.replace('-', ':')}").astimezone()
 		except ValueError:
-			continue
+			return
 		gap = abs((instant - started).total_seconds())
 		if (gap <= LINK_DELAY) and ((best is None) or (gap < best[0])):
 			best = (gap, path)
+
+	for path in place.glob(f"{program}-*-{pid}.txt"):
+		report_path_2(path)
 	if best is None:
 		return None
 	return best[1]

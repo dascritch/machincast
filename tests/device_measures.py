@@ -72,15 +72,20 @@ def _monitor(Gst, halt: bool, wait: bool = False):  # type: ignore[no-untyped-de
 
 def _probe(Gst):  # type: ignore[no-untyped-def]
 	appliances = []
-	for factory in Gst.DeviceProviderFactory.list_get_device_providers(Gst.Rank.MARGINAL):
+
+	def handle_factory(factory) -> None:
+		nonlocal appliances
 		provider = factory.get()
 		if provider is None:
-			continue
+			return
 		appliance_list = []
 		for appliance in provider.get_devices():
 			if appliance.has_classes(CLASS):
 				appliance_list.append(appliance)
 		appliances += appliance_list
+
+	for factory in Gst.DeviceProviderFactory.list_get_device_providers(Gst.Rank.MARGINAL):
+		handle_factory(factory)
 	return appliances
 
 
@@ -141,18 +146,22 @@ def main() -> None:
 	print("| --- | --- | --- | --- |")
 	for way in options.ways:
 		report: Counter[str] = Counter()
-		for _ in range(options.process):
+
+		def handle_item(_, report, way) -> None:
 			command = [sys.executable, "-m", "tests.device_measures", "--worker", way]
 			command += ["-r", str(options.repetitions)]
 			try:
 				finished = subprocess.run(command, capture_output=True, timeout=DELAY)
 			except subprocess.TimeoutExpired:
 				report["sans réponse"] += 1
-				continue
+				return
 			chosen = "signal"
 			if finished.returncode == 0:
 				chosen = "normal"
 			report[chosen] += 1
+
+		for _ in range(options.process):
+			handle_item(_, report, way)
 		print(f"| {way} | {report['normal']} | {report['signal']} | {report['sans réponse']} |", flush=True)
 	stop.set()
 

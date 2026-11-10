@@ -60,10 +60,11 @@ def read_airplay(
 			(since, since, count),
 		).fetchall()
 	plays = []
-	for line in lines:
+
+	def read_line(line: tuple[object, ...]) -> None:
 		start, end, duration, without_incident, artist, title, event, sequence, bank, *identifiers = line
 		if not isinstance(start, datetime):
-			continue
+			return
 		if isinstance(end, datetime):
 			chosen = end
 		else:
@@ -90,4 +91,7 @@ def read_airplay(
 				location=text_or_none(identifiers[4]),
 			)
 		)
+
+	for line in lines:
+		read_line(line)
 	return plays

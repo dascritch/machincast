@@ -127,7 +127,8 @@ def box(view: Calendar, text: str) -> QCheckBox:
 @given("les passages de l'airplay :")
 def plays(empty_database: Connection, datatable: list[list[str]]) -> None:
 	"""Une ligne de début, et une de fin quand le passage est terminé ; « (supprimé) » : sans événement."""
-	for name, start, end in table(datatable):
+
+	def handle_end(end, name, start) -> None:
 		event = None
 		if name != DELETED:
 			event = identifier(empty_database, "events", "internal_name", name)
@@ -138,13 +139,16 @@ def plays(empty_database: Connection, datatable: list[list[str]]) -> None:
 			(play, departure, event),
 		)
 		if end == "":
-			continue
+			return
 		arrival = datetime.fromisoformat(end).astimezone()
 		empty_database.execute(
 			"INSERT INTO airplay (play_id, line_type, logged_at, event_id, played_duration, without_incident)"
 			" VALUES (%s, 'end', %s, %s, %s, true)",
 			(play, arrival, event, arrival - departure),
 		)
+
+	for name, start, end in table(datatable):
+		handle_end(end, name, start)
 
 
 @given(parsers.parse("l'événement « {name} » supprimé le « {moment} »"))

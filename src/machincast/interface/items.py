@@ -507,18 +507,23 @@ class ItemList(QObject):
 		connection = self.card.connection
 		lines: list[QTreeWidgetItem] = []
 		with connection.transaction():
-			for feed in chosen_list:
+
+			def add_feed(feed: int) -> None:
+				nonlocal lines
 				marks = connection.execute("SELECT name, url FROM feeds WHERE id = %s", (feed,)).fetchone()
 				if marks is None:
-					continue
+					return
 				stream = connection.execute(FEED_STREAM, (feed,)).fetchone()
 				if stream is not None:
 					lines += self._read({"sound": [int(str(stream[0]))]})["sound"].values()
-					continue
+					return
 				name, url = marks
 				line = self._line("sound", [str(name), _("{url}, new stream").format(url=url)], (None, None))
 				line.setData(0, FEED, feed)
 				lines.append(line)
+
+			for feed in chosen_list:
+				add_feed(feed)
 		self.list_.addTopLevelItems(lines)
 		self._refresh_buttons()
 
