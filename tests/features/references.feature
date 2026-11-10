@@ -22,4 +22,6 @@ Fonctionnalité: Liens vers les tickets et les PR
 			| voir [§ 4.8](#48-métadonnées-publiques-et-masquage)                    | 0      |
 			| couleur "1d76db" et ancre (#airplay)                                   | 0      |
 			| couleur "#1d76db"                                                      | 0      |
+			| couleurs #000000 et #767676, tout en chiffres                          | 0      |
+			| voir #1234567                                                          | 1      |
 			| # Titre Markdown                                                       | 0      |
