@@ -55,11 +55,20 @@ Fonctionnalité: Schéma de la base de données
 	Scénario: Une base neuve reçoit le schéma initial, puis les migrations qui le suivent
 		https://github.com/dascritch/machincast/issues/341 : 0002.run-log, les démarrages et fins des binaires au log ;
 		https://github.com/dascritch/machincast/issues/399 : 0005.lend-name, dont l'annulation recrée le type end_of_list ;
-		https://github.com/dascritch/machincast/issues/342 : 0006.player-runs, la lecture retrouve son démarrage précédent.
+		https://github.com/dascritch/machincast/issues/342 : 0006.player-runs, la lecture retrouve son démarrage précédent ;
+		https://github.com/dascritch/machincast/issues/402 : 0007.breaking, la priorité « imprévu », au-dessus de « spécial ».
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 6 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.run-log, 0003.end-of-list, 0004.feed-buffer, 0005.lend-name, 0006.player-runs »
+		Alors 7 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.run-log, 0003.end-of-list, 0004.feed-buffer, 0005.lend-name, 0006.player-runs, 0007.breaking »
+
+	Scénario: Annuler la priorité « imprévu » rend spéciaux les événements imprévus
+		https://github.com/dascritch/machincast/issues/402 : PostgreSQL ne retire pas une valeur d'un type énuméré, l'annulation
+		recrée event_priority sans elle.
+
+		Quand j'enregistre dans "events" : internal_name = 'Alerte', priority = 'breaking', starts_at = '2026-11-10 09:00'
+		Et j'annule la migration « 0007.breaking »
+		Alors l'événement « Alerte » est de priorité « special »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
 	# Le ramasse-miettes est suspendu : une connexion qui n'est pas fermée explicitement reste ouverte.
@@ -232,6 +241,8 @@ Fonctionnalité: Schéma de la base de données
 			| internal_name = 'Nuit', priority = 'background_programming', starts_at = '2026-10-14 22:00', ends_at = '2026-10-15 06:00', recurrence_days = '{monday,tuesday,wednesday,thursday,friday,saturday,sunday}' |
 			| internal_name = 'Magazine', priority = 'show', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', recurrence_days = '{monday,tuesday,wednesday,thursday,friday}'                               |
 			| internal_name = 'Rediffusion', priority = 'special', starts_at = '2026-10-20 14:00'                                                                                                                       |
+			| internal_name = 'Alerte', priority = 'breaking', starts_at = '2026-11-10 09:00'                                                                                                                           |
+			| internal_name = 'Alerte', priority = 'breaking', starts_at = '2026-11-10 09:00', ends_at = '2026-11-10 09:05'                                                                                             |
 			| internal_name = 'Secours direct', priority = 'fallback'                                                                                                                                                   |
 
 	Plan du scénario: Un événement incohérent est refusé
@@ -250,6 +261,8 @@ Fonctionnalité: Schéma de la base de données
 			| internal_name = 'X', priority = 'fallback', starts_at = '2026-10-19 18:00'                               |
 			| internal_name = 'X', priority = 'fallback', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00' |
 			| internal_name = 'X', priority = 'fallback', recurrence_days = '{monday}'                                  |
+			| internal_name = 'X', priority = 'breaking'                                                               |
+			| internal_name = 'X', priority = 'breaking', starts_at = '2026-11-10 09:00', recurrence_days = '{monday}'  |
 
 	Scénario: Deux événements n'ont pas le même nom interne
 		# https://github.com/dascritch/machincast/issues/32
@@ -261,6 +274,7 @@ Fonctionnalité: Schéma de la base de données
 		Alors la priorité "fallback" est inférieure à "background_programming"
 		Et la priorité "background_programming" est inférieure à "show"
 		Et la priorité "show" est inférieure à "special"
+		Et la priorité "special" est inférieure à "breaking"
 
 	# ─── Secours d'un stream (https://github.com/dascritch/machincast/issues/16) ───
 
@@ -293,7 +307,7 @@ Fonctionnalité: Schéma de la base de données
 
 	# ─── Fin de liste et secours d'un événement (https://github.com/dascritch/machincast/issues/350) ───
 
-	Plan du scénario: Seule une émission ou un spécial qui a une fin choisit sa fin de liste, et ses secours sont de priorité secours
+	Plan du scénario: Seul un imprévu, un spécial ou une émission qui a une fin choisit sa fin de liste, et ses secours sont de priorité secours
 		Étant donné les éléments de référence en base
 		Et un événement de secours en base
 		Quand j'enregistre dans "events" : <valeurs>
@@ -303,6 +317,7 @@ Fonctionnalité: Schéma de la base de données
 			| valeurs                                                                                                                                                   | verdict |
 			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', end_of_list = 'fallback', end_fallback_event_id = {secours} | accepte |
 			| internal_name = 'X', priority = 'special', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', end_of_list = 'background_programming'            | accepte |
+			| internal_name = 'X', priority = 'breaking', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', end_of_list = 'background_programming'           | accepte |
 			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', stream_fallback_event_id = {secours}                                               | accepte |
 			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', end_of_list = 'background_programming'                                             | refuse  |
 			| internal_name = 'X', priority = 'background_programming', end_of_list = 'fallback', end_fallback_event_id = {secours}                                       | refuse  |

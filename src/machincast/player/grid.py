@@ -48,6 +48,9 @@ class Priority(StrEnum):
 	BACKGROUND_PROGRAMMING = "background_programming"
 	SHOW = "show"
 	SPECIAL = "special"
+	BREAKING = "breaking"
+	"""Imprévu : une situation qu'on ne programme pas, comme une alerte de la sécurité civile, au-dessus de tout
+	(https://github.com/dascritch/machincast/issues/402). Une seule occurrence, jamais de récurrence."""
 
 
 def ranks[T](ordered: Iterable[T]) -> dict[T, int]:

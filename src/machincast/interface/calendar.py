@@ -92,8 +92,11 @@ PRIORITIES = (
 	(Priority.BACKGROUND_PROGRAMMING, _("Background programming")),
 )
 """Les priorités de la grille, de la plus haute à la plus basse, et le nom de leur case."""
-NAMES = dict(PRIORITIES)
+NAMES = {Priority.BREAKING: _("Breaking"), **dict(PRIORITIES)}
+"""Le nom de chaque priorité qui a des blocs, même sans case : l'imprévu (https://github.com/dascritch/machincast/issues/402)."""
 COLOURS = {
+	# Un imprévu ne se programme pas : sans case, toujours montré (https://github.com/dascritch/machincast/issues/402).
+	Priority.BREAKING: QColor("#c48cf0"),
 	Priority.SPECIAL: QColor("#f08c8c"),
 	Priority.SHOW: QColor("#8cb4f0"),
 	Priority.BACKGROUND_PROGRAMMING: QColor("#8fd19e"),

@@ -65,6 +65,7 @@ STATES = {
 TYPES = {"file": "fichier", "stream": "stream"}
 """Le type d'un sonore à l'écran, par sa valeur en base (https://github.com/dascritch/machincast/issues/358)."""
 PRIORITIES = {
+	"breaking": _("breaking"),
 	"special": _("special"),
 	"show": _("show"),
 	"background_programming": _("background programming"),
@@ -83,6 +84,7 @@ MODES = {"sequential": _("sequential"), "random": _("random")}
 EMPTY_SEQUENCE = _("Empty sequence: it plays nothing, and an event that calls it moves on to its next element.")
 _RELAY = _("Empty event: it plays nothing, and the event of lower priority takes over during its slot.")
 EMPTY_EVENT = {
+	"breaking": _RELAY,
 	"special": _RELAY,
 	"show": _RELAY,
 	"background_programming": (

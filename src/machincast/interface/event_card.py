@@ -56,9 +56,13 @@ PRIORITIES: tuple[tuple[str, str], ...] = (
 )
 """Valeurs de events.priority, dans l'ordre du choix de la fiche : de la plus basse à la plus haute, comme le type
 event_priority (https://github.com/dascritch/machincast/issues/253)."""
+BREAKING = ("breaking", _("Breaking"))
+"""L'imprévu, au-dessus de tout, ne se choisit pas : la fiche d'un imprévu en base le montre, grisé
+(https://github.com/dascritch/machincast/issues/402)."""
+BREAKING_TOOLTIP = _("A breaking event is not scheduled: its priority is not chosen.")
 NEW = "show"
 """Priorité d'un nouvel événement."""
-ENDLESS_DOES_NOT_LOOP = ("show", "special")
+ENDLESS_DOES_NOT_LOOP = ("show", "special", "breaking")
 """Priorités dont la liste ne boucle pas, sans fin : l'occurrence se termine au bout de sa liste."""
 HIDINGS: tuple[tuple[bool | None, str], ...] = (
 	(None, _("According to the sequence, the bank or the sound")),
@@ -174,7 +178,20 @@ class EventCard(Card):
 		return _("Event: {name}").format(name=self._name)
 
 	def _priority(self) -> str:
-		return PRIORITIES[self.ui.priority.currentIndex()][0]
+		return (*PRIORITIES, BREAKING)[self.ui.priority.currentIndex()][0]
+
+	def _offer_breaking(self, breaking: bool) -> None:
+		"""Le choix de la priorité : les priorités qui se choisissent, et, pour un imprévu, le sien, grisé."""
+		choice = self.ui.priority
+		if (breaking) and (choice.count() == len(PRIORITIES)):
+			choice.addItem(BREAKING[1])
+		if (not breaking) and (choice.count() > len(PRIORITIES)):
+			choice.removeItem(len(PRIORITIES))
+		choice.setEnabled(not breaking)
+		tooltip = ""
+		if breaking:
+			tooltip = BREAKING_TOOLTIP
+		choice.setToolTip(tooltip)
 
 	def _read(self) -> None:
 		"""Lit l'événement en base, ou celui qu'il copie, sans ses dates ni ses jours ; un nouvel événement est une
@@ -206,7 +223,8 @@ class EventCard(Card):
 		if self.is_copy():
 			ui.internal_name.setText(self.name_of_copy(self._name))
 		ui.public_name.setText(str((public_name) or ("")))
-		ui.priority.setCurrentIndex(rank_of(PRIORITIES, priority))
+		self._offer_breaking(priority == BREAKING[0])
+		ui.priority.setCurrentIndex(rank_of((*PRIORITIES, BREAKING), priority))
 		ui.hiding.setCurrentIndex(rank_of(HIDINGS, hiding))
 		now = self.clock.now().replace(second=0, microsecond=0)
 		departure = now
@@ -460,6 +478,8 @@ class EventCard(Card):
 		for day_name, day in zip(DAYS, self.days, strict=True):
 			if day.isChecked():
 				days.append(day_name)
+		if (priority == BREAKING[0]) and (days):
+			raise Refusal(_("A breaking event does not repeat: no day is ticked."), *self.days)
 		self._refuse_overlap(name, priority, start, end, days)
 		self._refuse_designated_fallback(priority)
 		end_of_list = str(ui.end_of_list.currentData())

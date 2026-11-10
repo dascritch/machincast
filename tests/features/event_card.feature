@@ -227,6 +227,36 @@ Fonctionnalité: Fiche d'un événement
 		Quand je choisis la priorité « spécial »
 		Alors la fiche avertit en haut « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
 
+	Scénario: Un imprévu ne se choisit pas dans la fiche, qui le montre sans le laisser changer, ni répéter
+		https://github.com/dascritch/machincast/issues/402 : un imprévu ne se programme pas à l'avance ; sa priorité,
+		au-dessus de « spécial », ne se choisit pas, mais un imprévu en base s'ouvre et s'enregistre.
+
+		Étant donné les événements :
+			| name   | public_name | priority | starts_at        | ends_at          | days |
+			| Alerte |             | breaking | 2026-10-20 10:00 | 2026-10-20 10:05 |      |
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Alerte »
+		Alors la fiche de l'événement montre :
+			| champ    | valeur  |
+			| Priorité | imprévu |
+		Et le choix de la priorité est grisé, avec l'infobulle « Un imprévu ne se programme pas : sa priorité ne se choisit pas. »
+		Et la fiche avertit en haut « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
+		Quand je saisis dans la fiche de l'événement :
+			| champ | valeur |
+			| Jours | lundi  |
+		Et j'enregistre la fiche
+		Alors la fiche signale « Un imprévu ne se répète pas : aucun jour ne se coche. »
+		Quand je saisis dans la fiche de l'événement :
+			| champ | valeur |
+			| Jours |        |
+		Et je saisis le nom interne « Alerte crue »
+		Et j'enregistre la fiche
+		Alors l'événement « Alerte crue » a en base :
+			| champ    | valeur   |
+			| priority | breaking |
+		Quand j'ouvre la fiche de l'événement « Journal »
+		Alors la priorité se choisit parmi « secours », « fil musical », « émission », « spécial », de la plus basse à la plus haute
+
 	Scénario: Un nouvel événement, vide, s'enregistre sans élément
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Événements »
