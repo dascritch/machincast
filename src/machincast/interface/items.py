@@ -24,11 +24,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, Signal
-from PySide6.QtWidgets import QAbstractItemView, QMenu, QPushButton, QTreeWidget, QTreeWidgetItem
+from PySide6.QtWidgets import QAbstractItemView, QGroupBox, QMenu, QPushButton, QTreeWidget, QTreeWidgetItem
 
 from machincast.conversion import integer_or_none, text_or_none
 from machincast.i18n import _, counted
-from machincast.interface import dialogs, display
+from machincast.interface import dialogs, display, preferences
 from machincast.interface.card import Card, sound_files
 from machincast.interface.columns import Columns
 from machincast.interface.drop import FileDrop
@@ -72,6 +72,8 @@ PLAYS = {
 """Ce que montre la ligne d'un élément, lu par identifiants."""
 SOUNDS_PER_FILE = PLAYS["sound"].replace("s.id = ANY(%s)", "s.location = ANY(%s)")
 FEED_STREAM = "SELECT id FROM sounds WHERE feed_id = %s AND deleted_at IS NULL ORDER BY title, id LIMIT 1"
+PARTIAL_ITEMS = _("Items: {shown} shown out of {total}, the rest is loaded as you scroll down")
+"""Le titre de la liste tant que tous ses éléments ne sont pas lus (https://github.com/dascritch/machincast/issues/383)."""
 """Le stream repris pour un feed : le premier par titre qui le suit."""
 SKIPPED = _("never plays twice in a row: this call will be skipped.")
 
@@ -92,14 +94,41 @@ VIEWS = {"sequence_items": "fiche-sequence-elements", "event_items": "fiche-even
 
 class ItemList(QObject):
 	changed = Signal()
-	"""Une ligne a été ajoutée, retirée ou déplacée : le glisser-déposer déplace en retirant, puis en insérant."""
+	"""Une ligne a été ajoutée, retirée ou déplacée par l'utilisateur : le glisser-déposer déplace en retirant, puis en
+	insérant. Pas les lignes que la liste lit en base."""
+	loaded = Signal()
+	"""La liste a lu des lignes en base : toutes à l'ouverture, ou la page suivante (https://github.com/dascritch/machincast/issues/383)."""
 
 	def __init__(
-		self, card: Card, list_: QTreeWidget, buttons: Buttons, table: str, column_parent: str, remark: str
+		self,
+		card: Card,
+		list_: QTreeWidget,
+		buttons: Buttons,
+		table: str,
+		column_parent: str,
+		remark: str,
+		group: QGroupBox | None = None,
 	) -> None:
 		"""table et column_parent : la table des éléments, et sa colonne qui désigne la séquence ou l'événement.
-		remarque : celle des choix d'éléments, qu'un élément peut revenir."""
+		remarque : celle des choix d'éléments, qu'un élément peut revenir. group : le cadre de la liste, dont le titre
+		dit combien d'éléments sont montrés, tant que tous ne le sont pas (https://github.com/dascritch/machincast/issues/383)."""
 		super().__init__(card)
+		self.group = group
+		self._title = ""
+		if group is not None:
+			self._title = group.title()
+		self._parent: int | None = None
+		self._after: int | None = None
+		"""La position du dernier élément lu, quand il y en a d'autres après ; None : tous sont lus (https://github.com/dascritch/machincast/issues/383)."""
+		self._tail = 0
+		"""Le nombre d'éléments pas encore lus."""
+		self.tail_stream = False
+		"""Un stream parmi les éléments pas encore lus."""
+		self._paging = False
+		"""Pendant la lecture de lignes en base, elles ne modifient pas la liste."""
+		self.modified = False
+		"""L'utilisateur a changé la liste depuis sa lecture : sans changement, l'enregistrement ne la réécrit pas."""
+		self._copies = False
 		self.card = card
 		self.list_ = list_
 		self.buttons = buttons
@@ -114,7 +143,8 @@ class ItemList(QObject):
 		self.drop.dropped.connect(self._drop_in)
 		model = list_.model()
 		for signal in (model.rowsInserted, model.rowsRemoved):
-			signal.connect(self.changed)
+			signal.connect(self._lines_changed)
+		list_.verticalScrollBar().valueChanged.connect(self._scrolled)
 		list_.currentItemChanged.connect(self._refresh_buttons)
 		list_.itemActivated.connect(self._open)
 		self.columns.line_menu = lambda position: self.line_menu(self.list_.itemAt(position))
@@ -125,34 +155,113 @@ class ItemList(QObject):
 		buttons.go_down.clicked.connect(lambda: self._move(1))
 
 	def load(self, parent: int | None, copies: bool = False) -> None:
-		"""Lit en base les éléments de la séquence ou de l'événement, dans l'ordre ; aucun pour un nouveau. Une copie
-		(https://github.com/dascritch/machincast/issues/130) les lit comme des lignes ajoutées : l'enregistrement les
-		crée pour elle, et laisse celles de l'original. À appeler dans une transaction."""
+		"""Lit en base les éléments de la séquence ou de l'événement, dans l'ordre, par pages de
+		preferences.table_rows ; aucun pour un nouveau (https://github.com/dascritch/machincast/issues/383). Une copie
+		(https://github.com/dascritch/machincast/issues/130) les lit tous, comme des lignes ajoutées : l'enregistrement
+		les crée pour elle, et laisse celles de l'original. À appeler dans une transaction."""
 		self._read_marked()
-		rows: list[tuple[object, ...]] = []
-		if parent is not None:
-			columns = ", ".join(f"e.{column}" for column in self._columns().values())
-			rows = self.card.connection.execute(
-				f"SELECT e.id, {columns} FROM {self.table} e"  # noqa: S608
-				f" WHERE e.{self.column_parent} = %s ORDER BY e.position",
-				(parent,),
-			).fetchall()
+		self._parent = parent
+		self._copies = copies
+		self._after = None
+		rows: int | None = None
+		if not copies:
+			rows = preferences.table_rows()
+		lines = self._page(0, rows)
+		self._paging = True
+		try:
+			self.list_.clear()
+			self.list_.addTopLevelItems(lines)
+		finally:
+			self._paging = False
+		self.modified = False
+		self._show_count()
+		self._refresh_buttons()
+		self.loaded.emit()
+
+	def _page(self, after: int, rows: int | None) -> list[QTreeWidgetItem]:
+		"""Les lignes des éléments qui suivent la position, au plus rows ; note la position du dernier, s'il en reste
+		après, leur nombre, et s'il y a un stream parmi eux. À appeler dans une transaction."""
+		self._after = None
+		self._tail = 0
+		self.tail_stream = False
+		if self._parent is None:
+			return []
+		columns = ", ".join(f"e.{column}" for column in self._columns().values())
+		rows_read = self.card.connection.execute(
+			f"SELECT e.id, e.position, {columns} FROM {self.table} e"  # noqa: S608
+			f" WHERE e.{self.column_parent} = %s AND e.position > %s ORDER BY e.position LIMIT %s",
+			(self._parent, after, None if rows is None else rows + 1),
+		).fetchall()
+		if (rows is not None) and (len(rows_read) > rows):
+			rows_read = rows_read[:rows]
+			self._after = int(str(rows_read[-1][1]))
+			tail = self.card.connection.execute(
+				f"SELECT count(*), COALESCE(bool_or(s.type = 'stream'), false) FROM {self.table} e"  # noqa: S608
+				f" LEFT JOIN sounds s ON s.id = e.sound_id WHERE e.{self.column_parent} = %s AND e.position > %s",
+				(self._parent, self._after),
+			).fetchone()
+			assert tail is not None
+			self._tail = int(str(tail[0]))
+			self.tail_stream = bool(tail[1])
 		categories = list(self._columns())
 		items = []
-		for line_in_database, *identifiers in rows:
+		for line_in_database, _position, *identifiers in rows_read:
 			((category, identifier),) = [(g, i) for g, i in zip(categories, identifiers, strict=True) if i is not None]
 			items.append((int(str(line_in_database)), category, int(str(identifier))))
 		fetched_list = self._read({category: [i for _l, g, i in items if g == category] for category in categories})
-		self.list_.clear()
 		lines = []
 		for line_in_database, category, identifier in items:
 			# Un même élément peut revenir : chaque ligne a son exemplaire.
 			line = fetched_list[category][identifier].clone()
-			if not copies:
+			if not self._copies:
 				line.setData(0, LINE_IN_DATABASE, line_in_database)
 			lines.append(line)
-		self.list_.addTopLevelItems(lines)
+		return lines
+
+	def load_more(self, rows: int | None = None) -> None:
+		"""La page suivante des éléments, ou tous ceux qui restent avec rows None, sans modifier la liste."""
+		if self._after is None:
+			return
+		with self.card.connection.transaction():
+			lines = self._page(self._after, rows)
+		self._paging = True
+		try:
+			self.list_.addTopLevelItems(lines)
+		finally:
+			self._paging = False
+		self._show_count()
 		self._refresh_buttons()
+		self.loaded.emit()
+
+	def load_all(self) -> None:
+		"""Tous les éléments qui restent : avant un ajout, qui va en fin de liste, et avant d'enregistrer une liste
+		modifiée."""
+		self.load_more(None)
+
+	def complete(self) -> bool:
+		"""Tous les éléments sont lus."""
+		return self._after is None
+
+	def _scrolled(self, value: int) -> None:
+		"""La page suivante, quand la liste arrive à sa dernière page visible."""
+		bar = self.list_.verticalScrollBar()
+		if (self._after is not None) and (value >= bar.maximum() - bar.pageStep()):
+			self.load_more(preferences.table_rows())
+
+	def _lines_changed(self) -> None:
+		if self._paging:
+			return
+		self.modified = True
+		self.changed.emit()
+
+	def _show_count(self) -> None:
+		if self.group is None:
+			return
+		title = self._title
+		if self._after is not None:
+			shown = self.list_.topLevelItemCount()
+			title = PARTIAL_ITEMS.format(shown=shown, total=shown + self._tail)
+		self.group.setTitle(title)
 
 	def lines(self) -> list[QTreeWidgetItem]:
 		lines = [self.list_.topLevelItem(row) for row in range(self.list_.topLevelItemCount())]
@@ -160,7 +269,9 @@ class ItemList(QObject):
 
 	def warnings(self, loop: bool) -> list[str]:
 		"""Une ligne par appel d'une banque « ne pas répéter » juste après elle-même ; pour une liste qui boucle, la
-		première ligne suit la dernière."""
+		première ligne suit la dernière. Tant que tous les éléments ne sont pas lus, seulement parmi ceux qui le sont, et
+		sans boucler (https://github.com/dascritch/machincast/issues/383)."""
+		loop = (loop) and (self._after is None)
 		lines = self.lines()
 		edges = [(line.data(0, ENTRY), line.data(0, OUTPUT)) for line in lines]
 		texts = []
@@ -181,7 +292,11 @@ class ItemList(QObject):
 	def write(self, parent: int) -> None:
 		"""Dans la transaction d'« Enregistrer » : les lignes restées dans la liste gardent leur identifiant, à leur
 		nouvelle position ; les autres sont retirées ou ajoutées. L'unicité des positions n'est vérifiée qu'en fin de
-		transaction."""
+		transaction. Une liste que l'utilisateur n'a pas changée n'est pas réécrite ; une liste changée lit d'abord ses
+		éléments qui ne le sont pas encore, qui restent à sa suite (https://github.com/dascritch/machincast/issues/383)."""
+		if (not self.modified) and (not self._copies) and (parent == self._parent):
+			return
+		self.load_all()
 		connection = self.card.connection
 		items: list[tuple[int | None, str, int]] = []
 		"""Ligne en base, genre et identifiant de l'élément."""
@@ -206,18 +321,26 @@ class ItemList(QObject):
 			f"DELETE FROM {self.table} WHERE {self.column_parent} = %s AND NOT (id = ANY(%s))",  # noqa: S608
 			(parent, in_database),
 		)
-		for position, (line, category, item_id) in enumerate(kept_list, start=1):
-			if line is not None:
-				# Une ligne n'est jamais reprise d'une autre séquence ou d'un autre événement.
-				connection.execute(
-					f"UPDATE {self.table} SET position = %s WHERE id = %s AND {self.column_parent} = %s",  # noqa: S608
-					(position, line, parent),
-				)
+		# Une requête pour les lignes gardées, une par genre pour les nouvelles, quel que soit leur nombre (https://github.com/dascritch/machincast/issues/383).
+		kept = [(line, position) for position, (line, _g, _i) in enumerate(kept_list, start=1) if line is not None]
+		# Une ligne n'est jamais reprise d'une autre séquence ou d'un autre événement.
+		connection.execute(
+			f"UPDATE {self.table} e SET position = v.position FROM unnest(%s::bigint[], %s::int[])"  # noqa: S608
+			f" AS v(id, position) WHERE e.id = v.id AND e.{self.column_parent} = %s",
+			([line for line, _p in kept], [position for _l, position in kept], parent),
+		)
+		for category, column in COLUMNS.items():
+			new = [
+				(position, item_id)
+				for position, (line, g, item_id) in enumerate(kept_list, start=1)
+				if (line is None) and (g == category)
+			]
+			if new == []:
 				continue
 			connection.execute(
-				f"INSERT INTO {self.table} ({self.column_parent}, position, {COLUMNS[category]})"  # noqa: S608
-				" VALUES (%s, %s, %s)",
-				(parent, position, item_id),
+				f"INSERT INTO {self.table} ({self.column_parent}, position, {column})"  # noqa: S608
+				" SELECT %s, v.position, v.item FROM unnest(%s::int[], %s::bigint[]) AS v(position, item)",
+				(parent, [position for position, _i in new], [item_id for _p, item_id in new]),
 			)
 
 	def _save_stream(self, feed: int, name: str) -> int | None:
@@ -315,6 +438,7 @@ class ItemList(QObject):
 			"sequence": dialogs.choose_sequences,
 		}[category]
 		chosen_list = choose(self.card, self.card.connection, self.remark)
+		self.load_all()
 		with self.card.connection.transaction():
 			self._read_marked()
 			fetched_list = self._read({category: chosen_list})[category]
@@ -325,6 +449,7 @@ class ItemList(QObject):
 		"""Pour chaque feed choisi, le stream qui le suit ; sans stream, une ligne qui en créera un à
 		l'enregistrement (https://github.com/dascritch/machincast/issues/167)."""
 		chosen_list = dialogs.choose_feeds(self.card, self.card.connection, self.remark)
+		self.load_all()
 		connection = self.card.connection
 		lines: list[QTreeWidgetItem] = []
 		with connection.transaction():
@@ -347,6 +472,7 @@ class ItemList(QObject):
 		"""Les fichiers sonores déposés s'ajoutent en fin de liste. Un fichier pas encore en base est montré par son
 		nom, et deviendra un sonore à l'état aperçu à l'enregistrement."""
 		files, ignored = sound_files(paths)
+		self.load_all()
 		with self.card.connection.transaction():
 			fetched_list = self.card.connection.execute(SOUNDS_PER_FILE, (files,)).fetchall()
 		by_file = {str(sound[3]): sound for sound in fetched_list}

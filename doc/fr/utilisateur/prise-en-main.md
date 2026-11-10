@@ -191,7 +191,7 @@ Page **Interface** :
 | Afficher le voyant de saturation de l'onglet Antenne | Cochée par défaut ; décochée, le voyant « Saturation » disparaît du [VU-mètre](#vu-mètre-de-lantenne). |
 | Proposer au lancement ce qui manque pour démarrer | Cochée par défaut : la fenêtre [Pour bien démarrer](#pour-bien-démarrer). |
 | Icône de l'application | L'icône des fenêtres de MachinCast, de son raccourci dans le menu des applications et sur le bureau, et de la barre des tâches. **Choisir une image…** en prend une autre, SVG, PNG ou JPEG, de préférence carrée, le logo de la radio par exemple ; **Icône de MachinCast** revient à celle d'origine. Une image illisible n'est pas prise : `Image illisible : …`. La nouvelle icône vaut dès **OK**. |
-| Lignes chargées à la fois | 1 000 par défaut, 100 au moins : les sonores qu'une fiche de banque montre d'abord, et ceux qu'elle charge de plus chaque fois qu'on arrive au bas de sa liste ([#383](https://github.com/dascritch/machincast/issues/383)). Un nombre plus grand peut fortement ralentir l'interface pour une banque qui a un très grand nombre de sonores. Vaut pour les fiches ouvertes ensuite. |
+| Lignes chargées à la fois | 1 000 par défaut, 100 au moins : les sonores qu'une fiche de banque, ou les éléments qu'une fiche de séquence ou d'événement, montre d'abord, et ceux qu'elle charge de plus chaque fois qu'on arrive au bas de sa liste ([#383](https://github.com/dascritch/machincast/issues/383)). Un nombre plus grand peut fortement ralentir l'interface pour une banque qui a un très grand nombre de sonores. Vaut pour les fiches ouvertes ensuite. |
 
 Page **Audio** :
 

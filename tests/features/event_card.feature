@@ -471,6 +471,21 @@ Fonctionnalité: Fiche d'un événement
 			| champ           | valeur |
 			| stream_fallback | Panne  |
 
+	Scénario: Le secours d'un stream tombé se choisit aussi quand le stream n'est pas encore montré
+		https://github.com/dascritch/machincast/issues/383
+
+		Étant donné les sonores :
+			| artist | title       | type   | state  | duration | location                    |
+			|        | Radio Thune | stream | active |          | https://flux.exemple/direct |
+		Et l'événement « Journal » joue le sonore « Spot », la banque « Habillage », le sonore « Radio Thune »
+		Et les fiches chargent leurs tableaux par 2 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Alors la fiche de l'événement montre les éléments « Les Gaufres – Spot », « Habillage »
+		Et la fiche de l'événement montre :
+			| champ                     | valeur                 |
+			| Secours d'un stream tombé | celui de chaque stream |
+
 	Scénario: Un événement de secours qu'un événement désigne garde sa priorité
 		Étant donné l'événement « Journal » passe, à la fin de sa liste, au secours « Panne »
 		Quand la fenêtre de l'interface s'ouvre

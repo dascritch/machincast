@@ -3558,6 +3558,13 @@ msgid "unreadable stream of feed {feed}: {error}"
 msgstr "stream du feed {feed} illisible : {error}"
 
 #: machincast/interface/items.py
+#, python-brace-format
+msgid ""
+"Items: {shown} shown out of {total}, the rest is loaded as you scroll down"
+msgstr ""
+"Éléments : {shown} montrés sur {total}, la suite se charge en descendant"
+
+#: machincast/interface/items.py
 msgid "never plays twice in a row: this call will be skipped."
 msgstr "ne passe jamais deux fois de suite : cet appel sera sauté."
 
@@ -6755,14 +6762,15 @@ msgstr "&Lignes chargées à la fois"
 
 #: machincast/interface/ui/preferences.ui
 msgid ""
-"The sounds of a bank are loaded this many at a time in its card: the rest "
-"comes as you scroll down. A higher number can strongly slow down the "
-"interface for a bank with a very large number of sounds."
+"The sounds of a bank, and the items of a sequence or an event, are loaded "
+"this many at a time in their card: the rest comes as you scroll down. A "
+"higher number can strongly slow down the interface for a bank with a very "
+"large number of sounds."
 msgstr ""
-"Les sonores d'une banque se chargent dans sa fiche par ce nombre de lignes "
-"à la fois : la suite vient en descendant dans la liste. Un nombre plus "
-"grand peut fortement ralentir l'interface pour une banque qui a un très "
-"grand nombre de sonores."
+"Les sonores d'une banque, et les éléments d'une séquence ou d'un événement, "
+"se chargent dans leur fiche par ce nombre de lignes à la fois : la suite "
+"vient en descendant dans la liste. Un nombre plus grand peut fortement "
+"ralentir l'interface pour une banque qui a un très grand nombre de sonores."
 
 #: machincast/interface/ui/preferences.ui
 msgid ""

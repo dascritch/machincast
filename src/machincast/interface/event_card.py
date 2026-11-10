@@ -130,9 +130,10 @@ class EventCard(Card):
 			ui.raise_,
 			ui.go_down,
 		)
-		self.items = ItemList(self, ui.items, buttons, "event_items", "event_id", REPETITION)
+		self.items = ItemList(self, ui.items, buttons, "event_items", "event_id", REPETITION, ui.item_group)
 		self.items.changed.connect(self._modify)
 		self.items.changed.connect(self._warn)
+		self.items.loaded.connect(self._warn)
 		ui.internal_name.textChanged.connect(self._modify)
 		ui.public_name.textChanged.connect(self._modify)
 		ui.hiding.currentIndexChanged.connect(self._modify)
@@ -155,6 +156,7 @@ class EventCard(Card):
 		ui.priority.currentIndexChanged.connect(self._end_of_list)
 		ui.has_end.toggled.connect(self._end_of_list)
 		self.items.changed.connect(self._end_of_list)
+		self.items.loaded.connect(self._end_of_list)
 		for field in (ui.start, ui.end):
 			field.dateTimeChanged.connect(self._modify)
 		for day in self.days:
@@ -392,7 +394,10 @@ class EventCard(Card):
 		ui.stream_fallback.setToolTip(tooltip)
 
 	def _has_stream(self) -> bool:
-		"""Un stream dans la liste : un feed ajouté, ou un sonore de type stream."""
+		"""Un stream dans la liste : un feed ajouté, ou un sonore de type stream, parmi les éléments pas encore lus
+		compris (https://github.com/dascritch/machincast/issues/383)."""
+		if self.items.tail_stream:
+			return True
 		sounds = []
 		for line in self.items.lines():
 			if line.data(0, CATEGORY) != "sound":
