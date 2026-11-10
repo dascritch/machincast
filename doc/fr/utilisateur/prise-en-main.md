@@ -90,7 +90,7 @@ Le VU-mètre écoute le périphérique de l'antenne, quel que soit le programme 
 | Message | Ce qu'il faut faire |
 | --- | --- |
 | `Indisponible avec la sortie ALSA, qui n'a pas de port de monitoring.` | Rien : le poste utilise une sortie qui ne permet pas d'écouter l'antenne. L'administrateur peut passer à PipeWire ou PulseAudio. |
-| `Indisponible : périphérique de l'antenne à renseigner.` | Choisir le périphérique de l'antenne dans **Fichier → Préférences…**, page **Audio**. |
+| `Indisponible : périphérique de l'antenne à renseigner.` | Choisir le périphérique de l'antenne dans **Fichier → Paramètres du service…**, page **Audio**. |
 | `Indisponible : le port de monitoring ne donne plus rien depuis 3 secondes.` | Rien : le son du poste ne donne plus l'antenne au VU-mètre, souvent au retour d'une session verrouillée ou d'un écran éteint ([#311](https://github.com/dascritch/machincast/issues/311)). Le VU-mètre ne garde pas ses derniers niveaux : il se vide, puis réessaie toutes les 5 secondes, et reprend tout seul. |
 | `Indisponible : le PipeWire du service de diffusion ne répond pas (…) ; …` | Sur l'ordinateur de l'antenne, votre compte n'entend pas encore le service de diffusion ([#381](https://github.com/dascritch/machincast/issues/381)) : fermer la session, puis la rouvrir, après l'installation du service ; sinon, demander à l'administrateur d'ajouter votre compte au groupe `machincast`. |
 | `Indisponible :` suivi d'une erreur | Le périphérique est débranché, ou le son du poste ne répond pas. Le VU-mètre réessaie toutes les 5 secondes. |
@@ -124,7 +124,8 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 
 | Menu | Entrée | Rôle |
 | --- | --- | --- |
-| Fichier | Préférences… | Les réglages de l'interface et de l'audio ([Préférences](#préférences)). |
+| Fichier | Préférences de l'interface… | Ce qui vaut aussitôt, sans toucher la diffusion ([Préférences](#préférences)). |
+| Fichier | Paramètres du service… | Ce que Machin player prend à son redémarrage : OK redémarre la diffusion ([Préférences](#préférences)). |
 | Fichier | Quitter | Ferme l'interface, aussi par <kbd>Alt</kbd>+<kbd>Q</kbd>. Demande d'abord quoi faire des fiches modifiées. La diffusion, elle, continue. |
 | Affichage | Rechercher… | Ouvre la recherche, aussi par <kbd>Ctrl</kbd>+<kbd>F</kbd> ([Rechercher](#rechercher)). |
 | Affichage | Ouvrir l'onglet Sonores, Ouvrir l'onglet Feeds | Ouvrent ces listes, ou les ramènent au premier plan ([Listes](listes.md#listes)). |
@@ -169,7 +170,10 @@ Dès 2 caractères, sans tenir compte des majuscules ni des accents, le texte ta
 
 ## Préférences
 
-**Fichier → Préférences…** ouvre la fenêtre des préférences.
+Le menu **Fichier** ouvre deux fenêtres ([#389](https://github.com/dascritch/machincast/issues/389)) :
+
+- **Préférences de l'interface…** : ce qui vaut aussitôt, sans toucher la diffusion. La granularité des crossfades et le seuil de silence (page **Crossfades et silences**), la carte de pré-écoute (page **Audio**), la durée de péremption (page **Base**) et la page **Interface**.
+- **Paramètres du service…** : ce que Machin player ne prend qu'à son redémarrage. Les durées des crossfades et la position des fondus (page **Crossfades**), le type de sortie, la carte de l'antenne et le blanc dans un sonore (page **Audio**). **OK** les enregistre, puis redémarre la diffusion : avec le service de diffusion en marche, le poste demande le mot de passe d'un administrateur. S'il est refusé, ou si le redémarrage échoue, les paramètres précédents reviennent, dans le fichier comme dans l'interface, et la barre d'état le dit. Service arrêté, ou sans service, ils valent au prochain démarrage de Machin player.
 
 ![Les préférences, page « Crossfades » : les durées, la position des fondus et leur frise de démonstration](../captures/preferences.png)
 

@@ -160,7 +160,7 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et les préférences régleront l'antenne « carte-2 » et la pré-écoute « casque-usb »
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le VU-mètre de l'antenne est intitulé « Antenne », avec l'infobulle « Port de monitoring : PipeWire, périphérique à renseigner. Clic : écouter l'antenne en pré-écoute. »
-		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Quand je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors le VU-mètre de l'antenne est intitulé « Antenne », avec l'infobulle « Port de monitoring : PipeWire, carte-2. Clic : écouter l'antenne en pré-écoute. »
 		Et le VU-mètre de l'antenne ne dit plus « Indisponible : périphérique de l'antenne à renseigner. »
 

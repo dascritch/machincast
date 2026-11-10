@@ -8,6 +8,7 @@ d'environnement que règle le scénario.
 import os
 import subprocess
 import sys
+import tomllib
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -371,3 +372,50 @@ def requested_confirmation(interface: Context) -> None:
 def launched_nothing(station: Station) -> None:
 	"""Le terminal se lance avant que la barre d'état ne le dise : après l'annonce, il n'y a plus rien à attendre."""
 	assert not station.terminal.exists()
+
+
+# ─── Paramètres du service (https://github.com/dascritch/machincast/issues/389) ───
+
+
+@given("le fichier de configuration de l'interface noté tel qu'il est", target_fixture="noted_configuration")
+def noted_configuration(interface: Context) -> str:
+	return configuration_file(interface).read_text(encoding="utf-8")
+
+
+@given(parsers.parse("les préférences régleront seulement la pré-écoute « {preview} »"))
+def only_preview(interface: Context, preview: str) -> None:
+	interface.audio_settings = (None, preview, None)  # type: ignore[assignment]
+
+
+@then(parsers.re(r"la fenêtre ouverte est celle (?P<kind>des paramètres du service|des préférences de l'interface)"))
+def opened_kind(interface: Context, kind: str) -> None:
+	expected = "service"
+	if kind == "des préférences de l'interface":
+		expected = "interface"
+	assert interface.shown_kinds == [expected]
+
+
+def _audio(interface: Context) -> dict[str, object]:
+	audio = tomllib.loads(configuration_file(interface).read_text(encoding="utf-8"))["audio"]
+	assert isinstance(audio, dict)
+	return audio
+
+
+@then(parsers.parse("le fichier de configuration donne l'antenne « {device} »"))
+def configured_on_air(interface: Context, device: str) -> None:
+	assert _audio(interface).get("device") == device
+
+
+@then(parsers.parse("le fichier de configuration donne la pré-écoute « {preview} »"))
+def configured_preview(interface: Context, preview: str) -> None:
+	assert _audio(interface).get("preview") == preview
+
+
+@then("le fichier de configuration est revenu tel qu'il était")
+def configuration_back(interface: Context, noted_configuration: str) -> None:
+	assert configuration_file(interface).read_text(encoding="utf-8") == noted_configuration
+
+
+@then("l'interface n'a pas d'antenne réglée")
+def no_on_air(interface: Context) -> None:
+	assert window(interface).audio.device is None

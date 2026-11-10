@@ -194,10 +194,15 @@ WITHOUT_TRIAL = _("No trial broadcast running")
 TRIAL_HALT = _("Without a service: stops the Machin player launched by hand, like Ctrl-C")
 TO_FILL_IN_ON_AIR = _("On-air device to fill in")
 SET_ON_AIR = _(
-	"Machin player refuses to broadcast without it: choose it in File → Preferences…, Audio "
+	"Machin player refuses to broadcast without it: choose it in File → Broadcast service settings…, Audio "
 	"page, or give it in audio.device of the configuration file."
 )
 ALREADY_RUNNING = _("The trial broadcast is already running")
+RESTARTING_FOR_SETTINGS = _("Broadcast service settings saved: restarting the broadcast, which takes them…")
+SETTINGS_RESTORED = _(
+	"Broadcast not restarted: the former broadcast service settings are back, in the configuration file and in the "
+	"interface."
+)
 LISTENING = {
 	False: (_("On-air pre-listen"), _("Listen to the on-air output on the pre-listen output, at once")),
 	True: (_("Stop the on-air pre-listen"), _("Stop listening to the on-air output on the pre-listen output")),
@@ -383,6 +388,10 @@ class MainWindow(QMainWindow):
 		"""Audit complet ou indexation rapide, pour l'indexation lancée."""
 		self.control = control.Control(self)
 		self.control.finished.connect(self._finished_control)
+		self.control.restarted.connect(self._restarted)
+		self._restoring: tuple[str, preferences.Settings] | None = None
+		"""Le fichier de configuration et les réglages d'avant des paramètres du service, le temps que la diffusion
+		redémarre (https://github.com/dascritch/machincast/issues/389)."""
 		self.control.not_started.connect(lambda text, journal: dialogs.warn_not_started(self, text, journal))
 		self.service = service.ABSENT
 		"""L'état du service de diffusion, relu au lancement, à l'ouverture du menu et après chaque commande."""
@@ -484,11 +493,14 @@ class MainWindow(QMainWindow):
 		file = self.menuBar().addMenu(_("&File"))
 		# La page « Interface » : https://github.com/dascritch/machincast/issues/145 ; l'icône viendra avec
 		# https://github.com/dascritch/machincast/issues/111.
-		settings = file.addAction(_("Preferences…"))
-		settings.triggered.connect(self._preferences)
-		if self.configuration is None:
-			settings.setEnabled(False)
-			settings.setToolTip(_("Without a configuration file, the preferences are not saved"))
+		# Deux fenêtres : ce qui vaut aussitôt dans l'interface, et ce que Machin player prend à son redémarrage
+		# (https://github.com/dascritch/machincast/issues/389).
+		for kind in (preferences.INTERFACE, preferences.SERVICE):
+			settings = file.addAction(preferences.ENTRIES[kind])
+			settings.triggered.connect(lambda _ticked=False, chosen=kind: self._preferences(chosen))
+			if self.configuration is None:
+				settings.setEnabled(False)
+				settings.setToolTip(_("Without a configuration file, the preferences are not saved"))
 		file.addSeparator()
 		quit_ = file.addAction(_("Quit"))
 		quit_.setShortcut(QKeySequence("Alt+Q"))
@@ -1542,10 +1554,13 @@ class MainWindow(QMainWindow):
 				_("Card closed, its element is no longer in the database: “{title}”.").format(title=title)
 			)
 
-	def _preferences(self) -> None:
+	def _preferences(self, kind: preferences.Kind = preferences.SERVICE) -> None:
 		"""Les préférences réglées s'enregistrent dans le fichier de configuration, puis valent pour les fiches
 		ouvertes ensuite ; un fichier qui ne s'écrit pas les laisse inchangées, et la barre d'état le dit. Un seuil de
-		silence changé relance l'audit complet (https://github.com/dascritch/machincast/issues/401)."""
+		silence changé relance l'audit complet (https://github.com/dascritch/machincast/issues/401). kind : la fenêtre
+		des préférences de l'interface, ou celle des paramètres du service ; des paramètres du service changés
+		redémarrent la diffusion, et reviennent si elle ne redémarre pas
+		(https://github.com/dascritch/machincast/issues/389)."""
 		assert self.configuration is not None
 		audio = self.audio
 		shown_list = preferences.Settings(
@@ -1558,15 +1573,17 @@ class MainWindow(QMainWindow):
 			self.icon,
 			preferences.retention(),
 			self.dead_air,
+			output=audio.output,
 			table_rows=preferences.table_rows(),
 		)
 		# L'état du service, lu à l'ouverture : en marche, la carte de l'antenne ne se choisit pas
 		# (https://github.com/dascritch/machincast/issues/339).
 		self._reread_service()
-		settings = dialogs.set_preferences(self, shown_list, audio.output, self.service)
+		settings = dialogs.set_preferences(self, shown_list, audio.output, self.service, kind)
 		if settings is None:
 			return
 		try:
+			former = self.configuration.read_text(encoding="utf-8")
 			preferences.write(self.configuration, settings)
 		except OSError as error:
 			self.statusBar().showMessage(
@@ -1575,6 +1592,45 @@ class MainWindow(QMainWindow):
 				)
 			)
 			return
+		text = self._apply_preferences(settings)
+		if not preferences.service_changed(shown_list, settings):
+			self.statusBar().showMessage(text)
+			return
+		self._reread_service()
+		if (self.service.installed) and (self.service.running):
+			# Le redémarrage demande le mot de passe d'un administrateur : refusé, les paramètres reviennent.
+			self._restoring = (former, shown_list)
+			self.statusBar().showMessage(RESTARTING_FOR_SETTINGS)
+			self.control.control("restart")
+			return
+		self.statusBar().showMessage(text)
+
+	def _restarted(self, success: bool) -> None:
+		"""La diffusion redémarrée prend les nouveaux paramètres ; sinon, les précédents reviennent, dans le fichier et
+		dans l'interface (https://github.com/dascritch/machincast/issues/389)."""
+		restoring = self._restoring
+		self._restoring = None
+		if (restoring is None) or (success):
+			return
+		former, previous = restoring
+		assert self.configuration is not None
+		try:
+			self.configuration.write_text(former, encoding="utf-8")
+		except OSError as error:
+			self.statusBar().showMessage(
+				_(
+					"Broadcast not restarted, and the former settings could not be written back in {configuration}: "
+					"{error}"
+				).format(configuration=self.configuration, error=error)
+			)
+			return
+		self._apply_preferences(previous)
+		self.statusBar().showMessage(SETTINGS_RESTORED)
+
+	def _apply_preferences(self, settings: preferences.Settings) -> str:
+		"""Les réglages valent dans l'interface ; ce qu'en dit la barre d'état."""
+		assert self.configuration is not None
+		audio = self.audio
 		preferences.define(settings.crossfades)
 		preferences.define_retention(settings.retention)
 		preferences.define_table_rows(settings.table_rows)
@@ -1603,7 +1659,7 @@ class MainWindow(QMainWindow):
 		audit = ""
 		if new_threshold:
 			audit = f" {self._audit_new_threshold()}"
-		self.statusBar().showMessage(
+		return (
 			_("Preferences saved in {configuration}; Machin player will take {text} at its next start.{icon}").format(
 				configuration=self.configuration, text=text, icon=icon
 			)

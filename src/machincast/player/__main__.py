@@ -162,7 +162,7 @@ def run_broadcast(configuration: Configuration) -> int:
 		# Le périphérique par défaut pourrait être celui de la pré-écoute, ou changer avec un branchement.
 		log.error(
 			_(
-				"on-air device not filled in: give it in audio.device of {path}, or in File → Preferences… "
+				"on-air device not filled in: give it in audio.device of {path}, or in File → Broadcast service settings… "
 				"of Machin interface, Audio page"
 			).format(path=configuration.path)
 		)

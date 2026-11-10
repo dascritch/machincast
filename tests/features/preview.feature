@@ -307,7 +307,7 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Et les préférences régleront l'antenne « carte-2 » et la pré-écoute « casque-usb »
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Pré-écoute… » dans le menu « Affichage »
-		Et je choisis « Préférences… » dans le menu « Fichier »
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
 		Et je choisis « Pré-écoute… » dans le menu « Affichage »
 		Alors la sortie de la pré-écoute est « casque-usb »
 		Et la pré-écoute propose les sorties :

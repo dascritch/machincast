@@ -302,3 +302,46 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et je choisis « Maintenance de la base de données… » dans le menu « Maintenance »
 		Alors la barre d'état annonce « Aucun terminal trouvé (konsole, x-terminal-emulator) : lancer Machin maintenance-db à la main. »
 
+	# ─── Paramètres du service (https://github.com/dascritch/machincast/issues/389) ───
+	# Les préférences de l'interface valent aussitôt ; les paramètres du service redémarrent la diffusion, et
+	# reviennent si elle ne redémarre pas.
+
+	Scénario: Des paramètres du service changés redémarrent le service de diffusion, qui les prend
+		Étant donné le service de diffusion installé, en marche
+		Et le fichier de configuration de l'interface noté tel qu'il est
+		Et les préférences régleront l'antenne « carte-2 » et la pré-écoute « preecoute-factice »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors la fenêtre ouverte est celle des paramètres du service
+		Et systemctl a reçu bientôt « restart machincast.service »
+		Et la barre d'état annonce bientôt « Diffusion démarrée. »
+		Et le fichier de configuration donne l'antenne « carte-2 »
+
+	Scénario: Un redémarrage refusé ramène les paramètres du service précédents, dans le fichier et dans l'interface
+		Étant donné le service de diffusion installé, en marche
+		Et systemctl refuse en disant « Interactive authentication required. »
+		Et le fichier de configuration de l'interface noté tel qu'il est
+		Et les préférences régleront l'antenne « carte-2 » et la pré-écoute « preecoute-factice »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors systemctl a reçu bientôt « restart machincast.service »
+		Et la barre d'état annonce bientôt « Diffusion non redémarrée : les paramètres du service précédents sont revenus, dans le fichier de configuration et dans l'interface. »
+		Et le fichier de configuration est revenu tel qu'il était
+		Et l'interface n'a pas d'antenne réglée
+
+	Scénario: Des paramètres du service changés, service arrêté, valent au prochain démarrage, sans redémarrage
+		Étant donné le service de diffusion installé, arrêté
+		Et les préférences régleront l'antenne « carte-2 » et la pré-écoute « preecoute-factice »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors systemctl n'a reçu que des demandes d'état
+		Et le fichier de configuration donne l'antenne « carte-2 »
+
+	Scénario: Les préférences de l'interface ne redémarrent jamais la diffusion
+		Étant donné le service de diffusion installé, en marche
+		Et les préférences régleront seulement la pré-écoute « casque-usb »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Préférences de l'interface… » dans le menu « Fichier »
+		Alors la fenêtre ouverte est celle des préférences de l'interface
+		Et systemctl n'a reçu que des demandes d'état
+		Et le fichier de configuration donne la pré-écoute « casque-usb »

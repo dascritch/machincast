@@ -402,7 +402,7 @@ Fonctionnalité: Calendrier de la grille
 		Et je clique 30 fois sur « ◀ Avant » du calendrier
 		Alors le calendrier montre « dimanche 20 septembre 2026 »
 		Et le bouton « ◀ Avant » du calendrier est inactif
-		Quand je choisis « Préférences… » dans le menu « Fichier »
+		Quand je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Et j'appuie sur « F5 »
 		Alors le calendrier montre « samedi 10 octobre 2026 »
 		Et le bouton « ◀ Avant » du calendrier est inactif
