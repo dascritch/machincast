@@ -21,8 +21,9 @@ EXCLUSIONS = (
 )
 
 # « #51 » : un dièse suivi de chiffres, ni précédé d'une lettre ou d'un « / », ni suivi d'une lettre ou d'un tiret
-# (ce qui écarte les ancres Markdown comme #48-metadonnees et les couleurs comme #1d76db).
-REFERENCE = re.compile(r"(?<![\w/&])#(\d+)(?![\w-])")
+# (ce qui écarte les ancres Markdown comme #48-metadonnees et les couleurs comme #1d76db). Six chiffres tout juste
+# sont une couleur, comme #000000 ou #767676, pas un ticket (https://github.com/dascritch/machincast/issues/412).
+REFERENCE = re.compile(r"(?<![\w/&])#(?!\d{6}(?!\d))(\d+)(?![\w-])")
 # Un lien Markdown dont le texte contient la référence et qui pointe vers le ticket ou la PR.
 LINK = re.compile(r"\[[^\]]*#(\d+)[^\]]*\]\(https://github\.com/dascritch/machincast/(?:issues|pull)/(\d+)\)")
 
