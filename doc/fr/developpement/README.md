@@ -4,6 +4,7 @@ Ce guide s'adresse aux développeurs de MachinCast. L'usage de l'interface est d
 
 - [Poste de développement](poste.md) : installer les outils, lancer les tests, refaire les captures d'écran du guide de l'antenne.
 - [Publier une version](release.md) : préparer, vérifier et publier une release, ses nouveautés et son archive.
+- [Document d'architecture](../architecture.md) : la vue d'ensemble au gabarit arc42, avec ses schémas C4 : contexte, briques, exécution, déploiement, décisions et risques ([#446](https://github.com/dascritch/machincast/issues/446)).
 - [Spécification fonctionnelle](../spec.md) : le comportement visé, et sa mise en œuvre, ticket par ticket.
 - **Règles du projet**, à lire avant de modifier le code concerné :
   - [Développement](../regles/developpement.md) : tickets, commits, style, definition of done, et où va la documentation ;
