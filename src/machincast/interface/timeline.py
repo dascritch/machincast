@@ -813,9 +813,10 @@ class Timeline(QWidget):
 	def _draw_shape(self, painter: QPainter, colour: QColor) -> None:
 		"""Les crêtes, pâles, puis par-dessus le niveau moyen, plus foncé
 		(https://github.com/dascritch/machincast/issues/223)."""
-		for heights, opacity in ((self.columns(), PEAK_OPACITY), (self.medium_columns(), MEAN_OPACITY)):
+
+		def draw_heights(heights: list[float], opacity: int) -> None:
 			if not heights:
-				continue
+				return
 			middle = self.height() / 2
 			half = middle - 2
 			top = []
@@ -830,13 +831,17 @@ class Timeline(QWidget):
 			painter.setBrush(tint)
 			painter.drawPolygon(QPolygonF(top + bottom))
 
+		for heights, opacity in ((self.columns(), PEAK_OPACITY), (self.medium_columns(), MEAN_OPACITY)):
+			draw_heights(heights, opacity)
+
 	def _draw_areas(self, painter: QPainter, colour: QColor) -> None:
 		"""Les silences : hachures pleines et voile s'ils sont retirés à l'antenne, hachures pâles sans voile s'ils y
 		sont joués. La différence tient au motif, pas qu'à la couleur."""
 		assert self.plan is not None
-		for area in self.plan.areas():
+
+		def draw_area(area: Area) -> None:
 			if area.hatching == "none":
-				continue
+				return
 			rectangle = QRectF(
 				self.seconds_to_x(area.start), 0, self.seconds_to_x(area.end - area.start), self.height()
 			)
@@ -852,6 +857,9 @@ class Timeline(QWidget):
 				line.setAlpha(70)
 			painter.fillRect(rectangle, QBrush(line, pattern))
 
+		for area in self.plan.areas():
+			draw_area(area)
+
 	def _draw_fades(self, painter: QPainter, colour: QColor) -> None:
 		"""Les fondus : une rampe, et le volume retiré au-dessus d'elle, voilé."""
 		assert self.plan is not None
@@ -863,9 +871,10 @@ class Timeline(QWidget):
 		output_bottom = bottom - arrival * (bottom - top)
 		veil = QColor(colour)
 		veil.setAlpha(50)
-		for fade, rise in ((entry, True), (output, False)):
+
+		def draw_fade(fade: tuple[float, float] | None, rise: bool) -> None:
 			if fade is None:
-				continue
+				return
 			left, right = self.seconds_to_x(fade[0]), self.seconds_to_x(fade[1])
 			origin, end = QPointF(left, entry_bottom), QPointF(right, top)
 			corner = QPointF(left, top)
@@ -877,6 +886,9 @@ class Timeline(QWidget):
 			painter.drawPolygon(QPolygonF([origin, end, corner]))
 			painter.setPen(QPen(colour, 2))
 			painter.drawLine(origin, end)
+
+		for fade, rise in ((entry, True), (output, False)):
+			draw_fade(fade, rise)
 
 	def _draw_sliders(self, painter: QPainter, colour: QColor) -> None:
 		"""Chaque curseur : un trait pointillé, une poignée en bas, et son nom, vers l'intérieur de la partie jouée."""

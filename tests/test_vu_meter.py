@@ -278,12 +278,16 @@ def item(port: object, factory: str, properties: str) -> None:
 			found_list.append(child)
 	assert len(found_list) == 1, port.children  # type: ignore[attr-defined]
 	source = found_list[0]
-	for key, value in re.findall(r"([\w-]+) « ([^»]+) »", properties):
+
+	def handle_key(key, value) -> None:
 		if key == "stream-properties":
 			field, expected = value.split("=")
 			assert source.get_property(key).get_value(field) == (expected == "true")
-			continue
+			return
 		assert source.get_property(key) == value
+
+	for key, value in re.findall(r"([\w-]+) « ([^»]+) »", properties):
+		handle_key(key, value)
 
 
 @then(parsers.parse("le port de monitoring donne {count:d} canaux"))
@@ -372,14 +376,18 @@ def discarded_list(only_vu_meter: VuMeter, order: str) -> None:
 	kept_list = set()
 	for text, _frame in only_vu_meter.captions():
 		kept_list.add(int(text))
-	for rank, (tick, frame) in enumerate(candidates):
+
+	def discarded_frame(frame, rank, tick) -> None:
 		if tick in kept_list:
-			continue
+			return
 		before = []
 		for other, other_frame in candidates[:rank]:
 			if (other in kept_list) and (frame.intersects(other_frame)):
 				before.append(other)
 		assert before != [], f"{tick} écarté sans chevaucher un nombre gardé plus important"
+
+	for rank, (tick, frame) in enumerate(candidates):
+		discarded_frame(frame, rank, tick)
 
 
 def without_overlap(vu_meter: VuMeter) -> list[tuple[str, QRectF]]:

@@ -471,11 +471,15 @@ class BankCard(Card):
 
 	def _choose_state(self, lines: list[QTreeWidgetItem], state: str) -> None:
 		"""L'état choisi se montre aussitôt ; un sonore en aperçu, ou pas encore en base, garde le sien."""
-		for line in lines:
+
+		def choose_line(line: QTreeWidgetItem) -> None:
 			if line.data(0, STATE) == "preview":
-				continue
+				return
 			line.setData(0, CHOSEN_STATE, state)
 			line.setText(STATE_COLUMN, STATES[state])
+
+		for line in lines:
+			choose_line(line)
 		self._warn()
 		self._modify()
 
@@ -553,15 +557,19 @@ class BankCard(Card):
 		changed_list: list[int] = []
 		blocked = model.blockSignals(True)
 		try:
-			for row, line in enumerate(self._lines()):
+
+			def mark_line(line: QTreeWidgetItem, row: int) -> None:
 				gap = (display.outside_durations(line.data(0, DURATION), minimum, maximum)) or ("")
 				if line.toolTip(0) == gap:
-					continue
+					return
 				changed_list.append(row)
 				line.setToolTip(0, gap)
 				line.setIcon(0, QIcon())
 				if gap != "":
 					line.setIcon(0, icon)
+
+			for row, line in enumerate(self._lines()):
+				mark_line(line, row)
 		finally:
 			model.blockSignals(blocked)
 		if changed_list:

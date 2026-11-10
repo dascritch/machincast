@@ -222,13 +222,17 @@ def labels(group: QGroupBox) -> list[str]:
 	assert form is not None
 	found_list: list[str] = []
 	for line in range(form.rowCount()):
-		for role in (QFormLayout.ItemRole.LabelRole, QFormLayout.ItemRole.SpanningRole):
+
+		def handle_role(role, line) -> None:
 			item = form.itemAt(line, role)
 			if item is None:
-				continue
+				return
 			widget = item.widget()
 			if isinstance(widget, (QLabel, QCheckBox)):
 				found_list.append(widget.text())
+
+		for role in (QFormLayout.ItemRole.LabelRole, QFormLayout.ItemRole.SpanningRole):
+			handle_role(role, line)
 	return found_list
 
 

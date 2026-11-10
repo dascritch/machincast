@@ -154,14 +154,16 @@ def update_schema(configuration: Configuration) -> None:
 def check_roles(connection: psycopg.Connection[tuple[object, ...]]) -> bool:
 	"""Chaque rôle de MachinCast existe, et le compte peut l'endosser ; sinon, ce qu'un administrateur doit faire."""
 	in_order = True
-	for role in ROLES:
+
+	def check_role(role: str) -> None:
+		nonlocal in_order
 		line = connection.execute(
 			"SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)"
 			" AND pg_has_role(current_user, (SELECT oid FROM pg_roles WHERE rolname = %s), 'SET')",
 			(role, role),
 		).fetchone()
 		if (line is not None) and (line[0] is True):
-			continue
+			return
 		in_order = False
 		log.error(
 			_(
@@ -170,6 +172,9 @@ def check_roles(connection: psycopg.Connection[tuple[object, ...]]) -> bool:
 				'psql -c "GRANT {role} TO {account} WITH INHERIT FALSE, SET TRUE"'
 			).format(role=role, account=account())
 		)
+
+	for role in ROLES:
+		check_role(role)
 	if in_order:
 		log.info(_("roles {list} assumable by the account").format(list=", ".join(ROLES)))
 	return in_order

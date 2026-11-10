@@ -792,9 +792,10 @@ class Scheduler:
 		if play != repetition.play:
 			notes = set()
 			self._notes_skips = (repetition.play, notes)
-		for skip in skipped_list:
+
+		def note_skip(skip: Skip) -> None:
 			if skip.key in notes:
-				continue
+				return
 			notes.add(skip.key)
 			self.history.record(
 				self.connection,
@@ -807,6 +808,9 @@ class Scheduler:
 				bank=repetition.bank,
 				event=skip.event,
 			)
+
+		for skip in skipped_list:
+			note_skip(skip)
 
 	def _decide(self, instant: datetime, ongoing: Ongoing | None, events: list[Event]) -> Decision:
 		cut = switch_off = False
@@ -998,9 +1002,13 @@ def ignored_calls_to_edges(
 	sonore.
 	"""
 	reported_list = []
-	for index, (first, _last) in enumerate(edges):
+
+	def ignored_last(_last: int | None, first: int | None, index: int) -> None:
 		if (first not in no_repeat) or ((index == 0) and (not loop)):
-			continue
+			return
 		if edges[index - 1][1] == first:
 			reported_list.append(index + 1)
+
+	for index, (first, _last) in enumerate(edges):
+		ignored_last(_last, first, index)
 	return reported_list

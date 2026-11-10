@@ -381,13 +381,17 @@ def also_received(player: Player, qtbot: QtBot, item: str) -> None:
 def feed_menu(interface: Context, name: str, datatable: list[list[str]]) -> None:
 	_, *lines = datatable
 	obtained_list = []
-	for action in _feed_menu(interface, name).actions():
+
+	def feed_action(action) -> None:
 		if action.isSeparator():
-			continue
+			return
 		state = "inactive"
 		if action.isEnabled():
 			state = "active"
 		obtained_list.append([action.text(), state, action.toolTip()])
+
+	for action in _feed_menu(interface, name).actions():
+		feed_action(action)
 	expected_list = []
 	for line in lines:
 		value_list = []

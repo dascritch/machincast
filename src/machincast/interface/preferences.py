@@ -195,12 +195,16 @@ def write(path: Path, settings: Settings) -> None:
 	section["fade_in_position"] = crossfades.entry
 	section["fade_out_position"] = crossfades.output
 	write_audio(document, settings.output, settings.on_air, settings.preview)
-	for key, duration in (("start", crossfades.start), ("end", crossfades.end)):
+
+	def handle_duration(duration: timedelta | None, key: str) -> None:
 		if duration is None:
 			if key in section:
 				del section[key]
-			continue
+			return
 		section[key] = _seconds(duration)
+
+	for key, duration in (("start", crossfades.start), ("end", crossfades.end)):
+		handle_duration(duration, key)
 	if "silences" not in document:
 		document.add("silences", tomlkit.table())
 	silences = document["silences"]

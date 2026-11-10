@@ -109,14 +109,18 @@ def list_items(context: SimpleNamespace) -> None:
 @when(parsers.parse("{process:d} processus listent chacun {lists:d} fois les périphériques du poste"))
 def list_items_in_loop(context: SimpleNamespace, process: int, lists: int) -> None:
 	code = f"from machincast import audio\nfor _ in range({lists}):\n\taudio.appliances()\n"
-	for _ in range(process):
+
+	def list_item(_) -> None:
 		try:
 			finished = subprocess.run([sys.executable, "-c", code], capture_output=True, timeout=PROCESS_DELAY)
 		except subprocess.TimeoutExpired:
 			context.chutes.append("sans réponse")
-			continue
+			return
 		if finished.returncode != 0:
 			context.chutes.append(f"code {finished.returncode} : {finished.stderr.decode(errors='replace')[-300:]}")
+
+	for _ in range(process):
+		list_item(_)
 
 
 @then(parsers.re(r"le moniteur imité a reçu (?P<calls>«.+»)"))

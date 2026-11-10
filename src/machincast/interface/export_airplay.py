@@ -152,13 +152,17 @@ def in_html(lines: list[Line], metadata: Metadata, title: str, instant: datetime
 
 def in_m3u(lines: list[Line], metadata: Metadata) -> str:
 	entries = ["#EXTM3U"]
-	for line in reversed(lines):
+
+	def in_line(line: Line) -> None:
 		if not line.location:
-			continue
+			return
 		duration = -1
 		if line.duration is not None:
 			duration = round(line.duration.total_seconds())
 		entries.append(f"#EXTINF:{duration},{(artist_and_title(line)) or (line.location)}")
 		entries.append(_("# public text: {public_text}").format(public_text=public_text(line, metadata)))
 		entries.append(line.location)
+
+	for line in reversed(lines):
+		in_line(line)
 	return "\n".join([*entries, ""])

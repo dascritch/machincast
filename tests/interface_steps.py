@@ -1661,10 +1661,11 @@ def menu_entries(interface: Context, menu: str, datatable: list[list[str]]) -> N
 		header_list.append(header.strip())
 	assert header_list == ["entrée", "état", "raccourci", "infobulle"]
 	fetched_list = []
-	for action in actions(interface, menu):
+
+	def menu_action(action) -> None:
 		if action.isSeparator():
 			fetched_list.append(["—", "", "", ""])
-			continue
+			return
 		tooltip = ""
 		if action.toolTip() != action.text().replace("&", ""):
 			tooltip = action.toolTip()
@@ -1672,6 +1673,9 @@ def menu_entries(interface: Context, menu: str, datatable: list[list[str]]) -> N
 		if action.isEnabled():
 			state = "active"
 		fetched_list.append([action.text(), state, action.shortcut().toString(), tooltip])
+
+	for action in actions(interface, menu):
+		menu_action(action)
 	expected_list = []
 	for row in rows:
 		value_list = []

@@ -272,12 +272,16 @@ class StateClient(QObject):
 				)
 			)
 			self._buffer = b""
-		for line in lines:
+
+		def handle_line(line: bytes) -> None:
 			try:
 				state = read_message(line.decode())
 			except ValueError as error:
 				log.warning(
 					_("state socket {path}: unreadable message ignored: {error}").format(path=self.path, error=error)
 				)
-				continue
+				return
 			self.received_state.emit(state)
+
+		for line in lines:
+			handle_line(line)

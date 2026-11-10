@@ -236,10 +236,11 @@ def restart(
 	prefix = ""
 	if simulation:
 		prefix = "[simulation] "
-	for program in programs:
+
+	def handle_program(program: Program) -> None:
 		command = [str(MACHIN), program.name, *program.arguments]
 		if program.service:
-			continue
+			return
 		if program.account != current_account:
 			rest.append(
 				_("to reopen by the account {account}: {command}").format(
@@ -274,6 +275,9 @@ def restart(
 								prefix=prefix, command=program.command
 							)
 						)
+
+	for program in programs:
+		handle_program(program)
 	return restarted_list + rest
 
 

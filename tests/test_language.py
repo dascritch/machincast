@@ -121,9 +121,10 @@ def same_fields() -> None:
 	"""Une traduction qui perdrait, ajouterait ou renommerait un champ {nom} ferait échouer son str.format."""
 	fields = re.compile(r"(?<!\{)\{([A-Za-z_]\w*)")
 	messages = catalog.extract()
-	for code in i18n.LANGUAGES:
+
+	def same_code(code) -> None:
 		if code == i18n.SOURCE:
-			continue
+			return
 		translations = i18n.read_catalog(i18n.catalog_file(code).read_text(encoding="utf-8"))
 		for key, message in messages.items():
 			translated = translations[key]
@@ -133,3 +134,6 @@ def same_fields() -> None:
 				forms = (translated,)
 			for form in forms:
 				assert set(fields.findall(form)) == set(fields.findall(message.msgid)), (code, message.msgid, form)
+
+	for code in i18n.LANGUAGES:
+		same_code(code)

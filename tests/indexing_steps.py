@@ -299,19 +299,24 @@ def per_file(records: list[logging.LogRecord]) -> list[tuple[int, str]]:
 	« chemin : résultat », comme on le lit : les scénarios parlent d'un fichier et de son verdict."""
 	lines: list[tuple[int, str]] = []
 	opened: str | None = None
-	for saving in records:
+
+	def per_saving(saving) -> None:
+		nonlocal opened
 		message = saving.getMessage()
 		if (opened is not None) and (message.startswith("  ")):
 			lines.append((saving.levelno, f"{opened} : {message.strip()}"))
 			opened = None
-			continue
+			return
 		if opened is not None:
 			lines.append((logging.INFO, f"{opened}{ANALYSIS}"))
 			opened = None
 		if message.endswith(ANALYSIS):
 			opened = message.removesuffix(ANALYSIS)
-			continue
+			return
 		lines.append((saving.levelno, message))
+
+	for saving in records:
+		per_saving(saving)
 	if opened is not None:
 		lines.append((logging.INFO, f"{opened}{ANALYSIS}"))
 	return lines

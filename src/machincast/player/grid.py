@@ -215,16 +215,20 @@ def _occurrences(event: Event, de: date, a: date, with_skipped: bool = False) ->
 	if end is not None:
 		duration_in_days = (end.date() - start.date()).days
 	found_list: list[tuple[datetime, datetime | None]] = []
-	for gap in range((a - de).days):
+
+	def handle_gap(gap: int) -> None:
 		day = de + timedelta(days=gap)
 		if (day < start.date()) or ((day != start.date()) and (day.weekday() not in event.days)):
-			continue
+			return
 		if (day in event.skipped_list) and (not with_skipped):
-			continue
+			return
 		arrival = None
 		if (end is not None) and (duration_in_days is not None):
 			arrival = datetime.combine(day + timedelta(days=duration_in_days), end.time())
 		found_list.append((datetime.combine(day, start.time()), arrival))
+
+	for gap in range((a - de).days):
+		handle_gap(gap)
 	return found_list
 
 
@@ -283,11 +287,13 @@ def overlap(event: Event, others: Iterable[Event], since: datetime | None = None
 	found_list: list[tuple[datetime, int, Event]] = []
 	if event.start is None:
 		return None
-	for other in others:
+
+	def find_overlap(other: Event, event_start: datetime) -> None:
+		"""Le premier instant commun de l'événement et d'un autre de même priorité, noté dans found_list."""
 		if (other.priority is not event.priority) or (other.start is None):
-			continue
+			return
 		duration = _covered_days(event) + _covered_days(other)
-		pivot = max(wall_hour(event.start), wall_hour(other.start), (wall) or (datetime.min)).date()
+		pivot = max(wall_hour(event_start), wall_hour(other.start), (wall) or (datetime.min)).date()
 		de, a = pivot - timedelta(days=duration + 1), pivot + timedelta(days=duration + 8)
 		common_list = [
 			instant
@@ -297,6 +303,9 @@ def overlap(event: Event, others: Iterable[Event], since: datetime | None = None
 		]
 		if common_list:
 			found_list.append((min(common_list), other.id, other))
+
+	for other in others:
+		find_overlap(other, event.start)
 	if not found_list:
 		return None
 	instant, _identifier, other = min(found_list, key=lambda found: (found[0], found[1]))
@@ -317,29 +326,38 @@ def next_change(events: Iterable[Event], instant: datetime) -> datetime | None:
 	"""
 	moment = wall_hour(instant)
 	candidates: list[datetime] = []
-	for event in events:
+
+	def next_event(event: Event) -> None:
+		nonlocal candidates
 		if (event.priority is Priority.FALLBACK) or (event.start is None):
-			continue
+			return
 		start = wall_hour(event.start)
 		end = _wall_hour_or_none(event.end)
 		if not event.days:
 			if start.date() not in event.skipped_list:
 				candidates += [c for c in (start, end) if c is not None]
-			continue
+			return
 		duration_in_days: int | None = None
 		if end is not None:
 			duration_in_days = (end.date() - start.date()).days
+
 		# Les occurrences commencées dans la semaine passée peuvent encore finir ; celles de la semaine à venir,
 		# commencer.
-		for gap in range(-8 - ((duration_in_days) or (0)), 8):
+		def next_gap(gap: int) -> None:
 			day = moment.date() + timedelta(days=gap)
 			if (day < start.date()) or ((day != start.date()) and (day.weekday() not in event.days)):
-				continue
+				return
 			if day in event.skipped_list:
-				continue
+				return
 			candidates.append(datetime.combine(day, start.time()))
 			if (end is not None) and (duration_in_days is not None):
 				candidates.append(datetime.combine(day + timedelta(days=duration_in_days), end.time()))
+
+		for gap in range(-8 - ((duration_in_days) or (0)), 8):
+			next_gap(gap)
+
+	for event in events:
+		next_event(event)
 	after = [candidate for candidate in candidates if candidate > moment]
 	if not after:
 		return None
@@ -410,21 +428,29 @@ def plan(events: Iterable[Event], de: datetime, a: datetime) -> list[Planned]:
 	grid = [event for event in events if event.priority is not Priority.FALLBACK]
 	occurrences: list[Occurrence] = []
 	skipped_list: list[Occurrence] = []
-	for event in grid:
+
+	def handle_event(event: Event) -> None:
 		deleted = _wall_hour_or_none(event.deleted_at)
 		if event.start is None:
 			if (deleted is None) or (deleted > de):
 				occurrences.append(Occurrence(event, None, None))
-			continue
+			return
 		# Une occurrence commencée avant la période peut encore la toucher : autant de jours qu'elle en couvre.
 		since = de.date() - timedelta(days=_covered_days(event) + 1)
-		for start, end in _occurrences(event, since, a.date() + timedelta(days=1), with_skipped=True):
+
+		def handle_end(end: datetime | None, start: datetime) -> None:
 			if (deleted is not None) and (start >= deleted):
-				continue
+				return
 			if start.date() in event.skipped_list:
 				skipped_list.append(Occurrence(event, start, end))
 			else:
 				occurrences.append(Occurrence(event, start, end))
+
+		for start, end in _occurrences(event, since, a.date() + timedelta(days=1), with_skipped=True):
+			handle_end(end, start)
+
+	for event in grid:
+		handle_event(event)
 	ends = {o.key: _drawn_end(o, occurrences, a) for o in occurrences}
 	for o in occurrences:
 		deleted = _wall_hour_or_none(o.event.deleted_at)
@@ -438,16 +464,20 @@ def plan(events: Iterable[Event], de: datetime, a: datetime) -> list[Planned]:
 		| {ends[o.key] for o in kept_list if de < ends[o.key] < a}
 	)
 	plays: dict[tuple[int, datetime | None], list[tuple[datetime, datetime]]] = {o.key: [] for o in kept_list}
-	for departure, arrival in zip(bounds, bounds[1:], strict=False):
+
+	def handle_arrival(arrival: datetime, departure: datetime) -> None:
 		covering = [o for o in kept_list if ((o.start is None) or (o.start <= departure)) and (ends[o.key] > departure)]
 		winning = _winning(covering)
 		if winning is None:
-			continue
+			return
 		moments = plays[winning.key]
 		if (moments) and (moments[-1][1] == departure):
 			moments[-1] = (moments[-1][0], arrival)
-			continue
+			return
 		moments.append((departure, arrival))
+
+	for departure, arrival in zip(bounds, bounds[1:], strict=False):
+		handle_arrival(arrival, departure)
 	planned_list = [Planned(o, (o.start) or (de), ends[o.key], tuple(plays[o.key])) for o in kept_list]
 	planned_list += [
 		Planned(o, (o.start) or (de), _drawn_end(o, occurrences, a), (), skipped=True) for o in skipped_list

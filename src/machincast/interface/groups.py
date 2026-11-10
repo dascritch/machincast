@@ -113,7 +113,9 @@ def _state_question(verb: str) -> Callable[[int, list[str]], str]:
 def _add(connection: Connection, sounds: list[int], banks: list[int]) -> str:
 	added_list: set[int] = set()
 	touched_list: set[int] = set()
-	for bank in banks:
+
+	def handle_bank(bank: int) -> None:
+		nonlocal added_list
 		present_list = _identifiers(
 			connection.execute("SELECT sound_id FROM bank_sounds WHERE bank_id = %s FOR UPDATE", (bank,)).fetchall()
 		)
@@ -122,7 +124,7 @@ def _add(connection: Connection, sounds: list[int], banks: list[int]) -> str:
 			if sound not in present_list:
 				new_list.append(sound)
 		if new_list == []:
-			continue
+			return
 		line = connection.execute(
 			"SELECT COALESCE(MAX(position), 0) FROM bank_sounds WHERE bank_id = %s", (bank,)
 		).fetchone()
@@ -138,6 +140,9 @@ def _add(connection: Connection, sounds: list[int], banks: list[int]) -> str:
 			)
 		added_list |= set(new_list)
 		touched_list.add(bank)
+
+	for bank in banks:
+		handle_bank(bank)
 	return _("{sounds} {banks}.").format(
 		sounds=counted("{count} sound added", "{count} sounds added", len(added_list)),
 		banks=counted("to {count} bank", "to {count} banks", len(touched_list)),

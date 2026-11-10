@@ -882,9 +882,9 @@ class Broadcast:
 		return chosen + self.outgoing_list
 
 	def _finish_stopped_tracks(self, instant: datetime) -> None:
-		for playback in self._plays():
+		def finish_playback(playback: Playback) -> None:
 			if playback.track.state not in ("finished", "error"):
-				continue
+				return
 			if (playback.parameters.stream) and (not playback.off):
 				# Un stream n'a pas de fin : arrêté avant son extinction, il est tombé.
 				error = N_("{path}: {error}").format(
@@ -894,6 +894,9 @@ class Broadcast:
 				self._suspend(playback, instant)
 			else:
 				self._finish(playback.play, instant, error=playback.track.error)
+
+		for playback in self._plays():
+			finish_playback(playback)
 		s_list = []
 		for s in self.outgoing_list:
 			if s.track.state == "playing":

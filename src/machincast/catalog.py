@@ -101,17 +101,25 @@ def extract(package: Path = PACKAGE) -> dict[str, Message]:
 						add(Message(texts[1], context=texts[0]), reference)
 	for path in sorted(package.rglob("*.ui")):
 		relative = path.relative_to(package.parent).as_posix()
-		for element in ElementTree.parse(path).iter("string"):
+
+		def handle_element(element: ElementTree.Element, relative: str) -> None:
 			if (element.get("notr") == "true") or (not element.text):
-				continue
+				return
 			add(Message(element.text, context=(element.get("comment")) or (None)), relative)
+
+		for element in ElementTree.parse(path).iter("string"):
+			handle_element(element, relative)
 	for script in scripts(package):
 		text = script.read_text(encoding="utf-8")
-		for found_message in BASH_MESSAGE.finditer(text):
+
+		def handle_found_message(found_message: re.Match[str], script: Path, text: str) -> None:
 			start = text.rfind("\n", 0, found_message.start()) + 1
 			if text[start : found_message.start()].lstrip().startswith("#"):
-				continue
+				return
 			add(Message(found_message.group(1)), script.relative_to(package.parent.parent).as_posix())
+
+		for found_message in BASH_MESSAGE.finditer(text):
+			handle_found_message(found_message, script, text)
 	return found
 
 
@@ -242,9 +250,11 @@ def main(arguments: list[str] | None = None) -> int:
 	languages = list(i18n.LANGUAGES)
 	if options.new is not None:
 		languages.append(options.new)
-	for code in dict.fromkeys(languages):
+
+	def handle_code(code: str) -> None:
+		nonlocal code_returned
 		if code == i18n.SOURCE:
-			continue
+			return
 		file = i18n.catalog_file(code)
 		before = ""
 		if file.is_file():
@@ -266,12 +276,15 @@ def main(arguments: list[str] | None = None) -> int:
 			for msgid in missing:
 				log.error(f"{file}: untranslated: {msgid!r}")
 				code_returned = 1
-			continue
+			return
 		file.parent.mkdir(parents=True, exist_ok=True)
 		file.write_text(after, encoding="utf-8")
 		if bash_after is not None:
 			bash_file.write_text(bash_after, encoding="utf-8")
 		log.info(f"{file}: {len(messages)} messages, {len(missing)} untranslated")
+
+	for code in dict.fromkeys(languages):
+		handle_code(code)
 	return code_returned
 
 
