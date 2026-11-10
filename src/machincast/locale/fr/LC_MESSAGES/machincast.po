@@ -1422,6 +1422,11 @@ msgid "Skipped session"
 msgstr "Session sautée"
 
 #: machincast/interface/calendar.py
+#: machincast/interface/event_card.py
+msgid "Breaking"
+msgstr "Imprévu"
+
+#: machincast/interface/calendar.py
 msgid "red"
 msgstr "rouge"
 
@@ -2845,6 +2850,10 @@ msgstr ""
 "de problème »."
 
 #: machincast/interface/event_card.py
+msgid "A breaking event is not scheduled: its priority is not chosen."
+msgstr "Un imprévu ne se programme pas : sa priorité ne se choisit pas."
+
+#: machincast/interface/event_card.py
 msgid ""
 "A sound, a bank or a sequence may come back several times in an event."
 msgstr ""
@@ -2953,6 +2962,10 @@ msgstr "Une émission ou un spécial a un début."
 #: machincast/interface/simulation.py
 msgid "The end must follow the start."
 msgstr "La fin doit suivre le début."
+
+#: machincast/interface/event_card.py
+msgid "A breaking event does not repeat: no day is ticked."
+msgstr "Un imprévu ne se répète pas : aucun jour ne se coche."
 
 #: machincast/interface/event_card.py
 #, python-brace-format
@@ -3634,6 +3647,11 @@ msgstr "Anomalie : la ligne a un problème, que dit son infobulle"
 #: machincast/interface/lists.py
 msgid "deleted"
 msgstr "supprimé"
+
+#: machincast/interface/lists.py
+#: machincast/player/broadcast.py
+msgid "breaking"
+msgstr "imprévu"
 
 #: machincast/interface/lists.py
 #: machincast/player/broadcast.py

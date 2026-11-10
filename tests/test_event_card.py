@@ -242,6 +242,13 @@ def priorities(interface: Context, priorities: str) -> None:
 	for index in range(choice.count()):
 		index_list.append(choice.itemText(index).casefold())
 	assert index_list == NAME.findall(priorities)
+	assert choice.isEnabled()
+
+
+@then(parsers.parse("le choix de la priorité est grisé, avec l'infobulle « {tooltip} »"))
+def greyed_priority(interface: Context, tooltip: str) -> None:
+	choice = card(interface).ui.priority
+	assert (choice.isEnabled(), choice.toolTip()) == (False, tooltip)
 
 
 @then("la fiche de l'événement montre :")

@@ -234,6 +234,34 @@ Fonctionnalité: Calendrier de la grille
 			| jour     | début | fin   | événement | passages |
 			| mardi 20 | 09:00 | 09:30 | Secours   | 1        |
 
+	Scénario: Un imprévu se dessine en violet, et n'a pas de case : il est toujours montré
+		https://github.com/dascritch/machincast/issues/402 : un imprévu ne se programme pas, il n'a que son airplay.
+
+		Étant donné les événements :
+			| name   | public_name | priority | starts_at        | ends_at          | days |
+			| Alerte |             | breaking | 2026-10-20 10:00 | 2026-10-20 10:05 |      |
+		Et les passages de l'airplay :
+			| événement | début               | fin                 |
+			| Alerte    | 2026-10-20 10:00:00 | 2026-10-20 10:05:00 |
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Alors le calendrier a les cases cochées « Spécial », « Émission », « Fil musical »
+		Et la bande d'airplay « Alerte » de 10:00 du mardi 20 est dessinée en « #c48cf0 » assombri
+		Et le bloc « Alerte » du mardi 20 a l'infobulle :
+			"""
+			Alerte — Imprévu
+			mardi 20 octobre, 10:00 – 10:05
+			Joue en entier
+			Double-clic : ouvrir l'événement
+			"""
+		Quand je décoche la case « Spécial » du calendrier
+		Et je décoche la case « Émission » du calendrier
+		Et je décoche la case « Fil musical » du calendrier
+		Alors le calendrier montre les bandes d'airplay :
+			| jour     | début | fin   | événement | passages |
+			| mardi 20 | 10:00 | 10:05 | Alerte    | 1        |
+		Et le calendrier montre 1 blocs
+
 	Plan du scénario: Chaque case de priorité montre la couleur de ses blocs
 		https://github.com/dascritch/machincast/issues/293 : un carré de la couleur de la priorité, devant son nom ; son
 		infobulle la nomme.

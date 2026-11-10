@@ -127,6 +127,7 @@ EVENT_START, EVENT_END = N_("event start"), N_("event end")
 SEQUENCE_START, SEQUENCE_END = N_("sequence start"), N_("sequence end")
 """Natures, au niveau info, des débuts et des fins à l'antenne (https://github.com/dascritch/machincast/issues/153)."""
 PRIORITIES = {
+	Priority.BREAKING: N_("breaking"),
 	Priority.SPECIAL: N_("special"),
 	Priority.SHOW: N_("show"),
 	Priority.BACKGROUND_PROGRAMMING: N_("background programming"),

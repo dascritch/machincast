@@ -338,24 +338,25 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Et le compte de la liste est « 1 sonore sur 251, dont 1 en anomalie »
 
 	Scénario: Un clic sur le titre « Priorité » classe les événements par importance, pas par ordre alphabétique
-		https://github.com/dascritch/machincast/issues/272 : spécial, émission, fil musical, secours ; un second clic
-		inverse l'ordre.
+		https://github.com/dascritch/machincast/issues/272 : imprévu (https://github.com/dascritch/machincast/issues/402),
+		spécial, émission, fil musical, secours ; un second clic inverse l'ordre.
 
 		Étant donné les événements :
 			| name     | public_name | priority               | starts_at        | ends_at          | days |
 			| Aide     |             | fallback               |                  |                  |      |
+			| Alerte   |             | breaking               | 2026-10-17 09:00 | 2026-10-17 09:05 |      |
 			| Concert  |             | special                | 2026-10-17 20:00 | 2026-10-17 22:00 |      |
 			| Continue |             | background_programming |                  |                  |      |
 			| Journal  |             | show                   | 2026-10-17 12:00 | 2026-10-17 12:30 |      |
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Événements »
 		Et je clique sur le titre de la colonne « Nom »
-		Alors la colonne « Priorité » de la liste montre « secours », « spécial », « fil musical », « émission »
+		Alors la colonne « Priorité » de la liste montre « secours », « imprévu », « spécial », « fil musical », « émission »
 		Quand je clique sur le titre de la colonne « Priorité »
-		Alors la colonne « Priorité » de la liste montre « spécial », « émission », « fil musical », « secours »
-		Et la colonne « Nom » de la liste montre « Concert », « Journal », « Continue », « Aide »
+		Alors la colonne « Priorité » de la liste montre « imprévu », « spécial », « émission », « fil musical », « secours »
+		Et la colonne « Nom » de la liste montre « Alerte », « Concert », « Journal », « Continue », « Aide »
 		Quand je clique sur le titre de la colonne « Priorité »
-		Alors la colonne « Priorité » de la liste montre « secours », « fil musical », « émission », « spécial »
+		Alors la colonne « Priorité » de la liste montre « secours », « fil musical », « émission », « spécial », « imprévu »
 
 	Scénario: Un clic sur le titre « Durée » classe les sonores du plus court au plus long, ceux sans durée à la fin
 		https://github.com/dascritch/machincast/issues/302 : par les secondes, pas par le texte ; un fichier pas encore

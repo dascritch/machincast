@@ -19,7 +19,7 @@
 
 À tout instant, l'antenne suit **un seul événement**, choisi ainsi :
 
-- **Priorité** : un `spécial` l'emporte sur une `émission`, qui l'emporte sur un `fil musical`. Quand l'événement prioritaire se termine, celui qui est en dessous reprend.
+- **Priorité** : un `imprévu` ([#402](https://github.com/dascritch/machincast/issues/402)), comme une alerte de la sécurité civile, l'emporte sur tout ; un `spécial` l'emporte sur une `émission`, qui l'emporte sur un `fil musical`. Quand l'événement prioritaire se termine, celui qui est en dessous reprend.
 - **Fil musical permanent** : un fil musical sans date de début ni de fin sert de fond ; il couvre tout le temps où rien d'autre n'est programmé, pas même un autre fil musical.
 - **Fils musicaux selon l'heure** : plusieurs fils musicaux peuvent se relayer, par exemple un fil de nuit de 00:00 à 06:00, tous les jours, sur un fil de jour permanent.
 - **Toujours un fil musical** : s'il n'en existe aucun, l'interface en crée un, « Fil musical », permanent et vide ([Pour bien démarrer](prise-en-main.md#pour-bien-démarrer)). Vide, il laisse un blanc à l'antenne, avec une alerte.

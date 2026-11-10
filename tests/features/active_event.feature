@@ -54,6 +54,22 @@ Fonctionnalité: Détermination de l'événement actif
 			| 2026-10-14 19:10 | Magazine |
 			| 2026-10-14 20:00 | Continue |
 
+	Scénario: Un imprévu passe avant tout autre événement, même un spécial
+		https://github.com/dascritch/machincast/issues/402 : imprévu, spécial, émission, fil musical, secours.
+
+		Étant donné les événements :
+			| nom      | priorité               | début            | fin              | jours | modifié          |
+			| Continue | background_programming |                  |                  |       | 2026-10-01 10:00 |
+			| Magazine | show                   | 2026-10-14 18:00 | 2026-10-14 20:00 |       | 2026-10-01 10:00 |
+			| Flash    | special                | 2026-10-14 19:00 | 2026-10-14 19:10 |       | 2026-11-01 10:00 |
+			| Alerte   | breaking               | 2026-10-14 19:02 | 2026-10-14 19:05 |       | 2026-09-01 10:00 |
+		Alors l'événement actif est :
+			| heure            | actif    |
+			| 2026-10-14 19:01 | Flash    |
+			| 2026-10-14 19:02 | Alerte   |
+			| 2026-10-14 19:04 | Alerte   |
+			| 2026-10-14 19:05 | Flash    |
+
 	# ─── Récurrence ────────────────────────────────────────────
 
 	Scénario: Un événement récurrent revient les jours cochés, à partir de sa première occurrence

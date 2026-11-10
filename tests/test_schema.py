@@ -11,8 +11,10 @@ import psycopg
 import pytest
 from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
+from yoyo import get_backend, read_migrations
 
 from machincast.database import (
+	MIGRATION_DIRECTORY,
 	TABLES,
 	TYPES,
 	apply_migrations,
@@ -244,6 +246,27 @@ def save_empty(context: Context, table: str) -> None:
 @when("j'annule toutes les migrations")
 def cancel(context: Context) -> None:
 	cancel_migrations(url_yoyo(*sample_database_parameters()))
+
+
+@when(parsers.parse("j'annule la migration « {identifier} »"))
+def cancel_one(context: Context, identifier: str) -> None:
+	"""Elle et celles qui la suivent ; la purge du scénario suivant réapplique ce qui manque."""
+	migrations = read_migrations(str(MIGRATION_DIRECTORY))
+	with get_backend(url_yoyo(*sample_database_parameters())) as backend, backend.lock():
+		cancelled = backend.to_rollback(migrations)
+		kept = []
+		for migration in cancelled:
+			kept.append(migration)
+			if migration.id == identifier:
+				break
+		assert kept[-1].id == identifier, kept
+		backend.rollback_migrations(kept)
+
+
+@then(parsers.parse("l'événement « {name} » est de priorité « {priority} »"))
+def priority_of(context: Context, name: str, priority: str) -> None:
+	line = context.connection.execute("SELECT priority::text FROM events WHERE internal_name = %s", (name,)).fetchone()
+	assert line == (priority,)
 
 
 def opened_connections(context: Context) -> int:
