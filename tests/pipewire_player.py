@@ -7,7 +7,9 @@ pipeline lancé, puis « erreur : … » à toute erreur, et s'arrête à la fer
 
 	python -m tests.pipewire_player antenne      # la sortie de l'antenne, verrouillée sur le périphérique « antenne »
 	python -m tests.pipewire_player sans-verrou  # une sortie sans verrou, sur le même périphérique
-	python -m tests.pipewire_player factice      # l'antenne factice, sur sa carte virtuelle (#400)
+	python -m tests.pipewire_player factice      # l'antenne factice, sur sa carte virtuelle
+
+La carte virtuelle de l'antenne factice : https://github.com/dascritch/machincast/issues/400.
 """
 
 import contextlib
