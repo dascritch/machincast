@@ -29,6 +29,10 @@ msgid "Test sound"
 msgstr "Son de test"
 
 #: machincast/audio.py
+msgid "On-air monitoring"
+msgstr "Écoute de l'antenne"
+
+#: machincast/audio.py
 msgid ""
 "audiotestsrc or audioconvert not found, install gstreamer1.0-plugins-base"
 msgstr ""
