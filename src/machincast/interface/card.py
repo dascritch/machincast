@@ -34,6 +34,11 @@ d'être vide, sous un nom interne suivi de « (copie) » (copy_name). Elle est m
 en base avant « Enregistrer », et l'original n'est jamais écrit. « Annuler » et le rafraîchissement relisent
 l'original ; s'il a été effacé entre-temps, la copie reste telle quelle. Ce que chaque fiche copie est dit dans son
 module.
+
+Pendant l'enregistrement, toute la fiche est grisée, pour montrer que l'application y travaille ; elle se dégrise à la
+fin, réussie ou refusée (https://github.com/dascritch/machincast/issues/382). Réussi par « Enregistrer », l'enregistrement
+d'une banque, d'un événement, d'une séquence ou d'un sonore ferme son onglet (CLOSES_AFTER_SAVE, finished) ; refusé, la
+fiche reste ouverte, et dit pourquoi.
 """
 
 import logging
@@ -172,12 +177,18 @@ class Card(QWidget):
 	deleted = Signal()
 	"""L'élément n'est plus en base : la fiche est à fermer, sans rien demander."""
 	requested_duplication = Signal(str, int)
+	finished = Signal()
+	"""« Enregistrer » a réussi, pour une fiche qui se ferme alors (CLOSES_AFTER_SAVE) : son onglet est à fermer
+	(https://github.com/dascritch/machincast/issues/382)."""
 	requested_preview = Signal(int)
 	"""Un sonore est à pré-écouter : depuis le bouton de la fiche d'un sonore, ou le menu contextuel d'une ligne de
 	sonore d'une banque, d'une séquence ou d'un événement (https://github.com/dascritch/machincast/issues/226)."""
 	"""« Dupliquer » cliqué : le genre et l'identifiant de l'élément à copier dans une nouvelle fiche."""
 
 	category = ""
+	CLOSES_AFTER_SAVE = False
+	"""La fiche se ferme après « Enregistrer », s'il réussit : celle d'une banque, d'un événement, d'une séquence ou d'un
+	sonore (https://github.com/dascritch/machincast/issues/382)."""
 	"""Genre de l'élément, celui des listes et de detail_demande : « banque », « sonore », « séquence »."""
 	button_save: QPushButton
 	button_cancel: QPushButton
@@ -236,7 +247,7 @@ class Card(QWidget):
 		self.warning.setAccessibleName(_("Warning"))
 		self.warning.hide()
 		arrangement.insertWidget(1, self.warning)
-		save.clicked.connect(self.save)
+		save.clicked.connect(self._save_and_close)
 		cancel.clicked.connect(self.load)
 		delete.clicked.connect(self._delete_or_restore)
 		if duplicate is not None:
@@ -287,14 +298,29 @@ class Card(QWidget):
 			self.button_delete.setText(DELETE)
 			return
 		for input_ in self.findChildren(QWidget):
-			if (isinstance(input_, INPUTS)) and (input_ is not self.button_delete) and (input_.isEnabled()):
+			if (isinstance(input_, INPUTS)) and (input_ is not self.button_delete) and (input_.isEnabledTo(self)):
 				input_.setEnabled(False)
 				self._frozen.append(input_)
 		self.button_delete.setText(RESTORE)
 		self.message.setText(deletion.marks(self.category, self.deleted_at, preferences.retention()))
 
+	def _save_and_close(self) -> None:
+		"""« Enregistrer » : la fiche qui se ferme après un enregistrement réussi le demande."""
+		if (self.save()) and (self.CLOSES_AFTER_SAVE):
+			self.finished.emit()
+
 	def save(self) -> bool:
-		"""Écrit la fiche en base, puis la relit ; une fiche refusée n'est pas enregistrée, et dit pourquoi."""
+		"""Écrit la fiche en base, puis la relit ; une fiche refusée n'est pas enregistrée, et dit pourquoi. Toute la
+		fiche est grisée pendant l'enregistrement (https://github.com/dascritch/machincast/issues/382)."""
+		self.setEnabled(False)
+		# Le gris se dessine avant l'enregistrement, qui tient le fil de l'interface, sans traiter d'autre événement.
+		self.repaint()
+		try:
+			return self._save()
+		finally:
+			self.setEnabled(True)
+
+	def _save(self) -> bool:
 		try:
 			with self.connection.transaction():
 				identifier = self._write()

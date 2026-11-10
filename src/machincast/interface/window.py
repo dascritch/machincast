@@ -1081,6 +1081,8 @@ class MainWindow(QMainWindow):
 		card.changed_title.connect(lambda title: self._rename(card, title))
 		card.requested_opening.connect(self._open)
 		card.deleted.connect(lambda: self._remove(card))
+		# « Enregistrer » a réussi : l'onglet se ferme (https://github.com/dascritch/machincast/issues/382).
+		card.finished.connect(lambda: self._remove(card))
 		card.requested_duplication.connect(self._duplicate)
 		card.requested_preview.connect(self._preview)
 		if isinstance(card, SoundCard):

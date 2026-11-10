@@ -53,7 +53,7 @@ Fonctionnalité: Fiche d'une banque
 		Alors la fiche n'avertit pas en haut
 		Quand je retire le sonore « Spot »
 		Alors la fiche avertit en haut « Banque sans sonore actif : elle ne fournit rien, et l'élément qui l'appelle passe à son élément suivant. »
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
 		Et la fiche avertit en haut « Banque sans sonore actif : elle ne fournit rien, et l'élément qui l'appelle passe à son élément suivant. »
 
@@ -196,7 +196,7 @@ Fonctionnalité: Fiche d'une banque
 		Et je choisis le masquage « masqué par le nom public de la banque »
 		Et je décoche « ne pas répéter »
 		Alors la banque « Jingles » est en base : nom public « Radio Thune », séquentielle, masquage « hérité du sonore », avec « ne pas répéter »
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors la banque « Jingles d'été » est en base : nom public « Radio Thune, l'été », aléatoire, masquage « masqués », sans « ne pas répéter »
 		Et l'onglet ouvert est « Banque : Jingles d'été »
 
@@ -204,7 +204,7 @@ Fonctionnalité: Fiche d'une banque
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et je choisis le masquage « masqué par le nom public de la banque »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Et je choisis le masquage « <choix> »
 		Et j'enregistre la fiche
 		Alors la banque « Jingles » est en base : nom public « Radio Thune », séquentielle, masquage « <masquage> », avec « ne pas répéter »
@@ -244,7 +244,8 @@ Fonctionnalité: Fiche d'une banque
 		Et je compte les lectures de toutes les lignes de la fiche
 		Et j'enregistre la fiche
 		Alors la fiche a lu toutes ses lignes au plus 10 fois
-		Et la fiche montre 3002 sonores
+		Quand j'ouvre la fiche de la banque « Jingles »
+		Alors la fiche montre 3002 sonores
 
 	Scénario: Retirer d'un coup la plupart des sonores d'une grande banque ne relit pas toutes ses lignes à chaque ligne
 		Étant donné 3000 sonores de 3:00 de plus dans la banque « Jingles »
@@ -333,10 +334,10 @@ Fonctionnalité: Fiche d'une banque
 		Alors la case « détection de silence » de la fiche est décochée
 		Quand je coche « détection de silence »
 		Alors la banque « Jingles » n'active pas la détection de silence
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors la banque « Jingles » active la détection de silence
 		Quand je décoche « détection de silence »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la banque « Jingles » n'active pas la détection de silence
 
 	# ─── Crossfades (https://github.com/dascritch/machincast/issues/143) ─────────────────────────
@@ -362,10 +363,10 @@ Fonctionnalité: Fiche d'une banque
 			| côté  | règle                             | durée  | durée modifiable |
 			| début | Imposer à tous les sonores        | 1,5 s  | oui              |
 			| fin   | Appliquer si le sonore n'en a pas | 2,2 s  | oui              |
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors la banque « Jingles » a en base les crossfades « forced » 1,5 seconde au début, et « default » 2,2 secondes à la fin
 		Quand je choisis pour le crossfade de début la règle « Garder ceux des sonores »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la banque « Jingles » a en base les crossfades « sound » 1,5 seconde au début, et « default » 2,2 secondes à la fin
 		Et la fiche montre les crossfades :
 			| côté  | règle                             | durée  | durée modifiable |
@@ -380,11 +381,11 @@ Fonctionnalité: Fiche d'une banque
 		Alors la fiche montre les durées des sonores : minimale aucune, maximale aucune
 		Quand je fixe la durée minimale des sonores à « 0:03:00 »
 		Et je fixe la durée maximale des sonores à « 0:06:30 »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et la banque « Jingles » a en base les durées des sonores de 180 à 390 secondes
 		Quand je retire la durée minimale des sonores
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la banque « Jingles » a en base les durées des sonores d'aucune à 390 secondes
 		Et la fiche montre les durées des sonores : minimale aucune, maximale « 0:06:30 »
 
@@ -429,7 +430,7 @@ Fonctionnalité: Fiche d'une banque
 			| Les Gaufres – Café à minuit | 3:34 : plus long que le maximum de la banque, 3:30.  |
 			| Aube – Matin clair          | 3:20 : plus court que le minimum de la banque, 3:30. |
 			| Jingle                      | 0:08 : plus court que le minimum de la banque, 3:30. |
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et la banque « Jingles » a en base les durées des sonores de 210 à 210 secondes
 		Quand je retire la durée minimale des sonores
@@ -500,7 +501,7 @@ Fonctionnalité: Fiche d'une banque
 		Et je saisis le nom interne «  »
 		Et j'enregistre la fiche
 		Et je saisis le nom interne « Jingles du soir »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 
 	Scénario: Une base injoignable à l'enregistrement est signalée, et la fiche garde ses modifications
@@ -563,8 +564,34 @@ Fonctionnalité: Fiche d'une banque
 		Quand je coche « ne pas répéter »
 		Et je décoche « ne pas répéter »
 		Alors les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
+
+	# ─── Enregistrement (https://github.com/dascritch/machincast/issues/382) ───
+	# Pendant l'enregistrement, toute la fiche est grisée, pour montrer que l'application y travaille. Réussi par
+	# « Enregistrer », il ferme l'onglet d'une banque, comme d'un événement, d'une séquence ou d'un sonore ; refusé, la
+	# fiche se dégrise et reste ouverte.
+
+	Scénario: Pendant l'enregistrement, la fiche est grisée, et son onglet se ferme quand il a réussi
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je saisis le nom public « Les jingles »
+		Et je note si la fiche est grisée pendant son enregistrement
+		Et j'enregistre la fiche
+		Alors la fiche était grisée pendant son enregistrement
+		Et l'onglet « Banque : Jingles » est fermé
+		Et la banque « Jingles » est en base : nom public « Les jingles », séquentielle, masquage « hérité du sonore », avec « ne pas répéter »
+
+	Scénario: Un enregistrement refusé dégrise la fiche, qui reste ouverte et dit pourquoi
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je saisis le nom interne «  »
+		Et je note si la fiche est grisée pendant son enregistrement
+		Et j'enregistre la fiche
+		Alors la fiche était grisée pendant son enregistrement
+		Et la fiche n'est plus grisée
+		Et l'onglet ouvert est « Banque : Jingles »
+		Et la fiche signale « Le nom interne est obligatoire. »
 
 	# ─── Nouvelle banque ───────────────────────────────────────
 
@@ -579,7 +606,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'enregistre la fiche
 		Alors la banque « Habillage » est en base : sans nom public, séquentielle, masquage « hérité du sonore », sans « ne pas répéter »
 		Et les répertoires de la banque « Habillage » sont « /srv/habillage » en base
-		Et l'onglet ouvert est « Banque : Habillage »
+		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Quand j'ouvre l'onglet « Banques »
 		Alors la liste montre :
 			| ⚠️ | Nom       | Nom public  | Mode         | Ne pas répéter | Répertoire         |
@@ -706,7 +733,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et j'ajoute les sonores « Jingle », « Spot »
 		Et le sonore « Jingle » est effacé de la base
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et les sonores de la banque « Jingles » sont, dans l'ordre, « Café à minuit », « Matin clair », « Spot »
 
@@ -766,7 +793,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et je descends le sonore « Café à minuit »
 		Et l'indexation rattache le sonore « Jingle » à la banque « Jingles »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors les sonores de la banque « Jingles » sont, dans l'ordre, « Matin clair », « Café à minuit », « Jingle »
 		Et la fiche montre les sonores « Aube – Matin clair », « Les Gaufres – Café à minuit », « Jingle »
 
@@ -775,7 +802,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et j'ajoute les sonores « Jingle »
 		Et l'indexation rattache le sonore « Jingle » à la banque « Jingles »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et les sonores de la banque « Jingles » sont, dans l'ordre, « Café à minuit », « Matin clair », « Jingle »
 
@@ -790,7 +817,7 @@ Fonctionnalité: Fiche d'une banque
 		Alors le dépôt est accepté comme une copie
 		Et la fiche montre les répertoires « /srv/jingles/hiver », « …/jingles/automne », « …/jingles/printemps »
 		Et la fiche signale « Ignorés, ce ne sont pas des répertoires : notes.txt. »
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Et je dépose sur les répertoires de la fiche « …/jingles/automne/../printemps/ »
 		Alors la fiche ne signale rien
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
@@ -814,7 +841,7 @@ Fonctionnalité: Fiche d'une banque
 			| Neige                       | 0:12  | actif  | …/jingles/neige.flac          |
 		Et la fiche signale « Ignorés, ce ne sont pas des fichiers sonores : notes.txt, nouveaux, album.flac. Un dossier se dépose sur les répertoires indexés. »
 		Et le fichier « …/nouveaux/Gros titre.MP3 » n'est pas en base
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors les sonores de la banque « Jingles » sont, dans l'ordre, « Café à minuit », « Matin clair », le fichier « …/nouveaux/Gros titre.MP3 », « Neige »
 		Et le fichier « …/nouveaux/Gros titre.MP3 » est en base, à l'état aperçu, sans artiste ni titre
 		Et les fichiers déposés sont intacts
@@ -864,7 +891,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et je dépose sur les sonores de la fiche « …/nouveau.ogg »
 		Et l'indexation enregistre le fichier « …/nouveau.ogg »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et les sonores de la banque « Jingles » sont, dans l'ordre, « Café à minuit », « Matin clair », le fichier « …/nouveau.ogg »
 

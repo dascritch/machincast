@@ -104,6 +104,7 @@ def _show(date: QDateTimeEdit, instant: datetime) -> None:
 
 class EventCard(Card):
 	category = "event"
+	CLOSES_AFTER_SAVE = True
 	restored_session = Signal(str)
 	"""Une session sautée a été rétablie depuis la fiche : ce que la barre d'état en annonce. Machin player doit
 	relire la grille (https://github.com/dascritch/machincast/issues/295)."""
@@ -507,7 +508,8 @@ class EventCard(Card):
 			if end_fallback is None:
 				raise Refusal(_("Choose the fallback that follows the end of the list."), ui.end_of_list_caption)
 		stream_fallback = None
-		if ui.stream_fallback.isEnabled():
+		# isEnabledTo : la fiche est grisée pendant son enregistrement (https://github.com/dascritch/machincast/issues/382).
+		if ui.stream_fallback.isEnabledTo(self):
 			stream_fallback = ui.stream_fallback.currentData()
 		values = (
 			name,

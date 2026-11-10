@@ -101,7 +101,7 @@ Fonctionnalité: Fiche d'un sonore
 			| Année       | 1999             |
 			| Genre       | Jazz             |
 			| Piste       | 4                |
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors le sonore « Café du matin » est en base, d'artiste « Les Gaufrettes »
 		Et les métadonnées musicales de « Café du matin » sont {"year": 1999, "album": "Nuit blanche", "genre": "Jazz", "isrc": "FR-Z03", "track": 4}
 		Et les champs saisis à la main de « Café du matin » sont « title », « artist », « music_metadata.year », « music_metadata.genre », « music_metadata.track »
@@ -140,7 +140,7 @@ Fonctionnalité: Fiche d'un sonore
 			| Artiste |        |
 			| Titre   |        |
 			| Album   | ⎵Nuit⎵ |
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et l'onglet ouvert est « Sonore : cafe.flac »
 		Et le sonore « cafe.flac » est en base, sans artiste ni titre
@@ -489,14 +489,14 @@ Fonctionnalité: Fiche d'un sonore
 			| champ                | valeur       |
 			| Feed          | Radio Machin |
 			| Événement de secours | Secours nuit |
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors le stream « Direct » est en base, sur le feed « Radio Machin », sans adresse directe, secouru par « Secours nuit »
 		Et les champs saisis à la main de « Direct » sont « stream_url », « feed_id », « fallback_event_id »
 		Quand je saisis dans la fiche du sonore :
 			| champ                | valeur                       |
 			| Adresse directe      | https://flux.exemple/nouveau |
 			| Événement de secours | aucun : le fil musical       |
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors le stream « Direct » est en base, à l'adresse « https://flux.exemple/nouveau », sans feed, sans événement de secours
 
 	Scénario: Le mode d'un stream décide du champ qui se saisit, et en changer modifie la fiche
@@ -534,7 +534,7 @@ Fonctionnalité: Fiche d'un sonore
 		Quand je saisis dans la fiche du sonore :
 			| champ                | valeur       |
 			| Événement de secours | Secours nuit |
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors l'état de la fiche du sonore se choisit parmi « actif », « désactivé »
 		Et les feeds proposés sont « Radio Machin »
 		Et les événements de secours proposés sont « aucun : le fil musical », « Secours nuit »
@@ -592,7 +592,7 @@ Fonctionnalité: Fiche d'un sonore
 			| Titre                | Le direct                   |
 			| Adresse directe      | https://flux.exemple/direct |
 			| Événement de secours | Secours nuit                |
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et l'onglet ouvert est « Sonore : Le direct »
 		Et le stream « Le direct » est en base, à l'adresse « https://flux.exemple/direct », sans feed, secouru par « Secours nuit »
@@ -610,7 +610,7 @@ Fonctionnalité: Fiche d'un sonore
 		Et je saisis dans la fiche du sonore :
 			| champ       | valeur       |
 			| Feed | Radio Machin |
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors l'onglet ouvert est « Sonore : https://machin.exemple/live »
 		Et le stream « https://machin.exemple/live » est en base, sur le feed « Radio Machin », sans adresse directe, sans événement de secours
 
@@ -831,7 +831,7 @@ Fonctionnalité: Fiche d'un sonore
 			| banque | Jingles |
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
 		Et en base, la séquence « Passage pub » cite encore le sonore « Café à minuit »
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors les relations du sonore sont :
 			| Genre  | Nom     |
 			| banque | Jingles |

@@ -45,7 +45,7 @@ Fonctionnalité: Dupliquer un événement, une séquence ou une banque
 		Et le bouton « Dupliquer » de la fiche est inactif
 		Et le bouton « ❌ Supprimer… » de la fiche est inactif
 		Et la séquence « Passage pub (copie) » n'est pas en base
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors l'onglet ouvert est « Séquence : Passage pub (copie) »
 		Et la séquence « Passage pub (copie) » a en base le nom public « Vous écoutez Radio Thune » et les éléments le sonore « Jingle début », la banque « Publicité », le sonore « Jingle fin »
 		Et la séquence « Passage pub » a en base le nom public « Vous écoutez Radio Thune » et les éléments le sonore « Jingle début », la banque « Publicité », le sonore « Jingle fin »
@@ -65,7 +65,7 @@ Fonctionnalité: Dupliquer un événement, une séquence ou une banque
 		Et j'ouvre l'onglet « Séquences »
 		Et je choisis « Dupliquer » au clic droit sur la ligne de 255 caractères « a »
 		Alors le nom interne de la copie est de 247 caractères « a », suivis de « (copie) »
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 
 	Scénario: Annuler une copie revient à la copie, toujours à enregistrer
@@ -127,7 +127,7 @@ Fonctionnalité: Dupliquer un événement, une séquence ou une banque
 		Alors la fiche signale « Une émission ou un spécial a un début. »
 		Et l'événement « Matinale (copie) » n'est pas en base
 		Quand je donne à l'événement copié le début « 2026-10-21 20:00 »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors l'onglet ouvert est « Événement : Matinale (copie) »
 		Et l'événement « Matinale (copie) » a en base la priorité « show », le nom public « La matinale », masqué, le début « 2026-10-21 20:00 », sans fin ni jours
 		Et l'événement « Matinale (copie) » a en base les éléments la séquence « Passage pub », la banque « Publicité », le sonore « Spot »
@@ -143,7 +143,7 @@ Fonctionnalité: Dupliquer un événement, une séquence ou une banque
 		Alors l'onglet ouvert est « Nouvelle banque, copie de Publicité »
 		Et la fiche montre le nom interne « Publicité (copie) » et le nom public « Pub »
 		Et la fiche de la banque copiée montre le mode « Aléatoire », « ne pas répéter » coché, les répertoires « …/annonces », « …/pubs », et aucun sonore
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors l'onglet ouvert est « Banque : Publicité (copie) »
 		Et la banque « Publicité (copie) » a en base le nom public « Pub », le mode « random », « ne pas répéter », les répertoires « …/annonces », « …/pubs » et les sonores aucun
 		Et la banque « Publicité » a en base le nom public « Pub », le mode « random », « ne pas répéter », les répertoires « …/annonces », « …/pubs » et les sonores « Spot »

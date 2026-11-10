@@ -89,6 +89,8 @@ def tab_title(tabs: QTabWidget, index: int) -> str:
 class Context:
 	directory: Path
 	monkeypatch: pytest.MonkeyPatch
+	greyed: list[bool] = field(default_factory=list)
+	"""Si la fiche était grisée à chaque écriture en base (https://github.com/dascritch/machincast/issues/382)."""
 	clock: FixedClock | None = None
 	window: MainWindow | None = None
 	connection: Connection | None = None
@@ -1040,6 +1042,51 @@ def choose_in_card(interface: Context, field: str, text: str) -> None:
 @when("j'enregistre la fiche")
 def save(interface: Context, qtbot: QtBot) -> None:
 	qtbot.mouseClick(opened_card(interface).button_save, Qt.MouseButton.LeftButton)
+
+
+@when("je note si la fiche est grisée pendant son enregistrement")
+def note_greyed(interface: Context) -> None:
+	"""https://github.com/dascritch/machincast/issues/382 : la fiche le note au moment d'écrire en base."""
+	card = opened_card(interface)
+	write = card._write
+
+	def noted_write() -> int:
+		interface.greyed.append(not card.isEnabled())
+		return write()
+
+	interface.monkeypatch.setattr(card, "_write", noted_write)
+
+
+@then("la fiche était grisée pendant son enregistrement")
+def was_greyed(interface: Context) -> None:
+	assert interface.greyed == [True]
+
+
+@then("la fiche n'est plus grisée")
+def no_longer_greyed(interface: Context) -> None:
+	assert opened_card(interface).isEnabled()
+
+
+@then(parsers.parse("l'onglet « {title} » est fermé"))
+def closed_tab(interface: Context, title: str) -> None:
+	tabs = window(interface).ui.tabs
+	titles = []
+	for index in range(tabs.count()):
+		titles.append(tab_title(tabs, index))
+	assert title not in titles, titles
+
+
+@when("j'enregistre la fiche, puis je la rouvre")
+def save_and_reopen(interface: Context, qtbot: QtBot) -> None:
+	"""Réussi, « Enregistrer » ferme l'onglet d'une banque, d'un événement, d'une séquence ou d'un sonore
+	(https://github.com/dascritch/machincast/issues/382) : la fiche se rouvre, comme depuis sa liste, pour voir ce
+	qu'elle a enregistré."""
+	card = opened_card(interface)
+	qtbot.mouseClick(card.button_save, Qt.MouseButton.LeftButton)
+	opened = window(interface)
+	assert opened.ui.tabs.indexOf(card) == -1, "la fiche enregistrée ne s'est pas fermée"
+	assert card.identifier is not None
+	opened._open_card(card.category, card.identifier)
 
 
 @when("j'annule les modifications de la fiche")

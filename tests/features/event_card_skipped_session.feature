@@ -76,7 +76,7 @@ Fonctionnalité: La fiche d'un événement annonce sa prochaine session sautée,
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et je règle le début de la fiche de l'événement au « 2026-10-05 08:42 »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche annonce « La session du jeudi 22 octobre 2026 à 08:42 est sautée : elle ne jouera pas. »
 		Et les sessions sautées de « Matinale » en base sont « 2026-10-22 »
 

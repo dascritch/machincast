@@ -185,7 +185,7 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Alors les sonores de la fiche sont, avec leur état, « Les Gaufres – Café à minuit » désactivé, « Les Gaufres – Nouveauté » aperçu, « Les Gaufres – Gaufre royale » désactivé
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
 		Et le sonore « Café à minuit » est à l'état « active » en base
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors le sonore « Café à minuit » est à l'état « disabled » en base
 		Et le sonore « Nouveauté » est à l'état « preview » en base
 		Et les sonores de la fiche sont, avec leur état, « Les Gaufres – Café à minuit » désactivé, « Les Gaufres – Nouveauté » aperçu, « Les Gaufres – Gaufre royale » désactivé
