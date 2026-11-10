@@ -357,5 +357,5 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Et je clique sur « Nouvelle séquence »
 		Et je saisis le nom interne « Brève »
 		Et j'ajoute les sonores « Isolé »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors le bouton « ❌ Supprimer… » de la fiche est actif

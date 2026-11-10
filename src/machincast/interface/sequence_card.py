@@ -42,6 +42,7 @@ REPETITION = _("A sound or a bank may come back several times in a sequence.")
 
 class SequenceCard(Card):
 	category = "sequence"
+	CLOSES_AFTER_SAVE = True
 
 	def __init__(
 		self, connection: Connection, identifier: int | None, clock: Clock, parent: QWidget | None = None

@@ -205,6 +205,7 @@ class SoundCard(Card):
 	"""« Vérification complète » : le sonore dont faire l'audit complet
 	(https://github.com/dascritch/machincast/issues/190)."""
 	category = "sound"
+	CLOSES_AFTER_SAVE = True
 
 	def __init__(
 		self, connection: Connection, identifier: int | None, clock: Clock, parent: QWidget | None = None

@@ -158,6 +158,7 @@ def removal_warning(sound: str, directory: str) -> str:
 
 class BankCard(Card):
 	category = "bank"
+	CLOSES_AFTER_SAVE = True
 
 	def __init__(
 		self, connection: Connection, identifier: int | None, clock: Clock, parent: QWidget | None = None

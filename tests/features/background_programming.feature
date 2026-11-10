@@ -97,7 +97,7 @@ Fonctionnalité: Un fil musical existe toujours
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Continue »
 		Et je choisis la priorité « secours »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et la barre d'état annonce « Aucun fil musical : « Fil musical » est créé, permanent et sans élément ; sa liste se remplit dans sa fiche. »
 		Et les fils musicaux en base sont « Fil musical »
@@ -116,6 +116,6 @@ Fonctionnalité: Un fil musical existe toujours
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et je saisis le nom public « Bonjour »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la barre d'état n'a rien annoncé
 		Et les fils musicaux en base sont « Continue »

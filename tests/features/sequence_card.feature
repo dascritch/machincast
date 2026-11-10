@@ -47,7 +47,7 @@ Fonctionnalité: Fiche d'une séquence
 		Et la fiche de la séquence montre les événements « Continue », « Matinale »
 		Et la fiche de la séquence n'avertit de rien
 		Quand je saisis le nom public « Radio Thune »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche de la séquence montre les événements « Continue », « Matinale »
 
 	Scénario: Une nouvelle séquence se crée depuis la liste des séquences
@@ -60,7 +60,7 @@ Fonctionnalité: Fiche d'une séquence
 		Quand je saisis le nom interne « Ouverture »
 		Et j'ajoute les banques « Habillage »
 		Et j'ajoute les sonores « Spot », « Jingle fin »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la séquence « Ouverture » est en base : sans nom public, masquage « selon la banque ou le sonore »
 		Et les éléments de la séquence « Ouverture » sont, dans l'ordre, la banque « Habillage », le sonore « Spot », le sonore « Jingle fin »
 		Et l'onglet ouvert est « Séquence : Ouverture »
@@ -85,7 +85,7 @@ Fonctionnalité: Fiche d'une séquence
 		Et je saisis le nom interne «  Passage pub du soir  »
 		Et je saisis le nom public « <nom public> »
 		Et je choisis le masquage « <masquage> »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la séquence « Passage pub du soir » est en base : <en base>
 		Et l'onglet ouvert est « Séquence : Passage pub du soir »
 
@@ -190,7 +190,7 @@ Fonctionnalité: Fiche d'une séquence
 		Et j'ajoute les sonores « Spot »
 		Et la banque « Habillage » est effacée de la base
 		Et le sonore « Spot » est effacé de la base
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et les éléments de la séquence « Passage pub » sont, dans l'ordre, le sonore « Jingle début », la banque « Publicité », le sonore « Jingle fin »
 
@@ -248,7 +248,7 @@ Fonctionnalité: Fiche d'une séquence
 		Et j'ouvre la fiche de la séquence « Passage pub »
 		Et je retire les éléments « Jingle début », « Publicité », « Jingle fin »
 		Alors la fiche avertit en haut « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et les éléments de la séquence « Passage pub » sont, dans l'ordre, aucun
 		Et la fiche avertit en haut « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
@@ -261,7 +261,7 @@ Fonctionnalité: Fiche d'une séquence
 		Et je clique sur « Nouvelle séquence »
 		Alors la fiche avertit en haut « Séquence vide : elle ne joue rien, et un événement qui l'appelle passe à son élément suivant. »
 		Quand je saisis le nom interne « À compléter »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et la séquence « À compléter » est en base : sans nom public, masquage « selon la banque ou le sonore »
 		Et les éléments de la séquence « À compléter » sont, dans l'ordre, aucun
@@ -273,7 +273,7 @@ Fonctionnalité: Fiche d'une séquence
 		Et je choisis l'élément n° 4
 		Et je clique sur « Monter »
 		Alors la fiche de la séquence avertit « Ligne 3 : la banque « Publicité » vient de passer, et ne passe jamais deux fois de suite : cet appel sera sauté. »
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et les éléments de la séquence « Passage pub » sont, dans l'ordre, le sonore « Jingle début », la banque « Publicité », la banque « Publicité », le sonore « Jingle fin »
 		Et la fiche de la séquence avertit « Ligne 3 : la banque « Publicité » vient de passer, et ne passe jamais deux fois de suite : cet appel sera sauté. »

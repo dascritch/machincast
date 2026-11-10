@@ -91,7 +91,7 @@ Fonctionnalité: Fiche d'un événement
 			| Fin   | 19/10/2026 16:30 |
 			| Jours | lundi, jeudi     |
 		Et j'ajoute les banques « Habillage »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors l'événement « Midi » a en base :
 			| champ           | valeur                    |
 			| public_name     | None                      |
@@ -138,7 +138,7 @@ Fonctionnalité: Fiche d'un événement
 			| Début            | 24/10/2026 08:00 |
 			| Fin              | 24/10/2026 10:30 |
 			| Jours            | samedi, dimanche |
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et l'événement « Matinale du week-end » a en base :
 			| champ           | valeur                    |
@@ -211,7 +211,7 @@ Fonctionnalité: Fiche d'un événement
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et je retire les éléments « Habillage », « Passage pub », « Les Gaufres – Spot »
 		Alors la fiche avertit en haut « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et les éléments de l'événement « Matinale » sont, dans l'ordre, aucun
 		Et la fiche avertit en haut « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
@@ -299,7 +299,7 @@ Fonctionnalité: Fiche d'un événement
 		Alors la fiche avertit en haut « Événement vide : il ne joue rien, et l'événement de priorité inférieure prend le relais pendant sa plage. »
 		Quand je saisis le nom interne « Brouillon »
 		Et je coche « Début » dans la fiche de l'événement
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et les éléments de l'événement « Brouillon » sont, dans l'ordre, aucun
 
@@ -311,7 +311,7 @@ Fonctionnalité: Fiche d'un événement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et je saisis la fin « 19/10/2026 09:15 » dans la fiche de l'événement
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 
 	Scénario: Un chevauchement dans la grille déjà diffusée ne bloque pas l'enregistrement
@@ -327,7 +327,7 @@ Fonctionnalité: Fiche d'un événement
 			| champ | valeur           |
 			| Début | 12/10/2026 07:00 |
 			| Fin   | 12/10/2026 09:00 |
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et l'événement « Matinale » a en base :
 			| champ     | valeur                    |
@@ -362,7 +362,7 @@ Fonctionnalité: Fiche d'un événement
 		Et j'enregistre la fiche
 		Alors les champs signalés par ⚠️ sont « Nom interne »
 		Quand je saisis le nom interne « Réveil »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et aucun champ n'est signalé par ⚠️
 		Et la fiche de l'événement montre :
@@ -414,7 +414,7 @@ Fonctionnalité: Fiche d'un événement
 			| Fin      | 20/10/2026 06:00                                          |
 			| Jours    | lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche |
 		Et j'ajoute les banques « Habillage »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et l'onglet ouvert est « Événement : Nuit »
 
@@ -436,7 +436,7 @@ Fonctionnalité: Fiche d'un événement
 			| priority | fallback |
 		Quand je choisis la priorité « secours »
 		Et je saisis le nom interne « Panne du direct »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et l'onglet ouvert est « Événement : Panne du direct »
 
@@ -458,7 +458,7 @@ Fonctionnalité: Fiche d'un événement
 		Quand je saisis dans la fiche de l'événement :
 			| champ                   | valeur |
 			| Secours de fin de liste | Panne  |
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et l'événement « Journal » a en base :
 			| champ        | valeur   |
@@ -467,7 +467,7 @@ Fonctionnalité: Fiche d'un événement
 		Quand je saisis dans la fiche de l'événement :
 			| champ           | valeur                       |
 			| Fin de la liste | basculer vers le fil musical |
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors l'événement « Journal » a en base :
 			| champ        | valeur                 |
 			| end_of_list  | background_programming |
@@ -484,7 +484,7 @@ Fonctionnalité: Fiche d'un événement
 			| champ           | valeur                        |
 			| Fin de la liste | prêter son nom au fil musical |
 		Alors la fiche avertit en haut « Liste vide : l'événement en dessous, le plus souvent le fil musical, joue sous son nom pendant sa plage. »
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et l'événement « Matinale » a en base :
 			| champ       | valeur    |
@@ -531,7 +531,7 @@ Fonctionnalité: Fiche d'un événement
 		Quand je saisis dans la fiche de l'événement :
 			| champ                     | valeur |
 			| Secours d'un stream tombé | Panne  |
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors l'événement « Journal » a en base :
 			| champ           | valeur |
 			| stream_fallback | Panne  |
@@ -571,7 +571,7 @@ Fonctionnalité: Fiche d'un événement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et je saisis la fin « 19/10/2026 08:30 » dans la fiche de l'événement
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et Machin player a reçu la demande de relire la grille
 
@@ -595,18 +595,18 @@ Fonctionnalité: Fiche d'un événement
 		Et je note l'empreinte de la grille
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et je saisis le nom public « Le grand réveil »
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et l'empreinte de la grille n'a pas changé
 		Quand je saisis la fin « 19/10/2026 08:30 » dans la fiche de l'événement
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors l'empreinte de la grille a changé
 
 	Scénario: Sans Machin player, un événement s'enregistre comme toujours
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et je saisis la fin « 19/10/2026 08:30 » dans la fiche de l'événement
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 
 	# ─── Liste de lecture ──────────────────────────────────────
@@ -673,7 +673,7 @@ Fonctionnalité: Fiche d'un événement
 			| sonore | Direct B | https://flux.exemple/studio-b                |
 			| sonore | Relais   | https://flux.exemple/relais, nouveau stream |
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et les éléments de l'événement « Journal » sont, dans l'ordre, le sonore « Direct B », le sonore « Relais »
 		Et le stream « Relais » est en base, actif, et suit le feed « Relais »
@@ -685,7 +685,7 @@ Fonctionnalité: Fiche d'un événement
 		Et j'ouvre la fiche de l'événement « Journal »
 		Et j'ajoute les feeds « Relais », « Ancien », « Relais »
 		Et le feed « Ancien » est effacé de la base
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et les éléments de l'événement « Journal » sont, dans l'ordre, le sonore « Relais », le sonore « Relais »
 		Et 1 stream suit le feed « Relais »
@@ -748,7 +748,7 @@ Fonctionnalité: Fiche d'un événement
 		Et j'ouvre la fiche de l'événement « Continue »
 		Et j'ajoute les séquences « Ouverture »
 		Et la séquence « Ouverture » est effacée de la base
-		Et j'enregistre la fiche
+		Et j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et les éléments de l'événement « Continue » sont, dans l'ordre, la banque « Habillage »
 
@@ -789,7 +789,7 @@ Fonctionnalité: Fiche d'un événement
 			| champ    | valeur      |
 			| Priorité | fil musical |
 		Alors la fiche de l'événement avertit « Ligne 1 : la banque « Publicité » vient de passer, et ne passe jamais deux fois de suite : cet appel sera sauté. »
-		Quand j'enregistre la fiche
+		Quand j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et l'événement « Essai » a en base :
 			| champ    | valeur                 |
