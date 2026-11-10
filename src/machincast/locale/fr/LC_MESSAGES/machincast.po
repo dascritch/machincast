@@ -1028,6 +1028,16 @@ msgstr ""
 "Préférences…, page Audio, puis relancer ./install.sh --service"
 
 #: machincast/installation.py
+msgid ""
+"on air on the PulseAudio output: the broadcast service plays through its "
+"own PipeWire; choose the PipeWire output in Machin interface, File → "
+"Preferences…, Audio page, then run ./install.sh --service again"
+msgstr ""
+"antenne sur la sortie PulseAudio : le service de diffusion joue par son "
+"propre PipeWire ; choisir la sortie PipeWire dans Machin interface, Fichier "
+"→ Préférences…, page Audio, puis relancer ./install.sh --service"
+
+#: machincast/installation.py
 msgid "the GStreamer playback plugin"
 msgstr "le greffon GStreamer playback"
 
@@ -7644,13 +7654,18 @@ msgid ""
 "test dependencies (pip, extra [dev]), for Machin dev and Machin dev-test.\n"
 "With --service, also the broadcast service %s, only for a computer "
 "dedicated to the\n"
-"on-air output, whose on-air output is not the dummy output (otherwise "
-"install.sh stops and recommends\n"
-"another sound card): Machin player starts with the computer, under the "
-"account %s, and\n"
-"restarts after a crash; a polkit rule lets it start, stop and restart with "
-"the password\n"
-"of an administrator; a systemd timer, %s, launches every day at noon\n"
+"on-air output, whose on-air output is a sound card, through the PipeWire or "
+"ALSA output (otherwise\n"
+"install.sh stops and recommends another one): Machin player starts with the "
+"computer, under its\n"
+"own account %s, with its own PipeWire, and restarts after a crash. %s joins "
+"the group %s, which\n"
+"reads its logs (%s) and pre-listens to the on-air output; the service reads "
+"MachinCast, and the\n"
+"on-air card is hidden from the sessions of the computer. A polkit rule lets "
+"it start, stop and\n"
+"restart with the password of an administrator; a systemd timer, %s, "
+"launches every day at noon\n"
 "Machin purge, which erases from the database what exceeds the expiry "
 "duration. Without --service, none\n"
 "of this is installed: the broadcast and the purge are launched by hand. A "
@@ -7668,8 +7683,9 @@ msgid ""
 "  --service     also installs the broadcast service (computer dedicated to "
 "the on-air output only)\n"
 "  --remove-service\n"
-"                removes the broadcast service, its polkit rule and the "
-"purge timer\n"
+"                removes the broadcast service, its PipeWire, its account, "
+"its polkit rule and the purge\n"
+"                timer; the logs stay\n"
 "  --desktop      also puts the shortcut of the interface on the desktop, "
 "without asking\n"
 "  --no-desktop does not put it on the desktop, without asking\n"
@@ -7722,11 +7738,15 @@ msgstr ""
 "dev-test.\n"
 "Avec --service, aussi le service de diffusion %s, seulement pour un "
 "ordinateur dédié à\n"
-"l'antenne, dont l'antenne n'est pas sur la sortie factice (sinon install.sh "
-"s'arrête et recommande\n"
-"une autre carte son) : Machin player démarre avec le poste, sous le compte "
-"%s, et\n"
-"redémarre après un plantage ; une règle polkit le laisse démarrer, arrêter "
+"l'antenne, dont l'antenne est sur une carte son, par la sortie PipeWire ou "
+"ALSA (sinon install.sh\n"
+"s'arrête et en recommande une autre) : Machin player démarre avec le poste, "
+"sous son propre compte\n"
+"%s, avec son propre PipeWire, et redémarre après un plantage. %s rejoint le "
+"groupe %s, qui lit\n"
+"ses logs (%s) et pré-écoute l'antenne ; le service lit MachinCast, et la "
+"carte de l'antenne est\n"
+"cachée aux sessions du poste. Une règle polkit le laisse démarrer, arrêter "
 "et redémarrer avec le mot\n"
 "de passe d'un administrateur ; un minuteur systemd, %s, lance chaque jour à "
 "midi\n"
@@ -7748,8 +7768,9 @@ msgstr ""
 "  --service     installe aussi le service de diffusion (ordinateur dédié à "
 "l'antenne seulement)\n"
 "  --remove-service\n"
-"                retire le service de diffusion, sa règle polkit et le "
-"minuteur de la purge\n"
+"                retire le service de diffusion, son PipeWire, son compte, "
+"sa règle polkit et le minuteur\n"
+"                de la purge ; les logs restent\n"
 "  --desktop      dépose aussi le raccourci de l'interface sur le bureau, "
 "sans le demander\n"
 "  --no-desktop ne le dépose pas sur le bureau, sans le demander\n"
@@ -8139,6 +8160,30 @@ msgid "left as is; ./install.sh --service updates it"
 msgstr "laissé tel quel ; ./install.sh --service le met à jour"
 
 #: install.sh
+msgid "account %s present"
+msgstr "compte %s présent"
+
+#: install.sh
+msgid "%s already belongs to the %s group"
+msgstr "%s appartient déjà au groupe %s"
+
+#: install.sh
+msgid ""
+"[simulation] sudo -u postgres psql: CREATE ROLE %s LOGIN; GRANT "
+"machincast_player TO %s WITH INHERIT FALSE, SET TRUE"
+msgstr ""
+"[simulation] sudo -u postgres psql : CREATE ROLE %s LOGIN; GRANT "
+"machincast_player TO %s WITH INHERIT FALSE, SET TRUE"
+
+#: install.sh
+msgid "%s can assume the role machincast_player"
+msgstr "%s peut endosser le rôle machincast_player"
+
+#: install.sh
+msgid "%s can read %s"
+msgstr "%s peut lire %s"
+
+#: install.sh
 msgid "Broadcast service"
 msgstr "Service de diffusion"
 
@@ -8151,10 +8196,8 @@ msgstr ""
 "l'environnement virtuel créé"
 
 #: install.sh
-msgid ""
-"broadcast service not installed: the on-air output is the dummy output"
-msgstr ""
-"service de diffusion non installé : l'antenne est sur la sortie factice"
+msgid "broadcast service not installed: the on-air output does not suit it"
+msgstr "service de diffusion non installé : l'antenne ne lui convient pas"
 
 #: install.sh
 msgid ""
@@ -8165,8 +8208,12 @@ msgstr ""
 "sous %s"
 
 #: install.sh
-msgid "the session of %s stays active when the computer starts"
-msgstr "la session de %s reste active au démarrage du poste"
+msgid ""
+"the session of %s no longer needs to stay active at startup: sudo loginctl "
+"disable-linger %s"
+msgstr ""
+"la session de %s n'a plus besoin de rester active au démarrage : sudo "
+"loginctl disable-linger %s"
 
 #: install.sh
 msgid ""
@@ -8176,20 +8223,24 @@ msgstr ""
 "--unit=%s"
 
 #: install.sh
-msgid "Removal of the broadcast service"
-msgstr "Retrait du service de diffusion"
-
-#: install.sh
 msgid "%s missing"
 msgstr "%s absent"
 
 #: install.sh
-msgid ""
-"the session of %s stays active at startup: sudo loginctl disable-linger %s "
-"removes it"
-msgstr ""
-"la session de %s reste active au démarrage : sudo loginctl disable-linger "
-"%s la retire"
+msgid "Removal of the broadcast service"
+msgstr "Retrait du service de diffusion"
+
+#: install.sh
+msgid "[simulation] sudo -u postgres psql: DROP ROLE IF EXISTS %s"
+msgstr "[simulation] sudo -u postgres psql : DROP ROLE IF EXISTS %s"
+
+#: install.sh
+msgid "account %s missing"
+msgstr "compte %s absent"
+
+#: install.sh
+msgid "the logs stay in %s: sudo rm -r %s removes them"
+msgstr "les logs restent dans %s : sudo rm -r %s les efface"
 
 #: install.sh
 msgid ""

@@ -105,69 +105,184 @@ Fonctionnalité: Vérifications de l'installation
 		Et sa sortie d'erreur mentionne « base de données injoignable »
 
 	# ─── Service systemd (https://github.com/dascritch/machincast/issues/22) ─────
-	# Facultatif, pour un ordinateur dédié à l'antenne : install.sh --service installe l'unité et la règle polkit que
-	# rédige machincast.installation. Le service tourne sous le compte de MachinCast, dont la session garde PipeWire.
+	# Facultatif, pour un ordinateur dédié à l'antenne : install.sh --service installe les unités, la règle polkit et les
+	# configurations que rédige machincast.installation. Le service tourne sous son propre compte, machincast, avec son
+	# PipeWire et son WirePlumber, sans session ouverte (https://github.com/dascritch/machincast/issues/381) ; le compte
+	# de MachinCast rejoint son groupe, qui lit ses logs et pré-écoute l'antenne.
 
-	Plan du scénario: install.sh --service refuse une antenne sur la sortie factice, et recommande une autre carte son
-		https://github.com/dascritch/machincast/issues/339 : l'antenne d'un poste dédié joue toujours sur une carte son.
-		install.sh --service lance cette vérification avant d'installer le service, et s'arrête si elle échoue.
+	Plan du scénario: install.sh --service refuse une antenne sur la sortie factice ou PulseAudio, et recommande une autre sortie
+		https://github.com/dascritch/machincast/issues/339 : l'antenne d'un poste dédié joue toujours sur une carte son,
+		par le PipeWire du service (https://github.com/dascritch/machincast/issues/381). install.sh --service lance cette
+		vérification avant d'installer le service, et s'arrête si elle échoue.
 
 		Quand je lance « python -m machincast.installation on-air » avec une configuration sur la sortie « <sortie> », l'antenne <antenne>
 		Alors la commande se termine avec le code <code>
 		Et sa sortie <flux> « <message> »
 
 		Exemples:
-			| sortie   | antenne        | code | flux               | message                                                                                                                                                                                                     |
-			| pipewire | « carte-1 »    | 0    | annonce            | antenne sur la sortie pipewire, périphérique carte-1 : le service de diffusion peut l'utiliser                                                                                                              |
-			| pipewire | non renseignée | 0    | d'erreur mentionne | antenne sur la sortie pipewire, à renseigner : le service de diffusion refusera de démarrer tant que audio.device ne la donne pas                                                                     |
-			| pipewire | « dummy »    | 1    | d'erreur mentionne | antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service |
-			| dummy    | « carte-1 »    | 1    | d'erreur mentionne | antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service |
+			| sortie     | antenne        | code | flux               | message |
+			| pipewire   | « carte-1 »    | 0    | annonce            | antenne sur la sortie pipewire, périphérique carte-1 : le service de diffusion peut l'utiliser |
+			| alsa       | « hw:1,0 »     | 0    | annonce            | antenne sur la sortie alsa, périphérique hw:1,0 : le service de diffusion peut l'utiliser |
+			| pipewire   | non renseignée | 0    | d'erreur mentionne | antenne sur la sortie pipewire, à renseigner : le service de diffusion refusera de démarrer tant que audio.device ne la donne pas |
+			| pipewire   | « dummy »      | 1    | d'erreur mentionne | antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service |
+			| dummy      | « carte-1 »    | 1    | d'erreur mentionne | antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service |
+			| pulseaudio | « carte-1 »    | 1    | d'erreur mentionne | antenne sur la sortie PulseAudio : le service de diffusion joue par son propre PipeWire ; choisir la sortie PipeWire dans Machin interface, Fichier → Préférences…, page Audio, puis relancer ./install.sh --service |
 
 	Scénario: install.sh vérifie l'antenne avant d'installer le service
 		Alors install.sh vérifie l'antenne par « installation on-air » avant la première étape du service, et s'arrête si elle échoue
 
-	Scénario: L'unité du service lance Machin player sous le compte de MachinCast, et la relance après un plantage
+	Scénario: L'unité du service lance Machin player sous le compte du service, par son PipeWire, et la relance après un plantage
 		Quand je lance « python -m machincast.installation unit » avec la configuration de test
 		Alors la commande se termine sans erreur
 		Et l'unité a, dans la section « Unit » :
-			| clé         | valeur                                                     |
-			| Description | MachinCast: on-air broadcast (Machin player)              |
-			| Wants       | network-online.target                                      |
-			| After       | network-online.target postgresql.service sound.target      |
+			| clé         | valeur                                                                                                       |
+			| Description | MachinCast: on-air broadcast (Machin player)                                                                 |
+			| Wants       | network-online.target                                                                                        |
+			| Requires    | machincast-pipewire.service machincast-wireplumber.service                                                   |
+			| After       | network-online.target postgresql.service sound.target machincast-pipewire.service machincast-wireplumber.service |
 		Et l'unité a, dans la section « Service » :
-			| clé              | valeur                                          |
-			| Type             | simple                                          |
-			| User             | <compte>                                        |
-			| Group            | <groupe>                                        |
-			| WorkingDirectory | <répertoire>                                    |
-			| Environment      | XDG_RUNTIME_DIR=/run/user/<uid>                 |
-			| ExecStart        | <répertoire>/bin/Machin player                 |
-			| Restart          | on-failure                                      |
-			| RestartSec       | 5                                               |
+			| clé                      | valeur                                  |
+			| Type                     | simple                                  |
+			| User                     | machincast                              |
+			| Group                    | machincast                              |
+			| SupplementaryGroups      | audio                                   |
+			| UMask                    | 0007                                    |
+			| Environment              | HOME=/var/lib/machincast                |
+			| Environment              | XDG_RUNTIME_DIR=/run/machincast         |
+			| Environment              | PIPEWIRE_RUNTIME_DIR=/run/machincast    |
+			| WorkingDirectory         | <répertoire>                            |
+			| ExecStart                | <répertoire>/bin/Machin player          |
+			| Restart                  | on-failure                              |
+			| RestartSec               | 5                                       |
 			| RestartPreventExitStatus | 2                                       |
-			| KillSignal       | SIGTERM                                         |
-			| TimeoutStopSec   | 15                                              |
-			| SyslogIdentifier | machincast                                      |
+			| KillSignal               | SIGTERM                                 |
+			| TimeoutStopSec           | 15                                      |
+			| SyslogIdentifier         | machincast                              |
 		Et l'unité a, dans la section « Install » :
 			| clé      | valeur            |
 			| WantedBy | multi-user.target |
 
-	Scénario: L'unité et la règle suivent le compte de MachinCast, quel qu'il soit
-		Quand l'unité et la règle sont rédigées pour le compte « radio », du groupe « antenne », d'uid 1001, dans « /home/radio/machincast »
+	Scénario: Le PipeWire du service tourne sous son compte, sans session ouverte, sa socket au groupe du service
+		Quand je lance « python -m machincast.installation pipewire-unit » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et l'unité a, dans la section « Unit » :
+			| clé         | valeur                                              |
+			| Description | MachinCast: PipeWire of the broadcast service       |
+			| After       | sound.target systemd-tmpfiles-setup.service         |
+		Et l'unité a, dans la section « Service » :
+			| clé                 | valeur                               |
+			| Type                | simple                               |
+			| User                | machincast                           |
+			| Group               | machincast                           |
+			| SupplementaryGroups | audio                                |
+			| UMask               | 0007                                 |
+			| Environment         | HOME=/var/lib/machincast             |
+			| Environment         | XDG_RUNTIME_DIR=/run/machincast      |
+			| Environment         | PIPEWIRE_RUNTIME_DIR=/run/machincast |
+			| StateDirectory      | machincast                           |
+			| ExecStart           | /usr/bin/pipewire                    |
+			| Restart             | on-failure                           |
+			| RestartSec          | 2                                    |
+			| SyslogIdentifier    | machincast-pipewire                  |
+		Et l'unité a, dans la section « Install » :
+			| clé      | valeur            |
+			| WantedBy | multi-user.target |
+
+	Scénario: Le WirePlumber du service suit son PipeWire, sans lire la configuration des sessions du poste
+		Quand je lance « python -m machincast.installation wireplumber-unit » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et l'unité a, dans la section « Unit » :
+			| clé         | valeur                                           |
+			| Description | MachinCast: WirePlumber of the broadcast service |
+			| BindsTo     | machincast-pipewire.service                      |
+			| After       | machincast-pipewire.service                      |
+		Et l'unité a, dans la section « Service » :
+			| clé                 | valeur                                                                 |
+			| Type                | simple                                                                 |
+			| User                | machincast                                                             |
+			| Group               | machincast                                                             |
+			| SupplementaryGroups | audio                                                                  |
+			| UMask               | 0007                                                                   |
+			| Environment         | HOME=/var/lib/machincast                                               |
+			| Environment         | XDG_RUNTIME_DIR=/run/machincast                                        |
+			| Environment         | PIPEWIRE_RUNTIME_DIR=/run/machincast                                   |
+			| Environment         | WIREPLUMBER_CONFIG_DIR=/etc/machincast/wireplumber:/usr/share/wireplumber |
+			| StateDirectory      | machincast                                                             |
+			| ExecStart           | /usr/bin/wireplumber                                                   |
+			| Restart             | on-failure                                                             |
+			| RestartSec          | 2                                                                      |
+			| SyslogIdentifier    | machincast-wireplumber                                                 |
+		Et l'unité a, dans la section « Install » :
+			| clé      | valeur                      |
+			| WantedBy | machincast-pipewire.service |
+
+	Scénario: L'unité suit le répertoire de MachinCast, et la règle son compte, quels qu'ils soient
+		Quand l'unité est rédigée dans « /home/radio/machincast », et la règle pour le compte « radio », du groupe « antenne », d'uid 1001
 		Alors l'unité a, dans la section « Service », entre autres :
-			| clé              | valeur                                |
-			| User             | radio                                 |
-			| Group            | antenne                               |
-			| WorkingDirectory | /home/radio/machincast                |
-			| Environment      | XDG_RUNTIME_DIR=/run/user/1001        |
+			| clé              | valeur                                   |
+			| User             | machincast                               |
+			| WorkingDirectory | /home/radio/machincast                   |
 			| ExecStart        | /home/radio/machincast/bin/Machin player |
 		Et la règle ne concerne que le compte « radio »
 
-	Scénario: systemd accepte l'unité du service
+	Scénario: systemd accepte les unités du service, ensemble
 		Étant donné l'outil « systemd-analyze » du poste
+		Et l'outil « pipewire » du poste
+		Et l'outil « wireplumber » du poste
 		Quand je lance « python -m machincast.installation unit » avec la configuration de test
 		Et j'enregistre sa sortie en « machincast.service »
-		Alors « systemd-analyze verify » accepte « machincast.service »
+		Et je lance « python -m machincast.installation pipewire-unit » avec la configuration de test
+		Et j'enregistre sa sortie en « machincast-pipewire.service »
+		Et je lance « python -m machincast.installation wireplumber-unit » avec la configuration de test
+		Et j'enregistre sa sortie en « machincast-wireplumber.service »
+		Alors « systemd-analyze verify » accepte ensemble « machincast.service », « machincast-pipewire.service » et « machincast-wireplumber.service »
+
+	Scénario: Les répertoires du service sont recréés à chaque démarrage du poste, au groupe du service
+		Quand je lance « python -m machincast.installation tmpfiles » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et sa sortie a, hors commentaires, les lignes :
+			| ligne                                                      |
+			| d /run/machincast 2770 machincast machincast -             |
+			| d /var/log/machincast 2770 machincast machincast -         |
+			| d /var/log/machincast/crash-dump 2770 machincast machincast - |
+
+	Scénario: Les logs tournent chaque semaine, sans couper les programmes qui y écrivent
+		Quand je lance « python -m machincast.installation logrotate » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et sa sortie a, hors commentaires, les lignes :
+			| ligne                        |
+			| /var/log/machincast/*.log {  |
+			| su machincast machincast     |
+			| weekly                       |
+			| rotate 8                     |
+			| compress                     |
+			| delaycompress                |
+			| missingok                    |
+			| notifempty                   |
+			| copytruncate                 |
+			| }                            |
+
+	Plan du scénario: La carte de l'antenne est cachée aux sessions du poste, elle est au PipeWire du service
+		Deux PipeWire n'ouvrent pas la même carte en même temps : le WirePlumber des sessions du poste désactive le nœud
+		de l'antenne ; celui du service ne lit pas sa configuration.
+
+		Quand je lance « python -m machincast.installation wireplumber-desktop » avec une configuration sur la sortie « <sortie> », l'antenne <antenne>
+		Alors la commande se termine sans erreur
+		Et le fragment WirePlumber désactive <nœuds>
+
+		Exemples:
+			| sortie   | antenne                                  | nœuds                                                |
+			| pipewire | « alsa_output.pci-0000_00_1f.3.analog-stereo » | le nœud « alsa_output.pci-0000_00_1f.3.analog-stereo » |
+			| pipewire | « dummy »                                | aucun nœud                                           |
+			| pipewire | non renseignée                           | aucun nœud                                           |
+			| alsa     | « hw:1,0 »                               | aucun nœud                                           |
+
+	Scénario: Le WirePlumber du service ne cherche que les cartes son
+		Quand je lance « python -m machincast.installation wireplumber-service » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et sa sortie annonce « monitor.bluez = disabled »
+		Et sa sortie annonce « monitor.v4l2 = disabled »
+		Et sa sortie annonce « monitor.libcamera = disabled »
 
 	Plan du scénario: La règle polkit n'autorise que démarrer, arrêter et redémarrer le service, par un administrateur, au compte de MachinCast
 		Étant donné l'outil « node » du poste
@@ -186,6 +301,24 @@ Fonctionnalité: Vérifications de l'installation
 
 	Scénario: L'unité porte le nom que le wrapper suit dans le journal
 		Alors l'unité de machincast.installation est celle de « Machin logs »
+
+	Scénario: install.sh installe, tient à jour et retire tout ce que rédige machincast.installation pour le service
+		Alors install.sh a les noms du service de machincast.installation
+		Et install.sh installe, vérifie et retire chacun de ces fichiers :
+			| action              | fichier                     |
+			| unit                | FICHIER_UNITE               |
+			| pipewire-unit       | FICHIER_UNITE_PIPEWIRE      |
+			| wireplumber-unit    | FICHIER_UNITE_WIREPLUMBER   |
+			| wireplumber-service | FICHIER_WIREPLUMBER_SERVICE |
+			| wireplumber-desktop | FICHIER_WIREPLUMBER_BUREAU  |
+			| tmpfiles            | FICHIER_TMPFILES            |
+			| logrotate           | FICHIER_LOGROTATE           |
+			| purge-unit          | FICHIER_UNITE_PURGE         |
+			| purge-timer         | FICHIER_MINUTEUR_PURGE      |
+			| rule                | FICHIER_REGLE               |
+
+	Scénario: install.sh --service fait lire MachinCast au compte du service, et --remove-service le lui retire
+		Alors install.sh donne au compte du service la lecture du répertoire de MachinCast, et la lui retire avec le service
 
 	# ─── Purge quotidienne (https://github.com/dascritch/machincast/issues/268) ─────
 	# install.sh --service installe aussi le minuteur de la purge : chaque jour à midi, Machin purge efface de la base

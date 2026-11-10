@@ -13,10 +13,11 @@ Python · PySide6 (Qt 6.10) · PostgreSQL via socket Unix (psycopg 3, auth peer)
 ```bash
 # Prérequis système : uniquement ce que pip ne peut pas fournir (https://github.com/dascritch/machincast/issues/51)
 # — compilation de PyGObject, GStreamer et ses plugins (plugins-bad : AAC et encodeurs des tests), libmagic (type
-# des fichiers, https://github.com/dascritch/machincast/issues/121), PostgreSQL, autocomplétion bash
+# des fichiers, https://github.com/dascritch/machincast/issues/121), PostgreSQL, autocomplétion bash, setfacl et
+# WirePlumber (lecture et PipeWire du service de diffusion, https://github.com/dascritch/machincast/issues/381)
 sudo apt install python3-venv python3-dev build-essential pkg-config libgirepository-2.0-dev libcairo2-dev \
 	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
-	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire pipewire-bin libmagic1t64 postgresql bash-completion
+	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire pipewire-bin libmagic1t64 postgresql bash-completion acl wireplumber
 # Outils de développement du wrapper bash, desktop-file-validate pour le raccourci de l'interface, et PipeWire et
 # WirePlumber pour les scénarios du verrou des sorties (https://github.com/dascritch/machincast/issues/345)
 sudo apt install bats shellcheck desktop-file-utils pipewire wireplumber

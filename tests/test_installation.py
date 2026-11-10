@@ -18,14 +18,20 @@ from PySide6.QtWidgets import QApplication
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast import installation
+from machincast import log as log_directory
 from machincast.audio import Plugin
 from machincast.configuration import PROJECT_DIRECTORY, AudioOutput
 from machincast.installation import (
 	COMPONENTS,
 	ICON,
+	PIPEWIRE_UNIT,
 	PURGE_TIMER,
 	PURGE_UNIT,
+	SERVICE_ACCOUNT,
+	SERVICE_RUNTIME,
+	SERVICE_STATE,
 	UNIT,
+	WIREPLUMBER_UNIT,
 	Account,
 	Old,
 	Shortfall,
@@ -264,7 +270,7 @@ def checked_on_air_install() -> None:
 	start = text.index("installer_service() {")
 	body = text[start : text.index("\n}\n", start)]
 	check = body.index("installation on-air || echec ")
-	assert check < body.index("loginctl"), body
+	assert check < body.index("creer_le_compte_du_service"), body
 
 
 @then("la commande se termine sans erreur")
@@ -306,24 +312,35 @@ def _account() -> tuple[str, str, int]:
 	return entry.pw_name, grp.getgrgid(entry.pw_gid).gr_name, entry.pw_uid
 
 
-def _section(text: str, name: str) -> dict[str, str]:
-	"""Les clés d'une section d'unité systemd ; une clé répétée garde sa dernière valeur."""
-	keys: dict[str, str] = {}
+def _section(text: str, name: str) -> dict[str, list[str]]:
+	"""Les clés d'une section d'unité systemd, avec leurs valeurs dans l'ordre : Environment se répète."""
+	keys: dict[str, list[str]] = {}
 	inside = False
-
-	def read_ini_line(line) -> None:
-		nonlocal inside
+	for line in text.splitlines():
 		line = line.strip()
 		if line.startswith("["):
 			inside = line == f"[{name}]"
-			return
-		if (inside) and ("=" in line) and (not line.startswith("#")):
+		if (inside) and ("=" in line) and (not line.startswith(("#", "["))):
 			key, value = line.split("=", 1)
-			keys[key] = value
-
-	for line in text.splitlines():
-		read_ini_line(line)
+			keys.setdefault(key, []).append(value)
 	return keys
+
+
+def _expected(rows: list[list[str]], replacements: dict[str, str] | None = None) -> dict[str, list[str]]:
+	"""Les clés attendues d'un tableau « clé | valeur », une ligne par valeur."""
+	expected: dict[str, list[str]] = {}
+	for key, value in rows:
+		for marks, text in ((replacements) or ({})).items():
+			value = value.replace(marks, text)
+		expected.setdefault(key.strip(), []).append(value.strip())
+	return expected
+
+
+def _among(section: dict[str, list[str]], expected: dict[str, list[str]]) -> None:
+	found = {}
+	for key in expected:
+		found[key] = section.get(key)
+	assert found == expected
 
 
 @then(parsers.parse("l'unité a, dans la section « {name} » :"))
@@ -331,12 +348,19 @@ def unit_section(command: subprocess.CompletedProcess[str], name: str, datatable
 	account, group, uid = _account()
 	replacements = {"<compte>": account, "<groupe>": group, "<uid>": str(uid), "<répertoire>": str(PROJECT_DIRECTORY)}
 	_headers, *rows = datatable
-	expected_list = {}
-	for key, value in rows:
-		for marks, text in replacements.items():
-			value = value.replace(marks, text)
-		expected_list[key.strip()] = value.strip()
-	assert _section(command.stdout, name) == expected_list, command.stdout
+	assert _section(command.stdout, name) == _expected(rows, replacements), command.stdout
+
+
+@then(parsers.re(r"« systemd-analyze verify » accepte ensemble (?P<names>« [^»]+ »(?:, « [^»]+ »)* et « [^»]+ »)"))
+def accepted_units(tmp_path: Path, names: str) -> None:
+	"""Des unités qui se nomment l'une l'autre se vérifient ensemble."""
+	files = []
+	for name in re.findall(r"« ([^»]+) »", names):
+		files.append(str(tmp_path / name))
+	check = subprocess.run(
+		["systemd-analyze", "verify", "--man=no", *files], capture_output=True, text=True, timeout=60
+	)
+	assert check.returncode == 0, check.stderr
 
 
 @given(parsers.parse("l'outil « {tool} » du poste"))
@@ -414,14 +438,13 @@ def wrapper_unit() -> None:
 
 @when(
 	parsers.re(
-		r"l'unité et la règle sont rédigées pour le compte « (?P<name>[^»]+) », du groupe « (?P<group>[^»]+) »,"
-		r" d'uid (?P<uid>\d+), dans « (?P<directory>[^»]+) »"
+		r"l'unité est rédigée dans « (?P<directory>[^»]+) », et la règle pour le compte « (?P<name>[^»]+) »,"
+		r" du groupe « (?P<group>[^»]+) », d'uid (?P<uid>\d+)"
 	),
 	target_fixture="written_list",
 )
-def write(name: str, group: str, uid: str, directory: str) -> tuple[str, str]:
-	account = Account(name, group, int(uid))
-	return systemd_unit(account, Path(directory)), polkit_rule(account)
+def write(directory: str, name: str, group: str, uid: str) -> tuple[str, str]:
+	return systemd_unit(Path(directory)), polkit_rule(Account(name, group, int(uid)))
 
 
 @then(parsers.parse("l'unité n'a pas de section « {name} »"))
@@ -443,14 +466,7 @@ def write_purge(name: str, group: str, directory: str) -> str:
 @then(parsers.parse("l'unité de la purge a, dans la section « {name} », entre autres :"))
 def purge_section(written_purge: str, name: str, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
-	section = _section(written_purge, name)
-	value_dict = {}
-	for key, _value in rows:
-		value_dict[key.strip()] = section.get(key.strip())
-	key_dict = {}
-	for expected_key, value in rows:
-		key_dict[expected_key.strip()] = value.strip()
-	assert value_dict == key_dict
+	_among(_section(written_purge, name), _expected(rows))
 
 
 @then("install.sh installe et retire l'unité et le minuteur de la purge de machincast.installation")
@@ -462,7 +478,8 @@ def sh_install_purge() -> None:
 		'installer_fichier purge-unit "${FICHIER_UNITE_PURGE}"',
 		'installer_fichier purge-timer "${FICHIER_MINUTEUR_PURGE}"',
 		'executer sudo systemctl enable --now "${MINUTEUR_PURGE}"',
-		'executer sudo systemctl disable --now "${MINUTEUR_PURGE}"',
+		'"${MINUTEUR_PURGE}"; do',
+		'executer sudo systemctl disable --now "${unite}"',
 	):
 		assert expected in install, expected
 
@@ -470,14 +487,79 @@ def sh_install_purge() -> None:
 @then(parsers.parse("l'unité a, dans la section « {name} », entre autres :"))
 def written_section(written_list: tuple[str, str], name: str, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
-	section = _section(written_list[0], name)
-	value_dict = {}
-	for key, _value in rows:
-		value_dict[key.strip()] = section.get(key.strip())
-	key_dict = {}
-	for expected_key, value in rows:
-		key_dict[expected_key.strip()] = value.strip()
-	assert value_dict == key_dict
+	_among(_section(written_list[0], name), _expected(rows))
+
+
+@then("sa sortie a, hors commentaires, les lignes :")
+def lines_without_comments(command: subprocess.CompletedProcess[str], datatable: list[list[str]]) -> None:
+	_headers, *rows = datatable
+	found = []
+	for line in command.stdout.splitlines():
+		if (line.strip()) and (not line.lstrip().startswith("#")):
+			found.append(line.strip())
+	expected = []
+	for (row,) in rows:
+		expected.append(row.strip())
+	assert found == expected, command.stdout
+
+
+@then(parsers.re(r"le fragment WirePlumber désactive (?:le nœud « (?P<node>[^»]+) »|aucun nœud)"))
+def disabled_nodes(command: subprocess.CompletedProcess[str], node: str | None) -> None:
+	"""https://github.com/dascritch/machincast/issues/381"""
+	names = re.findall(r'node\.name = "([^"]*)"', command.stdout)
+	expected = []
+	if node is not None:
+		expected.append(node)
+	assert names == expected, command.stdout
+	assert ("node.disabled = true" in command.stdout) == (node is not None), command.stdout
+
+
+def _function(text: str, name: str) -> str:
+	start = text.index(f"\n{name}() {{")
+	return text[start : text.index("\n}\n", start)]
+
+
+@then("install.sh a les noms du service de machincast.installation")
+def sh_service_names() -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	for expected in (
+		f'COMPTE_SERVICE="{SERVICE_ACCOUNT}"',
+		f'DOSSIER_DU_COMPTE_SERVICE="{SERVICE_STATE}"',
+		f'DOSSIER_D_EXECUTION_SERVICE="{SERVICE_RUNTIME}"',
+		f'DOSSIER_DES_LOGS="{log_directory.DIRECTORY}"',
+		f'UNITE="{UNIT}"',
+		f'UNITE_PIPEWIRE="{PIPEWIRE_UNIT}"',
+		f'UNITE_WIREPLUMBER="{WIREPLUMBER_UNIT}"',
+		f'DOSSIER_WIREPLUMBER_SERVICE="{installation.SERVICE_WIREPLUMBER.parent}"',
+		f'/{installation.WIREPLUMBER_FRAGMENT}"',
+	):
+		assert expected in install, expected
+
+
+@then("install.sh installe, vérifie et retire chacun de ces fichiers :")
+def sh_service_files(datatable: list[list[str]]) -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	installing = _function(install, "installer_service")
+	checking = _function(install, "fichiers_du_service_perimes")
+	removing = _function(install, "retirer_service")
+	_headers, *rows = datatable
+	for action, variable in rows:
+		assert action.strip() in installation.ACTIONS, action
+		file = "${" + variable.strip() + "}"
+		pair = f'"{action.strip()}:{file}"'
+		assert (pair in installing) or (f'installer_fichier {action.strip()} "{file}"' in installing), action
+		assert pair in checking, action
+		assert f'"{file}"' in removing, action
+
+
+@then("install.sh donne au compte du service la lecture du répertoire de MachinCast, et la lui retire avec le service")
+def sh_service_reading() -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	assert 'donner_la_lecture_au_service "${RACINE}"' in _function(install, "installer_service")
+	assert 'retirer_la_lecture_au_service "${RACINE}"' in _function(install, "retirer_service")
+	giving = _function(install, "donner_la_lecture_au_service")
+	assert '--modify="u:${COMPTE_SERVICE}:rX,d:u:${COMPTE_SERVICE}:rX"' in giving
+	assert '--modify="u:${COMPTE_SERVICE}:x" "${parent}"' in giving
 
 
 @then(parsers.parse("la règle ne concerne que le compte « {name} »"))
@@ -491,10 +573,7 @@ def count_rule(written_list: tuple[str, str], name: str) -> None:
 @then(parsers.parse("le raccourci a, dans la section « {name} » :"))
 def shortcut_section(command: subprocess.CompletedProcess[str], name: str, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
-	expected_list = {}
-	for key, value in rows:
-		expected_list[key.strip()] = value.strip().replace("<répertoire>", str(PROJECT_DIRECTORY))
-	assert _section(command.stdout, name) == expected_list, command.stdout
+	assert _section(command.stdout, name) == _expected(rows, {"<répertoire>": str(PROJECT_DIRECTORY)}), command.stdout
 
 
 @when(parsers.parse("le raccourci est rédigé pour le répertoire « {directory} »"), target_fixture="written")
@@ -505,14 +584,7 @@ def write_shortcut(directory: str) -> str:
 @then(parsers.parse("le raccourci a, dans la section « {name} », entre autres :"))
 def written_shortcut_section(written: str, name: str, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
-	section = _section(written, name)
-	value_dict = {}
-	for key, _value in rows:
-		value_dict[key.strip()] = section.get(key.strip())
-	key_dict = {}
-	for expected_key, value in rows:
-		key_dict[expected_key.strip()] = value.strip()
-	assert value_dict == key_dict, written
+	_among(_section(written, name), _expected(rows))
 
 
 @then(parsers.parse("« desktop-file-validate » accepte « {name} »"))
@@ -619,7 +691,7 @@ def launch_with_icon(tmp_path: Path, image: Path, action: str) -> subprocess.Com
 
 @then("le raccourci a l'icône de cette image")
 def image_icon(command: subprocess.CompletedProcess[str], image: Path) -> None:
-	assert _section(command.stdout, "Desktop Entry")["Icon"] == str(image), command.stdout
+	assert _section(command.stdout, "Desktop Entry")["Icon"] == [str(image)], command.stdout
 
 
 @when(

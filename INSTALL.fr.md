@@ -64,6 +64,8 @@ Paquets installés par apt : uniquement ce que pip ne peut pas fournir. Toutes l
 | `libmagic1t64` | Reconnaissance du type réel des fichiers sonores, sans se fier à leur extension ([#121](https://github.com/dascritch/machincast/issues/121)). |
 | `postgresql` | Serveur de base de données. |
 | `bash-completion` | Chargement de l'autocomplétion de `Machin`. Déjà présent sur une Ubuntu standard, absent d'une installation minimale. |
+| `acl` | `setfacl`, qui laisse le service de diffusion lire MachinCast et les banques, sans changer leur propriétaire ni leur mode ([#381](https://github.com/dascritch/machincast/issues/381)). |
+| `wireplumber` | Gestionnaire de session du PipeWire propre au service de diffusion ([#381](https://github.com/dascritch/machincast/issues/381)). Déjà présent avec PipeWire sur une Ubuntu de bureau. |
 
 ## Récupérer MachinCast
 
@@ -224,17 +226,22 @@ Les anomalies (fichier endommagé, illisible ou introuvable) s'affichent sur la 
 
 | Étape | Ce qui se passe | Ce qui est modifié sur le poste |
 | --- | --- | --- |
-| Antenne | Vérifie, par `python -m machincast.installation on-air`, que l'antenne joue sur une carte son ([#339](https://github.com/dascritch/machincast/issues/339)) : sur la sortie factice (`audio.output = "dummy"`, ou l'entrée « Sortie factice », `audio.device = "dummy"`), install.sh s'arrête, sans rien installer du service, et recommande une autre carte son. Une antenne à renseigner est seulement signalée : le service refusera de démarrer sans elle. | Rien. |
-| Session du compte | Garde active, dès le démarrage du poste, la session du compte qui installe (`loginctl enable-linger`) : c'est là que tournent PipeWire ou PulseAudio, et la socket d'état que lit l'interface. | Session du compte. |
+| Antenne | Vérifie, par `python -m machincast.installation on-air`, que l'antenne joue sur une carte son ([#339](https://github.com/dascritch/machincast/issues/339)) : sur la sortie factice (`audio.output = "dummy"`, ou l'entrée « Sortie factice », `audio.device = "dummy"`), ou sur la sortie PulseAudio, que le service n'a pas ([#381](https://github.com/dascritch/machincast/issues/381)), install.sh s'arrête, sans rien installer du service, et recommande une autre sortie. Une antenne à renseigner est seulement signalée : le service refusera de démarrer sans elle. | Rien. |
+| Compte du service | Crée le compte système et le groupe `machincast` (sans mot de passe ni shell, répertoire `/var/lib/machincast`), et ajoute le compte qui installe au groupe : il lit les logs du service et pré-écoute l'antenne. Le groupe vaut à la prochaine connexion. | Un compte et un groupe. |
+| Base | Crée le rôle PostgreSQL `machincast`, qui se connecte par authentification peer et n'endosse que `machincast_player`, sans en hériter les droits. | Un rôle PostgreSQL. |
+| Lecture de MachinCast | Donne à `machincast` la lecture du répertoire de MachinCast (programme, environnement virtuel, `machincast.toml`), par des ACL (`setfacl`), et la traversée des répertoires parents du compte qui installe, son répertoire personnel compris. Rien d'autre ne change. | Des ACL. |
+| Répertoires | Installe `/etc/tmpfiles.d/machincast.conf` (`python -m machincast.installation tmpfiles`) et crée, à chaque démarrage du poste, `/run/machincast`, `/var/log/machincast` et `/var/log/machincast/crash-dump`, à `machincast`, mode `2770` ; et `/etc/logrotate.d/machincast` (`logrotate`) : les logs tournent chaque semaine, 8 semaines gardées. | Deux fichiers de configuration, trois répertoires. |
+| PipeWire du service | Installe `/etc/systemd/system/machincast-pipewire.service` et `machincast-wireplumber.service` (`pipewire-unit`, `wireplumber-unit`) : un PipeWire et un WirePlumber à lui, sous `machincast`, sans aucune session ; la socket de PipeWire est `/run/machincast/pipewire-0`. WirePlumber ne lit que `/etc/machincast/wireplumber` (`wireplumber-service` : les cartes son seulement) et la configuration du paquet. | Deux unités systemd, un fragment WirePlumber. |
+| Carte de l'antenne | Installe `/etc/wireplumber/wireplumber.conf.d/50-machincast.conf` (`wireplumber-desktop`) : les sessions PipeWire du poste ne voient plus la carte de l'antenne, qui est au service — deux PipeWire n'ouvrent pas la même carte en même temps ; le WirePlumber de la session en cours est relancé. Après un changement de carte d'antenne, relancer `./install.sh --service`. | Un fragment WirePlumber. |
 | Unité systemd | Installe `/etc/systemd/system/machincast.service`, rédigé par `python -m machincast.installation unit`, puis recharge systemd. | Une unité systemd. |
 | Règle polkit | Installe `/etc/polkit-1/rules.d/50-machincast.rules`, rédigée par `python -m machincast.installation rule`. | Une règle polkit. |
-| Activation | Active le service au démarrage du poste, et le démarre ; une unité modifiée redémarre le service. | Service activé. |
-| Service déjà installé, sans `--service` | Compare l'unité, la règle, l'unité et le minuteur de la purge à ceux de cette version ([#376](https://github.com/dascritch/machincast/issues/376)) : à jour, rien à faire ; sinon, il les nomme, et propose de mettre le service à jour, comme `--service`. | Rien, ou le service mis à jour. |
+| Activation | Active le PipeWire du service, son WirePlumber et le service au démarrage du poste, et les démarre ; une unité ou une configuration modifiée les redémarre. | Services activés. |
+| Service déjà installé, sans `--service` | Compare les unités, les configurations, la règle, l'unité et le minuteur de la purge à ceux de cette version ([#376](https://github.com/dascritch/machincast/issues/376)) : à jour, rien à faire ; sinon, il les nomme, et propose de mettre le service à jour, comme `--service`. | Rien, ou le service mis à jour. |
 | Purge quotidienne | Installe `/etc/systemd/system/machincast-purge.service` et son minuteur `machincast-purge.timer`, rédigés par `python -m machincast.installation purge-unit` et `purge-timer`, et active le minuteur ([#268](https://github.com/dascritch/machincast/issues/268)). | Une unité et un minuteur systemd. |
 
-**Le service** tourne sous le compte qui a installé MachinCast, pas sous un compte système : il en a le rôle PostgreSQL, les fichiers et la session audio. Il lance `bin/Machin player`, avec le `machincast.toml` du répertoire de MachinCast, et le relance 5 secondes après un plantage. Son arrêt envoie `SIGTERM`, qui termine proprement le passage en cours. Ses messages vont dans le journal du système : `Machin logs` les suit.
+**Le service** tourne sous son propre compte système, `machincast` ([#381](https://github.com/dascritch/machincast/issues/381)) : il n'a besoin d'aucune session ouverte, et redémarre au démarrage du poste sans connexion de personne. Il joue par son propre PipeWire, son rôle en base est `machincast_player` seul, et il ne fait que lire MachinCast et les banques. Il lance `bin/Machin player`, avec le `machincast.toml` du répertoire de MachinCast, et le relance 5 secondes après un plantage. Son arrêt envoie `SIGTERM`, qui termine proprement le passage en cours. Ses messages vont dans le journal du système, que suit `Machin logs`, et dans `/var/log/machincast/Machin_player.log` ; ses rapports de crash dans `/var/log/machincast/crash-dump`. Le compte qui installe les lit, membre du groupe `machincast`.
 
-**La purge quotidienne** lance `bin/Machin purge` chaque jour à midi, sous le même compte : elle efface de la base ce qui dépasse la durée de péremption, `database.retention`, 60 jours par défaut, et jamais un fichier ([Purge de la base](doc/fr/administration/commandes.md#purge-de-la-base--machin-purge)). Une purge manquée, poste éteint à midi, se fait à son démarrage. `systemctl list-timers machincast-purge.timer` donne la prochaine ; `journalctl --unit=machincast-purge.service`, ce que les précédentes ont effacé.
+**La purge quotidienne** lance `bin/Machin purge` chaque jour à midi, sous le compte qui installe, propriétaire de la base : elle efface de la base ce qui dépasse la durée de péremption, `database.retention`, 60 jours par défaut, et jamais un fichier ([Purge de la base](doc/fr/administration/commandes.md#purge-de-la-base--machin-purge)). Une purge manquée, poste éteint à midi, se fait à son démarrage. `systemctl list-timers machincast-purge.timer` donne la prochaine ; `journalctl --unit=machincast-purge.service`, ce que les précédentes ont effacé.
 
 **La règle polkit** n'autorise que trois actions sur `machincast.service`, au seul compte de MachinCast : le démarrer, l'arrêter et le redémarrer, avec le mot de passe, ou l'empreinte, d'un administrateur du poste. Elle n'autorise rien d'autre, ni sur une autre unité. Jamais de `sudo` pour piloter la diffusion :
 
@@ -242,28 +249,16 @@ Les anomalies (fichier endommagé, illisible ou introuvable) s'affichent sur la 
 systemctl start machincast.service
 systemctl stop machincast.service
 systemctl restart machincast.service
-systemctl status machincast.service
+systemctl status machincast.service machincast-pipewire.service machincast-wireplumber.service
 ```
 
 **Depuis l'interface**, le menu **Diffusion** fait la même chose, avec la même authentification ([guide de l'antenne](doc/fr/utilisateur/antenne.md#piloter-la-diffusion), [#25](https://github.com/dascritch/machincast/issues/25)). Tant que le service n'est pas installé, la barre d'état de l'interface affiche `Installation non définitive : diffusion sans service`, et le menu **Diffusion** pilote une diffusion d'essai : `Machin player` dans une fenêtre de terminal, que l'interface sait arrêter et redémarrer.
 
 **Avant d'installer le service**, arrêter tout `Machin player` lancé à la main : un second Machin player est refusé, tant que la socket d'état est occupée, et le service redémarrerait sans fin.
 
-À la main, sans `install.sh` :
+**Mise à jour d'un service installé avant #381** : il tournait sous le compte qui installe, dont la session restait active au démarrage. `./install.sh --service` le passe sous le compte `machincast` ; `sudo loginctl disable-linger "$(id -un)"` rend ensuite à la session son fonctionnement habituel.
 
-```bash
-sudo loginctl enable-linger "$(id -un)"
-.venv/bin/python -m machincast.installation unit --config machincast.toml > machincast.service
-.venv/bin/python -m machincast.installation rule --config machincast.toml > 50-machincast.rules
-.venv/bin/python -m machincast.installation purge-unit --config machincast.toml > machincast-purge.service
-.venv/bin/python -m machincast.installation purge-timer --config machincast.toml > machincast-purge.timer
-sudo install --mode=644 machincast.service machincast-purge.service machincast-purge.timer /etc/systemd/system/
-sudo install --mode=644 50-machincast.rules /etc/polkit-1/rules.d/50-machincast.rules
-sudo systemctl daemon-reload
-sudo systemctl enable --now machincast.service machincast-purge.timer
-```
-
-`--remove-service` arrête et désactive le service et le minuteur de la purge, puis retire leurs unités et la règle : la purge se lance ensuite à la main, par `Machin purge`. La session du compte reste active au démarrage ; `sudo loginctl disable-linger "$(id -un)"` la retire.
+`--remove-service` arrête et désactive le service, son PipeWire, son WirePlumber et le minuteur de la purge, retire leurs unités, la règle et les fichiers de configuration, rend la carte de l'antenne aux sessions du poste, retire les ACL du répertoire de MachinCast, le rôle PostgreSQL `machincast`, puis le compte et le groupe `machincast`. Les logs restent dans `/var/log/machincast`. La purge se lance ensuite à la main, par `Machin purge`.
 
 ## Ajouter un autre compte
 
@@ -342,7 +337,7 @@ Les commandes ci-dessous sont celles qu'enchaîne `install.sh`. Elles se lancent
 ```bash
 sudo apt install python3-venv python3-dev build-essential pkg-config libgirepository-2.0-dev libcairo2-dev \
 	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
-	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire pipewire-bin libmagic1t64 postgresql bash-completion
+	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire pipewire-bin libmagic1t64 postgresql bash-completion acl wireplumber
 ```
 
 **2. Environnement virtuel Python.** Jamais `--system-site-packages` : MachinCast ne doit pas dépendre des versions des paquets Python de la distribution.
@@ -437,7 +432,8 @@ Les noms de bases sont ceux du modèle : reprendre ceux de `database.production`
 | `install.sh : lancer install.sh avec son propre compte, sans sudo` | Le script a été lancé avec `sudo` ou en `root`. Le relancer avec son compte. |
 | `install.sh : Ubuntu LTS requis (cible : 26.04 LTS)` | Le système n'est pas une Ubuntu LTS. `./install.sh --simulation` montre tout de même les commandes. |
 | `install.sh : configuration … à corriger, puis relancer install.sh` | `machincast.toml` est invalide : le message précédent nomme la clé en cause. |
-| `antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; …`, puis `install.sh : service de diffusion non installé : l'antenne est sur la sortie factice` | `./install.sh --service` sur une configuration dont l'antenne ne joue aucun son ([#339](https://github.com/dascritch/machincast/issues/339)). Choisir la carte son de l'antenne dans l'interface, **Fichier → Préférences…**, page **Audio** (la sortie factice y est alors grisée si le service est déjà installé), ou dans `audio.output` et `audio.device` de `machincast.toml`, puis relancer `./install.sh --service`. |
+| `antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; …`, puis `install.sh : service de diffusion non installé : l'antenne ne lui convient pas` | `./install.sh --service` sur une configuration dont l'antenne ne joue aucun son ([#339](https://github.com/dascritch/machincast/issues/339)). Choisir la carte son de l'antenne dans l'interface, **Fichier → Préférences…**, page **Audio** (la sortie factice y est alors grisée si le service est déjà installé), ou dans `audio.output` et `audio.device` de `machincast.toml`, puis relancer `./install.sh --service`. |
+| `antenne sur la sortie PulseAudio : le service de diffusion joue par son propre PipeWire ; …`, puis `install.sh : service de diffusion non installé : l'antenne ne lui convient pas` | `./install.sh --service` sur une configuration dont l'antenne est sur la sortie PulseAudio ([#381](https://github.com/dascritch/machincast/issues/381)) : le service n'a pas de serveur PulseAudio. Choisir la sortie PipeWire dans l'interface, **Fichier → Préférences…**, page **Audio**, ou dans `audio.output` de `machincast.toml`, puis relancer `./install.sh --service`. |
 | `périphérique de l'antenne non renseigné : …` | `audio.device` manque : le donner dans `machincast.toml`, ou dans l'interface, **Fichier → Préférences…**, page **Audio**. Puis relancer la diffusion. |
 | `sortie audio indisponible : …` | La sortie de `audio.output` ne peut pas être créée : installer le greffon nommé, ou vérifier `audio.device`. Relancer `install.sh` vérifie la sortie. |
 | `indexation refusée : une autre indexation est en cours sur cette base` | Une indexation tourne déjà sur la base, lancée d'un terminal, de l'interface ou d'un autre poste. Attendre sa fin, puis relancer. Sa fenêtre, si elle vient de l'interface, peut l'arrêter. |
