@@ -19,6 +19,8 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 		Et l'interface a reçu l'état de Machin player
 		Alors les interruptions du menu « Diffusion » sont :
 			| entrée                                | état   | infobulle         |
+			| ⏮ Revenir au début de ce sonore | active | « Café à minuit » |
+			| ⏮ Recommencer cet événement | active | « Matinale » |
 			| ⏭ Sauter au sonore suivant              | active | « Café à minuit » |
 			| ⏭ Sauter après la séquence              | active | « Pub »           |
 			| ⏭ Couper l'événement par le fil musical | active | « Matinale »      |
@@ -29,6 +31,8 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 		Et l'interface a reçu l'état de Machin player
 		Alors les interruptions du menu « Diffusion » sont :
 			| entrée                                | état     | infobulle                   |
+			| ⏮ Revenir au début de ce sonore | active | « Café à minuit » |
+			| ⏮ Recommencer cet événement | active | « Matinale » |
 			| ⏭ Sauter au sonore suivant              | active   | « Café à minuit »           |
 			| ⏭ Sauter après la séquence              | inactive | Aucune séquence à l'antenne |
 			| ⏭ Couper l'événement par le fil musical | active   | « Matinale »                |
@@ -39,6 +43,8 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 		Et l'interface a reçu l'état de Machin player
 		Alors les interruptions du menu « Diffusion » sont :
 			| entrée                                | état     | infobulle                           |
+			| ⏮ Revenir au début de ce sonore | active | « Café à minuit » |
+			| ⏮ Recommencer cet événement | active | « Continue » |
 			| ⏭ Sauter au sonore suivant              | active   | « Café à minuit »                   |
 			| ⏭ Sauter après la séquence              | active   | « Pub »                             |
 			| ⏭ Couper l'événement par le fil musical | inactive | Le fil musical est déjà à l'antenne |
@@ -52,6 +58,8 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 		Et l'interface a reçu l'état de Machin player
 		Alors les interruptions du menu « Diffusion » sont :
 			| entrée                                | état     | infobulle                   |
+			| ⏮ Revenir au début de ce sonore | active | « Café à minuit » |
+			| ⏮ Recommencer cet événement | active | « Matinale » |
 			| ⏭ Sauter au sonore suivant              | active   | « Café à minuit »           |
 			| ⏭ Sauter après la séquence              | inactive | Aucune séquence à l'antenne |
 			| ⏭ Couper l'événement par le fil musical | active   | « Matinale »                |
@@ -62,6 +70,8 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 		Et l'interface a reçu l'état de Machin player
 		Alors les interruptions du menu « Diffusion » sont :
 			| entrée                                | état     | infobulle        |
+			| ⏮ Revenir au début de ce sonore | inactive | Rien à l'antenne |
+			| ⏮ Recommencer cet événement | inactive | Rien à l'antenne |
 			| ⏭ Sauter au sonore suivant              | inactive | Rien à l'antenne |
 			| ⏭ Sauter après la séquence              | inactive | Rien à l'antenne |
 			| ⏭ Couper l'événement par le fil musical | inactive | Rien à l'antenne |
@@ -82,9 +92,23 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 
 		Exemples:
 			| entrée                                | élément   | annonce                                             |
+			| ⏮ Revenir au début de ce sonore | restart_sound | Retour au début du sonore demandé. |
+			| ⏮ Recommencer cet événement | restart_event | Retour au début de l'événement demandé. |
 			| ⏭ Sauter au sonore suivant              | sound     | Saut au sonore suivant demandé.                     |
 			| ⏭ Sauter après la séquence              | sequence  | Saut après la séquence demandé.                     |
 			| ⏭ Couper l'événement par le fil musical | event     | Coupure de l'événement par le fil musical demandée. |
+
+	Scénario: Sur un stream, revenir au début du sonore est inactif ; recommencer l'événement reste possible
+		Étant donné Machin player diffuse le stream « Radio amie », dans « Matinale »
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'interface a reçu l'état de Machin player
+		Alors les interruptions du menu « Diffusion » sont :
+			| entrée                                | état     | infobulle                  |
+			| ⏮ Revenir au début de ce sonore         | inactive | Un stream n'a pas de début |
+			| ⏮ Recommencer cet événement             | active   | « Matinale »               |
+			| ⏭ Sauter au sonore suivant              | active   | « Radio amie »             |
+			| ⏭ Sauter après la séquence              | inactive | Aucune séquence à l'antenne |
+			| ⏭ Couper l'événement par le fil musical | active   | « Matinale »               |
 
 	Scénario: Une demande que Machin player ne peut pas recevoir n'est pas annoncée comme envoyée
 		Étant donné Machin player diffuse « Café à minuit », dans « Matinale »

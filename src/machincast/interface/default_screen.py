@@ -533,12 +533,22 @@ class DefaultScreen(QWidget):
 		return menu
 
 	def ongoing_menu(self) -> QMenu | None:
-		"""Le menu du clic droit sur le sonore en cours : copier son emplacement, ouvrir son dossier ; aucun sans
-		sonore en cours, ou sans emplacement connu (https://github.com/dascritch/machincast/issues/344)."""
+		"""Le menu du clic droit sur le sonore en cours : revenir au début du sonore ou de l'événement à l'antenne,
+		comme le menu « Diffusion » (https://github.com/dascritch/machincast/issues/366) ; puis, après un trait, copier
+		son emplacement, ouvrir son dossier, s'il est connu (https://github.com/dascritch/machincast/issues/344). Aucun
+		sans sonore en cours."""
 		sound = self._ongoing
-		if (sound is None) or (sound.location is None):
+		if sound is None:
 			return None
 		menu = QMenu(self)
+		menu.setToolTipsVisible(True)
+		proposals = interruption.offer(self.state)
+		for item, entry in interruption.RESTARTS.items():
+			restart = menu.addAction(entry)
+			restart.setEnabled(proposals[item].active)
+			restart.setToolTip(proposals[item].tooltip)
+			restart.triggered.connect(lambda _ticked=False, item=item: self.requested_interruption.emit(item))
+		# Un trait sépare l'emplacement, s'il est connu.
 		display.offer_location(menu, sound.location, sound.stream, _open_folder)
 		return menu
 

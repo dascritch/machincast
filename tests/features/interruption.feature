@@ -381,6 +381,108 @@ Fonctionnalité: Interruption manuelle de l'antenne
 		Et la diffusion s'arrête
 		Alors l'airplay montre les passages « f1 », « j »
 
+	# ─── Revenir au début (https://github.com/dascritch/machincast/issues/366) ───
+	# Pour un début d'émission raté : le sonore en cours, ou l'événement à l'antenne, repart de son début, dans un
+	# nouveau passage, avec les crossfades par défaut, comme un saut.
+
+	Scénario: Revenir au début du sonore le rejoue aussitôt, dans un nouveau passage
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et je reviens au début du sonore
+		Et la diffusion avance de 70 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre :
+			| sonore | début    | fin      | sans incident |
+			| f1     | 20:00:00 | 20:00:10 | oui           |
+			| f1     | 20:00:10 | 20:01:10 | oui           |
+			| f2     | 20:01:10 | 20:01:20 | oui           |
+		Et le log note l'interruption manuelle « retour au début du sonore « f1 » »
+
+	Scénario: Le sonore repris s'éteint pendant le crossfade de fin par défaut, sous son nouveau passage qui monte
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 60 secondes
+		Et les crossfades par défaut de la configuration sont de 2 seconde au début et de 3 à la fin
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et je reviens au début du sonore
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre :
+			| sonore | début    | fin      | sans incident |
+			| f1     | 20:00:00 | 20:00:13 | oui           |
+			| f1     | 20:00:10 | 20:00:15 | oui           |
+
+	Scénario: Revenir au début d'un sonore d'une séquence garde la séquence, qui continue après lui
+		Étant donné la séquence « Pub » des sonores « p1 », « p2 », jouée par le fil musical permanent « Continue », avant le sonore « f »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et je reviens au début du sonore
+		Et la diffusion avance de 70 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « p1 », « p1 », « p2 »
+
+	Scénario: Recommencer une émission rejoue sa liste depuis son premier élément
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'émission « Matinale » de 20:00:00 à 20:30:00, avec les sonores « m1 », « m2 », « m3 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 70 secondes
+		Et je recommence l'événement
+		Et la diffusion avance de 70 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « m1 », « m2 », « m1 », « m2 »
+		Et le log note l'interruption manuelle « retour au début de l'événement « Matinale » »
+
+	Scénario: Recommencer le fil musical reprend sa liste à son premier élément
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 », « f3 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 70 secondes
+		Et je recommence l'événement
+		Et la diffusion avance de 70 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 », « f2 », « f1 », « f2 »
+
+	Scénario: Recommencer l'événement abandonne la séquence en cours, et rejoue la liste depuis son début
+		Étant donné la séquence « Pub » des sonores « p1 », « p2 », jouée par le fil musical permanent « Continue », avant le sonore « f »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 70 secondes
+		Et je recommence l'événement
+		Et la diffusion avance de 70 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « p1 », « p2 », « p1 », « p2 »
+
+	Scénario: Recommencer l'événement qui prête son nom lui rend l'antenne, depuis le début de sa liste
+		https://github.com/dascritch/machincast/issues/399 : l'émission prête son nom au fil musical à la fin de sa
+		liste ; recommencée, elle cesse de le prêter et rejoue sa liste, puis le prête de nouveau.
+
+		Étant donné le fil musical permanent « Continue », avec les sonores « f »
+		Et l'émission « Matinale » de 20:00:00 à 20:30:00, avec le sonore « g »
+		Et l'événement « Matinale » prête, à la fin de sa liste, son nom au fil musical
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 70 secondes
+		Et je recommence l'événement
+		Et la diffusion avance de 70 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « g », « f », « g », « f »
+		Et le log note l'interruption manuelle « retour au début de l'événement « Matinale » »
+
+	Scénario: Une demande de retour au début arrive par la socket d'état
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et un client de la socket d'état demande « {"command": "interrupt", "item": "restart_sound"} »
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 », « f1 »
+
 	# ─── Rien à interrompre ────────────────────────────────────
 
 	Scénario: Pendant un blanc, une interruption ne fait rien
@@ -393,6 +495,17 @@ Fonctionnalité: Interruption manuelle de l'antenne
 		Et la diffusion s'arrête
 		Alors l'airplay ne montre aucun passage
 		Et le log ne note aucune interruption manuelle
+		Et le journal du binaire a signalé « interruption manuelle ignorée : rien à l'antenne »
+
+	Scénario: Pendant un blanc, recommencer l'événement ne fait rien
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
+		Et le sonore « f1 » est à l'état « disabled »
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 5 secondes
+		Et je recommence l'événement
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay ne montre aucun passage
 		Et le journal du binaire a signalé « interruption manuelle ignorée : rien à l'antenne »
 
 	# ─── Socket d'état ─────────────────────────────────────────

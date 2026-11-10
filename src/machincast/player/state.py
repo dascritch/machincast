@@ -13,7 +13,8 @@ Chaque client a son fil : un client lent ou qui se déconnecte ne bloque jamais 
 
 Dans l'autre sens, un client peut envoyer des demandes, une ligne JSON par demande
 (https://github.com/dascritch/machincast/issues/104) : {"command": "interrupt", "item": E}, où E est
-« sound », « sequence » ou « event » (INTERRUPTIONS) ; {"command": "reread_grid"}, après un changement de la
+« sound », « sequence » ou « event », ou, pour revenir au début du sonore ou de l'événement à l'antenne,
+« restart_sound » ou « restart_event » (INTERRUPTIONS, https://github.com/dascritch/machincast/issues/366) ; {"command": "reread_grid"}, après un changement de la
 grille qui doit valoir aussitôt, comme une session sautée (https://github.com/dascritch/machincast/issues/273) ;
 {"command": "advance", "event": N}, pour que l'événement suivant annoncé, d'identifiant N, commence aussitôt
 (https://github.com/dascritch/machincast/issues/257) ; {"command": "cut_by_fallback", "event": N}, pour
@@ -59,8 +60,9 @@ ADVANCE = "advance"
 CUT_BY_FALLBACK = "cut_by_fallback"
 CUT_BY_FEED = "cut_by_feed"
 """Couper l'antenne par un événement de secours, ou par un feed (https://github.com/dascritch/machincast/issues/323)."""
-INTERRUPTIONS = ("sound", "sequence", "event")
-"""Ce qu'une demande peut interrompre (https://github.com/dascritch/machincast/issues/104)."""
+INTERRUPTIONS = ("sound", "sequence", "event", "restart_sound", "restart_event")
+"""Ce qu'une demande peut interrompre (https://github.com/dascritch/machincast/issues/104) ; revenir au début du sonore
+ou de l'événement à l'antenne (https://github.com/dascritch/machincast/issues/366)."""
 MAXIMAL_SIZE = 4096
 """Octets d'une demande, au plus : au-delà, ce qui a été reçu est ignoré."""
 IGNORED_REQUEST = _("request ignored on the state socket")

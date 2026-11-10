@@ -716,8 +716,9 @@ class Broadcast:
 
 	def interrupt(self, item: str) -> bool:
 		"""Interruption manuelle (https://github.com/dascritch/machincast/issues/228) : sauter au sonore suivant
-		(« sonore »), sauter après la séquence (« sequence »), ou couper l'événement par le fil musical
-		(« evenement ») ; False si elle est ignorée, faute de rien à interrompre."""
+		(« sound »), sauter après la séquence (« sequence »), ou couper l'événement par le fil musical
+		(« event ») ; revenir au début du sonore (« restart_sound ») ou de l'événement à l'antenne (« restart_event »,
+		https://github.com/dascritch/machincast/issues/366). False si elle est ignorée, faute de rien à interrompre."""
 		instant = self.clock.now()
 		current = self.current
 		if current is None:
@@ -732,12 +733,11 @@ class Broadcast:
 		if (item == "event") and (event.priority is Priority.BACKGROUND_PROGRAMMING):
 			log.warning(_("{ignored}: the background programming is already on air").format(ignored=logged(IGNORED)))
 			return False
+		if (item == "restart_sound") and (current.parameters.stream):
+			log.warning(_("{ignored}: a stream has no beginning").format(ignored=logged(IGNORED)))
+			return False
 		self._following = None
-		message = N_("of the sound “{sound_name}”").format(sound_name=self._sound_name(choice.sound))
-		if item == "sequence":
-			message = N_("of the sequence {on_air_sequence}").format(on_air_sequence=self._on_air_sequence)
-		if item == "event":
-			message = N_("of the event “{name}”").format(name=event.name)
+		message = self._interrupted(item, choice, event)
 		self.history.record(
 			self.connection,
 			"info",
@@ -749,20 +749,42 @@ class Broadcast:
 		)
 		if self.outputs is not None:
 			self.outputs.announce(MANUAL_INTERRUPTION, message)
-		if item != "sound":
+		if item not in ("sound", "restart_sound"):
 			self.scheduler.abandon_sequence(current.play.id)
 		following = None
-		if item == "event":
-			self.scheduler.return_to_background_programming(instant)
-			self.upcoming = []
-		else:
-			following = self._skip(current, item == "sequence", instant)
+		match item:
+			case "event":
+				self.scheduler.return_to_background_programming(instant)
+				self.upcoming = []
+			case "restart_sound":
+				# Le même sonore, du même élément : les sonores à venir le suivent toujours.
+				following = choice
+			case "restart_event":
+				self.scheduler.restart((choice.lender) or (choice.occurrence), instant)
+				self.upcoming = []
+			case _:
+				following = self._skip(current, item == "sequence", instant)
 		if following is None:
 			following = self._decide(instant, None).play
 		fade = (self.crossfades.end) or (NO_CROSSFADE)
 		self._switch_off(current, following, instant, fade, (self.crossfades.start) or (NO_CROSSFADE))
 		self._publish(instant)
 		return True
+
+	def _interrupted(self, item: str, choice: Choice, event: Event) -> str:
+		"""Ce que l'interruption manuelle interrompt, pour le log et les sorties."""
+		match item:
+			case "sequence":
+				return N_("of the sequence {on_air_sequence}").format(on_air_sequence=self._on_air_sequence)
+			case "event":
+				return N_("of the event “{name}”").format(name=event.name)
+			case "restart_sound":
+				return N_("back to the start of the sound “{sound_name}”").format(
+					sound_name=self._sound_name(choice.sound)
+				)
+			case "restart_event":
+				return N_("back to the start of the event “{name}”").format(name=event.name)
+		return N_("of the sound “{sound_name}”").format(sound_name=self._sound_name(choice.sound))
 
 	def cut_by_fallback(self, event: int | None) -> bool:
 		"""Coupe l'antenne par cet événement de secours (https://github.com/dascritch/machincast/issues/323) ; False si

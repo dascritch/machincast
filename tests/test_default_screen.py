@@ -86,6 +86,8 @@ class Context:
 	click: str | None = None
 	"""Bouton que le technicien choisit dans la fenêtre d'erreur."""
 	previewed_list: list[int] = field(default_factory=list)
+	interruptions: list[str] = field(default_factory=list)
+	"""Les interruptions que l'écran a demandées (https://github.com/dascritch/machincast/issues/366)."""
 	"""Sonores dont l'écran a demandé la pré-écoute."""
 
 	@property
@@ -423,6 +425,7 @@ def open_(context: Context, empty_database: Connection, qtbot: QtBot, monkeypatc
 		lambda category, number, name: context.cards.append((SCENARIO.get(category, category), number, name))
 	)
 	context.screen.requested_preview.connect(context.previewed_list.append)
+	context.screen.requested_interruption.connect(context.interruptions.append)
 	qtbot.addWidget(context.screen)
 	context.screen.show()
 
@@ -1540,6 +1543,38 @@ def block_menu_ends(context: Context, which: str, entries: str) -> None:
 @then("le clic droit sur le sonore en cours n'ouvre aucun menu")
 def no_block_menu(context: Context) -> None:
 	assert screen(context).ongoing_menu() is None
+
+
+@then("le clic droit sur le sonore en cours propose :")
+def ongoing_menu_offers(context: Context, datatable: list[list[str]]) -> None:
+	"""Un séparateur s'écrit « — »."""
+	_headers, *rows = datatable
+	menu = screen(context).ongoing_menu()
+	assert menu is not None
+	obtained = []
+	for action in menu.actions():
+		if action.isSeparator():
+			obtained.append(["—", "", ""])
+		else:
+			state = "inactive"
+			if action.isEnabled():
+				state = "active"
+			tooltip = action.toolTip()
+			if tooltip == action.text():
+				tooltip = ""
+			obtained.append([action.text(), state, tooltip])
+	expected = []
+	for row in rows:
+		cells = []
+		for cell in row:
+			cells.append(cell.strip())
+		expected.append(cells)
+	assert obtained == expected
+
+
+@then(parsers.parse("l'écran par défaut a demandé l'interruption « {item} »"))
+def requested_interruption(context: Context, item: str) -> None:
+	assert context.interruptions == [item]
 
 
 @then(

@@ -3,8 +3,9 @@ https://github.com/dascritch/machincast/issues/228, spec § 8.11), et clic droit
 Antenne (https://github.com/dascritch/machincast/issues/257) : y sauter, ou avancer l'événement suivant
 (offer_to_next).
 
-Le menu « Diffusion » propose de sauter au sonore suivant, de sauter après la séquence en cours, ou de couper
-l'événement par le fil musical (ENTREES). Chaque entrée suit l'état que Machin player publie sur sa socket d'état
+Le menu « Diffusion » propose de revenir au début du sonore ou de l'événement à l'antenne (RESTARTS,
+https://github.com/dascritch/machincast/issues/366), puis de sauter au sonore suivant, de sauter après la séquence en
+cours, ou de couper l'événement par le fil musical (ENTRIES). Chaque entrée suit l'état que Machin player publie sur sa socket d'état
 (proposer) : elle n'est active que si son élément est à l'antenne, et, pour l'événement, hors du fil musical ; son
 infobulle le nomme, ou dit pourquoi elle est inactive. Choisie, elle envoie la demande sur la
 socket (StateClient.envoyer), aussitôt, sans question : Machin player la traite à son pas suivant
@@ -30,7 +31,7 @@ from PySide6.QtWidgets import QMenu
 from machincast.i18n import _
 from machincast.interface import display
 from machincast.interface.calendar import day_and_month
-from machincast.interface.intents import SKIP, label
+from machincast.interface.intents import RESTART, SKIP, label
 from machincast.interface.state import FollowingEvent, PlaybackState
 
 log = logging.getLogger(__name__)
@@ -41,13 +42,23 @@ ENTRIES = {
 	"event": label(SKIP, _("Cut the event by the background programming")),
 }
 """Entrée du menu « Diffusion » de chaque élément qui s'interrompt, dans l'ordre du menu."""
+RESTARTS = {
+	"restart_sound": label(RESTART, _("Back to the start of this sound")),
+	"restart_event": label(RESTART, _("Restart this event")),
+}
+"""Revenir au début du sonore ou de l'événement à l'antenne, pour un début d'émission raté
+(https://github.com/dascritch/machincast/issues/366) : dans le menu « Diffusion », entre deux traits, avant les sauts ;
+au clic droit sur le sonore en cours de l'onglet Antenne."""
 ANNOUNCEMENTS = {
 	"sound": _("Skip to the next sound requested."),
 	"sequence": _("Skip after the sequence requested."),
 	"event": _("Cut of the event by the background programming requested."),
+	"restart_sound": _("Back to the start of the sound requested."),
+	"restart_event": _("Restart of the event requested."),
 }
 ON_AIR_NOTHING = _("Nothing on air")
 NO_SEQUENCE = _("No sequence on air")
+NO_BEGINNING = _("A stream has no beginning")
 ALREADY_BACKGROUND_PROGRAMMING = _("The background programming is already on air")
 WITHOUT_PLAYBACK = _("Interruption impossible: Machin player does not answer on its state socket.")
 SKIP_TO_SOUND = label(SKIP, _("Skip to this sound"))
@@ -70,28 +81,36 @@ def _named(name: str | None) -> Proposal:
 
 
 def offer(state: PlaybackState) -> dict[str, Proposal]:
-	"""Pour chaque élément, l'entrée de son interruption, selon l'état de Machin player."""
+	"""Pour chaque élément, l'entrée de son interruption, ou de son retour au début, selon l'état de Machin player."""
 	ongoing = state.ongoing
 	# Machin player ne publie un sonore en cours qu'en diffusion : ni pendant un blanc, ni à l'arrêt.
 	if ongoing is None:
 		offer = {}
-		for item in ENTRIES:
+		for item in (*RESTARTS, *ENTRIES):
 			offer[item] = Proposal(False, ON_AIR_NOTHING)
 		return offer
+	sound = _named((ongoing.title) or (ongoing.location))
 	sequence = Proposal(False, NO_SEQUENCE)
 	if ongoing.sequence is not None:
 		sequence = _named(ongoing.sequence)
-	event = Proposal(False, ON_AIR_NOTHING)
+	# L'événement à l'antenne : celui qui prête son nom au fil musical, s'il y en a un
+	# (https://github.com/dascritch/machincast/issues/399).
+	on_air = Proposal(False, ON_AIR_NOTHING)
 	if ongoing.event is not None:
-		event = _named(ongoing.event)
-	if ongoing.priority_event == "background_programming":
-		event = Proposal(False, ALREADY_BACKGROUND_PROGRAMMING)
+		on_air = _named(ongoing.event)
 	if ongoing.lender is not None:
-		# Le fil musical joue au nom d'une émission : la couper met fin au prêt
-		# (https://github.com/dascritch/machincast/issues/399).
-		event = _named(ongoing.lender)
+		on_air = _named(ongoing.lender)
+	# Le couper : rien dans le fil musical, sauf quand il joue au nom d'une émission, qu'il coupe alors.
+	event = on_air
+	if (ongoing.priority_event == "background_programming") and (ongoing.lender is None):
+		event = Proposal(False, ALREADY_BACKGROUND_PROGRAMMING)
+	restart_sound = sound
+	if ongoing.stream:
+		restart_sound = Proposal(False, NO_BEGINNING)
 	return {
-		"sound": _named((ongoing.title) or (ongoing.location)),
+		"restart_sound": restart_sound,
+		"restart_event": on_air,
+		"sound": sound,
 		"sequence": sequence,
 		"event": event,
 	}

@@ -295,6 +295,9 @@ def last_item(
 	started = (occurrence.started) or (occurrence.start)
 	if (event.priority not in (Priority.BACKGROUND_PROGRAMMING, Priority.FALLBACK)) and (started is not None):
 		since = started.astimezone()
+	# Une occurrence recommencée à la main (https://github.com/dascritch/machincast/issues/366).
+	if (occurrence.restarted is not None) and ((since is None) or (occurrence.restarted > since)):
+		since = occurrence.restarted
 	return history.last_item(connection, event.id, since)
 
 
@@ -434,6 +437,10 @@ class Scheduler:
 		self.cut_list: set[tuple[int, datetime | None]] = set()
 		"""Occurrences terminées à la main, coupées par le fil musical, par le secours ou par un feed : leur secours de
 		fin de liste ne les remplace pas (https://github.com/dascritch/machincast/issues/350)."""
+		self.restarts: dict[tuple[int, datetime | None], datetime] = {}
+		"""Les occurrences recommencées à la main, et l'instant de leur recommencement
+		(https://github.com/dascritch/machincast/issues/366) : leur liste se compte depuis là. Retenues en mémoire
+		seulement, comme une occurrence terminée plus tôt."""
 		self.advanced: Occurrence | None = None
 		"""L'occurrence avancée à la demande (https://github.com/dascritch/machincast/issues/257) : active dès la
 		demande, jusqu'à son début prévu, où la grille la retrouve. Retenue en mémoire seulement, comme une occurrence
@@ -451,7 +458,9 @@ class Scheduler:
 		active = active_event(events, instant, frozenset(finished_list), self.advanced)
 		# Après son début prévu, la grille la retrouve, sans l'heure où elle a commencé : celle de l'avance.
 		if (active is not None) and (self.advanced is not None) and (active.key == self.advanced.key):
-			return self.advanced
+			active = self.advanced
+		if (active is not None) and (active.key in self.restarts):
+			active = dataclasses.replace(active, restarted=self.restarts[active.key])
 		return active
 
 	def _on_grid(self, events: list[Event], instant: datetime) -> Occurrence | None:
@@ -645,6 +654,13 @@ class Scheduler:
 		if (self.suspension is not None) and (self.suspension.fallback is not None):
 			self.finished_list.discard(_fallback_occurrence(self.suspension.fallback).key)
 		self.suspension = None
+
+	def restart(self, occurrence: Occurrence, instant: datetime) -> None:
+		"""L'occurrence repart de son premier élément (https://github.com/dascritch/machincast/issues/366) : elle
+		reprend l'antenne si elle s'était terminée plus tôt, comme une émission qui prête son nom ; sa liste se compte
+		désormais depuis l'instant."""
+		self.finished_list.discard(occurrence.key)
+		self.restarts[occurrence.key] = instant
 
 	def abandon_sequence(self, play: uuid.UUID) -> None:
 		"""La séquence du passage est interrompue : la liste de son événement reprend à l'élément qui la suit."""

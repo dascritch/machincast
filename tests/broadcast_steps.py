@@ -95,6 +95,8 @@ ITEMS = {
 	"saute au sonore suivant": "sound",
 	"saute après la séquence": "sequence",
 	"coupe l'événement par le fil musical": "event",
+	"reviens au début du sonore": "restart_sound",
+	"recommence l'événement": "restart_event",
 }
 """Interruptions manuelles (https://github.com/dascritch/machincast/issues/228), par leur texte dans les scénarios."""
 
@@ -650,7 +652,12 @@ def advance(bench: Bench, count: str) -> None:
 		clock(bench).advance(timedelta(seconds=1))
 
 
-@when(parsers.re(r"je (?P<what>saute au sonore suivant|saute après la séquence|coupe l'événement par le fil musical)$"))
+@when(
+	parsers.re(
+		r"je (?P<what>saute au sonore suivant|saute après la séquence|coupe l'événement par le fil musical"
+		r"|reviens au début du sonore|recommence l'événement)$"
+	)
+)
 def interrupt(bench: Bench, what: str) -> None:
 	broadcast(bench).interrupt(ITEMS[what])
 

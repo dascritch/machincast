@@ -3416,6 +3416,10 @@ msgid "No sequence on air"
 msgstr "Aucune séquence à l'antenne"
 
 #: machincast/interface/interruption.py
+msgid "A stream has no beginning"
+msgstr "Un stream n'a pas de début"
+
+#: machincast/interface/interruption.py
 msgid "The background programming is already on air"
 msgstr "Le fil musical est déjà à l'antenne"
 
@@ -3488,6 +3492,14 @@ msgid "Cut of the event by the background programming requested."
 msgstr "Coupure de l'événement par le fil musical demandée."
 
 #: machincast/interface/interruption.py
+msgid "Back to the start of the sound requested."
+msgstr "Retour au début du sonore demandé."
+
+#: machincast/interface/interruption.py
+msgid "Restart of the event requested."
+msgstr "Retour au début de l'événement demandé."
+
+#: machincast/interface/interruption.py
 msgid "Skip to this sound"
 msgstr "Sauter à ce sonore"
 
@@ -3518,6 +3530,14 @@ msgstr "Sauter après la séquence"
 #: machincast/interface/interruption.py
 msgid "Cut the event by the background programming"
 msgstr "Couper l'événement par le fil musical"
+
+#: machincast/interface/interruption.py
+msgid "Back to the start of this sound"
+msgstr "Revenir au début de ce sonore"
+
+#: machincast/interface/interruption.py
+msgid "Restart this event"
+msgstr "Recommencer cet événement"
 
 #: machincast/interface/interruption.py
 msgid "It starts at once, above the grid, until the end of its list"
@@ -5611,16 +5631,6 @@ msgid "event no. {event}, unknown"
 msgstr "l'événement n°{event}, inconnu"
 
 #: machincast/player/broadcast.py
-#, python-brace-format
-msgid "of the sequence {on_air_sequence}"
-msgstr "de la séquence {on_air_sequence}"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "of the event “{name}”"
-msgstr "de l'événement « {name} »"
-
-#: machincast/player/broadcast.py
 msgid "analysis impossible"
 msgstr "analyse impossible"
 
@@ -5673,6 +5683,31 @@ msgstr "{ignored} : aucune séquence à l'antenne"
 #, python-brace-format
 msgid "{ignored}: the background programming is already on air"
 msgstr "{ignored} : le fil musical est déjà à l'antenne"
+
+#: machincast/player/broadcast.py
+#, python-brace-format
+msgid "{ignored}: a stream has no beginning"
+msgstr "{ignored} : un stream n'a pas de début"
+
+#: machincast/player/broadcast.py
+#, python-brace-format
+msgid "of the sequence {on_air_sequence}"
+msgstr "de la séquence {on_air_sequence}"
+
+#: machincast/player/broadcast.py
+#, python-brace-format
+msgid "of the event “{name}”"
+msgstr "de l'événement « {name} »"
+
+#: machincast/player/broadcast.py
+#, python-brace-format
+msgid "back to the start of the sound “{sound_name}”"
+msgstr "retour au début du sonore « {sound_name} »"
+
+#: machincast/player/broadcast.py
+#, python-brace-format
+msgid "back to the start of the event “{name}”"
+msgstr "retour au début de l'événement « {name} »"
 
 #: machincast/player/broadcast.py
 #, python-brace-format

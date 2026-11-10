@@ -301,7 +301,7 @@ Fonctionnalité: Écran par défaut de l'interface
 		Quand l'écran par défaut s'ouvre
 		Alors le sonore en cours est bientôt « (sans titre) »
 		Et le sonore en cours n'a pas de ligne « Emplacement »
-		Et le clic droit sur le sonore en cours n'ouvre aucun menu
+		Et le clic droit sur le sonore en cours finit par « ⏮ Revenir au début de ce sonore », « ⏮ Recommencer cet événement »
 
 	# ─── Contexte du sonore (https://github.com/dascritch/machincast/issues/144) ─────
 
@@ -595,6 +595,36 @@ Fonctionnalité: Écran par défaut de l'interface
 		Et le sonore en cours n'a pas de mémoire tampon
 		Quand la mémoire tampon du stream en cours contient 1,2 seconde sur 2
 		Alors la mémoire tampon du sonore en cours montre bientôt « 1,2 s sur 2 s », remplie à 60 %
+
+	Scénario: Le clic droit sur le sonore en cours propose d'abord de revenir au début du sonore ou de l'événement
+		https://github.com/dascritch/machincast/issues/366 : comme dans le menu « Diffusion », pour un début d'émission
+		raté ; puis, après un trait, son emplacement.
+
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Quand l'écran par défaut s'ouvre
+		Alors le sonore en cours est bientôt « Les Gaufres – Café à minuit »
+		Et le clic droit sur le sonore en cours propose :
+			| entrée                          | état   | infobulle         |
+			| ⏮ Revenir au début de ce sonore | active | « Café à minuit » |
+			| ⏮ Recommencer cet événement     | active | « Fil de jour »   |
+			| —                               |        |                   |
+			| Copier l'emplacement            | active |                   |
+			| Ouvrir le dossier               | active |                   |
+		Quand je choisis « ⏮ Recommencer cet événement » au clic droit sur le sonore en cours
+		Alors l'écran par défaut a demandé l'interruption « restart_event »
+
+	Scénario: Sur un stream, le clic droit sur le sonore en cours ne propose pas de revenir à son début
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse le stream « Direct studio » dans « Direct », commencé à 20:00:00, joué depuis 30 secondes
+		Quand l'écran par défaut s'ouvre
+		Alors le sonore en cours est bientôt « Direct studio »
+		Et le clic droit sur le sonore en cours propose :
+			| entrée                          | état     | infobulle                  |
+			| ⏮ Revenir au début de ce sonore | inactive | Un stream n'a pas de début |
+			| ⏮ Recommencer cet événement     | active   | « Direct »                 |
+			| —                               |          |                            |
+			| Copier l'URL du feed            | active   |                            |
 
 	Scénario: Le clic droit sur un stream copie son adresse, sans dossier à ouvrir
 		Étant donné la socket d'état du binaire lecture ouverte

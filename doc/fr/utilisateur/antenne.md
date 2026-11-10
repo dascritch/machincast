@@ -168,10 +168,12 @@ Après **⏵ Démarrer la diffusion**, la barre d'état dit `Démarrage de la di
 
 ## Interrompre l'antenne
 
-Le menu **Diffusion** propose aussi, après un trait, de corriger ce qui passe, sans attendre ([#228](https://github.com/dascritch/machincast/issues/228)) :
+Le menu **Diffusion** propose aussi, après un trait, de corriger ce qui passe, sans attendre ([#228](https://github.com/dascritch/machincast/issues/228)) : d'abord revenir au début ([#366](https://github.com/dascritch/machincast/issues/366)), puis, après un autre trait, sauter ou couper. Le **clic droit sur le sonore en cours**, sur l'onglet Antenne, propose aussi de revenir au début :
 
 | Entrée | Effet |
 | --- | --- |
+| ⏮ Revenir au début de ce sonore | Pour un début raté ([#366](https://github.com/dascritch/machincast/issues/366)) : le sonore en cours repart de son début, dans un nouveau passage ; la séquence et les sonores à venir continuent après lui. Inactive sur un stream, qui n'a pas de début. |
+| ⏮ Recommencer cet événement | L'événement à l'antenne repart du premier élément de sa liste, même le fil musical ; une émission qui prête son nom au fil musical le reprend, rejoue sa liste, puis le prête de nouveau. Une séquence en cours est abandonnée. |
 | ⏭ Sauter au sonore suivant | Le sonore en cours est coupé, et le prochain sonore annoncé sur l'onglet Antenne passe aussitôt ; les sonores à venir avancent d'un cran. |
 | ⏭ Sauter après la séquence | Le sonore en cours est coupé, et le reste de sa séquence n'est pas joué : le sonore prévu après la séquence passe aussitôt, et les sonores à venir qui le suivent sont gardés. |
 | ⏭ Couper l'événement par le fil musical | Le sonore en cours est coupé, et le fil musical prend aussitôt l'antenne, jusqu'à la fin prévue de l'événement coupé : un spécial et l'émission qu'il recouvre laissent tous les deux la place. Inactive dans le fil musical, sauf quand il joue au nom d'une émission ([#399](https://github.com/dascritch/machincast/issues/399)) : elle coupe alors cette émission, et le fil musical reprend sous son propre nom. |

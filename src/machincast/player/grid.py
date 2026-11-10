@@ -109,6 +109,9 @@ class Occurrence:
 	started: datetime | None = field(default=None, compare=False)
 	"""Pour une occurrence avancée (https://github.com/dascritch/machincast/issues/257) : l'heure murale où elle a
 	commencé, avant son début prévu. Sa liste se compte depuis là. Elle ne change ni la clé, ni l'égalité."""
+	restarted: datetime | None = field(default=None, compare=False)
+	"""Pour une occurrence recommencée à la main (https://github.com/dascritch/machincast/issues/366) : l'instant où
+	sa liste est repartie de son premier élément ; elle se compte depuis là, même pour un fil musical."""
 
 	@property
 	def key(self) -> tuple[int, datetime | None]:
