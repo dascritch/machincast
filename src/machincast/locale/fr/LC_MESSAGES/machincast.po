@@ -1396,6 +1396,7 @@ msgid "Disable"
 msgstr "Désactiver"
 
 #: machincast/interface/bank_card.py
+#: machincast/interface/indexing_status.py
 #: machincast/interface/window.py
 #: machincast/interface/ui/bank_card.ui
 msgid "Sounds"
@@ -2977,6 +2978,7 @@ msgstr "Ouvrir INSTALL.md"
 
 #: machincast/interface/error.py
 #: machincast/interface/ui/indexing_log.ui
+#: machincast/interface/ui/indexing_status.ui
 msgid "Close"
 msgstr "Fermer"
 
@@ -3504,6 +3506,7 @@ msgid "Quick indexing"
 msgstr "Indexation rapide"
 
 #: machincast/interface/indexer.py
+#: machincast/interface/indexing_status.py
 msgid "Full audit"
 msgstr "Audit complet"
 
@@ -3559,6 +3562,57 @@ msgid "{count} anomaly, in the log above."
 msgid_plural "{count} anomalies, in the log above."
 msgstr[0] "{count} anomalie, dans le journal ci-dessus."
 msgstr[1] "{count} anomalies, dans le journal ci-dessus."
+
+#: machincast/interface/indexing_status.py
+#, python-brace-format
+msgid "{value} ({percent} %)"
+msgstr "{value} ({percent} %)"
+
+#: machincast/interface/indexing_status.py
+#, python-brace-format
+msgid "{label}: {share}"
+msgstr "{label} : {share}"
+
+#: machincast/interface/indexing_status.py
+msgid "Directories"
+msgstr "Répertoires"
+
+#: machincast/interface/indexing_status.py
+msgid ""
+"No start of Machin indexer in the log: a directory scanned once counts as "
+"scanned."
+msgstr ""
+"Aucun démarrage de Machin indexer dans le log : un répertoire déjà parcouru "
+"une fois compte comme scanné."
+
+#: machincast/interface/indexing_status.py
+msgid "Scanned"
+msgstr "Scannés"
+
+#: machincast/interface/indexing_status.py
+msgid "To scan"
+msgstr "À scanner"
+
+#: machincast/interface/indexing_status.py
+msgid "Quick indexing only"
+msgstr "Indexation sommaire"
+
+#: machincast/interface/indexing_status.py
+msgid "Not indexed yet"
+msgstr "Pas encore indexés"
+
+#: machincast/interface/indexing_status.py
+#, python-brace-format
+msgid ""
+"Directories scanned since the last start of Machin indexer, on {date}."
+msgstr ""
+"Répertoires scannés depuis le dernier démarrage de Machin indexer, le "
+"{date}."
+
+#: machincast/interface/indexing_status.py
+#, python-brace-format
+msgid "Status unreadable: {error}"
+msgstr "Statut illisible : {error}"
 
 #: machincast/interface/interruption.py
 msgid "Nothing on air"
@@ -5228,6 +5282,10 @@ msgstr "&Diffusion"
 #: machincast/interface/window.py
 msgid "&Maintenance"
 msgstr "&Maintenance"
+
+#: machincast/interface/window.py
+msgid "Indexing status…"
+msgstr "Statut des indexations…"
 
 #: machincast/interface/window.py
 msgid "&Help"
@@ -6955,6 +7013,30 @@ msgstr ""
 #: machincast/interface/ui/indexing_log.ui
 msgid "Indexing"
 msgstr "Indexation"
+
+#: machincast/interface/ui/indexing_status.ui
+msgid "Indexing status"
+msgstr "Statut des indexations"
+
+#: machincast/interface/ui/indexing_status.ui
+msgid "Directories to scan"
+msgstr "Répertoires à scanner"
+
+#: machincast/interface/ui/indexing_status.ui
+msgid "Directories scanned"
+msgstr "Répertoires scannés"
+
+#: machincast/interface/ui/indexing_status.ui
+msgid "Sounds found"
+msgstr "Sonores détectés"
+
+#: machincast/interface/ui/indexing_status.ui
+msgid "Sounds with a quick indexing"
+msgstr "Sonores à l'indexation sommaire"
+
+#: machincast/interface/ui/indexing_status.ui
+msgid "Sounds with a full audit"
+msgstr "Sonores à l'indexation complète"
 
 #: machincast/interface/ui/list_view.ui
 msgid ""

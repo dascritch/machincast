@@ -78,6 +78,7 @@ from machincast.interface import (
 	groups,
 	icons,
 	indexer,
+	indexing_status,
 	interruption,
 	preferences,
 	service_access,
@@ -564,6 +565,10 @@ class MainWindow(QMainWindow):
 			action = maintenance.addAction(TITLES[full_audit])
 			action.triggered.connect(lambda _ticked=False, audit=full_audit: self._index(audit))
 			self.indexings[full_audit] = action
+		# Où en sont les indexations (https://github.com/dascritch/machincast/issues/392).
+		self.indexing_status = maintenance.addAction(_("Indexing status…"))
+		self.indexing_status.triggered.connect(self._show_indexing_status)
+		self.status_window: indexing_status.StatusWindow | None = None
 		maintenance.addSeparator()
 		# Grisée pendant toute indexation lancée d'ici : ses migrations attendraient la base
 		# (https://github.com/dascritch/machincast/issues/127).
@@ -1461,6 +1466,12 @@ class MainWindow(QMainWindow):
 			self.statusBar().showMessage(control.ABANDONED_MAINTENANCE)
 			return
 		self.statusBar().showMessage(control.launch_maintenance(self.configuration, backups))
+
+	def _show_indexing_status(self) -> None:
+		"""Une seule fenêtre de statut : la rouvrir la ramène au premier plan."""
+		if self.status_window is None:
+			self.status_window = indexing_status.StatusWindow(self.connection, self)
+		self.status_window.open_()
 
 	def _index(self, full_audit: bool) -> bool:
 		"""Lance Machin indexer dans son propre processus, avec sa fenêtre ; le menu ne propose plus ce mode, ni la

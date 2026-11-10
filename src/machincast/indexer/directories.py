@@ -23,6 +23,9 @@ qui suit le décode dans le même passage.
 - Après la vérification, remove_outside_durations retire de chaque banque les sonores de durée connue qui sortent de ses
   durées, qu'ils viennent de ses répertoires ou qu'ils aient été ajoutés à la main.
 - Un répertoire introuvable ou illisible est signalé en anomalie ; les autres banques sont indexées.
+- Un répertoire parcouru jusqu'au bout note l'heure dans bank_directories.scanned_at : le statut des indexations de
+  l'interface compte ceux parcourus depuis le dernier démarrage de Machin_indexer
+  (https://github.com/dascritch/machincast/issues/392).
 
 Chaque fichier est enregistré dans sa propre transaction, pour qu'une interruption garde le travail fait. Une
 indexation rapide et un audit complet peuvent parcourir les répertoires en même temps
@@ -225,7 +228,18 @@ def index_directories(
 				if str(file) not in attached[identifier]:
 					crash.note(ANALYSED, str(file))
 					_save(connection, identifier, str(name), str(file), report, scan)
+			_scanned(connection, identifier, str(directory))
 	return scan
+
+
+def _scanned(connection: psycopg.Connection[TupleRow], bank: int, directory: str) -> None:
+	"""Le répertoire est parcouru jusqu'au bout : le statut des indexations le compte
+	(https://github.com/dascritch/machincast/issues/392)."""
+	with connection.transaction():
+		connection.execute(
+			"UPDATE bank_directories SET scanned_at = clock_timestamp() WHERE bank_id = %s AND directory = %s",
+			(bank, directory),
+		)
 
 
 def _readable_directory(path: Path, directory: object, name: object) -> bool:
