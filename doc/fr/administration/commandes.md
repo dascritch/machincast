@@ -117,11 +117,11 @@ Code 0 quand la purge est faite ; 1 si la base est injoignable, ou sur une erreu
 
 ## Lecture par le service de diffusion : Machin grant-read
 
-Le service de diffusion tourne sous son propre compte, `machincast` ([#381](https://github.com/dascritch/machincast/issues/381), [Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion)) : il ne lit les sonores que si les droits du poste le lui permettent. Un répertoire de banque dans un répertoire personnel, privé par défaut sous Ubuntu, lui est fermé. `Machin grant-read` lui en donne la lecture :
+Le service de diffusion tourne sous son propre compte, `machincast` ([#381](https://github.com/dascritch/machincast/issues/381), [Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion)) : il ne lit les sonores que si les droits du poste le lui permettent. Il ne lit **jamais** un répertoire personnel, et MachinCast ne change jamais les droits d'un répertoire personnel, ni d'une arborescence du système (`/etc`, `/bin`, `/sbin`, `/usr`, `/var`, `/opt`, `/srv`, `/media`, `/mnt`…) : les sonores se déposent dans `/home/machincast`, qu'il lit déjà. Pour un autre répertoire, `Machin grant-read` lui en donne la lecture :
 
 ```bash
 Machin grant-read                          # les répertoires des banques et les fichiers ajoutés de la base de production
-Machin grant-read /srv/sonores/jingles     # seulement ces chemins
+Machin grant-read /data/sonores/jingles    # seulement ces chemins
 ```
 
 Pour chaque chemin, il donne au compte `machincast`, par des ACL (`setfacl`, paquet `acl`) :
@@ -129,16 +129,21 @@ Pour chaque chemin, il donne au compte `machincast`, par des ACL (`setfacl`, paq
 - la **traversée** (`x`) des répertoires parents qui en manquent, sans le droit d'en lister le contenu ;
 - la **lecture** (`r`, et `x` des répertoires) du chemin, de tout ce qu'il contient, et, par l'ACL par défaut d'un répertoire, des fichiers qui s'y ajouteront.
 
-Rien d'autre ne change : ni le propriétaire, ni les droits de son groupe ou des autres, ni le contenu ou la date d'aucun fichier ([Les fichiers sonores ne sont jamais modifiés](configuration.md#les-fichiers-sonores-ne-sont-jamais-modifiés)). `ls -l` montre alors un `+` après les droits, et `getfacl` les détaille. Un chemin déjà lisible est seulement annoncé.
+Rien d'autre ne change : ni le propriétaire, ni les droits de son groupe ou des autres, ni le contenu ou la date d'aucun fichier ([Les fichiers sonores ne sont jamais modifiés](configuration.md#les-fichiers-sonores-ne-sont-jamais-modifiés)). `ls -l` montre alors un `+` après les droits, et `getfacl` les détaille. Un chemin déjà lisible est seulement annoncé. Un changement qui toucherait une arborescence sensible est **refusé**, et rien n'est changé :
+
+```text
+/home/radio/sons : refusé, il est dans /home/radio, où MachinCast ne change jamais aucun droit
+déposer les sonores dans /home/machincast, que le service de diffusion lit
+```
 
 `setfacl` ne change que ce qui appartient au compte qui le lance. Un répertoire d'un autre compte est signalé, avec la commande qu'un administrateur lance, par exemple :
 
 ```text
-/srv/partage : machincast ne peut pas le traverser, et il appartient à un autre compte
-un administrateur peut lancer : sudo setfacl --modify=u:machincast:x /srv/partage
+/data/partage : machincast ne peut pas le traverser, et il appartient à un autre compte
+un administrateur peut lancer : sudo setfacl --modify=u:machincast:x /data/partage
 ```
 
-Code 0 quand le service lit tout ; 1 sinon, ou sans compte `machincast` : le service n'est pas installé, et `Machin player` lit avec le compte qui le lance. Depuis l'interface, **Maintenance → Faire lire les fichiers sonores au service de diffusion…** le lance dans un terminal, sur la base de l'interface ; l'ajout d'un répertoire à une banque, ou de fichiers à la liste des sonores, vérifie aussitôt que le service les lit, et propose sinon de les lui faire lire. Pendant la diffusion, un fichier que le service ne lit pas n'est pas joué : le log de la base le dit en alerte, `fichier illisible`, avec son chemin.
+Code 0 quand le service lit tout ; 1 sinon, ou sans compte `machincast` : le service n'est pas installé, et `Machin player` lit avec le compte qui le lance. Depuis l'interface, **Maintenance → Faire lire les fichiers sonores au service de diffusion…** le lance dans un terminal, sur la base de l'interface ; l'ajout d'un répertoire à une banque, ou de fichiers, refuse ceux d'un répertoire personnel, vérifie que le service lit les autres, et propose sinon de les lui faire lire. Pendant la diffusion, un fichier que le service ne lit pas n'est pas joué : le log de la base le dit en alerte, `fichier illisible`, avec son chemin.
 
 ## Suivre le journal : Machin logs
 

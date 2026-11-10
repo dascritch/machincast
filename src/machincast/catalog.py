@@ -26,7 +26,7 @@ PACKAGE = Path(__file__).parent
 PROJECT = PACKAGE.parent.parent
 SCRIPTS = ("bin/Machin", "bin/i18n.bash", "install.sh")
 """Les scripts bash de MachinCast, dans le dépôt : leurs messages sont relevés aussi (bin/i18n.bash)."""
-BASH_MESSAGE = re.compile(r"\b(?:t|tf|etape|info|echec) '([^']+)'")
+BASH_MESSAGE = re.compile(r"\b(?:t|tf|etape|info|echec|avertissement|demander_oui) '([^']+)'")
 """Un message d'un script : le premier argument, entre apostrophes, d'une fonction qui le traduit."""
 SOURCE_LANGUAGE_HEADER = (
 	"Project-Id-Version: MachinCast\n"

@@ -17,7 +17,7 @@ from PySide6.QtGui import QColor, QIcon, QImage
 from PySide6.QtWidgets import QApplication
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast import installation
+from machincast import access, installation
 from machincast import log as log_directory
 from machincast.audio import Plugin
 from machincast.configuration import PROJECT_DIRECTORY, AudioOutput
@@ -552,14 +552,47 @@ def sh_service_files(datatable: list[list[str]]) -> None:
 		assert f'"{file}"' in removing, action
 
 
-@then("install.sh donne au compte du service la lecture du répertoire de MachinCast, et la lui retire avec le service")
-def sh_service_reading() -> None:
+@then("install.sh, avec --service, demande de dédier le poste puis déplace MachinCast, avant toute autre étape")
+def sh_dedicated_first() -> None:
 	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
-	assert 'donner_la_lecture_au_service "${RACINE}"' in _function(install, "installer_service")
-	assert 'retirer_la_lecture_au_service "${RACINE}"' in _function(install, "retirer_service")
-	giving = _function(install, "donner_la_lecture_au_service")
-	assert '--modify="u:${COMPTE_SERVICE}:rX,d:u:${COMPTE_SERVICE}:rX"' in giving
-	assert '--modify="u:${COMPTE_SERVICE}:x" "${parent}"' in giving
+	body = _function(install, "principal")
+	dedication = body.index("confirmer_le_poste_dedie")
+	assert dedication < body.index("relocaliser_machincast") < body.index("verifier_systeme"), body
+
+
+@then("install.sh ne lance jamais setfacl, ni chmod, ni chown")
+def sh_no_rights() -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	for line in install.splitlines():
+		if not line.lstrip().startswith("#"):
+			for tool in ("setfacl", "chmod", "chown"):
+				assert re.search(rf"\b{tool}\b", line) is None, line
+
+
+@then(parsers.re(r"pour install.sh, « (?P<path>[^»]+) » (?P<verdict>est|n'est pas) dans un répertoire personnel"))
+def sh_personal(path: str, verdict: str) -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	program = "\n".join(
+		[
+			'ACCUEIL="/home/machincast"',
+			_function(install, "dans_un_repertoire_personnel") + "\n}",
+			f'dans_un_repertoire_personnel "{path.replace("~", "$HOME")}"',
+		]
+	)
+	result = subprocess.run(["bash", "-c", program], capture_output=True, text=True, timeout=10, check=False)
+	assert (result.returncode == 0) is (verdict == "est"), result.stderr
+
+
+@then(parsers.parse("install.sh crée « {directory} » au compte de MachinCast, au groupe « {group} », en mode {mode}"))
+def sh_welcome(directory: str, group: str, mode: str) -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	assert f'ACCUEIL="{directory}"' in install
+	assert str(access.WELCOME) == directory
+	assert group == installation.SERVICE_ACCOUNT
+	expected = (
+		f'install --directory --owner="${{UTILISATEUR}}" --group="${{COMPTE_SERVICE}}" --mode={mode} "${{ACCUEIL}}"'
+	)
+	assert expected in _function(install, "creer_l_accueil")
 
 
 @then(parsers.parse("la règle ne concerne que le compte « {name} »"))

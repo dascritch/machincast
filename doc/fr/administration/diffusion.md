@@ -143,7 +143,7 @@ L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture 
 
 Le service de diffusion tourne sous son propre compte, `machincast`, avec son PipeWire ([#381](https://github.com/dascritch/machincast/issues/381), [Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion)). Les scénarios éprouvent chaque morceau à part ; sur le poste, après `./install.sh --service`, ces vérifications se font à la main, dans l'ordre.
 
-1. **Avant** : arrêter tout `Machin player` lancé à la main, puis `./install.sh --simulation --service`, qui montre les commandes sans les lancer. Puis `./install.sh --service`.
+1. **Avant** : arrêter tout `Machin player` lancé à la main, puis `./install.sh --simulation --service`, qui montre les commandes sans les lancer. Puis `./install.sh --service` : il dit que le poste devient dédié à l'antenne et le demande ; depuis un répertoire personnel, il propose de déplacer MachinCast vers `/opt/machincast`, puis reprend depuis là ; il liste les sonores de la base dans un répertoire personnel, et propose de les déplacer dans `/home/machincast`. Vérifier ensuite `ls -ld ~` : ses droits n'ont pas changé, sans `+` ; `ls -l ~/machincast` est un lien vers `/opt/machincast`.
 2. **Groupe** : fermer la session, puis la rouvrir. `id -nG` doit citer `machincast`.
 3. **Redémarrer le poste**, sans ouvrir de session : le service démarre seul. Puis, une session ouverte :
 
@@ -157,7 +157,7 @@ Le service de diffusion tourne sous son propre compte, `machincast`, avec son Pi
 4. **Carte de l'antenne** : `PIPEWIRE_RUNTIME_DIR=/run/machincast wpctl status` liste les cartes du service, celle de l'antenne comprise ; `wpctl status`, celles de la session, sans elle. Le son de l'antenne sort de sa carte.
 5. **Interface** : `Machin interface` ; la barre d'état ne dit plus `Installation non définitive`. Le VU-mètre de l'antenne bouge, et son infobulle nomme « PipeWire du service de diffusion ». La pré-écoute de l'antenne s'entend sur la carte de pré-écoute. **Fichier → Préférences…**, page **Audio** : la carte de l'antenne y est, grisée pendant la diffusion.
 6. **Pilotage** : menu **Diffusion**, arrêter, puis redémarrer le service, avec le mot de passe d'un administrateur.
-7. **Lecture des sonores** : `Machin grant-read` doit finir par le code 0 (`echo $?`). Ajouter à une banque un répertoire privé (`chmod 700`) : l'interface propose de le faire lire au service.
+7. **Lecture des sonores** : `Machin grant-read` doit finir par le code 0 (`echo $?`). Ajouter à une banque un répertoire de `~` : l'interface le refuse. Un répertoire de `/home/machincast` : accepté sans question. `Machin grant-read ~/Musique` part en échec, sans rien changer.
 8. **Plantage** : `sudo systemctl kill --signal=SIGSEGV machincast.service` ; le service redémarre 5 secondes plus tard, et un rapport s'ajoute dans `/var/log/machincast/crash-dump`, lisible depuis la session.
 9. **Retrait**, si besoin : `./install.sh --remove-service`, puis `wpctl status` montre de nouveau la carte de l'antenne dans la session ; `getent passwd machincast` ne répond plus rien ; les logs restent dans `/var/log/machincast`.
 

@@ -711,16 +711,21 @@ class BankCard(Card):
 				new_list.append(directory)
 		if new_list == []:
 			return
-		self._show_directories(present_list + list(dict.fromkeys(new_list)))
-		self._modify()
-		# Le service de diffusion, sous son propre compte, doit pouvoir les lire
-		# (https://github.com/dascritch/machincast/issues/381).
+		# Le service de diffusion, sous son propre compte, doit pouvoir les lire ; jamais dans un répertoire
+		# personnel (https://github.com/dascritch/machincast/issues/381).
 		added = []
 		for directory in new_list:
 			added.append(Path(directory))
-		reading = service_access.offer(self, added)
-		if reading != "":
-			self.message.setText(reading)
+		screening = service_access.screen(self, added)
+		if screening.messages != []:
+			self.message.setText(screening.text())
+		new_list = []
+		for path in screening.accepted:
+			new_list.append(str(path))
+		if new_list == []:
+			return
+		self._show_directories(present_list + list(dict.fromkeys(new_list)))
+		self._modify()
 
 	def _drop_in_directories(self, paths: list[Path]) -> None:
 		"""Les dossiers déposés s'ajoutent aux répertoires ; un fichier est ignoré, et la fiche le dit."""
@@ -739,6 +744,15 @@ class BankCard(Card):
 		"""Les fichiers sonores déposés s'ajoutent en fin de liste, une fois chacun. Un fichier pas encore en base est
 		montré par son nom, et deviendra un sonore à l'état aperçu à l'enregistrement."""
 		files, ignored = sound_files(paths)
+		candidates = []
+		for file in files:
+			candidates.append(Path(file))
+		screening = service_access.screen(self, candidates)
+		files = []
+		for path in screening.accepted:
+			files.append(str(path))
+		if screening.messages != []:
+			self.message.setText(screening.text())
 		self.load_all()
 		with self.connection.transaction():
 			fetched_list = self.connection.execute(f"{FETCHED_SOUNDS} WHERE s.location = ANY(%s)", (files,)).fetchall()

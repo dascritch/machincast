@@ -40,12 +40,13 @@ from pathlib import Path
 
 import gi
 import psycopg
+from psycopg.rows import TupleRow
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
+from machincast import access, crash, personal, service  # noqa: E402
 from machincast import audio as audio_outputs  # noqa: E402
-from machincast import crash, service  # noqa: E402
 from machincast import log as log_directory  # noqa: E402
 from machincast import shortcut as write_shortcut  # noqa: E402
 from machincast.audio import PLUGINS, TRIAL, Plugin, UnavailableAudioOutput, create_output  # noqa: E402
@@ -682,12 +683,81 @@ def _devices(configuration: Configuration) -> int:
 	return 0
 
 
+def _owner_connection(configuration: Configuration) -> psycopg.Connection[TupleRow] | None:
+	"""La base de production, avec le compte de MachinCast, propriétaire, sans rôle : comme la purge."""
+	database = configuration.database
+	try:
+		return psycopg.connect(host=str(database.socket), dbname=database.production)
+	except psycopg.OperationalError as error:
+		log.error(
+			_("database unreachable ({name} through {socket}): {error}").format(
+				name=database.production, socket=database.socket, error=error
+			)
+		)
+		return None
+
+
+def _personal_sounds(configuration: Configuration) -> int:
+	"""Les répertoires de banque et les fichiers ajoutés de la base qui sont dans un répertoire personnel, un par ligne
+	(https://github.com/dascritch/machincast/issues/381) ; rien s'il n'y en a pas."""
+	connection = _owner_connection(configuration)
+	if connection is None:
+		return FAILURE_CODE
+	with connection:
+		found = personal.find(connection)
+	for path in [*found.directories, *found.files]:
+		sys.stdout.write(f"{path}\n")
+	return 0
+
+
+def _move_personal_sounds(configuration: Configuration) -> int:
+	"""Les déplace dans le répertoire d'accueil des sonores, et la base suit ; ceux d'un autre compte restent."""
+	connection = _owner_connection(configuration)
+	if connection is None:
+		return FAILURE_CODE
+	with connection:
+		moves = personal.plan(personal.find(connection), access.welcome())
+		foreign = personal.foreign(moves)
+		for path in foreign:
+			log.warning(_("{path}: not moved, it belongs to another account, or is missing").format(path=path))
+		kept = []
+		for item in moves:
+			if item.source not in foreign:
+				kept.append(item)
+		try:
+			personal.move(connection, kept)
+		except (OSError, psycopg.Error) as error:
+			log.error(_("sound files not moved, all are back in place: {error}").format(error=error))
+			return FAILURE_CODE
+	log.info(_("{count} paths moved to {welcome}").format(count=len(kept), welcome=access.welcome()))
+	return int(foreign != [])
+
+
+def _forget_personal_sounds(configuration: Configuration) -> int:
+	"""Les retire de la base, sans toucher aucun fichier."""
+	connection = _owner_connection(configuration)
+	if connection is None:
+		return FAILURE_CODE
+	with connection:
+		found = personal.find(connection)
+		personal.forget(connection, found)
+	log.info(
+		_("{count} paths removed from the database, no file touched").format(
+			count=len(found.directories) + len(found.files)
+		)
+	)
+	return 0
+
+
 ACTIONS = {
 	"check": _check,
 	"databases": _databases,
 	"devices": _devices,
 	"logrotate": _logrotate,
 	"migrate": _migrate,
+	"move-personal-sounds": _move_personal_sounds,
+	"forget-personal-sounds": _forget_personal_sounds,
+	"personal-sounds": _personal_sounds,
 	"on-air": _on_air,
 	"pipewire-unit": _pipewire_unit,
 	"purge-timer": _purge_timer,

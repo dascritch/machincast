@@ -52,6 +52,11 @@ msgid "{path}: readable by {account}"
 msgstr "{path} : lisible par {account}"
 
 #: machincast/access.py
+#, python-brace-format
+msgid "put the sound files in {welcome}, which the broadcast service reads"
+msgstr "déposer les sonores dans {welcome}, que le service de diffusion lit"
+
+#: machincast/access.py
 #: machincast/player/broadcast.py
 #: machincast/player/outputs.py
 #, python-brace-format
@@ -74,6 +79,14 @@ msgstr "pas de compte {account} : le service de diffusion n'est pas installé"
 #, python-brace-format
 msgid "{path}: already readable by {account}"
 msgstr "{path} : déjà lisible par {account}"
+
+#: machincast/access.py
+#, python-brace-format
+msgid ""
+"{path}: refused, it is in {tree}, where MachinCast never changes any right"
+msgstr ""
+"{path} : refusé, il est dans {tree}, où MachinCast ne change jamais aucun "
+"droit"
 
 #: machincast/access.py
 #, python-brace-format
@@ -1163,6 +1176,16 @@ msgstr ""
 
 #: machincast/installation.py
 #, python-brace-format
+msgid "{count} paths moved to {welcome}"
+msgstr "{count} chemins déplacés dans {welcome}"
+
+#: machincast/installation.py
+#, python-brace-format
+msgid "{count} paths removed from the database, no file touched"
+msgstr "{count} chemins retirés de la base, aucun fichier touché"
+
+#: machincast/installation.py
+#, python-brace-format
 msgid "schema up to date in database {name}"
 msgstr "schéma à jour dans la base {name}"
 
@@ -1191,6 +1214,17 @@ msgstr ""
 
 #: machincast/installation.py
 #, python-brace-format
+msgid "database unreachable ({name} through {socket}): {error}"
+msgstr "base de données injoignable ({name} par {socket}) : {error}"
+
+#: machincast/installation.py
+#, python-brace-format
+msgid "{path}: not moved, it belongs to another account, or is missing"
+msgstr ""
+"{path} : non déplacé, il appartient à un autre compte, ou il est absent"
+
+#: machincast/installation.py
+#, python-brace-format
 msgid "stream {p}"
 msgstr "stream {p}"
 
@@ -1201,17 +1235,17 @@ msgstr "sortie audio {output}"
 
 #: machincast/installation.py
 #, python-brace-format
-msgid "database unreachable ({name} through {socket}): {error}"
-msgstr "base de données injoignable ({name} par {socket}) : {error}"
-
-#: machincast/installation.py
-#, python-brace-format
 msgid ""
 "insufficient rights to apply the schema in database {name}, which probably "
 "belongs to another PostgreSQL role: {error}"
 msgstr ""
 "droits insuffisants pour appliquer le schéma dans la base {name}, qui "
 "appartient sans doute à un autre rôle PostgreSQL : {error}"
+
+#: machincast/installation.py
+#, python-brace-format
+msgid "sound files not moved, all are back in place: {error}"
+msgstr "sonores non déplacés, tous sont revenus à leur place : {error}"
 
 #: machincast/interface/__main__.py
 msgid "MachinCast graphical interface, for supervision and programming."
@@ -4338,6 +4372,24 @@ msgstr ""
 #: machincast/interface/service_access.py
 #, python-brace-format
 msgid ""
+"Not added, in a personal directory, which the broadcast service never "
+"reads: {list}. Put the sound files in {welcome}."
+msgstr ""
+"Non ajoutés, dans un répertoire personnel, que le service de diffusion ne "
+"lit jamais : {list}. Déposer les sonores dans {welcome}."
+
+#: machincast/interface/service_access.py
+#, python-brace-format
+msgid ""
+"Not added, unreadable by the broadcast service, in a directory where "
+"MachinCast never changes any right: {list}."
+msgstr ""
+"Non ajoutés, illisibles par le service de diffusion, dans un répertoire où "
+"MachinCast ne change jamais aucun droit : {list}."
+
+#: machincast/interface/service_access.py
+#, python-brace-format
+msgid ""
 "The broadcast service, under its own account {account}, cannot read these "
 "files or directories, or what they contain: {list}."
 msgstr ""
@@ -5473,6 +5525,11 @@ msgstr ""
 #, python-brace-format
 msgid "database unreachable ({production}): {error}"
 msgstr "base de données injoignable ({production}) : {error}"
+
+#: machincast/personal.py
+#, python-brace-format
+msgid "{source} moved to {target}"
+msgstr "{source} déplacé dans {target}"
 
 #: machincast/player/__main__.py
 msgid ""
@@ -7779,8 +7836,8 @@ msgstr ""
 
 #: install.sh
 msgid ""
-"Usage: ./install.sh [--simulation] [--dev] [--service | --remove-service] "
-"[--desktop | --no-desktop]\n"
+"Usage: ./install.sh [--simulation] [--dev] [--service [--dedicated] | "
+"--remove-service] [--desktop | --no-desktop]\n"
 "                    [--stop-programs | --leave-programs]\n"
 "\n"
 "Installs MachinCast in place, from this directory (%s), after checking the "
@@ -7821,14 +7878,20 @@ msgid ""
 "dedicated to the\n"
 "on-air output, whose on-air output is a sound card, through the PipeWire or "
 "ALSA output (otherwise\n"
-"install.sh stops and recommends another one): Machin player starts with the "
-"computer, under its\n"
+"install.sh stops and recommends another one). install.sh first asks to "
+"dedicate the computer, then\n"
+"to move MachinCast out of a personal directory, to /opt/machincast: the "
+"service never reads the\n"
+"personal directories, whose rights never change. Machin player starts with "
+"the computer, under its\n"
 "own account %s, with its own PipeWire, and restarts after a crash. %s joins "
 "the group %s, which\n"
-"reads its logs (%s) and pre-listens to the on-air output; the service reads "
-"MachinCast, and the\n"
-"on-air card is hidden from the sessions of the computer. A polkit rule lets "
-"it start, stop and\n"
+"reads its logs (%s) and pre-listens to the on-air output; the on-air card "
+"is reserved for the\n"
+"service. The sound files go in /home/machincast: those of the database in a "
+"personal directory\n"
+"are moved there, removed from the database, or left, not played, as chosen. "
+"A polkit rule lets it start, stop and\n"
 "restart with the password of an administrator; a systemd timer, %s, "
 "launches every day at noon\n"
 "Machin purge, which erases from the database what exceeds the expiry "
@@ -7850,7 +7913,10 @@ msgid ""
 "  --remove-service\n"
 "                removes the broadcast service, its PipeWire, its account, "
 "its polkit rule and the purge\n"
-"                timer; the logs stay\n"
+"                timer; the logs and /home/machincast stay\n"
+"  --dedicated   with --service, dedicates the computer and moves MachinCast "
+"to /opt/machincast,\n"
+"                without asking\n"
 "  --desktop      also puts the shortcut of the interface on the desktop, "
 "without asking\n"
 "  --no-desktop does not put it on the desktop, without asking\n"
@@ -7860,8 +7926,8 @@ msgid ""
 "                lets them run during the installation, without asking\n"
 "  -h, --help    this help\n"
 msgstr ""
-"Usage : ./install.sh [--simulation] [--dev] [--service | --remove-service] "
-"[--desktop | --no-desktop]\n"
+"Usage : ./install.sh [--simulation] [--dev] [--service [--dedicated] | "
+"--remove-service] [--desktop | --no-desktop]\n"
 "                    [--stop-programs | --leave-programs]\n"
 "\n"
 "Installe MachinCast en place, depuis ce répertoire (%s), après avoir "
@@ -7905,14 +7971,21 @@ msgstr ""
 "ordinateur dédié à\n"
 "l'antenne, dont l'antenne est sur une carte son, par la sortie PipeWire ou "
 "ALSA (sinon install.sh\n"
-"s'arrête et en recommande une autre) : Machin player démarre avec le poste, "
-"sous son propre compte\n"
-"%s, avec son propre PipeWire, et redémarre après un plantage. %s rejoint le "
-"groupe %s, qui lit\n"
-"ses logs (%s) et pré-écoute l'antenne ; le service lit MachinCast, et la "
-"carte de l'antenne est\n"
-"cachée aux sessions du poste. Une règle polkit le laisse démarrer, arrêter "
-"et redémarrer avec le mot\n"
+"s'arrête et en recommande une autre). install.sh demande d'abord de dédier "
+"le poste, puis de\n"
+"sortir MachinCast d'un répertoire personnel, vers /opt/machincast : le "
+"service ne lit jamais les\n"
+"répertoires personnels, dont les droits ne changent jamais. Machin player "
+"démarre avec le poste,\n"
+"sous son propre compte %s, avec son propre PipeWire, et redémarre après un "
+"plantage. %s rejoint\n"
+"le groupe %s, qui lit ses logs (%s) et pré-écoute l'antenne ; la carte de "
+"l'antenne est réservée\n"
+"au service. Les sonores vont dans /home/machincast : ceux de la base dans "
+"un répertoire personnel\n"
+"y sont déplacés, retirés de la base, ou laissés, sans passer à l'antenne, "
+"au choix. Une règle polkit le laisse démarrer, arrêter et redémarrer avec "
+"le mot\n"
 "de passe d'un administrateur ; un minuteur systemd, %s, lance chaque jour à "
 "midi\n"
 "Machin purge, qui efface de la base ce qui dépasse la durée de péremption. "
@@ -7935,7 +8008,10 @@ msgstr ""
 "  --remove-service\n"
 "                retire le service de diffusion, son PipeWire, son compte, "
 "sa règle polkit et le minuteur\n"
-"                de la purge ; les logs restent\n"
+"                de la purge ; les logs et /home/machincast restent\n"
+"  --dedicated   avec --service, dédie le poste et déplace MachinCast vers "
+"/opt/machincast, sans\n"
+"                le demander\n"
 "  --desktop      dépose aussi le raccourci de l'interface sur le bureau, "
 "sans le demander\n"
 "  --no-desktop ne le dépose pas sur le bureau, sans le demander\n"
@@ -8345,8 +8421,159 @@ msgid "%s can assume the role machincast_player"
 msgstr "%s peut endosser le rôle machincast_player"
 
 #: install.sh
-msgid "%s can read %s"
-msgstr "%s peut lire %s"
+msgid "[simulation] question: %s"
+msgstr "[simulation] question : %s"
+
+#: install.sh
+msgid ""
+"no question without a terminal: ./install.sh --service --dedicated accepts"
+msgstr ""
+"pas de question sans terminal : ./install.sh --service --dedicated accepte"
+
+#: install.sh
+msgid ""
+"This installation changes the computer: it becomes dedicated to the on-air "
+"output of MachinCast."
+msgstr ""
+"Cette installation modifie le poste : il devient dédié à l'antenne de "
+"MachinCast."
+
+#: install.sh
+msgid ""
+"A system account, %s, plays the on-air output, with its own PipeWire, from "
+"the start of the computer."
+msgstr ""
+"Un compte système, %s, joue l'antenne, avec son propre PipeWire, dès le "
+"démarrage du poste."
+
+#: install.sh
+msgid ""
+"The on-air sound card is reserved for it: no other application can use it "
+"any more."
+msgstr ""
+"La carte son de l'antenne lui est réservée : aucune autre application ne "
+"pourra plus s'en servir."
+
+#: install.sh
+msgid ""
+"Personal directories stay closed to it: their rights never change. The "
+"sound files go in %s."
+msgstr ""
+"Les répertoires personnels lui restent fermés : leurs droits ne changent "
+"jamais. Les sonores vont dans %s."
+
+#: install.sh
+msgid "Dedicate this computer to the on-air output? [y/N]"
+msgstr "Dédier ce poste à l'antenne ? [o/N]"
+
+#: install.sh
+msgid ""
+"broadcast service not installed: the computer is not dedicated to the "
+"on-air output"
+msgstr ""
+"service de diffusion non installé : le poste n'est pas dédié à l'antenne"
+
+#: install.sh
+msgid "Location of MachinCast"
+msgstr "Emplacement de MachinCast"
+
+#: install.sh
+msgid ""
+"%s is in a personal directory, which the broadcast service never reads"
+msgstr ""
+"%s est dans un répertoire personnel, que le service de diffusion ne lit "
+"jamais"
+
+#: install.sh
+msgid ""
+"Move MachinCast to /opt/machincast, and leave a link in its place? [y/N]"
+msgstr ""
+"Déplacer MachinCast vers /opt/machincast, et laisser un lien à sa place ? "
+"[o/N]"
+
+#: install.sh
+msgid ""
+"broadcast service not installed: MachinCast must be outside the personal "
+"directories"
+msgstr ""
+"service de diffusion non installé : MachinCast doit être hors des "
+"répertoires personnels"
+
+#: install.sh
+msgid "[simulation] install.sh would start again from %s"
+msgstr "[simulation] install.sh reprendrait depuis %s"
+
+#: install.sh
+msgid "install.sh starts again from %s"
+msgstr "install.sh reprend depuis %s"
+
+#: install.sh
+msgid "%s present"
+msgstr "%s présent"
+
+#: install.sh
+msgid ""
+"[simulation] sound files in personal directories listed once the virtual "
+"environment is created"
+msgstr ""
+"[simulation] sonores des répertoires personnels listés une fois "
+"l'environnement virtuel créé"
+
+#: install.sh
+msgid ""
+"[simulation] sound files in personal directories not listed: the production "
+"database is missing"
+msgstr ""
+"[simulation] sonores des répertoires personnels non listés : la base de "
+"production manque"
+
+#: install.sh
+msgid "sound files in personal directories not listed"
+msgstr "sonores des répertoires personnels non listés"
+
+#: install.sh
+msgid "no sound file of the database in a personal directory"
+msgstr "aucun sonore de la base dans un répertoire personnel"
+
+#: install.sh
+msgid ""
+"These bank directories and added files are in a personal directory, which "
+"the broadcast service never reads:"
+msgstr ""
+"Ces répertoires de banque et fichiers ajoutés sont dans un répertoire "
+"personnel, que le service de diffusion ne lit jamais :"
+
+#: install.sh
+msgid ""
+"[simulation] question: move them to %s, remove them from the database, or "
+"leave them?"
+msgstr ""
+"[simulation] question : les déplacer dans %s, les retirer de la base, ou "
+"les laisser ?"
+
+#: install.sh
+msgid ""
+"left in place, not played on air: ./install.sh --service, in a terminal, "
+"moves them"
+msgstr ""
+"laissés en place, sans passer à l'antenne : ./install.sh --service, dans un "
+"terminal, les déplace"
+
+#: install.sh
+msgid ""
+"Move them to %s [m], remove them from the database [r], or leave them, not "
+"played [l]? "
+msgstr ""
+"Les déplacer dans %s [d], les retirer de la base [r], ou les laisser, sans "
+"passer à l'antenne [l] ? "
+
+#: install.sh
+msgid "some sound files are not moved: see above"
+msgstr "des sonores ne sont pas déplacés : voir ci-dessus"
+
+#: install.sh
+msgid "left in place, not played on air"
+msgstr "laissés en place, sans passer à l'antenne"
 
 #: install.sh
 msgid "Broadcast service"
@@ -8406,6 +8633,10 @@ msgstr "compte %s absent"
 #: install.sh
 msgid "the logs stay in %s: sudo rm -r %s removes them"
 msgstr "les logs restent dans %s : sudo rm -r %s les efface"
+
+#: install.sh
+msgid "the sound files stay in %s"
+msgstr "les sonores restent dans %s"
 
 #: install.sh
 msgid ""
