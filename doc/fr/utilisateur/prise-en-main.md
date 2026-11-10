@@ -103,6 +103,8 @@ Le VU-mètre écoute le périphérique de l'antenne, quel que soit le programme 
 
 - **Dernières heures**, en haut : combien d'heures remonter, 12 par défaut, jusqu'à un mois. Le réglage est retenu pour les prochaines ouvertures.
 - **La table** a les mêmes colonnes que l'airplay de l'onglet Antenne, et s'utilise de même : double-clic vers les fiches, clic droit pour la [pré-écoute](sonores.md#pré-écoute). Elle se met à jour à chaque nouveau sonore à l'antenne.
+- **Filtrer…**, en haut ([#393](https://github.com/dascritch/machincast/issues/393)) : ne garde que les passages dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents : « cafe » trouve « Café à minuit ». Le compte, à côté, dit combien de passages sont montrés, sur combien. La croix du champ le vide.
+- **Trier** : un clic sur le titre d'une colonne trie la table selon elle, un second clic inverse l'ordre. Le début et la fin se trient dans l'ordre du temps, même d'un jour à l'autre, la durée dans l'ordre des durées, le passage en cours avant les autres. À l'ouverture, la table va du plus récent au plus ancien.
 - **Exporter…** enregistre ce que montre l'onglet, au format choisi dans la fenêtre d'enregistrement : **Tableur CSV**, **Page HTML** ou **Liste de lecture M3U**. Chaque export donne à la fois l'artiste, le titre et l'emplacement du fichier, et le **texte public**, tel que la page publique de la radio l'affiche, masquage compris. La liste M3U va du plus ancien au plus récent, et se lit dans un lecteur ; le texte public y est en commentaire. Le nom reçoit l'extension du format : un export ne remplace jamais un fichier sonore. La barre d'état dit où il est enregistré.
 
 ## Passer d'un onglet à l'autre

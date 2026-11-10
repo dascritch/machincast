@@ -951,3 +951,58 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre la ligne « Spot » du choix des sonores
 		Alors le choix des sonores est validé
 		Et le choix des sonores donne « Spot »
+
+	# ─── Filtre et tri des sonores (https://github.com/dascritch/machincast/issues/393) ───
+
+	Scénario: Le filtre ne montre que les sonores dont une colonne contient le texte, sans majuscules ni accents
+		Étant donné la banque « Habillages », aléatoire, sans nom public, avec « Café à minuit », « Matin clair », « Jingle », « Spot »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Habillages »
+		Et je tape « CAFE » dans le filtre des sonores de la fiche
+		Alors la fiche montre seulement les sonores « Les Gaufres – Café à minuit »
+		Et la liste des sonores de la fiche a pour titre « Sonores : 1 affichés sur 4 »
+		Quand je tape « jingles/hiver » dans le filtre des sonores de la fiche
+		Alors la fiche montre seulement les sonores « Les Gaufres – Café à minuit », « Aube – Matin clair »
+		Quand je vide le filtre des sonores de la fiche
+		Alors la fiche montre seulement les sonores « Les Gaufres – Café à minuit », « Aube – Matin clair », « Jingle », « Spot »
+		Et la liste des sonores de la fiche a pour titre « Sonores »
+
+	Scénario: Pendant un filtre, l'ordre d'une banque séquentielle ne se change pas
+		Étant donné la banque « Tubes », séquentielle, sans nom public, avec « Spot », « Jingle », « Café à minuit »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Tubes »
+		Et je choisis le sonore « Jingle »
+		Et je tape « jingle » dans le filtre des sonores de la fiche
+		Alors les sonores de la fiche ne peuvent pas se réordonner
+		Quand je vide le filtre des sonores de la fiche
+		Alors les sonores de la fiche peuvent se réordonner
+
+	Scénario: Le filtre porte sur toute la banque, même les sonores pas encore lus
+		Étant donné 30 sonores de 3:00 de plus dans la banque « Jingles »
+		Et les fiches chargent leurs tableaux par 10 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je tape « grande/25.flac » dans le filtre des sonores de la fiche
+		Alors la fiche montre seulement les sonores « 25.flac »
+
+	Scénario: En mode aléatoire, les sonores se trient par colonne, la durée dans l'ordre des durées
+		Étant donné la banque « Habillages », aléatoire, sans nom public, avec « Café à minuit », « Matin clair », « Jingle », « Spot »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Habillages »
+		Et je clique sur le titre « Durée » des sonores de la fiche
+		Alors la fiche montre les sonores « Jingle », « Spot », « Aube – Matin clair », « Les Gaufres – Café à minuit »
+		Quand je clique sur le titre « Sonore » des sonores de la fiche
+		Alors la fiche montre les sonores « Aube – Matin clair », « Jingle », « Les Gaufres – Café à minuit », « Spot »
+
+	Scénario: En mode séquentiel, les sonores ne se trient pas, et passer en séquentiel rend l'ordre d'avant le tri
+		Étant donné la banque « Habillages », aléatoire, sans nom public, avec « Spot », « Café à minuit », « Jingle »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Habillages »
+		Et je clique sur le titre « Sonore » des sonores de la fiche
+		Alors la fiche montre les sonores « Jingle », « Les Gaufres – Café à minuit », « Spot »
+		Quand je choisis le mode « séquentielle »
+		Alors la fiche montre les sonores « Spot », « Les Gaufres – Café à minuit », « Jingle »
+		Quand je clique sur le titre « Sonore » des sonores de la fiche
+		Alors la fiche montre les sonores « Spot », « Les Gaufres – Café à minuit », « Jingle »
+		Quand j'enregistre la fiche, puis je la rouvre
+		Alors les sonores de la banque « Habillages » sont, dans l'ordre, « Spot », « Café à minuit », « Jingle »

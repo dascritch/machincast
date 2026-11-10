@@ -1275,6 +1275,16 @@ msgid "Ignored, these are not sound files: {names}."
 msgstr "Ignorés, ce ne sont pas des fichiers sonores : {names}."
 
 #: machincast/interface/airplay_tab.py
+#: machincast/interface/calendar.py
+#: machincast/interface/simulation.py
+#: machincast/player/__main__.py
+#, python-brace-format
+msgid "{count} play"
+msgid_plural "{count} plays"
+msgstr[0] "{count} passage"
+msgstr[1] "{count} passages"
+
+#: machincast/interface/airplay_tab.py
 msgid ""
 "The plays started within this number of hours; kept for the next openings"
 msgstr ""
@@ -1302,8 +1312,30 @@ msgstr ""
 "ouvrir sa fiche"
 
 #: machincast/interface/airplay_tab.py
+#: machincast/interface/ui/bank_card.ui
+#: machincast/interface/ui/incidents.ui
+#: machincast/interface/ui/list_view.ui
+msgid "Filter…"
+msgstr "Filtrer…"
+
+#: machincast/interface/airplay_tab.py
+msgid ""
+"The plays of which a column contains this text, whatever the case and the "
+"accents"
+msgstr ""
+"Les passages dont une colonne contient ce texte, sans tenir compte des "
+"majuscules ni des accents"
+
+#: machincast/interface/airplay_tab.py
 msgid "Export the airplay"
 msgstr "Exporter l'airplay"
+
+#: machincast/interface/airplay_tab.py
+#, python-brace-format
+msgid "{count} play out of {total}"
+msgid_plural "{count} plays out of {total}"
+msgstr[0] "{count} passage sur {total}"
+msgstr[1] "{count} passages sur {total}"
 
 #: machincast/interface/airplay_tab.py
 #, python-brace-format
@@ -1334,6 +1366,11 @@ msgstr "Export impossible : {error}"
 #: machincast/interface/suggestions.py
 msgid "Background programming"
 msgstr "Fil musical"
+
+#: machincast/interface/bank_card.py
+#, python-brace-format
+msgid "Sounds: {shown} shown out of {total}"
+msgstr "Sonores : {shown} affichés sur {total}"
 
 #: machincast/interface/bank_card.py
 #, python-brace-format
@@ -1678,15 +1715,6 @@ msgstr " et "
 #, python-brace-format
 msgid "Plays {moments}; hidden the rest of the time {mask}"
 msgstr "Joue {moments} ; masqué le reste du temps {mask}"
-
-#: machincast/interface/calendar.py
-#: machincast/interface/simulation.py
-#: machincast/player/__main__.py
-#, python-brace-format
-msgid "{count} play"
-msgid_plural "{count} plays"
-msgstr[0] "{count} passage"
-msgstr[1] "{count} passages"
 
 #: machincast/interface/calendar.py
 #, python-brace-format
@@ -6772,6 +6800,14 @@ msgid "➖ Remove the directory"
 msgstr "➖ Retirer le répertoire"
 
 #: machincast/interface/ui/bank_card.ui
+msgid ""
+"The sounds of which a column contains this text, whatever the case and the "
+"accents"
+msgstr ""
+"Les sonores dont une colonne contient ce texte, sans tenir compte des "
+"majuscules ni des accents"
+
+#: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/event_card.ui
 #: machincast/interface/ui/sequence_card.ui
 msgid "➕ Add sounds…"
@@ -7062,11 +7098,6 @@ msgid ""
 msgstr ""
 "Ces streams jouent l'adresse du feed : une nouvelle adresse vaut pour tous. "
 "Un stream choisit son feed dans sa fiche."
-
-#: machincast/interface/ui/incidents.ui
-#: machincast/interface/ui/list_view.ui
-msgid "Filter…"
-msgstr "Filtrer…"
 
 #: machincast/interface/ui/incidents.ui
 msgid "Also show the information entries"

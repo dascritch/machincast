@@ -10,6 +10,7 @@ from pathlib import Path
 
 import psycopg
 import pytest
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtWidgets import QWidget
 from pytest_bdd import parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
@@ -144,7 +145,7 @@ def menu(interface: Context, title: str, entry: str) -> None:
 		if found:
 			row_list.append(candidate_row)
 	(row,) = row_list
-	line_menu = opened.line_menu(model.index(row, 0))
+	line_menu = opened.line_menu(opened.proxy.mapFromSource(model.index(row, 0)))
 	assert line_menu is not None
 	action_list = []
 	for action in line_menu.actions():
@@ -243,3 +244,43 @@ def no_export(interface: Context) -> None:
 @then(parsers.parse("la barre d'état annonce un export, « {start} » suivi de son chemin"))
 def announces(interface: Context, start: str) -> None:
 	assert window(interface).ui.state_bar.currentMessage().startswith(start)
+
+
+# ─── Filtre et tri (https://github.com/dascritch/machincast/issues/393) ───
+
+
+@when(parsers.parse("je tape « {text} » dans le filtre de l'onglet Airplay"))
+def type_filter(interface: Context, text: str) -> None:
+	screen(interface).filter_.setText(text)
+
+
+@when("je vide le filtre de l'onglet Airplay")
+def clear_filter(interface: Context) -> None:
+	screen(interface).filter_.clear()
+
+
+@when(parsers.parse("je clique sur le titre « {title} » de l'onglet Airplay"))
+def sort_column(interface: Context, qtbot: QtBot, title: str) -> None:
+	table_view = screen(interface).table
+	header = table_view.horizontalHeader()
+	model = table_view.model()
+	titles = []
+	for column in range(model.columnCount()):
+		titles.append(str(model.headerData(column, Qt.Orientation.Horizontal)))
+	column = titles.index(title)
+	position = QPoint(header.sectionViewportPosition(column) + header.sectionSize(column) // 2, header.height() // 2)
+	qtbot.mouseClick(header.viewport(), Qt.MouseButton.LeftButton, pos=position)
+
+
+@then(parsers.re(r"l'onglet Airplay affiche, dans l'ordre, les titres (?P<titles>«.+)"))
+def shown_titles(interface: Context, titles: str) -> None:
+	opened = screen(interface)
+	shown = []
+	for row in range(opened.proxy.rowCount()):
+		shown.append(str(opened.proxy.index(row, 4).data()))
+	assert shown == NAME.findall(titles)
+
+
+@then(parsers.parse("le compte de l'onglet Airplay dit « {text} »"))
+def count_text(interface: Context, text: str) -> None:
+	assert screen(interface).count.text() == text

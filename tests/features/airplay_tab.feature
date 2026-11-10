@@ -125,3 +125,43 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
 		Et j'abandonne l'export de l'onglet Airplay
 		Alors aucun fichier n'a été exporté
+
+	# ─── Filtre et tri (https://github.com/dascritch/machincast/issues/393) ───
+
+	Scénario: Le filtre ne garde que les passages dont une colonne contient le texte, sans majuscules ni accents
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
+		Alors le compte de l'onglet Airplay dit « 3 passages »
+		Quand je tape « fil de JOUR » dans le filtre de l'onglet Airplay
+		Alors l'onglet Airplay affiche, dans l'ordre, les titres « Café à minuit », « Spot »
+		Et le compte de l'onglet Airplay dit « 2 passages sur 3 »
+		Quand je tape « cafe » dans le filtre de l'onglet Airplay
+		Alors l'onglet Airplay affiche, dans l'ordre, les titres « Café à minuit »
+		Quand je vide le filtre de l'onglet Airplay
+		Alors l'onglet Airplay affiche, dans l'ordre, les titres « Café à minuit », « Spot », « Le journal »
+
+	Scénario: Un clic sur un titre de colonne trie les passages, le début dans l'ordre du temps, même sur deux jours
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
+		Et je règle l'onglet Airplay sur 30 heures
+		Et je clique sur le titre « Début » de l'onglet Airplay
+		Alors l'onglet Airplay affiche, dans l'ordre, les titres « Hier », « Le journal », « Spot », « Café à minuit »
+		Quand je clique sur le titre « Début » de l'onglet Airplay
+		Alors l'onglet Airplay affiche, dans l'ordre, les titres « Café à minuit », « Spot », « Le journal », « Hier »
+
+	Scénario: La durée se trie dans l'ordre des durées, le passage en cours avant les autres
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
+		Et je règle l'onglet Airplay sur 30 heures
+		Et je clique sur le titre « Durée » de l'onglet Airplay
+		Alors l'onglet Airplay affiche, dans l'ordre, les titres « Café à minuit », « Spot », « Hier », « Le journal »
+
+	Scénario: Trié et filtré, un passage s'ouvre et se pré-écoute toujours
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
+		Et je clique sur le titre « Titre » de l'onglet Airplay
+		Et je tape « titres » dans le filtre de l'onglet Airplay
+		Alors l'onglet Airplay affiche, dans l'ordre, les titres « Café à minuit »
+		Et le clic droit sur la ligne « Café à minuit » de l'onglet Airplay propose « Pré-écoute… »
+		Quand j'ouvre dans l'onglet Airplay la cellule « Titres »
+		Alors l'onglet ouvert est « Banque : Titres »

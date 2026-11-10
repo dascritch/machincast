@@ -301,6 +301,19 @@
        </property>
        <layout class="QVBoxLayout" name="sound_layout">
         <item>
+         <widget class="QLineEdit" name="sound_filter">
+          <property name="toolTip">
+           <string>The sounds of which a column contains this text, whatever the case and the accents</string>
+          </property>
+          <property name="placeholderText">
+           <string>Filter…</string>
+          </property>
+          <property name="clearButtonEnabled">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QTreeWidget" name="sounds">
           <property name="alternatingRowColors">
            <bool>true</bool>
