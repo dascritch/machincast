@@ -115,6 +115,8 @@ Code 0 quand la purge est faite ; 1 si la base est injoignable, ou sur une erreu
 
 ## Suivre le journal : Machin logs
 
+Chaque programme écrit aussi ses messages dans son fichier de `/var/log/machincast/`, `Machin_player.log`, `Machin_indexer.log`, `Machin_interface.log`…, chaque ligne précédée de son heure et de son niveau, `INFO`, `WARNING` ou `ERROR` ([#381](https://github.com/dascritch/machincast/issues/381)). `install.sh` crée ce répertoire, au groupe `machincast`, que partagent le compte du service de diffusion et le vôtre : chacun lit ce que l'autre y écrit. `logrotate` fait tourner ces fichiers chaque semaine.
+
 `Machin logs` suit en direct le journal du service de diffusion, `machincast.service`. Les options qui suivent sont transmises à `journalctl`, par exemple :
 
 ```bash
@@ -153,7 +155,7 @@ Les messages d'erreur courants et leur solution sont dans le tableau [En cas de 
 
 ## Rapports de crash
 
-Quand un programme de MachinCast plante, il laisse un **rapport de crash** dans le répertoire `crash-dump/` du répertoire de MachinCast (`/opt/machincast/crash-dump/` sur un poste installé), ou, s'il ne peut pas y écrire, dans `/tmp/machincast/crash-dump/`, vidé au redémarrage du poste ([#342](https://github.com/dascritch/machincast/issues/342)). Le journal le signale : `rapport de crash écrit : /opt/machincast/crash-dump/Machin_player-2026-11-09T14-03-12-4242.txt`. Le nom donne le programme, l'heure de son démarrage et son numéro de processus, les mêmes que dans le log.
+Quand un programme de MachinCast plante, il laisse un **rapport de crash** dans `/var/log/machincast/crash-dump/`, avec les logs ([#381](https://github.com/dascritch/machincast/issues/381)), ou, sur un poste où ce répertoire n'existe pas, dans `crash-dump/` du répertoire de MachinCast ; s'il ne peut écrire dans aucun, dans `/tmp/machincast/crash-dump/`, vidé au redémarrage du poste ([#342](https://github.com/dascritch/machincast/issues/342)). Le journal le signale : `rapport de crash écrit : /var/log/machincast/crash-dump/Machin_player-2026-11-09T14-03-12-4242.txt`. Le nom donne le programme, l'heure de son démarrage et son numéro de processus, les mêmes que dans le log.
 
 Ce rapport est fait pour les développeurs : **joignez-le au ticket** qui signale le problème. Il contient :
 

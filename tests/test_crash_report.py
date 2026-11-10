@@ -171,7 +171,8 @@ def read_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 	depot = tmp_path / "depot"
 	depot.mkdir()
 	depot.chmod(0o500)
-	monkeypatch.setattr(crash, "DIRECTORY", depot / "crash-dump")
+	monkeypatch.setattr(crash, "DIRECTORY", depot / "log" / "crash-dump")
+	monkeypatch.setattr(crash, "REPOSITORY", depot / "crash-dump")
 	monkeypatch.delenv(crash.ENVIRONMENT)
 
 

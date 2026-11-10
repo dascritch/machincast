@@ -96,6 +96,21 @@ Fonctionnalité: Socle de test
 		Alors la sortie standard contient seulement « [horodatage] 3 sonores vérifiés »
 		Et la sortie d'erreur contient seulement « [horodatage] fichier endommagé »
 
+	Scénario: Les messages d'un exécutable vont aussi dans son fichier de /var/log/machincast, précédés de leur niveau
+		https://github.com/dascritch/machincast/issues/381 : quand le répertoire des logs existe, qu'install.sh crée au
+		groupe machincast ; le fichier se lit et s'écrit par ce groupe.
+
+		Étant donné le répertoire des logs créé
+		Et les messages configurés pour l'exécutable "Machin_essai"
+		Quand le code émet une information « 3 sonores vérifiés » et une anomalie « fichier endommagé »
+		Alors le fichier « Machin_essai.log » du répertoire des logs contient « [horodatage] INFO 3 sonores vérifiés », « [horodatage] WARNING fichier endommagé »
+		Et le fichier « Machin_essai.log » du répertoire des logs se lit et s'écrit par le groupe, pas par les autres
+
+	Scénario: Sans répertoire des logs, les messages ne vont que sur les sorties
+		Étant donné les messages configurés pour l'exécutable "Machin_essai"
+		Quand le code émet une information « 3 sonores vérifiés » et une anomalie « fichier endommagé »
+		Alors le répertoire des logs n'existe pas
+
 	Scénario: Les chaînes Python ne sont jamais composées avec la notation %
 		Alors aucun fichier Python du dépôt ne compose une chaîne ou un message de journal avec la notation %
 

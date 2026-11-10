@@ -1,8 +1,9 @@
 """Rapports de crash des binaires (https://github.com/dascritch/machincast/issues/342).
 
-Un plantage d'un binaire de MachinCast laisse un fichier horodaté dans crash-dump/, à la racine du dépôt du code
-(DIRECTORY, ou celui de la variable d'environnement MACHINCAST_CRASH_DUMP), ou, s'il n'est pas accessible en écriture,
-dans /tmp/machincast/crash-dump (FALLBACK) : de quoi reproduire les conditions du plantage. Il se nomme « <binaire>-<démarrage>-<pid>.txt », le démarrage en heure du poste
+Un plantage d'un binaire de MachinCast laisse un fichier horodaté dans /var/log/machincast/crash-dump, avec ses logs
+(DIRECTORY, https://github.com/dascritch/machincast/issues/381, ou celui de la variable d'environnement
+MACHINCAST_CRASH_DUMP), sinon dans crash-dump/, à la racine du dépôt du code (REPOSITORY), ou, si aucun n'est accessible
+en écriture, dans /tmp/machincast/crash-dump (FALLBACK) : de quoi reproduire les conditions du plantage. Il se nomme « <binaire>-<démarrage>-<pid>.txt », le démarrage en heure du poste
 (« Machin_player-2026-11-09T14-03-12-4242.txt ») : le pid et l'heure de démarrage sont aussi ceux de la ligne
 « start » du log, et le plantage probable que note le lancement suivant donne son chemin (machincast.runs).
 
@@ -57,14 +58,18 @@ from pathlib import Path
 from typing import TextIO
 
 from machincast import __version__
+from machincast import log as log_directory
 from machincast.clock import SystemClock
 from machincast.configuration import PROJECT_DIRECTORY, Audio, InvalidConfiguration, load
 from machincast.i18n import _
 
 log = logging.getLogger(__name__)
 
-DIRECTORY = PROJECT_DIRECTORY / "crash-dump"
-"""Le répertoire des rapports, dans le dépôt du code."""
+DIRECTORY = log_directory.DIRECTORY / "crash-dump"
+"""Le répertoire des rapports, avec les logs, qu'install.sh crée au groupe machincast
+(https://github.com/dascritch/machincast/issues/381)."""
+REPOSITORY = PROJECT_DIRECTORY / "crash-dump"
+"""Le répertoire des rapports, dans le dépôt du code, sur un poste où /var/log/machincast n'existe pas."""
 FALLBACK = Path(tempfile.gettempdir()) / "machincast" / "crash-dump"
 """Celui des rapports quand le dépôt n'est pas accessible en écriture : /tmp/machincast/crash-dump, vidé au
 redémarrage du poste."""
@@ -83,9 +88,10 @@ qu'il lance."""
 
 
 def directory() -> Path:
-	"""Le répertoire de ENVIRONMENT, sinon DIRECTORY, ou FALLBACK s'il ne peut pas être créé ou écrit."""
+	"""Le répertoire de ENVIRONMENT, sinon DIRECTORY, sinon REPOSITORY, ou FALLBACK s'ils ne peuvent pas être créés ou
+	écrits. /var/log/machincast/crash-dump ne se crée que si /var/log/machincast existe : install.sh le crée."""
 	from_environment = os.environ.get(ENVIRONMENT)
-	candidates = [DIRECTORY, FALLBACK]
+	candidates = [DIRECTORY, REPOSITORY, FALLBACK]
 	if from_environment:
 		candidates = [Path(from_environment), FALLBACK]
 	for candidate in candidates:
