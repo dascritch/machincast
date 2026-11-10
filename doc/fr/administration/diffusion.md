@@ -8,6 +8,7 @@
 - [État de la diffusion pour l'interface](#état-de-la-diffusion-pour-linterface)
 - [Sortie audio](#sortie-audio)
 - [Historique de diffusion et log](#historique-de-diffusion-et-log)
+- [Vérifier le service sur le poste de l'antenne](#vérifier-le-service-sur-le-poste-de-lantenne)
 
 ## Ce que fait Machin player
 
@@ -137,3 +138,27 @@ Le **log** note les opérations du binaire lecture, avec leur heure, leur niveau
 | `reconnexion abandonnée` | info | L'événement d'un stream tombé n'est plus à l'antenne : plus de tentative de reconnexion. |
 
 L'airplay et le log ne sont jamais modifiés ni effacés par le binaire lecture : il ne peut qu'y ajouter des lignes.
+
+## Vérifier le service sur le poste de l'antenne
+
+Le service de diffusion tourne sous son propre compte, `machincast`, avec son PipeWire ([#381](https://github.com/dascritch/machincast/issues/381), [Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion)). Les scénarios éprouvent chaque morceau à part ; sur le poste, après `./install.sh --service`, ces vérifications se font à la main, dans l'ordre.
+
+1. **Avant** : arrêter tout `Machin player` lancé à la main, puis `./install.sh --simulation --service`, qui montre les commandes sans les lancer. Puis `./install.sh --service`.
+2. **Groupe** : fermer la session, puis la rouvrir. `id -nG` doit citer `machincast`.
+3. **Redémarrer le poste**, sans ouvrir de session : le service démarre seul. Puis, une session ouverte :
+
+	```bash
+	systemctl status machincast-pipewire.service machincast-wireplumber.service machincast.service
+	ls -l /run/machincast            # pipewire-0 et lecture.sock, au groupe machincast
+	Machin logs                       # la diffusion, en direct
+	tail /var/log/machincast/Machin_player.log
+	```
+
+4. **Carte de l'antenne** : `PIPEWIRE_RUNTIME_DIR=/run/machincast wpctl status` liste les cartes du service, celle de l'antenne comprise ; `wpctl status`, celles de la session, sans elle. Le son de l'antenne sort de sa carte.
+5. **Interface** : `Machin interface` ; la barre d'état ne dit plus `Installation non définitive`. Le VU-mètre de l'antenne bouge, et son infobulle nomme « PipeWire du service de diffusion ». La pré-écoute de l'antenne s'entend sur la carte de pré-écoute. **Fichier → Préférences…**, page **Audio** : la carte de l'antenne y est, grisée pendant la diffusion.
+6. **Pilotage** : menu **Diffusion**, arrêter, puis redémarrer le service, avec le mot de passe d'un administrateur.
+7. **Lecture des sonores** : `Machin grant-read` doit finir par le code 0 (`echo $?`). Ajouter à une banque un répertoire privé (`chmod 700`) : l'interface propose de le faire lire au service.
+8. **Plantage** : `sudo systemctl kill --signal=SIGSEGV machincast.service` ; le service redémarre 5 secondes plus tard, et un rapport s'ajoute dans `/var/log/machincast/crash-dump`, lisible depuis la session.
+9. **Retrait**, si besoin : `./install.sh --remove-service`, puis `wpctl status` montre de nouveau la carte de l'antenne dans la session ; `getent passwd machincast` ne répond plus rien ; les logs restent dans `/var/log/machincast`.
+
+Un échec à une étape : `journalctl --unit=machincast-pipewire.service --unit=machincast-wireplumber.service --unit=machincast.service --boot` dit pourquoi.
