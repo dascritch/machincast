@@ -16,7 +16,7 @@ from datetime import timedelta
 import gi
 
 gi.require_version("Gst", "1.0")
-from gi.repository import Gst  # noqa: E402
+from gi.repository import GLib, Gst  # noqa: E402
 
 from machincast.configuration import AudioOutput  # noqa: E402
 from machincast.i18n import _  # noqa: E402
@@ -171,6 +171,16 @@ class Presentation:
 ON_AIR = Presentation("MachinCast lecteur", _("On air"))
 PREVIEW = Presentation("MachinCast interface", _("Pre-listen"))
 TRIAL = Presentation("MachinCast installation", _("Test sound"))
+MONITORING = Presentation("MachinCast interface", _("On-air monitoring"))
+"""L'écoute de l'antenne, pour le vumètre de l'interface (https://github.com/dascritch/machincast/issues/343)."""
+
+
+def identify(presentation: Presentation, binary: str) -> None:
+	"""Nomme le processus auprès de GLib : le nom de l'application, et le binaire comme nom du programme
+	(https://github.com/dascritch/machincast/issues/343). Un client du serveur audio que MachinCast ne présente pas
+	lui-même, comme celui qui liste les périphériques, prend ce nom plutôt que celui de l'interpréteur, « python3.14 »."""
+	GLib.set_prgname(binary)
+	GLib.set_application_name(presentation.program)
 
 
 def _has_property(item: Gst.Element, name: str) -> bool:
@@ -204,17 +214,26 @@ def lock(item: Gst.Element) -> None:
 
 
 def present(output: Gst.Element, presentation: Presentation) -> None:
-	"""Le nom du programme, celui du flux et l'icône de MachinCast, pour une sortie PipeWire ou PulseAudio ; rien pour
-	une sortie qui n'en a pas l'usage (ALSA, factice)."""
+	"""Le nom du programme, celui du flux et l'icône de MachinCast, pour une sortie ou une source PipeWire ou
+	PulseAudio, en gardant ses autres propriétés de flux ; rien pour un élément qui n'en a pas l'usage (ALSA,
+	factice)."""
 	if not _has_property(output, "client-name"):
 		return
 	output.set_property("client-name", presentation.program)
-	properties = Gst.Structure.new_empty("proprietes")
+	client = Gst.Structure.new_empty("proprietes")
+	client.set_value("application.name", presentation.program)
+	for key in ICON_KEYS:
+		client.set_value(key, ICON)
+	if _has_property(output, "client-properties"):
+		output.set_property("client-properties", client.copy())
+	properties = output.get_property("stream-properties")
+	if properties is None:
+		properties = Gst.Structure.new_empty("proprietes")
+	else:
+		properties = properties.copy()
 	properties.set_value("application.name", presentation.program)
 	for key in ICON_KEYS:
 		properties.set_value(key, ICON)
-	if _has_property(output, "client-properties"):
-		output.set_property("client-properties", properties.copy())
 	properties.set_value("media.name", presentation.stream)
 	output.set_property("stream-properties", properties)
 

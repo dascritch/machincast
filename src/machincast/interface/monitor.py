@@ -100,11 +100,13 @@ def monitor_source(audio: Audio) -> Gst.Element:
 	if output == "pulseaudio":
 		source = _item("pulsesrc")
 		source.set_property("device", f"{device}.monitor")
+		outputs.present(source, outputs.MONITORING)
 		return _in_stereo(source)
 	source = _item("pipewiresrc")
 	source.set_property("target-object", device)
 	properties, _end = Gst.Structure.from_string("props, stream.capture.sink=(boolean)true")
 	source.set_property("stream-properties", properties)
+	outputs.present(source, outputs.MONITORING)
 	# Jamais l'écoute d'un autre périphérique que l'antenne (https://github.com/dascritch/machincast/issues/345).
 	outputs.lock(source)
 	return _in_stereo(source)

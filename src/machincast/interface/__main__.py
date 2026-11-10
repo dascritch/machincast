@@ -12,6 +12,7 @@ from collections.abc import Mapping, Sequence
 
 import psycopg
 
+from machincast import audio
 from machincast.cli import launch
 from machincast.clock import SystemClock
 from machincast.configuration import PROJECT_DIRECTORY, Configuration
@@ -58,6 +59,7 @@ def flag_database(configuration: Configuration, error: psycopg.Error) -> None:
 
 
 def run(configuration: Configuration, options: argparse.Namespace) -> int:
+	audio.identify(audio.PREVIEW, EXECUTABLE)
 	database = configuration.database
 	try:
 		connection = open_connection(database.socket, database.production, Role.INTERFACE)

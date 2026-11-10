@@ -15,7 +15,7 @@ from pathlib import Path
 
 import psycopg
 
-from machincast import crash
+from machincast import audio, crash
 from machincast.audio import UnavailableAudioOutput
 from machincast.cli import INVALID_CONFIGURATION_CODE, launch
 from machincast.clock import SystemClock
@@ -94,6 +94,7 @@ def own_options(analyser: argparse.ArgumentParser) -> None:
 
 
 def run(configuration: Configuration, options: argparse.Namespace) -> int:
+	audio.identify(audio.ON_AIR, EXECUTABLE)
 	if options.simulation is not None:
 		return run_simulation(configuration, options)
 	if (options.seed is not None) or (options.name is not None) or (options.directory is not None):
