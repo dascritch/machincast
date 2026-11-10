@@ -6,6 +6,7 @@
 - [Interface graphique : Machin interface](#interface-graphique--machin-interface)
 - [Maintenance de la base : Machin maintenance-db](#maintenance-de-la-base--machin-maintenance-db)
 - [Purge de la base : Machin purge](#purge-de-la-base--machin-purge)
+- [Lecture par le service de diffusion : Machin grant-read](#lecture-par-le-service-de-diffusion--machin-grant-read)
 - [Suivre le journal : Machin logs](#suivre-le-journal--machin-logs)
 - [Messages et codes de sortie](#messages-et-codes-de-sortie)
 - [Démarrages et fins dans le log](#démarrages-et-fins-dans-le-log)
@@ -27,6 +28,7 @@ Machin --help                         # aide complète
 | `Machin interface` | Interface graphique de supervision et de programmation. Pour l'instant, son [écran par défaut](#interface-graphique--machin-interface), les [listes](../utilisateur/listes.md#listes), les fiches d'un [événement](../utilisateur/grille.md#fiche-dun-événement), d'une [séquence](../utilisateur/grille.md#fiche-dune-séquence), d'une [banque](../utilisateur/sonores.md#fiche-dune-banque) et d'un [sonore](../utilisateur/sonores.md#fiche-dun-sonore). |
 | `Machin maintenance-db` | [Maintenance de la base de production](#maintenance-de-la-base--machin-maintenance-db) : sauvegarde, vérification du schéma et des rôles, optimisation. |
 | `Machin purge` | [Purge de la base de production](#purge-de-la-base--machin-purge) : efface ce qui dépasse la durée de péremption, jamais un fichier. |
+| `Machin grant-read` | [Lecture des sonores par le service de diffusion](#lecture-par-le-service-de-diffusion--machin-grant-read), qui tourne sous son propre compte. |
 | `Machin logs` | Suivi en direct du journal du service de diffusion. |
 
 **Options de `Machin`**, placées avant le nom du programme :
@@ -112,6 +114,31 @@ Elle dit, et écrit dans le log de la base, ligne `purge`, ce qu'elle a effacé,
 Code 0 quand la purge est faite ; 1 si la base est injoignable, ou sur une erreur de la base : rien n'est alors effacé. Comme la maintenance, elle se lance avec le compte de MachinCast, propriétaire de la base, qui efface sans endosser de rôle.
 
 **La durée** se règle dans `machincast.toml` ([Configuration](configuration.md#durée-de-péremption)), ou dans l'interface, **Fichier → Préférences…**, page **Base**. **Avec le service de diffusion** (`./install.sh --service`), un minuteur systemd la lance chaque jour à midi ([Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion)) ; ses messages se lisent par `journalctl --unit=machincast-purge.service`. Sans service, elle se lance à la main.
+
+## Lecture par le service de diffusion : Machin grant-read
+
+Le service de diffusion tourne sous son propre compte, `machincast` ([#381](https://github.com/dascritch/machincast/issues/381), [Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion)) : il ne lit les sonores que si les droits du poste le lui permettent. Un répertoire de banque dans un répertoire personnel, privé par défaut sous Ubuntu, lui est fermé. `Machin grant-read` lui en donne la lecture :
+
+```bash
+Machin grant-read                          # les répertoires des banques et les fichiers ajoutés de la base de production
+Machin grant-read /srv/sonores/jingles     # seulement ces chemins
+```
+
+Pour chaque chemin, il donne au compte `machincast`, par des ACL (`setfacl`, paquet `acl`) :
+
+- la **traversée** (`x`) des répertoires parents qui en manquent, sans le droit d'en lister le contenu ;
+- la **lecture** (`r`, et `x` des répertoires) du chemin, de tout ce qu'il contient, et, par l'ACL par défaut d'un répertoire, des fichiers qui s'y ajouteront.
+
+Rien d'autre ne change : ni le propriétaire, ni les droits de son groupe ou des autres, ni le contenu ou la date d'aucun fichier ([Les fichiers sonores ne sont jamais modifiés](configuration.md#les-fichiers-sonores-ne-sont-jamais-modifiés)). `ls -l` montre alors un `+` après les droits, et `getfacl` les détaille. Un chemin déjà lisible est seulement annoncé.
+
+`setfacl` ne change que ce qui appartient au compte qui le lance. Un répertoire d'un autre compte est signalé, avec la commande qu'un administrateur lance, par exemple :
+
+```text
+/srv/partage : machincast ne peut pas le traverser, et il appartient à un autre compte
+un administrateur peut lancer : sudo setfacl --modify=u:machincast:x /srv/partage
+```
+
+Code 0 quand le service lit tout ; 1 sinon, ou sans compte `machincast` : le service n'est pas installé, et `Machin player` lit avec le compte qui le lance. Depuis l'interface, **Maintenance → Faire lire les fichiers sonores au service de diffusion…** le lance dans un terminal, sur la base de l'interface ; l'ajout d'un répertoire à une banque, ou de fichiers à la liste des sonores, vérifie aussitôt que le service les lit, et propose sinon de les lui faire lire. Pendant la diffusion, un fichier que le service ne lit pas n'est pas joué : le log de la base le dit en alerte, `fichier illisible`, avec son chemin.
 
 ## Suivre le journal : Machin logs
 

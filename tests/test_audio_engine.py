@@ -382,6 +382,25 @@ def changed_size(context: Context) -> None:
 	os.utime(context.file, (state.st_atime, state.st_mtime))
 
 
+@given("le fichier n'est plus lisible par son compte")
+def unreadable(context: Context, request: pytest.FixtureRequest) -> None:
+	"""La copie du scénario, jamais un fichier sonore du dépôt ; ses droits reviennent à la fin du scénario."""
+	assert context.file is not None
+	file = context.file
+	mode = file.stat().st_mode
+	file.chmod(0o200)
+	request.addfinalizer(lambda: file.chmod(mode))
+
+
+@given("son répertoire n'est plus traversable par son compte")
+def not_crossable(context: Context, request: pytest.FixtureRequest) -> None:
+	assert context.file is not None
+	directory = context.file.parent
+	mode = directory.stat().st_mode
+	directory.chmod(0o600)
+	request.addfinalizer(lambda: directory.chmod(mode))
+
+
 @given("le fichier a été supprimé")
 def deleted(context: Context) -> None:
 	assert context.file is not None

@@ -2,9 +2,13 @@
 
 Le binaire lecture compare la date de modification et la taille du fichier avec celles que l'indexeur a
 enregistrées. Un écart est consigné dans le log, en alerte : le fichier est quand même joué, et c'est l'indexeur
-qui mettra la base à jour. Un fichier introuvable n'est pas joué : incident dans le log.
+qui mettra la base à jour. Un fichier introuvable n'est pas joué : incident dans le log. Un fichier que le compte de
+Machin player ne lit pas, ou dont il ne traverse pas un répertoire, n'est pas joué non plus : alerte dans le log, qui
+dit que Machin grant-read lui en donne la lecture (https://github.com/dascritch/machincast/issues/381).
 """
 
+import os
+import pwd
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -14,6 +18,20 @@ from psycopg.rows import TupleRow
 from machincast.conversion import integer_or_none
 from machincast.i18n import N_
 from machincast.player.history import IN_DATABASE, History
+
+
+def _unreadable(connection: psycopg.Connection[TupleRow], history: History, sound: int, path: Path) -> None:
+	"""Un fichier que le compte de Machin player ne lit pas : celui du service de diffusion, souvent, qui n'a pas reçu
+	la lecture d'un répertoire de banque (https://github.com/dascritch/machincast/issues/381)."""
+	history.record(
+		connection,
+		"warning",
+		N_("unreadable file"),
+		N_(
+			"{path}: Machin player, under the account {account}, cannot read it; Machin grant-read gives it access"
+		).format(path=path, account=pwd.getpwuid(os.getuid()).pw_name),
+		sound=sound,
+	)
 
 
 def check_before_playback(
@@ -37,6 +55,11 @@ def check_before_playback(
 		size = integer_or_none(line[2])
 		try:
 			state = path.stat()
+			if not os.access(path, os.R_OK):
+				raise PermissionError(path)
+		except PermissionError:
+			_unreadable(connection, history, sound, path)
+			return None
 		except OSError:
 			history.record(
 				connection,

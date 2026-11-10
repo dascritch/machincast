@@ -222,3 +222,17 @@ Fonctionnalité: Moteur audio GStreamer avec crossfade
 		Quand le binaire lecture vérifie ce fichier avant de le jouer
 		Alors le fichier n'est pas joué
 		Et le log contient un incident « fichier introuvable » pour ce sonore
+
+	Plan du scénario: Un fichier que Machin player ne lit pas n'est pas joué, et l'alerte dit comment lui en donner la lecture
+		https://github.com/dascritch/machincast/issues/381 : le service de diffusion tourne sous son propre compte.
+
+		Étant donné un sonore indexé pour le fichier de test « sain.flac »
+		Et <obstacle>
+		Quand le binaire lecture vérifie ce fichier avant de le jouer
+		Alors le fichier n'est pas joué
+		Et le log contient une alerte « fichier illisible » pour ce sonore, qui mentionne « Machin grant-read »
+
+		Exemples:
+			| obstacle                                         |
+			| le fichier n'est plus lisible par son compte     |
+			| son répertoire n'est plus traversable par son compte |

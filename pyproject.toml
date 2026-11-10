@@ -41,6 +41,7 @@ Machin_indexer = "machincast.indexer.__main__:main"
 Machin_interface = "machincast.interface.__main__:main"
 Machin_maintenance-db = "machincast.maintenance:main"
 Machin_purge = "machincast.purge:main"
+Machin_grant-read = "machincast.access:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

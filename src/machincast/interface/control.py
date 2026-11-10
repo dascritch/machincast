@@ -49,6 +49,11 @@ ABANDONED_MAINTENANCE = _("Database maintenance abandoned: nothing was launched.
 WITHOUT_TERMINAL_FOR_MAINTENANCE = _(
 	"No terminal found (konsole, x-terminal-emulator): run Machin maintenance-db by hand."
 )
+GRANT_READ = _("Let the broadcast service read the sound files…")
+"""L'entrée du menu « Maintenance » (https://github.com/dascritch/machincast/issues/381)."""
+LAUNCHED_GRANT_READ = _("Machin grant-read launched in a terminal: the bank directories and the added files.")
+WITHOUT_TERMINAL_FOR_GRANT_READ = _("No terminal found (konsole, x-terminal-emulator): run Machin grant-read by hand.")
+WITHOUT_SERVICE_ACCOUNT = _("Without the broadcast service, Machin player reads the sound files with your account.")
 STARTING = _("Broadcast starting…")
 STARTUP_WINDOW = 8.0
 """Secondes pendant lesquelles un service qui vient de démarrer est suivi : Machin player qui s'arrête dans ce délai,
@@ -172,6 +177,17 @@ def launch_maintenance(configuration: Path | None, backups: Path) -> str:
 	if open_terminal([*command, "maintenance-db", "--backups", str(backups), "--keep-open"]):
 		return LAUNCHED_MAINTENANCE
 	return WITHOUT_TERMINAL_FOR_MAINTENANCE
+
+
+def launch_grant_read(configuration: Path | None) -> str:
+	"""Machin grant-read sur la base de l'interface, dans un terminal qui dit ce qu'il fait, et ce qu'un administrateur
+	doit faire pour un répertoire d'un autre compte (https://github.com/dascritch/machincast/issues/381)."""
+	command = [str(PROJECT_DIRECTORY / "bin" / "Machin")]
+	if configuration is not None:
+		command += ["--config", str(configuration)]
+	if open_terminal([*command, "grant-read", "--keep-open"]):
+		return LAUNCHED_GRANT_READ
+	return WITHOUT_TERMINAL_FOR_GRANT_READ
 
 
 def _gap(configuration: Path | None) -> str:

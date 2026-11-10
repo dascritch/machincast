@@ -64,7 +64,7 @@ from machincast.clock import Clock
 from machincast.conformation import conform
 from machincast.conversion import text_or_none
 from machincast.i18n import _
-from machincast.interface import dialogs, display, preferences
+from machincast.interface import dialogs, display, preferences, service_access
 from machincast.interface.card import Card, Connection, Refusal, rank_of, sound_files
 from machincast.interface.columns import Columns
 from machincast.interface.dialogs import Removal
@@ -713,6 +713,14 @@ class BankCard(Card):
 			return
 		self._show_directories(present_list + list(dict.fromkeys(new_list)))
 		self._modify()
+		# Le service de diffusion, sous son propre compte, doit pouvoir les lire
+		# (https://github.com/dascritch/machincast/issues/381).
+		added = []
+		for directory in new_list:
+			added.append(Path(directory))
+		reading = service_access.offer(self, added)
+		if reading != "":
+			self.message.setText(reading)
 
 	def _drop_in_directories(self, paths: list[Path]) -> None:
 		"""Les dossiers déposés s'ajoutent aux répertoires ; un fichier est ignoré, et la fiche le dit."""

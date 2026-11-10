@@ -354,7 +354,7 @@ class Account:
 		return cls(entry.pw_name, grp.getgrgid(entry.pw_gid).gr_name, entry.pw_uid)
 
 
-SERVICE_ACCOUNT = "machincast"
+SERVICE_ACCOUNT = service.ACCOUNT
 """Le compte système du service de diffusion, et son groupe, où install.sh --service ajoute le compte de MachinCast
 (https://github.com/dascritch/machincast/issues/381) : les mêmes noms dans install.sh."""
 SERVICE_RUNTIME = service.RUNTIME

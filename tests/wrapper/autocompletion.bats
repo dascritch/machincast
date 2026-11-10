@@ -30,9 +30,9 @@ completer() {
 	[[ "${output}" == *"-F _Machin"* ]]
 }
 
-@test "Machin <TAB> propose les binaires, maintenance-db et purge compris, logs, dev, dev-test et dev-screenshots" {
+@test "Machin <TAB> propose les binaires, maintenance-db, purge et grant-read compris, logs, dev, dev-test et dev-screenshots" {
 	run completer Machin ""
-	[ "${output}" = "$(printf '%s\n' dev dev-screenshots dev-test indexer interface logs maintenance-db player purge)" ]
+	[ "${output}" = "$(printf '%s\n' dev dev-screenshots dev-test grant-read indexer interface logs maintenance-db player purge)" ]
 }
 
 @test "Machin dev-test <TAB> propose --scenarios" {
