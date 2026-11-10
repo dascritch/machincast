@@ -53,8 +53,12 @@ msgstr "{path} : lisible par {account}"
 
 #: machincast/access.py
 #, python-brace-format
-msgid "put the sound files in {welcome}, which the broadcast service reads"
-msgstr "déposer les sonores dans {welcome}, que le service de diffusion lit"
+msgid ""
+"put the sound files in {welcome}, which the broadcast service reads, or "
+"below /opt, /srv or /var, whose root it already crosses"
+msgstr ""
+"déposer les sonores dans {welcome}, que le service de diffusion lit, ou "
+"sous /opt, /srv ou /var, dont il traverse déjà la racine"
 
 #: machincast/access.py
 #: machincast/player/broadcast.py

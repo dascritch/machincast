@@ -271,3 +271,27 @@ def setfacl_only(root: Path, context: SimpleNamespace, path: str) -> None:
 	for arguments in context.setfacl:
 		targets.append(arguments[-1])
 	assert targets == [str(_path(root, path))]
+
+
+@given(
+	parsers.re(
+		r"le répertoire d'accueil « (?P<path>[^»]+) » en mode (?P<mode>\d+), que le service (?:ne )?traverse(?: pas)?"
+	)
+)
+def welcome_directory(
+	root: Path, monkeypatch: pytest.MonkeyPatch, context: SimpleNamespace, path: str, mode: str
+) -> None:
+	"""Sur le poste, il est au groupe du service, en 2750 ; ici, le service, un autre compte, le traverse par les
+	droits des autres."""
+	folder = _path(root, path)
+	folder.mkdir()
+	folder.chmod(int(mode, 8))
+	monkeypatch.setenv(access.WELCOME_ENVIRONMENT, str(folder))
+	context.before[folder] = folder.stat().st_mode
+
+
+@then(parsers.parse("les droits de « {path} » sont inchangés"))
+def rights_unchanged(root: Path, context: SimpleNamespace, path: str) -> None:
+	folder = _path(root, path)
+	assert folder.stat().st_mode == context.before[folder]
+	assert access._acl(folder) == []

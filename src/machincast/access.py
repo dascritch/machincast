@@ -6,9 +6,11 @@ le lui permet, hors des arborescences sensibles :
 
 - arborescences sensibles (sensitive_tree) : les répertoires personnels (personal_home : /home, sauf le répertoire
   d'accueil des sonores, /home/machincast, et le répertoire personnel de tout compte humain, /root compris), et les
-  arborescences du système (SYSTEM_TREES : /etc, /bin, /sbin, /usr, /var, /media, /mnt, /opt…). MachinCast n'y change
-  jamais aucun droit ; le service n'y lit que ce que les droits en place lui laissent lire, et jamais un répertoire
-  personnel ;
+  arborescences du système (SYSTEM_TREES : /etc, /bin, /sbin, /usr, /media, /mnt…). MachinCast n'y change jamais
+  aucun droit ; le service n'y lit que ce que les droits en place lui laissent lire, et jamais un répertoire
+  personnel. Le répertoire d'accueil des sonores, /opt, /srv et /var (LIBRARY_TREES) peuvent recevoir une discothèque :
+  leur racine ne change jamais et doit déjà se traverser, et les répertoires du système de /var (VAR_SYSTEM : lib,
+  log, cache…) restent sensibles ; ailleurs en dessous, la lecture se donne ;
 - lire : les répertoires parents se traversent (x), le fichier se lit (r), un répertoire se lit et se traverse (rx).
   Les droits se calculent comme le noyau, d'après le propriétaire, le groupe, les autres, et les ACL POSIX
   (attribut system.posix_acl_access) : entrée nommée du compte, groupes du compte, masque ;
@@ -134,13 +136,50 @@ def personal_home(path: Path) -> Path | None:
 	return None
 
 
+LIBRARY_TREES = (Path("/opt"), Path("/srv"), Path("/var"))
+"""Les arborescences du système qui peuvent recevoir une discothèque, avec le répertoire d'accueil des sonores : leur
+racine ne change jamais, et doit déjà se traverser ; en dessous, Machin grant-read peut donner la lecture."""
+VAR_SYSTEM = (
+	"backups",
+	"cache",
+	"crash",
+	"lib",
+	"lock",
+	"log",
+	"mail",
+	"run",
+	"snap",
+	"spool",
+	"tmp",
+)
+"""Les répertoires de /var qui sont au système, eux et tout ce qu'ils contiennent : jamais une discothèque."""
+
+
+def _library_tree(real: Path) -> tuple[bool, Path | None]:
+	"""Pour un chemin d'une arborescence de discothèque : vrai, et l'arborescence sensible qu'il touche (la racine de
+	l'arborescence, ou un répertoire du système de /var), None en dessous ; faux ailleurs."""
+	for tree in (_real(welcome()), *LIBRARY_TREES):
+		if real == tree:
+			return True, tree
+		if tree in real.parents:
+			top = tree / real.relative_to(tree).parts[0]
+			if (tree == Path("/var")) and (top.name in VAR_SYSTEM):
+				return True, top
+			return True, None
+	return False, None
+
+
 def sensitive_tree(path: Path) -> Path | None:
 	"""L'arborescence sensible où est le chemin, liens résolus : où MachinCast ne change jamais de droits. La racine
-	« / » elle-même en est une ; None ailleurs."""
+	« / » elle-même en est une. Sous /home/machincast, /opt, /srv et /var (hors de ses répertoires du système), seule la
+	racine l'est ; None ailleurs."""
 	real = _real(path)
 	home = personal_home(real)
 	if home is not None:
 		return home
+	library, tree = _library_tree(real)
+	if library:
+		return tree
 	if real == Path("/"):
 		return real
 	for tree in SYSTEM_TREES:
@@ -304,7 +343,10 @@ def grant(path: Path, account: Account) -> Grant:
 			)
 	if problems != []:
 		problems.append(
-			_("put the sound files in {welcome}, which the broadcast service reads").format(welcome=welcome())
+			_(
+				"put the sound files in {welcome}, which the broadcast service reads, or below /opt, /srv or /var, whose "
+				"root it already crosses"
+			).format(welcome=welcome())
 		)
 		return Grant(changed, problems)
 	uid = os.getuid()
