@@ -7,6 +7,8 @@
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM machincast_player, machincast_indexer, machincast_interface;
 REVOKE USAGE ON SCHEMA public FROM machincast_player, machincast_indexer, machincast_interface;
 
+DROP FUNCTION machincast_previous_start(text);
+
 DROP TABLE log;
 DROP TABLE airplay;
 DROP TABLE event_skips;
@@ -20,9 +22,11 @@ DROP TABLE bank_directories;
 DROP TABLE banks;
 DROP TABLE sounds;
 DROP TABLE feeds;
+DROP FUNCTION machincast_check_event_fallbacks();
 DROP FUNCTION machincast_check_event_fallback();
 DROP FUNCTION machincast_check_sound_fallback();
 DROP FUNCTION machincast_set_modified_at();
+DROP TYPE end_of_list;
 DROP TYPE crossfade_rule;
 DROP TYPE sound_state;
 DROP TYPE log_level;

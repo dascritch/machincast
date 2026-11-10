@@ -3,7 +3,9 @@
 -- Réunit, avant que le projet serve réellement, toutes les migrations d'avant
 -- (https://github.com/dascritch/machincast/issues/314), puis réécrit avec des noms anglais
 -- (https://github.com/dascritch/machincast/issues/358) : une base créée avec l'ancien schéma, en français
--- (0001.schema-initial), se recrée ; machincast.base.SchemaPerime la refuse.
+-- (0001.schema-initial), se recrée ; machincast.base.SchemaPerime la refuse. Les migrations 0002 à 0007 l'ont ensuite
+-- rejointe, MachinCast étant encore en alpha (https://github.com/dascritch/machincast/issues/381) : une base où elles
+-- sont appliquées garde le même schéma ; elles ne s'annulent plus.
 --
 -- Textes saisis à la main (noms, artiste, titre, nature) : varchar(255), même limite que l'interface.
 -- Chemins, URL et messages détaillés : text, leur longueur n'est pas bornée à l'avance.
@@ -13,10 +15,10 @@
 
 CREATE TYPE sound_type AS ENUM ('file', 'stream');
 CREATE TYPE bank_mode AS ENUM ('sequential', 'random');
--- Ordre croissant de priorité : background_programming (fil musical) < show (émission) < special. La priorité
--- fallback (secours), rangée en dessous, est hors grille : un événement de secours ne joue qu'à la place d'un stream
--- tombé (doc/fr/spec.md § 4.7).
-CREATE TYPE event_priority AS ENUM ('fallback', 'background_programming', 'show', 'special');
+-- Ordre croissant de priorité : background_programming (fil musical) < show (émission) < special < breaking
+-- (imprévu, https://github.com/dascritch/machincast/issues/402). La priorité fallback (secours), rangée en dessous, est
+-- hors grille : un événement de secours ne joue qu'à la place d'un stream tombé (doc/fr/spec.md § 4.7).
+CREATE TYPE event_priority AS ENUM ('fallback', 'background_programming', 'show', 'special', 'breaking');
 CREATE TYPE weekday AS ENUM ('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday');
 CREATE TYPE airplay_line_type AS ENUM ('start', 'end');
 CREATE TYPE log_level AS ENUM ('info', 'warning', 'incident');
@@ -36,6 +38,10 @@ CREATE TYPE sound_state AS ENUM ('preview', 'active', 'disabled', 'expired', 'co
 -- « sound » garde le crossfade du sonore, « default » donne celui de la banque à un sonore qui n'en a pas de
 -- paramétré, « forced » donne celui de la banque à tout sonore.
 CREATE TYPE crossfade_rule AS ENUM ('sound', 'default', 'forced');
+-- Ce qui suit la fin de la liste d'un événement, avant la fin de son occurrence
+-- (https://github.com/dascritch/machincast/issues/350) : la rejouer, laisser l'antenne au fil musical, passer à un
+-- secours, ou prêter son nom à l'événement en dessous (https://github.com/dascritch/machincast/issues/399).
+CREATE TYPE end_of_list AS ENUM ('replay', 'background_programming', 'fallback', 'lend_name');
 
 -- Mise à jour automatique de la colonne modified_at.
 CREATE FUNCTION machincast_set_modified_at() RETURNS trigger
@@ -52,7 +58,10 @@ $$;
 CREATE TABLE feeds (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	name varchar(255) NOT NULL UNIQUE,
-	url text NOT NULL
+	url text NOT NULL,
+	-- Mémoire tampon de ses streams (https://github.com/dascritch/machincast/issues/351).
+	buffer_duration interval NOT NULL DEFAULT '2 seconds',
+	CONSTRAINT feeds_buffer_duration CHECK (buffer_duration BETWEEN '2 seconds' AND '10 seconds')
 );
 
 COMMENT ON TABLE feeds IS 'Feeds : adresses de streams nommées, qu''un sonore stream peut suivre (feed_id).';
@@ -224,10 +233,21 @@ CREATE TABLE events (
 	-- Pas de fin sans début.
 	CONSTRAINT events_end_without_start CHECK (ends_at IS NULL OR starts_at IS NOT NULL),
 	CONSTRAINT events_order CHECK (ends_at > starts_at),
-	deleted_at timestamptz
+	-- Un imprévu n'a qu'une occurrence (https://github.com/dascritch/machincast/issues/402).
+	CONSTRAINT events_breaking_once CHECK (priority <> 'breaking' OR recurrence_days = '{}'),
+	deleted_at timestamptz,
+	-- Fin de liste et secours (https://github.com/dascritch/machincast/issues/350) : sans fin, la liste ne boucle
+	-- pas, rien à choisir ; un fil musical et un secours rejouent toujours leur liste.
+	end_of_list end_of_list NOT NULL DEFAULT 'replay',
+	end_fallback_event_id bigint REFERENCES events (id) ON DELETE SET NULL,
+	stream_fallback_event_id bigint REFERENCES events (id) ON DELETE SET NULL,
+	CONSTRAINT events_end_of_list
+		CHECK (end_of_list = 'replay' OR (ends_at IS NOT NULL AND priority IN ('show', 'special', 'breaking')))
 );
 
 CREATE UNIQUE INDEX events_internal_name_key ON events (internal_name) WHERE deleted_at IS NULL;
+CREATE INDEX events_end_fallback ON events (end_fallback_event_id);
+CREATE INDEX events_stream_fallback ON events (stream_fallback_event_id);
 
 COMMENT ON COLUMN events.deleted_at IS 'Demande de suppression depuis l''interface ; NULL : pas supprimé.';
 
@@ -270,6 +290,10 @@ BEGIN
 			RAISE EXCEPTION 'l''événement % sert de secours à un stream : il reste de priorité secours', NEW.id
 				USING ERRCODE = 'check_violation';
 		END IF;
+		IF EXISTS (SELECT 1 FROM events WHERE end_fallback_event_id = NEW.id OR stream_fallback_event_id = NEW.id) THEN
+			RAISE EXCEPTION 'l''événement % sert de secours à un événement : il reste de priorité secours', NEW.id
+				USING ERRCODE = 'check_violation';
+		END IF;
 	END IF;
 	RETURN NEW;
 END;
@@ -277,6 +301,30 @@ $$;
 
 CREATE TRIGGER events_fallback BEFORE UPDATE OF priority ON events
 	FOR EACH ROW EXECUTE FUNCTION machincast_check_event_fallback();
+
+-- Les secours qu'un événement désigne sont des événements de priorité fallback
+-- (https://github.com/dascritch/machincast/issues/350).
+CREATE FUNCTION machincast_check_event_fallbacks() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+	IF NEW.end_fallback_event_id IS NOT NULL THEN
+		IF NOT EXISTS (SELECT 1 FROM events WHERE id = NEW.end_fallback_event_id AND priority = 'fallback') THEN
+			RAISE EXCEPTION 'l''événement % n''est pas un événement de secours', NEW.end_fallback_event_id
+				USING ERRCODE = 'check_violation';
+		END IF;
+	END IF;
+	IF NEW.stream_fallback_event_id IS NOT NULL THEN
+		IF NOT EXISTS (SELECT 1 FROM events WHERE id = NEW.stream_fallback_event_id AND priority = 'fallback') THEN
+			RAISE EXCEPTION 'l''événement % n''est pas un événement de secours', NEW.stream_fallback_event_id
+				USING ERRCODE = 'check_violation';
+		END IF;
+	END IF;
+	RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER events_fallbacks BEFORE INSERT OR UPDATE OF end_fallback_event_id, stream_fallback_event_id ON events
+	FOR EACH ROW EXECUTE FUNCTION machincast_check_event_fallbacks();
 
 -- ─── Séquences ─────────────────────────────────────────────
 
@@ -370,6 +418,8 @@ CREATE TABLE airplay (
 	title varchar(255),
 	played_duration interval CHECK (played_duration >= '0 s'),
 	without_incident boolean,
+	-- L'événement qui prête son nom au passage (https://github.com/dascritch/machincast/issues/399).
+	lender_event_id bigint REFERENCES events (id) ON DELETE SET NULL,
 	CONSTRAINT airplay_one_start_one_end UNIQUE (play_id, line_type),
 	CONSTRAINT airplay_end_fields CHECK (
 		(line_type = 'start' AND played_duration IS NULL AND without_incident IS NULL)
@@ -381,6 +431,7 @@ CREATE INDEX airplay_logged_at ON airplay (logged_at);
 CREATE INDEX airplay_bank ON airplay (bank_id, logged_at);
 CREATE INDEX airplay_sound ON airplay (sound_id, logged_at);
 CREATE INDEX airplay_event ON airplay (event_id, logged_at);
+CREATE INDEX airplay_lender ON airplay (lender_event_id);
 
 -- ─── Log ───────────────────────────────────────────────────
 
@@ -397,6 +448,30 @@ CREATE TABLE log (
 
 CREATE INDEX log_logged_at ON log (logged_at);
 CREATE INDEX log_incidents ON log (logged_at) WHERE level <> 'info';
+
+-- Démarrages et fins des binaires dans le log (https://github.com/dascritch/machincast/issues/341,
+-- https://github.com/dascritch/machincast/issues/342) : chaque lancement note son démarrage, ligne « start »
+-- « <binaire> <version>, pid <pid>[: <options>] », et sa fin, ligne « end » « <binaire>, pid <pid>: exit code <code> ».
+-- Le dernier démarrage noté d'un binaire, son pid, et s'il a noté sa fin depuis ; aucune ligne s'il n'en a noté aucun.
+-- SECURITY DEFINER : elle lit le log avec les droits du propriétaire de la base, et ne rend que ces trois valeurs.
+CREATE FUNCTION machincast_previous_start(program text)
+RETURNS TABLE (started_at timestamptz, pid integer, ended boolean)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public
+AS $$
+	SELECT s.logged_at, p.pid, EXISTS (
+		SELECT FROM log e
+		WHERE e.kind = 'end' AND e.logged_at >= s.logged_at
+			AND starts_with(e.message, program || ', pid ' || p.pid || ':')
+	)
+	FROM log s
+	CROSS JOIN LATERAL (SELECT substring(s.message FROM ', pid ([0-9]+)')::integer AS pid) p
+	WHERE s.kind = 'start' AND starts_with(s.message, program || ' ') AND p.pid IS NOT NULL
+	ORDER BY s.logged_at DESC, s.id DESC
+	LIMIT 1
+$$;
+
+-- Une fonction est exécutable par tous à sa création : seuls les binaires et le propriétaire de la base s'en servent.
+REVOKE ALL ON FUNCTION machincast_previous_start(text) FROM PUBLIC;
 
 -- ─── Rôles et droits ───────────────────────────────────────
 --
@@ -430,6 +505,7 @@ GRANT SELECT ON sounds, feeds, banks, bank_sounds, events, event_items, event_sk
 GRANT UPDATE (state) ON sounds TO machincast_player;
 GRANT SELECT, INSERT ON airplay TO machincast_player;
 GRANT INSERT ON log TO machincast_player;
+GRANT EXECUTE ON FUNCTION machincast_previous_start(text) TO machincast_player;
 
 -- ─── Machin_indexer ─────────────────────────────────────
 -- Lit les banques et leurs répertoires, crée et met à jour les sonores, les rattache à leur banque.
@@ -439,6 +515,8 @@ GRANT INSERT ON log TO machincast_player;
 GRANT SELECT, INSERT, UPDATE ON sounds TO machincast_indexer;
 GRANT SELECT ON banks, bank_directories TO machincast_indexer;
 GRANT SELECT, INSERT, DELETE ON bank_sounds TO machincast_indexer;
+GRANT INSERT ON log TO machincast_indexer;
+GRANT EXECUTE ON FUNCTION machincast_previous_start(text) TO machincast_indexer;
 
 -- ─── Machin_interface ──────────────────────────────────────
 -- Gère toute la programmation ; consulte l'airplay et le log sans pouvoir les modifier.
